@@ -1138,9 +1138,6 @@ pub fn survives(body: &str) -> std::result::Result<(), &'static str> {
         if dollared(flat) {
             return Err("maths written between dollars");
         }
-        if noted(flat) {
-            return Err("footnotes");
-        }
         if linked(flat, said.get(at + 1).unwrap_or(&"")) {
             return Err("reference links");
         }
@@ -1264,26 +1261,6 @@ fn dollared(line: &str) -> bool {
             return true;
         }
         at = start + 2;
-    }
-    false
-}
-
-fn noted(line: &str) -> bool {
-    let bytes = line.as_bytes();
-    let mut at = 0;
-    while let Some(found) = line[at..].find("[^") {
-        let start = at + found;
-        at = start + 2;
-        if start > 0 && bytes[start - 1] == b'\\' {
-            continue;
-        }
-        let Some(end) = line[at..].find(']') else {
-            return false;
-        };
-        if end > 0 && !matches!(bytes.get(at + end + 1), Some(b'(') | Some(b'[')) {
-            return true;
-        }
-        at += end + 1;
     }
     false
 }

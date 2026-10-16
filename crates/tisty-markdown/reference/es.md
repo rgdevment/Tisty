@@ -23,6 +23,7 @@ Nada de esto hay que aprenderlo de memoria. El menú `/` y la barra del editor l
 | [Otros documentos y páginas](#otros-documentos-y-páginas) | `![Título](tisty:doc/…)` | no | no |
 | [Adjuntos](#adjuntos) | `![Etiqueta](archivo-1a2b3c4d.pdf)` | no | no |
 | [Referencias](#referencias) | `[[Nombre]]` `[[#2]]` | no | sí |
+| [Notas al pie](#notas-al-pie) | `[^1]` … `[^1]: nota` | sí | sí |
 | [Código](#bloques-de-código) | ` ```lenguaje title="nombre" ` | sí | sí |
 | [Diagramas](#diagramas-fórmulas-y-widgets) | ` ```mermaid ` | sí | sí |
 | [Fórmulas](#diagramas-fórmulas-y-widgets) | ` ```math ` y `$x$` | sí | solo `$x$` |
@@ -179,7 +180,7 @@ Un aviso es una cita cuya primera línea nombra su tipo entre corchetes. Cinco t
 - GitHub quiere la marca sola en su línea; Tisty también acepta palabras detrás, `> [!TIP] Lleva el rollo de repuesto.`, y esas palabras pasan a ser la primera línea del aviso.
 - Un tipo que Tisty no conoce, como `[!FOO]`, deja una cita normal.
 - Dentro de un aviso cabe casi todo (listas, código, rayas, una sección) siempre que cada línea lleve su `>`.
-- Los avisos se escriben solo así. Los bloques `:::note` o `:::tip`, como los escriben otras herramientas, no son avisos en Tisty (mira la sección siguiente).
+- Los mismos cinco tipos también se pueden escribir como lo hacen otras herramientas, como un bloque entre `:::tip` y un `:::` solo; Tisty lo dibuja como el mismo aviso.
 
 ## Secciones plegables
 
@@ -198,7 +199,7 @@ Nació en 2023. Séxtuple y antirrábica cada marzo.
 - La línea que abre, `:::details` y su título, va como párrafo propio: una línea en blanco antes y otra después. Lo mismo el `:::` que cierra.
 - Sin su `:::` de cierre no es sección: las dos líneas quedan tal como están escritas.
 - Una sección empieza plegada. Sin título después de `:::details`, muestra uno vacío.
-- Las secciones se anidan. Cualquier línea `:::palabra` abre un contenedor que cierra el siguiente `:::` solo, así que una sección dentro de otra, o un bloque `:::tip` escrito por otra herramienta, nunca se roba la valla de cierre. Solo `details` dibuja algo; los demás bloques `:::palabra` muestran sus líneas tal como están escritas.
+- Las secciones se anidan. Cualquier línea `:::palabra` abre un contenedor que cierra el siguiente `:::` solo, así que una sección dentro de otra, o un bloque `:::tip` escrito por otra herramienta, nunca se roba la valla de cierre. `details` se pliega y los cinco tipos de aviso dibujan un aviso; cualquier otro bloque `:::palabra` muestra sus líneas tal como están escritas.
 - También funcionan dentro de un aviso.
 - GitHub y Obsidian muestran las dos vallas como texto y todo lo de en medio desplegado. Tisty también dibuja un bloque `<details>` escrito en HTML, como los escribe GitHub, pero eso es HTML, que queda [fuera del lenguaje](#lo-que-queda-fuera-del-lenguaje).
 
@@ -283,6 +284,20 @@ Mira [[La cartilla de Rina]] y el paso [[#2]].
 - Un nombre vacío, o con un `[` o un salto de línea, no es referencia.
 - Obsidian lee `[[nombre]]` como enlace a una nota con ese nombre.
 
+## Notas al pie
+
+Una nota al pie del texto se llama con una etiqueta corta entre corchetes y con acento circunflejo, y se dice una vez en una línea propia:
+
+```markdown
+El veterinario lo confirmó[^vet].
+
+[^vet]: Visita del 3 de marzo, con el examen de sangre.
+```
+
+- La llamada se dibuja como una etiqueta pequeña y elevada que lleva a la nota; la nota queda donde está escrita, con su etiqueta al lado.
+- La etiqueta es cualquier palabra o número corto: `[^1]`, `[^vet]`.
+- GitHub y Obsidian las leen igual.
+
 ## Bloques de código
 
 Una valla de tres o más comillas invertidas (o virgulillas), el lenguaje detrás y, si quieres, un nombre:
@@ -365,7 +380,6 @@ Algunas cosas que escribe otro Markdown no tienen palabra en Tisty. Un documento
 - la cabecera (front matter) al principio del archivo (`---` … `---`),
 - el HTML de cualquier tipo: bloques, etiquetas dentro de una línea, comentarios y entidades como `&amp;`,
 - las fórmulas entre dólares dobles,
-- las notas al pie,
 - los enlaces escritos por referencia (`[palabras][uno]`),
 - lo que una valla de código diga después del lenguaje, aparte de un nombre,
 - un elemento de lista que empieza con un bloque en vez de palabras.

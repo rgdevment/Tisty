@@ -2654,6 +2654,32 @@ const AT: Record<string, number> = {
   "zoom-out": 1240,
 };
 
-export const known = (name: string): boolean => name in AT;
+// The window draws these on its own buttons; a document names only the icons the page can draw.
+const OWN = new Set([
+  "aligncenter",
+  "alignleft",
+  "alignright",
+  "bullets",
+  "checks",
+  "chevron",
+  "doc",
+  "emoji",
+  "grid",
+  "heading1",
+  "heading2",
+  "highlight",
+  "numbers",
+  "pagebreak",
+  "picture",
+  "plus",
+  "quote",
+  "rows",
+  "rule",
+  "table",
+  "tag",
+  "today",
+]);
+
+export const known = (name: string): boolean => name in AT && !OWN.has(name);
 
 export const markup = (name: string): string | null => (name in AT ? PATHS[AT[name]] : null);

@@ -227,15 +227,11 @@
   },
   {
     "text": "a claim[^1]\n\n[^1]: the source",
-    "why": [
-      "notes"
-    ]
+    "why": []
   },
   {
     "text": "a claim[^1] with no definition anywhere",
-    "why": [
-      "notes"
-    ]
+    "why": []
   },
   {
     "text": "see [the thread][one]\n\n[one]: https://example.com",

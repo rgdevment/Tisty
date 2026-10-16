@@ -149,8 +149,13 @@ class Folding extends WidgetType {
 // Any :::word opens a colon container, as the page reads it, so a nested one never steals its section's fence.
 const OPENS = /^:::[\p{L}\p{N}]/u;
 const DETAILS = /^:::details ?/;
+const CALLED = /^:::(note|tip|important|warning|caution)\s*$/i;
 
-type Fence = { readonly at: number; readonly head?: RegExpExecArray | null };
+type Fence = {
+  readonly at: number;
+  readonly head?: RegExpExecArray | null;
+  readonly called?: string;
+};
 
 // A fence counts only as a paragraph of its own, the way the page finds it.
 const fenced = (state: EditorState, at: number): string | null => {
@@ -177,18 +182,42 @@ const sections = (state: EditorState): [Fence, Fence][] => {
   for (let at = 1; at <= state.doc.lines; at++) {
     const text = fenced(state, at);
     if (text === null) continue;
-    if (OPENS.test(text)) open.push({ at, head: DETAILS.exec(text) });
+    if (OPENS.test(text))
+      open.push({ at, head: DETAILS.exec(text), called: CALLED.exec(text)?.[1].toLowerCase() });
     else if (text.trim() === ":::" && open.length) {
       const head = open.pop() as Fence;
-      if (head.head) found.push([head, { at }]);
+      if (head.head || head.called) found.push([head, { at }]);
     }
   }
   return found;
 };
 
+const called = (
+  state: EditorState,
+  shown: boolean,
+  from: number,
+  to: number,
+  kind: string,
+  out: Range<Decoration>[],
+) => {
+  for (let at = from; at <= to; at++) {
+    const line = state.doc.line(at);
+    out.push(Decoration.line({ class: `cm-callout cm-callout-${kind}` }).range(line.from));
+    const fence = at === from || at === to;
+    if (!fence || shown || touched(state, line.from, line.to) || line.from === line.to) continue;
+    const mark =
+      at === from ? Decoration.replace({ widget: new Said(kind) }) : Decoration.replace({});
+    out.push(mark.range(line.from, line.to));
+  }
+};
+
 const folded = (state: EditorState, shown: boolean, out: Range<Decoration>[]) => {
   if (!state.sliceDoc().includes(":::")) return;
   for (const [head, shut] of sections(state)) {
+    if (head.called) {
+      called(state, shown, head.at, shut.at, head.called, out);
+      continue;
+    }
     const top = state.doc.line(head.at);
     const from = top.from + top.text.length - top.text.trimStart().length;
     out.push(Decoration.line({ class: "cm-fold-head" }).range(top.from));
