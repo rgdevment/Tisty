@@ -984,7 +984,16 @@ fn taken_in(
             landed.missed += 1;
             continue;
         };
-        let body = brought(data, staged, &body, &mut carried, &mut landed, &mut ops);
+        let flat = manifest.version >= SPOKEN_FROM;
+        let body = brought(
+            data,
+            staged,
+            &body,
+            flat,
+            &mut carried,
+            &mut landed,
+            &mut ops,
+        );
         let body = match manifest.version < SPOKEN_FROM {
             true => tisty_markdown::to_tisty(&body),
             false => body,
@@ -1265,6 +1274,7 @@ fn brought(
     data: &Path,
     staged: &Path,
     body: &str,
+    flat: bool,
     carried: &mut BTreeMap<String, String>,
     landed: &mut Landed,
     ops: &mut Vec<Op>,
@@ -1275,13 +1285,19 @@ fn brought(
         .into_iter()
         .map(|one| one.target)
     {
-        let Some(packed) = crate::attach::leaf_of(&one).map(|leaf| match one.contains('/') {
-            true => one
-                .trim_start_matches('<')
-                .trim_end_matches('>')
-                .to_string(),
-            false => format!("{}/{leaf}", crate::attach::SHED),
-        }) else {
+        // A parcel from Tisty's own words keeps every file flat; an older one kept them where the link said.
+        let Some(packed) =
+            crate::attach::leaf_of(&one).map(|leaf| match flat || !one.contains('/') {
+                true => format!("{}/{leaf}", crate::attach::SHED),
+                false => one
+                    .trim_start_matches('<')
+                    .trim_end_matches('>')
+                    .split(['?', '#'])
+                    .next()
+                    .unwrap_or_default()
+                    .to_string(),
+            })
+        else {
             continue;
         };
         if !carried.contains_key(&one) {
@@ -1300,10 +1316,12 @@ fn brought(
             };
             landed.files += 1;
             ops.push(kept.told());
-            let leaf = crate::attach::leaf_of(&kept.at)
-                .unwrap_or(&kept.at)
-                .to_string();
-            carried.insert(one.clone(), leaf);
+            let leaf = crate::attach::leaf_of(&kept.at).unwrap_or(&kept.at);
+            let anchor = one.find(['?', '#']).map_or("", |at| &one[at..]);
+            carried.insert(
+                one.clone(),
+                format!("{leaf}{}", anchor.trim_end_matches('>')),
+            );
         }
         if let Some(now) = carried.get(&one)
             && *now != one

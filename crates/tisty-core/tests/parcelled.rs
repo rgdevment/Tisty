@@ -2219,6 +2219,12 @@ fn an_attachment_named_with_an_anchor_still_lands() {
     let landed = there.take_in(&box_at);
     assert_eq!(landed.files, 1, "the picture was left behind: {landed:?}");
     assert_eq!(landed.missed, 0);
+    let file = there.titled("Con ancla").file.clone();
+    assert!(
+        there.body(&file).contains("](foto-91f2ab00.png#arriba)"),
+        "{}",
+        there.body(&file)
+    );
 }
 
 fn with_manifest(
