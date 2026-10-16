@@ -14,8 +14,16 @@ pub(crate) async fn spoken(
         return Ok(());
     }
     let at = paths.clone();
-    let _ =
-        elsewhere(move || tisty_core::backup::before_a_change(&at, jiff::Timestamp::now())).await;
+    let kept =
+        elsewhere(move || tisty_core::backup::before_a_change(&at, jiff::Timestamp::now())).await?;
+    if let Err(e) = kept {
+        witness::warn(
+            channel::BACKUP,
+            "the store was left in its older words until a copy can be kept first",
+            &[("why", Fact::Why(e.to_string()))],
+        );
+        return Ok(());
+    }
     let spoke = elsewhere(move || tisty_core::speaking::speak(&data, &docs)).await?;
     witness::note(
         channel::STORE,

@@ -39,7 +39,9 @@ impl App {
         if tisty_core::speaking::spoken(&data) {
             return;
         }
-        let _ = tisty_core::backup::before_a_change(&self.paths, jiff::Timestamp::now());
+        if tisty_core::backup::before_a_change(&self.paths, jiff::Timestamp::now()).is_err() {
+            return;
+        }
         let spoke = tisty_core::speaking::speak(&data, &docs);
         for (file, _) in &spoke.docs {
             if let Ok(body) = tisty_core::docs::read(&docs, file) {
