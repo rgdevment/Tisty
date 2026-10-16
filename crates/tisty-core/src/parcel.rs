@@ -14,7 +14,9 @@ use crate::{
 
 pub const EXTENSION: &str = "tistyx";
 const KIND: &str = "tisty-docs";
-const VERSION: u32 = 2;
+const VERSION: u32 = 3;
+/// From here a parcel speaks Tisty's own words; what an older one says is turned on its way in.
+const SPOKEN_FROM: u32 = 3;
 const MANIFEST: &str = "tisty-docs.json";
 const READING: &str = "README.txt";
 const READ_ME: &str = "This is a Tisty parcel.
@@ -560,16 +562,7 @@ fn filled(
             .collect(),
     };
 
-    // A parcel that says nothing new is one an older Tisty can still open, and its seal only
-    // adds up when the manifest is the same bytes on both sides.
-    manifest.version = match manifest
-        .docs
-        .iter()
-        .any(|one| one.away_alone.is_some() || one.flagged.is_some())
-    {
-        true => VERSION,
-        false => 1,
-    };
+    manifest.version = VERSION;
     manifest.seal = crate::store::secret(paths).and_then(|keep| sealed(&manifest, &keep));
 
     let weighs = serde_json::to_string(&manifest)?.len() as u64;
@@ -991,7 +984,20 @@ fn taken_in(
             landed.missed += 1;
             continue;
         };
-        let body = brought(data, staged, &body, &mut carried, &mut landed, &mut ops);
+        let flat = manifest.version >= SPOKEN_FROM;
+        let body = brought(
+            data,
+            staged,
+            &body,
+            flat,
+            &mut carried,
+            &mut landed,
+            &mut ops,
+        );
+        let body = match manifest.version < SPOKEN_FROM {
+            true => tisty_markdown::to_tisty(&body),
+            false => body,
+        };
 
         let up = paper
             .page_of
@@ -1268,20 +1274,35 @@ fn brought(
     data: &Path,
     staged: &Path,
     body: &str,
+    flat: bool,
     carried: &mut BTreeMap<String, String>,
     landed: &mut Landed,
     ops: &mut Vec<Op>,
 ) -> String {
     let mut told = body.to_string();
-    for one in crate::refs::extract(body).into_iter().map(|one| one.target) {
-        if !crate::attach::names_an_attachment(&one) {
+    // The link as the parcel wrote it, which is also where its file sits inside the parcel.
+    for one in tisty_markdown::refs::extract(body)
+        .into_iter()
+        .map(|one| one.target)
+    {
+        // A parcel from Tisty's own words keeps every file flat; an older one kept them where the link said.
+        let Some(packed) =
+            crate::attach::leaf_of(&one).map(|leaf| match flat || !one.contains('/') {
+                true => format!("{}/{leaf}", crate::attach::SHED),
+                false => one
+                    .trim_start_matches('<')
+                    .trim_end_matches('>')
+                    .split(['?', '#'])
+                    .next()
+                    .unwrap_or_default()
+                    .to_string(),
+            })
+        else {
             continue;
-        }
+        };
         if !carried.contains_key(&one) {
-            let Ok(said) = crate::attach::resolve(&one, Path::new("")) else {
-                continue;
-            };
-            let Some(at) = safe(&said.to_string_lossy().replace(char::from(92), "/")) else {
+            // Not `resolve`, which reads any attachment as its flat name: an older parcel kept its shelves.
+            let Some(at) = crate::attach::decoded(&packed).and_then(|one| safe(&one)) else {
                 continue;
             };
             let from = staged.join(at);
@@ -1295,7 +1316,12 @@ fn brought(
             };
             landed.files += 1;
             ops.push(kept.told());
-            carried.insert(one.clone(), kept.at);
+            let leaf = crate::attach::leaf_of(&kept.at).unwrap_or(&kept.at);
+            let anchor = one.find(['?', '#']).map_or("", |at| &one[at..]);
+            carried.insert(
+                one.clone(),
+                format!("{leaf}{}", anchor.trim_end_matches('>')),
+            );
         }
         if let Some(now) = carried.get(&one)
             && *now != one

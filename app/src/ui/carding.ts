@@ -10,8 +10,7 @@ export type Carded =
   | { readonly kind: "self"; readonly title: string }
   | { readonly kind: "gone" };
 
-const spanless = (line: string): string =>
-  line.replace(/<span[^>]*data-ico="([^"]*)"[^>]*>[\s\S]*?<\/span>/g, ":$1:");
+const spanless = (line: string): string => line.replace(/::([a-z0-9-]+)(?: [a-z]+)?::/g, ":$1:");
 
 export const glimpsed = (body: string): string =>
   body

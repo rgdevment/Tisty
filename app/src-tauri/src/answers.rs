@@ -14,6 +14,7 @@ pub mod reporting;
 pub mod rifts;
 pub mod settings;
 pub mod shelves;
+pub mod spoken;
 pub mod storing;
 pub mod tasks;
 pub mod updating;

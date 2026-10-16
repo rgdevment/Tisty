@@ -212,9 +212,10 @@ pub fn guide(
             .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
         told_of.push(kept.told());
         // A title after the path, as in `](walks.html "file")`, keeps the attachment drawn as a file.
+        let leaf = tisty_core::attach::leaf_of(&kept.at).unwrap_or(&kept.at);
         for (was, named) in [
-            (format!("]({shot})"), format!("](<{}>)", kept.at)),
-            (format!("]({shot} \""), format!("](<{}> \"", kept.at)),
+            (format!("]({shot})"), format!("]({leaf})")),
+            (format!("]({shot} \""), format!("]({leaf} \"")),
         ] {
             body = body.replace(&was, &named);
             for (_, one) in pages.iter_mut() {

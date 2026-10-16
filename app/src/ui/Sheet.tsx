@@ -7,7 +7,6 @@ import type { Carded } from "./carding";
 import Page from "./Page";
 import type { Head } from "./paging";
 import { ASIDE_MARGIN, settles } from "./seeking";
-import { translated } from "./translating";
 
 type Props = {
   readonly file?: string;
@@ -109,7 +108,6 @@ export default function Sheet(props: Readonly<Props>) {
     let end = at[1];
     const piece = latest.current.slice(from, end);
     const tail = /\r?\n$/.exec(piece)?.[0] ?? "";
-    const tisty = translated(piece);
     const spliced = (text: string) => {
       const now = latest.current;
       const next = `${now.slice(0, from)}${text}${tail}${now.slice(end)}`;
@@ -118,13 +116,12 @@ export default function Sheet(props: Readonly<Props>) {
     };
     open.current = edited(
       element,
-      tisty.shown,
-      (text) => written(spliced(tisty.stored(text))),
+      piece,
+      (text) => written(spliced(text)),
       () => {
         open.current = null;
         setDrawn(latest.current);
       },
-      tisty.active,
     );
   };
 

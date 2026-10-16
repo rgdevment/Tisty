@@ -14,13 +14,12 @@ fn what_answered_for_its_name_is_remembered_past_this_launch() {
     let loose = room.path().join("loose.mp4");
     std::fs::write(&loose, b"lo que pesa").unwrap();
     let (sha256, _) = tisty_core::attach::hashed(&loose).unwrap();
-    let shelf = &sha256[..2];
     let leaf = format!("charla-{}.mp4", &sha256[2..10]);
-    let at = room.path().join("attachments").join(shelf);
+    let at = room.path().join("attachments");
     std::fs::create_dir_all(&at).unwrap();
     let file = at.join(&leaf);
     std::fs::copy(&loose, &file).unwrap();
-    let reference = format!("attachments/{shelf}/{leaf}");
+    let reference = format!("attachments/{leaf}");
 
     assert_eq!(
         vouching::vouches(&file, &reference, None),
@@ -45,10 +44,10 @@ fn a_file_icloud_took_away_is_not_read_as_one_that_was_lost() {
 
     let here = tempfile::tempdir().unwrap();
     let shared = tempfile::tempdir().unwrap();
-    let reference = "attachments/cd/charla-e5f6a7b8.mp4";
-    let shelf = shared.path().join("attachments/cd");
-    std::fs::create_dir_all(&shelf).unwrap();
-    std::fs::write(shelf.join(".charla-e5f6a7b8.mp4.icloud"), b"a few bytes").unwrap();
+    let reference = "attachments/charla-e5f6a7b8.mp4";
+    let shed = shared.path().join("attachments");
+    std::fs::create_dir_all(&shed).unwrap();
+    std::fs::write(shed.join(".charla-e5f6a7b8.mp4.icloud"), b"a few bytes").unwrap();
 
     // Off a Mac nothing can be asked back, but it is still told apart from what is gone.
     let told = finding::found_in(reference, here.path(), Some(shared.path()), None);
@@ -64,7 +63,7 @@ fn a_file_icloud_took_away_is_not_read_as_one_that_was_lost() {
     }
     assert!(matches!(
         finding::found_in(
-            "attachments/ab/nope-00000000.txt",
+            "attachments/nope-00000000.txt",
             here.path(),
             Some(shared.path()),
             None
@@ -138,7 +137,7 @@ fn what_was_really_handed_over_is_written_down_and_a_refusal_is_not() {
         "handing it over wrote down no day"
     );
 
-    let never = "attachments/ab/nope-00000000.txt".to_string();
+    let never = "attachments/nope-00000000.txt".to_string();
     assert!(crate::answers::attaching::read_out(never.clone(), looking()).is_err());
     assert_eq!(
         tisty_core::lately::last(&reached, &never),
@@ -282,7 +281,7 @@ fn an_attachment_is_looked_for_here_first_and_then_where_it_is_shared() {
         "without a shared folder there is nowhere else to look"
     );
     assert!(matches!(
-        finding::found_in("attachments/ab/nope-00000000.txt", here.path(), None, None),
+        finding::found_in("attachments/nope-00000000.txt", here.path(), None, None),
         finding::Sought::No
     ));
     let lying = shared.path().join(theirs);
@@ -369,6 +368,8 @@ fn a_file_swapped_with_the_same_size_and_the_same_second_is_read_again() {
     std::fs::write(&at, b"lo grabado").unwrap();
     assert!(matches!(ask(), finding::Sought::At(_)));
     let was = std::fs::metadata(&at).unwrap().modified().unwrap();
+    // Windows stamps a change with a clock that ticks every ~16ms; a rewrite inside one tick looks unchanged.
+    std::thread::sleep(std::time::Duration::from_millis(50));
     let in_place = std::fs::OpenOptions::new().write(true).open(&at).unwrap();
     std::io::Write::write_all(&mut &in_place, b"lo cambiad").unwrap();
     in_place.set_modified(was).unwrap();

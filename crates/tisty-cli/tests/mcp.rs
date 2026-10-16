@@ -636,7 +636,7 @@ fn a_file_kept_in_a_document_is_added_at_its_end() {
         whole.starts_with("# Acta\n\nlo que se habló."),
         "what was written stays where it was: {whole}"
     );
-    assert!(whole.contains("![el plano](<attachments/"), "{whole}");
+    assert!(whole.contains("![el plano](plano-"), "{whole}");
     assert_eq!(
         walked(&served.home.path().join("data/attachments")).count(),
         1,
@@ -720,7 +720,7 @@ fn a_document_already_full_of_files_is_told_so_before_anything_is_copied() {
     served.cli(&["agent", "--on"]);
     let doc = wrote_paper(&served, "# El álbum\n\nlo que fuimos guardando.");
     let many: String = (0..150)
-        .map(|i| format!("![uno {i}](<attachments/ab/uno{i}.png>)\n\n"))
+        .map(|i| format!("![uno {i}](uno-{i:08x}.png)\n\n"))
         .collect();
     // As the window leaves it when a person drops that many in; no tool writes those lines.
     std::fs::write(

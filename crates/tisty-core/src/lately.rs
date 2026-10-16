@@ -20,7 +20,14 @@ pub fn every(at: &Path) -> Used {
 
 fn read(at: &Path) -> std::io::Result<Used> {
     match std::fs::read_to_string(at) {
-        Ok(said) => serde_json::from_str(&said).map_err(std::io::Error::other),
+        // Days written under a shelf name are the same attachment's under its one name now.
+        Ok(said) => serde_json::from_str::<Used>(&said)
+            .map(|seen| {
+                seen.into_iter()
+                    .map(|(named, when)| (plain(&named), when))
+                    .collect()
+            })
+            .map_err(std::io::Error::other),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Used::default()),
         Err(e) => Err(e),
     }
@@ -51,13 +58,13 @@ fn held(at: &Path) -> std::io::Result<Used> {
 }
 
 pub fn last(at: &Path, reference: &str) -> Option<u64> {
-    every(at).get(plain(reference)).copied()
+    every(at).get(&plain(reference)).copied()
 }
 
 /// The day it counts as reached: its own, or the day the file began or forgot older ones, whichever is later.
 pub fn reached(at: &Path, reference: &str) -> Option<u64> {
     let seen = read(at).unwrap_or_default();
-    [seen.get(plain(reference)), seen.get(SINCE)]
+    [seen.get(&plain(reference)), seen.get(SINCE)]
         .into_iter()
         .flatten()
         .copied()
@@ -80,12 +87,12 @@ pub fn used_on(at: &Path, reference: &str, when: u64) {
     };
     let reference = plain(reference);
     if seen
-        .get(reference)
+        .get(&reference)
         .is_some_and(|said| *said <= when && when - said < NO_SOONER_THAN)
     {
         return;
     }
-    seen.insert(reference.to_string(), when);
+    seen.insert(reference, when);
     while seen.len() > KEPT_AT_MOST + 1 {
         let Some(oldest) = seen
             .iter()
@@ -110,8 +117,14 @@ fn written(at: &Path, seen: &Used) -> std::io::Result<()> {
     crate::store::write_atomic(at, &body).map_err(std::io::Error::other)
 }
 
-fn plain(reference: &str) -> &str {
-    reference.split(['#', '?']).next().unwrap_or(reference)
+fn plain(reference: &str) -> String {
+    crate::attach::canonical(reference).unwrap_or_else(|| {
+        reference
+            .split(['#', '?'])
+            .next()
+            .unwrap_or(reference)
+            .to_string()
+    })
 }
 
 fn told_unwritten(at: &Path, why: &str) {

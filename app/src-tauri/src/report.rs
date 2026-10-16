@@ -87,16 +87,16 @@ pub struct Held {
 
 pub fn attachments(root: &Path) -> Held {
     let mut held = Held { files: 0, bytes: 0 };
-    let Ok(shelves) = std::fs::read_dir(root.join("attachments")) else {
+    let Ok(files) = std::fs::read_dir(root.join(tisty_core::attach::SHED)) else {
         return held;
     };
-    for shelf in shelves.filter_map(|one| one.ok()) {
-        let Ok(files) = std::fs::read_dir(shelf.path()) else {
+    for file in files.filter_map(|one| one.ok()) {
+        let Ok(told) = file.metadata() else {
             continue;
         };
-        for file in files.filter_map(|one| one.ok()) {
+        if told.is_file() {
             held.files += 1;
-            held.bytes += file.metadata().map(|m| m.len()).unwrap_or(0);
+            held.bytes += told.len();
         }
     }
     held

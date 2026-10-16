@@ -1,0 +1,143 @@
+use tisty_markdown::to_tisty;
+
+#[test]
+fn a_pen_the_old_tag_wrote_becomes_tisty_words() {
+    assert_eq!(to_tisty("a <mark>b</mark> c"), "a ==b== c");
+    assert_eq!(
+        to_tisty("a <mark data-pen=\"green\">b</mark> c"),
+        "a ==b=={green} c"
+    );
+    assert_eq!(to_tisty("<mark data-pen=\"yellow\">b</mark>"), "==b==");
+}
+
+#[test]
+fn what_a_pen_held_keeps_its_own_marks() {
+    assert_eq!(
+        to_tisty("<mark data-pen=\"blue\">**bold** and [a](https://a.b)</mark>"),
+        "==**bold** and [a](https://a.b)=={blue}"
+    );
+}
+
+#[test]
+fn a_space_inside_the_old_tag_moves_out_of_the_walls() {
+    assert_eq!(to_tisty("a<mark> b </mark>c"), "a ==b== c");
+    assert_eq!(to_tisty("a <mark></mark>c"), "a c");
+}
+
+#[test]
+fn an_underline_and_an_icon_say_it_the_short_way() {
+    assert_eq!(to_tisty("<u>sí</u> y <U>no</U>"), "++sí++ y ++no++");
+    assert_eq!(
+        to_tisty("<span data-ico=\"dog\" data-hue=\"orange\">:dog:</span> perro"),
+        "::dog orange:: perro"
+    );
+    assert_eq!(
+        to_tisty("<span data-ico=\"star\">:star:</span>"),
+        "::star::"
+    );
+}
+
+#[test]
+fn a_hue_the_palette_lacks_is_dropped_and_an_unknown_icon_is_left_alone() {
+    assert_eq!(
+        to_tisty("<span data-ico=\"star\" data-hue=\"chartreuse\">:star:</span>"),
+        "::star::"
+    );
+    let stranger = "<span data-ico=\"nadaquever\">:x:</span>";
+    assert_eq!(to_tisty(stranger), stranger);
+}
+
+#[test]
+fn code_keeps_the_tags_it_shows_as_written() {
+    let body = "Write `<mark>x</mark>` like this:\n\n```html\n<u>y</u>\n```\n";
+    assert_eq!(to_tisty(body), body);
+}
+
+#[test]
+fn a_tag_left_open_is_not_guessed_at() {
+    let body = "a <mark>b and on\n\nnext";
+    assert_eq!(to_tisty(body), body);
+}
+
+#[test]
+fn tables_lists_and_quotes_turn_too_and_nothing_else_moves() {
+    let body = "| a | b |\n| - | - |\n| <mark data-pen=\"pink\">x</mark> | y |\n\n- <u>z</u>\n\n> [!TIP]\n> <span data-ico=\"leaf\" data-hue=\"green\">:leaf:</span> ok\n";
+    assert_eq!(
+        to_tisty(body),
+        "| a | b |\n| - | - |\n| ==x=={pink} | y |\n\n- ++z++\n\n> [!TIP]\n> ::leaf green:: ok\n"
+    );
+}
+
+#[test]
+fn turning_twice_is_turning_once() {
+    let body = "<mark data-pen=\"green\">a</mark> <u>b</u> <span data-ico=\"star\">:star:</span>";
+    let once = to_tisty(body);
+    assert_eq!(to_tisty(&once), once);
+}
+
+#[test]
+fn an_attachment_is_named_by_its_stamped_name_alone() {
+    assert_eq!(
+        to_tisty(
+            "![plano](<attachments/23/plano-0006bf09.png>) y [acta](attachments/ab/acta-1234abcd.pdf)"
+        ),
+        "![plano](plano-0006bf09.png) y [acta](acta-1234abcd.pdf)"
+    );
+    assert_eq!(
+        to_tisty("![p](<attachments/a1/pagina-12345678.html> \"file\")"),
+        "![p](pagina-12345678.html \"file\")"
+    );
+}
+
+#[test]
+fn a_link_that_names_no_kept_file_stays_as_it_was() {
+    let body =
+        "[web](https://x.y/z-12345678.png) ![ya](plano-0006bf09.png) ![x](<attachments/x.png>)";
+    assert_eq!(to_tisty(body), body);
+}
+
+#[test]
+fn a_reader_outside_tisty_gets_what_markdown_can_say_and_the_tags_any_reader_passes_over() {
+    use tisty_markdown::to_plain;
+    assert_eq!(
+        to_plain("Un ==azul=={blue}, ==amarillo==, ++sub++ y ::flag red::"),
+        "Un <mark data-pen=\"blue\">azul</mark>, <mark>amarillo</mark>, sub y <span data-ico=\"flag\" data-hue=\"red\">:flag:</span>"
+    );
+    let linked = "![p](plano-0006bf09.png) y [web](https://x.y)";
+    assert_eq!(to_plain(linked), linked);
+}
+
+#[test]
+fn what_a_person_wrote_as_code_or_plain_markdown_reaches_the_reader_untouched() {
+    use tisty_markdown::to_plain;
+    let teaching = "Así se subraya:\n\n```\n++hola++\n```\n\ny `==así==`";
+    assert_eq!(to_plain(teaching), teaching);
+    let whole = "# Título\n\n**fuerte** y *suave*\n\n- uno\n- dos\n\n| a | b |\n| --- | --- |\n| 1 | 2 |\n\nsi a < b entonces";
+    assert_eq!(to_plain(whole), whole);
+}
+
+#[test]
+fn what_goes_out_plain_comes_back_in_tisty_words_but_the_underline() {
+    use tisty_markdown::{to_plain, to_tisty};
+    let body = "==azul=={blue} y ==sí== y ::star:: y ![p](plano-0006bf09.png)";
+    assert_eq!(to_tisty(&to_plain(body)), body);
+}
+
+#[test]
+fn an_old_tag_the_short_words_cannot_hold_stays_as_it_was() {
+    for body in [
+        "un<u>der</u>line",
+        "<u>C++ guide</u>",
+        "<mark data-pen=\"violet\">x</mark>",
+    ] {
+        assert_eq!(to_tisty(body), body);
+    }
+}
+
+#[test]
+fn an_icon_written_against_a_word_gets_the_room_to_stay_one() {
+    assert_eq!(
+        to_tisty("<span data-ico=\"home\">:home:</span>Casa"),
+        "::home:: Casa"
+    );
+}

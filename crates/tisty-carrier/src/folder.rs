@@ -20,34 +20,26 @@ impl Folder {
     }
 
     fn shelved(&self, reference: &str) -> Option<PathBuf> {
-        let shelved = reference
-            .strip_prefix("attachments/")
-            .and_then(|rest| rest.split_once('/'))
-            .is_some_and(|(under, leaf)| tisty_core::attach::shelved(under, leaf));
+        let ours = tisty_core::attach::names_an_attachment(reference);
         tisty_core::attach::resolve(reference, &self.at)
             .ok()
-            .filter(|at| shelved && at.is_file())
+            .filter(|at| ours && at.is_file())
     }
 
     fn on_the_shelf(&self) -> BTreeMap<String, u64> {
         let mut found = BTreeMap::new();
-        let shelves = std::fs::read_dir(self.at.join("attachments"))
+        let shed = tisty_core::attach::SHED;
+        for leaf in std::fs::read_dir(self.at.join(shed))
             .into_iter()
-            .flatten();
-        for shelf in shelves.flatten() {
-            let under = shelf.file_name().to_string_lossy().into_owned();
-            for leaf in std::fs::read_dir(shelf.path())
-                .into_iter()
-                .flatten()
-                .flatten()
+            .flatten()
+            .flatten()
+        {
+            let named = leaf.file_name().to_string_lossy().into_owned();
+            let file = leaf.metadata().ok().filter(std::fs::Metadata::is_file);
+            if let Some(told) = file
+                && tisty_core::attach::stamped(&named)
             {
-                let named = leaf.file_name().to_string_lossy().into_owned();
-                let file = leaf.metadata().ok().filter(std::fs::Metadata::is_file);
-                if let Some(told) = file
-                    && tisty_core::attach::shelved(&under, &named)
-                {
-                    found.insert(format!("attachments/{under}/{named}"), told.len());
-                }
+                found.insert(format!("{shed}/{named}"), told.len());
             }
         }
         found

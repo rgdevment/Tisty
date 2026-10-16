@@ -62,14 +62,9 @@ pub(crate) fn landed_whole(
     };
     match told {
         Some((ours, _)) => ours.eq_ignore_ascii_case(&sha256),
-        None => shelved_as(reference)
-            .is_some_and(|(under, named)| tisty_core::attach::vouched(under, named, &sha256)),
+        None => tisty_core::attach::leaf_of(reference)
+            .is_some_and(|named| tisty_core::attach::vouched(named, &sha256)),
     }
-}
-
-pub(crate) fn shelved_as(reference: &str) -> Option<(&str, &str)> {
-    let rest = reference.strip_prefix("attachments/")?;
-    rest.split_once('/')
 }
 
 pub fn let_go_telling(
@@ -80,53 +75,40 @@ pub fn let_go_telling(
     told: &mut dyn FnMut(&LetGo) -> bool,
 ) -> Result<LetGo, Trouble> {
     let mut done = LetGo::default();
-    let shed = data.join(HELD);
-    let Ok(shelves) = std::fs::read_dir(&shed) else {
+    let Ok(files) = std::fs::read_dir(data.join(HELD)) else {
         return Ok(done);
     };
-    for shelf in shelves.filter_map(|one| one.ok()) {
-        if !shelf.path().is_dir() {
-            continue;
-        }
-        let Ok(files) = std::fs::read_dir(shelf.path()) else {
+    for file in files.filter_map(|one| one.ok()) {
+        let at = file.path();
+        let Ok(about) = std::fs::metadata(&at) else {
             continue;
         };
-        for file in files.filter_map(|one| one.ok()) {
-            let at = file.path();
-            let Ok(about) = std::fs::metadata(&at) else {
-                continue;
-            };
-            let weighs = about.len();
-            if !about.is_file() || weighs <= above {
-                continue;
-            }
-            let under = shelf.file_name();
-            let (Some(under), Some(named)) =
-                (under.to_str(), at.file_name().and_then(|n| n.to_str()))
-            else {
-                continue;
-            };
-            let reference = format!("attachments/{under}/{named}");
-            match twinned(
-                &dest.join(HELD).join(under).join(named),
-                weighs,
-                under,
-                named,
-                &reference,
-                elsewhere,
-            ) {
-                true => {
-                    if std::fs::remove_file(&at).is_ok() {
-                        done.gone += 1;
-                        done.freed += weighs;
-                        done.let_go.push(reference);
-                    }
+        let weighs = about.len();
+        if !about.is_file() || weighs <= above {
+            continue;
+        }
+        let Some(named) = at.file_name().and_then(|n| n.to_str()) else {
+            continue;
+        };
+        let reference = format!("{HELD}/{named}");
+        match twinned(
+            &dest.join(HELD).join(named),
+            weighs,
+            named,
+            &reference,
+            elsewhere,
+        ) {
+            true => {
+                if std::fs::remove_file(&at).is_ok() {
+                    done.gone += 1;
+                    done.freed += weighs;
+                    done.let_go.push(reference);
                 }
-                false => done.kept.push(reference),
             }
-            if !told(&done) {
-                return Ok(done);
-            }
+            false => done.kept.push(reference),
+        }
+        if !told(&done) {
+            return Ok(done);
         }
     }
     Ok(done)
@@ -135,7 +117,6 @@ pub fn let_go_telling(
 pub(crate) fn twinned(
     there: &Path,
     weighs: u64,
-    under: &str,
     named: &str,
     reference: &str,
     elsewhere: &dyn Fn(&str) -> bool,
@@ -147,7 +128,7 @@ pub(crate) fn twinned(
         return elsewhere(reference);
     }
     tisty_core::attach::hashed(there)
-        .is_ok_and(|(sha256, _)| tisty_core::attach::vouched(under, named, &sha256))
+        .is_ok_and(|(sha256, _)| tisty_core::attach::vouched(named, &sha256))
 }
 
 pub fn left_behind(holds: Holds) -> Option<u64> {
@@ -188,8 +169,8 @@ pub(crate) fn copy_held(
             );
         }
     }
-    let shelves = match std::fs::read_dir(from) {
-        Ok(shelves) => shelves,
+    let files: Vec<_> = match std::fs::read_dir(from) {
+        Ok(files) => files.filter_map(|e| e.ok()).collect(),
         Err(e) => {
             if e.kind() != std::io::ErrorKind::NotFound {
                 witness::warn(
@@ -204,148 +185,126 @@ pub(crate) fn copy_held(
             return Ok(0);
         }
     };
-    let shelves: Vec<_> = shelves
-        .filter_map(|e| e.ok())
-        .filter(|shelf| shelf.path().is_dir())
-        .filter_map(|shelf| {
-            let files: Vec<_> = std::fs::read_dir(shelf.path())
-                .ok()?
-                .filter_map(|e| e.ok())
-                .collect();
-            Some((shelf, files))
-        })
-        .collect();
-    let whole = shelves.iter().map(|(_, files)| files.len()).sum();
-    let mut seen = 0;
-    for (shelf, files) in shelves {
-        let onto = into.join(shelf.file_name());
-        plainly(&onto)?;
-        sweep(&onto);
-        for file in files {
-            saying(Reached::Along {
-                stage: Stage::Attachments,
-                done: seen,
-                whole,
-            });
-            seen += 1;
-            let at = file.path();
-            if !at.is_file() {
-                continue;
-            }
-            let named = at
-                .file_name()
-                .and_then(|one| one.to_str())
-                .unwrap_or_default();
-            let under = shelf.file_name();
-            let under = under.to_str().unwrap_or_default();
-            // What iCloud left in place of a file is not litter, and saying so would bury the log.
-            if tisty_core::holes::marker(named) {
-                if let Some(real) = tisty_core::holes::named_away(named) {
-                    let reference = format!("attachments/{under}/{real}");
-                    if tisty_core::attach::shelved(under, real)
-                        && !buried.contains(&reference)
-                        && reachable.is_none_or(|named| named.contains(&reference))
-                    {
-                        asked_for.push(shelf.path().join(real));
-                    }
-                }
-                continue;
-            }
-            if !tisty_core::attach::shelved(under, named) {
-                witness::warn(
-                    channel::SYNC,
-                    "something in the shared folder is not shaped like an attachment",
-                    &[("at", Fact::Id(format!("attachments/{under}/{named}")))],
-                );
-                continue;
-            }
-            let reference = format!("attachments/{under}/{named}");
-            if buried.contains(&reference) {
-                retired_there += 1;
-                continue;
-            }
-            if reachable.is_some_and(|named| !named.contains(&reference)) {
-                left += 1;
-                continue;
-            }
-            let weighs = std::fs::metadata(&at).map(|m| m.len()).unwrap_or(0);
-            if above.is_some_and(|most| weighs > most) {
-                continue;
-            }
-            if weighs > tisty_core::attach::HELD_UP_TO {
-                witness::warn(
-                    channel::SYNC,
-                    "something in the shared folder is past what any attachment may weigh",
-                    &[("at", Fact::Id(format!("attachments/{under}/{named}")))],
-                );
-                continue;
-            }
-            let Some(rest) = at.strip_prefix(from).ok() else {
-                continue;
-            };
-            let target = into.join(rest);
-            if !again
-                && std::fs::metadata(&at).map(|m| m.len()).ok()
-                    == std::fs::metadata(&target).map(|m| m.len()).ok()
-            {
-                continue;
-            }
-            let reference = format!("attachments/{under}/{named}");
-            if tisty_core::holes::a_hole(&at) {
-                asked_for.push(at.clone());
-                continue;
-            }
-            let part = beside(&target);
-            let ferried = tisty_core::attach::copied(&at, &part, tisty_core::attach::HELD_UP_TO);
-            let Ok((sha256, bytes)) = ferried else {
-                let _ = std::fs::remove_file(&part);
-                witness::warn(
-                    channel::SYNC,
-                    "an attachment could not be carried",
-                    &[("at", Fact::Id(reference))],
-                );
-                continue;
-            };
-            if !tisty_core::attach::vouched(under, named, &sha256) {
-                let _ = std::fs::remove_file(&part);
-                witness::warn(
-                    channel::SYNC,
-                    "an attachment does not hold the bytes its name vouches for",
-                    &[("at", Fact::Id(reference))],
-                );
-                continue;
-            }
-            if !tisty_core::attach::as_kept(&written_down, &reference, &sha256) {
-                let _ = std::fs::remove_file(&part);
-                witness::warn(
-                    channel::SYNC,
-                    "an attachment we already kept came back holding other bytes",
-                    &[("at", Fact::Id(reference))],
-                );
-                continue;
-            }
-            if std::fs::rename(&part, &target).is_err() {
-                let _ = std::fs::remove_file(&part);
-                witness::warn(
-                    channel::SYNC,
-                    "file not carried",
-                    &[("at", Fact::Path(target.clone()))],
-                );
-                continue;
-            }
-            if let Some(ledger) = ledger {
-                tisty_core::attach::noted(ledger, &reference, &sha256, bytes);
-            }
-            saying(Reached::Kept {
-                at: reference.clone(),
-                sha256: sha256.clone(),
-                bytes,
-            });
-            if let Some(carried) = carried.as_deref_mut() {
-                carried.push((reference, sha256, bytes));
-            }
-            done += 1;
+    let whole = files.len();
+    plainly(into)?;
+    sweep(into);
+    for (seen, file) in files.into_iter().enumerate() {
+        saying(Reached::Along {
+            stage: Stage::Attachments,
+            done: seen,
+            whole,
+        });
+        let at = file.path();
+        if !at.is_file() {
+            continue;
         }
+        let named = at
+            .file_name()
+            .and_then(|one| one.to_str())
+            .unwrap_or_default();
+        // What iCloud left in place of a file is not litter, and saying so would bury the log.
+        if tisty_core::holes::marker(named) {
+            if let Some(real) = tisty_core::holes::named_away(named) {
+                let reference = format!("{HELD}/{real}");
+                if tisty_core::attach::stamped(real)
+                    && !buried.contains(&reference)
+                    && reachable.is_none_or(|named| named.contains(&reference))
+                {
+                    asked_for.push(from.join(real));
+                }
+            }
+            continue;
+        }
+        let reference = format!("{HELD}/{named}");
+        if !tisty_core::attach::stamped(named) {
+            witness::warn(
+                channel::SYNC,
+                "something in the shared folder is not shaped like an attachment",
+                &[("at", Fact::Id(reference))],
+            );
+            continue;
+        }
+        if buried.contains(&reference) {
+            retired_there += 1;
+            continue;
+        }
+        if reachable.is_some_and(|named| !named.contains(&reference)) {
+            left += 1;
+            continue;
+        }
+        let weighs = std::fs::metadata(&at).map(|m| m.len()).unwrap_or(0);
+        if above.is_some_and(|most| weighs > most) {
+            continue;
+        }
+        if weighs > tisty_core::attach::HELD_UP_TO {
+            witness::warn(
+                channel::SYNC,
+                "something in the shared folder is past what any attachment may weigh",
+                &[("at", Fact::Id(reference))],
+            );
+            continue;
+        }
+        let target = into.join(named);
+        if !again
+            && std::fs::metadata(&at).map(|m| m.len()).ok()
+                == std::fs::metadata(&target).map(|m| m.len()).ok()
+        {
+            continue;
+        }
+        if tisty_core::holes::a_hole(&at) {
+            asked_for.push(at.clone());
+            continue;
+        }
+        let part = beside(&target);
+        let ferried = tisty_core::attach::copied(&at, &part, tisty_core::attach::HELD_UP_TO);
+        let Ok((sha256, bytes)) = ferried else {
+            let _ = std::fs::remove_file(&part);
+            witness::warn(
+                channel::SYNC,
+                "an attachment could not be carried",
+                &[("at", Fact::Id(reference))],
+            );
+            continue;
+        };
+        if !tisty_core::attach::vouched(named, &sha256) {
+            let _ = std::fs::remove_file(&part);
+            witness::warn(
+                channel::SYNC,
+                "an attachment does not hold the bytes its name vouches for",
+                &[("at", Fact::Id(reference))],
+            );
+            continue;
+        }
+        if !tisty_core::attach::as_kept(&written_down, &reference, &sha256) {
+            let _ = std::fs::remove_file(&part);
+            witness::warn(
+                channel::SYNC,
+                "an attachment we already kept came back holding other bytes",
+                &[("at", Fact::Id(reference))],
+            );
+            continue;
+        }
+        if std::fs::rename(&part, &target).is_err() {
+            let _ = std::fs::remove_file(&part);
+            witness::warn(
+                channel::SYNC,
+                "file not carried",
+                &[("at", Fact::Path(target.clone()))],
+            );
+            continue;
+        }
+        if let Some(ledger) = ledger {
+            tisty_core::attach::noted(ledger, &reference, &sha256, bytes);
+        }
+        saying(Reached::Kept {
+            at: reference.clone(),
+            sha256: sha256.clone(),
+            bytes,
+        });
+        if let Some(carried) = carried.as_deref_mut() {
+            carried.push((reference, sha256, bytes));
+        }
+        done += 1;
     }
     // Said once a round: one line per file, every round, buried everything else the log had to say.
     if retired_there > 0 {

@@ -110,13 +110,13 @@ fn the_page_takes_the_window_theme_down_to_its_scrollbars() {
 
 #[test]
 fn only_an_attached_page_is_lent_from_the_store() {
-    assert!(a_page("attachments/ab/informe-12345678.html"));
-    assert!(a_page("attachments/ab/INFORME-12345678.HTM"));
+    assert!(a_page("attachments/informe-12345678.html"));
+    assert!(a_page("attachments/informe-12345678.htm"));
     for one in [
-        "attachments/ab/foto-12345678.png",
-        "attachments/ab/notas-12345678.html.txt",
+        "attachments/foto-12345678.png",
+        "attachments/notas-12345678.html.txt",
         "docs/informe.html",
-        "../attachments/ab/x.html",
+        "../attachments/x.html",
         "C:/Users/x/informe.html",
         "tisty:doc/abc-0001",
     ] {

@@ -14,7 +14,12 @@ import {
 import { tags } from "@lezer/highlight";
 import { known } from "../glyphs";
 import { HUES } from "./paging";
-import { CODE, NAMED, PEN, PENS, UNDER } from "./translating";
+
+const PENS = ["yellow", ...HUES];
+const PEN = /==(?=\S)((?:(?!==).)+?)(?<=\S)==(?:\{([a-z]+)\})?/u;
+const UNDER = /(?<![\p{L}\p{N}+])\+\+(?=\S)(.+?)(?<=\S)\+\+(?![\p{L}\p{N}+])/u;
+const NAMED = /(?<![\p{L}\p{N}])::([a-z0-9-]+)(?: ([a-z]+))?::(?![\p{L}\p{N}])/u;
+const CODE = new Set(["InlineCode", "FencedCode", "CodeBlock"]);
 
 export type Editing = {
   readonly view: EditorView;
@@ -86,7 +91,6 @@ export const edited = (
   said: string,
   onChange: (text: string) => void,
   onLeave: (text: string) => void,
-  tisty = true,
 ): Editing => {
   const page = block.ownerDocument;
   const host = page.createElement("div");
@@ -123,7 +127,7 @@ export const edited = (
         ]),
         markdown(),
         syntaxHighlighting(inked),
-        tisty ? marked : [],
+        marked,
         dressing,
         EditorView.lineWrapping,
         EditorView.updateListener.of((update) => {

@@ -1924,7 +1924,7 @@ fn two_sides_that_differ_with_nothing_behind_them_are_not_guessed() {
 fn an_attachment_written_the_way_attach_writes_it_survives() {
     let kept = "Lo hablado.
 
-![el plano](<attachments/ab/plano-a1b2c3d4.pdf>)
+![el plano](plano-a1b2c3d4.pdf)
 ";
     assert!(survives(kept).is_ok(), "attach writes exactly this");
 
@@ -1985,14 +1985,14 @@ fn what_only_a_document_names_is_not_adrift() {
     create(
         root.path(),
         &device("dev_a"),
-        "# Notas\n\nver [el informe](<attachments/ab/informe-91f2.pdf>)",
+        "# Notas\n\nver [el informe](informe-91f2ab00.pdf)",
     )
     .unwrap();
 
     let named = referenced(root.path());
 
     assert!(
-        named.contains(&"attachments/ab/informe-91f2.pdf".to_string()),
+        named.contains(&"attachments/informe-91f2ab00.pdf".to_string()),
         "counting only tasks called this one loose: {named:?}"
     );
 }
@@ -2668,12 +2668,12 @@ fn what_a_document_names_can_never_be_written_outside_the_folder_that_was_chosen
     let room = tempfile::tempdir().unwrap();
     let data = room.path().join("data");
     std::fs::create_dir_all(data.join("docs")).unwrap();
-    let shelf = data.join("attachments").join("ab");
-    std::fs::create_dir_all(&shelf).unwrap();
-    std::fs::write(shelf.join("foto-91f2ab00.png"), b"a picture").unwrap();
+    let shed = data.join("attachments");
+    std::fs::create_dir_all(&shed).unwrap();
+    std::fs::write(shed.join("foto-91f2ab00.png"), b"a picture").unwrap();
     std::fs::write(
         data.join("docs").join("mac0-0001.md"),
-        "# Minuta\n\n![x](<attachments/ab/foto-91f2ab00.png?/../../../pwned.txt>)\n\n             ![y](<attachments/ab/foto-91f2ab00.png#/../../../also.txt>)",
+        "# Minuta\n\n![x](<attachments/foto-91f2ab00.png?/../../../pwned.txt>)\n\n             ![y](<attachments/foto-91f2ab00.png#/../../../also.txt>)",
     )
     .unwrap();
 
@@ -2694,9 +2694,9 @@ fn a_document_taken_out_carries_its_pages_in_the_order_they_are_read() {
     let room = tempfile::tempdir().unwrap();
     let data = room.path().join("data");
     std::fs::create_dir_all(data.join("docs")).unwrap();
-    let shelf = data.join("attachments").join("ab");
-    std::fs::create_dir_all(&shelf).unwrap();
-    std::fs::write(shelf.join("plano-91f2ab00.png"), b"a picture").unwrap();
+    let shed = data.join("attachments");
+    std::fs::create_dir_all(&shed).unwrap();
+    std::fs::write(shed.join("plano-91f2ab00.png"), b"a picture").unwrap();
     std::fs::write(
         data.join("docs").join("mac0-0001.md"),
         "# Actas\n\nlas de 2026.",
@@ -2704,7 +2704,7 @@ fn a_document_taken_out_carries_its_pages_in_the_order_they_are_read() {
     .unwrap();
     std::fs::write(
         data.join("docs").join("mac0-0002.md"),
-        "# Marzo\n\n![plano](<attachments/ab/plano-91f2ab00.png>)",
+        "# Marzo\n\n![plano](<attachments/plano-91f2ab00.png>)",
     )
     .unwrap();
     std::fs::write(
@@ -2779,19 +2779,19 @@ fn a_document_is_never_taken_out_into_the_store_it_came_from() {
     let room = tempfile::tempdir().unwrap();
     let data = room.path().join("data");
     std::fs::create_dir_all(data.join("docs")).unwrap();
-    let shelf = data.join("attachments").join("ab");
-    std::fs::create_dir_all(&shelf).unwrap();
-    std::fs::write(shelf.join("foto-91f2ab00.png"), b"a picture").unwrap();
+    let shed = data.join("attachments");
+    std::fs::create_dir_all(&shed).unwrap();
+    std::fs::write(shed.join("foto-91f2ab00.png"), b"a picture").unwrap();
     std::fs::write(
         data.join("docs").join("mac0-0001.md"),
-        "# Minuta\n\n![x](<attachments/ab/foto-91f2ab00.png>)",
+        "# Minuta\n\n![x](<attachments/foto-91f2ab00.png>)",
     )
     .unwrap();
 
     assert!(exported(&data, "mac0-0001", &data).is_err());
     assert!(exported(&data, "mac0-0001", &data.join("docs")).is_err());
     assert_eq!(
-        std::fs::read(shelf.join("foto-91f2ab00.png")).unwrap(),
+        std::fs::read(shed.join("foto-91f2ab00.png")).unwrap(),
         b"a picture",
         "taking it out into its own store emptied the attachment"
     );
@@ -2820,12 +2820,12 @@ fn a_document_taken_out_carries_the_files_it_names() {
     let room = tempfile::tempdir().unwrap();
     let data = room.path();
     std::fs::create_dir_all(data.join("docs")).unwrap();
-    let shelf = data.join("attachments").join("ab");
-    std::fs::create_dir_all(&shelf).unwrap();
-    std::fs::write(shelf.join("foto-91f2ab00.png"), b"a picture").unwrap();
+    let shed = data.join("attachments");
+    std::fs::create_dir_all(&shed).unwrap();
+    std::fs::write(shed.join("foto-91f2ab00.png"), b"a picture").unwrap();
     std::fs::write(
         data.join("docs").join("mac0-0001.md"),
-        "# Minuta del lunes\n\n![una foto](<attachments/ab/foto-91f2ab00.png>)",
+        "# Minuta del lunes\n\n![una foto](<attachments/foto-91f2ab00.png>)",
     )
     .unwrap();
 
@@ -2835,12 +2835,12 @@ fn a_document_taken_out_carries_the_files_it_names() {
     assert_eq!(taken.files, 1);
     let folder = out.path().join("Minuta-del-lunes");
     assert_eq!(
-        std::fs::read(folder.join("attachments/ab/foto-91f2ab00.png")).unwrap(),
+        std::fs::read(folder.join("attachments/foto-91f2ab00.png")).unwrap(),
         b"a picture"
     );
     let said = std::fs::read_to_string(folder.join("Minuta-del-lunes.md")).unwrap();
     assert!(
-        said.contains("attachments/ab/foto-91f2ab00.png"),
+        said.contains("attachments/foto-91f2ab00.png"),
         "the reference was rewritten when it did not need to be"
     );
 }
@@ -2850,12 +2850,12 @@ fn a_file_that_is_not_in_the_store_is_named_rather_than_dropped_in_silence() {
     let room = tempfile::tempdir().unwrap();
     let data = room.path();
     std::fs::create_dir_all(data.join("docs")).unwrap();
-    let shelf = data.join("attachments").join("ab");
-    std::fs::create_dir_all(&shelf).unwrap();
-    std::fs::write(shelf.join("foto-91f2ab00.png"), b"a picture").unwrap();
+    let shed = data.join("attachments");
+    std::fs::create_dir_all(&shed).unwrap();
+    std::fs::write(shed.join("foto-91f2ab00.png"), b"a picture").unwrap();
     std::fs::write(
         data.join("docs").join("mac0-0001.md"),
-        "# Minuta\n\n![una foto](<attachments/ab/foto-91f2ab00.png>)\n\n![un video](<attachments/6d/clip-da1d77da.mov>)",
+        "# Minuta\n\n![una foto](<attachments/foto-91f2ab00.png>)\n\n![un video](<attachments/clip-da1d77da.mov>)",
     )
     .unwrap();
 
@@ -2863,10 +2863,12 @@ fn a_file_that_is_not_in_the_store_is_named_rather_than_dropped_in_silence() {
     let taken = exported(data, "mac0-0001", out.path()).unwrap();
 
     assert_eq!(taken.files, 1);
-    assert_eq!(taken.left, ["attachments/6d/clip-da1d77da.mov"]);
+    assert_eq!(taken.left, ["attachments/clip-da1d77da.mov"]);
     assert!(
-        !out.path().join("Minuta/attachments/6d").exists(),
-        "it left an empty shelf where the file was not"
+        !out.path()
+            .join("Minuta/attachments/clip-da1d77da.mov")
+            .exists(),
+        "it left something where the file was not"
     );
 }
 
@@ -2877,19 +2879,19 @@ fn a_file_named_by_a_page_and_by_its_document_is_only_missed_once() {
     std::fs::create_dir_all(data.join("docs")).unwrap();
     std::fs::write(
         data.join("docs").join("mac0-0001.md"),
-        "# Libro\n\n![un video](<attachments/6d/clip-da1d77da.mov>)",
+        "# Libro\n\n![un video](<attachments/clip-da1d77da.mov>)",
     )
     .unwrap();
     std::fs::write(
         data.join("docs").join("mac0-0002.md"),
-        "# Capitulo\n\n![el mismo video](<attachments/6d/clip-da1d77da.mov>)",
+        "# Capitulo\n\n![el mismo video](<attachments/clip-da1d77da.mov>)",
     )
     .unwrap();
 
     let out = tempfile::tempdir().unwrap();
     let taken = with_pages(data, "mac0-0001", &["mac0-0002".into()], out.path(), None).unwrap();
 
-    assert_eq!(taken.left, ["attachments/6d/clip-da1d77da.mov"]);
+    assert_eq!(taken.left, ["attachments/clip-da1d77da.mov"]);
 }
 
 #[test]
@@ -3052,5 +3054,29 @@ fn an_unclosed_icon_span_still_gives_back_what_it_wrapped() {
     assert_eq!(
         bare("antes <span data-ico=\"star\""),
         "antes <span data-ico=\"star\""
+    );
+}
+
+#[test]
+fn a_document_taken_out_names_its_files_where_they_land_beside_it() {
+    let room = tempfile::tempdir().unwrap();
+    let data = room.path();
+    std::fs::create_dir_all(data.join("docs")).unwrap();
+    let shed = data.join("attachments");
+    std::fs::create_dir_all(&shed).unwrap();
+    std::fs::write(shed.join("foto-91f2ab00.png"), b"a picture").unwrap();
+    std::fs::write(
+        data.join("docs").join("mac0-0001.md"),
+        "# Minuta\n\n![una foto](foto-91f2ab00.png) y ==ojo=={green}",
+    )
+    .unwrap();
+
+    let out = tempfile::tempdir().unwrap();
+    exported(data, "mac0-0001", out.path()).unwrap();
+
+    let said = std::fs::read_to_string(out.path().join("Minuta").join("Minuta.md")).unwrap();
+    assert_eq!(
+        said,
+        "# Minuta\n\n![una foto](attachments/foto-91f2ab00.png) y <mark data-pen=\"green\">ojo</mark>"
     );
 }

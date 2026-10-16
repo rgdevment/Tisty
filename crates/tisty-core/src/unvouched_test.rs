@@ -11,7 +11,7 @@ fn print_of(body: &[u8]) -> String {
 
 fn laid(root: &Path, slug: &str, body: &[u8]) -> String {
     let sha = print_of(body);
-    let at = format!("attachments/{}/{slug}-{}.mp4", &sha[..2], &sha[2..10]);
+    let at = format!("attachments/{slug}-{}.mp4", &sha[2..10]);
     let file = root.join(&at);
     std::fs::create_dir_all(file.parent().unwrap()).unwrap();
     std::fs::write(&file, body).unwrap();
@@ -50,7 +50,7 @@ fn what_is_pointed_at_and_answered_for_by_no_history_is_listed_with_its_size() {
         answered.clone(),
         only_there.clone(),
         only_there.clone(),
-        "attachments/ab/gone-12345678.mp4".to_string(),
+        "attachments/gone-12345678.mp4".to_string(),
         "https://example.com/a.mp4".to_string(),
     ];
     let told = unvouched(&state, &named, &[here.path(), folder.path()]);
@@ -90,10 +90,7 @@ fn a_name_whose_print_was_written_again_and_again_is_still_read_by_its_last_stam
     let body = b"an attachment kept four times over";
     let sha = print_of(body);
     let stamp = &sha[2..10];
-    let at = format!(
-        "attachments/{}/final-zip-{stamp}-{stamp}-{stamp}-{stamp}.001",
-        &sha[..2]
-    );
+    let at = format!("attachments/final-zip-{stamp}-{stamp}-{stamp}-{stamp}.001");
     let file = folder.path().join(&at);
     std::fs::create_dir_all(file.parent().unwrap()).unwrap();
     std::fs::write(&file, body).unwrap();
@@ -123,7 +120,7 @@ fn a_file_no_longer_anywhere_or_outside_the_store_is_not_answered_for() {
     std::fs::write(folder.path().join("secret.txt"), b"x").unwrap();
 
     assert_eq!(
-        vouch("attachments/ab/gone-12345678.mp4", &[folder.path()]).unwrap(),
+        vouch("attachments/gone-12345678.mp4", &[folder.path()]).unwrap(),
         Vouch::Gone
     );
     assert!(!matches!(
@@ -163,11 +160,7 @@ fn a_file_found_only_in_the_shared_folder_is_not_said_to_be_here() {
 fn a_print_written_down_and_let_go_stays_known_with_nobody_claiming_the_copy() {
     let mut state = State::default();
     let body = b"a video that lives only in the folder";
-    let at = format!(
-        "attachments/{}/video-{}.mp4",
-        &print_of(body)[..2],
-        &print_of(body)[2..10]
-    );
+    let at = format!("attachments/video-{}.mp4", &print_of(body)[2..10]);
     kept(&mut state, &at, body);
     state.apply(&Event::new(
         DeviceId("dev_a".into()),
