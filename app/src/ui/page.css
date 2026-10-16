@@ -58,11 +58,18 @@ html.tall .page > * {
 .page > [data-at] {
   cursor: text;
 }
-.page[data-empty]:empty {
+.page[data-empty] > h1[data-title] {
+  cursor: text;
+}
+.page[data-empty] > h1[data-title]::before {
+  content: attr(data-title);
+  color: var(--tisty-faint);
+}
+.page[data-empty]:has(> h1[data-title]:only-child) {
   min-height: 240px;
   cursor: text;
 }
-.page[data-empty]:empty::before {
+.page[data-empty]:has(> h1[data-title]:only-child)::after {
   content: attr(data-empty);
   color: var(--tisty-faint);
 }

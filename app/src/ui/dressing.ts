@@ -13,7 +13,7 @@ export type Reaching = Carding & {
   readonly onDoc: (file: string) => void;
   readonly onOpen?: (reference: string) => void;
   readonly onTag?: (name: string) => void;
-  readonly onBlock?: (at: [number, number], block: HTMLElement) => void;
+  readonly onBlock?: (at: [number, number], block: HTMLElement, seed?: string) => void;
   readonly onApart?: (source: string) => void;
 };
 
@@ -105,6 +105,17 @@ export const widgets = (page: Document, stranger: boolean, reach?: Reaching): Le
   return lent;
 };
 
+// The title is always a block of its own: a sheet that does not open with one shows where it goes.
+const titled = (page: Document) => {
+  const sheet = page.querySelector<HTMLElement>(".page");
+  if (!sheet) return;
+  sheet.setAttribute("data-empty", t("pageEmpty"));
+  if (sheet.firstElementChild?.tagName === "H1") return;
+  const slot = page.createElement("h1");
+  slot.dataset.title = t("titleEmpty");
+  sheet.prepend(slot);
+};
+
 export const worn = (
   page: Document,
   stranger: boolean,
@@ -112,8 +123,7 @@ export const worn = (
   reach?: Reaching,
 ): Worn => {
   saidKinds(page, (kind) => t(`said${kind}` as Parameters<typeof t>[0]));
-  if (reach?.onBlock)
-    page.querySelector<HTMLElement>(".page")?.setAttribute("data-empty", t("pageEmpty"));
+  if (reach?.onBlock) titled(page);
   iconed(page);
   const kept = pictures(page, live);
   const lent = widgets(page, stranger, reach);
@@ -138,6 +148,10 @@ export const answered = (page: Document, asked: Went, reach: Reaching) => {
       charsAt(reach.body, asked.at[1]),
     ];
     if (block) reach.onBlock?.(at, block);
+  }
+  if (asked.kind === "title" && reach.onBlock) {
+    const slot = page.querySelector<HTMLElement>(".page > h1[data-title]");
+    if (slot) reach.onBlock([0, 0], slot, "# ");
   }
   if (asked.kind === "end" && reach.onBlock) {
     const sheet = page.querySelector(".page");

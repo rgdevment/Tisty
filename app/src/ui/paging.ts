@@ -72,6 +72,7 @@ export type Went =
   | { kind: "tag"; name: string }
   | { kind: "apart"; at: [number, number] }
   | { kind: "end" }
+  | { kind: "title" }
   | null;
 
 const spanned = (said: string | null): [number, number] | null => {
@@ -106,6 +107,7 @@ export const went = (target: Element, selecting: boolean): Went => {
   const tag = target.closest<HTMLElement>(".tag")?.dataset.tag;
   if (tag) return { kind: "tag", name: tag };
   if (selecting || target.closest("summary, figure.widget")) return null;
+  if (target.closest(".page > h1[data-title]")) return { kind: "title" };
   const at = spanned(target.closest<HTMLElement>(".page > [data-at]")?.dataset.at ?? null);
   return at ? { kind: "block", at } : null;
 };
@@ -118,14 +120,14 @@ export interface Head {
 }
 
 export const heads = (page: Document): Head[] =>
-  Array.from(page.querySelectorAll<HTMLElement>(".page > :is(h1, h2, h3, h4, h5, h6)")).map(
-    (one, at) => ({
-      key: `${at}:${one.id}`,
-      level: Number(one.tagName.slice(1)),
-      text: one.textContent ?? "",
-      go: () => one.scrollIntoView({ block: "start" }),
-    }),
-  );
+  Array.from(
+    page.querySelectorAll<HTMLElement>(".page > :is(h1, h2, h3, h4, h5, h6):not([data-title])"),
+  ).map((one, at) => ({
+    key: `${at}:${one.id}`,
+    level: Number(one.tagName.slice(1)),
+    text: one.textContent ?? "",
+    go: () => one.scrollIntoView({ block: "start" }),
+  }));
 
 export const saidKinds = (page: Document | HTMLElement, said: (kind: string) => string) => {
   for (const one of page.querySelectorAll<HTMLElement>("blockquote[data-callout]"))

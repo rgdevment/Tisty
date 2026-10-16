@@ -100,7 +100,7 @@ export default function Sheet(props: Readonly<Props>) {
     else setDrawn(value);
   }, [value, left]);
 
-  const block = (at: [number, number], element: HTMLElement) => {
+  const block = (at: [number, number], element: HTMLElement, seed = "") => {
     if (open.current) return left();
     // A click on the page still on screen while the next one is drawn names bytes of an older text.
     if (reading || showing.current !== latest.current) return;
@@ -108,30 +108,40 @@ export default function Sheet(props: Readonly<Props>) {
     let end = at[1];
     const piece = latest.current.slice(from, end);
     const tail = /\r?\n$/.exec(piece)?.[0] ?? "";
-    // A block begun past the last one is kept apart from it by a blank line, as Markdown needs.
+    // A new block is kept apart from the ones around it by a blank line, as Markdown needs.
+    const fresh = from === end;
     const before = latest.current.slice(0, from);
-    const apart =
-      from < end || !before.trim() || before.endsWith("\n\n")
+    const ahead =
+      !fresh || !before.trim() || before.endsWith("\n\n")
         ? ""
         : before.endsWith("\n")
           ? "\n"
           : "\n\n";
+    const after = latest.current.slice(end);
+    const behind =
+      !fresh || !after.trim() || after.startsWith("\n\n")
+        ? ""
+        : after.startsWith("\n")
+          ? "\n"
+          : "\n\n";
     const spliced = (text: string) => {
       const now = latest.current;
-      const gap = text ? apart : "";
-      const next = `${now.slice(0, from)}${gap}${text}${tail}${now.slice(end)}`;
-      end = from + gap.length + text.length + tail.length;
+      const said = fresh && (text === seed || !text.trim()) ? "" : text;
+      const [gap, rest] = said ? [ahead, behind] : ["", ""];
+      const next = `${now.slice(0, from)}${gap}${said}${tail}${rest}${now.slice(end)}`;
+      end = from + gap.length + said.length + tail.length + rest.length;
       return next;
     };
     open.current = edited(
       element,
-      piece,
+      piece || seed,
       (text) => written(spliced(text)),
       () => {
         open.current = null;
         setDrawn(latest.current);
       },
     );
+    if (seed) open.current.view.dispatch({ selection: { anchor: seed.length } });
   };
 
   useEffect(() => {
