@@ -26,11 +26,11 @@ Cada color dice qué entendió, y son estos:
 
 | Escribes | Entiende |
 | --- | --- |
-| <mark data-pen="blue">mañana 10am</mark> | día y hora, dichos como se dicen |
-| <mark data-pen="blue">el viernes</mark> | el próximo que venga |
-| <mark data-pen="pink">cada martes</mark> | algo que vuelve solo |
-| <mark data-pen="pink">#casa</mark> | una etiqueta: de qué va |
-| <mark data-pen="green">@trabajo</mark> | una lista: dónde ocurre |
+| ==mañana 10am=={blue} | día y hora, dichos como se dicen |
+| ==el viernes=={blue} | el próximo que venga |
+| ==cada martes=={pink} | algo que vuelve solo |
+| ==#casa=={pink} | una etiqueta: de qué va |
+| ==@trabajo=={green} | una lista: dónde ocurre |
 | ==!planificar== | hacer, planificar, delegar o prescindible |
 
 Si una parte no se colorea, se queda en el título, que tampoco es grave.
@@ -75,8 +75,8 @@ Arrastra una tarea al cuadrante que le toque. Lo que no clasificas espera en la 
 
 Dos formas de ordenar que no compiten:
 
-- Una **lista** dice dónde ocurre: <mark data-pen="green">@casa</mark>, <mark data-pen="green">@trabajo</mark>. Una tarea está en una sola.
-- Una **etiqueta** dice de qué va: <mark data-pen="pink">#salud</mark>, <mark data-pen="pink">#compras</mark>. Una tarea lleva las que quieras.
+- Una **lista** dice dónde ocurre: ==@casa=={green}, ==@trabajo=={green}. Una tarea está en una sola.
+- Una **etiqueta** dice de qué va: ==#salud=={pink}, ==#compras=={pink}. Una tarea lleva las que quieras.
 
 ### 6. Lo que queda escrito
 
@@ -116,7 +116,7 @@ Y para verlo todo junto, uno de cada cosa, hay una página aparte:
 
 #### Lo de siempre
 
-**Negrita**, *cursiva*, ~~tachado~~, <u>subrayado</u>, `código suelto` y un [enlace a una web](https://github.com/rgdevment/Tisty). Listas con viñetas, numeradas, y citas de las de toda la vida:
+**Negrita**, *cursiva*, ~~tachado~~, ++subrayado++, `código suelto` y un [enlace a una web](https://github.com/rgdevment/Tisty). Listas con viñetas, numeradas, y citas de las de toda la vida:
 
 > Lo que no está escrito, no ocurrió.
 
@@ -161,11 +161,11 @@ Y dentro de un aviso cabe casi todo, no solo texto:
 
 #### Destacar
 
-Cuatro colores de rotulador: ==amarillo==, <mark data-pen="green">verde</mark>, <mark data-pen="blue">azul</mark> y <mark data-pen="pink">rosa</mark>. Eliges el color en la barra que sale al seleccionar texto.
+Cuatro colores de rotulador: ==amarillo==, ==verde=={green}, ==azul=={blue} y ==rosa=={pink}. Eliges el color en la barra que sale al seleccionar texto.
 
 #### Iconos
 
-<span data-ico="dog" data-hue="orange">:dog:</span> Un icono se busca por lo que dibuja, y en español: pide «perro», «moto» o «puño» y sale el que esperas. Sirve para marcar una línea sin gastar un título en ella.
+::dog orange:: Un icono se busca por lo que dibuja, y en español: pide «perro», «moto» o «puño» y sale el que esperas. Sirve para marcar una línea sin gastar un título en ella.
 
 #### Etapas
 
