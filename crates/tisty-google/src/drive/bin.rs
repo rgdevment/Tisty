@@ -55,7 +55,7 @@ impl Drive {
             .first()
             .ok_or_else(|| Hitch::Broke(format!("{name} sits in no folder in Drive")))?;
         let leaf = split(name).1;
-        self.moved(&first.id, &format!("{}-{leaf}", now()), (parent, &bin))?;
+        self.moved_into(&first.id, &format!("{}-{leaf}", now()), (parent, &bin))?;
         let back = Owed::Unbinned {
             name: name.to_string(),
             id: first.id.clone(),
@@ -72,7 +72,7 @@ impl Drive {
         {
             return Ok(());
         }
-        if let Err(failed) = self.moved(&first.id, leaf, (&bin, parent)) {
+        if let Err(failed) = self.moved_into(&first.id, leaf, (&bin, parent)) {
             return Err(self.put_back_later(back, failed));
         }
         Err(Hitch::Changed(name.to_string()))
@@ -95,10 +95,15 @@ impl Drive {
         if self.looked_at(id)?.parents.first().map(String::as_str) != Some(bin) {
             return Ok(());
         }
-        self.moved(id, split(name).1, (bin, parent))
+        self.moved_into(id, split(name).1, (bin, parent))
     }
 
-    fn moved(&self, id: &str, named: &str, (from, to): (&str, &str)) -> Result<(), Hitch> {
+    pub(super) fn moved_into(
+        &self,
+        id: &str,
+        named: &str,
+        (from, to): (&str, &str),
+    ) -> Result<(), Hitch> {
         let url = format!("{}/files/{id}", self.at.api);
         let body = serde_json::json!({ "name": named });
         self.spent(EDIT);

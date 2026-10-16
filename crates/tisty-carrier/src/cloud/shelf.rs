@@ -674,3 +674,66 @@ pub fn let_go(remote: &dyn Remote, index: &Index, data: &Path, letting: Letting)
 #[cfg(test)]
 #[path = "shelf_test.rs"]
 mod tests;
+
+fn flat_name(name: &str) -> Option<String> {
+    let rest = name.strip_prefix(&format!("{HELD}/"))?;
+    let (shelf, leaf) = rest.split_once('/')?;
+    (shelf.len() == 2 && attach::lower_hex(shelf) && attach::stamped(leaf))
+        .then(|| format!("{HELD}/{leaf}"))
+}
+
+/// What an older build left on shelves up there moves to the one flat folder before a round reads
+/// it; a twin already flat is the same bytes by its stamp, so the shelved one only goes. Whatever
+/// the cloud would not take now is left for the next round.
+pub fn flattened(remote: &dyn Remote, index: &mut Index) -> usize {
+    let shelved: Vec<(String, String)> = index
+        .shelf
+        .keys()
+        .filter_map(|name| flat_name(name).map(|flat| (name.clone(), flat)))
+        .collect();
+    let mut moved = 0;
+    for (from, to) in shelved {
+        let done = match index.shelf.contains_key(&to) {
+            true => remote.delete(&from, None),
+            false => remote.renamed(&from, &to),
+        };
+        match done {
+            Ok(()) | Err(Hitch::Missing(_)) => {
+                if let Some(seen) = index.shelf.remove(&from) {
+                    index.shelf.entry(to.clone()).or_insert(Seen {
+                        name: to.clone(),
+                        ..seen
+                    });
+                }
+                if let Some(was) = index.spoiled.remove(&from) {
+                    index.spoiled.insert(to.clone(), was);
+                }
+                if let Some(seen) = index.owed.remove(&from) {
+                    index.owed.insert(
+                        to.clone(),
+                        Seen {
+                            name: to.clone(),
+                            ..seen
+                        },
+                    );
+                }
+                if index.vanished.remove(&from) {
+                    index.vanished.insert(to);
+                }
+                moved += 1;
+            }
+            Err(hitch) => {
+                witness::warn(
+                    channel::SYNC,
+                    "an attachment up there could not leave its shelf yet",
+                    &[
+                        ("at", Fact::Id(from)),
+                        ("why", Fact::Why(format!("{hitch:?}"))),
+                    ],
+                );
+                break;
+            }
+        }
+    }
+    moved
+}
