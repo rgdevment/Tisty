@@ -153,6 +153,19 @@ describe("the trail", () => {
     expect(screen.queryByText(/data-ico/)).toBeNull();
   });
 
+  it("names an icon written in Tisty's own words, as it does one from before them", async () => {
+    await shown([
+      {
+        at: "2026-08-27T01:24:00Z",
+        by: "dev_a",
+        chapter: "wrote",
+        body: "listo ::rocket teal::",
+      } as Draft,
+    ]);
+
+    expect(screen.getByText(/listo :rocket:/)).toBeTruthy();
+  });
+
   it("names an icon wrapped in another span, instead of leaking what it held", async () => {
     await shown([
       {
