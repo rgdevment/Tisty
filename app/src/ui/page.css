@@ -681,11 +681,58 @@ hr {
   font-weight: 600;
 }
 details {
-  margin: 12px 0;
+  margin: 14px 0;
+  border: 1px solid var(--tisty-hair);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--tisty-hover) 45%, transparent);
+  transition: background 0.15s;
+}
+details[open] {
+  background: transparent;
 }
 summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  border-radius: 10px;
   cursor: pointer;
   font-weight: 600;
+  list-style: none;
+  user-select: none;
+}
+summary::-webkit-details-marker {
+  display: none;
+}
+summary::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-right: 1.75px solid var(--tisty-soft);
+  border-bottom: 1.75px solid var(--tisty-soft);
+  transform: rotate(-45deg);
+  transition: transform 0.18s ease;
+}
+details[open] > summary::before {
+  transform: rotate(45deg) translate(-2px, -1px);
+}
+summary:hover {
+  background: var(--tisty-hover);
+}
+details[open] > summary {
+  border-bottom: 1px solid var(--tisty-hair);
+  border-radius: 10px 10px 0 0;
+}
+details > :not(summary) {
+  margin-left: 14px;
+  margin-right: 14px;
+}
+details > summary + * {
+  margin-top: 12px;
+}
+details > :last-child:not(summary) {
+  margin-bottom: 12px;
 }
 kbd {
   font-family: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
@@ -872,24 +919,40 @@ kbd {
 .cm-pending-code {
   font-family: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, monospace;
 }
+.cm-fold-head,
+.cm-fold-body,
+.cm-fold-end {
+  border-left: 1px solid var(--tisty-hair);
+  border-right: 1px solid var(--tisty-hair);
+  padding-left: 14px !important;
+  padding-right: 14px !important;
+}
 .cm-fold-head {
+  border-top: 1px solid var(--tisty-hair);
+  border-bottom: 1px solid var(--tisty-hair);
+  border-radius: 10px 10px 0 0;
+  padding-top: 9px !important;
+  padding-bottom: 9px !important;
   font-weight: 600;
+}
+.cm-fold-end {
+  border-bottom: 1px solid var(--tisty-hair);
+  border-radius: 0 0 10px 10px;
+  padding-bottom: 4px !important;
 }
 .cm-fold-mark {
   display: inline-block;
-  width: 1.1em;
-  color: var(--tisty-soft);
-}
-.cm-fold-body {
-  border-left: 2px solid var(--tisty-hair);
-  padding-left: 0.9em !important;
+  width: 7px;
+  height: 7px;
+  margin: 0 12px 0 1px;
+  vertical-align: 0.18em;
+  border-right: 1.75px solid var(--tisty-soft);
+  border-bottom: 1.75px solid var(--tisty-soft);
+  transform: rotate(45deg);
 }
 .cm-fold-close {
   display: inline-block;
-  width: 2.2em;
-  height: 0;
-  vertical-align: middle;
-  border-top: 2px solid var(--tisty-hair);
+  height: 0.6em;
 }
 .cm-tag {
   background: var(--tisty-mark-tag);

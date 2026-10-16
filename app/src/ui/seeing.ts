@@ -142,7 +142,6 @@ class Folding extends WidgetType {
   toDOM(view: EditorView) {
     const one = view.dom.ownerDocument.createElement("span");
     one.className = this.head ? "cm-fold-mark" : "cm-fold-close";
-    if (this.head) one.textContent = "▾";
     return one;
   }
 }
@@ -203,6 +202,7 @@ const folded = (state: EditorState, shown: boolean, out: Range<Decoration>[]) =>
     for (let at = head.at + 1; at < shut.at; at++)
       out.push(Decoration.line({ class: "cm-fold-body" }).range(state.doc.line(at).from));
     const end = state.doc.line(shut.at);
+    out.push(Decoration.line({ class: "cm-fold-end" }).range(end.from));
     if (!shown && !touched(state, end.from, end.to))
       out.push(Decoration.replace({ widget: new Folding(false) }).range(end.from, end.to));
   }
