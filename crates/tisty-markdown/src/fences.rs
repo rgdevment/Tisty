@@ -59,12 +59,9 @@ pub fn bullet(said: &str) -> Option<usize> {
 
 // A bullet with nothing after it still opens an item, whose words start one column past the mark.
 fn emptied(said: &str) -> Option<usize> {
-    let numbered = said.len() > 1
-        && said.len() <= 10
-        && said[..said.len() - 1]
-            .bytes()
-            .all(|one| one.is_ascii_digit())
-        && said.ends_with(['.', ')']);
+    let numbered = said.strip_suffix(['.', ')']).is_some_and(|digits| {
+        (1..=9).contains(&digits.len()) && digits.bytes().all(|one| one.is_ascii_digit())
+    });
     (matches!(said, "-" | "*" | "+") || numbered).then_some(said.len() + 1)
 }
 
