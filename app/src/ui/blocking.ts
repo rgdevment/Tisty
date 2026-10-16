@@ -1,6 +1,6 @@
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { markdown } from "@codemirror/lang-markdown";
-import { HighlightStyle, syntaxHighlighting, syntaxTree } from "@codemirror/language";
+import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { EditorState } from "@codemirror/state";
 import {
   Decoration,
@@ -14,12 +14,12 @@ import {
 import { tags } from "@lezer/highlight";
 import { known } from "../glyphs";
 import { HUES } from "./paging";
+import { coded, slashing } from "./slashing";
 
 const PENS = ["yellow", ...HUES];
 const PEN = /==(?=\S)((?:(?!==).)+?)(?<=\S)==(?:\{([a-z]+)\})?/u;
 const UNDER = /(?<![\p{L}\p{N}+])\+\+(?=\S)(.+?)(?<=\S)\+\+(?![\p{L}\p{N}+])/u;
 const NAMED = /(?<![\p{L}\p{N}])::([a-z0-9-]+)(?: ([a-z]+))?::(?![\p{L}\p{N}])/u;
-const CODE = new Set(["InlineCode", "FencedCode", "CodeBlock"]);
 
 export type Editing = {
   readonly view: EditorView;
@@ -49,17 +49,10 @@ const dressing = EditorView.theme({
   },
 });
 
-const coded = (view: EditorView, at: number): boolean => {
-  for (let node = syntaxTree(view.state).resolveInner(at, 1); node.parent; node = node.parent) {
-    if (CODE.has(node.name)) return true;
-  }
-  return false;
-};
-
 const marking = new MatchDecorator({
   regexp: new RegExp(`${PEN.source}|${UNDER.source}|${NAMED.source}`, "gu"),
   decoration: (found, view, at) => {
-    if (coded(view, at)) return null;
+    if (coded(view.state, at)) return null;
     if (found[3] !== undefined) return Decoration.mark({ class: "cm-under" });
     if (found[4] !== undefined) {
       const hue = found[5];
@@ -128,6 +121,7 @@ export const edited = (
         markdown(),
         syntaxHighlighting(inked),
         marked,
+        slashing,
         dressing,
         EditorView.lineWrapping,
         EditorView.updateListener.of((update) => {

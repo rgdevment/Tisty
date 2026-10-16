@@ -1,0 +1,86 @@
+import { CompletionContext, type CompletionResult } from "@codemirror/autocomplete";
+import { markdown } from "@codemirror/lang-markdown";
+import { EditorState } from "@codemirror/state";
+import { EditorView } from "@codemirror/view";
+import { describe, expect, it } from "vitest";
+import { offered, put, SLASHED, slashing } from "../ui/slashing";
+
+const view = (doc: string) =>
+  new EditorView({
+    parent: document.body,
+    state: EditorState.create({ doc, extensions: [markdown(), slashing] }),
+  });
+
+const one = (key: string) => {
+  const found = SLASHED.find((each) => each.key === key);
+  if (!found) throw new Error(key);
+  return found;
+};
+
+const asked = (doc: string): CompletionResult | null => {
+  const state = EditorState.create({ doc, extensions: [markdown()] });
+  return offered(new CompletionContext(state, doc.length, false));
+};
+
+const typed = (doc: string, key: string) => {
+  const editor = view(doc);
+  const slash = doc.lastIndexOf("/");
+  put(editor, one(key), slash, doc.length);
+  const said = { text: editor.state.sliceDoc(), at: editor.state.selection.main.head };
+  editor.destroy();
+  return said;
+};
+
+describe("the / menu in a block", () => {
+  it("turns the line it is asked on into a title, a list or a quote, with the cursor after the mark", () => {
+    expect(typed("/", "h1")).toEqual({ text: "# ", at: 2 });
+    expect(typed("/tit", "h2")).toEqual({ text: "## ", at: 3 });
+    expect(typed("/", "todo")).toEqual({ text: "- [ ] ", at: 6 });
+    expect(typed("Leche\n/", "bullets")).toEqual({ text: "Leche\n- ", at: 8 });
+  });
+
+  it("starts a line of its own when it is asked in the middle of one", () => {
+    expect(typed("Leche /", "quote")).toEqual({ text: "Leche \n> ", at: 9 });
+  });
+
+  it("puts the words after the slash below a block, apart from it", () => {
+    const editor = view("Leche /pan");
+    put(editor, one("table"), 6, 7);
+    expect(editor.state.sliceDoc()).toBe("Leche \n\n|  |  |\n| --- | --- |\n|  |  |\n\npan");
+    editor.destroy();
+  });
+
+  it("opens a fence with the cursor inside it", () => {
+    const said = typed("/", "mermaid");
+    expect(said.text).toBe("```mermaid\n\n```");
+    expect(said.text.slice(0, said.at)).toBe("```mermaid\n");
+  });
+
+  it("writes a callout in Tisty's own words", () => {
+    expect(typed("/", "callout-tip").text).toBe("> [!TIP]\n> ");
+  });
+
+  it("leaves a blank line before a rule or a table, so the line above is never made a title", () => {
+    expect(typed("Leche\n/", "rule").text).toBe("Leche\n\n---\n");
+    expect(typed("Leche\n/", "table").text.startsWith("Leche\n\n|")).toBe(true);
+    expect(typed("/", "rule").text).toBe("---\n");
+  });
+
+  it("puts a link or a pen where the slash was, with the cursor inside", () => {
+    expect(typed("Ver /", "link")).toEqual({ text: "Ver []()", at: 5 });
+    expect(typed("Ver /", "pen")).toEqual({ text: "Ver ====", at: 6 });
+  });
+
+  it("is asked for only at the start of a word, and never inside code", () => {
+    expect(asked("/")?.options).toHaveLength(SLASHED.length);
+    expect(asked("ver /ti")?.from).toBe(4);
+    expect(asked("a/b")).toBeNull();
+    expect(asked("    /")).toBeNull();
+    expect(asked("```\n/")).toBeNull();
+  });
+
+  it("narrows by what follows the slash, by label or by key, and says so when nothing fits", () => {
+    expect(asked("/mermaid")?.options.map((one) => one.detail)).toEqual(["```mermaid"]);
+    expect(asked("/zzzz")).toBeNull();
+  });
+});
