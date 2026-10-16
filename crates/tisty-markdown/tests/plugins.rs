@@ -554,3 +554,14 @@ fn a_colon_container_named_after_a_callout_reads_as_that_callout() {
         Kind::Paragraph
     );
 }
+
+#[test]
+fn a_colour_written_in_prose_is_no_tag_but_a_word_made_of_the_same_letters_is() {
+    use tisty_markdown::tags::worth_reading;
+    for colour in ["fff", "000", "ffcc00", "0af", "ffcc0080"] {
+        assert!(!worth_reading(colour), "{colour}");
+    }
+    for word in ["bad", "dad", "add", "cafe", "contrato"] {
+        assert!(worth_reading(word), "{word}");
+    }
+}
