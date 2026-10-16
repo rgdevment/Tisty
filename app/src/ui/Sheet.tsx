@@ -1,14 +1,15 @@
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { viewWidget } from "../core";
+import { CATCHES, takesFiles } from "../dropped";
 import type { Moved } from "../paging";
 import { caretAt, type Editing, edited } from "./blocking";
 import { movedCard, putCard } from "./carded";
 import type { Carded } from "./carding";
 import Page from "./Page";
-import type { Head } from "./paging";
-import { closed, parting } from "./parting";
+import { charsAt, type Head, spanned } from "./paging";
+import { closed, laid, parting } from "./parting";
 import { ASIDE_MARGIN, settles } from "./seeking";
-import type { Asking } from "./slashing";
+import { type Asking, putBlock } from "./slashing";
 
 type Props = {
   readonly file?: string;
@@ -172,6 +173,8 @@ export default function Sheet(props: Readonly<Props>) {
         return {
           kinds: asking.kinds,
           tags: asking.tags,
+          pasted: asking.pasted,
+          lost: asking.lost,
           ask: (kind, at, put, first) => asking.ask(kind, at, put, first && before),
         };
       },
@@ -181,6 +184,34 @@ export default function Sheet(props: Readonly<Props>) {
     const caret = seed ? seed.length : caretAt(editing.state.sliceDoc(), read);
     editing.dispatch({ selection: { anchor: caret }, scrollIntoView: true });
   };
+
+  const dropped = (text: string, at?: { left: number; top: number }) => {
+    const editing = open.current;
+    if (editing) return putBlock(editing.view, text);
+    const now = latest.current;
+    // A page still drawing names bytes of an older text, so the file then goes at the end.
+    const fresh = showing.current === now;
+    const page = shown.current?.document;
+    const frame = shown.current?.frameElement?.getBoundingClientRect();
+    const block =
+      fresh && at && page && frame
+        ? page
+            .elementFromPoint(at.left - frame.left, at.top - frame.top)
+            ?.closest<HTMLElement>(".page > [data-at]")
+        : null;
+    const span = spanned(block?.dataset.at ?? null);
+    const next = laid(now, span ? charsAt(now, span[1]) : now.length, text);
+    written(next);
+    setDrawn(next);
+  };
+  const dropping = useRef(dropped);
+  dropping.current = dropped;
+
+  useEffect(() => {
+    const box = room.current;
+    if (!box || reading) return;
+    return takesFiles(box, (text, at) => dropping.current(text, at));
+  }, [reading]);
 
   const ticked = ([from, end]: [number, number]) => {
     // Like a click that opens a block, a box names bytes of the page on screen, which a block being written has moved.
@@ -274,6 +305,7 @@ export default function Sheet(props: Readonly<Props>) {
   return (
     <div
       ref={room}
+      {...(reading ? {} : { [CATCHES]: "" })}
       tabIndex={-1}
       onScroll={(one) => {
         const sheet = one.currentTarget;

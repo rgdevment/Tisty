@@ -2,6 +2,8 @@ import { save as intoFile, open as pick } from "@tauri-apps/plugin-dialog";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { asPlain } from "../copying";
 import {
+  attach,
+  attachPasted,
   docAway,
   docBack,
   docBackable,
@@ -20,6 +22,7 @@ import {
   viewDoc,
 } from "../core";
 import { stamped } from "../format";
+import { keptAll, PASTED_UP_TO } from "../kept";
 import { fill, t } from "../locales";
 import { filed, inTextOrder, type Moved, namesIn, pagesOf, under } from "../paging";
 import { crowd, MANY, weighed } from "../previews";
@@ -98,6 +101,11 @@ interface Props {
 const tailless = (said: string): string => said.replace(/\r\n/g, "\n").replace(/\n+$/, "");
 
 const NO_TAGS: readonly string[] = [];
+
+const listed = (chosen: string | string[] | null): string[] => {
+  if (Array.isArray(chosen)) return chosen;
+  return chosen ? [chosen] : [];
+};
 
 export default function Docs({
   open: asked,
@@ -406,9 +414,39 @@ export default function Docs({
       bolted
         ? undefined
         : {
-            kinds: leafy ? ["newPage", "page", "doc", "newDoc", "icon"] : ["doc", "newDoc", "icon"],
+            kinds: leafy
+              ? ["newPage", "page", "doc", "newDoc", "icon", "file"]
+              : ["doc", "newDoc", "icon", "file"],
             tags,
+            pasted: (files) =>
+              keptAll(
+                files.map((one) =>
+                  one.size > PASTED_UP_TO
+                    ? Promise.reject({ code: "attachmentTooBigHere", name: "650 MB" })
+                    : one
+                        .arrayBuffer()
+                        .then((bytes) => attachPasted(one.name, one.type, new Uint8Array(bytes))),
+                ),
+                onError,
+              ),
+            lost: () => onError(t("attachmentLost")),
             ask: (kind, at, put, first) => {
+              if (kind === "file") {
+                // An attachment as a document's first words would become its title.
+                if (first) return onError(t("fileNeedsTitle"));
+                pick({ multiple: true })
+                  .then((chosen) =>
+                    keptAll(
+                      listed(chosen).map((one) => attach(one, undefined, true)),
+                      onError,
+                    ),
+                  )
+                  .then((text) => {
+                    if (text && !put(text)) onError(t("attachmentLost"));
+                  })
+                  .catch((error_) => onError(saidPlainly(error_)));
+                return;
+              }
               // A card as a document's first words would become its title, which the core refuses.
               if (kind !== "icon" && first) return onError(t("leafNeedsTitle"));
               setPicked({ kind, at, put, file: open?.file });

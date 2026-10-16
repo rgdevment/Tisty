@@ -1,4 +1,4 @@
-use super::safe_to_open;
+use super::{pasted_name, safe_to_open};
 
 #[test]
 fn a_name_that_only_windows_reads_as_a_program_is_never_opened() {
@@ -51,4 +51,30 @@ fn the_files_a_person_actually_attaches_still_open() {
             "{name} was refused"
         );
     }
+}
+
+#[test]
+fn a_pasted_file_keeps_its_own_name_and_never_a_folder() {
+    assert_eq!(pasted_name("captura.png", "image/png"), "captura.png");
+    assert_eq!(pasted_name("C:\\Users\\x\\foto.jpg", ""), "foto.jpg");
+    assert_eq!(pasted_name("../../etc/passwd", ""), "passwd");
+    assert_eq!(pasted_name(".env", "text/plain"), ".env");
+}
+
+#[test]
+fn a_pasted_file_with_no_name_is_called_by_what_it_holds() {
+    assert_eq!(pasted_name("", "image/png"), "pasted.png");
+    assert_eq!(pasted_name("  ", "image/jpeg"), "pasted.jpg");
+    assert_eq!(pasted_name("..", "application/pdf"), "pasted.pdf");
+    assert_eq!(pasted_name("", "application/x-thing"), "pasted.bin");
+}
+
+#[test]
+fn a_pasted_name_windows_would_misread_falls_back_to_a_plain_one() {
+    assert_eq!(pasted_name("C:evil.txt", "text/plain"), "pasted.txt");
+    assert_eq!(pasted_name("aux.png", "image/png"), "pasted.png");
+    assert_eq!(pasted_name("COM1.jpg", "image/jpeg"), "pasted.jpg");
+    assert_eq!(pasted_name("que?.pdf", "application/pdf"), "pasted.pdf");
+    assert_eq!(pasted_name("computer.png", "image/png"), "computer.png");
+    assert_eq!(pasted_name("company.png", "image/png"), "company.png");
 }

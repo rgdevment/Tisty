@@ -76,7 +76,7 @@ export type Went =
   | { kind: "title" }
   | null;
 
-const spanned = (said: string | null): [number, number] | null => {
+export const spanned = (said: string | null): [number, number] | null => {
   const found = /^(\d+)-(\d+)$/.exec(said ?? "");
   return found ? [Number(found[1]), Number(found[2])] : null;
 };

@@ -248,6 +248,7 @@ const en = {
   sayAttach: "a file, copied in",
   insertDoc: "A document",
   insertIcon: "An icon",
+  attachFile: "Attach a file",
   insertNewDoc: "A new document",
   insertNewPage: "A new page",
   insertPage: "A page that already exists",
@@ -1012,6 +1013,8 @@ const en = {
   offered: "seen but not taken: it may be naming what is next to it",
   cannotRead: "{name} could not be read",
   attachmentLost: "The file came in, but the field it was for is gone",
+  fileNeedsTitle:
+    "Write the document's title first: a file as its first line would become its name.",
   cannotOpen: "Nothing on this machine opens {name}",
   noRemote: "No destination is set yet",
   syncLater:
@@ -2220,6 +2223,7 @@ const es: Catalog = {
   sayAttach: "un archivo, copiado",
   insertDoc: "Un documento",
   insertIcon: "Un icono",
+  attachFile: "Adjuntar un archivo",
   insertNewDoc: "Un documento nuevo",
   insertNewPage: "Una página nueva",
   insertPage: "Una página que ya existe",
@@ -2990,6 +2994,8 @@ const es: Catalog = {
   offered: "la vi pero no la tomé: puede estar nombrando lo que tiene al lado",
   cannotRead: "No se pudo leer {name}",
   attachmentLost: "El archivo entró, pero el campo al que iba ya no está",
+  fileNeedsTitle:
+    "Escribe primero el título del documento: un archivo como primera línea pasaría a ser su nombre.",
   cannotOpen: "Nada en este equipo abre {name}",
   noRemote: "todavía no hay destino",
   syncLater:
