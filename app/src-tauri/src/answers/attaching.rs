@@ -23,32 +23,55 @@ pub fn attach(
     kept_from(&session, &source, name, roomy)
 }
 
-/// What a pasted file is called: its own name without any folder, or a plain one when it brings none.
-pub(crate) fn pasted_name(raw: &str) -> String {
+pub(crate) fn pasted_name(raw: &str, kind: &str) -> String {
     let leaf = raw.rsplit(['/', '\\']).next().unwrap_or_default().trim();
-    if leaf.is_empty() || leaf.starts_with('.') {
-        "pasted.png".to_string()
-    } else {
-        leaf.to_string()
+    if !leaf.is_empty() && leaf != "." && leaf != ".." {
+        return leaf.to_string();
     }
+    let ending = match kind {
+        "image/png" => "png",
+        "image/jpeg" => "jpg",
+        "image/gif" => "gif",
+        "image/webp" => "webp",
+        "application/pdf" => "pdf",
+        "text/plain" => "txt",
+        _ => "bin",
+    };
+    format!("pasted.{ending}")
 }
 
+static PASTED: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+// The bytes come raw, not as a JSON list of numbers, so a large screenshot does not stall the window.
 #[tauri::command]
 pub fn attach_pasted(
     session: tauri::State<'_, Mutex<Session>>,
-    name: String,
-    bytes: Vec<u8>,
+    request: tauri::ipc::Request<'_>,
 ) -> Answer<String> {
-    let name = pasted_name(&name);
-    // A pasted file has no place on disk, so it waits in a folder of its own until it is kept.
+    let said = |key: &str| {
+        request
+            .headers()
+            .get(key)
+            .and_then(|one| one.to_str().ok())
+            .map(|one| {
+                percent_encoding::percent_decode_str(one)
+                    .decode_utf8_lossy()
+                    .into_owned()
+            })
+            .unwrap_or_default()
+    };
+    let name = pasted_name(&said("x-name"), &said("x-kind"));
+    let tauri::ipc::InvokeBody::Raw(bytes) = request.body() else {
+        return Err(Refusal::about("cannotRead", name));
+    };
     let room = std::env::temp_dir().join(format!(
         "tisty-pasted-{}-{}",
         std::process::id(),
-        jiff::Timestamp::now().as_nanosecond()
+        PASTED.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
     ));
     std::fs::create_dir_all(&room).map_err(|_| Refusal::about("cannotRead", name.clone()))?;
     let source = room.join(&name);
-    let written = std::fs::write(&source, &bytes);
+    let written = std::fs::write(&source, bytes);
     let kept = written
         .map_err(|_| Refusal::about("cannotRead", name.clone()))
         .and_then(|()| kept_from(&session, &source, name, Some(true)));

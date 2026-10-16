@@ -23,15 +23,17 @@ import { type Asking, putBlock, slashing } from "./slashing";
 
 const PENS = ["yellow", ...HUES];
 
-// Files on the clipboard are kept as attachments; words pasted stay words, exactly as copied.
 const pasting = (event: ClipboardEvent, view: EditorView, asking?: () => Asking | undefined) => {
   const files = Array.from(event.clipboardData?.files ?? []);
   const pasted = asking?.()?.pasted;
-  if (!files.length || !pasted) return false;
+  // Word, Excel and browsers put a picture beside the words they copy; the words are what was meant.
+  if (!files.length || !pasted || event.clipboardData?.getData("text/plain")) return false;
   event.preventDefault();
-  pasted(files).then((text) => {
-    if (text && view.dom.isConnected) putBlock(view, text);
-  });
+  pasted(files)
+    .then((text) => {
+      if (text && view.dom.isConnected) putBlock(view, text);
+    })
+    .catch(() => {});
   return true;
 };
 

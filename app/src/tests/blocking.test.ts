@@ -90,8 +90,16 @@ describe("writing a block in place", () => {
     };
     paste([]);
     expect(pasted).toEqual([]);
+    const sheet = new Event("paste", { bubbles: true, cancelable: true });
+    Object.defineProperty(sheet, "clipboardData", {
+      value: { files: [new File(["x"], "image.png")], getData: () => "A1\tB1" },
+    });
+    view.contentDOM.dispatchEvent(sheet);
+    expect(pasted).toEqual([]);
     expect(paste([new File(["x"], "captura.png")]).defaultPrevented).toBe(true);
-    await vi.waitFor(() => expect(view.state.sliceDoc()).toBe("Ver\n\n![captura](captura.png)"));
+    await vi.waitFor(() =>
+      expect(view.state.sliceDoc()).toBe("VerA1\tB1\n\n![captura](captura.png)"),
+    );
     expect(pasted).toEqual(["captura.png"]);
     editing.leave();
     page.remove();

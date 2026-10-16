@@ -343,7 +343,8 @@ describe("the sheet in the main window", () => {
   it("takes no files while the document is only read", async () => {
     const view = render(<Sheet value={BODY} label="Compras" reading onWrite={() => {}} />);
     await loaded(await shown(view.container));
-    const room = view.container.querySelector("[data-catches-files]") as Element;
+    expect(view.container.querySelector("[data-catches-files]")).toBeNull();
+    const room = view.container.querySelector(".gutter") as Element;
     expect(handTo(room, "![foto](foto.png)")).toBe(false);
   });
 

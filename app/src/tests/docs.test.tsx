@@ -33,7 +33,11 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (cmd: string, args?: Record<string, unknown>) => {
+  invoke: (
+    cmd: string,
+    args?: Record<string, unknown>,
+    options?: { headers: Record<string, string> },
+  ) => {
     switch (cmd) {
       case "doc_lock":
         store.locks.push({ id: String(args?.id), shut: Boolean(args?.shut) });
@@ -51,10 +55,11 @@ vi.mock("@tauri-apps/api/core", () => ({
       }
       case "attach":
         return Promise.resolve(`![${String(args?.path)}](${String(args?.path)})`);
-      case "attach_pasted":
-        if (args?.name === "roto.png")
-          return Promise.reject({ code: "cannotRead", name: "roto.png" });
-        return Promise.resolve(`![${String(args?.name)}](${String(args?.name)})`);
+      case "attach_pasted": {
+        const name = decodeURIComponent(options?.headers["x-name"] ?? "");
+        if (name === "roto.png") return Promise.reject({ code: "cannotRead", name });
+        return Promise.resolve(`![${name}](${name})`);
+      }
       case "doc_backable":
         return Promise.resolve(store.before[String(args?.id)] !== undefined);
       case "doc_back": {
@@ -743,6 +748,22 @@ describe("files brought into a document being written", () => {
     const put = vi.fn(() => true);
     store.asking?.ask("file", { x: 0, y: 0 }, put, false);
     await waitFor(() => expect(put).toHaveBeenCalledWith("![a.png](a.png)\n\n![b.pdf](b.pdf)"));
+  });
+
+  it("says the files were lost when the block closed while the dialog was open", async () => {
+    const errors: string[] = [];
+    render(
+      <Docs
+        open="a3f1-0001"
+        known={known}
+        onKept={() => {}}
+        onError={(said) => errors.push(String(said))}
+      />,
+    );
+    await waitFor(() => expect(store.asking?.kinds).toContain("file"));
+    store.picked = ["a.png"];
+    store.asking?.ask("file", { x: 0, y: 0 }, () => false, false);
+    await waitFor(() => expect(errors).toEqual([t("attachmentLost")]));
   });
 
   it("keeps pasted files as attachments, and says so when one cannot be kept", async () => {

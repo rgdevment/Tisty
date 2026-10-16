@@ -185,7 +185,6 @@ const spacesAfter = (state: EditorState, at: number) => {
 const closing = (state: EditorState, at: number): string =>
   state.sliceDoc(at, state.doc.lineAt(at).to).trim() ? "\n\n" : "";
 
-// Files go in as a block of their own where the caret is, apart from the words around them.
 export const putBlock = (view: EditorView, text: string) => {
   const { from, to } = view.state.selection.main;
   blocked(view, from, to, text, text.length, true);

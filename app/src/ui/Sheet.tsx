@@ -184,15 +184,16 @@ export default function Sheet(props: Readonly<Props>) {
     editing.dispatch({ selection: { anchor: caret }, scrollIntoView: true });
   };
 
-  // Files dropped on the page go where the caret is, or after the block they landed on.
   const dropped = (text: string, at?: { left: number; top: number }) => {
     const editing = open.current;
     if (editing) return putBlock(editing.view, text);
     const now = latest.current;
+    // A page still drawing names bytes of an older text, so the file then goes at the end.
+    const fresh = showing.current === now;
     const page = shown.current?.document;
     const frame = shown.current?.frameElement?.getBoundingClientRect();
     const block =
-      at && page && frame
+      fresh && at && page && frame
         ? page
             .elementFromPoint(at.left - frame.left, at.top - frame.top)
             ?.closest<HTMLElement>(".page > [data-at]")
@@ -303,7 +304,7 @@ export default function Sheet(props: Readonly<Props>) {
   return (
     <div
       ref={room}
-      {...{ [CATCHES]: "" }}
+      {...(reading ? {} : { [CATCHES]: "" })}
       tabIndex={-1}
       onScroll={(one) => {
         const sheet = one.currentTarget;

@@ -101,6 +101,19 @@ const tailless = (said: string): string => said.replace(/\r\n/g, "\n").replace(/
 
 const NO_TAGS: readonly string[] = [];
 
+const listed = (chosen: string | string[] | null): string[] => {
+  if (Array.isArray(chosen)) return chosen;
+  return chosen ? [chosen] : [];
+};
+
+// One file that could not be kept is told, and the ones that could still go in.
+const keptAll = async (tries: Promise<string>[], onError: (said: string) => void) => {
+  const done = await Promise.allSettled(tries);
+  const failed = done.find((one) => one.status === "rejected");
+  if (failed) onError(saidPlainly(failed.reason));
+  return done.flatMap((one) => (one.status === "fulfilled" ? [one.value] : [])).join("\n\n");
+};
+
 export default function Docs({
   open: asked,
   known,
@@ -413,27 +426,27 @@ export default function Docs({
               : ["doc", "newDoc", "icon", "file"],
             tags,
             pasted: (files) =>
-              Promise.all(
+              keptAll(
                 files.map((one) =>
-                  one.arrayBuffer().then((bytes) => attachPasted(one.name, new Uint8Array(bytes))),
+                  one
+                    .arrayBuffer()
+                    .then((bytes) => attachPasted(one.name, one.type, new Uint8Array(bytes))),
                 ),
-              )
-                .then((written) => written.join("\n\n"))
-                .catch((problem) => {
-                  onError(saidPlainly(problem));
-                  return "";
-                }),
+                onError,
+              ),
             ask: (kind, at, put, first) => {
               if (kind === "file") {
                 pick({ multiple: true })
-                  .then((chosen) => {
-                    const paths = Array.isArray(chosen) ? chosen : chosen ? [chosen] : [];
-                    return Promise.all(paths.map((one) => attach(one, undefined, true)));
+                  .then((chosen) =>
+                    keptAll(
+                      listed(chosen).map((one) => attach(one, undefined, true)),
+                      onError,
+                    ),
+                  )
+                  .then((text) => {
+                    if (text && !put(text)) onError(t("attachmentLost"));
                   })
-                  .then((written) => {
-                    if (written.length) put(written.join("\n\n"));
-                  })
-                  .catch((problem) => onError(saidPlainly(problem)));
+                  .catch((error_) => onError(saidPlainly(error_)));
                 return;
               }
               // A card as a document's first words would become its title, which the core refuses.
