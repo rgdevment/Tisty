@@ -17,7 +17,12 @@ export type Asked = "newPage" | "page" | "newDoc" | "doc" | "icon";
 
 export type Asking = {
   readonly kinds: readonly Asked[];
-  readonly ask: (kind: Asked, at: { x: number; y: number }, put: (text: string) => boolean) => void;
+  readonly ask: (
+    kind: Asked,
+    at: { x: number; y: number },
+    put: (text: string) => boolean,
+    first: boolean,
+  ) => void;
 };
 
 type Put =
@@ -208,18 +213,24 @@ export const put = (view: EditorView, one: Slashed, from: number, to: number, as
   const how = one.put;
   if ("ask" in how) {
     view.dispatch({ changes: { from, to }, userEvent: "input.complete" });
-    asking?.ask(how.ask, onScreen(view, from), (text) => {
-      if (!view.dom.isConnected) return false;
-      const at = Math.min(from, view.state.doc.length);
-      if (how.block) blocked(view, at, at, text, text.length, true);
-      else
-        view.dispatch({
-          changes: { from: at, insert: text },
-          selection: { anchor: at + text.length },
-        });
-      view.focus();
-      return true;
-    });
+    const first = !view.state.sliceDoc(0, from).trim();
+    asking?.ask(
+      how.ask,
+      onScreen(view, from),
+      (text) => {
+        if (!view.dom.isConnected) return false;
+        const at = Math.min(from, view.state.doc.length);
+        if (how.block) blocked(view, at, at, text, text.length, true);
+        else
+          view.dispatch({
+            changes: { from: at, insert: text },
+            selection: { anchor: at + text.length },
+          });
+        view.focus();
+        return true;
+      },
+      first,
+    );
     return;
   }
   if ("wrap" in how) {
@@ -257,7 +268,7 @@ const pressed = (keys: string): string => `${mac ? "⌘" : "Ctrl"} ${keys}`;
 const ASKED = /(?:^|\s)\/[\p{L}\p{N}_-]*$/u;
 
 export const offered =
-  (asking?: Asking) =>
+  (asking?: () => Asking | undefined) =>
   (context: CompletionContext): CompletionResult | null => {
     const found = context.matchBefore(ASKED);
     if (!found) return null;
@@ -266,7 +277,7 @@ export const offered =
     const word = context.state.sliceDoc(slash + 1, context.pos);
     const shown = SLASHED.filter(
       (one) =>
-        (!("ask" in one.put) || asking?.kinds.includes(one.put.ask)) &&
+        (!("ask" in one.put) || asking?.()?.kinds.includes(one.put.ask)) &&
         (!word || matched(t(one.label), word) || matched(one.key, word)),
     );
     if (shown.length === 0) return null;
@@ -278,7 +289,7 @@ export const offered =
           label: t(one.label),
           detail: one.keys ? `${one.hint}   ${pressed(one.keys)}` : one.hint,
           boost: -rank,
-          apply: (view, _, from, to) => put(view, one, from, to, asking),
+          apply: (view, _, from, to) => put(view, one, from, to, asking?.()),
           type: one.icon,
         }),
       ),
@@ -390,7 +401,7 @@ const dressed = () =>
     },
   });
 
-export const slashing = (asking?: Asking) => [
+export const slashing = (asking?: () => Asking | undefined) => [
   autocompletion({
     override: [offered(asking)],
     icons: false,

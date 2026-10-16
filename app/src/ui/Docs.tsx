@@ -320,14 +320,14 @@ export default function Docs({
         const astir = last !== undefined && tailless(last) !== tailless(text);
         // A round that brought other things reads this one again; the same words leave the block being written open.
         const same = before === wanted.file && !astir;
+        remembered(lastRead.current, wanted.file, text);
+        shaped.current = text;
         setStirred(astir);
         setOpen(wanted);
+        setClashed(false);
         if (!same) {
-          remembered(lastRead.current, wanted.file, text);
-          shaped.current = text;
           setBody(text);
           setPacked(crowd(text));
-          setClashed(false);
         }
         if (known.some((one) => one.pageOf === wanted.id)) {
           docOrder(wanted.file, text)
@@ -400,13 +400,13 @@ export default function Docs({
         ? undefined
         : {
             kinds: leafy ? ["newPage", "page", "doc", "newDoc", "icon"] : ["doc", "newDoc", "icon"],
-            ask: (kind, at, put) => {
+            ask: (kind, at, put, first) => {
               // A card as a document's first words would become its title, which the core refuses.
-              if (kind !== "icon" && !called.trim()) return onError(t("leafNeedsTitle"));
-              setPicked({ kind, at, put });
+              if (kind !== "icon" && first) return onError(t("leafNeedsTitle"));
+              setPicked({ kind, at, put, file: open?.file });
             },
           },
-    [bolted, leafy, called, onError],
+    [bolted, leafy, onError, open?.file],
   );
   const above = under(known, own);
   const sisters = pagesOf(known, above?.file);
@@ -890,9 +890,10 @@ export default function Docs({
           pages={pages}
           others={known.filter((one) => one.file !== open?.file && !one.away)}
           onMade={onKept}
-          onLost={(doc) =>
-            putting.current?.({ ...doc, id: doc.file, folder: null, archived: false, away: false })
-          }
+          onLost={(doc) => {
+            if (picked.file !== open?.file) return;
+            putting.current?.({ ...doc, id: doc.file, folder: null, archived: false, away: false });
+          }}
           onError={(problem) => onError(saidPlainly(problem))}
           onDone={() => setPicked(null)}
         />

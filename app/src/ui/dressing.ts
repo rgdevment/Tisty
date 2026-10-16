@@ -111,12 +111,11 @@ export const widgets = (page: Document, stranger: boolean, reach?: Reaching): Le
   return lent;
 };
 
-// The title is always a block of its own: a sheet that does not open with one shows where it goes.
 const titled = (page: Document) => {
   const sheet = page.querySelector<HTMLElement>(".page");
   if (!sheet) return;
   sheet.setAttribute("data-empty", t("pageEmpty"));
-  if (sheet.firstElementChild?.tagName === "H1") return;
+  if (sheet.firstElementChild) return;
   const slot = page.createElement("h1");
   slot.dataset.title = t("titleEmpty");
   sheet.prepend(slot);
@@ -176,7 +175,6 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
   }
 };
 
-// A click on the sheet past its last block is where a new one is written, and on an empty sheet the first.
 const below = (page: Document, target: Element, event: MouseEvent): boolean => {
   const sheet = page.querySelector(".page");
   if (!sheet || (target !== sheet && target !== page.body && target !== page.documentElement))

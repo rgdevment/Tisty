@@ -13,6 +13,7 @@ export type Picked = {
   readonly kind: Asked;
   readonly at: { x: number; y: number };
   readonly put: (text: string) => boolean;
+  readonly file?: string;
 };
 
 // The icons keep the room they have everywhere else, so they read the same here as in a list or a folder.
@@ -50,6 +51,10 @@ export default function Picking({
     onDone();
     return text ? put(text) : true;
   };
+  // A name already on its way to disk is not cancelled: its card has to land where it was asked for.
+  const dismissed = () => {
+    if (!making.current) done();
+  };
 
   return (
     <>
@@ -57,7 +62,7 @@ export default function Picking({
         aria-hidden="true"
         data-keeps-writing
         className="fixed inset-0 z-30"
-        onMouseDown={() => done()}
+        onMouseDown={dismissed}
       />
       <div
         role="dialog"
@@ -67,7 +72,7 @@ export default function Picking({
           if (e.key !== "Escape") return;
           e.preventDefault();
           e.stopPropagation();
-          done();
+          dismissed();
         }}
         className={`fixed z-40 flex flex-col rounded-[10px] border border-hair bg-rail shadow-xl ${kind === "icon" ? "p-3" : "p-1.5"}`}
       >
@@ -94,7 +99,10 @@ export default function Picking({
         {(kind === "page" || kind === "doc") && (
           <Papers
             all={kind === "page" ? pages : others}
-            onPick={(one) => done(docCard(one.file, one.title || t("untitledDoc")))}
+            onPick={(one) => {
+              const title = one.title || t("untitledDoc");
+              if (!done(docCard(one.file, title))) onLost({ file: one.file, title });
+            }}
           />
         )}
         {kind === "icon" && (

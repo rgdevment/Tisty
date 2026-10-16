@@ -109,7 +109,9 @@ describe("the / menu in a block", () => {
   it("offers only the pickers the window can open", () => {
     const shown = (kinds: Asked[]) => {
       const state = EditorState.create({ doc: "/", extensions: [markdown()] });
-      const said = offered({ kinds, ask: () => {} })(new CompletionContext(state, 1, false));
+      const said = offered(() => ({ kinds, ask: () => {} }))(
+        new CompletionContext(state, 1, false),
+      );
       return said?.options.length ?? 0;
     };
     expect(shown(["icon", "doc"]) - shown([])).toBe(2);

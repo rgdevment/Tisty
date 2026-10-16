@@ -99,7 +99,7 @@ export const edited = (
   said: string,
   onChange: (text: string) => void,
   onLeave: (text: string) => void,
-  asking?: Asking,
+  asking?: () => Asking | undefined,
 ): Editing => {
   const page = block.ownerDocument;
   const host = page.createElement("div");
