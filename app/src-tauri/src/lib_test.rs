@@ -368,6 +368,8 @@ fn a_file_swapped_with_the_same_size_and_the_same_second_is_read_again() {
     std::fs::write(&at, b"lo grabado").unwrap();
     assert!(matches!(ask(), finding::Sought::At(_)));
     let was = std::fs::metadata(&at).unwrap().modified().unwrap();
+    // Windows stamps a change with a clock that ticks every ~16ms; a rewrite inside one tick looks unchanged.
+    std::thread::sleep(std::time::Duration::from_millis(50));
     let in_place = std::fs::OpenOptions::new().write(true).open(&at).unwrap();
     std::io::Write::write_all(&mut &in_place, b"lo cambiad").unwrap();
     in_place.set_modified(was).unwrap();
