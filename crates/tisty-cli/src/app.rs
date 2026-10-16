@@ -28,7 +28,32 @@ impl App {
     }
 
     pub fn at(paths: Paths) -> tisty_core::Result<Self> {
-        Self::build(paths, Load::Full)
+        let mut app = Self::build(paths, Load::Full)?;
+        app.speak();
+        Ok(app)
+    }
+
+    // An assistant may open the store before the window does, and finds it in the words it writes.
+    fn speak(&mut self) {
+        let (data, docs) = (self.paths.data().to_path_buf(), self.paths.docs());
+        if tisty_core::speaking::spoken(&data) {
+            return;
+        }
+        let _ = tisty_core::backup::before_a_change(&self.paths, jiff::Timestamp::now());
+        match tisty_core::speaking::speak(&data, &docs) {
+            Ok(spoke) => {
+                for (file, _) in &spoke.docs {
+                    if let Ok(body) = tisty_core::docs::read(&docs, file) {
+                        self.retell(file, &body, None);
+                    }
+                }
+            }
+            Err(e) => tisty_core::witness::warn(
+                tisty_core::witness::channel::STORE,
+                "the store could not be turned into Tisty's own words",
+                &[("why", tisty_core::witness::Fact::Why(e.to_string()))],
+            ),
+        }
     }
 
     pub fn listing(paths: Paths) -> tisty_core::Result<Self> {

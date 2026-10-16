@@ -234,6 +234,8 @@ pub async fn settle_in(
         )
     };
 
+    super::spoken::spoken(&session, &paths).await?;
+
     let mut brought = false;
     let mut stuck = None;
     if let Some(carrier) = keeping.carrier.as_ref()
