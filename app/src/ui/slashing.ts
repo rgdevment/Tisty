@@ -17,7 +17,7 @@ export type Asked = "newPage" | "page" | "newDoc" | "doc" | "icon";
 
 export type Asking = {
   readonly kinds: readonly Asked[];
-  readonly ask: (kind: Asked, at: { x: number; y: number }, put: (text: string) => void) => void;
+  readonly ask: (kind: Asked, at: { x: number; y: number }, put: (text: string) => boolean) => void;
 };
 
 type Put =
@@ -209,7 +209,7 @@ export const put = (view: EditorView, one: Slashed, from: number, to: number, as
   if ("ask" in how) {
     view.dispatch({ changes: { from, to }, userEvent: "input.complete" });
     asking?.ask(how.ask, onScreen(view, from), (text) => {
-      if (!view.dom.isConnected) return;
+      if (!view.dom.isConnected) return false;
       const at = Math.min(from, view.state.doc.length);
       if (how.block) blocked(view, at, at, text, text.length, true);
       else
@@ -218,6 +218,7 @@ export const put = (view: EditorView, one: Slashed, from: number, to: number, as
           selection: { anchor: at + text.length },
         });
       view.focus();
+      return true;
     });
     return;
   }
@@ -309,14 +310,13 @@ const room = (view: EditorView) => {
   };
 };
 
-const formats: readonly KeyBinding[] = [
-  { key: "Mod-b", run: (view) => wrapped(view, "**") },
-  { key: "Mod-i", run: (view) => wrapped(view, "*") },
-  { key: "Mod-u", run: (view) => wrapped(view, "++") },
-  { key: "Mod-e", run: (view) => wrapped(view, "`") },
-  { key: "Mod-Shift-x", run: (view) => wrapped(view, "~~") },
-  { key: "Mod-k", run: (view) => wrapped(view, "[", "]()") },
-];
+const formats: readonly KeyBinding[] = SLASHED.flatMap((one) => {
+  const how = one.put;
+  if (!one.keys || !("wrap" in how)) return [];
+  const parts = one.keys.split(" ");
+  const key = ["Mod", ...parts.slice(0, -1), parts[parts.length - 1].toLowerCase()].join("-");
+  return [{ key, run: (view: EditorView) => wrapped(view, how.wrap, how.close) }];
+});
 
 const dressed = () =>
   EditorView.theme({

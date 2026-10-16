@@ -319,14 +319,16 @@ export default function Docs({
         const last = lastRead.current.get(wanted.file);
         const astir = last !== undefined && tailless(last) !== tailless(text);
         // A round that brought other things reads this one again; the same words leave the block being written open.
-        if (before === wanted.file && !astir) return;
-        remembered(lastRead.current, wanted.file, text);
+        const same = before === wanted.file && !astir;
         setStirred(astir);
         setOpen(wanted);
-        shaped.current = text;
-        setBody(text);
-        setPacked(crowd(text));
-        setClashed(false);
+        if (!same) {
+          remembered(lastRead.current, wanted.file, text);
+          shaped.current = text;
+          setBody(text);
+          setPacked(crowd(text));
+          setClashed(false);
+        }
         if (known.some((one) => one.pageOf === wanted.id)) {
           docOrder(wanted.file, text)
             .then((moved) => {
@@ -367,9 +369,7 @@ export default function Docs({
     const last = lastRead.current.get(open.file);
     const back = last !== undefined && tailless(last) === tailless(text);
     if (back) {
-      // Coming back to what was last read or written is not a change, and it undoes the one waiting: a chapter
-      // moved and moved back inside the beat would otherwise be written in the order it passed
-      // through, and the screen would show the other one.
+      // A chapter moved and moved back inside the beat would otherwise be written in the order it passed through.
       if (held.current?.id === open.file) {
         held.current = null;
         if (settling.current) clearTimeout(settling.current);
@@ -400,9 +400,13 @@ export default function Docs({
         ? undefined
         : {
             kinds: leafy ? ["newPage", "page", "doc", "newDoc", "icon"] : ["doc", "newDoc", "icon"],
-            ask: (kind, at, put) => setPicked({ kind, at, put }),
+            ask: (kind, at, put) => {
+              // A card as a document's first words would become its title, which the core refuses.
+              if (kind !== "icon" && !called.trim()) return onError(t("leafNeedsTitle"));
+              setPicked({ kind, at, put });
+            },
           },
-    [bolted, leafy],
+    [bolted, leafy, called, onError],
   );
   const above = under(known, own);
   const sisters = pagesOf(known, above?.file);
@@ -886,6 +890,10 @@ export default function Docs({
           pages={pages}
           others={known.filter((one) => one.file !== open?.file && !one.away)}
           onMade={onKept}
+          onLost={(doc) =>
+            putting.current?.({ ...doc, id: doc.file, folder: null, archived: false, away: false })
+          }
+          onError={(problem) => onError(saidPlainly(problem))}
           onDone={() => setPicked(null)}
         />
       )}

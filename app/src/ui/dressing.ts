@@ -165,6 +165,7 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
     const fresh = page.createElement("p");
     sheet.append(fresh);
     reach.onBlock([reach.body.length, reach.body.length], fresh);
+    if (fresh.isConnected) fresh.remove();
   }
   if (asked.kind === "apart") {
     const drawn = page.querySelector(
@@ -184,7 +185,6 @@ const below = (page: Document, target: Element, event: MouseEvent): boolean => {
   return !last || event.clientY > last.getBoundingClientRect().bottom;
 };
 
-// What the page reads before the place clicked, so the words written there open with the caret at it.
 const readTo = (page: Document, event: MouseEvent): string => {
   const block = (event.target as Element | null)?.closest?.(".page > [data-at]");
   const caret = page.caretRangeFromPoint?.(event.clientX, event.clientY);

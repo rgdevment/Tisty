@@ -72,6 +72,9 @@ export default function Sheet(props: Readonly<Props>) {
     const outside = (event: MouseEvent) => {
       const target = event.target as Element | null;
       if (!open.current || target?.closest?.("[data-keeps-writing]")) return;
+      // The scrollbar beside the page belongs to what holds it, and dragging it is still reading along.
+      const frame = room.current?.querySelector("iframe");
+      if (frame && target?.contains?.(frame)) return;
       left();
     };
     window.addEventListener("mousedown", outside, true);
@@ -259,7 +262,7 @@ export default function Sheet(props: Readonly<Props>) {
           onDoc={(file) => said.current.onDoc?.(file)}
           onOpen={(reference) => said.current.onOpen?.(reference)}
           onTag={(tag) => said.current.onTag?.(tag)}
-          onBlock={block}
+          onBlock={reading ? undefined : block}
           onAway={left}
           card={props.card}
           blurb={props.blurb}

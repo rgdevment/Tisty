@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import type { Filed } from "../core";
 import { known } from "../glyphs";
 import { t } from "../locales";
@@ -11,19 +12,20 @@ import type { Asked } from "./slashing";
 export type Picked = {
   readonly kind: Asked;
   readonly at: { x: number; y: number };
-  readonly put: (text: string) => void;
+  readonly put: (text: string) => boolean;
 };
 
 // The icons keep the room they have everywhere else, so they read the same here as in a list or a folder.
 const ROOM = { narrow: { wide: 272, tall: 340 }, icons: { wide: 400, tall: 430 } };
 
-// What the / menu asks the window for: a name for a new page, a document to point at, an icon.
 export default function Picking({
   picked,
   own,
   pages,
   others,
   onMade,
+  onLost,
+  onError,
   onDone,
 }: {
   picked: Picked;
@@ -31,6 +33,8 @@ export default function Picking({
   pages: Filed[];
   others: Filed[];
   onMade: (doc: { id: string; title: string }) => void;
+  onLost: (doc: { file: string; title: string }) => void;
+  onError: (problem: unknown) => void;
   onDone: () => void;
 }) {
   const { kind, at, put } = picked;
@@ -41,9 +45,10 @@ export default function Picking({
     left: Math.max(8, Math.min(at.x, window.innerWidth - wide - 18)),
     ...(below ? { top: at.y + 6 } : { bottom: Math.max(8, window.innerHeight - at.y + 24) }),
   };
-  const done = (text?: string) => {
+  const making = useRef(false);
+  const done = (text?: string): boolean => {
     onDone();
-    if (text) put(text);
+    return text ? put(text) : true;
   };
 
   return (
@@ -70,13 +75,19 @@ export default function Picking({
           <Asking
             leaf={kind === "newPage"}
             onName={(name) => {
+              if (making.current) return;
+              making.current = true;
               const leaf = kind === "newPage";
               spawned(name, own?.folder ?? undefined, leaf ? own?.id : undefined)
                 .then((born) => {
                   onMade({ id: born.id, title: name });
-                  done(born.said);
+                  // The block may have closed while the name was typed; the card then goes at the end.
+                  if (!done(born.said)) onLost({ file: born.id, title: name });
                 })
-                .catch(() => done());
+                .catch((problem) => {
+                  done();
+                  onError(problem);
+                });
             }}
           />
         )}
