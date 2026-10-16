@@ -3056,3 +3056,27 @@ fn an_unclosed_icon_span_still_gives_back_what_it_wrapped() {
         "antes <span data-ico=\"star\""
     );
 }
+
+#[test]
+fn a_document_taken_out_names_its_files_where_they_land_beside_it() {
+    let room = tempfile::tempdir().unwrap();
+    let data = room.path();
+    std::fs::create_dir_all(data.join("docs")).unwrap();
+    let shed = data.join("attachments");
+    std::fs::create_dir_all(&shed).unwrap();
+    std::fs::write(shed.join("foto-91f2ab00.png"), b"a picture").unwrap();
+    std::fs::write(
+        data.join("docs").join("mac0-0001.md"),
+        "# Minuta\n\n![una foto](foto-91f2ab00.png) y ==ojo=={green}",
+    )
+    .unwrap();
+
+    let out = tempfile::tempdir().unwrap();
+    exported(data, "mac0-0001", out.path()).unwrap();
+
+    let said = std::fs::read_to_string(out.path().join("Minuta").join("Minuta.md")).unwrap();
+    assert_eq!(
+        said,
+        "# Minuta\n\n![una foto](attachments/foto-91f2ab00.png) y <mark data-pen=\"green\">ojo</mark>"
+    );
+}

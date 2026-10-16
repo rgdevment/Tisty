@@ -1,10 +1,9 @@
-import { copied, docRead } from "./core";
+import { copied, docPlain, docRead } from "./core";
 import { settled } from "./saving";
-import { bared } from "./ui/plain";
 
 export const asPlain = async (file: string): Promise<void> => {
   await settled();
-  const body = bared(await docRead(file));
+  const body = await docPlain(await docRead(file));
   try {
     await copied(body);
   } catch {

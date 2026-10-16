@@ -22,6 +22,11 @@ pub fn note_drawn(body: String) -> String {
 }
 
 #[tauri::command(async)]
+pub fn doc_plain(body: String) -> String {
+    tisty_markdown::to_plain(&body)
+}
+
+#[tauri::command(async)]
 pub fn doc_printed(body: String) -> serde_json::Value {
     tisty_markdown::printed(&tisty_markdown::read(&body))
 }

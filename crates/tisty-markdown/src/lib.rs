@@ -36,7 +36,7 @@ pub use printed::printed;
 pub use reading::read;
 #[doc(hidden)]
 pub use reading::read_old;
-pub use transform::to_tisty;
+pub use transform::{to_plain, to_tisty};
 pub use writing::on_disk;
 
 use std::ops::Range;
