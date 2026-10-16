@@ -113,10 +113,6 @@ export const barred = (view: EditorView): Barred => {
   bar.setAttribute("role", "toolbar");
   bar.setAttribute("aria-label", t("formatting"));
 
-  const toggle = button("cm-bar-switch", t("markdownSwitch"), () => flipped(view));
-  toggle.setAttribute("role", "switch");
-  toggle.append(made("span", "cm-bar-track"), page.createTextNode(t("markdownSwitch")));
-
   const kind = button("cm-bar-kind", t("blockKind"), () => menu.toggleAttribute("hidden"));
   const kindSaid = made("span", "", t("paragraph"));
   kind.append(kindSaid, made("span", "cm-bar-caret", "▾"));
@@ -161,7 +157,7 @@ export const barred = (view: EditorView): Barred => {
   });
   slash.append(made("kbd", "", "/"), page.createTextNode(t("more")));
 
-  bar.append(toggle, made("span", "cm-bar-sep"), kinds, made("span", "cm-bar-sep"), ...formats);
+  bar.append(kinds, made("span", "cm-bar-sep"), ...formats);
   bar.append(made("span", "cm-bar-sep"), ...pens, made("span", "cm-bar-sep"), slash);
 
   const hint = made("div", "cm-hint");
@@ -175,14 +171,13 @@ export const barred = (view: EditorView): Barred => {
     key("/", t("hintInsert")),
     key(pressed("B"), t("bold").toLocaleLowerCase()),
     key(pressed("K"), t("linkIt").toLocaleLowerCase()),
+    key("# ␣", t("bigTitle").toLocaleLowerCase()),
+    key(pressed("Shift M"), t("hintMarks")),
     key("Esc", t("hintRead")),
     state,
   );
 
   const follow = (current: EditorView) => {
-    const shown = current.state.field(marksShown);
-    toggle.setAttribute("aria-checked", String(shown));
-    toggle.classList.toggle("on", shown);
     const line = current.state.doc.lineAt(current.state.selection.main.head);
     kindSaid.textContent = t(kindOf(line.text));
     menu.hidden = true;

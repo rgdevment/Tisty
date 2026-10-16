@@ -44,12 +44,11 @@ describe("a block written as it reads", () => {
 
   it("hides the marks of a format until the caret steps into it", () => {
     expect(read(state("toca **ordenar** hoy", 0))).toBe("toca ordenar hoy");
-    expect(read(state("toca **ordenar** hoy", 9))).toBe("toca ordenar hoy");
-    expect(read(state("toca **ordenar** hoy", 9, true))).toBe("toca **ordenar** hoy");
-    expect(read(state("toca **** hoy", 7))).toBe("toca  hoy");
-    expect(read(state("un ==== y", 5))).toBe("un  y");
-    expect(read(state("un ===={green} y", 5))).toBe("un  y");
-    expect(read(state("toca **** hoy", 0))).toBe("toca **** hoy");
+    expect(read(state("toca **ordenar** hoy", 9))).toBe("toca **ordenar** hoy");
+    expect(read(state("toca **ordenar** hoy", 16))).toBe("toca **ordenar** hoy");
+    expect(read(state("toca **ordenar** hoy", 18))).toBe("toca ordenar hoy");
+    expect(read(state("el ==dato=={green} y", 6))).toBe("el ==dato=={green} y");
+    expect(read(state("el ==dato=={green} y", 0))).toBe("el dato y");
     expect(read(state("un ~~no~~ y `si`", 0))).toBe("un no y si");
   });
 

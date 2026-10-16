@@ -64,10 +64,8 @@ describe("the bar over the block being written", () => {
     press(t("penGreen"));
     expect(editor.state.sliceDoc()).toBe("**leche** y ==pan=={green}");
 
-    const toggle = bar.querySelector<HTMLButtonElement>('[role="switch"]');
-    toggle?.click();
-    follow(editor);
-    expect(toggle?.getAttribute("aria-checked")).toBe("true");
+    expect(bar.querySelector('[role="switch"]')).toBeNull();
+    expect(hint.textContent).toContain(t("hintMarks"));
 
     bar.querySelector<HTMLButtonElement>(".cm-bar-kind")?.click();
     expect(bar.querySelector<HTMLElement>(".cm-bar-menu")?.hidden).toBe(false);
@@ -77,7 +75,7 @@ describe("the bar over the block being written", () => {
     expect(bar.querySelector(".cm-bar-kind")?.textContent).toContain(t("bigTitle"));
     bar.querySelector<HTMLButtonElement>(".cm-bar-kind")?.click();
     bar
-      .querySelector(".cm-bar-switch")
+      .querySelector(".cm-bar-more")
       ?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
     expect(bar.querySelector<HTMLElement>(".cm-bar-menu")?.hidden).toBe(true);
 

@@ -130,27 +130,9 @@ const tagged = (state: EditorState, from: number, to: number, out: Range<Decorat
   }
 };
 
-const PAIRS = ["**", "~~", "++", "==", "*", "`"];
-
-// A format pressed with nothing selected waits empty around the caret; its marks stay out of sight too.
-const waiting = (state: EditorState, out: Range<Decoration>[]) => {
-  const { from, to } = state.selection.main;
-  if (from !== to) return;
-  const after = state.sliceDoc(to, to + 12);
-  for (const mark of PAIRS) {
-    if (state.sliceDoc(from - mark.length, from) !== mark) continue;
-    const shut =
-      mark === "=="
-        ? /^==(\{[a-z]+\})?/.exec(after)?.[0]
-        : after.startsWith(mark)
-          ? mark
-          : undefined;
-    if (!shut) continue;
-    out.push(Decoration.replace({}).range(from - mark.length, from));
-    out.push(Decoration.replace({}).range(to, to + shut.length));
-    return;
-  }
-};
+// A format opens up while any selection touches it, edges included, so a letter typed there lands where it is seen.
+const touched = (state: EditorState, from: number, to: number) =>
+  state.selection.ranges.some((one) => one.from <= to && one.to >= from);
 
 const spaced = (state: EditorState, at: number) => (state.sliceDoc(at, at + 1) === " " ? 1 : 0);
 
@@ -194,7 +176,7 @@ const owned = (
   for (const found of text.matchAll(owning())) {
     const at = from + (found.index ?? 0);
     const end = at + found[0].length;
-    if (shown || coded(state, at)) continue;
+    if (shown || coded(state, at) || touched(state, at, end)) continue;
     if (found[4] !== undefined) {
       const hue = found[5];
       if (!known(found[4]) || (hue !== undefined && !HUES.includes(hue))) continue;
@@ -263,7 +245,8 @@ export const seen = (
         if (MARKS.has(node.name)) {
           const parent = node.node.parent;
           if (parent?.name === "Link" && !parent.getChild("URL")) return true;
-          if (parent && INLINE.has(parent.name)) hide(node.from, node.to);
+          if (parent && INLINE.has(parent.name) && !touched(state, parent.from, parent.to))
+            hide(node.from, node.to);
         }
         return true;
       },
@@ -271,7 +254,6 @@ export const seen = (
     owned(state, from, to, shown, out);
     tagged(state, from, to, out);
   }
-  if (!shown) waiting(state, out);
   return Decoration.set(out, true);
 };
 

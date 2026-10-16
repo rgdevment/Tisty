@@ -87,7 +87,7 @@ describe("writing a block in place", () => {
     const classes = Array.from(page.querySelectorAll(".editing .cm-content span")).map(
       (one) => `${one.className}:${one.textContent}`,
     );
-    expect(classes).toContain("cm-pen cm-pen-yellow:a");
+    expect(classes).toContain("cm-pen cm-pen-yellow:==a==");
     expect(classes).toContain("cm-pen cm-pen-green:b");
     expect(classes).toContain("cm-under:d");
     const icons = Array.from(page.querySelectorAll(".editing .cm-glyph")).map(
