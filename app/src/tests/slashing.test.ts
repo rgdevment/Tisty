@@ -157,6 +157,21 @@ describe("the / menu in a block", () => {
     editor.destroy();
   });
 
+  it("asks the window for files to attach and lays them as a block of their own", () => {
+    const editor = view("Ver /");
+    const asks: Asked[] = [];
+    put(editor, one("file"), 4, 5, {
+      kinds: ["file"],
+      ask: (kind, _, bring) => {
+        asks.push(kind);
+        bring("![foto](foto.png)");
+      },
+    });
+    expect(asks).toEqual(["file"]);
+    expect(editor.state.sliceDoc()).toBe("Ver\n\n![foto](foto.png)");
+    editor.destroy();
+  });
+
   it("offers only the pickers the window can open", () => {
     const shown = (kinds: Asked[]) => {
       const state = EditorState.create({ doc: "/", extensions: [markdown()] });

@@ -87,6 +87,7 @@ describe("a block written as it reads", () => {
     expect(read(state("el ==informe=={green} ya", 0))).toBe("el informe ya");
     expect(read(state("un ++subrayado++ aquí", 0))).toBe("un subrayado aquí");
     expect(read(state("un ==gris=={silver} ya", 0))).toBe("un ==gris=={silver} ya");
+    expect(read(state("un ==sol=={yellow} ya", 0))).toBe("un sol ya");
     const icon = looked(state("Llamar al ::star amber:: hoy", 0));
     expect(icon.filter((it) => it.widget).map((it) => it.widget)).toEqual(["Glyph"]);
     expect(looked(state("::nada:: aquí", 12)).some((it) => it.widget)).toBe(false);

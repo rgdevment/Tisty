@@ -402,6 +402,10 @@ export const agentTurn = (on: boolean): Promise<Agent> => invoke("agent_turn", {
 
 export const attach = (path: string, label?: string, roomy?: boolean): Promise<string> =>
   invoke("attach", { path, label, roomy });
+export const attachPasted = (name: string, kind: string, bytes: Uint8Array): Promise<string> =>
+  invoke("attach_pasted", bytes, {
+    headers: { "x-name": encodeURIComponent(name), "x-kind": encodeURIComponent(kind) },
+  });
 
 export const openLink = (url: string): Promise<void> => invoke("open_link", { url });
 export const widgetLend = (body: string): Promise<string> => invoke("widget_lend", { body });

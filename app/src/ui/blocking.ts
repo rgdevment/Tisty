@@ -19,9 +19,25 @@ import { coded, owning } from "./formatting";
 import { HUES } from "./paging";
 import { pendingFormat, pendingKeys, settle } from "./pending";
 import { visual } from "./seeing";
-import { type Asking, slashing } from "./slashing";
+import { type Asking, putBlock, slashing } from "./slashing";
 
 const PENS = ["yellow", ...HUES];
+
+const pasting = (event: ClipboardEvent, view: EditorView, asking?: () => Asking | undefined) => {
+  const files = Array.from(event.clipboardData?.files ?? []);
+  const pasted = asking?.()?.pasted;
+  // Word, Excel and browsers put a picture beside the words they copy; the words are what was meant.
+  if (!files.length || !pasted || event.clipboardData?.getData("text/plain")) return false;
+  event.preventDefault();
+  pasted(files)
+    .then((text) => {
+      if (!text) return;
+      if (view.dom.isConnected) putBlock(view, text);
+      else asking?.()?.lost?.();
+    })
+    .catch(() => {});
+  return true;
+};
 
 export type Editing = {
   readonly view: EditorView;
@@ -163,6 +179,7 @@ export const edited = (
         syntaxHighlighting(inked),
         marked,
         slashing(asking),
+        EditorView.domEventHandlers({ paste: (event, view) => pasting(event, view, asking) }),
         dressing,
         EditorView.lineWrapping,
         EditorView.updateListener.of((update) => {

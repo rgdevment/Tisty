@@ -1078,6 +1078,7 @@ pub fn run() {
             answers::tasks::still_open,
             answers::tasks::discard,
             answers::attaching::attach,
+            answers::attaching::attach_pasted,
             answers::attaching::served,
             answers::attaching::attached,
             answers::attaching::attach_export,

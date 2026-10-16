@@ -5,6 +5,7 @@ import { heard, play } from "./chime";
 import { type Afoot, attach, doorDue, parted, syncState } from "./core";
 import { decideAll, putOffSaid } from "./deciding";
 import { handTo, whenFilesLand } from "./dropped";
+import { keptAll } from "./kept";
 import { t } from "./locales";
 import { saidPlainly } from "./refusal";
 import { settled } from "./saving";
@@ -181,12 +182,12 @@ export function useListening({
     () =>
       whenFilesLand((target, paths, at) => {
         setError(null);
-        Promise.all(paths.map((one) => attach(one, undefined, where.current.named === "docs")))
-          .then((written) => {
-            const put = handTo(target, written.join("\n\n"), at);
-            if (!put) setError(t("attachmentLost"));
-          })
-          .catch((e) => setError(saidPlainly(e)));
+        keptAll(
+          paths.map((one) => attach(one, undefined, where.current.named === "docs")),
+          setError,
+        ).then((written) => {
+          if (written && !handTo(target, written, at)) setError(t("attachmentLost"));
+        });
       }),
     [setError],
   );

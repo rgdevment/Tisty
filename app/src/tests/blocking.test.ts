@@ -63,6 +63,54 @@ describe("writing a block in place", () => {
     page.remove();
   });
 
+  it("keeps files pasted from the clipboard as attachments, and leaves pasted words alone", async () => {
+    const { page, one } = block();
+    const pasted: string[] = [];
+    let lost = 0;
+    const editing = edited(
+      one,
+      "Ver",
+      () => {},
+      () => {},
+      () => ({
+        kinds: [],
+        ask: () => {},
+        pasted: (files) => {
+          pasted.push(...files.map((file) => file.name));
+          return Promise.resolve("![captura](captura.png)");
+        },
+        lost: () => {
+          lost += 1;
+        },
+      }),
+    );
+    const view = editing.view;
+    view.dispatch({ selection: { anchor: 3 } });
+    const paste = (files: File[]) => {
+      const event = new Event("paste", { bubbles: true, cancelable: true });
+      Object.defineProperty(event, "clipboardData", { value: { files, getData: () => "" } });
+      view.contentDOM.dispatchEvent(event);
+      return event;
+    };
+    paste([]);
+    expect(pasted).toEqual([]);
+    const sheet = new Event("paste", { bubbles: true, cancelable: true });
+    Object.defineProperty(sheet, "clipboardData", {
+      value: { files: [new File(["x"], "image.png")], getData: () => "A1\tB1" },
+    });
+    view.contentDOM.dispatchEvent(sheet);
+    expect(pasted).toEqual([]);
+    expect(paste([new File(["x"], "captura.png")]).defaultPrevented).toBe(true);
+    await vi.waitFor(() =>
+      expect(view.state.sliceDoc()).toBe("VerA1\tB1\n\n![captura](captura.png)"),
+    );
+    expect(pasted).toEqual(["captura.png"]);
+    paste([new File(["x"], "tarde.png")]);
+    editing.leave();
+    await vi.waitFor(() => expect(lost).toBe(1));
+    page.remove();
+  });
+
   it("redoes with Ctrl+Shift+Z as well as Ctrl+Y", () => {
     const { page, one } = block();
     const editing = edited(

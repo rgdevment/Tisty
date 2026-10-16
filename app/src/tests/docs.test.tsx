@@ -5,6 +5,7 @@ import type { Filed } from "../core";
 import { t } from "../locales";
 import { settled } from "../saving";
 import Docs from "../ui/Docs";
+import type { Asking } from "../ui/slashing";
 
 const store = vi.hoisted(() => ({
   bodies: {} as Record<string, string>,
@@ -21,16 +22,22 @@ const store = vi.hoisted(() => ({
   backs: [] as string[],
   coming: false,
   refuse: null as { code: string; name: string } | null,
+  picked: null as string[] | null,
+  asking: null as Asking | null,
 }));
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({
   ask: () => Promise.resolve(store.agrees),
   save: () => Promise.resolve(null),
-  open: () => Promise.resolve(null),
+  open: () => Promise.resolve(store.picked),
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (cmd: string, args?: Record<string, unknown>) => {
+  invoke: (
+    cmd: string,
+    args?: Record<string, unknown>,
+    options?: { headers: Record<string, string> },
+  ) => {
     switch (cmd) {
       case "doc_lock":
         store.locks.push({ id: String(args?.id), shut: Boolean(args?.shut) });
@@ -45,6 +52,13 @@ vi.mock("@tauri-apps/api/core", () => ({
         store.converted.push({ id, was: store.bodies[id] });
         store.bodies[id] = String(args?.body);
         return Promise.resolve(null);
+      }
+      case "attach":
+        return Promise.resolve(`![${String(args?.path)}](${String(args?.path)})`);
+      case "attach_pasted": {
+        const name = decodeURIComponent(options?.headers["x-name"] ?? "");
+        if (name === "roto.png") return Promise.reject({ code: "cannotRead", name });
+        return Promise.resolve(`![${name}](${name})`);
       }
       case "doc_backable":
         return Promise.resolve(store.before[String(args?.id)] !== undefined);
@@ -89,6 +103,7 @@ vi.mock("../ui/Sheet", () => ({
     below,
     seek,
     onSeen,
+    asking,
   }: {
     value: string;
     onWrite: (text: string) => void;
@@ -97,7 +112,9 @@ vi.mock("../ui/Sheet", () => ({
     below?: React.ReactNode;
     seek?: number;
     onSeen?: (at: number) => void;
+    asking?: Asking;
   }) => {
+    store.asking = asking ?? null;
     if (!store.mute)
       onShaped?.(store.shape ?? value.replace(/<[^>]+>/g, "").replace(/\n{3,}/g, "\n\n"));
     return (
@@ -712,5 +729,79 @@ describe("a document that moved on disk while it was open", () => {
 
     expect(screen.queryByText(/Volver a lo que decía|Put back what it said/)).toBeNull();
     expect(store.backs).toEqual([]);
+  });
+});
+
+describe("files brought into a document being written", () => {
+  beforeEach(() => {
+    store.bodies = { "a3f1-0001": "# Compras\n\nleche" };
+    store.picked = null;
+    store.asking = null;
+    store.refuse = null;
+    store.coming = false;
+  });
+
+  it("attaches what the file dialog picks and hands it back as one block", async () => {
+    render(<Docs open="a3f1-0001" known={known} onKept={() => {}} onError={() => {}} />);
+    await waitFor(() => expect(store.asking?.kinds).toContain("file"));
+    store.picked = ["a.png", "b.pdf"];
+    const put = vi.fn(() => true);
+    store.asking?.ask("file", { x: 0, y: 0 }, put, false);
+    await waitFor(() => expect(put).toHaveBeenCalledWith("![a.png](a.png)\n\n![b.pdf](b.pdf)"));
+  });
+
+  it("asks for a title before a file becomes a document's first line, and refuses one too big", async () => {
+    const errors: string[] = [];
+    render(
+      <Docs
+        open="a3f1-0001"
+        known={known}
+        onKept={() => {}}
+        onError={(said) => errors.push(String(said))}
+      />,
+    );
+    await waitFor(() => expect(store.asking?.kinds).toContain("file"));
+    store.asking?.ask("file", { x: 0, y: 0 }, () => true, true);
+    expect(errors).toEqual([t("fileNeedsTitle")]);
+    const huge = new File(["x"], "video.mp4");
+    Object.defineProperty(huge, "size", { value: 2 * 1024 * 1024 * 1024 });
+    expect(await store.asking?.pasted?.([huge])).toBe("");
+    expect(errors).toHaveLength(2);
+    store.asking?.lost?.();
+    expect(errors[2]).toBe(t("attachmentLost"));
+  });
+
+  it("says the files were lost when the block closed while the dialog was open", async () => {
+    const errors: string[] = [];
+    render(
+      <Docs
+        open="a3f1-0001"
+        known={known}
+        onKept={() => {}}
+        onError={(said) => errors.push(String(said))}
+      />,
+    );
+    await waitFor(() => expect(store.asking?.kinds).toContain("file"));
+    store.picked = ["a.png"];
+    store.asking?.ask("file", { x: 0, y: 0 }, () => false, false);
+    await waitFor(() => expect(errors).toEqual([t("attachmentLost")]));
+  });
+
+  it("keeps pasted files as attachments, and says so when one cannot be kept", async () => {
+    const errors: string[] = [];
+    render(
+      <Docs
+        open="a3f1-0001"
+        known={known}
+        onKept={() => {}}
+        onError={(said) => errors.push(String(said))}
+      />,
+    );
+    await waitFor(() => expect(store.asking?.pasted).toBeTruthy());
+    const kept = await store.asking?.pasted?.([new File(["x"], "captura.png")]);
+    expect(kept).toBe("![captura.png](captura.png)");
+    const lost = await store.asking?.pasted?.([new File(["x"], "roto.png")]);
+    expect(lost).toBe("");
+    expect(errors).toHaveLength(1);
   });
 });
