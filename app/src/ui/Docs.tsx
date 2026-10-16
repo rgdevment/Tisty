@@ -193,6 +193,7 @@ export default function Docs({
   const drop = useCallback(() => {
     if (settling.current) clearTimeout(settling.current);
     held.current = null;
+    setWaiting(false);
   }, []);
 
   const mineStands = useCallback(() => {
