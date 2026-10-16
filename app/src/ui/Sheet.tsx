@@ -1,12 +1,13 @@
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { viewWidget } from "../core";
 import type { Moved } from "../paging";
-import { type Editing, edited } from "./blocking";
+import { caretAt, type Editing, edited } from "./blocking";
 import { movedCard, putCard } from "./carded";
 import type { Carded } from "./carding";
 import Page from "./Page";
 import type { Head } from "./paging";
 import { ASIDE_MARGIN, settles } from "./seeking";
+import type { Asking } from "./slashing";
 
 type Props = {
   readonly file?: string;
@@ -28,6 +29,7 @@ type Props = {
   readonly again?: string;
   readonly onInsert?: (put: ((file: string, title: string) => boolean) | null) => void;
   readonly onOrder?: (move: ((file: string, before: string | null) => Moved) | null) => void;
+  readonly asking?: Asking;
 };
 
 export default function Sheet(props: Readonly<Props>) {
@@ -100,7 +102,7 @@ export default function Sheet(props: Readonly<Props>) {
     else setDrawn(value);
   }, [value, left]);
 
-  const block = (at: [number, number], element: HTMLElement, seed = "") => {
+  const block = (at: [number, number], element: HTMLElement, seed = "", read = "") => {
     if (open.current) return left();
     // A click on the page still on screen while the next one is drawn names bytes of an older text.
     if (reading || showing.current !== latest.current) return;
@@ -140,8 +142,11 @@ export default function Sheet(props: Readonly<Props>) {
         open.current = null;
         setDrawn(latest.current);
       },
+      said.current.asking,
     );
-    if (seed) open.current.view.dispatch({ selection: { anchor: seed.length } });
+    const editing = open.current.view;
+    const caret = seed ? seed.length : caretAt(editing.state.sliceDoc(), read);
+    editing.dispatch({ selection: { anchor: caret }, scrollIntoView: true });
   };
 
   useEffect(() => {

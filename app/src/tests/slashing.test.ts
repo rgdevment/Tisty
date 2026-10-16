@@ -3,12 +3,12 @@ import { markdown } from "@codemirror/lang-markdown";
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { describe, expect, it } from "vitest";
-import { offered, put, SLASHED, slashing } from "../ui/slashing";
+import { type Asked, offered, put, SLASHED, slashing, wrapped } from "../ui/slashing";
 
 const view = (doc: string) =>
   new EditorView({
     parent: document.body,
-    state: EditorState.create({ doc, extensions: [markdown(), slashing] }),
+    state: EditorState.create({ doc, extensions: [markdown(), slashing()] }),
   });
 
 const one = (key: string) => {
@@ -19,7 +19,7 @@ const one = (key: string) => {
 
 const asked = (doc: string): CompletionResult | null => {
   const state = EditorState.create({ doc, extensions: [markdown()] });
-  return offered(new CompletionContext(state, doc.length, false));
+  return offered()(new CompletionContext(state, doc.length, false));
 };
 
 const typed = (doc: string, key: string) => {
@@ -72,11 +72,47 @@ describe("the / menu in a block", () => {
   });
 
   it("is asked for only at the start of a word, and never inside code", () => {
-    expect(asked("/")?.options).toHaveLength(SLASHED.length);
+    expect(asked("/")?.options).toHaveLength(SLASHED.filter((one) => !("ask" in one.put)).length);
     expect(asked("ver /ti")?.from).toBe(4);
     expect(asked("a/b")).toBeNull();
     expect(asked("    /")).toBeNull();
     expect(asked("```\n/")).toBeNull();
+  });
+
+  it("wraps what is selected in a format, and leaves the cursor between the marks when nothing is", () => {
+    const editor = view("leche y pan");
+    editor.dispatch({ selection: { anchor: 0, head: 5 } });
+    wrapped(editor, "**");
+    expect(editor.state.sliceDoc()).toBe("**leche** y pan");
+    editor.dispatch({ selection: { anchor: editor.state.doc.length } });
+    wrapped(editor, "[", "]()");
+    expect(editor.state.sliceDoc()).toBe("**leche** y pan[]()");
+    expect(editor.state.selection.main.head).toBe(16);
+    editor.destroy();
+  });
+
+  it("hands a page, a document or an icon to the window and writes what it brings back", () => {
+    const editor = view("Ver\n/");
+    const asks: Asked[] = [];
+    put(editor, one("page"), 4, 5, {
+      kinds: ["page"],
+      ask: (kind, _, bring) => {
+        asks.push(kind);
+        bring("![Rina](tisty:doc/abc-0003)");
+      },
+    });
+    expect(asks).toEqual(["page"]);
+    expect(editor.state.sliceDoc()).toBe("Ver\n\n![Rina](tisty:doc/abc-0003)");
+    editor.destroy();
+  });
+
+  it("offers only the pickers the window can open", () => {
+    const shown = (kinds: Asked[]) => {
+      const state = EditorState.create({ doc: "/", extensions: [markdown()] });
+      const said = offered({ kinds, ask: () => {} })(new CompletionContext(state, 1, false));
+      return said?.options.length ?? 0;
+    };
+    expect(shown(["icon", "doc"]) - shown([])).toBe(2);
   });
 
   it("narrows by what follows the slash, by label or by key, and says so when nothing fits", () => {

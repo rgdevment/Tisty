@@ -14,7 +14,7 @@ import {
 import { tags } from "@lezer/highlight";
 import { known } from "../glyphs";
 import { HUES } from "./paging";
-import { coded, slashing } from "./slashing";
+import { type Asking, coded, slashing } from "./slashing";
 
 const PENS = ["yellow", ...HUES];
 const PEN = /==(?=\S)((?:(?!==).)+?)(?<=\S)==(?:\{([a-z]+)\})?/u;
@@ -79,11 +79,27 @@ const marked = ViewPlugin.fromClass(
   { decorations: (one) => one.decorations },
 );
 
+// The page shows the words without their marks, so the place clicked is found by the last words read before it.
+export const caretAt = (source: string, read: string): number => {
+  if (!read.trim()) return 0;
+  for (let size = Math.min(read.length, 24); size > 0; size--) {
+    const tail = read.slice(-size);
+    const ends: number[] = [];
+    for (let at = source.indexOf(tail); at >= 0; at = source.indexOf(tail, at + 1)) {
+      ends.push(at + tail.length);
+    }
+    if (ends.length === 0) continue;
+    return ends.find((end) => end >= read.length) ?? ends[ends.length - 1];
+  }
+  return source.length;
+};
+
 export const edited = (
   block: HTMLElement,
   said: string,
   onChange: (text: string) => void,
   onLeave: (text: string) => void,
+  asking?: Asking,
 ): Editing => {
   const page = block.ownerDocument;
   const host = page.createElement("div");
@@ -121,7 +137,7 @@ export const edited = (
         markdown(),
         syntaxHighlighting(inked),
         marked,
-        slashing,
+        slashing(asking),
         dressing,
         EditorView.lineWrapping,
         EditorView.updateListener.of((update) => {

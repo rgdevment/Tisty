@@ -31,6 +31,7 @@ import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
 import { blurbing, cardsOf } from "./carding";
 import Modal from "./Modal";
+import Picking, { type Picked } from "./Picking";
 import { pdfOf, signature } from "./printing";
 import Ribbon, { Onward } from "./Ribbon";
 import type { Block } from "./Slash";
@@ -39,6 +40,7 @@ const NO_BLOCKS: Block[] = [];
 
 import type { Head } from "./paging";
 import { PAPER, pageFor } from "./sheets";
+import type { Asking } from "./slashing";
 import { clearOfChrome } from "./WindowChrome";
 
 const Sheet = lazy(() => import("./Sheet"));
@@ -390,6 +392,18 @@ export default function Docs({
   const seek = own?.file ? stood.current.get(own.file) : undefined;
   const anchor = own?.file && from.current?.doc === own.file ? from.current.page : undefined;
   const pages = pagesOf(known, open?.file);
+  const [picked, setPicked] = useState<Picked | null>(null);
+  const leafy = Boolean(own && !own.pageOf);
+  const slashAsks = useMemo<Asking | undefined>(
+    () =>
+      bolted
+        ? undefined
+        : {
+            kinds: leafy ? ["newPage", "page", "doc", "newDoc", "icon"] : ["doc", "newDoc", "icon"],
+            ask: (kind, at, put) => setPicked({ kind, at, put }),
+          },
+    [bolted, leafy],
+  );
   const above = under(known, own);
   const sisters = pagesOf(known, above?.file);
   const told = useMemo(() => (pages.length > 0 ? namesIn(body) : NONE), [body, pages.length]);
@@ -635,6 +649,7 @@ export default function Docs({
                 onOrder={(move) => {
                   ordering.current = move;
                 }}
+                asking={slashAsks}
               />
             </Suspense>
           </div>
@@ -862,6 +877,17 @@ export default function Docs({
             </button>
           </div>
         </Modal>
+      )}
+
+      {picked && (
+        <Picking
+          picked={picked}
+          own={own}
+          pages={pages}
+          others={known.filter((one) => one.file !== open?.file && !one.away)}
+          onMade={onKept}
+          onDone={() => setPicked(null)}
+        />
       )}
 
       {beside && open && (

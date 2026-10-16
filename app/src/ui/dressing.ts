@@ -13,7 +13,12 @@ export type Reaching = Carding & {
   readonly onDoc: (file: string) => void;
   readonly onOpen?: (reference: string) => void;
   readonly onTag?: (name: string) => void;
-  readonly onBlock?: (at: [number, number], block: HTMLElement, seed?: string) => void;
+  readonly onBlock?: (
+    at: [number, number],
+    block: HTMLElement,
+    seed?: string,
+    read?: string,
+  ) => void;
   readonly onApart?: (source: string) => void;
 };
 
@@ -132,7 +137,7 @@ export const worn = (
   return { lent, kept };
 };
 
-export const answered = (page: Document, asked: Went, reach: Reaching) => {
+export const answered = (page: Document, asked: Went, reach: Reaching, read = "") => {
   if (!asked) return;
   if (asked.kind === "doc") reach.onDoc(asked.id);
   if (asked.kind === "web") openLink(asked.href).catch(() => {});
@@ -147,7 +152,7 @@ export const answered = (page: Document, asked: Went, reach: Reaching) => {
       charsAt(reach.body, asked.at[0]),
       charsAt(reach.body, asked.at[1]),
     ];
-    if (block) reach.onBlock?.(at, block);
+    if (block) reach.onBlock?.(at, block, "", read);
   }
   if (asked.kind === "title" && reach.onBlock) {
     const slot = page.querySelector<HTMLElement>(".page > h1[data-title]");
@@ -178,6 +183,17 @@ const below = (page: Document, target: Element, event: MouseEvent): boolean => {
   return !last || event.clientY > last.getBoundingClientRect().bottom;
 };
 
+// What the page reads before the place clicked, so the words written there open with the caret at it.
+const readTo = (page: Document, event: MouseEvent): string => {
+  const block = (event.target as Element | null)?.closest?.(".page > [data-at]");
+  const caret = page.caretRangeFromPoint?.(event.clientX, event.clientY);
+  if (!block || !caret || !block.contains(caret.startContainer)) return "";
+  const range = page.createRange();
+  range.setStart(block, 0);
+  range.setEnd(caret.startContainer, caret.startOffset);
+  return range.toString();
+};
+
 export const wired = (page: Document, reach: () => Reaching) => {
   const refused = (event: Event) => event.preventDefault();
   page.addEventListener("click", (event) => {
@@ -186,7 +202,7 @@ export const wired = (page: Document, reach: () => Reaching) => {
     const selecting = !(page.getSelection()?.isCollapsed ?? true);
     if (target.closest("a")) event.preventDefault();
     const asked = went(target, selecting) ?? (below(page, target, event) ? { kind: "end" } : null);
-    answered(page, asked, reach());
+    answered(page, asked, reach(), asked?.kind === "block" ? readTo(page, event) : "");
   });
   for (const kind of ["auxclick", "submit", "dragstart", "contextmenu"]) {
     page.addEventListener(kind, refused);

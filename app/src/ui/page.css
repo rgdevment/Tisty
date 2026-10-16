@@ -58,6 +58,9 @@ html.tall .page > * {
 .page > [data-at] {
   cursor: text;
 }
+html.tall .page:has(> .editing) {
+  padding-bottom: 300px;
+}
 .page[data-empty] > h1[data-title] {
   cursor: text;
 }
