@@ -2543,8 +2543,8 @@ fn a_page_put_away_on_its_own_comes_out_of_the_parcel_the_same_way() {
 
     assert_eq!(
         manifest_in(&box_at)["version"],
-        serde_json::json!(2),
-        "a parcel that says something new says which Tisty wrote it"
+        serde_json::json!(3),
+        "a parcel says which Tisty wrote it"
     );
 
     let mut there = Room::new(room.path(), "theirs");
@@ -2561,7 +2561,7 @@ fn a_page_put_away_on_its_own_comes_out_of_the_parcel_the_same_way() {
 }
 
 #[test]
-fn a_parcel_with_nothing_new_to_say_is_still_one_an_older_tisty_can_open() {
+fn every_parcel_says_it_speaks_tistys_own_words_so_an_older_tisty_turns_it_away() {
     let room = tmp();
     let mut here = Room::new(room.path(), "mine");
     let (book, _) = here.doc("# Actas", None, None);
@@ -2571,8 +2571,8 @@ fn a_parcel_with_nothing_new_to_say_is_still_one_an_older_tisty_can_open() {
 
     assert_eq!(
         manifest_in(&box_at)["version"],
-        serde_json::json!(1),
-        "nothing here needs a newer Tisty, so nothing here turns one away"
+        serde_json::json!(3),
+        "its documents are in Tisty's own words, which an older Tisty cannot read"
     );
 }
 
@@ -2721,4 +2721,26 @@ fn a_parcel_locked_by_an_earlier_build_still_opens_with_its_number() {
             .body(&file)
             .contains("sealed before the crypto crates moved")
     );
+}
+
+#[test]
+fn a_parcel_an_older_tisty_wrote_lands_in_tistys_own_words() {
+    let room = tmp();
+    let mut here = Room::new(room.path(), "mine");
+    here.doc(
+        "# Viejo\n\n<mark data-pen=\"green\">ojo</mark> y <u>esto</u>",
+        None,
+        None,
+    );
+    let box_at = room.path().join("vieja.tistyx");
+    parcel::write(&here.paths, &here.state, &[], &box_at, &Along::default()).unwrap();
+    let mut said = manifest_in(&box_at);
+    said["version"] = serde_json::json!(2);
+    let older = with_manifest(room.path(), &box_at, serde_json::to_vec(&said).unwrap());
+
+    let mut there = Room::new(room.path(), "theirs");
+    there.take_in(&older);
+
+    let file = there.titled("Viejo").file.clone();
+    assert_eq!(there.body(&file), "# Viejo\n\n==ojo=={green} y ++esto++\n");
 }

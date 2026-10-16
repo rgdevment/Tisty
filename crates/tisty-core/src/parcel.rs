@@ -14,7 +14,9 @@ use crate::{
 
 pub const EXTENSION: &str = "tistyx";
 const KIND: &str = "tisty-docs";
-const VERSION: u32 = 2;
+const VERSION: u32 = 3;
+/// From here a parcel speaks Tisty's own words; what an older one says is turned on its way in.
+const SPOKEN_FROM: u32 = 3;
 const MANIFEST: &str = "tisty-docs.json";
 const READING: &str = "README.txt";
 const READ_ME: &str = "This is a Tisty parcel.
@@ -560,16 +562,7 @@ fn filled(
             .collect(),
     };
 
-    // A parcel that says nothing new is one an older Tisty can still open, and its seal only
-    // adds up when the manifest is the same bytes on both sides.
-    manifest.version = match manifest
-        .docs
-        .iter()
-        .any(|one| one.away_alone.is_some() || one.flagged.is_some())
-    {
-        true => VERSION,
-        false => 1,
-    };
+    manifest.version = VERSION;
     manifest.seal = crate::store::secret(paths).and_then(|keep| sealed(&manifest, &keep));
 
     let weighs = serde_json::to_string(&manifest)?.len() as u64;
@@ -992,6 +985,10 @@ fn taken_in(
             continue;
         };
         let body = brought(data, staged, &body, &mut carried, &mut landed, &mut ops);
+        let body = match manifest.version < SPOKEN_FROM {
+            true => tisty_markdown::to_tisty(&body),
+            false => body,
+        };
 
         let up = paper
             .page_of
