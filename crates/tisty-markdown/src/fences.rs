@@ -57,11 +57,22 @@ pub fn bullet(said: &str) -> Option<usize> {
     (gap > 0).then_some(at + gap)
 }
 
+// A bullet with nothing after it still opens an item, whose words start one column past the mark.
+fn emptied(said: &str) -> Option<usize> {
+    let numbered = said.len() > 1
+        && said.len() <= 10
+        && said[..said.len() - 1]
+            .bytes()
+            .all(|one| one.is_ascii_digit())
+        && said.ends_with(['.', ')']);
+    (matches!(said, "-" | "*" | "+") || numbered).then_some(said.len() + 1)
+}
+
 pub fn listed(base: usize, wide: usize, said: &str) -> usize {
     if said.is_empty() {
         return base;
     }
-    match bullet(said) {
+    match bullet(said).or_else(|| emptied(said)) {
         Some(after) if wide <= base => wide + after,
         _ if wide < base => 0,
         _ => base,

@@ -50,7 +50,7 @@ const bullet = (said: string): number | null => {
 
 const listed = (base: number, wide: number, said: string): number => {
   if (!said) return base;
-  const after = bullet(said);
+  const after = bullet(said) ?? (/^([-*+]|\d{1,9}[.)])$/.test(said) ? said.length + 1 : null);
   if (after !== null && wide <= base) return wide + after;
   return wide < base ? 0 : base;
 };
