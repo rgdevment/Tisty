@@ -59,9 +59,10 @@ fn doubled(spans: &mut Vec<Span>, text: &str) {
             at += 1;
             continue;
         }
+        let (color, worn) = suffix(&text[shut + 2..same(spans, shut)]);
         spans.push(Span {
-            mark: Mark::Pen { color: None },
-            at: open..shut + 2,
+            mark: Mark::Pen { color },
+            at: open..shut + 2 + worn,
         });
         at += 2;
     }
@@ -77,7 +78,7 @@ fn walls(spans: &[Span], text: &str) -> Vec<(usize, Option<Range<usize>>)> {
             let run = bytes[at..].iter().take_while(|b| **b == b'=').count();
             if run == 2 {
                 let wall = span.at.start + at;
-                found.push((wall, holder(spans, wall)));
+                found.push((wall, crate::inline::holder(spans, wall)));
             }
             at += run.max(1);
         }
@@ -85,11 +86,25 @@ fn walls(spans: &[Span], text: &str) -> Vec<(usize, Option<Range<usize>>)> {
     found
 }
 
-fn holder(spans: &[Span], wall: usize) -> Option<Range<usize>> {
+// A colour written past the end of the words, across a link or a bold, belongs to neither.
+fn same(spans: &[Span], wall: usize) -> usize {
     spans
         .iter()
-        .filter(|one| !matches!(one.mark, Mark::Text | Mark::Break | Mark::Html))
-        .filter(|one| one.at.start < wall && wall < one.at.end)
-        .min_by_key(|one| one.at.end - one.at.start)
-        .map(|one| one.at.clone())
+        .filter(|one| one.mark == Mark::Text && one.at.start <= wall && wall < one.at.end)
+        .map(|one| one.at.end)
+        .next()
+        .unwrap_or(wall + 2)
+}
+
+fn suffix(after: &str) -> (Option<String>, usize) {
+    let named = after
+        .strip_prefix('{')
+        .and_then(|rest| rest.split_once('}'))
+        .map(|(name, _)| name)
+        .filter(|name| crate::vocab::pen(name));
+    match named {
+        Some(name) if name == crate::vocab::YELLOW => (None, name.len() + 2),
+        Some(name) => (Some(name.to_string()), name.len() + 2),
+        None => (None, 0),
+    }
 }

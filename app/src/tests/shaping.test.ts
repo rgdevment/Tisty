@@ -35,6 +35,27 @@ describe("turning a document into shapes for the page", () => {
     expect(runs[2].code).toBe(true);
   });
 
+  it("underlines and strikes through on paper, as the page does", () => {
+    const found = shapesOf(
+      doc(
+        { type: "paragraph", content: words("título") },
+        {
+          type: "paragraph",
+          content: [
+            { type: "text", text: "a", marks: [{ type: "underline" }] },
+            { type: "text", text: "b", marks: [{ type: "strike" }] },
+            { type: "text", text: "c" },
+          ],
+        },
+      ),
+    );
+
+    const runs = found[1].kind === "para" ? found[1].runs : [];
+    expect(runs[0].under).toBe(true);
+    expect(runs[1].struck).toBe(true);
+    expect(runs[2].under).toBeUndefined();
+  });
+
   it("keeps where a link points", () => {
     const found = shapesOf(
       doc(

@@ -55,17 +55,32 @@ pub(crate) fn atom(mark: &Mark) -> bool {
 pub(crate) fn holds(mark: &Mark) -> bool {
     matches!(
         mark,
-        Mark::Emphasis | Mark::Strong | Mark::Strike | Mark::Link { .. } | Mark::Pen { .. }
+        Mark::Emphasis
+            | Mark::Strong
+            | Mark::Strike
+            | Mark::Link { .. }
+            | Mark::Pen { .. }
+            | Mark::Underline
     )
 }
 
-// The yellow pen is written between double equals, which mark it and are never shown.
+// The walls of a pen or an underline, and the colour named after a pen, mark it and are never shown.
 pub(crate) fn walls(spans: &[Span], text: &str) -> Vec<Range<usize>> {
     spans
         .iter()
-        .filter(|one| one.mark == Mark::Pen { color: None })
-        .filter(|one| text[one.at.clone()].starts_with("=="))
-        .flat_map(|one| [one.at.start..one.at.start + 2, one.at.end - 2..one.at.end])
+        .filter_map(|one| {
+            let said = &text[one.at.clone()];
+            let (start, end) = (one.at.start, one.at.end);
+            match one.mark {
+                Mark::Pen { .. } if said.starts_with("==") => {
+                    let shut = start + said.rfind("==")?;
+                    Some([start..start + 2, shut..end])
+                }
+                Mark::Underline if said.starts_with("++") => Some([start..start + 2, end - 2..end]),
+                _ => None,
+            }
+        })
+        .flatten()
         .collect()
 }
 
@@ -90,6 +105,7 @@ fn opening(mark: &Mark, out: &mut String) {
         Mark::Emphasis => out.push_str("<em>"),
         Mark::Strong => out.push_str("<strong>"),
         Mark::Strike => out.push_str("<s>"),
+        Mark::Underline => out.push_str("<u>"),
         Mark::Link { to } => {
             let _ = write!(out, "<a href=\"{}\">", escaped(&safe(to)));
         }
@@ -108,6 +124,7 @@ fn shut(mark: Option<&Mark>, out: &mut String) {
         Some(Mark::Emphasis) => "</em>",
         Some(Mark::Strong) => "</strong>",
         Some(Mark::Strike) => "</s>",
+        Some(Mark::Underline) => "</u>",
         Some(Mark::Link { .. }) => "</a>",
         Some(Mark::Pen { .. }) => "</mark>",
         _ => "",
@@ -297,4 +314,13 @@ pub fn safe(to: &str) -> String {
     } else {
         "#".to_string()
     }
+}
+
+pub(crate) fn holder(spans: &[Span], wall: usize) -> Option<Range<usize>> {
+    spans
+        .iter()
+        .filter(|one| !matches!(one.mark, Mark::Text | Mark::Break | Mark::Html))
+        .filter(|one| one.at.start < wall && wall < one.at.end)
+        .min_by_key(|one| one.at.end - one.at.start)
+        .map(|one| one.at.clone())
 }

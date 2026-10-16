@@ -107,6 +107,8 @@ const inked = (nodes: Node[] | undefined): Run[] => {
       bold: marks.some((m) => m.type === "bold"),
       italic: marks.some((m) => m.type === "italic"),
       code: marks.some((m) => m.type === "code"),
+      under: marks.some((m) => m.type === "underline") || undefined,
+      struck: marks.some((m) => m.type === "strike") || undefined,
       lit: pen ? ((pen.attrs?.color as string | undefined) ?? "yellow") : undefined,
       href: marks.find((m) => m.type === "link")?.attrs?.href as string | undefined,
     });
