@@ -58,6 +58,24 @@ html.tall .page > * {
 .page > [data-at] {
   cursor: text;
 }
+html.tall .page:has(> .editing) {
+  padding-bottom: 300px;
+}
+.page[data-empty] > h1[data-title] {
+  cursor: text;
+}
+.page[data-empty] > h1[data-title]::before {
+  content: attr(data-title);
+  color: var(--tisty-faint);
+}
+.page[data-empty]:has(> h1[data-title]:only-child) {
+  min-height: 240px;
+  cursor: text;
+}
+.page[data-empty]:has(> h1[data-title]:only-child)::after {
+  content: attr(data-empty);
+  color: var(--tisty-faint);
+}
 .page > :is(h1, h2, h3, p):first-child {
   font-size: 1.65em;
   font-weight: 640;

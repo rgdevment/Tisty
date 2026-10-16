@@ -221,7 +221,7 @@ written once with the crates that carry it.
 | `w3c-keyname` | 2.2.8 | MIT |
 | `yoga-layout` | 3.2.1 | MIT |
 
-## In the core (380 crates)
+## In the core (381 crates)
 
 | Crate | Version | Licence |
 | --- | --- | --- |
@@ -397,6 +397,7 @@ written once with the crates that carry it.
 | `moxcms` | 0.8.1 | BSD-3-Clause OR Apache-2.0 |
 | `muda` | 0.20.0 | Apache-2.0 OR MIT |
 | `new_debug_unreachable` | 1.0.6 | MIT |
+| `nix` | 0.31.3 | MIT |
 | `notify-rust` | 4.18.0 | MIT OR Apache-2.0 |
 | `ntapi` | 0.4.3 | Apache-2.0 OR MIT |
 | `num-conv` | 0.2.2 | MIT OR Apache-2.0 |
@@ -599,7 +600,7 @@ written once with the crates that carry it.
 | `zerotrie` | 0.2.4 | Unicode-3.0 |
 | `zerovec` | 0.11.6 | Unicode-3.0 |
 | `zip` | 4.6.1 | MIT |
-| `zip` | 8.6.0 | MIT |
+| `zip` | 9.0.3 | MIT |
 | `zlib-rs` | 0.6.7 | Zlib |
 | `zmij` | 1.0.23 | MIT |
 | `zopfli` | 0.8.3 | Apache-2.0 |

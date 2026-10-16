@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { edited } from "../ui/blocking";
+import { caretAt, edited } from "../ui/blocking";
 
 const block = () => {
   const page = document.createElement("article");
@@ -114,5 +114,18 @@ describe("writing a block in place", () => {
     expect(changes).toEqual(["uno!\r\ndos"]);
     editing.leave();
     page.remove();
+  });
+});
+
+describe("the caret a click leaves in a block", () => {
+  it("sits after the words read before the click, past the marks the page does not show", () => {
+    expect(caretAt("Leche y **pan** fresco", "Leche y pan")).toBe(13);
+    expect(caretAt("# Compras del mes", "Compras")).toBe(9);
+    expect(caretAt("uno, dos, uno, dos", "uno, dos, uno")).toBe(13);
+  });
+
+  it("starts at the beginning when nothing was read, and at the end when the words are not found", () => {
+    expect(caretAt("Leche", "")).toBe(0);
+    expect(caretAt("Leche", "§")).toBe(5);
   });
 });

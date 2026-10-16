@@ -1,12 +1,13 @@
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { viewWidget } from "../core";
 import type { Moved } from "../paging";
-import { type Editing, edited } from "./blocking";
+import { caretAt, type Editing, edited } from "./blocking";
 import { movedCard, putCard } from "./carded";
 import type { Carded } from "./carding";
 import Page from "./Page";
 import type { Head } from "./paging";
 import { ASIDE_MARGIN, settles } from "./seeking";
+import type { Asking } from "./slashing";
 
 type Props = {
   readonly file?: string;
@@ -28,6 +29,7 @@ type Props = {
   readonly again?: string;
   readonly onInsert?: (put: ((file: string, title: string) => boolean) | null) => void;
   readonly onOrder?: (move: ((file: string, before: string | null) => Moved) | null) => void;
+  readonly asking?: Asking;
 };
 
 export default function Sheet(props: Readonly<Props>) {
@@ -65,6 +67,18 @@ export default function Sheet(props: Readonly<Props>) {
 
   useEffect(() => () => left(), [left]);
 
+  useEffect(() => {
+    const outside = (event: MouseEvent) => {
+      const target = event.target as Element | null;
+      if (!open.current || target?.closest?.("[data-keeps-writing]")) return;
+      // The scrollbar beside the page belongs to what holds it, and dragging it is still reading along.
+      if (target === room.current) return;
+      left();
+    };
+    window.addEventListener("mousedown", outside, true);
+    return () => window.removeEventListener("mousedown", outside, true);
+  }, [left]);
+
   const wanted = useRef(props.seek);
   const marked = useRef(props.anchor);
   const onFile = useRef(file);
@@ -100,7 +114,7 @@ export default function Sheet(props: Readonly<Props>) {
     else setDrawn(value);
   }, [value, left]);
 
-  const block = (at: [number, number], element: HTMLElement) => {
+  const block = (at: [number, number], element: HTMLElement, seed = "", read = "") => {
     if (open.current) return left();
     // A click on the page still on screen while the next one is drawn names bytes of an older text.
     if (reading || showing.current !== latest.current) return;
@@ -108,21 +122,51 @@ export default function Sheet(props: Readonly<Props>) {
     let end = at[1];
     const piece = latest.current.slice(from, end);
     const tail = /\r?\n$/.exec(piece)?.[0] ?? "";
+    // A new block is kept apart from the ones around it by a blank line, as Markdown needs.
+    const fresh = from === end;
+    const before = latest.current.slice(0, from);
+    const ahead =
+      !fresh || !before.trim() || before.endsWith("\n\n")
+        ? ""
+        : before.endsWith("\n")
+          ? "\n"
+          : "\n\n";
+    const after = latest.current.slice(end);
+    const behind =
+      !fresh || !after.trim() || after.startsWith("\n\n")
+        ? ""
+        : after.startsWith("\n")
+          ? "\n"
+          : "\n\n";
     const spliced = (text: string) => {
       const now = latest.current;
-      const next = `${now.slice(0, from)}${text}${tail}${now.slice(end)}`;
-      end = from + text.length + tail.length;
+      const said = fresh && (text === seed || !text.trim()) ? "" : text;
+      const [gap, rest] = said ? [ahead, behind] : ["", ""];
+      const next = `${now.slice(0, from)}${gap}${said}${tail}${rest}${now.slice(end)}`;
+      end = from + gap.length + said.length + tail.length + rest.length;
       return next;
     };
     open.current = edited(
       element,
-      piece,
+      piece || seed,
       (text) => written(spliced(text)),
       () => {
         open.current = null;
         setDrawn(latest.current);
       },
+      () => {
+        const asking = said.current.asking;
+        if (!asking) return undefined;
+        const before = !latest.current.slice(0, from).trim();
+        return {
+          kinds: asking.kinds,
+          ask: (kind, at, put, first) => asking.ask(kind, at, put, first && before),
+        };
+      },
     );
+    const editing = open.current.view;
+    const caret = seed ? seed.length : caretAt(editing.state.sliceDoc(), read);
+    editing.dispatch({ selection: { anchor: caret }, scrollIntoView: true });
   };
 
   useEffect(() => {
@@ -224,7 +268,8 @@ export default function Sheet(props: Readonly<Props>) {
           onDoc={(file) => said.current.onDoc?.(file)}
           onOpen={(reference) => said.current.onOpen?.(reference)}
           onTag={(tag) => said.current.onTag?.(tag)}
-          onBlock={block}
+          onBlock={reading ? undefined : block}
+          onAway={left}
           card={props.card}
           blurb={props.blurb}
           again={props.again}
