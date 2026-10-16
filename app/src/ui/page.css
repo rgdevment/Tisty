@@ -498,15 +498,66 @@ a.card:hover,
 .doc-card .chip.gone {
   color: var(--tisty-hue-red);
 }
-.card-tile .card-shot {
-  width: 100%;
-  height: 100%;
-  border-radius: inherit;
-  object-fit: cover;
-}
 .doc-card.is-web {
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "tile name"
+    "tile blurb"
+    "tile meta";
+  align-items: start;
+  gap: 3px 14px;
+  padding: 14px 16px;
   color: inherit;
   text-decoration: none;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.doc-card.is-web .card-tile {
+  grid-area: tile;
+  grid-row: auto;
+}
+.doc-card.is-web .card-name {
+  grid-area: name;
+}
+.doc-card.is-web .card-blurb {
+  grid-area: blurb;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  line-height: 1.45;
+}
+.doc-card.is-web .card-meta {
+  grid-area: meta;
+  justify-content: flex-start;
+  margin-top: 4px;
+}
+.doc-card.is-web .card-go {
+  margin-left: auto;
+}
+.doc-card.is-web.has-shot {
+  grid-template-columns: minmax(0, 1fr) 140px;
+  grid-template-areas:
+    "name thumb"
+    "blurb thumb"
+    "meta thumb";
+  padding: 0 0 0 16px;
+  overflow: hidden;
+}
+.doc-card.is-web.has-shot .card-name {
+  padding-top: 14px;
+}
+.doc-card.is-web.has-shot .card-meta {
+  padding-bottom: 12px;
+}
+.card-thumb {
+  grid-area: thumb;
+  width: 140px;
+  height: 100%;
+  min-height: 96px;
+  object-fit: cover;
+  border-left: 1px solid var(--tisty-hair);
 }
 .doc-card.is-page .card-tile {
   background: var(--tisty-accent-soft);

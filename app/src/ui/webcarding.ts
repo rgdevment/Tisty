@@ -1,22 +1,17 @@
 import { type Glimpse, glimpseFetch, glimpseKept } from "../core";
-import { markup } from "../glyphs";
 import { t } from "../locales";
 import { hosting } from "../previews";
+import { drawn, piece } from "./carding";
 
-const piece = (page: Document, kind: string, said = "") => {
-  const one = page.createElement("span");
-  one.className = kind;
-  one.textContent = said;
-  return one;
-};
+// One question to the core per link and window, however many times the page is drawn again.
+const asked = new Map<string, Promise<Glimpse | null>>();
 
-const globe = (page: Document) => {
-  const glyph = page.createElementNS("http://www.w3.org/2000/svg", "svg");
-  glyph.setAttribute("class", "glyph");
-  glyph.setAttribute("viewBox", "0 0 24 24");
-  glyph.setAttribute("aria-hidden", "true");
-  glyph.innerHTML = markup("globe-earth") ?? "";
-  return glyph;
+const keptFor = (at: string) => {
+  const was = asked.get(at);
+  if (was) return was;
+  const said = glimpseKept(at).catch(() => null);
+  asked.set(at, said);
+  return said;
 };
 
 const told = (said: Glimpse | null): said is Glimpse =>
@@ -24,33 +19,35 @@ const told = (said: Glimpse | null): said is Glimpse =>
 
 const shown = (
   page: Document,
-  parts: { tile: HTMLElement; name: HTMLElement; blurb: HTMLElement },
+  parts: { box: HTMLElement; tile: HTMLElement; name: HTMLElement; blurb: HTMLElement },
   said: Glimpse,
 ) => {
   if (said.title) parts.name.textContent = said.title;
   if (said.said) parts.blurb.textContent = said.said;
   if (said.shot) {
     const shot = page.createElement("img");
-    shot.className = "card-shot";
+    shot.className = "card-thumb";
     shot.alt = "";
+    shot.loading = "lazy";
     shot.src = said.shot;
-    parts.tile.replaceChildren(shot);
+    parts.tile.remove();
+    parts.box.classList.add("has-shot");
+    parts.box.append(shot);
   }
 };
 
-// A web link alone in its paragraph is a card; its preview comes only from the network when asked.
 export const webCarded = (page: Document, live: () => boolean) => {
   for (const link of page.querySelectorAll<HTMLAnchorElement>(".page > p > a[href]")) {
     const held = link.parentElement;
     const at = link.getAttribute("href") ?? "";
     const host = hosting(at);
-    if (!held || !host || held.children.length !== 1) continue;
+    if (!held || !host || held.children.length !== 1 || link.children.length) continue;
     if ((held.textContent ?? "").trim() !== (link.textContent ?? "").trim()) continue;
     const box = page.createElement("a");
     box.className = "doc-card is-web";
     box.href = at;
     const tile = piece(page, "card-tile");
-    tile.append(globe(page));
+    tile.append(drawn(page, "globe-earth"));
     const name = piece(page, "card-name", link.textContent?.trim() || host);
     const blurb = piece(page, "card-blurb");
     const meta = piece(page, "card-meta");
@@ -69,7 +66,10 @@ export const webCarded = (page: Document, live: () => boolean) => {
           if (!live()) return;
           ask.hidden = told(said);
           ask.disabled = false;
-          if (told(said)) shown(page, { tile, name, blurb }, said);
+          if (told(said)) {
+            asked.set(at, Promise.resolve(said));
+            shown(page, { box, tile, name, blurb }, said);
+          }
         })
         .catch(() => {
           ask.disabled = false;
@@ -78,10 +78,10 @@ export const webCarded = (page: Document, live: () => boolean) => {
     meta.append(ask, piece(page, "card-go", "›"));
     box.append(tile, name, blurb, meta);
     link.replaceWith(box);
-    glimpseKept(at)
+    keptFor(at)
       .then((said) => {
         if (!live()) return;
-        if (told(said)) shown(page, { tile, name, blurb }, said);
+        if (told(said)) shown(page, { box, tile, name, blurb }, said);
         else ask.hidden = false;
       })
       .catch(() => {

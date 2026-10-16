@@ -49,7 +49,9 @@ describe("a web link alone in its paragraph", () => {
 
     net.kept = null;
     net.fetched = { title: "Traída", shot: "data:image/png;base64,AA==" };
-    const bare = page('<p><a href="https://tisty.app">tisty.app</a></p>');
+    const bare = page(
+      '<p><a href="https://tisty.app/otra">tisty.app</a></p><p><a href="https://x.cl"><img src="b.svg"></a></p>',
+    );
     webCarded(bare, () => true);
     await settle();
     const ask = bare.querySelector<HTMLButtonElement>(".card-edit");
@@ -59,6 +61,9 @@ describe("a web link alone in its paragraph", () => {
     await settle();
     expect(net.asked).toBe(1);
     expect(bare.querySelector(".card-name")?.textContent).toBe("Traída");
-    expect(bare.querySelector("img.card-shot")).not.toBeNull();
+    expect(bare.querySelector("img.card-thumb")).not.toBeNull();
+    expect(bare.querySelectorAll(".doc-card")).toHaveLength(1);
+    expect(bare.querySelector('img[src="b.svg"]')).not.toBeNull();
+    expect(bare.querySelector(".is-web.has-shot .card-tile")).toBeNull();
   });
 });

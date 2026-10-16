@@ -179,7 +179,8 @@ fn atomic(one: &Span, spans: &[Span], text: &str, kept: &HashSet<usize>, out: &m
         Mark::NoteRef { label } => {
             let _ = write!(
                 out,
-                "<sup class=\"fnref\"><a href=\"#fn-{0}\">{0}</a></sup>",
+                "<sup class=\"fnref\"><a href=\"#fn-{0}\">{1}</a></sup>",
+                escaped(&label.to_lowercase()),
                 escaped(label)
             );
         }

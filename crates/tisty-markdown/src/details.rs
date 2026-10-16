@@ -76,13 +76,16 @@ fn opened(block: &Block, text: &str) -> Option<Opened> {
         Kind::Paragraph if said.contains('\n') => None,
         Kind::Paragraph => match said.strip_prefix(":::details") {
             Some(summary) => Some(Opened::Details(summary.trim().to_string(), false)),
-            None => called(said.strip_prefix(":::")?).map(Opened::Callout),
+            None => said
+                .strip_prefix(":::")
+                .filter(|rest| rest.starts_with(char::is_alphabetic))
+                .and_then(called)
+                .map(Opened::Callout),
         },
         _ => None,
     }
 }
 
-// The same five kinds GitHub names in a quote, written as a colon container the way other editors do.
 fn called(said: &str) -> Option<Callout> {
     Some(match said.trim().to_ascii_lowercase().as_str() {
         "note" => Callout::Note,

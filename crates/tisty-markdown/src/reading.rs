@@ -157,6 +157,11 @@ pub(crate) fn plain(source: &str) -> String {
             | Event::InlineMath(words)
             | Event::DisplayMath(words) => said.push_str(&words),
             Event::SoftBreak | Event::HardBreak => said.push(' '),
+            Event::FootnoteReference(label) => {
+                said.push_str("[^");
+                said.push_str(&label);
+                said.push(']');
+            }
             _ => {}
         }
     }

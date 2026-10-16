@@ -192,7 +192,6 @@ const sections = (state: EditorState): [Fence, Fence][] => {
   return found;
 };
 
-// A callout written as a colon container reads like the one written as a quote: its name over a ruled body.
 const called = (
   state: EditorState,
   shown: boolean,

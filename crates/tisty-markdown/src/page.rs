@@ -85,7 +85,8 @@ fn draw(block: &Block, text: &str, anchors: &HashMap<usize, String>, out: &mut S
         }
         Kind::Note { label } => {
             let head = format!(
-                "<div class=\"footnote\" id=\"fn-{0}\" {at}><span class=\"fn-label\">{0}</span>",
+                "<div class=\"footnote\" id=\"fn-{0}\" {at}><span class=\"fn-label\">{1}</span>",
+                escaped(&label.to_lowercase()),
                 escaped(label)
             );
             wrapped(&head, "</div>", block, text, anchors, out);
