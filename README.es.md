@@ -22,16 +22,16 @@
   <p>
     <a href="https://github.com/rgdevment/Tisty/releases">
       <img
-        src="https://img.shields.io/github/v/release/rgdevment/Tisty?include_prereleases&style=flat-square&label=Latest&color=6C5CE7"
+        src="https://img.shields.io/github/v/release/rgdevment/Tisty?include_prereleases&style=flat-square&label=Latest&color=D9A13B"
         alt="Última versión"/>
     </a>
     <a href="#un-asistente-si-usas-uno">
       <img
-        src="https://img.shields.io/badge/MCP-Official_Registry-6C5CE7?style=flat-square"
+        src="https://img.shields.io/badge/MCP-Official_Registry-D9A13B?style=flat-square"
         alt="Tisty en el registro oficial de MCP"/>
     </a>
     <img
-      src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-6C5CE7?style=flat-square"
+      src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-D9A13B?style=flat-square"
       alt="Plataformas: Windows y macOS"/>
     <a href="#licencia">
       <img
@@ -54,9 +54,10 @@
     <img
       src="assets/store/es-01-registro.png"
       width="92%"
-      alt="Tisty: no es una lista que se vacía, es un registro de lo que
-      resolviste. La ventana muestra las tareas de hoy con sus pasos junto al
-      árbol de documentos, y el día, las prioridades y las listas al costado"/>
+      alt="Tisty: no es una lista que vacías, es un registro de lo que
+      resolviste. Una tarea abierta a página completa conserva su descripción,
+      sus pasos y sus partes, con el rastro de cada cambio y el diario al
+      costado"/>
   </p>
 
   <h4>Descargar Tisty</h4>
@@ -90,8 +91,8 @@
 
 ---
 
-**Tisty** es Opensource. Puedes leerlo, compilarlo, probarlo o descargar las
-versiones estables que ya están publicadas. No hay nada oculto: todo es
+**Tisty** es de código abierto: puedes leerlo, compilarlo, probarlo o descargar
+las versiones firmadas que ya están publicadas. No hay nada oculto: todo es
 auditable.
 
 Es un lugar para escribir. Los **documentos** son archivos Markdown en tu
@@ -305,6 +306,8 @@ editor— y en Tisty lleva bastante más que texto:
 - **Un PDF propio**, A4, Carta o Tabloide, con los adjuntos dentro, que te
   enseña antes de exportarlo.
 
+![Notas en Markdown, archivos simples, cualquier editor: fórmulas y un widget dibujados dentro de un documento, con el formato y el PDF en la columna de al lado](assets/store/es-03-notas.png)
+
 La guía que Tisty escribe la primera vez que se abre trae una página con uno de
 cada cosa, para que lo veas todo antes de escribir una línea.
 
@@ -403,8 +406,6 @@ una línea del historial. Si escribes un alias —opcional, y solo tú decides
 cuál—, cada documento queda firmado con él, y lo que te llegue de otra persona
 conserva el suyo.
 
-![Documentos que hacen las cuentas: fórmulas, diagramas, código y pequeños widgets dibujados dentro de Tisty, sin bajar nada](assets/store/es-06-documentos.png)
-
 ## Para quién es
 
 Para alguien que trabaja solo, o casi siempre solo, y cuyas tareas dejan un
@@ -500,7 +501,7 @@ siempre le gana el sitio.
 frase legible, y te muestra qué entendió *antes* de guardar nada — como fichas
 que corriges con un clic.
 
-![Escríbelo como lo dices: etiquetas, listas, prioridad, fechas y repeticiones como todos los martes se leen de palabras simples](assets/store/es-02-tareas.png)
+![Escríbelo como lo dices: etiquetas, listas, prioridad, fechas y repeticiones como todos los martes se leen de palabras simples, con el día, los cuadrantes y las listas contados al costado](assets/store/es-02-tareas.png)
 
 ```text
 "desplegar mañana a las 10"        →  mañana 10:00
@@ -519,7 +520,7 @@ Abierta a toda la página gana una columna con su propio trayecto: cuántos día
 lleva abierta, cuánto va hecho y cada cambio por el que ha pasado, que hasta
 ahora vivía al final, donde nadie bajaba.
 
-![Una tarjeta para cada parte de tu vida: cada lista con su ícono y su nombre, lo que tiene abierto y sus fechas](assets/store/es-05-listas.png)
+![Una tarjeta para cada parte de tu vida: las tareas agrupadas por lista, cada una con su ícono y su nombre, junto a la tarea abierta](assets/store/es-06-listas.png)
 
 **Las prioridades son una matriz, no una escalera.** Tisty toma los cuatro
 cuadrantes de la matriz de Eisenhower — el método que se atribuye al presidente
@@ -536,7 +537,7 @@ Cada cuadrante lleva un **+** que abre la captura rápida con ese cuadrante ya
 puesto, y lo que nadie ha colocado espera en una bandeja que se abre como la
 dejaste.
 
-![La matriz de Eisenhower en Tisty: cada tarea en hacer, planificar, delegar o menor, con las sin clasificar al costado](assets/store/es-03-prioridades.png)
+![Decide qué importa y hazlo: la matriz de Eisenhower reparte cada tarea en hacer, planificar, delegar o menor, con las sin clasificar al costado](assets/store/es-04-prioridades.png)
 
 **El reparto reparte tus días, una fila cada vez.** Las prioridades ordenan lo
 que importa; el reparto decide cuándo. Es un río de días por el que bajas, no
@@ -553,7 +554,7 @@ se suelta nada, a propósito. Tisty no ve el calendario que llevas en otro sitio
 así que una casilla sin nada escrito es solo una casilla sin nada escrito, nunca
 la promesa de que ese día es tuyo.
 
-![El reparto: cada tarea cae en su día, las que no tienen día esperan a la izquierda y el mes está a un clic](assets/store/es-04-agenda.png)
+![Tu semana, repartida: cada tarea cae en su día, las que no tienen día esperan a la izquierda y el mes está a un clic](assets/store/es-05-agenda.png)
 
 **Tisto te acompaña.** El castor de Tisty se asoma sobre la barra mientras
 escribes una tarea y levanta el pulgar cuando terminas una. Nunca tapa nada, y
@@ -582,7 +583,7 @@ se oculta.
 
 ## Tus datos y tu privacidad
 
-![Tisto, el castor de Tisty: gratis y de código abierto, sin cuenta, sin suscripción y sin telemetría, y tus archivos se quedan en tu equipo](assets/store/es-08-gratis.png)
+![Tuyo, y nada más: Tisto, el castor de Tisty, junto a lo que Tisty nunca te pide — sin cuenta, sin suscripción, sin telemetría, y tus archivos se quedan en tu computador](assets/store/es-08-gratis.png)
 
 Todo vive en una carpeta de tu disco: un registro de lo que pasó al que solo se
 le agrega, tus documentos como archivos `.md`, y tus adjuntos tal como son. Nada
@@ -716,7 +717,7 @@ programa llega a ella.
 
 ## Un asistente, si usas uno
 
-![Trae a tus agentes favoritos por MCP y deja que organicen, documenten, agenden y prioricen tus tareas, mientras todo se queda en tu equipo](assets/store/es-07-mcp.png)
+![Trae a tus agentes favoritos, ellos ordenan la casa: Ajustes › Asistentes muestra los que hay en este computador y conecta cada uno por MCP, sin IA dentro de Tisty](assets/store/es-07-mcp.png)
 
 **Tisty no es inteligencia artificial ni la lleva dentro.** El lenguaje natural
 que convierte "llamar al banco a las 3" en una tarea es un puñado de reglas
