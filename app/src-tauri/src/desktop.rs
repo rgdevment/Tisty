@@ -135,13 +135,13 @@ fn a_package(id: &str) -> bool {
 
 #[cfg(windows)]
 #[allow(unsafe_code)]
-pub(crate) fn changed(at: &std::path::Path) -> Option<i64> {
+pub(crate) fn known_as(at: &std::path::Path) -> Option<String> {
     use std::os::windows::fs::OpenOptionsExt;
     use std::os::windows::io::AsRawHandle;
     use windows::Win32::Foundation::HANDLE;
     use windows::Win32::Storage::FileSystem::{
-        FILE_BASIC_INFO, FILE_READ_ATTRIBUTES, FILE_SHARE_DELETE, FILE_SHARE_READ,
-        FILE_SHARE_WRITE, FileBasicInfo, GetFileInformationByHandleEx,
+        FILE_BASIC_INFO, FILE_ID_INFO, FILE_READ_ATTRIBUTES, FILE_SHARE_DELETE, FILE_SHARE_READ,
+        FILE_SHARE_WRITE, FileBasicInfo, FileIdInfo, GetFileInformationByHandleEx,
     };
 
     // Attributes only: opening for its bytes would bring down a body a cloud left up there.
@@ -160,7 +160,27 @@ pub(crate) fn changed(at: &std::path::Path) -> Option<i64> {
         )
     }
     .ok()?;
-    Some(info.ChangeTime)
+    // Two files made in one tick can share every date on ReFS; only the file id tells them apart.
+    let mut id = FILE_ID_INFO::default();
+    unsafe {
+        GetFileInformationByHandleEx(
+            HANDLE(file.as_raw_handle()),
+            FileIdInfo,
+            (&raw mut id).cast(),
+            std::mem::size_of::<FILE_ID_INFO>() as u32,
+        )
+    }
+    .ok()?;
+    let named: String = id
+        .FileId
+        .Identifier
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect();
+    Some(format!(
+        "{}.{:x}.{named}",
+        info.ChangeTime, id.VolumeSerialNumber
+    ))
 }
 
 #[cfg(not(target_os = "macos"))]
