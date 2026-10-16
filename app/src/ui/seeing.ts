@@ -11,7 +11,7 @@ import {
 import type { SyntaxNode } from "@lezer/common";
 import { known, markup } from "../glyphs";
 import { t } from "../locales";
-import { coded, owning } from "./formatting";
+import { anchored, coded, owning, TAG_EDGE, TAG_WORD } from "./formatting";
 import { HUES } from "./paging";
 import { waiting } from "./pending";
 
@@ -120,14 +120,91 @@ class Glyph extends WidgetType {
   }
 }
 
-const TAG = /(?<![\p{L}\p{N}#/\-_.:])#([\p{L}\p{N}][\p{L}\p{N}\p{M}_-]*)/gu;
+const TAG = new RegExp(`${TAG_EDGE}#(${TAG_WORD})`, "gu");
 
 // A tag reads as a chip once saved, so it wears one while it is written; «#1234» is a ticket, not a tag.
 const tagged = (state: EditorState, from: number, to: number, out: Range<Decoration>[]) => {
   for (const found of state.sliceDoc(from, to).matchAll(TAG)) {
     const at = from + (found.index ?? 0);
-    if (found[1].length < 2 || !/\p{L}/u.test(found[1]) || coded(state, at)) continue;
+    if (found[1].length < 2 || !/\p{L}/u.test(found[1]) || coded(state, at) || anchored(state, at))
+      continue;
     out.push(Decoration.mark({ class: "cm-tag" }).range(at, at + found[0].length));
+  }
+};
+
+class Folding extends WidgetType {
+  constructor(readonly head: boolean) {
+    super();
+  }
+  eq(other: WidgetType) {
+    return other instanceof Folding && other.head === this.head;
+  }
+  toDOM(view: EditorView) {
+    const one = view.dom.ownerDocument.createElement("span");
+    one.className = this.head ? "cm-fold-mark" : "cm-fold-close";
+    if (this.head) one.textContent = "▾";
+    return one;
+  }
+}
+
+// Any :::word opens a colon container, as the page reads it, so a nested one never steals its section's fence.
+const OPENS = /^:::[\p{L}\p{N}]/u;
+const DETAILS = /^:::details ?/;
+
+type Fence = { readonly at: number; readonly head?: RegExpExecArray | null };
+
+// A fence counts only as a paragraph of its own, the way the page finds it.
+const fenced = (state: EditorState, at: number): string | null => {
+  const line = state.doc.line(at);
+  const text = line.text.trimStart();
+  const indent = line.text.length - text.length;
+  if (indent > 3 || !text.startsWith(":::")) return null;
+  for (
+    let one: SyntaxNode | null = syntaxTree(state).resolveInner(line.from + indent, 1);
+    one;
+    one = one.parent
+  ) {
+    if (one.name !== "Paragraph") continue;
+    const alone =
+      state.doc.lineAt(one.from).number === at && state.doc.lineAt(one.to).number === at;
+    return alone ? text : null;
+  }
+  return null;
+};
+
+const sections = (state: EditorState): [Fence, Fence][] => {
+  const open: Fence[] = [];
+  const found: [Fence, Fence][] = [];
+  for (let at = 1; at <= state.doc.lines; at++) {
+    const text = fenced(state, at);
+    if (text === null) continue;
+    if (OPENS.test(text)) open.push({ at, head: DETAILS.exec(text) });
+    else if (text.trim() === ":::" && open.length) {
+      const head = open.pop() as Fence;
+      if (head.head) found.push([head, { at }]);
+    }
+  }
+  return found;
+};
+
+const folded = (state: EditorState, shown: boolean, out: Range<Decoration>[]) => {
+  if (!state.sliceDoc().includes(":::")) return;
+  for (const [head, shut] of sections(state)) {
+    const top = state.doc.line(head.at);
+    const from = top.from + top.text.length - top.text.trimStart().length;
+    out.push(Decoration.line({ class: "cm-fold-head" }).range(top.from));
+    if (!shown && !touched(state, top.from, top.to))
+      out.push(
+        Decoration.replace({ widget: new Folding(true) }).range(
+          from,
+          from + (head.head?.[0].length ?? 0),
+        ),
+      );
+    for (let at = head.at + 1; at < shut.at; at++)
+      out.push(Decoration.line({ class: "cm-fold-body" }).range(state.doc.line(at).from));
+    const end = state.doc.line(shut.at);
+    if (!shown && !touched(state, end.from, end.to))
+      out.push(Decoration.replace({ widget: new Folding(false) }).range(end.from, end.to));
   }
 };
 
@@ -264,6 +341,7 @@ export const seen = (
     owned(state, from, to, shown, out);
     tagged(state, from, to, out);
   }
+  folded(state, shown, out);
   if (!shown) waiting(state, out);
   return Decoration.set(out, true);
 };

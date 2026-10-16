@@ -70,6 +70,7 @@ export type Went =
   | { kind: "attachment"; reference: string }
   | { kind: "block"; at: [number, number] }
   | { kind: "tag"; name: string }
+  | { kind: "tick"; at: [number, number] }
   | { kind: "apart"; at: [number, number] }
   | { kind: "end" }
   | { kind: "title" }
@@ -107,6 +108,10 @@ export const went = (target: Element, selecting: boolean): Went => {
   const tag = target.closest<HTMLElement>(".tag")?.dataset.tag;
   if (tag) return { kind: "tag", name: tag };
   if (selecting || target.closest("summary, figure.widget")) return null;
+  // A stage's box ticks where it is read; the words beside it still open the block.
+  const box = target.closest(".check")?.closest<HTMLElement>("li.task[data-at]");
+  const ticked = spanned(box?.dataset.at ?? null);
+  if (ticked) return { kind: "tick", at: ticked };
   if (target.closest(".page > h1[data-title]")) return { kind: "title" };
   const at = spanned(target.closest<HTMLElement>(".page > [data-at]")?.dataset.at ?? null);
   return at ? { kind: "block", at } : null;

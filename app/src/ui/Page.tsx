@@ -81,6 +81,7 @@ export default function Page(props: Readonly<Props>) {
             body: one.body,
             // A page with a newer drawing on its way names bytes nobody is writing any more.
             onBlock: one.turn === turns.current ? reach.current.onBlock : undefined,
+            onTick: one.turn === turns.current ? reach.current.onTick : undefined,
           })}
           onReady={(frame) => ready(one.turn, frame)}
         />

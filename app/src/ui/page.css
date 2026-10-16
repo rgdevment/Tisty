@@ -151,6 +151,9 @@ li.task {
   border-radius: 4px;
   box-sizing: border-box;
 }
+.ticking .check {
+  cursor: pointer;
+}
 .check[data-done="true"] {
   background: var(--tisty-accent);
   border-color: var(--tisty-accent);
@@ -868,6 +871,25 @@ kbd {
 }
 .cm-pending-code {
   font-family: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, monospace;
+}
+.cm-fold-head {
+  font-weight: 600;
+}
+.cm-fold-mark {
+  display: inline-block;
+  width: 1.1em;
+  color: var(--tisty-soft);
+}
+.cm-fold-body {
+  border-left: 2px solid var(--tisty-hair);
+  padding-left: 0.9em !important;
+}
+.cm-fold-close {
+  display: inline-block;
+  width: 2.2em;
+  height: 0;
+  vertical-align: middle;
+  border-top: 2px solid var(--tisty-hair);
 }
 .cm-tag {
   background: var(--tisty-mark-tag);

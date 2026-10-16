@@ -4,7 +4,7 @@ import { EditorState } from "@codemirror/state";
 import { EditorView, runScopeHandlers } from "@codemirror/view";
 import { describe, expect, it } from "vitest";
 import { wrapped } from "../ui/formatting";
-import { type Asked, holding, offered, put, SLASHED, slashing } from "../ui/slashing";
+import { type Asked, holding, offered, put, SLASHED, slashing, tagging } from "../ui/slashing";
 
 const view = (doc: string) =>
   new EditorView({
@@ -37,6 +37,7 @@ describe("the / menu in a block", () => {
     expect(typed("/", "h1")).toEqual({ text: "# ", at: 2 });
     expect(typed("/tit", "h2")).toEqual({ text: "## ", at: 3 });
     expect(typed("/", "todo")).toEqual({ text: "- [ ] ", at: 6 });
+    expect(typed("/", "fold")).toEqual({ text: ":::details \n\n\n\n:::", at: 11 });
     expect(typed("Leche\n/", "bullets")).toEqual({ text: "Leche\n\n- ", at: 9 });
     expect(typed("Leche\n/", "h1")).toEqual({ text: "Leche\n# ", at: 8 });
   });
@@ -202,5 +203,45 @@ describe("the / menu in a block", () => {
     expect(editor.state.sliceDoc()).toBe("Ver ::star::");
     editor.destroy();
     expect(bring?.("::dog::")).toBe(false);
+  });
+});
+
+describe("tags offered after a #", () => {
+  const offeredAt = (doc: string, pos = doc.length) => {
+    const state = EditorState.create({ doc, extensions: [markdown()] });
+    const asking = { kinds: [], ask: () => {}, tags: ["compras", "casa", "trabajo", "homework"] };
+    return tagging(() => asking)(new CompletionContext(state, pos, false));
+  };
+  const labels = (doc: string, pos?: number) =>
+    offeredAt(doc, pos)?.options.map((one) => one.label) ?? null;
+
+  it("offers the tags that start with what is typed, after keeping what was typed first", () => {
+    expect(labels("leche #c")).toEqual(["#c", "#compras", "#casa"]);
+    expect(labels("#Trá")).toEqual(["#Trá", "#trabajo"]);
+    expect(labels('dijo "#c')).toEqual(["#c", "#compras", "#casa"]);
+  });
+
+  it("never swaps a whole tag for a longer one that only contains it", () => {
+    expect(labels("#work")).toBeNull();
+    expect(labels("#casa")).toBeNull();
+  });
+
+  it("stays shut on a lone #, a title, a ticket, a glued #, code or a link's anchor", () => {
+    expect(labels("leche #")).toBeNull();
+    expect(labels("# Plan")).toBeNull();
+    expect(labels("ticket #12")).toBeNull();
+    expect(labels("color#c")).toBeNull();
+    expect(labels("`code #c`", 8)).toBeNull();
+    expect(labels("[ver](#c")).toBeNull();
+    expect(labels("[ver](#casa) y", 11)).toBeNull();
+  });
+
+  it("takes the rest of the word under the caret, and adds a space only between words", () => {
+    const inside = offeredAt("ver #trrk y", 7);
+    expect(inside?.to).toBe(9);
+    expect(inside?.options[1].apply).toBe("#trabajo");
+    expect(inside?.options[0].apply).toBe("#trrk");
+    expect(offeredAt("ver #trrkx", 7)?.options[1].apply).toBe("#trabajo");
+    expect(offeredAt("ver #tr", 7)?.options[1].apply).toBe("#trabajo");
   });
 });

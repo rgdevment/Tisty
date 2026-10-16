@@ -328,6 +328,44 @@ describe("the sheet in the main window", () => {
     expect(writes[writes.length - 1]).toBe("# Compras\n\npan\n");
   });
 
+  it("ticks a stage from its box on the page without opening the block", async () => {
+    const writes: string[] = [];
+    const body = "# Plan\n\n- [ ] uno\n- [x] dos\n";
+    ipc.drawn =
+      '<h1 data-at="0-6">Plan</h1><ul data-at="8-28"><li class="task" data-at="8-18"><span class="check" data-done="false"></span>uno</li><li class="task" data-at="18-28"><span class="check" data-done="true"></span>dos</li></ul>';
+    const view = render(<Sheet value={body} label="Plan" onWrite={(text) => writes.push(text)} />);
+    const page = await loaded(await shown(view.container));
+    page.querySelector(".check")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(writes).toEqual(["# Plan\n\n- [x] uno\n- [x] dos\n"]);
+    expect(ipc.opened).toHaveLength(0);
+  });
+
+  it("ticks a stage inside a quote as well", async () => {
+    const writes: string[] = [];
+    const body = "# Plan\n\n> - [ ] uno\n";
+    ipc.drawn =
+      '<h1 data-at="0-6">Plan</h1><blockquote data-at="8-20"><ul><li class="task" data-at="8-20"><span class="check" data-done="false"></span>uno</li></ul></blockquote>';
+    const view = render(<Sheet value={body} label="Plan" onWrite={(text) => writes.push(text)} />);
+    const page = await loaded(await shown(view.container));
+    page.querySelector(".check")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(writes).toEqual(["# Plan\n\n> - [x] uno\n"]);
+  });
+
+  it("only ends the block being written when a box is pressed meanwhile, ticking nothing", async () => {
+    const writes: string[] = [];
+    const body = "# Plan\n\nnota\n\n- [ ] uno\n";
+    ipc.drawn =
+      '<h1 data-at="0-6">Plan</h1><p data-at="8-13">nota</p><ul data-at="14-24"><li class="task" data-at="14-24"><span class="check" data-done="false"></span>uno</li></ul>';
+    const view = render(<Sheet value={body} label="Plan" onWrite={(text) => writes.push(text)} />);
+    const page = await loaded(await shown(view.container));
+    page.querySelector("p")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    ipc.opened[0].change("nota larga\n");
+    const before = writes.length;
+    page.querySelector(".check")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(ipc.left).toBe(1);
+    expect(writes.length).toBe(before);
+  });
+
   it("writes nothing more when words from outside end a block left empty", async () => {
     const writes: string[] = [];
     const view = render(

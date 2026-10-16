@@ -171,6 +171,7 @@ export default function Sheet(props: Readonly<Props>) {
         const before = !latest.current.slice(0, from).trim();
         return {
           kinds: asking.kinds,
+          tags: asking.tags,
           ask: (kind, at, put, first) => asking.ask(kind, at, put, first && before),
         };
       },
@@ -179,6 +180,19 @@ export default function Sheet(props: Readonly<Props>) {
     const editing = open.current.view;
     const caret = seed ? seed.length : caretAt(editing.state.sliceDoc(), read);
     editing.dispatch({ selection: { anchor: caret }, scrollIntoView: true });
+  };
+
+  const ticked = ([from, end]: [number, number]) => {
+    // Like a click that opens a block, a box names bytes of the page on screen, which a block being written has moved.
+    if (open.current) return left();
+    if (reading || showing.current !== latest.current) return;
+    const now = latest.current;
+    const box = /^\s*(?:>\s?)*\s*(?:[-*+]|\d+[.)])\s+\[[ xX]\]/.exec(now.slice(from, end));
+    if (!box) return;
+    const at = from + box[0].length - 3;
+    const next = `${now.slice(0, at)}${now.slice(at, at + 3) === "[ ]" ? "[x]" : "[ ]"}${now.slice(at + 3)}`;
+    written(next);
+    setDrawn(next);
   };
 
   useEffect(() => {
@@ -281,6 +295,7 @@ export default function Sheet(props: Readonly<Props>) {
           onOpen={(reference) => said.current.onOpen?.(reference)}
           onTag={(tag) => said.current.onTag?.(tag)}
           onBlock={reading ? undefined : block}
+          onTick={reading ? undefined : ticked}
           onAway={left}
           card={props.card}
           blurb={props.blurb}
