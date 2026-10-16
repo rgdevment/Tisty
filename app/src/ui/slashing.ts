@@ -7,9 +7,11 @@ import {
 import { syntaxTree } from "@codemirror/language";
 import { type EditorState, Prec } from "@codemirror/state";
 import { EditorView, type KeyBinding, keymap, tooltips } from "@codemirror/view";
+import type { SyntaxNode } from "@lezer/common";
 import { matched } from "../finding";
 import { markup } from "../glyphs";
 import { t } from "../locales";
+import { pend } from "./pending";
 
 type Said = Parameters<typeof t>[0];
 
@@ -185,14 +187,77 @@ const blocked = (
   });
 };
 
+export const PEN = /==(?=\S)((?:(?!==).)+?)(?<=\S)==(?:\{([a-z]+)\})?/u;
+export const UNDER = /(?<![\p{L}\p{N}+])\+\+(?=\S)(.+?)(?<=\S)\+\+(?![\p{L}\p{N}+])/u;
+export const NAMED = /(?<![\p{L}\p{N}])::([a-z0-9-]+)(?: ([a-z]+))?::(?![\p{L}\p{N}])/u;
+export const owning = () => new RegExp(`${PEN.source}|${UNDER.source}|${NAMED.source}`, "gu");
+
+const FORMAT: Record<string, string> = {
+  "**": "StrongEmphasis",
+  "*": "Emphasis",
+  "~~": "Strikethrough",
+  "`": "InlineCode",
+};
+
+// The format already around the selection, so pressing it again takes it off instead of nesting marks.
+const around = (state: EditorState, mark: string, from: number, to: number) => {
+  const kind = FORMAT[mark];
+  if (kind) {
+    for (
+      let node: SyntaxNode | null = syntaxTree(state).resolveInner(from, 1);
+      node;
+      node = node.parent
+    ) {
+      if (node.name !== kind || node.from > from || node.to < to) continue;
+      const open = node.firstChild;
+      const shut = node.lastChild;
+      if (!open || !shut || open === shut) return undefined;
+      return { open: [open.from, open.to], shut: [shut.from, shut.to], tail: "" };
+    }
+    return undefined;
+  }
+  const found = mark === "==" ? PEN : mark === "++" ? UNDER : undefined;
+  if (!found) return undefined;
+  const line = state.doc.lineAt(from);
+  if (state.doc.lineAt(to).number !== line.number) return undefined;
+  for (const one of line.text.matchAll(new RegExp(found.source, "gu"))) {
+    const at = line.from + (one.index ?? 0);
+    const end = at + one[0].length;
+    if (at > from || end < to) continue;
+    const body = at + 2 + one[1].length;
+    return { open: [at, at + 2], shut: [body, end], tail: state.sliceDoc(body, end) };
+  }
+  return undefined;
+};
+
 export const wrapped = (view: EditorView, mark: string, close = mark): boolean => {
-  const { from, to } = view.state.selection.main;
+  const main = view.state.selection.main;
+  const chosen = view.state.sliceDoc(main.from, main.to);
+  // A mark that touches a space is not read as one, so the spaces a selection caught stay outside.
+  const from = main.from + (chosen.length - chosen.trimStart().length);
+  const to = Math.max(from, main.to - (chosen.length - chosen.trimEnd().length));
+  const held = around(view.state, mark, from, to);
+  if (held) {
+    const swap = mark === "==" && held.tail !== close;
+    view.dispatch({
+      changes: [
+        { from: held.open[0], to: held.open[1], insert: swap ? mark : "" },
+        { from: held.shut[0], to: held.shut[1], insert: swap ? close : "" },
+      ],
+      userEvent: "input.format",
+    });
+    return true;
+  }
   const inside = view.state.sliceDoc(from, to);
   view.dispatch({
     changes: { from, to, insert: `${mark}${inside}${close}` },
     selection: inside
       ? { anchor: from + mark.length, head: from + mark.length + inside.length }
       : { anchor: from + mark.length },
+    effects:
+      inside || mark === "["
+        ? []
+        : pend.of({ from: from + mark.length, to: from + mark.length, mark, close }),
     userEvent: "input.format",
   });
   return true;
@@ -263,7 +328,7 @@ export const put = (view: EditorView, one: Slashed, from: number, to: number, as
 };
 
 const mac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
-const pressed = (keys: string): string => `${mac ? "⌘" : "Ctrl"} ${keys}`;
+export const pressed = (keys: string): string => `${mac ? "⌘" : "Ctrl"} ${keys}`;
 
 const ASKED = /(?:^|\s)\/[\p{L}\p{N}_-]*$/u;
 

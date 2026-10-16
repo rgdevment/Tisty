@@ -30,6 +30,7 @@ type Props = {
   readonly onInsert?: (put: ((file: string, title: string) => boolean) | null) => void;
   readonly onOrder?: (move: ((file: string, before: string | null) => Moved) | null) => void;
   readonly asking?: Asking;
+  readonly kept?: boolean;
 };
 
 export default function Sheet(props: Readonly<Props>) {
@@ -66,6 +67,10 @@ export default function Sheet(props: Readonly<Props>) {
   }, [reading, left]);
 
   useEffect(() => () => left(), [left]);
+
+  useEffect(() => {
+    open.current?.kept(props.kept ?? true);
+  }, [props.kept]);
 
   useEffect(() => {
     const outside = (event: MouseEvent) => {
@@ -164,6 +169,7 @@ export default function Sheet(props: Readonly<Props>) {
         };
       },
     );
+    open.current.kept(said.current.kept ?? true);
     const editing = open.current.view;
     const caret = seed ? seed.length : caretAt(editing.state.sliceDoc(), read);
     editing.dispatch({ selection: { anchor: caret }, scrollIntoView: true });

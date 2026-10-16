@@ -1,7 +1,8 @@
+import { closeCompletion, completionStatus } from "@codemirror/autocomplete";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
-import { markdown } from "@codemirror/lang-markdown";
+import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
-import { EditorState } from "@codemirror/state";
+import { EditorState, Prec } from "@codemirror/state";
 import {
   Decoration,
   type DecorationSet,
@@ -13,17 +14,18 @@ import {
 } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
 import { known } from "../glyphs";
+import { barred, flipped } from "./barring";
 import { HUES } from "./paging";
-import { type Asking, coded, slashing } from "./slashing";
+import { pendingFormat, settle } from "./pending";
+import { visual } from "./seeing";
+import { type Asking, coded, owning, slashing } from "./slashing";
 
 const PENS = ["yellow", ...HUES];
-const PEN = /==(?=\S)((?:(?!==).)+?)(?<=\S)==(?:\{([a-z]+)\})?/u;
-const UNDER = /(?<![\p{L}\p{N}+])\+\+(?=\S)(.+?)(?<=\S)\+\+(?![\p{L}\p{N}+])/u;
-const NAMED = /(?<![\p{L}\p{N}])::([a-z0-9-]+)(?: ([a-z]+))?::(?![\p{L}\p{N}])/u;
 
 export type Editing = {
   readonly view: EditorView;
   readonly leave: () => void;
+  readonly kept: (yes: boolean) => void;
 };
 
 const inked = HighlightStyle.define([
@@ -34,13 +36,13 @@ const inked = HighlightStyle.define([
   { tag: tags.link, color: "var(--tisty-accent)" },
   { tag: tags.url, color: "var(--tisty-faint)" },
   { tag: tags.monospace, fontFamily: "ui-monospace, 'Cascadia Mono', 'SF Mono', Menlo, monospace" },
-  { tag: [tags.processingInstruction, tags.meta, tags.quote], color: "var(--tisty-faint)" },
+  { tag: [tags.processingInstruction, tags.meta], color: "var(--tisty-faint)" },
 ]);
 
 const dressing = EditorView.theme({
   "&": { fontSize: "inherit", background: "transparent", color: "inherit" },
   "&.cm-focused": { outline: "none" },
-  ".cm-scroller": { fontFamily: "inherit", lineHeight: "inherit" },
+  ".cm-scroller": { fontFamily: "inherit", lineHeight: "inherit", overflow: "visible" },
   ".cm-content": { fontFamily: "inherit", padding: "0", caretColor: "var(--tisty-accent)" },
   ".cm-line": { padding: "0" },
   ".cm-cursor": { borderLeftColor: "var(--tisty-accent)" },
@@ -50,7 +52,7 @@ const dressing = EditorView.theme({
 });
 
 const marking = new MatchDecorator({
-  regexp: new RegExp(`${PEN.source}|${UNDER.source}|${NAMED.source}`, "gu"),
+  regexp: owning(),
   decoration: (found, view, at) => {
     if (coded(view.state, at)) return null;
     if (found[3] !== undefined) return Decoration.mark({ class: "cm-under" });
@@ -104,13 +106,23 @@ export const edited = (
   const page = block.ownerDocument;
   const host = page.createElement("div");
   host.className = "editing";
+  // The block is written where it is read, so it keeps the room and the look the page gave it.
+  const look = page.defaultView?.getComputedStyle(block);
+  if (look) host.style.margin = look.margin;
+  if (block.parentElement?.firstElementChild === block && block.matches(".page > *")) {
+    host.classList.add("titled");
+  }
   block.replaceWith(host);
   let gone = false;
+  let follow = (_: EditorView) => {};
+  let hint: HTMLElement = page.createElement("div");
   const leave = () => {
     if (gone) return;
     gone = true;
+    settle(view);
     const text = view.state.sliceDoc();
     view.destroy();
+    hint.remove();
     host.replaceWith(block);
     onLeave(text);
   };
@@ -122,19 +134,28 @@ export const edited = (
       extensions: [
         EditorState.lineSeparator.of(said.includes("\r\n") ? "\r\n" : "\n"),
         history(),
-        keymap.of([
-          {
-            key: "Escape",
-            run: () => {
-              leave();
-              return true;
+        // A completion still thinking shows nothing, so only one in sight may keep Escape from leaving.
+        Prec.highest(
+          keymap.of([
+            {
+              key: "Escape",
+              run: (one) => {
+                if (completionStatus(one.state) === "active") return closeCompletion(one);
+                leave();
+                return true;
+              },
             },
-          },
+          ]),
+        ),
+        keymap.of([
+          { key: "Mod-Shift-m", run: flipped },
           ...defaultKeymap,
           ...historyKeymap,
           indentWithTab,
         ]),
-        markdown(),
+        markdown({ base: markdownLanguage }),
+        visual,
+        pendingFormat,
         syntaxHighlighting(inked),
         marked,
         slashing(asking),
@@ -142,10 +163,17 @@ export const edited = (
         EditorView.lineWrapping,
         EditorView.updateListener.of((update) => {
           if (update.docChanged) onChange(update.state.sliceDoc());
+          if (update.transactions.length > 0) follow(update.view);
         }),
       ],
     }),
   });
+  const bar = barred(view);
+  follow = bar.follow;
+  host.prepend(bar.bar);
+  hint = bar.hint;
+  // At the foot of the sheet, so the blocks after this one stay where they were read.
+  (host.closest(".page") ?? host).append(hint);
   view.focus();
-  return { view, leave };
+  return { view, leave, kept: bar.kept };
 };
