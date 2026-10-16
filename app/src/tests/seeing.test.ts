@@ -134,6 +134,7 @@ describe("a block written as it reads", () => {
       "15:cm-fold-body",
       "16:cm-fold-body",
       "24:cm-fold-body",
+      "25:cm-fold-end",
     ]);
     expect(read(one)).toBe("Más\n\nadentro\n\n\n\nfuera");
     expect(read(state(":::details Más\n\n:::", 0, true))).toBe(":::details Más\n\n:::");
