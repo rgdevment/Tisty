@@ -26,7 +26,9 @@ use chores::{
     describe, note, plan, propose, remind, reschedule, say_done, say_not_doing, tick, untick,
 };
 pub(crate) use door::turn;
-use looking::{NEWEST_SHOWN, catch_up, find, gone, how_it_ended, lists, read, sum_up, tags};
+use looking::{
+    NEWEST_SHOWN, catch_up, find, gone, how_it_ended, language, lists, read, sum_up, tags,
+};
 use mending::{rename, reword_note, reword_step, unplan};
 
 use jsonrpc::{
@@ -200,6 +202,7 @@ fn called(paths: &Paths, params: &Value) -> Result<Value, Refused> {
         "folder" => folder(paths, &args),
         "lists" => lists(paths),
         "tags" => tags(paths),
+        "language" => Ok(language(&args)),
         "attach" => attach(paths, &args),
         "" => Err(Refused::Protocol(-32602, "a call needs a name".into())),
         other => Err(Refused::Protocol(

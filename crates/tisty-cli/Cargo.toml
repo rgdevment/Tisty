@@ -17,6 +17,7 @@ path = "src/main.rs"
 tisty-core.workspace = true
 tisty-carrier.workspace = true
 tisty-nl.workspace = true
+tisty-markdown.workspace = true
 clap.workspace = true
 dialoguer.workspace = true
 anyhow.workspace = true
