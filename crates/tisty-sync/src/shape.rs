@@ -11,11 +11,11 @@ const RAISED: &str = ".shape-raised";
 
 /// What this build knows the meeting place to look like. A folder that says a higher number was
 /// arranged by a build that knows something this one does not, and guessing at it writes over it.
-/// Shape 2 only fences out the builds before 1.30; the signed root, `head` and adopting take the next number.
-pub const OURS: u32 = 2;
+/// Shape 3 keeps every attachment in one flat folder and every document in Tisty's own words.
+pub const OURS: u32 = 3;
 
 /// The oldest release that may write in a place this build arranges; a later change to the place raises it.
-pub const NEEDS: &str = "1.30.0";
+pub const NEEDS: &str = "1.31.0";
 
 enum Told {
     Shape { shape: u32, needs: Option<String> },
@@ -96,6 +96,9 @@ pub(crate) fn before_reading(data: &Path, dest: &Path) -> Result<(), Trouble> {
         }
         Told::Shape { shape, .. } => {
             remember(data, dest, shape);
+            if shape < OURS {
+                flat(dest);
+            }
             Ok(())
         }
         Told::Unreadable => {
@@ -114,7 +117,22 @@ pub(crate) fn before_reading(data: &Path, dest: &Path) -> Result<(), Trouble> {
             );
             Err(Trouble::Unshaped(dest.display().to_string()))
         }
-        Told::Nothing => Ok(()),
+        Told::Nothing => {
+            flat(dest);
+            Ok(())
+        }
+    }
+}
+
+// Before this round reads it, so the files an older build left on shelves are where it looks.
+fn flat(dest: &Path) {
+    let (moved, left) = tisty_core::speaking::flattened(&dest.join(HELD));
+    if moved + left > 0 {
+        witness::note(
+            channel::SYNC,
+            "the meeting place's attachments left their shelves for one flat folder",
+            &[("moved", Fact::Count(moved)), ("left", Fact::Count(left))],
+        );
     }
 }
 
