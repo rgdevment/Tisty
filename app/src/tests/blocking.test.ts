@@ -1,7 +1,7 @@
 import { completionStatus, startCompletion } from "@codemirror/autocomplete";
 import { describe, expect, it, vi } from "vitest";
 import { caretAt, edited } from "../ui/blocking";
-import { wrapped } from "../ui/slashing";
+import { wrapped } from "../ui/formatting";
 
 const block = () => {
   const page = document.createElement("article");
@@ -60,6 +60,35 @@ describe("writing a block in place", () => {
       new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }),
     );
     expect(left).toEqual(["Hola"]);
+    page.remove();
+  });
+
+  it("redoes with Ctrl+Shift+Z as well as Ctrl+Y", () => {
+    const { page, one } = block();
+    const editing = edited(
+      one,
+      "Hola",
+      () => {},
+      () => {},
+    );
+    const view = editing.view;
+    view.dispatch({ changes: { from: 4, insert: "!" }, userEvent: "input.type" });
+    view.contentDOM.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "z", ctrlKey: true, bubbles: true, cancelable: true }),
+    );
+    expect(view.state.sliceDoc()).toBe("Hola");
+    view.contentDOM.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Z",
+        ctrlKey: true,
+        shiftKey: true,
+        keyCode: 90,
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    expect(view.state.sliceDoc()).toBe("Hola!");
+    editing.leave();
     page.remove();
   });
 

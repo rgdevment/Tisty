@@ -29,7 +29,8 @@ fn named(text: &str, within: std::ops::Range<usize>, found: &mut Vec<Span>) {
             .find(|c: char| !(c.is_ascii_alphanumeric() || "_+-".contains(c)))
             .unwrap_or(rest.len());
         let shut = open + 1 + wide;
-        let alone = |at: Option<char>| at.is_none_or(|c| !c.is_alphanumeric());
+        // A colon beside it means an icon's `::name::`, so an unknown icon never turns half emoji.
+        let alone = |at: Option<char>| at.is_none_or(|c| !c.is_alphanumeric() && c != ':');
         let fits = wide > 0
             && said[shut..].starts_with(':')
             && alone(text[..within.start + open].chars().next_back())

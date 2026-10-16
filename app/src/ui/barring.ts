@@ -1,9 +1,10 @@
 import { startCompletion } from "@codemirror/autocomplete";
-import type { EditorView } from "@codemirror/view";
+import type { EditorView, KeyBinding } from "@codemirror/view";
 import { markup } from "../glyphs";
 import { t } from "../locales";
+import { wrapped } from "./formatting";
 import { marksShown, showMarks } from "./seeing";
-import { pressed, wrapped } from "./slashing";
+import { holding, pressed } from "./slashing";
 
 type Said = Parameters<typeof t>[0];
 
@@ -41,13 +42,68 @@ export const retyped = (view: EditorView, prefix: string): boolean => {
   for (let at = state.doc.lineAt(from).number; at <= end; at++) {
     const line = state.doc.line(at);
     const [, space = "", lead = ""] = LEAD.exec(line.text) ?? [];
-    const start = line.from + space.length;
-    changes.push({ from: start, to: start + lead.length, insert: prefix });
+    // Only an item keeps its indent: an indented title, quote or paragraph would read as code.
+    const kept = /^([-*+]|\d)/.test(prefix) ? space.length : 0;
+    changes.push({
+      from: line.from + kept,
+      to: line.from + space.length + lead.length,
+      insert: prefix,
+    });
   }
   view.dispatch({ changes, userEvent: "input.type" });
   view.focus();
   return true;
 };
+
+const BARE = /^((> ?)+|(> ?)*([-*+] (\[[ xX]\] )?|\d+[.)] ))\s*$/;
+const LEADS = /^(?:>\s?|#{1,6}\s|[-*+]\s(?:\[[ xX]\]\s)?|\d+[.)]\s)+/;
+
+const home = (view: EditorView, extend: boolean) => {
+  const { main } = view.state.selection;
+  const line = view.state.doc.lineAt(main.head);
+  const start = line.from + (LEADS.exec(line.text)?.[0].length ?? 0);
+  if (start === line.from || main.head <= start) return false;
+  view.dispatch({
+    selection: extend ? { anchor: main.anchor, head: start } : { anchor: start },
+    scrollIntoView: true,
+  });
+  return true;
+};
+
+export const blockKeys: KeyBinding[] = [
+  // Home lands on the words, past the mark the line is drawn with, as it does on a title.
+  { key: "Home", run: (view) => home(view, false), shift: (view) => home(view, true) },
+  {
+    // An empty item ends the list with a blank line, so the words after it never join the last item.
+    key: "Enter",
+    run: (view) => {
+      const { main } = view.state.selection;
+      const line = view.state.doc.lineAt(main.head);
+      if (!main.empty || main.head !== line.to || line.number === 1 || !BARE.test(line.text))
+        return false;
+      view.dispatch({
+        changes: { from: line.from, to: line.to, insert: "\n" },
+        selection: { anchor: line.from + 1 },
+        userEvent: "input",
+      });
+      return true;
+    },
+  },
+  {
+    // Backspace right after a title's, item's or quote's mark turns the line back into words.
+    key: "Backspace",
+    run: (view) => {
+      const { main } = view.state.selection;
+      const line = view.state.doc.lineAt(main.head);
+      const lead = LEADS.exec(line.text)?.[0].length ?? 0;
+      if (!main.empty || !lead || main.head !== line.from + lead) return false;
+      // A callout's name goes with its kind menu, never with a stray key.
+      if (/^\[![a-z]+\]/i.test(line.text.slice(lead))) return true;
+      view.dispatch({ changes: { from: line.from, to: line.from + lead }, userEvent: "delete" });
+      return true;
+    },
+  },
+];
 
 export const flipped = (view: EditorView): boolean => {
   view.dispatch({ effects: showMarks.of(!view.state.field(marksShown)) });
@@ -148,9 +204,10 @@ export const barred = (view: EditorView): Barred => {
     return one;
   });
   const slash = button("cm-bar-button cm-bar-more", t("insertLabel"), () => {
-    const { from } = view.state.selection.main;
+    const { from: start, to: from } = view.state.selection.main;
     const before = view.state.sliceDoc(Math.max(0, from - 1), from);
     const insert = before && !/\s/.test(before) ? " /" : "/";
+    if (start < from) holding(view, { from: start, to: from, slash: from + insert.length - 1 });
     view.dispatch({ changes: { from, insert }, selection: { anchor: from + insert.length } });
     view.focus();
     startCompletion(view);

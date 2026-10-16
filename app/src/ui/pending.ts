@@ -7,7 +7,7 @@ import {
   type Text,
   type Transaction,
 } from "@codemirror/state";
-import { Decoration, type EditorView } from "@codemirror/view";
+import { Decoration, type EditorView, type KeyBinding } from "@codemirror/view";
 
 // A format pressed with nothing selected: the words typed between its marks, from `from` to `to`.
 export type Pending = {
@@ -33,18 +33,28 @@ export const pending = StateField.define<Pending | null>({
 });
 
 // Spaces typed at the edges go outside the marks, and marks left with nothing between them go away.
-const tidied = (doc: Text, one: Pending): ChangeSpec[] => {
+// When the format ends early, at `end`, the words after it stay plain.
+const tidied = (doc: Text, one: Pending, end = one.to): ChangeSpec[] => {
   const open = one.from - one.mark.length;
   const shut = one.to + one.close.length;
-  const body = doc.sliceString(one.from, one.to);
-  if (!body.trim()) return [{ from: open, to: shut, insert: body }];
+  const body = doc.sliceString(one.from, end);
+  const moved = end < one.to;
+  const rest: ChangeSpec[] = moved ? [{ from: one.to, to: shut }] : [];
+  if (!body.trim()) {
+    if (moved) return [{ from: open, to: one.from }, ...rest];
+    return [{ from: open, to: shut, insert: body }];
+  }
   const lead = body.length - body.trimStart().length;
   const trail = body.length - body.trimEnd().length;
-  if (!lead && !trail) return [];
-  return [
-    { from: open, to: one.from + lead, insert: body.slice(0, lead) + one.mark },
-    { from: one.to - trail, to: shut, insert: one.close + body.slice(body.length - trail) },
-  ];
+  const trailing = body.slice(body.length - trail);
+  const opening: ChangeSpec[] = lead
+    ? [{ from: open, to: one.from + lead, insert: body.slice(0, lead) + one.mark }]
+    : [];
+  if (!moved) {
+    if (!lead && !trail) return [];
+    return [...opening, { from: end - trail, to: shut, insert: one.close + trailing }];
+  }
+  return [...opening, { from: end - trail, to: end, insert: one.close + trailing }, ...rest];
 };
 
 const left = (done: Transaction, one: Pending) => {
@@ -70,6 +80,82 @@ export const settle = (view: EditorView) => {
   if (!one) return;
   view.dispatch({ changes: tidied(view.state.doc, one), effects: pend.of(null) });
 };
+
+// The same format pressed again while it waits: a pen changes colour, anything else steps out of it.
+export const settled = (view: EditorView, close?: string) => {
+  const one = view.state.field(pending, false);
+  if (!one) return;
+  if (close !== undefined) {
+    view.dispatch({
+      changes: { from: one.to, to: one.to + one.close.length, insert: close },
+      effects: pend.of({ ...one, close }),
+    });
+    return;
+  }
+  const changes = view.state.changes(tidied(view.state.doc, one));
+  view.dispatch({
+    changes,
+    effects: pend.of(null),
+    selection: { anchor: changes.mapPos(one.to + one.close.length, 1) },
+  });
+};
+
+const inside = (view: EditorView) => {
+  const one = view.state.field(pending, false);
+  const { main } = view.state.selection;
+  if (!one || !main.empty || main.head < one.from || main.head > one.to) return undefined;
+  return one;
+};
+
+// An arrow out of a format with nothing typed takes the marks away and still moves the caret.
+const stepped = (view: EditorView, by: number) => {
+  const one = inside(view);
+  if (!one || one.from !== one.to) return false;
+  const open = one.from - one.mark.length;
+  const at = Math.max(
+    0,
+    Math.min(open + by, view.state.doc.length - one.mark.length - one.close.length),
+  );
+  view.dispatch({
+    changes: { from: open, to: one.to + one.close.length },
+    effects: pend.of(null),
+    selection: { anchor: at },
+  });
+  return true;
+};
+
+export const pendingKeys: KeyBinding[] = [
+  { key: "ArrowRight", run: (view) => stepped(view, 1) },
+  { key: "ArrowLeft", run: (view) => stepped(view, -1) },
+  {
+    // A new line ends the format where the caret is, so marks never span two lines.
+    key: "Enter",
+    run: (view) => {
+      const one = inside(view);
+      if (!one) return false;
+      const at = view.state.selection.main.head;
+      const changes = view.state.changes(tidied(view.state.doc, one, at));
+      view.dispatch({
+        changes,
+        effects: pend.of(null),
+        selection: { anchor: changes.mapPos(at, 1) },
+      });
+      return false;
+    },
+  },
+  {
+    key: "Backspace",
+    run: (view) => {
+      const one = inside(view);
+      if (!one || one.from !== one.to) return false;
+      view.dispatch({
+        changes: { from: one.from - one.mark.length, to: one.to + one.close.length },
+        effects: pend.of(null),
+      });
+      return true;
+    },
+  },
+];
 
 const LOOK: Record<string, string> = {
   "**": "cm-pending-strong",

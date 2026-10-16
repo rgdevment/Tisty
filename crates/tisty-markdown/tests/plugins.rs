@@ -187,6 +187,7 @@ fn what_only_looks_like_a_shortcode_is_left_alone() {
     assert!(glyphs("At 10:30:00 sharp").is_empty());
     assert!(glyphs("a:tada:b and :nothing_here:").is_empty());
     assert!(glyphs("`:tada:` is code").is_empty());
+    assert!(glyphs("fix it ::wrench:: today").is_empty());
 }
 
 #[cfg(feature = "tables")]
