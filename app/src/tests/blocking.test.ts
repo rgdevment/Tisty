@@ -76,7 +76,7 @@ describe("writing a block in place", () => {
     page.remove();
   });
 
-  it("shows pens, underlines and icons as they will read, but never inside code or for unknown names", () => {
+  it("shows pens, underlines and icons as they will read, marks hidden, but never inside code or for unknown names", () => {
     const { page, one } = block();
     const editing = edited(
       one,
@@ -88,13 +88,16 @@ describe("writing a block in place", () => {
       (one) => `${one.className}:${one.textContent}`,
     );
     expect(classes).toContain("cm-pen cm-pen-yellow:==a==");
-    expect(classes).toContain("cm-pen cm-pen-green:==b=={green}");
-    expect(classes).toContain("cm-under:++d++");
-    expect(classes).toContain("cm-ico ico-orange:::dog orange::");
-    expect(classes).toContain("cm-ico:::star::");
-    expect(classes.some((one) => one.includes("silver"))).toBe(false);
-    expect(classes.some((one) => one.startsWith("cm-ico") && one.includes("nope"))).toBe(false);
-    expect(classes.some((one) => one.startsWith("cm-ico") && one.includes("plaid"))).toBe(false);
+    expect(classes).toContain("cm-pen cm-pen-green:b");
+    expect(classes).toContain("cm-under:d");
+    const icons = Array.from(page.querySelectorAll(".editing .cm-glyph")).map(
+      (one) => one.className,
+    );
+    expect(icons).toEqual(["cm-glyph ico-orange", "cm-glyph"]);
+    expect(page.querySelector(".editing .cm-content")?.textContent).toContain("==c=={silver}");
+    expect(classes.some((one) => one.startsWith("cm-pen") && one.includes("silver"))).toBe(false);
+    expect(page.querySelector(".editing .cm-content")?.textContent).toContain("::nope::");
+    expect(page.querySelector(".editing .cm-content")?.textContent).toContain("::dog plaid::");
     expect(classes.some((one) => one.startsWith("cm-pen") && one.includes("==e=="))).toBe(false);
     editing.leave();
     page.remove();

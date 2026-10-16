@@ -118,6 +118,7 @@ export default function Docs({
   const [open, setOpen] = useState<Filed | null>(null);
   const [body, setBody] = useState("");
   const [saving, setSaving] = useState(false);
+  const [waiting, setWaiting] = useState(false);
   const [packed, setPacked] = useState(0);
   const shaped = useRef("");
   const typed = useRef(0);
@@ -172,7 +173,10 @@ export default function Docs({
           if ((e as { code?: string } | null)?.code === "documentMoved") setClashed(true);
           else onError(saidPlainly(e));
         })
-        .finally(() => setSaving(false));
+        .finally(() => {
+          setSaving(false);
+          if (!held.current) setWaiting(false);
+        });
       return mine;
     },
     [onError, onKept],
@@ -370,6 +374,7 @@ export default function Docs({
     const back = last !== undefined && tailless(last) === tailless(text);
     if (back) {
       // A chapter moved and moved back inside the beat would otherwise be written in the order it passed through.
+      setWaiting(false);
       if (held.current?.id === open.file) {
         held.current = null;
         if (settling.current) clearTimeout(settling.current);
@@ -378,6 +383,7 @@ export default function Docs({
       return;
     }
     held.current = { id: open.file, body: text };
+    setWaiting(true);
     if (settling.current) clearTimeout(settling.current);
     settling.current = setTimeout(flush, SETTLES);
   };
@@ -654,6 +660,7 @@ export default function Docs({
                   ordering.current = move;
                 }}
                 asking={slashAsks}
+                kept={!saving && !waiting}
               />
             </Suspense>
           </div>

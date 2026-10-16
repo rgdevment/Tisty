@@ -263,7 +263,7 @@ export const put = (view: EditorView, one: Slashed, from: number, to: number, as
 };
 
 const mac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
-const pressed = (keys: string): string => `${mac ? "⌘" : "Ctrl"} ${keys}`;
+export const pressed = (keys: string): string => `${mac ? "⌘" : "Ctrl"} ${keys}`;
 
 const ASKED = /(?:^|\s)\/[\p{L}\p{N}_-]*$/u;
 
