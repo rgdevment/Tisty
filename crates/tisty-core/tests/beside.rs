@@ -1,5 +1,5 @@
 use tisty_core::Paths;
-use tisty_core::beside::{Carried, Way, brought};
+use tisty_core::beside::{Carried, Way, brought, retargeted, unescaped};
 
 const PNG: &[u8] = b"\x89PNG\r\n\x1a\n\0\0\0\rIHDR\0\0\0\x01\0\0\0\x01\x08\x06\0\0\0";
 
@@ -103,4 +103,62 @@ fn a_note_named_beside_is_counted_rather_than_kept_as_a_file_when_asked() {
     assert_eq!(done.papers, ["capitulo.md"]);
     assert_eq!(done.kept, 0);
     assert!(done.missed.is_empty());
+}
+
+fn kept(body: &str) -> String {
+    retargeted(body, &mut |_, target, title| {
+        Some((target.to_string(), title.to_string()))
+    })
+}
+
+#[test]
+fn a_link_is_rewritten_and_what_surrounds_it_is_left_alone() {
+    let out = retargeted("ver [doc](tisty:doc/1) ahora", &mut |_, target, title| {
+        Some((format!("nuevo:{target}"), title.to_string()))
+    });
+    assert_eq!(out, "ver [doc](<nuevo:tisty:doc/1>) ahora");
+}
+
+#[test]
+fn a_body_with_nothing_to_point_at_comes_back_as_it_went_in() {
+    let body = "nada que reescribir (ni esto) [ni esto";
+    assert_eq!(kept(body), body);
+    assert_eq!(kept("texto ](y) mas"), "texto ](y) mas");
+}
+
+#[test]
+fn a_link_whose_parenthesis_never_closes_is_left_as_written() {
+    let body = "esto [x](sin cerrar";
+    assert_eq!(kept(body), body);
+}
+
+#[test]
+fn a_target_carrying_its_own_parentheses_is_read_whole() {
+    assert_eq!(kept("[x](a(b)c)"), "[x](<a(b)c>)");
+}
+
+#[test]
+fn a_picture_keeps_its_mark_and_a_refused_link_keeps_only_its_words() {
+    assert_eq!(kept("mira ![foto](a.png)"), "mira ![foto](<a.png>)");
+    assert_eq!(retargeted("mira [doc](x)", &mut |_, _, _| None), "mira doc");
+    assert_eq!(
+        retargeted("mira ![foto](a.png)", &mut |_, _, _| None),
+        "mira foto",
+        "el signo de la imagen se quedo sin nada que marcar"
+    );
+    assert_eq!(kept("a[!x](y)"), "a[!x](<y>)");
+}
+
+#[test]
+fn a_link_written_inside_a_fence_is_code_and_is_not_pointed_anywhere_else() {
+    let body = "```\n[x](y)\n```\n";
+    assert_eq!(kept(body), body);
+}
+
+#[test]
+fn an_escape_is_read_only_where_two_digits_follow_it() {
+    assert_eq!(unescaped("%41BC"), "ABC");
+    assert_eq!(unescaped("a%41"), "aA");
+    assert_eq!(unescaped("a%4"), "a%4");
+    assert_eq!(unescaped("a%zz"), "a%zz");
 }
