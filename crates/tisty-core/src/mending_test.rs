@@ -1,4 +1,4 @@
-use super::*;
+use super::mends;
 
 #[test]
 fn only_the_block_outside_the_language_is_named_with_its_mend() {

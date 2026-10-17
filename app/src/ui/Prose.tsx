@@ -198,12 +198,14 @@ function Told({ mends }: Readonly<{ mends: readonly Mend[] }>) {
   const { parts, all } = told(mends);
   return (
     <span title={all || undefined}>
-      {parts.map((part, at) =>
+      {parts.map((part) =>
         part.code === undefined ? (
           part.words
         ) : (
-          // biome-ignore lint/suspicious/noArrayIndexKey: the parts never move
-          <code key={at} className="rounded-md bg-hover px-1 font-mono text-[11.5px] text-soft">
+          <code
+            key={part.code}
+            className="rounded-md bg-hover px-1 font-mono text-[11.5px] text-soft"
+          >
             {part.code}
           </code>
         ),

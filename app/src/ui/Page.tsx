@@ -83,10 +83,12 @@ export default function Page(props: Readonly<Props>) {
     setFrames((were) => were.filter((one) => one.turn >= turn));
     const page = frame.contentDocument;
     if (page) reach.current.onOutline?.(heads(page));
-    mends.then((all) => {
-      found.current = { turn, said, mends: all };
-      lay();
-    });
+    mends
+      .then((all) => {
+        found.current = { turn, said, mends: all };
+        lay();
+      })
+      .catch(() => {});
     reach.current.onShown?.(frame.contentWindow);
   };
 
