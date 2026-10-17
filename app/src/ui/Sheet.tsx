@@ -12,6 +12,7 @@ import { movedCard, putCard } from "./carded";
 import type { Carded } from "./carding";
 import { wrapped } from "./formatting";
 import Menu, { type Choice } from "./Menu";
+import { mended as mendedText } from "./mending";
 import Page from "./Page";
 import { charsAt, type Head, spanned, type Went } from "./paging";
 import { closed, laid, parting } from "./parting";
@@ -336,7 +337,7 @@ export default function Sheet(props: Readonly<Props>) {
   const mended = (one: Mend, body: string) => {
     if (open.current) return left();
     if (reading || latest.current !== body || showing.current !== body) return;
-    const next = `${body.slice(0, charsAt(body, one.from))}${one.fixed}${body.slice(charsAt(body, one.to))}`;
+    const next = mendedText(body, [one]);
     written(next);
     setDrawn(next);
   };

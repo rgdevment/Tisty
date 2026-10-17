@@ -21,7 +21,7 @@ type Props = Reaching & {
   readonly onMend?: (one: Mend, body: string) => void;
 };
 
-type Drawn = { html: string; turn: number; body: string; mends: readonly Mend[] };
+type Drawn = { html: string; turn: number; body: string; mends: Promise<readonly Mend[]> };
 
 // A new drawing waits unseen until it is ready, so a redraw never blinks or jumps.
 export default function Page(props: Readonly<Props>) {
@@ -33,10 +33,22 @@ export default function Page(props: Readonly<Props>) {
   const showing = useRef(0);
   const held = useRef(new Map<number, HTMLIFrameElement>());
   const turns = useRef(0);
+  const found = useRef<{ turn: number; said: string; mends: readonly Mend[] } | null>(null);
+
+  // Read when it is laid, so a page that turns read-only drops its fixes without being drawn again.
+  const lay = () => {
+    const page = held.current.get(showing.current)?.contentDocument;
+    if (!page) return;
+    const now = found.current?.turn === showing.current ? found.current : null;
+    const mends = reach.current.onMend && now ? now.mends : [];
+    mendable(page, mends, (one) => now && reach.current.onMend?.(one, now.said));
+  };
+  const mending = Boolean(props.onMend);
+  useEffect(lay, [mending]);
 
   useEffect(() => {
     let live = true;
-    const drawn = (html: string, mends: readonly Mend[]) => {
+    const drawn = (html: string) => {
       if (!live) return;
       turns.current += 1;
       const turn = turns.current;
@@ -45,14 +57,14 @@ export default function Page(props: Readonly<Props>) {
         { html: shell(html), turn, body, mends },
       ]);
     };
-    const mends = reach.current.onMend
+    const mends: Promise<readonly Mend[]> = reach.current.onMend
       ? mendsIn(body)
-          .then((found) => found ?? [])
+          .then((said) => said ?? [])
           .catch(() => [])
       : Promise.resolve([]);
     (reach.current.draw ?? docDrawn)(body)
       .catch(() => `<pre>${escaped(body)}</pre>`)
-      .then(async (html) => drawn(html, await mends));
+      .then(drawn);
     return () => {
       live = false;
     };
@@ -71,8 +83,10 @@ export default function Page(props: Readonly<Props>) {
     setFrames((were) => were.filter((one) => one.turn >= turn));
     const page = frame.contentDocument;
     if (page) reach.current.onOutline?.(heads(page));
-    const mend = reach.current.onMend;
-    if (page && mend) mendable(page, mends, (one) => mend(one, said));
+    mends.then((all) => {
+      found.current = { turn, said, mends: all };
+      lay();
+    });
     reach.current.onShown?.(frame.contentWindow);
   };
 

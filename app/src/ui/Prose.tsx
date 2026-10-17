@@ -41,12 +41,17 @@ export default function Prose({
 
   useEffect(() => setText(value), [value]);
 
-  const [mends, setMends] = useState<readonly Mend[]>([]);
+  // Each list of fixes keeps the text it was found in, so a fix never lands on words that moved.
+  const [found, setFound] = useState<{ said: string; mends: readonly Mend[] }>({
+    said: "",
+    mends: [],
+  });
+  const mends = found.said === text ? found.mends : [];
   useEffect(() => {
-    if (writing || !text.trim()) return setMends([]);
+    if (writing || !text.trim()) return;
     let live = true;
     mendsIn(text)
-      .then((found) => live && setMends(found))
+      .then((all) => live && setFound({ said: text, mends: all ?? [] }))
       .catch(() => {});
     return () => {
       live = false;
@@ -152,7 +157,7 @@ export default function Prose({
         className="prose cursor-text rounded-md px-1.5 py-1 text-[13px] leading-relaxed outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent"
       />
       {mends.length > 0 && (
-        <p className="flex items-center gap-2 px-1.5 text-[12px] text-faint">
+        <p className="flex items-center gap-2 px-1.5 text-[11.5px] text-faint">
           <Told mends={mends} />
           <button
             type="button"
@@ -198,7 +203,7 @@ function Told({ mends }: Readonly<{ mends: readonly Mend[] }>) {
           part.words
         ) : (
           // biome-ignore lint/suspicious/noArrayIndexKey: the parts never move
-          <code key={at} className="rounded bg-hover px-1 font-mono text-[11.5px] text-soft">
+          <code key={at} className="rounded-md bg-hover px-1 font-mono text-[11.5px] text-soft">
             {part.code}
           </code>
         ),

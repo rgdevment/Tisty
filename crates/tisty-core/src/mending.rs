@@ -20,9 +20,12 @@ pub struct Piece {
     pub fixed: String,
 }
 
-/// The blocks a person wrote outside the Tisty language, each with what the translator would put
-/// in its place. Code keeps its own words, so a widget's HTML is never one of them.
+/// Code keeps its own words, so a widget's HTML is never told as outside the language.
 pub fn mends(body: &str) -> Vec<Mend> {
+    let even = body.replace("\r\n", "\n");
+    if tidied(&even).body.trim_end() == even.trim_end() {
+        return Vec::new();
+    }
     let doc = tisty_markdown::read(body);
     doc.blocks()
         .iter()
@@ -86,8 +89,8 @@ fn pieces(said: &str, fixed: &str) -> Vec<Piece> {
             };
         }
     }
-    let mut out: Vec<(Vec<&str>, Vec<&str>)> = Vec::new();
-    let mut now: Option<(Vec<&str>, Vec<&str>)> = None;
+    let mut out: Vec<Changed> = Vec::new();
+    let mut now: Option<Changed> = None;
     let mut between: Vec<&str> = Vec::new();
     let (mut i, mut j) = (0, 0);
     while i < a.len() || j < b.len() {
@@ -98,17 +101,17 @@ fn pieces(said: &str, fixed: &str) -> Vec<Piece> {
             continue;
         }
         let blank = between.iter().all(|one| one.trim().is_empty());
-        let (mut x, mut y) = match now.take() {
-            Some((mut x, mut y)) if blank => {
+        let (mut x, mut y, before) = match now.take() {
+            Some((mut x, mut y, before)) if blank => {
                 x.extend(&between);
                 y.extend(&between);
-                (x, y)
+                (x, y, before)
             }
             Some(done) => {
                 out.push(done);
-                (Vec::new(), Vec::new())
+                (Vec::new(), Vec::new(), last_word(&between))
             }
-            None => (Vec::new(), Vec::new()),
+            None => (Vec::new(), Vec::new(), last_word(&between)),
         };
         between.clear();
         if j == b.len() || (i < a.len() && kept[i + 1][j] >= kept[i][j + 1]) {
@@ -118,16 +121,32 @@ fn pieces(said: &str, fixed: &str) -> Vec<Piece> {
             y.push(b[j]);
             j += 1;
         }
-        now = Some((x, y));
+        now = Some((x, y, before));
     }
     out.extend(now);
     out.into_iter()
-        .map(|(x, y)| Piece {
-            said: x.concat().trim().to_string(),
-            fixed: y.concat().trim().to_string(),
+        .map(|(x, y, before)| {
+            // Words only added name nothing written, so the word before them shows where they go.
+            let lead = match x.concat().trim().is_empty() {
+                true => before.concat(),
+                false => String::new(),
+            };
+            Piece {
+                said: format!("{lead}{}", x.concat()).trim().to_string(),
+                fixed: format!("{lead}{}", y.concat()).trim().to_string(),
+            }
         })
-        .filter(|one| !one.said.is_empty())
+        .filter(|one| !one.said.is_empty() || !one.fixed.is_empty())
         .collect()
+}
+
+type Changed<'a> = (Vec<&'a str>, Vec<&'a str>, Vec<&'a str>);
+
+fn last_word<'a>(between: &[&'a str]) -> Vec<&'a str> {
+    match between.iter().rposition(|one| !one.trim().is_empty()) {
+        Some(at) => between[at..].to_vec(),
+        None => Vec::new(),
+    }
 }
 
 #[cfg(test)]

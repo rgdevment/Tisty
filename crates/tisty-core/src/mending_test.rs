@@ -45,3 +45,11 @@ fn each_piece_outside_the_language_is_named_with_how_it_is_written() {
         ]
     );
 }
+
+#[test]
+fn a_document_already_in_the_language_is_told_nothing_without_reading_its_blocks() {
+    assert_eq!(
+        mends("# Plan\n\nWords as they are, ==a pen==.\n"),
+        Vec::new()
+    );
+}

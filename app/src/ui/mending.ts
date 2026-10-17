@@ -9,7 +9,6 @@ const SHOWN_AT_MOST = 60;
 const short = (said: string) =>
   said.length > SHOWN_AT_MOST ? `${said.slice(0, SHOWN_AT_MOST - 1)}…` : said;
 
-// One piece is shown with how it is written; several are counted, and listed when the pointer rests.
 export const told = (mends: readonly Mend[]): { parts: Said[]; all: string } => {
   const pieces = mends.flatMap((one) => one.pieces);
   const all = pieces.map((one) => `${one.said} → ${one.fixed}`).join("\n");

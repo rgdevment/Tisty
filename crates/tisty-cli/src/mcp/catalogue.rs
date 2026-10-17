@@ -859,7 +859,7 @@ pub(super) fn tools() -> Value {
             "inputSchema": shaped(json!({
                 "properties": {
                     "task": { "type": "string", "description": "The task's id, as `find` or `propose` gave it" },
-                    "body": { "type": "string", "description": "The account the person reads before deciding: what you did and what makes you sure — the command you ran and what it answered, the commit. In markdown" }
+                    "body": { "type": "string", "description": "The account the person reads before deciding: what you did and what makes you sure — the command you ran and what it answered, the commit. In the Tisty language" }
                 },
                 "required": ["task", "body"]
             }))
@@ -875,7 +875,7 @@ pub(super) fn tools() -> Value {
             "inputSchema": shaped(json!({
                 "properties": {
                     "task": { "type": "string", "description": "The task's id, as `find` or `propose` gave it" },
-                    "body": { "type": "string", "description": "The account the person reads before deciding: why it should not be done, and what you found that says so. In markdown" }
+                    "body": { "type": "string", "description": "The account the person reads before deciding: why it should not be done, and what you found that says so. In the Tisty language" }
                 },
                 "required": ["task", "body"]
             }))

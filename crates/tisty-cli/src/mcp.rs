@@ -171,7 +171,7 @@ fn called(paths: &Paths, params: &Value) -> Result<Value, Refused> {
 
     match name {
         "propose" => spoken(&args, "description", |args| propose(paths, args)),
-        "remind" => spoken(&args, "body", |args| remind(paths, args)),
+        "remind" => remind(paths, &args),
         "note" => spoken(&args, "body", |args| note(paths, args)),
         "describe" => spoken(&args, "body", |args| describe(paths, args)),
         "plan" => plan(paths, &args),
