@@ -10,7 +10,7 @@ and nowhere.
 
 **Do not open a public issue.** Use either private channel:
 
-- **Email** <github@apirest.cl>, subject `[SECURITY] short description`.
+- **Email** <rgdevment@tisty.app>, subject `[SECURITY] short description`.
 - **GitHub Security Advisory** — the *Security* tab, *Report a vulnerability*.
 
 Useful in a report: what an attacker could do and to whom, steps to reproduce,

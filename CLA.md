@@ -119,7 +119,7 @@ Project Owner:
 
 If any representation in section 4 stops being accurate — for example, you
 discover your employer does hold rights to something you submitted — tell the
-Project Owner at <github@apirest.cl>.
+Project Owner at <rgdevment@tisty.app>.
 
 ## 8. The rest
 
