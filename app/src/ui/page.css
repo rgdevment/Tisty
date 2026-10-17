@@ -57,6 +57,14 @@ html.tall .page {
 html.tall .page > * {
   content-visibility: visible;
 }
+html.sheeted .page {
+  max-width: none;
+  padding: var(--sheet-y) var(--sheet-x) calc(var(--sheet-y) + var(--last, 0px));
+}
+html.sheeted .page > hr,
+html.sheeted .page > .sheet-turn {
+  margin: calc(var(--fill, 0px) + var(--sheet-y)) calc(-1 * var(--sheet-x)) var(--sheet-y);
+}
 .editing {
   position: relative;
 }
@@ -778,7 +786,8 @@ hr {
   border: 0;
   border-top: 1px solid var(--tisty-line);
 }
-.page > hr {
+.page > hr,
+.page > .sheet-turn {
   position: relative;
   margin: 0 -40px;
   border: 0;
@@ -786,7 +795,9 @@ hr {
   background: var(--tisty-desk);
 }
 .page > hr::before,
-.page > hr::after {
+.page > hr::after,
+.page > .sheet-turn::before,
+.page > .sheet-turn::after {
   content: "";
   position: absolute;
   left: 0;
@@ -794,12 +805,14 @@ hr {
   height: 10px;
   background: var(--tisty-sheet);
 }
-.page > hr::before {
+.page > hr::before,
+.page > .sheet-turn::before {
   top: 0;
   border-radius: 0 0 10px 10px;
   box-shadow: 0 7px 7px -7px var(--tisty-cast);
 }
-.page > hr::after {
+.page > hr::after,
+.page > .sheet-turn::after {
   bottom: 0;
   border-radius: 10px 10px 0 0;
   box-shadow: 0 -7px 7px -7px var(--tisty-cast);

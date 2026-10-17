@@ -2,7 +2,12 @@ import type { Paper } from "../core";
 
 export const LEAVES: Paper[] = ["a4", "letter", "tabloid"];
 
-export const PAPER: Record<Paper, number> = { a4: 820, letter: 843, tabloid: 1090 };
+// A sheet on screen measures what it measures on paper, at 96 pixels to the inch.
+export const PAPER: Record<Paper, number> = { a4: 794, letter: 816, tabloid: 1056 };
+
+export const SHEET_TALL: Record<Paper, number> = { a4: 1123, letter: 1056, tabloid: 1632 };
+
+export const MARGIN = { x: 76, y: 83 };
 
 export const PAGE: Record<Paper, string> = { a4: "A4", letter: "Letter", tabloid: "11in 17in" };
 

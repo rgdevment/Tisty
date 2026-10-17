@@ -10,6 +10,7 @@ const SKIPPED: [&str; 11] = [
 ];
 
 pub fn from_html(html: &str) -> String {
+    let html = broken(html);
     HtmlToMarkdown::builder()
         .options(Options {
             bullet_list_marker: BulletListMarker::Dash,
@@ -29,8 +30,46 @@ pub fn from_html(html: &str) -> String {
             Some(HandlerResult::from(""))
         })
         .build()
-        .convert(html)
+        .convert(&html)
         .unwrap_or_default()
+}
+
+const TURNS: [&str; 4] = [
+    "page-break-before:always",
+    "page-break-after:always",
+    "break-before:page",
+    "break-after:page",
+];
+
+// Word and the web end a sheet with a style on an element; the language ends it with a rule.
+fn broken(html: &str) -> String {
+    let mut out = String::with_capacity(html.len());
+    let mut rest = html;
+    while let Some(open) = rest.find('<') {
+        let Some(shut) = rest[open..].find('>').map(|at| open + at + 1) else {
+            break;
+        };
+        let tag = &rest[open..shut];
+        let flat = tag
+            .to_ascii_lowercase()
+            .replace([' ', '\t', '\n', '\r'], "");
+        let turn = TURNS.iter().position(|one| flat.contains(one));
+        out.push_str(&rest[..open]);
+        match turn {
+            Some(at) if at % 2 == 0 => {
+                out.push_str("<hr>");
+                out.push_str(tag);
+            }
+            Some(_) => {
+                out.push_str(tag);
+                out.push_str("<hr>");
+            }
+            None => out.push_str(tag),
+        }
+        rest = &rest[shut..];
+    }
+    out.push_str(rest);
+    out
 }
 
 fn attr(element: &Element, name: &str) -> Option<String> {

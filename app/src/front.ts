@@ -1,3 +1,4 @@
+import type { Paper } from "./core";
 export interface Field {
   key: string;
   values: string[];
@@ -79,3 +80,33 @@ export const frontTags = (body: string): string[] =>
     .flatMap((one) => one.values.flatMap((value) => value.split(/[, ]/)))
     .map((word) => word.replace(/^#+/, ""))
     .filter((word) => word !== "");
+
+const PAPERS: Paper[] = ["a4", "letter", "tabloid"];
+
+export const paperIn = (body: string): Paper | null => {
+  const said = fields(body)
+    .find((one) => one.key.toLowerCase() === "paper")
+    ?.values[0]?.toLowerCase();
+  return PAPERS.find((one) => one === said) ?? null;
+};
+
+// A4 is what a page is unless it says otherwise, so only another paper is written down.
+export const withPaper = (body: string, paper: Paper): string => {
+  const line = body.includes("\r\n") ? "\r\n" : "\n";
+  const lead = body.startsWith("﻿") ? "﻿" : "";
+  const plain = body.slice(lead.length).split(line).join("\n");
+  const held = frontLines(plain);
+  const said = paper === "a4" ? [] : [`paper: ${paper}`];
+  let made: string;
+  if (!held) {
+    made = said.length ? `---\n${said[0]}\n---\n${plain}` : plain;
+  } else {
+    const inside = held.slice(1, -1).filter((one) => !/^paper\s*:/i.test(one.trim()));
+    const kept = [...inside, ...said];
+    const rest = plain.split("\n").slice(held.length).join("\n");
+    made = kept.some((one) => one.trim())
+      ? `---\n${kept.join("\n")}\n${held[held.length - 1]}\n${rest}`
+      : rest.replace(/^\n/, "");
+  }
+  return lead + made.split("\n").join(line);
+};

@@ -587,3 +587,24 @@ fn a_title_with_brackets_keeps_them_as_words_and_code_is_never_touched() {
     let met = tisty_core::arriving::tidied_among("[[Reunión 2024.10]]\n", &dotted);
     assert_eq!(met.body, "[Reunión 2024.10](tisty:doc/D9)\n");
 }
+
+#[test]
+fn a_page_break_written_the_latex_way_becomes_the_rule_that_ends_a_sheet() {
+    let out = tisty_core::arriving::tidied("Uno\n\\newpage\nDos\n\n```tex\n\\pagebreak\n```\n");
+    assert_eq!(out.body, "Uno\n\n---\n\nDos\n\n```tex\n\\pagebreak\n```\n");
+    assert!(out.changed.contains(&"page breaks written the LaTeX way"));
+}
+
+#[test]
+fn a_page_ended_by_a_style_in_html_comes_in_as_a_rule() {
+    for html in [
+        "<p>Uno</p><div style=\"page-break-after: always\"></div><p>Dos</p>",
+        "<p>Uno</p><p style=\"break-before: page\">Dos</p>",
+    ] {
+        let said = tisty_core::arriving::from_html(html);
+        let (one, two) = (said.find("Uno").unwrap(), said.find("Dos").unwrap());
+        let rule = said.find("---").expect("the sheet's end is kept");
+        assert!(one < rule && rule < two, "{said:?}");
+    }
+    assert!(!tisty_core::arriving::from_html("<p style=\"color:red\">Uno</p>").contains("---"));
+}

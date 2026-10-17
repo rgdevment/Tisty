@@ -4,7 +4,7 @@ import { markup } from "../glyphs";
 import { t } from "../locales";
 import { wrapped } from "./formatting";
 import { marksShown, showMarks } from "./seeing";
-import { holding, pressed } from "./slashing";
+import { holding, pressed, putBlock } from "./slashing";
 import { type Retable, retable, tableHere } from "./tabling";
 
 type Said = Parameters<typeof t>[0];
@@ -84,6 +84,14 @@ const home = (view: EditorView, extend: boolean) => {
 };
 
 export const blockKeys: KeyBinding[] = [
+  // As in a word processor, the next words start on a sheet of their own.
+  {
+    key: "Mod-Enter",
+    run: (view) => {
+      putBlock(view, "---\n");
+      return true;
+    },
+  },
   // Home lands on the words, past the mark the line is drawn with, as it does on a title.
   { key: "Home", run: (view) => home(view, false), shift: (view) => home(view, true) },
   {

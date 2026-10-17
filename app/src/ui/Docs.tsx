@@ -23,6 +23,7 @@ import {
   viewDoc,
 } from "../core";
 import { stamped } from "../format";
+import { paperIn, withPaper } from "../front";
 import { keptAll, PASTED_UP_TO } from "../kept";
 import { fill, t } from "../locales";
 import { filed, inTextOrder, type Moved, namesIn, pagesOf, under } from "../paging";
@@ -40,7 +41,7 @@ import type { Head } from "./paging";
 import { usePreviewing } from "./previewing";
 import { pdfOf, signature } from "./printing";
 import Ribbon, { Onward } from "./Ribbon";
-import { PAPER, pageFor } from "./sheets";
+import { MARGIN, PAPER, pageFor, SHEET_TALL } from "./sheets";
 import type { Asking } from "./slashing";
 import { useLeaving } from "./useLeaving";
 import { clearOfChrome } from "./WindowChrome";
@@ -505,8 +506,11 @@ export default function Docs({
   const next = at < 0 ? undefined : inOrder[at + 1];
 
   const beside = Boolean(open) && (shown ?? wide);
-  const leaf = (open && sized[open.file]) || "a4";
+  const leaf = (open && (paperIn(body) ?? sized[open.file])) || "a4";
   const wall = { maxWidth: `${PAPER[leaf]}px` };
+  const sheetOf = useMemo(() => ({ wide: PAPER[leaf], tall: SHEET_TALL[leaf], ...MARGIN }), [leaf]);
+  // The sheet keeps its paper's width; the room around it is the scroller's gutter and bar.
+  const sheetRoom = { maxWidth: `${PAPER[leaf] + 48}px` };
 
   useEffect(() => pageFor(leaf), [leaf]);
 
@@ -615,6 +619,7 @@ export default function Docs({
 
   const resize = (paper: Paper) => {
     if (!open) return;
+    if (!bolted) return wrote(withPaper(body, paper));
     const now = { ...sized, [open.file]: paper };
     setSized(now);
     window.localStorage.setItem("tisty.paper", JSON.stringify(now));
@@ -640,9 +645,10 @@ export default function Docs({
         style={{ paddingRight: reserve }}
       >
         {open ? (
-          <div style={wall} className="relative mx-auto flex min-h-0 w-full flex-1 flex-col">
+          <div style={sheetRoom} className="relative mx-auto flex min-h-0 w-full flex-1 flex-col">
             <Suspense fallback={<p className="text-[12.5px] text-faint">{t("opening")}</p>}>
               <Sheet
+                sheet={sheetOf}
                 file={open.file}
                 onOwn={(file) => {
                   const page = known.find((one) => one.file === file);
