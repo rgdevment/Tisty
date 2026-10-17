@@ -7,6 +7,14 @@ html {
 html.dark {
   color-scheme: dark;
 }
+html:not(.tall) {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  scroll-padding-top: 16px;
+}
+html:not(.tall):hover {
+  scrollbar-color: var(--tisty-line) transparent;
+}
 body {
   margin: 0;
   font:

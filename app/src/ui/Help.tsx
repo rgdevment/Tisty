@@ -101,7 +101,7 @@ export default function Help({ topic }: { readonly topic?: string }) {
           aria-label={t("helpTopics")}
           className="scroller flex w-[230px] shrink-0 flex-col overflow-y-auto px-3 pb-6"
         >
-          <p className="px-2.5 pb-2 text-[11px] font-semibold tracking-wide text-faint uppercase">
+          <p className="px-2.5 pb-2 text-[11.5px] font-semibold tracking-wide text-faint uppercase">
             {t("help")}
           </p>
           <ol className="flex flex-col gap-px">
@@ -113,7 +113,7 @@ export default function Help({ topic }: { readonly topic?: string }) {
                     type="button"
                     aria-current={here ? "page" : undefined}
                     onClick={() => open(one.slug)}
-                    className={`w-full rounded-[7px] px-2.5 py-1.5 text-left text-[13px] leading-snug ${
+                    className={`w-full rounded-md px-2.5 py-1.5 text-left text-[13px] leading-snug ${
                       here
                         ? "bg-accent-soft font-semibold text-accent"
                         : "text-soft hover:bg-hover hover:text-ink"
@@ -128,7 +128,7 @@ export default function Help({ topic }: { readonly topic?: string }) {
                           <button
                             type="button"
                             onClick={sub.go}
-                            className="w-full rounded-[6px] px-2 py-1 text-left text-[12px] text-faint hover:bg-hover hover:text-ink"
+                            className="w-full rounded-md px-2 py-1 text-left text-[12.5px] text-faint hover:bg-hover hover:text-ink"
                           >
                             {sub.text}
                           </button>

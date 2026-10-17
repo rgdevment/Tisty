@@ -1,13 +1,13 @@
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { topicsOf } from "../guide/reference";
 import { kindOf, slugOf, TOPICS } from "../guide/topicOf";
+import { inTheRepo } from "./repo";
 
 const reference = (lang: string) =>
-  readFileSync(join(__dirname, "../../../crates/tisty-markdown/reference", `${lang}.md`), "utf8");
+  readFileSync(inTheRepo("crates/tisty-markdown/reference", `${lang}.md`), "utf8");
 
 vi.mock("../core", async (original) => ({
   ...(await original<typeof import("../core")>()),
