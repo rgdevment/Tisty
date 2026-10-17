@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: A security problem
+    url: https://github.com/rgdevment/Tisty/security/advisories/new
+    about: Report it privately, never in a public issue.
+  - name: How Tisty works
+    url: https://www.tisty.app/docs/
+    about: Tasks, documents, syncing and assistants, explained.
+  - name: The Tisty Markdown guide
+    url: https://markdown.tisty.app
+    about: Every form a document can hold, drawn the way Tisty draws it.
