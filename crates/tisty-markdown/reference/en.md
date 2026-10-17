@@ -1,39 +1,39 @@
 # The Tisty language
 
-A Tisty document is a plain `.md` file. What it holds is Markdown, the same Markdown GitHub reads, plus a handful of short words of Tisty's own for what Markdown has no way to say: a pen colour, an underline, an icon, a section that folds. This page lists every one of them: what it is for, how it is written in the file, how it reads, and the small rules that decide when it counts.
+A Tisty document is a plain `.md` file. What it holds is Markdown: CommonMark with GitHub's additions, plus a handful of short words of Tisty's own for what Markdown has no way to say: a pen colour, an underline, an icon, a section that folds. This page lists every one of them: what it is for, how it is written in the file, how it reads, and the small rules that decide when it counts.
 
 Nothing on this page needs learning by heart. The `/` menu and the bar in the editor write all of it for you; this is what you find if you open the file somewhere else, or want to write it by hand.
 
 ## At a glance
 
-| What | Written | GitHub |
-| :-- | :-- | :-: |
-| [Properties](#properties) | `---` `title:` `tags:` … `---` | as a table |
-| [Headings](#headings) | `# Title` … `###### Title` | yes |
-| [Bold, italic, struck, code](#bold-italic-struck-through-and-code) | `**b**` `*i*` `~~s~~` `` `c` `` | yes |
-| [Underline](#underline) | `++words++` | no |
-| [Pens](#pens) | `==words==` `==words=={green}` | no |
-| [Links](#links) | `[words](https://…)` `[words][one]` `https://…` | yes |
-| [Line breaks](#paragraphs-and-line-breaks) | one line per line | joins them |
-| [Lists and stages](#lists) | `- item` `1. item` `- [ ] stage` | yes |
-| [Quotes and callouts](#quotes-and-callouts) | `> words` `> [!NOTE]` | yes |
-| [Collapsible sections](#collapsible-sections) | `:::details Title` … `:::` | no |
-| [Tags](#tags) | `#contract` | as words |
-| [Icons](#icons) | `::dog orange::` | no |
-| [Emoji](#emoji) | `🎉` or `:tada:` | yes |
-| [Other documents and pages](#other-documents-and-pages) | `![Title](tisty:doc/…)` | no |
-| [Attachments](#attachments) | `![Label](file-1a2b3c4d.pdf)` | no |
-| [References](#references) | `[[Name]]` `[[#2]]` | no |
-| [Footnotes](#footnotes) | `[^1]` … `[^1]: note` | yes |
-| [Code](#code-blocks) | ` ```lang title="name" ` | yes |
-| [Diagrams](#diagrams-formulas-and-widgets) | ` ```mermaid ` | yes |
-| [Formulas](#diagrams-formulas-and-widgets) | ` ```math ` `$x$` `$$x$$` | yes |
-| [Widgets](#diagrams-formulas-and-widgets) | ` ```widget ` | as code |
-| [Tables](#tables) | `\| a \| b \|` | yes |
-| [Page breaks](#page-breaks) | `---` | as a rule |
-| [Comments and entities](#comments-and-entities) | `<!-- note -->` `&copy;` | yes |
+| What | Written | GitHub | CommonMark |
+| :-- | :-- | :-: | :-: |
+| [Properties](#properties) | `---` `title:` `tags:` … `---` | as a table | as a rule and words |
+| [Headings](#headings) | `# Title` … `###### Title` | yes | yes |
+| [Bold, italic, struck, code](#bold-italic-struck-through-and-code) | `**b**` `*i*` `~~s~~` `` `c` `` | yes | all but `~~s~~` |
+| [Underline](#underline) | `++words++` | no | no |
+| [Pens](#pens) | `==words==` `==words=={green}` | no | no |
+| [Links](#links) | `[words](https://…)` `[words][one]` `https://…` | yes | all but a bare `https://…` |
+| [Line breaks](#paragraphs-and-line-breaks) | one line per line | joins them | joins them |
+| [Lists and stages](#lists) | `- item` `1. item` `- [ ] stage` | yes | lists, not stages |
+| [Quotes and callouts](#quotes-and-callouts) | `> words` `> [!NOTE]` | yes | quotes, not callouts |
+| [Collapsible sections](#collapsible-sections) | `:::details Title` … `:::` | no | no |
+| [Tags](#tags) | `#contract` | as words | as words |
+| [Icons](#icons) | `::dog orange::` | no | no |
+| [Emoji](#emoji) | `🎉` or `:tada:` | yes | `🎉` only |
+| [Other documents and pages](#other-documents-and-pages) | `![Title](tisty:doc/…)` | no | no |
+| [Attachments](#attachments) | `![Label](file-1a2b3c4d.pdf)` | no | no |
+| [References](#references) | `[[Name]]` `[[#2]]` | no | no |
+| [Footnotes](#footnotes) | `[^1]` … `[^1]: note` | yes | no |
+| [Code](#code-blocks) | ` ```lang title="name" ` | yes | yes |
+| [Diagrams](#diagrams-formulas-and-widgets) | ` ```mermaid ` | yes | as code |
+| [Formulas](#diagrams-formulas-and-widgets) | ` ```math ` `$x$` `$$x$$` | yes | no |
+| [Widgets](#diagrams-formulas-and-widgets) | ` ```widget ` | as code | as code |
+| [Tables](#tables) | `\| a \| b \|` | yes | no |
+| [Page breaks](#page-breaks) | `---` | as a rule | as a rule |
+| [Comments and entities](#comments-and-entities) | `<!-- note -->` `&copy;` | yes | yes |
 
-Where the table says *no*, the other reader shows the words exactly as they are written, so nothing is lost: `++words++` stays readable, and `::dog::` is still a dog.
+Where the table says *no*, a reader that follows only GitHub or only CommonMark shows the words exactly as they are written, so nothing is lost: `++words++` stays readable, and `::dog::` is still a dog.
 
 ## Properties
 

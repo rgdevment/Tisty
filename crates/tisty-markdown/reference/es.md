@@ -1,39 +1,39 @@
 # El lenguaje de Tisty
 
-Un documento de Tisty es un archivo `.md` normal. Lo que lleva es Markdown, el mismo que lee GitHub, más unas pocas palabras cortas propias de Tisty para lo que Markdown no sabe decir: el color de un rotulador, un subrayado, un icono, una sección que se pliega. Esta página las reúne todas: para qué sirve cada una, cómo queda escrita en el archivo, cómo se lee y las reglas chicas que deciden cuándo cuenta.
+Un documento de Tisty es un archivo `.md` normal. Lo que lleva es Markdown: CommonMark con lo que le agrega GitHub, más unas pocas palabras cortas propias de Tisty para lo que Markdown no sabe decir: el color de un rotulador, un subrayado, un icono, una sección que se pliega. Esta página las reúne todas: para qué sirve cada una, cómo queda escrita en el archivo, cómo se lee y las reglas chicas que deciden cuándo cuenta.
 
 Nada de esto hay que aprenderlo de memoria. El menú `/` y la barra del editor lo escriben todo por ti; esto es lo que encuentras si abres el archivo en otra parte, o si quieres escribirlo a mano.
 
 ## De un vistazo
 
-| Qué | Se escribe | GitHub |
-| :-- | :-- | :-: |
-| [Propiedades](#propiedades) | `---` `title:` `tags:` … `---` | como tabla |
-| [Títulos](#títulos) | `# Título` … `###### Título` | sí |
-| [Negrita, cursiva, tachado, código](#negrita-cursiva-tachado-y-código) | `**n**` `*c*` `~~t~~` `` `c` `` | sí |
-| [Subrayado](#subrayado) | `++palabras++` | no |
-| [Rotuladores](#rotuladores) | `==palabras==` `==palabras=={green}` | no |
-| [Enlaces](#enlaces) | `[palabras](https://…)` `[palabras][uno]` `https://…` | sí |
-| [Saltos de línea](#párrafos-y-saltos-de-línea) | una línea por línea | las junta |
-| [Listas y etapas](#listas) | `- elemento` `1. elemento` `- [ ] etapa` | sí |
-| [Citas y avisos](#citas-y-avisos) | `> palabras` `> [!NOTE]` | sí |
-| [Secciones plegables](#secciones-plegables) | `:::details Título` … `:::` | no |
-| [Etiquetas](#etiquetas) | `#contrato` | como texto |
-| [Iconos](#iconos) | `::dog orange::` | no |
-| [Emojis](#emojis) | `🎉` o `:tada:` | sí |
-| [Otros documentos y páginas](#otros-documentos-y-páginas) | `![Título](tisty:doc/…)` | no |
-| [Adjuntos](#adjuntos) | `![Etiqueta](archivo-1a2b3c4d.pdf)` | no |
-| [Referencias](#referencias) | `[[Nombre]]` `[[#2]]` | no |
-| [Notas al pie](#notas-al-pie) | `[^1]` … `[^1]: nota` | sí |
-| [Código](#bloques-de-código) | ` ```lenguaje title="nombre" ` | sí |
-| [Diagramas](#diagramas-fórmulas-y-widgets) | ` ```mermaid ` | sí |
-| [Fórmulas](#diagramas-fórmulas-y-widgets) | ` ```math ` `$x$` `$$x$$` | sí |
-| [Widgets](#diagramas-fórmulas-y-widgets) | ` ```widget ` | como código |
-| [Tablas](#tablas) | `\| a \| b \|` | sí |
-| [Saltos de página](#saltos-de-página) | `---` | como raya |
-| [Comentarios y entidades](#comentarios-y-entidades) | `<!-- nota -->` `&copy;` | sí |
+| Qué | Se escribe | GitHub | CommonMark |
+| :-- | :-- | :-: | :-: |
+| [Propiedades](#propiedades) | `---` `title:` `tags:` … `---` | como tabla | como raya y texto |
+| [Títulos](#títulos) | `# Título` … `###### Título` | sí | sí |
+| [Negrita, cursiva, tachado, código](#negrita-cursiva-tachado-y-código) | `**n**` `*c*` `~~t~~` `` `c` `` | sí | salvo `~~t~~` |
+| [Subrayado](#subrayado) | `++palabras++` | no | no |
+| [Rotuladores](#rotuladores) | `==palabras==` `==palabras=={green}` | no | no |
+| [Enlaces](#enlaces) | `[palabras](https://…)` `[palabras][uno]` `https://…` | sí | salvo una `https://…` suelta |
+| [Saltos de línea](#párrafos-y-saltos-de-línea) | una línea por línea | las junta | las junta |
+| [Listas y etapas](#listas) | `- elemento` `1. elemento` `- [ ] etapa` | sí | listas, no etapas |
+| [Citas y avisos](#citas-y-avisos) | `> palabras` `> [!NOTE]` | sí | citas, no avisos |
+| [Secciones plegables](#secciones-plegables) | `:::details Título` … `:::` | no | no |
+| [Etiquetas](#etiquetas) | `#contrato` | como texto | como texto |
+| [Iconos](#iconos) | `::dog orange::` | no | no |
+| [Emojis](#emojis) | `🎉` o `:tada:` | sí | solo `🎉` |
+| [Otros documentos y páginas](#otros-documentos-y-páginas) | `![Título](tisty:doc/…)` | no | no |
+| [Adjuntos](#adjuntos) | `![Etiqueta](archivo-1a2b3c4d.pdf)` | no | no |
+| [Referencias](#referencias) | `[[Nombre]]` `[[#2]]` | no | no |
+| [Notas al pie](#notas-al-pie) | `[^1]` … `[^1]: nota` | sí | no |
+| [Código](#bloques-de-código) | ` ```lenguaje title="nombre" ` | sí | sí |
+| [Diagramas](#diagramas-fórmulas-y-widgets) | ` ```mermaid ` | sí | como código |
+| [Fórmulas](#diagramas-fórmulas-y-widgets) | ` ```math ` `$x$` `$$x$$` | sí | no |
+| [Widgets](#diagramas-fórmulas-y-widgets) | ` ```widget ` | como código | como código |
+| [Tablas](#tablas) | `\| a \| b \|` | sí | no |
+| [Saltos de página](#saltos-de-página) | `---` | como raya | como raya |
+| [Comentarios y entidades](#comentarios-y-entidades) | `<!-- nota -->` `&copy;` | sí | sí |
 
-Donde la tabla dice *no*, el otro lector muestra las palabras tal como están escritas, así que no se pierde nada: `++palabras++` se sigue leyendo, y `::dog::` sigue siendo un perro.
+Donde la tabla dice *no*, un lector que sigue solo GitHub o solo CommonMark muestra las palabras tal como están escritas, así que no se pierde nada: `++palabras++` se sigue leyendo, y `::dog::` sigue siendo un perro.
 
 ## Propiedades
 
