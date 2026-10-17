@@ -2,7 +2,7 @@ import { startCompletion } from "@codemirror/autocomplete";
 import type { EditorView, KeyBinding } from "@codemirror/view";
 import { markup } from "../glyphs";
 import { t } from "../locales";
-import { wrapped } from "./formatting";
+import { coded, wrapped } from "./formatting";
 import { marksShown, showMarks } from "./seeing";
 import { holding, pressed, putBlock } from "./slashing";
 import { type Retable, retable, tableHere } from "./tabling";
@@ -84,10 +84,11 @@ const home = (view: EditorView, extend: boolean) => {
 };
 
 export const blockKeys: KeyBinding[] = [
-  // As in a word processor, the next words start on a sheet of their own.
   {
     key: "Mod-Enter",
     run: (view) => {
+      // Code and tables keep a rule as their own text, so the break waits until the caret is in words.
+      if (coded(view.state, view.state.selection.main.head) || tableHere(view.state)) return false;
       putBlock(view, "---\n");
       return true;
     },

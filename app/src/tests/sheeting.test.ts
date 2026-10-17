@@ -59,6 +59,17 @@ describe("sheets laid on the page", () => {
     expect(sheet.style.getPropertyValue("--last")).not.toBe("");
   });
 
+  it("leaves a block taller than a sheet where it starts, instead of a blank sheet before it", () => {
+    const sheet = laid([
+      ["table", 20, 500],
+      ["p", 530, 40],
+    ]);
+    sheeted(document, { wide: 794, tall: 140, x: 10, y: 10 });
+    const turns = sheet.querySelectorAll(".sheet-turn");
+    expect(turns).toHaveLength(1);
+    expect(turns[0].nextElementSibling?.tagName).toBe("P");
+  });
+
   it("lets a manual break end its sheet and lays nothing while a block is being written", () => {
     const sheet = laid([
       ["p", 10, 40],
@@ -67,7 +78,7 @@ describe("sheets laid on the page", () => {
     ]);
     sheeted(document, { wide: 794, tall: 140, x: 10, y: 10 });
     expect(sheet.querySelectorAll(".sheet-turn")).toHaveLength(0);
-    expect((sheet.children[1] as HTMLElement).style.getPropertyValue("--fill")).toBe("70px");
+    expect((sheet.children[1] as HTMLElement).style.getPropertyValue("--fill")).toBe("80px");
     sheet.insertAdjacentHTML("beforeend", '<div class="editing"></div>');
     (sheet.children[1] as HTMLElement).style.removeProperty("--fill");
     sheeted(document, { wide: 794, tall: 140, x: 10, y: 10 });

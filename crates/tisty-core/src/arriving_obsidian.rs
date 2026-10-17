@@ -26,7 +26,7 @@ pub(super) fn obsidian(body: &str, said: &mut Vec<&'static str>, titles: &Titles
             out.push_str(line);
             continue;
         }
-        if !aside && matches!(bare.trim(), r"\newpage" | r"\pagebreak" | r"\clearpage") {
+        if !aside && matches!(bare.trim_end(), r"\newpage" | r"\pagebreak" | r"\clearpage") {
             note(BREAKS);
             out.push_str("\n---\n");
             if line.ends_with('\n') {

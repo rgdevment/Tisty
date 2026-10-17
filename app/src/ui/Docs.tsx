@@ -619,10 +619,13 @@ export default function Docs({
 
   const resize = (paper: Paper) => {
     if (!open) return;
-    if (!bolted) return wrote(withPaper(body, paper));
-    const now = { ...sized, [open.file]: paper };
+    const { [open.file]: _, ...others } = sized;
+    const now = bolted ? { ...others, [open.file]: paper } : others;
     setSized(now);
     window.localStorage.setItem("tisty.paper", JSON.stringify(now));
+    if (bolted) return;
+    const latest = held.current?.id === open.file ? held.current.body : body;
+    wrote(withPaper(latest, paper));
   };
   const spare = room - (wide ? RAIL_WIDE : RAIL) - GUTTER;
   const reserve = beside && spare - ASIDE >= SHEET ? ASIDE : 0;

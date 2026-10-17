@@ -593,6 +593,8 @@ fn a_page_break_written_the_latex_way_becomes_the_rule_that_ends_a_sheet() {
     let out = tisty_core::arriving::tidied("Uno\n\\newpage\nDos\n\n```tex\n\\pagebreak\n```\n");
     assert_eq!(out.body, "Uno\n\n---\n\nDos\n\n```tex\n\\pagebreak\n```\n");
     assert!(out.changed.contains(&"page breaks written the LaTeX way"));
+    let indented = tisty_core::arriving::tidied("- Uno\n  \\newpage\n\n    \\pagebreak\n");
+    assert!(!indented.body.contains("---"), "{:?}", indented.body);
 }
 
 #[test]
@@ -600,6 +602,7 @@ fn a_page_ended_by_a_style_in_html_comes_in_as_a_rule() {
     for html in [
         "<p>Uno</p><div style=\"page-break-after: always\"></div><p>Dos</p>",
         "<p>Uno</p><p style=\"break-before: page\">Dos</p>",
+        "<p style=\"page-break-after:always\">Uno</p><p>Dos</p>",
     ] {
         let said = tisty_core::arriving::from_html(html);
         let (one, two) = (said.find("Uno").unwrap(), said.find("Dos").unwrap());

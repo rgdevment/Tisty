@@ -44,6 +44,20 @@ const TURNS: [&str; 4] = [
     "break-after:page",
 ];
 
+fn closing(tag: &str, after: &str) -> Option<usize> {
+    let name: String = tag[1..]
+        .chars()
+        .take_while(char::is_ascii_alphanumeric)
+        .collect::<String>()
+        .to_ascii_lowercase();
+    if name.is_empty() || tag.ends_with("/>") {
+        return None;
+    }
+    let shut = format!("</{name}");
+    let at = after.to_ascii_lowercase().find(&shut)?;
+    after[at..].find('>').map(|end| at + end + 1)
+}
+
 // Word and the web end a sheet with a style on an element; the language ends it with a rule.
 fn broken(html: &str) -> String {
     let mut out = String::with_capacity(html.len());
@@ -62,14 +76,19 @@ fn broken(html: &str) -> String {
             Some(at) if at % 2 == 0 => {
                 out.push_str("<hr>");
                 out.push_str(tag);
+                rest = &rest[shut..];
             }
             Some(_) => {
-                out.push_str(tag);
+                let ends = closing(tag, &rest[shut..]).map_or(shut, |at| shut + at);
+                out.push_str(&rest[open..ends]);
                 out.push_str("<hr>");
+                rest = &rest[ends..];
             }
-            None => out.push_str(tag),
+            None => {
+                out.push_str(tag);
+                rest = &rest[shut..];
+            }
         }
-        rest = &rest[shut..];
     }
     out.push_str(rest);
     out
