@@ -23,8 +23,10 @@ describe("what a document brings that the editor cannot keep", () => {
     expect(frail(kept)).toEqual([]);
   });
 
-  it("sees the front matter, which grows a backslash on every save", () => {
-    expect(frail("---\ntitle: algo\n---\n\n# Hola")).toContain("frailFront");
+  it("takes the front matter as it comes, and reads past it for what it cannot keep", () => {
+    expect(frail("---\ntitle: algo\ntags: [a, b]\n---\n\n# Hola")).toEqual([]);
+    expect(frail("---\nnota: <b>x</b>\n---\n\n# Hola")).toEqual([]);
+    expect(frail("---\ntitle: x\n---\n\n<div>y</div>")).toEqual(["frailHtml"]);
   });
 
   it("sees a block of html, which loses its tag and keeps only the words", () => {
@@ -74,8 +76,8 @@ describe("what a document brings that the editor cannot keep", () => {
     expect(frail("# Uno\n\n---\n\ntexto")).toEqual([]);
   });
 
-  it("still sees a front matter that a rule follows further down", () => {
-    expect(frail("---\ntitle: x\n---\n\n# Uno\n\n---\n\n# Dos")).toContain("frailFront");
+  it("still reads past a front matter that a rule follows further down", () => {
+    expect(frail("---\ntitle: x\n---\n\n# Uno\n\n---\n\n<div>y</div>")).toEqual(["frailHtml"]);
   });
 
   it("leaves alone brackets that were escaped, which are text and not a note", () => {
@@ -85,7 +87,7 @@ describe("what a document brings that the editor cannot keep", () => {
   it("names every kind it finds, not only the first", () => {
     const messy = "---\na: b\n---\n\n<div>x</div>\n\nnota[^1]\n\n[^1]: pie\n\n[uno]: https://x.dev";
 
-    expect(frail(messy)).toEqual(["frailFront", "frailHtml"]);
+    expect(frail(messy)).toEqual(["frailHtml"]);
   });
 
   it("sees html that plays inline in the middle of a sentence, not only html standing on its own", () => {

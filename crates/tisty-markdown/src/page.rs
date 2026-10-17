@@ -26,6 +26,41 @@ fn anchors(doc: &Doc) -> HashMap<usize, String> {
     }
 }
 
+fn front(said: &str, at: &str, out: &mut String) {
+    let _ = write!(out, "<dl class=\"front\" {at}>");
+    for field in crate::front::fields(said) {
+        let _ = write!(out, "<div><dt>{}</dt><dd>", escaped(&field.key));
+        let tagged = crate::front::tagging(&field.key);
+        let values: Vec<String> = match tagged {
+            true => crate::front::words(&field.values),
+            false => field.values.clone(),
+        };
+        for (n, value) in values.iter().enumerate() {
+            let named = tagged
+                .then(|| crate::tags::named(value.trim_start_matches('#')))
+                .flatten();
+            match named {
+                Some(name) => {
+                    let _ = write!(
+                        out,
+                        "<span class=\"tag\" data-tag=\"{}\">#{}</span>",
+                        escaped(&name),
+                        escaped(value.trim_start_matches('#'))
+                    );
+                }
+                None => {
+                    if n > 0 {
+                        out.push_str("<span class=\"front-sep\">, </span>");
+                    }
+                    out.push_str(&escaped(value));
+                }
+            }
+        }
+        out.push_str("</dd></div>");
+    }
+    out.push_str("</dl>");
+}
+
 fn draw(block: &Block, text: &str, anchors: &HashMap<usize, String>, out: &mut String) {
     let at = format!("data-at=\"{}-{}\"", block.at.start, block.at.end);
     match &block.kind {
@@ -75,6 +110,7 @@ fn draw(block: &Block, text: &str, anchors: &HashMap<usize, String>, out: &mut S
         Kind::Rule => {
             let _ = write!(out, "<hr {at}>");
         }
+        Kind::Front => front(&text[block.at.clone()], &at, out),
         Kind::Details { summary, open } => {
             let open = if *open { " open" } else { "" };
             let head = format!(

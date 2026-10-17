@@ -1246,13 +1246,37 @@ fn a_file_from_another_app_comes_in_tidied_and_says_what_changed() {
     assert!(body.contains("<!-- oculto -->"), "{body}");
     assert!(body.contains("&amp; final"), "{body}");
     let changed = said["result"]["structuredContent"]["changed"].to_string();
-    assert!(changed.contains("front matter"), "{changed}");
+    assert!(!changed.contains("front matter"), "{changed}");
+    assert!(body.starts_with("---"), "{body}");
     assert!(changed.contains("HTML that markdown can say"), "{changed}");
     assert_eq!(
         std::fs::read_to_string(&at).unwrap().lines().next(),
         Some("---"),
         "the file on disk is not touched"
     );
+}
+
+#[test]
+fn a_title_in_front_matter_names_the_note_and_takes_the_one_asked_for() {
+    let served = Served::new();
+    let (_dir, at) = on_disk("nota.md", "---\ntitle: Plan\n---\n\nlo dicho\n");
+    let said = served.call(
+        "import_doc",
+        serde_json::json!({ "path": at.to_str().unwrap() }),
+    );
+    let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
+    let body = served.body_of(doc);
+    assert!(body.starts_with("---\ntitle: Plan\n---"), "{body}");
+    assert!(!body.contains("# nota"), "{body}");
+
+    let (_dir, at) = on_disk("otra.md", "---\ntitle: Plan\n---");
+    let said = served.call(
+        "import_doc",
+        serde_json::json!({ "path": at.to_str().unwrap(), "title": "Acta" }),
+    );
+    let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
+    let body = served.body_of(doc);
+    assert!(body.starts_with("---\ntitle: \"Acta\"\n---"), "{body}");
 }
 
 #[test]

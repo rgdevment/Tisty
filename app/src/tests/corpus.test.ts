@@ -9,7 +9,6 @@ interface Case {
 }
 
 const SAID: Record<string, string> = {
-  front: "frailFront",
   html: "frailHtml",
 };
 

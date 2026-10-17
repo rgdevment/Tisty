@@ -1,3 +1,4 @@
+import { unfronted } from "./front";
 import { known } from "./glyphs";
 
 const HUES = "red|orange|amber|green|teal|blue|indigo|purple|pink|brown|gray";
@@ -13,7 +14,7 @@ const kept = (inner: string): boolean => {
   const icon = found[4];
   return !icon || known(icon) || /\p{Extended_Pictographic}/u.test(icon);
 };
-const WHY = ["frailFront", "frailHtml"];
+const WHY = ["frailHtml"];
 
 const spacing = (said: string): number => {
   let wide = 0;
@@ -87,12 +88,6 @@ const fenceless = (text: string): string => {
   return out.join("\n");
 };
 
-const fronted = (text: string): boolean => {
-  const lines = text.replace(/^﻿/, "").split("\n");
-  if (lines[0]?.trim() !== "---") return false;
-  return lines.slice(1).some((line) => line.trim() === "---");
-};
-
 const spanless = (line: string): string => {
   const ticks = (from: number) => {
     let many = 0;
@@ -159,8 +154,7 @@ export const frail = (whole: string): string[] => {
   const seen = new Set<string>();
   let aside = false;
 
-  if (fronted(text)) seen.add("frailFront");
-  for (const line of fenceless(text).split("\n")) {
+  for (const line of fenceless(unfronted(text)).split("\n")) {
     if (!aside && (line.startsWith("    ") || line.startsWith("\t"))) continue;
     let plain = "";
     let rest = spanless(line);

@@ -69,27 +69,28 @@ pub(in crate::mcp) fn import_doc(paths: &Paths, args: &Value) -> Result<Value, R
         changed: made.changed,
     };
 
-    let headed = made
-        .body
-        .lines()
-        .find(|one| !one.trim().is_empty())
-        .is_some_and(|one| one.starts_with("# "));
+    let past = tisty_markdown::front::span(&made.body).map_or(0, |at| at.end);
+    let (front, rest) = made.body.split_at(past);
+    let front = match front.is_empty() || front.ends_with('\n') {
+        true => front.to_string(),
+        false => format!("{front}\n"),
+    };
+    let named_above = tisty_markdown::front::title(&front).is_some();
+    let headed = named_above
+        || rest
+            .lines()
+            .find(|one| !one.trim().is_empty())
+            .is_some_and(|one| one.starts_with("# "));
     let body = match (text(args, "title"), headed) {
-        (Some(said), _) => format!(
-            "# {said}
-
-{}",
-            made.body.trim_start()
+        (Some(said), _) if named_above => format!(
+            "{}{rest}",
+            tisty_markdown::front::titled_as(&front, &said).unwrap_or(front.clone())
         ),
+        (Some(said), _) => format!("{front}# {said}\n\n{}", rest.trim_start()),
         (None, true) => made.body.clone(),
         (None, false) => {
             let named = at.file_stem().unwrap_or_default().to_string_lossy();
-            format!(
-                "# {named}
-
-{}",
-                made.body.trim_start()
-            )
+            format!("{front}# {named}\n\n{}", rest.trim_start())
         }
     };
 

@@ -400,7 +400,7 @@ beforeEach(() => {
       case "doc_read":
         return Promise.resolve(
           String(ipc.calls[ipc.calls.length - 1]?.args.id) === "a-0002"
-            ? "---\ntitle: algo\n---\n\n# Minuta"
+            ? "# Minuta\n\n<div>algo</div>"
             : "# Limpio\n\nun parrafo",
         );
       default:
@@ -2063,7 +2063,7 @@ describe("the maintenance panel", () => {
     await userEvent.click(screen.getByRole("button", { name: /go through the documents/i }));
 
     expect(await screen.findByText("Minuta del lunes")).toBeTruthy();
-    expect(screen.getByText(/the front matter at the top/i)).toBeTruthy();
+    expect(screen.getByText("HTML")).toBeTruthy();
     expect(screen.queryByText("Limpio")).toBeNull();
   });
 

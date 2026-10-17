@@ -1285,7 +1285,7 @@ what the thread said <b>loud</b> with ==a pen=={silver}" }),
 
     assert_ne!(said["result"]["isError"], true, "{said}");
     let turned = said["result"]["structuredContent"]["turned"].to_string();
-    assert!(turned.contains("front matter"), "{turned}");
+    assert!(turned.contains("HTML that markdown can say"), "{turned}");
     let text = said["result"]["content"][0]["text"].as_str().unwrap();
     assert!(text.contains("`language`"), "{text}");
     let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
@@ -1294,7 +1294,7 @@ what the thread said <b>loud</b> with ==a pen=={silver}" }),
         .as_str()
         .unwrap();
     assert!(
-        body.starts_with("what the thread said **loud** with ==a pen=="),
+        body.contains("---\n\nwhat the thread said **loud** with ==a pen=="),
         "{body}"
     );
 

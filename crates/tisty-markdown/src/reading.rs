@@ -17,9 +17,14 @@ pub fn read_old(text: &str) -> Doc {
 
 fn reading(text: &str, passes: &[fn(&mut Vec<Span>, &str)]) -> Doc {
     // The core and the window both read past a byte-order mark; the tokenizer does not.
-    let skip = text.len() - text.trim_start_matches('\u{feff}').len();
+    let mut skip = text.len() - text.trim_start_matches('\u{feff}').len();
     let mut open: Vec<Block> = Vec::new();
     let mut blocks: Vec<Block> = Vec::new();
+    // The tokenizer would take any fenced run of lines for front matter; only the top one is.
+    if let Some(front) = crate::front::span(text) {
+        skip = front.end;
+        blocks.push(leaf(Kind::Front, front));
+    }
     for (event, at) in tokens(&text[skip..]) {
         let at = at.start + skip..at.end + skip;
         match event {

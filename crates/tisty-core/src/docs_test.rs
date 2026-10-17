@@ -1562,11 +1562,35 @@ fn a_blank_line_before_the_title_does_not_send_the_mark_somewhere_else() {
 }
 
 #[test]
-fn front_matter_is_stepped_over_before_marking() {
+fn a_conflict_marks_the_title_where_the_title_comes_from() {
     let said = marked("---\ntitle: x\n---\n\n# Compras\n\nleche", "otra version");
+    assert!(
+        said.starts_with("---\ntitle: \"x (otra version)\"\n---"),
+        "{said}"
+    );
+    assert!(said.contains("\n# Compras\n"), "{said}");
+    assert_eq!(titled(&said), "x (otra version)");
 
-    assert!(said.starts_with("---\ntitle: x\n---"), "{said}");
+    for front in ["title: \"x\"", "title : x", "title: [x, y]", "Title: x"] {
+        let said = marked(&format!("---\n{front}\n---\n\nleche"), "otra version");
+        assert_eq!(titled(&said), "x (otra version)", "{front}");
+    }
+
+    let long = "a".repeat(400);
+    let said = marked(&format!("---\ntitle: {long}\n---\n"), "otra version");
+    assert!(titled(&said).ends_with(" (otra version)"), "{said}");
+    assert!(!tisty_markdown::front::fields(&said).is_empty());
+
+    let said = marked("---\ntags: [a]\n---\n\n# Compras\n\nleche", "otra version");
+    assert!(said.starts_with("---\ntags: [a]\n---"), "{said}");
     assert_eq!(titled(&said), "Compras (otra version)");
+
+    let said = marked("---\n\ntexto\n\n---\n\nmas", "otra version");
+    assert_eq!(
+        titled(&said),
+        "texto (otra version)",
+        "a rule is no front matter"
+    );
 }
 
 #[test]
@@ -2295,10 +2319,14 @@ fn a_number_once_given_out_is_never_given_again() {
 }
 
 #[test]
-fn front_matter_is_not_mistaken_for_the_title() {
+fn the_title_front_matter_gives_names_the_document_before_any_heading() {
+    assert_eq!(titled("---\ntitle: x\ntags: [a]\n---\n\n# Compras"), "x");
+    assert_eq!(titled("---\ntags: [a]\n---\n\n# Compras"), "Compras");
+    assert_eq!(titled("---\ntitle: |\n  x\n---\n\n# Compras"), "Compras");
+    assert_eq!(titled("---\ntitle: \"\"\n---\n\nCompras"), "Compras");
     assert_eq!(
-        titled("---\ntitle: x\ntags: [a]\n---\n\n# Compras"),
-        "Compras"
+        titled(&format!("---\ntitle: {}\n---\n", "a".repeat(300))).len(),
+        titled(&format!("# {}", "a".repeat(300))).len()
     );
     assert_eq!(
         titled("---\nsolo una raya y nada que la cierre"),
