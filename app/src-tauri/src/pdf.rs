@@ -7,11 +7,15 @@ const SIDE: f64 = 20.0 / 25.4;
 
 /// The sheet in inches, as both engines take it.
 pub fn leaf(paper: &str) -> (f64, f64) {
-    match paper {
+    let (named, turned) = paper
+        .strip_suffix("-landscape")
+        .map_or((paper, false), |one| (one, true));
+    let (wide, tall) = match named {
         "letter" => (8.5, 11.0),
         "tabloid" => (11.0, 17.0),
         _ => (210.0 / 25.4, 297.0 / 25.4),
-    }
+    };
+    if turned { (tall, wide) } else { (wide, tall) }
 }
 
 /// The window's own engine lays the page out on paper, so the PDF is the page as it is drawn.
