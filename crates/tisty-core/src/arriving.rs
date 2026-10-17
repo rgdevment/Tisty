@@ -1,3 +1,6 @@
+#[path = "arriving_obsidian.rs"]
+mod obsidian;
+
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Tidied {
     pub body: String,
@@ -29,6 +32,7 @@ pub fn tidied(body: &str) -> Tidied {
     if plain != even {
         opened.push("what an older Tisty wrote, in its own words now");
     }
+    let plain = obsidian::obsidian(&plain, &mut opened);
     if crate::docs::survives(&plain).is_ok() {
         return Tidied {
             body: plain,

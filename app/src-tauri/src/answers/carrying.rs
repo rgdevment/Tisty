@@ -117,6 +117,7 @@ pub fn doc_import(
         .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
         .transpose()?;
     let body = read_outside(std::path::Path::new(&from))?;
+    let body = tisty_core::arriving::tidied(&body).body;
     imported(&mut held(&session), &body, folder).map(|(made, _)| made)
 }
 
