@@ -294,14 +294,16 @@ pub fn carry_through(
 ) -> Result<Moved, Trouble> {
     guarding::before_carrying(dest, device)?;
     shape::before_reading(data, dest)?;
+    let taking = matches!(way, Way::Both | Way::Pull | Way::Again);
+    let giving = matches!(way, Way::Both | Way::Push | Way::Again);
+    if giving && shape::raise_first(data, dest) && shape::shared_with_others(dest, device) {
+        shape::mark_raised(data);
+    }
     let store = data.join(STORE);
     let again = matches!(way, Way::Again);
     let holds_ours = holds_our_store(&store, dest);
     let been_here = carried_here(aside, dest, Some(device), holds_ours);
     let ours = settled(&store, dest, been_here && !again)?;
-
-    let taking = matches!(way, Way::Both | Way::Pull | Way::Again);
-    let giving = matches!(way, Way::Both | Way::Push | Way::Again);
 
     let mut moved = Moved::default();
     let mut alike = Alike::default();

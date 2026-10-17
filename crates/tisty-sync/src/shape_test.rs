@@ -218,3 +218,21 @@ fn a_new_place_is_arranged_without_warning_anyone() {
     assert!(!stamp(&data, &dest));
     assert!(said_in(&dest).contains(&format!("shape = {OURS}")));
 }
+
+#[test]
+fn a_place_is_raised_first_only_when_it_already_says_an_older_shape() {
+    let (_room, data, dest) = a_place();
+    assert!(!raise_first(&data, &dest));
+    assert!(
+        !dest.join(NAMED).exists(),
+        "a new place was named before its round finished"
+    );
+
+    std::fs::write(dest.join(NAMED), "shape = 2\n").unwrap();
+    assert!(raise_first(&data, &dest));
+    assert!(said_in(&dest).contains(&format!("needs = \"{NEEDS}\"")));
+    assert!(
+        !raise_first(&data, &dest),
+        "a place already raised was raised again"
+    );
+}
