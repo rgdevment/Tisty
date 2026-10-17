@@ -4,6 +4,7 @@ mod applying;
 pub mod arriving;
 pub mod attach;
 pub mod backup;
+pub mod beside;
 pub mod cache;
 pub mod called;
 pub mod capture;

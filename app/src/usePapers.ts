@@ -16,6 +16,7 @@ import {
   noteTrouble,
   type Papers,
 } from "./core";
+import { leftBehind } from "./leftBehind";
 import { fill, t } from "./locales";
 import { saidPlainly } from "./refusal";
 import { sure } from "./sure";
@@ -32,6 +33,7 @@ interface Hands {
   setReturning: (at: string | null) => void;
   setBacking: (doc: Filed | null) => void;
   setError: (text: string | null) => void;
+  noted: (text: string, fades?: number) => void;
   lookForAStar: () => void;
   carries: MutableRefObject<ReturnType<typeof carrying> | null>;
   paging: MutableRefObject<((page: Filed) => boolean) | null>;
@@ -45,6 +47,7 @@ export function usePapers({
   setReturning,
   setBacking,
   setError,
+  noted,
   lookForAStar,
   carries,
   paging,
@@ -73,6 +76,8 @@ export function usePapers({
         if (!made) return;
         papersChanged();
         setChosen({ named: "docs", doc: made.id });
+        const left = leftBehind(made);
+        if (left) noted(left, 9_000);
       })
       .catch((e) => setError(saidPlainly(e)));
 
