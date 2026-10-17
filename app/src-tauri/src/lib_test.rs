@@ -137,8 +137,17 @@ fn what_was_really_handed_over_is_written_down_and_a_refusal_is_not() {
         "handing it over wrote down no day"
     );
 
+    let copy = from.path().join("copia.txt");
+    crate::answers::attaching::copied_out(reference.clone(), looking(), &copy.to_string_lossy())
+        .expect("a copy is made beside it");
+    assert_eq!(std::fs::read(&copy).unwrap(), b"lo apuntado");
+
     let never = "attachments/nope-00000000.txt".to_string();
     assert!(crate::answers::attaching::read_out(never.clone(), looking()).is_err());
+    assert!(
+        crate::answers::attaching::copied_out(never.clone(), looking(), &copy.to_string_lossy())
+            .is_err()
+    );
     assert_eq!(
         tisty_core::lately::last(&reached, &never),
         None,
@@ -1266,7 +1275,7 @@ fn the_guide_carries_pages_of_its_own_to_show_what_a_page_is() {
         for kind in [
             ".pdf)",
             ".mp3)",
-            ".webm)",
+            ".mp4)",
             ".csv)",
             ".html)",
             ".html \"file\")",

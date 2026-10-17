@@ -18,11 +18,14 @@ const calls = vi.hoisted(() => ({
   released: [] as string[],
   lent: [] as string[],
   dropped: 0,
+  here: true,
+  refused: false,
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: { url?: string }) => {
     if (cmd === "open_link") calls.links.push(args?.url ?? "");
+    if (cmd === "kept_here") return Promise.resolve(calls.here);
     return Promise.resolve(null);
   },
   convertFileSrc: (path: string) => `http://asset.localhost/${path}`,
@@ -31,8 +34,10 @@ vi.mock("@tauri-apps/api/core", () => ({
 vi.mock("../inUse", () => ({
   serve: (at: string) => {
     calls.served.push(at);
+    if (calls.refused) return Promise.reject({ code: "cloudLater", name: at });
     return Promise.resolve(`C:/kept/${at}`);
   },
+  askAgain: () => {},
   showing: (at: string) => {
     calls.shown.push(at);
     return () => calls.released.push(at);
@@ -49,6 +54,10 @@ vi.mock("../ui/widgeting", () => ({
         calls.dropped += 1;
       },
     };
+  },
+  lendKept: (_: HTMLElement, reference: string) => {
+    calls.lent.push(reference);
+    return { retheme: () => {}, shade: () => {}, drop: () => {} };
   },
   locked: () => {
     const said = document.createElement("div");
@@ -87,6 +96,8 @@ beforeEach(() => {
   calls.released = [];
   calls.lent = [];
   calls.dropped = 0;
+  calls.here = true;
+  calls.refused = false;
   document.documentElement.removeAttribute("data-theme");
 });
 
@@ -149,7 +160,7 @@ describe("dressing a drawn page", () => {
     const drawn = page(
       '<p><img src="attachments/a.png" alt="A"><img src="https://x.y/b.png" alt="B"></p>',
     );
-    const held = pictures(drawn, () => true);
+    const { held } = pictures(drawn, () => true);
     expect(calls.shown).toEqual(["attachments/a.png"]);
     await vi.waitFor(() =>
       expect(drawn.querySelector('img[alt="A"]')?.getAttribute("src")).toBe(
@@ -161,13 +172,88 @@ describe("dressing a drawn page", () => {
     expect(calls.released).toEqual(["attachments/a.png"]);
   });
 
-  it("shows an attachment that is no picture as a card that opens it", () => {
-    const drawn = page('<p><img src="attachments/plan.pdf" alt=""></p>');
+  it("shows a file alone in its paragraph as a card that opens it, and one in a sentence as a chip", () => {
+    const drawn = page(
+      '<p><img src="attachments/plan.pdf" alt=""></p><p>see <img src="attachments/acta.pdf" alt="Acta"> here</p>',
+    );
     pictures(drawn, () => true);
-    const card = drawn.querySelector("a.card");
+    const card = drawn.querySelector("a.doc-card.is-file");
     expect(card?.getAttribute("href")).toBe("attachments/plan.pdf");
-    expect(card?.textContent).toBe("plan.pdf");
+    expect(card?.querySelector(".card-name")?.textContent).toBe("plan.pdf");
+    expect(card?.getAttribute("data-family")).toBe("pdf");
+    const chip = drawn.querySelector("a.card");
+    expect(chip?.getAttribute("href")).toBe("attachments/acta.pdf");
+    expect(chip?.textContent).toBe("Acta");
     expect(calls.served).toEqual([]);
+  });
+
+  it("plays audio and video where they are written", async () => {
+    const drawn = page(
+      '<p><img src="attachments/walk-0006bf09.mp4" alt="A walk"></p><p><img src="attachments/bark-0006bf10.mp3" alt="Bark"></p>',
+    );
+    const { held } = pictures(drawn, () => true);
+    const video = drawn.querySelector<HTMLVideoElement>(".media.is-video video");
+    const audio = drawn.querySelector<HTMLAudioElement>(".media.is-audio audio");
+    expect(video?.controls).toBe(true);
+    expect(audio?.getAttribute("aria-label")).toBe("Bark");
+    expect(drawn.querySelector(".media.is-audio .media-name")?.textContent).toBe("Bark");
+    await vi.waitFor(() => expect(video?.getAttribute("src")).toContain("walk-0006bf09.mp4"));
+    expect(held).toHaveLength(2);
+  });
+
+  it("brings a film still in the cloud only when asked, saying so while it comes", async () => {
+    calls.here = false;
+    const drawn = page('<p><img src="attachments/walk-0006bf09.mp4" alt="A walk"></p>');
+    const { held } = pictures(drawn, () => true);
+    const box = drawn.querySelector<HTMLElement>(".media.is-video");
+    await vi.waitFor(() => expect(box?.dataset.state).toBe("away"));
+    expect(calls.served).toEqual([]);
+    drawn.querySelector<HTMLButtonElement>(".media-bring")?.click();
+    expect(box?.dataset.state).toBe("bringing");
+    await vi.waitFor(() =>
+      expect(box?.querySelector("video")?.getAttribute("src")).toContain("walk-0006bf09.mp4"),
+    );
+    expect(box?.dataset.state).toBeUndefined();
+    expect(held).toHaveLength(0);
+  });
+
+  it("says why a film or a picture did not come, and tries again when asked", async () => {
+    calls.refused = true;
+    const drawn = page(
+      '<p><img src="attachments/walk-0006bf09.mp4" alt="A walk"></p><p><img src="attachments/a.png" alt="A"></p>',
+    );
+    pictures(drawn, () => true);
+    const box = drawn.querySelector<HTMLElement>(".media.is-video");
+    await vi.waitFor(() => expect(box?.dataset.state).toBe("failed"));
+    await vi.waitFor(() => expect(drawn.querySelector(".picture-away")).not.toBeNull());
+    expect(drawn.querySelector<HTMLImageElement>('img[alt="A"]')?.hidden).toBe(true);
+    expect(box?.querySelector(".media-state")?.textContent).toContain("walk-0006bf09.mp4");
+    calls.refused = false;
+    drawn.querySelector<HTMLButtonElement>(".picture-away .media-again")?.click();
+    await vi.waitFor(() =>
+      expect(drawn.querySelector('img[alt="A"]')?.getAttribute("src")).toContain("a.png"),
+    );
+    expect(drawn.querySelector(".picture-away")).toBeNull();
+    expect(drawn.querySelector<HTMLImageElement>('img[alt="A"]')?.hidden).toBe(false);
+    box?.querySelector<HTMLButtonElement>(".media-again")?.click();
+    await vi.waitFor(() => expect(box?.dataset.state).toBeUndefined());
+  });
+
+  it("draws an attached page live, unless it asks to be a file or comes from outside", () => {
+    const drawn = page(
+      '<p><img src="walks-0006bf09.html" alt="Walks"></p><p><img src="walks-0006bf09.html" alt="Walks" data-as="file"></p>',
+    );
+    const { lent } = pictures(drawn, () => true, { stranger: false, apart: true, more: true });
+    expect(lent).toHaveLength(1);
+    expect(drawn.querySelector("figure.widget .widget-name")?.textContent).toBe("Walks");
+    expect(drawn.querySelector('figure.widget button[data-asked="apart"]')).not.toBeNull();
+    expect(drawn.querySelector("a.doc-card.is-file")?.getAttribute("href")).toBe(
+      "walks-0006bf09.html",
+    );
+
+    const outside = page('<p><img src="walks-0006bf09.html" alt="Walks"></p>');
+    expect(pictures(outside, () => true).lent).toHaveLength(0);
+    expect(outside.querySelector("figure.widget")).toBeNull();
   });
 
   it("does not dress a picture once the page is gone", async () => {
@@ -199,7 +285,8 @@ describe("dressing a drawn page", () => {
       body: "",
       onDoc: () => {},
       onBlock: () => {},
-      onApart: (source: string) => apart.push(source),
+      onApart: (lent: { source: string } | { reference: string }) =>
+        apart.push("source" in lent ? lent.source : lent.reference),
     };
     const own = page(code);
     widgets(own, false, reach);

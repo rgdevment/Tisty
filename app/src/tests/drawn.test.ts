@@ -66,6 +66,10 @@ describe("a click on a drawn page", () => {
       '<figure class="widget" data-at="4-40"><div class="widget-bar"><span class="widget-name">Rina</span><button data-asked="code">c</button><button data-asked="apart">a</button></div><div><iframe></iframe></div></figure>';
     expect(clicked(widget, "button[data-asked=code]")).toEqual({ kind: "block", at: [4, 40] });
     expect(clicked(widget, "button[data-asked=apart]")).toEqual({ kind: "apart", at: [4, 40] });
+    const bare = widget.replace(' data-at="4-40"', "");
+    const two = page(`<ul data-at="4-90"><li>${bare}</li><li>${bare}</li></ul>`);
+    const second = two.querySelectorAll("button[data-asked=apart]")[1];
+    expect(went(second, false)).toEqual({ kind: "apart", at: [4, 90], nth: 1 });
     expect(clicked(widget, ".widget-name")).toBeNull();
     expect(clicked(widget, "iframe")).toBeNull();
     expect(

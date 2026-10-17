@@ -1,15 +1,22 @@
+import { save as intoFile } from "@tauri-apps/plugin-dialog";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
-import { viewWidget } from "../core";
+import { copyAttached, viewWidget } from "../core";
 import { CATCHES, takesFiles } from "../dropped";
+import { t } from "../locales";
+import { DOC } from "../markdown";
 import type { Moved } from "../paging";
+import { named } from "../previews";
 import { caretAt, type Editing, edited } from "./blocking";
 import { movedCard, putCard } from "./carded";
 import type { Carded } from "./carding";
+import Menu, { type Choice } from "./Menu";
 import Page from "./Page";
-import { charsAt, type Head, spanned } from "./paging";
+import { charsAt, type Head, spanned, type Went } from "./paging";
 import { closed, laid, parting } from "./parting";
+import { filedAs, type Reshape, reshaped } from "./recarding";
 import { ASIDE_MARGIN, settles } from "./seeking";
 import { type Asking, putBlock } from "./slashing";
+import { widened } from "./tabling";
 
 type Props = {
   readonly file?: string;
@@ -22,6 +29,8 @@ type Props = {
   readonly below?: ReactNode;
   readonly onSeen?: (at: number) => void;
   readonly onWrite: (text: string) => void;
+  readonly onOwn?: (file: string) => void;
+  readonly onFail?: (problem: unknown) => void;
   readonly onDoc?: (file: string) => void;
   readonly onTag?: (tag: string) => void;
   readonly onOpen?: (reference: string) => void;
@@ -49,6 +58,8 @@ export default function Sheet(props: Readonly<Props>) {
   const shown = useRef<Window | null>(null);
   const putting = useRef(-1);
   const [ready, setReady] = useState(false);
+  const [more, setMore] = useState<Extract<Went, { kind: "more" }> | null>(null);
+  const askedOn = useRef("");
   const [stuck, setStuck] = useState(false);
 
   const written = useCallback((text: string) => {
@@ -228,6 +239,77 @@ export default function Sheet(props: Readonly<Props>) {
     setDrawn(next);
   };
 
+  const widen = (at: [number, number], column: number, dashes: number) => {
+    if (open.current) return left();
+    if (reading || showing.current !== latest.current) return;
+    const next = widened(latest.current, at, column, dashes);
+    if (next === null) return;
+    written(next);
+    setDrawn(next);
+  };
+
+  const asked = (one: Extract<Went, { kind: "more" }>) => {
+    if (open.current) return left();
+    if (reading || showing.current !== latest.current) return;
+    askedOn.current = latest.current;
+    const frame = shown.current?.frameElement?.getBoundingClientRect();
+    setMore({ ...one, x: (frame?.left ?? 0) + one.x, y: (frame?.top ?? 0) + one.y });
+  };
+
+  const reshape = (one: Extract<Went, { kind: "more" }>, how: Reshape) => {
+    // The card's place was read from the page as it stood when the menu opened.
+    if (askedOn.current !== latest.current) return;
+    const next = reshaped(latest.current, one.at, one.target, how);
+    if (next === null) return;
+    written(next);
+    setDrawn(next);
+  };
+
+  const keepCopy = (reference: string) =>
+    intoFile({ defaultPath: named(reference) })
+      .then((where) => (where ? copyAttached(reference, where) : undefined))
+      .catch((problem) => said.current.onFail?.(problem));
+
+  const offered = (one: Extract<Went, { kind: "more" }>): Choice[] => {
+    const file = one.target.startsWith(DOC) ? one.target.slice(DOC.length) : null;
+    const plain = [
+      { key: "link", label: t("cardAsLink"), icon: "↩", onPick: () => reshape(one, "link") },
+      {
+        key: "remove",
+        label: t("cardRemove"),
+        icon: "✕",
+        danger: true,
+        apart: true,
+        onPick: () => reshape(one, "remove"),
+      },
+    ];
+    if (file) {
+      const kind = said.current.card?.(file).kind;
+      return [
+        {
+          key: "own",
+          label: t("cardOwn"),
+          icon: "⇤",
+          off: kind !== "page" || !said.current.onOwn,
+          onPick: () => said.current.onOwn?.(file),
+        },
+        ...plain,
+      ];
+    }
+    const filed = filedAs(latest.current, one.at, one.target);
+    return [
+      { key: "keep", label: t("cardKeepCopy"), icon: "↧", onPick: () => void keepCopy(one.target) },
+      {
+        key: "live",
+        label: filed ? t("cardAsWidget") : t("cardAsFile"),
+        icon: "▣",
+        off: !/\.html?$/i.test(one.target),
+        onPick: () => reshape(one, filed ? "live" : "file"),
+      },
+      ...plain,
+    ];
+  };
+
   useEffect(() => {
     said.current.onInsert?.(
       reading
@@ -330,14 +412,16 @@ export default function Sheet(props: Readonly<Props>) {
           onTag={(tag) => said.current.onTag?.(tag)}
           onBlock={reading ? undefined : block}
           onTick={reading ? undefined : ticked}
+          onWiden={reading ? undefined : widen}
+          onMore={reading ? undefined : asked}
           onAway={left}
           card={props.card}
           blurb={props.blurb}
           again={props.again}
-          onApart={(source) => {
+          onApart={(lent) => {
             const from = said.current.file;
             viewWidget(
-              { source },
+              lent,
               from ? { id: "", file: from, title: said.current.label, place: "" } : undefined,
             ).catch(() => {});
           }}
@@ -350,6 +434,14 @@ export default function Sheet(props: Readonly<Props>) {
       </div>
       {below}
       {!below && <div aria-hidden="true" className="h-[40vh] shrink-0" />}
+      {more && (
+        <Menu
+          at={{ x: more.x, y: more.y }}
+          label={t("cardMore")}
+          choices={offered(more)}
+          onClose={() => setMore(null)}
+        />
+      )}
     </div>
   );
 }

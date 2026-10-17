@@ -248,6 +248,33 @@ pub async fn served(
     finding::fetched(&session, reference, pointed_at).await
 }
 
+pub(crate) fn copied_out(reference: String, at: finding::Where, to: &str) -> Answer<()> {
+    let found = finding::handed_over(&reference, &at)?;
+    std::fs::copy(&found, to).map_err(|_| refused(&found, &reference))?;
+    tisty_core::lately::used(&at.reached, &reference);
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn copied(
+    session: tauri::State<'_, Mutex<Session>>,
+    reference: String,
+    to: String,
+) -> Answer<()> {
+    finding::fetched(&session, reference, move |reference, at| {
+        copied_out(reference, at, &to)
+    })
+    .await
+}
+
+// Only what this computer already holds counts: asking the cloud is what a player waits to be told to do.
+#[tauri::command(async)]
+pub fn kept_here(session: tauri::State<'_, Mutex<Session>>, reference: String) -> bool {
+    let looking = finding::where_to(&session, &reference);
+    finding::where_it_lies(&reference, &looking.data, looking.shared.as_deref())
+        .is_some_and(|at| !tisty_core::holes::a_hole(&at))
+}
+
 #[tauri::command(async)]
 pub fn weighs(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answer<u64> {
     let looking = finding::where_to(&session, &reference);
