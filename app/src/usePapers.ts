@@ -73,6 +73,7 @@ export function usePapers({
         if (!made) return;
         papersChanged();
         setChosen({ named: "docs", doc: made.id });
+        if (made.missed > 0) setError(fill("importMissed", String(made.missed)));
       })
       .catch((e) => setError(saidPlainly(e)));
 

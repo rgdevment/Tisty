@@ -1179,7 +1179,9 @@ export const docsUnpack = (from: string, number?: string): Promise<Unpacked> =>
   invoke("docs_unpack", { from, number });
 export const docsTakeOut = (which: string[], into: string): Promise<Packed> =>
   invoke("docs_take_out", { which, into });
-export const docImport = (from: string, folder?: string): Promise<Doc> =>
+export type Arrived = Doc & { files: number; missed: number };
+
+export const docImport = (from: string, folder?: string): Promise<Arrived> =>
   invoke("doc_import", { from, folder });
 
 export const docNew = (folder?: string, pageOf?: string): Promise<Doc> =>

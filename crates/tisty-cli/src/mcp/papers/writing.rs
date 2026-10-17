@@ -1,14 +1,15 @@
 use serde_json::{Value, json};
 
+use tisty_core::beside::{Carried, written_as_code};
 use tisty_core::{Op, Paths, State, Store};
 use ulid::Ulid;
 
 use super::super::asked::text;
 use super::super::jsonrpc::told;
 use super::super::{
-    Carried, Refused, UNSETTLED, WHOLE_UP_TO, by_how_much, folder_named, grew, hitch, left_loose,
-    loose_words, named_doc, named_twice, opened, retargeted, retold, room_for_a_notice, trail,
-    twice_words, unescaped, up_named, with_echo, wrapped, written_as_code, wrote,
+    Refused, UNSETTLED, WHOLE_UP_TO, by_how_much, folder_named, grew, hitch, left_loose,
+    loose_words, named_doc, named_twice, opened, retold, room_for_a_notice, trail, twice_words,
+    up_named, with_echo, wrapped, wrote,
 };
 
 pub(in crate::mcp) fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
@@ -731,29 +732,10 @@ pub(super) fn beside_the_file(
     from: &std::path::Path,
     body: &str,
 ) -> (String, Carried) {
-    let mut done = Carried::default();
-    let here = from
-        .parent()
-        .unwrap_or(std::path::Path::new("."))
-        .to_path_buf();
-    let here = here.canonicalize().unwrap_or(here);
-    let mut kept: std::collections::BTreeMap<String, Option<String>> = Default::default();
-
-    let out = retargeted(body, &mut |label: &str, target: &str, title: &str| {
-        if let Some(said) = kept.get(target) {
-            return said.clone().map(|at| (at, title.to_string()));
-        }
-        let landed = brought_in(paths, &here, target, &mut done);
-        kept.insert(target.to_string(), landed.clone());
-        match landed {
-            Some(at) => Some((at, title.to_string())),
-            None => {
-                let _ = label;
-                None
-            }
-        }
-    });
-    (out, done)
+    tisty_core::beside::brought(paths, from, body, &mut |at| {
+        tisty_core::agent::may_reach(at, paths)
+            .map_err(|_| "it is not somewhere an assistant may take files from".to_string())
+    })
 }
 
 pub(super) fn said_of(written: &Value) -> String {
@@ -797,97 +779,6 @@ fn holds_together(body: &str, head: &str, tail: &str) -> bool {
     head.len() + tail.len() <= body.len()
 }
 
-fn brought_in(
-    paths: &Paths,
-    here: &std::path::Path,
-    target: &str,
-    done: &mut Carried,
-) -> Option<String> {
-    if target.starts_with('#')
-        || target.starts_with("http://")
-        || target.starts_with("https://")
-        || target.starts_with("mailto:")
-        || target.starts_with(tisty_core::refs::DOC)
-    {
-        return Some(target.to_string());
-    }
-    if let Some(kept) = target.strip_prefix("attachments/") {
-        if stays_beside(&unescaped(kept)) {
-            return Some(target.to_string());
-        }
-        done.missed.push(format!(
-            "{target} — it reads as a file Tisty already keeps, but it climbs out of the shelf \
-             those sit on, and nothing there can be named that way"
-        ));
-        return None;
-    }
-    if target.starts_with('/')
-        || target.starts_with('\\')
-        || target.contains("://")
-        || target.chars().nth(1) == Some(':')
-    {
-        done.missed.push(format!(
-            "{target} — it names a place on this machine rather than something beside the document, and a document that leans on a path outside Tisty breaks the day it moves"
-        ));
-        return None;
-    }
-    let plain = unescaped(target);
-    let mut cannot = |why: String| {
-        done.missed.push(format!("{target} — {why}"));
-        None::<String>
-    };
-    if !stays_beside(&plain) {
-        return cannot(OUTSIDE.into());
-    }
-    let at = here.join(&plain);
-    let there = at.exists();
-
-    let Ok(at) = tisty_core::agent::may_reach(&at, paths) else {
-        return cannot(match there {
-            true => "it is not somewhere an assistant may take files from".into(),
-            false => "no file is there".into(),
-        });
-    };
-    if !at.starts_with(here) {
-        return cannot(OUTSIDE.into());
-    }
-    if tisty_core::agent::fit_to_keep(&at).is_err() {
-        return cannot(
-            "its bytes are not the kind of file its name says it is, so what came out of Tisty later would not open"
-                .into(),
-        );
-    }
-    let heavy = std::fs::metadata(&at).map(|one| one.len()).unwrap_or(0);
-    if heavy > tisty_core::attach::COPIED_IN_DOC {
-        return cannot(format!(
-            "it is {heavy} bytes, past the {} a document holds; make it smaller and import it again",
-            tisty_core::attach::COPIED_IN_DOC
-        ));
-    }
-    if done.kept >= tisty_core::attach::KEPT_IN_A_DOC {
-        return cannot(format!(
-            "a document holds {} files at most, and this one is already full",
-            tisty_core::attach::KEPT_IN_A_DOC
-        ));
-    }
-    match tisty_core::attach::keep(&at, paths.data(), tisty_core::attach::COPIED_IN_DOC) {
-        Err(why) => cannot(why.to_string()),
-        Ok(one) => {
-            done.kept += 1;
-            done.told.push(one.told());
-            if plain.to_lowercase().ends_with(".md") || plain.to_lowercase().ends_with(".markdown")
-            {
-                done.papers.push(plain);
-            }
-            Some(
-                tisty_core::attach::leaf_of(&one.at)
-                    .unwrap_or(&one.at)
-                    .to_string(),
-            )
-        }
-    }
-}
-
 /// The outline as a person would read it aloud, not as JSON.
 fn said_outline(body: &str) -> String {
     tisty_core::docs::outlined(body)
@@ -904,27 +795,6 @@ fn said_outline(body: &str) -> String {
         })
         .collect::<Vec<_>>()
         .join("\n")
-}
-
-const OUTSIDE: &str = "it sits outside the folder the document came from, and an import \
-takes only what is kept beside it. Put a copy in that folder and import again, or bring the file \
-in on its own afterwards with `attach`";
-fn stays_beside(plain: &str) -> bool {
-    let mut depth = 0i32;
-    for part in std::path::Path::new(plain).components() {
-        match part {
-            std::path::Component::CurDir => {}
-            std::path::Component::Normal(_) => depth += 1,
-            std::path::Component::ParentDir => {
-                depth -= 1;
-                if depth < 0 {
-                    return false;
-                }
-            }
-            _ => return false,
-        }
-    }
-    true
 }
 
 pub(super) fn not_spoken(eats: &str) -> String {

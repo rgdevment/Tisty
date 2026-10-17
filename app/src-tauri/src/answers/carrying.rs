@@ -112,13 +112,38 @@ pub fn doc_import(
     session: tauri::State<'_, Mutex<Session>>,
     from: String,
     folder: Option<String>,
-) -> Answer<tisty_core::docs::Doc> {
+) -> Answer<Arrived> {
     let folder = folder
         .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
         .transpose()?;
-    let body = read_outside(std::path::Path::new(&from))?;
+    let from = std::path::Path::new(&from);
+    let body = read_outside(from)?;
     let body = tisty_core::arriving::tidied(&body).body;
-    imported(&mut held(&session), &body, folder).map(|(made, _)| made)
+    let mut session = held(&session);
+    let (body, brought) =
+        tisty_core::beside::brought(&session.paths.clone(), from, &body, &mut |at| {
+            at.canonicalize()
+                .map_err(|_| "no file is there".to_string())
+        });
+    if !brought.told.is_empty() {
+        session
+            .commit_all(brought.told)
+            .map_err(|e| blamed(channel::WINDOW, "a document's files could not be kept", e))?;
+    }
+    let (doc, _) = imported(&mut session, &body, folder)?;
+    Ok(Arrived {
+        doc,
+        files: brought.kept,
+        missed: brought.missed.len(),
+    })
+}
+
+#[derive(serde::Serialize)]
+pub struct Arrived {
+    #[serde(flatten)]
+    doc: tisty_core::docs::Doc,
+    files: usize,
+    missed: usize,
 }
 
 pub(crate) fn read_outside(from: &std::path::Path) -> Answer<String> {

@@ -1,6 +1,7 @@
 use super::door::{Door, let_in};
 use super::unpathing::{absolute, unpathed};
 use super::*;
+use tisty_core::beside::{retargeted, unescaped};
 
 fn four_ids() -> Vec<String> {
     (1..=4).map(|n| format!("wwwwwwww-000{n}")).collect()
