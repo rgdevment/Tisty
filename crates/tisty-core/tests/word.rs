@@ -65,7 +65,56 @@ fn a_word_document_comes_in_as_the_tisty_language() {
         assert!(said.contains(piece), "{piece:?} missing from {said}");
     }
     assert_eq!(word.pictures.len(), 1);
-    assert_eq!(word.pictures[0].0, "media/image1.png");
+    assert_eq!(word.pictures[0].0, "image1.png");
+}
+
+#[test]
+fn typewritten_lines_come_in_as_code_and_the_headings_colour_as_no_pen() {
+    let mono = r#"<w:rPr><w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/><w:color w:val="1F4E79"/></w:rPr>"#;
+    let body = format!(
+        r#"<w:document {W}><w:body>
+<w:p><w:pPr><w:pStyle w:val="H1"/></w:pPr><w:r><w:rPr><w:b/><w:color w:val="1F4E79"/></w:rPr><w:t>Contexto</w:t></w:r></w:p>
+<w:p><w:r><w:rPr><w:b/><w:color w:val="1F4E79"/></w:rPr><w:t>Versión</w:t></w:r></w:p>
+<w:p><w:r>{mono}<w:t>{{</w:t></w:r></w:p>
+<w:p><w:r>{mono}<w:t xml:space="preserve">  "id": "1",</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve"></w:t></w:r></w:p>
+<w:p><w:r>{mono}<w:t>}}</w:t></w:r></w:p>
+<w:p><w:r><w:t xml:space="preserve"></w:t></w:r></w:p>
+<w:sdt><w:sdtContent><w:p><w:r><w:t>Después</w:t></w:r></w:p></w:sdtContent></w:sdt>
+<w:p><w:r><w:drawing><a:blip r:embed="rId1"/></w:drawing></w:r><w:r><w:drawing><a:blip r:embed="rId2"/></w:drawing></w:r></w:p>
+</w:body></w:document>"#
+    );
+    let styles = format!(
+        r#"<w:styles {W}><w:style w:styleId="H1"><w:name w:val="heading 1"/></w:style></w:styles>"#
+    );
+    let rels = r#"<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Target="../media/evil.png"/><Relationship Id="rId2" Target="/word/media/ok.png"/></Relationships>"#;
+    let bytes = docx(&[
+        ("word/document.xml", body.as_bytes()),
+        ("word/styles.xml", styles.as_bytes()),
+        ("word/_rels/document.xml.rels", rels.as_bytes()),
+        ("word/media/ok.png", b"\x89PNG\r\n\x1a\n"),
+    ]);
+
+    let word = tisty_core::arriving::from_word(&bytes).unwrap();
+    let said = tisty_core::arriving::tidied(&tisty_core::arriving::from_html(&word.html)).body;
+
+    for piece in [
+        "# Contexto\n",
+        "**Versión**",
+        "```\n{\n  \"id\": \"1\",\n\n}\n```",
+        "Después",
+        "![](media/ok.png)",
+    ] {
+        assert!(said.contains(piece), "{piece:?} missing from {said}");
+    }
+    assert!(!said.contains("=="), "{said}");
+    assert!(!said.contains("evil"), "{said}");
+    let names: Vec<&str> = word
+        .pictures
+        .iter()
+        .map(|(name, _)| name.as_str())
+        .collect();
+    assert_eq!(names, ["ok.png"]);
 }
 
 #[test]

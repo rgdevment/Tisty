@@ -9,7 +9,7 @@ mod word;
 
 pub use html::from_html;
 pub use plain::from_plain;
-pub use word::{Word, from_word};
+pub use word::{WORD_AT_MOST, Word, from_word};
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Tidied {

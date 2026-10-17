@@ -154,7 +154,7 @@ pub(crate) fn arrived(
     let (raw, room) = read_any(from)?;
     let near = room
         .as_ref()
-        .map_or_else(|| from.to_path_buf(), |one| one.join("word.html"));
+        .map_or_else(|| from.to_path_buf(), |one| one.0.join("word.html"));
     let body = tisty_core::arriving::tidied(&raw).body;
     let own: Vec<std::path::PathBuf> = [paths.data(), paths.config(), paths.cache()]
         .iter()
@@ -179,9 +179,7 @@ pub(crate) fn arrived(
             notes: false,
         },
     );
-    if let Some(room) = room {
-        let _ = std::fs::remove_dir_all(room);
-    }
+    drop(room);
     let mut session = held(session);
     let (doc, id) = imported(&mut session, &body, folder)?;
     if !brought.told.is_empty() {
@@ -196,11 +194,16 @@ pub(crate) fn arrived(
     Ok((doc, id, left))
 }
 
-// Past this a Word file is a book of pictures rather than a document.
-const WORD_AT_MOST: u64 = 32 * 1024 * 1024;
+struct Room(std::path::PathBuf);
+
+impl Drop for Room {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
 
 // A Word file's pictures live inside it, so they are laid beside a stand-in page and come in like any other.
-fn read_any(from: &std::path::Path) -> Answer<(String, Option<std::path::PathBuf>)> {
+fn read_any(from: &std::path::Path) -> Answer<(String, Option<Room>)> {
     let kind = from
         .extension()
         .map(|one| one.to_string_lossy().to_ascii_lowercase())
@@ -210,18 +213,20 @@ fn read_any(from: &std::path::Path) -> Answer<(String, Option<std::path::PathBuf
         "docx" => {
             let cannot = || Refusal::about("cannotRead", from.display().to_string());
             let weighs = std::fs::metadata(from).map_err(|_| cannot())?.len();
-            if weighs > WORD_AT_MOST {
-                return Err(Refusal::about("documentTooBig", weighed(WORD_AT_MOST)));
+            let most = tisty_core::arriving::WORD_AT_MOST;
+            if weighs > most {
+                return Err(Refusal::about("documentTooBig", weighed(most)));
             }
             let bytes = std::fs::read(from).map_err(|_| cannot())?;
             let word = tisty_core::arriving::from_word(&bytes).ok_or_else(cannot)?;
-            let room = std::env::temp_dir().join(format!("tisty-word-{}", ulid::Ulid::generate()));
+            let room =
+                Room(std::env::temp_dir().join(format!("tisty-word-{}", ulid::Ulid::generate())));
+            let media = room.0.join("media");
+            if !word.pictures.is_empty() {
+                std::fs::create_dir_all(&media).map_err(|_| cannot())?;
+            }
             for (name, bytes) in &word.pictures {
-                let at = room.join(name);
-                if let Some(up) = at.parent() {
-                    let _ = std::fs::create_dir_all(up);
-                }
-                let _ = std::fs::write(at, bytes);
+                std::fs::write(media.join(name), bytes).map_err(|_| cannot())?;
             }
             Ok((tisty_core::arriving::from_html(&word.html), Some(room)))
         }
