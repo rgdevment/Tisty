@@ -1349,8 +1349,24 @@ figure.example .drawn > hr::after {
   max-width: 100%;
   vertical-align: top;
 }
+.media.is-video {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--tisty-hair);
+  border-radius: 12px;
+  background: var(--tisty-rail);
+  box-sizing: border-box;
+}
+.media.is-video :is(video, .media-state) {
+  grid-column: 1 / -1;
+}
 .media.is-video video {
   display: block;
+  justify-self: center;
   max-width: 100%;
   max-height: 28rem;
   border-radius: 10px;
@@ -1411,14 +1427,6 @@ figure.widget:hover .card-more,
 }
 .media[data-state] :is(video, audio) {
   display: none;
-}
-.media.is-video[data-state] {
-  min-width: min(100%, 320px);
-  padding: 14px 16px;
-  border: 1px solid var(--tisty-hair);
-  border-radius: 12px;
-  background: var(--tisty-rail);
-  box-sizing: border-box;
 }
 .media-state:empty {
   display: none;
