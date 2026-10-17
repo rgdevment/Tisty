@@ -147,6 +147,7 @@ address the same way: <rina@example.com>.
   [vet]: https://example.com/vet "Open on Saturdays"
   ```
 
+- The page shows each definition where it is written, as a small line with its label and address; a click on it edits it.
 - A link with no address yet, `[words]()`, reads as its words.
 - Only web addresses, `mailto:` and Tisty's own `tisty:` are followed. Any other scheme reads as plain words.
 - An address with spaces goes between angle brackets: `[clip](<C:/Users/me/a clip.mkv>)`.
