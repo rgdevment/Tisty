@@ -12,6 +12,8 @@ Y si trabajas con un asistente, tiene una puerta por MCP para leer tus documento
 
 Esta guía te tomará un par de minutos y podrás conocer un poco más de qué puedes hacer en Tisty. Puedes volver a ella cuando quieras desde Configuración.
 
+Cuando necesites ayuda en el camino, pulsa `F1` o el `?` al pie de la barra lateral: abre la [guía de Markdown de Tisty](https://markdown.tisty.app/es/) aquí mismo, en lo que estás escribiendo, y funciona sin conexión. Las tareas, los asistentes y todo lo demás se explican en [www.tisty.app/es/ayuda](https://www.tisty.app/es/ayuda/).
+
 ---
 
 ## Las tareas
@@ -102,7 +104,7 @@ Escribe `/` en cualquier punto y sale el menú de lo que cabe dentro. Además:
 
 - Arrastra un archivo dentro para adjuntarlo — la foto del veterinario, el PDF del seguro.
 - Inserta **otro documento**, que entra como una tarjeta que se puede abrir.
-- Imprime, o guarda en PDF, desde el propio panel.
+- Imprime, o guarda en PDF, desde el propio panel; el menú del documento también lo exporta como página web (**Exportar como HTML…**) o como Word (**Exportar como Word…**), y **Copiar como Markdown** le entrega Markdown estándar a cualquier otro editor.
 
 **Las carpetas nacen plegadas** y se abren con la flecha. Cuando un asunto ya pasó, archiva la carpeta entera con el botón derecho: baja al estante de **Archivados**, al final del árbol, con su icono y todo lo que tiene dentro tal cual. Ahí se lee y se exporta, pero no se escribe ni entra nada nuevo. Desarchívala y vuelve como estaba.
 
@@ -161,7 +163,7 @@ Y dentro de un aviso cabe casi todo, no solo texto:
 
 #### Destacar
 
-Cuatro colores de rotulador: ==amarillo==, ==verde=={green}, ==azul=={blue} y ==rosa=={pink}. Eliges el color en la barra que sale al seleccionar texto.
+Cuatro colores de rotulador: ==amarillo==, ==verde=={green}, ==azul=={blue} y ==rosa=={pink}. Eliges el color en la barra que sale mientras escribes un bloque.
 
 #### Iconos
 
@@ -177,7 +179,7 @@ Una lista de casillas que se marcan. No son tareas de Tisty ni sus pasos: no se 
 
 #### Tablas
 
-Una tabla se puede trabajar: añadir filas y columnas, alinear a izquierda, centro o derecha, y estirar el ancho de una columna arrastrando su borde.
+Una tabla se puede trabajar. Haz clic en ella y `Tab` recorre sus celdas (pasada la última empieza una fila nueva), y el menú **Tabla** de la barra agrega y quita filas y columnas y alinea una columna a la izquierda, al centro o a la derecha. En la página, arrastra el borde de un encabezado para ensanchar su columna.
 
 | Vacuna | Puesta | Toca otra vez |
 | :--- | :---: | ---: |
@@ -242,7 +244,11 @@ Un bloque cuyo lenguaje es `widget` se dibuja como una pequeña página: HTML, e
 </div>
 ```
 
-Si el widget es grande, adjúntalo: un archivo `.html` adjunto a un documento se dibuja igual, y desde su barra puedes volver a verlo como adjunto.
+Si el widget crece mucho, adjúntalo: un archivo `.html` adjunto a un documento se dibuja igual.
+
+#### Archivos, sonido y video
+
+Un archivo adjunto se dibuja como lo que es: una imagen tal cual, un sonido o un video con su reproductor, una página `.html` en vivo, y cualquier otro como una tarjeta con su tipo y su tamaño. Cada tarjeta tiene un **⋯**: guardar una copia, mostrar la página como archivo o de nuevo en vivo, convertir la tarjeta en un enlace simple o quitarla de la página. Un video que todavía está en tu nube se descarga solo cuando le das play, y si no puede llegar te dice por qué.
 
 #### Código, con nombre y con color
 
@@ -291,11 +297,11 @@ Esta guía tiene una. Aquí debajo está nombrada, y por eso aquí es donde va:
 
 ![La Rina](tisty:page)
 
-### 10. Cuando Tisty solo puede leerlo
+### 10. Lo que viene de afuera
 
-Tisty escribe Markdown de vuelta, y unas pocas formas no sobreviven ese viaje: la cabecera del principio, las notas al pie, los enlaces escritos por referencia, el HTML y sus comentarios, y algún caso raro de las vallas de código y de las listas.
+Tisty guarda lo que escribes exactamente como lo escribiste: la cabecera de propiedades, las notas al pie, los enlaces por referencia, los comentarios. Todo queda en el archivo, palabra por palabra.
 
-Antes que abrirlo y destruirte eso en la primera tecla, Tisty lo dice y lo abre para leer. La barra de abajo ofrece convertirlo —lo reescribe a lo que sí sabe conservar y guarda una copia de cómo estaba— y si la conversión no puede con todo, **Editarlo igualmente** te lo abre con el aviso a la vista. Nunca te quedas encerrado.
+Lo que llega de afuera entra convertido en Markdown de Tisty, y el archivo de donde vino no se toca. **Importar un documento**, en el árbol, toma Markdown, texto, una página web o un Word; al pegar se conservan los títulos, listas, tablas, enlaces y colores de lo que copiaste de una página, un correo o un Word; y una nota de Obsidian entra con sus avisos y comentarios convertidos, y sus `[[enlaces]]` apuntando a los documentos de aquí que llevan esos títulos. De salida, el mismo documento sale como Markdown estándar, página web, Word o PDF.
 
 ---
 
@@ -313,7 +319,7 @@ Para reescribir un documento entero se le entrega una huella del texto exacto qu
 
 ### 12. Tus copias
 
-Tisty trabaja siempre en este equipo. Si quieres alcanzarlo desde otro, dile dónde dejar las copias: te ofrece Google Drive, OneDrive, iCloud y Dropbox —los que encuentre instalados, con su carpeta ya resuelta— o cualquier otra que los dos equipos alcancen, un NAS o un disco externo.
+Tisty trabaja siempre en este equipo. Si quieres alcanzarlo desde otro, dile dónde dejar las copias: te ofrece Google Drive, OneDrive, iCloud y Dropbox —los que encuentre instalados, con su carpeta ya resuelta— o cualquier otra que los dos equipos alcancen, un NAS o un disco externo. Tu Google Drive también se puede conectar directamente, desde Configuración, sin tener instalado ningún programa de Google.
 
 Quien sube y baja esa carpeta es el programa de tu proveedor, no Tisty. Si no está en marcha, las tareas esperan ahí hasta que lo esté.
 
@@ -349,11 +355,16 @@ Ahí mismo, en **El almacén**, está **Revisión**: cuenta lo que sobra, lo que
 | --- | --- |
 | `Ctrl` + `Shift` + `Space` | Capturar sin abrir la ventana |
 | `Ctrl`/`⌘` + `Enter` | Terminar la tarea señalada |
+| `F1` | Abrir la guía de Markdown de Tisty, en lo que estás escribiendo |
 | `/` | Insertar dentro de un documento |
+| `Ctrl`/`⌘` + `Shift` + `M` | Mostrar todas las marcas de Markdown del bloque |
+| `Tab` · `Shift` + `Tab` | Recorrer las celdas de una tabla |
 | `Ctrl`/`⌘` + `X` · `V` | Mover un documento entre carpetas |
 | `Esc` | Cerrar lo que esté abierto |
 
 ### 15. Si te sirvió
+
+Todo lo que hace Tisty se explica en [www.tisty.app/es/ayuda](https://www.tisty.app/es/ayuda/), y cada forma que cabe en un documento, dibujada como la dibuja Tisty, en [markdown.tisty.app](https://markdown.tisty.app/es/).
 
 Tisty es de código abierto y se lee entero aquí; ahí van los fallos que encuentres y las ideas que se te ocurran.
 
