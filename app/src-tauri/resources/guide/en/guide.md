@@ -12,6 +12,8 @@ And if you work with an assistant, it has a door through MCP to read your docume
 
 This guide takes a couple of minutes, and you will come out of it knowing a little more about what you can do in Tisty. You can come back to it from Settings whenever you like.
 
+When you need help along the way, press `F1` or the `?` at the foot of the sidebar: it opens the [Tisty Markdown guide](https://markdown.tisty.app) right here, on what you are writing, and it works offline. Tasks, assistants and everything else are explained at [www.tisty.app/docs](https://www.tisty.app/docs/).
+
 ---
 
 ## Tasks
@@ -102,7 +104,7 @@ Type `/` anywhere and the menu of what fits inside comes up. Besides that:
 
 - Drag a file in to attach it — the photo from the vet, the insurance PDF.
 - Insert **another document**, which comes in as a card you can open.
-- Print, or save as PDF, from the panel itself.
+- Print, or save as PDF, from the panel itself; the document's menu also exports it as a web page (**Export as HTML…**) or as Word (**Export as Word…**), and **Copy as Markdown** hands any other editor standard Markdown.
 
 **Folders start folded** and open on the arrow. When something is over, archive the whole folder with the right button: it drops to the **Archived** shelf at the foot of the tree, with its icon and everything inside it just as it was. There it reads and exports, but nothing writes into it and nothing new goes in. Bring it back and it returns as it was.
 
@@ -161,7 +163,7 @@ And nearly anything fits inside a callout, not only text:
 
 #### Highlighting
 
-Four pens: ==yellow==, ==green=={green}, ==blue=={blue} and ==pink=={pink}. You pick the colour in the bar that appears when you select text.
+Four pens: ==yellow==, ==green=={green}, ==blue=={blue} and ==pink=={pink}. You pick the colour in the bar that appears while you write a block.
 
 #### Icons
 
@@ -177,7 +179,7 @@ A list of boxes you tick. They are not Tisty tasks, nor a task's steps: they nev
 
 #### Tables
 
-A table can be worked on: add rows and columns, lean a column left, centre or right, and drag its edge to make it wider.
+A table can be worked on. Click it and `Tab` walks its cells — past the last one it starts a new row — and the bar's **Table** menu adds and removes rows and columns and leans a column left, centre or right. On the page, drag the edge of a heading to make its column wider.
 
 | Vaccine | Given | Due again |
 | :--- | :---: | ---: |
@@ -242,7 +244,11 @@ A block that says `widget` is drawn as a small page: HTML, styles and, if you li
 </div>
 ```
 
-If the widget grows large, attach it instead: an `.html` file attached to a document is drawn the same way, and its bar lets you show it as an attachment again.
+If the widget grows large, attach it instead: an `.html` file attached to a document is drawn the same way.
+
+#### Files, sound and film
+
+An attached file is drawn as what it is: a picture as itself, a sound or a film with its player, an `.html` page live, and anything else as a card with its kind and size. Every card has a **⋯**: save a copy, show the page as a file or live again, turn the card into a plain link, or take it off the page. A film still in your cloud comes down only when you press play, and says why if it cannot.
 
 #### Code, with a name and a colour
 
@@ -291,11 +297,11 @@ This guide has one. It is named right here, and so here is where it goes:
 
 ![Rina](tisty:page)
 
-### 10. When Tisty can only read it
+### 10. What comes from elsewhere
 
-Tisty writes Markdown back out, and a few shapes do not survive that trip: the front matter at the top, footnotes, links written by reference, HTML and its comments, and the odd case of a code fence or a list.
+Tisty keeps what you write exactly as you wrote it: front matter, footnotes, links by reference, comments — all of it stays in the file, word for word.
 
-Rather than open it and destroy those on your first keystroke, Tisty says so and opens it for reading. The bar at the foot offers to convert it — rewriting it into what Tisty can keep, and keeping a copy of how it was — and if the conversion cannot manage all of it, **Edit it anyway** opens it with the warning in view. You are never stuck.
+What arrives from elsewhere is turned into Tisty Markdown on the way in, and the file it came from is never touched. **Import a document** in the tree takes Markdown, text, a web page or a Word file; pasting keeps the headings, lists, tables, links and colours of what you copied from a page, an email or Word; and a note from Obsidian comes in with its callouts and comments turned, and its `[[links]]` pointing at the documents here that bear those titles. On the way out, the same document leaves as standard Markdown, a web page, Word or a PDF.
 
 ---
 
@@ -313,7 +319,7 @@ To rewrite a whole document it is handed a print of the exact text it read, and 
 
 ### 12. Your copies
 
-Tisty always works on this computer. To reach it from another one, tell it where to leave the copies: it offers Google Drive, OneDrive, iCloud and Dropbox — whichever it finds installed, folder already worked out — or any other folder both computers reach, a NAS or an external disk.
+Tisty always works on this computer. To reach it from another one, tell it where to leave the copies: it offers Google Drive, OneDrive, iCloud and Dropbox — whichever it finds installed, folder already worked out — or any other folder both computers reach, a NAS or an external disk. Your Google Drive can also be connected directly, from Settings, with no program of Google's installed.
 
 Whoever takes that folder up and down is your provider's program, not Tisty. If it is not running, the tasks wait there until it is.
 
@@ -349,11 +355,16 @@ Right there, under **The store**, is **Review**: it counts what is spare, what i
 | --- | --- |
 | `Ctrl` + `Shift` + `Space` | Capture without opening the window |
 | `Ctrl`/`⌘` + `Enter` | Complete the task you are on |
+| `F1` | Open the Tisty Markdown guide, on what you are writing |
 | `/` | Insert inside a document |
+| `Ctrl`/`⌘` + `Shift` + `M` | Show every Markdown mark in the block |
+| `Tab` · `Shift` + `Tab` | Walk the cells of a table |
 | `Ctrl`/`⌘` + `X` · `V` | Move a document between folders |
 | `Esc` | Close whatever is open |
 
 ### 15. If it was any use
+
+Everything Tisty does is explained at [www.tisty.app/docs](https://www.tisty.app/docs/), and every form a document can hold, drawn the way Tisty draws it, at [markdown.tisty.app](https://markdown.tisty.app).
 
 Tisty is open source and can be read in full here; that is where the bugs you find and the ideas you have should go.
 
