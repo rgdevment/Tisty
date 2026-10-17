@@ -237,6 +237,16 @@ const en = {
   inSandbox:
     "This is the «{name}» sandbox. Nothing here is your real store, and it never merges with it.",
   aboutScreen: "About",
+  help: "Help",
+  helpTopics: "Topics",
+  helpStart: "Start",
+  helpWritten: "You write",
+  helpDrawn: "Tisty shows",
+  helpBefore: "Previous",
+  helpAfter: "Next",
+  helpMore: "More help on www.tisty.app",
+  helpMoreAt: "https://www.tisty.app/docs/",
+  helpGone: "The guide could not be read.",
   aboutBuild: "This build",
   insertLabel: "What to add",
   aboutWhat:
@@ -2212,6 +2222,16 @@ const es: Catalog = {
   inSandbox:
     "Esto es el sandbox «{name}». Nada de aquí es tu almacén real, y nunca se fusiona con él.",
   aboutScreen: "Acerca de",
+  help: "Ayuda",
+  helpTopics: "Temas",
+  helpStart: "Inicio",
+  helpWritten: "Escribes",
+  helpDrawn: "Tisty muestra",
+  helpBefore: "Anterior",
+  helpAfter: "Siguiente",
+  helpMore: "Más ayuda en www.tisty.app",
+  helpMoreAt: "https://www.tisty.app/es/ayuda/",
+  helpGone: "No se pudo leer la guía.",
   aboutBuild: "Esta versión",
   insertLabel: "Qué añadir",
   aboutWhat:

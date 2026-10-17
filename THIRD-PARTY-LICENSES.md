@@ -602,7 +602,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ## Text 10
 
-Carried by `ammonia` 4.2.3, `anstream` 1.0.0, `anstyle` 1.0.14, `anstyle-parse` 1.0.0, `anstyle-query` 1.1.5, `anstyle-wincon` 3.0.11, `clap_lex` 1.1.0, `colorchoice` 1.0.5, `crc32fast` 1.5.0, `ctor` 1.0.13, `dpi` 0.1.2, `fallible-iterator` 0.3.0, `fallible-streaming-iterator` 0.1.9, `foreign-types` 0.5.0, `foreign-types-shared` 0.3.1, `is_terminal_polyfill` 1.70.2, `json-patch` 4.2.0, `kstring` 2.0.5, `notify-rust` 4.18.0, `once_cell_polyfill` 1.70.2, `quick-error` 2.0.1, `serde_spanned` 1.1.1, `tao` 0.37.1, `toml` 1.1.6+spec-1.1.0, `toml_datetime` 1.1.1+spec-1.1.0, `toml_parser` 1.1.3+spec-1.1.0, `toml_writer` 1.1.2+spec-1.1.0, `winapi` 0.3.9.
+Carried by `ammonia` 4.2.4, `anstream` 1.0.0, `anstyle` 1.0.14, `anstyle-parse` 1.0.0, `anstyle-query` 1.1.5, `anstyle-wincon` 3.0.11, `clap_lex` 1.1.0, `colorchoice` 1.0.5, `crc32fast` 1.5.0, `ctor` 1.0.13, `dpi` 0.1.2, `fallible-iterator` 0.3.0, `fallible-streaming-iterator` 0.1.9, `foreign-types` 0.5.0, `foreign-types-shared` 0.3.1, `is_terminal_polyfill` 1.70.2, `json-patch` 4.2.0, `kstring` 2.0.5, `notify-rust` 4.18.0, `once_cell_polyfill` 1.70.2, `quick-error` 2.0.1, `serde_spanned` 1.1.1, `tao` 0.37.1, `toml` 1.1.6+spec-1.1.0, `toml_datetime` 1.1.1+spec-1.1.0, `toml_parser` 1.1.3+spec-1.1.0, `toml_writer` 1.1.2+spec-1.1.0, `winapi` 0.3.9.
 
 ```text
 Apache License
@@ -810,7 +810,7 @@ Apache License
 
 ## Text 11
 
-Carried by `ammonia` 4.2.3.
+Carried by `ammonia` 4.2.4.
 
 ```text
 Copyright (c) 2015-2022 The ammonia Developers

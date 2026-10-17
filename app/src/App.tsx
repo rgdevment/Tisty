@@ -4,6 +4,7 @@ import { hereChoices } from "./docMenus";
 import { t } from "./locales";
 import { saidPlainly } from "./refusal";
 import { WEEK } from "./ui/Ahead";
+import HelpKey from "./ui/HelpKey";
 import Layers from "./ui/Layers";
 import Margins from "./ui/Margins";
 import News from "./ui/News";
@@ -11,6 +12,7 @@ import Sidebar from "./ui/Sidebar";
 import Spine from "./ui/Spine";
 import Stage from "./ui/Stage";
 import WindowChrome from "./ui/WindowChrome";
+import type { Chosen } from "./views";
 import { useWindow } from "./windowing";
 
 export default function App() {
@@ -49,6 +51,13 @@ export default function App() {
     aside,
     beside,
   } = desk;
+  const choose = (next: Chosen) => {
+    setChosen(next);
+    setCameFrom(null);
+    setSelected(undefined);
+    setFound(null);
+    setError(null);
+  };
 
   return (
     <DeskProvider value={desk}>
@@ -57,6 +66,7 @@ export default function App() {
 
         <Layers parcels={desk.parcels.shown} />
         <News />
+        <HelpKey onHelp={(topic) => choose({ named: "help", topic })} />
 
         <Sidebar
           lists={data.lists}
@@ -87,13 +97,7 @@ export default function App() {
           onDocsMenu={(at) =>
             setMenu({ at, label: t("docsActions"), choices: hereChoices(hands, here ?? undefined) })
           }
-          onChoose={(next) => {
-            setChosen(next);
-            setCameFrom(null);
-            setSelected(undefined);
-            setFound(null);
-            setError(null);
-          }}
+          onChoose={choose}
         />
 
         <div

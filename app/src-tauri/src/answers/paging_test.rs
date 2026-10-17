@@ -35,3 +35,13 @@ fn the_shelf_keeps_only_so_many_pages() {
     let kept = std::fs::read_dir(shelf.join(DRAWN_BY)).unwrap().count();
     assert!(kept <= KEPT_AT_MOST);
 }
+
+#[test]
+fn a_guide_nobody_answers_for_is_not_taken_as_the_guide() {
+    assert_eq!(super::published("http://127.0.0.1:9/llms-full.txt"), None);
+    assert!(
+        super::GUIDE
+            .iter()
+            .all(|at| at.starts_with("https://markdown.tisty.app/"))
+    );
+}

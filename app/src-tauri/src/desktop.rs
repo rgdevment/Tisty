@@ -253,7 +253,9 @@ pub(crate) fn menued(
             &PredefinedMenuItem::close_window(app, None)?,
         ],
     )?;
-    tauri::menu::Menu::with_items(app, &[&app_menu, &edit, &window])
+    let guide = MenuItem::with_id(app, "help", worded(locale, "helpGuide"), true, None::<&str>)?;
+    let help = Submenu::with_items(app, worded(locale, "help"), true, &[&guide])?;
+    tauri::menu::Menu::with_items(app, &[&app_menu, &edit, &window, &help])
 }
 
 pub(crate) fn parting<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {

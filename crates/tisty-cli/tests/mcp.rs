@@ -216,9 +216,18 @@ fn an_assistant_can_ask_how_tisty_writes_a_document_in_either_language() {
     assert!(text.starts_with("# "));
     assert!(text.contains("=={green}"));
     assert_eq!(english["result"]["structuredContent"]["lang"], "en");
+    assert_eq!(
+        english["result"]["structuredContent"]["full"],
+        "https://markdown.tisty.app/llms-full.txt"
+    );
+    assert!(text.contains("https://markdown.tisty.app/"));
 
     let spanish = served.call("language", serde_json::json!({ "lang": "es" }));
     assert_eq!(spanish["result"]["structuredContent"]["lang"], "es");
+    assert_eq!(
+        spanish["result"]["structuredContent"]["guide"],
+        "https://markdown.tisty.app/es/"
+    );
     assert_ne!(
         spanish["result"]["content"][0]["text"],
         english["result"]["content"][0]["text"]

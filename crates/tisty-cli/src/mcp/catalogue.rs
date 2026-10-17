@@ -96,7 +96,9 @@ sets it, and it only ever adds, so an hour the person chose is never taken away.
 A document is kept in the Tisty language, the Markdown the person reads and writes in the \
 window: pens like `==words=={green}`, underline `++words++`, icons `::dog orange::`, callouts, \
 collapsible sections and cards to other documents, besides plain Markdown. Ask `language` once \
-before writing anything beyond plain words. Markdown from anywhere else is taken and turned into \
+before writing anything beyond plain words. The same guide is published, every example drawn, at \
+https://markdown.tisty.app (Spanish under /es/): point the person there when they ask how to \
+write something. Markdown from anywhere else is taken and turned into \
 the language on the way in — HTML into Markdown or plain words, a colour \
 outside the palette back to the plain pen, an unknown icon to its word — and the answer says \
 what changed, under `turned`; tell the person when it matters. Front matter, footnotes and other \

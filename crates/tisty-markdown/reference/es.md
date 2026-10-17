@@ -1,6 +1,6 @@
-# El lenguaje de Tisty
+# Markdown de Tisty
 
-Un documento de Tisty es un archivo `.md` normal. Lo que lleva es Markdown: CommonMark con lo que le agrega GitHub, más unas pocas palabras cortas propias de Tisty para lo que Markdown no sabe decir: el color de un rotulador, un subrayado, un icono, una sección que se pliega. Esta página las reúne todas: para qué sirve cada una, cómo queda escrita en el archivo, cómo se lee y las reglas chicas que deciden cuándo cuenta.
+Un documento de Tisty es un archivo `.md` normal. Lo que lleva es Markdown: CommonMark con lo que le agrega GitHub, más unas pocas palabras cortas propias de Tisty para lo que Markdown no sabe decir: el color de un rotulador, un subrayado, un icono, una sección que se pliega. Esta página las reúne todas: para qué sirve cada una, cómo queda escrita en el archivo, cómo se lee y las reglas chicas que deciden cuándo cuenta. La ayuda sobre las tareas, los asistentes por MCP y el resto de Tisty está en [www.tisty.app/es/ayuda](https://www.tisty.app/es/ayuda/).
 
 Nada de esto hay que aprenderlo de memoria. El menú `/` y la barra del editor lo escriben todo por ti; esto es lo que encuentras si abres el archivo en otra parte, o si quieres escribirlo a mano.
 

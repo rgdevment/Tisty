@@ -616,6 +616,10 @@ fn worded(locale: &Option<String>, key: &str) -> String {
         ("edit", false) => "Edit".into(),
         ("windowMenu", true) => "Ventana".into(),
         ("windowMenu", false) => "Window".into(),
+        ("help", true) => "Ayuda".into(),
+        ("help", false) => "Help".into(),
+        ("helpGuide", true) => "Guía de Tisty Markdown".into(),
+        ("helpGuide", false) => "Tisty Markdown guide".into(),
         ("copy", true) => " (copia)".into(),
         ("copy", false) => " (copy)".into(),
         ("show", true) => "Abrir Tisty".into(),
@@ -901,6 +905,9 @@ pub(crate) fn opened(
                     if event.id() == "leave" {
                         desktop::parting(app);
                     }
+                    if event.id() == "help" {
+                        let _ = tauri::Emitter::emit_to(app, "main", "help", ());
+                    }
                 });
             }
             Err(e) => witness::warn(
@@ -1157,6 +1164,9 @@ pub fn run() {
             answers::paging::doc_drawn,
             answers::paging::note_drawn,
             answers::paging::doc_plain,
+            answers::paging::help_reference,
+            answers::paging::help_drawn,
+            answers::paging::help_anchors,
             answers::papers::doc_read,
             answers::papers::doc_facts,
             answers::papers::keep_file,

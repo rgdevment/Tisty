@@ -1,6 +1,6 @@
-# The Tisty language
+# Tisty Markdown
 
-A Tisty document is a plain `.md` file. What it holds is Markdown: CommonMark with GitHub's additions, plus a handful of short words of Tisty's own for what Markdown has no way to say: a pen colour, an underline, an icon, a section that folds. This page lists every one of them: what it is for, how it is written in the file, how it reads, and the small rules that decide when it counts.
+A Tisty document is a plain `.md` file. What it holds is Markdown: CommonMark with GitHub's additions, plus a handful of short words of Tisty's own for what Markdown has no way to say: a pen colour, an underline, an icon, a section that folds. This page lists every one of them: what it is for, how it is written in the file, how it reads, and the small rules that decide when it counts. Help with tasks, assistants through MCP and the rest of Tisty is at [www.tisty.app/docs](https://www.tisty.app/docs/).
 
 Nothing on this page needs learning by heart. The `/` menu and the bar in the editor write all of it for you; this is what you find if you open the file somewhere else, or want to write it by hand.
 
