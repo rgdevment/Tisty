@@ -4,6 +4,7 @@ import { type DocFacts, docFacts, type Paper } from "../core";
 import { fill, t } from "../locales";
 import Glyph from "./Glyph";
 import PaperFacts from "./PaperFacts";
+import Properties from "./Properties";
 import type { Head } from "./paging";
 import { LEAVES, leafWord } from "./sheets";
 import { often } from "./tagging";
@@ -83,6 +84,7 @@ export default function Beside({
   }, [paper, kept]);
 
   const times = useMemo(() => often(body), [body]);
+  const outline = heads.filter((one) => one.level > 0);
 
   return (
     <aside
@@ -132,6 +134,8 @@ export default function Beside({
           </h3>
           <PaperFacts facts={facts} body={body} />
         </section>
+
+        <Properties body={body} onEdit={heads.find((one) => one.level === 0)?.go} />
 
         {tags.length > 0 && (
           <section className="flex flex-col gap-2">
@@ -214,11 +218,11 @@ export default function Beside({
 
         <section className="flex flex-col gap-2">
           <h3 className="text-[10.5px] tracking-[0.07em] text-faint uppercase">{t("outline")}</h3>
-          {heads.length === 0 && pages.length === 0 ? (
+          {outline.length === 0 && pages.length === 0 ? (
             <p className="text-[12.5px] text-faint">{t("outlineNone")}</p>
           ) : (
             <nav className="flex flex-col gap-px">
-              {heads.map((one) => (
+              {outline.map((one) => (
                 <button
                   key={one.key}
                   type="button"

@@ -1046,9 +1046,7 @@ mod tests;
 
 pub fn survives(body: &str) -> std::result::Result<(), &'static str> {
     let body = body.trim_start_matches('\u{feff}');
-    if fronted(body) {
-        return Err("YAML frontmatter");
-    }
+    let body = &body[tisty_markdown::front::span(body).map_or(0, |at| at.end)..];
     let mut fence = Fencing::default();
     let mut aside = false;
 
@@ -1125,14 +1123,6 @@ pub(crate) fn strays(line: &str) -> Vec<(std::ops::Range<usize>, String, &'stati
 
 fn worded(line: &str) -> Option<&'static str> {
     strays(line).first().map(|one| one.2)
-}
-
-fn fronted(body: &str) -> bool {
-    let mut lines = body.trim_start_matches('\u{feff}').lines();
-    if lines.next().map(str::trim) != Some("---") {
-        return false;
-    }
-    lines.any(|line| line.trim() == "---")
 }
 
 fn outside_code_spans(line: &str) -> String {

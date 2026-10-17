@@ -2,6 +2,9 @@ pub(super) use tisty_markdown::fences::{Fencing, quoteless};
 pub use tisty_markdown::fences::{ends_fenced, fencing};
 
 pub fn titled(body: &str) -> String {
+    if let Some(named) = tisty_markdown::front::title(body) {
+        return crate::text::plainly(named.trim());
+    }
     let body = body.trim_start_matches('\u{feff}');
     let mut said: Vec<&str> = body.lines().collect();
     if let Some(start) = said.iter().position(|one| !one.trim().is_empty())

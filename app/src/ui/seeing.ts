@@ -326,6 +326,19 @@ const listed = (state: EditorState, mark: SyntaxNode, shown: boolean, out: Range
   }
 };
 
+// The properties at the top are written as they are, not read as a rule and a title; returns where they end.
+const fronted = (state: EditorState, out: Range<Decoration>[]): number => {
+  const doc = state.doc;
+  if (doc.lines < 3 || doc.line(1).text.trimEnd() !== "---" || !doc.line(2).text.trim()) return 0;
+  for (let at = 3; at <= doc.lines; at++) {
+    if (!/^(---|\.\.\.)$/.test(doc.line(at).text.trimEnd())) continue;
+    for (let one = 1; one <= at; one++)
+      out.push(Decoration.line({ class: "cm-front" }).range(doc.line(one).from));
+    return doc.line(at).to + 1;
+  }
+  return 0;
+};
+
 // What the block shows while it is written: the page's own look, with Markdown's marks kept out of sight.
 export const seen = (
   state: EditorState,
@@ -337,7 +350,11 @@ export const seen = (
     if (!shown && to > from && !state.sliceDoc(from, to).includes("\n"))
       out.push(Decoration.replace({}).range(from, to));
   };
-  for (const { from, to } of ranges) {
+  const past = fronted(state, out);
+  for (const range of ranges) {
+    const from = Math.max(range.from, past);
+    const to = range.to;
+    if (from > to) continue;
     syntaxTree(state).iterate({
       from,
       to,

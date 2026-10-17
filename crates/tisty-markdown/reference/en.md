@@ -8,6 +8,7 @@ Nothing on this page needs learning by heart. The `/` menu and the bar in the ed
 
 | What | Written | GitHub | Obsidian |
 | :-- | :-- | :-: | :-: |
+| [Properties](#properties) | `---` `title:` `tags:` … `---` | as a table | yes |
 | [Headings](#headings) | `# Title` … `###### Title` | yes | yes |
 | [Bold, italic, struck, code](#bold-italic-struck-through-and-code) | `**b**` `*i*` `~~s~~` `` `c` `` | yes | yes |
 | [Underline](#underline) | `++words++` | no | no |
@@ -34,9 +35,27 @@ Nothing on this page needs learning by heart. The `/` menu and the bar in the ed
 
 Where the table says *no*, the other reader shows the words exactly as they are written, so nothing is lost: `++words++` stays readable, and `::dog::` is still a dog.
 
+## Properties
+
+A block of properties at the very top of the file, between two `---` lines, the way GitHub and Obsidian write them (it is often called front matter):
+
+```markdown
+---
+title: Rina's vaccines
+tags: [rina, vet]
+source: the vet's card
+---
+```
+
+- It is kept exactly as written. The page leaves it out and shows the properties in the panel beside it, under **About this document**, where **Edit** opens the block at the top of the page as it is written.
+- `title:` is the document's [title](#the-title).
+- `tags:` (or `tag:`) files the document under each one, the same as writing `#rina` in a sentence: one tag either way. A list in brackets, words split by commas, or one `- item` per line all work, with or without the `#`.
+- The block only counts at the very top: the first line is `---`, the line under it has words, and a `---` or `...` closes it. Anywhere else, `---` is a [page break](#page-breaks).
+- Tisty itself never writes properties: a tag it adds goes in the text as `#tag`.
+
 ## The title
 
-The first line with words in it is the document's title. There is no name to fill in anywhere. A callout's marker and a code fence are stepped over to find it.
+The first line with words in it is the document's title, unless its [properties](#properties) name one with `title:`. There is no name to fill in anywhere. A callout's marker and a code fence are stepped over to find it.
 
 ```markdown
 # Rina's vaccines
@@ -407,7 +426,6 @@ Booster due in March. <!-- ask about the tick tablet -->
 
 A few things other Markdown writes have no word in Tisty. A document that holds them still opens, edits and saves whole, nothing is cut out; but that part is drawn as best the page can, and it shows as it is written while you edit it:
 
-- front matter at the top of the file (`---` … `---`),
 - HTML tags of any kind, in blocks or in a line.
 
 **Settings › Maintenance** goes through every document and lists the ones that hold something of this.

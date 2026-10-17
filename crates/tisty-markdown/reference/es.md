@@ -8,6 +8,7 @@ Nada de esto hay que aprenderlo de memoria. El menú `/` y la barra del editor l
 
 | Qué | Se escribe | GitHub | Obsidian |
 | :-- | :-- | :-: | :-: |
+| [Propiedades](#propiedades) | `---` `title:` `tags:` … `---` | como tabla | sí |
 | [Títulos](#títulos) | `# Título` … `###### Título` | sí | sí |
 | [Negrita, cursiva, tachado, código](#negrita-cursiva-tachado-y-código) | `**n**` `*c*` `~~t~~` `` `c` `` | sí | sí |
 | [Subrayado](#subrayado) | `++palabras++` | no | no |
@@ -34,9 +35,27 @@ Nada de esto hay que aprenderlo de memoria. El menú `/` y la barra del editor l
 
 Donde la tabla dice *no*, el otro lector muestra las palabras tal como están escritas, así que no se pierde nada: `++palabras++` se sigue leyendo, y `::dog::` sigue siendo un perro.
 
+## Propiedades
+
+Un bloque de propiedades al principio del archivo, entre dos líneas `---`, como lo escriben GitHub y Obsidian (también se le dice front matter):
+
+```markdown
+---
+title: Vacunas de Rina
+tags: [rina, veterinaria]
+fuente: la libreta de la veterinaria
+---
+```
+
+- Se guarda tal como está escrito. La página no lo muestra: las propiedades aparecen en el panel de al lado, bajo **Sobre este documento**, donde **Editar** abre el bloque arriba de la página tal como está escrito.
+- `title:` es el [título](#el-título) del documento.
+- `tags:` (o `tag:`) guarda el documento bajo cada una, igual que escribir `#rina` en una frase: es la misma etiqueta de las dos maneras. Sirve una lista entre corchetes, palabras separadas por comas o un `- elemento` por línea, con `#` o sin él.
+- El bloque solo cuenta al principio: la primera línea es `---`, la de abajo tiene palabras, y lo cierra un `---` o `...`. En cualquier otra parte, `---` es un [salto de página](#saltos-de-página).
+- Tisty nunca escribe propiedades por su cuenta: una etiqueta que agrega va en el texto como `#etiqueta`.
+
 ## El título
 
-La primera línea con palabras es el título del documento. No hay que ponerle nombre en ninguna parte. Para encontrarla, Tisty se salta la marca de un aviso y las vallas de código.
+La primera línea con palabras es el título del documento, salvo que sus [propiedades](#propiedades) digan otro con `title:`. No hay que ponerle nombre en ninguna parte. Para encontrarla, Tisty se salta la marca de un aviso y las vallas de código.
 
 ```markdown
 # Vacunas de Rina
@@ -407,7 +426,6 @@ Refuerzo en marzo. <!-- preguntar por la pastilla de garrapatas -->
 
 Algunas cosas que escribe otro Markdown no tienen palabra en Tisty. Un documento que las lleva se abre, se edita y se guarda entero, sin que se corte nada; pero esa parte se dibuja como la página buenamente puede, y mientras la editas se ve tal como está escrita:
 
-- la cabecera (front matter) al principio del archivo (`---` … `---`),
 - las etiquetas HTML de cualquier tipo, en bloques o dentro de una línea.
 
 **Configuración › Mantenimiento** recorre todos los documentos y te lista los que llevan algo de esto.

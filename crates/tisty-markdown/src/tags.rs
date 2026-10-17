@@ -8,8 +8,17 @@ pub const AT_MOST: usize = 64;
 pub fn tags_in(body: &str) -> Vec<String> {
     let mut found: Vec<String> = Vec::new();
     let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
+    for tag in crate::front::tags(body).iter().filter_map(|one| named(one)) {
+        if seen.insert(tag.clone()) {
+            found.push(tag);
+        }
+        if found.len() == AT_MOST {
+            return found;
+        }
+    }
+    let past = crate::front::span(body).map_or(0, |at| at.end);
     let mut fenced = crate::fences::fencing();
-    for line in body.lines() {
+    for line in body[past..].lines() {
         if fenced(line) {
             continue;
         }

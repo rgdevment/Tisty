@@ -124,7 +124,16 @@ export interface Head {
   go: () => void;
 }
 
-export const heads = (page: Document): Head[] =>
+// The properties at the top are kept out of the page; their entry, level 0, opens them to edit.
+export const heads = (page: Document): Head[] => {
+  const front = page.querySelector<HTMLElement>(".page > .front");
+  const opening: Head[] = front
+    ? [{ key: "front", level: 0, text: "", go: () => front.click() }]
+    : [];
+  return opening.concat(listedHeads(page));
+};
+
+const listedHeads = (page: Document): Head[] =>
   Array.from(
     page.querySelectorAll<HTMLElement>(".page > :is(h1, h2, h3, h4, h5, h6):not([data-title])"),
   ).map((one, at) => ({

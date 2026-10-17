@@ -105,7 +105,8 @@ html.tall .page:has(> .editing) {
   content: attr(data-empty);
   color: var(--tisty-faint);
 }
-.page > :is(h1, h2, h3, p):first-child {
+.page > :is(h1, h2, h3, p):first-child,
+.page > :is(.front, .fronted):first-child + :is(h1, h2, h3, p) {
   font-size: 1.65em;
   font-weight: 640;
   line-height: 1.25;
@@ -606,6 +607,15 @@ a.card:hover,
   background: var(--tisty-mark-tag);
   border-radius: 4px;
   padding: 0 2px;
+}
+/* The properties live in the panel beside the page; the block stays here only to be opened. */
+.front {
+  display: none;
+}
+.cm-front {
+  font-family: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  color: var(--tisty-soft);
 }
 .ico {
   display: inline-flex;

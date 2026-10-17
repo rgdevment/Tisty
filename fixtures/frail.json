@@ -137,27 +137,19 @@
   },
   {
     "text": "---\ntitle: notes\n---\n\nhello",
-    "why": [
-      "front"
-    ]
+    "why": []
   },
   {
     "text": "﻿---\ntitle: notes\n---\n\nhello",
-    "why": [
-      "front"
-    ]
+    "why": []
   },
   {
     "text": "---\ntitle: notes\n---",
-    "why": [
-      "front"
-    ]
+    "why": []
   },
   {
     "text": "---  \ntitle: notes\n---  \n\nhello",
-    "why": [
-      "front"
-    ]
+    "why": []
   },
   {
     "text": "<div class=\"warn\">careful</div>",

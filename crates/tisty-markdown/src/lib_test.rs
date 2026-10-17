@@ -289,3 +289,48 @@ fn code_holds_only_its_words_as_written() {
         .collect();
     assert_eq!(said, "fn *main*() {} #tag\n");
 }
+
+#[test]
+fn front_matter_is_one_block_of_its_own_that_names_and_files_the_document() {
+    let said = "---\ntitle: \"Plan de marzo\"\ntags: [rina, Vet]\nfuente: notas\n---\n\n# Otro\n";
+    let doc = read(said);
+    assert_eq!(doc.blocks()[0].kind, Kind::Front);
+    let held = &said[doc.blocks()[0].at.clone()];
+    assert!(
+        held.starts_with("---\ntitle:") && held.trim_end().ends_with("---"),
+        "{held:?}"
+    );
+    assert_eq!(crate::front::title(said).as_deref(), Some("Plan de marzo"));
+    assert_eq!(crate::front::tags(said), ["rina", "Vet"]);
+    assert_eq!(
+        crate::tags::tags_in(&format!("{said}y #perro")),
+        ["rina", "vet", "perro"]
+    );
+}
+
+#[test]
+fn front_matter_lists_are_read_however_a_note_writes_them() {
+    for said in [
+        "---\ntags:\n  - uno\n  - dos\n---\n",
+        "---\ntags:\n- uno\n- dos\n---\n",
+        "---\ntags: uno, dos\n---\n",
+        "---\ntags: \"#uno #dos\"\n---\n",
+        "---\ntag: [uno, 'dos']\n...\n",
+    ] {
+        assert_eq!(crate::front::tags(said), ["uno", "dos"], "{said:?}");
+    }
+}
+
+#[test]
+fn only_a_closed_block_at_the_very_top_is_front_matter() {
+    for said in [
+        "---\n\ntitle: x\n---\n",
+        "texto\n\n---\ntitle: x\n---\n",
+        "---\ntitle: x\n",
+        "# Uno\n\n---\n\nmas\n\n---\n",
+    ] {
+        assert_eq!(crate::front::span(said), None, "{said:?}");
+        assert!(crate::front::title(said).is_none(), "{said:?}");
+    }
+    assert_eq!(crate::front::span("\u{feff}---\na: b\n---"), Some(3..15));
+}

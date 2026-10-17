@@ -13,7 +13,7 @@ const kept = (inner: string): boolean => {
   const icon = found[4];
   return !icon || known(icon) || /\p{Extended_Pictographic}/u.test(icon);
 };
-const WHY = ["frailFront", "frailHtml"];
+const WHY = ["frailHtml"];
 
 const spacing = (said: string): number => {
   let wide = 0;
@@ -87,10 +87,12 @@ const fenceless = (text: string): string => {
   return out.join("\n");
 };
 
-const fronted = (text: string): boolean => {
-  const lines = text.replace(/^﻿/, "").split("\n");
-  if (lines[0]?.trim() !== "---") return false;
-  return lines.slice(1).some((line) => line.trim() === "---");
+// What the front matter takes at the top, the way the core's `front::span` finds it.
+const unfronted = (text: string): string => {
+  const lines = text.split("\n");
+  if (lines[0]?.trimEnd() !== "---" || !lines[1]?.trim()) return text;
+  const shut = lines.findIndex((line, at) => at > 1 && /^(---|\.\.\.)$/.test(line.trimEnd()));
+  return shut < 0 ? text : lines.slice(shut + 1).join("\n");
 };
 
 const spanless = (line: string): string => {
@@ -159,8 +161,7 @@ export const frail = (whole: string): string[] => {
   const seen = new Set<string>();
   let aside = false;
 
-  if (fronted(text)) seen.add("frailFront");
-  for (const line of fenceless(text).split("\n")) {
+  for (const line of fenceless(unfronted(text)).split("\n")) {
     if (!aside && (line.startsWith("    ") || line.startsWith("\t"))) continue;
     let plain = "";
     let rest = spanless(line);

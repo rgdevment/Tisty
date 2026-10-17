@@ -44,11 +44,8 @@ pub fn tidied(body: &str) -> Tidied {
         }
     };
 
-    let body = body.trim_start_matches('\u{feff}').to_string();
-    let (body, cut) = unfronted(&body);
-    if cut {
-        note("front matter", &mut said);
-    }
+    let body = body.trim_start_matches('\u{feff}');
+    let (head, body) = body.split_at(tisty_markdown::front::span(body).map_or(0, |at| at.end));
 
     let mut out: Vec<String> = Vec::new();
     let mut fence: Option<String> = None;
@@ -109,7 +106,7 @@ pub fn tidied(body: &str) -> Tidied {
             changed: said,
         },
         false => Tidied {
-            body: spaced(&walked),
+            body: format!("{head}{}", spaced(&walked)),
             changed: said,
         },
     }
@@ -232,47 +229,6 @@ fn opens(line: &str) -> Option<String> {
         }
     }
     None
-}
-
-fn unfronted(body: &str) -> (String, bool) {
-    let mut lines = body.lines();
-    if lines.next().map(str::trim) != Some("---") {
-        return (body.to_string(), false);
-    }
-    let mut inside: Vec<&str> = Vec::new();
-    let mut kept: Vec<&str> = Vec::new();
-    let mut shut = false;
-    for line in lines {
-        if !shut {
-            if line.trim().is_empty() {
-                return (body.to_string(), false);
-            }
-            if matches!(line.trim(), "---" | "...") {
-                shut = true;
-                continue;
-            }
-            inside.push(line);
-            continue;
-        }
-        kept.push(line);
-    }
-    let keyed = inside
-        .iter()
-        .any(|one| keyword(one) && !one.starts_with(' ') && !one.starts_with('-'));
-    match shut && keyed {
-        true => (kept.join("\n").trim_start().to_string(), true),
-        false => (body.to_string(), false),
-    }
-}
-
-fn keyword(line: &str) -> bool {
-    let Some((name, _)) = line.split_once(':') else {
-        return false;
-    };
-    !name.is_empty()
-        && name
-            .chars()
-            .all(|one| one.is_alphanumeric() || matches!(one, '_' | '-' | '.'))
 }
 
 fn drop_of(line: &str, opens: &str) -> String {
