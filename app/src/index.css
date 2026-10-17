@@ -1566,3 +1566,7 @@ body {
   position: relative;
   z-index: 1;
 }
+
+html[data-previewing] [data-chrome] {
+  display: none;
+}
