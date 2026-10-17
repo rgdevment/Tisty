@@ -42,6 +42,21 @@ describe("the press that opened it", () => {
     document.body.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
     expect(onClose).toHaveBeenCalled();
   });
+
+  it("closes when a page's frame takes the focus or the page scrolls, but not for its own scroll", () => {
+    const onClose = vi.fn();
+    render(<Menu at={{ x: 20, y: 30 }} choices={choices()} label="Opciones" onClose={onClose} />);
+    act(() => {
+      vi.runAllTimers();
+    });
+
+    screen.getByRole("menu").dispatchEvent(new Event("scroll"));
+    expect(onClose).not.toHaveBeenCalled();
+    document.body.dispatchEvent(new Event("scroll"));
+    expect(onClose).toHaveBeenCalledTimes(1);
+    window.dispatchEvent(new Event("blur"));
+    expect(onClose).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe("the row menu", () => {

@@ -71,7 +71,8 @@ export type Went =
   | { kind: "block"; at: [number, number] }
   | { kind: "tag"; name: string }
   | { kind: "tick"; at: [number, number] }
-  | { kind: "apart"; at: [number, number] }
+  | { kind: "apart"; at: [number, number]; nth?: number }
+  | { kind: "more"; at: [number, number]; target: string; x: number; y: number }
   | { kind: "end" }
   | { kind: "title" }
   | null;
@@ -93,13 +94,28 @@ const linked = (link: HTMLAnchorElement): Went => {
   return null;
 };
 
+export const widgetsIn = (block: Element | null): Element[] =>
+  block?.matches("figure.widget")
+    ? [block]
+    : Array.from(block?.querySelectorAll("figure.widget") ?? []);
+
+const pressedIn = (asked: HTMLElement): Went => {
+  const at = spanned(asked.closest<HTMLElement>(".page > [data-at]")?.dataset.at ?? null);
+  if (!at) return null;
+  if (asked.dataset.asked === "more") {
+    const box = asked.getBoundingClientRect();
+    return { kind: "more", at, target: asked.dataset.target ?? "", x: box.left, y: box.bottom };
+  }
+  if (asked.dataset.asked !== "apart") return { kind: "block", at };
+  const nth = widgetsIn(asked.closest(".page > [data-at]")).indexOf(
+    asked.closest("figure.widget") as Element,
+  );
+  return nth > 0 ? { kind: "apart", at, nth } : { kind: "apart", at };
+};
+
 export const went = (target: Element, selecting: boolean): Went => {
   const asked = target.closest<HTMLElement>("button[data-asked]");
-  if (asked) {
-    const at = spanned(asked.closest<HTMLElement>(".page > [data-at]")?.dataset.at ?? null);
-    if (!at) return null;
-    return asked.dataset.asked === "apart" ? { kind: "apart", at } : { kind: "block", at };
-  }
+  if (asked) return pressedIn(asked);
   const link = target.closest("a");
   if (link) return linked(link);
   const card = target.closest<HTMLElement>(".doc-card[data-doc]")?.dataset.doc;
@@ -107,7 +123,8 @@ export const went = (target: Element, selecting: boolean): Went => {
   if (target.closest<HTMLElement>(".ref")?.dataset.ref) return null;
   const tag = target.closest<HTMLElement>(".tag")?.dataset.tag;
   if (tag) return { kind: "tag", name: tag };
-  if (selecting || target.closest("summary, figure.widget")) return null;
+  if (selecting || target.closest("summary, figure.widget, .media, .col-grip, .picture-away"))
+    return null;
   // A stage's box ticks where it is read; the words beside it still open the block.
   const box = target.closest(".check")?.closest<HTMLElement>("li.task[data-at]");
   const ticked = spanned(box?.dataset.at ?? null);

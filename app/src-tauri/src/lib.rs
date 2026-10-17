@@ -1088,6 +1088,8 @@ pub fn run() {
             answers::attaching::attach,
             answers::attaching::attach_pasted,
             answers::attaching::served,
+            answers::attaching::copied,
+            answers::attaching::kept_here,
             answers::attaching::attached,
             answers::attaching::weighs,
             answers::storing::roomy,

@@ -21,6 +21,7 @@ import { HUES } from "./paging";
 import { pendingFormat, pendingKeys, settle } from "./pending";
 import { visual } from "./seeing";
 import { type Asking, putBlock, slashing } from "./slashing";
+import { tableKeys } from "./tabling";
 
 const PENS = ["yellow", ...HUES];
 
@@ -215,6 +216,7 @@ export const edited = (
             },
             ...pendingKeys,
             ...blockKeys,
+            ...tableKeys,
             { key: "Mod-Shift-z", run: redo },
           ]),
         ),

@@ -1,6 +1,7 @@
 import { docRead, type Filed } from "../core";
 import { markup } from "../glyphs";
 import { fill, t } from "../locales";
+import { DOC } from "../markdown";
 import { inTextOrder, pagesOf } from "../paging";
 
 export type Carded =
@@ -58,12 +59,25 @@ export type Carding = {
   readonly card?: (file: string) => Carded;
   readonly blurb?: (file: string) => Promise<string>;
   readonly onBlock?: unknown;
+  readonly onMore?: unknown;
 };
 
 export const piece = (page: Document, kind: string, said = "") => {
   const one = page.createElement("span");
   one.className = kind;
   one.textContent = said;
+  return one;
+};
+
+export const more = (page: Document, target: string) => {
+  const one = page.createElement("button");
+  one.type = "button";
+  one.className = "card-more";
+  one.dataset.asked = "more";
+  one.dataset.target = target;
+  one.setAttribute("aria-label", t("cardMore"));
+  one.title = t("cardMore");
+  one.textContent = "⋯";
   return one;
 };
 
@@ -125,6 +139,7 @@ export const carded = (page: Document, reach: Carding, live: () => boolean) => {
       edit.textContent = t("cardEdit");
       meta.append(edit);
     }
+    if (reach.onMore) meta.append(more(page, `${DOC}${file}`));
     if (open) meta.append(piece(page, "card-go", "›"));
     box.append(tile, piece(page, "card-name", name), blurb, meta);
     link.replaceWith(box);

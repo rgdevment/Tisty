@@ -439,6 +439,9 @@ export const viewDoc = (paper: Viewed): Promise<void> => invoke("view_doc", { pa
 export const served = (reference: string): Promise<string> => invoke("served", { reference });
 
 export const attached = (reference: string): Promise<number[]> => invoke("attached", { reference });
+export const keptHere = (reference: string): Promise<boolean> => invoke("kept_here", { reference });
+export const copyAttached = (reference: string, to: string): Promise<void> =>
+  invoke("copied", { reference, to });
 
 export const opened = (reference: string): Promise<void> => invoke("opened", { reference });
 

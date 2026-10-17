@@ -50,13 +50,21 @@ export default function Menu({ at, choices, label, up, onClose }: Props) {
   }, [deeper]);
 
   useEffect(() => {
-    const away = (e: MouseEvent) => {
+    const away = (e: Event) => {
       if (!card.current?.contains(e.target as Node)) onClose();
     };
-    const listen = setTimeout(() => document.addEventListener("mousedown", away));
+    // A click in a page's frame never reaches this document; it takes the focus from the window instead.
+    const left = () => onClose();
+    const listen = setTimeout(() => {
+      document.addEventListener("mousedown", away);
+      document.addEventListener("scroll", away, true);
+      window.addEventListener("blur", left);
+    });
     return () => {
       clearTimeout(listen);
       document.removeEventListener("mousedown", away);
+      document.removeEventListener("scroll", away, true);
+      window.removeEventListener("blur", left);
     };
   }, [onClose]);
 
