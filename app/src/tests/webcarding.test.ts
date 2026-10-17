@@ -66,4 +66,26 @@ describe("a web link alone in its paragraph", () => {
     expect(bare.querySelector('img[src="b.svg"]')).not.toBeNull();
     expect(bare.querySelector(".is-web.has-shot .card-tile")).toBeNull();
   });
+
+  it("reads apart from its neighbours with nothing of its own: its site's letter and a plain address", async () => {
+    const doc = page(
+      '<p><a href="https://www.tisty.app/blog/">https://www.tisty.app/blog/</a></p><p><a href="https://www.tisty.app/x">otra</a></p>',
+    );
+    webCarded(doc, () => true);
+    await settle();
+    const [first, second] = doc.querySelectorAll<HTMLElement>(".doc-card");
+    expect(first.classList.contains("is-bare")).toBe(true);
+    expect(first.querySelector(".card-tile.is-letter")?.textContent).toBe("T");
+    expect(first.querySelector(".card-name")?.textContent).toBe("tisty.app/blog");
+    expect(second.querySelector(".card-name")?.textContent).toBe("otra");
+    const hue = (one: Element) =>
+      (one.querySelector(".card-tile") as HTMLElement).style.getPropertyValue("--hue");
+    expect(hue(first)).toMatch(/^var\(--tisty-hue-[a-z]+\)$/);
+    expect(hue(first)).toBe(hue(second));
+
+    net.fetched = { title: "El blog" };
+    first.querySelector<HTMLButtonElement>(".card-edit")?.click();
+    await settle();
+    expect(first.classList.contains("is-bare")).toBe(false);
+  });
 });
