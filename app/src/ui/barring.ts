@@ -152,31 +152,58 @@ const held = <T extends HTMLElement>(one: T): T => {
   return one;
 };
 
+const madeIn = <K extends keyof HTMLElementTagNameMap>(
+  page: Document,
+  tag: K,
+  className: string,
+  text = "",
+) => {
+  const one = page.createElement(tag);
+  one.className = className;
+  if (text) one.textContent = text;
+  return one;
+};
+
+const buttonIn = (page: Document, className: string, label: string, run: () => void, text = "") => {
+  const one = held(madeIn(page, "button", className, text));
+  one.type = "button";
+  one.setAttribute("aria-label", label);
+  one.title = label;
+  one.addEventListener("click", run);
+  return one;
+};
+
+const drawnIn = (page: Document, name: string) => {
+  const holder = madeIn(page, "span", "cm-bar-glyph");
+  const svg = page.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  svg.innerHTML = markup(name) ?? "";
+  holder.append(svg);
+  return holder;
+};
+
+export const formatButtons = (page: Document, pick: (open: string, close: string) => void) => ({
+  formats: FORMATS.map(([said, keys, open, close, icon]) => {
+    const one = buttonIn(page, "cm-bar-button", `${t(said)} (${pressed(keys)})`, () =>
+      pick(open, close),
+    );
+    one.append(drawnIn(page, icon));
+    return one;
+  }),
+  pens: PENS.map(([hue, said, close]) => {
+    const one = buttonIn(page, "cm-bar-button", t(said), () => pick("==", close));
+    one.append(madeIn(page, "span", `cm-bar-pen cm-pen-${hue}`));
+    return one;
+  }),
+});
+
 export const barred = (view: EditorView): Barred => {
   const page = view.dom.ownerDocument;
-  const made = <K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text = "") => {
-    const one = page.createElement(tag);
-    one.className = className;
-    if (text) one.textContent = text;
-    return one;
-  };
-  const button = (className: string, label: string, run: () => void, text = "") => {
-    const one = held(made("button", className, text));
-    one.type = "button";
-    one.setAttribute("aria-label", label);
-    one.title = label;
-    one.addEventListener("click", run);
-    return one;
-  };
-  const drawn = (name: string) => {
-    const holder = made("span", "cm-bar-glyph");
-    const svg = page.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("viewBox", "0 0 24 24");
-    svg.setAttribute("aria-hidden", "true");
-    svg.innerHTML = markup(name) ?? "";
-    holder.append(svg);
-    return holder;
-  };
+  const made = <K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text = "") =>
+    madeIn(page, tag, className, text);
+  const button = (className: string, label: string, run: () => void, text = "") =>
+    buttonIn(page, className, label, run, text);
 
   const bar = made("div", "cm-bar");
   bar.setAttribute("role", "toolbar");
@@ -225,18 +252,7 @@ export const barred = (view: EditorView): Barred => {
   const kinds = made("span", "cm-bar-kinds");
   kinds.append(kind, menu, table);
 
-  const formats = FORMATS.map(([said, keys, open, close, icon]) => {
-    const one = button("cm-bar-button", `${t(said)} (${pressed(keys)})`, () =>
-      wrapped(view, open, close),
-    );
-    one.append(drawn(icon));
-    return one;
-  });
-  const pens = PENS.map(([hue, said, close]) => {
-    const one = button("cm-bar-button", t(said), () => wrapped(view, "==", close));
-    one.append(made("span", `cm-bar-pen cm-pen-${hue}`));
-    return one;
-  });
+  const { formats, pens } = formatButtons(page, (open, close) => wrapped(view, open, close));
   const slash = button("cm-bar-button cm-bar-more", t("insertLabel"), () => {
     const { from: start, to: from } = view.state.selection.main;
     const before = view.state.sliceDoc(Math.max(0, from - 1), from);

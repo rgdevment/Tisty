@@ -207,7 +207,6 @@ export default function Sheet(props: Readonly<Props>) {
     if (asked) formatted(editing, read, asked);
   };
 
-  // The words picked on the page are found again in the block's Markdown, where the format is written.
   const formatted = (
     editing: Editing["view"],
     read: string,
@@ -215,14 +214,16 @@ export default function Sheet(props: Readonly<Props>) {
   ) => {
     const source = editing.state.sliceDoc();
     const end = caretAt(source, read + said);
-    const start =
-      source.slice(end - said.length, end) === said ? end - said.length : caretAt(source, read);
-    editing.dispatch({ selection: { anchor: start, head: end } });
+    // Words drawn across marks are not in the Markdown as read, so the block stays open for a hand.
+    if (source.slice(end - said.length, end) !== said) return;
+    editing.dispatch({ selection: { anchor: end - said.length, head: end } });
     wrapped(editing, mark, close);
-    open.current?.leave();
+    if (!close.startsWith("](")) open.current?.leave();
   };
 
-  const format = (asked: Formatting) => block(asked.at, asked.block, "", asked.read, asked);
+  const format = (asked: Formatting) => {
+    if (!open.current) block(asked.at, asked.block, "", asked.read, asked);
+  };
 
   const writingChoices = (editing: Editing["view"]): Choice[] => {
     const { from, to } = editing.state.selection.main;
@@ -233,11 +234,15 @@ export default function Sheet(props: Readonly<Props>) {
         key: "cut",
         label: t("cutIt"),
         off: from === to,
-        onPick: () =>
+        onPick: () => {
+          const was = editing.state.doc;
           void copied(chosen).then(() => {
-            editing.dispatch({ changes: { from, to }, userEvent: "delete.cut" });
+            if (editing.state.doc === was) {
+              editing.dispatch({ changes: { from, to }, userEvent: "delete.cut" });
+            }
             back();
-          }),
+          });
+        },
       },
       {
         key: "copy",
@@ -275,7 +280,8 @@ export default function Sheet(props: Readonly<Props>) {
     const choices: Choice[] = [];
     if (picked)
       choices.push({ key: "copy", label: t("copyIt"), onPick: () => void copied(picked.said) });
-    if (!reading && picked) {
+    const free = !reading && !editing;
+    if (free && picked) {
       for (const [said, , mark, close] of FORMATS) {
         choices.push({
           key: `format-${said}`,
@@ -285,7 +291,7 @@ export default function Sheet(props: Readonly<Props>) {
         });
       }
     }
-    if (!reading && under) {
+    if (free && under) {
       choices.push({
         key: "edit",
         label: t("editBlock"),

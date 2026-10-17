@@ -15,6 +15,34 @@ const ipc = vi.hoisted(() => ({
   }[],
   left: 0,
   kept: [] as boolean[],
+  wrapped: [] as [string, string][],
+  flipped: 0,
+  copied: [] as string[],
+  picked: { from: 0, to: 0 },
+  cut: [] as [number, number][],
+}));
+
+vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
+  writeText: (text: string) => {
+    ipc.copied.push(text);
+    return Promise.resolve();
+  },
+}));
+
+vi.mock("../ui/formatting", async (original) => ({
+  ...(await original<typeof import("../ui/formatting")>()),
+  wrapped: (_: unknown, open: string, close: string) => {
+    ipc.wrapped.push([open, close]);
+    return true;
+  },
+}));
+
+vi.mock("../ui/barring", async (original) => ({
+  ...(await original<typeof import("../ui/barring")>()),
+  flipped: () => {
+    ipc.flipped += 1;
+    return true;
+  },
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -41,10 +69,24 @@ vi.mock("../ui/blocking", () => ({
     ipc.opened.push(opened);
     return {
       view: {
-        state: { sliceDoc: () => said },
-        dispatch: (spec: { selection: { anchor: number } }) => {
-          opened.caret = spec.selection.anchor;
+        state: {
+          sliceDoc: (from?: number, to?: number) =>
+            from === undefined ? said : said.slice(from, to),
+          selection: {
+            get main() {
+              return ipc.picked;
+            },
+          },
+          doc: said,
         },
+        dispatch: (spec: {
+          selection?: { anchor: number };
+          changes?: { from: number; to: number };
+        }) => {
+          if (spec.selection) opened.caret = spec.selection.anchor;
+          if (spec.changes) ipc.cut.push([spec.changes.from, spec.changes.to]);
+        },
+        focus: () => {},
       },
       leave: () => {
         ipc.left += 1;
@@ -83,6 +125,105 @@ beforeEach(() => {
   ipc.opened = [];
   ipc.left = 0;
   ipc.kept = [];
+  ipc.wrapped = [];
+  ipc.flipped = 0;
+  ipc.copied = [];
+  ipc.picked = { from: 0, to: 0 };
+  ipc.cut = [];
+});
+
+const pick = (page: Document, from: number, to: number) => {
+  const words = page.querySelector('p[data-at="11-17"]')?.firstChild as Node;
+  const range = page.createRange();
+  range.setStart(words, from);
+  range.setEnd(words, to);
+  page.getSelection()?.removeAllRanges();
+  page.getSelection()?.addRange(range);
+  return words;
+};
+
+const offered = () =>
+  Array.from(document.querySelectorAll('[role="menuitem"]')).map((one) => one.textContent?.trim());
+
+const chosen = (label: string) =>
+  Array.from(document.querySelectorAll<HTMLElement>('[role="menuitem"]'))
+    .find((one) => one.textContent?.trim() === label)
+    ?.click();
+
+describe("words picked on the sheet", () => {
+  it("writes a quick format around them and goes back to reading, but a link stays open for its address", async () => {
+    const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} />);
+    const page = await loaded(await shown(view.container));
+    pick(page, 0, 5);
+    page.dispatchEvent(new MouseEvent("mouseup"));
+    await waitFor(() => expect(page.querySelector<HTMLElement>(".quick-bar")?.hidden).toBe(false));
+    page.querySelector<HTMLButtonElement>(".quick-bar button")?.click();
+    expect(ipc.opened.map((one) => one.said)).toEqual(["leche\n"]);
+    expect(ipc.wrapped).toEqual([["**", "**"]]);
+    expect(ipc.left).toBe(1);
+  });
+
+  it("keeps a link's block open so its address can be written", async () => {
+    const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} />);
+    const page = await loaded(await shown(view.container));
+    pick(page, 0, 5);
+    page.dispatchEvent(new MouseEvent("mouseup"));
+    await waitFor(() => expect(page.querySelector<HTMLElement>(".quick-bar")?.hidden).toBe(false));
+    page.querySelectorAll<HTMLButtonElement>(".quick-bar button")[5]?.click();
+    expect(ipc.wrapped).toEqual([["[", "]()"]]);
+    expect(ipc.left).toBe(0);
+  });
+
+  it("offers copy, the formats and the block on a right click, and only copy where it is read", async () => {
+    const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} />);
+    const page = await loaded(await shown(view.container));
+    const words = pick(page, 0, 5);
+    words.parentElement?.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true }));
+    await waitFor(() => expect(offered()).toContain("Edit this block"));
+    expect(offered()).toEqual(expect.arrayContaining(["Copy", "Bold"]));
+    chosen("Copy");
+    await waitFor(() => expect(ipc.copied).toEqual(["leche"]));
+    words.parentElement?.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true }));
+    await waitFor(() => expect(offered()).toContain("Edit this block"));
+    chosen("Edit this block");
+    expect(ipc.opened.map((one) => one.said)).toEqual(["leche\n"]);
+    view.unmount();
+
+    const read = render(<Sheet value={BODY} label="Compras" reading onWrite={() => {}} />);
+    const quiet = await loaded(await shown(read.container));
+    pick(quiet, 0, 5).parentElement?.dispatchEvent(
+      new MouseEvent("contextmenu", { bubbles: true }),
+    );
+    await waitFor(() => expect(offered()).toEqual(["Copy"]));
+  });
+
+  it("offers cut, copy, the formats and the marks inside a block being written", async () => {
+    const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} />);
+    const page = await loaded(await shown(view.container));
+    page
+      .querySelector('p[data-at="11-17"]')
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    ipc.picked = { from: 0, to: 5 };
+    const writing = () =>
+      page
+        .querySelector(".editing")
+        ?.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true }));
+    writing();
+    await waitFor(() => expect(offered()).toContain("Show every mark"));
+    expect(offered()).toEqual(expect.arrayContaining(["Cut", "Copy", "Bold"]));
+    chosen("Bold");
+    expect(ipc.wrapped).toEqual([["**", "**"]]);
+    writing();
+    await waitFor(() => expect(offered()).toContain("Show every mark"));
+    chosen("Show every mark");
+    expect(ipc.flipped).toBe(1);
+    writing();
+    await waitFor(() => expect(offered()).toContain("Cut"));
+    chosen("Cut");
+    await waitFor(() => expect(ipc.cut).toEqual([[0, 5]]));
+    expect(ipc.copied).toEqual(["leche"]);
+    expect(ipc.left).toBe(0);
+  });
 });
 
 describe("the sheet in the main window", () => {

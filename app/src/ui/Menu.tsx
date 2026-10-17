@@ -19,7 +19,6 @@ interface Props {
   label: string;
   /** Opened from the bottom of the screen: `at.y` is the edge the menu grows up from. */
   up?: boolean;
-  /** Picking from it leaves the block being written open. */
   keeps?: boolean;
   onClose: () => void;
 }

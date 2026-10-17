@@ -1,6 +1,5 @@
-import { markup } from "../glyphs";
 import { t } from "../locales";
-import { FORMATS, PENS } from "./barring";
+import { formatButtons } from "./barring";
 import { spanned } from "./paging";
 
 export type Formatting = {
@@ -30,7 +29,6 @@ const blockOf = (node: Node | null): HTMLElement | null => {
   return element?.closest<HTMLElement>(".page > [data-at]") ?? null;
 };
 
-// What is selected inside one block of the page, with the words before it, as a click reads them.
 export const picked = (page: Document): Omit<Formatting, "open" | "close"> | null => {
   const chosen = page.getSelection();
   if (!chosen || chosen.isCollapsed || chosen.rangeCount === 0) return null;
@@ -46,47 +44,18 @@ export const picked = (page: Document): Omit<Formatting, "open" | "close"> | nul
   return { at, block, read: before.toString(), said };
 };
 
-const glyph = (page: Document, name: string) => {
-  const svg = page.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("viewBox", "0 0 24 24");
-  svg.setAttribute("aria-hidden", "true");
-  svg.innerHTML = markup(name) ?? "";
-  return svg;
-};
-
 const barOf = (page: Document, pick: (open: string, close: string) => void) => {
   const bar = page.createElement("div");
   bar.className = "cm-bar quick-bar";
   bar.setAttribute("role", "toolbar");
   bar.setAttribute("aria-label", t("formatting"));
   bar.hidden = true;
-  const button = (label: string, open: string, close: string) => {
-    const one = page.createElement("button");
-    one.type = "button";
-    one.className = "cm-bar-button";
-    one.title = label;
-    one.setAttribute("aria-label", label);
-    one.addEventListener("mousedown", (event) => event.preventDefault());
-    one.addEventListener("click", () => pick(open, close));
-    bar.append(one);
-    return one;
-  };
-  for (const [said, , open, close, icon] of FORMATS) {
-    const holder = page.createElement("span");
-    holder.className = "cm-bar-glyph";
-    holder.append(glyph(page, icon));
-    button(t(said), open, close).append(holder);
-  }
-  for (const [hue, said, close] of PENS) {
-    const pen = page.createElement("span");
-    pen.className = `cm-bar-pen cm-pen-${hue}`;
-    button(t(said), "==", close).append(pen);
-  }
+  const { formats, pens } = formatButtons(page, pick);
+  bar.append(...formats, ...pens);
   page.body.append(bar);
   return bar;
 };
 
-// A selection on the page offers the quick formats; a block being written has its own bar.
 export const quickly = (page: Document, reach: () => Quick) => {
   let chosen: Omit<Formatting, "open" | "close"> | null = null;
   const bar = barOf(page, (open, close) => {
@@ -100,25 +69,29 @@ export const quickly = (page: Document, reach: () => Quick) => {
     chosen = null;
   };
   const show = () => {
-    chosen = reach().onFormat ? picked(page) : null;
+    const writing = page.querySelector(".editing") !== null;
+    chosen = reach().onFormat && !writing ? picked(page) : null;
     if (!chosen) return hide();
     const box = page.getSelection()?.getRangeAt(0).getBoundingClientRect();
     const view = page.defaultView;
     if (!box || !view) return hide();
     bar.hidden = false;
-    const top = box.top + view.scrollY - bar.offsetHeight - 8;
-    bar.style.top = `${Math.max(view.scrollY + 4, top)}px`;
-    bar.style.left = `${Math.max(4, box.left + view.scrollX)}px`;
+    // The page is zoomed as a whole, so what the selection measures is scaled once already.
+    const zoom = Number.parseFloat(page.documentElement.style.zoom || "1") || 1;
+    const top = (box.top + view.scrollY) / zoom - bar.offsetHeight - 8;
+    bar.style.top = `${Math.max(view.scrollY / zoom + 4, top)}px`;
+    bar.style.left = `${Math.max(4, (box.left + view.scrollX) / zoom)}px`;
   };
   page.addEventListener("mouseup", (event) => {
     if (bar.contains(event.target as Node)) return;
     setTimeout(show);
   });
-  page.addEventListener("keyup", (event) => {
-    if (event.shiftKey) show();
+  page.addEventListener("keyup", () => {
+    if (!page.getSelection()?.isCollapsed) show();
   });
   page.addEventListener("selectionchange", () => {
     if (page.getSelection()?.isCollapsed) hide();
+    else if (!bar.hidden) show();
   });
   page.addEventListener("contextmenu", (event) => {
     event.preventDefault();
@@ -128,12 +101,13 @@ export const quickly = (page: Document, reach: () => Quick) => {
     const writing = Boolean(target?.closest?.(".editing"));
     const element = writing ? null : blockOf(target);
     const at = spanned(element?.dataset.at ?? null);
+    const under = target && page.getSelection()?.containsNode(target, true);
     hide();
     onMenu({
       x: event.clientX,
       y: event.clientY,
       writing,
-      picked: writing ? null : picked(page),
+      picked: writing || !under ? null : picked(page),
       block: element && at ? { at, element } : null,
     });
   });
