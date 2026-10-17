@@ -16,6 +16,7 @@ import { adopt, fill, t } from "./locales";
 import { saidPlainly } from "./refusal";
 import Menu from "./ui/Menu";
 import { pageFor } from "./ui/sheets";
+import { leaveAsHtml, leaveAsWord } from "./ui/useLeaving";
 import { type Acts, choicesFor, darkNow, keysFor, PLAIN, ZOOMS } from "./ui/viewer/acting";
 import { button } from "./ui/viewer/Glyphs";
 import Header, { titled } from "./ui/viewer/Header";
@@ -157,6 +158,8 @@ export default function Viewing() {
     raw: () => setRaw((was) => !was),
     preview: () => void pdf.preview(),
     keep: () => void pdf.keep(),
+    html: () => void leaveAsHtml([body], named || t("untitledDoc")).catch(fail),
+    word: () => void leaveAsWord([body], named || t("untitledDoc")).catch(fail),
     quietly: () => editIn(false),
     again: () => setAgain((n) => n + 1),
     code: () => setCode(true),

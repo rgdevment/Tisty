@@ -1,5 +1,5 @@
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
-import { copied, docCopy, type Showing, viewGo } from "../../core";
+import { copied, docCopy, docPlain, type Showing, viewGo } from "../../core";
 import { t } from "../../locales";
 import type { Choice } from "../Menu";
 import { PRESETS, type Preset } from "./Stage";
@@ -22,6 +22,8 @@ export interface Acts {
   raw: () => void;
   preview: () => void;
   keep: () => void;
+  html: () => void;
+  word: () => void;
   quietly: () => void;
   again: () => void;
   code: () => void;
@@ -88,10 +90,12 @@ export const choicesFor = (a: Acts): Choice[] => {
     {
       key: "copy",
       label: t("viewCopyMd"),
-      onPick: () => void copied(a.body).catch(a.fail),
+      onPick: () => void docPlain(a.body).then(copied).catch(a.fail),
     },
     { key: "see", label: t("seePdf"), hint: "Ctrl+P", apart: true, onPick: a.preview },
     { key: "pdf", label: t("toPdf"), onPick: a.keep },
+    { key: "html", label: t("toHtml"), onPick: a.html },
+    { key: "word", label: t("toWord"), onPick: a.word },
     ...own,
   ];
 };
