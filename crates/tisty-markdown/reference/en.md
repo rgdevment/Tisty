@@ -1,43 +1,43 @@
 # The Tisty language
 
-A Tisty document is a plain `.md` file. What it holds is Markdown, the same Markdown GitHub and Obsidian read, plus a handful of short words of Tisty's own for what Markdown has no way to say: a pen colour, an underline, an icon, a section that folds. This page lists every one of them: what it is for, how it is written in the file, how it reads, and the small rules that decide when it counts.
+A Tisty document is a plain `.md` file. What it holds is Markdown, the same Markdown GitHub reads, plus a handful of short words of Tisty's own for what Markdown has no way to say: a pen colour, an underline, an icon, a section that folds. This page lists every one of them: what it is for, how it is written in the file, how it reads, and the small rules that decide when it counts.
 
 Nothing on this page needs learning by heart. The `/` menu and the bar in the editor write all of it for you; this is what you find if you open the file somewhere else, or want to write it by hand.
 
 ## At a glance
 
-| What | Written | GitHub | Obsidian |
-| :-- | :-- | :-: | :-: |
-| [Properties](#properties) | `---` `title:` `tags:` … `---` | as a table | yes |
-| [Headings](#headings) | `# Title` … `###### Title` | yes | yes |
-| [Bold, italic, struck, code](#bold-italic-struck-through-and-code) | `**b**` `*i*` `~~s~~` `` `c` `` | yes | yes |
-| [Underline](#underline) | `++words++` | no | no |
-| [Pens](#pens) | `==words==` `==words=={green}` | no | yellow only |
-| [Links](#links) | `[words](https://…)` `[words][one]` `https://…` | yes | yes |
-| [Line breaks](#paragraphs-and-line-breaks) | one line per line | joins them | yes |
-| [Lists and stages](#lists) | `- item` `1. item` `- [ ] stage` | yes | yes |
-| [Quotes and callouts](#quotes-and-callouts) | `> words` `> [!NOTE]` | yes | yes |
-| [Collapsible sections](#collapsible-sections) | `:::details Title` … `:::` | no | no |
-| [Tags](#tags) | `#contract` | as words | yes |
-| [Icons](#icons) | `::dog orange::` | no | no |
-| [Emoji](#emoji) | `🎉` or `:tada:` | yes | `🎉` only |
-| [Other documents and pages](#other-documents-and-pages) | `![Title](tisty:doc/…)` | no | no |
-| [Attachments](#attachments) | `![Label](file-1a2b3c4d.pdf)` | no | no |
-| [References](#references) | `[[Name]]` `[[#2]]` | no | yes |
-| [Footnotes](#footnotes) | `[^1]` … `[^1]: note` | yes | yes |
-| [Code](#code-blocks) | ` ```lang title="name" ` | yes | yes |
-| [Diagrams](#diagrams-formulas-and-widgets) | ` ```mermaid ` | yes | yes |
-| [Formulas](#diagrams-formulas-and-widgets) | ` ```math ` `$x$` `$$x$$` | yes | `$` only |
-| [Widgets](#diagrams-formulas-and-widgets) | ` ```widget ` | as code | as code |
-| [Tables](#tables) | `\| a \| b \|` | yes | yes |
-| [Page breaks](#page-breaks) | `---` | as a rule | as a rule |
-| [Comments and entities](#comments-and-entities) | `<!-- note -->` `&copy;` | yes | yes |
+| What | Written | GitHub |
+| :-- | :-- | :-: |
+| [Properties](#properties) | `---` `title:` `tags:` … `---` | as a table |
+| [Headings](#headings) | `# Title` … `###### Title` | yes |
+| [Bold, italic, struck, code](#bold-italic-struck-through-and-code) | `**b**` `*i*` `~~s~~` `` `c` `` | yes |
+| [Underline](#underline) | `++words++` | no |
+| [Pens](#pens) | `==words==` `==words=={green}` | no |
+| [Links](#links) | `[words](https://…)` `[words][one]` `https://…` | yes |
+| [Line breaks](#paragraphs-and-line-breaks) | one line per line | joins them |
+| [Lists and stages](#lists) | `- item` `1. item` `- [ ] stage` | yes |
+| [Quotes and callouts](#quotes-and-callouts) | `> words` `> [!NOTE]` | yes |
+| [Collapsible sections](#collapsible-sections) | `:::details Title` … `:::` | no |
+| [Tags](#tags) | `#contract` | as words |
+| [Icons](#icons) | `::dog orange::` | no |
+| [Emoji](#emoji) | `🎉` or `:tada:` | yes |
+| [Other documents and pages](#other-documents-and-pages) | `![Title](tisty:doc/…)` | no |
+| [Attachments](#attachments) | `![Label](file-1a2b3c4d.pdf)` | no |
+| [References](#references) | `[[Name]]` `[[#2]]` | no |
+| [Footnotes](#footnotes) | `[^1]` … `[^1]: note` | yes |
+| [Code](#code-blocks) | ` ```lang title="name" ` | yes |
+| [Diagrams](#diagrams-formulas-and-widgets) | ` ```mermaid ` | yes |
+| [Formulas](#diagrams-formulas-and-widgets) | ` ```math ` `$x$` `$$x$$` | yes |
+| [Widgets](#diagrams-formulas-and-widgets) | ` ```widget ` | as code |
+| [Tables](#tables) | `\| a \| b \|` | yes |
+| [Page breaks](#page-breaks) | `---` | as a rule |
+| [Comments and entities](#comments-and-entities) | `<!-- note -->` `&copy;` | yes |
 
 Where the table says *no*, the other reader shows the words exactly as they are written, so nothing is lost: `++words++` stays readable, and `::dog::` is still a dog.
 
 ## Properties
 
-A block of properties at the very top of the file, between two `---` lines, the way GitHub and Obsidian write them (it is often called front matter):
+A block of properties at the very top of the file, between two `---` lines, the way many Markdown tools write them (it is often called front matter):
 
 ```markdown
 ---
@@ -86,7 +86,7 @@ This line is the same paragraph, one line down.
 This one is a new paragraph.
 ```
 
-GitHub joins those two lines into one when it shows a file; Tisty and Obsidian keep them apart. A backslash at the end of a line breaks it everywhere.
+GitHub joins those two lines into one when it shows a file; Tisty keeps them apart. A backslash at the end of a line breaks it everywhere.
 
 To write a line that would otherwise start something — a heading, a list, a quote — put a backslash before it: `\#`, `\-`, `1\.`, `\>`.
 
@@ -127,7 +127,7 @@ The bar offers four pens — **yellow**, **green**, **blue** and **pink** — an
 - The colour goes straight after the closing `==`, with no space: `==words=={green}`. `=={yellow}` is the same as no colour.
 - A colour the palette does not have, like `{chartreuse}`, leaves a yellow pen with `{chartreuse}` written after it, in sight.
 - A pen cannot cross the edge of a bold or a link.
-- Obsidian draws `==words==` in yellow and shows `{green}` as words. When the document leaves Tisty as plain Markdown, pens are written as `<mark>` so other readers can still paint them.
+- When the document leaves Tisty as plain Markdown, pens are written as `<mark>` so other readers can still paint them.
 
 ## Links
 
@@ -233,7 +233,7 @@ Born in 2023. Six-in-one and rabies every March.
 - A section starts folded. With no title after `:::details`, it shows an empty one.
 - Sections nest. Any `:::word` line opens a container that the next lone `:::` closes, so a section inside another, or a `:::tip` block written by another tool, never steals its closing fence. `details` folds and the five callout kinds draw a callout; any other `:::word` block shows its lines as written.
 - They work inside a callout too.
-- GitHub and Obsidian show both fence lines as text and everything between them unfolded. Tisty also draws a `<details>` block written in HTML, the way GitHub writes them, but that is HTML, which is [outside the language](#what-is-outside-the-language).
+- GitHub shows both fence lines as text and everything between them unfolded. Tisty also draws a `<details>` block written in HTML, the way GitHub writes them, but that is HTML, which is [outside the language](#what-is-outside-the-language).
 
 ## Tags
 
@@ -314,7 +314,6 @@ See [[Rina's record]] and step [[#2]].
 - `[[name]]` is drawn as a chip with the name.
 - In a task's description or journal, `[[#2]]` shows the words of that task's second step.
 - An empty name, or one with a `[` or a line break in it, is not a reference.
-- Obsidian reads `[[name]]` as a link to a note of that name.
 
 ## Footnotes
 
@@ -328,7 +327,7 @@ The vet confirmed it[^vet].
 
 - The call is drawn as a small raised label that takes you to the note; the note sits where it is written, with its label beside it.
 - A label is any short word or number: `[^1]`, `[^vet]`.
-- GitHub and Obsidian read them the same way.
+- GitHub reads them the same way.
 
 ## Code blocks
 
@@ -381,7 +380,7 @@ A formula inside a sentence goes between single dollars: `$E=mc^2$`.
   $$
   ```
 
-GitHub draws every one of these fences but `widget`, and `$…$` and `$$…$$` too. Obsidian draws `mermaid`, `$…$` and `$$…$$`, and shows a `math` block as code.
+GitHub draws every one of these fences but `widget`, and `$…$` and `$$…$$` too.
 
 ## Tables
 
