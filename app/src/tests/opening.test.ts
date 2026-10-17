@@ -14,14 +14,20 @@ const ALONE = ".page > :is(h1, h2, h3, p):first-child:only-child";
 
 describe("the first line of a document", () => {
   it("is set as a title even when it was never marked as one", () => {
-    const rule = ruleFor(css(), `${OPENS} {`);
+    const rule = ruleFor(css(), OPENS);
 
     expect(rule).toMatch(/font-size:\s*1\.65em/);
     expect(rule).toMatch(/font-weight:\s*640/);
   });
 
+  it("is the line after the properties when a note opens with them", () => {
+    const rule = ruleFor(css(), OPENS);
+
+    expect(rule).toContain(".page > :is(.front, .fronted):first-child + :is(h1, h2, h3, p)");
+  });
+
   it("is parted from the body by a hairline", () => {
-    const rule = ruleFor(css(), `${OPENS} {`);
+    const rule = ruleFor(css(), OPENS);
 
     expect(rule).toMatch(/border-bottom:\s*1px solid var\(--tisty-hair\)/);
     expect(rule).toMatch(/padding-bottom/);
