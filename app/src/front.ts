@@ -118,7 +118,7 @@ const withProperty = (body: string, key: string, value: string | null): string =
   if (!held) {
     made = added.length ? `---\n${added[0]}\n---\n${plain}` : plain;
   } else {
-    const named = new RegExp(`^${key}\\s*:`, "i");
+    const named = new RegExp(String.raw`^${key}\s*:`, "i");
     const inside = held.slice(1, -1).filter((one) => !named.test(one.trim()));
     const kept = [...inside, ...added];
     const rest = plain.split("\n").slice(held.length).join("\n");

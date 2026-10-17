@@ -45,8 +45,10 @@ export const TALL = Object.fromEntries(
 export const leafWord = (one: Paper) =>
   one === "a4" ? "leafA4" : one === "letter" ? "leafLetter" : "leafTabloid";
 
-export const sizeOf = (leaf: Paper, landscape = false) =>
-  !landscape ? PAGE[leaf] : leaf === "tabloid" ? "17in 11in" : `${PAGE[leaf]} landscape`;
+export const sizeOf = (leaf: Paper, landscape = false) => {
+  if (!landscape) return PAGE[leaf];
+  return leaf === "tabloid" ? "17in 11in" : `${PAGE[leaf]} landscape`;
+};
 
 export const pageFor = (leaf: Paper, landscape = false) => {
   const id = "tisty-page";
