@@ -380,7 +380,12 @@ pub fn push(
     };
     let (stamp, mut rest): (Vec<&Found>, Vec<&Found>) =
         dirty.into_iter().partition(|one| one.name == NAMED);
+    // A stamp already up there only changes to raise the place, and older builds must read that first.
+    let (raised, stamp): (Vec<&Found>, Vec<&Found>) = stamp
+        .into_iter()
+        .partition(|one| index.tree.contains_key(&one.name));
     rest.sort_by_key(|one| (history_first(&one.name), one.name.clone()));
+    rest.splice(0..0, raised);
     pace.owe(
         rest.len() + stamp.len(),
         rest.iter().chain(&stamp).map(|one| one.len).sum(),

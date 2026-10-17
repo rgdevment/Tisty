@@ -240,20 +240,21 @@ ${readFileSync(join(app, "scripts", "guide.css"), "utf8")}
 figure.example,figure.widget{${appLight}}
 html.dark figure.example,html.dark figure.widget{${dark}}
 `;
-const style = `guide.${createHash("sha256").update(css).digest("hex").slice(0, 10)}.css`;
+const logoName = `tisty.${createHash("sha256").update(logo).digest("hex").slice(0, 10)}.svg`;
+const look = { style: css, logo: logoName };
 for (const language of LANGUAGES) {
   const into = join(out, language.dir);
   mkdirSync(into, { recursive: true });
   for (const page of built.get(language.code))
-    writeFileSync(join(into, `${page.slug}.html`), sheetOf(built, language, page, style));
+    writeFileSync(join(into, `${page.slug}.html`), sheetOf(built, language, page, look));
   writeFileSync(join(into, "rina.jpg"), readFileSync(join(app, "src-tauri", "resources", "guide", language.code, "rina.jpg")));
   writeFileSync(join(into, "tisty.svg"), logo);
   writeFileSync(join(into, "llms-full.txt"), reference(language));
 }
-writeFileSync(join(out, "404.html"), missing(style));
-writeFileSync(join(out, "_headers"), headers(style));
+writeFileSync(join(out, "404.html"), missing(look));
+writeFileSync(join(out, "_headers"), headers(logoName));
 writeFileSync(join(out, "sitemap.xml"), mapped(built));
 writeFileSync(join(out, "robots.txt"), robots);
 writeFileSync(join(out, "llms.txt"), llms(built));
-writeFileSync(join(out, style), css);
+writeFileSync(join(out, logoName), logo);
 console.log(`the guide is in ${out}`);
