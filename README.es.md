@@ -233,7 +233,7 @@ artificial**, esto es Tisty:
 | Un documento con páginas | un libro, con sus capítulos en el orden en que el texto los nombra y un índice |
 | Diagramas y fórmulas | dibujados con unas pocas líneas de texto, claros u oscuros según la ventana |
 | Widgets | pequeñas páginas HTML con los colores de Tisty, aisladas de la red |
-| PDF | propio: A4, Carta o Tabloide, con los adjuntos dentro |
+| PDF | propio: A4, Carta o Tabloide, con sus imágenes dentro |
 | Cualquier archivo `.md` | se abre para leer en una ventana propia, sin entrar a tu almacén |
 | Adjuntos | se guardan con la tarea, tal como son |
 | Lo terminado | un **archivo que conserva lo que cada tarea te enseñó** |
@@ -302,7 +302,7 @@ editor— y en Tisty lleva bastante más que texto:
   marcan.
 - **Adjuntos que viajan con él**: fotos, PDF, sonido y video, guardados dentro
   de Tisty en vez de enlazados a una carpeta que se mueve.
-- **Un PDF propio**, A4, Carta o Tabloide, con los adjuntos dentro, que te
+- **Un PDF propio**, A4, Carta o Tabloide, con sus imágenes dentro, que te
   enseña antes de exportarlo.
 
 ![Notas en Markdown, archivos simples, cualquier editor: fórmulas y un widget dibujados dentro de un documento, con el formato y el PDF en la columna de al lado](assets/store/es-03-notas.png)
@@ -380,7 +380,7 @@ el nombre del documento y su título —pasando por encima de una valla o de la
 marca de un aviso para encontrarla—. Cuando la ventana da para ello, al lado se
 abre una columna con de qué va el documento, el formato que el menú `/`
 escondía y su índice. **Tisty genera su propio PDF** —A4, Carta o Tabloide,
-con sus propios márgenes y los adjuntos dentro— y te lo enseña antes
+con sus propios márgenes y sus imágenes dentro— y te lo enseña antes
 de exportarlo.
 
 **Un archivo Markdown de cualquier parte se abre para leer.** Elige Tisty en
@@ -393,8 +393,11 @@ una ventana aparte*, y su PDF ahí lleva firma salvo que desmarques **Con
 firma**. Un widget también se abre aparte, al ancho de un móvil, una tablet o
 un escritorio. Más en [la wiki](https://github.com/rgdevment/Tisty/wiki/Documentos#abrir-un-archivo-markdown-de-afuera).
 
-**Y salen enteros.** Un documento se copia como Markdown, se escribe en una
-carpeta con sus páginas y sus adjuntos al lado, o se exporta para Tisty en un
+**Y salen enteros.** Un documento se copia como Markdown estándar, como lo
+leen GitHub y CommonMark, se escribe en una carpeta con sus páginas y sus
+adjuntos al lado, sale como una página web o un archivo de Word con sus
+imágenes dentro (de Markdown a HTML, de Markdown a Word), o se exporta para
+Tisty en un
 archivo `.tistyx` que además guarda lo que el Markdown no sabe decir: las
 carpetas con su orden, su icono y su color, de qué documento cuelga cada
 página, qué está archivado y con qué alias se firmó. Lleva también un

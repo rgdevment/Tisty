@@ -1093,6 +1093,8 @@ the log and is capped at `BODY_AT_MOST` = 500 KiB.
 | Export as Markdown | A folder: the document beside an `attachments/` holding what it names, each body through `to_standard`, a link to a page pointing at the page's file |
 | Export everything | The same across the store, with the folder tree on disk |
 | Export for Tisty | A `.tistyx` zip (`parcel.rs`): bodies byte for byte, the attachments they name, a manifest with folders, order, archive state, locks and aliases. No log line travels. Importing makes new ids and rewrites references between documents. A parcel for one's own machines can be locked with a number (scrypt, then XChaCha20-Poly1305 in 64 KiB blocks); the manifest carries an HMAC under the store's secret so a store can tell a parcel it wrote from one that merely wears its name |
+| Export as HTML | One standalone page composed in the UI (`webPage.ts`): the drawn fragments of the document and its pages, `page.css`, icons as SVG, pictures as `data:` URLs, links into the store as words; written by `keep_file` |
+| Export as Word | `tisty_core::leaving_word::to_word` turns the same tree the PDF reads into a `.docx`: heading styles, numbering, tables, hyperlinks, highlights, code in a `Code` style in Consolas, png/jpeg/gif inside; `doc_word` writes it |
 | Export to PDF | Composed in the UI (`@react-pdf/renderer`) from the editor's tree, not printed by the OS; attachments' bytes come through a command |
 
 ### Search

@@ -228,7 +228,7 @@ and tasks, with no account, no subscription and no AI**, this is what Tisty is:
 | A document with pages | a book, with its chapters in the order the text names them and an index |
 | Diagrams and formulas | drawn from a few lines of text, light or dark with the window |
 | Widgets | small pages of HTML in Tisty's colours, sealed off from the network |
-| PDF | its own: A4, Letter or Tabloid, with the attachments inside |
+| PDF | its own: A4, Letter or Tabloid, with its pictures inside |
 | Any `.md` file | opens to read in a window of its own, without coming into your store |
 | Attachments | kept with the task, as themselves |
 | Finished work | an **archive that keeps what each task taught you** |
@@ -295,7 +295,7 @@ Tisty it holds a good deal more than text:
   several colours, an icon looked up by what it draws — and boxes you tick.
 - **Attachments that travel with it**: pictures, PDFs, sound and film, kept
   inside Tisty rather than linked to a folder that moves.
-- **A PDF of its own**, A4, Letter or Tabloid, with the attachments inside,
+- **A PDF of its own**, A4, Letter or Tabloid, with its pictures inside,
   shown to you before you export it.
 
 ![Markdown notes, plain files, any editor: formulas and a widget drawn inside a document, with the formatting and the PDF in the column beside it](assets/store/en-03-notes.png)
@@ -371,7 +371,7 @@ name of the document and its title — reading past a fence or an alert's marker
 find it. When the window is wide enough a column opens beside it
 with what the document is, the formatting the `/` menu used to hide, and its
 outline. **Tisty makes its own PDF** — A4, Letter or Tabloid, with its
-own margins and the attachments carried inside — and shows it to you before you
+own margins and its pictures carried inside — and shows it to you before you
 export it.
 
 **A Markdown file from anywhere opens to read.** Pick Tisty under *Open with*
@@ -384,8 +384,10 @@ from its panel, *Open in a window of its own*, and its PDF there is signed
 unless you untick **Signed**. A widget opens apart too, at phone, tablet or
 desktop width. More in [the wiki](https://github.com/rgdevment/Tisty/wiki/Documents#opening-a-markdown-file-from-outside).
 
-**And they leave whole.** A document copies as Markdown, writes out into a
-folder with its pages and attachments beside it, or is exported for Tisty into a
+**And they leave whole.** A document copies as standard Markdown, the way
+GitHub and CommonMark read it, writes out into a folder with its pages and
+attachments beside it, leaves as one web page or a Word file with its pictures
+inside (Markdown to HTML, Markdown to Word), or is exported for Tisty into a
 `.tistyx` file that also carries what Markdown cannot say: folders with their order,
 icon and colour, which document each page hangs from, what is archived, and the
 alias it was signed with. It carries a `README.txt` as well, so whoever you hand
