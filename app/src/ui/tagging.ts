@@ -1,4 +1,4 @@
-import { unfronted } from "../front";
+import { frontTags, unfronted } from "../front";
 
 /// The same reading the core does when it saves: a hash pinned to a letter or a digit, with a
 /// separator in front of it. `# Heading` carries a space, and a colour or a web address carries
@@ -37,6 +37,10 @@ export const often = (body: string): Map<string, number> => {
       const tag = named(hit[2]);
       if (worthReading(tag)) many.set(tag, (many.get(tag) ?? 0) + 1);
     }
+  }
+  for (const word of frontTags(body)) {
+    const tag = named(word);
+    if (tag) many.set(tag, (many.get(tag) ?? 0) + 1);
   }
   return many;
 };

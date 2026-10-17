@@ -72,3 +72,10 @@ export const fields = (body: string): Field[] => {
     out.some((one) => one.values.some((value) => [...value].length > VALUE_AT_MOST));
   return past ? [] : out;
 };
+
+export const frontTags = (body: string): string[] =>
+  fields(body)
+    .filter((one) => /^tags?$/i.test(one.key))
+    .flatMap((one) => one.values.flatMap((value) => value.split(/[, ]/)))
+    .map((word) => word.replace(/^#+/, ""))
+    .filter((word) => word !== "");
