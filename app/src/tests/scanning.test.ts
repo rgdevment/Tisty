@@ -45,7 +45,7 @@ describe("looking through every document for what the editor cannot keep", () =>
 
   it("keeps the title, because a file name is not what a person looks for", async () => {
     const found = await scanned(
-      () => Promise.resolve("una nota[^1]\n\n[^1]: el pie"),
+      () => Promise.resolve("una nota <span>suelta</span>"),
       () => Promise.resolve({ docs: [filed("a-0009", "Minuta del lunes")] }),
     );
 

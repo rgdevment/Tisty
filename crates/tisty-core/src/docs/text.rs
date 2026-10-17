@@ -1,5 +1,4 @@
-pub(crate) use tisty_markdown::fences::nameless;
-pub(super) use tisty_markdown::fences::{Fencing, bullet, quoted, quoteless};
+pub(super) use tisty_markdown::fences::{Fencing, quoteless};
 pub use tisty_markdown::fences::{ends_fenced, fencing};
 
 pub fn titled(body: &str) -> String {

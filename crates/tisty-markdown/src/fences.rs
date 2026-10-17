@@ -34,7 +34,6 @@ pub fn fenced_spans(text: &str) -> Vec<(usize, usize)> {
 pub struct Fencing {
     pub open: Option<(char, usize, usize, usize)>,
     pub base: usize,
-    pub told: bool,
 }
 
 pub fn bullet(said: &str) -> Option<usize> {
@@ -58,43 +57,23 @@ pub fn bullet(said: &str) -> Option<usize> {
     (gap > 0).then_some(at + gap)
 }
 
+// A bullet with nothing after it still opens an item, whose words start one column past the mark.
+fn emptied(said: &str) -> Option<usize> {
+    let numbered = said.strip_suffix(['.', ')']).is_some_and(|digits| {
+        (1..=9).contains(&digits.len()) && digits.bytes().all(|one| one.is_ascii_digit())
+    });
+    (matches!(said, "-" | "*" | "+") || numbered).then_some(said.len() + 1)
+}
+
 pub fn listed(base: usize, wide: usize, said: &str) -> usize {
     if said.is_empty() {
         return base;
     }
-    match bullet(said) {
+    match bullet(said).or_else(|| emptied(said)) {
         Some(after) if wide <= base => wide + after,
         _ if wide < base => 0,
         _ => base,
     }
-}
-
-pub fn nameless(said: &str) -> String {
-    let mut from = 0;
-    while let Some(found) = said[from..].find("title=\"") {
-        let at = from + found;
-        from = at + 7;
-        if said[..at]
-            .chars()
-            .next_back()
-            .is_some_and(|one| one.is_alphanumeric() || one == '_')
-        {
-            continue;
-        }
-        let rest = &said[from..];
-        let bytes = rest.as_bytes();
-        let mut over = 0;
-        let end = loop {
-            match bytes.get(over) {
-                None => return said.to_string(),
-                Some(b'\\') => over += 2,
-                Some(b'"') => break over,
-                _ => over += 1,
-            }
-        };
-        return format!("{} {}", &said[..at], &rest[end + 1..]);
-    }
-    said.to_string()
 }
 
 fn spacing(said: &str) -> usize {
@@ -134,7 +113,6 @@ impl Fencing {
             Some(after) => (wide + after, &said[after..]),
             None => (wide, said),
         };
-        self.told = false;
         let mut marker = None;
         for mark in ['`', '~'] {
             let many = said.chars().take_while(|c| *c == mark).count();
@@ -143,7 +121,6 @@ impl Fencing {
             }
             let after = &said[many.min(said.len())..];
             if mark == '`' && after.contains('`') {
-                self.told = self.open.is_none();
                 continue;
             }
             marker = Some((mark, many));
@@ -169,8 +146,7 @@ impl Fencing {
 
         match marker {
             Some((mark, many)) => {
-                self.told = nameless(&said[many..]).split_whitespace().count() > 1;
-                self.open = Some((mark, many, deep, wide));
+                self.open = Some((mark, many, deep, self.base.min(wide)));
                 true
             }
             None => false,

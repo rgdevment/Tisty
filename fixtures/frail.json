@@ -203,27 +203,19 @@
   },
   {
     "text": "# t\n\nSomething <!-- hidden --> more",
-    "why": [
-      "comments"
-    ]
+    "why": []
   },
   {
     "text": "# t\n\nfoo &amp; bar",
-    "why": [
-      "entities"
-    ]
+    "why": []
   },
   {
     "text": "copyright &copy; 2026",
-    "why": [
-      "entities"
-    ]
+    "why": []
   },
   {
     "text": "quote &#39; mark",
-    "why": [
-      "entities"
-    ]
+    "why": []
   },
   {
     "text": "a claim[^1]\n\n[^1]: the source",
@@ -235,15 +227,11 @@
   },
   {
     "text": "see [the thread][one]\n\n[one]: https://example.com",
-    "why": [
-      "refs"
-    ]
+    "why": []
   },
   {
     "text": "[a\b]: https://example.com",
-    "why": [
-      "refs"
-    ]
+    "why": []
   },
   {
     "text": "> ```\n> code\n\n<div>real</div>",
@@ -271,21 +259,15 @@
   },
   {
     "text": "1. abre aqui\n   ```\n   codigo sin cerrar\n[uno]: https://example.com/real\n",
-    "why": [
-      "refs"
-    ]
+    "why": []
   },
   {
     "text": "- abre aqui\n  ```\n  codigo sin cerrar\n\nalgo &amp; mas\n",
-    "why": [
-      "entities"
-    ]
+    "why": []
   },
   {
     "text": "- abre aqui\n  ```\n  codigo sin cerrar\n\nalgo <!-- oculto --> mas\n",
-    "why": [
-      "comments"
-    ]
+    "why": []
   },
   {
     "text": "# t\n\n    ```\n    ejemplo sin cerrar\n\n<div>real</div>\n",
@@ -313,9 +295,7 @@
   },
   {
     "text": "# t\n\n    ```\n    ejemplo sin cerrar\n\nalgo &amp; mas\n",
-    "why": [
-      "entities"
-    ]
+    "why": []
   },
   {
     "text": "- uno\n  - dos\n    ```\n    sin cerrar\n\n<div>real</div>\n",
@@ -338,15 +318,12 @@
   {
     "text": "``` unclosed then ` also unclosed <div>x</div>",
     "why": [
-      "html",
-      "fence"
+      "html"
     ]
   },
   {
     "text": "````` <div>x</div>&amp; fin",
-    "why": [
-      "fence"
-    ]
+    "why": []
   },
   {
     "text": "<?xml version=\"1.0\"?>",
@@ -398,9 +375,7 @@
   },
   {
     "text": "~~~ mermaid extra\ngraph TD;\n~~~",
-    "why": [
-      "fence"
-    ]
+    "why": []
   },
   {
     "text": "﻿```html\n<div>x</div>\n```",
@@ -408,9 +383,7 @@
   },
   {
     "text": "﻿```js `title\nalgo\n```",
-    "why": [
-      "fence"
-    ]
+    "why": []
   },
   {
     "text": "﻿<div>hola</div>",
@@ -428,41 +401,27 @@
   },
   {
     "text": "- ```js hola mundo\n  code\n  ```",
-    "why": [
-      "fence",
-      "block"
-    ]
+    "why": []
   },
   {
     "text": "- ```js\n  code\n  ```",
-    "why": [
-      "block"
-    ]
+    "why": []
   },
   {
     "text": "- one\n  - ```js dos palabras\n    code\n    ```",
-    "why": [
-      "fence",
-      "block"
-    ]
+    "why": []
   },
   {
     "text": "[ref]:\n  https://example.com",
-    "why": [
-      "refs"
-    ]
+    "why": []
   },
   {
     "text": "mira [esto][ref]\n\n[ref]:\n  https://example.com",
-    "why": [
-      "refs"
-    ]
+    "why": []
   },
   {
     "text": "[a\\]b]: https://example.com",
-    "why": [
-      "refs"
-    ]
+    "why": []
   },
   {
     "text": "[ref]:\n\nsuelto",
@@ -470,9 +429,7 @@
   },
   {
     "text": "```js title=\"x.js\" y mas\ncodigo\n```",
-    "why": [
-      "fence"
-    ]
+    "why": []
   },
   {
     "text": "``` title=\"sin lenguaje\"\nalgo\n```",
@@ -480,33 +437,23 @@
   },
   {
     "text": "```js mytitle=\"a b c\"\nalgo\n```",
-    "why": [
-      "fence"
-    ]
+    "why": []
   },
   {
     "text": "```js subtitle=\"a b c\"\nalgo\n```",
-    "why": [
-      "fence"
-    ]
+    "why": []
   },
   {
     "text": "```js _title=\"a b c\"\nalgo\n```",
-    "why": [
-      "fence"
-    ]
+    "why": []
   },
   {
     "text": "```js 5title=\"a b c\"\nalgo\n```",
-    "why": [
-      "fence"
-    ]
+    "why": []
   },
   {
     "text": "```mytitle=\"a b c\"\nalgo\n```",
-    "why": [
-      "fence"
-    ]
+    "why": []
   },
   {
     "text": "```js title=\"a b c\"\nalgo\n```",
@@ -542,7 +489,9 @@
   },
   {
     "text": "<mark data-pen=\"VERDE\">no</mark>",
-    "why": ["html"]
+    "why": [
+      "html"
+    ]
   },
   {
     "text": "texto ==amarillo== normal",
@@ -550,9 +499,7 @@
   },
   {
     "text": "```js title=\"a`b\"\nalgo\n```",
-    "why": [
-      "fence"
-    ]
+    "why": []
   },
   {
     "text": "~~~js title=\"a`b\"\nalgo\n~~~",
@@ -568,51 +515,35 @@
   },
   {
     "text": "- > una cita",
-    "why": [
-      "block"
-    ]
+    "why": []
   },
   {
     "text": "1. > una cita",
-    "why": [
-      "block"
-    ]
+    "why": []
   },
   {
     "text": "- # un titulo",
-    "why": [
-      "block"
-    ]
+    "why": []
   },
   {
     "text": "- ![foto](x.png)",
-    "why": [
-      "block"
-    ]
+    "why": []
   },
   {
     "text": "- - anidada",
-    "why": [
-      "block"
-    ]
+    "why": []
   },
   {
     "text": "- ***",
-    "why": [
-      "block"
-    ]
+    "why": []
   },
   {
     "text": "-      codigo con sangria",
-    "why": [
-      "block"
-    ]
+    "why": []
   },
   {
     "text": "- | a |\n  | --- |\n  | uno |",
-    "why": [
-      "block"
-    ]
+    "why": []
   },
   {
     "text": "- #hashtag no es titulo",
@@ -644,45 +575,31 @@
   },
   {
     "text": "- #",
-    "why": [
-      "block"
-    ]
+    "why": []
   },
   {
     "text": "- ######",
-    "why": [
-      "block"
-    ]
+    "why": []
   },
   {
     "text": "-\t> una cita tras un tabulador",
-    "why": [
-      "block"
-    ]
+    "why": []
   },
   {
     "text": "-\t\tcodigo con dos tabuladores",
-    "why": [
-      "block"
-    ]
+    "why": []
   },
   {
     "text": "* ---",
-    "why": [
-      "block"
-    ]
+    "why": []
   },
   {
     "text": "1. ---",
-    "why": [
-      "block"
-    ]
+    "why": []
   },
   {
     "text": "- ___",
-    "why": [
-      "block"
-    ]
+    "why": []
   },
   {
     "text": "- ---",
@@ -710,7 +627,9 @@
   },
   {
     "text": "<span data-ico=\"rocket\" data-hue=\"blue\">:rocket:</span> despega",
-    "why": ["html"]
+    "why": [
+      "html"
+    ]
   },
   {
     "text": "<span data-ico=\"house-plug\">:house-plug:</span> en casa",
@@ -742,15 +661,11 @@
   },
   {
     "text": "$$\n\\int_0^1 x\n$$",
-    "why": [
-      "maths"
-    ]
+    "why": []
   },
   {
     "text": "La formula $$a^2$$ va aqui",
-    "why": [
-      "maths"
-    ]
+    "why": []
   },
   {
     "text": "# t\n\n```math\n\\int_0^1 x\n```\n",
@@ -758,9 +673,7 @@
   },
   {
     "text": "Cuesta $$ mucho dinero",
-    "why": [
-      "maths"
-    ]
+    "why": []
   },
   {
     "text": "Cuesta 5 dolares y 3 mas",
@@ -788,8 +701,26 @@
   },
   {
     "text": "# t\n\n```mermaid showLineNumbers title=\"x\"\ngraph TD\n  A --> B\n```\n",
+    "why": []
+  },
+  {
+    "text": "a <!-- <div>x</div> --> b",
+    "why": []
+  },
+  {
+    "text": "<!--\n<b>draft</b>\n-->\n\nfin",
+    "why": []
+  },
+  {
+    "text": "<!--\n    <div>x</div>\n-->\n\n<div>real</div>",
     "why": [
-      "fence"
+      "html"
+    ]
+  },
+  {
+    "text": "<!-- uno --> <span>dos</span>",
+    "why": [
+      "html"
     ]
   }
 ]

@@ -12,7 +12,7 @@ Nada de esto hay que aprenderlo de memoria. El menú `/` y la barra del editor l
 | [Negrita, cursiva, tachado, código](#negrita-cursiva-tachado-y-código) | `**n**` `*c*` `~~t~~` `` `c` `` | sí | sí |
 | [Subrayado](#subrayado) | `++palabras++` | no | no |
 | [Rotuladores](#rotuladores) | `==palabras==` `==palabras=={green}` | no | solo amarillo |
-| [Enlaces](#enlaces) | `[palabras](https://…)` | sí | sí |
+| [Enlaces](#enlaces) | `[palabras](https://…)` `[palabras][uno]` `https://…` | sí | sí |
 | [Saltos de línea](#párrafos-y-saltos-de-línea) | una línea por línea | las junta | sí |
 | [Listas y etapas](#listas) | `- elemento` `1. elemento` `- [ ] etapa` | sí | sí |
 | [Citas y avisos](#citas-y-avisos) | `> palabras` `> [!NOTE]` | sí | sí |
@@ -26,10 +26,11 @@ Nada de esto hay que aprenderlo de memoria. El menú `/` y la barra del editor l
 | [Notas al pie](#notas-al-pie) | `[^1]` … `[^1]: nota` | sí | sí |
 | [Código](#bloques-de-código) | ` ```lenguaje title="nombre" ` | sí | sí |
 | [Diagramas](#diagramas-fórmulas-y-widgets) | ` ```mermaid ` | sí | sí |
-| [Fórmulas](#diagramas-fórmulas-y-widgets) | ` ```math ` y `$x$` | sí | solo `$x$` |
+| [Fórmulas](#diagramas-fórmulas-y-widgets) | ` ```math ` `$x$` `$$x$$` | sí | solo `$` |
 | [Widgets](#diagramas-fórmulas-y-widgets) | ` ```widget ` | como código | como código |
 | [Tablas](#tablas) | `\| a \| b \|` | sí | sí |
 | [Saltos de página](#saltos-de-página) | `---` | como raya | como raya |
+| [Comentarios y entidades](#comentarios-y-entidades) | `<!-- nota -->` `&copy;` | sí | sí |
 
 Donde la tabla dice *no*, el otro lector muestra las palabras tal como están escritas, así que no se pierde nada: `++palabras++` se sigue leyendo, y `::dog::` sigue siendo un perro.
 
@@ -116,6 +117,16 @@ entre ángulos <https://github.com/rgdevment/Tisty>, y un correo
 igual: <rina@example.com>.
 ```
 
+- Una dirección web escrita sola, `https://github.com/rgdevment/Tisty`, también es un enlace. Un punto, una coma o un paréntesis que cierra justo después no son parte de ella.
+- Un enlace también se puede escribir por referencia, con su dirección dicha una vez en una línea propia, en cualquier parte del documento:
+
+  ```markdown
+  El [mapa del paseo][parque] y la [veterinaria][vet].
+
+  [parque]: https://example.com/parque
+  [vet]: https://example.com/vet "Abre los sábados"
+  ```
+
 - Un enlace todavía sin dirección, `[palabras]()`, se lee como sus palabras.
 - Solo se siguen las direcciones web, `mailto:` y el `tisty:` propio. Cualquier otro esquema se lee como texto.
 - Una dirección con espacios va entre ángulos: `[clip](<C:/Users/yo/un clip.mkv>)`.
@@ -136,7 +147,7 @@ igual: <rina@example.com>.
 ```
 
 - Las viñetas son `-`, `*` o `+`; los números, `1.` o `1)`. Sangra un elemento para anidarlo.
-- Cada elemento empieza con palabras. Uno que empieza con otro bloque (una cita, un título, una imagen, una valla) queda fuera del lenguaje (mira [el final de esta página](#lo-que-queda-fuera-del-lenguaje)).
+- Un elemento puede empezar con palabras o con otro bloque (una cita, un título, una imagen, una valla), tal como lo dice Markdown.
 
 ### Etapas
 
@@ -309,7 +320,7 @@ rsync -a ~/Tisty/ /Volumes/Respaldo/Tisty/
 ````
 
 - El nombre va en `title="…"`; una `"` dentro se escribe `\"`. Los demás lectores lo ignoran.
-- Cualquier otra cosa después del lenguaje, aparte del nombre, queda [fuera del lenguaje](#lo-que-queda-fuera-del-lenguaje).
+- Lo demás que otras herramientas escriben después del lenguaje, como `showLineNumbers`, se guarda tal cual; Tisty lee el lenguaje y el nombre.
 - Para mostrar una valla dentro de un bloque, rodéalo con una valla más larga.
 - Un bloque sangrado cuatro espacios también es código.
 - Nada en el código es etiqueta, rotulador, icono ni emoji. Mira Bloques de código.
@@ -341,9 +352,15 @@ Una fórmula dentro de una frase va entre dólares simples: `$E=mc^2$`.
 
 - Un dígito justo después del dólar que cierra la vuelve un precio, no una fórmula: `$5 y $10` queda tal cual.
 - `\$` es un signo de dólar.
-- Las fórmulas entre dólares dobles, `$$…$$`, quedan [fuera del lenguaje](#lo-que-queda-fuera-del-lenguaje): usa un bloque `math`.
+- Una fórmula entre dólares dobles, `$$…$$`, va en una línea propia, como un bloque `math`:
 
-GitHub dibuja las tres vallas salvo `widget`, y también `$…$`. Obsidian dibuja `mermaid` y `$…$`, y muestra un bloque `math` como código.
+  ```markdown
+  $$
+  \int_0^1 x\,dx = \tfrac{1}{2}
+  $$
+  ```
+
+GitHub dibuja las tres vallas salvo `widget`, y también `$…$` y `$$…$$`. Obsidian dibuja `mermaid`, `$…$` y `$$…$$`, y muestra un bloque `math` como código.
 
 ## Tablas
 
@@ -373,16 +390,25 @@ Esto ya está en la otra.
 
 Deja una línea en blanco encima: justo debajo de una línea con palabras, `---` convierte esa línea en un título.
 
+## Comentarios y entidades
+
+Una nota para ti que la página no muestra va entre `<!--` y `-->`, en una línea o en varias. Una entidad nombra un carácter difícil de escribir: `&copy;` es ©, `&amp;` es &, `&nbsp;` es un espacio que no se corta.
+
+```markdown
+Refuerzo en marzo. <!-- preguntar por la pastilla de garrapatas -->
+
+&copy; 2026 Veterinaria de Rina
+```
+
+- Los dos quedan en el archivo tal como se escribieron; la página muestra lo que significan.
+- Dentro de código son solo texto.
+
 ## Lo que queda fuera del lenguaje
 
 Algunas cosas que escribe otro Markdown no tienen palabra en Tisty. Un documento que las lleva se abre, se edita y se guarda entero, sin que se corte nada; pero esa parte se dibuja como la página buenamente puede, y mientras la editas se ve tal como está escrita:
 
 - la cabecera (front matter) al principio del archivo (`---` … `---`),
-- el HTML de cualquier tipo: bloques, etiquetas dentro de una línea, comentarios y entidades como `&amp;`,
-- las fórmulas entre dólares dobles,
-- los enlaces escritos por referencia (`[palabras][uno]`),
-- lo que una valla de código diga después del lenguaje, aparte de un nombre,
-- un elemento de lista que empieza con un bloque en vez de palabras.
+- las etiquetas HTML de cualquier tipo, en bloques o dentro de una línea.
 
 **Configuración › Mantenimiento** recorre todos los documentos y te lista los que llevan algo de esto.
 

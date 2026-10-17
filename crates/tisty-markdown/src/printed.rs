@@ -206,6 +206,7 @@ fn runs(spans: &[Span], text: &str) -> Vec<Value> {
                 }
                 continue;
             }
+            Mark::Html if said.starts_with("<!--") => continue,
             Mark::Icon { .. } => continue,
             _ => (said.to_string(), false),
         };

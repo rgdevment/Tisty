@@ -13,12 +13,6 @@ fn what_the_editor_would_eat_is_refused_before_it_is_written() {
             "# Note\n\nSomething <div style=\"x\">hidden</div> here.",
             "HTML",
         ),
-        ("# t\n\nSomething <!-- hidden --> more", "HTML comments"),
-        ("# t\n\nfoo &amp; bar", "HTML entities"),
-        (
-            "see [the thread][one]\n\n[one]: https://example.com",
-            "reference links",
-        ),
         ("> ```\n> code\n\n<div>real</div>", "HTML"),
         ("```text\n> ```\n```\n\n<div>real</div>", "HTML"),
     ] {
@@ -39,6 +33,13 @@ fn what_comes_back_untouched_goes_through() {
         "# t\n\n```\n[^1]: a note\n```\n",
         "# t\n\n    <div>indented is code too</div>\n",
         "# t\n\nuse `<T>` inline, and `&amp;` too",
+        "# t\n\nSomething <!-- hidden --> more",
+        "# t\n\nfoo &amp; bar",
+        "see [the thread][one]\n\n[one]: https://example.com",
+        "$$\nx^2\n$$",
+        "```rust title=\"main.rs\" showLineNumbers\nfn main() {}\n```",
+        "- > una cita\n- ```\n  x\n  ```",
+        "Antes\n\n  ```sh\ngit cherry-pick <uno> <dos>\n```",
         "# t\n\n| a | b |\n| --- | --- |\n| 1 | 2 |\n",
         "---\n\nUna raya que nadie cierra no es un front matter.",
         "> ```html\n> <div>x</div>\n> ```\n",
@@ -68,12 +69,6 @@ fn both_halves_read_the_same_corpus_the_same_way() {
         let said = super::survives(text).err().map(|it| match it {
             "YAML frontmatter" => "front",
             "HTML" => "html",
-            "HTML comments" => "comments",
-            "HTML entities" => "entities",
-            "maths written between dollars" => "maths",
-            "reference links" => "refs",
-            "what a fence says after its language" => "fence",
-            "a list item that opens on a block" => "block",
             other => other,
         });
 

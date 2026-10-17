@@ -1,3 +1,4 @@
+mod bare;
 #[cfg(feature = "details")]
 mod details;
 #[cfg(feature = "mermaid")]
