@@ -10,9 +10,7 @@ type Leaving = {
   readonly onError: (said: string) => void;
 };
 
-const html = async ({ book, called }: Leaving) => {
-  const bodies = await book();
-  if (!bodies) return;
+export const leaveAsHtml = async (bodies: string[], called: string) => {
   const made = await webPage(bodies, called);
   const where = await intoFile({
     defaultPath: `${called}.html`,
@@ -21,15 +19,20 @@ const html = async ({ book, called }: Leaving) => {
   if (where) await keepFile(where, Array.from(new TextEncoder().encode(made)));
 };
 
-const word = async ({ book, called }: Leaving) => {
-  const bodies = await book();
-  if (!bodies) return;
+export const leaveAsWord = async (bodies: string[], called: string) => {
   const where = await intoFile({
     defaultPath: `${called}.docx`,
     filters: [{ name: "Word", extensions: ["docx"] }],
   });
   if (where) await docWord(bodies, where);
 };
+
+const read =
+  (made: typeof leaveAsHtml) =>
+  async ({ book, called }: Leaving) => {
+    const bodies = await book();
+    if (bodies) await made(bodies, called);
+  };
 
 // The menu asks from outside the document, so the book is read as it stands when the event lands.
 export const useLeaving = (leaving: Leaving) => {
@@ -38,8 +41,8 @@ export const useLeaving = (leaving: Leaving) => {
   useEffect(() => {
     const run = (made: (one: Leaving) => Promise<void>) => () =>
       made(now.current).catch((e) => now.current.onError(saidPlainly(e)));
-    const toHtml = run(html);
-    const toWord = run(word);
+    const toHtml = run(read(leaveAsHtml));
+    const toWord = run(read(leaveAsWord));
     window.addEventListener("tisty:to-html", toHtml);
     window.addEventListener("tisty:to-word", toWord);
     return () => {
