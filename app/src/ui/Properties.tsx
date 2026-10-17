@@ -8,7 +8,7 @@ interface Props {
   skip?: readonly string[];
 }
 
-export default function Properties({ body, onEdit, skip = [] }: Props) {
+export default function Properties({ body, onEdit, skip = [] }: Readonly<Props>) {
   const found = useMemo(() => fields(body), [body]);
   const over = useMemo(() => overgrown(body), [body]);
   if (found.length === 0 && !over) return null;
