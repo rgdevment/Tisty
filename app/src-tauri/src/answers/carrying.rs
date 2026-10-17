@@ -117,9 +117,18 @@ pub fn doc_import(
         .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
         .transpose()?;
     let from = std::path::Path::new(&from);
-    let body = read_outside(from)?;
-    let body = tisty_core::arriving::tidied(&body).body;
     let mut session = held(&session);
+    let (body, files, missed) = arriving(&mut session, from)?;
+    let (doc, _) = imported(&mut session, &body, folder)?;
+    Ok(Arrived { doc, files, missed })
+}
+
+// A file from outside is read, put in Tisty's words, and comes in with the files it names beside it.
+pub(crate) fn arriving(
+    session: &mut Session,
+    from: &std::path::Path,
+) -> Answer<(String, usize, usize)> {
+    let body = tisty_core::arriving::tidied(&read_outside(from)?).body;
     let (body, brought) =
         tisty_core::beside::brought(&session.paths.clone(), from, &body, &mut |at| {
             at.canonicalize()
@@ -130,12 +139,7 @@ pub fn doc_import(
             .commit_all(brought.told)
             .map_err(|e| blamed(channel::WINDOW, "a document's files could not be kept", e))?;
     }
-    let (doc, _) = imported(&mut session, &body, folder)?;
-    Ok(Arrived {
-        doc,
-        files: brought.kept,
-        missed: brought.missed.len(),
-    })
+    Ok((body, brought.kept, brought.missed.len()))
 }
 
 #[derive(serde::Serialize)]
