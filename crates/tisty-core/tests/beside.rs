@@ -55,3 +55,22 @@ fn a_file_outside_the_note_folder_never_comes_in() {
     );
     assert_eq!(out, "foto\n");
 }
+
+#[test]
+fn a_link_with_a_scheme_of_its_own_is_left_as_it_was() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+    let note = tmp.path().join("nota.md");
+    let body = "[llamar](tel:+5691234) y [bóveda](obsidian://open?vault=x) y [ftp](ftp://x.y/a)\n";
+    std::fs::write(&note, body).unwrap();
+
+    let (out, done) = brought(&paths, &note, body, &mut |at| {
+        at.canonicalize()
+            .map_err(|_| "no file is there".to_string())
+    });
+
+    assert!(done.missed.is_empty(), "{:?}", done.missed);
+    assert!(out.contains("(<tel:+5691234>)"), "{out}");
+    assert!(out.contains("(<obsidian://open?vault=x>)"), "{out}");
+    assert!(out.contains("(<ftp://x.y/a>)"), "{out}");
+}

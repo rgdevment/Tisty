@@ -732,10 +732,16 @@ pub(super) fn beside_the_file(
     from: &std::path::Path,
     body: &str,
 ) -> (String, Carried) {
-    tisty_core::beside::brought(paths, from, body, &mut |at| {
+    let (out, mut done) = tisty_core::beside::brought(paths, from, body, &mut |at| {
         tisty_core::agent::may_reach(at, paths)
             .map_err(|_| "it is not somewhere an assistant may take files from".to_string())
-    })
+    });
+    for one in done.missed.iter_mut() {
+        if one.ends_with(tisty_core::beside::OUTSIDE) {
+            one.push_str(", or bring the file in on its own afterwards with `attach`");
+        }
+    }
+    (out, done)
 }
 
 pub(super) fn said_of(written: &Value) -> String {

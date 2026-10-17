@@ -116,26 +116,34 @@ pub fn doc_import(
     let folder = folder
         .map(|at| at.parse().map_err(|_| Refusal::of("noSuchFolder")))
         .transpose()?;
-    let from = std::path::Path::new(&from);
-    let mut session = held(&session);
-    let (body, files, missed) = arriving(&mut session, from)?;
-    let (doc, _) = imported(&mut session, &body, folder)?;
+    if let Some(at) = folder {
+        landing(&held(&session), at)?;
+    }
+    let (body, files, missed) = arriving(&session, std::path::Path::new(&from))?;
+    let (doc, _) = imported(&mut held(&session), &body, folder)?;
     Ok(Arrived { doc, files, missed })
 }
 
-// A file from outside is read, put in Tisty's words, and comes in with the files it names beside it.
+fn landing(session: &Session, at: tisty_core::model::FolderId) -> Answer<()> {
+    if !session.state.folders.contains_key(&at) {
+        return Err(Refusal::of("noSuchFolder"));
+    }
+    folder_open(&session.state, at, true)
+}
+
+// Reading and copying run without the session held, so a slow drive never stalls the rest of the window.
 pub(crate) fn arriving(
-    session: &mut Session,
+    session: &tauri::State<'_, Mutex<Session>>,
     from: &std::path::Path,
 ) -> Answer<(String, usize, usize)> {
+    let paths = held(session).paths.clone();
     let body = tisty_core::arriving::tidied(&read_outside(from)?).body;
-    let (body, brought) =
-        tisty_core::beside::brought(&session.paths.clone(), from, &body, &mut |at| {
-            at.canonicalize()
-                .map_err(|_| "no file is there".to_string())
-        });
+    let (body, brought) = tisty_core::beside::brought(&paths, from, &body, &mut |at| {
+        at.canonicalize()
+            .map_err(|_| "no file is there".to_string())
+    });
     if !brought.told.is_empty() {
-        session
+        held(session)
             .commit_all(brought.told)
             .map_err(|e| blamed(channel::WINDOW, "a document's files could not be kept", e))?;
     }
@@ -165,10 +173,7 @@ pub(crate) fn imported(
     folder: Option<tisty_core::model::FolderId>,
 ) -> Answer<(tisty_core::docs::Doc, ulid::Ulid)> {
     if let Some(at) = folder {
-        if !session.state.folders.contains_key(&at) {
-            return Err(Refusal::of("noSuchFolder"));
-        }
-        folder_open(&session.state, at, true)?;
+        landing(session, at)?;
     }
     let made = tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, body)
         .map_err(|e| blamed(channel::WINDOW, "a document could not be imported", e))?;

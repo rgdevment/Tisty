@@ -405,9 +405,8 @@ fn imported_once(app: &AppHandle, views: &Views, at: &Path) -> Answer<Paper> {
     {
         return Ok(known.paper);
     }
-    let mut session = held(&session);
-    let (body, _, _) = crate::answers::carrying::arriving(&mut session, at)?;
-    let (made, id) = crate::answers::carrying::imported(&mut session, &body, None)?;
+    let (body, _, _) = crate::answers::carrying::arriving(&session, at)?;
+    let (made, id) = crate::answers::carrying::imported(&mut held(&session), &body, None)?;
     let paper = Paper {
         id: id.to_string(),
         file: made.id,

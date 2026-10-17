@@ -169,7 +169,6 @@ fn split_target(inner: &str) -> (String, String) {
     }
 }
 
-// What a document names beside it comes in with it; `reach` says whether a file may be taken from where it sits.
 pub fn brought(
     paths: &Paths,
     from: &std::path::Path,
@@ -184,19 +183,13 @@ pub fn brought(
     let here = here.canonicalize().unwrap_or(here);
     let mut kept: std::collections::BTreeMap<String, Option<String>> = Default::default();
 
-    let out = retargeted(body, &mut |label: &str, target: &str, title: &str| {
+    let out = retargeted(body, &mut |_, target: &str, title: &str| {
         if let Some(said) = kept.get(target) {
             return said.clone().map(|at| (at, title.to_string()));
         }
         let landed = brought_in(paths, &here, target, &mut done, reach);
         kept.insert(target.to_string(), landed.clone());
-        match landed {
-            Some(at) => Some((at, title.to_string())),
-            None => {
-                let _ = label;
-                None
-            }
-        }
+        landed.map(|at| (at, title.to_string()))
     });
     (out, done)
 }
@@ -213,6 +206,7 @@ fn brought_in(
         || target.starts_with("https://")
         || target.starts_with("mailto:")
         || target.starts_with(crate::refs::DOC)
+        || schemed(target)
     {
         return Some(target.to_string());
     }
@@ -294,7 +288,7 @@ fn brought_in(
     }
 }
 
-const OUTSIDE: &str = "it sits outside the folder the document came from, and an import \
+pub const OUTSIDE: &str = "it sits outside the folder the document came from, and an import \
 takes only what is kept beside it. Put a copy in that folder and import again";
 fn stays_beside(plain: &str) -> bool {
     let mut depth = 0i32;
@@ -312,4 +306,17 @@ fn stays_beside(plain: &str) -> bool {
         }
     }
     true
+}
+
+// A link with a scheme of its own, like tel: or another app's, names nothing on disk; a drive letter and file: do.
+fn schemed(target: &str) -> bool {
+    let Some((scheme, _)) = target.split_once(':') else {
+        return false;
+    };
+    scheme.len() > 1
+        && !scheme.eq_ignore_ascii_case("file")
+        && scheme.starts_with(|one: char| one.is_ascii_alphabetic())
+        && scheme
+            .chars()
+            .all(|one| one.is_ascii_alphanumeric() || matches!(one, '+' | '-' | '.'))
 }
