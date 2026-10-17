@@ -1,7 +1,8 @@
 import { type Glimpse, glimpseFetch, glimpseKept } from "../core";
 import { t } from "../locales";
 import { hosting } from "../previews";
-import { drawn, piece } from "./carding";
+import { piece } from "./carding";
+import { HUES } from "./paging";
 
 // One question to the core per link and window, however many times the page is drawn again.
 const asked = new Map<string, Promise<Glimpse | null>>();
@@ -17,6 +18,24 @@ const keptFor = (at: string) => {
 const told = (said: Glimpse | null): said is Glimpse =>
   Boolean(said && (said.title || said.said || said.shot));
 
+// A link that brings nothing of its own still reads apart from its neighbours: its site's letter in its site's colour.
+const lettered = (page: Document, host: string): HTMLElement => {
+  const tile = piece(page, "card-tile is-letter", host.charAt(0).toUpperCase());
+  let sum = 0;
+  for (const one of host) sum += one.charCodeAt(0);
+  tile.style.setProperty("--hue", `var(--tisty-hue-${HUES[sum % HUES.length]})`);
+  return tile;
+};
+
+const readable = (at: string, host: string): string => {
+  try {
+    const path = new URL(at).pathname.replace(/\/+$/, "");
+    return `${host}${path}`;
+  } catch {
+    return host;
+  }
+};
+
 const shown = (
   page: Document,
   parts: { box: HTMLElement; tile: HTMLElement; name: HTMLElement; blurb: HTMLElement },
@@ -24,6 +43,7 @@ const shown = (
 ) => {
   if (said.title) parts.name.textContent = said.title;
   if (said.said) parts.blurb.textContent = said.said;
+  if (said.title || said.said) parts.box.classList.remove("is-bare");
   if (said.shot) {
     const shot = page.createElement("img");
     shot.className = "card-thumb";
@@ -32,6 +52,7 @@ const shown = (
     shot.src = said.shot;
     parts.tile.remove();
     parts.box.classList.add("has-shot");
+    parts.box.classList.remove("is-bare");
     parts.box.append(shot);
   }
 };
@@ -44,11 +65,11 @@ export const webCarded = (page: Document, live: () => boolean) => {
     if (!held || !host || held.children.length !== 1 || link.children.length) continue;
     if ((held.textContent ?? "").trim() !== (link.textContent ?? "").trim()) continue;
     const box = page.createElement("a");
-    box.className = "doc-card is-web";
+    box.className = "doc-card is-web is-bare";
     box.href = at;
-    const tile = piece(page, "card-tile");
-    tile.append(drawn(page, "globe-earth"));
-    const name = piece(page, "card-name", link.textContent?.trim() || host);
+    const tile = lettered(page, host);
+    const words = link.textContent?.trim() ?? "";
+    const name = piece(page, "card-name", !words || words === at ? readable(at, host) : words);
     const blurb = piece(page, "card-blurb");
     const meta = piece(page, "card-meta");
     meta.append(piece(page, "kind", host));
