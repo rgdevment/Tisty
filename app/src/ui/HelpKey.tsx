@@ -1,6 +1,6 @@
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef } from "react";
-import { askedHere, HELP } from "./HelpHere";
+import { askedHere } from "../guide/asked";
 
 export default function HelpKey({ onHelp }: { readonly onHelp: (topic?: string) => void }) {
   const now = useRef(onHelp);
@@ -11,9 +11,7 @@ export default function HelpKey({ onHelp }: { readonly onHelp: (topic?: string) 
       event.preventDefault();
       now.current(askedHere());
     };
-    const asked = (event: Event) => now.current((event as CustomEvent<string | undefined>).detail);
     window.addEventListener("keydown", keyed);
-    window.addEventListener(HELP, asked);
     let drop: (() => void) | undefined;
     let gone = false;
     listen("help", () => now.current())
@@ -26,7 +24,6 @@ export default function HelpKey({ onHelp }: { readonly onHelp: (topic?: string) 
       gone = true;
       drop?.();
       window.removeEventListener("keydown", keyed);
-      window.removeEventListener(HELP, asked);
     };
   }, []);
   return null;

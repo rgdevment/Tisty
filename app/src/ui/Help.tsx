@@ -142,10 +142,10 @@ export default function Help({ topic }: { readonly topic?: string }) {
           </ol>
           <button
             type="button"
-            onClick={() => openLink(t("helpWikiAt")).catch(() => undefined)}
+            onClick={() => openLink(t("helpMoreAt")).catch(() => undefined)}
             className="mt-5 px-2.5 text-left text-[12.5px] text-accent hover:underline"
           >
-            {t("helpWiki")} ↗
+            {t("helpMore")} ↗
           </button>
         </nav>
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">

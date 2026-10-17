@@ -33,7 +33,6 @@ import { clientNamed } from "../who";
 import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
 import { blurbing, cardsOf } from "./carding";
-import HelpHere from "./HelpHere";
 import Modal from "./Modal";
 import Picking, { type Picked } from "./Picking";
 import type { Head } from "./paging";
@@ -732,19 +731,17 @@ export default function Docs({
           </p>
         )}
         <div
+          aria-live="polite"
           style={wall}
-          className="mx-auto flex h-5 w-full items-center justify-between gap-3 px-10 text-[11.5px] text-faint"
+          className="mx-auto h-5 w-full px-10 text-[11.5px] text-faint"
         >
-          <span aria-live="polite">
-            {saving
-              ? t("saving")
-              : brimming
-                ? fill("docBrimming", weighed(body.length))
-                : packed > MANY
-                  ? fill("docCrowded", String(packed))
-                  : ""}
-          </span>
-          {open && <HelpHere />}
+          {saving
+            ? t("saving")
+            : brimming
+              ? fill("docBrimming", weighed(body.length))
+              : packed > MANY
+                ? fill("docCrowded", String(packed))
+                : ""}
         </div>
         {stirred && !clashed && open && (
           <div

@@ -32,7 +32,6 @@ vi.mock("../ui/Page", () => ({
 }));
 
 import Help from "../ui/Help";
-import { askHelp } from "../ui/HelpHere";
 import HelpKey from "../ui/HelpKey";
 
 describe("the topic a block of writing asks about", () => {
@@ -71,15 +70,13 @@ describe("the topic a block of writing asks about", () => {
 });
 
 describe("asking for the guide", () => {
-  it("opens it on F1 and on a topic someone asks for", () => {
+  it("opens it on F1", () => {
     const onHelp = vi.fn();
     render(<HelpKey onHelp={onHelp} />);
     act(() => {
       window.dispatchEvent(new KeyboardEvent("keydown", { key: "F1" }));
     });
-    expect(onHelp).toHaveBeenCalledWith();
-    act(() => askHelp("tables"));
-    expect(onHelp).toHaveBeenCalledWith("tables");
+    expect(onHelp).toHaveBeenCalledWith(undefined);
   });
 });
 
