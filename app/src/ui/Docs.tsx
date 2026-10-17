@@ -36,6 +36,7 @@ import { blurbing, cardsOf } from "./carding";
 import Modal from "./Modal";
 import Picking, { type Picked } from "./Picking";
 import type { Head } from "./paging";
+import { usePreviewing } from "./previewing";
 import { pdfOf, signature } from "./printing";
 import Ribbon, { Onward } from "./Ribbon";
 import { PAPER, pageFor } from "./sheets";
@@ -590,6 +591,8 @@ export default function Docs({
   };
 
   asking.current = { preview, toPdf };
+
+  usePreviewing(Boolean(seeing));
 
   const showing = seeing;
   useEffect(() => {
