@@ -10,6 +10,8 @@ export const LANGUAGES = [
     near: "Next and previous",
     home: "https://www.tisty.app/",
     meet: "Meet Tisty",
+    before: "Previous",
+    after: "Next",
     written: "You write",
     drawn: "Tisty shows",
     name: "English",
@@ -26,6 +28,8 @@ export const LANGUAGES = [
     near: "Anterior y siguiente",
     home: "https://www.tisty.app/es/",
     meet: "Conoce Tisty",
+    before: "Anterior",
+    after: "Siguiente",
     written: "Escribes",
     drawn: "Tisty muestra",
     name: "Español",
@@ -37,6 +41,9 @@ export const LANGUAGES = [
 
 export const escaped = (said) =>
   said.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+// Pages answers a bare path, and a link ending in .html would cost every click a redirect.
+export const href = (slug) => (slug === "index" ? "./" : slug);
 
 const told = (said) => escaped(said).replace(/"/g, "&quot;");
 
@@ -87,21 +94,23 @@ const heads = (language, page, title, other, twin) => {
 };
 
 // Plain HTML with one local stylesheet and relative links, so the same folder serves the web and the app.
-export const sheetOf = (built, language, page) => {
+export const sheetOf = (built, language, page, style) => {
   const { other, twin } = twinOf(built, language, page);
   const pages = built.get(language.code);
   const up = language.dir ? "../" : "";
   const listed = pages
     .map(
       (one) =>
-        `<li><a href="${one.slug}.html"${one.slug === page.slug ? ' aria-current="page"' : ""}>${escaped(one.label)}</a></li>`,
+        `<li><a href="${href(one.slug)}"${one.slug === page.slug ? ' aria-current="page"' : ""}>${escaped(one.label)}</a></li>`,
     )
     .join("");
   const before = pages[page.at - 1];
   const after = pages[page.at + 1];
   const near = [
-    before && `<a rel="prev" href="${before.slug}.html">← ${escaped(before.label)}</a>`,
-    after && `<a rel="next" href="${after.slug}.html">${escaped(after.label)} →</a>`,
+    before &&
+      `<a rel="prev" href="${href(before.slug)}"><small>${language.before}</small>${escaped(before.label)}</a>`,
+    after &&
+      `<a rel="next" href="${href(after.slug)}"><small>${language.after}</small>${escaped(after.label)}</a>`,
   ]
     .filter(Boolean)
     .join("");
@@ -113,15 +122,16 @@ export const sheetOf = (built, language, page) => {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escaped(title)}</title>
 ${heads(language, page, title, other, twin)}
-<link rel="icon" href="${up}icon.png" type="image/png">
+<link rel="icon" href="${up}tisty.svg" type="image/svg+xml">
 ${THEME}
-<link rel="stylesheet" href="${up}guide.css">
+<link rel="stylesheet" href="${up}${style}">
+${AHEAD}
 </head>
 <body>
 <header class="top">
-<a class="brand" href="index.html"><img src="${up}icon.png" alt="" width="28" height="28">Tisty Markdown</a>
+<a class="brand" href="./"><img src="${up}tisty.svg" alt="" width="36" height="34">Tisty Markdown</a>
 <a class="out" href="${language.home}">${language.meet}</a>
-<a class="lang" lang="${other.code}" hreflang="${other.code}" href="${language.dir ? "../" : other.dir}${twin.slug}.html">${other.name}</a>
+<a class="lang" lang="${other.code}" hreflang="${other.code}" href="${language.dir ? "../" : other.dir}${twin.slug === "index" ? "" : twin.slug}">${other.name}</a>
 <button class="theme" type="button" aria-label="${language.dark}" title="${language.dark}" onclick="${SWITCH}">${MOON}${SUN}</button>
 </header>
 <div class="wrap">
@@ -134,19 +144,19 @@ ${THEME}
 };
 
 // Without its own page, Pages answers a wrong address with the start page and a 200.
-export const missing = `<!doctype html>
+export const missing = (style) => `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Not here · Tisty Markdown</title>
 <meta name="robots" content="noindex">
-<link rel="icon" href="/icon.png" type="image/png">
+<link rel="icon" href="/tisty.svg" type="image/svg+xml">
 ${THEME}
-<link rel="stylesheet" href="/guide.css">
+<link rel="stylesheet" href="/${style}">
 </head>
 <body>
-<header class="top"><a class="brand" href="/"><img src="/icon.png" alt="" width="28" height="28">Tisty Markdown</a><a class="out" href="https://www.tisty.app/">Meet Tisty</a></header>
+<header class="top"><a class="brand" href="/"><img src="/tisty.svg" alt="" width="36" height="34">Tisty Markdown</a><a class="out" href="https://www.tisty.app/">Meet Tisty</a></header>
 <div class="wrap"><main class="page"><h1>Nothing here</h1><p>This page is not part of the guide. <a href="/">Start from the beginning</a> · <a href="/es/" lang="es">Empieza desde el inicio</a></p></main></div>
 </body>
 </html>
@@ -165,5 +175,21 @@ ${urls.join("\n")}
 </urlset>
 `;
 };
+
+// Declarative, not a script: the browser readies a page while the pointer rests on its link.
+const AHEAD = `<script type="speculationrules">{"prerender":[{"where":{"selector_matches":".topics a, .near a, .page a[href]:not([href^='http'])"},"eagerness":"moderate"}]}</script>`;
+
+// The stylesheet's name carries its print, so it can be kept for a year; everything else for a day.
+export const headers = (style) => `/${style}
+  Cache-Control: public, max-age=31536000, immutable
+/tisty.svg
+  Cache-Control: public, max-age=86400
+/rina.jpg
+  Cache-Control: public, max-age=86400
+/es/tisty.svg
+  Cache-Control: public, max-age=86400
+/es/rina.jpg
+  Cache-Control: public, max-age=86400
+`;
 
 export const robots = `User-agent: *\nAllow: /\n\nSitemap: ${SITE}sitemap.xml\n`;

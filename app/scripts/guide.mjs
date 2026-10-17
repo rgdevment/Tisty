@@ -4,7 +4,17 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { JSDOM } from "jsdom";
 import { createServer } from "vite";
-import { escaped, LANGUAGES, mapped, missing, robots, sheetOf } from "./guide-site.mjs";
+import { createHash } from "node:crypto";
+import {
+  escaped,
+  headers,
+  href,
+  LANGUAGES,
+  mapped,
+  missing,
+  robots,
+  sheetOf,
+} from "./guide-site.mjs";
 
 const app = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const root = resolve(app, "..");
@@ -180,7 +190,7 @@ const build = (language) => {
       const id = decodeURIComponent(link.getAttribute("href").slice(1));
       const slug = slugs.get(id);
       if (!slug || slug === part.slug) continue;
-      link.setAttribute("href", tops.has(id) ? `${slug}.html` : `${slug}.html#${id}`);
+      link.setAttribute("href", tops.has(id) ? href(slug) : `${href(slug)}#${id}`);
     }
     const title = part.heading ?? page.querySelector("h1")?.textContent ?? "Tisty Markdown";
     const first = (
@@ -233,22 +243,25 @@ const dark = /\[data-theme="dark"\]\s*\{([^}]*)\}/.exec(index)[1];
 
 rmSync(out, { recursive: true, force: true });
 const built = new Map(LANGUAGES.map((language) => [language.code, build(language)]));
-const logo = readFileSync(join(app, "src-tauri", "icons", "128x128.png"));
+const logo = readFileSync(join(app, "src", "assets", "tisty.svg"));
+const css = `${light}
+html.dark{${dark}}
+${sheet}
+${readFileSync(join(app, "scripts", "guide.css"), "utf8")}`;
+const style = `guide.${createHash("sha256").update(css).digest("hex").slice(0, 10)}.css`;
 for (const language of LANGUAGES) {
   const into = join(out, language.dir);
   mkdirSync(into, { recursive: true });
   for (const page of built.get(language.code))
-    writeFileSync(join(into, `${page.slug}.html`), sheetOf(built, language, page));
+    writeFileSync(join(into, `${page.slug}.html`), sheetOf(built, language, page, style));
   writeFileSync(join(into, "rina.jpg"), readFileSync(join(app, "src-tauri", "resources", "guide", language.code, "rina.jpg")));
-  writeFileSync(join(into, "icon.png"), logo);
+  writeFileSync(join(into, "tisty.svg"), logo);
   writeFileSync(join(into, "llms-full.txt"), reference(language));
 }
-writeFileSync(join(out, "404.html"), missing);
+writeFileSync(join(out, "404.html"), missing(style));
+writeFileSync(join(out, "_headers"), headers(style));
 writeFileSync(join(out, "sitemap.xml"), mapped(built));
 writeFileSync(join(out, "robots.txt"), robots);
 writeFileSync(join(out, "llms.txt"), llms(built));
-writeFileSync(
-  join(out, "guide.css"),
-  `${light}\nhtml.dark{${dark}}\n${sheet}\n${readFileSync(join(app, "scripts", "guide.css"), "utf8")}`,
-);
+writeFileSync(join(out, style), css);
 console.log(`the guide is in ${out}`);

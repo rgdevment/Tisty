@@ -1,3 +1,6 @@
+@view-transition {
+  navigation: auto;
+}
 html.dark {
   color-scheme: dark;
 }
@@ -48,7 +51,6 @@ body {
 }
 .top .brand img {
   display: block;
-  border-radius: 7px;
 }
 .top .out {
   margin-left: auto;
@@ -168,27 +170,32 @@ main .page > h2:first-child {
   margin-top: 0;
 }
 .near {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 48px;
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 56px;
+  padding-top: 20px;
+  border-top: 1px solid var(--tisty-hair);
 }
 .near a {
-  display: block;
-  padding: 14px 16px;
-  border: 1px solid var(--tisty-hair);
-  border-radius: 10px;
-  font-size: 14.5px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 15px;
   font-weight: 550;
   color: var(--tisty-ink);
   text-decoration: none;
 }
+.near a small {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--tisty-faint);
+}
 .near a:hover {
-  border-color: var(--tisty-accent);
   color: var(--tisty-accent);
 }
 .near a[rel="next"] {
-  grid-column: 2;
+  margin-left: auto;
   text-align: right;
 }
 
