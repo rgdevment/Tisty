@@ -326,3 +326,42 @@ fn a_colour_or_an_icon_tisty_has_not_got_comes_in_as_what_it_can_say() {
     );
     assert!(tisty_core::docs::survives(&made.body).is_ok());
 }
+
+#[test]
+fn obsidian_forms_come_in_as_the_language_says_them() {
+    let said = "> [!info]- Ojo\n> texto\n\nver [[Plan|el plan]] y ![[foto.png|300]] %%nota%%\n\n%%\nlargo\n%%\n\n`[[x|y]] %%no%%`\n\n```\n[[a|b]] %%c%%\n```\n";
+
+    let out = tidied(said);
+
+    assert_eq!(
+        out.body,
+        "> [!NOTE] Ojo\n> texto\n\nver [[Plan]] y ![foto.png](<foto.png>) <!--nota-->\n\n<!--\nlargo\n-->\n\n`[[x|y]] %%no%%`\n\n```\n[[a|b]] %%c%%\n```\n"
+    );
+    for what in [
+        "callouts written the Obsidian way",
+        "comments written the Obsidian way",
+        "links to a note under another name",
+        "files embedded the Obsidian way",
+    ] {
+        assert!(out.changed.contains(&what), "{what}: {:?}", out.changed);
+    }
+    assert!(survives(&out.body).is_ok(), "{:?}", out.body);
+}
+
+#[test]
+fn what_is_already_tisty_passes_the_obsidian_step_untouched() {
+    for said in [
+        "> [!TIP]\n> riega\n",
+        "> [!warning] Ojo\n> x\n",
+        "ver [[Plan]] y [[#2]]\n",
+        "> [!raro] queda como cita\n",
+    ] {
+        let out = tidied(said);
+        assert_eq!(out.body, said);
+        assert!(out.changed.is_empty(), "{said:?} {:?}", out.changed);
+    }
+    assert_eq!(
+        tidied("> [!bug]+\n> falla\n").body,
+        "> [!CAUTION]\n> falla\n"
+    );
+}

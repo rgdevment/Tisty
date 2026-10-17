@@ -1,43 +1,43 @@
 # El lenguaje de Tisty
 
-Un documento de Tisty es un archivo `.md` normal. Lo que lleva es Markdown, el mismo que leen GitHub y Obsidian, más unas pocas palabras cortas propias de Tisty para lo que Markdown no sabe decir: el color de un rotulador, un subrayado, un icono, una sección que se pliega. Esta página las reúne todas: para qué sirve cada una, cómo queda escrita en el archivo, cómo se lee y las reglas chicas que deciden cuándo cuenta.
+Un documento de Tisty es un archivo `.md` normal. Lo que lleva es Markdown: CommonMark con lo que le agrega GitHub, más unas pocas palabras cortas propias de Tisty para lo que Markdown no sabe decir: el color de un rotulador, un subrayado, un icono, una sección que se pliega. Esta página las reúne todas: para qué sirve cada una, cómo queda escrita en el archivo, cómo se lee y las reglas chicas que deciden cuándo cuenta.
 
 Nada de esto hay que aprenderlo de memoria. El menú `/` y la barra del editor lo escriben todo por ti; esto es lo que encuentras si abres el archivo en otra parte, o si quieres escribirlo a mano.
 
 ## De un vistazo
 
-| Qué | Se escribe | GitHub | Obsidian |
+| Qué | Se escribe | GitHub | CommonMark |
 | :-- | :-- | :-: | :-: |
-| [Propiedades](#propiedades) | `---` `title:` `tags:` … `---` | como tabla | sí |
+| [Propiedades](#propiedades) | `---` `title:` `tags:` … `---` | como tabla | como raya y texto |
 | [Títulos](#títulos) | `# Título` … `###### Título` | sí | sí |
-| [Negrita, cursiva, tachado, código](#negrita-cursiva-tachado-y-código) | `**n**` `*c*` `~~t~~` `` `c` `` | sí | sí |
+| [Negrita, cursiva, tachado, código](#negrita-cursiva-tachado-y-código) | `**n**` `*c*` `~~t~~` `` `c` `` | sí | salvo `~~t~~` |
 | [Subrayado](#subrayado) | `++palabras++` | no | no |
-| [Rotuladores](#rotuladores) | `==palabras==` `==palabras=={green}` | no | solo amarillo |
-| [Enlaces](#enlaces) | `[palabras](https://…)` `[palabras][uno]` `https://…` | sí | sí |
-| [Saltos de línea](#párrafos-y-saltos-de-línea) | una línea por línea | las junta | sí |
-| [Listas y etapas](#listas) | `- elemento` `1. elemento` `- [ ] etapa` | sí | sí |
-| [Citas y avisos](#citas-y-avisos) | `> palabras` `> [!NOTE]` | sí | sí |
+| [Rotuladores](#rotuladores) | `==palabras==` `==palabras=={green}` | no | no |
+| [Enlaces](#enlaces) | `[palabras](https://…)` `[palabras][uno]` `https://…` | sí | salvo una `https://…` suelta |
+| [Saltos de línea](#párrafos-y-saltos-de-línea) | una línea por línea | las junta | las junta |
+| [Listas y etapas](#listas) | `- elemento` `1. elemento` `- [ ] etapa` | sí | listas, no etapas |
+| [Citas y avisos](#citas-y-avisos) | `> palabras` `> [!NOTE]` | sí | citas, no avisos |
 | [Secciones plegables](#secciones-plegables) | `:::details Título` … `:::` | no | no |
-| [Etiquetas](#etiquetas) | `#contrato` | como texto | sí |
+| [Etiquetas](#etiquetas) | `#contrato` | como texto | como texto |
 | [Iconos](#iconos) | `::dog orange::` | no | no |
 | [Emojis](#emojis) | `🎉` o `:tada:` | sí | solo `🎉` |
 | [Otros documentos y páginas](#otros-documentos-y-páginas) | `![Título](tisty:doc/…)` | no | no |
 | [Adjuntos](#adjuntos) | `![Etiqueta](archivo-1a2b3c4d.pdf)` | no | no |
-| [Referencias](#referencias) | `[[Nombre]]` `[[#2]]` | no | sí |
-| [Notas al pie](#notas-al-pie) | `[^1]` … `[^1]: nota` | sí | sí |
+| [Referencias](#referencias) | `[[Nombre]]` `[[#2]]` | no | no |
+| [Notas al pie](#notas-al-pie) | `[^1]` … `[^1]: nota` | sí | no |
 | [Código](#bloques-de-código) | ` ```lenguaje title="nombre" ` | sí | sí |
-| [Diagramas](#diagramas-fórmulas-y-widgets) | ` ```mermaid ` | sí | sí |
-| [Fórmulas](#diagramas-fórmulas-y-widgets) | ` ```math ` `$x$` `$$x$$` | sí | solo `$` |
+| [Diagramas](#diagramas-fórmulas-y-widgets) | ` ```mermaid ` | sí | como código |
+| [Fórmulas](#diagramas-fórmulas-y-widgets) | ` ```math ` `$x$` `$$x$$` | sí | no |
 | [Widgets](#diagramas-fórmulas-y-widgets) | ` ```widget ` | como código | como código |
-| [Tablas](#tablas) | `\| a \| b \|` | sí | sí |
+| [Tablas](#tablas) | `\| a \| b \|` | sí | no |
 | [Saltos de página](#saltos-de-página) | `---` | como raya | como raya |
 | [Comentarios y entidades](#comentarios-y-entidades) | `<!-- nota -->` `&copy;` | sí | sí |
 
-Donde la tabla dice *no*, el otro lector muestra las palabras tal como están escritas, así que no se pierde nada: `++palabras++` se sigue leyendo, y `::dog::` sigue siendo un perro.
+Donde la tabla dice *no*, un lector que sigue solo GitHub o solo CommonMark muestra las palabras tal como están escritas, así que no se pierde nada: `++palabras++` se sigue leyendo, y `::dog::` sigue siendo un perro.
 
 ## Propiedades
 
-Un bloque de propiedades al principio del archivo, entre dos líneas `---`, como lo escriben GitHub y Obsidian (también se le dice front matter):
+Un bloque de propiedades al principio del archivo, entre dos líneas `---`, como lo escriben muchas herramientas de Markdown (también se le dice front matter):
 
 ```markdown
 ---
@@ -86,7 +86,7 @@ Esta línea es del mismo párrafo, una más abajo.
 Este ya es un párrafo nuevo.
 ```
 
-GitHub junta esas dos líneas en una cuando muestra un archivo; Tisty y Obsidian las dejan separadas. Una barra invertida al final de la línea la corta en todas partes.
+GitHub junta esas dos líneas en una cuando muestra un archivo; Tisty las deja separadas. Una barra invertida al final de la línea la corta en todas partes.
 
 Para escribir una línea que si no empezaría otra cosa (un título, una lista, una cita), pon una barra invertida delante: `\#`, `\-`, `1\.`, `\>`.
 
@@ -127,7 +127,7 @@ La barra ofrece cuatro rotuladores (**amarillo**, **verde**, **azul** y **rosa**
 - El color va pegado al `==` que cierra, sin espacio: `==palabras=={green}`. `=={yellow}` es lo mismo que no poner color.
 - Un color que la paleta no tiene, como `{chartreuse}`, deja un rotulador amarillo con `{chartreuse}` escrito detrás, a la vista.
 - Un rotulador no puede cruzar el borde de una negrita ni de un enlace.
-- Obsidian pinta `==palabras==` en amarillo y muestra `{green}` como texto. Cuando el documento sale de Tisty como Markdown llano, los rotuladores se escriben como `<mark>`, para que otros lectores los sigan pintando.
+- Cuando el documento sale de Tisty como Markdown llano, los rotuladores se escriben como `<mark>`, para que otros lectores los sigan pintando.
 
 ## Enlaces
 
@@ -233,7 +233,7 @@ Nació en 2023. Séxtuple y antirrábica cada marzo.
 - Una sección empieza plegada. Sin título después de `:::details`, muestra uno vacío.
 - Las secciones se anidan. Cualquier línea `:::palabra` abre un contenedor que cierra el siguiente `:::` solo, así que una sección dentro de otra, o un bloque `:::tip` escrito por otra herramienta, nunca se roba la valla de cierre. `details` se pliega y los cinco tipos de aviso dibujan un aviso; cualquier otro bloque `:::palabra` muestra sus líneas tal como están escritas.
 - También funcionan dentro de un aviso.
-- GitHub y Obsidian muestran las dos vallas como texto y todo lo de en medio desplegado. Tisty también dibuja un bloque `<details>` escrito en HTML, como los escribe GitHub, pero eso es HTML, que queda [fuera del lenguaje](#lo-que-queda-fuera-del-lenguaje).
+- GitHub muestra las dos vallas como texto y todo lo de en medio desplegado. Tisty también dibuja un bloque `<details>` escrito en HTML, como los escribe GitHub, pero eso es HTML, que queda [fuera del lenguaje](#lo-que-queda-fuera-del-lenguaje).
 
 ## Etiquetas
 
@@ -314,7 +314,6 @@ Mira [[La cartilla de Rina]] y el paso [[#2]].
 - `[[nombre]]` se dibuja como una ficha con el nombre.
 - En la descripción o el diario de una tarea, `[[#2]]` muestra las palabras del segundo paso de esa tarea.
 - Un nombre vacío, o con un `[` o un salto de línea, no es referencia.
-- Obsidian lee `[[nombre]]` como enlace a una nota con ese nombre.
 
 ## Notas al pie
 
@@ -328,7 +327,7 @@ El veterinario lo confirmó[^vet].
 
 - La llamada se dibuja como una etiqueta pequeña y elevada que lleva a la nota; la nota queda donde está escrita, con su etiqueta al lado.
 - La etiqueta es cualquier palabra o número corto: `[^1]`, `[^vet]`.
-- GitHub y Obsidian las leen igual.
+- GitHub las lee igual.
 
 ## Bloques de código
 
@@ -381,7 +380,7 @@ Una fórmula dentro de una frase va entre dólares simples: `$E=mc^2$`.
   $$
   ```
 
-GitHub dibuja las tres vallas salvo `widget`, y también `$…$` y `$$…$$`. Obsidian dibuja `mermaid`, `$…$` y `$$…$$`, y muestra un bloque `math` como código.
+GitHub dibuja las tres vallas salvo `widget`, y también `$…$` y `$$…$$`.
 
 ## Tablas
 
