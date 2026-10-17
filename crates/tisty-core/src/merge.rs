@@ -47,9 +47,7 @@ fn opening(bare: &str) -> Option<String> {
 }
 
 pub fn front_matter(body: &str) -> bool {
-    let body = body.strip_prefix('\u{feff}').unwrap_or(body);
-    let mut lines = body.lines().map(str::trim).filter(|one| !one.is_empty());
-    lines.next() == Some("---") && lines.any(|one| one == "---")
+    tisty_markdown::front::span(body).is_some()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -1,5 +1,10 @@
 use std::ops::Range;
 
+// Past these the block is kept as written but nothing in it is read.
+pub const BLOCK_AT_MOST: usize = 4 * 1024;
+pub const KEYS_AT_MOST: usize = 32;
+pub const VALUE_AT_MOST: usize = 500;
+
 /// One property of the front matter: its key and what it holds, a list already split.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Field {
@@ -36,7 +41,7 @@ pub fn span(text: &str) -> Option<Range<usize>> {
 /// What the front matter says, read the plain way most notes write it: `key: value`, a list
 /// in brackets, or a list of `- item` lines under the key. Anything deeper is kept as its lines.
 pub fn fields(text: &str) -> Vec<Field> {
-    let Some(at) = span(text) else {
+    let Some(at) = span(text).filter(|at| at.len() <= BLOCK_AT_MOST) else {
         return Vec::new();
     };
     let inner: Vec<&str> = text[at].lines().collect();
@@ -71,7 +76,15 @@ pub fn fields(text: &str) -> Vec<Field> {
             values,
         });
     }
-    out
+    let past = out.len() > KEYS_AT_MOST
+        || out
+            .iter()
+            .flat_map(|one| &one.values)
+            .any(|one| one.chars().count() > VALUE_AT_MOST);
+    match past {
+        true => Vec::new(),
+        false => out,
+    }
 }
 
 /// The title the front matter gives, when it gives one.
@@ -80,7 +93,7 @@ pub fn title(text: &str) -> Option<String> {
         .into_iter()
         .find(|one| one.key.eq_ignore_ascii_case("title"))
         .and_then(|one| one.values.into_iter().next())
-        .filter(|one| !one.trim().is_empty())
+        .filter(|one| one.chars().any(char::is_alphanumeric))
 }
 
 /// The tags the front matter files the document under, written with or without their `#`.

@@ -25,7 +25,8 @@ pub use text::{
 const EXTENSION: &str = "md";
 const DIGITS: usize = 4;
 const MOST_DIGITS: u64 = 999_999_999_999;
-const TITLE_AT_MOST: u64 = 4 * 1024;
+// Room for the largest front matter that is still read, and the heading after it.
+const TITLE_AT_MOST: u64 = 8 * 1024;
 pub const BODY_AT_MOST: u64 = 500 * 1024;
 pub const BODY_ROOMY: u64 = 300 * 1024;
 

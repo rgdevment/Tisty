@@ -334,3 +334,17 @@ fn only_a_closed_block_at_the_very_top_is_front_matter() {
     }
     assert_eq!(crate::front::span("\u{feff}---\na: b\n---"), Some(3..15));
 }
+
+#[test]
+fn front_matter_past_its_caps_is_kept_but_never_read() {
+    let keys: String = (0..33).map(|n| format!("k{n}: v\n")).collect();
+    let long = format!("title: {}\n", "a".repeat(501));
+    let big = format!("nota: {}\n", "b ".repeat(2100));
+    for inner in [keys, long, big] {
+        let said = format!("---\ntitle: x\n{inner}tags: [a]\n---\n\n# Otro\n");
+        assert!(crate::front::span(&said).is_some());
+        assert!(crate::front::fields(&said).is_empty(), "{said:?}");
+        assert!(crate::front::title(&said).is_none());
+        assert!(crate::front::tags(&said).is_empty());
+    }
+}

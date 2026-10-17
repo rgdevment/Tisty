@@ -1,21 +1,16 @@
 pub(super) use tisty_markdown::fences::{Fencing, quoteless};
 pub use tisty_markdown::fences::{ends_fenced, fencing};
 
+const NAMED_AT_MOST: usize = 200;
+
 pub fn titled(body: &str) -> String {
-    if let Some(named) = tisty_markdown::front::title(body) {
-        return crate::text::plainly(named.trim());
-    }
     let body = body.trim_start_matches('\u{feff}');
-    let mut said: Vec<&str> = body.lines().collect();
-    if let Some(start) = said.iter().position(|one| !one.trim().is_empty())
-        && said[start].trim() == "---"
-        && let Some(shuts) = said
-            .iter()
-            .skip(start + 1)
-            .position(|one| one.trim() == "---")
-    {
-        said.drain(..start + shuts + 2);
+    if let Some(named) = tisty_markdown::front::title(body) {
+        let named: String = named.trim().chars().take(NAMED_AT_MOST).collect();
+        return crate::text::plainly(&named);
     }
+    let past = tisty_markdown::front::span(body).map_or(0, |at| at.end);
+    let said: Vec<&str> = body[past..].lines().collect();
     let mut fence = Fencing::default();
     let first = said
         .iter()
@@ -40,7 +35,43 @@ pub fn titled(body: &str) -> String {
 
 pub fn marked(body: &str, said: &str) -> String {
     let bare = body.trim_start_matches('\u{feff}');
-    let mut seen = 0;
+    let past = tisty_markdown::front::span(bare).map_or(0, |at| at.end);
+    let (front, rest) = bare.split_at(past);
+    match retitled(front, said) {
+        Some(front) => format!("{front}{rest}"),
+        None => format!("{front}{}", headed(rest, said)),
+    }
+}
+
+// The mark goes where the title comes from: a `title:` names the document before any heading does.
+fn retitled(front: &str, said: &str) -> Option<String> {
+    tisty_markdown::front::title(front)?;
+    let mut out = String::with_capacity(front.len() + said.len() + 3);
+    let mut done = false;
+    for line in front.split_inclusive('\n') {
+        let flat = line.trim_end();
+        let keyed = flat
+            .split_once(':')
+            .filter(|(key, _)| !done && key.eq_ignore_ascii_case("title"));
+        let Some((key, value)) = keyed else {
+            out.push_str(line);
+            continue;
+        };
+        let value = value.trim();
+        let quoted = ['"', '\'']
+            .into_iter()
+            .find(|one| value.len() > 1 && value.starts_with(*one) && value.ends_with(*one));
+        let value = match quoted {
+            Some(one) => format!("{one}{} ({said}){one}", &value[1..value.len() - 1]),
+            None => format!("{value} ({said})"),
+        };
+        out.push_str(&format!("{key}: {value}{}", &line[flat.len()..]));
+        done = true;
+    }
+    done.then_some(out)
+}
+
+fn headed(bare: &str, said: &str) -> String {
     let mut out: Vec<String> = Vec::new();
     let mut done = false;
     let mut fence = Fencing::default();
@@ -48,21 +79,6 @@ pub fn marked(body: &str, said: &str) -> String {
     for line in bare.lines() {
         let trimmed = line.trim();
         if done || trimmed.is_empty() {
-            out.push(line.to_string());
-            continue;
-        }
-        if trimmed == "---"
-            && seen == 0
-            && bare.lines().filter(|one| one.trim() == "---").count() > 1
-        {
-            seen = 1;
-            out.push(line.to_string());
-            continue;
-        }
-        if seen == 1 {
-            if trimmed == "---" {
-                seen = 2;
-            }
             out.push(line.to_string());
             continue;
         }

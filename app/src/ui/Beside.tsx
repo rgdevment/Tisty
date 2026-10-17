@@ -135,7 +135,11 @@ export default function Beside({
           <PaperFacts facts={facts} body={body} />
         </section>
 
-        <Properties body={body} onEdit={heads.find((one) => one.level === 0)?.go} />
+        <Properties
+          body={body}
+          onEdit={heads.find((one) => one.level === 0)?.go}
+          skip={["title", "tags", "tag"]}
+        />
 
         {tags.length > 0 && (
           <section className="flex flex-col gap-2">
