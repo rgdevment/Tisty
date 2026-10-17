@@ -123,14 +123,14 @@ export const flipped = (view: EditorView): boolean => {
   return true;
 };
 
-const PENS = [
+export const PENS = [
   ["yellow", "penIt", "=="],
   ["green", "penGreen", "=={green}"],
   ["blue", "penBlue", "=={blue}"],
   ["pink", "penPink", "=={pink}"],
 ] as const;
 
-const FORMATS = [
+export const FORMATS = [
   ["bold", "B", "**", "**", "bold"],
   ["italic", "I", "*", "*", "italic"],
   ["underlined", "U", "++", "++", "underline"],
