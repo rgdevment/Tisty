@@ -1,0 +1,52 @@
+name: A document reads wrong
+description: Markdown that Tisty draws, keeps, imports or exports differently from what you wrote.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Every form a document can hold is in the [Tisty Markdown guide](https://markdown.tisty.app), drawn the way Tisty draws it. A look there first often answers it.
+  - type: textarea
+    id: written
+    attributes:
+      label: What you wrote
+      description: The smallest piece of Markdown that shows it. Replace anything private with made-up words.
+      render: markdown
+    validations:
+      required: true
+  - type: textarea
+    id: seen
+    attributes:
+      label: What Tisty did with it
+      description: How it reads on the page, in the PDF, in Word, or after copying it as Markdown. A screenshot helps.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: dropdown
+    id: when
+    attributes:
+      label: When it shows
+      multiple: true
+      options:
+        - Reading the page
+        - Writing a block
+        - Printing or saving as PDF
+        - Exporting as Word or a web page
+        - Copying as Markdown
+        - Importing or pasting from elsewhere
+        - Written by an assistant through MCP
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Tisty version
+      description: The first lines of the report in Settings → Maintenance → Report for a bug show it.
+      placeholder: "1.31.0"
+    validations:
+      required: true

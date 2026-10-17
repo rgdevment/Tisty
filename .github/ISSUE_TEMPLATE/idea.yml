@@ -1,0 +1,41 @@
+name: An idea
+description: Something Tisty could do, or do better.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Tisty means to stay small and useful, so every idea is weighed against what it would add to everyone's day. An issue first, before any code, saves both of us work. English or Spanish, whichever you prefer.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What gets in your way today
+      description: The situation, in your own words, before any solution.
+      placeholder: When a task drags on for weeks I lose track of what I already tried.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you would like
+    validations:
+      required: true
+  - type: textarea
+    id: instead
+    attributes:
+      label: What you do instead now
+      description: A workaround, another tool, or nothing at all.
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where it belongs
+      options:
+        - Tasks, capture or priorities
+        - Documents, pages or the editor
+        - The Tisty Markdown language
+        - Syncing or backups
+        - Assistants through MCP
+        - The command line
+        - Somewhere else
+    validations:
+      required: true
