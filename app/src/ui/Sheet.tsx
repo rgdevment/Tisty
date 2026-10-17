@@ -1,18 +1,21 @@
 import { save as intoFile } from "@tauri-apps/plugin-dialog";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
-import { copyAttached, viewWidget } from "../core";
+import { copied, copyAttached, viewWidget } from "../core";
 import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
 import { DOC } from "../markdown";
 import type { Moved } from "../paging";
 import { named } from "../previews";
+import { FORMATS, flipped } from "./barring";
 import { caretAt, type Editing, edited } from "./blocking";
 import { movedCard, putCard } from "./carded";
 import type { Carded } from "./carding";
+import { wrapped } from "./formatting";
 import Menu, { type Choice } from "./Menu";
 import Page from "./Page";
 import { charsAt, type Head, spanned, type Went } from "./paging";
 import { closed, laid, parting } from "./parting";
+import type { Formatting, Menued } from "./quickly";
 import { filedAs, type Reshape, reshaped } from "./recarding";
 import { ASIDE_MARGIN, settles } from "./seeking";
 import { type Asking, putBlock } from "./slashing";
@@ -59,6 +62,7 @@ export default function Sheet(props: Readonly<Props>) {
   const putting = useRef(-1);
   const [ready, setReady] = useState(false);
   const [more, setMore] = useState<Extract<Went, { kind: "more" }> | null>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number; choices: Choice[] } | null>(null);
   const askedOn = useRef("");
   const [stuck, setStuck] = useState(false);
 
@@ -140,7 +144,13 @@ export default function Sheet(props: Readonly<Props>) {
     else setDrawn(value);
   }, [value, left]);
 
-  const block = (at: [number, number], element: HTMLElement, seed = "", read = "") => {
+  const block = (
+    at: [number, number],
+    element: HTMLElement,
+    seed = "",
+    read = "",
+    asked?: Pick<Formatting, "said" | "open" | "close">,
+  ) => {
     if (open.current) return left();
     // A click on the page still on screen while the next one is drawn names bytes of an older text.
     if (reading || showing.current !== latest.current) return;
@@ -194,6 +204,102 @@ export default function Sheet(props: Readonly<Props>) {
     const editing = open.current.view;
     const caret = seed ? seed.length : caretAt(editing.state.sliceDoc(), read);
     editing.dispatch({ selection: { anchor: caret }, scrollIntoView: true });
+    if (asked) formatted(editing, read, asked);
+  };
+
+  const formatted = (
+    editing: Editing["view"],
+    read: string,
+    { said, open: mark, close }: Pick<Formatting, "said" | "open" | "close">,
+  ) => {
+    const source = editing.state.sliceDoc();
+    const end = caretAt(source, read + said);
+    // Words drawn across marks are not in the Markdown as read, so the block stays open for a hand.
+    if (source.slice(end - said.length, end) !== said) return;
+    editing.dispatch({ selection: { anchor: end - said.length, head: end } });
+    wrapped(editing, mark, close);
+    if (!close.startsWith("](")) open.current?.leave();
+  };
+
+  const format = (asked: Formatting) => {
+    if (!open.current) block(asked.at, asked.block, "", asked.read, asked);
+  };
+
+  const writingChoices = (editing: Editing["view"]): Choice[] => {
+    const { from, to } = editing.state.selection.main;
+    const chosen = editing.state.sliceDoc(from, to);
+    const back = () => editing.focus();
+    return [
+      {
+        key: "cut",
+        label: t("cutIt"),
+        off: from === to,
+        onPick: () => {
+          const was = editing.state.doc;
+          void copied(chosen).then(() => {
+            if (editing.state.doc === was) {
+              editing.dispatch({ changes: { from, to }, userEvent: "delete.cut" });
+            }
+            back();
+          });
+        },
+      },
+      {
+        key: "copy",
+        label: t("copyIt"),
+        off: from === to,
+        onPick: () => void copied(chosen).then(back),
+      },
+      ...FORMATS.map(([said, , mark, close], at) => ({
+        key: `format-${said}`,
+        label: t(said),
+        apart: at === 0,
+        onPick: () => {
+          wrapped(editing, mark, close);
+          back();
+        },
+      })),
+      {
+        key: "marks",
+        label: t("marksShown"),
+        apart: true,
+        onPick: () => {
+          flipped(editing);
+          back();
+        },
+      },
+    ];
+  };
+
+  const menued = (asked: Menued) => {
+    const frame = shown.current?.frameElement?.getBoundingClientRect();
+    const at = { x: (frame?.left ?? 0) + asked.x, y: (frame?.top ?? 0) + asked.y };
+    const editing = open.current?.view;
+    if (asked.writing) return editing && setMenu({ ...at, choices: writingChoices(editing) });
+    const { picked, block: under } = asked;
+    const choices: Choice[] = [];
+    if (picked)
+      choices.push({ key: "copy", label: t("copyIt"), onPick: () => void copied(picked.said) });
+    const free = !reading && !editing;
+    if (free && picked) {
+      for (const [said, , mark, close] of FORMATS) {
+        choices.push({
+          key: `format-${said}`,
+          label: t(said),
+          apart: choices.length === 1,
+          onPick: () => format({ ...picked, open: mark, close }),
+        });
+      }
+    }
+    if (free && under) {
+      choices.push({
+        key: "edit",
+        label: t("editBlock"),
+        apart: true,
+        onPick: () => block(under.at, under.element),
+      });
+    }
+    if (choices.length > 0) setMenu({ ...at, choices });
   };
 
   const dropped = (text: string, at?: { left: number; top: number }) => {
@@ -413,6 +519,8 @@ export default function Sheet(props: Readonly<Props>) {
           onBlock={reading ? undefined : block}
           onTick={reading ? undefined : ticked}
           onWiden={reading ? undefined : widen}
+          onFormat={reading ? undefined : format}
+          onMenu={menued}
           onMore={reading ? undefined : asked}
           onAway={left}
           card={props.card}
@@ -434,6 +542,15 @@ export default function Sheet(props: Readonly<Props>) {
       </div>
       {below}
       {!below && <div aria-hidden="true" className="h-[40vh] shrink-0" />}
+      {menu && (
+        <Menu
+          at={{ x: menu.x, y: menu.y }}
+          label={t("formatting")}
+          choices={menu.choices}
+          keeps
+          onClose={() => setMenu(null)}
+        />
+      )}
       {more && (
         <Menu
           at={{ x: more.x, y: more.y }}

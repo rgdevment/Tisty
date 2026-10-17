@@ -246,8 +246,7 @@ export const edited = (
   follow = bar.follow;
   host.prepend(bar.bar);
   hint = bar.hint;
-  // At the foot of the sheet, so the blocks after this one stay where they were read.
-  (host.closest(".page") ?? host).append(hint);
+  host.append(hint);
   view.focus();
   return { view, leave, kept: bar.kept };
 };

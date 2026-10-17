@@ -8,6 +8,7 @@ import { plainly } from "../refusal";
 import { type Attaching, attachedAs, lents, pressed } from "./attached";
 import { type Carding, carded } from "./carding";
 import { charsAt, colored, HUES, saidKinds, type Went, went, widgetsIn } from "./paging";
+import { type Formatting, type Menued, quickly } from "./quickly";
 import { webCarded } from "./webcarding";
 import { gripped, widening } from "./widening";
 import { type Lending, lend, locked } from "./widgeting";
@@ -29,6 +30,8 @@ export type Reaching = Carding & {
   readonly onAway?: () => void;
   readonly onTick?: (at: [number, number]) => void;
   readonly onWiden?: (at: [number, number], column: number, dashes: number) => void;
+  readonly onFormat?: (asked: Formatting) => void;
+  readonly onMenu?: (asked: Menued) => void;
 };
 
 const asking = (page: Document, asked: string, said: string): HTMLButtonElement => {
@@ -250,6 +253,7 @@ export const wired = (page: Document, reach: () => Reaching) => {
   page.addEventListener("click", (event) => {
     const target = event.target as Element | null;
     if (event.button !== 0 || typeof target?.closest !== "function") return;
+    if (target.closest(".quick-bar")) return;
     const selecting = !(page.getSelection()?.isCollapsed ?? true);
     if (target.closest("a")) event.preventDefault();
     const asked = went(target, selecting) ?? (below(page, target, event) ? { kind: "end" } : null);
@@ -263,7 +267,26 @@ export const wired = (page: Document, reach: () => Reaching) => {
     return (at, column, dashes) =>
       widen([charsAt(now.body, at[0]), charsAt(now.body, at[1])], column, dashes);
   });
-  for (const kind of ["auxclick", "submit", "dragstart", "contextmenu"]) {
+  quickly(page, () => {
+    const now = reach();
+    const chars = (at: [number, number]): [number, number] => [
+      charsAt(now.body, at[0]),
+      charsAt(now.body, at[1]),
+    ];
+    const { onFormat, onMenu } = now;
+    return {
+      onFormat: onFormat && ((asked) => onFormat({ ...asked, at: chars(asked.at) })),
+      onMenu:
+        onMenu &&
+        ((asked) =>
+          onMenu({
+            ...asked,
+            picked: asked.picked && { ...asked.picked, at: chars(asked.picked.at) },
+            block: asked.block && { ...asked.block, at: chars(asked.block.at) },
+          })),
+    };
+  });
+  for (const kind of ["auxclick", "submit", "dragstart"]) {
     page.addEventListener(kind, refused);
   }
   // The window's own shortcuts listen on the app, which never hears a key pressed in the page.
