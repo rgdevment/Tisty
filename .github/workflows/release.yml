@@ -1006,6 +1006,39 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
+  # The guide is drawn by the same engine and the same window code as this release, so it can never
+  # describe a language the shipped app does not speak.
+  bundle-guide:
+    name: tisty-markdown-guide
+    needs: version
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/toolchain
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - name: Frontend
+        working-directory: app
+        run: npm ci
+      - name: Draw the guide
+        env:
+          V: ${{ needs.version.outputs.version }}
+        run: |
+          node app/scripts/guide.mjs guide
+          mkdir -p dist
+          (cd guide && zip -qr "../dist/tisty-markdown-guide-$V.zip" .)
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: bundle-guide
+          path: dist/*.zip
+          if-no-files-found: error
+          retention-days: 5
+
   bundle-mcpb:
     name: tisty-mcp-bundle
     needs: [version, build-macos, build-windows]
@@ -1143,6 +1176,7 @@ jobs:
         build-macos,
         build-windows,
         bundle-mcpb,
+        bundle-guide,
         bundle-windows,
         bundle-macos,
         bundle-msix,
