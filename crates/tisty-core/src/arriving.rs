@@ -11,6 +11,37 @@ pub use html::from_html;
 pub use plain::from_plain;
 pub use word::{WORD_AT_MOST, Word, from_word};
 
+/// The documents already here, by the title a note from elsewhere would call them.
+#[derive(Debug, Default, Clone)]
+pub struct Titles(std::collections::HashMap<String, Vec<String>>);
+
+pub enum Titled<'a> {
+    One(&'a str),
+    Many,
+    None,
+}
+
+impl Titles {
+    pub fn of(docs: &[crate::docs::Doc]) -> Self {
+        let mut all: std::collections::HashMap<String, Vec<String>> = Default::default();
+        for doc in docs {
+            let key = doc.title.trim().to_lowercase();
+            if !key.is_empty() {
+                all.entry(key).or_default().push(doc.id.clone());
+            }
+        }
+        Self(all)
+    }
+
+    pub fn find(&self, title: &str) -> Titled<'_> {
+        match self.0.get(&title.trim().to_lowercase()).map(Vec::as_slice) {
+            Some([one]) => Titled::One(one),
+            Some([]) | None => Titled::None,
+            Some(_) => Titled::Many,
+        }
+    }
+}
+
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Tidied {
     pub body: String,
@@ -29,6 +60,11 @@ const TAGS: [(&str, &str, &str); 8] = [
 ];
 
 pub fn tidied(body: &str) -> Tidied {
+    tidied_among(body, &Titles::default())
+}
+
+/// What a note from elsewhere names by title becomes a link to the document here that bears it.
+pub fn tidied_among(body: &str, titles: &Titles) -> Tidied {
     let windows = body.contains("\r\n");
     let even = match windows {
         true => body.replace("\r\n", "\n"),
@@ -42,7 +78,7 @@ pub fn tidied(body: &str) -> Tidied {
     if plain != even {
         opened.push("what an older Tisty wrote, in its own words now");
     }
-    let plain = obsidian::obsidian(&plain, &mut opened);
+    let plain = obsidian::obsidian(&plain, &mut opened, titles);
     if crate::docs::survives(&plain).is_ok() {
         return Tidied {
             body: plain,

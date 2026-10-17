@@ -52,7 +52,8 @@ pub(in crate::mcp) fn import_doc(paths: &Paths, args: &Value) -> Result<Value, R
             false => one.named,
         });
 
-    let made = tisty_core::arriving::tidied(&raw);
+    let titles = tisty_core::arriving::Titles::of(&tisty_core::docs::all(&paths.docs()));
+    let made = tisty_core::arriving::tidied_among(&raw, &titles);
     tisty_core::docs::survives(&made.body).map_err(|eats| {
         Refused::Tool(format!(
             "{said:?} still holds {eats} after being tidied, which Tisty does not keep in its own words. Nothing was written."
