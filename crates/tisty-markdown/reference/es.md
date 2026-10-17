@@ -137,6 +137,12 @@ entre ángulos <https://github.com/rgdevment/Tisty>, y un correo
 igual: <rina@example.com>.
 ```
 
+Un enlace solo en su propio párrafo se muestra como una tarjeta, con la letra y el color de su sitio:
+
+```markdown
+https://github.com/rgdevment/Tisty
+```
+
 - Una dirección web escrita sola, `https://github.com/rgdevment/Tisty`, también es un enlace. Un punto, una coma o un paréntesis que cierra justo después no son parte de ella.
 - Un enlace también se puede escribir por referencia, con su dirección dicha una vez en una línea propia, en cualquier parte del documento:
 
@@ -339,11 +345,46 @@ rsync -a ~/Tisty/ /Volumes/Respaldo/Tisty/
 ```
 ````
 
+Cada lenguaje se colorea a su manera:
+
+````markdown
+```python title="paseos.py"
+def kilometros(paseos):
+    # Suma lo caminado en el mes
+    return sum(p["km"] for p in paseos if p["hecho"])
+```
+````
+
+````markdown
+```javascript
+const vacunas = ["antirrábica", "óctuple"];
+for (const una of vacunas) console.log(`Pendiente: ${una}`);
+```
+````
+
+````markdown
+```json title="rina.json"
+{ "nombre": "Rina", "edad": 4, "vacunas": ["antirrábica"], "chip": true }
+```
+````
+
+````markdown
+```sql
+SELECT nombre, fecha FROM vacunas WHERE mascota = 'Rina' ORDER BY fecha DESC;
+```
+````
+
+Dentro de una frase, el código va entre comillas invertidas:
+
+```markdown
+Corre `npm run guide` y abre `target/guide`.
+```
+
 - El nombre va en `title="…"`; una `"` dentro se escribe `\"`. Los demás lectores lo ignoran.
 - Lo demás que otras herramientas escriben después del lenguaje, como `showLineNumbers`, se guarda tal cual; Tisty lee el lenguaje y el nombre.
 - Para mostrar una valla dentro de un bloque, rodéalo con una valla más larga.
 - Un bloque sangrado cuatro espacios también es código.
-- Nada en el código es etiqueta, rotulador, icono ni emoji. Mira Bloques de código.
+- Nada en el código es etiqueta, rotulador, icono ni emoji.
 
 ## Diagramas, fórmulas y widgets
 

@@ -137,6 +137,12 @@ between angle brackets <https://github.com/rgdevment/Tisty>, and a mail
 address the same way: <rina@example.com>.
 ```
 
+A link alone in its own paragraph is shown as a card, with its site's letter and colour:
+
+```markdown
+https://github.com/rgdevment/Tisty
+```
+
 - A web address written on its own, `https://github.com/rgdevment/Tisty`, is a link too. A full stop, a comma or a closing bracket right after it is not part of it.
 - A link can also be written by reference, with its address said once on a line of its own, anywhere in the document:
 
@@ -339,11 +345,46 @@ rsync -a ~/Tisty/ /Volumes/Backup/Tisty/
 ```
 ````
 
+Each language is coloured its own way:
+
+````markdown
+```python title="walks.py"
+def kilometres(walks):
+    # Add up what was walked this month
+    return sum(w["km"] for w in walks if w["done"])
+```
+````
+
+````markdown
+```javascript
+const vaccines = ["rabies", "eight-in-one"];
+for (const one of vaccines) console.log(`Due: ${one}`);
+```
+````
+
+````markdown
+```json title="rina.json"
+{ "name": "Rina", "age": 4, "vaccines": ["rabies"], "chip": true }
+```
+````
+
+````markdown
+```sql
+SELECT name, date FROM vaccines WHERE pet = 'Rina' ORDER BY date DESC;
+```
+````
+
+Inside a sentence, code goes between backticks:
+
+```markdown
+Run `npm run guide` and open `target/guide`.
+```
+
 - The name goes in `title="…"`; a `"` inside it is written `\"`. Other readers ignore it.
 - Whatever else other tools write after the language, like `showLineNumbers`, is kept as written; Tisty reads the language and the name.
 - To show a fence inside a block, use a longer fence around it.
 - A block indented four spaces is code too.
-- Nothing in code is a tag, a pen, an icon or an emoji. See Code blocks.
+- Nothing in code is a tag, a pen, an icon or an emoji.
 
 ## Diagrams, formulas and widgets
 

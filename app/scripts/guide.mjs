@@ -33,7 +33,9 @@ const vite = await createServer({
 const { iconed } = await vite.ssrLoadModule("/src/ui/dressing.ts");
 const { coloredAll, saidKinds } = await vite.ssrLoadModule("/src/ui/paging.ts");
 const { adopt, t } = await vite.ssrLoadModule("/src/locales.ts");
-const { named, pictured } = await vite.ssrLoadModule("/src/previews.ts");
+const { hosting, named, pictured } = await vite.ssrLoadModule("/src/previews.ts");
+const { carded, piece } = await vite.ssrLoadModule("/src/ui/carding.ts");
+const { HUES } = await vite.ssrLoadModule("/src/ui/paging.ts");
 const sheet = (await vite.ssrLoadModule("/src/ui/page.css?raw")).default;
 await vite.close();
 
@@ -122,12 +124,43 @@ const lent = (page) => {
   }
 };
 
+// Cards are drawn by the window's own code where it can be borrowed; a link card shows its site's letter, as one the app has not looked up yet.
+const cards = (page) => {
+  for (const drawn of page.querySelectorAll("figure.example > .drawn")) {
+    drawn.classList.add("page");
+    const titles = new Map(
+      Array.from(drawn.querySelectorAll("a.card[data-doc]")).map((one) => [one.dataset.doc, one.textContent]),
+    );
+    carded(page, { card: (file) => ({ kind: "doc", title: titles.get(file) ?? "" }) }, () => true);
+    for (const link of drawn.querySelectorAll(":scope > p > a[href]")) {
+      const held = link.parentElement;
+      const at = link.getAttribute("href");
+      const host = hosting(at);
+      if (!host || held.children.length !== 1 || held.textContent.trim() !== link.textContent.trim()) continue;
+      const box = page.createElement("a");
+      box.className = "doc-card is-web is-bare";
+      box.href = at;
+      const tile = piece(page, "card-tile is-letter", host.charAt(0).toUpperCase());
+      let sum = 0;
+      for (const one of host) sum += one.charCodeAt(0);
+      tile.style.setProperty("--hue", `var(--tisty-hue-${HUES[sum % HUES.length]})`);
+      const meta = piece(page, "card-meta");
+      meta.append(piece(page, "kind", host), piece(page, "card-go", "›"));
+      const name = link.textContent.replace(/^https?:\/\//, "");
+      box.append(tile, piece(page, "card-name", name), piece(page, "card-blurb"), meta);
+      link.replaceWith(box);
+    }
+    drawn.classList.remove("page");
+  }
+};
+
 const dressed = (page) => {
   saidKinds(page, (kind) => t(`said${kind}`));
   iconed(page);
   coloredAll(page);
   kept(page);
   lent(page);
+  cards(page);
   for (const one of page.querySelectorAll("[data-at]")) one.removeAttribute("data-at");
   return page;
 };
@@ -238,7 +271,7 @@ const dark = /\[data-theme="dark"\]\s*\{([^}]*)\}/.exec(index)[1];
 rmSync(out, { recursive: true, force: true });
 const built = new Map(LANGUAGES.map((language) => [language.code, build(language)]));
 const logo = readFileSync(join(app, "src", "assets", "tisty.svg"));
-const appLight = light.replace(/^:roots*{|}$/g, "");
+const appLight = /\{([^}]*)\}/.exec(light)[1];
 const css = `${light}
 html.dark{${dark}}
 ${sheet}

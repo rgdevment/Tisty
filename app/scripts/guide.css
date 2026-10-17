@@ -213,32 +213,44 @@ main .page > h2:first-child {
 }
 .near {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
-  gap: 24px;
+  gap: 12px;
   margin-top: 56px;
-  padding-top: 20px;
-  border-top: 1px solid var(--tisty-hair);
 }
 .near a {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 15px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 48%;
+  padding: 9px 16px;
+  border: 1px solid var(--tisty-line);
+  border-radius: 999px;
+  background: var(--tisty-sheet);
+  font-size: 14px;
   font-weight: 550;
   color: var(--tisty-ink);
   text-decoration: none;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
 }
-.near a small {
-  font-size: 12px;
-  font-weight: 500;
+.near a span {
   color: var(--tisty-faint);
+  transition: transform 0.15s;
 }
 .near a:hover {
+  border-color: var(--guide-flame);
   color: var(--tisty-accent);
+}
+.near a[rel="prev"]:hover span {
+  transform: translateX(-3px);
+}
+.near a[rel="next"]:hover span {
+  transform: translateX(3px);
 }
 .near a[rel="next"] {
   margin-left: auto;
-  text-align: right;
 }
 
 figure.example {

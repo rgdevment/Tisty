@@ -14,7 +14,7 @@ export const LANGUAGES = [
     after: "Next",
     written: "You write",
     drawn: "Tisty shows",
-    name: "English",
+    name: "EN",
     dark: "Light or dark",
     locale: "en_US",
     image: "https://www.tisty.app/tisty-social.png",
@@ -32,7 +32,7 @@ export const LANGUAGES = [
     after: "Siguiente",
     written: "Escribes",
     drawn: "Tisty muestra",
-    name: "Español",
+    name: "ES",
     dark: "Claro u oscuro",
     locale: "es_ES",
     image: "https://www.tisty.app/tisty-social-es.png",
@@ -51,7 +51,7 @@ const address = (language, page) =>
   `${SITE}${language.dir}${page.slug === "index" ? "" : page.slug}`;
 
 // The one script the guide carries: it only remembers light or dark, and every page reads whole without it.
-export const THEME = `<script>(()=>{const r=document.documentElement;r.classList.add("js");let s=null;try{s=localStorage.getItem("tisty-guide-theme")}catch{}r.classList.toggle("dark",s?s==="dark":matchMedia("(prefers-color-scheme: dark)").matches)})()</script>`;
+export const THEME = `<script>(()=>{const r=document.documentElement;r.classList.add("js");let s=null;try{s=localStorage.getItem("tisty-guide-theme")}catch{}r.classList.toggle("dark",s==="dark")})()</script>`;
 const SWITCH = `(()=>{const d=document.documentElement.classList.toggle('dark');try{localStorage.setItem('tisty-guide-theme',d?'dark':'light')}catch{}})()`;
 const MOON = `<svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>`;
 const SUN = `<svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>`;
@@ -108,9 +108,9 @@ export const sheetOf = (built, language, page, style) => {
   const after = pages[page.at + 1];
   const near = [
     before &&
-      `<a rel="prev" href="${href(before.slug)}"><small>${language.before}</small>${escaped(before.label)}</a>`,
+      `<a rel="prev" href="${href(before.slug)}" title="${language.before}"><span aria-hidden="true">←</span>${escaped(before.label)}</a>`,
     after &&
-      `<a rel="next" href="${href(after.slug)}"><small>${language.after}</small>${escaped(after.label)}</a>`,
+      `<a rel="next" href="${href(after.slug)}" title="${language.after}">${escaped(after.label)}<span aria-hidden="true">→</span></a>`,
   ]
     .filter(Boolean)
     .join("");
