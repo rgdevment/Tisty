@@ -171,7 +171,7 @@ written once with the crates that carry it.
 | `aho-corasick` | 1.1.5 | Unlicense OR MIT |
 | `alloc-no-stdlib` | 3.0.0 | BSD-3-Clause |
 | `alloc-stdlib` | 0.3.0 | BSD-3-Clause |
-| `ammonia` | 4.2.3 | MIT OR Apache-2.0 |
+| `ammonia` | 4.2.4 | MIT OR Apache-2.0 |
 | `anstream` | 1.0.0 | MIT OR Apache-2.0 |
 | `anstyle` | 1.0.14 | MIT OR Apache-2.0 |
 | `anstyle-parse` | 1.0.0 | MIT OR Apache-2.0 |

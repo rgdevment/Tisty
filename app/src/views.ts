@@ -13,7 +13,8 @@ export type Named =
   | "tags"
   | "archive"
   | "keeping"
-  | "aboutScreen";
+  | "aboutScreen"
+  | "help";
 
 export type Tab = "general" | "data" | "agents" | "upkeep";
 
@@ -61,6 +62,7 @@ export interface Chosen {
   slice?: Slice;
   layer?: Reading;
   axis?: Axis;
+  topic?: string;
 }
 
 export const A_COLUMN = 200;
@@ -118,6 +120,7 @@ export function accepts(chosen: Chosen): boolean {
   if (chosen.named === "archive" || chosen.named === "search") return false;
   if (chosen.named === "quadrants") return false;
   if (chosen.named === "keeping") return false;
+  if (chosen.named === "help") return false;
 
   if (chosen.named === "tags") return (chosen.tags?.length ?? 0) > 0;
   return true;

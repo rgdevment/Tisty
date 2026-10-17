@@ -14,6 +14,7 @@ type Props = Reaching & {
   readonly onOutline?: (heads: Head[]) => void;
   readonly onShown?: (page: Window | null) => void;
   readonly again?: string;
+  readonly draw?: (body: string) => Promise<string>;
 };
 
 type Drawn = { html: string; turn: number; body: string };
@@ -40,7 +41,7 @@ export default function Page(props: Readonly<Props>) {
         { html: shell(html), turn, body },
       ]);
     };
-    docDrawn(body)
+    (reach.current.draw ?? docDrawn)(body)
       .then(drawn)
       .catch(() => drawn(`<pre>${escaped(body)}</pre>`));
     return () => {

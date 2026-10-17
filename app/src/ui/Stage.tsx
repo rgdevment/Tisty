@@ -11,6 +11,7 @@ import Board from "./Board";
 import Detail from "./Detail";
 import Docs from "./Docs";
 import Folder from "./Folder";
+import Help from "./Help";
 import Keeping from "./Keeping";
 import Lists from "./Lists";
 import Matrix from "./Matrix";
@@ -69,7 +70,9 @@ export default function Stage() {
   const fresh = useRef(refreshed);
   fresh.current = refreshed;
   useEffect(() => afterMove(() => fresh.current()), []);
-  return chosen.named === "aboutScreen" ? (
+  return chosen.named === "help" ? (
+    <Help topic={chosen.topic} />
+  ) : chosen.named === "aboutScreen" ? (
     <About
       ready={ready}
       step={underway}

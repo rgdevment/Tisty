@@ -153,12 +153,26 @@ export default function Sidebar({
           <KnockDot />
         </button>
         <Mode onOpen={() => onChoose({ named: "keeping" })} />
+        <button
+          type="button"
+          aria-label={t("help")}
+          title={`${t("help")} · F1`}
+          onClick={() => onChoose({ named: "help" })}
+          className={`ml-auto grid size-7 place-items-center rounded-[10px] hover:bg-hover ${
+            chosen.named === "help" ? "bg-active text-accent" : "text-soft"
+          }`}
+        >
+          <Drawn>
+            <circle cx="12" cy="12" r="9" />
+            <path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01" />
+          </Drawn>
+        </button>
         {waiting ? (
           <button
             type="button"
             aria-label={`${t("aboutScreen")} · ${t("updateWaiting")}`}
             onClick={() => onChoose({ named: "aboutScreen" })}
-            className="ml-auto flex items-center gap-1.5 rounded-[10px] bg-accent-soft px-2 py-1 text-[11.5px] font-medium text-accent hover:bg-hover"
+            className="flex items-center gap-1.5 rounded-[10px] bg-accent-soft px-2 py-1 text-[11.5px] font-medium text-accent hover:bg-hover"
           >
             <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
             Tisty {waiting}
@@ -169,7 +183,7 @@ export default function Sidebar({
             aria-label={t("aboutScreen")}
             title={t("aboutScreen")}
             onClick={() => onChoose({ named: "aboutScreen" })}
-            className={`ml-auto grid size-7 place-items-center rounded-[10px] hover:bg-hover ${
+            className={`grid size-7 place-items-center rounded-[10px] hover:bg-hover ${
               chosen.named === "aboutScreen" ? "bg-active text-accent" : "text-soft"
             }`}
           >

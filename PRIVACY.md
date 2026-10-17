@@ -1,6 +1,6 @@
 # Privacy policy
 
-**Last updated:** October 14, 2026
+**Last updated:** October 17, 2026
 
 ## The short version
 
@@ -10,10 +10,11 @@ no telemetry, no analytics, no crash reporting.
 It makes **one** network request on its own — when it opens, and once a day
 after that: it downloads a small file to see whether a newer version exists.
 It sends nothing. Two more follow only if you press the button that offers you
-an update, and one more only if you ask a link in a document for its preview.
-Never otherwise. A copy installed from the Microsoft Store makes none of those:
-it asks Windows what the Store has, and the Store does the rest. All of them are
-described in full below.
+an update, one more only if you ask a link in a document for its preview, and
+one more when you open the guide inside Tisty. Never otherwise. A copy
+installed from the Microsoft Store makes no update request: it asks Windows
+what the Store has, and the Store does the rest. All of them are described in
+full below.
 
 Since version 1.30, Tisty can also sync through your own Google Drive, talking
 to it directly. It runs only if you choose it and connect your account in the
@@ -259,6 +260,15 @@ have to be told to bring it too. The picture is stored inside that record rather
 than in your documents, so nothing of the world ends up in the folder your
 machines share, and the whole store of them is capped by weight, so old cards go
 rather than pile up.
+
+Opening the guide inside Tisty — `F1`, the `?` at the foot of the sidebar, or
+the Help menu on a Mac — reads it where it is published, so what it says is
+always the latest: one request for `https://markdown.tisty.app/llms-full.txt`
+(`/es/llms-full.txt` in Spanish), over HTTPS, with the user agent
+`tisty/<version>`. It sends nothing else and nothing of yours; the site learns an
+address to answer to and the time of day, like any visit. It waits at most 4
+seconds, and without an answer it shows the copy of the guide that came with
+this version, so the guide works offline too.
 
 **Nothing is downloaded or installed unless you ask for it.** What the daily
 check brings back is a line of text you can ignore. If a newer version exists, a

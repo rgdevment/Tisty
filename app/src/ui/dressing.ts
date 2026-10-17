@@ -21,6 +21,7 @@ export type Reaching = Carding & {
     read?: string,
   ) => void;
   readonly onApart?: (source: string) => void;
+  readonly onHere?: (id: string) => void;
   readonly onAway?: () => void;
   readonly onTick?: (at: [number, number]) => void;
 };
@@ -63,7 +64,7 @@ export const pictures = (page: Document, live: () => boolean): (() => void)[] =>
   const held: (() => void)[] = [];
   for (const img of page.querySelectorAll<HTMLImageElement>(".page img[src]")) {
     const at = img.getAttribute("src") ?? "";
-    if (!at || /^(https?|data|asset|blob|file):/i.test(at)) continue;
+    if (!at || /^(https?|data|asset|blob|file|tauri):/i.test(at)) continue;
     if (!pictured(at)) {
       const card = page.createElement("a");
       card.className = "card";
@@ -147,7 +148,11 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
   if (!asked) return;
   if (asked.kind === "doc") reach.onDoc(asked.id);
   if (asked.kind === "web") openLink(asked.href).catch(() => {});
-  if (asked.kind === "here") page.getElementById(asked.id)?.scrollIntoView({ block: "start" });
+  if (asked.kind === "here") {
+    const at = page.getElementById(asked.id);
+    if (at) at.scrollIntoView({ block: "start" });
+    else reach.onHere?.(asked.id);
+  }
   if (asked.kind === "attachment") reach.onOpen?.(asked.reference);
   if (asked.kind === "tag") reach.onTag?.(asked.name);
   if (asked.kind === "tick")
@@ -218,7 +223,8 @@ export const wired = (page: Document, reach: () => Reaching) => {
   // The window's own shortcuts listen on the app, which never hears a key pressed in the page.
   page.addEventListener("keydown", (event) => {
     const writing = (event.target as Element | null)?.closest?.(".editing");
-    if (writing && (event.defaultPrevented || !(event.ctrlKey || event.metaKey))) return;
+    const asked = event.ctrlKey || event.metaKey || event.key === "F1";
+    if (writing && (event.defaultPrevented || !asked)) return;
     const passed = new KeyboardEvent("keydown", event);
     window.dispatchEvent(passed);
     if (passed.defaultPrevented) event.preventDefault();

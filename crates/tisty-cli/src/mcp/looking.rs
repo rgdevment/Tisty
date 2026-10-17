@@ -582,11 +582,32 @@ pub(super) fn lists(paths: &Paths) -> Result<Value, Refused> {
     Ok(told(text, json!({ "lists": named })))
 }
 
+// The same text is published, drawn for people and whole for assistants, so an answer can point a person there.
+pub(super) const GUIDE: &str = "https://markdown.tisty.app/";
+
 pub(super) fn language(args: &Value) -> Value {
     let spanish = args["lang"].as_str() == Some("es");
+    let drawn = if spanish {
+        format!("{GUIDE}es/")
+    } else {
+        GUIDE.to_string()
+    };
+    let whole = format!("{drawn}llms-full.txt");
+    let index = format!("{GUIDE}llms.txt");
     told(
-        tisty_markdown::reference(spanish).to_string(),
-        json!({ "lang": if spanish { "es" } else { "en" } }),
+        format!(
+            "{}
+
+The same guide, with every example drawn, is published at {drawn}; this whole text at {whole}, and an index of its topics at {index}.
+",
+            tisty_markdown::reference(spanish).trim_end()
+        ),
+        json!({
+            "lang": if spanish { "es" } else { "en" },
+            "guide": drawn,
+            "full": whole,
+            "index": index,
+        }),
     )
 }
 
