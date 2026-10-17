@@ -22,7 +22,7 @@ pub fn note_drawn(body: String) -> String {
 
 #[tauri::command(async)]
 pub fn doc_plain(body: String) -> String {
-    tisty_markdown::to_plain(&body)
+    tisty_markdown::to_standard(&body, &|_| None)
 }
 
 #[tauri::command(async)]
