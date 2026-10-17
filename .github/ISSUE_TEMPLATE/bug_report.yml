@@ -1,0 +1,85 @@
+name: Something is wrong
+description: Tisty did something it should not, or did not do what it should.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. English or Spanish, whichever you prefer.
+
+        Tisty can write the report for you: **Settings → Maintenance → Report for a bug**, then **Copy it**. It carries the version, the system, the counts and, if you tick it, the error log. Task titles, descriptions, journals and attachments are never in it. Read it before pasting it below.
+
+        A security problem goes to [a private advisory](https://github.com/rgdevment/Tisty/security/advisories/new), never here.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected to see instead.
+      placeholder: I ticked a step and it came back unticked after the next sync.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to make it happen again
+      description: The fewest steps that bring it back. «It happened once» helps too.
+      placeholder: |
+        1. Open a task with steps
+        2. Tick the second one
+        3. Wait for the sync
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where
+      options:
+        - Tasks, capture or priorities
+        - Documents, pages or the editor
+        - Syncing or backups
+        - An assistant through MCP
+        - The command line
+        - Installing or updating
+        - Somewhere else
+    validations:
+      required: true
+  - type: dropdown
+    id: system
+    attributes:
+      label: System
+      options:
+        - Windows
+        - macOS
+        - Linux
+    validations:
+      required: true
+  - type: dropdown
+    id: sync
+    attributes:
+      label: How it syncs
+      options:
+        - It does not sync
+        - A shared folder (Google Drive, OneDrive, iCloud, Dropbox, a NAS or a disk)
+        - Google Drive connected from Settings
+        - I do not know
+    validations:
+      required: true
+  - type: textarea
+    id: report
+    attributes:
+      label: Tisty's report
+      description: Settings → Maintenance → Report for a bug → Copy it. Paste it whole; it is already free of your content.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: What tisty doctor says
+      description: Only for syncing or the command line. Run `tisty doctor` and paste what it answers.
+      render: text
+  - type: textarea
+    id: more
+    attributes:
+      label: Anything else
+      description: A screenshot, a short video, or the Markdown that drew wrong. Leave out anything private.
