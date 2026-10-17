@@ -248,7 +248,7 @@ pub async fn served(
     finding::fetched(&session, reference, pointed_at).await
 }
 
-pub(crate) fn copied_out(reference: String, at: finding::Where, to: &str) -> Answer<()> {
+pub fn copied_out(reference: String, at: finding::Where, to: &str) -> Answer<()> {
     let found = finding::handed_over(&reference, &at)?;
     std::fs::copy(&found, to).map_err(|_| refused(&found, &reference))?;
     tisty_core::lately::used(&at.reached, &reference);
