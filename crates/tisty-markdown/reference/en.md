@@ -51,8 +51,8 @@ source: the vet's card
 - `title:` is the document's [title](#the-title).
 - `tags:` (or `tag:`) files the document under each one, the same as writing `#rina` in a sentence: one tag either way. A list in brackets, words split by commas, or one `- item` per line all work, with or without the `#`.
 - The block only counts at the very top: the first line is `---`, the line under it has words, and a `---` or `...` closes it. Anywhere else, `---` is a [page break](#page-breaks).
-- `paper:` is the sheet the document is laid on and printed: `letter` or `tabloid`, and A4 when it is left out. Choosing **Paper** in the panel writes it, and A4 takes it away.
-- Besides `paper:`, Tisty never writes properties: a tag it adds goes in the text as `#tag`.
+- `paper:` is the sheet the document is printed on: `letter` or `tabloid`, and A4 when it is left out. `sheets: on` draws the page on those sheets, and `orientation: landscape` lays them across. **Paper** and **Sheets** in the panel write them, and taking them back leaves nothing written.
+- Besides those three, Tisty never writes properties: a tag it adds goes in the text as `#tag`.
 - A block past 4 KiB, with more than 32 properties or a value past 500 characters is kept as written, but nothing in it is read. Only plain properties are read: `key: value`, a list in brackets, or `- item` lines.
 
 ## The title
@@ -523,7 +523,7 @@ This is already on the next one.
 
 Leave a blank line above it: right under a line of words, `---` turns that line into a heading.
 
-A sheet that fills up turns on its own, on screen as on paper, and `Ctrl`/`⌘` + `Enter` writes a break while you write. A `\newpage`, `\pagebreak` or `\clearpage` on a line of its own, and a page break written in a web page or a Word document, come in as a rule.
+With **Sheets** on, a sheet that fills up turns on its own, on screen as on paper; a break always holds, sheets or not. `Ctrl`/`⌘` + `Enter` writes one while you write. A `\newpage`, `\pagebreak` or `\clearpage` on a line of its own, and a page break written in a web page or a Word document, come in as a rule.
 
 ## Comments and entities
 

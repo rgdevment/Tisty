@@ -58,8 +58,12 @@ html.tall .page > * {
   content-visibility: visible;
 }
 html.sheeted .page {
-  max-width: none;
+  position: relative;
+  max-width: var(--wide, none);
   padding: var(--sheet-y) var(--sheet-x) calc(var(--sheet-y) + var(--last, 0px));
+}
+html.sheeted .page > * {
+  content-visibility: visible;
 }
 html.sheeted .page > hr,
 html.sheeted .page > .sheet-turn {
@@ -1240,6 +1244,15 @@ kbd {
 .editing.titled .cm-bar {
   bottom: auto;
   top: calc(100% + 8px);
+}
+.break-said {
+  position: absolute;
+  inset-inline: 0;
+  transform: translateY(-50%);
+  font-size: 11px;
+  text-align: center;
+  color: var(--tisty-faint);
+  pointer-events: none;
 }
 .ref.is-stage {
   cursor: pointer;

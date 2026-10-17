@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { paperIn, withPaper } from "../front";
+import { landscapeIn, paperIn, sheetsIn, withLandscape, withPaper, withSheets } from "../front";
 import { sheeted } from "../ui/sheeting";
 
 describe("the paper a document asks for", () => {
@@ -22,6 +22,16 @@ describe("the paper a document asks for", () => {
     expect(withPaper("# Plan\r\nhola\r\n", "letter")).toBe(
       "---\r\npaper: letter\r\n---\r\n# Plan\r\nhola\r\n",
     );
+  });
+
+  it("keeps sheets off and upright unless the document asks, and writes only what it asks", () => {
+    expect(sheetsIn("# Plan\n")).toBe(false);
+    expect(landscapeIn("# Plan\n")).toBe(false);
+    const asked = withLandscape(withSheets("# Plan\n", true), true);
+    expect(asked).toBe("---\nsheets: on\norientation: landscape\n---\n# Plan\n");
+    expect(sheetsIn(asked)).toBe(true);
+    expect(landscapeIn(asked)).toBe(true);
+    expect(withLandscape(withSheets(asked, false), false)).toBe("# Plan\n");
   });
 });
 

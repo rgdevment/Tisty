@@ -36,7 +36,10 @@ export const TALL = Object.fromEntries(
 export const leafWord = (one: Paper) =>
   one === "a4" ? "leafA4" : one === "letter" ? "leafLetter" : "leafTabloid";
 
-export const pageFor = (leaf: Paper) => {
+export const sizeOf = (leaf: Paper, landscape = false) =>
+  !landscape ? PAGE[leaf] : leaf === "tabloid" ? "17in 11in" : `${PAGE[leaf]} landscape`;
+
+export const pageFor = (leaf: Paper, landscape = false) => {
   const id = "tisty-page";
   let tag = document.getElementById(id) as HTMLStyleElement | null;
   if (!tag) {
@@ -44,5 +47,5 @@ export const pageFor = (leaf: Paper) => {
     tag.id = id;
     document.head.append(tag);
   }
-  tag.textContent = `@page { size: ${PAGE[leaf]}; ${PRINTED}; }`;
+  tag.textContent = `@page { size: ${sizeOf(leaf, landscape)}; ${PRINTED}; }`;
 };

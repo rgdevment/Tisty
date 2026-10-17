@@ -3,21 +3,25 @@ export type Sheet = {
   readonly tall: number;
   readonly x: number;
   readonly y: number;
+  readonly said?: string;
 };
 
 const TURN = "sheet-turn";
 
+const SAID = "break-said";
+
 const BREAKS = ".page > hr, .page > .sheet-turn";
 
-const topOf = (one: HTMLElement, sheet: HTMLElement) => one.offsetTop - sheet.offsetTop;
+const topOf = (one: HTMLElement, sheet: HTMLElement) =>
+  one.offsetParent === sheet ? one.offsetTop : one.offsetTop - sheet.offsetTop;
 
 const bottomOf = (one: HTMLElement, sheet: HTMLElement) => topOf(one, sheet) + one.offsetHeight;
 
 // The band between two sheets starts at the foot of the one above, its bottom margin included.
-export const sheeted = (page: Document, { tall, y }: Sheet) => {
+export const sheeted = (page: Document, { tall, y, said }: Sheet) => {
   const sheet = page.querySelector<HTMLElement>(".page");
   if (!sheet || page.querySelector(".editing")) return;
-  for (const one of sheet.querySelectorAll(`.${TURN}`)) one.remove();
+  for (const one of sheet.querySelectorAll(`.${TURN}, .${SAID}`)) one.remove();
   for (const one of sheet.querySelectorAll<HTMLElement>(BREAKS)) one.style.removeProperty("--fill");
   const room = tall - 2 * y;
   let begins = y;
@@ -43,6 +47,15 @@ export const sheeted = (page: Document, { tall, y }: Sheet) => {
     ended = bottomOf(one, sheet);
   }
   sheet.style.setProperty("--last", `${Math.max(0, begins + room - ended)}px`);
+  if (!said) return;
+  for (const one of sheet.querySelectorAll<HTMLElement>(":scope > hr")) {
+    const label = page.createElement("div");
+    label.className = SAID;
+    label.setAttribute("aria-hidden", "true");
+    label.textContent = said;
+    label.style.top = `${topOf(one, sheet) + one.offsetHeight / 2}px`;
+    sheet.append(label);
+  }
 };
 
 // Pictures that arrive late move every foot, so the sheets are laid again when the page grows.

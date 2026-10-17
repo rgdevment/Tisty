@@ -3,7 +3,7 @@ import { t } from "../locales";
 import { named, pictured } from "../previews";
 import { iconed } from "./dressing";
 import { coloredAll, escaped, saidKinds, shell } from "./paging";
-import { PAGE, PRINTED } from "./sheets";
+import { PRINTED, sizeOf } from "./sheets";
 
 const KINDS: Record<string, string> = {
   png: "image/png",
@@ -80,12 +80,12 @@ const lit = (): string => {
   return found.filter((one) => !/[<>{}]/.test(one)).join(";");
 };
 
-type Sheet = { readonly leaf: Paper; readonly signed?: string };
+type Sheet = { readonly leaf: Paper; readonly landscape?: boolean; readonly signed?: string };
 
-const papered = (page: Document, { leaf, signed }: Sheet) => {
+const papered = (page: Document, { leaf, landscape, signed }: Sheet) => {
   page.head.insertAdjacentHTML(
     "beforeend",
-    `<style>@page{size:${PAGE[leaf]};${PRINTED}}html:not(.tall),html:not(.tall) body{background:#fff;padding:0}html:not(.tall) .page{max-width:none;margin:0;padding:0;border-radius:0;box-shadow:none;background:none}.page>*{content-visibility:visible}.page>hr{break-after:page;height:0;margin:0;background:none}.page>hr::before,.page>hr::after{display:none}.signed{margin-top:2em;font-size:.8em;color:var(--tisty-faint)}</style>`,
+    `<style>@page{size:${sizeOf(leaf, landscape)};${PRINTED}}html:not(.tall),html:not(.tall) body{background:#fff;padding:0}html:not(.tall) .page{max-width:none;margin:0;padding:0;border-radius:0;box-shadow:none;background:none}.page>*{content-visibility:visible}.page>hr{break-after:page;height:0;margin:0;background:none}.page>hr::before,.page>hr::after{display:none}.signed{margin-top:2em;font-size:.8em;color:var(--tisty-faint)}</style>`,
   );
   for (const one of page.querySelectorAll("details")) one.setAttribute("open", "");
   if (!signed) return;

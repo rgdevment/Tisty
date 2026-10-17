@@ -23,7 +23,7 @@ import {
   viewDoc,
 } from "../core";
 import { stamped } from "../format";
-import { paperIn, withPaper } from "../front";
+import { landscapeIn, paperIn, sheetsIn, withLandscape, withPaper, withSheets } from "../front";
 import { keptAll, PASTED_UP_TO } from "../kept";
 import { fill, t } from "../locales";
 import { filed, inTextOrder, type Moved, namesIn, pagesOf, under } from "../paging";
@@ -507,12 +507,26 @@ export default function Docs({
 
   const beside = Boolean(open) && (shown ?? wide);
   const leaf = (open && (paperIn(body) ?? sized[open.file])) || "a4";
-  const wall = { maxWidth: `${PAPER[leaf]}px` };
-  const sheetOf = useMemo(() => ({ wide: PAPER[leaf], tall: SHEET_TALL[leaf], ...MARGIN }), [leaf]);
+  const sheets = Boolean(open) && sheetsIn(body);
+  const landscape = Boolean(open) && landscapeIn(body);
+  const across = (landscape ? SHEET_TALL : PAPER)[leaf];
+  const wall = { maxWidth: `${across}px` };
+  const sheetOf = useMemo(
+    () =>
+      sheets
+        ? {
+            wide: (landscape ? SHEET_TALL : PAPER)[leaf],
+            tall: (landscape ? PAPER : SHEET_TALL)[leaf],
+            ...MARGIN,
+            said: t("sheetsBreak"),
+          }
+        : undefined,
+    [leaf, sheets, landscape],
+  );
   // The sheet keeps its paper's width; the room around it is the scroller's gutter and bar.
-  const sheetRoom = { maxWidth: `${PAPER[leaf] + 48}px` };
+  const sheetRoom = { maxWidth: `${across + 48}px` };
 
-  useEffect(() => pageFor(leaf), [leaf]);
+  useEffect(() => pageFor(leaf, landscape), [leaf, landscape]);
 
   // What leaves is the book as it reads, not as the log last settled it.
   const book = async () => {
@@ -533,7 +547,7 @@ export default function Docs({
   const blobOf = async (signed?: string): Promise<Blob | null> => {
     const read = await book();
     if (!read) return null;
-    return pdfOf([body, ...read.written], leaf, signed);
+    return pdfOf([body, ...read.written], leaf, signed, landscape);
   };
 
   const preview = async () => {
@@ -616,6 +630,11 @@ export default function Docs({
       return null;
     });
   }, [nowAt]);
+
+  const reshape = (made: (now: string) => string) => {
+    if (!open || bolted) return;
+    wrote(made(held.current?.id === open.file ? held.current.body : body));
+  };
 
   const resize = (paper: Paper) => {
     if (!open) return;
@@ -987,6 +1006,10 @@ export default function Docs({
           onPage={(one) => onDoc?.(one.file)}
           leaf={leaf}
           onLeaf={resize}
+          sheets={sheets}
+          landscape={landscape}
+          onSheets={(on) => reshape((now) => withSheets(now, on))}
+          onLandscape={(turned) => reshape((now) => withLandscape(now, turned))}
           making={making}
           onPdf={toPdf}
           onSee={preview}

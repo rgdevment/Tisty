@@ -264,7 +264,7 @@ rsync -a ~/Tisty/ /Volumes/Backup/Tisty/
 
 #### Page break
 
-A document is laid on real sheets — A4, Letter or Tabloid, picked under **Paper** in its panel — and a sheet that fills up turns on its own, on screen as on paper. A rule on its own splits the sheet before then: what follows starts on the next one, and `Ctrl`/`⌘` + `Enter` writes one while you write. The paper you pick travels with the file, as `paper:` in its properties.
+A rule on its own splits the sheet: what follows starts on the next one, and `Ctrl`/`⌘` + `Enter` writes one while you write. Turn on **Sheets** in the document's panel to read it on real sheets — A4, Letter or Tabloid, upright or across — where a sheet that fills up turns on its own, on screen as on paper. What you pick travels with the file, in its properties.
 
 There is more to say about code, and it fits on a sheet of its own:
 

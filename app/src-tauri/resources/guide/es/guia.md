@@ -264,7 +264,7 @@ rsync -a ~/Tisty/ /Volumes/Backup/Tisty/
 
 #### Salto de página
 
-Un documento se dibuja en hojas de verdad (A4, Carta o Tabloide, que eliges en **Papel** en su panel), y una hoja que se llena pasa sola a la siguiente, en pantalla igual que en papel. Una raya sola corta la hoja antes: lo que sigue empieza en la siguiente, y `Ctrl`/`⌘` + `Enter` la escribe mientras escribes. El papel que eliges viaja con el archivo, como `paper:` en sus propiedades.
+Una raya sola corta la hoja: lo que sigue empieza en la siguiente, y `Ctrl`/`⌘` + `Enter` la escribe mientras escribes. Enciende **Hojas** en el panel del documento para leerlo en hojas de verdad (A4, Carta o Tabloide, en vertical u horizontal), donde una hoja que se llena pasa sola a la siguiente, en pantalla igual que en papel. Lo que eliges viaja con el archivo, en sus propiedades.
 
 De código hay más que decir, y cabe en su propia hoja:
 

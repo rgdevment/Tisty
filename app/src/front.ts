@@ -83,26 +83,32 @@ export const frontTags = (body: string): string[] =>
 
 const PAPERS: Paper[] = ["a4", "letter", "tabloid"];
 
-export const paperIn = (body: string): Paper | null => {
-  const said = fields(body)
-    .find((one) => one.key.toLowerCase() === "paper")
+const said = (body: string, key: string): string | undefined =>
+  fields(body)
+    .find((one) => one.key.toLowerCase() === key)
     ?.values[0]?.toLowerCase();
-  return PAPERS.find((one) => one === said) ?? null;
-};
 
-// A4 is what a page is unless it says otherwise, so only another paper is written down.
-export const withPaper = (body: string, paper: Paper): string => {
+export const paperIn = (body: string): Paper | null =>
+  PAPERS.find((one) => one === said(body, "paper")) ?? null;
+
+export const landscapeIn = (body: string): boolean => said(body, "orientation") === "landscape";
+
+export const sheetsIn = (body: string): boolean => said(body, "sheets") === "on";
+
+// What a page is unless it says otherwise is never written down, so only a change from it is.
+const withProperty = (body: string, key: string, value: string | null): string => {
   const line = body.includes("\r\n") ? "\r\n" : "\n";
-  const lead = body.startsWith("﻿") ? "﻿" : "";
+  const lead = body.startsWith("\uFEFF") ? "\uFEFF" : "";
   const plain = body.slice(lead.length).split(line).join("\n");
   const held = frontLines(plain);
-  const said = paper === "a4" ? [] : [`paper: ${paper}`];
+  const added = value === null ? [] : [`${key}: ${value}`];
   let made: string;
   if (!held) {
-    made = said.length ? `---\n${said[0]}\n---\n${plain}` : plain;
+    made = added.length ? `---\n${added[0]}\n---\n${plain}` : plain;
   } else {
-    const inside = held.slice(1, -1).filter((one) => !/^paper\s*:/i.test(one.trim()));
-    const kept = [...inside, ...said];
+    const named = new RegExp(`^${key}\\s*:`, "i");
+    const inside = held.slice(1, -1).filter((one) => !named.test(one.trim()));
+    const kept = [...inside, ...added];
     const rest = plain.split("\n").slice(held.length).join("\n");
     made = kept.some((one) => one.trim())
       ? `---\n${kept.join("\n")}\n${held[held.length - 1]}\n${rest}`
@@ -110,3 +116,12 @@ export const withPaper = (body: string, paper: Paper): string => {
   }
   return lead + made.split("\n").join(line);
 };
+
+export const withPaper = (body: string, paper: Paper): string =>
+  withProperty(body, "paper", paper === "a4" ? null : paper);
+
+export const withLandscape = (body: string, landscape: boolean): string =>
+  withProperty(body, "orientation", landscape ? "landscape" : null);
+
+export const withSheets = (body: string, on: boolean): string =>
+  withProperty(body, "sheets", on ? "on" : null);
