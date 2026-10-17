@@ -6313,3 +6313,51 @@ fn a_part_is_mended_by_its_own_door_and_not_by_the_whole_around_it() {
     assert_eq!(step_texts(&read), ["buy twenty boxes"]);
     assert_eq!(read_back(&served, &whole)["title"], "move house");
 }
+
+#[test]
+fn what_an_assistant_writes_on_a_task_is_kept_in_the_tisty_language() {
+    let served = Served::new();
+    served.cli(&["agent", "--on"]);
+
+    let said = served.call(
+        "propose",
+        serde_json::json!({
+            "title": "move house",
+            "description": "the thread said <b>loud</b>",
+            "parts": [{ "title": "book the van", "description": "a <u>cheap</u> one" }]
+        }),
+    );
+    assert_ne!(said["result"]["isError"], true, "{said}");
+    let turned = content(&said)["turned"].to_string();
+    assert!(turned.contains("HTML that markdown can say"), "{turned}");
+    let whole = content(&said)["id"].as_str().unwrap().to_string();
+    let read = served.call(
+        "read",
+        serde_json::json!({ "task": &whole, "fields": ["description", "parts"] }),
+    );
+    assert_eq!(content(&read)["description"], "the thread said **loud**");
+    let part = content(&read)["parts"][0]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let read = served.call(
+        "read",
+        serde_json::json!({ "task": &part, "fields": ["description"] }),
+    );
+    assert_eq!(content(&read)["description"], "a ++cheap++ one");
+
+    let noted = served.call(
+        "note",
+        serde_json::json!({ "task": &whole, "body": "see [[Rina's record]], step [[#2]] and <b>this</b>" }),
+    );
+    assert_ne!(noted["result"]["isError"], true, "{noted}");
+    let read = served.call(
+        "read",
+        serde_json::json!({ "task": &whole, "fields": ["journal"] }),
+    );
+    assert_eq!(
+        content(&read)["journal"][0]["body"],
+        "see [[Rina's record]], step [[#2]] and **this**",
+        "a reference is the language's own and stays as it was written"
+    );
+}

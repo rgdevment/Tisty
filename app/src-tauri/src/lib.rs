@@ -1158,6 +1158,7 @@ pub fn run() {
             answers::papers::doc_file,
             answers::paging::doc_drawn,
             answers::paging::note_drawn,
+            answers::paging::mends_in,
             answers::paging::doc_plain,
             answers::paging::help_reference,
             answers::paging::help_drawn,

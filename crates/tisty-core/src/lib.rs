@@ -21,6 +21,7 @@ pub mod leaving_word;
 pub mod left_behind;
 pub mod machine;
 mod masked;
+pub mod mending;
 pub mod merge;
 pub mod model;
 pub mod moved;

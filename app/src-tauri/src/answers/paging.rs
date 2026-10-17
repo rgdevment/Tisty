@@ -20,6 +20,11 @@ pub fn note_drawn(body: String) -> String {
     tisty_markdown::html(&tisty_markdown::read(&tisty_markdown::to_tisty(&body)))
 }
 
+#[tauri::command(async)]
+pub fn mends_in(body: String) -> Vec<tisty_core::mending::Mend> {
+    tisty_core::mending::mends(&body)
+}
+
 const GUIDE: [&str; 2] = [
     "https://markdown.tisty.app/llms-full.txt",
     "https://markdown.tisty.app/es/llms-full.txt",

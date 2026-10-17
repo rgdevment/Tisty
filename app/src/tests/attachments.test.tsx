@@ -12,7 +12,11 @@ const { served } = vi.hoisted(() => ({
 
 vi.mock("../core", async () => {
   const { crated } = await import("./crated");
-  return { served, noteDrawn: (body: string) => Promise.resolve(crated(body)) };
+  return {
+    served,
+    noteDrawn: (body: string) => Promise.resolve(crated(body)),
+    mendsIn: () => Promise.resolve([]),
+  };
 });
 
 vi.mock("@tauri-apps/api/core", () => ({
