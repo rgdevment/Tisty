@@ -1079,21 +1079,23 @@ the log and is capped at `BODY_AT_MOST` = 500 KiB.
   it, and the window shows it in the panel beside the page), footnotes,
   reference links, `$` and `$$` maths, what a fence says after its language,
   HTML comments and entities. What has no word in the language (raw HTML, a
-  colour outside the palette, an unknown icon) is listed by `frail` in the UI.
-  An assistant may send Markdown from anywhere: `arriving::tidied` turns it
-  into the language and the answer says what
-  changed, and `docs::survives` refuses only what still has no way in. The
-  shared cases are in `fixtures/frail.json`.
+  colour outside the palette, an unknown icon) is what `docs::survives` finds,
+  and Maintenance lists it through `docs_brittle`. An assistant may send
+  Markdown from anywhere: `arriving::tidied` turns it into the language and the
+  answer says what changed, and `docs::survives` refuses only what still has no
+  way in. Its cases are in `fixtures/frail.json`.
 
 ### Ways out
 
 | Way | Result |
 |---|---|
-| Copy as Markdown | The text exactly as stored |
-| Export as Markdown | A folder: the document beside an `attachments/` holding what it names. No reference is rewritten, because the layout makes the relative path resolve |
+| Copy as Markdown | The text through `tisty_markdown::to_standard`: GitHub and CommonMark forms, every tag in the front matter, links to other documents as their words |
+| Export as Markdown | A folder: the document beside an `attachments/` holding what it names, each body through `to_standard`, a link to a page pointing at the page's file |
 | Export everything | The same across the store, with the folder tree on disk |
 | Export for Tisty | A `.tistyx` zip (`parcel.rs`): bodies byte for byte, the attachments they name, a manifest with folders, order, archive state, locks and aliases. No log line travels. Importing makes new ids and rewrites references between documents. A parcel for one's own machines can be locked with a number (scrypt, then XChaCha20-Poly1305 in 64 KiB blocks); the manifest carries an HMAC under the store's secret so a store can tell a parcel it wrote from one that merely wears its name |
-| Export to PDF | Composed in the UI (`@react-pdf/renderer`) from the editor's tree, not printed by the OS; attachments' bytes come through a command |
+| Export as HTML | One standalone page composed in the UI (`webPage.ts`): the drawn fragments of the document and its pages, `page.css`, icons as SVG, pictures as `data:` URLs, links into the store as words; written by `keep_file` |
+| Export as Word | `tisty_core::leaving_word::to_word` turns the same tree the PDF reads into a `.docx`: heading styles, numbering, tables, hyperlinks, highlights, code in a `Code` style in Consolas, png/jpeg/gif inside; `doc_word` writes it |
+| Export to PDF | The same standalone page as Export as HTML, with the sheet's size and margins and the signature, laid out by the window's own engine in a hidden `paper-*` window (`page_pdf`, `pdf.rs`: WebView2 `PrintToPdf` on Windows, an `NSPrintOperation` saving to a file on macOS). No print dialog opens, and what the PDF shows is what the page draws |
 
 ### Search
 

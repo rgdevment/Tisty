@@ -24,6 +24,7 @@ mod printed;
 mod reading;
 pub mod refs;
 mod short;
+mod standard;
 #[cfg(feature = "tables")]
 mod tables;
 pub mod tags;
@@ -38,7 +39,8 @@ pub use printed::printed;
 pub use reading::read;
 #[doc(hidden)]
 pub use reading::read_old;
-pub use transform::{to_plain, to_tisty};
+pub use standard::{Toward, to_standard};
+pub use transform::to_tisty;
 pub use writing::on_disk;
 
 use std::ops::Range;

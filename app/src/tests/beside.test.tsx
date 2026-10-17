@@ -43,16 +43,9 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
   ask: () => Promise.resolve(true),
 }));
 
-vi.mock("@react-pdf/renderer", () => ({
-  pdf: () => ({ toBlob: async () => new Blob(["%PDF"], { type: "application/pdf" }) }),
-  Document: () => null,
-  Page: () => null,
-  Text: () => null,
-  View: () => null,
-  Image: () => null,
-  Link: () => null,
-  Font: { registerHyphenationCallback: () => {} },
-  StyleSheet: { create: (one: unknown) => one },
+vi.mock("../ui/printing", () => ({
+  pdfOf: () => Promise.resolve(new Blob(["%PDF"], { type: "application/pdf" })),
+  signature: () => Promise.resolve("Firmado"),
 }));
 
 vi.mock("../ui/Sheet", () => ({
@@ -378,7 +371,7 @@ describe("what the column offers for the document", () => {
     expect((tick as HTMLInputElement).checked).toBe(false);
     await userEvent.click(screen.getByRole("button", { name: /^export pdf$/i }));
 
-    await waitFor(() => expect(store.sent).toContain("keep_pdf"));
+    await waitFor(() => expect(store.sent).toContain("keep_file"));
   });
 
   it("keeps the two trades apart, so no verb has to mean two things", async () => {

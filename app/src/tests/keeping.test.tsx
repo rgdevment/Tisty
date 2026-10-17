@@ -397,12 +397,8 @@ beforeEach(() => {
             },
           ],
         });
-      case "doc_read":
-        return Promise.resolve(
-          String(ipc.calls[ipc.calls.length - 1]?.args.id) === "a-0002"
-            ? "# Minuta\n\n<div>algo</div>"
-            : "# Limpio\n\nun parrafo",
-        );
+      case "docs_brittle":
+        return Promise.resolve(["a-0002"]);
       default:
         return Promise.resolve(null);
     }
@@ -2070,7 +2066,7 @@ describe("the maintenance panel", () => {
   it("says so plainly when every document speaks Tisty's own words", async () => {
     const otherwise = ipc.answer;
     ipc.answer = (cmd, args) =>
-      cmd === "doc_read" ? Promise.resolve("# Limpio\n\nun parrafo") : otherwise(cmd, args);
+      cmd === "docs_brittle" ? Promise.resolve([]) : otherwise(cmd, args);
     render(
       <Keeping
         onPack={() => {}}

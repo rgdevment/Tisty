@@ -124,8 +124,7 @@ que nadie usa. Sin anuncios, sin telemetría, sin cuentas, sin suscripciones: un
   fórmulas, código, widgets y adjuntos, todo en Markdown corriente que cualquier
   otro editor sigue abriendo.
 - **Gratis de verdad** — sin versión de pago, sin funciones bajo llave, sin
-  período de prueba. AGPL v3, y [términos comerciales](docs/COMMERCIAL.md) solo
-  para organizaciones que no puedan cumplirla.
+  período de prueba. AGPL v3.
 - **Tus datos duran más que la aplicación** — texto plano y Markdown en tu
   propio disco, que se lee con `cat` y se busca con `grep`.
 - **Terminar lo conserva todo** — completar una tarea la manda al archivo con
@@ -234,7 +233,7 @@ artificial**, esto es Tisty:
 | Un documento con páginas | un libro, con sus capítulos en el orden en que el texto los nombra y un índice |
 | Diagramas y fórmulas | dibujados con unas pocas líneas de texto, claros u oscuros según la ventana |
 | Widgets | pequeñas páginas HTML con los colores de Tisty, aisladas de la red |
-| PDF | propio: A4, Carta o Tabloide, con los adjuntos dentro |
+| PDF | propio: A4, Carta o Tabloide, con sus imágenes dentro |
 | Cualquier archivo `.md` | se abre para leer en una ventana propia, sin entrar a tu almacén |
 | Adjuntos | se guardan con la tarea, tal como son |
 | Lo terminado | un **archivo que conserva lo que cada tarea te enseñó** |
@@ -303,7 +302,7 @@ editor— y en Tisty lleva bastante más que texto:
   marcan.
 - **Adjuntos que viajan con él**: fotos, PDF, sonido y video, guardados dentro
   de Tisty en vez de enlazados a una carpeta que se mueve.
-- **Un PDF propio**, A4, Carta o Tabloide, con los adjuntos dentro, que te
+- **Un PDF propio**, A4, Carta o Tabloide, con sus imágenes dentro, que te
   enseña antes de exportarlo.
 
 ![Notas en Markdown, archivos simples, cualquier editor: fórmulas y un widget dibujados dentro de un documento, con el formato y el PDF en la columna de al lado](assets/store/es-03-notas.png)
@@ -381,7 +380,7 @@ el nombre del documento y su título —pasando por encima de una valla o de la
 marca de un aviso para encontrarla—. Cuando la ventana da para ello, al lado se
 abre una columna con de qué va el documento, el formato que el menú `/`
 escondía y su índice. **Tisty genera su propio PDF** —A4, Carta o Tabloide,
-con sus propios márgenes y los adjuntos dentro— y te lo enseña antes
+con sus propios márgenes y sus imágenes dentro— y te lo enseña antes
 de exportarlo.
 
 **Un archivo Markdown de cualquier parte se abre para leer.** Elige Tisty en
@@ -394,8 +393,11 @@ una ventana aparte*, y su PDF ahí lleva firma salvo que desmarques **Con
 firma**. Un widget también se abre aparte, al ancho de un móvil, una tablet o
 un escritorio. Más en [la wiki](https://github.com/rgdevment/Tisty/wiki/Documentos#abrir-un-archivo-markdown-de-afuera).
 
-**Y salen enteros.** Un documento se copia como Markdown, se escribe en una
-carpeta con sus páginas y sus adjuntos al lado, o se exporta para Tisty en un
+**Y salen enteros.** Un documento se copia como Markdown estándar, como lo
+leen GitHub y CommonMark, se escribe en una carpeta con sus páginas y sus
+adjuntos al lado, sale como una página web o un archivo de Word con sus
+imágenes dentro (de Markdown a HTML, de Markdown a Word), o se exporta para
+Tisty en un
 archivo `.tistyx` que además guarda lo que el Markdown no sabe decir: las
 carpetas con su orden, su icono y su color, de qué documento cuelga cada
 página, qué está archivado y con qué alias se firmó. Lleva también un
@@ -828,9 +830,7 @@ sin enviar nada, quien lleva es el asistente, y quien lo dejó entrar eres tú.
 
 **¿Tisty es gratis?**
 Sí, y lo seguirá siendo. AGPL-3.0, sin versión de pago, sin funciones
-reservadas para más adelante, sin versión de prueba que caduque. Las
-[condiciones comerciales](docs/COMMERCIAL.md) existen solo para organizaciones
-que no pueden cumplir la AGPL.
+reservadas para más adelante, sin versión de prueba que caduque.
 
 **¿Necesita una cuenta o conexión?**
 Ninguna de las dos. No hay a qué suscribirse ni servidor del que estar lejos.
@@ -1043,8 +1043,9 @@ deja inofensivo el HTML que traiga; [Mermaid](https://mermaid.js.org) dibuja los
 diagramas que describe un bloque de código y [KaTeX](https://katex.org) compone
 sus fórmulas; [lowlight](https://github.com/wooorm/lowlight) y
 [highlight.js](https://highlightjs.org) colorean el código;
-[react-pdf](https://react-pdf.org) hace el PDF; [Vite](https://vite.dev) la
-construye y [Vitest](https://vitest.dev) la prueba.
+[webview2-com](https://github.com/wravery/webview2-rs) llega al motor que arma
+el PDF en Windows; [Vite](https://vite.dev) la construye y
+[Vitest](https://vitest.dev) la prueba.
 
 La lista completa, con versiones y licencias, está en
 [THIRD-PARTY-BUNDLED.md](THIRD-PARTY-BUNDLED.md), y los textos de licencia que
@@ -1067,9 +1068,12 @@ Quien participe —en issues, pull requests, discusiones o la wiki— sigue el
 
 ## Licencia
 
-[AGPL-3.0](LICENSE), y disponible bajo
-[términos comerciales](docs/COMMERCIAL.md) para organizaciones que no puedan
-cumplirla.
+[AGPL-3.0](LICENSE).
+
+### Otros términos
+
+Hay [términos comerciales](docs/COMMERCIAL.md) para organizaciones que no
+puedan cumplir la AGPL.
 
 Las compilaciones firmadas de las tiendas llevan sus propios términos, porque las
 tiendas no aceptan la AGPL — [DISTRIBUTION.md](docs/DISTRIBUTION.md) dice

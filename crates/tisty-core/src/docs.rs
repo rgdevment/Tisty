@@ -16,7 +16,7 @@ pub use carried::{
     keep_carried, kept_before, print_of, read_as_printed, read_before, read_carried,
 };
 pub use prints::{Prints, Seen};
-use text::{Fencing, as_written, unpictured, unspanned, wordless};
+use text::{Fencing, as_written, unspanned, wordless};
 pub use text::{
     Heading, ends_fenced, fencing, headings, lines_between, marked, outlined, section_lines,
     settled, spelled, titled,
@@ -476,19 +476,14 @@ pub fn laid_out_as(
         written.push((page.clone(), at, body));
     }
 
-    let beside = |body: &str| {
-        written
-            .iter()
-            .fold(body.to_string(), |body, (file, at, _)| {
-                let named = format!("{}{file}", crate::refs::DOC);
-                unpictured(
-                    &body
-                        .replace(&format!("](<{named}>)"), &format!("](<{at}>)"))
-                        .replace(&format!("]({named})"), &format!("](<{at}>)")),
-                    at,
-                )
-            })
+    let toward = |to: tisty_markdown::Toward| {
+        let found = written.iter().find(|(file, _, body)| match to {
+            tisty_markdown::Toward::Doc(one) => file == one,
+            tisty_markdown::Toward::Ref(name) => titled(body).eq_ignore_ascii_case(name),
+        });
+        found.map(|(_, at, _)| at.clone())
     };
+    let beside = |body: &str| tisty_markdown::to_standard(body, &toward);
 
     let mut taken = laid_out(
         data,
@@ -565,7 +560,7 @@ fn laid_out(
 
 // Only a file that was copied is named where it now sits; a link that merely looks like one stays.
 fn beside(body: &str, copied: &std::collections::BTreeSet<String>) -> String {
-    let mut out = tisty_markdown::to_plain(body);
+    let mut out = body.to_string();
     for leaf in copied {
         out = out.replace(&format!("]({leaf}"), &format!("](attachments/{leaf}"));
     }

@@ -12,6 +12,7 @@ mod leaving;
 mod linking;
 mod moving;
 mod news;
+mod pdf;
 mod reaching;
 mod refusing;
 mod report;
@@ -1081,7 +1082,6 @@ pub fn run() {
             answers::attaching::attach_pasted,
             answers::attaching::served,
             answers::attaching::attached,
-            answers::attaching::attach_export,
             answers::attaching::weighs,
             answers::storing::roomy,
             answers::attaching::opened,
@@ -1112,7 +1112,7 @@ pub fn run() {
             answers::papers::settle_paper,
             answers::rifts::paper_rifts,
             answers::rifts::weave_paper,
-            answers::papers::convert_paper,
+            answers::papers::docs_brittle,
             answers::reporting::checked,
             answers::reporting::twinned,
             answers::reporting::rebuild,
@@ -1155,12 +1155,13 @@ pub fn run() {
             answers::shelves::folder_drop,
             answers::papers::doc_file,
             answers::paging::doc_drawn,
-            answers::paging::doc_printed,
             answers::paging::note_drawn,
             answers::paging::doc_plain,
             answers::papers::doc_read,
             answers::papers::doc_facts,
-            answers::papers::keep_pdf,
+            answers::papers::keep_file,
+            answers::papers::doc_word,
+            answers::papers::page_pdf,
             answers::papers::doc_back,
             answers::papers::doc_backable,
             answers::papers::doc_write,
