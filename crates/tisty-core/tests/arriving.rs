@@ -532,3 +532,58 @@ fn a_picture_inside_the_page_and_a_clear_colour_leave_nothing_behind() {
     assert!(!said.contains("==nada"), "{said}");
     assert!(said.contains("==rojo=={red}"), "{said}");
 }
+
+fn titles(all: &[(&str, &str)]) -> tisty_core::arriving::Titles {
+    let docs: Vec<tisty_core::docs::Doc> = all
+        .iter()
+        .map(|(id, title)| tisty_core::docs::Doc {
+            id: (*id).to_string(),
+            title: (*title).to_string(),
+        })
+        .collect();
+    tisty_core::arriving::Titles::of(&docs)
+}
+
+#[test]
+fn a_note_named_by_title_links_the_one_document_that_bears_it() {
+    let here = titles(&[("D1", "Plan de Rina"), ("D2", "Vacunas"), ("D3", "Vacunas")]);
+    let out = tisty_core::arriving::tidied_among(
+        "ver [[plan de rina]], [[Notas/Plan de Rina#Hoy|el plan]] y [[Vacunas]]\n\n![[Plan de Rina]]\n\n![[Otra nota]]\n\n![[foto.png]]\n",
+        &here,
+    );
+    assert_eq!(
+        out.body,
+        "ver [plan de rina](tisty:doc/D1), [el plan](tisty:doc/D1) y [[Vacunas]]\n\n![Plan de Rina](tisty:doc/D1)\n\n[[Otra nota]]\n\n![foto.png](<foto.png>)\n"
+    );
+    for said in [
+        "notes named by title, now linked to the document that bears it",
+        "notes named by a title more than one document bears, left as references",
+        "notes embedded by a title no document here bears, left as references",
+        "files embedded the Obsidian way",
+    ] {
+        assert!(
+            out.changed.contains(&said),
+            "{said} was not told: {:?}",
+            out.changed
+        );
+    }
+}
+
+#[test]
+fn a_title_with_brackets_keeps_them_as_words_and_code_is_never_touched() {
+    let here = titles(&[("D1", "Acta [borrador]")]);
+    let out = tisty_core::arriving::tidied_among(
+        "[[Acta [borrador]]] y [[Acta [borrador]|acta]] `[[Acta [borrador]]]`\n",
+        &here,
+    );
+    assert!(
+        out.body.ends_with("`[[Acta [borrador]]]`\n"),
+        "{:?}",
+        out.body
+    );
+    let plain = tisty_core::arriving::tidied_among("[[Sin Igual]]\n", &here);
+    assert_eq!(plain.body, "[[Sin Igual]]\n");
+    let dotted = titles(&[("D9", "Reunión 2024.10")]);
+    let met = tisty_core::arriving::tidied_among("[[Reunión 2024.10]]\n", &dotted);
+    assert_eq!(met.body, "[Reunión 2024.10](tisty:doc/D9)\n");
+}

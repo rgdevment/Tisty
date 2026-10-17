@@ -155,7 +155,8 @@ pub(crate) fn arrived(
     let near = room
         .as_ref()
         .map_or_else(|| from.to_path_buf(), |one| one.0.join("word.html"));
-    let body = tisty_core::arriving::tidied(&raw).body;
+    let titles = tisty_core::arriving::Titles::of(&tisty_core::docs::all(&paths.docs()));
+    let body = tisty_core::arriving::tidied_among(&raw, &titles).body;
     let own: Vec<std::path::PathBuf> = [paths.data(), paths.config(), paths.cache()]
         .iter()
         .filter_map(|one| one.canonicalize().ok())
