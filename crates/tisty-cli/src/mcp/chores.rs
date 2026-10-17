@@ -533,7 +533,7 @@ pub(super) fn describe(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     };
     let Some(body) = text(args, "body") else {
         return Err(Refused::Tool(
-            "describing needs a `body`, in markdown.".into(),
+            "describing needs a `body`, in the Tisty language.".into(),
         ));
     };
     let (state, mut store) = opened(paths)?;

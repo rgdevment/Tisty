@@ -93,7 +93,8 @@ were told from being lost. Work that can be done any day gets none, and what rep
 either — a routine comes back on its own. For something already filed without one, `remind` \
 sets it, and it only ever adds, so an hour the person chose is never taken away.
 
-A document is kept in the Tisty language, the Markdown the person reads and writes in the \
+A document, and what a task says — its description, its journal, what you say of it — is kept \
+in the Tisty language, the Markdown the person reads and writes in the \
 window: pens like `==words=={green}`, underline `++words++`, icons `::dog orange::`, callouts, \
 collapsible sections and cards to other documents, besides plain Markdown. Ask `language` once \
 before writing anything beyond plain words. The same guide is published, every example drawn, at \
@@ -285,7 +286,7 @@ pub(super) fn tools() -> Value {
                     },
                     "description": {
                         "type": "string",
-                        "description": "What you read, in markdown"
+                        "description": "What you read, in the Tisty language"
                     },
                     "date": {
                         "type": "string",
@@ -360,11 +361,11 @@ pub(super) fn tools() -> Value {
             "name": "describe",
             "title": "Describe a task",
             "description": "Write the description of a task you filed, or one the person opened \
-                            to agents: what it is, in markdown. One already there is written \
+                            to agents: what it is, in the Tisty language. One already there is written \
                             over whole, so `read` it first and keep what still holds; what you \
                             learnt on the way goes in `note`.",
             "inputSchema": on_a_task(
-                json!({ "body": { "type": "string", "description": "What the task is, in markdown" } }),
+                json!({ "body": { "type": "string", "description": "What the task is, in the Tisty language" } }),
                 &["body"],
             )
         },
@@ -442,7 +443,7 @@ pub(super) fn tools() -> Value {
             "inputSchema": on_a_task(
                 json!({
                     "note": { "type": "string", "description": "The note's id, from `read` with `journal`" },
-                    "body": { "type": "string", "description": "What the note says now, in markdown" }
+                    "body": { "type": "string", "description": "What the note says now, in the Tisty language" }
                 }),
                 &["note", "body"],
             )
@@ -457,7 +458,7 @@ pub(super) fn tools() -> Value {
             "inputSchema": shaped(json!({
                 "properties": {
                     "task": { "type": "string", "description": "The task id" },
-                    "body": { "type": "string", "description": "What to record, in markdown" }
+                    "body": { "type": "string", "description": "What to record, in the Tisty language" }
                 },
                 "required": ["task", "body"]
             }))
