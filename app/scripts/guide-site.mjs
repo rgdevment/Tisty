@@ -5,7 +5,7 @@ export const LANGUAGES = [
     code: "en",
     file: "en.md",
     dir: "",
-    start: "Start",
+    start: "Overview",
     topics: "Guide",
     near: "Next and previous",
     home: "https://www.tisty.app/",
@@ -25,7 +25,7 @@ export const LANGUAGES = [
     code: "es",
     file: "es.md",
     dir: "es/",
-    start: "Inicio",
+    start: "Vista general",
     topics: "Guía",
     near: "Anterior y siguiente",
     home: "https://www.tisty.app/es/",
@@ -97,8 +97,8 @@ const heads = (language, page, title, other, twin) => {
 <script type="application/ld+json">${described(language, page, title)}</script>`;
 };
 
-// Plain HTML with one local stylesheet and relative links, so the same folder serves the web and the app.
-export const sheetOf = (built, language, page, style) => {
+// Plain HTML with its styles inside and relative links, so the same folder serves the web and the app.
+export const sheetOf = (built, language, page, { style, logo }) => {
   const { other, twin } = twinOf(built, language, page);
   const pages = built.get(language.code);
   const up = language.dir ? "../" : "";
@@ -129,14 +129,14 @@ export const sheetOf = (built, language, page, style) => {
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0e0d0b">
 <title>${escaped(title)}</title>
 ${heads(language, page, title, other, twin)}
-<link rel="icon" href="${up}tisty.svg" type="image/svg+xml">
+<link rel="icon" href="${up}${logo}" type="image/svg+xml">
 ${THEME}
-<link rel="stylesheet" href="${up}${style}">
+<style>${style}</style>
 ${AHEAD}
 </head>
 <body>
 <header class="top">
-<a class="brand" href="./"><img src="${up}tisty.svg" alt="" width="36" height="34">Tisty Markdown</a>
+<a class="brand" href="./"><img src="${up}${logo}" alt="" width="36" height="34">Tisty Markdown</a>
 <a class="docs" href="${language.docsAt}">${language.docs}</a>
 <a class="out" href="${language.home}">${language.meet}</a>
 <a class="lang" lang="${other.code}" hreflang="${other.code}" href="${language.dir ? "../" : other.dir}${twin.slug === "index" ? "" : twin.slug}">${other.name}</a>
@@ -152,19 +152,19 @@ ${AHEAD}
 };
 
 // Without its own page, Pages answers a wrong address with the start page and a 200.
-export const missing = (style) => `<!doctype html>
+export const missing = ({ style, logo }) => `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Not here · Tisty Markdown</title>
 <meta name="robots" content="noindex">
-<link rel="icon" href="/tisty.svg" type="image/svg+xml">
+<link rel="icon" href="/${logo}" type="image/svg+xml">
 ${THEME}
-<link rel="stylesheet" href="/${style}">
+<style>${style}</style>
 </head>
 <body>
-<header class="top"><a class="brand" href="/"><img src="/tisty.svg" alt="" width="36" height="34">Tisty Markdown</a><a class="out" href="https://www.tisty.app/">Meet Tisty</a></header>
+<header class="top"><a class="brand" href="/"><img src="/${logo}" alt="" width="36" height="34">Tisty Markdown</a><a class="out" href="https://www.tisty.app/">Meet Tisty</a></header>
 <div class="wrap"><main class="page"><h1>Nothing here</h1><p>This page is not part of the guide. <a href="/">Start from the beginning</a> · <a href="/es/" lang="es">Empieza desde el inicio</a></p></main></div>
 </body>
 </html>
@@ -190,8 +190,8 @@ const HOSTS = `<script>(()=>{const r=document.documentElement;const frames=()=>d
 // Declarative, not a script: the browser readies a page while the pointer rests on its link.
 const AHEAD = `<script type="speculationrules">{"prerender":[{"where":{"selector_matches":".topics a, .near a, .page a[href]:not([href^='http'])"},"eagerness":"moderate"}]}</script>`;
 
-// The stylesheet's name carries its print, so it can be kept for a year; everything else for a day.
-export const headers = (style) => `/${style}
+// The logo's name carries its print, so it can be kept for a year; everything else for a day.
+export const headers = (logo) => `/${logo}
   Cache-Control: public, max-age=31536000, immutable
 /tisty.svg
   Cache-Control: public, max-age=86400

@@ -159,6 +159,20 @@ pub(crate) fn stamp(data: &Path, dest: &Path) -> bool {
     }
 }
 
+/// Raised before anything is given, so an older build stops before it can take what it cannot read.
+/// Only a place that already says its shape is raised this early: a new one is still named last.
+pub(crate) fn raise_first(data: &Path, dest: &Path) -> bool {
+    let older = match told(dest) {
+        Told::Shape { shape, needs } => {
+            shape < OURS
+                || (shape == OURS
+                    && needs.is_some_and(|needs| needs != NEEDS && !needs_later(&needs)))
+        }
+        Told::Nothing | Told::Unreadable => false,
+    };
+    older && tell(data, dest)
+}
+
 /// Raised by a machine as it leaves, so the builds before this one stop there even without a round of its own.
 pub fn raise_place(dest: &Path) {
     let older = match told(dest) {

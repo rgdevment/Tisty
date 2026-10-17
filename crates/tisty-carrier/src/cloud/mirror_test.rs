@@ -115,3 +115,29 @@ fn our_own_write_coming_back_leaves_a_change_still_owed_with_its_base() {
 fn our_own_write_coming_back_without_a_hash_leaves_a_change_still_owed_with_its_base() {
     echoed_while_owed(Fake::drive().without_hashes());
 }
+
+#[test]
+fn a_stamp_already_up_there_goes_up_before_the_rest_when_the_place_is_raised() {
+    let room = tempfile::tempdir().unwrap();
+    let tree = room.path().join("tree");
+    std::fs::create_dir_all(tree.join(PAPERS)).unwrap();
+    let fake = Fake::drive();
+    let meter = Metered::over(&fake, room.path(), Class::Attachments);
+    let mut index = Index::default();
+    std::fs::write(tree.join(NAMED), "shape = 2\n").unwrap();
+    let (_, hitch) = push(&meter, &tree, &mut index, &mut Pace::new(None, &mut |_| {}));
+    assert_eq!(hitch, None);
+
+    std::fs::write(tree.join(NAMED), "shape = 3\n").unwrap();
+    std::fs::write(tree.join(PAPERS).join("dev_a-0001.md"), "# Turned\n").unwrap();
+    fake.refusing(PAPERS, Hitch::Broke("not taken".into()));
+    let (_, hitch) = push(&meter, &tree, &mut index, &mut Pace::new(None, &mut |_| {}));
+
+    assert!(hitch.is_some(), "the refused document went up");
+    let mut there = Vec::new();
+    fake.fetch(NAMED, 0, &mut there).unwrap();
+    assert_eq!(
+        there, b"shape = 3\n",
+        "older builds could take what was sent before learning the place was raised"
+    );
+}
