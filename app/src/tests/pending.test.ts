@@ -67,7 +67,10 @@ describe("a format pressed with nothing selected", () => {
     expect(editor.state.sliceDoc()).toBe("~~no~~");
     const link = view("ver ");
     wrapped(link, "[", "]()");
-    expect(link.state.field(pending)).toBeNull();
+    expect(link.state.field(pending)).not.toBeNull();
+    expect(link.contentDOM.textContent).toBe("ver []()");
+    link.dispatch({ selection: { anchor: 0 } });
+    expect(link.state.sliceDoc()).toBe("ver ");
     editor.destroy();
     link.destroy();
   });

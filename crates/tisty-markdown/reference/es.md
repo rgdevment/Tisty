@@ -147,6 +147,7 @@ igual: <rina@example.com>.
   [vet]: https://example.com/vet "Abre los sábados"
   ```
 
+- La página muestra cada definición donde está escrita, como una línea pequeña con su etiqueta y su dirección; un clic en ella la edita.
 - Un enlace todavía sin dirección, `[palabras]()`, se lee como sus palabras.
 - Solo se siguen las direcciones web, `mailto:` y el `tisty:` propio. Cualquier otro esquema se lee como texto.
 - Una dirección con espacios va entre ángulos: `[clip](<C:/Users/yo/un clip.mkv>)`.

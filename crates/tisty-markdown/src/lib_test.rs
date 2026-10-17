@@ -376,3 +376,45 @@ fn lines_fenced_by_rules_in_the_middle_of_a_page_stay_on_the_page() {
         1
     );
 }
+
+#[test]
+fn a_link_definition_stands_on_the_page_where_it_was_written() {
+    let said = "Ver [el mapa][uno].\n\n[uno]: https://x.y/parque \"Abre el sábado\"\n\nfin\n";
+    let doc = read(said);
+    let kinds: Vec<&Kind> = doc.blocks().iter().map(|one| &one.kind).collect();
+    assert_eq!(
+        kinds,
+        [
+            &Kind::Paragraph,
+            &Kind::Definition {
+                label: "uno".into(),
+                to: "https://x.y/parque".into()
+            },
+            &Kind::Paragraph
+        ]
+    );
+    assert!(said[doc.blocks()[1].at.clone()].starts_with("[uno]: https://x.y/parque"));
+    assert!(html(&doc).contains("class=\"refdef\""));
+
+    let twice = read("[vet]: https://a.y\n\n[VET]: https://b.y\n");
+    let defined: Vec<&Kind> = twice
+        .blocks()
+        .iter()
+        .map(|one| &one.kind)
+        .filter(|kind| matches!(kind, Kind::Definition { .. }))
+        .collect();
+    assert_eq!(
+        defined.len(),
+        2,
+        "a label written twice keeps both lines on the page"
+    );
+
+    let held = read("- uno\n\n  [dos]: https://x.y\n");
+    assert!(
+        !held
+            .blocks()
+            .iter()
+            .any(|one| matches!(one.kind, Kind::Definition { .. })),
+        "one held inside a list is that list's to edit"
+    );
+}

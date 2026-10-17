@@ -131,6 +131,10 @@ pub enum Kind {
     Note {
         label: String,
     },
+    Definition {
+        label: String,
+        to: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

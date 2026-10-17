@@ -111,6 +111,14 @@ fn draw(block: &Block, text: &str, anchors: &HashMap<usize, String>, out: &mut S
             let _ = write!(out, "<hr {at}>");
         }
         Kind::Front => front(&text[block.at.clone()], &at, out),
+        Kind::Definition { label, to } => {
+            let _ = write!(
+                out,
+                "<p class=\"refdef\" {at}><span class=\"refdef-label\">[{}]</span> <span class=\"refdef-to\">{}</span></p>",
+                escaped(label),
+                escaped(to)
+            );
+        }
         Kind::Details { summary, open } => {
             let open = if *open { " open" } else { "" };
             let head = format!(
