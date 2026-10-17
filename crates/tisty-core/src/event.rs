@@ -76,11 +76,6 @@ impl Event {
         Some(self.timestamp.to_zoned(zone))
     }
 
-    pub fn in_batch(mut self, batch: Ulid) -> Self {
-        self.batch = Some(batch);
-        self
-    }
-
     pub fn sort_key(&self) -> (jiff::Timestamp, &DeviceId, u64) {
         (self.timestamp, &self.device, self.seq)
     }

@@ -248,9 +248,6 @@ beforeEach(() => {
         );
         return Promise.resolve(installed.seen.map((one) => ({ ...one })));
       }
-      case "take_out_of_reach":
-        standing.withinReach = false;
-        return Promise.resolve({ ...standing });
       case "guide":
         return Promise.resolve({ id: "guide-0001", title: "Cómo funciona Tisty" });
       case "waking":
@@ -3094,7 +3091,6 @@ describe("the first-run assistant", () => {
 
     expect(screen.queryByText(/command line/i)).toBeNull();
     expect(screen.queryByRole("switch", { name: /make it reachable/i })).toBeNull();
-    expect(sent("take_out_of_reach")).toHaveLength(0);
   });
 
   it("says nothing when there is no command line to offer", async () => {
