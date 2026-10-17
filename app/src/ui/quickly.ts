@@ -101,7 +101,9 @@ export const quickly = (page: Document, reach: () => Quick) => {
     const writing = Boolean(target?.closest?.(".editing"));
     const element = writing ? null : blockOf(target);
     const at = spanned(element?.dataset.at ?? null);
-    const under = target && page.getSelection()?.containsNode(target, true);
+    const selection = page.getSelection();
+    const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+    const under = Boolean(target && range?.intersectsNode(target));
     hide();
     onMenu({
       x: event.clientX,
