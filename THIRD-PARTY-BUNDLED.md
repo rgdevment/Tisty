@@ -221,7 +221,7 @@ written once with the crates that carry it.
 | `w3c-keyname` | 2.2.8 | MIT |
 | `yoga-layout` | 3.2.1 | MIT |
 
-## In the core (381 crates)
+## In the core (388 crates)
 
 | Crate | Version | Licence |
 | --- | --- | --- |
@@ -337,6 +337,8 @@ written once with the crates that carry it.
 | `hashlink` | 0.12.2 | MIT OR Apache-2.0 |
 | `heck` | 0.5.0 | MIT OR Apache-2.0 |
 | `hmac` | 0.13.0 | MIT OR Apache-2.0 |
+| `htmd` | 0.5.6 | Apache-2.0 |
+| `html5ever` | 0.38.0 | MIT OR Apache-2.0 |
 | `html5ever` | 0.40.1 | MIT OR Apache-2.0 |
 | `http` | 1.5.0 | MIT OR Apache-2.0 |
 | `http-body` | 1.1.0 | MIT |
@@ -384,7 +386,9 @@ written once with the crates that carry it.
 | `mac-notification-sys` | 0.6.15 | MIT/Apache-2.0 |
 | `machine-uid` | 0.6.0 | MIT |
 | `maplit` | 1.0.2 | MIT/Apache-2.0 |
+| `markup5ever` | 0.38.0 | MIT OR Apache-2.0 |
 | `markup5ever` | 0.40.0 | MIT OR Apache-2.0 |
+| `markup5ever_rcdom` | 0.38.0+unofficial | MIT OR Apache-2.0 |
 | `math-core` | 0.9.0 | MIT |
 | `math-core-renderer-internal` | 0.9.0 | MIT |
 | `memchr` | 2.8.3 | Unlicense OR MIT |
@@ -485,6 +489,7 @@ written once with the crates that carry it.
 | `stable_deref_trait` | 1.2.1 | MIT OR Apache-2.0 |
 | `stable-arena` | 0.3.0 | Apache-2.0 OR MIT |
 | `static_assertions` | 1.1.0 | MIT OR Apache-2.0 |
+| `string_cache` | 0.9.0 | MIT OR Apache-2.0 |
 | `string_cache` | 0.11.0 | MIT OR Apache-2.0 |
 | `strsim` | 0.11.1 | MIT |
 | `strum` | 0.28.0 | MIT |
@@ -553,6 +558,7 @@ written once with the crates that carry it.
 | `uuid` | 1.24.0 | Apache-2.0 OR MIT |
 | `walkdir` | 2.5.0 | Unlicense/MIT |
 | `want` | 0.3.1 | MIT |
+| `web_atoms` | 0.2.5 | MIT OR Apache-2.0 |
 | `web_atoms` | 0.3.0 | MIT OR Apache-2.0 |
 | `web-time` | 1.1.0 | MIT OR Apache-2.0 |
 | `webview2-com` | 0.39.1 | MIT |
@@ -593,6 +599,7 @@ written once with the crates that carry it.
 | `writeable` | 0.6.3 | Unicode-3.0 |
 | `wry` | 0.57.0 | Apache-2.0 OR MIT |
 | `xattr` | 1.6.1 | MIT OR Apache-2.0 |
+| `xml5ever` | 0.38.0 | MIT OR Apache-2.0 |
 | `yoke` | 0.8.3 | Unicode-3.0 |
 | `zerocopy` | 0.8.56 | BSD-2-Clause OR Apache-2.0 OR MIT |
 | `zerofrom` | 0.1.8 | Unicode-3.0 |

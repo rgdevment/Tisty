@@ -8,6 +8,7 @@ the heavy lifting are [Tauri](https://tauri.app), [React](https://react.dev),
 [Tailwind CSS](https://tailwindcss.com), [CodeMirror](https://codemirror.net)
 for the editor, [pulldown-cmark](https://github.com/pulldown-cmark/pulldown-cmark)
 and [ammonia](https://github.com/rust-ammonia/ammonia) for reading the Markdown,
+[htmd](https://github.com/letmutex/htmd) for bringing in HTML,
 [Mermaid](https://mermaid.js.org) for the diagrams, [KaTeX](https://katex.org)
 for the formulas, [lowlight](https://github.com/wooorm/lowlight) and
 [highlight.js](https://highlightjs.org) for the code, and

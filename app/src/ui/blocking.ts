@@ -13,6 +13,7 @@ import {
   type ViewUpdate,
 } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
+import { docFromHtml, docFromText } from "../core";
 import { known } from "../glyphs";
 import { barred, blockKeys, flipped } from "./barring";
 import { coded, owning } from "./formatting";
@@ -23,20 +24,67 @@ import { type Asking, putBlock, slashing } from "./slashing";
 
 const PENS = ["yellow", ...HUES];
 
+// A code editor copies coloured spans as preformatted text; Docs and Gmail use pre-wrap, which is prose.
+export const worded = (html: string): boolean =>
+  /<(h[1-6]|p|li|table|strong|b|em|i|a|img|blockquote|mark|u|s|del|details)\b/i.test(html) &&
+  !/white-space:\s*pre\s*[;"']/i.test(html);
+
+type Landing = { view: EditorView; lost?: () => void };
+
+// The translation comes back a moment later; the words go where the caret was when they were pasted.
+const landing = (view: EditorView, lost?: () => void): ((text: string, block: boolean) => void) => {
+  const doc = view.state.doc;
+  const { anchor, head } = view.state.selection.main;
+  return (text, block) => {
+    if (!view.dom.isConnected) return void lost?.();
+    if (!text) return;
+    if (view.state.doc === doc) view.dispatch({ selection: { anchor, head } });
+    if (block && text.includes("\n")) putBlock(view, text);
+    else view.dispatch(view.state.replaceSelection(text), { userEvent: "input.paste" });
+  };
+};
+
+// Only a table opens on a top corner, and a few lines with code's punctuation are worth a look; the core decides.
+export const shaped = (plain: string): boolean =>
+  /^\s*[┌╔┏]/m.test(plain) || (plain.split("\n").length >= 3 && /[{};=(:]/.test(plain));
+
+const rich = (event: ClipboardEvent, { view, lost }: Landing): boolean => {
+  if (coded(view.state, view.state.selection.main.head)) return false;
+  const html = event.clipboardData?.getData("text/html") ?? "";
+  const plain = event.clipboardData?.getData("text/plain") ?? "";
+  const put = landing(view, lost);
+  if (worded(html)) {
+    event.preventDefault();
+    docFromHtml(html)
+      .then((text) => put(text || plain, Boolean(text)))
+      .catch(() => put(plain, false));
+    return true;
+  }
+  if (!shaped(plain)) return false;
+  event.preventDefault();
+  docFromText(plain)
+    .then((text) => put(text ?? plain, Boolean(text)))
+    .catch(() => put(plain, false));
+  return true;
+};
+
 const pasting = (event: ClipboardEvent, view: EditorView, asking?: () => Asking | undefined) => {
   const files = Array.from(event.clipboardData?.files ?? []);
   const pasted = asking?.()?.pasted;
   // Word, Excel and browsers put a picture beside the words they copy; the words are what was meant.
-  if (!files.length || !pasted || event.clipboardData?.getData("text/plain")) return false;
-  event.preventDefault();
-  pasted(files)
-    .then((text) => {
-      if (!text) return;
-      if (view.dom.isConnected) putBlock(view, text);
-      else asking?.()?.lost?.();
-    })
-    .catch(() => {});
-  return true;
+  const words = Boolean(event.clipboardData?.getData("text/plain"));
+  if (files.length && pasted && !words) {
+    event.preventDefault();
+    pasted(files)
+      .then((text) => {
+        if (!text) return;
+        if (view.dom.isConnected) putBlock(view, text);
+        else asking?.()?.lost?.();
+      })
+      .catch(() => {});
+    return true;
+  }
+  return rich(event, { view, lost: asking?.()?.lost });
 };
 
 export type Editing = {

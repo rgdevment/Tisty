@@ -1180,6 +1180,11 @@ export const docsUnpack = (from: string, number?: string): Promise<Unpacked> =>
   invoke("docs_unpack", { from, number });
 export const docsTakeOut = (which: string[], into: string): Promise<Packed> =>
   invoke("docs_take_out", { which, into });
+export const docFromHtml = (html: string): Promise<string> => invoke("doc_from_html", { html });
+
+export const docFromText = (text: string): Promise<string | null> =>
+  invoke("doc_from_text", { text });
+
 export type Left = { missed: number; notes: number };
 
 export type Arrived = Doc & Left;

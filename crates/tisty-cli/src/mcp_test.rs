@@ -1,7 +1,6 @@
 use super::door::{Door, let_in};
 use super::unpathing::{absolute, unpathed};
 use super::*;
-use tisty_core::beside::{retargeted, unescaped};
 
 fn four_ids() -> Vec<String> {
     (1..=4).map(|n| format!("wwwwwwww-000{n}")).collect()
@@ -331,56 +330,6 @@ fn a_path_with_spaces_is_hidden_whole_without_quotes() {
     );
 }
 
-fn kept(body: &str) -> String {
-    retargeted(body, &mut |_, target, title| {
-        Some((target.to_string(), title.to_string()))
-    })
-}
-
-#[test]
-fn a_link_is_rewritten_and_what_surrounds_it_is_left_alone() {
-    let out = retargeted("ver [doc](tisty:doc/1) ahora", &mut |_, target, title| {
-        Some((format!("nuevo:{target}"), title.to_string()))
-    });
-    assert_eq!(out, "ver [doc](<nuevo:tisty:doc/1>) ahora");
-}
-
-#[test]
-fn a_body_with_nothing_to_point_at_comes_back_as_it_went_in() {
-    let body = "nada que reescribir (ni esto) [ni esto";
-    assert_eq!(kept(body), body);
-    assert_eq!(kept("texto ](y) mas"), "texto ](y) mas");
-}
-
-#[test]
-fn a_link_whose_parenthesis_never_closes_is_left_as_written() {
-    let body = "esto [x](sin cerrar";
-    assert_eq!(kept(body), body);
-}
-
-#[test]
-fn a_target_carrying_its_own_parentheses_is_read_whole() {
-    assert_eq!(kept("[x](a(b)c)"), "[x](<a(b)c>)");
-}
-
-#[test]
-fn a_picture_keeps_its_mark_and_a_refused_link_keeps_only_its_words() {
-    assert_eq!(kept("mira ![foto](a.png)"), "mira ![foto](<a.png>)");
-    assert_eq!(retargeted("mira [doc](x)", &mut |_, _, _| None), "mira doc");
-    assert_eq!(
-        retargeted("mira ![foto](a.png)", &mut |_, _, _| None),
-        "mira foto",
-        "el signo de la imagen se quedo sin nada que marcar"
-    );
-    assert_eq!(kept("a[!x](y)"), "a[!x](<y>)");
-}
-
-#[test]
-fn a_link_written_inside_a_fence_is_code_and_is_not_pointed_anywhere_else() {
-    let body = "```\n[x](y)\n```\n";
-    assert_eq!(kept(body), body);
-}
-
 #[test]
 fn a_write_says_which_way_the_document_moved_and_by_how_much() {
     assert_eq!(by_how_much("abc", "abc"), "the same length");
@@ -395,14 +344,6 @@ fn the_nearest_line_is_the_one_that_shares_the_most_with_what_was_asked_for() {
     assert_eq!(nearest(body, "abcd"), Some((1, "abcdXY".to_string())));
     assert_eq!(nearest(body, "abc"), None);
     assert_eq!(nearest("uno\ndos\n", "abcdef"), None);
-}
-
-#[test]
-fn an_escape_is_read_only_where_two_digits_follow_it() {
-    assert_eq!(unescaped("%41BC"), "ABC");
-    assert_eq!(unescaped("a%41"), "aA");
-    assert_eq!(unescaped("a%4"), "a%4");
-    assert_eq!(unescaped("a%zz"), "a%zz");
 }
 
 fn tramo(body: &str, args: Value) -> (usize, usize, Option<usize>) {

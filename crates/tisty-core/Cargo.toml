@@ -31,6 +31,8 @@ unicode-normalization.workspace = true
 tisty-markdown = { workspace = true, features = ["pens", "icons"] }
 sys-locale.workspace = true
 machine-uid.workspace = true
+htmd.workspace = true
+markup5ever_rcdom.workspace = true
 
 [target.'cfg(not(target_os = "macos"))'.dependencies]
 sysinfo.workspace = true

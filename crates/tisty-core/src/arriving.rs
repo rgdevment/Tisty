@@ -1,5 +1,12 @@
+#[path = "arriving_html.rs"]
+mod html;
 #[path = "arriving_obsidian.rs"]
 mod obsidian;
+#[path = "arriving_plain.rs"]
+mod plain;
+
+pub use html::from_html;
+pub use plain::from_plain;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Tidied {

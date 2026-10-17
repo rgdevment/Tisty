@@ -151,7 +151,15 @@ pub(crate) fn arrived(
     folder: Option<tisty_core::model::FolderId>,
 ) -> Answer<(tisty_core::docs::Doc, ulid::Ulid, Left)> {
     let paths = held(session).paths.clone();
-    let body = tisty_core::arriving::tidied(&read_outside(from)?).body;
+    let raw = read_outside(from)?;
+    let webbed = from
+        .extension()
+        .is_some_and(|one| one.eq_ignore_ascii_case("html") || one.eq_ignore_ascii_case("htm"));
+    let raw = match webbed {
+        true => tisty_core::arriving::from_html(&raw),
+        false => raw,
+    };
+    let body = tisty_core::arriving::tidied(&raw).body;
     let own: Vec<std::path::PathBuf> = [paths.data(), paths.config(), paths.cache()]
         .iter()
         .filter_map(|one| one.canonicalize().ok())
@@ -187,6 +195,29 @@ pub(crate) fn arrived(
         notes: brought.papers.len(),
     };
     Ok((doc, id, left))
+}
+
+// Past this, what was copied is a whole site rather than something a person means to paste.
+const PASTED_AT_MOST: usize = 2 * 1024 * 1024;
+
+#[tauri::command(async)]
+pub fn doc_from_html(html: String) -> Answer<String> {
+    if html.len() > PASTED_AT_MOST {
+        return Err(Refusal::about(
+            "documentTooBig",
+            weighed(PASTED_AT_MOST as u64),
+        ));
+    }
+    let said = tisty_core::arriving::tidied(&tisty_core::arriving::from_html(&html)).body;
+    Ok(said.trim().to_string())
+}
+
+#[tauri::command(async)]
+pub fn doc_from_text(text: String) -> Answer<Option<String>> {
+    if text.len() > PASTED_AT_MOST {
+        return Ok(None);
+    }
+    Ok(tisty_core::arriving::from_plain(&text))
 }
 
 pub(crate) fn read_outside(from: &std::path::Path) -> Answer<String> {

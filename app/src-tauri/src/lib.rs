@@ -1169,6 +1169,8 @@ pub fn run() {
             answers::papers::doc_page,
             answers::papers::doc_drop,
             answers::carrying::doc_import,
+            answers::carrying::doc_from_html,
+            answers::carrying::doc_from_text,
             answers::carrying::doc_export,
             answers::papers::signed,
             answers::papers::sign,

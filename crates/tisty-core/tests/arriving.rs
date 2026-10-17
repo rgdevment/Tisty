@@ -365,3 +365,170 @@ fn what_is_already_tisty_passes_the_obsidian_step_untouched() {
         "> [!CAUTION]\n> falla\n"
     );
 }
+
+#[test]
+fn a_page_of_html_comes_in_as_the_tisty_language() {
+    let html = r#"<html><head><style>p{}</style><script>x()</script></head><body>
+<h2>Plan</h2>
+<p>Un <strong>dato</strong>, <em>otro</em>, <u>subrayado</u> y <a href="https://x.y">un enlace</a>.</p>
+<ul><li>uno</li><li>dos</li></ul>
+<p><mark>amarillo</mark> <mark style="background-color:#bbf7d0">verde</mark> <span style="color:#dc2626">rojo</span> <span style="color:#000">negro</span></p>
+<details><summary>Más  datos</summary><p>adentro</p></details>
+<table><tr><th>a</th><th>b</th></tr><tr><td>1</td><td>2</td></tr></table>
+</body></html>"#;
+
+    let said = tidied(&tisty_core::arriving::from_html(html)).body;
+
+    for piece in [
+        "## Plan",
+        "**dato**",
+        "*otro*",
+        "++subrayado++",
+        "[un enlace](https://x.y)",
+        "uno",
+        "==amarillo==",
+        "==verde=={green}",
+        "==rojo=={red}",
+        ":::details Más datos",
+        "adentro",
+        "| a | b |",
+    ] {
+        assert!(said.contains(piece), "{piece:?} missing from {said}");
+    }
+    assert!(!said.contains("x()"), "{said}");
+    assert!(
+        !said.contains("=={black}") && !said.contains("==negro"),
+        "{said}"
+    );
+    assert!(survives(&said).is_ok(), "{:?}", survives(&said));
+}
+
+#[test]
+fn a_table_drawn_in_a_terminal_comes_in_as_a_table() {
+    let said = "Esta semana\n\n┌────────┬──────┐\n│ Tarea  │ Para │\n├────────┼──────┤\n│ Pagar  │ Lunes│\n│ la luz │      │\n├────────┼──────┤\n│ Comprar│ Mié  │\n└────────┴──────┘\n\nfin";
+
+    let out = tisty_core::arriving::from_plain(said).unwrap();
+
+    assert_eq!(
+        out,
+        "Esta semana\n\n| Tarea | Para |\n| --- | --- |\n| Pagar la luz | Lunes |\n| Comprar | Mié |\n\nfin"
+    );
+    assert!(survives(&out).is_ok());
+}
+
+#[test]
+fn lines_that_read_like_code_come_in_fenced_and_prose_is_left_alone() {
+    let code =
+        "use tisty_core::Paths;\n\nfn kept(body: &str) -> String {\n    retargeted(body)\n}\n";
+    assert_eq!(
+        tisty_core::arriving::from_plain(code).as_deref(),
+        Some(
+            "```rust\nuse tisty_core::Paths;\n\nfn kept(body: &str) -> String {\n    retargeted(body)\n}\n```"
+        )
+    );
+    let quoting = "fn a() {\n    let b = \"```x```\";\n}\n";
+    let out = tisty_core::arriving::from_plain(quoting).unwrap();
+    assert!(
+        out.starts_with("````rust\n") && out.ends_with("\n````"),
+        "{out}"
+    );
+    let script = "const a = (b) => {\n  return b + 1;\n};\n";
+    assert!(
+        tisty_core::arriving::from_plain(script)
+            .unwrap()
+            .starts_with("```javascript\n")
+    );
+    let plain = "x = {\n  a;\n  b;\n}\n";
+    assert!(
+        tisty_core::arriving::from_plain(plain)
+            .unwrap()
+            .starts_with("```\n")
+    );
+    for prose in [
+        "Hola, ¿cómo estás?\nTodo bien por acá.\nNos vemos mañana.",
+        "- leche\n- pan\n- huevos {grandes}",
+        "una línea; otra",
+    ] {
+        assert_eq!(tisty_core::arriving::from_plain(prose), None, "{prose:?}");
+    }
+}
+
+#[test]
+fn what_the_html_review_found_comes_in_right() {
+    let from = tisty_core::arriving::from_html;
+    assert!(
+        from(r#"<p>Paga<span style="color: rgb(220, 38, 38);"> la luz </span>hoy</p>"#)
+            .contains("Paga ==la luz=={red} hoy")
+    );
+    let code = from(
+        r#"<pre><code><span style="color:#d73a49">let</span> a = <mark>1</mark>;</code></pre>"#,
+    );
+    assert!(code.contains("let a = 1;"), "{code}");
+    assert!(!code.contains("=="), "{code}");
+    let wrapped = from(r#"<form id="aspnetForm"><h1>Intranet</h1><p>texto</p></form>"#);
+    assert!(
+        wrapped.contains("# Intranet") && wrapped.contains("texto"),
+        "{wrapped}"
+    );
+}
+
+#[test]
+fn what_the_plain_text_review_found_comes_in_right() {
+    let from = tisty_core::arriving::from_plain;
+    assert_eq!(from(".\n├── src\n│   └── main.rs\n└── Cargo.toml"), None);
+    assert_eq!(
+        from("Querida Ana;\nte escribo desde casa,\nnos vemos el lunes."),
+        None
+    );
+    assert_eq!(
+        from("┌───┬───┐\n│ a │ b │\n├───┼───┤\n│ 1 │ 3 │\n│ 2 │ 4 │\n└───┴───┘").as_deref(),
+        Some("| a | b |\n| --- | --- |\n| 1 | 3 |\n| 2 | 4 |")
+    );
+    assert_eq!(
+        from("┏━━━┳━━━┓\n┃ a ┃ b ┃\n┣━━━╋━━━┫\n┃ 1 ┃ 2 ┃\n┗━━━┻━━━┛").as_deref(),
+        Some("| a | b |\n| --- | --- |\n| 1 | 2 |")
+    );
+}
+
+#[test]
+fn a_letter_a_diagram_and_a_bare_table_come_in_as_what_they_are() {
+    let from = tisty_core::arriving::from_plain;
+    assert_eq!(from("Hi team,\nlet me know what you think,\nthanks."), None);
+    assert_eq!(
+        from("┌─────┐   ┌─────┐\n│ API │──▶│ DB  │\n└─────┘   └─────┘"),
+        None,
+        "boxes drawn side by side are a drawing, not a table"
+    );
+    assert_eq!(
+        from("┌───┬───┐\n│ a │ b │\n│ c │ d │\n└───┴───┘").as_deref(),
+        Some("| a | b |\n| --- | --- |\n| c | d |")
+    );
+}
+
+#[test]
+fn a_copy_from_google_docs_keeps_its_bold_and_its_links_plain() {
+    let docs = r#"<meta charset="utf-8"><b style="font-weight:normal;" id="docs-internal-guid-1"><p dir="ltr"><span style="font-weight:700">Importante</span><span style="font-weight:400"> y </span><a href="https://x.y"><span style="color:#1155cc;text-decoration:underline">aquí</span></a></p></b>"#;
+
+    let said = tisty_core::arriving::from_html(docs);
+
+    assert!(
+        said.contains("**Importante** y [aquí](https://x.y)"),
+        "{said}"
+    );
+    assert!(
+        !said.starts_with("**Importante** y [aquí](https://x.y)**"),
+        "{said}"
+    );
+    assert!(!said.contains("=={blue}"), "{said}");
+}
+
+#[test]
+fn a_picture_inside_the_page_and_a_clear_colour_leave_nothing_behind() {
+    let said = tisty_core::arriving::from_html(
+        r#"<p>Foto <img src="data:image/png;base64,AAAA" alt="logo"> y <span style="background-color: rgba(255, 255, 0, 0)">nada</span> y <span style="color: rgb(100%, 0%, 0%)">rojo</span></p>"#,
+    );
+    assert!(!said.contains("data:"), "{said}");
+    assert!(said.contains("logo"), "{said}");
+    assert!(!said.contains("==nada"), "{said}");
+    assert!(said.contains("==rojo=={red}"), "{said}");
+}

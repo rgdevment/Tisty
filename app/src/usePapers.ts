@@ -67,7 +67,7 @@ export function usePapers({
     pick({
       multiple: false,
       filters: [
-        { name: "Markdown", extensions: ["md", "markdown", "txt"] },
+        { name: "Markdown", extensions: ["md", "markdown", "txt", "html", "htm"] },
         { name: t("anyFile"), extensions: ["*"] },
       ],
     })
