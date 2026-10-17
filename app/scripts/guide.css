@@ -1,0 +1,45 @@
+.page {
+  max-width: none;
+  padding: 0;
+}
+.page > * {
+  content-visibility: visible;
+}
+figure.example {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 16px 0 24px;
+  border: 1px solid var(--tisty-line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--tisty-sheet);
+}
+figure.example > .written {
+  margin: 0;
+  padding: 18px 20px;
+  border: 0;
+  border-right: 1px solid var(--tisty-line);
+  border-radius: 0;
+  background: var(--tisty-hover);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+figure.example > .drawn {
+  padding: 18px 20px;
+  min-width: 0;
+}
+figure.example > .drawn > :first-child {
+  margin-top: 0;
+}
+figure.example > .drawn > :last-child {
+  margin-bottom: 0;
+}
+@media (max-width: 720px) {
+  figure.example {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  figure.example > .written {
+    border-right: 0;
+    border-bottom: 1px solid var(--tisty-line);
+  }
+}

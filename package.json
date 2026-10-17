@@ -14,6 +14,7 @@
     "lint:md": "markdownlint-cli2",
     "notices": "node scripts/third-party.mjs",
     "language": "node scripts/language.mjs",
+    "guide": "node app/scripts/guide.mjs",
     "format:md": "markdownlint-cli2 --fix"
   },
   "overrides": {
