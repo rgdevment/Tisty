@@ -492,6 +492,10 @@ const en = {
   besideShut: "Close this column",
   aboutFile: "About this file",
   aboutPaper: "About this document",
+  importMissed:
+    "The document came in, but {name} file(s) beside it could not: their links now read as plain words.",
+  importNotes:
+    "{name} other note(s) it links to stayed as plain words: import each one on its own.",
   frontNamed: "Properties",
   frontEdit: "Edit",
   frontOvergrown: "Too long to read here; it is kept as written.",
@@ -2463,6 +2467,9 @@ const es: Catalog = {
   besideShut: "Cerrar esta columna",
   aboutFile: "Sobre este archivo",
   aboutPaper: "Sobre este documento",
+  importMissed:
+    "El documento entró, pero {name} archivo(s) de al lado no se pudieron traer: sus enlaces quedaron como texto.",
+  importNotes: "{name} nota(s) que enlaza quedaron como texto: impórtalas una por una.",
   frontNamed: "Propiedades",
   frontEdit: "Editar",
   frontOvergrown: "Demasiado largas para leerlas aquí; se guardan tal como están.",

@@ -6,6 +6,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use tauri::{AppHandle, Emitter, Manager};
 use tisty_core::witness::{self, Fact, channel};
 
+use crate::answers::carrying::Left;
 use crate::{Answer, Refusal, Session, held, widgets};
 
 const OPENS: [&str; 3] = ["md", "markdown", "txt"];
@@ -361,16 +362,16 @@ pub fn view_import(
     window: tauri::WebviewWindow,
     views: tauri::State<'_, Views>,
     open: bool,
-) -> Answer<Paper> {
+) -> Answer<Converted> {
     let _one_at_a_time = views.importing.lock().unwrap_or_else(|e| e.into_inner());
-    let paper = match shown_in(&views, window.label())? {
-        Shown::Doc(paper) => paper,
+    let (paper, left) = match shown_in(&views, window.label())? {
+        Shown::Doc(paper) => (paper, Left::default()),
         Shown::File(at) => {
-            let paper = imported_once(&app, &views, &at)?;
+            let (paper, left) = imported_once(&app, &views, &at)?;
             if let Ok(mut held) = views.shown.lock() {
                 held.insert(window.label().to_string(), Shown::Doc(paper.clone()));
             }
-            paper
+            (paper, left)
         }
         Shown::Widget { .. } => return Err(Refusal::of("notAllowed")),
     };
@@ -379,11 +380,19 @@ pub fn view_import(
     } else {
         let _ = app.emit_to("main", "papered", ());
     }
-    Ok(paper)
+    Ok(Converted { paper, left })
+}
+
+#[derive(serde::Serialize)]
+pub struct Converted {
+    #[serde(flatten)]
+    paper: Paper,
+    #[serde(flatten)]
+    left: Left,
 }
 
 // The same file brought in twice is the same document, as long as both are still what they were.
-fn imported_once(app: &AppHandle, views: &Views, at: &Path) -> Answer<Paper> {
+fn imported_once(app: &AppHandle, views: &Views, at: &Path) -> Answer<(Paper, Left)> {
     let session = session_of(app)?;
     let stamp = stamp_of(at);
     let known = views
@@ -403,11 +412,9 @@ fn imported_once(app: &AppHandle, views: &Views, at: &Path) -> Answer<Paper> {
                 .any(|kept| kept.file == known.paper.file && !session.state.held_away(kept))
         }
     {
-        return Ok(known.paper);
+        return Ok((known.paper, Left::default()));
     }
-    let body = crate::answers::carrying::read_outside(at)?;
-    let body = tisty_core::arriving::tidied(&body).body;
-    let (made, id) = crate::answers::carrying::imported(&mut held(&session), &body, None)?;
+    let (made, id, left) = crate::answers::carrying::arrived(&session, at, None)?;
     let paper = Paper {
         id: id.to_string(),
         file: made.id,
@@ -423,7 +430,7 @@ fn imported_once(app: &AppHandle, views: &Views, at: &Path) -> Answer<Paper> {
             },
         );
     }
-    Ok(paper)
+    Ok((paper, left))
 }
 
 #[tauri::command(async)]
