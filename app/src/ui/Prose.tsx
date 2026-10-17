@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { type Mend, mendsIn } from "../core";
 import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
 import Insert from "./Insert";
+import { mended, told } from "./mending";
 import Written from "./Written";
 
 interface Props {
@@ -38,6 +40,23 @@ export default function Prose({
   const dropped = useRef(false);
 
   useEffect(() => setText(value), [value]);
+
+  // Each list of fixes keeps the text it was found in, so a fix never lands on words that moved.
+  const [found, setFound] = useState<{ said: string; mends: readonly Mend[] }>({
+    said: "",
+    mends: [],
+  });
+  const mends = found.said === text ? found.mends : [];
+  useEffect(() => {
+    if (writing || !text.trim()) return;
+    let live = true;
+    mendsIn(text)
+      .then((all) => live && setFound({ said: text, mends: all ?? [] }))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [text, writing]);
 
   useEffect(() => {
     if (writing) box.current?.focus();
@@ -137,6 +156,22 @@ export default function Prose({
         onDoc={onDoc}
         className="prose cursor-text rounded-md px-1.5 py-1 text-[13px] leading-relaxed outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent"
       />
+      {mends.length > 0 && (
+        <p className="flex items-center gap-2 px-1.5 text-[11.5px] text-faint">
+          <Told mends={mends} />
+          <button
+            type="button"
+            className="text-accent hover:underline"
+            onClick={() => {
+              const fixed = mended(text, mends);
+              setText(fixed);
+              onWrite(fixed);
+            }}
+          >
+            {t("mendIt")}
+          </button>
+        </p>
+      )}
     </div>
   );
 
@@ -156,5 +191,25 @@ export default function Prose({
         className="prose px-1.5 py-1 text-[13px] leading-relaxed"
       />
     </div>
+  );
+}
+
+function Told({ mends }: Readonly<{ mends: readonly Mend[] }>) {
+  const { parts, all } = told(mends);
+  return (
+    <span title={all || undefined}>
+      {parts.map((part) =>
+        part.code === undefined ? (
+          part.words
+        ) : (
+          <code
+            key={part.code}
+            className="rounded-md bg-hover px-1 font-mono text-[11.5px] text-soft"
+          >
+            {part.code}
+          </code>
+        ),
+      )}
+    </span>
   );
 }

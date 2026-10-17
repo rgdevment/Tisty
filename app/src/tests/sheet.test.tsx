@@ -20,6 +20,12 @@ const ipc = vi.hoisted(() => ({
   copied: [] as string[],
   picked: { from: 0, to: 0 },
   cut: [] as [number, number][],
+  mends: [] as {
+    from: number;
+    to: number;
+    fixed: string;
+    pieces: { said: string; fixed: string }[];
+  }[],
 }));
 
 vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
@@ -46,10 +52,11 @@ vi.mock("../ui/barring", async (original) => ({
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (cmd: string) =>
-    cmd === "doc_drawn"
-      ? Promise.resolve(new TextEncoder().encode(ipc.drawn).buffer)
-      : Promise.resolve(null),
+  invoke: (cmd: string) => {
+    if (cmd === "doc_drawn") return Promise.resolve(new TextEncoder().encode(ipc.drawn).buffer);
+    if (cmd === "mends_in") return Promise.resolve(ipc.mends);
+    return Promise.resolve(null);
+  },
   convertFileSrc: (path: string) => path,
 }));
 
@@ -130,6 +137,7 @@ beforeEach(() => {
   ipc.copied = [];
   ipc.picked = { from: 0, to: 0 };
   ipc.cut = [];
+  ipc.mends = [];
 });
 
 const pick = (page: Document, from: number, to: number) => {
@@ -263,6 +271,37 @@ describe("the sheet in the main window", () => {
       ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(ipc.opened).toHaveLength(1);
     expect(ipc.left).toBe(1);
+  });
+
+  it("mends a block outside the Tisty language from the line under it, without opening it", async () => {
+    const writes: string[] = [];
+    const body = "# Compras\n\nleche <b>fresca</b>\n";
+    ipc.drawn = '<h1 data-at="0-10">Compras</h1><p data-at="11-31">leche <b>fresca</b></p>';
+    ipc.mends = [
+      {
+        from: 11,
+        to: 30,
+        fixed: "leche **fresca**",
+        pieces: [{ said: "<b>fresca</b>", fixed: "**fresca**" }],
+      },
+    ];
+    const view = render(
+      <Sheet value={body} label="Compras" onWrite={(text) => writes.push(text)} />,
+    );
+    const page = await loaded(await shown(view.container));
+
+    await waitFor(() => expect(page.querySelector(".mend-said")).toBeTruthy());
+    page.querySelector<HTMLElement>(".mend-said button")?.click();
+
+    expect(writes).toEqual(["# Compras\n\nleche **fresca**\n"]);
+    expect(ipc.opened).toHaveLength(0);
+  });
+
+  it("tells nothing to mend while it is only being read", async () => {
+    ipc.mends = [{ from: 11, to: 16, fixed: "leche", pieces: [] }];
+    const view = render(<Sheet value={BODY} label="Compras" reading onWrite={() => {}} />);
+    const page = await loaded(await shown(view.container));
+    expect(page.querySelector(".mend-said")).toBeNull();
   });
 
   it("opens nothing to write while it is only being read", async () => {

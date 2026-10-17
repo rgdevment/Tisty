@@ -9,17 +9,9 @@ pub(super) fn spoken(
     field: &str,
     write: impl FnOnce(&Value) -> Result<Value, Refused>,
 ) -> Result<Value, Refused> {
-    let Some(said) = args.get(field).and_then(Value::as_str) else {
-        return write(args);
-    };
-    let made = tisty_core::arriving::tidied(said);
-    let changed: Vec<&str> = made
-        .changed
-        .into_iter()
-        .filter(|one| *one != "Windows line endings")
-        .collect();
     let mut sent = args.clone();
-    sent[field] = Value::String(made.body);
+    let mut changed = Vec::new();
+    turned(&mut sent, field, &mut changed);
     let mut reply = write(&sent)?;
     if changed.is_empty() {
         return Ok(reply);
@@ -36,4 +28,24 @@ pub(super) fn spoken(
     reply["structuredContent"]["turned"] = serde_json::json!(changed);
     reply["structuredContent"]["guide"] = serde_json::json!(super::looking::GUIDE);
     Ok(reply)
+}
+
+// A task proposed with its parts, or several at once, carries the same field one level down.
+const NESTED: [&str; 2] = ["tasks", "parts"];
+
+fn turned(value: &mut Value, field: &str, changed: &mut Vec<&'static str>) {
+    if let Some(said) = value.get(field).and_then(Value::as_str) {
+        let made = tisty_core::arriving::tidied(said);
+        for what in made.changed {
+            if what != "Windows line endings" && !changed.contains(&what) {
+                changed.push(what);
+            }
+        }
+        value[field] = Value::String(made.body);
+    }
+    for nested in NESTED {
+        if let Some(Value::Array(all)) = value.get_mut(nested) {
+            all.iter_mut().for_each(|one| turned(one, field, changed));
+        }
+    }
 }
