@@ -1254,6 +1254,9 @@ kbd {
   color: var(--tisty-faint);
   user-select: none;
 }
+.mend-said code {
+  font-size: 11.5px;
+}
 .mend-said button {
   padding: 0;
   border: 0;

@@ -12,7 +12,11 @@ vi.mock("../core", async () => {
     mendsIn: (body: string) => {
       const from = new TextEncoder().encode(body.split("<b>")[0]).length;
       const to = from + new TextEncoder().encode("<b>alto</b>").length;
-      return Promise.resolve(body.includes("<b>") ? [{ from, to, fixed: "**alto**" }] : []);
+      return Promise.resolve(
+        body.includes("<b>")
+          ? [{ from, to, fixed: "**alto**", pieces: [{ said: "<b>alto</b>", fixed: "**alto**" }] }]
+          : [],
+      );
     },
   };
 });
@@ -214,7 +218,9 @@ describe("words outside the Tisty language", () => {
     const user = userEvent.setup();
     const onWrite = field({ value: "dijo él <b>alto</b> y siguió" });
 
-    await user.click(await screen.findByRole("button", { name: t("mendIt") }));
+    const fix = await screen.findByRole("button", { name: t("mendIt") });
+    expect(fix.parentElement?.querySelector("code")?.textContent).toBe("<b>alto</b>");
+    await user.click(fix);
 
     expect(onWrite).toHaveBeenCalledWith("dijo él **alto** y siguió");
   });

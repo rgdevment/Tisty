@@ -1119,7 +1119,14 @@ export const helpAnchors = (bodies: string[]): Promise<string[][]> =>
   invoke("help_anchors", { bodies });
 export const noteDrawn = (body: string): Promise<string> => invoke("note_drawn", { body });
 
-export type Mend = { readonly from: number; readonly to: number; readonly fixed: string };
+export type Piece = { readonly said: string; readonly fixed: string };
+
+export type Mend = {
+  readonly from: number;
+  readonly to: number;
+  readonly fixed: string;
+  readonly pieces: readonly Piece[];
+};
 
 export const mendsIn = (body: string): Promise<Mend[]> => invoke("mends_in", { body });
 export const docWrite = (id: string, body: string, anyway?: boolean): Promise<Doc> =>

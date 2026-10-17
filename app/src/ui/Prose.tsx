@@ -3,7 +3,7 @@ import { type Mend, mendsIn } from "../core";
 import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
 import Insert from "./Insert";
-import { mended } from "./mending";
+import { mended, told } from "./mending";
 import Written from "./Written";
 
 interface Props {
@@ -153,7 +153,7 @@ export default function Prose({
       />
       {mends.length > 0 && (
         <p className="flex items-center gap-2 px-1.5 text-[12px] text-faint">
-          {t("unspoken")}
+          <Told mends={mends} />
           <button
             type="button"
             className="text-accent hover:underline"
@@ -186,5 +186,23 @@ export default function Prose({
         className="prose px-1.5 py-1 text-[13px] leading-relaxed"
       />
     </div>
+  );
+}
+
+function Told({ mends }: Readonly<{ mends: readonly Mend[] }>) {
+  const { parts, all } = told(mends);
+  return (
+    <span title={all || undefined}>
+      {parts.map((part, at) =>
+        part.code === undefined ? (
+          part.words
+        ) : (
+          // biome-ignore lint/suspicious/noArrayIndexKey: the parts never move
+          <code key={at} className="rounded bg-hover px-1 font-mono text-[11.5px] text-soft">
+            {part.code}
+          </code>
+        ),
+      )}
+    </span>
   );
 }

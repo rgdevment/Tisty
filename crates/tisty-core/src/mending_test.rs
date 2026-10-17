@@ -25,3 +25,23 @@ fn a_mend_keeps_the_lines_the_document_is_written_in() {
     assert_eq!(found.len(), 1, "{found:?}");
     assert_eq!(found[0].fixed, "One ++line++\r\nand another");
 }
+
+#[test]
+fn each_piece_outside_the_language_is_named_with_how_it_is_written() {
+    let body = "Said <b>two words</b> and then <b>one</b>, then nothing.\n";
+    let found = mends(body);
+
+    assert_eq!(found.len(), 1, "{found:?}");
+    let told: Vec<(&str, &str)> = found[0]
+        .pieces
+        .iter()
+        .map(|one| (one.said.as_str(), one.fixed.as_str()))
+        .collect();
+    assert_eq!(
+        told,
+        [
+            ("<b>two words</b>", "**two words**"),
+            ("<b>one</b>,", "**one**,")
+        ]
+    );
+}

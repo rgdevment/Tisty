@@ -20,7 +20,12 @@ const ipc = vi.hoisted(() => ({
   copied: [] as string[],
   picked: { from: 0, to: 0 },
   cut: [] as [number, number][],
-  mends: [] as { from: number; to: number; fixed: string }[],
+  mends: [] as {
+    from: number;
+    to: number;
+    fixed: string;
+    pieces: { said: string; fixed: string }[];
+  }[],
 }));
 
 vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
@@ -272,7 +277,14 @@ describe("the sheet in the main window", () => {
     const writes: string[] = [];
     const body = "# Compras\n\nleche <b>fresca</b>\n";
     ipc.drawn = '<h1 data-at="0-10">Compras</h1><p data-at="11-31">leche <b>fresca</b></p>';
-    ipc.mends = [{ from: 11, to: 30, fixed: "leche **fresca**" }];
+    ipc.mends = [
+      {
+        from: 11,
+        to: 30,
+        fixed: "leche **fresca**",
+        pieces: [{ said: "<b>fresca</b>", fixed: "**fresca**" }],
+      },
+    ];
     const view = render(
       <Sheet value={body} label="Compras" onWrite={(text) => writes.push(text)} />,
     );
@@ -286,7 +298,7 @@ describe("the sheet in the main window", () => {
   });
 
   it("tells nothing to mend while it is only being read", async () => {
-    ipc.mends = [{ from: 11, to: 16, fixed: "leche" }];
+    ipc.mends = [{ from: 11, to: 16, fixed: "leche", pieces: [] }];
     const view = render(<Sheet value={BODY} label="Compras" reading onWrite={() => {}} />);
     const page = await loaded(await shown(view.container));
     expect(page.querySelector(".mend-said")).toBeNull();
