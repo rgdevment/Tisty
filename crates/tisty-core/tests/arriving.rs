@@ -365,3 +365,40 @@ fn what_is_already_tisty_passes_the_obsidian_step_untouched() {
         "> [!CAUTION]\n> falla\n"
     );
 }
+
+#[test]
+fn a_page_of_html_comes_in_as_the_tisty_language() {
+    let html = r#"<html><head><style>p{}</style><script>x()</script></head><body>
+<h2>Plan</h2>
+<p>Un <strong>dato</strong>, <em>otro</em>, <u>subrayado</u> y <a href="https://x.y">un enlace</a>.</p>
+<ul><li>uno</li><li>dos</li></ul>
+<p><mark>amarillo</mark> <mark style="background-color:#bbf7d0">verde</mark> <span style="color:#dc2626">rojo</span> <span style="color:#000">negro</span></p>
+<details><summary>Más  datos</summary><p>adentro</p></details>
+<table><tr><th>a</th><th>b</th></tr><tr><td>1</td><td>2</td></tr></table>
+</body></html>"#;
+
+    let said = tidied(&tisty_core::arriving::from_html(html)).body;
+
+    for piece in [
+        "## Plan",
+        "**dato**",
+        "*otro*",
+        "++subrayado++",
+        "[un enlace](https://x.y)",
+        "uno",
+        "==amarillo==",
+        "==verde=={green}",
+        "==rojo=={red}",
+        ":::details Más datos",
+        "adentro",
+        "| a | b |",
+    ] {
+        assert!(said.contains(piece), "{piece:?} missing from {said}");
+    }
+    assert!(!said.contains("x()"), "{said}");
+    assert!(
+        !said.contains("=={black}") && !said.contains("==negro"),
+        "{said}"
+    );
+    assert!(survives(&said).is_ok(), "{:?}", survives(&said));
+}

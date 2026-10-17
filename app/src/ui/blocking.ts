@@ -13,6 +13,7 @@ import {
   type ViewUpdate,
 } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
+import { docFromHtml } from "../core";
 import { known } from "../glyphs";
 import { barred, blockKeys, flipped } from "./barring";
 import { coded, owning } from "./formatting";
@@ -23,9 +24,32 @@ import { type Asking, putBlock, slashing } from "./slashing";
 
 const PENS = ["yellow", ...HUES];
 
+// A code editor copies coloured spans in preformatted text; only real structure is worth translating.
+export const worded = (html: string): boolean =>
+  /<(h[1-6]|p|li|table|strong|b|em|i|a|img|blockquote|mark|u|s|del|details)\b/i.test(html) &&
+  !/white-space:\s*pre/i.test(html);
+
+const put = (view: EditorView, text: string) => {
+  if (!view.dom.isConnected || !text) return;
+  if (text.includes("\n")) putBlock(view, text);
+  else view.dispatch(view.state.replaceSelection(text));
+};
+
+const rich = (event: ClipboardEvent, view: EditorView): boolean => {
+  const html = event.clipboardData?.getData("text/html") ?? "";
+  if (!worded(html)) return false;
+  const plain = event.clipboardData?.getData("text/plain") ?? "";
+  event.preventDefault();
+  docFromHtml(html)
+    .then((text) => put(view, text || plain))
+    .catch(() => put(view, plain));
+  return true;
+};
+
 const pasting = (event: ClipboardEvent, view: EditorView, asking?: () => Asking | undefined) => {
   const files = Array.from(event.clipboardData?.files ?? []);
   const pasted = asking?.()?.pasted;
+  if (rich(event, view)) return true;
   // Word, Excel and browsers put a picture beside the words they copy; the words are what was meant.
   if (!files.length || !pasted || event.clipboardData?.getData("text/plain")) return false;
   event.preventDefault();

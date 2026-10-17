@@ -1,5 +1,9 @@
+#[path = "arriving_html.rs"]
+mod html;
 #[path = "arriving_obsidian.rs"]
 mod obsidian;
+
+pub use html::from_html;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Tidied {
