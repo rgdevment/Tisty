@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { docDrawn } from "../core";
+import { docDrawn, type Mend, mendsIn } from "../core";
 import type { Reaching } from "./dressing";
 import Frame from "./Frame";
+import { mendable } from "./mending";
 import type { Head } from "./paging";
 import { escaped, heads, shell } from "./paging";
 import type { Sheet } from "./sheeting";
@@ -17,9 +18,10 @@ type Props = Reaching & {
   readonly sheet?: Sheet;
   readonly again?: string;
   readonly draw?: (body: string) => Promise<string>;
+  readonly onMend?: (one: Mend, body: string) => void;
 };
 
-type Drawn = { html: string; turn: number; body: string };
+type Drawn = { html: string; turn: number; body: string; mends: readonly Mend[] };
 
 // A new drawing waits unseen until it is ready, so a redraw never blinks or jumps.
 export default function Page(props: Readonly<Props>) {
@@ -34,18 +36,23 @@ export default function Page(props: Readonly<Props>) {
 
   useEffect(() => {
     let live = true;
-    const drawn = (html: string) => {
+    const drawn = (html: string, mends: readonly Mend[]) => {
       if (!live) return;
       turns.current += 1;
       const turn = turns.current;
       setFrames((were) => [
         ...were.filter((one) => one.turn === showing.current),
-        { html: shell(html), turn, body },
+        { html: shell(html), turn, body, mends },
       ]);
     };
+    const mends = reach.current.onMend
+      ? mendsIn(body)
+          .then((found) => found ?? [])
+          .catch(() => [])
+      : Promise.resolve([]);
     (reach.current.draw ?? docDrawn)(body)
-      .then(drawn)
-      .catch(() => drawn(`<pre>${escaped(body)}</pre>`));
+      .catch(() => `<pre>${escaped(body)}</pre>`)
+      .then(async (html) => drawn(html, await mends));
     return () => {
       live = false;
     };
@@ -53,7 +60,7 @@ export default function Page(props: Readonly<Props>) {
 
   useEffect(() => () => reach.current.onShown?.(null), []);
 
-  const ready = (turn: number, frame: HTMLIFrameElement) => {
+  const ready = ({ turn, body: said, mends }: Drawn, frame: HTMLIFrameElement) => {
     held.current.set(turn, frame);
     const was = held.current.get(showing.current);
     if (!tall && was && was !== frame)
@@ -64,6 +71,8 @@ export default function Page(props: Readonly<Props>) {
     setFrames((were) => were.filter((one) => one.turn >= turn));
     const page = frame.contentDocument;
     if (page) reach.current.onOutline?.(heads(page));
+    const mend = reach.current.onMend;
+    if (page && mend) mendable(page, mends, (one) => mend(one, said));
     reach.current.onShown?.(frame.contentWindow);
   };
 
@@ -91,7 +100,7 @@ export default function Page(props: Readonly<Props>) {
             onMenu: one.turn === turns.current ? reach.current.onMenu : undefined,
             onMore: one.turn === turns.current ? reach.current.onMore : undefined,
           })}
-          onReady={(frame) => ready(one.turn, frame)}
+          onReady={(frame) => ready(one, frame)}
         />
       ))}
     </div>

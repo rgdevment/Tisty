@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { t } from "../locales";
 import Prose from "../ui/Prose";
 
 vi.mock("../core", async () => {
@@ -8,6 +9,11 @@ vi.mock("../core", async () => {
   return {
     ...(await vi.importActual<typeof import("../core")>("../core")),
     noteDrawn: (body: string) => Promise.resolve(crated(body)),
+    mendsIn: (body: string) => {
+      const from = new TextEncoder().encode(body.split("<b>")[0]).length;
+      const to = from + new TextEncoder().encode("<b>alto</b>").length;
+      return Promise.resolve(body.includes("<b>") ? [{ from, to, fixed: "**alto**" }] : []);
+    },
   };
 });
 
@@ -200,5 +206,22 @@ describe("Enter, which sends what was written", () => {
 
     expect(onWrite).not.toHaveBeenCalled();
     expect(screen.getByRole("textbox", { name: "Descripción" })).toBeTruthy();
+  });
+});
+
+describe("words outside the Tisty language", () => {
+  it("are told under the text and mended with one click, the rest left as written", async () => {
+    const user = userEvent.setup();
+    const onWrite = field({ value: "dijo él <b>alto</b> y siguió" });
+
+    await user.click(await screen.findByRole("button", { name: t("mendIt") }));
+
+    expect(onWrite).toHaveBeenCalledWith("dijo él **alto** y siguió");
+  });
+
+  it("say nothing while the text is already in it", async () => {
+    field();
+    await waitFor(() => expect(region().querySelector("strong")).toBeTruthy());
+    expect(screen.queryByRole("button", { name: t("mendIt") })).toBeNull();
   });
 });

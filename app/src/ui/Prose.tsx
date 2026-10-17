@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { type Mend, mendsIn } from "../core";
 import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
 import Insert from "./Insert";
+import { mended } from "./mending";
 import Written from "./Written";
 
 interface Props {
@@ -38,6 +40,18 @@ export default function Prose({
   const dropped = useRef(false);
 
   useEffect(() => setText(value), [value]);
+
+  const [mends, setMends] = useState<readonly Mend[]>([]);
+  useEffect(() => {
+    if (writing || !text.trim()) return setMends([]);
+    let live = true;
+    mendsIn(text)
+      .then((found) => live && setMends(found))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [text, writing]);
 
   useEffect(() => {
     if (writing) box.current?.focus();
@@ -137,6 +151,22 @@ export default function Prose({
         onDoc={onDoc}
         className="prose cursor-text rounded-md px-1.5 py-1 text-[13px] leading-relaxed outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent"
       />
+      {mends.length > 0 && (
+        <p className="flex items-center gap-2 px-1.5 text-[12px] text-faint">
+          {t("unspoken")}
+          <button
+            type="button"
+            className="text-accent hover:underline"
+            onClick={() => {
+              const fixed = mended(text, mends);
+              setText(fixed);
+              onWrite(fixed);
+            }}
+          >
+            {t("mendIt")}
+          </button>
+        </p>
+      )}
     </div>
   );
 

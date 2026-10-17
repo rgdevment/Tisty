@@ -1,6 +1,6 @@
 import { save as intoFile } from "@tauri-apps/plugin-dialog";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
-import { copied, copyAttached, viewWidget } from "../core";
+import { copied, copyAttached, type Mend, viewWidget } from "../core";
 import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
 import { DOC } from "../markdown";
@@ -332,6 +332,15 @@ export default function Sheet(props: Readonly<Props>) {
     return takesFiles(box, (text, at) => dropping.current(text, at));
   }, [reading]);
 
+  // A block the translator would say otherwise is mended only on the page it was found on.
+  const mended = (one: Mend, body: string) => {
+    if (open.current) return left();
+    if (reading || latest.current !== body || showing.current !== body) return;
+    const next = `${body.slice(0, charsAt(body, one.from))}${one.fixed}${body.slice(charsAt(body, one.to))}`;
+    written(next);
+    setDrawn(next);
+  };
+
   const ticked = ([from, end]: [number, number]) => {
     // Like a click that opens a block, a box names bytes of the page on screen, which a block being written has moved.
     if (open.current) return left();
@@ -526,6 +535,7 @@ export default function Sheet(props: Readonly<Props>) {
           onTick={reading ? undefined : ticked}
           onWiden={reading ? undefined : widen}
           onFormat={reading ? undefined : format}
+          onMend={reading ? undefined : mended}
           onMenu={menued}
           onMore={reading ? undefined : asked}
           onAway={left}
