@@ -142,5 +142,5 @@ key; this project's are not to be reused.
 
 ## Questions
 
-<github@apirest.cl>. If your situation is not covered here, ask before
+<rgdevment@tisty.app>. If your situation is not covered here, ask before
 assuming — a short email is cheaper than a wrong guess in either direction.

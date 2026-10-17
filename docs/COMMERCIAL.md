@@ -4,7 +4,7 @@ Tisty is dual licensed.
 
 - **AGPL-3.0** — free for everyone, forever. See [LICENSE](../LICENSE).
 - **Commercial licence** — for organisations that cannot accept the AGPL's
-  terms. Contact <github@apirest.cl>.
+  terms. Contact <rgdevment@tisty.app>.
 
 Same software, same features. The only thing you buy is a different set of
 obligations.
@@ -71,7 +71,7 @@ Fixed price per tier, billed annually. **Never a percentage of your revenue** �
 that model is unauditable for a project this size and gets a product vetoed by
 legal departments on sight.
 
-Tiers, current terms and quotes: <github@apirest.cl>.
+Tiers, current terms and quotes: <rgdevment@tisty.app>.
 
 ## What is never sold
 

@@ -94,7 +94,7 @@ This Code of Conduct applies to:
 If you experience or witness unacceptable behavior, please report it by:
 
 1. **Opening a private issue** on GitHub (if the feature is available).
-2. **Emailing the project maintainer** at: **<github@apirest.cl>**
+2. **Emailing the project maintainer** at: **<rgdevment@tisty.app>**
 
 All complaints will be reviewed and investigated promptly and fairly. We are
 committed to respecting the privacy and security of the reporter.
@@ -113,7 +113,7 @@ committed to respecting the privacy and security of the reporter.
 ### Appeal Process
 
 If you believe you were unfairly moderated, you can appeal by emailing me at
-**<github@apirest.cl>** with:
+**<rgdevment@tisty.app>** with:
 
 - A brief explanation of why you believe the action was unfair
 - Any relevant context or evidence
@@ -204,7 +204,7 @@ If you have questions about this Code of Conduct:
 
 - [Open a Discussion](https://github.com/rgdevment/Tisty/discussions) — Ask
   publicly, I'm happy to clarify.
-- [Email me](mailto:github@apirest.cl) — If it's sensitive, reach out privately.
+- [Email me](mailto:rgdevment@tisty.app) — If it's sensitive, reach out privately.
 
 ### Thank you for helping make Tisty a welcoming and inclusive project
 

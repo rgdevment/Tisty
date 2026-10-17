@@ -364,7 +364,7 @@ it ever reached you.
 
 ## Contact
 
-<github@apirest.cl>
+<rgdevment@tisty.app>
 
 ---
 
