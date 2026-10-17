@@ -268,7 +268,7 @@ export default function Sheet(props: Readonly<Props>) {
   const keepCopy = (reference: string) =>
     intoFile({ defaultPath: named(reference) })
       .then((where) => (where ? copyAttached(reference, where) : undefined))
-      .catch((problem) => said.current.onFail?.(problem));
+      .catch((error_) => said.current.onFail?.(error_));
 
   const offered = (one: Extract<Went, { kind: "more" }>): Choice[] => {
     const file = one.target.startsWith(DOC) ? one.target.slice(DOC.length) : null;

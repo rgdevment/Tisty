@@ -1,10 +1,10 @@
 export type Reshape = "link" | "remove" | "file" | "live";
 
-const quoted = (said: string): string => said.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const quoted = (said: string): string => said.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 
 const found = (said: string, target: string): RegExpExecArray | null =>
   new RegExp(
-    `!\\[((?:\\\\.|[^\\]\\\\])*)\\]\\(<?${quoted(target)}>?(\\s+(?:"[^"]*"|'[^']*'|\\([^)]*\\)))?\\)`,
+    String.raw`!\[((?:\\.|[^\]\\])*)\]\(<?${quoted(target)}>?(\s+(?:"[^"]*"|'[^']*'|\([^)]*\)))?\)`,
   ).exec(said);
 
 const FILED = /^\s+["'(]file["')]$/;
@@ -24,7 +24,8 @@ export const reshaped = (
   if (!hit) return null;
   const [whole, label, title = ""] = hit;
   const at = from + hit.index;
-  const named = `](${target.includes(" ") ? `<${target}>` : target}`;
+  const aimed = target.includes(" ") ? `<${target}>` : target;
+  const named = `](${aimed}`;
   const kept = FILED.test(title) ? "" : title;
   const made = {
     link: `[${label}${named}${kept})`,

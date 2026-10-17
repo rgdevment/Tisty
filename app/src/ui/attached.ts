@@ -47,48 +47,50 @@ const fed = (
   const page = box.ownerDocument;
   const state = piece(page, "media-state");
   box.append(state);
-  const bring = (play: boolean) => {
+  const failed = (error_: unknown, play: boolean) => {
+    box.dataset.state = "failed";
+    const again = pressed(page, "media-again", t("tryAgain"), () => {
+      askAgain(at);
+      void bring(play);
+    });
+    state.replaceChildren(page.createTextNode(plainly(error_)), again);
+  };
+  const bring = async (play: boolean) => {
     box.dataset.state = "bringing";
     state.replaceChildren(t("mediaBringing"));
-    serve(at)
-      .then((real) => {
-        if (!live()) return;
-        delete box.dataset.state;
-        state.replaceChildren();
-        player.src = convertFileSrc(real);
-        if (play)
-          Promise.resolve()
-            .then(() => player.play())
-            .catch(() => undefined);
-      })
-      .catch((problem: unknown) => {
-        if (!live()) return;
-        box.dataset.state = "failed";
-        const again = pressed(page, "media-again", t("tryAgain"), () => {
-          askAgain(at);
-          bring(play);
-        });
-        state.replaceChildren(page.createTextNode(plainly(problem)), again);
-      });
+    let real: string;
+    try {
+      real = await serve(at);
+    } catch (error_) {
+      if (live()) failed(error_, play);
+      return;
+    }
+    if (!live()) return;
+    delete box.dataset.state;
+    state.replaceChildren();
+    player.src = convertFileSrc(real);
+    if (!play) return;
+    try {
+      await player.play();
+    } catch {
+      return;
+    }
   };
-  keptHere(at)
-    .catch(() => true)
-    .then((here) => {
-      if (!live()) return;
-      if (here) {
-        held.push(showing(at));
-        bring(false);
-        return;
-      }
-      box.dataset.state = "away";
-      const ask = pressed(page, "media-bring", `▶ ${t("mediaBring")}`, () => bring(true));
-      state.replaceChildren(ask);
-      weighs(at)
-        .then((bytes) => {
-          if (live()) ask.textContent = `▶ ${t("mediaBring")} · ${weighed(bytes)}`;
-        })
-        .catch(() => undefined);
-    });
+  const told = async () => {
+    const here = await keptHere(at).catch(() => true);
+    if (!live()) return;
+    if (here) {
+      held.push(showing(at));
+      await bring(false);
+      return;
+    }
+    box.dataset.state = "away";
+    const ask = pressed(page, "media-bring", `▶ ${t("mediaBring")}`, () => void bring(true));
+    state.replaceChildren(ask);
+    const bytes = await weighs(at).catch(() => null);
+    if (bytes !== null && live()) ask.textContent = `▶ ${t("mediaBring")} · ${weighed(bytes)}`;
+  };
+  void told();
 };
 
 const played = (
@@ -201,7 +203,7 @@ export const attachedAs = (
     return null;
   }
   const drawnLive = ending(at) === "html" || ending(at) === "htm";
-  if (drawnLive && img.getAttribute("data-as") !== "file" && alone(img)) {
+  if (drawnLive && (img as HTMLElement).dataset.as !== "file" && alone(img)) {
     if (stranger) {
       img.replaceWith(locked());
       return null;

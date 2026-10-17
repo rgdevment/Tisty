@@ -768,9 +768,9 @@ th:has(> .col-grip) {
 .widening .col-grip {
   background: linear-gradient(var(--tisty-accent), var(--tisty-accent)) center / 2px 100% no-repeat;
 }
-.widening,
-.widening * {
-  cursor: col-resize !important;
+html.widening,
+html.widening * {
+  cursor: col-resize;
   user-select: none;
 }
 hr {

@@ -99,21 +99,23 @@ export const widgetsIn = (block: Element | null): Element[] =>
     ? [block]
     : Array.from(block?.querySelectorAll("figure.widget") ?? []);
 
+const pressedIn = (asked: HTMLElement): Went => {
+  const at = spanned(asked.closest<HTMLElement>(".page > [data-at]")?.dataset.at ?? null);
+  if (!at) return null;
+  if (asked.dataset.asked === "more") {
+    const box = asked.getBoundingClientRect();
+    return { kind: "more", at, target: asked.dataset.target ?? "", x: box.left, y: box.bottom };
+  }
+  if (asked.dataset.asked !== "apart") return { kind: "block", at };
+  const nth = widgetsIn(asked.closest(".page > [data-at]")).indexOf(
+    asked.closest("figure.widget") as Element,
+  );
+  return nth > 0 ? { kind: "apart", at, nth } : { kind: "apart", at };
+};
+
 export const went = (target: Element, selecting: boolean): Went => {
   const asked = target.closest<HTMLElement>("button[data-asked]");
-  if (asked) {
-    const at = spanned(asked.closest<HTMLElement>(".page > [data-at]")?.dataset.at ?? null);
-    if (!at) return null;
-    if (asked.dataset.asked === "more") {
-      const box = asked.getBoundingClientRect();
-      return { kind: "more", at, target: asked.dataset.target ?? "", x: box.left, y: box.bottom };
-    }
-    if (asked.dataset.asked !== "apart") return { kind: "block", at };
-    const nth = widgetsIn(asked.closest(".page > [data-at]")).indexOf(
-      asked.closest("figure.widget") as Element,
-    );
-    return nth > 0 ? { kind: "apart", at, nth } : { kind: "apart", at };
-  }
+  if (asked) return pressedIn(asked);
   const link = target.closest("a");
   if (link) return linked(link);
   const card = target.closest<HTMLElement>(".doc-card[data-doc]")?.dataset.doc;

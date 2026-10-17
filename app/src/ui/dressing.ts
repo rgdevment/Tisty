@@ -63,10 +63,12 @@ export const iconed = (page: Document | HTMLElement) => {
   }
 };
 
+const STRANGER: Attaching = { stranger: true, apart: false, more: false };
+
 export const pictures = (
   page: Document,
   live: () => boolean,
-  attaching: Attaching = { stranger: true, apart: false, more: false },
+  attaching: Attaching = STRANGER,
 ): { held: (() => void)[]; lent: Lending[] } => {
   const held: (() => void)[] = [];
   const lent: Lending[] = [];
@@ -93,7 +95,7 @@ const fetched = (img: HTMLImageElement, at: string, live: () => boolean) => {
       img.hidden = false;
       img.setAttribute("src", convertFileSrc(real));
     })
-    .catch((problem: unknown) => {
+    .catch((error_: unknown) => {
       if (!live()) return;
       const page = img.ownerDocument;
       const note = page.createElement("span");
@@ -103,7 +105,7 @@ const fetched = (img: HTMLImageElement, at: string, live: () => boolean) => {
         note.remove();
         fetched(img, at, live);
       });
-      note.append(page.createTextNode(plainly(problem)), again);
+      note.append(page.createTextNode(plainly(error_)), again);
       img.hidden = true;
       img.after(note);
     });
