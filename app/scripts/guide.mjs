@@ -266,6 +266,25 @@ for (const language of LANGUAGES) {
     writeFileSync(join(into, `${page.slug}.html`), sheetOf(language, page, built));
   writeFileSync(join(into, "photo.svg"), readFileSync(join(app, "scripts", "guide-photo.svg")));
 }
+// Without its own page, Pages answers a wrong address with the start page and a 200.
+writeFileSync(
+  join(out, "404.html"),
+  `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Not here · Tisty Markdown</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="/guide.css">
+</head>
+<body>
+<header class="top"><a class="brand" href="/">Tisty Markdown</a><a class="out" href="https://www.tisty.app/">www.tisty.app ↗</a></header>
+<div class="wrap"><main class="page"><h1>Nothing here</h1><p>This page is not part of the guide. <a href="/">Start from the beginning</a> · <a href="/es/" lang="es">Empieza desde el inicio</a></p></main></div>
+</body>
+</html>
+`,
+);
 writeFileSync(
   join(out, "guide.css"),
   `${tokens}\n${sheet}\n${readFileSync(join(app, "scripts", "guide.css"), "utf8")}`,
