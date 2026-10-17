@@ -4,30 +4,11 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { JSDOM } from "jsdom";
 import { createServer } from "vite";
+import { escaped, LANGUAGES, mapped, missing, robots, sheetOf } from "./guide-site.mjs";
 
 const app = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const root = resolve(app, "..");
 const out = resolve(process.argv[2] ?? join(root, "target", "guide"));
-const LANGUAGES = [
-  {
-    code: "en",
-    file: "en.md",
-    dir: "",
-    start: "Start",
-    topics: "Guide",
-    near: "Next and previous",
-    home: "https://www.tisty.app/",
-  },
-  {
-    code: "es",
-    file: "es.md",
-    dir: "es/",
-    start: "Inicio",
-    topics: "Guía",
-    near: "Anterior y siguiente",
-    home: "https://www.tisty.app/es/",
-  },
-];
 
 // The window's own code dresses the page, so it is loaded the way the window loads it.
 const window = new JSDOM("").window;
@@ -54,8 +35,6 @@ const drawn = (texts) =>
       maxBuffer: 256 * 1024 * 1024,
     }).toString(),
   );
-
-const escaped = (said) => said.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 const opening = (line) => /^(`{3,}|~{3,})/.exec(line)?.[1];
 
@@ -156,6 +135,16 @@ const dressed = (html) => {
   return page;
 };
 
+// What a reader sees of a page, without its heading or the examples as written.
+const shown = (page) => {
+  const copy = page.querySelector("article").cloneNode(true);
+  for (const one of copy.querySelectorAll("h2, .written, figcaption")) one.remove();
+  const blocks = Array.from(copy.children).flatMap((one) =>
+    one.matches("figure.example") ? Array.from(one.querySelector(".drawn").children) : [one],
+  );
+  return blocks.map((one) => one.textContent).join(" ");
+};
+
 const build = (language) => {
   adopt(language.code);
   const text = readFileSync(
@@ -194,7 +183,13 @@ const build = (language) => {
       link.setAttribute("href", tops.has(id) ? `${slug}.html` : `${slug}.html#${id}`);
     }
     const title = part.heading ?? page.querySelector("h1")?.textContent ?? "Tisty Markdown";
-    const first = page.querySelector("article > p")?.textContent ?? "";
+    const first = (
+      page.querySelector("article > p")?.textContent ||
+      shown(page) ||
+      ""
+    )
+      .replace(/\s+/g, " ")
+      .trim();
     return {
       at: part.at,
       slug: part.slug,
@@ -206,87 +201,54 @@ const build = (language) => {
   });
 };
 
-const SITE = "https://markdown.tisty.app/";
+const reference = (language) =>
+  readFileSync(join(root, "crates", "tisty-markdown", "reference", language.file), "utf8");
 
-const address = (language, page) =>
-  `${SITE}${language.dir}${page.slug === "index" ? "" : page.slug}`;
-
-// Plain HTML with one local stylesheet and relative links, so the same folder serves the web and the app.
-const sheetOf = (language, page, built) => {
-  const other = LANGUAGES.find((one) => one !== language);
-  const pages = built.get(language.code);
-  const twin = built.get(other.code)[page.at] ?? built.get(other.code)[0];
-  const up = language.dir ? "../" : "";
-  const listed = pages
-    .map(
-      (one) =>
-        `<li><a href="${one.slug}.html"${one.slug === page.slug ? ' aria-current="page"' : ""}>${escaped(one.label)}</a></li>`,
-    )
-    .join("");
-  const before = pages[page.at - 1];
-  const after = pages[page.at + 1];
-  const near = [
-    before && `<a rel="prev" href="${before.slug}.html">← ${escaped(before.label)}</a>`,
-    after && `<a rel="next" href="${after.slug}.html">${escaped(after.label)} →</a>`,
-  ]
-    .filter(Boolean)
-    .join("");
-  const title = page.slug === "index" ? "Tisty Markdown" : `${page.title} · Tisty Markdown`;
-  return `<!doctype html>
-<html lang="${language.code}">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${escaped(title)}</title>
-<meta name="description" content="${escaped(page.said).replace(/"/g, "&quot;")}">
-<link rel="canonical" href="${address(language, page)}">
-<link rel="alternate" hreflang="${language.code}" href="${address(language, page)}">
-<link rel="alternate" hreflang="${other.code}" href="${address(other, twin)}">
-<link rel="stylesheet" href="${up}guide.css">
-</head>
-<body>
-<header class="top"><a class="brand" href="index.html">Tisty Markdown</a><a class="out" href="${language.home}">www.tisty.app ↗</a><a class="lang" lang="${other.code}" hreflang="${other.code}" href="${language.dir ? "../" : other.dir}${twin.slug}.html">${other.code.toUpperCase()}</a></header>
-<div class="wrap">
-<nav class="topics" aria-label="${language.topics}"><ol>${listed}</ol></nav>
-<main>${page.html}<nav class="near" aria-label="${language.near}">${near}</nav></main>
-</div>
-</body>
-</html>
-`;
+// What an assistant reads best is the language as written, so it gets the reference itself.
+const llms = (built) => {
+  const lines = [
+    "# Tisty Markdown",
+    "",
+    "> The language of Tisty documents: CommonMark and GitHub's additions, plus a few words of Tisty's own for what Markdown cannot say.",
+    "",
+  ];
+  for (const language of LANGUAGES) {
+    lines.push(`## ${language.name}`, "");
+    for (const page of built.get(language.code)) {
+      const at = `https://markdown.tisty.app/${language.dir}${page.slug === "index" ? "" : page.slug}`;
+      lines.push(`- [${page.title}](${at}): ${page.said}`);
+    }
+    lines.push(
+      "",
+      `- [The whole language in one file](https://markdown.tisty.app/${language.dir}llms-full.txt)`,
+      "",
+    );
+  }
+  return lines.join("\n");
 };
 
-const tokens = /:root\s*\{[^}]*\}/.exec(readFileSync(join(app, "src", "index.css"), "utf8"))[0];
+const index = readFileSync(join(app, "src", "index.css"), "utf8");
+const light = /:root\s*\{[^}]*\}/.exec(index)[0];
+const dark = /\[data-theme="dark"\]\s*\{([^}]*)\}/.exec(index)[1];
 
 rmSync(out, { recursive: true, force: true });
 const built = new Map(LANGUAGES.map((language) => [language.code, build(language)]));
+const logo = readFileSync(join(app, "src", "assets", "tisty.svg"));
 for (const language of LANGUAGES) {
   const into = join(out, language.dir);
   mkdirSync(into, { recursive: true });
   for (const page of built.get(language.code))
-    writeFileSync(join(into, `${page.slug}.html`), sheetOf(language, page, built));
+    writeFileSync(join(into, `${page.slug}.html`), sheetOf(built, language, page));
   writeFileSync(join(into, "photo.svg"), readFileSync(join(app, "scripts", "guide-photo.svg")));
+  writeFileSync(join(into, "favicon.svg"), logo);
+  writeFileSync(join(into, "llms-full.txt"), reference(language));
 }
-// Without its own page, Pages answers a wrong address with the start page and a 200.
-writeFileSync(
-  join(out, "404.html"),
-  `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Not here · Tisty Markdown</title>
-<meta name="robots" content="noindex">
-<link rel="stylesheet" href="/guide.css">
-</head>
-<body>
-<header class="top"><a class="brand" href="/">Tisty Markdown</a><a class="out" href="https://www.tisty.app/">www.tisty.app ↗</a></header>
-<div class="wrap"><main class="page"><h1>Nothing here</h1><p>This page is not part of the guide. <a href="/">Start from the beginning</a> · <a href="/es/" lang="es">Empieza desde el inicio</a></p></main></div>
-</body>
-</html>
-`,
-);
+writeFileSync(join(out, "404.html"), missing);
+writeFileSync(join(out, "sitemap.xml"), mapped(built));
+writeFileSync(join(out, "robots.txt"), robots);
+writeFileSync(join(out, "llms.txt"), llms(built));
 writeFileSync(
   join(out, "guide.css"),
-  `${tokens}\n${sheet}\n${readFileSync(join(app, "scripts", "guide.css"), "utf8")}`,
+  `${light}\nhtml.dark{${dark}}\n${sheet}\n${readFileSync(join(app, "scripts", "guide.css"), "utf8")}`,
 );
 console.log(`the guide is in ${out}`);

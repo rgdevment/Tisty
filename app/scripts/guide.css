@@ -1,6 +1,19 @@
+:root {
+  --guide-ground: #fbfbfd;
+  --guide-accent: var(--guide-accent);
+  --guide-current: var(--guide-current);
+  --guide-current-ink: var(--guide-current-ink);
+}
+html.dark {
+  color-scheme: dark;
+  --guide-ground: var(--tisty-desk);
+  --guide-accent: #6cc3d6;
+  --guide-current: #12343c;
+  --guide-current-ink: #bfe7f0;
+}
 html:not(.tall),
 html:not(.tall) body {
-  background: #fbfbfd;
+  background: var(--guide-ground);
   padding: 0;
 }
 html:not(.tall) .page {
@@ -18,8 +31,8 @@ html:not(.tall) .page {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 20px;
-  padding: 14px max(24px, calc((100% - 1160px) / 2 + 24px));
+  gap: 18px;
+  padding: 12px max(24px, calc((100% - 1160px) / 2 + 24px));
   border-bottom: 1px solid var(--tisty-line);
   background: var(--tisty-sheet);
 }
@@ -27,19 +40,67 @@ html:not(.tall) .page {
   text-decoration: none;
 }
 .top .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   font-size: 19px;
   font-weight: 700;
+  letter-spacing: -0.01em;
   color: var(--tisty-ink);
+}
+.top .brand img {
+  display: block;
 }
 .top .out {
   margin-left: auto;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--tisty-line);
   font-size: 14px;
-  color: #0f5f73;
+  font-weight: 600;
+  color: var(--guide-accent);
+}
+.top .out:hover {
+  background: var(--tisty-hover);
 }
 .top .lang {
   font-size: 14px;
   font-weight: 600;
   color: var(--tisty-soft);
+}
+.top .lang:hover {
+  color: var(--tisty-ink);
+}
+.top .theme {
+  display: none;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid var(--tisty-line);
+  border-radius: 999px;
+  background: none;
+  color: var(--tisty-soft);
+  cursor: pointer;
+}
+html.js .top .theme {
+  display: inline-grid;
+  place-items: center;
+}
+.top .theme svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.top .theme .sun,
+html.dark .top .theme .moon {
+  display: none;
+}
+html.dark .top .theme .sun {
+  display: block;
 }
 .wrap {
   display: flex;
@@ -73,8 +134,8 @@ html:not(.tall) .page {
   color: var(--tisty-ink);
 }
 .topics a[aria-current="page"] {
-  background: #e5f2f5;
-  color: #0a4252;
+  background: var(--guide-current);
+  color: var(--guide-current-ink);
   font-weight: 600;
 }
 main {
@@ -92,7 +153,7 @@ main {
   font-size: 15px;
 }
 .near a {
-  color: #0f5f73;
+  color: var(--guide-accent);
 }
 .near a[rel="next"] {
   margin-left: auto;
