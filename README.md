@@ -871,10 +871,13 @@ No. Tisty is for one person by design — no assignees, no permissions, no
 boards — and you deserve to know that before you install it rather than after.
 
 **Can I bring my notes over from another app?**
-Documents, yes: *Import a document* in the tree takes a `.md`, `.markdown` or
-`.txt` file and brings it in one at a time, and a `.tistyx` from another Tisty
-machine unpacks whole. Tasks have to be typed. There is no importer for another
-program's task list, and one that guessed would cost you more than the typing.
+Documents, yes: *Import a document* in the tree takes a `.md`, `.markdown`,
+`.txt`, `.html` or Word `.docx` file and brings it in one at a time as
+Markdown — Word to Markdown, HTML to Markdown, Obsidian to Markdown — and pasting
+from Word, Google Docs or a web page converts the same way. A `.tistyx` from
+another Tisty machine unpacks whole. Tasks have to be typed. There is no importer
+for another program's task list, and one that guessed would cost you more than
+the typing.
 
 **Are the downloads signed?**
 Yes. The macOS disk images are signed and notarised by Apple, and the Windows

@@ -887,8 +887,10 @@ tableros— y mereces saberlo antes de instalarlo y no después.
 
 **¿Puedo traer mis notas desde otra aplicación?**
 Los documentos sí: *Importar un documento* en el árbol toma un archivo `.md`,
-`.markdown` o `.txt` y lo trae, de uno en uno, y un `.tistyx` de otro equipo con
-Tisty se desempaqueta entero. Las tareas hay que escribirlas. No hay
+`.markdown`, `.txt`, `.html` o de Word (`.docx`) y lo trae como Markdown, de uno
+en uno —de Word a Markdown, de HTML a Markdown, de Obsidian a Markdown—, y pegar
+desde Word, Google Docs o una página web lo convierte igual. Un `.tistyx` de otro
+equipo con Tisty se desempaqueta entero. Las tareas hay que escribirlas. No hay
 importador para la lista de tareas de otro programa, y uno que adivinara te
 costaría más que teclearlas.
 

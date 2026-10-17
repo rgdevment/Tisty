@@ -151,14 +151,10 @@ pub(crate) fn arrived(
     folder: Option<tisty_core::model::FolderId>,
 ) -> Answer<(tisty_core::docs::Doc, ulid::Ulid, Left)> {
     let paths = held(session).paths.clone();
-    let raw = read_outside(from)?;
-    let webbed = from
-        .extension()
-        .is_some_and(|one| one.eq_ignore_ascii_case("html") || one.eq_ignore_ascii_case("htm"));
-    let raw = match webbed {
-        true => tisty_core::arriving::from_html(&raw),
-        false => raw,
-    };
+    let (raw, room) = read_any(from)?;
+    let near = room
+        .as_ref()
+        .map_or_else(|| from.to_path_buf(), |one| one.0.join("word.html"));
     let body = tisty_core::arriving::tidied(&raw).body;
     let own: Vec<std::path::PathBuf> = [paths.data(), paths.config(), paths.cache()]
         .iter()
@@ -175,7 +171,7 @@ pub(crate) fn arrived(
     };
     let (body, brought) = tisty_core::beside::brought(
         &paths,
-        from,
+        &near,
         &body,
         &mut tisty_core::beside::Way {
             reach: &mut reach,
@@ -183,6 +179,7 @@ pub(crate) fn arrived(
             notes: false,
         },
     );
+    drop(room);
     let mut session = held(session);
     let (doc, id) = imported(&mut session, &body, folder)?;
     if !brought.told.is_empty() {
@@ -195,6 +192,46 @@ pub(crate) fn arrived(
         notes: brought.papers.len(),
     };
     Ok((doc, id, left))
+}
+
+struct Room(std::path::PathBuf);
+
+impl Drop for Room {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+
+// A Word file's pictures live inside it, so they are laid beside a stand-in page and come in like any other.
+fn read_any(from: &std::path::Path) -> Answer<(String, Option<Room>)> {
+    let kind = from
+        .extension()
+        .map(|one| one.to_string_lossy().to_ascii_lowercase())
+        .unwrap_or_default();
+    match kind.as_str() {
+        "html" | "htm" => Ok((tisty_core::arriving::from_html(&read_outside(from)?), None)),
+        "docx" => {
+            let cannot = || Refusal::about("cannotRead", from.display().to_string());
+            let weighs = std::fs::metadata(from).map_err(|_| cannot())?.len();
+            let most = tisty_core::arriving::WORD_AT_MOST;
+            if weighs > most {
+                return Err(Refusal::about("documentTooBig", weighed(most)));
+            }
+            let bytes = std::fs::read(from).map_err(|_| cannot())?;
+            let word = tisty_core::arriving::from_word(&bytes).ok_or_else(cannot)?;
+            let room =
+                Room(std::env::temp_dir().join(format!("tisty-word-{}", ulid::Ulid::generate())));
+            let media = room.0.join("media");
+            if !word.pictures.is_empty() {
+                std::fs::create_dir_all(&media).map_err(|_| cannot())?;
+            }
+            for (name, bytes) in &word.pictures {
+                std::fs::write(media.join(name), bytes).map_err(|_| cannot())?;
+            }
+            Ok((tisty_core::arriving::from_html(&word.html), Some(room)))
+        }
+        _ => Ok((read_outside(from)?, None)),
+    }
 }
 
 // Past this, what was copied is a whole site rather than something a person means to paste.
