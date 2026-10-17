@@ -440,9 +440,6 @@ export const served = (reference: string): Promise<string> => invoke("served", {
 
 export const attached = (reference: string): Promise<number[]> => invoke("attached", { reference });
 
-export const attachExport = (reference: string, into: string): Promise<void> =>
-  invoke("attach_export", { reference, into });
-
 export const opened = (reference: string): Promise<void> => invoke("opened", { reference });
 
 export type Keeper = "cloud" | "away" | "plain";
@@ -868,8 +865,7 @@ export const whatWaits = (said: Settled): (typeof WAITS)[keyof typeof WAITS] | n
 
 export const syncNow = (way?: "push" | "pull" | "again"): Promise<Settled> =>
   invoke("sync_now", { way });
-export const convertPaper = (id: string, body: string): Promise<void> =>
-  invoke("convert_paper", { id, body });
+export const docsBrittle = (): Promise<string[]> => invoke("docs_brittle");
 export interface Rift {
   was: string[];
   mine: string[];

@@ -248,35 +248,6 @@ pub async fn served(
     finding::fetched(&session, reference, pointed_at).await
 }
 
-fn taken_out(reference: String, into: String, at: finding::Where) -> Answer<()> {
-    let from = finding::handed_over(&reference, &at)?;
-    std::fs::copy(&from, &into).map_err(|e| {
-        witness::warn(
-            channel::ATTACH,
-            "an attachment could not be taken out",
-            &[
-                ("at", Fact::Id(reference.clone())),
-                ("why", Fact::Why(e.to_string())),
-            ],
-        );
-        Refusal::about("cannotWrite", into)
-    })?;
-    tisty_core::lately::used(&at.reached, &reference);
-    Ok(())
-}
-
-#[tauri::command]
-pub async fn attach_export(
-    session: tauri::State<'_, Mutex<Session>>,
-    reference: String,
-    into: String,
-) -> Answer<()> {
-    finding::fetched(&session, reference, move |reference, at| {
-        taken_out(reference, into, at)
-    })
-    .await
-}
-
 #[tauri::command(async)]
 pub fn weighs(session: tauri::State<'_, Mutex<Session>>, reference: String) -> Answer<u64> {
     let looking = finding::where_to(&session, &reference);

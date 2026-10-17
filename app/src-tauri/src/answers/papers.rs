@@ -501,37 +501,17 @@ pub fn doc_drop(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer
     held(&session).drop_doc(&id)
 }
 
-#[tauri::command]
-pub fn convert_paper(
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-    body: String,
-) -> Answer<()> {
-    let mut session = held(&session);
-    if session.state.bolted(&id) {
-        return Err(Refusal::of(match session.state.away(&id) {
-            true => "documentAway",
-            false => "documentLocked",
-        }));
-    }
-    let papers = session.paths.docs();
-    let was = tisty_core::docs::read(&papers, &id)
-        .map_err(|_| Refusal::about("cannotRead", id.clone()))?;
-
-    tisty_core::docs::kept_before(session.paths.data(), &id, &was, &body)
-        .map_err(|e| blamed(channel::SYNC, "what it was could not be kept", e))?;
-    tisty_core::docs::write(&papers, &id, &body).map_err(|e| match e {
-        tisty_core::Error::AlreadyRunning => Refusal::of("documentBeingWritten"),
-        e => blamed(
-            channel::SYNC,
-            "the converted document could not be written",
-            e,
-        ),
-    })?;
-    session.mind(&id);
-    let hand = signing(&session.state);
-    session.retell(&id, &body, hand);
-    Ok(())
+// The documents a stricter save would refuse, found by the same rule every writer here follows.
+#[tauri::command(async)]
+pub fn docs_brittle(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<String>> {
+    let papers = held(&session).paths.docs();
+    Ok(tisty_core::docs::names(&papers)
+        .into_iter()
+        .filter(|file| {
+            tisty_core::docs::read(&papers, file)
+                .is_ok_and(|body| tisty_core::docs::survives(&body).is_err())
+        })
+        .collect())
 }
 
 #[tauri::command]
