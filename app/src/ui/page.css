@@ -556,7 +556,7 @@ a.card:hover,
   justify-content: flex-start;
   margin-top: 2px;
 }
-.doc-card.is-web .card-blurb:empty {
+.doc-card .card-blurb:empty {
   display: none;
 }
 .doc-card.is-web .card-tile {
@@ -566,8 +566,32 @@ a.card:hover,
 .doc-card.is-web .card-go {
   margin-left: auto;
 }
+.doc-card.is-web .card-tile.is-letter {
+  background: color-mix(in srgb, var(--hue) 16%, transparent);
+  color: var(--hue);
+  font-weight: 650;
+}
+.doc-card.is-web.is-bare {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "tile name meta";
+  align-items: center;
+  padding: 8px 12px;
+}
+.doc-card.is-web.is-bare .card-tile {
+  width: 28px;
+  height: 28px;
+}
+.doc-card.is-web.is-bare .card-meta {
+  margin-top: 0;
+}
+.doc-card.is-web.is-bare .kind {
+  display: none;
+}
+.doc-card.is-web.has-shot .card-blurb {
+  -webkit-line-clamp: 1;
+}
 .doc-card.is-web.has-shot {
-  grid-template-columns: minmax(0, 1fr) 112px;
+  grid-template-columns: minmax(0, 1fr) 152px;
   grid-template-areas:
     "name thumb"
     "blurb thumb"
@@ -583,9 +607,11 @@ a.card:hover,
 }
 .card-thumb {
   grid-area: thumb;
-  width: 112px;
-  height: 100%;
+  width: 152px;
+  height: auto;
   min-height: 72px;
+  align-self: stretch;
+  contain: size;
   object-fit: cover;
   border-left: 1px solid var(--tisty-hair);
 }
