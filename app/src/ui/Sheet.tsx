@@ -18,6 +18,7 @@ import { closed, laid, parting } from "./parting";
 import type { Formatting, Menued } from "./quickly";
 import { filedAs, type Reshape, reshaped } from "./recarding";
 import { ASIDE_MARGIN, settles } from "./seeking";
+import type { Sheet as SheetSize } from "./sheeting";
 import { type Asking, putBlock } from "./slashing";
 import { widened } from "./tabling";
 
@@ -45,6 +46,7 @@ type Props = {
   readonly onOrder?: (move: ((file: string, before: string | null) => Moved) | null) => void;
   readonly asking?: Asking;
   readonly kept?: boolean;
+  readonly sheet?: SheetSize;
 };
 
 export default function Sheet(props: Readonly<Props>) {
@@ -507,8 +509,12 @@ export default function Sheet(props: Readonly<Props>) {
       className={`scroller gutter flex min-h-0 flex-1 flex-col outline-none${above || below ? " leafed" : ""}${stuck ? " stuck" : ""}`}
     >
       {above}
-      <div className="tisty-sheet shrink-0 overflow-hidden rounded-[10px] bg-sheet">
+      <div
+        style={props.sheet && { maxWidth: props.sheet.wide }}
+        className="tisty-sheet mx-auto w-full shrink-0 overflow-hidden rounded-[10px] bg-sheet"
+      >
         <Page
+          sheet={props.sheet}
           body={drawn}
           label={label}
           stranger={false}

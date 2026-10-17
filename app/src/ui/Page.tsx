@@ -4,6 +4,7 @@ import type { Reaching } from "./dressing";
 import Frame from "./Frame";
 import type { Head } from "./paging";
 import { escaped, heads, shell } from "./paging";
+import type { Sheet } from "./sheeting";
 
 type Props = Reaching & {
   readonly label: string;
@@ -13,6 +14,7 @@ type Props = Reaching & {
   readonly zoom?: number;
   readonly onOutline?: (heads: Head[]) => void;
   readonly onShown?: (page: Window | null) => void;
+  readonly sheet?: Sheet;
   readonly again?: string;
   readonly draw?: (body: string) => Promise<string>;
 };
@@ -76,6 +78,7 @@ export default function Page(props: Readonly<Props>) {
           tall={tall}
           hidden={one.turn !== shown}
           wide={wide}
+          sheet={props.sheet}
           zoom={zoom}
           reach={() => ({
             ...reach.current,

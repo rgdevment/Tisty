@@ -264,7 +264,7 @@ rsync -a ~/Tisty/ /Volumes/Backup/Tisty/
 
 #### Salto de página
 
-Una raya sola parte la hoja. En pantalla se ve como un corte de verdad, y al imprimir o guardar en PDF lo que sigue empieza en la hoja siguiente. Es lo único de esta lista que no se nota leyendo, sino imprimiendo.
+Una raya sola corta la hoja: lo que sigue empieza en la siguiente, y `Ctrl`/`⌘` + `Enter` la escribe mientras escribes. Enciende **Hojas** en el panel del documento para leerlo en hojas de verdad (A4, Carta o Tabloide, en vertical u horizontal), donde una hoja que se llena pasa sola a la siguiente, en pantalla igual que en papel. Lo que eliges viaja con el archivo, en sus propiedades.
 
 De código hay más que decir, y cabe en su propia hoja:
 
@@ -354,7 +354,7 @@ Ahí mismo, en **El almacén**, está **Revisión**: cuenta lo que sobra, lo que
 | Atajo | Qué hace |
 | --- | --- |
 | `Ctrl` + `Shift` + `Space` | Capturar sin abrir la ventana |
-| `Ctrl`/`⌘` + `Enter` | Terminar la tarea señalada |
+| `Ctrl`/`⌘` + `Enter` | Terminar la tarea señalada; en un documento que estás escribiendo, un salto de página |
 | `F1` | Abrir la guía de Markdown de Tisty, en lo que estás escribiendo |
 | `/` | Insertar dentro de un documento |
 | `Ctrl`/`⌘` + `Shift` + `M` | Mostrar todas las marcas de Markdown del bloque |

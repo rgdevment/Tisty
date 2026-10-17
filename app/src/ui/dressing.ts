@@ -9,6 +9,7 @@ import { type Attaching, attachedAs, lents, pressed } from "./attached";
 import { type Carding, carded } from "./carding";
 import { charsAt, colored, HUES, saidKinds, type Went, went, widgetsIn } from "./paging";
 import { type Formatting, type Menued, quickly } from "./quickly";
+import { staged } from "./staging";
 import { webCarded } from "./webcarding";
 import { gripped, widening } from "./widening";
 import { type Lending, lend, locked } from "./widgeting";
@@ -166,6 +167,7 @@ export const worn = (
   if (reach?.onBlock) titled(page);
   page.documentElement.classList.toggle("ticking", !!reach?.onTick);
   iconed(page);
+  staged(page);
   if (reach?.onWiden && !stranger) gripped(page);
   const shown = pictures(page, live, {
     stranger,
