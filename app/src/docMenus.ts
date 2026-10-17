@@ -259,6 +259,20 @@ export const docChoices = (doc: Filed, h: Hands): Choice[] => [
     onPick: () => window.dispatchEvent(new CustomEvent("tisty:to-pdf")),
   },
   {
+    key: "asHtml",
+    icon: "⇩",
+    label: t("toHtml"),
+    off: h.showing !== doc.file,
+    onPick: () => window.dispatchEvent(new CustomEvent("tisty:to-html")),
+  },
+  {
+    key: "asWord",
+    icon: "⇩",
+    label: t("toWord"),
+    off: h.showing !== doc.file,
+    onPick: () => window.dispatchEvent(new CustomEvent("tisty:to-word")),
+  },
+  {
     key: "copy",
     icon: "⧉",
     label: t("duplicate"),

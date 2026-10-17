@@ -180,7 +180,7 @@ describe("reading in the viewer", () => {
       expect(asked("pdf").map((one) => one.args.signed)).toEqual(["Firmado", null]),
     );
     await userEvent.click(screen.getByRole("button", { name: t("toPdf") }));
-    await waitFor(() => expect(asked("keep_pdf")).toHaveLength(1));
+    await waitFor(() => expect(asked("keep_file")).toHaveLength(1));
     fireEvent.keyDown(window, { key: "Escape" });
 
     expect(screen.queryByTitle(t("seePdf"))).toBeNull();

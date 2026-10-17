@@ -1119,8 +1119,10 @@ export const docBackable = (id: string): Promise<boolean> => invoke("doc_backabl
 export const folderFile = (id: string, parent?: string, before?: string): Promise<void> =>
   invoke("folder_file", { id, parent, before });
 
-export const keepPdf = (at: string, bytes: number[]): Promise<void> =>
-  invoke("keep_pdf", { at, bytes });
+export const keepFile = (at: string, bytes: number[]): Promise<void> =>
+  invoke("keep_file", { at, bytes });
+export const docWord = (bodies: string[], at: string): Promise<void> =>
+  invoke("doc_word", { bodies, at });
 
 export const parted = (): Promise<void> => invoke("parted");
 export const sow = (priority?: Priority): Promise<void> => invoke("sow", { priority });

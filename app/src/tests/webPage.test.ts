@@ -1,0 +1,42 @@
+import { describe, expect, it, vi } from "vitest";
+
+const drawn = vi.hoisted(() => ({ asked: [] as string[], refused: false }));
+
+vi.mock("../core", async (original) => ({
+  ...(await original<typeof import("../core")>()),
+  docDrawn: (body: string) =>
+    Promise.resolve(
+      `<h1 data-at="0-6">${body}</h1><p data-at="7-40">ver <a class="card" data-doc="x.md">Otro</a> y <a href="tisty:doc/y.md">aquel</a></p><p><img src="foto-0006bf09.png" alt="foto"><img src="acta-0006bf10.pdf" alt="acta"></p>`,
+    ),
+  attached: (reference: string) => {
+    drawn.asked.push(reference);
+    return drawn.refused ? Promise.reject(new Error("gone")) : Promise.resolve([137, 80, 78, 71]);
+  },
+}));
+
+import { webPage } from "../ui/webPage";
+
+describe("a document as one web page that travels alone", () => {
+  it("carries its pictures inside and leaves the window's own links as words", async () => {
+    const made = await webPage(["Plan", "Anexo"], "Plan & más");
+
+    expect(made.startsWith("<!doctype html>")).toBe(true);
+    expect(made).toContain("<title>Plan &amp; más</title>");
+    expect(made).toContain('src="data:image/png;base64,iVBORw=="');
+    expect(made).toContain("Anexo");
+    expect(made).not.toContain("data-at");
+    expect(made).not.toContain("tisty:doc");
+    expect(made).not.toContain('class="card"');
+    expect(made).not.toContain("inert");
+    expect(made).toContain("acta");
+    expect(drawn.asked).toEqual(["foto-0006bf09.png", "foto-0006bf09.png"]);
+  });
+
+  it("names a picture it cannot read instead of pointing at nothing", async () => {
+    drawn.refused = true;
+    const made = await webPage(["Plan"], "Plan");
+
+    expect(made).not.toContain("foto-0006bf09.png");
+    expect(made).toContain("foto");
+  });
+});

@@ -157,14 +157,46 @@ fn seconds(at: std::io::Result<std::time::SystemTime>) -> Option<i64> {
 }
 
 #[tauri::command(async)]
-pub fn keep_pdf(at: String, bytes: Vec<u8>) -> Answer<()> {
+pub fn keep_file(at: String, bytes: Vec<u8>) -> Answer<()> {
     std::fs::write(&at, bytes).map_err(|e| {
         blamed(
             channel::WINDOW,
-            "a pdf could not be written",
+            "a file the window made could not be written",
             tisty_core::Error::Io(e),
         )
     })
+}
+
+// The pictures come from the store and its sync folder alike, read whole since Word carries them inside.
+#[tauri::command(async)]
+pub fn doc_word(
+    session: tauri::State<'_, Mutex<Session>>,
+    bodies: Vec<String>,
+    at: String,
+) -> Answer<()> {
+    let (data, beside) = {
+        let session = held(&session);
+        (session.paths.data().to_path_buf(), session.dest())
+    };
+    let mut picture = |src: &str| {
+        let found = tisty_core::attach::found(src, &data, beside.as_deref()).ok()?;
+        let file = std::fs::File::open(found).ok()?;
+        let mut bytes = Vec::new();
+        std::io::Read::read_to_end(
+            &mut std::io::Read::take(file, tisty_core::arriving::WORD_AT_MOST),
+            &mut bytes,
+        )
+        .ok()?;
+        Some(bytes)
+    };
+    let made = tisty_core::leaving_word::to_word(&bodies, &mut picture).map_err(|e| {
+        blamed(
+            channel::WINDOW,
+            "a Word file could not be made",
+            tisty_core::Error::Io(e),
+        )
+    })?;
+    keep_file(at, made)
 }
 
 #[derive(serde::Serialize)]

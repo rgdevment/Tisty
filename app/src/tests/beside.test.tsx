@@ -378,7 +378,7 @@ describe("what the column offers for the document", () => {
     expect((tick as HTMLInputElement).checked).toBe(false);
     await userEvent.click(screen.getByRole("button", { name: /^export pdf$/i }));
 
-    await waitFor(() => expect(store.sent).toContain("keep_pdf"));
+    await waitFor(() => expect(store.sent).toContain("keep_file"));
   });
 
   it("keeps the two trades apart, so no verb has to mean two things", async () => {
