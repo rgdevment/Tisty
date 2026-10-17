@@ -119,9 +119,8 @@ pub fn doc_import(
     if let Some(at) = folder {
         landing(&held(&session), at)?;
     }
-    let (body, files, missed) = arriving(&session, std::path::Path::new(&from))?;
-    let (doc, _) = imported(&mut held(&session), &body, folder)?;
-    Ok(Arrived { doc, files, missed })
+    let (doc, _, left) = arrived(&session, std::path::Path::new(&from), folder)?;
+    Ok(Arrived { doc, left })
 }
 
 fn landing(session: &Session, at: tisty_core::model::FolderId) -> Answer<()> {
@@ -131,31 +130,63 @@ fn landing(session: &Session, at: tisty_core::model::FolderId) -> Answer<()> {
     folder_open(&session.state, at, true)
 }
 
-// Reading and copying run without the session held, so a slow drive never stalls the rest of the window.
-pub(crate) fn arriving(
-    session: &tauri::State<'_, Mutex<Session>>,
-    from: &std::path::Path,
-) -> Answer<(String, usize, usize)> {
-    let paths = held(session).paths.clone();
-    let body = tisty_core::arriving::tidied(&read_outside(from)?).body;
-    let (body, brought) = tisty_core::beside::brought(&paths, from, &body, &mut |at| {
-        at.canonicalize()
-            .map_err(|_| "no file is there".to_string())
-    });
-    if !brought.told.is_empty() {
-        held(session)
-            .commit_all(brought.told)
-            .map_err(|e| blamed(channel::WINDOW, "a document's files could not be kept", e))?;
-    }
-    Ok((body, brought.kept, brought.missed.len()))
+#[derive(serde::Serialize, Clone, Copy, Default)]
+pub struct Left {
+    missed: usize,
+    notes: usize,
 }
 
 #[derive(serde::Serialize)]
 pub struct Arrived {
     #[serde(flatten)]
     doc: tisty_core::docs::Doc,
-    files: usize,
-    missed: usize,
+    #[serde(flatten)]
+    left: Left,
+}
+
+// Reading and copying run without the session held, so a slow drive never stalls the rest of the window.
+pub(crate) fn arrived(
+    session: &tauri::State<'_, Mutex<Session>>,
+    from: &std::path::Path,
+    folder: Option<tisty_core::model::FolderId>,
+) -> Answer<(tisty_core::docs::Doc, ulid::Ulid, Left)> {
+    let paths = held(session).paths.clone();
+    let body = tisty_core::arriving::tidied(&read_outside(from)?).body;
+    let own: Vec<std::path::PathBuf> = [paths.data(), paths.config(), paths.cache()]
+        .iter()
+        .filter_map(|one| one.canonicalize().ok())
+        .collect();
+    let mut reach = |at: &std::path::Path| {
+        let at = at
+            .canonicalize()
+            .map_err(|_| "no file is there".to_string())?;
+        match own.iter().any(|one| at.starts_with(one)) {
+            true => Err("it is one of Tisty's own files".to_string()),
+            false => Ok(at),
+        }
+    };
+    let (body, brought) = tisty_core::beside::brought(
+        &paths,
+        from,
+        &body,
+        &mut tisty_core::beside::Way {
+            reach: &mut reach,
+            outside: "",
+            notes: false,
+        },
+    );
+    let mut session = held(session);
+    let (doc, id) = imported(&mut session, &body, folder)?;
+    if !brought.told.is_empty() {
+        session
+            .commit_all(brought.told)
+            .map_err(|e| blamed(channel::WINDOW, "a document's files could not be kept", e))?;
+    }
+    let left = Left {
+        missed: brought.missed.len(),
+        notes: brought.papers.len(),
+    };
+    Ok((doc, id, left))
 }
 
 pub(crate) fn read_outside(from: &std::path::Path) -> Answer<String> {

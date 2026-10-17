@@ -169,11 +169,17 @@ fn split_target(inner: &str) -> (String, String) {
     }
 }
 
+pub struct Way<'a> {
+    pub reach: &'a mut dyn FnMut(&std::path::Path) -> Result<std::path::PathBuf, String>,
+    pub outside: &'a str,
+    pub notes: bool,
+}
+
 pub fn brought(
     paths: &Paths,
     from: &std::path::Path,
     body: &str,
-    reach: &mut dyn FnMut(&std::path::Path) -> Result<std::path::PathBuf, String>,
+    way: &mut Way,
 ) -> (String, Carried) {
     let mut done = Carried::default();
     let here = from
@@ -187,7 +193,7 @@ pub fn brought(
         if let Some(said) = kept.get(target) {
             return said.clone().map(|at| (at, title.to_string()));
         }
-        let landed = brought_in(paths, &here, target, &mut done, reach);
+        let landed = brought_in(paths, &here, target, &mut done, way);
         kept.insert(target.to_string(), landed.clone());
         landed.map(|at| (at, title.to_string()))
     });
@@ -199,7 +205,7 @@ fn brought_in(
     here: &std::path::Path,
     target: &str,
     done: &mut Carried,
-    reach: &mut dyn FnMut(&std::path::Path) -> Result<std::path::PathBuf, String>,
+    way: &mut Way,
 ) -> Option<String> {
     if target.starts_with('#')
         || target.starts_with("http://")
@@ -231,12 +237,17 @@ fn brought_in(
         return None;
     }
     let plain = unescaped(target);
+    let lowered = plain.to_lowercase();
+    if !way.notes && (lowered.ends_with(".md") || lowered.ends_with(".markdown")) {
+        done.papers.push(plain);
+        return None;
+    }
     let mut cannot = |why: String| {
         done.missed.push(format!("{target} — {why}"));
         None::<String>
     };
     if !stays_beside(&plain) {
-        return cannot(OUTSIDE.into());
+        return cannot(format!("{OUTSIDE}{}", way.outside));
     }
     let at = here.join(&plain);
     let there = at.exists();
@@ -244,12 +255,12 @@ fn brought_in(
     if !there {
         return cannot("no file is there".into());
     }
-    let at = match reach(&at) {
+    let at = match (way.reach)(&at) {
         Ok(at) => at,
         Err(why) => return cannot(why),
     };
     if !at.starts_with(here) {
-        return cannot(OUTSIDE.into());
+        return cannot(format!("{OUTSIDE}{}", way.outside));
     }
     if crate::agent::fit_to_keep(&at).is_err() {
         return cannot(
@@ -288,7 +299,7 @@ fn brought_in(
     }
 }
 
-pub const OUTSIDE: &str = "it sits outside the folder the document came from, and an import \
+const OUTSIDE: &str = "it sits outside the folder the document came from, and an import \
 takes only what is kept beside it. Put a copy in that folder and import again";
 fn stays_beside(plain: &str) -> bool {
     let mut depth = 0i32;
@@ -310,13 +321,19 @@ fn stays_beside(plain: &str) -> bool {
 
 // A link with a scheme of its own, like tel: or another app's, names nothing on disk; a drive letter and file: do.
 fn schemed(target: &str) -> bool {
-    let Some((scheme, _)) = target.split_once(':') else {
+    let Some((scheme, rest)) = target.split_once(':') else {
         return false;
     };
-    scheme.len() > 1
+    let named = scheme.len() > 1
         && !scheme.eq_ignore_ascii_case("file")
         && scheme.starts_with(|one: char| one.is_ascii_alphabetic())
         && scheme
             .chars()
-            .all(|one| one.is_ascii_alphanumeric() || matches!(one, '+' | '-' | '.'))
+            .all(|one| one.is_ascii_alphanumeric() || matches!(one, '+' | '-' | '.'));
+    named && (rest.starts_with("//") || OPAQUE.contains(&scheme.to_ascii_lowercase().as_str()))
 }
+
+// Schemes that never carry `//`, so a file named `a:b.png` beside a note is still read as a file.
+const OPAQUE: [&str; 8] = [
+    "tel", "sms", "geo", "magnet", "data", "urn", "callto", "xmpp",
+];

@@ -92,6 +92,7 @@ export function useWindow() {
     setReturning,
     setBacking,
     setError,
+    noted,
     lookForAStar: () => lookForAStar(),
     carries,
     paging,

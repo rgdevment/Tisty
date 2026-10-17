@@ -11,6 +11,7 @@ import {
   viewImport,
   viewShown,
 } from "./core";
+import { leftBehind } from "./leftBehind";
 import { adopt, fill, t } from "./locales";
 import { saidPlainly } from "./refusal";
 import Menu from "./ui/Menu";
@@ -132,9 +133,11 @@ export default function Viewing() {
     const place = shown?.kind === "file" ? shown.place : "";
     setBusy(true);
     viewImport(open)
-      .then(() => {
+      .then((made) => {
         look();
-        setBand(`${t(open ? "viewNowIn" : "viewSavedIn")} · ${fill("viewOriginal", place)}`);
+        const left = leftBehind(made);
+        const said = `${t(open ? "viewNowIn" : "viewSavedIn")} · ${fill("viewOriginal", place)}`;
+        setBand(left ? `${said} · ${left}` : said);
       })
       .catch(fail)
       .finally(() => setBusy(false));

@@ -429,7 +429,8 @@ export type Showing =
   | { kind: "widget"; lent: Lent; from: Viewed | null };
 export const viewShown = (): Promise<Showing> => invoke("view_shown");
 export const viewFacts = (): Promise<DocFacts> => invoke("view_facts");
-export const viewImport = (open: boolean): Promise<Viewed> => invoke("view_import", { open });
+export const viewImport = (open: boolean): Promise<Viewed & Left> =>
+  invoke("view_import", { open });
 export const viewGo = (file: string): Promise<void> => invoke("view_go", { file });
 export const viewWidget = (lent: Lent, from?: Viewed): Promise<void> =>
   invoke("view_widget", { lent, from: from ?? null });
@@ -1179,7 +1180,9 @@ export const docsUnpack = (from: string, number?: string): Promise<Unpacked> =>
   invoke("docs_unpack", { from, number });
 export const docsTakeOut = (which: string[], into: string): Promise<Packed> =>
   invoke("docs_take_out", { which, into });
-export type Arrived = Doc & { files: number; missed: number };
+export type Left = { missed: number; notes: number };
+
+export type Arrived = Doc & Left;
 
 export const docImport = (from: string, folder?: string): Promise<Arrived> =>
   invoke("doc_import", { from, folder });
