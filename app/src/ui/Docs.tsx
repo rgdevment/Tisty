@@ -10,6 +10,7 @@ import {
   docExport,
   docLock,
   docOrder,
+  docPage,
   docRead,
   docUnflag,
   docWrite,
@@ -643,6 +644,14 @@ export default function Docs({
             <Suspense fallback={<p className="text-[12.5px] text-faint">{t("opening")}</p>}>
               <Sheet
                 file={open.file}
+                onOwn={(file) => {
+                  const page = known.find((one) => one.file === file);
+                  if (page)
+                    docPage(page.id)
+                      .then(() => onKept({ id: page.id, title: page.title }))
+                      .catch((e) => onError(saidPlainly(e)));
+                }}
+                onFail={(e) => onError(saidPlainly(e))}
                 card={cards}
                 blurb={blurb}
                 again={again}

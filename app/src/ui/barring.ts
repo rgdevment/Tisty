@@ -5,6 +5,7 @@ import { t } from "../locales";
 import { wrapped } from "./formatting";
 import { marksShown, showMarks } from "./seeing";
 import { holding, pressed } from "./slashing";
+import { type Retable, retable, tableHere } from "./tabling";
 
 type Said = Parameters<typeof t>[0];
 
@@ -17,6 +18,18 @@ export const KINDS: readonly (readonly [Said, string])[] = [
   ["numbers", "1. "],
   ["checks", "- [ ] "],
   ["quote", "> "],
+];
+
+const RETABLES: readonly (readonly [Said, Retable])[] = [
+  ["tableRowAbove", "rowAbove"],
+  ["tableRowBelow", "rowBelow"],
+  ["tableColumnLeft", "columnLeft"],
+  ["tableColumnRight", "columnRight"],
+  ["tableAlignLeft", "alignLeft"],
+  ["tableAlignCenter", "alignCenter"],
+  ["tableAlignRight", "alignRight"],
+  ["tableRowRemove", "rowRemove"],
+  ["tableColumnRemove", "columnRemove"],
 ];
 
 const LEAD = /^(\s*)(#{1,6} |[-*+] \[[ xX]\] |[-*+] |\d+[.)] |> ?)?/;
@@ -169,7 +182,10 @@ export const barred = (view: EditorView): Barred => {
   bar.setAttribute("role", "toolbar");
   bar.setAttribute("aria-label", t("formatting"));
 
-  const kind = button("cm-bar-kind", t("blockKind"), () => menu.toggleAttribute("hidden"));
+  const kind = button("cm-bar-kind", t("blockKind"), () => {
+    const shown = tabled ? table : menu;
+    shown.toggleAttribute("hidden");
+  });
   const kindSaid = made("span", "", t("paragraph"));
   kind.append(kindSaid, made("span", "cm-bar-caret", "▾"));
   const menu = made("div", "cm-bar-menu");
@@ -188,8 +204,26 @@ export const barred = (view: EditorView): Barred => {
     one.setAttribute("role", "menuitem");
     menu.append(one);
   }
+  // Inside a table the kind of block is fixed; what it offers instead is the table's own shape.
+  const table = made("div", "cm-bar-menu");
+  table.setAttribute("role", "menu");
+  table.hidden = true;
+  let tabled = false;
+  for (const [said, how] of RETABLES) {
+    const one = button(
+      "cm-bar-item",
+      t(said),
+      () => {
+        table.hidden = true;
+        retable(view, how);
+      },
+      t(said),
+    );
+    one.setAttribute("role", "menuitem");
+    table.append(one);
+  }
   const kinds = made("span", "cm-bar-kinds");
-  kinds.append(kind, menu);
+  kinds.append(kind, menu, table);
 
   const formats = FORMATS.map(([said, keys, open, close, icon]) => {
     const one = button("cm-bar-button", `${t(said)} (${pressed(keys)})`, () =>
@@ -233,16 +267,20 @@ export const barred = (view: EditorView): Barred => {
   );
 
   const follow = (current: EditorView) => {
-    const line = current.state.doc.lineAt(current.state.selection.main.head);
-    kindSaid.textContent = t(kindOf(line.text));
+    const { head } = current.state.selection.main;
+    tabled = tableHere(current.state) !== null;
+    kindSaid.textContent = tabled ? t("table") : t(kindOf(current.state.doc.lineAt(head).text));
     menu.hidden = true;
+    table.hidden = true;
   };
   const kept = (yes: boolean) => {
     state.textContent = yes ? `● ${t("keptNow")}` : t("saving");
     state.classList.toggle("on", yes);
   };
   bar.addEventListener("mousedown", (event) => {
-    if (!kinds.contains(event.target as Node)) menu.hidden = true;
+    if (kinds.contains(event.target as Node)) return;
+    menu.hidden = true;
+    table.hidden = true;
   });
   follow(view);
   kept(true);

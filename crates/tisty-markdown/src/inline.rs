@@ -139,7 +139,7 @@ fn atomic(one: &Span, spans: &[Span], text: &str, kept: &HashSet<usize>, out: &m
         Mark::Code => {
             let _ = write!(out, "<code>{}</code>", escaped(&code_words(said)));
         }
-        Mark::Image { src } => pictured(src, &alt(one, spans, text), out),
+        Mark::Image { src } => pictured(src, &alt(one, spans, text), filed(said), out),
         Mark::Icon { name, hue } => {
             let hue = hue.as_deref().map(escaped).unwrap_or_default();
             let _ = write!(
@@ -243,7 +243,15 @@ pub(crate) fn alt(image: &Span, spans: &[Span], text: &str) -> String {
         .collect()
 }
 
-fn pictured(src: &str, alt: &str, out: &mut String) {
+// A title of "file" asks for the attachment as a file, where a page would otherwise be drawn live.
+fn filed(said: &str) -> bool {
+    let said = said.trim_end().trim_end_matches(')').trim_end();
+    ["\"file\"", "'file'", "(file"]
+        .iter()
+        .any(|one| said.ends_with(one))
+}
+
+fn pictured(src: &str, alt: &str, filed: bool, out: &mut String) {
     match src.strip_prefix(crate::refs::DOC) {
         Some(doc) => {
             let _ = write!(
@@ -256,9 +264,10 @@ fn pictured(src: &str, alt: &str, out: &mut String) {
         None => {
             let _ = write!(
                 out,
-                "<img src=\"{}\" alt=\"{}\" loading=\"lazy\">",
+                "<img src=\"{}\" alt=\"{}\" loading=\"lazy\"{}>",
                 escaped(&safe(src)),
-                escaped(alt)
+                escaped(alt),
+                if filed { " data-as=\"file\"" } else { "" }
             );
         }
     }

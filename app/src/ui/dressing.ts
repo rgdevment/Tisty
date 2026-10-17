@@ -1,12 +1,15 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { openLink } from "../core";
+import { type Lent, openLink } from "../core";
 import { markup } from "../glyphs";
-import { serve, showing } from "../inUse";
+import { askAgain, serve, showing } from "../inUse";
 import { t } from "../locales";
-import { named, pictured } from "../previews";
+import { pictured } from "../previews";
+import { plainly } from "../refusal";
+import { type Attaching, attachedAs, lents, pressed } from "./attached";
 import { type Carding, carded } from "./carding";
-import { charsAt, colored, HUES, saidKinds, type Went, went } from "./paging";
+import { charsAt, colored, HUES, saidKinds, type Went, went, widgetsIn } from "./paging";
 import { webCarded } from "./webcarding";
+import { gripped, widening } from "./widening";
 import { type Lending, lend, locked } from "./widgeting";
 
 export type Reaching = Carding & {
@@ -20,13 +23,13 @@ export type Reaching = Carding & {
     seed?: string,
     read?: string,
   ) => void;
-  readonly onApart?: (source: string) => void;
+  readonly onApart?: (lent: Lent) => void;
+  readonly onMore?: (asked: Extract<Went, { kind: "more" }>) => void;
   readonly onHere?: (id: string) => void;
   readonly onAway?: () => void;
   readonly onTick?: (at: [number, number]) => void;
+  readonly onWiden?: (at: [number, number], column: number, dashes: number) => void;
 };
-
-const sources = new WeakMap<Element, string>();
 
 const asking = (page: Document, asked: string, said: string): HTMLButtonElement => {
   const one = page.createElement("button");
@@ -60,26 +63,52 @@ export const iconed = (page: Document | HTMLElement) => {
   }
 };
 
-export const pictures = (page: Document, live: () => boolean): (() => void)[] => {
+const STRANGER: Attaching = { stranger: true, apart: false, more: false };
+
+export const pictures = (
+  page: Document,
+  live: () => boolean,
+  attaching: Attaching = STRANGER,
+): { held: (() => void)[]; lent: Lending[] } => {
   const held: (() => void)[] = [];
+  const lent: Lending[] = [];
   for (const img of page.querySelectorAll<HTMLImageElement>(".page img[src]")) {
     const at = img.getAttribute("src") ?? "";
     if (!at || /^(https?|data|asset|blob|file|tauri):/i.test(at)) continue;
     if (!pictured(at)) {
-      const card = page.createElement("a");
-      card.className = "card";
-      card.setAttribute("href", at);
-      card.textContent = img.getAttribute("alt") || named(at);
-      img.replaceWith(card);
+      const drawnLive = attachedAs(page, img, at, live, held, attaching);
+      if (drawnLive) lent.push(drawnLive);
       continue;
     }
     img.removeAttribute("src");
     held.push(showing(at));
-    serve(at)
-      .then((real) => live() && img.setAttribute("src", convertFileSrc(real)))
-      .catch(() => undefined);
+    fetched(img, at, live);
   }
-  return held;
+  return { held, lent };
+};
+
+// A picture that cannot be brought says why where it would be, instead of leaving a hole.
+const fetched = (img: HTMLImageElement, at: string, live: () => boolean) => {
+  serve(at)
+    .then((real) => {
+      if (!live()) return;
+      img.hidden = false;
+      img.setAttribute("src", convertFileSrc(real));
+    })
+    .catch((error_: unknown) => {
+      if (!live()) return;
+      const page = img.ownerDocument;
+      const note = page.createElement("span");
+      note.className = "picture-away";
+      const again = pressed(page, "media-again", t("tryAgain"), () => {
+        askAgain(at);
+        note.remove();
+        fetched(img, at, live);
+      });
+      note.append(page.createTextNode(plainly(error_)), again);
+      img.hidden = true;
+      img.after(note);
+    });
 };
 
 export const widgets = (page: Document, stranger: boolean, reach?: Reaching): Lending[] => {
@@ -97,7 +126,7 @@ export const widgets = (page: Document, stranger: boolean, reach?: Reaching): Le
     const drawn = page.createElement("figure");
     drawn.className = "widget";
     drawn.dataset.at = figure.dataset.at ?? "";
-    sources.set(drawn, source);
+    lents.set(drawn, { source });
     const bar = page.createElement("div");
     bar.className = "widget-bar";
     const name = page.createElement("span");
@@ -134,8 +163,14 @@ export const worn = (
   if (reach?.onBlock) titled(page);
   page.documentElement.classList.toggle("ticking", !!reach?.onTick);
   iconed(page);
-  const kept = pictures(page, live);
-  const lent = widgets(page, stranger, reach);
+  if (reach?.onWiden && !stranger) gripped(page);
+  const shown = pictures(page, live, {
+    stranger,
+    apart: Boolean(reach?.onApart),
+    more: Boolean(reach?.onMore) && !stranger,
+  });
+  const kept = shown.held;
+  const lent = widgets(page, stranger, reach).concat(shown.lent);
   if (reach && !stranger) {
     carded(page, reach, live);
     webCarded(page, live);
@@ -179,12 +214,16 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
     reach.onBlock([reach.body.length, reach.body.length], fresh);
     if (fresh.isConnected) fresh.remove();
   }
+  if (asked.kind === "more")
+    reach.onMore?.({
+      ...asked,
+      at: [charsAt(reach.body, asked.at[0]), charsAt(reach.body, asked.at[1])],
+    });
   if (asked.kind === "apart") {
-    const drawn = page.querySelector(
-      `.page > figure.widget[data-at="${asked.at[0]}-${asked.at[1]}"]`,
-    );
-    const source = drawn ? sources.get(drawn) : undefined;
-    if (source !== undefined) reach.onApart?.(source);
+    const block = page.querySelector(`.page > [data-at="${asked.at[0]}-${asked.at[1]}"]`);
+    const drawn = widgetsIn(block)[asked.nth ?? 0];
+    const lent = drawn ? lents.get(drawn) : undefined;
+    if (lent) reach.onApart?.(lent);
   }
 };
 
@@ -216,6 +255,13 @@ export const wired = (page: Document, reach: () => Reaching) => {
     const asked = went(target, selecting) ?? (below(page, target, event) ? { kind: "end" } : null);
     if (!asked && !target.closest(".editing")) reach().onAway?.();
     answered(page, asked, reach(), asked?.kind === "block" ? readTo(page, event) : "");
+  });
+  widening(page, () => {
+    const now = reach();
+    const widen = now.onWiden;
+    if (!widen) return undefined;
+    return (at, column, dashes) =>
+      widen([charsAt(now.body, at[0]), charsAt(now.body, at[1])], column, dashes);
   });
   for (const kind of ["auxclick", "submit", "dragstart", "contextmenu"]) {
     page.addEventListener(kind, refused);
