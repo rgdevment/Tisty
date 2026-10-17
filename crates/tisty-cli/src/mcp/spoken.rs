@@ -25,12 +25,15 @@ pub(super) fn spoken(
         return Ok(reply);
     }
     let note = format!(
-        " It came in another Markdown and was written in the Tisty language: {}. Writing it that way to begin with keeps every word as you meant it; `language` has the whole of it.",
-        changed.join(", ")
+        " It came in another Markdown and was written in the Tisty language: {}. Writing it that way to begin with keeps every word as you meant it; `language` has the whole of it, and {} shows it drawn ({}es/ in Spanish).",
+        changed.join(", "),
+        super::looking::GUIDE,
+        super::looking::GUIDE
     );
     if let Some(text) = reply["content"][0]["text"].as_str() {
         reply["content"][0]["text"] = Value::String(format!("{text}{note}"));
     }
     reply["structuredContent"]["turned"] = serde_json::json!(changed);
+    reply["structuredContent"]["guide"] = serde_json::json!(super::looking::GUIDE);
     Ok(reply)
 }

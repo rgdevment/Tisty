@@ -7,7 +7,6 @@ export type Topic = {
 
 const opening = (line: string): string | undefined => /^(`{3,}|~{3,})/.exec(line)?.[1];
 
-// A topic's address: its heading without accents, the way the guide's site names its pages.
 export const plain = (said: string): string =>
   said
     .normalize("NFD")
@@ -44,7 +43,6 @@ export const topicsOf = (text: string): Topic[] => {
 const escaped = (said: string): string =>
   said.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-// An example is any `markdown` fence, wherever it sits, shown as written beside what Tisty draws of it.
 export const examplesIn = (page: Document | Element): Element[] =>
   Array.from(page.querySelectorAll("figure.code > pre > code.language-markdown"));
 

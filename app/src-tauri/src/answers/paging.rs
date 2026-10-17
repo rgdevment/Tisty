@@ -20,6 +20,30 @@ pub fn note_drawn(body: String) -> String {
     tisty_markdown::html(&tisty_markdown::read(&tisty_markdown::to_tisty(&body)))
 }
 
+#[tauri::command]
+pub fn help_reference(spanish: bool) -> &'static str {
+    tisty_markdown::reference(spanish)
+}
+
+// The guide is drawn past the page cache, which holds the person's own documents and would lose them to it.
+#[tauri::command(async)]
+pub fn help_drawn(body: String) -> String {
+    tisty_markdown::html(&tisty_markdown::read(&body))
+}
+
+#[tauri::command(async)]
+pub fn help_anchors(bodies: Vec<String>) -> Vec<Vec<String>> {
+    bodies
+        .iter()
+        .map(|body| {
+            tisty_markdown::outline(&tisty_markdown::read(body))
+                .into_iter()
+                .map(|head| head.id)
+                .collect()
+        })
+        .collect()
+}
+
 #[tauri::command(async)]
 pub fn doc_plain(body: String) -> String {
     tisty_markdown::to_standard(&body, &|_| None)
