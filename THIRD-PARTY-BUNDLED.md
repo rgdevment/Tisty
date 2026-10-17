@@ -10,7 +10,7 @@ The crates are named with the licence each one declares; the licence texts they
 carry are in [THIRD-PARTY-LICENSES.md](https://github.com/rgdevment/Tisty/blob/main/THIRD-PARTY-LICENSES.md), each
 written once with the crates that carry it.
 
-## In the window (147 packages)
+## In the window (145 packages)
 
 | Package | Version | Licence |
 | --- | --- | --- |
@@ -46,7 +46,6 @@ written once with the crates that carry it.
 | `@tauri-apps/api` | 2.12.0 | Apache-2.0 OR MIT |
 | `@tauri-apps/plugin-clipboard-manager` | 2.4.0 | MIT OR Apache-2.0 |
 | `@tauri-apps/plugin-dialog` | 2.8.0 | MIT OR Apache-2.0 |
-| `@tauri-apps/plugin-global-shortcut` | 2.4.0 | MIT OR Apache-2.0 |
 | `@tauri-apps/plugin-opener` | 2.6.0 | MIT OR Apache-2.0 |
 | `@types/d3` | 7.4.3 | MIT |
 | `@types/d3-array` | 3.2.2 | MIT |
@@ -81,7 +80,6 @@ written once with the crates that carry it.
 | `@types/d3-zoom` | 3.0.8 | MIT |
 | `@types/geojson` | 7946.0.16 | MIT |
 | `@types/hast` | 3.0.5 | MIT |
-| `@types/katex` | 0.16.8 | MIT |
 | `@types/trusted-types` | 2.0.7 | MIT |
 | `@types/unist` | 3.0.3 | MIT |
 | `@upsetjs/venn.js` | 2.0.0 | MIT |
@@ -1712,31 +1710,6 @@ PackageDownloadLocation: git+ssh://github.com/tauri-apps/tauri.git
 Creator: Person: Daniel Thompson-Yvetot
 ```
 
-### `@tauri-apps/plugin-global-shortcut` — MIT OR Apache-2.0
-
-```text
-SPDXVersion: SPDX-2.1
-DataLicense: CC0-1.0
-PackageName: tauri
-DataFormat: SPDXRef-1
-PackageSupplier: Organization: The Tauri Programme in the Commons Conservancy
-PackageHomePage: https://tauri.app
-PackageLicenseDeclared: Apache-2.0
-PackageLicenseDeclared: MIT
-PackageCopyrightText: 2019-2022, The Tauri Programme in the Commons Conservancy
-PackageSummary: <text>Tauri is a rust project that enables developers to make secure
-and small desktop applications using a web frontend.
-                </text>
-PackageComment: <text>The package includes the following libraries; see
-Relationship information.
-                </text>
-Created: 2019-05-20T09:00:00Z
-PackageDownloadLocation: git://github.com/tauri-apps/tauri
-PackageDownloadLocation: git+https://github.com/tauri-apps/tauri.git
-PackageDownloadLocation: git+ssh://github.com/tauri-apps/tauri.git
-Creator: Person: Daniel Thompson-Yvetot
-```
-
 ### `@tauri-apps/plugin-opener` — MIT OR Apache-2.0
 
 ```text
@@ -2595,32 +2568,6 @@ MIT License
 ```
 
 ### `@types/hast` — MIT
-
-```text
-MIT License
-
-    Copyright (c) Microsoft Corporation.
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the "Software"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
-
-    The above copyright notice and this permission notice shall be included in all
-    copies or substantial portions of the Software.
-
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-    SOFTWARE
-```
-
-### `@types/katex` — MIT
 
 ```text
 MIT License

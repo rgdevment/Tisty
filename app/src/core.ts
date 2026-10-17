@@ -927,7 +927,6 @@ export interface Assistant {
 export const assistants = (): Promise<Assistant[]> => invoke("assistants");
 export const wireAgent = (id: string): Promise<Wired[]> => invoke("wire", { id });
 export const unwireAgent = (id: string): Promise<Wired[]> => invoke("unwire", { id });
-export const takeOutOfReach = (): Promise<Reach> => invoke("take_out_of_reach");
 
 export interface Waking {
   offered: boolean;

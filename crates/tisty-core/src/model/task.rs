@@ -289,10 +289,6 @@ impl Task {
         }
     }
 
-    pub fn created_at(&self) -> Timestamp {
-        Timestamp::from_millisecond(self.id.timestamp_ms() as i64).unwrap_or(Timestamp::UNIX_EPOCH)
-    }
-
     pub fn is_open(&self) -> bool {
         self.status == Status::Open
     }

@@ -109,12 +109,6 @@ fn round_trips() {
 }
 
 #[test]
-fn created_at_comes_from_the_id() {
-    let t = task();
-    assert_eq!(t.created_at().as_millisecond(), t.id.timestamp_ms() as i64);
-}
-
-#[test]
 fn weight_separates_the_trivial_from_the_documented() {
     let mut trivial = task();
     trivial.retally();

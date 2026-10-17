@@ -361,12 +361,6 @@ fn reachable() -> command::Reach {
     command::reach()
 }
 
-#[tauri::command]
-fn take_out_of_reach() -> Answer<command::Reach> {
-    command::out_of_reach().map_err(|e| Refusal::about("cannotWrite", e.to_string()))?;
-    Ok(command::reach())
-}
-
 /// A folder that already holds a store is the meeting place itself; anywhere else we hang ours
 /// inside, so pointing at Documents does not scatter the store through it.
 fn room(at: &std::path::Path) -> std::path::PathBuf {
@@ -1030,7 +1024,6 @@ pub fn run() {
             answers::settings::shortcut,
             answers::storing::settle_in,
             reachable,
-            take_out_of_reach,
             answers::clouding::cloud_connect,
             answers::clouding::cloud_connect_cancel,
             answers::clouding::cloud_choose,
