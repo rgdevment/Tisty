@@ -26,6 +26,9 @@ pub fn from_html(html: &str) -> String {
         .add_handler(vec!["details"], folded)
         .add_handler(vec!["b"], bolded)
         .add_handler(vec!["img"], pictured)
+        .add_handler(vec!["hr"], |_: &dyn Handlers, _: Element| {
+            Some(HandlerResult::from("\n\n---\n\n"))
+        })
         .add_handler(vec!["summary"], |_: &dyn Handlers, _: Element| {
             Some(HandlerResult::from(""))
         })
