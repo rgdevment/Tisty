@@ -136,18 +136,6 @@ const dressed = (page) => {
   return page;
 };
 
-// Only the published guide sends readers on to the site; the copy inside the app is already there.
-const helped = (page, [said, label, at]) => {
-  const line = page.createElement("p");
-  const link = page.createElement("a");
-  link.href = at;
-  link.textContent = label;
-  line.append(`${said} `, link, ".");
-  const first = page.querySelector("article > h2");
-  if (first) first.before(line);
-  else page.querySelector("article")?.append(line);
-};
-
 // What a reader sees of a page, without its heading or the examples as written.
 const shown = (page) => {
   const copy = page.querySelector("article").cloneNode(true);
@@ -172,7 +160,6 @@ const build = (language) => {
   const looks = drawn(examples.map((code) => code.textContent));
   examples.forEach((code, at) => shownBeside(code, looks[at], language));
   const pages = parts.map((part, at) => ({ part, page: dressed(sheets[at]) }));
-  helped(pages[0].page, language.help);
 
   const slugs = new Map();
   const tops = new Set();
