@@ -4,8 +4,6 @@ A Tisty document is a plain `.md` file. What it holds is Markdown: CommonMark wi
 
 Nothing on this page needs learning by heart. The `/` menu and the bar in the editor write all of it for you; this is what you find if you open the file somewhere else, or want to write it by hand.
 
-For help with tasks, assistants through MCP or the rest of Tisty, see [www.tisty.app/docs](https://www.tisty.app/docs/).
-
 ## At a glance
 
 | What | Written | GitHub | CommonMark |

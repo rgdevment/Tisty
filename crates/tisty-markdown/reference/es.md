@@ -4,8 +4,6 @@ Un documento de Tisty es un archivo `.md` normal. Lo que lleva es Markdown: Comm
 
 Nada de esto hay que aprenderlo de memoria. El menú `/` y la barra del editor lo escriben todo por ti; esto es lo que encuentras si abres el archivo en otra parte, o si quieres escribirlo a mano.
 
-Si buscas ayuda sobre las tareas, los asistentes por MCP o el resto de Tisty, está en [www.tisty.app/es/ayuda](https://www.tisty.app/es/ayuda/).
-
 ## De un vistazo
 
 | Qué | Se escribe | GitHub | CommonMark |
