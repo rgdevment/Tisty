@@ -489,3 +489,46 @@ fn what_the_plain_text_review_found_comes_in_right() {
         Some("| a | b |\n| --- | --- |\n| 1 | 2 |")
     );
 }
+
+#[test]
+fn a_letter_a_diagram_and_a_bare_table_come_in_as_what_they_are() {
+    let from = tisty_core::arriving::from_plain;
+    assert_eq!(from("Hi team,\nlet me know what you think,\nthanks."), None);
+    assert_eq!(
+        from("┌─────┐   ┌─────┐\n│ API │──▶│ DB  │\n└─────┘   └─────┘"),
+        None,
+        "boxes drawn side by side are a drawing, not a table"
+    );
+    assert_eq!(
+        from("┌───┬───┐\n│ a │ b │\n│ c │ d │\n└───┴───┘").as_deref(),
+        Some("| a | b |\n| --- | --- |\n| c | d |")
+    );
+}
+
+#[test]
+fn a_copy_from_google_docs_keeps_its_bold_and_its_links_plain() {
+    let docs = r#"<meta charset="utf-8"><b style="font-weight:normal;" id="docs-internal-guid-1"><p dir="ltr"><span style="font-weight:700">Importante</span><span style="font-weight:400"> y </span><a href="https://x.y"><span style="color:#1155cc;text-decoration:underline">aquí</span></a></p></b>"#;
+
+    let said = tisty_core::arriving::from_html(docs);
+
+    assert!(
+        said.contains("**Importante** y [aquí](https://x.y)"),
+        "{said}"
+    );
+    assert!(
+        !said.starts_with("**Importante** y [aquí](https://x.y)**"),
+        "{said}"
+    );
+    assert!(!said.contains("=={blue}"), "{said}");
+}
+
+#[test]
+fn a_picture_inside_the_page_and_a_clear_colour_leave_nothing_behind() {
+    let said = tisty_core::arriving::from_html(
+        r#"<p>Foto <img src="data:image/png;base64,AAAA" alt="logo"> y <span style="background-color: rgba(255, 255, 0, 0)">nada</span> y <span style="color: rgb(100%, 0%, 0%)">rojo</span></p>"#,
+    );
+    assert!(!said.contains("data:"), "{said}");
+    assert!(said.contains("logo"), "{said}");
+    assert!(!said.contains("==nada"), "{said}");
+    assert!(said.contains("==rojo=={red}"), "{said}");
+}

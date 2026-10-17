@@ -6,7 +6,7 @@ const WALLS: [char; 3] = ['│', '║', '┃'];
 pub fn from_plain(text: &str) -> Option<String> {
     let text = text.replace("\r\n", "\n");
     // `tree` draws with the same corners but never opens on a top one, which every table does.
-    if text.lines().any(|one| one.trim_start().starts_with(TOPS)) {
+    if text.lines().any(|one| ruler(one.trim())) {
         return boxed(&text);
     }
     coded(&text).then(|| fenced(text.trim_matches('\n')))
@@ -19,8 +19,7 @@ fn boxed(text: &str) -> Option<String> {
     for line in text.lines() {
         let flat = line.trim();
         let open = !held.is_empty();
-        if flat.starts_with(TOPS) || (open && (flat.starts_with(SEAMS) || flat.starts_with(WALLS)))
-        {
+        if ruler(flat) || (open && (flat.starts_with(SEAMS) || flat.starts_with(WALLS))) {
             held.push(flat);
             continue;
         }
@@ -59,7 +58,7 @@ fn table(lines: &[&str]) -> Vec<String> {
             continue;
         }
         let cells = cells(line);
-        if seams < 2 && ruled > 0 {
+        if seams == 0 || (seams < 2 && ruled > 0) {
             rows.push(cells);
             continue;
         }
@@ -81,6 +80,15 @@ fn table(lines: &[&str]) -> Vec<String> {
         }
     }
     out
+}
+
+// A table opens on one unbroken rule; boxes drawn side by side for a diagram leave gaps between them.
+fn ruler(flat: &str) -> bool {
+    flat.starts_with(TOPS)
+        && flat.chars().all(|one| {
+            matches!(one, '─' | '━' | '═' | '┬' | '┳' | '╦' | '┐' | '┓' | '╗')
+                || TOPS.contains(&one)
+        })
 }
 
 fn cells(line: &str) -> Vec<String> {
@@ -137,10 +145,12 @@ fn coded(text: &str) -> bool {
     }) {
         return false;
     }
+    // «let me know» opens a sentence too; a keyword counts only beside the punctuation code is made of.
     let keyed = |flat: &str| {
         WORDS
             .iter()
             .any(|word| flat.starts_with(word) || flat.contains(&format!(" {word}")))
+            && flat.contains(['=', '(', '{', ';', ':', '<'])
     };
     let braced = |flat: &str| flat.ends_with('{') || flat == "}" || flat == "};";
     let strong = lines

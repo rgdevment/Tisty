@@ -23,6 +23,8 @@ pub fn from_html(html: &str) -> String {
         .add_handler(vec!["u", "ins"], underlined)
         .add_handler(vec!["span", "font"], painted)
         .add_handler(vec!["details"], folded)
+        .add_handler(vec!["b"], bolded)
+        .add_handler(vec!["img"], pictured)
         .add_handler(vec!["summary"], |_: &dyn Handlers, _: Element| {
             Some(HandlerResult::from(""))
         })
@@ -45,6 +47,10 @@ fn inner(handlers: &dyn Handlers, element: &Element) -> String {
 
 // Highlighted code paints its words with the same tags, and a mark inside code would change the code.
 fn coded(node: &Rc<Node>) -> bool {
+    within(node, &["pre", "code"])
+}
+
+fn within(node: &Rc<Node>, tags: &[&str]) -> bool {
     let mut at = node.clone();
     loop {
         let up = at.parent.take();
@@ -52,8 +58,7 @@ fn coded(node: &Rc<Node>) -> bool {
         let Some(up) = up.and_then(|one| one.upgrade()) else {
             return false;
         };
-        if matches!(&up.data, NodeData::Element { name, .. } if matches!(&*name.local, "pre" | "code"))
-        {
+        if matches!(&up.data, NodeData::Element { name, .. } if tags.contains(&&*name.local)) {
             return true;
         }
         at = up;
@@ -104,16 +109,60 @@ fn painted(handlers: &dyn Handlers, element: Element) -> Option<HandlerResult> {
     if coded(element.node) {
         return handlers.fallback(element);
     }
-    let lit =
-        styled(&element, &["background-color", "background"]).and_then(|one| nearest(one, true));
-    let inked = || {
-        styled(&element, &["color"])
-            .or_else(|| attr(&element, "color").and_then(|one| rgb(&one)))
-            .and_then(|one| nearest(one, false))
+    let style = attr(&element, "style")
+        .unwrap_or_default()
+        .to_ascii_lowercase()
+        .replace(' ', "");
+    let heavy = [
+        "font-weight:700",
+        "font-weight:bold",
+        "font-weight:600",
+        "font-weight:800",
+    ]
+    .iter()
+    .any(|one| style.contains(one));
+    let slanted = style.contains("font-style:italic");
+    // A link's own colour is how a page shows it is a link, not a colour anyone chose for its words.
+    let hue = match within(element.node, &["a"]) {
+        true => None,
+        false => styled(&element, &["background-color", "background"])
+            .and_then(|one| nearest(one, true))
+            .or_else(|| {
+                styled(&element, &["color"])
+                    .or_else(|| attr(&element, "color").and_then(|one| rgb(&one)))
+                    .and_then(|one| nearest(one, false))
+            }),
     };
-    match lit.or_else(inked) {
-        Some(hue) => Some(pen(&inner(handlers, &element), Some(&hue))),
-        None => handlers.fallback(element),
+    if !heavy && !slanted && hue.is_none() {
+        return handlers.fallback(element);
+    }
+    let mut out = inner(handlers, &element);
+    if slanted {
+        out = wrapped(&out, "*", "*").content;
+    }
+    if heavy {
+        out = wrapped(&out, "**", "**").content;
+    }
+    Some(match hue {
+        Some(hue) => pen(&out, Some(&hue)),
+        None => out.into(),
+    })
+}
+
+// Google Docs wraps a whole copy in a bold tag that says it is not bold.
+fn bolded(handlers: &dyn Handlers, element: Element) -> Option<HandlerResult> {
+    let style = attr(&element, "style").unwrap_or_default().replace(' ', "");
+    if style.contains("font-weight:normal") || style.contains("font-weight:400") {
+        return Some(inner(handlers, &element).into());
+    }
+    handlers.fallback(element)
+}
+
+// A picture written into the page itself would put megabytes of letters in the text.
+fn pictured(handlers: &dyn Handlers, element: Element) -> Option<HandlerResult> {
+    match attr(&element, "src").is_some_and(|one| one.trim_start().starts_with("data:")) {
+        true => Some(attr(&element, "alt").unwrap_or_default().into()),
+        false => handlers.fallback(element),
     }
 }
 
@@ -160,11 +209,23 @@ fn rgb(said: &str) -> Option<(u8, u8, u8)> {
         .or_else(|| said.strip_prefix("rgb("))
         .and_then(|rest| rest.strip_suffix(')'))
     {
-        let mut parts = inside
+        let parts: Vec<&str> = inside
             .split([',', ' ', '/'])
             .filter(|one| !one.is_empty())
-            .map(|one| one.parse::<f32>().ok().map(|n| n.clamp(0.0, 255.0) as u8));
-        return Some((parts.next()??, parts.next()??, parts.next()??));
+            .collect();
+        let channel = |one: &str| match one.strip_suffix('%') {
+            Some(share) => share.parse::<f32>().ok().map(|n| n * 2.55),
+            None => one.parse::<f32>().ok(),
+        };
+        let gone = parts
+            .get(3)
+            .and_then(|one| channel(one))
+            .is_some_and(|alpha| alpha == 0.0);
+        if gone || parts.len() < 3 {
+            return None;
+        }
+        let at = |n: usize| channel(parts[n]).map(|one| one.clamp(0.0, 255.0) as u8);
+        return Some((at(0)?, at(1)?, at(2)?));
     }
     NAMED
         .iter()

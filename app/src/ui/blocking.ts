@@ -29,39 +29,42 @@ export const worded = (html: string): boolean =>
   /<(h[1-6]|p|li|table|strong|b|em|i|a|img|blockquote|mark|u|s|del|details)\b/i.test(html) &&
   !/white-space:\s*pre\s*[;"']/i.test(html);
 
-const put = (view: EditorView, text: string) => {
-  if (!view.dom.isConnected || !text) return;
-  if (text.includes("\n")) putBlock(view, text);
-  else view.dispatch(view.state.replaceSelection(text));
+type Landing = { view: EditorView; lost?: () => void };
+
+// The translation comes back a moment later; the words go where the caret was when they were pasted.
+const landing = (view: EditorView, lost?: () => void): ((text: string, block: boolean) => void) => {
+  const doc = view.state.doc;
+  const { anchor, head } = view.state.selection.main;
+  return (text, block) => {
+    if (!view.dom.isConnected) return void lost?.();
+    if (!text) return;
+    if (view.state.doc === doc) view.dispatch({ selection: { anchor, head } });
+    if (block && text.includes("\n")) putBlock(view, text);
+    else view.dispatch(view.state.replaceSelection(text), { userEvent: "input.paste" });
+  };
 };
 
-const plainly = (view: EditorView, text: string) => {
-  if (!view.dom.isConnected || !text) return;
-  view.dispatch(view.state.replaceSelection(text), { userEvent: "input.paste" });
-};
-
-// Only a table opens on a top corner; `tree` draws with the side ones alone.
+// Only a table opens on a top corner, and a few lines with code's punctuation are worth a look; the core decides.
 export const shaped = (plain: string): boolean =>
-  /[┌╔┏]/.test(plain) ||
-  (plain.split("\n").length >= 3 &&
-    /[{}]|\b(fn|let|use|def|const|import|function|return)\b/.test(plain));
+  /^\s*[┌╔┏]/m.test(plain) || (plain.split("\n").length >= 3 && /[{};=(:]/.test(plain));
 
-const rich = (event: ClipboardEvent, view: EditorView): boolean => {
+const rich = (event: ClipboardEvent, { view, lost }: Landing): boolean => {
   if (coded(view.state, view.state.selection.main.head)) return false;
   const html = event.clipboardData?.getData("text/html") ?? "";
   const plain = event.clipboardData?.getData("text/plain") ?? "";
+  const put = landing(view, lost);
   if (worded(html)) {
     event.preventDefault();
     docFromHtml(html)
-      .then((text) => put(view, text || plain))
-      .catch(() => plainly(view, plain));
+      .then((text) => put(text || plain, Boolean(text)))
+      .catch(() => put(plain, false));
     return true;
   }
   if (!shaped(plain)) return false;
   event.preventDefault();
   docFromText(plain)
-    .then((text) => (text ? put(view, text) : plainly(view, plain)))
-    .catch(() => plainly(view, plain));
+    .then((text) => put(text ?? plain, Boolean(text)))
+    .catch(() => put(plain, false));
   return true;
 };
 
@@ -81,7 +84,7 @@ const pasting = (event: ClipboardEvent, view: EditorView, asking?: () => Asking 
       .catch(() => {});
     return true;
   }
-  return rich(event, view);
+  return rich(event, { view, lost: asking?.()?.lost });
 };
 
 export type Editing = {
