@@ -347,38 +347,108 @@ rsync -a ~/Tisty/ /Volumes/Backup/Tisty/
 
 ## Diagrams, formulas and widgets
 
-Three languages are drawn instead of shown as code.
+Three languages are drawn instead of shown as code: `mermaid` for diagrams, `math` for formulas and `widget` for a small page of its own.
+
+### Diagrams
+
+A `mermaid` (or `mmd`) block draws a diagram: flows, sequences, states, pies and timelines.
 
 ````markdown
 ```mermaid
-graph TD
-  R[Rina] --> V[Vaccines]
-```
-
-```math
-\sum_{i=1}^{n} i = \frac{n(n+1)}{2}
-```
-
-```widget title="Rina this month"
-<div class="stat"><small>Walks</small><b>42</b></div>
+flowchart LR
+  A{Raining?} -->|yes| B[Take an umbrella]
+  A -->|no| C[Go for a walk]
 ```
 ````
 
-- `mermaid` (or `mmd`) draws a diagram. One too large to lay out — past 32 KiB, or a thousand boxes and arrows — or one that does not parse, is shown as code.
-- `math` sets a formula. Past 8 KiB it is shown as code; a command it does not know is skipped.
-- `widget` draws a small, sealed-off page.
+````markdown
+```mermaid
+sequenceDiagram
+  Ana->>Luis: Did you pay the fee?
+  Luis-->>Ana: Yes, yesterday
+```
+````
 
-A formula inside a sentence goes between single dollars: `$E=mc^2$`.
+````markdown
+```mermaid
+pie title Spending this month
+  "Food" : 40
+  "Home" : 35
+  "Walks" : 25
+```
+````
+
+````markdown
+```mermaid
+gantt
+  title Moving house
+  dateFormat YYYY-MM-DD
+  Boxes :a1, 2026-11-01, 5d
+  Van   :a2, after a1, 1d
+```
+````
+
+- One too large to lay out — past 32 KiB, or a thousand boxes and arrows — or one that does not parse, is shown as code.
+
+### Formulas
+
+A formula inside a sentence goes between single dollars:
+
+```markdown
+Energy is $E=mc^2$ and a circle's area, $\pi r^2$.
+```
+
+A `math` block, or a formula between double dollars on a line of its own, stands apart:
+
+````markdown
+```math
+\sum_{i=1}^{n} i = \frac{n(n+1)}{2}
+```
+````
+
+```markdown
+$$
+\int_0^1 x\,dx = \tfrac{1}{2}
+$$
+```
+
+````markdown
+```math
+\begin{pmatrix} a & b \\ c & d \end{pmatrix} \qquad |x| = \begin{cases} x & x \ge 0 \\ -x & x < 0 \end{cases}
+```
+````
 
 - A digit right after the closing dollar makes it a price, not a formula: `$5 and $10` stays as written.
 - `\$` is a dollar sign.
-- A formula between double dollars, `$$…$$`, stands on a line of its own, like a `math` block:
+- Past 8 KiB a formula is shown as code; a command it does not know is skipped.
 
-  ```markdown
-  $$
-  \int_0^1 x\,dx = \tfrac{1}{2}
-  $$
-  ```
+### Widgets
+
+A `widget` block draws a small page sealed off from the network; its name goes in `title`. It comes with styles ready to use: `stat`, `card`, `grid`, `two`, `head`, `badge` (with `ok`, `warn` and `bad`), `list`, `box`, `up` and `down`, as well as tables and buttons.
+
+````markdown
+```widget title="Rina this month"
+<div class="grid">
+  <div class="stat"><small>Walks</small><b>42</b><em class="up">+6</em></div>
+  <div class="stat"><small>Kilometres</small><b>61</b><em class="down">−3</em></div>
+  <div class="stat"><small>Vaccines</small><b>up to date</b><span class="badge ok">done</span></div>
+</div>
+```
+````
+
+````markdown
+```widget title="Glasses of water"
+<div class="card">
+  <div class="head"><h3>Today</h3><span class="badge" id="n">0</span></div>
+  <div class="row">
+    <button class="primary" onclick="n.textContent = +n.textContent + 1">One more</button>
+    <button onclick="n.textContent = 0">Start over</button>
+  </div>
+</div>
+```
+````
+
+- It may carry a `<script>` of its own, which runs inside the widget and never in the document.
 
 GitHub draws every one of these fences but `widget`, and `$…$` and `$$…$$` too.
 

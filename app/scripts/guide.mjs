@@ -42,6 +42,7 @@ const vite = await createServer({
 const { iconed } = await vite.ssrLoadModule("/src/ui/dressing.ts");
 const { coloredAll, saidKinds } = await vite.ssrLoadModule("/src/ui/paging.ts");
 const { adopt, t } = await vite.ssrLoadModule("/src/locales.ts");
+const { named, pictured } = await vite.ssrLoadModule("/src/previews.ts");
 const sheet = (await vite.ssrLoadModule("/src/ui/page.css?raw")).default;
 await vite.close();
 
@@ -110,11 +111,47 @@ const plain = (said) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
 
+const kit = readFileSync(join(app, "src-tauri", "src", "widget.css"), "utf8");
+
+// The examples name files only a store holds, so a picture shows the guide's own and a file its card.
+const kept = (page) => {
+  for (const img of page.querySelectorAll("img[src]")) {
+    const at = img.getAttribute("src");
+    if (/^(https?|data):/i.test(at)) continue;
+    if (pictured(at)) {
+      img.setAttribute("src", "photo.svg");
+      continue;
+    }
+    const card = page.createElement("a");
+    card.className = "card";
+    card.textContent = img.getAttribute("alt") || named(at);
+    img.replaceWith(card);
+  }
+};
+
+// A widget runs in a frame of its own, dressed by the same kit the window gives it.
+const lent = (page) => {
+  for (const code of page.querySelectorAll("figure.code > pre > code.language-widget")) {
+    const figure = code.closest("figure");
+    const frame = page.createElement("iframe");
+    frame.className = "widget";
+    frame.setAttribute("sandbox", "allow-scripts");
+    frame.setAttribute("title", figure.querySelector("figcaption")?.textContent ?? "Widget");
+    frame.setAttribute(
+      "srcdoc",
+      `<!doctype html><html><head><meta charset="utf-8"><style>${kit}</style></head><body><main class="w">${code.textContent}</main></body></html>`,
+    );
+    figure.replaceWith(frame);
+  }
+};
+
 const dressed = (html) => {
   const page = new JSDOM(`<article class="page">${html}</article>`).window.document;
   saidKinds(page, (kind) => t(`said${kind}`));
   iconed(page);
   coloredAll(page);
+  kept(page);
+  lent(page);
   for (const one of page.querySelectorAll("[data-at]")) one.removeAttribute("data-at");
   return page;
 };
@@ -227,6 +264,7 @@ for (const language of LANGUAGES) {
   mkdirSync(into, { recursive: true });
   for (const page of built.get(language.code))
     writeFileSync(join(into, `${page.slug}.html`), sheetOf(language, page, built));
+  writeFileSync(join(into, "photo.svg"), readFileSync(join(app, "scripts", "guide-photo.svg")));
 }
 writeFileSync(
   join(out, "guide.css"),
