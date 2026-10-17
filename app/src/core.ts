@@ -1128,7 +1128,7 @@ export const folderFile = (id: string, parent?: string, before?: string): Promis
 
 export const keepFile = (at: string, bytes: number[]): Promise<void> =>
   invoke("keep_file", { at, bytes });
-export const pagePdf = (html: string, paper: Paper): Promise<number[]> =>
+export const pagePdf = (html: string, paper: string): Promise<number[]> =>
   invoke("page_pdf", { html, paper });
 export const docWord = (bodies: string[], at: string): Promise<void> =>
   invoke("doc_word", { bodies, at });

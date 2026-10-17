@@ -1799,3 +1799,12 @@ fn only_a_round_with_the_cloud_is_timed_and_its_time_ends_with_it() {
     let _rebuild = alone.claim().expect("the turn is free again");
     assert_eq!(alone.round_held_for(), 0);
 }
+
+#[test]
+fn a_sheet_laid_landscape_is_as_wide_as_it_was_tall() {
+    assert_eq!(crate::pdf::leaf("letter"), (8.5, 11.0));
+    assert_eq!(crate::pdf::leaf("letter-landscape"), (11.0, 8.5));
+    assert_eq!(crate::pdf::leaf("tabloid-landscape"), (17.0, 11.0));
+    let (wide, tall) = crate::pdf::leaf("a4-landscape");
+    assert!(wide > tall);
+}

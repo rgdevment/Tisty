@@ -6,6 +6,7 @@ import Glyph from "./Glyph";
 import PaperFacts from "./PaperFacts";
 import Properties from "./Properties";
 import type { Head } from "./paging";
+import { Knob } from "./Rows";
 import { LEAVES, leafWord } from "./sheets";
 import { often } from "./tagging";
 
@@ -37,6 +38,10 @@ interface Props {
   onPage?: (doc: Filed) => void;
   leaf: Paper;
   onLeaf: (leaf: Paper) => void;
+  sheets?: boolean;
+  landscape?: boolean;
+  onSheets?: (on: boolean) => void;
+  onLandscape?: (turned: boolean) => void;
   making: boolean;
   onPdf: () => void;
   onSee: () => void;
@@ -59,6 +64,10 @@ export default function Beside({
   onPage,
   leaf,
   onLeaf,
+  sheets = false,
+  landscape = false,
+  onSheets,
+  onLandscape,
   making,
   onPdf,
   onSee,
@@ -181,6 +190,27 @@ export default function Beside({
               </button>
             ))}
           </div>
+          {onSheets && (
+            <div className="flex items-center gap-2 text-[11.5px] text-faint">
+              <Knob on={sheets} label={t("sheetsShown")} onPress={() => onSheets(!sheets)} />
+              <span>{t("sheetsShown")}</span>
+              {sheets && onLandscape && (
+                <span className="ml-auto flex gap-2">
+                  {[false, true].map((turned) => (
+                    <button
+                      key={String(turned)}
+                      type="button"
+                      aria-pressed={landscape === turned}
+                      onClick={() => onLandscape(turned)}
+                      className={landscape === turned ? "text-ink" : "hover:text-soft"}
+                    >
+                      {t(turned ? "sheetsAcross" : "sheetsUpright")}
+                    </button>
+                  ))}
+                </span>
+              )}
+            </div>
+          )}
         </section>
 
         <section className="flex flex-col gap-2">

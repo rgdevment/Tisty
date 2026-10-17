@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { fitted, type Reaching, type Worn, wired, worn } from "./dressing";
 import { dressed } from "./paging";
+import { type Sheet, sheeting } from "./sheeting";
 
 type Props = {
   readonly html: string;
@@ -10,6 +11,7 @@ type Props = {
   readonly hidden: boolean;
   readonly wide?: number;
   readonly zoom?: number;
+  readonly sheet?: Sheet;
   readonly reach: () => Reaching;
   readonly onReady: (frame: HTMLIFrameElement) => void;
 };
@@ -34,12 +36,14 @@ export default function Frame(props: Readonly<Props>) {
   const frame = useRef<HTMLIFrameElement>(null);
   const said = useRef(props);
   said.current = props;
+  const laid = useRef(() => {});
 
   useEffect(() => {
     const held = frame.current;
     if (!held) return;
     let dressedUp: Worn = { lent: [], kept: [] };
     let stopGrowing = () => {};
+    let stopSheeting = () => {};
     let live = true;
     const alive = () => live;
     const retheme = () => {
@@ -55,6 +59,9 @@ export default function Frame(props: Readonly<Props>) {
       fitted(page, said.current.wide, said.current.zoom);
       dressedUp = worn(page, stranger, alive, said.current.reach());
       if (tall) stopGrowing = grows(held, page);
+      const sheets = sheeting(page, () => said.current.sheet);
+      stopSheeting = sheets.stop;
+      laid.current = sheets.lay;
       said.current.onReady(held);
     };
     const watching = new MutationObserver(retheme);
@@ -67,6 +74,8 @@ export default function Frame(props: Readonly<Props>) {
     return () => {
       live = false;
       stopGrowing();
+      stopSheeting();
+      laid.current = () => {};
       watching.disconnect();
       held.removeEventListener("load", loaded);
       for (const one of dressedUp.lent) one.drop();
@@ -78,6 +87,9 @@ export default function Frame(props: Readonly<Props>) {
     const page = frame.current?.contentDocument;
     if (page?.querySelector(".page")) fitted(page, wide, zoom);
   }, [wide, zoom]);
+
+  const { tall: sheetTall, x: sheetX, y: sheetY } = props.sheet ?? {};
+  useEffect(() => laid.current(), [sheetTall, sheetX, sheetY]);
 
   const place = hidden ? " pointer-events-none invisible absolute inset-x-0 top-0" : "";
   const size = tall ? " h-40" : " min-h-0 flex-1";

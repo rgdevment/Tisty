@@ -302,7 +302,7 @@ describe("where the document rests", () => {
     show();
     await userEvent.click(await screen.findByRole("button", { name: "About the document" }));
 
-    expect(sheetOf()?.style.maxWidth).toBe("820px");
+    expect(sheetOf()?.style.maxWidth).toBe("842px");
   });
 
   it("reserves room right at 1552, the exact width the column needs to fit beside the page", async () => {

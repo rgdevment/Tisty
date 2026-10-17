@@ -120,7 +120,9 @@ export const went = (target: Element, selecting: boolean): Went => {
   if (link) return linked(link);
   const card = target.closest<HTMLElement>(".doc-card[data-doc]")?.dataset.doc;
   if (card) return { kind: "doc", id: card };
-  if (target.closest<HTMLElement>(".ref")?.dataset.ref) return null;
+  const ref = target.closest<HTMLElement>(".ref");
+  if (ref?.dataset.stage) return { kind: "here", id: ref.dataset.stage };
+  if (ref?.dataset.ref) return null;
   const tag = target.closest<HTMLElement>(".tag")?.dataset.tag;
   if (tag) return { kind: "tag", name: tag };
   if (selecting || target.closest("summary, figure.widget, .media, .col-grip, .picture-away"))

@@ -1,10 +1,11 @@
 import { startCompletion } from "@codemirror/autocomplete";
 import type { EditorView, KeyBinding } from "@codemirror/view";
+import { frontLines } from "../front";
 import { markup } from "../glyphs";
 import { t } from "../locales";
-import { wrapped } from "./formatting";
+import { coded, wrapped } from "./formatting";
 import { marksShown, showMarks } from "./seeing";
-import { holding, pressed } from "./slashing";
+import { holding, pressed, putBlock } from "./slashing";
 import { type Retable, retable, tableHere } from "./tabling";
 
 type Said = Parameters<typeof t>[0];
@@ -83,7 +84,27 @@ const home = (view: EditorView, extend: boolean) => {
   return true;
 };
 
+const fronted = (text: string, head: number): boolean => {
+  const lines = frontLines(text);
+  return lines !== null && head <= lines.join("\n").length;
+};
+
 export const blockKeys: KeyBinding[] = [
+  {
+    key: "Mod-Enter",
+    run: (view) => {
+      // Code, tables and the properties keep a rule as their own text, so the break waits for words.
+      const { head } = view.state.selection.main;
+      if (
+        coded(view.state, head) ||
+        tableHere(view.state) ||
+        fronted(view.state.doc.toString(), head)
+      )
+        return false;
+      putBlock(view, "---\n");
+      return true;
+    },
+  },
   // Home lands on the words, past the mark the line is drawn with, as it does on a title.
   { key: "Home", run: (view) => home(view, false), shift: (view) => home(view, true) },
   {

@@ -18,7 +18,13 @@ export const signature = async (file: string): Promise<string | undefined> => {
 };
 
 // The PDF is the web page on paper, laid out by the window's own engine.
-export const pdfOf = async (bodies: string[], leaf: Paper, signed?: string): Promise<Blob> => {
-  const page = await webPage(bodies, "", { leaf, signed });
-  return new Blob([new Uint8Array(await pagePdf(page, leaf))], { type: "application/pdf" });
+export const pdfOf = async (
+  bodies: string[],
+  leaf: Paper,
+  signed?: string,
+  landscape = false,
+): Promise<Blob> => {
+  const page = await webPage(bodies, "", { leaf, landscape, signed });
+  const paper = landscape ? `${leaf}-landscape` : leaf;
+  return new Blob([new Uint8Array(await pagePdf(page, paper))], { type: "application/pdf" });
 };

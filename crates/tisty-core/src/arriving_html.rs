@@ -10,6 +10,7 @@ const SKIPPED: [&str; 11] = [
 ];
 
 pub fn from_html(html: &str) -> String {
+    let html = broken(html);
     HtmlToMarkdown::builder()
         .options(Options {
             bullet_list_marker: BulletListMarker::Dash,
@@ -25,12 +26,98 @@ pub fn from_html(html: &str) -> String {
         .add_handler(vec!["details"], folded)
         .add_handler(vec!["b"], bolded)
         .add_handler(vec!["img"], pictured)
+        .add_handler(vec!["hr"], |_: &dyn Handlers, _: Element| {
+            Some(HandlerResult::from("\n\n---\n\n"))
+        })
         .add_handler(vec!["summary"], |_: &dyn Handlers, _: Element| {
             Some(HandlerResult::from(""))
         })
         .build()
-        .convert(html)
+        .convert(&html)
         .unwrap_or_default()
+}
+
+const TURNS: [&str; 4] = [
+    "page-break-before:always",
+    "page-break-after:always",
+    "break-before:page",
+    "break-after:page",
+];
+
+fn named(rest: &str, name: &str) -> bool {
+    let bytes = rest.as_bytes();
+    bytes
+        .get(..name.len())
+        .is_some_and(|said| said.eq_ignore_ascii_case(name.as_bytes()))
+        && bytes
+            .get(name.len())
+            .is_some_and(|next| *next == b'>' || *next == b'/' || next.is_ascii_whitespace())
+}
+
+// The element ends at its own closing tag, past any of the same name opened inside it.
+fn closing(tag: &str, after: &str) -> Option<usize> {
+    let name: String = tag[1..]
+        .chars()
+        .take_while(char::is_ascii_alphanumeric)
+        .collect();
+    if name.is_empty() || tag.ends_with("/>") {
+        return None;
+    }
+    let mut inside = 0usize;
+    let mut at = 0;
+    while let Some(open) = after[at..].find('<') {
+        let start = at + open;
+        let end = start + after[start..].find('>')? + 1;
+        let rest = &after[start + 1..];
+        if let Some(shut) = rest.strip_prefix('/') {
+            if named(shut, &name) {
+                if inside == 0 {
+                    return Some(end);
+                }
+                inside -= 1;
+            }
+        } else if named(rest, &name) && !after[start..end].ends_with("/>") {
+            inside += 1;
+        }
+        at = end;
+    }
+    None
+}
+
+// Word and the web end a sheet with a style on an element; the language ends it with a rule.
+fn broken(html: &str) -> String {
+    let mut out = String::with_capacity(html.len());
+    let mut rest = html;
+    while let Some(open) = rest.find('<') {
+        let Some(shut) = rest[open..].find('>').map(|at| open + at + 1) else {
+            break;
+        };
+        let tag = &rest[open..shut];
+        let flat = tag
+            .to_ascii_lowercase()
+            .replace([' ', '\t', '\n', '\r'], "");
+        let turn = TURNS.iter().position(|one| flat.contains(one));
+        out.push_str(&rest[..open]);
+        match turn {
+            Some(at) if at % 2 == 0 => {
+                out.push_str("<hr>");
+                out.push_str(tag);
+                rest = &rest[shut..];
+            }
+            Some(_) => {
+                let ends = closing(tag, &rest[shut..]).map_or(shut, |at| shut + at);
+                out.push_str(&rest[open..ends]);
+                out.push_str("<hr>");
+                rest = &rest[ends..];
+            }
+            None => {
+                out.push_str(tag);
+                rest = &rest[shut..];
+            }
+        }
+    }
+    out.push_str(rest);
+    out
 }
 
 fn attr(element: &Element, name: &str) -> Option<String> {

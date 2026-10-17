@@ -11,6 +11,7 @@ import {
   viewImport,
   viewShown,
 } from "./core";
+import { landscapeIn } from "./front";
 import { leftBehind } from "./leftBehind";
 import { adopt, fill, t } from "./locales";
 import { saidPlainly } from "./refusal";
@@ -83,7 +84,6 @@ export default function Viewing() {
     } catch {
       void 0;
     }
-    pageFor(leaf);
   }, [leaf]);
 
   const reading = shown?.kind === "file" || shown?.kind === "doc";
@@ -102,6 +102,8 @@ export default function Viewing() {
     };
   }, [reading, shown]);
   const body = reading ? shown.body : "";
+  const turned = landscapeIn(body);
+  useEffect(() => pageFor(leaf, turned), [leaf, turned]);
   const paper = shown?.kind === "doc" ? shown.paper : null;
   const fail = (problem: unknown) => setNote(saidPlainly(problem));
   const named = shown?.kind === "file" ? shown.name.replace(/\.[^.]+$/, "") : (paper?.title ?? "");

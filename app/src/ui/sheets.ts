@@ -2,16 +2,55 @@ import type { Paper } from "../core";
 
 export const LEAVES: Paper[] = ["a4", "letter", "tabloid"];
 
-export const PAPER: Record<Paper, number> = { a4: 820, letter: 843, tabloid: 1090 };
+const MILLIMETRES: Record<Paper, [number, number]> = {
+  a4: [210, 297],
+  letter: [215.9, 279.4],
+  tabloid: [279.4, 431.8],
+};
+
+export const MARGIN_MM = { x: 20, y: 22 };
+
+// A sheet on screen measures what it measures on paper, at 96 pixels to the inch.
+const pixels = (mm: number) => Math.round((mm * 96) / 25.4);
+
+const each = (side: 0 | 1) =>
+  Object.fromEntries(LEAVES.map((one) => [one, pixels(MILLIMETRES[one][side])])) as Record<
+    Paper,
+    number
+  >;
+
+export const PAPER = each(0);
+
+export const SHEET_TALL = each(1);
+
+export const MARGIN = { x: pixels(MARGIN_MM.x), y: pixels(MARGIN_MM.y) };
+
+export const PRINTED = `margin:${MARGIN_MM.y}mm ${MARGIN_MM.x}mm`;
+
+export const acrossOf = (leaf: Paper, landscape: boolean) => (landscape ? SHEET_TALL : PAPER)[leaf];
+
+export const sheetFor = (leaf: Paper, landscape: boolean, said: string) => ({
+  wide: acrossOf(leaf, landscape),
+  tall: (landscape ? PAPER : SHEET_TALL)[leaf],
+  ...MARGIN,
+  said,
+});
 
 export const PAGE: Record<Paper, string> = { a4: "A4", letter: "Letter", tabloid: "11in 17in" };
 
-export const TALL: Record<Paper, number> = { a4: 297 / 210, letter: 279 / 216, tabloid: 432 / 279 };
+export const TALL = Object.fromEntries(
+  LEAVES.map((one) => [one, MILLIMETRES[one][1] / MILLIMETRES[one][0]]),
+) as Record<Paper, number>;
 
 export const leafWord = (one: Paper) =>
   one === "a4" ? "leafA4" : one === "letter" ? "leafLetter" : "leafTabloid";
 
-export const pageFor = (leaf: Paper) => {
+export const sizeOf = (leaf: Paper, landscape = false) => {
+  if (!landscape) return PAGE[leaf];
+  return leaf === "tabloid" ? "17in 11in" : `${PAGE[leaf]} landscape`;
+};
+
+export const pageFor = (leaf: Paper, landscape = false) => {
   const id = "tisty-page";
   let tag = document.getElementById(id) as HTMLStyleElement | null;
   if (!tag) {
@@ -19,5 +58,5 @@ export const pageFor = (leaf: Paper) => {
     tag.id = id;
     document.head.append(tag);
   }
-  tag.textContent = `@page { size: ${PAGE[leaf]}; margin: 22mm 20mm; }`;
+  tag.textContent = `@page { size: ${sizeOf(leaf, landscape)}; ${PRINTED}; }`;
 };

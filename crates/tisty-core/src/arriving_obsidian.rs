@@ -4,6 +4,7 @@ pub(super) const CALLOUTS: &str = "callouts written the Obsidian way";
 pub(super) const COMMENTS: &str = "comments written the Obsidian way";
 pub(super) const ALIASES: &str = "links to a note under another name";
 pub(super) const EMBEDS: &str = "files embedded the Obsidian way";
+pub(super) const BREAKS: &str = "page breaks written the LaTeX way";
 pub(super) const TITLED: &str = "notes named by title, now linked to the document that bears it";
 pub(super) const TWINS: &str =
     "notes named by a title more than one document bears, left as references";
@@ -23,6 +24,14 @@ pub(super) fn obsidian(body: &str, said: &mut Vec<&'static str>, titles: &Titles
         let bare = line.trim_end_matches('\n');
         if !aside && fenced(bare) {
             out.push_str(line);
+            continue;
+        }
+        if !aside && matches!(bare.trim_end(), r"\newpage" | r"\pagebreak" | r"\clearpage") {
+            note(BREAKS);
+            out.push_str("\n---\n");
+            if line.ends_with('\n') {
+                out.push('\n');
+            }
             continue;
         }
         let bare = match called(bare) {

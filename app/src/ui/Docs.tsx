@@ -23,6 +23,7 @@ import {
   viewDoc,
 } from "../core";
 import { stamped } from "../format";
+import { laidIn, withLandscape, withPaper, withSheets } from "../front";
 import { keptAll, PASTED_UP_TO } from "../kept";
 import { fill, t } from "../locales";
 import { filed, inTextOrder, type Moved, namesIn, pagesOf, under } from "../paging";
@@ -40,7 +41,7 @@ import type { Head } from "./paging";
 import { usePreviewing } from "./previewing";
 import { pdfOf, signature } from "./printing";
 import Ribbon, { Onward } from "./Ribbon";
-import { PAPER, pageFor } from "./sheets";
+import { acrossOf, PAPER, pageFor, sheetFor } from "./sheets";
 import type { Asking } from "./slashing";
 import { useLeaving } from "./useLeaving";
 import { clearOfChrome } from "./WindowChrome";
@@ -505,10 +506,22 @@ export default function Docs({
   const next = at < 0 ? undefined : inOrder[at + 1];
 
   const beside = Boolean(open) && (shown ?? wide);
-  const leaf = (open && sized[open.file]) || "a4";
-  const wall = { maxWidth: `${PAPER[leaf]}px` };
+  const laid = useMemo(() => laidIn(body), [body]);
+  const leaf =
+    (open && (bolted ? (sized[open.file] ?? laid.paper) : (laid.paper ?? sized[open.file]))) ||
+    "a4";
+  const sheets = Boolean(open) && laid.sheets;
+  const landscape = Boolean(open) && laid.landscape;
+  const across = acrossOf(leaf, landscape);
+  const wall = { maxWidth: `${across}px` };
+  const sheetOf = useMemo(
+    () => (sheets ? sheetFor(leaf, landscape, t("sheetsBreak")) : undefined),
+    [leaf, sheets, landscape],
+  );
+  // The sheet keeps its paper's width; the room around it is the scroller's gutter and bar.
+  const sheetRoom = { maxWidth: `${across + 48}px` };
 
-  useEffect(() => pageFor(leaf), [leaf]);
+  useEffect(() => pageFor(leaf, landscape), [leaf, landscape]);
 
   // What leaves is the book as it reads, not as the log last settled it.
   const book = async () => {
@@ -529,7 +542,7 @@ export default function Docs({
   const blobOf = async (signed?: string): Promise<Blob | null> => {
     const read = await book();
     if (!read) return null;
-    return pdfOf([body, ...read.written], leaf, signed);
+    return pdfOf([body, ...read.written], leaf, signed, landscape);
   };
 
   const preview = async () => {
@@ -613,11 +626,20 @@ export default function Docs({
     });
   }, [nowAt]);
 
+  const reshape = (made: (now: string) => string) => {
+    if (!open || bolted) return;
+    wrote(made(held.current?.id === open.file ? held.current.body : body));
+  };
+
   const resize = (paper: Paper) => {
     if (!open) return;
-    const now = { ...sized, [open.file]: paper };
+    const { [open.file]: _, ...others } = sized;
+    const now = bolted ? { ...others, [open.file]: paper } : others;
     setSized(now);
     window.localStorage.setItem("tisty.paper", JSON.stringify(now));
+    if (bolted) return;
+    const latest = held.current?.id === open.file ? held.current.body : body;
+    wrote(withPaper(latest, paper));
   };
   const spare = room - (wide ? RAIL_WIDE : RAIL) - GUTTER;
   const reserve = beside && spare - ASIDE >= SHEET ? ASIDE : 0;
@@ -640,9 +662,10 @@ export default function Docs({
         style={{ paddingRight: reserve }}
       >
         {open ? (
-          <div style={wall} className="relative mx-auto flex min-h-0 w-full flex-1 flex-col">
+          <div style={sheetRoom} className="relative mx-auto flex min-h-0 w-full flex-1 flex-col">
             <Suspense fallback={<p className="text-[12.5px] text-faint">{t("opening")}</p>}>
               <Sheet
+                sheet={sheetOf}
                 file={open.file}
                 onOwn={(file) => {
                   const page = known.find((one) => one.file === file);
@@ -978,6 +1001,16 @@ export default function Docs({
           onPage={(one) => onDoc?.(one.file)}
           leaf={leaf}
           onLeaf={resize}
+          sheets={sheets}
+          landscape={landscape}
+          onSheets={
+            bolted
+              ? undefined
+              : (on) => reshape((now) => withSheets(on ? now : withLandscape(now, false), on))
+          }
+          onLandscape={
+            bolted ? undefined : (turned) => reshape((now) => withLandscape(now, turned))
+          }
           making={making}
           onPdf={toPdf}
           onSee={preview}
