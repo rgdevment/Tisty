@@ -133,6 +133,11 @@ beforeEach(() => {
 });
 
 const pick = (page: Document, from: number, to: number) => {
+  // The page's frame has a Range of its own, which the test window's polyfill never reached.
+  const measured = page.defaultView?.Range.prototype as unknown as {
+    getBoundingClientRect?: () => unknown;
+  };
+  measured.getBoundingClientRect ??= () => ({ top: 0, left: 0, width: 0, height: 0 });
   const words = page.querySelector('p[data-at="11-17"]')?.firstChild as Node;
   const range = page.createRange();
   range.setStart(words, from);
