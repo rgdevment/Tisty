@@ -10,7 +10,46 @@ pub fn from_plain(text: &str) -> Option<String> {
     {
         return boxed(&text);
     }
-    coded(&text).then(|| format!("```\n{}\n```", text.trim_matches('\n')))
+    coded(&text).then(|| fenced(text.trim_matches('\n')))
+}
+
+// The fence outgrows any run of backticks inside, so code that quotes a fence never closes its own.
+fn fenced(code: &str) -> String {
+    let longest = code
+        .split(|one| one != '`')
+        .map(str::len)
+        .max()
+        .unwrap_or(0);
+    let wall = "`".repeat(longest.max(2) + 1);
+    format!("{wall}{}\n{code}\n{wall}", tongue(code))
+}
+
+// Only signs no prose carries name a language; anything less leaves the block plain.
+fn tongue(code: &str) -> &'static str {
+    let has = |one: &str| code.contains(one);
+    let starts = |one: &str| code.lines().any(|line| line.trim_start().starts_with(one));
+    let scripted = has("=>") || starts("const ") || starts("function ") || starts("export ");
+    if (starts("fn ") && (has("let ") || has("->") || has("::"))) || (starts("use ") && has("::")) {
+        "rust"
+    } else if starts("def ")
+        || ((starts("import ") || starts("from "))
+            && code.lines().any(|line| line.trim_end().ends_with(':')))
+    {
+        "python"
+    } else if scripted && (has(": string") || has(": number") || has("interface ")) {
+        "typescript"
+    } else if scripted {
+        "javascript"
+    } else if code.trim_start().starts_with(['{', '[']) && has("\":") {
+        "json"
+    } else if ["$ ", "git ", "npm ", "cargo ", "cd "]
+        .iter()
+        .any(|one| starts(one))
+    {
+        "sh"
+    } else {
+        ""
+    }
 }
 
 fn boxed(text: &str) -> Option<String> {

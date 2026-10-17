@@ -423,8 +423,26 @@ fn lines_that_read_like_code_come_in_fenced_and_prose_is_left_alone() {
     assert_eq!(
         tisty_core::arriving::from_plain(code).as_deref(),
         Some(
-            "```\nuse tisty_core::Paths;\n\nfn kept(body: &str) -> String {\n    retargeted(body)\n}\n```"
+            "```rust\nuse tisty_core::Paths;\n\nfn kept(body: &str) -> String {\n    retargeted(body)\n}\n```"
         )
+    );
+    let quoting = "fn a() {\n    let b = \"```x```\";\n}\n";
+    let out = tisty_core::arriving::from_plain(quoting).unwrap();
+    assert!(
+        out.starts_with("````rust\n") && out.ends_with("\n````"),
+        "{out}"
+    );
+    let script = "const a = (b) => {\n  return b + 1;\n};\n";
+    assert!(
+        tisty_core::arriving::from_plain(script)
+            .unwrap()
+            .starts_with("```javascript\n")
+    );
+    let plain = "x = {\n  a;\n  b;\n}\n";
+    assert!(
+        tisty_core::arriving::from_plain(plain)
+            .unwrap()
+            .starts_with("```\n")
     );
     for prose in [
         "Hola, ¿cómo estás?\nTodo bien por acá.\nNos vemos mañana.",
