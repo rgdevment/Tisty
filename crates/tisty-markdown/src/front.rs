@@ -5,15 +5,13 @@ pub const BLOCK_AT_MOST: usize = 4 * 1024;
 pub const KEYS_AT_MOST: usize = 32;
 pub const VALUE_AT_MOST: usize = 500;
 
-/// One property of the front matter: its key and what it holds, a list already split.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Field {
     pub key: String,
     pub values: Vec<String>,
 }
 
-/// The bytes of the front matter at the top of a document, both fences included, the way
-/// GitHub and Obsidian find it: `---` on the first line, words right under it, `---` or `...` to close.
+// The rule GitHub and Obsidian follow: `---` first, words right under it, `---` or `...` to close.
 pub fn span(text: &str) -> Option<Range<usize>> {
     let skip = text.len() - text.trim_start_matches('\u{feff}').len();
     let mut at = skip;
@@ -38,8 +36,12 @@ pub fn span(text: &str) -> Option<Range<usize>> {
     None
 }
 
-/// What the front matter says, read the plain way most notes write it: `key: value`, a list
-/// in brackets, or a list of `- item` lines under the key. Anything deeper is kept as its lines.
+pub fn opens(text: &str) -> bool {
+    let mut lines = text.trim_start_matches('\u{feff}').lines();
+    lines.next().map(str::trim_end) == Some("---")
+        && lines.next().is_some_and(|one| !one.trim().is_empty())
+}
+
 pub fn fields(text: &str) -> Vec<Field> {
     let Some(at) = span(text).filter(|at| at.len() <= BLOCK_AT_MOST) else {
         return Vec::new();
@@ -87,7 +89,6 @@ pub fn fields(text: &str) -> Vec<Field> {
     }
 }
 
-/// The title the front matter gives, when it gives one.
 pub fn title(text: &str) -> Option<String> {
     fields(text)
         .into_iter()
@@ -96,16 +97,19 @@ pub fn title(text: &str) -> Option<String> {
         .filter(|one| one.chars().any(char::is_alphanumeric))
 }
 
-/// The tags the front matter files the document under, written with or without their `#`.
+pub fn tagging(key: &str) -> bool {
+    key.eq_ignore_ascii_case("tags") || key.eq_ignore_ascii_case("tag")
+}
+
 pub fn tags(text: &str) -> Vec<String> {
     fields(text)
         .into_iter()
-        .filter(|one| one.key.eq_ignore_ascii_case("tags") || one.key.eq_ignore_ascii_case("tag"))
+        .filter(|one| tagging(&one.key))
         .flat_map(|one| words(&one.values))
         .collect()
 }
 
-/// Tags written in one value, `a, b` or `#a #b`, one per word and without their `#`.
+// One value may hold several tags, `a, b` or `#a #b`.
 pub fn words(values: &[String]) -> Vec<String> {
     values
         .iter()
@@ -113,6 +117,29 @@ pub fn words(values: &[String]) -> Vec<String> {
         .map(|word| word.trim_start_matches('#').to_string())
         .filter(|one| !one.is_empty())
         .collect()
+}
+
+// The `title:` line rewritten whole, so a list or a quote around the old value never lingers.
+pub fn titled_as(front: &str, name: &str) -> Option<String> {
+    title(front)?;
+    let quote = if name.contains('"') { '\'' } else { '"' };
+    let mut out = String::with_capacity(front.len() + name.len());
+    let mut done = false;
+    for line in front.split_inclusive('\n') {
+        let keyed = !done
+            && !line.starts_with([' ', '\t'])
+            && line
+                .split_once(':')
+                .is_some_and(|(key, _)| key.trim().eq_ignore_ascii_case("title"));
+        if !keyed {
+            out.push_str(line);
+            continue;
+        }
+        let ending = &line[line.trim_end().len()..];
+        out.push_str(&format!("title: {quote}{name}{quote}{ending}"));
+        done = true;
+    }
+    done.then_some(out)
 }
 
 fn listed(value: &str) -> Vec<String> {

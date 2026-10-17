@@ -124,9 +124,9 @@ export interface Head {
   go: () => void;
 }
 
-// The properties at the top are kept out of the page; their entry, level 0, opens them to edit.
+// Level 0 is no heading: it opens the properties, which the page keeps out of sight.
 export const heads = (page: Document): Head[] => {
-  const front = page.querySelector<HTMLElement>(".page > .front");
+  const front = page.querySelector<HTMLElement>(".page > .front:first-child");
   const opening: Head[] = front
     ? [{ key: "front", level: 0, text: "", go: () => front.click() }]
     : [];

@@ -9,6 +9,7 @@ import {
   WidgetType,
 } from "@codemirror/view";
 import type { SyntaxNode } from "@lezer/common";
+import { frontLines } from "../front";
 import { known, markup } from "../glyphs";
 import { t } from "../locales";
 import { anchored, coded, owning, TAG_EDGE, TAG_WORD } from "./formatting";
@@ -328,15 +329,11 @@ const listed = (state: EditorState, mark: SyntaxNode, shown: boolean, out: Range
 
 // The properties at the top are written as they are, not read as a rule and a title; returns where they end.
 const fronted = (state: EditorState, out: Range<Decoration>[]): number => {
-  const doc = state.doc;
-  if (doc.lines < 3 || doc.line(1).text.trimEnd() !== "---" || !doc.line(2).text.trim()) return 0;
-  for (let at = 3; at <= doc.lines; at++) {
-    if (!/^(---|\.\.\.)$/.test(doc.line(at).text.trimEnd())) continue;
-    for (let one = 1; one <= at; one++)
-      out.push(Decoration.line({ class: "cm-front" }).range(doc.line(one).from));
-    return doc.line(at).to + 1;
-  }
-  return 0;
+  const held = frontLines(state.doc.toString());
+  if (!held) return 0;
+  for (let one = 1; one <= held.length; one++)
+    out.push(Decoration.line({ class: "cm-front" }).range(state.doc.line(one).from));
+  return state.doc.line(held.length).to + 1;
 };
 
 // What the block shows while it is written: the page's own look, with Markdown's marks kept out of sight.

@@ -1033,8 +1033,15 @@ fn opening(at: &Path) -> String {
         return String::new();
     };
     let mut head = Vec::new();
-    let _ = file.take(TITLE_AT_MOST).read_to_end(&mut head);
-    titled(&String::from_utf8_lossy(&head))
+    let _ = (&file).take(TITLE_AT_MOST).read_to_end(&mut head);
+    let mut said = String::from_utf8_lossy(&head).into_owned();
+    // A front matter that does not close within the slice would hand its own lines over as the title.
+    if tisty_markdown::front::opens(&said) && tisty_markdown::front::span(&said).is_none() {
+        let mut rest = Vec::new();
+        let _ = (&file).take(BODY_AT_MOST).read_to_end(&mut rest);
+        said.push_str(&String::from_utf8_lossy(&rest));
+    }
+    titled(&said)
 }
 
 #[cfg(test)]

@@ -17,9 +17,14 @@ pub fn read_old(text: &str) -> Doc {
 
 fn reading(text: &str, passes: &[fn(&mut Vec<Span>, &str)]) -> Doc {
     // The core and the window both read past a byte-order mark; the tokenizer does not.
-    let skip = text.len() - text.trim_start_matches('\u{feff}').len();
+    let mut skip = text.len() - text.trim_start_matches('\u{feff}').len();
     let mut open: Vec<Block> = Vec::new();
     let mut blocks: Vec<Block> = Vec::new();
+    // The tokenizer would take any fenced run of lines for front matter; only the top one is.
+    if let Some(front) = crate::front::span(text) {
+        skip = front.end;
+        blocks.push(leaf(Kind::Front, front));
+    }
     for (event, at) in tokens(&text[skip..]) {
         let at = at.start + skip..at.end + skip;
         match event {
@@ -136,8 +141,7 @@ fn tokens(text: &str) -> impl Iterator<Item = (Event<'_>, Range<usize>)> {
         | Options::ENABLE_TASKLISTS
         | Options::ENABLE_STRIKETHROUGH
         | Options::ENABLE_GFM
-        | Options::ENABLE_FOOTNOTES
-        | Options::ENABLE_YAML_STYLE_METADATA_BLOCKS;
+        | Options::ENABLE_FOOTNOTES;
     if cfg!(feature = "math") {
         options |= Options::ENABLE_MATH;
     }
@@ -243,7 +247,6 @@ fn kind_of(tag: &Tag<'_>, source: &str) -> Option<Kind> {
             title: None,
         },
         Tag::HtmlBlock => Kind::Html,
-        Tag::MetadataBlock(_) => Kind::Front,
         Tag::List(start) => Kind::List { start: *start },
         Tag::Item => Kind::Item { done: None },
         Tag::Table(aligned) => Kind::Table {
@@ -277,7 +280,6 @@ fn ends_block(end: TagEnd) -> bool {
             | TagEnd::BlockQuote(_)
             | TagEnd::CodeBlock
             | TagEnd::HtmlBlock
-            | TagEnd::MetadataBlock(_)
             | TagEnd::List(_)
             | TagEnd::Item
             | TagEnd::Table

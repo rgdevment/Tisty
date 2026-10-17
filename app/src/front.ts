@@ -25,22 +25,27 @@ const listed = (value: string): string[] => {
   return [unquoted(value)];
 };
 
-const block = (body: string): string[] | null => {
+export const frontLines = (body: string): string[] | null => {
   const lines = body.replace(/^﻿/, "").split("\n");
   if (lines[0]?.trimEnd() !== "---" || !lines[1]?.trim()) return null;
   const shut = lines.findIndex((line, at) => at > 1 && /^(---|\.\.\.)$/.test(line.trimEnd()));
   return shut < 0 ? null : lines.slice(0, shut + 1);
 };
 
+export const unfronted = (body: string): string => {
+  const held = frontLines(body);
+  if (!held) return body;
+  return body.replace(/^﻿/, "").split("\n").slice(held.length).join("\n");
+};
+
 // Front matter past the caps is kept as written, but nothing in it is read.
 export const overgrown = (body: string): boolean => {
-  const held = block(body);
+  const held = frontLines(body);
   return held !== null && new TextEncoder().encode(`${held.join("\n")}\n`).length > BLOCK_AT_MOST;
 };
 
-// The properties at the top of a note, read the way the core's `front::fields` reads them.
 export const fields = (body: string): Field[] => {
-  const lines = block(body);
+  const lines = frontLines(body);
   if (!lines || overgrown(body)) return [];
   const out: Field[] = [];
   let listing = false;

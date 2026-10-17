@@ -1565,14 +1565,21 @@ fn a_blank_line_before_the_title_does_not_send_the_mark_somewhere_else() {
 fn a_conflict_marks_the_title_where_the_title_comes_from() {
     let said = marked("---\ntitle: x\n---\n\n# Compras\n\nleche", "otra version");
     assert!(
-        said.starts_with("---\ntitle: x (otra version)\n---"),
+        said.starts_with("---\ntitle: \"x (otra version)\"\n---"),
         "{said}"
     );
     assert!(said.contains("\n# Compras\n"), "{said}");
     assert_eq!(titled(&said), "x (otra version)");
 
-    let said = marked("---\ntitle: \"x\"\n---\n\nleche", "otra version");
-    assert_eq!(titled(&said), "x (otra version)");
+    for front in ["title: \"x\"", "title : x", "title: [x, y]", "Title: x"] {
+        let said = marked(&format!("---\n{front}\n---\n\nleche"), "otra version");
+        assert_eq!(titled(&said), "x (otra version)", "{front}");
+    }
+
+    let long = "a".repeat(400);
+    let said = marked(&format!("---\ntitle: {long}\n---\n"), "otra version");
+    assert!(titled(&said).ends_with(" (otra version)"), "{said}");
+    assert!(!tisty_markdown::front::fields(&said).is_empty());
 
     let said = marked("---\ntags: [a]\n---\n\n# Compras\n\nleche", "otra version");
     assert!(said.starts_with("---\ntags: [a]\n---"), "{said}");

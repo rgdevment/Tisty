@@ -1,3 +1,4 @@
+import { unfronted } from "./front";
 import { known } from "./glyphs";
 
 const HUES = "red|orange|amber|green|teal|blue|indigo|purple|pink|brown|gray";
@@ -85,14 +86,6 @@ const fenceless = (text: string): string => {
     out.push(line);
   }
   return out.join("\n");
-};
-
-// What the front matter takes at the top, the way the core's `front::span` finds it.
-const unfronted = (text: string): string => {
-  const lines = text.split("\n");
-  if (lines[0]?.trimEnd() !== "---" || !lines[1]?.trim()) return text;
-  const shut = lines.findIndex((line, at) => at > 1 && /^(---|\.\.\.)$/.test(line.trimEnd()));
-  return shut < 0 ? text : lines.slice(shut + 1).join("\n");
 };
 
 const spanless = (line: string): string => {

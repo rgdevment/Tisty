@@ -1,6 +1,9 @@
 pub(super) use tisty_markdown::fences::{Fencing, quoteless};
 pub use tisty_markdown::fences::{ends_fenced, fencing};
 
+// How much of a title is kept anywhere, so a mark added to one is never cut off.
+const TITLE_ROOM: usize = 120;
+
 pub fn titled(body: &str) -> String {
     let body = body.trim_start_matches('\u{feff}');
     if let Some(named) = tisty_markdown::front::title(body) {
@@ -40,32 +43,12 @@ pub fn marked(body: &str, said: &str) -> String {
     }
 }
 
-// The mark goes where the title comes from: a `title:` names the document before any heading does.
+// The mark goes where the title comes from, and the name is shortened so the mark always fits.
 fn retitled(front: &str, said: &str) -> Option<String> {
-    tisty_markdown::front::title(front)?;
-    let mut out = String::with_capacity(front.len() + said.len() + 3);
-    let mut done = false;
-    for line in front.split_inclusive('\n') {
-        let flat = line.trim_end();
-        let keyed = flat
-            .split_once(':')
-            .filter(|(key, _)| !done && key.eq_ignore_ascii_case("title"));
-        let Some((key, value)) = keyed else {
-            out.push_str(line);
-            continue;
-        };
-        let value = value.trim();
-        let quoted = ['"', '\'']
-            .into_iter()
-            .find(|one| value.len() > 1 && value.starts_with(*one) && value.ends_with(*one));
-        let value = match quoted {
-            Some(one) => format!("{one}{} ({said}){one}", &value[1..value.len() - 1]),
-            None => format!("{value} ({said})"),
-        };
-        out.push_str(&format!("{key}: {value}{}", &line[flat.len()..]));
-        done = true;
-    }
-    done.then_some(out)
+    let name = tisty_markdown::front::title(front)?;
+    let room = TITLE_ROOM.saturating_sub(said.chars().count() + 3);
+    let kept: String = name.trim().chars().take(room).collect();
+    tisty_markdown::front::titled_as(front, &format!("{} ({said})", kept.trim_end()))
 }
 
 fn headed(bare: &str, said: &str) -> String {

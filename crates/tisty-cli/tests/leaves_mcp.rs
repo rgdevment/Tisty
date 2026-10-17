@@ -1257,6 +1257,29 @@ fn a_file_from_another_app_comes_in_tidied_and_says_what_changed() {
 }
 
 #[test]
+fn a_title_in_front_matter_names_the_note_and_takes_the_one_asked_for() {
+    let served = Served::new();
+    let (_dir, at) = on_disk("nota.md", "---\ntitle: Plan\n---\n\nlo dicho\n");
+    let said = served.call(
+        "import_doc",
+        serde_json::json!({ "path": at.to_str().unwrap() }),
+    );
+    let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
+    let body = served.body_of(doc);
+    assert!(body.starts_with("---\ntitle: Plan\n---"), "{body}");
+    assert!(!body.contains("# nota"), "{body}");
+
+    let (_dir, at) = on_disk("otra.md", "---\ntitle: Plan\n---");
+    let said = served.call(
+        "import_doc",
+        serde_json::json!({ "path": at.to_str().unwrap(), "title": "Acta" }),
+    );
+    let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
+    let body = served.body_of(doc);
+    assert!(body.starts_with("---\ntitle: \"Acta\"\n---"), "{body}");
+}
+
+#[test]
 fn a_file_with_no_title_of_its_own_is_named_after_itself() {
     let served = Served::new();
     let (_dir, at) = on_disk("Notas de la reunion.md", "lo que se dijo\n");

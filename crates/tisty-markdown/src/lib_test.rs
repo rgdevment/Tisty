@@ -348,3 +348,31 @@ fn front_matter_past_its_caps_is_kept_but_never_read() {
         assert!(crate::front::tags(&said).is_empty());
     }
 }
+
+#[test]
+fn lines_fenced_by_rules_in_the_middle_of_a_page_stay_on_the_page() {
+    for said in [
+        "# Notas\n\nintro\n\n---\nReunión del lunes\n---\n\nmas\n",
+        "> ---\n> dentro\n> ---\n",
+        "- uno\n\n  ---\n  dos\n  ---\n",
+    ] {
+        let doc = read(said);
+        let mut kinds = Vec::new();
+        let mut walk = doc.blocks().iter().collect::<Vec<_>>();
+        while let Some(one) = walk.pop() {
+            kinds.push(one.kind.clone());
+            walk.extend(one.inner.iter());
+        }
+        assert!(!kinds.contains(&Kind::Front), "{said:?}");
+        assert!(html(&doc).contains("Reunión del lunes") || !said.contains("Reunión"));
+    }
+    let doc = read("---\ntitle: x\n---\n\n---\ny\n---\n");
+    assert_eq!(doc.blocks()[0].kind, Kind::Front);
+    assert_eq!(
+        doc.blocks()
+            .iter()
+            .filter(|one| one.kind == Kind::Front)
+            .count(),
+        1
+    );
+}

@@ -26,13 +26,11 @@ fn anchors(doc: &Doc) -> HashMap<usize, String> {
     }
 }
 
-// The properties a note brings at its top, read the way Obsidian shows them, tags as tags.
 fn front(said: &str, at: &str, out: &mut String) {
     let _ = write!(out, "<dl class=\"front\" {at}>");
     for field in crate::front::fields(said) {
         let _ = write!(out, "<div><dt>{}</dt><dd>", escaped(&field.key));
-        let tagged =
-            field.key.eq_ignore_ascii_case("tags") || field.key.eq_ignore_ascii_case("tag");
+        let tagged = crate::front::tagging(&field.key);
         let values: Vec<String> = match tagged {
             true => crate::front::words(&field.values),
             false => field.values.clone(),
