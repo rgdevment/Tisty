@@ -253,6 +253,7 @@ export const wired = (page: Document, reach: () => Reaching) => {
   page.addEventListener("click", (event) => {
     const target = event.target as Element | null;
     if (event.button !== 0 || typeof target?.closest !== "function") return;
+    if (target.closest(".quick-bar")) return;
     const selecting = !(page.getSelection()?.isCollapsed ?? true);
     if (target.closest("a")) event.preventDefault();
     const asked = went(target, selecting) ?? (below(page, target, event) ? { kind: "end" } : null);
