@@ -2,6 +2,7 @@ import { save as intoFile } from "@tauri-apps/plugin-dialog";
 import { useEffect, useRef, useState } from "react";
 import { keepFile, type Paper, type Viewed } from "../../core";
 import { t } from "../../locales";
+import { usePreviewing } from "../previewing";
 import { pdfOf, signature } from "../printing";
 
 interface Asked {
@@ -17,6 +18,7 @@ export default function usePdf({ ready, body, leaf, paper, named, onFail }: Aske
   const [seeing, setSeeing] = useState<string | null>(null);
   const [signing, setSigning] = useState(true);
   const [making, setMaking] = useState(false);
+  usePreviewing(Boolean(seeing));
 
   const made = async () => {
     const signed = paper && signing ? await signature(paper.file) : undefined;
