@@ -51,7 +51,8 @@ fuente: la libreta de la veterinaria
 - `title:` es el [título](#el-título) del documento.
 - `tags:` (o `tag:`) guarda el documento bajo cada una, igual que escribir `#rina` en una frase: es la misma etiqueta de las dos maneras. Sirve una lista entre corchetes, palabras separadas por comas o un `- elemento` por línea, con `#` o sin él.
 - El bloque solo cuenta al principio: la primera línea es `---`, la de abajo tiene palabras, y lo cierra un `---` o `...`. En cualquier otra parte, `---` es un [salto de página](#saltos-de-página).
-- Tisty nunca escribe propiedades por su cuenta: una etiqueta que agrega va en el texto como `#etiqueta`.
+- `paper:` es la hoja en que el documento se dibuja y se imprime: `letter` (Carta) o `tabloid` (Tabloide), y A4 cuando no está. Elegir **Papel** en el panel la escribe, y A4 la quita.
+- Fuera de `paper:`, Tisty nunca escribe propiedades por su cuenta: una etiqueta que agrega va en el texto como `#etiqueta`.
 - Un bloque de más de 4 KiB, con más de 32 propiedades o con un valor de más de 500 caracteres se guarda tal cual, pero no se lee nada de él. Solo se leen propiedades simples: `clave: valor`, una lista entre corchetes o líneas `- elemento`.
 
 ## El título
@@ -520,6 +521,8 @@ Esto ya está en la otra.
 ```
 
 Deja una línea en blanco encima: justo debajo de una línea con palabras, `---` convierte esa línea en un título.
+
+Una hoja que se llena pasa sola a la siguiente, en pantalla igual que en papel, y `Ctrl`/`⌘` + `Enter` escribe un salto mientras escribes. Un `\newpage`, `\pagebreak` o `\clearpage` solo en su línea, y un salto de página escrito en una página web o en un documento de Word, entran como una raya.
 
 ## Comentarios y entidades
 

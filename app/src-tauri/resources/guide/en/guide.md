@@ -264,7 +264,7 @@ rsync -a ~/Tisty/ /Volumes/Backup/Tisty/
 
 #### Page break
 
-A rule on its own splits the sheet. On screen it looks like a real break, and when you print or save as PDF what follows starts on the next sheet. It is the only thing in this list you notice by printing rather than by reading.
+A document is laid on real sheets — A4, Letter or Tabloid, picked under **Paper** in its panel — and a sheet that fills up turns on its own, on screen as on paper. A rule on its own splits the sheet before then: what follows starts on the next one, and `Ctrl`/`⌘` + `Enter` writes one while you write. The paper you pick travels with the file, as `paper:` in its properties.
 
 There is more to say about code, and it fits on a sheet of its own:
 
@@ -354,7 +354,7 @@ Right there, under **The store**, is **Review**: it counts what is spare, what i
 | Shortcut | What it does |
 | --- | --- |
 | `Ctrl` + `Shift` + `Space` | Capture without opening the window |
-| `Ctrl`/`⌘` + `Enter` | Complete the task you are on |
+| `Ctrl`/`⌘` + `Enter` | Complete the task you are on; in a document you are writing, a page break |
 | `F1` | Open the Tisty Markdown guide, on what you are writing |
 | `/` | Insert inside a document |
 | `Ctrl`/`⌘` + `Shift` + `M` | Show every Markdown mark in the block |
