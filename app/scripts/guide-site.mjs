@@ -10,6 +10,8 @@ export const LANGUAGES = [
     near: "Next and previous",
     home: "https://www.tisty.app/",
     meet: "Meet Tisty",
+    written: "You write",
+    drawn: "Tisty shows",
     name: "English",
     dark: "Light or dark",
     locale: "en_US",
@@ -24,6 +26,8 @@ export const LANGUAGES = [
     near: "Anterior y siguiente",
     home: "https://www.tisty.app/es/",
     meet: "Conoce Tisty",
+    written: "Escribes",
+    drawn: "Tisty muestra",
     name: "Español",
     dark: "Claro u oscuro",
     locale: "es_ES",
@@ -109,13 +113,13 @@ export const sheetOf = (built, language, page) => {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escaped(title)}</title>
 ${heads(language, page, title, other, twin)}
-<link rel="icon" href="${up}favicon.svg" type="image/svg+xml">
+<link rel="icon" href="${up}icon.png" type="image/png">
 ${THEME}
 <link rel="stylesheet" href="${up}guide.css">
 </head>
 <body>
 <header class="top">
-<a class="brand" href="index.html"><img src="${up}favicon.svg" alt="" width="30" height="28">Tisty Markdown</a>
+<a class="brand" href="index.html"><img src="${up}icon.png" alt="" width="28" height="28">Tisty Markdown</a>
 <a class="out" href="${language.home}">${language.meet}</a>
 <a class="lang" lang="${other.code}" hreflang="${other.code}" href="${language.dir ? "../" : other.dir}${twin.slug}.html">${other.name}</a>
 <button class="theme" type="button" aria-label="${language.dark}" title="${language.dark}" onclick="${SWITCH}">${MOON}${SUN}</button>
@@ -137,12 +141,12 @@ export const missing = `<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Not here · Tisty Markdown</title>
 <meta name="robots" content="noindex">
-<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/icon.png" type="image/png">
 ${THEME}
 <link rel="stylesheet" href="/guide.css">
 </head>
 <body>
-<header class="top"><a class="brand" href="/"><img src="/favicon.svg" alt="" width="30" height="28">Tisty Markdown</a><a class="out" href="https://www.tisty.app/">Meet Tisty</a></header>
+<header class="top"><a class="brand" href="/"><img src="/icon.png" alt="" width="28" height="28">Tisty Markdown</a><a class="out" href="https://www.tisty.app/">Meet Tisty</a></header>
 <div class="wrap"><main class="page"><h1>Nothing here</h1><p>This page is not part of the guide. <a href="/">Start from the beginning</a> · <a href="/es/" lang="es">Empieza desde el inicio</a></p></main></div>
 </body>
 </html>

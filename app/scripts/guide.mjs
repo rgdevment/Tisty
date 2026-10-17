@@ -98,7 +98,7 @@ const kept = (page) => {
     const at = img.getAttribute("src");
     if (/^(https?|data):/i.test(at)) continue;
     if (pictured(at)) {
-      img.setAttribute("src", "photo.svg");
+      img.setAttribute("src", "rina.jpg");
       continue;
     }
     const card = page.createElement("a");
@@ -160,7 +160,7 @@ const build = (language) => {
       .map((one) => {
         const said = html[next++];
         if (one.source === undefined) return said;
-        return `<figure class="example"><pre class="written"><code>${escaped(one.source)}</code></pre><div class="drawn">${said}</div></figure>`;
+        return `<figure class="example"><pre class="written" data-said="${language.written}"><code>${escaped(one.source)}</code></pre><div class="drawn" data-said="${language.drawn}">${said}</div></figure>`;
       })
       .join("");
     return { part, page: dressed(body) };
@@ -233,14 +233,14 @@ const dark = /\[data-theme="dark"\]\s*\{([^}]*)\}/.exec(index)[1];
 
 rmSync(out, { recursive: true, force: true });
 const built = new Map(LANGUAGES.map((language) => [language.code, build(language)]));
-const logo = readFileSync(join(app, "src", "assets", "tisty.svg"));
+const logo = readFileSync(join(app, "src-tauri", "icons", "128x128.png"));
 for (const language of LANGUAGES) {
   const into = join(out, language.dir);
   mkdirSync(into, { recursive: true });
   for (const page of built.get(language.code))
     writeFileSync(join(into, `${page.slug}.html`), sheetOf(built, language, page));
-  writeFileSync(join(into, "photo.svg"), readFileSync(join(app, "scripts", "guide-photo.svg")));
-  writeFileSync(join(into, "favicon.svg"), logo);
+  writeFileSync(join(into, "rina.jpg"), readFileSync(join(app, "src-tauri", "resources", "guide", language.code, "rina.jpg")));
+  writeFileSync(join(into, "icon.png"), logo);
   writeFileSync(join(into, "llms-full.txt"), reference(language));
 }
 writeFileSync(join(out, "404.html"), missing);
