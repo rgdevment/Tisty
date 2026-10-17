@@ -37,6 +37,7 @@ const { hosting, named, pictured } = await vite.ssrLoadModule("/src/previews.ts"
 const { carded, piece } = await vite.ssrLoadModule("/src/ui/carding.ts");
 const { HUES } = await vite.ssrLoadModule("/src/ui/paging.ts");
 const sheet = (await vite.ssrLoadModule("/src/ui/page.css?raw")).default;
+const { examplesIn, shownBeside, topicsOf } = await vite.ssrLoadModule("/src/guide/reference.ts");
 await vite.close();
 
 const drawn = (texts) =>
@@ -47,36 +48,6 @@ const drawn = (texts) =>
       maxBuffer: 256 * 1024 * 1024,
     }).toString(),
   );
-
-const opening = (line) => /^(`{3,}|~{3,})/.exec(line)?.[1];
-
-// Each `##` heading starts a topic; the start page is what comes before them and the first one, the glance.
-const topics = (text) => {
-  const found = [{ heading: null, lines: [] }];
-  let fence = null;
-  let glanced = false;
-  for (const line of text.replace(/\r\n/g, "\n").split("\n")) {
-    if (fence) {
-      if (line.trim() === fence) fence = null;
-    } else if (opening(line)) {
-      fence = opening(line);
-    } else if (line.startsWith("## ") && glanced) {
-      found.push({ heading: line.slice(3).trim(), lines: [] });
-    } else if (line.startsWith("## ")) {
-      glanced = true;
-    }
-    found[found.length - 1].lines.push(line);
-  }
-  return found;
-};
-
-const plain = (said) =>
-  said
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
 
 const kit = readFileSync(join(app, "src-tauri", "src", "widget.css"), "utf8");
 
@@ -181,28 +152,18 @@ const build = (language) => {
     join(root, "crates", "tisty-markdown", "reference", language.file),
     "utf8",
   );
-  const parts = topics(text).map((topic, at) => ({ ...topic, at }));
-  const sheets = drawn(parts.map((part) => part.lines.join("\n"))).map(
+  const parts = topicsOf(text);
+  const sheets = drawn(parts.map((part) => part.body)).map(
     (html) => new JSDOM(`<article class="page">${html}</article>`).window.document,
   );
-  // An example is any `markdown` fence, wherever it sits, shown as written and as Tisty draws it.
-  const examples = sheets.flatMap((page) =>
-    Array.from(page.querySelectorAll("figure.code > pre > code.language-markdown")),
-  );
+  const examples = sheets.flatMap((page) => examplesIn(page));
   const looks = drawn(examples.map((code) => code.textContent));
-  examples.forEach((code, at) => {
-    const page = code.ownerDocument;
-    const figure = page.createElement("figure");
-    figure.className = "example";
-    figure.innerHTML = `<pre class="written" data-said="${language.written}"><code>${escaped(code.textContent.replace(/\n$/, ""))}</code></pre><div class="drawn" data-said="${language.drawn}">${looks[at]}</div>`;
-    code.closest("figure").replaceWith(figure);
-  });
+  examples.forEach((code, at) => shownBeside(code, looks[at], language));
   const pages = parts.map((part, at) => ({ part, page: dressed(sheets[at]) }));
 
   const slugs = new Map();
   const tops = new Set();
   for (const { part, page } of pages) {
-    part.slug = part.at === 0 ? "index" : plain(part.heading) || `topic-${part.at}`;
     for (const head of page.querySelectorAll("[id]")) slugs.set(head.id, part.slug);
     const top = page.querySelector("h2[id]");
     if (top) tops.add(top.id);
