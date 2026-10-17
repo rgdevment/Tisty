@@ -1,8 +1,35 @@
-@view-transition {
-  navigation: auto;
+/* The guide around the examples wears www.tisty.app's colours; the examples keep the app's own. */
+:root {
+  --tisty-bg: #faf8f4;
+  --tisty-sheet: #ffffff;
+  --tisty-panel: #ffffff;
+  --tisty-rail: #f3f0ea;
+  --tisty-desk: #f3f0ea;
+  --tisty-ink: #141210;
+  --tisty-soft: #423e38;
+  --tisty-faint: #6e6860;
+  --tisty-line: #e5e0d7;
+  --tisty-hair: #ece7df;
+  --tisty-hover: rgb(20 18 16 / 0.045);
+  --tisty-accent: #a8460b;
+  --tisty-accent-soft: #fdf0e6;
+  --guide-flame: #f97c3d;
 }
 html.dark {
   color-scheme: dark;
+  --tisty-bg: #0e0d0b;
+  --tisty-sheet: #181614;
+  --tisty-panel: #181614;
+  --tisty-rail: #211f1c;
+  --tisty-desk: #211f1c;
+  --tisty-ink: #f6f3ee;
+  --tisty-soft: #d0cac1;
+  --tisty-faint: #988f87;
+  --tisty-line: #302d29;
+  --tisty-hair: #26231f;
+  --tisty-hover: rgb(246 243 238 / 0.05);
+  --tisty-accent: #fb9662;
+  --tisty-accent-soft: #2e1c12;
 }
 html:not(.tall),
 html:not(.tall) body {
@@ -51,18 +78,23 @@ body {
 }
 .top .brand img {
   display: block;
+  width: 34px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  max-height: none;
+  border: 0;
+  border-radius: 0;
+  background: none;
 }
 .top .out {
   margin-left: auto;
-  padding: 6px 13px;
-  border-radius: 8px;
-  background: var(--tisty-accent);
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--guide-flame);
   font-size: 13.5px;
   font-weight: 600;
-  color: #ffffff;
-}
-html.dark .top .out {
-  color: #0b1220;
+  color: #141210;
 }
 .top .out:hover {
   filter: brightness(1.08);
@@ -154,6 +186,16 @@ html.dark .top .theme .sun {
 .topics a:hover {
   background: var(--tisty-hover);
   color: var(--tisty-ink);
+}
+.topics .subs {
+  margin: 2px 0 6px 10px;
+  padding-left: 8px;
+  border-left: 1px solid var(--tisty-hair);
+}
+.topics .subs a {
+  padding: 4px 8px;
+  font-size: 12.5px;
+  color: var(--tisty-faint);
 }
 .topics a[aria-current="page"] {
   background: var(--tisty-accent-soft);
@@ -262,14 +304,37 @@ figure.example .drawn .front dt {
 figure.example .drawn .front dd {
   margin: 0;
 }
+figure.example .drawn > hr {
+  position: relative;
+  margin: 0 -18px;
+  border: 0;
+  height: 50px;
+  background: var(--tisty-desk);
+}
+figure.example .drawn > hr::before,
+figure.example .drawn > hr::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 10px;
+  background: var(--tisty-sheet);
+}
+figure.example .drawn > hr::before {
+  top: 0;
+  border-radius: 0 0 10px 10px;
+  box-shadow: 0 7px 7px -7px var(--tisty-cast);
+}
+figure.example .drawn > hr::after {
+  bottom: 0;
+  border-radius: 10px 10px 0 0;
+  box-shadow: 0 -7px 7px -7px var(--tisty-cast);
+}
 iframe.widget {
   display: block;
   width: 100%;
-  height: 240px;
-  margin: 12px 0;
-  border: 1px solid var(--tisty-hair);
-  border-radius: 10px;
-  background: #ffffff;
+  height: 120px;
+  border: 0;
 }
 
 @media (max-width: 860px) {

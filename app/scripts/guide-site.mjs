@@ -101,7 +101,7 @@ export const sheetOf = (built, language, page, style) => {
   const listed = pages
     .map(
       (one) =>
-        `<li><a href="${href(one.slug)}"${one.slug === page.slug ? ' aria-current="page"' : ""}>${escaped(one.label)}</a></li>`,
+        `<li><a href="${href(one.slug)}"${one.slug === page.slug ? ' aria-current="page"' : ""}>${escaped(one.label)}</a>${one.slug === page.slug && one.subs.length ? `<ol class="subs">${one.subs.map((sub) => `<li><a href="#${sub.id}">${escaped(sub.title)}</a></li>`).join("")}</ol>` : ""}</li>`,
     )
     .join("");
   const before = pages[page.at - 1];
@@ -120,6 +120,9 @@ export const sheetOf = (built, language, page, style) => {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#faf8f4">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0e0d0b">
 <title>${escaped(title)}</title>
 ${heads(language, page, title, other, twin)}
 <link rel="icon" href="${up}tisty.svg" type="image/svg+xml">
@@ -137,7 +140,7 @@ ${AHEAD}
 <div class="wrap">
 <nav class="topics" aria-label="${language.topics}"><ol>${listed}</ol></nav>
 <main>${page.html}<nav class="near" aria-label="${language.near}">${near}</nav></main>
-</div>
+</div>${page.html.includes('class="widget"') ? HOSTS : ""}
 </body>
 </html>
 `;
@@ -175,6 +178,9 @@ ${urls.join("\n")}
 </urlset>
 `;
 };
+
+// Only where a widget lives: it hears how tall each one is and tells them light or dark.
+const HOSTS = `<script>(()=>{const r=document.documentElement;const frames=()=>document.querySelectorAll("iframe.widget");const tell=(w)=>w&&w.postMessage({tisty:"theme",dark:r.classList.contains("dark")},"*");addEventListener("message",(e)=>{if(!e.data||e.data.tisty!=="height")return;for(const f of frames())if(f.contentWindow===e.source){f.style.height=Math.min(Math.max(e.data.h,40),2000)+"px";tell(e.source)}});new MutationObserver(()=>{for(const f of frames())tell(f.contentWindow)}).observe(r,{attributes:true,attributeFilter:["class"]})})()</script>`;
 
 // Declarative, not a script: the browser readies a page while the pointer rests on its link.
 const AHEAD = `<script type="speculationrules">{"prerender":[{"where":{"selector_matches":".topics a, .near a, .page a[href]:not([href^='http'])"},"eagerness":"moderate"}]}</script>`;

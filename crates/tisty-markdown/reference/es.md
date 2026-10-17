@@ -495,11 +495,9 @@ Refuerzo en marzo. <!-- preguntar por la pastilla de garrapatas -->
 
 ## Lo que queda fuera del lenguaje
 
-Algunas cosas que escribe otro Markdown no tienen palabra en Tisty. Un documento que las lleva se abre, se edita y se guarda entero, sin que se corte nada; pero esa parte se dibuja como la página buenamente puede, y mientras la editas se ve tal como está escrita:
+Lo que llega de afuera se convierte en estas palabras al entrar: una página web pegada o importada, un documento de Word, una nota de Obsidian, el Markdown que manda un asistente. Sus títulos, listas, enlaces, tablas, colores e imágenes pasan a las formas de esta página; un color fuera de la paleta pasa al rotulador más cercano, y lo que no tiene ninguna palabra queda como texto. El archivo de donde vino no se toca.
 
-- las etiquetas HTML de cualquier tipo, en bloques o dentro de una línea.
-
-**Configuración › Mantenimiento** recorre todos los documentos y te lista los que llevan algo de esto.
+Solo el HTML que alguien escribe a mano en un documento queda tal como está escrito. El documento se sigue abriendo, editando y guardando entero, sin que se corte nada; la página dibuja esa parte como buenamente puede, y **Configuración › Mantenimiento** te lista los documentos que lo llevan.
 
 ### Palabras de un Tisty anterior
 

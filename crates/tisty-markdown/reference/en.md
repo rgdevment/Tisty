@@ -495,11 +495,9 @@ Booster due in March. <!-- ask about the tick tablet -->
 
 ## What is outside the language
 
-A few things other Markdown writes have no word in Tisty. A document that holds them still opens, edits and saves whole, nothing is cut out; but that part is drawn as best the page can, and it shows as it is written while you edit it:
+Whatever arrives from elsewhere is turned into these words on the way in: a web page pasted or imported, a Word document, a note from Obsidian, Markdown sent by an assistant. Its headings, lists, links, tables, colours and pictures become the forms on this page; a colour outside the palette becomes the nearest pen, and what has no word at all is kept as plain text. The file it came from is never touched.
 
-- HTML tags of any kind, in blocks or in a line.
-
-**Settings › Maintenance** goes through every document and lists the ones that hold something of this.
+Only HTML written into a document by hand stays as it is written. The document still opens, edits and saves whole, with nothing cut out; the page draws that part as best it can, and **Settings › Maintenance** lists the documents that hold some.
 
 ### Words from an older Tisty
 
