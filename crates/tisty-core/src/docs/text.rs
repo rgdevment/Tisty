@@ -1,12 +1,9 @@
 pub(super) use tisty_markdown::fences::{Fencing, quoteless};
 pub use tisty_markdown::fences::{ends_fenced, fencing};
 
-const NAMED_AT_MOST: usize = 200;
-
 pub fn titled(body: &str) -> String {
     let body = body.trim_start_matches('\u{feff}');
     if let Some(named) = tisty_markdown::front::title(body) {
-        let named: String = named.trim().chars().take(NAMED_AT_MOST).collect();
         return crate::text::plainly(&named);
     }
     let past = tisty_markdown::front::span(body).map_or(0, |at| at.end);

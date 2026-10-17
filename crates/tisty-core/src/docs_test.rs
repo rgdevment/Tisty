@@ -2319,7 +2319,7 @@ fn the_title_front_matter_gives_names_the_document_before_any_heading() {
     assert_eq!(titled("---\ntitle: \"\"\n---\n\nCompras"), "Compras");
     assert_eq!(
         titled(&format!("---\ntitle: {}\n---\n", "a".repeat(300))).len(),
-        200
+        titled(&format!("# {}", "a".repeat(300))).len()
     );
     assert_eq!(
         titled("---\nsolo una raya y nada que la cierre"),
