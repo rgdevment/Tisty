@@ -24,10 +24,10 @@ import { type Asking, putBlock, slashing } from "./slashing";
 
 const PENS = ["yellow", ...HUES];
 
-// A code editor copies coloured spans in preformatted text; only real structure is worth translating.
+// A code editor copies coloured spans as preformatted text; Docs and Gmail use pre-wrap, which is prose.
 export const worded = (html: string): boolean =>
   /<(h[1-6]|p|li|table|strong|b|em|i|a|img|blockquote|mark|u|s|del|details)\b/i.test(html) &&
-  !/white-space:\s*pre/i.test(html);
+  !/white-space:\s*pre\s*[;"']/i.test(html);
 
 const put = (view: EditorView, text: string) => {
   if (!view.dom.isConnected || !text) return;
@@ -35,45 +35,53 @@ const put = (view: EditorView, text: string) => {
   else view.dispatch(view.state.replaceSelection(text));
 };
 
-// A terminal table drawn with box lines, or lines that read like code, carry their shape in plain text.
+const plainly = (view: EditorView, text: string) => {
+  if (!view.dom.isConnected || !text) return;
+  view.dispatch(view.state.replaceSelection(text), { userEvent: "input.paste" });
+};
+
+// Only a table opens on a top corner; `tree` draws with the side ones alone.
 export const shaped = (plain: string): boolean =>
-  /[┌├│╔║]/.test(plain) ||
+  /[┌╔┏]/.test(plain) ||
   (plain.split("\n").length >= 3 &&
-    /[{};]|\b(fn|let|use|def|const|import|function|return)\b/.test(plain));
+    /[{}]|\b(fn|let|use|def|const|import|function|return)\b/.test(plain));
 
 const rich = (event: ClipboardEvent, view: EditorView): boolean => {
+  if (coded(view.state, view.state.selection.main.head)) return false;
   const html = event.clipboardData?.getData("text/html") ?? "";
   const plain = event.clipboardData?.getData("text/plain") ?? "";
   if (worded(html)) {
     event.preventDefault();
     docFromHtml(html)
       .then((text) => put(view, text || plain))
-      .catch(() => put(view, plain));
+      .catch(() => plainly(view, plain));
     return true;
   }
-  if (!shaped(plain) || coded(view.state, view.state.selection.main.head)) return false;
+  if (!shaped(plain)) return false;
   event.preventDefault();
   docFromText(plain)
-    .then((text) => put(view, text ?? plain))
-    .catch(() => put(view, plain));
+    .then((text) => (text ? put(view, text) : plainly(view, plain)))
+    .catch(() => plainly(view, plain));
   return true;
 };
 
 const pasting = (event: ClipboardEvent, view: EditorView, asking?: () => Asking | undefined) => {
   const files = Array.from(event.clipboardData?.files ?? []);
   const pasted = asking?.()?.pasted;
-  if (rich(event, view)) return true;
   // Word, Excel and browsers put a picture beside the words they copy; the words are what was meant.
-  if (!files.length || !pasted || event.clipboardData?.getData("text/plain")) return false;
-  event.preventDefault();
-  pasted(files)
-    .then((text) => {
-      if (!text) return;
-      if (view.dom.isConnected) putBlock(view, text);
-      else asking?.()?.lost?.();
-    })
-    .catch(() => {});
-  return true;
+  const words = Boolean(event.clipboardData?.getData("text/plain"));
+  if (files.length && pasted && !words) {
+    event.preventDefault();
+    pasted(files)
+      .then((text) => {
+        if (!text) return;
+        if (view.dom.isConnected) putBlock(view, text);
+        else asking?.()?.lost?.();
+      })
+      .catch(() => {});
+    return true;
+  }
+  return rich(event, view);
 };
 
 export type Editing = {

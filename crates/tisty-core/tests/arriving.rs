@@ -452,3 +452,40 @@ fn lines_that_read_like_code_come_in_fenced_and_prose_is_left_alone() {
         assert_eq!(tisty_core::arriving::from_plain(prose), None, "{prose:?}");
     }
 }
+
+#[test]
+fn what_the_html_review_found_comes_in_right() {
+    let from = tisty_core::arriving::from_html;
+    assert!(
+        from(r#"<p>Paga<span style="color: rgb(220, 38, 38);"> la luz </span>hoy</p>"#)
+            .contains("Paga ==la luz=={red} hoy")
+    );
+    let code = from(
+        r#"<pre><code><span style="color:#d73a49">let</span> a = <mark>1</mark>;</code></pre>"#,
+    );
+    assert!(code.contains("let a = 1;"), "{code}");
+    assert!(!code.contains("=="), "{code}");
+    let wrapped = from(r#"<form id="aspnetForm"><h1>Intranet</h1><p>texto</p></form>"#);
+    assert!(
+        wrapped.contains("# Intranet") && wrapped.contains("texto"),
+        "{wrapped}"
+    );
+}
+
+#[test]
+fn what_the_plain_text_review_found_comes_in_right() {
+    let from = tisty_core::arriving::from_plain;
+    assert_eq!(from(".\n├── src\n│   └── main.rs\n└── Cargo.toml"), None);
+    assert_eq!(
+        from("Querida Ana;\nte escribo desde casa,\nnos vemos el lunes."),
+        None
+    );
+    assert_eq!(
+        from("┌───┬───┐\n│ a │ b │\n├───┼───┤\n│ 1 │ 3 │\n│ 2 │ 4 │\n└───┴───┘").as_deref(),
+        Some("| a | b |\n| --- | --- |\n| 1 | 3 |\n| 2 | 4 |")
+    );
+    assert_eq!(
+        from("┏━━━┳━━━┓\n┃ a ┃ b ┃\n┣━━━╋━━━┫\n┃ 1 ┃ 2 ┃\n┗━━━┻━━━┛").as_deref(),
+        Some("| a | b |\n| --- | --- |\n| 1 | 2 |")
+    );
+}

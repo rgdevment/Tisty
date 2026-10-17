@@ -1,11 +1,12 @@
 use htmd::element_handler::{HandlerResult, Handlers};
 use htmd::options::{BulletListMarker, HrStyle, Options};
 use htmd::{Element, HtmlToMarkdown};
-use markup5ever_rcdom::NodeData;
+use markup5ever_rcdom::{Node, NodeData};
+use std::rc::Rc;
 
-const SKIPPED: [&str; 12] = [
-    "script", "style", "head", "noscript", "template", "iframe", "object", "embed", "form",
-    "button", "select", "textarea",
+const SKIPPED: [&str; 11] = [
+    "script", "style", "head", "noscript", "template", "iframe", "object", "embed", "button",
+    "select", "textarea",
 ];
 
 pub fn from_html(html: &str) -> String {
@@ -39,25 +40,49 @@ fn attr(element: &Element, name: &str) -> Option<String> {
 }
 
 fn inner(handlers: &dyn Handlers, element: &Element) -> String {
-    handlers
-        .walk_children(element.node)
-        .content
-        .trim()
-        .to_string()
+    handlers.walk_children(element.node).content
 }
 
-fn pen(words: &str, hue: Option<&str>) -> HandlerResult {
-    if words.is_empty() {
-        return "".into();
+// Highlighted code paints its words with the same tags, and a mark inside code would change the code.
+fn coded(node: &Rc<Node>) -> bool {
+    let mut at = node.clone();
+    loop {
+        let up = at.parent.take();
+        at.parent.set(up.clone());
+        let Some(up) = up.and_then(|one| one.upgrade()) else {
+            return false;
+        };
+        if matches!(&up.data, NodeData::Element { name, .. } if matches!(&*name.local, "pre" | "code"))
+        {
+            return true;
+        }
+        at = up;
     }
+}
+
+// A space just inside a tag belongs to the sentence, not to the mark, or the words around it run together.
+fn wrapped(raw: &str, open: &str, close: &str) -> HandlerResult {
+    let words = raw.trim();
+    if words.is_empty() {
+        return raw.to_string().into();
+    }
+    let lead = &raw[..raw.len() - raw.trim_start().len()];
+    let trail = &raw[raw.trim_end().len()..];
+    format!("{lead}{open}{words}{close}{trail}").into()
+}
+
+fn pen(raw: &str, hue: Option<&str>) -> HandlerResult {
     match hue {
-        None | Some("yellow") => format!("=={words}==").into(),
-        Some(hue) => format!("=={words}=={{{hue}}}").into(),
+        None | Some("yellow") => wrapped(raw, "==", "=="),
+        Some(hue) => wrapped(raw, "==", &format!("=={{{hue}}}")),
     }
 }
 
 fn marked(handlers: &dyn Handlers, element: Element) -> Option<HandlerResult> {
     let words = inner(handlers, &element);
+    if coded(element.node) {
+        return Some(words.into());
+    }
     let hue = attr(&element, "data-pen")
         .filter(|one| tisty_markdown::vocab::pen(one))
         .or_else(|| {
@@ -68,14 +93,17 @@ fn marked(handlers: &dyn Handlers, element: Element) -> Option<HandlerResult> {
 
 fn underlined(handlers: &dyn Handlers, element: Element) -> Option<HandlerResult> {
     let words = inner(handlers, &element);
-    Some(match words.is_empty() {
-        true => "".into(),
-        false => format!("++{words}++").into(),
+    Some(match coded(element.node) {
+        true => words.into(),
+        false => wrapped(&words, "++", "++"),
     })
 }
 
 // Pasted pages colour words with `style` or `<font color>`; the language has a pen of the nearest palette colour.
 fn painted(handlers: &dyn Handlers, element: Element) -> Option<HandlerResult> {
+    if coded(element.node) {
+        return handlers.fallback(element);
+    }
     let lit =
         styled(&element, &["background-color", "background"]).and_then(|one| nearest(one, true));
     let inked = || {
@@ -102,6 +130,7 @@ fn folded(handlers: &dyn Handlers, element: Element) -> Option<HandlerResult> {
         .unwrap_or_default();
     let title = title.split_whitespace().collect::<Vec<_>>().join(" ");
     let body = inner(handlers, &element);
+    let body = body.trim();
     Some(format!("\n\n:::details {title}\n\n{body}\n\n:::\n\n").into())
 }
 
@@ -111,7 +140,7 @@ fn styled(element: &Element, names: &[&str]) -> Option<(u8, u8, u8)> {
         let (name, value) = one.split_once(':')?;
         names
             .contains(&name.trim().to_ascii_lowercase().as_str())
-            .then(|| value.split_whitespace().find_map(rgb))
+            .then(|| rgb(value).or_else(|| value.split_whitespace().find_map(rgb)))
             .flatten()
     })
 }

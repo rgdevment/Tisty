@@ -26,3 +26,16 @@ describe("plain words that carry a shape of their own", () => {
     expect(shaped("una sola línea con {llaves}")).toBe(false);
   });
 });
+
+describe("what a paste from a document editor brings", () => {
+  it("keeps its structure when its text wraps the way Docs and Gmail write it", async () => {
+    const { worded } = await import("../ui/blocking");
+    expect(worded('<p style="white-space:pre-wrap"><b>Hola</b></p>')).toBe(true);
+    expect(worded('<p style="white-space: pre-line"><b>Hola</b></p>')).toBe(true);
+  });
+
+  it("leaves the drawing of a folder tree alone", async () => {
+    const { shaped } = await import("../ui/blocking");
+    expect(shaped(".\n├── src\n└── Cargo.toml")).toBe(false);
+  });
+});
