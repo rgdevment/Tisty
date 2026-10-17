@@ -25,11 +25,6 @@ pub fn doc_plain(body: String) -> String {
     tisty_markdown::to_standard(&body, &|_| None)
 }
 
-#[tauri::command(async)]
-pub fn doc_printed(body: String) -> serde_json::Value {
-    tisty_markdown::printed(&tisty_markdown::read(&body))
-}
-
 pub fn paged(shelf: &Path, body: &str) -> String {
     // A build under work keeps one version number while the drawing changes under it.
     if cfg!(debug_assertions) && !cfg!(test) {

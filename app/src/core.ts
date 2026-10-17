@@ -1111,7 +1111,6 @@ export const docDrawn = (body: string): Promise<string> =>
   invoke<ArrayBuffer>("doc_drawn", { body }).then((bytes) => new TextDecoder().decode(bytes));
 export const docPlain = (body: string): Promise<string> => invoke("doc_plain", { body });
 export const noteDrawn = (body: string): Promise<string> => invoke("note_drawn", { body });
-export const docPrinted = (body: string): Promise<unknown> => invoke("doc_printed", { body });
 export const docWrite = (id: string, body: string, anyway?: boolean): Promise<Doc> =>
   invoke("doc_write", { id, body, anyway });
 export const docBack = (id: string): Promise<Doc> => invoke("doc_back", { id });
@@ -1121,6 +1120,8 @@ export const folderFile = (id: string, parent?: string, before?: string): Promis
 
 export const keepFile = (at: string, bytes: number[]): Promise<void> =>
   invoke("keep_file", { at, bytes });
+export const pagePdf = (html: string, paper: Paper): Promise<number[]> =>
+  invoke("page_pdf", { html, paper });
 export const docWord = (bodies: string[], at: string): Promise<void> =>
   invoke("doc_word", { bodies, at });
 

@@ -1,8 +1,9 @@
-import { attached, docDrawn } from "../core";
+import { attached, docDrawn, type Paper } from "../core";
 import { t } from "../locales";
 import { named, pictured } from "../previews";
 import { iconed } from "./dressing";
 import { coloredAll, escaped, saidKinds, shell } from "./paging";
+import { PAGE } from "./sheets";
 
 const KINDS: Record<string, string> = {
   png: "image/png",
@@ -58,11 +59,48 @@ const unlinked = (page: Document) => {
   page.querySelector("article.page")?.removeAttribute("inert");
 };
 
-export const webPage = async (bodies: string[], title: string): Promise<string> => {
+// A page read elsewhere is read on white, whichever theme the window wears here.
+const lit = (): string => {
+  const found: string[] = [];
+  for (const sheet of Array.from(document.styleSheets)) {
+    let rules: CSSRuleList;
+    try {
+      rules = sheet.cssRules;
+    } catch {
+      continue;
+    }
+    for (const rule of Array.from(rules)) {
+      if (!(rule instanceof CSSStyleRule) || rule.selectorText !== ":root") continue;
+      for (const name of Array.from(rule.style))
+        if (name.startsWith("--tisty-"))
+          found.push(`${name}:${rule.style.getPropertyValue(name).trim()}`);
+    }
+  }
+  return found.filter((one) => !/[<>{}]/.test(one)).join(";");
+};
+
+type Sheet = { readonly leaf: Paper; readonly signed?: string };
+
+const papered = (page: Document, { leaf, signed }: Sheet) => {
+  page.head.insertAdjacentHTML(
+    "beforeend",
+    `<style>@page{size:${PAGE[leaf]};margin:22mm 20mm}html,body{background:#fff}.page{max-width:none;margin:0;padding:0;box-shadow:none}.page>hr{break-after:page;height:0;margin:0;background:none}.page>hr::before,.page>hr::after{display:none}.signed{margin-top:2em;font-size:.8em;color:var(--tisty-faint)}</style>`,
+  );
+  if (!signed) return;
+  const said = page.createElement("p");
+  said.className = "signed";
+  said.textContent = signed;
+  page.querySelector("article.page")?.append(said);
+};
+
+export const webPage = async (bodies: string[], title: string, sheet?: Sheet): Promise<string> => {
   const drawn = await Promise.all(bodies.map(docDrawn));
   const page = new DOMParser().parseFromString(shell(drawn.join("<hr>")), "text/html");
-  const head = page.head;
-  head.insertAdjacentHTML(
+  page.documentElement.classList.remove("dark");
+  const light = lit();
+  const tokens = page.head.querySelector("style");
+  if (light && tokens) tokens.textContent = `:root{${light}}`;
+  page.head.insertAdjacentHTML(
     "afterbegin",
     `<meta name="viewport" content="width=device-width, initial-scale=1"><title>${escaped(title)}</title>`,
   );
@@ -70,6 +108,7 @@ export const webPage = async (bodies: string[], title: string): Promise<string> 
   iconed(page);
   coloredAll(page);
   unlinked(page);
+  if (sheet) papered(page, sheet);
   await carried(page);
   return `<!doctype html>${page.documentElement.outerHTML}`;
 };

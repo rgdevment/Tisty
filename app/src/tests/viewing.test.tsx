@@ -32,7 +32,7 @@ vi.mock("@tauri-apps/api/event", () => ({
 }));
 
 vi.mock("../ui/printing", () => ({
-  pdfOfText: (_: string, __: string, signed?: string) => {
+  pdfOf: (_: string[], __: string, signed?: string) => {
     ipc.calls.push({ cmd: "pdf", args: { signed: signed ?? null } });
     return Promise.resolve(new Blob(["%PDF"]));
   },

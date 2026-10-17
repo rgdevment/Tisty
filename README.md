@@ -1026,8 +1026,9 @@ keeps any HTML in it harmless;
 [KaTeX](https://katex.org) sets its formulas;
 [lowlight](https://github.com/wooorm/lowlight) and
 [highlight.js](https://highlightjs.org) colour the code;
-[react-pdf](https://react-pdf.org) makes the PDF; [Vite](https://vite.dev)
-builds it and [Vitest](https://vitest.dev) tests it.
+[webview2-com](https://github.com/wravery/webview2-rs) reaches the engine that
+lays the PDF out on Windows; [Vite](https://vite.dev) builds it and
+[Vitest](https://vitest.dev) tests it.
 
 The full list, with versions and licences, is in
 [THIRD-PARTY-BUNDLED.md](THIRD-PARTY-BUNDLED.md), and the licence texts the

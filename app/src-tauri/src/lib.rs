@@ -12,6 +12,7 @@ mod leaving;
 mod linking;
 mod moving;
 mod news;
+mod pdf;
 mod reaching;
 mod refusing;
 mod report;
@@ -1154,13 +1155,13 @@ pub fn run() {
             answers::shelves::folder_drop,
             answers::papers::doc_file,
             answers::paging::doc_drawn,
-            answers::paging::doc_printed,
             answers::paging::note_drawn,
             answers::paging::doc_plain,
             answers::papers::doc_read,
             answers::papers::doc_facts,
             answers::papers::keep_file,
             answers::papers::doc_word,
+            answers::papers::page_pdf,
             answers::papers::doc_back,
             answers::papers::doc_backable,
             answers::papers::doc_write,

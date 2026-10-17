@@ -43,16 +43,9 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
   ask: () => Promise.resolve(true),
 }));
 
-vi.mock("@react-pdf/renderer", () => ({
-  pdf: () => ({ toBlob: async () => new Blob(["%PDF"], { type: "application/pdf" }) }),
-  Document: () => null,
-  Page: () => null,
-  Text: () => null,
-  View: () => null,
-  Image: () => null,
-  Link: () => null,
-  Font: { registerHyphenationCallback: () => {} },
-  StyleSheet: { create: (one: unknown) => one },
+vi.mock("../ui/printing", () => ({
+  pdfOf: () => Promise.resolve(new Blob(["%PDF"], { type: "application/pdf" })),
+  signature: () => Promise.resolve("Firmado"),
 }));
 
 vi.mock("../ui/Sheet", () => ({

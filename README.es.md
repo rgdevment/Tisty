@@ -1043,8 +1043,9 @@ deja inofensivo el HTML que traiga; [Mermaid](https://mermaid.js.org) dibuja los
 diagramas que describe un bloque de código y [KaTeX](https://katex.org) compone
 sus fórmulas; [lowlight](https://github.com/wooorm/lowlight) y
 [highlight.js](https://highlightjs.org) colorean el código;
-[react-pdf](https://react-pdf.org) hace el PDF; [Vite](https://vite.dev) la
-construye y [Vitest](https://vitest.dev) la prueba.
+[webview2-com](https://github.com/wravery/webview2-rs) llega al motor que arma
+el PDF en Windows; [Vite](https://vite.dev) la construye y
+[Vitest](https://vitest.dev) la prueba.
 
 La lista completa, con versiones y licencias, está en
 [THIRD-PARTY-BUNDLED.md](THIRD-PARTY-BUNDLED.md), y los textos de licencia que

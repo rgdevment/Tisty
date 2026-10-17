@@ -527,12 +527,7 @@ export default function Docs({
   const blobOf = async (signed?: string): Promise<Blob | null> => {
     const read = await book();
     if (!read) return null;
-    const { pages, written } = read;
-    const at = (file: string) => {
-      const found = pages.findIndex((one) => one.file === file);
-      return found < 0 ? null : found + 1;
-    };
-    return pdfOf(body, written, leaf, signed, at);
+    return pdfOf([body, ...read.written], leaf, signed);
   };
 
   const preview = async () => {
