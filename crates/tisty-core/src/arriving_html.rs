@@ -158,18 +158,18 @@ const NAMED: [(&str, (u8, u8, u8)); 12] = [
     ("brown", (165, 42, 42)),
 ];
 
-const PALETTE: [(&str, (u8, u8, u8)); 11] = [
-    ("yellow", (250, 204, 21)),
-    ("red", (239, 68, 68)),
-    ("orange", (249, 115, 22)),
-    ("amber", (245, 158, 11)),
-    ("green", (34, 197, 94)),
-    ("teal", (20, 184, 166)),
-    ("blue", (59, 130, 246)),
-    ("indigo", (99, 102, 241)),
-    ("purple", (168, 85, 247)),
-    ("pink", (236, 72, 153)),
-    ("brown", (146, 64, 14)),
+// Each pen by the hue a person would call it; pale and deep shades of one colour share its hue.
+const PALETTE: [(&str, f32); 10] = [
+    ("red", 0.0),
+    ("orange", 25.0),
+    ("amber", 38.0),
+    ("yellow", 52.0),
+    ("green", 142.0),
+    ("teal", 173.0),
+    ("blue", 217.0),
+    ("indigo", 239.0),
+    ("purple", 271.0),
+    ("pink", 330.0),
 ];
 
 // Black, white and greys are how text is set, not a colour anyone chose to mark it with.
@@ -179,11 +179,32 @@ fn nearest((r, g, b): (u8, u8, u8), lit: bool) -> Option<String> {
     if most - least < if lit { 24 } else { 48 } || (lit && least > 245) {
         return None;
     }
+    let hue = hue_of(r, g, b);
+    let light = (most + least) as f32 / 510.0;
+    if (12.0..48.0).contains(&hue) && light < 0.32 {
+        return Some("brown".to_string());
+    }
     PALETTE
         .iter()
-        .min_by_key(|(_, (pr, pg, pb))| {
-            let d = |a: u8, b: u8| (a as i32 - b as i32).pow(2);
-            d(r, *pr) + d(g, *pg) + d(b, *pb)
-        })
+        .min_by(|(_, a), (_, b)| apart(hue, *a).total_cmp(&apart(hue, *b)))
         .map(|(name, _)| name.to_string())
+}
+
+fn apart(one: f32, other: f32) -> f32 {
+    let gap = (one - other).abs() % 360.0;
+    gap.min(360.0 - gap)
+}
+
+fn hue_of(r: u8, g: u8, b: u8) -> f32 {
+    let (r, g, b) = (r as f32, g as f32, b as f32);
+    let most = r.max(g).max(b);
+    let span = most - r.min(g).min(b);
+    let raw = if most == r {
+        ((g - b) / span).rem_euclid(6.0)
+    } else if most == g {
+        (b - r) / span + 2.0
+    } else {
+        (r - g) / span + 4.0
+    };
+    raw * 60.0
 }
