@@ -97,9 +97,10 @@ A document is kept in the Tisty language, the Markdown the person reads and writ
 window: pens like `==words=={green}`, underline `++words++`, icons `::dog orange::`, callouts, \
 collapsible sections and cards to other documents, besides plain Markdown. Ask `language` once \
 before writing anything beyond plain words. Markdown from anywhere else is taken and turned into \
-the language on the way in — HTML into Markdown or plain words, front matter taken off, a colour \
+the language on the way in — HTML into Markdown or plain words, a colour \
 outside the palette back to the plain pen, an unknown icon to its word — and the answer says \
-what changed, under `turned`; tell the person when it matters. Footnotes are kept as they are. \
+what changed, under `turned`; tell the person when it matters. Front matter, footnotes and other \
+standard Markdown are kept as they are; `title:` and `tags:` in front matter name and file it. \
 An older Tisty's \
 `<u>`, `<mark>` and icon span are turned into the language's own words on the way in.
 

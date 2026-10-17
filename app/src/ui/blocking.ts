@@ -126,9 +126,12 @@ export const edited = (
   // The block is written where it is read, so it keeps the room and the look the page gave it.
   const look = page.defaultView?.getComputedStyle(block);
   if (look) host.style.margin = look.margin;
-  if (block.parentElement?.firstElementChild === block && block.matches(".page > *")) {
+  const first = block.parentElement?.firstElementChild;
+  const heads = first === block || (first?.matches(".front") && first.nextElementSibling === block);
+  if (heads && block.matches(".page > *:not(.front)")) {
     host.classList.add("titled");
   }
+  if (block.matches(".page > .front:first-child")) host.classList.add("fronted");
   block.replaceWith(host);
   let gone = false;
   let follow = (_: EditorView) => {};

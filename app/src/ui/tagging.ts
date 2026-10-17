@@ -1,3 +1,5 @@
+import { frontTags, unfronted } from "../front";
+
 /// The same reading the core does when it saves: a hash pinned to a letter or a digit, with a
 /// separator in front of it. `# Heading` carries a space, and a colour or a web address carries
 /// something that is not a separator.
@@ -21,7 +23,7 @@ export const named = (said: string): string =>
 export const often = (body: string): Map<string, number> => {
   const many = new Map<string, number>();
   let fence: string | null = null;
-  for (const line of body.split(/\r?\n/)) {
+  for (const line of unfronted(body).split(/\r?\n/)) {
     const rail = /^ {0,3}(`{3,}|~{3,})/.exec(line);
     if (rail) {
       if (!fence) fence = rail[1][0];
@@ -35,6 +37,10 @@ export const often = (body: string): Map<string, number> => {
       const tag = named(hit[2]);
       if (worthReading(tag)) many.set(tag, (many.get(tag) ?? 0) + 1);
     }
+  }
+  for (const word of frontTags(body)) {
+    const tag = named(word);
+    if (tag) many.set(tag, (many.get(tag) ?? 0) + 1);
   }
   return many;
 };

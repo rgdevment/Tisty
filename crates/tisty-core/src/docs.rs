@@ -25,7 +25,8 @@ pub use text::{
 const EXTENSION: &str = "md";
 const DIGITS: usize = 4;
 const MOST_DIGITS: u64 = 999_999_999_999;
-const TITLE_AT_MOST: u64 = 4 * 1024;
+// Room for the largest front matter that is still read, and the heading after it.
+const TITLE_AT_MOST: u64 = 8 * 1024;
 pub const BODY_AT_MOST: u64 = 500 * 1024;
 pub const BODY_ROOMY: u64 = 300 * 1024;
 
@@ -1032,8 +1033,15 @@ fn opening(at: &Path) -> String {
         return String::new();
     };
     let mut head = Vec::new();
-    let _ = file.take(TITLE_AT_MOST).read_to_end(&mut head);
-    titled(&String::from_utf8_lossy(&head))
+    let _ = (&file).take(TITLE_AT_MOST).read_to_end(&mut head);
+    let mut said = String::from_utf8_lossy(&head).into_owned();
+    // A front matter that does not close within the slice would hand its own lines over as the title.
+    if tisty_markdown::front::opens(&said) && tisty_markdown::front::span(&said).is_none() {
+        let mut rest = Vec::new();
+        let _ = (&file).take(BODY_AT_MOST).read_to_end(&mut rest);
+        said.push_str(&String::from_utf8_lossy(&rest));
+    }
+    titled(&said)
 }
 
 #[cfg(test)]
@@ -1046,9 +1054,7 @@ mod tests;
 
 pub fn survives(body: &str) -> std::result::Result<(), &'static str> {
     let body = body.trim_start_matches('\u{feff}');
-    if fronted(body) {
-        return Err("YAML frontmatter");
-    }
+    let body = &body[tisty_markdown::front::span(body).map_or(0, |at| at.end)..];
     let mut fence = Fencing::default();
     let mut aside = false;
 
@@ -1125,14 +1131,6 @@ pub(crate) fn strays(line: &str) -> Vec<(std::ops::Range<usize>, String, &'stati
 
 fn worded(line: &str) -> Option<&'static str> {
     strays(line).first().map(|one| one.2)
-}
-
-fn fronted(body: &str) -> bool {
-    let mut lines = body.trim_start_matches('\u{feff}').lines();
-    if lines.next().map(str::trim) != Some("---") {
-        return false;
-    }
-    lines.any(|line| line.trim() == "---")
 }
 
 fn outside_code_spans(line: &str) -> String {

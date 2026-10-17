@@ -3,11 +3,7 @@
 #[test]
 fn what_the_editor_would_eat_is_refused_before_it_is_written() {
     for (body, why) in [
-        ("---\ntitle: notes\n---\n\nhello", "YAML frontmatter"),
-        (
-            "\u{feff}---\ntitle: notes\n---\n\nhello",
-            "YAML frontmatter",
-        ),
+        ("---\ntitle: notes\n---\n\n<div>x</div>", "HTML"),
         ("<div class=\"warn\">careful</div>", "HTML"),
         (
             "# Note\n\nSomething <div style=\"x\">hidden</div> here.",
@@ -42,6 +38,9 @@ fn what_comes_back_untouched_goes_through() {
         "Antes\n\n  ```sh\ngit cherry-pick <uno> <dos>\n```",
         "# t\n\n| a | b |\n| --- | --- |\n| 1 | 2 |\n",
         "---\n\nUna raya que nadie cierra no es un front matter.",
+        "---\ntitle: notes\ntags: [a, b]\n---\n\nhello",
+        "\u{feff}---\ntitle: notes\n---\n\nhello",
+        "---\nnota: <b>x</b> y ::nope::\n---\n\nhello",
         "> ```html\n> <div>x</div>\n> ```\n",
         "# t\n\n````\ncode\n```\naun es codigo <div>x</div>\n````\n",
         "# t\n\n```\ncode\n~~~\naun es codigo <div>x</div>\n```\n",
@@ -67,7 +66,6 @@ fn both_halves_read_the_same_corpus_the_same_way() {
             .filter_map(|it| it.as_str())
             .collect();
         let said = super::survives(text).err().map(|it| match it {
-            "YAML frontmatter" => "front",
             "HTML" => "html",
             other => other,
         });

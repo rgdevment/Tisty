@@ -14,11 +14,14 @@ fn plain(said: &str) -> String {
 }
 
 #[test]
-fn front_matter_from_an_exported_note_is_taken_off() {
-    let out = tidied("---\ntitle: Reunion\ntags: [a, b]\n---\n\n# Reunion\n\nlo dicho\n");
+fn front_matter_from_an_exported_note_comes_in_as_it_was_written() {
+    let said = "---\ntitle: Reunion\ntags: [a, b]\n---\n\n# Reunion\n\nlo dicho\n";
+    let out = tidied(said);
+    assert_eq!(out.body, said);
+    assert!(out.changed.is_empty(), "{:?}", out.changed);
 
-    assert_eq!(out.body, "# Reunion\n\nlo dicho\n");
-    assert!(out.changed.contains(&"front matter"));
+    let out = tidied("---\nnota: <b>x</b>\n---\n\nun <b>fuerte</b>\n");
+    assert_eq!(out.body, "---\nnota: <b>x</b>\n---\n\nun **fuerte**\n");
 }
 
 #[test]

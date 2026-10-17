@@ -150,10 +150,7 @@ const empty = (view: EditorView, mark: string, close: string): boolean => {
   view.dispatch({
     changes: { from, insert: `${mark}${close}` },
     selection: { anchor: from + mark.length },
-    effects:
-      mark === "["
-        ? []
-        : pend.of({ from: from + mark.length, to: from + mark.length, mark, close }),
+    effects: pend.of({ from: from + mark.length, to: from + mark.length, mark, close }),
     userEvent: "input.format",
   });
   return true;

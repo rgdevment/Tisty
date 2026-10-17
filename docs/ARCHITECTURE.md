@@ -1074,12 +1074,14 @@ the log and is capped at `BODY_AT_MOST` = 500 KiB.
   links, tables with alignment, fenced code with its language, `[!WARNING]`
   callouts. A fenced block with language `widget` is HTML drawn in a sealed
   frame (`widget://`, no network); `mermaid` and `math` fences are drawn too.
-  Stable Markdown from elsewhere is adopted as written: footnotes, reference
-  links, `$` and `$$` maths, what a fence says after its language, HTML
-  comments and entities. What has no word in the language (front matter, raw
-  HTML, a colour outside the palette, an unknown icon) is listed by `frail` in
-  the UI. An assistant may send Markdown from anywhere:
-  `arriving::tidied` turns it into the language and the answer says what
+  Stable Markdown from elsewhere is adopted as written: front matter
+  (`tisty_markdown::front`; its `title:` names the document, its `tags:` file
+  it, and the window shows it in the panel beside the page), footnotes,
+  reference links, `$` and `$$` maths, what a fence says after its language,
+  HTML comments and entities. What has no word in the language (raw HTML, a
+  colour outside the palette, an unknown icon) is listed by `frail` in the UI.
+  An assistant may send Markdown from anywhere: `arriving::tidied` turns it
+  into the language and the answer says what
   changed, and `docs::survives` refuses only what still has no way in. The
   shared cases are in `fixtures/frail.json`.
 

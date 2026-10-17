@@ -72,6 +72,14 @@ describe("formats over what is selected", () => {
     editor.destroy();
   });
 
+  it("leaves no empty link behind when nothing was typed in it", () => {
+    const editor = view("ver ");
+    wrapped(editor, "[", "]()");
+    editor.dispatch({ selection: { anchor: 0 } });
+    expect(editor.state.sliceDoc()).toBe("ver ");
+    editor.destroy();
+  });
+
   it("steps from a link's words into its address with the right arrow", () => {
     const editor = view("ver ");
     wrapped(editor, "[", "]()");

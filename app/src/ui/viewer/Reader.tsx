@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { copied, type DocFacts, type Paper } from "../../core";
 import { fill, t } from "../../locales";
 import PaperFacts from "../PaperFacts";
+import Properties from "../Properties";
 import type { Head } from "../paging";
 import { LEAVES, leafWord, PAPER, TALL } from "../sheets";
 import { button, Segments } from "./Glyphs";
@@ -114,22 +115,27 @@ export default function Reader(props: Readonly<Props>) {
         <nav className="flex w-[264px] shrink-0 flex-col overflow-hidden border-r border-hair bg-panel px-2 py-3.5">
           <h6 className={heading}>{t(stranger ? "viewInFile" : "viewInDoc")}</h6>
           <div className="scroller flex min-h-0 flex-1 flex-col">
-            {heads.map((one) => (
-              <button
-                type="button"
-                key={one.key}
-                onClick={() => go(one)}
-                className="shrink-0 truncate rounded-md py-1 pr-2 text-left text-[12.5px] text-soft hover:bg-hover hover:text-ink"
-                style={{ paddingLeft: 8 + Math.max(0, one.level - 1) * 12 }}
-              >
-                {one.text}
-              </button>
-            ))}
+            {heads
+              .filter((one) => one.level > 0)
+              .map((one) => (
+                <button
+                  type="button"
+                  key={one.key}
+                  onClick={() => go(one)}
+                  className="shrink-0 truncate rounded-md py-1 pr-2 text-left text-[12.5px] text-soft hover:bg-hover hover:text-ink"
+                  style={{ paddingLeft: 8 + Math.max(0, one.level - 1) * 12 }}
+                >
+                  {one.text}
+                </button>
+              ))}
           </div>
           <div className="mt-3 shrink-0 border-t border-hair pt-3.5">
             <h6 className={heading}>{t(stranger ? "aboutFile" : "aboutPaper")}</h6>
             <div className="mx-2 mb-4">
               <PaperFacts facts={props.facts} body={body} />
+            </div>
+            <div className="mx-2 mb-4">
+              <Properties body={body} />
             </div>
             <h6 className={heading}>{t("viewPage")}</h6>
             <div className="mx-1">

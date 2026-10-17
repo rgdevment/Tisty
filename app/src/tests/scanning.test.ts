@@ -29,9 +29,8 @@ describe("looking through every document for what the editor cannot keep", () =>
         }),
     );
 
-    expect(found.map((one) => one.file)).toEqual(["a-0002", "a-0003"]);
-    expect(found[0].brings).toEqual(["frailFront"]);
-    expect(found[1].brings).toEqual(["frailHtml"]);
+    expect(found.map((one) => one.file)).toEqual(["a-0003"]);
+    expect(found[0].brings).toEqual(["frailHtml"]);
   });
 
   it("says nothing at all when every document survives being saved", async () => {

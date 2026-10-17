@@ -1,18 +1,16 @@
 pub(super) use tisty_markdown::fences::{Fencing, quoteless};
 pub use tisty_markdown::fences::{ends_fenced, fencing};
 
+// How much of a title is kept anywhere, so a mark added to one is never cut off.
+const TITLE_ROOM: usize = 120;
+
 pub fn titled(body: &str) -> String {
     let body = body.trim_start_matches('\u{feff}');
-    let mut said: Vec<&str> = body.lines().collect();
-    if let Some(start) = said.iter().position(|one| !one.trim().is_empty())
-        && said[start].trim() == "---"
-        && let Some(shuts) = said
-            .iter()
-            .skip(start + 1)
-            .position(|one| one.trim() == "---")
-    {
-        said.drain(..start + shuts + 2);
+    if let Some(named) = tisty_markdown::front::title(body) {
+        return crate::text::plainly(&named);
     }
+    let past = tisty_markdown::front::span(body).map_or(0, |at| at.end);
+    let said: Vec<&str> = body[past..].lines().collect();
     let mut fence = Fencing::default();
     let first = said
         .iter()
@@ -37,7 +35,23 @@ pub fn titled(body: &str) -> String {
 
 pub fn marked(body: &str, said: &str) -> String {
     let bare = body.trim_start_matches('\u{feff}');
-    let mut seen = 0;
+    let past = tisty_markdown::front::span(bare).map_or(0, |at| at.end);
+    let (front, rest) = bare.split_at(past);
+    match retitled(front, said) {
+        Some(front) => format!("{front}{rest}"),
+        None => format!("{front}{}", headed(rest, said)),
+    }
+}
+
+// The mark goes where the title comes from, and the name is shortened so the mark always fits.
+fn retitled(front: &str, said: &str) -> Option<String> {
+    let name = tisty_markdown::front::title(front)?;
+    let room = TITLE_ROOM.saturating_sub(said.chars().count() + 3);
+    let kept: String = name.trim().chars().take(room).collect();
+    tisty_markdown::front::titled_as(front, &format!("{} ({said})", kept.trim_end()))
+}
+
+fn headed(bare: &str, said: &str) -> String {
     let mut out: Vec<String> = Vec::new();
     let mut done = false;
     let mut fence = Fencing::default();
@@ -45,21 +59,6 @@ pub fn marked(body: &str, said: &str) -> String {
     for line in bare.lines() {
         let trimmed = line.trim();
         if done || trimmed.is_empty() {
-            out.push(line.to_string());
-            continue;
-        }
-        if trimmed == "---"
-            && seen == 0
-            && bare.lines().filter(|one| one.trim() == "---").count() > 1
-        {
-            seen = 1;
-            out.push(line.to_string());
-            continue;
-        }
-        if seen == 1 {
-            if trimmed == "---" {
-                seen = 2;
-            }
             out.push(line.to_string());
             continue;
         }

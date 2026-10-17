@@ -6,6 +6,7 @@ pub mod diagram;
 #[cfg(feature = "emoji")]
 mod emoji;
 pub mod fences;
+pub mod front;
 mod html;
 mod inline;
 pub mod kept;
@@ -121,6 +122,7 @@ pub enum Kind {
     },
     Cell,
     Html,
+    Front,
     Rule,
     Details {
         summary: String,
