@@ -610,4 +610,12 @@ fn a_page_ended_by_a_style_in_html_comes_in_as_a_rule() {
         assert!(one < rule && rule < two, "{said:?}");
     }
     assert!(!tisty_core::arriving::from_html("<p style=\"color:red\">Uno</p>").contains("---"));
+    let nested = tisty_core::arriving::from_html(
+        "<DIV style=\"page-break-after:always\"><div>Uno</div><pre>dos</pre>Tres</DIV><p>Cuatro</p>",
+    );
+    let rule = nested.find("---").expect("the sheet's end is kept");
+    assert!(
+        nested.find("Tres").unwrap() < rule && rule < nested.find("Cuatro").unwrap(),
+        "{nested:?}"
+    );
 }

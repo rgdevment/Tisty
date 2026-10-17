@@ -23,7 +23,7 @@ import {
   viewDoc,
 } from "../core";
 import { stamped } from "../format";
-import { landscapeIn, paperIn, sheetsIn, withLandscape, withPaper, withSheets } from "../front";
+import { laidIn, withLandscape, withPaper, withSheets } from "../front";
 import { keptAll, PASTED_UP_TO } from "../kept";
 import { fill, t } from "../locales";
 import { filed, inTextOrder, type Moved, namesIn, pagesOf, under } from "../paging";
@@ -41,7 +41,7 @@ import type { Head } from "./paging";
 import { usePreviewing } from "./previewing";
 import { pdfOf, signature } from "./printing";
 import Ribbon, { Onward } from "./Ribbon";
-import { MARGIN, PAPER, pageFor, SHEET_TALL } from "./sheets";
+import { acrossOf, PAPER, pageFor, sheetFor } from "./sheets";
 import type { Asking } from "./slashing";
 import { useLeaving } from "./useLeaving";
 import { clearOfChrome } from "./WindowChrome";
@@ -506,21 +506,16 @@ export default function Docs({
   const next = at < 0 ? undefined : inOrder[at + 1];
 
   const beside = Boolean(open) && (shown ?? wide);
-  const leaf = (open && (paperIn(body) ?? sized[open.file])) || "a4";
-  const sheets = Boolean(open) && sheetsIn(body);
-  const landscape = Boolean(open) && landscapeIn(body);
-  const across = (landscape ? SHEET_TALL : PAPER)[leaf];
+  const laid = useMemo(() => laidIn(body), [body]);
+  const leaf =
+    (open && (bolted ? (sized[open.file] ?? laid.paper) : (laid.paper ?? sized[open.file]))) ||
+    "a4";
+  const sheets = Boolean(open) && laid.sheets;
+  const landscape = Boolean(open) && laid.landscape;
+  const across = acrossOf(leaf, landscape);
   const wall = { maxWidth: `${across}px` };
   const sheetOf = useMemo(
-    () =>
-      sheets
-        ? {
-            wide: (landscape ? SHEET_TALL : PAPER)[leaf],
-            tall: (landscape ? PAPER : SHEET_TALL)[leaf],
-            ...MARGIN,
-            said: t("sheetsBreak"),
-          }
-        : undefined,
+    () => (sheets ? sheetFor(leaf, landscape, t("sheetsBreak")) : undefined),
     [leaf, sheets, landscape],
   );
   // The sheet keeps its paper's width; the room around it is the scroller's gutter and bar.
@@ -1008,8 +1003,14 @@ export default function Docs({
           onLeaf={resize}
           sheets={sheets}
           landscape={landscape}
-          onSheets={(on) => reshape((now) => withSheets(now, on))}
-          onLandscape={(turned) => reshape((now) => withLandscape(now, turned))}
+          onSheets={
+            bolted
+              ? undefined
+              : (on) => reshape((now) => withSheets(on ? now : withLandscape(now, false), on))
+          }
+          onLandscape={
+            bolted ? undefined : (turned) => reshape((now) => withLandscape(now, turned))
+          }
           making={making}
           onPdf={toPdf}
           onSee={preview}

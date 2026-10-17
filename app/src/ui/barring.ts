@@ -1,5 +1,6 @@
 import { startCompletion } from "@codemirror/autocomplete";
 import type { EditorView, KeyBinding } from "@codemirror/view";
+import { frontLines } from "../front";
 import { markup } from "../glyphs";
 import { t } from "../locales";
 import { coded, wrapped } from "./formatting";
@@ -83,12 +84,23 @@ const home = (view: EditorView, extend: boolean) => {
   return true;
 };
 
+const fronted = (text: string, head: number): boolean => {
+  const lines = frontLines(text);
+  return lines !== null && head <= lines.join("\n").length;
+};
+
 export const blockKeys: KeyBinding[] = [
   {
     key: "Mod-Enter",
     run: (view) => {
-      // Code and tables keep a rule as their own text, so the break waits until the caret is in words.
-      if (coded(view.state, view.state.selection.main.head) || tableHere(view.state)) return false;
+      // Code, tables and the properties keep a rule as their own text, so the break waits for words.
+      const { head } = view.state.selection.main;
+      if (
+        coded(view.state, head) ||
+        tableHere(view.state) ||
+        fronted(view.state.doc.toString(), head)
+      )
+        return false;
       putBlock(view, "---\n");
       return true;
     },

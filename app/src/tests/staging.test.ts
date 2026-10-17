@@ -13,8 +13,8 @@ describe("a stage named in a document", () => {
     const [second, missing, named] = Array.from(drawn.querySelectorAll<HTMLElement>(".ref"));
     expect(second.textContent).toBe("Ask about the tick tablet");
     expect(second.title).toBe("#2");
-    expect(went(second, false)).toEqual({ kind: "here", id: "stage-2" });
-    expect(drawn.getElementById("stage-2")?.textContent).toContain("tick tablet");
+    expect(went(second, false)).toEqual({ kind: "here", id: "stage--2" });
+    expect(drawn.getElementById("stage--2")?.textContent).toContain("tick tablet");
     expect(missing.textContent).toBe("#9");
     expect(went(missing, false)).toBeNull();
     expect(named.textContent).toBe("Rina");

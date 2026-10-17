@@ -83,17 +83,29 @@ export const frontTags = (body: string): string[] =>
 
 const PAPERS: Paper[] = ["a4", "letter", "tabloid"];
 
-const said = (body: string, key: string): string | undefined =>
-  fields(body)
-    .find((one) => one.key.toLowerCase() === key)
-    ?.values[0]?.toLowerCase();
+export type Laid = {
+  readonly paper: Paper | null;
+  readonly sheets: boolean;
+  readonly landscape: boolean;
+};
 
-export const paperIn = (body: string): Paper | null =>
-  PAPERS.find((one) => one === said(body, "paper")) ?? null;
+export const laidIn = (body: string): Laid => {
+  const all = fields(body);
+  const said = (key: string) =>
+    all.find((one) => one.key.toLowerCase() === key)?.values[0]?.toLowerCase();
+  const sheets = said("sheets") === "on";
+  return {
+    paper: PAPERS.find((one) => one === said("paper")) ?? null,
+    sheets,
+    landscape: sheets && said("orientation") === "landscape",
+  };
+};
 
-export const landscapeIn = (body: string): boolean => said(body, "orientation") === "landscape";
+export const paperIn = (body: string): Paper | null => laidIn(body).paper;
 
-export const sheetsIn = (body: string): boolean => said(body, "sheets") === "on";
+export const landscapeIn = (body: string): boolean => laidIn(body).landscape;
+
+export const sheetsIn = (body: string): boolean => laidIn(body).sheets;
 
 // What a page is unless it says otherwise is never written down, so only a change from it is.
 const withProperty = (body: string, key: string, value: string | null): string => {

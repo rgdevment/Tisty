@@ -1,7 +1,7 @@
 import { save as intoFile } from "@tauri-apps/plugin-dialog";
 import { useEffect, useRef, useState } from "react";
 import { keepFile, type Paper, type Viewed } from "../../core";
-import { landscapeIn, paperIn } from "../../front";
+import { landscapeIn } from "../../front";
 import { t } from "../../locales";
 import { usePreviewing } from "../previewing";
 import { pdfOf, signature } from "../printing";
@@ -23,7 +23,7 @@ export default function usePdf({ ready, body, leaf, paper, named, onFail }: Aske
 
   const made = async () => {
     const signed = paper && signing ? await signature(paper.file) : undefined;
-    return pdfOf([body], paperIn(body) ?? leaf, signed, landscapeIn(body));
+    return pdfOf([body], leaf, signed, landscapeIn(body));
   };
 
   const working = async (work: () => Promise<void>) => {

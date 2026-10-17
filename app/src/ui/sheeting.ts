@@ -20,7 +20,7 @@ const bottomOf = (one: HTMLElement, sheet: HTMLElement) => topOf(one, sheet) + o
 // The band between two sheets starts at the foot of the one above, its bottom margin included.
 export const sheeted = (page: Document, { tall, y, said }: Sheet) => {
   const sheet = page.querySelector<HTMLElement>(".page");
-  if (!sheet || page.querySelector(".editing")) return;
+  if (!sheet || page.querySelector(".editing")) return false;
   for (const one of sheet.querySelectorAll(`.${TURN}, .${SAID}`)) one.remove();
   for (const one of sheet.querySelectorAll<HTMLElement>(BREAKS)) one.style.removeProperty("--fill");
   const room = tall - 2 * y;
@@ -47,7 +47,7 @@ export const sheeted = (page: Document, { tall, y, said }: Sheet) => {
     ended = bottomOf(one, sheet);
   }
   sheet.style.setProperty("--last", `${Math.max(0, begins + room - ended)}px`);
-  if (!said) return;
+  if (!said) return true;
   for (const one of sheet.querySelectorAll<HTMLElement>(":scope > hr")) {
     const label = page.createElement("div");
     label.className = SAID;
@@ -56,6 +56,7 @@ export const sheeted = (page: Document, { tall, y, said }: Sheet) => {
     label.style.top = `${topOf(one, sheet) + one.offsetHeight / 2}px`;
     sheet.append(label);
   }
+  return true;
 };
 
 // Pictures that arrive late move every foot, so the sheets are laid again when the page grows.
@@ -69,8 +70,7 @@ export const sheeting = (page: Document, sheet: () => Sheet | undefined) => {
     if (!now) return;
     root.style.setProperty("--sheet-x", `${now.x}px`);
     root.style.setProperty("--sheet-y", `${now.y}px`);
-    sheeted(page, now);
-    laidAt = body?.offsetHeight ?? -1;
+    laidAt = sheeted(page, now) ? (body?.offsetHeight ?? -1) : -1;
   };
   let pending = 0;
   const later = () => {

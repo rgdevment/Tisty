@@ -27,6 +27,15 @@ export const MARGIN = { x: pixels(MARGIN_MM.x), y: pixels(MARGIN_MM.y) };
 
 export const PRINTED = `margin:${MARGIN_MM.y}mm ${MARGIN_MM.x}mm`;
 
+export const acrossOf = (leaf: Paper, landscape: boolean) => (landscape ? SHEET_TALL : PAPER)[leaf];
+
+export const sheetFor = (leaf: Paper, landscape: boolean, said: string) => ({
+  wide: acrossOf(leaf, landscape),
+  tall: (landscape ? PAPER : SHEET_TALL)[leaf],
+  ...MARGIN,
+  said,
+});
+
 export const PAGE: Record<Paper, string> = { a4: "A4", letter: "Letter", tabloid: "11in 17in" };
 
 export const TALL = Object.fromEntries(

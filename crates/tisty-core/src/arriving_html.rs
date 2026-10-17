@@ -44,18 +44,44 @@ const TURNS: [&str; 4] = [
     "break-after:page",
 ];
 
+fn named(rest: &str, name: &str) -> bool {
+    let bytes = rest.as_bytes();
+    bytes
+        .get(..name.len())
+        .is_some_and(|said| said.eq_ignore_ascii_case(name.as_bytes()))
+        && bytes
+            .get(name.len())
+            .is_some_and(|next| *next == b'>' || *next == b'/' || next.is_ascii_whitespace())
+}
+
+// The element ends at its own closing tag, past any of the same name opened inside it.
 fn closing(tag: &str, after: &str) -> Option<usize> {
     let name: String = tag[1..]
         .chars()
         .take_while(char::is_ascii_alphanumeric)
-        .collect::<String>()
-        .to_ascii_lowercase();
+        .collect();
     if name.is_empty() || tag.ends_with("/>") {
         return None;
     }
-    let shut = format!("</{name}");
-    let at = after.to_ascii_lowercase().find(&shut)?;
-    after[at..].find('>').map(|end| at + end + 1)
+    let mut inside = 0usize;
+    let mut at = 0;
+    while let Some(open) = after[at..].find('<') {
+        let start = at + open;
+        let end = start + after[start..].find('>')? + 1;
+        let rest = &after[start + 1..];
+        if let Some(shut) = rest.strip_prefix('/') {
+            if named(shut, &name) {
+                if inside == 0 {
+                    return Some(end);
+                }
+                inside -= 1;
+            }
+        } else if named(rest, &name) && !after[start..end].ends_with("/>") {
+            inside += 1;
+        }
+        at = end;
+    }
+    None
 }
 
 // Word and the web end a sheet with a style on an element; the language ends it with a rule.

@@ -1,11 +1,11 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { copied, type DocFacts, type Paper } from "../../core";
-import { landscapeIn, paperIn, sheetsIn } from "../../front";
+import { laidIn } from "../../front";
 import { fill, t } from "../../locales";
 import PaperFacts from "../PaperFacts";
 import Properties from "../Properties";
 import type { Head } from "../paging";
-import { LEAVES, leafWord, MARGIN, PAPER, SHEET_TALL, TALL } from "../sheets";
+import { acrossOf, LEAVES, leafWord, PAPER, sheetFor, TALL } from "../sheets";
 import { button, Segments } from "./Glyphs";
 
 const Page = lazy(() => import("../Page"));
@@ -94,22 +94,11 @@ export default function Reader(props: Readonly<Props>) {
   const { body, title, stranger, side, raw, zoom, leaf, finding } = props;
   const [heads, setHeads] = useState<Head[]>([]);
   const shown = useRef<Window | null>(null);
-  const paper = paperIn(body) ?? leaf;
-  const turned = landscapeIn(body);
-  const sheets = sheetsIn(body);
-  const across = (turned ? SHEET_TALL : PAPER)[paper];
-  const wide = sheets ? across : PAPER[leaf] + 40;
+  const laid = useMemo(() => laidIn(body), [body]);
+  const wide = laid.sheets ? acrossOf(leaf, laid.landscape) : PAPER[leaf] + 40;
   const sheet = useMemo(
-    () =>
-      sheets
-        ? {
-            wide: across,
-            tall: (turned ? PAPER : SHEET_TALL)[paper],
-            ...MARGIN,
-            said: t("sheetsBreak"),
-          }
-        : undefined,
-    [sheets, across, turned, paper],
+    () => (laid.sheets ? sheetFor(leaf, laid.landscape, t("sheetsBreak")) : undefined),
+    [laid, leaf],
   );
 
   const sought = useRef<string | null>(null);
