@@ -79,6 +79,8 @@ mermaid-rs-renderer = { version = "0.3", default-features = false }
 emojis = "0.9"
 # What a document carries as html reaches the reader cleaned of anything that could run.
 ammonia = "4"
+htmd = "0.5"
+markup5ever_rcdom = "0.38.0"
 tempfile = "3"
 proptest = { version = "1", default-features = false, features = ["std"] }
 

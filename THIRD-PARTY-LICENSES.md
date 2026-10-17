@@ -2,7 +2,7 @@
 
 <!-- Written by `npm run notices`. Do not edit by hand. -->
 
-The licence texts of the 381 crates named in
+The licence texts of the 388 crates named in
 [THIRD-PARTY-BUNDLED.md](https://github.com/rgdevment/Tisty/blob/main/THIRD-PARTY-BUNDLED.md), each written once with
 the crates that carry it: 258 texts. A text is read in full from the
 crate as it is published, from its licence, copying and notice files and its
@@ -1496,7 +1496,7 @@ SOFTWARE.
 
 ## Text 18
 
-Carried by `atomic-waker` 1.1.2, `base64` 0.22.1, `base64` 0.23.1, `bitflags` 2.13.1, `bumpalo` 3.20.3, `cfg-if` 1.0.4, `core-foundation` 0.9.4, `core-foundation` 0.10.1, `core-foundation-sys` 0.8.7, `core-graphics` 0.25.0, `core-graphics-types` 0.2.0, `crossbeam-channel` 0.5.16, `crossbeam-utils` 0.8.22, `equivalent` 1.0.2, `errno` 0.3.14, `fastrand` 2.5.0, `filetime` 0.2.29, `flate2` 1.1.9, `fnv` 1.0.7, `form_urlencoded` 1.2.2, `fs4` 1.1.0, `glob` 0.3.4, `global-hotkey` 0.8.0, `hashbrown` 0.17.1, `heck` 0.5.0, `html5ever` 0.40.1, `httparse` 1.10.1, `hyper-rustls` 0.27.9, `idna` 1.1.0, `idna_adapter` 1.2.2, `indexmap` 2.14.0, `keyboard-types` 0.7.0, `keyboard-types` 0.8.3, `lock_api` 0.4.14, `log` 0.4.34, `maplit` 1.0.2, `markup5ever` 0.40.0, `mime` 0.3.17, `muda` 0.20.0, `num-traits` 0.2.19, `once_cell` 1.21.4, `parking_lot` 0.12.5, `parking_lot_core` 0.9.12, `percent-encoding` 2.3.2, `png` 0.18.1, `regex` 1.13.1, `regex-automata` 0.4.18, `regex-syntax` 0.8.11, `rustix` 1.1.4, `rustls` 0.23.46, `scopeguard` 1.2.0, `security-framework` 3.7.0, `security-framework-sys` 2.17.0, `serde_with` 3.21.0, `smallvec` 1.15.2, `socket2` 0.6.5, `stable_deref_trait` 1.2.1, `string_cache` 0.11.0, `system-configuration` 0.7.0, `system-configuration-sys` 0.6.0, `tar` 0.4.46, `tempfile` 3.27.0, `tendril` 0.5.1, `thread_local` 1.1.10, `tray-icon` 0.25.1, `ttf-parser` 0.25.1, `ucd-trie` 0.1.7, `unicase` 2.10.0, `unicode-normalization` 0.1.25, `unicode-segmentation` 1.13.3, `unicode-width` 0.2.2, `url` 2.5.8, `uuid` 1.24.0, `web_atoms` 0.3.0, `weezl` 0.1.12, `window-vibrancy` 0.8.1, `wry` 0.57.0, `xattr` 1.6.1.
+Carried by `atomic-waker` 1.1.2, `base64` 0.22.1, `base64` 0.23.1, `bitflags` 2.13.1, `bumpalo` 3.20.3, `cfg-if` 1.0.4, `core-foundation` 0.9.4, `core-foundation` 0.10.1, `core-foundation-sys` 0.8.7, `core-graphics` 0.25.0, `core-graphics-types` 0.2.0, `crossbeam-channel` 0.5.16, `crossbeam-utils` 0.8.22, `equivalent` 1.0.2, `errno` 0.3.14, `fastrand` 2.5.0, `filetime` 0.2.29, `flate2` 1.1.9, `fnv` 1.0.7, `form_urlencoded` 1.2.2, `fs4` 1.1.0, `glob` 0.3.4, `global-hotkey` 0.8.0, `hashbrown` 0.17.1, `heck` 0.5.0, `html5ever` 0.38.0, `html5ever` 0.40.1, `httparse` 1.10.1, `hyper-rustls` 0.27.9, `idna` 1.1.0, `idna_adapter` 1.2.2, `indexmap` 2.14.0, `keyboard-types` 0.7.0, `keyboard-types` 0.8.3, `lock_api` 0.4.14, `log` 0.4.34, `maplit` 1.0.2, `markup5ever` 0.38.0, `markup5ever` 0.40.0, `markup5ever_rcdom` 0.38.0+unofficial, `mime` 0.3.17, `muda` 0.20.0, `num-traits` 0.2.19, `once_cell` 1.21.4, `parking_lot` 0.12.5, `parking_lot_core` 0.9.12, `percent-encoding` 2.3.2, `png` 0.18.1, `regex` 1.13.1, `regex-automata` 0.4.18, `regex-syntax` 0.8.11, `rustix` 1.1.4, `rustls` 0.23.46, `scopeguard` 1.2.0, `security-framework` 3.7.0, `security-framework-sys` 2.17.0, `serde_with` 3.21.0, `smallvec` 1.15.2, `socket2` 0.6.5, `stable_deref_trait` 1.2.1, `string_cache` 0.9.0, `string_cache` 0.11.0, `system-configuration` 0.7.0, `system-configuration-sys` 0.6.0, `tar` 0.4.46, `tempfile` 3.27.0, `tendril` 0.5.1, `thread_local` 1.1.10, `tray-icon` 0.25.1, `ttf-parser` 0.25.1, `ucd-trie` 0.1.7, `unicase` 2.10.0, `unicode-normalization` 0.1.25, `unicode-segmentation` 1.13.3, `unicode-width` 0.2.2, `url` 2.5.8, `uuid` 1.24.0, `web_atoms` 0.2.5, `web_atoms` 0.3.0, `weezl` 0.1.12, `window-vibrancy` 0.8.1, `wry` 0.57.0, `xattr` 1.6.1, `xml5ever` 0.38.0.
 
 ```text
 Apache License
@@ -2974,7 +2974,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ## Text 39
 
-Carried by `cmov` 0.5.4, `ctutils` 0.4.2, `embed_plist` 1.2.2, `emojis` 0.9.0, `encode_unicode` 1.0.0, `encoding_rs` 0.8.35, `ntapi` 0.4.3, `rustls-platform-verifier` 0.7.0, `serialize-to-javascript` 0.1.2, `static_assertions` 1.1.0, `sys-locale` 0.3.2, `tinyvec` 1.12.0, `utf8_iter` 1.0.4, `zeroize` 1.9.0, `zune-core` 0.5.3, `zune-jpeg` 0.5.15.
+Carried by `cmov` 0.5.4, `ctutils` 0.4.2, `embed_plist` 1.2.2, `emojis` 0.9.0, `encode_unicode` 1.0.0, `encoding_rs` 0.8.35, `htmd` 0.5.6, `ntapi` 0.4.3, `rustls-platform-verifier` 0.7.0, `serialize-to-javascript` 0.1.2, `static_assertions` 1.1.0, `sys-locale` 0.3.2, `tinyvec` 1.12.0, `utf8_iter` 1.0.4, `zeroize` 1.9.0, `zune-core` 0.5.3, `zune-jpeg` 0.5.15.
 
 ```text
 Apache License
@@ -3544,7 +3544,7 @@ SOFTWARE.
 
 ## Text 46
 
-Carried by `core-foundation` 0.9.4, `core-foundation` 0.10.1, `core-foundation-sys` 0.8.7, `core-graphics` 0.25.0, `core-graphics-types` 0.2.0, `string_cache` 0.11.0.
+Carried by `core-foundation` 0.9.4, `core-foundation` 0.10.1, `core-foundation-sys` 0.8.7, `core-graphics` 0.25.0, `core-graphics-types` 0.2.0, `string_cache` 0.9.0, `string_cache` 0.11.0.
 
 ```text
 Copyright (c) 2012-2013 Mozilla Foundation
@@ -7738,7 +7738,7 @@ DEALINGS IN THE SOFTWARE.
 
 ## Text 103
 
-Carried by `html5ever` 0.40.1, `markup5ever` 0.40.0, `web_atoms` 0.3.0.
+Carried by `html5ever` 0.38.0, `html5ever` 0.40.1, `markup5ever` 0.38.0, `markup5ever` 0.40.0, `markup5ever_rcdom` 0.38.0+unofficial, `web_atoms` 0.2.5, `web_atoms` 0.3.0, `xml5ever` 0.38.0.
 
 ```text
 Copyright (c) 2014 The html5ever Project Developers
