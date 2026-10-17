@@ -1241,6 +1241,9 @@ kbd {
   bottom: auto;
   top: calc(100% + 8px);
 }
+.ref.is-stage {
+  cursor: pointer;
+}
 .cm-bar.quick-bar {
   bottom: auto;
 }

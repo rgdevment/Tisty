@@ -320,6 +320,7 @@ Mira [[La cartilla de Rina]] y el paso [[#2]].
 
 - `[[nombre]]` se dibuja como una ficha con el nombre.
 - En la descripción o el diario de una tarea, `[[#2]]` muestra las palabras del segundo paso de esa tarea.
+- En un documento, `[[#2]]` muestra las palabras de la segunda [etapa](#listas) del documento, contadas en el orden en que se leen, y un clic te lleva a ella.
 - Un nombre vacío, o con un `[` o un salto de línea, no es referencia.
 
 ## Notas al pie

@@ -320,6 +320,7 @@ See [[Rina's record]] and step [[#2]].
 
 - `[[name]]` is drawn as a chip with the name.
 - In a task's description or journal, `[[#2]]` shows the words of that task's second step.
+- In a document, `[[#2]]` shows the words of the document's second [stage](#lists), counted as they are read, and a click takes you to it.
 - An empty name, or one with a `[` or a line break in it, is not a reference.
 
 ## Footnotes
