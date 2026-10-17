@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { alsoNamed, everyNamed } from "../synonyms";
+import { alsoNamed } from "../synonyms";
 import { sifted } from "../ui/Icons";
 import { inTheRepo } from "./repo";
 
@@ -14,10 +14,6 @@ const named = (): string[] => {
 const all = named();
 
 describe("looking for an icon by what it draws", () => {
-  it("points only at icons the core actually offers", () => {
-    expect(everyNamed().filter((key) => !all.includes(key))).toEqual([]);
-  });
-
   it("finds the faces nobody would look for under mood", () => {
     expect(sifted(all, "cara")).toContain("mood-happy");
     expect(sifted(all, "smile")).toContain("mood");

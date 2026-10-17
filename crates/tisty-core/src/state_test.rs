@@ -2405,92 +2405,6 @@ fn a_ticket_written_as_a_link_is_found_by_its_code() {
     let found = state.search("ops-3465", crate::view::Scope::Either);
     assert_eq!(found.len(), 2);
     assert_eq!(found[0].id, id, "the link lost to a passing mention");
-    assert_eq!(state.linking_to("OPS-3465").len(), 1);
-    assert_eq!(
-        state
-            .linking_to("https://jira.example/browse/OPS-3465")
-            .len(),
-        1,
-        "the address still points at it"
-    );
-}
-
-#[test]
-fn backlinks_come_from_the_prose_and_follow_it_when_it_changes() {
-    let mut state = State::default();
-    let one = Ulid::generate();
-    let other = Ulid::generate();
-    state.apply(&ev(1, "a", add(one, "migrar el proxy")));
-    state.apply(&ev(2, "a", wrote(one, "sale de [[CUSLEG-3465]]")));
-    state.apply(&ev(3, "a", add(other, "revisar el deploy")));
-    state.apply(&ev(
-        4,
-        "a",
-        Op::TaskLog {
-            id: other,
-            d: crate::event::LogAdd::new(Ulid::generate(), "también [[cusleg-3465]]"),
-        },
-    ));
-
-    assert_eq!(
-        state.linking_to("CUSLEG-3465").len(),
-        2,
-        "case decides nothing"
-    );
-    assert!(state.linking_to("CUSLEG-9999").is_empty());
-
-    state.apply(&ev(5, "a", wrote(one, "ya no sale de ninguna parte")));
-    assert_eq!(state.linking_to("CUSLEG-3465").len(), 1);
-}
-
-#[test]
-fn dropping_between_two_tasks_lands_between_them() {
-    let mut state = State::default();
-    let (one, two, moved) = (Ulid::generate(), Ulid::generate(), Ulid::generate());
-    state.apply(&ev(1, "a", add(one, "first")));
-    state.apply(&ev(2, "a", add(two, "second")));
-    state.apply(&ev(3, "a", add(moved, "dropped in the middle")));
-    state.tasks.get_mut(&one).unwrap().order = "a0".into();
-    state.tasks.get_mut(&two).unwrap().order = "a1".into();
-
-    let key = state.order_between(Some(one), Some(two));
-    assert!(key.as_str() > "a0" && key.as_str() < "a1", "{key}");
-}
-
-#[test]
-fn dropping_at_either_end_needs_only_one_neighbour() {
-    let mut state = State::default();
-    let only = Ulid::generate();
-    state.apply(&ev(1, "a", add(only, "the only one")));
-    state.tasks.get_mut(&only).unwrap().order = "a5".into();
-
-    assert!(state.order_between(None, Some(only)).as_str() < "a5");
-    assert!(state.order_between(Some(only), None).as_str() > "a5");
-    assert!(!state.order_between(None, None).is_empty());
-}
-
-#[test]
-fn a_neighbour_that_is_gone_does_not_drop_the_task_somewhere_else() {
-    let mut state = State::default();
-    let here = Ulid::generate();
-    state.apply(&ev(1, "a", add(here, "still here")));
-    state.tasks.get_mut(&here).unwrap().order = "a5".into();
-
-    let vanished = Ulid::generate();
-    assert!(state.order_between(Some(here), Some(vanished)).as_str() > "a5");
-    assert!(state.order_between(Some(vanished), Some(here)).as_str() < "a5");
-}
-
-#[test]
-fn neighbours_out_of_order_land_after_the_first_instead_of_panicking() {
-    let mut state = State::default();
-    let (one, two) = (Ulid::generate(), Ulid::generate());
-    state.apply(&ev(1, "a", add(one, "first")));
-    state.apply(&ev(2, "a", add(two, "second")));
-    state.tasks.get_mut(&one).unwrap().order = "a9".into();
-    state.tasks.get_mut(&two).unwrap().order = "a1".into();
-
-    assert!(state.order_between(Some(one), Some(two)).as_str() > "a9");
 }
 
 #[test]
@@ -2508,7 +2422,6 @@ fn a_task_filed_without_neighbours_goes_last_in_its_list() {
 
     let landed = state.order_last_in(Some(list));
     assert!(landed.as_str() > "a5", "it did not go last: {landed}");
-    assert_ne!(landed, state.order_between(None, None));
 }
 
 #[test]

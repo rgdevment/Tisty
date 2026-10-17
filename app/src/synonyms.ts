@@ -79,5 +79,3 @@ export const alsoNamed = (word: string): string[] => {
   }
   return [...new Set(out)];
 };
-
-export const everyNamed = (): string[] => [...new Set(Object.values(ALSO).flat())];

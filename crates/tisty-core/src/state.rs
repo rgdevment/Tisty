@@ -1074,18 +1074,6 @@ impl State {
         order::last_of(self.ordered_keys(list))
     }
 
-    pub fn order_between(&self, after: Option<TaskId>, before: Option<TaskId>) -> String {
-        let key = |id: Option<TaskId>| {
-            id.and_then(|id| self.tasks.get(&id))
-                .map(|task| task.order.clone())
-        };
-        let (a, b) = (key(after), key(before));
-        match (a, b) {
-            (Some(a), Some(b)) if a >= b => order::after(&a),
-            (a, b) => order::between(a.as_deref(), b.as_deref()),
-        }
-    }
-
     pub fn step_order_between(
         &self,
         task: TaskId,
@@ -1100,23 +1088,6 @@ impl State {
             (Some(a), Some(b)) if a >= b => order::after(&a),
             (a, b) => order::between(a.as_deref(), b.as_deref()),
         }
-    }
-
-    pub fn linking_to(&self, target: &str) -> Vec<&Task> {
-        let wanted = target.trim().to_lowercase();
-        self.tasks
-            .values()
-            .filter(|task| {
-                task.volume.refs > 0
-                    && task.references().iter().any(|one| {
-                        one.target.to_lowercase() == wanted
-                            || one
-                                .label
-                                .as_deref()
-                                .is_some_and(|l| l.to_lowercase() == wanted)
-                    })
-            })
-            .collect()
     }
 
     pub fn references(&self) -> Vec<String> {
