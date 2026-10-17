@@ -35,7 +35,7 @@
       alt="Platform: Windows and macOS"/>
     <a href="#licence">
       <img
-        src="https://img.shields.io/github/license/rgdevment/Tisty?style=flat-square&color=lightgrey"
+        src="https://img.shields.io/badge/license-AGPL--3.0-lightgrey?style=flat-square"
         alt="Licence AGPL-3.0"/>
     </a>
     <a href="https://github.com/sponsors/rgdevment">

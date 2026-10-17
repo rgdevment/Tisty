@@ -9,6 +9,7 @@ const shown = vi.hoisted(() => ({ revealed: [] as string[], copied: [] as string
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: Record<string, unknown>) => {
     ipc.calls.push({ cmd, args });
+    if (cmd === "doc_plain") return Promise.resolve(`standard ${args?.body}`);
     return Promise.resolve(cmd === "doc_copy" ? { id: "f2", title: "Copia" } : null);
   },
 }));
@@ -58,6 +59,8 @@ const acts = (on: Showing | null): Acts & Record<string, ReturnType<typeof vi.fn
     raw: spy(),
     preview: spy(),
     keep: spy(),
+    html: spy(),
+    word: spy(),
     quietly: spy(),
     again: spy(),
     code: spy(),
@@ -84,7 +87,7 @@ const picked = (all: ReturnType<typeof choicesFor>, label: string) => {
 };
 
 describe("the viewer's menu", () => {
-  it("offers a file from outside its reading tools, a quiet import and its folder", async () => {
+  it("offers a file from outside its reading tools, its ways out as standard Markdown, a web page or Word, a quiet import and its folder", async () => {
     const a = acts(file);
     const all = choicesFor(a);
 
@@ -94,6 +97,8 @@ describe("the viewer's menu", () => {
     picked(all, t("viewCopyMd"));
     picked(all, t("seePdf"));
     picked(all, t("toPdf"));
+    picked(all, t("toHtml"));
+    picked(all, t("toWord"));
     picked(all, t("viewImportQuiet"));
     picked(all, t("viewReveal"));
     await settled();
@@ -102,8 +107,10 @@ describe("the viewer's menu", () => {
     expect(vi.mocked(a.zoom).mock.calls).toEqual([[1], [-1]]);
     expect(a.preview).toHaveBeenCalled();
     expect(a.keep).toHaveBeenCalled();
+    expect(a.html).toHaveBeenCalled();
+    expect(a.word).toHaveBeenCalled();
     expect(a.quietly).toHaveBeenCalled();
-    expect(shown.copied).toEqual(["# A"]);
+    expect(shown.copied).toEqual(["standard # A"]);
     expect(shown.revealed).toEqual(["C:\\a.md"]);
     expect(all.some((one) => one.label === t("viewDuplicate"))).toBe(false);
   });
