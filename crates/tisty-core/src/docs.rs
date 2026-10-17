@@ -16,8 +16,7 @@ pub use carried::{
     keep_carried, kept_before, print_of, read_as_printed, read_before, read_carried,
 };
 pub use prints::{Prints, Seen};
-pub(crate) use text::nameless;
-use text::{Fencing, as_written, bullet, quoted, quoteless, unpictured, unspanned, wordless};
+use text::{Fencing, as_written, unpictured, unspanned, wordless};
 pub use text::{
     Heading, ends_fenced, fencing, headings, lines_between, marked, outlined, section_lines,
     settled, spelled, titled,
@@ -1045,101 +1044,28 @@ mod naming;
 #[path = "docs_test.rs"]
 mod tests;
 
-/// A rule written as a line of three or more marks, which is no list item even when it starts with
-/// the same dash.
-fn ruled(rest: &str) -> bool {
-    let Some(mark) = rest.chars().find(|c| !c.is_whitespace()) else {
-        return false;
-    };
-    if !matches!(mark, '*' | '_' | '-') {
-        return false;
-    }
-    let mut many = 0;
-    for one in rest.chars() {
-        if one == mark {
-            many += 1;
-        } else if one != ' ' && one != '\t' {
-            return false;
-        }
-    }
-    many >= 3
-}
-
-fn dashed(line: &str) -> bool {
-    let said = quoteless(line);
-    said.starts_with('|')
-        && said.contains('-')
-        && said.chars().all(|one| matches!(one, '|' | '-' | ':' | ' '))
-}
-
-fn blocked(line: &str, next: &str) -> bool {
-    let (_, wide, said) = quoted(line);
-    if wide >= 4 || ruled(said) {
-        return false;
-    }
-    let Some(after) = bullet(said) else {
-        return false;
-    };
-    let mark = said[..after].trim_end().len();
-    let gap: usize = said[mark..after]
-        .chars()
-        .map(|one| if one == '\t' { 4 } else { 1 })
-        .sum();
-    if gap >= 5 {
-        return true;
-    }
-    let rest = &said[after..];
-    if rest.starts_with('>')
-        || rest.starts_with("```")
-        || rest.starts_with("~~~")
-        || rest.starts_with("![")
-        || bullet(rest).is_some()
-        || ruled(rest)
-    {
-        return true;
-    }
-    let hashed = rest.chars().take_while(|c| *c == '#').count();
-    let after_hash = &rest[hashed..];
-    if (1..=6).contains(&hashed) && (after_hash.is_empty() || after_hash.starts_with([' ', '\t'])) {
-        return true;
-    }
-    rest.starts_with('|') && dashed(next)
-}
-
 pub fn survives(body: &str) -> std::result::Result<(), &'static str> {
     let body = body.trim_start_matches('\u{feff}');
     if fronted(body) {
         return Err("YAML frontmatter");
     }
     let mut fence = Fencing::default();
+    let mut aside = false;
 
-    let said: Vec<&str> = body.lines().collect();
-    for (at, line) in said.iter().enumerate() {
-        let coded = fence.open.is_some();
-        let within = fence.inside(line);
-        if fence.told {
-            return Err("what a fence says after its language");
-        }
-        if !coded && blocked(line, said.get(at + 1).unwrap_or(&"")) {
-            return Err("a list item that opens on a block");
-        }
-        if within {
+    for line in body.lines() {
+        if fence.inside(line) {
             continue;
         }
-        if line.starts_with("    ") || line.starts_with('\t') {
+        if !aside && (line.starts_with("    ") || line.starts_with('\t')) {
             continue;
         }
 
-        let plain = outside_code_spans(line);
+        let plain: String = commented(&outside_code_spans(line), &mut aside)
+            .into_iter()
+            .filter_map(|(note, part)| (!note).then_some(part))
+            .collect();
         if let Some(why) = worded(&plain).or_else(|| markup(&plain)) {
             return Err(why);
-        }
-        let flat = plain.trim();
-        if dollared(flat) {
-            return Err("maths written between dollars");
-        }
-        if linked(flat, said.get(at + 1).unwrap_or(&"")) {
-            return Err("reference links");
         }
     }
     Ok(())
@@ -1248,49 +1174,25 @@ fn outside_code_spans(line: &str) -> String {
     out
 }
 
-fn dollared(line: &str) -> bool {
-    let said = line.trim();
-    if said.starts_with("$$") {
-        return true;
-    }
-    let bytes = said.as_bytes();
-    let mut at = 0;
-    while let Some(found) = said[at..].find("$$") {
-        let start = at + found;
-        if start == 0 || bytes[start - 1] != b'\\' {
-            return true;
+/// A line cut where HTML comments start and end, each piece saying whether it sits inside one;
+/// `aside` carries a comment left open on to the next line.
+pub(crate) fn commented<'a>(line: &'a str, aside: &mut bool) -> Vec<(bool, &'a str)> {
+    let mut out = Vec::new();
+    let mut rest = line;
+    while !rest.is_empty() {
+        let (wall, len) = if *aside { ("-->", 3) } else { ("<!--", 0) };
+        let Some(at) = rest.find(wall) else {
+            out.push((*aside, rest));
+            break;
+        };
+        let cut = at + len;
+        if cut > 0 {
+            out.push((*aside, &rest[..cut]));
         }
-        at = start + 2;
+        rest = &rest[cut..];
+        *aside = !*aside;
     }
-    false
-}
-
-fn labelled(rest: &str) -> Option<(&str, &str)> {
-    let bytes = rest.as_bytes();
-    let mut at = 0;
-    while at < bytes.len() {
-        match bytes[at] {
-            b'\\' => at += 2,
-            b']' if bytes.get(at + 1) == Some(&b':') => {
-                return Some((&rest[..at], &rest[at + 2..]));
-            }
-            b']' => return None,
-            _ => at += 1,
-        }
-    }
-    None
-}
-
-fn linked(line: &str, next: &str) -> bool {
-    let Some(rest) = line.strip_prefix('[') else {
-        return false;
-    };
-    let Some((label, told)) = labelled(rest) else {
-        return false;
-    };
-    !label.is_empty()
-        && !label.starts_with('^')
-        && (!told.trim().is_empty() || !next.trim().is_empty())
+    out
 }
 
 /// A `<` that opens a tag, wherever it sits on the line. An autolink is markdown and comes
@@ -1299,15 +1201,12 @@ pub(crate) fn markup(line: &str) -> Option<&'static str> {
     let bytes = line.as_bytes();
     let mut shut = 0;
     for at in 0..bytes.len() {
-        if bytes[at] == b'&' && entity(&line[at..]) {
-            return Some("HTML entities");
-        }
         if bytes[at] != b'<' {
             continue;
         }
         let rest = &line[at + 1..];
         if rest.starts_with("!--") {
-            return Some("HTML comments");
+            continue;
         }
         if !rest.starts_with(|c: char| c.is_ascii_alphabetic() || c == '/' || c == '!' || c == '?')
         {
@@ -1406,14 +1305,6 @@ fn anchored(said: &str) -> bool {
         Some(open) => !said[open + 1..].contains(']'),
         None => false,
     }
-}
-
-fn entity(from: &str) -> bool {
-    let Some(shut) = from.find(';') else {
-        return false;
-    };
-    let name = &from[1..shut];
-    name.len() > 1 && name.len() < 12 && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '#')
 }
 
 #[cfg(test)]

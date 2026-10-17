@@ -52,6 +52,28 @@ html.tall .page > * {
 .editing {
   position: relative;
 }
+.editing::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: -12px;
+  width: 2px;
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--tisty-accent) 35%, transparent);
+  pointer-events: none;
+  animation: editing-in 160ms ease-out;
+}
+@keyframes editing-in {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .editing::before {
+    animation: none;
+  }
+}
 .editing.titled .cm-line:first-child {
   font-size: 1.65em;
   font-weight: 640;

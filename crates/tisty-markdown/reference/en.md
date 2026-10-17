@@ -12,7 +12,7 @@ Nothing on this page needs learning by heart. The `/` menu and the bar in the ed
 | [Bold, italic, struck, code](#bold-italic-struck-through-and-code) | `**b**` `*i*` `~~s~~` `` `c` `` | yes | yes |
 | [Underline](#underline) | `++words++` | no | no |
 | [Pens](#pens) | `==words==` `==words=={green}` | no | yellow only |
-| [Links](#links) | `[words](https://…)` | yes | yes |
+| [Links](#links) | `[words](https://…)` `[words][one]` `https://…` | yes | yes |
 | [Line breaks](#paragraphs-and-line-breaks) | one line per line | joins them | yes |
 | [Lists and stages](#lists) | `- item` `1. item` `- [ ] stage` | yes | yes |
 | [Quotes and callouts](#quotes-and-callouts) | `> words` `> [!NOTE]` | yes | yes |
@@ -26,10 +26,11 @@ Nothing on this page needs learning by heart. The `/` menu and the bar in the ed
 | [Footnotes](#footnotes) | `[^1]` … `[^1]: note` | yes | yes |
 | [Code](#code-blocks) | ` ```lang title="name" ` | yes | yes |
 | [Diagrams](#diagrams-formulas-and-widgets) | ` ```mermaid ` | yes | yes |
-| [Formulas](#diagrams-formulas-and-widgets) | ` ```math ` and `$x$` | yes | `$x$` only |
+| [Formulas](#diagrams-formulas-and-widgets) | ` ```math ` `$x$` `$$x$$` | yes | `$` only |
 | [Widgets](#diagrams-formulas-and-widgets) | ` ```widget ` | as code | as code |
 | [Tables](#tables) | `\| a \| b \|` | yes | yes |
 | [Page breaks](#page-breaks) | `---` | as a rule | as a rule |
+| [Comments and entities](#comments-and-entities) | `<!-- note -->` `&copy;` | yes | yes |
 
 Where the table says *no*, the other reader shows the words exactly as they are written, so nothing is lost: `++words++` stays readable, and `::dog::` is still a dog.
 
@@ -116,6 +117,16 @@ between angle brackets <https://github.com/rgdevment/Tisty>, and a mail
 address the same way: <rina@example.com>.
 ```
 
+- A web address written on its own, `https://github.com/rgdevment/Tisty`, is a link too. A full stop, a comma or a closing bracket right after it is not part of it.
+- A link can also be written by reference, with its address said once on a line of its own, anywhere in the document:
+
+  ```markdown
+  The [walk map][park] and the [vet][vet].
+
+  [park]: https://example.com/park
+  [vet]: https://example.com/vet "Open on Saturdays"
+  ```
+
 - A link with no address yet, `[words]()`, reads as its words.
 - Only web addresses, `mailto:` and Tisty's own `tisty:` are followed. Any other scheme reads as plain words.
 - An address with spaces goes between angle brackets: `[clip](<C:/Users/me/a clip.mkv>)`.
@@ -136,7 +147,7 @@ address the same way: <rina@example.com>.
 ```
 
 - Bullets are `-`, `*` or `+`; numbers are `1.` or `1)`. Indent an item to nest it.
-- Each item starts with words. An item that opens on another block — a quote, a heading, a picture, a fence — is outside the language (see [the end of this page](#what-is-outside-the-language)).
+- An item can open on words or on another block — a quote, a heading, a picture, a fence — the way Markdown has it.
 
 ### Stages
 
@@ -309,7 +320,7 @@ rsync -a ~/Tisty/ /Volumes/Backup/Tisty/
 ````
 
 - The name goes in `title="…"`; a `"` inside it is written `\"`. Other readers ignore it.
-- Anything else after the language, beyond the name, is [outside the language](#what-is-outside-the-language).
+- Whatever else other tools write after the language, like `showLineNumbers`, is kept as written; Tisty reads the language and the name.
 - To show a fence inside a block, use a longer fence around it.
 - A block indented four spaces is code too.
 - Nothing in code is a tag, a pen, an icon or an emoji. See Code blocks.
@@ -341,9 +352,15 @@ A formula inside a sentence goes between single dollars: `$E=mc^2$`.
 
 - A digit right after the closing dollar makes it a price, not a formula: `$5 and $10` stays as written.
 - `\$` is a dollar sign.
-- Formulas between double dollars, `$$…$$`, are [outside the language](#what-is-outside-the-language): use a `math` block.
+- A formula between double dollars, `$$…$$`, stands on a line of its own, like a `math` block:
 
-GitHub draws all three fences except `widget`, and `$…$`. Obsidian draws `mermaid` and `$…$`, and shows a `math` block as code.
+  ```markdown
+  $$
+  \int_0^1 x\,dx = \tfrac{1}{2}
+  $$
+  ```
+
+GitHub draws every one of these fences but `widget`, and `$…$` and `$$…$$` too. Obsidian draws `mermaid`, `$…$` and `$$…$$`, and shows a `math` block as code.
 
 ## Tables
 
@@ -373,16 +390,25 @@ This is already on the next one.
 
 Leave a blank line above it: right under a line of words, `---` turns that line into a heading.
 
+## Comments and entities
+
+A note to yourself that the page does not show goes between `<!--` and `-->`, on a line or across several. An entity names a character that is awkward to type: `&copy;` is ©, `&amp;` is &, `&nbsp;` is a space that does not break.
+
+```markdown
+Booster due in March. <!-- ask about the tick tablet -->
+
+&copy; 2026 Rina's vet
+```
+
+- Both are kept in the file exactly as written; the page shows what they mean.
+- Inside code they are just text.
+
 ## What is outside the language
 
 A few things other Markdown writes have no word in Tisty. A document that holds them still opens, edits and saves whole, nothing is cut out; but that part is drawn as best the page can, and it shows as it is written while you edit it:
 
 - front matter at the top of the file (`---` … `---`),
-- HTML of any kind — blocks, tags in a line, comments and entities like `&amp;`,
-- formulas between double dollars,
-- links written by reference (`[words][one]`),
-- whatever a code fence says after its language beyond a name,
-- a list item that opens on a block instead of words.
+- HTML tags of any kind, in blocks or in a line.
 
 **Settings › Maintenance** goes through every document and lists the ones that hold something of this.
 

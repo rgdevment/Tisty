@@ -77,6 +77,7 @@ fn reading(text: &str, passes: &[fn(&mut Vec<Span>, &str)]) -> Doc {
 
 // The order matters: a later pass reads the marks an earlier one has already folded.
 const PASSES: &[fn(&mut Vec<Span>, &str)] = &[
+    crate::bare::fold,
     crate::short::fold,
     #[cfg(feature = "pens")]
     crate::pens::fold,

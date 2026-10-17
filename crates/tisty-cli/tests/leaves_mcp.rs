@@ -1243,11 +1243,11 @@ fn a_file_from_another_app_comes_in_tidied_and_says_what_changed() {
     let body = served.body_of(doc);
     assert!(body.contains("**fuerte**"), "{body}");
     assert!(!body.contains("<b>"), "{body}");
-    assert!(!body.contains("oculto"), "{body}");
-    assert!(body.contains("& final"), "{body}");
+    assert!(body.contains("<!-- oculto -->"), "{body}");
+    assert!(body.contains("&amp; final"), "{body}");
     let changed = said["result"]["structuredContent"]["changed"].to_string();
     assert!(changed.contains("front matter"), "{changed}");
-    assert!(changed.contains("HTML comments"), "{changed}");
+    assert!(changed.contains("HTML that markdown can say"), "{changed}");
     assert_eq!(
         std::fs::read_to_string(&at).unwrap().lines().next(),
         Some("---"),

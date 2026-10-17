@@ -157,6 +157,7 @@ fn atomic(one: &Span, spans: &[Span], text: &str, kept: &HashSet<usize>, out: &m
             formula(
                 said.get(wall..said.len().saturating_sub(wall))
                     .unwrap_or(said),
+                wall == 2,
                 out,
             );
         }
@@ -186,6 +187,7 @@ fn atomic(one: &Span, spans: &[Span], text: &str, kept: &HashSet<usize>, out: &m
         }
         Mark::Break => out.push_str("<br>"),
         Mark::Html if kept.contains(&one.at.start) => out.push_str(&said.to_ascii_lowercase()),
+        Mark::Html if said.starts_with("<!--") => {}
         Mark::Html => out.push_str(&escaped(said)),
         _ => {}
     }
@@ -262,9 +264,10 @@ fn pictured(src: &str, alt: &str, out: &mut String) {
     }
 }
 
-fn formula(latex: &str, out: &mut String) {
+#[cfg_attr(not(feature = "math"), allow(unused_variables))]
+fn formula(latex: &str, block: bool, out: &mut String) {
     #[cfg(feature = "math")]
-    if let Some(mathml) = crate::math::mathml(latex, false) {
+    if let Some(mathml) = crate::math::mathml(latex, block) {
         out.push_str(&mathml);
         return;
     }
