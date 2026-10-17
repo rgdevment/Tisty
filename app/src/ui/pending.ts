@@ -168,7 +168,8 @@ const LOOK: Record<string, string> = {
 // While its words are typed, the format already looks as it will, its marks out of sight.
 export const waiting = (state: EditorState, out: Range<Decoration>[]) => {
   const one = state.field(pending, false);
-  if (!one) return;
+  // A link's brackets stay in sight: they show where its words end and its address begins.
+  if (!one || one.mark === "[") return;
   out.push(Decoration.replace({}).range(one.from - one.mark.length, one.from));
   out.push(Decoration.replace({}).range(one.to, one.to + one.close.length));
   const hue = one.mark === "==" ? (/\{([a-z]+)\}/.exec(one.close)?.[1] ?? "yellow") : undefined;
