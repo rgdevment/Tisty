@@ -9,8 +9,24 @@ const app = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const root = resolve(app, "..");
 const out = resolve(process.argv[2] ?? join(root, "target", "guide"));
 const LANGUAGES = [
-  { code: "en", file: "en.md", start: "Start" },
-  { code: "es", file: "es.md", start: "Inicio" },
+  {
+    code: "en",
+    file: "en.md",
+    dir: "",
+    start: "Start",
+    topics: "Guide",
+    near: "Next and previous",
+    home: "https://www.tisty.app/",
+  },
+  {
+    code: "es",
+    file: "es.md",
+    dir: "es/",
+    start: "Inicio",
+    topics: "Guía",
+    near: "Anterior y siguiente",
+    home: "https://www.tisty.app/es/",
+  },
 ];
 
 // The window's own code dresses the page, so it is loaded the way the window loads it.
@@ -103,9 +119,12 @@ const dressed = (html) => {
   return page;
 };
 
-const build = ({ code, file, start }) => {
-  adopt(code);
-  const text = readFileSync(join(root, "crates", "tisty-markdown", "reference", file), "utf8");
+const build = (language) => {
+  adopt(language.code);
+  const text = readFileSync(
+    join(root, "crates", "tisty-markdown", "reference", language.file),
+    "utf8",
+  );
   const parts = topics(text).map((topic, at) => ({ ...topic, at, pieces: pieces(topic.lines) }));
   const texts = parts.flatMap((part) => part.pieces.map((one) => one.source ?? one.prose));
   const html = drawn(texts);
@@ -124,17 +143,13 @@ const build = ({ code, file, start }) => {
   const slugs = new Map();
   const tops = new Set();
   for (const { part, page } of pages) {
-    const slug = part.at === 0 ? "index" : plain(part.heading) || `topic-${part.at}`;
-    part.slug = slug;
-    for (const head of page.querySelectorAll("[id]")) slugs.set(head.id, slug);
+    part.slug = part.at === 0 ? "index" : plain(part.heading) || `topic-${part.at}`;
+    for (const head of page.querySelectorAll("[id]")) slugs.set(head.id, part.slug);
     const top = page.querySelector("h2[id]");
     if (top) tops.add(top.id);
   }
 
-  const into = join(out, code);
-  mkdirSync(into, { recursive: true });
-  const listed = [];
-  for (const { part, page } of pages) {
+  return pages.map(({ part, page }) => {
     for (const link of page.querySelectorAll('a[href^="#"]')) {
       const id = decodeURIComponent(link.getAttribute("href").slice(1));
       const slug = slugs.get(id);
@@ -142,15 +157,79 @@ const build = ({ code, file, start }) => {
       link.setAttribute("href", tops.has(id) ? `${slug}.html` : `${slug}.html#${id}`);
     }
     const title = part.heading ?? page.querySelector("h1")?.textContent ?? "Tisty Markdown";
-    writeFileSync(join(into, `${part.slug}.html`), page.querySelector("article").outerHTML);
-    listed.push({ slug: part.slug, title, label: part.at === 0 ? start : title });
-  }
-  writeFileSync(join(into, "topics.json"), `${JSON.stringify(listed, null, 2)}\n`);
+    const first = page.querySelector("article > p")?.textContent ?? "";
+    return {
+      at: part.at,
+      slug: part.slug,
+      title,
+      label: part.at === 0 ? language.start : title,
+      said: first.length > 160 ? `${first.slice(0, 157).trimEnd()}…` : first,
+      html: page.querySelector("article").outerHTML,
+    };
+  });
 };
 
+const SITE = "https://markdown.tisty.app/";
+
+const address = (language, page) =>
+  `${SITE}${language.dir}${page.slug === "index" ? "" : page.slug}`;
+
+// Plain HTML with one local stylesheet and relative links, so the same folder serves the web and the app.
+const sheetOf = (language, page, built) => {
+  const other = LANGUAGES.find((one) => one !== language);
+  const pages = built.get(language.code);
+  const twin = built.get(other.code)[page.at] ?? built.get(other.code)[0];
+  const up = language.dir ? "../" : "";
+  const listed = pages
+    .map(
+      (one) =>
+        `<li><a href="${one.slug}.html"${one.slug === page.slug ? ' aria-current="page"' : ""}>${escaped(one.label)}</a></li>`,
+    )
+    .join("");
+  const before = pages[page.at - 1];
+  const after = pages[page.at + 1];
+  const near = [
+    before && `<a rel="prev" href="${before.slug}.html">← ${escaped(before.label)}</a>`,
+    after && `<a rel="next" href="${after.slug}.html">${escaped(after.label)} →</a>`,
+  ]
+    .filter(Boolean)
+    .join("");
+  const title = page.slug === "index" ? "Tisty Markdown" : `${page.title} · Tisty Markdown`;
+  return `<!doctype html>
+<html lang="${language.code}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${escaped(title)}</title>
+<meta name="description" content="${escaped(page.said).replace(/"/g, "&quot;")}">
+<link rel="canonical" href="${address(language, page)}">
+<link rel="alternate" hreflang="${language.code}" href="${address(language, page)}">
+<link rel="alternate" hreflang="${other.code}" href="${address(other, twin)}">
+<link rel="stylesheet" href="${up}guide.css">
+</head>
+<body>
+<header class="top"><a class="brand" href="index.html">Tisty Markdown</a><a class="out" href="${language.home}">www.tisty.app ↗</a><a class="lang" lang="${other.code}" hreflang="${other.code}" href="${language.dir ? "../" : other.dir}${twin.slug}.html">${other.code.toUpperCase()}</a></header>
+<div class="wrap">
+<nav class="topics" aria-label="${language.topics}"><ol>${listed}</ol></nav>
+<main>${page.html}<nav class="near" aria-label="${language.near}">${near}</nav></main>
+</div>
+</body>
+</html>
+`;
+};
+
+const tokens = /:root\s*\{[^}]*\}/.exec(readFileSync(join(app, "src", "index.css"), "utf8"))[0];
+
 rmSync(out, { recursive: true, force: true });
-mkdirSync(out, { recursive: true });
-for (const language of LANGUAGES) build(language);
-writeFileSync(join(out, "page.css"), sheet);
-writeFileSync(join(out, "guide.css"), readFileSync(join(app, "scripts", "guide.css"), "utf8"));
+const built = new Map(LANGUAGES.map((language) => [language.code, build(language)]));
+for (const language of LANGUAGES) {
+  const into = join(out, language.dir);
+  mkdirSync(into, { recursive: true });
+  for (const page of built.get(language.code))
+    writeFileSync(join(into, `${page.slug}.html`), sheetOf(language, page, built));
+}
+writeFileSync(
+  join(out, "guide.css"),
+  `${tokens}\n${sheet}\n${readFileSync(join(app, "scripts", "guide.css"), "utf8")}`,
+);
 console.log(`the guide is in ${out}`);

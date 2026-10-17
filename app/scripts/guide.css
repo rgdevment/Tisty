@@ -1,9 +1,101 @@
-.page {
-  max-width: none;
+html:not(.tall),
+html:not(.tall) body {
+  background: #fbfbfd;
   padding: 0;
+}
+html:not(.tall) .page {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: none;
 }
 .page > * {
   content-visibility: visible;
+}
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+  padding: 14px max(24px, calc((100% - 1160px) / 2 + 24px));
+  border-bottom: 1px solid var(--tisty-line);
+  background: var(--tisty-sheet);
+}
+.top a {
+  text-decoration: none;
+}
+.top .brand {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--tisty-ink);
+}
+.top .out {
+  margin-left: auto;
+  font-size: 14px;
+  color: #0f5f73;
+}
+.top .lang {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--tisty-soft);
+}
+.wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 40px;
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 36px 24px 96px;
+  box-sizing: border-box;
+}
+.topics {
+  flex: 1 1 220px;
+  max-width: 260px;
+}
+.topics ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.topics a {
+  display: block;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--tisty-soft);
+  text-decoration: none;
+}
+.topics a:hover {
+  background: var(--tisty-hover);
+  color: var(--tisty-ink);
+}
+.topics a[aria-current="page"] {
+  background: #e5f2f5;
+  color: #0a4252;
+  font-weight: 600;
+}
+main {
+  flex: 999 1 560px;
+  min-width: 0;
+}
+.near {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid var(--tisty-line);
+  font-size: 15px;
+}
+.near a {
+  color: #0f5f73;
+}
+.near a[rel="next"] {
+  margin-left: auto;
 }
 figure.example {
   display: grid;
@@ -35,6 +127,9 @@ figure.example > .drawn > :last-child {
   margin-bottom: 0;
 }
 @media (max-width: 720px) {
+  .topics {
+    max-width: none;
+  }
   figure.example {
     grid-template-columns: minmax(0, 1fr);
   }
