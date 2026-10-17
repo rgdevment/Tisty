@@ -161,11 +161,41 @@ fn defined(text: &str, skip: usize, blocks: &mut Vec<Block>) {
                 .any(|held| held.at.start < one.at.end && one.at.start < held.at.end)
         })
         .collect();
+    found.extend(repeated(text, skip, blocks, &found));
     if found.is_empty() {
         return;
     }
     blocks.append(&mut found);
     blocks.sort_by_key(|one| one.at.start);
+}
+
+// The parser keeps one definition per label, so a label written twice leaves its later lines unclaimed.
+fn repeated(text: &str, skip: usize, blocks: &[Block], found: &[Block]) -> Vec<Block> {
+    let claimed = |at: usize| {
+        blocks
+            .iter()
+            .chain(found)
+            .any(|one| one.at.start <= at && at < one.at.end)
+    };
+    let mut out = Vec::new();
+    let mut at = skip;
+    for line in text[skip..].split_inclusive('\n') {
+        let start = at;
+        at += line.len();
+        let said = line.trim();
+        if claimed(start) || !said.starts_with('[') || said.starts_with("[^") {
+            continue;
+        }
+        let Some((label, to)) = said[1..].split_once("]:") else {
+            continue;
+        };
+        let kind = Kind::Definition {
+            label: label.to_string(),
+            to: to.split_whitespace().next().unwrap_or_default().to_string(),
+        };
+        out.push(leaf(kind, start..start + line.trim_end().len()));
+    }
+    out
 }
 
 fn options() -> Options {

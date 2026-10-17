@@ -396,6 +396,19 @@ fn a_link_definition_stands_on_the_page_where_it_was_written() {
     assert!(said[doc.blocks()[1].at.clone()].starts_with("[uno]: https://x.y/parque"));
     assert!(html(&doc).contains("class=\"refdef\""));
 
+    let twice = read("[vet]: https://a.y\n\n[VET]: https://b.y\n");
+    let defined: Vec<&Kind> = twice
+        .blocks()
+        .iter()
+        .map(|one| &one.kind)
+        .filter(|kind| matches!(kind, Kind::Definition { .. }))
+        .collect();
+    assert_eq!(
+        defined.len(),
+        2,
+        "a label written twice keeps both lines on the page"
+    );
+
     let held = read("- uno\n\n  [dos]: https://x.y\n");
     assert!(
         !held
