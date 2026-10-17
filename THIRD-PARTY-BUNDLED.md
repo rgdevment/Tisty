@@ -221,7 +221,7 @@ written once with the crates that carry it.
 | `w3c-keyname` | 2.2.8 | MIT |
 | `yoga-layout` | 3.2.1 | MIT |
 
-## In the core (388 crates)
+## In the core (389 crates)
 
 | Crate | Version | Licence |
 | --- | --- | --- |
@@ -453,6 +453,7 @@ written once with the crates that carry it.
 | `reqwest` | 0.13.5 | MIT OR Apache-2.0 |
 | `rfd` | 0.16.0 | MIT |
 | `ring` | 0.17.14 | Apache-2.0 AND ISC |
+| `roxmltree` | 0.20.0 | MIT OR Apache-2.0 |
 | `rusqlite` | 0.40.2 | MIT |
 | `rustc-hash` | 2.1.3 | Apache-2.0 OR MIT |
 | `rustix` | 1.1.4 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT |

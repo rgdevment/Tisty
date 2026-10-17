@@ -5882,6 +5882,7 @@ dependencies = [
  "machine-uid",
  "markup5ever_rcdom",
  "rand_core 0.9.5",
+ "roxmltree",
  "rusqlite",
  "same-file",
  "scrypt",
