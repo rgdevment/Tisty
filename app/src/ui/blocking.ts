@@ -13,7 +13,7 @@ import {
   type ViewUpdate,
 } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
-import { docFromHtml } from "../core";
+import { docFromHtml, docFromText } from "../core";
 import { known } from "../glyphs";
 import { barred, blockKeys, flipped } from "./barring";
 import { coded, owning } from "./formatting";
@@ -35,13 +35,26 @@ const put = (view: EditorView, text: string) => {
   else view.dispatch(view.state.replaceSelection(text));
 };
 
+// A terminal table drawn with box lines, or lines that read like code, carry their shape in plain text.
+export const shaped = (plain: string): boolean =>
+  /[┌├│╔║]/.test(plain) ||
+  (plain.split("\n").length >= 3 &&
+    /[{};]|\b(fn|let|use|def|const|import|function|return)\b/.test(plain));
+
 const rich = (event: ClipboardEvent, view: EditorView): boolean => {
   const html = event.clipboardData?.getData("text/html") ?? "";
-  if (!worded(html)) return false;
   const plain = event.clipboardData?.getData("text/plain") ?? "";
+  if (worded(html)) {
+    event.preventDefault();
+    docFromHtml(html)
+      .then((text) => put(view, text || plain))
+      .catch(() => put(view, plain));
+    return true;
+  }
+  if (!shaped(plain) || coded(view.state, view.state.selection.main.head)) return false;
   event.preventDefault();
-  docFromHtml(html)
-    .then((text) => put(view, text || plain))
+  docFromText(plain)
+    .then((text) => put(view, text ?? plain))
     .catch(() => put(view, plain));
   return true;
 };

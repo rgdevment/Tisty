@@ -402,3 +402,35 @@ fn a_page_of_html_comes_in_as_the_tisty_language() {
     );
     assert!(survives(&said).is_ok(), "{:?}", survives(&said));
 }
+
+#[test]
+fn a_table_drawn_in_a_terminal_comes_in_as_a_table() {
+    let said = "Esta semana\n\n┌────────┬──────┐\n│ Tarea  │ Para │\n├────────┼──────┤\n│ Pagar  │ Lunes│\n│ la luz │      │\n├────────┼──────┤\n│ Comprar│ Mié  │\n└────────┴──────┘\n\nfin";
+
+    let out = tisty_core::arriving::from_plain(said).unwrap();
+
+    assert_eq!(
+        out,
+        "Esta semana\n\n| Tarea | Para |\n| --- | --- |\n| Pagar la luz | Lunes |\n| Comprar | Mié |\n\nfin"
+    );
+    assert!(survives(&out).is_ok());
+}
+
+#[test]
+fn lines_that_read_like_code_come_in_fenced_and_prose_is_left_alone() {
+    let code =
+        "use tisty_core::Paths;\n\nfn kept(body: &str) -> String {\n    retargeted(body)\n}\n";
+    assert_eq!(
+        tisty_core::arriving::from_plain(code).as_deref(),
+        Some(
+            "```\nuse tisty_core::Paths;\n\nfn kept(body: &str) -> String {\n    retargeted(body)\n}\n```"
+        )
+    );
+    for prose in [
+        "Hola, ¿cómo estás?\nTodo bien por acá.\nNos vemos mañana.",
+        "- leche\n- pan\n- huevos {grandes}",
+        "una línea; otra",
+    ] {
+        assert_eq!(tisty_core::arriving::from_plain(prose), None, "{prose:?}");
+    }
+}

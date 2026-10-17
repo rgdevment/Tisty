@@ -212,6 +212,14 @@ pub fn doc_from_html(html: String) -> Answer<String> {
     Ok(said.trim().to_string())
 }
 
+#[tauri::command(async)]
+pub fn doc_from_text(text: String) -> Answer<Option<String>> {
+    if text.len() > PASTED_AT_MOST {
+        return Ok(None);
+    }
+    Ok(tisty_core::arriving::from_plain(&text))
+}
+
 pub(crate) fn read_outside(from: &std::path::Path) -> Answer<String> {
     tisty_core::docs::read_outside(from).map_err(|e| match e {
         tisty_core::Error::DocumentTooBig { limit, .. } => {

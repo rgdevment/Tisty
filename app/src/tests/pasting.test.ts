@@ -16,3 +16,13 @@ describe("what a paste brings besides plain words", () => {
     expect(worded("")).toBe(false);
   });
 });
+
+describe("plain words that carry a shape of their own", () => {
+  it("are looked at when they draw a table or read like code", async () => {
+    const { shaped } = await import("../ui/blocking");
+    expect(shaped("┌──┐\n│ a │\n└──┘")).toBe(true);
+    expect(shaped("fn a() {\n  b();\n}")).toBe(true);
+    expect(shaped("hola\nqué tal\nchao")).toBe(false);
+    expect(shaped("una sola línea con {llaves}")).toBe(false);
+  });
+});
