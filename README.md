@@ -120,9 +120,7 @@ productivity tool** that lives on your machine and nowhere else.
 - **Documents that do more than text** — books in pages, diagrams, formulas,
   code, widgets and attachments, all of it plain Markdown any other editor
   still opens.
-- **Truly free** — no premium tier, no feature gates, no trial. AGPL v3, and
-  [commercial terms](docs/COMMERCIAL.md) only for organisations that cannot
-  comply with it.
+- **Truly free** — no premium tier, no feature gates, no trial. AGPL v3.
 - **Your data outlives the app** — plain text and Markdown on your own disk,
   readable with `cat` and searchable with `grep`.
 - **Finishing keeps everything** — completing a task moves it to the archive
@@ -813,8 +811,7 @@ are the one who let it in.
 
 **Is Tisty free?**
 Yes, and it stays free. AGPL-3.0, no paid tier, no feature held back for a
-later version, no trial that runs out. [Commercial terms](docs/COMMERCIAL.md)
-exist only for organisations that cannot comply with the AGPL.
+later version, no trial that runs out.
 
 **Does it need an account or a connection?**
 Neither. There is nothing to sign up for and no server to be away from. Tisty
@@ -1051,9 +1048,12 @@ follows the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Licence
 
-[AGPL-3.0](LICENSE), and available under
-[commercial terms](docs/COMMERCIAL.md) for organisations that cannot comply
-with it.
+[AGPL-3.0](LICENSE).
+
+### Other terms
+
+[Commercial terms](docs/COMMERCIAL.md) exist for organisations that cannot
+comply with the AGPL.
 
 The signed builds in the app stores carry their own terms, because the stores'
 do not accept the AGPL — [DISTRIBUTION.md](docs/DISTRIBUTION.md) says which

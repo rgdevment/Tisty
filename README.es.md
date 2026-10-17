@@ -124,8 +124,7 @@ que nadie usa. Sin anuncios, sin telemetría, sin cuentas, sin suscripciones: un
   fórmulas, código, widgets y adjuntos, todo en Markdown corriente que cualquier
   otro editor sigue abriendo.
 - **Gratis de verdad** — sin versión de pago, sin funciones bajo llave, sin
-  período de prueba. AGPL v3, y [términos comerciales](docs/COMMERCIAL.md) solo
-  para organizaciones que no puedan cumplirla.
+  período de prueba. AGPL v3.
 - **Tus datos duran más que la aplicación** — texto plano y Markdown en tu
   propio disco, que se lee con `cat` y se busca con `grep`.
 - **Terminar lo conserva todo** — completar una tarea la manda al archivo con
@@ -828,9 +827,7 @@ sin enviar nada, quien lleva es el asistente, y quien lo dejó entrar eres tú.
 
 **¿Tisty es gratis?**
 Sí, y lo seguirá siendo. AGPL-3.0, sin versión de pago, sin funciones
-reservadas para más adelante, sin versión de prueba que caduque. Las
-[condiciones comerciales](docs/COMMERCIAL.md) existen solo para organizaciones
-que no pueden cumplir la AGPL.
+reservadas para más adelante, sin versión de prueba que caduque.
 
 **¿Necesita una cuenta o conexión?**
 Ninguna de las dos. No hay a qué suscribirse ni servidor del que estar lejos.
@@ -1067,9 +1064,12 @@ Quien participe —en issues, pull requests, discusiones o la wiki— sigue el
 
 ## Licencia
 
-[AGPL-3.0](LICENSE), y disponible bajo
-[términos comerciales](docs/COMMERCIAL.md) para organizaciones que no puedan
-cumplirla.
+[AGPL-3.0](LICENSE).
+
+### Otros términos
+
+Hay [términos comerciales](docs/COMMERCIAL.md) para organizaciones que no
+puedan cumplir la AGPL.
 
 Las compilaciones firmadas de las tiendas llevan sus propios términos, porque las
 tiendas no aceptan la AGPL — [DISTRIBUTION.md](docs/DISTRIBUTION.md) dice
