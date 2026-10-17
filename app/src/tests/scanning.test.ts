@@ -14,15 +14,9 @@ const filed = (file: string, title: string): Filed => ({
 });
 
 describe("looking through every document for what the editor cannot keep", () => {
-  it("names the ones that would open read only, and what each brings", async () => {
-    const bodies: Record<string, string> = {
-      "a-0001": "# Limpio\n\nun parrafo",
-      "a-0002": "---\ntitle: algo\n---\n\n# Con cabecera",
-      "a-0003": "# Con html\n\n<details>\n<summary>ver</summary>\nx\n</details>",
-    };
-
+  it("names the ones the core finds, and what each brings", async () => {
     const found = await scanned(
-      (file) => Promise.resolve(bodies[file]),
+      () => Promise.resolve(["a-0003"]),
       () =>
         Promise.resolve({
           docs: [filed("a-0001", "Limpio"), filed("a-0002", "Cabecera"), filed("a-0003", "Html")],
@@ -35,7 +29,7 @@ describe("looking through every document for what the editor cannot keep", () =>
 
   it("says nothing at all when every document survives being saved", async () => {
     const found = await scanned(
-      () => Promise.resolve("# Limpio\n\n- una lista\n- y otra"),
+      () => Promise.resolve([]),
       () => Promise.resolve({ docs: [filed("a-0001", "Limpio")] }),
     );
 
@@ -44,38 +38,17 @@ describe("looking through every document for what the editor cannot keep", () =>
 
   it("keeps the title, because a file name is not what a person looks for", async () => {
     const found = await scanned(
-      () => Promise.resolve("una nota <span>suelta</span>"),
+      () => Promise.resolve(["a-0009"]),
       () => Promise.resolve({ docs: [filed("a-0009", "Minuta del lunes")] }),
     );
 
     expect(found[0].title).toBe("Minuta del lunes");
   });
 
-  it("holds one body at a time, so a big store does not have to fit in memory", async () => {
-    let open = 0;
-    let most = 0;
-
-    await scanned(
-      () => {
-        open += 1;
-        most = Math.max(most, open);
-        return Promise.resolve("# Limpio").finally(() => {
-          open -= 1;
-        });
-      },
-      () =>
-        Promise.resolve({
-          docs: Array.from({ length: 20 }, (_, i) => filed(`a-${i}`, `Uno ${i}`)),
-        }),
-    );
-
-    expect(most).toBe(1);
-  });
-
-  it("does not choke on a store with no documents at all", async () => {
+  it("leaves out a file the list no longer has", async () => {
     expect(
       await scanned(
-        () => Promise.resolve(""),
+        () => Promise.resolve(["a-0404"]),
         () => Promise.resolve({ docs: [] }),
       ),
     ).toEqual([]);

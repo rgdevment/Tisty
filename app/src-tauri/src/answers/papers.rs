@@ -157,14 +157,103 @@ fn seconds(at: std::io::Result<std::time::SystemTime>) -> Option<i64> {
 }
 
 #[tauri::command(async)]
-pub fn keep_pdf(at: String, bytes: Vec<u8>) -> Answer<()> {
+pub fn keep_file(at: String, bytes: Vec<u8>) -> Answer<()> {
     std::fs::write(&at, bytes).map_err(|e| {
         blamed(
             channel::WINDOW,
-            "a pdf could not be written",
+            "a file the window made could not be written",
             tisty_core::Error::Io(e),
         )
     })
+}
+
+// The page goes through a window nobody sees, whose engine lays it on paper the way it draws it.
+#[tauri::command]
+pub async fn page_pdf(app: tauri::AppHandle, html: String, paper: String) -> Answer<Vec<u8>> {
+    let room = super::carrying::Room(
+        std::env::temp_dir().join(format!("tisty-pdf-{}", ulid::Ulid::generate())),
+    );
+    let page = room.0.join("page.html");
+    let to = room.0.join("page.pdf");
+    let cannot = || Refusal::about("cannotWrite", to.display().to_string());
+    let (folder, written) = (room.0.clone(), page.clone());
+    let laid = tauri::async_runtime::spawn_blocking(move || {
+        std::fs::create_dir_all(&folder).and_then(|()| std::fs::write(&written, html))
+    })
+    .await;
+    if !matches!(laid, Ok(Ok(()))) {
+        return Err(cannot());
+    }
+    let url = url::Url::from_file_path(&page).map_err(|()| cannot())?;
+    let (told, heard) = std::sync::mpsc::channel();
+    let told = std::sync::Mutex::new(Some(told));
+    let sheet = crate::pdf::leaf(&paper);
+    let printing = to.clone();
+    let label = format!(
+        "paper-{}",
+        ulid::Ulid::generate().to_string().to_lowercase()
+    );
+    let window = tauri::WebviewWindowBuilder::new(&app, label, tauri::WebviewUrl::External(url))
+        .visible(false)
+        .on_page_load(move |window, loaded| {
+            if loaded.event() != tauri::webview::PageLoadEvent::Finished {
+                return;
+            }
+            let Some(once) = told.lock().ok().and_then(|mut one| one.take()) else {
+                return;
+            };
+            let back = once.clone();
+            if crate::pdf::print(&window, printing.clone(), sheet, once).is_err() {
+                let _ = back.send(false);
+            }
+        })
+        .build()
+        .map_err(|_| cannot())?;
+    let made = to.clone();
+    let printed = tauri::async_runtime::spawn_blocking(move || {
+        let done = heard
+            .recv_timeout(std::time::Duration::from_secs(60))
+            .unwrap_or(false);
+        done.then(|| std::fs::read(&made).ok()).flatten()
+    })
+    .await
+    .ok()
+    .flatten();
+    let _ = window.destroy();
+    tauri::async_runtime::spawn_blocking(move || drop(room));
+    printed.ok_or_else(cannot)
+}
+
+// The pictures come from the store and its sync folder alike, read whole since Word carries them inside.
+#[tauri::command(async)]
+pub fn doc_word(
+    session: tauri::State<'_, Mutex<Session>>,
+    bodies: Vec<String>,
+    at: String,
+) -> Answer<()> {
+    let (data, beside) = {
+        let session = held(&session);
+        (session.paths.data().to_path_buf(), session.dest())
+    };
+    let mut picture = |src: &str| {
+        let found = tisty_core::attach::found(src, &data, beside.as_deref()).ok()?;
+        let file = std::fs::File::open(found).ok()?;
+        let mut bytes = Vec::new();
+        std::io::Read::read_to_end(
+            &mut std::io::Read::take(file, tisty_core::arriving::WORD_AT_MOST),
+            &mut bytes,
+        )
+        .ok()?;
+        Some(bytes)
+    };
+    let made = tisty_core::leaving_word::to_word(&bodies, &mut picture).map_err(|e| {
+        blamed(
+            channel::WINDOW,
+            "a Word file could not be made",
+            tisty_core::Error::Io(e),
+        )
+    })?;
+    keep_file(at, made)
 }
 
 #[derive(serde::Serialize)]
@@ -501,37 +590,17 @@ pub fn doc_drop(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer
     held(&session).drop_doc(&id)
 }
 
-#[tauri::command]
-pub fn convert_paper(
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-    body: String,
-) -> Answer<()> {
-    let mut session = held(&session);
-    if session.state.bolted(&id) {
-        return Err(Refusal::of(match session.state.away(&id) {
-            true => "documentAway",
-            false => "documentLocked",
-        }));
-    }
-    let papers = session.paths.docs();
-    let was = tisty_core::docs::read(&papers, &id)
-        .map_err(|_| Refusal::about("cannotRead", id.clone()))?;
-
-    tisty_core::docs::kept_before(session.paths.data(), &id, &was, &body)
-        .map_err(|e| blamed(channel::SYNC, "what it was could not be kept", e))?;
-    tisty_core::docs::write(&papers, &id, &body).map_err(|e| match e {
-        tisty_core::Error::AlreadyRunning => Refusal::of("documentBeingWritten"),
-        e => blamed(
-            channel::SYNC,
-            "the converted document could not be written",
-            e,
-        ),
-    })?;
-    session.mind(&id);
-    let hand = signing(&session.state);
-    session.retell(&id, &body, hand);
-    Ok(())
+// The documents a stricter save would refuse, found by the same rule every writer here follows.
+#[tauri::command(async)]
+pub fn docs_brittle(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<String>> {
+    let papers = held(&session).paths.docs();
+    Ok(tisty_core::docs::names(&papers)
+        .into_iter()
+        .filter(|file| {
+            tisty_core::docs::read(&papers, file)
+                .is_ok_and(|body| tisty_core::docs::survives(&body).is_err())
+        })
+        .collect())
 }
 
 #[tauri::command]

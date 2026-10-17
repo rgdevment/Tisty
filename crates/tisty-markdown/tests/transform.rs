@@ -97,33 +97,6 @@ fn a_link_that_names_no_kept_file_stays_as_it_was() {
 }
 
 #[test]
-fn a_reader_outside_tisty_gets_what_markdown_can_say_and_the_tags_any_reader_passes_over() {
-    use tisty_markdown::to_plain;
-    assert_eq!(
-        to_plain("Un ==azul=={blue}, ==amarillo==, ++sub++ y ::flag red::"),
-        "Un <mark data-pen=\"blue\">azul</mark>, <mark>amarillo</mark>, sub y <span data-ico=\"flag\" data-hue=\"red\">:flag:</span>"
-    );
-    let linked = "![p](plano-0006bf09.png) y [web](https://x.y)";
-    assert_eq!(to_plain(linked), linked);
-}
-
-#[test]
-fn what_a_person_wrote_as_code_or_plain_markdown_reaches_the_reader_untouched() {
-    use tisty_markdown::to_plain;
-    let teaching = "Así se subraya:\n\n```\n++hola++\n```\n\ny `==así==`";
-    assert_eq!(to_plain(teaching), teaching);
-    let whole = "# Título\n\n**fuerte** y *suave*\n\n- uno\n- dos\n\n| a | b |\n| --- | --- |\n| 1 | 2 |\n\nsi a < b entonces";
-    assert_eq!(to_plain(whole), whole);
-}
-
-#[test]
-fn what_goes_out_plain_comes_back_in_tisty_words_but_the_underline() {
-    use tisty_markdown::{to_plain, to_tisty};
-    let body = "==azul=={blue} y ==sí== y ::star:: y ![p](plano-0006bf09.png)";
-    assert_eq!(to_tisty(&to_plain(body)), body);
-}
-
-#[test]
 fn an_old_tag_the_short_words_cannot_hold_stays_as_it_was() {
     for body in [
         "un<u>der</u>line",

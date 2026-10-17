@@ -13,7 +13,6 @@ const store = vi.hoisted(() => ({
   clash: false,
   delays: [] as number[],
   reads: 0,
-  converted: [] as { id: string; was: string }[],
   mute: false,
   shape: null as string | null,
   agrees: true,
@@ -47,12 +46,6 @@ vi.mock("@tauri-apps/api/core", () => ({
         if (store.coming) return Promise.reject({ code: "docComing" });
         if (store.refuse) return Promise.reject(store.refuse);
         return Promise.resolve(store.bodies[String(args?.id)] ?? "");
-      case "convert_paper": {
-        const id = String(args?.id);
-        store.converted.push({ id, was: store.bodies[id] });
-        store.bodies[id] = String(args?.body);
-        return Promise.resolve(null);
-      }
       case "attach":
         return Promise.resolve(`![${String(args?.path)}](${String(args?.path)})`);
       case "attach_pasted": {
@@ -147,7 +140,6 @@ describe("a document the archive holds through its folder", () => {
     store.writes = [];
     store.reads = 0;
     store.delays = [];
-    store.converted = [];
     store.mute = false;
     store.shape = null;
     store.clash = false;
@@ -188,7 +180,6 @@ describe("the document being written", () => {
     store.writes = [];
     store.reads = 0;
     store.delays = [];
-    store.converted = [];
     store.mute = false;
     store.shape = null;
     store.clash = false;
@@ -387,10 +378,8 @@ describe("the document being written", () => {
 
     const editor = await screen.findByLabelText("editor");
     expect(editor.hasAttribute("readonly")).toBe(false);
-    expect(screen.queryByText(/needs to convert|necesita convertir/i)).toBeNull();
     await settled();
     expect(store.writes).toHaveLength(0);
-    expect(store.converted).toHaveLength(0);
   });
 
   it("says nothing when the document is made of what the editor writes", async () => {

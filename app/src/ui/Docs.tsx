@@ -15,7 +15,7 @@ import {
   docWrite,
   type Filed,
   type Folded,
-  keepPdf,
+  keepFile,
   opened,
   type Paper,
   roomy,
@@ -40,6 +40,7 @@ import { pdfOf, signature } from "./printing";
 import Ribbon, { Onward } from "./Ribbon";
 import { PAPER, pageFor } from "./sheets";
 import type { Asking } from "./slashing";
+import { useLeaving } from "./useLeaving";
 import { clearOfChrome } from "./WindowChrome";
 
 const Sheet = lazy(() => import("./Sheet"));
@@ -507,19 +508,26 @@ export default function Docs({
 
   useEffect(() => pageFor(leaf), [leaf]);
 
-  const blobOf = async (signed?: string): Promise<Blob | null> => {
+  // What leaves is the book as it reads, not as the log last settled it.
+  const book = async () => {
     if (!open) return null;
-    // What is printed is the book as it reads, not as the log last settled it.
     const pages = inTextOrder(
       known.filter((one) => one.pageOf === open.id),
       told,
     );
-    const written = await Promise.all(pages.map((one) => docRead(one.file)));
-    const at = (file: string) => {
-      const found = pages.findIndex((one) => one.file === file);
-      return found < 0 ? null : found + 1;
-    };
-    return pdfOf(body, written, leaf, signed, at);
+    return { pages, written: await Promise.all(pages.map((one) => docRead(one.file))) };
+  };
+
+  useLeaving({
+    book: () => book().then((read) => read && [body, ...read.written]),
+    called: called || t("untitledDoc"),
+    onError,
+  });
+
+  const blobOf = async (signed?: string): Promise<Blob | null> => {
+    const read = await book();
+    if (!read) return null;
+    return pdfOf([body, ...read.written], leaf, signed);
   };
 
   const preview = async () => {
@@ -573,7 +581,7 @@ export default function Docs({
       });
       if (!where) return;
       const bytes = new Uint8Array(await blob.arrayBuffer());
-      await keepPdf(where, Array.from(bytes));
+      await keepFile(where, Array.from(bytes));
     } catch (e) {
       onError(saidPlainly(e));
     } finally {

@@ -194,7 +194,7 @@ pub(crate) fn arrived(
     Ok((doc, id, left))
 }
 
-struct Room(std::path::PathBuf);
+pub(crate) struct Room(pub(crate) std::path::PathBuf);
 
 impl Drop for Room {
     fn drop(&mut self) {

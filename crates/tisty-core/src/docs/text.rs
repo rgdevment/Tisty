@@ -264,41 +264,6 @@ pub(super) fn as_written(was: &str, old: &str, new: &str) -> (String, String) {
     (crlf(old), crlf(new))
 }
 
-pub(super) fn unpictured(body: &str, at: &str) -> String {
-    let shut = format!("](<{at}>)");
-    let mut said = String::with_capacity(body.len());
-    let mut from = 0;
-    while let Some(found) = body[from..].find(&shut).map(|n| from + n) {
-        let opened = began(&body[..found]);
-        let cut = match opened {
-            Some(open) if body[..open].ends_with('!') => open - 1,
-            _ => found,
-        };
-        said.push_str(&body[from..cut]);
-        if cut != found {
-            said.push_str(&body[cut + 1..found]);
-        }
-        said.push_str(&shut);
-        from = found + shut.len();
-    }
-    said.push_str(&body[from..]);
-    said
-}
-
-fn began(before: &str) -> Option<usize> {
-    let mut escaped = false;
-    let mut open = None;
-    for (at, c) in before.char_indices() {
-        match c {
-            _ if escaped => escaped = false,
-            '\\' => escaped = true,
-            '[' => open = Some(at),
-            _ => {}
-        }
-    }
-    open
-}
-
 pub fn spelled(said: &str) -> String {
     let flat: String = said
         .chars()

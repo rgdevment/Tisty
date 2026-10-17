@@ -440,9 +440,6 @@ export const served = (reference: string): Promise<string> => invoke("served", {
 
 export const attached = (reference: string): Promise<number[]> => invoke("attached", { reference });
 
-export const attachExport = (reference: string, into: string): Promise<void> =>
-  invoke("attach_export", { reference, into });
-
 export const opened = (reference: string): Promise<void> => invoke("opened", { reference });
 
 export type Keeper = "cloud" | "away" | "plain";
@@ -868,8 +865,7 @@ export const whatWaits = (said: Settled): (typeof WAITS)[keyof typeof WAITS] | n
 
 export const syncNow = (way?: "push" | "pull" | "again"): Promise<Settled> =>
   invoke("sync_now", { way });
-export const convertPaper = (id: string, body: string): Promise<void> =>
-  invoke("convert_paper", { id, body });
+export const docsBrittle = (): Promise<string[]> => invoke("docs_brittle");
 export interface Rift {
   was: string[];
   mine: string[];
@@ -1115,7 +1111,6 @@ export const docDrawn = (body: string): Promise<string> =>
   invoke<ArrayBuffer>("doc_drawn", { body }).then((bytes) => new TextDecoder().decode(bytes));
 export const docPlain = (body: string): Promise<string> => invoke("doc_plain", { body });
 export const noteDrawn = (body: string): Promise<string> => invoke("note_drawn", { body });
-export const docPrinted = (body: string): Promise<unknown> => invoke("doc_printed", { body });
 export const docWrite = (id: string, body: string, anyway?: boolean): Promise<Doc> =>
   invoke("doc_write", { id, body, anyway });
 export const docBack = (id: string): Promise<Doc> => invoke("doc_back", { id });
@@ -1123,8 +1118,12 @@ export const docBackable = (id: string): Promise<boolean> => invoke("doc_backabl
 export const folderFile = (id: string, parent?: string, before?: string): Promise<void> =>
   invoke("folder_file", { id, parent, before });
 
-export const keepPdf = (at: string, bytes: number[]): Promise<void> =>
-  invoke("keep_pdf", { at, bytes });
+export const keepFile = (at: string, bytes: number[]): Promise<void> =>
+  invoke("keep_file", { at, bytes });
+export const pagePdf = (html: string, paper: Paper): Promise<number[]> =>
+  invoke("page_pdf", { html, paper });
+export const docWord = (bodies: string[], at: string): Promise<void> =>
+  invoke("doc_word", { bodies, at });
 
 export const parted = (): Promise<void> => invoke("parted");
 export const sow = (priority?: Priority): Promise<void> => invoke("sow", { priority });

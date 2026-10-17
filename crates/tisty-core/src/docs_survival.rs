@@ -50,11 +50,11 @@ fn what_comes_back_untouched_goes_through() {
     }
 }
 #[test]
-fn both_halves_read_the_same_corpus_the_same_way() {
+fn the_corpus_is_read_the_way_it_says() {
     let raw = std::fs::read_to_string(
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/frail.json"),
     )
-    .expect("the corpus the window reads too");
+    .expect("the corpus of what survives a save");
     let corpus: Vec<serde_json::Value> = serde_json::from_str(&raw).expect("a list of cases");
 
     for one in corpus {

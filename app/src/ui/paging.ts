@@ -177,6 +177,11 @@ const painted = (page: Document, code: HTMLElement) => {
   code.replaceChildren(...nodes);
 };
 
+export const coloredAll = (page: Document) => {
+  for (const code of page.querySelectorAll<HTMLElement>("figure.code > pre > code[class]"))
+    painted(page, code);
+};
+
 export const colored = (page: Document, live: () => boolean) => {
   const codes = Array.from(page.querySelectorAll<HTMLElement>("figure.code > pre > code[class]"));
   const step = (from: number) => {
