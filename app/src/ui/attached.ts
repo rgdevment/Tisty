@@ -56,7 +56,10 @@ const fed = (
         delete box.dataset.state;
         state.replaceChildren();
         player.src = convertFileSrc(real);
-        if (play) player.play().catch(() => undefined);
+        if (play)
+          Promise.resolve()
+            .then(() => player.play())
+            .catch(() => undefined);
       })
       .catch((problem: unknown) => {
         if (!live()) return;
