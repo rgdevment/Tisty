@@ -1228,6 +1228,15 @@ kbd {
   bottom: auto;
   top: calc(100% + 8px);
 }
+.cm-bar.quick-bar {
+  bottom: auto;
+}
+.cm-bar.quick-bar[hidden] {
+  display: none;
+}
+.editing.titled > .cm-hint {
+  margin-bottom: 52px;
+}
 .cm-content img.cm-widgetBuffer {
   display: inline;
   margin: 0;

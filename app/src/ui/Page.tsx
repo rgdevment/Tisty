@@ -84,6 +84,8 @@ export default function Page(props: Readonly<Props>) {
             onBlock: one.turn === turns.current ? reach.current.onBlock : undefined,
             onTick: one.turn === turns.current ? reach.current.onTick : undefined,
             onWiden: one.turn === turns.current ? reach.current.onWiden : undefined,
+            onFormat: one.turn === turns.current ? reach.current.onFormat : undefined,
+            onMenu: one.turn === turns.current ? reach.current.onMenu : undefined,
             onMore: one.turn === turns.current ? reach.current.onMore : undefined,
           })}
           onReady={(frame) => ready(one.turn, frame)}

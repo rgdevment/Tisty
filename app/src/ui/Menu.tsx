@@ -19,10 +19,11 @@ interface Props {
   label: string;
   /** Opened from the bottom of the screen: `at.y` is the edge the menu grows up from. */
   up?: boolean;
+  keeps?: boolean;
   onClose: () => void;
 }
 
-export default function Menu({ at, choices, label, up, onClose }: Props) {
+export default function Menu({ at, choices, label, up, keeps, onClose }: Props) {
   const card = useRef<HTMLDivElement>(null);
   const [where, setWhere] = useState(at);
   const [deeper, setDeeper] = useState<{ label: string; choices: Choice[] } | null>(null);
@@ -79,6 +80,7 @@ export default function Menu({ at, choices, label, up, onClose }: Props) {
       ref={card}
       role="menu"
       aria-label={showing.label}
+      data-keeps-writing={keeps ? "" : undefined}
       style={{ left: where.x, top: where.y }}
       onKeyDown={(e) => {
         if (e.key === "Escape") {
