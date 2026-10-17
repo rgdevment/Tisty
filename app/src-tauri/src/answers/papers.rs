@@ -176,8 +176,14 @@ pub async fn page_pdf(app: tauri::AppHandle, html: String, paper: String) -> Ans
     let page = room.0.join("page.html");
     let to = room.0.join("page.pdf");
     let cannot = || Refusal::about("cannotWrite", to.display().to_string());
-    std::fs::create_dir_all(&room.0).map_err(|_| cannot())?;
-    std::fs::write(&page, html).map_err(|_| cannot())?;
+    let (folder, written) = (room.0.clone(), page.clone());
+    let laid = tauri::async_runtime::spawn_blocking(move || {
+        std::fs::create_dir_all(&folder).and_then(|()| std::fs::write(&written, html))
+    })
+    .await;
+    if !matches!(laid, Ok(Ok(()))) {
+        return Err(cannot());
+    }
     let url = url::Url::from_file_path(&page).map_err(|()| cannot())?;
     let (told, heard) = std::sync::mpsc::channel();
     let told = std::sync::Mutex::new(Some(told));
@@ -203,18 +209,19 @@ pub async fn page_pdf(app: tauri::AppHandle, html: String, paper: String) -> Ans
         })
         .build()
         .map_err(|_| cannot())?;
+    let made = to.clone();
     let printed = tauri::async_runtime::spawn_blocking(move || {
-        heard
+        let done = heard
             .recv_timeout(std::time::Duration::from_secs(60))
-            .unwrap_or(false)
+            .unwrap_or(false);
+        done.then(|| std::fs::read(&made).ok()).flatten()
     })
     .await
-    .unwrap_or(false);
+    .ok()
+    .flatten();
     let _ = window.destroy();
-    if !printed {
-        return Err(cannot());
-    }
-    std::fs::read(&to).map_err(|_| cannot())
+    tauri::async_runtime::spawn_blocking(move || drop(room));
+    printed.ok_or_else(cannot)
 }
 
 // The pictures come from the store and its sync folder alike, read whole since Word carries them inside.

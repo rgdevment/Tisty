@@ -63,3 +63,41 @@ fn pages_follow_one_another_and_a_link_to_another_document_is_its_words() {
         "{said}"
     );
 }
+
+const GIF: &[u8] = b"GIF89a\x20\x00\x10\x00\x00\x00\x00";
+const JPEG: &[u8] =
+    b"\xff\xd8\xff\xe0\x00\x04\x00\x00\xff\xc0\x00\x11\x08\x00\x30\x00\x40\x03\x01\x22\x00";
+
+#[test]
+fn a_gif_and_a_jpeg_travel_with_their_own_size() {
+    let body = "![g](g-0006bf09.gif) ![j](j-0006bf10.jpg)";
+    let bytes = to_word(&[body.to_string()], &mut |src| {
+        Some(if src.ends_with(".gif") {
+            GIF.to_vec()
+        } else {
+            JPEG.to_vec()
+        })
+    })
+    .unwrap();
+    let (_, pictures) = back(&bytes);
+    assert_eq!(pictures, 2);
+}
+
+#[test]
+fn quotes_callouts_tasks_and_a_numbered_list_from_three_come_through() {
+    let body = "> dicho\n\n> [!WARNING]\n> cuidado\n\n- [x] hecho\n- [ ] falta\n\n3. tres\n4. cuatro\n   - dentro\n\n| a | b |\n| :-: | --: |\n| 1 | 2 |\n\n==rojo=={red} ==verde=={green} ==azul=={blue} ==rosa=={pink} ==café=={brown} ==gris=={gray} ~~fuera~~ *suave* ++sub++ `x`";
+    let (said, _) = back(&to_word(&[body.to_string()], &mut |_| None).unwrap());
+
+    for piece in [
+        "dicho",
+        "cuidado",
+        "☑ hecho",
+        "☐ falta",
+        "tres",
+        "dentro",
+        "| a | b |",
+        "*suave*",
+    ] {
+        assert!(said.contains(piece), "{piece:?} missing from {said}");
+    }
+}

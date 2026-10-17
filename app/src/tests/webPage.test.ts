@@ -40,3 +40,21 @@ describe("a document as one web page that travels alone", () => {
     expect(made).toContain("foto");
   });
 });
+
+describe("a document as a page on paper", () => {
+  it("takes the sheet, opens what folds and signs at the foot", async () => {
+    drawn.refused = false;
+    const light = document.createElement("style");
+    light.textContent = ":root{--tisty-ink:#123456}";
+    document.head.append(light);
+    const made = await webPage(["Plan<details><summary>Más</summary>x</details>"], "Plan", {
+      leaf: "a4",
+      signed: "Escrito por Ana",
+    });
+    light.remove();
+
+    expect(made).toContain("@page{size:A4");
+    expect(made).toContain("<details open");
+    expect(made).toContain('class="signed">Escrito por Ana');
+  });
+});
