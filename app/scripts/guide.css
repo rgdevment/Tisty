@@ -87,8 +87,19 @@ body {
   border-radius: 0;
   background: none;
 }
-.top .out {
+.top .docs {
   margin-left: auto;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 550;
+  color: var(--tisty-soft);
+}
+.top .docs:hover {
+  background: var(--tisty-hover);
+  color: var(--tisty-ink);
+}
+.top .out {
   padding: 6px 14px;
   border-radius: 999px;
   background: var(--guide-flame);
@@ -281,6 +292,14 @@ iframe.widget {
     border-radius: 999px;
   }
   .top .lang {
+    display: none;
+  }
+}
+@media (max-width: 480px) {
+  .top {
+    gap: 10px;
+  }
+  .top .out {
     display: none;
   }
 }

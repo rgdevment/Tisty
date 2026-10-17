@@ -10,6 +10,8 @@ export const LANGUAGES = [
     near: "Next and previous",
     home: "https://www.tisty.app/",
     meet: "Meet Tisty",
+    docs: "Docs",
+    docsAt: "https://www.tisty.app/docs/",
     before: "Previous",
     after: "Next",
     written: "You write",
@@ -28,6 +30,8 @@ export const LANGUAGES = [
     near: "Anterior y siguiente",
     home: "https://www.tisty.app/es/",
     meet: "Conoce Tisty",
+    docs: "Ayuda",
+    docsAt: "https://www.tisty.app/es/ayuda/",
     before: "Anterior",
     after: "Siguiente",
     written: "Escribes",
@@ -133,6 +137,7 @@ ${AHEAD}
 <body>
 <header class="top">
 <a class="brand" href="./"><img src="${up}tisty.svg" alt="" width="36" height="34">Tisty Markdown</a>
+<a class="docs" href="${language.docsAt}">${language.docs}</a>
 <a class="out" href="${language.home}">${language.meet}</a>
 <a class="lang" lang="${other.code}" hreflang="${other.code}" href="${language.dir ? "../" : other.dir}${twin.slug === "index" ? "" : twin.slug}">${other.name}</a>
 <button class="theme" type="button" aria-label="${language.dark}" title="${language.dark}" onclick="${SWITCH}">${MOON}${SUN}</button>
