@@ -645,6 +645,16 @@ a.card:hover,
 .front {
   display: none;
 }
+.refdef {
+  margin: 2px 0;
+  font-size: 0.82em;
+  color: var(--tisty-faint);
+  overflow-wrap: anywhere;
+}
+.refdef-label {
+  color: var(--tisty-soft);
+  font-weight: 550;
+}
 .cm-front {
   font-family: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
   font-size: 0.86em;

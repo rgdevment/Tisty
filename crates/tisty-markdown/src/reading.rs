@@ -71,6 +71,7 @@ fn reading(text: &str, passes: &[fn(&mut Vec<Span>, &str)]) -> Doc {
             _ => {}
         }
     }
+    defined(text, skip, &mut blocks);
     polish_all(&mut blocks, text, passes);
     #[cfg(feature = "tags")]
     crate::marks::tagged(&mut blocks, text);
@@ -137,6 +138,67 @@ fn polish_all(blocks: &mut Vec<Block>, text: &str, passes: &[fn(&mut Vec<Span>, 
 
 // The only place the tokenizer is named: swapping it for another touches nothing else.
 fn tokens(text: &str) -> impl Iterator<Item = (Event<'_>, Range<usize>)> {
+    Parser::new_ext(text, options()).into_offset_iter()
+}
+
+// The tokenizer drops a link's definition from what it hands over, so the page would have nowhere to show or edit it.
+fn defined(text: &str, skip: usize, blocks: &mut Vec<Block>) {
+    let parser = Parser::new_ext(&text[skip..], options());
+    let mut found: Vec<Block> = parser
+        .reference_definitions()
+        .iter()
+        .map(|(label, one)| {
+            let at = one.span.start + skip..one.span.end + skip;
+            let kind = Kind::Definition {
+                label: label.to_string(),
+                to: one.dest.to_string(),
+            };
+            leaf(kind, at)
+        })
+        .filter(|one| {
+            !blocks
+                .iter()
+                .any(|held| held.at.start < one.at.end && one.at.start < held.at.end)
+        })
+        .collect();
+    found.extend(repeated(text, skip, blocks, &found));
+    if found.is_empty() {
+        return;
+    }
+    blocks.append(&mut found);
+    blocks.sort_by_key(|one| one.at.start);
+}
+
+// The parser keeps one definition per label, so a label written twice leaves its later lines unclaimed.
+fn repeated(text: &str, skip: usize, blocks: &[Block], found: &[Block]) -> Vec<Block> {
+    let claimed = |at: usize| {
+        blocks
+            .iter()
+            .chain(found)
+            .any(|one| one.at.start <= at && at < one.at.end)
+    };
+    let mut out = Vec::new();
+    let mut at = skip;
+    for line in text[skip..].split_inclusive('\n') {
+        let start = at;
+        at += line.len();
+        let said = line.trim();
+        if claimed(start) || !said.starts_with('[') || said.starts_with("[^") {
+            continue;
+        }
+        let Some((label, to)) = said[1..].split_once("]:") else {
+            continue;
+        };
+        let kind = Kind::Definition {
+            label: label.to_string(),
+            to: to.split_whitespace().next().unwrap_or_default().to_string(),
+        };
+        out.push(leaf(kind, start..start + line.trim_end().len()));
+    }
+    out
+}
+
+fn options() -> Options {
     let mut options = Options::ENABLE_TABLES
         | Options::ENABLE_TASKLISTS
         | Options::ENABLE_STRIKETHROUGH
@@ -145,7 +207,7 @@ fn tokens(text: &str) -> impl Iterator<Item = (Event<'_>, Range<usize>)> {
     if cfg!(feature = "math") {
         options |= Options::ENABLE_MATH;
     }
-    Parser::new_ext(text, options).into_offset_iter()
+    options
 }
 
 // A digit right after the closing dollar is a price written next to another one, not a formula.
