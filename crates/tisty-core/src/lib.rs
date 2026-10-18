@@ -46,7 +46,6 @@ pub mod story;
 pub mod tagging;
 pub mod task_docs;
 pub mod task_front;
-pub mod templates;
 pub mod text;
 pub mod tidy;
 pub mod turned;

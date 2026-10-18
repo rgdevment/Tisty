@@ -15,6 +15,9 @@ interface Props {
 }
 
 // A command the window does not know answers with whatever it holds, so only a real document counts.
+const templateOf = (task: Task): string =>
+  t(task.repeat || task.after ? "templateRoutine" : "templateTask");
+
 const real = (said: unknown): TaskDoc | null => {
   const one = said as Partial<TaskDoc> | null;
   return typeof one?.file === "string" && typeof one.body === "string" ? (one as TaskDoc) : null;
@@ -27,12 +30,13 @@ export default function TaskWords({ task, onSettle, onError, onDoc }: Props) {
   const failed = useRef(onError);
   failed.current = onError;
   const open = task.status === "open";
+  const template = templateOf(task);
 
   useEffect(() => {
     let live = true;
     const opened = () => taskDocOpen(task.id).then(real);
     opened()
-      .then((found) => (found || !open ? found : taskDocMake(task.id).then(opened)))
+      .then((found) => (found || !open ? found : taskDocMake(task.id, template).then(opened)))
       .then((found) => {
         if (!live) return;
         setDoc(found);
@@ -44,7 +48,7 @@ export default function TaskWords({ task, onSettle, onError, onDoc }: Props) {
     return () => {
       live = false;
     };
-  }, [task.id, open, turn]);
+  }, [task.id, open, template, turn]);
 
   if (!doc) return null;
   return (

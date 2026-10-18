@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Task } from "../core";
+import { t } from "../locales";
 import TaskWords from "../ui/TaskWords";
 
 const ipc = vi.hoisted(() => ({
@@ -55,8 +56,17 @@ describe("an open task", () => {
     render(<TaskWords task={task()} onSettle={() => Promise.resolve(null)} />);
 
     expect(await screen.findByText("sheet:Words it held.")).toBeTruthy();
-    expect(sent("task_doc_make")).toEqual([{ cmd: "task_doc_make", args: { id: "one" } }]);
+    expect(sent("task_doc_make")).toEqual([
+      { cmd: "task_doc_make", args: { id: "one", template: t("templateTask") } },
+    ]);
     expect(sent("task_doc_open")).toHaveLength(2);
+  });
+
+  it("takes the recurring template when it repeats", async () => {
+    render(<TaskWords task={{ ...task(), after: "zero" } as Task} />);
+
+    await waitFor(() => expect(sent("task_doc_make")).toHaveLength(1));
+    expect(sent("task_doc_make")[0].args.template).toBe(t("templateRoutine"));
   });
 
   it("is not made again once it has its document", async () => {

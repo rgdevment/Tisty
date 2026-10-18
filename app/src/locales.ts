@@ -71,6 +71,10 @@ const en = {
   internalNamed: "Something went wrong — {name}",
   steps: "Steps",
   history: "History",
+  templateTask:
+    "## Description\n<!-- What has to happen, and why? A line or two is enough. -->\n\n## Done when\n<!-- How you will know it is finished. -->\n\n## Steps\n<!-- One box per step. -->\n\n## Notes\n<!-- What you find out along the way. -->\n\n## When it closes\n<!-- What worked? What would you do differently next time? -->\n",
+  templateRoutine:
+    "## What for\n<!-- Why this comes back, in a line. -->\n\n## Every round\n<!-- One box per thing to do each time. -->\n\n## This time\n<!-- Anything different this round? -->\n",
   description: "Description",
   collapse: "Back",
   quadDo: "Do",
@@ -2028,6 +2032,10 @@ const es: Catalog = {
   internalNamed: "Algo falló — {name}",
   steps: "Pasos",
   history: "Historial",
+  templateTask:
+    "## Descripción\n<!-- ¿Qué hay que lograr y por qué? Una o dos líneas bastan. -->\n\n## Para estar lista\n<!-- Cómo vas a saber que está hecha. -->\n\n## Pasos\n<!-- Una casilla por paso. -->\n\n## Notas\n<!-- Lo que vayas averiguando mientras la haces. -->\n\n## Al cerrarla\n<!-- ¿Qué funcionó? ¿Qué harías distinto la próxima vez? -->\n",
+  templateRoutine:
+    "## Para qué\n<!-- Por qué vuelve, en una línea. -->\n\n## Cada vuelta\n<!-- Una casilla por cosa que hacer cada vez. -->\n\n## Esta vez\n<!-- ¿Algo distinto en esta vuelta? -->\n",
   description: "Descripción",
   collapse: "Volver",
   quadDo: "Hacer",
