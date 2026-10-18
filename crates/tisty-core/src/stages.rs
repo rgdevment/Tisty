@@ -18,16 +18,20 @@ pub fn stages(body: &str) -> Vec<Stage> {
     let doc = tisty_markdown::read(body);
     let mut out = Vec::new();
     for block in doc.blocks() {
-        gathered(block, body, &mut out);
+        gathered(block, body, 0, &mut out);
     }
     out
 }
 
-fn gathered(block: &Block, body: &str, out: &mut Vec<Stage>) {
+fn gathered(block: &Block, body: &str, quoted: usize, out: &mut Vec<Stage>) {
+    let quoted = quoted + usize::from(matches!(block.kind, Kind::Quote | Kind::Callout(_)));
     match block.kind {
         Kind::Code { .. } => return,
         Kind::Item { done: Some(done) } => {
-            if let Some(text) = body.get(block.at.clone()).and_then(said) {
+            if let Some(text) = body
+                .get(block.at.clone())
+                .and_then(|item| said(item, quoted))
+            {
                 out.push(Stage {
                     text,
                     done,
@@ -38,7 +42,7 @@ fn gathered(block: &Block, body: &str, out: &mut Vec<Stage>) {
         _ => {}
     }
     for inner in &block.inner {
-        gathered(inner, body, out);
+        gathered(inner, body, quoted, out);
     }
 }
 
@@ -46,19 +50,34 @@ fn listed(line: &str) -> bool {
     let numbered = line.find(['.', ')']).is_some_and(|at| {
         at > 0
             && line[..at].chars().all(|one| one.is_ascii_digit())
-            && line[at + 1..].starts_with(' ')
+            && (line[at + 1..].is_empty() || line[at + 1..].starts_with(' '))
     });
-    numbered || ["- ", "* ", "+ "].iter().any(|mark| line.starts_with(mark))
+    let bullet = ["-", "*", "+"]
+        .iter()
+        .any(|mark| line == *mark || line.starts_with(&format!("{mark} ")));
+    numbered || bullet
 }
 
-// Words another editor wrapped onto more lines are still the stage's, up to a gap, a list or code.
-fn said(item: &str) -> Option<String> {
+fn another_block(line: &str) -> bool {
+    line.is_empty()
+        || listed(line)
+        || line.starts_with(['#', '<', '|'])
+        || ["```", "~~~", "---", "===", "***", "___"]
+            .iter()
+            .any(|mark| line.starts_with(mark))
+}
+
+// Wrapped words are the stage's own; a quote deeper than the item's, a list or a heading is not.
+fn said(item: &str, quoted: usize) -> Option<String> {
     let mut lines = item.lines();
     let (_, first) = lines.next()?.split_once(']')?;
     let mut words = vec![first.trim()];
     for line in lines {
-        let bare = line.trim_start_matches(|one: char| one == '>' || one.is_whitespace());
-        if bare.is_empty() || listed(bare) || bare.starts_with("```") || bare.starts_with("~~~") {
+        let mut bare = line.trim_start();
+        for _ in 0..quoted {
+            bare = bare.strip_prefix('>').unwrap_or(bare).trim_start();
+        }
+        if bare.starts_with('>') || another_block(bare) {
             break;
         }
         words.push(bare.trim_end());
@@ -82,8 +101,7 @@ fn ordered(task: &Task) -> Vec<&Step> {
     steps
 }
 
-// A lone pair left between two that agree is a rename, but only between two texts: a step and a
-// line that merely sit in the same place are never taken for each other.
+// A lone pair between two that agree is a rename, never a step and a line merely side by side.
 fn paired(from: &[String], to: &[String], renames: bool) -> Vec<Option<usize>> {
     let mut of = vec![None; to.len()];
     let mut taken = vec![false; from.len()];
@@ -120,37 +138,22 @@ fn paired(from: &[String], to: &[String], renames: bool) -> Vec<Option<usize>> {
     of
 }
 
-fn titles(steps: &[&Step]) -> Vec<String> {
-    steps.iter().map(|one| title(&one.text)).collect()
-}
-
-fn titled(stages: &[Stage]) -> Vec<String> {
-    stages.iter().map(|one| title(&one.text)).collect()
+fn titled<'a>(texts: impl IntoIterator<Item = &'a String>) -> Vec<String> {
+    texts.into_iter().map(|one| title(one)).collect()
 }
 
 fn texts(stages: &[Stage]) -> Vec<String> {
     stages.iter().map(|one| one.text.clone()).collect()
 }
 
-fn earlier(steps: &[&Step], before: Option<&str>) -> Vec<Stage> {
-    match before {
-        Some(body) => stages(body),
-        None => steps
-            .iter()
-            .map(|one| Stage {
-                text: one_line(&one.text),
-                done: one.done,
-                at: 0..0,
-            })
-            .collect(),
-    }
-}
-
-// The steps the document holds take the places they already had, in the document's order, so a
-// step never written into it keeps its place among them.
+// The document's steps refill the places they held, so a step it never had keeps its own.
 fn reordered(task: &Task, steps: &[&Step], in_doc: &[usize]) -> (Vec<Op>, Vec<String>) {
     let mut keys: Vec<String> = steps.iter().map(|one| one.order.clone()).collect();
-    let slots: Vec<usize> = (0..steps.len()).filter(|at| in_doc.contains(at)).collect();
+    let mut held = vec![false; steps.len()];
+    for at in in_doc {
+        held[*at] = true;
+    }
+    let slots: Vec<usize> = (0..steps.len()).filter(|at| held[*at]).collect();
     let mut sequence: Vec<usize> = (0..steps.len()).collect();
     for (slot, step) in slots.iter().zip(in_doc) {
         sequence[*slot] = *step;
@@ -177,20 +180,20 @@ fn reordered(task: &Task, steps: &[&Step], in_doc: &[usize]) -> (Vec<Op>, Vec<St
 /// Only what changed between the two texts reaches the log.
 pub fn reconciled(task: &Task, before: Option<&str>, now: &str) -> Vec<Op> {
     let steps = ordered(task);
-    let was = earlier(&steps, before);
     let is = stages(now);
-    let step_of = paired(&titles(&steps), &titled(&was), false);
+    // A document coming in for the first time is taken as it stands: its boxes say nothing new.
+    let was = before.map_or_else(|| is.clone(), stages);
+    let step_of = paired(
+        &titled(steps.iter().map(|one| &one.text)),
+        &titled(was.iter().map(|one| &one.text)),
+        false,
+    );
     let was_of = paired(&texts(&was), &texts(&is), true);
     let bound: Vec<Option<(usize, usize)>> = was_of
         .iter()
         .map(|one| one.and_then(|w| step_of[w].map(|s| (w, s))))
         .collect();
-    let mut in_doc: Vec<usize> = Vec::new();
-    for (_, s) in bound.iter().flatten() {
-        if !in_doc.contains(s) {
-            in_doc.push(*s);
-        }
-    }
+    let in_doc: Vec<usize> = bound.iter().flatten().map(|(_, s)| *s).collect();
     let (mut ops, keys) = reordered(task, &steps, &in_doc);
 
     let mut before_key: Option<String> = None;
@@ -216,7 +219,9 @@ pub fn reconciled(task: &Task, before: Option<&str>, now: &str) -> Vec<Op> {
             before_key = Some(keys[s].clone());
             continue;
         }
-        if was_of[at].is_some() {
+        // A box with no step that nobody touched may be one whose step was taken away on purpose.
+        let touched = was_of[at].is_none_or(|w| was[w].text != one.text || was[w].done != one.done);
+        if before.is_some() && !touched {
             continue;
         }
         let after = bound[at + 1..]
@@ -260,9 +265,16 @@ pub fn reconciled(task: &Task, before: Option<&str>, now: &str) -> Vec<Op> {
 
 /// The file's own boxes may be stale, so a document going out is ticked as the log has it.
 pub fn ticked(task: &Task, body: &str) -> String {
+    if task.steps.is_empty() || !body.contains('[') {
+        return body.to_string();
+    }
     let steps = ordered(task);
     let found = stages(body);
-    let of = paired(&titles(&steps), &titled(&found), false);
+    let of = paired(
+        &titled(steps.iter().map(|one| &one.text)),
+        &titled(found.iter().map(|one| &one.text)),
+        false,
+    );
     let mut out = body.to_string();
     for (stage, step) in found.iter().zip(&of).rev() {
         let Some(step) = step.map(|at| steps[at]) else {

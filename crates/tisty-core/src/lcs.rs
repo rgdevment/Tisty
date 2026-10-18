@@ -1,4 +1,4 @@
-pub const CELLS_AT_MOST: usize = 4_000_000;
+pub const CELLS_AT_MOST: usize = 2001 * 2001;
 
 pub struct Table {
     wide: usize,
