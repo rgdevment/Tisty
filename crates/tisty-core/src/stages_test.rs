@@ -363,7 +363,7 @@ fn a_step_filed_from_elsewhere_joins_the_document_at_its_end() {
     );
     assert_eq!(
         ticked(&task, "---\ntask: x\n---\n"),
-        "---\ntask: x\n---\n- [ ] one\n- [x] from an agent\n"
+        "---\ntask: x\n---\n\n- [ ] one\n- [x] from an agent\n"
     );
 }
 

@@ -1063,9 +1063,9 @@ impl State {
             .tasks
             .values()
             .find(|task| task.after == Some(id) && task.status == crate::model::Status::Open)
-            .filter(|born| untouched(born))
+            .filter(|born| untouched(born) && crate::task_docs::of(self, born.id).is_none())
         {
-            ops.extend(crate::task_docs::erased_with(self, born.id));
+            ops.push(Op::TaskDelete { id: born.id });
         }
         ops
     }

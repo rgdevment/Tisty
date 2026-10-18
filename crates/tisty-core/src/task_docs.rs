@@ -106,7 +106,12 @@ pub fn first_words(state: &State, task: TaskId) -> String {
     {
         out.push_str(&format!("\n{said}\n"));
     }
-    crate::stages::ticked(one, &out)
+    let steps = crate::stages::ordered(one);
+    if !steps.is_empty() {
+        out.push('\n');
+        out.push_str(&crate::stages::lines(&steps));
+    }
+    out
 }
 
 pub fn made(root: &Path, state: &State, task: TaskId, by: Option<String>) -> crate::Result<Op> {

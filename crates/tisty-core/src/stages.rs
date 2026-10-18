@@ -80,7 +80,15 @@ pub fn title(text: &str) -> String {
     format!("{}…", room[..cut].trim_end())
 }
 
-fn ordered(task: &Task) -> Vec<&Step> {
+/// Each step written as the stage a document holds for it, one line apiece.
+pub fn lines(steps: &[&Step]) -> String {
+    steps
+        .iter()
+        .map(|step| format!("- [{}] {}\n", if step.done { "x" } else { " " }, step.text))
+        .collect()
+}
+
+pub fn ordered(task: &Task) -> Vec<&Step> {
     let mut steps: Vec<&Step> = task.steps.iter().collect();
     steps.sort_by(|a, b| a.order.cmp(&b.order).then(a.id.cmp(&b.id)));
     steps
@@ -293,15 +301,10 @@ pub fn ticked(task: &Task, body: &str) -> String {
         return out;
     }
     let mut grown = out.trim_end_matches(['\n', '\r']).to_string();
-    grown.push_str(if grown.is_empty() || grown.ends_with("---") {
-        "\n"
-    } else {
-        "\n\n"
-    });
-    for step in &missing {
-        let mark = if step.done { "x" } else { " " };
-        grown.push_str(&format!("- [{mark}] {}\n", step.text));
+    if !grown.is_empty() {
+        grown.push_str("\n\n");
     }
+    grown.push_str(&lines(&missing));
     // Lines swallowed by what the text leaves open, a fence say, would be added again on every open.
     match stages(&grown).len() == found.len() + missing.len() {
         true => grown,

@@ -4886,3 +4886,19 @@ fn a_task_s_document_lends_no_tag_and_counts_in_none() {
     assert_eq!(state.docs_tagged(&tag).count(), 0);
     assert!(!state.tags().contains(&tag));
 }
+
+#[test]
+fn reopening_leaves_a_successor_that_has_a_document_of_its_own() {
+    let (mut state, id) = repeating();
+    let born = successor(&state, id);
+    let room = tempfile::tempdir().unwrap();
+    let made = crate::task_docs::made(room.path(), &state, born, None).unwrap();
+    state.apply(&ev(15, "a", made));
+
+    let ops = state.reopening(id);
+
+    assert!(
+        !ops.iter()
+            .any(|one| matches!(one, Op::TaskDelete { .. } | Op::DocDelete { .. }))
+    );
+}
