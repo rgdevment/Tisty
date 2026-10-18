@@ -18,7 +18,7 @@ interface Props {
   onDiscardAll: (tasks: string[]) => void;
 }
 
-const KEPT = "tisty.asked";
+const KEPT = "tisty.tray";
 
 export default function Matrix({
   tasks,
