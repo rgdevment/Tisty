@@ -169,13 +169,41 @@ fn the_widest_paper_we_accept_is_woven_without_eating_the_machine() {
 }
 
 #[test]
-fn a_byte_order_mark_does_not_smuggle_front_matter_past_the_gate() {
+fn the_properties_come_whole_from_the_side_that_changed_them_mark_and_all() {
     let base = "\u{feff}---\ntitle: uno\n---\n\ncuerpo\n";
     let mine = "\u{feff}---\ntitle: uno\n---\n\notro cuerpo\n";
     let theirs = "\u{feff}---\ntitle: dos\n---\n\ncuerpo\n";
 
     assert!(front_matter(base));
-    assert!(merged(base, mine, theirs).is_none());
+    let out = merged(base, mine, theirs).expect("one changed the words, the other the title");
+    assert!(out.starts_with("\u{feff}---\ntitle: dos\n---\n"), "{out:?}");
+    assert!(out.contains("otro cuerpo"), "{out:?}");
+    assert_eq!(out.matches("---").count(), 2, "{out:?}");
+}
+
+#[test]
+fn properties_both_sides_changed_differently_are_left_for_the_person() {
+    let base = "---\ntitle: uno\n---\n\ncuerpo\n";
+    let mine = "---\ntitle: dos\n---\n\ncuerpo\n";
+    let theirs = "---\ntitle: tres\n---\n\ncuerpo\n";
+
+    assert_eq!(merged(base, mine, theirs), None);
+    assert!(rifts(base, mine, theirs).is_empty());
+}
+
+#[test]
+fn a_task_s_document_written_on_two_machines_comes_together_on_its_own() {
+    let front = "---\ntask: 01M563T6T541A3Q2PP5YQW5XK1\n---\n\n";
+    let base = format!("{front}uno\n\ndos\n\ntres\n");
+    let mine = format!("{front}uno cambiado\n\ndos\n\ntres\n");
+    let theirs = format!("{front}uno\n\ndos\n\ntres cambiado\n");
+
+    let out = merged(&base, &mine, &theirs).expect("they touched different blocks");
+    assert!(out.starts_with(front), "{out:?}");
+    assert!(
+        out.contains("uno cambiado") && out.contains("tres cambiado"),
+        "{out:?}"
+    );
 }
 
 #[test]
