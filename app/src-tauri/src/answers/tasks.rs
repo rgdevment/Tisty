@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use tisty_core::event::{LogAdd, LogEdit, TaskPatch};
+use tisty_core::event::TaskPatch;
 use tisty_core::witness::{self, Fact, channel};
 use tisty_core::{Config, Op, Tag, Task};
 
@@ -457,67 +457,6 @@ pub fn patch(
     if !ops.is_empty() {
         session.commit_all(ops)?;
     }
-    session
-        .state
-        .tasks
-        .get(&id)
-        .cloned()
-        .ok_or_else(|| Refusal::of("notATaskId"))
-}
-
-#[tauri::command]
-pub fn write_log(
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-    entry: Option<String>,
-    body: String,
-) -> Answer<Task> {
-    let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
-    let body = body.trim().to_string();
-    // Empty on an existing entry takes it out, the same op undo writes.
-    if body.is_empty() && entry.is_none() {
-        return Err(Refusal::of("emptyEntry"));
-    }
-    tisty_core::state::short_enough(&body).map_err(|e| match e {
-        tisty_core::Error::TextTooLong { limit, .. } => {
-            Refusal::about("textTooLong", weighed(limit))
-        }
-        _ => Refusal::of("internal"),
-    })?;
-    let mut session = held(&session);
-
-    let op = match entry {
-        Some(raw) => {
-            let entry = raw.parse().map_err(|_| Refusal::of("notAnEntry"))?;
-            if body.is_empty() {
-                session.reload()?;
-            }
-            let task = session.state.tasks.get(&id);
-            if body.is_empty()
-                && task
-                    .and_then(|task| task.entry(entry))
-                    .is_none_or(|one| one.body.trim().is_empty())
-            {
-                return Err(Refusal::of("notAnEntry"));
-            }
-            if body.is_empty()
-                && task
-                    .and_then(|task| task.resolved.as_ref())
-                    .is_some_and(|said| said.entry == entry)
-            {
-                return Err(Refusal::of("markEntry"));
-            }
-            Op::TaskLogEdit {
-                id,
-                d: LogEdit { entry, body },
-            }
-        }
-        None => Op::TaskLog {
-            id,
-            d: LogAdd::new(ulid::Ulid::generate(), body).in_zone(Some(zone())),
-        },
-    };
-    session.commit(op)?;
     session
         .state
         .tasks

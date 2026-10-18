@@ -60,7 +60,6 @@ describe("what the detail of a task is handed", () => {
     const shown = detailOf(task, h);
 
     shown.onPatch({ title: "Otra" } as never);
-    shown.onLog("nota");
     shown.onReopen();
     shown.onStillOpen();
     shown.onFold(true);
@@ -71,7 +70,7 @@ describe("what the detail of a task is handed", () => {
     shown.onSettle("antes", "ahora");
     await flush();
 
-    expect(h.act).toHaveBeenCalledTimes(10);
+    expect(h.act).toHaveBeenCalledTimes(9);
     expect(sent()).toContain("task_of");
     expect(calls).toContainEqual({
       cmd: "task_doc_settled",

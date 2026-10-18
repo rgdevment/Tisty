@@ -44,11 +44,8 @@ function open(task: Task = written) {
       task={task}
       lists={[]}
       known={[]}
-      expanded={false}
-      onExpand={() => {}}
       onCollapse={() => {}}
       onPatch={on.patch}
-      onLog={on.log}
       onComplete={() => {}}
       onDiscard={on.discard}
       onReopen={on.reopen}
@@ -68,11 +65,6 @@ const box = (name: string) =>
     name: new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
   }) as HTMLTextAreaElement | HTMLInputElement;
 
-const into = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
-  await user.click(screen.getByLabelText(name));
-  return box(name);
-};
-
 describe("escape discards, blur keeps", () => {
   it("puts the title back and writes nothing", async () => {
     const user = userEvent.setup();
@@ -83,19 +75,6 @@ describe("escape discards, blur keeps", () => {
 
     expect(on.patch).not.toHaveBeenCalled();
     expect(box("Title").value).toBe("write the report");
-  });
-
-  it("puts a journal entry back and writes nothing", async () => {
-    const user = userEvent.setup();
-    const on = open();
-
-    await user.clear(await into(user, "spoke to accounting"));
-    await user.type(box("spoke to accounting"), "never mind{Escape}");
-
-    expect(on.log).not.toHaveBeenCalled();
-    expect(screen.getByLabelText("spoke to accounting").textContent).toContain(
-      "spoke to accounting",
-    );
   });
 });
 
@@ -120,82 +99,6 @@ describe("what an edit is allowed to do", () => {
 
     expect(on.patch).not.toHaveBeenCalled();
   });
-
-  it("keeps a journal entry on Enter, which is how one is sent", async () => {
-    const user = userEvent.setup();
-    const on = open();
-
-    await user.type(await into(user, "Journal"), "they answered{Enter}");
-
-    expect(on.log).toHaveBeenCalledWith("they answered");
-    expect(screen.getByLabelText("Journal").textContent).toContain("What happened");
-  });
-
-  it("keeps a journal entry of several lines, written with Shift", async () => {
-    const user = userEvent.setup();
-    const on = open();
-
-    await user.type(
-      await into(user, "Journal"),
-      "they answered{Shift>}{Enter}{/Shift}and then some",
-    );
-    expect(on.log).not.toHaveBeenCalled();
-
-    await user.tab();
-    expect(on.log).toHaveBeenCalledWith(["they answered", "and then some"].join("\n"));
-  });
-});
-
-const erasers = () =>
-  screen
-    .getAllByRole("button", { name: /^Remove / })
-    .filter((one) => !one.getAttribute("aria-label")?.includes("collect the figures"));
-
-describe("taking a journal entry out", () => {
-  it("asks for that entry by its id", async () => {
-    const user = userEvent.setup();
-    const on = open();
-
-    dialog.sure = true;
-    expect(erasers()).toHaveLength(1);
-    await user.click(erasers()[0]);
-
-    await vi.waitFor(() => expect(on.log).toHaveBeenCalledWith("", "01E"));
-  });
-
-  it("asks first, and leaves the entry when the answer is no", async () => {
-    const user = userEvent.setup();
-    const on = open();
-    dialog.sure = false;
-    dialog.asked = 0;
-
-    await user.click(erasers()[0]);
-
-    await vi.waitFor(() => expect(dialog.asked).toBe(1));
-    expect(on.log).not.toHaveBeenCalled();
-  });
-
-  it("does not draw an entry left empty, which is how one is taken out", () => {
-    open({
-      ...written,
-      log: [
-        ...(written.log ?? []),
-        { id: "02E", at: "2026-08-11 09:00:00", tz: "America/Santiago", body: "  " },
-      ],
-    });
-
-    expect(erasers()).toHaveLength(1);
-  });
-
-  it("does not draw it on a settled task either", () => {
-    open({
-      ...written,
-      status: "done",
-      log: [{ id: "02E", at: "2026-08-11 09:00:00", tz: "America/Santiago", body: "" }],
-    });
-
-    expect(screen.queryByText("Journal")).toBeNull();
-  });
 });
 
 describe("a settled task", () => {
@@ -203,16 +106,5 @@ describe("a settled task", () => {
     open({ ...written, status: "done" });
     expect(screen.getByRole("button", { name: /Reopen/ })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Not doing it/ })).toBeNull();
-  });
-});
-
-describe("the entry an agent's word rests on", () => {
-  it("offers no way to take it out while the word stands", () => {
-    open({
-      ...written,
-      resolved: { at: "2026-08-10T09:00:00Z", by: "dev_agent", entry: "01E" },
-    } as Task);
-
-    expect(erasers()).toHaveLength(0);
   });
 });

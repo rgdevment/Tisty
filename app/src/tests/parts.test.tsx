@@ -51,11 +51,8 @@ const opened = (shown: Task, more: Partial<Parameters<typeof Detail>[0]> = {}) =
       task={shown}
       lists={[]}
       known={[]}
-      expanded={false}
-      onExpand={vi.fn()}
       onCollapse={vi.fn()}
       onPatch={vi.fn()}
-      onLog={vi.fn()}
       onComplete={vi.fn()}
       onDiscard={vi.fn()}
       onReopen={vi.fn()}

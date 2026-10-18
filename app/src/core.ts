@@ -344,8 +344,6 @@ export const addPart = (whole: string, title: string): Promise<Task> =>
 export const hang = (id: string, whole: string | null): Promise<Task> =>
   invoke("hang", { id, whole });
 export const wholesOffered = (id: string): Promise<Offered[]> => invoke("wholes_offered", { id });
-export const writeLog = (id: string, body: string, entry?: string): Promise<Task> =>
-  invoke("write_log", { id, entry, body });
 export const fold = (id: string, away: boolean): Promise<Task> => invoke("fold", { id, away });
 export const readAs = (id: string, how: "story" | "trace"): Promise<Task> =>
   invoke("read_as", { id, how });

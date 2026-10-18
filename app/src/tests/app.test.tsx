@@ -617,7 +617,6 @@ describe("a task opens on a page of its own", () => {
     expect(
       await screen.findByRole("button", { name: new RegExp(`^${t("collapse")}`) }),
     ).toBeTruthy();
-    expect(screen.queryByRole("button", { name: t("expand") })).toBeNull();
   });
 
   it("goes back to the list from the page, closing the task", async () => {

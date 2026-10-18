@@ -113,6 +113,14 @@ html.tall .page:has(> .editing) {
 .page[data-empty] > h1[data-title] {
   cursor: text;
 }
+html.untitled .page[data-empty] {
+  min-height: 96px;
+  cursor: text;
+}
+html.untitled .page[data-empty]:not(:has(> :not(.front)))::after {
+  content: attr(data-empty);
+  color: var(--tisty-faint);
+}
 .page[data-empty] > h1[data-title]::before {
   content: attr(data-title);
   color: var(--tisty-faint);

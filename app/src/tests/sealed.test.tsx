@@ -31,11 +31,8 @@ const shown = (task: Task) =>
       task={task}
       lists={[{ id: "01W", name: "Work", order: "a0" }]}
       known={["release"]}
-      expanded={false}
-      onExpand={nothing}
       onCollapse={nothing}
       onPatch={nothing}
-      onLog={nothing}
       onComplete={nothing}
       onDiscard={nothing}
       onReopen={nothing}

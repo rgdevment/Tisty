@@ -30,11 +30,8 @@ const detail = (one: Task) =>
       task={one}
       lists={[]}
       known={[]}
-      expanded={false}
-      onExpand={() => {}}
       onCollapse={() => {}}
       onPatch={() => {}}
-      onLog={() => {}}
       onComplete={() => {}}
       onDiscard={() => {}}
       onReopen={() => {}}

@@ -15,7 +15,6 @@ import {
   type Task,
   taskDocSettled,
   taskOf,
-  writeLog,
 } from "./core";
 import { fill } from "./locales";
 import { sure } from "./sure";
@@ -39,7 +38,6 @@ export const detailOf = (one: Task, h: Hands) => ({
   lists: h.data.every ?? h.data.lists,
   known: h.data.tags.map((tag) => tag.tag),
   onPatch: (change: Change) => h.act(patch(one.id, change)),
-  onLog: (body: string, entry?: string) => h.act(writeLog(one.id, body, entry)),
   onComplete: () => {
     h.marking(one.id, one.title);
     h.close();

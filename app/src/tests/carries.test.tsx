@@ -32,17 +32,14 @@ const one = (status: Task["status"]): Task =>
     volume: {},
   }) as unknown as Task;
 
-const show = (status: Task["status"], expanded: boolean) =>
+const show = (status: Task["status"]) =>
   render(
     <Detail
       task={one(status)}
       lists={[]}
       known={[]}
-      expanded={expanded}
-      onExpand={() => {}}
       onCollapse={() => {}}
       onPatch={() => {}}
-      onLog={() => {}}
       onComplete={() => {}}
       onDiscard={() => {}}
       onReopen={() => {}}
@@ -56,16 +53,8 @@ const show = (status: Task["status"], expanded: boolean) =>
   );
 
 describe("the side block with the trail", () => {
-  it("keeps one trail and one «what it left» for a settled task in the column", async () => {
-    show("done", false);
-    await waitFor(() => expect(screen.getAllByText("The trail").length).toBeGreaterThan(0));
-
-    expect(screen.getAllByText("The trail")).toHaveLength(1);
-    expect(screen.getAllByText("What it carries")).toHaveLength(1);
-  });
-
   it("keeps one of each full-screen too, for a settled task", async () => {
-    show("done", true);
+    show("done");
     await waitFor(() => expect(screen.getAllByText("The trail").length).toBeGreaterThan(0));
 
     expect(screen.getAllByText("The trail")).toHaveLength(1);
@@ -74,26 +63,14 @@ describe("the side block with the trail", () => {
 
   it("keeps the sealed notice for a settled task, in the column and full-screen", async () => {
     const said = /This trail is not edited/;
-    const { unmount } = show("dropped", false);
-    await waitFor(() => expect(screen.getAllByText(said)).toHaveLength(1));
-    unmount();
-
-    show("dropped", true);
+    show("dropped");
     await waitFor(() => expect(screen.getAllByText(said)).toHaveLength(1));
   });
 
   it("does not put the sealed notice over an open task full-screen", async () => {
-    show("open", true);
+    show("open");
     await waitFor(() => expect(screen.getAllByText("The trail").length).toBeGreaterThan(0));
 
     expect(screen.queryAllByText(/This trail is not edited/)).toHaveLength(0);
-  });
-
-  it("leaves an open task in the column without a trail, as v1.7.0 did", async () => {
-    show("open", false);
-    await waitFor(() => expect(screen.getByText("Journal")).toBeTruthy());
-
-    expect(screen.queryAllByText("The trail")).toHaveLength(0);
-    expect(screen.queryAllByText("What it carries")).toHaveLength(0);
   });
 });

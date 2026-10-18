@@ -1092,7 +1092,6 @@ pub fn run() {
             answers::parts::add_part,
             answers::parts::hang,
             answers::parts::wholes_offered,
-            answers::tasks::write_log,
             answers::tasks::fold,
             answers::tasks::still_open,
             answers::tasks::discard,
