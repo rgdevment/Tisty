@@ -205,3 +205,13 @@ fn a_list_name_yaml_would_misread_is_written_quoted_and_reads_back_as_written() 
         }
     }
 }
+
+#[test]
+fn a_list_name_with_both_quotes_is_written_as_yaml_and_reads_back_as_written() {
+    let name = "Mario's \"cosas\"";
+    let mut task = booster();
+    task.tags.clear();
+    let out = dressed("", &task, Some(name));
+    assert!(out.contains("list: 'Mario''s \"cosas\"'"), "{out}");
+    assert_eq!(read(&out, TZ).list.as_deref(), Some(name), "{out}");
+}

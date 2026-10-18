@@ -113,6 +113,25 @@ fn a_file_taken_in_before_its_making_gets_the_id_its_making_would_give() {
         Some((task, id_at(task, 3)))
     );
     assert!(super::bookkept("task: 01M563T6T541A3Q2PP5YQW5XK1"));
-    assert!(super::bookkept("  Task: x"));
+    assert!(super::bookkept("  Task: 01m563t6t541a3q2pp5yqw5xk1"));
     assert!(!super::bookkept("The task is done."));
+}
+
+#[test]
+fn a_line_of_the_text_that_starts_with_task_is_still_searched() {
+    assert!(!super::bookkept("Task: llamar al banco"));
+    assert!(!super::bookkept("task:"));
+}
+
+#[test]
+fn only_the_name_a_making_writes_belongs_to_a_task() {
+    let task = Ulid::generate();
+    let lower = task.to_string().to_ascii_lowercase();
+    assert_eq!(super::owned(&format!("t_{lower}-1")), None);
+    assert_eq!(super::owned(&format!("T_{task}-0001")), None);
+    assert_eq!(super::owned(&format!("t_{task}-0001")), None);
+    assert_eq!(
+        super::owned(&format!("t_{lower}-0001")),
+        Some((task, id_at(task, 1)))
+    );
 }

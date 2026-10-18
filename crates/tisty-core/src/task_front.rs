@@ -128,7 +128,7 @@ fn quoted(said: &str) -> String {
     match (plain, said.contains('"')) {
         (true, _) => said.to_string(),
         (false, false) => format!("\"{said}\""),
-        (false, true) => format!("'{said}'"),
+        (false, true) => format!("'{}'", said.replace('\'', "''")),
     }
 }
 

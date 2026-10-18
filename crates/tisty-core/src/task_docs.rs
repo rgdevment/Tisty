@@ -37,14 +37,14 @@ pub fn owned(file: &str) -> Option<(TaskId, DocId)> {
     let (head, number) = file.strip_prefix(PREFIX)?.rsplit_once('-')?;
     let turn = number.parse::<u32>().ok()?;
     let task = Ulid::from_string(&head.to_ascii_uppercase()).ok()?;
-    Some((task, id_at(task, turn)))
+    (file_at(task, turn) == file).then(|| (task, id_at(task, turn)))
 }
 
 /// The line naming the task is the file's own bookkeeping, never what a search was looking for.
 pub fn bookkept(line: &str) -> bool {
-    line.trim_start()
-        .get(..KEY.len() + 1)
-        .is_some_and(|head| head.eq_ignore_ascii_case(&format!("{KEY}:")))
+    line.split_once(':').is_some_and(|(key, said)| {
+        key.trim().eq_ignore_ascii_case(KEY) && Ulid::from_string(said.trim()).is_ok()
+    })
 }
 
 pub fn seed(task: TaskId) -> String {

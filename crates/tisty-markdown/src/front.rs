@@ -122,7 +122,10 @@ pub fn words(values: &[String]) -> Vec<String> {
 // The `title:` line rewritten whole, so a list or a quote around the old value never lingers.
 pub fn titled_as(front: &str, name: &str) -> Option<String> {
     title(front)?;
-    let quote = if name.contains('"') { '\'' } else { '"' };
+    let (quote, name) = match name.contains('"') {
+        true => ('\'', name.replace('\'', "''")),
+        false => ('"', name.to_string()),
+    };
     let mut out = String::with_capacity(front.len() + name.len());
     let mut done = false;
     for line in front.split_inclusive('\n') {
@@ -166,7 +169,10 @@ fn unquoted(said: &str) -> String {
             .strip_prefix(quote)
             .and_then(|rest| rest.strip_suffix(quote))
         {
-            return inner.to_string();
+            return match quote {
+                '\'' => inner.replace("''", "'"),
+                _ => inner.to_string(),
+            };
         }
     }
     flat.to_string()
