@@ -52,8 +52,34 @@ source: the vet's card
 - `tags:` (or `tag:`) files the document under each one, the same as writing `#rina` in a sentence: one tag either way. A list in brackets, words split by commas, or one `- item` per line all work, with or without the `#`.
 - The block only counts at the very top: the first line is `---`, the line under it has words, and a `---` or `...` closes it. Anywhere else, `---` is a [page break](#page-breaks).
 - `paper:` is the sheet the document is printed on: `letter` or `tabloid`, and A4 when it is left out. `sheets: on` draws the page on those sheets, and `orientation: landscape` lays them across. **Paper** and **Sheets** in the panel write them, and taking them back leaves nothing written.
-- Besides those three, Tisty never writes properties: a tag it adds goes in the text as `#tag`.
+- Besides those three, Tisty writes only `task:`, once, in a task's own document. A tag it adds goes in the text as `#tag`.
 - A block past 4 KiB, with more than 32 properties or a value past 500 characters is kept as written, but nothing in it is read. Only plain properties are read: `key: value`, a list in brackets, or `- item` lines.
+
+### A task's properties
+
+A task and a document both hold words, and they are kept for different reasons. A task has an end: it is something to be done, and once it is done it goes to the archive, where it is still found and read — what was tried, what worked, how it was solved. A document lasts: a recipe, a procedure, a reference, the notes on a client, consulted again and again and grown over years, and rarely put away. Something to do is a task; something to look up again is a document.
+
+A task's words live in a document of its own, which carries one fixed line naming the task. What changes often stays with the task itself, so ticking it off on a phone never moves the document: the date, the deadline, reminders, the list, the priority, how it repeats. When the document leaves Tisty — copied as Markdown, exported, or read by an assistant — those come out written as properties, and a document that comes in with them hands them to its task.
+
+```markdown
+---
+task: 01M563T6T541A3Q2PP5YQW5XK1
+scheduled: 2026-09-28
+due: 2026-10-03
+remind: [2026-10-02T09:00]
+list: home
+priority: do
+repeat: every year from due
+tags: [health]
+---
+```
+
+- `task:` is the task's id. Tisty writes it once, when the document is made, and never changes it.
+- `scheduled:` is the day it is meant to be done; `due:` is the day it runs out. A day alone, `2026-10-03`; a day and an hour where you are, `2026-10-02T09:00`; or one pinned to a zone, `2026-10-02T09:00[Europe/Madrid]`.
+- `remind:` is a list of days with an hour.
+- `list:` is the list's name, and `priority:` is `do`, `decide`, `delegate` or `minor`.
+- `repeat:` is written one way only, so it always reads back the same: `every week from due`, `every 2 months from done until 2026-12-31`. `from due` counts from the date it had; `from done` counts from the day it was completed.
+- `tags:` works as in any document.
 
 ## The title
 

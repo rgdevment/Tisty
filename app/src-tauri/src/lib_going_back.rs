@@ -30,6 +30,7 @@ fn wrote(session: &mut Session, body: &str) -> String {
                 order: tisty_core::order::first(),
                 folder: None,
                 page_of: None,
+                task_of: None,
             },
         })
         .unwrap();

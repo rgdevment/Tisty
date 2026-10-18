@@ -42,6 +42,7 @@ fn wrote(session: &mut Session, title: &str, up: Option<DocId>) -> DocId {
                 ),
                 folder: None,
                 page_of: up,
+                task_of: None,
             },
         })
         .unwrap();

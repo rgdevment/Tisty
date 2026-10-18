@@ -52,6 +52,7 @@ fn the_tags_of_a_body_settle_after_one_note() {
                 said: Some(said.clone()),
                 folder: None,
                 page_of: None,
+                task_of: None,
             },
         })
         .unwrap();

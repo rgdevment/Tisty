@@ -300,6 +300,7 @@ fn papers(app: &App, lang: Lang) -> anyhow::Result<Vec<Op>> {
                 made: None,
                 by: None,
                 page_of: None,
+                task_of: None,
                 file: one.id,
                 order: format!("a{n}"),
                 said: Some(tisty_core::event::Said::of(&body)),

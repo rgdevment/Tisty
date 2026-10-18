@@ -826,6 +826,9 @@ pub struct DocAdd {
     /// The document this one is a page of. A page never has pages of its own.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub page_of: Option<DocId>,
+    /// The task whose words this document holds; it lives with that task, not among the documents.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub task_of: Option<crate::model::TaskId>,
 }
 
 /// Kept whole so that a name or an address can be filled in later without the log learning a

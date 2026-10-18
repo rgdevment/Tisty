@@ -30,6 +30,7 @@ fn a_page_under(session: &mut Session, up: Option<tisty_core::model::DocId>) -> 
                 order: tisty_core::order::first(),
                 folder: None,
                 page_of: up,
+                task_of: None,
             },
         })
         .unwrap();
