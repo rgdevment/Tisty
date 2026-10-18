@@ -165,6 +165,8 @@ pub fn lines(task: &Task, list: Option<&str>) -> Vec<String> {
 }
 
 pub fn dressed(body: &str, task: &Task, list: Option<&str>) -> String {
+    let ticked = crate::stages::ticked(task, body);
+    let body = ticked.as_str();
     let (others, rest) = match tisty_markdown::front::span(body) {
         Some(at) => (theirs(&body[at.clone()]), &body[at.end..]),
         None => (Vec::new(), body),

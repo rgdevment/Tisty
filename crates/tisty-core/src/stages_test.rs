@@ -130,3 +130,10 @@ fn a_stage_taken_out_removes_its_step() {
         "{ops:?}"
     );
 }
+
+#[test]
+fn a_document_going_out_ticks_its_boxes_as_the_log_has_them() {
+    let task = task(&[("one", true, "a"), ("two", false, "b")]);
+    let out = super::ticked(&task, "- [ ] one\n\nWords.\n\n- [x] two\n");
+    assert_eq!(out, "- [x] one\n\nWords.\n\n- [ ] two\n");
+}

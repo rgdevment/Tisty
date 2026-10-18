@@ -210,6 +210,27 @@ pub fn reconciled(task: &Task, body: &str) -> Vec<Op> {
     ops
 }
 
+/// The document with every box ticked as its step is, since the file's own boxes may be stale.
+pub fn ticked(task: &Task, body: &str) -> String {
+    let steps = ordered(task);
+    let found = stages(body);
+    let of = matched(&steps, &found);
+    let mut out = body.to_string();
+    for (stage, step) in found.iter().zip(&of).rev() {
+        let Some(step) = step else { continue };
+        if stage.done == steps[*step].done {
+            continue;
+        }
+        let Some(open) = body[stage.at.clone()].find('[') else {
+            continue;
+        };
+        let at = stage.at.start + open + 1;
+        let mark = if steps[*step].done { "x" } else { " " };
+        out.replace_range(at..at + 1, mark);
+    }
+    out
+}
+
 #[cfg(test)]
 #[path = "stages_test.rs"]
 mod tests;
