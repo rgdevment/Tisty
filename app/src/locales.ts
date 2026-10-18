@@ -81,7 +81,7 @@ const en = {
   templateRoutine:
     "## What for\n<!-- Why this comes back, in a line. -->\n\n## Every round\n<!-- - [ ] What to do each round -->\n\n## This time\n<!-- Anything different this round? -->\n",
   collapse: "Back",
-  expand: "Open it whole",
+  expand: "Show task",
   closePanel: "Close the task",
   quadDo: "Do",
   quadDecide: "Schedule",
@@ -2050,7 +2050,7 @@ const es: Catalog = {
   templateRoutine:
     "## Para qué\n<!-- Por qué vuelve, en una línea. -->\n\n## Cada vuelta\n<!-- - [ ] Lo que hay que hacer cada vez -->\n\n## Esta vez\n<!-- ¿Algo distinto en esta vuelta? -->\n",
   collapse: "Volver",
-  expand: "Abrirla completa",
+  expand: "Mostrar tarea",
   closePanel: "Cerrar la tarea",
   quadDo: "Hacer",
   quadDecide: "Planificar",
