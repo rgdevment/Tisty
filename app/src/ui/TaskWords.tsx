@@ -39,11 +39,8 @@ export default function TaskWords({ task, onSettle, onError, onDoc, shaping, onH
 
   useEffect(() => {
     let live = true;
-    const opened = () => taskDocOpen(task.id).then(real);
-    opened()
-      .then((found) =>
-        found || !open ? found : taskDocMake(task.id, template.current).then(opened),
-      )
+    taskDocOpen(task.id, open ? template.current : "")
+      .then(real)
       .then((found) => {
         if (!live) return;
         if (found) holding.current?.(found.held);
@@ -59,10 +56,17 @@ export default function TaskWords({ task, onSettle, onError, onDoc, shaping, onH
   }, [task.id, open, turn]);
 
   if (!doc) return null;
+  // A task's document is made by the first words written on it, never by looking at the task.
+  const make =
+    doc.file || doc.held
+      ? undefined
+      : (body: string) => taskDocMake(task.id, template.current, body);
   return (
     <Written
       key={`${doc.file}:${seen}`}
+      id={task.id}
       doc={doc}
+      make={make}
       label={task.title}
       onSettle={doc.held ? undefined : onSettle}
       onError={onError}
@@ -74,7 +78,9 @@ export default function TaskWords({ task, onSettle, onError, onDoc, shaping, onH
 }
 
 function Written({
+  id,
   doc,
+  make,
   label,
   onSettle,
   onError,
@@ -82,7 +88,9 @@ function Written({
   onMoved,
   shaping,
 }: {
+  id: string;
   doc: TaskDoc;
+  make?: (body: string) => Promise<string>;
   label: string;
   onSettle?: (before: string, now: string) => Promise<string | null>;
   onError?: (problem: unknown) => void;
@@ -97,8 +105,12 @@ function Written({
   failed.current = onError;
   const moved = useRef(onMoved);
   moved.current = onMoved;
+  const making = useRef(make);
+  making.current = make;
   const unsettled = useRef<string | null>(null);
   const line = useRef<Promise<void>>(Promise.resolve());
+  const file = useRef(doc.file);
+  const made = useRef<Promise<string> | null>(null);
   // Once the disk has moved on, what was typed over the old words is not written over the new.
   const stale = useRef(false);
   const away = () => {
@@ -106,15 +118,30 @@ function Written({
     moved.current();
   };
 
+  // The first words written make the file; whatever comes after waits for it to be there.
+  const ensure = useCallback((body: string): Promise<string> => {
+    if (file.current) return Promise.resolve(file.current);
+    const asked = making.current;
+    if (!asked) return Promise.reject(new Error("unwritable"));
+    made.current ??= asked(body).then((one) => {
+      file.current = one;
+      return one;
+    });
+    return made.current;
+  }, []);
+
   // Settles wait their turn, so two of them never weigh the same old text and add a step twice.
   const settled = (before: string, now: string) => {
     if (!onSettle) return;
     line.current = line.current.then(async () => {
       const from = unsettled.current ?? before;
-      const problem = await onSettle(from, now).catch((e: unknown) => {
-        failed.current?.(e);
-        return "failed";
-      });
+      const problem = await ensure(now)
+        .then(() => onSettle(from, now))
+        .catch((e: unknown) => {
+          if ((e as { code?: string } | null)?.code === "documentMoved") return "documentMoved";
+          failed.current?.(e);
+          return "failed";
+        });
       if (problem === null) {
         if (unsettled.current === from) unsettled.current = null;
         return;
@@ -131,14 +158,18 @@ function Written({
     const next = waiting.current;
     waiting.current = null;
     if (next === null || stale.current) return;
-    queued(doc.file, () => docWrite(doc.file, next)).catch((e) => {
+    queued(`words:${id}`, async () => {
+      const first = !file.current && !made.current;
+      const into = await ensure(next);
+      if (!first) await docWrite(into, next);
+    }).catch((e) => {
       failed.current?.(e);
       // What is on disk now is newer than what was typed, so the page reads it again.
       if ((e as { code?: string } | null)?.code !== "documentMoved") return;
       stale.current = true;
       moved.current();
     });
-  }, [doc.file]);
+  }, [id, ensure]);
 
   useEffect(() => holds(flush), [flush]);
   useEffect(() => {
@@ -159,7 +190,7 @@ function Written({
   return (
     <Suspense fallback={<p className="text-[12.5px] text-faint">{t("opening")}</p>}>
       <Sheet
-        file={doc.file}
+        file={doc.file || `unwritten:${id}`}
         value={text}
         label={label}
         reading={doc.held}

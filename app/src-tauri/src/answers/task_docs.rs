@@ -38,6 +38,7 @@ fn open_task(session: &Session, id: TaskId) -> Answer<Task> {
 pub fn task_doc_open(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
+    template: Option<String>,
 ) -> Answer<Option<Opened>> {
     let id = task_id(&id)?;
     let file = {
@@ -45,15 +46,18 @@ pub fn task_doc_open(
         let task = answered(&session, id)?;
         match file_of(&session, id) {
             Some(file) => file,
-            // A task closed before it had a document is read as the one it would have had, never made.
-            None if !task.is_open() => {
+            // A task without a document reads as the one it would have, made only once it is written.
+            None => {
+                let template = match task.is_open() {
+                    true => template.unwrap_or_default(),
+                    false => String::new(),
+                };
                 return Ok(Some(Opened {
                     file: String::new(),
-                    body: tisty_core::task_docs::first_words(&session.state, id),
-                    held: true,
+                    body: tisty_core::task_docs::opened(&session.state, id, &template),
+                    held: !task.is_open(),
                 }));
             }
-            None => return Ok(None),
         }
     };
     let body = super::papers::doc_read(session.clone(), file.clone())?;
@@ -71,6 +75,7 @@ pub fn task_doc_make(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
     template: Option<String>,
+    body: Option<String>,
 ) -> Answer<String> {
     let id = task_id(&id)?;
     let mut session = held(&session);
@@ -81,12 +86,15 @@ pub fn task_doc_make(
         return Ok(file);
     }
     open_task(&session, id)?;
-    let made = tisty_core::task_docs::made(
+    let written = body.is_some();
+    let first = body.unwrap_or_else(|| {
+        tisty_core::task_docs::opened(&session.state, id, &template.unwrap_or_default())
+    });
+    let (made, created) = tisty_core::task_docs::made_with(
         &session.paths.docs(),
         &session.state,
         tisty_core::task_docs::owner(&session.state, id),
-        id,
-        &template.unwrap_or_default(),
+        &first,
         signing(&session.state),
     )
     .map_err(|e| blamed(channel::WINDOW, "a task's document could not be made", e))?;
@@ -95,6 +103,10 @@ pub fn task_doc_make(
     };
     let file = d.file.clone();
     session.commit_all(vec![made])?;
+    // Words that reached the disk first are newer than what was typed over the page they replace.
+    if written && !created {
+        return Err(Refusal::about("documentMoved", file));
+    }
     Ok(file)
 }
 

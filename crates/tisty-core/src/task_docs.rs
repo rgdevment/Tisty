@@ -185,13 +185,25 @@ pub fn made(
     template: &str,
     by: Option<String>,
 ) -> crate::Result<Op> {
-    let (id, file) = planned(state, task);
     let first = opened(state, from, template);
-    let body = match crate::docs::create_named(root, &file, &first)? {
-        true => first,
+    made_with(root, state, task, &first, by).map(|(op, _)| op)
+}
+
+/// Made with the words a person already wrote; false when the file was there before them.
+pub fn made_with(
+    root: &Path,
+    state: &State,
+    task: TaskId,
+    first: &str,
+    by: Option<String>,
+) -> crate::Result<(Op, bool)> {
+    let (id, file) = planned(state, task);
+    let created = crate::docs::create_named(root, &file, first)?;
+    let body = match created {
+        true => first.to_string(),
         false => crate::docs::read(root, &file)?,
     };
-    Ok(Op::DocAdd {
+    let op = Op::DocAdd {
         id,
         d: DocAdd {
             file,
@@ -201,7 +213,8 @@ pub fn made(
             task_of: Some(task),
             ..DocAdd::default()
         },
-    })
+    };
+    Ok((op, created))
 }
 
 fn planned(state: &State, task: TaskId) -> (DocId, String) {

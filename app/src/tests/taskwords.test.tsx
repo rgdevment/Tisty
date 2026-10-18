@@ -52,21 +52,38 @@ beforeEach(() => {
 });
 
 describe("an open task", () => {
-  it("is a document from the first time it is opened, made from what it held", async () => {
-    render(<TaskWords task={task()} onSettle={() => Promise.resolve(null)} />);
+  it("reads as its template until written, and its first words make the document", async () => {
+    ipc.doc = { file: "", body: "Template.\n", held: false };
+    const settled: [string, string][] = [];
+    render(
+      <TaskWords
+        task={task()}
+        onSettle={(before, now) => Promise.resolve(settled.push([before, now]) > 0 ? null : "x")}
+      />,
+    );
 
-    expect(await screen.findByText("sheet:Words it held.")).toBeTruthy();
+    await screen.findByText("sheet:Template.");
+    expect(sent("task_doc_open")[0].args).toEqual({ id: "one", template: t("templateTask") });
+    expect(sent("task_doc_make")).toHaveLength(0);
+
+    const sheet = ipc.sheets[ipc.sheets.length - 1];
+    sheet.onWrite("Mine.\n");
+    sheet.onSettle?.("Template.\n", "Mine.\n");
+    await waitFor(() => expect(settled).toHaveLength(1));
     expect(sent("task_doc_make")).toEqual([
-      { cmd: "task_doc_make", args: { id: "one", template: t("templateTask") } },
+      {
+        cmd: "task_doc_make",
+        args: { id: "one", template: t("templateTask"), body: "Mine.\n" },
+      },
     ]);
-    expect(sent("task_doc_open")).toHaveLength(2);
   });
 
   it("takes the recurring template when it repeats", async () => {
+    ipc.doc = { file: "", body: "Template.\n", held: false };
     render(<TaskWords task={{ ...task(), after: "zero" } as Task} />);
 
-    await waitFor(() => expect(sent("task_doc_make")).toHaveLength(1));
-    expect(sent("task_doc_make")[0].args.template).toBe(t("templateRoutine"));
+    await waitFor(() => expect(sent("task_doc_open")).toHaveLength(1));
+    expect(sent("task_doc_open")[0].args.template).toBe(t("templateRoutine"));
   });
 
   it("is not made again once it has its document", async () => {
@@ -77,11 +94,14 @@ describe("an open task", () => {
     expect(sent("task_doc_make")).toHaveLength(0);
   });
 
-  it("takes an answer that is no document as none, and asks for one", async () => {
+  it("takes an answer that is no document as none, and makes nothing", async () => {
     ipc.doc = { id: "one", title: "Rina's booster" };
     render(<TaskWords task={task()} />);
 
-    await waitFor(() => expect(sent("task_doc_make")).toHaveLength(1));
+    await waitFor(() => expect(sent("task_doc_open")).toHaveLength(1));
+    await settle();
+    expect(sent("task_doc_make")).toHaveLength(0);
+    expect(ipc.sheets).toHaveLength(0);
   });
 });
 
