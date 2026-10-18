@@ -213,6 +213,49 @@ pub fn read(body: &str, tz: &str) -> Front {
     front
 }
 
+/// What a document coming in says differently from its task; a property it leaves out clears nothing.
+pub fn patch(task: &Task, front: &Front) -> Option<crate::event::TaskPatch> {
+    let mut out = crate::event::TaskPatch::default();
+    let differs = |now: &Option<DateSpec>, said: &Option<DateSpec>| said.is_some() && said != now;
+    if differs(&task.date, &front.scheduled) {
+        out.date = Some(front.scheduled.clone());
+    }
+    if differs(&task.deadline, &front.due) {
+        out.deadline = Some(front.due.clone());
+    }
+    if !front.remind.is_empty() && front.remind != task.reminders {
+        out.reminders = Some(front.remind.clone());
+    }
+    if let Some(priority) = front.priority.filter(|one| *one != task.priority) {
+        out.priority = Some(priority);
+    }
+    if front.repeat.is_some() && front.repeat != task.repeat {
+        out.repeat = Some(front.repeat);
+    }
+    let tags: Vec<crate::model::Tag> = front
+        .tags
+        .iter()
+        .filter_map(|one| crate::model::Tag::new(one).ok())
+        .collect();
+    if !tags.is_empty() && tags != task.tags {
+        out.tags = Some(tags);
+    }
+    (out != crate::event::TaskPatch::default()).then_some(out)
+}
+
+/// A list named in a document is found among the lists there are; a name nobody has makes none.
+pub fn moved(state: &crate::State, task: &Task, front: &Front) -> Option<crate::event::TaskMove> {
+    let name = front.list.as_deref()?;
+    let (id, _) = state
+        .lists
+        .iter()
+        .find(|(_, one)| one.name.eq_ignore_ascii_case(name.trim_start_matches('@')))?;
+    (task.list != Some(*id)).then(|| crate::event::TaskMove {
+        list: Some(Some(*id)),
+        ..crate::event::TaskMove::default()
+    })
+}
+
 #[cfg(test)]
 #[path = "task_front_test.rs"]
 mod tests;

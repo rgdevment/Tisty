@@ -1,4 +1,4 @@
-use super::{Front, day, day_in, dressed, read, repeat, repeat_in};
+use super::{Front, day, day_in, dressed, moved, patch, read, repeat, repeat_in};
 use crate::model::{Cadence, DateSpec, From, Priority, Repeat, Tag, Task, Unit};
 use jiff::civil::date;
 use ulid::Ulid;
@@ -111,4 +111,41 @@ fn a_document_with_no_properties_gets_its_task_s_block_on_top() {
         out,
         format!("---\ntask: {}\n---\n# Plain\n\nWords.\n", task.id)
     );
+}
+
+#[test]
+fn a_document_coming_in_changes_only_what_it_says_differently() {
+    let task = booster();
+    let same = read(&dressed("", &task, None), TZ);
+    assert_eq!(patch(&task, &same), None);
+
+    let said = Front {
+        due: Some(DateSpec::all_day(date(2026, 10, 10), TZ)),
+        priority: Some(Priority::Minor),
+        ..Front::default()
+    };
+    let changed = patch(&task, &said).expect("a change");
+    assert_eq!(changed.deadline, Some(said.due.clone()));
+    assert_eq!(changed.priority, Some(Priority::Minor));
+    assert_eq!(changed.date, None, "a day left out was cleared");
+    assert_eq!(changed.repeat, None);
+    assert_eq!(changed.tags, None);
+}
+
+#[test]
+fn a_list_is_found_by_its_name_and_an_unknown_one_makes_nothing() {
+    let mut state = crate::State::default();
+    let home = Ulid::generate();
+    state
+        .lists
+        .insert(home, crate::model::List::new(home, "Casa", "a0"));
+    let task = booster();
+    let asked = |name: &str| Front {
+        list: Some(name.into()),
+        ..Front::default()
+    };
+
+    let into = moved(&state, &task, &asked("@casa")).expect("the list");
+    assert_eq!(into.list, Some(Some(home)));
+    assert_eq!(moved(&state, &task, &asked("nowhere")), None);
 }
