@@ -1607,8 +1607,8 @@ html.shaping .page > :not(:is(h1, h2, h3, h4, h5, h6, .hint, .hint-gone, .add-se
   opacity: 0.45;
   cursor: default;
 }
-html.shaping .page > .add-step,
-html:not(.shaping) .page > .add-section {
+html.untitled.shaping .page > .add-step,
+html.untitled:not(.shaping) .page > .add-section {
   display: none;
 }
 .page .drop-section {
@@ -1637,7 +1637,7 @@ html.untitled.shaping .page .drop-section:hover {
   background: var(--tisty-hover);
   color: var(--tisty-ink);
 }
-html.untitled .page > .add-section {
+html.untitled.shaping .page > .add-section {
   display: flex;
   align-items: center;
   box-sizing: border-box;
