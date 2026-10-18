@@ -12,6 +12,7 @@ interface Props {
   onSettle?: (before: string, now: string) => Promise<string | null>;
   onError?: (problem: unknown) => void;
   onDoc?: (id: string) => void;
+  shaping?: boolean;
 }
 
 // A command the window does not know answers with whatever it holds, so only a real document counts.
@@ -23,7 +24,7 @@ const real = (said: unknown): TaskDoc | null => {
   return typeof one?.file === "string" && typeof one.body === "string" ? (one as TaskDoc) : null;
 };
 
-export default function TaskWords({ task, onSettle, onError, onDoc }: Props) {
+export default function TaskWords({ task, onSettle, onError, onDoc, shaping }: Props) {
   const [doc, setDoc] = useState<TaskDoc | null>(null);
   const [seen, setSeen] = useState(0);
   const [turn, setTurn] = useState(0);
@@ -60,6 +61,7 @@ export default function TaskWords({ task, onSettle, onError, onDoc }: Props) {
       onError={onError}
       onDoc={onDoc}
       onMoved={() => setTurn((one) => one + 1)}
+      shaping={shaping}
     />
   );
 }
@@ -71,6 +73,7 @@ function Written({
   onError,
   onDoc,
   onMoved,
+  shaping,
 }: {
   doc: TaskDoc;
   label: string;
@@ -78,6 +81,7 @@ function Written({
   onError?: (problem: unknown) => void;
   onDoc?: (id: string) => void;
   onMoved: () => void;
+  shaping?: boolean;
 }) {
   const [text, setText] = useState(doc.body);
   const waiting = useRef<string | null>(null);
@@ -139,6 +143,7 @@ function Written({
         label={label}
         reading={doc.held}
         inline
+        shaping={shaping}
         onWrite={wrote}
         onSettle={onSettle ? settled : undefined}
         onFail={onError}

@@ -72,6 +72,9 @@ const en = {
   steps: "Steps",
   history: "History",
   addStep: "Add a step",
+  shapeEdit: "Edit the structure",
+  shapeDone: "Back to filling it in",
+  shapeWhy: "Rename, add or remove the sections of this task",
   templateTask:
     "## Description\n<!-- What has to happen, and why? A line or two is enough. -->\n\n## Done when\n<!-- How you will know it is finished. -->\n\n## Steps\n<!-- - [ ] The first step -->\n\n## Notes\n<!-- What you find out along the way. -->\n\n## When it closes\n<!-- What worked? What would you do differently next time? -->\n",
   templateRoutine:
@@ -2034,6 +2037,9 @@ const es: Catalog = {
   steps: "Pasos",
   history: "Historial",
   addStep: "Agregar un paso",
+  shapeEdit: "Editar la estructura",
+  shapeDone: "Volver a llenarla",
+  shapeWhy: "Renombrar, agregar o quitar las secciones de esta tarea",
   templateTask:
     "## Descripción\n<!-- ¿Qué hay que lograr y por qué? Una o dos líneas bastan. -->\n\n## Para estar lista\n<!-- Cómo vas a saber que está hecha. -->\n\n## Pasos\n<!-- - [ ] El primer paso -->\n\n## Notas\n<!-- Lo que vayas averiguando mientras la haces. -->\n\n## Al cerrarla\n<!-- ¿Qué funcionó? ¿Qué harías distinto la próxima vez? -->\n",
   templateRoutine:

@@ -70,6 +70,7 @@ export default function Detail({
   onSettle,
 }: Props) {
   const opened = useRef<HTMLElement>(null);
+  const [shaping, setShaping] = useState(false);
   const card = useRef<HTMLDivElement>(null);
   const edge = useEdge(card);
   const live = task.status === "open";
@@ -161,7 +162,13 @@ export default function Detail({
       )}
       <Fields task={task} lists={lists} known={known} onPatch={onPatch} />
 
-      <TaskWords task={task} onSettle={onSettle} onError={onError} onDoc={onDoc} />
+      <TaskWords
+        task={task}
+        onSettle={onSettle}
+        onError={onError}
+        onDoc={onDoc}
+        shaping={shaping}
+      />
       <History task={task} onError={onError} onDoc={onDoc} />
     </>
   );
@@ -221,6 +228,8 @@ export default function Detail({
         onFold={onFold}
         onReadAs={onReadAs}
         onOpenToAgents={onOpenToAgents}
+        shaping={shaping}
+        onShape={setShaping}
         left={(whole?.open ?? 0) + (whole?.away ?? 0)}
       />
     </main>
@@ -241,6 +250,8 @@ function Settled({
   onFold,
   onReadAs,
   onOpenToAgents,
+  shaping,
+  onShape,
   left,
 }: {
   task: Task;
@@ -254,6 +265,8 @@ function Settled({
   onFold: (away: boolean) => void;
   onReadAs: (how: "story" | "trace") => void;
   onOpenToAgents: (open: boolean) => void;
+  shaping: boolean;
+  onShape: (shaping: boolean) => void;
 }) {
   const [more, setMore] = useState<{ x: number; y: number } | null>(null);
   const owing = task.status === "open" && (left ?? 0) > 0;
@@ -271,6 +284,13 @@ function Settled({
   };
   const choices: Choice[] = open
     ? [
+        {
+          key: "shape",
+          label: t(shaping ? "shapeDone" : "shapeEdit"),
+          icon: "✎",
+          hint: t("shapeWhy"),
+          onPick: () => onShape(!shaping),
+        },
         ...(task.resolved?.drop
           ? [{ key: "done", label: t("markDone"), icon: "✓", onPick: onComplete }]
           : task.resolved

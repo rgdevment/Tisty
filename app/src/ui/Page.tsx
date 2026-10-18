@@ -12,6 +12,7 @@ type Props = Reaching & {
   readonly stranger: boolean;
   readonly tall?: boolean;
   readonly untitled?: boolean;
+  readonly shaping?: boolean;
   readonly wide?: number;
   readonly zoom?: number;
   readonly onOutline?: (heads: Head[]) => void;
@@ -103,6 +104,7 @@ export default function Page(props: Readonly<Props>) {
           stranger={stranger}
           tall={tall}
           untitled={props.untitled}
+          shaping={props.shaping}
           hidden={one.turn !== shown}
           wide={wide}
           sheet={props.sheet}

@@ -1643,3 +1643,10 @@ html.untitled .page > hr::before,
 html.untitled .page > hr::after {
   content: none;
 }
+html.untitled:not(.shaping) .page > :is(h1, h2, h3, h4) {
+  pointer-events: none;
+}
+html.untitled.shaping .page > :is(h1, h2, h3, h4) {
+  color: var(--tisty-accent);
+  cursor: text;
+}

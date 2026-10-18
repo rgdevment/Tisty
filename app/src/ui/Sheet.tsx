@@ -49,6 +49,7 @@ type Props = {
   readonly asking?: Asking;
   readonly kept?: boolean;
   readonly inline?: boolean;
+  readonly shaping?: boolean;
   readonly sheet?: SheetSize;
 };
 
@@ -541,6 +542,7 @@ export default function Sheet(props: Readonly<Props>) {
           stranger={false}
           tall
           untitled={props.inline}
+          shaping={props.shaping}
           onDoc={(file) => said.current.onDoc?.(file)}
           onOpen={(reference) => said.current.onOpen?.(reference)}
           onTag={(tag) => said.current.onTag?.(tag)}

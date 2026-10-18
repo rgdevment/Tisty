@@ -9,6 +9,7 @@ type Props = {
   readonly stranger: boolean;
   readonly tall: boolean;
   readonly untitled?: boolean;
+  readonly shaping?: boolean;
   readonly hidden: boolean;
   readonly wide?: number;
   readonly zoom?: number;
@@ -33,7 +34,19 @@ const grows = (held: HTMLIFrameElement, page: Document): (() => void) => {
 };
 
 export default function Frame(props: Readonly<Props>) {
-  const { html, label, stranger, tall, hidden, wide, zoom, untitled = false } = props;
+  const {
+    html,
+    label,
+    stranger,
+    tall,
+    hidden,
+    wide,
+    zoom,
+    untitled = false,
+    shaping = false,
+  } = props;
+  const shaped = useRef(shaping);
+  shaped.current = shaping;
   const frame = useRef<HTMLIFrameElement>(null);
   const said = useRef(props);
   said.current = props;
@@ -57,6 +70,7 @@ export default function Frame(props: Readonly<Props>) {
       page.querySelector(".page")?.removeAttribute("inert");
       page.documentElement.classList.toggle("tall", tall);
       page.documentElement.classList.toggle("untitled", untitled);
+      page.documentElement.classList.toggle("shaping", shaped.current);
       dressed(page);
       fitted(page, said.current.wide, said.current.zoom);
       dressedUp = worn(page, stranger, alive, said.current.reach());
@@ -84,6 +98,10 @@ export default function Frame(props: Readonly<Props>) {
       for (const one of dressedUp.kept) one();
     };
   }, [html, stranger, tall, untitled]);
+
+  useEffect(() => {
+    frame.current?.contentDocument?.documentElement.classList.toggle("shaping", shaping);
+  }, [shaping]);
 
   useEffect(() => {
     const page = frame.current?.contentDocument;
