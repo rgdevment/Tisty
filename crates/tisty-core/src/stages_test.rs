@@ -335,3 +335,10 @@ fn wrapped_words_that_only_look_like_a_heading_or_a_rule_stay_with_their_stage()
         ]
     );
 }
+
+#[test]
+fn a_hard_break_at_the_end_of_a_wrapped_line_is_not_part_of_the_step() {
+    let body = "- [ ] Bring the book\\n  and the card\n";
+    let said: Vec<String> = stages(body).into_iter().map(|one| one.text).collect();
+    assert_eq!(said, ["Bring the book and the card"]);
+}

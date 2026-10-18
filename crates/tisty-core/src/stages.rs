@@ -56,13 +56,13 @@ fn own(item: &Block) -> Range<usize> {
 fn said(item: &str, quoted: usize) -> Option<String> {
     let mut lines = item.lines();
     let (_, first) = lines.next()?.split_once(']')?;
-    let mut words = vec![first.trim()];
+    let mut words = vec![first.trim().trim_end_matches('\\')];
     for line in lines {
         let mut bare = line.trim_start();
         for _ in 0..quoted {
             bare = bare.strip_prefix('>').unwrap_or(bare).trim_start();
         }
-        words.push(bare.trim_end());
+        words.push(bare.trim_end().trim_end_matches('\\'));
     }
     Some(one_line(&words.join(" "))).filter(|text| !text.is_empty())
 }
@@ -162,7 +162,7 @@ fn reordered(task: &Task, steps: &[&Step], in_doc: &[usize]) -> (Vec<Op>, Vec<St
 pub fn reconciled(task: &Task, before: Option<&str>, now: &str) -> Vec<Op> {
     let steps = ordered(task);
     let is = stages(now);
-    // With no text before, its boxes are read as written and only the ones with no step are added.
+    // With no text before, a box may be stale, so it ticks no step and only one with no step is added.
     let was = before.map_or_else(|| is.clone(), stages);
     let step_of = paired(
         &titled(steps.iter().map(|one| &one.text)),

@@ -4,6 +4,8 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, Once, OnceLock};
 
+use crate::text::one_line;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Gravity {
     Trace,
@@ -403,10 +405,6 @@ fn who() -> Option<String> {
         .file_name()
         .and_then(|one| one.to_str())
         .map(str::to_owned)
-}
-
-fn one_line(text: &str) -> String {
-    crate::text::one_line(text)
 }
 
 #[cfg(test)]

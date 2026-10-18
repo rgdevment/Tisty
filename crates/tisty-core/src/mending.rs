@@ -3,6 +3,9 @@ use tisty_markdown::Kind;
 
 use crate::arriving::tidied;
 
+/// Past this many words a block is told as a whole: comparing them word by word costs their square.
+const WORDS_AT_MOST: usize = 2_000;
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Mend {
     pub from: usize,
@@ -71,7 +74,8 @@ fn words(text: &str) -> Vec<&str> {
 /// What changed, word by word; changes apart only by spaces are one piece, as `<b>two words</b>` is.
 fn pieces(said: &str, fixed: &str) -> Vec<Piece> {
     let (a, b) = (words(said), words(fixed));
-    let Some(kept) = crate::lcs::table(&a, &b) else {
+    let small = a.len() <= WORDS_AT_MOST && b.len() <= WORDS_AT_MOST;
+    let Some(kept) = small.then(|| crate::lcs::table(&a, &b)).flatten() else {
         return vec![Piece {
             said: said.to_string(),
             fixed: fixed.to_string(),
