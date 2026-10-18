@@ -219,3 +219,60 @@ fn a_file_that_is_not_a_calendar_says_so_and_brings_nothing() {
     let huge = "x".repeat(super::BYTES_AT_MOST + 1);
     assert_eq!(read(&huge), Err(Unread::TooBig));
 }
+
+#[test]
+fn a_rule_part_only_restates_the_start_at_the_rhythm_that_keeps_it() {
+    let daily_mondays = one(
+        "BEGIN:VEVENT\r\nUID:x1\r\nSUMMARY:Mondays\r\nDTSTART;TZID=America/Santiago:20261019T070000\r\nRRULE:FREQ=DAILY;BYDAY=MO\r\nEND:VEVENT\r\n",
+    );
+    assert!(daily_mondays.odd.contains(&Odd::Repeat));
+    let october_only = one(
+        "BEGIN:VEVENT\r\nUID:x2\r\nSUMMARY:October\r\nDTSTART;TZID=America/Santiago:20261019T070000\r\nRRULE:FREQ=WEEKLY;BYMONTH=10\r\nEND:VEVENT\r\n",
+    );
+    assert!(october_only.odd.contains(&Odd::Repeat));
+}
+
+#[test]
+fn a_weekday_is_read_on_the_event_s_own_calendar() {
+    let late = one(
+        "BEGIN:VEVENT\r\nUID:x3\r\nSUMMARY:Late call\r\nDTSTART;TZID=Asia/Tokyo:20261020T060000\r\nRRULE:FREQ=WEEKLY;BYDAY=TU\r\nEND:VEVENT\r\n",
+    );
+    assert!(late.repeat.is_some(), "{late:?}");
+    assert_eq!(late.date.unwrap().at.date(), date(2026, 10, 19));
+}
+
+#[test]
+fn the_31st_stays_the_31st_and_a_series_ending_today_does_not_come_back() {
+    let rent = one(
+        "BEGIN:VEVENT\r\nUID:x4\r\nSUMMARY:Rent\r\nDTSTART;VALUE=DATE:20240131\r\nRRULE:FREQ=MONTHLY\r\nEND:VEVENT\r\n",
+    );
+    assert_eq!(rent.date.unwrap().at.date(), date(2026, 10, 31));
+    let ending = one(
+        "BEGIN:VEVENT\r\nUID:x5\r\nSUMMARY:Course\r\nDTSTART;TZID=America/Santiago:20261004T090000\r\nRRULE:FREQ=WEEKLY;UNTIL=20261018T235959Z\r\nEND:VEVENT\r\n",
+    );
+    assert_eq!(ending.repeat, None);
+    assert!(ending.odd.contains(&Odd::Past));
+}
+
+#[test]
+fn an_event_s_alarm_from_its_end_counts_from_when_it_ends() {
+    let exam = one(
+        "BEGIN:VEVENT\r\nUID:x6\r\nSUMMARY:Exam\r\nDTSTART;TZID=America/Santiago:20261022T090000\r\nDTEND;TZID=America/Santiago:20261022T120000\r\nBEGIN:VALARM\r\nTRIGGER;RELATED=END:-PT15M\r\nEND:VALARM\r\nEND:VEVENT\r\n",
+    );
+    assert_eq!(
+        exam.reminder.unwrap().at,
+        date(2026, 10, 22).at(11, 45, 0, 0)
+    );
+}
+
+#[test]
+fn an_outlook_zone_with_a_colon_still_gives_the_date_and_an_unreadable_one_is_said() {
+    let outlook = one(
+        "BEGIN:VEVENT\r\nUID:x7\r\nSUMMARY:Board\r\nDTSTART;TZID=(UTC-05:00) Eastern Time (US & Canada):20261020T090000\r\nEND:VEVENT\r\n",
+    );
+    assert_eq!(outlook.date.unwrap().at, date(2026, 10, 20).at(9, 0, 0, 0));
+    assert!(outlook.odd.contains(&Odd::Zone));
+    let broken =
+        one("BEGIN:VEVENT\r\nUID:x8\r\nSUMMARY:Broken\r\nDTSTART:2026-10-20\r\nEND:VEVENT\r\n");
+    assert!(broken.odd.contains(&Odd::Undated));
+}

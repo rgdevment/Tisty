@@ -380,7 +380,7 @@ export const complete = async (id: string, also?: string[], summary?: string): P
 };
 export const owed = (id: string): Promise<string[]> => invoke("owed", { id });
 
-export type IcsOdd = "untitled" | "moved" | "cancelled" | "repeat" | "zone" | "past";
+export type IcsOdd = "untitled" | "undated" | "moved" | "cancelled" | "repeat" | "zone" | "past";
 
 export interface IcsFound {
   at: number;

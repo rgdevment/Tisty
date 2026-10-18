@@ -2,19 +2,20 @@ use jiff::civil::Time;
 use jiff::{Span, Zoned};
 
 use super::read::{Alarm, Item, Kind};
-use super::rule::{Ruled, ruled, step};
+use super::rule::{Ruled, ruled, span};
 use super::when::{When, when};
-use crate::model::{DateSpec, Priority, Repeat};
+use crate::model::{Cadence, DateSpec, Priority, Repeat, Unit};
 
 pub const SOURCE: &str = "ics:";
 const TIMED_BEFORE: i64 = 30;
 const EVE_AT: Time = Time::constant(18, 0, 0, 0);
-const STEPS_AT_MOST: usize = 20_000;
+const TRIES: i64 = 3;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Odd {
     Untitled,
+    Undated,
     Moved,
     Cancelled,
     Repeat,
@@ -84,16 +85,30 @@ fn gone(at: &DateSpec, now: &Zoned) -> bool {
     }
 }
 
-// A series that began long ago starts at its next turn, never as years overdue.
-fn caught_up(at: &DateSpec, repeat: Repeat, now: &Zoned) -> Option<DateSpec> {
-    let mut next = at.clone();
-    for _ in 0..STEPS_AT_MOST {
-        if !gone(&next, now) {
-            return Some(next);
-        }
-        next = next.moved(next.at.checked_add(step(repeat.each)?).ok()?);
+// A series that began long ago starts at its next turn, counted from its first so the 31st stays the 31st.
+fn caught_up(at: &DateSpec, each: Cadence, now: &Zoned) -> Option<DateSpec> {
+    if !gone(at, now) {
+        return Some(at.clone());
     }
-    None
+    let unit = match each.unit {
+        Unit::Day => jiff::Unit::Day,
+        Unit::Week => jiff::Unit::Week,
+        Unit::Month => jiff::Unit::Month,
+        Unit::Year => jiff::Unit::Year,
+    };
+    let behind = now.date().since((unit, at.date())).ok()?;
+    let units: i64 = match each.unit {
+        Unit::Day => behind.get_days().into(),
+        Unit::Week => behind.get_weeks().into(),
+        Unit::Month => behind.get_months().into(),
+        Unit::Year => behind.get_years().into(),
+    };
+    let first = units / i64::from(each.every);
+    (first..first + TRIES).find_map(|turns| {
+        let steps = turns.checked_mul(i64::from(each.every))?;
+        let next = at.moved(at.at.checked_add(span(each.unit, steps)?).ok()?);
+        (!gone(&next, now)).then_some(next)
+    })
 }
 
 // What carries no identity of its own is known by what it says and when, so opening it twice takes it once.
@@ -131,6 +146,10 @@ pub fn taken(item: &Item, now: &Zoned) -> Taken {
     let mut odd = Vec::new();
     for (wrong, said) in [
         (item.summary.is_empty(), Odd::Untitled),
+        (
+            (item.start.is_some() && start.is_none()) || (item.due.is_some() && due.is_none()),
+            Odd::Undated,
+        ),
         (item.moved, Odd::Moved),
         (item.cancelled, Odd::Cancelled),
     ] {
@@ -149,7 +168,12 @@ pub fn taken(item: &Item, now: &Zoned) -> Taken {
         Kind::Event => (start.map(|one| one.spec), None),
         Kind::Todo => (start.map(|one| one.spec), due.map(|one| one.spec)),
     };
-    let mut repeat = match ruled(item.rule.as_deref(), item.irregular, date.as_ref()) {
+    let own = item
+        .start
+        .as_ref()
+        .and_then(|one| super::when::civil(&one.value))
+        .map(|one| one.date());
+    let mut repeat = match ruled(item.rule.as_deref(), item.irregular, own) {
         Ruled::Once => None,
         Ruled::Kept(repeat) => Some(repeat),
         Ruled::Odd => {
@@ -158,9 +182,10 @@ pub fn taken(item: &Item, now: &Zoned) -> Taken {
         }
     };
     if let Some(series) = repeat {
-        let ended = series.until.is_some_and(|last| last < now.date());
-        match date.as_ref().and_then(|at| caught_up(at, series, now)) {
-            Some(next) if !ended => {
+        let next = date.as_ref().and_then(|at| caught_up(at, series.each, now));
+        let ended = |next: &DateSpec| series.until.is_some_and(|last| next.date() > last);
+        match next {
+            Some(next) if !ended(&next) => {
                 let was = date.as_ref().map_or(next.at, |one| one.at);
                 let moved = next.at.since(was).ok();
                 deadline = deadline.and_then(|one| {
@@ -177,7 +202,15 @@ pub fn taken(item: &Item, now: &Zoned) -> Taken {
         odd.push(Odd::Past);
     }
     let alarm = item.alarm.map(|one| one.minutes);
-    let reminded = alarm_from(item, date.as_ref(), deadline.as_ref());
+    let end = match item.kind {
+        Kind::Event => item
+            .end
+            .as_ref()
+            .and_then(|one| when(one, here))
+            .map(|one| one.spec),
+        Kind::Todo => deadline.clone(),
+    };
+    let reminded = alarm_from(item, date.as_ref(), end.as_ref().or(deadline.as_ref()));
     Taken {
         title: item.summary.clone(),
         reminder: reminded.and_then(|one| reminder(&one, alarm, now)),

@@ -150,7 +150,13 @@ pub fn ics_take(
                 d: tisty_core::event::Body { body: Some(body) },
             });
         }
-        session.commit_all(ops)?;
+        // What was already made stays made: a write that fails partway says so only when nothing came in.
+        if let Err(e) = session.commit_all(ops) {
+            if made == 0 {
+                return Err(e.into());
+            }
+            break;
+        }
         made += 1;
     }
     Ok(made)

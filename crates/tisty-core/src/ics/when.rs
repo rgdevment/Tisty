@@ -69,7 +69,7 @@ fn number(said: &str, from: usize, len: usize) -> Option<i16> {
     said.get(from..from + len)?.parse().ok()
 }
 
-fn civil(value: &str) -> Option<DateTime> {
+pub(super) fn civil(value: &str) -> Option<DateTime> {
     let bare = value.trim().trim_end_matches(['Z', 'z']);
     let (day, time) = bare.split_once(['T', 't']).unwrap_or((bare, ""));
     let date = Date::new(

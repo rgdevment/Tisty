@@ -22,6 +22,7 @@ const MANY = 4;
 
 const ODD: Record<IcsOdd, Parameters<typeof t>[0]> = {
   untitled: "icsUntitled",
+  undated: "icsUndated",
   moved: "icsMoved",
   cancelled: "icsCancelled",
   repeat: "icsRepeatOdd",
@@ -35,12 +36,13 @@ export default function Calendars() {
   const [queue, setQueue] = useState<string[]>([]);
 
   useEffect(() => {
-    const more = (paths: string[]) => {
-      if (paths.length) setQueue((was) => [...was, ...paths]);
+    const more = (paths: string[] | null | undefined) => {
+      if (paths?.length) setQueue((was) => [...was, ...paths]);
     };
     const waiting = () => icsWaiting().then(more, () => {});
-    waiting();
+    // Listening first: a calendar handed over while the queue is read is still heard.
     const heard = listen("calendar", waiting);
+    heard.then(waiting, waiting);
     const dropped = (event: Event) => more((event as CustomEvent<string[]>).detail ?? []);
     window.addEventListener(CALENDAR_DROPPED, dropped);
     return () => {
@@ -60,7 +62,10 @@ export default function Calendars() {
         setQueue((was) => was.slice(1));
         if (made > 0) load();
       }}
-      fail={(e) => setError(saidPlainly(e))}
+      fail={(e) => {
+        setError(saidPlainly(e));
+        load();
+      }}
     />
   );
 }
@@ -86,7 +91,9 @@ export function Importing({
     icsRead(path).then(
       (said) => {
         setBrought(said);
-        const ready = said.found.filter((one) => one.takeable && !one.odd.includes("past"));
+        const ready = said.found.filter(
+          (one) => one.takeable && !one.odd.includes("past") && !one.odd.includes("undated"),
+        );
         setPicked(new Set(ready.map((one) => one.at)));
       },
       (e) => setProblem(saidPlainly(e)),
@@ -113,7 +120,7 @@ export function Importing({
   };
 
   return (
-    <Modal title={t("icsTitle")} wide onClose={() => onDone(0)}>
+    <Modal title={t("icsTitle")} wide onClose={busy ? undefined : () => onDone(0)}>
       {problem && <p className="text-[13px] text-hue-red">{problem}</p>}
       {!brought && !problem && <p className="text-[13px] text-faint">{t("icsReading")}</p>}
       {brought && brought.found.length === 0 && (
@@ -163,6 +170,7 @@ export function Importing({
         </label>
         <button
           type="button"
+          disabled={busy}
           onClick={() => onDone(0)}
           className="cursor-pointer rounded-[10px] px-3 py-1.5 text-faint hover:text-ink"
         >
@@ -204,7 +212,7 @@ function Row({ one, on, onToggle }: { one: IcsFound; on: boolean; onToggle: () =
           <span className="block truncate font-medium text-ink">
             {one.title || t("icsUntitled")}
           </span>
-          <span className="block text-[12px] text-soft">
+          <span className="block text-[11.5px] text-soft">
             {[
               when ? whenLabel(when) : null,
               one.place || null,
@@ -215,7 +223,7 @@ function Row({ one, on, onToggle }: { one: IcsFound; on: boolean; onToggle: () =
               .join(" · ")}
           </span>
           {notes.length > 0 && (
-            <span className="block text-[12px] text-hue-amber">{notes.join(" · ")}</span>
+            <span className="block text-[11.5px] text-hue-amber">{notes.join(" · ")}</span>
           )}
         </span>
       </label>

@@ -28,15 +28,25 @@ pub fn unfolded(text: &str) -> Vec<String> {
     out
 }
 
-// A colon inside a quoted parameter is not the one that starts the value.
+const DATED: [&str; 5] = ["DTSTART", "DTEND", "DUE", "EXDATE", "RECURRENCE-ID"];
+
+// A colon inside a quoted parameter is not the one that starts the value; a date holds none, so
+// for one the last colon starts it, as Outlook leaves a zone like «(UTC-05:00) Eastern» unquoted.
 pub fn line(raw: &str) -> Option<Line> {
+    let named = raw.split([';', ':']).next().unwrap_or("").trim();
+    let dated = DATED.iter().any(|one| one.eq_ignore_ascii_case(named));
     let mut quoted = false;
-    let split = raw.char_indices().find(|(_, one)| {
+    let colons = raw.char_indices().filter(|(_, one)| {
         if *one == '"' {
             quoted = !quoted;
         }
         *one == ':' && !quoted
-    })?;
+    });
+    let split = if dated {
+        colons.last()?
+    } else {
+        colons.into_iter().next()?
+    };
     let (head, value) = (&raw[..split.0], &raw[split.0 + 1..]);
     let mut parts = head.split(';');
     let name = parts.next()?.trim().to_ascii_uppercase();
