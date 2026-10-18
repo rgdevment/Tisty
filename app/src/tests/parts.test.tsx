@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Task, Whole } from "../core";
 import { fill, t } from "../locales";
 import Detail from "../ui/Detail";
-import Steps from "../ui/Steps";
 import TaskList from "../ui/TaskList";
 
 const parts: Task[] = [];
@@ -56,9 +55,6 @@ const opened = (shown: Task, more: Partial<Parameters<typeof Detail>[0]> = {}) =
       onExpand={vi.fn()}
       onCollapse={vi.fn()}
       onPatch={vi.fn()}
-      onStep={vi.fn()}
-      onMark={vi.fn()}
-      onDropStep={vi.fn()}
       onLog={vi.fn()}
       onComplete={vi.fn()}
       onDiscard={vi.fn()}
@@ -260,41 +256,6 @@ describe("parts in plain sight", () => {
 
     await waitFor(() => expect(screen.getByText("pack")).not.toBeNull());
     expect(screen.queryByRole("button", { name: `⌂ ${t("partOfOther")}` })).toBeNull();
-  });
-});
-
-describe("a step that outgrows itself", () => {
-  it("is turned into a task in one gesture", () => {
-    const turned = vi.fn();
-    render(
-      <Steps
-        steps={[{ id: "s1", text: "call the landlord", done: false, order: "a0" }]}
-        onWrite={vi.fn()}
-        onMark={vi.fn()}
-        onDrop={vi.fn()}
-        onTurn={turned}
-      />,
-    );
-
-    fireEvent.click(
-      screen.getByRole("button", { name: `${t("turnIntoTask")}: call the landlord` }),
-    );
-
-    expect(turned).toHaveBeenCalledWith("s1");
-  });
-
-  it("is not offered for a step already done", () => {
-    render(
-      <Steps
-        steps={[{ id: "s1", text: "call the landlord", done: true, order: "a0" }]}
-        onWrite={vi.fn()}
-        onMark={vi.fn()}
-        onDrop={vi.fn()}
-        onTurn={vi.fn()}
-      />,
-    );
-
-    expect(screen.queryByRole("button", { name: new RegExp(t("turnIntoTask")) })).toBeNull();
   });
 });
 

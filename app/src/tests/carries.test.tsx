@@ -42,9 +42,6 @@ const show = (status: Task["status"], expanded: boolean) =>
       onExpand={() => {}}
       onCollapse={() => {}}
       onPatch={() => {}}
-      onStep={() => {}}
-      onMark={() => {}}
-      onDropStep={() => {}}
       onLog={() => {}}
       onComplete={() => {}}
       onDiscard={() => {}}
@@ -94,7 +91,7 @@ describe("the side block with the trail", () => {
 
   it("leaves an open task in the column without a trail, as v1.7.0 did", async () => {
     show("open", false);
-    await waitFor(() => expect(screen.getByText("Description")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("Journal")).toBeTruthy());
 
     expect(screen.queryAllByText("The trail")).toHaveLength(0);
     expect(screen.queryAllByText("What it carries")).toHaveLength(0);

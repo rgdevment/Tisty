@@ -10,11 +10,9 @@ import Fields from "./Fields";
 import Journal from "./Journal";
 import Left from "./Left";
 import Menu, { type Choice } from "./Menu";
-import Prose from "./Prose";
 import Routine from "./Routine";
 import Section from "./Section";
 import { saidBy } from "./Spoke";
-import Steps from "./Steps";
 import TaskWords from "./TaskWords";
 import Trail from "./Trail";
 import Written from "./Written";
@@ -29,9 +27,6 @@ interface Props {
   onExpand?: () => void;
   onCollapse: () => void;
   onPatch: (change: Change) => void;
-  onStep: (text: string, step?: string) => void;
-  onMark: (step: string, done: boolean) => void;
-  onDropStep: (step: string) => void;
   onLog: (body: string, entry?: string) => void;
   onComplete: () => void;
   onDiscard: () => void;
@@ -50,7 +45,6 @@ interface Props {
   onOpenPart?: (id: string) => void;
   onCompletePart?: (id: string, title: string) => void;
   onHang?: (whole: string | null) => void;
-  onStepToPart?: (step: string) => void;
   onSettle?: (before: string, now: string) => void;
 }
 
@@ -64,9 +58,6 @@ export default function Detail({
   onExpand,
   onCollapse,
   onPatch,
-  onStep,
-  onMark,
-  onDropStep,
   onLog,
   onComplete,
   onDiscard,
@@ -85,7 +76,6 @@ export default function Detail({
   onOpenPart,
   onCompletePart,
   onHang,
-  onStepToPart,
   onSettle,
 }: Props) {
   const opened = useRef<HTMLElement>(null);
@@ -169,44 +159,7 @@ export default function Detail({
       )}
       <Fields task={task} lists={lists} known={known} onPatch={onPatch} />
 
-      <TaskWords
-        task={task}
-        onSettle={onSettle}
-        onError={onError}
-        onDoc={onDoc}
-        legacy={
-          <>
-            <Section label={t("description")} />
-            <Prose
-              value={task.description ?? ""}
-              hint={t("describeIt")}
-              label={t("description")}
-              beside={expanded}
-              catches
-              onError={onError}
-              onDoc={onDoc}
-              onWhole={expanded ? undefined : onExpand}
-              onWrite={(description) => onPatch({ description })}
-            />
-
-            <Section
-              label={t("steps")}
-              note={
-                task.volume?.steps
-                  ? `${task.volume.steps_done ?? 0}/${task.volume.steps}`
-                  : undefined
-              }
-            />
-            <Steps
-              steps={task.steps ?? []}
-              onWrite={onStep}
-              onMark={onMark}
-              onDrop={onDropStep}
-              onTurn={holding && !task.part_of ? onStepToPart : undefined}
-            />
-          </>
-        }
-      />
+      <TaskWords task={task} onSettle={onSettle} onError={onError} onDoc={onDoc} />
 
       <Belongs
         task={task}

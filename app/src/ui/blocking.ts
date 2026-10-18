@@ -177,7 +177,7 @@ export const edited = (
   if (look) host.style.margin = look.margin;
   const first = block.parentElement?.firstElementChild;
   const heads = first === block || (first?.matches(".front") && first.nextElementSibling === block);
-  if (heads && block.matches(".page > *:not(.front)")) {
+  if (heads && block.matches("html:not(.untitled) .page > *:not(.front)")) {
     host.classList.add("titled");
   }
   if (block.matches(".page > .front:first-child")) host.classList.add("fronted");

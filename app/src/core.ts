@@ -332,12 +332,6 @@ export interface Change {
 
 export const patch = (id: string, change: Change): Promise<Task> =>
   invoke("patch", { id, change, locale: navigator.language });
-export const writeStep = (id: string, text: string, step?: string): Promise<Task> =>
-  invoke("write_step", { id, step, text });
-export const markStep = (id: string, step: string, done: boolean): Promise<Task> =>
-  invoke("mark_step", { id, step, done });
-export const dropStep = (id: string, step: string): Promise<Task> =>
-  invoke("drop_step", { id, step });
 export type TaskDoc = { readonly file: string; readonly body: string; readonly held: boolean };
 export const taskDocOpen = (id: string): Promise<TaskDoc | null> => invoke("task_doc_open", { id });
 export const taskDocMake = (id: string): Promise<string> => invoke("task_doc_make", { id });
@@ -349,8 +343,6 @@ export const addPart = (whole: string, title: string): Promise<Task> =>
   invoke("add_part", { whole, title });
 export const hang = (id: string, whole: string | null): Promise<Task> =>
   invoke("hang", { id, whole });
-export const stepToPart = (id: string, step: string): Promise<Task> =>
-  invoke("step_to_part", { id, step });
 export const wholesOffered = (id: string): Promise<Offered[]> => invoke("wholes_offered", { id });
 export const writeLog = (id: string, body: string, entry?: string): Promise<Task> =>
   invoke("write_log", { id, entry, body });

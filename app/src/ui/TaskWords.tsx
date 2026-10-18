@@ -1,4 +1,4 @@
-import { lazy, type ReactNode, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { docWrite, type Task, type TaskDoc, taskDocMake, taskDocOpen } from "../core";
 import { t } from "../locales";
 import { holds, queued } from "../saving";
@@ -9,7 +9,6 @@ const SETTLES = 700;
 
 interface Props {
   task: Task;
-  legacy: ReactNode;
   onSettle?: (before: string, now: string) => void;
   onError?: (problem: unknown) => void;
   onDoc?: (id: string) => void;
@@ -21,46 +20,30 @@ const real = (said: unknown): TaskDoc | null => {
   return typeof one?.file === "string" && typeof one.body === "string" ? (one as TaskDoc) : null;
 };
 
-export default function TaskWords({ task, legacy, onSettle, onError, onDoc }: Props) {
-  const [doc, setDoc] = useState<TaskDoc | null | undefined>(undefined);
+// An open task is always a document: one it never had is made the first time it is opened.
+export default function TaskWords({ task, onSettle, onError, onDoc }: Props) {
+  const [doc, setDoc] = useState<TaskDoc | null>(null);
   const failed = useRef(onError);
   failed.current = onError;
-
-  const look = useCallback(
-    () =>
-      taskDocOpen(task.id)
-        .then((said) => setDoc(real(said)))
-        .catch((e) => {
-          setDoc(null);
-          failed.current?.(e);
-        }),
-    [task.id],
-  );
+  const open = task.status === "open";
 
   useEffect(() => {
-    void look();
-  }, [look]);
+    let live = true;
+    const opened = () => taskDocOpen(task.id).then(real);
+    opened()
+      .then((found) => (found || !open ? found : taskDocMake(task.id).then(opened)))
+      .then((found) => {
+        if (live) setDoc(found);
+      })
+      .catch((e) => {
+        if (live) failed.current?.(e);
+      });
+    return () => {
+      live = false;
+    };
+  }, [task.id, open]);
 
-  if (!doc) {
-    return (
-      <>
-        {legacy}
-        {doc === null && onSettle && task.status === "open" && (
-          <button
-            type="button"
-            onClick={() =>
-              taskDocMake(task.id)
-                .then(look)
-                .catch((e) => onError?.(e))
-            }
-            className="mt-4 rounded-md px-2 py-1 text-[12.5px] text-accent hover:bg-hover"
-          >
-            {t("writeAsDoc")}
-          </button>
-        )}
-      </>
-    );
-  }
+  if (!doc) return null;
   return (
     <Written
       doc={doc}
@@ -123,6 +106,7 @@ function Written({
         value={text}
         label={label}
         reading={doc.held}
+        inline
         onWrite={wrote}
         onSettle={onSettle}
         onFail={onError}

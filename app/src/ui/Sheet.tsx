@@ -48,6 +48,7 @@ type Props = {
   readonly onOrder?: (move: ((file: string, before: string | null) => Moved) | null) => void;
   readonly asking?: Asking;
   readonly kept?: boolean;
+  readonly inline?: boolean;
   readonly sheet?: SheetSize;
 };
 
@@ -539,6 +540,7 @@ export default function Sheet(props: Readonly<Props>) {
           label={label}
           stranger={false}
           tall
+          untitled={props.inline}
           onDoc={(file) => said.current.onDoc?.(file)}
           onOpen={(reference) => said.current.onOpen?.(reference)}
           onTag={(tag) => said.current.onTag?.(tag)}
@@ -568,7 +570,7 @@ export default function Sheet(props: Readonly<Props>) {
         />
       </div>
       {below}
-      {!below && <div aria-hidden="true" className="h-[40vh] shrink-0" />}
+      {!below && !props.inline && <div aria-hidden="true" className="h-[40vh] shrink-0" />}
       {menu && (
         <Menu
           at={{ x: menu.x, y: menu.y }}

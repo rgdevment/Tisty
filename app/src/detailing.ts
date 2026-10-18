@@ -3,23 +3,19 @@ import {
   type Change,
   complete,
   discard,
-  dropStep,
   erase,
   fold,
   hang,
-  markStep,
   openToAgents,
   patch,
   readAs,
   reopen,
   type Snapshot,
-  stepToPart,
   stillOpen,
   type Task,
   taskDocSettled,
   taskOf,
   writeLog,
-  writeStep,
 } from "./core";
 import { fill } from "./locales";
 import { sure } from "./sure";
@@ -43,9 +39,6 @@ export const detailOf = (one: Task, h: Hands) => ({
   lists: h.data.every ?? h.data.lists,
   known: h.data.tags.map((tag) => tag.tag),
   onPatch: (change: Change) => h.act(patch(one.id, change)),
-  onStep: (text: string, step?: string) => h.act(writeStep(one.id, text, step)),
-  onMark: (step: string, done: boolean) => h.act(markStep(one.id, step, done)),
-  onDropStep: (step: string) => h.act(dropStep(one.id, step)),
   onLog: (body: string, entry?: string) => h.act(writeLog(one.id, body, entry)),
   onComplete: () => {
     h.marking(one.id, one.title);
@@ -73,7 +66,6 @@ export const detailOf = (one: Task, h: Hands) => ({
     h.act(complete(id).then(() => taskOf(one.id)));
   },
   onHang: (whole: string | null) => h.act(hang(one.id, whole)),
-  onStepToPart: (step: string) => h.act(stepToPart(one.id, step)),
   onSettle: (before: string, now: string) => h.act(taskDocSettled(one.id, before, now)),
 });
 

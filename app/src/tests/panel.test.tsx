@@ -32,9 +32,6 @@ const show = (expanded = false) => {
       onExpand={() => {}}
       onCollapse={() => {}}
       onPatch={() => {}}
-      onStep={() => {}}
-      onMark={() => {}}
-      onDropStep={() => {}}
       onLog={() => {}}
       onComplete={() => {}}
       onDiscard={() => {}}
@@ -96,17 +93,10 @@ describe("getting back out of an open task", () => {
 });
 
 describe("what only the mouse used to see", () => {
-  it("draws the remove button of a step once it has focus", () => {
+  it("rings the journal when the keyboard reaches it", () => {
     show();
 
-    const remove = screen.getByRole("button", { name: /remove collect the figures/i });
-    expect(remove.className).toContain("focus-visible:opacity-100");
-  });
-
-  it("rings the description when the keyboard reaches it", () => {
-    show();
-
-    const prose = screen.getByLabelText(/description/i);
+    const prose = screen.getByLabelText(/^journal$/i);
     expect(prose.getAttribute("tabindex")).toBe("0");
     expect(prose.className).toContain("focus-visible:ring-2");
   });

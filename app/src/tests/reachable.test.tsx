@@ -232,9 +232,6 @@ describe("opening a task", () => {
         onExpand={() => {}}
         onCollapse={() => {}}
         onPatch={() => {}}
-        onStep={() => {}}
-        onMark={() => {}}
-        onDropStep={() => {}}
         onLog={() => {}}
         onComplete={() => {}}
         onDiscard={() => {}}

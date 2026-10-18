@@ -60,9 +60,6 @@ describe("what the detail of a task is handed", () => {
     const shown = detailOf(task, h);
 
     shown.onPatch({ title: "Otra" } as never);
-    shown.onStep("paso");
-    shown.onMark("s1", true);
-    shown.onDropStep("s1");
     shown.onLog("nota");
     shown.onReopen();
     shown.onStillOpen();
@@ -70,12 +67,11 @@ describe("what the detail of a task is handed", () => {
     shown.onReadAs("story");
     shown.onOpenToAgents(true);
     shown.onHang(null);
-    shown.onStepToPart("s1");
     shown.onAddPart("parte");
     shown.onSettle("antes", "ahora");
     await flush();
 
-    expect(h.act).toHaveBeenCalledTimes(14);
+    expect(h.act).toHaveBeenCalledTimes(10);
     expect(sent()).toContain("task_of");
     expect(calls).toContainEqual({
       cmd: "task_doc_settled",

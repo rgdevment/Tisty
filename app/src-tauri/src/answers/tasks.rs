@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use tisty_core::event::{LogAdd, LogEdit, StepAdd, StepRef, StepText, TaskPatch};
+use tisty_core::event::{LogAdd, LogEdit, TaskPatch};
 use tisty_core::witness::{self, Fact, channel};
 use tisty_core::{Config, Op, Tag, Task};
 
@@ -457,103 +457,6 @@ pub fn patch(
     if !ops.is_empty() {
         session.commit_all(ops)?;
     }
-    session
-        .state
-        .tasks
-        .get(&id)
-        .cloned()
-        .ok_or_else(|| Refusal::of("notATaskId"))
-}
-
-#[tauri::command]
-pub fn write_step(
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-    step: Option<String>,
-    text: String,
-) -> Answer<Task> {
-    let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
-    let text = text.trim().to_string();
-    if text.is_empty() {
-        return Err(Refusal::of("emptyStep"));
-    }
-    if !tisty_core::model::step_fits(&text) {
-        return Err(Refusal::of("stepTooLong"));
-    }
-    let mut session = held(&session);
-
-    let op = match step {
-        Some(raw) => Op::StepText {
-            id,
-            d: StepText {
-                step: raw.parse().map_err(|_| Refusal::of("notAStepId"))?,
-                text,
-            },
-        },
-        None => Op::StepAdd {
-            id,
-            d: StepAdd {
-                step: ulid::Ulid::generate(),
-                text,
-                order: tisty_core::order::last_of(
-                    session
-                        .state
-                        .tasks
-                        .get(&id)
-                        .ok_or_else(|| Refusal::of("notATaskId"))?
-                        .steps
-                        .iter()
-                        .map(|s| s.order.as_str()),
-                ),
-            },
-        },
-    };
-    session.commit(op)?;
-    session
-        .state
-        .tasks
-        .get(&id)
-        .cloned()
-        .ok_or_else(|| Refusal::of("notATaskId"))
-}
-
-#[tauri::command]
-pub fn mark_step(
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-    step: String,
-    done: bool,
-) -> Answer<Task> {
-    let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
-    let d = StepRef {
-        step: step.parse().map_err(|_| Refusal::of("notAStepId"))?,
-    };
-    let mut session = held(&session);
-    session.commit(if done {
-        Op::StepDone { id, d }
-    } else {
-        Op::StepUndone { id, d }
-    })?;
-    session
-        .state
-        .tasks
-        .get(&id)
-        .cloned()
-        .ok_or_else(|| Refusal::of("notATaskId"))
-}
-
-#[tauri::command]
-pub fn drop_step(
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-    step: String,
-) -> Answer<Task> {
-    let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
-    let d = StepRef {
-        step: step.parse().map_err(|_| Refusal::of("notAStepId"))?,
-    };
-    let mut session = held(&session);
-    session.commit(Op::StepRemove { id, d })?;
     session
         .state
         .tasks

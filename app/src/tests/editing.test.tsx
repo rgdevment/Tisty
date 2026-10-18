@@ -35,10 +35,6 @@ const written: Task = {
 function open(task: Task = written) {
   const on = {
     patch: vi.fn(),
-    step: vi.fn(),
-    mark: vi.fn(),
-    dropStep: vi.fn(),
-    moveStep: vi.fn(),
     log: vi.fn(),
     discard: vi.fn(),
     reopen: vi.fn(),
@@ -52,9 +48,6 @@ function open(task: Task = written) {
       onExpand={() => {}}
       onCollapse={() => {}}
       onPatch={on.patch}
-      onStep={on.step}
-      onMark={on.mark}
-      onDropStep={on.dropStep}
       onLog={on.log}
       onComplete={() => {}}
       onDiscard={on.discard}
@@ -92,28 +85,6 @@ describe("escape discards, blur keeps", () => {
     expect(box("Title").value).toBe("write the report");
   });
 
-  it("puts the description back and writes nothing", async () => {
-    const user = userEvent.setup();
-    const on = open();
-
-    await user.clear(await into(user, "Description"));
-    await user.type(box("Description"), "never mind{Escape}");
-
-    expect(on.patch).not.toHaveBeenCalled();
-    expect(screen.getByLabelText("Description").textContent).toContain("the one for accounting");
-  });
-
-  it("puts a step back and writes nothing", async () => {
-    const user = userEvent.setup();
-    const on = open();
-
-    await user.clear(box("collect the figures"));
-    await user.type(box("collect the figures"), "never mind{Escape}");
-
-    expect(on.step).not.toHaveBeenCalled();
-    expect(box("collect the figures").value).toBe("collect the figures");
-  });
-
   it("puts a journal entry back and writes nothing", async () => {
     const user = userEvent.setup();
     const on = open();
@@ -125,17 +96,6 @@ describe("escape discards, blur keeps", () => {
     expect(screen.getByLabelText("spoke to accounting").textContent).toContain(
       "spoke to accounting",
     );
-  });
-
-  it("keeps the edit when the field is simply left", async () => {
-    const user = userEvent.setup();
-    const on = open();
-
-    await user.clear(await into(user, "Description"));
-    await user.type(box("Description"), "the one for the bank");
-    await user.tab();
-
-    expect(on.patch).toHaveBeenCalledWith({ description: "the one for the bank" });
   });
 });
 
@@ -151,17 +111,6 @@ describe("what an edit is allowed to do", () => {
     expect(box("Title").value).toBe("write the report");
   });
 
-  it("refuses to empty a step", async () => {
-    const user = userEvent.setup();
-    const on = open();
-
-    await user.clear(box("collect the figures"));
-    await user.tab();
-
-    expect(on.step).not.toHaveBeenCalled();
-    expect(box("collect the figures").value).toBe("collect the figures");
-  });
-
   it("says nothing when the text comes back unchanged", async () => {
     const user = userEvent.setup();
     const on = open();
@@ -170,16 +119,6 @@ describe("what an edit is allowed to do", () => {
     await user.tab();
 
     expect(on.patch).not.toHaveBeenCalled();
-  });
-
-  it("adds a step on Enter and empties the box", async () => {
-    const user = userEvent.setup();
-    const on = open();
-
-    await user.type(box("Add a step"), "call accounting{Enter}");
-
-    expect(on.step).toHaveBeenCalledWith("call accounting");
-    expect(box("Add a step").value).toBe("");
   });
 
   it("keeps a journal entry on Enter, which is how one is sent", async () => {

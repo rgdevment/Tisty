@@ -34,9 +34,6 @@ const detail = (one: Task) =>
       onExpand={() => {}}
       onCollapse={() => {}}
       onPatch={() => {}}
-      onStep={() => {}}
-      onMark={() => {}}
-      onDropStep={() => {}}
       onLog={() => {}}
       onComplete={() => {}}
       onDiscard={() => {}}

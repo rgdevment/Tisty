@@ -35,9 +35,6 @@ const shown = (task: Task) =>
       onExpand={nothing}
       onCollapse={nothing}
       onPatch={nothing}
-      onStep={nothing}
-      onMark={nothing}
-      onDropStep={nothing}
       onLog={nothing}
       onComplete={nothing}
       onDiscard={nothing}

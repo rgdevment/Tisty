@@ -32,9 +32,6 @@ const open = (one: Task, expanded = false) => {
       onExpand={() => {}}
       onCollapse={() => {}}
       onPatch={() => {}}
-      onStep={() => {}}
-      onMark={() => {}}
-      onDropStep={() => {}}
       onLog={() => {}}
       onComplete={done}
       onDiscard={() => {}}
@@ -97,9 +94,6 @@ describe("what an agent says is done", () => {
         onExpand={() => {}}
         onCollapse={() => {}}
         onPatch={() => {}}
-        onStep={() => {}}
-        onMark={() => {}}
-        onDropStep={() => {}}
         onLog={() => {}}
         onComplete={() => {}}
         onDiscard={() => {}}
@@ -200,9 +194,6 @@ describe("erasing what is already archived", () => {
         onExpand={() => {}}
         onCollapse={() => {}}
         onPatch={() => {}}
-        onStep={() => {}}
-        onMark={() => {}}
-        onDropStep={() => {}}
         onLog={() => {}}
         onComplete={() => {}}
         onDiscard={() => {}}
@@ -299,9 +290,6 @@ describe("erasing what is already archived", () => {
         onExpand={() => {}}
         onCollapse={() => {}}
         onPatch={() => {}}
-        onStep={() => {}}
-        onMark={() => {}}
-        onDropStep={() => {}}
         onLog={() => {}}
         onComplete={() => {}}
         onDiscard={() => {}}
@@ -338,9 +326,6 @@ describe("what an agent says should not be done", () => {
         onExpand={() => {}}
         onCollapse={() => {}}
         onPatch={() => {}}
-        onStep={() => {}}
-        onMark={() => {}}
-        onDropStep={() => {}}
         onLog={() => {}}
         onComplete={on.complete}
         onDiscard={on.discard}
