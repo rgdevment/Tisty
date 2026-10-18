@@ -52,6 +52,7 @@ html.tall {
   overflow: hidden;
 }
 html.tall .page {
+  padding-top: 50px;
   padding-bottom: 36px;
 }
 html.tall .page > * {
@@ -1083,11 +1084,11 @@ kbd {
   max-width: calc(100vw - 16px);
   box-sizing: border-box;
   padding: 3px;
-  border-radius: 9px;
+  border-radius: 8px;
   border: 1px solid var(--tisty-hair);
   background: var(--tisty-rail);
-  box-shadow: 0 10px 28px var(--tisty-cast);
-  font-size: 13px;
+  box-shadow: 0 4px 12px var(--tisty-cast);
+  font-size: 12.5px;
   line-height: 1;
   white-space: nowrap;
 }
@@ -1162,15 +1163,17 @@ kbd {
   border-radius: 4px;
   padding: 0 2px;
 }
-.cm-bar-more {
-  padding: 0 8px 0 4px;
+.cm-bar-kind-said {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 .cm-bar-more kbd {
-  padding: 0 5px;
-  border: 1px solid var(--tisty-hair);
-  border-radius: 4px;
   font:
-    600 11.5px ui-monospace,
+    600 12.5px ui-monospace,
     "Cascadia Mono",
     "SF Mono",
     Menlo,
@@ -1179,8 +1182,8 @@ kbd {
 }
 .cm-bar-sep {
   width: 1px;
-  height: 18px;
-  margin: 0 4px;
+  height: 16px;
+  margin: 0 3px;
   background: var(--tisty-hair);
 }
 .cm-bar-kinds {

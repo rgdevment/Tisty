@@ -1,4 +1,5 @@
-const REST = 2;
+const REST = 4;
+const LEFT = 12;
 const STUCK = 6;
 
 const scrollerOf = (from: Element | null | undefined): Element | null => {
@@ -33,7 +34,7 @@ export const docked = (bar: HTMLElement, hint: HTMLElement): (() => void) => {
     const stuck = (seen + view.scrollY) / zoom + STUCK;
     bar.style.top = `${Math.min(bottom, Math.max(top + REST, stuck))}px`;
     const left = Number.parseFloat(view.getComputedStyle(sheet).paddingLeft) || 0;
-    bar.style.left = `${(box.left + view.scrollX) / zoom + left}px`;
+    bar.style.left = `${(box.left + view.scrollX) / zoom + left - LEFT}px`;
   };
   place();
   const listen = { capture: true, passive: true };

@@ -234,8 +234,8 @@ export const barred = (view: EditorView): Barred => {
     const shown = tabled ? table : menu;
     shown.toggleAttribute("hidden");
   });
-  const kindSaid = made("span", "", t("paragraph"));
-  kind.append(kindSaid, made("span", "cm-bar-caret", "▾"));
+  const kindSaid = made("span", "cm-bar-kind-said", t("paragraph"));
+  kind.append(made("span", "", "¶"), kindSaid, made("span", "cm-bar-caret", "▾"));
   const menu = made("div", "cm-bar-menu");
   menu.setAttribute("role", "menu");
   menu.hidden = true;
@@ -283,7 +283,7 @@ export const barred = (view: EditorView): Barred => {
     view.focus();
     startCompletion(view);
   });
-  slash.append(made("kbd", "", "/"), page.createTextNode(t("more")));
+  slash.append(made("kbd", "", "/"));
 
   bar.append(kinds, made("span", "cm-bar-sep"), ...formats);
   bar.append(made("span", "cm-bar-sep"), ...pens, made("span", "cm-bar-sep"), slash);
