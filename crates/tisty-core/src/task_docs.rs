@@ -343,12 +343,14 @@ pub fn described(body: &str, said: &str) -> String {
     let said = deeper(said.trim());
     let said = said.as_str();
     let lines: Vec<&str> = body.split_inclusive('\n').collect();
-    let heading = |line: &str| {
+    let level = |line: &str| {
         let marks = line.trim_start().chars().take_while(|c| *c == '#').count();
-        (1..=6).contains(&marks) && line.trim_start()[marks..].starts_with([' ', '\t'])
+        ((1..=6).contains(&marks) && line.trim_start()[marks..].starts_with([' ', '\t']))
+            .then_some(marks)
     };
-    let slot = (1..lines.len())
-        .find(|at| heading(lines[at - 1]) && hinted(lines[*at]).is_some_and(|hint| !boxed(hint)));
+    let slot = (1..lines.len()).find(|at| {
+        level(lines[at - 1]).is_some() && hinted(lines[*at]).is_some_and(|hint| !boxed(hint))
+    });
     let Some(hint) = slot else {
         if body.contains(said) {
             return body.to_string();
@@ -361,8 +363,17 @@ pub fn described(body: &str, said: &str) -> String {
         out.push('\n');
         return out;
     };
+    // The description's own headings sit deeper than its section, so only a peer of the section ends it.
+    let own = level(lines[hint - 1]).unwrap_or(1);
+    let mut fenced = false;
     let end = (hint + 1..lines.len())
-        .find(|at| heading(lines[*at]))
+        .find(|at| {
+            let bare = lines[*at].trim_start();
+            if bare.starts_with("```") || bare.starts_with("~~~") {
+                fenced = !fenced;
+            }
+            !fenced && level(lines[*at]).is_some_and(|marks| marks <= own)
+        })
         .unwrap_or(lines.len());
     let mut out: String = lines[..=hint].concat();
     if !out.ends_with('\n') {

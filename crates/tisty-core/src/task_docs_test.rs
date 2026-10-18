@@ -482,6 +482,22 @@ fn a_description_fills_the_section_the_template_keeps_for_it() {
 }
 
 #[test]
+fn a_new_description_takes_the_old_one_s_own_headings_with_it() {
+    let body = "## Description\n<!-- What and why -->\n";
+    let once = super::described(
+        body,
+        "Intro\n# Context\nold detail\n```\n# not a heading\n```\n",
+    );
+
+    let twice = super::described(&format!("{once}\n## Steps\n"), "New text");
+
+    assert_eq!(
+        twice,
+        "## Description\n<!-- What and why -->\n\nNew text\n\n## Steps\n"
+    );
+}
+
+#[test]
 fn a_routine_s_later_turn_still_reaches_its_page_once_the_first_is_erased() {
     let room = tempfile::tempdir().unwrap();
     let mut state = State::default();
@@ -504,6 +520,32 @@ fn a_routine_s_later_turn_still_reaches_its_page_once_the_first_is_erased() {
 
     assert_eq!(super::owner(&state, second), first);
     assert!(of(&state, super::owner(&state, second)).is_some());
+}
+
+#[test]
+fn a_routine_s_page_goes_with_its_last_turn_once_the_first_is_erased() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    let first = Ulid::generate();
+    let second = Ulid::generate();
+    applied(
+        &mut state,
+        Op::TaskAdd {
+            id: first,
+            d: TaskAdd::new("Water the plants", "a0"),
+        },
+    );
+    let words = made(room.path(), &state, first, first, "", None).unwrap();
+    applied(&mut state, words);
+    let mut d = TaskAdd::new("Water the plants", "a1");
+    d.after = Some(first);
+    applied(&mut state, Op::TaskAdd { id: second, d });
+    applied(&mut state, Op::TaskDelete { id: first });
+
+    applied(&mut state, Op::TaskDelete { id: second });
+
+    assert!(of(&state, first).is_none());
+    assert!(state.is_erased(id_at(first, 1)));
 }
 
 #[test]
