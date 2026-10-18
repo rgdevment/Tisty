@@ -125,6 +125,7 @@ export default function Page(props: Readonly<Props>) {
             // A page with a newer drawing on its way names bytes nobody is writing any more.
             onBlock: one.turn === turns.current ? reach.current.onBlock : undefined,
             onTick: one.turn === turns.current ? reach.current.onTick : undefined,
+            onPart: one.turn === turns.current ? reach.current.onPart : undefined,
             onCut: one.turn === turns.current ? reach.current.onCut : undefined,
             onWiden: one.turn === turns.current ? reach.current.onWiden : undefined,
             onFormat: one.turn === turns.current ? reach.current.onFormat : undefined,

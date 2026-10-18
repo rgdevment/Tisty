@@ -10,7 +10,7 @@ import { type Carding, carded } from "./carding";
 import { charsAt, colored, HUES, saidKinds, spanned, type Went, went, widgetsIn } from "./paging";
 import { type PartCarded, partCarded } from "./partcarding";
 import { type Formatting, type Menued, quickly } from "./quickly";
-import { staged } from "./staging";
+import { offeredAsParts, staged } from "./staging";
 import { webCarded } from "./webcarding";
 import { gripped, widening } from "./widening";
 import { type Lending, lend, locked } from "./widgeting";
@@ -33,6 +33,7 @@ export type Reaching = Carding & {
   readonly onHere?: (id: string) => void;
   readonly onAway?: () => void;
   readonly onTick?: (at: [number, number]) => void;
+  readonly onPart?: (at: [number, number]) => void;
   readonly onCut?: (at: [number, number]) => void;
   readonly stepDates?: Readonly<Record<string, string>>;
   readonly onWiden?: (at: [number, number], column: number, dashes: number) => void;
@@ -251,6 +252,7 @@ export const worn = (
   page.documentElement.classList.toggle("ticking", !!reach?.onTick);
   iconed(page);
   staged(page);
+  if (reach?.onPart && !stranger) offeredAsParts(page, t("stepToPart"));
   if (reach?.onWiden && !stranger) gripped(page);
   const shown = pictures(page, live, {
     stranger,
@@ -272,6 +274,7 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
   if (!asked) return;
   if (asked.kind === "doc") reach.onDoc(asked.id);
   if (asked.kind === "task") reach.onTask?.(asked.id);
+  if (asked.kind === "part") reach.onPart?.(asked.at);
   if (asked.kind === "web") openLink(asked.href).catch(() => {});
   if (asked.kind === "here") {
     const at = page.getElementById(asked.id);

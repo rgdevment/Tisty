@@ -74,6 +74,7 @@ export type Went =
   | { kind: "block"; at: [number, number] }
   | { kind: "tag"; name: string }
   | { kind: "tick"; at: [number, number] }
+  | { kind: "part"; at: [number, number] }
   | { kind: "apart"; at: [number, number]; nth?: number }
   | { kind: "more"; at: [number, number]; target: string; x: number; y: number }
   | { kind: "end" }
@@ -120,6 +121,10 @@ export const widgetsIn = (block: Element | null): Element[] =>
     : Array.from(block?.querySelectorAll("figure.widget") ?? []);
 
 const pressedIn = (asked: HTMLElement): Went => {
+  if (asked.dataset.asked === "part") {
+    const step = spanned(asked.closest<HTMLElement>("li.task[data-at]")?.dataset.at ?? null);
+    return step ? { kind: "part", at: step } : null;
+  }
   const at = spanned(asked.closest<HTMLElement>(".page > [data-at]")?.dataset.at ?? null);
   if (!at) return null;
   if (asked.dataset.asked === "more") {

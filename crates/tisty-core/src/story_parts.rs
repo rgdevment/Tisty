@@ -5,6 +5,8 @@ use crate::State;
 use crate::event::{DeviceId, Event, Op};
 use crate::model::TaskId;
 
+const PARTED_WITHIN: i64 = 60;
+
 pub(super) type Key = (jiff::Timestamp, DeviceId, u64);
 
 fn moves_parts(op: &Op) -> bool {
@@ -100,6 +102,24 @@ pub(super) fn merged(keys: Vec<Key>, pages: Vec<Page>, events: &[Event], id: Tas
             .map(|(key, page)| (key, 1, page)),
     );
     keyed.sort_by(|a, b| (&a.0, a.1).cmp(&(&b.0, b.1)));
+    let joined: Vec<(i64, DeviceId, String)> = keyed
+        .iter()
+        .filter_map(|(_, _, page)| match &page.chapter {
+            Chapter::PartJoined { title, .. } => {
+                Some((page.at.as_second(), page.by.clone(), title.clone()))
+            }
+            _ => None,
+        })
+        .collect();
+    // A step made into a part leaves the page as the part comes in: one move, told once.
+    keyed.retain(|(_, _, page)| match &page.chapter {
+        Chapter::Unplanned { text } => !joined.iter().any(|(at, by, title)| {
+            *by == page.by
+                && title == text
+                && (0..=PARTED_WITHIN).contains(&(page.at.as_second() - at))
+        }),
+        _ => true,
+    });
     keyed
         .into_iter()
         .enumerate()

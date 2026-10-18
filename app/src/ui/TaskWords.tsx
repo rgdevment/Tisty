@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useAsked } from "../asked";
 import {
+  addPart,
   docWrite,
   type Filed,
   partsOf,
@@ -40,6 +41,10 @@ interface Props {
   whole?: Whole;
   onTask?: (id: string) => void;
 }
+
+// The core refuses the rest the same way: a part holds no parts, and a routine holds none.
+const holdsParts = (task: Task): boolean =>
+  task.status === "open" && !task.part_of && !task.repeat && !task.after;
 
 const cardOf = (parts: readonly Task[]) => {
   const known = new Map(parts.map((one) => [one.id, one]));
@@ -160,6 +165,11 @@ export default function TaskWords({
         part={cardOf(parts)}
         partsSaid={partsSaid}
         onTask={onTask}
+        onPart={
+          doc.held || !holdsParts(task)
+            ? undefined
+            : (title) => addPart(task.id, title).then((one) => one.id)
+        }
       />
       {picker}
     </div>
@@ -182,6 +192,7 @@ function Written({
   part,
   partsSaid,
   onTask,
+  onPart,
 }: {
   id: string;
   doc: TaskDoc;
@@ -202,6 +213,7 @@ function Written({
   part: (id: string) => PartCarded;
   partsSaid: string;
   onTask?: (id: string) => void;
+  onPart?: (title: string) => Promise<string | null>;
 }) {
   const [text, setText] = useState(doc.body);
   const waiting = useRef<string | null>(null);
@@ -316,6 +328,7 @@ function Written({
         part={part}
         again={partsSaid}
         onTask={onTask}
+        onPart={onPart}
       />
     </Suspense>
   );

@@ -904,3 +904,48 @@ fn a_hanging_the_state_refused_is_no_chapter() {
             .any(|one| matches!(one, Chapter::PartJoined { .. }))
     );
 }
+
+#[test]
+fn a_step_made_into_a_part_is_told_as_the_part_alone() {
+    let whole = Ulid::generate();
+    let part = Ulid::generate();
+    let step = Ulid::generate();
+    let log = vec![
+        born(whole, "move house"),
+        event(
+            5,
+            Op::StepAdd {
+                id: whole,
+                d: StepAdd {
+                    step,
+                    text: "pack the books".into(),
+                    order: "a0".into(),
+                },
+            },
+        ),
+        part_born(10, part, "pack the books", whole),
+        event(
+            11,
+            Op::StepRemove {
+                id: whole,
+                d: StepRef { step },
+            },
+        ),
+    ];
+
+    assert_eq!(
+        chapters(&story(&log, whole)),
+        vec![
+            &Chapter::Born {
+                title: "move house".into()
+            },
+            &Chapter::Planned {
+                text: "pack the books".into()
+            },
+            &Chapter::PartJoined {
+                part,
+                title: "pack the books".into()
+            },
+        ]
+    );
+}

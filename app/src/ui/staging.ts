@@ -19,3 +19,18 @@ export const staged = (page: Document) => {
     ref.dataset.stage = stage.id;
   }
 };
+
+// Only an open step with nothing under it can leave as a part: what it holds would have nowhere to go.
+export const offeredAsParts = (page: Document, said: string) => {
+  for (const one of page.querySelectorAll<HTMLElement>(".page > ul > li.task[data-at]")) {
+    if (one.querySelector(':scope > .check[data-done="true"], ul, ol, pre, blockquote')) continue;
+    const ask = page.createElement("button");
+    ask.type = "button";
+    ask.className = "to-part";
+    ask.dataset.asked = "part";
+    ask.textContent = "↗";
+    ask.title = said;
+    ask.setAttribute("aria-label", said);
+    one.append(ask);
+  }
+};

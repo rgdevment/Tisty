@@ -3,12 +3,12 @@ import { type ReactNode, useCallback, useEffect, useRef, useState } from "react"
 import { copied, copyAttached, type Mend, viewWidget } from "../core";
 import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
-import { DOC } from "../markdown";
+import { DOC, partCard } from "../markdown";
 import type { Moved } from "../paging";
 import { named } from "../previews";
 import { FORMATS, flipped } from "./barring";
 import { caretAt, type Editing, edited } from "./blocking";
-import { movedCard, putCard } from "./carded";
+import { cardedAt, movedCard, putCard } from "./carded";
 import type { Carded } from "./carding";
 import { wrapped } from "./formatting";
 import { useKeptHeight } from "./heights";
@@ -47,6 +47,7 @@ type Props = {
   readonly card?: (file: string) => Carded;
   readonly part?: (id: string) => PartCarded;
   readonly onTask?: (id: string) => void;
+  readonly onPart?: (title: string) => Promise<string | null>;
   readonly blurb?: (file: string) => Promise<string>;
   readonly again?: string;
   readonly onInsert?: (put: ((file: string, title: string) => boolean) | null) => void;
@@ -398,6 +399,26 @@ export default function Sheet(props: Readonly<Props>) {
     whole(next);
   };
 
+  const parted = ([from, end]: [number, number]) => {
+    if (open.current) return left();
+    if (reading || showing.current !== latest.current) return;
+    const asked = said.current.onPart;
+    const line = latest.current.slice(from, end).replace(/\r?\n$/, "");
+    const found = /^[-*+]\s+\[ \]\s+(.+?)\\?\r?$/.exec(line);
+    const first = from === 0 || latest.current[from - 1] === "\n";
+    if (!asked || !found || !first) return;
+    const title = found[1].trim();
+    asked(title)
+      .then((id) => {
+        // The part is there either way; the step makes room for it only where it still stands.
+        const now = latest.current;
+        const at = now.slice(from, from + line.length) === line ? from : now.indexOf(line);
+        if (!id || at < 0) return;
+        whole(cardedAt(now, at, at + line.length, partCard(id, title)));
+      })
+      .catch((e) => said.current.onFail?.(e));
+  };
+
   const cut = ([from, end]: [number, number]) => {
     if (open.current) return left();
     if (reading || showing.current !== latest.current) return;
@@ -600,6 +621,7 @@ export default function Sheet(props: Readonly<Props>) {
           onBlock={reading ? undefined : block}
           stepDates={props.stepDates}
           onTick={reading || fixed ? undefined : ticked}
+          onPart={reading || fixed || !props.onPart ? undefined : parted}
           onCut={reading || !fixed ? undefined : cut}
           onWiden={reading || fixed ? undefined : widen}
           onFormat={reading || fixed ? undefined : format}
