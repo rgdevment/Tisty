@@ -10,9 +10,17 @@ fn heading(line: &str) -> Option<String> {
     let bare = line.trim_start();
     let marks = bare.chars().take_while(|one| *one == '#').count();
     let rest = bare.get(marks..)?;
-    ((1..=6).contains(&marks) && rest.starts_with([' ', '\t']))
-        .then(|| rest.trim().trim_end_matches('#').trim().to_string())
-        .filter(|name| !name.is_empty())
+    if !(1..=6).contains(&marks) || !rest.starts_with([' ', '\t']) {
+        return None;
+    }
+    let words = rest.trim();
+    // A closing run of marks follows a space; one stuck to a word is the word's, as in «C#».
+    let closed = words.trim_end_matches('#');
+    let name = match closed.is_empty() || closed.ends_with([' ', '\t']) {
+        true => closed.trim(),
+        false => words,
+    };
+    Some(name.to_string()).filter(|name| !name.is_empty())
 }
 
 // A box is a step, and a step leaves its own trail; a hint is the template's, never the person's.
@@ -111,7 +119,50 @@ pub fn paged(task: TaskId, before: &str, now: &str) -> Vec<Op> {
             said(&is[one].name, PageChange::Written);
         }
     }
-    ops
+    moved(task, ops, &was, &is)
+}
+
+// A section taken from one place and put in another was moved, not added and taken off.
+fn moved(task: TaskId, ops: Vec<Op>, was: &[Section], is: &[Section]) -> Vec<Op> {
+    let named = |wanted: fn(&PageChange) -> bool| -> Vec<String> {
+        ops.iter()
+            .filter_map(|op| match op {
+                Op::TaskPaged { d, .. } if wanted(&d.change) => Some(d.section.clone()),
+                _ => None,
+            })
+            .collect()
+    };
+    let added = named(|one| matches!(one, PageChange::Added));
+    let gone = named(|one| matches!(one, PageChange::Removed));
+    let both: Vec<String> = added.into_iter().filter(|one| gone.contains(one)).collect();
+    if both.is_empty() {
+        return ops;
+    }
+    let mut out: Vec<Op> = ops
+        .into_iter()
+        .filter(|op| {
+            !matches!(op, Op::TaskPaged { d, .. }
+                if both.contains(&d.section)
+                    && matches!(d.change, PageChange::Added | PageChange::Removed))
+        })
+        .collect();
+    let words = |all: &[Section], name: &str| {
+        all.iter()
+            .find(|one| one.name == name)
+            .map(|one| one.words.clone())
+    };
+    for name in both {
+        if words(was, &name) != words(is, &name) {
+            out.push(Op::TaskPaged {
+                id: task,
+                d: Paged {
+                    section: name,
+                    change: PageChange::Written,
+                },
+            });
+        }
+    }
+    out
 }
 
 #[cfg(test)]

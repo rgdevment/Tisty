@@ -58,3 +58,23 @@ fn a_heading_inside_code_is_no_section() {
         vec![("Description".into(), PageChange::Written)]
     );
 }
+
+#[test]
+fn a_section_moved_elsewhere_is_neither_added_nor_taken_off() {
+    let moved = "## Description\n<!-- why -->\n\nRenew it.\n\n## Notes\n\n## Steps\n- [ ] Call\n";
+    assert_eq!(changes(PAGE, moved), Vec::new());
+}
+
+#[test]
+fn a_mark_stuck_to_a_word_is_part_of_the_section_s_name() {
+    let now = PAGE.replace("## Notes", "## Notes on C#");
+    assert_eq!(
+        changes(PAGE, &now),
+        vec![(
+            "Notes on C#".into(),
+            PageChange::Renamed {
+                from: "Notes".into()
+            }
+        )]
+    );
+}

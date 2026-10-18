@@ -282,6 +282,7 @@ impl Op {
             self,
             Op::AttachKept { .. }
                 | Op::AttachLetGo { .. }
+                | Op::TaskPaged { .. }
                 | Op::DocSaid { .. }
                 | Op::DocFlag { .. }
                 | Op::DocUnflag { .. }

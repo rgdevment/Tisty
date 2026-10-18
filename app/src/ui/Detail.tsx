@@ -106,7 +106,7 @@ export default function Detail({
     onSettle &&
     ((before: string, now: string, renamed?: readonly [string, string][]) =>
       onSettle(before, now, renamed).then((problem) => {
-        setWrote((one) => one + 1);
+        if (problem === null) setWrote((one) => one + 1);
         return problem;
       }));
   // The template is edited only while the task is open and its words can be written.

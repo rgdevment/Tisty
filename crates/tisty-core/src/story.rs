@@ -184,11 +184,14 @@ pub fn story(events: &[Event], id: TaskId) -> Story {
         }
         // Writing in a section for a while is one chapter, not one per block left.
         let again = match &event.op {
-            Op::TaskPaged { d, .. } => pages.last().is_some_and(|last| {
-                last.by == event.device
-                    && matches!(&last.chapter, Chapter::SectionWritten { section } if *section == d.section)
-                    && event.timestamp.as_second() - last.at.as_second() < WRITING_FOR
-            }),
+            Op::TaskPaged { d, .. } => pages
+                .iter()
+                .rev()
+                .take_while(|one| event.timestamp.as_second() - one.at.as_second() < WRITING_FOR)
+                .any(|one| {
+                    one.by == event.device
+                        && matches!(&one.chapter, Chapter::SectionWritten { section } if *section == d.section)
+                }),
             _ => false,
         };
         let mut write = |chapter: Chapter| {
