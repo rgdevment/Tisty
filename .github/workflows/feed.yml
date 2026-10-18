@@ -155,7 +155,7 @@ jobs:
             echo "::warning::the manifest branch could not be listed, so what it holds was not looked at"
             exit 0
           fi
-          allowed=$(printf '%s\n' candidate.json cloud.json cloud.json.sig latest.json release-manifest.json | sort)
+          allowed=$(printf '%s\n' candidate.json candidate.json.sig cloud.json cloud.json.sig latest.json latest.json.sig release-manifest.json release-manifest.json.sig | sort)
           extra=$(comm -23 <(echo "$held") <(echo "$allowed"))
           if [ -n "$extra" ]; then
             echo "::warning::the manifest branch carries files that are not the feed: $(echo "$extra" | tr '\n' ' ')"

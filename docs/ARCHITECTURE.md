@@ -1227,9 +1227,12 @@ sequenceDiagram
   `task.add`.
 - **Updates** (`update.rs`) follow how Tisty was installed (`Route`: Store,
   Brew, Download) and check a manifest on GitHub once a day. The feeds
-  (`release-manifest.json`, `latest.json`, `candidate.json`) are not signed;
-  each installer is, with the updater key, and the release signs it with the
-  version it was cut for (`tauri signer sign --app-version`). The app requires
+  (`release-manifest.json`, `latest.json`, `candidate.json`) are signed with a
+  minisign key of their own, held only by the `feed` environment the release
+  publishes from; the app verifies each `.sig` against `TISTY_FEED_KEY` before
+  it believes a feed, and a build without that key reads the feed as before.
+  Each installer is signed too, with the updater key, and the release signs it
+  with the version it was cut for (`tauri signer sign --app-version`). The app requires
   that signed version to match the one offered (`requireSignedVersion`), and the
   release and the daily feed check refuse a signature that does not name it, so
   an older signed installer cannot pose as a newer one.

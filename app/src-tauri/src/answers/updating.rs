@@ -197,6 +197,14 @@ pub async fn update_install(
         return Err(moved_on(&session, kept, wants).await);
     };
 
+    let feeds = update::feeds_for(&want);
+    let checked = feeds.clone();
+    let trusted = tauri::async_runtime::spawn_blocking(move || update::feeds_trusted(&checked))
+        .await
+        .unwrap_or(false);
+    if !trusted {
+        return Err(Refusal::of("updateUnsigned"));
+    }
     let asked = want.clone();
     let mut building = app.updater_builder();
     if let Some(platform) = update::platform(desktop::translated()) {
@@ -204,7 +212,7 @@ pub async fn update_install(
     }
     let update = building
         .endpoints(
-            update::feeds_for(&want)
+            feeds
                 .into_iter()
                 .map(|one| one.parse())
                 .collect::<Result<Vec<_>, _>>()

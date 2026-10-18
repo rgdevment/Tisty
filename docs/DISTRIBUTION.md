@@ -132,13 +132,15 @@ this project's Google client and its signing key, not to the code:
 | `TISTY_GOOGLE_CLIENT_ID` | The Google OAuth client the sign-in page names |
 | `TISTY_GOOGLE_CLIENT_SECRET` | That client's secret, which Google asks a desktop client to send along |
 | `TISTY_CLOUD_POLICY_KEY` | The minisign public key that `cloud.json` — the signed file that can lower the daily limits or pause syncing on every copy — must be signed with |
+| `TISTY_FEED_KEY` | The minisign public key the update feed (`release-manifest.json`, `latest.json`, `candidate.json`) must be signed with |
 
 A fork or a build compiled without the first two offers no cloud at all: the
 choice does not appear and no request to Google is ever made. Folder sync, and
 everything else, works the same. Without the third, the cloud works with the
-limits the program ships with and never asks for `cloud.json`. To offer the
-cloud in a build of your own, register your own Google client and set your own
-key; this project's are not to be reused.
+limits the program ships with and never asks for `cloud.json`. Without the
+fourth, the build reads the update feed without checking its signature. To
+offer the cloud in a build of your own, register your own Google client and set
+your own keys; this project's are not to be reused.
 
 ## Questions
 

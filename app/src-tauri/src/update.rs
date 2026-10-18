@@ -247,25 +247,64 @@ fn chosen(running: Option<&std::path::Path>, there: impl Fn(&std::path::Path) ->
     Kept::plain(Route::Download)
 }
 
-pub fn fetch() -> Option<String> {
+fn got(url: &str) -> Option<String> {
     let asked = reqwest::blocking::Client::builder()
         .timeout(PATIENCE)
         .user_agent(concat!("tisty/", env!("CARGO_PKG_VERSION")))
         .build()
         .ok()?
-        .get(MANIFEST)
+        .get(url)
         .send()
         .ok()?;
 
     if !asked.status().is_success() {
         witness::warn(
             channel::WINDOW,
-            "the release manifest answered with a refusal",
+            "the release feed answered with a refusal",
             &[("code", Fact::Count(asked.status().as_u16() as usize))],
         );
         return None;
     }
     asked.text().ok()
+}
+
+/// The public half of the key the release signs its feed with, fixed when the release is built.
+pub fn feed_key() -> Option<&'static str> {
+    option_env!("TISTY_FEED_KEY").filter(|key| !key.is_empty())
+}
+
+// A build that carries the feed's key believes no feed it cannot verify; one without it reads it as before.
+pub fn trusted(said: &str, signature: Option<&str>, key: Option<&str>) -> bool {
+    key.is_none_or(|key| {
+        signature
+            .is_some_and(|signature| tisty_carrier::policy::signed(said.as_bytes(), signature, key))
+    })
+}
+
+fn verified(url: &str, said: String) -> Option<String> {
+    let key = feed_key();
+    let signature = key.and_then(|_| got(&format!("{url}.sig")));
+    if trusted(&said, signature.as_deref(), key) {
+        return Some(said);
+    }
+    witness::warn(
+        channel::WINDOW,
+        "a release feed did not carry the feed's signature, and was set aside",
+        &[("at", Fact::Id(url.to_string()))],
+    );
+    None
+}
+
+pub fn fetch() -> Option<String> {
+    let said = got(MANIFEST)?;
+    verified(MANIFEST, said)
+}
+
+/// A feed that answers has to be signed; one that does not answer is the updater's to skip.
+pub fn feeds_trusted(feeds: &[&str]) -> bool {
+    feeds
+        .iter()
+        .all(|url| got(url).is_none_or(|said| verified(url, said).is_some()))
 }
 
 #[cfg(test)]
