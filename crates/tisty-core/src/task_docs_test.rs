@@ -505,3 +505,41 @@ fn a_routine_s_later_turn_still_reaches_its_page_once_the_first_is_erased() {
     assert_eq!(super::owner(&state, second), first);
     assert!(of(&state, super::owner(&state, second)).is_some());
 }
+
+#[test]
+fn an_open_task_s_journal_comes_to_its_page_as_notes_and_a_closed_one_s_stays_behind() {
+    let mut state = State::default();
+    let task = Ulid::generate();
+    applied(
+        &mut state,
+        Op::TaskAdd {
+            id: task,
+            d: TaskAdd::new("Rina's booster", "a0"),
+        },
+    );
+    applied(
+        &mut state,
+        Op::TaskLog {
+            id: task,
+            d: crate::event::LogAdd::new(Ulid::generate(), "Called the vet.\n- [ ] not a step"),
+        },
+    );
+    let template = "## Notes\n<!-- What you find out -->\n";
+
+    let page = super::opened(&state, task, template);
+    assert!(
+        page.contains("<!-- What you find out -->\n\n**1970-01-01 00:00**\nCalled the vet."),
+        "{page}"
+    );
+    assert!(page.contains(r"- \[ ] not a step"), "{page}");
+    assert!(crate::stages::stages(&page).is_empty(), "{page}");
+
+    applied(
+        &mut state,
+        Op::TaskDone {
+            id: task,
+            filled: false,
+        },
+    );
+    assert!(!super::opened(&state, task, template).contains("Called the vet."));
+}

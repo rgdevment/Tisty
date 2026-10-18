@@ -155,24 +155,30 @@ pub fn opened(state: &State, task: TaskId, template: &str) -> String {
         .map(str::trim)
         .filter(|said| !said.is_empty());
     let mut steps = one.map(|one| crate::stages::lines(&crate::stages::ordered(one)));
+    let mut notes = one.filter(|one| one.is_open()).and_then(noted);
     let mut out = seed(task);
     let template = template.replace("\r\n", "\n");
     let template = template.trim();
     if !template.is_empty() {
         out.push('\n');
         let mut gap = false;
+        let mut notes_here = false;
         for line in template.lines() {
             if std::mem::take(&mut gap) && !line.trim().is_empty() {
                 out.push('\n');
             }
             out.push_str(line);
             out.push('\n');
+            if NOTES.contains(&line.trim()) {
+                notes_here = true;
+            }
             let Some(hint) = hinted(line) else {
                 continue;
             };
-            let held = match boxed(hint) {
-                true => steps.take().filter(|lines| !lines.is_empty()),
-                false => said.take().map(|said| format!("{said}\n")),
+            let held = match (boxed(hint), std::mem::take(&mut notes_here)) {
+                (true, _) => steps.take().filter(|lines| !lines.is_empty()),
+                (false, true) => notes.take(),
+                (false, false) => said.take().map(|said| format!("{said}\n")),
             };
             if let Some(held) = held {
                 out.push('\n');
@@ -184,10 +190,51 @@ pub fn opened(state: &State, task: TaskId, template: &str) -> String {
     if let Some(said) = said {
         out.push_str(&format!("\n{said}\n"));
     }
+    if let Some(notes) = notes {
+        out.push_str(&format!("\n{notes}"));
+    }
     match one {
         Some(one) => crate::stages::ticked(one, &out),
         None => out,
     }
+}
+
+// The sections of the templates below where a task still open brings the notes of its journal.
+const NOTES: [&str; 4] = ["## Notes", "## Notas", "## This time", "## Esta vez"];
+
+// An open task's journal comes to its page as notes, each under its day; a box in one is no step.
+fn noted(task: &crate::model::Task) -> Option<String> {
+    let all: Vec<String> = task
+        .journal()
+        .map(|entry| {
+            let zone = entry
+                .tz
+                .as_deref()
+                .and_then(|tz| jiff::tz::TimeZone::get(tz).ok())
+                .unwrap_or(jiff::tz::TimeZone::UTC);
+            let day = entry.at.to_zoned(zone).strftime("%Y-%m-%d %H:%M");
+            let who = entry
+                .via
+                .as_deref()
+                .map(|via| format!(" · {via}"))
+                .unwrap_or_default();
+            let words: Vec<String> = entry
+                .body
+                .trim()
+                .lines()
+                .map(
+                    |line| match line.trim_start().strip_prefix(['-', '*', '+']) {
+                        Some(rest) if rest.trim_start().starts_with('[') => {
+                            line.replacen('[', "\\[", 1)
+                        }
+                        _ => line.to_string(),
+                    },
+                )
+                .collect();
+            format!("**{day}**{who}\n{}\n", words.join("\n"))
+        })
+        .collect();
+    (!all.is_empty()).then(|| all.join("\n"))
 }
 
 const TASK: [&str; 2] = [
