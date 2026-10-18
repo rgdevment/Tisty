@@ -517,12 +517,14 @@ Un día, una hora, o las dos. Nombres, distancias, fechas sueltas. Lo que no
 puede leer lo deja tal cual en vez de adivinar. Un límite no es lo mismo que un
 plan, y lo abren tres palabras: **antes de**, **para** y **hasta**.
 
-**La tarea se abre al lado de la lista**, no encima: fechas, lista, etiquetas,
-prioridad, una descripción y una bitácora en Markdown, pasos que vas marcando de
-a uno, y lo que le hayas soltado encima. Completarla no aleja nada de eso.
-Abierta a toda la página gana una columna con su propio trayecto: cuántos días
-lleva abierta, cuánto va hecho y cada cambio por el que ha pasado, que hasta
-ahora vivía al final, donde nadie bajaba.
+**La tarea se abre al lado de la lista**, no encima: fechas, lista, etiquetas y
+prioridad arriba, y debajo su propia página, un documento Markdown como
+cualquier otro, con secciones para llenar y una pista en gris en cada una. Cada
+casilla de esa página es uno de sus pasos; con **↗** uno se vuelve parte de la
+tarea y su tarjeta queda donde estaba el paso. Completarla guarda su página con
+ella, para leer y sin tocar, y reabrirla la trae de vuelta. Abierta a toda la
+página gana una columna con su propio trayecto: cuántos días lleva abierta,
+cuánto va hecho y cada cambio por el que ha pasado.
 
 ![Una tarjeta para cada parte de tu vida: las tareas agrupadas por lista, cada una con su ícono y su nombre, junto a la tarea abierta](assets/store/es-06-listas.png)
 
@@ -567,6 +569,12 @@ se apaga desde Configuración.
 **Un atajo global** abre un campo pequeño encima de lo que estés haciendo, así
 una tarea que se te ocurre a mitad de algo no te cuesta ese algo.
 
+**Un calendario entra como tareas.** Suelta un `.ics` en la ventana, o ábrelo
+con Tisty: muestra cada cita y pendiente con cuándo, dónde, cómo se repite y su
+recordatorio, y convierte en tareas las que elijas, con sus zonas horarias,
+también las de Outlook, y sus repeticiones simples. Abrir dos veces el mismo
+archivo no duplica nada.
+
 **Las tareas que se repiten** vuelven de una en una, así el archivo te muestra
 que la hiciste doce veces —y cuenta lo que tocaba, no solo lo que cerraste, de
 modo que una rutina se lee 26 de 30 con cuatro fechas sin registro. Si la
@@ -575,8 +583,9 @@ las que sí hiciste y el hueco se cierra. **Los recordatorios** llegan como
 notificación del sistema y un sonido corto que puedes apagar. Toda la ventana
 funciona con el teclado.
 
-**El archivo se lee en tres capas.** Las que enseñaron algo vienen con todo su
-trayecto: qué cambió, cuándo, y lo que fuiste escribiendo por el camino. Las
+**El archivo se lee en tres capas.** Las que enseñaron algo, las tareas a las que
+volviste a sumarles más de tres veces, vienen con todo su trayecto: qué cambió,
+cuándo, y lo que fuiste escribiendo por el camino. Las
 rutinas vienen con sus cuentas, sus rachas y la hora a la que sueles cumplirlas.
 El resto es el rastro: lo que no dejó nada escrito, o casi nada, en una lista
 densa y apartada, porque pasó igual y la búsqueda sigue alcanzándolo. Tú decides

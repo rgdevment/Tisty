@@ -4,11 +4,12 @@ import { carrying } from "./carrying";
 import { heard, play } from "./chime";
 import { type Afoot, attach, doorDue, parted, syncState } from "./core";
 import { decideAll, putOffSaid } from "./deciding";
-import { handTo, whenFilesLand } from "./dropped";
+import { CALENDAR, handTo, whenFilesLand } from "./dropped";
 import { keptAll } from "./kept";
 import { t } from "./locales";
 import { saidPlainly } from "./refusal";
 import { settled } from "./saving";
+import { CALENDAR_DROPPED } from "./ui/Calendars";
 import type { Chosen } from "./views";
 
 const TURNS_OVER = 60 * 1000;
@@ -188,7 +189,14 @@ export function useListening({
         ).then((written) => {
           if (written && !handTo(target, written, at)) setError(t("attachmentLost"));
         }, setError);
-      }),
+      }, calendarsDropped),
     [setError],
   );
 }
+
+// Away from a document a calendar is not an attachment: it brings tasks.
+const calendarsDropped = (paths: string[]) => {
+  const calendars = paths.filter((one) => CALENDAR.test(one));
+  if (calendars.length)
+    window.dispatchEvent(new CustomEvent(CALENDAR_DROPPED, { detail: calendars }));
+};

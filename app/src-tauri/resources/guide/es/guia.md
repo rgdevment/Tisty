@@ -335,6 +335,8 @@ Tisty guarda lo que escribes exactamente como lo escribiste: la cabecera de prop
 
 Lo que llega de afuera entra convertido en Markdown de Tisty, y el archivo de donde vino no se toca. **Importar un documento**, en el árbol, toma Markdown, texto, una página web o un Word; al pegar se conservan los títulos, listas, tablas, enlaces y colores de lo que copiaste de una página, un correo o un Word; y una nota de Obsidian entra con sus avisos y comentarios convertidos, y sus `[[enlaces]]` apuntando a los documentos de aquí que llevan esos títulos. De salida, el mismo documento sale como Markdown estándar, página web, Word o PDF. Lo que cambia en cada cruce, palabra por palabra, está en [convertir a y desde Markdown](https://www.tisty.app/es/ayuda/convertir-a-y-desde-markdown/).
 
+Un calendario también entra. Arrastra un `.ics` a la ventana, fuera de un documento, o ábrelo con Tisty: **Desde el calendario** muestra cada cita y pendiente con cuándo, dónde, cómo se repite y su recordatorio, y crea como tareas las que elijas, en la lista que elijas. Abrir dos veces el mismo archivo no las duplica. Para que un `.ics` se abra con Tisty con doble clic, elígelo tú: en Windows, clic derecho → Abrir con → Elegir otra aplicación → Tisty, con «Usar siempre»; en el Mac, Obtener información → Abrir con → Tisty → Cambiar todo.
+
 ---
 
 ## Lo que vale para todo

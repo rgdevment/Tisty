@@ -9,7 +9,7 @@ use tisty_core::witness::{self, Fact, channel};
 use crate::answers::carrying::Left;
 use crate::{Answer, Refusal, Session, held, widgets};
 
-const OPENS: [&str; 3] = ["md", "markdown", "txt"];
+const OPENS: [&str; 5] = ["md", "markdown", "txt", "ics", "ical"];
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -73,6 +73,7 @@ pub struct Views {
     made: AtomicU64,
     ready: std::sync::atomic::AtomicBool,
     early: Mutex<Vec<PathBuf>>,
+    calendars: Mutex<Vec<PathBuf>>,
 }
 
 impl Views {
@@ -160,6 +161,9 @@ pub fn wanted(argv: &[String], cwd: Option<&Path>) -> Vec<PathBuf> {
 
 // Windows wedges a window built from inside the event loop, so the windows are built from a thread of their own.
 pub fn show(app: &AppHandle, wanted: Vec<PathBuf>) {
+    let (calendars, wanted): (Vec<PathBuf>, Vec<PathBuf>) =
+        wanted.into_iter().partition(|at| calendar(at));
+    awaited(app, calendars);
     if wanted.is_empty() {
         return;
     }
@@ -169,6 +173,37 @@ pub fn show(app: &AppHandle, wanted: Vec<PathBuf>) {
             open(&app, Shown::File(at));
         }
     });
+}
+
+pub(crate) fn calendar(at: &Path) -> bool {
+    at.extension()
+        .and_then(|one| one.to_str())
+        .is_some_and(|one| one.eq_ignore_ascii_case("ics") || one.eq_ignore_ascii_case("ical"))
+}
+
+// A calendar becomes tasks in the main window, which may not be listening yet while Tisty starts.
+fn awaited(app: &AppHandle, calendars: Vec<PathBuf>) {
+    if calendars.is_empty() {
+        return;
+    }
+    if let Ok(mut held) = app.state::<Views>().calendars.lock() {
+        held.extend(calendars);
+    }
+    crate::tray::surface(app);
+    let _ = app.emit_to("main", "calendar", ());
+}
+
+#[tauri::command]
+pub fn ics_waiting(views: tauri::State<'_, Views>) -> Vec<String> {
+    views
+        .calendars
+        .lock()
+        .map(|mut held| {
+            held.drain(..)
+                .map(|at| at.to_string_lossy().into_owned())
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 pub fn heard(app: &AppHandle, argv: &[String], cwd: Option<&Path>) -> bool {
