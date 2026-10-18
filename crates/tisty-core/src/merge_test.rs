@@ -574,17 +574,17 @@ fn two_sides_adding_at_the_very_same_point_is_never_guessed() {
 }
 
 #[test]
-fn a_document_with_front_matter_is_left_alone_because_it_does_not_settle() {
+fn a_document_with_front_matter_merges_its_body_and_keeps_its_properties() {
     let base = "---\ntitle: x\n---\n\n# Kit\n\nuno\n";
     let mine = "---\ntitle: x\n---\n\n# Kit\n\ndos\n";
     let theirs = "---\ntitle: x\n---\n\n# Kit\n\nuno\n\ntres\n";
 
-    assert!(merged(base, mine, theirs).is_none());
-    assert!(
-        rifts(base, mine, theirs).is_empty(),
-        "sin desacuerdos que enseñar, la ventana pregunta de frente en vez de encallarse"
-    );
-    assert!(woven_with(base, mine, theirs, &[]).is_none());
+    let out = merged(base, mine, theirs).expect("one changed a block, the other added one");
+    assert!(out.starts_with("---\ntitle: x\n---\n"), "{out:?}");
+    assert!(out.contains("dos") && out.contains("tres"), "{out:?}");
+    assert!(!out.contains("uno"), "{out:?}");
+    assert!(rifts(base, mine, theirs).is_empty());
+    assert_eq!(woven_with(base, mine, theirs, &[]), Some(out));
 }
 
 #[test]
@@ -640,13 +640,16 @@ fn a_front_matter_opened_and_never_shut_is_not_one() {
 }
 
 #[test]
-fn front_matter_on_any_one_side_is_enough_to_hand_the_paper_back() {
+fn properties_one_side_added_or_took_away_carry_through_whole() {
     let plain = told(&["b0", "b1"]);
     let dressed = format!("---\ntitulo: kit\n---\n\n{}", told(&["b0", "b1"]));
 
-    assert!(merged(&dressed, &plain, &plain).is_none());
-    assert!(merged(&plain, &dressed, &plain).is_none());
-    assert!(merged(&plain, &plain, &dressed).is_none());
+    let gone = merged(&dressed, &plain, &plain).expect("both took them away");
+    assert!(!gone.contains("titulo"), "{gone:?}");
+    for (mine, theirs) in [(&dressed, &plain), (&plain, &dressed)] {
+        let kept = merged(&plain, mine, theirs).expect("one side added them");
+        assert!(kept.starts_with("---\ntitulo: kit\n---\n"), "{kept:?}");
+    }
 }
 
 #[test]
