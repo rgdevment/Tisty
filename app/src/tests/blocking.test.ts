@@ -192,6 +192,7 @@ describe("writing a block in place", () => {
     expect(editing.view.state.doc.toString()).toBe("## Notas del mes");
     editing.view.dispatch({ changes: { from: 8, insert: "\nmás" } });
     expect(editing.view.state.doc.toString()).toBe("## Notas del mes");
+    editing.leave();
     page.remove();
   });
 
@@ -203,6 +204,7 @@ describe("writing a block in place", () => {
     expect(editing.view.state.doc.toString()).toBe(long);
     editing.view.dispatch({ changes: { from: long.length - 6, to: long.length } });
     expect(editing.view.state.doc.toString()).toBe("## Lo que aprendí en este");
+    editing.leave();
     page.remove();
   });
 
