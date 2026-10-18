@@ -131,7 +131,9 @@ describe("the / menu in a block", () => {
   });
 
   it("is asked for only at the start of a word, and never inside code", () => {
-    expect(asked("/")?.options).toHaveLength(SLASHED.filter((one) => !("ask" in one.put)).length);
+    // A step is offered only on a page that has some, and this one has none.
+    const plain = SLASHED.filter((one) => !("ask" in one.put) && one.key !== "step");
+    expect(asked("/")?.options).toHaveLength(plain.length);
     expect(asked("ver /ti")?.from).toBe(4);
     expect(asked("a/b")).toBeNull();
     expect(asked("    /")).toBeNull();
