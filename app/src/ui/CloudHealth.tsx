@@ -9,16 +9,21 @@ const SAID: Record<Exclude<Health, "reachable">, Word> = {
   troubled: "healthTroubled",
 };
 
-export default function CloudHealth({ name }: { name: string }) {
+export default function CloudHealth({ name, provider }: { name: string; provider: string }) {
   const [health, setHealth] = useState<Health | "checking">("checking");
   const gone = useRef(false);
+  const asked = useRef(0);
 
+  // Only the newest look speaks: one for a provider no longer picked may answer late.
   const check = useCallback(() => {
+    const mine = ++asked.current;
+    const heard = (now: Health | "reachable") =>
+      !gone.current && mine === asked.current && setHealth(now);
     setHealth("checking");
-    cloudHealth()
-      .then((now) => !gone.current && setHealth(now in SAID ? now : "reachable"))
-      .catch(() => !gone.current && setHealth("reachable"));
-  }, []);
+    cloudHealth(provider)
+      .then((now) => heard(now in SAID ? now : "reachable"))
+      .catch(() => heard("reachable"));
+  }, [provider]);
 
   useEffect(() => {
     gone.current = false;

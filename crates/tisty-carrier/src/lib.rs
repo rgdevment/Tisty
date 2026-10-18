@@ -16,6 +16,8 @@ mod cloud;
 mod folder;
 #[cfg(not(windows))]
 mod keychain;
+pub mod loopback;
+pub mod off;
 mod remote;
 pub mod said;
 mod shift;
@@ -165,6 +167,17 @@ pub enum Chosen {
     Folder,
     Cloud,
     Later,
+}
+
+impl Chosen {
+    pub fn mode(self) -> &'static str {
+        match self {
+            Chosen::Alone => "alone",
+            Chosen::Folder => "folder",
+            Chosen::Cloud => "cloud",
+            Chosen::Later => "later",
+        }
+    }
 }
 
 /// What only the window can build: the command line and the agents never reach the network.

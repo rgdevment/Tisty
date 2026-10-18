@@ -36,8 +36,8 @@ const LASTING_SECS = 120;
 export const offlineNow = () => typeof navigator !== "undefined" && navigator.onLine === false;
 
 /** What stood in the way of the cloud, unless this computer is simply offline, which says so itself. */
-export const causeSaid = (cause?: Cause | null): string | null =>
-  cause && cause in CAUSES && !offlineNow() ? fill(CAUSES[cause], t("cloudGoogle")) : null;
+export const causeSaid = (cause?: Cause | null, cloud = t("cloudChosen")): string | null =>
+  cause && cause in CAUSES && !offlineNow() ? fill(CAUSES[cause], cloud) : null;
 
 export interface Failing {
   cause?: Cause | null;

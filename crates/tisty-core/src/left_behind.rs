@@ -48,16 +48,19 @@ pub fn noticed_in(word: &Word, spoken: &str) -> String {
         .and_then(|at| jiff::Timestamp::from_second(at).ok())
         .map(|at| at.to_zoned(jiff::tz::TimeZone::system()).date().to_string())
         .unwrap_or_default();
-    let (es, en) = match word.to.split_once(':') {
-        Some(("cloud", email)) => (
-            format!("en el espacio de Tisty en Google Drive ({email})"),
-            format!("in Tisty's space in Google Drive ({email})"),
-        ),
-        Some(("folder", folder)) => (
+    let (es, en) = match crate::config::bound(&word.to) {
+        crate::config::Bound::Cloud { provider, email } => {
+            let shown = crate::config::shown_of(provider);
+            (
+                format!("en el espacio de Tisty en {shown} ({email})"),
+                format!("in Tisty's space in {shown} ({email})"),
+            )
+        }
+        crate::config::Bound::Folder(folder) => (
             format!("en otra carpeta ({folder})"),
             format!("in another folder ({folder})"),
         ),
-        _ => (
+        crate::config::Bound::Alone => (
             "solo en ese equipo".to_string(),
             "only on that computer".to_string(),
         ),

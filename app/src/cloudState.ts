@@ -1,7 +1,8 @@
+import { CLOUDS, cloudOf } from "./clouds";
 import { apartWaits } from "./coming";
 import { type CloudStatus, cloudForget, cloudStatus } from "./core";
 import { budgetResets } from "./format";
-import { fill, t } from "./locales";
+import { cloudNamed, fill, t } from "./locales";
 import { plainly } from "./refusal";
 import { lastingCause } from "./syncSaid";
 
@@ -20,7 +21,14 @@ export interface Standing {
   urgent?: boolean;
 }
 
-export const STORAGE = "https://drive.google.com/settings/storage";
+export const followedTo = (stuck: unknown): string | undefined => {
+  const told = stuck as { code?: string; name?: string } | null;
+  if (told?.code !== "movedToCloud" || !told.name) return undefined;
+  return CLOUDS.find((one) => told.name?.startsWith(`${cloudNamed(one.id)} · `))?.id;
+};
+
+export const storageOf = (provider?: string | null): string | undefined =>
+  cloudOf(provider ?? "google")?.storage;
 
 const BY_CODE: Record<string, Standing> = {
   cloudLost: {
@@ -76,11 +84,11 @@ export const cloudStanding = (status: CloudStatus, now = Date.now() / 1000): Sta
       said: "stateBudget",
       told: fill("stateBudgetWhy", budgetResets(new Date(now * 1000))),
     };
-  if (apartWaits(last)) return status.adopts ? null : { ...APART, name: t("cloudGoogle") };
+  if (apartWaits(last)) return status.adopts ? null : { ...APART, name: t("cloudChosen") };
   if (last.code === "restoredApart")
     return {
       said: "stateRestoredApart",
-      told: fill("stateRestoredApartWhy", t("cloudGoogle")),
+      told: fill("stateRestoredApartWhy", t("cloudChosen")),
       exit: "choose",
       exitSaid: "stateApartDo",
     };

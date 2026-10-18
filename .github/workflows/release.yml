@@ -149,6 +149,7 @@ jobs:
       HAS_MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER != '' }}
       HAS_GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID != '' }}
       HAS_GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET != '' }}
+      HAS_MICROSOFT_CLIENT_ID: ${{ vars.MICROSOFT_CLIENT_ID != '' }}
       HAS_CLOUD_POLICY_KEY: ${{ vars.CLOUD_POLICY_KEY != '' }}
       HAS_FEED_KEY: ${{ vars.FEED_KEY != '' }}
     steps:
@@ -185,6 +186,7 @@ jobs:
             # Without them the build quietly offers no cloud and cannot be told to pause it.
             want GOOGLE_CLIENT_ID "$HAS_GOOGLE_CLIENT_ID"
             want GOOGLE_CLIENT_SECRET "$HAS_GOOGLE_CLIENT_SECRET"
+            want MICROSOFT_CLIENT_ID "$HAS_MICROSOFT_CLIENT_ID"
             want CLOUD_POLICY_KEY "$HAS_CLOUD_POLICY_KEY"
             # Without it the build believes a feed nobody signed.
             want FEED_KEY "$HAS_FEED_KEY"
@@ -567,6 +569,7 @@ jobs:
         env:
           TISTY_GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
           TISTY_GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          TISTY_MICROSOFT_CLIENT_ID: ${{ vars.MICROSOFT_CLIENT_ID }}
           TISTY_CLOUD_POLICY_KEY: ${{ vars.CLOUD_POLICY_KEY }}
           TISTY_FEED_KEY: ${{ needs.version.outputs.feed_key }}
         run: |
@@ -819,6 +822,7 @@ jobs:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           TISTY_GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
           TISTY_GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          TISTY_MICROSOFT_CLIENT_ID: ${{ vars.MICROSOFT_CLIENT_ID }}
           TISTY_CLOUD_POLICY_KEY: ${{ vars.CLOUD_POLICY_KEY }}
           TISTY_FEED_KEY: ${{ needs.version.outputs.feed_key }}
         run: npm run tauri build -- --target "$TARGET" --bundles app,dmg

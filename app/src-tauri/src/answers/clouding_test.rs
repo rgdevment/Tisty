@@ -215,10 +215,16 @@ fn drive_of(account: &str) -> tisty_core::config::CloudAt {
 
 #[test]
 fn a_sign_in_that_never_came_back_is_not_told_as_access_denied() {
-    assert_eq!(ended(tisty_google::Ended::NoAnswer).code, "cloudNoAnswer");
-    assert_eq!(ended(tisty_google::Ended::Dropped).code, "cloudDropped");
     assert_eq!(
-        ended(tisty_google::Ended::Failed(Hitch::Lost)).code,
+        ended(tisty_google::Ended::NoAnswer, "Google Drive").code,
+        "cloudNoAnswer"
+    );
+    assert_eq!(
+        ended(tisty_google::Ended::Dropped, "Google Drive").code,
+        "cloudDropped"
+    );
+    assert_eq!(
+        ended(tisty_google::Ended::Failed(Hitch::Lost), "Google Drive").code,
         "cloudDenied"
     );
 }

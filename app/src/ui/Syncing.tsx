@@ -10,7 +10,7 @@ import {
   type Toward,
 } from "../core";
 import { daysFrom, stamped } from "../format";
-import { fill, t } from "../locales";
+import { cloudNamed, fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { endMove, useMove } from "../relocation";
 import { syncingSaid } from "../syncSaid";
@@ -51,7 +51,7 @@ function Pending({ state, onMove }: { state: Carrying; onMove: (resume?: Toward)
   if (!pending || running) return null;
   const where =
     pending.kind === "cloud"
-      ? `Google Drive · ${pending.email}`
+      ? `${cloudNamed(pending.provider)} · ${pending.email}`
       : pending.kind === "folder"
         ? pending.at
         : t("welcomeAlone");

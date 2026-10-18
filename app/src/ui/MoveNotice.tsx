@@ -1,13 +1,14 @@
 import { t } from "../locales";
 import { dismissMove, type Run, useMove } from "../relocation";
-import { alongSaid, doneSaid, pauseSaid, useTicking, waitingSaid } from "./RelocatingSteps";
+import { alongSaid, doneSaid, pauseSaid, sayFor, useTicking, waitingSaid } from "./RelocatingSteps";
 
 const said = (run: Run): string => {
   if (run.failed) return t("moveStopped");
   if (run.going) return alongSaid(run) ?? t("moveMoving");
   const paused = pauseSaid(run);
   if (paused) return paused;
-  if (run.result?.state === "waiting") return waitingSaid(run.result, run.failing);
+  if (run.result?.state === "waiting")
+    return waitingSaid(run.result, run.failing, sayFor(run.toward));
   return run.result?.state === "done" ? doneSaid(run.toward) : t("moveWaiting");
 };
 

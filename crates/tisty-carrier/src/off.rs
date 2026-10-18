@@ -2,7 +2,7 @@ use std::io::Write;
 use std::path::Path;
 use std::sync::mpsc;
 
-use tisty_carrier::{Changes, Expect, Hitch, Limits, Remote, Seen, Watch};
+use crate::{Changes, Expect, Hitch, Limits, Remote, Seen, Watch};
 
 const CHUNKS_WAITING: usize = 4;
 

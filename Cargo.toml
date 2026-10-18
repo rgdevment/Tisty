@@ -14,6 +14,7 @@ publish = false
 minisign-verify = "0.2"
 tisty-carrier = { path = "crates/tisty-carrier" }
 tisty-google = { path = "crates/tisty-google" }
+tisty-onedrive = { path = "crates/tisty-onedrive" }
 tisty-core = { path = "crates/tisty-core" }
 tisty-markdown = { path = "crates/tisty-markdown", default-features = false }
 tisty-nl = { path = "crates/tisty-nl" }
