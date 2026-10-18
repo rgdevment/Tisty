@@ -33,7 +33,7 @@
   ${EndIf}
 !macroend
 
-; Tisty only joins "Open with" for Markdown: the default program for .md stays the person's choice.
+; Tisty only joins "Open with" for Markdown and calendars: the default program stays the person's choice.
 !macro NSIS_HOOK_POSTINSTALL
   WriteRegStr SHCTX "Software\Classes\tisty" "" "URL:Tisty"
   WriteRegStr SHCTX "Software\Classes\tisty" "URL Protocol" ""
@@ -44,6 +44,10 @@
   WriteRegStr SHCTX "Software\Classes\Tisty.Markdown\shell\open\command" "" '"$INSTDIR\${MAINBINARYNAME}.exe" -- "%1"'
   WriteRegStr SHCTX "Software\Classes\.md\OpenWithProgids" "Tisty.Markdown" ""
   WriteRegStr SHCTX "Software\Classes\.markdown\OpenWithProgids" "Tisty.Markdown" ""
+  WriteRegStr SHCTX "Software\Classes\Tisty.Calendar" "" "Calendar"
+  WriteRegStr SHCTX "Software\Classes\Tisty.Calendar\DefaultIcon" "" "$INSTDIR\${MAINBINARYNAME}.exe,0"
+  WriteRegStr SHCTX "Software\Classes\Tisty.Calendar\shell\open\command" "" '"$INSTDIR\${MAINBINARYNAME}.exe" -- "%1"'
+  WriteRegStr SHCTX "Software\Classes\.ics\OpenWithProgids" "Tisty.Calendar" ""
 !macroend
 
 !macro NSIS_HOOK_PREUNINSTALL
@@ -75,6 +79,8 @@
     DeleteRegKey SHCTX "Software\Classes\Tisty.Markdown"
     DeleteRegValue SHCTX "Software\Classes\.md\OpenWithProgids" "Tisty.Markdown"
     DeleteRegValue SHCTX "Software\Classes\.markdown\OpenWithProgids" "Tisty.Markdown"
+    DeleteRegKey SHCTX "Software\Classes\Tisty.Calendar"
+    DeleteRegValue SHCTX "Software\Classes\.ics\OpenWithProgids" "Tisty.Calendar"
     RMDir /r "$LOCALAPPDATA\${PRODUCTNAME}\config"
     RMDir /r "$LOCALAPPDATA\${PRODUCTNAME}\cache"
     RMDir /r "$LOCALAPPDATA\${PRODUCTNAME}\secrets"

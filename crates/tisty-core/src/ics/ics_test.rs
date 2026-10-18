@@ -1,0 +1,142 @@
+use super::{Kind, Odd, Unread, read, taken};
+use crate::model::{Cadence, Priority, Repeat, Unit};
+use jiff::Zoned;
+use jiff::civil::date;
+
+fn now() -> Zoned {
+    date(2026, 10, 18)
+        .at(12, 0, 0, 0)
+        .in_tz("America/Santiago")
+        .unwrap()
+}
+
+fn one(body: &str) -> super::Taken {
+    let text = format!("BEGIN:VCALENDAR\r\nVERSION:2.0\r\n{body}END:VCALENDAR\r\n");
+    let calendar = read(&text).unwrap();
+    assert_eq!(calendar.items.len(), 1, "{calendar:?}");
+    taken(&calendar.items[0], &now())
+}
+
+#[test]
+fn a_folded_and_escaped_event_reads_as_one_title_place_and_note() {
+    let said = one(
+        "BEGIN:VEVENT\r\nUID:a1\r\nSUMMARY:Vet for Rina\\, the\r\n  booster\r\nLOCATION:Av. 1\\; piso 2\r\nDESCRIPTION:Bring the card\\nand the leash\r\nDTSTART;TZID=America/Santiago:20261022T100000\r\nEND:VEVENT\r\n",
+    );
+
+    assert_eq!(said.title, "Vet for Rina, the booster");
+    assert_eq!(said.place, "Av. 1; piso 2");
+    assert_eq!(
+        said.described.as_deref(),
+        Some("Av. 1; piso 2\n\nBring the card\nand the leash")
+    );
+    assert_eq!(said.source.as_deref(), Some("ics:a1"));
+    let at = said.date.unwrap();
+    assert_eq!(at.at, date(2026, 10, 22).at(10, 0, 0, 0));
+    assert!(at.has_time && !at.floating);
+    assert_eq!(
+        said.reminder.unwrap().at,
+        date(2026, 10, 22).at(9, 30, 0, 0),
+        "half an hour before, with no alarm of its own"
+    );
+}
+
+#[test]
+fn a_time_from_another_zone_lands_on_this_clock() {
+    let said = one(
+        "BEGIN:VEVENT\r\nUID:b\r\nSUMMARY:Call Madrid\r\nDTSTART;TZID=Europe/Madrid:20261022T160000\r\nEND:VEVENT\r\n",
+    );
+    assert_eq!(said.date.unwrap().at, date(2026, 10, 22).at(11, 0, 0, 0));
+    let utc =
+        one("BEGIN:VEVENT\r\nUID:c\r\nSUMMARY:Sync\r\nDTSTART:20261022T150000Z\r\nEND:VEVENT\r\n");
+    assert_eq!(utc.date.unwrap().at, date(2026, 10, 22).at(12, 0, 0, 0));
+    let odd = one(
+        "BEGIN:VEVENT\r\nUID:d\r\nSUMMARY:Board\r\nDTSTART;TZID=Pacific Standard Time:20261022T090000\r\nEND:VEVENT\r\n",
+    );
+    assert!(odd.odd.contains(&Odd::Zone));
+    assert!(odd.date.unwrap().floating);
+}
+
+#[test]
+fn a_whole_day_is_reminded_the_evening_before_and_an_alarm_of_its_own_wins() {
+    let day = one(
+        "BEGIN:VEVENT\r\nUID:e\r\nSUMMARY:Holiday\r\nDTSTART;VALUE=DATE:20261025\r\nEND:VEVENT\r\n",
+    );
+    let at = day.date.unwrap();
+    assert!(!at.has_time);
+    assert_eq!(day.reminder.unwrap().at, date(2026, 10, 24).at(18, 0, 0, 0));
+    let alarmed = one(
+        "BEGIN:VEVENT\r\nUID:f\r\nSUMMARY:Dentist\r\nDTSTART;TZID=America/Santiago:20261022T100000\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER:-P1DT2H\r\nEND:VALARM\r\nEND:VEVENT\r\n",
+    );
+    assert_eq!(
+        alarmed.reminder.unwrap().at,
+        date(2026, 10, 21).at(8, 0, 0, 0)
+    );
+}
+
+#[test]
+fn simple_repeats_are_kept_and_the_rest_are_said() {
+    let weekly = one(
+        "BEGIN:VEVENT\r\nUID:g\r\nSUMMARY:Gym\r\nDTSTART;TZID=America/Santiago:20261019T070000\r\nRRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=MO;COUNT=3\r\nEND:VEVENT\r\n",
+    );
+    assert_eq!(
+        weekly.repeat,
+        Some(Repeat {
+            until: Some(date(2026, 11, 16)),
+            ..Repeat::due(Cadence {
+                every: 2,
+                unit: Unit::Week
+            })
+        })
+    );
+    let two_days = one(
+        "BEGIN:VEVENT\r\nUID:h\r\nSUMMARY:Run\r\nDTSTART;TZID=America/Santiago:20261019T070000\r\nRRULE:FREQ=WEEKLY;BYDAY=MO,TH\r\nEND:VEVENT\r\n",
+    );
+    assert_eq!(two_days.repeat, None);
+    assert!(two_days.odd.contains(&Odd::Repeat));
+    let skipping = one(
+        "BEGIN:VEVENT\r\nUID:i\r\nSUMMARY:Class\r\nDTSTART;TZID=America/Santiago:20261019T070000\r\nRRULE:FREQ=DAILY\r\nEXDATE;TZID=America/Santiago:20261020T070000\r\nEND:VEVENT\r\n",
+    );
+    assert!(skipping.odd.contains(&Odd::Repeat));
+}
+
+#[test]
+fn a_to_do_brings_its_deadline_priority_and_whether_it_is_done() {
+    let todo = one(
+        "BEGIN:VTODO\r\nUID:j\r\nSUMMARY:Pay rent\r\nDUE;VALUE=DATE:20261101\r\nPRIORITY:1\r\nEND:VTODO\r\n",
+    );
+    assert_eq!(todo.date, None);
+    assert!(todo.deadline.is_some());
+    assert_eq!(todo.priority, Some(Priority::Do));
+    assert!(todo.takeable());
+    let done = one("BEGIN:VTODO\r\nUID:k\r\nSUMMARY:Old\r\nSTATUS:COMPLETED\r\nEND:VTODO\r\n");
+    assert!(done.done && !done.takeable());
+}
+
+#[test]
+fn what_has_passed_is_said_and_takes_no_reminder() {
+    let past = one(
+        "BEGIN:VEVENT\r\nUID:l\r\nSUMMARY:Yesterday\r\nDTSTART;TZID=America/Santiago:20261017T100000\r\nEND:VEVENT\r\n",
+    );
+    assert!(past.odd.contains(&Odd::Past));
+    assert_eq!(past.reminder, None);
+}
+
+#[test]
+fn an_untitled_entry_or_a_moved_occurrence_is_shown_but_not_taken() {
+    let text = "BEGIN:VCALENDAR\nMETHOD:REQUEST\nBEGIN:VEVENT\nUID:m\nDTSTART:20261022T150000Z\nEND:VEVENT\nBEGIN:VEVENT\nUID:m\nSUMMARY:Moved\nRECURRENCE-ID:20261029T150000Z\nDTSTART:20261030T150000Z\nEND:VEVENT\nEND:VCALENDAR\n";
+    let calendar = read(text).unwrap();
+    assert_eq!(calendar.method.as_deref(), Some("REQUEST"));
+    assert_eq!(calendar.items[0].kind, Kind::Event);
+    let untitled = taken(&calendar.items[0], &now());
+    let moved = taken(&calendar.items[1], &now());
+    assert!(!untitled.takeable() && untitled.odd.contains(&Odd::Untitled));
+    assert!(!moved.takeable() && moved.odd.contains(&Odd::Moved));
+}
+
+#[test]
+fn a_file_that_is_not_a_calendar_says_so_and_brings_nothing() {
+    assert_eq!(read("# Notes\n"), Err(Unread::NotACalendar));
+    assert_eq!(read(""), Err(Unread::NotACalendar));
+    let huge = "x".repeat(super::BYTES_AT_MOST + 1);
+    assert_eq!(read(&huge), Err(Unread::TooBig));
+}
