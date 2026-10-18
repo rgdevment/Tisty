@@ -119,6 +119,32 @@ impl State {
         false
     }
 
+    /// The documents a person keeps on their own: a task's words belong to the task.
+    pub fn papers(&self) -> impl Iterator<Item = &Kept> {
+        self.docs.values().filter(|one| one.task_of.is_none())
+    }
+
+    /// A task's words are seen while one of the turns they belong to is in sight.
+    pub fn doc_in_sight(&self, kept: &Kept) -> bool {
+        let Some(owner) = kept.task_of else {
+            return true;
+        };
+        let seen = |task: &crate::model::Task| !task.folded();
+        self.tasks.get(&owner).is_some_and(seen)
+            || self.tasks.values().any(|one| {
+                one.after.is_some() && seen(one) && crate::task_docs::owner(self, one.id) == owner
+            })
+    }
+
+    /// Whether a document belongs to what a scope asks for: the archive, the rest, or both.
+    pub fn doc_kept_by(&self, scope: crate::view::Scope, kept: &Kept) -> bool {
+        match scope {
+            crate::view::Scope::Open => !self.held_away(kept),
+            crate::view::Scope::Archived => self.held_away(kept),
+            crate::view::Scope::Either => true,
+        }
+    }
+
     /// What the archive holds: the document's own mark, or the folder it sits in.
     pub fn held_away(&self, kept: &Kept) -> bool {
         kept.archived || self.held_by_another(kept)
@@ -1172,8 +1198,6 @@ impl State {
         scope: crate::view::Scope,
         most: usize,
     ) -> (Vec<&Task>, usize) {
-        use crate::view::Scope;
-
         let terms = crate::text::terms(query);
         if terms.is_empty() {
             return (Vec::new(), 0);
@@ -1182,11 +1206,7 @@ impl State {
         let mut hits: Vec<(crate::view::Hit, &Task)> = self
             .tasks
             .values()
-            .filter(|t| match scope {
-                Scope::Open => t.is_open(),
-                Scope::Archived => t.is_archived(),
-                Scope::Either => true,
-            })
+            .filter(|t| scope.keeps(t))
             .filter_map(|t| crate::view::matches_query(t, &terms).map(|hit| (hit, t)))
             .collect();
 
@@ -1250,12 +1270,7 @@ impl State {
         self.tasks
             .values()
             .flat_map(|t| &t.tags)
-            .chain(
-                self.docs
-                    .values()
-                    .filter(|one| one.task_of.is_none())
-                    .flat_map(|one| &one.tags),
-            )
+            .chain(self.papers().flat_map(|one| &one.tags))
             .collect()
     }
 

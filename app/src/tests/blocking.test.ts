@@ -190,6 +190,21 @@ describe("writing a block in place", () => {
     expect(editing.view.state.doc.toString()).toBe("## Notas");
     editing.view.dispatch({ changes: { from: 8, insert: " del mes" } });
     expect(editing.view.state.doc.toString()).toBe("## Notas del mes");
+    editing.view.dispatch({ changes: { from: 8, insert: "\nmás" } });
+    expect(editing.view.state.doc.toString()).toBe("## Notas del mes");
+    editing.leave();
+    page.remove();
+  });
+
+  it("lets a template's label already past the limit be shortened, never grown", () => {
+    const { page, one } = block();
+    const long = "## Lo que aprendí en este viaje";
+    const editing = edited(one, long, () => {}, vi.fn(), undefined, true);
+    editing.view.dispatch({ changes: { from: long.length, insert: " largo" } });
+    expect(editing.view.state.doc.toString()).toBe(long);
+    editing.view.dispatch({ changes: { from: long.length - 6, to: long.length } });
+    expect(editing.view.state.doc.toString()).toBe("## Lo que aprendí en este");
+    editing.leave();
     page.remove();
   });
 

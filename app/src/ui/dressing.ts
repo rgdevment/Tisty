@@ -170,25 +170,23 @@ const hinted = (page: Document, body: string) => {
       one.dataset.seed = "- [ ] ";
     }
   }
-  stepped(page);
-  sectioned(page);
+  stepped(page, bytes);
+  sectioned(page, bytes.length);
 };
 
 // The template grows at its end, shown only while it is edited; each label can be taken out.
-const sectioned = (page: Document) => {
+const sectioned = (page: Document, size: number) => {
   const sheet = page.querySelector(".page");
   if (!sheet) return;
+  // An empty page still takes its first section, written after whatever the file holds.
   const last = Array.from(sheet.querySelectorAll(":scope > [data-at]")).pop();
-  const at = last?.getAttribute("data-at");
-  if (at) {
-    const add = page.createElement("button");
-    add.type = "button";
-    add.className = "add-section";
-    add.dataset.after = at;
-    add.dataset.seed = "## ";
-    add.textContent = `+ ${t("addSection")}`;
-    sheet.append(add);
-  }
+  const add = page.createElement("button");
+  add.type = "button";
+  add.className = "add-section";
+  add.dataset.after = last?.getAttribute("data-at") ?? `${size}-${size}`;
+  add.dataset.seed = "## ";
+  add.textContent = `+ ${t("addSection")}`;
+  sheet.append(add);
   for (const label of sheet.querySelectorAll<HTMLElement>(":scope > :is(h1, h2, h3, h4, h5, h6)")) {
     const from = spanned(label.dataset.at ?? null);
     if (!from) continue;
@@ -205,8 +203,9 @@ const sectioned = (page: Document) => {
   }
 };
 
-const stepped = (page: Document) => {
-  for (const list of page.querySelectorAll<HTMLElement>(".page > ul[data-at]")) {
+const stepped = (page: Document, bytes: Uint8Array) => {
+  const decoder = new TextDecoder();
+  for (const list of page.querySelectorAll<HTMLElement>(".page > :is(ul, ol)[data-at]")) {
     const boxes = list.querySelectorAll(":scope > li.task > .check");
     if (!boxes.length) continue;
     const done = list.querySelectorAll(':scope > li.task > .check[data-done="true"]').length;
@@ -215,7 +214,10 @@ const stepped = (page: Document) => {
     add.type = "button";
     add.className = "add-step";
     add.dataset.after = list.dataset.at;
-    add.dataset.seed = "- [ ] ";
+    // A step added under a list takes its mark, or it would start a list of its own.
+    const at = spanned(list.dataset.at ?? null);
+    const said = at ? decoder.decode(bytes.subarray(at[0], at[1])) : "";
+    add.dataset.seed = `${/^[ \t>]*([-*+]|\d+[.)])/.exec(said)?.[1] ?? "-"} [ ] `;
     add.textContent = `+ ${t("addStep")}`;
     list.after(add);
   }
@@ -284,8 +286,11 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
     if (block) reach.onBlock?.(at, block, "", read);
   }
   if (asked.kind === "hint") {
+    const named = `${asked.at[0]}-${asked.at[1]}`;
     const held = page.querySelector<HTMLElement>(
-      `.page > .hint[data-at="${asked.at[0]}-${asked.at[1]}"], .page > :is(.add-step, .add-section)[data-after="${asked.at[0]}-${asked.at[1]}"]`,
+      asked.from === "hint"
+        ? `.page > .hint[data-at="${named}"]`
+        : `.page > .${asked.from}[data-after="${named}"]`,
     );
     const end = charsAt(reach.body, asked.at[1]);
     if (held) reach.onBlock?.([end, end], held, asked.seed);
@@ -330,7 +335,7 @@ const below = (page: Document, target: Element, event: MouseEvent): boolean => {
   const sheet = page.querySelector(".page");
   if (!sheet || (target !== sheet && target !== page.body && target !== page.documentElement))
     return false;
-  const blocks = sheet.querySelectorAll(":scope > :not(.cm-dock)");
+  const blocks = sheet.querySelectorAll(":scope > :not(.cm-dock, .add-section)");
   const last = blocks[blocks.length - 1];
   return !last || event.clientY > last.getBoundingClientRect().bottom;
 };

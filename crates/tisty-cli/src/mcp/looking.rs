@@ -75,11 +75,7 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             let mut all: Vec<&Task> = state
                 .tasks
                 .values()
-                .filter(|one| match scope {
-                    tisty_core::view::Scope::Open => one.is_open(),
-                    tisty_core::view::Scope::Archived => one.is_archived(),
-                    tisty_core::view::Scope::Either => true,
-                })
+                .filter(|one| scope.keeps(one))
                 .collect();
             all.sort_by_key(|one| (one.date.as_ref().map(|d| d.date()), one.id));
             all
@@ -92,16 +88,12 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .unwrap_or_default();
     let mut lined = std::collections::HashMap::new();
     if query.is_some() {
+        let mut held: std::collections::HashSet<_> = hits.iter().map(|hit| hit.id).collect();
         for (task, line) in documented(&state, &seen) {
             let Some(one) = state.tasks.get(&task) else {
                 continue;
             };
-            let kept = match scope {
-                tisty_core::view::Scope::Open => one.is_open(),
-                tisty_core::view::Scope::Archived => one.is_archived(),
-                tisty_core::view::Scope::Either => true,
-            };
-            if kept && !hits.iter().any(|hit| hit.id == task) {
+            if scope.keeps(one) && held.insert(task) {
                 hits.push(one);
                 lined.insert(task, line);
             }
@@ -215,7 +207,13 @@ pub(super) fn inside_a_doc(
             "looking inside a document needs a `query` to look for.".into(),
         ));
     };
-    if state.docs.values().all(|one| one.file != which) {
+    // A hidden task's words stay out of sight here as they do in `read`.
+    let seen = state
+        .docs
+        .values()
+        .find(|one| one.file == which)
+        .filter(|one| state.doc_in_sight(one));
+    if seen.is_none() {
         return Err(Refused::Tool(format!(
             "no document here is called {which:?}. `docs` lists them all."
         )));
@@ -455,13 +453,12 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     folders.sort();
 
     let mut how: std::collections::BTreeMap<&str, usize> = Default::default();
-    for one in state.tasks.values().flat_map(|task| &task.tags).chain(
-        state
-            .docs
-            .values()
-            .filter(|one| one.task_of.is_none())
-            .flat_map(|one| &one.tags),
-    ) {
+    for one in state
+        .tasks
+        .values()
+        .flat_map(|task| &task.tags)
+        .chain(state.papers().flat_map(|one| &one.tags))
+    {
         *how.entry(one.as_str()).or_default() += 1;
     }
     let mut tags: Vec<(&str, usize)> = how.into_iter().collect();
@@ -495,9 +492,8 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         json!({
             "open": state.tasks.values().filter(|one| one.is_open() && !one.folded()).count(),
             "docs": state
-                .docs
-                .values()
-                .filter(|one| one.task_of.is_none() && !state.held_away(one))
+                .papers()
+                .filter(|one| !state.held_away(one))
                 .count(),
         }),
     );
@@ -508,11 +504,8 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let since = text(args, "since");
     let said = match &since {
         None => {
-            let mut newest: Vec<&tisty_core::model::Kept> = state
-                .docs
-                .values()
-                .filter(|one| !state.held_away(one))
-                .collect();
+            let mut newest: Vec<&tisty_core::model::Kept> =
+                state.papers().filter(|one| !state.held_away(one)).collect();
             newest.sort_by_key(|one| std::cmp::Reverse((one.wrote, one.id)));
             let newest: Vec<String> = newest
                 .iter()
@@ -533,11 +526,7 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                     .values()
                     .filter(|one| one.is_open() && !one.folded())
                     .count(),
-                state
-                    .docs
-                    .values()
-                    .filter(|one| !state.held_away(one))
-                    .count()
+                state.papers().filter(|one| !state.held_away(one)).count()
             )
         }
         Some(since) => {
@@ -561,12 +550,13 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 }
             }
             // Writing a task's document is that task moving, never a document of its own.
+            let owners = tisty_core::task_docs::behind(&state);
             for one in &papers {
                 let behind = one
                     .parse::<Ulid>()
                     .ok()
                     .and_then(|id| state.docs.get(&id))
-                    .and_then(|kept| kept.task_of)
+                    .and_then(|kept| owners.get(&kept.file))
                     .map(|task| task.to_string());
                 if let Some(task) = behind
                     && !tasks.contains(&task)
@@ -657,13 +647,12 @@ The same guide, with every example drawn, is published at {drawn}; this whole te
 pub(super) fn tags(paths: &Paths) -> Result<Value, Refused> {
     let (state, _) = opened(paths)?;
     let mut how: std::collections::BTreeMap<&str, usize> = std::collections::BTreeMap::new();
-    for one in state.tasks.values().flat_map(|task| &task.tags).chain(
-        state
-            .docs
-            .values()
-            .filter(|one| one.task_of.is_none())
-            .flat_map(|one| &one.tags),
-    ) {
+    for one in state
+        .tasks
+        .values()
+        .flat_map(|task| &task.tags)
+        .chain(state.papers().flat_map(|one| &one.tags))
+    {
         *how.entry(one.as_str()).or_default() += 1;
     }
     let mut named: Vec<(&str, usize)> = how.into_iter().collect();
@@ -844,14 +833,8 @@ fn papers_matching(
     scope: tisty_core::view::Scope,
 ) -> Vec<Value> {
     let here: std::collections::HashMap<String, (bool, Option<String>, bool)> = state
-        .docs
-        .values()
-        .filter(|one| one.task_of.is_none())
-        .filter(|one| match scope {
-            tisty_core::view::Scope::Open => !state.held_away(one),
-            tisty_core::view::Scope::Archived => state.held_away(one),
-            tisty_core::view::Scope::Either => true,
-        })
+        .papers()
+        .filter(|one| state.doc_kept_by(scope, one))
         .map(|one| {
             (
                 one.file.clone(),

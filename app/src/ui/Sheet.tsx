@@ -55,6 +55,7 @@ type Props = {
 
 export default function Sheet(props: Readonly<Props>) {
   const { file, value, label, reading = false, above, below } = props;
+  const fixed = Boolean(props.inline && props.shaping);
   const room = useRef<HTMLDivElement>(null);
   const said = useRef(props);
   said.current = props;
@@ -183,7 +184,10 @@ export default function Sheet(props: Readonly<Props>) {
     const line = latest.current.includes("\r\n") ? "\r\n" : "\n";
     const upto = latest.current.slice(0, from);
     // A box added right under a list joins it, where a blank line would split it in two.
-    const joins = seed.startsWith("- [ ] ") && /(^|\n)[ \t>]*- \[[ xX]\][^\n]*\n?$/.test(upto);
+    const mark = /^([-*+]|\d+[.)]) \[ \] /.exec(seed)?.[1];
+    const lead = mark && (/^\d/.test(mark) ? `\\d+\\${mark.slice(-1)}` : `\\${mark}`);
+    const joins =
+      lead !== undefined && new RegExp(`(^|\\n)[ \\t>]*${lead} \\[[ xX]\\][^\\n]*\\n?$`).test(upto);
     const ahead = !fresh
       ? ""
       : joins
@@ -335,6 +339,7 @@ export default function Sheet(props: Readonly<Props>) {
   };
 
   const dropped = (text: string, at?: { left: number; top: number }) => {
+    if (said.current.inline && said.current.shaping) return;
     const editing = open.current;
     if (editing) return putBlock(editing.view, text);
     const now = latest.current;
@@ -386,9 +391,13 @@ export default function Sheet(props: Readonly<Props>) {
   const cut = ([from, end]: [number, number]) => {
     if (open.current) return left();
     if (reading || showing.current !== latest.current) return;
-    const before = latest.current.slice(0, from).replace(/\n+$/, "");
-    const after = latest.current.slice(end).replace(/^\n+/, "");
-    whole(`${before}${before && after ? "\n\n" : before ? "\n" : ""}${after}`);
+    const now = latest.current;
+    // Only a label goes: bytes from a page drawn before the last cut would name something else.
+    if (!/^#{1,6}[ \t]/.test(now.slice(from, end))) return;
+    const line = now.includes("\r\n") ? "\r\n" : "\n";
+    const before = now.slice(0, from).replace(/(\r?\n)+$/, "");
+    const after = now.slice(end).replace(/^(\r?\n)+/, "");
+    whole(`${before}${before && after ? line + line : before ? line : ""}${after}`);
   };
 
   const widen = (at: [number, number], column: number, dashes: number) => {
@@ -491,7 +500,15 @@ export default function Sheet(props: Readonly<Props>) {
   }, [reading, whole, left]);
 
   // The sheet takes the keys without a caret, so nothing pulls the view to where one would be.
-  useEffect(() => room.current?.focus({ preventScroll: true }), []);
+  useEffect(() => {
+    // A task's page sits under its title and fields, which keep the keys the person is typing in.
+    if (!said.current.inline) room.current?.focus({ preventScroll: true });
+  }, []);
+
+  // A block opened in the other mode keeps that mode's keys, so turning the mode closes it.
+  useEffect(() => {
+    if (props.shaping !== undefined) left();
+  }, [props.shaping, left]);
 
   useEffect(() => {
     const want = wanted.current;
@@ -565,13 +582,13 @@ export default function Sheet(props: Readonly<Props>) {
           onOpen={(reference) => said.current.onOpen?.(reference)}
           onTag={(tag) => said.current.onTag?.(tag)}
           onBlock={reading ? undefined : block}
-          onTick={reading ? undefined : ticked}
-          onCut={reading ? undefined : cut}
-          onWiden={reading ? undefined : widen}
-          onFormat={reading ? undefined : format}
-          onMend={reading ? undefined : mended}
-          onMenu={menued}
-          onMore={reading ? undefined : asked}
+          onTick={reading || fixed ? undefined : ticked}
+          onCut={reading || !fixed ? undefined : cut}
+          onWiden={reading || fixed ? undefined : widen}
+          onFormat={reading || fixed ? undefined : format}
+          onMend={reading || fixed ? undefined : mended}
+          onMenu={fixed ? undefined : menued}
+          onMore={reading || fixed ? undefined : asked}
           onAway={left}
           card={props.card}
           blurb={props.blurb}

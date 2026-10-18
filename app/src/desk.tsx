@@ -79,7 +79,9 @@ export function deskOf(state: State, data: Snapshot) {
   });
 
   const remember = (next: Mode) => {
-    localStorage.setItem("detail", next);
+    try {
+      localStorage.setItem("detail", next);
+    } catch {}
     setMode(next);
   };
 

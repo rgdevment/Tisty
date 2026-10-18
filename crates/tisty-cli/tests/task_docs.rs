@@ -67,9 +67,8 @@ impl Served {
         let events = tisty_core::store::read_all(&store).unwrap();
         let state = tisty_core::State::replay(&events);
         let task: tisty_core::model::TaskId = task.parse().unwrap();
-        let op = tisty_core::task_docs::made(&data.join("docs"), &state, task, task, "", None)
-            .unwrap()
-            .op;
+        let op =
+            tisty_core::task_docs::made(&data.join("docs"), &state, task, task, "", None).unwrap();
         let tisty_core::Op::DocAdd { d, .. } = &op else {
             panic!("a task's document is added");
         };
@@ -133,6 +132,13 @@ fn an_assistant_cannot_write_a_task_s_words_through_the_document_tools() {
 
     assert_eq!(refused["result"]["isError"], true, "{refused}");
     let said = refused["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(said.contains("task's document"), "{said}");
+    let padded = served.call(
+        "append_doc",
+        serde_json::json!({ "doc": format!(" {file}\t"), "body": "Slipped in." }),
+    );
+    assert_eq!(padded["result"]["isError"], true, "{padded}");
+    let said = padded["result"]["content"][0]["text"].as_str().unwrap();
     assert!(said.contains("task's document"), "{said}");
     let read = served.call("read_doc", serde_json::json!({ "doc": file }));
     let body = read["result"]["structuredContent"]["body"]

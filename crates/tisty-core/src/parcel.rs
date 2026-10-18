@@ -746,9 +746,7 @@ fn chosen<'a>(state: &'a State, which: &[String]) -> Vec<&'a Kept> {
     let asked: BTreeSet<&str> = which.iter().map(String::as_str).collect();
     // A task's words travel with the task, never as a document a parcel hands to another store.
     let mut found: Vec<&Kept> = state
-        .docs
-        .values()
-        .filter(|one| one.task_of.is_none())
+        .papers()
         .filter(|one| {
             asked.is_empty()
                 || asked.contains(one.file.as_str())

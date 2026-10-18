@@ -86,9 +86,9 @@ Una etiqueta no es solo para tareas. Escribe `#salud` en medio de una frase de u
 
 ### 6. Lo que queda escrito
 
-Una tarea guarda más que su título. Ponle una descripción, apunta en su diario lo que fuiste averiguando y déjale los pasos que seguiste. En la descripción o en el diario, `[[#2]]` trae las palabras de su segundo paso, así una nota dice de qué paso habla sin copiarlo. Al terminarla nada de eso se borra: se archiva con su fecha.
+Una tarea guarda más que su título. Se abre en una página propia, con secciones para llenar —de qué se trata, cómo sabrás que está lista, sus pasos, lo que fuiste averiguando— y en cada una una pista en gris que dice qué va ahí. Cada casilla que escribas en esa página, `- [ ]`, es uno de sus pasos. Al terminarla nada de eso se borra: se archiva con su fecha.
 
-Un paso es una línea, de cien caracteres como máximo. Cuando uno necesita más —una descripción, una bitácora propia— conviértelo en tarea con **↗**, y pasa a ser una **parte** de la tarea de la que salió. Una tarea con partes es algo que termina: muestra **▣ 3/7** donde contaría sus pasos, sus partes se pliegan debajo y, en otras vistas, cada parte la nombra con **⌂**. Bajo los pasos de una tarea, **Partes** recibe una nueva en su propia línea, y **Es parte de otra…** busca por nombre la tarea a la que pertenece; una parte nombra ahí a su tarea y se suelta con **Soltarla**. Cerrarla con partes abiertas te pide soltarlas en el mismo gesto, y deshacer las devuelve.
+Un paso es una línea, de cien caracteres como máximo. Cuando uno necesita más, hazlo una tarea propia, como **parte** de esta. Una tarea con partes es algo que termina: muestra **▣ 3/7** donde contaría sus pasos, sus partes se pliegan debajo y, en otras vistas, cada parte la nombra con **⌂**. Junto a la página de la tarea, **Partes** recibe una nueva en su propia línea, y **Es parte de otra…** busca por nombre la tarea a la que pertenece; una parte nombra ahí a su tarea y se suelta con **Soltarla**. Cerrarla con partes abiertas te pide soltarlas en el mismo gesto, y deshacer las devuelve.
 
 Ahí está la diferencia. La lista te dice qué falta; el archivo te dice cómo lo resolviste la última vez. Búscalo por una palabra que recuerdes y sale, aunque lo cerraras hace dos años. Todo eso, paso a paso, se cuenta en [tareas](https://www.tisty.app/es/ayuda/tareas/).
 
@@ -195,7 +195,7 @@ Cuatro colores de rotulador: ==amarillo==, ==verde=={green}, ==azul=={blue} y ==
 
 #### Etapas
 
-Una lista de casillas que se marcan. No son tareas de Tisty ni sus pasos: no se cierran, no tienen fecha y no salen en Hoy. Son las etapas de algo que estás escribiendo.
+Una lista de casillas que se marcan. En un documento no son tareas de Tisty: no se cierran, no tienen fecha y no salen en Hoy. Son las etapas de algo que estás escribiendo. En la página propia de una tarea, esas mismas casillas son sus pasos.
 
 - [x] Llevar la cartilla de Rina
 - [x] Pesarla antes de la consulta
