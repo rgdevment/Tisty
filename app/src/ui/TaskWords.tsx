@@ -52,11 +52,11 @@ export default function TaskWords({ task, onSettle, onError, onDoc, shaping, onH
   }, [task.id, open, turn]);
 
   // While the page is read, its room stays as it last was, so what is under it never jumps.
-  if (!doc) return <div ref={kept.ref} style={{ minHeight: kept.height }} />;
+  if (!doc) return <div ref={kept.ref} className="task-words" style={{ minHeight: kept.height }} />;
   // A task's document is made by the first words written on it, never by looking at the task.
   const make = doc.file || doc.held ? undefined : (body: string) => taskDocMake(task.id, body);
   return (
-    <div ref={kept.ref}>
+    <div ref={kept.ref} className="task-words">
       <Written
         key={`${doc.file}:${seen}`}
         id={task.id}

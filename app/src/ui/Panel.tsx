@@ -50,7 +50,7 @@ export default function Panel({
           <span aria-hidden="true">✕</span>
         </button>
       </div>
-      <div className="scroller flex-1 pt-1.5 pb-7 [&>*]:px-5">{children}</div>
+      <div className="scroller flex-1 pt-1.5 pb-7 [&>*:not(.task-words)]:px-5">{children}</div>
       {footer}
     </aside>
   );
