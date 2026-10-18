@@ -1,5 +1,15 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { docWrite, type Filed, type Task, type TaskDoc, taskDocMake, taskDocOpen } from "../core";
+import {
+  docWrite,
+  type Filed,
+  stepDates,
+  type Task,
+  type TaskDoc,
+  taskDocMake,
+  taskDocOpen,
+} from "../core";
+import { stamped } from "../format";
+import { fill } from "../locales";
 import { holds, queued } from "../saving";
 import { useKeptHeight } from "./heights";
 import Skeleton from "./Skeleton";
@@ -49,6 +59,28 @@ export default function TaskWords({
   const open = task.status === "open";
   const kept = useKeptHeight<HTMLDivElement>(`task:${task.id}`);
   const { asking, picker } = useTaskAsks(open ? papers : undefined, onError);
+  const [dates, setDates] = useState<Record<string, string>>({});
+  const steps = (task.steps ?? []).map((one) => `${one.text}:${one.done}`).join("|");
+  useEffect(() => {
+    let live = true;
+    if (!steps) return setDates({});
+    stepDates(task.id)
+      .then((all) => {
+        if (!live) return;
+        const said: Record<string, string> = {};
+        for (const one of all) {
+          const parts = [one.born && fill("stepBorn", stamped(one.born))];
+          if (one.done) parts.push(fill("stepTicked", stamped(one.done)));
+          const line = parts.filter(Boolean).join(" · ");
+          if (line) said[one.text] = line;
+        }
+        setDates(said);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [task.id, steps]);
 
   useEffect(() => {
     let live = true;
@@ -92,6 +124,7 @@ export default function TaskWords({
         shaping={shaping}
         room={kept.height}
         asking={doc.held ? undefined : asking}
+        dates={dates}
       />
       {picker}
     </div>
@@ -110,6 +143,7 @@ function Written({
   shaping,
   room,
   asking,
+  dates,
 }: {
   id: string;
   doc: TaskDoc;
@@ -126,6 +160,7 @@ function Written({
   shaping?: boolean;
   room?: number;
   asking?: Asking;
+  dates?: Readonly<Record<string, string>>;
 }) {
   const [text, setText] = useState(doc.body);
   const waiting = useRef<string | null>(null);
@@ -236,6 +271,7 @@ function Written({
         onFail={onError}
         onDoc={onDoc}
         asking={asking}
+        stepDates={dates}
       />
     </Suspense>
   );

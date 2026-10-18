@@ -49,6 +49,7 @@ type Props = {
   readonly onInsert?: (put: ((file: string, title: string) => boolean) | null) => void;
   readonly onOrder?: (move: ((file: string, before: string | null) => Moved) | null) => void;
   readonly asking?: Asking;
+  readonly stepDates?: Readonly<Record<string, string>>;
   readonly kept?: boolean;
   readonly inline?: boolean;
   readonly shaping?: boolean;
@@ -594,6 +595,7 @@ export default function Sheet(props: Readonly<Props>) {
           onOpen={(reference) => said.current.onOpen?.(reference)}
           onTag={(tag) => said.current.onTag?.(tag)}
           onBlock={reading ? undefined : block}
+          stepDates={props.stepDates}
           onTick={reading || fixed ? undefined : ticked}
           onCut={reading || !fixed ? undefined : cut}
           onWiden={reading || fixed ? undefined : widen}

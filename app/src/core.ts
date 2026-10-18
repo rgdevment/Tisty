@@ -343,6 +343,8 @@ export const taskDocSettled = (
   renamed: readonly [string, string][] = [],
 ): Promise<Task | null> => invoke("task_doc_settled", { id, before, now, renamed });
 export const partsOf = (id: string): Promise<Task[]> => invoke("parts_of", { id });
+export type StepDated = { text: string; born?: string | null; done?: string | null };
+export const stepDates = (id: string): Promise<StepDated[]> => invoke("task_step_dates", { id });
 export const taskPageImport = (from: string): Promise<string | null> =>
   invoke("task_page_import", { from });
 export const taskOf = (id: string): Promise<Task> => invoke("task_of", { id });
