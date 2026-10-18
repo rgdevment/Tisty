@@ -1,6 +1,5 @@
 import { useDesk } from "../desk";
 import { saidPlainly } from "../refusal";
-import Detail from "./Detail";
 import Door from "./Door";
 import Pulse from "./Pulse";
 import Star from "./Star";
@@ -8,11 +7,6 @@ import Star from "./Star";
 export default function Margins() {
   const {
     aside,
-    beside,
-    dealing,
-    task,
-    detailing,
-    remember,
     data,
     papers,
     chosen,
@@ -27,21 +21,9 @@ export default function Margins() {
   } = useDesk();
   return (
     <>
-      {beside && task && (
-        <Detail
-          apart={`${aside ? "right-3 @min-[1536px]:right-[324px]" : "right-3"} ${
-            dealing ? "pointer-events-none opacity-10" : ""
-          }`}
-          key={task.id}
-          {...detailing(task)}
-          expanded={false}
-          onExpand={() => remember("sheet")}
-          onCollapse={() => remember("columns")}
-        />
-      )}
       {aside && (
         <Pulse
-          apart={beside ? "hidden @min-[1536px]:flex" : "hidden @min-[884px]:flex"}
+          apart="hidden @min-[884px]:flex"
           counts={data.counts}
           lists={data.lists}
           ahead={data.ahead ?? []}

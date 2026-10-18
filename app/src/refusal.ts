@@ -35,6 +35,7 @@ const KNOWN = [
   "partOfAPart",
   "wholeIsNoPart",
   "wholeClosed",
+  "taskClosed",
   "onlyClosedConverts",
   "routineReadsAsRoutine",
   "notAReading",

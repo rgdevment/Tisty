@@ -24,9 +24,7 @@ import { useParcels } from "./ui/Parcels";
 import { SETTLING_MS } from "./ui/Sure";
 import { usePapers } from "./usePapers";
 import { type Chosen, type Slice, useReach } from "./views";
-import { useAloud, useTight, useUpdates } from "./watching";
-
-export type Mode = "columns" | "sheet";
+import { useAloud, useUpdates } from "./watching";
 
 export const kept = (key: string): string[] => {
   try {
@@ -39,7 +37,6 @@ export const kept = (key: string): string[] => {
 
 export function useWindow() {
   const { ready, lookAgain, underway, setUnderway, behind, setBehind } = useUpdates();
-  const tight = useTight();
   const { aloud, say } = useAloud();
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | undefined>();
@@ -47,13 +44,8 @@ export function useWindow() {
   const [cheered, setCheered] = useState<Task | undefined>();
   const peeks = useBeaver();
 
-  const [dealing, setDealing] = useState(false);
-
   const [reveal, setReveal] = useState<string | undefined>();
   const [returning, setReturning] = useState<string | null>(null);
-  const [mode, setMode] = useState<Mode>(
-    () => (localStorage.getItem("detail") as Mode) ?? "columns",
-  );
   const [chosen, setChosen] = useState<Chosen>(() => ({
     named: "tasks",
     slice: (localStorage.getItem("tisty.slice") as Slice) ?? "today",
@@ -180,7 +172,6 @@ export function useWindow() {
     setUnderway,
     behind,
     setBehind,
-    tight,
     aloud,
     say,
     error,
@@ -191,14 +182,10 @@ export function useWindow() {
     setCaptured,
     cheered,
     setCheered,
-    dealing,
-    setDealing,
     reveal,
     setReveal,
     returning,
     setReturning,
-    mode,
-    setMode,
     chosen,
     setChosen,
     found,
