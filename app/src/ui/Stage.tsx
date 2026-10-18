@@ -20,7 +20,6 @@ import Spread from "./Spread";
 export default function Stage() {
   const {
     act,
-    beside,
     bringBack,
     carried,
     carries,
@@ -41,10 +40,8 @@ export default function Stage() {
     papersChanged,
     parcels,
     ready,
-    remember,
     setCameFrom,
     setChosen,
-    setDealing,
     setError,
     setGreet,
     setHere,
@@ -56,7 +53,6 @@ export default function Stage() {
     standing,
     strip,
     task,
-    tight,
     told,
     underway,
   } = useDesk();
@@ -116,7 +112,7 @@ export default function Stage() {
       onBack={bringBack}
       fresh={carried}
     />
-  ) : chosen.named === "lists" && !chosen.list ? (
+  ) : chosen.named === "lists" && !chosen.list && !sheet ? (
     <Lists
       lists={data.every ?? data.lists}
       counts={data.counts}
@@ -133,7 +129,6 @@ export default function Stage() {
         tasks={data.tasks}
         counts={data.counts}
         lists={data.lists}
-        beside={beside}
         onPlace={(id, where) => act(patch(id, { priority: where }))}
         onOpen={(one) => setSelected(one.id)}
         onSow={(where) => {
@@ -156,7 +151,6 @@ export default function Stage() {
   ) : chosen.named === "spread" && !sheet ? (
     <div className="flex min-w-0 flex-col overflow-hidden">
       <Spread
-        onCarrying={setDealing}
         tasks={data.tasks}
         counts={data.counts}
         onPlace={(id, on) => act(patch(id, on ? { date: on } : { noDate: true }))}
@@ -181,8 +175,7 @@ export default function Stage() {
       {...detailing(task)}
       expanded
       from={title(chosen, data.lists)}
-      onExpand={() => remember("sheet")}
-      onCollapse={() => (tight ? shut() : remember("columns"))}
+      onCollapse={shut}
     />
   ) : (
     <Board />

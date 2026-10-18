@@ -25,7 +25,7 @@ interface Props {
   apart?: string;
   expanded: boolean;
   from?: string;
-  onExpand: () => void;
+  onExpand?: () => void;
   onCollapse: () => void;
   onPatch: (change: Change) => void;
   onStep: (text: string, step?: string) => void;

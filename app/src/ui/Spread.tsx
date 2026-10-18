@@ -11,7 +11,6 @@ interface Props {
   counts: Record<string, number>;
   onPlace: (task: string, on: string | null) => void;
   onOpen: (task: Task) => void;
-  onCarrying?: (held: boolean) => void;
 }
 
 const SLIP = 5;
@@ -50,7 +49,7 @@ const moonOf = (at: Date): string => {
   return said.charAt(0).toUpperCase() + said.slice(1);
 };
 
-export default function Spread({ tasks, counts, onPlace, onOpen, onCarrying }: Props) {
+export default function Spread({ tasks, counts, onPlace, onOpen }: Props) {
   const [glance, setGlance] = useState<{ year: number; month: number } | null>(null);
   const [over, setOver] = useState<string | null>(null);
   const [held, setHeld] = useState<string | null>(null);
@@ -121,10 +120,6 @@ export default function Spread({ tasks, counts, onPlace, onOpen, onCarrying }: P
   };
 
   useLayoutEffect(trail, [held]);
-
-  useEffect(() => {
-    onCarrying?.(held !== null);
-  }, [held, onCarrying]);
 
   const under = (x: number, y: number): string | null => {
     const spot = document.elementFromPoint(x, y);

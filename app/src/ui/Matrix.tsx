@@ -12,7 +12,6 @@ interface Props {
   tasks: Task[];
   counts: Record<string, number>;
   lists: List[];
-  beside: boolean;
   onPlace: (task: string, where: Priority) => void;
   onOpen: (task: Task) => void;
   onSow: (where: Priority) => void;
@@ -25,7 +24,6 @@ export default function Matrix({
   tasks,
   counts,
   lists,
-  beside,
   onPlace,
   onOpen,
   onSow,
@@ -57,8 +55,6 @@ export default function Matrix({
   };
 
   useLayoutEffect(trail, [held]);
-
-  const tray = asked && !beside;
 
   const swing = (open: boolean) => {
     localStorage.setItem(KEPT, open ? "open" : "shut");
@@ -153,7 +149,7 @@ export default function Matrix({
       <div data-tauri-drag-region className="h-9 shrink-0" />
       <header className="-mt-3 flex items-baseline gap-3">
         <h2 className="text-[21px] font-semibold tracking-[-0.015em]">{t("quadrants")}</h2>
-        {!asked && !beside && waiting > 0 && (
+        {!asked && waiting > 0 && (
           <button
             type="button"
             onClick={() => swing(true)}
@@ -166,7 +162,7 @@ export default function Matrix({
 
       <div
         className="grid min-h-0 flex-1 gap-3"
-        style={{ gridTemplateColumns: tray ? "minmax(0,1fr) 288px" : "minmax(0,1fr)" }}
+        style={{ gridTemplateColumns: asked ? "minmax(0,1fr) 288px" : "minmax(0,1fr)" }}
       >
         <div className="grid min-h-0 grid-cols-[26px_minmax(0,1fr)] grid-rows-[26px_minmax(0,1fr)] gap-2">
           <div className="col-start-2 grid grid-cols-2 gap-3">
@@ -229,7 +225,7 @@ export default function Matrix({
           </div>
         </div>
 
-        {tray && (
+        {asked && (
           <aside
             data-quadrant="unset"
             aria-label={t("unplaced")}

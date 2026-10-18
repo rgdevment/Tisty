@@ -4,7 +4,6 @@ import { type Ready, type Underway, updateReady } from "./core";
 import { noticeBehind } from "./refusal";
 
 const LOOKS_AGAIN = 6 * 60 * 60 * 1000;
-const TIGHT = 1308;
 
 export function useUpdates() {
   const [ready, setReady] = useState<Ready | null>(null);
@@ -56,16 +55,6 @@ export function useUpdates() {
       .catch(() => {});
 
   return { ready, lookAgain, underway, setUnderway, behind, setBehind };
-}
-
-export function useTight() {
-  const [tight, setTight] = useState(() => window.innerWidth < TIGHT);
-  useEffect(() => {
-    const look = () => setTight(window.innerWidth < TIGHT);
-    window.addEventListener("resize", look);
-    return () => window.removeEventListener("resize", look);
-  }, []);
-  return tight;
 }
 
 export function useAloud() {
