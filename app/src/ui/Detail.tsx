@@ -449,7 +449,7 @@ function Settled({
                 event.preventDefault();
                 setSumming(null);
               }
-              if (event.key === "Enter" && !event.shiftKey) {
+              if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
                 event.preventDefault();
                 event.currentTarget.form?.requestSubmit();
               }

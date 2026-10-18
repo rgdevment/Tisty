@@ -63,6 +63,16 @@ fn closing_again_with_the_same_words_writes_them_once() {
 }
 
 #[test]
+fn a_shorter_summary_than_what_is_there_is_still_written() {
+    let body = "## Al cerrarla\n\nBien hecho, llamar antes.\n";
+    assert_eq!(
+        summed(body, "Bien"),
+        "## Al cerrarla\n\nBien\n\nBien hecho, llamar antes.\n"
+    );
+    assert_eq!(summed("Todo quedó ok\n", "ok"), "Todo quedó ok\n\nok\n");
+}
+
+#[test]
 fn a_page_with_no_place_for_it_ends_with_how_it_went() {
     assert_eq!(
         summed("Notas sueltas.\n\n", "Bien."),

@@ -17,14 +17,11 @@ fn hint(line: &str) -> bool {
 // What a section holds runs to the next heading as high as its own, code fences aside.
 pub(crate) fn held(body: &str, heads: &[&str]) -> Option<(Range<usize>, Range<usize>)> {
     let mut at = 0;
-    let mut fenced = false;
+    let mut fenced = tisty_markdown::fences::fencing();
     let mut found: Option<(usize, usize, usize)> = None;
     for line in body.split_inclusive('\n') {
-        let bare = line.trim_start();
-        if bare.starts_with("```") || bare.starts_with("~~~") {
-            fenced = !fenced;
-        }
-        let marks = (!fenced).then(|| level(line)).flatten();
+        let code = fenced(line.trim_end_matches(['\n', '\r']));
+        let marks = (!code).then(|| level(line)).flatten();
         match (found, marks) {
             (Some((_, from, own)), Some(marks)) if marks <= own => {
                 return found.map(|(head, _, _)| (head..from, from..at));
@@ -39,7 +36,6 @@ pub(crate) fn held(body: &str, heads: &[&str]) -> Option<(Range<usize>, Range<us
     found.map(|(head, from, _)| (head..from, from..body.len()))
 }
 
-/// The words written in a section, its hints and empty lines left out.
 pub fn said_in(body: &str, heads: &[&str]) -> String {
     let Some((_, words)) = held(body, heads) else {
         return String::new();
@@ -77,13 +73,14 @@ pub fn this_time(body: &str) -> Option<(String, String)> {
 pub fn summed(body: &str, summary: &str) -> String {
     let summary = summary.trim();
     // Closing again after a refusal or an undo says the same words once.
-    if said_in(body, &WHEN_IT_CLOSES).starts_with(summary) {
+    let first = said_in(body, &WHEN_IT_CLOSES);
+    if first.split("\n\n").next().map(str::trim) == Some(summary) {
         return body.to_string();
     }
     let line = if body.contains("\r\n") { "\r\n" } else { "\n" };
     let Some((_, words)) = held(body, &WHEN_IT_CLOSES) else {
         let kept = body.trim_end_matches(['\n', '\r']);
-        if kept.ends_with(summary) {
+        if kept.rsplit("\n\n").next().map(str::trim) == Some(summary) {
             return body.to_string();
         }
         return format!("{kept}{line}{line}{summary}{line}");

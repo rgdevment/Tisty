@@ -188,12 +188,19 @@ pub fn done(
 
     resolved!(app, selector, open, lang, |id| {
         let owed = app.state.owed_since(id, today);
+        let closing = app.closing_words(id);
+        if !closing.ops.is_empty() {
+            app.commit_all(closing.ops)?;
+        }
         let ops = if kept.is_empty() {
             app.state.completing(id, jiff::Zoned::now())
         } else {
             app.state.covering(id, jiff::Zoned::now(), &kept)
         };
         app.commit_all(ops)?;
+        if let Some(said) = &closing.said {
+            app.round_cleared(id, said)?;
+        }
         report(app, id, today, lang);
         if kept.is_empty()
             && !owed.is_empty()

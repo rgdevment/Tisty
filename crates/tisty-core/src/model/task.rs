@@ -237,7 +237,6 @@ pub struct Volume {
     pub prose: usize,
     #[serde(default, skip_serializing_if = "is_zero")]
     pub refs: usize,
-    /// The stretches of time something was added to it: what was written, planned or noted.
     #[serde(default, skip_serializing_if = "is_zero")]
     pub grew: usize,
 }
