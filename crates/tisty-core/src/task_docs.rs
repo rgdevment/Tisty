@@ -29,9 +29,22 @@ pub fn id_at(task: TaskId, turn: u32) -> DocId {
 }
 
 pub fn task_of_file(file: &str) -> Option<TaskId> {
+    owned(file).map(|(task, _)| task)
+}
+
+/// The task and the id its own making would give a file, so taking it in early makes no twin.
+pub fn owned(file: &str) -> Option<(TaskId, DocId)> {
     let (head, number) = file.strip_prefix(PREFIX)?.rsplit_once('-')?;
-    (!number.is_empty() && number.chars().all(|one| one.is_ascii_digit())).then_some(())?;
-    Ulid::from_string(&head.to_ascii_uppercase()).ok()
+    let turn = number.parse::<u32>().ok()?;
+    let task = Ulid::from_string(&head.to_ascii_uppercase()).ok()?;
+    Some((task, id_at(task, turn)))
+}
+
+/// The line naming the task is the file's own bookkeeping, never what a search was looking for.
+pub fn bookkept(line: &str) -> bool {
+    line.trim_start()
+        .get(..KEY.len() + 1)
+        .is_some_and(|head| head.eq_ignore_ascii_case(&format!("{KEY}:")))
 }
 
 pub fn seed(task: TaskId) -> String {

@@ -245,7 +245,7 @@ fn not_a_task_s_words(name: &str, args: &Value) -> Result<(), Refused> {
         .find(|file| tisty_core::task_docs::task_of_file(file).is_some());
     match named {
         Some(file) => Err(Refused::Tool(format!(
-            "{file} is a task's document: its words are the task's, and they are not written              through the document tools. Read it with `read_doc`; write on the task with `note`."
+            "{file} is a task's document: its words are the task's, and they are not written through the document tools. Read it with `read_doc`; write on the task with `note`."
         ))),
         None => Ok(()),
     }

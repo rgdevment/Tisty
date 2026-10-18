@@ -75,7 +75,6 @@ pub fn repeat(one: Repeat) -> String {
     format!("{each} from {from}{until}")
 }
 
-/// Only the one canonical form is read: `every 2 weeks from done until 2026-12-31`.
 pub fn repeat_in(said: &str) -> Option<Repeat> {
     let words: Vec<&str> = said.split_whitespace().collect();
     let mut at = 0;
@@ -115,9 +114,17 @@ pub fn repeat_in(said: &str) -> Option<Repeat> {
     })
 }
 
+// Words YAML would read as a number, a yes or no, nothing, or its own syntax keep their quotes.
 fn quoted(said: &str) -> String {
-    let plain =
-        !said.contains([':', '#', '[', ']', '{', '}', ',', '"', '\'']) && said.trim() == said;
+    const WORDS: [&str; 11] = [
+        "yes", "no", "true", "false", "on", "off", "null", "~", "y", "n", "",
+    ];
+    let lower = said.to_ascii_lowercase();
+    let plain = !said.contains([':', '#', '[', ']', '{', '}', ',', '"', '\''])
+        && said.trim() == said
+        && !said.starts_with(['-', '&', '*', '!', '@', '|', '>', '%', '?', '`'])
+        && !WORDS.contains(&lower.as_str())
+        && lower.parse::<f64>().is_err();
     match (plain, said.contains('"')) {
         (true, _) => said.to_string(),
         (false, false) => format!("\"{said}\""),
@@ -214,7 +221,6 @@ pub fn read(body: &str, tz: &str) -> Front {
     front
 }
 
-/// A property the document leaves out clears nothing.
 pub fn patch(task: &Task, front: &Front) -> Option<crate::event::TaskPatch> {
     let mut out = crate::event::TaskPatch::default();
     // Compared as written, since the zone and the seconds a document cannot carry are no change.
@@ -253,7 +259,6 @@ fn set(all: &[crate::model::Tag]) -> std::collections::BTreeSet<&crate::model::T
     all.iter().collect()
 }
 
-/// A name nobody has makes no list, and a list put away is never chosen.
 pub fn moved(state: &crate::State, task: &Task, front: &Front) -> Option<crate::event::TaskMove> {
     let name = front.list.as_deref()?.trim_start_matches('@');
     let open = || state.lists.iter().filter(|(_, one)| !one.archived);

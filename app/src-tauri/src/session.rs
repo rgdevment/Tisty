@@ -518,8 +518,10 @@ impl Session {
                 .filter(|one| one.page_of.is_none() && one.folder.is_none())
                 .map(|one| one.order.as_str()),
         );
+        let owner = tisty_core::task_docs::owned(file)
+            .filter(|(task, _)| self.state.tasks.contains_key(task));
         self.commit(Op::DocAdd {
-            id: ulid::Ulid::generate(),
+            id: owner.map_or_else(ulid::Ulid::generate, |(_, id)| id),
             d: tisty_core::event::DocAdd {
                 wrote: None,
                 guest: false,
@@ -530,7 +532,7 @@ impl Session {
                 said: Some(tisty_core::event::Said::of(&body)),
                 folder: None,
                 page_of: None,
-                task_of: None,
+                task_of: owner.map(|(task, _)| task),
             },
         })?;
         Ok(tisty_core::docs::Doc {

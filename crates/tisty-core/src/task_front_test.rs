@@ -191,3 +191,17 @@ fn a_tag_line_of_the_document_goes_too_so_a_removed_tag_stays_removed() {
     assert!(!out.contains("old"), "{out}");
     assert_eq!(read(&out, TZ).tags, vec!["salud".to_string()]);
 }
+
+#[test]
+fn a_list_name_yaml_would_misread_is_written_quoted_and_reads_back_as_written() {
+    for name in ["2026", "No", "null", "- x", "&a", "Casa"] {
+        let mut task = booster();
+        task.tags.clear();
+        let out = dressed("", &task, Some(name));
+        let said = read(&out, TZ).list;
+        assert_eq!(said.as_deref(), Some(name), "{out}");
+        if name != "Casa" {
+            assert!(out.contains(&format!("list: \"{name}\"")), "{out}");
+        }
+    }
+}

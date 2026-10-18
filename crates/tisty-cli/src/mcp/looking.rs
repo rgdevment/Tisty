@@ -85,9 +85,14 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             all
         }
     };
+    // One walk through the documents serves both the documents found and the tasks found by theirs.
+    let seen = query
+        .as_deref()
+        .map(|query| sightings(paths, query))
+        .unwrap_or_default();
     let mut lined = std::collections::HashMap::new();
-    if let Some(query) = &query {
-        for (task, line) in documented(paths, &state, query) {
+    if query.is_some() {
+        for (task, line) in documented(&state, &seen) {
             let Some(one) = state.tasks.get(&task) else {
                 continue;
             };
@@ -132,7 +137,7 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .collect();
     // `after` walks the tasks only — paging past them would empty this list without saying why.
     let papers = match (&query, sifted.none()) {
-        (Some(query), true) => papers_matching(paths, &state, query, scope, usize::MAX),
+        (Some(_), true) => papers_matching(&state, &seen, scope),
         _ => Vec::new(),
     };
     let papers_all = papers.len();
@@ -834,11 +839,9 @@ fn kept_here(body: &str) -> String {
 /// Documents are searched by the same engine the window uses; a document the agent cannot find
 /// again is a document it wrote into the dark.
 fn papers_matching(
-    paths: &Paths,
     state: &State,
-    query: &str,
+    seen: &[tisty_core::docs::Sighting],
     scope: tisty_core::view::Scope,
-    most: usize,
 ) -> Vec<Value> {
     let here: std::collections::HashMap<String, (bool, Option<String>, bool)> = state
         .docs
@@ -861,52 +864,42 @@ fn papers_matching(
         })
         .collect();
 
-    let held = tisty_core::cache::Cache::open(paths.cache()).ok().flatten();
-    tisty_core::docs::sighted(&paths.docs(), held.as_ref(), query, most, |id| {
-        here.contains_key(id)
-    })
-    .unwrap_or_else(|| {
-        tisty_core::docs::Corpus::default()
-            .searching(&paths.docs(), query, most, |id| here.contains_key(id))
-    })
-    .into_iter()
-    .map(|one| {
-        let (archived, page_of, flagged) =
-            here.get(&one.id).cloned().unwrap_or((false, None, false));
-        json!({
-            "doc": one.id,
-            "title": one.title,
-            "line": one.line,
-            "page_of": page_of,
-            "archived": archived,
-            "flagged": flagged,
+    seen.iter()
+        .filter(|one| here.contains_key(&one.id))
+        .map(|one| {
+            let (archived, page_of, flagged) =
+                here.get(&one.id).cloned().unwrap_or((false, None, false));
+            json!({
+                "doc": one.id,
+                "title": one.title,
+                "line": one.line,
+                "page_of": page_of,
+                "archived": archived,
+                "flagged": flagged,
+            })
         })
-    })
-    .collect()
+        .collect()
+}
+
+fn sightings(paths: &Paths, query: &str) -> Vec<tisty_core::docs::Sighting> {
+    let held = tisty_core::cache::Cache::open(paths.cache()).ok().flatten();
+    tisty_core::docs::sighted(&paths.docs(), held.as_ref(), query, usize::MAX, |_| true)
+        .unwrap_or_else(|| {
+            tisty_core::docs::Corpus::default()
+                .searching(&paths.docs(), query, usize::MAX, |_| true)
+        })
 }
 
 // A task found by its document's words answers as the task, with the line that said it.
 fn documented(
-    paths: &Paths,
     state: &State,
-    query: &str,
+    seen: &[tisty_core::docs::Sighting],
 ) -> Vec<(tisty_core::model::TaskId, String)> {
     let behind = tisty_core::task_docs::behind(state);
-    if behind.is_empty() {
-        return Vec::new();
-    }
-    let held = tisty_core::cache::Cache::open(paths.cache()).ok().flatten();
-    tisty_core::docs::sighted(&paths.docs(), held.as_ref(), query, usize::MAX, |id| {
-        behind.contains_key(id)
-    })
-    .unwrap_or_else(|| {
-        tisty_core::docs::Corpus::default().searching(&paths.docs(), query, usize::MAX, |id| {
-            behind.contains_key(id)
-        })
-    })
-    .into_iter()
-    .filter_map(|one| Some((*behind.get(&one.id)?, one.line)))
-    .collect()
+    seen.iter()
+        .filter(|one| !tisty_core::task_docs::bookkept(&one.line))
+        .filter_map(|one| Some((*behind.get(&one.id)?, one.line.clone())))
+        .collect()
 }
 
 /// A field that says nothing still costs the reader a line, so it is left out.

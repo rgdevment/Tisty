@@ -104,3 +104,15 @@ fn a_second_making_keeps_what_was_built_on_the_first() {
         "the second making undid the first"
     );
 }
+
+#[test]
+fn a_file_taken_in_before_its_making_gets_the_id_its_making_would_give() {
+    let task = Ulid::generate();
+    assert_eq!(
+        super::owned(&file_at(task, 3)),
+        Some((task, id_at(task, 3)))
+    );
+    assert!(super::bookkept("task: 01M563T6T541A3Q2PP5YQW5XK1"));
+    assert!(super::bookkept("  Task: x"));
+    assert!(!super::bookkept("The task is done."));
+}
