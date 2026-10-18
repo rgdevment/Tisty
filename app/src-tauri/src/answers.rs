@@ -16,6 +16,7 @@ pub mod settings;
 pub mod shelves;
 pub mod spoken;
 pub mod storing;
+pub mod task_docs;
 pub mod tasks;
 pub mod updating;
 pub mod vouching;
