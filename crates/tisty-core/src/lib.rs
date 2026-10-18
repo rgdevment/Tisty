@@ -15,6 +15,7 @@ pub mod dated;
 pub mod docs;
 pub mod doubled;
 pub mod event;
+mod growing;
 pub mod herald;
 pub mod holes;
 pub mod keepers;

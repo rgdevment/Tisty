@@ -205,6 +205,8 @@ pub struct Task {
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub filled: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub grown_at: Option<Timestamp>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub completed_at: Option<Timestamp>,
     /// The layer the person chose, story or trace; absent, the weight decides.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -235,6 +237,9 @@ pub struct Volume {
     pub prose: usize,
     #[serde(default, skip_serializing_if = "is_zero")]
     pub refs: usize,
+    /// The stretches of time something was added to it: what was written, planned or noted.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub grew: usize,
 }
 
 fn is_zero(n: &usize) -> bool {
@@ -281,6 +286,7 @@ impl Task {
             source: None,
             closed_in: None,
             filled: false,
+            grown_at: None,
             completed_at: None,
             read_as: None,
             open_to_agents: false,
@@ -357,7 +363,19 @@ impl Task {
             described: self.description.is_some(),
             prose: written.min(PROSE_CAP),
             refs: self.references().len(),
+            grew: self.volume.grew,
         };
+    }
+
+    /// One stretch of adding counts once, as the trail tells it once; ticking is no growth.
+    pub fn grew_at(&mut self, at: Timestamp) {
+        let apart = self
+            .grown_at
+            .is_none_or(|was| at.as_second() - was.as_second() >= crate::paged::WRITING_FOR);
+        if apart {
+            self.volume.grew += 1;
+            self.grown_at = Some(at);
+        }
     }
 
     pub fn step(&self, id: StepId) -> Option<&Step> {
@@ -437,7 +455,8 @@ impl Volume {
             1..=2 => 1,
             _ => 2,
         };
-        self.prose + plan + refs
+        // A task returned to more than three times reads as a story, however short each visit.
+        (self.prose + plan + refs).max(self.grew.saturating_sub(1))
     }
 }
 
