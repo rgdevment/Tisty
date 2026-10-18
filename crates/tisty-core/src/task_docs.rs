@@ -177,11 +177,6 @@ fn hinted(line: &str) -> Option<&str> {
         .map(str::trim)
 }
 
-pub struct Made {
-    pub op: Op,
-    pub created: bool,
-}
-
 /// `from` is the turn asking: a routine's document is its first turn's, seeded with today's steps.
 pub fn made(
     root: &Path,
@@ -190,27 +185,23 @@ pub fn made(
     from: TaskId,
     template: &str,
     by: Option<String>,
-) -> crate::Result<Made> {
+) -> crate::Result<Op> {
     let (id, file) = planned(state, task);
     let first = opened(state, from, template);
-    let created = crate::docs::create_named(root, &file, &first)?;
-    let body = match created {
+    let body = match crate::docs::create_named(root, &file, &first)? {
         true => first,
         false => crate::docs::read(root, &file)?,
     };
-    Ok(Made {
-        op: Op::DocAdd {
-            id,
-            d: DocAdd {
-                file,
-                order: crate::order::last_of(state.docs.values().map(|one| one.order.as_str())),
-                by,
-                said: Some(Said::of(&body)),
-                task_of: Some(task),
-                ..DocAdd::default()
-            },
+    Ok(Op::DocAdd {
+        id,
+        d: DocAdd {
+            file,
+            order: crate::order::last_of(state.docs.values().map(|one| one.order.as_str())),
+            by,
+            said: Some(Said::of(&body)),
+            task_of: Some(task),
+            ..DocAdd::default()
         },
-        created,
     })
 }
 

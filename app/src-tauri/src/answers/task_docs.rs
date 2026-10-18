@@ -74,31 +74,27 @@ pub fn task_doc_make(
 ) -> Answer<String> {
     let id = task_id(&id)?;
     let mut session = held(&session);
+    // Another process may have written since, and a document made twice is two of them.
+    session.reload()?;
     if let Some(file) = file_of(&session, id) {
         known(&session, id)?;
         return Ok(file);
     }
-    let task = open_task(&session, id)?;
-    let template = template.unwrap_or_default();
+    open_task(&session, id)?;
     let made = tisty_core::task_docs::made(
         &session.paths.docs(),
         &session.state,
         tisty_core::task_docs::owner(&session.state, id),
         id,
-        &template,
+        &template.unwrap_or_default(),
         signing(&session.state),
     )
     .map_err(|e| blamed(channel::WINDOW, "a task's document could not be made", e))?;
-    let Op::DocAdd { d, .. } = &made.op else {
+    let Op::DocAdd { d, .. } = &made else {
         return Err(Refusal::of("internal"));
     };
     let file = d.file.clone();
-    let mut ops = vec![made.op];
-    // Only the template's own boxes are new steps: a file already there, or a description, holds old words.
-    if made.created {
-        ops.extend(tisty_core::stages::reconciled(&task, None, &template));
-    }
-    session.commit_all(ops)?;
+    session.commit_all(vec![made])?;
     Ok(file)
 }
 
@@ -112,6 +108,8 @@ pub fn task_doc_settled(
 ) -> Answer<Option<Task>> {
     let id = task_id(&id)?;
     let mut session = held(&session);
+    // Steps an assistant added from another process count before the text is weighed against them.
+    session.reload()?;
     let task = answered(&session, id)?;
     // A block left by the very click that closed the task has nothing left to settle into.
     if !task.is_open() {
