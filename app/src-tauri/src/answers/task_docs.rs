@@ -175,6 +175,11 @@ pub fn task_page_import(
         if !session.state.tasks.contains_key(&id) {
             return Ok(None);
         }
+        // Refused before the files beside it are brought in, so a refusal leaves none behind.
+        open_task(&session, id)?;
+        if let Some(file) = file_of(&session, id) {
+            writable(&session.state, &file)?;
+        }
         session.paths.clone()
     };
     let own: Vec<std::path::PathBuf> = [paths.data(), paths.config(), paths.cache()]

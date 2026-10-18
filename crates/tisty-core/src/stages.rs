@@ -67,8 +67,9 @@ fn said(item: &str, quoted: usize) -> Option<String> {
     Some(one_line(&words.join(" "))).filter(|text| !text.is_empty())
 }
 
+// A step ending in a backslash reads back without it, since in a page that mark is a line break.
 pub fn title(text: &str) -> String {
-    let flat = one_line(text);
+    let flat = one_line(text.trim_end().trim_end_matches('\\'));
     if flat.chars().count() <= STEP_AT_MOST {
         return flat;
     }

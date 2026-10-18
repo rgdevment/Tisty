@@ -608,7 +608,9 @@ export default function Sheet(props: Readonly<Props>) {
           blurb={props.blurb}
           again={props.again}
           onApart={(lent) => {
-            const from = said.current.file;
+            const named = said.current.file;
+            // A task page not written yet has no file the widget could lead back to.
+            const from = named?.startsWith("unwritten:") ? undefined : named;
             viewWidget(
               lent,
               from ? { id: "", file: from, title: said.current.label, place: "" } : undefined,

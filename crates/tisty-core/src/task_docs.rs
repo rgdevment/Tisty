@@ -155,13 +155,18 @@ pub fn opened(state: &State, task: TaskId, template: &str) -> String {
         .map(str::trim)
         .filter(|said| !said.is_empty());
     let mut steps = one.map(|one| crate::stages::lines(&crate::stages::ordered(one)));
+    let mut notes = one.filter(|one| one.is_open()).and_then(noted);
     let mut out = seed(task);
     let template = template.replace("\r\n", "\n");
     let template = template.trim();
     if !template.is_empty() {
         out.push('\n');
         let mut gap = false;
+        let mut last = "";
         for line in template.lines() {
+            // Notes go under the hint right below their own heading, and nowhere else.
+            let notes_here = NOTES.contains(&last.trim());
+            last = line;
             if std::mem::take(&mut gap) && !line.trim().is_empty() {
                 out.push('\n');
             }
@@ -170,9 +175,10 @@ pub fn opened(state: &State, task: TaskId, template: &str) -> String {
             let Some(hint) = hinted(line) else {
                 continue;
             };
-            let held = match boxed(hint) {
-                true => steps.take().filter(|lines| !lines.is_empty()),
-                false => said.take().map(|said| format!("{said}\n")),
+            let held = match (boxed(hint), notes_here) {
+                (true, _) => steps.take().filter(|lines| !lines.is_empty()),
+                (false, true) => notes.take(),
+                (false, false) => said.take().map(|said| format!("{}\n", deeper(said))),
             };
             if let Some(held) = held {
                 out.push('\n');
@@ -184,10 +190,79 @@ pub fn opened(state: &State, task: TaskId, template: &str) -> String {
     if let Some(said) = said {
         out.push_str(&format!("\n{said}\n"));
     }
+    if let Some(notes) = notes {
+        out.push_str(&format!("\n{notes}"));
+    }
     match one {
         Some(one) => crate::stages::ticked(one, &out),
         None => out,
     }
+}
+
+// A description's own headings sit one level under its section, so they never read as the template's.
+fn deeper(said: &str) -> String {
+    let mut fenced = tisty_markdown::fences::fencing();
+    said.lines()
+        .map(|line| {
+            if fenced(line) {
+                return line.to_string();
+            }
+            let marks = line.chars().take_while(|one| *one == '#').count();
+            let heading = (1..=6).contains(&marks) && line[marks..].starts_with([' ', '\t']);
+            match heading {
+                true => format!("{}{}", "#".repeat((marks + 1).clamp(3, 6)), &line[marks..]),
+                false => unboxed(line),
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+// Words that were never steps keep their boxes as text, so bringing them to a page adds no step.
+fn unboxed(line: &str) -> String {
+    let bare = line.trim_start_matches(['>', ' ', '\t']);
+    let rest = bare
+        .strip_prefix(['-', '*', '+'])
+        .or_else(|| {
+            let digits = bare.chars().take_while(char::is_ascii_digit).count();
+            (digits > 0)
+                .then(|| bare[digits..].strip_prefix(['.', ')']))
+                .flatten()
+        })
+        .filter(|rest| rest.starts_with([' ', '\t']))
+        .map(str::trim_start);
+    let boxed = rest.filter(|rest| {
+        ["[ ]", "[x]", "[X]"].iter().any(|one| {
+            rest.strip_prefix(one)
+                .is_some_and(|after| after.is_empty() || after.starts_with([' ', '\t']))
+        })
+    });
+    match boxed {
+        Some(rest) => {
+            let at = line.len() - rest.len();
+            format!("{}\\{}", &line[..at], &line[at..])
+        }
+        None => line.to_string(),
+    }
+}
+
+const NOTES: [&str; 4] = ["## Notes", "## Notas", "## This time", "## Esta vez"];
+
+// An open task's journal comes to its page as notes, each under its day; a box in one is no step.
+fn noted(task: &crate::model::Task) -> Option<String> {
+    let all: Vec<String> = task
+        .journal()
+        .map(|entry| {
+            let day = entry.zoned().strftime("%Y-%m-%d %H:%M");
+            let who = entry
+                .via
+                .as_deref()
+                .map(|via| format!(" · {}", crate::agent::client_named(via)))
+                .unwrap_or_default();
+            format!("**{day}**{who}\n{}\n", deeper(entry.body.trim()))
+        })
+        .collect();
+    (!all.is_empty()).then(|| all.join("\n"))
 }
 
 const TASK: [&str; 2] = [
@@ -265,14 +340,17 @@ pub fn template(task: &crate::model::Task, configured: Option<&str>) -> &'static
 
 /// A description goes in the first section with a plain hint, or at the end of a page without one.
 pub fn described(body: &str, said: &str) -> String {
-    let said = said.trim();
+    let said = deeper(said.trim());
+    let said = said.as_str();
     let lines: Vec<&str> = body.split_inclusive('\n').collect();
-    let heading = |line: &str| {
+    let level = |line: &str| {
         let marks = line.trim_start().chars().take_while(|c| *c == '#').count();
-        (1..=6).contains(&marks) && line.trim_start()[marks..].starts_with([' ', '\t'])
+        ((1..=6).contains(&marks) && line.trim_start()[marks..].starts_with([' ', '\t']))
+            .then_some(marks)
     };
-    let slot = (1..lines.len())
-        .find(|at| heading(lines[at - 1]) && hinted(lines[*at]).is_some_and(|hint| !boxed(hint)));
+    let slot = (1..lines.len()).find(|at| {
+        level(lines[at - 1]).is_some() && hinted(lines[*at]).is_some_and(|hint| !boxed(hint))
+    });
     let Some(hint) = slot else {
         if body.contains(said) {
             return body.to_string();
@@ -285,8 +363,17 @@ pub fn described(body: &str, said: &str) -> String {
         out.push('\n');
         return out;
     };
+    // The description's own headings sit deeper than its section, so only a peer of the section ends it.
+    let own = level(lines[hint - 1]).unwrap_or(1);
+    let mut fenced = false;
     let end = (hint + 1..lines.len())
-        .find(|at| heading(lines[*at]))
+        .find(|at| {
+            let bare = lines[*at].trim_start();
+            if bare.starts_with("```") || bare.starts_with("~~~") {
+                fenced = !fenced;
+            }
+            !fenced && level(lines[*at]).is_some_and(|marks| marks <= own)
+        })
         .unwrap_or(lines.len());
     let mut out: String = lines[..=hint].concat();
     if !out.ends_with('\n') {

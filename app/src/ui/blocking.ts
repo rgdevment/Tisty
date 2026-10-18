@@ -268,6 +268,7 @@ export const edited = (
   let gone = false;
   let follow = (_: EditorView) => {};
   let undock = () => {};
+  let replace = () => {};
   const leave = () => {
     if (gone) return;
     gone = true;
@@ -333,13 +334,27 @@ export const edited = (
         EditorView.updateListener.of((update) => {
           if (update.docChanged) onChange(update.state.sliceDoc());
           if (update.transactions.length > 0) follow(update.view);
+          // The editor's layout cannot be read inside its own update, so the bar moves on the next frame.
+          if (update.selectionSet || update.docChanged)
+            page.defaultView?.requestAnimationFrame(() => {
+              if (!gone) replace();
+            });
         }),
       ],
     }),
   });
   const bar = barred(view);
   follow = bar.follow;
-  undock = docked(bar.bar, bar.hint);
+  const dock = docked(bar.bar, bar.hint, () => {
+    const chosen = view.state.selection.main;
+    if (!chosen.empty) return view.coordsAtPos(chosen.from)?.top ?? null;
+    // A task's bar rests at the top of its page; a document's rests over the block being written.
+    return page.documentElement.classList.contains("untitled")
+      ? null
+      : view.dom.getBoundingClientRect().top;
+  });
+  undock = dock.stop;
+  replace = dock.place;
   view.focus();
   return { view, leave, kept: bar.kept };
 };
