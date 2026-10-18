@@ -121,6 +121,28 @@ pub fn paged(task: TaskId, before: &str, now: &str) -> Vec<Op> {
     ops
 }
 
+/// Writing in a section for a while is one chapter of the trail, so it is one event in the log too.
+pub const WRITING_FOR: i64 = 30 * 60;
+
+/// A section already told as written stays untold while the writing goes on; each pause keeps it going.
+pub fn quieted(
+    ops: Vec<Op>,
+    told: &mut std::collections::HashMap<(TaskId, String), i64>,
+    now: i64,
+) -> Vec<Op> {
+    ops.into_iter()
+        .filter(|op| match op {
+            Op::TaskPaged { id, d } if matches!(d.change, PageChange::Written) => {
+                let key = (*id, d.section.clone());
+                let going = told.get(&key).is_some_and(|at| now - at < WRITING_FOR);
+                told.insert(key, now);
+                !going
+            }
+            _ => true,
+        })
+        .collect()
+}
+
 #[cfg(test)]
 #[path = "paged_test.rs"]
 mod tests;

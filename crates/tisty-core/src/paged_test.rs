@@ -98,3 +98,16 @@ fn a_bullet_that_opens_with_a_link_is_words_not_a_step() {
         vec![("Notes".into(), PageChange::Written)]
     );
 }
+
+#[test]
+fn a_section_written_in_for_a_while_is_told_once_and_again_after_a_long_quiet() {
+    let task = Ulid::generate();
+    let now = PAGE.replace("Renew it.", "Renew it before Friday.");
+    let mut told = std::collections::HashMap::new();
+    let mut kept = |at: i64| super::quieted(paged(task, PAGE, &now), &mut told, at).len();
+
+    assert_eq!(kept(0), 1);
+    assert_eq!(kept(super::WRITING_FOR - 1), 0);
+    assert_eq!(kept(2 * super::WRITING_FOR - 2), 0);
+    assert_eq!(kept(3 * super::WRITING_FOR), 1);
+}
