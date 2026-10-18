@@ -36,17 +36,28 @@ export const docked = (bar: HTMLElement, hint: HTMLElement): (() => void) => {
     const left = Number.parseFloat(view.getComputedStyle(sheet).paddingLeft) || 0;
     bar.style.left = `${(box.left + view.scrollX) / zoom + left - LEFT}px`;
   };
+  // Only a scroll that carries the page moves it; the list beside it scrolling says nothing.
+  const scrolled = (event: Event) => {
+    const moved = event.target;
+    if (!frame || !(moved instanceof (outer?.Element ?? Element)) || moved.contains(frame)) place();
+  };
   place();
   const listen = { capture: true, passive: true };
-  outer?.addEventListener("scroll", place, listen);
+  outer?.addEventListener("scroll", scrolled, listen);
   outer?.addEventListener("resize", place);
   view?.addEventListener("scroll", place, listen);
-  view?.addEventListener("resize", place);
+  const Inner = view?.ResizeObserver;
+  const Outer = outer?.ResizeObserver;
+  const inner = Inner && sheet ? new Inner(place) : null;
+  const around = Outer && frame ? new Outer(place) : null;
+  if (sheet) inner?.observe(sheet);
+  if (frame) around?.observe(frame);
   return () => {
-    outer?.removeEventListener("scroll", place, listen);
+    outer?.removeEventListener("scroll", scrolled, listen);
     outer?.removeEventListener("resize", place);
     view?.removeEventListener("scroll", place, listen);
-    view?.removeEventListener("resize", place);
+    inner?.disconnect();
+    around?.disconnect();
     bar.remove();
     hint.remove();
   };

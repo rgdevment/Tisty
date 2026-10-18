@@ -295,7 +295,8 @@ const below = (page: Document, target: Element, event: MouseEvent): boolean => {
   const sheet = page.querySelector(".page");
   if (!sheet || (target !== sheet && target !== page.body && target !== page.documentElement))
     return false;
-  const last = sheet.lastElementChild;
+  const blocks = sheet.querySelectorAll(":scope > :not(.cm-dock)");
+  const last = blocks[blocks.length - 1];
   return !last || event.clientY > last.getBoundingClientRect().bottom;
 };
 

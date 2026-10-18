@@ -321,6 +321,7 @@ const openedAt = StateField.define<number | null>({
 export const openMenu = (view: EditorView): boolean => {
   const { from, to } = view.state.selection.main;
   if (from < to) holding(view, { from, to, slash: to });
+  else held.delete(view);
   view.dispatch({ effects: opened.of(to), selection: { anchor: to } });
   view.focus();
   startCompletion(view);
