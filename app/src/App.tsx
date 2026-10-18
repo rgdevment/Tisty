@@ -4,6 +4,7 @@ import { hereChoices } from "./docMenus";
 import { t } from "./locales";
 import { saidPlainly } from "./refusal";
 import { WEEK } from "./ui/Ahead";
+import Calendars from "./ui/Calendars";
 import HelpKey from "./ui/HelpKey";
 import Layers from "./ui/Layers";
 import Margins from "./ui/Margins";
@@ -66,6 +67,7 @@ export default function App() {
 
         <Layers parcels={desk.parcels.shown} />
         <News />
+        <Calendars />
         <HelpKey onHelp={(topic) => choose({ named: "help", topic })} />
 
         <Sidebar

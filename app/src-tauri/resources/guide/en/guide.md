@@ -335,6 +335,8 @@ Tisty keeps what you write exactly as you wrote it: front matter, footnotes, lin
 
 What arrives from elsewhere is turned into Tisty Markdown on the way in, and the file it came from is never touched. **Import a document** in the tree takes Markdown, text, a web page or a Word file; pasting keeps the headings, lists, tables, links and colours of what you copied from a page, an email or Word; and a note from Obsidian comes in with its callouts and comments turned, and its `[[links]]` pointing at the documents here that bear those titles. On the way out, the same document leaves as standard Markdown, a web page, Word or a PDF. What changes on each crossing, word by word, is in [convert to and from Markdown](https://www.tisty.app/docs/convert-to-and-from-markdown/).
 
+A calendar comes in too. Drag an `.ics` onto the window, away from a document, or open it with Tisty: **From the calendar** shows each event and to-do with when, where, how it repeats and its reminder, and makes the ones you pick into tasks, in the list you pick. Opening the same file twice makes nothing twice. For an `.ics` to open in Tisty with a double click, choose it yourself: on Windows, right-click → Open with → Choose another app → Tisty, with «Always use»; on a Mac, Get Info → Open with → Tisty → Change All.
+
 ---
 
 ## What holds for all of it
