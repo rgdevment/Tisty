@@ -497,7 +497,13 @@ pub(super) fn where_it_lands(
     Refused,
 > {
     // An append-only store keeps every one of these forever, and the window replays them all.
-    if state.docs.len() >= DOCS_AT_MOST {
+    if state
+        .docs
+        .values()
+        .filter(|one| one.task_of.is_none())
+        .count()
+        >= DOCS_AT_MOST
+    {
         return Err(Refused::Tool(format!(
             "there are already {DOCS_AT_MOST} documents here. Add to a task's journal instead, or ask the person to clear some."
         )));
