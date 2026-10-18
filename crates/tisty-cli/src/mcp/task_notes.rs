@@ -5,12 +5,8 @@ use tisty_core::{Paths, State, Store};
 use super::jsonrpc::{speaking_through, told};
 use super::{Refused, hitch};
 
-/// A task's page answers to its file and to the task's own id, which is what `read` hands out.
+// The door turns a task's file away before any tool runs, so its page is named here by the task's id.
 pub(super) fn task_named(state: &State, which: &str) -> Option<TaskId> {
-    if let Some(kept) = state.docs.values().find(|one| one.file == which) {
-        kept.task_of?;
-        return tisty_core::task_docs::behind(state).get(which).copied();
-    }
     which
         .parse::<TaskId>()
         .ok()

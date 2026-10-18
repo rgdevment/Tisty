@@ -95,3 +95,7 @@ fn written(
     }
     done.is_ok()
 }
+
+#[cfg(test)]
+#[path = "round_test.rs"]
+mod tests;
