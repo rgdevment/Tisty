@@ -13,6 +13,7 @@ interface Props {
   onError?: (problem: unknown) => void;
   onDoc?: (id: string) => void;
   shaping?: boolean;
+  onHeld?: (held: boolean) => void;
 }
 
 const templateOf = (task: Task): string =>
@@ -24,12 +25,14 @@ const real = (said: unknown): TaskDoc | null => {
   return typeof one?.file === "string" && typeof one.body === "string" ? (one as TaskDoc) : null;
 };
 
-export default function TaskWords({ task, onSettle, onError, onDoc, shaping }: Props) {
+export default function TaskWords({ task, onSettle, onError, onDoc, shaping, onHeld }: Props) {
   const [doc, setDoc] = useState<TaskDoc | null>(null);
   const [seen, setSeen] = useState(0);
   const [turn, setTurn] = useState(0);
   const failed = useRef(onError);
   failed.current = onError;
+  const holding = useRef(onHeld);
+  holding.current = onHeld;
   const open = task.status === "open";
   const template = useRef("");
   template.current = templateOf(task);
@@ -43,6 +46,7 @@ export default function TaskWords({ task, onSettle, onError, onDoc, shaping }: P
       )
       .then((found) => {
         if (!live) return;
+        if (found) holding.current?.(found.held);
         setDoc(found);
         setSeen((one) => one + 1);
       })
@@ -94,31 +98,44 @@ function Written({
   const moved = useRef(onMoved);
   moved.current = onMoved;
   const unsettled = useRef<string | null>(null);
+  const line = useRef<Promise<void>>(Promise.resolve());
+  // Once the disk has moved on, what was typed over the old words is not written over the new.
+  const stale = useRef(false);
+  const away = () => {
+    stale.current = true;
+    moved.current();
+  };
 
-  // A settle that failed left its lines unlearnt, so the next one still starts from its text.
+  // Settles wait their turn, so two of them never weigh the same old text and add a step twice.
   const settled = (before: string, now: string) => {
     if (!onSettle) return;
-    const from = unsettled.current ?? before;
-    void onSettle(from, now).then((problem) => {
-      if (problem === null) {
-        if (unsettled.current === from) unsettled.current = null;
-        return;
-      }
-      unsettled.current ??= from;
-      if (problem === "documentMoved") moved.current();
-    });
+    line.current = line.current
+      .then(async () => {
+        const from = unsettled.current ?? before;
+        const problem = await onSettle(from, now);
+        if (problem === null) {
+          if (unsettled.current === from) unsettled.current = null;
+          return;
+        }
+        // A settle that failed left its lines unlearnt, so the next one still starts from its text.
+        unsettled.current ??= from;
+        if (problem === "documentMoved") away();
+      })
+      .catch(() => {});
   };
 
   const flush = useCallback(() => {
     if (timer.current) clearTimeout(timer.current);
     timer.current = null;
     const next = waiting.current;
-    if (next === null) return;
     waiting.current = null;
+    if (next === null || stale.current) return;
     queued(doc.file, () => docWrite(doc.file, next)).catch((e) => {
       failed.current?.(e);
       // What is on disk now is newer than what was typed, so the page reads it again.
-      if ((e as { code?: string } | null)?.code === "documentMoved") moved.current();
+      if ((e as { code?: string } | null)?.code !== "documentMoved") return;
+      stale.current = true;
+      moved.current();
     });
   }, [doc.file]);
 

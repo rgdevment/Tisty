@@ -170,25 +170,23 @@ const hinted = (page: Document, body: string) => {
       one.dataset.seed = "- [ ] ";
     }
   }
-  stepped(page);
-  sectioned(page);
+  stepped(page, bytes);
+  sectioned(page, bytes.length);
 };
 
 // The template grows at its end, shown only while it is edited; each label can be taken out.
-const sectioned = (page: Document) => {
+const sectioned = (page: Document, size: number) => {
   const sheet = page.querySelector(".page");
   if (!sheet) return;
+  // An empty page still takes its first section, written after whatever the file holds.
   const last = Array.from(sheet.querySelectorAll(":scope > [data-at]")).pop();
-  const at = last?.getAttribute("data-at");
-  if (at) {
-    const add = page.createElement("button");
-    add.type = "button";
-    add.className = "add-section";
-    add.dataset.after = at;
-    add.dataset.seed = "## ";
-    add.textContent = `+ ${t("addSection")}`;
-    sheet.append(add);
-  }
+  const add = page.createElement("button");
+  add.type = "button";
+  add.className = "add-section";
+  add.dataset.after = last?.getAttribute("data-at") ?? `${size}-${size}`;
+  add.dataset.seed = "## ";
+  add.textContent = `+ ${t("addSection")}`;
+  sheet.append(add);
   for (const label of sheet.querySelectorAll<HTMLElement>(":scope > :is(h1, h2, h3, h4, h5, h6)")) {
     const from = spanned(label.dataset.at ?? null);
     if (!from) continue;
@@ -205,7 +203,8 @@ const sectioned = (page: Document) => {
   }
 };
 
-const stepped = (page: Document) => {
+const stepped = (page: Document, bytes: Uint8Array) => {
+  const decoder = new TextDecoder();
   for (const list of page.querySelectorAll<HTMLElement>(".page > ul[data-at]")) {
     const boxes = list.querySelectorAll(":scope > li.task > .check");
     if (!boxes.length) continue;
@@ -215,7 +214,10 @@ const stepped = (page: Document) => {
     add.type = "button";
     add.className = "add-step";
     add.dataset.after = list.dataset.at;
-    add.dataset.seed = "- [ ] ";
+    // A step added under a list takes its mark, or it would start a list of its own.
+    const at = spanned(list.dataset.at ?? null);
+    const said = at ? decoder.decode(bytes.subarray(at[0], at[1])) : "";
+    add.dataset.seed = `${/^[ \t>]*([-*+])/.exec(said)?.[1] ?? "-"} [ ] `;
     add.textContent = `+ ${t("addStep")}`;
     list.after(add);
   }

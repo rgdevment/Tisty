@@ -117,7 +117,7 @@ describe("a task with its document", () => {
 
     sheet.onWrite("- [x] uno\n");
     sheet.onSettle?.("- [ ] uno\n", "- [x] uno\n");
-    expect(settled).toEqual([["- [ ] uno\n", "- [x] uno\n"]]);
+    await waitFor(() => expect(settled).toEqual([["- [ ] uno\n", "- [x] uno\n"]]));
     expect(sent("doc_write")).toHaveLength(0);
 
     await waitFor(
@@ -178,6 +178,34 @@ describe("a settle that failed", () => {
     answer = null;
     sheet.onSettle?.("b\n", "c\n");
     await waitFor(() => expect(asked).toHaveLength(2));
+    sheet.onSettle?.("c\n", "d\n");
+    await waitFor(() => expect(asked).toHaveLength(3));
+
+    expect(asked).toEqual([
+      ["a\n", "b\n"],
+      ["a\n", "c\n"],
+      ["c\n", "d\n"],
+    ]);
+  });
+
+  it("lets the next ones wait for it, so none weighs the same old text twice", async () => {
+    ipc.doc = { file: "t_one-0001", body: "a\n", held: false };
+    const asked: [string, string][] = [];
+    const answers: (string | null)[] = ["failed", null, null];
+    render(
+      <TaskWords
+        task={task()}
+        onSettle={(before, now) => {
+          asked.push([before, now]);
+          return Promise.resolve(answers.shift() ?? null);
+        }}
+      />,
+    );
+    await screen.findByText("sheet:a");
+    const sheet = ipc.sheets[ipc.sheets.length - 1];
+
+    sheet.onSettle?.("a\n", "b\n");
+    sheet.onSettle?.("b\n", "c\n");
     sheet.onSettle?.("c\n", "d\n");
     await waitFor(() => expect(asked).toHaveLength(3));
 

@@ -46,6 +46,13 @@ interface Props {
   onSettle?: (before: string, now: string) => Promise<string | null>;
 }
 
+// Keys from the page reach the window from the window itself, so what holds them is found through its frames.
+const focused = (): Element | null => {
+  let at: Element | null = document.activeElement;
+  while (at instanceof HTMLIFrameElement) at = at.contentDocument?.activeElement ?? null;
+  return at;
+};
+
 export default function Detail({
   task,
   lists,
@@ -77,6 +84,7 @@ export default function Detail({
 }: Props) {
   const opened = useRef<HTMLElement>(null);
   const [shaping, setShaping] = useState(false);
+  const [held, setHeld] = useState(false);
   const card = useRef<HTMLDivElement>(null);
   const edge = useEdge(card);
   const live = task.status === "open";
@@ -90,12 +98,9 @@ export default function Detail({
     if (!shaping) return;
     const done = (event: KeyboardEvent) => {
       if (event.key !== "Escape" && event.key !== "Enter") return;
-      const at = event.target;
-      if (
-        at instanceof HTMLElement &&
-        (at.isContentEditable || at.closest("input, textarea, select, button"))
-      )
-        return;
+      if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+      const at = event.target instanceof Element ? event.target : focused();
+      if (at?.closest("input, textarea, select, button, [contenteditable='true']")) return;
       event.preventDefault();
       event.stopImmediatePropagation();
       setShaping(false);
@@ -193,6 +198,7 @@ export default function Detail({
         onError={onError}
         onDoc={onDoc}
         shaping={shaping}
+        onHeld={setHeld}
       />
       <History task={task} onError={onError} onDoc={onDoc} />
     </>
@@ -261,7 +267,7 @@ export default function Detail({
           onReadAs={onReadAs}
           onOpenToAgents={onOpenToAgents}
           shaping={shaping}
-          onShape={setShaping}
+          onShape={held ? undefined : setShaping}
           left={left}
         />
       </aside>
@@ -307,7 +313,7 @@ export default function Detail({
         onReadAs={onReadAs}
         onOpenToAgents={onOpenToAgents}
         shaping={shaping}
-        onShape={setShaping}
+        onShape={held ? undefined : setShaping}
         left={left}
       />
     </main>
@@ -344,7 +350,7 @@ function Settled({
   onReadAs: (how: "story" | "trace") => void;
   onOpenToAgents: (open: boolean) => void;
   shaping: boolean;
-  onShape: (shaping: boolean) => void;
+  onShape?: (shaping: boolean) => void;
 }) {
   const [more, setMore] = useState<{ x: number; y: number } | null>(null);
   const owing = task.status === "open" && (left ?? 0) > 0;
@@ -480,7 +486,7 @@ function Settled({
               )}
             </>
           )}
-          {open && (
+          {open && onShape && (
             <button
               type="button"
               aria-pressed={shaping}

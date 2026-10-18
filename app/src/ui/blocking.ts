@@ -2,7 +2,7 @@ import { closeCompletion, completionStatus } from "@codemirror/autocomplete";
 import { defaultKeymap, history, historyKeymap, indentWithTab, redo } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
-import { EditorState, Prec } from "@codemirror/state";
+import { EditorState, Prec, type Text } from "@codemirror/state";
 import {
   Decoration,
   type DecorationSet,
@@ -166,10 +166,16 @@ export const caretAt = (source: string, read: string): number => {
 const LABEL = 20;
 
 // A task's section name is a short label, so the template refuses a longer one as it is typed.
+const named = (doc: Text): number =>
+  [...(/^#{1,6}\s+(.*)$/.exec(doc.line(1).text)?.[1] ?? "")].length;
+
 const labelled = EditorState.transactionFilter.of((tr) => {
-  if (!tr.docChanged) return tr;
-  const words = /^#{1,6}\s+(.*)$/.exec(tr.newDoc.line(1).text)?.[1];
-  return words !== undefined && [...words].length > LABEL ? [] : tr;
+  if (!tr.docChanged || tr.isUserEvent("input.type.compose")) return tr;
+  // A label or a hint is one line, so a pasted break would start words under it.
+  if (tr.newDoc.lines > tr.startState.doc.lines) return [];
+  // A name already longer than the limit can still be shortened, never grown.
+  const now = named(tr.newDoc);
+  return now > LABEL && now > named(tr.startState.doc) ? [] : tr;
 });
 
 export const edited = (
