@@ -31,7 +31,7 @@ export default function TaskWords({ task, onSettle, onError, onDoc, shaping }: P
   const failed = useRef(onError);
   failed.current = onError;
   const open = task.status === "open";
-  const template = useRef(templateOf(task));
+  const template = useRef("");
   template.current = templateOf(task);
 
   useEffect(() => {

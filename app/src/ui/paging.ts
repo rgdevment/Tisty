@@ -134,8 +134,16 @@ export const went = (target: Element, selecting: boolean): Went => {
   if (ticked) return { kind: "tick", at: ticked };
   if (target.closest(".page > h1[data-title]")) return { kind: "title" };
   const hinted = target.closest<HTMLElement>(".page > .hint, .page > .add-step");
-  const hint = spanned(hinted?.dataset.at ?? null);
+  const hint = spanned(hinted?.dataset.at ?? hinted?.dataset.after ?? null);
   if (hint) return { kind: "hint", at: hint, seed: hinted?.dataset.seed ?? "" };
+  const look = target.ownerDocument.documentElement.classList;
+  // A task's sections are filled in, not renamed, until its structure is asked for.
+  if (
+    look.contains("untitled") &&
+    !look.contains("shaping") &&
+    target.closest(".page > :is(h1, h2, h3, h4, h5, h6)")
+  )
+    return null;
   const at = spanned(target.closest<HTMLElement>(".page > [data-at]")?.dataset.at ?? null);
   return at ? { kind: "block", at } : null;
 };

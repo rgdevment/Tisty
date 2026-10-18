@@ -9,7 +9,7 @@ import {
   wired,
   worn,
 } from "../ui/dressing";
-import { charsAt, colored, dressed, escaped, saidKinds, shell } from "../ui/paging";
+import { charsAt, colored, dressed, escaped, saidKinds, shell, went } from "../ui/paging";
 
 const calls = vi.hoisted(() => ({
   links: [] as string[],
@@ -627,5 +627,22 @@ describe("a task page only read", () => {
     worn(one, false, () => true, { body, onDoc: () => {} });
 
     expect(one.querySelector(".hint, .add-step")).toBeNull();
+  });
+});
+
+describe("a task's section labels", () => {
+  it("open nothing while the task is filled in, and open the block while its structure is edited", () => {
+    const one = page('<h2 data-at="0-8">Steps <a href="https://x.y">x</a></h2>');
+    one.documentElement.classList.add("untitled");
+    const label = one.querySelector("h2") as Element;
+
+    expect(went(label, false)).toBeNull();
+    expect(went(one.querySelector("a") as Element, false)).toEqual({
+      kind: "web",
+      href: "https://x.y/",
+    });
+
+    one.documentElement.classList.add("shaping");
+    expect(went(label, false)).toEqual({ kind: "block", at: [0, 8] });
   });
 });

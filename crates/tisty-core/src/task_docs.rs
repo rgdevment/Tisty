@@ -119,20 +119,24 @@ pub fn opened(state: &State, task: TaskId, template: &str) -> String {
     let template = template.trim();
     if !template.is_empty() {
         out.push('\n');
+        let mut gap = false;
         for line in template.lines() {
+            if std::mem::take(&mut gap) && !line.trim().is_empty() {
+                out.push('\n');
+            }
             out.push_str(line);
             out.push('\n');
             let Some(hint) = hinted(line) else {
                 continue;
             };
-            // The task's own words go where the template asks for them, not after its last section.
-            let held = match hint.starts_with("- [ ]") {
+            let held = match boxed(hint) {
                 true => steps.take().filter(|lines| !lines.is_empty()),
                 false => said.take().map(|said| format!("{said}\n")),
             };
             if let Some(held) = held {
                 out.push('\n');
                 out.push_str(&held);
+                gap = true;
             }
         }
     }
@@ -143,6 +147,12 @@ pub fn opened(state: &State, task: TaskId, template: &str) -> String {
         Some(one) => crate::stages::ticked(one, &out),
         None => out,
     }
+}
+
+// The window reads a box hint the same way, so both agree on which hint asks for steps.
+fn boxed(hint: &str) -> bool {
+    hint.strip_prefix('-')
+        .is_some_and(|rest| rest.trim_start().starts_with("[ ]"))
 }
 
 fn hinted(line: &str) -> Option<&str> {

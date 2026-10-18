@@ -151,16 +151,17 @@ export const widgets = (page: Document, stranger: boolean, reach?: Reaching): Le
 const hinted = (page: Document, body: string) => {
   const heading = (one: Element | null) =>
     !one || /^H[1-6]$/.test(one.tagName) || one.matches(".front");
+  const bytes = new TextEncoder().encode(body);
+  const decoder = new TextDecoder();
   for (const one of page.querySelectorAll<HTMLElement>(".page > div[data-at]")) {
     const at = spanned(one.dataset.at ?? null);
-    if (!at) continue;
-    const source = body.slice(charsAt(body, at[0]), charsAt(body, at[1])).trim();
+    if (!at || !one.previousElementSibling?.matches("h1, h2, h3, h4, h5, h6")) continue;
+    const source = decoder.decode(bytes.subarray(at[0], at[1])).trim();
     const said = /^<!--([\s\S]*?)-->$/.exec(source);
-    if (!said || !one.previousElementSibling?.matches("h1, h2, h3, h4, h5, h6")) continue;
+    if (!said) continue;
     const alone = heading(one.nextElementSibling);
     one.classList.add(alone ? "hint" : "hint-gone");
     if (!alone) continue;
-    // A hint written as a box stands for the steps that go there, so pressing it begins one.
     const box = /^-\s*\[ \]\s*/.exec(said[1].trim());
     one.dataset.hint = said[1].trim().slice(box?.[0].length ?? 0);
     if (box) {
@@ -180,7 +181,7 @@ const stepped = (page: Document) => {
     const add = page.createElement("button");
     add.type = "button";
     add.className = "add-step";
-    add.dataset.at = list.dataset.at;
+    add.dataset.after = list.dataset.at;
     add.dataset.seed = "- [ ] ";
     add.textContent = `+ ${t("addStep")}`;
     list.after(add);
@@ -251,7 +252,7 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
   }
   if (asked.kind === "hint") {
     const held = page.querySelector<HTMLElement>(
-      `.page > :is(.hint, .add-step)[data-at="${asked.at[0]}-${asked.at[1]}"]`,
+      `.page > .hint[data-at="${asked.at[0]}-${asked.at[1]}"], .page > .add-step[data-after="${asked.at[0]}-${asked.at[1]}"]`,
     );
     const end = charsAt(reach.body, asked.at[1]);
     if (held) reach.onBlock?.([end, end], held, asked.seed);

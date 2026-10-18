@@ -183,7 +183,7 @@ export default function Sheet(props: Readonly<Props>) {
     const line = latest.current.includes("\r\n") ? "\r\n" : "\n";
     const upto = latest.current.slice(0, from);
     // A box added right under a list joins it, where a blank line would split it in two.
-    const joins = seed.startsWith("- [ ] ") && /(^|\n)[ \t>]*[-*+] \[[ xX]\][^\n]*\n?$/.test(upto);
+    const joins = seed.startsWith("- [ ] ") && /(^|\n)[ \t>]*- \[[ xX]\][^\n]*\n?$/.test(upto);
     const ahead = !fresh
       ? ""
       : joins
