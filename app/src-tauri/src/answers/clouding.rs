@@ -213,30 +213,11 @@ fn connected(
     let granted = consent
         .finish(CONSENT_WAITED, &at)
         .map_err(|how| ended(how, GOOGLE_SHOWN))?;
-    let unfiled = Arc::new(Unfiled(Mutex::new(Some(granted.refresh.clone()))));
     let renew = tisty_google::GoogleRenew::new(client, at).map_err(|e| refused(e, GOOGLE_SHOWN))?;
-    let tokens = Tokens::new(unfiled.clone(), Arc::new(renew), KEPT_AS, aside);
-    let account = tisty_google::Drive::new(Arc::new(tokens), tisty_google::DriveAt::google())
-        .and_then(|drive| drive.account())
-        .map_err(|e| refused(e, GOOGLE_SHOWN))?;
-    // Learning the account may have renewed it, and Google can hand back a new one then.
-    let refresh = unfiled
-        .read(KEPT_AS)
-        .ok()
-        .flatten()
-        .unwrap_or(granted.refresh);
-    let at = CloudAt {
-        provider: GOOGLE.to_string(),
-        account: account.id,
-        email: account.email,
-    };
-    secrets_for(&at)
-        .and_then(|kept| kept.write(KEPT_AS, &refresh))
-        .map_err(|e| refused(e, at.shown()))?;
-    Ok(Connected {
-        provider: GOOGLE,
-        account: at.account,
-        email: at.email,
+    filed(GOOGLE, granted.refresh, Arc::new(renew), aside, |tokens| {
+        let account =
+            tisty_google::Drive::new(tokens, tisty_google::DriveAt::google())?.account()?;
+        Ok((account.id, account.email))
     })
 }
 
@@ -249,30 +230,45 @@ fn onedrive_connected(
     let granted = consent
         .finish(CONSENT_WAITED, &at)
         .map_err(|how| ended(how, ONEDRIVE_SHOWN))?;
-    let unfiled = Arc::new(Unfiled(Mutex::new(Some(granted.refresh.clone()))));
     let renew =
         tisty_onedrive::MicrosoftRenew::new(client, at).map_err(|e| refused(e, ONEDRIVE_SHOWN))?;
-    let tokens = Tokens::new(unfiled.clone(), Arc::new(renew), KEPT_AS, aside);
-    let account =
-        tisty_onedrive::OneDrive::new(Arc::new(tokens), tisty_onedrive::GraphAt::microsoft())
-            .and_then(|drive| drive.account())
-            .map_err(|e| refused(e, ONEDRIVE_SHOWN))?;
-    // Microsoft hands back a new refresh token on every renewal, and only the newest is sure to work.
-    let refresh = unfiled
-        .read(KEPT_AS)
-        .ok()
-        .flatten()
-        .unwrap_or(granted.refresh);
+    filed(
+        ONEDRIVE,
+        granted.refresh,
+        Arc::new(renew),
+        aside,
+        |tokens| {
+            let account =
+                tisty_onedrive::OneDrive::new(tokens, tisty_onedrive::GraphAt::microsoft())?
+                    .account()?;
+            Ok((account.id, account.email))
+        },
+    )
+}
+
+fn filed(
+    provider: &'static str,
+    refresh: String,
+    renew: Arc<dyn tisty_carrier::Renew>,
+    aside: &std::path::Path,
+    account_of: impl FnOnce(Arc<Tokens>) -> Result<(String, String), Hitch>,
+) -> Answer<Connected> {
+    let shown = tisty_core::config::shown_of(provider);
+    let unfiled = Arc::new(Unfiled(Mutex::new(Some(refresh.clone()))));
+    let tokens = Tokens::new(unfiled.clone(), renew, KEPT_AS, aside);
+    let (account, email) = account_of(Arc::new(tokens)).map_err(|e| refused(e, shown))?;
+    // Learning the account may have renewed it, and the provider can hand back a new one then.
+    let refresh = unfiled.read(KEPT_AS).ok().flatten().unwrap_or(refresh);
     let at = CloudAt {
-        provider: ONEDRIVE.to_string(),
-        account: account.id,
-        email: account.email,
+        provider: provider.to_string(),
+        account,
+        email,
     };
     secrets_for(&at)
         .and_then(|kept| kept.write(KEPT_AS, &refresh))
         .map_err(|e| refused(e, at.shown()))?;
     Ok(Connected {
-        provider: ONEDRIVE,
+        provider,
         account: at.account,
         email: at.email,
     })
@@ -387,10 +383,15 @@ pub async fn cloud_revoke(
 ) -> Answer<()> {
     let at = whose(&session, account, provider)?;
     if at.provider == ONEDRIVE {
-        forgotten(&at)?;
-        let_go_held(&app, &at);
-        return tauri_plugin_opener::open_url(ONEDRIVE_CONSENTS, None::<&str>)
-            .map_err(|_| Refusal::of("cannotOpen"));
+        tauri_plugin_opener::open_url(ONEDRIVE_CONSENTS, None::<&str>)
+            .map_err(|_| Refusal::of("cannotOpen"))?;
+        return tauri::async_runtime::spawn_blocking(move || {
+            forgotten(&at)?;
+            let_go_held(&app, &at);
+            Ok(())
+        })
+        .await
+        .map_err(|_| Refusal::of("internal"))?;
     }
     if at.provider != GOOGLE {
         return Err(Refusal::of("cloudNotOffered"));

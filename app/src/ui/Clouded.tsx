@@ -1,6 +1,6 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useCallback, useEffect, useState } from "react";
-import { cloudStanding, type Exit, STORAGE } from "../cloudState";
+import { cloudStanding, type Exit, storageOf } from "../cloudState";
 import { carding, unstuck, useAwaitsChoice } from "../coming";
 import {
   type Carrying,
@@ -123,7 +123,7 @@ export default function Clouded({
     if (how === "reconnect") return reconnect();
     if (how === "turnOn") return switched(true);
     if (how === "choose") return carry();
-    openUrl(STORAGE).catch((e) => fail({ card: "sync", text: saidPlainly(e) }));
+    openUrl(storageOf(status?.provider)).catch((e) => fail({ card: "sync", text: saidPlainly(e) }));
   };
 
   const forget = async () => {
@@ -157,7 +157,7 @@ export default function Clouded({
   return (
     <>
       <div className="flex items-center gap-2.5 rounded-[10px] border border-hair px-3 py-2">
-        <CloudMark provider={status?.provider ?? state.cloudProvider} />
+        <CloudMark provider={status?.provider ?? state.cloudProvider ?? "google"} />
         <span className="min-w-0 flex-1">
           <span className="block text-[13px] font-medium">{t("cloudChosen")}</span>
           <span className="block truncate text-[11.5px] text-faint">

@@ -8,10 +8,8 @@ pub(crate) use tisty_carrier::said::{WAITED_UNTOLD, told};
 
 mod drive;
 pub mod health;
-mod off;
 
 pub use drive::{Account, Drive, DriveAt};
-pub use off::{OffRuntime, away};
 
 const CONSENT_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
 pub const SCOPE: &str = "https://www.googleapis.com/auth/drive.appdata";

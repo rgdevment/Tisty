@@ -93,3 +93,22 @@ fn a_socket_dropped_before_it_was_taken_never_ends_the_sign_in_but_a_real_fault_
         assert!(!passing(kind), "{kind:?}");
     }
 }
+
+#[test]
+fn a_browser_that_reaches_localhost_over_ipv6_still_lands() {
+    use std::io::Write;
+    let open = Loopback::open("Microsoft").unwrap();
+    let Ok(mut stream) = std::net::TcpStream::connect(("::1", open.port)) else {
+        return;
+    };
+    write!(
+        stream,
+        "GET /?code=c1&state={} HTTP/1.1\r\nHost: localhost\r\n\r\n",
+        open.state
+    )
+    .unwrap();
+
+    let (code, _) = open.answered(Duration::from_secs(5)).unwrap();
+
+    assert_eq!(code, "c1");
+}

@@ -9,7 +9,7 @@ import {
   movePlan,
   type Toward,
 } from "../core";
-import { fill, t } from "../locales";
+import { filled, said, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { dismissMove, endMove, startMove, underway, useMove, watchMove } from "../relocation";
 import { sure } from "../sure";
@@ -107,14 +107,17 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
   };
 
   const wipe = async () => {
-    if (!leftCloud || busy || !(await sure(t("moveWipeSure")))) return;
+    const from = leftCloud?.provider ?? "google";
+    if (!leftCloud || busy || !(await sure(said("moveWipeSure", from)))) return;
     setBusy(true);
     setWiping(true);
     setTrouble(undefined);
     cloudWipe(leftCloud.account, leftCloud.email, leftCloud.provider)
       .then((gone) => {
         settled.current = true;
-        setWiped(gone === 1 ? t("moveWipedOne") : fill("moveWiped", String(gone)));
+        setWiped(
+          gone === 1 ? said("moveWipedOne", from) : filled(said("moveWiped", from), String(gone)),
+        );
       })
       .catch((e) => setTrouble(saidPlainly(e)))
       .finally(() => {
@@ -208,6 +211,7 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
           wiped={wiped}
           wiping={wiping}
           offersWipe={Boolean(leftCloud)}
+          wipeFrom={leftCloud?.provider}
           busy={busy}
           onKeep={keep}
           onWipe={wipe}

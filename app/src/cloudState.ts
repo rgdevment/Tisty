@@ -20,7 +20,13 @@ export interface Standing {
   urgent?: boolean;
 }
 
-export const STORAGE = "https://drive.google.com/settings/storage";
+const STORAGE: Record<string, string> = {
+  google: "https://drive.google.com/settings/storage",
+  onedrive: "https://onedrive.live.com/?v=managestorage",
+};
+
+export const storageOf = (provider?: string | null): string =>
+  STORAGE[provider ?? "google"] ?? STORAGE.google;
 
 const BY_CODE: Record<string, Standing> = {
   cloudLost: {

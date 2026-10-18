@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Carrying, Cause, MovePlan, Moving, Toward, Weight } from "../core";
 import { goesOnAt, weigh } from "../format";
-import { fill, t, type Word } from "../locales";
+import { cloudNamed, fill, filled, said, t, type Word } from "../locales";
 import type { Run, Waited } from "../relocation";
 import { causeSaid, type Failing, lasts, offlineNow, waitSaid } from "../syncSaid";
 
@@ -26,6 +26,12 @@ const plainWord = (waited: Waited): Word =>
       ? "moveOffline"
       : "moveTroubled";
 
+type Say = (key: Word) => string;
+
+// A move toward a cloud speaks of that one; any other still speaks of the cloud being left, the chosen one.
+export const sayFor = (toward: Toward): Say =>
+  toward.kind === "cloud" ? (key) => said(key, toward.provider ?? "google") : t;
+
 const lastingCause = (cause?: Cause | null, failing?: Failing, now = Date.now()): string | null =>
   failing && lasts(failing, now / 1000) ? causeSaid(cause) : null;
 
@@ -34,7 +40,8 @@ const plainWait = (
   cause?: Cause | null,
   failing?: Failing,
   now = Date.now(),
-): string => (waited === "offline" && lastingCause(cause, failing, now)) || t(plainWord(waited));
+  say: Say = t,
+): string => (waited === "offline" && lastingCause(cause, failing, now)) || say(plainWord(waited));
 
 const causeOf = (run: Run) => (run.result?.state === "waiting" ? run.result.cause : undefined);
 
@@ -71,10 +78,12 @@ export const pauseSaid = (run: Run, now = Date.now()): string | undefined => {
   const left = secondsLeft(run.pausedUntil, now);
   const waiting = fetchingLeft(run);
   if (waiting) return `${comingDownSaid(waiting)} · ${fill("moveLooksAgainIn", left)}`;
+  const say = sayFor(run.toward);
   if (run.waited === "offline" || run.waited === "troubled") {
-    return `${plainWait(run.waited, causeOf(run), run.failing, now)} · ${fill("moveRetryIn", left)}`;
+    const plain = plainWait(run.waited, causeOf(run), run.failing, now, say);
+    return `${plain} · ${fill("moveRetryIn", left)}`;
   }
-  return goesOnAt(run.pausedUntil);
+  return goesOnAt(run.pausedUntil, say);
 };
 
 export const alongSaid = (run: Run): string | undefined => {
@@ -90,7 +99,7 @@ export const alongSaid = (run: Run): string | undefined => {
     const { done, whole } = along.bringing;
     return `${step}${from} · ${fill("comingOf", String(done), String(whole))}`;
   }
-  const where = t(run.toward.kind === "cloud" ? "moveUploading" : "moveCopying");
+  const where = sayFor(run.toward)(run.toward.kind === "cloud" ? "moveUploading" : "moveCopying");
   if (along.done === 0 && along.sent === 0) return `${step}${where} · ${t("movePreparing")}`;
   const files = fill("moveFiles", String(along.done), String(along.whole));
   if (along.weighs === 0) return `${step}${where} · ${files}`;
@@ -119,22 +128,23 @@ const shareOf = (run: Run): number => {
 
 type Waits = Extract<Moving, { state: "waiting" }>;
 
-const waitWhy = (result: Waits, failing?: Failing): string => {
+const waitWhy = (result: Waits, failing?: Failing, say: Say = t): string => {
   if (result.reason === "offline")
     return (
-      lastingCause(result.cause, failing) ?? t(offlineNow() ? "moveOfflineWhy" : "moveTroubledWhy")
+      lastingCause(result.cause, failing) ??
+      say(offlineNow() ? "moveOfflineWhy" : "moveTroubledWhy")
     );
-  if (result.reason === "troubled") return t("moveTroubledWhy");
-  return result.reason && result.reason in WAITS
-    ? waitSaid(WAITS[result.reason as keyof typeof WAITS])
-    : t("moveStuck");
+  if (result.reason === "troubled") return say("moveTroubledWhy");
+  if (!result.reason || !(result.reason in WAITS)) return t("moveStuck");
+  const word = WAITS[result.reason as keyof typeof WAITS];
+  return word === "deferredBudget" ? waitSaid(word) : say(word);
 };
 
 /** A waiting move said in a line, never a bare "waiting". */
-export const waitingSaid = (result: Waits, failing?: Failing): string =>
+export const waitingSaid = (result: Waits, failing?: Failing, say: Say = t): string =>
   result.reason === "offline" || result.reason === "troubled" || result.reason === "limit"
-    ? `${t("moveWaiting")} · ${plainWait(result.reason, result.cause, failing)}`
-    : `${t("moveWaiting")} · ${waitWhy(result, failing)}`;
+    ? `${t("moveWaiting")} · ${plainWait(result.reason, result.cause, failing, Date.now(), say)}`
+    : `${t("moveWaiting")} · ${waitWhy(result, failing, say)}`;
 
 const row =
   "flex w-full items-center gap-2.5 rounded-[10px] border border-line px-3 py-2 text-left hover:bg-hover disabled:opacity-50";
@@ -145,14 +155,14 @@ export const quiet = "text-[11.5px] text-faint hover:text-ink disabled:opacity-6
 
 export const placeOf = (state: Carrying): string =>
   state.mode === "cloud"
-    ? `Google Drive · ${state.cloud ?? ""}`
+    ? `${cloudNamed(state.cloudProvider)} · ${state.cloud ?? ""}`
     : state.mode === "folder"
       ? (state.chosen ?? "")
       : t("welcomeAlone");
 
 export const towardOf = (toward: Toward): string =>
   toward.kind === "cloud"
-    ? `Google Drive · ${toward.email}`
+    ? `${cloudNamed(toward.provider)} · ${toward.email}`
     : toward.kind === "folder"
       ? toward.at
       : t("welcomeAlone");
@@ -160,7 +170,7 @@ export const towardOf = (toward: Toward): string =>
 export const doneSaid = (toward: Toward): string =>
   toward.kind === "alone"
     ? t("moveDoneAlone")
-    : fill("moveDone", toward.kind === "cloud" ? t("cloudChosen") : toward.at);
+    : fill("moveDone", toward.kind === "cloud" ? cloudNamed(toward.provider) : toward.at);
 
 function Option({ said, why, onPick }: { said: string; why: string; onPick: () => void }) {
   return (
@@ -239,8 +249,10 @@ export function Plan({
           {bringing && plan.fromCloud && <li>{fill("moveDown", weigh(plan.down.bytes))}</li>}
           {bringing && !plan.fromCloud && <li>{t("moveHomeFirst")}</li>}
           {plan.toCloud && plan.up.files > 0 && <li>{fill("moveUp", weigh(plan.up.bytes))}</li>}
-          {plan.toCloud && <li>{t("moveOnDemand")}</li>}
-          {plan.toCloud && state.mode === "folder" && <li>{t("moveOldFolderSpace")}</li>}
+          {plan.toCloud && <li>{sayFor(toward)("moveOnDemand")}</li>}
+          {plan.toCloud && state.mode === "folder" && (
+            <li>{sayFor(toward)("moveOldFolderSpace")}</li>
+          )}
           <li>{t("moveResumes")}</li>
           {plan.fromCloud && <li>{t("moveKeepsDrive")}</li>}
           {plan.fromCloud && toward.kind === "folder" && <li>{t("moveDesktopTip")}</li>}
@@ -249,7 +261,7 @@ export function Plan({
       )}
       {plan && plan.short > 0 && (
         <p role="alert" className="text-[12.5px] leading-relaxed text-ink">
-          {fill("moveNoRoom", weigh(plan.short), weigh(plan.free ?? 0))}
+          {filled(sayFor(toward)("moveNoRoom"), weigh(plan.short), weigh(plan.free ?? 0))}
         </p>
       )}
       <label className="flex items-start gap-2 text-[12.5px] text-soft">
@@ -352,6 +364,7 @@ export function Done({
   wiped,
   wiping,
   offersWipe,
+  wipeFrom = "google",
   busy,
   onKeep,
   onWipe,
@@ -362,6 +375,7 @@ export function Done({
   wiped?: string;
   wiping?: boolean;
   offersWipe: boolean;
+  wipeFrom?: string;
   busy: boolean;
   onKeep: () => void;
   onWipe: () => void;
@@ -380,7 +394,7 @@ export function Done({
             <span className="sliding block h-full w-1/3 rounded-full bg-accent" />
           </span>
           <p role="status" className="text-[12.5px] text-soft">
-            {t("moveWiping")}
+            {said("moveWiping", wipeFrom)}
           </p>
         </div>
       )}
@@ -396,7 +410,7 @@ export function Done({
               onClick={onWipe}
               className="rounded-[10px] border border-urgent/40 px-3 py-1.5 text-[12.5px] text-urgent hover:bg-urgent/10 disabled:opacity-60"
             >
-              {t("moveWipe")}
+              {said("moveWipe", wipeFrom)}
             </button>
           </>
         )}

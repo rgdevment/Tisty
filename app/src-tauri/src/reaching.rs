@@ -50,7 +50,7 @@ impl Reaching {
 
     pub fn apart(&self, at: &CloudAt) -> Option<Shared> {
         let home = self.home_of(at);
-        tisty_google::away(|| cloud_of(&home, at))
+        tisty_carrier::off::away(|| cloud_of(&home, at))
             .ok()
             .map(|(carrier, _)| carrier)
     }
@@ -70,7 +70,7 @@ impl Reach for Reaching {
             return Some(was.carrier.clone());
         }
         let home = self.home_of(at);
-        let made = tisty_google::away(|| cloud_of(&home, at));
+        let made = tisty_carrier::off::away(|| cloud_of(&home, at));
         if let Ok(mut why) = self.why_not.lock() {
             *why = made.as_ref().err().cloned();
         }
@@ -88,7 +88,6 @@ pub fn offered() -> bool {
     !clouds().is_empty()
 }
 
-/// The clouds this build was made with access to, in the order the window offers them.
 pub fn clouds() -> Vec<&'static str> {
     [GOOGLE, ONEDRIVE]
         .into_iter()
@@ -121,7 +120,7 @@ fn onedrive_of(home: &Path, at: &CloudAt) -> Result<(Shared, Arc<Tokens>), Strin
     let drive = tisty_onedrive::OneDrive::new(tokens.clone(), tisty_onedrive::GraphAt::microsoft())
         .map_err(|e| format!("{e:?}"))?
         .for_account(&at.account);
-    let remote = Arc::new(tisty_google::OffRuntime(drive));
+    let remote = Arc::new(tisty_carrier::off::OffRuntime(drive));
     Ok((Arc::new(Cloud::over(remote, home)), tokens))
 }
 
@@ -135,7 +134,7 @@ fn google_of(home: &Path, at: &CloudAt) -> Result<(Shared, Arc<Tokens>), String>
         .map_err(|e| format!("{e:?}"))?
         .for_account(&at.account)
         .owing_at(home);
-    let remote = Arc::new(tisty_google::OffRuntime(drive));
+    let remote = Arc::new(tisty_carrier::off::OffRuntime(drive));
     Ok((Arc::new(Cloud::over(remote, home)), tokens))
 }
 

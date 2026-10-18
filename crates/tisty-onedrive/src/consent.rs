@@ -56,7 +56,6 @@ impl Consent {
         })
     }
 
-    /// Set from anywhere, it ends the wait for the browser at once.
     pub fn dropping(&self) -> std::sync::Arc<std::sync::atomic::AtomicBool> {
         self.loopback.dropping()
     }

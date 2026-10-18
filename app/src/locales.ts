@@ -4098,6 +4098,12 @@ export const said = (key: Word, provider: string): string => {
 
 export const t = (key: Word): string => said(key, spokenOf);
 
+export const cloudNamed = (provider?: string | null): string =>
+  said("cloudChosen", provider ?? "google");
+
+export const filled = (text: string, name: string, other?: string): string =>
+  text.replace(/\{name\}/g, () => name).replace(/\{other\}/g, () => other ?? "");
+
 export const fill = (key: keyof Catalog, name: string, other?: string): string =>
   t(key)
     .replace(/\{name\}/g, () => name)

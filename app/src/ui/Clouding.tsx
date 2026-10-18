@@ -60,20 +60,23 @@ export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected 
   const [connected, setConnected] = useState<Connected>();
   const [weight, setWeight] = useState<number>();
   const [holds, setHolds] = useState(false);
-  const [offered, setOffered] = useState<string[]>(["google"]);
-  const [picked, setPicked] = useState("google");
+  const [offered, setOffered] = useState<string[]>();
+  const [picked, setPicked] = useState<string>();
   const gone = useRef(false);
   const unused = useRef<Connected | undefined>(undefined);
 
   useEffect(() => {
     gone.current = false;
+    // A window that cannot say which clouds it has offers Google alone, as every build before OneDrive did.
+    const learned = (clouds?: string[]) => {
+      if (gone.current) return;
+      const known = clouds?.length ? clouds : ["google"];
+      setOffered(known);
+      setPicked((was) => (was && known.includes(was) ? was : known[0]));
+    };
     syncState()
-      .then((state) => {
-        if (gone.current || !state.clouds?.length) return;
-        setOffered(state.clouds);
-        setPicked((was) => (state.clouds.includes(was) ? was : state.clouds[0]));
-      })
-      .catch(() => undefined);
+      .then((state) => learned(state?.clouds))
+      .catch(() => learned());
     return () => {
       gone.current = true;
       cloudConnectCancel().catch(() => undefined);
@@ -100,7 +103,7 @@ export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected 
       .catch(() => undefined);
   }, [connected, onConnected]);
 
-  const stuck = busy || held || waiting;
+  const stuck = busy || held || waiting || !picked;
 
   const connect = (provider: string) => {
     if (stuck) return;
@@ -198,12 +201,12 @@ export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected 
     );
   }
 
-  const of = (key: Word) => said(key, picked);
+  const of = (key: Word) => said(key, picked ?? "google");
   return (
     <div className="flex flex-col gap-3">
       <p className="text-[12.5px] leading-relaxed text-soft">{of("cloudConnectWhy")}</p>
       {CLOUDS.map((one) =>
-        offered.includes(one.provider) ? (
+        offered?.includes(one.provider) ? (
           <button
             key={one.provider}
             type="button"
@@ -220,7 +223,7 @@ export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected 
           </button>
         ) : (
           <div key={one.provider} aria-disabled="true" className={`${row} border-hair opacity-70`}>
-            <CloudMark provider={null} />
+            <CloudMark named={t(one.name)} />
             <span className="min-w-0 flex-1">
               <span className="block text-[13px] font-medium">{t(one.name)}</span>
               <span className="block text-[11.5px] text-faint">{t("cloudComing")}</span>
@@ -228,7 +231,7 @@ export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected 
           </div>
         ),
       )}
-      <CloudHealth name={nameOf(picked)} provider={picked} />
+      {picked && <CloudHealth name={nameOf(picked)} provider={picked} />}
       <Points title={t("cloudWhatHappens")} points={[t("cloudFirstAll"), of("cloudNoPassword")]} />
       <Points
         title={of("cloudLimitIsGoogle")}
@@ -246,7 +249,12 @@ export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected 
         <button type="button" disabled={busy || held} onClick={leave} className={back}>
           {t("welcomeBack")}
         </button>
-        <button type="button" disabled={stuck} onClick={() => connect(picked)} className={go}>
+        <button
+          type="button"
+          disabled={stuck}
+          onClick={() => picked && connect(picked)}
+          className={go}
+        >
           {of("cloudOpenGoogle")}
         </button>
       </div>

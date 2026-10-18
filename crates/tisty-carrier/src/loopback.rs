@@ -56,19 +56,23 @@ pub struct Loopback {
     pub state: String,
     pub port: u16,
     who: &'static str,
-    listener: TcpListener,
+    listeners: Vec<TcpListener>,
     dropped: Arc<AtomicBool>,
 }
 
 impl Loopback {
+    // The same port on ::1 too, since a browser may resolve localhost there and never try 127.0.0.1.
     pub fn open(who: &'static str) -> Result<Self, Hitch> {
-        let listener = TcpListener::bind(("127.0.0.1", 0))?;
-        let port = listener.local_addr()?.port();
+        let first = TcpListener::bind(("127.0.0.1", 0))?;
+        let port = first.local_addr()?.port();
+        let listeners = std::iter::once(first)
+            .chain(TcpListener::bind(("::1", port)).ok())
+            .collect();
         Ok(Self {
             state: random_text(24)?,
             port,
             who,
-            listener,
+            listeners,
             dropped: Arc::default(),
         })
     }
@@ -79,27 +83,29 @@ impl Loopback {
     }
 
     pub fn answered(&self, within: Duration) -> Result<(String, TcpStream), Ended> {
-        self.listener.set_nonblocking(true)?;
+        for listener in &self.listeners {
+            listener.set_nonblocking(true)?;
+        }
         let until = Instant::now().checked_add(within);
         loop {
             if self.dropped.load(Ordering::Relaxed) {
                 return Err(Ended::Dropped);
             }
-            match self.listener.accept() {
-                Ok((stream, _)) => match self.heard(stream) {
-                    Heard::Code(code, browser) => return Ok((code, browser)),
-                    Heard::Refused(hitch) => return Err(hitch.into()),
-                    Heard::Elsewhere => {}
-                },
-                Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                    if until.is_some_and(|until| Instant::now() >= until) {
-                        return Err(Ended::NoAnswer);
-                    }
-                    std::thread::sleep(LISTENED_EVERY);
+            for listener in &self.listeners {
+                match listener.accept() {
+                    Ok((stream, _)) => match self.heard(stream) {
+                        Heard::Code(code, browser) => return Ok((code, browser)),
+                        Heard::Refused(hitch) => return Err(hitch.into()),
+                        Heard::Elsewhere => {}
+                    },
+                    Err(e) if e.kind() == std::io::ErrorKind::WouldBlock || passing(e.kind()) => {}
+                    Err(e) => return Err(e.into()),
                 }
-                Err(e) if passing(e.kind()) => {}
-                Err(e) => return Err(e.into()),
             }
+            if until.is_some_and(|until| Instant::now() >= until) {
+                return Err(Ended::NoAnswer);
+            }
+            std::thread::sleep(LISTENED_EVERY);
         }
     }
 

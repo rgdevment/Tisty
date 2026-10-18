@@ -98,9 +98,9 @@ fn the_person_can_pause_the_cloud_on_this_machine_and_take_it_back() {
 }
 
 #[test]
-fn a_provider_hears_its_own_word_over_the_rest_and_1_30_s_word_reaches_every_cloud() {
+fn the_rest_of_the_word_speaks_to_google_alone_and_another_provider_hears_only_its_own() {
     let said: Policy = serde_json::from_str(
-        r#"{"serial":7,"units_a_day":1000,"halted_until":99,"providers":{"onedrive":{"halted_until":0,"units_a_day":50000}}}"#,
+        r#"{"serial":7,"units_a_day":1000,"halted_until":99,"providers":{"google":{"bytes_a_day":8},"onedrive":{"units_a_day":50000}}}"#,
     )
     .unwrap();
 
@@ -108,18 +108,23 @@ fn a_provider_hears_its_own_word_over_the_rest_and_1_30_s_word_reaches_every_clo
     let onedrive = said.for_provider("onedrive");
 
     assert_eq!(
-        (google.units_a_day, google.halted_until),
-        (Some(1000), Some(99))
+        (google.units_a_day, google.bytes_a_day, google.halted_until),
+        (Some(1000), Some(8), Some(99))
     );
     assert_eq!(
-        (onedrive.units_a_day, onedrive.halted_until),
-        (Some(50000), Some(0))
+        (
+            onedrive.units_a_day,
+            onedrive.bytes_a_day,
+            onedrive.halted_until
+        ),
+        (Some(50000), None, None)
     );
-    assert!(!halted(Some(&onedrive), 10));
     assert!(halted(Some(&google), 10));
+    assert!(!halted(Some(&onedrive), 10));
     assert_eq!(onedrive.serial, 7);
     assert!(onedrive.providers.is_empty());
 
     let from_1_30: Policy = serde_json::from_str(r#"{"serial":3,"bytes_a_day":5}"#).unwrap();
-    assert_eq!(from_1_30.for_provider("onedrive").bytes_a_day, Some(5));
+    assert_eq!(from_1_30.for_provider("google").bytes_a_day, Some(5));
+    assert_eq!(from_1_30.for_provider("onedrive").bytes_a_day, None);
 }

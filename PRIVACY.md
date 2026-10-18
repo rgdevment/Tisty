@@ -333,7 +333,7 @@ these requests.
 | **How you allow it** | Only from the Tisty window. You sign in on Microsoft's own page in your browser; Tisty never sees your password. Tisty is a public client with no secret of its own. The access is kept exactly as Google's is, in the system keychain or, on Windows, sealed with DPAPI |
 | **Letting go** | *Disconnect this computer* forgets the access on that machine only. Microsoft offers no way for an app to withdraw a personal account's access by itself, so *Remove Tisty's access on every computer* forgets it here and opens your Microsoft account at <https://account.live.com/consent/Manage>, where you remove Tisty for every machine at once |
 | **Checking the way first** | Only while you are choosing OneDrive, Tisty checks that Microsoft's API host answers with a single request to `https://graph.microsoft.com/v1.0/me`, with no account, no token and nothing of yours in it, read the same way as Google's |
-| **The remote switch** | `cloud.json` can speak to OneDrive alone, under its `providers` field, so a pause meant for one provider never stops the other |
+| **The remote switch** | `cloud.json` speaks to OneDrive only under its own entry in the `providers` field, so a pause or a limit meant for Google never stops or slows OneDrive, nor the other way round |
 | **What it never does** | Send your data to us or to anyone but Microsoft, read a file in your OneDrive outside its own folder, or write tokens into its own log |
 
 ## The door you can open for an assistant

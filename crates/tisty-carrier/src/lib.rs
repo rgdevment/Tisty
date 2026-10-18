@@ -17,6 +17,7 @@ mod folder;
 #[cfg(not(windows))]
 mod keychain;
 pub mod loopback;
+pub mod off;
 mod remote;
 pub mod said;
 mod shift;

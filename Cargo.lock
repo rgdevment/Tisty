@@ -5861,6 +5861,7 @@ dependencies = [
  "tempfile",
  "tisty-core",
  "tisty-sync",
+ "tokio",
  "toml 1.1.8+spec-1.1.0",
  "ulid",
  "url",
@@ -5935,7 +5936,6 @@ dependencies = [
  "tempfile",
  "tisty-carrier",
  "tisty-core",
- "tokio",
  "url",
 ]
 
