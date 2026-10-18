@@ -243,7 +243,7 @@ describe("opening a task", () => {
       />,
     );
 
-    expect((document.activeElement as HTMLElement).tagName).toBe("ASIDE");
+    expect((document.activeElement as HTMLElement).tagName).toBe("MAIN");
   });
 });
 
