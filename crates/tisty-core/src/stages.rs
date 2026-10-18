@@ -347,13 +347,13 @@ fn slot(body: &str, found: &[Stage]) -> Option<Slot> {
         let start = body[..last.at.start].rfind('\n').map_or(0, |at| at + 1);
         let line = &body[start..];
         let lead = line[..line.find('[')?].to_string();
-        let tail = &body[last.at.end..];
-        let at = match body[..last.at.end].ends_with('\n') {
-            true => last.at.end,
-            false => tail
-                .find('\n')
-                .map_or(body.len(), |at| last.at.end + at + 1),
-        };
+        // A loose list's item runs on to the blank line after it; the new step goes before that.
+        let words = body[..last.at.end]
+            .trim_end_matches(['\n', '\r', ' ', '\t'])
+            .len();
+        let at = body[words..]
+            .find('\n')
+            .map_or(body.len(), |at| words + at + 1);
         return Some(Slot {
             at,
             lead,
