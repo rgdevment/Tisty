@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { type Change, erasable, type List, readingOf, type Task, type Whole } from "../core";
+import {
+  type Change,
+  erasable,
+  type Filed,
+  type List,
+  readingOf,
+  type Task,
+  type Whole,
+} from "../core";
 import { cadence, daysFrom, stamped, whenLabel, wroteAt } from "../format";
 import { fill, t } from "../locales";
 import { placed, said } from "../quadrants";
@@ -38,6 +46,7 @@ interface Props {
   onClose: () => void;
   onError?: (problem: unknown) => void;
   onDoc?: (id: string) => void;
+  papers?: readonly Filed[];
   whole?: Whole;
   partOf?: string;
   onAddPart?: (title: string) => void;
@@ -75,6 +84,7 @@ export default function Detail({
   onClose,
   onError,
   onDoc,
+  papers,
   whole,
   partOf,
   onAddPart,
@@ -204,6 +214,7 @@ export default function Detail({
         onDoc={onDoc}
         shaping={shaping}
         onHeld={setHeld}
+        papers={papers}
       />
       <History task={task} onError={onError} onDoc={onDoc} />
     </>

@@ -22,7 +22,7 @@ import { filedAs, type Reshape, reshaped } from "./recarding";
 import Skeleton from "./Skeleton";
 import { ASIDE_MARGIN, settles } from "./seeking";
 import type { Sheet as SheetSize } from "./sheeting";
-import { type Asking, putBlock } from "./slashing";
+import { type Asking, putBlock, stagesIn } from "./slashing";
 import { widened } from "./tabling";
 
 type Props = {
@@ -227,14 +227,14 @@ export default function Sheet(props: Readonly<Props>) {
       },
       () => {
         const asking = said.current.asking;
-        if (!asking) return undefined;
         const before = !latest.current.slice(0, from).trim();
         return {
-          kinds: asking.kinds,
-          tags: asking.tags,
-          pasted: asking.pasted,
-          lost: asking.lost,
-          ask: (kind, at, put, first) => asking.ask(kind, at, put, first && before),
+          kinds: asking?.kinds ?? [],
+          tags: asking?.tags,
+          pasted: asking?.pasted,
+          lost: asking?.lost,
+          ask: (kind, at, put, first) => asking?.ask(kind, at, put, first && before),
+          steps: () => stagesIn(latest.current),
         };
       },
       Boolean(said.current.inline && said.current.shaping),

@@ -12,6 +12,8 @@ import {
   put,
   SLASHED,
   slashing,
+  stagesIn,
+  stepping,
   tagging,
 } from "../ui/slashing";
 
@@ -300,5 +302,27 @@ describe("tags offered after a #", () => {
     expect(inside?.options[0].apply).toBe("#trrk");
     expect(offeredAt("ver #trrkx", 7)?.options[1].apply).toBe("#trabajo");
     expect(offeredAt("ver #tr", 7)?.options[1].apply).toBe("#trabajo");
+  });
+});
+
+describe("a step named by its number", () => {
+  it("counts a page's boxes as they are read, past code and comments", () => {
+    const text = "- [ ] uno\n<!-- - [ ] hint -->\n```\n- [ ] code\n```\n> * [x] dos\n";
+    expect(stagesIn(text)).toEqual(["uno", "dos"]);
+  });
+
+  it("offers the page's steps after [[#, each by its number", () => {
+    const state = EditorState.create({ doc: "see [[#", extensions: [markdown()] });
+    const said = stepping(() => ({
+      kinds: [],
+      ask: () => {},
+      steps: () => ["uno", "dos"],
+    }))(new CompletionContext(state, 7, false));
+
+    expect(said?.from).toBe(4);
+    expect(said?.options.map((one) => [one.label, one.apply])).toEqual([
+      ["1", "[[#1]]"],
+      ["2", "[[#2]]"],
+    ]);
   });
 });

@@ -1,8 +1,10 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { docWrite, type Task, type TaskDoc, taskDocMake, taskDocOpen } from "../core";
+import { docWrite, type Filed, type Task, type TaskDoc, taskDocMake, taskDocOpen } from "../core";
 import { holds, queued } from "../saving";
 import { useKeptHeight } from "./heights";
 import Skeleton from "./Skeleton";
+import type { Asking } from "./slashing";
+import { useTaskAsks } from "./taskAsking";
 
 const Sheet = lazy(() => import("./Sheet"));
 
@@ -15,6 +17,7 @@ interface Props {
   onDoc?: (id: string) => void;
   shaping?: boolean;
   onHeld?: (held: boolean) => void;
+  papers?: readonly Filed[];
 }
 
 // A command the window does not know answers with whatever it holds, so only a real document counts.
@@ -23,7 +26,15 @@ const real = (said: unknown): TaskDoc | null => {
   return typeof one?.file === "string" && typeof one.body === "string" ? (one as TaskDoc) : null;
 };
 
-export default function TaskWords({ task, onSettle, onError, onDoc, shaping, onHeld }: Props) {
+export default function TaskWords({
+  task,
+  onSettle,
+  onError,
+  onDoc,
+  shaping,
+  onHeld,
+  papers,
+}: Props) {
   const [doc, setDoc] = useState<TaskDoc | null>(null);
   const [seen, setSeen] = useState(0);
   const [turn, setTurn] = useState(0);
@@ -33,6 +44,7 @@ export default function TaskWords({ task, onSettle, onError, onDoc, shaping, onH
   holding.current = onHeld;
   const open = task.status === "open";
   const kept = useKeptHeight<HTMLDivElement>(`task:${task.id}`);
+  const { asking, picker } = useTaskAsks(open ? papers : undefined, onError);
 
   useEffect(() => {
     let live = true;
@@ -75,7 +87,9 @@ export default function TaskWords({ task, onSettle, onError, onDoc, shaping, onH
         onMoved={() => setTurn((one) => one + 1)}
         shaping={shaping}
         room={kept.height}
+        asking={doc.held ? undefined : asking}
       />
+      {picker}
     </div>
   );
 }
@@ -91,6 +105,7 @@ function Written({
   onMoved,
   shaping,
   room,
+  asking,
 }: {
   id: string;
   doc: TaskDoc;
@@ -102,6 +117,7 @@ function Written({
   onMoved: () => void;
   shaping?: boolean;
   room?: number;
+  asking?: Asking;
 }) {
   const [text, setText] = useState(doc.body);
   const waiting = useRef<string | null>(null);
@@ -211,6 +227,7 @@ function Written({
         onSettle={onSettle ? settled : undefined}
         onFail={onError}
         onDoc={onDoc}
+        asking={asking}
       />
     </Suspense>
   );

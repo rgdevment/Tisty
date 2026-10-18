@@ -4,6 +4,7 @@ import {
   complete,
   discard,
   erase,
+  type Filed,
   fold,
   hang,
   openToAgents,
@@ -32,6 +33,7 @@ export interface Hands {
   opening: (one: Task) => void;
   say: (words: string) => void;
   fail: (problem: unknown) => void;
+  papers?: readonly Filed[];
 }
 
 export const detailOf = (one: Task, h: Hands) => ({
@@ -56,6 +58,7 @@ export const detailOf = (one: Task, h: Hands) => ({
   onClose: h.shut,
   onError: h.fail,
   onDoc: h.openDoc,
+  papers: h.papers,
   whole: h.wholes[one.id],
   partOf: one.part_of ? h.wholes[one.part_of]?.title : undefined,
   onAddPart: (title: string) => h.act(addPart(one.id, title).then(() => taskOf(one.id))),

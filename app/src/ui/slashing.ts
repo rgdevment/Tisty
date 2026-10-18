@@ -22,6 +22,7 @@ export type Asking = {
   readonly tags?: readonly string[];
   readonly pasted?: (files: readonly File[]) => Promise<string>;
   readonly lost?: () => void;
+  readonly steps?: () => readonly string[];
   readonly ask: (
     kind: Asked,
     at: { x: number; y: number },
@@ -102,6 +103,13 @@ export const SLASHED: readonly Slashed[] = [
     keys: "K",
   },
   { key: "pen", label: "penIt", hint: "==", icon: "highlight", put: { wrap: "==" } },
+  {
+    key: "step",
+    label: "insertStep",
+    hint: "[[#]]",
+    icon: "checks",
+    put: { inline: "[[#", at: 3 },
+  },
   {
     key: "icon",
     label: "insertIcon",
@@ -347,6 +355,7 @@ export const offered =
     const shown = SLASHED.filter(
       (one) =>
         (!("ask" in one.put) || asking?.()?.kinds.includes(one.put.ask)) &&
+        (one.key !== "step" || (asking?.()?.steps?.().length ?? 0) > 0) &&
         (!word || matched(t(one.label), word) || matched(one.key, word)),
     );
     if (shown.length === 0) return null;
@@ -358,11 +367,49 @@ export const offered =
           label: t(one.label),
           detail: one.keys ? `${one.hint}   ${pressed(one.keys)}` : one.hint,
           boost: -rank,
-          apply: (view, _, from, to) => put(view, one, from, to, asking?.()),
+          apply: (view, _, from, to) => {
+            put(view, one, from, to, asking?.());
+            // A step is named by its number, so the list of them opens right where it is asked for.
+            if (one.key === "step") startCompletion(view);
+          },
           type: one.icon,
         }),
       ),
     };
+  };
+
+const STEPPED = /\[\[#\d*$/;
+
+// The boxes a page holds, counted as they are read, which is how `[[#2]]` names the second.
+export const stagesIn = (text: string): string[] => {
+  const out: string[] = [];
+  let fenced = false;
+  for (const line of text.split(/\r?\n/)) {
+    if (/^\s*(```|~~~)/.test(line)) fenced = !fenced;
+    const box = fenced ? null : /^[\s>]*(?:[-*+]|\d+[.)])\s+\[[ xX]\]\s+(.*)$/.exec(line);
+    if (box) out.push(box[1].trim());
+  }
+  return out;
+};
+
+export const stepping =
+  (asking?: () => Asking | undefined) =>
+  (context: CompletionContext): CompletionResult | null => {
+    const found = context.matchBefore(STEPPED);
+    const steps = found ? (asking?.()?.steps?.() ?? []) : [];
+    if (!found || steps.length === 0) return null;
+    const typed = found.text.slice(3);
+    const options = steps
+      .map(
+        (text, at): Completion => ({
+          label: `${at + 1}`,
+          detail: text,
+          apply: `[[#${at + 1}]]`,
+          boost: -at,
+        }),
+      )
+      .filter((one) => one.label.startsWith(typed));
+    return { from: found.from, filter: false, options };
   };
 
 const TAGGED = new RegExp(`${TAG_EDGE}#${TAG_WORD}$`, "u");
@@ -508,7 +555,7 @@ const dressed = () =>
 
 export const slashing = (asking?: () => Asking | undefined) => [
   autocompletion({
-    override: [offered(asking), tagging(asking)],
+    override: [offered(asking), tagging(asking), stepping(asking)],
     icons: false,
     addToOptions: [{ render: drawn, position: 20 }],
     aboveCursor: false,
