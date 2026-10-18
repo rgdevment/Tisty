@@ -22,7 +22,9 @@ fn round_trip(setup: Vec<Event>, action: Event) -> (State, State) {
     let undo = inverse(&action, &before).expect("no inverse");
     let mut undone = after.clone();
     for (n, op) in undo.into_iter().enumerate() {
-        undone.apply(&ev(999 + n as i64, op));
+        let mut taken_back = ev(999 + n as i64, op);
+        taken_back.undo = true;
+        undone.apply(&taken_back);
     }
 
     (before, undone)
