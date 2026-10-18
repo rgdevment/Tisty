@@ -345,11 +345,14 @@ export const edited = (
   });
   const bar = barred(view);
   follow = bar.follow;
-  const dock = docked(
-    bar.bar,
-    bar.hint,
-    () => view.coordsAtPos(view.state.selection.main.head)?.top ?? null,
-  );
+  const dock = docked(bar.bar, bar.hint, () => {
+    const chosen = view.state.selection.main;
+    if (!chosen.empty) return view.coordsAtPos(chosen.from)?.top ?? null;
+    // A task's bar rests at the top of its page; a document's rests over the block being written.
+    return page.documentElement.classList.contains("untitled")
+      ? null
+      : view.dom.getBoundingClientRect().top;
+  });
   undock = dock.stop;
   replace = dock.place;
   view.focus();

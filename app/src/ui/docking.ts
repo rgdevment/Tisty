@@ -11,10 +11,10 @@ const scrollerOf = (from: Element | null | undefined): Element | null => {
   return null;
 };
 
-// The page grows to its full height inside whatever scrolls it, so the bar follows that scroll, not its own.
 export type Dock = { readonly stop: () => void; readonly place: () => void };
 
-export const docked = (bar: HTMLElement, hint: HTMLElement, caret?: () => number | null): Dock => {
+// The page grows to its full height inside whatever scrolls it, so the bar follows that scroll, not its own.
+export const docked = (bar: HTMLElement, hint: HTMLElement, aim?: () => number | null): Dock => {
   const page = bar.ownerDocument;
   const view = page.defaultView;
   const sheet = page.querySelector<HTMLElement>(".page");
@@ -34,8 +34,7 @@ export const docked = (bar: HTMLElement, hint: HTMLElement, caret?: () => number
     const top = (box.top + view.scrollY) / zoom;
     const bottom = (box.bottom + view.scrollY) / zoom - bar.offsetHeight;
     const stuck = (seen + view.scrollY) / zoom + STUCK;
-    // A long document keeps the bar just over the line being written, never a page away from it.
-    const line = page.documentElement.classList.contains("untitled") ? null : caret?.();
+    const line = aim?.();
     const over = line == null ? 0 : (line + view.scrollY) / zoom - bar.offsetHeight - STUCK;
     bar.style.top = `${Math.min(bottom, Math.max(top + REST, stuck, over))}px`;
     const left = Number.parseFloat(view.getComputedStyle(sheet).paddingLeft) || 0;
