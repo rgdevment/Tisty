@@ -20,6 +20,16 @@ pub enum Scope {
     Either,
 }
 
+impl Scope {
+    pub fn keeps(self, task: &crate::model::Task) -> bool {
+        match self {
+            Scope::Open => task.is_open(),
+            Scope::Archived => task.is_archived(),
+            Scope::Either => true,
+        }
+    }
+}
+
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Filter {
     pub scope: Scope,

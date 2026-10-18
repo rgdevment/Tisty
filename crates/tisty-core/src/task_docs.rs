@@ -37,7 +37,7 @@ pub fn owned(file: &str) -> Option<(TaskId, DocId)> {
     let (head, number) = file.get(PREFIX.len()..)?.rsplit_once('-')?;
     let turn = number.parse::<u32>().ok().filter(|turn| *turn > 0)?;
     let task = Ulid::from_string(&head.to_ascii_uppercase()).ok()?;
-    // A disk or a sync that keeps names without their case may hand the name back in either.
+    // A name in another case still names this task, so no guard is passed by changing it.
     file_at(task, turn)
         .eq_ignore_ascii_case(file)
         .then(|| (task, id_at(task, turn)))
@@ -86,8 +86,7 @@ pub fn owner(state: &State, task: TaskId) -> TaskId {
     at
 }
 
-/// Each task's document by name, pointing at the turn a person would open: a routine's words
-/// belong to its first turn, but what they look for is the one still open, or else the last.
+/// A routine's words are its first turn's, but they lead to the turn still open, or else the last.
 pub fn behind(state: &State) -> std::collections::BTreeMap<String, TaskId> {
     let mut now: std::collections::BTreeMap<TaskId, TaskId> = std::collections::BTreeMap::new();
     let turns = state.tasks.iter().filter(|(_, one)| one.after.is_some());

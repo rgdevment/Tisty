@@ -119,6 +119,17 @@ impl State {
         false
     }
 
+    /// The documents a person keeps on their own: a task's words belong to the task.
+    pub fn papers(&self) -> impl Iterator<Item = &Kept> {
+        self.docs.values().filter(|one| one.task_of.is_none())
+    }
+
+    /// A task's words are seen while the task is, never once it is hidden or gone.
+    pub fn doc_in_sight(&self, kept: &Kept) -> bool {
+        kept.task_of
+            .is_none_or(|task| self.tasks.get(&task).is_some_and(|one| !one.folded()))
+    }
+
     /// What the archive holds: the document's own mark, or the folder it sits in.
     pub fn held_away(&self, kept: &Kept) -> bool {
         kept.archived || self.held_by_another(kept)
@@ -1172,8 +1183,6 @@ impl State {
         scope: crate::view::Scope,
         most: usize,
     ) -> (Vec<&Task>, usize) {
-        use crate::view::Scope;
-
         let terms = crate::text::terms(query);
         if terms.is_empty() {
             return (Vec::new(), 0);
@@ -1182,11 +1191,7 @@ impl State {
         let mut hits: Vec<(crate::view::Hit, &Task)> = self
             .tasks
             .values()
-            .filter(|t| match scope {
-                Scope::Open => t.is_open(),
-                Scope::Archived => t.is_archived(),
-                Scope::Either => true,
-            })
+            .filter(|t| scope.keeps(t))
             .filter_map(|t| crate::view::matches_query(t, &terms).map(|hit| (hit, t)))
             .collect();
 
@@ -1250,12 +1255,7 @@ impl State {
         self.tasks
             .values()
             .flat_map(|t| &t.tags)
-            .chain(
-                self.docs
-                    .values()
-                    .filter(|one| one.task_of.is_none())
-                    .flat_map(|one| &one.tags),
-            )
+            .chain(self.papers().flat_map(|one| &one.tags))
             .collect()
     }
 

@@ -235,7 +235,6 @@ fn not_a_task_s_words(name: &str, args: &Value) -> Result<(), Refused> {
     if !WRITES_DOCUMENTS.contains(&name) {
         return Ok(());
     }
-    // Every tool trims the name it is given, so the guard reads it the same way.
     let named = ["doc", "page_of"]
         .iter()
         .filter_map(|key| args.get(*key))
@@ -824,9 +823,7 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
     let reading = under.is_some();
     let mut kept: Vec<&tisty_core::model::Kept> = state
-        .docs
-        .values()
-        .filter(|one| one.task_of.is_none())
+        .papers()
         .filter(|one| match scope {
             tisty_core::view::Scope::Open => !state.held_away(one),
             tisty_core::view::Scope::Archived => state.held_away(one),

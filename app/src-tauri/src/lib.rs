@@ -137,9 +137,7 @@ fn search(
     let behind = tisty_core::task_docs::behind(&session.state);
     let listed: std::collections::BTreeMap<String, bool> = session
         .state
-        .docs
-        .values()
-        .filter(|one| one.task_of.is_none())
+        .papers()
         .filter(|one| match scope {
             Scope::Open => !session.state.held_away(one),
             Scope::Archived => session.state.held_away(one),
@@ -152,16 +150,13 @@ fn search(
         .corpus
         .searching(&root, &query, usize::MAX, |id| behind.contains_key(id));
     let (mut found, _) = session.state.searching(&query, scope, usize::MAX);
+    let mut seen: std::collections::HashSet<_> = found.iter().map(|one| one.id).collect();
     for task in worded
         .iter()
         .filter_map(|one| session.state.tasks.get(behind.get(&one.id)?))
-        .filter(|task| match scope {
-            Scope::Open => task.is_open(),
-            Scope::Archived => task.is_archived(),
-            Scope::Either => true,
-        })
+        .filter(|task| scope.keeps(task))
     {
-        if !found.iter().any(|one| one.id == task.id) {
+        if seen.insert(task.id) {
             found.push(task);
         }
     }

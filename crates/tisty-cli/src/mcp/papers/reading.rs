@@ -14,14 +14,11 @@ use super::super::{
 
 // A task the person put out of sight keeps its words out of sight too, as `read` does.
 fn in_sight(state: &State, kept: &tisty_core::model::Kept, which: &str) -> Result<(), Refused> {
-    let hidden = kept
-        .task_of
-        .is_some_and(|task| state.tasks.get(&task).is_none_or(|one| one.folded()));
-    match hidden {
-        true => Err(Refused::Tool(format!(
+    match state.doc_in_sight(kept) {
+        true => Ok(()),
+        false => Err(Refused::Tool(format!(
             "no document here is called {which:?}. `docs` lists them all."
         ))),
-        false => Ok(()),
     }
 }
 
