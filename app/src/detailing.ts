@@ -64,7 +64,10 @@ export const detailOf = (one: Task, h: Hands) => ({
     h.act(complete(id).then(() => taskOf(one.id)));
   },
   onHang: (whole: string | null) => h.act(hang(one.id, whole)),
-  onSettle: (before: string, now: string) => h.act(taskDocSettled(one.id, before, now)),
+  onSettle: (before: string, now: string) =>
+    taskDocSettled(one.id, before, now).then((changed) => {
+      if (changed) h.act(Promise.resolve(changed));
+    }, h.fail),
 });
 
 export const erasing = (

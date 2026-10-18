@@ -260,7 +260,7 @@ pub fn reconciled(task: &Task, before: Option<&str>, now: &str) -> Vec<Op> {
 
 /// The file's own boxes may be stale, so a document going out is ticked as the log has it.
 pub fn ticked(task: &Task, body: &str) -> String {
-    if task.steps.is_empty() || !body.contains('[') {
+    if task.steps.is_empty() {
         return body.to_string();
     }
     let steps = ordered(task);
@@ -283,6 +283,25 @@ pub fn ticked(task: &Task, body: &str) -> String {
         };
         let at = stage.at.start + open + 1;
         out.replace_range(at..at + 1, if step.done { "x" } else { " " });
+    }
+    // A step filed from elsewhere has no line yet, and a step nobody can see cannot be ticked.
+    let missing: Vec<&Step> = (0..steps.len())
+        .filter(|at| !of.contains(&Some(*at)))
+        .map(|at| steps[at])
+        .collect();
+    if missing.is_empty() {
+        return out;
+    }
+    let trimmed = out.trim_end_matches(['\n', '\r']).len();
+    out.truncate(trimmed);
+    out.push_str(if trimmed == 0 || out.ends_with("---") {
+        "\n"
+    } else {
+        "\n\n"
+    });
+    for step in missing {
+        let mark = if step.done { "x" } else { " " };
+        out.push_str(&format!("- [{mark}] {}\n", step.text));
     }
     out
 }

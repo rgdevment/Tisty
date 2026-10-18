@@ -6,6 +6,7 @@ import TaskWords from "../ui/TaskWords";
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
   doc: null as unknown,
+  moved: false,
   sheets: [] as {
     file?: string;
     value: string;
@@ -20,6 +21,7 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args: Record<string, unknown>) => {
     ipc.calls.push({ cmd, args: args ?? {} });
     if (cmd === "task_doc_open") return Promise.resolve(ipc.doc);
+    if (cmd === "doc_write" && ipc.moved) return Promise.reject({ code: "documentMoved" });
     if (cmd === "task_doc_make") {
       ipc.doc = { file: "t_one-0001", body: "Words it held.\n", held: false };
       return Promise.resolve("t_one-0001");
@@ -44,6 +46,7 @@ const settle = () => new Promise((ready) => setTimeout(ready, 0));
 beforeEach(() => {
   ipc.calls = [];
   ipc.doc = null;
+  ipc.moved = false;
   ipc.sheets = [];
 });
 
@@ -117,5 +120,21 @@ describe("a task with its document", () => {
     const sheet = ipc.sheets[ipc.sheets.length - 1];
     expect(sheet.reading).toBe(true);
     expect(sheet.onSettle).toBeUndefined();
+  });
+});
+
+describe("a task document changed on disk meanwhile", () => {
+  it("reads it again and says so, instead of failing every save after", async () => {
+    ipc.doc = { file: "t_one-0001", body: "mine\n", held: false };
+    const failed = vi.fn();
+    render(<TaskWords task={task()} onError={failed} />);
+    await screen.findByText("sheet:mine");
+
+    ipc.moved = true;
+    ipc.doc = { file: "t_one-0001", body: "theirs\n", held: false };
+    ipc.sheets[ipc.sheets.length - 1].onWrite("mine, edited\n");
+
+    expect(await screen.findByText("sheet:theirs", {}, { timeout: 2000 })).toBeTruthy();
+    expect(failed).toHaveBeenCalledWith({ code: "documentMoved" });
   });
 });

@@ -15,7 +15,6 @@ import Section from "./Section";
 import { saidBy } from "./Spoke";
 import TaskWords from "./TaskWords";
 import Trail from "./Trail";
-import Written from "./Written";
 
 interface Props {
   task: Task;
@@ -174,43 +173,7 @@ export default function Detail({
       <h1 className="text-[21px] leading-snug font-semibold">{task.title}</h1>
       <Stamps task={task} lists={lists} />
 
-      {task.description?.trim() && (
-        <>
-          <Section label={t("description")} />
-          <Written
-            label={t("description")}
-            onError={onError}
-            onDoc={onDoc}
-            text={task.description}
-            steps={task.steps?.map((one) => one.text)}
-            className="prose px-1.5 py-1 text-[13px] leading-relaxed"
-          />
-        </>
-      )}
-
-      {task.steps && task.steps.length > 0 && (
-        <>
-          <Section
-            label={t("steps")}
-            note={`${task.volume?.steps_done ?? 0}/${task.volume?.steps ?? task.steps.length}`}
-          />
-          <ul className="flex flex-col gap-1.5">
-            {task.steps.map((step) => (
-              <li key={step.id} className="flex items-start gap-2.5 text-[13px]">
-                <span
-                  aria-hidden="true"
-                  className={`pt-px text-[12.5px] ${step.done ? "text-accent" : "text-faint"}`}
-                >
-                  {step.done ? "✓" : "▫"}
-                </span>
-                <span className={step.done ? "text-faint line-through" : "text-soft"}>
-                  {step.text}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
+      <TaskWords task={task} onError={onError} onDoc={onDoc} />
 
       <History task={task} onError={onError} onDoc={onDoc} />
 

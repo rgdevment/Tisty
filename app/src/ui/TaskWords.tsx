@@ -23,6 +23,7 @@ const real = (said: unknown): TaskDoc | null => {
 // An open task is always a document: one it never had is made the first time it is opened.
 export default function TaskWords({ task, onSettle, onError, onDoc }: Props) {
   const [doc, setDoc] = useState<TaskDoc | null>(null);
+  const [turn, setTurn] = useState(0);
   const failed = useRef(onError);
   failed.current = onError;
   const open = task.status === "open";
@@ -41,16 +42,18 @@ export default function TaskWords({ task, onSettle, onError, onDoc }: Props) {
     return () => {
       live = false;
     };
-  }, [task.id, open]);
+  }, [task.id, open, turn]);
 
   if (!doc) return null;
   return (
     <Written
+      key={`${doc.file}:${turn}`}
       doc={doc}
       label={task.title}
       onSettle={doc.held ? undefined : onSettle}
       onError={onError}
       onDoc={onDoc}
+      onMoved={() => setTurn((one) => one + 1)}
     />
   );
 }
@@ -61,18 +64,22 @@ function Written({
   onSettle,
   onError,
   onDoc,
+  onMoved,
 }: {
   doc: TaskDoc;
   label: string;
   onSettle?: (before: string, now: string) => void;
   onError?: (problem: unknown) => void;
   onDoc?: (id: string) => void;
+  onMoved: () => void;
 }) {
   const [text, setText] = useState(doc.body);
   const waiting = useRef<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const failed = useRef(onError);
   failed.current = onError;
+  const moved = useRef(onMoved);
+  moved.current = onMoved;
 
   const flush = useCallback(() => {
     if (timer.current) clearTimeout(timer.current);
@@ -80,7 +87,11 @@ function Written({
     const next = waiting.current;
     if (next === null) return;
     waiting.current = null;
-    queued(doc.file, () => docWrite(doc.file, next)).catch((e) => failed.current?.(e));
+    queued(doc.file, () => docWrite(doc.file, next)).catch((e) => {
+      failed.current?.(e);
+      // What is on disk now is newer than what was typed, so the page reads it again.
+      if ((e as { code?: string } | null)?.code === "documentMoved") moved.current();
+    });
   }, [doc.file]);
 
   useEffect(() => holds(flush), [flush]);

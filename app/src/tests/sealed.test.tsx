@@ -57,8 +57,6 @@ describe("a closed task is sealed", () => {
     shown(closed);
 
     expect(screen.getByText("renew the certificate")).toBeTruthy();
-    expect(screen.getByText(/the authority took nine days/)).toBeTruthy();
-    expect(screen.getByText("gather the papers")).toBeTruthy();
     expect(screen.getByText(/the form was the slow part/)).toBeTruthy();
     expect(screen.getByText("▤ Work")).toBeTruthy();
     expect(screen.getByText("◈ release")).toBeTruthy();

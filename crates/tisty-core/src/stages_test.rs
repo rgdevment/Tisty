@@ -353,3 +353,16 @@ fn a_word_that_ends_right_at_the_limit_is_kept_whole() {
     let one = title(&"c".repeat(STEP_AT_MOST + 5));
     assert_eq!(one.chars().count(), STEP_AT_MOST);
 }
+
+#[test]
+fn a_step_filed_from_elsewhere_joins_the_document_at_its_end() {
+    let task = task(&[("one", false, "a"), ("from an agent", true, "b")]);
+    assert_eq!(
+        ticked(&task, "Words.\n\n- [ ] one\n"),
+        "Words.\n\n- [ ] one\n\n- [x] from an agent\n"
+    );
+    assert_eq!(
+        ticked(&task, "---\ntask: x\n---\n"),
+        "---\ntask: x\n---\n- [ ] one\n- [x] from an agent\n"
+    );
+}

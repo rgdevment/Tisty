@@ -514,7 +514,17 @@ fn erasing(session: &mut Session, id: tisty_core::TaskId) -> Answer<()> {
         Err(tisty_core::model::Stays::Routine) => return Err(Refusal::of("routineStays")),
         Err(tisty_core::model::Stays::Parts) => return Err(Refusal::of("partsStay")),
     }
-    session.commit(Op::TaskDelete { id })?;
+    // Erasing a task for good takes its document's words with it.
+    let doc = tisty_core::task_docs::of(&session.state, id).map(|one| (one.id, one.file.clone()));
+    let mut ops: Vec<Op> = doc
+        .iter()
+        .map(|(doc, _)| Op::DocDelete { id: *doc })
+        .collect();
+    ops.push(Op::TaskDelete { id });
+    session.commit_all(ops)?;
+    if let Some((_, file)) = doc {
+        session.forget_files(&[file]);
+    }
     Ok(())
 }
 

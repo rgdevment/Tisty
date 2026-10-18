@@ -33,6 +33,7 @@ export default function History({ task, onError, onDoc }: Props) {
               onError={onError}
               onDoc={onDoc}
               text={entry.body}
+              steps={task.steps?.map((one) => one.text)}
               className="prose text-[13px] leading-relaxed"
             />
           </li>

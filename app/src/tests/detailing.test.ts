@@ -9,6 +9,7 @@ let asked = true;
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args: Record<string, unknown>) => {
     calls.push({ cmd, args });
+    if (cmd === "task_doc_settled" && args.now === args.before) return Promise.resolve(null);
     return Promise.resolve({ id: String(args?.id ?? "t1"), title: "Hecha" });
   },
 }));
@@ -127,5 +128,16 @@ describe("erasing a task", () => {
 
     expect(sent()).toEqual([]);
     expect(gone).not.toHaveBeenCalled();
+  });
+});
+
+describe("a task document left as it was", () => {
+  it("acts on nothing when settling changed no step", async () => {
+    const h = hands();
+    detailOf(task, h).onSettle("igual", "igual");
+    await flush();
+
+    expect(sent()).toContain("task_doc_settled");
+    expect(h.act).not.toHaveBeenCalled();
   });
 });

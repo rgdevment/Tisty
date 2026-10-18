@@ -335,7 +335,7 @@ export const patch = (id: string, change: Change): Promise<Task> =>
 export type TaskDoc = { readonly file: string; readonly body: string; readonly held: boolean };
 export const taskDocOpen = (id: string): Promise<TaskDoc | null> => invoke("task_doc_open", { id });
 export const taskDocMake = (id: string): Promise<string> => invoke("task_doc_make", { id });
-export const taskDocSettled = (id: string, before: string, now: string): Promise<Task> =>
+export const taskDocSettled = (id: string, before: string, now: string): Promise<Task | null> =>
   invoke("task_doc_settled", { id, before, now });
 export const partsOf = (id: string): Promise<Task[]> => invoke("parts_of", { id });
 export const taskOf = (id: string): Promise<Task> => invoke("task_of", { id });
@@ -1014,7 +1014,6 @@ export interface Doc {
 export const DEEPEST = 4;
 
 export const FOLDER_NAME_AT_MOST = 40;
-export const STEP_AT_MOST = 100;
 
 export interface Folded {
   id: string;
