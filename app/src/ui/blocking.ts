@@ -169,6 +169,16 @@ const LABEL = 20;
 const named = (doc: Text): number =>
   [...(/^#{1,6}\s+(.*)$/.exec(doc.line(1).text)?.[1] ?? "")].length;
 
+// Composing skips the filter, so a label is held to its limit once more as it is left.
+const held = (view: EditorView, was: string) => {
+  const head = view.state.doc.line(1);
+  const words = /^(#{1,6}\s+)(.*)$/.exec(head.text);
+  const most = Math.max(LABEL, named(EditorState.create({ doc: was }).doc));
+  if (!words || [...words[2]].length <= most) return;
+  const kept = [...words[2]].slice(0, most).join("");
+  view.dispatch({ changes: { from: head.from + words[1].length, to: head.to, insert: kept } });
+};
+
 const labelled = EditorState.transactionFilter.of((tr) => {
   if (!tr.docChanged || tr.isUserEvent("input.type.compose")) return tr;
   // A label or a hint is one line, so a pasted break would start words under it.
@@ -205,6 +215,7 @@ export const edited = (
   const leave = () => {
     if (gone) return;
     gone = true;
+    if (oneLine) held(view, said);
     settle(view);
     const text = view.state.sliceDoc();
     view.destroy();

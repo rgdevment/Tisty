@@ -205,7 +205,7 @@ const sectioned = (page: Document, size: number) => {
 
 const stepped = (page: Document, bytes: Uint8Array) => {
   const decoder = new TextDecoder();
-  for (const list of page.querySelectorAll<HTMLElement>(".page > ul[data-at]")) {
+  for (const list of page.querySelectorAll<HTMLElement>(".page > :is(ul, ol)[data-at]")) {
     const boxes = list.querySelectorAll(":scope > li.task > .check");
     if (!boxes.length) continue;
     const done = list.querySelectorAll(':scope > li.task > .check[data-done="true"]').length;
@@ -217,7 +217,7 @@ const stepped = (page: Document, bytes: Uint8Array) => {
     // A step added under a list takes its mark, or it would start a list of its own.
     const at = spanned(list.dataset.at ?? null);
     const said = at ? decoder.decode(bytes.subarray(at[0], at[1])) : "";
-    add.dataset.seed = `${/^[ \t>]*([-*+])/.exec(said)?.[1] ?? "-"} [ ] `;
+    add.dataset.seed = `${/^[ \t>]*([-*+]|\d+[.)])/.exec(said)?.[1] ?? "-"} [ ] `;
     add.textContent = `+ ${t("addStep")}`;
     list.after(add);
   }

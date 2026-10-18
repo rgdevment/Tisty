@@ -109,19 +109,20 @@ function Written({
   // Settles wait their turn, so two of them never weigh the same old text and add a step twice.
   const settled = (before: string, now: string) => {
     if (!onSettle) return;
-    line.current = line.current
-      .then(async () => {
-        const from = unsettled.current ?? before;
-        const problem = await onSettle(from, now);
-        if (problem === null) {
-          if (unsettled.current === from) unsettled.current = null;
-          return;
-        }
-        // A settle that failed left its lines unlearnt, so the next one still starts from its text.
-        unsettled.current ??= from;
-        if (problem === "documentMoved") away();
-      })
-      .catch(() => {});
+    line.current = line.current.then(async () => {
+      const from = unsettled.current ?? before;
+      const problem = await onSettle(from, now).catch((e: unknown) => {
+        failed.current?.(e);
+        return "failed";
+      });
+      if (problem === null) {
+        if (unsettled.current === from) unsettled.current = null;
+        return;
+      }
+      // A settle that failed left its lines unlearnt, so the next one still starts from its text.
+      unsettled.current ??= from;
+      if (problem === "documentMoved") away();
+    });
   };
 
   const flush = useCallback(() => {

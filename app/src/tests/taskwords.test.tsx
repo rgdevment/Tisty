@@ -88,7 +88,7 @@ describe("an open task", () => {
 describe("a closed task", () => {
   it("gets no document it never had", async () => {
     render(<TaskWords task={task("done")} />);
-    await settle();
+    await waitFor(() => expect(sent("task_doc_open")).toHaveLength(1));
     await settle();
 
     expect(sent("task_doc_make")).toHaveLength(0);

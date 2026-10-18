@@ -184,10 +184,10 @@ export default function Sheet(props: Readonly<Props>) {
     const line = latest.current.includes("\r\n") ? "\r\n" : "\n";
     const upto = latest.current.slice(0, from);
     // A box added right under a list joins it, where a blank line would split it in two.
-    const mark = /^([-*+]) \[ \] /.exec(seed)?.[1];
+    const mark = /^([-*+]|\d+[.)]) \[ \] /.exec(seed)?.[1];
+    const lead = mark && (/^\d/.test(mark) ? `\\d+\\${mark.slice(-1)}` : `\\${mark}`);
     const joins =
-      mark !== undefined &&
-      new RegExp(`(^|\\n)[ \\t>]*\\${mark} \\[[ xX]\\][^\\n]*\\n?$`).test(upto);
+      lead !== undefined && new RegExp(`(^|\\n)[ \\t>]*${lead} \\[[ xX]\\][^\\n]*\\n?$`).test(upto);
     const ahead = !fresh
       ? ""
       : joins

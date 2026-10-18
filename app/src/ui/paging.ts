@@ -1,6 +1,8 @@
 import { common, createLowlight } from "lowlight";
 import { DOC } from "../markdown";
+import bar from "./bar.css?raw";
 import sheet from "./page.css?raw";
+import task from "./taskpage.css?raw";
 
 export const HUES = [
   "red",
@@ -50,7 +52,7 @@ export const escaped = (said: string): string =>
   said.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 export const shell = (html: string): string =>
-  `<!doctype html><html lang="${document.documentElement.lang}" class="${darkNow() ? "dark" : ""}"><head><meta charset="utf-8"><style>:root{${worn()}}</style><style>${sheet}</style></head><body><article class="page" inert>${html}</article></body></html>`;
+  `<!doctype html><html lang="${document.documentElement.lang}" class="${darkNow() ? "dark" : ""}"><head><meta charset="utf-8"><style>:root{${worn()}}</style><style>${sheet}${bar}${task}</style></head><body><article class="page" inert>${html}</article></body></html>`;
 
 export const dressed = (page: Document) => {
   const theirs = getComputedStyle(document.documentElement);

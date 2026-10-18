@@ -10,6 +10,7 @@ import Fields from "./Fields";
 import History from "./History";
 import Left from "./Left";
 import Menu, { type Choice } from "./Menu";
+import Panel from "./Panel";
 import Routine from "./Routine";
 import Section from "./Section";
 import { saidBy } from "./Spoke";
@@ -222,55 +223,38 @@ export default function Detail({
   const shown = task.status === "open" ? body : sealed;
   const left = (whole?.open ?? 0) + (whole?.away ?? 0);
 
+  const settled = (edge?: number) => (
+    <Settled
+      task={task}
+      edge={edge}
+      onComplete={onComplete}
+      onDiscard={onDiscard}
+      onReopen={onReopen}
+      onStillOpen={onStillOpen}
+      onErase={onErase}
+      onFold={onFold}
+      onReadAs={onReadAs}
+      onOpenToAgents={onOpenToAgents}
+      shaping={shaping}
+      onShape={held ? undefined : setShaping}
+      left={left}
+    />
+  );
+
   if (!expanded) {
     return (
-      <aside
-        ref={opened}
-        tabIndex={-1}
+      <Panel
+        label={task.title}
+        apart={apart}
+        held={opened}
         onKeyDown={leave}
-        aria-label={task.title}
-        className={`absolute top-11 bottom-3 z-20 flex w-[380px] flex-col overflow-hidden rounded-[10px] border border-hair bg-sheet shadow-lift [&_.gutter]:px-0 outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset ${apart ?? "right-3"}`}
+        onExpand={onExpand}
+        onClose={onClose}
+        footer={settled()}
       >
-        <div className="flex items-center justify-end gap-1 px-3 pt-2.5 text-[13px] text-faint">
-          <button
-            type="button"
-            onClick={onExpand}
-            title={t("expand")}
-            aria-label={t("expand")}
-            className="flex h-6 w-6 items-center justify-center rounded-md hover:bg-hover hover:text-accent"
-          >
-            <span aria-hidden="true">⤢</span>
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            title={t("closePanel")}
-            aria-label={t("closePanel")}
-            aria-keyshortcuts="Escape"
-            className="flex h-6 w-6 items-center justify-center rounded-md hover:bg-hover hover:text-ink"
-          >
-            <span aria-hidden="true">✕</span>
-          </button>
-        </div>
-        <div className="scroller flex-1 pt-1.5 pb-7 [&>*]:px-5">
-          {shown}
-          {aside}
-        </div>
-        <Settled
-          task={task}
-          onComplete={onComplete}
-          onDiscard={onDiscard}
-          onReopen={onReopen}
-          onStillOpen={onStillOpen}
-          onErase={onErase}
-          onFold={onFold}
-          onReadAs={onReadAs}
-          onOpenToAgents={onOpenToAgents}
-          shaping={shaping}
-          onShape={held ? undefined : setShaping}
-          left={left}
-        />
-      </aside>
+        {shown}
+        {aside}
+      </Panel>
     );
   }
 
@@ -301,21 +285,7 @@ export default function Detail({
           <div className="min-w-0">{aside}</div>
         </div>
       </div>
-      <Settled
-        task={task}
-        edge={edge}
-        onComplete={onComplete}
-        onDiscard={onDiscard}
-        onReopen={onReopen}
-        onStillOpen={onStillOpen}
-        onErase={onErase}
-        onFold={onFold}
-        onReadAs={onReadAs}
-        onOpenToAgents={onOpenToAgents}
-        shaping={shaping}
-        onShape={held ? undefined : setShaping}
-        left={left}
-      />
+      {settled(edge)}
     </main>
   );
 }
