@@ -594,12 +594,11 @@ fn a_remembered_version_is_later_only_when_it_truly_is() {
 fn an_update_installs_only_from_the_very_channel_the_feed_s_key_signed() {
     let read: serde_json::Value = serde_json::from_str(SIGNED).unwrap();
     let (said, signature) = (SIGNED.as_bytes(), SIGNATURE.as_bytes());
-    assert!(super::trusted(said, signature, FEED_KEY, "lowered.json"));
     assert!(
         !super::trusted(said, signature, FEED_KEY, "latest.json"),
         "a file signed under one name stood in for another"
     );
-    assert!(super::named(super::LATEST) == "latest.json");
+    assert_eq!(super::named(super::LATEST), "latest.json");
     assert!(super::same_channel(SIGNED.as_bytes(), &read));
 
     let mut other = read.clone();

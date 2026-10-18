@@ -314,20 +314,15 @@ fn read_signed(
     wanted: impl Fn(&[u8]) -> bool,
 ) -> Signed {
     let fresh = format!("?at={}", jiff::Timestamp::now().as_second());
-    let mut heard = false;
     for past in ["", fresh.as_str()] {
         let Some((said, signature)) = pair(client, url, past) else {
-            continue;
+            return Signed::Nothing;
         };
-        heard = true;
         if trusted(&said, &signature, key, named(url)) && wanted(&said) {
             return Signed::Said(said);
         }
     }
-    match heard {
-        true => Signed::Unsigned,
-        false => Signed::Nothing,
-    }
+    Signed::Unsigned
 }
 
 /// A look that never answered is Nothing; Unsigned is only a feed that answered and did not verify.

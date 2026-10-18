@@ -186,8 +186,14 @@ jobs:
               echo "::warning::$one for $said comes from before the feed was signed"
               return 0
             fi
-            if ! minisign -V -P "$FEED_KEY" -m "$one" -x "$one.sig" >/dev/null; then
+            local told
+            if ! told=$(minisign -V -P "$FEED_KEY" -m "$one" -x "$one.sig"); then
               echo "::error::$one.sig does not answer to FEED_KEY, so no copy built with it takes $one"
+              return 1
+            fi
+            # The app takes a signature only when its signed comment names the file, so a copied one is caught here too.
+            if ! grep -qw -- "file:$one" <<<"$told"; then
+              echo "::error::$one.sig was signed for another file, so no copy built with FEED_KEY takes $one"
               return 1
             fi
             echo "$one for $said is signed"
