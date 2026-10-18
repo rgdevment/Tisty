@@ -38,6 +38,7 @@ pub mod shape;
 mod shelving;
 pub mod signing;
 pub mod speaking;
+pub mod stages;
 pub mod state;
 pub mod store;
 pub mod story;
