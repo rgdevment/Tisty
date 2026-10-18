@@ -410,12 +410,25 @@ export const wired = (page: Document, reach: () => Reaching) => {
   });
 };
 
-// A box shows, under the pointer, when its step was added and when it was ticked.
+// A step is kept as written, marks and all, and cut past its length; the page shows only its words.
+const bare = (said: string): string =>
+  said
+    .replace(/…$/, "")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim()
+    .toLowerCase();
+
 export const datedSteps = (page: Document, dates?: Readonly<Record<string, string>>) => {
+  const known = Object.entries(dates ?? {}).map(
+    ([said, line]) => [bare(said), line, said.endsWith("…")] as const,
+  );
   for (const one of page.querySelectorAll<HTMLElement>(".page li.task")) {
     const own = one.cloneNode(true) as HTMLElement;
     for (const inner of own.querySelectorAll("ul, ol")) inner.remove();
-    const said = dates?.[(own.textContent ?? "").replace(/\s+/g, " ").trim()];
+    const words = bare(own.textContent ?? "");
+    const said = known.find(
+      ([key, , cut]) => key && (words === key || (cut && words.startsWith(key))),
+    )?.[1];
     if (said) one.title = said;
     else one.removeAttribute("title");
   }

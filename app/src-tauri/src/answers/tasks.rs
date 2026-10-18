@@ -768,7 +768,7 @@ pub fn task_step_dates(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
 ) -> Answer<Vec<tisty_core::dated::Dated>> {
-    let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
+    let id = super::parts::task_id(&id)?;
     let mut session = held(&session);
     session.reload()?;
     let Some(task) = session.state.tasks.get(&id).cloned() else {

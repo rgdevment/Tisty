@@ -190,10 +190,12 @@ pub fn reconciled_with(
         false,
     );
     let mut was_of = paired(&texts(&was), &texts(&is), true);
+    let flat = |said: &str| one_line(said.trim().trim_end_matches('\\'));
     for (said, says) in renamed {
+        let (said, says) = (flat(said), flat(says));
         let taken: Vec<usize> = was_of.iter().flatten().copied().collect();
-        let old = (0..was.len()).find(|at| !taken.contains(at) && was[*at].text == *said);
-        let new = (0..is.len()).find(|at| was_of[*at].is_none() && is[*at].text == *says);
+        let old = (0..was.len()).find(|at| !taken.contains(at) && was[*at].text == said);
+        let new = (0..is.len()).find(|at| was_of[*at].is_none() && is[*at].text == says);
         if let (Some(old), Some(new)) = (old, new) {
             was_of[new] = Some(old);
         }

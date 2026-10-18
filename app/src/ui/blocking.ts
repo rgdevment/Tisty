@@ -4,6 +4,7 @@ import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import {
   EditorState,
+  MapMode,
   Prec,
   type RangeSet,
   RangeSetBuilder,
@@ -29,7 +30,7 @@ import { coded, owning } from "./formatting";
 import { HUES } from "./paging";
 import { pendingFormat, pendingKeys, settle } from "./pending";
 import { visual } from "./seeing";
-import { type Asking, putBlock, slashing } from "./slashing";
+import { type Asking, BOX, putBlock, slashing } from "./slashing";
 import { tableKeys } from "./tabling";
 
 const PENS = ["yellow", ...HUES];
@@ -97,8 +98,6 @@ const pasting = (event: ClipboardEvent, view: EditorView, asking?: () => Asking 
   return rich(event, { view, lost: asking?.()?.lost });
 };
 
-const BOX = /^[\s>]*(?:[-*+]|\d+[.)])\s+\[[ xX]\]\s+(.*)$/;
-
 class Boxed extends RangeValue {
   constructor(readonly said: string) {
     super();
@@ -121,10 +120,18 @@ const boxesIn = (doc: Text): RangeSet<Boxed> => {
 // Each box keeps what it said when the block opened, following its line through every edit.
 const boxed = StateField.define<RangeSet<Boxed>>({
   create: (state) => boxesIn(state.doc),
-  update: (set, tr) => set.map(tr.changes),
+  // A box whose line went away takes its mark along, so the line under it never inherits it.
+  update: (set, tr) => {
+    if (!tr.docChanged) return set;
+    const kept = new RangeSetBuilder<Boxed>();
+    for (let at = set.iter(); at.value; at.next()) {
+      const to = tr.changes.mapPos(at.from, 1, MapMode.TrackAfter);
+      if (to !== null) kept.add(to, to, at.value);
+    }
+    return kept.finish();
+  },
 });
 
-/** The boxes written over in this block, as they read before and after: a step's own line. */
 export const renamedIn = (state: EditorState): [string, string][] => {
   const out: [string, string][] = [];
   const seen = new Set<number>();

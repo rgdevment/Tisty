@@ -380,13 +380,19 @@ export const offered =
 
 const STEPPED = /\[\[#\d*$/;
 
+export const BOX = /^[\s>]*(?:[-*+]|\d+[.)])\s+\[[ xX]\]\s+(.*)$/;
+
 // The boxes a page holds, counted as they are read, which is how `[[#2]]` names the second.
 export const stagesIn = (text: string): string[] => {
   const out: string[] = [];
-  let fenced = false;
+  let fence: string | null = null;
   for (const line of text.split(/\r?\n/)) {
-    if (/^\s*(```|~~~)/.test(line)) fenced = !fenced;
-    const box = fenced ? null : /^[\s>]*(?:[-*+]|\d+[.)])\s+\[[ xX]\]\s+(.*)$/.exec(line);
+    const mark = /^\s*(```|~~~)/.exec(line)?.[1] ?? null;
+    if (mark && (fence === null || fence === mark)) {
+      fence = fence === null ? mark : null;
+      continue;
+    }
+    const box = fence ? null : BOX.exec(line);
     if (box) out.push(box[1].trim());
   }
   return out;
