@@ -190,11 +190,13 @@ pub fn complete(
         .collect::<Result<Vec<_>, _>>()?;
     let mut session = held(&session);
     let closing = super::task_docs::closing_words(&mut session, id, summary.as_deref());
-    let mut ops = closing.ops;
-    ops.extend(match also.is_empty() {
+    if !closing.ops.is_empty() {
+        session.commit_all(closing.ops)?;
+    }
+    let ops = match also.is_empty() {
         true => session.state.completing(id, jiff::Zoned::now()),
         false => session.state.covering(id, jiff::Zoned::now(), &also),
-    });
+    };
     session.commit_all(ops)?;
     if let Some(said) = &closing.said {
         super::task_docs::round_cleared(&mut session, id, said);

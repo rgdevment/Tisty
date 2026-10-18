@@ -155,6 +155,8 @@ properties written at the top. `docs` never lists one; `find` hands back its tas
 words are found there, with `in` set to `document`.
 
 The document tools refuse a task's page: its words are the task's, behind the task's own door. \
+The one way in is `append_doc` named by the task's id, on a task opened to agents or one you \
+filed: it adds under the assistant's own notes, dated and signed, never among their words. \
 On a task you fill in, `describe` writes its Description section, `plan` adds boxes under its \
 steps, `reword_step` rewrites a box's line, `unplan` takes it off, and `tick` and `untick` mark \
 it — the page and the steps always agree. The sections are the person's: rename, add or take \
@@ -566,7 +568,7 @@ pub(super) fn tools() -> Value {
         {
             "name": "append_doc",
             "title": "Add to a document",
-            "description": "Add to a document that exists, at the end or under a heading you name. What is already written stays exactly as it is — you are adding, never rewriting, so nothing the person wrote can be lost and no `print` is needed. Use it to keep a document alive: a running minute, a log, a list that grows. With `under` you can put a paragraph in the right part of a long document without reading any of it; `outline_doc` tells you which headings there are. The answer says how many characters it `grew` by; with `echo` it hands back the lines around what you added.",
+            "description": "Add to a document that exists, at the end or under a heading you name. What is already written stays exactly as it is — you are adding, never rewriting, so nothing the person wrote can be lost and no `print` is needed. Use it to keep a document alive: a running minute, a log, a list that grows. With `under` you can put a paragraph in the right part of a long document without reading any of it; `outline_doc` tells you which headings there are. The answer says how many characters it `grew` by; with `echo` it hands back the lines around what you added. A task's page takes it too, named by the task's id, once the person opened that task to agents: what you add goes under the assistant's own notes, dated and signed, never among their words.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": named_doc_field(),

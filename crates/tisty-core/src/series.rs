@@ -28,7 +28,6 @@ pub struct Turn {
     pub steps: usize,
     #[serde(default, skip_serializing_if = "is_none_at_all")]
     pub steps_done: usize,
-    /// What the round left in its log: how it went and what it wrote this time.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub said: Vec<String>,
 }

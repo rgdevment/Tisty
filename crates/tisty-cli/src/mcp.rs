@@ -9,6 +9,7 @@ mod looking;
 mod mending;
 mod papers;
 mod spoken;
+mod task_notes;
 mod unpathing;
 mod wholes;
 mod worded;

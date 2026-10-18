@@ -227,3 +227,50 @@ fn a_task_with_no_page_gets_one_from_its_template_the_first_time_it_is_written()
     assert!(body.contains("Book it before Friday."), "{body}");
     assert_eq!(body.matches("Book it before Friday.").count(), 1, "{body}");
 }
+
+#[test]
+fn an_assistant_adds_to_the_page_of_a_task_it_filed_under_its_own_notes_by_the_task_s_id() {
+    let served = Served::new();
+    let filed = served.call("propose", serde_json::json!({ "title": "Rina's booster" }));
+    let task = filed["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.written_for(&task, "The person's own words.");
+
+    let added = served.call(
+        "append_doc",
+        serde_json::json!({ "doc": task, "body": "## Price\nForty at the vet.", "under": "Notes" }),
+    );
+
+    assert_ne!(added["result"]["isError"], true, "{added}");
+    let said = added["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(said.contains("assistant's notes"), "{said}");
+    let file = format!("t_{}-0001", task.to_ascii_lowercase());
+    let read = served.call("read_doc", serde_json::json!({ "doc": file }));
+    let body = read["result"]["structuredContent"]["body"]
+        .as_str()
+        .unwrap_or_default();
+    assert!(body.contains("The person's own words."), "{read}");
+    assert!(body.contains("## Assistant notes"), "{read}");
+    assert!(body.contains("### Price\nForty at the vet."), "{read}");
+}
+
+#[test]
+fn a_task_the_person_kept_to_themselves_takes_no_assistant_notes_on_its_page() {
+    let served = Served::new();
+    let found = served.call("find", serde_json::json!({ "query": "algo mio" }));
+    let task = found["result"]["structuredContent"]["matches"][0]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let refused = served.call(
+        "append_doc",
+        serde_json::json!({ "doc": task, "body": "Slipped in." }),
+    );
+
+    assert_eq!(refused["result"]["isError"], true, "{refused}");
+    let said = refused["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(said.contains("person's own"), "{said}");
+}
