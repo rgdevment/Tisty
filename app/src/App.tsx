@@ -49,6 +49,7 @@ export default function App() {
     papered,
     lane,
     aside,
+    beside,
   } = desk;
   const choose = (next: Chosen) => {
     setChosen(next);
@@ -115,7 +116,7 @@ export default function App() {
           </div>
 
           {aside && (
-            <div className="hidden @max-[884px]:block">
+            <div className={beside ? "hidden @max-[1536px]:block" : "hidden @max-[884px]:block"}>
               <Spine
                 coming={data.ahead ?? []}
                 routines={data.routines ?? []}

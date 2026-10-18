@@ -12,6 +12,7 @@ type Props = Reaching & {
   readonly stranger: boolean;
   readonly tall?: boolean;
   readonly untitled?: boolean;
+  readonly shaping?: boolean;
   readonly wide?: number;
   readonly zoom?: number;
   readonly onOutline?: (heads: Head[]) => void;
@@ -103,6 +104,7 @@ export default function Page(props: Readonly<Props>) {
           stranger={stranger}
           tall={tall}
           untitled={props.untitled}
+          shaping={props.shaping}
           hidden={one.turn !== shown}
           wide={wide}
           sheet={props.sheet}
@@ -113,6 +115,7 @@ export default function Page(props: Readonly<Props>) {
             // A page with a newer drawing on its way names bytes nobody is writing any more.
             onBlock: one.turn === turns.current ? reach.current.onBlock : undefined,
             onTick: one.turn === turns.current ? reach.current.onTick : undefined,
+            onCut: one.turn === turns.current ? reach.current.onCut : undefined,
             onWiden: one.turn === turns.current ? reach.current.onWiden : undefined,
             onFormat: one.turn === turns.current ? reach.current.onFormat : undefined,
             onMenu: one.turn === turns.current ? reach.current.onMenu : undefined,

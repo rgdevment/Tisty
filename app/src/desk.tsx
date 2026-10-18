@@ -5,18 +5,21 @@ import { docChoices, folderChoices, type Hands, hereChoices } from "./docMenus";
 import { layoutOf } from "./layout";
 import { t } from "./locales";
 import { saidPlainly } from "./refusal";
-import type { useWindow } from "./windowing";
+import type { Mode, useWindow } from "./windowing";
 
 type State = ReturnType<typeof useWindow>;
 
 export function deskOf(state: State, data: Snapshot) {
   const {
+    tight,
     say,
     error,
     setError,
     selected,
     setSelected,
     setReturning,
+    mode,
+    setMode,
     chosen,
     setChosen,
     found,
@@ -67,11 +70,18 @@ export function deskOf(state: State, data: Snapshot) {
       )
     : [];
 
-  const { sheet, aside, quiet, papered, lane } = layoutOf({
+  const { sheet, beside, aside, quiet, papered, lane } = layoutOf({
     chosen,
     open,
+    mode,
+    tight,
     calm: !asking && !greet && !leaving && !torn && !asked && !afoot && !error && !parcels.asking,
   });
+
+  const remember = (next: Mode) => {
+    localStorage.setItem("detail", next);
+    setMode(next);
+  };
 
   const wipe = (task: Task) =>
     erasing(task, {
@@ -158,10 +168,12 @@ export function deskOf(state: State, data: Snapshot) {
     open,
     taggedDocs,
     sheet,
+    beside,
     aside,
     quiet,
     papered,
     lane,
+    remember,
     wipe,
     hands,
     hereMenu,

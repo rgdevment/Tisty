@@ -1,11 +1,11 @@
-import { startCompletion } from "@codemirror/autocomplete";
+import { closeCompletion } from "@codemirror/autocomplete";
 import type { EditorView, KeyBinding } from "@codemirror/view";
 import { frontLines } from "../front";
 import { markup } from "../glyphs";
 import { t } from "../locales";
 import { coded, wrapped } from "./formatting";
 import { marksShown, showMarks } from "./seeing";
-import { holding, pressed, putBlock } from "./slashing";
+import { openMenu, pressed, putBlock } from "./slashing";
 import { type Retable, retable, tableHere } from "./tabling";
 
 type Said = Parameters<typeof t>[0];
@@ -160,6 +160,16 @@ export const FORMATS = [
   ["linkIt", "K", "[", "]()", "link"],
 ] as const;
 
+const FOLDED = "tisty.barFolded";
+
+const foldedBefore = (): boolean => {
+  try {
+    return localStorage.getItem(FOLDED) === "1";
+  } catch {
+    return false;
+  }
+};
+
 export type Barred = {
   readonly bar: HTMLElement;
   readonly hint: HTMLElement;
@@ -206,8 +216,11 @@ const drawnIn = (page: Document, name: string) => {
 
 export const formatButtons = (page: Document, pick: (open: string, close: string) => void) => ({
   formats: FORMATS.map(([said, keys, open, close, icon]) => {
-    const one = buttonIn(page, "cm-bar-button", `${t(said)} (${pressed(keys)})`, () =>
-      pick(open, close),
+    const one = buttonIn(
+      page,
+      `cm-bar-button cm-bar-${icon}`,
+      `${t(said)} (${pressed(keys)})`,
+      () => pick(open, close),
     );
     one.append(drawnIn(page, icon));
     return one;
@@ -231,11 +244,12 @@ export const barred = (view: EditorView): Barred => {
   bar.setAttribute("aria-label", t("formatting"));
 
   const kind = button("cm-bar-kind", t("blockKind"), () => {
+    closeCompletion(view);
     const shown = tabled ? table : menu;
     shown.toggleAttribute("hidden");
   });
-  const kindSaid = made("span", "", t("paragraph"));
-  kind.append(kindSaid, made("span", "cm-bar-caret", "▾"));
+  const kindSaid = made("span", "cm-bar-kind-said", t("paragraph"));
+  kind.append(made("span", "", "¶"), kindSaid, made("span", "cm-bar-caret", "▾"));
   const menu = made("div", "cm-bar-menu");
   menu.setAttribute("role", "menu");
   menu.hidden = true;
@@ -274,19 +288,30 @@ export const barred = (view: EditorView): Barred => {
   kinds.append(kind, menu, table);
 
   const { formats, pens } = formatButtons(page, (open, close) => wrapped(view, open, close));
-  const slash = button("cm-bar-button cm-bar-more", t("insertLabel"), () => {
-    const { from: start, to: from } = view.state.selection.main;
-    const before = view.state.sliceDoc(Math.max(0, from - 1), from);
-    const insert = before && !/\s/.test(before) ? " /" : "/";
-    if (start < from) holding(view, { from: start, to: from, slash: from + insert.length - 1 });
-    view.dispatch({ changes: { from, insert }, selection: { anchor: from + insert.length } });
-    view.focus();
-    startCompletion(view);
-  });
-  slash.append(made("kbd", "", "/"), page.createTextNode(t("more")));
+  const slash = button(
+    "cm-bar-button cm-bar-more",
+    `${t("insertLabel")} (${pressed("/")})`,
+    () => openMenu(view),
+    "⋯",
+  );
+
+  const fold = button("cm-bar-button cm-bar-fold", t("barFold"), () => folding(!folded));
+  let folded = false;
+  const folding = (now: boolean) => {
+    folded = now;
+    bar.classList.toggle("folded", now);
+    fold.textContent = now ? "Aa" : "‹";
+    fold.setAttribute("aria-label", t(now ? "barOpen" : "barFold"));
+    fold.title = t(now ? "barOpen" : "barFold");
+    fold.setAttribute("aria-expanded", String(!now));
+    try {
+      localStorage.setItem(FOLDED, now ? "1" : "0");
+    } catch {}
+  };
 
   bar.append(kinds, made("span", "cm-bar-sep"), ...formats);
-  bar.append(made("span", "cm-bar-sep"), ...pens, made("span", "cm-bar-sep"), slash);
+  bar.append(made("span", "cm-bar-sep"), ...pens, made("span", "cm-bar-sep"), slash, fold);
+  folding(foldedBefore());
 
   const hint = made("div", "cm-hint");
   const key = (keys: string, said: string) => {
@@ -296,7 +321,7 @@ export const barred = (view: EditorView): Barred => {
   };
   const state = made("span", "cm-hint-kept");
   hint.append(
-    key("/", t("hintInsert")),
+    key(pressed("/"), t("hintInsert")),
     key("# ␣", t("bigTitle").toLocaleLowerCase()),
     key(pressed("Shift M"), t("hintMarks")),
     key("Esc", t("hintRead")),

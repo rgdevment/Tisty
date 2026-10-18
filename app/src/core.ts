@@ -334,7 +334,8 @@ export const patch = (id: string, change: Change): Promise<Task> =>
   invoke("patch", { id, change, locale: navigator.language });
 export type TaskDoc = { readonly file: string; readonly body: string; readonly held: boolean };
 export const taskDocOpen = (id: string): Promise<TaskDoc | null> => invoke("task_doc_open", { id });
-export const taskDocMake = (id: string): Promise<string> => invoke("task_doc_make", { id });
+export const taskDocMake = (id: string, template: string): Promise<string> =>
+  invoke("task_doc_make", { id, template });
 export const taskDocSettled = (id: string, before: string, now: string): Promise<Task | null> =>
   invoke("task_doc_settled", { id, before, now });
 export const partsOf = (id: string): Promise<Task[]> => invoke("parts_of", { id });

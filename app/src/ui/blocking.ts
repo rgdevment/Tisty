@@ -16,6 +16,7 @@ import { tags } from "@lezer/highlight";
 import { docFromHtml, docFromText } from "../core";
 import { known } from "../glyphs";
 import { barred, blockKeys, flipped } from "./barring";
+import { docked } from "./docking";
 import { coded, owning } from "./formatting";
 import { HUES } from "./paging";
 import { pendingFormat, pendingKeys, settle } from "./pending";
@@ -162,12 +163,22 @@ export const caretAt = (source: string, read: string): number => {
   return source.length;
 };
 
+const LABEL = 20;
+
+// A task's section name is a short label, so the template refuses a longer one as it is typed.
+const labelled = EditorState.transactionFilter.of((tr) => {
+  if (!tr.docChanged) return tr;
+  const words = /^#{1,6}\s+(.*)$/.exec(tr.newDoc.line(1).text)?.[1];
+  return words !== undefined && [...words].length > LABEL ? [] : tr;
+});
+
 export const edited = (
   block: HTMLElement,
   said: string,
   onChange: (text: string) => void,
   onLeave: (text: string) => void,
   asking?: () => Asking | undefined,
+  oneLine = false,
 ): Editing => {
   const page = block.ownerDocument;
   const host = page.createElement("div");
@@ -184,14 +195,14 @@ export const edited = (
   block.replaceWith(host);
   let gone = false;
   let follow = (_: EditorView) => {};
-  let hint: HTMLElement = page.createElement("div");
+  let undock = () => {};
   const leave = () => {
     if (gone) return;
     gone = true;
     settle(view);
     const text = view.state.sliceDoc();
     view.destroy();
-    hint.remove();
+    undock();
     host.replaceWith(block);
     onLeave(text);
   };
@@ -212,6 +223,14 @@ export const edited = (
                 if (completionStatus(one.state) === "active") return closeCompletion(one);
                 leave();
                 return true;
+              },
+            },
+            // A template's label or hint is one line, so Enter ends it instead of starting words below.
+            {
+              key: "Enter",
+              run: () => {
+                if (oneLine) leave();
+                return oneLine;
               },
             },
             ...pendingKeys,
@@ -235,6 +254,7 @@ export const edited = (
         EditorView.domEventHandlers({ paste: (event, view) => pasting(event, view, asking) }),
         dressing,
         EditorView.lineWrapping,
+        oneLine ? labelled : [],
         EditorView.updateListener.of((update) => {
           if (update.docChanged) onChange(update.state.sliceDoc());
           if (update.transactions.length > 0) follow(update.view);
@@ -244,9 +264,7 @@ export const edited = (
   });
   const bar = barred(view);
   follow = bar.follow;
-  host.prepend(bar.bar);
-  hint = bar.hint;
-  host.append(hint);
+  undock = docked(bar.bar, bar.hint);
   view.focus();
   return { view, leave, kept: bar.kept };
 };

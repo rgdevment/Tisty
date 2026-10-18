@@ -71,8 +71,20 @@ const en = {
   internalNamed: "Something went wrong — {name}",
   steps: "Steps",
   history: "History",
+  addStep: "Add a step",
+  addSection: "Add a section",
+  dropSection: "Remove this section; what is written in it stays",
+  shapeEdit: "Template",
+  shapeDone: "Done",
+  shapeWhy: "Edit this task's template: rename, add or remove its sections",
+  templateTask:
+    "## Description\n<!-- What has to happen, and why? A line or two is enough. -->\n\n## Done when\n<!-- How you will know it is finished. -->\n\n## Steps\n<!-- - [ ] The first step -->\n\n## Notes\n<!-- What you find out along the way. -->\n\n## When it closes\n<!-- What worked? What would you do differently next time? -->\n",
+  templateRoutine:
+    "## What for\n<!-- Why this comes back, in a line. -->\n\n## Every round\n<!-- - [ ] What to do each round -->\n\n## This time\n<!-- Anything different this round? -->\n",
   description: "Description",
   collapse: "Back",
+  expand: "Open it whole",
+  closePanel: "Close the task",
   quadDo: "Do",
   quadDecide: "Schedule",
   quadDelegate: "Delegate",
@@ -234,6 +246,8 @@ const en = {
   helpGone: "The guide could not be read.",
   aboutBuild: "This build",
   insertLabel: "What to add",
+  barFold: "Hide the format bar",
+  barOpen: "Show the format bar",
   aboutWhat:
     "A local, private place for what you know: notes, documents and tasks. Nothing leaves this machine unless you set up syncing yourself.",
   aboutPrivacy:
@@ -2028,8 +2042,20 @@ const es: Catalog = {
   internalNamed: "Algo falló — {name}",
   steps: "Pasos",
   history: "Historial",
+  addStep: "Agregar un paso",
+  addSection: "Agregar una sección",
+  dropSection: "Quitar esta sección; lo escrito en ella se queda",
+  shapeEdit: "Plantilla",
+  shapeDone: "Listo",
+  shapeWhy: "Editar la plantilla de esta tarea: renombrar, agregar o quitar sus secciones",
+  templateTask:
+    "## Descripción\n<!-- ¿Qué hay que lograr y por qué? Una o dos líneas bastan. -->\n\n## Para estar lista\n<!-- Cómo vas a saber que está hecha. -->\n\n## Pasos\n<!-- - [ ] El primer paso -->\n\n## Notas\n<!-- Lo que vayas averiguando mientras la haces. -->\n\n## Al cerrarla\n<!-- ¿Qué funcionó? ¿Qué harías distinto la próxima vez? -->\n",
+  templateRoutine:
+    "## Para qué\n<!-- Por qué vuelve, en una línea. -->\n\n## Cada vuelta\n<!-- - [ ] Lo que hay que hacer cada vez -->\n\n## Esta vez\n<!-- ¿Algo distinto en esta vuelta? -->\n",
   description: "Descripción",
   collapse: "Volver",
+  expand: "Abrirla completa",
+  closePanel: "Cerrar la tarea",
   quadDo: "Hacer",
   quadDecide: "Planificar",
   quadDelegate: "Delegar",
@@ -2193,6 +2219,8 @@ const es: Catalog = {
   helpGone: "No se pudo leer la guía.",
   aboutBuild: "Esta versión",
   insertLabel: "Qué añadir",
+  barFold: "Ocultar la barra de formato",
+  barOpen: "Mostrar la barra de formato",
   aboutWhat:
     "Un lugar local y privado para lo que sabes: notas, documentos y tareas. Nada sale de esta máquina salvo que configures la sincronización tú.",
   aboutPrivacy:

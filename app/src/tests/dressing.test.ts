@@ -9,7 +9,7 @@ import {
   wired,
   worn,
 } from "../ui/dressing";
-import { charsAt, colored, dressed, escaped, saidKinds, shell } from "../ui/paging";
+import { charsAt, colored, dressed, escaped, saidKinds, shell, went } from "../ui/paging";
 
 const calls = vi.hoisted(() => ({
   links: [] as string[],
@@ -523,5 +523,139 @@ describe("a sheet with nothing written yet", () => {
     wired(drawn, () => reach);
     press(drawn.querySelector("p"), 0);
     expect(asked[0]).toEqual({ at: [0, 11], seed: "", read: "Leche y" });
+  });
+});
+
+describe("a task's template hints", () => {
+  const body =
+    "## Steps\n<!-- One box per step. -->\n\n## Notes\n<!-- Anything. -->\n\nCall at nine.\n";
+  const span = (said: string) => {
+    const from = body.indexOf(said);
+    return `${from}-${from + said.length}`;
+  };
+  const drawn = () => {
+    const one = page(
+      `<h2 data-at="${span("## Steps")}">Steps</h2>` +
+        `<div data-at="${span("<!-- One box per step. -->")}"></div>` +
+        `<h2 data-at="${span("## Notes")}">Notes</h2>` +
+        `<div data-at="${span("<!-- Anything. -->")}"></div>` +
+        `<p data-at="${span("Call at nine.")}">Call at nine.</p>`,
+    );
+    one.documentElement.classList.add("untitled");
+    return one;
+  };
+
+  it("shows a hint while its section is empty, and hides one whose section has words", () => {
+    const one = drawn();
+    worn(one, false, () => true, writer(body).reach);
+
+    const [first, second] = Array.from(one.querySelectorAll<HTMLElement>(".page > div[data-at]"));
+    expect(first.classList.contains("hint")).toBe(true);
+    expect(first.dataset.hint).toBe("One box per step.");
+    expect(second.classList.contains("hint-gone")).toBe(true);
+  });
+
+  it("leaves a document's comments alone", () => {
+    const one = drawn();
+    one.documentElement.classList.remove("untitled");
+    worn(one, false, () => true, writer(body).reach);
+
+    expect(one.querySelector(".hint, .hint-gone")).toBeNull();
+  });
+
+  it("begins writing right after the hint, keeping the comment", () => {
+    const one = drawn();
+    const { asked, reach } = writer(body);
+    worn(one, false, () => true, reach);
+    wired(one, () => reach);
+    press(one.querySelector(".hint"), 0);
+
+    const end = body.indexOf("<!-- One box per step. -->") + "<!-- One box per step. -->".length;
+    expect(asked).toEqual([{ at: [end, end], seed: "" }]);
+  });
+});
+
+describe("a task's steps on its page", () => {
+  it("shows a box hint as a ghost step that begins a box when pressed", () => {
+    const body = "## Steps\n<!-- - [ ] The first step -->\n";
+    const one = page(`<h2 data-at="0-8">Steps</h2><div data-at="9-${body.length - 1}"></div>`);
+    one.documentElement.classList.add("untitled");
+    const { asked, reach } = writer(body);
+    worn(one, false, () => true, reach);
+    wired(one, () => reach);
+
+    const hint = one.querySelector<HTMLElement>(".hint");
+    expect(hint?.classList.contains("step-hint")).toBe(true);
+    expect(hint?.dataset.hint).toBe("The first step");
+    press(hint, 0);
+    expect(asked).toEqual([{ at: [body.length - 1, body.length - 1], seed: "- [ ] " }]);
+  });
+
+  it("fills a bar as far as the boxes are ticked, and offers to add one after the list", () => {
+    const body = "- [x] one\n- [ ] two\n";
+    const one = page(
+      '<ul data-at="0-20"><li class="task" data-at="0-10"><span class="check" data-done="true"></span>one</li>' +
+        '<li class="task" data-at="10-20"><span class="check" data-done="false"></span>two</li></ul>',
+    );
+    one.documentElement.classList.add("untitled");
+    const { asked, reach } = writer(body);
+    worn(one, false, () => true, reach);
+    wired(one, () => reach);
+
+    expect(one.querySelector<HTMLElement>("ul")?.style.getPropertyValue("--done")).toBe("50%");
+    const add = one.querySelector<HTMLElement>(".page > .add-step");
+    expect(add).not.toBeNull();
+    press(add, 0);
+    expect(asked).toEqual([{ at: [20, 20], seed: "- [ ] " }]);
+  });
+
+  it("adds nothing of the kind to a document", () => {
+    const one = page(
+      '<ul data-at="0-10"><li class="task" data-at="0-10"><span class="check" data-done="false"></span>one</li></ul>',
+    );
+    worn(one, false, () => true, writer("- [ ] one\n").reach);
+
+    expect(one.querySelector(".add-step")).toBeNull();
+  });
+});
+
+describe("a task page only read", () => {
+  it("offers no hints and no way to add a step", () => {
+    const body = "## Steps\n<!-- - [ ] The first step -->\n";
+    const one = page(`<h2 data-at="0-8">Steps</h2><div data-at="9-${body.length - 1}"></div>`);
+    one.documentElement.classList.add("untitled");
+    worn(one, false, () => true, { body, onDoc: () => {} });
+
+    expect(one.querySelector(".hint, .add-step")).toBeNull();
+  });
+});
+
+describe("a task's section labels", () => {
+  it("start writing past their section while the task is filled in, and open the block while its structure is edited", () => {
+    const one = page(
+      '<h2 data-at="0-8">Steps <a href="https://x.y">x</a></h2><hr data-at="10-13"><h2 data-at="15-22">Notes</h2>',
+    );
+    one.documentElement.classList.add("untitled");
+    const label = one.querySelector("h2") as Element;
+
+    expect(went(label, false)).toEqual({ kind: "section", at: [10, 13] });
+    expect(went(one.querySelectorAll("h2")[1] as Element, false)).toEqual({
+      kind: "section",
+      at: [15, 22],
+    });
+    expect(went(one.querySelector("a") as Element, false)).toEqual({
+      kind: "web",
+      href: "https://x.y",
+    });
+
+    one.documentElement.classList.add("shaping");
+    expect(went(label, false)).toEqual({ kind: "block", at: [0, 8] });
+  });
+
+  it("let an empty label be mended, so a stray mark never locks the section", () => {
+    const one = page('<h1 data-at="0-2"></h1>');
+    one.documentElement.classList.add("untitled");
+
+    expect(went(one.querySelector("h1") as Element, false)).toEqual({ kind: "block", at: [0, 2] });
   });
 });

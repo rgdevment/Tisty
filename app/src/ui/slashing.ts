@@ -3,8 +3,10 @@ import {
   type Completion,
   type CompletionContext,
   type CompletionResult,
+  completionStatus,
+  startCompletion,
 } from "@codemirror/autocomplete";
-import { type EditorState, Prec } from "@codemirror/state";
+import { type EditorState, Prec, StateEffect, StateField } from "@codemirror/state";
 import { EditorView, type KeyBinding, keymap, tooltips } from "@codemirror/view";
 import { matched } from "../finding";
 import { markup } from "../glyphs";
@@ -299,15 +301,49 @@ const mac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator
 export const pressed = (keys: string): string => `${mac ? "⌘" : "Ctrl"} ${keys}`;
 
 const ASKED = /(?:^|\s)\/[\p{L}\p{N}_-]*$/u;
+const WORD = /^[\p{L}\p{N}_-]*$/u;
+
+const opened = StateEffect.define<number>();
+
+// The menu asked for without a slash lives while what follows its place is still one word.
+const openedAt = StateField.define<number | null>({
+  create: () => null,
+  update(at, tr) {
+    for (const one of tr.effects) if (one.is(opened)) return one.value;
+    if (at === null || tr.isUserEvent("input.complete")) return null;
+    if (completionStatus(tr.startState) && !completionStatus(tr.state)) return null;
+    const next = tr.changes.mapPos(at);
+    const head = tr.state.selection.main.head;
+    return head >= next && WORD.test(tr.state.sliceDoc(next, head)) ? next : null;
+  },
+});
+
+export const openMenu = (view: EditorView): boolean => {
+  const { from, to } = view.state.selection.main;
+  if (from < to) holding(view, { from, to, slash: to });
+  else held.delete(view);
+  view.dispatch({ effects: opened.of(to), selection: { anchor: to } });
+  view.focus();
+  startCompletion(view);
+  return true;
+};
+
+const askedHere = (context: CompletionContext): { from: number; word: number } | null => {
+  const at = context.state.field(openedAt, false);
+  if (at !== null && at !== undefined) return { from: at, word: at };
+  const found = context.matchBefore(ASKED);
+  if (!found) return null;
+  const slash = found.from + found.text.indexOf("/");
+  return { from: slash, word: slash + 1 };
+};
 
 export const offered =
   (asking?: () => Asking | undefined) =>
   (context: CompletionContext): CompletionResult | null => {
-    const found = context.matchBefore(ASKED);
-    if (!found) return null;
-    const slash = found.from + found.text.indexOf("/");
-    if (coded(context.state, slash)) return null;
-    const word = context.state.sliceDoc(slash + 1, context.pos);
+    const asked = askedHere(context);
+    if (!asked || coded(context.state, asked.from)) return null;
+    const slash = asked.from;
+    const word = context.state.sliceDoc(asked.word, context.pos);
     const shown = SLASHED.filter(
       (one) =>
         (!("ask" in one.put) || asking?.()?.kinds.includes(one.put.ask)) &&
@@ -477,7 +513,8 @@ export const slashing = (asking?: () => Asking | undefined) => [
     addToOptions: [{ render: drawn, position: 20 }],
     aboveCursor: false,
   }),
-  Prec.high(keymap.of([...formats, linking])),
+  openedAt,
+  Prec.high(keymap.of([...formats, linking, { key: "Mod-/", run: openMenu }])),
   tooltips({ tooltipSpace: room }),
   dressed(),
 ];

@@ -104,24 +104,67 @@ fn turn(state: &State, task: TaskId) -> u32 {
 }
 
 pub fn first_words(state: &State, task: TaskId) -> String {
-    let mut out = seed(task);
-    let Some(one) = state.tasks.get(&task) else {
-        return out;
-    };
-    if let Some(said) = one
-        .description
-        .as_deref()
+    opened(state, task, "")
+}
+
+pub fn opened(state: &State, task: TaskId, template: &str) -> String {
+    let one = state.tasks.get(&task);
+    let mut said = one
+        .and_then(|one| one.description.as_deref())
         .map(str::trim)
-        .filter(|said| !said.is_empty())
-    {
+        .filter(|said| !said.is_empty());
+    let mut steps = one.map(|one| crate::stages::lines(&crate::stages::ordered(one)));
+    let mut out = seed(task);
+    let template = template.replace("\r\n", "\n");
+    let template = template.trim();
+    if !template.is_empty() {
+        out.push('\n');
+        let mut gap = false;
+        for line in template.lines() {
+            if std::mem::take(&mut gap) && !line.trim().is_empty() {
+                out.push('\n');
+            }
+            out.push_str(line);
+            out.push('\n');
+            let Some(hint) = hinted(line) else {
+                continue;
+            };
+            let held = match boxed(hint) {
+                true => steps.take().filter(|lines| !lines.is_empty()),
+                false => said.take().map(|said| format!("{said}\n")),
+            };
+            if let Some(held) = held {
+                out.push('\n');
+                out.push_str(&held);
+                gap = true;
+            }
+        }
+    }
+    if let Some(said) = said {
         out.push_str(&format!("\n{said}\n"));
     }
-    let steps = crate::stages::ordered(one);
-    if !steps.is_empty() {
-        out.push('\n');
-        out.push_str(&crate::stages::lines(&steps));
+    match one {
+        Some(one) => crate::stages::ticked(one, &out),
+        None => out,
     }
-    out
+}
+
+// The window reads a box hint the same way, so both agree on which hint asks for steps.
+fn boxed(hint: &str) -> bool {
+    hint.strip_prefix('-')
+        .is_some_and(|rest| rest.trim_start().starts_with("[ ]"))
+}
+
+fn hinted(line: &str) -> Option<&str> {
+    line.trim()
+        .strip_prefix("<!--")?
+        .strip_suffix("-->")
+        .map(str::trim)
+}
+
+pub struct Made {
+    pub op: Op,
+    pub created: bool,
 }
 
 /// `from` is the turn asking: a routine's document is its first turn's, seeded with today's steps.
@@ -130,31 +173,40 @@ pub fn made(
     state: &State,
     task: TaskId,
     from: TaskId,
+    template: &str,
     by: Option<String>,
-) -> crate::Result<Op> {
-    let (id, file) = match of(state, task) {
+) -> crate::Result<Made> {
+    let (id, file) = planned(state, task);
+    let first = opened(state, from, template);
+    let created = crate::docs::create_named(root, &file, &first)?;
+    let body = match created {
+        true => first,
+        false => crate::docs::read(root, &file)?,
+    };
+    Ok(Made {
+        op: Op::DocAdd {
+            id,
+            d: DocAdd {
+                file,
+                order: crate::order::last_of(state.docs.values().map(|one| one.order.as_str())),
+                by,
+                said: Some(Said::of(&body)),
+                task_of: Some(task),
+                ..DocAdd::default()
+            },
+        },
+        created,
+    })
+}
+
+fn planned(state: &State, task: TaskId) -> (DocId, String) {
+    match of(state, task) {
         Some(kept) => (kept.id, kept.file.clone()),
         None => {
             let at = turn(state, task);
             (id_at(task, at), file_at(task, at))
         }
-    };
-    let first = first_words(state, from);
-    let body = match crate::docs::create_named(root, &file, &first)? {
-        true => first,
-        false => crate::docs::read(root, &file)?,
-    };
-    Ok(Op::DocAdd {
-        id,
-        d: DocAdd {
-            file,
-            order: crate::order::last_of(state.docs.values().map(|one| one.order.as_str())),
-            by,
-            said: Some(Said::of(&body)),
-            task_of: Some(task),
-            ..DocAdd::default()
-        },
-    })
+    }
 }
 
 #[cfg(test)]

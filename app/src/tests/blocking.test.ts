@@ -182,6 +182,35 @@ describe("writing a block in place", () => {
     page.remove();
   });
 
+  it("ends a template's label on Enter and keeps its name to twenty characters", () => {
+    const { page, one } = block();
+    const left = vi.fn();
+    const editing = edited(one, "## Notas", () => {}, left, undefined, true);
+    editing.view.dispatch({ changes: { from: 8, insert: " de la semana pasada" } });
+    expect(editing.view.state.doc.toString()).toBe("## Notas");
+    editing.view.dispatch({ changes: { from: 8, insert: " del mes" } });
+    expect(editing.view.state.doc.toString()).toBe("## Notas del mes");
+    page.remove();
+  });
+
+  it("keeps the bar over the page and the keys once at its end, never inside the block, and takes both away", () => {
+    const { page, one } = block();
+    const editing = edited(
+      one,
+      "Leche y pan.",
+      () => {},
+      () => {},
+    );
+    const bar = document.querySelector<HTMLElement>(".cm-bar.cm-dock");
+    expect(bar?.parentElement).toBe(document.body);
+    expect(page.lastElementChild?.matches(".cm-hint.cm-dock")).toBe(true);
+    expect(page.querySelector(".editing .cm-bar, .editing .cm-hint")).toBeNull();
+    expect(bar?.style.top).not.toBe("");
+    editing.leave();
+    expect(document.querySelector(".cm-dock")).toBeNull();
+    page.remove();
+  });
+
   it("shows pens, underlines and icons as they will read, marks hidden, but never inside code or for unknown names", () => {
     const { page, one } = block();
     const editing = edited(

@@ -49,6 +49,7 @@ type Props = {
   readonly asking?: Asking;
   readonly kept?: boolean;
   readonly inline?: boolean;
+  readonly shaping?: boolean;
   readonly sheet?: SheetSize;
 };
 
@@ -180,7 +181,16 @@ export default function Sheet(props: Readonly<Props>) {
     // A new block is kept apart from the ones around it by a blank line, as Markdown needs.
     const fresh = from === end;
     const line = latest.current.includes("\r\n") ? "\r\n" : "\n";
-    const ahead = fresh ? parting(latest.current.slice(0, from), false, line) : "";
+    const upto = latest.current.slice(0, from);
+    // A box added right under a list joins it, where a blank line would split it in two.
+    const joins = seed.startsWith("- [ ] ") && /(^|\n)[ \t>]*- \[[ xX]\][^\n]*\n?$/.test(upto);
+    const ahead = !fresh
+      ? ""
+      : joins
+        ? upto.endsWith("\n")
+          ? ""
+          : line
+        : parting(upto, false, line);
     const behind = fresh ? parting(latest.current.slice(end), true, line) : "";
     const home = onFile.current;
     const before = latest.current;
@@ -220,6 +230,7 @@ export default function Sheet(props: Readonly<Props>) {
           ask: (kind, at, put, first) => asking.ask(kind, at, put, first && before),
         };
       },
+      Boolean(said.current.inline && said.current.shaping),
     );
     open.current.kept(said.current.kept ?? true);
     const editing = open.current.view;
@@ -370,6 +381,14 @@ export default function Sheet(props: Readonly<Props>) {
     const at = from + bracket;
     const next = `${now.slice(0, at)}${now.slice(at, at + 3) === "[ ]" ? "[x]" : "[ ]"}${now.slice(at + 3)}`;
     whole(next);
+  };
+
+  const cut = ([from, end]: [number, number]) => {
+    if (open.current) return left();
+    if (reading || showing.current !== latest.current) return;
+    const before = latest.current.slice(0, from).replace(/\n+$/, "");
+    const after = latest.current.slice(end).replace(/^\n+/, "");
+    whole(`${before}${before && after ? "\n\n" : before ? "\n" : ""}${after}`);
   };
 
   const widen = (at: [number, number], column: number, dashes: number) => {
@@ -541,11 +560,13 @@ export default function Sheet(props: Readonly<Props>) {
           stranger={false}
           tall
           untitled={props.inline}
+          shaping={props.shaping}
           onDoc={(file) => said.current.onDoc?.(file)}
           onOpen={(reference) => said.current.onOpen?.(reference)}
           onTag={(tag) => said.current.onTag?.(tag)}
           onBlock={reading ? undefined : block}
           onTick={reading ? undefined : ticked}
+          onCut={reading ? undefined : cut}
           onWiden={reading ? undefined : widen}
           onFormat={reading ? undefined : format}
           onMend={reading ? undefined : mended}

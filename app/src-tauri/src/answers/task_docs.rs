@@ -67,27 +67,38 @@ pub fn task_doc_open(
 }
 
 #[tauri::command(async)]
-pub fn task_doc_make(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<String> {
+pub fn task_doc_make(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    template: Option<String>,
+) -> Answer<String> {
     let id = task_id(&id)?;
     let mut session = held(&session);
     if let Some(file) = file_of(&session, id) {
         known(&session, id)?;
         return Ok(file);
     }
-    open_task(&session, id)?;
-    let op = tisty_core::task_docs::made(
+    let task = open_task(&session, id)?;
+    let template = template.unwrap_or_default();
+    let made = tisty_core::task_docs::made(
         &session.paths.docs(),
         &session.state,
         tisty_core::task_docs::owner(&session.state, id),
         id,
+        &template,
         signing(&session.state),
     )
     .map_err(|e| blamed(channel::WINDOW, "a task's document could not be made", e))?;
-    let Op::DocAdd { d, .. } = &op else {
+    let Op::DocAdd { d, .. } = &made.op else {
         return Err(Refusal::of("internal"));
     };
     let file = d.file.clone();
-    session.commit(op)?;
+    let mut ops = vec![made.op];
+    // Only the template's own boxes are new steps: a file already there, or a description, holds old words.
+    if made.created {
+        ops.extend(tisty_core::stages::reconciled(&task, None, &template));
+    }
+    session.commit_all(ops)?;
     Ok(file)
 }
 

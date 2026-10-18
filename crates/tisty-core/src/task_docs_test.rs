@@ -49,13 +49,13 @@ fn a_document_made_twice_for_one_task_is_one_file_that_belongs_to_it() {
         },
     );
 
-    let first = made(room.path(), &state, task, task, None).unwrap();
+    let first = made(room.path(), &state, task, task, "", None).unwrap().op;
     std::fs::write(
         room.path().join(format!("{}.md", file_at(task, 1))),
         format!("{}\nWords already written.\n", seed(task)),
     )
     .unwrap();
-    let again = made(room.path(), &state, task, task, None).unwrap();
+    let again = made(room.path(), &state, task, task, "", None).unwrap().op;
 
     let body = crate::docs::read(room.path(), &file_at(task, 1)).unwrap();
     assert!(body.contains("Words already written."), "{body}");
@@ -72,13 +72,13 @@ fn a_document_made_again_after_its_delete_takes_the_next_turn_and_belongs_to_the
     let room = tempfile::tempdir().unwrap();
     let mut state = State::default();
     let task = Ulid::generate();
-    let first = made(room.path(), &state, task, task, None).unwrap();
+    let first = made(room.path(), &state, task, task, "", None).unwrap().op;
     applied(&mut state, first);
     let gone = of(&state, task).unwrap().id;
     applied(&mut state, Op::DocDelete { id: gone });
     std::fs::remove_file(room.path().join(format!("{}.md", file_at(task, 1)))).unwrap();
 
-    let again = made(room.path(), &state, task, task, None).unwrap();
+    let again = made(room.path(), &state, task, task, "", None).unwrap().op;
     applied(&mut state, again);
 
     let kept = of(&state, task).expect("the task's document again");
@@ -91,7 +91,7 @@ fn a_second_making_keeps_what_was_built_on_the_first() {
     let room = tempfile::tempdir().unwrap();
     let mut state = State::default();
     let task = Ulid::generate();
-    let first = made(room.path(), &state, task, task, None).unwrap();
+    let first = made(room.path(), &state, task, task, "", None).unwrap().op;
     let elsewhere = first.clone();
     applied(&mut state, first);
     let id = of(&state, task).unwrap().id;
@@ -176,7 +176,7 @@ fn a_task_s_description_and_steps_open_its_document() {
         },
     );
 
-    let first = made(room.path(), &state, task, task, None).unwrap();
+    let first = made(room.path(), &state, task, task, "", None).unwrap().op;
     applied(&mut state, first);
 
     let body = crate::docs::read(room.path(), &file_at(task, 1)).unwrap();
@@ -202,7 +202,7 @@ fn a_task_erased_for_good_takes_its_document_along() {
             d: TaskAdd::new("Rina's booster", "a0"),
         },
     );
-    let first = made(room.path(), &state, task, task, None).unwrap();
+    let first = made(room.path(), &state, task, task, "", None).unwrap().op;
     applied(&mut state, first);
     let doc = of(&state, task).unwrap().id;
 
@@ -241,4 +241,125 @@ fn every_turn_of_a_routine_answers_to_its_first() {
     assert_eq!(super::owner(&state, first), first);
     let alone = Ulid::generate();
     assert_eq!(super::owner(&state, alone), alone);
+}
+
+#[test]
+fn a_task_s_document_opens_with_its_template_then_its_own_words() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    let task = Ulid::generate();
+    applied(
+        &mut state,
+        Op::TaskAdd {
+            id: task,
+            d: TaskAdd::new("Ship 4.2", "a0"),
+        },
+    );
+    applied(
+        &mut state,
+        Op::TaskDescribe {
+            id: task,
+            d: crate::event::Body {
+                body: Some("Friday, after lunch.".into()),
+            },
+        },
+    );
+
+    let first = made(
+        room.path(),
+        &state,
+        task,
+        task,
+        "## Steps\r\n\r\n- [ ] Back up first\r\n",
+        None,
+    )
+    .unwrap();
+    assert!(first.created);
+    applied(&mut state, first.op);
+
+    let body = crate::docs::read(room.path(), &file_at(task, 1)).unwrap();
+    assert_eq!(
+        body,
+        format!(
+            "{}\n## Steps\n\n- [ ] Back up first\n\nFriday, after lunch.\n",
+            seed(task)
+        )
+    );
+    let ops = crate::stages::reconciled(&state.tasks[&task], None, &body);
+    assert!(
+        matches!(&ops[..], [Op::StepAdd { d, .. }] if d.text == "Back up first"),
+        "{ops:?}"
+    );
+}
+
+#[test]
+fn a_step_the_template_already_lists_is_not_written_twice() {
+    let mut state = State::default();
+    let task = Ulid::generate();
+    applied(
+        &mut state,
+        Op::TaskAdd {
+            id: task,
+            d: TaskAdd::new("Ship 4.2", "a0"),
+        },
+    );
+    applied(
+        &mut state,
+        Op::StepAdd {
+            id: task,
+            d: crate::event::StepAdd {
+                step: Ulid::generate(),
+                text: "Back up first".into(),
+                order: "a0".into(),
+            },
+        },
+    );
+
+    let body = super::opened(&state, task, "## Steps\n\n- [ ] Back up first\n");
+
+    assert_eq!(body.matches("Back up first").count(), 1, "{body}");
+}
+
+#[test]
+fn a_task_s_words_go_into_the_template_s_sections_not_after_them() {
+    let mut state = State::default();
+    let task = Ulid::generate();
+    applied(
+        &mut state,
+        Op::TaskAdd {
+            id: task,
+            d: TaskAdd::new("Ship 4.2", "a0"),
+        },
+    );
+    applied(
+        &mut state,
+        Op::TaskDescribe {
+            id: task,
+            d: crate::event::Body {
+                body: Some("Friday.".into()),
+            },
+        },
+    );
+    applied(
+        &mut state,
+        Op::StepAdd {
+            id: task,
+            d: crate::event::StepAdd {
+                step: Ulid::generate(),
+                text: "Back up".into(),
+                order: "a0".into(),
+            },
+        },
+    );
+    let template = "## Description\n<!-- What for. -->\n\n## Steps\n<!-- - [ ] The first step -->\n\n## Notes\n<!-- Anything. -->\n";
+
+    let body = super::opened(&state, task, template);
+
+    assert_eq!(
+        body,
+        format!(
+            "{}\n## Description\n<!-- What for. -->\n\nFriday.\n\n## Steps\n<!-- - [ ] The first step -->\n\n- [ ] Back up\n\n## Notes\n<!-- Anything. -->\n",
+            seed(task)
+        )
+    );
 }
