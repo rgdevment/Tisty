@@ -200,3 +200,79 @@ fn a_document_going_out_ticks_its_boxes_as_the_log_has_them() {
     let out = ticked(&task, "- [ ] one\n\nWords.\n\n- [x] two\n");
     assert_eq!(out, "- [x] one\n\nWords.\n\n- [ ] two\n");
 }
+
+#[test]
+fn a_stage_whose_step_was_taken_away_in_the_app_does_not_bring_it_back() {
+    let task = task(&[("one", false, "a")]);
+    let ops = reconciled(
+        &task,
+        Some("- [ ] one\n- [ ] two\n"),
+        "- [x] one\n- [ ] two\n",
+    );
+    assert_eq!(ops.len(), 1, "{ops:?}");
+    assert!(matches!(ops[0], Op::StepDone { .. }), "{ops:?}");
+}
+
+#[test]
+fn a_long_stage_already_kept_is_not_added_again_on_every_save() {
+    let long = format!("{} first", "word ".repeat(30));
+    let other = format!("{} second", "word ".repeat(30));
+    let task = task(&[
+        (title(&long).as_str(), false, "a"),
+        (title(&other).as_str(), false, "b"),
+    ]);
+    let body = format!("- [ ] {long}\n- [ ] {other}\n");
+    assert_eq!(reconciled(&task, Some(&body), &body), Vec::new());
+}
+
+#[test]
+fn wrapped_words_stay_with_their_stage_until_a_list_or_code_begins() {
+    let body = "- [ ] Buy flour\n  1.5 kg of it\n- [ ] Read\n  *carefully* the docs\n- [ ] Run\n  ```\n  cargo x\n  ```\n";
+    let said: Vec<String> = stages(body).into_iter().map(|one| one.text).collect();
+    assert_eq!(
+        said,
+        ["Buy flour 1.5 kg of it", "Read *carefully* the docs", "Run"]
+    );
+}
+
+#[test]
+fn a_step_not_in_the_document_keeps_its_place_when_the_others_move() {
+    let task = task(&[
+        ("one", false, "a"),
+        ("hidden", false, "m"),
+        ("two", false, "y"),
+    ]);
+    let ops = reconciled(
+        &task,
+        Some(
+            "- [ ] one
+- [ ] two
+",
+        ),
+        "- [ ] two
+- [ ] one
+",
+    );
+    let mut keys: std::collections::BTreeMap<Ulid, String> = task
+        .steps
+        .iter()
+        .map(|one| (one.id, one.order.clone()))
+        .collect();
+    for one in &ops {
+        if let Op::StepReorder { d, .. } = one {
+            keys.insert(d.step, d.order.clone());
+        }
+    }
+    let mut read: Vec<(&String, Ulid)> = keys.iter().map(|(id, key)| (key, *id)).collect();
+    read.sort();
+    let order: Vec<Ulid> = read.into_iter().map(|(_, id)| id).collect();
+    assert_eq!(
+        order,
+        [
+            named(&task, "two"),
+            named(&task, "hidden"),
+            named(&task, "one")
+        ],
+        "{ops:?}"
+    );
+}

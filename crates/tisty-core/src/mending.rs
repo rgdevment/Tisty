@@ -102,7 +102,7 @@ fn pieces(said: &str, fixed: &str) -> Vec<Piece> {
             None => (Vec::new(), Vec::new(), last_word(&between)),
         };
         between.clear();
-        if j == b.len() || (i < a.len() && kept[i + 1][j] >= kept[i][j + 1]) {
+        if j == b.len() || (i < a.len() && kept.at(i + 1, j) >= kept.at(i, j + 1)) {
             x.push(a[i]);
             i += 1;
         } else {
