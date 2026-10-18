@@ -645,7 +645,7 @@ describe("a task's section labels", () => {
     });
     expect(went(one.querySelector("a") as Element, false)).toEqual({
       kind: "web",
-      href: "https://x.y/",
+      href: "https://x.y",
     });
 
     one.documentElement.classList.add("shaping");

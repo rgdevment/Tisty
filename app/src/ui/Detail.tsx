@@ -223,7 +223,7 @@ export default function Detail({
         tabIndex={-1}
         onKeyDown={leave}
         aria-label={task.title}
-        className={`absolute top-11 bottom-3 z-20 flex w-[380px] flex-col overflow-hidden rounded-[10px] border border-hair bg-sheet shadow-lift [&_.gutter]:px-0 [&_.tisty-sheet]:rounded-none outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset ${apart ?? "right-3"}`}
+        className={`absolute top-11 bottom-3 z-20 flex w-[380px] flex-col overflow-hidden rounded-[10px] border border-hair bg-sheet shadow-lift [&_.gutter]:px-0 outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset ${apart ?? "right-3"}`}
       >
         <div className="flex items-center justify-end gap-1 px-3 pt-2.5 text-[13px] text-faint">
           <button

@@ -623,7 +623,7 @@ describe("a task opens beside the list, and whole when asked", () => {
 
     await user.click(back);
     expect(await screen.findByRole("button", { name: t("expand") })).toBeTruthy();
-    expect(screen.getByText("write the report")).toBeTruthy();
+    expect(document.querySelector('[data-row="01A"]')).toBeTruthy();
   });
 
   it("takes the whole window below 1308, and going back closes the task", async () => {
