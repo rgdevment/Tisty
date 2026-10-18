@@ -467,3 +467,41 @@ fn a_task_s_words_go_into_the_template_s_sections_not_after_them() {
         )
     );
 }
+
+#[test]
+fn a_description_fills_the_section_the_template_keeps_for_it() {
+    let body = "---\ntask: x\n---\n\n## Description\n<!-- What and why -->\n\nOld words.\n\n## Steps\n<!-- - [ ] The first step -->\n";
+    assert_eq!(
+        super::described(body, "New words.\n"),
+        "---\ntask: x\n---\n\n## Description\n<!-- What and why -->\n\nNew words.\n\n## Steps\n<!-- - [ ] The first step -->\n"
+    );
+    assert_eq!(
+        super::described("---\ntask: x\n---\n\nNotes.\n", "Said."),
+        "---\ntask: x\n---\n\nNotes.\n\nSaid.\n"
+    );
+}
+
+#[test]
+fn a_routine_s_later_turn_still_reaches_its_page_once_the_first_is_erased() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    let first = Ulid::generate();
+    let second = Ulid::generate();
+    applied(
+        &mut state,
+        Op::TaskAdd {
+            id: first,
+            d: TaskAdd::new("Water the plants", "a0"),
+        },
+    );
+    let words = made(room.path(), &state, first, first, "", None).unwrap();
+    applied(&mut state, words);
+    let mut d = TaskAdd::new("Water the plants", "a1");
+    d.after = Some(first);
+    applied(&mut state, Op::TaskAdd { id: second, d });
+
+    applied(&mut state, Op::TaskDelete { id: first });
+
+    assert_eq!(super::owner(&state, second), first);
+    assert!(of(&state, super::owner(&state, second)).is_some());
+}

@@ -265,6 +265,157 @@ pub fn reconciled(task: &Task, before: Option<&str>, now: &str) -> Vec<Op> {
     ops
 }
 
+/// The line of an open step written over with its new words, so the document never shows both.
+pub fn reworded(body: &str, was: &str, now: &str) -> Option<String> {
+    let found = stages(body);
+    let stage = found
+        .iter()
+        .find(|one| !one.done && title(&one.text) == title(was))?;
+    let own = own_lines(body, stage);
+    let line = &body[own.clone()];
+    let mark = line.find(']')? + 1;
+    let tail = if line.ends_with('\n') { "\n" } else { "" };
+    Some(format!(
+        "{}{} {now}{tail}{}",
+        &body[..own.start],
+        &line[..mark],
+        &body[own.end..]
+    ))
+}
+
+/// The lines of open steps taken off, so a box with no step is never left to be ticked back.
+pub fn unplanned(body: &str, gone: &[String]) -> String {
+    let gone: Vec<String> = gone.iter().map(|one| title(one)).collect();
+    let lines: Vec<&str> = body.split_inclusive('\n').collect();
+    let starts: Vec<usize> = lines
+        .iter()
+        .scan(0, |at, line| {
+            let start = *at;
+            *at += line.len();
+            Some(start)
+        })
+        .collect();
+    let line_of = |at: usize| {
+        starts
+            .partition_point(|start| *start <= at)
+            .saturating_sub(1)
+    };
+    let lead = |line: &str| line.len() - line.trim_start_matches(' ').len();
+    let mut dropped = vec![false; lines.len()];
+    let mut shift = vec![0; lines.len()];
+    let taken = stages(body);
+    for stage in taken
+        .iter()
+        .filter(|stage| !stage.done && gone.contains(&title(&stage.text)))
+    {
+        let own = own_lines(body, stage);
+        let first = line_of(own.start);
+        let past = line_of(own.end.max(own.start + 1) - 1) + 1;
+        for one in &mut dropped[first..past] {
+            *one = true;
+        }
+        // What was nested under it moves out a level, rather than hang from nothing or turn to code.
+        let words = body[..stage.at.end]
+            .trim_end_matches(['\n', '\r', ' ', '\t'])
+            .len();
+        let last = line_of(words.saturating_sub(1));
+        let under: Vec<usize> = (past..=last)
+            .filter(|at| *at < lines.len() && !lines[*at].trim().is_empty())
+            .collect();
+        if let Some(least) = under.iter().map(|at| lead(lines[*at])).min() {
+            let delta = least.saturating_sub(lead(lines[first]));
+            for at in under {
+                shift[at] += delta;
+            }
+        }
+    }
+    lines
+        .iter()
+        .enumerate()
+        .filter(|(at, _)| !dropped[*at])
+        .map(|(at, line)| &line[shift[at].min(lead(line))..])
+        .collect()
+}
+
+// An item's own lines are its first and those carrying its words on, never the items under it.
+fn own_lines(body: &str, stage: &Stage) -> Range<usize> {
+    let line_end = |from: usize| {
+        body[from..]
+            .find('\n')
+            .map_or(body.len(), |at| from + at + 1)
+    };
+    let start = body[..stage.at.start].rfind('\n').map_or(0, |at| at + 1);
+    let mut end = line_end(stage.at.start);
+    while end < stage.at.end.min(body.len()) {
+        let next = line_end(end);
+        let bare = body[end..next]
+            .trim_start_matches([' ', '\t', '>'])
+            .trim_end();
+        if bare.is_empty() || listed(bare) {
+            break;
+        }
+        end = next;
+    }
+    start..end
+}
+
+fn listed(line: &str) -> bool {
+    let bullet = line.starts_with(['-', '*', '+']) && line[1..].starts_with(' ');
+    let number = line.split_once(['.', ')']).is_some_and(|(digits, rest)| {
+        !digits.is_empty() && digits.chars().all(|c| c.is_ascii_digit()) && rest.starts_with(' ')
+    });
+    bullet || number
+}
+
+struct Slot {
+    at: usize,
+    lead: String,
+    apart: bool,
+}
+
+// A new step joins the last box, written the way that box is, or else goes under the template's box hint.
+fn slot(body: &str, found: &[Stage]) -> Option<Slot> {
+    // The outermost list takes the new step, never an item nested under one of its steps.
+    let indent = |stage: &Stage| {
+        let start = body[..stage.at.start].rfind('\n').map_or(0, |at| at + 1);
+        stage.at.start - start
+    };
+    let least = found.iter().map(indent).min();
+    if let Some(last) = found.iter().rev().find(|one| Some(indent(one)) == least) {
+        let start = body[..last.at.start].rfind('\n').map_or(0, |at| at + 1);
+        let line = &body[start..];
+        let lead = line[..line.find('[')?].to_string();
+        // A loose list's item runs on to the blank line after it; the new step goes before that.
+        let words = body[..last.at.end]
+            .trim_end_matches(['\n', '\r', ' ', '\t'])
+            .len();
+        let at = body[words..]
+            .find('\n')
+            .map_or(body.len(), |at| words + at + 1);
+        return Some(Slot {
+            at,
+            lead,
+            apart: false,
+        });
+    }
+    let mut at = 0;
+    for line in body.split_inclusive('\n') {
+        at += line.len();
+        let bare = line.trim();
+        let hint = bare
+            .strip_prefix("<!--")
+            .and_then(|rest| rest.strip_suffix("-->"));
+        if hint.is_some_and(|hint| crate::task_docs::boxed(hint.trim())) {
+            return Some(Slot {
+                at,
+                lead: "- ".into(),
+                apart: true,
+            });
+        }
+    }
+    None
+}
+
 /// The file's own boxes may be stale, so a document going out is ticked as the log has it.
 pub fn ticked(task: &Task, body: &str) -> String {
     if task.steps.is_empty() {
@@ -299,11 +450,31 @@ pub fn ticked(task: &Task, body: &str) -> String {
     if missing.is_empty() {
         return out;
     }
-    let mut grown = out.trim_end_matches(['\n', '\r']).to_string();
-    if !grown.is_empty() {
-        grown.push_str("\n\n");
-    }
-    grown.push_str(&lines(&missing));
+    let grown = match slot(&out, &found) {
+        Some(Slot { at, lead, apart }) => {
+            let head = &out[..at];
+            let mut said = String::new();
+            if !head.is_empty() && !head.ends_with('\n') {
+                said.push('\n');
+            }
+            if apart {
+                said.push('\n');
+            }
+            for step in &missing {
+                let mark = if step.done { "x" } else { " " };
+                said.push_str(&format!("{lead}[{mark}] {}\n", step.text));
+            }
+            format!("{head}{said}{}", &out[at..])
+        }
+        None => {
+            let mut grown = out.trim_end_matches(['\n', '\r']).to_string();
+            if !grown.is_empty() {
+                grown.push_str("\n\n");
+            }
+            grown.push_str(&lines(&missing));
+            grown
+        }
+    };
     // Lines swallowed by what the text leaves open, a fence say, would be added again on every open.
     match stages(&grown).len() == found.len() + missing.len() {
         true => grown,

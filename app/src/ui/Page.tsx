@@ -32,6 +32,7 @@ export default function Page(props: Readonly<Props>) {
   reach.current = props;
   const [frames, setFrames] = useState<Drawn[]>([]);
   const [shown, setShown] = useState(0);
+  const [seen, setSeen] = useState(false);
   const showing = useRef(0);
   const held = useRef(new Map<number, HTMLIFrameElement>());
   const turns = useRef(0);
@@ -82,6 +83,7 @@ export default function Page(props: Readonly<Props>) {
     for (const one of held.current.keys()) if (one < turn) held.current.delete(one);
     showing.current = turn;
     setShown(turn);
+    setSeen(true);
     setFrames((were) => were.filter((one) => one.turn >= turn));
     const page = frame.contentDocument;
     if (page) reach.current.onOutline?.(heads(page));
@@ -95,7 +97,10 @@ export default function Page(props: Readonly<Props>) {
   };
 
   return (
-    <div className={tall ? "relative" : "relative flex min-h-0 flex-1 flex-col"}>
+    // Only the first drawing fades in: later ones replace the page in place, unseen.
+    <div
+      className={`${tall ? "relative" : "relative flex min-h-0 flex-1 flex-col"} transition-opacity duration-150 ${seen ? "opacity-100" : "opacity-0"}`}
+    >
       {frames.map((one) => (
         <Frame
           key={one.turn}

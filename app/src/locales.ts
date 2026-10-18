@@ -76,12 +76,8 @@ const en = {
   shapeEdit: "Template",
   shapeDone: "Done",
   shapeWhy: "Edit this task's template: rename, add or remove its sections",
-  templateTask:
-    "## Description\n<!-- What has to happen, and why? A line or two is enough. -->\n\n## Done when\n<!-- How you will know it is finished. -->\n\n## Steps\n<!-- - [ ] The first step -->\n\n## Notes\n<!-- What you find out along the way. -->\n\n## When it closes\n<!-- What worked? What would you do differently next time? -->\n",
-  templateRoutine:
-    "## What for\n<!-- Why this comes back, in a line. -->\n\n## Every round\n<!-- - [ ] What to do each round -->\n\n## This time\n<!-- Anything different this round? -->\n",
   collapse: "Back",
-  expand: "Open it whole",
+  expand: "Show task",
   closePanel: "Close the task",
   quadDo: "Do",
   quadDecide: "Schedule",
@@ -2045,12 +2041,8 @@ const es: Catalog = {
   shapeEdit: "Plantilla",
   shapeDone: "Listo",
   shapeWhy: "Editar la plantilla de esta tarea: renombrar, agregar o quitar sus secciones",
-  templateTask:
-    "## Descripción\n<!-- ¿Qué hay que lograr y por qué? Una o dos líneas bastan. -->\n\n## Para estar lista\n<!-- Cómo vas a saber que está hecha. -->\n\n## Pasos\n<!-- - [ ] El primer paso -->\n\n## Notas\n<!-- Lo que vayas averiguando mientras la haces. -->\n\n## Al cerrarla\n<!-- ¿Qué funcionó? ¿Qué harías distinto la próxima vez? -->\n",
-  templateRoutine:
-    "## Para qué\n<!-- Por qué vuelve, en una línea. -->\n\n## Cada vuelta\n<!-- - [ ] Lo que hay que hacer cada vez -->\n\n## Esta vez\n<!-- ¿Algo distinto en esta vuelta? -->\n",
   collapse: "Volver",
-  expand: "Abrirla completa",
+  expand: "Mostrar tarea",
   closePanel: "Cerrar la tarea",
   quadDo: "Hacer",
   quadDecide: "Planificar",

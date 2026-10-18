@@ -11,6 +11,7 @@ import { caretAt, type Editing, edited } from "./blocking";
 import { movedCard, putCard } from "./carded";
 import type { Carded } from "./carding";
 import { wrapped } from "./formatting";
+import { useKeptHeight } from "./heights";
 import Menu, { type Choice } from "./Menu";
 import { mended as mendedText } from "./mending";
 import Page from "./Page";
@@ -18,6 +19,7 @@ import { charsAt, type Head, spanned, type Went } from "./paging";
 import { closed, laid, parting } from "./parting";
 import type { Formatting, Menued } from "./quickly";
 import { filedAs, type Reshape, reshaped } from "./recarding";
+import Skeleton from "./Skeleton";
 import { ASIDE_MARGIN, settles } from "./seeking";
 import type { Sheet as SheetSize } from "./sheeting";
 import { type Asking, putBlock } from "./slashing";
@@ -68,6 +70,7 @@ export default function Sheet(props: Readonly<Props>) {
   const shown = useRef<Window | null>(null);
   const putting = useRef(-1);
   const [ready, setReady] = useState(false);
+  const kept = useKeptHeight<HTMLDivElement>(file ?? label);
   const [more, setMore] = useState<Extract<Went, { kind: "more" }> | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; choices: Choice[] } | null>(null);
   const askedOn = useRef("");
@@ -567,9 +570,15 @@ export default function Sheet(props: Readonly<Props>) {
     >
       {above}
       <div
-        style={props.sheet && { maxWidth: props.sheet.wide }}
-        className="tisty-sheet mx-auto w-full shrink-0 overflow-hidden rounded-[10px] bg-sheet"
+        ref={kept.ref}
+        style={{
+          ...(props.sheet && { maxWidth: props.sheet.wide }),
+          // Until it is drawn the page holds the room it last took, so nothing under it jumps.
+          ...(!ready && { minHeight: kept.height ?? 240 }),
+        }}
+        className="tisty-sheet relative mx-auto w-full shrink-0 overflow-hidden rounded-[10px] bg-sheet"
       >
+        {!ready && <Skeleton inset={props.inline ? "46px 32px" : undefined} />}
         <Page
           sheet={props.sheet}
           body={drawn}

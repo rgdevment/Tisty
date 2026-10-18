@@ -30,15 +30,14 @@ export default function Panel({
       aria-label={label}
       className={`absolute top-11 bottom-3 z-20 flex w-[380px] flex-col overflow-hidden rounded-[10px] border border-hair bg-sheet shadow-lift [&_.gutter]:px-0 outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset ${apart ?? "right-3"}`}
     >
-      <div className="flex items-center justify-end gap-1 px-3 pt-2.5 text-[13px] text-faint">
+      <div className="flex items-center justify-between gap-1 px-3 pt-2.5 text-[13px] text-faint">
         <button
           type="button"
           onClick={onExpand}
-          title={t("expand")}
-          aria-label={t("expand")}
-          className="flex h-6 w-6 items-center justify-center rounded-md hover:bg-hover hover:text-accent"
+          className="flex h-6 items-center gap-1.5 rounded-md px-2 text-accent hover:bg-hover"
         >
           <span aria-hidden="true">⤢</span>
+          {t("expand")}
         </button>
         <button
           type="button"
@@ -51,7 +50,7 @@ export default function Panel({
           <span aria-hidden="true">✕</span>
         </button>
       </div>
-      <div className="scroller flex-1 pt-1.5 pb-7 [&>*]:px-5">{children}</div>
+      <div className="scroller flex-1 pt-1.5 pb-7 [&>*:not(.task-words)]:px-5">{children}</div>
       {footer}
     </aside>
   );

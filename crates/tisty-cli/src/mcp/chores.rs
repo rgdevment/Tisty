@@ -546,7 +546,9 @@ pub(super) fn describe(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .append_batch_unless(
             vec![Op::TaskDescribe {
                 id,
-                d: Body { body: Some(body) },
+                d: Body {
+                    body: Some(body.clone()),
+                },
             }],
             |events| {
                 let held = State::replay(events);
@@ -559,8 +561,11 @@ pub(super) fn describe(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if written.is_none() {
         return Err(moved(task));
     }
+    let page = super::worded::worded(paths, &mut store, id, |was, _| {
+        Some(tisty_core::task_docs::described(was, &body))
+    });
     Ok(told(
-        format!("Described {:?}.", task.title),
+        format!("Described {:?}.{page}", task.title),
         json!({ "id": id.to_string(), "title": task.title }),
     ))
 }
@@ -610,6 +615,9 @@ pub(super) fn plan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if written.is_none() {
         return Err(moved(task));
     }
+    let _ = super::worded::worded(paths, &mut store, id, |was, now| {
+        Some(tisty_core::stages::ticked(now, was))
+    });
     Ok(told(
         format!("Planned {} step(s) on {:?}.", steps.len(), task.title),
         json!({ "id": id.to_string(), "title": task.title, "added": steps.len() }),
@@ -652,6 +660,9 @@ pub(super) fn tick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         if written.is_none() {
             return Err(moved(task));
         }
+        let _ = super::worded::worded(paths, &mut store, id, |was, now| {
+            Some(tisty_core::stages::ticked(now, was))
+        });
     }
     let left = task.steps.iter().filter(|step| !step.done).count() - fresh.len();
     let mut said = match fresh.len() {
@@ -719,6 +730,9 @@ pub(super) fn untick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         if written.is_none() {
             return Err(moved(task));
         }
+        let _ = super::worded::worded(paths, &mut store, id, |was, now| {
+            Some(tisty_core::stages::ticked(now, was))
+        });
     }
     let left = task.steps.iter().filter(|step| !step.done).count() + fresh.len();
     let mut said = match fresh.len() {

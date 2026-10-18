@@ -96,6 +96,7 @@ export function useWindow() {
     setReturning,
     setBacking,
     setError,
+    openTask: setSelected,
     noted,
     lookForAStar: () => lookForAStar(),
     carries,

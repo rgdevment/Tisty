@@ -1,7 +1,8 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { docWrite, type Task, type TaskDoc, taskDocMake, taskDocOpen } from "../core";
-import { t } from "../locales";
 import { holds, queued } from "../saving";
+import { useKeptHeight } from "./heights";
+import Skeleton from "./Skeleton";
 
 const Sheet = lazy(() => import("./Sheet"));
 
@@ -15,9 +16,6 @@ interface Props {
   shaping?: boolean;
   onHeld?: (held: boolean) => void;
 }
-
-const templateOf = (task: Task): string =>
-  t(task.repeat || task.after ? "templateRoutine" : "templateTask");
 
 // A command the window does not know answers with whatever it holds, so only a real document counts.
 const real = (said: unknown): TaskDoc | null => {
@@ -34,12 +32,11 @@ export default function TaskWords({ task, onSettle, onError, onDoc, shaping, onH
   const holding = useRef(onHeld);
   holding.current = onHeld;
   const open = task.status === "open";
-  const template = useRef("");
-  template.current = templateOf(task);
+  const kept = useKeptHeight<HTMLDivElement>(`task:${task.id}`);
 
   useEffect(() => {
     let live = true;
-    taskDocOpen(task.id, open ? template.current : "")
+    taskDocOpen(task.id)
       .then(real)
       .then((found) => {
         if (!live) return;
@@ -55,25 +52,31 @@ export default function TaskWords({ task, onSettle, onError, onDoc, shaping, onH
     };
   }, [task.id, open, turn]);
 
-  if (!doc) return null;
+  // While the page is read, its room stays as it last was, so what is under it never jumps.
+  if (!doc)
+    return (
+      <div ref={kept.ref} className="task-words relative" style={{ minHeight: kept.height ?? 180 }}>
+        <Skeleton inset="46px 32px" />
+      </div>
+    );
   // A task's document is made by the first words written on it, never by looking at the task.
-  const make =
-    doc.file || doc.held
-      ? undefined
-      : (body: string) => taskDocMake(task.id, template.current, body);
+  const make = doc.file || doc.held ? undefined : (body: string) => taskDocMake(task.id, body);
   return (
-    <Written
-      key={`${doc.file}:${seen}`}
-      id={task.id}
-      doc={doc}
-      make={make}
-      label={task.title}
-      onSettle={doc.held ? undefined : onSettle}
-      onError={onError}
-      onDoc={onDoc}
-      onMoved={() => setTurn((one) => one + 1)}
-      shaping={shaping}
-    />
+    <div ref={kept.ref} className="task-words">
+      <Written
+        key={`${doc.file}:${seen}`}
+        id={task.id}
+        doc={doc}
+        make={make}
+        label={task.title}
+        onSettle={doc.held ? undefined : onSettle}
+        onError={onError}
+        onDoc={onDoc}
+        onMoved={() => setTurn((one) => one + 1)}
+        shaping={shaping}
+        room={kept.height}
+      />
+    </div>
   );
 }
 
@@ -87,6 +90,7 @@ function Written({
   onDoc,
   onMoved,
   shaping,
+  room,
 }: {
   id: string;
   doc: TaskDoc;
@@ -97,6 +101,7 @@ function Written({
   onDoc?: (id: string) => void;
   onMoved: () => void;
   shaping?: boolean;
+  room?: number;
 }) {
   const [text, setText] = useState(doc.body);
   const waiting = useRef<string | null>(null);
@@ -123,10 +128,16 @@ function Written({
     if (file.current) return Promise.resolve(file.current);
     const asked = making.current;
     if (!asked) return Promise.reject(new Error("unwritable"));
-    made.current ??= asked(body).then((one) => {
-      file.current = one;
-      return one;
-    });
+    made.current ??= asked(body).then(
+      (one) => {
+        file.current = one;
+        return one;
+      },
+      (e: unknown) => {
+        made.current = null;
+        throw e;
+      },
+    );
     return made.current;
   }, []);
 
@@ -188,7 +199,7 @@ function Written({
   };
 
   return (
-    <Suspense fallback={<p className="text-[12.5px] text-faint">{t("opening")}</p>}>
+    <Suspense fallback={<div style={{ minHeight: room }} />}>
       <Sheet
         file={doc.file || `unwritten:${id}`}
         value={text}

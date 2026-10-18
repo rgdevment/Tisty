@@ -333,13 +333,14 @@ export interface Change {
 export const patch = (id: string, change: Change): Promise<Task> =>
   invoke("patch", { id, change, locale: navigator.language });
 export type TaskDoc = { readonly file: string; readonly body: string; readonly held: boolean };
-export const taskDocOpen = (id: string, template: string): Promise<TaskDoc | null> =>
-  invoke("task_doc_open", { id, template });
-export const taskDocMake = (id: string, template: string, body?: string): Promise<string> =>
-  invoke("task_doc_make", { id, template, body });
+export const taskDocOpen = (id: string): Promise<TaskDoc | null> => invoke("task_doc_open", { id });
+export const taskDocMake = (id: string, body?: string): Promise<string> =>
+  invoke("task_doc_make", { id, body });
 export const taskDocSettled = (id: string, before: string, now: string): Promise<Task | null> =>
   invoke("task_doc_settled", { id, before, now });
 export const partsOf = (id: string): Promise<Task[]> => invoke("parts_of", { id });
+export const taskPageImport = (from: string): Promise<string | null> =>
+  invoke("task_page_import", { from });
 export const taskOf = (id: string): Promise<Task> => invoke("task_of", { id });
 export const addPart = (whole: string, title: string): Promise<Task> =>
   invoke("add_part", { whole, title });
