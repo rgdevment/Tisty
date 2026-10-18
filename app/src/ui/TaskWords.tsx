@@ -16,9 +16,6 @@ interface Props {
   onHeld?: (held: boolean) => void;
 }
 
-const templateOf = (task: Task): string =>
-  t(task.repeat || task.after ? "templateRoutine" : "templateTask");
-
 // A command the window does not know answers with whatever it holds, so only a real document counts.
 const real = (said: unknown): TaskDoc | null => {
   const one = said as Partial<TaskDoc> | null;
@@ -34,12 +31,10 @@ export default function TaskWords({ task, onSettle, onError, onDoc, shaping, onH
   const holding = useRef(onHeld);
   holding.current = onHeld;
   const open = task.status === "open";
-  const template = useRef("");
-  template.current = templateOf(task);
 
   useEffect(() => {
     let live = true;
-    taskDocOpen(task.id, open ? template.current : "")
+    taskDocOpen(task.id)
       .then(real)
       .then((found) => {
         if (!live) return;
@@ -57,10 +52,7 @@ export default function TaskWords({ task, onSettle, onError, onDoc, shaping, onH
 
   if (!doc) return null;
   // A task's document is made by the first words written on it, never by looking at the task.
-  const make =
-    doc.file || doc.held
-      ? undefined
-      : (body: string) => taskDocMake(task.id, template.current, body);
+  const make = doc.file || doc.held ? undefined : (body: string) => taskDocMake(task.id, body);
   return (
     <Written
       key={`${doc.file}:${seen}`}

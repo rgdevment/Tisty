@@ -1,7 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Task } from "../core";
-import { t } from "../locales";
 import TaskWords from "../ui/TaskWords";
 
 const ipc = vi.hoisted(() => ({
@@ -63,7 +62,7 @@ describe("an open task", () => {
     );
 
     await screen.findByText("sheet:Template.");
-    expect(sent("task_doc_open")[0].args).toEqual({ id: "one", template: t("templateTask") });
+    expect(sent("task_doc_open")[0].args).toEqual({ id: "one" });
     expect(sent("task_doc_make")).toHaveLength(0);
 
     const sheet = ipc.sheets[ipc.sheets.length - 1];
@@ -73,17 +72,9 @@ describe("an open task", () => {
     expect(sent("task_doc_make")).toEqual([
       {
         cmd: "task_doc_make",
-        args: { id: "one", template: t("templateTask"), body: "Mine.\n" },
+        args: { id: "one", body: "Mine.\n" },
       },
     ]);
-  });
-
-  it("takes the recurring template when it repeats", async () => {
-    ipc.doc = { file: "", body: "Template.\n", held: false };
-    render(<TaskWords task={{ ...task(), after: "zero" } as Task} />);
-
-    await waitFor(() => expect(sent("task_doc_open")).toHaveLength(1));
-    expect(sent("task_doc_open")[0].args.template).toBe(t("templateRoutine"));
   });
 
   it("is not made again once it has its document", async () => {

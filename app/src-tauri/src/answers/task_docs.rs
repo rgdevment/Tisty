@@ -38,7 +38,6 @@ fn open_task(session: &Session, id: TaskId) -> Answer<Task> {
 pub fn task_doc_open(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
-    template: Option<String>,
 ) -> Answer<Option<Opened>> {
     let id = task_id(&id)?;
     let file = {
@@ -49,12 +48,14 @@ pub fn task_doc_open(
             // A task without a document reads as the one it would have, made only once it is written.
             None => {
                 let template = match task.is_open() {
-                    true => template.unwrap_or_default(),
-                    false => String::new(),
+                    true => {
+                        tisty_core::task_docs::template(&task, session.config.locale.as_deref())
+                    }
+                    false => "",
                 };
                 return Ok(Some(Opened {
                     file: String::new(),
-                    body: tisty_core::task_docs::opened(&session.state, id, &template),
+                    body: tisty_core::task_docs::opened(&session.state, id, template),
                     held: !task.is_open(),
                 }));
             }
@@ -74,7 +75,6 @@ pub fn task_doc_open(
 pub fn task_doc_make(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
-    template: Option<String>,
     body: Option<String>,
 ) -> Answer<String> {
     let id = task_id(&id)?;
@@ -85,10 +85,11 @@ pub fn task_doc_make(
         known(&session, id)?;
         return Ok(file);
     }
-    open_task(&session, id)?;
+    let task = open_task(&session, id)?;
     let written = body.is_some();
     let first = body.unwrap_or_else(|| {
-        tisty_core::task_docs::opened(&session.state, id, &template.unwrap_or_default())
+        let template = tisty_core::task_docs::template(&task, session.config.locale.as_deref());
+        tisty_core::task_docs::opened(&session.state, id, template)
     });
     let (made, created) = tisty_core::task_docs::made_with(
         &session.paths.docs(),

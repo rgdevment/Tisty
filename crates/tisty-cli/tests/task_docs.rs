@@ -204,3 +204,26 @@ fn what_an_assistant_changes_on_a_task_it_filed_reaches_its_page() {
         .unwrap_or_default();
     assert!(kept.contains("- [x] Call the vet at nine"), "{kept}");
 }
+
+#[test]
+fn a_task_with_no_page_gets_one_from_its_template_the_first_time_it_is_written() {
+    let served = Served::new();
+    let filed = served.call("propose", serde_json::json!({ "title": "Rina's booster" }));
+    let task = filed["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    served.call(
+        "describe",
+        serde_json::json!({ "task": task, "body": "Book it before Friday." }),
+    );
+
+    let read = served.call("read", serde_json::json!({ "task": task }));
+    let body = read["result"]["structuredContent"]["document"]["body"]
+        .as_str()
+        .unwrap_or_default();
+    assert!(body.contains("<!--"), "the page took no template: {body}");
+    assert!(body.contains("Book it before Friday."), "{body}");
+    assert_eq!(body.matches("Book it before Friday.").count(), 1, "{body}");
+}

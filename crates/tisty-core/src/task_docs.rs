@@ -163,6 +163,80 @@ pub fn opened(state: &State, task: TaskId, template: &str) -> String {
     }
 }
 
+const TASK: [&str; 2] = [
+    "## Description\n<!-- What has to happen, and why? A line or two is enough. -->\n\n## Done when\n<!-- How you will know it is finished. -->\n\n## Steps\n<!-- - [ ] The first step -->\n\n## Notes\n<!-- What you find out along the way. -->\n\n## When it closes\n<!-- What worked? What would you do differently next time? -->\n",
+    "## Descripción\n<!-- ¿Qué hay que lograr y por qué? Una o dos líneas bastan. -->\n\n## Para estar lista\n<!-- Cómo vas a saber que está hecha. -->\n\n## Pasos\n<!-- - [ ] El primer paso -->\n\n## Notas\n<!-- Lo que vayas averiguando mientras la haces. -->\n\n## Al cerrarla\n<!-- ¿Qué funcionó? ¿Qué harías distinto la próxima vez? -->\n",
+];
+
+const ROUTINE: [&str; 2] = [
+    "## What for\n<!-- Why this comes back, in a line. -->\n\n## Every round\n<!-- - [ ] What to do each round -->\n\n## This time\n<!-- Anything different this round? -->\n",
+    "## Para qué\n<!-- Por qué vuelve, en una línea. -->\n\n## Cada vuelta\n<!-- - [ ] Lo que hay que hacer cada vez -->\n\n## Esta vez\n<!-- ¿Algo distinto en esta vuelta? -->\n",
+];
+
+/// Whoever writes on a task writes on its page: made from its template the first time anything
+/// is written there, then changed in place, so the page and the log never tell two stories.
+pub fn wrote(
+    paths: &crate::Paths,
+    store: &mut crate::Store,
+    task: TaskId,
+    edit: impl FnOnce(&str, &crate::model::Task) -> Option<String>,
+) -> crate::Result<()> {
+    let mut state = State::replay(&store.read_all()?);
+    let Some(first) = state.tasks.get(&task).cloned() else {
+        return Ok(());
+    };
+    let by = state.signed.alias.clone();
+    let owner = owner(&state, task);
+    let file = match of(&state, owner) {
+        Some(kept) => kept.file.clone(),
+        None => {
+            let config = crate::Config::load_or_init(paths)?;
+            let body = opened(&state, task, template(&first, config.locale.as_deref()));
+            let (op, _) = made_with(&paths.docs(), &state, owner, &body, by.clone())?;
+            let file = match &op {
+                Op::DocAdd { d, .. } => d.file.clone(),
+                _ => return Ok(()),
+            };
+            store.append(op)?;
+            state = State::replay(&store.read_all()?);
+            file
+        }
+    };
+    let Some(now) = state.tasks.get(&task) else {
+        return Ok(());
+    };
+    let whole = crate::docs::amend(&paths.docs(), paths.data(), &file, |was| {
+        edit(was, now).filter(|said| said != was)
+    })?;
+    let Some(whole) = whole else {
+        return Ok(());
+    };
+    let mut told = state.settling(&file, &whole);
+    if let Some(kept) = state.docs.values().find(|one| one.file == file) {
+        let said = Said::of(&whole).by(by);
+        if said.news_for(kept) {
+            told.push(Op::DocSaid {
+                id: kept.id,
+                d: said,
+            });
+        }
+    }
+    if !told.is_empty() {
+        store.append_batch(told)?;
+    }
+    Ok(())
+}
+
+/// The page a task opens on, in the language Tisty speaks: one that comes back is a routine's.
+pub fn template(task: &crate::model::Task, configured: Option<&str>) -> &'static str {
+    let spoken = crate::model::spoken(configured).to_lowercase();
+    let at = usize::from(spoken.starts_with("es"));
+    match task.repeat.is_some() || task.after.is_some() {
+        true => ROUTINE[at],
+        false => TASK[at],
+    }
+}
+
 /// The words a description holds, written in the section the template keeps for them: the first
 /// one with a plain hint. A page without one takes them at its end.
 pub fn described(body: &str, said: &str) -> String {
