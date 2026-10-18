@@ -1,3 +1,4 @@
+import { closeCompletion } from "@codemirror/autocomplete";
 import type { EditorView, KeyBinding } from "@codemirror/view";
 import { frontLines } from "../front";
 import { markup } from "../glyphs";
@@ -230,6 +231,7 @@ export const barred = (view: EditorView): Barred => {
   bar.setAttribute("aria-label", t("formatting"));
 
   const kind = button("cm-bar-kind", t("blockKind"), () => {
+    closeCompletion(view);
     const shown = tabled ? table : menu;
     shown.toggleAttribute("hidden");
   });

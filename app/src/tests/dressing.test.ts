@@ -631,12 +631,18 @@ describe("a task page only read", () => {
 });
 
 describe("a task's section labels", () => {
-  it("open nothing while the task is filled in, and open the block while its structure is edited", () => {
-    const one = page('<h2 data-at="0-8">Steps <a href="https://x.y">x</a></h2>');
+  it("start writing past their section while the task is filled in, and open the block while its structure is edited", () => {
+    const one = page(
+      '<h2 data-at="0-8">Steps <a href="https://x.y">x</a></h2><hr data-at="10-13"><h2 data-at="15-22">Notes</h2>',
+    );
     one.documentElement.classList.add("untitled");
     const label = one.querySelector("h2") as Element;
 
-    expect(went(label, false)).toBeNull();
+    expect(went(label, false)).toEqual({ kind: "section", at: [10, 13] });
+    expect(went(one.querySelectorAll("h2")[1] as Element, false)).toEqual({
+      kind: "section",
+      at: [15, 22],
+    });
     expect(went(one.querySelector("a") as Element, false)).toEqual({
       kind: "web",
       href: "https://x.y/",
@@ -644,5 +650,12 @@ describe("a task's section labels", () => {
 
     one.documentElement.classList.add("shaping");
     expect(went(label, false)).toEqual({ kind: "block", at: [0, 8] });
+  });
+
+  it("let an empty label be mended, so a stray mark never locks the section", () => {
+    const one = page('<h1 data-at="0-2"></h1>');
+    one.documentElement.classList.add("untitled");
+
+    expect(went(one.querySelector("h1") as Element, false)).toEqual({ kind: "block", at: [0, 2] });
   });
 });

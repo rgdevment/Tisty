@@ -257,6 +257,15 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
     const end = charsAt(reach.body, asked.at[1]);
     if (held) reach.onBlock?.([end, end], held, asked.seed);
   }
+  if (asked.kind === "section" && reach.onBlock) {
+    const last = page.querySelector(`.page > [data-at="${asked.at[0]}-${asked.at[1]}"]`);
+    const fresh = page.createElement("p");
+    const add = last?.nextElementSibling;
+    (add?.matches(".add-step") ? add : last)?.after(fresh);
+    const end = charsAt(reach.body, asked.at[1]);
+    reach.onBlock([end, end], fresh);
+    if (fresh.isConnected) fresh.remove();
+  }
   if (asked.kind === "title" && reach.onBlock) {
     const slot = page.querySelector<HTMLElement>(".page > h1[data-title]");
     if (slot) reach.onBlock([0, 0], slot, "# ");

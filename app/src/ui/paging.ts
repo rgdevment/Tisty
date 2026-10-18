@@ -76,7 +76,18 @@ export type Went =
   | { kind: "end" }
   | { kind: "title" }
   | { kind: "hint"; at: [number, number]; seed: string }
+  | { kind: "section"; at: [number, number] }
   | null;
+
+// What a label holds runs to the next label, so writing under it starts past the last of it.
+const sectionEnd = (label: Element): [number, number] | null => {
+  let last = spanned(label.getAttribute("data-at"));
+  for (let one = label.nextElementSibling; one; one = one.nextElementSibling) {
+    if (/^H[1-6]$/.test(one.tagName)) break;
+    last = spanned(one.getAttribute("data-at")) ?? last;
+  }
+  return last;
+};
 
 export const spanned = (said: string | null): [number, number] | null => {
   const found = /^(\d+)-(\d+)$/.exec(said ?? "");
@@ -137,13 +148,12 @@ export const went = (target: Element, selecting: boolean): Went => {
   const hint = spanned(hinted?.dataset.at ?? hinted?.dataset.after ?? null);
   if (hint) return { kind: "hint", at: hint, seed: hinted?.dataset.seed ?? "" };
   const look = target.ownerDocument.documentElement.classList;
-  // A task's sections are filled in, not renamed, until its structure is asked for.
-  if (
-    look.contains("untitled") &&
-    !look.contains("shaping") &&
-    target.closest(".page > :is(h1, h2, h3, h4, h5, h6)")
-  )
-    return null;
+  // A task's sections are filled in, not renamed, until its structure is asked for; an empty one is still mended.
+  const label = target.closest(".page > :is(h1, h2, h3, h4, h5, h6)");
+  if (look.contains("untitled") && !look.contains("shaping") && label?.textContent?.trim()) {
+    const end = sectionEnd(label);
+    return end ? { kind: "section", at: end } : null;
+  }
   const at = spanned(target.closest<HTMLElement>(".page > [data-at]")?.dataset.at ?? null);
   return at ? { kind: "block", at } : null;
 };
