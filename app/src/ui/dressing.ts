@@ -252,7 +252,7 @@ export const worn = (
   page.documentElement.classList.toggle("ticking", !!reach?.onTick);
   iconed(page);
   staged(page);
-  if (reach?.onPart && !stranger) offeredAsParts(page, t("stepToPart"));
+  if (reach?.onPart && !stranger) offeredAsParts(page, t("stepToPart"), reach.body);
   if (reach?.onWiden && !stranger) gripped(page);
   const shown = pictures(page, live, {
     stranger,
@@ -274,7 +274,8 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
   if (!asked) return;
   if (asked.kind === "doc") reach.onDoc(asked.id);
   if (asked.kind === "task") reach.onTask?.(asked.id);
-  if (asked.kind === "part") reach.onPart?.(asked.at);
+  if (asked.kind === "part")
+    reach.onPart?.([charsAt(reach.body, asked.at[0]), charsAt(reach.body, asked.at[1])]);
   if (asked.kind === "web") openLink(asked.href).catch(() => {});
   if (asked.kind === "here") {
     const at = page.getElementById(asked.id);

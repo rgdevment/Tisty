@@ -10,12 +10,14 @@ export type PartCarded =
       readonly when?: string;
     }
   | { readonly kind: "closed"; readonly title: string; readonly dropped: boolean }
-  | { readonly kind: "loose" };
+  | { readonly kind: "loose" }
+  | { readonly kind: "waiting" };
 
 const chipOf = (page: Document, seen: PartCarded) => {
   if (seen.kind === "closed")
     return piece(page, "chip here", t(seen.dropped ? "partCardDropped" : "partCardDone"));
   if (seen.kind === "loose") return piece(page, "chip gone", t("partCardLoose"));
+  if (seen.kind === "waiting") return piece(page, "kind", t("partCardKind"));
   if (seen.steps > 0)
     return piece(page, "chip", fill("partCardSteps", `${seen.done}`, `${seen.steps}`));
   return piece(page, "kind", t("partCardKind"));
@@ -42,7 +44,8 @@ export const partCarded = (page: Document, part: ((id: string) => PartCarded) | 
     });
     const tile = piece(page, "card-tile");
     tile.append(drawn(page, seen.kind === "closed" ? "done" : "todo"));
-    const name = seen.kind === "loose" ? link.textContent || "" : seen.title;
+    const name =
+      seen.kind === "loose" || seen.kind === "waiting" ? link.textContent || "" : seen.title;
     const when = seen.kind === "open" ? (seen.when ?? "") : "";
     const meta = piece(page, "card-meta");
     meta.append(chipOf(page, seen), piece(page, "card-go", "›"));

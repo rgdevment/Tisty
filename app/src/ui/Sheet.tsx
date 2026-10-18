@@ -24,6 +24,7 @@ import Skeleton from "./Skeleton";
 import { ASIDE_MARGIN, settles } from "./seeking";
 import type { Sheet as SheetSize } from "./sheeting";
 import { type Asking, putBlock, stagesIn } from "./slashing";
+import { stepLine, steppedTitle } from "./staging";
 import { widened } from "./tabling";
 
 type Props = {
@@ -74,6 +75,7 @@ export default function Sheet(props: Readonly<Props>) {
   const echoes = useRef<string[]>([]);
   const shown = useRef<Window | null>(null);
   const putting = useRef(-1);
+  const hanging = useRef(false);
   const [ready, setReady] = useState(false);
   const kept = useKeptHeight<HTMLDivElement>(file ?? label);
   const [more, setMore] = useState<Extract<Went, { kind: "more" }> | null>(null);
@@ -399,24 +401,26 @@ export default function Sheet(props: Readonly<Props>) {
     whole(next);
   };
 
-  const parted = ([from, end]: [number, number]) => {
+  const parted = (at: [number, number]) => {
     if (open.current) return left();
-    if (reading || showing.current !== latest.current) return;
+    if (reading || hanging.current || showing.current !== latest.current) return;
     const asked = said.current.onPart;
-    const line = latest.current.slice(from, end).replace(/\r?\n$/, "");
-    const found = /^[-*+]\s+\[ \]\s+(.+?)\\?\r?$/.exec(line);
-    const first = from === 0 || latest.current[from - 1] === "\n";
-    if (!asked || !found || !first) return;
-    const title = found[1].trim();
+    const line = stepLine(latest.current, at);
+    const title = line && steppedTitle(line);
+    if (!asked || !line || !title) return;
+    hanging.current = true;
     asked(title)
       .then((id) => {
-        // The part is there either way; the step makes room for it only where it still stands.
+        // The part is there either way; the step makes room for it only where it still stands untouched.
         const now = latest.current;
-        const at = now.slice(from, from + line.length) === line ? from : now.indexOf(line);
-        if (!id || at < 0) return;
-        whole(cardedAt(now, at, at + line.length, partCard(id, title)));
+        const still = now.slice(at[0], at[0] + line.length) === line;
+        if (!id || !still || open.current || showing.current !== now) return;
+        whole(cardedAt(now, at[0], at[0] + line.length, partCard(id, title)));
       })
-      .catch((e) => said.current.onFail?.(e));
+      .catch((e) => said.current.onFail?.(e))
+      .finally(() => {
+        hanging.current = false;
+      });
   };
 
   const cut = ([from, end]: [number, number]) => {

@@ -20,6 +20,25 @@ fn moves_parts(op: &Op) -> bool {
     )
 }
 
+// Only an event about this task, its whole or one of its parts can move what it holds or what holds it.
+fn touches(world: &State, event: &Event, id: TaskId, whole: Option<TaskId>) -> bool {
+    let Some(at) = event.op.about_whom() else {
+        return false;
+    };
+    let names = match &event.op {
+        Op::TaskAdd { d, .. } => d.part_of == Some(id),
+        Op::TaskMove { d, .. } => d.part_of == Some(Some(id)),
+        _ => false,
+    };
+    names
+        || at == id
+        || Some(at) == whole
+        || world
+            .tasks
+            .get(&at)
+            .is_some_and(|one| one.part_of == Some(id))
+}
+
 /// Whether a part landed is the state's call, so the trail replays the state rather than guess it.
 fn parted(events: &[Event], id: TaskId) -> Vec<(Key, Page)> {
     let mut sorted: Vec<&Event> = events.iter().filter(|one| moves_parts(&one.op)).collect();
@@ -35,6 +54,10 @@ fn parted(events: &[Event], id: TaskId) -> Vec<(Key, Page)> {
                 .unwrap_or_default()
         };
         let whole_was = world.tasks.get(&id).and_then(|one| one.part_of);
+        if !touches(&world, event, id, whole_was) {
+            world.apply(event);
+            continue;
+        }
         let named_was = whole_was.map(|whole| titled(&world, whole));
         let parts_was: BTreeMap<TaskId, String> = world
             .parts_of(id)
@@ -115,7 +138,7 @@ pub(super) fn merged(keys: Vec<Key>, pages: Vec<Page>, events: &[Event], id: Tas
     keyed.retain(|(_, _, page)| match &page.chapter {
         Chapter::Unplanned { text } => !joined.iter().any(|(at, by, title)| {
             *by == page.by
-                && title == text
+                && crate::stages::title(title) == *text
                 && (0..=PARTED_WITHIN).contains(&(page.at.as_second() - at))
         }),
         _ => true,

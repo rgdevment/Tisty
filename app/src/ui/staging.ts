@@ -1,3 +1,5 @@
+import { charsAt, spanned } from "./paging";
+
 const SHOWN_AT_MOST = 60;
 
 // A document's stages are counted as they are read, so #2 is the second box a reader meets.
@@ -20,10 +22,30 @@ export const staged = (page: Document) => {
   }
 };
 
+// The step's words as the core reads them back: no break marks at the end, one space between words.
+export const steppedTitle = (line: string): string | null => {
+  const found = /^[-*+]\s+\[ \]\s+(.+)$/.exec(line);
+  const title = found?.[1]
+    .replace(/\\+\s*$/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return title || null;
+};
+
+// The step's own line, read the way the page's bytes name it, or nothing for one that runs on.
+export const stepLine = (body: string, [from, end]: [number, number]): string | null => {
+  if (from > 0 && body[from - 1] !== "\n") return null;
+  const line = body.slice(from, end).replace(/\r?\n?$/, "");
+  return line.includes("\n") ? null : line;
+};
+
 // Only an open step with nothing under it can leave as a part: what it holds would have nowhere to go.
-export const offeredAsParts = (page: Document, said: string) => {
+export const offeredAsParts = (page: Document, said: string, body: string) => {
   for (const one of page.querySelectorAll<HTMLElement>(".page > ul > li.task[data-at]")) {
     if (one.querySelector(':scope > .check[data-done="true"], ul, ol, pre, blockquote')) continue;
+    const at = spanned(one.dataset.at ?? null);
+    const line = at && stepLine(body, [charsAt(body, at[0]), charsAt(body, at[1])]);
+    if (!line || !steppedTitle(line)) continue;
     const ask = page.createElement("button");
     ask.type = "button";
     ask.className = "to-part";
