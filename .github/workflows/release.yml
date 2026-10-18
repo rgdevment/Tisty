@@ -1529,7 +1529,7 @@ jobs:
           for one in release-manifest.json latest.json candidate.json; do
             [ -f "$one" ] || continue
             printf '%s\n' "$FEED_SIGNING_PASSWORD" |
-              minisign -S -s "$key" -m "$one" -x "$one.sig" -t "tisty feed $v" || signed=false
+              minisign -S -s "$key" -m "$one" -x "$one.sig" -t "file:$one tisty feed $v" || signed=false
           done
           rm -f "$key"
           if [ "$signed" != true ]; then

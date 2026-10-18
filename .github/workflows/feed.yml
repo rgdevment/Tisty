@@ -194,7 +194,9 @@ jobs:
           }
           failed=0
           checked release-manifest.json "$newest" || failed=1
-          checked latest.json "$latest" || failed=1
+          if [ "$latest" != "0.0.0" ]; then
+            checked latest.json "$latest" || failed=1
+          fi
           if [ -n "$ahead" ]; then
             checked candidate.json "$ahead" || failed=1
           fi

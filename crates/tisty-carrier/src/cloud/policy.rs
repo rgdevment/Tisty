@@ -74,6 +74,17 @@ pub fn now() -> u64 {
         .map_or(0, |one| one.as_secs())
 }
 
+// The trusted comment is signed too, so a file signed under one name cannot stand in for another.
+pub fn signed_as(said: &[u8], signature: &str, key: &str, name: &str) -> bool {
+    let named = format!("file:{name}");
+    signed(said, signature, key)
+        && Signature::decode(signature).is_ok_and(|one| {
+            one.trusted_comment()
+                .split_whitespace()
+                .any(|word| word == named)
+        })
+}
+
 pub fn signed(said: &[u8], signature: &str, key: &str) -> bool {
     let (Ok(key), Ok(signature)) = (PublicKey::from_base64(key), Signature::decode(signature))
     else {

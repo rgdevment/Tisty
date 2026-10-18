@@ -253,9 +253,13 @@ pub fn feed_key() -> Option<&'static str> {
     option_env!("TISTY_FEED_KEY").filter(|key| !key.is_empty())
 }
 
-pub fn trusted(said: &[u8], signature: &[u8], key: &str) -> bool {
+pub fn trusted(said: &[u8], signature: &[u8], key: &str, name: &str) -> bool {
     std::str::from_utf8(signature)
-        .is_ok_and(|signature| tisty_carrier::policy::signed(said, signature, key))
+        .is_ok_and(|signature| tisty_carrier::policy::signed_as(said, signature, key, name))
+}
+
+fn named(url: &str) -> &str {
+    url.rsplit('/').next().unwrap_or(url)
 }
 
 pub enum Heard {
@@ -296,21 +300,34 @@ enum Signed {
     Said(Vec<u8>),
 }
 
-// The file and its signature are cached apart, so only a pair that disagrees is asked past the cache.
-fn read_signed(client: &reqwest::blocking::Client, url: &str, key: &str) -> Signed {
+fn pair(client: &reqwest::blocking::Client, url: &str, past: &str) -> Option<(Vec<u8>, Vec<u8>)> {
+    let said = asked(client, &format!("{url}{past}"))?;
+    let signature = asked(client, &format!("{url}.sig{past}"))?;
+    Some((said, signature))
+}
+
+// The file and its signature are cached apart, so a pair that does not do is asked again past the cache.
+fn read_signed(
+    client: &reqwest::blocking::Client,
+    url: &str,
+    key: &str,
+    wanted: impl Fn(&[u8]) -> bool,
+) -> Signed {
     let fresh = format!("?at={}", jiff::Timestamp::now().as_second());
+    let mut heard = false;
     for past in ["", fresh.as_str()] {
-        let Some(said) = asked(client, &format!("{url}{past}")) else {
-            return Signed::Nothing;
+        let Some((said, signature)) = pair(client, url, past) else {
+            continue;
         };
-        let Some(signature) = asked(client, &format!("{url}.sig{past}")) else {
-            return Signed::Nothing;
-        };
-        if trusted(&said, &signature, key) {
+        heard = true;
+        if trusted(&said, &signature, key, named(url)) && wanted(&said) {
             return Signed::Said(said);
         }
     }
-    Signed::Unsigned
+    match heard {
+        true => Signed::Unsigned,
+        false => Signed::Nothing,
+    }
 }
 
 /// A look that never answered is Nothing; Unsigned is only a feed that answered and did not verify.
@@ -322,7 +339,7 @@ pub fn fetch() -> Heard {
     let Some(key) = feed_key() else {
         return asked(&client, MANIFEST).map_or(Heard::Nothing, text);
     };
-    match read_signed(&client, MANIFEST, key) {
+    match read_signed(&client, MANIFEST, key, |_| true) {
         Signed::Said(said) => text(said),
         Signed::Nothing => Heard::Nothing,
         Signed::Unsigned => {
@@ -349,7 +366,10 @@ pub fn channel_vouched(read: &serde_json::Value, version: &str) -> bool {
         return false;
     };
     let vouched = feeds_for(version).into_iter().any(|url| {
-        matches!(read_signed(&client, url, key), Signed::Said(said) if same_channel(&said, read))
+        matches!(
+            read_signed(&client, url, key, |said| same_channel(said, read)),
+            Signed::Said(_)
+        )
     });
     if !vouched {
         witness::warn(

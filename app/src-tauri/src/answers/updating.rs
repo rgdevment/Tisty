@@ -250,9 +250,9 @@ pub async fn update_install(
     if !update::ours(update.download_url.as_str()) {
         return Err(Refusal::of("updateElsewhere"));
     }
-    let (read, offered) = (update.raw_json.clone(), want.clone());
+    let read = update.raw_json.clone();
     let vouched =
-        tauri::async_runtime::spawn_blocking(move || update::channel_vouched(&read, &offered))
+        tauri::async_runtime::spawn_blocking(move || update::channel_vouched(&read, &want))
             .await
             .map_err(|_| Refusal::of("internal"))?;
     if !vouched {
