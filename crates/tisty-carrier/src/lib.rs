@@ -16,6 +16,7 @@ mod cloud;
 mod folder;
 #[cfg(not(windows))]
 mod keychain;
+pub mod loopback;
 mod remote;
 pub mod said;
 mod shift;

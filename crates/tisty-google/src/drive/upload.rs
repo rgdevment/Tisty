@@ -79,7 +79,7 @@ impl Drive {
         from: &Path,
         carried: &mut u64,
     ) -> Result<File, Hitch> {
-        let boundary = format!("tisty-{}", crate::random_text(18)?);
+        let boundary = format!("tisty-{}", tisty_carrier::loopback::random_text(18)?);
         let mut body = format!(
             "--{boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n{meta}\r\n--{boundary}\r\nContent-Type: application/octet-stream\r\n\r\n"
         )

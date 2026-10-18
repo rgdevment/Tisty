@@ -5850,16 +5850,20 @@ name = "tisty-carrier"
 version = "0.1.0"
 dependencies = [
  "apple-native-keyring-store",
+ "base64 0.22.1",
  "keyring-core",
  "minisign-verify 0.2.5",
  "proptest",
+ "rand_core 0.9.5",
  "serde",
  "serde_json",
+ "sha2 0.11.1",
  "tempfile",
  "tisty-core",
  "tisty-sync",
  "toml 1.1.8+spec-1.1.0",
  "ulid",
+ "url",
  "zbus-secret-service-keyring-store",
 ]
 
@@ -5925,11 +5929,9 @@ name = "tisty-google"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
- "rand_core 0.9.5",
  "reqwest",
  "serde",
  "serde_json",
- "sha2 0.11.1",
  "tempfile",
  "tisty-carrier",
  "tisty-core",
