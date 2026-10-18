@@ -1086,7 +1086,7 @@ kbd {
   padding: 3px;
   border-radius: 8px;
   border: 1px solid var(--tisty-hair);
-  background: var(--tisty-rail);
+  background: color-mix(in srgb, var(--tisty-ink) 5%, var(--tisty-sheet));
   box-shadow: 0 4px 12px var(--tisty-cast);
   font-size: 12.5px;
   line-height: 1;

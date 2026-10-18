@@ -1,5 +1,5 @@
 const REST = 4;
-const LEFT = 12;
+const LEFT = 6;
 const STUCK = 6;
 
 const scrollerOf = (from: Element | null | undefined): Element | null => {
