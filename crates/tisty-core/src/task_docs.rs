@@ -6,27 +6,38 @@ use crate::event::{DocAdd, Op, Said};
 use crate::model::{DocId, Kept, TaskId};
 use crate::state::State;
 
-/// The one line a task's document always carries, so the file knows its task wherever it goes.
 pub const KEY: &str = "task";
 
-// The random half is turned by a fixed word: the document never shares its task's id, nor the
-// permissions an assistant holds over that task.
+// Turned by a fixed word so the document never answers to the permissions held over its task.
 const TURNED: u128 = 0x5441_534b_5f44_4f43_5f4f;
 
-/// Every machine names a task's document the same way, so two that make it at once make one.
-pub fn file_of(task: TaskId) -> String {
-    format!("t_{}-0001", task.to_string().to_ascii_lowercase())
+const PREFIX: &str = "t_";
+
+/// Named from the task and the turn, so machines agree and one made again after a delete is new.
+pub fn file_at(task: TaskId, turn: u32) -> String {
+    format!(
+        "{PREFIX}{}-{turn:04}",
+        task.to_string().to_ascii_lowercase()
+    )
 }
 
-pub fn id_of(task: TaskId) -> DocId {
-    Ulid::from_parts(task.timestamp_ms(), task.random() ^ TURNED)
+pub fn id_at(task: TaskId, turn: u32) -> DocId {
+    Ulid::from_parts(
+        task.timestamp_ms(),
+        task.random() ^ TURNED ^ u128::from(turn),
+    )
+}
+
+pub fn task_of_file(file: &str) -> Option<TaskId> {
+    let (head, number) = file.strip_prefix(PREFIX)?.rsplit_once('-')?;
+    (!number.is_empty() && number.chars().all(|one| one.is_ascii_digit())).then_some(())?;
+    Ulid::from_string(&head.to_ascii_uppercase()).ok()
 }
 
 pub fn seed(task: TaskId) -> String {
     format!("---\n{KEY}: {task}\n---\n")
 }
 
-/// The task a document says it belongs to, read from its properties.
 pub fn task_in(body: &str) -> Option<TaskId> {
     tisty_markdown::front::fields(body)
         .into_iter()
@@ -36,13 +47,9 @@ pub fn task_in(body: &str) -> Option<TaskId> {
 }
 
 pub fn of(state: &State, task: TaskId) -> Option<&Kept> {
-    state
-        .docs
-        .get(&id_of(task))
-        .filter(|kept| kept.task_of == Some(task))
+    state.docs.values().find(|kept| kept.task_of == Some(task))
 }
 
-/// Which task each task's document belongs to, by its file: a search that lands in one hands back the task.
 pub fn behind(state: &State) -> std::collections::BTreeMap<String, TaskId> {
     state
         .docs
@@ -51,15 +58,27 @@ pub fn behind(state: &State) -> std::collections::BTreeMap<String, TaskId> {
         .collect()
 }
 
-/// Writes the seed only where nothing is written yet, and hands back what the log has to learn.
+// A name a deleted document held is swept from disk, and its id stays erased: both are skipped.
+fn turn(state: &State, task: TaskId) -> u32 {
+    (1..)
+        .find(|at| !state.shed.contains(&file_at(task, *at)) && !state.is_erased(id_at(task, *at)))
+        .unwrap_or(1)
+}
+
 pub fn made(root: &Path, state: &State, task: TaskId, by: Option<String>) -> crate::Result<Op> {
-    let file = file_of(task);
+    let (id, file) = match of(state, task) {
+        Some(kept) => (kept.id, kept.file.clone()),
+        None => {
+            let at = turn(state, task);
+            (id_at(task, at), file_at(task, at))
+        }
+    };
     let body = match crate::docs::create_named(root, &file, &seed(task))? {
         true => seed(task),
         false => crate::docs::read(root, &file)?,
     };
     Ok(Op::DocAdd {
-        id: id_of(task),
+        id,
         d: DocAdd {
             file,
             order: crate::order::last_of(state.docs.values().map(|one| one.order.as_str())),

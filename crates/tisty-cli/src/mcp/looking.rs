@@ -450,12 +450,13 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     folders.sort();
 
     let mut how: std::collections::BTreeMap<&str, usize> = Default::default();
-    for one in state
-        .tasks
-        .values()
-        .flat_map(|task| &task.tags)
-        .chain(state.docs.values().flat_map(|one| &one.tags))
-    {
+    for one in state.tasks.values().flat_map(|task| &task.tags).chain(
+        state
+            .docs
+            .values()
+            .filter(|one| one.task_of.is_none())
+            .flat_map(|one| &one.tags),
+    ) {
         *how.entry(one.as_str()).or_default() += 1;
     }
     let mut tags: Vec<(&str, usize)> = how.into_iter().collect();
@@ -554,6 +555,20 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                     papers.push(id);
                 }
             }
+            // Writing a task's document is that task moving, never a document of its own.
+            for one in &papers {
+                let behind = one
+                    .parse::<Ulid>()
+                    .ok()
+                    .and_then(|id| state.docs.get(&id))
+                    .and_then(|kept| kept.task_of)
+                    .map(|task| task.to_string());
+                if let Some(task) = behind
+                    && !tasks.contains(&task)
+                {
+                    tasks.push(task);
+                }
+            }
             let moved: Vec<Value> = tasks
                 .iter()
                 .filter_map(|id| id.parse::<TaskId>().ok())
@@ -566,6 +581,7 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 .filter_map(|id| {
                     let id = id.parse::<Ulid>().ok()?;
                     let kept = state.docs.values().find(|one| one.id == id)?;
+                    kept.task_of.is_none().then_some(())?;
                     Some(json!({ "doc": kept.file, "title": kept.title }))
                 })
                 .collect();
@@ -636,12 +652,13 @@ The same guide, with every example drawn, is published at {drawn}; this whole te
 pub(super) fn tags(paths: &Paths) -> Result<Value, Refused> {
     let (state, _) = opened(paths)?;
     let mut how: std::collections::BTreeMap<&str, usize> = std::collections::BTreeMap::new();
-    for one in state
-        .tasks
-        .values()
-        .flat_map(|task| &task.tags)
-        .chain(state.docs.values().flat_map(|one| &one.tags))
-    {
+    for one in state.tasks.values().flat_map(|task| &task.tags).chain(
+        state
+            .docs
+            .values()
+            .filter(|one| one.task_of.is_none())
+            .flat_map(|one| &one.tags),
+    ) {
         *how.entry(one.as_str()).or_default() += 1;
     }
     let mut named: Vec<(&str, usize)> = how.into_iter().collect();

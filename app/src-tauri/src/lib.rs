@@ -162,9 +162,12 @@ fn search(
             Scope::Either => true,
         })
     {
-        if tasks.len() < MOST && !tasks.iter().any(|one| one.id == task.id) {
+        if tasks.iter().any(|one| one.id == task.id) {
+            continue;
+        }
+        total += 1;
+        if tasks.len() < MOST {
             tasks.push(task.clone());
-            total += 1;
         }
     }
     let papers = session

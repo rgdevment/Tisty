@@ -2,7 +2,6 @@ use jiff::civil::{Date, DateTime};
 
 use crate::model::{Cadence, DateSpec, From, Priority, Repeat, Task, TaskId, Unit};
 
-/// What a task says of itself when its document leaves Tisty, and what is read back when one comes in.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Front {
     pub task: Option<TaskId>,
@@ -15,7 +14,7 @@ pub struct Front {
     pub tags: Vec<String>,
 }
 
-const KEYS: [&str; 8] = [
+const KEYS: [&str; 9] = [
     crate::task_docs::KEY,
     "scheduled",
     "due",
@@ -24,6 +23,7 @@ const KEYS: [&str; 8] = [
     "priority",
     "repeat",
     "tags",
+    "tag",
 ];
 
 pub fn day(one: &DateSpec) -> String {
@@ -35,7 +35,6 @@ pub fn day(one: &DateSpec) -> String {
     }
 }
 
-/// A day alone, a day and an hour where the reader is, or one pinned to a zone in brackets.
 pub fn day_in(said: &str, tz: &str) -> Option<DateSpec> {
     let said = said.trim();
     let (when, zone) = match said.split_once('[') {
@@ -46,10 +45,12 @@ pub fn day_in(said: &str, tz: &str) -> Option<DateSpec> {
         return Some(DateSpec::all_day(when.parse::<Date>().ok()?, tz));
     }
     let at = when.parse::<DateTime>().ok()?;
-    Some(match zone {
-        Some(zone) => DateSpec::fixed(at, zone),
-        None => DateSpec::floating(at, tz),
-    })
+    match zone {
+        Some(zone) => jiff::tz::TimeZone::get(zone)
+            .is_ok()
+            .then(|| DateSpec::fixed(at, zone)),
+        None => Some(DateSpec::floating(at, tz)),
+    }
 }
 
 pub fn repeat(one: Repeat) -> String {
@@ -115,9 +116,12 @@ pub fn repeat_in(said: &str) -> Option<Repeat> {
 }
 
 fn quoted(said: &str) -> String {
-    match said.contains([':', '#', '[', ']', '{', '}', ',', '"', '\'']) || said.trim() != said {
-        true => format!("\"{}\"", said.replace('"', "'")),
-        false => said.to_string(),
+    let plain =
+        !said.contains([':', '#', '[', ']', '{', '}', ',', '"', '\'']) && said.trim() == said;
+    match (plain, said.contains('"')) {
+        (true, _) => said.to_string(),
+        (false, false) => format!("\"{said}\""),
+        (false, true) => format!("'{said}'"),
     }
 }
 
@@ -126,7 +130,6 @@ fn listed(all: &[String]) -> String {
     format!("[{}]", inside.join(", "))
 }
 
-/// The lines a task's properties take, in the order a person reads them.
 pub fn lines(task: &Task, list: Option<&str>) -> Vec<String> {
     let mut out = vec![format!("{}: {}", crate::task_docs::KEY, task.id)];
     if let Some(one) = &task.date {
@@ -155,7 +158,6 @@ pub fn lines(task: &Task, list: Option<&str>) -> Vec<String> {
     out
 }
 
-/// Gives a document leaving Tisty its task's properties, keeping every other property it holds.
 pub fn dressed(body: &str, task: &Task, list: Option<&str>) -> String {
     let (others, rest) = match tisty_markdown::front::span(body) {
         Some(at) => (theirs(&body[at.clone()]), &body[at.end..]),
@@ -166,7 +168,6 @@ pub fn dressed(body: &str, task: &Task, list: Option<&str>) -> String {
     format!("---\n{}\n---\n{rest}", block.join("\n"))
 }
 
-// The lines of a block that are not a task's own, each with whatever it carries below it.
 fn theirs(block: &str) -> Vec<String> {
     let inner: Vec<&str> = block.lines().collect();
     let inner = &inner[1..inner.len().saturating_sub(1)];
@@ -213,17 +214,22 @@ pub fn read(body: &str, tz: &str) -> Front {
     front
 }
 
-/// What a document coming in says differently from its task; a property it leaves out clears nothing.
+/// A property the document leaves out clears nothing.
 pub fn patch(task: &Task, front: &Front) -> Option<crate::event::TaskPatch> {
     let mut out = crate::event::TaskPatch::default();
-    let differs = |now: &Option<DateSpec>, said: &Option<DateSpec>| said.is_some() && said != now;
+    // Compared as written, since the zone and the seconds a document cannot carry are no change.
+    let shown = |one: &Option<DateSpec>| one.as_ref().map(day);
+    let differs = |now: &Option<DateSpec>, said: &Option<DateSpec>| {
+        said.is_some() && shown(said) != shown(now)
+    };
     if differs(&task.date, &front.scheduled) {
         out.date = Some(front.scheduled.clone());
     }
     if differs(&task.deadline, &front.due) {
         out.deadline = Some(front.due.clone());
     }
-    if !front.remind.is_empty() && front.remind != task.reminders {
+    let written = |all: &[DateSpec]| all.iter().map(day).collect::<Vec<_>>();
+    if !front.remind.is_empty() && written(&front.remind) != written(&task.reminders) {
         out.reminders = Some(front.remind.clone());
     }
     if let Some(priority) = front.priority.filter(|one| *one != task.priority) {
@@ -237,19 +243,23 @@ pub fn patch(task: &Task, front: &Front) -> Option<crate::event::TaskPatch> {
         .iter()
         .filter_map(|one| crate::model::Tag::new(one).ok())
         .collect();
-    if !tags.is_empty() && tags != task.tags {
+    if !tags.is_empty() && set(&tags) != set(&task.tags) {
         out.tags = Some(tags);
     }
     (out != crate::event::TaskPatch::default()).then_some(out)
 }
 
-/// A list named in a document is found among the lists there are; a name nobody has makes none.
+fn set(all: &[crate::model::Tag]) -> std::collections::BTreeSet<&crate::model::Tag> {
+    all.iter().collect()
+}
+
+/// A name nobody has makes no list, and a list put away is never chosen.
 pub fn moved(state: &crate::State, task: &Task, front: &Front) -> Option<crate::event::TaskMove> {
-    let name = front.list.as_deref()?;
-    let (id, _) = state
-        .lists
-        .iter()
-        .find(|(_, one)| one.name.eq_ignore_ascii_case(name.trim_start_matches('@')))?;
+    let name = front.list.as_deref()?.trim_start_matches('@');
+    let open = || state.lists.iter().filter(|(_, one)| !one.archived);
+    let (id, _) = open()
+        .find(|(_, one)| one.name == name)
+        .or_else(|| open().find(|(_, one)| one.name.eq_ignore_ascii_case(name)))?;
     (task.list != Some(*id)).then(|| crate::event::TaskMove {
         list: Some(Some(*id)),
         ..crate::event::TaskMove::default()

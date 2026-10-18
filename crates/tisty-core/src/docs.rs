@@ -99,7 +99,6 @@ pub fn create(root: &Path, device: &DeviceId, body: &str) -> Result<Doc> {
     }
 }
 
-/// Says whether it wrote: a name somebody already holds is left as it is.
 pub fn create_named(root: &Path, id: &str, body: &str) -> Result<bool> {
     std::fs::create_dir_all(root)?;
     let _ = crate::paths::ours_alone(root);

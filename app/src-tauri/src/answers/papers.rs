@@ -895,7 +895,6 @@ pub fn docs(session: tauri::State<'_, Mutex<Session>>) -> Answer<Papers> {
 
 fn gathered(session: &Session) -> Vec<Filed> {
     let on_disk = tisty_core::docs::names(&session.paths.docs());
-    // A task's document lives with its task, never among the documents.
     let mut kept_in_order: Vec<&tisty_core::model::Kept> = session
         .state
         .docs

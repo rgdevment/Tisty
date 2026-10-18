@@ -149,3 +149,45 @@ fn a_list_is_found_by_its_name_and_an_unknown_one_makes_nothing() {
     assert_eq!(into.list, Some(Some(home)));
     assert_eq!(moved(&state, &task, &asked("nowhere")), None);
 }
+
+#[test]
+fn a_zone_nobody_has_is_not_read_as_a_day() {
+    assert_eq!(day_in("2026-10-02T09:00[Europe/Madird]", TZ), None);
+}
+
+#[test]
+fn a_day_read_where_another_zone_is_kept_is_no_change() {
+    let task = booster();
+    let elsewhere = read(&dressed("", &task, None), "Europe/Madrid");
+    assert_eq!(patch(&task, &elsewhere), None);
+}
+
+#[test]
+fn a_list_put_away_is_never_chosen_and_the_exact_name_goes_first() {
+    let mut state = crate::State::default();
+    let (old, upper, lower) = (Ulid::generate(), Ulid::generate(), Ulid::generate());
+    let mut put_away = crate::model::List::new(old, "home", "a0");
+    put_away.archived = true;
+    state.lists.insert(old, put_away);
+    state
+        .lists
+        .insert(upper, crate::model::List::new(upper, "Home", "a1"));
+    state
+        .lists
+        .insert(lower, crate::model::List::new(lower, "home", "a2"));
+    let asked = Front {
+        list: Some("home".into()),
+        ..Front::default()
+    };
+
+    let into = moved(&state, &booster(), &asked).expect("a list");
+    assert_eq!(into.list, Some(Some(lower)));
+}
+
+#[test]
+fn a_tag_line_of_the_document_goes_too_so_a_removed_tag_stays_removed() {
+    let task = booster();
+    let out = dressed("---\ntag: old\n---\nWords.\n", &task, None);
+    assert!(!out.contains("old"), "{out}");
+    assert_eq!(read(&out, TZ).tags, vec!["salud".to_string()]);
+}

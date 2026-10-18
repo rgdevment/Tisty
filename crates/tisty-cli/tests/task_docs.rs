@@ -68,7 +68,10 @@ impl Served {
         let state = tisty_core::State::replay(&events);
         let task: tisty_core::model::TaskId = task.parse().unwrap();
         let op = tisty_core::task_docs::made(&data.join("docs"), &state, task, None).unwrap();
-        let file = tisty_core::task_docs::file_of(task);
+        let tisty_core::Op::DocAdd { d, .. } = &op else {
+            panic!("a task's document is added");
+        };
+        let file = d.file.clone();
         tisty_core::docs::write(
             &data.join("docs"),
             &file,
@@ -108,4 +111,30 @@ fn a_task_is_found_by_the_words_of_its_document_and_the_document_is_not_listed_o
         .cloned()
         .unwrap_or_default();
     assert!(docs.is_empty(), "{listed}");
+}
+
+#[test]
+fn an_assistant_cannot_write_a_task_s_words_through_the_document_tools() {
+    let served = Served::new();
+    let filed = served.call("propose", serde_json::json!({ "title": "Rina's booster" }));
+    let task = filed["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.written_for(&task, "The person's own words.");
+    let file = format!("t_{}-0001", task.to_ascii_lowercase());
+
+    let refused = served.call(
+        "edit_doc",
+        serde_json::json!({ "doc": file, "old": "own", "new": "changed" }),
+    );
+
+    assert_eq!(refused["result"]["isError"], true, "{refused}");
+    let said = refused["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(said.contains("task's document"), "{said}");
+    let read = served.call("read_doc", serde_json::json!({ "doc": file }));
+    let body = read["result"]["structuredContent"]["body"]
+        .as_str()
+        .unwrap_or_default();
+    assert!(body.contains("The person's own words."), "{read}");
 }

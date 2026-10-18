@@ -168,6 +168,7 @@ fn called(paths: &Paths, params: &Value) -> Result<Value, Refused> {
     let args = without_nulls(name, params.get("arguments").cloned().unwrap_or(json!({})));
     only_what_it_takes(name, &args)?;
     short_and_plain(&args)?;
+    not_a_task_s_words(name, &args)?;
 
     match name {
         "propose" => spoken(&args, "description", |args| propose(paths, args)),
@@ -214,6 +215,39 @@ fn called(paths: &Paths, params: &Value) -> Result<Value, Refused> {
                 None => format!("unknown tool: {other}"),
             },
         )),
+    }
+}
+
+const WRITES_DOCUMENTS: [&str; 9] = [
+    "write_doc",
+    "append_doc",
+    "edit_doc",
+    "restore_doc",
+    "archive_doc",
+    "flag_doc",
+    "file_doc",
+    "page_doc",
+    "attach",
+];
+
+// A task's words keep the task's own door, which these tools do not ask about.
+fn not_a_task_s_words(name: &str, args: &Value) -> Result<(), Refused> {
+    if !WRITES_DOCUMENTS.contains(&name) {
+        return Ok(());
+    }
+    let named = ["doc", "page_of", "under"]
+        .iter()
+        .filter_map(|key| args.get(*key))
+        .flat_map(|one| match one {
+            Value::Array(all) => all.iter().filter_map(Value::as_str).collect::<Vec<_>>(),
+            other => other.as_str().into_iter().collect(),
+        })
+        .find(|file| tisty_core::task_docs::task_of_file(file).is_some());
+    match named {
+        Some(file) => Err(Refused::Tool(format!(
+            "{file} is a task's document: its words are the task's, and they are not written              through the document tools. Read it with `read_doc`; write on the task with `note`."
+        ))),
+        None => Ok(()),
     }
 }
 
