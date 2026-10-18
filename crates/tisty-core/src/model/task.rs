@@ -368,13 +368,14 @@ impl Task {
 
     /// One stretch of adding counts once, as the trail tells it once; ticking is no growth.
     pub fn grew_at(&mut self, at: Timestamp) {
-        let apart = self
-            .grown_at
-            .is_none_or(|was| at.as_second() - was.as_second() >= crate::paged::WRITING_FOR);
+        let apart = self.grown_at.is_none_or(|was| {
+            (at.as_second() - was.as_second()).abs() >= crate::paged::WRITING_FOR
+        });
         if apart {
             self.volume.grew += 1;
-            self.grown_at = Some(at);
         }
+        // The quiet that ends a stretch counts from its last addition, so one long sitting is one.
+        self.grown_at = Some(self.grown_at.map_or(at, |was| was.max(at)));
     }
 
     pub fn step(&self, id: StepId) -> Option<&Step> {

@@ -208,7 +208,15 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
     let (state, mut store) = opened(paths)?;
     if let Some(task) = super::super::task_notes::task_named(&state, &which) {
         tisty_core::docs::survives(&body).map_err(|eats| Refused::Tool(not_spoken(eats)))?;
-        return super::super::task_notes::noted_on_page(paths, &state, &mut store, task, &body);
+        let under = text(args, "under");
+        return super::super::task_notes::noted_on_page(
+            paths,
+            &state,
+            &mut store,
+            task,
+            &body,
+            under.as_deref(),
+        );
     }
     let Some(kept) = state.docs.values().find(|one| one.file == which) else {
         return Err(Refused::Tool(format!(

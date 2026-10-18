@@ -199,7 +199,7 @@ impl App {
         tisty_core::round::closing_words(&self.paths, &mut self.store, &self.state, id, None)
     }
 
-    pub fn round_cleared(&mut self, id: tisty_core::TaskId, said: &str) -> tisty_core::Result<()> {
+    pub fn round_cleared(&mut self, id: tisty_core::TaskId, said: &str) {
         tisty_core::round::round_cleared(&self.paths, &mut self.store, &self.state, id, said)
     }
 

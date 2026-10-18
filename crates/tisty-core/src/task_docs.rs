@@ -200,7 +200,7 @@ pub fn opened(state: &State, task: TaskId, template: &str) -> String {
 }
 
 // A description's own headings sit one level under its section, so they never read as the template's.
-fn deeper(said: &str) -> String {
+pub(crate) fn deeper(said: &str) -> String {
     let mut fenced = tisty_markdown::fences::fencing();
     said.lines()
         .map(|line| {

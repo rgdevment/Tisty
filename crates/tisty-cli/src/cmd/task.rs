@@ -199,7 +199,7 @@ pub fn done(
         };
         app.commit_all(ops)?;
         if let Some(said) = &closing.said {
-            app.round_cleared(id, said)?;
+            app.round_cleared(id, said);
         }
         report(app, id, today, lang);
         if kept.is_empty()

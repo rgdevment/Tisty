@@ -14,10 +14,9 @@ fn logged(id: TaskId, words: String) -> Op {
     Op::TaskLog { id, d }
 }
 
-fn page(paths: &Paths, state: &State, id: TaskId) -> Option<(crate::model::DocId, String)> {
+fn page(paths: &Paths, state: &State, id: TaskId) -> Option<String> {
     let kept = crate::task_docs::of(state, crate::task_docs::owner(state, id))?;
-    let body = crate::docs::read(&paths.docs(), &kept.file).ok()?;
-    Some((kept.id, body))
+    crate::docs::read(&paths.docs(), &kept.file).ok()
 }
 
 /// Kept apart from the closing so that undoing the close never takes these words with it.
@@ -40,9 +39,9 @@ pub fn closing_words(
         let Some(summary) = summary else {
             return nothing;
         };
-        let onto_page = page(paths, state, id).is_some()
-            && crate::task_docs::wrote(paths, store, id, |was, _| Some(summed(was, summary)))
-                .is_ok();
+        let open = crate::task_docs::of(state, crate::task_docs::owner(state, id))
+            .is_some_and(|kept| !state.written_shut(kept.id));
+        let onto_page = open && written(paths, store, id, |was| Some(summed(was, summary)));
         return Closing {
             ops: if onto_page {
                 Vec::new()
@@ -53,7 +52,7 @@ pub fn closing_words(
         };
     }
     let said = page(paths, state, id)
-        .map(|(_, body)| said_in(&body, &THIS_TIME))
+        .map(|body| said_in(&body, &THIS_TIME))
         .filter(|one| !one.is_empty());
     let words: Vec<&str> = [summary, said.as_deref()].into_iter().flatten().collect();
     if words.is_empty() {
@@ -66,22 +65,33 @@ pub fn closing_words(
 }
 
 /// The page lets a round's words go only while they still read as what its log kept.
-pub fn round_cleared(
-    paths: &Paths,
-    store: &mut Store,
-    state: &State,
-    id: TaskId,
-    said: &str,
-) -> crate::Result<()> {
-    let Some((doc, _)) = page(paths, state, id) else {
-        return Ok(());
+pub fn round_cleared(paths: &Paths, store: &mut Store, state: &State, id: TaskId, said: &str) {
+    let Some(kept) = crate::task_docs::of(state, crate::task_docs::owner(state, id)) else {
+        return;
     };
-    if state.stowed(doc) || state.shut(doc) {
-        return Ok(());
+    if state.written_shut(kept.id) {
+        return;
     }
-    crate::task_docs::wrote(paths, store, id, |was, _| {
+    written(paths, store, id, |was| {
         this_time(was)
             .filter(|(now, _)| now == said)
             .map(|(_, cleared)| cleared)
-    })
+    });
+}
+
+fn written(
+    paths: &Paths,
+    store: &mut Store,
+    id: TaskId,
+    edit: impl FnOnce(&str) -> Option<String>,
+) -> bool {
+    let done = crate::task_docs::wrote(paths, store, id, |was, _| edit(was));
+    if let Err(e) = &done {
+        crate::witness::warn(
+            crate::witness::channel::STORE,
+            "a task's page could not take what its closing said",
+            &[("why", crate::witness::Fact::Why(e.to_string()))],
+        );
+    }
+    done.is_ok()
 }

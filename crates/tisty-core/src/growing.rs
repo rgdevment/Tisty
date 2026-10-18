@@ -11,13 +11,18 @@ fn grows(op: &Op) -> Option<TaskId> {
         {
             Some(*id)
         }
-        Op::TaskPaged { id, d } if !matches!(d.change, PageChange::Removed) => Some(*id),
+        Op::TaskPaged { id, d } if matches!(d.change, PageChange::Added | PageChange::Written) => {
+            Some(*id)
+        }
         _ => None,
     }
 }
 
 impl State {
     pub(crate) fn grown(&mut self, event: &Event) {
+        if event.undo || event.redo {
+            return;
+        }
         if let Some(id) = grows(&event.op) {
             self.with_task(id, |task| task.grew_at(event.timestamp));
         }

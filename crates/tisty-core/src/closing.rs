@@ -9,6 +9,10 @@ fn level(line: &str) -> Option<usize> {
     ((1..=6).contains(&marks) && bare[marks..].starts_with([' ', '\t'])).then_some(marks)
 }
 
+fn unix(said: &str) -> String {
+    said.replace("\r\n", "\n").trim().to_string()
+}
+
 fn hint(line: &str) -> bool {
     let bare = line.trim();
     bare.starts_with("<!--") && bare.ends_with("-->")
@@ -73,14 +77,15 @@ pub fn this_time(body: &str) -> Option<(String, String)> {
 pub fn summed(body: &str, summary: &str) -> String {
     let summary = summary.trim();
     // Closing again after a refusal or an undo says the same words once.
-    let first = said_in(body, &WHEN_IT_CLOSES);
-    if first.split("\n\n").next().map(str::trim) == Some(summary) {
+    let (bare, said) = (unix(summary), unix(&said_in(body, &WHEN_IT_CLOSES)));
+    if said == bare || said.starts_with(&format!("{bare}\n\n")) {
         return body.to_string();
     }
     let line = if body.contains("\r\n") { "\r\n" } else { "\n" };
     let Some((_, words)) = held(body, &WHEN_IT_CLOSES) else {
         let kept = body.trim_end_matches(['\n', '\r']);
-        if kept.rsplit("\n\n").next().map(str::trim) == Some(summary) {
+        let ends = unix(kept);
+        if ends == bare || ends.ends_with(&format!("\n\n{bare}")) {
             return body.to_string();
         }
         return format!("{kept}{line}{line}{summary}{line}");

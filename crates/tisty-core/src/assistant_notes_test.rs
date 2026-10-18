@@ -17,6 +17,16 @@ fn the_first_note_opens_the_assistant_s_own_section_at_the_end() {
 }
 
 #[test]
+fn a_note_s_own_headings_and_open_fence_stay_inside_the_section() {
+    let page = noted("## Notas\n", "## Hallazgos\nUno.\n```\ncode", true);
+    assert_eq!(
+        page,
+        "## Notas\n\n## Notas del asistente\n\n### Hallazgos\nUno.\n```\ncode\n```\n"
+    );
+    assert_eq!(noted(&page, "Dos.", true), format!("{}\nDos.\n", page));
+}
+
+#[test]
 fn a_later_note_goes_at_the_end_of_that_section_and_before_the_next() {
     let body = "## Notas del asistente\n\nUna.\n\n## Al cerrarla\n\nBien.\n";
     assert_eq!(

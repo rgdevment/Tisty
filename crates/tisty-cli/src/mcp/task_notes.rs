@@ -23,6 +23,7 @@ pub(super) fn noted_on_page(
     store: &mut Store,
     id: TaskId,
     body: &str,
+    under: Option<&str>,
 ) -> Result<Value, Refused> {
     let Some(task) = state.tasks.get(&id) else {
         return Err(Refused::Tool("that task is not here any more.".into()));
@@ -55,11 +56,32 @@ pub(super) fn noted_on_page(
         .map(|client| tisty_core::agent::client_named(&client))
         .unwrap_or_else(|| "assistant".to_string());
     let note = format!("**{day}** · {who}\n{}", body.trim());
-    let missed = super::worded::worded(paths, store, id, |was, _| {
+    let elsewhere = match under {
+        Some(_) => {
+            " It went under the assistant's notes: a task's page keeps the rest for the person."
+        }
+        None => "",
+    };
+    let written = tisty_core::task_docs::wrote(paths, store, id, |was, _| {
         Some(tisty_core::assistant_notes::noted(was, &note, spanish))
     });
+    if written.is_ok() {
+        return Ok(told(
+            format!("Added under the assistant's notes on {title:?}'s page.{elsewhere}"),
+            json!({ "task": id.to_string(), "title": title }),
+        ));
+    }
+    // A page that cannot take it right now leaves the note in the History, never nowhere.
+    let zone = jiff::tz::TimeZone::system().iana_name().map(str::to_string);
+    let d = tisty_core::event::LogAdd::new(ulid::Ulid::generate(), body.trim()).in_zone(zone);
+    store
+        .append(tisty_core::Op::TaskLog { id, d })
+        .map_err(hitch)?;
     Ok(told(
-        format!("Added under the assistant's notes on {title:?}'s page.{missed}"),
-        json!({ "task": id.to_string(), "title": title }),
+        format!(
+            "{title:?}'s page could not be written just now, so the note is in its History, \
+             signed, instead. Nothing needs doing again."
+        ),
+        json!({ "task": id.to_string(), "title": title, "in": "history" }),
     ))
 }

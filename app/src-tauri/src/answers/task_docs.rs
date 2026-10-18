@@ -269,22 +269,17 @@ pub(crate) fn closing_words(
     id: TaskId,
     summary: Option<&str>,
 ) -> tisty_core::round::Closing {
-    let paths = session.paths.clone();
-    let state = session.state.clone();
-    let closing = tisty_core::round::closing_words(&paths, &mut session.store, &state, id, summary);
-    settled_after(session, id);
+    let open = &mut *session;
+    let closing =
+        tisty_core::round::closing_words(&open.paths, &mut open.store, &open.state, id, summary);
+    if summary.is_some_and(|one| !one.trim().is_empty()) {
+        settled_after(session, id);
+    }
     closing
 }
 
 pub(crate) fn round_cleared(session: &mut Session, id: TaskId, said: &str) {
-    let paths = session.paths.clone();
-    let state = session.state.clone();
-    if let Err(e) = tisty_core::round::round_cleared(&paths, &mut session.store, &state, id, said) {
-        tisty_core::witness::warn(
-            channel::WINDOW,
-            "a routine's page kept what this round wrote, already in its log",
-            &[("why", tisty_core::witness::Fact::Why(e.to_string()))],
-        );
-    }
+    let open = &mut *session;
+    tisty_core::round::round_cleared(&open.paths, &mut open.store, &open.state, id, said);
     settled_after(session, id);
 }

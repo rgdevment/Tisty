@@ -93,3 +93,19 @@ fn three_visits_are_still_a_trace_and_one_long_sitting_is_one_visit() {
     assert_eq!(state.tasks[&id].volume.grew, 3);
     assert_eq!(state.tasks[&id].reading(), Reading::Trace);
 }
+
+#[test]
+fn one_long_sitting_is_one_visit_and_undo_is_none() {
+    let id = Ulid::generate();
+    let mut log = vec![born(id)];
+    for minute in (0..120).step_by(10) {
+        log.push(noted(minute * 60, id));
+    }
+    let (mut again, _) = planned(5 * HOUR, id, "again");
+    again.undo = true;
+    log.push(again);
+
+    let state = State::replay(&log);
+
+    assert_eq!(state.tasks[&id].volume.grew, 1);
+}
