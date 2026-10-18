@@ -1,4 +1,4 @@
-const REST = 4;
+const REST = 2;
 const LEFT = 6;
 const STUCK = 6;
 
