@@ -79,3 +79,11 @@ fn every_tag_of_the_document_lands_in_its_front_matter() {
         "---\ntitle: Plan\ntags: [casa, viaje]\n---\nSobre #viaje"
     );
 }
+
+#[test]
+fn a_task_s_card_goes_out_as_its_words() {
+    assert_eq!(
+        alone("Antes:\n\n![Empacar los libros](tisty:task/01J00000000000000000000000)"),
+        "Antes:\n\nEmpacar los libros"
+    );
+}

@@ -141,3 +141,13 @@ fn a_footnote_is_called_where_it_is_named_and_kept_at_its_place() {
     assert!(drawn.contains("<div class=\"footnote\" id=\"fn-src\""));
     assert!(drawn.contains("The source."));
 }
+
+#[test]
+fn a_task_alone_in_its_paragraph_is_drawn_as_its_card() {
+    let drawn = page("![Pack the books](tisty:task/01J00000000000000000000000)\n");
+    assert!(
+        drawn.contains(
+            "<a class=\"card\" data-task=\"01J00000000000000000000000\">Pack the books</a>"
+        )
+    );
+}

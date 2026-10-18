@@ -63,3 +63,14 @@ export const movedCard = (
   kept.splice(goes, 0, line, "");
   return { moved: "done", body: kept.join("\n") };
 };
+
+// A card is a card only alone in its paragraph, so a blank line is kept on either side of it.
+export const cardedAt = (body: string, from: number, end: number, card: string): string => {
+  const line = body.includes("\r\n") ? "\r\n" : "\n";
+  const head = body.slice(0, from);
+  const tail = body.slice(end);
+  const before = !head || /(\r?\n){2}$/.test(head) ? "" : line;
+  const last = /^(\r?\n)?$/.test(tail);
+  const after = last ? (tail ? "" : line) : /^(\r?\n){2}/.test(tail) ? "" : line;
+  return `${head}${before}${card}${after}${tail}`;
+};

@@ -815,3 +815,184 @@ fn writing_in_a_section_for_a_while_is_one_chapter_and_a_rename_is_told_as_one()
         ]
     );
 }
+
+fn part_born(seconds: i64, id: TaskId, title: &str, whole: TaskId) -> Event {
+    let mut d = TaskAdd::new(title, "a1");
+    d.part_of = Some(whole);
+    event(seconds, Op::TaskAdd { id, d })
+}
+
+fn hung(seconds: i64, id: TaskId, whole: Option<TaskId>) -> Event {
+    event(
+        seconds,
+        Op::TaskMove {
+            id,
+            d: TaskMove {
+                part_of: Some(whole),
+                ..Default::default()
+            },
+        },
+    )
+}
+
+#[test]
+fn a_part_and_its_whole_each_tell_it_joined_and_let_go() {
+    let whole = Ulid::generate();
+    let part = Ulid::generate();
+    let log = vec![
+        born(whole, "move house"),
+        part_born(10, part, "pack the books", whole),
+        hung(20, part, None),
+    ];
+
+    assert_eq!(
+        chapters(&story(&log, whole)),
+        vec![
+            &Chapter::Born {
+                title: "move house".into()
+            },
+            &Chapter::PartJoined {
+                part,
+                title: "pack the books".into()
+            },
+            &Chapter::PartLoosened {
+                part,
+                title: "pack the books".into()
+            },
+        ]
+    );
+    assert_eq!(
+        chapters(&story(&log, part)),
+        vec![
+            &Chapter::Born {
+                title: "pack the books".into()
+            },
+            &Chapter::Joined {
+                whole,
+                title: "move house".into()
+            },
+            &Chapter::Loosened {
+                whole,
+                title: "move house".into()
+            },
+        ]
+    );
+    let pages = story(&log, part).pages;
+    assert!(pages.iter().enumerate().all(|(n, page)| page.n == n));
+}
+
+#[test]
+fn a_hanging_the_state_refused_is_no_chapter() {
+    let whole = Ulid::generate();
+    let holder = Ulid::generate();
+    let held = Ulid::generate();
+    let log = vec![
+        born(whole, "move house"),
+        born(holder, "paint the walls"),
+        part_born(10, held, "buy paint", holder),
+        hung(20, holder, Some(whole)),
+    ];
+
+    assert!(
+        !chapters(&story(&log, holder))
+            .iter()
+            .any(|one| matches!(one, Chapter::Joined { .. }))
+    );
+    assert!(
+        !chapters(&story(&log, whole))
+            .iter()
+            .any(|one| matches!(one, Chapter::PartJoined { .. }))
+    );
+}
+
+#[test]
+fn a_step_made_into_a_part_is_told_as_the_part_alone() {
+    let whole = Ulid::generate();
+    let part = Ulid::generate();
+    let step = Ulid::generate();
+    let log = vec![
+        born(whole, "move house"),
+        event(
+            5,
+            Op::StepAdd {
+                id: whole,
+                d: StepAdd {
+                    step,
+                    text: "pack the books".into(),
+                    order: "a0".into(),
+                },
+            },
+        ),
+        part_born(10, part, "pack the books", whole),
+        event(
+            11,
+            Op::StepRemove {
+                id: whole,
+                d: StepRef { step },
+            },
+        ),
+    ];
+
+    assert_eq!(
+        chapters(&story(&log, whole)),
+        vec![
+            &Chapter::Born {
+                title: "move house".into()
+            },
+            &Chapter::Planned {
+                text: "pack the books".into()
+            },
+            &Chapter::PartJoined {
+                part,
+                title: "pack the books".into()
+            },
+        ]
+    );
+}
+
+#[test]
+fn a_second_step_of_the_same_name_taken_off_still_reads_as_taken_off() {
+    let whole = Ulid::generate();
+    let part = Ulid::generate();
+    let (one, two) = (Ulid::generate(), Ulid::generate());
+    let planned = |seconds, step| {
+        event(
+            seconds,
+            Op::StepAdd {
+                id: whole,
+                d: StepAdd {
+                    step,
+                    text: "pack".into(),
+                    order: "a0".into(),
+                },
+            },
+        )
+    };
+    let gone = |seconds, step| {
+        event(
+            seconds,
+            Op::StepRemove {
+                id: whole,
+                d: StepRef { step },
+            },
+        )
+    };
+    let log = vec![
+        born(whole, "move house"),
+        planned(1, one),
+        planned(2, two),
+        part_born(10, part, "pack", whole),
+        gone(11, one),
+        gone(12, two),
+    ];
+
+    let story = story(&log, whole);
+    let told = chapters(&story);
+
+    assert_eq!(
+        told.iter()
+            .filter(|chapter| matches!(chapter, Chapter::Unplanned { .. }))
+            .count(),
+        1
+    );
+}

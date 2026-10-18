@@ -8,8 +8,9 @@ import { plainly } from "../refusal";
 import { type Attaching, attachedAs, lents, pressed } from "./attached";
 import { type Carding, carded } from "./carding";
 import { charsAt, colored, HUES, saidKinds, spanned, type Went, went, widgetsIn } from "./paging";
+import { type PartCarded, partCarded } from "./partcarding";
 import { type Formatting, type Menued, quickly } from "./quickly";
-import { staged } from "./staging";
+import { offeredAsParts, staged } from "./staging";
 import { webCarded } from "./webcarding";
 import { gripped, widening } from "./widening";
 import { type Lending, lend, locked } from "./widgeting";
@@ -17,6 +18,8 @@ import { type Lending, lend, locked } from "./widgeting";
 export type Reaching = Carding & {
   readonly body: string;
   readonly onDoc: (file: string) => void;
+  readonly onTask?: (id: string) => void;
+  readonly part?: (id: string) => PartCarded;
   readonly onOpen?: (reference: string) => void;
   readonly onTag?: (name: string) => void;
   readonly onBlock?: (
@@ -30,6 +33,7 @@ export type Reaching = Carding & {
   readonly onHere?: (id: string) => void;
   readonly onAway?: () => void;
   readonly onTick?: (at: [number, number]) => void;
+  readonly onPart?: (at: [number, number]) => void;
   readonly onCut?: (at: [number, number]) => void;
   readonly stepDates?: Readonly<Record<string, string>>;
   readonly onWiden?: (at: [number, number], column: number, dashes: number) => void;
@@ -248,6 +252,7 @@ export const worn = (
   page.documentElement.classList.toggle("ticking", !!reach?.onTick);
   iconed(page);
   staged(page);
+  if (reach?.onPart && !stranger) offeredAsParts(page, t("stepToPart"), reach.body);
   if (reach?.onWiden && !stranger) gripped(page);
   const shown = pictures(page, live, {
     stranger,
@@ -258,6 +263,7 @@ export const worn = (
   const lent = widgets(page, stranger, reach).concat(shown.lent);
   if (reach && !stranger) {
     carded(page, reach, live);
+    partCarded(page, reach.part);
     webCarded(page, live);
   }
   colored(page, live);
@@ -267,6 +273,9 @@ export const worn = (
 export const answered = (page: Document, asked: Went, reach: Reaching, read = "") => {
   if (!asked) return;
   if (asked.kind === "doc") reach.onDoc(asked.id);
+  if (asked.kind === "task") reach.onTask?.(asked.id);
+  if (asked.kind === "part")
+    reach.onPart?.([charsAt(reach.body, asked.at[0]), charsAt(reach.body, asked.at[1])]);
   if (asked.kind === "web") openLink(asked.href).catch(() => {});
   if (asked.kind === "here") {
     const at = page.getElementById(asked.id);

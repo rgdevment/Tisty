@@ -320,6 +320,7 @@ The [walks of October](tisty:doc/01JC4M9F2W7DQ1E3S8RB6PKMHT) went better.
 - The same thing inside a sentence is a word you can click.
 - For a page, only the card gives it its place in the book; a link in a sentence points at it without placing it. See Pages and PDF.
 - A `[`, `]` or `\` in a title is written with a backslash before it.
+- A task is named the same way, by its id after `tisty:task/`. On a task's page, a part written as a card shows its steps done and its date, and opens the part. Other readers get only its words.
 
 ## Attachments
 

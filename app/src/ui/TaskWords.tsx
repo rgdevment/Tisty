@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import {
+  addPart,
   docWrite,
   type Filed,
   stepDates,
@@ -13,6 +14,7 @@ import { stamped } from "../format";
 import { fill } from "../locales";
 import { holds, queued } from "../saving";
 import { useKeptHeight } from "./heights";
+import { usePartCards } from "./partcards";
 import Skeleton from "./Skeleton";
 import type { Asking } from "./slashing";
 import { useTaskAsks } from "./taskAsking";
@@ -33,7 +35,12 @@ interface Props {
   shaping?: boolean;
   onHeld?: (held: boolean) => void;
   papers?: readonly Filed[];
+  onTask?: (id: string) => void;
 }
+
+// The core refuses the rest the same way: a part holds no parts, and a routine holds none.
+const holdsParts = (task: Task): boolean =>
+  task.status === "open" && !task.hidden && !task.part_of && !task.repeat && !task.after;
 
 // A command the window does not know answers with whatever it holds, so only a real document counts.
 const real = (said: unknown): TaskDoc | null => {
@@ -49,6 +56,7 @@ export default function TaskWords({
   shaping,
   onHeld,
   papers,
+  onTask,
 }: Props) {
   const [doc, setDoc] = useState<TaskDoc | null>(null);
   const [seen, setSeen] = useState(0);
@@ -114,7 +122,7 @@ export default function TaskWords({
     <div ref={kept.ref} className="task-words">
       <Written
         key={`${doc.file}:${seen}`}
-        id={task.id}
+        task={task}
         doc={doc}
         make={make}
         label={task.title}
@@ -126,6 +134,12 @@ export default function TaskWords({
         room={kept.height}
         asking={doc.held ? undefined : asking}
         dates={dates}
+        onTask={onTask}
+        onPart={
+          doc.held || !holdsParts(task)
+            ? undefined
+            : (title) => addPart(task.id, title).then((one) => one.id)
+        }
       />
       {picker}
     </div>
@@ -133,7 +147,7 @@ export default function TaskWords({
 }
 
 function Written({
-  id,
+  task,
   doc,
   make,
   label,
@@ -145,8 +159,10 @@ function Written({
   room,
   asking,
   dates,
+  onTask,
+  onPart,
 }: {
-  id: string;
+  task: Task;
   doc: TaskDoc;
   make?: (body: string) => Promise<string>;
   label: string;
@@ -162,8 +178,11 @@ function Written({
   room?: number;
   asking?: Asking;
   dates?: Readonly<Record<string, string>>;
+  onTask?: (id: string) => void;
+  onPart?: (title: string) => Promise<string | null>;
 }) {
   const [text, setText] = useState(doc.body);
+  const cards = usePartCards(task, text);
   const waiting = useRef<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const failed = useRef(onError);
@@ -229,7 +248,7 @@ function Written({
     const next = waiting.current;
     waiting.current = null;
     if (next === null || stale.current) return;
-    queued(`words:${id}`, async () => {
+    queued(`words:${task.id}`, async () => {
       const first = !file.current && !made.current;
       const into = await ensure(next);
       if (!first) await docWrite(into, next);
@@ -240,7 +259,7 @@ function Written({
       stale.current = true;
       moved.current();
     });
-  }, [id, ensure]);
+  }, [task.id, ensure]);
 
   useEffect(() => holds(flush), [flush]);
   useEffect(() => {
@@ -261,7 +280,7 @@ function Written({
   return (
     <Suspense fallback={<div style={{ minHeight: room }} />}>
       <Sheet
-        file={doc.file || `unwritten:${id}`}
+        file={doc.file || `unwritten:${task.id}`}
         value={text}
         label={label}
         reading={doc.held}
@@ -273,6 +292,10 @@ function Written({
         onDoc={onDoc}
         asking={asking}
         stepDates={dates}
+        part={cards.part}
+        again={`${cards.said}|${onPart ? "parts" : ""}`}
+        onTask={onTask}
+        onPart={onPart}
       />
     </Suspense>
   );

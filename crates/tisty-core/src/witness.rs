@@ -78,6 +78,14 @@ thread_local! {
     static INSIDE: Cell<bool> = const { Cell::new(false) };
 }
 
+/// A replay made only to read the past again has nothing new to tell.
+pub(crate) fn hushed<T>(work: impl FnOnce() -> T) -> T {
+    let was = INSIDE.with(|inside| inside.replace(true));
+    let out = work();
+    INSIDE.with(|inside| inside.set(was));
+    out
+}
+
 fn held() -> &'static Mutex<Option<Kept>> {
     KEPT.get_or_init(|| Mutex::new(None))
 }

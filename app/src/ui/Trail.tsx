@@ -101,6 +101,11 @@ function glyph(page: Page): string {
     case "sectionrenamed":
     case "sectionremoved":
       return "§";
+    case "joined":
+    case "loosened":
+    case "partjoined":
+    case "partloosened":
+      return "⊟";
     case "planned":
     case "unplanned":
     case "reworded":
@@ -170,6 +175,14 @@ function phrase(page: Page, named: (id?: string | null) => string | undefined): 
       return fill("trailSectionRemoved", page.section);
     case "sectionwritten":
       return fill("trailSectionWritten", page.section);
+    case "joined":
+      return fill("trailJoined", page.title);
+    case "loosened":
+      return fill("trailLoosened", page.title);
+    case "partjoined":
+      return fill("trailPartJoined", page.title);
+    case "partloosened":
+      return fill("trailPartLoosened", page.title);
     case "closed":
       return t("trailClosed");
     case "dropped":

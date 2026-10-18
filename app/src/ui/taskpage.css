@@ -154,3 +154,29 @@ html.untitled.shaping .page > :is(h1, h2, h3, h4, h5, h6) {
   color: var(--tisty-accent);
   cursor: text;
 }
+li.task > .to-part {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0 6px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  font: inherit;
+  color: var(--tisty-faint);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+li.task:hover > .to-part,
+li.task > .to-part:focus-visible {
+  opacity: 1;
+}
+li.task > .to-part:hover {
+  color: var(--tisty-accent);
+  background: var(--tisty-hover);
+}
+html.untitled .page > ul > li.task:has(> .to-part) {
+  padding-right: 40px;
+}

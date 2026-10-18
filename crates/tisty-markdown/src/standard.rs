@@ -103,6 +103,8 @@ fn spanned(
         Mark::Link { to } | Mark::Image { src: to } => {
             if let Some(file) = to.strip_prefix(refs::DOC) {
                 carded(span, said, toward(Toward::Doc(file)), edits);
+            } else if to.starts_with(refs::TASK) {
+                carded(span, said, None, edits);
             }
         }
         _ => {}

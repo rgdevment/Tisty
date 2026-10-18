@@ -101,6 +101,20 @@ const metaOf = (page: Document, seen: Carded) => {
   return piece(page, "kind", t("kindDoc"));
 };
 
+export const cardBox = (page: Document, kind: string, open: boolean) => {
+  const box = page.createElement("span");
+  box.className = `doc-card ${kind}`;
+  if (!open) return box;
+  box.tabIndex = 0;
+  box.setAttribute("role", "link");
+  box.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    box.click();
+  });
+  return box;
+};
+
 // A card alone in its paragraph is drawn whole; one inside a sentence stays a word of it.
 export const carded = (page: Document, reach: Carding, live: () => boolean) => {
   if (!reach.card) return;
@@ -111,18 +125,8 @@ export const carded = (page: Document, reach: Carding, live: () => boolean) => {
     const file = link.dataset.doc ?? "";
     const seen = reach.card(file);
     const open = seen.kind !== "self" && seen.kind !== "gone";
-    const box = page.createElement("span");
-    box.className = `doc-card is-${seen.kind}`;
-    if (open) {
-      box.dataset.doc = file;
-      box.tabIndex = 0;
-      box.setAttribute("role", "link");
-      box.addEventListener("keydown", (event) => {
-        if (event.key !== "Enter" && event.key !== " ") return;
-        event.preventDefault();
-        box.click();
-      });
-    }
+    const box = cardBox(page, `is-${seen.kind}`, open);
+    if (open) box.dataset.doc = file;
     const tile = piece(page, "card-tile");
     tile.append(drawn(page, GLYPH[seen.kind]));
     const name = seen.kind === "gone" ? link.textContent || t("untitledDoc") : seen.title;
