@@ -3515,7 +3515,7 @@ const es: Catalog = {
     "Tus otros equipos quedaron avisados de adónde te fuiste; cada uno te sigue cuando sincroniza.",
   moveWipe: "Borrar para siempre mis copias en {cloud}",
   moveWipeSure:
-    "Las copias de Tisty se borran para siempre de tu {cloud}: el espacio de Tisty ahí no tiene papelera, así que no se pueden recuperar. Todo sigue en este equipo y en el nuevo lugar. En Drive solo queda el aviso que les dice a tus otros equipos adónde te fuiste.",
+    "Las copias de Tisty se borran para siempre de tu {cloud}: el espacio de Tisty ahí no tiene papelera, así que no se pueden recuperar. Todo sigue en este equipo y en el nuevo lugar. En {cloud} solo queda el aviso que les dice a tus otros equipos adónde te fuiste.",
   moveWipeKeep: "Dejarlas ahí",
   moveWiping:
     "Procesando: revisamos que todo esté en este equipo y borramos tus copias de {cloud}. Puede tardar unos minutos.",
@@ -4078,9 +4078,8 @@ const clouds: Record<string, [string, string]> = {
 };
 let spokenOf = "google";
 
-// Every cloud word names the chosen cloud, learned wherever the window asks how it syncs.
 export function speakOf(provider?: string | null) {
-  if (provider && provider in clouds) spokenOf = provider;
+  spokenOf = provider ?? "google";
 }
 
 const own = (key: Word, provider: string): string | undefined => {
@@ -4090,10 +4089,10 @@ const own = (key: Word, provider: string): string | undefined => {
 };
 
 export const said = (key: Word, provider: string): string => {
-  const [cloud, maker] = clouds[provider] ?? clouds.google;
-  return (own(key, provider) ?? spoken[key] ?? en[key] ?? key)
-    .replace(/\{cloud\}/g, cloud)
-    .replace(/\{maker\}/g, maker);
+  const text = own(key, provider) ?? spoken[key] ?? en[key] ?? key;
+  if (!text.includes("{")) return text;
+  const [cloud, maker] = clouds[provider] ?? [provider, provider];
+  return text.replace(/\{cloud\}/g, cloud).replace(/\{maker\}/g, maker);
 };
 
 export const t = (key: Word): string => said(key, spokenOf);

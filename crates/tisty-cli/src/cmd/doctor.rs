@@ -317,13 +317,15 @@ fn moved_word(
     lang: Lang,
 ) {
     if let Some(word) = tisty_core::moved::heeded(said.as_deref(), data, me, place) {
-        let said = match word.to.split_once(':') {
-            Some(("cloud", said)) => {
-                let (shown, email) = tisty_core::config::cloud_word(said);
+        let said = match tisty_core::config::bound(&word.to) {
+            tisty_core::config::Bound::Cloud { provider, email } => {
+                let shown = tisty_core::config::shown_of(provider);
                 lang.fill("moved-away-to", &[("to", &format!("{shown} · {email}"))])
             }
-            Some(("folder", named)) => lang.fill("moved-away-to", &[("to", named)]),
-            _ => lang.get("moved-alone").to_string(),
+            tisty_core::config::Bound::Folder(named) => {
+                lang.fill("moved-away-to", &[("to", named)])
+            }
+            tisty_core::config::Bound::Alone => lang.get("moved-alone").to_string(),
         };
         line(lang.get("moved-away"), &style::paint(style::RED, &said));
     }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { letGoUnused } from "../cloudState";
+import { followedTo, letGoUnused } from "../cloudState";
+import { useStuck } from "../coming";
 import {
   type Connected,
   cloudChoose,
@@ -9,12 +10,13 @@ import {
   syncState,
 } from "../core";
 import { weigh } from "../format";
-import { fill, said, speakOf, t, type Word } from "../locales";
+import { fill, said, t, type Word } from "../locales";
 import { saidPlainly } from "../refusal";
 import CloudHealth from "./CloudHealth";
 import CloudMark from "./CloudMark";
 
 interface Props {
+  clouds?: string[];
   busy: boolean;
   onTrouble: (said?: string) => void;
   onBack: () => void;
@@ -54,7 +56,8 @@ function Points({ title, points }: { title: string; points: string[] }) {
   );
 }
 
-export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected }: Props) {
+export default function Clouding({ clouds, busy, onTrouble, onBack, onDone, onConnected }: Props) {
+  const followed = followedTo(useStuck());
   const [waiting, setWaiting] = useState(false);
   const [held, setHeld] = useState(false);
   const [connected, setConnected] = useState<Connected>();
@@ -67,16 +70,6 @@ export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected 
 
   useEffect(() => {
     gone.current = false;
-    // A window that cannot say which clouds it has offers Google alone, as every build before OneDrive did.
-    const learned = (clouds?: string[]) => {
-      if (gone.current) return;
-      const known = clouds?.length ? clouds : ["google"];
-      setOffered(known);
-      setPicked((was) => (was && known.includes(was) ? was : known[0]));
-    };
-    syncState()
-      .then((state) => learned(state?.clouds))
-      .catch(() => learned());
     return () => {
       gone.current = true;
       cloudConnectCancel().catch(() => undefined);
@@ -84,6 +77,27 @@ export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected 
       if (unused.current) letGoUnused(unused.current);
     };
   }, []);
+
+  useEffect(() => {
+    // A window that cannot say which clouds it has offers Google alone, as every build before OneDrive did.
+    const learned = (known?: string[]) => {
+      if (gone.current) return;
+      const offers = known?.length ? known : ["google"];
+      setOffered(offers);
+      setPicked((was) =>
+        was && offers.includes(was)
+          ? was
+          : followed && offers.includes(followed)
+            ? followed
+            : offers[0],
+      );
+    };
+    if (clouds) learned(clouds);
+    else
+      syncState()
+        .then((state) => learned(state?.clouds))
+        .catch(() => learned());
+  }, [clouds, followed]);
 
   useEffect(() => {
     if (!connected) return;
@@ -115,7 +129,6 @@ export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected 
       .then((account) => {
         if (gone.current) return mine === asking ? letGoUnused(account) : undefined;
         unused.current = account;
-        speakOf(account.provider);
         setConnected(account);
       })
       .catch((e) => !gone.current && e?.code !== "cloudDropped" && onTrouble(saidPlainly(e)))

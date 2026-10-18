@@ -34,21 +34,47 @@ pub struct CloudAt {
 
 pub const GOOGLE: &str = "google";
 pub const ONEDRIVE: &str = "onedrive";
+pub const GOOGLE_SHOWN: &str = "Google Drive";
+pub const ONEDRIVE_SHOWN: &str = "OneDrive";
 
 /// The provider as a person reads it; one this build does not know is named by its own id.
 pub fn shown_of(provider: &str) -> &str {
     match provider {
-        GOOGLE => "Google Drive",
-        ONEDRIVE => "OneDrive",
+        GOOGLE => GOOGLE_SHOWN,
+        ONEDRIVE => ONEDRIVE_SHOWN,
         other => other,
     }
 }
 
-/// The provider and address a moved word names after `cloud:`; one with no provider is Google's, as 1.30 wrote it.
-pub fn cloud_word(said: &str) -> (&str, &str) {
-    match said.split_once(':') {
-        Some((provider, email)) if !provider.contains('@') => (shown_of(provider), email),
-        _ => (shown_of(GOOGLE), said),
+const LATER_CLOUDS: [&str; 1] = [ONEDRIVE];
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Bound<'a> {
+    Cloud {
+        provider: &'static str,
+        email: &'a str,
+    },
+    Folder(&'a str),
+    Alone,
+}
+
+/// Where a moved word says the machine went; a later cloud reads as a folder named after it, as 1.30 sees it.
+pub fn bound(to: &str) -> Bound<'_> {
+    match to.split_once(':') {
+        Some(("cloud", email)) => Bound::Cloud {
+            provider: GOOGLE,
+            email,
+        },
+        Some(("folder", named)) => LATER_CLOUDS
+            .iter()
+            .find_map(|provider| {
+                let email = named
+                    .strip_prefix(shown_of(provider))?
+                    .strip_prefix(" · ")?;
+                Some(Bound::Cloud { provider, email })
+            })
+            .unwrap_or(Bound::Folder(named)),
+        _ => Bound::Alone,
     }
 }
 
@@ -57,11 +83,11 @@ impl CloudAt {
         shown_of(&self.provider)
     }
 
-    // Google's word stays as 1.30 reads it; every later provider names itself before the address.
+    // 1.30 reads any `cloud:` as Google Drive, so a later provider is told as a folder named after it.
     pub fn word(&self) -> String {
         match self.provider.as_str() {
             GOOGLE => format!("cloud:{}", self.email),
-            other => format!("cloud:{other}:{}", self.email),
+            _ => format!("folder:{} · {}", self.shown(), self.email),
         }
     }
 }

@@ -1,18 +1,19 @@
 use std::time::Duration;
 
-use tisty_carrier::{Cause, Hitch, Renew, Renewed};
+use tisty_carrier::{Hitch, Renew, Renewed};
 
-pub(crate) use tisty_carrier::said::{WAITED_UNTOLD, told};
+pub(crate) use tisty_carrier::said::{WAITED_UNTOLD, cause_of, told};
 
 mod consent;
 mod graph;
 mod names;
 pub mod quickxor;
 
-pub use consent::{Consent, Granted};
+pub use consent::Consent;
 pub use graph::{Account, GraphAt, OneDrive};
 pub use names::fitting;
 pub use tisty_carrier::loopback::Ended;
+pub use tisty_carrier::loopback::Granted;
 
 pub const SCOPES: &str = "Files.ReadWrite.AppFolder offline_access User.Read";
 pub(crate) const ASKED_WITHIN: Duration = Duration::from_secs(30);
@@ -67,28 +68,6 @@ pub(crate) fn unreachable(e: reqwest::Error) -> Hitch {
     let slow = e.is_timeout();
     let said = told(&e.without_url());
     Hitch::Unreachable(opening.then(|| cause_of(slow, &said)), said)
-}
-
-pub(crate) fn cause_of(slow: bool, said: &str) -> Cause {
-    let said = said.to_lowercase();
-    let inspected = [
-        "certificate",
-        "x509",
-        "tls",
-        "ssl",
-        "handshake",
-        "trust",
-        "unknown issuer",
-        "self signed",
-        "self-signed",
-    ];
-    if inspected.iter().any(|one| said.contains(one)) {
-        Cause::Filtered
-    } else if slow || said.contains("timed out") || said.contains("timeout") {
-        Cause::Slow
-    } else {
-        Cause::Blocked
-    }
 }
 
 #[derive(serde::Deserialize)]

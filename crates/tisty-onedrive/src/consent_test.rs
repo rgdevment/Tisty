@@ -1,7 +1,8 @@
 use std::io::{Read, Write};
-use std::net::{TcpListener, TcpStream};
+use std::net::TcpStream;
 
 use super::*;
+use tisty_carrier::loopback::challenge_of;
 
 const CLIENT: Client = Client { id: "client-1" };
 
@@ -12,47 +13,6 @@ fn said_in(consent: &Consent, key: &str) -> String {
         .unwrap()
         .1
         .into_owned()
-}
-
-fn token_answering(answer: &'static str) -> (Endpoints, std::thread::JoinHandle<String>) {
-    let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
-    let token = format!(
-        "http://127.0.0.1:{}/token",
-        listener.local_addr().unwrap().port()
-    );
-    let heard = std::thread::spawn(move || {
-        let (mut stream, _) = listener.accept().unwrap();
-        let mut got = Vec::new();
-        let mut chunk = [0u8; 4096];
-        loop {
-            let read = stream.read(&mut chunk).unwrap_or(0);
-            got.extend_from_slice(&chunk[..read]);
-            let text = String::from_utf8_lossy(&got).to_string();
-            if let Some((head, sent)) = text.split_once("\r\n\r\n") {
-                let wants = head
-                    .lines()
-                    .find_map(|one| {
-                        one.to_ascii_lowercase()
-                            .strip_prefix("content-length:")
-                            .map(|n| n.trim().parse::<usize>().unwrap())
-                    })
-                    .unwrap_or(0);
-                if sent.len() >= wants {
-                    write!(
-                        stream,
-                        "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{answer}",
-                        answer.len()
-                    )
-                    .unwrap();
-                    return text;
-                }
-            }
-            if read == 0 {
-                return text;
-            }
-        }
-    });
-    (Endpoints { token }, heard)
 }
 
 fn lands_while(consent: &Consent, query: &str) -> std::thread::JoinHandle<String> {
@@ -95,7 +55,8 @@ fn the_page_asks_microsoft_for_the_app_folder_with_a_challenge_and_localhost() {
 
 #[test]
 fn a_code_that_comes_back_is_traded_without_a_secret() {
-    let (at, heard) = token_answering(
+    let (at, heard) = crate::tests::answering(
+        "200 OK",
         r#"{"access_token":"a1","expires_in":3600,"refresh_token":"r1","scope":"https://graph.microsoft.com/Files.ReadWrite.AppFolder https://graph.microsoft.com/User.Read"}"#,
     );
     let consent = Consent::begin(CLIENT).unwrap();
@@ -128,11 +89,7 @@ fn saying_no_on_microsofts_page_leaves_the_account_unconnected() {
     let page = std::thread::scope(|scope| {
         let port = port_of(&consent);
         let landing = scope.spawn(move || landed(port, &query));
-        let ended = consent
-            .loopback
-            .answered(Duration::from_secs(10))
-            .err()
-            .unwrap();
+        let ended = consent.answered(Duration::from_secs(10)).err().unwrap();
         assert!(matches!(ended, Ended::Failed(Hitch::Lost)));
         landing.join().unwrap()
     });

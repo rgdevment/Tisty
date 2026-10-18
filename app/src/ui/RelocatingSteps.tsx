@@ -32,8 +32,13 @@ type Say = (key: Word) => string;
 export const sayFor = (toward: Toward): Say =>
   toward.kind === "cloud" ? (key) => said(key, toward.provider ?? "google") : t;
 
-const lastingCause = (cause?: Cause | null, failing?: Failing, now = Date.now()): string | null =>
-  failing && lasts(failing, now / 1000) ? causeSaid(cause) : null;
+const lastingCause = (
+  cause?: Cause | null,
+  failing?: Failing,
+  now = Date.now(),
+  say: Say = t,
+): string | null =>
+  failing && lasts(failing, now / 1000) ? causeSaid(cause, say("cloudChosen")) : null;
 
 const plainWait = (
   waited: Waited,
@@ -41,7 +46,8 @@ const plainWait = (
   failing?: Failing,
   now = Date.now(),
   say: Say = t,
-): string => (waited === "offline" && lastingCause(cause, failing, now)) || say(plainWord(waited));
+): string =>
+  (waited === "offline" && lastingCause(cause, failing, now, say)) || say(plainWord(waited));
 
 const causeOf = (run: Run) => (run.result?.state === "waiting" ? run.result.cause : undefined);
 
@@ -131,7 +137,7 @@ type Waits = Extract<Moving, { state: "waiting" }>;
 const waitWhy = (result: Waits, failing?: Failing, say: Say = t): string => {
   if (result.reason === "offline")
     return (
-      lastingCause(result.cause, failing) ??
+      lastingCause(result.cause, failing, Date.now(), say) ??
       say(offlineNow() ? "moveOfflineWhy" : "moveTroubledWhy")
     );
   if (result.reason === "troubled") return say("moveTroubledWhy");
@@ -319,6 +325,7 @@ export function Underway({ run, onHide }: { run: Run; onHide: () => void }) {
 export function Waiting({
   result,
   failing,
+  toward,
   busy,
   onDrop,
   onLater,
@@ -326,12 +333,13 @@ export function Waiting({
 }: {
   result: Extract<Moving, { state: "waiting" }>;
   failing?: Failing;
+  toward?: Toward;
   busy: boolean;
   onDrop: () => void;
   onLater: () => void;
   onAgain: () => void;
 }) {
-  const why = waitWhy(result, failing);
+  const why = waitWhy(result, failing, toward ? sayFor(toward) : t);
   return (
     <div className="flex flex-col gap-3">
       <div className={box}>

@@ -3,7 +3,7 @@ use std::sync::Mutex;
 
 use tauri::Manager;
 use tisty_core::Paths;
-use tisty_core::config::{CloudAt, Sync};
+use tisty_core::config::{Bound, CloudAt, Sync};
 use tisty_core::witness::{self, Fact, channel};
 
 use crate::reaching::Reaching;
@@ -305,13 +305,13 @@ pub fn heeded(
     place: &str,
 ) -> Option<Refusal> {
     let word = tisty_core::moved::heeded(said, data, me, place)?;
-    Some(match word.to.split_once(':') {
-        Some(("cloud", said)) => {
-            let (shown, email) = tisty_core::config::cloud_word(said);
+    Some(match tisty_core::config::bound(&word.to) {
+        Bound::Cloud { provider, email } => {
+            let shown = tisty_core::config::shown_of(provider);
             Refusal::about("movedToCloud", format!("{shown} · {email}"))
         }
-        Some(("folder", named)) => Refusal::about("movedAway", named.to_string()),
-        _ => Refusal::of("movedAlone"),
+        Bound::Folder(named) => Refusal::about("movedAway", named.to_string()),
+        Bound::Alone => Refusal::of("movedAlone"),
     })
 }
 

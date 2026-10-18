@@ -1,7 +1,7 @@
 import { apartWaits } from "./coming";
 import { type CloudStatus, cloudForget, cloudStatus } from "./core";
 import { budgetResets } from "./format";
-import { fill, t } from "./locales";
+import { cloudNamed, fill, t } from "./locales";
 import { plainly } from "./refusal";
 import { lastingCause } from "./syncSaid";
 
@@ -23,6 +23,12 @@ export interface Standing {
 const STORAGE: Record<string, string> = {
   google: "https://drive.google.com/settings/storage",
   onedrive: "https://onedrive.live.com/?v=managestorage",
+};
+
+export const followedTo = (stuck: unknown): string | undefined => {
+  const told = stuck as { code?: string; name?: string } | null;
+  if (told?.code !== "movedToCloud" || !told.name) return undefined;
+  return ["onedrive", "google"].find((one) => told.name?.startsWith(`${cloudNamed(one)} · `));
 };
 
 export const storageOf = (provider?: string | null): string =>

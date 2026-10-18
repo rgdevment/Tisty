@@ -82,24 +82,10 @@ pub fn answered(status: u16) -> Health {
 }
 
 pub fn failed(said: &str) -> Health {
-    let said = said.to_lowercase();
-    let inspected = [
-        "certificate",
-        "x509",
-        "tls",
-        "ssl",
-        "handshake",
-        "trust",
-        "unknown issuer",
-        "self signed",
-        "self-signed",
-    ];
-    if inspected.iter().any(|one| said.contains(one)) {
-        Health::Inspected
-    } else if said.contains("timed out") || said.contains("timeout") {
-        Health::Slow
-    } else {
-        Health::Blocked
+    match tisty_carrier::said::cause_of(false, said) {
+        Cause::Filtered => Health::Inspected,
+        Cause::Slow => Health::Slow,
+        _ => Health::Blocked,
     }
 }
 

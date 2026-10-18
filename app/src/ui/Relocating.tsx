@@ -119,7 +119,9 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
           gone === 1 ? said("moveWipedOne", from) : filled(said("moveWiped", from), String(gone)),
         );
       })
-      .catch((e) => setTrouble(saidPlainly(e)))
+      .catch((e) =>
+        setTrouble(e?.code === "wipeStopped" ? said("wipeStopped", from) : saidPlainly(e)),
+      )
       .finally(() => {
         setWiping(false);
         setBusy(false);
@@ -163,6 +165,7 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
 
       {step === "cloud" && (
         <Clouding
+          clouds={state.clouds}
           busy={busy}
           onTrouble={setTrouble}
           onBack={() => setStep("pick")}
@@ -197,6 +200,7 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
         <Waiting
           result={result}
           failing={now?.failing}
+          toward={toward}
           busy={busy}
           onDrop={drop}
           onLater={close}

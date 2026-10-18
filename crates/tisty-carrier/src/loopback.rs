@@ -51,7 +51,6 @@ impl From<std::io::Error> for Ended {
     }
 }
 
-/// The port on this machine the browser comes back to, with the state only this sign-in knows.
 pub struct Loopback {
     pub state: String,
     pub port: u16,
@@ -63,11 +62,7 @@ pub struct Loopback {
 impl Loopback {
     // The same port on ::1 too, since a browser may resolve localhost there and never try 127.0.0.1.
     pub fn open(who: &'static str) -> Result<Self, Hitch> {
-        let first = TcpListener::bind(("127.0.0.1", 0))?;
-        let port = first.local_addr()?.port();
-        let listeners = std::iter::once(first)
-            .chain(TcpListener::bind(("::1", port)).ok())
-            .collect();
+        let (listeners, port) = paired()?;
         Ok(Self {
             state: random_text(24)?,
             port,
@@ -91,7 +86,7 @@ impl Loopback {
             if self.dropped.load(Ordering::Relaxed) {
                 return Err(Ended::Dropped);
             }
-            for listener in &self.listeners {
+            for (at, listener) in self.listeners.iter().enumerate() {
                 match listener.accept() {
                     Ok((stream, _)) => match self.heard(stream) {
                         Heard::Code(code, browser) => return Ok((code, browser)),
@@ -99,6 +94,8 @@ impl Loopback {
                         Heard::Elsewhere => {}
                     },
                     Err(e) if e.kind() == std::io::ErrorKind::WouldBlock || passing(e.kind()) => {}
+                    // Only the IPv4 side is needed; the ::1 one is there for browsers that prefer it.
+                    Err(_) if at > 0 => {}
                     Err(e) => return Err(e.into()),
                 }
             }
@@ -132,6 +129,88 @@ impl Loopback {
         answer(&mut stream, "200 OK", NOT_CONNECTED);
         Heard::Refused(refused)
     }
+}
+
+pub struct Granted {
+    pub refresh: String,
+    pub access: String,
+    pub lasts: Duration,
+}
+
+pub struct Asking {
+    pub url: String,
+    pub verifier: String,
+    pub redirect: String,
+    loopback: Loopback,
+}
+
+impl Asking {
+    pub fn begin(
+        who: &'static str,
+        page: &str,
+        redirect: impl FnOnce(u16) -> String,
+        client: &str,
+        scope: &str,
+        more: &[(&str, &str)],
+    ) -> Result<Self, Hitch> {
+        let loopback = Loopback::open(who)?;
+        let redirect = redirect(loopback.port);
+        let verifier = random_text(48)?;
+        let query = url::form_urlencoded::Serializer::new(String::new())
+            .append_pair("client_id", client)
+            .append_pair("redirect_uri", &redirect)
+            .append_pair("response_type", "code")
+            .append_pair("scope", scope)
+            .append_pair("code_challenge", &challenge_of(&verifier))
+            .append_pair("code_challenge_method", "S256")
+            .append_pair("state", &loopback.state)
+            .extend_pairs(more)
+            .finish();
+        Ok(Self {
+            url: format!("{page}?{query}"),
+            verifier,
+            redirect,
+            loopback,
+        })
+    }
+
+    pub fn dropping(&self) -> Arc<AtomicBool> {
+        self.loopback.dropping()
+    }
+
+    pub fn answered(&self, within: Duration) -> Result<(String, TcpStream), Ended> {
+        self.loopback.answered(within)
+    }
+
+    // The browser hears how it ended only once the code is traded and the grant is known good.
+    pub fn finish<T>(
+        self,
+        within: Duration,
+        trade: impl FnOnce(&str, &Self) -> Result<T, Hitch>,
+    ) -> Result<T, Ended> {
+        let (code, mut browser) = self.answered(within)?;
+        let traded = trade(&code, &self);
+        tell_browser(&mut browser, traded.is_ok());
+        traded.map_err(Ended::from)
+    }
+}
+
+const PAIRED_TRIES: usize = 5;
+
+// A port taken on ::1 by someone else would catch the browser there, so another is chosen until both are ours.
+fn paired() -> Result<(Vec<TcpListener>, u16), Hitch> {
+    for _ in 0..PAIRED_TRIES {
+        let first = TcpListener::bind(("127.0.0.1", 0))?;
+        let port = first.local_addr()?.port();
+        match TcpListener::bind(("::1", port)) {
+            Ok(second) => return Ok((vec![first, second], port)),
+            Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => continue,
+            Err(_) => return Ok((vec![first], port)),
+        }
+    }
+    let first = TcpListener::bind(("127.0.0.1", 0))?;
+    let port = first.local_addr()?.port();
+    Ok((vec![first], port))
 }
 
 /// The browser is told how it ended only once the code is traded and the grant is known good.

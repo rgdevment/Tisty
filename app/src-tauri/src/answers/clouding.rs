@@ -4,14 +4,12 @@ use std::time::Duration;
 
 use tauri::{Emitter, Manager};
 use tisty_carrier::{Hitch, Secrets, Tokens};
-use tisty_core::config::{CloudAt, Leaving, Sync};
+use tisty_core::config::{CloudAt, GOOGLE_SHOWN, Leaving, ONEDRIVE_SHOWN, Sync};
 
 use crate::reaching::{GOOGLE, KEPT_AS, ONEDRIVE, secrets_for};
 use crate::{Answer, Refusal, Session, held};
 
 const CONSENT_WAITED: Duration = Duration::from_secs(5 * 60);
-const GOOGLE_SHOWN: &str = "Google Drive";
-const ONEDRIVE_SHOWN: &str = "OneDrive";
 const ONEDRIVE_PROBED: &str = "https://graph.microsoft.com/v1.0/me";
 // Microsoft has no way to revoke a personal account's grant from here, so the person is taken where they can.
 const ONEDRIVE_CONSENTS: &str = "https://account.live.com/consent/Manage";
@@ -354,8 +352,16 @@ pub async fn cloud_forget(
     provider: Option<String>,
 ) -> Answer<()> {
     let at = whose(&session, account, provider)?;
+    forget_here(app, &session, at).await
+}
+
+async fn forget_here(
+    app: tauri::AppHandle,
+    session: &tauri::State<'_, Mutex<Session>>,
+    at: CloudAt,
+) -> Answer<()> {
     let (paths, home) = {
-        let session = held(&session);
+        let session = held(session);
         (session.paths.clone(), session.reach.home_of(&at))
     };
     tauri::async_runtime::spawn_blocking(move || {
@@ -383,15 +389,23 @@ pub async fn cloud_revoke(
 ) -> Answer<()> {
     let at = whose(&session, account, provider)?;
     if at.provider == ONEDRIVE {
-        tauri_plugin_opener::open_url(ONEDRIVE_CONSENTS, None::<&str>)
-            .map_err(|_| Refusal::of("cannotOpen"))?;
-        return tauri::async_runtime::spawn_blocking(move || {
-            forgotten(&at)?;
-            let_go_held(&app, &at);
-            Ok(())
+        // The page opens only for an access this machine may let go of, so a word it still owes is never stranded.
+        let (paths, home) = {
+            let session = held(&session);
+            (session.paths.clone(), session.reach.home_of(&at))
+        };
+        let asked = at.clone();
+        let untold = tauri::async_runtime::spawn_blocking(move || {
+            crate::leaving::owed_to(&paths, &asked.account) && !lost_for_good_at(&home, &asked)
         })
         .await
         .map_err(|_| Refusal::of("internal"))?;
+        if untold {
+            return Err(Refusal::of("forgetUntold"));
+        }
+        tauri_plugin_opener::open_url(ONEDRIVE_CONSENTS, None::<&str>)
+            .map_err(|_| Refusal::of("cannotOpen"))?;
+        return forget_here(app, &session, at).await;
     }
     if at.provider != GOOGLE {
         return Err(Refusal::of("cloudNotOffered"));

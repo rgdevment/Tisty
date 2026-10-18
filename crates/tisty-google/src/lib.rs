@@ -1,9 +1,9 @@
 use std::time::Duration;
 
-use tisty_carrier::loopback::{Loopback, tell_browser};
+use tisty_carrier::loopback::Asking;
 use tisty_carrier::{Hitch, Renew, Renewed};
 
-pub use tisty_carrier::loopback::{Ended, challenge_of};
+pub use tisty_carrier::loopback::{Ended, Granted, challenge_of};
 pub(crate) use tisty_carrier::said::{WAITED_UNTOLD, told};
 
 mod drive;
@@ -53,88 +53,68 @@ impl Endpoints {
     }
 }
 
-pub struct Granted {
-    pub refresh: String,
-    pub access: String,
-    pub lasts: Duration,
+pub struct Consent {
+    asking: Asking,
+    client: Client,
 }
 
-pub struct Consent {
-    pub url: String,
-    client: Client,
-    verifier: String,
-    redirect: String,
-    loopback: Loopback,
+impl std::ops::Deref for Consent {
+    type Target = Asking;
+    fn deref(&self) -> &Asking {
+        &self.asking
+    }
 }
 
 impl Consent {
     pub fn begin(client: Client) -> Result<Self, Hitch> {
-        let loopback = Loopback::open("Google")?;
-        let redirect = format!("http://127.0.0.1:{}/", loopback.port);
-        let verifier = tisty_carrier::loopback::random_text(48)?;
-        let query = url::form_urlencoded::Serializer::new(String::new())
-            .append_pair("client_id", client.id)
-            .append_pair("redirect_uri", &redirect)
-            .append_pair("response_type", "code")
-            .append_pair("scope", SCOPE)
-            .append_pair("code_challenge", &challenge_of(&verifier))
-            .append_pair("code_challenge_method", "S256")
-            .append_pair("state", &loopback.state)
-            .append_pair("access_type", "offline")
-            .append_pair("prompt", "consent")
-            .finish();
-        Ok(Self {
-            url: format!("{CONSENT_URL}?{query}"),
-            client,
-            verifier,
-            redirect,
-            loopback,
-        })
-    }
-
-    /// Set from anywhere, it ends the wait for the browser at once.
-    pub fn dropping(&self) -> std::sync::Arc<std::sync::atomic::AtomicBool> {
-        self.loopback.dropping()
+        let asking = Asking::begin(
+            "Google",
+            CONSENT_URL,
+            |port| format!("http://127.0.0.1:{port}/"),
+            client.id,
+            SCOPE,
+            &[("access_type", "offline"), ("prompt", "consent")],
+        )?;
+        Ok(Self { asking, client })
     }
 
     pub fn finish(self, within: Duration, at: &Endpoints) -> Result<Granted, Ended> {
-        let (code, mut browser) = self.loopback.answered(within)?;
-        let granted = self.traded(&code, at);
-        tell_browser(&mut browser, granted.is_ok());
-        granted.map_err(Ended::from)
+        let client = self.client;
+        self.asking
+            .finish(within, |code, asking| traded(client, code, asking, at))
     }
+}
 
-    fn traded(&self, code: &str, at: &Endpoints) -> Result<Granted, Hitch> {
-        let http = http()?;
-        let answer = post_form(
-            &http,
-            &at.token,
-            &[
-                ("client_id", self.client.id),
-                ("client_secret", self.client.secret),
-                ("code", code),
-                ("code_verifier", &self.verifier),
-                ("grant_type", "authorization_code"),
-                ("redirect_uri", &self.redirect),
-            ],
-        )?;
-        if !only_app_data(answer.scope.as_deref()) {
-            revoke(&http, at, &answer);
-            return Err(Hitch::Broke(
-                "Google did not grant access to just Tisty's own space in Drive, so the sign-in was refused"
-                    .into(),
-            ));
-        }
-        let Some(refresh) = answer.refresh_token.clone() else {
-            revoke(&http, at, &answer);
-            return Err(Hitch::Broke("Google gave no lasting access to keep".into()));
-        };
-        Ok(Granted {
-            refresh,
-            access: answer.access_token,
-            lasts: Duration::from_secs(answer.expires_in),
-        })
+fn traded(client: Client, code: &str, asking: &Asking, at: &Endpoints) -> Result<Granted, Hitch> {
+    let http = http()?;
+    let answer = post_form(
+        &http,
+        &at.token,
+        &[
+            ("client_id", client.id),
+            ("client_secret", client.secret),
+            ("code", code),
+            ("code_verifier", &asking.verifier),
+            ("grant_type", "authorization_code"),
+            ("redirect_uri", &asking.redirect),
+        ],
+    )?;
+    if !only_app_data(answer.scope.as_deref()) {
+        revoke(&http, at, &answer);
+        return Err(Hitch::Broke(
+            "Google did not grant access to just Tisty's own space in Drive, so the sign-in was refused"
+                .into(),
+        ));
     }
+    let Some(refresh) = answer.refresh_token.clone() else {
+        revoke(&http, at, &answer);
+        return Err(Hitch::Broke("Google gave no lasting access to keep".into()));
+    };
+    Ok(Granted {
+        refresh,
+        access: answer.access_token,
+        lasts: Duration::from_secs(answer.expires_in),
+    })
 }
 
 fn only_app_data(scope: Option<&str>) -> bool {

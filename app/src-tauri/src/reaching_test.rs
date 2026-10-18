@@ -118,7 +118,7 @@ fn what_kept_a_cloud_from_being_built_is_said_and_nothing_was_kept() {
     let paths = Paths::new(home.path().join("data"), home.path().join("config"));
     let reaching = Reaching::of(&paths);
     let elsewhere = CloudAt {
-        provider: "onedrive".into(),
+        provider: "dropbox".into(),
         ..ana()
     };
 
@@ -126,7 +126,7 @@ fn what_kept_a_cloud_from_being_built_is_said_and_nothing_was_kept() {
     assert!(
         reaching
             .why_not()
-            .is_some_and(|why| why.contains("onedrive"))
+            .is_some_and(|why| why.contains("dropbox"))
     );
     assert!(reaching.taken().is_none());
     assert!(reaching.cloud(&elsewhere).is_none());

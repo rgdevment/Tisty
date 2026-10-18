@@ -775,7 +775,7 @@ fn a_cloud_put_away_by_a_restore_comes_back_as_the_cloud_it_was() {
 }
 
 #[test]
-fn a_moved_word_names_google_as_1_30_wrote_it_and_any_later_cloud_by_itself() {
+fn a_moved_word_names_google_as_1_30_reads_it_and_a_later_cloud_as_a_folder_named_after_it() {
     let at = |provider: &str| CloudAt {
         provider: provider.into(),
         account: "1".into(),
@@ -783,14 +783,22 @@ fn a_moved_word_names_google_as_1_30_wrote_it_and_any_later_cloud_by_itself() {
     };
 
     assert_eq!(at(GOOGLE).word(), "cloud:ana@example.com");
-    assert_eq!(at(ONEDRIVE).word(), "cloud:onedrive:ana@example.com");
+    assert_eq!(at(ONEDRIVE).word(), "folder:OneDrive · ana@example.com");
     assert_eq!(
-        cloud_word("ana@example.com"),
-        ("Google Drive", "ana@example.com")
+        bound(&at(GOOGLE).word()),
+        Bound::Cloud {
+            provider: GOOGLE,
+            email: "ana@example.com"
+        }
     );
     assert_eq!(
-        cloud_word("onedrive:ana@example.com"),
-        ("OneDrive", "ana@example.com")
+        bound(&at(ONEDRIVE).word()),
+        Bound::Cloud {
+            provider: ONEDRIVE,
+            email: "ana@example.com"
+        }
     );
+    assert_eq!(bound("folder:Shared"), Bound::Folder("Shared"));
+    assert_eq!(bound("alone"), Bound::Alone);
     assert_eq!(at(ONEDRIVE).shown(), "OneDrive");
 }
