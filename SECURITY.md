@@ -132,9 +132,11 @@ Being explicit here matters more than sounding reassuring.
   pose as a newer one. The feed that announces versions (`release-manifest.json`,
   `latest.json`, `candidate.json`) carries a minisign signature of its own, under
   a key kept apart from the updater's and only where the release publishes the
-  feed; a copy built with its public half believes no feed it cannot verify, and
-  offers no update rather than one it cannot trust. Copies from before the feed
-  was signed read it as they always did, and update the same way.
+  feed. A copy built with its public half announces no version from a manifest
+  it cannot verify; installing stays guarded by the installer's own signature.
+  What a signature cannot do is make the feed speak: whoever could write to it
+  could still leave it unchanged. Copies from before the feed was signed read it
+  as they always did, and update the same way.
 - **The updater's signing key is a single point of failure.** One private key
   signs every release, it is held by the maintainer alone, and the format offers
   no way to rotate it: the public half is already compiled into every copy out

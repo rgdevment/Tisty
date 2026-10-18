@@ -123,6 +123,8 @@ jobs:
       prerelease: ${{ steps.resolve.outputs.prerelease }}
       macos: ${{ steps.resolve.outputs.macos }}
       cli: ${{ steps.resolve.outputs.cli }}
+      # One key read in one place, so the app and the feed's check can never hold two.
+      feed_key: ${{ vars.FEED_KEY }}
     env:
       HAS_P12: ${{ secrets.MACOS_CERTIFICATE_P12 != '' }}
       HAS_P12_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD != '' }}
@@ -566,7 +568,7 @@ jobs:
           TISTY_GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
           TISTY_GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           TISTY_CLOUD_POLICY_KEY: ${{ vars.CLOUD_POLICY_KEY }}
-          TISTY_FEED_KEY: ${{ vars.FEED_KEY }}
+          TISTY_FEED_KEY: ${{ needs.version.outputs.feed_key }}
         run: |
           packs=""
           if [ -f sign.json ]; then packs="--config sign.json"; fi
@@ -818,7 +820,7 @@ jobs:
           TISTY_GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
           TISTY_GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           TISTY_CLOUD_POLICY_KEY: ${{ vars.CLOUD_POLICY_KEY }}
-          TISTY_FEED_KEY: ${{ vars.FEED_KEY }}
+          TISTY_FEED_KEY: ${{ needs.version.outputs.feed_key }}
         run: npm run tauri build -- --target "$TARGET" --bundles app,dmg
 
       - name: The app is one architecture
@@ -1335,6 +1337,30 @@ jobs:
           fi
           echo "the $track feed says «${was:-nothing}»; $v may follow"
 
+      # Asked before anything is out: found after, the release would stand published with no feed.
+      - name: The feed can be signed with the key the app carries
+        env:
+          FEED_SIGNING_KEY: ${{ secrets.FEED_SIGNING_KEY }}
+          FEED_SIGNING_PASSWORD: ${{ secrets.FEED_SIGNING_PASSWORD }}
+          FEED_KEY: ${{ needs.version.outputs.feed_key }}
+        run: |
+          if [ -z "$FEED_SIGNING_KEY" ] || [ -z "$FEED_SIGNING_PASSWORD" ] || [ -z "$FEED_KEY" ]; then
+            echo "::error::the feed environment holds no signing key and password, or FEED_KEY is empty"
+            exit 1
+          fi
+          key="$RUNNER_TEMP/feed.key"
+          printf '%s\n' "$FEED_SIGNING_KEY" > "$key"
+          printf 'tisty\n' > "$RUNNER_TEMP/trial"
+          signed=true
+          printf '%s\n' "$FEED_SIGNING_PASSWORD" |
+            minisign -S -s "$key" -m "$RUNNER_TEMP/trial" -t trial || signed=false
+          rm -f "$key"
+          if [ "$signed" != "true" ] ||
+             ! minisign -V -P "$FEED_KEY" -m "$RUNNER_TEMP/trial" >/dev/null; then
+            echo "::error::the feed's key or password does not sign for FEED_KEY. Nothing was published."
+            exit 1
+          fi
+
       # One file at a time, each on its own clock. A connection to uploads.github.com that stalls
       # never answers on its own, and an upload started with the others hung the whole step for as
       # long as the job was allowed to live.
@@ -1407,13 +1433,9 @@ jobs:
         env:
           FEED_SIGNING_KEY: ${{ secrets.FEED_SIGNING_KEY }}
           FEED_SIGNING_PASSWORD: ${{ secrets.FEED_SIGNING_PASSWORD }}
-          FEED_KEY: ${{ vars.FEED_KEY }}
+          FEED_KEY: ${{ needs.version.outputs.feed_key }}
         run: |
           v="${{ needs.version.outputs.version }}"
-          if [ -z "$FEED_SIGNING_KEY" ] || [ -z "$FEED_SIGNING_PASSWORD" ] || [ -z "$FEED_KEY" ]; then
-            echo "::error::the feed environment holds no signing key and password, or FEED_KEY is empty"
-            exit 1
-          fi
           base="https://github.com/${{ github.repository }}/releases/download/${GITHUB_REF_NAME}"
           win="tisty-installer-$v-windows-x86_64.exe"
           arm="tisty-$v-macos-aarch64.app.tar.gz"
@@ -1496,7 +1518,6 @@ jobs:
           fi
           cat release-manifest.json
 
-          # Every file of the feed leaves with its signature, checked against the key the app carries.
           key="$RUNNER_TEMP/feed.key"
           printf '%s\n' "$FEED_SIGNING_KEY" > "$key"
           for one in release-manifest.json latest.json candidate.json; do

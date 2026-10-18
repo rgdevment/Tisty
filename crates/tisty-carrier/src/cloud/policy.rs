@@ -39,7 +39,6 @@ pub fn now() -> u64 {
         .map_or(0, |one| one.as_secs())
 }
 
-/// Whether these bytes, exactly as they came, carry a minisign signature by this key.
 pub fn signed(said: &[u8], signature: &str, key: &str) -> bool {
     let (Ok(key), Ok(signature)) = (PublicKey::from_base64(key), Signature::decode(signature))
     else {

@@ -145,6 +145,30 @@ jobs:
           fi
 
       # cloud.json and its signature are the maintainer's signed word, put there by hand; the rest is the release's.
+      - name: The feed carries its own signature
+        env:
+          FEED_KEY: ${{ vars.FEED_KEY }}
+        run: |
+          set -uo pipefail
+          if [ -z "$FEED_KEY" ]; then
+            echo "::warning::FEED_KEY is not set, so the feed's signatures were not looked at"
+            exit 0
+          fi
+          feed="https://raw.githubusercontent.com/${{ github.repository }}/manifest"
+          at=$(date +%s)
+          for one in release-manifest.json latest.json candidate.json; do
+            curl -fsS "$feed/$one?at=$at" -o "$one" 2>/dev/null || continue
+            if ! curl -fsS "$feed/$one.sig?at=$at" -o "$one.sig" 2>/dev/null; then
+              echo "::warning::$one carries no signature yet, so copies built with FEED_KEY do not believe it"
+              continue
+            fi
+            if ! minisign -V -P "$FEED_KEY" -m "$one" -x "$one.sig" >/dev/null; then
+              echo "::error::$one.sig does not answer to FEED_KEY, so no signed copy is told of updates"
+              exit 1
+            fi
+            echo "$one is signed"
+          done
+
       - name: The branch holds only the feed
         if: ${{ !cancelled() }}
         env:

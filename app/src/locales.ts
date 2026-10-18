@@ -826,8 +826,6 @@ const en = {
   updateInstallingStore: "Installing. Tisty closes while the Store puts the new one in its place.",
   updateBusy: "An update is already on its way.",
   updateElsewhere: "That update comes from somewhere it should not. Nothing was downloaded.",
-  updateUnsigned:
-    "The list of updates is not signed by Tisty, so nothing was downloaded. You can still get the new version from the website.",
   updateNotHere: "Something else keeps this copy up to date.",
   updateGone: "That version is no longer offered.",
   updateMoved: "That version is no longer offered; {name} is.",
@@ -2846,8 +2844,6 @@ const es: Catalog = {
   updateInstallingStore: "Instalando. Tisty se cierra mientras la Store pone la nueva en su sitio.",
   updateBusy: "Ya hay una actualización en camino.",
   updateElsewhere: "Esa actualización viene de donde no debe. No se descargó nada.",
-  updateUnsigned:
-    "La lista de actualizaciones no viene firmada por Tisty, así que no se descargó nada. Igual puedes bajar la versión nueva desde el sitio.",
   updateNotHere: "De esta copia se encarga otro.",
   updateGone: "Esa versión ya no se ofrece.",
   updateMoved: "Esa versión ya no se ofrece; ahora se ofrece la {name}.",

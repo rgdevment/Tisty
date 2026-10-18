@@ -559,18 +559,23 @@ const SIGNATURE: &str =
 
 #[test]
 fn a_feed_is_believed_only_with_the_feed_s_own_signature_once_the_build_carries_its_key() {
-    assert!(super::trusted(SIGNED, Some(SIGNATURE), Some(FEED_KEY)));
-    assert!(!super::trusted(SIGNED, None, Some(FEED_KEY)));
+    let (said, signature) = (SIGNED.as_bytes(), Some(SIGNATURE.as_bytes()));
+    assert!(super::trusted(said, signature, Some(FEED_KEY)));
+    assert!(!super::trusted(said, None, Some(FEED_KEY)));
     let altered = SIGNED.replace("1000", "9000");
-    assert!(!super::trusted(&altered, Some(SIGNATURE), Some(FEED_KEY)));
     assert!(!super::trusted(
-        SIGNED,
-        Some("not a signature"),
+        altered.as_bytes(),
+        signature,
+        Some(FEED_KEY)
+    ));
+    assert!(!super::trusted(
+        said,
+        Some(b"not a signature"),
         Some(FEED_KEY)
     ));
 }
 
 #[test]
 fn a_build_without_the_feed_s_key_reads_the_feed_as_it_always_did() {
-    assert!(super::trusted(SIGNED, None, None));
+    assert!(super::trusted(SIGNED.as_bytes(), None, None));
 }
