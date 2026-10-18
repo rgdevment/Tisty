@@ -15,6 +15,7 @@ pub struct Ref {
 }
 
 pub const DOC: &str = "tisty:doc/";
+pub const TASK: &str = "tisty:task/";
 
 pub fn card(file: &str, title: &str) -> String {
     let said: String = title

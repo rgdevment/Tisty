@@ -3,12 +3,12 @@ import { type ReactNode, useCallback, useEffect, useRef, useState } from "react"
 import { copied, copyAttached, type Mend, viewWidget } from "../core";
 import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
-import { DOC } from "../markdown";
+import { DOC, partCard } from "../markdown";
 import type { Moved } from "../paging";
 import { named } from "../previews";
 import { FORMATS, flipped } from "./barring";
 import { caretAt, type Editing, edited } from "./blocking";
-import { movedCard, putCard } from "./carded";
+import { cardedAt, movedCard, putCard } from "./carded";
 import type { Carded } from "./carding";
 import { wrapped } from "./formatting";
 import { useKeptHeight } from "./heights";
@@ -16,6 +16,7 @@ import Menu, { type Choice } from "./Menu";
 import { mended as mendedText } from "./mending";
 import Page from "./Page";
 import { charsAt, type Head, spanned, type Went } from "./paging";
+import type { PartCarded } from "./partcarding";
 import { closed, laid, parting } from "./parting";
 import type { Formatting, Menued } from "./quickly";
 import { filedAs, type Reshape, reshaped } from "./recarding";
@@ -23,6 +24,7 @@ import Skeleton from "./Skeleton";
 import { ASIDE_MARGIN, settles } from "./seeking";
 import type { Sheet as SheetSize } from "./sheeting";
 import { type Asking, putBlock, stagesIn } from "./slashing";
+import { stepLine, steppedTitle } from "./staging";
 import { widened } from "./tabling";
 
 type Props = {
@@ -44,6 +46,9 @@ type Props = {
   readonly onOpen?: (reference: string) => void;
   readonly onOutline?: (heads: Head[]) => void;
   readonly card?: (file: string) => Carded;
+  readonly part?: (id: string) => PartCarded;
+  readonly onTask?: (id: string) => void;
+  readonly onPart?: (title: string) => Promise<string | null>;
   readonly blurb?: (file: string) => Promise<string>;
   readonly again?: string;
   readonly onInsert?: (put: ((file: string, title: string) => boolean) | null) => void;
@@ -70,6 +75,7 @@ export default function Sheet(props: Readonly<Props>) {
   const echoes = useRef<string[]>([]);
   const shown = useRef<Window | null>(null);
   const putting = useRef(-1);
+  const hanging = useRef(false);
   const [ready, setReady] = useState(false);
   const kept = useKeptHeight<HTMLDivElement>(file ?? label);
   const [more, setMore] = useState<Extract<Went, { kind: "more" }> | null>(null);
@@ -395,6 +401,29 @@ export default function Sheet(props: Readonly<Props>) {
     whole(next);
   };
 
+  const parted = (at: [number, number]) => {
+    if (open.current) return left();
+    if (reading || hanging.current || showing.current !== latest.current) return;
+    const asked = said.current.onPart;
+    const line = stepLine(latest.current, at);
+    const title = line && steppedTitle(line);
+    if (!asked || !line || !title) return;
+    hanging.current = true;
+    asked(title)
+      .then((id) => {
+        // The part is there either way; the step makes room for it only where it still stands untouched.
+        const now = latest.current;
+        const after = now.slice(at[0] + line.length);
+        const still = now.slice(at[0], at[0] + line.length) === line && /^(\r?\n|$)/.test(after);
+        if (!id || !still || open.current || showing.current !== now) return;
+        whole(cardedAt(now, at[0], at[0] + line.length, partCard(id, title)));
+      })
+      .catch((e) => said.current.onFail?.(e))
+      .finally(() => {
+        hanging.current = false;
+      });
+  };
+
   const cut = ([from, end]: [number, number]) => {
     if (open.current) return left();
     if (reading || showing.current !== latest.current) return;
@@ -597,6 +626,7 @@ export default function Sheet(props: Readonly<Props>) {
           onBlock={reading ? undefined : block}
           stepDates={props.stepDates}
           onTick={reading || fixed ? undefined : ticked}
+          onPart={reading || fixed || !props.onPart ? undefined : parted}
           onCut={reading || !fixed ? undefined : cut}
           onWiden={reading || fixed ? undefined : widen}
           onFormat={reading || fixed ? undefined : format}
@@ -605,6 +635,8 @@ export default function Sheet(props: Readonly<Props>) {
           onMore={reading || fixed ? undefined : asked}
           onAway={left}
           card={props.card}
+          part={props.part}
+          onTask={(id) => said.current.onTask?.(id)}
           blurb={props.blurb}
           again={props.again}
           onApart={(lent) => {

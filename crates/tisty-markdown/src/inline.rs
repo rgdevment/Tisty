@@ -252,6 +252,15 @@ fn filed(said: &str) -> bool {
 }
 
 fn pictured(src: &str, alt: &str, filed: bool, out: &mut String) {
+    if let Some(task) = src.strip_prefix(crate::refs::TASK) {
+        let _ = write!(
+            out,
+            "<a class=\"card\" data-task=\"{}\">{}</a>",
+            escaped(task),
+            escaped(alt)
+        );
+        return;
+    }
     match src.strip_prefix(crate::refs::DOC) {
         Some(doc) => {
             let _ = write!(

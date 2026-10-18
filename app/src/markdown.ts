@@ -2,6 +2,11 @@ export const INSIDE = "data-inside";
 
 export const DOC = "tisty:doc/";
 
+export const TASK = "tisty:task/";
+
+export const partCard = (id: string, title: string): string =>
+  `![${title.replace(/([[\]\\])/g, "\\$1")}](${TASK}${id})`;
+
 export const docLink = (id: string, title: string): string =>
   `[${title.replace(/([[\]\\])/g, "\\$1")}](${DOC}${id})`;
 
@@ -31,6 +36,8 @@ export const dressed = (html: string, steps: string[] = []): string => {
     chip.setAttribute(INSIDE, `${DOC}${card.getAttribute("data-doc")}`);
     card.replaceWith(chip);
   }
+  for (const card of all.querySelectorAll("a.card[data-task]"))
+    card.replaceWith(card.textContent ?? "");
   for (const link of all.querySelectorAll("a[href]")) {
     const target = link.getAttribute("href") ?? "";
     // The core sends a scheme it will not follow as "#", which here is words and not a way out.

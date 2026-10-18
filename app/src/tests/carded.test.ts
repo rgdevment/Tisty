@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cardOf, movedCard, putCard } from "../ui/carded";
+import { cardedAt, cardOf, movedCard, putCard } from "../ui/carded";
 
 const book = [
   "# Libro",
@@ -75,5 +75,23 @@ describe("moving a page's card", () => {
   it("does not see a card written inside a code fence", () => {
     const fenced = "# Libro\n\n```\n![El pod](tisty:doc/a3f1-0002)\n```\n";
     expect(movedCard(fenced, "a3f1-0002", null).moved).toBe("unseen");
+  });
+});
+
+describe("a step made into a part", () => {
+  const card = "![Pack](tisty:task/01J)";
+
+  it("stands alone in its paragraph between the steps around it", () => {
+    const body = "## Steps\n- [ ] Rent\n- [ ] Pack\n- [ ] Move\n";
+    const at = body.indexOf("- [ ] Pack");
+    expect(cardedAt(body, at, at + "- [ ] Pack".length, card)).toBe(
+      `## Steps\n- [ ] Rent\n\n${card}\n\n- [ ] Move\n`,
+    );
+  });
+
+  it("ends the page without a blank line after it", () => {
+    const body = "## Steps\n\n- [ ] Pack\n";
+    const at = body.indexOf("- [ ] Pack");
+    expect(cardedAt(body, at, at + "- [ ] Pack".length, card)).toBe(`## Steps\n\n${card}\n`);
   });
 });

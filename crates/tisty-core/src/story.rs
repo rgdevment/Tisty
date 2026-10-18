@@ -79,6 +79,22 @@ pub enum Chapter {
     SectionWritten {
         section: String,
     },
+    Joined {
+        whole: TaskId,
+        title: String,
+    },
+    Loosened {
+        whole: TaskId,
+        title: String,
+    },
+    PartJoined {
+        part: TaskId,
+        title: String,
+    },
+    PartLoosened {
+        part: TaskId,
+        title: String,
+    },
     Closed,
     Dropped,
     Reopened,
@@ -172,8 +188,14 @@ pub fn story(events: &[Event], id: TaskId) -> Story {
     let mut standing = Standing::default();
     let mut pages: Vec<Page> = Vec::new();
     let mut wrote_on: HashMap<crate::model::LogId, usize> = HashMap::new();
+    let mut keys: Vec<parts::Key> = Vec::new();
+    let mut last: Option<parts::Key> = None;
 
     for event in mine {
+        if let Some(key) = last.take() {
+            keys.resize(pages.len(), key);
+        }
+        last = Some((event.timestamp, event.device.clone(), event.seq));
         let next = pages.len();
         let mut taken_out = None;
         // The trail tells what landed: what `State::apply` lets go of an assistant's hand is
@@ -403,8 +425,15 @@ pub fn story(events: &[Event], id: TaskId) -> Story {
         }
     }
 
+    if let Some(key) = last {
+        keys.resize(pages.len(), key);
+    }
+    let pages = parts::merged(keys, pages, events, id);
     Story { id, pages }
 }
+
+#[path = "story_parts.rs"]
+mod parts;
 
 #[cfg(test)]
 #[path = "story_test.rs"]

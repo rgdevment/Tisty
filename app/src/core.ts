@@ -215,6 +215,10 @@ export type Chapter =
   | { chapter: "sectionrenamed"; from: string; to: string }
   | { chapter: "sectionremoved"; section: string }
   | { chapter: "sectionwritten"; section: string }
+  | { chapter: "joined"; whole: string; title: string }
+  | { chapter: "loosened"; whole: string; title: string }
+  | { chapter: "partjoined"; part: string; title: string }
+  | { chapter: "partloosened"; part: string; title: string }
   | { chapter: "closed" }
   | { chapter: "dropped" }
   | { chapter: "reopened" }
