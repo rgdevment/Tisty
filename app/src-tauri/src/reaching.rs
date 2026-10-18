@@ -207,7 +207,7 @@ pub fn heed(home: &Path) {
 }
 
 // No redirect is followed and no more is read than a word can weigh, whatever the answer says it holds.
-fn brought(url: &str) -> Option<Vec<u8>> {
+pub(crate) fn brought(url: &str) -> Option<Vec<u8>> {
     let answer = reqwest::blocking::Client::builder()
         .timeout(PATIENCE)
         .redirect(reqwest::redirect::Policy::none())

@@ -828,6 +828,7 @@ const en = {
   updateElsewhere: "That update comes from somewhere it should not. Nothing was downloaded.",
   updateNotHere: "Something else keeps this copy up to date.",
   updateGone: "That version is no longer offered.",
+  updateUnconfirmed: "The list of updates could not be confirmed just now. Try again in a while.",
   updateMoved: "That version is no longer offered; {name} is.",
   updateStopped: "The update stopped before it was installed.",
   betaTake: "Take release candidates",
@@ -2846,6 +2847,8 @@ const es: Catalog = {
   updateElsewhere: "Esa actualización viene de donde no debe. No se descargó nada.",
   updateNotHere: "De esta copia se encarga otro.",
   updateGone: "Esa versión ya no se ofrece.",
+  updateUnconfirmed:
+    "Ahora mismo no se pudo confirmar la lista de actualizaciones. Prueba de nuevo en un rato.",
   updateMoved: "Esa versión ya no se ofrece; ahora se ofrece la {name}.",
   updateStopped: "La actualización se detuvo antes de instalarse.",
   betaTake: "Recibir versiones candidatas",

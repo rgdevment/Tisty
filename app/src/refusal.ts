@@ -10,6 +10,7 @@ export interface Refusal {
 const KNOWN = [
   "updateBusy",
   "updateElsewhere",
+  "updateUnconfirmed",
   "updateNotHere",
   "updateGone",
   "updateMoved",

@@ -123,6 +123,8 @@ jobs:
       prerelease: ${{ steps.resolve.outputs.prerelease }}
       macos: ${{ steps.resolve.outputs.macos }}
       cli: ${{ steps.resolve.outputs.cli }}
+      # A repository variable, never an environment's, so the app and the daily check read the same key.
+      feed_key: ${{ vars.FEED_KEY }}
     env:
       HAS_P12: ${{ secrets.MACOS_CERTIFICATE_P12 != '' }}
       HAS_P12_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD != '' }}
@@ -148,6 +150,7 @@ jobs:
       HAS_GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID != '' }}
       HAS_GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET != '' }}
       HAS_CLOUD_POLICY_KEY: ${{ vars.CLOUD_POLICY_KEY != '' }}
+      HAS_FEED_KEY: ${{ vars.FEED_KEY != '' }}
     steps:
       - name: Signing secrets come in pairs
         run: |
@@ -183,6 +186,8 @@ jobs:
             want GOOGLE_CLIENT_ID "$HAS_GOOGLE_CLIENT_ID"
             want GOOGLE_CLIENT_SECRET "$HAS_GOOGLE_CLIENT_SECRET"
             want CLOUD_POLICY_KEY "$HAS_CLOUD_POLICY_KEY"
+            # Without it the build believes a feed nobody signed.
+            want FEED_KEY "$HAS_FEED_KEY"
             if [ "$BUILD_MACOS" = "true" ]; then
               want MACOS_CERTIFICATE_P12 "$HAS_P12"
               want MACOS_CERTIFICATE_PASSWORD "$HAS_P12_PASSWORD"
@@ -563,6 +568,7 @@ jobs:
           TISTY_GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
           TISTY_GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           TISTY_CLOUD_POLICY_KEY: ${{ vars.CLOUD_POLICY_KEY }}
+          TISTY_FEED_KEY: ${{ needs.version.outputs.feed_key }}
         run: |
           packs=""
           if [ -f sign.json ]; then packs="--config sign.json"; fi
@@ -814,6 +820,7 @@ jobs:
           TISTY_GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
           TISTY_GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           TISTY_CLOUD_POLICY_KEY: ${{ vars.CLOUD_POLICY_KEY }}
+          TISTY_FEED_KEY: ${{ needs.version.outputs.feed_key }}
         run: npm run tauri build -- --target "$TARGET" --bundles app,dmg
 
       - name: The app is one architecture
@@ -1159,6 +1166,8 @@ jobs:
       && (needs.bundle-macos.result == 'success' || needs.bundle-macos.result == 'skipped')
       && (needs.bundle-msix.result == 'success' || needs.bundle-msix.result == 'skipped')
       && needs.sign-updater.result == 'success'
+    # Only the feed's own key is here: the updater's stays in sign-updater, where it signs.
+    environment: feed
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     # One tag at a time: every tag rewrites the same manifest branch and the Latest flag. A third
@@ -1328,6 +1337,30 @@ jobs:
           fi
           echo "the $track feed says «${was:-nothing}»; $v may follow"
 
+      # Asked before anything is out: found after, the release would stand published with no feed.
+      - name: The feed can be signed with the key the app carries
+        env:
+          FEED_SIGNING_KEY: ${{ secrets.FEED_SIGNING_KEY }}
+          FEED_SIGNING_PASSWORD: ${{ secrets.FEED_SIGNING_PASSWORD }}
+          FEED_KEY: ${{ needs.version.outputs.feed_key }}
+        run: |
+          if [ -z "$FEED_SIGNING_KEY" ] || [ -z "$FEED_SIGNING_PASSWORD" ] || [ -z "$FEED_KEY" ]; then
+            echo "::error::the feed environment holds no signing key and password, or FEED_KEY is empty"
+            exit 1
+          fi
+          key="$RUNNER_TEMP/feed.key"
+          printf '%s\n' "$FEED_SIGNING_KEY" > "$key"
+          printf 'tisty\n' > "$RUNNER_TEMP/trial"
+          signed=true
+          printf '%s\n' "$FEED_SIGNING_PASSWORD" |
+            minisign -S -s "$key" -m "$RUNNER_TEMP/trial" -t trial || signed=false
+          rm -f "$key"
+          if [ "$signed" != "true" ] ||
+             ! minisign -V -P "$FEED_KEY" -m "$RUNNER_TEMP/trial" >/dev/null; then
+            echo "::error::the feed's key or password does not sign for FEED_KEY. Nothing was published."
+            exit 1
+          fi
+
       # One file at a time, each on its own clock. A connection to uploads.github.com that stalls
       # never answers on its own, and an upload started with the others hung the whole step for as
       # long as the job was allowed to live.
@@ -1397,6 +1430,10 @@ jobs:
           gh release edit "$tag" --draft=false --latest="$latest"
 
       - name: Release manifest
+        env:
+          FEED_SIGNING_KEY: ${{ secrets.FEED_SIGNING_KEY }}
+          FEED_SIGNING_PASSWORD: ${{ secrets.FEED_SIGNING_PASSWORD }}
+          FEED_KEY: ${{ needs.version.outputs.feed_key }}
         run: |
           v="${{ needs.version.outputs.version }}"
           base="https://github.com/${{ github.repository }}/releases/download/${GITHUB_REF_NAME}"
@@ -1436,6 +1473,7 @@ jobs:
             # The index is cleared but the files are not: main carries copies of these, and they
             # would be read as the feed and committed as it.
             rm -f release-manifest.json latest.json candidate.json
+            rm -f release-manifest.json.sig
           fi
 
           # Re-running the workflow of a release that has since been passed would otherwise walk
@@ -1480,11 +1518,28 @@ jobs:
           fi
           cat release-manifest.json
 
+          key="$RUNNER_TEMP/feed.key"
+          printf '%s\n' "$FEED_SIGNING_KEY" > "$key"
+          # Only the manifest is signed: the channel files are trusted through the installers' own signatures.
+          signed=true
+          printf '%s\n' "$FEED_SIGNING_PASSWORD" |
+            minisign -S -s "$key" -m release-manifest.json -x release-manifest.json.sig \
+              -t "tisty feed $v" || signed=false
+          rm -f "$key"
+          if [ "$signed" != true ]; then
+            echo "::error::the manifest could not be signed with the feed's key"
+            exit 1
+          fi
+          if ! minisign -V -P "$FEED_KEY" -m release-manifest.json -x release-manifest.json.sig >/dev/null; then
+            echo "::error::release-manifest.json.sig does not answer to FEED_KEY, so no copy would believe it"
+            exit 1
+          fi
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           # Staged first and compared after, or a channel file would be skipped on any run where
           # the version manifest happened not to change.
-          for one in release-manifest.json latest.json candidate.json; do
+          for one in release-manifest.json latest.json candidate.json release-manifest.json.sig; do
             git add -A -- "$one" 2>/dev/null || true
           done
           if git diff --cached --quiet; then

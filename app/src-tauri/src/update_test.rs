@@ -551,3 +551,26 @@ fn an_update_counts_only_when_its_signature_names_the_version_offered() {
         "without it, the unsigned feed could pass an older signed installer off as a newer one"
     );
 }
+
+const FEED_KEY: &str = include_str!("../../../crates/tisty-carrier/src/cloud/signed/key.pub");
+const SIGNED: &str = include_str!("../../../crates/tisty-carrier/src/cloud/signed/lowered.json");
+const SIGNATURE: &str =
+    include_str!("../../../crates/tisty-carrier/src/cloud/signed/lowered.json.minisig");
+
+#[test]
+fn a_feed_is_believed_only_with_the_feed_s_own_signature() {
+    let (said, signature) = (SIGNED.as_bytes(), SIGNATURE.as_bytes());
+    assert!(super::trusted(said, signature, FEED_KEY));
+    let altered = SIGNED.replace("1000", "9000");
+    assert!(!super::trusted(altered.as_bytes(), signature, FEED_KEY));
+    assert!(!super::trusted(said, b"not a signature", FEED_KEY));
+    assert!(!super::trusted(said, &[0xff, 0xfe], FEED_KEY));
+}
+
+#[test]
+fn a_remembered_version_is_later_only_when_it_truly_is() {
+    assert!(super::later("1.30.0", "1.31.0"));
+    assert!(!super::later("1.31.0", "1.31.0"));
+    assert!(!super::later("1.31.0", "1.30.5"));
+    assert!(!super::later("1.31.0", "not a version"));
+}
