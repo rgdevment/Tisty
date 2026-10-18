@@ -16,6 +16,7 @@ import {
   stepToPart,
   stillOpen,
   type Task,
+  taskDocSettled,
   taskOf,
   writeLog,
   writeStep,
@@ -73,6 +74,7 @@ export const detailOf = (one: Task, h: Hands) => ({
   },
   onHang: (whole: string | null) => h.act(hang(one.id, whole)),
   onStepToPart: (step: string) => h.act(stepToPart(one.id, step)),
+  onSettle: (before: string, now: string) => h.act(taskDocSettled(one.id, before, now)),
 });
 
 export const erasing = (

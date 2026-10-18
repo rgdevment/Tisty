@@ -260,6 +260,43 @@ describe("the sheet in the main window", () => {
     await shown(view.container, "leche y fruta");
   });
 
+  it("tells nothing for a block left as it was", async () => {
+    const settled: [string, string][] = [];
+    const view = render(
+      <Sheet
+        value={BODY}
+        label="Compras"
+        onWrite={() => {}}
+        onSettle={(before, now) => settled.push([before, now])}
+      />,
+    );
+    const page = await loaded(await shown(view.container));
+    page
+      .querySelector('p[data-at="11-17"]')
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    ipc.opened[0].leave("leche");
+    expect(settled).toEqual([]);
+  });
+
+  it("tells the text before and after a block it left", async () => {
+    const settled: [string, string][] = [];
+    const view = render(
+      <Sheet
+        value={BODY}
+        label="Compras"
+        onWrite={() => {}}
+        onSettle={(before, now) => settled.push([before, now])}
+      />,
+    );
+    const page = await loaded(await shown(view.container));
+    page
+      .querySelector('p[data-at="11-17"]')
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    ipc.opened[0].change("leche y fruta");
+    ipc.opened[0].leave("leche y fruta");
+    expect(settled).toEqual([[BODY, "# Compras\n\nleche y fruta\n\npan\n"]]);
+  });
+
   it("leaves the block open when another is clicked, instead of opening a second one", async () => {
     const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} />);
     const page = await loaded(await shown(view.container));
@@ -543,6 +580,24 @@ describe("the sheet in the main window", () => {
     page.querySelector(".check")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(writes).toEqual(["# Plan\n\n- [x] uno\n- [x] dos\n"]);
     expect(ipc.opened).toHaveLength(0);
+  });
+
+  it("tells a box ticked on the page as a change of its own", async () => {
+    const settled: [string, string][] = [];
+    const body = "# Plan\n\n- [ ] uno\n";
+    ipc.drawn =
+      '<h1 data-at="0-6">Plan</h1><ul data-at="8-18"><li class="task" data-at="8-18"><span class="check" data-done="false"></span>uno</li></ul>';
+    const view = render(
+      <Sheet
+        value={body}
+        label="Plan"
+        onWrite={() => {}}
+        onSettle={(before, now) => settled.push([before, now])}
+      />,
+    );
+    const page = await loaded(await shown(view.container));
+    page.querySelector(".check")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(settled).toEqual([[body, "# Plan\n\n- [x] uno\n"]]);
   });
 
   it("ticks a stage inside a quote as well", async () => {

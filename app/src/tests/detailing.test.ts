@@ -72,10 +72,15 @@ describe("what the detail of a task is handed", () => {
     shown.onHang(null);
     shown.onStepToPart("s1");
     shown.onAddPart("parte");
+    shown.onSettle("antes", "ahora");
     await flush();
 
-    expect(h.act).toHaveBeenCalledTimes(13);
+    expect(h.act).toHaveBeenCalledTimes(14);
     expect(sent()).toContain("task_of");
+    expect(calls).toContainEqual({
+      cmd: "task_doc_settled",
+      args: { id: "t1", before: "antes", now: "ahora" },
+    });
   });
 
   it("closes the detail when the task is completed or discarded", () => {

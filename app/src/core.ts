@@ -338,6 +338,11 @@ export const markStep = (id: string, step: string, done: boolean): Promise<Task>
   invoke("mark_step", { id, step, done });
 export const dropStep = (id: string, step: string): Promise<Task> =>
   invoke("drop_step", { id, step });
+export type TaskDoc = { readonly file: string; readonly body: string; readonly held: boolean };
+export const taskDocOpen = (id: string): Promise<TaskDoc | null> => invoke("task_doc_open", { id });
+export const taskDocMake = (id: string): Promise<string> => invoke("task_doc_make", { id });
+export const taskDocSettled = (id: string, before: string, now: string): Promise<Task> =>
+  invoke("task_doc_settled", { id, before, now });
 export const partsOf = (id: string): Promise<Task[]> => invoke("parts_of", { id });
 export const taskOf = (id: string): Promise<Task> => invoke("task_of", { id });
 export const addPart = (whole: string, title: string): Promise<Task> =>
