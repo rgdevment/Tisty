@@ -139,3 +139,54 @@ pub fn task_doc_settled(
     session.commit_all(ops)?;
     answered(&session, id).map(Some)
 }
+
+// A task's page coming back from outside hands the task its properties and its words, and is
+// opened there; anything else is an ordinary document and goes the usual way.
+#[tauri::command(async)]
+pub fn task_page_import(
+    session: tauri::State<'_, Mutex<Session>>,
+    from: String,
+) -> Answer<Option<String>> {
+    let (raw, _) = super::carrying::read_any(std::path::Path::new(&from))?;
+    let mut session = held(&session);
+    session.reload()?;
+    let zone = jiff::tz::TimeZone::system();
+    let tz = zone.iana_name().unwrap_or("UTC");
+    let Some(taken) = tisty_core::task_front::taken_in(&session.state, &raw, tz) else {
+        return Ok(None);
+    };
+    let id = taken.task;
+    answered(&session, id)?;
+    let mut ops = taken.ops;
+    let file = match file_of(&session, id) {
+        Some(file) => {
+            writable(&session.state, &file)?;
+            Some(file)
+        }
+        None => {
+            let (made, _) = tisty_core::task_docs::made_with(
+                &session.paths.docs(),
+                &session.state,
+                tisty_core::task_docs::owner(&session.state, id),
+                &taken.body,
+                signing(&session.state),
+            )
+            .map_err(|e| blamed(channel::WINDOW, "a task's document could not be made", e))?;
+            ops.push(made);
+            None
+        }
+    };
+    if !ops.is_empty() {
+        session.commit_all(ops)?;
+    }
+    if let Some(file) = file {
+        let root = session.paths.docs();
+        tisty_core::docs::write(&root, &file, &taken.body)
+            .map_err(|e| blamed(channel::WINDOW, "a task's page could not be written", e))?;
+        session.mind_body(&file, &tisty_core::docs::settled(&taken.body));
+        session.corpus.forget(&file);
+        let hand = signing(&session.state);
+        session.retell(&file, &taken.body, hand);
+    }
+    Ok(Some(id.to_string()))
+}

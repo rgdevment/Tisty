@@ -6,8 +6,9 @@ use super::reachable_or;
 use tisty_core::Paths;
 
 use super::super::asked::{body_at_most, short_and_plain, text};
+use super::super::chores::filling;
 use super::super::jsonrpc::told;
-use super::super::{Refused, hitch, opened};
+use super::super::{Refused, hitch, opened, retold};
 
 pub(in crate::mcp) fn import_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let Some(said) = text(args, "path") else {
@@ -60,6 +61,9 @@ pub(in crate::mcp) fn import_doc(paths: &Paths, args: &Value) -> Result<Value, R
         ))
     })?;
     short_and_plain(&json!({ "body": made.body }))?;
+    if let Some(came) = task_s_page(paths, &made.body)? {
+        return Ok(came);
+    }
     // The files beside it are copied in below, and a document turned away after that would
     // leave them on the person's disk with nothing pointing at them.
     let (state, mut store) = opened(paths)?;
@@ -167,4 +171,49 @@ pub(in crate::mcp) fn import_doc(paths: &Paths, args: &Value) -> Result<Value, R
             other => other,
         },
     ))
+}
+
+// A task's page coming back hands the task its properties and its words, and is no document of its own.
+fn task_s_page(paths: &Paths, body: &str) -> Result<Option<Value>, Refused> {
+    let (state, mut store) = opened(paths)?;
+    let zone = jiff::tz::TimeZone::system();
+    let Some(taken) =
+        tisty_core::task_front::taken_in(&state, body, zone.iana_name().unwrap_or("UTC"))
+    else {
+        return Ok(None);
+    };
+    let (id, task) = filling(&state, &store, &taken.task.to_string())?;
+    let owner = tisty_core::task_docs::owner(&state, id);
+    let mut ops = taken.ops;
+    let kept = tisty_core::task_docs::of(&state, owner).map(|one| one.file.clone());
+    if kept.is_none() {
+        let (made, _) = tisty_core::task_docs::made_with(
+            &paths.docs(),
+            &state,
+            owner,
+            &taken.body,
+            state.signed.alias.clone(),
+        )
+        .map_err(hitch)?;
+        ops.push(made);
+    }
+    if !ops.is_empty() {
+        store.append_batch(ops).map_err(hitch)?;
+    }
+    if let Some(file) = &kept {
+        let whole = tisty_core::docs::amend(&paths.docs(), paths.data(), file, |was| {
+            (was != taken.body).then(|| taken.body.clone())
+        })
+        .map_err(hitch)?;
+        if let Some(whole) = whole {
+            retold(&state, &mut store, file, &whole)?;
+        }
+    }
+    Ok(Some(told(
+        format!(
+            "{:?} came back as its task's own page: its properties went to the task and its words to the task's document. No new document was made.",
+            task.title
+        ),
+        json!({ "task": id.to_string(), "title": task.title }),
+    )))
 }

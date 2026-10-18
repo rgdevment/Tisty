@@ -15,6 +15,7 @@ import {
   folderDrop,
   noteTrouble,
   type Papers,
+  taskPageImport,
 } from "./core";
 import { leftBehind } from "./leftBehind";
 import { fill, t } from "./locales";
@@ -33,6 +34,7 @@ interface Hands {
   setReturning: (at: string | null) => void;
   setBacking: (doc: Filed | null) => void;
   setError: (text: string | null) => void;
+  openTask: (id: string) => void;
   noted: (text: string, fades?: number) => void;
   lookForAStar: () => void;
   carries: MutableRefObject<ReturnType<typeof carrying> | null>;
@@ -47,6 +49,7 @@ export function usePapers({
   setReturning,
   setBacking,
   setError,
+  openTask,
   noted,
   lookForAStar,
   carries,
@@ -71,7 +74,16 @@ export function usePapers({
         { name: t("anyFile"), extensions: ["*"] },
       ],
     })
-      .then((at) => (typeof at === "string" ? docImport(at, folder) : null))
+      .then(async (at) => {
+        if (typeof at !== "string") return null;
+        // A task's own page coming back goes to its task, never into the documents.
+        const task = await taskPageImport(at);
+        if (task) {
+          openTask(task);
+          return null;
+        }
+        return docImport(at, folder);
+      })
       .then((made) => {
         if (!made) return;
         papersChanged();

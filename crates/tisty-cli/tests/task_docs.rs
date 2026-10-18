@@ -146,3 +146,61 @@ fn an_assistant_cannot_write_a_task_s_words_through_the_document_tools() {
         .unwrap_or_default();
     assert!(body.contains("The person's own words."), "{read}");
 }
+
+#[test]
+fn what_an_assistant_changes_on_a_task_it_filed_reaches_its_page() {
+    let served = Served::new();
+    let filed = served.call("propose", serde_json::json!({ "title": "Rina's booster" }));
+    let task = filed["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.written_for(
+        &task,
+        "## Description\n<!-- What and why -->\n\n## Steps\n<!-- - [ ] The first step -->\n",
+    );
+    let file = format!("t_{}-0001", task.to_ascii_lowercase());
+    let page = || {
+        let read = served.call("read", serde_json::json!({ "task": task }));
+        read["result"]["structuredContent"]["document"]["body"]
+            .as_str()
+            .unwrap_or_default()
+            .to_string()
+    };
+
+    served.call(
+        "describe",
+        serde_json::json!({ "task": task, "body": "Book it before Friday." }),
+    );
+    served.call(
+        "plan",
+        serde_json::json!({ "task": task, "steps": ["Call the vet", "Bring the card"] }),
+    );
+    served.call(
+        "reword_step",
+        serde_json::json!({ "task": task, "step": "Call the vet", "text": "Call the vet at nine" }),
+    );
+    served.call(
+        "unplan",
+        serde_json::json!({ "task": task, "steps": ["Bring the card"] }),
+    );
+    served.call(
+        "tick",
+        serde_json::json!({ "task": task, "steps": ["Call the vet at nine"] }),
+    );
+
+    let body = page();
+    assert!(
+        body.contains("<!-- What and why -->\n\nBook it before Friday."),
+        "{body}"
+    );
+    assert!(body.contains("- [x] Call the vet at nine"), "{body}");
+    assert!(!body.contains("Bring the card"), "{body}");
+    assert!(!body.contains("- [ ] Call the vet\n"), "{body}");
+    assert!(body.starts_with("---\ntask: "), "{body}");
+    let read = served.call("read_doc", serde_json::json!({ "doc": file }));
+    let kept = read["result"]["structuredContent"]["body"]
+        .as_str()
+        .unwrap_or_default();
+    assert!(kept.contains("- [x] Call the vet at nine"), "{kept}");
+}

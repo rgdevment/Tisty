@@ -145,11 +145,21 @@ written — keep that in a document as well, and say in the task's `note` where 
 you cannot tell which the person means, ask them whether it is something to do or something \
 to keep.
 
-A task can also hold a document of its own: its words — notes, pictures, tables — kept with \
-the task rather than among the documents. `docs` never lists one; `find` hands back its task \
-when the words are found there, with `in` set to `document`. Read it with `read_doc` if you \
-need it, but never write it with the document tools — they refuse, because those words are the \
-task's, behind the task's own door.
+A task also holds a page of its own: its words — notes, pictures, tables — kept with the task \
+rather than among the documents. The page is made from a template the first time the person \
+writes on it: a task's has the sections Description, Done when, Steps, Notes and When it \
+closes, a repeating task's has What for, Every round and This time, each with a grey hint \
+saying what goes there. Every box on the page, `- [ ]`, is one of the task's steps. `read` \
+hands the page back as `document`, its boxes ticked as the steps stand and the task's \
+properties written at the top. `docs` never lists one; `find` hands back its task when the \
+words are found there, with `in` set to `document`.
+
+The document tools refuse a task's page: its words are the task's, behind the task's own door. \
+On a task you fill in, `describe` writes its Description section, `plan` adds boxes under its \
+steps, `reword_step` rewrites a box's line, `unplan` takes it off, and `tick` and `untick` mark \
+it — the page and the steps always agree. The sections are the person's: rename, add or take \
+one away only when they ask for it, never to tidy the page up. Bringing a task's page back with \
+`import_doc` hands the task its properties and its words, and makes no document.
 
 Writing a document creates no task: if something has to happen, propose it. `docs` lists \
 what is written already and the folders it is kept in; you can make a folder and file documents \
@@ -935,14 +945,14 @@ pub(super) fn tools() -> Value {
         {
             "name": "read",
             "title": "Read a whole task",
-            "description": "Everything one task holds: its description, its steps, its journal — each note with the id `reword_note` takes — its parts and what it keeps. Ask for it before adding a note, so you do not write down something already written, and before mending anything, so you change what is there now. With `fields` it brings only the parts you name, which is how to check one thing about a task whose journal is long. A closed task comes with `closed` and a `notice`, and reads as it ended.",
+            "description": "Everything one task holds: its description, its steps, its journal — each note with the id `reword_note` takes — its parts, what it keeps, and its `document`: the page the person reads and writes, with its sections and their grey hints, its boxes ticked as the steps are and its properties written at the top. Ask for it before adding a note, so you do not write down something already written, and before mending anything, so you change what is there now. With `fields` it brings only the parts you name, which is how to check one thing about a task whose journal is long. A closed task comes with `closed` and a `notice`, and reads as it ended.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "task": { "type": "string", "description": "The task id" },
                     "fields": {
                         "type": "array",
                         "items": { "type": "string" },
-                        "description": "Only these parts of it: any of title, status, closed, notice, date, deadline, reminders, tags, source, list, priority, by_agent, via, said_done, said_not_doing, open_to_agents, part_of, parts, description, steps, journal, kept. Left out, everything comes. The id always does"
+                        "description": "Only these parts of it: any of title, status, closed, notice, date, deadline, reminders, tags, source, list, priority, by_agent, via, said_done, said_not_doing, open_to_agents, part_of, parts, description, steps, journal, kept, document. Left out, everything comes. The id always does"
                     }
                 },
                 "required": ["task"]

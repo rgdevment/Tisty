@@ -340,6 +340,8 @@ export const taskDocMake = (id: string, template: string, body?: string): Promis
 export const taskDocSettled = (id: string, before: string, now: string): Promise<Task | null> =>
   invoke("task_doc_settled", { id, before, now });
 export const partsOf = (id: string): Promise<Task[]> => invoke("parts_of", { id });
+export const taskPageImport = (from: string): Promise<string | null> =>
+  invoke("task_page_import", { from });
 export const taskOf = (id: string): Promise<Task> => invoke("task_of", { id });
 export const addPart = (whole: string, title: string): Promise<Task> =>
   invoke("add_part", { whole, title });

@@ -109,6 +109,9 @@ pub(super) fn reword_step(paths: &Paths, args: &Value) -> Result<Value, Refused>
     if written.is_none() {
         return Err(moved(task));
     }
+    super::worded::worded(paths, &mut store, id, |body, _| {
+        tisty_core::stages::reworded(body, &was, &words)
+    });
     Ok(told(
         format!("Reworded {was:?} to {words:?} on {:?}.", task.title),
         json!({ "id": id.to_string(), "title": task.title, "reworded": 1 }),
@@ -122,10 +125,9 @@ pub(super) fn unplan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if let Some(why) = already_said_done(task, "taking a step off") {
         return Err(why);
     }
-    let ids: Vec<StepId> = open_steps(task, &wanted, "taken off")?
-        .into_iter()
-        .map(|(step, _)| step)
-        .collect();
+    let chosen = open_steps(task, &wanted, "taken off")?;
+    let ids: Vec<StepId> = chosen.iter().map(|(step, _)| *step).collect();
+    let gone: Vec<String> = chosen.into_iter().map(|(_, text)| text).collect();
     let ops = ids
         .iter()
         .map(|step| Op::StepRemove {
@@ -147,6 +149,9 @@ pub(super) fn unplan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if written.is_none() {
         return Err(moved(task));
     }
+    super::worded::worded(paths, &mut store, id, |body, _| {
+        Some(tisty_core::stages::unplanned(body, &gone))
+    });
     let left = task.steps.len() - ids.len();
     Ok(told(
         format!(
