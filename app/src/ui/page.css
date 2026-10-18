@@ -55,6 +55,10 @@ html.tall .page {
   padding-top: 50px;
   padding-bottom: 36px;
 }
+html.tall.untitled .page {
+  padding-top: 40px;
+  padding-bottom: 12px;
+}
 @media (max-width: 480px) {
   html.untitled .page {
     padding-right: 20px;
@@ -1621,6 +1625,7 @@ html.untitled .page > .hint.step-hint {
   display: flex;
   align-items: center;
   gap: 10px;
+  box-sizing: border-box;
   width: 100%;
   margin: 0;
   padding: 7px 12px;
