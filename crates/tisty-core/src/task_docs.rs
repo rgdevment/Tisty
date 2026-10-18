@@ -108,25 +108,48 @@ pub fn first_words(state: &State, task: TaskId) -> String {
 }
 
 pub fn opened(state: &State, task: TaskId, template: &str) -> String {
+    let one = state.tasks.get(&task);
+    let mut said = one
+        .and_then(|one| one.description.as_deref())
+        .map(str::trim)
+        .filter(|said| !said.is_empty());
+    let mut steps = one.map(|one| crate::stages::lines(&crate::stages::ordered(one)));
     let mut out = seed(task);
     let template = template.replace("\r\n", "\n");
     let template = template.trim();
     if !template.is_empty() {
-        out.push_str(&format!("\n{template}\n"));
+        out.push('\n');
+        for line in template.lines() {
+            out.push_str(line);
+            out.push('\n');
+            let Some(hint) = hinted(line) else {
+                continue;
+            };
+            // The task's own words go where the template asks for them, not after its last section.
+            let held = match hint.starts_with("- [ ]") {
+                true => steps.take().filter(|lines| !lines.is_empty()),
+                false => said.take().map(|said| format!("{said}\n")),
+            };
+            if let Some(held) = held {
+                out.push('\n');
+                out.push_str(&held);
+            }
+        }
     }
-    let Some(one) = state.tasks.get(&task) else {
-        return out;
-    };
-    if let Some(said) = one
-        .description
-        .as_deref()
-        .map(str::trim)
-        .filter(|said| !said.is_empty())
-    {
+    if let Some(said) = said {
         out.push_str(&format!("\n{said}\n"));
     }
-    // A step already written as a box above is paired with it once and ticked; the rest follow.
-    crate::stages::ticked(one, &out)
+    match one {
+        Some(one) => crate::stages::ticked(one, &out),
+        None => out,
+    }
+}
+
+fn hinted(line: &str) -> Option<&str> {
+    line.trim()
+        .strip_prefix("<!--")?
+        .strip_suffix("-->")
+        .map(str::trim)
 }
 
 pub struct Made {

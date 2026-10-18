@@ -156,8 +156,8 @@ const hinted = (page: Document, body: string) => {
     if (!at) continue;
     const source = body.slice(charsAt(body, at[0]), charsAt(body, at[1])).trim();
     const said = /^<!--([\s\S]*?)-->$/.exec(source);
-    if (!said) continue;
-    const alone = heading(one.previousElementSibling) && heading(one.nextElementSibling);
+    if (!said || !one.previousElementSibling?.matches("h1, h2, h3, h4, h5, h6")) continue;
+    const alone = heading(one.nextElementSibling);
     one.classList.add(alone ? "hint" : "hint-gone");
     if (!alone) continue;
     // A hint written as a box stands for the steps that go there, so pressing it begins one.
@@ -205,7 +205,8 @@ export const worn = (
 ): Worn => {
   saidKinds(page, (kind) => t(`said${kind}` as Parameters<typeof t>[0]));
   if (reach?.onBlock) titled(page);
-  if (reach && page.documentElement.classList.contains("untitled")) hinted(page, reach.body);
+  if (reach?.onBlock && page.documentElement.classList.contains("untitled"))
+    hinted(page, reach.body);
   page.documentElement.classList.toggle("ticking", !!reach?.onTick);
   iconed(page);
   staged(page);

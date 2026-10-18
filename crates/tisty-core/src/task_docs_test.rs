@@ -319,3 +319,47 @@ fn a_step_the_template_already_lists_is_not_written_twice() {
 
     assert_eq!(body.matches("Back up first").count(), 1, "{body}");
 }
+
+#[test]
+fn a_task_s_words_go_into_the_template_s_sections_not_after_them() {
+    let mut state = State::default();
+    let task = Ulid::generate();
+    applied(
+        &mut state,
+        Op::TaskAdd {
+            id: task,
+            d: TaskAdd::new("Ship 4.2", "a0"),
+        },
+    );
+    applied(
+        &mut state,
+        Op::TaskDescribe {
+            id: task,
+            d: crate::event::Body {
+                body: Some("Friday.".into()),
+            },
+        },
+    );
+    applied(
+        &mut state,
+        Op::StepAdd {
+            id: task,
+            d: crate::event::StepAdd {
+                step: Ulid::generate(),
+                text: "Back up".into(),
+                order: "a0".into(),
+            },
+        },
+    );
+    let template = "## Description\n<!-- What for. -->\n\n## Steps\n<!-- - [ ] The first step -->\n\n## Notes\n<!-- Anything. -->\n";
+
+    let body = super::opened(&state, task, template);
+
+    assert_eq!(
+        body,
+        format!(
+            "{}\n## Description\n<!-- What for. -->\n\nFriday.\n\n## Steps\n<!-- - [ ] The first step -->\n\n- [ ] Back up\n\n## Notes\n<!-- Anything. -->\n",
+            seed(task)
+        )
+    );
+}

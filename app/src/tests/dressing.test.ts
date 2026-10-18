@@ -618,3 +618,14 @@ describe("a task's steps on its page", () => {
     expect(one.querySelector(".add-step")).toBeNull();
   });
 });
+
+describe("a task page only read", () => {
+  it("offers no hints and no way to add a step", () => {
+    const body = "## Steps\n<!-- - [ ] The first step -->\n";
+    const one = page(`<h2 data-at="0-8">Steps</h2><div data-at="9-${body.length - 1}"></div>`);
+    one.documentElement.classList.add("untitled");
+    worn(one, false, () => true, { body, onDoc: () => {} });
+
+    expect(one.querySelector(".hint, .add-step")).toBeNull();
+  });
+});
