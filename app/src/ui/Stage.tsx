@@ -42,7 +42,6 @@ export default function Stage() {
     ready,
     setCameFrom,
     setChosen,
-    setDealing,
     setError,
     setGreet,
     setHere,
@@ -113,7 +112,7 @@ export default function Stage() {
       onBack={bringBack}
       fresh={carried}
     />
-  ) : chosen.named === "lists" && !chosen.list ? (
+  ) : chosen.named === "lists" && !chosen.list && !sheet ? (
     <Lists
       lists={data.every ?? data.lists}
       counts={data.counts}
@@ -152,7 +151,6 @@ export default function Stage() {
   ) : chosen.named === "spread" && !sheet ? (
     <div className="flex min-w-0 flex-col overflow-hidden">
       <Spread
-        onCarrying={setDealing}
         tasks={data.tasks}
         counts={data.counts}
         onPlace={(id, on) => act(patch(id, on ? { date: on } : { noDate: true }))}

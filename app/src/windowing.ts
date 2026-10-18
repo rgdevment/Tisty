@@ -44,8 +44,6 @@ export function useWindow() {
   const [cheered, setCheered] = useState<Task | undefined>();
   const peeks = useBeaver();
 
-  const [dealing, setDealing] = useState(false);
-
   const [reveal, setReveal] = useState<string | undefined>();
   const [returning, setReturning] = useState<string | null>(null);
   const [chosen, setChosen] = useState<Chosen>(() => ({
@@ -184,8 +182,6 @@ export function useWindow() {
     setCaptured,
     cheered,
     setCheered,
-    dealing,
-    setDealing,
     reveal,
     setReveal,
     returning,

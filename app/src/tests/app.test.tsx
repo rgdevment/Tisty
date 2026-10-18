@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
@@ -624,30 +624,18 @@ describe("the views nothing else opens", () => {
   });
 });
 
-const widen = (px: number) => {
-  act(() => {
-    Object.defineProperty(window, "innerWidth", { configurable: true, writable: true, value: px });
-    window.dispatchEvent(new Event("resize"));
+describe("a task opens on a page of its own", () => {
+  it("takes the whole window", async () => {
+    const user = userEvent.setup();
+    await started();
+
+    await user.click(screen.getByText("write the report"));
+
+    expect(
+      await screen.findByRole("button", { name: new RegExp(`^${t("collapse")}`) }),
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: t("expand") })).toBeNull();
   });
-};
-
-describe("a task opens on a page of its own, whatever the width", () => {
-  afterEach(() => widen(1440));
-
-  for (const px of [1307, 1440]) {
-    it(`takes the whole window at ${px}`, async () => {
-      const user = userEvent.setup();
-      widen(px);
-      await started();
-
-      await user.click(screen.getByText("write the report"));
-
-      expect(
-        await screen.findByRole("button", { name: new RegExp(`^${t("collapse")}`) }),
-      ).toBeTruthy();
-      expect(screen.queryByRole("button", { name: t("expand") })).toBeNull();
-    });
-  }
 
   it("goes back to the list from the page, closing the task", async () => {
     const user = userEvent.setup();

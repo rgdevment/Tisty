@@ -18,7 +18,7 @@ interface Props {
   onDiscardAll: (tasks: string[]) => void;
 }
 
-const KEPT = "tisty.tray";
+const KEPT = "tisty.asked";
 
 export default function Matrix({
   tasks,
@@ -55,8 +55,6 @@ export default function Matrix({
   };
 
   useLayoutEffect(trail, [held]);
-
-  const tray = asked;
 
   const swing = (open: boolean) => {
     localStorage.setItem(KEPT, open ? "open" : "shut");
@@ -164,7 +162,7 @@ export default function Matrix({
 
       <div
         className="grid min-h-0 flex-1 gap-3"
-        style={{ gridTemplateColumns: tray ? "minmax(0,1fr) 288px" : "minmax(0,1fr)" }}
+        style={{ gridTemplateColumns: asked ? "minmax(0,1fr) 288px" : "minmax(0,1fr)" }}
       >
         <div className="grid min-h-0 grid-cols-[26px_minmax(0,1fr)] grid-rows-[26px_minmax(0,1fr)] gap-2">
           <div className="col-start-2 grid grid-cols-2 gap-3">
@@ -227,7 +225,7 @@ export default function Matrix({
           </div>
         </div>
 
-        {tray && (
+        {asked && (
           <aside
             data-quadrant="unset"
             aria-label={t("unplaced")}
