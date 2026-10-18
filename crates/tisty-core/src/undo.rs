@@ -215,6 +215,7 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
                 },
             })
         }
+        Op::TaskPaged { .. } => None,
         Op::StepReorder { id, d } => Some(Op::StepReorder {
             id: *id,
             d: crate::event::StepReorder {

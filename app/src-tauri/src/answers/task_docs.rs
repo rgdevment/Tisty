@@ -139,7 +139,10 @@ pub fn task_doc_settled(
         return Err(Refusal::about("documentMoved", file));
     }
     let renamed = renamed.unwrap_or_default();
-    let ops = tisty_core::stages::reconciled_with(&task, before.as_deref(), &now, &renamed);
+    let mut ops = tisty_core::stages::reconciled_with(&task, before.as_deref(), &now, &renamed);
+    if let Some(before) = &before {
+        ops.extend(tisty_core::paged::paged(task.id, before, &now));
+    }
     if ops.is_empty() {
         return Ok(None);
     }

@@ -100,6 +100,15 @@ export default function Detail({
   const opened = useRef<HTMLElement>(null);
   const [shaping, setShaping] = useState(false);
   const [held, setHeld] = useState(false);
+  // A page written on changes nothing the task holds, so the trail is told to look again.
+  const [wrote, setWrote] = useState(0);
+  const settle =
+    onSettle &&
+    ((before: string, now: string, renamed?: readonly [string, string][]) =>
+      onSettle(before, now, renamed).then((problem) => {
+        setWrote((one) => one + 1);
+        return problem;
+      }));
   // The template is edited only while the task is open and its words can be written.
   useEffect(() => {
     if (task.status !== "open" || held) setShaping(false);
@@ -162,6 +171,7 @@ export default function Detail({
           task.steps?.filter((step) => step.done).length ?? task.volume?.steps_done ?? 0,
           task.description ? "described" : "",
           task.title,
+          wrote,
         ].join("|")}
         lists={lists}
         onError={onError}
@@ -213,7 +223,7 @@ export default function Detail({
 
       <TaskWords
         task={task}
-        onSettle={onSettle}
+        onSettle={settle}
         onError={onError}
         onDoc={onDoc}
         shaping={shaping}

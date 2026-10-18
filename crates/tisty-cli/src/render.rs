@@ -651,6 +651,14 @@ fn chapter(what: &tisty_core::story::Chapter, state: &State, today: Date, lang: 
         Chapter::Unticked { text } => lang.fill("trail-unticked", &[("what", text)]),
         Chapter::Reworded { to, .. } => lang.fill("trail-reworded", &[("what", to)]),
         Chapter::Unplanned { text } => lang.fill("trail-unplanned", &[("what", text)]),
+        Chapter::SectionAdded { section } => lang.fill("trail-section-added", &[("what", section)]),
+        Chapter::SectionRenamed { to, .. } => lang.fill("trail-section-renamed", &[("what", to)]),
+        Chapter::SectionRemoved { section } => {
+            lang.fill("trail-section-removed", &[("what", section)])
+        }
+        Chapter::SectionWritten { section } => {
+            lang.fill("trail-section-written", &[("what", section)])
+        }
         Chapter::Closed => style::paint(GREEN, lang.get("trail-closed")),
         Chapter::Dropped => lang.get("trail-dropped").into(),
         Chapter::Reopened => lang.get("trail-reopened").into(),

@@ -334,6 +334,8 @@ impl State {
                 self.with_task(*id, sort_steps);
             }
             Op::StepRemove { id, d } => self.with_task(*id, |t| t.steps.retain(|s| s.id != d.step)),
+            // What a page says is the page's own; the log keeps only that it moved, for its trail.
+            Op::TaskPaged { .. } => {}
 
             Op::ListAdd { id, d } => {
                 let mut list = List::new(*id, crate::text::plainly(&d.name), d.order.clone());

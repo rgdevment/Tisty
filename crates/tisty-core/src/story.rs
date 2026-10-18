@@ -3,7 +3,9 @@ use std::collections::HashMap;
 use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 
-use crate::event::{DeviceId, Event, Op};
+use crate::event::{DeviceId, Event, Op, PageChange};
+
+const WRITING_FOR: i64 = 30 * 60;
 use crate::model::{DateSpec, ListId, Priority, Reading, Repeat, StepId, Tag, TaskId};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -64,6 +66,19 @@ pub enum Chapter {
     },
     Unplanned {
         text: String,
+    },
+    SectionAdded {
+        section: String,
+    },
+    SectionRenamed {
+        from: String,
+        to: String,
+    },
+    SectionRemoved {
+        section: String,
+    },
+    SectionWritten {
+        section: String,
     },
     Closed,
     Dropped,
@@ -167,6 +182,15 @@ pub fn story(events: &[Event], id: TaskId) -> Story {
         if by_assistant && !lets(&event.op, &standing) {
             continue;
         }
+        // Writing in a section for a while is one chapter, not one per block left.
+        let again = match &event.op {
+            Op::TaskPaged { d, .. } => pages.last().is_some_and(|last| {
+                last.by == event.device
+                    && matches!(&last.chapter, Chapter::SectionWritten { section } if *section == d.section)
+                    && event.timestamp.as_second() - last.at.as_second() < WRITING_FOR
+            }),
+            _ => false,
+        };
         let mut write = |chapter: Chapter| {
             pages.push(Page {
                 n: pages.len(),
@@ -346,6 +370,19 @@ pub fn story(events: &[Event], id: TaskId) -> Story {
                 write(Chapter::Unplanned { text });
             }
 
+            Op::TaskPaged { d, .. } => {
+                let section = d.section.clone();
+                match &d.change {
+                    PageChange::Written if again => {}
+                    PageChange::Written => write(Chapter::SectionWritten { section }),
+                    PageChange::Added => write(Chapter::SectionAdded { section }),
+                    PageChange::Removed => write(Chapter::SectionRemoved { section }),
+                    PageChange::Renamed { from } => write(Chapter::SectionRenamed {
+                        from: from.clone(),
+                        to: section,
+                    }),
+                }
+            }
             Op::TaskDone { .. } => write(Chapter::Closed),
             Op::TaskDrop { .. } => write(Chapter::Dropped),
             Op::TaskReopen { .. } => write(Chapter::Reopened),

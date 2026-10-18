@@ -755,3 +755,63 @@ fn the_trail_mends_what_the_replay_mends_and_leaves_a_closed_step_alone() {
         chapters(&told)
     );
 }
+
+fn paged(seconds: i64, id: TaskId, section: &str, change: crate::event::PageChange) -> Event {
+    event(
+        seconds,
+        Op::TaskPaged {
+            id,
+            d: crate::event::Paged {
+                section: section.into(),
+                change,
+            },
+        },
+    )
+}
+
+#[test]
+fn writing_in_a_section_for_a_while_is_one_chapter_and_a_rename_is_told_as_one() {
+    use crate::event::PageChange;
+    let id = Ulid::generate();
+    let log = vec![
+        born(id, "Rina's booster"),
+        paged(60, id, "Notes", PageChange::Written),
+        paged(600, id, "Notes", PageChange::Written),
+        paged(
+            700,
+            id,
+            "Findings",
+            PageChange::Renamed {
+                from: "Notes".into(),
+            },
+        ),
+        paged(800, id, "Findings", PageChange::Written),
+        paged(4_000, id, "Findings", PageChange::Written),
+    ];
+
+    let told: Vec<Chapter> = story(&log, id)
+        .pages
+        .into_iter()
+        .map(|page| page.chapter)
+        .skip(1)
+        .collect();
+
+    assert_eq!(
+        told,
+        vec![
+            Chapter::SectionWritten {
+                section: "Notes".into()
+            },
+            Chapter::SectionRenamed {
+                from: "Notes".into(),
+                to: "Findings".into()
+            },
+            Chapter::SectionWritten {
+                section: "Findings".into()
+            },
+            Chapter::SectionWritten {
+                section: "Findings".into()
+            },
+        ]
+    );
+}
