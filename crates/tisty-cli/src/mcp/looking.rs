@@ -897,7 +897,6 @@ fn documented(
 ) -> Vec<(tisty_core::model::TaskId, String)> {
     let behind = tisty_core::task_docs::behind(state);
     seen.iter()
-        .filter(|one| !tisty_core::task_docs::bookkept(&one.line))
         .filter_map(|one| Some((*behind.get(&one.id)?, one.line.clone())))
         .collect()
 }

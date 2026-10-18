@@ -112,7 +112,15 @@ fn a_file_taken_in_before_its_making_gets_the_id_its_making_would_give() {
         super::owned(&file_at(task, 3)),
         Some((task, id_at(task, 3)))
     );
-    assert!(super::bookkept("task: 01M563T6T541A3Q2PP5YQW5XK1"));
-    assert!(super::bookkept("  Task: x"));
-    assert!(!super::bookkept("The task is done."));
+}
+
+#[test]
+fn only_the_name_a_making_writes_belongs_to_a_task() {
+    let task = Ulid::generate();
+    let lower = task.to_string().to_ascii_lowercase();
+    assert_eq!(super::owned(&format!("t_{lower}-1")), None);
+    assert_eq!(super::owned(&format!("t_{lower}-0000")), None);
+    for file in [format!("t_{lower}-0001"), format!("T_{task}-0001")] {
+        assert_eq!(super::owned(&file), Some((task, id_at(task, 1))), "{file}");
+    }
 }

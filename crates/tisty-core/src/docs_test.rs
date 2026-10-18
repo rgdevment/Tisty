@@ -3108,3 +3108,18 @@ fn a_document_taken_out_names_its_files_where_they_land_beside_it() {
         "# Minuta\n\n![una foto](attachments/foto-91f2ab00.png) y <mark data-pen=\"green\">ojo</mark>"
     );
 }
+
+#[test]
+fn a_task_document_is_found_by_its_words_and_never_by_the_line_naming_its_task() {
+    let terms = |said: &str| vec![crate::text::folded(said)];
+    let body = "---\ntask: \"01M563T6T541A3Q2PP5YQW5XK1\"\n---\nRemember the task deadline\nTask: 01ARZ3NDEKTSV4RRFFQ69G5FAV\n";
+    assert_eq!(
+        super::shown_around(body, &terms("task")).as_deref(),
+        Some("Remember the task deadline")
+    );
+    assert_eq!(
+        super::shown_around(body, &terms("01arz3ndek")).as_deref(),
+        Some("Task: 01ARZ3NDEKTSV4RRFFQ69G5FAV")
+    );
+    assert_eq!(super::shown_around(body, &terms("01m563t6t5")), None);
+}

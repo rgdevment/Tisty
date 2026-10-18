@@ -34,17 +34,19 @@ pub fn task_of_file(file: &str) -> Option<TaskId> {
 
 /// The task and the id its own making would give a file, so taking it in early makes no twin.
 pub fn owned(file: &str) -> Option<(TaskId, DocId)> {
-    let (head, number) = file.strip_prefix(PREFIX)?.rsplit_once('-')?;
-    let turn = number.parse::<u32>().ok()?;
+    let (head, number) = file.get(PREFIX.len()..)?.rsplit_once('-')?;
+    let turn = number.parse::<u32>().ok().filter(|turn| *turn > 0)?;
     let task = Ulid::from_string(&head.to_ascii_uppercase()).ok()?;
-    Some((task, id_at(task, turn)))
+    // A disk or a sync that keeps names without their case may hand the name back in either.
+    file_at(task, turn)
+        .eq_ignore_ascii_case(file)
+        .then(|| (task, id_at(task, turn)))
 }
 
-/// The line naming the task is the file's own bookkeeping, never what a search was looking for.
-pub fn bookkept(line: &str) -> bool {
-    line.trim_start()
-        .get(..KEY.len() + 1)
-        .is_some_and(|head| head.eq_ignore_ascii_case(&format!("{KEY}:")))
+/// The front matter's line naming the task is bookkeeping, never what a search was looking for.
+pub(crate) fn bookkept(line: &str) -> bool {
+    line.split_once(':')
+        .is_some_and(|(key, _)| key.trim().eq_ignore_ascii_case(KEY))
 }
 
 pub fn seed(task: TaskId) -> String {
