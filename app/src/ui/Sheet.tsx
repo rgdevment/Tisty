@@ -16,6 +16,7 @@ import Menu, { type Choice } from "./Menu";
 import { mended as mendedText } from "./mending";
 import Page from "./Page";
 import { charsAt, type Head, spanned, type Went } from "./paging";
+import type { PartCarded } from "./partcarding";
 import { closed, laid, parting } from "./parting";
 import type { Formatting, Menued } from "./quickly";
 import { filedAs, type Reshape, reshaped } from "./recarding";
@@ -44,6 +45,8 @@ type Props = {
   readonly onOpen?: (reference: string) => void;
   readonly onOutline?: (heads: Head[]) => void;
   readonly card?: (file: string) => Carded;
+  readonly part?: (id: string) => PartCarded;
+  readonly onTask?: (id: string) => void;
   readonly blurb?: (file: string) => Promise<string>;
   readonly again?: string;
   readonly onInsert?: (put: ((file: string, title: string) => boolean) | null) => void;
@@ -605,6 +608,8 @@ export default function Sheet(props: Readonly<Props>) {
           onMore={reading || fixed ? undefined : asked}
           onAway={left}
           card={props.card}
+          part={props.part}
+          onTask={(id) => said.current.onTask?.(id)}
           blurb={props.blurb}
           again={props.again}
           onApart={(lent) => {

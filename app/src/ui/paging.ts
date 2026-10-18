@@ -1,5 +1,5 @@
 import { common, createLowlight } from "lowlight";
-import { DOC } from "../markdown";
+import { DOC, TASK } from "../markdown";
 import bar from "./bar.css?raw";
 import sheet from "./page.css?raw";
 import task from "./taskpage.css?raw";
@@ -67,6 +67,7 @@ export const charsAt = (body: string, bytes: number): number =>
 
 export type Went =
   | { kind: "doc"; id: string }
+  | { kind: "task"; id: string }
   | { kind: "web"; href: string }
   | { kind: "here"; id: string }
   | { kind: "attachment"; reference: string }
@@ -100,9 +101,13 @@ export const spanned = (said: string | null): [number, number] | null => {
 const linked = (link: HTMLAnchorElement): Went => {
   const doc = link.dataset.doc;
   if (doc) return { kind: "doc", id: doc };
+  const task = link.dataset.task;
+  if (task) return { kind: "task", id: task };
   const href = (link.getAttribute("href") ?? "").trim();
   if (href.startsWith(DOC) && href.length > DOC.length)
     return { kind: "doc", id: href.slice(DOC.length) };
+  if (href.startsWith(TASK) && href.length > TASK.length)
+    return { kind: "task", id: href.slice(TASK.length) };
   if (/^(https?:\/\/|mailto:)\S+$/i.test(href)) return { kind: "web", href };
   if (href.startsWith("#")) return href.length > 1 ? { kind: "here", id: href.slice(1) } : null;
   if (href && !/^[a-z][a-z0-9+.-]*:/i.test(href)) return { kind: "attachment", reference: href };
@@ -135,6 +140,8 @@ export const went = (target: Element, selecting: boolean): Went => {
   if (link) return linked(link);
   const card = target.closest<HTMLElement>(".doc-card[data-doc]")?.dataset.doc;
   if (card) return { kind: "doc", id: card };
+  const part = target.closest<HTMLElement>(".doc-card[data-task]")?.dataset.task;
+  if (part) return { kind: "task", id: part };
   const ref = target.closest<HTMLElement>(".ref");
   if (ref?.dataset.stage) return { kind: "here", id: ref.dataset.stage };
   if (ref?.dataset.ref) return null;

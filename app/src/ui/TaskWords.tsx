@@ -1,18 +1,22 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useAsked } from "../asked";
 import {
   docWrite,
   type Filed,
+  partsOf,
   stepDates,
   type Task,
   type TaskDoc,
   taskDocMake,
   taskDocOpen,
+  type Whole,
 } from "../core";
 import { WROTE } from "../detailing";
-import { stamped } from "../format";
+import { stamped, whenLabel } from "../format";
 import { fill } from "../locales";
 import { holds, queued } from "../saving";
 import { useKeptHeight } from "./heights";
+import type { PartCarded } from "./partcarding";
 import Skeleton from "./Skeleton";
 import type { Asking } from "./slashing";
 import { useTaskAsks } from "./taskAsking";
@@ -33,7 +37,27 @@ interface Props {
   shaping?: boolean;
   onHeld?: (held: boolean) => void;
   papers?: readonly Filed[];
+  whole?: Whole;
+  onTask?: (id: string) => void;
 }
+
+const cardOf = (parts: readonly Task[]) => {
+  const known = new Map(parts.map((one) => [one.id, one]));
+  return (id: string): PartCarded => {
+    const one = known.get(id);
+    if (!one) return { kind: "loose" };
+    if (one.status !== "open")
+      return { kind: "closed", title: one.title, dropped: one.status === "dropped" };
+    const day = one.date ?? one.deadline;
+    return {
+      kind: "open",
+      title: one.title,
+      done: one.volume?.steps_done ?? 0,
+      steps: one.volume?.steps ?? 0,
+      when: day ? whenLabel(day) : undefined,
+    };
+  };
+};
 
 // A command the window does not know answers with whatever it holds, so only a real document counts.
 const real = (said: unknown): TaskDoc | null => {
@@ -49,6 +73,8 @@ export default function TaskWords({
   shaping,
   onHeld,
   papers,
+  whole,
+  onTask,
 }: Props) {
   const [doc, setDoc] = useState<TaskDoc | null>(null);
   const [seen, setSeen] = useState(0);
@@ -61,6 +87,11 @@ export default function TaskWords({
   const kept = useKeptHeight<HTMLDivElement>(`task:${task.id}`);
   const { asking, picker } = useTaskAsks(open ? papers : undefined, onError);
   const [dates, setDates] = useState<Record<string, string>>({});
+  const parts =
+    useAsked(() => partsOf(task.id), [task.id, whole?.open, whole?.closed], onError) ?? [];
+  const partsSaid = parts
+    .map((one) => `${one.id}:${one.status}:${one.title}:${one.volume?.steps_done ?? 0}`)
+    .join("|");
   const steps = (task.steps ?? []).map((one) => `${one.text}:${one.done}`).join("|");
   useEffect(() => {
     let live = true;
@@ -126,6 +157,9 @@ export default function TaskWords({
         room={kept.height}
         asking={doc.held ? undefined : asking}
         dates={dates}
+        part={cardOf(parts)}
+        partsSaid={partsSaid}
+        onTask={onTask}
       />
       {picker}
     </div>
@@ -145,6 +179,9 @@ function Written({
   room,
   asking,
   dates,
+  part,
+  partsSaid,
+  onTask,
 }: {
   id: string;
   doc: TaskDoc;
@@ -162,6 +199,9 @@ function Written({
   room?: number;
   asking?: Asking;
   dates?: Readonly<Record<string, string>>;
+  part: (id: string) => PartCarded;
+  partsSaid: string;
+  onTask?: (id: string) => void;
 }) {
   const [text, setText] = useState(doc.body);
   const waiting = useRef<string | null>(null);
@@ -273,6 +313,9 @@ function Written({
         onDoc={onDoc}
         asking={asking}
         stepDates={dates}
+        part={part}
+        again={partsSaid}
+        onTask={onTask}
       />
     </Suspense>
   );

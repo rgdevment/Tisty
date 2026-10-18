@@ -320,6 +320,7 @@ Los [paseos de octubre](tisty:doc/01JC4M9F2W7DQ1E3S8RB6PKMHT) fueron mejor.
 - Lo mismo dentro de una frase es una palabra en la que puedes hacer clic.
 - En una página, solo la tarjeta le da su lugar en el libro; un enlace en una frase la señala sin colocarla. Mira Páginas y PDF.
 - Un `[`, `]` o `\` en un título se escribe con una barra invertida delante.
+- Una tarea se nombra igual, por su identificador después de `tisty:task/`. En la página de una tarea, una parte escrita como tarjeta muestra sus pasos hechos y su fecha, y abre la parte. Otros lectores reciben solo sus palabras.
 
 ## Adjuntos
 

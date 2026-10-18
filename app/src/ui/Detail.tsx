@@ -230,6 +230,8 @@ export default function Detail({
         shaping={shaping}
         onHeld={setHeld}
         papers={papers}
+        whole={whole}
+        onTask={onOpenPart}
       />
       <History task={task} onError={onError} onDoc={onDoc} />
     </>
@@ -240,7 +242,7 @@ export default function Detail({
       <h1 className="text-[21px] leading-snug font-semibold">{task.title}</h1>
       <Stamps task={task} lists={lists} />
 
-      <TaskWords task={task} onError={onError} onDoc={onDoc} />
+      <TaskWords task={task} onError={onError} onDoc={onDoc} whole={whole} onTask={onOpenPart} />
 
       <History task={task} onError={onError} onDoc={onDoc} />
 

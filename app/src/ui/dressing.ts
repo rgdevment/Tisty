@@ -8,6 +8,7 @@ import { plainly } from "../refusal";
 import { type Attaching, attachedAs, lents, pressed } from "./attached";
 import { type Carding, carded } from "./carding";
 import { charsAt, colored, HUES, saidKinds, spanned, type Went, went, widgetsIn } from "./paging";
+import { type PartCarded, partCarded } from "./partcarding";
 import { type Formatting, type Menued, quickly } from "./quickly";
 import { staged } from "./staging";
 import { webCarded } from "./webcarding";
@@ -17,6 +18,8 @@ import { type Lending, lend, locked } from "./widgeting";
 export type Reaching = Carding & {
   readonly body: string;
   readonly onDoc: (file: string) => void;
+  readonly onTask?: (id: string) => void;
+  readonly part?: (id: string) => PartCarded;
   readonly onOpen?: (reference: string) => void;
   readonly onTag?: (name: string) => void;
   readonly onBlock?: (
@@ -258,6 +261,7 @@ export const worn = (
   const lent = widgets(page, stranger, reach).concat(shown.lent);
   if (reach && !stranger) {
     carded(page, reach, live);
+    partCarded(page, reach.part);
     webCarded(page, live);
   }
   colored(page, live);
@@ -267,6 +271,7 @@ export const worn = (
 export const answered = (page: Document, asked: Went, reach: Reaching, read = "") => {
   if (!asked) return;
   if (asked.kind === "doc") reach.onDoc(asked.id);
+  if (asked.kind === "task") reach.onTask?.(asked.id);
   if (asked.kind === "web") openLink(asked.href).catch(() => {});
   if (asked.kind === "here") {
     const at = page.getElementById(asked.id);
