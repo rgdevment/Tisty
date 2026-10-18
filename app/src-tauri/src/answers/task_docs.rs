@@ -201,6 +201,7 @@ pub fn task_page_import(
         },
     );
     let mut session = held(&session);
+    session.reload()?;
     let file = tisty_core::task_front::read(&body, &tz)
         .task
         .and_then(|id| file_of(&session, id).map(|file| (id, file)));

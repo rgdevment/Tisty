@@ -515,7 +515,7 @@ function Settled({
                 const box = e.currentTarget.getBoundingClientRect();
                 setMore(more ? null : { x: box.right - 8, y: box.top - 4 });
               }}
-              className={`${open ? "" : "ml-auto "}flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-faint hover:bg-hover hover:text-ink`}
+              className={`${open && onShape ? "" : "ml-auto "}flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-faint hover:bg-hover hover:text-ink`}
             >
               <span aria-hidden="true">⋯</span>
             </button>
