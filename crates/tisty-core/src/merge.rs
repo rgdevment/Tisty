@@ -312,30 +312,31 @@ fn parted(body: &str) -> (&str, &str) {
 
 // The properties are one piece, taken whole from the side that changed them and never woven.
 fn front_of<'a>(base: &str, mine: &'a str, theirs: &'a str) -> Option<&'a str> {
-    let (base, mine, theirs) = (parted(base).0, parted(mine).0, parted(theirs).0);
-    match (mine == theirs, mine == base, theirs == base) {
+    let (said, ours, other) = (parted(base).0, parted(mine).0, parted(theirs).0);
+    match (ours == other, ours == said, other == said) {
         (true, _, _) | (false, false, true) => Some(mine),
         (false, true, false) => Some(theirs),
         _ => None,
     }
 }
 
-fn joined(front: &str, mine: &str, body: String) -> String {
+// The gap under the properties is the one the side they came from left, or they would touch the words.
+fn joined(side: &str, body: String) -> String {
+    let (front, after) = parted(side);
     if front.is_empty() {
         return body;
     }
-    let after = parted(mine).1;
     let gap = &after[..after.len() - after.trim_start_matches(['\n', '\r']).len()];
     format!("{front}{gap}{body}")
 }
 
 pub fn merged(base: &str, mine: &str, theirs: &str) -> Option<String> {
-    let front = front_of(base, mine, theirs)?;
+    let side = front_of(base, mine, theirs)?;
     let steps = plan(parted(base).1, parted(mine).1, parted(theirs).1)?;
     if steps.iter().any(|one| matches!(one, Step::Torn(_))) {
         return None;
     }
-    let whole = joined(front, mine, woven(&steps, &[])?);
+    let whole = joined(side, woven(&steps, &[])?);
     sound(&whole, mine, theirs).then_some(whole)
 }
 
@@ -356,7 +357,7 @@ pub fn rifts(base: &str, mine: &str, theirs: &str) -> Vec<Rift> {
 }
 
 pub fn woven_with(base: &str, mine: &str, theirs: &str, picks: &[Pick]) -> Option<String> {
-    let front = front_of(base, mine, theirs)?;
+    let side = front_of(base, mine, theirs)?;
     let steps = plan(parted(base).1, parted(mine).1, parted(theirs).1)?;
     let torn = steps
         .iter()
@@ -365,7 +366,7 @@ pub fn woven_with(base: &str, mine: &str, theirs: &str, picks: &[Pick]) -> Optio
     if picks.len() != torn {
         return None;
     }
-    let whole = joined(front, mine, woven(&steps, picks)?);
+    let whole = joined(side, woven(&steps, picks)?);
     sound(&whole, mine, theirs).then_some(whole)
 }
 
