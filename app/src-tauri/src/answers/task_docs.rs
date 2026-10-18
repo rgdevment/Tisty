@@ -122,6 +122,7 @@ pub fn task_doc_settled(
     id: String,
     before: Option<String>,
     now: String,
+    renamed: Option<Vec<(String, String)>>,
 ) -> Answer<Option<Task>> {
     let id = task_id(&id)?;
     let mut session = held(&session);
@@ -137,7 +138,8 @@ pub fn task_doc_settled(
     if session.moved(&file) {
         return Err(Refusal::about("documentMoved", file));
     }
-    let ops = tisty_core::stages::reconciled(&task, before.as_deref(), &now);
+    let renamed = renamed.unwrap_or_default();
+    let ops = tisty_core::stages::reconciled_with(&task, before.as_deref(), &now, &renamed);
     if ops.is_empty() {
         return Ok(None);
     }

@@ -36,7 +36,7 @@ type Props = {
   readonly below?: ReactNode;
   readonly onSeen?: (at: number) => void;
   readonly onWrite: (text: string) => void;
-  readonly onSettle?: (before: string, now: string) => void;
+  readonly onSettle?: (before: string, now: string, renamed?: readonly [string, string][]) => void;
   readonly onOwn?: (file: string) => void;
   readonly onFail?: (problem: unknown) => void;
   readonly onDoc?: (file: string) => void;
@@ -82,9 +82,12 @@ export default function Sheet(props: Readonly<Props>) {
     said.current.onWrite(text);
   }, []);
 
-  const settled = useCallback((before: string, now: string) => {
-    if (before !== now) said.current.onSettle?.(before, now);
-  }, []);
+  const settled = useCallback(
+    (before: string, now: string, renamed?: readonly [string, string][]) => {
+      if (before !== now) said.current.onSettle?.(before, now, renamed);
+    },
+    [],
+  );
 
   const whole = useCallback(
     (next: string) => {
@@ -215,7 +218,7 @@ export default function Sheet(props: Readonly<Props>) {
       element,
       piece || seed,
       (text) => written(spliced(text)),
-      () => {
+      (_, renamed) => {
         open.current = null;
         // Only a block left by the person closes its gap: text from outside or another file is not its own.
         const ours = home === onFile.current && latest.current === mine;
@@ -223,7 +226,7 @@ export default function Sheet(props: Readonly<Props>) {
           written(closed(latest.current, from, end));
         }
         setDrawn(latest.current);
-        if (ours) settled(before, latest.current);
+        if (ours) settled(before, latest.current, renamed);
       },
       () => {
         const asking = said.current.asking;

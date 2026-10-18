@@ -68,8 +68,8 @@ export const detailOf = (one: Task, h: Hands) => ({
     h.act(complete(id).then(() => taskOf(one.id)));
   },
   onHang: (whole: string | null) => h.act(hang(one.id, whole)),
-  onSettle: (before: string, now: string) =>
-    queued(`settle:${one.id}`, () => taskDocSettled(one.id, before, now)).then(
+  onSettle: (before: string, now: string, renamed?: readonly [string, string][]) =>
+    queued(`settle:${one.id}`, () => taskDocSettled(one.id, before, now, renamed)).then(
       (changed) => {
         if (changed) h.act(Promise.resolve(changed));
         return null;

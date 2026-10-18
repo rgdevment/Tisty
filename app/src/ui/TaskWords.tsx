@@ -12,7 +12,11 @@ const SETTLES = 700;
 
 interface Props {
   task: Task;
-  onSettle?: (before: string, now: string) => Promise<string | null>;
+  onSettle?: (
+    before: string,
+    now: string,
+    renamed?: readonly [string, string][],
+  ) => Promise<string | null>;
   onError?: (problem: unknown) => void;
   onDoc?: (id: string) => void;
   shaping?: boolean;
@@ -111,7 +115,11 @@ function Written({
   doc: TaskDoc;
   make?: (body: string) => Promise<string>;
   label: string;
-  onSettle?: (before: string, now: string) => Promise<string | null>;
+  onSettle?: (
+    before: string,
+    now: string,
+    renamed?: readonly [string, string][],
+  ) => Promise<string | null>;
   onError?: (problem: unknown) => void;
   onDoc?: (id: string) => void;
   onMoved: () => void;
@@ -158,12 +166,12 @@ function Written({
   }, []);
 
   // Settles wait their turn, so two of them never weigh the same old text and add a step twice.
-  const settled = (before: string, now: string) => {
+  const settled = (before: string, now: string, renamed?: readonly [string, string][]) => {
     if (!onSettle) return;
     line.current = line.current.then(async () => {
       const from = unsettled.current ?? before;
       const problem = await ensure(now)
-        .then(() => onSettle(from, now))
+        .then(() => onSettle(from, now, renamed))
         .catch((e: unknown) => {
           if ((e as { code?: string } | null)?.code === "documentMoved") return "documentMoved";
           failed.current?.(e);

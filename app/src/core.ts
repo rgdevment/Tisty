@@ -336,8 +336,12 @@ export type TaskDoc = { readonly file: string; readonly body: string; readonly h
 export const taskDocOpen = (id: string): Promise<TaskDoc | null> => invoke("task_doc_open", { id });
 export const taskDocMake = (id: string, body?: string): Promise<string> =>
   invoke("task_doc_make", { id, body });
-export const taskDocSettled = (id: string, before: string, now: string): Promise<Task | null> =>
-  invoke("task_doc_settled", { id, before, now });
+export const taskDocSettled = (
+  id: string,
+  before: string,
+  now: string,
+  renamed: readonly [string, string][] = [],
+): Promise<Task | null> => invoke("task_doc_settled", { id, before, now, renamed });
 export const partsOf = (id: string): Promise<Task[]> => invoke("parts_of", { id });
 export const taskPageImport = (from: string): Promise<string | null> =>
   invoke("task_page_import", { from });

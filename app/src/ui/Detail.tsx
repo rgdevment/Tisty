@@ -53,7 +53,11 @@ interface Props {
   onOpenPart?: (id: string) => void;
   onCompletePart?: (id: string, title: string) => void;
   onHang?: (whole: string | null) => void;
-  onSettle?: (before: string, now: string) => Promise<string | null>;
+  onSettle?: (
+    before: string,
+    now: string,
+    renamed?: readonly [string, string][],
+  ) => Promise<string | null>;
 }
 
 // Keys from the page reach the window from the window itself, so what holds them is found through its frames.

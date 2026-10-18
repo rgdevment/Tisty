@@ -2,7 +2,15 @@ import { closeCompletion, completionStatus } from "@codemirror/autocomplete";
 import { defaultKeymap, history, historyKeymap, indentWithTab, redo } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
-import { EditorState, Prec, type Text } from "@codemirror/state";
+import {
+  EditorState,
+  Prec,
+  type RangeSet,
+  RangeSetBuilder,
+  RangeValue,
+  StateField,
+  type Text,
+} from "@codemirror/state";
 import {
   Decoration,
   type DecorationSet,
@@ -87,6 +95,47 @@ const pasting = (event: ClipboardEvent, view: EditorView, asking?: () => Asking 
     return true;
   }
   return rich(event, { view, lost: asking?.()?.lost });
+};
+
+const BOX = /^[\s>]*(?:[-*+]|\d+[.)])\s+\[[ xX]\]\s+(.*)$/;
+
+class Boxed extends RangeValue {
+  constructor(readonly said: string) {
+    super();
+  }
+  eq(other: RangeValue): boolean {
+    return other instanceof Boxed && other.said === this.said;
+  }
+}
+
+const boxesIn = (doc: Text): RangeSet<Boxed> => {
+  const found = new RangeSetBuilder<Boxed>();
+  for (let at = 1; at <= doc.lines; at++) {
+    const line = doc.line(at);
+    const box = BOX.exec(line.text);
+    if (box) found.add(line.from, line.from, new Boxed(box[1].trim()));
+  }
+  return found.finish();
+};
+
+// Each box keeps what it said when the block opened, following its line through every edit.
+const boxed = StateField.define<RangeSet<Boxed>>({
+  create: (state) => boxesIn(state.doc),
+  update: (set, tr) => set.map(tr.changes),
+});
+
+/** The boxes written over in this block, as they read before and after: a step's own line. */
+export const renamedIn = (state: EditorState): [string, string][] => {
+  const out: [string, string][] = [];
+  const seen = new Set<number>();
+  for (let at = state.field(boxed).iter(); at.value; at.next()) {
+    const line = state.doc.lineAt(at.from);
+    const now = BOX.exec(line.text)?.[1].trim();
+    if (seen.has(line.number) || !now || now === at.value.said) continue;
+    seen.add(line.number);
+    out.push([at.value.said, now]);
+  }
+  return out;
 };
 
 export type Editing = {
@@ -192,7 +241,7 @@ export const edited = (
   block: HTMLElement,
   said: string,
   onChange: (text: string) => void,
-  onLeave: (text: string) => void,
+  onLeave: (text: string, renamed: [string, string][]) => void,
   asking?: () => Asking | undefined,
   oneLine = false,
 ): Editing => {
@@ -218,10 +267,11 @@ export const edited = (
     if (oneLine) held(view, said);
     settle(view);
     const text = view.state.sliceDoc();
+    const renamed = renamedIn(view.state);
     view.destroy();
     undock();
     host.replaceWith(block);
-    onLeave(text);
+    onLeave(text, renamed);
   };
   const view = new EditorView({
     parent: host,
@@ -271,6 +321,7 @@ export const edited = (
         EditorView.domEventHandlers({ paste: (event, view) => pasting(event, view, asking) }),
         dressing,
         EditorView.lineWrapping,
+        boxed,
         oneLine ? labelled : [],
         EditorView.updateListener.of((update) => {
           if (update.docChanged) onChange(update.state.sliceDoc());
