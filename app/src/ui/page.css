@@ -1076,13 +1076,14 @@ kbd {
 .cm-bar {
   position: absolute;
   z-index: 5;
-  bottom: calc(100% + 8px);
-  left: -6px;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 2px;
-  padding: 4px;
-  border-radius: 10px;
+  max-width: calc(100vw - 16px);
+  box-sizing: border-box;
+  padding: 3px;
+  border-radius: 9px;
   border: 1px solid var(--tisty-hair);
   background: var(--tisty-rail);
   box-shadow: 0 10px 28px var(--tisty-cast);
@@ -1095,11 +1096,11 @@ kbd {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-width: 30px;
-  height: 30px;
+  min-width: 26px;
+  height: 26px;
   padding: 0 6px;
   border: 0;
-  border-radius: 7px;
+  border-radius: 6px;
   background: transparent;
   color: var(--tisty-ink);
   font: inherit;
@@ -1228,9 +1229,9 @@ kbd {
   display: flex;
   flex-wrap: wrap;
   gap: 4px 14px;
-  margin-top: 10px;
-  padding-top: 8px;
-  border-top: 1px dashed var(--tisty-hair);
+  margin-top: 28px;
+  padding-top: 10px;
+  border-top: 1px solid var(--tisty-hair);
   font-size: 12px;
   line-height: 1.4;
   color: var(--tisty-faint);
@@ -1248,10 +1249,6 @@ kbd {
 }
 .cm-hint-kept.on {
   color: var(--tisty-hue-green);
-}
-.editing.titled .cm-bar {
-  bottom: auto;
-  top: calc(100% + 8px);
 }
 .mend-said {
   display: flex;
@@ -1298,9 +1295,6 @@ kbd {
 }
 .cm-bar.quick-bar[hidden] {
   display: none;
-}
-.editing.titled > .cm-hint {
-  margin-bottom: 52px;
 }
 .cm-content img.cm-widgetBuffer {
   display: inline;

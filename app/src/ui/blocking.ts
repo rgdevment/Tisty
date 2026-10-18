@@ -16,6 +16,7 @@ import { tags } from "@lezer/highlight";
 import { docFromHtml, docFromText } from "../core";
 import { known } from "../glyphs";
 import { barred, blockKeys, flipped } from "./barring";
+import { docked } from "./docking";
 import { coded, owning } from "./formatting";
 import { HUES } from "./paging";
 import { pendingFormat, pendingKeys, settle } from "./pending";
@@ -184,14 +185,14 @@ export const edited = (
   block.replaceWith(host);
   let gone = false;
   let follow = (_: EditorView) => {};
-  let hint: HTMLElement = page.createElement("div");
+  let undock = () => {};
   const leave = () => {
     if (gone) return;
     gone = true;
     settle(view);
     const text = view.state.sliceDoc();
     view.destroy();
-    hint.remove();
+    undock();
     host.replaceWith(block);
     onLeave(text);
   };
@@ -244,9 +245,7 @@ export const edited = (
   });
   const bar = barred(view);
   follow = bar.follow;
-  host.prepend(bar.bar);
-  hint = bar.hint;
-  host.append(hint);
+  undock = docked(bar.bar, bar.hint);
   view.focus();
   return { view, leave, kept: bar.kept };
 };

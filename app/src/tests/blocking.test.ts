@@ -182,6 +182,24 @@ describe("writing a block in place", () => {
     page.remove();
   });
 
+  it("keeps the bar over the page and the keys once at its end, never inside the block, and takes both away", () => {
+    const { page, one } = block();
+    const editing = edited(
+      one,
+      "Leche y pan.",
+      () => {},
+      () => {},
+    );
+    const bar = document.querySelector<HTMLElement>(".cm-bar.cm-dock");
+    expect(bar?.parentElement).toBe(document.body);
+    expect(page.lastElementChild?.matches(".cm-hint.cm-dock")).toBe(true);
+    expect(page.querySelector(".editing .cm-bar, .editing .cm-hint")).toBeNull();
+    expect(bar?.style.top).not.toBe("");
+    editing.leave();
+    expect(document.querySelector(".cm-dock")).toBeNull();
+    page.remove();
+  });
+
   it("shows pens, underlines and icons as they will read, marks hidden, but never inside code or for unknown names", () => {
     const { page, one } = block();
     const editing = edited(
