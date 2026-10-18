@@ -73,9 +73,11 @@ pub fn behind(state: &State) -> std::collections::BTreeMap<String, TaskId> {
 
 // A name a deleted document held is swept from disk, and its id stays erased: both are skipped.
 fn turn(state: &State, task: TaskId) -> u32 {
-    (1..)
-        .find(|at| !state.shed.contains(&file_at(task, *at)) && !state.is_erased(id_at(task, *at)))
-        .unwrap_or(1)
+    let mut at = 1;
+    while state.shed.contains(&file_at(task, at)) || state.is_erased(id_at(task, at)) {
+        at += 1;
+    }
+    at
 }
 
 pub fn made(root: &Path, state: &State, task: TaskId, by: Option<String>) -> crate::Result<Op> {

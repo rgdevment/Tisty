@@ -158,7 +158,7 @@ fn search(
         .filter_map(|one| session.state.tasks.get(behind.get(&one.id)?))
         .filter(|task| match scope {
             Scope::Open => task.is_open(),
-            Scope::Archived => !task.is_open(),
+            Scope::Archived => task.is_archived(),
             Scope::Either => true,
         })
     {
