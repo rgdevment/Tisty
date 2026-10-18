@@ -15,7 +15,7 @@ export default function History({ task, onError, onDoc }: Props) {
   if (kept.length === 0) return null;
   return (
     <details className="mt-6 border-t border-hair pt-3">
-      <summary className="cursor-pointer text-[11px] font-semibold tracking-[0.06em] text-faint uppercase select-none hover:text-soft">
+      <summary className="cursor-pointer text-[10.5px] font-semibold tracking-[0.06em] text-faint uppercase select-none hover:text-soft">
         {t("history")} · {kept.length}
       </summary>
       <ul className="mt-3 flex flex-col gap-3">
