@@ -122,8 +122,36 @@ disk. To bring a whole export across, walk it yourself and import one file per c
 happened to each is something the person can see. `archive_doc` puts a document away when it is \
 finished or was written by mistake, and brings it back; nothing here deletes.
 
-A document is for what is worth keeping and is not work to do — a summary, a note, something \
-to consult. Writing one creates no task: if something has to happen, propose it. `docs` lists \
+A task and a document both hold words, and they are not the same thing. Tell them apart \
+before you write either.
+
+A task has an end. It is something to be done — a day, perhaps, steps, a journal of what was \
+tried — and when it is done the person closes it and it goes to the archive. Closing it loses \
+nothing: the archive keeps it whole, `find` reaches it with `scope` set to `archive` or \
+`either`, and «how did I solve that last time?» is answered there, by what its description, \
+steps and journal say. What you learn while working a task belongs to it: `note` it as you go.
+
+A document lasts. It is something to be consulted again and again — a recipe, a procedure, a \
+reference, the notes on a client or a machine, a manual, minutes kept over a year — written \
+once and then corrected, added to and grown for years. It is rarely finished: archiving one is \
+the exception, for a document that has had its day. Adding to the document that already covers \
+a subject beats writing a second one.
+
+So: something that will be done is a task — `propose` it. Something that will be looked up \
+again is a document — `write_doc`, or `append_doc` to the one that covers it. A recipe is not a \
+task with steps, and a to-do is not a document. When doing a task teaches something that will \
+be needed again beyond it — the fix for a recurring fault, how a supplier wants an order \
+written — keep that in a document as well, and say in the task's `note` where it went. When \
+you cannot tell which the person means, ask them whether it is something to do or something \
+to keep.
+
+A task can also hold a document of its own: its words — notes, pictures, tables — kept with \
+the task rather than among the documents. `docs` never lists one; `find` hands back its task \
+when the words are found there, with `in` set to `document`. Read it with `read_doc` if you \
+need it, but never write it with the document tools — they refuse, because those words are the \
+task's, behind the task's own door.
+
+Writing a document creates no task: if something has to happen, propose it. `docs` lists \
 what is written already and the folders it is kept in; you can make a folder and file documents \
 into it, but you can never delete or rename one.
 
@@ -260,7 +288,7 @@ pub(super) fn tools() -> Value {
         {
             "name": "propose",
             "title": "Propose a task",
-            "description": "Propose a task, giving it a `title`. Reading a thread that holds several, send them \
+            "description": "Propose a task: something to be done, which ends and is then kept in the archive. What is to be consulted again and again is a document instead (`write_doc`). Give it a `title`. Reading a thread that holds several, send them \
                             together in `tasks` rather than one call each: each one is judged on \
                             its own and told apart in the answer, so a bad one does not take the \
                             good ones with it. Size the work first: a step is one line of a \
@@ -492,7 +520,7 @@ pub(super) fn tools() -> Value {
         {
             "name": "write_doc",
             "title": "Write a document",
-            "description": "Write something down that is not work to do: a note, a summary, something to keep. In the Tisty language (`language` has it whole); Markdown from elsewhere is turned into it on the way in and the answer says what changed under `turned`, and only what has no way in is refused, naming it. Documents do not create tasks. Left alone it writes a new document; with `doc` and `print` it writes an existing one again, whole — save for the pages your body does not name, whose lines are put back at the end rather than left pointing at nothing. That is for reshaping a document, not for changing a passage: `edit_doc` does that without carrying the whole of it both ways. A document takes no tag of its own: it is tagged by writing #word in the text itself, for the subjects the writing is about — six is already a lot, and past 64 the rest are dropped without a word; `tags` says which are already in use.",
+            "description": "Write something down to keep and consult again: a recipe, a procedure, a reference, a summary — what lasts and grows rather than ends. Work to be done is a task instead (`propose`). In the Tisty language (`language` has it whole); Markdown from elsewhere is turned into it on the way in and the answer says what changed under `turned`, and only what has no way in is refused, naming it. Documents do not create tasks. Left alone it writes a new document; with `doc` and `print` it writes an existing one again, whole — save for the pages your body does not name, whose lines are put back at the end rather than left pointing at nothing. That is for reshaping a document, not for changing a passage: `edit_doc` does that without carrying the whole of it both ways. A document takes no tag of its own: it is tagged by writing #word in the text itself, for the subjects the writing is about — six is already a lot, and past 64 the rest are dropped without a word; `tags` says which are already in use.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "body": {
@@ -593,7 +621,7 @@ pub(super) fn tools() -> Value {
         {
             "name": "docs",
             "title": "The documents and the folders",
-            "description": "Everything written down here, the one written most recently first, with the folder each one sits in, whether it was put away, whether it is locked, and for each one what it is about: how many words it holds, how many sections, and the words it leans on. That is enough to pick which document to open without opening any of them; the `print` of the one you go on to edit comes back from `read_doc` or `outline_doc`. Ask for it before writing, so you do not write again what is already kept.",
+            "description": "Everything written down to consult — not the words a task keeps with it, which come with the task — the one written most recently first, with the folder each one sits in, whether it was put away, whether it is locked, and for each one what it is about: how many words it holds, how many sections, and the words it leans on. That is enough to pick which document to open without opening any of them; the `print` of the one you go on to edit comes back from `read_doc` or `outline_doc`. Ask for it before writing, so you do not write again what is already kept.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "scope": {
