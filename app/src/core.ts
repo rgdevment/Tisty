@@ -380,6 +380,33 @@ export const complete = async (id: string, also?: string[], summary?: string): P
 };
 export const owed = (id: string): Promise<string[]> => invoke("owed", { id });
 
+export type IcsOdd = "untitled" | "moved" | "cancelled" | "repeat" | "zone" | "past";
+
+export interface IcsFound {
+  at: number;
+  kind: "event" | "todo";
+  title: string;
+  date?: DateSpec | null;
+  deadline?: DateSpec | null;
+  repeat?: Repeat | null;
+  reminder?: DateSpec | null;
+  place: string;
+  odd: IcsOdd[];
+  done: boolean;
+  already: boolean;
+  takeable: boolean;
+}
+
+export interface IcsBrought {
+  found: IcsFound[];
+  invitation: boolean;
+}
+
+export const icsWaiting = (): Promise<string[]> => invoke("ics_waiting");
+export const icsRead = (path: string): Promise<IcsBrought> => invoke("ics_read", { path });
+export const icsTake = (path: string, picked: number[], list: string | null): Promise<number> =>
+  invoke("ics_take", { path, picked, list });
+
 export interface Trace {
   kind: "doc" | "file" | "link" | "named";
   target: string;

@@ -102,6 +102,7 @@
             <uap:DisplayName>Calendar</uap:DisplayName>
             <uap:SupportedFileTypes>
               <uap:FileType>.ics</uap:FileType>
+              <uap:FileType>.ical</uap:FileType>
             </uap:SupportedFileTypes>
           </uap:FileTypeAssociation>
         </uap:Extension>

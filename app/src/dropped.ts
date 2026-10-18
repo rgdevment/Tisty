@@ -28,7 +28,7 @@ export function handTo(
 export const asCss = (x: number, y: number, mac: boolean, scale: number): [number, number] =>
   mac ? [x, y] : [x / (scale || 1), y / (scale || 1)];
 
-export function whenFilesLand(onCaught: Caught): () => void {
+export function whenFilesLand(onCaught: Caught, onLoose?: (paths: string[]) => void): () => void {
   let stop: (() => void) | undefined;
   let live = true;
 
@@ -61,6 +61,7 @@ export function whenFilesLand(onCaught: Caught): () => void {
       const [left, top] = here(payload.position.x, payload.position.y);
       paint(null);
       if (target && payload.paths.length) onCaught(target, payload.paths, { left, top });
+      else if (payload.paths.length) onLoose?.(payload.paths);
     })
     .then((off) => {
       if (!live) return off();

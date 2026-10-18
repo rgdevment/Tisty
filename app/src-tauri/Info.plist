@@ -52,6 +52,7 @@
       <key>CFBundleTypeExtensions</key>
       <array>
         <string>ics</string>
+        <string>ical</string>
       </array>
     </dict>
   </array>

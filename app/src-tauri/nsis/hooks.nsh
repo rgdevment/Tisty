@@ -48,6 +48,7 @@
   WriteRegStr SHCTX "Software\Classes\Tisty.Calendar\DefaultIcon" "" "$INSTDIR\${MAINBINARYNAME}.exe,0"
   WriteRegStr SHCTX "Software\Classes\Tisty.Calendar\shell\open\command" "" '"$INSTDIR\${MAINBINARYNAME}.exe" -- "%1"'
   WriteRegStr SHCTX "Software\Classes\.ics\OpenWithProgids" "Tisty.Calendar" ""
+  WriteRegStr SHCTX "Software\Classes\.ical\OpenWithProgids" "Tisty.Calendar" ""
 !macroend
 
 !macro NSIS_HOOK_PREUNINSTALL
@@ -81,6 +82,7 @@
     DeleteRegValue SHCTX "Software\Classes\.markdown\OpenWithProgids" "Tisty.Markdown"
     DeleteRegKey SHCTX "Software\Classes\Tisty.Calendar"
     DeleteRegValue SHCTX "Software\Classes\.ics\OpenWithProgids" "Tisty.Calendar"
+    DeleteRegValue SHCTX "Software\Classes\.ical\OpenWithProgids" "Tisty.Calendar"
     RMDir /r "$LOCALAPPDATA\${PRODUCTNAME}\config"
     RMDir /r "$LOCALAPPDATA\${PRODUCTNAME}\cache"
     RMDir /r "$LOCALAPPDATA\${PRODUCTNAME}\secrets"

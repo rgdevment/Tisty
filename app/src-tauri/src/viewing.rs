@@ -9,7 +9,7 @@ use tisty_core::witness::{self, Fact, channel};
 use crate::answers::carrying::Left;
 use crate::{Answer, Refusal, Session, held, widgets};
 
-const OPENS: [&str; 4] = ["md", "markdown", "txt", "ics"];
+const OPENS: [&str; 5] = ["md", "markdown", "txt", "ics", "ical"];
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -178,7 +178,7 @@ pub fn show(app: &AppHandle, wanted: Vec<PathBuf>) {
 fn calendar(at: &Path) -> bool {
     at.extension()
         .and_then(|one| one.to_str())
-        .is_some_and(|one| one.eq_ignore_ascii_case("ics"))
+        .is_some_and(|one| one.eq_ignore_ascii_case("ics") || one.eq_ignore_ascii_case("ical"))
 }
 
 // A calendar becomes tasks in the main window, which may not be listening yet while Tisty starts.
