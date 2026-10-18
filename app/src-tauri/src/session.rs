@@ -723,10 +723,14 @@ impl Session {
         if self.state.docs.contains_key(&id) {
             return Err(Refusal::of("deleteRefused"));
         }
+        self.forget_files(&files);
+        Ok(())
+    }
 
+    pub fn forget_files(&mut self, files: &[String]) {
         let root = self.paths.docs();
         let mut said = tisty_core::docs::Carried::read(self.paths.data());
-        for file in &files {
+        for file in files {
             if let Err(e) = tisty_core::docs::remove(&root, file) {
                 witness::warn(
                     channel::WINDOW,
@@ -751,7 +755,6 @@ impl Session {
             tisty_core::docs::forget_carried(self.paths.data(), file);
         }
         let _ = said.save(self.paths.data());
-        Ok(())
     }
 
     pub fn unhang(

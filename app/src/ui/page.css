@@ -113,6 +113,14 @@ html.tall .page:has(> .editing) {
 .page[data-empty] > h1[data-title] {
   cursor: text;
 }
+html.untitled .page[data-empty] {
+  min-height: 96px;
+  cursor: text;
+}
+html.untitled .page[data-empty]:not(:has(> :not(.front)))::after {
+  content: attr(data-empty);
+  color: var(--tisty-faint);
+}
 .page[data-empty] > h1[data-title]::before {
   content: attr(data-title);
   color: var(--tisty-faint);
@@ -125,8 +133,8 @@ html.tall .page:has(> .editing) {
   content: attr(data-empty);
   color: var(--tisty-faint);
 }
-.page > :is(h1, h2, h3, p):first-child,
-.page > :is(.front, .fronted):first-child + :is(h1, h2, h3, p) {
+html:not(.untitled) .page > :is(h1, h2, h3, p):first-child,
+html:not(.untitled) .page > :is(.front, .fronted):first-child + :is(h1, h2, h3, p) {
   font-size: 1.65em;
   font-weight: 640;
   line-height: 1.25;
@@ -135,7 +143,7 @@ html.tall .page:has(> .editing) {
   padding-bottom: 14px;
   border-bottom: 1px solid var(--tisty-hair);
 }
-.page > :is(h1, h2, h3, p):first-child:only-child {
+html:not(.untitled) .page > :is(h1, h2, h3, p):first-child:only-child {
   margin-bottom: 0;
   padding-bottom: 0;
   border-bottom: 0;

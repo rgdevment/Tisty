@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use std::sync::Mutex;
 
 use tisty_core::capture::{Draft, Filing};
-use tisty_core::event::{StepRef, TaskMove};
+use tisty_core::event::TaskMove;
 use tisty_core::model::{Status, Task, TaskId};
 use tisty_core::{Op, State};
 
@@ -93,33 +93,6 @@ pub fn part_added(state: &State, whole: TaskId, title: &str) -> Result<(TaskId, 
     };
     let plan = tisty_core::capture::plan(state, draft)?;
     Ok((plan.task, with_whole(plan.ops, plan.task, whole)))
-}
-
-/// One transaction, so undo puts the step back where it was and takes the part away.
-pub fn step_turned(state: &State, id: TaskId, step: &str) -> Result<Vec<Op>, Refusal> {
-    let holder = state
-        .tasks
-        .get(&id)
-        .ok_or_else(|| Refusal::of("notATaskId"))?;
-    let step: tisty_core::model::StepId = step.parse().map_err(|_| Refusal::of("notAStepId"))?;
-    let said = holder
-        .steps
-        .iter()
-        .find(|one| one.id == step)
-        .ok_or_else(|| Refusal::of("notAStepId"))?;
-    takes_parts(holder).map_err(Refusal::of)?;
-    let draft = Draft {
-        title: said.text.clone(),
-        filing: holder.list.map(Filing::Kept),
-        ..Default::default()
-    };
-    let plan = tisty_core::capture::plan(state, draft)?;
-    let mut ops = with_whole(plan.ops, plan.task, id);
-    ops.push(Op::StepRemove {
-        id,
-        d: StepRef { step },
-    });
-    Ok(ops)
 }
 
 pub fn offered(state: &State, id: TaskId) -> Vec<Offered> {
@@ -243,19 +216,6 @@ pub fn hang(
     let mut session = held(&session);
     let op = hanging(&session.state, id, whole).map_err(Refusal::of)?;
     session.commit(op)?;
-    answered(&session, id)
-}
-
-#[tauri::command]
-pub fn step_to_part(
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-    step: String,
-) -> Answer<Task> {
-    let id = task_id(&id)?;
-    let mut session = held(&session);
-    let ops = step_turned(&session.state, id, &step)?;
-    session.commit_all(ops)?;
     answered(&session, id)
 }
 

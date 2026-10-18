@@ -49,13 +49,13 @@ fn a_document_made_twice_for_one_task_is_one_file_that_belongs_to_it() {
         },
     );
 
-    let first = made(room.path(), &state, task, None).unwrap();
+    let first = made(room.path(), &state, task, task, None).unwrap();
     std::fs::write(
         room.path().join(format!("{}.md", file_at(task, 1))),
         format!("{}\nWords already written.\n", seed(task)),
     )
     .unwrap();
-    let again = made(room.path(), &state, task, None).unwrap();
+    let again = made(room.path(), &state, task, task, None).unwrap();
 
     let body = crate::docs::read(room.path(), &file_at(task, 1)).unwrap();
     assert!(body.contains("Words already written."), "{body}");
@@ -72,13 +72,13 @@ fn a_document_made_again_after_its_delete_takes_the_next_turn_and_belongs_to_the
     let room = tempfile::tempdir().unwrap();
     let mut state = State::default();
     let task = Ulid::generate();
-    let first = made(room.path(), &state, task, None).unwrap();
+    let first = made(room.path(), &state, task, task, None).unwrap();
     applied(&mut state, first);
     let gone = of(&state, task).unwrap().id;
     applied(&mut state, Op::DocDelete { id: gone });
     std::fs::remove_file(room.path().join(format!("{}.md", file_at(task, 1)))).unwrap();
 
-    let again = made(room.path(), &state, task, None).unwrap();
+    let again = made(room.path(), &state, task, task, None).unwrap();
     applied(&mut state, again);
 
     let kept = of(&state, task).expect("the task's document again");
@@ -91,7 +91,7 @@ fn a_second_making_keeps_what_was_built_on_the_first() {
     let room = tempfile::tempdir().unwrap();
     let mut state = State::default();
     let task = Ulid::generate();
-    let first = made(room.path(), &state, task, None).unwrap();
+    let first = made(room.path(), &state, task, task, None).unwrap();
     let elsewhere = first.clone();
     applied(&mut state, first);
     let id = of(&state, task).unwrap().id;
@@ -123,4 +123,122 @@ fn only_the_name_a_making_writes_belongs_to_a_task() {
     for file in [format!("t_{lower}-0001"), format!("T_{task}-0001")] {
         assert_eq!(super::owned(&file), Some((task, id_at(task, 1))), "{file}");
     }
+}
+
+#[test]
+fn a_task_s_description_and_steps_open_its_document() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    let task = Ulid::generate();
+    applied(
+        &mut state,
+        Op::TaskAdd {
+            id: task,
+            d: TaskAdd::new("Rina's booster", "a0"),
+        },
+    );
+    applied(
+        &mut state,
+        Op::TaskDescribe {
+            id: task,
+            d: crate::event::Body {
+                body: Some("Call the vet first.".into()),
+            },
+        },
+    );
+    for (step, text, order) in [
+        (Ulid::generate(), "book", "b"),
+        (Ulid::generate(), "pay", "a"),
+    ] {
+        applied(
+            &mut state,
+            Op::StepAdd {
+                id: task,
+                d: crate::event::StepAdd {
+                    step,
+                    text: text.into(),
+                    order: order.into(),
+                },
+            },
+        );
+    }
+    let paid = state.tasks[&task]
+        .steps
+        .iter()
+        .find(|one| one.text == "pay")
+        .unwrap()
+        .id;
+    applied(
+        &mut state,
+        Op::StepDone {
+            id: task,
+            d: crate::event::StepRef { step: paid },
+        },
+    );
+
+    let first = made(room.path(), &state, task, task, None).unwrap();
+    applied(&mut state, first);
+
+    let body = crate::docs::read(room.path(), &file_at(task, 1)).unwrap();
+    assert_eq!(
+        body,
+        format!(
+            "{}\nCall the vet first.\n\n- [x] pay\n- [ ] book\n",
+            seed(task)
+        )
+    );
+    assert!(crate::stages::reconciled(&state.tasks[&task], None, &body).is_empty());
+}
+
+#[test]
+fn a_task_erased_for_good_takes_its_document_along() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    let task = Ulid::generate();
+    applied(
+        &mut state,
+        Op::TaskAdd {
+            id: task,
+            d: TaskAdd::new("Rina's booster", "a0"),
+        },
+    );
+    let first = made(room.path(), &state, task, task, None).unwrap();
+    applied(&mut state, first);
+    let doc = of(&state, task).unwrap().id;
+
+    assert_eq!(
+        super::erased_with(&state, task),
+        vec![Op::DocDelete { id: doc }, Op::TaskDelete { id: task }]
+    );
+    let alone = Ulid::generate();
+    assert_eq!(
+        super::erased_with(&state, alone),
+        vec![Op::TaskDelete { id: alone }]
+    );
+}
+
+#[test]
+fn every_turn_of_a_routine_answers_to_its_first() {
+    let mut state = State::default();
+    let first = Ulid::generate();
+    let second = Ulid::generate();
+    let third = Ulid::generate();
+    applied(
+        &mut state,
+        Op::TaskAdd {
+            id: first,
+            d: TaskAdd::new("Water the plants", "a0"),
+        },
+    );
+    for (id, before) in [(second, first), (third, second)] {
+        let mut d = TaskAdd::new("Water the plants", "a1");
+        d.after = Some(before);
+        applied(&mut state, Op::TaskAdd { id, d });
+    }
+
+    assert_eq!(super::owner(&state, third), first);
+    assert_eq!(super::owner(&state, second), first);
+    assert_eq!(super::owner(&state, first), first);
+    let alone = Ulid::generate();
+    assert_eq!(super::owner(&state, alone), alone);
 }

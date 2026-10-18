@@ -1,9 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ONCE_A_DAY } from "../inUse";
 import Composed from "../ui/Composed";
-import Prose from "../ui/Prose";
 import { composed } from "./crated";
 
 const { served } = vi.hoisted(() => ({
@@ -81,36 +79,6 @@ describe("a picture already showing", () => {
 
     expect(resolved()).toBe(1);
     expect(screen.queryByText(/cuatro/)).toBeNull();
-  });
-});
-
-describe("the description field, which is the one that takes files", () => {
-  it("shows its images when it does not take files", async () => {
-    render(<Prose value={TWO} hint="h" label="Journal" onWrite={vi.fn()} />);
-    await waitFor(() => expect(resolved()).toBe(2));
-  });
-
-  it("shows its images when it does take files", async () => {
-    render(<Prose value={TWO} hint="h" label="Description" catches onWrite={vi.fn()} />);
-    await waitFor(() => expect(resolved()).toBe(2));
-  });
-
-  it("keeps them after entering and leaving the source", async () => {
-    const user = userEvent.setup();
-    render(<Prose value={TWO} hint="h" label="Description" catches onWrite={vi.fn()} />);
-    await waitFor(() => expect(resolved()).toBe(2));
-
-    await user.click(screen.getByLabelText("Description"));
-    await user.tab();
-    await waitFor(() => expect(resolved()).toBe(2));
-  });
-
-  it("shows them in the second column of the full screen view", async () => {
-    const user = userEvent.setup();
-    render(<Prose value={TWO} hint="h" label="Description" catches beside onWrite={vi.fn()} />);
-    await user.click(screen.getByLabelText("Description"));
-    expect(screen.getByLabelText("Composed")).toBeTruthy();
-    await waitFor(() => expect(resolved()).toBe(2));
   });
 });
 

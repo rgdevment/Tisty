@@ -228,14 +228,8 @@ describe("opening a task", () => {
         task={task}
         lists={[]}
         known={[]}
-        expanded={false}
-        onExpand={() => {}}
         onCollapse={() => {}}
         onPatch={() => {}}
-        onStep={() => {}}
-        onMark={() => {}}
-        onDropStep={() => {}}
-        onLog={() => {}}
         onComplete={() => {}}
         onDiscard={() => {}}
         onReopen={() => {}}

@@ -21,21 +21,15 @@ const task = (extra: Partial<Task> = {}): Task =>
     ...extra,
   }) as unknown as Task;
 
-const open = (one: Task, expanded = false) => {
+const open = (one: Task) => {
   const done = vi.fn();
   render(
     <Detail
       task={one}
       lists={[]}
       known={[]}
-      expanded={expanded}
-      onExpand={() => {}}
       onCollapse={() => {}}
       onPatch={() => {}}
-      onStep={() => {}}
-      onMark={() => {}}
-      onDropStep={() => {}}
-      onLog={() => {}}
       onComplete={done}
       onDiscard={() => {}}
       onReopen={() => {}}
@@ -53,14 +47,6 @@ const open = (one: Task, expanded = false) => {
 describe("finishing a task from the panel", () => {
   it("completes it from the column", async () => {
     const done = open(task());
-
-    await userEvent.click(screen.getByRole("button", { name: /complete/i }));
-
-    expect(done).toHaveBeenCalled();
-  });
-
-  it("completes it full-screen too", async () => {
-    const done = open(task(), true);
 
     await userEvent.click(screen.getByRole("button", { name: /complete/i }));
 
@@ -93,14 +79,8 @@ describe("what an agent says is done", () => {
         task={one}
         lists={[]}
         known={[]}
-        expanded={false}
-        onExpand={() => {}}
         onCollapse={() => {}}
         onPatch={() => {}}
-        onStep={() => {}}
-        onMark={() => {}}
-        onDropStep={() => {}}
-        onLog={() => {}}
         onComplete={() => {}}
         onDiscard={() => {}}
         onReopen={() => {}}
@@ -196,14 +176,8 @@ describe("erasing what is already archived", () => {
         task={one}
         lists={[]}
         known={[]}
-        expanded={false}
-        onExpand={() => {}}
         onCollapse={() => {}}
         onPatch={() => {}}
-        onStep={() => {}}
-        onMark={() => {}}
-        onDropStep={() => {}}
-        onLog={() => {}}
         onComplete={() => {}}
         onDiscard={() => {}}
         onReopen={() => {}}
@@ -295,14 +269,8 @@ describe("erasing what is already archived", () => {
         task={task({ status: "done" })}
         lists={[]}
         known={[]}
-        expanded={false}
-        onExpand={() => {}}
         onCollapse={() => {}}
         onPatch={() => {}}
-        onStep={() => {}}
-        onMark={() => {}}
-        onDropStep={() => {}}
-        onLog={() => {}}
         onComplete={() => {}}
         onDiscard={() => {}}
         onReopen={() => {}}
@@ -334,14 +302,8 @@ describe("what an agent says should not be done", () => {
         task={one}
         lists={[]}
         known={[]}
-        expanded={false}
-        onExpand={() => {}}
         onCollapse={() => {}}
         onPatch={() => {}}
-        onStep={() => {}}
-        onMark={() => {}}
-        onDropStep={() => {}}
-        onLog={() => {}}
         onComplete={on.complete}
         onDiscard={on.discard}
         onReopen={() => {}}

@@ -25,14 +25,8 @@ const open = (one: Task) =>
       task={one}
       lists={[]}
       known={[]}
-      expanded={false}
-      onExpand={() => {}}
       onCollapse={() => {}}
       onPatch={() => {}}
-      onStep={() => {}}
-      onMark={() => {}}
-      onDropStep={() => {}}
-      onLog={() => {}}
       onComplete={() => {}}
       onDiscard={() => {}}
       onReopen={() => {}}

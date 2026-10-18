@@ -141,9 +141,6 @@ const started = async () => {
   await screen.findByText("write the report");
 };
 
-const value = (name: string) =>
-  (screen.getByRole("textbox", { name }) as HTMLTextAreaElement | HTMLInputElement).value;
-
 describe("a round landing while the window is open", () => {
   const untitled = [
     {
@@ -261,20 +258,6 @@ describe("an open task", () => {
 
     expect(await screen.findByRole("button", { name: /^Complete$/ })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Reopen/ })).toBeNull();
-  });
-
-  it("does not carry a half-written step from one task to the next", async () => {
-    const user = userEvent.setup();
-    await started();
-
-    await user.click(screen.getByText("write the report"));
-    await user.type(await screen.findByRole("textbox", { name: "Add a step" }), "half a thought");
-    expect(value("Add a step")).toBe("half a thought");
-
-    await user.click(screen.getByRole("button", { name: new RegExp(`^${t("collapse")}`) }));
-    await user.click(await screen.findByText("call the bank"));
-    await waitFor(() => expect(value("Title")).toBe("call the bank"));
-    expect(value("Add a step")).toBe("");
   });
 });
 
@@ -634,7 +617,6 @@ describe("a task opens on a page of its own", () => {
     expect(
       await screen.findByRole("button", { name: new RegExp(`^${t("collapse")}`) }),
     ).toBeTruthy();
-    expect(screen.queryByRole("button", { name: t("expand") })).toBeNull();
   });
 
   it("goes back to the list from the page, closing the task", async () => {

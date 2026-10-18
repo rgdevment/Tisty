@@ -7,31 +7,22 @@ import { agentNamed, clientNamed, hostedOn, signedBy } from "../who";
 import Belongs from "./Belongs";
 import { useEdge } from "./edging";
 import Fields from "./Fields";
-import Journal from "./Journal";
+import History from "./History";
 import Left from "./Left";
 import Menu, { type Choice } from "./Menu";
-import Prose from "./Prose";
 import Routine from "./Routine";
 import Section from "./Section";
 import { saidBy } from "./Spoke";
-import Steps from "./Steps";
+import TaskWords from "./TaskWords";
 import Trail from "./Trail";
-import Written from "./Written";
 
 interface Props {
   task: Task;
   lists: List[];
   known: string[];
-  apart?: string;
-  expanded: boolean;
   from?: string;
-  onExpand?: () => void;
   onCollapse: () => void;
   onPatch: (change: Change) => void;
-  onStep: (text: string, step?: string) => void;
-  onMark: (step: string, done: boolean) => void;
-  onDropStep: (step: string) => void;
-  onLog: (body: string, entry?: string) => void;
   onComplete: () => void;
   onDiscard: () => void;
   onReopen: () => void;
@@ -49,23 +40,16 @@ interface Props {
   onOpenPart?: (id: string) => void;
   onCompletePart?: (id: string, title: string) => void;
   onHang?: (whole: string | null) => void;
-  onStepToPart?: (step: string) => void;
+  onSettle?: (before: string, now: string) => Promise<string | null>;
 }
 
 export default function Detail({
   task,
   lists,
   known,
-  apart,
-  expanded,
   from,
-  onExpand,
   onCollapse,
   onPatch,
-  onStep,
-  onMark,
-  onDropStep,
-  onLog,
   onComplete,
   onDiscard,
   onReopen,
@@ -83,11 +67,11 @@ export default function Detail({
   onOpenPart,
   onCompletePart,
   onHang,
-  onStepToPart,
+  onSettle,
 }: Props) {
   const opened = useRef<HTMLElement>(null);
   const card = useRef<HTMLDivElement>(null);
-  const edge = useEdge(card, expanded);
+  const edge = useEdge(card);
   const live = task.status === "open";
   const holding = live && !task.repeat && !task.after && !task.hidden;
   useEffect(() => {
@@ -104,6 +88,17 @@ export default function Detail({
 
   const aside = (
     <>
+      <Belongs
+        task={task}
+        whole={whole}
+        partOf={partOf}
+        holding={holding}
+        onAddPart={onAddPart}
+        onHang={onHang}
+        onOpenPart={onOpenPart}
+        onCompletePart={onCompletePart}
+        onError={onError}
+      />
       <Trail
         task={task.id}
         moved={[
@@ -166,58 +161,8 @@ export default function Detail({
       )}
       <Fields task={task} lists={lists} known={known} onPatch={onPatch} />
 
-      <Section label={t("description")} />
-      <Prose
-        value={task.description ?? ""}
-        hint={t("describeIt")}
-        label={t("description")}
-        beside={expanded}
-        catches
-        onError={onError}
-        onDoc={onDoc}
-        onWhole={expanded ? undefined : onExpand}
-        onWrite={(description) => onPatch({ description })}
-      />
-
-      <Section
-        label={t("steps")}
-        note={
-          task.volume?.steps ? `${task.volume.steps_done ?? 0}/${task.volume.steps}` : undefined
-        }
-      />
-      <Steps
-        steps={task.steps ?? []}
-        onWrite={onStep}
-        onMark={onMark}
-        onDrop={onDropStep}
-        onTurn={holding && !task.part_of ? onStepToPart : undefined}
-      />
-
-      <Belongs
-        task={task}
-        whole={whole}
-        partOf={partOf}
-        holding={holding}
-        onAddPart={onAddPart}
-        onHang={onHang}
-        onOpenPart={onOpenPart}
-        onCompletePart={onCompletePart}
-        onError={onError}
-      />
-
-      <Section
-        label={t("journal")}
-        note={task.volume?.journal ? String(task.volume.journal) : undefined}
-      />
-      <Journal
-        entries={task.log ?? []}
-        steps={task.steps?.map((one) => one.text)}
-        onError={onError}
-        onDoc={onDoc}
-        onWhole={expanded ? undefined : onExpand}
-        onWrite={onLog}
-        held={task.resolved?.entry}
-      />
+      <TaskWords task={task} onSettle={onSettle} onError={onError} onDoc={onDoc} />
+      <History task={task} onError={onError} onDoc={onDoc} />
     </>
   );
 
@@ -226,155 +171,48 @@ export default function Detail({
       <h1 className="text-[21px] leading-snug font-semibold">{task.title}</h1>
       <Stamps task={task} lists={lists} />
 
-      {task.description?.trim() && (
-        <>
-          <Section label={t("description")} />
-          <Written
-            label={t("description")}
-            onError={onError}
-            onDoc={onDoc}
-            text={task.description}
-            steps={task.steps?.map((one) => one.text)}
-            className="prose px-1.5 py-1 text-[13px] leading-relaxed"
-          />
-        </>
-      )}
+      <TaskWords task={task} onError={onError} onDoc={onDoc} />
 
-      {task.steps && task.steps.length > 0 && (
-        <>
-          <Section
-            label={t("steps")}
-            note={`${task.volume?.steps_done ?? 0}/${task.volume?.steps ?? task.steps.length}`}
-          />
-          <ul className="flex flex-col gap-1.5">
-            {task.steps.map((step) => (
-              <li key={step.id} className="flex items-start gap-2.5 text-[13px]">
-                <span
-                  aria-hidden="true"
-                  className={`pt-px text-[12.5px] ${step.done ? "text-accent" : "text-faint"}`}
-                >
-                  {step.done ? "✓" : "▫"}
-                </span>
-                <span className={step.done ? "text-faint line-through" : "text-soft"}>
-                  {step.text}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-
-      {task.log?.some((entry) => entry.body.trim()) && (
-        <>
-          <Section label={t("journal")} note={String(task.volume?.journal ?? task.log.length)} />
-          <ul className="flex flex-col gap-3">
-            {task.log
-              .filter((entry) => entry.body.trim())
-              .map((entry) => (
-                <li key={entry.id}>
-                  <span className="block text-[11.5px] tabular-nums text-faint">
-                    {wroteAt(entry.at, entry.tz)}
-                  </span>
-                  <Written
-                    label={t("journal")}
-                    onError={onError}
-                    onDoc={onDoc}
-                    text={entry.body}
-                    steps={task.steps?.map((one) => one.text)}
-                    className="prose text-[13px] leading-relaxed"
-                  />
-                </li>
-              ))}
-          </ul>
-        </>
-      )}
+      <History task={task} onError={onError} onDoc={onDoc} />
 
       {(task.repeat || task.after) && (
         <Routine task={task.id} onError={onError} heading={<Section label={t("routine")} />} />
       )}
-
-      {!expanded && aside}
     </>
   );
 
   const shown = task.status === "open" ? body : sealed;
 
-  if (expanded) {
-    return (
-      <main
-        ref={opened}
-        tabIndex={-1}
-        onKeyDown={leave}
-        className="flex flex-col overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset"
-      >
-        <div data-tauri-drag-region className="h-9 shrink-0" />
-        <div className="flex items-center gap-1 px-6 pb-2 text-[13px] text-faint">
-          <button
-            type="button"
-            onClick={onCollapse}
-            aria-label={from ? `${t("collapse")} — ${from}` : t("collapse")}
-            className="-ml-2 rounded-md px-2 py-1 text-accent hover:bg-hover"
-          >
-            <span aria-hidden="true">‹</span> {from || t("collapse")}
-          </button>
-        </div>
-        <div className="scroller @container flex-1 px-5 pb-6">
-          <div
-            ref={card}
-            className="mx-auto grid w-fit gap-x-10 rounded-[10px] border border-hair bg-sheet px-8 pt-6 pb-10 shadow-lift @min-[1120px]:grid-cols-[minmax(0,720px)_320px]"
-          >
-            <div className="min-w-0">{shown}</div>
-            <div className="min-w-0">{aside}</div>
-          </div>
-        </div>
-        <Settled
-          task={task}
-          edge={edge}
-          onComplete={onComplete}
-          onDiscard={onDiscard}
-          onReopen={onReopen}
-          onStillOpen={onStillOpen}
-          onErase={onErase}
-          onFold={onFold}
-          onReadAs={onReadAs}
-          onOpenToAgents={onOpenToAgents}
-          left={(whole?.open ?? 0) + (whole?.away ?? 0)}
-        />
-      </main>
-    );
-  }
-
   return (
-    <aside
-      ref={opened as React.RefObject<HTMLElement>}
+    <main
+      ref={opened}
       tabIndex={-1}
       onKeyDown={leave}
-      className={`absolute top-11 bottom-3 z-20 flex w-[380px] flex-col overflow-hidden rounded-[10px] border border-hair bg-panel shadow-lift outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset ${apart ?? "right-3"}`}
+      className="flex flex-col overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset"
     >
-      <div className="flex items-center justify-end gap-1 px-3 pt-2.5 text-[13px] text-faint">
+      <div data-tauri-drag-region className="h-9 shrink-0" />
+      <div className="flex items-center gap-1 px-6 pb-2 text-[13px] text-faint">
         <button
           type="button"
-          onClick={onExpand}
-          title={t("expand")}
-          aria-label={t("expand")}
-          className="flex h-6 w-6 items-center justify-center rounded-md hover:bg-hover hover:text-accent"
+          onClick={onCollapse}
+          aria-label={from ? `${t("collapse")} — ${from}` : t("collapse")}
+          className="-ml-2 rounded-md px-2 py-1 text-accent hover:bg-hover"
         >
-          <span aria-hidden="true">⤢</span>
-        </button>
-        <button
-          type="button"
-          onClick={onClose}
-          title={t("closePanel")}
-          aria-label={t("closePanel")}
-          aria-keyshortcuts="Escape"
-          className="flex h-6 w-6 items-center justify-center rounded-md hover:bg-hover hover:text-ink"
-        >
-          <span aria-hidden="true">✕</span>
+          <span aria-hidden="true">‹</span> {from || t("collapse")}
         </button>
       </div>
-      <div className="scroller flex-1 px-5 pt-1.5 pb-7">{shown}</div>
+      <div className="scroller @container flex-1 px-5 pb-6">
+        <div
+          ref={card}
+          className="mx-auto grid w-fit gap-x-10 rounded-[10px] border border-hair bg-sheet px-8 pt-6 pb-10 shadow-lift @min-[1120px]:grid-cols-[minmax(0,720px)_320px]"
+        >
+          <div className="min-w-0">{shown}</div>
+          <div className="min-w-0">{aside}</div>
+        </div>
+      </div>
       <Settled
         task={task}
+        edge={edge}
         onComplete={onComplete}
         onDiscard={onDiscard}
         onReopen={onReopen}
@@ -385,7 +223,7 @@ export default function Detail({
         onOpenToAgents={onOpenToAgents}
         left={(whole?.open ?? 0) + (whole?.away ?? 0)}
       />
-    </aside>
+    </main>
   );
 }
 

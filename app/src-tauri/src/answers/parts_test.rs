@@ -123,35 +123,6 @@ fn a_part_added_lands_in_its_whole_and_its_list() {
 }
 
 #[test]
-fn a_step_turned_into_a_part_leaves_the_steps_in_the_same_breath() {
-    let mut state = State::default();
-    let whole = written(&mut state, 1, "move house", None);
-    let step = ulid::Ulid::generate();
-    applied(
-        &mut state,
-        2,
-        vec![Op::StepAdd {
-            id: whole,
-            d: tisty_core::event::StepAdd {
-                step,
-                text: "call the landlord".into(),
-                order: "a0".into(),
-            },
-        }],
-    );
-
-    let ops = step_turned(&state, whole, &step.to_string()).unwrap();
-    applied(&mut state, 3, ops);
-
-    assert!(state.tasks[&whole].steps.is_empty());
-    let part = state
-        .parts_of(whole)
-        .next()
-        .expect("the step is a part now");
-    assert_eq!(part.title, "call the landlord");
-}
-
-#[test]
 fn only_open_tasks_that_could_hold_parts_are_offered() {
     let mut state = State::default();
     let whole = written(&mut state, 1, "move house", None);
