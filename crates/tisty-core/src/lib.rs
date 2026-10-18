@@ -10,6 +10,7 @@ pub mod called;
 pub mod capture;
 pub mod config;
 pub mod counting;
+pub mod dated;
 pub mod docs;
 pub mod doubled;
 pub mod event;

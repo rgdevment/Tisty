@@ -170,6 +170,16 @@ fn reordered(task: &Task, steps: &[&Step], in_doc: &[usize]) -> (Vec<Op>, Vec<St
 }
 
 pub fn reconciled(task: &Task, before: Option<&str>, now: &str) -> Vec<Op> {
+    reconciled_with(task, before, now, &[])
+}
+
+/// `renamed`: what the editor saw each rewritten box say before and after, which text alone cannot tell.
+pub fn reconciled_with(
+    task: &Task,
+    before: Option<&str>,
+    now: &str,
+    renamed: &[(String, String)],
+) -> Vec<Op> {
     let steps = ordered(task);
     let is = stages(now);
     // With no text before, a box may be stale, so it ticks no step and only one with no step is added.
@@ -179,7 +189,17 @@ pub fn reconciled(task: &Task, before: Option<&str>, now: &str) -> Vec<Op> {
         &titled(was.iter().map(|one| &one.text)),
         false,
     );
-    let was_of = paired(&texts(&was), &texts(&is), true);
+    let mut was_of = paired(&texts(&was), &texts(&is), true);
+    let flat = |said: &str| one_line(said.trim().trim_end_matches('\\'));
+    for (said, says) in renamed {
+        let (said, says) = (flat(said), flat(says));
+        let taken: Vec<usize> = was_of.iter().flatten().copied().collect();
+        let old = (0..was.len()).find(|at| !taken.contains(at) && was[*at].text == said);
+        let new = (0..is.len()).find(|at| was_of[*at].is_none() && is[*at].text == says);
+        if let (Some(old), Some(new)) = (old, new) {
+            was_of[new] = Some(old);
+        }
+    }
     let bound: Vec<Option<(usize, usize)>> = was_of
         .iter()
         .map(|one| one.and_then(|w| step_of[w].map(|s| (w, s))))

@@ -22,7 +22,7 @@ import { filedAs, type Reshape, reshaped } from "./recarding";
 import Skeleton from "./Skeleton";
 import { ASIDE_MARGIN, settles } from "./seeking";
 import type { Sheet as SheetSize } from "./sheeting";
-import { type Asking, putBlock } from "./slashing";
+import { type Asking, putBlock, stagesIn } from "./slashing";
 import { widened } from "./tabling";
 
 type Props = {
@@ -36,7 +36,7 @@ type Props = {
   readonly below?: ReactNode;
   readonly onSeen?: (at: number) => void;
   readonly onWrite: (text: string) => void;
-  readonly onSettle?: (before: string, now: string) => void;
+  readonly onSettle?: (before: string, now: string, renamed?: readonly [string, string][]) => void;
   readonly onOwn?: (file: string) => void;
   readonly onFail?: (problem: unknown) => void;
   readonly onDoc?: (file: string) => void;
@@ -49,6 +49,7 @@ type Props = {
   readonly onInsert?: (put: ((file: string, title: string) => boolean) | null) => void;
   readonly onOrder?: (move: ((file: string, before: string | null) => Moved) | null) => void;
   readonly asking?: Asking;
+  readonly stepDates?: Readonly<Record<string, string>>;
   readonly kept?: boolean;
   readonly inline?: boolean;
   readonly shaping?: boolean;
@@ -82,9 +83,12 @@ export default function Sheet(props: Readonly<Props>) {
     said.current.onWrite(text);
   }, []);
 
-  const settled = useCallback((before: string, now: string) => {
-    if (before !== now) said.current.onSettle?.(before, now);
-  }, []);
+  const settled = useCallback(
+    (before: string, now: string, renamed?: readonly [string, string][]) => {
+      if (before !== now) said.current.onSettle?.(before, now, renamed);
+    },
+    [],
+  );
 
   const whole = useCallback(
     (next: string) => {
@@ -215,7 +219,7 @@ export default function Sheet(props: Readonly<Props>) {
       element,
       piece || seed,
       (text) => written(spliced(text)),
-      () => {
+      (_, renamed) => {
         open.current = null;
         // Only a block left by the person closes its gap: text from outside or another file is not its own.
         const ours = home === onFile.current && latest.current === mine;
@@ -223,18 +227,18 @@ export default function Sheet(props: Readonly<Props>) {
           written(closed(latest.current, from, end));
         }
         setDrawn(latest.current);
-        if (ours) settled(before, latest.current);
+        if (ours) settled(before, latest.current, renamed);
       },
       () => {
         const asking = said.current.asking;
-        if (!asking) return undefined;
         const before = !latest.current.slice(0, from).trim();
         return {
-          kinds: asking.kinds,
-          tags: asking.tags,
-          pasted: asking.pasted,
-          lost: asking.lost,
-          ask: (kind, at, put, first) => asking.ask(kind, at, put, first && before),
+          kinds: asking?.kinds ?? [],
+          tags: asking?.tags,
+          pasted: asking?.pasted,
+          lost: asking?.lost,
+          ask: (kind, at, put, first) => asking?.ask(kind, at, put, first && before),
+          steps: () => stagesIn(latest.current),
         };
       },
       Boolean(said.current.inline && said.current.shaping),
@@ -591,6 +595,7 @@ export default function Sheet(props: Readonly<Props>) {
           onOpen={(reference) => said.current.onOpen?.(reference)}
           onTag={(tag) => said.current.onTag?.(tag)}
           onBlock={reading ? undefined : block}
+          stepDates={props.stepDates}
           onTick={reading || fixed ? undefined : ticked}
           onCut={reading || !fixed ? undefined : cut}
           onWiden={reading || fixed ? undefined : widen}

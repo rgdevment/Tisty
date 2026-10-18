@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { type Change, erasable, type List, readingOf, type Task, type Whole } from "../core";
+import {
+  type Change,
+  erasable,
+  type Filed,
+  type List,
+  readingOf,
+  type Task,
+  type Whole,
+} from "../core";
 import { cadence, daysFrom, stamped, whenLabel, wroteAt } from "../format";
 import { fill, t } from "../locales";
 import { placed, said } from "../quadrants";
@@ -38,13 +46,18 @@ interface Props {
   onClose: () => void;
   onError?: (problem: unknown) => void;
   onDoc?: (id: string) => void;
+  papers?: readonly Filed[];
   whole?: Whole;
   partOf?: string;
   onAddPart?: (title: string) => void;
   onOpenPart?: (id: string) => void;
   onCompletePart?: (id: string, title: string) => void;
   onHang?: (whole: string | null) => void;
-  onSettle?: (before: string, now: string) => Promise<string | null>;
+  onSettle?: (
+    before: string,
+    now: string,
+    renamed?: readonly [string, string][],
+  ) => Promise<string | null>;
 }
 
 // Keys from the page reach the window from the window itself, so what holds them is found through its frames.
@@ -75,6 +88,7 @@ export default function Detail({
   onClose,
   onError,
   onDoc,
+  papers,
   whole,
   partOf,
   onAddPart,
@@ -204,6 +218,7 @@ export default function Detail({
         onDoc={onDoc}
         shaping={shaping}
         onHeld={setHeld}
+        papers={papers}
       />
       <History task={task} onError={onError} onDoc={onDoc} />
     </>

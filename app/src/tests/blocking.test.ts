@@ -282,3 +282,32 @@ describe("the caret a click leaves in a block", () => {
     expect(caretAt("Leche", "§")).toBe(5);
   });
 });
+
+describe("the boxes of a block being written", () => {
+  it("say which ones were written over, line by line, so a step keeps who it is", () => {
+    const { page, one } = block();
+    let told: [string, string][] = [];
+    const editing = edited(
+      one,
+      "- [ ] a\n- [ ] b\n- [ ] c",
+      () => {},
+      (_, renamed) => {
+        told = renamed;
+      },
+    );
+    const doc = editing.view.state.doc;
+    editing.view.dispatch({
+      changes: [
+        { from: doc.line(1).from + 6, to: doc.line(1).to, insert: "call the vet" },
+        { from: doc.line(2).from + 6, to: doc.line(2).to, insert: "bring the card" },
+      ],
+    });
+    editing.leave();
+
+    expect(told).toEqual([
+      ["a", "call the vet"],
+      ["b", "bring the card"],
+    ]);
+    page.remove();
+  });
+});

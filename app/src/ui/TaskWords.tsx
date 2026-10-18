@@ -1,8 +1,20 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { docWrite, type Task, type TaskDoc, taskDocMake, taskDocOpen } from "../core";
+import {
+  docWrite,
+  type Filed,
+  stepDates,
+  type Task,
+  type TaskDoc,
+  taskDocMake,
+  taskDocOpen,
+} from "../core";
+import { stamped } from "../format";
+import { fill } from "../locales";
 import { holds, queued } from "../saving";
 import { useKeptHeight } from "./heights";
 import Skeleton from "./Skeleton";
+import type { Asking } from "./slashing";
+import { useTaskAsks } from "./taskAsking";
 
 const Sheet = lazy(() => import("./Sheet"));
 
@@ -10,11 +22,16 @@ const SETTLES = 700;
 
 interface Props {
   task: Task;
-  onSettle?: (before: string, now: string) => Promise<string | null>;
+  onSettle?: (
+    before: string,
+    now: string,
+    renamed?: readonly [string, string][],
+  ) => Promise<string | null>;
   onError?: (problem: unknown) => void;
   onDoc?: (id: string) => void;
   shaping?: boolean;
   onHeld?: (held: boolean) => void;
+  papers?: readonly Filed[];
 }
 
 // A command the window does not know answers with whatever it holds, so only a real document counts.
@@ -23,7 +40,15 @@ const real = (said: unknown): TaskDoc | null => {
   return typeof one?.file === "string" && typeof one.body === "string" ? (one as TaskDoc) : null;
 };
 
-export default function TaskWords({ task, onSettle, onError, onDoc, shaping, onHeld }: Props) {
+export default function TaskWords({
+  task,
+  onSettle,
+  onError,
+  onDoc,
+  shaping,
+  onHeld,
+  papers,
+}: Props) {
   const [doc, setDoc] = useState<TaskDoc | null>(null);
   const [seen, setSeen] = useState(0);
   const [turn, setTurn] = useState(0);
@@ -33,6 +58,29 @@ export default function TaskWords({ task, onSettle, onError, onDoc, shaping, onH
   holding.current = onHeld;
   const open = task.status === "open";
   const kept = useKeptHeight<HTMLDivElement>(`task:${task.id}`);
+  const { asking, picker } = useTaskAsks(open ? papers : undefined, onError);
+  const [dates, setDates] = useState<Record<string, string>>({});
+  const steps = (task.steps ?? []).map((one) => `${one.text}:${one.done}`).join("|");
+  useEffect(() => {
+    let live = true;
+    if (!steps) return setDates({});
+    stepDates(task.id)
+      .then((all) => {
+        if (!live) return;
+        const said: Record<string, string> = {};
+        for (const one of all) {
+          const parts = [one.born && fill("stepBorn", stamped(one.born))];
+          if (one.done) parts.push(fill("stepTicked", stamped(one.done)));
+          const line = parts.filter(Boolean).join(" · ");
+          if (line) said[one.text] = line;
+        }
+        setDates(said);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [task.id, steps]);
 
   useEffect(() => {
     let live = true;
@@ -75,7 +123,10 @@ export default function TaskWords({ task, onSettle, onError, onDoc, shaping, onH
         onMoved={() => setTurn((one) => one + 1)}
         shaping={shaping}
         room={kept.height}
+        asking={doc.held ? undefined : asking}
+        dates={dates}
       />
+      {picker}
     </div>
   );
 }
@@ -91,17 +142,25 @@ function Written({
   onMoved,
   shaping,
   room,
+  asking,
+  dates,
 }: {
   id: string;
   doc: TaskDoc;
   make?: (body: string) => Promise<string>;
   label: string;
-  onSettle?: (before: string, now: string) => Promise<string | null>;
+  onSettle?: (
+    before: string,
+    now: string,
+    renamed?: readonly [string, string][],
+  ) => Promise<string | null>;
   onError?: (problem: unknown) => void;
   onDoc?: (id: string) => void;
   onMoved: () => void;
   shaping?: boolean;
   room?: number;
+  asking?: Asking;
+  dates?: Readonly<Record<string, string>>;
 }) {
   const [text, setText] = useState(doc.body);
   const waiting = useRef<string | null>(null);
@@ -142,12 +201,12 @@ function Written({
   }, []);
 
   // Settles wait their turn, so two of them never weigh the same old text and add a step twice.
-  const settled = (before: string, now: string) => {
+  const settled = (before: string, now: string, renamed?: readonly [string, string][]) => {
     if (!onSettle) return;
     line.current = line.current.then(async () => {
       const from = unsettled.current ?? before;
       const problem = await ensure(now)
-        .then(() => onSettle(from, now))
+        .then(() => onSettle(from, now, renamed))
         .catch((e: unknown) => {
           if ((e as { code?: string } | null)?.code === "documentMoved") return "documentMoved";
           failed.current?.(e);
@@ -211,6 +270,8 @@ function Written({
         onSettle={onSettle ? settled : undefined}
         onFail={onError}
         onDoc={onDoc}
+        asking={asking}
+        stepDates={dates}
       />
     </Suspense>
   );
