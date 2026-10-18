@@ -221,32 +221,8 @@ describe("a round landing while the window is open", () => {
   });
 });
 
-describe("the open panel", () => {
-  it("lets go of the task once it is completed from the list", async () => {
-    const user = userEvent.setup();
-    await started();
-
-    await user.click(screen.getByText("write the report"));
-    await screen.findByRole("textbox", { name: "Title" });
-
-    await user.click(screen.getByRole("button", { name: "Complete write the report" }));
-
-    await waitFor(() => expect(screen.queryByRole("textbox", { name: "Title" })).toBeNull());
-  });
-
-  it("stays on a task it did not complete", async () => {
-    const user = userEvent.setup();
-    await started();
-
-    await user.click(screen.getByText("write the report"));
-    await screen.findByRole("textbox", { name: "Title" });
-
-    await user.click(screen.getByRole("button", { name: "Complete call the bank" }));
-
-    expect(value("Title")).toBe("write the report");
-  });
-
-  it("lets go of the task once it is completed from the panel itself", async () => {
+describe("an open task", () => {
+  it("lets go of the task once it is completed from its page", async () => {
     const user = userEvent.setup();
     await started();
 
@@ -295,28 +271,15 @@ describe("the open panel", () => {
     await user.type(await screen.findByRole("textbox", { name: "Add a step" }), "half a thought");
     expect(value("Add a step")).toBe("half a thought");
 
-    await user.click(screen.getByText("call the bank"));
+    await user.click(screen.getByRole("button", { name: new RegExp(`^${t("collapse")}`) }));
+    await user.click(await screen.findByText("call the bank"));
     await waitFor(() => expect(value("Title")).toBe("call the bank"));
     expect(value("Add a step")).toBe("");
   });
 });
 
-describe("the full screen", () => {
+describe("saying a task will not be done", () => {
   it("lets go of a task once you say you will not do it", async () => {
-    const user = userEvent.setup();
-    await started();
-
-    await user.click(screen.getByText("write the report"));
-    await user.click(screen.getByRole("button", { name: /Full screen/ }));
-    await screen.findByRole("button", { name: /Not doing it/ });
-
-    await user.click(screen.getByRole("button", { name: /Not doing it/ }));
-
-    await waitFor(() => expect(screen.queryByRole("textbox", { name: "Title" })).toBeNull());
-    expect(screen.getByText("call the bank")).toBeTruthy();
-  });
-
-  it("closes the side panel too, once the task has left the list", async () => {
     const user = userEvent.setup();
     await started();
 
@@ -324,6 +287,7 @@ describe("the full screen", () => {
     await user.click(await screen.findByRole("button", { name: /Not doing it/ }));
 
     await waitFor(() => expect(screen.queryByRole("textbox", { name: "Title" })).toBeNull());
+    expect(await screen.findByText("call the bank")).toBeTruthy();
   });
 });
 
@@ -385,26 +349,10 @@ describe("closing an open task", () => {
     await user.click(screen.getByText("write the report"));
     await screen.findByRole("textbox", { name: "Title" });
 
-    await user.click(screen.getByRole("button", { name: /close the task/i }));
+    await user.click(screen.getByRole("button", { name: new RegExp(`^${t("collapse")}`) }));
 
     await waitFor(() => expect(screen.queryByRole("textbox", { name: "Title" })).toBeNull());
     expect(document.activeElement).toBe(document.querySelector('[data-row="01A"]'));
-  });
-});
-
-describe("opening a task beside the list", () => {
-  it("centres the list on the desk, and leaves it centred when a task opens", async () => {
-    const user = userEvent.setup();
-    await started();
-    const list = screen.getByRole("list", { name: "Tasks" });
-    const was = list.className;
-    expect(was).toContain("mx-auto");
-    expect(was).toContain("max-w-[820px]");
-
-    await user.click(screen.getByText("write the report"));
-    await screen.findByRole("textbox", { name: "Title" });
-
-    expect(list.className).toBe(was);
   });
 });
 
