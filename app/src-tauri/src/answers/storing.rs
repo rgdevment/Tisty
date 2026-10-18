@@ -439,14 +439,11 @@ pub fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying>
             .and_then(|was| was.folder().map(|at| at.display().to_string())),
         shared_was_later: config.once_shared().is_some_and(|was| was.is_later()),
         later: keeping.chosen == tisty_carrier::Chosen::Later,
-        mode: match keeping.chosen {
-            tisty_carrier::Chosen::Alone => "alone",
-            tisty_carrier::Chosen::Folder => "folder",
-            tisty_carrier::Chosen::Cloud => "cloud",
-            tisty_carrier::Chosen::Later => "later",
-        },
+        mode: keeping.chosen.mode(),
         cloud: tisty_carrier::cloud_of(config.sync.as_ref()).map(|at| at.email.clone()),
+        cloud_provider: tisty_carrier::cloud_of(config.sync.as_ref()).map(|at| at.provider.clone()),
         cloud_offered: crate::reaching::offered(),
+        clouds: crate::reaching::clouds(),
         backed_up_at: config.backed_up_at.map(|at| at.to_string()),
         frees_space: keeping.carrier.is_some_and(|carrier| carrier.frees_space()),
     })

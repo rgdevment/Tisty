@@ -1402,10 +1402,10 @@ const en = {
   cloudTodayUnits: "{name} of {other} requests",
   cloudTodayBytes: "{name} of {other} downloaded",
   movedChoose: "Choose where it syncs",
-  movedFollowCloud: "Go to Google Drive",
+  movedFollowCloud: "Go to the cloud",
   movedFollowFolder: "Choose the folder",
   movedToCloud:
-    "Your other machines moved to Google Drive ({name}) and stopped syncing here. This copy stopped too, so nothing goes on alone; follow them from Settings.",
+    "Your other machines moved to {name} and stopped syncing here. This copy stopped too, so nothing goes on alone; follow them from Settings.",
   moveOpen: "Move to another place…",
   moveTitle: "Move to another place",
   moveWhy:
@@ -3426,10 +3426,10 @@ const es: Catalog = {
   cloudTodayUnits: "{name} de {other} pedidos",
   cloudTodayBytes: "{name} de {other} bajados",
   movedChoose: "Elegir dónde sincroniza",
-  movedFollowCloud: "Ir a Google Drive",
+  movedFollowCloud: "Ir a la nube",
   movedFollowFolder: "Elegir la carpeta",
   movedToCloud:
-    "Tus otros equipos se mudaron a Google Drive ({name}) y dejaron de sincronizar aquí. Esta copia también se detuvo, para que nada siga por su cuenta; síguelos desde Ajustes.",
+    "Tus otros equipos se mudaron a {name} y dejaron de sincronizar aquí. Esta copia también se detuvo, para que nada siga por su cuenta; síguelos desde Ajustes.",
   moveOpen: "Mudarme a otro lugar…",
   moveTitle: "Vas a cambiar de lugar",
   moveWhy:

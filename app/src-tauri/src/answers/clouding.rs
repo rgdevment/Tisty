@@ -6,11 +6,15 @@ use tauri::{Emitter, Manager};
 use tisty_carrier::{Hitch, Secrets, Tokens};
 use tisty_core::config::{CloudAt, Leaving, Sync};
 
-use crate::reaching::{GOOGLE, KEPT_AS, secrets_for};
+use crate::reaching::{GOOGLE, KEPT_AS, ONEDRIVE, secrets_for};
 use crate::{Answer, Refusal, Session, held};
 
 const CONSENT_WAITED: Duration = Duration::from_secs(5 * 60);
 const GOOGLE_SHOWN: &str = "Google Drive";
+const ONEDRIVE_SHOWN: &str = "OneDrive";
+const ONEDRIVE_PROBED: &str = "https://graph.microsoft.com/v1.0/me";
+// Microsoft has no way to revoke a personal account's grant from here, so the person is taken where they can.
+const ONEDRIVE_CONSENTS: &str = "https://account.live.com/consent/Manage";
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -38,18 +42,32 @@ pub(crate) fn refused(hitch: Hitch, provider: &str) -> Refusal {
     }
 }
 
-/// Asked only while the person chooses the cloud: one request to Google's API host with no account,
+/// Asked only while the person chooses the cloud: one request to its API host with no account,
 /// no token and nothing of theirs, through whatever proxy the system names.
 #[tauri::command]
-pub async fn cloud_health() -> Answer<&'static str> {
-    let health = tauri::async_runtime::spawn_blocking(tisty_google::health::probe)
-        .await
-        .map_err(|_| Refusal::of("internal"))?;
+pub async fn cloud_health(provider: Option<String>) -> Answer<&'static str> {
+    let onedrive = provider.as_deref() == Some(ONEDRIVE);
+    let health = tauri::async_runtime::spawn_blocking(move || match onedrive {
+        true => tisty_google::health::probe_at(
+            ONEDRIVE_PROBED,
+            tisty_google::health::REACHED_WITHIN,
+            tisty_google::health::PROBED_WITHIN,
+        ),
+        false => tisty_google::health::probe(),
+    })
+    .await
+    .map_err(|_| Refusal::of("internal"))?;
     if health != tisty_google::health::Health::Reachable {
         tisty_core::witness::note(
             tisty_core::witness::channel::CLOUD,
-            "the way to Google's API host did not answer as it should",
-            &[("health", tisty_core::witness::Fact::Code(health.code()))],
+            "the way to the cloud's API host did not answer as it should",
+            &[
+                ("health", tisty_core::witness::Fact::Code(health.code())),
+                (
+                    "provider",
+                    tisty_core::witness::Fact::Word(if onedrive { ONEDRIVE } else { GOOGLE }),
+                ),
+            ],
         );
     }
     Ok(health.code())
@@ -104,19 +122,66 @@ impl Consenting {
     }
 }
 
+enum Asking {
+    Google(tisty_google::Client, tisty_google::Consent),
+    OneDrive(tisty_onedrive::Client, tisty_onedrive::Consent),
+}
+
+impl Asking {
+    fn begin(provider: &str) -> Answer<Self> {
+        let offered = || Refusal::of("cloudNotOffered");
+        match provider {
+            GOOGLE => {
+                let client = tisty_google::client().ok_or_else(offered)?;
+                let consent =
+                    tisty_google::Consent::begin(client).map_err(|e| refused(e, GOOGLE_SHOWN))?;
+                Ok(Self::Google(client, consent))
+            }
+            ONEDRIVE => {
+                let client = tisty_onedrive::client().ok_or_else(offered)?;
+                let consent = tisty_onedrive::Consent::begin(client)
+                    .map_err(|e| refused(e, ONEDRIVE_SHOWN))?;
+                Ok(Self::OneDrive(client, consent))
+            }
+            _ => Err(offered()),
+        }
+    }
+
+    fn url(&self) -> &str {
+        match self {
+            Self::Google(_, consent) => &consent.url,
+            Self::OneDrive(_, consent) => &consent.url,
+        }
+    }
+
+    fn dropping(&self) -> Arc<AtomicBool> {
+        match self {
+            Self::Google(_, consent) => consent.dropping(),
+            Self::OneDrive(_, consent) => consent.dropping(),
+        }
+    }
+
+    fn connected(self, aside: &std::path::Path) -> Answer<Connected> {
+        match self {
+            Self::Google(client, consent) => connected(client, consent, aside),
+            Self::OneDrive(client, consent) => onedrive_connected(client, consent, aside),
+        }
+    }
+}
+
 #[tauri::command(async)]
 pub async fn cloud_connect(
     session: tauri::State<'_, Mutex<Session>>,
     consenting: tauri::State<'_, Consenting>,
+    provider: Option<String>,
 ) -> Answer<Connected> {
-    let client = tisty_google::client().ok_or_else(|| Refusal::of("cloudNotOffered"))?;
+    let asking = Asking::begin(provider.as_deref().unwrap_or(GOOGLE))?;
     let aside = held(&session).paths.cache().to_path_buf();
-    let consent = tisty_google::Consent::begin(client).map_err(|e| refused(e, GOOGLE_SHOWN))?;
-    let dropping = consent.dropping();
+    let dropping = asking.dropping();
     consenting.waits_on(dropping.clone());
-    tauri_plugin_opener::open_url(&consent.url, None::<&str>)
+    tauri_plugin_opener::open_url(asking.url(), None::<&str>)
         .map_err(|_| Refusal::of("cannotOpen"))?;
-    let done = tauri::async_runtime::spawn_blocking(move || connected(client, consent, &aside))
+    let done = tauri::async_runtime::spawn_blocking(move || asking.connected(&aside))
         .await
         .map_err(|_| Refusal::of("internal"))?;
     consenting.done_with(&dropping);
@@ -145,7 +210,9 @@ fn connected(
     aside: &std::path::Path,
 ) -> Answer<Connected> {
     let at = tisty_google::Endpoints::google();
-    let granted = consent.finish(CONSENT_WAITED, &at).map_err(ended)?;
+    let granted = consent
+        .finish(CONSENT_WAITED, &at)
+        .map_err(|how| ended(how, GOOGLE_SHOWN))?;
     let unfiled = Arc::new(Unfiled(Mutex::new(Some(granted.refresh.clone()))));
     let renew = tisty_google::GoogleRenew::new(client, at).map_err(|e| refused(e, GOOGLE_SHOWN))?;
     let tokens = Tokens::new(unfiled.clone(), Arc::new(renew), KEPT_AS, aside);
@@ -173,12 +240,51 @@ fn connected(
     })
 }
 
-pub(crate) fn ended(how: tisty_google::Ended) -> Refusal {
+fn onedrive_connected(
+    client: tisty_onedrive::Client,
+    consent: tisty_onedrive::Consent,
+    aside: &std::path::Path,
+) -> Answer<Connected> {
+    let at = tisty_onedrive::Endpoints::microsoft();
+    let granted = consent
+        .finish(CONSENT_WAITED, &at)
+        .map_err(|how| ended(how, ONEDRIVE_SHOWN))?;
+    let unfiled = Arc::new(Unfiled(Mutex::new(Some(granted.refresh.clone()))));
+    let renew =
+        tisty_onedrive::MicrosoftRenew::new(client, at).map_err(|e| refused(e, ONEDRIVE_SHOWN))?;
+    let tokens = Tokens::new(unfiled.clone(), Arc::new(renew), KEPT_AS, aside);
+    let account =
+        tisty_onedrive::OneDrive::new(Arc::new(tokens), tisty_onedrive::GraphAt::microsoft())
+            .and_then(|drive| drive.account())
+            .map_err(|e| refused(e, ONEDRIVE_SHOWN))?;
+    // Microsoft hands back a new refresh token on every renewal, and only the newest is sure to work.
+    let refresh = unfiled
+        .read(KEPT_AS)
+        .ok()
+        .flatten()
+        .unwrap_or(granted.refresh);
+    let at = CloudAt {
+        provider: ONEDRIVE.to_string(),
+        account: account.id,
+        email: account.email,
+    };
+    secrets_for(&at)
+        .and_then(|kept| kept.write(KEPT_AS, &refresh))
+        .map_err(|e| refused(e, at.shown()))?;
+    Ok(Connected {
+        provider: ONEDRIVE,
+        account: at.account,
+        email: at.email,
+    })
+}
+
+pub(crate) fn ended(how: tisty_carrier::loopback::Ended, shown: &str) -> Refusal {
+    use tisty_carrier::loopback::Ended;
     match how {
-        tisty_google::Ended::NoAnswer => Refusal::of("cloudNoAnswer"),
-        tisty_google::Ended::Dropped => Refusal::of("cloudDropped"),
-        tisty_google::Ended::Failed(Hitch::Lost) => Refusal::of("cloudDenied"),
-        tisty_google::Ended::Failed(other) => refused(other, GOOGLE_SHOWN),
+        Ended::NoAnswer => Refusal::about("cloudNoAnswer", shown.to_string()),
+        Ended::Dropped => Refusal::of("cloudDropped"),
+        Ended::Failed(Hitch::Lost) => Refusal::about("cloudDenied", shown.to_string()),
+        Ended::Failed(other) => refused(other, shown),
     }
 }
 
@@ -280,6 +386,12 @@ pub async fn cloud_revoke(
     provider: Option<String>,
 ) -> Answer<()> {
     let at = whose(&session, account, provider)?;
+    if at.provider == ONEDRIVE {
+        forgotten(&at)?;
+        let_go_held(&app, &at);
+        return tauri_plugin_opener::open_url(ONEDRIVE_CONSENTS, None::<&str>)
+            .map_err(|_| Refusal::of("cannotOpen"));
+    }
     if at.provider != GOOGLE {
         return Err(Refusal::of("cloudNotOffered"));
     }

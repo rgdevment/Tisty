@@ -168,6 +168,17 @@ pub enum Chosen {
     Later,
 }
 
+impl Chosen {
+    pub fn mode(self) -> &'static str {
+        match self {
+            Chosen::Alone => "alone",
+            Chosen::Folder => "folder",
+            Chosen::Cloud => "cloud",
+            Chosen::Later => "later",
+        }
+    }
+}
+
 /// What only the window can build: the command line and the agents never reach the network.
 pub trait Reach: Send + std::marker::Sync {
     fn cloud(&self, at: &CloudAt) -> Option<Shared>;

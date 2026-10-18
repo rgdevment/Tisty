@@ -33,13 +33,35 @@ pub struct CloudAt {
 }
 
 pub const GOOGLE: &str = "google";
+pub const ONEDRIVE: &str = "onedrive";
+
+/// The provider as a person reads it; one this build does not know is named by its own id.
+pub fn shown_of(provider: &str) -> &str {
+    match provider {
+        GOOGLE => "Google Drive",
+        ONEDRIVE => "OneDrive",
+        other => other,
+    }
+}
+
+/// The provider and address a moved word names after `cloud:`; one with no provider is Google's, as 1.30 wrote it.
+pub fn cloud_word(said: &str) -> (&str, &str) {
+    match said.split_once(':') {
+        Some((provider, email)) if !provider.contains('@') => (shown_of(provider), email),
+        _ => (shown_of(GOOGLE), said),
+    }
+}
 
 impl CloudAt {
-    /// The provider as a person reads it; one this build does not know is named by its own id.
     pub fn shown(&self) -> &str {
+        shown_of(&self.provider)
+    }
+
+    // Google's word stays as 1.30 reads it; every later provider names itself before the address.
+    pub fn word(&self) -> String {
         match self.provider.as_str() {
-            GOOGLE => "Google Drive",
-            other => other,
+            GOOGLE => format!("cloud:{}", self.email),
+            other => format!("cloud:{other}:{}", self.email),
         }
     }
 }

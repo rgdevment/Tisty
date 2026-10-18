@@ -318,10 +318,10 @@ fn moved_word(
 ) {
     if let Some(word) = tisty_core::moved::heeded(said.as_deref(), data, me, place) {
         let said = match word.to.split_once(':') {
-            Some(("cloud", email)) => lang.fill(
-                "moved-away-to",
-                &[("to", &format!("Google Drive · {email}"))],
-            ),
+            Some(("cloud", said)) => {
+                let (shown, email) = tisty_core::config::cloud_word(said);
+                lang.fill("moved-away-to", &[("to", &format!("{shown} · {email}"))])
+            }
             Some(("folder", named)) => lang.fill("moved-away-to", &[("to", named)]),
             _ => lang.get("moved-alone").to_string(),
         };

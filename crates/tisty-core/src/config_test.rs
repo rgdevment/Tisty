@@ -773,3 +773,24 @@ fn a_cloud_put_away_by_a_restore_comes_back_as_the_cloud_it_was() {
     assert_eq!(config.once_shared(), Some(Was::Cloud(drive_of_ana())));
     assert_eq!(config.shared_was, None);
 }
+
+#[test]
+fn a_moved_word_names_google_as_1_30_wrote_it_and_any_later_cloud_by_itself() {
+    let at = |provider: &str| CloudAt {
+        provider: provider.into(),
+        account: "1".into(),
+        email: "ana@example.com".into(),
+    };
+
+    assert_eq!(at(GOOGLE).word(), "cloud:ana@example.com");
+    assert_eq!(at(ONEDRIVE).word(), "cloud:onedrive:ana@example.com");
+    assert_eq!(
+        cloud_word("ana@example.com"),
+        ("Google Drive", "ana@example.com")
+    );
+    assert_eq!(
+        cloud_word("onedrive:ana@example.com"),
+        ("OneDrive", "ana@example.com")
+    );
+    assert_eq!(at(ONEDRIVE).shown(), "OneDrive");
+}

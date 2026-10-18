@@ -49,10 +49,13 @@ pub fn noticed_in(word: &Word, spoken: &str) -> String {
         .map(|at| at.to_zoned(jiff::tz::TimeZone::system()).date().to_string())
         .unwrap_or_default();
     let (es, en) = match word.to.split_once(':') {
-        Some(("cloud", email)) => (
-            format!("en el espacio de Tisty en Google Drive ({email})"),
-            format!("in Tisty's space in Google Drive ({email})"),
-        ),
+        Some(("cloud", said)) => {
+            let (shown, email) = crate::config::cloud_word(said);
+            (
+                format!("en el espacio de Tisty en {shown} ({email})"),
+                format!("in Tisty's space in {shown} ({email})"),
+            )
+        }
         Some(("folder", folder)) => (
             format!("en otra carpeta ({folder})"),
             format!("in another folder ({folder})"),
