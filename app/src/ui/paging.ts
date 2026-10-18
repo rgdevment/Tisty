@@ -75,7 +75,7 @@ export type Went =
   | { kind: "more"; at: [number, number]; target: string; x: number; y: number }
   | { kind: "end" }
   | { kind: "title" }
-  | { kind: "hint"; at: [number, number] }
+  | { kind: "hint"; at: [number, number]; seed: string }
   | null;
 
 export const spanned = (said: string | null): [number, number] | null => {
@@ -133,8 +133,9 @@ export const went = (target: Element, selecting: boolean): Went => {
   const ticked = spanned(box?.dataset.at ?? null);
   if (ticked) return { kind: "tick", at: ticked };
   if (target.closest(".page > h1[data-title]")) return { kind: "title" };
-  const hint = spanned(target.closest<HTMLElement>(".page > .hint")?.dataset.at ?? null);
-  if (hint) return { kind: "hint", at: hint };
+  const hinted = target.closest<HTMLElement>(".page > .hint, .page > .add-step");
+  const hint = spanned(hinted?.dataset.at ?? null);
+  if (hint) return { kind: "hint", at: hint, seed: hinted?.dataset.seed ?? "" };
   const at = spanned(target.closest<HTMLElement>(".page > [data-at]")?.dataset.at ?? null);
   return at ? { kind: "block", at } : null;
 };

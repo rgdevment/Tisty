@@ -159,7 +159,31 @@ const hinted = (page: Document, body: string) => {
     if (!said) continue;
     const alone = heading(one.previousElementSibling) && heading(one.nextElementSibling);
     one.classList.add(alone ? "hint" : "hint-gone");
-    if (alone) one.dataset.hint = said[1].trim();
+    if (!alone) continue;
+    // A hint written as a box stands for the steps that go there, so pressing it begins one.
+    const box = /^-\s*\[ \]\s*/.exec(said[1].trim());
+    one.dataset.hint = said[1].trim().slice(box?.[0].length ?? 0);
+    if (box) {
+      one.classList.add("step-hint");
+      one.dataset.seed = "- [ ] ";
+    }
+  }
+  stepped(page);
+};
+
+const stepped = (page: Document) => {
+  for (const list of page.querySelectorAll<HTMLElement>(".page > ul[data-at]")) {
+    const boxes = list.querySelectorAll(":scope > li.task > .check");
+    if (!boxes.length) continue;
+    const done = list.querySelectorAll(':scope > li.task > .check[data-done="true"]').length;
+    list.style.setProperty("--done", `${Math.round((done / boxes.length) * 100)}%`);
+    const add = page.createElement("button");
+    add.type = "button";
+    add.className = "add-step";
+    add.dataset.at = list.dataset.at;
+    add.dataset.seed = "- [ ] ";
+    add.textContent = `+ ${t("addStep")}`;
+    list.after(add);
   }
 };
 
@@ -225,11 +249,11 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
     if (block) reach.onBlock?.(at, block, "", read);
   }
   if (asked.kind === "hint") {
-    const hint = page.querySelector<HTMLElement>(
-      `.page > [data-at="${asked.at[0]}-${asked.at[1]}"]`,
+    const held = page.querySelector<HTMLElement>(
+      `.page > :is(.hint, .add-step)[data-at="${asked.at[0]}-${asked.at[1]}"]`,
     );
     const end = charsAt(reach.body, asked.at[1]);
-    if (hint) reach.onBlock?.([end, end], hint, "");
+    if (held) reach.onBlock?.([end, end], held, asked.seed);
   }
   if (asked.kind === "title" && reach.onBlock) {
     const slot = page.querySelector<HTMLElement>(".page > h1[data-title]");

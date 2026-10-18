@@ -574,3 +574,47 @@ describe("a task's template hints", () => {
     expect(asked).toEqual([{ at: [end, end], seed: "" }]);
   });
 });
+
+describe("a task's steps on its page", () => {
+  it("shows a box hint as a ghost step that begins a box when pressed", () => {
+    const body = "## Steps\n<!-- - [ ] The first step -->\n";
+    const one = page(`<h2 data-at="0-8">Steps</h2><div data-at="9-${body.length - 1}"></div>`);
+    one.documentElement.classList.add("untitled");
+    const { asked, reach } = writer(body);
+    worn(one, false, () => true, reach);
+    wired(one, () => reach);
+
+    const hint = one.querySelector<HTMLElement>(".hint");
+    expect(hint?.classList.contains("step-hint")).toBe(true);
+    expect(hint?.dataset.hint).toBe("The first step");
+    press(hint, 0);
+    expect(asked).toEqual([{ at: [body.length - 1, body.length - 1], seed: "- [ ] " }]);
+  });
+
+  it("fills a bar as far as the boxes are ticked, and offers to add one after the list", () => {
+    const body = "- [x] one\n- [ ] two\n";
+    const one = page(
+      '<ul data-at="0-20"><li class="task" data-at="0-10"><span class="check" data-done="true"></span>one</li>' +
+        '<li class="task" data-at="10-20"><span class="check" data-done="false"></span>two</li></ul>',
+    );
+    one.documentElement.classList.add("untitled");
+    const { asked, reach } = writer(body);
+    worn(one, false, () => true, reach);
+    wired(one, () => reach);
+
+    expect(one.querySelector<HTMLElement>("ul")?.style.getPropertyValue("--done")).toBe("50%");
+    const add = one.querySelector<HTMLElement>(".page > .add-step");
+    expect(add).not.toBeNull();
+    press(add, 0);
+    expect(asked).toEqual([{ at: [20, 20], seed: "- [ ] " }]);
+  });
+
+  it("adds nothing of the kind to a document", () => {
+    const one = page(
+      '<ul data-at="0-10"><li class="task" data-at="0-10"><span class="check" data-done="false"></span>one</li></ul>',
+    );
+    worn(one, false, () => true, writer("- [ ] one\n").reach);
+
+    expect(one.querySelector(".add-step")).toBeNull();
+  });
+});
