@@ -413,3 +413,34 @@ fn steps_are_not_added_where_an_open_fence_would_swallow_them() {
     let body = "Words.\n\n```\ncode";
     assert_eq!(ticked(&task, body), body);
 }
+
+#[test]
+fn a_step_taken_off_with_one_under_it_leaves_the_rest_whole() {
+    let body = "- [ ] A\n  - [ ] B\n\n## Notes\nkeep me\n";
+    assert_eq!(
+        super::unplanned(body, &["A".into(), "B".into()]),
+        "\n## Notes\nkeep me\n"
+    );
+    assert_eq!(
+        super::unplanned(body, &["A".into()]),
+        "  - [ ] B\n\n## Notes\nkeep me\n"
+    );
+}
+
+#[test]
+fn a_step_written_on_two_lines_is_reworded_whole() {
+    let body = "- [ ] Call the bank\n  about the loan\n- [ ] Next\n";
+    assert_eq!(
+        super::reworded(body, "Call the bank about the loan", "Email the bank"),
+        Some("- [ ] Email the bank\n- [ ] Next\n".to_string())
+    );
+}
+
+#[test]
+fn a_new_step_joins_the_outer_list_not_one_nested_under_a_step() {
+    let task = task(&[("A", false, "a"), ("A.1", false, "b"), ("B", false, "c")]);
+    assert_eq!(
+        ticked(&task, "- [ ] A\n  - [ ] A.1\n"),
+        "- [ ] A\n  - [ ] A.1\n- [ ] B\n"
+    );
+}

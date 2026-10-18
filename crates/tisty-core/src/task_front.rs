@@ -281,7 +281,8 @@ pub struct TakenIn {
 }
 
 /// A document coming in that names a task hands it its properties, and keeps only its own.
-pub fn taken_in(state: &crate::State, body: &str, tz: &str) -> Option<TakenIn> {
+/// `was` is the page as it stands, so boxes ticked or added outside become the task's steps.
+pub fn taken_in(state: &crate::State, body: &str, was: Option<&str>, tz: &str) -> Option<TakenIn> {
     let front = read(body, tz);
     let id = front.task?;
     let task = state.tasks.get(&id)?;
@@ -298,10 +299,13 @@ pub fn taken_in(state: &crate::State, body: &str, tz: &str) -> Option<TakenIn> {
     };
     let mut block = vec![format!("{}: {id}", crate::task_docs::KEY)];
     block.extend(others);
+    let body = format!("---\n{}\n---\n{rest}", block.join("\n"));
+    let before = was.map(|one| crate::stages::ticked(task, one));
+    ops.extend(crate::stages::reconciled(task, before.as_deref(), &body));
     Some(TakenIn {
         task: id,
         ops,
-        body: format!("---\n{}\n---\n{rest}", block.join("\n")),
+        body,
     })
 }
 

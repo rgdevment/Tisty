@@ -49,7 +49,10 @@ pub(in crate::mcp) fn export_doc(paths: &Paths, args: &Value) -> Result<Value, R
         )));
     }
 
-    let body = tisty_core::docs::read(&paths.docs(), &which).unwrap_or_default();
+    let body = match kept.task_of {
+        Some(_) => tisty_core::docs::read(&paths.docs(), &which).map_err(hitch)?,
+        None => tisty_core::docs::read(&paths.docs(), &which).unwrap_or_default(),
+    };
     let pages: Vec<String> = state
         .pages_read(kept.id, &body)
         .iter()

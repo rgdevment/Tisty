@@ -271,32 +271,62 @@ pub fn reworded(body: &str, was: &str, now: &str) -> Option<String> {
     let stage = found
         .iter()
         .find(|one| !one.done && title(&one.text) == title(was))?;
-    let line = &body[stage.at.clone()];
-    let words = line.find(']')? + 1;
-    let end = line.find('\n').unwrap_or(line.len());
-    let from = stage.at.start + words;
-    let to = stage.at.start + end;
-    Some(format!("{} {now}{}", &body[..from], &body[to..]))
+    let own = own_lines(body, stage);
+    let line = &body[own.clone()];
+    let mark = line.find(']')? + 1;
+    let tail = if line.ends_with('\n') { "\n" } else { "" };
+    Some(format!(
+        "{}{} {now}{tail}{}",
+        &body[..own.start],
+        &line[..mark],
+        &body[own.end..]
+    ))
 }
 
 /// The lines of open steps taken off, so a box with no step is never left to be ticked back.
 pub fn unplanned(body: &str, gone: &[String]) -> String {
     let gone: Vec<String> = gone.iter().map(|one| title(one)).collect();
+    let mut cuts: Vec<Range<usize>> = stages(body)
+        .iter()
+        .filter(|stage| !stage.done && gone.contains(&title(&stage.text)))
+        .map(|stage| own_lines(body, stage))
+        .collect();
+    cuts.sort_by_key(|one| std::cmp::Reverse(one.start));
     let mut out = body.to_string();
-    for stage in stages(body).iter().rev() {
-        if stage.done || !gone.contains(&title(&stage.text)) {
-            continue;
-        }
-        let start = body[..stage.at.start].rfind('\n').map_or(0, |at| at + 1);
-        let end = match body[..stage.at.end].ends_with('\n') {
-            true => stage.at.end,
-            false => body[stage.at.end..]
-                .find('\n')
-                .map_or(body.len(), |at| stage.at.end + at + 1),
-        };
-        out.replace_range(start..end, "");
+    for cut in cuts {
+        out.replace_range(cut, "");
     }
     out
+}
+
+// An item's own lines are its first and those carrying its words on, never the items under it.
+fn own_lines(body: &str, stage: &Stage) -> Range<usize> {
+    let line_end = |from: usize| {
+        body[from..]
+            .find('\n')
+            .map_or(body.len(), |at| from + at + 1)
+    };
+    let start = body[..stage.at.start].rfind('\n').map_or(0, |at| at + 1);
+    let mut end = line_end(stage.at.start);
+    while end < stage.at.end.min(body.len()) {
+        let next = line_end(end);
+        let bare = body[end..next]
+            .trim_start_matches([' ', '\t', '>'])
+            .trim_end();
+        if bare.is_empty() || listed(bare) {
+            break;
+        }
+        end = next;
+    }
+    start..end
+}
+
+fn listed(line: &str) -> bool {
+    let bullet = line.starts_with(['-', '*', '+']) && line[1..].starts_with(' ');
+    let number = line.split_once(['.', ')']).is_some_and(|(digits, rest)| {
+        !digits.is_empty() && digits.chars().all(|c| c.is_ascii_digit()) && rest.starts_with(' ')
+    });
+    bullet || number
 }
 
 struct Slot {
@@ -307,7 +337,13 @@ struct Slot {
 
 // A new step joins the last box, written the way that box is, or else goes under the template's box hint.
 fn slot(body: &str, found: &[Stage]) -> Option<Slot> {
-    if let Some(last) = found.last() {
+    // The outermost list takes the new step, never an item nested under one of its steps.
+    let indent = |stage: &Stage| {
+        let start = body[..stage.at.start].rfind('\n').map_or(0, |at| at + 1);
+        stage.at.start - start
+    };
+    let least = found.iter().map(indent).min();
+    if let Some(last) = found.iter().rev().find(|one| Some(indent(one)) == least) {
         let start = body[..last.at.start].rfind('\n').map_or(0, |at| at + 1);
         let line = &body[start..];
         let lead = line[..line.find('[')?].to_string();

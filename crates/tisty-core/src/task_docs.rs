@@ -246,6 +246,9 @@ pub fn described(body: &str, said: &str) -> String {
     let slot = (1..lines.len())
         .find(|at| heading(lines[at - 1]) && hinted(lines[*at]).is_some_and(|hint| !boxed(hint)));
     let Some(hint) = slot else {
+        if body.contains(said) {
+            return body.to_string();
+        }
         let mut out = body.trim_end_matches(['\n', '\r']).to_string();
         if !out.is_empty() {
             out.push_str("\n\n");

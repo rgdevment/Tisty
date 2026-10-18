@@ -148,39 +148,85 @@ pub fn task_page_import(
     session: tauri::State<'_, Mutex<Session>>,
     from: String,
 ) -> Answer<Option<String>> {
-    let (raw, _) = super::carrying::read_any(std::path::Path::new(&from))?;
-    let mut session = held(&session);
-    session.reload()?;
+    let from = std::path::Path::new(&from);
+    let markdown = from
+        .extension()
+        .is_some_and(|one| one.eq_ignore_ascii_case("md") || one.eq_ignore_ascii_case("markdown"));
+    if !markdown {
+        return Ok(None);
+    }
+    let (raw, _) = super::carrying::read_any(from)?;
     let zone = jiff::tz::TimeZone::system();
-    let tz = zone.iana_name().unwrap_or("UTC");
-    let Some(taken) = tisty_core::task_front::taken_in(&session.state, &raw, tz) else {
+    let tz = zone.iana_name().unwrap_or("UTC").to_string();
+    let paths = {
+        let mut session = held(&session);
+        session.reload()?;
+        let Some(id) = tisty_core::task_front::read(&raw, &tz).task else {
+            return Ok(None);
+        };
+        if !session.state.tasks.contains_key(&id) {
+            return Ok(None);
+        }
+        session.paths.clone()
+    };
+    let own: Vec<std::path::PathBuf> = [paths.data(), paths.config(), paths.cache()]
+        .iter()
+        .filter_map(|one| one.canonicalize().ok())
+        .collect();
+    let mut reach = |at: &std::path::Path| {
+        let at = at
+            .canonicalize()
+            .map_err(|_| "no file is there".to_string())?;
+        match own.iter().any(|one| at.starts_with(one)) {
+            true => Err("it is one of Tisty's own files".to_string()),
+            false => Ok(at),
+        }
+    };
+    let (body, brought) = tisty_core::beside::brought(
+        &paths,
+        from,
+        &raw,
+        &mut tisty_core::beside::Way {
+            reach: &mut reach,
+            outside: "",
+            notes: false,
+        },
+    );
+    let mut session = held(&session);
+    let file = tisty_core::task_front::read(&body, &tz)
+        .task
+        .and_then(|id| file_of(&session, id).map(|file| (id, file)));
+    let was = file
+        .as_ref()
+        .and_then(|(_, file)| tisty_core::docs::read(&session.paths.docs(), file).ok());
+    let Some(taken) = tisty_core::task_front::taken_in(&session.state, &body, was.as_deref(), &tz)
+    else {
         return Ok(None);
     };
     let id = taken.task;
-    answered(&session, id)?;
-    let mut ops = taken.ops;
-    let file = match file_of(&session, id) {
-        Some(file) => {
-            writable(&session.state, &file)?;
-            Some(file)
+    let mut ops = brought.told;
+    ops.extend(taken.ops);
+    let mut over = file.map(|(_, file)| file);
+    if let Some(file) = &over {
+        writable(&session.state, file)?;
+    } else {
+        let (made, created) = tisty_core::task_docs::made_with(
+            &session.paths.docs(),
+            &session.state,
+            tisty_core::task_docs::owner(&session.state, id),
+            &taken.body,
+            signing(&session.state),
+        )
+        .map_err(|e| blamed(channel::WINDOW, "a task's document could not be made", e))?;
+        if let (false, Op::DocAdd { d, .. }) = (created, &made) {
+            over = Some(d.file.clone());
         }
-        None => {
-            let (made, _) = tisty_core::task_docs::made_with(
-                &session.paths.docs(),
-                &session.state,
-                tisty_core::task_docs::owner(&session.state, id),
-                &taken.body,
-                signing(&session.state),
-            )
-            .map_err(|e| blamed(channel::WINDOW, "a task's document could not be made", e))?;
-            ops.push(made);
-            None
-        }
-    };
+        ops.push(made);
+    }
     if !ops.is_empty() {
         session.commit_all(ops)?;
     }
-    if let Some(file) = file {
+    if let Some(file) = over {
         let root = session.paths.docs();
         tisty_core::docs::write(&root, &file, &taken.body)
             .map_err(|e| blamed(channel::WINDOW, "a task's page could not be written", e))?;
