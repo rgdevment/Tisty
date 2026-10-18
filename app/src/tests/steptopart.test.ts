@@ -14,7 +14,7 @@ describe("a step offered as a part", () => {
     const from = body.indexOf("- [ ] Pack");
     expect(stepLine(body, [from, from + "- [ ] Pack\r\n".length])).toBe("- [ ] Pack");
     expect(stepLine(body, [from + 2, from + 10])).toBeNull();
-    const runs = "- [ ] Pack\\nthe books\n";
+    const runs = "- [ ] Pack\\\nthe books\n";
     expect(stepLine(runs, [0, runs.length])).toBeNull();
   });
 });
