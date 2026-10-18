@@ -570,12 +570,13 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 }
             }
             // Writing a task's document is that task moving, never a document of its own.
+            let owners = tisty_core::task_docs::behind(&state);
             for one in &papers {
                 let behind = one
                     .parse::<Ulid>()
                     .ok()
                     .and_then(|id| state.docs.get(&id))
-                    .and_then(|kept| kept.task_of)
+                    .and_then(|kept| owners.get(&kept.file))
                     .map(|task| task.to_string());
                 if let Some(task) = behind
                     && !tasks.contains(&task)

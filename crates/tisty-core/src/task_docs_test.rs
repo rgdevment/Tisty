@@ -218,6 +218,82 @@ fn a_task_erased_for_good_takes_its_document_along() {
 }
 
 #[test]
+fn a_story_that_kept_its_task_keeps_its_words_through_an_erase_from_elsewhere() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    let task = Ulid::generate();
+    applied(
+        &mut state,
+        Op::TaskAdd {
+            id: task,
+            d: TaskAdd::new("Rina's booster", "a0"),
+        },
+    );
+    let first = made(room.path(), &state, task, task, "", None).unwrap().op;
+    applied(&mut state, first);
+    let erase = super::erased_with(&state, task);
+    applied(
+        &mut state,
+        Op::TaskUpdate {
+            id: task,
+            d: crate::event::TaskPatch {
+                read_as: Some(Some(crate::Reading::Story)),
+                ..Default::default()
+            },
+        },
+    );
+
+    for op in erase {
+        applied(&mut state, op);
+    }
+
+    assert!(state.tasks.contains_key(&task));
+    assert!(of(&state, task).is_some(), "the story lost its words");
+}
+
+#[test]
+fn words_that_reach_a_task_already_erased_go_with_it() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    let task = Ulid::generate();
+    applied(
+        &mut state,
+        Op::TaskAdd {
+            id: task,
+            d: TaskAdd::new("Rina's booster", "a0"),
+        },
+    );
+    let words = made(room.path(), &state, task, task, "", None).unwrap().op;
+    applied(&mut state, Op::TaskDelete { id: task });
+
+    applied(&mut state, words);
+
+    assert!(state.docs.values().all(|one| one.task_of != Some(task)));
+    assert!(state.is_erased(id_at(task, 1)));
+}
+
+#[test]
+fn a_task_erased_without_naming_its_words_still_takes_them() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    let task = Ulid::generate();
+    applied(
+        &mut state,
+        Op::TaskAdd {
+            id: task,
+            d: TaskAdd::new("Rina's booster", "a0"),
+        },
+    );
+    let words = made(room.path(), &state, task, task, "", None).unwrap().op;
+    applied(&mut state, words);
+
+    applied(&mut state, Op::TaskDelete { id: task });
+
+    assert!(of(&state, task).is_none());
+    assert!(state.is_erased(id_at(task, 1)));
+}
+
+#[test]
 fn every_turn_of_a_routine_answers_to_its_first() {
     let mut state = State::default();
     let first = Ulid::generate();
@@ -241,6 +317,37 @@ fn every_turn_of_a_routine_answers_to_its_first() {
     assert_eq!(super::owner(&state, first), first);
     let alone = Ulid::generate();
     assert_eq!(super::owner(&state, alone), alone);
+}
+
+#[test]
+fn a_routine_s_words_are_found_on_the_turn_still_open() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    let first = Ulid::generate();
+    let second = Ulid::generate();
+    applied(
+        &mut state,
+        Op::TaskAdd {
+            id: first,
+            d: TaskAdd::new("Water the plants", "a0"),
+        },
+    );
+    let words = made(room.path(), &state, first, first, "", None)
+        .unwrap()
+        .op;
+    applied(&mut state, words);
+    applied(
+        &mut state,
+        Op::TaskDone {
+            id: first,
+            filled: false,
+        },
+    );
+    let mut d = TaskAdd::new("Water the plants", "a1");
+    d.after = Some(first);
+    applied(&mut state, Op::TaskAdd { id: second, d });
+
+    assert_eq!(super::behind(&state).get(&file_at(first, 1)), Some(&second));
 }
 
 #[test]
