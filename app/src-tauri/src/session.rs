@@ -15,6 +15,7 @@ pub struct Session {
     pub minded: std::collections::HashMap<String, String>,
     /// Each document put to the person, with how the other side and this one printed when asked.
     pub asked: std::collections::HashMap<String, (String, Option<String>)>,
+    pub written: tisty_core::paged::Told,
     pub locale: Option<String>,
     /// The fingerprint is read from the directory entry, which lags a write on Windows, so what
     /// was committed here is counted rather than measured.
@@ -115,6 +116,7 @@ impl Session {
             print,
             minded: std::collections::HashMap::new(),
             asked: std::collections::HashMap::new(),
+            written: std::collections::HashMap::new(),
             writes: 0,
             behind: false,
         };

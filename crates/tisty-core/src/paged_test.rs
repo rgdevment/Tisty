@@ -98,3 +98,30 @@ fn a_bullet_that_opens_with_a_link_is_words_not_a_step() {
         vec![("Notes".into(), PageChange::Written)]
     );
 }
+
+#[test]
+fn a_section_written_in_for_a_while_is_told_once_and_again_after_a_long_quiet() {
+    let task = Ulid::generate();
+    let now = PAGE.replace("Renew it.", "Renew it before Friday.");
+    let mut told = super::Told::new();
+    let mut kept = |at: i64| {
+        let ops = super::quieted(paged(task, PAGE, &now), &told, at);
+        super::told(&mut told, &ops, at);
+        ops.len()
+    };
+
+    assert_eq!(kept(0), 1);
+    assert_eq!(kept(super::WRITING_FOR - 1), 0);
+    assert_eq!(kept(super::WRITING_FOR), 1);
+    assert_eq!(kept(super::WRITING_FOR - 10), 1);
+}
+
+#[test]
+fn a_section_whose_event_never_reached_the_log_is_told_again() {
+    let task = Ulid::generate();
+    let now = PAGE.replace("Renew it.", "Renew it before Friday.");
+    let told = super::Told::new();
+
+    assert_eq!(super::quieted(paged(task, PAGE, &now), &told, 0).len(), 1);
+    assert_eq!(super::quieted(paged(task, PAGE, &now), &told, 5).len(), 1);
+}

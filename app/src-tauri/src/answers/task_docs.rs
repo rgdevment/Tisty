@@ -140,13 +140,17 @@ pub fn task_doc_settled(
     }
     let renamed = renamed.unwrap_or_default();
     let mut ops = tisty_core::stages::reconciled_with(&task, before.as_deref(), &now, &renamed);
+    let at = jiff::Timestamp::now().as_second();
     if let Some(before) = &before {
-        ops.extend(tisty_core::paged::paged(task.id, before, &now));
+        let paged = tisty_core::paged::paged(task.id, before, &now);
+        ops.extend(tisty_core::paged::quieted(paged, &session.written, at));
     }
     if ops.is_empty() {
         return Ok(None);
     }
+    let sent = ops.clone();
     session.commit_all(ops)?;
+    tisty_core::paged::told(&mut session.written, &sent, at);
     answered(&session, id).map(Some)
 }
 
