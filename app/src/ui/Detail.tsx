@@ -86,6 +86,10 @@ export default function Detail({
   const opened = useRef<HTMLElement>(null);
   const [shaping, setShaping] = useState(false);
   const [held, setHeld] = useState(false);
+  // The template is edited only while the task is open and its words can be written.
+  useEffect(() => {
+    if (task.status !== "open" || held) setShaping(false);
+  }, [task.status, held]);
   const card = useRef<HTMLDivElement>(null);
   const edge = useEdge(card);
   const live = task.status === "open";

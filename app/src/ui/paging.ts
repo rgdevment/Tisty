@@ -77,7 +77,7 @@ export type Went =
   | { kind: "more"; at: [number, number]; target: string; x: number; y: number }
   | { kind: "end" }
   | { kind: "title" }
-  | { kind: "hint"; at: [number, number]; seed: string }
+  | { kind: "hint"; at: [number, number]; seed: string; from: "hint" | "add-step" | "add-section" }
   | { kind: "section"; at: [number, number] }
   | { kind: "cut"; at: [number, number] }
   | null;
@@ -158,7 +158,14 @@ export const went = (target: Element, selecting: boolean): Went => {
   // While the template is edited, a hint is its words to mend, not a place to write.
   if (hint && shaping && hinted?.matches(".hint, .hint-gone")) return { kind: "block", at: hint };
   if (shaping && hinted?.matches(".add-step")) return null;
-  if (hint) return { kind: "hint", at: hint, seed: hinted?.dataset.seed ?? "" };
+  if (hint) {
+    const from = hinted?.classList.contains("add-section")
+      ? "add-section"
+      : hinted?.classList.contains("add-step")
+        ? "add-step"
+        : "hint";
+    return { kind: "hint", at: hint, seed: hinted?.dataset.seed ?? "", from };
+  }
   // A task's sections are filled in, not renamed, until its structure is asked for; an empty one is still mended.
   const label = target.closest(".page > :is(h1, h2, h3, h4, h5, h6)");
   if (look.contains("untitled") && !look.contains("shaping") && label?.textContent?.trim()) {

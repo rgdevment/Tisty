@@ -116,7 +116,7 @@ export default function Stage() {
       onBack={bringBack}
       fresh={carried}
     />
-  ) : chosen.named === "lists" && !chosen.list ? (
+  ) : chosen.named === "lists" && !chosen.list && !sheet ? (
     <Lists
       lists={data.every ?? data.lists}
       counts={data.counts}

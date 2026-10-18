@@ -138,11 +138,7 @@ fn search(
     let listed: std::collections::BTreeMap<String, bool> = session
         .state
         .papers()
-        .filter(|one| match scope {
-            Scope::Open => !session.state.held_away(one),
-            Scope::Archived => session.state.held_away(one),
-            Scope::Either => true,
-        })
+        .filter(|one| session.state.doc_kept_by(scope, one))
         .map(|one| (one.file.clone(), session.state.held_away(one)))
         .collect();
     let root = session.paths.docs();

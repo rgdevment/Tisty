@@ -824,11 +824,7 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let reading = under.is_some();
     let mut kept: Vec<&tisty_core::model::Kept> = state
         .papers()
-        .filter(|one| match scope {
-            tisty_core::view::Scope::Open => !state.held_away(one),
-            tisty_core::view::Scope::Archived => state.held_away(one),
-            tisty_core::view::Scope::Either => true,
-        })
+        .filter(|one| state.doc_kept_by(scope, one))
         .filter(|one| within.is_none_or(|at| one.folder == Some(at) && one.page_of.is_none()))
         .filter(|one| under.is_none_or(|up| one.page_of == Some(up)))
         .collect();

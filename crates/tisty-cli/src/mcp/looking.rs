@@ -834,11 +834,7 @@ fn papers_matching(
 ) -> Vec<Value> {
     let here: std::collections::HashMap<String, (bool, Option<String>, bool)> = state
         .papers()
-        .filter(|one| match scope {
-            tisty_core::view::Scope::Open => !state.held_away(one),
-            tisty_core::view::Scope::Archived => state.held_away(one),
-            tisty_core::view::Scope::Either => true,
-        })
+        .filter(|one| state.doc_kept_by(scope, one))
         .map(|one| {
             (
                 one.file.clone(),

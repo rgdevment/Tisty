@@ -124,10 +124,25 @@ impl State {
         self.docs.values().filter(|one| one.task_of.is_none())
     }
 
-    /// A task's words are seen while the task is, never once it is hidden or gone.
+    /// A task's words are seen while one of the turns they belong to is in sight.
     pub fn doc_in_sight(&self, kept: &Kept) -> bool {
-        kept.task_of
-            .is_none_or(|task| self.tasks.get(&task).is_some_and(|one| !one.folded()))
+        let Some(owner) = kept.task_of else {
+            return true;
+        };
+        let seen = |task: &crate::model::Task| !task.folded();
+        self.tasks.get(&owner).is_some_and(seen)
+            || self.tasks.values().any(|one| {
+                one.after.is_some() && seen(one) && crate::task_docs::owner(self, one.id) == owner
+            })
+    }
+
+    /// Whether a document belongs to what a scope asks for: the archive, the rest, or both.
+    pub fn doc_kept_by(&self, scope: crate::view::Scope, kept: &Kept) -> bool {
+        match scope {
+            crate::view::Scope::Open => !self.held_away(kept),
+            crate::view::Scope::Archived => self.held_away(kept),
+            crate::view::Scope::Either => true,
+        }
     }
 
     /// What the archive holds: the document's own mark, or the folder it sits in.

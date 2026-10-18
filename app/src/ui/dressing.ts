@@ -286,8 +286,11 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
     if (block) reach.onBlock?.(at, block, "", read);
   }
   if (asked.kind === "hint") {
+    const named = `${asked.at[0]}-${asked.at[1]}`;
     const held = page.querySelector<HTMLElement>(
-      `.page > .hint[data-at="${asked.at[0]}-${asked.at[1]}"], .page > :is(.add-step, .add-section)[data-after="${asked.at[0]}-${asked.at[1]}"]`,
+      asked.from === "hint"
+        ? `.page > .hint[data-at="${named}"]`
+        : `.page > .${asked.from}[data-after="${named}"]`,
     );
     const end = charsAt(reach.body, asked.at[1]);
     if (held) reach.onBlock?.([end, end], held, asked.seed);
@@ -332,7 +335,7 @@ const below = (page: Document, target: Element, event: MouseEvent): boolean => {
   const sheet = page.querySelector(".page");
   if (!sheet || (target !== sheet && target !== page.body && target !== page.documentElement))
     return false;
-  const blocks = sheet.querySelectorAll(":scope > :not(.cm-dock)");
+  const blocks = sheet.querySelectorAll(":scope > :not(.cm-dock, .add-section)");
   const last = blocks[blocks.length - 1];
   return !last || event.clientY > last.getBoundingClientRect().bottom;
 };
