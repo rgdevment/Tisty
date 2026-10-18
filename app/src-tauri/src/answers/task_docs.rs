@@ -256,3 +256,60 @@ pub fn task_page_import(
     }
     Ok(Some(id.to_string()))
 }
+
+fn written_on(session: &mut Session, id: TaskId, edit: impl FnOnce(&str) -> Option<String>) {
+    let paths = session.paths.clone();
+    let done = tisty_core::task_docs::wrote(&paths, &mut session.store, id, |was, _| edit(was));
+    if let Err(e) = done {
+        tisty_core::witness::warn(
+            channel::WINDOW,
+            "a task's page could not take what its closing said",
+            &[("why", tisty_core::witness::Fact::Why(e.to_string()))],
+        );
+    }
+    if let Some(file) = file_of(session, id) {
+        session.corpus.forget(&file);
+    }
+    let _ = session.reload();
+}
+
+/// How it went reaches the page, or the round's log, before the task closes: nothing waits on a later write.
+pub(crate) fn closing_words(session: &mut Session, id: TaskId, summary: Option<&str>) -> Vec<Op> {
+    let summary = summary.map(str::trim).filter(|one| !one.is_empty());
+    let Some(task) = session.state.tasks.get(&id).filter(|one| one.is_open()) else {
+        return Vec::new();
+    };
+    if task.repeat.is_none() && task.after.is_none() {
+        if let Some(summary) = summary {
+            written_on(session, id, |was| {
+                Some(tisty_core::closing::summed(was, summary))
+            });
+        }
+        return Vec::new();
+    }
+    let said = file_of(session, id)
+        .and_then(|file| tisty_core::docs::read(&session.paths.docs(), &file).ok())
+        .map(|body| tisty_core::closing::said_in(&body, &tisty_core::closing::THIS_TIME))
+        .unwrap_or_default();
+    let words: Vec<&str> = [summary.unwrap_or(""), said.trim()]
+        .into_iter()
+        .filter(|one| !one.is_empty())
+        .collect();
+    if words.is_empty() {
+        return Vec::new();
+    }
+    let zone = jiff::tz::TimeZone::system().iana_name().map(str::to_string);
+    let d =
+        tisty_core::event::LogAdd::new(ulid::Ulid::generate(), words.join("\n\n")).in_zone(zone);
+    vec![Op::TaskLog { id, d }]
+}
+
+/// Only once the round's words are in its log does the page let them go for the next round.
+pub(crate) fn round_cleared(session: &mut Session, id: TaskId) {
+    if file_of(session, id).is_none() {
+        return;
+    }
+    written_on(session, id, |was| {
+        tisty_core::closing::this_time(was).map(|(_, cleared)| cleared)
+    });
+}

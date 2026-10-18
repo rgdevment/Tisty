@@ -521,3 +521,35 @@ fn a_task_that_repeats_nothing_is_not_a_series() {
 
     assert!(series(&state, id).is_none());
 }
+
+#[test]
+fn a_round_tells_what_it_ticked_and_what_it_left_in_its_log() {
+    let chain = Chain::new().turn("2026-08-01", daily(From::Due));
+    let id = chain.ids[0];
+    let (water, feed) = (Ulid::generate(), Ulid::generate());
+    let step = |step, text: &str| Op::StepAdd {
+        id,
+        d: crate::event::StepAdd {
+            step,
+            text: text.into(),
+            order: "a0".into(),
+        },
+    };
+    let chain = chain
+        .then(step(water, "water"))
+        .then(step(feed, "feed"))
+        .then(Op::StepDone {
+            id,
+            d: crate::event::StepRef { step: water },
+        })
+        .then(Op::TaskLog {
+            id,
+            d: crate::event::LogAdd::new(Ulid::generate(), "The big pot was dry."),
+        })
+        .done();
+
+    let round = &chain.told().turns[0];
+
+    assert_eq!((round.steps_done, round.steps), (1, 2));
+    assert_eq!(round.said, vec!["The big pot was dry.".to_string()]);
+}

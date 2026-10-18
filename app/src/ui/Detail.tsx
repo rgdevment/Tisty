@@ -20,6 +20,7 @@ import History from "./History";
 import Left from "./Left";
 import Menu, { type Choice } from "./Menu";
 import Panel from "./Panel";
+import Rounds from "./Rounds";
 import Routine from "./Routine";
 import Section from "./Section";
 import { saidBy } from "./Spoke";
@@ -36,7 +37,7 @@ interface Props {
   onExpand?: () => void;
   onCollapse: () => void;
   onPatch: (change: Change) => void;
-  onComplete: () => void;
+  onComplete: (summary?: string) => void;
   onDiscard: () => void;
   onReopen: () => void;
   onStillOpen: () => void;
@@ -233,6 +234,7 @@ export default function Detail({
         onTask={onOpenPart}
       />
       <History task={task} onError={onError} onDoc={onDoc} />
+      <Rounds task={task} onError={onError} onDoc={onDoc} />
     </>
   );
 
@@ -244,6 +246,7 @@ export default function Detail({
       <TaskWords task={task} onError={onError} onDoc={onDoc} onTask={onOpenPart} />
 
       <History task={task} onError={onError} onDoc={onDoc} />
+      <Rounds task={task} onError={onError} onDoc={onDoc} />
 
       {(task.repeat || task.after) && (
         <Routine task={task.id} onError={onError} heading={<Section label={t("routine")} />} />
@@ -323,6 +326,7 @@ export default function Detail({
 
 // The card's padding less the button's, less the footer's own: the label lines up with the title.
 const LINED = 32 - 8 - 12;
+const SUMMED_AT_MOST = 280;
 
 function Settled({
   task,
@@ -342,7 +346,7 @@ function Settled({
   task: Task;
   edge?: number;
   left?: number;
-  onComplete: () => void;
+  onComplete: (summary?: string) => void;
   onDiscard: () => void;
   onReopen: () => void;
   onStillOpen: () => void;
@@ -354,6 +358,7 @@ function Settled({
   onShape?: (shaping: boolean) => void;
 }) {
   const [more, setMore] = useState<{ x: number; y: number } | null>(null);
+  const [summing, setSumming] = useState<string | null>(null);
   const owing = task.status === "open" && (left ?? 0) > 0;
   const open = task.status === "open";
   const reading = readingOf(task);
@@ -370,7 +375,7 @@ function Settled({
   const choices: Choice[] = open
     ? [
         ...(task.resolved?.drop
-          ? [{ key: "done", label: t("markDone"), icon: "✓", onPick: onComplete }]
+          ? [{ key: "done", label: t("markDone"), icon: "✓", onPick: () => onComplete() }]
           : task.resolved
             ? [discard]
             : []),
@@ -416,6 +421,50 @@ function Settled({
 
   return (
     <>
+      {summing !== null && (
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            onComplete(summing.trim() || undefined);
+            setSumming(null);
+          }}
+          className="shrink-0 border-hair border-t bg-panel/70 px-3 py-2 backdrop-blur"
+          style={edge === undefined ? undefined : { paddingLeft: edge + LINED }}
+        >
+          <textarea
+            ref={(one) => one?.focus()}
+            rows={2}
+            maxLength={SUMMED_AT_MOST}
+            value={summing}
+            placeholder={t(task.repeat || task.after ? "closeSummedRound" : "closeSummedHint")}
+            aria-label={t("closeSummed")}
+            onChange={(event) => setSumming(event.target.value.split("\n").slice(0, 2).join("\n"))}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                event.preventDefault();
+                setSumming(null);
+              }
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                event.currentTarget.form?.requestSubmit();
+              }
+            }}
+            className="w-full resize-none rounded-md border border-hair bg-sheet px-2 py-1.5 text-[13px] text-ink outline-none focus:border-accent"
+          />
+          <div className="mt-1.5 flex items-center gap-1 text-[12.5px] text-soft">
+            <button type="submit" className={`${seat} font-medium text-accent`}>
+              <span aria-hidden="true">✓</span> {t("closeSummedGo")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setSumming(null)}
+              className={`${seat} hover:text-ink`}
+            >
+              {t("cancel")}
+            </button>
+          </div>
+        </form>
+      )}
       <footer
         aria-label={t("taskDoings")}
         className="shrink-0 border-hair border-t bg-panel/70 px-3 py-1.5 text-[12.5px] text-soft backdrop-blur"
@@ -442,11 +491,19 @@ function Settled({
                   )}
                   <button
                     type="button"
-                    onClick={onComplete}
+                    onClick={() => onComplete()}
                     title={owing ? t("closeLettingGoWhy") : undefined}
                     className={`${seat} font-medium text-accent`}
                   >
                     <span aria-hidden="true">✓</span> {owing ? t("closeLettingGo") : t("markDone")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSumming("")}
+                    title={t("closeSummedWhy")}
+                    className={`${seat} hover:text-ink`}
+                  >
+                    <span aria-hidden="true">✎</span> {t("closeSummed")}
                   </button>
                 </>
               )}

@@ -177,6 +177,7 @@ pub fn complete(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
     also: Option<Vec<String>>,
+    summary: Option<String>,
 ) -> Answer<Task> {
     let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
     let also = also
@@ -188,12 +189,16 @@ pub fn complete(
         })
         .collect::<Result<Vec<_>, _>>()?;
     let mut session = held(&session);
-    let ops = if also.is_empty() {
-        session.state.completing(id, jiff::Zoned::now())
-    } else {
-        session.state.covering(id, jiff::Zoned::now(), &also)
-    };
+    let mut ops = super::task_docs::closing_words(&mut session, id, summary.as_deref());
+    let logged = !ops.is_empty();
+    ops.extend(match also.is_empty() {
+        true => session.state.completing(id, jiff::Zoned::now()),
+        false => session.state.covering(id, jiff::Zoned::now(), &also),
+    });
     session.commit_all(ops)?;
+    if logged {
+        super::task_docs::round_cleared(&mut session, id);
+    }
     let task = session
         .state
         .tasks
