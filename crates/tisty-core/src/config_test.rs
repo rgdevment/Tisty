@@ -799,6 +799,10 @@ fn a_moved_word_names_google_as_1_30_reads_it_and_a_later_cloud_as_a_folder_name
         }
     );
     assert_eq!(bound("folder:Shared"), Bound::Folder("Shared"));
+    assert_eq!(
+        bound("folder:OneDrive · old notes"),
+        Bound::Folder("OneDrive · old notes")
+    );
     assert_eq!(bound("alone"), Bound::Alone);
     assert_eq!(at(ONEDRIVE).shown(), "OneDrive");
 }

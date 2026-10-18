@@ -91,7 +91,7 @@ export default function Clouded({
 
   // A copy this machine already carried stays with its account; one never carried may change it.
   const reconnected = async () => {
-    const account = await cloudConnect(status?.provider ?? "google");
+    const account = await cloudConnect(status?.provider ?? state.cloudProvider ?? "google");
     const was = status?.account;
     if (was && was !== account.account && status?.joined) {
       await cloudForget(account.account, account.provider).catch(() => undefined);
@@ -123,7 +123,9 @@ export default function Clouded({
     if (how === "reconnect") return reconnect();
     if (how === "turnOn") return switched(true);
     if (how === "choose") return carry();
-    openUrl(storageOf(status?.provider)).catch((e) => fail({ card: "sync", text: saidPlainly(e) }));
+    const storage = storageOf(status?.provider ?? state.cloudProvider);
+    if (!storage) return;
+    openUrl(storage).catch((e) => fail({ card: "sync", text: saidPlainly(e) }));
   };
 
   const forget = async () => {

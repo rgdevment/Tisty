@@ -82,6 +82,7 @@ pub(crate) struct TokenAnswer {
 pub(crate) fn posted(
     http: &reqwest::blocking::Client,
     url: &str,
+    lost: &[&str],
     fields: &[(&str, &str)],
 ) -> Result<TokenAnswer, Hitch> {
     let body = url::form_urlencoded::Serializer::new(String::new())
@@ -108,7 +109,7 @@ pub(crate) fn posted(
             status,
             wait,
             &text,
-            &["invalid_grant", "interaction_required", "consent_required"],
+            lost,
         )),
     }
 }
@@ -135,6 +136,7 @@ impl Renew for MicrosoftRenew {
         let granted = posted(
             &self.http,
             &self.at.token,
+            &["invalid_grant", "interaction_required", "consent_required"],
             &[
                 ("client_id", self.client.id),
                 ("grant_type", "refresh_token"),

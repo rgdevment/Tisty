@@ -1,15 +1,14 @@
-const HUES: Record<string, [string, string]> = {
-  google: ["G", "bg-[#1a73e8]"],
-  onedrive: ["O", "bg-[#0364b8]"],
-};
+import { cloudOf } from "../clouds";
 
-export default function CloudMark({ provider, named }: { provider?: string; named?: string }) {
-  const [letter, hue] = (provider && HUES[provider]) || [named?.slice(0, 1) ?? "·", "bg-soft"];
+export default function CloudMark({ provider, muted }: { provider?: string; muted?: boolean }) {
+  const cloud = cloudOf(provider);
   return (
     <span
-      className={`grid size-6 flex-none place-items-center rounded-md text-[11.5px] font-semibold text-white ${hue}`}
+      className={`grid size-6 flex-none place-items-center rounded-md text-[11.5px] font-semibold text-white ${
+        muted ? "bg-soft" : (cloud?.hue ?? "bg-soft")
+      }`}
     >
-      {letter}
+      {cloud?.letter ?? "·"}
     </span>
   );
 }

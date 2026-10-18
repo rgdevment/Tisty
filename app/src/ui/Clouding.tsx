@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { followedTo, letGoUnused } from "../cloudState";
+import { CLOUDS, cloudOf } from "../clouds";
 import { useStuck } from "../coming";
 import {
   type Connected,
@@ -31,14 +32,7 @@ const back = "text-faint hover:text-ink disabled:opacity-60";
 const go =
   "ml-auto rounded-[10px] bg-accent px-4 py-2 text-[13px] font-medium text-white hover:opacity-90 disabled:opacity-60";
 
-const CLOUDS: { provider: string; name: Word; why: Word }[] = [
-  { provider: "google", name: "cloudGoogle", why: "cloudGoogleWhy" },
-  { provider: "onedrive", name: "cloudOneDrive", why: "cloudOneDriveWhy" },
-  { provider: "dropbox", name: "cloudDropbox", why: "cloudComing" },
-];
-
-const nameOf = (provider: string) =>
-  t(CLOUDS.find((one) => one.provider === provider)?.name ?? "cloudGoogle");
+const nameOf = (provider: string) => t(cloudOf(provider)?.name ?? "cloudGoogle");
 
 // Only the newest sign-in may let an account go: an older one ending late would take a newer token with it.
 let asking = 0;
@@ -219,15 +213,15 @@ export default function Clouding({ clouds, busy, onTrouble, onBack, onDone, onCo
     <div className="flex flex-col gap-3">
       <p className="text-[12.5px] leading-relaxed text-soft">{of("cloudConnectWhy")}</p>
       {CLOUDS.map((one) =>
-        offered?.includes(one.provider) ? (
+        offered?.includes(one.id) ? (
           <button
-            key={one.provider}
+            key={one.id}
             type="button"
             disabled={stuck}
-            onClick={() => connect(one.provider)}
-            className={`${row} ${one.provider === picked ? "border-accent" : "border-line"} hover:bg-hover disabled:opacity-60`}
+            onClick={() => connect(one.id)}
+            className={`${row} ${one.id === picked ? "border-accent" : "border-line"} hover:bg-hover disabled:opacity-60`}
           >
-            <CloudMark provider={one.provider} />
+            <CloudMark provider={one.id} />
             <span className="min-w-0 flex-1">
               <span className="block text-[13px] font-medium">{t(one.name)}</span>
               <span className="block text-[11.5px] text-faint">{t(one.why)}</span>
@@ -235,8 +229,8 @@ export default function Clouding({ clouds, busy, onTrouble, onBack, onDone, onCo
             <span className="flex-none text-[11.5px] text-accent">{t("cloudConnectDo")}</span>
           </button>
         ) : (
-          <div key={one.provider} aria-disabled="true" className={`${row} border-hair opacity-70`}>
-            <CloudMark named={t(one.name)} />
+          <div key={one.id} aria-disabled="true" className={`${row} border-hair opacity-70`}>
+            <CloudMark provider={one.id} muted />
             <span className="min-w-0 flex-1">
               <span className="block text-[13px] font-medium">{t(one.name)}</span>
               <span className="block text-[11.5px] text-faint">{t("cloudComing")}</span>

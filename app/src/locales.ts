@@ -1,3 +1,5 @@
+import { cloudOf } from "./clouds";
+
 const en = {
   today: "Today",
   kindDoc: "Document",
@@ -4072,27 +4074,25 @@ adopt();
 export const locale = (): string => code;
 export type Word = keyof Catalog;
 
-const clouds: Record<string, [string, string]> = {
-  google: ["Google Drive", "Google"],
-  onedrive: ["OneDrive", "Microsoft"],
-};
 let spokenOf = "google";
 
 export function speakOf(provider?: string | null) {
   spokenOf = provider ?? "google";
 }
 
-const own = (key: Word, provider: string): string | undefined => {
-  if (provider !== "onedrive") return undefined;
-  const variant = `${key}OneDrive` as Word;
-  return spoken[variant] ?? en[variant];
+const own = (key: Word, variant?: string): string | undefined => {
+  if (!variant) return undefined;
+  const word = `${key}${variant}` as Word;
+  return spoken[word] ?? en[word];
 };
 
 export const said = (key: Word, provider: string): string => {
-  const text = own(key, provider) ?? spoken[key] ?? en[key] ?? key;
+  const cloud = cloudOf(provider);
+  const text = own(key, cloud?.variant) ?? spoken[key] ?? en[key] ?? key;
   if (!text.includes("{")) return text;
-  const [cloud, maker] = clouds[provider] ?? [provider, provider];
-  return text.replace(/\{cloud\}/g, cloud).replace(/\{maker\}/g, maker);
+  return text
+    .replace(/\{cloud\}/g, cloud?.shown ?? provider)
+    .replace(/\{maker\}/g, cloud?.maker ?? provider);
 };
 
 export const t = (key: Word): string => said(key, spokenOf);

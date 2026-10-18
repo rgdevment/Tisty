@@ -44,7 +44,11 @@ pub(crate) fn refused(hitch: Hitch, provider: &str) -> Refusal {
 /// no token and nothing of theirs, through whatever proxy the system names.
 #[tauri::command]
 pub async fn cloud_health(provider: Option<String>) -> Answer<&'static str> {
-    let onedrive = provider.as_deref() == Some(ONEDRIVE);
+    let onedrive = match provider.as_deref().unwrap_or(GOOGLE) {
+        GOOGLE => false,
+        ONEDRIVE => true,
+        _ => return Err(Refusal::of("cloudNotOffered")),
+    };
     let health = tauri::async_runtime::spawn_blocking(move || match onedrive {
         true => tisty_google::health::probe_at(
             ONEDRIVE_PROBED,
@@ -389,23 +393,10 @@ pub async fn cloud_revoke(
 ) -> Answer<()> {
     let at = whose(&session, account, provider)?;
     if at.provider == ONEDRIVE {
-        // The page opens only for an access this machine may let go of, so a word it still owes is never stranded.
-        let (paths, home) = {
-            let session = held(&session);
-            (session.paths.clone(), session.reach.home_of(&at))
-        };
-        let asked = at.clone();
-        let untold = tauri::async_runtime::spawn_blocking(move || {
-            crate::leaving::owed_to(&paths, &asked.account) && !lost_for_good_at(&home, &asked)
-        })
-        .await
-        .map_err(|_| Refusal::of("internal"))?;
-        if untold {
-            return Err(Refusal::of("forgetUntold"));
-        }
-        tauri_plugin_opener::open_url(ONEDRIVE_CONSENTS, None::<&str>)
-            .map_err(|_| Refusal::of("cannotOpen"))?;
-        return forget_here(app, &session, at).await;
+        // Forgotten here first, so the page Microsoft keeps never opens over an access this machine still holds.
+        forget_here(app, &session, at).await?;
+        return tauri_plugin_opener::open_url(ONEDRIVE_CONSENTS, None::<&str>)
+            .map_err(|_| Refusal::of("cannotOpen"));
     }
     if at.provider != GOOGLE {
         return Err(Refusal::of("cloudNotOffered"));

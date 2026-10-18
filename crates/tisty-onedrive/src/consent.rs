@@ -29,12 +29,12 @@ impl std::ops::Deref for Consent {
 }
 
 impl Consent {
-    // Registered as http://localhost, which Microsoft matches on any port.
+    // Registered as http://localhost, which Microsoft matches on any port and a browser may reach over ::1.
     pub fn begin(client: Client) -> Result<Self, Hitch> {
         let asking = Asking::begin(
             "Microsoft",
             CONSENT_URL,
-            |port| format!("http://localhost:{port}"),
+            true,
             client.id,
             SCOPES,
             &[("response_mode", "query"), ("prompt", "select_account")],
@@ -53,6 +53,7 @@ fn traded(client: Client, code: &str, asking: &Asking, at: &Endpoints) -> Result
     let answer = posted(
         &http()?,
         &at.token,
+        &[],
         &[
             ("client_id", client.id),
             ("code", code),

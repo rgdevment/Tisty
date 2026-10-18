@@ -61,8 +61,11 @@ pub struct Loopback {
 
 impl Loopback {
     // The same port on ::1 too, since a browser may resolve localhost there and never try 127.0.0.1.
-    pub fn open(who: &'static str) -> Result<Self, Hitch> {
-        let (listeners, port) = paired()?;
+    pub fn open(who: &'static str, localhost: bool) -> Result<Self, Hitch> {
+        let (listeners, port) = match localhost {
+            true => paired()?,
+            false => alone()?,
+        };
         Ok(Self {
             state: random_text(24)?,
             port,
@@ -72,7 +75,6 @@ impl Loopback {
         })
     }
 
-    /// Set from anywhere, it ends the wait for the browser at once.
     pub fn dropping(&self) -> Arc<AtomicBool> {
         self.dropped.clone()
     }
@@ -148,13 +150,16 @@ impl Asking {
     pub fn begin(
         who: &'static str,
         page: &str,
-        redirect: impl FnOnce(u16) -> String,
+        localhost: bool,
         client: &str,
         scope: &str,
         more: &[(&str, &str)],
     ) -> Result<Self, Hitch> {
-        let loopback = Loopback::open(who)?;
-        let redirect = redirect(loopback.port);
+        let loopback = Loopback::open(who, localhost)?;
+        let redirect = match localhost {
+            true => format!("http://localhost:{}", loopback.port),
+            false => format!("http://127.0.0.1:{}/", loopback.port),
+        };
         let verifier = random_text(48)?;
         let query = url::form_urlencoded::Serializer::new(String::new())
             .append_pair("client_id", client)
@@ -208,12 +213,15 @@ fn paired() -> Result<(Vec<TcpListener>, u16), Hitch> {
             Err(_) => return Ok((vec![first], port)),
         }
     }
+    alone()
+}
+
+fn alone() -> Result<(Vec<TcpListener>, u16), Hitch> {
     let first = TcpListener::bind(("127.0.0.1", 0))?;
     let port = first.local_addr()?.port();
     Ok((vec![first], port))
 }
 
-/// The browser is told how it ended only once the code is traded and the grant is known good.
 pub fn tell_browser(browser: &mut TcpStream, connected: bool) {
     answer(
         browser,

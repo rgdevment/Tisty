@@ -71,7 +71,8 @@ pub fn bound(to: &str) -> Bound<'_> {
                 let email = named
                     .strip_prefix(shown_of(provider))?
                     .strip_prefix(" · ")?;
-                Some(Bound::Cloud { provider, email })
+                let address = email.contains('@') && !email.contains(['/', '\\', ' ']);
+                address.then_some(Bound::Cloud { provider, email })
             })
             .unwrap_or(Bound::Folder(named)),
         _ => Bound::Alone,

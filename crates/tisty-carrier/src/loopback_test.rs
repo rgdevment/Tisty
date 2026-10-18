@@ -97,7 +97,7 @@ fn a_socket_dropped_before_it_was_taken_never_ends_the_sign_in_but_a_real_fault_
 #[test]
 fn a_browser_that_reaches_localhost_over_ipv6_still_lands() {
     use std::io::Write;
-    let open = Loopback::open("Microsoft").unwrap();
+    let open = Loopback::open("Microsoft", true).unwrap();
     let Ok(mut stream) = std::net::TcpStream::connect(("::1", open.port)) else {
         return;
     };

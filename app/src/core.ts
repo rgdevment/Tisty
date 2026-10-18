@@ -822,7 +822,7 @@ export const cloudConnect = (provider: string): Promise<Connected> =>
   invoke("cloud_connect", { provider });
 export const cloudConnectCancel = (): Promise<void> => invoke("cloud_connect_cancel");
 export const cloudChoose = (account: string, email: string, provider?: string): Promise<void> =>
-  invoke("cloud_choose", { account, email, provider });
+  invoke<void>("cloud_choose", { account, email, provider }).then(() => speakOf(provider));
 export const cloudForget = (account?: string, provider?: string): Promise<void> =>
   invoke("cloud_forget", { account, provider });
 export const cloudRevoke = (account?: string, provider?: string): Promise<void> =>
@@ -830,7 +830,7 @@ export const cloudRevoke = (account?: string, provider?: string): Promise<void> 
 export const cloudPause = (paused: boolean): Promise<void> => invoke("cloud_pause", { paused });
 export const cloudStatus = (): Promise<CloudStatus | null> =>
   invoke<CloudStatus | null>("cloud_status").then((status) => {
-    speakOf(status?.provider);
+    if (status) speakOf(status.provider);
     return status;
   });
 
