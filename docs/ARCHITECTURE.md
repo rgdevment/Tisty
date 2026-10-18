@@ -1227,13 +1227,16 @@ sequenceDiagram
   `task.add`.
 - **Updates** (`update.rs`) follow how Tisty was installed (`Route`: Store,
   Brew, Download) and check a manifest on GitHub once a day. The feeds
-  (`release-manifest.json`, `latest.json`, `candidate.json`) are signed with a
-  minisign key of their own, held only by the `feed` environment the release
-  publishes from, which signs a trial file before anything is published. The app
-  verifies `release-manifest.json.sig` against `TISTY_FEED_KEY` before it
-  announces a version, asking both past the cache at once; one it cannot verify
-  is no news and leaves what was found before. A build without that key reads
-  the feed as before, and the daily feed check verifies every signature.
+  (`release-manifest.json`, `latest.json`, `candidate.json`) differ in what
+  guards them. The manifest, which announces versions, is signed with a minisign
+  key of its own, held only by the `feed` environment the release publishes
+  from, which signs a trial file before anything is published. The app verifies
+  `release-manifest.json.sig` against `TISTY_FEED_KEY` before it announces a
+  version, asking both past the cache at once; one it cannot verify is no news,
+  leaves what was found before and waits for the next day's look. A build
+  without that key reads it as before, and the daily feed check fails on a
+  missing or wrong signature. The channel files are not signed: the updater
+  reads them, and what it installs is guarded by the installer's signature.
   Each installer is signed too, with the updater key, and the release signs it
   with the version it was cut for (`tauri signer sign --app-version`). The app requires
   that signed version to match the one offered (`requireSignedVersion`), and the

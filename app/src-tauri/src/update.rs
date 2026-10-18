@@ -1,4 +1,4 @@
-use tisty_core::witness::{self, Fact, channel};
+use tisty_core::witness::{self, channel};
 
 /// A branch of its own, holding these three files and nothing else. The address has to stay the
 /// same across every version, and no release can answer for that: one is named after the version
@@ -11,7 +11,6 @@ const MANIFEST: &str =
 pub const LATEST: &str = "https://raw.githubusercontent.com/rgdevment/Tisty/manifest/latest.json";
 pub const CANDIDATE: &str =
     "https://raw.githubusercontent.com/rgdevment/Tisty/manifest/candidate.json";
-const PATIENCE: std::time::Duration = std::time::Duration::from_secs(5);
 const APART: jiff::SignedDuration = jiff::SignedDuration::from_hours(24);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
@@ -247,36 +246,6 @@ fn chosen(running: Option<&std::path::Path>, there: impl Fn(&std::path::Path) ->
     Kept::plain(Route::Download)
 }
 
-const READ_AT_MOST: usize = 16 * 1024;
-
-fn got(url: &str) -> Option<Vec<u8>> {
-    let mut asked = reqwest::blocking::Client::builder()
-        .timeout(PATIENCE)
-        .redirect(reqwest::redirect::Policy::none())
-        .user_agent(concat!("tisty/", env!("CARGO_PKG_VERSION")))
-        .build()
-        .ok()?
-        .get(url)
-        .send()
-        .ok()?;
-
-    if !asked.status().is_success() {
-        witness::warn(
-            channel::WINDOW,
-            "the release feed answered with a refusal",
-            &[("code", Fact::Count(asked.status().as_u16() as usize))],
-        );
-        return None;
-    }
-    let mut said = Vec::new();
-    std::io::Read::read_to_end(
-        &mut std::io::Read::take(&mut asked, READ_AT_MOST as u64 + 1),
-        &mut said,
-    )
-    .ok()?;
-    (said.len() <= READ_AT_MOST).then_some(said)
-}
-
 pub fn feed_key() -> Option<&'static str> {
     option_env!("TISTY_FEED_KEY").filter(|key| !key.is_empty())
 }
@@ -290,22 +259,38 @@ pub fn trusted(said: &[u8], signature: Option<&[u8]>, key: Option<&str>) -> bool
     })
 }
 
-/// None is no news: an unsigned or half-cached feed leaves what was found before where it is.
-pub fn fetch() -> Option<String> {
+pub enum Heard {
+    Nothing,
+    Unsigned,
+    Said(String),
+}
+
+pub fn fetch() -> Heard {
     // The file and its signature are cached apart, so both are asked past the cache at once.
     let fresh = jiff::Timestamp::now().as_second();
-    let said = got(&format!("{MANIFEST}?at={fresh}"))?;
+    let Some(said) = crate::reaching::brought(&format!("{MANIFEST}?at={fresh}")) else {
+        return Heard::Nothing;
+    };
     let key = feed_key();
-    let signature = key.and_then(|_| got(&format!("{MANIFEST}.sig?at={fresh}")));
-    if !trusted(&said, signature.as_deref(), key) {
+    let signature =
+        key.and_then(|_| crate::reaching::brought(&format!("{MANIFEST}.sig?at={fresh}")));
+    let small = said.len() <= tisty_carrier::policy::READ_AT_MOST;
+    if !small || !trusted(&said, signature.as_deref(), key) {
         witness::warn(
             channel::WINDOW,
             "the release manifest did not carry the feed's signature, and was set aside",
             &[],
         );
-        return None;
+        return Heard::Unsigned;
     }
-    String::from_utf8(said).ok()
+    String::from_utf8(said).map_or(Heard::Unsigned, Heard::Said)
+}
+
+pub fn later(now: &str, version: &str) -> bool {
+    match (semver::Version::parse(now), semver::Version::parse(version)) {
+        (Ok(now), Ok(version)) => version > now,
+        _ => false,
+    }
 }
 
 #[cfg(test)]

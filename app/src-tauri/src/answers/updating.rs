@@ -45,8 +45,8 @@ pub async fn update_ready(
     if kept.route == update::Route::Store {
         let last_said = || match (the_shop_said, found.as_deref()) {
             (Some(true), Some(version)) => update::from_the_shop(version, HERE),
-            (Some(false), Some(version)) => {
-                update::published(HERE, version, wants).map(|_| update::on_its_way(Some(version)))
+            (Some(false), Some(version)) if update::later(HERE, version) => {
+                Some(update::on_its_way(Some(version)))
             }
             _ => None,
         };
@@ -59,19 +59,16 @@ pub async fn update_ready(
         let shelf = tauri::async_runtime::spawn_blocking(move || shop::asked(window, asked))
             .await
             .unwrap_or(shop::Shelf::Silent);
-        let manifest = tauri::async_runtime::spawn_blocking(update::fetch)
-            .await
-            .ok()
-            .flatten();
+        let manifest = match tauri::async_runtime::spawn_blocking(update::fetch).await {
+            Ok(update::Heard::Said(said)) => Some(said),
+            _ => None,
+        };
         let unheard = manifest.is_none();
         let out = manifest
             .as_deref()
             .and_then(|said| update::published(HERE, said, wants));
         let waiting_for_it =
             |session: &tauri::State<'_, Mutex<Session>>| -> Answer<Option<update::Ready>> {
-                if unheard {
-                    return Ok(last_said());
-                }
                 held(session).keep(|c| {
                     c.checked_at = Some(now);
                     c.found_version = out.clone();
@@ -106,12 +103,14 @@ pub async fn update_ready(
                 Ok(seen)
             }
             shop::Shelf::Queued => {
+                // A feed that could not be read says nothing of the version, so the one known stays.
+                let version = if unheard { found.clone() } else { out.clone() };
                 held(&session).keep(|c| {
                     c.checked_at = Some(now);
-                    c.found_version = out.clone();
+                    c.found_version = version.clone();
                     c.found_in_the_shop = Some(false);
                 })?;
-                Ok(Some(update::on_its_way(out.as_deref())))
+                Ok(Some(update::on_its_way(version.as_deref())))
             }
             shop::Shelf::Current if out.is_some() => waiting_for_it(&session),
             shop::Shelf::Current if manifest.is_some() => {
@@ -143,14 +142,21 @@ pub async fn update_ready(
         return Ok(update::remembered(HERE, found.as_deref(), kept, wants));
     }
 
-    let manifest = tauri::async_runtime::spawn_blocking(update::fetch)
+    let heard = tauri::async_runtime::spawn_blocking(update::fetch)
         .await
         .map_err(|_| Refusal::of("internal"))?;
 
-    // A look that never answered says nothing about whether an update is owed, so what was found
-    // before stays where it is.
-    let Some(manifest) = manifest else {
-        return Ok(update::remembered(HERE, found.as_deref(), kept, wants));
+    // A look that never answered or could not be trusted says nothing about whether an update is
+    // owed, so what was found before stays; only an untrusted one waits for tomorrow's look.
+    let manifest = match heard {
+        update::Heard::Said(said) => said,
+        update::Heard::Unsigned => {
+            held(&session).keep(|c| c.checked_at = Some(now))?;
+            return Ok(update::remembered(HERE, found.as_deref(), kept, wants));
+        }
+        update::Heard::Nothing => {
+            return Ok(update::remembered(HERE, found.as_deref(), kept, wants));
+        }
     };
 
     let seen = update::newer(HERE, &manifest, kept, wants);
@@ -289,12 +295,10 @@ async fn moved_on(
     kept: update::Kept,
     wants: Option<bool>,
 ) -> Refusal {
-    let manifest = tauri::async_runtime::spawn_blocking(update::fetch)
-        .await
-        .ok()
-        .flatten();
-    let Some(manifest) = manifest else {
-        return Refusal::of("updateGone");
+    let Ok(update::Heard::Said(manifest)) =
+        tauri::async_runtime::spawn_blocking(update::fetch).await
+    else {
+        return Refusal::of("updateUnconfirmed");
     };
     let seen = update::newer(HERE, &manifest, kept, wants);
     let version = seen.map(|one| one.version);

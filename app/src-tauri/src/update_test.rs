@@ -579,3 +579,11 @@ fn a_feed_is_believed_only_with_the_feed_s_own_signature_once_the_build_carries_
 fn a_build_without_the_feed_s_key_reads_the_feed_as_it_always_did() {
     assert!(super::trusted(SIGNED.as_bytes(), None, None));
 }
+
+#[test]
+fn a_remembered_version_is_later_only_when_it_truly_is() {
+    assert!(super::later("1.30.0", "1.31.0"));
+    assert!(!super::later("1.31.0", "1.31.0"));
+    assert!(!super::later("1.31.0", "1.30.5"));
+    assert!(!super::later("1.31.0", "not a version"));
+}
