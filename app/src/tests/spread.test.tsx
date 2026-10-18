@@ -251,6 +251,30 @@ describe("the river of days", () => {
     expect(opened).toHaveBeenCalledWith(expect.objectContaining({ id: "01A" }));
   });
 
+  it("says when it is carrying, so the panel over the days can step aside", () => {
+    const carrying = vi.fn();
+    render(
+      <Spread
+        counts={{}}
+        tasks={[made("01A", "Sin fecha")]}
+        onPlace={vi.fn()}
+        onOpen={vi.fn()}
+        onCarrying={carrying}
+      />,
+    );
+
+    const was = document.elementFromPoint;
+    document.elementFromPoint = () => document.body;
+    const card = screen.getByText("Sin fecha");
+    fireEvent.pointerDown(card, { button: 0, clientX: 0, clientY: 0 });
+    fireEvent.pointerMove(card, { clientX: 80, clientY: 80 });
+    expect(carrying).toHaveBeenLastCalledWith(true);
+
+    fireEvent.pointerUp(card, { clientX: 80, clientY: 80 });
+    document.elementFromPoint = was;
+    expect(carrying).toHaveBeenLastCalledWith(false);
+  });
+
   it("does not open what you only dragged somewhere else", () => {
     const opened = vi.fn();
     render(

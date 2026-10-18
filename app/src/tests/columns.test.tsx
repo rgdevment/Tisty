@@ -105,7 +105,7 @@ describe("the room the desk keeps for the lanes beside it", () => {
     expect(lane().contains(board)).toBe(true);
   });
 
-  it("keeps room for the day, and none once a task takes the page", async () => {
+  it("keeps room for the day on its own, and for the task beside it", async () => {
     const user = userEvent.setup();
     render(<App />);
     await screen.findByText("write the report");
@@ -115,7 +115,8 @@ describe("the room the desk keeps for the lanes beside it", () => {
     await user.click(screen.getByText("write the report"));
     await screen.findByRole("textbox", { name: "Title" });
 
-    expect(lane()?.className ?? "").not.toContain("pr-[");
+    expect(lane().className).toContain("pr-[404px]");
+    expect(lane().className).toContain("pr-[716px]");
   });
 
   it("keeps no room in the spread: the lane floats over the days instead", async () => {

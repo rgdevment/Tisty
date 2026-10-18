@@ -21,6 +21,9 @@ interface Props {
   lists: List[];
   known: string[];
   from?: string;
+  apart?: string;
+  expanded?: boolean;
+  onExpand?: () => void;
   onCollapse: () => void;
   onPatch: (change: Change) => void;
   onComplete: () => void;
@@ -48,6 +51,9 @@ export default function Detail({
   lists,
   known,
   from,
+  apart,
+  expanded = true,
+  onExpand,
   onCollapse,
   onPatch,
   onComplete,
@@ -189,6 +195,59 @@ export default function Detail({
   );
 
   const shown = task.status === "open" ? body : sealed;
+  const left = (whole?.open ?? 0) + (whole?.away ?? 0);
+
+  if (!expanded) {
+    return (
+      <aside
+        ref={opened}
+        tabIndex={-1}
+        onKeyDown={leave}
+        aria-label={task.title}
+        className={`absolute top-11 bottom-3 z-20 flex w-[380px] flex-col overflow-hidden rounded-[10px] border border-hair bg-sheet shadow-lift [&_.gutter]:px-0 [&_.tisty-sheet]:-mx-5 [&_.tisty-sheet]:w-[calc(100%+40px)] [&_.tisty-sheet]:max-w-none [&_.tisty-sheet]:rounded-none outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset ${apart ?? "right-3"}`}
+      >
+        <div className="flex items-center justify-end gap-1 px-3 pt-2.5 text-[13px] text-faint">
+          <button
+            type="button"
+            onClick={onExpand}
+            title={t("expand")}
+            aria-label={t("expand")}
+            className="flex h-6 w-6 items-center justify-center rounded-md hover:bg-hover hover:text-accent"
+          >
+            <span aria-hidden="true">⤢</span>
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            title={t("closePanel")}
+            aria-label={t("closePanel")}
+            aria-keyshortcuts="Escape"
+            className="flex h-6 w-6 items-center justify-center rounded-md hover:bg-hover hover:text-ink"
+          >
+            <span aria-hidden="true">✕</span>
+          </button>
+        </div>
+        <div className="scroller flex-1 px-5 pt-1.5 pb-7">
+          {shown}
+          {aside}
+        </div>
+        <Settled
+          task={task}
+          onComplete={onComplete}
+          onDiscard={onDiscard}
+          onReopen={onReopen}
+          onStillOpen={onStillOpen}
+          onErase={onErase}
+          onFold={onFold}
+          onReadAs={onReadAs}
+          onOpenToAgents={onOpenToAgents}
+          shaping={shaping}
+          onShape={setShaping}
+          left={left}
+        />
+      </aside>
+    );
+  }
 
   return (
     <main
@@ -230,7 +289,7 @@ export default function Detail({
         onOpenToAgents={onOpenToAgents}
         shaping={shaping}
         onShape={setShaping}
-        left={(whole?.open ?? 0) + (whole?.away ?? 0)}
+        left={left}
       />
     </main>
   );

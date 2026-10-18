@@ -55,6 +55,12 @@ html.tall .page {
   padding-top: 50px;
   padding-bottom: 36px;
 }
+@media (max-width: 480px) {
+  html.untitled .page {
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+}
 html.tall .page > * {
   content-visibility: visible;
 }
