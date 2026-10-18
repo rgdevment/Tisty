@@ -211,6 +211,10 @@ export type Chapter =
   | { chapter: "unticked"; text: string }
   | { chapter: "reworded"; from: string; to: string }
   | { chapter: "unplanned"; text: string }
+  | { chapter: "sectionadded"; section: string }
+  | { chapter: "sectionrenamed"; from: string; to: string }
+  | { chapter: "sectionremoved"; section: string }
+  | { chapter: "sectionwritten"; section: string }
   | { chapter: "closed" }
   | { chapter: "dropped" }
   | { chapter: "reopened" }

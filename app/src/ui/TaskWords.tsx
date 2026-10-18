@@ -8,6 +8,7 @@ import {
   taskDocMake,
   taskDocOpen,
 } from "../core";
+import { WROTE } from "../detailing";
 import { stamped } from "../format";
 import { fill } from "../locales";
 import { holds, queued } from "../saving";
@@ -212,7 +213,7 @@ function Written({
           failed.current?.(e);
           return "failed";
         });
-      if (problem === null) {
+      if (problem === null || problem === WROTE) {
         if (unsettled.current === from) unsettled.current = null;
         return;
       }

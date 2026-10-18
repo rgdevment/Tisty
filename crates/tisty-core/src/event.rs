@@ -2,8 +2,8 @@ mod op;
 
 pub use op::{
     ALIAS_AT_MOST, Body, DeviceKind, DocAdd, Filed, Flag, FolderAdd, Held, KNOWN_OPS, ListAdd,
-    LogAdd, LogEdit, Look, Name, Op, Resolve, Said, Signature, StepAdd, StepRef, StepReorder,
-    StepText, Stitch, TaskAdd, TaskMove, TaskPatch,
+    LogAdd, LogEdit, Look, Name, Op, PageChange, Paged, Resolve, Said, Signature, StepAdd, StepRef,
+    StepReorder, StepText, Stitch, TaskAdd, TaskMove, TaskPatch,
 };
 
 use serde::{Deserialize, Serialize};
@@ -101,7 +101,8 @@ impl Event {
             | Op::StepUndone { id, .. }
             | Op::StepText { id, .. }
             | Op::StepRemove { id, .. }
-            | Op::StepReorder { id, .. } => Some(*id),
+            | Op::StepReorder { id, .. }
+            | Op::TaskPaged { id, .. } => Some(*id),
             Op::ListAdd { id, .. }
             | Op::ListRename { id, .. }
             | Op::ListLook { id, .. }

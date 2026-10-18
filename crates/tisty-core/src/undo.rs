@@ -7,6 +7,10 @@ use crate::{
 /// What puts an event back, in the order it has to be applied. Some of them take more than one
 /// operation: reopening a task clears more than its status, and one op cannot say all of it.
 pub fn inverse(event: &Event, before: &State) -> Option<Vec<Op>> {
+    // A page's trail is told, not undone: its words go back with the page, never through the log.
+    if matches!(event.op, Op::TaskPaged { .. }) {
+        return Some(Vec::new());
+    }
     let one = undoing(event, before)?;
     let mut back = vec![one];
     if let Op::TaskUpdate { id, d } = &event.op
@@ -318,7 +322,8 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
         | Op::AttachKept { .. }
         | Op::AttachLetGo { .. }
         | Op::AttachRetire { .. }
-        | Op::StoresJoined { .. } => None,
+        | Op::StoresJoined { .. }
+        | Op::TaskPaged { .. } => None,
     }
 }
 

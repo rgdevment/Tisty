@@ -47,6 +47,7 @@ pub const KNOWN_OPS: &[&str] = &[
     "task.step.undone",
     "task.step.text",
     "task.step.remove",
+    "task.paged",
     "task.step.reorder",
     "list.add",
     "list.rename",
@@ -133,6 +134,9 @@ pub enum Op {
     StepText { id: TaskId, d: StepText },
     #[serde(rename = "task.step.remove")]
     StepRemove { id: TaskId, d: StepRef },
+    /// A section of the task's page added, renamed, taken off or written in; the words stay in the page.
+    #[serde(rename = "task.paged")]
+    TaskPaged { id: TaskId, d: Paged },
     #[serde(rename = "task.step.reorder")]
     StepReorder { id: TaskId, d: StepReorder },
 
@@ -278,6 +282,7 @@ impl Op {
             self,
             Op::AttachKept { .. }
                 | Op::AttachLetGo { .. }
+                | Op::TaskPaged { .. }
                 | Op::DocSaid { .. }
                 | Op::DocFlag { .. }
                 | Op::DocUnflag { .. }
@@ -306,6 +311,7 @@ impl Op {
                 | Op::DeviceNamed { .. }
                 | Op::DocFlag { .. }
                 | Op::DocUnflag { .. }
+                | Op::TaskPaged { .. }
         )
     }
 
@@ -330,6 +336,7 @@ impl Op {
             Op::StepUndone { d, .. } => Op::StepUndone { id, d },
             Op::StepText { d, .. } => Op::StepText { id, d },
             Op::StepRemove { d, .. } => Op::StepRemove { id, d },
+            Op::TaskPaged { d, .. } => Op::TaskPaged { id, d },
             Op::StepReorder { d, .. } => Op::StepReorder { id, d },
             Op::ListAdd { d, .. } => Op::ListAdd { id, d },
             Op::ListRename { d, .. } => Op::ListRename { id, d },
@@ -467,6 +474,7 @@ impl Op {
             | Op::StepText { id, .. }
             | Op::StepRemove { id, .. }
             | Op::StepReorder { id, .. }
+            | Op::TaskPaged { id, .. }
             | Op::ListAdd { id, .. }
             | Op::ListRename { id, .. }
             | Op::ListLook { id, .. }
@@ -725,6 +733,22 @@ pub struct StepAdd {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct StepRef {
     pub step: StepId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Paged {
+    pub section: String,
+    #[serde(flatten)]
+    pub change: PageChange,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "change", rename_all = "lowercase")]
+pub enum PageChange {
+    Added,
+    Renamed { from: String },
+    Removed,
+    Written,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
