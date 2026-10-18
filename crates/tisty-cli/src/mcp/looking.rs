@@ -215,7 +215,16 @@ pub(super) fn inside_a_doc(
             "looking inside a document needs a `query` to look for.".into(),
         ));
     };
-    if state.docs.values().all(|one| one.file != which) {
+    // A hidden task's words stay out of sight here as they do in `read`.
+    let seen = state
+        .docs
+        .values()
+        .find(|one| one.file == which)
+        .filter(|one| {
+            one.task_of
+                .is_none_or(|task| state.tasks.get(&task).is_some_and(|it| !it.folded()))
+        });
+    if seen.is_none() {
         return Err(Refused::Tool(format!(
             "no document here is called {which:?}. `docs` lists them all."
         )));
@@ -511,7 +520,7 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             let mut newest: Vec<&tisty_core::model::Kept> = state
                 .docs
                 .values()
-                .filter(|one| !state.held_away(one))
+                .filter(|one| one.task_of.is_none() && !state.held_away(one))
                 .collect();
             newest.sort_by_key(|one| std::cmp::Reverse((one.wrote, one.id)));
             let newest: Vec<String> = newest
@@ -536,7 +545,7 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 state
                     .docs
                     .values()
-                    .filter(|one| !state.held_away(one))
+                    .filter(|one| one.task_of.is_none() && !state.held_away(one))
                     .count()
             )
         }

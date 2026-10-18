@@ -12,6 +12,19 @@ use super::super::{
     up_named, when,
 };
 
+// A task the person put out of sight keeps its words out of sight too, as `read` does.
+fn in_sight(state: &State, kept: &tisty_core::model::Kept, which: &str) -> Result<(), Refused> {
+    let hidden = kept
+        .task_of
+        .is_some_and(|task| state.tasks.get(&task).is_none_or(|one| one.folded()));
+    match hidden {
+        true => Err(Refused::Tool(format!(
+            "no document here is called {which:?}. `docs` lists them all."
+        ))),
+        false => Ok(()),
+    }
+}
+
 pub(in crate::mcp) fn export_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let Some(which) = text(args, "doc") else {
         return Err(Refused::Tool(
@@ -29,6 +42,7 @@ pub(in crate::mcp) fn export_doc(paths: &Paths, args: &Value) -> Result<Value, R
             "no document here is called {which:?}. `docs` lists them all."
         )));
     };
+    in_sight(&state, kept, &which)?;
 
     let asked = std::path::Path::new(&said);
     let into = reachable_or(paths, &said, asked, "leave files")?;
@@ -97,6 +111,7 @@ pub(in crate::mcp) fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, 
             "no document here is called {which:?}. `docs` lists them all."
         )));
     };
+    in_sight(&state, kept, &which)?;
     let held = tisty_core::cache::Cache::open(paths.cache()).ok().flatten();
     let Some(card) = tisty_core::docs::card_of(&paths.docs(), held.as_ref(), &which) else {
         return Err(Refused::Tool(format!(
@@ -283,6 +298,7 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
             "no document here is called {which:?}. `docs` lists them all."
         )));
     };
+    in_sight(&state, kept, &which)?;
     let folder = kept.folder.map(|at| trail(&state, at));
     let body = tisty_core::docs::read(&paths.docs(), &which).map_err(hitch)?;
     let pages: Vec<String> = state

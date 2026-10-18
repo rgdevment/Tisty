@@ -134,6 +134,13 @@ fn an_assistant_cannot_write_a_task_s_words_through_the_document_tools() {
     assert_eq!(refused["result"]["isError"], true, "{refused}");
     let said = refused["result"]["content"][0]["text"].as_str().unwrap();
     assert!(said.contains("task's document"), "{said}");
+    let padded = served.call(
+        "append_doc",
+        serde_json::json!({ "doc": format!(" {file}\t"), "body": "Slipped in." }),
+    );
+    assert_eq!(padded["result"]["isError"], true, "{padded}");
+    let said = padded["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(said.contains("task's document"), "{said}");
     let read = served.call("read_doc", serde_json::json!({ "doc": file }));
     let body = read["result"]["structuredContent"]["body"]
         .as_str()
