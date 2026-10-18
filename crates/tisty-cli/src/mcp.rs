@@ -790,6 +790,7 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let mut kept: Vec<&tisty_core::model::Kept> = state
         .docs
         .values()
+        .filter(|one| one.task_of.is_none())
         .filter(|one| match scope {
             tisty_core::view::Scope::Open => !state.held_away(one),
             tisty_core::view::Scope::Archived => state.held_away(one),

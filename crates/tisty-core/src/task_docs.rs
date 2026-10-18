@@ -42,6 +42,15 @@ pub fn of(state: &State, task: TaskId) -> Option<&Kept> {
         .filter(|kept| kept.task_of == Some(task))
 }
 
+/// Which task each task's document belongs to, by its file: a search that lands in one hands back the task.
+pub fn behind(state: &State) -> std::collections::BTreeMap<String, TaskId> {
+    state
+        .docs
+        .values()
+        .filter_map(|kept| kept.task_of.map(|task| (kept.file.clone(), task)))
+        .collect()
+}
+
 /// Writes the seed only where nothing is written yet, and hands back what the log has to learn.
 pub fn made(root: &Path, state: &State, task: TaskId, by: Option<String>) -> crate::Result<Op> {
     let file = file_of(task);
