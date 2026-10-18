@@ -561,11 +561,11 @@ pub(super) fn describe(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if written.is_none() {
         return Err(moved(task));
     }
-    super::worded::worded(paths, &mut store, id, |was, _| {
+    let page = super::worded::worded(paths, &mut store, id, |was, _| {
         Some(tisty_core::task_docs::described(was, &body))
     });
     Ok(told(
-        format!("Described {:?}.", task.title),
+        format!("Described {:?}.{page}", task.title),
         json!({ "id": id.to_string(), "title": task.title }),
     ))
 }
@@ -615,7 +615,7 @@ pub(super) fn plan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if written.is_none() {
         return Err(moved(task));
     }
-    super::worded::worded(paths, &mut store, id, |was, now| {
+    let _ = super::worded::worded(paths, &mut store, id, |was, now| {
         Some(tisty_core::stages::ticked(now, was))
     });
     Ok(told(
@@ -660,7 +660,7 @@ pub(super) fn tick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         if written.is_none() {
             return Err(moved(task));
         }
-        super::worded::worded(paths, &mut store, id, |was, now| {
+        let _ = super::worded::worded(paths, &mut store, id, |was, now| {
             Some(tisty_core::stages::ticked(now, was))
         });
     }
@@ -730,7 +730,7 @@ pub(super) fn untick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         if written.is_none() {
             return Err(moved(task));
         }
-        super::worded::worded(paths, &mut store, id, |was, now| {
+        let _ = super::worded::worded(paths, &mut store, id, |was, now| {
             Some(tisty_core::stages::ticked(now, was))
         });
     }

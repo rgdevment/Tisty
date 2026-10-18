@@ -76,22 +76,49 @@ pub fn erased_with(state: &State, task: TaskId) -> Vec<Op> {
 }
 
 pub fn owner(state: &State, task: TaskId) -> TaskId {
+    owned_by(state, task, &mut std::collections::HashMap::new())
+}
+
+// A first turn erased since still owns the words its later turns write in, kept for them.
+fn owned_by(
+    state: &State,
+    task: TaskId,
+    known: &mut std::collections::HashMap<TaskId, TaskId>,
+) -> TaskId {
+    let mut path = vec![task];
     let mut at = task;
-    for _ in 0..state.tasks.len() {
-        match state.tasks.get(&at).and_then(|one| one.after) {
-            Some(before) if before != task && state.tasks.contains_key(&before) => at = before,
-            _ => break,
+    let root = loop {
+        if let Some(root) = known.get(&at) {
+            break *root;
         }
+        if path.len() > state.tasks.len() {
+            break at;
+        }
+        match state.tasks.get(&at).and_then(|one| one.after) {
+            Some(before) if before == task => break at,
+            Some(before) if state.tasks.contains_key(&before) => {
+                at = before;
+                path.push(at);
+            }
+            Some(before) if state.docs.values().any(|one| one.task_of == Some(before)) => {
+                break before;
+            }
+            _ => break at,
+        }
+    };
+    for one in path {
+        known.insert(one, root);
     }
-    at
+    root
 }
 
 /// A routine's words are its first turn's, but they lead to the turn still open, or else the last.
 pub fn behind(state: &State) -> std::collections::BTreeMap<String, TaskId> {
     let mut now: std::collections::BTreeMap<TaskId, TaskId> = std::collections::BTreeMap::new();
+    let mut known = std::collections::HashMap::new();
     let turns = state.tasks.iter().filter(|(_, one)| one.after.is_some());
     for id in turns.map(|(id, _)| id) {
-        let first = owner(state, *id);
+        let first = owned_by(state, *id, &mut known);
         let held = now.entry(first).or_insert(first);
         let open = |task: &TaskId| state.tasks.get(task).is_some_and(|it| it.is_open());
         if (open(id), *id) > (open(held), *held) {
@@ -173,8 +200,7 @@ const ROUTINE: [&str; 2] = [
     "## Para qué\n<!-- Por qué vuelve, en una línea. -->\n\n## Cada vuelta\n<!-- - [ ] Lo que hay que hacer cada vez -->\n\n## Esta vez\n<!-- ¿Algo distinto en esta vuelta? -->\n",
 ];
 
-/// Whoever writes on a task writes on its page: made from its template the first time anything
-/// is written there, then changed in place, so the page and the log never tell two stories.
+/// Whoever writes on a task writes on its page, made from its template the first time.
 pub fn wrote(
     paths: &crate::Paths,
     store: &mut crate::Store,
@@ -237,12 +263,14 @@ pub fn template(task: &crate::model::Task, configured: Option<&str>) -> &'static
     }
 }
 
-/// The words a description holds, written in the section the template keeps for them: the first
-/// one with a plain hint. A page without one takes them at its end.
+/// A description goes in the first section with a plain hint, or at the end of a page without one.
 pub fn described(body: &str, said: &str) -> String {
     let said = said.trim();
     let lines: Vec<&str> = body.split_inclusive('\n').collect();
-    let heading = |line: &str| line.trim_start().starts_with('#');
+    let heading = |line: &str| {
+        let marks = line.trim_start().chars().take_while(|c| *c == '#').count();
+        (1..=6).contains(&marks) && line.trim_start()[marks..].starts_with([' ', '\t'])
+    };
     let slot = (1..lines.len())
         .find(|at| heading(lines[at - 1]) && hinted(lines[*at]).is_some_and(|hint| !boxed(hint)));
     let Some(hint) = slot else {

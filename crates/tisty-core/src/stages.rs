@@ -286,17 +286,55 @@ pub fn reworded(body: &str, was: &str, now: &str) -> Option<String> {
 /// The lines of open steps taken off, so a box with no step is never left to be ticked back.
 pub fn unplanned(body: &str, gone: &[String]) -> String {
     let gone: Vec<String> = gone.iter().map(|one| title(one)).collect();
-    let mut cuts: Vec<Range<usize>> = stages(body)
+    let lines: Vec<&str> = body.split_inclusive('\n').collect();
+    let starts: Vec<usize> = lines
+        .iter()
+        .scan(0, |at, line| {
+            let start = *at;
+            *at += line.len();
+            Some(start)
+        })
+        .collect();
+    let line_of = |at: usize| {
+        starts
+            .partition_point(|start| *start <= at)
+            .saturating_sub(1)
+    };
+    let lead = |line: &str| line.len() - line.trim_start_matches(' ').len();
+    let mut dropped = vec![false; lines.len()];
+    let mut shift = vec![0; lines.len()];
+    let taken = stages(body);
+    for stage in taken
         .iter()
         .filter(|stage| !stage.done && gone.contains(&title(&stage.text)))
-        .map(|stage| own_lines(body, stage))
-        .collect();
-    cuts.sort_by_key(|one| std::cmp::Reverse(one.start));
-    let mut out = body.to_string();
-    for cut in cuts {
-        out.replace_range(cut, "");
+    {
+        let own = own_lines(body, stage);
+        let first = line_of(own.start);
+        let past = line_of(own.end.max(own.start + 1) - 1) + 1;
+        for one in &mut dropped[first..past] {
+            *one = true;
+        }
+        // What was nested under it moves out a level, rather than hang from nothing or turn to code.
+        let words = body[..stage.at.end]
+            .trim_end_matches(['\n', '\r', ' ', '\t'])
+            .len();
+        let last = line_of(words.saturating_sub(1));
+        let under: Vec<usize> = (past..=last)
+            .filter(|at| *at < lines.len() && !lines[*at].trim().is_empty())
+            .collect();
+        if let Some(least) = under.iter().map(|at| lead(lines[*at])).min() {
+            let delta = least.saturating_sub(lead(lines[first]));
+            for at in under {
+                shift[at] += delta;
+            }
+        }
     }
-    out
+    lines
+        .iter()
+        .enumerate()
+        .filter(|(at, _)| !dropped[*at])
+        .map(|(at, line)| &line[shift[at].min(lead(line))..])
+        .collect()
 }
 
 // An item's own lines are its first and those carrying its words on, never the items under it.

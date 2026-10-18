@@ -280,8 +280,7 @@ pub struct TakenIn {
     pub body: String,
 }
 
-/// A document coming in that names a task hands it its properties, and keeps only its own.
-/// `was` is the page as it stands, so boxes ticked or added outside become the task's steps.
+/// A page naming a task hands it its properties and, against `was`, its boxes as steps.
 pub fn taken_in(state: &crate::State, body: &str, was: Option<&str>, tz: &str) -> Option<TakenIn> {
     let front = read(body, tz);
     let id = front.task?;

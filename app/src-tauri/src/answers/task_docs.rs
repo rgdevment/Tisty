@@ -83,6 +83,10 @@ pub fn task_doc_make(
     session.reload()?;
     if let Some(file) = file_of(&session, id) {
         known(&session, id)?;
+        // Someone else made the page while these words were typed over its template.
+        if body.is_some() {
+            return Err(Refusal::about("documentMoved", file));
+        }
         return Ok(file);
     }
     let task = open_task(&session, id)?;
@@ -141,8 +145,7 @@ pub fn task_doc_settled(
     answered(&session, id).map(Some)
 }
 
-// A task's page coming back from outside hands the task its properties and its words, and is
-// opened there; anything else is an ordinary document and goes the usual way.
+// A task's page coming back hands the task its properties and words; anything else is a document.
 #[tauri::command(async)]
 pub fn task_page_import(
     session: tauri::State<'_, Mutex<Session>>,
@@ -204,6 +207,7 @@ pub fn task_page_import(
         return Ok(None);
     };
     let id = taken.task;
+    open_task(&session, id)?;
     let mut ops = brought.told;
     ops.extend(taken.ops);
     let mut over = file.map(|(_, file)| file);

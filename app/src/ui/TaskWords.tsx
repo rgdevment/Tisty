@@ -128,10 +128,16 @@ function Written({
     if (file.current) return Promise.resolve(file.current);
     const asked = making.current;
     if (!asked) return Promise.reject(new Error("unwritable"));
-    made.current ??= asked(body).then((one) => {
-      file.current = one;
-      return one;
-    });
+    made.current ??= asked(body).then(
+      (one) => {
+        file.current = one;
+        return one;
+      },
+      (e: unknown) => {
+        made.current = null;
+        throw e;
+      },
+    );
     return made.current;
   }, []);
 

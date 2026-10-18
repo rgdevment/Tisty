@@ -480,3 +480,28 @@ fn a_description_fills_the_section_the_template_keeps_for_it() {
         "---\ntask: x\n---\n\nNotes.\n\nSaid.\n"
     );
 }
+
+#[test]
+fn a_routine_s_later_turn_still_reaches_its_page_once_the_first_is_erased() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    let first = Ulid::generate();
+    let second = Ulid::generate();
+    applied(
+        &mut state,
+        Op::TaskAdd {
+            id: first,
+            d: TaskAdd::new("Water the plants", "a0"),
+        },
+    );
+    let words = made(room.path(), &state, first, first, "", None).unwrap();
+    applied(&mut state, words);
+    let mut d = TaskAdd::new("Water the plants", "a1");
+    d.after = Some(first);
+    applied(&mut state, Op::TaskAdd { id: second, d });
+
+    applied(&mut state, Op::TaskDelete { id: first });
+
+    assert_eq!(super::owner(&state, second), first);
+    assert!(of(&state, super::owner(&state, second)).is_some());
+}

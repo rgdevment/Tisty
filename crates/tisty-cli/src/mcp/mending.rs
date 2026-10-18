@@ -109,11 +109,11 @@ pub(super) fn reword_step(paths: &Paths, args: &Value) -> Result<Value, Refused>
     if written.is_none() {
         return Err(moved(task));
     }
-    super::worded::worded(paths, &mut store, id, |body, _| {
+    let page = super::worded::worded(paths, &mut store, id, |body, _| {
         tisty_core::stages::reworded(body, &was, &words)
     });
     Ok(told(
-        format!("Reworded {was:?} to {words:?} on {:?}.", task.title),
+        format!("Reworded {was:?} to {words:?} on {:?}.{page}", task.title),
         json!({ "id": id.to_string(), "title": task.title, "reworded": 1 }),
     ))
 }
@@ -149,13 +149,13 @@ pub(super) fn unplan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if written.is_none() {
         return Err(moved(task));
     }
-    super::worded::worded(paths, &mut store, id, |body, _| {
+    let page = super::worded::worded(paths, &mut store, id, |body, _| {
         Some(tisty_core::stages::unplanned(body, &gone))
     });
     let left = task.steps.len() - ids.len();
     Ok(told(
         format!(
-            "Took {} step(s) off {:?}. {left} left.",
+            "Took {} step(s) off {:?}. {left} left.{page}",
             ids.len(),
             task.title
         ),

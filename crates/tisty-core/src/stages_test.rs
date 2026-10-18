@@ -415,7 +415,7 @@ fn steps_are_not_added_where_an_open_fence_would_swallow_them() {
 }
 
 #[test]
-fn a_step_taken_off_with_one_under_it_leaves_the_rest_whole() {
+fn a_step_taken_off_with_one_under_it_leaves_the_rest_whole_and_moves_it_out() {
     let body = "- [ ] A\n  - [ ] B\n\n## Notes\nkeep me\n";
     assert_eq!(
         super::unplanned(body, &["A".into(), "B".into()]),
@@ -423,7 +423,7 @@ fn a_step_taken_off_with_one_under_it_leaves_the_rest_whole() {
     );
     assert_eq!(
         super::unplanned(body, &["A".into()]),
-        "  - [ ] B\n\n## Notes\nkeep me\n"
+        "- [ ] B\n\n## Notes\nkeep me\n"
     );
 }
 
