@@ -966,13 +966,16 @@ pub fn one_step_back(session: &Session, id: &str) -> Option<String> {
     }
 }
 
-pub fn went_back(session: &mut Session, id: &str) -> Answer<tisty_core::docs::Doc> {
-    if session.state.bolted(id) {
-        return Err(Refusal::of(match session.state.away(id) {
-            true => "documentAway",
-            false => "documentLocked",
-        }));
+pub(crate) fn writable(state: &State, id: &str) -> Result<(), Refusal> {
+    match (state.bolted(id), state.away(id)) {
+        (false, _) => Ok(()),
+        (true, true) => Err(Refusal::of("documentAway")),
+        (true, false) => Err(Refusal::of("documentLocked")),
     }
+}
+
+pub fn went_back(session: &mut Session, id: &str) -> Answer<tisty_core::docs::Doc> {
+    writable(&session.state, id)?;
     let Some(was) = one_step_back(session, id) else {
         return Err(Refusal::of("nothingKeptBeside"));
     };
@@ -1026,12 +1029,7 @@ pub fn doc_write(
     anyway: Option<bool>,
 ) -> Answer<tisty_core::docs::Doc> {
     let mut session = held(&session);
-    if session.state.bolted(&id) {
-        return Err(Refusal::of(match session.state.away(&id) {
-            true => "documentAway",
-            false => "documentLocked",
-        }));
-    }
+    writable(&session.state, &id)?;
     if !anyway.unwrap_or(false) && session.moved(&id) {
         return Err(Refusal::about("documentMoved", id));
     }

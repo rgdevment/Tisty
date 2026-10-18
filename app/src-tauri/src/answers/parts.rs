@@ -185,7 +185,7 @@ fn repeats(task: &Task) -> bool {
     task.repeat.is_some() || task.after.is_some()
 }
 
-fn answered(session: &Session, id: TaskId) -> Answer<Task> {
+pub(crate) fn answered(session: &Session, id: TaskId) -> Answer<Task> {
     session
         .state
         .tasks
@@ -194,7 +194,7 @@ fn answered(session: &Session, id: TaskId) -> Answer<Task> {
         .ok_or_else(|| Refusal::of("notATaskId"))
 }
 
-fn task_id(raw: &str) -> Result<TaskId, Refusal> {
+pub(crate) fn task_id(raw: &str) -> Result<TaskId, Refusal> {
     raw.parse().map_err(|_| Refusal::of("notATaskId"))
 }
 
