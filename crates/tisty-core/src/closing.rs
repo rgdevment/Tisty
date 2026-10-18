@@ -76,9 +76,16 @@ pub fn this_time(body: &str) -> Option<(String, String)> {
 /// How it went goes first in the section kept for it, or closes the page when there is none.
 pub fn summed(body: &str, summary: &str) -> String {
     let summary = summary.trim();
+    // Closing again after a refusal or an undo says the same words once.
+    if said_in(body, &WHEN_IT_CLOSES).starts_with(summary) {
+        return body.to_string();
+    }
     let line = if body.contains("\r\n") { "\r\n" } else { "\n" };
     let Some((_, words)) = held(body, &WHEN_IT_CLOSES) else {
         let kept = body.trim_end_matches(['\n', '\r']);
+        if kept.ends_with(summary) {
+            return body.to_string();
+        }
         return format!("{kept}{line}{line}{summary}{line}");
     };
     let section = &body[words.clone()];

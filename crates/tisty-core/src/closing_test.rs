@@ -54,6 +54,15 @@ fn how_it_went_goes_first_in_its_section() {
 }
 
 #[test]
+fn closing_again_with_the_same_words_writes_them_once() {
+    let body = "## Al cerrarla\n<!-- ¿Qué funcionó? -->\n";
+    let once = summed(body, "Bien.");
+    assert_eq!(summed(&once, "Bien."), once);
+    let loose = summed("Notas.\n", "Bien.");
+    assert_eq!(summed(&loose, "Bien."), loose);
+}
+
+#[test]
 fn a_page_with_no_place_for_it_ends_with_how_it_went() {
     assert_eq!(
         summed("Notas sueltas.\n\n", "Bien."),

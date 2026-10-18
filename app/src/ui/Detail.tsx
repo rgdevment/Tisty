@@ -359,6 +359,11 @@ function Settled({
 }) {
   const [more, setMore] = useState<{ x: number; y: number } | null>(null);
   const [summing, setSumming] = useState<string | null>(null);
+  const summary = useRef<HTMLTextAreaElement>(null);
+  const asking = summing !== null;
+  useEffect(() => {
+    if (asking) summary.current?.focus();
+  }, [asking]);
   const owing = task.status === "open" && (left ?? 0) > 0;
   const open = task.status === "open";
   const reading = readingOf(task);
@@ -432,7 +437,7 @@ function Settled({
           style={edge === undefined ? undefined : { paddingLeft: edge + LINED }}
         >
           <textarea
-            ref={(one) => one?.focus()}
+            ref={summary}
             rows={2}
             maxLength={SUMMED_AT_MOST}
             value={summing}

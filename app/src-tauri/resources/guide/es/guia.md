@@ -92,7 +92,7 @@ Un paso es una línea, de cien caracteres como máximo. Cuando uno necesita más
 
 Una parte también puede vivir en el texto de su tarea. Pasa el mouse sobre una casilla abierta y aprieta **↗**: la línea se vuelve una parte y en su lugar queda su tarjeta, con los pasos que lleva y su fecha. Un clic en la tarjeta la abre. El trayecto de cada una cuenta cuándo se sumó una parte y cuándo se soltó.
 
-Una rutina tiene una sola página para todas sus vueltas. Lo que escribas en **Esta vez** es de la vuelta que corre: al completarla pasa a **Vueltas**, bajo la página, con los pasos que marcaste y cuándo, y la sección queda en blanco para la siguiente.
+Una rutina tiene una sola página para todas sus vueltas. Lo que escribas en **Esta vez** es de la vuelta que corre: al completarla pasa a **Vueltas**, bajo la página, con cuántos pasos marcaste y cuándo se cerró, y la sección queda en blanco para la siguiente.
 
 Ahí está la diferencia. La lista te dice qué falta; el archivo te dice cómo lo resolviste la última vez. Búscalo por una palabra que recuerdes y sale, aunque lo cerraras hace dos años. Todo eso, paso a paso, se cuenta en [tareas](https://www.tisty.app/es/ayuda/tareas/).
 

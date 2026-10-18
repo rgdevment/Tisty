@@ -92,7 +92,7 @@ A step is a line, a hundred characters at most. When one needs more, make it a t
 
 A part can also live in its task's words. Hover over an open box and press **↗**: the line becomes a part and its card stays in its place, with the steps it has done and its date. A click on the card opens it. The trail of each one tells when a part joined and when it was let go.
 
-A routine has one page for all its rounds. What you write under **This time** belongs to the round under way: completing it moves it to **Rounds**, under the page, with the steps you ticked and when, and the section is blank again for the next one.
+A routine has one page for all its rounds. What you write under **This time** belongs to the round under way: completing it moves it to **Rounds**, under the page, with how many steps you ticked and when it closed, and the section is blank again for the next one.
 
 That is the difference. The list tells you what is left; the archive tells you how you solved it last time. Search for a word you remember and it comes up, even if you closed it two years ago. All of it, step by step, is told in [tasks](https://www.tisty.app/docs/tasks/).
 

@@ -86,7 +86,7 @@ describe("what the detail of a task is handed", () => {
     shown.onComplete();
     shown.onDiscard();
 
-    expect(h.marking).toHaveBeenCalledWith("t1", "Llamar");
+    expect(h.marking).toHaveBeenCalledWith("t1", "Llamar", undefined);
     expect(h.close).toHaveBeenCalledTimes(2);
   });
 
