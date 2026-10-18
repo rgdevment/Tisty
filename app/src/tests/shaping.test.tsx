@@ -40,17 +40,15 @@ const opened = () =>
     />,
   );
 
-const more = () =>
-  fireEvent.mouseDown(screen.getByRole("button", { name: t("more") }), { detail: 1 });
-
-describe("the structure of an open task", () => {
-  it("is filled in by default, and edited only once asked for", () => {
+describe("the template of an open task", () => {
+  it("is filled in by default, and edited from the footer once asked for", () => {
     opened();
 
-    more();
-    fireEvent.click(screen.getByRole("menuitem", { name: new RegExp(t("shapeEdit")) }));
+    const shape = screen.getByRole("button", { name: new RegExp(t("shapeEdit")) });
+    expect(shape.getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(shape);
 
-    more();
-    expect(screen.getByRole("menuitem", { name: new RegExp(t("shapeDone")) })).toBeTruthy();
+    const done = screen.getByRole("button", { name: new RegExp(t("shapeDone")) });
+    expect(done.getAttribute("aria-pressed")).toBe("true");
   });
 });

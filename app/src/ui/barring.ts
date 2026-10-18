@@ -160,6 +160,16 @@ export const FORMATS = [
   ["linkIt", "K", "[", "]()", "link"],
 ] as const;
 
+const FOLDED = "tisty.barFolded";
+
+const foldedBefore = (): boolean => {
+  try {
+    return localStorage.getItem(FOLDED) === "1";
+  } catch {
+    return false;
+  }
+};
+
 export type Barred = {
   readonly bar: HTMLElement;
   readonly hint: HTMLElement;
@@ -206,8 +216,11 @@ const drawnIn = (page: Document, name: string) => {
 
 export const formatButtons = (page: Document, pick: (open: string, close: string) => void) => ({
   formats: FORMATS.map(([said, keys, open, close, icon]) => {
-    const one = buttonIn(page, "cm-bar-button", `${t(said)} (${pressed(keys)})`, () =>
-      pick(open, close),
+    const one = buttonIn(
+      page,
+      `cm-bar-button cm-bar-${icon}`,
+      `${t(said)} (${pressed(keys)})`,
+      () => pick(open, close),
     );
     one.append(drawnIn(page, icon));
     return one;
@@ -282,8 +295,23 @@ export const barred = (view: EditorView): Barred => {
     "⋯",
   );
 
+  const fold = button("cm-bar-button cm-bar-fold", t("barFold"), () => folding(!folded));
+  let folded = false;
+  const folding = (now: boolean) => {
+    folded = now;
+    bar.classList.toggle("folded", now);
+    fold.textContent = now ? "Aa" : "‹";
+    fold.setAttribute("aria-label", t(now ? "barOpen" : "barFold"));
+    fold.title = t(now ? "barOpen" : "barFold");
+    fold.setAttribute("aria-expanded", String(!now));
+    try {
+      localStorage.setItem(FOLDED, now ? "1" : "0");
+    } catch {}
+  };
+
   bar.append(kinds, made("span", "cm-bar-sep"), ...formats);
-  bar.append(made("span", "cm-bar-sep"), ...pens, made("span", "cm-bar-sep"), slash);
+  bar.append(made("span", "cm-bar-sep"), ...pens, made("span", "cm-bar-sep"), slash, fold);
+  folding(foldedBefore());
 
   const hint = made("div", "cm-hint");
   const key = (keys: string, said: string) => {

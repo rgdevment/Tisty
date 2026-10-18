@@ -343,13 +343,6 @@ function Settled({
   };
   const choices: Choice[] = open
     ? [
-        {
-          key: "shape",
-          label: t(shaping ? "shapeDone" : "shapeEdit"),
-          icon: "✎",
-          hint: t("shapeWhy"),
-          onPick: () => onShape(!shaping),
-        },
         ...(task.resolved?.drop
           ? [{ key: "done", label: t("markDone"), icon: "✓", onPick: onComplete }]
           : task.resolved
@@ -468,6 +461,18 @@ function Settled({
               )}
             </>
           )}
+          {open && (
+            <button
+              type="button"
+              aria-pressed={shaping}
+              title={t("shapeWhy")}
+              onClick={() => onShape(!shaping)}
+              className={`${seat} ml-auto ${shaping ? "font-medium text-accent" : "hover:text-ink"}`}
+            >
+              <span aria-hidden="true">{shaping ? "✓" : "✎"}</span>{" "}
+              {t(shaping ? "shapeDone" : "shapeEdit")}
+            </button>
+          )}
           {choices.length > 0 && (
             <button
               type="button"
@@ -486,7 +491,7 @@ function Settled({
                 const box = e.currentTarget.getBoundingClientRect();
                 setMore(more ? null : { x: box.right - 8, y: box.top - 4 });
               }}
-              className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-faint hover:bg-hover hover:text-ink"
+              className={`${open ? "" : "ml-auto "}flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-faint hover:bg-hover hover:text-ink`}
             >
               <span aria-hidden="true">⋯</span>
             </button>

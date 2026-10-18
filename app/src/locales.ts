@@ -72,9 +72,9 @@ const en = {
   steps: "Steps",
   history: "History",
   addStep: "Add a step",
-  shapeEdit: "Edit the structure",
-  shapeDone: "Back to filling it in",
-  shapeWhy: "Rename, add or remove the sections of this task",
+  shapeEdit: "Template",
+  shapeDone: "Done",
+  shapeWhy: "Edit this task's template: rename, add or remove its sections",
   templateTask:
     "## Description\n<!-- What has to happen, and why? A line or two is enough. -->\n\n## Done when\n<!-- How you will know it is finished. -->\n\n## Steps\n<!-- - [ ] The first step -->\n\n## Notes\n<!-- What you find out along the way. -->\n\n## When it closes\n<!-- What worked? What would you do differently next time? -->\n",
   templateRoutine:
@@ -244,6 +244,8 @@ const en = {
   helpGone: "The guide could not be read.",
   aboutBuild: "This build",
   insertLabel: "What to add",
+  barFold: "Hide the format bar",
+  barOpen: "Show the format bar",
   aboutWhat:
     "A local, private place for what you know: notes, documents and tasks. Nothing leaves this machine unless you set up syncing yourself.",
   aboutPrivacy:
@@ -2039,9 +2041,9 @@ const es: Catalog = {
   steps: "Pasos",
   history: "Historial",
   addStep: "Agregar un paso",
-  shapeEdit: "Editar la estructura",
-  shapeDone: "Volver a llenarla",
-  shapeWhy: "Renombrar, agregar o quitar las secciones de esta tarea",
+  shapeEdit: "Plantilla",
+  shapeDone: "Listo",
+  shapeWhy: "Editar la plantilla de esta tarea: renombrar, agregar o quitar sus secciones",
   templateTask:
     "## Descripción\n<!-- ¿Qué hay que lograr y por qué? Una o dos líneas bastan. -->\n\n## Para estar lista\n<!-- Cómo vas a saber que está hecha. -->\n\n## Pasos\n<!-- - [ ] El primer paso -->\n\n## Notas\n<!-- Lo que vayas averiguando mientras la haces. -->\n\n## Al cerrarla\n<!-- ¿Qué funcionó? ¿Qué harías distinto la próxima vez? -->\n",
   templateRoutine:
@@ -2213,6 +2215,8 @@ const es: Catalog = {
   helpGone: "No se pudo leer la guía.",
   aboutBuild: "Esta versión",
   insertLabel: "Qué añadir",
+  barFold: "Ocultar la barra de formato",
+  barOpen: "Mostrar la barra de formato",
   aboutWhat:
     "Un lugar local y privado para lo que sabes: notas, documentos y tareas. Nada sale de esta máquina salvo que configures la sincronización tú.",
   aboutPrivacy:

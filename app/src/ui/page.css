@@ -56,7 +56,7 @@ html.tall .page {
   padding-bottom: 36px;
 }
 html.tall.untitled .page {
-  padding-top: 36px;
+  padding-top: 42px;
   padding-bottom: 4px;
 }
 html.untitled .page > :last-child {
@@ -1175,6 +1175,24 @@ kbd {
   background: var(--tisty-mark-tag);
   border-radius: 4px;
   padding: 0 2px;
+}
+.cm-bar.folded > :not(.cm-bar-fold) {
+  display: none;
+}
+.cm-bar-fold {
+  color: var(--tisty-faint) !important;
+}
+@media (max-width: 480px) {
+  .cm-bar button {
+    min-width: 22px;
+    height: 22px;
+    padding: 0 4px;
+  }
+  .cm-bar button:has(> .cm-pen-blue, > .cm-pen-pink),
+  .cm-bar .cm-bar-underline,
+  .cm-bar .cm-bar-code {
+    display: none;
+  }
 }
 .cm-bar-kind-said {
   position: absolute;
