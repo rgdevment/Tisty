@@ -3,7 +3,7 @@ use std::sync::Mutex;
 
 use tauri::Manager;
 use tisty_core::Paths;
-use tisty_core::config::{CloudAt, Sync};
+use tisty_core::config::{Bound, CloudAt, Sync};
 use tisty_core::witness::{self, Fact, channel};
 
 use crate::reaching::Reaching;
@@ -44,7 +44,7 @@ pub fn backed_up(paths: &Paths) -> Answer<PathBuf> {
 // What the machines left behind are told, in words a person reads on the other side.
 fn where_to(chosen: &Sync) -> String {
     if let Some(at) = tisty_carrier::cloud_of(Some(chosen)) {
-        return format!("cloud:{}", at.email);
+        return at.word();
     }
     match chosen.place() {
         Some(at) => format!(
@@ -305,10 +305,13 @@ pub fn heeded(
     place: &str,
 ) -> Option<Refusal> {
     let word = tisty_core::moved::heeded(said, data, me, place)?;
-    Some(match word.to.split_once(':') {
-        Some(("cloud", email)) => Refusal::about("movedToCloud", email.to_string()),
-        Some(("folder", named)) => Refusal::about("movedAway", named.to_string()),
-        _ => Refusal::of("movedAlone"),
+    Some(match tisty_core::config::bound(&word.to) {
+        Bound::Cloud { provider, email } => {
+            let shown = tisty_core::config::shown_of(provider);
+            Refusal::about("movedToCloud", format!("{shown} · {email}"))
+        }
+        Bound::Folder(named) => Refusal::about("movedAway", named.to_string()),
+        Bound::Alone => Refusal::of("movedAlone"),
     })
 }
 

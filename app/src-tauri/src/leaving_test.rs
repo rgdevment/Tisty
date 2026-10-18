@@ -291,7 +291,10 @@ fn machines_left_behind_are_told_the_cloud_the_others_moved_to() {
     )
     .expect("the machine left behind went on syncing alone");
     assert_eq!(stopped.code, "movedToCloud");
-    assert_eq!(stopped.name.as_deref(), Some("ana@example.com"));
+    assert_eq!(
+        stopped.name.as_deref(),
+        Some("Google Drive · ana@example.com")
+    );
 }
 
 fn paths_in(room: &Path) -> Paths {

@@ -1,7 +1,7 @@
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { cloudStanding, STORAGE } from "../cloudState";
+import { cloudStanding, storageOf } from "../cloudState";
 import { ended, unstuck } from "../coming";
 import type { Carrying, CloudStatus } from "../core";
 import { adopt, fill, t } from "../locales";
@@ -332,7 +332,7 @@ describe("the cloud in Settings", () => {
   it("opens Google's storage page when the Drive is full", async () => {
     card({ last: round("cloudFull") });
     await userEvent.click(await screen.findByRole("button", { name: t("stateFullDo") }));
-    expect(opened.urls).toEqual([STORAGE]);
+    expect(opened.urls).toEqual([storageOf("google")]);
   });
 
   it("names the other account a copy belongs to", async () => {

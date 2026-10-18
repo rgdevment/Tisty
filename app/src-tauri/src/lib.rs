@@ -217,7 +217,9 @@ struct Carrying {
     later: bool,
     mode: &'static str,
     cloud: Option<String>,
+    cloud_provider: Option<String>,
     cloud_offered: bool,
+    clouds: Vec<&'static str>,
     backed_up_at: Option<String>,
     frees_space: bool,
 }

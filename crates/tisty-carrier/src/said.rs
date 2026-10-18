@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crate::Hitch;
+use crate::{Cause, Hitch};
 
 const WAITED_AT_LEAST: Duration = Duration::from_secs(1);
 pub const WAITED_UNTOLD: Duration = Duration::from_secs(60);
@@ -55,6 +55,28 @@ pub fn token_refused(
                 false => Hitch::Broke(format!("{who} refused the token: {error}")),
             }
         }
+    }
+}
+
+pub fn cause_of(slow: bool, said: &str) -> Cause {
+    let said = said.to_lowercase();
+    let inspected = [
+        "certificate",
+        "x509",
+        "tls",
+        "ssl",
+        "handshake",
+        "trust",
+        "unknown issuer",
+        "self signed",
+        "self-signed",
+    ];
+    if inspected.iter().any(|one| said.contains(one)) {
+        Cause::Filtered
+    } else if slow || said.contains("timed out") || said.contains("timeout") {
+        Cause::Slow
+    } else {
+        Cause::Blocked
     }
 }
 

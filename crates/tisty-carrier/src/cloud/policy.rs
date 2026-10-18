@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -23,6 +24,40 @@ pub struct Policy {
     pub bytes_a_day: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub halted_until: Option<u64>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub providers: BTreeMap<String, Said>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct Said {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub units_a_day: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bytes_a_day: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub halted_until: Option<u64>,
+}
+
+impl Policy {
+    // The rest is what 1.30 reads, so it speaks to Google alone; any other provider hears only its own entry.
+    pub fn for_provider(&self, provider: &str) -> Policy {
+        let own = self.providers.get(provider).cloned().unwrap_or_default();
+        let rest = match provider {
+            tisty_core::config::GOOGLE => Said {
+                units_a_day: self.units_a_day,
+                bytes_a_day: self.bytes_a_day,
+                halted_until: self.halted_until,
+            },
+            _ => Said::default(),
+        };
+        Policy {
+            serial: self.serial,
+            units_a_day: own.units_a_day.or(rest.units_a_day),
+            bytes_a_day: own.bytes_a_day.or(rest.bytes_a_day),
+            halted_until: own.halted_until.or(rest.halted_until),
+            providers: BTreeMap::new(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -65,8 +100,14 @@ pub fn kept(home: &Path) -> Option<Policy> {
 }
 
 /// The newest signed word is kept for good; one older than it is a replay and is refused.
-pub fn accepted(home: &Path, said: &[u8], signature: &str, key: &str) -> Result<Policy, Refused> {
-    let policy = read(said, signature, key)?;
+pub fn accepted(
+    home: &Path,
+    said: &[u8],
+    signature: &str,
+    key: &str,
+    provider: &str,
+) -> Result<Policy, Refused> {
+    let policy = read(said, signature, key)?.for_provider(provider);
     if let Some(kept) = kept(home)
         && policy.serial < kept.serial
     {

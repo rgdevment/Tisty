@@ -6,7 +6,7 @@ use std::time::Duration;
 use tisty_carrier::{Cloud, Hitch, Reach, Secrets, Shared, Tokens, policy};
 use tisty_core::Paths;
 use tisty_core::config::CloudAt;
-pub use tisty_core::config::GOOGLE;
+pub use tisty_core::config::{GOOGLE, ONEDRIVE};
 use tisty_core::witness::{self, Fact, channel};
 
 pub const KEPT_AS: &str = "refresh";
@@ -50,7 +50,7 @@ impl Reaching {
 
     pub fn apart(&self, at: &CloudAt) -> Option<Shared> {
         let home = self.home_of(at);
-        tisty_google::away(|| cloud_of(&home, at))
+        tisty_carrier::off::away(|| cloud_of(&home, at))
             .ok()
             .map(|(carrier, _)| carrier)
     }
@@ -70,7 +70,7 @@ impl Reach for Reaching {
             return Some(was.carrier.clone());
         }
         let home = self.home_of(at);
-        let made = tisty_google::away(|| cloud_of(&home, at));
+        let made = tisty_carrier::off::away(|| cloud_of(&home, at));
         if let Ok(mut why) = self.why_not.lock() {
             *why = made.as_ref().err().cloned();
         }
@@ -85,12 +85,20 @@ impl Reach for Reaching {
 }
 
 pub fn offered() -> bool {
-    tisty_google::client().is_some()
+    !clouds().is_empty()
+}
+
+pub fn clouds() -> Vec<&'static str> {
+    [GOOGLE, ONEDRIVE]
+        .into_iter()
+        .filter(|one| offers(one))
+        .collect()
 }
 
 pub fn offers(provider: &str) -> bool {
     match provider {
-        GOOGLE => offered(),
+        GOOGLE => tisty_google::client().is_some(),
+        ONEDRIVE => tisty_onedrive::client().is_some(),
         _ => false,
     }
 }
@@ -98,8 +106,22 @@ pub fn offers(provider: &str) -> bool {
 fn cloud_of(home: &Path, at: &CloudAt) -> Result<(Shared, Arc<Tokens>), String> {
     match at.provider.as_str() {
         GOOGLE => google_of(home, at),
+        ONEDRIVE => onedrive_of(home, at),
         other => Err(format!("this build does not know the cloud {other}")),
     }
+}
+
+fn onedrive_of(home: &Path, at: &CloudAt) -> Result<(Shared, Arc<Tokens>), String> {
+    let client = tisty_onedrive::client().ok_or("this build has no access to OneDrive")?;
+    let secrets = secrets_for(at).map_err(|e| format!("{e:?}"))?;
+    let renew = tisty_onedrive::MicrosoftRenew::new(client, tisty_onedrive::Endpoints::microsoft())
+        .map_err(|e| format!("{e:?}"))?;
+    let tokens = Arc::new(Tokens::new(secrets, Arc::new(renew), KEPT_AS, home));
+    let drive = tisty_onedrive::OneDrive::new(tokens.clone(), tisty_onedrive::GraphAt::microsoft())
+        .map_err(|e| format!("{e:?}"))?
+        .for_account(&at.account);
+    let remote = Arc::new(tisty_carrier::off::OffRuntime(drive));
+    Ok((Arc::new(Cloud::over(remote, home)), tokens))
 }
 
 fn google_of(home: &Path, at: &CloudAt) -> Result<(Shared, Arc<Tokens>), String> {
@@ -112,7 +134,7 @@ fn google_of(home: &Path, at: &CloudAt) -> Result<(Shared, Arc<Tokens>), String>
         .map_err(|e| format!("{e:?}"))?
         .for_account(&at.account)
         .owing_at(home);
-    let remote = Arc::new(tisty_google::OffRuntime(drive));
+    let remote = Arc::new(tisty_carrier::off::OffRuntime(drive));
     Ok((Arc::new(Cloud::over(remote, home)), tokens))
 }
 
@@ -178,7 +200,7 @@ fn policy_key() -> Option<&'static str> {
     option_env!("TISTY_CLOUD_POLICY_KEY").filter(|key| !key.is_empty())
 }
 
-pub fn heed(home: &Path) {
+pub fn heed(home: &Path, provider: &str) {
     let Some(key) = policy_key() else {
         return;
     };
@@ -197,7 +219,7 @@ pub fn heed(home: &Path) {
         return;
     };
     let signature = String::from_utf8_lossy(&signed);
-    if let Err(why) = policy::accepted(home, &said, &signature, key) {
+    if let Err(why) = policy::accepted(home, &said, &signature, key, provider) {
         witness::warn(
             channel::CLOUD,
             "the signed word on the cloud was not taken, so the last one taken still stands",

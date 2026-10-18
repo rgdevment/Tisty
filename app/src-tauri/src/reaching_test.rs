@@ -21,15 +21,15 @@ fn a_build_without_google_s_ids_offers_no_cloud_and_says_so() {
     let keeping = tisty_carrier::chosen_with(Some(&chosen), Some(&reaching));
 
     assert_eq!(keeping.chosen, tisty_carrier::Chosen::Cloud);
-    assert_eq!(keeping.carrier.is_some(), offered());
-    assert_eq!(offered(), tisty_google::client().is_some());
+    assert_eq!(keeping.carrier.is_some(), offers(GOOGLE));
+    assert_eq!(offers(GOOGLE), tisty_google::client().is_some());
 }
 
 #[test]
 fn a_provider_this_build_does_not_know_is_never_built() {
     let home = tempfile::tempdir().unwrap();
     let at = CloudAt {
-        provider: "onedrive".into(),
+        provider: "dropbox".into(),
         ..ana()
     };
 
@@ -45,8 +45,10 @@ fn google_s_token_stays_where_1_30_kept_it_and_another_provider_is_named_first()
 
     assert_eq!(scope_of(&ana()), "0123");
     assert_eq!(scope_of(&other), "onedrive-0123");
-    assert!(offers(GOOGLE) == offered());
-    assert!(!offers("onedrive"));
+    assert_eq!(offers(GOOGLE), tisty_google::client().is_some());
+    assert_eq!(offers(ONEDRIVE), tisty_onedrive::client().is_some());
+    assert!(!offers("dropbox"));
+    assert_eq!(offered(), !clouds().is_empty());
 }
 
 #[test]
@@ -105,7 +107,7 @@ fn a_build_without_the_maintainer_s_key_never_asks() {
         return;
     }
 
-    heed(home.path());
+    heed(home.path(), GOOGLE);
 
     assert!(!home.path().join(POLICY_ASKED).exists());
 }
@@ -116,7 +118,7 @@ fn what_kept_a_cloud_from_being_built_is_said_and_nothing_was_kept() {
     let paths = Paths::new(home.path().join("data"), home.path().join("config"));
     let reaching = Reaching::of(&paths);
     let elsewhere = CloudAt {
-        provider: "onedrive".into(),
+        provider: "dropbox".into(),
         ..ana()
     };
 
@@ -124,7 +126,7 @@ fn what_kept_a_cloud_from_being_built_is_said_and_nothing_was_kept() {
     assert!(
         reaching
             .why_not()
-            .is_some_and(|why| why.contains("onedrive"))
+            .is_some_and(|why| why.contains("dropbox"))
     );
     assert!(reaching.taken().is_none());
     assert!(reaching.cloud(&elsewhere).is_none());

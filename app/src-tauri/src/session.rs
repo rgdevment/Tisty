@@ -319,7 +319,10 @@ impl Session {
         let keeping = self.keeping();
         keeping.carrier.ok_or_else(|| match keeping.chosen {
             tisty_carrier::Chosen::Later => Refusal::of("syncLater"),
-            tisty_carrier::Chosen::Cloud if !crate::reaching::offered() => {
+            tisty_carrier::Chosen::Cloud
+                if !tisty_carrier::cloud_of(self.config.sync.as_ref())
+                    .is_some_and(|at| crate::reaching::offers(&at.provider)) =>
+            {
                 Refusal::of("cloudNotOffered")
             }
             tisty_carrier::Chosen::Cloud => {

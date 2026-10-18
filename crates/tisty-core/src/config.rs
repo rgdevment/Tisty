@@ -33,13 +33,62 @@ pub struct CloudAt {
 }
 
 pub const GOOGLE: &str = "google";
+pub const ONEDRIVE: &str = "onedrive";
+pub const GOOGLE_SHOWN: &str = "Google Drive";
+pub const ONEDRIVE_SHOWN: &str = "OneDrive";
+
+/// The provider as a person reads it; one this build does not know is named by its own id.
+pub fn shown_of(provider: &str) -> &str {
+    match provider {
+        GOOGLE => GOOGLE_SHOWN,
+        ONEDRIVE => ONEDRIVE_SHOWN,
+        other => other,
+    }
+}
+
+const LATER_CLOUDS: [&str; 1] = [ONEDRIVE];
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Bound<'a> {
+    Cloud {
+        provider: &'static str,
+        email: &'a str,
+    },
+    Folder(&'a str),
+    Alone,
+}
+
+/// Where a moved word says the machine went; a later cloud reads as a folder named after it, as 1.30 sees it.
+pub fn bound(to: &str) -> Bound<'_> {
+    match to.split_once(':') {
+        Some(("cloud", email)) => Bound::Cloud {
+            provider: GOOGLE,
+            email,
+        },
+        Some(("folder", named)) => LATER_CLOUDS
+            .iter()
+            .find_map(|provider| {
+                let email = named
+                    .strip_prefix(shown_of(provider))?
+                    .strip_prefix(" · ")?;
+                let address = email.contains('@') && !email.contains(['/', '\\', ' ']);
+                address.then_some(Bound::Cloud { provider, email })
+            })
+            .unwrap_or(Bound::Folder(named)),
+        _ => Bound::Alone,
+    }
+}
 
 impl CloudAt {
-    /// The provider as a person reads it; one this build does not know is named by its own id.
     pub fn shown(&self) -> &str {
+        shown_of(&self.provider)
+    }
+
+    // 1.30 reads any `cloud:` as Google Drive, so a later provider is told as a folder named after it.
+    pub fn word(&self) -> String {
         match self.provider.as_str() {
-            GOOGLE => "Google Drive",
-            other => other,
+            GOOGLE => format!("cloud:{}", self.email),
+            _ => format!("folder:{} · {}", self.shown(), self.email),
         }
     }
 }

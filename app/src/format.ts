@@ -1,5 +1,5 @@
 import type { DateSpec, Repeat } from "./core";
-import { fill, locale, t } from "./locales";
+import { fill, filled, locale, t, type Word } from "./locales";
 
 type Formats = {
   day: Intl.DateTimeFormat;
@@ -35,10 +35,10 @@ export function budgetResets(now = new Date()): string {
 }
 
 // A pause lasts minutes, so only the hour is said, and «a la» goes with one o'clock in Spanish.
-export function goesOnAt(at: number): string {
+export function goesOnAt(at: number, say: (key: Word) => string = t): string {
   const when = new Date(at);
-  return fill(
-    when.getHours() === 1 ? "movePausedAtOne" : "movePaused",
+  return filled(
+    say(when.getHours() === 1 ? "movePausedAtOne" : "movePaused"),
     formats().clock.format(when),
   );
 }

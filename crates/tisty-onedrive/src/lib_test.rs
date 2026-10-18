@@ -6,7 +6,10 @@ use tisty_carrier::{Cause, Hitch, Renew};
 
 use super::{Client, Endpoints, MicrosoftRenew, SCOPES, cause_of, client_of};
 
-fn answering(status: &'static str, answer: &'static str) -> (Endpoints, JoinHandle<String>) {
+pub(crate) fn answering(
+    status: &'static str,
+    answer: &'static str,
+) -> (Endpoints, JoinHandle<String>) {
     let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
     let token = format!(
         "http://127.0.0.1:{}/consumers/oauth2/v2.0/token",
