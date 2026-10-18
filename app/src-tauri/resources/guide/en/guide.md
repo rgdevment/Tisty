@@ -90,6 +90,10 @@ A task keeps more than its title. It opens on a page of its own, with sections t
 
 A step is a line, a hundred characters at most. When one needs more, make it a task of its own as a **part** of this one. A task with parts is something that ends: it shows **▣ 3/7** where its steps would count, its parts fold beneath it, and elsewhere each part names it with **⌂**. Beside the task's page, **Parts** takes a new one on its own line, and **Part of another…** finds the task it belongs to by name; a part names its whole there and lets go of it with **Let it go**. Closing it with parts still open asks you to let them go in the same breath, and undo brings them back.
 
+A part can also live in its task's words. Hover over an open box and press **↗**: the line becomes a part and its card stays in its place, with the steps it has done and its date. A click on the card opens it. The trail of each one tells when a part joined and when it was let go.
+
+A routine has one page for all its rounds. What you write under **This time** belongs to the round under way: completing it moves it to **Rounds**, under the page, with the steps you ticked and when, and the section is blank again for the next one.
+
 That is the difference. The list tells you what is left; the archive tells you how you solved it last time. Search for a word you remember and it comes up, even if you closed it two years ago. All of it, step by step, is told in [tasks](https://www.tisty.app/docs/tasks/).
 
 ---
@@ -366,6 +370,8 @@ Uninstalling Tisty takes the program away and leaves your tasks and documents wh
 ### 13. Completing, dropping and erasing
 
 - **Completing** a task marks it done and sends it to the Archive.
+- **Close with a summary** asks for two lines on how it went before completing it. They go first under **When it closes**; in a routine, they stay with its round.
+- Once it closes, its page is put away with it: it reads but takes no more writing. Reopen it and it comes back.
 - **Dropping** puts it aside without doing it: it lands in the Archive too.
 - What is in the Archive stays there in case you look for it.
 
