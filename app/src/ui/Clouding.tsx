@@ -9,9 +9,10 @@ import {
   syncState,
 } from "../core";
 import { weigh } from "../format";
-import { fill, t } from "../locales";
+import { fill, said, speakOf, t, type Word } from "../locales";
 import { saidPlainly } from "../refusal";
 import CloudHealth from "./CloudHealth";
+import CloudMark from "./CloudMark";
 
 interface Props {
   busy: boolean;
@@ -28,18 +29,17 @@ const back = "text-faint hover:text-ink disabled:opacity-60";
 const go =
   "ml-auto rounded-[10px] bg-accent px-4 py-2 text-[13px] font-medium text-white hover:opacity-90 disabled:opacity-60";
 
+const CLOUDS: { provider: string; name: Word; why: Word }[] = [
+  { provider: "google", name: "cloudGoogle", why: "cloudGoogleWhy" },
+  { provider: "onedrive", name: "cloudOneDrive", why: "cloudOneDriveWhy" },
+  { provider: "dropbox", name: "cloudDropbox", why: "cloudComing" },
+];
+
+const nameOf = (provider: string) =>
+  t(CLOUDS.find((one) => one.provider === provider)?.name ?? "cloudGoogle");
+
 // Only the newest sign-in may let an account go: an older one ending late would take a newer token with it.
 let asking = 0;
-
-function Mark({ letter, hue }: { letter: string; hue: string }) {
-  return (
-    <span
-      className={`grid size-6 flex-none place-items-center rounded-md text-[11.5px] font-semibold text-white ${hue}`}
-    >
-      {letter}
-    </span>
-  );
-}
 
 function Points({ title, points }: { title: string; points: string[] }) {
   return (
@@ -60,11 +60,20 @@ export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected 
   const [connected, setConnected] = useState<Connected>();
   const [weight, setWeight] = useState<number>();
   const [holds, setHolds] = useState(false);
+  const [offered, setOffered] = useState<string[]>(["google"]);
+  const [picked, setPicked] = useState("google");
   const gone = useRef(false);
   const unused = useRef<Connected | undefined>(undefined);
 
   useEffect(() => {
     gone.current = false;
+    syncState()
+      .then((state) => {
+        if (gone.current || !state.clouds?.length) return;
+        setOffered(state.clouds);
+        setPicked((was) => (state.clouds.includes(was) ? was : state.clouds[0]));
+      })
+      .catch(() => undefined);
     return () => {
       gone.current = true;
       cloudConnectCancel().catch(() => undefined);
@@ -93,15 +102,17 @@ export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected 
 
   const stuck = busy || held || waiting;
 
-  const connect = () => {
+  const connect = (provider: string) => {
     if (stuck) return;
     onTrouble(undefined);
+    setPicked(provider);
     setWaiting(true);
     const mine = ++asking;
-    cloudConnect()
+    cloudConnect(provider)
       .then((account) => {
         if (gone.current) return mine === asking ? letGoUnused(account) : undefined;
         unused.current = account;
+        speakOf(account.provider);
         setConnected(account);
       })
       .catch((e) => !gone.current && e?.code !== "cloudDropped" && onTrouble(saidPlainly(e)))
@@ -142,13 +153,14 @@ export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected 
   };
 
   if (connected) {
+    const of = (key: Word) => said(key, connected.provider);
     return (
       <div className="flex flex-col gap-3">
         <p className="text-[13px] font-semibold">{t("cloudConnectedTitle")}</p>
         <div className={`${row} border-accent bg-accent-soft`}>
-          <Mark letter="G" hue="bg-[#1a73e8]" />
+          <CloudMark provider={connected.provider} />
           <span className="min-w-0 flex-1">
-            <span className="block text-[13px] font-medium">{t("cloudGoogle")}</span>
+            <span className="block text-[13px] font-medium">{nameOf(connected.provider)}</span>
             <span className="block truncate text-[11.5px] text-faint">{connected.email}</span>
           </span>
           <span className="flex-none rounded-md bg-hue-green/10 px-1.5 py-0.5 text-[10.5px] text-hue-green">
@@ -157,7 +169,7 @@ export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected 
         </div>
         {holds ? (
           <div className={box}>
-            <span className={heading}>{fill("cloudHolds", t("cloudGoogle"))}</span>
+            <span className={heading}>{fill("cloudHolds", nameOf(connected.provider))}</span>
             {t("cloudHoldsWhy")}
           </div>
         ) : (
@@ -171,8 +183,8 @@ export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected 
           />
         )}
         <div className={`${box} bg-accent-soft`}>
-          <span className={heading}>{t("cloudGooglePace")}</span>
-          {t("cloudGooglePaceWhy")}
+          <span className={heading}>{of("cloudGooglePace")}</span>
+          {of("cloudGooglePaceWhy")}
         </div>
         <div className="flex items-center gap-4 text-[11.5px]">
           <button type="button" disabled={busy || held} onClick={leave} className={back}>
@@ -186,36 +198,41 @@ export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected 
     );
   }
 
+  const of = (key: Word) => said(key, picked);
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-[12.5px] leading-relaxed text-soft">{t("cloudConnectWhy")}</p>
-      <button
-        type="button"
-        disabled={stuck}
-        onClick={connect}
-        className={`${row} border-line hover:bg-hover disabled:opacity-60`}
-      >
-        <Mark letter="G" hue="bg-[#1a73e8]" />
-        <span className="min-w-0 flex-1">
-          <span className="block text-[13px] font-medium">{t("cloudGoogle")}</span>
-          <span className="block text-[11.5px] text-faint">{t("cloudGoogleWhy")}</span>
-        </span>
-        <span className="flex-none text-[11.5px] text-accent">{t("cloudConnectDo")}</span>
-      </button>
-      {(["cloudOneDrive", "cloudDropbox"] as const).map((one) => (
-        <div key={one} aria-disabled="true" className={`${row} border-hair opacity-70`}>
-          <Mark letter={t(one).slice(0, 1)} hue="bg-soft" />
-          <span className="min-w-0 flex-1">
-            <span className="block text-[13px] font-medium">{t(one)}</span>
-            <span className="block text-[11.5px] text-faint">{t("cloudComing")}</span>
-          </span>
-        </div>
-      ))}
-      <CloudHealth name={t("cloudGoogle")} />
-      <Points title={t("cloudWhatHappens")} points={[t("cloudFirstAll"), t("cloudNoPassword")]} />
+      <p className="text-[12.5px] leading-relaxed text-soft">{of("cloudConnectWhy")}</p>
+      {CLOUDS.map((one) =>
+        offered.includes(one.provider) ? (
+          <button
+            key={one.provider}
+            type="button"
+            disabled={stuck}
+            onClick={() => connect(one.provider)}
+            className={`${row} ${one.provider === picked ? "border-accent" : "border-line"} hover:bg-hover disabled:opacity-60`}
+          >
+            <CloudMark provider={one.provider} />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[13px] font-medium">{t(one.name)}</span>
+              <span className="block text-[11.5px] text-faint">{t(one.why)}</span>
+            </span>
+            <span className="flex-none text-[11.5px] text-accent">{t("cloudConnectDo")}</span>
+          </button>
+        ) : (
+          <div key={one.provider} aria-disabled="true" className={`${row} border-hair opacity-70`}>
+            <CloudMark provider={null} />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[13px] font-medium">{t(one.name)}</span>
+              <span className="block text-[11.5px] text-faint">{t("cloudComing")}</span>
+            </span>
+          </div>
+        ),
+      )}
+      <CloudHealth name={nameOf(picked)} provider={picked} />
+      <Points title={t("cloudWhatHappens")} points={[t("cloudFirstAll"), of("cloudNoPassword")]} />
       <Points
-        title={t("cloudLimitIsGoogle")}
-        points={[t("cloudLimitIsGoogleWhy"), t("cloudCaps")]}
+        title={of("cloudLimitIsGoogle")}
+        points={[of("cloudLimitIsGoogleWhy"), t("cloudCaps")]}
       />
       {waiting && (
         <p role="status" aria-live="polite" className="text-[11.5px] text-faint">
@@ -229,8 +246,8 @@ export default function Clouding({ busy, onTrouble, onBack, onDone, onConnected 
         <button type="button" disabled={busy || held} onClick={leave} className={back}>
           {t("welcomeBack")}
         </button>
-        <button type="button" disabled={stuck} onClick={connect} className={go}>
-          {t("cloudOpenGoogle")}
+        <button type="button" disabled={stuck} onClick={() => connect(picked)} className={go}>
+          {of("cloudOpenGoogle")}
         </button>
       </div>
     </div>

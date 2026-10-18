@@ -76,11 +76,11 @@ export const cloudStanding = (status: CloudStatus, now = Date.now() / 1000): Sta
       said: "stateBudget",
       told: fill("stateBudgetWhy", budgetResets(new Date(now * 1000))),
     };
-  if (apartWaits(last)) return status.adopts ? null : { ...APART, name: t("cloudGoogle") };
+  if (apartWaits(last)) return status.adopts ? null : { ...APART, name: t("cloudChosen") };
   if (last.code === "restoredApart")
     return {
       said: "stateRestoredApart",
-      told: fill("stateRestoredApartWhy", t("cloudGoogle")),
+      told: fill("stateRestoredApartWhy", t("cloudChosen")),
       exit: "choose",
       exitSaid: "stateApartDo",
     };

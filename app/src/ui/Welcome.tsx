@@ -316,7 +316,7 @@ export default function Welcome({ onDone }: Props) {
     return (
       <Apart
         kin={kin}
-        cloud={toCloud ? t("cloudGoogle") : undefined}
+        cloud={toCloud ? t("cloudChosen") : undefined}
         onPick={(door) => closed(door)}
         onElse={() => closed("else")}
         onClose={() => closed(null)}
@@ -432,7 +432,7 @@ export default function Welcome({ onDone }: Props) {
           </div>
         ) : carrying ? (
           <Bringing
-            from={toCloud ? t("cloudGoogle") : t("syncTheFolder")}
+            from={toCloud ? t("cloudChosen") : t("syncTheFolder")}
             onHide={() => void finish()}
           />
         ) : (

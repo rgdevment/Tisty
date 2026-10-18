@@ -22,6 +22,7 @@ import { plainly, saidPlainly } from "../refusal";
 import { sure } from "../sure";
 import { syncingSaid } from "../syncSaid";
 import type { Run, Which, Word } from "./Card";
+import CloudMark from "./CloudMark";
 import Here from "./Here";
 import { ConfirmHere } from "./Knocking";
 import { mild, risky, strong } from "./Rows";
@@ -90,7 +91,7 @@ export default function Clouded({
 
   // A copy this machine already carried stays with its account; one never carried may change it.
   const reconnected = async () => {
-    const account = await cloudConnect();
+    const account = await cloudConnect(status?.provider ?? "google");
     const was = status?.account;
     if (was && was !== account.account && status?.joined) {
       await cloudForget(account.account, account.provider).catch(() => undefined);
@@ -156,11 +157,9 @@ export default function Clouded({
   return (
     <>
       <div className="flex items-center gap-2.5 rounded-[10px] border border-hair px-3 py-2">
-        <span className="grid size-6 flex-none place-items-center rounded-md bg-[#1a73e8] text-[11.5px] font-semibold text-white">
-          G
-        </span>
+        <CloudMark provider={status?.provider ?? state.cloudProvider} />
         <span className="min-w-0 flex-1">
-          <span className="block text-[13px] font-medium">{t("cloudGoogle")}</span>
+          <span className="block text-[13px] font-medium">{t("cloudChosen")}</span>
           <span className="block truncate text-[11.5px] text-faint">
             {status?.email ?? state.cloud}
           </span>

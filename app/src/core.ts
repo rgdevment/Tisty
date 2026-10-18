@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
+import { speakOf } from "./locales";
 import { settled } from "./saving";
 
 export type Status = "open" | "done" | "dropped";
@@ -552,7 +553,9 @@ export interface Carrying {
   later?: boolean;
   mode: "alone" | "folder" | "cloud" | "later";
   cloud?: string | null;
+  cloudProvider?: string | null;
   cloudOffered: boolean;
+  clouds: string[];
   backedUpAt?: string;
   freesSpace: boolean;
 }
@@ -771,7 +774,11 @@ export const keepReport = (at: string, text: string, logs: boolean): Promise<voi
 export const rebuild = (): Promise<void> => invoke("rebuild");
 export const checked = (): Promise<Reviewed> => invoke("checked");
 export const twinned = (): Promise<Twins[]> => invoke("twinned");
-export const syncState = (): Promise<Carrying> => invoke("sync_state");
+export const syncState = (): Promise<Carrying> =>
+  invoke<Carrying>("sync_state").then((state) => {
+    speakOf(state?.cloudProvider);
+    return state;
+  });
 export const chooseSync = (dest?: string): Promise<void> => invoke("choose_sync", { dest });
 
 export interface Connected {
@@ -811,7 +818,8 @@ export interface CloudStatus {
   adopts?: boolean;
 }
 
-export const cloudConnect = (): Promise<Connected> => invoke("cloud_connect");
+export const cloudConnect = (provider: string): Promise<Connected> =>
+  invoke("cloud_connect", { provider });
 export const cloudConnectCancel = (): Promise<void> => invoke("cloud_connect_cancel");
 export const cloudChoose = (account: string, email: string, provider?: string): Promise<void> =>
   invoke("cloud_choose", { account, email, provider });
@@ -820,11 +828,16 @@ export const cloudForget = (account?: string, provider?: string): Promise<void> 
 export const cloudRevoke = (account?: string, provider?: string): Promise<void> =>
   invoke("cloud_revoke", { account, provider });
 export const cloudPause = (paused: boolean): Promise<void> => invoke("cloud_pause", { paused });
-export const cloudStatus = (): Promise<CloudStatus | null> => invoke("cloud_status");
+export const cloudStatus = (): Promise<CloudStatus | null> =>
+  invoke<CloudStatus | null>("cloud_status").then((status) => {
+    speakOf(status?.provider);
+    return status;
+  });
 
 export type Health = "reachable" | "inspected" | "blocked" | "slow" | "troubled";
 
-export const cloudHealth = (): Promise<Health> => invoke("cloud_health");
+export const cloudHealth = (provider: string): Promise<Health> =>
+  invoke("cloud_health", { provider });
 
 export type Toward =
   | { kind: "alone" }

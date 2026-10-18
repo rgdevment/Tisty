@@ -37,7 +37,7 @@ export const offlineNow = () => typeof navigator !== "undefined" && navigator.on
 
 /** What stood in the way of the cloud, unless this computer is simply offline, which says so itself. */
 export const causeSaid = (cause?: Cause | null): string | null =>
-  cause && cause in CAUSES && !offlineNow() ? fill(CAUSES[cause], t("cloudGoogle")) : null;
+  cause && cause in CAUSES && !offlineNow() ? fill(CAUSES[cause], t("cloudChosen")) : null;
 
 export interface Failing {
   cause?: Cause | null;

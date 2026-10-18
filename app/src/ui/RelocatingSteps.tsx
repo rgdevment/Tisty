@@ -160,7 +160,7 @@ export const towardOf = (toward: Toward): string =>
 export const doneSaid = (toward: Toward): string =>
   toward.kind === "alone"
     ? t("moveDoneAlone")
-    : fill("moveDone", toward.kind === "cloud" ? t("cloudGoogle") : toward.at);
+    : fill("moveDone", toward.kind === "cloud" ? t("cloudChosen") : toward.at);
 
 function Option({ said, why, onPick }: { said: string; why: string; onPick: () => void }) {
   return (
