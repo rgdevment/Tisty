@@ -479,11 +479,13 @@ fn deciding_with_the_wrong_number_of_answers_is_refused_instead_of_guessed() {
 }
 
 #[test]
-fn a_document_that_cannot_be_read_as_blocks_offers_nothing_to_decide() {
+fn a_document_with_properties_nobody_changed_weaves_back_as_it_was() {
     let base = "---\ntitle: x\n---\n\n# Kit\n\nuno\n";
 
     assert!(rifts(base, base, base).is_empty());
-    assert!(woven_with(base, base, base, &[]).is_none());
+    let out = woven_with(base, base, base, &[]).expect("nothing to decide");
+    assert!(out.starts_with("---\ntitle: x\n---\n"), "{out:?}");
+    assert!(out.contains("# Kit") && out.contains("uno"), "{out:?}");
 }
 
 #[test]
