@@ -16,6 +16,12 @@ pub struct Stamp {
     pub date_only: bool,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Alarm {
+    pub minutes: i64,
+    pub from_end: bool,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Item {
     pub kind: Kind,
@@ -28,9 +34,10 @@ pub struct Item {
     pub rule: Option<String>,
     pub irregular: bool,
     pub moved: bool,
-    pub alarm: Option<i64>,
+    pub alarm: Option<Alarm>,
     pub priority: Option<u8>,
     pub done: bool,
+    pub cancelled: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -77,6 +84,7 @@ fn blank(kind: Kind) -> Item {
         alarm: None,
         priority: None,
         done: false,
+        cancelled: false,
     }
 }
 
@@ -92,31 +100,45 @@ fn took(item: &mut Item, line: &Line) {
         "EXDATE" | "RDATE" => item.irregular = true,
         "RECURRENCE-ID" => item.moved = true,
         "PRIORITY" => item.priority = line.value.trim().parse().ok(),
-        "STATUS" => item.done |= line.value.trim().eq_ignore_ascii_case("COMPLETED"),
+        "STATUS" => {
+            let said = line.value.trim();
+            item.done |= said.eq_ignore_ascii_case("COMPLETED");
+            item.cancelled |= said.eq_ignore_ascii_case("CANCELLED");
+        }
         "COMPLETED" => item.done = true,
         _ => {}
     }
 }
 
-/// Only an alarm counted back from the start is kept; one set at a clock time or after it is not a reminder.
-pub fn before(trigger: &Line) -> Option<i64> {
+// No alarm rings earlier than a year ahead of what it is for.
+const ALARM_AT_MOST: i64 = 366 * 86_400;
+
+/// Only an alarm counted back is kept; one set at a clock time or after its moment is not a reminder.
+pub fn before(trigger: &Line) -> Option<Alarm> {
     if trigger
         .param("VALUE")
         .is_some_and(|one| one.eq_ignore_ascii_case("DATE-TIME"))
-        || trigger
-            .param("RELATED")
-            .is_some_and(|one| one.eq_ignore_ascii_case("END"))
     {
         return None;
     }
+    let from_end = trigger
+        .param("RELATED")
+        .is_some_and(|one| one.eq_ignore_ascii_case("END"));
     let said = trigger.value.trim();
     let (back, span) = match said.strip_prefix('-') {
         Some(rest) => (true, rest),
         None => (false, said.strip_prefix('+').unwrap_or(said)),
     };
-    match (back, seconds_in(span)?) {
-        (true, seconds) => Some(seconds / 60),
-        (false, 0) => Some(0),
+    let seconds = seconds_in(span).filter(|one| *one <= ALARM_AT_MOST)?;
+    match (back, seconds) {
+        (true, seconds) => Some(Alarm {
+            minutes: seconds / 60,
+            from_end,
+        }),
+        (false, 0) => Some(Alarm {
+            minutes: 0,
+            from_end,
+        }),
         _ => None,
     }
 }
@@ -133,7 +155,8 @@ fn seconds_in(span: &str) -> Option<i64> {
         for one in part.chars() {
             match units.iter().find(|(unit, _)| *unit == one) {
                 Some((_, size)) => {
-                    seconds += number.parse::<i64>().ok()? * size;
+                    let more = number.parse::<i64>().ok()?.checked_mul(*size)?;
+                    seconds = seconds.checked_add(more)?;
                     number.clear();
                 }
                 None if one.is_ascii_digit() => number.push(one),
@@ -191,5 +214,33 @@ pub fn read(text: &str) -> Result<Calendar, Unread> {
             }
         }
     }
+    if method.as_deref() == Some("CANCEL") {
+        for item in &mut items {
+            item.cancelled = true;
+        }
+    }
     Ok(Calendar { method, items })
+}
+
+// A fold may split a character in two, so lines are joined as bytes before they are read as text.
+pub fn read_bytes(bytes: &[u8]) -> Result<Calendar, Unread> {
+    if bytes.len() > BYTES_AT_MOST {
+        return Err(Unread::TooBig);
+    }
+    let mut joined = Vec::with_capacity(bytes.len());
+    let mut at = 0;
+    while at < bytes.len() {
+        let fold = match &bytes[at..] {
+            [b'\r', b'\n', b' ' | b'\t', ..] => 3,
+            [b'\n', b' ' | b'\t', ..] => 2,
+            _ => 0,
+        };
+        if fold > 0 {
+            at += fold;
+            continue;
+        }
+        joined.push(bytes[at]);
+        at += 1;
+    }
+    read(&String::from_utf8_lossy(&joined))
 }

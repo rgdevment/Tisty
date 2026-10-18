@@ -49,11 +49,90 @@ fn a_time_from_another_zone_lands_on_this_clock() {
     let utc =
         one("BEGIN:VEVENT\r\nUID:c\r\nSUMMARY:Sync\r\nDTSTART:20261022T150000Z\r\nEND:VEVENT\r\n");
     assert_eq!(utc.date.unwrap().at, date(2026, 10, 22).at(12, 0, 0, 0));
-    let odd = one(
+    let outlook = one(
         "BEGIN:VEVENT\r\nUID:d\r\nSUMMARY:Board\r\nDTSTART;TZID=Pacific Standard Time:20261022T090000\r\nEND:VEVENT\r\n",
+    );
+    assert_eq!(outlook.date.unwrap().at, date(2026, 10, 22).at(13, 0, 0, 0));
+    let odd = one(
+        "BEGIN:VEVENT\r\nUID:d2\r\nSUMMARY:Board\r\nDTSTART;TZID=Atlantis Time:20261022T090000\r\nEND:VEVENT\r\n",
     );
     assert!(odd.odd.contains(&Odd::Zone));
     assert!(odd.date.unwrap().floating);
+}
+
+#[test]
+fn a_character_split_across_a_fold_comes_back_whole() {
+    let mut bytes = b"BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nUID:o\r\nSUMMARY:Reuni".to_vec();
+    let accent = "ó".as_bytes();
+    bytes.push(accent[0]);
+    bytes.extend_from_slice(b"\r\n ");
+    bytes.push(accent[1]);
+    bytes.extend_from_slice(b"n\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+
+    let calendar = super::read_bytes(&bytes).unwrap();
+
+    assert_eq!(calendar.items[0].summary, "Reunión");
+}
+
+#[test]
+fn a_cancellation_is_shown_and_never_taken() {
+    let text = "BEGIN:VCALENDAR\nMETHOD:CANCEL\nBEGIN:VEVENT\nUID:p\nSUMMARY:Standup\nDTSTART:20261022T150000Z\nEND:VEVENT\nEND:VCALENDAR\n";
+    let item = &read(text).unwrap().items[0];
+    let said = taken(item, &now());
+    assert!(said.odd.contains(&Odd::Cancelled) && !said.takeable());
+    let status = one(
+        "BEGIN:VEVENT\r\nUID:q\r\nSUMMARY:Off\r\nSTATUS:CANCELLED\r\nDTSTART:20261022T150000Z\r\nEND:VEVENT\r\n",
+    );
+    assert!(!status.takeable());
+}
+
+#[test]
+fn a_series_begun_long_ago_starts_at_its_next_turn_and_an_ended_one_is_past() {
+    let running = one(
+        "BEGIN:VEVENT\r\nUID:r\r\nSUMMARY:Standup\r\nDTSTART;TZID=America/Santiago:20240101T090000\r\nRRULE:FREQ=WEEKLY\r\nEND:VEVENT\r\n",
+    );
+    assert_eq!(running.date.unwrap().at, date(2026, 10, 19).at(9, 0, 0, 0));
+    assert!(!running.odd.contains(&Odd::Past));
+    let ended = one(
+        "BEGIN:VEVENT\r\nUID:s\r\nSUMMARY:Course\r\nDTSTART;TZID=America/Santiago:20240101T090000\r\nRRULE:FREQ=WEEKLY;COUNT=4\r\nEND:VEVENT\r\n",
+    );
+    assert_eq!(ended.repeat, None);
+    assert!(ended.odd.contains(&Odd::Past) && ended.takeable());
+}
+
+#[test]
+fn today_is_not_past_and_a_huge_count_or_alarm_breaks_nothing() {
+    let today = one(
+        "BEGIN:VEVENT\r\nUID:t\r\nSUMMARY:Today\r\nDTSTART;VALUE=DATE:20261018\r\nEND:VEVENT\r\n",
+    );
+    assert!(!today.odd.contains(&Odd::Past));
+    let huge = one(
+        "BEGIN:VEVENT\r\nUID:u\r\nSUMMARY:Forever\r\nDTSTART;VALUE=DATE:20261020\r\nRRULE:FREQ=YEARLY;COUNT=4000000000\r\nBEGIN:VALARM\r\nTRIGGER:-P99999999999W\r\nEND:VALARM\r\nEND:VEVENT\r\n",
+    );
+    assert_eq!(huge.title, "Forever");
+}
+
+#[test]
+fn a_to_do_s_alarm_counts_from_its_start_unless_it_says_its_end() {
+    let start = one(
+        "BEGIN:VTODO\r\nUID:v\r\nSUMMARY:Report\r\nDTSTART;TZID=America/Santiago:20261019T090000\r\nDUE;TZID=America/Santiago:20261023T170000\r\nBEGIN:VALARM\r\nTRIGGER:-PT15M\r\nEND:VALARM\r\nEND:VTODO\r\n",
+    );
+    assert_eq!(
+        start.reminder.unwrap().at,
+        date(2026, 10, 19).at(8, 45, 0, 0)
+    );
+    let end = one(
+        "BEGIN:VTODO\r\nUID:w\r\nSUMMARY:Report\r\nDTSTART;TZID=America/Santiago:20261019T090000\r\nDUE;TZID=America/Santiago:20261023T170000\r\nBEGIN:VALARM\r\nTRIGGER;RELATED=END:-PT1H\r\nEND:VALARM\r\nEND:VTODO\r\n",
+    );
+    assert_eq!(end.reminder.unwrap().at, date(2026, 10, 23).at(16, 0, 0, 0));
+}
+
+#[test]
+fn an_entry_with_no_identity_is_known_by_what_it_says() {
+    let body = "BEGIN:VEVENT\r\nSUMMARY:Lunch\r\nDTSTART:20261022T150000Z\r\nEND:VEVENT\r\n";
+    let (once, again) = (one(body), one(body));
+    assert!(once.source.as_deref().unwrap().starts_with("ics:~"));
+    assert_eq!(once.source, again.source);
 }
 
 #[test]

@@ -10,6 +10,61 @@ pub struct When {
     pub unknown_zone: Option<String>,
 }
 
+// Outlook and Exchange name zones the Windows way; these are the ones invitations most often carry.
+const WINDOWS: &[(&str, &str)] = &[
+    ("UTC", "UTC"),
+    ("GMT Standard Time", "Europe/London"),
+    ("Greenwich Standard Time", "Atlantic/Reykjavik"),
+    ("W. Europe Standard Time", "Europe/Berlin"),
+    ("Romance Standard Time", "Europe/Paris"),
+    ("Central Europe Standard Time", "Europe/Budapest"),
+    ("Central European Standard Time", "Europe/Warsaw"),
+    ("E. Europe Standard Time", "Europe/Chisinau"),
+    ("GTB Standard Time", "Europe/Bucharest"),
+    ("FLE Standard Time", "Europe/Kiev"),
+    ("Russian Standard Time", "Europe/Moscow"),
+    ("Turkey Standard Time", "Europe/Istanbul"),
+    ("Israel Standard Time", "Asia/Jerusalem"),
+    ("South Africa Standard Time", "Africa/Johannesburg"),
+    ("Arabian Standard Time", "Asia/Dubai"),
+    ("India Standard Time", "Asia/Kolkata"),
+    ("China Standard Time", "Asia/Shanghai"),
+    ("Singapore Standard Time", "Asia/Singapore"),
+    ("Tokyo Standard Time", "Asia/Tokyo"),
+    ("Korea Standard Time", "Asia/Seoul"),
+    ("AUS Eastern Standard Time", "Australia/Sydney"),
+    ("New Zealand Standard Time", "Pacific/Auckland"),
+    ("Eastern Standard Time", "America/New_York"),
+    ("Central Standard Time", "America/Chicago"),
+    ("Mountain Standard Time", "America/Denver"),
+    ("US Mountain Standard Time", "America/Phoenix"),
+    ("Pacific Standard Time", "America/Los_Angeles"),
+    ("Alaskan Standard Time", "America/Anchorage"),
+    ("Hawaiian Standard Time", "Pacific/Honolulu"),
+    ("Atlantic Standard Time", "America/Halifax"),
+    ("Central Standard Time (Mexico)", "America/Mexico_City"),
+    ("Central America Standard Time", "America/Guatemala"),
+    ("SA Pacific Standard Time", "America/Bogota"),
+    ("Venezuela Standard Time", "America/Caracas"),
+    ("SA Western Standard Time", "America/La_Paz"),
+    ("Pacific SA Standard Time", "America/Santiago"),
+    ("Argentina Standard Time", "America/Buenos_Aires"),
+    ("Montevideo Standard Time", "America/Montevideo"),
+    ("Paraguay Standard Time", "America/Asuncion"),
+    ("E. South America Standard Time", "America/Sao_Paulo"),
+    ("SA Eastern Standard Time", "America/Cayenne"),
+];
+
+fn zone_named(tz: &str) -> Option<TimeZone> {
+    let tz = tz.trim();
+    TimeZone::get(tz).ok().or_else(|| {
+        WINDOWS
+            .iter()
+            .find(|(windows, _)| windows.eq_ignore_ascii_case(tz))
+            .and_then(|(_, iana)| TimeZone::get(iana).ok())
+    })
+}
+
 fn number(said: &str, from: usize, len: usize) -> Option<i16> {
     said.get(from..from + len)?.parse().ok()
 }
@@ -47,7 +102,7 @@ pub fn when(stamp: &Stamp, here: &TimeZone) -> Option<When> {
     let utc = stamp.value.trim().ends_with(['Z', 'z']);
     let zone = match (&stamp.tz, utc) {
         (_, true) => Some(Ok(TimeZone::UTC)),
-        (Some(tz), false) => Some(TimeZone::get(tz).map_err(|_| tz.clone())),
+        (Some(tz), false) => Some(zone_named(tz).ok_or_else(|| tz.clone())),
         (None, false) => None,
     };
     let fixed = |zone: TimeZone| -> Option<When> {

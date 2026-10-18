@@ -1,5 +1,3 @@
-use jiff::ToSpan;
-
 use crate::model::{Cadence, DateSpec, Repeat, Unit};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -32,15 +30,25 @@ fn restates(key: &str, value: &str, start: &DateSpec) -> bool {
     }
 }
 
+/// One turn of the cadence, refused rather than wrapped when a file asks for a span past what time holds.
+pub fn step(each: Cadence) -> Option<jiff::Span> {
+    span(each.unit, i64::from(each.every))
+}
+
+fn span(unit: Unit, steps: i64) -> Option<jiff::Span> {
+    let none = jiff::Span::new();
+    match unit {
+        Unit::Day => none.try_days(steps),
+        Unit::Week => none.try_weeks(steps),
+        Unit::Month => none.try_months(steps),
+        Unit::Year => none.try_years(steps),
+    }
+    .ok()
+}
+
 fn last(start: &DateSpec, unit: Unit, every: u16, count: u32) -> Option<jiff::civil::Date> {
-    let steps = i64::from(every) * i64::from(count.checked_sub(1)?);
-    let span = match unit {
-        Unit::Day => steps.days(),
-        Unit::Week => steps.weeks(),
-        Unit::Month => steps.months(),
-        Unit::Year => steps.years(),
-    };
-    start.date().checked_add(span).ok()
+    let steps = i64::from(every).checked_mul(i64::from(count.checked_sub(1)?))?;
+    start.date().checked_add(span(unit, steps)?).ok()
 }
 
 /// A repeat Tisty cannot follow is said so, rather than made into one it would follow wrongly.

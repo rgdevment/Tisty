@@ -47,7 +47,7 @@ fn calendar_at(path: &str) -> Result<ics::Calendar, Refusal> {
         return Err(unread(Unread::TooBig));
     }
     let bytes = std::fs::read(at).map_err(|_| Refusal::of("icsUnreadable"))?;
-    ics::read(&String::from_utf8_lossy(&bytes)).map_err(unread)
+    ics::read_bytes(&bytes).map_err(unread)
 }
 
 fn already(session: &Session, taken: &Taken) -> bool {
@@ -113,9 +113,11 @@ fn drafted(taken: Taken, list: Option<tisty_core::ListId>) -> tisty_core::captur
 pub fn ics_take(
     session: tauri::State<'_, Mutex<Session>>,
     path: String,
-    picked: Vec<usize>,
+    mut picked: Vec<usize>,
     list: Option<String>,
 ) -> Answer<usize> {
+    picked.sort_unstable();
+    picked.dedup();
     let list = list
         .map(|one| one.parse().map_err(|_| Refusal::of("notAListId")))
         .transpose()?;
@@ -130,7 +132,10 @@ pub fn ics_take(
             continue;
         }
         let (reminder, described) = (taken.reminder.clone(), taken.described.clone());
-        let plan = tisty_core::capture::plan(&session.state, drafted(taken, list))?;
+        // One entry the core turns down leaves the others to be taken.
+        let Ok(plan) = tisty_core::capture::plan(&session.state, drafted(taken, list)) else {
+            continue;
+        };
         let mut ops = plan.ops;
         for op in &mut ops {
             if let Op::TaskAdd { id, d } = op
