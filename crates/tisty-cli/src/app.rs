@@ -353,6 +353,8 @@ impl App {
                 _ => groups.push(vec![event.clone()]),
             }
         }
+        // What only settles is no change of anyone's, so undo and redo both step over it.
+        groups.retain(|group| !group.iter().all(|one| one.op.settles()));
         groups
     }
 

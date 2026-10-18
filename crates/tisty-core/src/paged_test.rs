@@ -78,3 +78,23 @@ fn a_mark_stuck_to_a_word_is_part_of_the_section_s_name() {
         )]
     );
 }
+
+#[test]
+fn a_section_moved_while_another_is_renamed_is_told_as_the_rename_alone() {
+    let before = "## A\n\n## M\n\n## B\n\n## C\n";
+    let now = "## A\n\n## B\n\n## M\n\n## X\n";
+    assert_eq!(
+        changes(before, now),
+        vec![("X".into(), PageChange::Renamed { from: "C".into() })]
+    );
+}
+
+#[test]
+fn a_bullet_that_opens_with_a_link_is_words_not_a_step() {
+    let before = "## Notes\n- [Invoice](https://x.y)\n";
+    let now = "## Notes\n- [Invoice](https://x.y)\n- [Receipt](https://x.y)\n";
+    assert_eq!(
+        changes(before, now),
+        vec![("Notes".into(), PageChange::Written)]
+    );
+}

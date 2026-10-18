@@ -141,6 +141,7 @@ fn lets(op: &Op, standing: &Standing) -> bool {
         Op::StepText { d, .. } => attended && mendable(standing, d.step),
         Op::StepRemove { d, .. } => attended && mendable(standing, d.step),
         Op::TaskLogEdit { d, .. } => attended && !d.body.trim().is_empty(),
+        Op::TaskPaged { .. } => attended,
         _ => false,
     }
 }

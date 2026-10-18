@@ -219,7 +219,6 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
                 },
             })
         }
-        Op::TaskPaged { .. } => None,
         Op::StepReorder { id, d } => Some(Op::StepReorder {
             id: *id,
             d: crate::event::StepReorder {
@@ -323,7 +322,8 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
         | Op::AttachKept { .. }
         | Op::AttachLetGo { .. }
         | Op::AttachRetire { .. }
-        | Op::StoresJoined { .. } => None,
+        | Op::StoresJoined { .. }
+        | Op::TaskPaged { .. } => None,
     }
 }
 

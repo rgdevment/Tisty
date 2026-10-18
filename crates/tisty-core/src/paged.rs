@@ -6,11 +6,13 @@ struct Section {
     words: String,
 }
 
+// Past three spaces a line is code, or the words of a list item, never a heading.
 fn heading(line: &str) -> Option<String> {
-    let bare = line.trim_start();
+    let lead = line.len() - line.trim_start_matches(' ').len();
+    let bare = line.trim_start_matches(' ');
     let marks = bare.chars().take_while(|one| *one == '#').count();
     let rest = bare.get(marks..)?;
-    if !(1..=6).contains(&marks) || !rest.starts_with([' ', '\t']) {
+    if lead > 3 || !(1..=6).contains(&marks) || !rest.starts_with([' ', '\t']) {
         return None;
     }
     let words = rest.trim();
@@ -23,36 +25,32 @@ fn heading(line: &str) -> Option<String> {
     Some(name.to_string()).filter(|name| !name.is_empty())
 }
 
-// A box is a step, and a step leaves its own trail; a hint is the template's, never the person's.
+// A box is a step with a trail of its own, and a hint is the template's, never the person's words.
 fn own_words(line: &str) -> bool {
     let bare = line.trim_start_matches(['>', ' ', '\t']);
-    let boxed = ["- [", "* [", "+ ["]
-        .iter()
-        .any(|lead| bare.starts_with(lead))
-        || bare.split_once(['.', ')']).is_some_and(|(digits, rest)| {
-            !digits.is_empty()
-                && digits.chars().all(|one| one.is_ascii_digit())
-                && rest.trim_start().starts_with('[')
-        });
+    let item = bare
+        .strip_prefix(['-', '*', '+'])
+        .or_else(|| {
+            let digits = bare.chars().take_while(char::is_ascii_digit).count();
+            (digits > 0)
+                .then(|| bare[digits..].strip_prefix(['.', ')']))
+                .flatten()
+        })
+        .map(str::trim_start);
+    let boxed = item.is_some_and(|rest| {
+        ["[ ]", "[x]", "[X]"]
+            .iter()
+            .any(|one| rest.starts_with(one))
+    });
     !boxed && !bare.starts_with("<!--")
 }
 
 fn sections(text: &str) -> Vec<Section> {
     let mut out: Vec<Section> = Vec::new();
-    let mut fence: Option<&str> = None;
+    let mut fenced = tisty_markdown::fences::fencing();
     for line in text.lines() {
-        let mark = ["```", "~~~"]
-            .into_iter()
-            .find(|one| line.trim_start().starts_with(one));
-        if let Some(mark) = mark {
-            fence = match fence {
-                None => Some(mark),
-                Some(open) if open == mark => None,
-                open => open,
-            };
-        } else if fence.is_none()
-            && let Some(name) = heading(line)
-        {
+        let code = fenced(line);
+        if !code && let Some(name) = heading(line) {
             out.push(Section {
                 name,
                 words: String::new(),
@@ -60,7 +58,7 @@ fn sections(text: &str) -> Vec<Section> {
             continue;
         }
         if let Some(last) = out.last_mut()
-            && own_words(line)
+            && (code || own_words(line))
             && !line.trim().is_empty()
         {
             last.words.push_str(line.trim());
@@ -70,11 +68,9 @@ fn sections(text: &str) -> Vec<Section> {
     out
 }
 
-/// What changed in a page's sections between two readings of it, for the task's trail.
+/// A section keeps its name wherever it moves; only the names nobody kept were renamed, added or taken off.
 pub fn paged(task: TaskId, before: &str, now: &str) -> Vec<Op> {
     let (was, is) = (sections(before), sections(now));
-    let names = |all: &[Section]| all.iter().map(|one| one.name.clone()).collect::<Vec<_>>();
-    let anchors = crate::lcs::pairs(&names(&was), &names(&is));
     let mut ops = Vec::new();
     let mut said = |section: &str, change: PageChange| {
         ops.push(Op::TaskPaged {
@@ -85,84 +81,44 @@ pub fn paged(task: TaskId, before: &str, now: &str) -> Vec<Op> {
             },
         });
     };
-    let starts = std::iter::once((0, 0)).chain(anchors.iter().map(|(a, b)| (a + 1, b + 1)));
-    let ends = anchors
-        .iter()
-        .copied()
-        .chain(std::iter::once((was.len(), is.len())));
-    // Between two sections that kept their names, one renamed reads as such, the rest as added or gone.
-    for ((was_at, is_at), (was_end, is_end)) in starts.zip(ends) {
-        let gone = &was[was_at..was_end];
-        let came = &is[is_at..is_end];
-        for (at, one) in came.iter().enumerate() {
-            match gone.get(at) {
-                Some(old) => {
-                    said(
-                        &one.name,
-                        PageChange::Renamed {
-                            from: old.name.clone(),
-                        },
-                    );
-                    if old.words != one.words {
-                        said(&one.name, PageChange::Written);
-                    }
+    let mut taken = vec![false; was.len()];
+    let mut loose = Vec::new();
+    for one in &is {
+        match (0..was.len()).find(|at| !taken[*at] && was[*at].name == one.name) {
+            Some(at) => {
+                taken[at] = true;
+                if was[at].words != one.words {
+                    said(&one.name, PageChange::Written);
                 }
-                None => said(&one.name, PageChange::Added),
             }
-        }
-        for old in gone.iter().skip(came.len()) {
-            said(&old.name, PageChange::Removed);
+            None => loose.push(one),
         }
     }
-    for (old, one) in anchors {
-        if was[old].words != is[one].words {
-            said(&is[one].name, PageChange::Written);
+    let mut gone = was
+        .iter()
+        .zip(&taken)
+        .filter(|(_, kept)| !**kept)
+        .map(|(one, _)| one);
+    for one in loose {
+        match gone.next() {
+            Some(old) => {
+                said(
+                    &one.name,
+                    PageChange::Renamed {
+                        from: old.name.clone(),
+                    },
+                );
+                if old.words != one.words {
+                    said(&one.name, PageChange::Written);
+                }
+            }
+            None => said(&one.name, PageChange::Added),
         }
     }
-    moved(task, ops, &was, &is)
-}
-
-// A section taken from one place and put in another was moved, not added and taken off.
-fn moved(task: TaskId, ops: Vec<Op>, was: &[Section], is: &[Section]) -> Vec<Op> {
-    let named = |wanted: fn(&PageChange) -> bool| -> Vec<String> {
-        ops.iter()
-            .filter_map(|op| match op {
-                Op::TaskPaged { d, .. } if wanted(&d.change) => Some(d.section.clone()),
-                _ => None,
-            })
-            .collect()
-    };
-    let added = named(|one| matches!(one, PageChange::Added));
-    let gone = named(|one| matches!(one, PageChange::Removed));
-    let both: Vec<String> = added.into_iter().filter(|one| gone.contains(one)).collect();
-    if both.is_empty() {
-        return ops;
+    for old in gone {
+        said(&old.name, PageChange::Removed);
     }
-    let mut out: Vec<Op> = ops
-        .into_iter()
-        .filter(|op| {
-            !matches!(op, Op::TaskPaged { d, .. }
-                if both.contains(&d.section)
-                    && matches!(d.change, PageChange::Added | PageChange::Removed))
-        })
-        .collect();
-    let words = |all: &[Section], name: &str| {
-        all.iter()
-            .find(|one| one.name == name)
-            .map(|one| one.words.clone())
-    };
-    for name in both {
-        if words(was, &name) != words(is, &name) {
-            out.push(Op::TaskPaged {
-                id: task,
-                d: Paged {
-                    section: name,
-                    change: PageChange::Written,
-                },
-            });
-        }
-    }
-    out
+    ops
 }
 
 #[cfg(test)]
