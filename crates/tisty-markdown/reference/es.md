@@ -52,8 +52,32 @@ fuente: la libreta de la veterinaria
 - `tags:` (o `tag:`) guarda el documento bajo cada una, igual que escribir `#rina` en una frase: es la misma etiqueta de las dos maneras. Sirve una lista entre corchetes, palabras separadas por comas o un `- elemento` por línea, con `#` o sin él.
 - El bloque solo cuenta al principio: la primera línea es `---`, la de abajo tiene palabras, y lo cierra un `---` o `...`. En cualquier otra parte, `---` es un [salto de página](#saltos-de-página).
 - `paper:` es la hoja en que se imprime el documento: `letter` (Carta) o `tabloid` (Tabloide), y A4 cuando no está. `sheets: on` dibuja la página en esas hojas, y `orientation: landscape` las pone en horizontal. **Papel** y **Hojas** en el panel las escriben, y al quitarlas no queda nada escrito.
-- Fuera de esas tres, Tisty nunca escribe propiedades por su cuenta: una etiqueta que agrega va en el texto como `#etiqueta`.
+- Fuera de esas tres, Tisty solo escribe `task:`, una vez, en el documento de una tarea. Una etiqueta que agrega va en el texto como `#etiqueta`.
 - Un bloque de más de 4 KiB, con más de 32 propiedades o con un valor de más de 500 caracteres se guarda tal cual, pero no se lee nada de él. Solo se leen propiedades simples: `clave: valor`, una lista entre corchetes o líneas `- elemento`.
+
+### Las propiedades de una tarea
+
+Las palabras de una tarea viven en un documento propio, que lleva una línea fija con la tarea a la que pertenece. Lo que cambia seguido se queda con la tarea, así que marcarla desde el celular nunca mueve el documento: el día, la fecha límite, los recordatorios, la lista, la prioridad y cómo se repite. Cuando el documento sale de Tisty —copiado como Markdown, exportado o leído por un asistente— todo eso sale escrito como propiedades, y un documento que entra con ellas se las pasa a su tarea.
+
+```markdown
+---
+task: 01M563T6T541A3Q2PP5YQW5XK1
+scheduled: 2026-09-28
+due: 2026-10-03
+remind: [2026-10-02T09:00]
+list: casa
+priority: do
+repeat: every year from due
+tags: [salud]
+---
+```
+
+- `task:` es el id de la tarea. Tisty lo escribe una vez, al crear el documento, y nunca lo cambia.
+- `scheduled:` es el día en que se piensa hacer; `due:` es el día en que vence. Un día solo, `2026-10-03`; un día y una hora donde estás, `2026-10-02T09:00`; o uno fijo a una zona, `2026-10-02T09:00[Europe/Madrid]`.
+- `remind:` es una lista de días con hora.
+- `list:` es el nombre de la lista, y `priority:` es `do`, `decide`, `delegate` o `minor`.
+- `repeat:` se escribe de una sola manera, para que siempre se lea igual: `every week from due`, `every 2 months from done until 2026-12-31`. `from due` cuenta desde la fecha que tenía; `from done`, desde el día en que se completó.
+- `tags:` funciona como en cualquier documento.
 
 ## El título
 
