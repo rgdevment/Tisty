@@ -169,6 +169,7 @@ export const edited = (
   onChange: (text: string) => void,
   onLeave: (text: string) => void,
   asking?: () => Asking | undefined,
+  oneLine = false,
 ): Editing => {
   const page = block.ownerDocument;
   const host = page.createElement("div");
@@ -213,6 +214,14 @@ export const edited = (
                 if (completionStatus(one.state) === "active") return closeCompletion(one);
                 leave();
                 return true;
+              },
+            },
+            // A template's label or hint is one line, so Enter ends it instead of starting words below.
+            {
+              key: "Enter",
+              run: () => {
+                if (oneLine) leave();
+                return oneLine;
               },
             },
             ...pendingKeys,

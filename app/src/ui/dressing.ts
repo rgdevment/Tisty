@@ -174,27 +174,21 @@ const hinted = (page: Document, body: string) => {
   sectioned(page);
 };
 
-// Each section ends with its own way to add the next one, shown only while the template is edited.
+// The template grows at its end, shown only while it is edited; each label can be taken out.
 const sectioned = (page: Document) => {
   const sheet = page.querySelector(".page");
   if (!sheet) return;
-  const blocks = Array.from(sheet.children);
-  blocks.forEach((one, at) => {
-    const next = blocks[at + 1];
-    if (next && !/^H[1-6]$/.test(next.tagName)) return;
-    const last = blocks
-      .slice(0, at + 1)
-      .reverse()
-      .find((each) => each.getAttribute("data-at"));
-    if (!last || !blocks.slice(0, at + 1).some((each) => /^H[1-6]$/.test(each.tagName))) return;
+  const last = Array.from(sheet.querySelectorAll(":scope > [data-at]")).pop();
+  const at = last?.getAttribute("data-at");
+  if (at) {
     const add = page.createElement("button");
     add.type = "button";
     add.className = "add-section";
-    add.dataset.after = last.getAttribute("data-at") ?? "";
+    add.dataset.after = at;
     add.dataset.seed = "## ";
     add.textContent = `+ ${t("addSection")}`;
-    one.after(add);
-  });
+    sheet.append(add);
+  }
   for (const label of sheet.querySelectorAll<HTMLElement>(":scope > :is(h1, h2, h3, h4, h5, h6)")) {
     const from = spanned(label.dataset.at ?? null);
     if (!from) continue;

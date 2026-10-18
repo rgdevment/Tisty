@@ -230,6 +230,7 @@ export default function Sheet(props: Readonly<Props>) {
           ask: (kind, at, put, first) => asking.ask(kind, at, put, first && before),
         };
       },
+      Boolean(said.current.inline && said.current.shaping),
     );
     open.current.kept(said.current.kept ?? true);
     const editing = open.current.view;
