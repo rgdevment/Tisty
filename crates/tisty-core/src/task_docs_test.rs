@@ -482,6 +482,22 @@ fn a_description_fills_the_section_the_template_keeps_for_it() {
 }
 
 #[test]
+fn a_new_description_takes_the_old_one_s_own_headings_with_it() {
+    let body = "## Description\n<!-- What and why -->\n";
+    let once = super::described(
+        body,
+        "Intro\n# Context\nold detail\n```\n# not a heading\n```\n",
+    );
+
+    let twice = super::described(&format!("{once}\n## Steps\n"), "New text");
+
+    assert_eq!(
+        twice,
+        "## Description\n<!-- What and why -->\n\nNew text\n\n## Steps\n"
+    );
+}
+
+#[test]
 fn a_routine_s_later_turn_still_reaches_its_page_once_the_first_is_erased() {
     let room = tempfile::tempdir().unwrap();
     let mut state = State::default();
@@ -504,4 +520,102 @@ fn a_routine_s_later_turn_still_reaches_its_page_once_the_first_is_erased() {
 
     assert_eq!(super::owner(&state, second), first);
     assert!(of(&state, super::owner(&state, second)).is_some());
+}
+
+#[test]
+fn a_routine_s_page_goes_with_its_last_turn_once_the_first_is_erased() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    let first = Ulid::generate();
+    let second = Ulid::generate();
+    applied(
+        &mut state,
+        Op::TaskAdd {
+            id: first,
+            d: TaskAdd::new("Water the plants", "a0"),
+        },
+    );
+    let words = made(room.path(), &state, first, first, "", None).unwrap();
+    applied(&mut state, words);
+    let mut d = TaskAdd::new("Water the plants", "a1");
+    d.after = Some(first);
+    applied(&mut state, Op::TaskAdd { id: second, d });
+    applied(&mut state, Op::TaskDelete { id: first });
+
+    applied(&mut state, Op::TaskDelete { id: second });
+
+    assert!(of(&state, first).is_none());
+    assert!(state.is_erased(id_at(first, 1)));
+}
+
+#[test]
+fn an_open_task_s_journal_comes_to_its_page_as_notes_and_a_closed_one_s_stays_behind() {
+    let mut state = State::default();
+    let task = Ulid::generate();
+    applied(
+        &mut state,
+        Op::TaskAdd {
+            id: task,
+            d: TaskAdd::new("Rina's booster", "a0"),
+        },
+    );
+    applied(
+        &mut state,
+        Op::TaskLog {
+            id: task,
+            d: crate::event::LogAdd::new(Ulid::generate(), "Called the vet.\n- [ ] not a step"),
+        },
+    );
+    let template = "## Notes\n<!-- What you find out -->\n";
+
+    let page = super::opened(&state, task, template);
+    let notes = page
+        .split_once("<!-- What you find out -->\n\n**")
+        .map(|(_, rest)| rest)
+        .unwrap_or_default();
+    assert!(notes.contains("**\nCalled the vet."), "{page}");
+    assert!(page.contains(r"- \[ ] not a step"), "{page}");
+    assert!(crate::stages::stages(&page).is_empty(), "{page}");
+
+    applied(
+        &mut state,
+        Op::TaskDone {
+            id: task,
+            filled: false,
+        },
+    );
+    assert!(!super::opened(&state, task, template).contains("Called the vet."));
+}
+
+#[test]
+fn a_description_s_own_headings_sit_one_level_under_its_section() {
+    let mut state = State::default();
+    let task = Ulid::generate();
+    applied(
+        &mut state,
+        Op::TaskAdd {
+            id: task,
+            d: TaskAdd::new("Audit", "a0"),
+        },
+    );
+    applied(
+        &mut state,
+        Op::TaskDescribe {
+            id: task,
+            d: crate::event::Body {
+                body: Some("## Scope\nAll of it.\n```\n## code\n```".into()),
+            },
+        },
+    );
+
+    let page = super::opened(&state, task, "## Description\n<!-- what -->\n");
+    assert!(page.contains("### Scope\nAll of it."), "{page}");
+    assert!(page.contains("```\n## code\n```"), "{page}");
+}
+
+#[test]
+fn a_box_in_old_words_stays_text_but_a_link_in_a_bullet_is_left_alone() {
+    assert_eq!(super::unboxed("1. [ ] buy food"), r"1. \[ ] buy food");
+    assert_eq!(super::unboxed("> - [x] ask"), r"> - \[x] ask");
+    assert_eq!(super::unboxed("- [docs](https://x)"), "- [docs](https://x)");
 }

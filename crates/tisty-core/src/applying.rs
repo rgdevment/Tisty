@@ -212,17 +212,23 @@ impl State {
             );
             return;
         }
+        let root = crate::task_docs::owner(self, *id);
         self.tasks.remove(id);
         self.tombstones.insert(*id);
         for part in self.tasks.values_mut().filter(|t| t.part_of == Some(*id)) {
             part.part_of = None;
         }
-        // A delete that never named the task's words takes them, unless a routine's later turns write there.
-        let later = self.tasks.values().any(|one| one.after == Some(*id));
+        // A delete that never named the task's words takes them, unless another turn of its routine writes there.
+        let kept = self.tasks.contains_key(&root)
+            || self
+                .tasks
+                .iter()
+                .filter(|(_, one)| one.after.is_some())
+                .any(|(turn, _)| crate::task_docs::owner(self, *turn) == root);
         let words: Vec<DocId> = self
             .docs
             .values()
-            .filter(|one| !later && one.task_of == Some(*id))
+            .filter(|one| !kept && one.task_of == Some(root))
             .map(|one| one.id)
             .collect();
         for one in words {
