@@ -216,3 +216,29 @@ fn a_task_erased_for_good_takes_its_document_along() {
         vec![Op::TaskDelete { id: alone }]
     );
 }
+
+#[test]
+fn every_turn_of_a_routine_answers_to_its_first() {
+    let mut state = State::default();
+    let first = Ulid::generate();
+    let second = Ulid::generate();
+    let third = Ulid::generate();
+    applied(
+        &mut state,
+        Op::TaskAdd {
+            id: first,
+            d: TaskAdd::new("Water the plants", "a0"),
+        },
+    );
+    for (id, before) in [(second, first), (third, second)] {
+        let mut d = TaskAdd::new("Water the plants", "a1");
+        d.after = Some(before);
+        applied(&mut state, Op::TaskAdd { id, d });
+    }
+
+    assert_eq!(super::owner(&state, third), first);
+    assert_eq!(super::owner(&state, second), first);
+    assert_eq!(super::owner(&state, first), first);
+    let alone = Ulid::generate();
+    assert_eq!(super::owner(&state, alone), alone);
+}

@@ -80,6 +80,18 @@ pub fn blank(state: &State, task: TaskId) -> bool {
     of(state, task).is_none_or(|kept| kept.print == Said::of(&first_words(state, task)).print)
 }
 
+// Every turn of a routine writes in the one document its first turn holds.
+pub fn owner(state: &State, task: TaskId) -> TaskId {
+    let mut at = task;
+    for _ in 0..state.tasks.len() {
+        match state.tasks.get(&at).and_then(|one| one.after) {
+            Some(before) if before != task && state.tasks.contains_key(&before) => at = before,
+            _ => break,
+        }
+    }
+    at
+}
+
 pub fn behind(state: &State) -> std::collections::BTreeMap<String, TaskId> {
     state
         .docs

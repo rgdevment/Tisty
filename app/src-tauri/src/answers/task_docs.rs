@@ -15,7 +15,8 @@ pub struct Opened {
 }
 
 fn file_of(session: &Session, id: TaskId) -> Option<String> {
-    tisty_core::task_docs::of(&session.state, id).map(|one| one.file.clone())
+    let owner = tisty_core::task_docs::owner(&session.state, id);
+    tisty_core::task_docs::of(&session.state, owner).map(|one| one.file.clone())
 }
 
 fn known(session: &Session, id: TaskId) -> Result<(), Refusal> {
@@ -78,7 +79,7 @@ pub fn task_doc_make(session: tauri::State<'_, Mutex<Session>>, id: String) -> A
     let op = tisty_core::task_docs::made(
         &session.paths.docs(),
         &session.state,
-        id,
+        tisty_core::task_docs::owner(&session.state, id),
         signing(&session.state),
     )
     .map_err(|e| blamed(channel::WINDOW, "a task's document could not be made", e))?;
