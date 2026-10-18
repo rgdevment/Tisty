@@ -338,7 +338,18 @@ fn wrapped_words_that_only_look_like_a_heading_or_a_rule_stay_with_their_stage()
 
 #[test]
 fn a_hard_break_at_the_end_of_a_wrapped_line_is_not_part_of_the_step() {
-    let body = "- [ ] Bring the book\\n  and the card\n";
+    let body = "- [ ] Bring the book\\\n  and the card\n";
     let said: Vec<String> = stages(body).into_iter().map(|one| one.text).collect();
     assert_eq!(said, ["Bring the book and the card"]);
+}
+
+#[test]
+fn a_word_that_ends_right_at_the_limit_is_kept_whole() {
+    let words = format!("{} {} tail", "a".repeat(49), "b".repeat(49));
+    assert_eq!(
+        title(&words),
+        format!("{} {}…", "a".repeat(49), "b".repeat(49))
+    );
+    let one = title(&"c".repeat(STEP_AT_MOST + 5));
+    assert_eq!(one.chars().count(), STEP_AT_MOST);
 }

@@ -72,8 +72,11 @@ pub fn title(text: &str) -> String {
     if flat.chars().count() <= STEP_AT_MOST {
         return flat;
     }
-    let room: String = flat.chars().take(STEP_AT_MOST - 1).collect();
-    let cut = room.rfind(' ').filter(|at| *at > 0).unwrap_or(room.len());
+    let room: String = flat.chars().take(STEP_AT_MOST).collect();
+    let cut = match room.rfind(' ').filter(|at| *at > 0) {
+        Some(at) => at,
+        None => room.char_indices().last().map_or(0, |(at, _)| at),
+    };
     format!("{}…", room[..cut].trim_end())
 }
 
