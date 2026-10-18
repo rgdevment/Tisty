@@ -174,7 +174,7 @@ fn the_properties_come_whole_from_the_side_that_changed_them_mark_and_all() {
     let mine = "\u{feff}---\ntitle: uno\n---\n\notro cuerpo\n";
     let theirs = "\u{feff}---\ntitle: dos\n---\n\ncuerpo\n";
 
-    assert!(front_matter(base));
+    assert!(tisty_markdown::front::span(base).is_some());
     let out = merged(base, mine, theirs).expect("one changed the words, the other the title");
     assert!(out.starts_with("\u{feff}---\ntitle: dos\n---\n"), "{out:?}");
     assert!(out.contains("otro cuerpo"), "{out:?}");
@@ -622,7 +622,7 @@ fn a_side_that_changed_nothing_leaves_the_other_side_whole() {
 fn a_rule_drawn_mid_page_is_no_front_matter() {
     let body = told(&["un titulo", "---", "lo que sigue"]);
 
-    assert!(!front_matter(&body));
+    assert!(tisty_markdown::front::span(&body).is_none());
 
     let base = told(&["b0", "---", "b2"]);
     let mine = told(&["b0", "---", "M2"]);
@@ -636,9 +636,9 @@ fn a_rule_drawn_mid_page_is_no_front_matter() {
 
 #[test]
 fn a_front_matter_opened_and_never_shut_is_not_one() {
-    assert!(!front_matter("---\nsolo esto\n"));
-    assert!(!front_matter("---\n"));
-    assert!(front_matter("---\ntitulo: kit\n---\n\ncuerpo\n"));
+    assert!(tisty_markdown::front::span("---\nsolo esto\n").is_none());
+    assert!(tisty_markdown::front::span("---\n").is_none());
+    assert!(tisty_markdown::front::span("---\ntitulo: kit\n---\n\ncuerpo\n").is_some());
 }
 
 #[test]

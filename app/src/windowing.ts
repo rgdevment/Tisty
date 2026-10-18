@@ -51,9 +51,13 @@ export function useWindow() {
 
   const [reveal, setReveal] = useState<string | undefined>();
   const [returning, setReturning] = useState<string | null>(null);
-  const [mode, setMode] = useState<Mode>(
-    () => (localStorage.getItem("detail") as Mode) ?? "columns",
-  );
+  const [mode, setMode] = useState<Mode>(() => {
+    try {
+      return localStorage.getItem("detail") === "sheet" ? "sheet" : "columns";
+    } catch {
+      return "columns";
+    }
+  });
   const [chosen, setChosen] = useState<Chosen>(() => ({
     named: "tasks",
     slice: (localStorage.getItem("tisty.slice") as Slice) ?? "today",

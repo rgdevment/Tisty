@@ -37,7 +37,7 @@ pub fn owned(file: &str) -> Option<(TaskId, DocId)> {
     let (head, number) = file.get(PREFIX.len()..)?.rsplit_once('-')?;
     let turn = number.parse::<u32>().ok().filter(|turn| *turn > 0)?;
     let task = Ulid::from_string(&head.to_ascii_uppercase()).ok()?;
-    // A disk or a sync that keeps names without their case may hand the name back in either.
+    // A name in another case still names this task, so no guard is passed by changing it.
     file_at(task, turn)
         .eq_ignore_ascii_case(file)
         .then(|| (task, id_at(task, turn)))
@@ -86,11 +86,25 @@ pub fn owner(state: &State, task: TaskId) -> TaskId {
     at
 }
 
+/// A routine's words are its first turn's, but they lead to the turn still open, or else the last.
 pub fn behind(state: &State) -> std::collections::BTreeMap<String, TaskId> {
+    let mut now: std::collections::BTreeMap<TaskId, TaskId> = std::collections::BTreeMap::new();
+    let turns = state.tasks.iter().filter(|(_, one)| one.after.is_some());
+    for id in turns.map(|(id, _)| id) {
+        let first = owner(state, *id);
+        let held = now.entry(first).or_insert(first);
+        let open = |task: &TaskId| state.tasks.get(task).is_some_and(|it| it.is_open());
+        if (open(id), *id) > (open(held), *held) {
+            *held = *id;
+        }
+    }
     state
         .docs
         .values()
-        .filter_map(|kept| kept.task_of.map(|task| (kept.file.clone(), task)))
+        .filter_map(|kept| {
+            kept.task_of
+                .map(|task| (kept.file.clone(), now.get(&task).copied().unwrap_or(task)))
+        })
         .collect()
 }
 
@@ -162,11 +176,6 @@ fn hinted(line: &str) -> Option<&str> {
         .map(str::trim)
 }
 
-pub struct Made {
-    pub op: Op,
-    pub created: bool,
-}
-
 /// `from` is the turn asking: a routine's document is its first turn's, seeded with today's steps.
 pub fn made(
     root: &Path,
@@ -175,28 +184,37 @@ pub fn made(
     from: TaskId,
     template: &str,
     by: Option<String>,
-) -> crate::Result<Made> {
-    let (id, file) = planned(state, task);
+) -> crate::Result<Op> {
     let first = opened(state, from, template);
-    let created = crate::docs::create_named(root, &file, &first)?;
+    made_with(root, state, task, &first, by).map(|(op, _)| op)
+}
+
+/// Made with the words a person already wrote; false when the file was there before them.
+pub fn made_with(
+    root: &Path,
+    state: &State,
+    task: TaskId,
+    first: &str,
+    by: Option<String>,
+) -> crate::Result<(Op, bool)> {
+    let (id, file) = planned(state, task);
+    let created = crate::docs::create_named(root, &file, first)?;
     let body = match created {
-        true => first,
+        true => first.to_string(),
         false => crate::docs::read(root, &file)?,
     };
-    Ok(Made {
-        op: Op::DocAdd {
-            id,
-            d: DocAdd {
-                file,
-                order: crate::order::last_of(state.docs.values().map(|one| one.order.as_str())),
-                by,
-                said: Some(Said::of(&body)),
-                task_of: Some(task),
-                ..DocAdd::default()
-            },
+    let op = Op::DocAdd {
+        id,
+        d: DocAdd {
+            file,
+            order: crate::order::last_of(state.docs.values().map(|one| one.order.as_str())),
+            by,
+            said: Some(Said::of(&body)),
+            task_of: Some(task),
+            ..DocAdd::default()
         },
-        created,
-    })
+    };
+    Ok((op, created))
 }
 
 fn planned(state: &State, task: TaskId) -> (DocId, String) {

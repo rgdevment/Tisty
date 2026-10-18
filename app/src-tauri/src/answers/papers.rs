@@ -895,12 +895,7 @@ pub fn docs(session: tauri::State<'_, Mutex<Session>>) -> Answer<Papers> {
 
 fn gathered(session: &Session) -> Vec<Filed> {
     let on_disk = tisty_core::docs::names(&session.paths.docs());
-    let mut kept_in_order: Vec<&tisty_core::model::Kept> = session
-        .state
-        .docs
-        .values()
-        .filter(|kept| kept.task_of.is_none())
-        .collect();
+    let mut kept_in_order: Vec<&tisty_core::model::Kept> = session.state.papers().collect();
     kept_in_order.sort_by(|a, b| a.order.cmp(&b.order).then(a.id.cmp(&b.id)));
 
     kept_in_order

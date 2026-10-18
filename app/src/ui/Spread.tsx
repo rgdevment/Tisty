@@ -126,6 +126,9 @@ export default function Spread({ tasks, counts, onPlace, onOpen, onCarrying }: P
     onCarrying?.(held !== null);
   }, [held, onCarrying]);
 
+  // A carry cut short by leaving the view must not keep the panel stepped aside.
+  useEffect(() => () => onCarrying?.(false), [onCarrying]);
+
   const under = (x: number, y: number): string | null => {
     const spot = document.elementFromPoint(x, y);
     if (spot?.closest("[data-tray]")) return TRAY;

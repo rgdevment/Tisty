@@ -235,13 +235,14 @@ fn not_a_task_s_words(name: &str, args: &Value) -> Result<(), Refused> {
     if !WRITES_DOCUMENTS.contains(&name) {
         return Ok(());
     }
-    let named = ["doc", "page_of", "under"]
+    let named = ["doc", "page_of"]
         .iter()
         .filter_map(|key| args.get(*key))
         .flat_map(|one| match one {
             Value::Array(all) => all.iter().filter_map(Value::as_str).collect::<Vec<_>>(),
             other => other.as_str().into_iter().collect(),
         })
+        .map(str::trim)
         .find(|file| tisty_core::task_docs::task_of_file(file).is_some());
     match named {
         Some(file) => Err(Refused::Tool(format!(
@@ -822,14 +823,8 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
     let reading = under.is_some();
     let mut kept: Vec<&tisty_core::model::Kept> = state
-        .docs
-        .values()
-        .filter(|one| one.task_of.is_none())
-        .filter(|one| match scope {
-            tisty_core::view::Scope::Open => !state.held_away(one),
-            tisty_core::view::Scope::Archived => state.held_away(one),
-            tisty_core::view::Scope::Either => true,
-        })
+        .papers()
+        .filter(|one| state.doc_kept_by(scope, one))
         .filter(|one| within.is_none_or(|at| one.folder == Some(at) && one.page_of.is_none()))
         .filter(|one| under.is_none_or(|up| one.page_of == Some(up)))
         .collect();

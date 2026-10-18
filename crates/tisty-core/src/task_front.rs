@@ -178,7 +178,9 @@ pub fn dressed(body: &str, task: &Task, list: Option<&str>) -> String {
 
 fn theirs(block: &str) -> Vec<String> {
     let inner: Vec<&str> = block.lines().collect();
-    let inner = &inner[1..inner.len().saturating_sub(1)];
+    let inner = inner
+        .get(1..inner.len().saturating_sub(1))
+        .unwrap_or_default();
     let mut out = Vec::new();
     let mut skipping = false;
     for line in inner {
@@ -202,7 +204,7 @@ pub fn read(body: &str, tz: &str) -> Front {
     for field in tisty_markdown::front::fields(body) {
         let first = field.values.first().map(String::as_str).unwrap_or_default();
         match field.key.to_ascii_lowercase().as_str() {
-            "task" => front.task = first.trim().parse().ok(),
+            crate::task_docs::KEY => front.task = first.trim().parse().ok(),
             "scheduled" => front.scheduled = day_in(first, tz),
             "due" => front.due = day_in(first, tz),
             "remind" => {

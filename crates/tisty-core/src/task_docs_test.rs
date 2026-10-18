@@ -49,13 +49,13 @@ fn a_document_made_twice_for_one_task_is_one_file_that_belongs_to_it() {
         },
     );
 
-    let first = made(room.path(), &state, task, task, "", None).unwrap().op;
+    let first = made(room.path(), &state, task, task, "", None).unwrap();
     std::fs::write(
         room.path().join(format!("{}.md", file_at(task, 1))),
         format!("{}\nWords already written.\n", seed(task)),
     )
     .unwrap();
-    let again = made(room.path(), &state, task, task, "", None).unwrap().op;
+    let again = made(room.path(), &state, task, task, "", None).unwrap();
 
     let body = crate::docs::read(room.path(), &file_at(task, 1)).unwrap();
     assert!(body.contains("Words already written."), "{body}");
@@ -72,13 +72,13 @@ fn a_document_made_again_after_its_delete_takes_the_next_turn_and_belongs_to_the
     let room = tempfile::tempdir().unwrap();
     let mut state = State::default();
     let task = Ulid::generate();
-    let first = made(room.path(), &state, task, task, "", None).unwrap().op;
+    let first = made(room.path(), &state, task, task, "", None).unwrap();
     applied(&mut state, first);
     let gone = of(&state, task).unwrap().id;
     applied(&mut state, Op::DocDelete { id: gone });
     std::fs::remove_file(room.path().join(format!("{}.md", file_at(task, 1)))).unwrap();
 
-    let again = made(room.path(), &state, task, task, "", None).unwrap().op;
+    let again = made(room.path(), &state, task, task, "", None).unwrap();
     applied(&mut state, again);
 
     let kept = of(&state, task).expect("the task's document again");
@@ -91,7 +91,7 @@ fn a_second_making_keeps_what_was_built_on_the_first() {
     let room = tempfile::tempdir().unwrap();
     let mut state = State::default();
     let task = Ulid::generate();
-    let first = made(room.path(), &state, task, task, "", None).unwrap().op;
+    let first = made(room.path(), &state, task, task, "", None).unwrap();
     let elsewhere = first.clone();
     applied(&mut state, first);
     let id = of(&state, task).unwrap().id;
@@ -176,7 +176,7 @@ fn a_task_s_description_and_steps_open_its_document() {
         },
     );
 
-    let first = made(room.path(), &state, task, task, "", None).unwrap().op;
+    let first = made(room.path(), &state, task, task, "", None).unwrap();
     applied(&mut state, first);
 
     let body = crate::docs::read(room.path(), &file_at(task, 1)).unwrap();
@@ -202,7 +202,7 @@ fn a_task_erased_for_good_takes_its_document_along() {
             d: TaskAdd::new("Rina's booster", "a0"),
         },
     );
-    let first = made(room.path(), &state, task, task, "", None).unwrap().op;
+    let first = made(room.path(), &state, task, task, "", None).unwrap();
     applied(&mut state, first);
     let doc = of(&state, task).unwrap().id;
 
@@ -215,6 +215,82 @@ fn a_task_erased_for_good_takes_its_document_along() {
         super::erased_with(&state, alone),
         vec![Op::TaskDelete { id: alone }]
     );
+}
+
+#[test]
+fn a_story_that_kept_its_task_keeps_its_words_through_an_erase_from_elsewhere() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    let task = Ulid::generate();
+    applied(
+        &mut state,
+        Op::TaskAdd {
+            id: task,
+            d: TaskAdd::new("Rina's booster", "a0"),
+        },
+    );
+    let first = made(room.path(), &state, task, task, "", None).unwrap();
+    applied(&mut state, first);
+    let erase = super::erased_with(&state, task);
+    applied(
+        &mut state,
+        Op::TaskUpdate {
+            id: task,
+            d: crate::event::TaskPatch {
+                read_as: Some(Some(crate::Reading::Story)),
+                ..Default::default()
+            },
+        },
+    );
+
+    for op in erase {
+        applied(&mut state, op);
+    }
+
+    assert!(state.tasks.contains_key(&task));
+    assert!(of(&state, task).is_some(), "the story lost its words");
+}
+
+#[test]
+fn words_that_reach_a_task_already_erased_go_with_it() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    let task = Ulid::generate();
+    applied(
+        &mut state,
+        Op::TaskAdd {
+            id: task,
+            d: TaskAdd::new("Rina's booster", "a0"),
+        },
+    );
+    let words = made(room.path(), &state, task, task, "", None).unwrap();
+    applied(&mut state, Op::TaskDelete { id: task });
+
+    applied(&mut state, words);
+
+    assert!(state.docs.values().all(|one| one.task_of != Some(task)));
+    assert!(state.is_erased(id_at(task, 1)));
+}
+
+#[test]
+fn a_task_erased_without_naming_its_words_still_takes_them() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    let task = Ulid::generate();
+    applied(
+        &mut state,
+        Op::TaskAdd {
+            id: task,
+            d: TaskAdd::new("Rina's booster", "a0"),
+        },
+    );
+    let words = made(room.path(), &state, task, task, "", None).unwrap();
+    applied(&mut state, words);
+
+    applied(&mut state, Op::TaskDelete { id: task });
+
+    assert!(of(&state, task).is_none());
+    assert!(state.is_erased(id_at(task, 1)));
 }
 
 #[test]
@@ -241,6 +317,35 @@ fn every_turn_of_a_routine_answers_to_its_first() {
     assert_eq!(super::owner(&state, first), first);
     let alone = Ulid::generate();
     assert_eq!(super::owner(&state, alone), alone);
+}
+
+#[test]
+fn a_routine_s_words_are_found_on_the_turn_still_open() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    let first = Ulid::generate();
+    let second = Ulid::generate();
+    applied(
+        &mut state,
+        Op::TaskAdd {
+            id: first,
+            d: TaskAdd::new("Water the plants", "a0"),
+        },
+    );
+    let words = made(room.path(), &state, first, first, "", None).unwrap();
+    applied(&mut state, words);
+    applied(
+        &mut state,
+        Op::TaskDone {
+            id: first,
+            filled: false,
+        },
+    );
+    let mut d = TaskAdd::new("Water the plants", "a1");
+    d.after = Some(first);
+    applied(&mut state, Op::TaskAdd { id: second, d });
+
+    assert_eq!(super::behind(&state).get(&file_at(first, 1)), Some(&second));
 }
 
 #[test]
@@ -274,8 +379,7 @@ fn a_task_s_document_opens_with_its_template_then_its_own_words() {
         None,
     )
     .unwrap();
-    assert!(first.created);
-    applied(&mut state, first.op);
+    applied(&mut state, first);
 
     let body = crate::docs::read(room.path(), &file_at(task, 1)).unwrap();
     assert_eq!(

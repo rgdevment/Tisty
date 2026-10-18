@@ -1,0 +1,156 @@
+.page > .hint {
+  min-height: 1.6em;
+  cursor: text;
+}
+.page > .hint::before {
+  content: attr(data-hint);
+  color: var(--tisty-faint);
+}
+.page > .hint-gone {
+  display: none;
+}
+html.shaping .page > .hint-gone {
+  display: block;
+  cursor: text;
+}
+html.shaping .page > .hint-gone::before {
+  content: attr(data-hint);
+  color: var(--tisty-faint);
+}
+html.shaping .page > :is(.hint, .hint-gone)::before {
+  font-style: italic;
+}
+html.shaping .page > :not(:is(h1, h2, h3, h4, h5, h6, .hint, .hint-gone, .add-section)) {
+  opacity: 0.45;
+  cursor: default;
+}
+html.untitled.shaping .page > .add-step,
+html.untitled:not(.shaping) .page > .add-section {
+  display: none;
+}
+.page .drop-section {
+  display: none;
+}
+html.untitled.shaping .page > :is(h1, h2, h3, h4, h5, h6) > .drop-section {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  order: 2;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--tisty-faint);
+  cursor: pointer;
+}
+html.untitled.shaping .page .drop-section::before {
+  content: "×";
+  font-size: 15px;
+  line-height: 1;
+}
+html.untitled.shaping .page .drop-section:hover {
+  background: var(--tisty-hover);
+  color: var(--tisty-ink);
+}
+html.untitled.shaping .page > .add-section {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 10px 0 0;
+  padding: 6px 12px;
+  border: 1px dashed color-mix(in srgb, var(--tisty-accent) 45%, transparent);
+  border-radius: 8px;
+  background: none;
+  font: inherit;
+  font-size: 0.9em;
+  color: var(--tisty-accent);
+  text-align: left;
+  cursor: pointer;
+}
+html.untitled .page > :is(h1, h2, h3, h4, h5, h6) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 24px 0 8px;
+  padding: 0;
+  border: 0;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  line-height: 1.4;
+  text-transform: uppercase;
+  color: var(--tisty-faint);
+}
+html.untitled .page > :is(h1, h2, h3, h4, h5, h6)::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--tisty-hair);
+}
+html.untitled .page > :is(h1, h2, h3, h4, h5, h6):first-child,
+html.untitled .page > .front:first-child + :is(h1, h2, h3, h4, h5, h6) {
+  margin-top: 0;
+}
+html.untitled .page > ul:has(> li.task) {
+  margin: 4px 0 0;
+  padding: 0;
+  border: 1px solid var(--tisty-hair);
+  border-radius: 8px;
+  overflow: hidden;
+}
+html.untitled .page > ul:has(> li.task)::before {
+  content: "";
+  display: block;
+  width: var(--done, 0%);
+  height: 3px;
+  background: var(--tisty-accent);
+  transition: width 0.2s;
+}
+html.untitled .page > ul > li.task {
+  padding: 7px 12px 7px 38px;
+  border-top: 1px solid var(--tisty-hair);
+}
+html.untitled .page > ul > li.task:first-of-type {
+  border-top: 0;
+}
+html.untitled .page > ul > li.task > .check {
+  left: 12px;
+  top: calc(7px + 0.32em);
+}
+html.untitled .page > .add-step,
+html.untitled .page > .hint.step-hint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  padding: 7px 12px;
+  border: 1px dashed var(--tisty-hair);
+  border-radius: 8px;
+  background: none;
+  font: inherit;
+  color: var(--tisty-faint);
+  text-align: left;
+  cursor: text;
+}
+html.untitled .page > .add-step {
+  border: 0;
+  border-radius: 0;
+}
+html.untitled .page > hr {
+  margin: 18px 0;
+  height: 1px;
+  background: var(--tisty-hair);
+}
+html.untitled .page > hr::before,
+html.untitled .page > hr::after {
+  content: none;
+}
+html.untitled.shaping .page > :is(h1, h2, h3, h4, h5, h6) {
+  color: var(--tisty-accent);
+  cursor: text;
+}

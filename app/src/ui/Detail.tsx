@@ -10,6 +10,7 @@ import Fields from "./Fields";
 import History from "./History";
 import Left from "./Left";
 import Menu, { type Choice } from "./Menu";
+import Panel from "./Panel";
 import Routine from "./Routine";
 import Section from "./Section";
 import { saidBy } from "./Spoke";
@@ -46,6 +47,13 @@ interface Props {
   onSettle?: (before: string, now: string) => Promise<string | null>;
 }
 
+// Keys from the page reach the window from the window itself, so what holds them is found through its frames.
+const focused = (): Element | null => {
+  let at: Element | null = document.activeElement;
+  while (at instanceof HTMLIFrameElement) at = at.contentDocument?.activeElement ?? null;
+  return at;
+};
+
 export default function Detail({
   task,
   lists,
@@ -77,6 +85,11 @@ export default function Detail({
 }: Props) {
   const opened = useRef<HTMLElement>(null);
   const [shaping, setShaping] = useState(false);
+  const [held, setHeld] = useState(false);
+  // The template is edited only while the task is open and its words can be written.
+  useEffect(() => {
+    if (task.status !== "open" || held) setShaping(false);
+  }, [task.status, held]);
   const card = useRef<HTMLDivElement>(null);
   const edge = useEdge(card);
   const live = task.status === "open";
@@ -90,12 +103,9 @@ export default function Detail({
     if (!shaping) return;
     const done = (event: KeyboardEvent) => {
       if (event.key !== "Escape" && event.key !== "Enter") return;
-      const at = event.target;
-      if (
-        at instanceof HTMLElement &&
-        (at.isContentEditable || at.closest("input, textarea, select, button"))
-      )
-        return;
+      if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+      const at = event.target instanceof Element ? event.target : focused();
+      if (at?.closest("input, textarea, select, button, [contenteditable='true']")) return;
       event.preventDefault();
       event.stopImmediatePropagation();
       setShaping(false);
@@ -193,6 +203,7 @@ export default function Detail({
         onError={onError}
         onDoc={onDoc}
         shaping={shaping}
+        onHeld={setHeld}
       />
       <History task={task} onError={onError} onDoc={onDoc} />
     </>
@@ -216,55 +227,38 @@ export default function Detail({
   const shown = task.status === "open" ? body : sealed;
   const left = (whole?.open ?? 0) + (whole?.away ?? 0);
 
+  const settled = (edge?: number) => (
+    <Settled
+      task={task}
+      edge={edge}
+      onComplete={onComplete}
+      onDiscard={onDiscard}
+      onReopen={onReopen}
+      onStillOpen={onStillOpen}
+      onErase={onErase}
+      onFold={onFold}
+      onReadAs={onReadAs}
+      onOpenToAgents={onOpenToAgents}
+      shaping={shaping}
+      onShape={held ? undefined : setShaping}
+      left={left}
+    />
+  );
+
   if (!expanded) {
     return (
-      <aside
-        ref={opened}
-        tabIndex={-1}
+      <Panel
+        label={task.title}
+        apart={apart}
+        held={opened}
         onKeyDown={leave}
-        aria-label={task.title}
-        className={`absolute top-11 bottom-3 z-20 flex w-[380px] flex-col overflow-hidden rounded-[10px] border border-hair bg-sheet shadow-lift [&_.gutter]:px-0 outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset ${apart ?? "right-3"}`}
+        onExpand={onExpand}
+        onClose={onClose}
+        footer={settled()}
       >
-        <div className="flex items-center justify-end gap-1 px-3 pt-2.5 text-[13px] text-faint">
-          <button
-            type="button"
-            onClick={onExpand}
-            title={t("expand")}
-            aria-label={t("expand")}
-            className="flex h-6 w-6 items-center justify-center rounded-md hover:bg-hover hover:text-accent"
-          >
-            <span aria-hidden="true">⤢</span>
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            title={t("closePanel")}
-            aria-label={t("closePanel")}
-            aria-keyshortcuts="Escape"
-            className="flex h-6 w-6 items-center justify-center rounded-md hover:bg-hover hover:text-ink"
-          >
-            <span aria-hidden="true">✕</span>
-          </button>
-        </div>
-        <div className="scroller flex-1 pt-1.5 pb-7 [&>*]:px-5">
-          {shown}
-          {aside}
-        </div>
-        <Settled
-          task={task}
-          onComplete={onComplete}
-          onDiscard={onDiscard}
-          onReopen={onReopen}
-          onStillOpen={onStillOpen}
-          onErase={onErase}
-          onFold={onFold}
-          onReadAs={onReadAs}
-          onOpenToAgents={onOpenToAgents}
-          shaping={shaping}
-          onShape={setShaping}
-          left={left}
-        />
-      </aside>
+        {shown}
+        {aside}
+      </Panel>
     );
   }
 
@@ -295,21 +289,7 @@ export default function Detail({
           <div className="min-w-0">{aside}</div>
         </div>
       </div>
-      <Settled
-        task={task}
-        edge={edge}
-        onComplete={onComplete}
-        onDiscard={onDiscard}
-        onReopen={onReopen}
-        onStillOpen={onStillOpen}
-        onErase={onErase}
-        onFold={onFold}
-        onReadAs={onReadAs}
-        onOpenToAgents={onOpenToAgents}
-        shaping={shaping}
-        onShape={setShaping}
-        left={left}
-      />
+      {settled(edge)}
     </main>
   );
 }
@@ -344,7 +324,7 @@ function Settled({
   onReadAs: (how: "story" | "trace") => void;
   onOpenToAgents: (open: boolean) => void;
   shaping: boolean;
-  onShape: (shaping: boolean) => void;
+  onShape?: (shaping: boolean) => void;
 }) {
   const [more, setMore] = useState<{ x: number; y: number } | null>(null);
   const owing = task.status === "open" && (left ?? 0) > 0;
@@ -480,7 +460,7 @@ function Settled({
               )}
             </>
           )}
-          {open && (
+          {open && onShape && (
             <button
               type="button"
               aria-pressed={shaping}

@@ -2,7 +2,7 @@ import { closeCompletion, completionStatus } from "@codemirror/autocomplete";
 import { defaultKeymap, history, historyKeymap, indentWithTab, redo } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
-import { EditorState, Prec } from "@codemirror/state";
+import { EditorState, Prec, type Text } from "@codemirror/state";
 import {
   Decoration,
   type DecorationSet,
@@ -166,10 +166,26 @@ export const caretAt = (source: string, read: string): number => {
 const LABEL = 20;
 
 // A task's section name is a short label, so the template refuses a longer one as it is typed.
+const named = (doc: Text): number =>
+  [...(/^#{1,6}\s+(.*)$/.exec(doc.line(1).text)?.[1] ?? "")].length;
+
+// Composing skips the filter, so a label is held to its limit once more as it is left.
+const held = (view: EditorView, was: string) => {
+  const head = view.state.doc.line(1);
+  const words = /^(#{1,6}\s+)(.*)$/.exec(head.text);
+  const most = Math.max(LABEL, named(EditorState.create({ doc: was }).doc));
+  if (!words || [...words[2]].length <= most) return;
+  const kept = [...words[2]].slice(0, most).join("");
+  view.dispatch({ changes: { from: head.from + words[1].length, to: head.to, insert: kept } });
+};
+
 const labelled = EditorState.transactionFilter.of((tr) => {
-  if (!tr.docChanged) return tr;
-  const words = /^#{1,6}\s+(.*)$/.exec(tr.newDoc.line(1).text)?.[1];
-  return words !== undefined && [...words].length > LABEL ? [] : tr;
+  if (!tr.docChanged || tr.isUserEvent("input.type.compose")) return tr;
+  // A label or a hint is one line, so a pasted break would start words under it.
+  if (tr.newDoc.lines > tr.startState.doc.lines) return [];
+  // A name already longer than the limit can still be shortened, never grown.
+  const now = named(tr.newDoc);
+  return now > LABEL && now > named(tr.startState.doc) ? [] : tr;
 });
 
 export const edited = (
@@ -199,6 +215,7 @@ export const edited = (
   const leave = () => {
     if (gone) return;
     gone = true;
+    if (oneLine) held(view, said);
     settle(view);
     const text = view.state.sliceDoc();
     view.destroy();

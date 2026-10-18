@@ -609,6 +609,20 @@ describe("a task's steps on its page", () => {
     expect(asked).toEqual([{ at: [20, 20], seed: "- [ ] " }]);
   });
 
+  it("adds a step with the list's own mark, so it joins that list", () => {
+    const body = "* [ ] one\n";
+    const one = page(
+      '<ul data-at="0-10"><li class="task" data-at="0-10"><span class="check" data-done="false"></span>one</li></ul>',
+    );
+    one.documentElement.classList.add("untitled");
+    const { asked, reach } = writer(body);
+    worn(one, false, () => true, reach);
+    wired(one, () => reach);
+
+    press(one.querySelector<HTMLElement>(".page > .add-step"), 0);
+    expect(asked).toEqual([{ at: [10, 10], seed: "* [ ] " }]);
+  });
+
   it("adds nothing of the kind to a document", () => {
     const one = page(
       '<ul data-at="0-10"><li class="task" data-at="0-10"><span class="check" data-done="false"></span>one</li></ul>',

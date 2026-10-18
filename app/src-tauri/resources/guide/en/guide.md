@@ -86,9 +86,9 @@ A tag is not only for tasks. Write `#health` in the middle of a sentence in a do
 
 ### 6. What stays written
 
-A task keeps more than its title. Give it a description, note in its journal what you were working out, and leave it the steps you followed. In the description or the journal, `[[#2]]` brings up the words of its second step, so a note can say which step it is about without copying it. Completing it erases none of that: it is archived with its date.
+A task keeps more than its title. It opens on a page of its own, with sections to fill in —what it is about, how you will know it is done, its steps, what you found out— and a grey hint in each saying what goes there. Every box you write on that page, `- [ ]`, is one of its steps. Completing it erases none of that: it is archived with its date.
 
-A step is a line, a hundred characters at most. When one needs more —a description, a journal of its own— turn it into a task with **↗**, and it becomes a **part** of the task it came from. A task with parts is something that ends: it shows **▣ 3/7** where its steps would count, its parts fold beneath it, and elsewhere each part names it with **⌂**. Under a task's steps, **Parts** takes a new one on its own line, and **Part of another…** finds the task it belongs to by name; a part names its whole there and lets go of it with **Let it go**. Closing it with parts still open asks you to let them go in the same breath, and undo brings them back.
+A step is a line, a hundred characters at most. When one needs more, make it a task of its own as a **part** of this one. A task with parts is something that ends: it shows **▣ 3/7** where its steps would count, its parts fold beneath it, and elsewhere each part names it with **⌂**. Beside the task's page, **Parts** takes a new one on its own line, and **Part of another…** finds the task it belongs to by name; a part names its whole there and lets go of it with **Let it go**. Closing it with parts still open asks you to let them go in the same breath, and undo brings them back.
 
 That is the difference. The list tells you what is left; the archive tells you how you solved it last time. Search for a word you remember and it comes up, even if you closed it two years ago. All of it, step by step, is told in [tasks](https://www.tisty.app/docs/tasks/).
 
@@ -195,7 +195,7 @@ Four pens: ==yellow==, ==green=={green}, ==blue=={blue} and ==pink=={pink}. You 
 
 #### Stages
 
-A list of boxes you tick. They are not Tisty tasks, nor a task's steps: they never close, they have no date and they never show up in Today. They are the stages of something you are writing.
+A list of boxes you tick. In a document they are not Tisty tasks: they never close, they have no date and they never show up in Today. They are the stages of something you are writing. On a task's own page, the same boxes are its steps.
 
 - [x] Bring Rina's record book
 - [x] Weigh her before the appointment

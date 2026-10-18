@@ -217,6 +217,17 @@ impl State {
         for part in self.tasks.values_mut().filter(|t| t.part_of == Some(*id)) {
             part.part_of = None;
         }
+        // A delete that never named the task's words takes them, unless a routine's later turns write there.
+        let later = self.tasks.values().any(|one| one.after == Some(*id));
+        let words: Vec<DocId> = self
+            .docs
+            .values()
+            .filter(|one| !later && one.task_of == Some(*id))
+            .map(|one| one.id)
+            .collect();
+        for one in words {
+            self.doc_deleted(&one);
+        }
     }
 
     pub(crate) fn doc_signed(&mut self, id: &DocId, d: &str) {
@@ -238,6 +249,15 @@ impl State {
     }
 
     pub(crate) fn doc_deleted(&mut self, id: &DocId) {
+        // A task's words go with it or not at all, so a story that kept its task keeps them too.
+        let task = self.docs.get(id).and_then(|one| one.task_of);
+        if task.is_some_and(|task| {
+            self.tasks
+                .get(&task)
+                .is_some_and(|one| one.read_as == Some(Reading::Story))
+        }) {
+            return;
+        }
         // A page is part of its document, so it goes where the document goes.
         let pages: Vec<DocId> = self
             .docs
@@ -279,6 +299,14 @@ impl State {
     pub(crate) fn doc_added(&mut self, event: &Event, id: &DocId, d: &crate::event::DocAdd) {
         // Every machine names a task's document alike, so the second making must not undo the first.
         if d.task_of.is_some() && self.docs.contains_key(id) {
+            return;
+        }
+        // Words made for a task already erased elsewhere have nothing left to belong to.
+        if d.task_of
+            .is_some_and(|task| self.tombstones.contains(&task))
+        {
+            self.shed.insert(d.file.clone());
+            self.tombstones.insert(*id);
             return;
         }
         // A page of a page is not a thing; the deeper one is kept as a document.

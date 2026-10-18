@@ -46,10 +46,6 @@ fn opening(bare: &str) -> Option<String> {
     None
 }
 
-pub fn front_matter(body: &str) -> bool {
-    tisty_markdown::front::span(body).is_some()
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Edit {
     from: usize,

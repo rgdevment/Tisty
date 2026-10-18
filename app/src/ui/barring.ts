@@ -295,8 +295,8 @@ export const barred = (view: EditorView): Barred => {
     "⋯",
   );
 
-  const fold = button("cm-bar-button cm-bar-fold", t("barFold"), () => folding(!folded));
   let folded = false;
+  const fold = button("cm-bar-button cm-bar-fold", t("barFold"), () => folding(!folded));
   const folding = (now: boolean) => {
     folded = now;
     bar.classList.toggle("folded", now);

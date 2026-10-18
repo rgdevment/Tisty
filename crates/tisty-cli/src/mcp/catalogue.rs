@@ -955,7 +955,8 @@ pub(super) fn tools() -> Value {
                             task is rather than what it says with the sifting fields — alone or \
                             narrowing a query — or by `source` alone, to check whether something \
                             was already filed from it. A task found by what its journal, \
-                            description or steps say — the archive included — comes with `in` \
+                            description, steps or document say — the archive included — comes \
+                            with `in` \
                             and the `line` that says it, so a past decision reads without \
                             `read`. With `doc` it looks inside that one \
                             document instead and hands back the lines that match with their \
