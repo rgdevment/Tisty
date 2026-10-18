@@ -162,20 +162,20 @@ pub fn opened(state: &State, task: TaskId, template: &str) -> String {
     if !template.is_empty() {
         out.push('\n');
         let mut gap = false;
-        let mut notes_here = false;
+        let mut last = "";
         for line in template.lines() {
+            // Notes go under the hint right below their own heading, and nowhere else.
+            let notes_here = NOTES.contains(&last.trim());
+            last = line;
             if std::mem::take(&mut gap) && !line.trim().is_empty() {
                 out.push('\n');
             }
             out.push_str(line);
             out.push('\n');
-            if NOTES.contains(&line.trim()) {
-                notes_here = true;
-            }
             let Some(hint) = hinted(line) else {
                 continue;
             };
-            let held = match (boxed(hint), std::mem::take(&mut notes_here)) {
+            let held = match (boxed(hint), notes_here) {
                 (true, _) => steps.take().filter(|lines| !lines.is_empty()),
                 (false, true) => notes.take(),
                 (false, false) => said.take().map(|said| format!("{}\n", deeper(said))),
@@ -204,18 +204,48 @@ fn deeper(said: &str) -> String {
     let mut fenced = tisty_markdown::fences::fencing();
     said.lines()
         .map(|line| {
+            if fenced(line) {
+                return line.to_string();
+            }
             let marks = line.chars().take_while(|one| *one == '#').count();
-            let heading = (1..6).contains(&marks) && line[marks..].starts_with([' ', '\t']);
-            match !fenced(line) && heading {
-                true => format!("#{line}"),
-                false => line.to_string(),
+            let heading = (1..=6).contains(&marks) && line[marks..].starts_with([' ', '\t']);
+            match heading {
+                true => format!("{}{}", "#".repeat((marks + 1).clamp(3, 6)), &line[marks..]),
+                false => unboxed(line),
             }
         })
         .collect::<Vec<_>>()
         .join("\n")
 }
 
-// The sections of the templates below where a task still open brings the notes of its journal.
+// Words that were never steps keep their boxes as text, so bringing them to a page adds no step.
+fn unboxed(line: &str) -> String {
+    let bare = line.trim_start_matches(['>', ' ', '\t']);
+    let rest = bare
+        .strip_prefix(['-', '*', '+'])
+        .or_else(|| {
+            let digits = bare.chars().take_while(char::is_ascii_digit).count();
+            (digits > 0)
+                .then(|| bare[digits..].strip_prefix(['.', ')']))
+                .flatten()
+        })
+        .filter(|rest| rest.starts_with([' ', '\t']))
+        .map(str::trim_start);
+    let boxed = rest.filter(|rest| {
+        ["[ ]", "[x]", "[X]"].iter().any(|one| {
+            rest.strip_prefix(one)
+                .is_some_and(|after| after.is_empty() || after.starts_with([' ', '\t']))
+        })
+    });
+    match boxed {
+        Some(rest) => {
+            let at = line.len() - rest.len();
+            format!("{}\\{}", &line[..at], &line[at..])
+        }
+        None => line.to_string(),
+    }
+}
+
 const NOTES: [&str; 4] = ["## Notes", "## Notas", "## This time", "## Esta vez"];
 
 // An open task's journal comes to its page as notes, each under its day; a box in one is no step.
@@ -223,31 +253,13 @@ fn noted(task: &crate::model::Task) -> Option<String> {
     let all: Vec<String> = task
         .journal()
         .map(|entry| {
-            let zone = entry
-                .tz
-                .as_deref()
-                .and_then(|tz| jiff::tz::TimeZone::get(tz).ok())
-                .unwrap_or(jiff::tz::TimeZone::UTC);
-            let day = entry.at.to_zoned(zone).strftime("%Y-%m-%d %H:%M");
+            let day = entry.zoned().strftime("%Y-%m-%d %H:%M");
             let who = entry
                 .via
                 .as_deref()
-                .map(|via| format!(" · {via}"))
+                .map(|via| format!(" · {}", crate::agent::client_named(via)))
                 .unwrap_or_default();
-            let words: Vec<String> = entry
-                .body
-                .trim()
-                .lines()
-                .map(
-                    |line| match line.trim_start().strip_prefix(['-', '*', '+']) {
-                        Some(rest) if rest.trim_start().starts_with('[') => {
-                            line.replacen('[', "\\[", 1)
-                        }
-                        _ => line.to_string(),
-                    },
-                )
-                .collect();
-            format!("**{day}**{who}\n{}\n", words.join("\n"))
+            format!("**{day}**{who}\n{}\n", deeper(entry.body.trim()))
         })
         .collect();
     (!all.is_empty()).then(|| all.join("\n"))
@@ -328,7 +340,8 @@ pub fn template(task: &crate::model::Task, configured: Option<&str>) -> &'static
 
 /// A description goes in the first section with a plain hint, or at the end of a page without one.
 pub fn described(body: &str, said: &str) -> String {
-    let said = said.trim();
+    let said = deeper(said.trim());
+    let said = said.as_str();
     let lines: Vec<&str> = body.split_inclusive('\n').collect();
     let heading = |line: &str| {
         let marks = line.trim_start().chars().take_while(|c| *c == '#').count();

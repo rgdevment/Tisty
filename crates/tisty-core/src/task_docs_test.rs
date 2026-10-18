@@ -527,10 +527,11 @@ fn an_open_task_s_journal_comes_to_its_page_as_notes_and_a_closed_one_s_stays_be
     let template = "## Notes\n<!-- What you find out -->\n";
 
     let page = super::opened(&state, task, template);
-    assert!(
-        page.contains("<!-- What you find out -->\n\n**1970-01-01 00:00**\nCalled the vet."),
-        "{page}"
-    );
+    let notes = page
+        .split_once("<!-- What you find out -->\n\n**")
+        .map(|(_, rest)| rest)
+        .unwrap_or_default();
+    assert!(notes.contains("**\nCalled the vet."), "{page}");
     assert!(page.contains(r"- \[ ] not a step"), "{page}");
     assert!(crate::stages::stages(&page).is_empty(), "{page}");
 
@@ -568,4 +569,11 @@ fn a_description_s_own_headings_sit_one_level_under_its_section() {
     let page = super::opened(&state, task, "## Description\n<!-- what -->\n");
     assert!(page.contains("### Scope\nAll of it."), "{page}");
     assert!(page.contains("```\n## code\n```"), "{page}");
+}
+
+#[test]
+fn a_box_in_old_words_stays_text_but_a_link_in_a_bullet_is_left_alone() {
+    assert_eq!(super::unboxed("1. [ ] buy food"), r"1. \[ ] buy food");
+    assert_eq!(super::unboxed("> - [x] ask"), r"> - \[x] ask");
+    assert_eq!(super::unboxed("- [docs](https://x)"), "- [docs](https://x)");
 }

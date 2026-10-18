@@ -473,7 +473,7 @@ fn two_steps_written_over_side_by_side_keep_who_they_are_when_the_editor_says_so
 #[test]
 fn a_step_ending_in_a_backslash_is_still_its_own_box() {
     let task = task(&[("one", true, "a"), ("the other aside\\", true, "b")]);
-    let body = "- [x] one\n- [x] the other aside\\n";
+    let body = "- [x] one\n- [x] the other aside\\\n";
     assert_eq!(ticked(&task, body), body);
     assert_eq!(reconciled(&task, None, body), Vec::new());
 }
