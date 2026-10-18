@@ -19,6 +19,7 @@ import { charsAt, type Head, spanned, type Went } from "./paging";
 import { closed, laid, parting } from "./parting";
 import type { Formatting, Menued } from "./quickly";
 import { filedAs, type Reshape, reshaped } from "./recarding";
+import Skeleton from "./Skeleton";
 import { ASIDE_MARGIN, settles } from "./seeking";
 import type { Sheet as SheetSize } from "./sheeting";
 import { type Asking, putBlock } from "./slashing";
@@ -573,10 +574,11 @@ export default function Sheet(props: Readonly<Props>) {
         style={{
           ...(props.sheet && { maxWidth: props.sheet.wide }),
           // Until it is drawn the page holds the room it last took, so nothing under it jumps.
-          ...(!ready && kept.height && { minHeight: kept.height }),
+          ...(!ready && { minHeight: kept.height ?? 240 }),
         }}
-        className="tisty-sheet mx-auto w-full shrink-0 overflow-hidden rounded-[10px] bg-sheet"
+        className="tisty-sheet relative mx-auto w-full shrink-0 overflow-hidden rounded-[10px] bg-sheet"
       >
+        {!ready && <Skeleton inset={props.inline ? "46px 32px" : undefined} />}
         <Page
           sheet={props.sheet}
           body={drawn}

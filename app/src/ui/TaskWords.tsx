@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { docWrite, type Task, type TaskDoc, taskDocMake, taskDocOpen } from "../core";
 import { holds, queued } from "../saving";
 import { useKeptHeight } from "./heights";
+import Skeleton from "./Skeleton";
 
 const Sheet = lazy(() => import("./Sheet"));
 
@@ -52,7 +53,12 @@ export default function TaskWords({ task, onSettle, onError, onDoc, shaping, onH
   }, [task.id, open, turn]);
 
   // While the page is read, its room stays as it last was, so what is under it never jumps.
-  if (!doc) return <div ref={kept.ref} className="task-words" style={{ minHeight: kept.height }} />;
+  if (!doc)
+    return (
+      <div ref={kept.ref} className="task-words relative" style={{ minHeight: kept.height ?? 180 }}>
+        <Skeleton inset="46px 32px" />
+      </div>
+    );
   // A task's document is made by the first words written on it, never by looking at the task.
   const make = doc.file || doc.held ? undefined : (body: string) => taskDocMake(task.id, body);
   return (
