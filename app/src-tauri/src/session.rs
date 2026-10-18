@@ -727,7 +727,6 @@ impl Session {
         Ok(())
     }
 
-    /// Takes the files of documents already deleted in the log off this disk and the shared folder.
     pub fn forget_files(&mut self, files: &[String]) {
         let root = self.paths.docs();
         let mut said = tisty_core::docs::Carried::read(self.paths.data());

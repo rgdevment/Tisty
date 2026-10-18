@@ -10,7 +10,6 @@ interface Props {
   onDoc?: (id: string) => void;
 }
 
-// What happened stays folded under the words, signed and read-only: nobody rewrites a past entry.
 export default function History({ task, onError, onDoc }: Props) {
   const kept = (task.log ?? []).filter((entry) => entry.body.trim());
   if (kept.length === 0) return null;

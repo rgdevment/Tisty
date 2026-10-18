@@ -9,7 +9,7 @@ const SETTLES = 700;
 
 interface Props {
   task: Task;
-  onSettle?: (before: string, now: string) => void;
+  onSettle?: (before: string, now: string) => Promise<boolean>;
   onError?: (problem: unknown) => void;
   onDoc?: (id: string) => void;
 }
@@ -23,6 +23,7 @@ const real = (said: unknown): TaskDoc | null => {
 // An open task is always a document: one it never had is made the first time it is opened.
 export default function TaskWords({ task, onSettle, onError, onDoc }: Props) {
   const [doc, setDoc] = useState<TaskDoc | null>(null);
+  const [seen, setSeen] = useState(0);
   const [turn, setTurn] = useState(0);
   const failed = useRef(onError);
   failed.current = onError;
@@ -34,7 +35,9 @@ export default function TaskWords({ task, onSettle, onError, onDoc }: Props) {
     opened()
       .then((found) => (found || !open ? found : taskDocMake(task.id).then(opened)))
       .then((found) => {
-        if (live) setDoc(found);
+        if (!live) return;
+        setDoc(found);
+        setSeen((one) => one + 1);
       })
       .catch((e) => {
         if (live) failed.current?.(e);
@@ -47,7 +50,7 @@ export default function TaskWords({ task, onSettle, onError, onDoc }: Props) {
   if (!doc) return null;
   return (
     <Written
-      key={`${doc.file}:${turn}`}
+      key={`${doc.file}:${seen}`}
       doc={doc}
       label={task.title}
       onSettle={doc.held ? undefined : onSettle}
@@ -68,7 +71,7 @@ function Written({
 }: {
   doc: TaskDoc;
   label: string;
-  onSettle?: (before: string, now: string) => void;
+  onSettle?: (before: string, now: string) => Promise<boolean>;
   onError?: (problem: unknown) => void;
   onDoc?: (id: string) => void;
   onMoved: () => void;
@@ -80,6 +83,17 @@ function Written({
   failed.current = onError;
   const moved = useRef(onMoved);
   moved.current = onMoved;
+  const unsettled = useRef<string | null>(null);
+
+  // A settle that failed left its lines unlearnt, so the next one still starts from its text.
+  const settled = (before: string, now: string) => {
+    if (!onSettle) return;
+    const from = unsettled.current ?? before;
+    unsettled.current = from;
+    void onSettle(from, now).then((done) => {
+      if (done && unsettled.current === from) unsettled.current = null;
+    });
+  };
 
   const flush = useCallback(() => {
     if (timer.current) clearTimeout(timer.current);
@@ -119,7 +133,7 @@ function Written({
         reading={doc.held}
         inline
         onWrite={wrote}
-        onSettle={onSettle}
+        onSettle={onSettle ? settled : undefined}
         onFail={onError}
         onDoc={onDoc}
       />

@@ -52,7 +52,7 @@ beforeEach(() => {
 
 describe("an open task", () => {
   it("is a document from the first time it is opened, made from what it held", async () => {
-    render(<TaskWords task={task()} onSettle={() => {}} />);
+    render(<TaskWords task={task()} onSettle={() => Promise.resolve(true)} />);
 
     expect(await screen.findByText("sheet:Words it held.")).toBeTruthy();
     expect(sent("task_doc_make")).toEqual([{ cmd: "task_doc_make", args: { id: "one" } }]);
@@ -90,7 +90,12 @@ describe("a task with its document", () => {
   it("writes what changed once the typing settles, and hands each settled change on", async () => {
     ipc.doc = { file: "t_one-0001", body: "- [ ] uno\n", held: false };
     const settled: [string, string][] = [];
-    render(<TaskWords task={task()} onSettle={(before, now) => settled.push([before, now])} />);
+    render(
+      <TaskWords
+        task={task()}
+        onSettle={(before, now) => Promise.resolve(settled.push([before, now]) > 0)}
+      />,
+    );
 
     await screen.findByText("sheet:- [ ] uno");
     const sheet = ipc.sheets[ipc.sheets.length - 1];
@@ -114,7 +119,7 @@ describe("a task with its document", () => {
 
   it("is only read while it is held, and tells no changes", async () => {
     ipc.doc = { file: "t_one-0001", body: "words\n", held: true };
-    render(<TaskWords task={task()} onSettle={() => {}} />);
+    render(<TaskWords task={task()} onSettle={() => Promise.resolve(true)} />);
 
     await screen.findByText("sheet:words");
     const sheet = ipc.sheets[ipc.sheets.length - 1];
@@ -136,5 +141,38 @@ describe("a task document changed on disk meanwhile", () => {
 
     expect(await screen.findByText("sheet:theirs", {}, { timeout: 2000 })).toBeTruthy();
     expect(failed).toHaveBeenCalledWith({ code: "documentMoved" });
+  });
+});
+
+describe("a settle that failed", () => {
+  it("hands its text before to the next one, so no line goes unlearnt", async () => {
+    ipc.doc = { file: "t_one-0001", body: "a\n", held: false };
+    const asked: [string, string][] = [];
+    let answer = false;
+    render(
+      <TaskWords
+        task={task()}
+        onSettle={(before, now) => {
+          asked.push([before, now]);
+          return Promise.resolve(answer);
+        }}
+      />,
+    );
+    await screen.findByText("sheet:a");
+    const sheet = ipc.sheets[ipc.sheets.length - 1];
+
+    sheet.onSettle?.("a\n", "b\n");
+    await waitFor(() => expect(asked).toHaveLength(1));
+    answer = true;
+    sheet.onSettle?.("b\n", "c\n");
+    await waitFor(() => expect(asked).toHaveLength(2));
+    sheet.onSettle?.("c\n", "d\n");
+    await waitFor(() => expect(asked).toHaveLength(3));
+
+    expect(asked).toEqual([
+      ["a\n", "b\n"],
+      ["a\n", "c\n"],
+      ["c\n", "d\n"],
+    ]);
   });
 });

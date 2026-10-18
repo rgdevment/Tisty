@@ -80,7 +80,6 @@ pub fn title(text: &str) -> String {
     format!("{}…", room[..cut].trim_end())
 }
 
-/// Each step written as the stage a document holds for it, one line apiece.
 pub fn lines(steps: &[&Step]) -> String {
     steps
         .iter()

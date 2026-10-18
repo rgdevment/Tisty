@@ -40,7 +40,7 @@ interface Props {
   onOpenPart?: (id: string) => void;
   onCompletePart?: (id: string, title: string) => void;
   onHang?: (whole: string | null) => void;
-  onSettle?: (before: string, now: string) => void;
+  onSettle?: (before: string, now: string) => Promise<boolean>;
 }
 
 export default function Detail({

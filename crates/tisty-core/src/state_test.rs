@@ -4888,12 +4888,36 @@ fn a_task_s_document_lends_no_tag_and_counts_in_none() {
 }
 
 #[test]
-fn reopening_leaves_a_successor_that_has_a_document_of_its_own() {
+fn reopening_takes_back_a_successor_only_looked_at_with_its_document() {
     let (mut state, id) = repeating();
     let born = successor(&state, id);
     let room = tempfile::tempdir().unwrap();
     let made = crate::task_docs::made(room.path(), &state, born, None).unwrap();
     state.apply(&ev(15, "a", made));
+    let doc = crate::task_docs::of(&state, born).unwrap().id;
+
+    let ops = state.reopening(id);
+
+    assert!(ops.contains(&Op::DocDelete { id: doc }), "{ops:?}");
+    assert!(ops.contains(&Op::TaskDelete { id: born }), "{ops:?}");
+}
+
+#[test]
+fn reopening_leaves_a_successor_whose_document_was_written_in() {
+    let (mut state, id) = repeating();
+    let born = successor(&state, id);
+    let room = tempfile::tempdir().unwrap();
+    let made = crate::task_docs::made(room.path(), &state, born, None).unwrap();
+    state.apply(&ev(15, "a", made));
+    let doc = crate::task_docs::of(&state, born).unwrap().id;
+    state.apply(&ev(
+        16,
+        "a",
+        Op::DocSaid {
+            id: doc,
+            d: crate::event::Said::of("Notes from the waiting room."),
+        },
+    ));
 
     let ops = state.reopening(id);
 

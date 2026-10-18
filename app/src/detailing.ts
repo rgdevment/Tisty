@@ -66,9 +66,16 @@ export const detailOf = (one: Task, h: Hands) => ({
   },
   onHang: (whole: string | null) => h.act(hang(one.id, whole)),
   onSettle: (before: string, now: string) =>
-    queued(`settle:${one.id}`, () => taskDocSettled(one.id, before, now)).then((changed) => {
-      if (changed) h.act(Promise.resolve(changed));
-    }, h.fail),
+    queued(`settle:${one.id}`, () => taskDocSettled(one.id, before, now)).then(
+      (changed) => {
+        if (changed) h.act(Promise.resolve(changed));
+        return true;
+      },
+      (problem) => {
+        h.fail(problem);
+        return false;
+      },
+    ),
 });
 
 export const erasing = (

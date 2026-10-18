@@ -75,6 +75,11 @@ pub fn erased_with(state: &State, task: TaskId) -> Vec<Op> {
     ops
 }
 
+// Opening a task makes its document, so only words written into it make the task worth keeping.
+pub fn blank(state: &State, task: TaskId) -> bool {
+    of(state, task).is_none_or(|kept| kept.print == Said::of(&first_words(state, task)).print)
+}
+
 pub fn behind(state: &State) -> std::collections::BTreeMap<String, TaskId> {
     state
         .docs
@@ -92,7 +97,6 @@ fn turn(state: &State, task: TaskId) -> u32 {
     at
 }
 
-/// What the task already holds opens its document: the description as the body, each step a stage.
 pub fn first_words(state: &State, task: TaskId) -> String {
     let mut out = seed(task);
     let Some(one) = state.tasks.get(&task) else {
