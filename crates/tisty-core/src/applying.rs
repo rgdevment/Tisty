@@ -277,6 +277,10 @@ impl State {
     }
 
     pub(crate) fn doc_added(&mut self, event: &Event, id: &DocId, d: &crate::event::DocAdd) {
+        // Every machine names a task's document alike, so the second making must not undo the first.
+        if d.task_of.is_some() && self.docs.contains_key(id) {
+            return;
+        }
         // A page of a page is not a thing; the deeper one is kept as a document.
         let page_of = d
             .page_of
@@ -320,6 +324,7 @@ impl State {
                 ),
                 flagged: None,
                 folder_was: None,
+                task_of: d.task_of,
             },
         );
     }

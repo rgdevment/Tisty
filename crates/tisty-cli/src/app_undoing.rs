@@ -38,6 +38,7 @@ fn settling_a_book_is_not_what_undo_reaches_for() {
             order: order::first(),
             folder: None,
             page_of: None,
+            task_of: None,
         },
     })
     .unwrap();
@@ -54,6 +55,7 @@ fn settling_a_book_is_not_what_undo_reaches_for() {
                 order: order::first(),
                 folder: None,
                 page_of: Some(book),
+                task_of: None,
             },
         })
         .unwrap();

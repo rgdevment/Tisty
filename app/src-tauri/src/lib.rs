@@ -134,12 +134,12 @@ fn search(
         Some("archived") => Scope::Archived,
         _ => Scope::Either,
     };
-    let (hits, total) = session.state.searching(&query, scope, MOST);
-    let tasks: Vec<Task> = hits.into_iter().cloned().collect();
+    let behind = tisty_core::task_docs::behind(&session.state);
     let listed: std::collections::BTreeMap<String, bool> = session
         .state
         .docs
         .values()
+        .filter(|one| one.task_of.is_none())
         .filter(|one| match scope {
             Scope::Open => !session.state.held_away(one),
             Scope::Archived => session.state.held_away(one),
@@ -148,6 +148,26 @@ fn search(
         .map(|one| (one.file.clone(), session.state.held_away(one)))
         .collect();
     let root = session.paths.docs();
+    let worded = session
+        .corpus
+        .searching(&root, &query, usize::MAX, |id| behind.contains_key(id));
+    let (mut found, _) = session.state.searching(&query, scope, usize::MAX);
+    for task in worded
+        .iter()
+        .filter(|one| !tisty_core::task_docs::bookkept(&one.line))
+        .filter_map(|one| session.state.tasks.get(behind.get(&one.id)?))
+        .filter(|task| match scope {
+            Scope::Open => task.is_open(),
+            Scope::Archived => task.is_archived(),
+            Scope::Either => true,
+        })
+    {
+        if !found.iter().any(|one| one.id == task.id) {
+            found.push(task);
+        }
+    }
+    let total = found.len();
+    let tasks: Vec<Task> = found.into_iter().take(MOST).cloned().collect();
     let papers = session
         .corpus
         .searching(&root, &query, PAPERS_MOST, |id| listed.contains_key(id))

@@ -69,7 +69,7 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let past = args.get("after").and_then(Value::as_u64).unwrap_or(0) as usize;
 
     // Counting what it cannot see would still say the thing exists.
-    let hits: Vec<&Task> = match &query {
+    let mut hits: Vec<&Task> = match &query {
         Some(query) => state.searching(query, scope, usize::MAX).0,
         None => {
             let mut all: Vec<&Task> = state
@@ -85,6 +85,28 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             all
         }
     };
+    // One walk through the documents serves both the documents found and the tasks found by theirs.
+    let seen = query
+        .as_deref()
+        .map(|query| sightings(paths, query))
+        .unwrap_or_default();
+    let mut lined = std::collections::HashMap::new();
+    if query.is_some() {
+        for (task, line) in documented(&state, &seen) {
+            let Some(one) = state.tasks.get(&task) else {
+                continue;
+            };
+            let kept = match scope {
+                tisty_core::view::Scope::Open => one.is_open(),
+                tisty_core::view::Scope::Archived => one.is_archived(),
+                tisty_core::view::Scope::Either => true,
+            };
+            if kept && !hits.iter().any(|hit| hit.id == task) {
+                hits.push(one);
+                lined.insert(task, line);
+            }
+        }
+    }
     let hits: Vec<&Task> = hits
         .into_iter()
         .filter(|one| !one.folded() && sifted.keeps(one, &state))
@@ -93,11 +115,12 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let hits: Vec<&Task> = hits.into_iter().skip(past).take(most).collect();
     let wheres: Vec<Option<(&str, String)>> = hits
         .iter()
-        .map(|task| {
-            query
+        .map(|task| match lined.get(&task.id) {
+            Some(line) => Some(("document", kept_here(line))),
+            None => query
                 .as_deref()
                 .and_then(|query| tisty_core::view::mentioned_where(task, query))
-                .map(|(kind, line)| (kind, kept_here(&line)))
+                .map(|(kind, line)| (kind, kept_here(&line))),
         })
         .collect();
     let found: Vec<Value> = hits
@@ -114,7 +137,7 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .collect();
     // `after` walks the tasks only — paging past them would empty this list without saying why.
     let papers = match (&query, sifted.none()) {
-        (Some(query), true) => papers_matching(paths, &state, query, scope, usize::MAX),
+        (Some(_), true) => papers_matching(&state, &seen, scope),
         _ => Vec::new(),
     };
     let papers_all = papers.len();
@@ -432,12 +455,13 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     folders.sort();
 
     let mut how: std::collections::BTreeMap<&str, usize> = Default::default();
-    for one in state
-        .tasks
-        .values()
-        .flat_map(|task| &task.tags)
-        .chain(state.docs.values().flat_map(|one| &one.tags))
-    {
+    for one in state.tasks.values().flat_map(|task| &task.tags).chain(
+        state
+            .docs
+            .values()
+            .filter(|one| one.task_of.is_none())
+            .flat_map(|one| &one.tags),
+    ) {
         *how.entry(one.as_str()).or_default() += 1;
     }
     let mut tags: Vec<(&str, usize)> = how.into_iter().collect();
@@ -470,7 +494,11 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         "counts".into(),
         json!({
             "open": state.tasks.values().filter(|one| one.is_open() && !one.folded()).count(),
-            "docs": state.docs.values().filter(|one| !state.held_away(one)).count(),
+            "docs": state
+                .docs
+                .values()
+                .filter(|one| one.task_of.is_none() && !state.held_away(one))
+                .count(),
         }),
     );
     if let Some(head) = &head {
@@ -532,6 +560,20 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                     papers.push(id);
                 }
             }
+            // Writing a task's document is that task moving, never a document of its own.
+            for one in &papers {
+                let behind = one
+                    .parse::<Ulid>()
+                    .ok()
+                    .and_then(|id| state.docs.get(&id))
+                    .and_then(|kept| kept.task_of)
+                    .map(|task| task.to_string());
+                if let Some(task) = behind
+                    && !tasks.contains(&task)
+                {
+                    tasks.push(task);
+                }
+            }
             let moved: Vec<Value> = tasks
                 .iter()
                 .filter_map(|id| id.parse::<TaskId>().ok())
@@ -544,6 +586,7 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 .filter_map(|id| {
                     let id = id.parse::<Ulid>().ok()?;
                     let kept = state.docs.values().find(|one| one.id == id)?;
+                    kept.task_of.is_none().then_some(())?;
                     Some(json!({ "doc": kept.file, "title": kept.title }))
                 })
                 .collect();
@@ -614,12 +657,13 @@ The same guide, with every example drawn, is published at {drawn}; this whole te
 pub(super) fn tags(paths: &Paths) -> Result<Value, Refused> {
     let (state, _) = opened(paths)?;
     let mut how: std::collections::BTreeMap<&str, usize> = std::collections::BTreeMap::new();
-    for one in state
-        .tasks
-        .values()
-        .flat_map(|task| &task.tags)
-        .chain(state.docs.values().flat_map(|one| &one.tags))
-    {
+    for one in state.tasks.values().flat_map(|task| &task.tags).chain(
+        state
+            .docs
+            .values()
+            .filter(|one| one.task_of.is_none())
+            .flat_map(|one| &one.tags),
+    ) {
         *how.entry(one.as_str()).or_default() += 1;
     }
     let mut named: Vec<(&str, usize)> = how.into_iter().collect();
@@ -795,15 +839,14 @@ fn kept_here(body: &str) -> String {
 /// Documents are searched by the same engine the window uses; a document the agent cannot find
 /// again is a document it wrote into the dark.
 fn papers_matching(
-    paths: &Paths,
     state: &State,
-    query: &str,
+    seen: &[tisty_core::docs::Sighting],
     scope: tisty_core::view::Scope,
-    most: usize,
 ) -> Vec<Value> {
     let here: std::collections::HashMap<String, (bool, Option<String>, bool)> = state
         .docs
         .values()
+        .filter(|one| one.task_of.is_none())
         .filter(|one| match scope {
             tisty_core::view::Scope::Open => !state.held_away(one),
             tisty_core::view::Scope::Archived => state.held_away(one),
@@ -821,28 +864,42 @@ fn papers_matching(
         })
         .collect();
 
-    let held = tisty_core::cache::Cache::open(paths.cache()).ok().flatten();
-    tisty_core::docs::sighted(&paths.docs(), held.as_ref(), query, most, |id| {
-        here.contains_key(id)
-    })
-    .unwrap_or_else(|| {
-        tisty_core::docs::Corpus::default()
-            .searching(&paths.docs(), query, most, |id| here.contains_key(id))
-    })
-    .into_iter()
-    .map(|one| {
-        let (archived, page_of, flagged) =
-            here.get(&one.id).cloned().unwrap_or((false, None, false));
-        json!({
-            "doc": one.id,
-            "title": one.title,
-            "line": one.line,
-            "page_of": page_of,
-            "archived": archived,
-            "flagged": flagged,
+    seen.iter()
+        .filter(|one| here.contains_key(&one.id))
+        .map(|one| {
+            let (archived, page_of, flagged) =
+                here.get(&one.id).cloned().unwrap_or((false, None, false));
+            json!({
+                "doc": one.id,
+                "title": one.title,
+                "line": one.line,
+                "page_of": page_of,
+                "archived": archived,
+                "flagged": flagged,
+            })
         })
-    })
-    .collect()
+        .collect()
+}
+
+fn sightings(paths: &Paths, query: &str) -> Vec<tisty_core::docs::Sighting> {
+    let held = tisty_core::cache::Cache::open(paths.cache()).ok().flatten();
+    tisty_core::docs::sighted(&paths.docs(), held.as_ref(), query, usize::MAX, |_| true)
+        .unwrap_or_else(|| {
+            tisty_core::docs::Corpus::default()
+                .searching(&paths.docs(), query, usize::MAX, |_| true)
+        })
+}
+
+// A task found by its document's words answers as the task, with the line that said it.
+fn documented(
+    state: &State,
+    seen: &[tisty_core::docs::Sighting],
+) -> Vec<(tisty_core::model::TaskId, String)> {
+    let behind = tisty_core::task_docs::behind(state);
+    seen.iter()
+        .filter(|one| !tisty_core::task_docs::bookkept(&one.line))
+        .filter_map(|one| Some((*behind.get(&one.id)?, one.line.clone())))
+        .collect()
 }
 
 /// A field that says nothing still costs the reader a line, so it is left out.

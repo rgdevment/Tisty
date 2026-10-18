@@ -744,9 +744,11 @@ fn left_behind(left: &mut Vec<String>, one: String) {
 
 fn chosen<'a>(state: &'a State, which: &[String]) -> Vec<&'a Kept> {
     let asked: BTreeSet<&str> = which.iter().map(String::as_str).collect();
+    // A task's words travel with the task, never as a document a parcel hands to another store.
     let mut found: Vec<&Kept> = state
         .docs
         .values()
+        .filter(|one| one.task_of.is_none())
         .filter(|one| {
             asked.is_empty()
                 || asked.contains(one.file.as_str())
@@ -1055,6 +1057,7 @@ fn taken_in(
                 }),
                 folder,
                 page_of: up,
+                task_of: None,
             },
         });
         // A folder that lands closed answers for what it holds; marking the document again would

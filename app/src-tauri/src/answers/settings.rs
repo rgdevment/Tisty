@@ -279,6 +279,7 @@ pub fn guide(
             said: Some(tisty_core::event::Said::of(&body)),
             folder: Some(folder),
             page_of: None,
+            task_of: None,
         },
     })?;
     let held = session
@@ -302,6 +303,7 @@ pub fn guide(
                     said: Some(tisty_core::event::Said::of(one)),
                     folder: Some(folder),
                     page_of: Some(up),
+                    task_of: None,
                 },
             })?;
             order = tisty_core::order::after(&order);

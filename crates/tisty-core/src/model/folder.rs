@@ -92,6 +92,8 @@ pub struct Kept {
     pub flagged: Option<Flagged>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub folder_was: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub task_of: Option<crate::model::TaskId>,
 }
 
 #[cfg(test)]

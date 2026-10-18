@@ -235,6 +235,7 @@ pub fn doc(
                 said: Some(tisty_core::event::Said::of(&body).by(app.state.signed.alias.clone())),
                 folder: None,
                 page_of: None,
+                task_of: None,
             },
         })?;
         println!("  {}  {}", crate::style::dim(&made.id), made.title);

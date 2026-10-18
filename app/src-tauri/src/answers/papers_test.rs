@@ -24,6 +24,7 @@ fn filed(session: &mut Session, body: &str) -> String {
                 order: made.id.clone(),
                 folder: None,
                 page_of: None,
+                task_of: None,
             },
         })
         .unwrap();

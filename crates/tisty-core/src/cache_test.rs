@@ -158,6 +158,7 @@ fn shelving_a_folder_needs_no_rebuild_because_no_documents_row_changes() {
                 order: "a0".into(),
                 folder: Some(shelf),
                 page_of: None,
+                task_of: None,
             },
         })
         .unwrap();
@@ -202,6 +203,7 @@ fn deleting_a_document_with_pages_leaves_no_page_behind_in_the_cache() {
                     order: "a0".into(),
                     folder: None,
                     page_of,
+                    task_of: None,
                 },
             })
             .unwrap();
@@ -250,6 +252,7 @@ fn a_second_launch_still_has_its_folders_and_documents() {
                 order: "a0".into(),
                 folder: Some(folder),
                 page_of: None,
+                task_of: None,
             },
         })
         .unwrap();

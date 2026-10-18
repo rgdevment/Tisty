@@ -195,6 +195,7 @@ impl Desk {
                     order: "a0".into(),
                     folder: None,
                     page_of: None,
+                    task_of: None,
                 },
             })
             .unwrap();

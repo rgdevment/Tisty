@@ -300,6 +300,7 @@ pub(crate) fn imported(
             said: Some(tisty_core::event::Said::of(body)),
             folder,
             page_of: None,
+            task_of: None,
         },
     })?;
     Ok((made, id))
