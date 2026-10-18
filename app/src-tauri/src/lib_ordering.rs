@@ -127,6 +127,7 @@ fn a_guide_that_came_from_another_machine_is_taken_rather_than_planted_again() {
                 }),
                 folder: None,
                 page_of: None,
+                task_of: None,
             },
         })
         .unwrap();
@@ -160,6 +161,7 @@ fn a_document_of_your_own_is_never_mistaken_for_the_guide() {
                 }),
                 folder: None,
                 page_of: None,
+                task_of: None,
             },
         })
         .unwrap();
@@ -245,6 +247,7 @@ fn a_document_dropped_before_one_that_is_gone_lands_last_too() {
                     order: order.into(),
                     folder: None,
                     page_of: None,
+                    task_of: None,
                 },
             })
             .unwrap();

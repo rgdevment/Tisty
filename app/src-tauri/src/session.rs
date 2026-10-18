@@ -530,6 +530,7 @@ impl Session {
                 said: Some(tisty_core::event::Said::of(&body)),
                 folder: None,
                 page_of: None,
+                task_of: None,
             },
         })?;
         Ok(tisty_core::docs::Doc {
@@ -609,6 +610,7 @@ impl Session {
                 said: Some(tisty_core::event::Said::of(&body)),
                 folder: kept.folder,
                 page_of: kept.page_of,
+                task_of: None,
             },
         })?;
         if kept.archived {
@@ -648,6 +650,7 @@ impl Session {
                     said: Some(tisty_core::event::Said::of(&body)),
                     folder: kept.folder,
                     page_of: Some(twin),
+                    task_of: None,
                 },
             })?;
             if was_away {

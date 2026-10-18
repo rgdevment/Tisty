@@ -62,6 +62,7 @@ fn doc_add(
                 order: order.into(),
                 folder,
                 page_of,
+                task_of: None,
             },
         })
         .unwrap();
@@ -108,6 +109,7 @@ fn make(
                 order: order.into(),
                 folder,
                 page_of,
+                task_of: None,
             },
         })
         .unwrap();
@@ -466,6 +468,7 @@ fn a_document_cannot_become_a_page_of_itself_at_creation_or_by_moving() {
                 order: "a0".into(),
                 folder: None,
                 page_of: Some(itself),
+                task_of: None,
             },
         })
         .unwrap();
@@ -563,6 +566,7 @@ fn undoing_a_creation_and_a_plain_move_restores_the_exact_state_before() {
                 order: "a1".into(),
                 folder: None,
                 page_of: None,
+                task_of: None,
             },
         })
         .unwrap();
@@ -701,6 +705,7 @@ fn two_stores_that_diverge_over_a_page_and_a_deleted_parent_converge_regardless_
                     order: "a0".into(),
                     folder: None,
                     page_of: None,
+                    task_of: None,
                 },
             },
         ))
@@ -724,6 +729,7 @@ fn two_stores_that_diverge_over_a_page_and_a_deleted_parent_converge_regardless_
                     order: "a0".into(),
                     folder: None,
                     page_of: Some(parent),
+                    task_of: None,
                 },
             },
         ))
@@ -778,6 +784,7 @@ fn a_page_written_with_a_timestamp_before_its_parent_is_kept_as_its_own_document
                     order: "a0".into(),
                     folder: None,
                     page_of: Some(parent),
+                    task_of: None,
                 },
             },
         ))
@@ -798,6 +805,7 @@ fn a_page_written_with_a_timestamp_before_its_parent_is_kept_as_its_own_document
                     order: "a0".into(),
                     folder: None,
                     page_of: None,
+                    task_of: None,
                 },
             },
         ))

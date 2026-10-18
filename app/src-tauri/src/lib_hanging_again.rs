@@ -26,6 +26,7 @@ fn wrote(session: &mut Session, body: &str, page_of: Option<tisty_core::model::D
                 ),
                 folder: None,
                 page_of,
+                task_of: None,
             },
         })
         .unwrap();

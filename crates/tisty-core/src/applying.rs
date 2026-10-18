@@ -320,6 +320,7 @@ impl State {
                 ),
                 flagged: None,
                 folder_was: None,
+                task_of: d.task_of,
             },
         );
     }

@@ -99,6 +99,28 @@ pub fn create(root: &Path, device: &DeviceId, body: &str) -> Result<Doc> {
     }
 }
 
+/// Says whether it wrote: a name somebody already holds is left as it is.
+pub fn create_named(root: &Path, id: &str, body: &str) -> Result<bool> {
+    std::fs::create_dir_all(root)?;
+    let _ = crate::paths::ours_alone(root);
+    let at = resolve(root, id)?;
+    match std::fs::OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .open(&at)
+    {
+        Ok(_) => match written(root, id, body) {
+            Ok(()) => Ok(true),
+            Err(e) => {
+                let _ = std::fs::remove_file(&at);
+                Err(e)
+            }
+        },
+        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => Ok(false),
+        Err(e) => Err(Error::Io(e)),
+    }
+}
+
 /// The editor hands back what it loaded with its own line endings and without the last newline,
 /// and neither is a change somebody made.
 pub fn unchanged(was: &str, now: &str) -> bool {

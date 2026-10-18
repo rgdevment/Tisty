@@ -48,6 +48,7 @@ fn add_doc(
                 order: order::first(),
                 folder: None,
                 page_of: None,
+                task_of: None,
             },
         },
     ));
@@ -81,6 +82,7 @@ fn add_page(
                 order: placed,
                 folder: None,
                 page_of: Some(parent),
+                task_of: None,
             },
         },
     ));
@@ -313,6 +315,7 @@ fn duplicating_a_document_with_a_page_reuses_the_same_attachment_file_without_co
                 order: order::first(),
                 folder: None,
                 page_of: None,
+                task_of: None,
             },
         },
     ));
@@ -342,6 +345,7 @@ fn duplicating_a_document_with_a_page_reuses_the_same_attachment_file_without_co
                     order: placed,
                     folder: None,
                     page_of: Some(twin),
+                    task_of: None,
                 },
             },
         ));
@@ -935,6 +939,7 @@ fn duplicating_a_book_rewrites_its_cover_to_name_its_own_pages_not_the_originals
                 order: order::first(),
                 folder: None,
                 page_of: None,
+                task_of: None,
             },
         },
     ));
@@ -960,6 +965,7 @@ fn duplicating_a_book_rewrites_its_cover_to_name_its_own_pages_not_the_originals
                     order: placed,
                     folder: None,
                     page_of: Some(twin),
+                    task_of: None,
                 },
             },
         ));

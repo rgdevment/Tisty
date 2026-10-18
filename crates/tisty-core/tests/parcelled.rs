@@ -142,6 +142,7 @@ impl Room {
                 }),
                 folder,
                 page_of,
+                task_of: None,
             },
         });
         (id, made.id)

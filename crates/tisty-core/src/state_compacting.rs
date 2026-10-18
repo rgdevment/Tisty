@@ -38,6 +38,7 @@ fn added(
                 order,
                 folder: None,
                 page_of,
+                task_of: None,
             },
         },
     ));

@@ -63,6 +63,7 @@ pub(in crate::mcp) fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Re
             said: Some(tisty_core::event::Said::of(&body)),
             folder,
             page_of,
+            task_of: None,
         },
     }) && !wrote(&mut store, id)
     {

@@ -3713,6 +3713,7 @@ fn a_document_arrives_with_its_name_before_its_body_is_read() {
                 order: "a0".into(),
                 folder: None,
                 page_of: None,
+                task_of: None,
             },
         },
     );
@@ -3903,6 +3904,7 @@ fn papered(who: &Machine, file: &str, guest: bool, by: Option<&str>) -> Ulid {
                 order: "a0".into(),
                 folder: None,
                 page_of: None,
+                task_of: None,
             },
         },
     );

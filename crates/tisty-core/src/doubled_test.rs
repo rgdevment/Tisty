@@ -57,6 +57,7 @@ fn guide(state: &mut State, ms: i64, file: &str, title: &str) -> DocId {
                 order: "a0".into(),
                 folder: None,
                 page_of: None,
+                task_of: None,
             },
         },
     ));

@@ -507,6 +507,7 @@ pub fn doc_new(
             said: Some(tisty_core::event::Said::of("")),
             folder,
             page_of,
+            task_of: None,
         },
     })?;
     Ok(made)
@@ -709,6 +710,7 @@ fn other_version_kept(
                 order,
                 said: Some(tisty_core::event::Said::of(&body)),
                 page_of,
+                task_of: None,
             },
         })
         .map_err(|e| blamed(channel::SYNC, "the other version was not written down", e))?;

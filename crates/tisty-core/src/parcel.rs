@@ -1055,6 +1055,7 @@ fn taken_in(
                 }),
                 folder,
                 page_of: up,
+                task_of: None,
             },
         });
         // A folder that lands closed answers for what it holds; marking the document again would
