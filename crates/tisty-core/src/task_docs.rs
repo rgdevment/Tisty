@@ -76,22 +76,49 @@ pub fn erased_with(state: &State, task: TaskId) -> Vec<Op> {
 }
 
 pub fn owner(state: &State, task: TaskId) -> TaskId {
+    owned_by(state, task, &mut std::collections::HashMap::new())
+}
+
+// A first turn erased since still owns the words its later turns write in, kept for them.
+fn owned_by(
+    state: &State,
+    task: TaskId,
+    known: &mut std::collections::HashMap<TaskId, TaskId>,
+) -> TaskId {
+    let mut path = vec![task];
     let mut at = task;
-    for _ in 0..state.tasks.len() {
-        match state.tasks.get(&at).and_then(|one| one.after) {
-            Some(before) if before != task && state.tasks.contains_key(&before) => at = before,
-            _ => break,
+    let root = loop {
+        if let Some(root) = known.get(&at) {
+            break *root;
         }
+        if path.len() > state.tasks.len() {
+            break at;
+        }
+        match state.tasks.get(&at).and_then(|one| one.after) {
+            Some(before) if before == task => break at,
+            Some(before) if state.tasks.contains_key(&before) => {
+                at = before;
+                path.push(at);
+            }
+            Some(before) if state.docs.values().any(|one| one.task_of == Some(before)) => {
+                break before;
+            }
+            _ => break at,
+        }
+    };
+    for one in path {
+        known.insert(one, root);
     }
-    at
+    root
 }
 
 /// A routine's words are its first turn's, but they lead to the turn still open, or else the last.
 pub fn behind(state: &State) -> std::collections::BTreeMap<String, TaskId> {
     let mut now: std::collections::BTreeMap<TaskId, TaskId> = std::collections::BTreeMap::new();
+    let mut known = std::collections::HashMap::new();
     let turns = state.tasks.iter().filter(|(_, one)| one.after.is_some());
     for id in turns.map(|(id, _)| id) {
-        let first = owner(state, *id);
+        let first = owned_by(state, *id, &mut known);
         let held = now.entry(first).or_insert(first);
         let open = |task: &TaskId| state.tasks.get(task).is_some_and(|it| it.is_open());
         if (open(id), *id) > (open(held), *held) {
@@ -163,8 +190,120 @@ pub fn opened(state: &State, task: TaskId, template: &str) -> String {
     }
 }
 
+const TASK: [&str; 2] = [
+    "## Description\n<!-- What has to happen, and why? A line or two is enough. -->\n\n## Done when\n<!-- How you will know it is finished. -->\n\n## Steps\n<!-- - [ ] The first step -->\n\n## Notes\n<!-- What you find out along the way. -->\n\n## When it closes\n<!-- What worked? What would you do differently next time? -->\n",
+    "## Descripción\n<!-- ¿Qué hay que lograr y por qué? Una o dos líneas bastan. -->\n\n## Para estar lista\n<!-- Cómo vas a saber que está hecha. -->\n\n## Pasos\n<!-- - [ ] El primer paso -->\n\n## Notas\n<!-- Lo que vayas averiguando mientras la haces. -->\n\n## Al cerrarla\n<!-- ¿Qué funcionó? ¿Qué harías distinto la próxima vez? -->\n",
+];
+
+const ROUTINE: [&str; 2] = [
+    "## What for\n<!-- Why this comes back, in a line. -->\n\n## Every round\n<!-- - [ ] What to do each round -->\n\n## This time\n<!-- Anything different this round? -->\n",
+    "## Para qué\n<!-- Por qué vuelve, en una línea. -->\n\n## Cada vuelta\n<!-- - [ ] Lo que hay que hacer cada vez -->\n\n## Esta vez\n<!-- ¿Algo distinto en esta vuelta? -->\n",
+];
+
+/// Whoever writes on a task writes on its page, made from its template the first time.
+pub fn wrote(
+    paths: &crate::Paths,
+    store: &mut crate::Store,
+    task: TaskId,
+    edit: impl FnOnce(&str, &crate::model::Task) -> Option<String>,
+) -> crate::Result<()> {
+    let mut state = State::replay(&store.read_all()?);
+    let Some(first) = state.tasks.get(&task).cloned() else {
+        return Ok(());
+    };
+    let by = state.signed.alias.clone();
+    let owner = owner(&state, task);
+    let file = match of(&state, owner) {
+        Some(kept) => kept.file.clone(),
+        None => {
+            let config = crate::Config::load_or_init(paths)?;
+            let body = opened(&state, task, template(&first, config.locale.as_deref()));
+            let (op, _) = made_with(&paths.docs(), &state, owner, &body, by.clone())?;
+            let file = match &op {
+                Op::DocAdd { d, .. } => d.file.clone(),
+                _ => return Ok(()),
+            };
+            store.append(op)?;
+            state = State::replay(&store.read_all()?);
+            file
+        }
+    };
+    let Some(now) = state.tasks.get(&task) else {
+        return Ok(());
+    };
+    let whole = crate::docs::amend(&paths.docs(), paths.data(), &file, |was| {
+        edit(was, now).filter(|said| said != was)
+    })?;
+    let Some(whole) = whole else {
+        return Ok(());
+    };
+    let mut told = state.settling(&file, &whole);
+    if let Some(kept) = state.docs.values().find(|one| one.file == file) {
+        let said = Said::of(&whole).by(by);
+        if said.news_for(kept) {
+            told.push(Op::DocSaid {
+                id: kept.id,
+                d: said,
+            });
+        }
+    }
+    if !told.is_empty() {
+        store.append_batch(told)?;
+    }
+    Ok(())
+}
+
+/// The page a task opens on, in the language Tisty speaks: one that comes back is a routine's.
+pub fn template(task: &crate::model::Task, configured: Option<&str>) -> &'static str {
+    let spoken = crate::model::spoken(configured).to_lowercase();
+    let at = usize::from(spoken.starts_with("es"));
+    match task.repeat.is_some() || task.after.is_some() {
+        true => ROUTINE[at],
+        false => TASK[at],
+    }
+}
+
+/// A description goes in the first section with a plain hint, or at the end of a page without one.
+pub fn described(body: &str, said: &str) -> String {
+    let said = said.trim();
+    let lines: Vec<&str> = body.split_inclusive('\n').collect();
+    let heading = |line: &str| {
+        let marks = line.trim_start().chars().take_while(|c| *c == '#').count();
+        (1..=6).contains(&marks) && line.trim_start()[marks..].starts_with([' ', '\t'])
+    };
+    let slot = (1..lines.len())
+        .find(|at| heading(lines[at - 1]) && hinted(lines[*at]).is_some_and(|hint| !boxed(hint)));
+    let Some(hint) = slot else {
+        if body.contains(said) {
+            return body.to_string();
+        }
+        let mut out = body.trim_end_matches(['\n', '\r']).to_string();
+        if !out.is_empty() {
+            out.push_str("\n\n");
+        }
+        out.push_str(said);
+        out.push('\n');
+        return out;
+    };
+    let end = (hint + 1..lines.len())
+        .find(|at| heading(lines[*at]))
+        .unwrap_or(lines.len());
+    let mut out: String = lines[..=hint].concat();
+    if !out.ends_with('\n') {
+        out.push('\n');
+    }
+    out.push('\n');
+    out.push_str(said);
+    out.push('\n');
+    if end < lines.len() {
+        out.push('\n');
+        out.push_str(&lines[end..].concat());
+    }
+    out
+}
+
 // The window reads a box hint the same way, so both agree on which hint asks for steps.
-fn boxed(hint: &str) -> bool {
+pub(crate) fn boxed(hint: &str) -> bool {
     hint.strip_prefix('-')
         .is_some_and(|rest| rest.trim_start().starts_with("[ ]"))
 }

@@ -49,7 +49,10 @@ pub(in crate::mcp) fn export_doc(paths: &Paths, args: &Value) -> Result<Value, R
         )));
     }
 
-    let body = tisty_core::docs::read(&paths.docs(), &which).unwrap_or_default();
+    let body = match kept.task_of {
+        Some(_) => tisty_core::docs::read(&paths.docs(), &which).map_err(hitch)?,
+        None => tisty_core::docs::read(&paths.docs(), &which).unwrap_or_default(),
+    };
     let pages: Vec<String> = state
         .pages_read(kept.id, &body)
         .iter()
@@ -61,9 +64,33 @@ pub(in crate::mcp) fn export_doc(paths: &Paths, args: &Value) -> Result<Value, R
             .sync
             .as_ref(),
     );
-    let taken =
-        tisty_core::docs::with_pages(paths.data(), &which, &pages, &into, beside.as_deref())
-            .map_err(hitch)?;
+    // A task's page goes out with its properties written, under the task's own name.
+    let task = kept.task_of.and_then(|_| {
+        let owner = tisty_core::task_docs::behind(&state).get(&which).copied()?;
+        state.tasks.get(&owner)
+    });
+    let taken = match task {
+        Some(task) => {
+            let list = task
+                .list
+                .and_then(|at| state.lists.get(&at))
+                .map(|one| one.name.as_str());
+            let dressed = tisty_core::task_front::dressed(&body, task, list);
+            tisty_core::docs::laid_out_from(
+                paths.data(),
+                &which,
+                &dressed,
+                &pages,
+                &into,
+                Some(&tisty_core::docs::spelled(&task.title)),
+                beside.as_deref(),
+            )
+        }
+        None => {
+            tisty_core::docs::with_pages(paths.data(), &which, &pages, &into, beside.as_deref())
+        }
+    }
+    .map_err(hitch)?;
 
     Ok(told(
         format!(

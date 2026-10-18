@@ -355,12 +355,52 @@ fn a_word_that_ends_right_at_the_limit_is_kept_whole() {
 }
 
 #[test]
-fn a_step_filed_from_elsewhere_joins_the_document_at_its_end() {
+fn a_step_filed_from_elsewhere_joins_the_last_list_written_its_way() {
     let task = task(&[("one", false, "a"), ("from an agent", true, "b")]);
     assert_eq!(
-        ticked(&task, "Words.\n\n- [ ] one\n"),
-        "Words.\n\n- [ ] one\n\n- [x] from an agent\n"
+        ticked(&task, "Words.\n\n- [ ] one\n\nMore words.\n"),
+        "Words.\n\n- [ ] one\n- [x] from an agent\n\nMore words.\n"
     );
+    assert_eq!(
+        ticked(&task, "> * [ ] one"),
+        "> * [ ] one\n> * [x] from an agent\n"
+    );
+}
+
+#[test]
+fn a_step_with_no_list_yet_goes_under_the_template_s_box_hint() {
+    let task = task(&[("from an agent", false, "a")]);
+    assert_eq!(
+        ticked(
+            &task,
+            "## Steps\n<!-- - [ ] The first step -->\n\n## Notes\n"
+        ),
+        "## Steps\n<!-- - [ ] The first step -->\n\n- [ ] from an agent\n\n## Notes\n"
+    );
+}
+
+#[test]
+fn a_step_reworded_elsewhere_rewrites_its_own_line() {
+    let body = "- [x] one\n- [ ] two\n\nWords.\n";
+    assert_eq!(
+        super::reworded(body, "two", "two, again"),
+        Some("- [x] one\n- [ ] two, again\n\nWords.\n".to_string())
+    );
+    assert_eq!(super::reworded(body, "one", "anything"), None);
+}
+
+#[test]
+fn a_step_taken_off_leaves_no_box_behind() {
+    let body = "- [ ] one\n- [x] two\n- [ ] three\n";
+    assert_eq!(
+        super::unplanned(body, &["one".into(), "two".into()]),
+        "- [x] two\n- [ ] three\n"
+    );
+}
+
+#[test]
+fn a_step_filed_on_a_page_with_no_box_goes_at_its_end() {
+    let task = task(&[("one", false, "a"), ("from an agent", true, "b")]);
     assert_eq!(
         ticked(&task, "---\ntask: x\n---\n"),
         "---\ntask: x\n---\n\n- [ ] one\n- [x] from an agent\n"
@@ -372,4 +412,35 @@ fn steps_are_not_added_where_an_open_fence_would_swallow_them() {
     let task = task(&[("one", false, "a")]);
     let body = "Words.\n\n```\ncode";
     assert_eq!(ticked(&task, body), body);
+}
+
+#[test]
+fn a_step_taken_off_with_one_under_it_leaves_the_rest_whole_and_moves_it_out() {
+    let body = "- [ ] A\n  - [ ] B\n\n## Notes\nkeep me\n";
+    assert_eq!(
+        super::unplanned(body, &["A".into(), "B".into()]),
+        "\n## Notes\nkeep me\n"
+    );
+    assert_eq!(
+        super::unplanned(body, &["A".into()]),
+        "- [ ] B\n\n## Notes\nkeep me\n"
+    );
+}
+
+#[test]
+fn a_step_written_on_two_lines_is_reworded_whole() {
+    let body = "- [ ] Call the bank\n  about the loan\n- [ ] Next\n";
+    assert_eq!(
+        super::reworded(body, "Call the bank about the loan", "Email the bank"),
+        Some("- [ ] Email the bank\n- [ ] Next\n".to_string())
+    );
+}
+
+#[test]
+fn a_new_step_joins_the_outer_list_not_one_nested_under_a_step() {
+    let task = task(&[("A", false, "a"), ("A.1", false, "b"), ("B", false, "c")]);
+    assert_eq!(
+        ticked(&task, "- [ ] A\n  - [ ] A.1\n"),
+        "- [ ] A\n  - [ ] A.1\n- [ ] B\n"
+    );
 }

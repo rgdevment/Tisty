@@ -352,6 +352,21 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 .collect::<Vec<_>>()
         );
     }
+    // The page is what the person reads and writes; its boxes and properties come as the log has them.
+    let owner = tisty_core::task_docs::owner(&state, task.id);
+    if wants("document")
+        && let Some(kept) = tisty_core::task_docs::of(&state, owner)
+        && let Ok(body) = tisty_core::docs::read(&paths.docs(), &kept.file)
+    {
+        let list = task
+            .list
+            .and_then(|at| state.lists.get(&at))
+            .map(|one| one.name.as_str());
+        whole["document"] = json!({
+            "file": kept.file,
+            "body": tisty_core::task_front::dressed(&body, task, list),
+        });
+    }
     let parts: Vec<&Task> = state
         .parts_of(task.id)
         .filter(|one| !one.folded())

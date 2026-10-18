@@ -204,7 +204,7 @@ impl Drop for Room {
 }
 
 // A Word file's pictures live inside it, so they are laid beside a stand-in page and come in like any other.
-fn read_any(from: &std::path::Path) -> Answer<(String, Option<Room>)> {
+pub(crate) fn read_any(from: &std::path::Path) -> Answer<(String, Option<Room>)> {
     let kind = from
         .extension()
         .map(|one| one.to_string_lossy().to_ascii_lowercase())

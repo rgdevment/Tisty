@@ -274,6 +274,40 @@ pub fn moved(state: &crate::State, task: &Task, front: &Front) -> Option<crate::
     })
 }
 
+pub struct TakenIn {
+    pub task: TaskId,
+    pub ops: Vec<crate::Op>,
+    pub body: String,
+}
+
+/// A page naming a task hands it its properties and, against `was`, its boxes as steps.
+pub fn taken_in(state: &crate::State, body: &str, was: Option<&str>, tz: &str) -> Option<TakenIn> {
+    let front = read(body, tz);
+    let id = front.task?;
+    let task = state.tasks.get(&id)?;
+    let mut ops = Vec::new();
+    if let Some(d) = patch(task, &front) {
+        ops.push(crate::Op::TaskUpdate { id, d });
+    }
+    if let Some(d) = moved(state, task, &front) {
+        ops.push(crate::Op::TaskMove { id, d });
+    }
+    let (others, rest) = match tisty_markdown::front::span(body) {
+        Some(at) => (theirs(&body[at.clone()]), &body[at.end..]),
+        None => (Vec::new(), body),
+    };
+    let mut block = vec![format!("{}: {id}", crate::task_docs::KEY)];
+    block.extend(others);
+    let body = format!("---\n{}\n---\n{rest}", block.join("\n"));
+    let before = was.map(|one| crate::stages::ticked(task, one));
+    ops.extend(crate::stages::reconciled(task, before.as_deref(), &body));
+    Some(TakenIn {
+        task: id,
+        ops,
+        body,
+    })
+}
+
 #[cfg(test)]
 #[path = "task_front_test.rs"]
 mod tests;

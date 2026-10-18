@@ -38,7 +38,6 @@ fn open_task(session: &Session, id: TaskId) -> Answer<Task> {
 pub fn task_doc_open(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
-    template: Option<String>,
 ) -> Answer<Option<Opened>> {
     let id = task_id(&id)?;
     let file = {
@@ -49,12 +48,14 @@ pub fn task_doc_open(
             // A task without a document reads as the one it would have, made only once it is written.
             None => {
                 let template = match task.is_open() {
-                    true => template.unwrap_or_default(),
-                    false => String::new(),
+                    true => {
+                        tisty_core::task_docs::template(&task, session.config.locale.as_deref())
+                    }
+                    false => "",
                 };
                 return Ok(Some(Opened {
                     file: String::new(),
-                    body: tisty_core::task_docs::opened(&session.state, id, &template),
+                    body: tisty_core::task_docs::opened(&session.state, id, template),
                     held: !task.is_open(),
                 }));
             }
@@ -74,7 +75,6 @@ pub fn task_doc_open(
 pub fn task_doc_make(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
-    template: Option<String>,
     body: Option<String>,
 ) -> Answer<String> {
     let id = task_id(&id)?;
@@ -83,12 +83,17 @@ pub fn task_doc_make(
     session.reload()?;
     if let Some(file) = file_of(&session, id) {
         known(&session, id)?;
+        // Someone else made the page while these words were typed over its template.
+        if body.is_some() {
+            return Err(Refusal::about("documentMoved", file));
+        }
         return Ok(file);
     }
-    open_task(&session, id)?;
+    let task = open_task(&session, id)?;
     let written = body.is_some();
     let first = body.unwrap_or_else(|| {
-        tisty_core::task_docs::opened(&session.state, id, &template.unwrap_or_default())
+        let template = tisty_core::task_docs::template(&task, session.config.locale.as_deref());
+        tisty_core::task_docs::opened(&session.state, id, template)
     });
     let (made, created) = tisty_core::task_docs::made_with(
         &session.paths.docs(),
@@ -138,4 +143,101 @@ pub fn task_doc_settled(
     }
     session.commit_all(ops)?;
     answered(&session, id).map(Some)
+}
+
+// A task's page coming back hands the task its properties and words; anything else is a document.
+#[tauri::command(async)]
+pub fn task_page_import(
+    session: tauri::State<'_, Mutex<Session>>,
+    from: String,
+) -> Answer<Option<String>> {
+    let from = std::path::Path::new(&from);
+    let markdown = from
+        .extension()
+        .is_some_and(|one| one.eq_ignore_ascii_case("md") || one.eq_ignore_ascii_case("markdown"));
+    if !markdown {
+        return Ok(None);
+    }
+    let (raw, _) = super::carrying::read_any(from)?;
+    let zone = jiff::tz::TimeZone::system();
+    let tz = zone.iana_name().unwrap_or("UTC").to_string();
+    let paths = {
+        let mut session = held(&session);
+        session.reload()?;
+        let Some(id) = tisty_core::task_front::read(&raw, &tz).task else {
+            return Ok(None);
+        };
+        if !session.state.tasks.contains_key(&id) {
+            return Ok(None);
+        }
+        session.paths.clone()
+    };
+    let own: Vec<std::path::PathBuf> = [paths.data(), paths.config(), paths.cache()]
+        .iter()
+        .filter_map(|one| one.canonicalize().ok())
+        .collect();
+    let mut reach = |at: &std::path::Path| {
+        let at = at
+            .canonicalize()
+            .map_err(|_| "no file is there".to_string())?;
+        match own.iter().any(|one| at.starts_with(one)) {
+            true => Err("it is one of Tisty's own files".to_string()),
+            false => Ok(at),
+        }
+    };
+    let (body, brought) = tisty_core::beside::brought(
+        &paths,
+        from,
+        &raw,
+        &mut tisty_core::beside::Way {
+            reach: &mut reach,
+            outside: "",
+            notes: false,
+        },
+    );
+    let mut session = held(&session);
+    let file = tisty_core::task_front::read(&body, &tz)
+        .task
+        .and_then(|id| file_of(&session, id).map(|file| (id, file)));
+    let was = file
+        .as_ref()
+        .and_then(|(_, file)| tisty_core::docs::read(&session.paths.docs(), file).ok());
+    let Some(taken) = tisty_core::task_front::taken_in(&session.state, &body, was.as_deref(), &tz)
+    else {
+        return Ok(None);
+    };
+    let id = taken.task;
+    open_task(&session, id)?;
+    let mut ops = brought.told;
+    ops.extend(taken.ops);
+    let mut over = file.map(|(_, file)| file);
+    if let Some(file) = &over {
+        writable(&session.state, file)?;
+    } else {
+        let (made, created) = tisty_core::task_docs::made_with(
+            &session.paths.docs(),
+            &session.state,
+            tisty_core::task_docs::owner(&session.state, id),
+            &taken.body,
+            signing(&session.state),
+        )
+        .map_err(|e| blamed(channel::WINDOW, "a task's document could not be made", e))?;
+        if let (false, Op::DocAdd { d, .. }) = (created, &made) {
+            over = Some(d.file.clone());
+        }
+        ops.push(made);
+    }
+    if !ops.is_empty() {
+        session.commit_all(ops)?;
+    }
+    if let Some(file) = over {
+        let root = session.paths.docs();
+        tisty_core::docs::write(&root, &file, &taken.body)
+            .map_err(|e| blamed(channel::WINDOW, "a task's page could not be written", e))?;
+        session.mind_body(&file, &tisty_core::docs::settled(&taken.body));
+        session.corpus.forget(&file);
+        let hand = signing(&session.state);
+        session.retell(&file, &taken.body, hand);
+    }
+    Ok(Some(id.to_string()))
 }

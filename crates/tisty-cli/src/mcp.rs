@@ -11,6 +11,7 @@ mod papers;
 mod spoken;
 mod unpathing;
 mod wholes;
+mod worded;
 
 use papers::editing::edit_doc;
 use papers::filing::{archive_doc, file_doc, flag_doc, folder};

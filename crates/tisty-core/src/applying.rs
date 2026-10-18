@@ -302,8 +302,9 @@ impl State {
             return;
         }
         // Words made for a task already erased elsewhere have nothing left to belong to.
+        let later = |task| self.tasks.values().any(|one| one.after == Some(task));
         if d.task_of
-            .is_some_and(|task| self.tombstones.contains(&task))
+            .is_some_and(|task| self.tombstones.contains(&task) && !later(task))
         {
             self.shed.insert(d.file.clone());
             self.tombstones.insert(*id);
