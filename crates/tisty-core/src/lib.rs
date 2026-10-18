@@ -8,6 +8,7 @@ pub mod beside;
 pub mod cache;
 pub mod called;
 pub mod capture;
+pub mod closing;
 pub mod config;
 pub mod counting;
 pub mod dated;

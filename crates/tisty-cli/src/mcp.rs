@@ -1160,6 +1160,17 @@ fn up_named(state: &State, id: tisty_core::model::DocId) -> Option<String> {
     Some(doc_named(state, &which))
 }
 
+fn holder(state: &State, kept: &tisty_core::model::Kept) -> String {
+    if state.closed_with_its_task(kept) {
+        return "the task it belongs to, which is closed".to_string();
+    }
+    let up = kept.page_of.and_then(|up| up_named(state, up));
+    match (kept.folder.is_some_and(|at| state.folder_away(at)), up) {
+        (false, Some(up)) => format!("the document that holds it, {up}"),
+        _ => "the folder that holds it".to_string(),
+    }
+}
+
 const A_SUMMARY_IN_A_LIST: usize = 300;
 
 /// In a list of fifty, the summary is there to choose by, not to read.

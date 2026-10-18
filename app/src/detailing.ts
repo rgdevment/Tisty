@@ -25,7 +25,7 @@ export interface Hands {
   data: Snapshot;
   wholes: NonNullable<Snapshot["wholes"]>;
   act: (work: Promise<Task>) => void;
-  marking: (id: string, title: string) => void;
+  marking: (id: string, title: string, summary?: string) => void;
   wipe: (task: Task) => void;
   shut: () => void;
   close: () => void;
@@ -44,8 +44,8 @@ export const detailOf = (one: Task, h: Hands) => ({
   lists: h.data.every ?? h.data.lists,
   known: h.data.tags.map((tag) => tag.tag),
   onPatch: (change: Change) => h.act(patch(one.id, change)),
-  onComplete: () => {
-    h.marking(one.id, one.title);
+  onComplete: (summary?: string) => {
+    h.marking(one.id, one.title, summary);
     h.close();
   },
   onDiscard: () => {

@@ -7,8 +7,8 @@ use ulid::Ulid;
 use super::super::asked::text;
 use super::super::jsonrpc::told;
 use super::super::{
-    FOLDER_NAME_AT_MOST, Refused, as_path, doc_named, folder_named, hitch, named_all, named_doc,
-    opened, speaking_through, trail, up_named, when,
+    FOLDER_NAME_AT_MOST, Refused, as_path, doc_named, folder_named, hitch, holder, named_all,
+    named_doc, opened, speaking_through, trail, up_named, when,
 };
 
 pub(in crate::mcp) fn archive_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
@@ -33,13 +33,7 @@ pub(in crate::mcp) fn archive_doc(paths: &Paths, args: &Value) -> Result<Value, 
         )));
     };
     if state.held_by_another(kept) {
-        let holds = match kept.folder.is_some_and(|at| state.folder_away(at)) {
-            true => "the folder that holds it".to_string(),
-            false => match kept.page_of.and_then(|up| up_named(&state, up)) {
-                Some(up) => format!("the document that holds it, {up}"),
-                None => "the folder that holds it".to_string(),
-            },
-        };
+        let holds = holder(&state, kept);
         return Err(Refused::Tool(match away {
             true => format!(
                 "{} is in the archive already, held there by {holds}. A mark of its own would \
@@ -262,10 +256,11 @@ pub(in crate::mcp) fn file_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
         }
         if state.held_by_another(kept) {
             return Err(Refused::Tool(format!(
-                "{} is in the archive with the folder that holds it, and moving it out from \
-                 under that folder would take it out of the archive with nobody's hand on it. \
-                 The person brings the folder back from the window first.",
-                doc_named(&state, which)
+                "{} is in the archive with {}, and moving it out from under that would take it \
+                 out of the archive with nobody's hand on it. The person brings that back from \
+                 the window first.",
+                doc_named(&state, which),
+                holder(&state, kept)
             )));
         }
         match kept.folder == folder {
