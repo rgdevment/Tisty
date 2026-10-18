@@ -75,12 +75,6 @@ pub fn erased_with(state: &State, task: TaskId) -> Vec<Op> {
     ops
 }
 
-// Opening a task makes its document, so only words written into it make the task worth keeping.
-pub fn blank(state: &State, task: TaskId) -> bool {
-    of(state, task).is_none_or(|kept| kept.print == Said::of(&first_words(state, task)).print)
-}
-
-// Every turn of a routine writes in the one document its first turn holds.
 pub fn owner(state: &State, task: TaskId) -> TaskId {
     let mut at = task;
     for _ in 0..state.tasks.len() {
@@ -130,7 +124,14 @@ pub fn first_words(state: &State, task: TaskId) -> String {
     out
 }
 
-pub fn made(root: &Path, state: &State, task: TaskId, by: Option<String>) -> crate::Result<Op> {
+/// `from` is the turn asking: a routine's document is its first turn's, seeded with today's steps.
+pub fn made(
+    root: &Path,
+    state: &State,
+    task: TaskId,
+    from: TaskId,
+    by: Option<String>,
+) -> crate::Result<Op> {
     let (id, file) = match of(state, task) {
         Some(kept) => (kept.id, kept.file.clone()),
         None => {
@@ -138,7 +139,7 @@ pub fn made(root: &Path, state: &State, task: TaskId, by: Option<String>) -> cra
             (id_at(task, at), file_at(task, at))
         }
     };
-    let first = first_words(state, task);
+    let first = first_words(state, from);
     let body = match crate::docs::create_named(root, &file, &first)? {
         true => first,
         false => crate::docs::read(root, &file)?,

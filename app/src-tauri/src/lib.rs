@@ -514,9 +514,11 @@ fn erasing(session: &mut Session, id: tisty_core::TaskId) -> Answer<()> {
         Err(tisty_core::model::Stays::Routine) => return Err(Refusal::of("routineStays")),
         Err(tisty_core::model::Stays::Parts) => return Err(Refusal::of("partsStay")),
     }
-    let file = tisty_core::task_docs::of(&session.state, id).map(|one| one.file.clone());
+    let doc = tisty_core::task_docs::of(&session.state, id).map(|one| (one.id, one.file.clone()));
     session.commit_all(tisty_core::task_docs::erased_with(&session.state, id))?;
-    if let Some(file) = file {
+    if let Some((doc, file)) = doc
+        && !session.state.docs.contains_key(&doc)
+    {
         session.forget_files(&[file]);
     }
     Ok(())

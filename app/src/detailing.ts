@@ -69,11 +69,11 @@ export const detailOf = (one: Task, h: Hands) => ({
     queued(`settle:${one.id}`, () => taskDocSettled(one.id, before, now)).then(
       (changed) => {
         if (changed) h.act(Promise.resolve(changed));
-        return true;
+        return null;
       },
-      (problem) => {
+      (problem: unknown) => {
         h.fail(problem);
-        return false;
+        return (problem as { code?: string } | null)?.code ?? "failed";
       },
     ),
 });

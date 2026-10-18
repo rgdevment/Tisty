@@ -10,7 +10,17 @@ const offered: { id: string; title: string }[] = [];
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string) =>
-    Promise.resolve(cmd === "parts_of" ? parts : cmd === "wholes_offered" ? offered : []),
+    Promise.resolve(
+      cmd === "parts_of"
+        ? parts
+        : cmd === "wholes_offered"
+          ? offered
+          : cmd === "task_story"
+            ? { pages: [] }
+            : cmd === "task_doc_open"
+              ? null
+              : [],
+    ),
 }));
 
 const task = (id: string, title: string, more: Partial<Task> = {}): Task => ({

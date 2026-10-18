@@ -52,7 +52,7 @@ beforeEach(() => {
 
 describe("an open task", () => {
   it("is a document from the first time it is opened, made from what it held", async () => {
-    render(<TaskWords task={task()} onSettle={() => Promise.resolve(true)} />);
+    render(<TaskWords task={task()} onSettle={() => Promise.resolve(null)} />);
 
     expect(await screen.findByText("sheet:Words it held.")).toBeTruthy();
     expect(sent("task_doc_make")).toEqual([{ cmd: "task_doc_make", args: { id: "one" } }]);
@@ -93,7 +93,9 @@ describe("a task with its document", () => {
     render(
       <TaskWords
         task={task()}
-        onSettle={(before, now) => Promise.resolve(settled.push([before, now]) > 0)}
+        onSettle={(before, now) =>
+          Promise.resolve(settled.push([before, now]) > 0 ? null : "failed")
+        }
       />,
     );
 
@@ -119,7 +121,7 @@ describe("a task with its document", () => {
 
   it("is only read while it is held, and tells no changes", async () => {
     ipc.doc = { file: "t_one-0001", body: "words\n", held: true };
-    render(<TaskWords task={task()} onSettle={() => Promise.resolve(true)} />);
+    render(<TaskWords task={task()} onSettle={() => Promise.resolve(null)} />);
 
     await screen.findByText("sheet:words");
     const sheet = ipc.sheets[ipc.sheets.length - 1];
@@ -148,7 +150,7 @@ describe("a settle that failed", () => {
   it("hands its text before to the next one, so no line goes unlearnt", async () => {
     ipc.doc = { file: "t_one-0001", body: "a\n", held: false };
     const asked: [string, string][] = [];
-    let answer = false;
+    let answer: string | null = "failed";
     render(
       <TaskWords
         task={task()}
@@ -163,7 +165,7 @@ describe("a settle that failed", () => {
 
     sheet.onSettle?.("a\n", "b\n");
     await waitFor(() => expect(asked).toHaveLength(1));
-    answer = true;
+    answer = null;
     sheet.onSettle?.("b\n", "c\n");
     await waitFor(() => expect(asked).toHaveLength(2));
     sheet.onSettle?.("c\n", "d\n");

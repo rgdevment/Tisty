@@ -40,7 +40,7 @@ interface Props {
   onOpenPart?: (id: string) => void;
   onCompletePart?: (id: string, title: string) => void;
   onHang?: (whole: string | null) => void;
-  onSettle?: (before: string, now: string) => Promise<boolean>;
+  onSettle?: (before: string, now: string) => Promise<string | null>;
 }
 
 export default function Detail({
@@ -88,19 +88,17 @@ export default function Detail({
 
   const aside = (
     <>
-      {task.status === "open" && (
-        <Belongs
-          task={task}
-          whole={whole}
-          partOf={partOf}
-          holding={holding}
-          onAddPart={onAddPart}
-          onHang={onHang}
-          onOpenPart={onOpenPart}
-          onCompletePart={onCompletePart}
-          onError={onError}
-        />
-      )}
+      <Belongs
+        task={task}
+        whole={whole}
+        partOf={partOf}
+        holding={holding}
+        onAddPart={onAddPart}
+        onHang={onHang}
+        onOpenPart={onOpenPart}
+        onCompletePart={onCompletePart}
+        onError={onError}
+      />
       <Trail
         task={task.id}
         moved={[

@@ -9,7 +9,7 @@ const SETTLES = 700;
 
 interface Props {
   task: Task;
-  onSettle?: (before: string, now: string) => Promise<boolean>;
+  onSettle?: (before: string, now: string) => Promise<string | null>;
   onError?: (problem: unknown) => void;
   onDoc?: (id: string) => void;
 }
@@ -20,7 +20,6 @@ const real = (said: unknown): TaskDoc | null => {
   return typeof one?.file === "string" && typeof one.body === "string" ? (one as TaskDoc) : null;
 };
 
-// An open task is always a document: one it never had is made the first time it is opened.
 export default function TaskWords({ task, onSettle, onError, onDoc }: Props) {
   const [doc, setDoc] = useState<TaskDoc | null>(null);
   const [seen, setSeen] = useState(0);
@@ -71,7 +70,7 @@ function Written({
 }: {
   doc: TaskDoc;
   label: string;
-  onSettle?: (before: string, now: string) => Promise<boolean>;
+  onSettle?: (before: string, now: string) => Promise<string | null>;
   onError?: (problem: unknown) => void;
   onDoc?: (id: string) => void;
   onMoved: () => void;
@@ -89,9 +88,13 @@ function Written({
   const settled = (before: string, now: string) => {
     if (!onSettle) return;
     const from = unsettled.current ?? before;
-    unsettled.current = from;
-    void onSettle(from, now).then((done) => {
-      if (done && unsettled.current === from) unsettled.current = null;
+    void onSettle(from, now).then((problem) => {
+      if (problem === null) {
+        if (unsettled.current === from) unsettled.current = null;
+        return;
+      }
+      unsettled.current ??= from;
+      if (problem === "documentMoved") moved.current();
     });
   };
 

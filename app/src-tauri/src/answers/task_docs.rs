@@ -40,7 +40,7 @@ pub fn task_doc_open(
     id: String,
 ) -> Answer<Option<Opened>> {
     let id = task_id(&id)?;
-    let found = {
+    let file = {
         let session = held(&session);
         let task = answered(&session, id)?;
         match file_of(&session, id) {
@@ -56,7 +56,6 @@ pub fn task_doc_open(
             None => return Ok(None),
         }
     };
-    let file = found;
     let body = super::papers::doc_read(session.clone(), file.clone())?;
     let session = held(&session);
     let task = answered(&session, id)?;
@@ -80,6 +79,7 @@ pub fn task_doc_make(session: tauri::State<'_, Mutex<Session>>, id: String) -> A
         &session.paths.docs(),
         &session.state,
         tisty_core::task_docs::owner(&session.state, id),
+        id,
         signing(&session.state),
     )
     .map_err(|e| blamed(channel::WINDOW, "a task's document could not be made", e))?;

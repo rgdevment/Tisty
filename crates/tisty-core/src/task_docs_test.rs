@@ -49,13 +49,13 @@ fn a_document_made_twice_for_one_task_is_one_file_that_belongs_to_it() {
         },
     );
 
-    let first = made(room.path(), &state, task, None).unwrap();
+    let first = made(room.path(), &state, task, task, None).unwrap();
     std::fs::write(
         room.path().join(format!("{}.md", file_at(task, 1))),
         format!("{}\nWords already written.\n", seed(task)),
     )
     .unwrap();
-    let again = made(room.path(), &state, task, None).unwrap();
+    let again = made(room.path(), &state, task, task, None).unwrap();
 
     let body = crate::docs::read(room.path(), &file_at(task, 1)).unwrap();
     assert!(body.contains("Words already written."), "{body}");
@@ -72,13 +72,13 @@ fn a_document_made_again_after_its_delete_takes_the_next_turn_and_belongs_to_the
     let room = tempfile::tempdir().unwrap();
     let mut state = State::default();
     let task = Ulid::generate();
-    let first = made(room.path(), &state, task, None).unwrap();
+    let first = made(room.path(), &state, task, task, None).unwrap();
     applied(&mut state, first);
     let gone = of(&state, task).unwrap().id;
     applied(&mut state, Op::DocDelete { id: gone });
     std::fs::remove_file(room.path().join(format!("{}.md", file_at(task, 1)))).unwrap();
 
-    let again = made(room.path(), &state, task, None).unwrap();
+    let again = made(room.path(), &state, task, task, None).unwrap();
     applied(&mut state, again);
 
     let kept = of(&state, task).expect("the task's document again");
@@ -91,7 +91,7 @@ fn a_second_making_keeps_what_was_built_on_the_first() {
     let room = tempfile::tempdir().unwrap();
     let mut state = State::default();
     let task = Ulid::generate();
-    let first = made(room.path(), &state, task, None).unwrap();
+    let first = made(room.path(), &state, task, task, None).unwrap();
     let elsewhere = first.clone();
     applied(&mut state, first);
     let id = of(&state, task).unwrap().id;
@@ -176,7 +176,7 @@ fn a_task_s_description_and_steps_open_its_document() {
         },
     );
 
-    let first = made(room.path(), &state, task, None).unwrap();
+    let first = made(room.path(), &state, task, task, None).unwrap();
     applied(&mut state, first);
 
     let body = crate::docs::read(room.path(), &file_at(task, 1)).unwrap();
@@ -202,7 +202,7 @@ fn a_task_erased_for_good_takes_its_document_along() {
             d: TaskAdd::new("Rina's booster", "a0"),
         },
     );
-    let first = made(room.path(), &state, task, None).unwrap();
+    let first = made(room.path(), &state, task, task, None).unwrap();
     applied(&mut state, first);
     let doc = of(&state, task).unwrap().id;
 
