@@ -619,3 +619,50 @@ fn a_box_in_old_words_stays_text_but_a_link_in_a_bullet_is_left_alone() {
     assert_eq!(super::unboxed("> - [x] ask"), r"> - \[x] ask");
     assert_eq!(super::unboxed("- [docs](https://x)"), "- [docs](https://x)");
 }
+
+#[test]
+fn a_task_s_words_are_put_away_while_no_turn_of_it_is_open() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    let first = Ulid::generate();
+    let second = Ulid::generate();
+    applied(
+        &mut state,
+        Op::TaskAdd {
+            id: first,
+            d: TaskAdd::new("Water the plants", "a0"),
+        },
+    );
+    let words = made(room.path(), &state, first, first, "", None).unwrap();
+    applied(&mut state, words);
+    let away = |state: &State| state.held_away(of(state, first).unwrap());
+    assert!(!away(&state));
+
+    applied(
+        &mut state,
+        Op::TaskDone {
+            id: first,
+            filled: false,
+        },
+    );
+    assert!(away(&state));
+
+    let mut d = TaskAdd::new("Water the plants", "a1");
+    d.after = Some(first);
+    applied(&mut state, Op::TaskAdd { id: second, d });
+    assert!(
+        !away(&state),
+        "the open turn writes on the first one's words"
+    );
+
+    applied(
+        &mut state,
+        Op::TaskDone {
+            id: second,
+            filled: false,
+        },
+    );
+    assert!(away(&state));
+    applied(&mut state, Op::TaskReopen { id: second });
+    assert!(!away(&state));
+}

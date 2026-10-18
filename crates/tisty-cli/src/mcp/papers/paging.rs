@@ -9,7 +9,9 @@ use tisty_core::{Op, Paths};
 
 use super::super::asked::text;
 use super::super::jsonrpc::told;
-use super::super::{Held, Refused, Spot, doc_named, hitch, named_all, named_doc, opened, up_named};
+use super::super::{
+    Held, Refused, Spot, doc_named, hitch, holder, named_all, named_doc, opened, up_named,
+};
 
 pub(in crate::mcp) fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if args.get("order").is_some_and(|one| !one.is_null()) {
@@ -330,10 +332,11 @@ fn which_ones_move(state: &State, many: &[String], up: Option<DocId>) -> Result<
         }
         if up.is_none() && state.held_by_another(kept) {
             return Err(Refused::Tool(format!(
-                "{} is in the archive with the folder that holds it, and taking it out of its \
-                 document would leave it outside the archive with nobody's hand on it. The person \
-                 brings the folder back from the window first.",
-                doc_named(state, which)
+                "{} is in the archive with {}, and taking it out of its document would leave it \
+                 outside the archive with nobody's hand on it. The person brings that back from \
+                 the window first.",
+                doc_named(state, which),
+                holder(state, kept)
             )));
         }
         if let Some(over) = up {

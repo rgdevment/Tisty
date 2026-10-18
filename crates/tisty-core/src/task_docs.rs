@@ -453,6 +453,28 @@ fn planned(state: &State, task: TaskId) -> (DocId, String) {
     }
 }
 
+impl State {
+    fn some_turn(&self, first: TaskId, is: impl Fn(&crate::model::Task) -> bool) -> bool {
+        self.tasks.get(&first).is_some_and(&is)
+            || self
+                .tasks
+                .values()
+                .any(|one| one.after.is_some() && is(one) && owner(self, one.id) == first)
+    }
+
+    /// A task's words are seen while one of the turns they belong to is in sight.
+    pub fn doc_in_sight(&self, kept: &crate::model::Kept) -> bool {
+        kept.task_of
+            .is_none_or(|first| self.some_turn(first, |task| !task.folded()))
+    }
+
+    /// A task's words are put away with it, and come back the moment any turn of it is open again.
+    pub fn closed_with_its_task(&self, kept: &crate::model::Kept) -> bool {
+        kept.task_of
+            .is_some_and(|first| !self.some_turn(first, crate::model::Task::is_open))
+    }
+}
+
 #[cfg(test)]
 #[path = "task_docs_test.rs"]
 mod tests;

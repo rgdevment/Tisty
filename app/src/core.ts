@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
+import { settled } from "./saving";
 
 export type Status = "open" | "done" | "dropped";
 
@@ -243,6 +244,9 @@ export interface Turn {
   told?: boolean;
   filled?: boolean;
   zone?: string;
+  steps?: number;
+  steps_done?: number;
+  said?: string[];
 }
 
 export interface Series {
@@ -367,8 +371,11 @@ export const readAs = (id: string, how: "story" | "trace"): Promise<Task> =>
 export const openToAgents = (id: string, open: boolean): Promise<Task> =>
   invoke("open_to_agents", { id, open });
 export const stillOpen = (id: string): Promise<Task> => invoke("still_open", { id });
-export const complete = (id: string, also?: string[]): Promise<Task> =>
-  invoke("complete", { id, also });
+// What this round wrote has to reach the page before closing reads it.
+export const complete = async (id: string, also?: string[], summary?: string): Promise<Task> => {
+  await settled();
+  return invoke("complete", { id, also, summary });
+};
 export const owed = (id: string): Promise<string[]> => invoke("owed", { id });
 
 export interface Trace {

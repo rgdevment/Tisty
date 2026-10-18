@@ -15,7 +15,12 @@ interface Hands {
 }
 
 export function useMarking({ chosen, act, say, setError, lookForAStar, cheer }: Hands) {
-  const [asking, setAsking] = useState<{ id: string; title: string; days: string[] } | null>(null);
+  const [asking, setAsking] = useState<{
+    id: string;
+    title: string;
+    days: string[];
+    summary?: string;
+  } | null>(null);
   const asked = useRef(0);
 
   useEffect(() => {
@@ -24,14 +29,14 @@ export function useMarking({ chosen, act, say, setError, lookForAStar, cheer }: 
     setAsking(null);
   }, [chosen]);
 
-  const marking = (id: string, title: string) => {
+  const marking = (id: string, title: string, summary?: string) => {
     setError(null);
     const mine = ++asked.current;
     owed(id)
       .then((days) => {
         if (!days.length) {
           say(fill("saidDone", title));
-          const done = complete(id);
+          const done = complete(id, undefined, summary);
           act(done);
           done
             .then((task) => {
@@ -42,7 +47,7 @@ export function useMarking({ chosen, act, say, setError, lookForAStar, cheer }: 
           return;
         }
         // A slow answer must not open a strip over the task the person moved on to.
-        if (mine === asked.current) setAsking({ id, title, days });
+        if (mine === asked.current) setAsking({ id, title, days, summary });
       })
       .catch((e) => setError(saidPlainly(e)));
   };
@@ -52,7 +57,7 @@ export function useMarking({ chosen, act, say, setError, lookForAStar, cheer }: 
       days={asking.days}
       onConfirm={(days) => {
         say(fill("saidDone", asking.title));
-        act(complete(asking.id, days));
+        act(complete(asking.id, days, asking.summary));
         setAsking(null);
         lookForAStar();
       }}

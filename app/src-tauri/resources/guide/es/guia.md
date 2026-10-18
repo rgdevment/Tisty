@@ -90,6 +90,10 @@ Una tarea guarda más que su título. Se abre en una página propia, con seccion
 
 Un paso es una línea, de cien caracteres como máximo. Cuando uno necesita más, hazlo una tarea propia, como **parte** de esta. Una tarea con partes es algo que termina: muestra **▣ 3/7** donde contaría sus pasos, sus partes se pliegan debajo y, en otras vistas, cada parte la nombra con **⌂**. Junto a la página de la tarea, **Partes** recibe una nueva en su propia línea, y **Es parte de otra…** busca por nombre la tarea a la que pertenece; una parte nombra ahí a su tarea y se suelta con **Soltarla**. Cerrarla con partes abiertas te pide soltarlas en el mismo gesto, y deshacer las devuelve.
 
+Una parte también puede vivir en el texto de su tarea. Pasa el mouse sobre una casilla abierta y aprieta **↗**: la línea se vuelve una parte y en su lugar queda su tarjeta, con los pasos que lleva y su fecha. Un clic en la tarjeta la abre. El trayecto de cada una cuenta cuándo se sumó una parte y cuándo se soltó.
+
+Una rutina tiene una sola página para todas sus vueltas. Lo que escribas en **Esta vez** es de la vuelta que corre: al completarla pasa a **Vueltas**, bajo la página, con cuántos pasos marcaste y cuándo se cerró, y la sección queda en blanco para la siguiente.
+
 Ahí está la diferencia. La lista te dice qué falta; el archivo te dice cómo lo resolviste la última vez. Búscalo por una palabra que recuerdes y sale, aunque lo cerraras hace dos años. Todo eso, paso a paso, se cuenta en [tareas](https://www.tisty.app/es/ayuda/tareas/).
 
 ---
@@ -366,6 +370,8 @@ Desinstalar Tisty quita el programa y deja tus tareas y documentos donde están,
 ### 13. Terminar, descartar y borrar
 
 - **Terminar** una tarea la marca hecha y la manda al Archivo.
+- **Cerrar con resumen** te pide dos líneas de cómo salió antes de terminarla. Van primero en **Al cerrarla**; en una rutina, quedan con su vuelta.
+- Al cerrarla, su página se guarda con ella: se lee pero ya no se escribe. Si la reabres, vuelve.
 - **Descartar** la aparta sin hacerla: también acaba en el Archivo.
 - Lo del Archivo sigue ahí por si lo buscas. No estorba.
 

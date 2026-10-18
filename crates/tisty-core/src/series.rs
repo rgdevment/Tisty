@@ -24,6 +24,18 @@ pub struct Turn {
     pub filled: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub zone: Option<String>,
+    #[serde(default, skip_serializing_if = "is_none_at_all")]
+    pub steps: usize,
+    #[serde(default, skip_serializing_if = "is_none_at_all")]
+    pub steps_done: usize,
+    /// What the round left in its log: how it went and what it wrote this time.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub said: Vec<String>,
+}
+
+#[allow(clippy::trivially_copy_pass_by_ref)]
+fn is_none_at_all(count: &usize) -> bool {
+    *count == 0
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -86,6 +98,13 @@ pub fn series(state: &State, id: TaskId) -> Option<Series> {
             told: task.weight() > 0,
             filled: task.filled,
             zone: task.closed_in.clone(),
+            steps: task.steps.len(),
+            steps_done: task.steps.iter().filter(|step| step.done).count(),
+            said: task
+                .journal()
+                .map(|entry| entry.body.trim().to_string())
+                .filter(|body| !body.is_empty())
+                .collect(),
         });
     }
 
