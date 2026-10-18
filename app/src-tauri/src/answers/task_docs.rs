@@ -41,12 +41,21 @@ pub fn task_doc_open(
     let id = task_id(&id)?;
     let found = {
         let session = held(&session);
-        known(&session, id)?;
-        file_of(&session, id)
+        let task = answered(&session, id)?;
+        match file_of(&session, id) {
+            Some(file) => file,
+            // A task closed before it had a document is read as the one it would have had, never made.
+            None if !task.is_open() => {
+                return Ok(Some(Opened {
+                    file: String::new(),
+                    body: tisty_core::task_docs::first_words(&session.state, id),
+                    held: true,
+                }));
+            }
+            None => return Ok(None),
+        }
     };
-    let Some(file) = found else {
-        return Ok(None);
-    };
+    let file = found;
     let body = super::papers::doc_read(session.clone(), file.clone())?;
     let session = held(&session);
     let task = answered(&session, id)?;

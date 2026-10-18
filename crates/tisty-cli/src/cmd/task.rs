@@ -293,9 +293,10 @@ pub fn rm(app: &mut App, selector: &str, force: bool, lang: Lang) -> anyhow::Res
 
         // Judged again under the lock: the window may have kept it as a story while the
         // question was on the screen.
-        let written = app.commit_unless(vec![Op::TaskDelete { id }], |events| {
-            tisty_core::State::replay(events).erasable(id).is_err()
-        })?;
+        let written = app.commit_unless(
+            tisty_core::task_docs::erased_with(&app.state, id),
+            |events| tisty_core::State::replay(events).erasable(id).is_err(),
+        )?;
         if written.is_none() {
             anyhow::bail!("{}", lang.fill("rm-moved", &[("title", &title)]));
         }

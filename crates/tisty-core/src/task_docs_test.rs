@@ -189,3 +189,30 @@ fn a_task_s_description_and_steps_open_its_document() {
     );
     assert!(crate::stages::reconciled(&state.tasks[&task], None, &body).is_empty());
 }
+
+#[test]
+fn a_task_erased_for_good_takes_its_document_along() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    let task = Ulid::generate();
+    applied(
+        &mut state,
+        Op::TaskAdd {
+            id: task,
+            d: TaskAdd::new("Rina's booster", "a0"),
+        },
+    );
+    let first = made(room.path(), &state, task, None).unwrap();
+    applied(&mut state, first);
+    let doc = of(&state, task).unwrap().id;
+
+    assert_eq!(
+        super::erased_with(&state, task),
+        vec![Op::DocDelete { id: doc }, Op::TaskDelete { id: task }]
+    );
+    let alone = Ulid::generate();
+    assert_eq!(
+        super::erased_with(&state, alone),
+        vec![Op::TaskDelete { id: alone }]
+    );
+}

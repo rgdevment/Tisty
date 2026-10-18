@@ -292,18 +292,21 @@ pub fn ticked(task: &Task, body: &str) -> String {
     if missing.is_empty() {
         return out;
     }
-    let trimmed = out.trim_end_matches(['\n', '\r']).len();
-    out.truncate(trimmed);
-    out.push_str(if trimmed == 0 || out.ends_with("---") {
+    let mut grown = out.trim_end_matches(['\n', '\r']).to_string();
+    grown.push_str(if grown.is_empty() || grown.ends_with("---") {
         "\n"
     } else {
         "\n\n"
     });
-    for step in missing {
+    for step in &missing {
         let mark = if step.done { "x" } else { " " };
-        out.push_str(&format!("- [{mark}] {}\n", step.text));
+        grown.push_str(&format!("- [{mark}] {}\n", step.text));
     }
-    out
+    // Lines swallowed by what the text leaves open, a fence say, would be added again on every open.
+    match stages(&grown).len() == found.len() + missing.len() {
+        true => grown,
+        false => out,
+    }
 }
 
 #[cfg(test)]

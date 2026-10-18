@@ -65,6 +65,16 @@ pub fn of(state: &State, task: TaskId) -> Option<&Kept> {
     state.docs.values().find(|kept| kept.task_of == Some(task))
 }
 
+/// A task leaving the log for good takes its document along, so its words do not outlive it.
+pub fn erased_with(state: &State, task: TaskId) -> Vec<Op> {
+    let mut ops: Vec<Op> = of(state, task)
+        .map(|one| Op::DocDelete { id: one.id })
+        .into_iter()
+        .collect();
+    ops.push(Op::TaskDelete { id: task });
+    ops
+}
+
 pub fn behind(state: &State) -> std::collections::BTreeMap<String, TaskId> {
     state
         .docs
@@ -96,16 +106,7 @@ pub fn first_words(state: &State, task: TaskId) -> String {
     {
         out.push_str(&format!("\n{said}\n"));
     }
-    let mut steps: Vec<_> = one.steps.iter().collect();
-    steps.sort_by(|a, b| a.order.cmp(&b.order).then(a.id.cmp(&b.id)));
-    if !steps.is_empty() {
-        out.push('\n');
-    }
-    for step in steps {
-        let mark = if step.done { "x" } else { " " };
-        out.push_str(&format!("- [{mark}] {}\n", step.text));
-    }
-    out
+    crate::stages::ticked(one, &out)
 }
 
 pub fn made(root: &Path, state: &State, task: TaskId, by: Option<String>) -> crate::Result<Op> {

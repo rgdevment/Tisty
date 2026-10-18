@@ -366,3 +366,10 @@ fn a_step_filed_from_elsewhere_joins_the_document_at_its_end() {
         "---\ntask: x\n---\n- [ ] one\n- [x] from an agent\n"
     );
 }
+
+#[test]
+fn steps_are_not_added_where_an_open_fence_would_swallow_them() {
+    let task = task(&[("one", false, "a")]);
+    let body = "Words.\n\n```\ncode";
+    assert_eq!(ticked(&task, body), body);
+}
