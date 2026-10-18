@@ -56,7 +56,7 @@ html.tall .page {
   padding-bottom: 36px;
 }
 html.tall.untitled .page {
-  padding-top: 42px;
+  padding-top: 46px;
   padding-bottom: 4px;
 }
 html.untitled .page > :last-child {
@@ -66,6 +66,9 @@ html.untitled .page > :last-child {
   html.untitled .page {
     padding-right: 20px;
     padding-left: 20px;
+  }
+  html.tall.untitled .page {
+    padding-top: 40px;
   }
 }
 html.tall .page > * {
