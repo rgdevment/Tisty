@@ -135,9 +135,6 @@ enum Step {
 }
 
 fn plan(base: &str, mine: &str, theirs: &str) -> Option<Vec<Step>> {
-    if front_matter(base) || front_matter(mine) || front_matter(theirs) {
-        return None;
-    }
     let base = blocks(base);
     let mine = blocks(mine);
     let theirs = blocks(theirs);
@@ -306,17 +303,47 @@ fn sound(out: &str, mine: &str, theirs: &str) -> bool {
     true
 }
 
+fn parted(body: &str) -> (&str, &str) {
+    match tisty_markdown::front::span(body) {
+        Some(at) => body.split_at(at.end),
+        None => ("", body),
+    }
+}
+
+// The properties are one piece, taken whole from the side that changed them and never woven.
+fn front_of<'a>(base: &str, mine: &'a str, theirs: &'a str) -> Option<&'a str> {
+    let (base, mine, theirs) = (parted(base).0, parted(mine).0, parted(theirs).0);
+    match (mine == theirs, mine == base, theirs == base) {
+        (true, _, _) | (false, false, true) => Some(mine),
+        (false, true, false) => Some(theirs),
+        _ => None,
+    }
+}
+
+fn joined(front: &str, mine: &str, body: String) -> String {
+    if front.is_empty() {
+        return body;
+    }
+    let after = parted(mine).1;
+    let gap = &after[..after.len() - after.trim_start_matches(['\n', '\r']).len()];
+    format!("{front}{gap}{body}")
+}
+
 pub fn merged(base: &str, mine: &str, theirs: &str) -> Option<String> {
-    let steps = plan(base, mine, theirs)?;
+    let front = front_of(base, mine, theirs)?;
+    let steps = plan(parted(base).1, parted(mine).1, parted(theirs).1)?;
     if steps.iter().any(|one| matches!(one, Step::Torn(_))) {
         return None;
     }
-    let whole = woven(&steps, &[])?;
+    let whole = joined(front, mine, woven(&steps, &[])?);
     sound(&whole, mine, theirs).then_some(whole)
 }
 
 pub fn rifts(base: &str, mine: &str, theirs: &str) -> Vec<Rift> {
-    let Some(steps) = plan(base, mine, theirs) else {
+    if front_of(base, mine, theirs).is_none() {
+        return Vec::new();
+    }
+    let Some(steps) = plan(parted(base).1, parted(mine).1, parted(theirs).1) else {
         return Vec::new();
     };
     steps
@@ -329,7 +356,8 @@ pub fn rifts(base: &str, mine: &str, theirs: &str) -> Vec<Rift> {
 }
 
 pub fn woven_with(base: &str, mine: &str, theirs: &str, picks: &[Pick]) -> Option<String> {
-    let steps = plan(base, mine, theirs)?;
+    let front = front_of(base, mine, theirs)?;
+    let steps = plan(parted(base).1, parted(mine).1, parted(theirs).1)?;
     let torn = steps
         .iter()
         .filter(|one| matches!(one, Step::Torn(_)))
@@ -337,7 +365,7 @@ pub fn woven_with(base: &str, mine: &str, theirs: &str, picks: &[Pick]) -> Optio
     if picks.len() != torn {
         return None;
     }
-    let whole = woven(&steps, picks)?;
+    let whole = joined(front, mine, woven(&steps, picks)?);
     sound(&whole, mine, theirs).then_some(whole)
 }
 
