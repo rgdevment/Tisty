@@ -15,7 +15,7 @@ fn hint(line: &str) -> bool {
 }
 
 // What a section holds runs to the next heading as high as its own, code fences aside.
-fn held(body: &str, heads: &[&str]) -> Option<(Range<usize>, Range<usize>)> {
+pub(crate) fn held(body: &str, heads: &[&str]) -> Option<(Range<usize>, Range<usize>)> {
     let mut at = 0;
     let mut fenced = false;
     let mut found: Option<(usize, usize, usize)> = None;

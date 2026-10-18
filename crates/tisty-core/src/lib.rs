@@ -2,6 +2,7 @@ pub mod agent;
 pub mod answering;
 mod applying;
 pub mod arriving;
+pub mod assistant_notes;
 pub mod attach;
 pub mod backup;
 pub mod beside;
