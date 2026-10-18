@@ -154,7 +154,6 @@ fn search(
     let (mut found, _) = session.state.searching(&query, scope, usize::MAX);
     for task in worded
         .iter()
-        .filter(|one| !tisty_core::task_docs::bookkept(&one.line))
         .filter_map(|one| session.state.tasks.get(behind.get(&one.id)?))
         .filter(|task| match scope {
             Scope::Open => task.is_open(),
