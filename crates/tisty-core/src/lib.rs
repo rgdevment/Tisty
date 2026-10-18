@@ -43,6 +43,7 @@ pub mod store;
 pub mod story;
 pub mod tagging;
 pub mod task_docs;
+pub mod task_front;
 pub mod text;
 pub mod tidy;
 pub mod turned;
