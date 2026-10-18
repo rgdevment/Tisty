@@ -7,7 +7,7 @@ import { pictured } from "../previews";
 import { plainly } from "../refusal";
 import { type Attaching, attachedAs, lents, pressed } from "./attached";
 import { type Carding, carded } from "./carding";
-import { charsAt, colored, HUES, saidKinds, type Went, went, widgetsIn } from "./paging";
+import { charsAt, colored, HUES, saidKinds, spanned, type Went, went, widgetsIn } from "./paging";
 import { type Formatting, type Menued, quickly } from "./quickly";
 import { staged } from "./staging";
 import { webCarded } from "./webcarding";
@@ -30,6 +30,7 @@ export type Reaching = Carding & {
   readonly onHere?: (id: string) => void;
   readonly onAway?: () => void;
   readonly onTick?: (at: [number, number]) => void;
+  readonly onCut?: (at: [number, number]) => void;
   readonly onWiden?: (at: [number, number], column: number, dashes: number) => void;
   readonly onFormat?: (asked: Formatting) => void;
   readonly onMenu?: (asked: Menued) => void;
@@ -147,6 +148,79 @@ export const widgets = (page: Document, stranger: boolean, reach?: Reaching): Le
   return lent;
 };
 
+// A comment alone under its heading is the template's word on what goes there, shown until something does.
+const hinted = (page: Document, body: string) => {
+  const heading = (one: Element | null) =>
+    !one || /^H[1-6]$/.test(one.tagName) || one.matches(".front");
+  const bytes = new TextEncoder().encode(body);
+  const decoder = new TextDecoder();
+  for (const one of page.querySelectorAll<HTMLElement>(".page > div[data-at]")) {
+    const at = spanned(one.dataset.at ?? null);
+    if (!at || !one.previousElementSibling?.matches("h1, h2, h3, h4, h5, h6")) continue;
+    const source = decoder.decode(bytes.subarray(at[0], at[1])).trim();
+    const said = /^<!--([\s\S]*?)-->$/.exec(source);
+    if (!said) continue;
+    const alone = heading(one.nextElementSibling);
+    one.classList.add(alone ? "hint" : "hint-gone");
+    const box = /^-\s*\[ \]\s*/.exec(said[1].trim());
+    one.dataset.hint = said[1].trim().slice(box?.[0].length ?? 0);
+    if (!alone) continue;
+    if (box) {
+      one.classList.add("step-hint");
+      one.dataset.seed = "- [ ] ";
+    }
+  }
+  stepped(page);
+  sectioned(page);
+};
+
+// The template grows at its end, shown only while it is edited; each label can be taken out.
+const sectioned = (page: Document) => {
+  const sheet = page.querySelector(".page");
+  if (!sheet) return;
+  const last = Array.from(sheet.querySelectorAll(":scope > [data-at]")).pop();
+  const at = last?.getAttribute("data-at");
+  if (at) {
+    const add = page.createElement("button");
+    add.type = "button";
+    add.className = "add-section";
+    add.dataset.after = at;
+    add.dataset.seed = "## ";
+    add.textContent = `+ ${t("addSection")}`;
+    sheet.append(add);
+  }
+  for (const label of sheet.querySelectorAll<HTMLElement>(":scope > :is(h1, h2, h3, h4, h5, h6)")) {
+    const from = spanned(label.dataset.at ?? null);
+    if (!from) continue;
+    const hint = label.nextElementSibling?.matches(".hint, .hint-gone")
+      ? spanned(label.nextElementSibling.getAttribute("data-at"))
+      : null;
+    const drop = page.createElement("button");
+    drop.type = "button";
+    drop.className = "drop-section";
+    drop.dataset.at = `${from[0]}-${(hint ?? from)[1]}`;
+    drop.setAttribute("aria-label", t("dropSection"));
+    drop.title = t("dropSection");
+    label.append(drop);
+  }
+};
+
+const stepped = (page: Document) => {
+  for (const list of page.querySelectorAll<HTMLElement>(".page > ul[data-at]")) {
+    const boxes = list.querySelectorAll(":scope > li.task > .check");
+    if (!boxes.length) continue;
+    const done = list.querySelectorAll(':scope > li.task > .check[data-done="true"]').length;
+    list.style.setProperty("--done", `${Math.round((done / boxes.length) * 100)}%`);
+    const add = page.createElement("button");
+    add.type = "button";
+    add.className = "add-step";
+    add.dataset.after = list.dataset.at;
+    add.dataset.seed = "- [ ] ";
+    add.textContent = `+ ${t("addStep")}`;
+    list.after(add);
+  }
+};
+
 const titled = (page: Document) => {
   const sheet = page.querySelector<HTMLElement>(".page");
   if (!sheet) return;
@@ -165,6 +239,8 @@ export const worn = (
 ): Worn => {
   saidKinds(page, (kind) => t(`said${kind}` as Parameters<typeof t>[0]));
   if (reach?.onBlock) titled(page);
+  if (reach?.onBlock && page.documentElement.classList.contains("untitled"))
+    hinted(page, reach.body);
   page.documentElement.classList.toggle("ticking", !!reach?.onTick);
   iconed(page);
   staged(page);
@@ -207,6 +283,24 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
     ];
     if (block) reach.onBlock?.(at, block, "", read);
   }
+  if (asked.kind === "hint") {
+    const held = page.querySelector<HTMLElement>(
+      `.page > .hint[data-at="${asked.at[0]}-${asked.at[1]}"], .page > :is(.add-step, .add-section)[data-after="${asked.at[0]}-${asked.at[1]}"]`,
+    );
+    const end = charsAt(reach.body, asked.at[1]);
+    if (held) reach.onBlock?.([end, end], held, asked.seed);
+  }
+  if (asked.kind === "cut")
+    reach.onCut?.([charsAt(reach.body, asked.at[0]), charsAt(reach.body, asked.at[1])]);
+  if (asked.kind === "section" && reach.onBlock) {
+    const last = page.querySelector(`.page > [data-at="${asked.at[0]}-${asked.at[1]}"]`);
+    const fresh = page.createElement("p");
+    const add = last?.nextElementSibling;
+    (add?.matches(".add-step") ? add : last)?.after(fresh);
+    const end = charsAt(reach.body, asked.at[1]);
+    reach.onBlock([end, end], fresh);
+    if (fresh.isConnected) fresh.remove();
+  }
   if (asked.kind === "title" && reach.onBlock) {
     const slot = page.querySelector<HTMLElement>(".page > h1[data-title]");
     if (slot) reach.onBlock([0, 0], slot, "# ");
@@ -236,7 +330,8 @@ const below = (page: Document, target: Element, event: MouseEvent): boolean => {
   const sheet = page.querySelector(".page");
   if (!sheet || (target !== sheet && target !== page.body && target !== page.documentElement))
     return false;
-  const last = sheet.lastElementChild;
+  const blocks = sheet.querySelectorAll(":scope > :not(.cm-dock)");
+  const last = blocks[blocks.length - 1];
   return !last || event.clientY > last.getBoundingClientRect().bottom;
 };
 
@@ -255,10 +350,12 @@ export const wired = (page: Document, reach: () => Reaching) => {
   page.addEventListener("click", (event) => {
     const target = event.target as Element | null;
     if (event.button !== 0 || typeof target?.closest !== "function") return;
-    if (target.closest(".quick-bar, .mend-said")) return;
+    if (target.closest(".quick-bar, .mend-said, .cm-dock")) return;
     const selecting = !(page.getSelection()?.isCollapsed ?? true);
     if (target.closest("a")) event.preventDefault();
-    const asked = went(target, selecting) ?? (below(page, target, event) ? { kind: "end" } : null);
+    const shaping = page.documentElement.classList.contains("shaping");
+    const asked =
+      went(target, selecting) ?? (!shaping && below(page, target, event) ? { kind: "end" } : null);
     if (!asked && !target.closest(".editing")) reach().onAway?.();
     answered(page, asked, reach(), asked?.kind === "block" ? readTo(page, event) : "");
   });

@@ -4892,7 +4892,9 @@ fn reopening_takes_back_a_successor_and_leaves_the_routine_s_document() {
     let (mut state, id) = repeating();
     let born = successor(&state, id);
     let room = tempfile::tempdir().unwrap();
-    let made = crate::task_docs::made(room.path(), &state, id, born, None).unwrap();
+    let made = crate::task_docs::made(room.path(), &state, id, born, "", None)
+        .unwrap()
+        .op;
     state.apply(&ev(15, "a", made));
 
     let ops = state.reopening(id);

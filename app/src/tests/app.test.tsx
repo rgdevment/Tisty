@@ -332,7 +332,7 @@ describe("closing an open task", () => {
     await user.click(screen.getByText("write the report"));
     await screen.findByRole("textbox", { name: "Title" });
 
-    await user.click(screen.getByRole("button", { name: new RegExp(`^${t("collapse")}`) }));
+    await user.click(screen.getByRole("button", { name: t("closePanel") }));
 
     await waitFor(() => expect(screen.queryByRole("textbox", { name: "Title" })).toBeNull());
     expect(document.activeElement).toBe(document.querySelector('[data-row="01A"]'));
@@ -607,19 +607,27 @@ describe("the views nothing else opens", () => {
   });
 });
 
-describe("a task opens on a page of its own", () => {
-  it("takes the whole window", async () => {
+describe("a task opens beside the list, and whole when asked", () => {
+  const wide = (px: number) =>
+    Object.defineProperty(window, "innerWidth", { configurable: true, writable: true, value: px });
+  afterEach(() => wide(1440));
+
+  it("shows it beside the list first, takes the whole window on asking, and comes back beside it", async () => {
     const user = userEvent.setup();
     await started();
 
     await user.click(screen.getByText("write the report"));
+    await user.click(await screen.findByRole("button", { name: t("expand") }));
+    const back = await screen.findByRole("button", { name: new RegExp(`^${t("collapse")}`) });
+    expect(screen.queryByRole("button", { name: t("expand") })).toBeNull();
 
-    expect(
-      await screen.findByRole("button", { name: new RegExp(`^${t("collapse")}`) }),
-    ).toBeTruthy();
+    await user.click(back);
+    expect(await screen.findByRole("button", { name: t("expand") })).toBeTruthy();
+    expect(document.querySelector('[data-row="01A"]')).toBeTruthy();
   });
 
-  it("goes back to the list from the page, closing the task", async () => {
+  it("takes the whole window below 1308, and going back closes the task", async () => {
+    wide(1307);
     const user = userEvent.setup();
     await started();
 

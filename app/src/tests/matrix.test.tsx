@@ -48,6 +48,7 @@ const at = (extra: Partial<React.ComponentProps<typeof Matrix>> = {}) => (
     tasks={tasks}
     counts={{}}
     lists={lists}
+    beside={false}
     onPlace={vi.fn()}
     onOpen={vi.fn()}
     onSow={vi.fn()}
@@ -313,6 +314,35 @@ describe("the matrix", () => {
     show();
 
     expect(screen.queryByRole("complementary", { name: "Unclassified" })).toBeNull();
+  });
+});
+
+describe("the tray while a task is open beside the quadrants", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("takes it out of the way, and brings it back when the task is closed", async () => {
+    widen(1500);
+    const { rerender } = render(at());
+    await openTray();
+
+    rerender(at({ beside: true }));
+    expect(screen.queryByRole("complementary", { name: "Unclassified" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /What is left to classify/ })).toBeNull();
+
+    rerender(at());
+    expect(screen.getByRole("complementary", { name: "Unclassified" })).toBeTruthy();
+  });
+
+  it("leaves it shut if it was shut before the task was opened", () => {
+    widen(1500);
+    const { rerender } = render(at());
+    expect(screen.queryByRole("complementary", { name: "Unclassified" })).toBeNull();
+
+    rerender(at({ beside: true }));
+    rerender(at());
+
+    expect(screen.queryByRole("complementary", { name: "Unclassified" })).toBeNull();
+    expect(screen.getByRole("button", { name: /What is left to classify/ })).toBeTruthy();
   });
 });
 

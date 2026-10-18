@@ -88,12 +88,12 @@ describe("the bar over the block being written", () => {
     editor.destroy();
   });
 
-  it("opens the / menu from its button, apart from the word before it", () => {
+  it("opens the insert menu from its button without writing a slash into the words", () => {
     const editor = view("hola");
     const { bar } = barred(editor);
     editor.dispatch({ selection: { anchor: 4 } });
-    bar.querySelector<HTMLButtonElement>(`button[aria-label="${t("insertLabel")}"]`)?.click();
-    expect(editor.state.sliceDoc()).toBe("hola /");
+    bar.querySelector<HTMLButtonElement>(".cm-bar-more")?.click();
+    expect(editor.state.sliceDoc()).toBe("hola");
     editor.destroy();
   });
 

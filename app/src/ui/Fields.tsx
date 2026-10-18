@@ -30,7 +30,7 @@ export default function Fields({ task, lists, known, onPatch }: Props) {
   };
 
   return (
-    <div className="mb-5 flex flex-wrap items-center gap-1.5">
+    <div className="mb-3 flex flex-wrap items-center gap-1.5">
       <Held
         slot="list"
         open={open}

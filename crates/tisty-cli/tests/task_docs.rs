@@ -67,7 +67,9 @@ impl Served {
         let events = tisty_core::store::read_all(&store).unwrap();
         let state = tisty_core::State::replay(&events);
         let task: tisty_core::model::TaskId = task.parse().unwrap();
-        let op = tisty_core::task_docs::made(&data.join("docs"), &state, task, task, None).unwrap();
+        let op = tisty_core::task_docs::made(&data.join("docs"), &state, task, task, "", None)
+            .unwrap()
+            .op;
         let tisty_core::Op::DocAdd { d, .. } = &op else {
             panic!("a task's document is added");
         };

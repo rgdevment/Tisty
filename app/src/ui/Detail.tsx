@@ -21,6 +21,9 @@ interface Props {
   lists: List[];
   known: string[];
   from?: string;
+  apart?: string;
+  expanded?: boolean;
+  onExpand?: () => void;
   onCollapse: () => void;
   onPatch: (change: Change) => void;
   onComplete: () => void;
@@ -48,6 +51,9 @@ export default function Detail({
   lists,
   known,
   from,
+  apart,
+  expanded = true,
+  onExpand,
   onCollapse,
   onPatch,
   onComplete,
@@ -70,6 +76,7 @@ export default function Detail({
   onSettle,
 }: Props) {
   const opened = useRef<HTMLElement>(null);
+  const [shaping, setShaping] = useState(false);
   const card = useRef<HTMLDivElement>(null);
   const edge = useEdge(card);
   const live = task.status === "open";
@@ -77,6 +84,25 @@ export default function Detail({
   useEffect(() => {
     opened.current?.focus({ preventScroll: true });
   }, [task.id]);
+
+  // The page hands its keys to the window, so leaving the template is heard there, before Escape closes the task.
+  useEffect(() => {
+    if (!shaping) return;
+    const done = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" && event.key !== "Enter") return;
+      const at = event.target;
+      if (
+        at instanceof HTMLElement &&
+        (at.isContentEditable || at.closest("input, textarea, select, button"))
+      )
+        return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      setShaping(false);
+    };
+    window.addEventListener("keydown", done, true);
+    return () => window.removeEventListener("keydown", done, true);
+  }, [shaping]);
 
   const leave = (event: React.KeyboardEvent) => {
     if (event.key !== "Escape") return;
@@ -161,7 +187,13 @@ export default function Detail({
       )}
       <Fields task={task} lists={lists} known={known} onPatch={onPatch} />
 
-      <TaskWords task={task} onSettle={onSettle} onError={onError} onDoc={onDoc} />
+      <TaskWords
+        task={task}
+        onSettle={onSettle}
+        onError={onError}
+        onDoc={onDoc}
+        shaping={shaping}
+      />
       <History task={task} onError={onError} onDoc={onDoc} />
     </>
   );
@@ -182,6 +214,59 @@ export default function Detail({
   );
 
   const shown = task.status === "open" ? body : sealed;
+  const left = (whole?.open ?? 0) + (whole?.away ?? 0);
+
+  if (!expanded) {
+    return (
+      <aside
+        ref={opened}
+        tabIndex={-1}
+        onKeyDown={leave}
+        aria-label={task.title}
+        className={`absolute top-11 bottom-3 z-20 flex w-[380px] flex-col overflow-hidden rounded-[10px] border border-hair bg-sheet shadow-lift [&_.gutter]:px-0 outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset ${apart ?? "right-3"}`}
+      >
+        <div className="flex items-center justify-end gap-1 px-3 pt-2.5 text-[13px] text-faint">
+          <button
+            type="button"
+            onClick={onExpand}
+            title={t("expand")}
+            aria-label={t("expand")}
+            className="flex h-6 w-6 items-center justify-center rounded-md hover:bg-hover hover:text-accent"
+          >
+            <span aria-hidden="true">⤢</span>
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            title={t("closePanel")}
+            aria-label={t("closePanel")}
+            aria-keyshortcuts="Escape"
+            className="flex h-6 w-6 items-center justify-center rounded-md hover:bg-hover hover:text-ink"
+          >
+            <span aria-hidden="true">✕</span>
+          </button>
+        </div>
+        <div className="scroller flex-1 pt-1.5 pb-7 [&>*]:px-5">
+          {shown}
+          {aside}
+        </div>
+        <Settled
+          task={task}
+          onComplete={onComplete}
+          onDiscard={onDiscard}
+          onReopen={onReopen}
+          onStillOpen={onStillOpen}
+          onErase={onErase}
+          onFold={onFold}
+          onReadAs={onReadAs}
+          onOpenToAgents={onOpenToAgents}
+          shaping={shaping}
+          onShape={setShaping}
+          left={left}
+        />
+      </aside>
+    );
+  }
 
   return (
     <main
@@ -221,7 +306,9 @@ export default function Detail({
         onFold={onFold}
         onReadAs={onReadAs}
         onOpenToAgents={onOpenToAgents}
-        left={(whole?.open ?? 0) + (whole?.away ?? 0)}
+        shaping={shaping}
+        onShape={setShaping}
+        left={left}
       />
     </main>
   );
@@ -241,6 +328,8 @@ function Settled({
   onFold,
   onReadAs,
   onOpenToAgents,
+  shaping,
+  onShape,
   left,
 }: {
   task: Task;
@@ -254,6 +343,8 @@ function Settled({
   onFold: (away: boolean) => void;
   onReadAs: (how: "story" | "trace") => void;
   onOpenToAgents: (open: boolean) => void;
+  shaping: boolean;
+  onShape: (shaping: boolean) => void;
 }) {
   const [more, setMore] = useState<{ x: number; y: number } | null>(null);
   const owing = task.status === "open" && (left ?? 0) > 0;
@@ -389,6 +480,18 @@ function Settled({
               )}
             </>
           )}
+          {open && (
+            <button
+              type="button"
+              aria-pressed={shaping}
+              title={t("shapeWhy")}
+              onClick={() => onShape(!shaping)}
+              className={`${seat} ml-auto ${shaping ? "font-medium text-accent" : "hover:text-ink"}`}
+            >
+              <span aria-hidden="true">{shaping ? "✓" : "✎"}</span>{" "}
+              {t(shaping ? "shapeDone" : "shapeEdit")}
+            </button>
+          )}
           {choices.length > 0 && (
             <button
               type="button"
@@ -407,7 +510,7 @@ function Settled({
                 const box = e.currentTarget.getBoundingClientRect();
                 setMore(more ? null : { x: box.right - 8, y: box.top - 4 });
               }}
-              className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-faint hover:bg-hover hover:text-ink"
+              className={`${open ? "" : "ml-auto "}flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-faint hover:bg-hover hover:text-ink`}
             >
               <span aria-hidden="true">⋯</span>
             </button>

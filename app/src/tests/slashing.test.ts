@@ -4,7 +4,16 @@ import { EditorState } from "@codemirror/state";
 import { EditorView, runScopeHandlers } from "@codemirror/view";
 import { describe, expect, it } from "vitest";
 import { wrapped } from "../ui/formatting";
-import { type Asked, holding, offered, put, SLASHED, slashing, tagging } from "../ui/slashing";
+import {
+  type Asked,
+  holding,
+  offered,
+  openMenu,
+  put,
+  SLASHED,
+  slashing,
+  tagging,
+} from "../ui/slashing";
 
 const view = (doc: string) =>
   new EditorView({
@@ -31,6 +40,39 @@ const typed = (doc: string, key: string) => {
   editor.destroy();
   return said;
 };
+
+describe("the insert menu asked for by key or button", () => {
+  it("offers every choice at the caret with no slash, narrows as one types, and closes past a space", () => {
+    const editor = view("hola ");
+    editor.dispatch({ selection: { anchor: 5 } });
+    openMenu(editor);
+    const at = (pos: number) => offered()(new CompletionContext(editor.state, pos, false));
+    expect(at(5)?.from).toBe(5);
+    expect(at(5)?.options.length).toBeGreaterThan(5);
+    editor.dispatch({
+      changes: { from: 5, insert: "h1" },
+      selection: { anchor: 7 },
+      userEvent: "input.type",
+    });
+    expect(at(7)?.options[0]?.label).toBeTruthy();
+    expect(at(7)?.from).toBe(5);
+    put(editor, one("h1"), 5, 7);
+    expect(editor.state.sliceDoc()).toBe("hola\n# ");
+    editor.dispatch({ changes: { from: editor.state.doc.length, insert: "x y" } });
+    expect(at(editor.state.doc.length)).toBeNull();
+    editor.destroy();
+  });
+
+  it("wraps what was chosen when the menu is asked for over a selection", () => {
+    const editor = view("hola mundo");
+    editor.dispatch({ selection: { anchor: 5, head: 10 } });
+    openMenu(editor);
+    expect(editor.state.selection.main.empty).toBe(true);
+    put(editor, one("bold"), 10, 10);
+    expect(editor.state.sliceDoc()).toBe("hola **mundo**");
+    editor.destroy();
+  });
+});
 
 describe("the / menu in a block", () => {
   it("turns the line it is asked on into a title, a list or a quote, with the cursor after the mark", () => {
