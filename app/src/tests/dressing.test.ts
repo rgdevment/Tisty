@@ -525,3 +525,52 @@ describe("a sheet with nothing written yet", () => {
     expect(asked[0]).toEqual({ at: [0, 11], seed: "", read: "Leche y" });
   });
 });
+
+describe("a task's template hints", () => {
+  const body =
+    "## Steps\n<!-- One box per step. -->\n\n## Notes\n<!-- Anything. -->\n\nCall at nine.\n";
+  const span = (said: string) => {
+    const from = body.indexOf(said);
+    return `${from}-${from + said.length}`;
+  };
+  const drawn = () => {
+    const one = page(
+      `<h2 data-at="${span("## Steps")}">Steps</h2>` +
+        `<div data-at="${span("<!-- One box per step. -->")}"></div>` +
+        `<h2 data-at="${span("## Notes")}">Notes</h2>` +
+        `<div data-at="${span("<!-- Anything. -->")}"></div>` +
+        `<p data-at="${span("Call at nine.")}">Call at nine.</p>`,
+    );
+    one.documentElement.classList.add("untitled");
+    return one;
+  };
+
+  it("shows a hint while its section is empty, and hides one whose section has words", () => {
+    const one = drawn();
+    worn(one, false, () => true, writer(body).reach);
+
+    const [first, second] = Array.from(one.querySelectorAll<HTMLElement>(".page > div[data-at]"));
+    expect(first.classList.contains("hint")).toBe(true);
+    expect(first.dataset.hint).toBe("One box per step.");
+    expect(second.classList.contains("hint-gone")).toBe(true);
+  });
+
+  it("leaves a document's comments alone", () => {
+    const one = drawn();
+    one.documentElement.classList.remove("untitled");
+    worn(one, false, () => true, writer(body).reach);
+
+    expect(one.querySelector(".hint, .hint-gone")).toBeNull();
+  });
+
+  it("begins writing right after the hint, keeping the comment", () => {
+    const one = drawn();
+    const { asked, reach } = writer(body);
+    worn(one, false, () => true, reach);
+    wired(one, () => reach);
+    press(one.querySelector(".hint"), 0);
+
+    const end = body.indexOf("<!-- One box per step. -->") + "<!-- One box per step. -->".length;
+    expect(asked).toEqual([{ at: [end, end], seed: "" }]);
+  });
+});

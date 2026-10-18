@@ -7,7 +7,7 @@ import { pictured } from "../previews";
 import { plainly } from "../refusal";
 import { type Attaching, attachedAs, lents, pressed } from "./attached";
 import { type Carding, carded } from "./carding";
-import { charsAt, colored, HUES, saidKinds, type Went, went, widgetsIn } from "./paging";
+import { charsAt, colored, HUES, saidKinds, spanned, type Went, went, widgetsIn } from "./paging";
 import { type Formatting, type Menued, quickly } from "./quickly";
 import { staged } from "./staging";
 import { webCarded } from "./webcarding";
@@ -147,6 +147,22 @@ export const widgets = (page: Document, stranger: boolean, reach?: Reaching): Le
   return lent;
 };
 
+// A comment alone under its heading is the template's word on what goes there, shown until something does.
+const hinted = (page: Document, body: string) => {
+  const heading = (one: Element | null) =>
+    !one || /^H[1-6]$/.test(one.tagName) || one.matches(".front");
+  for (const one of page.querySelectorAll<HTMLElement>(".page > div[data-at]")) {
+    const at = spanned(one.dataset.at ?? null);
+    if (!at) continue;
+    const source = body.slice(charsAt(body, at[0]), charsAt(body, at[1])).trim();
+    const said = /^<!--([\s\S]*?)-->$/.exec(source);
+    if (!said) continue;
+    const alone = heading(one.previousElementSibling) && heading(one.nextElementSibling);
+    one.classList.add(alone ? "hint" : "hint-gone");
+    if (alone) one.dataset.hint = said[1].trim();
+  }
+};
+
 const titled = (page: Document) => {
   const sheet = page.querySelector<HTMLElement>(".page");
   if (!sheet) return;
@@ -165,6 +181,7 @@ export const worn = (
 ): Worn => {
   saidKinds(page, (kind) => t(`said${kind}` as Parameters<typeof t>[0]));
   if (reach?.onBlock) titled(page);
+  if (reach && page.documentElement.classList.contains("untitled")) hinted(page, reach.body);
   page.documentElement.classList.toggle("ticking", !!reach?.onTick);
   iconed(page);
   staged(page);
@@ -206,6 +223,13 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
       charsAt(reach.body, asked.at[1]),
     ];
     if (block) reach.onBlock?.(at, block, "", read);
+  }
+  if (asked.kind === "hint") {
+    const hint = page.querySelector<HTMLElement>(
+      `.page > [data-at="${asked.at[0]}-${asked.at[1]}"]`,
+    );
+    const end = charsAt(reach.body, asked.at[1]);
+    if (hint) reach.onBlock?.([end, end], hint, "");
   }
   if (asked.kind === "title" && reach.onBlock) {
     const slot = page.querySelector<HTMLElement>(".page > h1[data-title]");

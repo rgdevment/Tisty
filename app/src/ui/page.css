@@ -1552,3 +1552,14 @@ figure.widget:hover .card-more,
 .media-again:hover {
   background: var(--tisty-hover);
 }
+.page > .hint {
+  min-height: 1.6em;
+  cursor: text;
+}
+.page > .hint::before {
+  content: attr(data-hint);
+  color: var(--tisty-faint);
+}
+.page > .hint-gone {
+  display: none;
+}
