@@ -620,14 +620,20 @@ one when you open them there; *Free space* lets go of the ones you have not
 opened in a while. Each computer has a daily allowance, so no single copy can
 spend the quota Google grants the project: when it runs out, what you write
 stays safe here and syncing carries on the next day. Connecting happens only in
-the window. OneDrive and Dropbox may come later; nothing is promised.
+the window.
 
-Before you sign in, and before a move to Drive, Tisty checks that Google
-answers, with one request that carries nothing of yours. If a proxy, a filter
-at work or an antivirus stands in the way, it says so in plain words — there,
-and on the card once syncing keeps failing: a second round in a row, or two
-minutes after the first. A single failed round, or a connection cut halfway, is
-only tried again. It never goes around what stands in the way: what you write
+**Your OneDrive, directly.** The same, with Microsoft: you sign in on
+Microsoft's page and Tisty keeps its copies in *Apps › Tisty* in your OneDrive.
+That folder is one you can see there; leave it to Tisty, since what you change
+by hand reads as a change from another computer. Dropbox may come later;
+nothing is promised.
+
+Before you sign in, and before a move to the cloud, Tisty checks that the
+provider answers, with one request that carries nothing of yours. If a proxy, a
+filter at work or an antivirus stands in the way, it says so in plain words —
+there, and on the card once syncing keeps failing: a second round in a row, or
+two minutes after the first. A single failed round, or a connection cut halfway,
+is only tried again. It never goes around what stands in the way: what you write
 stays here and goes up once the way is clear. A round that runs long says for
 how long, so it never looks frozen.
 
@@ -639,9 +645,9 @@ There is nothing of mine in the middle: no account, no server, no daemon. Who
 runs that folder or that Drive is your business, not Tisty's. If you sync
 nothing, it never opens a connection for it at all. Changing your mind later is
 a move, not a switch: *Move to another place…* takes your copies between this
-machine, a folder and Google Drive in two steps — first it brings home what
+machine, a folder and your cloud in two steps — first it brings home what
 lived only in the place you leave, then it takes everything to the new one —
-counting the files left, says so when Google asks for a pause, lets you hide
+counting the files left, says so when the provider asks for a pause, lets you hide
 it and keep working, and tells your other machines where you went so each one
 follows.
 
@@ -696,10 +702,10 @@ binary itself, because it is the door your assistant comes through (`tisty
 mcp`) and the place for maintenance: `doctor`, `sync`, `export`, `agent`.
 
 Neither the command line nor the assistant's door ever touches the network.
-Connecting Google Drive happens only in the window, and on a copy that syncs
-with it `tisty sync` leaves the round to the window; `tisty doctor` still tells
-you, from what is on this disk, how the last one went and what today's
-allowance has left.
+Connecting Google Drive or OneDrive happens only in the window, and on a copy
+that syncs with it `tisty sync` leaves the round to the window; `tisty doctor`
+still tells you, from what is on this disk, how the last one went and what
+today's allowance has left.
 
 ```console
 $ tisty doctor
@@ -849,9 +855,9 @@ If you already use an assistant of your own, Tisty leaves an
 again, and until you do everything it tries is refused.
 
 **Can I use it on two computers?**
-Yes, two ways. Connect your own Google Drive in the window, and Tisty talks to
-it directly, keeping its copies in a hidden space of your Drive and seeing
-nothing else there. Or use a folder you
+Yes, two ways. Connect your own Google Drive or OneDrive in the window, and
+Tisty talks to it directly, keeping its copies in a space of its own there and
+seeing nothing else. Or use a folder you
 already sync: Google Drive, OneDrive, iCloud, Dropbox, a NAS, a drive you plug
 in on Fridays. Either way there is no server of mine in between, no account of
 mine, and you can move from one to the other whenever you like.

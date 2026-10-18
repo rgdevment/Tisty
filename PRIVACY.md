@@ -1,6 +1,6 @@
 # Privacy policy
 
-**Last updated:** October 17, 2026
+**Last updated:** October 18, 2026
 
 ## The short version
 
@@ -16,10 +16,10 @@ installed from the Microsoft Store makes no update request: it asks Windows
 what the Store has, and the Store does the rest. All of them are described in
 full below.
 
-Since version 1.30, Tisty can also sync through your own Google Drive, talking
-to it directly. It runs only if you choose it and connect your account in the
-Tisty window, it reaches nothing but Google, and what it sends and receives is
-described in full below.
+Since version 1.30, Tisty can also sync through your own Google Drive, and
+since 1.31 through your own OneDrive, talking to it directly. It runs only if
+you choose it and connect your account in the Tisty window, it reaches nothing
+but that provider, and what it sends and receives is described in full below.
 
 That is not a policy promise you have to take on trust — it is a property of
 the code, which is [public and auditable](https://github.com/rgdevment/Tisty).
@@ -44,6 +44,7 @@ What you can choose, and what each implies:
 | **Local only** (the default) | Nobody. It never leaves the machine |
 | **A folder your cloud client keeps in step** (Google Drive, OneDrive, iCloud, Dropbox, pCloud…) | That provider, under their terms and their jurisdiction |
 | **Your own Google Drive, reached by Tisty directly** (since 1.30) | Google, under its terms and its jurisdiction. Nobody else: there is no server of ours in between |
+| **Your own OneDrive, reached by Tisty directly** (since 1.31) | Microsoft, under its terms and its jurisdiction. Nobody else: there is no server of ours in between |
 | **A folder on hardware you own** (a NAS, an external drive) | Whoever can reach that hardware |
 | **A backup zip you keep somewhere** | Wherever you put it |
 | **A `.tistyx` parcel of documents you hand to somebody** | Them, and whoever they hand it to. You decide what goes in it and when. It carries the documents, where they sat, what the archive held and what an assistant marked — never your device identifier |
@@ -148,7 +149,7 @@ defence, because the remedy barely exists.
   open" below: what it carries is its doing and your choice, never Tisty's.
 - Does not upload crash reports.
 - Does not make background network calls, except the update check below and,
-  only if you connect Google Drive, the requests that sync with it.
+  only if you connect Google Drive or OneDrive, the requests that sync with it.
 
 An earlier version of this file promised that if Tisty ever needed a network
 request it would be read-only, documented here before it shipped, and visible
@@ -284,10 +285,10 @@ sits there.
 ## Syncing with your own Google Drive
 
 Since version 1.30, Tisty can keep your machines in step through your own
-Google Drive account, without Google's desktop program installed. Google Drive
-is the only provider for now; OneDrive or Dropbox may follow, and none is
-promised. A copy built without this project's Google credentials offers no
-cloud at all and makes none of these requests.
+Google Drive account, without Google's desktop program installed. OneDrive
+has its own section below; Dropbox may follow, and nothing is promised. A copy
+built without this project's Google credentials offers no Google Drive and
+makes none of these requests.
 
 | | |
 | :--- | :--- |
@@ -314,6 +315,26 @@ including the Limited Use requirements. In plain words: what Tisty reads from
 your Drive is used only to sync your own store between your own machines. It
 is never sent to us or to anyone else, never used for advertising, never sold,
 never used to train any model, and no person reads it.
+
+## Syncing with your own OneDrive
+
+Since version 1.31, Tisty can do the same through your own personal OneDrive,
+without Microsoft's desktop program in the way. It is the same engine as Google
+Drive, so what the section above says of the files, the limits, the remote
+switch and how often it asks holds here too; what changes is below. A copy built
+without this project's Microsoft client offers no OneDrive and makes none of
+these requests.
+
+| | |
+| :--- | :--- |
+| **Who it talks to** | Microsoft only: `login.microsoftonline.com` to sign in, and `graph.microsoft.com` for OneDrive. Never a server of ours, because there is none |
+| **What Microsoft lets Tisty see** | The permissions asked for are `Files.ReadWrite.AppFolder`, `User.Read` and `offline_access`: Tisty sees and changes only its own folder, *Apps › Tisty* in your OneDrive, reads the address of the account to show you which one it is and to refuse to mix two accounts, and keeps the access between sessions. The rest of your OneDrive stays out of its reach. If Microsoft grants anything wider, Tisty refuses the sign-in |
+| **Where the copies are** | Unlike Google's hidden space, *Apps › Tisty* is a folder you can see in OneDrive. Leave it to Tisty: what you change there by hand is read as a change from another computer. Deleting it sends the copies to OneDrive's recycle bin, and *Delete my copies* does the same |
+| **How you allow it** | Only from the Tisty window. You sign in on Microsoft's own page in your browser; Tisty never sees your password. Tisty is a public client with no secret of its own. The access is kept exactly as Google's is, in the system keychain or, on Windows, sealed with DPAPI |
+| **Letting go** | *Disconnect this computer* forgets the access on that machine only. Microsoft offers no way for an app to withdraw a personal account's access by itself, so *Remove Tisty's access on every computer* forgets it here and opens your Microsoft account at <https://account.live.com/consent/Manage>, where you remove Tisty for every machine at once |
+| **Checking the way first** | Only while you are choosing OneDrive, Tisty checks that Microsoft's API host answers with a single request to `https://graph.microsoft.com/v1.0/me`, with no account, no token and nothing of yours in it, read the same way as Google's |
+| **The remote switch** | `cloud.json` can speak to OneDrive alone, under its `providers` field, so a pause meant for one provider never stops the other |
+| **What it never does** | Send your data to us or to anyone but Microsoft, read a file in your OneDrive outside its own folder, or write tokens into its own log |
 
 ## The door you can open for an assistant
 
