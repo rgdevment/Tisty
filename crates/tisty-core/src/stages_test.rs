@@ -444,3 +444,28 @@ fn a_new_step_joins_the_outer_list_not_one_nested_under_a_step() {
         "- [ ] A\n  - [ ] A.1\n- [ ] B\n"
     );
 }
+
+#[test]
+fn two_steps_written_over_side_by_side_keep_who_they_are_when_the_editor_says_so() {
+    let task = task(&[("a", false, "a"), ("b", true, "b")]);
+    let before = "- [ ] a\n- [x] b\n";
+    let now = "- [ ] call the vet\n- [x] bring the card\n";
+
+    let blind = reconciled(&task, Some(before), now);
+    assert!(blind.iter().any(|op| matches!(op, Op::StepRemove { .. })));
+
+    let told = super::reconciled_with(
+        &task,
+        Some(before),
+        now,
+        &[
+            ("a".into(), "call the vet".into()),
+            ("b".into(), "bring the card".into()),
+        ],
+    );
+    assert_eq!(told.len(), 2, "{told:?}");
+    assert!(
+        told.iter().all(|op| matches!(op, Op::StepText { .. })),
+        "{told:?}"
+    );
+}

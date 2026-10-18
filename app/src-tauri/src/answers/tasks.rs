@@ -762,3 +762,17 @@ impl Edits {
         }
     }
 }
+
+#[tauri::command]
+pub fn task_step_dates(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+) -> Answer<Vec<tisty_core::dated::Dated>> {
+    let id = super::parts::task_id(&id)?;
+    let mut session = held(&session);
+    session.reload()?;
+    let Some(task) = session.state.tasks.get(&id).cloned() else {
+        return Ok(Vec::new());
+    };
+    Ok(tisty_core::dated::dated(&session.log()?, &task))
+}

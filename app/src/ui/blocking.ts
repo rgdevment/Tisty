@@ -2,7 +2,16 @@ import { closeCompletion, completionStatus } from "@codemirror/autocomplete";
 import { defaultKeymap, history, historyKeymap, indentWithTab, redo } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
-import { EditorState, Prec, type Text } from "@codemirror/state";
+import {
+  EditorState,
+  MapMode,
+  Prec,
+  type RangeSet,
+  RangeSetBuilder,
+  RangeValue,
+  StateField,
+  type Text,
+} from "@codemirror/state";
 import {
   Decoration,
   type DecorationSet,
@@ -21,7 +30,7 @@ import { coded, owning } from "./formatting";
 import { HUES } from "./paging";
 import { pendingFormat, pendingKeys, settle } from "./pending";
 import { visual } from "./seeing";
-import { type Asking, putBlock, slashing } from "./slashing";
+import { type Asking, BOX, putBlock, slashing } from "./slashing";
 import { tableKeys } from "./tabling";
 
 const PENS = ["yellow", ...HUES];
@@ -87,6 +96,53 @@ const pasting = (event: ClipboardEvent, view: EditorView, asking?: () => Asking 
     return true;
   }
   return rich(event, { view, lost: asking?.()?.lost });
+};
+
+class Boxed extends RangeValue {
+  constructor(readonly said: string) {
+    super();
+  }
+  eq(other: RangeValue): boolean {
+    return other instanceof Boxed && other.said === this.said;
+  }
+}
+
+const boxesIn = (doc: Text): RangeSet<Boxed> => {
+  const found = new RangeSetBuilder<Boxed>();
+  for (let at = 1; at <= doc.lines; at++) {
+    const line = doc.line(at);
+    const box = BOX.exec(line.text);
+    if (box) found.add(line.from, line.from, new Boxed(box[1].trim()));
+  }
+  return found.finish();
+};
+
+// Each box keeps what it said when the block opened, following its line through every edit.
+const boxed = StateField.define<RangeSet<Boxed>>({
+  create: (state) => boxesIn(state.doc),
+  // A box whose line went away takes its mark along, so the line under it never inherits it.
+  update: (set, tr) => {
+    if (!tr.docChanged) return set;
+    const kept = new RangeSetBuilder<Boxed>();
+    for (let at = set.iter(); at.value; at.next()) {
+      const to = tr.changes.mapPos(at.from, 1, MapMode.TrackAfter);
+      if (to !== null) kept.add(to, to, at.value);
+    }
+    return kept.finish();
+  },
+});
+
+export const renamedIn = (state: EditorState): [string, string][] => {
+  const out: [string, string][] = [];
+  const seen = new Set<number>();
+  for (let at = state.field(boxed).iter(); at.value; at.next()) {
+    const line = state.doc.lineAt(at.from);
+    const now = BOX.exec(line.text)?.[1].trim();
+    if (seen.has(line.number) || !now || now === at.value.said) continue;
+    seen.add(line.number);
+    out.push([at.value.said, now]);
+  }
+  return out;
 };
 
 export type Editing = {
@@ -192,7 +248,7 @@ export const edited = (
   block: HTMLElement,
   said: string,
   onChange: (text: string) => void,
-  onLeave: (text: string) => void,
+  onLeave: (text: string, renamed: [string, string][]) => void,
   asking?: () => Asking | undefined,
   oneLine = false,
 ): Editing => {
@@ -218,10 +274,11 @@ export const edited = (
     if (oneLine) held(view, said);
     settle(view);
     const text = view.state.sliceDoc();
+    const renamed = renamedIn(view.state);
     view.destroy();
     undock();
     host.replaceWith(block);
-    onLeave(text);
+    onLeave(text, renamed);
   };
   const view = new EditorView({
     parent: host,
@@ -271,6 +328,7 @@ export const edited = (
         EditorView.domEventHandlers({ paste: (event, view) => pasting(event, view, asking) }),
         dressing,
         EditorView.lineWrapping,
+        boxed,
         oneLine ? labelled : [],
         EditorView.updateListener.of((update) => {
           if (update.docChanged) onChange(update.state.sliceDoc());

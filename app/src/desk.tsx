@@ -156,6 +156,7 @@ export function deskOf(state: State, data: Snapshot) {
       opening,
       say,
       fail: (e) => setError(saidPlainly(e)),
+      papers: papers.docs,
     });
 
   const opening = (one: Task) => {

@@ -75,7 +75,7 @@ describe("what the detail of a task is handed", () => {
     expect(sent()).toContain("task_of");
     expect(calls).toContainEqual({
       cmd: "task_doc_settled",
-      args: { id: "t1", before: "antes", now: "ahora" },
+      args: { id: "t1", before: "antes", now: "ahora", renamed: [] },
     });
   });
 

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   answered,
+  datedSteps,
   fitted,
   iconed,
   pictures,
@@ -671,5 +672,20 @@ describe("a task's section labels", () => {
     one.documentElement.classList.add("untitled");
 
     expect(went(one.querySelector("h1") as Element, false)).toEqual({ kind: "block", at: [0, 2] });
+  });
+});
+
+describe("a step's dates", () => {
+  it("show under the pointer on its box, by its words, and leave the others bare", () => {
+    const one = page(
+      '<ul data-at="0-20"><li class="task" data-at="0-10"><span class="check"></span>Call the vet</li>' +
+        '<li class="task" data-at="10-20"><span class="check"></span>Other</li></ul>',
+    );
+
+    datedSteps(one, { "Call the vet": "Added 18 Oct" });
+
+    const [first, second] = one.querySelectorAll<HTMLElement>("li.task");
+    expect(first.title).toBe("Added 18 Oct");
+    expect(second.hasAttribute("title")).toBe(false);
   });
 });

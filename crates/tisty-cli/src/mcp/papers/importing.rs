@@ -216,7 +216,21 @@ fn came_home(paths: &Paths, id: tisty_core::model::TaskId, body: &str) -> Result
             "that page names no task here any more.".into(),
         ));
     };
-    let mut ops = taken.ops;
+    // A page an assistant brings back moves no day or list but on a task an agent filed.
+    let ours = state
+        .tasks
+        .get(&id)
+        .is_some_and(|one| state.filed_by_agents(one));
+    let mut ops: Vec<tisty_core::Op> = taken
+        .ops
+        .into_iter()
+        .filter(|op| {
+            ours || !matches!(
+                op,
+                tisty_core::Op::TaskUpdate { .. } | tisty_core::Op::TaskMove { .. }
+            )
+        })
+        .collect();
     let mut file = kept;
     if file.is_none() {
         let (made, created) = tisty_core::task_docs::made_with(

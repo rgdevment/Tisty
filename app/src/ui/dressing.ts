@@ -31,6 +31,7 @@ export type Reaching = Carding & {
   readonly onAway?: () => void;
   readonly onTick?: (at: [number, number]) => void;
   readonly onCut?: (at: [number, number]) => void;
+  readonly stepDates?: Readonly<Record<string, string>>;
   readonly onWiden?: (at: [number, number], column: number, dashes: number) => void;
   readonly onFormat?: (asked: Formatting) => void;
   readonly onMenu?: (asked: Menued) => void;
@@ -243,6 +244,7 @@ export const worn = (
   if (reach?.onBlock) titled(page);
   if (reach?.onBlock && page.documentElement.classList.contains("untitled"))
     hinted(page, reach.body);
+  datedSteps(page, reach?.stepDates);
   page.documentElement.classList.toggle("ticking", !!reach?.onTick);
   iconed(page);
   staged(page);
@@ -406,4 +408,28 @@ export const wired = (page: Document, reach: () => Reaching) => {
     const id = (event as CustomEvent<string>).detail;
     if (id) reach().onDoc(id);
   });
+};
+
+// A step is kept as written, marks and all, and cut past its length; the page shows only its words.
+const bare = (said: string): string =>
+  said
+    .replace(/…$/, "")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim()
+    .toLowerCase();
+
+export const datedSteps = (page: Document, dates?: Readonly<Record<string, string>>) => {
+  const known = Object.entries(dates ?? {}).map(
+    ([said, line]) => [bare(said), line, said.endsWith("…")] as const,
+  );
+  for (const one of page.querySelectorAll<HTMLElement>(".page li.task")) {
+    const own = one.cloneNode(true) as HTMLElement;
+    for (const inner of own.querySelectorAll("ul, ol")) inner.remove();
+    const words = bare(own.textContent ?? "");
+    const said = known.find(
+      ([key, , cut]) => key && (words === key || (cut && words.startsWith(key))),
+    )?.[1];
+    if (said) one.title = said;
+    else one.removeAttribute("title");
+  }
 };

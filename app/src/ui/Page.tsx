@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { docDrawn, type Mend, mendsIn } from "../core";
-import type { Reaching } from "./dressing";
+import { datedSteps, type Reaching } from "./dressing";
 import Frame from "./Frame";
 import { mendable } from "./mending";
 import type { Head } from "./paging";
@@ -46,6 +46,11 @@ export default function Page(props: Readonly<Props>) {
     const mends = reach.current.onMend && now ? now.mends : [];
     mendable(page, mends, (one) => now && reach.current.onMend?.(one, now.said));
   };
+  const dates = props.stepDates;
+  useEffect(() => {
+    const page = held.current.get(showing.current)?.contentDocument;
+    if (page) datedSteps(page, dates);
+  }, [dates]);
   const mending = Boolean(props.onMend);
   useEffect(lay, [mending]);
 
