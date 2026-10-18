@@ -124,3 +124,68 @@ fn only_the_name_a_making_writes_belongs_to_a_task() {
         assert_eq!(super::owned(&file), Some((task, id_at(task, 1))), "{file}");
     }
 }
+
+#[test]
+fn a_task_s_description_and_steps_open_its_document() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    let task = Ulid::generate();
+    applied(
+        &mut state,
+        Op::TaskAdd {
+            id: task,
+            d: TaskAdd::new("Rina's booster", "a0"),
+        },
+    );
+    applied(
+        &mut state,
+        Op::TaskDescribe {
+            id: task,
+            d: crate::event::Body {
+                body: Some("Call the vet first.".into()),
+            },
+        },
+    );
+    for (step, text, order) in [
+        (Ulid::generate(), "book", "b"),
+        (Ulid::generate(), "pay", "a"),
+    ] {
+        applied(
+            &mut state,
+            Op::StepAdd {
+                id: task,
+                d: crate::event::StepAdd {
+                    step,
+                    text: text.into(),
+                    order: order.into(),
+                },
+            },
+        );
+    }
+    let paid = state.tasks[&task]
+        .steps
+        .iter()
+        .find(|one| one.text == "pay")
+        .unwrap()
+        .id;
+    applied(
+        &mut state,
+        Op::StepDone {
+            id: task,
+            d: crate::event::StepRef { step: paid },
+        },
+    );
+
+    let first = made(room.path(), &state, task, None).unwrap();
+    applied(&mut state, first);
+
+    let body = crate::docs::read(room.path(), &file_at(task, 1)).unwrap();
+    assert_eq!(
+        body,
+        format!(
+            "{}\nCall the vet first.\n\n- [x] pay\n- [ ] book\n",
+            seed(task)
+        )
+    );
+    assert!(crate::stages::reconciled(&state.tasks[&task], None, &body).is_empty());
+}

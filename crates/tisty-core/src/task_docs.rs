@@ -82,6 +82,32 @@ fn turn(state: &State, task: TaskId) -> u32 {
     at
 }
 
+/// What the task already holds opens its document: the description as the body, each step a stage.
+pub fn first_words(state: &State, task: TaskId) -> String {
+    let mut out = seed(task);
+    let Some(one) = state.tasks.get(&task) else {
+        return out;
+    };
+    if let Some(said) = one
+        .description
+        .as_deref()
+        .map(str::trim)
+        .filter(|said| !said.is_empty())
+    {
+        out.push_str(&format!("\n{said}\n"));
+    }
+    let mut steps: Vec<_> = one.steps.iter().collect();
+    steps.sort_by(|a, b| a.order.cmp(&b.order).then(a.id.cmp(&b.id)));
+    if !steps.is_empty() {
+        out.push('\n');
+    }
+    for step in steps {
+        let mark = if step.done { "x" } else { " " };
+        out.push_str(&format!("- [{mark}] {}\n", step.text));
+    }
+    out
+}
+
 pub fn made(root: &Path, state: &State, task: TaskId, by: Option<String>) -> crate::Result<Op> {
     let (id, file) = match of(state, task) {
         Some(kept) => (kept.id, kept.file.clone()),
@@ -90,8 +116,9 @@ pub fn made(root: &Path, state: &State, task: TaskId, by: Option<String>) -> cra
             (id_at(task, at), file_at(task, at))
         }
     };
-    let body = match crate::docs::create_named(root, &file, &seed(task))? {
-        true => seed(task),
+    let first = first_words(state, task);
+    let body = match crate::docs::create_named(root, &file, &first)? {
+        true => first,
         false => crate::docs::read(root, &file)?,
     };
     Ok(Op::DocAdd {
