@@ -574,3 +574,19 @@ fn a_remembered_version_is_later_only_when_it_truly_is() {
     assert!(!super::later("1.31.0", "1.30.5"));
     assert!(!super::later("1.31.0", "not a version"));
 }
+
+#[test]
+fn an_update_installs_only_from_the_very_channel_the_feed_s_key_signed() {
+    let read: serde_json::Value = serde_json::from_str(SIGNED).unwrap();
+    assert!(super::trusted(
+        SIGNED.as_bytes(),
+        SIGNATURE.as_bytes(),
+        FEED_KEY
+    ));
+    assert!(super::same_channel(SIGNED.as_bytes(), &read));
+
+    let mut other = read.clone();
+    other["serial"] = serde_json::json!(9);
+    assert!(!super::same_channel(SIGNED.as_bytes(), &other));
+    assert!(!super::same_channel(b"not json", &read));
+}

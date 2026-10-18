@@ -1477,7 +1477,7 @@ jobs:
             # The index is cleared but the files are not: main carries copies of these, and they
             # would be read as the feed and committed as it.
             rm -f release-manifest.json latest.json candidate.json
-            rm -f release-manifest.json.sig
+            rm -f release-manifest.json.sig latest.json.sig candidate.json.sig
           fi
 
           # Re-running the workflow of a release that has since been passed would otherwise walk
@@ -1516,7 +1516,7 @@ jobs:
                 '{schema: 1, latest: $l, latestPrerelease: $c}' > release-manifest.json
             else
               jq -n --arg l "$v" '{schema: 1, latest: $l}' > release-manifest.json
-              rm -f candidate.json
+              rm -f candidate.json candidate.json.sig
             fi
             [ -s "$RUNNER_TEMP/channel.json" ] && cp "$RUNNER_TEMP/channel.json" latest.json
           fi
@@ -1524,26 +1524,32 @@ jobs:
 
           key="$RUNNER_TEMP/feed.key"
           printf '%s\n' "$FEED_SIGNING_KEY" > "$key"
-          # Only the manifest is signed: the channel files are trusted through the installers' own signatures.
+          # Every file the feed holds is signed again, so a channel left from an earlier run never keeps an old signature.
           signed=true
-          printf '%s\n' "$FEED_SIGNING_PASSWORD" |
-            minisign -S -s "$key" -m release-manifest.json -x release-manifest.json.sig \
-              -t "tisty feed $v" || signed=false
+          for one in release-manifest.json latest.json candidate.json; do
+            [ -f "$one" ] || continue
+            printf '%s\n' "$FEED_SIGNING_PASSWORD" |
+              minisign -S -s "$key" -m "$one" -x "$one.sig" -t "tisty feed $v" || signed=false
+          done
           rm -f "$key"
           if [ "$signed" != true ]; then
-            echo "::error::the manifest could not be signed with the feed's key"
+            echo "::error::the feed could not be signed with the feed's key"
             exit 1
           fi
-          if ! minisign -V -P "$FEED_KEY" -m release-manifest.json -x release-manifest.json.sig >/dev/null; then
-            echo "::error::release-manifest.json.sig does not answer to FEED_KEY, so no copy would believe it"
-            exit 1
-          fi
+          for one in release-manifest.json latest.json candidate.json; do
+            [ -f "$one" ] || continue
+            if ! minisign -V -P "$FEED_KEY" -m "$one" -x "$one.sig" >/dev/null; then
+              echo "::error::$one.sig does not answer to FEED_KEY, so no copy would believe it"
+              exit 1
+            fi
+          done
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           # Staged first and compared after, or a channel file would be skipped on any run where
           # the version manifest happened not to change.
-          for one in release-manifest.json latest.json candidate.json release-manifest.json.sig; do
+          for one in release-manifest.json latest.json candidate.json \
+                     release-manifest.json.sig latest.json.sig candidate.json.sig; do
             git add -A -- "$one" 2>/dev/null || true
           done
           if git diff --cached --quiet; then

@@ -144,8 +144,8 @@ jobs:
             echo "no candidate is announced, and none is served"
           fi
 
-      # From the first release that signs it, a manifest without its signature silences every copy.
-      - name: The manifest carries its own signature
+      # From the first release that signs them, a feed file without its signature silences every copy.
+      - name: The feed carries its own signatures
         if: ${{ !cancelled() }}
         env:
           FEED_KEY: ${{ vars.FEED_KEY }}
@@ -153,7 +153,7 @@ jobs:
         run: |
           set -uo pipefail
           if [ -z "$FEED_KEY" ]; then
-            echo "::error::FEED_KEY is not a repository variable, so the manifest's signature cannot be checked"
+            echo "::error::FEED_KEY is not a repository variable, so the feed's signatures cannot be checked"
             exit 1
           fi
           command -v minisign >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq minisign; }
@@ -167,21 +167,38 @@ jobs:
             exit 1
           }
           latest=$(jq -r '.latest // "0.0.0"' release-manifest.json)
-          ahead=$(jq -r '.latestPrerelease // "0.0.0"' release-manifest.json)
+          ahead=$(jq -r '.latestPrerelease // ""' release-manifest.json)
           newest=$(printf '%s\n%s\n' "$latest" "${ahead%%-*}" | sort -V | tail -1)
-          if ! get release-manifest.json.sig; then
-            if [ "$(printf '%s\n%s\n' "$FIRST_SIGNED" "$newest" | sort -V | head -1)" = "$FIRST_SIGNED" ]; then
-              echo "::error::the manifest for $newest carries no signature, so no copy built with FEED_KEY is told of updates"
-              exit 1
+          signed_from() {
+            [ "$(printf '%s\n%s\n' "$FIRST_SIGNED" "${1%%-*}" | sort -V | head -1)" = "$FIRST_SIGNED" ]
+          }
+          checked() {
+            local one="$1" said="$2"
+            if [ "$one" != release-manifest.json ] && ! get "$one"; then
+              echo "::error::$one could not be read"
+              return 1
             fi
-            echo "::warning::the manifest for $latest comes from before the feed was signed"
-            exit 0
+            if ! get "$one.sig"; then
+              if signed_from "$said"; then
+                echo "::error::$one for $said carries no signature, so no copy built with FEED_KEY takes it"
+                return 1
+              fi
+              echo "::warning::$one for $said comes from before the feed was signed"
+              return 0
+            fi
+            if ! minisign -V -P "$FEED_KEY" -m "$one" -x "$one.sig" >/dev/null; then
+              echo "::error::$one.sig does not answer to FEED_KEY, so no copy built with it takes $one"
+              return 1
+            fi
+            echo "$one for $said is signed"
+          }
+          failed=0
+          checked release-manifest.json "$newest" || failed=1
+          checked latest.json "$latest" || failed=1
+          if [ -n "$ahead" ]; then
+            checked candidate.json "$ahead" || failed=1
           fi
-          if ! minisign -V -P "$FEED_KEY" -m release-manifest.json -x release-manifest.json.sig >/dev/null; then
-            echo "::error::release-manifest.json.sig does not answer to FEED_KEY, so no copy built with it is told of updates"
-            exit 1
-          fi
-          echo "the manifest for $latest is signed"
+          exit "$failed"
 
       # cloud.json and its signature are the maintainer's signed word, put there by hand; the rest is the release's.
       - name: The branch holds only the feed
@@ -194,7 +211,7 @@ jobs:
             echo "::warning::the manifest branch could not be listed, so what it holds was not looked at"
             exit 0
           fi
-          allowed=$(printf '%s\n' candidate.json cloud.json cloud.json.sig latest.json release-manifest.json release-manifest.json.sig | sort)
+          allowed=$(printf '%s\n' candidate.json candidate.json.sig cloud.json cloud.json.sig latest.json latest.json.sig release-manifest.json release-manifest.json.sig | sort)
           extra=$(comm -23 <(echo "$held") <(echo "$allowed"))
           if [ -n "$extra" ]; then
             echo "::warning::the manifest branch carries files that are not the feed: $(echo "$extra" | tr '\n' ' ')"

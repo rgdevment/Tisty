@@ -282,38 +282,83 @@ fn asked(client: &reqwest::blocking::Client, url: &str) -> Option<Vec<u8>> {
     Some(held)
 }
 
-/// A look that never answered is Nothing; Unsigned is only a feed that answered and did not verify.
-pub fn fetch() -> Heard {
-    let Ok(client) = reqwest::blocking::Client::builder()
+fn client() -> Option<reqwest::blocking::Client> {
+    reqwest::blocking::Client::builder()
         .timeout(PATIENCE)
         .user_agent(concat!("tisty/", env!("CARGO_PKG_VERSION")))
         .build()
-    else {
+        .ok()
+}
+
+enum Signed {
+    Nothing,
+    Unsigned,
+    Said(Vec<u8>),
+}
+
+// The file and its signature are cached apart, so only a pair that disagrees is asked past the cache.
+fn read_signed(client: &reqwest::blocking::Client, url: &str, key: &str) -> Signed {
+    let fresh = format!("?at={}", jiff::Timestamp::now().as_second());
+    for past in ["", fresh.as_str()] {
+        let Some(said) = asked(client, &format!("{url}{past}")) else {
+            return Signed::Nothing;
+        };
+        let Some(signature) = asked(client, &format!("{url}.sig{past}")) else {
+            return Signed::Nothing;
+        };
+        if trusted(&said, &signature, key) {
+            return Signed::Said(said);
+        }
+    }
+    Signed::Unsigned
+}
+
+/// A look that never answered is Nothing; Unsigned is only a feed that answered and did not verify.
+pub fn fetch() -> Heard {
+    let Some(client) = client() else {
         return Heard::Nothing;
     };
     let text = |said: Vec<u8>| String::from_utf8(said).map_or(Heard::Nothing, Heard::Said);
     let Some(key) = feed_key() else {
         return asked(&client, MANIFEST).map_or(Heard::Nothing, text);
     };
-    // The file and its signature are cached apart, so only a pair that disagrees is asked past the cache.
-    let fresh = format!("?at={}", jiff::Timestamp::now().as_second());
-    for past in ["", fresh.as_str()] {
-        let Some(said) = asked(&client, &format!("{MANIFEST}{past}")) else {
-            return Heard::Nothing;
-        };
-        let Some(signature) = asked(&client, &format!("{MANIFEST}.sig{past}")) else {
-            return Heard::Nothing;
-        };
-        if trusted(&said, &signature, key) {
-            return text(said);
+    match read_signed(&client, MANIFEST, key) {
+        Signed::Said(said) => text(said),
+        Signed::Nothing => Heard::Nothing,
+        Signed::Unsigned => {
+            witness::warn(
+                channel::WINDOW,
+                "the release manifest did not verify against the feed's key, and was set aside",
+                &[],
+            );
+            Heard::Unsigned
         }
     }
-    witness::warn(
-        channel::WINDOW,
-        "the release manifest did not verify against the feed's key, and was set aside",
-        &[],
-    );
-    Heard::Unsigned
+}
+
+pub fn same_channel(said: &[u8], read: &serde_json::Value) -> bool {
+    serde_json::from_slice::<serde_json::Value>(said).is_ok_and(|one| one == *read)
+}
+
+// The plugin reads the channel itself and cannot be handed one, so what it read must be the very JSON the feed's key signed.
+pub fn channel_vouched(read: &serde_json::Value, version: &str) -> bool {
+    let Some(key) = feed_key() else {
+        return true;
+    };
+    let Some(client) = client() else {
+        return false;
+    };
+    let vouched = feeds_for(version).into_iter().any(|url| {
+        matches!(read_signed(&client, url, key), Signed::Said(said) if same_channel(&said, read))
+    });
+    if !vouched {
+        witness::warn(
+            channel::WINDOW,
+            "the update channel the installer came from did not match one the feed's key signed",
+            &[],
+        );
+    }
+    vouched
 }
 
 pub fn later(now: &str, version: &str) -> bool {

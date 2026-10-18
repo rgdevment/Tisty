@@ -134,7 +134,7 @@ to the code:
 | `TISTY_GOOGLE_CLIENT_SECRET` | That client's secret, which Google asks a desktop client to send along |
 | `TISTY_MICROSOFT_CLIENT_ID` | The Microsoft public client the OneDrive sign-in names; it has no secret |
 | `TISTY_CLOUD_POLICY_KEY` | The minisign public key that `cloud.json` — the signed file that can lower the daily limits or pause syncing on every copy — must be signed with |
-| `TISTY_FEED_KEY` | The minisign public key the update feed's `release-manifest.json` must be signed with; the channel files rely on the installers' own signatures |
+| `TISTY_FEED_KEY` | The minisign public key the update feed (`release-manifest.json`, `latest.json`, `candidate.json`) must be signed with |
 
 A fork or a build compiled without the first two offers no Google Drive, and
 one without the third offers no OneDrive: the choice does not appear and no

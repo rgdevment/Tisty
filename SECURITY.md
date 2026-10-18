@@ -129,13 +129,13 @@ Being explicit here matters more than sounding reassuring.
 - **The installer and the feed are both signed.** Each installer is signed with
   the version it was cut for, and Tisty requires that version to match the one
   it was offered, so an older Tisty — genuinely signed, genuinely ours — cannot
-  pose as a newer one. The manifest that announces versions
-  (`release-manifest.json`) carries a minisign signature of its own, under a key
-  kept apart from the updater's and only where the release publishes the feed.
-  A copy built with its public half announces no version from a manifest it
-  cannot verify. The channel files the updater reads (`latest.json`,
-  `candidate.json`) are not signed: installing is guarded by the installer's own
-  signature, never by what those files say.
+  pose as a newer one. Every file of the feed — the manifest that announces
+  versions (`release-manifest.json`) and the channel files the updater reads
+  (`latest.json`, `candidate.json`) — carries a minisign signature of its own,
+  under a key kept apart from the updater's and only where the release publishes
+  the feed. A copy built with its public half announces no version from a
+  manifest it cannot verify, and installs nothing unless the channel the updater
+  read is the very one that key signed.
   What a signature cannot do is make the feed speak: whoever could write to it
   could still leave it unchanged. Copies from before the feed was signed read it
   as they always did, and update the same way.
