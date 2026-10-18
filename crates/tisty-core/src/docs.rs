@@ -895,8 +895,12 @@ fn shown_around(body: &str, terms: &[String]) -> Option<String> {
     let mut best: Option<(usize, String)> = None;
     let mut backup: Option<(usize, String)> = None;
     let mut fence = Fencing::default();
+    let front = tisty_markdown::front::span(body).map_or(0, |at| body[..at.end].lines().count());
 
-    for line in body.lines() {
+    for (at, line) in body.lines().enumerate() {
+        if at < front && crate::task_docs::bookkept(line) {
+            continue;
+        }
         let drawn = fence.inside(line);
         let said = bare(line);
         let flat = crate::text::folded(&said);

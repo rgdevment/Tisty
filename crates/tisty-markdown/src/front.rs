@@ -119,13 +119,18 @@ pub fn words(values: &[String]) -> Vec<String> {
         .collect()
 }
 
+// Single quotes keep a backslash and a double quote literal, where double quotes read escapes.
+pub fn quoted(said: &str) -> String {
+    match said.contains(['"', '\\']) {
+        true => format!("'{}'", said.replace('\'', "''")),
+        false => format!("\"{said}\""),
+    }
+}
+
 // The `title:` line rewritten whole, so a list or a quote around the old value never lingers.
 pub fn titled_as(front: &str, name: &str) -> Option<String> {
     title(front)?;
-    let (quote, name) = match name.contains('"') {
-        true => ('\'', name.replace('\'', "''")),
-        false => ('"', name.to_string()),
-    };
+    let name = quoted(name);
     let mut out = String::with_capacity(front.len() + name.len());
     let mut done = false;
     for line in front.split_inclusive('\n') {
@@ -139,7 +144,7 @@ pub fn titled_as(front: &str, name: &str) -> Option<String> {
             continue;
         }
         let ending = &line[line.trim_end().len()..];
-        out.push_str(&format!("title: {quote}{name}{quote}{ending}"));
+        out.push_str(&format!("title: {name}{ending}"));
         done = true;
     }
     done.then_some(out)

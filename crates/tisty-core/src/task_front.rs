@@ -125,10 +125,9 @@ fn quoted(said: &str) -> String {
         && !said.starts_with(['-', '&', '*', '!', '@', '|', '>', '%', '?', '`'])
         && !WORDS.contains(&lower.as_str())
         && lower.parse::<f64>().is_err();
-    match (plain, said.contains('"')) {
-        (true, _) => said.to_string(),
-        (false, false) => format!("\"{said}\""),
-        (false, true) => format!("'{}'", said.replace('\'', "''")),
+    match plain {
+        true => said.to_string(),
+        false => tisty_markdown::front::quoted(said),
     }
 }
 
