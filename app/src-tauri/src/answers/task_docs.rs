@@ -75,10 +75,12 @@ pub fn task_doc_make(session: tauri::State<'_, Mutex<Session>>, id: String) -> A
         return Ok(file);
     }
     let task = open_task(&session, id)?;
+    let owner = tisty_core::task_docs::owner(&session.state, id);
+    let fresh = tisty_core::task_docs::fresh(&session.paths.docs(), &session.state, owner);
     let op = tisty_core::task_docs::made(
         &session.paths.docs(),
         &session.state,
-        tisty_core::task_docs::owner(&session.state, id),
+        owner,
         id,
         signing(&session.state),
     )
@@ -87,10 +89,12 @@ pub fn task_doc_make(session: tauri::State<'_, Mutex<Session>>, id: String) -> A
         return Err(Refusal::of("internal"));
     };
     let file = d.file.clone();
-    // A template's stages are steps the task did not have yet, born with it in the same breath.
-    let body = tisty_core::docs::read(&session.paths.docs(), &file).unwrap_or_default();
     let mut ops = vec![op];
-    ops.extend(tisty_core::stages::reconciled(&task, None, &body));
+    // A file already on disk is old words, and only a template's fresh stages are new steps.
+    if fresh {
+        let body = tisty_core::docs::read(&session.paths.docs(), &file)?;
+        ops.extend(tisty_core::stages::reconciled(&task, None, &body));
+    }
     session.commit_all(ops)?;
     Ok(file)
 }

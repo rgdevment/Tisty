@@ -140,3 +140,71 @@ fn templates_are_found_on_disk_by_their_front_matter_alone() {
     assert_eq!(all[0].file, "a3f1-0001");
     assert_eq!(all[0].scope, Scope::Tasks);
 }
+
+#[test]
+fn a_list_is_matched_whatever_its_capitals_and_never_by_a_reserved_word() {
+    let mut state = State::default();
+    let tree = Ulid::generate();
+    let reserved = Ulid::generate();
+    for (id, name) in [(tree, "Árbol"), (reserved, "Routines")] {
+        applied(
+            &mut state,
+            Op::ListAdd {
+                id,
+                d: ListAdd {
+                    name: name.into(),
+                    order: "a0".into(),
+                    color: None,
+                },
+            },
+        );
+    }
+    let (_, r#for) = told("---\ntemplate: tasks\ntemplate_for: \"@Árbol\"\n---\n").unwrap();
+    let all = vec![
+        template("a-0001", Scope::Tasks, r#for.as_deref()),
+        template("a-0002", Scope::Tasks, Some(super::EVERY_ROUTINE)),
+        template("a-0003", Scope::Tasks, Some(super::EVERY_TASK)),
+    ];
+    let mut task = crate::model::Task::new(Ulid::generate(), "Prune", "a0");
+
+    task.list = Some(tree);
+    assert_eq!(
+        picked(&all, &state, &task).map(|one| one.file.as_str()),
+        Some("a-0001")
+    );
+
+    task.list = Some(reserved);
+    assert_eq!(
+        picked(&all, &state, &task).map(|one| one.file.as_str()),
+        Some("a-0003")
+    );
+}
+
+#[test]
+fn a_long_template_cut_inside_a_letter_is_still_told() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    let text = format!("---\ntemplate: tasks\n---\n{}", "ñ".repeat(9000));
+    std::fs::write(room.path().join("a3f1-0001.md"), text).unwrap();
+    applied(
+        &mut state,
+        Op::DocAdd {
+            id: Ulid::generate(),
+            d: DocAdd {
+                file: "a3f1-0001".into(),
+                order: "a0".into(),
+                ..DocAdd::default()
+            },
+        },
+    );
+
+    assert_eq!(found(room.path(), &state).len(), 1);
+}
+
+#[test]
+fn a_template_written_on_windows_hands_over_plain_lines() {
+    assert_eq!(
+        body("---\r\ntemplate: tasks\r\n---\r\n\r\n## Steps\r\n"),
+        "## Steps\n"
+    );
+}

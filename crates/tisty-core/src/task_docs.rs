@@ -107,7 +107,6 @@ pub fn first_words(state: &State, task: TaskId) -> String {
     opened(state, task, "")
 }
 
-/// The template's words come first; the task's own description and steps follow them.
 pub fn opened(state: &State, task: TaskId, template: &str) -> String {
     let mut out = seed(task);
     let template = template.trim_end();
@@ -125,7 +124,15 @@ pub fn opened(state: &State, task: TaskId, template: &str) -> String {
     {
         out.push_str(&format!("\n{said}\n"));
     }
-    let steps = crate::stages::ordered(one);
+    // A step the template already lists is that stage, not a second line for it.
+    let given: Vec<String> = crate::stages::stages(&out)
+        .iter()
+        .map(|one| crate::stages::title(&one.text))
+        .collect();
+    let steps: Vec<_> = crate::stages::ordered(one)
+        .into_iter()
+        .filter(|step| !given.contains(&crate::stages::title(&step.text)))
+        .collect();
     if !steps.is_empty() {
         out.push('\n');
         out.push_str(&crate::stages::lines(&steps));
@@ -141,14 +148,11 @@ pub fn made(
     from: TaskId,
     by: Option<String>,
 ) -> crate::Result<Op> {
-    let (id, file) = match of(state, task) {
-        Some(kept) => (kept.id, kept.file.clone()),
-        None => {
-            let at = turn(state, task);
-            (id_at(task, at), file_at(task, at))
-        }
+    let (id, file) = planned(state, task);
+    let first = match fresh(root, state, task) {
+        true => opened(state, from, &template_words(root, state, from)),
+        false => String::new(),
     };
-    let first = opened(state, from, &template_words(root, state, from));
     let body = match crate::docs::create_named(root, &file, &first)? {
         true => first,
         false => crate::docs::read(root, &file)?,
@@ -166,6 +170,20 @@ pub fn made(
     })
 }
 
+fn planned(state: &State, task: TaskId) -> (DocId, String) {
+    match of(state, task) {
+        Some(kept) => (kept.id, kept.file.clone()),
+        None => {
+            let at = turn(state, task);
+            (id_at(task, at), file_at(task, at))
+        }
+    }
+}
+
+pub fn fresh(root: &Path, state: &State, task: TaskId) -> bool {
+    crate::docs::resolve(root, &planned(state, task).1).is_ok_and(|at| !at.exists())
+}
+
 fn template_words(root: &Path, state: &State, task: TaskId) -> String {
     let Some(one) = state.tasks.get(&task) else {
         return String::new();
@@ -173,7 +191,7 @@ fn template_words(root: &Path, state: &State, task: TaskId) -> String {
     let all = crate::templates::found(root, state);
     crate::templates::picked(&all, state, one)
         .and_then(|template| crate::docs::read(root, &template.file).ok())
-        .map(|text| crate::templates::body(&text).to_string())
+        .map(|text| crate::templates::body(&text))
         .unwrap_or_default()
 }
 

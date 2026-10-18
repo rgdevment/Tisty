@@ -44,7 +44,7 @@ pub fn told(text: &str) -> Option<(Scope, Option<String>)> {
             .iter()
             .find(|one| one.key.eq_ignore_ascii_case(key))
             .and_then(|one| one.values.first())
-            .map(|one| one.trim().to_ascii_lowercase())
+            .map(|one| one.trim().to_lowercase())
     };
     let scope = match said(KEY)?.as_str() {
         "tasks" => Scope::Tasks,
@@ -58,24 +58,26 @@ pub fn told(text: &str) -> Option<(Scope, Option<String>)> {
     Some((scope, r#for))
 }
 
-/// What a template hands a new document: its words, without the front matter that makes it one.
-pub fn body(text: &str) -> &str {
+pub fn body(text: &str) -> String {
     let rest = match tisty_markdown::front::span(text) {
         Some(at) => &text[at.end..],
         None => text,
     };
-    rest.trim_start_matches(['\n', '\r'])
+    rest.replace("\r\n", "\n")
+        .trim_start_matches('\n')
+        .to_string()
 }
 
 fn head(root: &Path, file: &str) -> Option<String> {
     let at = crate::docs::resolve(root, file).ok()?;
-    let mut read = String::new();
+    let mut read = Vec::new();
     std::fs::File::open(at)
         .ok()?
         .take(HEAD_AT_MOST)
-        .read_to_string(&mut read)
+        .read_to_end(&mut read)
         .ok()?;
-    Some(read)
+    // The cut may fall inside a letter, and only the front matter at the top is wanted.
+    Some(String::from_utf8_lossy(&read).into_owned())
 }
 
 pub fn found(root: &Path, state: &State) -> Vec<Template> {
@@ -97,12 +99,12 @@ pub fn found(root: &Path, state: &State) -> Vec<Template> {
     out
 }
 
-/// The list's own template first, then the one every routine or every task takes.
 pub fn picked<'a>(all: &'a [Template], state: &State, task: &Task) -> Option<&'a Template> {
     let list = task
         .list
         .and_then(|id| state.lists.get(&id))
-        .map(|one| one.name.to_lowercase());
+        .map(|one| one.name.to_lowercase())
+        .filter(|name| name != EVERY_TASK && name != EVERY_ROUTINE);
     let routine = task.repeat.is_some() || task.after.is_some();
     let named = |name: &str| {
         all.iter()

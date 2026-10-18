@@ -298,3 +298,31 @@ fn a_task_s_document_opens_with_its_template_then_its_own_words() {
         "{ops:?}"
     );
 }
+
+#[test]
+fn a_step_the_template_already_lists_is_not_written_twice() {
+    let mut state = State::default();
+    let task = Ulid::generate();
+    applied(
+        &mut state,
+        Op::TaskAdd {
+            id: task,
+            d: TaskAdd::new("Ship 4.2", "a0"),
+        },
+    );
+    applied(
+        &mut state,
+        Op::StepAdd {
+            id: task,
+            d: crate::event::StepAdd {
+                step: Ulid::generate(),
+                text: "Back up first".into(),
+                order: "a0".into(),
+            },
+        },
+    );
+
+    let body = super::opened(&state, task, "## Steps\n\n- [ ] Back up first\n");
+
+    assert_eq!(body.matches("Back up first").count(), 1, "{body}");
+}
