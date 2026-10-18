@@ -123,7 +123,7 @@ jobs:
       prerelease: ${{ steps.resolve.outputs.prerelease }}
       macos: ${{ steps.resolve.outputs.macos }}
       cli: ${{ steps.resolve.outputs.cli }}
-      # One key read in one place, so the app and the feed's check can never hold two.
+      # A repository variable, never an environment's, so the app and the daily check read the same key.
       feed_key: ${{ vars.FEED_KEY }}
     env:
       HAS_P12: ${{ secrets.MACOS_CERTIFICATE_P12 != '' }}
@@ -1520,12 +1520,16 @@ jobs:
 
           key="$RUNNER_TEMP/feed.key"
           printf '%s\n' "$FEED_SIGNING_KEY" > "$key"
-          # Only the manifest announces versions: the updater reads the channel files and trusts the
-          # installers' own signatures, never anything a file says.
+          # Only the manifest is signed: the channel files are trusted through the installers' own signatures.
+          signed=true
           printf '%s\n' "$FEED_SIGNING_PASSWORD" |
             minisign -S -s "$key" -m release-manifest.json -x release-manifest.json.sig \
-              -t "tisty feed $v"
+              -t "tisty feed $v" || signed=false
           rm -f "$key"
+          if [ "$signed" != true ]; then
+            echo "::error::the manifest could not be signed with the feed's key"
+            exit 1
+          fi
           if ! minisign -V -P "$FEED_KEY" -m release-manifest.json -x release-manifest.json.sig >/dev/null; then
             echo "::error::release-manifest.json.sig does not answer to FEED_KEY, so no copy would believe it"
             exit 1

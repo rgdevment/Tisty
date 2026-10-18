@@ -104,7 +104,11 @@ pub async fn update_ready(
             }
             shop::Shelf::Queued => {
                 // A feed that could not be read says nothing of the version, so the one known stays.
-                let version = if unheard { found.clone() } else { out.clone() };
+                let version = if unheard {
+                    found.clone().filter(|version| update::later(HERE, version))
+                } else {
+                    out.clone()
+                };
                 held(&session).keep(|c| {
                     c.checked_at = Some(now);
                     c.found_version = version.clone();
@@ -146,13 +150,19 @@ pub async fn update_ready(
         .await
         .map_err(|_| Refusal::of("internal"))?;
 
-    // A look that never answered or could not be trusted says nothing about whether an update is
-    // owed, so what was found before stays; only an untrusted one waits for tomorrow's look.
+    // An untrusted feed waits for tomorrow's look, and keeps only an offer still ahead of this copy.
     let manifest = match heard {
         update::Heard::Said(said) => said,
         update::Heard::Unsigned => {
-            held(&session).keep(|c| c.checked_at = Some(now))?;
-            return Ok(update::remembered(HERE, found.as_deref(), kept, wants));
+            let ahead = found.filter(|version| update::later(HERE, version));
+            held(&session).keep(|c| {
+                c.checked_at = Some(now);
+                c.found_version = ahead.clone();
+            })?;
+            if asked {
+                return Err(Refusal::of("updateUnconfirmed"));
+            }
+            return Ok(update::remembered(HERE, ahead.as_deref(), kept, wants));
         }
         update::Heard::Nothing => {
             return Ok(update::remembered(HERE, found.as_deref(), kept, wants));

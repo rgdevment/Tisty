@@ -153,20 +153,25 @@ jobs:
         run: |
           set -uo pipefail
           if [ -z "$FEED_KEY" ]; then
-            echo "::warning::FEED_KEY is not set, so the manifest's signature was not looked at"
-            exit 0
+            echo "::error::FEED_KEY is not a repository variable, so the manifest's signature cannot be checked"
+            exit 1
           fi
-          command -v minisign >/dev/null || sudo apt-get install -y -qq minisign
+          command -v minisign >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq minisign; }
           feed="https://raw.githubusercontent.com/${{ github.repository }}/manifest"
           at=$(date +%s)
-          curl -fsS "$feed/release-manifest.json?at=$at" -o release-manifest.json || {
+          get() {
+            curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 -o "$1" "$feed/$1?at=$at"
+          }
+          get release-manifest.json || {
             echo "::error::the manifest could not be read"
             exit 1
           }
           latest=$(jq -r '.latest // "0.0.0"' release-manifest.json)
-          if ! curl -fsS "$feed/release-manifest.json.sig?at=$at" -o release-manifest.json.sig; then
-            if [ "$(printf '%s\n%s\n' "$FIRST_SIGNED" "$latest" | sort -V | head -1)" = "$FIRST_SIGNED" ]; then
-              echo "::error::the manifest for $latest carries no signature, so no copy built with FEED_KEY is told of updates"
+          ahead=$(jq -r '.latestPrerelease // "0.0.0"' release-manifest.json)
+          newest=$(printf '%s\n%s\n' "$latest" "${ahead%%-*}" | sort -V | tail -1)
+          if ! get release-manifest.json.sig; then
+            if [ "$(printf '%s\n%s\n' "$FIRST_SIGNED" "$newest" | sort -V | head -1)" = "$FIRST_SIGNED" ]; then
+              echo "::error::the manifest for $newest carries no signature, so no copy built with FEED_KEY is told of updates"
               exit 1
             fi
             echo "::warning::the manifest for $latest comes from before the feed was signed"
