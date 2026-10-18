@@ -301,6 +301,9 @@ pub fn taken_in(state: &crate::State, body: &str, was: Option<&str>, tz: &str) -
     let body = format!("---\n{}\n---\n{rest}", block.join("\n"));
     let before = was.map(|one| crate::stages::ticked(task, one));
     ops.extend(crate::stages::reconciled(task, before.as_deref(), &body));
+    if let Some(was) = was {
+        ops.extend(crate::paged::paged(id, was, &body));
+    }
     Some(TakenIn {
         task: id,
         ops,

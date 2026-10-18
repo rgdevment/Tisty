@@ -36,6 +36,9 @@ export interface Hands {
   papers?: readonly Filed[];
 }
 
+/** A settle that wrote to the log: as good as one that needed nothing, but the trail has news. */
+export const WROTE = "wrote";
+
 export const detailOf = (one: Task, h: Hands) => ({
   task: one,
   lists: h.data.every ?? h.data.lists,
@@ -70,9 +73,10 @@ export const detailOf = (one: Task, h: Hands) => ({
   onHang: (whole: string | null) => h.act(hang(one.id, whole)),
   onSettle: (before: string, now: string, renamed?: readonly [string, string][]) =>
     queued(`settle:${one.id}`, () => taskDocSettled(one.id, before, now, renamed)).then(
-      (changed) => {
-        if (changed) h.act(Promise.resolve(changed));
-        return null;
+      (changed): string | null => {
+        if (!changed) return null;
+        h.act(Promise.resolve(changed));
+        return WROTE;
       },
       (problem: unknown) => {
         h.fail(problem);

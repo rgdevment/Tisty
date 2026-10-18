@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Snapshot, Task } from "../core";
-import { detailOf, erasing, type Hands } from "../detailing";
+import { detailOf, erasing, type Hands, WROTE } from "../detailing";
 import { fill } from "../locales";
 
 const calls: { cmd: string; args: Record<string, unknown> }[] = [];
@@ -139,5 +139,11 @@ describe("a task document left as it was", () => {
 
     expect(sent()).toContain("task_doc_settled");
     expect(h.act).not.toHaveBeenCalled();
+  });
+
+  it("says it wrote only when the log took something, so the trail looks again only then", async () => {
+    const h = hands();
+    await expect(detailOf(task, h).onSettle("igual", "igual")).resolves.toBeNull();
+    await expect(detailOf(task, h).onSettle("antes", "ahora")).resolves.toBe(WROTE);
   });
 });
