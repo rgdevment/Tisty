@@ -683,54 +683,33 @@ const widen = (px: number) => {
   });
 };
 
-describe("the width below which a task takes the whole window", () => {
+describe("a task opens on a page of its own, whatever the width", () => {
   afterEach(() => widen(1440));
 
-  it("opens a task full screen a pixel under 1308", async () => {
-    const user = userEvent.setup();
-    Object.defineProperty(window, "innerWidth", {
-      configurable: true,
-      writable: true,
-      value: 1307,
+  for (const px of [1307, 1440]) {
+    it(`takes the whole window at ${px}`, async () => {
+      const user = userEvent.setup();
+      widen(px);
+      await started();
+
+      await user.click(screen.getByText("write the report"));
+
+      expect(
+        await screen.findByRole("button", { name: new RegExp(`^${t("collapse")}`) }),
+      ).toBeTruthy();
+      expect(screen.queryByRole("button", { name: t("expand") })).toBeNull();
     });
-    await started();
+  }
 
-    await user.click(screen.getByText("write the report"));
-
-    expect(
-      await screen.findByRole("button", { name: new RegExp(`^${t("collapse")}`) }),
-    ).toBeTruthy();
-    expect(screen.queryByRole("button", { name: t("expand") })).toBeNull();
-  });
-
-  it("opens a task beside the list right at 1308", async () => {
-    const user = userEvent.setup();
-    Object.defineProperty(window, "innerWidth", {
-      configurable: true,
-      writable: true,
-      value: 1308,
-    });
-    await started();
-
-    await user.click(screen.getByText("write the report"));
-
-    expect(await screen.findByRole("button", { name: t("expand") })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: new RegExp(`^${t("collapse")}`) })).toBeNull();
-  });
-
-  it("falls back to full screen once a live resize crosses under 1308", async () => {
+  it("goes back to the list from the page, closing the task", async () => {
     const user = userEvent.setup();
     await started();
 
     await user.click(screen.getByText("write the report"));
-    expect(await screen.findByRole("button", { name: t("expand") })).toBeTruthy();
+    await user.click(await screen.findByRole("button", { name: new RegExp(`^${t("collapse")}`) }));
 
-    widen(1307);
-
-    expect(
-      await screen.findByRole("button", { name: new RegExp(`^${t("collapse")}`) }),
-    ).toBeTruthy();
-    expect(screen.queryByRole("button", { name: t("expand") })).toBeNull();
+    expect(await screen.findByText("write the report")).toBeTruthy();
+    expect(screen.queryByRole("textbox", { name: "Title" })).toBeNull();
   });
 });
 

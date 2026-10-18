@@ -20,7 +20,6 @@ import Spread from "./Spread";
 export default function Stage() {
   const {
     act,
-    beside,
     bringBack,
     carried,
     carries,
@@ -41,7 +40,6 @@ export default function Stage() {
     papersChanged,
     parcels,
     ready,
-    remember,
     setCameFrom,
     setChosen,
     setDealing,
@@ -56,7 +54,6 @@ export default function Stage() {
     standing,
     strip,
     task,
-    tight,
     told,
     underway,
   } = useDesk();
@@ -133,7 +130,6 @@ export default function Stage() {
         tasks={data.tasks}
         counts={data.counts}
         lists={data.lists}
-        beside={beside}
         onPlace={(id, where) => act(patch(id, { priority: where }))}
         onOpen={(one) => setSelected(one.id)}
         onSow={(where) => {
@@ -181,8 +177,7 @@ export default function Stage() {
       {...detailing(task)}
       expanded
       from={title(chosen, data.lists)}
-      onExpand={() => remember("sheet")}
-      onCollapse={() => (tight ? shut() : remember("columns"))}
+      onCollapse={shut}
     />
   ) : (
     <Board />

@@ -12,7 +12,6 @@ interface Props {
   tasks: Task[];
   counts: Record<string, number>;
   lists: List[];
-  beside: boolean;
   onPlace: (task: string, where: Priority) => void;
   onOpen: (task: Task) => void;
   onSow: (where: Priority) => void;
@@ -25,7 +24,6 @@ export default function Matrix({
   tasks,
   counts,
   lists,
-  beside,
   onPlace,
   onOpen,
   onSow,
@@ -58,7 +56,7 @@ export default function Matrix({
 
   useLayoutEffect(trail, [held]);
 
-  const tray = asked && !beside;
+  const tray = asked;
 
   const swing = (open: boolean) => {
     localStorage.setItem(KEPT, open ? "open" : "shut");
@@ -153,7 +151,7 @@ export default function Matrix({
       <div data-tauri-drag-region className="h-9 shrink-0" />
       <header className="-mt-3 flex items-baseline gap-3">
         <h2 className="text-[21px] font-semibold tracking-[-0.015em]">{t("quadrants")}</h2>
-        {!asked && !beside && waiting > 0 && (
+        {!asked && waiting > 0 && (
           <button
             type="button"
             onClick={() => swing(true)}
