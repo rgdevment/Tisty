@@ -250,6 +250,14 @@ pub async fn update_install(
     if !update::ours(update.download_url.as_str()) {
         return Err(Refusal::of("updateElsewhere"));
     }
+    let read = update.raw_json.clone();
+    let vouched =
+        tauri::async_runtime::spawn_blocking(move || update::channel_vouched(&read, &want))
+            .await
+            .map_err(|_| Refusal::of("internal"))?;
+    if !vouched {
+        return Err(Refusal::of("updateUnconfirmed"));
+    }
     // The plugin builds the download with no deadline of its own, and a server that dribbles
     // bytes forever would otherwise be waited on forever.
     update.timeout = Some(std::time::Duration::from_secs(600));

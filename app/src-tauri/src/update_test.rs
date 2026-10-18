@@ -560,11 +560,26 @@ const SIGNATURE: &str =
 #[test]
 fn a_feed_is_believed_only_with_the_feed_s_own_signature() {
     let (said, signature) = (SIGNED.as_bytes(), SIGNATURE.as_bytes());
-    assert!(super::trusted(said, signature, FEED_KEY));
+    assert!(super::trusted(said, signature, FEED_KEY, "lowered.json"));
     let altered = SIGNED.replace("1000", "9000");
-    assert!(!super::trusted(altered.as_bytes(), signature, FEED_KEY));
-    assert!(!super::trusted(said, b"not a signature", FEED_KEY));
-    assert!(!super::trusted(said, &[0xff, 0xfe], FEED_KEY));
+    assert!(!super::trusted(
+        altered.as_bytes(),
+        signature,
+        FEED_KEY,
+        "lowered.json"
+    ));
+    assert!(!super::trusted(
+        said,
+        b"not a signature",
+        FEED_KEY,
+        "lowered.json"
+    ));
+    assert!(!super::trusted(
+        said,
+        &[0xff, 0xfe],
+        FEED_KEY,
+        "lowered.json"
+    ));
 }
 
 #[test]
@@ -573,4 +588,21 @@ fn a_remembered_version_is_later_only_when_it_truly_is() {
     assert!(!super::later("1.31.0", "1.31.0"));
     assert!(!super::later("1.31.0", "1.30.5"));
     assert!(!super::later("1.31.0", "not a version"));
+}
+
+#[test]
+fn an_update_installs_only_from_the_very_channel_the_feed_s_key_signed() {
+    let read: serde_json::Value = serde_json::from_str(SIGNED).unwrap();
+    let (said, signature) = (SIGNED.as_bytes(), SIGNATURE.as_bytes());
+    assert!(
+        !super::trusted(said, signature, FEED_KEY, "latest.json"),
+        "a file signed under one name stood in for another"
+    );
+    assert_eq!(super::named(super::LATEST), "latest.json");
+    assert!(super::same_channel(SIGNED.as_bytes(), &read));
+
+    let mut other = read.clone();
+    other["serial"] = serde_json::json!(9);
+    assert!(!super::same_channel(SIGNED.as_bytes(), &other));
+    assert!(!super::same_channel(b"not json", &read));
 }
