@@ -663,7 +663,7 @@ export default function Docs({
       >
         {open ? (
           <div style={sheetRoom} className="relative mx-auto flex min-h-0 w-full flex-1 flex-col">
-            <Suspense fallback={<p className="text-[12.5px] text-faint">{t("opening")}</p>}>
+            <Suspense fallback={<div className="min-h-0 flex-1" />}>
               <Sheet
                 sheet={sheetOf}
                 file={open.file}

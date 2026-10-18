@@ -11,6 +11,7 @@ import { caretAt, type Editing, edited } from "./blocking";
 import { movedCard, putCard } from "./carded";
 import type { Carded } from "./carding";
 import { wrapped } from "./formatting";
+import { useKeptHeight } from "./heights";
 import Menu, { type Choice } from "./Menu";
 import { mended as mendedText } from "./mending";
 import Page from "./Page";
@@ -68,6 +69,7 @@ export default function Sheet(props: Readonly<Props>) {
   const shown = useRef<Window | null>(null);
   const putting = useRef(-1);
   const [ready, setReady] = useState(false);
+  const kept = useKeptHeight<HTMLDivElement>(file ?? label);
   const [more, setMore] = useState<Extract<Went, { kind: "more" }> | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; choices: Choice[] } | null>(null);
   const askedOn = useRef("");
@@ -567,7 +569,12 @@ export default function Sheet(props: Readonly<Props>) {
     >
       {above}
       <div
-        style={props.sheet && { maxWidth: props.sheet.wide }}
+        ref={kept.ref}
+        style={{
+          ...(props.sheet && { maxWidth: props.sheet.wide }),
+          // Until it is drawn the page holds the room it last took, so nothing under it jumps.
+          ...(!ready && kept.height && { minHeight: kept.height }),
+        }}
         className="tisty-sheet mx-auto w-full shrink-0 overflow-hidden rounded-[10px] bg-sheet"
       >
         <Page

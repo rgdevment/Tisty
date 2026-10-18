@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { docWrite, type Task, type TaskDoc, taskDocMake, taskDocOpen } from "../core";
-import { t } from "../locales";
 import { holds, queued } from "../saving";
+import { useKeptHeight } from "./heights";
 
 const Sheet = lazy(() => import("./Sheet"));
 
@@ -31,6 +31,7 @@ export default function TaskWords({ task, onSettle, onError, onDoc, shaping, onH
   const holding = useRef(onHeld);
   holding.current = onHeld;
   const open = task.status === "open";
+  const kept = useKeptHeight<HTMLDivElement>(`task:${task.id}`);
 
   useEffect(() => {
     let live = true;
@@ -50,22 +51,26 @@ export default function TaskWords({ task, onSettle, onError, onDoc, shaping, onH
     };
   }, [task.id, open, turn]);
 
-  if (!doc) return null;
+  // While the page is read, its room stays as it last was, so what is under it never jumps.
+  if (!doc) return <div ref={kept.ref} style={{ minHeight: kept.height }} />;
   // A task's document is made by the first words written on it, never by looking at the task.
   const make = doc.file || doc.held ? undefined : (body: string) => taskDocMake(task.id, body);
   return (
-    <Written
-      key={`${doc.file}:${seen}`}
-      id={task.id}
-      doc={doc}
-      make={make}
-      label={task.title}
-      onSettle={doc.held ? undefined : onSettle}
-      onError={onError}
-      onDoc={onDoc}
-      onMoved={() => setTurn((one) => one + 1)}
-      shaping={shaping}
-    />
+    <div ref={kept.ref}>
+      <Written
+        key={`${doc.file}:${seen}`}
+        id={task.id}
+        doc={doc}
+        make={make}
+        label={task.title}
+        onSettle={doc.held ? undefined : onSettle}
+        onError={onError}
+        onDoc={onDoc}
+        onMoved={() => setTurn((one) => one + 1)}
+        shaping={shaping}
+        room={kept.height}
+      />
+    </div>
   );
 }
 
@@ -79,6 +84,7 @@ function Written({
   onDoc,
   onMoved,
   shaping,
+  room,
 }: {
   id: string;
   doc: TaskDoc;
@@ -89,6 +95,7 @@ function Written({
   onDoc?: (id: string) => void;
   onMoved: () => void;
   shaping?: boolean;
+  room?: number;
 }) {
   const [text, setText] = useState(doc.body);
   const waiting = useRef<string | null>(null);
@@ -180,7 +187,7 @@ function Written({
   };
 
   return (
-    <Suspense fallback={<p className="text-[12.5px] text-faint">{t("opening")}</p>}>
+    <Suspense fallback={<div style={{ minHeight: room }} />}>
       <Sheet
         file={doc.file || `unwritten:${id}`}
         value={text}
