@@ -85,6 +85,25 @@ export default function Detail({
     opened.current?.focus({ preventScroll: true });
   }, [task.id]);
 
+  // The page hands its keys to the window, so leaving the template is heard there, before Escape closes the task.
+  useEffect(() => {
+    if (!shaping) return;
+    const done = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" && event.key !== "Enter") return;
+      const at = event.target;
+      if (
+        at instanceof HTMLElement &&
+        (at.isContentEditable || at.closest("input, textarea, select, button"))
+      )
+        return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      setShaping(false);
+    };
+    window.addEventListener("keydown", done, true);
+    return () => window.removeEventListener("keydown", done, true);
+  }, [shaping]);
+
   const leave = (event: React.KeyboardEvent) => {
     if (event.key !== "Escape") return;
     const at = event.target as HTMLElement;

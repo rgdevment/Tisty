@@ -30,6 +30,7 @@ export type Reaching = Carding & {
   readonly onHere?: (id: string) => void;
   readonly onAway?: () => void;
   readonly onTick?: (at: [number, number]) => void;
+  readonly onCut?: (at: [number, number]) => void;
   readonly onWiden?: (at: [number, number], column: number, dashes: number) => void;
   readonly onFormat?: (asked: Formatting) => void;
   readonly onMenu?: (asked: Menued) => void;
@@ -161,15 +162,53 @@ const hinted = (page: Document, body: string) => {
     if (!said) continue;
     const alone = heading(one.nextElementSibling);
     one.classList.add(alone ? "hint" : "hint-gone");
-    if (!alone) continue;
     const box = /^-\s*\[ \]\s*/.exec(said[1].trim());
     one.dataset.hint = said[1].trim().slice(box?.[0].length ?? 0);
+    if (!alone) continue;
     if (box) {
       one.classList.add("step-hint");
       one.dataset.seed = "- [ ] ";
     }
   }
   stepped(page);
+  sectioned(page);
+};
+
+// Each section ends with its own way to add the next one, shown only while the template is edited.
+const sectioned = (page: Document) => {
+  const sheet = page.querySelector(".page");
+  if (!sheet) return;
+  const blocks = Array.from(sheet.children);
+  blocks.forEach((one, at) => {
+    const next = blocks[at + 1];
+    if (next && !/^H[1-6]$/.test(next.tagName)) return;
+    const last = blocks
+      .slice(0, at + 1)
+      .reverse()
+      .find((each) => each.getAttribute("data-at"));
+    if (!last || !blocks.slice(0, at + 1).some((each) => /^H[1-6]$/.test(each.tagName))) return;
+    const add = page.createElement("button");
+    add.type = "button";
+    add.className = "add-section";
+    add.dataset.after = last.getAttribute("data-at") ?? "";
+    add.dataset.seed = "## ";
+    add.textContent = `+ ${t("addSection")}`;
+    one.after(add);
+  });
+  for (const label of sheet.querySelectorAll<HTMLElement>(":scope > :is(h1, h2, h3, h4, h5, h6)")) {
+    const from = spanned(label.dataset.at ?? null);
+    if (!from) continue;
+    const hint = label.nextElementSibling?.matches(".hint, .hint-gone")
+      ? spanned(label.nextElementSibling.getAttribute("data-at"))
+      : null;
+    const drop = page.createElement("button");
+    drop.type = "button";
+    drop.className = "drop-section";
+    drop.dataset.at = `${from[0]}-${(hint ?? from)[1]}`;
+    drop.setAttribute("aria-label", t("dropSection"));
+    drop.title = t("dropSection");
+    label.append(drop);
+  }
 };
 
 const stepped = (page: Document) => {
@@ -252,11 +291,13 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
   }
   if (asked.kind === "hint") {
     const held = page.querySelector<HTMLElement>(
-      `.page > .hint[data-at="${asked.at[0]}-${asked.at[1]}"], .page > .add-step[data-after="${asked.at[0]}-${asked.at[1]}"]`,
+      `.page > .hint[data-at="${asked.at[0]}-${asked.at[1]}"], .page > :is(.add-step, .add-section)[data-after="${asked.at[0]}-${asked.at[1]}"]`,
     );
     const end = charsAt(reach.body, asked.at[1]);
     if (held) reach.onBlock?.([end, end], held, asked.seed);
   }
+  if (asked.kind === "cut")
+    reach.onCut?.([charsAt(reach.body, asked.at[0]), charsAt(reach.body, asked.at[1])]);
   if (asked.kind === "section" && reach.onBlock) {
     const last = page.querySelector(`.page > [data-at="${asked.at[0]}-${asked.at[1]}"]`);
     const fresh = page.createElement("p");
@@ -318,7 +359,9 @@ export const wired = (page: Document, reach: () => Reaching) => {
     if (target.closest(".quick-bar, .mend-said, .cm-dock")) return;
     const selecting = !(page.getSelection()?.isCollapsed ?? true);
     if (target.closest("a")) event.preventDefault();
-    const asked = went(target, selecting) ?? (below(page, target, event) ? { kind: "end" } : null);
+    const shaping = page.documentElement.classList.contains("shaping");
+    const asked =
+      went(target, selecting) ?? (!shaping && below(page, target, event) ? { kind: "end" } : null);
     if (!asked && !target.closest(".editing")) reach().onAway?.();
     answered(page, asked, reach(), asked?.kind === "block" ? readTo(page, event) : "");
   });

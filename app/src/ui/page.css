@@ -1594,6 +1594,65 @@ figure.widget:hover .card-more,
 .page > .hint-gone {
   display: none;
 }
+html.shaping .page > .hint-gone {
+  display: block;
+  cursor: text;
+}
+html.shaping .page > :is(.hint, .hint-gone)::before {
+  content: attr(data-hint);
+  color: var(--tisty-faint);
+  font-style: italic;
+}
+html.shaping .page > :not(:is(h1, h2, h3, h4, h5, h6, .hint, .hint-gone, .add-section)) {
+  opacity: 0.45;
+  cursor: default;
+}
+html.shaping .page > .add-step,
+html:not(.shaping) .page > .add-section {
+  display: none;
+}
+.page .drop-section {
+  display: none;
+}
+html.untitled.shaping .page > :is(h1, h2, h3, h4, h5, h6) > .drop-section {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  order: 2;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--tisty-faint);
+  cursor: pointer;
+}
+html.untitled.shaping .page .drop-section::before {
+  content: "×";
+  font-size: 15px;
+  line-height: 1;
+}
+html.untitled.shaping .page .drop-section:hover {
+  background: var(--tisty-hover);
+  color: var(--tisty-ink);
+}
+html.untitled .page > .add-section {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 10px 0 0;
+  padding: 6px 12px;
+  border: 1px dashed color-mix(in srgb, var(--tisty-accent) 45%, transparent);
+  border-radius: 8px;
+  background: none;
+  font: inherit;
+  font-size: 0.9em;
+  color: var(--tisty-accent);
+  text-align: left;
+  cursor: pointer;
+}
 html.untitled .page > :is(h1, h2, h3, h4) {
   display: flex;
   align-items: center;

@@ -382,6 +382,14 @@ export default function Sheet(props: Readonly<Props>) {
     whole(next);
   };
 
+  const cut = ([from, end]: [number, number]) => {
+    if (open.current) return left();
+    if (reading || showing.current !== latest.current) return;
+    const before = latest.current.slice(0, from).replace(/\n+$/, "");
+    const after = latest.current.slice(end).replace(/^\n+/, "");
+    whole(`${before}${before && after ? "\n\n" : before ? "\n" : ""}${after}`);
+  };
+
   const widen = (at: [number, number], column: number, dashes: number) => {
     if (open.current) return left();
     if (reading || showing.current !== latest.current) return;
@@ -557,6 +565,7 @@ export default function Sheet(props: Readonly<Props>) {
           onTag={(tag) => said.current.onTag?.(tag)}
           onBlock={reading ? undefined : block}
           onTick={reading ? undefined : ticked}
+          onCut={reading ? undefined : cut}
           onWiden={reading ? undefined : widen}
           onFormat={reading ? undefined : format}
           onMend={reading ? undefined : mended}

@@ -77,6 +77,7 @@ export type Went =
   | { kind: "title" }
   | { kind: "hint"; at: [number, number]; seed: string }
   | { kind: "section"; at: [number, number] }
+  | { kind: "cut"; at: [number, number] }
   | null;
 
 // What a label holds runs to the next label, so writing under it starts past the last of it.
@@ -144,16 +145,25 @@ export const went = (target: Element, selecting: boolean): Went => {
   const ticked = spanned(box?.dataset.at ?? null);
   if (ticked) return { kind: "tick", at: ticked };
   if (target.closest(".page > h1[data-title]")) return { kind: "title" };
-  const hinted = target.closest<HTMLElement>(".page > .hint, .page > .add-step");
-  const hint = spanned(hinted?.dataset.at ?? hinted?.dataset.after ?? null);
-  if (hint) return { kind: "hint", at: hint, seed: hinted?.dataset.seed ?? "" };
   const look = target.ownerDocument.documentElement.classList;
+  const shaping = look.contains("untitled") && look.contains("shaping");
+  const drop = spanned(target.closest<HTMLElement>(".drop-section")?.dataset.at ?? null);
+  if (drop) return shaping ? { kind: "cut", at: drop } : null;
+  const hinted = target.closest<HTMLElement>(
+    ".page > :is(.hint, .hint-gone, .add-step, .add-section)",
+  );
+  const hint = spanned(hinted?.dataset.at ?? hinted?.dataset.after ?? null);
+  // While the template is edited, a hint is its words to mend, not a place to write.
+  if (hint && shaping && hinted?.matches(".hint, .hint-gone")) return { kind: "block", at: hint };
+  if (shaping && hinted?.matches(".add-step")) return null;
+  if (hint) return { kind: "hint", at: hint, seed: hinted?.dataset.seed ?? "" };
   // A task's sections are filled in, not renamed, until its structure is asked for; an empty one is still mended.
   const label = target.closest(".page > :is(h1, h2, h3, h4, h5, h6)");
   if (look.contains("untitled") && !look.contains("shaping") && label?.textContent?.trim()) {
     const end = sectionEnd(label);
     return end ? { kind: "section", at: end } : null;
   }
+  if (shaping && !label) return null;
   const at = spanned(target.closest<HTMLElement>(".page > [data-at]")?.dataset.at ?? null);
   return at ? { kind: "block", at } : null;
 };
