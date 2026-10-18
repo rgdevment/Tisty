@@ -283,7 +283,7 @@ export default function Detail({
       <div className="scroller @container flex-1 px-5 pb-6">
         <div
           ref={card}
-          className="mx-auto grid w-fit gap-x-10 rounded-[10px] border border-hair bg-sheet px-8 pt-6 pb-10 shadow-lift @min-[1120px]:grid-cols-[minmax(0,720px)_320px]"
+          className="mx-auto grid w-fit gap-x-10 rounded-[10px] border border-hair bg-sheet px-8 pt-6 pb-10 shadow-lift @min-[1120px]:grid-cols-[minmax(0,720px)_320px] [&_.gutter]:px-0 [&_.task-words]:-mx-8"
         >
           <div className="min-w-0">{shown}</div>
           <div className="min-w-0">{aside}</div>
