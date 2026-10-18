@@ -201,7 +201,7 @@ fn policy_key() -> Option<&'static str> {
     option_env!("TISTY_CLOUD_POLICY_KEY").filter(|key| !key.is_empty())
 }
 
-pub fn heed(home: &Path) {
+pub fn heed(home: &Path, provider: &str) {
     let Some(key) = policy_key() else {
         return;
     };
@@ -220,7 +220,7 @@ pub fn heed(home: &Path) {
         return;
     };
     let signature = String::from_utf8_lossy(&signed);
-    if let Err(why) = policy::accepted(home, &said, &signature, key) {
+    if let Err(why) = policy::accepted(home, &said, &signature, key, provider) {
         witness::warn(
             channel::CLOUD,
             "the signed word on the cloud was not taken, so the last one taken still stands",

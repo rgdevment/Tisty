@@ -62,12 +62,12 @@ fn a_word_lowers_every_limit_freely_but_lifts_one_no_further_than_twice() {
 fn the_newest_word_is_kept_for_good_and_an_older_one_is_a_replay() {
     let home = tempfile::tempdir().unwrap();
 
-    accepted(home.path(), LOWERED, LOWERED_SIG, KEY).unwrap();
-    let replayed = accepted(home.path(), OLDER, OLDER_SIG, KEY);
+    accepted(home.path(), LOWERED, LOWERED_SIG, KEY, "google").unwrap();
+    let replayed = accepted(home.path(), OLDER, OLDER_SIG, KEY, "google");
 
     assert_eq!(replayed, Err(Refused::Behind { kept: 5, said: 3 }));
     assert_eq!(kept(home.path()).map(|one| one.serial), Some(5));
-    accepted(home.path(), RAISED, RAISED_SIG, KEY).unwrap();
+    accepted(home.path(), RAISED, RAISED_SIG, KEY, "google").unwrap();
     assert_eq!(kept(home.path()).map(|one| one.serial), Some(6));
 }
 
@@ -95,4 +95,31 @@ fn the_person_can_pause_the_cloud_on_this_machine_and_take_it_back() {
     pause_here(home.path(), false).unwrap();
     pause_here(home.path(), false).unwrap();
     assert!(!paused_here(home.path()));
+}
+
+#[test]
+fn a_provider_hears_its_own_word_over_the_rest_and_1_30_s_word_reaches_every_cloud() {
+    let said: Policy = serde_json::from_str(
+        r#"{"serial":7,"units_a_day":1000,"halted_until":99,"providers":{"onedrive":{"halted_until":0,"units_a_day":50000}}}"#,
+    )
+    .unwrap();
+
+    let google = said.for_provider("google");
+    let onedrive = said.for_provider("onedrive");
+
+    assert_eq!(
+        (google.units_a_day, google.halted_until),
+        (Some(1000), Some(99))
+    );
+    assert_eq!(
+        (onedrive.units_a_day, onedrive.halted_until),
+        (Some(50000), Some(0))
+    );
+    assert!(!halted(Some(&onedrive), 10));
+    assert!(halted(Some(&google), 10));
+    assert_eq!(onedrive.serial, 7);
+    assert!(onedrive.providers.is_empty());
+
+    let from_1_30: Policy = serde_json::from_str(r#"{"serial":3,"bytes_a_day":5}"#).unwrap();
+    assert_eq!(from_1_30.for_provider("onedrive").bytes_a_day, Some(5));
 }

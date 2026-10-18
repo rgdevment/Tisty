@@ -982,11 +982,12 @@ async fn carried_round(
     let pushing = (home.clone(), carrier.clone(), alive.clone());
     let heeding = {
         let session = held(session);
-        tisty_carrier::cloud_of(session.config.sync.as_ref()).map(|at| session.reach.home_of(at))
+        tisty_carrier::cloud_of(session.config.sync.as_ref())
+            .map(|at| (session.reach.home_of(at), at.provider.clone()))
     };
     // A slow or unreachable GitHub must not hold back the round it rides along with.
-    if let Some(cloud) = heeding {
-        std::thread::spawn(move || crate::reaching::heed(&cloud));
+    if let Some((cloud, provider)) = heeding {
+        std::thread::spawn(move || crate::reaching::heed(&cloud, &provider));
     }
     let done = tauri::async_runtime::spawn_blocking(move || {
         let mut saying = |far| telling.hear(far);
