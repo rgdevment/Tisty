@@ -1,11 +1,10 @@
-import { startCompletion } from "@codemirror/autocomplete";
 import type { EditorView, KeyBinding } from "@codemirror/view";
 import { frontLines } from "../front";
 import { markup } from "../glyphs";
 import { t } from "../locales";
 import { coded, wrapped } from "./formatting";
 import { marksShown, showMarks } from "./seeing";
-import { holding, pressed, putBlock } from "./slashing";
+import { openMenu, pressed, putBlock } from "./slashing";
 import { type Retable, retable, tableHere } from "./tabling";
 
 type Said = Parameters<typeof t>[0];
@@ -274,16 +273,12 @@ export const barred = (view: EditorView): Barred => {
   kinds.append(kind, menu, table);
 
   const { formats, pens } = formatButtons(page, (open, close) => wrapped(view, open, close));
-  const slash = button("cm-bar-button cm-bar-more", t("insertLabel"), () => {
-    const { from: start, to: from } = view.state.selection.main;
-    const before = view.state.sliceDoc(Math.max(0, from - 1), from);
-    const insert = before && !/\s/.test(before) ? " /" : "/";
-    if (start < from) holding(view, { from: start, to: from, slash: from + insert.length - 1 });
-    view.dispatch({ changes: { from, insert }, selection: { anchor: from + insert.length } });
-    view.focus();
-    startCompletion(view);
-  });
-  slash.append(made("kbd", "", "/"));
+  const slash = button(
+    "cm-bar-button cm-bar-more",
+    `${t("insertLabel")} (${pressed("/")})`,
+    () => openMenu(view),
+    "⋯",
+  );
 
   bar.append(kinds, made("span", "cm-bar-sep"), ...formats);
   bar.append(made("span", "cm-bar-sep"), ...pens, made("span", "cm-bar-sep"), slash);
@@ -296,7 +291,7 @@ export const barred = (view: EditorView): Barred => {
   };
   const state = made("span", "cm-hint-kept");
   hint.append(
-    key("/", t("hintInsert")),
+    key(pressed("/"), t("hintInsert")),
     key("# ␣", t("bigTitle").toLocaleLowerCase()),
     key(pressed("Shift M"), t("hintMarks")),
     key("Esc", t("hintRead")),
