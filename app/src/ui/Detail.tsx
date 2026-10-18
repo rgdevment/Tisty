@@ -8,6 +8,7 @@ import {
   type Task,
   type Whole,
 } from "../core";
+import { WROTE } from "../detailing";
 import { cadence, daysFrom, stamped, whenLabel, wroteAt } from "../format";
 import { fill, t } from "../locales";
 import { placed, said } from "../quadrants";
@@ -106,7 +107,7 @@ export default function Detail({
     onSettle &&
     ((before: string, now: string, renamed?: readonly [string, string][]) =>
       onSettle(before, now, renamed).then((problem) => {
-        if (problem === null) setWrote((one) => one + 1);
+        if (problem === WROTE) setWrote((one) => one + 1);
         return problem;
       }));
   // The template is edited only while the task is open and its words can be written.
