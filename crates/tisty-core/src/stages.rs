@@ -28,10 +28,7 @@ fn gathered(block: &Block, body: &str, quoted: usize, out: &mut Vec<Stage>) {
     match block.kind {
         Kind::Code { .. } => return,
         Kind::Item { done: Some(done) } => {
-            if let Some(text) = body
-                .get(block.at.clone())
-                .and_then(|item| said(item, quoted))
-            {
+            if let Some(text) = body.get(own(block)).and_then(|item| said(item, quoted)) {
                 out.push(Stage {
                     text,
                     done,
@@ -46,28 +43,16 @@ fn gathered(block: &Block, body: &str, quoted: usize, out: &mut Vec<Stage>) {
     }
 }
 
-fn listed(line: &str) -> bool {
-    let numbered = line.find(['.', ')']).is_some_and(|at| {
-        at > 0
-            && line[..at].chars().all(|one| one.is_ascii_digit())
-            && (line[at + 1..].is_empty() || line[at + 1..].starts_with(' '))
-    });
-    let bullet = ["-", "*", "+"]
-        .iter()
-        .any(|mark| line == *mark || line.starts_with(&format!("{mark} ")));
-    numbered || bullet
+// The item's own words end where the parser opens its first block, or its first paragraph closes.
+fn own(item: &Block) -> Range<usize> {
+    let end = match item.inner.first() {
+        Some(first) if first.kind == Kind::Paragraph => first.at.end,
+        Some(first) => first.at.start,
+        None => item.at.end,
+    };
+    item.at.start..end.max(item.at.start)
 }
 
-fn another_block(line: &str) -> bool {
-    line.is_empty()
-        || listed(line)
-        || line.starts_with(['#', '<', '|'])
-        || ["```", "~~~", "---", "===", "***", "___"]
-            .iter()
-            .any(|mark| line.starts_with(mark))
-}
-
-// Wrapped words are the stage's own; a quote deeper than the item's, a list or a heading is not.
 fn said(item: &str, quoted: usize) -> Option<String> {
     let mut lines = item.lines();
     let (_, first) = lines.next()?.split_once(']')?;
@@ -76,9 +61,6 @@ fn said(item: &str, quoted: usize) -> Option<String> {
         let mut bare = line.trim_start();
         for _ in 0..quoted {
             bare = bare.strip_prefix('>').unwrap_or(bare).trim_start();
-        }
-        if bare.starts_with('>') || another_block(bare) {
-            break;
         }
         words.push(bare.trim_end());
     }
@@ -177,11 +159,10 @@ fn reordered(task: &Task, steps: &[&Step], in_doc: &[usize]) -> (Vec<Op>, Vec<St
     (ops, keys)
 }
 
-/// Only what changed between the two texts reaches the log.
 pub fn reconciled(task: &Task, before: Option<&str>, now: &str) -> Vec<Op> {
     let steps = ordered(task);
     let is = stages(now);
-    // A document coming in for the first time is taken as it stands: its boxes say nothing new.
+    // With no text before, its boxes are read as written and only the ones with no step are added.
     let was = before.map_or_else(|| is.clone(), stages);
     let step_of = paired(
         &titled(steps.iter().map(|one| &one.text)),
@@ -194,7 +175,16 @@ pub fn reconciled(task: &Task, before: Option<&str>, now: &str) -> Vec<Op> {
         .map(|one| one.and_then(|w| step_of[w].map(|s| (w, s))))
         .collect();
     let in_doc: Vec<usize> = bound.iter().flatten().map(|(_, s)| *s).collect();
-    let (mut ops, keys) = reordered(task, &steps, &in_doc);
+    let mut by_was: Vec<(usize, usize)> = bound.iter().flatten().copied().collect();
+    by_was.sort_unstable();
+    // Only a move made in the text reorders, so one made in the app is not undone by a stale file.
+    let (mut ops, keys) = match by_was.iter().map(|(_, s)| *s).eq(in_doc.iter().copied()) {
+        true => (
+            Vec::new(),
+            steps.iter().map(|one| one.order.clone()).collect(),
+        ),
+        false => reordered(task, &steps, &in_doc),
+    };
 
     let mut before_key: Option<String> = None;
     for (at, one) in is.iter().enumerate() {
@@ -224,13 +214,12 @@ pub fn reconciled(task: &Task, before: Option<&str>, now: &str) -> Vec<Op> {
         if before.is_some() && !touched {
             continue;
         }
-        let after = bound[at + 1..]
+        // Every step bounds the new key, the ones the document never had included, so none is shared.
+        let after = keys
             .iter()
-            .flatten()
-            .next()
-            .map(|(_, s)| keys[*s].clone())
-            .filter(|next| before_key.as_deref().is_none_or(|low| low < next.as_str()));
-        let order = crate::order::between(before_key.as_deref(), after.as_deref());
+            .filter(|key| before_key.as_deref().is_none_or(|low| low < key.as_str()))
+            .min();
+        let order = crate::order::between(before_key.as_deref(), after.map(String::as_str));
         let step = Ulid::generate();
         ops.push(Op::StepAdd {
             id: task.id,
@@ -249,10 +238,13 @@ pub fn reconciled(task: &Task, before: Option<&str>, now: &str) -> Vec<Op> {
         before_key = Some(order);
     }
 
-    let kept: std::collections::BTreeSet<usize> = was_of.iter().flatten().copied().collect();
+    let mut kept = vec![false; was.len()];
+    for w in was_of.iter().flatten() {
+        kept[*w] = true;
+    }
     for (w, s) in step_of.iter().enumerate() {
         if let Some(s) = s
-            && !kept.contains(&w)
+            && !kept[w]
         {
             ops.push(Op::StepRemove {
                 id: task.id,

@@ -276,3 +276,62 @@ fn a_step_not_in_the_document_keeps_its_place_when_the_others_move() {
         "{ops:?}"
     );
 }
+
+#[test]
+fn a_move_made_in_the_app_is_not_undone_by_a_document_saved_with_its_old_order() {
+    let task = task(&[("one", false, "b"), ("two", false, "a")]);
+    assert_eq!(
+        reconciled(
+            &task,
+            Some("- [ ] one\n- [ ] two\n"),
+            "- [ ] one\n- [ ] two\n\nMore.\n"
+        ),
+        Vec::new()
+    );
+}
+
+#[test]
+fn a_stage_added_never_shares_its_key_with_a_step_the_document_does_not_have() {
+    let cases = [
+        (
+            task(&[
+                ("one", false, "a"),
+                ("hidden", false, "m"),
+                ("two", false, "y"),
+            ]),
+            "- [ ] one\n- [ ] two\n",
+            "- [ ] one\n- [ ] new\n- [ ] two\n",
+            ("a", "m"),
+        ),
+        (
+            task(&[("one", false, "a"), ("added elsewhere", false, "b")]),
+            "- [ ] one\n",
+            "- [ ] one\n- [ ] new\n",
+            ("a", "b"),
+        ),
+    ];
+    for (task, before, now, (low, high)) in cases {
+        let ops = reconciled(&task, Some(before), now);
+        let Some(Op::StepAdd { d, .. }) = ops.first() else {
+            panic!("{ops:?}");
+        };
+        assert!(
+            d.order.as_str() > low && d.order.as_str() < high,
+            "{}",
+            d.order
+        );
+    }
+}
+
+#[test]
+fn wrapped_words_that_only_look_like_a_heading_or_a_rule_stay_with_their_stage() {
+    let body = "- [ ] Call the vet\n  #pets before friday\n- [ ] Read\n  ***really*** carefully\n";
+    let said: Vec<String> = stages(body).into_iter().map(|one| one.text).collect();
+    assert_eq!(
+        said,
+        [
+            "Call the vet #pets before friday",
+            "Read ***really*** carefully"
+        ]
+    );
+}
