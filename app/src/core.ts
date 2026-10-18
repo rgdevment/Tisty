@@ -400,12 +400,17 @@ export interface IcsFound {
 export interface IcsBrought {
   found: IcsFound[];
   invitation: boolean;
+  stamp: string;
 }
 
 export const icsWaiting = (): Promise<string[]> => invoke("ics_waiting");
 export const icsRead = (path: string): Promise<IcsBrought> => invoke("ics_read", { path });
-export const icsTake = (path: string, picked: number[], list: string | null): Promise<number> =>
-  invoke("ics_take", { path, picked, list });
+export const icsTake = (
+  path: string,
+  stamp: string,
+  picked: number[],
+  list: string | null,
+): Promise<{ made: number; missed: number }> => invoke("ics_take", { path, stamp, picked, list });
 
 export interface Trace {
   kind: "doc" | "file" | "link" | "named";

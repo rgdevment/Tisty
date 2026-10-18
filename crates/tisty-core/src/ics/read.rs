@@ -30,6 +30,7 @@ pub struct Item {
     pub start: Option<Stamp>,
     pub due: Option<Stamp>,
     pub end: Option<Stamp>,
+    pub duration: Option<i64>,
     pub location: String,
     pub description: String,
     pub rule: Option<String>,
@@ -78,6 +79,7 @@ fn blank(kind: Kind) -> Item {
         start: None,
         due: None,
         end: None,
+        duration: None,
         location: String::new(),
         description: String::new(),
         rule: None,
@@ -98,6 +100,7 @@ fn took(item: &mut Item, line: &Line) {
         "DESCRIPTION" => item.description = unescaped(&line.value).trim().to_string(),
         "DTSTART" => item.start = Some(stamp(line)),
         "DTEND" => item.end = Some(stamp(line)),
+        "DURATION" => item.duration = seconds_in(line.value.trim().trim_start_matches('+')),
         "DUE" => item.due = Some(stamp(line)),
         "RRULE" => item.rule = Some(line.value.trim().to_ascii_uppercase()),
         "EXDATE" | "RDATE" => item.irregular = true,
@@ -146,7 +149,7 @@ pub fn before(trigger: &Line) -> Option<Alarm> {
     }
 }
 
-fn seconds_in(span: &str) -> Option<i64> {
+pub(super) fn seconds_in(span: &str) -> Option<i64> {
     let span = span.strip_prefix('P')?;
     let (days, time) = span.split_once('T').unwrap_or((span, ""));
     let mut seconds = 0i64;

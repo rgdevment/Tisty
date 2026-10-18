@@ -1,9 +1,10 @@
 use jiff::civil::Time;
+use jiff::tz::TimeZone;
 use jiff::{Span, Zoned};
 
 use super::read::{Alarm, Item, Kind};
 use super::rule::{Ruled, ruled, span};
-use super::when::{When, when};
+use super::when::{When, civil, own_zone, when};
 use crate::model::{Cadence, DateSpec, Priority, Repeat, Unit};
 
 pub const SOURCE: &str = "ics:";
@@ -130,13 +131,22 @@ fn alarm_from(
     item: &Item,
     date: Option<&DateSpec>,
     deadline: Option<&DateSpec>,
+    end: Option<&DateSpec>,
 ) -> Option<DateSpec> {
     match item.alarm {
-        Some(Alarm {
-            from_end: false, ..
-        }) => date.or(deadline).cloned(),
-        _ => deadline.or(date).cloned(),
+        Some(Alarm { from_end: true, .. }) => end.or(deadline).or(date).cloned(),
+        Some(_) => date.or(deadline).cloned(),
+        None => deadline.or(date).cloned(),
     }
+}
+
+fn ended_at(item: &Item, here: &TimeZone, start: Option<&DateSpec>) -> Option<DateSpec> {
+    if let Some(end) = item.end.as_ref().and_then(|one| when(one, here)) {
+        return Some(end.spec);
+    }
+    let start = start?;
+    let span = Span::new().try_seconds(item.duration?).ok()?;
+    Some(start.moved(start.at.checked_add(span).ok()?))
 }
 
 pub fn taken(item: &Item, now: &Zoned) -> Taken {
@@ -168,12 +178,19 @@ pub fn taken(item: &Item, now: &Zoned) -> Taken {
         Kind::Event => (start.map(|one| one.spec), None),
         Kind::Todo => (start.map(|one| one.spec), due.map(|one| one.spec)),
     };
-    let own = item
-        .start
-        .as_ref()
-        .and_then(|one| super::when::civil(&one.value))
-        .map(|one| one.date());
-    let mut repeat = match ruled(item.rule.as_deref(), item.irregular, own) {
+    let own = item.start.as_ref().and_then(|one| civil(&one.value));
+    let zone = item.start.as_ref().and_then(own_zone);
+    let mut end = match item.kind {
+        Kind::Event => ended_at(item, here, date.as_ref()),
+        Kind::Todo => None,
+    };
+    let mut repeat = match ruled(
+        item.rule.as_deref(),
+        item.irregular,
+        own,
+        zone.as_ref(),
+        here,
+    ) {
         Ruled::Once => None,
         Ruled::Kept(repeat) => Some(repeat),
         Ruled::Odd => {
@@ -188,10 +205,9 @@ pub fn taken(item: &Item, now: &Zoned) -> Taken {
             Some(next) if !ended(&next) => {
                 let was = date.as_ref().map_or(next.at, |one| one.at);
                 let moved = next.at.since(was).ok();
-                deadline = deadline.and_then(|one| {
-                    let at = one.at.checked_add(moved?).ok()?;
-                    Some(one.moved(at))
-                });
+                let shifted = |one: DateSpec| Some(one.moved(one.at.checked_add(moved?).ok()?));
+                deadline = deadline.and_then(shifted);
+                end = end.and_then(shifted);
                 date = Some(next);
             }
             _ => repeat = None,
@@ -202,15 +218,7 @@ pub fn taken(item: &Item, now: &Zoned) -> Taken {
         odd.push(Odd::Past);
     }
     let alarm = item.alarm.map(|one| one.minutes);
-    let end = match item.kind {
-        Kind::Event => item
-            .end
-            .as_ref()
-            .and_then(|one| when(one, here))
-            .map(|one| one.spec),
-        Kind::Todo => deadline.clone(),
-    };
-    let reminded = alarm_from(item, date.as_ref(), end.as_ref().or(deadline.as_ref()));
+    let reminded = alarm_from(item, date.as_ref(), deadline.as_ref(), end.as_ref());
     Taken {
         title: item.summary.clone(),
         reminder: reminded.and_then(|one| reminder(&one, alarm, now)),

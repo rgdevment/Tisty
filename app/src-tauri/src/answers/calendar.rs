@@ -28,6 +28,14 @@ pub struct Found {
 pub struct Brought {
     found: Vec<Found>,
     invitation: bool,
+    stamp: String,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Made {
+    made: usize,
+    missed: usize,
 }
 
 fn unread(why: Unread) -> Refusal {
@@ -38,16 +46,25 @@ fn unread(why: Unread) -> Refusal {
     })
 }
 
-fn calendar_at(path: &str) -> Result<ics::Calendar, Refusal> {
-    let at = std::path::Path::new(path);
-    let size = std::fs::metadata(at)
+// The same door every file from outside passes: a local calendar file, never a share or a climb.
+fn calendar_at(path: &str) -> Result<(ics::Calendar, String), Refusal> {
+    let at = crate::viewing::asked(path, None)
+        .filter(|one| crate::viewing::calendar(one))
+        .ok_or_else(|| Refusal::of("icsUnreadable"))?;
+    let size = std::fs::metadata(&at)
         .map_err(|_| Refusal::of("icsUnreadable"))?
         .len();
     if size > ics::BYTES_AT_MOST as u64 {
         return Err(unread(Unread::TooBig));
     }
-    let bytes = std::fs::read(at).map_err(|_| Refusal::of("icsUnreadable"))?;
-    ics::read_bytes(&bytes).map_err(unread)
+    let bytes = std::fs::read(&at).map_err(|_| Refusal::of("icsUnreadable"))?;
+    let stamp = bytes.iter().fold(0xcbf2_9ce4_8422_2325u64, |hash, one| {
+        (hash ^ u64::from(*one)).wrapping_mul(0x0100_0000_01b3)
+    });
+    Ok((
+        ics::read_bytes(&bytes).map_err(unread)?,
+        format!("{stamp:016x}"),
+    ))
 }
 
 fn already(session: &Session, taken: &Taken) -> bool {
@@ -59,7 +76,7 @@ fn already(session: &Session, taken: &Taken) -> bool {
 
 #[tauri::command(async)]
 pub fn ics_read(session: tauri::State<'_, Mutex<Session>>, path: String) -> Answer<Brought> {
-    let calendar = calendar_at(&path)?;
+    let (calendar, stamp) = calendar_at(&path)?;
     let mut session = held(&session);
     session.reload()?;
     let now = jiff::Zoned::now();
@@ -92,6 +109,7 @@ pub fn ics_read(session: tauri::State<'_, Mutex<Session>>, path: String) -> Answ
     Ok(Brought {
         found,
         invitation: calendar.method.as_deref() == Some("REQUEST"),
+        stamp,
     })
 }
 
@@ -113,18 +131,24 @@ fn drafted(taken: Taken, list: Option<tisty_core::ListId>) -> tisty_core::captur
 pub fn ics_take(
     session: tauri::State<'_, Mutex<Session>>,
     path: String,
+    stamp: String,
     mut picked: Vec<usize>,
     list: Option<String>,
-) -> Answer<usize> {
+) -> Answer<Made> {
     picked.sort_unstable();
     picked.dedup();
     let list = list
         .map(|one| one.parse().map_err(|_| Refusal::of("notAListId")))
         .transpose()?;
-    let calendar = calendar_at(&path)?;
+    let (calendar, now_stamp) = calendar_at(&path)?;
+    // The picks name entries by their place in the file that was shown, which a rewrite moves.
+    if now_stamp != stamp {
+        return Err(Refusal::of("icsChanged"));
+    }
     let mut session = held(&session);
     session.reload()?;
     let now = jiff::Zoned::now();
+    let wanted = picked.len();
     let mut made = 0;
     for item in picked.iter().filter_map(|at| calendar.items.get(*at)) {
         let taken = ics::taken(item, &now);
@@ -159,5 +183,8 @@ pub fn ics_take(
         }
         made += 1;
     }
-    Ok(made)
+    Ok(Made {
+        made,
+        missed: wanted - made,
+    })
 }

@@ -1,5 +1,5 @@
 import { listen } from "@tauri-apps/api/event";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   type IcsBrought,
   type IcsFound,
@@ -10,6 +10,7 @@ import {
   type List,
 } from "../core";
 import { useDesk } from "../desk";
+import { whenCalendarsHover } from "../dropped";
 import { cadence, whenLabel } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
@@ -33,11 +34,18 @@ const ODD: Record<IcsOdd, Parameters<typeof t>[0]> = {
 // A file opened while Tisty was starting waits for the window, so nothing is lost on the way in.
 export default function Calendars() {
   const { data, load, setError } = useDesk();
-  const [queue, setQueue] = useState<string[]>([]);
+  const [queue, setQueue] = useState<{ key: number; path: string }[]>([]);
+  const [carried, setCarried] = useState(false);
+  const counted = useRef(0);
+
+  useEffect(() => whenCalendarsHover(setCarried), []);
 
   useEffect(() => {
     const more = (paths: string[] | null | undefined) => {
-      if (paths?.length) setQueue((was) => [...was, ...paths]);
+      if (!paths?.length) return;
+      // The same file twice is two openings, so each gets its own window rather than a stale one.
+      const fresh = paths.map((path) => ({ key: ++counted.current, path }));
+      setQueue((was) => [...was, ...fresh]);
     };
     const waiting = () => icsWaiting().then(more, () => {});
     // Listening first: a calendar handed over while the queue is read is still heard.
@@ -51,16 +59,24 @@ export default function Calendars() {
     };
   }, []);
 
-  const path = queue[0];
-  if (!path) return null;
+  const next = queue[0];
+  const veil = carried && (
+    <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-bg/70">
+      <p className="rounded-[10px] border border-dashed border-accent bg-bg px-5 py-4 text-[13px] text-ink shadow-lift">
+        {t("icsDropHere")}
+      </p>
+    </div>
+  );
+  if (!next) return veil || null;
   return (
     <Importing
-      key={path}
-      path={path}
+      key={next.key}
+      path={next.path}
       lists={data.lists.filter((one) => !one.archived)}
-      onDone={(made) => {
+      onDone={(made, missed = 0) => {
         setQueue((was) => was.slice(1));
         if (made > 0) load();
+        if (missed > 0) setError(fill("icsMissed", String(missed)));
       }}
       fail={(e) => {
         setError(saidPlainly(e));
@@ -78,7 +94,7 @@ export function Importing({
 }: {
   path: string;
   lists: List[];
-  onDone: (made: number) => void;
+  onDone: (made: number, missed?: number) => void;
   fail: (e: unknown) => void;
 }) {
   const [brought, setBrought] = useState<IcsBrought | null>(null);
@@ -109,9 +125,10 @@ export function Importing({
       return next;
     });
   const take = () => {
+    if (!brought) return;
     setBusy(true);
-    icsTake(path, [...picked], list || null).then(
-      (made) => onDone(made),
+    icsTake(path, brought.stamp, [...picked], list || null).then(
+      ({ made, missed }) => onDone(made, missed),
       (e) => {
         setBusy(false);
         fail(e);

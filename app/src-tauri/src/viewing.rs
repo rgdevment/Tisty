@@ -175,7 +175,7 @@ pub fn show(app: &AppHandle, wanted: Vec<PathBuf>) {
     });
 }
 
-fn calendar(at: &Path) -> bool {
+pub(crate) fn calendar(at: &Path) -> bool {
     at.extension()
         .and_then(|one| one.to_str())
         .is_some_and(|one| one.eq_ignore_ascii_case("ics") || one.eq_ignore_ascii_case("ical"))

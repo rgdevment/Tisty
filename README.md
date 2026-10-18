@@ -505,12 +505,14 @@ A day, a time, or both. Names, distances, plain dates. What it cannot read it
 leaves alone rather than guess. A deadline is a different thing from a plan, and
 three words open one: **before**, **due**, **until**.
 
-**A task opens beside the list**, not on top of it: dates, list, tags, priority,
-a description and a journal in Markdown, steps you tick one at a time, and
-whatever you dropped on it. Completing it puts none of that out of reach. Opened
-to the whole page it gains a column of its own trail — how long it has been
-open, how much of it is done, and every change it has been through, which until
-now sat at the bottom where nobody scrolled.
+**A task opens beside the list**, not on top of it: dates, list, tags and
+priority above, and below them its own page, a Markdown document like any other,
+with sections to fill in and a grey hint in each. Every box on that page is one
+of its steps; press **↗** on one and it becomes a part of the task, its card left
+where the step was. Completing it puts its page away with it, readable and
+untouched, and reopening brings it back. Opened to the whole page it gains a
+column of its own trail — how long it has been open, how much of it is done, and
+every change it has been through.
 
 ![One card for each part of life: tasks grouped by list, each with its own icon and name, beside the task that is open](assets/store/en-06-lists.png)
 
@@ -554,6 +556,11 @@ and Settings turns it off.
 **A global shortcut** opens a small field over whatever you are doing, so a task
 that occurs to you mid-something does not cost you the something.
 
+**A calendar comes in as tasks.** Drop an `.ics` on the window, or open one with
+Tisty: it shows each event and to-do with when, where, how it repeats and its
+reminder, and makes the ones you pick into tasks — time zones, Outlook's
+included, and simple repeats kept, and a file opened twice brings nothing twice.
+
 **Repeating tasks** come back one occurrence at a time, so the archive shows you
 did it twelve times — and it counts what was owed rather than only what you
 closed, so a routine reads 26 of 30 with four dates that have no record. Marking
@@ -561,8 +568,9 @@ one days late offers those dates back instead of calling them forgotten: tick th
 ones you did and the gap closes. **Reminders** arrive as a system notification and
 a short sound you can turn off. The whole window works from the keyboard.
 
-**The archive is read in three layers.** The ones that taught something come with
-their whole trail — what changed, when, and what you wrote along the way. The
+**The archive is read in three layers.** The ones that taught something — a task
+you came back to and added to more than three times — come with their whole
+trail: what changed, when, and what you wrote along the way. The
 routines come with their tallies, their streaks and the hour you usually keep
 them. The rest is the trace: what left little or nothing written, listed dense
 and out of the way, because it still happened and search still reaches it. You

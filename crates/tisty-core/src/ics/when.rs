@@ -55,6 +55,13 @@ const WINDOWS: &[(&str, &str)] = &[
     ("SA Eastern Standard Time", "America/Cayenne"),
 ];
 
+pub(super) fn own_zone(stamp: &Stamp) -> Option<TimeZone> {
+    match stamp.value.trim().ends_with(['Z', 'z']) {
+        true => Some(TimeZone::UTC),
+        false => stamp.tz.as_deref().and_then(zone_named),
+    }
+}
+
 fn zone_named(tz: &str) -> Option<TimeZone> {
     let tz = tz.trim();
     TimeZone::get(tz).ok().or_else(|| {

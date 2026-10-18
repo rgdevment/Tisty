@@ -12,7 +12,7 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args: unknown) => {
     calls.push({ cmd, args });
     if (cmd === "ics_read") return refused ? Promise.reject(refused) : Promise.resolve(brought);
-    if (cmd === "ics_take") return Promise.resolve(1);
+    if (cmd === "ics_take") return Promise.resolve({ made: 1, missed: 0 });
     return Promise.resolve([]);
   },
 }));
@@ -35,6 +35,7 @@ describe("bringing in a calendar", () => {
     refused = null;
     brought = {
       invitation: true,
+      stamp: "s1",
       found: [
         found(0, "Dentist", { place: "Av. 1" }),
         found(1, "Old meeting", { odd: ["past"] }),
@@ -67,9 +68,10 @@ describe("bringing in a calendar", () => {
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "l1" } });
     fireEvent.click(screen.getByRole("button", { name: fill("icsTake", "1") }));
 
-    await waitFor(() => expect(done).toHaveBeenCalledWith(1));
+    await waitFor(() => expect(done).toHaveBeenCalledWith(1, 0));
     expect(calls.find((one) => one.cmd === "ics_take")?.args).toEqual({
       path: "C:/in/invite.ics",
+      stamp: "s1",
       picked: [0],
       list: "l1",
     });

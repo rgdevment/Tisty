@@ -1,4 +1,5 @@
-use jiff::civil::Date;
+use jiff::civil::{Date, DateTime};
+use jiff::tz::TimeZone;
 
 use crate::model::{Cadence, Repeat, Unit};
 
@@ -38,9 +39,36 @@ pub fn span(unit: Unit, steps: i64) -> Option<jiff::Span> {
     .ok()
 }
 
-fn last(own: Date, each: Cadence, count: u32) -> Option<Date> {
+// The series is told in its own zone and Tisty keeps it on this clock, so its last day is read here.
+fn local_day(at: DateTime, zone: Option<&TimeZone>, here: &TimeZone) -> Date {
+    zone.and_then(|zone| at.to_zoned(zone.clone()).ok())
+        .map_or(at.date(), |one| one.with_time_zone(here.clone()).date())
+}
+
+fn until_of(value: &str, zone: Option<&TimeZone>, here: &TimeZone) -> Option<Date> {
+    let at = super::when::civil(value)?;
+    if !value.contains(['T', 't']) {
+        return Some(at.date());
+    }
+    let utc = TimeZone::UTC;
+    let zone = if value.trim().ends_with(['Z', 'z']) {
+        Some(&utc)
+    } else {
+        zone
+    };
+    Some(local_day(at, zone, here))
+}
+
+fn last(
+    own: DateTime,
+    each: Cadence,
+    count: u32,
+    zone: Option<&TimeZone>,
+    here: &TimeZone,
+) -> Option<Date> {
     let steps = i64::from(each.every).checked_mul(i64::from(count.checked_sub(1)?))?;
-    own.checked_add(span(each.unit, steps)?).ok()
+    let at = own.checked_add(span(each.unit, steps)?).ok()?;
+    Some(local_day(at, zone, here))
 }
 
 fn unit_of(said: &str) -> Option<Unit> {
@@ -54,7 +82,13 @@ fn unit_of(said: &str) -> Option<Unit> {
 }
 
 /// A repeat Tisty cannot follow is said so, rather than made into one it would follow wrongly.
-pub fn ruled(rule: Option<&str>, irregular: bool, own: Option<Date>) -> Ruled {
+pub fn ruled(
+    rule: Option<&str>,
+    irregular: bool,
+    own: Option<DateTime>,
+    zone: Option<&TimeZone>,
+    here: &TimeZone,
+) -> Ruled {
     let Some(rule) = rule else {
         return Ruled::Once;
     };
@@ -85,10 +119,7 @@ pub fn ruled(rule: Option<&str>, irregular: bool, own: Option<Date>) -> Ruled {
                 Ok(one) if one > 0 => each.every = one,
                 _ => return Ruled::Odd,
             },
-            "UNTIL" => match value
-                .get(..8)
-                .and_then(|one| Date::strptime("%Y%m%d", one).ok())
-            {
+            "UNTIL" => match until_of(value, zone, here) {
                 Some(day) => until = Some(day),
                 None => return Ruled::Odd,
             },
@@ -96,12 +127,12 @@ pub fn ruled(rule: Option<&str>, irregular: bool, own: Option<Date>) -> Ruled {
                 Ok(one) if one > 0 => count = Some(one),
                 _ => return Ruled::Odd,
             },
-            _ if restates(key, value, own, unit) => {}
+            _ if restates(key, value, own.date(), unit) => {}
             _ => return Ruled::Odd,
         }
     }
     if let Some(count) = count {
-        until = until.or_else(|| last(own, each, count));
+        until = until.or_else(|| last(own, each, count, zone, here));
     }
     Ruled::Kept(Repeat {
         until,

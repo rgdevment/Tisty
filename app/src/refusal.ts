@@ -39,6 +39,7 @@ const KNOWN = [
   "icsTooBig",
   "icsTooMany",
   "icsUnreadable",
+  "icsChanged",
   "onlyClosedConverts",
   "routineReadsAsRoutine",
   "notAReading",

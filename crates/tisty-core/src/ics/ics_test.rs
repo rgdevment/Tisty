@@ -276,3 +276,40 @@ fn an_outlook_zone_with_a_colon_still_gives_the_date_and_an_unreadable_one_is_sa
         one("BEGIN:VEVENT\r\nUID:x8\r\nSUMMARY:Broken\r\nDTSTART:2026-10-20\r\nEND:VEVENT\r\n");
     assert!(broken.odd.contains(&Odd::Undated));
 }
+
+#[test]
+fn an_event_without_an_alarm_is_reminded_before_it_starts_not_before_it_ends() {
+    let meeting = one(
+        "BEGIN:VEVENT\r\nUID:y1\r\nSUMMARY:Meeting\r\nDTSTART;TZID=America/Santiago:20261022T100000\r\nDTEND;TZID=America/Santiago:20261022T110000\r\nEND:VEVENT\r\n",
+    );
+    assert_eq!(
+        meeting.reminder.unwrap().at,
+        date(2026, 10, 22).at(9, 30, 0, 0)
+    );
+}
+
+#[test]
+fn an_end_given_as_a_duration_and_a_series_end_move_with_their_turn() {
+    let exam = one(
+        "BEGIN:VEVENT\r\nUID:y2\r\nSUMMARY:Exam\r\nDTSTART;TZID=America/Santiago:20261022T090000\r\nDURATION:PT3H\r\nBEGIN:VALARM\r\nTRIGGER;RELATED=END:-PT15M\r\nEND:VALARM\r\nEND:VEVENT\r\n",
+    );
+    assert_eq!(
+        exam.reminder.unwrap().at,
+        date(2026, 10, 22).at(11, 45, 0, 0)
+    );
+    let weekly = one(
+        "BEGIN:VEVENT\r\nUID:y3\r\nSUMMARY:Class\r\nDTSTART;TZID=America/Santiago:20250106T090000\r\nDTEND;TZID=America/Santiago:20250106T100000\r\nRRULE:FREQ=WEEKLY\r\nBEGIN:VALARM\r\nTRIGGER;RELATED=END:-PT15M\r\nEND:VALARM\r\nEND:VEVENT\r\n",
+    );
+    assert_eq!(
+        weekly.reminder.unwrap().at,
+        date(2026, 10, 19).at(9, 45, 0, 0)
+    );
+}
+
+#[test]
+fn a_series_end_written_in_utc_is_read_on_this_clock() {
+    let daily = one(
+        "BEGIN:VEVENT\r\nUID:y4\r\nSUMMARY:Pills\r\nDTSTART;TZID=America/Santiago:20261019T200000\r\nRRULE:FREQ=DAILY;UNTIL=20261029T025959Z\r\nEND:VEVENT\r\n",
+    );
+    assert_eq!(daily.repeat.unwrap().until, Some(date(2026, 10, 28)));
+}

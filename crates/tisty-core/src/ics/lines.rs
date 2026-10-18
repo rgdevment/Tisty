@@ -14,7 +14,6 @@ impl Line {
     }
 }
 
-// A long line goes on in the next one that starts with a space or a tab.
 pub fn unfolded(text: &str) -> Vec<String> {
     let mut out: Vec<String> = Vec::new();
     for raw in text.split('\n') {
@@ -30,8 +29,7 @@ pub fn unfolded(text: &str) -> Vec<String> {
 
 const DATED: [&str; 5] = ["DTSTART", "DTEND", "DUE", "EXDATE", "RECURRENCE-ID"];
 
-// A colon inside a quoted parameter is not the one that starts the value; a date holds none, so
-// for one the last colon starts it, as Outlook leaves a zone like «(UTC-05:00) Eastern» unquoted.
+// A date holds no colon, so its last one starts it: Outlook leaves «(UTC-05:00) Eastern» unquoted.
 pub fn line(raw: &str) -> Option<Line> {
     let named = raw.split([';', ':']).next().unwrap_or("").trim();
     let dated = DATED.iter().any(|one| one.eq_ignore_ascii_case(named));
