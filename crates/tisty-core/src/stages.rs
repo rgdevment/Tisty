@@ -130,8 +130,12 @@ fn paired(from: &[String], to: &[String], renames: bool) -> Vec<Option<usize>> {
     of
 }
 
+// A step ending in a backslash reads back without it, since in a page that mark is a line break.
 fn titled<'a>(texts: impl IntoIterator<Item = &'a String>) -> Vec<String> {
-    texts.into_iter().map(|one| title(one)).collect()
+    texts
+        .into_iter()
+        .map(|one| title(one).trim_end_matches('\\').trim_end().to_string())
+        .collect()
 }
 
 fn texts(stages: &[Stage]) -> Vec<String> {
