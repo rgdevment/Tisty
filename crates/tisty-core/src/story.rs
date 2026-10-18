@@ -4,9 +4,8 @@ use jiff::Timestamp;
 use serde::{Deserialize, Serialize};
 
 use crate::event::{DeviceId, Event, Op, PageChange};
-
-const WRITING_FOR: i64 = 30 * 60;
 use crate::model::{DateSpec, ListId, Priority, Reading, Repeat, StepId, Tag, TaskId};
+use crate::paged::WRITING_FOR;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "chapter", rename_all = "lowercase")]

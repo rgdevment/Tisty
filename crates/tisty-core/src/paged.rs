@@ -121,6 +121,39 @@ pub fn paged(task: TaskId, before: &str, now: &str) -> Vec<Op> {
     ops
 }
 
+pub const WRITING_FOR: i64 = 30 * 60;
+
+pub type Told = std::collections::HashMap<(TaskId, String), i64>;
+
+fn written(op: &Op) -> Option<(TaskId, &str)> {
+    match op {
+        Op::TaskPaged { id, d } if matches!(d.change, PageChange::Written) => {
+            Some((*id, d.section.as_str()))
+        }
+        _ => None,
+    }
+}
+
+/// Writing in a section is one event per stretch the trail folds into one chapter, not one per pause.
+pub fn quieted(ops: Vec<Op>, told: &Told, now: i64) -> Vec<Op> {
+    ops.into_iter()
+        .filter(|op| {
+            written(op).is_none_or(|(id, section)| {
+                told.get(&(id, section.to_string()))
+                    .is_none_or(|at| !(0..WRITING_FOR).contains(&(now - at)))
+            })
+        })
+        .collect()
+}
+
+/// Only what reached the log counts as told, so a failed write is told again on the next pause.
+pub fn told(told: &mut Told, ops: &[Op], now: i64) {
+    told.retain(|_, at| (0..WRITING_FOR).contains(&(now - *at)));
+    for (id, section) in ops.iter().filter_map(written) {
+        told.insert((id, section.to_string()), now);
+    }
+}
+
 #[cfg(test)]
 #[path = "paged_test.rs"]
 mod tests;
