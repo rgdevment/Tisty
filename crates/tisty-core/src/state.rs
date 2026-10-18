@@ -1250,7 +1250,12 @@ impl State {
         self.tasks
             .values()
             .flat_map(|t| &t.tags)
-            .chain(self.docs.values().flat_map(|one| &one.tags))
+            .chain(
+                self.docs
+                    .values()
+                    .filter(|one| one.task_of.is_none())
+                    .flat_map(|one| &one.tags),
+            )
             .collect()
     }
 
@@ -1304,9 +1309,9 @@ impl State {
     }
 
     pub fn docs_tagged(&self, tag: &Tag) -> impl Iterator<Item = &crate::model::Kept> {
-        self.docs
-            .values()
-            .filter(move |one| !self.held_away(one) && one.tags.contains(tag))
+        self.docs.values().filter(move |one| {
+            one.task_of.is_none() && !self.held_away(one) && one.tags.contains(tag)
+        })
     }
 }
 

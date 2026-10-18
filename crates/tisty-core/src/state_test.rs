@@ -4860,3 +4860,29 @@ fn erasing_a_list_already_archived_writes_nothing_that_undo_could_reverse() {
         "undoing an archive that changed nothing must not bring the list back"
     );
 }
+
+#[test]
+fn a_task_s_document_lends_no_tag_and_counts_in_none() {
+    let mut state = State::default();
+    let here = folder(&mut state, "tisty", None);
+    let owned = doc(&mut state, "a3f1-0001", Some(here));
+    let tag: Tag = "solo".parse().unwrap();
+    state.apply(&ev(
+        2,
+        "a",
+        Op::DocSaid {
+            id: owned,
+            d: crate::event::Said {
+                title: "gcp".into(),
+                bytes: None,
+                tags: Some(vec![tag.clone()]),
+                by: None,
+                print: None,
+            },
+        },
+    ));
+    state.docs.get_mut(&owned).unwrap().task_of = Some(Ulid::generate());
+
+    assert_eq!(state.docs_tagged(&tag).count(), 0);
+    assert!(!state.tags().contains(&tag));
+}
