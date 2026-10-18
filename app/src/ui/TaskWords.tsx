@@ -293,7 +293,7 @@ function Written({
         asking={asking}
         stepDates={dates}
         part={cards.part}
-        again={cards.said}
+        again={`${cards.said}|${onPart ? "parts" : ""}`}
         onTask={onTask}
         onPart={onPart}
       />

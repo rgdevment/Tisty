@@ -120,12 +120,12 @@ pub(super) fn merged(keys: Vec<Key>, pages: Vec<Page>, events: &[Event], id: Tas
         .map(|(key, page)| (key, 0, page))
         .collect();
     keyed.extend(
-        parted(events, id)
+        crate::witness::hushed(|| parted(events, id))
             .into_iter()
             .map(|(key, page)| (key, 1, page)),
     );
     keyed.sort_by(|a, b| (&a.0, a.1).cmp(&(&b.0, b.1)));
-    let joined: Vec<(i64, DeviceId, String)> = keyed
+    let mut joined: Vec<(i64, DeviceId, String)> = keyed
         .iter()
         .filter_map(|(_, _, page)| match &page.chapter {
             Chapter::PartJoined { title, .. } => {
@@ -135,13 +135,16 @@ pub(super) fn merged(keys: Vec<Key>, pages: Vec<Page>, events: &[Event], id: Tas
         })
         .collect();
     // A step made into a part leaves the page as the part comes in: one move, told once.
-    keyed.retain(|(_, _, page)| match &page.chapter {
-        Chapter::Unplanned { text } => !joined.iter().any(|(at, by, title)| {
+    keyed.retain(|(_, _, page)| {
+        let Chapter::Unplanned { text } = &page.chapter else {
+            return true;
+        };
+        let made = joined.iter().position(|(at, by, title)| {
             *by == page.by
                 && crate::stages::title(title) == *text
                 && (0..=PARTED_WITHIN).contains(&(page.at.as_second() - at))
-        }),
-        _ => true,
+        });
+        made.map(|at| joined.remove(at)).is_none()
     });
     keyed
         .into_iter()

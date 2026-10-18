@@ -22,7 +22,6 @@ export const staged = (page: Document) => {
   }
 };
 
-// The step's words as the core reads them back: no break marks at the end, one space between words.
 export const steppedTitle = (line: string): string | null => {
   const found = /^[-*+]\s+\[ \]\s+(.+)$/.exec(line);
   const title = found?.[1]
@@ -32,7 +31,6 @@ export const steppedTitle = (line: string): string | null => {
   return title || null;
 };
 
-// The step's own line, read the way the page's bytes name it, or nothing for one that runs on.
 export const stepLine = (body: string, [from, end]: [number, number]): string | null => {
   if (from > 0 && body[from - 1] !== "\n") return null;
   const line = body.slice(from, end).replace(/\r?\n?$/, "");

@@ -177,3 +177,6 @@ li.task > .to-part:hover {
   color: var(--tisty-accent);
   background: var(--tisty-hover);
 }
+html.untitled .page > ul > li.task:has(> .to-part) {
+  padding-right: 40px;
+}

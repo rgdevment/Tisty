@@ -1,5 +1,5 @@
 import { fill, t } from "../locales";
-import { drawn, piece } from "./carding";
+import { cardBox, drawn, piece } from "./carding";
 
 export type PartCarded =
   | {
@@ -32,16 +32,8 @@ export const partCarded = (page: Document, part: ((id: string) => PartCarded) | 
     if ((held.textContent ?? "").trim() !== (link.textContent ?? "").trim()) continue;
     const id = link.dataset.task ?? "";
     const seen = part(id);
-    const box = page.createElement("span");
-    box.className = `doc-card is-part is-${seen.kind}`;
+    const box = cardBox(page, `is-part is-${seen.kind}`, true);
     box.dataset.task = id;
-    box.tabIndex = 0;
-    box.setAttribute("role", "link");
-    box.addEventListener("keydown", (event) => {
-      if (event.key !== "Enter" && event.key !== " ") return;
-      event.preventDefault();
-      box.click();
-    });
     const tile = piece(page, "card-tile");
     tile.append(drawn(page, seen.kind === "closed" ? "done" : "todo"));
     const name =

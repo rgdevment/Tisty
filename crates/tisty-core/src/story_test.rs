@@ -949,3 +949,50 @@ fn a_step_made_into_a_part_is_told_as_the_part_alone() {
         ]
     );
 }
+
+#[test]
+fn a_second_step_of_the_same_name_taken_off_still_reads_as_taken_off() {
+    let whole = Ulid::generate();
+    let part = Ulid::generate();
+    let (one, two) = (Ulid::generate(), Ulid::generate());
+    let planned = |seconds, step| {
+        event(
+            seconds,
+            Op::StepAdd {
+                id: whole,
+                d: StepAdd {
+                    step,
+                    text: "pack".into(),
+                    order: "a0".into(),
+                },
+            },
+        )
+    };
+    let gone = |seconds, step| {
+        event(
+            seconds,
+            Op::StepRemove {
+                id: whole,
+                d: StepRef { step },
+            },
+        )
+    };
+    let log = vec![
+        born(whole, "move house"),
+        planned(1, one),
+        planned(2, two),
+        part_born(10, part, "pack", whole),
+        gone(11, one),
+        gone(12, two),
+    ];
+
+    let story = story(&log, whole);
+    let told = chapters(&story);
+
+    assert_eq!(
+        told.iter()
+            .filter(|chapter| matches!(chapter, Chapter::Unplanned { .. }))
+            .count(),
+        1
+    );
+}

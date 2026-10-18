@@ -413,7 +413,8 @@ export default function Sheet(props: Readonly<Props>) {
       .then((id) => {
         // The part is there either way; the step makes room for it only where it still stands untouched.
         const now = latest.current;
-        const still = now.slice(at[0], at[0] + line.length) === line;
+        const after = now.slice(at[0] + line.length);
+        const still = now.slice(at[0], at[0] + line.length) === line && /^(\r?\n|$)/.test(after);
         if (!id || !still || open.current || showing.current !== now) return;
         whole(cardedAt(now, at[0], at[0] + line.length, partCard(id, title)));
       })

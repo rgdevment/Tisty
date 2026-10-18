@@ -7,7 +7,7 @@ import type { PartCarded } from "./partcarding";
 const named = new RegExp(`${TASK.replace("/", "\\/")}([0-9A-Za-z]+)`, "g");
 
 const cardOf = (whole: string, known: ReadonlyMap<string, Task | null> | null) => (id: string) => {
-  if (!known) return { kind: "waiting" } satisfies PartCarded;
+  if (!known?.has(id)) return { kind: "waiting" } satisfies PartCarded;
   const one = known.get(id);
   if (!one || one.part_of !== whole) return { kind: "loose" } satisfies PartCarded;
   if (one.status !== "open")
