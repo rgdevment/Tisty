@@ -104,7 +104,16 @@ fn turn(state: &State, task: TaskId) -> u32 {
 }
 
 pub fn first_words(state: &State, task: TaskId) -> String {
+    opened(state, task, "")
+}
+
+/// The template's words come first; the task's own description and steps follow them.
+pub fn opened(state: &State, task: TaskId, template: &str) -> String {
     let mut out = seed(task);
+    let template = template.trim_end();
+    if !template.is_empty() {
+        out.push_str(&format!("\n{template}\n"));
+    }
     let Some(one) = state.tasks.get(&task) else {
         return out;
     };
@@ -139,7 +148,7 @@ pub fn made(
             (id_at(task, at), file_at(task, at))
         }
     };
-    let first = first_words(state, from);
+    let first = opened(state, from, &template_words(root, state, from));
     let body = match crate::docs::create_named(root, &file, &first)? {
         true => first,
         false => crate::docs::read(root, &file)?,
@@ -155,6 +164,17 @@ pub fn made(
             ..DocAdd::default()
         },
     })
+}
+
+fn template_words(root: &Path, state: &State, task: TaskId) -> String {
+    let Some(one) = state.tasks.get(&task) else {
+        return String::new();
+    };
+    let all = crate::templates::found(root, state);
+    crate::templates::picked(&all, state, one)
+        .and_then(|template| crate::docs::read(root, &template.file).ok())
+        .map(|text| crate::templates::body(&text).to_string())
+        .unwrap_or_default()
 }
 
 #[cfg(test)]

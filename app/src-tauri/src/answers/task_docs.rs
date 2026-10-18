@@ -74,7 +74,7 @@ pub fn task_doc_make(session: tauri::State<'_, Mutex<Session>>, id: String) -> A
         known(&session, id)?;
         return Ok(file);
     }
-    open_task(&session, id)?;
+    let task = open_task(&session, id)?;
     let op = tisty_core::task_docs::made(
         &session.paths.docs(),
         &session.state,
@@ -87,7 +87,11 @@ pub fn task_doc_make(session: tauri::State<'_, Mutex<Session>>, id: String) -> A
         return Err(Refusal::of("internal"));
     };
     let file = d.file.clone();
-    session.commit(op)?;
+    // A template's stages are steps the task did not have yet, born with it in the same breath.
+    let body = tisty_core::docs::read(&session.paths.docs(), &file).unwrap_or_default();
+    let mut ops = vec![op];
+    ops.extend(tisty_core::stages::reconciled(&task, None, &body));
+    session.commit_all(ops)?;
     Ok(file)
 }
 

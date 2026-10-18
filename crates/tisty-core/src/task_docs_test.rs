@@ -242,3 +242,59 @@ fn every_turn_of_a_routine_answers_to_its_first() {
     let alone = Ulid::generate();
     assert_eq!(super::owner(&state, alone), alone);
 }
+
+#[test]
+fn a_task_s_document_opens_with_its_template_then_its_own_words() {
+    let room = tempfile::tempdir().unwrap();
+    let mut state = State::default();
+    std::fs::write(
+        room.path().join("a3f1-0001.md"),
+        "---\ntemplate: tasks\ntemplate_for: tasks\n---\n\n## Steps\n\n- [ ] Back up first\n",
+    )
+    .unwrap();
+    applied(
+        &mut state,
+        Op::DocAdd {
+            id: Ulid::generate(),
+            d: crate::event::DocAdd {
+                file: "a3f1-0001".into(),
+                order: "a0".into(),
+                ..crate::event::DocAdd::default()
+            },
+        },
+    );
+    let task = Ulid::generate();
+    applied(
+        &mut state,
+        Op::TaskAdd {
+            id: task,
+            d: TaskAdd::new("Ship 4.2", "a0"),
+        },
+    );
+    applied(
+        &mut state,
+        Op::TaskDescribe {
+            id: task,
+            d: crate::event::Body {
+                body: Some("Friday, after lunch.".into()),
+            },
+        },
+    );
+
+    let first = made(room.path(), &state, task, task, None).unwrap();
+    applied(&mut state, first);
+
+    let body = crate::docs::read(room.path(), &file_at(task, 1)).unwrap();
+    assert_eq!(
+        body,
+        format!(
+            "{}\n## Steps\n\n- [ ] Back up first\n\nFriday, after lunch.\n",
+            seed(task)
+        )
+    );
+    let ops = crate::stages::reconciled(&state.tasks[&task], None, &body);
+    assert!(
+        matches!(&ops[..], [Op::StepAdd { d, .. }] if d.text == "Back up first"),
+        "{ops:?}"
+    );
+}
