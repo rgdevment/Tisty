@@ -21,21 +21,15 @@ const task: Task = {
   steps: [{ id: "01S", text: "collect the figures", done: false, order: "a0" }],
 } as unknown as Task;
 
-const show = (expanded = false) => {
+const show = () => {
   const closed = vi.fn();
   render(
     <Detail
       task={task}
       lists={[]}
       known={[]}
-      expanded={expanded}
-      onExpand={() => {}}
       onCollapse={() => {}}
       onPatch={() => {}}
-      onStep={() => {}}
-      onMark={() => {}}
-      onDropStep={() => {}}
-      onLog={() => {}}
       onComplete={() => {}}
       onDiscard={() => {}}
       onReopen={() => {}}
@@ -51,25 +45,8 @@ const show = (expanded = false) => {
 };
 
 describe("getting back out of an open task", () => {
-  it("offers a close button in the column", async () => {
-    const closed = show();
-
-    await userEvent.click(screen.getByRole("button", { name: /close the task/i }));
-
-    expect(closed).toHaveBeenCalled();
-  });
-
   it("closes on Escape", async () => {
     const closed = show();
-
-    (document.querySelector("aside") as HTMLElement).focus();
-    await userEvent.keyboard("{Escape}");
-
-    expect(closed).toHaveBeenCalled();
-  });
-
-  it("closes on Escape full-screen too", async () => {
-    const closed = show(true);
 
     (document.querySelector("main") as HTMLElement).focus();
     await userEvent.keyboard("{Escape}");
@@ -89,26 +66,9 @@ describe("getting back out of an open task", () => {
   it("shows where the focus went", () => {
     show();
 
-    const panel = document.querySelector("aside") as HTMLElement;
+    const panel = document.querySelector("main") as HTMLElement;
     expect(document.activeElement).toBe(panel);
     expect(panel.className).toContain("focus-visible:ring-2");
-  });
-});
-
-describe("what only the mouse used to see", () => {
-  it("draws the remove button of a step once it has focus", () => {
-    show();
-
-    const remove = screen.getByRole("button", { name: /remove collect the figures/i });
-    expect(remove.className).toContain("focus-visible:opacity-100");
-  });
-
-  it("rings the description when the keyboard reaches it", () => {
-    show();
-
-    const prose = screen.getByLabelText(/description/i);
-    expect(prose.getAttribute("tabindex")).toBe("0");
-    expect(prose.className).toContain("focus-visible:ring-2");
   });
 });
 
@@ -121,17 +81,11 @@ describe("what an open task carries, once it takes the whole page", () => {
         cmd === "task_story" ? { pages: [{ n: 1, at: made, chapter: "made" }] } : null,
       ),
     );
-    show(true);
+    show();
 
     expect(await screen.findByText("5")).toBeTruthy();
     expect(screen.getByText("days open")).toBeTruthy();
     expect(screen.getByText("0/0")).toBeTruthy();
     expect(screen.getByText("What it carries")).toBeTruthy();
-  });
-
-  it("leaves the trail out of the panel, where the column has no room for it", () => {
-    show(false);
-
-    expect(screen.queryByText("What it carries")).toBeNull();
   });
 });

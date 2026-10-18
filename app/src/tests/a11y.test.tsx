@@ -1,13 +1,10 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { Step, Task } from "../core";
+import type { Task } from "../core";
 import Menu from "../ui/Menu";
-import Steps from "../ui/Steps";
 import TaskList from "../ui/TaskList";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
-
-const step = (done: boolean): Step => ({ id: "s1", text: "reunir las cifras", done, order: "a0" });
 
 const task = (status: Task["status"]): Task => ({
   id: "01A",
@@ -21,33 +18,7 @@ const task = (status: Task["status"]): Task => ({
   reminders: [],
 });
 
-const stepped = (done: boolean) =>
-  render(<Steps steps={[step(done)]} onWrite={vi.fn()} onMark={vi.fn()} onDrop={vi.fn()} />);
-
 describe("what a screen reader is told", () => {
-  it("says whether a step is done, not just paints it", () => {
-    stepped(false);
-
-    expect(screen.getByRole("checkbox").getAttribute("aria-checked")).toBe("false");
-  });
-
-  it("flips that state when the step is done", () => {
-    stepped(true);
-
-    expect(screen.getByRole("checkbox").getAttribute("aria-checked")).toBe("true");
-  });
-
-  it("does not call the mark button and its field the same thing", () => {
-    stepped(false);
-
-    const mark = screen.getByRole("checkbox").getAttribute("aria-label");
-    const field = screen.getByLabelText(/^Step:/).getAttribute("aria-label");
-
-    expect(mark).not.toBe(field);
-    expect(mark).toMatch(/reunir las cifras/);
-    expect(field).toMatch(/reunir las cifras/);
-  });
-
   it("says a task is done, not only with a glyph", () => {
     render(<TaskList tasks={[task("done")]} lists={[]} title="Hoy" onSelect={vi.fn()} />);
 

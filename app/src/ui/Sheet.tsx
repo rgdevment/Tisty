@@ -34,6 +34,7 @@ type Props = {
   readonly below?: ReactNode;
   readonly onSeen?: (at: number) => void;
   readonly onWrite: (text: string) => void;
+  readonly onSettle?: (before: string, now: string) => void;
   readonly onOwn?: (file: string) => void;
   readonly onFail?: (problem: unknown) => void;
   readonly onDoc?: (file: string) => void;
@@ -47,6 +48,7 @@ type Props = {
   readonly onOrder?: (move: ((file: string, before: string | null) => Moved) | null) => void;
   readonly asking?: Asking;
   readonly kept?: boolean;
+  readonly inline?: boolean;
   readonly sheet?: SheetSize;
 };
 
@@ -74,6 +76,20 @@ export default function Sheet(props: Readonly<Props>) {
     echoes.current.push(text);
     said.current.onWrite(text);
   }, []);
+
+  const settled = useCallback((before: string, now: string) => {
+    if (before !== now) said.current.onSettle?.(before, now);
+  }, []);
+
+  const whole = useCallback(
+    (next: string) => {
+      const before = latest.current;
+      written(next);
+      setDrawn(next);
+      settled(before, next);
+    },
+    [written, settled],
+  );
 
   const quiet = useRef(false);
   const left = useCallback(() => {
@@ -167,6 +183,7 @@ export default function Sheet(props: Readonly<Props>) {
     const ahead = fresh ? parting(latest.current.slice(0, from), false, line) : "";
     const behind = fresh ? parting(latest.current.slice(end), true, line) : "";
     const home = onFile.current;
+    const before = latest.current;
     let mine = latest.current;
     const spliced = (text: string) => {
       const now = latest.current;
@@ -184,11 +201,12 @@ export default function Sheet(props: Readonly<Props>) {
       () => {
         open.current = null;
         // Only a block left by the person closes its gap: text from outside or another file is not its own.
-        const own = !quiet.current && home === onFile.current && latest.current === mine;
-        if (own && !fresh && !latest.current.slice(from, end).trim()) {
+        const ours = home === onFile.current && latest.current === mine;
+        if (ours && !quiet.current && !fresh && !latest.current.slice(from, end).trim()) {
           written(closed(latest.current, from, end));
         }
         setDrawn(latest.current);
+        if (ours) settled(before, latest.current);
       },
       () => {
         const asking = said.current.asking;
@@ -321,8 +339,7 @@ export default function Sheet(props: Readonly<Props>) {
         : null;
     const span = spanned(block?.dataset.at ?? null);
     const next = laid(now, span ? charsAt(now, span[1]) : now.length, text);
-    written(next);
-    setDrawn(next);
+    whole(next);
   };
   const dropping = useRef(dropped);
   dropping.current = dropped;
@@ -338,8 +355,7 @@ export default function Sheet(props: Readonly<Props>) {
     if (open.current) return left();
     if (reading || latest.current !== body || showing.current !== body) return;
     const next = mendedText(body, [one]);
-    written(next);
-    setDrawn(next);
+    whole(next);
   };
 
   const ticked = ([from, end]: [number, number]) => {
@@ -353,8 +369,7 @@ export default function Sheet(props: Readonly<Props>) {
     if (!/^\[[ xX]\]/.test(said.slice(bracket))) return;
     const at = from + bracket;
     const next = `${now.slice(0, at)}${now.slice(at, at + 3) === "[ ]" ? "[x]" : "[ ]"}${now.slice(at + 3)}`;
-    written(next);
-    setDrawn(next);
+    whole(next);
   };
 
   const widen = (at: [number, number], column: number, dashes: number) => {
@@ -362,8 +377,7 @@ export default function Sheet(props: Readonly<Props>) {
     if (reading || showing.current !== latest.current) return;
     const next = widened(latest.current, at, column, dashes);
     if (next === null) return;
-    written(next);
-    setDrawn(next);
+    whole(next);
   };
 
   const asked = (one: Extract<Went, { kind: "more" }>) => {
@@ -379,8 +393,7 @@ export default function Sheet(props: Readonly<Props>) {
     if (askedOn.current !== latest.current) return;
     const next = reshaped(latest.current, one.at, one.target, how);
     if (next === null) return;
-    written(next);
-    setDrawn(next);
+    whole(next);
   };
 
   const keepCopy = (reference: string) =>
@@ -436,8 +449,7 @@ export default function Sheet(props: Readonly<Props>) {
             left();
             const put = putCard(latest.current, file, title);
             if (put === null) return false;
-            written(put);
-            setDrawn(put);
+            whole(put);
             return true;
           },
     );
@@ -448,8 +460,7 @@ export default function Sheet(props: Readonly<Props>) {
             left();
             const done = movedCard(latest.current, file, before);
             if (done.body !== latest.current) {
-              written(done.body);
-              setDrawn(done.body);
+              whole(done.body);
             }
             return done.moved;
           },
@@ -458,7 +469,7 @@ export default function Sheet(props: Readonly<Props>) {
       said.current.onInsert?.(null);
       said.current.onOrder?.(null);
     };
-  }, [reading, written, left]);
+  }, [reading, whole, left]);
 
   // The sheet takes the keys without a caret, so nothing pulls the view to where one would be.
   useEffect(() => room.current?.focus({ preventScroll: true }), []);
@@ -529,6 +540,7 @@ export default function Sheet(props: Readonly<Props>) {
           label={label}
           stranger={false}
           tall
+          untitled={props.inline}
           onDoc={(file) => said.current.onDoc?.(file)}
           onOpen={(reference) => said.current.onOpen?.(reference)}
           onTag={(tag) => said.current.onTag?.(tag)}
@@ -558,7 +570,7 @@ export default function Sheet(props: Readonly<Props>) {
         />
       </div>
       {below}
-      {!below && <div aria-hidden="true" className="h-[40vh] shrink-0" />}
+      {!below && !props.inline && <div aria-hidden="true" className="h-[40vh] shrink-0" />}
       {menu && (
         <Menu
           at={{ x: menu.x, y: menu.y }}

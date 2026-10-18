@@ -65,6 +65,27 @@ pub fn of(state: &State, task: TaskId) -> Option<&Kept> {
     state.docs.values().find(|kept| kept.task_of == Some(task))
 }
 
+/// A task leaving the log for good takes its document along, so its words do not outlive it.
+pub fn erased_with(state: &State, task: TaskId) -> Vec<Op> {
+    let mut ops: Vec<Op> = of(state, task)
+        .map(|one| Op::DocDelete { id: one.id })
+        .into_iter()
+        .collect();
+    ops.push(Op::TaskDelete { id: task });
+    ops
+}
+
+pub fn owner(state: &State, task: TaskId) -> TaskId {
+    let mut at = task;
+    for _ in 0..state.tasks.len() {
+        match state.tasks.get(&at).and_then(|one| one.after) {
+            Some(before) if before != task && state.tasks.contains_key(&before) => at = before,
+            _ => break,
+        }
+    }
+    at
+}
+
 pub fn behind(state: &State) -> std::collections::BTreeMap<String, TaskId> {
     state
         .docs
@@ -82,7 +103,35 @@ fn turn(state: &State, task: TaskId) -> u32 {
     at
 }
 
-pub fn made(root: &Path, state: &State, task: TaskId, by: Option<String>) -> crate::Result<Op> {
+pub fn first_words(state: &State, task: TaskId) -> String {
+    let mut out = seed(task);
+    let Some(one) = state.tasks.get(&task) else {
+        return out;
+    };
+    if let Some(said) = one
+        .description
+        .as_deref()
+        .map(str::trim)
+        .filter(|said| !said.is_empty())
+    {
+        out.push_str(&format!("\n{said}\n"));
+    }
+    let steps = crate::stages::ordered(one);
+    if !steps.is_empty() {
+        out.push('\n');
+        out.push_str(&crate::stages::lines(&steps));
+    }
+    out
+}
+
+/// `from` is the turn asking: a routine's document is its first turn's, seeded with today's steps.
+pub fn made(
+    root: &Path,
+    state: &State,
+    task: TaskId,
+    from: TaskId,
+    by: Option<String>,
+) -> crate::Result<Op> {
     let (id, file) = match of(state, task) {
         Some(kept) => (kept.id, kept.file.clone()),
         None => {
@@ -90,8 +139,9 @@ pub fn made(root: &Path, state: &State, task: TaskId, by: Option<String>) -> cra
             (id_at(task, at), file_at(task, at))
         }
     };
-    let body = match crate::docs::create_named(root, &file, &seed(task))? {
-        true => seed(task),
+    let first = first_words(state, from);
+    let body = match crate::docs::create_named(root, &file, &first)? {
+        true => first,
         false => crate::docs::read(root, &file)?,
     };
     Ok(Op::DocAdd {

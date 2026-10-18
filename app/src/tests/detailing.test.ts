@@ -9,6 +9,7 @@ let asked = true;
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args: Record<string, unknown>) => {
     calls.push({ cmd, args });
+    if (cmd === "task_doc_settled" && args.now === args.before) return Promise.resolve(null);
     return Promise.resolve({ id: String(args?.id ?? "t1"), title: "Hecha" });
   },
 }));
@@ -60,22 +61,22 @@ describe("what the detail of a task is handed", () => {
     const shown = detailOf(task, h);
 
     shown.onPatch({ title: "Otra" } as never);
-    shown.onStep("paso");
-    shown.onMark("s1", true);
-    shown.onDropStep("s1");
-    shown.onLog("nota");
     shown.onReopen();
     shown.onStillOpen();
     shown.onFold(true);
     shown.onReadAs("story");
     shown.onOpenToAgents(true);
     shown.onHang(null);
-    shown.onStepToPart("s1");
     shown.onAddPart("parte");
+    shown.onSettle("antes", "ahora");
     await flush();
 
-    expect(h.act).toHaveBeenCalledTimes(13);
+    expect(h.act).toHaveBeenCalledTimes(9);
     expect(sent()).toContain("task_of");
+    expect(calls).toContainEqual({
+      cmd: "task_doc_settled",
+      args: { id: "t1", before: "antes", now: "ahora" },
+    });
   });
 
   it("closes the detail when the task is completed or discarded", () => {
@@ -127,5 +128,16 @@ describe("erasing a task", () => {
 
     expect(sent()).toEqual([]);
     expect(gone).not.toHaveBeenCalled();
+  });
+});
+
+describe("a task document left as it was", () => {
+  it("acts on nothing when settling changed no step", async () => {
+    const h = hands();
+    detailOf(task, h).onSettle("igual", "igual");
+    await flush();
+
+    expect(sent()).toContain("task_doc_settled");
+    expect(h.act).not.toHaveBeenCalled();
   });
 });

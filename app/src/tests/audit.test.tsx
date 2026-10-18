@@ -4,7 +4,6 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 import type { Habit, Series, Task, Turn } from "../core";
 import { t } from "../locales";
 import Ahead, { weekday } from "../ui/Ahead";
-import Detail from "../ui/Detail";
 import Spread from "../ui/Spread";
 
 const scrolledTo: Element[] = [];
@@ -198,42 +197,6 @@ describe("a translation only stays in the catalogue if something reads it", () =
     const unread = keys.filter((key) => !body.includes(key));
 
     expect(unread).toEqual([]);
-  });
-});
-
-describe("the title's size does not actually depend on whether the task is expanded", () => {
-  it("renders the very same class whether expanded is true or false", () => {
-    const task = made("01A", "Kermés");
-    const props = {
-      task,
-      lists: [],
-      known: [],
-      onExpand: vi.fn(),
-      onCollapse: vi.fn(),
-      onPatch: vi.fn(),
-      onStep: vi.fn(),
-      onMark: vi.fn(),
-      onDropStep: vi.fn(),
-      onLog: vi.fn(),
-      onComplete: vi.fn(),
-      onDiscard: vi.fn(),
-      onReopen: vi.fn(),
-      onStillOpen: vi.fn(),
-      onErase: vi.fn(),
-      onFold: vi.fn(),
-      onReadAs: vi.fn(),
-      onOpenToAgents: vi.fn(),
-      onClose: vi.fn(),
-    };
-
-    const closed = render(<Detail {...props} expanded={false} />);
-    const narrow = screen.getByRole("textbox", { name: t("fieldTitle") }).className;
-    closed.unmount();
-
-    render(<Detail {...props} expanded />);
-    const wide = screen.getByRole("textbox", { name: t("fieldTitle") }).className;
-
-    expect(wide).toBe(narrow);
   });
 });
 

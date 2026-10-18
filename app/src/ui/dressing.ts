@@ -151,7 +151,7 @@ const titled = (page: Document) => {
   const sheet = page.querySelector<HTMLElement>(".page");
   if (!sheet) return;
   sheet.setAttribute("data-empty", t("pageEmpty"));
-  if (sheet.firstElementChild) return;
+  if (sheet.firstElementChild || page.documentElement.classList.contains("untitled")) return;
   const slot = page.createElement("h1");
   slot.dataset.title = t("titleEmpty");
   sheet.prepend(slot);

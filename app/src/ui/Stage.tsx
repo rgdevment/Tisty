@@ -170,13 +170,7 @@ export default function Stage() {
       onChanged={refreshed}
     />
   ) : sheet && task ? (
-    <Detail
-      key={task.id}
-      {...detailing(task)}
-      expanded
-      from={title(chosen, data.lists)}
-      onCollapse={shut}
-    />
+    <Detail key={task.id} {...detailing(task)} from={title(chosen, data.lists)} onCollapse={shut} />
   ) : (
     <Board />
   );

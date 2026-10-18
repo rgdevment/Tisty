@@ -80,7 +80,14 @@ pub fn title(text: &str) -> String {
     format!("{}…", room[..cut].trim_end())
 }
 
-fn ordered(task: &Task) -> Vec<&Step> {
+pub fn lines(steps: &[&Step]) -> String {
+    steps
+        .iter()
+        .map(|step| format!("- [{}] {}\n", if step.done { "x" } else { " " }, step.text))
+        .collect()
+}
+
+pub fn ordered(task: &Task) -> Vec<&Step> {
     let mut steps: Vec<&Step> = task.steps.iter().collect();
     steps.sort_by(|a, b| a.order.cmp(&b.order).then(a.id.cmp(&b.id)));
     steps
@@ -260,7 +267,7 @@ pub fn reconciled(task: &Task, before: Option<&str>, now: &str) -> Vec<Op> {
 
 /// The file's own boxes may be stale, so a document going out is ticked as the log has it.
 pub fn ticked(task: &Task, body: &str) -> String {
-    if task.steps.is_empty() || !body.contains('[') {
+    if task.steps.is_empty() {
         return body.to_string();
     }
     let steps = ordered(task);
@@ -284,7 +291,24 @@ pub fn ticked(task: &Task, body: &str) -> String {
         let at = stage.at.start + open + 1;
         out.replace_range(at..at + 1, if step.done { "x" } else { " " });
     }
-    out
+    // A step filed from elsewhere has no line yet, and a step nobody can see cannot be ticked.
+    let missing: Vec<&Step> = (0..steps.len())
+        .filter(|at| !of.contains(&Some(*at)))
+        .map(|at| steps[at])
+        .collect();
+    if missing.is_empty() {
+        return out;
+    }
+    let mut grown = out.trim_end_matches(['\n', '\r']).to_string();
+    if !grown.is_empty() {
+        grown.push_str("\n\n");
+    }
+    grown.push_str(&lines(&missing));
+    // Lines swallowed by what the text leaves open, a fence say, would be added again on every open.
+    match stages(&grown).len() == found.len() + missing.len() {
+        true => grown,
+        false => out,
+    }
 }
 
 #[cfg(test)]

@@ -1,9 +1,8 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { docCard, docLink, docOf } from "../markdown";
 import Composed from "../ui/Composed";
-import Insert from "../ui/Insert";
 import { composed } from "./crated";
 
 const shelf = vi.hoisted(() => ({
@@ -97,47 +96,5 @@ describe("a reference to a document of this Tisty", () => {
 
     expect(onDoc).not.toHaveBeenCalled();
     expect(opener.url).toHaveBeenCalledWith("https://ejemplo.org");
-  });
-});
-
-describe("picking a document to reference", () => {
-  const menu = (onPut = vi.fn()) => {
-    render(<Insert onPut={onPut} onClose={vi.fn()} />);
-    return onPut;
-  };
-
-  it("is offered where the other things to insert are", async () => {
-    menu();
-
-    expect(screen.getByRole("button", { name: /A document/ })).toBeTruthy();
-  });
-
-  it("puts the document in as a card, which is what the reader sees, not as bare text", async () => {
-    const onPut = menu();
-    await userEvent.click(screen.getByRole("button", { name: /A document/ }));
-    await waitFor(() => screen.getByRole("button", { name: /Informe técnico/ }));
-
-    await userEvent.click(screen.getByRole("button", { name: /Informe técnico/ }));
-
-    expect(onPut).toHaveBeenCalledWith("![Informe técnico](tisty:doc/mac0-0001)");
-  });
-
-  it("narrows to what is being typed", async () => {
-    menu();
-    await userEvent.click(screen.getByRole("button", { name: /A document/ }));
-    await waitFor(() => screen.getByRole("button", { name: /Informe técnico/ }));
-
-    await userEvent.type(screen.getByLabelText(/Which document/), "rece");
-
-    expect(screen.queryByRole("button", { name: /Informe técnico/ })).toBeNull();
-    expect(screen.getByRole("button", { name: /Recetas/ })).toBeTruthy();
-  });
-
-  it("leaves the archived ones out of the choosing", async () => {
-    menu();
-    await userEvent.click(screen.getByRole("button", { name: /A document/ }));
-    await waitFor(() => screen.getByRole("button", { name: /Informe técnico/ }));
-
-    expect(screen.queryByRole("button", { name: /Lo viejo/ })).toBeNull();
   });
 });

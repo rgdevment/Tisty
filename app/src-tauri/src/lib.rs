@@ -514,7 +514,13 @@ fn erasing(session: &mut Session, id: tisty_core::TaskId) -> Answer<()> {
         Err(tisty_core::model::Stays::Routine) => return Err(Refusal::of("routineStays")),
         Err(tisty_core::model::Stays::Parts) => return Err(Refusal::of("partsStay")),
     }
-    session.commit(Op::TaskDelete { id })?;
+    let doc = tisty_core::task_docs::of(&session.state, id).map(|one| (one.id, one.file.clone()));
+    session.commit_all(tisty_core::task_docs::erased_with(&session.state, id))?;
+    if let Some((doc, file)) = doc
+        && !session.state.docs.contains_key(&doc)
+    {
+        session.forget_files(&[file]);
+    }
     Ok(())
 }
 
@@ -1084,7 +1090,6 @@ pub fn run() {
             answers::attaching::owed,
             answers::tasks::reopen,
             answers::tasks::patch,
-            answers::tasks::write_step,
             answers::task_docs::task_doc_open,
             answers::task_docs::task_doc_make,
             answers::task_docs::task_doc_settled,
@@ -1092,11 +1097,7 @@ pub fn run() {
             answers::parts::parts_of,
             answers::parts::add_part,
             answers::parts::hang,
-            answers::parts::step_to_part,
             answers::parts::wholes_offered,
-            answers::tasks::mark_step,
-            answers::tasks::drop_step,
-            answers::tasks::write_log,
             answers::tasks::fold,
             answers::tasks::still_open,
             answers::tasks::discard,

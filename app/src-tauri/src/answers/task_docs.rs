@@ -15,7 +15,8 @@ pub struct Opened {
 }
 
 fn file_of(session: &Session, id: TaskId) -> Option<String> {
-    tisty_core::task_docs::of(&session.state, id).map(|one| one.file.clone())
+    let owner = tisty_core::task_docs::owner(&session.state, id);
+    tisty_core::task_docs::of(&session.state, owner).map(|one| one.file.clone())
 }
 
 fn known(session: &Session, id: TaskId) -> Result<(), Refusal> {
@@ -39,13 +40,21 @@ pub fn task_doc_open(
     id: String,
 ) -> Answer<Option<Opened>> {
     let id = task_id(&id)?;
-    let found = {
+    let file = {
         let session = held(&session);
-        known(&session, id)?;
-        file_of(&session, id)
-    };
-    let Some(file) = found else {
-        return Ok(None);
+        let task = answered(&session, id)?;
+        match file_of(&session, id) {
+            Some(file) => file,
+            // A task closed before it had a document is read as the one it would have had, never made.
+            None if !task.is_open() => {
+                return Ok(Some(Opened {
+                    file: String::new(),
+                    body: tisty_core::task_docs::first_words(&session.state, id),
+                    held: true,
+                }));
+            }
+            None => return Ok(None),
+        }
     };
     let body = super::papers::doc_read(session.clone(), file.clone())?;
     let session = held(&session);
@@ -69,6 +78,7 @@ pub fn task_doc_make(session: tauri::State<'_, Mutex<Session>>, id: String) -> A
     let op = tisty_core::task_docs::made(
         &session.paths.docs(),
         &session.state,
+        tisty_core::task_docs::owner(&session.state, id),
         id,
         signing(&session.state),
     )
@@ -88,18 +98,23 @@ pub fn task_doc_settled(
     id: String,
     before: Option<String>,
     now: String,
-) -> Answer<Task> {
+) -> Answer<Option<Task>> {
     let id = task_id(&id)?;
     let mut session = held(&session);
-    let task = open_task(&session, id)?;
+    let task = answered(&session, id)?;
+    // A block left by the very click that closed the task has nothing left to settle into.
+    if !task.is_open() {
+        return Ok(None);
+    }
     let file = file_of(&session, id).ok_or_else(|| Refusal::of("noSuchDoc"))?;
     writable(&session.state, &file)?;
     if session.moved(&file) {
         return Err(Refusal::about("documentMoved", file));
     }
     let ops = tisty_core::stages::reconciled(&task, before.as_deref(), &now);
-    if !ops.is_empty() {
-        session.commit_all(ops)?;
+    if ops.is_empty() {
+        return Ok(None);
     }
-    answered(&session, id)
+    session.commit_all(ops)?;
+    answered(&session, id).map(Some)
 }
