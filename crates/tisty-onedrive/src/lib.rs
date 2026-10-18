@@ -4,12 +4,15 @@ use tisty_carrier::{Cause, Hitch, Renew, Renewed};
 
 pub(crate) use tisty_carrier::said::{WAITED_UNTOLD, told};
 
+mod consent;
 mod graph;
 mod names;
 pub mod quickxor;
 
+pub use consent::{Consent, Granted};
 pub use graph::{Account, GraphAt, OneDrive};
 pub use names::fitting;
+pub use tisty_carrier::loopback::Ended;
 
 pub const SCOPES: &str = "Files.ReadWrite.AppFolder offline_access User.Read";
 pub(crate) const ASKED_WITHIN: Duration = Duration::from_secs(30);
@@ -89,10 +92,46 @@ pub(crate) fn cause_of(slow: bool, said: &str) -> Cause {
 }
 
 #[derive(serde::Deserialize)]
-struct TokenAnswer {
-    access_token: String,
-    expires_in: u64,
-    refresh_token: Option<String>,
+pub(crate) struct TokenAnswer {
+    pub(crate) access_token: String,
+    pub(crate) expires_in: u64,
+    pub(crate) refresh_token: Option<String>,
+    #[serde(default)]
+    pub(crate) scope: Option<String>,
+}
+
+pub(crate) fn posted(
+    http: &reqwest::blocking::Client,
+    url: &str,
+    fields: &[(&str, &str)],
+) -> Result<TokenAnswer, Hitch> {
+    let body = url::form_urlencoded::Serializer::new(String::new())
+        .extend_pairs(fields)
+        .finish();
+    let answer = http
+        .post(url)
+        .header(
+            reqwest::header::CONTENT_TYPE,
+            "application/x-www-form-urlencoded",
+        )
+        .body(body)
+        .send()
+        .map_err(unreachable)?;
+    let status = answer.status().as_u16();
+    let wait = waited(answer.headers());
+    let text = answer.text().map_err(unreachable)?;
+    match status {
+        200 => serde_json::from_str(&text).map_err(|_| {
+            Hitch::Broke("Microsoft answered the sign-in in a shape Tisty does not read".into())
+        }),
+        status => Err(tisty_carrier::said::token_refused(
+            "Microsoft",
+            status,
+            wait,
+            &text,
+            &["invalid_grant", "interaction_required", "consent_required"],
+        )),
+    }
 }
 
 pub struct MicrosoftRenew {
@@ -114,46 +153,21 @@ impl MicrosoftRenew {
 // Microsoft hands back a new refresh token on every use and may stop taking the old one, so it always travels back to be kept.
 impl Renew for MicrosoftRenew {
     fn renew(&self, refresh: &str) -> Result<Renewed, Hitch> {
-        let body = url::form_urlencoded::Serializer::new(String::new())
-            .append_pair("client_id", self.client.id)
-            .append_pair("grant_type", "refresh_token")
-            .append_pair("refresh_token", refresh)
-            .append_pair("scope", SCOPES)
-            .finish();
-        let answer = self
-            .http
-            .post(&self.at.token)
-            .header(
-                reqwest::header::CONTENT_TYPE,
-                "application/x-www-form-urlencoded",
-            )
-            .body(body)
-            .send()
-            .map_err(unreachable)?;
-        let status = answer.status().as_u16();
-        let wait = waited(answer.headers());
-        let text = answer.text().map_err(unreachable)?;
-        match status {
-            200 => {
-                let granted: TokenAnswer = serde_json::from_str(&text).map_err(|_| {
-                    Hitch::Broke(
-                        "Microsoft answered the sign-in in a shape Tisty does not read".into(),
-                    )
-                })?;
-                Ok(Renewed {
-                    access: granted.access_token,
-                    lasts: Duration::from_secs(granted.expires_in),
-                    refresh: granted.refresh_token,
-                })
-            }
-            status => Err(tisty_carrier::said::token_refused(
-                "Microsoft",
-                status,
-                wait,
-                &text,
-                &["invalid_grant", "interaction_required", "consent_required"],
-            )),
-        }
+        let granted = posted(
+            &self.http,
+            &self.at.token,
+            &[
+                ("client_id", self.client.id),
+                ("grant_type", "refresh_token"),
+                ("refresh_token", refresh),
+                ("scope", SCOPES),
+            ],
+        )?;
+        Ok(Renewed {
+            access: granted.access_token,
+            lasts: Duration::from_secs(granted.expires_in),
+            refresh: granted.refresh_token,
+        })
     }
 }
 
