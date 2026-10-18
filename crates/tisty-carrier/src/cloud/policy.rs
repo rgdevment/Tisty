@@ -39,15 +39,22 @@ pub fn now() -> u64 {
         .map_or(0, |one| one.as_secs())
 }
 
+pub fn signed(said: &[u8], signature: &str, key: &str) -> bool {
+    let (Ok(key), Ok(signature)) = (PublicKey::from_base64(key), Signature::decode(signature))
+    else {
+        return false;
+    };
+    key.verify(said, &signature, false).is_ok()
+}
+
 // The signature is checked on the bytes as they came, before a single field is believed.
 pub fn read(said: &[u8], signature: &str, key: &str) -> Result<Policy, Refused> {
     if said.len() > READ_AT_MOST || signature.len() > READ_AT_MOST {
         return Err(Refused::TooBig);
     }
-    let key = PublicKey::from_base64(key).map_err(|_| Refused::Unsigned)?;
-    let signature = Signature::decode(signature).map_err(|_| Refused::Unsigned)?;
-    key.verify(said, &signature, false)
-        .map_err(|_| Refused::Unsigned)?;
+    if !signed(said, signature, key) {
+        return Err(Refused::Unsigned);
+    }
     serde_json::from_slice(said).map_err(|_| Refused::Unreadable)
 }
 

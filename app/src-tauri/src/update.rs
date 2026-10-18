@@ -1,3 +1,5 @@
+use std::io::Read;
+
 use tisty_core::witness::{self, Fact, channel};
 
 /// A branch of its own, holding these three files and nothing else. The address has to stay the
@@ -247,25 +249,78 @@ fn chosen(running: Option<&std::path::Path>, there: impl Fn(&std::path::Path) ->
     Kept::plain(Route::Download)
 }
 
-pub fn fetch() -> Option<String> {
-    let asked = reqwest::blocking::Client::builder()
-        .timeout(PATIENCE)
-        .user_agent(concat!("tisty/", env!("CARGO_PKG_VERSION")))
-        .build()
-        .ok()?
-        .get(MANIFEST)
-        .send()
-        .ok()?;
+pub fn feed_key() -> Option<&'static str> {
+    option_env!("TISTY_FEED_KEY").filter(|key| !key.is_empty())
+}
 
-    if !asked.status().is_success() {
+pub fn trusted(said: &[u8], signature: &[u8], key: &str) -> bool {
+    std::str::from_utf8(signature)
+        .is_ok_and(|signature| tisty_carrier::policy::signed(said, signature, key))
+}
+
+pub enum Heard {
+    Nothing,
+    Unsigned,
+    Said(String),
+}
+
+fn asked(client: &reqwest::blocking::Client, url: &str) -> Option<Vec<u8>> {
+    let answer = client.get(url).send().ok()?;
+    if !answer.status().is_success() {
         witness::warn(
             channel::WINDOW,
-            "the release manifest answered with a refusal",
-            &[("code", Fact::Count(asked.status().as_u16() as usize))],
+            "the release feed answered with a refusal",
+            &[("code", Fact::Count(answer.status().as_u16() as usize))],
         );
         return None;
     }
-    asked.text().ok()
+    let mut held = Vec::new();
+    answer
+        .take(tisty_carrier::policy::READ_AT_MOST as u64 + 1)
+        .read_to_end(&mut held)
+        .ok()?;
+    Some(held)
+}
+
+/// A look that never answered is Nothing; Unsigned is only a feed that answered and did not verify.
+pub fn fetch() -> Heard {
+    let Ok(client) = reqwest::blocking::Client::builder()
+        .timeout(PATIENCE)
+        .user_agent(concat!("tisty/", env!("CARGO_PKG_VERSION")))
+        .build()
+    else {
+        return Heard::Nothing;
+    };
+    let text = |said: Vec<u8>| String::from_utf8(said).map_or(Heard::Nothing, Heard::Said);
+    let Some(key) = feed_key() else {
+        return asked(&client, MANIFEST).map_or(Heard::Nothing, text);
+    };
+    // The file and its signature are cached apart, so only a pair that disagrees is asked past the cache.
+    let fresh = format!("?at={}", jiff::Timestamp::now().as_second());
+    for past in ["", fresh.as_str()] {
+        let Some(said) = asked(&client, &format!("{MANIFEST}{past}")) else {
+            return Heard::Nothing;
+        };
+        let Some(signature) = asked(&client, &format!("{MANIFEST}.sig{past}")) else {
+            return Heard::Nothing;
+        };
+        if trusted(&said, &signature, key) {
+            return text(said);
+        }
+    }
+    witness::warn(
+        channel::WINDOW,
+        "the release manifest did not verify against the feed's key, and was set aside",
+        &[],
+    );
+    Heard::Unsigned
+}
+
+pub fn later(now: &str, version: &str) -> bool {
+    match (semver::Version::parse(now), semver::Version::parse(version)) {
+        (Ok(now), Ok(version)) => version > now,
+        _ => false,
+    }
 }
 
 #[cfg(test)]
