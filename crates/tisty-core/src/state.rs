@@ -259,6 +259,7 @@ impl State {
             return;
         }
 
+        self.grown(event);
         match &event.op {
             Op::TaskAdd { id, d } => self.task_added(event, *id, d),
             Op::TaskUpdate { id, d } => {

@@ -257,96 +257,29 @@ pub fn task_page_import(
     Ok(Some(id.to_string()))
 }
 
-fn written_on(
-    session: &mut Session,
-    id: TaskId,
-    edit: impl FnOnce(&str) -> Option<String>,
-) -> bool {
-    let paths = session.paths.clone();
-    let done = tisty_core::task_docs::wrote(&paths, &mut session.store, id, |was, _| edit(was));
-    if let Err(e) = &done {
-        tisty_core::witness::warn(
-            channel::WINDOW,
-            "a task's page could not take what its closing said",
-            &[("why", tisty_core::witness::Fact::Why(e.to_string()))],
-        );
-    }
+fn settled_after(session: &mut Session, id: TaskId) {
     if let Some(file) = file_of(session, id) {
         session.corpus.forget(&file);
     }
     let _ = session.reload();
-    done.is_ok()
 }
 
-fn logged(id: TaskId, words: String) -> Op {
-    let zone = jiff::tz::TimeZone::system().iana_name().map(str::to_string);
-    let d = tisty_core::event::LogAdd::new(ulid::Ulid::generate(), words).in_zone(zone);
-    Op::TaskLog { id, d }
-}
-
-/// What a round wrote this time, and the ops that keep it and how it went with the closing.
-pub(crate) struct Closing {
-    pub ops: Vec<Op>,
-    pub said: Option<String>,
-}
-
-/// How it went reaches the page, or the log, before the task closes: nothing waits on a later write.
-pub(crate) fn closing_words(session: &mut Session, id: TaskId, summary: Option<&str>) -> Closing {
-    let summary = summary.map(str::trim).filter(|one| !one.is_empty());
-    let nothing = Closing {
-        ops: Vec::new(),
-        said: None,
-    };
-    let Some(task) = session.state.tasks.get(&id).filter(|one| one.is_open()) else {
-        return nothing;
-    };
-    if task.repeat.is_none() && task.after.is_none() {
-        let Some(summary) = summary else {
-            return nothing;
-        };
-        // A page that cannot take it leaves it in the log, never nowhere.
-        let kept = written_on(session, id, |was| {
-            Some(tisty_core::closing::summed(was, summary))
-        });
-        return Closing {
-            ops: if kept {
-                Vec::new()
-            } else {
-                vec![logged(id, summary.to_string())]
-            },
-            said: None,
-        };
+pub(crate) fn closing_words(
+    session: &mut Session,
+    id: TaskId,
+    summary: Option<&str>,
+) -> tisty_core::round::Closing {
+    let open = &mut *session;
+    let closing =
+        tisty_core::round::closing_words(&open.paths, &mut open.store, &open.state, id, summary);
+    if summary.is_some_and(|one| !one.trim().is_empty()) {
+        settled_after(session, id);
     }
-    let said = file_of(session, id)
-        .and_then(|file| tisty_core::docs::read(&session.paths.docs(), &file).ok())
-        .map(|body| tisty_core::closing::said_in(&body, &tisty_core::closing::THIS_TIME))
-        .filter(|one| !one.is_empty());
-    let words: Vec<&str> = [summary, said.as_deref()].into_iter().flatten().collect();
-    if words.is_empty() {
-        return nothing;
-    }
-    Closing {
-        ops: vec![logged(id, words.join("\n\n"))],
-        said,
-    }
+    closing
 }
 
-/// The page lets a round's words go only while they still read as what its log kept.
 pub(crate) fn round_cleared(session: &mut Session, id: TaskId, said: &str) {
-    let Some(file) = file_of(session, id) else {
-        return;
-    };
-    let away = session
-        .state
-        .docs
-        .values()
-        .any(|one| one.file == file && session.state.held_away(one));
-    if away {
-        return;
-    }
-    written_on(session, id, |was| {
-        tisty_core::closing::this_time(was)
-            .filter(|(now, _)| now == said)
-            .map(|(_, cleared)| cleared)
-    });
+    let open = &mut *session;
+    tisty_core::round::round_cleared(&open.paths, &mut open.store, &open.state, id, said);
+    settled_after(session, id);
 }

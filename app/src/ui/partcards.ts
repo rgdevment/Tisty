@@ -41,7 +41,9 @@ const saidOf = (one: Task | null): string =>
 
 // Each card asks for its own task, so a part dropped or hidden still reads as what it is.
 export const usePartCards = (whole: Task, text: string) => {
-  const ids = [...new Set(Array.from(text.matchAll(named), (found) => found[1]))].sort().join(",");
+  const ids = [...new Set(Array.from(text.matchAll(named), (found) => found[1]))]
+    .sort((one, other) => one.localeCompare(other))
+    .join(",");
   const [known, setKnown] = useState<ReadonlyMap<string, Task | null> | null>(null);
   useEffect(() => {
     let live = true;
@@ -53,9 +55,11 @@ export const usePartCards = (whole: Task, text: string) => {
           () => [id, null] as const,
         ),
       ),
-    ).then((all) => {
-      if (live) setKnown(new Map(all));
-    });
+    )
+      .then((all) => {
+        if (live) setKnown(new Map(all));
+      })
+      .catch(() => {});
     return () => {
       live = false;
     };

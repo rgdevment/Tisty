@@ -36,6 +36,7 @@ export interface Volume {
   described?: boolean;
   prose?: number;
   refs?: number;
+  grew?: number;
 }
 
 export interface Resolved {
@@ -84,7 +85,8 @@ export const weightOf = (task: Task): number => {
   const refs = task.volume?.refs ?? 0;
   const plan = steps >= 8 ? 2 : steps >= 3 ? 1 : 0;
   const links = refs >= 3 ? 2 : refs >= 1 ? 1 : 0;
-  return (task.volume?.prose ?? 0) + plan + links;
+  const visits = Math.max(0, (task.volume?.grew ?? 0) - 1);
+  return Math.max((task.volume?.prose ?? 0) + plan + links, visits);
 };
 
 export const readingOf = (task: Task): Reading => {
