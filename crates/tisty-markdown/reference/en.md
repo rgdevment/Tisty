@@ -57,6 +57,8 @@ source: the vet's card
 
 ### A task's properties
 
+A task and a document both hold words, and they are kept for different reasons. A task has an end: it is something to be done, and once it is done it goes to the archive, where it is still found and read — what was tried, what worked, how it was solved. A document lasts: a recipe, a procedure, a reference, the notes on a client, consulted again and again and grown over years, and rarely put away. Something to do is a task; something to look up again is a document.
+
 A task's words live in a document of its own, which carries one fixed line naming the task. What changes often stays with the task itself, so ticking it off on a phone never moves the document: the date, the deadline, reminders, the list, the priority, how it repeats. When the document leaves Tisty — copied as Markdown, exported, or read by an assistant — those come out written as properties, and a document that comes in with them hands them to its task.
 
 ```markdown

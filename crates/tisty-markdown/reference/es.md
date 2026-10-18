@@ -57,6 +57,8 @@ fuente: la libreta de la veterinaria
 
 ### Las propiedades de una tarea
 
+Una tarea y un documento guardan palabras, pero por razones distintas. Una tarea termina: es algo por hacer, y cuando se hace pasa al archivo, donde se sigue encontrando y leyendo —qué se intentó, qué funcionó, cómo se resolvió—. Un documento perdura: una receta, un procedimiento, una referencia, las notas de un cliente; se consulta una y otra vez, crece con los años y rara vez se archiva. Lo que hay que hacer es una tarea; lo que se va a volver a consultar es un documento.
+
 Las palabras de una tarea viven en un documento propio, que lleva una línea fija con la tarea a la que pertenece. Lo que cambia seguido se queda con la tarea, así que marcarla desde el celular nunca mueve el documento: el día, la fecha límite, los recordatorios, la lista, la prioridad y cómo se repite. Cuando el documento sale de Tisty —copiado como Markdown, exportado o leído por un asistente— todo eso sale escrito como propiedades, y un documento que entra con ellas se las pasa a su tarea.
 
 ```markdown
