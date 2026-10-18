@@ -467,3 +467,16 @@ fn a_task_s_words_go_into_the_template_s_sections_not_after_them() {
         )
     );
 }
+
+#[test]
+fn a_description_fills_the_section_the_template_keeps_for_it() {
+    let body = "---\ntask: x\n---\n\n## Description\n<!-- What and why -->\n\nOld words.\n\n## Steps\n<!-- - [ ] The first step -->\n";
+    assert_eq!(
+        super::described(body, "New words.\n"),
+        "---\ntask: x\n---\n\n## Description\n<!-- What and why -->\n\nNew words.\n\n## Steps\n<!-- - [ ] The first step -->\n"
+    );
+    assert_eq!(
+        super::described("---\ntask: x\n---\n\nNotes.\n", "Said."),
+        "---\ntask: x\n---\n\nNotes.\n\nSaid.\n"
+    );
+}

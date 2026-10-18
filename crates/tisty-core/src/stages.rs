@@ -265,6 +265,83 @@ pub fn reconciled(task: &Task, before: Option<&str>, now: &str) -> Vec<Op> {
     ops
 }
 
+/// The line of an open step written over with its new words, so the document never shows both.
+pub fn reworded(body: &str, was: &str, now: &str) -> Option<String> {
+    let found = stages(body);
+    let stage = found
+        .iter()
+        .find(|one| !one.done && title(&one.text) == title(was))?;
+    let line = &body[stage.at.clone()];
+    let words = line.find(']')? + 1;
+    let end = line.find('\n').unwrap_or(line.len());
+    let from = stage.at.start + words;
+    let to = stage.at.start + end;
+    Some(format!("{} {now}{}", &body[..from], &body[to..]))
+}
+
+/// The lines of open steps taken off, so a box with no step is never left to be ticked back.
+pub fn unplanned(body: &str, gone: &[String]) -> String {
+    let gone: Vec<String> = gone.iter().map(|one| title(one)).collect();
+    let mut out = body.to_string();
+    for stage in stages(body).iter().rev() {
+        if stage.done || !gone.contains(&title(&stage.text)) {
+            continue;
+        }
+        let start = body[..stage.at.start].rfind('\n').map_or(0, |at| at + 1);
+        let end = match body[..stage.at.end].ends_with('\n') {
+            true => stage.at.end,
+            false => body[stage.at.end..]
+                .find('\n')
+                .map_or(body.len(), |at| stage.at.end + at + 1),
+        };
+        out.replace_range(start..end, "");
+    }
+    out
+}
+
+struct Slot {
+    at: usize,
+    lead: String,
+    apart: bool,
+}
+
+// A new step joins the last box, written the way that box is, or else goes under the template's box hint.
+fn slot(body: &str, found: &[Stage]) -> Option<Slot> {
+    if let Some(last) = found.last() {
+        let start = body[..last.at.start].rfind('\n').map_or(0, |at| at + 1);
+        let line = &body[start..];
+        let lead = line[..line.find('[')?].to_string();
+        let tail = &body[last.at.end..];
+        let at = match body[..last.at.end].ends_with('\n') {
+            true => last.at.end,
+            false => tail
+                .find('\n')
+                .map_or(body.len(), |at| last.at.end + at + 1),
+        };
+        return Some(Slot {
+            at,
+            lead,
+            apart: false,
+        });
+    }
+    let mut at = 0;
+    for line in body.split_inclusive('\n') {
+        at += line.len();
+        let bare = line.trim();
+        let hint = bare
+            .strip_prefix("<!--")
+            .and_then(|rest| rest.strip_suffix("-->"));
+        if hint.is_some_and(|hint| crate::task_docs::boxed(hint.trim())) {
+            return Some(Slot {
+                at,
+                lead: "- ".into(),
+                apart: true,
+            });
+        }
+    }
+    None
+}
+
 /// The file's own boxes may be stale, so a document going out is ticked as the log has it.
 pub fn ticked(task: &Task, body: &str) -> String {
     if task.steps.is_empty() {
@@ -299,11 +376,31 @@ pub fn ticked(task: &Task, body: &str) -> String {
     if missing.is_empty() {
         return out;
     }
-    let mut grown = out.trim_end_matches(['\n', '\r']).to_string();
-    if !grown.is_empty() {
-        grown.push_str("\n\n");
-    }
-    grown.push_str(&lines(&missing));
+    let grown = match slot(&out, &found) {
+        Some(Slot { at, lead, apart }) => {
+            let head = &out[..at];
+            let mut said = String::new();
+            if !head.is_empty() && !head.ends_with('\n') {
+                said.push('\n');
+            }
+            if apart {
+                said.push('\n');
+            }
+            for step in &missing {
+                let mark = if step.done { "x" } else { " " };
+                said.push_str(&format!("{lead}[{mark}] {}\n", step.text));
+            }
+            format!("{head}{said}{}", &out[at..])
+        }
+        None => {
+            let mut grown = out.trim_end_matches(['\n', '\r']).to_string();
+            if !grown.is_empty() {
+                grown.push_str("\n\n");
+            }
+            grown.push_str(&lines(&missing));
+            grown
+        }
+    };
     // Lines swallowed by what the text leaves open, a fence say, would be added again on every open.
     match stages(&grown).len() == found.len() + missing.len() {
         true => grown,

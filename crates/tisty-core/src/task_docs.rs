@@ -163,8 +163,42 @@ pub fn opened(state: &State, task: TaskId, template: &str) -> String {
     }
 }
 
+/// The words a description holds, written in the section the template keeps for them: the first
+/// one with a plain hint. A page without one takes them at its end.
+pub fn described(body: &str, said: &str) -> String {
+    let said = said.trim();
+    let lines: Vec<&str> = body.split_inclusive('\n').collect();
+    let heading = |line: &str| line.trim_start().starts_with('#');
+    let slot = (1..lines.len())
+        .find(|at| heading(lines[at - 1]) && hinted(lines[*at]).is_some_and(|hint| !boxed(hint)));
+    let Some(hint) = slot else {
+        let mut out = body.trim_end_matches(['\n', '\r']).to_string();
+        if !out.is_empty() {
+            out.push_str("\n\n");
+        }
+        out.push_str(said);
+        out.push('\n');
+        return out;
+    };
+    let end = (hint + 1..lines.len())
+        .find(|at| heading(lines[*at]))
+        .unwrap_or(lines.len());
+    let mut out: String = lines[..=hint].concat();
+    if !out.ends_with('\n') {
+        out.push('\n');
+    }
+    out.push('\n');
+    out.push_str(said);
+    out.push('\n');
+    if end < lines.len() {
+        out.push('\n');
+        out.push_str(&lines[end..].concat());
+    }
+    out
+}
+
 // The window reads a box hint the same way, so both agree on which hint asks for steps.
-fn boxed(hint: &str) -> bool {
+pub(crate) fn boxed(hint: &str) -> bool {
     hint.strip_prefix('-')
         .is_some_and(|rest| rest.trim_start().starts_with("[ ]"))
 }

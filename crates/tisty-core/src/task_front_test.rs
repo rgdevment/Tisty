@@ -215,3 +215,31 @@ fn a_list_name_with_both_quotes_is_written_as_yaml_and_reads_back_as_written() {
     assert!(out.contains("list: 'Mario''s \"cosas\"'"), "{out}");
     assert_eq!(read(&out, TZ).list.as_deref(), Some(name), "{out}");
 }
+
+#[test]
+fn a_document_coming_in_hands_its_properties_to_its_task_and_keeps_its_own() {
+    let mut state = crate::State::default();
+    let id = Ulid::generate();
+    state.apply(&crate::event::Event::new(
+        crate::event::DeviceId("dev_a".into()),
+        jiff::Timestamp::from_millisecond(1).unwrap(),
+        crate::Op::TaskAdd {
+            id,
+            d: crate::event::TaskAdd::new("Rina's booster", "a0"),
+        },
+    ));
+    let body = format!("---\ntask: {id}\npriority: do\npaper: letter\n---\n\nWords.\n");
+
+    let taken = super::taken_in(&state, &body, TZ).unwrap();
+
+    assert_eq!(taken.task, id);
+    assert!(matches!(
+        taken.ops.as_slice(),
+        [crate::Op::TaskUpdate { d, .. }] if d.priority == Some(Priority::Do)
+    ));
+    assert_eq!(
+        taken.body,
+        format!("---\ntask: {id}\npaper: letter\n---\n\nWords.\n")
+    );
+    assert!(super::taken_in(&state, "---\ntask: nobody\n---\n", TZ).is_none());
+}

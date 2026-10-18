@@ -355,12 +355,52 @@ fn a_word_that_ends_right_at_the_limit_is_kept_whole() {
 }
 
 #[test]
-fn a_step_filed_from_elsewhere_joins_the_document_at_its_end() {
+fn a_step_filed_from_elsewhere_joins_the_last_list_written_its_way() {
     let task = task(&[("one", false, "a"), ("from an agent", true, "b")]);
     assert_eq!(
-        ticked(&task, "Words.\n\n- [ ] one\n"),
-        "Words.\n\n- [ ] one\n\n- [x] from an agent\n"
+        ticked(&task, "Words.\n\n- [ ] one\n\nMore words.\n"),
+        "Words.\n\n- [ ] one\n- [x] from an agent\n\nMore words.\n"
     );
+    assert_eq!(
+        ticked(&task, "> * [ ] one"),
+        "> * [ ] one\n> * [x] from an agent\n"
+    );
+}
+
+#[test]
+fn a_step_with_no_list_yet_goes_under_the_template_s_box_hint() {
+    let task = task(&[("from an agent", false, "a")]);
+    assert_eq!(
+        ticked(
+            &task,
+            "## Steps\n<!-- - [ ] The first step -->\n\n## Notes\n"
+        ),
+        "## Steps\n<!-- - [ ] The first step -->\n\n- [ ] from an agent\n\n## Notes\n"
+    );
+}
+
+#[test]
+fn a_step_reworded_elsewhere_rewrites_its_own_line() {
+    let body = "- [x] one\n- [ ] two\n\nWords.\n";
+    assert_eq!(
+        super::reworded(body, "two", "two, again"),
+        Some("- [x] one\n- [ ] two, again\n\nWords.\n".to_string())
+    );
+    assert_eq!(super::reworded(body, "one", "anything"), None);
+}
+
+#[test]
+fn a_step_taken_off_leaves_no_box_behind() {
+    let body = "- [ ] one\n- [x] two\n- [ ] three\n";
+    assert_eq!(
+        super::unplanned(body, &["one".into(), "two".into()]),
+        "- [x] two\n- [ ] three\n"
+    );
+}
+
+#[test]
+fn a_step_filed_on_a_page_with_no_box_goes_at_its_end() {
+    let task = task(&[("one", false, "a"), ("from an agent", true, "b")]);
     assert_eq!(
         ticked(&task, "---\ntask: x\n---\n"),
         "---\ntask: x\n---\n\n- [ ] one\n- [x] from an agent\n"
