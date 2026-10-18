@@ -182,6 +182,17 @@ describe("writing a block in place", () => {
     page.remove();
   });
 
+  it("ends a template's label on Enter and keeps its name to twenty characters", () => {
+    const { page, one } = block();
+    const left = vi.fn();
+    const editing = edited(one, "## Notas", () => {}, left, undefined, true);
+    editing.view.dispatch({ changes: { from: 8, insert: " de la semana pasada" } });
+    expect(editing.view.state.doc.toString()).toBe("## Notas");
+    editing.view.dispatch({ changes: { from: 8, insert: " del mes" } });
+    expect(editing.view.state.doc.toString()).toBe("## Notas del mes");
+    page.remove();
+  });
+
   it("keeps the bar over the page and the keys once at its end, never inside the block, and takes both away", () => {
     const { page, one } = block();
     const editing = edited(

@@ -163,6 +163,15 @@ export const caretAt = (source: string, read: string): number => {
   return source.length;
 };
 
+const LABEL = 20;
+
+// A task's section name is a short label, so the template refuses a longer one as it is typed.
+const labelled = EditorState.transactionFilter.of((tr) => {
+  if (!tr.docChanged) return tr;
+  const words = /^#{1,6}\s+(.*)$/.exec(tr.newDoc.line(1).text)?.[1];
+  return words !== undefined && [...words].length > LABEL ? [] : tr;
+});
+
 export const edited = (
   block: HTMLElement,
   said: string,
@@ -245,6 +254,7 @@ export const edited = (
         EditorView.domEventHandlers({ paste: (event, view) => pasting(event, view, asking) }),
         dressing,
         EditorView.lineWrapping,
+        oneLine ? labelled : [],
         EditorView.updateListener.of((update) => {
           if (update.docChanged) onChange(update.state.sliceDoc());
           if (update.transactions.length > 0) follow(update.view);
