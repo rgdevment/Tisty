@@ -178,7 +178,7 @@ pub fn opened(state: &State, task: TaskId, template: &str) -> String {
             let held = match (boxed(hint), std::mem::take(&mut notes_here)) {
                 (true, _) => steps.take().filter(|lines| !lines.is_empty()),
                 (false, true) => notes.take(),
-                (false, false) => said.take().map(|said| format!("{said}\n")),
+                (false, false) => said.take().map(|said| format!("{}\n", deeper(said))),
             };
             if let Some(held) = held {
                 out.push('\n');
@@ -197,6 +197,22 @@ pub fn opened(state: &State, task: TaskId, template: &str) -> String {
         Some(one) => crate::stages::ticked(one, &out),
         None => out,
     }
+}
+
+// A description's own headings sit one level under its section, so they never read as the template's.
+fn deeper(said: &str) -> String {
+    let mut fenced = tisty_markdown::fences::fencing();
+    said.lines()
+        .map(|line| {
+            let marks = line.chars().take_while(|one| *one == '#').count();
+            let heading = (1..6).contains(&marks) && line[marks..].starts_with([' ', '\t']);
+            match !fenced(line) && heading {
+                true => format!("#{line}"),
+                false => line.to_string(),
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 // The sections of the templates below where a task still open brings the notes of its journal.
