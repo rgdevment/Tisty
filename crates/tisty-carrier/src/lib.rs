@@ -37,7 +37,7 @@ pub use keychain::Keychain;
 
 pub use remote::{
     BYTES_A_DAY, Changes, Costs, Expect, Hitch, Limits, Remote, Seen, UNITS_A_DAY, Watch,
-    named_well,
+    named_well, renamed_by_copy,
 };
 pub use shift::{Owed, Shift, all_home, filling, homing, homing_up_to, shift};
 pub use tokens::{Renew, Renewed, Secrets, Tokens};

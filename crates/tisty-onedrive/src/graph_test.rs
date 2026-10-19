@@ -695,6 +695,38 @@ fn an_upload_refused_on_its_last_piece_is_let_go_of_up_there() {
 }
 
 #[test]
+fn a_file_is_moved_in_place_into_a_folder_that_is_there() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = graph(|_| {
+        vec![
+            said("200 OK", &file("F", "old.pdf", "A", "e1")),
+            said("200 OK", &folder("B", "kept", "R")),
+            said("200 OK", &file("F", "new.pdf", "B", "e2")),
+        ]
+    });
+    let drive = onedrive(at, home.path());
+
+    drive
+        .renamed("attachments/old.pdf", "kept/new.pdf")
+        .unwrap();
+
+    let asked = served.join().unwrap();
+    assert!(
+        asked[2].line.starts_with("PATCH /v1.0/me/drive/items/F?"),
+        "{}",
+        asked[2].line
+    );
+    let body: serde_json::Value = serde_json::from_slice(&asked[2].body).unwrap();
+    assert_eq!(body["name"], "new.pdf");
+    assert_eq!(body["parentReference"]["id"], "B");
+    assert_eq!(
+        asked.len(),
+        3,
+        "the bytes went down and up instead of moving"
+    );
+}
+
+#[test]
 fn a_file_is_deleted_only_at_the_revision_named() {
     let home = tempfile::tempdir().unwrap();
     let (at, served) = graph(|_| {

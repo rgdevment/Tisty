@@ -463,6 +463,47 @@ impl Remote for OneDrive {
         Ok(landed.seen(name))
     }
 
+    // Moved in place when its folder is there; a folder that is not yet is made by the copy that lands in it.
+    fn renamed(&self, from: &str, to: &str) -> Result<(), Hitch> {
+        names::fitting(from)?;
+        names::fitting(to)?;
+        self.vouched_for()?;
+        let item = self
+            .item(from, Some(ITEM_FIELDS))?
+            .filter(DriveItem::is_file)
+            .ok_or_else(|| Hitch::Missing(from.to_string()))?;
+        let (folder, leaf) = to.rsplit_once('/').unwrap_or(("", to));
+        let parent = match folder {
+            "" => Some(self.root()?),
+            folder => self
+                .item(folder, Some(ITEM_FIELDS))?
+                .filter(|one| !one.is_file())
+                .map(|one| one.id),
+        };
+        let Some(parent) = parent else {
+            return tisty_carrier::renamed_by_copy(self, from, to);
+        };
+        let url = self.item_url(&item.id)?;
+        let body =
+            serde_json::json!({ "name": leaf, "parentReference": { "id": parent } }).to_string();
+        let answer = self.sent(Some(ASKED_WITHIN), |http| {
+            http.patch(&url)
+                .query(&[
+                    ("@microsoft.graph.conflictBehavior", "fail"),
+                    ("$select", ITEM_FIELDS),
+                ])
+                .header(reqwest::header::CONTENT_TYPE, "application/json")
+                .body(body.clone())
+        })?;
+        let landed: DriveItem = json(judged(answer)?)?;
+        if let Ok(mut held) = self.known.lock()
+            && let Some(known) = held.as_mut()
+        {
+            known.tree.applied(vec![landed]);
+        }
+        Ok(())
+    }
+
     fn delete(&self, name: &str, expect: Option<&str>) -> Result<(), Hitch> {
         names::fitting(name)?;
         self.vouched_for()?;
