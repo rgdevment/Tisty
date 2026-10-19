@@ -57,7 +57,7 @@ requires the agreement.
 Rust 1.97 or newer, on macOS or Windows. Everything else comes from `rustup`.
 The window carries the `tisty` binary as a sidecar, and Tauri will not compile
 the workspace until that binary is in place, so the first step builds it and
-copies it there — and again whenever you change the command line:
+copies it there — and again whenever you change that binary or the MCP server:
 
 ```sh
 bash scripts/sidecar.sh
@@ -114,23 +114,13 @@ invariant. Never to narrate what the code already says, and never to record
 history — that is what the commit log is for.
 
 **`tisty-core` produces no terminal output.** No `println!`, no colours, no
-reading `stdin`. The CLI and the GUI are both clients of the same API, and
-anything the core prints leaks into the GUI as garbage.
+reading `stdin`. The MCP server and the GUI are both clients of the same API,
+and anything the core prints leaks into the GUI as garbage.
 
-**The person's command line is frozen, and on its way out.** The `tisty`
-binary stays: `tisty mcp` is the assistant's door, the window bundles it as a
-sidecar, and `agent`, `doctor`, `sync`, `export`, `leave` and `demo` are
-maintenance that has no better home. What is being retired is the terminal as
-a second window — `add`, `ls`, `done`, `set`, `rm`, `mv`, `desc`, `log`,
-`step`, `show`, `story`, `series`, `search`, `list`, `tag`, `attach`, `doc`.
-They cost a third implementation of every rule, and one commit in five since
-July has been paying it. So: no feature reaches those commands, and no new
-command joins them. A feature is done when the core and the window have it;
-if a rule the window keeps must also hold in the terminal for safety — what
-can be erased, say — it is enforced in the core and the command merely obeys.
-The stages, and what has to exist before the last one (undo in the window),
-are on the retirement task in the project's own Tisty; `docs/ARCHITECTURE.md`
-says what the binary is for once they are gone.
+**The `tisty` binary is the assistant's door, nothing more.** The command line
+was retired: `tisty mcp` and `tisty --version` are all it answers, and every
+other command says so and sends the person to the window. A feature is done
+when the core and the window have it; no command comes back to carry it.
 
 ## The look
 
@@ -192,14 +182,13 @@ that reaches `main`, and CI holds it to the same shape and the same length.
 lines of comment in a row, a file grown past what anybody reads through, Spanish
 where the code should be English,
 interface text written into the source instead of the locales, the core printing
-to a terminal the window inherits, a panic where the core should answer,
-anything new reaching the command line that is frozen, a test that spawns the
-binary without pinning its language, and the English and Spanish README and
-guide drifting apart in shape. `scripts/commits.sh` holds the shape and the
-length of a subject, and that nothing sits under it. Run either whenever you
-like. They also run for you: `npm install` or `npm ci`, at the root or in
-`app/`, points git at the hooks
-unless git already has a hooks path of yours, and `--ignore-scripts` skips it.
+to a terminal the window inherits, a panic where the core should answer, a
+test that spawns the binary without pinning its language, and the English and
+Spanish README and guide drifting apart in shape. `scripts/commits.sh` holds
+the shape and the length of a subject, and that nothing sits under it. Run
+either whenever you like. They also run for you: `npm install` or `npm ci`, at
+the root or in `app/`, points git at the hooks unless git already has a hooks
+path of yours, and `--ignore-scripts` skips it.
 Without npm it is one line:
 
 ```sh
@@ -219,11 +208,9 @@ the window tells that release's news again. Nothing slower goes in any of
 them: the suite, the build and the markdown lint are minutes, and they belong
 to CI.
 
-Two of those rules keep a written record rather than a threshold.
+One of those rules keeps a written record rather than a threshold.
 `.github/oversized.txt` holds every file already past the ceiling, and what is
-above it only shrinks. `.github/frozen-cli.txt` holds the command line as it
-stands, so a new command or a new flag has to be made explicit instead of
-arriving unnoticed.
+above it only shrinks.
 
 **Those hooks are comfort, not enforcement.** A fresh clone does not have them
 until `npm install` runs or somebody sets that, and `--no-verify` walks straight

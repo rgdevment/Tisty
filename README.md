@@ -147,7 +147,6 @@ productivity tool** that lives on your machine and nowhere else.
 - [What It Does](#what-it-does)
 - [Your Data and Privacy](#your-data-and-privacy)
 - [Two Machines, If You Have Two](#two-machines-if-you-have-two)
-- [A Command Line, If You Want One](#a-command-line-if-you-want-one)
 - [An Assistant, If You Use One](#an-assistant-if-you-use-one)
 - [What It Will Never Do](#what-it-will-never-do)
 - [FAQ](#faq)
@@ -472,8 +471,8 @@ read, edit, or throw away like anything else you wrote.
 
 **Settings answers four questions rather than wearing five labels.** *General*
 is how Tisty behaves towards you — language, start-up, the quick capture,
-notices, updates, and the two things that happen outside the window: the command
-line and the welcome. *Your data* is everything that touches your files, with
+notices, updates, and the one thing that happens outside the window: the
+welcome. *Your data* is everything that touches your files, with
 syncing as a block of its own because it has a state, a warning that depends on
 who keeps your folder, and four actions. *Assistants* and *Maintenance* are what
 they say.
@@ -668,9 +667,8 @@ real overlap becomes a question.
 **Each machine signs what it writes**, and one nobody here has answered for
 waits at the door: its card in Settings › *Maintenance* shows the key it signs
 with, you compare it with the one that machine shows on its own card, and
-confirm it — or type `tisty sync --confirm <machine>`. Until then nothing it
-writes comes in; from then on, whatever does not answer to that key is turned
-away, and Tisty says so.
+confirm it. Until then nothing it writes comes in; from then on, whatever does
+not answer to that key is turned away, and Tisty says so.
 
 **And back up by hand, shared folder or not.** One zip with your whole history,
 kept wherever you like, and restored from the same place in *Your data*.
@@ -691,32 +689,6 @@ lists the causes worth checking, in order — and what each message about Google
 Drive means, from *Reconnect* to a full Drive or
 [something blocking the way](https://github.com/rgdevment/Tisty/wiki/Sync-and-Backup#when-something-stands-in-the-way-of-google).
 
-## A Command Line, If You Want One
-
-The window is the way in. The terminal was a second one — the same store, the
-same tasks, the same natural language — and it is being retired, by stages:
-what it still does keeps working, no feature reaches it — only a rule the
-window keeps for safety, which it obeys — and the task and document commands
-go in the next major version. What stays is the `tisty`
-binary itself, because it is the door your assistant comes through (`tisty
-mcp`) and the place for maintenance: `doctor`, `sync`, `export`, `agent`.
-
-Neither the command line nor the assistant's door ever touches the network.
-Connecting Google Drive or OneDrive happens only in the window, and on a copy
-that syncs with it `tisty sync` leaves the round to the window; `tisty doctor`
-still tells you, from what is on this disk, how the last one went and what
-today's allowance has left.
-
-```console
-$ tisty doctor
-$ tisty sync
-$ tisty export --markdown
-```
-
-If you script against `tisty ls --json` or `tisty add`, plan to move: the
-window is where Tisty happens, and the assistant's door is how a program
-reaches it.
-
 ## An Assistant, If You Use One
 
 ![Bring your favourite agents, they do the housekeeping: Settings › Assistants lists the ones installed on this computer and connects each through MCP, with no AI inside Tisty](assets/store/en-07-mcp.png)
@@ -732,13 +704,15 @@ keeping — the school group says card stock on Monday, the invoice is due on th
 Settings › Assistants lists the assistants already installed on this computer and
 connects the one you pick: it writes a single line into that assistant's own
 settings, leaves the rest of that file where it was, and keeps a copy of it as
-it was before. For one it does not know, a line does it:
+it was before. For one it does not know, a line does it, and the tab shows it
+with where the `tisty` that came with the app sits on this computer:
 
 ```console
-$ <your-assistant> mcp add tisty -- tisty mcp
+$ <your-assistant> mcp add tisty -- <path-to-tisty> mcp
 ```
 
-Where `<your-assistant>` is whatever yours is called. It speaks
+Where `<your-assistant>` is whatever yours is called. That `tisty` is not a
+command line any more: it opens only the assistant's door. It speaks
 [MCP](https://modelcontextprotocol.io) on the same machine: no
 account, no token, nothing over the network. **You are the one who opens it.**
 The assistant appears in Settings › Assistants as a device you have to let in, and
@@ -774,21 +748,6 @@ the same. «No agents» shuts the door again and keeps what was filled in. What 
 assistant writes is signed with the name of the program it spoke through — «by
 Claude Code», «by Codex» — in the row, the detail and the journal, and Settings
 › Assistants counts what each one wrote.
-
-**The command line is yours, not the assistant's.** An assistant with a shell
-could type `tisty done 3` the day its MCP server is not connected, and act as
-you; or `tisty agent --on`, and let itself in. So `tisty` looks at who is at the
-keyboard before it opens anything, and refuses every command but `tisty mcp`
-when a coding assistant is — by the marks its environment carries, by what sits
-above it in the process tree, or by an editor above it and no terminal at all.
-And `tisty agent --on` asks you, on the terminal, before it lets anyone in: a
-shell with no terminal to answer from is refused outright, whatever drives it.
-The refusal is written for the assistant that reads it: go through the server,
-or tell the person it is down. It is a heuristic, and an honest one: the same
-user in the same shell cannot be told apart with certainty, so where your
-assistant's client can turn the command down before it runs — a hook, a rule —
-that is the layer that does not depend on the server, and this is the floor
-beneath it.
 
 It also reads sparingly, which is your business as much as its own. Tisty keeps
 a small card for each document — its headings, how long it is, what it leans
@@ -1026,7 +985,6 @@ line of the log; [jiff](https://github.com/BurntSushi/jiff) does the dates and
 the time zones, which is the part nobody should write twice;
 [SQLite](https://sqlite.org), through
 [rusqlite](https://github.com/rusqlite/rusqlite), holds the read cache;
-[clap](https://github.com/clap-rs/clap) is the command line;
 [ULID](https://github.com/dylanhart/ulid-rs) gives every task an identifier that
 sorts by time and needs no coordination.
 
