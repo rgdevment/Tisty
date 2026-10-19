@@ -88,6 +88,7 @@ impl Person {
         state
             .ordered_open()
             .iter()
+            .filter(|task| !task.hidden)
             .map(|task| line_of(task))
             .collect::<Vec<_>>()
             .join("\n")
@@ -96,17 +97,8 @@ impl Person {
     pub fn inbox(&self) -> String {
         let state = self.state();
         state
-            .ordered_open()
-            .iter()
-            .filter(|task| task.list.is_none())
-            .map(|task| line_of(task))
-            .collect::<Vec<_>>()
-            .join("\n")
-    }
-
-    pub fn closed(&self) -> String {
-        self.state()
-            .archived_tasks()
+            .inbox()
+            .filter(|task| !task.hidden)
             .map(line_of)
             .collect::<Vec<_>>()
             .join("\n")
@@ -242,13 +234,13 @@ impl Person {
         );
     }
 
-    // A change is the whole batch it was written in, taken back last first.
+    // Undo passes over what only settles and what was itself an undo, so the helper does too.
     pub fn takes_back_the_last(&self) {
         let mut store = self.store();
         let events = store.read_all().unwrap();
         let last = events
             .iter()
-            .rposition(|one| &one.device == store.device())
+            .rposition(|one| &one.device == store.device() && !one.undo && !one.op.settles())
             .unwrap();
         let batch = events[last].batch;
         let mut state = State::default();
@@ -285,13 +277,8 @@ impl Person {
             },
         ]);
     }
-
-    pub fn doc(&self, file: &str) -> String {
-        tisty_core::docs::read(&self.paths.docs(), file).unwrap()
-    }
 }
 
-// What the person reads on a line: the title, then its tags.
 fn line_of(task: &tisty_core::Task) -> String {
     std::iter::once(task.title.clone())
         .chain(task.tags.iter().map(|tag| format!("#{tag}")))

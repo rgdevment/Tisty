@@ -2808,7 +2808,7 @@ fn what_the_person_hid_is_out_of_reach_and_not_even_counted() {
         .unwrap()
         .to_string();
 
-    served.person().tags(person::task(&id), "x");
+    served.person().tags(person::task(&id), "privado");
     hide(&served, &id);
 
     let after = served.call("find", serde_json::json!({ "query": "algo mio" }));
