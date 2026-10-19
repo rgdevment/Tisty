@@ -320,6 +320,8 @@ beforeEach(() => {
           os: "Windows 11",
           arch: "x86_64",
           webview: "132",
+          installed: "download",
+          assistant: false,
           store: "C:/tisty",
           devices: 1,
           events: 10,

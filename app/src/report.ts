@@ -22,7 +22,7 @@ export function written(facts: Facts, now = new Date()): string {
     ...(facts.sandbox ? ([[t("wordSandbox"), facts.sandbox]] as Line[]) : []),
     [t("wordLocale"), facts.locale],
     [t("wordZone"), facts.zone],
-    [t("wordInstalled"), t(INSTALLED[facts.installed])],
+    [t("wordInstalled"), facts.installed in INSTALLED ? t(INSTALLED[facts.installed]) : "?"],
   ]);
 
   block(t("reportSystem"), [
