@@ -13,12 +13,26 @@ pub struct Vouched {
     pub gone: Vec<String>,
 }
 
+#[derive(serde::Serialize)]
+pub struct Unvouching {
+    found: Vec<Unvouched>,
+    unread: Option<String>,
+}
+
+struct Asked {
+    wanted: Vec<String>,
+    places: Vec<PathBuf>,
+    unread: Option<String>,
+}
+
 // Taken under the lock and read outside it: the folder may be a cloud drive that answers slowly.
-fn asked(session: &tauri::State<'_, Mutex<Session>>) -> (Vec<String>, Vec<PathBuf>) {
+fn asked(session: &tauri::State<'_, Mutex<Session>>) -> Asked {
     let session = held(session);
-    let wanted = session
-        .pointed_at()
-        .unwrap_or_else(|_| session.tasks_point_at())
+    let (named, unread) = match session.pointed_at() {
+        Ok(named) => (named, None),
+        Err(title) => (session.tasks_point_at(), Some(title)),
+    };
+    let wanted = named
         .into_iter()
         .filter(|at| !session.state.kept.contains_key(at))
         .collect();
@@ -26,7 +40,11 @@ fn asked(session: &tauri::State<'_, Mutex<Session>>) -> (Vec<String>, Vec<PathBu
     if let Some(dest) = session.place() {
         places.push(dest);
     }
-    (wanted, places)
+    Asked {
+        wanted,
+        places,
+        unread,
+    }
 }
 
 fn roots(places: &[PathBuf]) -> Vec<&Path> {
@@ -36,15 +54,22 @@ fn roots(places: &[PathBuf]) -> Vec<&Path> {
 #[tauri::command]
 pub async fn unvouched_attachments(
     session: tauri::State<'_, Mutex<Session>>,
-) -> Answer<Vec<Unvouched>> {
-    let (wanted, places) = asked(&session);
-    elsewhere(move || unvouched::unvouched(&tisty_core::State::default(), &wanted, &roots(&places)))
-        .await
+) -> Answer<Unvouching> {
+    let Asked {
+        wanted,
+        places,
+        unread,
+    } = asked(&session);
+    let found = elsewhere(move || {
+        unvouched::unvouched(&tisty_core::State::default(), &wanted, &roots(&places))
+    })
+    .await?;
+    Ok(Unvouching { found, unread })
 }
 
 #[tauri::command]
 pub async fn vouch_attachments(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vouched> {
-    let (wanted, places) = asked(&session);
+    let Asked { wanted, places, .. } = asked(&session);
     let read = elsewhere(move || {
         let roots = roots(&places);
         unvouched::unvouched(&tisty_core::State::default(), &wanted, &roots)

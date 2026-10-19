@@ -543,7 +543,6 @@ export interface Carrying {
   asked: boolean;
   last?: string;
   heard?: string;
-  loose: number;
   open: number;
   archived: number;
   lists: number;
@@ -608,7 +607,12 @@ export type Repeated = { name: string; lists: number; tasks: number };
 export const repeatedLists = (): Promise<Repeated[]> => invoke("repeated_lists");
 export type Unvouched = { at: string; bytes: number };
 export type Vouched = { kept: number; unlike: string[]; gone: string[] };
-export const unvouchedAttachments = (): Promise<Unvouched[]> => invoke("unvouched_attachments");
+export interface Unvouching {
+  found: Unvouched[];
+  unread: string | null;
+}
+
+export const unvouchedAttachments = (): Promise<Unvouching> => invoke("unvouched_attachments");
 export const vouchAttachments = (): Promise<Vouched> => invoke("vouch_attachments");
 
 export interface Stray {
@@ -631,6 +635,7 @@ export interface Reviewed {
   loose: number;
   looseBytes: number;
   astray: Astray[];
+  unread: string | null;
   stranded: Stray[];
   missing: Gone[];
   events: number;
@@ -664,14 +669,16 @@ export interface Facts {
   attachmentBytes: number;
   loose: number;
   looseBytes: number;
+  unread: boolean;
   weight: number;
   syncs: boolean;
   shared: boolean;
   cloud?: string | null;
   backedUpAt: string | null;
   quiet: string[];
-  attachUpTo: number;
   shortcut: string | null;
+  installed: "store" | "brew" | "download" | "disk";
+  assistant: boolean;
 }
 
 export interface About {
@@ -709,7 +716,6 @@ export type Theme = "light" | "dark";
 
 export interface Settings {
   quiet: string[];
-  attachUpTo: number;
   locale?: string;
   theme?: Theme;
   holds: Holds;
@@ -733,7 +739,6 @@ export type Route = "store" | "brew" | "download";
 export interface Ready {
   version: string;
   route: Route;
-  package: string | null;
   installs: boolean;
   coming?: boolean;
 }

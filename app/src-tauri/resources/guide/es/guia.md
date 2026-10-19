@@ -374,7 +374,7 @@ Un calendario también entra. Arrastra un `.ics` a la ventana, fuera de un docum
 
 ### 11. Un asistente puede escribir aquí
 
-Si usas un asistente, puede archivar documentos y proponer tareas por su cuenta. Lo que no puede es cerrar, borrar ni tocar lo que tú escribiste. También puede **marcar** un documento o una página que ya cumplió su vida: verás un rombo junto a su nombre y, al abrirlo, lo que dijo. Es una propuesta, no un borrado — borrar sigue siendo tuyo, y el rombo se quita con un clic. Lo que escribe va firmado con el nombre del programa por el que habló —«por Claude Code», «por Codex»—, y lo que se escribió antes de que los programas dijeran su nombre se lee «por un asistente».
+Si usas un asistente, puede proponer tareas y escribir documentos por su cuenta, y añadir o corregir en los documentos donde puede escribir. Lo que nunca hace es cerrar ni borrar una tarea, borrar un documento ni cambiar una tarea que escribiste tú, salvo que abras esa tarea a los agentes. También puede **marcar** un documento o una página que ya cumplió su vida: verás un rombo junto a su nombre y, al abrirlo, lo que dijo. Es una propuesta, no un borrado — borrar sigue siendo tuyo, y el rombo se quita con un clic. Lo que escribe va firmado con el nombre del programa por el que habló —«por Claude Code», «por Codex»—, y lo que se escribió antes de que los programas dijeran su nombre se lee «por un asistente».
 
 Cuando termina una de las tareas que anotó él, lo dice y deja en la bitácora la cuenta de lo que hizo. La tarea sigue abierta, reunida bajo **Por confirmar** con la hora en que habló —salvo que venza hoy o esté atrasada, que se queda donde la buscas—. Tú la terminas, o la devuelves con **Sigue pendiente** y vuelve a su día con la cuenta guardada.
 
@@ -384,7 +384,7 @@ Para reescribir un documento entero se le entrega una huella del texto exacto qu
 
 ### 12. Tus copias
 
-Tisty trabaja siempre en este equipo. Si quieres alcanzarlo desde otro, dile dónde dejar las copias: te ofrece Google Drive, OneDrive, iCloud y Dropbox —los que encuentre instalados, con su carpeta ya resuelta— o cualquier otra que los dos equipos alcancen, un NAS o un disco externo. Tu Google Drive también se puede conectar directamente, desde Configuración, sin tener instalado ningún programa de Google.
+Tisty trabaja siempre en este equipo. Si quieres alcanzarlo desde otro, dile dónde dejar las copias: te ofrece Google Drive, OneDrive, iCloud y Dropbox —los que encuentre instalados, con su carpeta ya resuelta— o cualquier otra que los dos equipos alcancen, un NAS o un disco externo. Tu Google Drive o tu OneDrive también se pueden conectar directamente, desde Configuración, sin tener instalado ningún programa de Google ni de Microsoft.
 
 Quien sube y baja esa carpeta es el programa de tu proveedor, no Tisty. Si no está en marcha, las tareas esperan ahí hasta que lo esté.
 

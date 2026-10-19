@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { updateInstall, updateReady } from "../core";
+import { type Ready, updateInstall, updateReady } from "../core";
 import { fill, t } from "../locales";
 
 interface Props {
@@ -21,9 +21,7 @@ export default function Older({ name, busy, onStay, onOther, onError }: Props) {
     updateReady(true)
       .then((ready) => {
         if (ready?.installs) return updateInstall();
-        setFound(
-          t(!ready ? "lookNowNone" : ready.route === "store" ? "updateLanded" : "updateComingWhy"),
-        );
+        setFound(t(!ready ? "lookNowNone" : waitingOn(ready)));
       })
       .catch(onError)
       .finally(() => setLooking(false));
@@ -72,3 +70,6 @@ export default function Older({ name, busy, onStay, onOther, onError }: Props) {
     </div>
   );
 }
+
+export const waitingOn = (ready: Ready) =>
+  ready.coming ? "updateComingWhy" : ready.route === "store" ? "updateLanded" : "updateFromTheDisk";

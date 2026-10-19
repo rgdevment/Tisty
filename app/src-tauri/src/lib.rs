@@ -205,7 +205,6 @@ struct Carrying {
     asked: bool,
     last: Option<String>,
     heard: Option<String>,
-    loose: usize,
     open: usize,
     archived: usize,
     lists: usize,

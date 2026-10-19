@@ -104,7 +104,6 @@ const carrying = {
   asked: true,
   last: undefined as string | undefined,
   heard: undefined as string | undefined,
-  loose: 0,
   weight: 1_000,
   carries: 8 * 1024 * 1024 * 1024,
   sharedWas: undefined as string | undefined,
@@ -158,7 +157,6 @@ beforeEach(() => {
     mode: undefined,
     asked: true,
     last: undefined,
-    loose: 0,
     sharedWas: undefined,
     sharedWasLater: undefined,
     later: undefined,
@@ -341,7 +339,6 @@ beforeEach(() => {
           shared: false,
           backedUpAt: null,
           quiet: [],
-          attachUpTo: 5 * 1024 * 1024,
           holds: "everywhere",
           shares: true,
           onlySharedAbove: 50 * 1024 * 1024,
@@ -356,7 +353,6 @@ beforeEach(() => {
       case "settings":
         return Promise.resolve({
           quiet: [],
-          attachUpTo: 5 * 1024 * 1024,
           logsAll: false,
           holds: "everywhere",
           shares: true,
@@ -581,7 +577,6 @@ describe("the maintenance panel", () => {
       cmd === "settings"
         ? Promise.resolve({
             quiet: [],
-            attachUpTo: 5 * 1024 * 1024,
             holds: "everywhere",
             shares: true,
             onlySharedAbove: 50 * 1024 * 1024,
@@ -638,7 +633,6 @@ describe("the maintenance panel", () => {
         cmd === "settings"
           ? Promise.resolve({
               quiet: [],
-              attachUpTo: 5 * 1024 * 1024,
               logsAll: false,
               holds: "everywhere",
               shares: sharing,
@@ -2730,7 +2724,7 @@ describe("the first-run assistant", () => {
     const answered = ipc.answer;
     ipc.answer = (cmd, args) =>
       cmd === "update_ready"
-        ? Promise.resolve({ version: "1.24.0", route: "download", package: null, installs: true })
+        ? Promise.resolve({ version: "1.24.0", route: "download", installs: true })
         : answered(cmd, args);
 
     await userEvent.click(screen.getByRole("button", { name: t("updateInstall") }));

@@ -385,19 +385,11 @@ pub async fn settle_in(
 
 #[tauri::command(async)]
 pub fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying> {
-    let (config, paths, mut held, open, archived, lists, let_go, keeping) = {
+    let (config, paths, open, archived, lists, let_go, keeping) = {
         let session = held(&session);
-        let named: Vec<String> = session
-            .state
-            .tasks
-            .values()
-            .flat_map(|task| task.references())
-            .map(|one| one.target)
-            .collect();
         (
             session.config.clone(),
             session.paths.clone(),
-            named,
             session.state.matching(&Filter::default(), today()).len(),
             session
                 .state
@@ -414,11 +406,6 @@ pub fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying>
             session.keeping(),
         )
     };
-    let loose = tisty_core::docs::referenced(&paths.docs()).map_or(0, |named| {
-        held.extend(named);
-        tisty_core::attach::loose(paths.data(), &held).files()
-    });
-
     let held_at = tisty_carrier::place_of(config.sync.as_ref());
     let said = held_at.as_deref().map(told);
 
@@ -429,7 +416,6 @@ pub fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying>
         asked: config.sync.is_some(),
         last: config.synced_at.map(|at| at.to_string()),
         heard: config.heard_at.map(|at| at.to_string()),
-        loose,
         open,
         archived,
         lists,

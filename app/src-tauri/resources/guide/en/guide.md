@@ -374,7 +374,7 @@ A calendar comes in too. Drag an `.ics` onto the window, away from a document, o
 
 ### 11. An assistant can write here
 
-If you use an assistant, it can file documents and propose tasks of its own accord. What it cannot do is close, delete or touch what you wrote. It can also **mark** a document or a page that has had its day: you will see a diamond beside its name and, when you open it, what the assistant said. It is a proposal, not a deletion — deleting stays yours, and the diamond comes off with one click. What it writes is signed with the name of the program it spoke through — «by Claude Code», «by Codex» — and what was written before programs said their name reads «by an assistant».
+If you use an assistant, it can propose tasks and write documents of its own accord, and add to or correct the documents it may write in. What it never does is close or delete a task, delete a document, or change a task you wrote — unless you open that task to agents. It can also **mark** a document or a page that has had its day: you will see a diamond beside its name and, when you open it, what the assistant said. It is a proposal, not a deletion — deleting stays yours, and the diamond comes off with one click. What it writes is signed with the name of the program it spoke through — «by Claude Code», «by Codex» — and what was written before programs said their name reads «by an assistant».
 
 When it finishes one of the tasks it filed, it says so and leaves the account of what it did in the journal. The task stays open, gathered under **To confirm** with the hour it spoke — unless it is due today or overdue, which stays where you look for it. You finish it, or you send it back with **Still to do** and it returns to its day with the account kept.
 
@@ -384,7 +384,7 @@ To rewrite a whole document it is handed a print of the exact text it read, and 
 
 ### 12. Your copies
 
-Tisty always works on this computer. To reach it from another one, tell it where to leave the copies: it offers Google Drive, OneDrive, iCloud and Dropbox — whichever it finds installed, folder already worked out — or any other folder both computers reach, a NAS or an external disk. Your Google Drive can also be connected directly, from Settings, with no program of Google's installed.
+Tisty always works on this computer. To reach it from another one, tell it where to leave the copies: it offers Google Drive, OneDrive, iCloud and Dropbox — whichever it finds installed, folder already worked out — or any other folder both computers reach, a NAS or an external disk. Your Google Drive or OneDrive can also be connected directly, from Settings, with no program of Google's or Microsoft's installed.
 
 Whoever takes that folder up and down is your provider's program, not Tisty. If it is not running, the tasks wait there until it is.
 

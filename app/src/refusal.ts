@@ -123,6 +123,8 @@ const KNOWN = [
   "keyMoved",
   "keyNotConfirmed",
   "stillReferenced",
+  "retireUnread",
+  "retireUnreadAny",
   "internal",
   "internalNamed",
   "noSuchFolder",

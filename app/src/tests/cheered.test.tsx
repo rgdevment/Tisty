@@ -91,13 +91,12 @@ beforeEach(() => {
       case "docs":
         return Promise.resolve({ folders: [], docs: [] });
       case "sync_state":
-        return Promise.resolve({ asked: true, loose: 0 });
+        return Promise.resolve({ asked: true });
       case "snapshot":
         return Promise.resolve(shot(args.view as { archive?: boolean } | undefined));
       case "settings":
         return Promise.resolve({
           quiet: [],
-          attachUpTo: 0,
           holds: {},
           shares: false,
           onlySharedAbove: 0,

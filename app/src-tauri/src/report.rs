@@ -25,14 +25,25 @@ pub struct Facts {
     pub attachment_bytes: u64,
     pub loose: usize,
     pub loose_bytes: u64,
+    pub unread: bool,
     pub weight: u64,
     pub syncs: bool,
     pub shared: bool,
     pub cloud: Option<String>,
     pub backed_up_at: Option<String>,
     pub quiet: Vec<String>,
-    pub attach_up_to: u64,
     pub shortcut: Option<String>,
+    pub installed: &'static str,
+    pub assistant: bool,
+}
+
+pub fn installed(route: crate::update::Route, mounted: bool) -> &'static str {
+    match route {
+        _ if mounted => "disk",
+        crate::update::Route::Store => "store",
+        crate::update::Route::Brew => "brew",
+        crate::update::Route::Download => "download",
+    }
 }
 
 pub use tisty_core::witness::hidden;

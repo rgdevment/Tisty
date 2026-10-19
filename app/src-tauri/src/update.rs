@@ -27,15 +27,11 @@ pub enum Route {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Kept {
     pub route: Route,
-    pub package: Option<&'static str>,
 }
 
 impl Kept {
     const fn plain(route: Route) -> Self {
-        Self {
-            route,
-            package: None,
-        }
+        Self { route }
     }
 }
 
@@ -44,7 +40,6 @@ impl Kept {
 pub struct Ready {
     pub version: String,
     pub route: Route,
-    pub package: Option<&'static str>,
     pub installs: bool,
     pub coming: bool,
 }
@@ -53,7 +48,6 @@ pub fn on_its_way(version: Option<&str>) -> Ready {
     Ready {
         version: version.unwrap_or_default().to_string(),
         route: Route::Store,
-        package: None,
         installs: false,
         coming: true,
     }
@@ -145,7 +139,6 @@ fn offered(version: String, kept: Kept) -> Ready {
     Ready {
         version,
         route: kept.route,
-        package: kept.package,
         installs: self_installs(kept.route) && !from_a_mount(),
         coming: false,
     }
@@ -160,7 +153,6 @@ pub fn from_the_shop(version: &str, now: &str) -> Option<Ready> {
     (said > here).then(|| Ready {
         version: said.to_string(),
         route: Route::Store,
-        package: None,
         installs: true,
         coming: false,
     })
@@ -221,18 +213,12 @@ fn chosen(running: Option<&std::path::Path>, there: impl Fn(&std::path::Path) ->
         return Kept::plain(Route::Store);
     }
 
-    for package in CASKS {
-        let brewed = PREFIXES
+    let brewed = CASKS.iter().any(|package| {
+        PREFIXES
             .iter()
-            .any(|root| there(std::path::Path::new(&format!("{root}/Caskroom/{package}"))));
-        if brewed {
-            return Kept {
-                route: Route::Brew,
-                package: Some(package),
-            };
-        }
-    }
-    Kept::plain(Route::Download)
+            .any(|root| there(std::path::Path::new(&format!("{root}/Caskroom/{package}"))))
+    });
+    Kept::plain(if brewed { Route::Brew } else { Route::Download })
 }
 
 pub fn feed_key() -> Option<&'static str> {

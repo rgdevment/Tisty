@@ -67,7 +67,6 @@ const round = (code: string, over: Partial<NonNullable<CloudStatus["last"]>> = {
 const carrying = (over: Partial<Carrying> = {}): Carrying =>
   ({
     asked: true,
-    loose: 0,
     open: 0,
     archived: 0,
     lists: 0,
