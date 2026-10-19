@@ -139,7 +139,7 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .zip(&wheres)
         .map(|(task, said)| match said {
             Some((kind, line)) => format!(
-                "{:?} {} ({}) [{}]\n    {kind}: {line}",
+                "{:?} {} ({}) [{}]\n  {kind}: {line}",
                 task.title,
                 placed(&state, task),
                 standing(task),
