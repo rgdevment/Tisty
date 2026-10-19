@@ -132,54 +132,18 @@ struct TokenAnswer {
     scope: Option<String>,
 }
 
-// Blocking on purpose: every carrier call already runs off the window's async runtime.
 pub(crate) fn http() -> Result<reqwest::blocking::Client, Hitch> {
-    reqwest::blocking::Client::builder()
-        .timeout(ASKED_WITHIN)
-        .build()
-        .map_err(|e| Hitch::Broke(told(&e.without_url())))
+    tisty_carrier::net::client(ASKED_WITHIN)
 }
 
-pub(crate) fn waited(headers: &reqwest::header::HeaderMap) -> Option<Duration> {
-    tisty_carrier::said::retry_after(
-        headers
-            .get(reqwest::header::RETRY_AFTER)
-            .and_then(|one| one.to_str().ok()),
-    )
-}
+pub(crate) use tisty_carrier::net::waited;
 
 fn post_form(
     http: &reqwest::blocking::Client,
     url: &str,
     fields: &[(&str, &str)],
 ) -> Result<TokenAnswer, Hitch> {
-    let body = url::form_urlencoded::Serializer::new(String::new())
-        .extend_pairs(fields)
-        .finish();
-    let answer = http
-        .post(url)
-        .header(
-            reqwest::header::CONTENT_TYPE,
-            "application/x-www-form-urlencoded",
-        )
-        .body(body)
-        .send()
-        .map_err(crate::health::unreachable)?;
-    let status = answer.status();
-    let wait = waited(answer.headers());
-    let text = answer.text().map_err(crate::health::unreachable)?;
-    match status.as_u16() {
-        200 => serde_json::from_str(&text).map_err(|_| {
-            Hitch::Broke("Google answered the sign-in in a shape Tisty does not read".into())
-        }),
-        status => Err(tisty_carrier::said::token_refused(
-            "Google",
-            status,
-            wait,
-            &text,
-            &["invalid_grant"],
-        )),
-    }
+    tisty_carrier::net::token_asked(http, "Google", url, &["invalid_grant"], fields)
 }
 
 // A grant Tisty turns down is handed back, so the account never lists access Tisty said it refused.

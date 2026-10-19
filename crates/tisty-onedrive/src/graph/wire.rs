@@ -5,7 +5,8 @@ use serde::Deserialize;
 use tisty_carrier::Hitch;
 
 use super::OneDrive;
-use crate::{WAITED_UNTOLD, told, unreachable, waited};
+use crate::{WAITED_UNTOLD, unreachable, waited};
+use tisty_carrier::said::told;
 
 const CONNECTED_WITHIN: Duration = Duration::from_secs(30);
 const SLOWEST: u64 = 64 * 1024;
@@ -45,7 +46,8 @@ impl OneDrive {
             if let Some(patience) = patience {
                 asked = asked.timeout(patience);
             }
-            let answer = asked.send().map_err(unreachable)?;
+            let asked = asked.build().map_err(unreachable)?;
+            let answer = self.traced(asked, None).map_err(unreachable)?;
             if answer.status().as_u16() == 401 && !renewed {
                 self.tokens.spoiled(&access);
                 renewed = true;
@@ -86,6 +88,56 @@ impl OneDrive {
         Ok(at.into())
     }
 
+    pub(super) fn traced(
+        &self,
+        asked: reqwest::blocking::Request,
+        kind: Option<&'static str>,
+    ) -> reqwest::Result<Response> {
+        let verb = tisty_carrier::net::verb_of(asked.method());
+        let kind = kind.unwrap_or_else(|| kind_of(&asked));
+        let sent = asked
+            .body()
+            .and_then(|body| body.as_bytes())
+            .map_or(0, |body| body.len() as u64);
+        let began = std::time::Instant::now();
+        let answer = self.http.execute(asked);
+        let held = answer.as_ref().ok();
+        tisty_carrier::said::traced(
+            "OneDrive was asked",
+            tisty_carrier::said::Asked {
+                verb,
+                kind,
+                status: held.map(|one| one.status().as_u16()),
+                began,
+                sent,
+                received: held.and_then(Response::content_length).unwrap_or(0),
+            },
+        );
+        answer
+    }
+
+    // Download and upload addresses carry their own permission, so they are taken only from Microsoft's hosts.
+    pub(super) fn carries(&self, link: &str) -> Result<(), Hitch> {
+        let api = self.at.api.parse::<url::Url>().ok();
+        let ok = link.parse::<url::Url>().is_ok_and(|at| {
+            let host = at.host_str().unwrap_or_default();
+            let same = api
+                .as_ref()
+                .is_some_and(|api| api.scheme() == at.scheme() && api.host_str() == Some(host));
+            let theirs = at.scheme() == "https"
+                && CARRIERS
+                    .iter()
+                    .any(|one| host == *one || host.ends_with(&format!(".{one}")));
+            same || theirs
+        });
+        match ok {
+            true => Ok(()),
+            false => Err(Hitch::Broke(
+                "OneDrive handed an address outside Microsoft's own".into(),
+            )),
+        }
+    }
+
     // Graph hands back whole addresses to carry on from; the token only ever goes where Graph itself lives.
     pub(super) fn ours(&self, link: &str) -> Result<(), Hitch> {
         match link.starts_with(&format!("{}/", self.at.api)) {
@@ -123,6 +175,14 @@ fn codes_of(refused: &Refused) -> Vec<&str> {
     codes
 }
 
+// An address that carries its own permission and refuses has lapsed; the sign-in still stands.
+pub(super) fn judged_carried(answer: Response) -> Result<Response, Hitch> {
+    judged(answer).map_err(|refused| match refused {
+        Hitch::Lost => Hitch::Troubled("OneDrive refused an address it had handed out".into()),
+        other => other,
+    })
+}
+
 pub(super) fn judged(answer: Response) -> Result<Response, Hitch> {
     if answer.status().is_success() {
         return Ok(answer);
@@ -147,7 +207,11 @@ fn refusal(status: u16, wait: Option<Duration>, refused: Option<&Refused>) -> Hi
         403 if names("accessDenied") || names("unauthenticated") => Hitch::Lost,
         404 => Hitch::Missing(message),
         409 | 412 => Hitch::Changed(message),
-        429 | 509 => Hitch::Limited {
+        // A file held by someone else, or a pace Microsoft asks for, passes on its own.
+        423 | 429 | 509 => Hitch::Limited {
+            wait: wait.unwrap_or(WAITED_UNTOLD),
+        },
+        _ if names("activityLimitReached") => Hitch::Limited {
             wait: wait.unwrap_or(WAITED_UNTOLD),
         },
         500.. => match wait {
@@ -158,5 +222,30 @@ fn refusal(status: u16, wait: Option<Duration>, refused: Option<&Refused>) -> Hi
             "OneDrive refused: {status} {} {message}",
             codes.join("/")
         )),
+    }
+}
+
+const CARRIERS: [&str; 8] = [
+    "1drv.com",
+    "microsoftpersonalcontent.com",
+    "svc.ms",
+    "onedrive.com",
+    "live.com",
+    "livefilestore.com",
+    "sharepoint.com",
+    "microsoft.com",
+];
+
+fn kind_of(asked: &reqwest::blocking::Request) -> &'static str {
+    let path = asked.url().path();
+    match *asked.method() {
+        reqwest::Method::DELETE => "delete",
+        reqwest::Method::PATCH => "edit",
+        _ if path.ends_with("createUploadSession") => "upload-open",
+        _ if path.ends_with("/content") => "upload",
+        _ if path.contains("delta") => "changes",
+        _ if path.ends_with("/drive") => "about",
+        _ if path.ends_with("/me") => "account",
+        _ => "read",
     }
 }

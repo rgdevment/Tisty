@@ -36,7 +36,7 @@ windows-future = "0.3"
 webview2-com = "0.39"
 
 [dependencies]
-tisty-carrier.workspace = true
+tisty-carrier = { workspace = true, features = ["net"] }
 tisty-google.workspace = true
 tisty-onedrive.workspace = true
 tisty-core.workspace = true

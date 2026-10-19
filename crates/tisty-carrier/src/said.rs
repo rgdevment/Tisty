@@ -80,6 +80,45 @@ pub fn cause_of(slow: bool, said: &str) -> Cause {
     }
 }
 
+pub struct Asked {
+    pub verb: &'static str,
+    pub kind: &'static str,
+    pub status: Option<u16>,
+    pub began: std::time::Instant,
+    pub sent: u64,
+    pub received: u64,
+}
+
+/// One line for each ask at the finest trail: never where it went, what it named or who asked.
+pub fn traced(said: &'static str, asked: Asked) {
+    use tisty_core::witness::{self, Fact, channel};
+    if !witness::keeping_all() {
+        return;
+    }
+    witness::trace(
+        channel::CLOUD,
+        said,
+        &[
+            ("verb", Fact::Word(asked.verb)),
+            ("kind", Fact::Word(asked.kind)),
+            (
+                "status",
+                asked
+                    .status
+                    .map_or(Fact::Word("none"), |one| Fact::Count(one.into())),
+            ),
+            (
+                "ms",
+                Fact::Count(
+                    usize::try_from(asked.began.elapsed().as_millis()).unwrap_or(usize::MAX),
+                ),
+            ),
+            ("sent", Fact::Bytes(asked.sent)),
+            ("received", Fact::Bytes(asked.received)),
+        ],
+    );
+}
+
 #[cfg(test)]
 #[path = "said_test.rs"]
 mod tests;

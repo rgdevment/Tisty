@@ -108,6 +108,24 @@ pub trait Watch: Send {
     fn told(&mut self, within: Duration) -> Result<bool, Hitch>;
 }
 
+pub fn renamed_by_copy<R: Remote + ?Sized>(remote: &R, from: &str, to: &str) -> Result<(), Hitch> {
+    named_well(from)?;
+    named_well(to)?;
+    let held = std::env::temp_dir().join(format!(
+        "tisty-renamed-{}-{}",
+        std::process::id(),
+        to.replace('/', "-")
+    ));
+    let mut into = std::fs::File::create(&held).map_err(|e| Hitch::Broke(e.to_string()))?;
+    let took = remote.fetch(from, 0, &mut into);
+    drop(into);
+    let done = took
+        .and_then(|_| remote.put(to, &held, Expect::Any))
+        .and_then(|_| remote.delete(from, None));
+    let _ = std::fs::remove_file(&held);
+    done
+}
+
 pub fn named_well(name: &str) -> Result<(), Hitch> {
     let bad = name.is_empty()
         || name.contains('\\')
@@ -132,21 +150,7 @@ pub trait Remote: Send + Sync {
 
     /// Where a provider can only read and write, the bytes go down and up once; one that moves does it in place.
     fn renamed(&self, from: &str, to: &str) -> Result<(), Hitch> {
-        named_well(from)?;
-        named_well(to)?;
-        let held = std::env::temp_dir().join(format!(
-            "tisty-renamed-{}-{}",
-            std::process::id(),
-            to.replace('/', "-")
-        ));
-        let mut into = std::fs::File::create(&held).map_err(|e| Hitch::Broke(e.to_string()))?;
-        let took = self.fetch(from, 0, &mut into);
-        drop(into);
-        let done = took
-            .and_then(|_| self.put(to, &held, Expect::Any))
-            .and_then(|_| self.delete(from, None));
-        let _ = std::fs::remove_file(&held);
-        done
+        renamed_by_copy(self, from, to)
     }
 
     fn about(&self, name: &str) -> Result<Option<Seen>, Hitch> {

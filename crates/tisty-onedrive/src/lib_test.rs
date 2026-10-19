@@ -4,7 +4,8 @@ use std::thread::JoinHandle;
 
 use tisty_carrier::{Cause, Hitch, Renew};
 
-use super::{Client, Endpoints, MicrosoftRenew, SCOPES, cause_of, client_of};
+use super::{Client, Endpoints, MicrosoftRenew, SCOPES, client_of};
+use tisty_carrier::said::cause_of;
 
 pub(crate) fn answering(
     status: &'static str,

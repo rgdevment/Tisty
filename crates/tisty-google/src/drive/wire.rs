@@ -4,7 +4,7 @@ use reqwest::Method;
 use reqwest::blocking::{Client as Http, Request, RequestBuilder, Response};
 use serde::Deserialize;
 use tisty_carrier::Hitch;
-use tisty_core::witness::{self, Fact, channel};
+use tisty_core::witness;
 
 use super::Drive;
 use crate::{WAITED_UNTOLD, told, waited};
@@ -78,7 +78,6 @@ impl Drive {
     }
 }
 
-/// One line for each ask at the finest trail: never where it went, what it named or who asked.
 pub(super) fn traced(
     verb: &Method,
     kind: &'static str,
@@ -86,43 +85,17 @@ pub(super) fn traced(
     began: Instant,
     sent: u64,
 ) {
-    if !witness::keeping_all() {
-        return;
-    }
-    witness::trace(
-        channel::CLOUD,
+    tisty_carrier::said::traced(
         "Google Drive was asked",
-        &[
-            ("verb", Fact::Word(verb_of(verb))),
-            ("kind", Fact::Word(kind)),
-            (
-                "status",
-                answer.map_or(Fact::Word("none"), |one| {
-                    Fact::Count(one.status().as_u16().into())
-                }),
-            ),
-            (
-                "ms",
-                Fact::Count(usize::try_from(began.elapsed().as_millis()).unwrap_or(usize::MAX)),
-            ),
-            ("sent", Fact::Bytes(sent)),
-            (
-                "received",
-                Fact::Bytes(answer.and_then(Response::content_length).unwrap_or(0)),
-            ),
-        ],
+        tisty_carrier::said::Asked {
+            verb: tisty_carrier::net::verb_of(verb),
+            kind,
+            status: answer.map(|one| one.status().as_u16()),
+            began,
+            sent,
+            received: answer.and_then(Response::content_length).unwrap_or(0),
+        },
     );
-}
-
-fn verb_of(verb: &Method) -> &'static str {
-    match *verb {
-        Method::GET => "GET",
-        Method::POST => "POST",
-        Method::PUT => "PUT",
-        Method::PATCH => "PATCH",
-        Method::DELETE => "DELETE",
-        _ => "OTHER",
-    }
 }
 
 pub(super) fn kind_of(asked: &Request) -> &'static str {
