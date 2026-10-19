@@ -90,9 +90,16 @@ pub(super) fn move_task(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let written = store
         .append_batch_unless(vec![Op::TaskMove { id, d: d.clone() }], |events| {
             let held = State::replay(events);
-            held.tasks
-                .get(&id)
-                .is_none_or(|now| !still_filling(&held, now))
+            let next_gone = d.part_of.flatten().is_some_and(|up| {
+                held.tasks
+                    .get(&up)
+                    .is_none_or(|now| !still_filling(&held, now) || now.resolved.is_some())
+            });
+            next_gone
+                || held
+                    .tasks
+                    .get(&id)
+                    .is_none_or(|now| !still_filling(&held, now))
         })
         .map_err(hitch)?;
     if written.is_none() {

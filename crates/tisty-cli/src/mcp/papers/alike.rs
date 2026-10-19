@@ -26,6 +26,7 @@ pub(super) fn alike(state: &State, kept: &Kept, pages: &[&Kept]) -> Vec<Value> {
     let mut found: Vec<Value> = state
         .papers()
         .filter(|one| !inside.contains(&one.file.as_str()))
+        .filter(|one| one.flagged.is_none() && !state.held_away(one))
         .filter_map(|one| {
             let title = one.title.as_deref()?;
             let subject = tisty_core::text::subject(title);

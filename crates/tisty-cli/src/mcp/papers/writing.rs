@@ -230,8 +230,13 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
             .compacted
             .as_ref()
             .is_some_and(|one| one.undone_by(&now, &was))
+        && let Err(e) = store.append(Op::DocUncompacted { id: kept.id })
     {
-        let _ = store.append(Op::DocUncompacted { id: kept.id });
+        tisty_core::witness::warn(
+            tisty_core::witness::channel::DOOR,
+            "a document went back past its compaction but the mark stayed",
+            &[("code", tisty_core::witness::Fact::Code(e.coded()))],
+        );
     }
     if more {
         if let Some(text) = said["content"][0]["text"].as_str() {

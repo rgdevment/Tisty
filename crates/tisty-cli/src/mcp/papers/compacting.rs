@@ -82,12 +82,20 @@ pub(super) fn compacted(
     let (id, loose) = (kept.id, kept.folder.is_none() && kept.page_of.is_none());
     let was = tisty_core::docs::read(&paths.docs(), which).map_err(hitch)?;
     let mut said = over_again(paths, args, state, store, which, body)?;
-    let whole = tisty_core::docs::read(&paths.docs(), which).unwrap_or_default();
+    let whole = tisty_core::docs::read(&paths.docs(), which).unwrap_or_else(|_| body.to_string());
     let print = Some(tisty_core::attach::printed(whole.as_bytes()));
     let before = Some(tisty_core::attach::printed(was.as_bytes()));
-    store
-        .append(Op::DocCompacted { id, print, before })
-        .map_err(hitch)?;
+    // The body is already rewritten, so a mark that fails to land must not read as a write that did not happen.
+    if let Err(e) = store.append(Op::DocCompacted { id, print, before }) {
+        tisty_core::witness::warn(
+            tisty_core::witness::channel::DOOR,
+            "a compaction was written but its mark could not be kept",
+            &[
+                ("at", tisty_core::witness::Fact::Id(id.to_string())),
+                ("code", tisty_core::witness::Fact::Code(e.coded())),
+            ],
+        );
+    }
 
     let dropped = dropped(&was, &whole);
     let (before, after) = (was.chars().count(), whole.chars().count());

@@ -1122,8 +1122,15 @@ pub fn went_back(session: &mut Session, id: &str) -> Answer<tisty_core::docs::Do
     session.corpus.forget(id);
     let hand = signing(&session.state);
     session.retell(id, &whole, hand);
-    if let Some(doc) = undone {
-        session.commit(Op::DocUncompacted { id: doc })?;
+    // The body is back already; a mark left standing is a lesser wrong than reporting the undo as failed.
+    if let Some(doc) = undone
+        && let Err(e) = session.commit(Op::DocUncompacted { id: doc })
+    {
+        tisty_core::witness::warn(
+            tisty_core::witness::channel::STORE,
+            "a document went back past its compaction but the mark stayed",
+            &[("why", tisty_core::witness::Fact::Why(e.to_string()))],
+        );
     }
     Ok(tisty_core::docs::Doc {
         title: tisty_core::docs::titled(&whole),

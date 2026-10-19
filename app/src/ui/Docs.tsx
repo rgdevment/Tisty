@@ -407,6 +407,8 @@ export default function Docs({
   const wrote = (text: string) => {
     if (!open || bolted) return;
     typed.current = Date.now();
+    // Once the person writes, going back would take their words, not the compaction.
+    setCompacted(false);
     setBody(text);
     const last = lastRead.current.get(open.file);
     const back = last !== undefined && tailless(last) === tailless(text);
