@@ -39,7 +39,7 @@ impl OneDrive {
         retried(|failed| {
             if failed > 0 {
                 self.spent(self.limits().costs.put);
-                if let Some(landed) = self.landed_already(name, from) {
+                if let Some(landed) = self.landed_already(name, from)? {
                     return Ok(landed);
                 }
             }
@@ -48,15 +48,17 @@ impl OneDrive {
     }
 
     // A write whose answer was lost may have landed; it is taken as this one only when the bytes there are these.
-    fn landed_already(&self, name: &str, from: &Path) -> Option<DriveItem> {
+    fn landed_already(&self, name: &str, from: &Path) -> Result<Option<DriveItem>, Hitch> {
         self.spent(1);
-        let item = self.item(name, Some(ITEM_FIELDS)).ok()??;
+        let Some(item) = self.item(name, Some(ITEM_FIELDS))? else {
+            return Ok(None);
+        };
         // Hashing a large file costs far more than one look at its size, which rules most out first.
-        if item.size != std::fs::metadata(from).ok().map(|one| one.len()) {
-            return None;
+        if item.size != Some(std::fs::metadata(from)?.len()) {
+            return Ok(None);
         }
-        let here = self.hash_of(from).ok()?;
-        (item.seen(name).hash == here).then_some(item)
+        let here = self.hash_of(from)?;
+        Ok((item.seen(name).hash == here).then_some(item))
     }
 
     /// One request that either lands whole or leaves the file as it was: what Tisty's own files always take.
@@ -105,20 +107,17 @@ impl OneDrive {
                 Err(refused) => Err(refused),
             };
             match asked {
-                Ok(Some(at)) => {
+                Ok(Held::At(at)) => {
                     let sent = self.pieces(name, (&upload, Some(key)), from, bytes, at);
                     self.settled(&upload, key, &sent);
                     return sent;
                 }
-                // A way that is down or a passing fault keeps the session for the next round; anything else begins anew.
-                Err(
-                    cut @ (Hitch::Unreachable(..) | Hitch::Limited { .. } | Hitch::Troubled(_)),
-                ) => {
-                    return Err(cut);
-                }
-                Ok(None) | Err(_) => {
+                Ok(Held::Whole) => return Err(assembling()),
+                Err(cut) if passing(&cut) => return Err(cut),
+                Ok(Held::Gone) | Err(_) => {
+                    self.dropped(&upload);
                     uploads.closed(key);
-                    if let Some(landed) = self.landed_already(name, from) {
+                    if let Some(landed) = self.landed_already(name, from)? {
                         return Ok(landed);
                     }
                 }
@@ -161,7 +160,7 @@ impl OneDrive {
             return;
         };
         match sent {
-            Err(Hitch::Unreachable(..) | Hitch::Limited { .. } | Hitch::Troubled(_)) => {}
+            Err(cut) if passing(cut) => {}
             Err(_) => {
                 self.dropped(upload);
                 uploads.closed(key);
@@ -174,7 +173,7 @@ impl OneDrive {
         let _ = self.http.delete(upload).timeout(ASKED_WITHIN).send();
     }
 
-    fn got_to(&self, upload: &str) -> Result<Option<u64>, Hitch> {
+    fn got_to(&self, upload: &str) -> Result<Held, Hitch> {
         #[derive(Deserialize)]
         #[serde(rename_all = "camelCase")]
         struct Status {
@@ -191,14 +190,18 @@ impl OneDrive {
         let answer = self.traced(asked, Some("upload")).map_err(unreachable)?;
         match answer.status().as_u16() {
             // An address that carries its own permission and refuses has lapsed, as one OneDrive forgot has.
-            401 | 403 | 404 | 410 => Ok(None),
+            401 | 403 | 404 | 410 => Ok(Held::Gone),
             _ => {
                 let status: Status = json(judged_carried(answer)?)?;
-                Ok(status
-                    .next_expected_ranges
-                    .first()
-                    .and_then(|range| range.split('-').next())
-                    .and_then(|first| first.parse().ok()))
+                // Every byte is there and OneDrive is still putting the file together.
+                let Some(range) = status.next_expected_ranges.first() else {
+                    return Ok(Held::Whole);
+                };
+                Ok(range
+                    .split('-')
+                    .next()
+                    .and_then(|first| first.parse().ok())
+                    .map_or(Held::Gone, Held::At))
             }
         }
     }
@@ -212,18 +215,22 @@ impl OneDrive {
         start: u64,
     ) -> Result<DriveItem, Hitch> {
         let mut at = start;
+        let mut gone = false;
         retried(|failed| {
+            if gone {
+                return Err(lapsed());
+            }
             if failed > 0 {
                 at = match self.got_to(upload)? {
-                    Some(at) => at,
+                    Held::At(at) => at,
+                    Held::Whole => return Err(assembling()),
                     // The last piece may have landed with its answer lost: the session is gone and the file is there.
-                    None => {
+                    Held::Gone => {
+                        gone = true;
                         if let (Some(uploads), Some(key)) = (&self.uploads, key) {
                             uploads.closed(key);
                         }
-                        return self.landed_already(name, from).ok_or_else(|| {
-                            Hitch::Troubled("OneDrive let the upload lapse before it ended".into())
-                        });
+                        return self.landed_already(name, from)?.ok_or_else(lapsed);
                     }
                 };
             }
@@ -296,6 +303,28 @@ impl OneDrive {
             _ => judged(answer),
         }
     }
+}
+
+enum Held {
+    At(u64),
+    Whole,
+    Gone,
+}
+
+fn lapsed() -> Hitch {
+    Hitch::Troubled("OneDrive let the upload lapse before it ended".into())
+}
+
+fn assembling() -> Hitch {
+    Hitch::Troubled("OneDrive is still putting an upload together".into())
+}
+
+// A way that is down or a passing fault keeps a session for the next round; anything else begins anew.
+fn passing(hitch: &Hitch) -> bool {
+    matches!(
+        hitch,
+        Hitch::Unreachable(..) | Hitch::Limited { .. } | Hitch::Troubled(_)
+    )
 }
 
 // Only a line cut mid-answer or a passing fault is tried again; a way that never opened will not open in a second.

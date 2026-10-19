@@ -420,6 +420,8 @@ impl Remote for OneDrive {
                     renewed = true;
                     self.spent(1);
                 }
+                // A fresh address refused again is the grant itself gone.
+                401 | 403 => return Err(judged(answer).err().unwrap_or(Hitch::Lost)),
                 _ => {
                     return Err(match judged_carried(answer) {
                         Err(Hitch::Missing(_)) => Hitch::Missing(name.to_string()),
@@ -502,7 +504,16 @@ impl Remote for OneDrive {
                 .body(body.clone())
         })?;
         // Left to the next feed of changes, which tells the move as one so the index learns its new revision.
-        judged(answer).map(|_| ())
+        match judged(answer) {
+            Ok(_) => Ok(()),
+            // A name taken already is written over, as the copy this move replaces would have done.
+            Err(Hitch::Changed(_)) => {
+                let costs = self.limits().costs;
+                self.spent(costs.fetch + costs.delete);
+                tisty_carrier::renamed_by_copy(self, from, to)
+            }
+            Err(other) => Err(other),
+        }
     }
 
     fn delete(&self, name: &str, expect: Option<&str>) -> Result<(), Hitch> {

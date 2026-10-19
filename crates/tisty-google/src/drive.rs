@@ -757,6 +757,10 @@ impl Remote for Drive {
     fn renamed(&self, from: &str, to: &str) -> Result<(), Hitch> {
         named_well(from)?;
         named_well(to)?;
+        // Drive keeps two files under one name, so a name taken already is written over by the copy, as 1.30 did.
+        if !self.current(to)?.is_empty() {
+            return tisty_carrier::renamed_by_copy(self, from, to);
+        }
         let copies = self.current(from)?;
         let first = copies
             .first()
