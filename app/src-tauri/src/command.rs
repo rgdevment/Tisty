@@ -5,7 +5,7 @@ use tisty_core::witness::{self, Fact, channel};
 fn unwritten(why: &std::io::Error) {
     witness::error(
         channel::TERMINAL,
-        "the command could not be taken out of reach",
+        "the retired tisty command could not be taken off PATH",
         &[("why", Fact::Why(why.to_string()))],
     );
 }

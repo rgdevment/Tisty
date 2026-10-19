@@ -194,7 +194,9 @@ export default function Agents({ busy, said, trouble, quietly, tell, fail, binar
       </Card>
 
       <Card title={t("agentsHowTitle")} which="settings" busy={busy} said={said} trouble={trouble}>
-        <p className="text-[12.5px] leading-relaxed text-soft">{t("agentsHow")}</p>
+        <p className="text-[12.5px] leading-relaxed text-soft">
+          {t(binary ? "agentsHow" : "agentsHowAlias")}
+        </p>
 
         <p className="mt-3 text-[12.5px] font-semibold">{t("agentsByFile")}</p>
         <pre className="mt-1 overflow-x-auto rounded-[10px] border border-hair px-3 py-2 font-mono text-[11.5px] text-soft">

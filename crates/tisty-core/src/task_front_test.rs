@@ -1,4 +1,4 @@
-use super::{Front, day, day_in, dressed, moved, patch, read, repeat, repeat_in};
+use super::{Front, day, day_in, dressed, left_out, moved, patch, read, repeat, repeat_in};
 use crate::model::{Cadence, DateSpec, From, Priority, Repeat, Tag, Task, Unit};
 use jiff::civil::date;
 use ulid::Ulid;
@@ -269,4 +269,130 @@ fn a_box_added_to_a_page_outside_becomes_a_step_when_it_comes_back() {
         "{:?}",
         taken.ops
     );
+}
+
+fn one_task(state: &mut crate::State, d: crate::event::TaskAdd) -> Ulid {
+    let id = Ulid::generate();
+    state.apply(&crate::event::Event::new(
+        crate::event::DeviceId("dev_a".into()),
+        jiff::Timestamp::from_millisecond(1).unwrap(),
+        crate::Op::TaskAdd { id, d },
+    ));
+    id
+}
+
+fn stepped(state: &mut crate::State, id: Ulid, text: &str, order: &str, done: bool) -> Ulid {
+    let step = Ulid::generate();
+    let mut ops = vec![crate::Op::StepAdd {
+        id,
+        d: crate::event::StepAdd {
+            step,
+            text: text.into(),
+            order: order.into(),
+        },
+    }];
+    if done {
+        ops.push(crate::Op::StepDone {
+            id,
+            d: crate::event::StepRef { step },
+        });
+    }
+    for op in ops {
+        state.apply(&crate::event::Event::new(
+            crate::event::DeviceId("dev_a".into()),
+            jiff::Timestamp::from_millisecond(2).unwrap(),
+            op,
+        ));
+    }
+    step
+}
+
+#[test]
+fn an_old_copy_neither_takes_off_a_step_its_page_never_showed_nor_unticks_one_ticked_since() {
+    let mut state = crate::State::default();
+    let id = one_task(
+        &mut state,
+        crate::event::TaskAdd::new("Rina's booster", "a0"),
+    );
+    stepped(&mut state, id, "Call the vet", "a", true);
+    stepped(&mut state, id, "Added since", "b", false);
+    let was = format!("---\ntask: {id}\n---\n\n- [ ] Call the vet\n");
+    let copy = format!("---\ntask: {id}\n---\n\n- [ ] Call the vet\n");
+
+    let taken = super::taken_in(&state, &copy, Some(&was), TZ).unwrap();
+
+    assert!(
+        !taken.ops.iter().any(|op| matches!(
+            op,
+            crate::Op::StepRemove { .. } | crate::Op::StepUndone { .. }
+        )),
+        "{:?}",
+        taken.ops
+    );
+    assert!(!taken.takes_away);
+}
+
+#[test]
+fn a_copy_missing_words_the_page_holds_now_says_it_would_take_them_away() {
+    let mut state = crate::State::default();
+    let id = one_task(
+        &mut state,
+        crate::event::TaskAdd::new("Rina's booster", "a0"),
+    );
+    let was = format!("---\ntask: {id}\n---\n\nWords.\n\nWritten since.\n");
+    let copy = format!("---\ntask: {id}\npriority: do\n---\n\nWords.\n\nMore of mine.\n");
+
+    assert!(
+        super::taken_in(&state, &copy, Some(&was), TZ)
+            .unwrap()
+            .takes_away
+    );
+    let grown = format!("{copy}\nWritten since.\n");
+    assert!(
+        !super::taken_in(&state, &grown, Some(&was), TZ)
+            .unwrap()
+            .takes_away
+    );
+}
+
+#[test]
+fn a_link_s_new_target_or_a_tick_alone_is_no_word_left_out() {
+    assert!(!super::left_out(
+        "See [the card](tisty:file/abc).\n- [x] call\n",
+        "See [the card](card.png).\n- [ ] call\n"
+    ));
+    assert!(super::left_out("See [the card](x).\n", "See the card.\n"));
+}
+
+#[test]
+fn a_page_coming_in_sets_no_repeat_on_a_whole_nor_a_deadline_already_gone() {
+    let mut state = crate::State::default();
+    let id = one_task(&mut state, crate::event::TaskAdd::new("Move house", "a0"));
+    let mut part = crate::event::TaskAdd::new("Pack", "a1");
+    part.part_of = Some(id);
+    one_task(&mut state, part);
+    let body = format!(
+        "---\ntask: {id}\nrepeat: every week from due\ndue: 2020-01-01\npriority: do\n---\n"
+    );
+
+    let taken = super::taken_in(&state, &body, None, TZ).unwrap();
+
+    assert!(
+        matches!(
+            taken.ops.as_slice(),
+            [crate::Op::TaskUpdate { d, .. }]
+                if d.repeat.is_none() && d.deadline.is_none() && d.priority == Some(Priority::Do)
+        ),
+        "{:?}",
+        taken.ops
+    );
+}
+
+#[test]
+fn a_page_out_and_back_untouched_leaves_nothing_out_whatever_its_links_point_at() {
+    let was = "# Rina\n\n<img src=\"attachments/ab/x-1111.png\">\n\n![p][1]\n\n[1]: attachments/ab/y-1111.png\n";
+    let back = "# Rina\n\n<img src=\"x-1111.png\">\n\n![p][1]\n\n[1]: y-1111.png\n";
+
+    assert!(!left_out(was, back));
+    assert!(left_out(was, "# Rina\n"));
 }

@@ -71,12 +71,16 @@ pub fn bound(to: &str) -> Bound<'_> {
                 let email = named
                     .strip_prefix(shown_of(provider))?
                     .strip_prefix(" · ")?;
-                let address = email.contains('@') && !email.contains(['/', '\\', ' ']);
-                address.then_some(Bound::Cloud { provider, email })
+                // An account with no address, one signed in by phone, is written with none after the dot.
+                (email.is_empty() || addressed(email)).then_some(Bound::Cloud { provider, email })
             })
             .unwrap_or(Bound::Folder(named)),
         _ => Bound::Alone,
     }
+}
+
+fn addressed(email: &str) -> bool {
+    email.contains('@') && !email.contains(['/', '\\', ' '])
 }
 
 impl CloudAt {
@@ -88,7 +92,10 @@ impl CloudAt {
     pub fn word(&self) -> String {
         match self.provider.as_str() {
             GOOGLE => format!("cloud:{}", self.email),
-            _ => format!("folder:{} · {}", self.shown(), self.email),
+            _ => match addressed(&self.email) {
+                true => format!("folder:{} · {}", self.shown(), self.email),
+                false => format!("folder:{} · ", self.shown()),
+            },
         }
     }
 }
@@ -229,11 +236,8 @@ impl Config {
         self.quiet.as_deref().unwrap_or_default()
     }
 
+    // A task's page holds what a document does, so a file is taken up to the same ceiling on either.
     pub fn copies_up_to(&self) -> u64 {
-        crate::attach::COPIED_UP_TO
-    }
-
-    pub fn copies_in_a_doc(&self) -> u64 {
         crate::attach::COPIED_IN_DOC
     }
 
@@ -245,7 +249,7 @@ impl Config {
         }
     }
 
-    /// The same ceiling a task allows at most: below it everything travels as it always did.
+    /// Below it everything travels as it always did.
     pub fn only_shared_above(&self) -> u64 {
         crate::attach::COPIED_UP_TO
     }

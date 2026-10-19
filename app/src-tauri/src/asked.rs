@@ -43,12 +43,7 @@ pub(crate) fn ahead(
     now: &jiff::Zoned,
     code: &'static str,
 ) -> Result<(), Refusal> {
-    let passed = if spec.has_time {
-        spec.at < now.datetime()
-    } else {
-        spec.date() < now.date()
-    };
-    if passed {
+    if spec.passed(now) {
         return Err(Refusal::of(code));
     }
     Ok(())

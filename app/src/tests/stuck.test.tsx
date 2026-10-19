@@ -61,7 +61,7 @@ beforeEach(() => {
       case "docs":
         return Promise.resolve({ folders: [], docs: [] });
       case "sync_state":
-        return Promise.resolve({ asked: true, loose: 0 });
+        return Promise.resolve({ asked: true });
       case "snapshot":
         return Promise.resolve(shot());
       default:
@@ -166,7 +166,6 @@ describe("a store written by a newer Tisty", () => {
         return Promise.resolve({
           version: "9.9.9",
           route: "download",
-          package: null,
           installs: true,
         });
       }
@@ -179,7 +178,6 @@ describe("a store written by a newer Tisty", () => {
         return Promise.resolve({
           version: "9.9.9",
           route: "download",
-          package: null,
           installs: true,
         });
       }

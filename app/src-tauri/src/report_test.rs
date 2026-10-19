@@ -597,3 +597,12 @@ fn a_waiting_assistant_names_the_computer_it_runs_on() {
     let one = all.iter().find(|one| one.id == "dev_agent").unwrap();
     assert_eq!(one.host.as_deref(), Some("ESCRITORIO-MARIO"));
 }
+
+#[test]
+fn a_copy_opened_from_the_disk_image_says_so_whatever_else_it_looks_like() {
+    use crate::update::Route;
+    assert_eq!(installed(Route::Store, false), "store");
+    assert_eq!(installed(Route::Brew, false), "brew");
+    assert_eq!(installed(Route::Download, false), "download");
+    assert_eq!(installed(Route::Download, true), "disk");
+}

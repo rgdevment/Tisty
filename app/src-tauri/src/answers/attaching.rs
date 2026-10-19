@@ -9,7 +9,6 @@ pub fn attach(
     session: tauri::State<'_, Mutex<Session>>,
     path: String,
     label: Option<String>,
-    roomy: Option<bool>,
 ) -> Answer<String> {
     let source = std::path::PathBuf::from(&path);
     let name = label
@@ -20,8 +19,8 @@ pub fn attach(
                 .map(str::to_string)
         })
         .unwrap_or_default();
-    let (root, ceiling) = room_for(&session, roomy);
-    let kept = kept_at(&source, &root, ceiling, &name, roomy.unwrap_or(false))?;
+    let (root, ceiling) = room_for(&session);
+    let kept = kept_at(&source, &root, ceiling, &name)?;
     noted(&session, &kept);
     Ok(kept.written(&name))
 }
@@ -81,7 +80,7 @@ pub async fn attach_pasted(
         return Err(Refusal::about("cannotRead", name));
     };
     let bytes = bytes.clone();
-    let (root, ceiling) = room_for(&session, Some(true));
+    let (root, ceiling) = room_for(&session);
     let kept = crate::elsewhere(move || parked(&bytes, name, &root, ceiling)).await??;
     noted(&session, &kept.0);
     Ok(kept.0.written(&kept.1))
@@ -103,23 +102,18 @@ fn parked(
     let kept = std::fs::create_dir_all(&room)
         .and_then(|()| std::fs::write(&source, bytes))
         .map_err(|_| Refusal::about("cannotRead", name.clone()))
-        .and_then(|()| kept_at(&source, root, ceiling, &name, true))
+        .and_then(|()| kept_at(&source, root, ceiling, &name))
         .map(|kept| (kept, name));
     let _ = std::fs::remove_dir_all(&room);
     kept
 }
 
-fn room_for(
-    session: &tauri::State<'_, Mutex<Session>>,
-    roomy: Option<bool>,
-) -> (std::path::PathBuf, u64) {
+fn room_for(session: &tauri::State<'_, Mutex<Session>>) -> (std::path::PathBuf, u64) {
     let session = held(session);
-    let ceiling = if roomy.unwrap_or(false) {
-        tisty_core::attach::COPIED_IN_DOC
-    } else {
-        session.config.copies_up_to()
-    };
-    (session.paths.data().to_path_buf(), ceiling)
+    (
+        session.paths.data().to_path_buf(),
+        session.config.copies_up_to(),
+    )
 }
 
 fn kept_at(
@@ -127,19 +121,13 @@ fn kept_at(
     root: &std::path::Path,
     ceiling: u64,
     name: &str,
-    roomy: bool,
 ) -> Answer<tisty_core::attach::Kept> {
     tisty_core::attach::keep(source, root, ceiling).map_err(|e| {
         witness::warn(channel::ATTACH, "the file could not be kept", &e.told());
         match e {
-            tisty_core::Error::AttachmentTooBig { limit, .. } => Refusal::about(
-                if roomy {
-                    "attachmentTooBigHere"
-                } else {
-                    "attachmentTooBig"
-                },
-                weighed(limit),
-            ),
+            tisty_core::Error::AttachmentTooBig { limit, .. } => {
+                Refusal::about("attachmentTooBig", weighed(limit))
+            }
             _ => Refusal::about("cannotRead", name.to_string()),
         }
     })
@@ -393,3 +381,8 @@ fn safe_to_open(at: &std::path::Path) -> bool {
 #[cfg(test)]
 #[path = "attaching_test.rs"]
 mod tests;
+
+#[tauri::command]
+pub fn roomy() -> u64 {
+    tisty_core::docs::BODY_ROOMY
+}

@@ -290,23 +290,11 @@ mod ceilings {
     use super::*;
 
     #[test]
-    fn a_task_never_takes_a_file_past_what_the_product_promises() {
-        let mut config = bare();
-        config.attach_up_to = Some(200 * 1024 * 1024);
-
-        assert_eq!(
-            config.copies_up_to(),
-            crate::attach::COPIED_UP_TO,
-            "a setting talked the ceiling above what a task is meant to hold"
-        );
-    }
-
-    #[test]
-    fn a_task_holds_25_mb_whatever_an_older_setting_asked_for() {
+    fn a_task_holds_what_a_document_does_whatever_an_older_setting_asked_for() {
         let mut config = bare();
         config.attach_up_to = Some(5 * 1024 * 1024);
 
-        assert_eq!(config.copies_up_to(), 25 * 1024 * 1024);
+        assert_eq!(config.copies_up_to(), 650 * 1024 * 1024);
     }
 
     #[test]
@@ -316,13 +304,7 @@ mod ceilings {
 
         let made = Config::load_or_init(&paths).unwrap();
 
-        assert_eq!(made.copies_up_to(), crate::attach::COPIED_UP_TO);
-    }
-
-    #[test]
-    fn a_document_holds_650_mb() {
-        assert_eq!(bare().copies_in_a_doc(), 650 * 1024 * 1024);
-        assert!(bare().copies_in_a_doc() > bare().copies_up_to());
+        assert_eq!(made.copies_up_to(), crate::attach::COPIED_IN_DOC);
     }
 }
 
@@ -805,4 +787,24 @@ fn a_moved_word_names_google_as_1_30_reads_it_and_a_later_cloud_as_a_folder_name
     );
     assert_eq!(bound("alone"), Bound::Alone);
     assert_eq!(at(ONEDRIVE).shown(), "OneDrive");
+}
+
+#[test]
+fn a_later_cloud_whose_account_has_no_address_still_reads_as_that_cloud() {
+    let at = |email: &str| CloudAt {
+        provider: ONEDRIVE.into(),
+        account: "1".into(),
+        email: email.into(),
+    };
+
+    for email in ["", "+56 9 1234 5678"] {
+        assert_eq!(at(email).word(), "folder:OneDrive · ");
+        assert_eq!(
+            bound(&at(email).word()),
+            Bound::Cloud {
+                provider: ONEDRIVE,
+                email: ""
+            }
+        );
+    }
 }

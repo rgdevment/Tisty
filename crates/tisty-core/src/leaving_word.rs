@@ -59,8 +59,10 @@ fn kind(node: &Value) -> &str {
     node["type"].as_str().unwrap_or_default()
 }
 
+// Word refuses the whole file over one control character XML does not allow.
 fn escaped(text: &str) -> String {
-    text.replace('&', "&amp;")
+    text.replace(|c: char| c < ' ' && !matches!(c, '\t' | '\n' | '\r'), "")
+        .replace('&', "&amp;")
         .replace('<', "&lt;")
         .replace('>', "&gt;")
         .replace('"', "&quot;")

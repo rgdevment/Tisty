@@ -1,4 +1,4 @@
-import { docs, type Pick, paperRifts, type Rift, settlePaper, weavePaper } from "./core";
+import { docs, type Pick, paperRifts, type Rift, settlePaper, taskOf, weavePaper } from "./core";
 import { fill, t } from "./locales";
 import { type Refusal, saidPlainly } from "./refusal";
 import { sure } from "./sure";
@@ -52,6 +52,16 @@ export const decide = async (id: string, called?: string): Promise<boolean> => {
   return true;
 };
 
+// A task's page is left out of the documents, so it is named after the task it belongs to.
+const taskTitled = (id: string): Promise<string | undefined> => {
+  const task = /^t_([0-9a-z]{26})-\d+$/i.exec(id)?.[1];
+  if (!task) return Promise.resolve(undefined);
+  return taskOf(task.toUpperCase()).then(
+    (one) => one.title?.trim() || undefined,
+    () => undefined,
+  );
+};
+
 export const putOffSaid = (count: number): string =>
   count === 1 ? t("putOffDocIsOne") : fill("putOffDocs", String(count));
 
@@ -84,8 +94,13 @@ const decideInTurn = async (ids: string[], byHand: boolean, since: number): Prom
     return null;
   });
   if (!found) return finish([], [...told].join(" "));
+  const tasks = new Map<string, string>();
+  for (const id of asking.filter((one) => !found.docs.some((doc) => doc.file === one))) {
+    const title = await taskTitled(id);
+    if (title) tasks.set(id, title);
+  }
   const named = (id: string) =>
-    found.docs.find((one) => one.file === id)?.title?.trim() || t("untitledDoc");
+    found.docs.find((one) => one.file === id)?.title?.trim() || tasks.get(id) || t("untitledDoc");
   const shut = new Set(found.docs.filter((one) => one.locked).map((one) => one.file));
   for (const id of asking) {
     if (shut.has(id)) continue;

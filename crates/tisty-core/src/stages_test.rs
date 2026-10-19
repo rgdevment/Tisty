@@ -381,20 +381,49 @@ fn a_step_with_no_list_yet_goes_under_the_template_s_box_hint() {
 
 #[test]
 fn a_step_reworded_elsewhere_rewrites_its_own_line() {
+    let task = task(&[("one", true, "a"), ("two", false, "b")]);
     let body = "- [x] one\n- [ ] two\n\nWords.\n";
     assert_eq!(
-        super::reworded(body, "two", "two, again"),
+        super::reworded(body, &task, named(&task, "two"), "two, again"),
         Some("- [x] one\n- [ ] two, again\n\nWords.\n".to_string())
     );
-    assert_eq!(super::reworded(body, "one", "anything"), None);
+    assert_eq!(
+        super::reworded(body, &task, named(&task, "one"), "anything"),
+        None
+    );
+}
+
+#[test]
+fn of_two_steps_written_alike_only_the_one_reworded_changes_its_line() {
+    let task = task(&[("call", false, "a"), ("call", false, "b")]);
+    let second = task.steps[1].id;
+    assert_eq!(
+        super::reworded("- [ ] call\n- [ ] call\n", &task, second, "email"),
+        Some("- [ ] call\n- [ ] email\n".to_string())
+    );
 }
 
 #[test]
 fn a_step_taken_off_leaves_no_box_behind() {
+    let task = task(&[
+        ("one", false, "a"),
+        ("two", true, "b"),
+        ("three", false, "c"),
+    ]);
     let body = "- [ ] one\n- [x] two\n- [ ] three\n";
     assert_eq!(
-        super::unplanned(body, &["one".into(), "two".into()]),
+        super::unplanned(body, &task, &[named(&task, "one"), named(&task, "two")]),
         "- [x] two\n- [ ] three\n"
+    );
+}
+
+#[test]
+fn of_two_steps_written_alike_only_the_one_taken_off_loses_its_box() {
+    let task = task(&[("call", false, "a"), ("call", false, "b")]);
+    let first = task.steps[0].id;
+    assert_eq!(
+        super::unplanned("- [ ] call\n- [ ] call\n", &task, &[first]),
+        "- [ ] call\n"
     );
 }
 
@@ -408,6 +437,26 @@ fn a_step_filed_on_a_page_with_no_box_goes_at_its_end() {
 }
 
 #[test]
+fn a_step_whose_line_cannot_read_back_hides_no_other_step() {
+    let task = task(&[("one", false, "a"), ("", false, "b"), ("three", false, "c")]);
+    let out = ticked(&task, "Words.\n");
+    assert!(out.contains("- [ ] one\n"), "{out}");
+    assert!(out.contains("- [ ] three\n"), "{out}");
+    assert_eq!(stages(&out).len(), 2, "{out}");
+}
+
+#[test]
+fn the_boxes_inside_a_span_name_their_own_steps() {
+    let task = task(&[("water", false, "a"), ("cake", false, "b")]);
+    let body = "## Every round\n- [ ] water\n\n## This time\n- [ ] cake\n";
+    let from = body.find("## This time").unwrap();
+    assert_eq!(
+        super::boxed_in(&task, body, from..body.len()),
+        vec![named(&task, "cake")]
+    );
+}
+
+#[test]
 fn steps_are_not_added_where_an_open_fence_would_swallow_them() {
     let task = task(&[("one", false, "a")]);
     let body = "Words.\n\n```\ncode";
@@ -416,22 +465,32 @@ fn steps_are_not_added_where_an_open_fence_would_swallow_them() {
 
 #[test]
 fn a_step_taken_off_with_one_under_it_leaves_the_rest_whole_and_moves_it_out() {
+    let task = task(&[("A", false, "a"), ("B", false, "b")]);
     let body = "- [ ] A\n  - [ ] B\n\n## Notes\nkeep me\n";
     assert_eq!(
-        super::unplanned(body, &["A".into(), "B".into()]),
+        super::unplanned(body, &task, &[named(&task, "A"), named(&task, "B")]),
         "\n## Notes\nkeep me\n"
     );
     assert_eq!(
-        super::unplanned(body, &["A".into()]),
+        super::unplanned(body, &task, &[named(&task, "A")]),
         "- [ ] B\n\n## Notes\nkeep me\n"
     );
 }
 
 #[test]
 fn a_step_written_on_two_lines_is_reworded_whole() {
+    let task = task(&[
+        ("Call the bank about the loan", false, "a"),
+        ("Next", false, "b"),
+    ]);
     let body = "- [ ] Call the bank\n  about the loan\n- [ ] Next\n";
     assert_eq!(
-        super::reworded(body, "Call the bank about the loan", "Email the bank"),
+        super::reworded(
+            body,
+            &task,
+            named(&task, "Call the bank about the loan"),
+            "Email the bank"
+        ),
         Some("- [ ] Email the bank\n- [ ] Next\n".to_string())
     );
 }

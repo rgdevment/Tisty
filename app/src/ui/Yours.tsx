@@ -178,7 +178,6 @@ export default function Yours({
               </Line>
             )}
           </div>
-          <p className="mt-2 text-[11.5px] leading-relaxed text-faint">{t("attachBig")}</p>
         </>
       )}
 

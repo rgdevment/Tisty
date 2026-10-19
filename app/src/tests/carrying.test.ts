@@ -26,7 +26,6 @@ vi.mock("@tauri-apps/api/event", () => ({
 const state = {
   chosen: undefined as string | undefined,
   asked: true,
-  loose: 0,
   mode: "folder",
   cloud: null as string | null,
 };

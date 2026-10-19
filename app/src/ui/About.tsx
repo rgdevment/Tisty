@@ -17,6 +17,7 @@ import {
 import { fill, t } from "../locales";
 import { offerMoved, saidPlainly } from "../refusal";
 import Glyph from "./Glyph";
+import { waitingOn } from "./Older";
 import Written from "./Written";
 
 const COFFEE = "https://buymeacoffee.com/rgdevment";
@@ -160,13 +161,7 @@ export default function About({
                 )
               ) : (
                 <span className="mt-0.5 block text-[12.5px] text-soft">
-                  {newer.installs
-                    ? t("updateAsk")
-                    : newer.coming
-                      ? t("updateComingWhy")
-                      : newer.route === "store"
-                        ? t("updateLanded")
-                        : t("updateFromTheDisk")}
+                  {t(newer.installs ? "updateAsk" : waitingOn(newer))}
                 </span>
               )}
             </span>

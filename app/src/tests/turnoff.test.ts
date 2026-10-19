@@ -29,7 +29,7 @@ vi.mock("@tauri-apps/api/core", () => ({
   },
 }));
 
-const kept = { quiet: [], attachUpTo: 5_000_000, holds: "shared" } as unknown as Settings;
+const kept = { quiet: [], holds: "shared" } as unknown as Settings;
 
 const holdsSet = () =>
   calls

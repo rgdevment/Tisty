@@ -196,6 +196,31 @@ documents included.
 tasks: they are Markdown files that grow into books, with diagrams, formulas,
 code and their own PDF.
 
+**A task or a document?** A task is something to do: it ends, often soon, and
+then it stays, so that months later you can look up how you solved it. A
+document is something to keep and read again — a manual, a recipe, the notes on
+a client — that grows and lasts for years. Something you will do is a task;
+something you will come back to is a document. A spike is the clearest case: a
+task whose page gathers what you found out — notes, recordings, code analysis —
+split into parts that each get done, then completed and archived — and a year
+later a search still brings back how it was solved, every step of it. That is
+why a task has a page: it is also a document, one with an end.
+
+```mermaid
+flowchart TD
+  A[Something comes up] --> B{Will you do it,<br/>or come back to read it?}
+  B -->|Do it| T[A task]
+  B -->|Read it again| D[A document]
+  T --> P[Its page: notes, steps,<br/>files, recordings]
+  P --> S{Too big for one go?}
+  S -->|Yes| K[Split it into parts]
+  K --> C
+  S -->|No| C[Complete it]
+  C --> R[The archive:<br/>search finds how you solved it]
+  P -.->|You learned something<br/>you will need again| D
+  D --> G[Read, correct and add to it<br/>for years]
+```
+
 **It is for one person.** No assignees, no permissions, no boards. If you need
 to run a team, Tisty will not carry that, and you deserve to know before you
 install it rather than after.

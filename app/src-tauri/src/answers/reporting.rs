@@ -40,8 +40,7 @@ pub fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
             Refusal::of("internal")
         })?;
 
-    let held = session.pointed_at();
-    let adrift = session.adrift(&held);
+    let (adrift, unread) = session.checked_adrift();
 
     let kept = report::attachments(session.paths.data());
     let told = tisty_core::store::read_all(session.paths.store()).unwrap_or_default();
@@ -59,6 +58,7 @@ pub fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
         loose: adrift.files(),
         loose_bytes: adrift.bytes,
         astray: adrift.items,
+        unread,
         stranded: tisty_core::docs::strayed(&session.paths.docs(), &alive),
         missing: tisty_core::docs::missing(&session.paths.docs(), &alive)
             .into_iter()
@@ -112,6 +112,7 @@ pub struct Reviewed {
     loose: usize,
     loose_bytes: u64,
     astray: Vec<tisty_core::attach::Astray>,
+    unread: Option<String>,
     stranded: Vec<tisty_core::docs::Stray>,
     missing: Vec<Gone>,
     events: usize,
@@ -133,8 +134,7 @@ pub fn facts(
     let store = session.paths.store();
     let audit = tisty_core::cache::audit(&store, session.paths.cache());
 
-    let referenced = session.pointed_at();
-    let adrift = session.adrift(&referenced);
+    let (adrift, unread) = session.checked_adrift();
     let kept = report::attachments(session.paths.data());
 
     let shown = |raw: String| if paths { raw } else { report::hidden(&raw) };
@@ -195,6 +195,7 @@ pub fn facts(
         attachment_bytes: kept.bytes,
         loose: adrift.files(),
         loose_bytes: adrift.bytes,
+        unread: unread.is_some(),
         weight: report::weighed(session.paths.data()),
         syncs: session.config.sync.is_some(),
         shared: session.config.shares(),
@@ -202,8 +203,9 @@ pub fn facts(
             .map(|at| at.shown().to_string()),
         backed_up_at: session.config.backed_up_at.map(|at| at.to_string()),
         quiet: session.config.muted().to_vec(),
-        attach_up_to: session.config.copies_up_to(),
         shortcut: bound.0.clone(),
+        installed: report::installed(crate::update::route().route, crate::update::from_a_mount()),
+        assistant: session.config.agent_id.is_some(),
     })
 }
 
@@ -221,8 +223,7 @@ pub fn keep_report(
 
     let carried: Vec<(String, Vec<u8>)> = if logs {
         let session = held(&session);
-        let live = witness::file(&session.paths);
-        [live.clone(), live.with_extension("log.1")]
+        witness::kept_files(&session.paths)
             .into_iter()
             .filter_map(|one| {
                 let named = one.file_name()?.to_string_lossy().into_owned();

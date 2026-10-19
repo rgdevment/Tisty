@@ -81,7 +81,6 @@ pub struct About {
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
     quiet: Vec<String>,
-    attach_up_to: u64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     locale: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -103,7 +102,6 @@ pub fn settings(session: tauri::State<'_, Mutex<Session>>) -> Answer<Settings> {
 fn as_settings(session: &Session) -> Settings {
     Settings {
         quiet: session.config.muted().to_vec(),
-        attach_up_to: session.config.copies_up_to(),
         locale: session.config.locale.clone(),
         theme: session.config.theme,
         holds: session.config.holds.unwrap_or_default(),

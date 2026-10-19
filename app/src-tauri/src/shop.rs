@@ -90,7 +90,7 @@ mod there {
     pub fn asked(window: isize, forced: bool) -> Shelf {
         if !sold_here() {
             witness::warn(
-                channel::WINDOW,
+                channel::UPDATE,
                 "this package did not come from the Store, so the Store answers for nothing in it",
                 &[],
             );
@@ -105,7 +105,7 @@ mod there {
             Some(Ok(None)) => in_its_queue(window),
             Some(Err(why)) => {
                 witness::warn(
-                    channel::WINDOW,
+                    channel::UPDATE,
                     "the Store was asked what it has and refused",
                     &[("why", Fact::Why(why.message()))],
                 );
@@ -113,7 +113,7 @@ mod there {
             }
             None => {
                 witness::warn(
-                    channel::WINDOW,
+                    channel::UPDATE,
                     "the Store was asked what it has and never answered",
                     &[("waited", Fact::Count(PATIENCE.as_secs() as usize))],
                 );
@@ -130,7 +130,7 @@ mod there {
             std::thread::sleep(AGAIN);
             if let Some(version) = beside_us() {
                 witness::note(
-                    channel::WINDOW,
+                    channel::UPDATE,
                     "the Store brought the update down while the person waited on the answer",
                     &[("version", Fact::Id(version.clone()))],
                 );
@@ -138,7 +138,7 @@ mod there {
             }
             if let Some(Ok(Some(version))) = apart(PATIENCE, move || waiting(window)) {
                 witness::note(
-                    channel::WINDOW,
+                    channel::UPDATE,
                     "the Store named an update only after its own errand had run",
                     &[
                         ("version", Fact::Id(version.clone())),
@@ -156,7 +156,7 @@ mod there {
         match queued {
             Some(Ok(true)) => {
                 witness::note(
-                    channel::WINDOW,
+                    channel::UPDATE,
                     "the Store names no update because it already has one in its own queue",
                     &[],
                 );
@@ -165,7 +165,7 @@ mod there {
             Some(Ok(false)) => Shelf::Current,
             Some(Err(why)) => {
                 witness::warn(
-                    channel::WINDOW,
+                    channel::UPDATE,
                     "the Store was asked what it is already getting and refused",
                     &[("why", Fact::Why(why.message()))],
                 );
@@ -173,7 +173,7 @@ mod there {
             }
             None => {
                 witness::warn(
-                    channel::WINDOW,
+                    channel::UPDATE,
                     "the Store was asked what it is already getting and never answered",
                     &[("waited", Fact::Count(PATIENCE.as_secs() as usize))],
                 );
@@ -197,7 +197,7 @@ mod there {
                 StoreQueueItemState::Active | StoreQueueItemState::Paused
             ) {
                 witness::note(
-                    channel::WINDOW,
+                    channel::UPDATE,
                     "the Store has one of ours in its own queue",
                     &[
                         ("state", Fact::Count(state.0 as usize)),
@@ -261,7 +261,7 @@ mod there {
         // The Store answers from what it last knew unless it is due to ask again, so an empty
         // answer here is either «nothing for you» or «I did not look», and they read the same.
         witness::note(
-            channel::WINDOW,
+            channel::UPDATE,
             "the Store was asked what it has and named nothing for this package",
             &[
                 ("ours", Fact::Id(ours.to_string())),

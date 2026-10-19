@@ -39,7 +39,6 @@ const ANA = { provider: "google", account: "0123", email: "ana@example.com" };
 
 const cloud = {
   asked: true,
-  loose: 0,
   open: 0,
   archived: 0,
   lists: 0,

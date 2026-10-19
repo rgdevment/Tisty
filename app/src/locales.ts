@@ -259,6 +259,10 @@ const en = {
   keyMoved: "That machine publishes another key now. Look again.",
   keyNotConfirmed: "That key could not be kept.",
   stillReferenced: "Something references that attachment now. Look again.",
+  retireUnread:
+    "Nothing was taken out: «{name}» could not be read. Open or fix that document and look again.",
+  retireUnreadAny:
+    "Nothing was taken out: a document could not be read. Open or fix it and look again.",
   inSandbox:
     "This is the «{name}» sandbox. Nothing here is your real store, and it never merges with it.",
   aboutScreen: "About",
@@ -419,7 +423,6 @@ const en = {
   cheerKept: "{name} · kept in the archive",
   cheerUndo: "Undo",
   attachTitle: "Attachments",
-  attachUpTo: "take files up to",
   tasks: "Tasks",
   someOfMany: "Showing {name}. Narrow the words to see the rest.",
   foundPapers: "Documents",
@@ -650,6 +653,10 @@ const en = {
   bringBackHolder: "Bring the document back",
   documentLocked: "This document is locked. Unlock it before writing in it",
   documentMoved: "Something wrote in this document while you had it open here",
+  taskPageBehind:
+    "This copy leaves out words, steps or ticks the task holds now, perhaps written after it was taken out",
+  taskPageBehindSure:
+    "This copy leaves out words, steps or ticks the task holds now, perhaps written after it was taken out. Bring it in anyway and let them go?",
   docStirred: "Something wrote in this document, and what you are reading is what it left",
   docBolted: "You locked this document. Nothing writes in it, not even an assistant",
   docShelved:
@@ -968,6 +975,8 @@ const en = {
   unvouchedDone: "{name} attachments now have their print.",
   unvouchedUnlike: "{name} did not match their name and were left as they are.",
   unvouchedGone: "{name} could not be found or read.",
+  unvouchedUnread:
+    "Not every attachment was checked: «{name}» could not be read, so what it holds is left out.",
   theDay: "The day",
   pulseElse: "Everything else",
   pulseUndated: "With no date",
@@ -1276,9 +1285,7 @@ const en = {
   restoredApart:
     "This machine went back to a copy, and «{name}» still holds the history it went back on. Carrying now would bring all of it back. Choose which side wins first.",
   otherStore: "That belongs to another Tisty",
-  attachmentTooBig:
-    "That file is over {name}, the most a task takes. Attach it inside a document instead, which takes up to 650 MB.",
-  attachmentTooBigHere: "That file is over {name}, which is as much as a document will hold.",
+  attachmentTooBig: "That file is over {name}, the most a task or a document holds.",
   textTooLong:
     "That is over {name} of text. Anything that long belongs in a document you can reference from here.",
   widgetTooBig: "A widget can hold up to {name}; this one is bigger, so it is shown as code.",
@@ -1346,8 +1353,7 @@ const en = {
   cloudLimitIsGoogle: "{maker} sets the limit",
   cloudLimitIsGoogleWhy:
     "Your copies use space in your account: what you have in {maker} is your ceiling.",
-  cloudCaps:
-    "Attachments up to 25 MB per task and 650 MB inside a document, the same as with a folder.",
+  cloudCaps: "Attachments up to 650 MB, on a task or in a document, the same as with a folder.",
   cloudOpenGoogle: "Open {maker}",
   cloudWaiting: "Finish in your browser; Tisty waits here.",
   cloudConnectedTitle: "Done, your cloud is connected",
@@ -1740,15 +1746,17 @@ const en = {
   agentsTurnOff: "Stop it",
   agentsCanTitle: "What it can do",
   agentsCan:
-    "File a task with description, dates, priority, tags and steps · Add to the journal of any task, including yours · Keep a copy of a file from this machine with a task · Search your list and your archive",
+    "File a task with description, dates, priority, tags, steps and parts, into a list you already have · Add to the journal of any task, set it a reminder and keep a copy of a file with it · Move the day of what it filed, and rename it · Work a task you open to agents: describe it, plan and tick its steps, say it is done or not worth doing — closing it stays yours · Write documents, add to them, correct them, give them pages and file them in folders · Archive a document when you ask, and mark one as old for you to delete · Search your lists, your archive and your documents",
   agentsCannotTitle: "What it can never do",
   agentsCannot:
-    "Complete, reopen, drop or delete anything · Undo or redo · Edit what you wrote · Choose a list — everything lands in the inbox, tagged #agent · Set routines or reminders · Touch syncing, settings or machines",
+    "Complete, reopen, drop or delete a task · Delete a document or a folder · Undo or redo · Change a task you wrote, unless you open it to agents — and even then not its day, title, list or closing · Make a list — without one of yours it lands in the inbox, and everything it files is tagged #agent · Set routines · Touch syncing, settings or machines",
   agentsUndo:
     "It writes under its own name, so your undo never reaches what it filed — and turning it off leaves everything it wrote in place. There is one door: however many assistants you connect, they all file under that same name, and they all leave together when you close it.",
   agentsHowTitle: "How to connect one",
   agentsHow:
     "Add Tisty as an MCP server in your assistant, whichever way it takes one. Both of these already carry the path on this machine, so nothing needs to be on your PATH, and both want the assistant restarted afterwards. Then let an assistant file, above — until you do, everything it asks for is refused.",
+  agentsHowAlias:
+    "Add Tisty as an MCP server in your assistant, whichever way it takes one. Both of these call «tisty», the name the Store's copy answers to on this machine, so nothing needs to be on your PATH, and both want the assistant restarted afterwards. Then let an assistant file, above — until you do, everything it asks for is refused.",
   agentsByFile: "In a configuration file — what most of them read",
   agentsByLine: "In one line — for the ones that bring their own command",
   agentsCalled: "agent",
@@ -1784,8 +1792,6 @@ const en = {
   restoreFrom: "Restore from a file…",
   storeFixed:
     "The folder cannot be changed: your tasks are text files, and always knowing where they are is part of them being yours.",
-  attachBig:
-    "For anything larger, write a document and reference it from the task instead of dragging the file in.",
   noticesMore:
     "Notices are prepared and shown on this machine. None of it reaches the internet or passes through a server.",
   reviewWhat: "Compares what the log says with what the cache holds.",
@@ -1848,6 +1854,7 @@ const en = {
   looseWait:
     "Some machines have not written here in a while, and may still reference these. Take that into account before deciding what is left over.",
   looseNone: "Nothing loose",
+  looseUnread: "Could not check: «{name}» could not be read. Open it or fix it, and look again.",
   twinsAre: "The same file kept twice",
   twinsWhat:
     "Two machines attached these before they had synced, so each kept it under the name it came with. Nothing is lost — the copies are simply taking up room. The size is what letting the spares go would give back. Tisty does not choose which.",
@@ -1917,9 +1924,19 @@ const en = {
   wordSyncs: "syncs",
   wordBackup: "backup",
   wordNotices: "notices",
-  wordCopiesUpTo: "copies up to",
   wordShortcut: "shortcut",
   wordSandbox: "sandbox",
+  wordLooseUnchecked: "loose not checked: a document could not be read",
+  reportList: "list",
+  reportTag: "tag",
+  wordInstalled: "installed from",
+  installStore: "the Microsoft Store",
+  installBrew: "Homebrew",
+  installDownload: "a download",
+  installDisk: "the disk image, not moved to Applications",
+  wordAssistant: "assistants",
+  assistantDoorOpen: "can file here",
+  assistantDoorShut: "cannot file here",
   yesShared: "yes, shared folder",
   yesCloud: "yes, {name}",
   yesLocal: "yes, this machine only",
@@ -2283,6 +2300,10 @@ const es: Catalog = {
   keyMoved: "Esa máquina publica otra clave ahora. Míralo de nuevo.",
   keyNotConfirmed: "Esa clave no se pudo guardar.",
   stillReferenced: "Algo referencia ese adjunto ahora. Vuelve a mirar.",
+  retireUnread:
+    "No se quitó nada: no se pudo leer «{name}». Abre o arregla ese documento y vuelve a mirar.",
+  retireUnreadAny:
+    "No se quitó nada: no se pudo leer un documento. Ábrelo o arréglalo y vuelve a mirar.",
   inSandbox:
     "Esto es el sandbox «{name}». Nada de aquí es tu almacén real, y nunca se fusiona con él.",
   aboutScreen: "Acerca de",
@@ -2444,7 +2465,6 @@ const es: Catalog = {
   cheerKept: "{name} · queda en el archivo",
   cheerUndo: "Deshacer",
   attachTitle: "Adjuntos",
-  attachUpTo: "aceptar archivos de hasta",
   tasks: "Tareas",
   someOfMany: "Se muestran {name}. Afina las palabras para ver el resto.",
   foundPapers: "Documentos",
@@ -2675,6 +2695,10 @@ const es: Catalog = {
   bringBackHolder: "Desarchivar el documento",
   documentLocked: "Este documento está bloqueado. Desbloquéalo antes de escribir en él",
   documentMoved: "Algo escribió en este documento mientras lo tenías abierto aquí",
+  taskPageBehind:
+    "Esta copia deja fuera palabras, pasos o marcas que la tarea tiene ahora, quizá escritos después de sacarla",
+  taskPageBehindSure:
+    "Esta copia deja fuera palabras, pasos o marcas que la tarea tiene ahora, quizá escritos después de sacarla. ¿La traes igual y los dejas ir?",
   docStirred: "Algo escribió en este documento, y lo que lees es lo que dejó",
   docBolted: "Bloqueaste este documento. Nada escribe en él, ni siquiera un asistente",
   docShelved:
@@ -2998,6 +3022,8 @@ const es: Catalog = {
   unvouchedDone: "{name} adjuntos quedaron con su huella.",
   unvouchedUnlike: "{name} no calzaban con su nombre y se dejaron como estaban.",
   unvouchedGone: "{name} no se encontraron o no se pudieron leer.",
+  unvouchedUnread:
+    "No se revisaron todos los adjuntos: no se pudo leer «{name}», así que lo que guarda quedó fuera.",
   theDay: "El día",
   pulseElse: "Todo lo demás",
   pulseUndated: "Sin fecha",
@@ -3307,9 +3333,7 @@ const es: Catalog = {
   restoredApart:
     "Este equipo volvió a una copia, y «{name}» todavía guarda el historial que esa copia deshizo. Acarrear ahora lo traería todo de vuelta. Elige primero qué lado manda.",
   otherStore: "Eso es de otro Tisty",
-  attachmentTooBig:
-    "Ese archivo pasa de {name}, el máximo de una tarea. Adjúntalo mejor dentro de un documento, que admite hasta 650 MB.",
-  attachmentTooBigHere: "Ese archivo pasa de {name}, que es todo lo que un documento admite.",
+  attachmentTooBig: "Ese archivo pasa de {name}, el máximo que admite una tarea o un documento.",
   textTooLong:
     "Eso supera los {name} de texto. Algo tan largo va mejor en un documento, y lo enlazas desde aquí.",
   widgetTooBig:
@@ -3377,8 +3401,7 @@ const es: Catalog = {
   cloudLimitIsGoogle: "El límite lo pone {maker}",
   cloudLimitIsGoogleWhy:
     "Tus copias ocupan espacio de tu cuenta: el que tengas en {maker} es tu techo.",
-  cloudCaps:
-    "Adjuntos hasta 25 MB por tarea y 650 MB dentro de un documento, igual que con una carpeta.",
+  cloudCaps: "Adjuntos hasta 650 MB, en una tarea o en un documento, igual que con una carpeta.",
   cloudOpenGoogle: "Abrir {maker}",
   cloudWaiting: "Termina en tu navegador; Tisty espera aquí.",
   cloudConnectedTitle: "Listo, tu nube está conectada",
@@ -3770,15 +3793,17 @@ const es: Catalog = {
   agentsTurnOff: "Quitarle la voz",
   agentsCanTitle: "Lo que puede hacer",
   agentsCan:
-    "Anotar una tarea con descripción, fechas, prioridad, etiquetas y pasos · Añadir a la bitácora de cualquier tarea, también las tuyas · Guardar una copia de un archivo de esta máquina con una tarea · Buscar en tu lista y en tu archivo",
+    "Anotar una tarea con descripción, fechas, prioridad, etiquetas, pasos y partes, en una lista que ya tengas · Añadir a la bitácora de cualquier tarea, ponerle un recordatorio y guardarle una copia de un archivo · Cambiar el día y el nombre de lo que anotó él · Trabajar una tarea que abras a los agentes: describirla, planear y marcar sus pasos, decir que está hecha o que no vale la pena; cerrarla sigue siendo tuyo · Escribir documentos, añadirles, corregirlos, darles páginas y guardarlos en carpetas · Archivar un documento cuando se lo pidas, y marcar uno como viejo para que tú lo borres · Buscar en tus listas, tu archivo y tus documentos",
   agentsCannotTitle: "Lo que no podrá hacer nunca",
   agentsCannot:
-    "Completar, reabrir, descartar ni borrar nada · Deshacer ni rehacer · Editar lo que tú escribiste · Elegir lista: todo entra en la bandeja, con la etiqueta #agent · Poner rutinas ni recordatorios · Tocar la sincronización, los ajustes ni las máquinas",
+    "Completar, reabrir, descartar ni borrar una tarea · Borrar un documento o una carpeta · Deshacer ni rehacer · Cambiar una tarea que escribiste tú, salvo que la abras a los agentes, y ni aun así su día, su título, su lista ni su cierre · Crear listas: sin una de las tuyas entra en la bandeja, y todo lo que deja lleva la etiqueta #agent · Poner rutinas · Tocar la sincronización, los ajustes ni las máquinas",
   agentsUndo:
     "Escribe con nombre propio, así que tu deshacer nunca alcanza lo que él anotó, y quitarle la voz deja en su sitio todo lo que escribió. La puerta es una sola: conectes los asistentes que conectes, todos anotan bajo ese mismo nombre y se van juntos cuando la cierras.",
   agentsHowTitle: "Cómo conectar uno",
   agentsHow:
     "Añade Tisty como servidor MCP en tu asistente, por la vía que él admita. Las dos traen ya la ruta de este equipo, así que no hace falta tener nada en el PATH, y las dos piden reiniciar el asistente después. Luego dale entrada arriba: mientras no lo hagas, todo lo que pida se le niega.",
+  agentsHowAlias:
+    "Añade Tisty como servidor MCP en tu asistente, por la vía que él admita. Las dos llaman a «tisty», el nombre al que responde la copia de la Store en este equipo, así que no hace falta tener nada en el PATH, y las dos piden reiniciar el asistente después. Luego dale entrada arriba: mientras no lo hagas, todo lo que pida se le niega.",
   agentsByFile: "En un archivo de configuración: lo que casi todos leen",
   agentsByLine: "En una línea: los que traen su propio comando",
   agentsCalled: "agente",
@@ -3815,8 +3840,6 @@ const es: Catalog = {
   restoreFrom: "Restaurar desde un archivo…",
   storeFixed:
     "La carpeta no se puede cambiar: tus tareas son archivos de texto, y saber siempre dónde están es parte de que sean tuyas.",
-  attachBig:
-    "Para algo más grande, crea un documento y enlázalo desde la tarea en vez de arrastrar el archivo.",
   noticesMore:
     "Los avisos se preparan y se muestran en este mismo equipo. Nada de esto sale a internet ni pasa por un servidor.",
   reviewWhat: "Compara lo que dice el registro con lo que tiene la caché.",
@@ -3879,6 +3902,7 @@ const es: Catalog = {
   looseWait:
     "Hay equipos que llevan tiempo sin escribir aquí y podrían seguir referenciándolos. Tenlo en cuenta antes de decidir qué sobra.",
   looseNone: "Nada suelto",
+  looseUnread: "No se pudo revisar: no se pudo leer «{name}». Ábrelo o arréglalo y vuelve a mirar.",
   twinsAre: "El mismo archivo guardado dos veces",
   twinsWhat:
     "Dos máquinas lo adjuntaron antes de sincronizar, así que cada una lo guardó con el nombre que traía. No se pierde nada: las copias solo ocupan sitio. El tamaño es lo que se recupera soltando las de más. Tisty no elige cuál.",
@@ -3948,9 +3972,19 @@ const es: Catalog = {
   wordSyncs: "sincroniza",
   wordBackup: "respaldo",
   wordNotices: "avisos",
-  wordCopiesUpTo: "adjunta hasta",
   wordShortcut: "atajo",
   wordSandbox: "sandbox",
+  wordLooseUnchecked: "sueltos sin revisar: no se pudo leer un documento",
+  reportList: "lista",
+  reportTag: "etiqueta",
+  wordInstalled: "instalado desde",
+  installStore: "la Microsoft Store",
+  installBrew: "Homebrew",
+  installDownload: "una descarga",
+  installDisk: "la imagen de disco, sin pasar a Aplicaciones",
+  wordAssistant: "asistentes",
+  assistantDoorOpen: "pueden anotar aquí",
+  assistantDoorShut: "no pueden anotar aquí",
   yesShared: "sí, carpeta compartida",
   yesCloud: "sí, {name}",
   yesLocal: "sí, solo este equipo",

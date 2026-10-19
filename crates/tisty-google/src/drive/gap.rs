@@ -162,7 +162,10 @@ impl Drive {
             tisty_core::witness::warn(
                 tisty_core::witness::channel::CLOUD,
                 "a revision kept to bring back another machine's bytes could not be deleted",
-                &[("why", tisty_core::witness::Fact::Why(format!("{hitch:?}")))],
+                &[
+                    ("kind", tisty_core::witness::Fact::Code(hitch.code())),
+                    ("why", tisty_core::witness::Fact::Why(format!("{hitch:?}"))),
+                ],
             );
         }
     }

@@ -5,6 +5,8 @@ const GIVEN_AWAY_BY: [&str; 8] = [
 const SECRET_NAMES: [&str; 3] = ["token", "secret", "password"];
 
 pub(crate) fn masked(text: &str) -> String {
+    let unmailed = without_mail(text);
+    let text = unmailed.as_str();
     let mut out = String::with_capacity(text.len());
     let mut named_secret = false;
     let mut bearing = false;
@@ -48,6 +50,53 @@ pub(crate) fn masked(text: &str) -> String {
             break;
         }
     }
+    out
+}
+
+const FILE_KINDS: [&str; 22] = [
+    "png", "jpg", "jpeg", "gif", "svg", "webp", "ico", "bmp", "pdf", "md", "txt", "json", "toml",
+    "log", "zip", "html", "css", "js", "ts", "tsx", "rs", "jsonl",
+];
+
+fn without_mail(text: &str) -> String {
+    let local = |one: char| one.is_alphanumeric() || "._%+-".contains(one);
+    let host = |one: char| one.is_alphanumeric() || ".-".contains(one);
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(at) = rest.find('@') {
+        let before = &rest[..at];
+        let after = &rest[at + 1..];
+        let start = before
+            .char_indices()
+            .rev()
+            .take_while(|(_, one)| local(*one))
+            .last()
+            .map_or(before.len(), |(at, _)| at);
+        let end = after.find(|one: char| !host(one)).unwrap_or(after.len());
+        let domain = after[..end].trim_end_matches('.');
+        let a_mail = start < before.len()
+            && domain.rsplit_once('.').is_some_and(|(name, top)| {
+                !name.is_empty()
+                    && (2..=24).contains(&top.len())
+                    && top.chars().all(|one| one.is_ascii_alphabetic())
+                    && !FILE_KINDS.contains(&top.to_ascii_lowercase().as_str())
+            });
+        match a_mail {
+            true => {
+                out.push_str(&before[..start]);
+                out.push_str(HIDDEN);
+                out.push('@');
+                out.push_str(HIDDEN);
+                rest = &after[domain.len()..];
+            }
+            false => {
+                out.push_str(before);
+                out.push('@');
+                rest = after;
+            }
+        }
+    }
+    out.push_str(rest);
     out
 }
 

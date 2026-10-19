@@ -79,10 +79,14 @@ impl Uploads {
             false => serde_json::to_vec(&all)
                 .map_err(std::io::Error::other)
                 .and_then(|bytes| {
+                    // Each address writes into the drive without a sign-in, so the folder is closed before one lands.
                     if let Some(dir) = self.at.parent() {
                         std::fs::create_dir_all(dir)?;
+                        tisty_core::paths::ours_alone(dir)?;
                     }
-                    tisty_core::store::write_atomic(&self.at, &bytes).map_err(std::io::Error::other)
+                    tisty_core::store::write_atomic(&self.at, &bytes)
+                        .map_err(std::io::Error::other)?;
+                    tisty_core::paths::ours_alone(&self.at)
                 }),
         };
         if let Err(why) = written {

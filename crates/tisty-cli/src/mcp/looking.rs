@@ -139,12 +139,19 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .zip(&wheres)
         .map(|(task, said)| match said {
             Some((kind, line)) => format!(
-                "{} — {} ({})\n    {kind}: {line}",
-                task.id,
+                "{:?} {} ({}) [{}]\n    {kind}: {line}",
                 task.title,
-                standing(task)
+                placed(&state, task),
+                standing(task),
+                task.id
             ),
-            None => format!("{} — {} ({})", task.id, task.title, standing(task)),
+            None => format!(
+                "{:?} {} ({}) [{}]",
+                task.title,
+                placed(&state, task),
+                standing(task),
+                task.id
+            ),
         })
         .collect();
     lines.extend(papers.iter().map(|one| {
@@ -154,13 +161,13 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             ""
         };
         let what = match one["page_of"].as_str() {
-            Some(up) => format!("page of {up}"),
+            Some(up) => format!("a page of {}", super::doc_titled(&state, up)),
             None => "document".into(),
         };
         format!(
-            "{} — {} ({what}{put_away})",
-            said(one, "doc"),
-            said(one, "title")
+            "{:?} ({what}{put_away}) [{}]",
+            said(one, "title"),
+            said(one, "doc")
         )
     }));
     let asked = query.clone().unwrap_or_else(|| sifted.said());
@@ -395,7 +402,7 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         );
     }
 
-    let mut plainly = format!("{} — {}", task.id, task.title);
+    let mut plainly = format!("{:?} {} [{}]", task.title, placed(&state, task), task.id);
     if !task.is_open() {
         let notice = format!(
             "{} — {}: it reads as it ended, and nothing on it changes",
@@ -1161,4 +1168,11 @@ impl Sifted {
         }
         true
     }
+}
+
+fn placed(state: &State, task: &Task) -> String {
+    task.list.and_then(|at| state.lists.get(&at)).map_or_else(
+        || "in the inbox".to_string(),
+        |one| format!("in {}", one.name),
+    )
 }

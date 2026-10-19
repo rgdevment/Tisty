@@ -597,31 +597,38 @@ fn laid_out(
 fn beside(body: &str, copied: &std::collections::BTreeSet<String>) -> String {
     let mut out = body.to_string();
     for leaf in copied {
-        out = out.replace(&format!("]({leaf}"), &format!("](attachments/{leaf}"));
+        for lead in ["](", "](<", "]: ", "]: <", "=\"", "='", "="] {
+            out = out.replace(
+                &format!("{lead}{leaf}"),
+                &format!("{lead}attachments/{leaf}"),
+            );
+        }
     }
     out
 }
 
-pub fn referenced(root: &Path) -> Vec<String> {
-    all(root)
-        .iter()
-        .filter_map(|doc| match read(root, &doc.id) {
-            Ok(body) => Some(body),
-            Err(e) => {
-                crate::witness::warn(
-                    crate::witness::channel::ATTACH,
-                    "a document could not be read while counting what is still named",
-                    &[
-                        ("id", crate::witness::Fact::Id(doc.id.clone())),
-                        ("why", crate::witness::Fact::Why(e.to_string())),
-                    ],
-                );
-                None
-            }
-        })
-        .flat_map(|body| crate::refs::extract(&body))
-        .map(|one| one.target)
-        .collect()
+/// Fails with the id of a document that could not be read, so nothing is called loose on a guess.
+pub fn referenced(root: &Path) -> std::result::Result<Vec<String>, String> {
+    let mut named = Vec::new();
+    for doc in all(root) {
+        let body = read(root, &doc.id).map_err(|e| {
+            crate::witness::warn(
+                crate::witness::channel::ATTACH,
+                "a document could not be read while counting what is still named",
+                &[
+                    ("id", crate::witness::Fact::Id(doc.id.clone())),
+                    ("why", crate::witness::Fact::Why(e.to_string())),
+                ],
+            );
+            doc.id.clone()
+        })?;
+        named.extend(
+            crate::refs::extract(&body)
+                .into_iter()
+                .map(|one| one.target),
+        );
+    }
+    Ok(named)
 }
 
 pub fn remove(root: &Path, id: &str) -> Result<()> {

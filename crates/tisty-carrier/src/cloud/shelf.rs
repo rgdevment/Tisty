@@ -731,6 +731,7 @@ pub fn flattened(remote: &dyn Remote, index: &mut Index) -> usize {
                     "an attachment up there could not leave its shelf yet",
                     &[
                         ("at", Fact::Id(from)),
+                        ("kind", Fact::Code(hitch.code())),
                         ("why", Fact::Why(format!("{hitch:?}"))),
                     ],
                 );

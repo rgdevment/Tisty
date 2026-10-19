@@ -83,7 +83,7 @@ beforeEach(() => {
       case "docs":
         return Promise.resolve({ folders: [], docs: [] });
       case "sync_state":
-        return Promise.resolve({ asked: true, loose: 0 });
+        return Promise.resolve({ asked: true });
       case "snapshot": {
         const view = (args.view ?? {}) as { most?: number };
         const most = view.most ?? HOW_MANY;

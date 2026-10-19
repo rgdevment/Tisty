@@ -35,7 +35,17 @@ pub(crate) fn refused(hitch: Hitch, provider: &str) -> Refusal {
             );
             Refusal::of("syncFailed")
         }
-        _ => Refusal::of("cloudNotNow"),
+        other => {
+            tisty_core::witness::standing(
+                tisty_core::witness::channel::CLOUD,
+                "the cloud could not be asked now",
+                &[
+                    ("kind", tisty_core::witness::Fact::Code(other.code())),
+                    ("why", tisty_core::witness::Fact::Why(format!("{other:?}"))),
+                ],
+            );
+            Refusal::of("cloudNotNow")
+        }
     }
 }
 
@@ -172,8 +182,54 @@ pub async fn cloud_connect(
     consenting: tauri::State<'_, Consenting>,
     provider: Option<String>,
 ) -> Answer<Connected> {
-    let asking = Asking::begin(provider.as_deref().unwrap_or(GOOGLE))?;
-    let aside = held(&session).paths.cache().to_path_buf();
+    let provider = provider.unwrap_or_else(|| GOOGLE.to_string());
+    let done = connecting(&session, &consenting, &provider).await;
+    told_connecting(&provider, &done);
+    done
+}
+
+fn told_connecting(provider: &str, done: &Answer<Connected>) {
+    use tisty_core::witness::{self, Fact, channel};
+    let provider = match provider {
+        GOOGLE => GOOGLE,
+        ONEDRIVE => ONEDRIVE,
+        _ => "other",
+    };
+    match done {
+        Ok(_) => witness::note(
+            channel::CLOUD,
+            "a cloud sign-in finished",
+            &[("provider", Fact::Word(provider))],
+        ),
+        Err(refusal) => witness::warn(
+            channel::CLOUD,
+            "a cloud sign-in did not finish",
+            &[
+                ("provider", Fact::Word(provider)),
+                ("how", Fact::Word(how_it_ended(refusal.code))),
+                ("code", Fact::Code(refusal.code)),
+            ],
+        ),
+    }
+}
+
+fn how_it_ended(code: &str) -> &'static str {
+    match code {
+        "cloudNoAnswer" => "no-answer",
+        "cloudDropped" => "dropped",
+        "cloudDenied" | "cloudLost" => "denied",
+        "cloudNotNow" => "unreachable",
+        _ => "refused",
+    }
+}
+
+async fn connecting(
+    session: &tauri::State<'_, Mutex<Session>>,
+    consenting: &tauri::State<'_, Consenting>,
+    provider: &str,
+) -> Answer<Connected> {
+    let asking = Asking::begin(provider)?;
+    let aside = held(session).paths.cache().to_path_buf();
     let dropping = asking.dropping();
     consenting.waits_on(dropping.clone());
     tauri_plugin_opener::open_url(asking.url(), None::<&str>)
@@ -184,7 +240,7 @@ pub async fn cloud_connect(
     consenting.done_with(&dropping);
     // A token kept from before the new grant must not be written back over it.
     let in_use = |now: &Connected| {
-        let session = held(&session);
+        let session = held(session);
         tisty_carrier::cloud_of(session.config.sync.as_ref())
             .is_some_and(|at| at.provider == now.provider && at.account == now.account)
             .then(|| session.reach.taken())

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { type Unvouched as One, unvouchedAttachments } from "../core";
+import { type Unvouching, unvouchedAttachments } from "../core";
 import { weigh } from "../format";
 import { fill, t } from "../locales";
 
@@ -10,19 +10,27 @@ interface Props {
 }
 
 export default function Unvouched({ held, vouch, className }: Props) {
-  const [seen, setSeen] = useState<One[] | null>(null);
+  const [told, setTold] = useState<Unvouching | null>(null);
   const look = useCallback(() => {
     unvouchedAttachments()
-      .then(setSeen)
-      .catch(() => setSeen(null));
+      .then(setTold)
+      .catch(() => setTold(null));
   }, []);
   useEffect(look, [look]);
 
+  const seen = told?.found;
   const bytes = (seen ?? []).reduce((all, one) => all + one.bytes, 0);
   return (
     <>
       <p className="text-[12.5px] leading-relaxed text-soft">{t("unvouchedWhat")}</p>
-      {seen?.length === 0 && <p className="mt-2 text-[12.5px] text-faint">{t("unvouchedNone")}</p>}
+      {told?.unread != null && (
+        <p className="mt-2 text-[12.5px] text-soft">
+          {fill("unvouchedUnread", told.unread || t("untitledDoc"))}
+        </p>
+      )}
+      {seen?.length === 0 && told?.unread == null && (
+        <p className="mt-2 text-[12.5px] text-faint">{t("unvouchedNone")}</p>
+      )}
       {seen && seen.length > 0 && (
         <>
           <p className="mt-2 text-[12.5px] tabular-nums text-soft">

@@ -67,3 +67,23 @@ fn an_opaque_token_after_bearer_is_hidden_whatever_its_shape() {
     assert!(!said.contains("8x*Zp"), "{said}");
     assert!(said.ends_with("as stale"), "{said}");
 }
+
+#[test]
+fn an_account_address_never_reaches_the_log() {
+    let said = masked("signed in as maria.perez+tisty@example.co.uk, not the one asked for.");
+
+    assert!(!said.contains("maria"), "{said}");
+    assert!(!said.contains("example"), "{said}");
+    assert_eq!(said, "signed in as …@…, not the one asked for.");
+}
+
+#[test]
+fn an_at_sign_that_is_no_address_is_left_alone() {
+    for plain in [
+        "@ step 3 and user@localhost",
+        "icon@2x.png was missing",
+        "pkg@1.30.0 installed",
+    ] {
+        assert_eq!(masked(plain), plain);
+    }
+}

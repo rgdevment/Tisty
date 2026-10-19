@@ -686,7 +686,10 @@ impl Carrier for Cloud {
                 tisty_core::witness::note(
                     tisty_core::witness::channel::CLOUD,
                     "how much the cloud can still take could not be asked",
-                    &[("why", tisty_core::witness::Fact::Why(format!("{hitch:?}")))],
+                    &[
+                        ("kind", tisty_core::witness::Fact::Code(hitch.code())),
+                        ("why", tisty_core::witness::Fact::Why(format!("{hitch:?}"))),
+                    ],
                 );
                 None
             }

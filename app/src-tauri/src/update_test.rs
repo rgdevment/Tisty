@@ -421,24 +421,18 @@ fn a_folder_is_named_windowsapps_or_it_is_not() {
 }
 
 #[test]
-fn a_cask_answers_with_its_own_command() {
+fn a_cask_is_kept_by_brew() {
     assert_eq!(
         chosen(at(APP), only("/opt/homebrew/Caskroom/tisty")),
-        Kept {
-            route: Route::Brew,
-            package: Some("tisty")
-        }
+        Kept::plain(Route::Brew)
     );
 }
 
 #[test]
-fn a_candidate_is_upgraded_by_the_name_it_was_installed_under() {
+fn a_candidate_cask_is_kept_by_brew_too() {
     assert_eq!(
         chosen(at(APP), only("/opt/homebrew/Caskroom/tisty-beta")),
-        Kept {
-            route: Route::Brew,
-            package: Some("tisty-beta")
-        }
+        Kept::plain(Route::Brew)
     );
 }
 
@@ -446,22 +440,13 @@ fn a_candidate_is_upgraded_by_the_name_it_was_installed_under() {
 fn the_older_homebrew_root_answers_too() {
     assert_eq!(
         chosen(at(APP), only("/usr/local/Caskroom/tisty")),
-        Kept {
-            route: Route::Brew,
-            package: Some("tisty")
-        }
+        Kept::plain(Route::Brew)
     );
 }
 
 #[test]
 fn the_window_is_the_window_even_beside_its_own_command_line() {
-    assert_eq!(
-        chosen(at(APP), |_| true),
-        Kept {
-            route: Route::Brew,
-            package: Some("tisty")
-        }
-    );
+    assert_eq!(chosen(at(APP), |_| true), Kept::plain(Route::Brew));
 }
 
 #[test]

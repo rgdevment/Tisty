@@ -773,12 +773,14 @@ impl Remote for Drive {
         let into = self
             .folder_id(folders, true)?
             .ok_or_else(|| Hitch::Broke("a folder could not be made".into()))?;
-        self.moved_into(&first.id, leaf, (parent, &into))?;
-        let mut landed = first.clone();
-        landed.name = leaf.to_string();
-        landed.parents = vec![into];
+        // Drive counts a move as a change, so the version it answers with is the one held.
+        let landed = self.moved_into(&first.id, leaf, (parent, &into))?;
+        let left = copies[1..].to_vec();
         self.noted(|tree| {
-            tree.files.remove(from);
+            match left.is_empty() {
+                true => tree.files.remove(from),
+                false => tree.files.insert(from.to_string(), left),
+            };
             tree.files.insert(to.to_string(), vec![landed]);
         });
         Ok(())

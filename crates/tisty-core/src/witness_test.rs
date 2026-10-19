@@ -30,14 +30,15 @@ fn a_log_another_writer_holds_is_not_rolled_out_from_under_them() {
 #[test]
 fn a_line_carries_the_moment_the_gravity_the_channel_and_the_words() {
     let line = lined(
-        now(),
+        &now(),
+        'w',
         Gravity::Warn,
         channel::SYNC,
         "folder unreachable",
         &[],
     );
 
-    assert!(line.starts_with("2026-08-11 17:04:03-04"), "{line}");
+    assert!(line.starts_with("2026-08-11 17:04:03.000-04"), "{line}");
     assert!(line.contains("WARN"), "{line}");
     assert!(line.contains("sync"), "{line}");
     assert!(line.contains("folder unreachable"), "{line}");
@@ -47,7 +48,8 @@ fn a_line_carries_the_moment_the_gravity_the_channel_and_the_words() {
 #[test]
 fn facts_are_named_beside_the_words() {
     let line = lined(
-        now(),
+        &now(),
+        'w',
         Gravity::Error,
         channel::STORE,
         "segment unreadable",
@@ -72,7 +74,8 @@ fn the_account_name_never_reaches_the_file() {
 #[test]
 fn a_reason_that_spans_lines_is_flattened_into_one() {
     let line = lined(
-        now(),
+        &now(),
+        'w',
         Gravity::Error,
         channel::CONFIG,
         "config unreadable",
@@ -162,10 +165,10 @@ fn what_is_written_can_be_read_back_newest_last() {
     trace(channel::SYNC, "quiet unless asked for", &[]);
 
     let seen = recent(&paths, 10);
-    assert_eq!(seen.len(), 3, "{seen:?}");
-    assert!(seen[0].contains("first"), "{seen:?}");
-    assert!(seen[1].contains("second"), "{seen:?}");
-    assert!(seen[2].contains("kept"), "{seen:?}");
+    assert_eq!(seen.len(), 4, "{seen:?}");
+    assert!(seen[1].contains("first"), "{seen:?}");
+    assert!(seen[2].contains("second"), "{seen:?}");
+    assert!(seen[3].contains("kept"), "{seen:?}");
     assert!(weighs(&paths) > 0);
 
     forget(&paths).unwrap();
@@ -184,7 +187,7 @@ fn the_finest_trail_is_kept_only_when_it_is_asked_for() {
     trace(channel::SYNC, "asked for", &[]);
     assert_eq!(
         recent(&paths, 10).len(),
-        1,
+        2,
         "verbose keeps the finest trail"
     );
 
@@ -241,16 +244,16 @@ fn a_name_too_short_to_replace_safely_is_left_whole() {
 
 #[test]
 fn a_message_with_a_line_break_still_makes_one_note() {
-    let line = lined(now(), Gravity::Warn, channel::STORE, "a\nb", &[]);
+    let line = lined(&now(), 'w', Gravity::Warn, channel::STORE, "a\nb", &[]);
 
     assert_eq!(line.matches('\n').count(), 1, "{line}");
 }
 
 #[test]
 fn the_moment_is_written_with_its_offset_in_full() {
-    let line = lined(now(), Gravity::Warn, channel::STORE, "x", &[]);
+    let line = lined(&now(), 'w', Gravity::Warn, channel::STORE, "x", &[]);
 
-    assert!(line.starts_with("2026-08-11 17:04:03-04:00"), "{line}");
+    assert!(line.starts_with("2026-08-11 17:04:03.000-04:00"), "{line}");
 }
 
 #[test]
@@ -281,7 +284,8 @@ fn a_hostile_round_leaves_neither_its_token_nor_its_signed_address_in_the_log() 
     );
 
     let line = lined(
-        now(),
+        &now(),
+        'w',
         Gravity::Warn,
         channel::CLOUD,
         "the provider turned the token down",
@@ -323,7 +327,7 @@ fn the_same_warning_over_and_over_is_written_once() {
     );
 
     let seen = recent(&paths, 20);
-    assert_eq!(seen.len(), 2, "{seen:?}");
+    assert_eq!(seen.len(), 3, "{seen:?}");
 }
 
 #[test]
@@ -349,6 +353,122 @@ fn a_standing_note_found_every_round_is_written_again_only_when_it_changes() {
     note(channel::SYNC, "an ordinary note", &[]);
 
     let seen = recent(&paths, 20);
-    assert_eq!(seen.len(), 4, "{seen:?}");
+    assert_eq!(seen.len(), 5, "{seen:?}");
     stops();
+}
+
+#[test]
+fn a_line_says_which_process_wrote_it() {
+    let line = lined(&now(), mark::DOOR, Gravity::Note, channel::DOOR, "x", &[]);
+
+    let pid = std::process::id().to_string();
+    assert!(line.contains(&format!("  d {pid}")), "{line}");
+}
+
+#[test]
+fn a_new_file_begins_by_saying_what_wrote_it() {
+    let _alone = super::ALONE.lock().unwrap_or_else(|e| e.into_inner());
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = crate::paths::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+    opens(&paths, mark::WINDOW);
+
+    warn(channel::SYNC, "first", &[]);
+    warn(channel::SYNC, "second", &[]);
+
+    let seen = recent(&paths, 10);
+    assert_eq!(seen.len(), 3, "{seen:?}");
+    assert!(seen[0].contains("this log file began"), "{seen:?}");
+    assert!(seen[0].contains(std::env::consts::OS), "{seen:?}");
+    assert!(seen[0].contains("  w "), "{seen:?}");
+    stops();
+}
+
+#[test]
+fn three_files_are_kept_and_the_oldest_falls_away() {
+    let room = tempfile::tempdir().unwrap();
+    let at = room.path().join("tisty.log");
+    std::fs::write(rolled(&at), "older").unwrap();
+    std::fs::write(&at, vec![b'x'; ROLLS_AT as usize]).unwrap();
+
+    roll(&at);
+
+    assert_eq!(std::fs::read_to_string(oldest(&at)).unwrap(), "older");
+    assert!(rolled(&at).exists());
+    assert!(!at.exists());
+}
+
+#[test]
+fn a_marker_file_asks_for_the_finest_trail() {
+    let _alone = super::ALONE.lock().unwrap_or_else(|e| e.into_inner());
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = crate::paths::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+    std::fs::create_dir_all(paths.private()).unwrap();
+    std::fs::write(all_marker(&paths), "").unwrap();
+
+    opens(&paths, mark::WINDOW);
+
+    assert!(keeping_all());
+    stops();
+}
+
+#[test]
+fn a_path_is_written_without_doubled_separators() {
+    let said = Fact::Path(PathBuf::from(r"D:\store\dev_a")).shown();
+
+    assert_eq!(said, r#""D:\store\dev_a""#);
+}
+
+#[test]
+fn an_attachment_named_inside_a_reason_is_cut() {
+    let said = Fact::Why(
+        r"attachments/severance-juan.pdf: missing, and C:\x\docs\salary.md was changed; retry in 30s"
+            .into(),
+    )
+    .shown();
+
+    assert!(!said.contains("severance"), "{said}");
+    assert!(!said.contains("salary"), "{said}");
+    assert!(said.contains("attachments/…: missing"), "{said}");
+    assert!(said.contains("was changed; retry in 30s"), "{said}");
+}
+
+#[test]
+fn a_path_with_a_quote_or_a_control_character_cannot_break_the_line() {
+    let said = Fact::Path(PathBuf::from("store\"x\u{1b}[31m")).shown();
+
+    assert_eq!(said, r#""store\"x\u{1b}[31m""#);
+}
+
+#[test]
+fn the_newest_lines_are_read_from_the_end_and_older_files_only_when_needed() {
+    let _alone = super::ALONE.lock().unwrap_or_else(|e| e.into_inner());
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = crate::paths::Paths::new(tmp.path().join("data"), tmp.path().join("config"));
+    let at = file(&paths);
+    std::fs::create_dir_all(at.parent().unwrap()).unwrap();
+    std::fs::write(oldest(&at), "a\nb\n").unwrap();
+    std::fs::write(rolled(&at), "c\nd\n").unwrap();
+    let live: String = (0..3000).map(|n| format!("line {n}\n")).collect();
+    std::fs::write(&at, live).unwrap();
+
+    assert_eq!(recent(&paths, 2), vec!["line 2998", "line 2999"]);
+    let all = recent(&paths, 3003);
+    assert_eq!(all.len(), 3003);
+    assert_eq!(all[0], "b");
+    assert_eq!(all[2], "d");
+    assert_eq!(all[3], "line 0");
+}
+
+#[test]
+fn a_folder_that_only_ends_like_one_is_left_alone() {
+    let said = Fact::Why("mydocs/plan.md".into()).shown();
+
+    assert!(said.contains("plan.md"), "{said}");
+}
+
+#[test]
+fn an_account_address_inside_a_reason_is_hidden() {
+    let said = Fact::Why("Elsewhere { found: \"maria@example.com\" }".into()).shown();
+
+    assert!(!said.contains("maria"), "{said}");
 }

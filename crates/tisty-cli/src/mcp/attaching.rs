@@ -111,19 +111,12 @@ pub(super) fn attach(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         room(paths, which, &named)?;
     }
     let config = tisty_core::Config::load_or_init(paths).map_err(hitch)?;
-    let limit = match &with {
-        Beside::Task(_) => config.copies_up_to(),
-        Beside::Doc(_) => config.copies_in_a_doc(),
-    };
+    let limit = config.copies_up_to();
     let kept = tisty_core::attach::keep(at, paths.data(), limit).map_err(|e| match e {
         tisty_core::Error::AttachmentTooBig { bytes, .. } => Refused::Tool(format!(
-            "that file is {} MB and this machine copies at most {} MB {}.",
+            "that file is {} MB and this machine copies at most {} MB into a task or a document.",
             bytes / 1_000_000,
             limit / 1_000_000,
-            match with {
-                Beside::Task(_) => "onto a task",
-                Beside::Doc(_) => "into a document",
-            }
         )),
         _ => Refused::Tool(format!("{said:?} could not be read from this machine.")),
     })?;

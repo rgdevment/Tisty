@@ -70,10 +70,9 @@ beforeEach(() => {
 });
 
 describe("what About suggests", () => {
-  const ready = (route: Ready["route"], named: string | null = null): Ready => ({
+  const ready = (route: Ready["route"]): Ready => ({
     version: "0.3.0",
     route,
-    package: named,
     installs: true,
   });
 
@@ -93,7 +92,7 @@ describe("what About suggests", () => {
   });
 
   it("offers the same to a Homebrew install, which now keeps itself", async () => {
-    render(<About ready={ready("brew", "tisty")} onError={vi.fn()} />);
+    render(<About ready={ready("brew")} onError={vi.fn()} />);
 
     expect(await screen.findByRole("button", { name: "Update" })).toBeTruthy();
     expect(screen.queryByText(/brew upgrade/)).toBeNull();

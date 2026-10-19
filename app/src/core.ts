@@ -360,8 +360,10 @@ export const taskDocSettled = (
 export const partsOf = (id: string): Promise<Task[]> => invoke("parts_of", { id });
 export type StepDated = { text: string; born?: string | null; done?: string | null };
 export const stepDates = (id: string): Promise<StepDated[]> => invoke("task_step_dates", { id });
-export const taskPageImport = (from: string): Promise<string | null> =>
-  invoke("task_page_import", { from });
+export const taskDocMerge = (id: string, base: string, mine: string): Promise<boolean> =>
+  invoke("task_doc_merge", { id, base, mine });
+export const taskPageImport = (from: string, anyway?: boolean): Promise<string | null> =>
+  invoke("task_page_import", { from, anyway });
 export const taskOf = (id: string): Promise<Task> => invoke("task_of", { id });
 export const addPart = (whole: string, title: string): Promise<Task> =>
   invoke("add_part", { whole, title });
@@ -454,8 +456,8 @@ export interface Agent {
 export const agentState = (): Promise<Agent> => invoke("agent");
 export const agentTurn = (on: boolean): Promise<Agent> => invoke("agent_turn", { on });
 
-export const attach = (path: string, label?: string, roomy?: boolean): Promise<string> =>
-  invoke("attach", { path, label, roomy });
+export const attach = (path: string, label?: string): Promise<string> =>
+  invoke("attach", { path, label });
 export const attachPasted = (name: string, kind: string, bytes: Uint8Array): Promise<string> =>
   invoke("attach_pasted", bytes, {
     headers: { "x-name": encodeURIComponent(name), "x-kind": encodeURIComponent(kind) },
@@ -541,7 +543,6 @@ export interface Carrying {
   asked: boolean;
   last?: string;
   heard?: string;
-  loose: number;
   open: number;
   archived: number;
   lists: number;
@@ -606,7 +607,12 @@ export type Repeated = { name: string; lists: number; tasks: number };
 export const repeatedLists = (): Promise<Repeated[]> => invoke("repeated_lists");
 export type Unvouched = { at: string; bytes: number };
 export type Vouched = { kept: number; unlike: string[]; gone: string[] };
-export const unvouchedAttachments = (): Promise<Unvouched[]> => invoke("unvouched_attachments");
+export interface Unvouching {
+  found: Unvouched[];
+  unread: string | null;
+}
+
+export const unvouchedAttachments = (): Promise<Unvouching> => invoke("unvouched_attachments");
 export const vouchAttachments = (): Promise<Vouched> => invoke("vouch_attachments");
 
 export interface Stray {
@@ -629,6 +635,7 @@ export interface Reviewed {
   loose: number;
   looseBytes: number;
   astray: Astray[];
+  unread: string | null;
   stranded: Stray[];
   missing: Gone[];
   events: number;
@@ -662,14 +669,16 @@ export interface Facts {
   attachmentBytes: number;
   loose: number;
   looseBytes: number;
+  unread: boolean;
   weight: number;
   syncs: boolean;
   shared: boolean;
   cloud?: string | null;
   backedUpAt: string | null;
   quiet: string[];
-  attachUpTo: number;
   shortcut: string | null;
+  installed: "store" | "brew" | "download" | "disk";
+  assistant: boolean;
 }
 
 export interface About {
@@ -707,7 +716,6 @@ export type Theme = "light" | "dark";
 
 export interface Settings {
   quiet: string[];
-  attachUpTo: number;
   locale?: string;
   theme?: Theme;
   holds: Holds;
@@ -731,7 +739,6 @@ export type Route = "store" | "brew" | "download";
 export interface Ready {
   version: string;
   route: Route;
-  package: string | null;
   installs: boolean;
   coming?: boolean;
 }
@@ -1067,7 +1074,11 @@ export const weighs = (reference: string): Promise<number> => invoke("weighs", {
 
 export const roomy = (): Promise<number> => invoke("roomy");
 export const reopen = (id: string): Promise<Task> => invoke("reopen", { id });
-export const discard = (id: string): Promise<Task> => invoke("discard", { id });
+// The last words typed on its page have to land before letting it go puts the page away.
+export const discard = async (id: string): Promise<Task> => {
+  await settled();
+  return invoke("discard", { id });
+};
 export const erase = (id: string): Promise<void> => invoke("erase", { id });
 
 export interface Doc {

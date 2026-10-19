@@ -252,3 +252,12 @@ fn a_newer_sign_in_lets_go_of_the_one_still_waiting_and_only_its_own_end_clears_
         "the older one's end cleared the newer one, and cancelling reached nothing"
     );
 }
+
+#[test]
+fn a_sign_in_that_did_not_finish_is_told_by_how_it_ended() {
+    assert_eq!(how_it_ended("cloudNoAnswer"), "no-answer");
+    assert_eq!(how_it_ended("cloudDropped"), "dropped");
+    assert_eq!(how_it_ended("cloudDenied"), "denied");
+    assert_eq!(how_it_ended("cloudNotNow"), "unreachable");
+    assert_eq!(how_it_ended("cloudElsewhere"), "refused");
+}

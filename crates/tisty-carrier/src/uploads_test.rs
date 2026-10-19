@@ -44,3 +44,18 @@ fn a_file_changed_since_is_another_upload() {
     assert_ne!(key_of("https://to", "a/big.bin", &file, 4).unwrap(), before);
     assert_ne!(key_of("https://to", "b/big.bin", &file, 3).unwrap(), before);
 }
+
+#[cfg(unix)]
+#[test]
+fn where_a_long_upload_got_to_is_readable_only_by_its_owner() {
+    use std::os::unix::fs::PermissionsExt;
+    let home = tempfile::tempdir().unwrap();
+
+    Uploads::under(home.path(), DAY).opened("one", "https://upload/1");
+
+    let mode = std::fs::metadata(home.path().join(FILE))
+        .unwrap()
+        .permissions()
+        .mode();
+    assert_eq!(mode & 0o777, 0o600);
+}

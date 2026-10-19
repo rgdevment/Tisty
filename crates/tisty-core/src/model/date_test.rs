@@ -50,3 +50,34 @@ fn round_trips() {
     let json = serde_json::to_string(&spec).unwrap();
     assert_eq!(spec, serde_json::from_str::<DateSpec>(&json).unwrap());
 }
+
+#[test]
+fn a_day_has_passed_only_once_it_is_over_and_an_hour_once_it_is_gone() {
+    let now = jiff::civil::date(2026, 8, 5)
+        .at(12, 0, 0, 0)
+        .to_zoned(tz("UTC"))
+        .unwrap();
+    let today = DateSpec::all_day("2026-08-05".parse().unwrap(), "UTC");
+    let yesterday = DateSpec::all_day("2026-08-04".parse().unwrap(), "UTC");
+    let this_morning = DateSpec::floating("2026-08-05T09:00:00".parse().unwrap(), "UTC");
+
+    assert!(!today.passed(&now));
+    assert!(yesterday.passed(&now));
+    assert!(this_morning.passed(&now));
+}
+
+#[test]
+fn a_deadline_fixed_in_another_zone_has_passed_by_its_own_clock() {
+    let now = jiff::civil::date(2026, 8, 5)
+        .at(12, 0, 0, 0)
+        .to_zoned(tz("America/Santiago"))
+        .unwrap();
+    let berlin_noon = DateSpec::fixed("2026-08-05T12:00:00".parse().unwrap(), "Europe/Berlin");
+    let tokyo_evening = DateSpec::fixed("2026-08-05T23:00:00".parse().unwrap(), "Asia/Tokyo");
+    let honolulu_morning =
+        DateSpec::fixed("2026-08-05T08:00:00".parse().unwrap(), "Pacific/Honolulu");
+
+    assert!(berlin_noon.passed(&now));
+    assert!(tokyo_evening.passed(&now));
+    assert!(!honolulu_morning.passed(&now));
+}

@@ -65,7 +65,7 @@ pub fn doc_export(
                 "a document went out without everything it points at",
                 &[
                     ("id", Fact::Id(id.clone())),
-                    ("left", Fact::Why(took.left.join("; "))),
+                    ("left", Fact::Count(took.left.len())),
                 ],
             );
         }
@@ -227,7 +227,13 @@ pub(crate) fn read_any(from: &std::path::Path) -> Answer<(String, Option<Room>)>
                 std::fs::create_dir_all(&media).map_err(|_| cannot())?;
             }
             for (name, bytes) in &word.pictures {
-                std::fs::write(media.join(name), bytes).map_err(|_| cannot())?;
+                if let Err(e) = std::fs::write(media.join(name), bytes) {
+                    witness::warn(
+                        channel::WINDOW,
+                        "a picture inside a Word file could not be laid down, and is left out",
+                        &[("why", Fact::Why(e.to_string()))],
+                    );
+                }
             }
             Ok((tisty_core::arriving::from_html(&word.html), Some(room)))
         }
@@ -402,7 +408,7 @@ pub async fn docs_pack(
         witness::warn(
             channel::WINDOW,
             "a parcel went out without everything it points at",
-            &[("left", Fact::Why(sent.left.join("; ")))],
+            &[("left", Fact::Count(sent.left.len()))],
         );
     }
     Ok(Packed {
@@ -459,7 +465,7 @@ pub async fn docs_take_out(
         witness::warn(
             channel::WINDOW,
             "documents went out without everything they point at",
-            &[("left", Fact::Why(sent.left.join("; ")))],
+            &[("left", Fact::Count(sent.left.len()))],
         );
     }
     Ok(Packed {

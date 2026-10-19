@@ -100,3 +100,12 @@ fn a_path_is_within_a_folder_only_by_whole_names() {
     assert!(within("store", "store"));
     assert!(!within("stores/a", "store"));
 }
+
+#[test]
+fn a_file_s_revision_is_its_etag_whatever_content_tag_it_carries() {
+    let tagged = item(r#"{"id":"F","name":"a.tisty","eTag":"e1","cTag":"c1","file":{}}"#);
+    let untagged = item(r#"{"id":"G","name":"b.tisty","eTag":"e2","file":{}}"#);
+
+    assert_eq!(tagged.seen("a.tisty").revision, "e1");
+    assert_eq!(untagged.seen("b.tisty").revision, "e2");
+}

@@ -271,3 +271,60 @@ fn a_task_the_person_kept_to_themselves_takes_no_assistant_notes_on_its_page() {
     let said = refused["result"]["content"][0]["text"].as_str().unwrap();
     assert!(said.contains("person's own"), "{said}");
 }
+
+#[test]
+fn an_old_copy_of_a_task_s_page_is_turned_away_rather_than_erase_what_came_since() {
+    let served = Served::new();
+    let filed = served.call("propose", serde_json::json!({ "title": "Rina's booster" }));
+    let task = filed["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.call(
+        "plan",
+        serde_json::json!({ "task": task, "steps": ["Call the vet"] }),
+    );
+    let read = served.call("read", serde_json::json!({ "task": task }));
+    let copy = read["result"]["structuredContent"]["document"]["body"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    served.call(
+        "plan",
+        serde_json::json!({ "task": task, "steps": ["Bring the card"] }),
+    );
+    let at = served.home.path().join("copy.md");
+    std::fs::write(&at, &copy).unwrap();
+
+    let turned = served.call(
+        "import_doc",
+        serde_json::json!({ "path": at.to_string_lossy() }),
+    );
+
+    assert_eq!(turned["result"]["isError"], true, "{turned}");
+    let said = turned["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(said.contains("leaves out"), "{said}");
+    let read = served.call("read", serde_json::json!({ "task": task }));
+    let body = read["result"]["structuredContent"]["document"]["body"]
+        .as_str()
+        .unwrap_or_default();
+    assert!(body.contains("- [ ] Bring the card"), "{body}");
+
+    served.call(
+        "tick",
+        serde_json::json!({ "task": task, "steps": ["Call the vet", "Bring the card"] }),
+    );
+    let done = served.call(
+        "say_done",
+        serde_json::json!({ "task": task, "body": "booked" }),
+    );
+    assert!(done["result"]["isError"].is_null(), "{done}");
+    std::fs::write(&at, body).unwrap();
+    let late = served.call(
+        "import_doc",
+        serde_json::json!({ "path": at.to_string_lossy() }),
+    );
+    assert_eq!(late["result"]["isError"], true, "{late}");
+    let said = late["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(said.contains("already been said done"), "{said}");
+}

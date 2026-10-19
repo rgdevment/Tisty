@@ -40,7 +40,6 @@ const FOLDER = { kind: "folder" as const, at: "D:/Tisty" };
 const carrying = (over: Partial<Carrying>) =>
   ({
     asked: true,
-    loose: 0,
     open: 0,
     archived: 0,
     lists: 0,

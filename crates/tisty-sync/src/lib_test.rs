@@ -9130,3 +9130,15 @@ fn what_the_folder_copy_never_carries_is_never_counted() {
     assert_eq!(told_sending(&first), vec![(0, 1), (1, 1)]);
     assert!(told_sending(&again).is_empty(), "{again:?}");
 }
+
+#[test]
+fn a_trouble_and_a_reason_are_told_by_codes_that_name_nothing_of_the_person() {
+    let elsewhere = Trouble::CloudElsewhere {
+        provider: "OneDrive".into(),
+        found: "maria@example.com".into(),
+    };
+
+    assert_eq!(elsewhere.code(), "cloud-elsewhere");
+    assert_eq!(Trouble::Broke("x".into()).code(), "broke");
+    assert_eq!(Reason::Troubled.code(), "troubled");
+}

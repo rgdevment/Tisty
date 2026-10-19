@@ -4,6 +4,8 @@ use tauri::Emitter;
 #[cfg(windows)]
 use tauri::Manager;
 
+use tisty_core::witness::{self, Fact, channel};
+
 use crate::{Answer, HERE, Refusal, Session, Updating, desktop, held, shop, update};
 
 /// Which window owns the dialogs the Store raises on its own.
@@ -192,6 +194,22 @@ pub async fn update_install(
     session: tauri::State<'_, Mutex<Session>>,
     alone: tauri::State<'_, Updating>,
 ) -> Answer<()> {
+    let done = installing(app, session, alone).await;
+    if let Err(refusal) = &done {
+        let mut facts = vec![("code", Fact::Code(refusal.code))];
+        if refusal.code == "updateFailed" {
+            facts.extend(refusal.name.clone().map(|why| ("why", Fact::Why(why))));
+        }
+        witness::warn(channel::UPDATE, "an update could not be installed", &facts);
+    }
+    done
+}
+
+async fn installing(
+    app: tauri::AppHandle,
+    session: tauri::State<'_, Mutex<Session>>,
+    alone: tauri::State<'_, Updating>,
+) -> Answer<()> {
     use tauri_plugin_updater::UpdaterExt;
 
     let _busy = alone
@@ -262,6 +280,15 @@ pub async fn update_install(
     // bytes forever would otherwise be waited on forever.
     update.timeout = Some(std::time::Duration::from_secs(600));
 
+    witness::note(
+        channel::UPDATE,
+        "an update began to install",
+        &[
+            ("from", Fact::Id(HERE.to_string())),
+            ("to", Fact::Id(update.version.clone())),
+            ("route", Fact::Code(kept.route.code())),
+        ],
+    );
     let telling = app.clone();
     let done = app.clone();
     let mut carried: u64 = 0;

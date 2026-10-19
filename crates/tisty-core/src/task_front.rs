@@ -278,6 +278,8 @@ pub struct TakenIn {
     pub task: TaskId,
     pub ops: Vec<crate::Op>,
     pub body: String,
+    /// It would take words off the page or a step or a tick off the task: an old copy may be speaking.
+    pub takes_away: bool,
 }
 
 /// A page naming a task hands it its properties and, against `was`, its boxes as steps.
@@ -286,7 +288,7 @@ pub fn taken_in(state: &crate::State, body: &str, was: Option<&str>, tz: &str) -
     let id = front.task?;
     let task = state.tasks.get(&id)?;
     let mut ops = Vec::new();
-    if let Some(d) = patch(task, &front) {
+    if let Some(d) = patch(task, &front).and_then(|d| allowed(state, task, d)) {
         ops.push(crate::Op::TaskUpdate { id, d });
     }
     if let Some(d) = moved(state, task, &front) {
@@ -300,7 +302,19 @@ pub fn taken_in(state: &crate::State, body: &str, was: Option<&str>, tz: &str) -
     block.extend(others);
     let body = format!("---\n{}\n---\n{rest}", block.join("\n"));
     let before = was.map(|one| crate::stages::ticked(task, one));
-    ops.extend(crate::stages::reconciled(task, before.as_deref(), &body));
+    let shown = was.map_or_else(Vec::new, |one| crate::stages::shown(task, one));
+    let steps: Vec<crate::Op> = crate::stages::reconciled(task, before.as_deref(), &body)
+        .into_iter()
+        .filter(|op| seen(op, &shown))
+        .collect();
+    let takes_away = was.is_some_and(|was| left_out(was, &body))
+        || steps.iter().any(|op| {
+            matches!(
+                op,
+                crate::Op::StepRemove { .. } | crate::Op::StepUndone { .. }
+            )
+        });
+    ops.extend(steps);
     if let Some(was) = was {
         ops.extend(crate::paged::paged(id, was, &body));
     }
@@ -308,7 +322,101 @@ pub fn taken_in(state: &crate::State, body: &str, was: Option<&str>, tz: &str) -
         task: id,
         ops,
         body,
+        takes_away,
     })
+}
+
+// A copy cannot have taken off a step the page never showed, nor unticked one it showed open.
+fn seen(op: &crate::Op, shown: &[(crate::model::StepId, bool)]) -> bool {
+    match op {
+        crate::Op::StepRemove { d, .. } => shown.iter().any(|(one, _)| *one == d.step),
+        crate::Op::StepUndone { d, .. } => shown.iter().any(|(one, done)| *one == d.step && *done),
+        _ => true,
+    }
+}
+
+// A page coming in is held to what the window lets a person set by hand.
+fn allowed(
+    state: &crate::State,
+    task: &Task,
+    mut d: crate::event::TaskPatch,
+) -> Option<crate::event::TaskPatch> {
+    if state.repeat_refused(task.id).is_some() {
+        d.repeat = None;
+    }
+    let now = jiff::Zoned::now();
+    if matches!(&d.deadline, Some(Some(due)) if due.passed(&now)) {
+        d.deadline = None;
+    }
+    (d != crate::event::TaskPatch::default()).then_some(d)
+}
+
+/// Whether the page holds a line `body` leaves out, as it does once it moved on since a copy went out.
+pub fn left_out(was: &str, body: &str) -> bool {
+    let lines = |one: &str| -> Vec<String> {
+        let rest = match tisty_markdown::front::span(one) {
+            Some(at) => &one[at.end..],
+            None => one,
+        };
+        rest.lines()
+            .map(unlinked)
+            .filter(|line| !line.is_empty())
+            .collect()
+    };
+    let mut theirs: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    for line in lines(body) {
+        *theirs.entry(line).or_default() += 1;
+    }
+    lines(was)
+        .into_iter()
+        .any(|line| match theirs.get_mut(&line) {
+            Some(left) if *left > 0 => {
+                *left -= 1;
+                false
+            }
+            _ => true,
+        })
+}
+
+// Every target is rewritten on a trip out and back and a tick is weighed as a step, so none counts.
+fn unlinked(line: &str) -> String {
+    let line = line.trim().replace("[x]", "[ ]").replace("[X]", "[ ]");
+    if line.starts_with('[')
+        && let Some(at) = line.find("]:")
+    {
+        return line[..at + 2].to_string();
+    }
+    let mut out = String::new();
+    let mut rest = line.as_str();
+    while let Some(at) = rest.find("](") {
+        out.push_str(&rest[..=at]);
+        rest = &rest[at + 2..];
+        rest = rest.find(')').map_or("", |end| &rest[end + 1..]);
+    }
+    out.push_str(rest);
+    unvalued(&out)
+}
+
+fn unvalued(line: &str) -> String {
+    let mut out = String::new();
+    let mut rest = line;
+    while let Some(at) = ["src=", "href="]
+        .iter()
+        .filter_map(|name| rest.find(name).map(|at| at + name.len()))
+        .min()
+    {
+        out.push_str(&rest[..at]);
+        rest = &rest[at..];
+        let end = match rest.chars().next() {
+            Some(quote @ ('"' | '\'')) => rest[1..].find(quote).map_or(rest.len(), |n| n + 2),
+            _ => rest
+                .find(|one: char| one.is_whitespace() || one == '>')
+                .unwrap_or(rest.len()),
+        };
+        rest = &rest[end..];
+    }
+    out.push_str(rest);
+    out
 }
 
 #[cfg(test)]
