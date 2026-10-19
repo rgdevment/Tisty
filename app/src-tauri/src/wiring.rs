@@ -180,13 +180,27 @@ fn told(client: &'static Client, at: &Path, shipped: bool) -> Seen {
     }
 }
 
-// A bare name is the Store's alias; anywhere else the PATH that answered it is no longer kept.
+// A bare name is the Store's alias; anywhere else it holds only while an older install still answers it.
 fn adrift(command: &str, shipped_beside: bool) -> bool {
     let at = Path::new(command);
     match at.components().count() > 1 {
         true => !at.is_file(),
-        false => shipped_beside,
+        false => shipped_beside && !answered(command),
     }
+}
+
+fn answered(command: &str) -> bool {
+    std::env::var_os("PATH").is_some_and(|path| answered_on(command, &path))
+        || tisty_core::Paths::shims()
+            .iter()
+            .any(|at| at.file_name().is_some_and(|one| one == command))
+}
+
+fn answered_on(command: &str, path: &std::ffi::OsStr) -> bool {
+    std::env::split_paths(path).any(|dir| {
+        dir.join(command).is_file()
+            || (cfg!(windows) && dir.join(format!("{command}.exe")).is_file())
+    })
 }
 
 fn entry(kind: Kind) -> String {

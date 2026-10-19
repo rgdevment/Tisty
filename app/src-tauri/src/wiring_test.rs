@@ -125,9 +125,20 @@ fn a_command_that_is_no_longer_there_is_astray() {
 }
 
 #[test]
-fn a_bare_name_is_the_stores_alias_and_astray_anywhere_else() {
+fn a_bare_name_is_the_stores_alias_and_astray_where_nothing_answers_it() {
     assert!(!adrift("tisty", false));
-    assert!(adrift("tisty", true));
+    assert!(adrift("tisty-answered-by-nothing", true));
+}
+
+#[test]
+fn a_bare_name_an_older_install_still_answers_on_the_path_is_not_astray() {
+    let tmp = tempfile::tempdir().unwrap();
+    let named = if cfg!(windows) { "older.exe" } else { "older" };
+    std::fs::write(tmp.path().join(named), b"an older tisty").unwrap();
+    let path = std::env::join_paths([tmp.path()]).unwrap();
+
+    assert!(answered_on("older", &path));
+    assert!(!answered_on("tisty-answered-by-nothing", &path));
 }
 
 #[test]
