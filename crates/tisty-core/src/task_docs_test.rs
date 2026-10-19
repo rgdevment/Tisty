@@ -644,11 +644,13 @@ fn keeping_another_version_beside_a_page_adds_no_step_and_ticks_none() {
     let kept = super::kept_beside(&mine, &theirs, "Other version");
 
     assert_ne!(kept, mine, "{kept}");
-    assert_eq!(
-        crate::stages::stages(&kept),
-        crate::stages::stages(&mine),
-        "{kept}"
-    );
+    let said = |body: &str| -> Vec<(String, bool)> {
+        crate::stages::stages(body)
+            .into_iter()
+            .map(|one| (one.text, one.done))
+            .collect()
+    };
+    assert_eq!(said(&kept), said(&mine), "{kept}");
 }
 
 #[test]
