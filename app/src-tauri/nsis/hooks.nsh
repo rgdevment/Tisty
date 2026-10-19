@@ -3,7 +3,7 @@
 ;
 ; PATH is left alone. NSIS reads at most 1024 characters and writes back what
 ; it managed to read, which cost a 1724-character PATH its twenty-two entries.
-; The app offers the command line instead, where the value is read whole.
+; Nothing needs it: assistants are given the full path to the binary.
 ;
 ; The data directory is left alone too: wanting the program gone is not wanting
 ; the history gone.

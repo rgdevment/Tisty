@@ -56,9 +56,8 @@
       </uap:VisualElements>
 
       <!--
-        Without this the package installs into a container and `tisty` does not
-        exist in any terminal — the window would ship with its command line
-        amputated. `cli\` because Windows filenames are case-insensitive and
+        Without this the package installs into a container and an assistant
+        could not start `tisty mcp` at all. `cli\` because Windows filenames are case-insensitive and
         `tisty.exe` cannot sit beside `Tisty.exe`.
       -->
       <Extensions>
