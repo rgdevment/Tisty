@@ -1740,7 +1740,7 @@ const en = {
     "File a task with description, dates, priority, tags and steps · Add to the journal of any task, including yours · Keep a copy of a file from this machine with a task · Search your list and your archive",
   agentsCannotTitle: "What it can never do",
   agentsCannot:
-    "Complete, reopen, drop or delete anything · Undo or redo · Edit what you wrote · Choose a list — everything lands in the inbox, tagged #agent · Set routines or reminders · Touch syncing, settings or machines",
+    "Complete, reopen, drop or delete anything · Undo or redo · Edit what you wrote, unless you open a task to agents · Make a list — without one of yours it lands in the inbox, and everything it files is tagged #agent · Set routines · Touch syncing, settings or machines",
   agentsUndo:
     "It writes under its own name, so your undo never reaches what it filed — and turning it off leaves everything it wrote in place. There is one door: however many assistants you connect, they all file under that same name, and they all leave together when you close it.",
   agentsHowTitle: "How to connect one",
@@ -3767,7 +3767,7 @@ const es: Catalog = {
     "Anotar una tarea con descripción, fechas, prioridad, etiquetas y pasos · Añadir a la bitácora de cualquier tarea, también las tuyas · Guardar una copia de un archivo de esta máquina con una tarea · Buscar en tu lista y en tu archivo",
   agentsCannotTitle: "Lo que no podrá hacer nunca",
   agentsCannot:
-    "Completar, reabrir, descartar ni borrar nada · Deshacer ni rehacer · Editar lo que tú escribiste · Elegir lista: todo entra en la bandeja, con la etiqueta #agent · Poner rutinas ni recordatorios · Tocar la sincronización, los ajustes ni las máquinas",
+    "Completar, reabrir, descartar ni borrar nada · Deshacer ni rehacer · Editar lo que tú escribiste, salvo una tarea que abras a los agentes · Crear listas: sin una de las tuyas entra en la bandeja, y todo lo que deja lleva la etiqueta #agent · Poner rutinas · Tocar la sincronización, los ajustes ni las máquinas",
   agentsUndo:
     "Escribe con nombre propio, así que tu deshacer nunca alcanza lo que él anotó, y quitarle la voz deja en su sitio todo lo que escribió. La puerta es una sola: conectes los asistentes que conectes, todos anotan bajo ese mismo nombre y se van juntos cuando la cierras.",
   agentsHowTitle: "Cómo conectar uno",
