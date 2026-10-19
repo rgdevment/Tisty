@@ -103,7 +103,10 @@ impl Tokens {
             tisty_core::witness::warn(
                 tisty_core::witness::channel::CLOUD,
                 "the keychain would not keep the renewed token, so it lasts only while Tisty stays open",
-                &[("why", tisty_core::witness::Fact::Why(format!("{hitch:?}")))],
+                &[
+                    ("kind", tisty_core::witness::Fact::Code(hitch.code())),
+                    ("why", tisty_core::witness::Fact::Why(format!("{hitch:?}"))),
+                ],
             );
             held.unsaved = Some(next);
         }

@@ -110,7 +110,7 @@ pub(super) fn reword_step(paths: &Paths, args: &Value) -> Result<Value, Refused>
         return Err(moved(task));
     }
     let page = super::worded::worded(paths, &mut store, id, |body, _| {
-        tisty_core::stages::reworded(body, &was, &words)
+        tisty_core::stages::reworded(body, task, step, &words)
     });
     Ok(told(
         format!("Reworded {was:?} to {words:?} on {:?}.{page}", task.title),
@@ -127,7 +127,6 @@ pub(super) fn unplan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     }
     let chosen = open_steps(task, &wanted, "taken off")?;
     let ids: Vec<StepId> = chosen.iter().map(|(step, _)| *step).collect();
-    let gone: Vec<String> = chosen.into_iter().map(|(_, text)| text).collect();
     let ops = ids
         .iter()
         .map(|step| Op::StepRemove {
@@ -150,7 +149,7 @@ pub(super) fn unplan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         return Err(moved(task));
     }
     let page = super::worded::worded(paths, &mut store, id, |body, _| {
-        Some(tisty_core::stages::unplanned(body, &gone))
+        Some(tisty_core::stages::unplanned(body, task, &ids))
     });
     let left = task.steps.len() - ids.len();
     Ok(told(

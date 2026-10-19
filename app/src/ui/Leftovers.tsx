@@ -61,7 +61,12 @@ export default function Leftovers({
         {audit?.machines.some(hushed) && (
           <p className="mt-1.5 text-[12.5px] leading-relaxed text-soft">{t("looseWait")}</p>
         )}
-        {audit && audit.loose === 0 && (
+        {audit && audit.unread != null && (
+          <p className="mt-2 text-[12.5px] text-soft">
+            {fill("looseUnread", audit.unread || t("untitledDoc"))}
+          </p>
+        )}
+        {audit && audit.unread == null && audit.loose === 0 && (
           <p className="mt-2 text-[12.5px] text-faint">{t("looseNone")}</p>
         )}
         {audit && audit.loose > 0 && (

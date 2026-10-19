@@ -624,11 +624,16 @@ pub async fn settle_paper(
             session.asked.get(&id).cloned(),
         )
     };
-    let keep = match keep.as_str() {
-        "mine" => tisty_carrier::Keep::Mine,
-        "theirs" => tisty_carrier::Keep::Theirs,
-        _ => tisty_carrier::Keep::Both,
+    let (keep, kept) = match keep.as_str() {
+        "mine" => (tisty_carrier::Keep::Mine, "mine"),
+        "theirs" => (tisty_carrier::Keep::Theirs, "theirs"),
+        _ => (tisty_carrier::Keep::Both, "both"),
     };
+    witness::note(
+        channel::SYNC,
+        "a document two machines wrote was settled",
+        &[("at", Fact::Id(id.clone())), ("kept", Fact::Word(kept))],
+    );
     let (asking, there, at) = (carrier.clone(), here.clone(), id.clone());
     let brought = elsewhere(move || {
         if !matches!(keep, tisty_carrier::Keep::Theirs)
@@ -673,6 +678,14 @@ fn other_version_kept(
     body: String,
     marked: Option<&str>,
 ) -> Answer<Option<String>> {
+    let paged = session
+        .state
+        .docs
+        .values()
+        .any(|one| one.file == id && one.task_of.is_some());
+    if paged {
+        return kept_on_the_page(session, id, &body, marked).map(|()| None);
+    }
     let beside = session
         .state
         .docs
@@ -715,6 +728,47 @@ fn other_version_kept(
         })
         .map_err(|e| blamed(channel::SYNC, "the other version was not written down", e))?;
     Ok(Some(file))
+}
+
+// A task's page is the task's alone, so the other version waits on it rather than as a loose document.
+fn kept_on_the_page(
+    session: &mut Session,
+    id: &str,
+    theirs: &str,
+    marked: Option<&str>,
+) -> Answer<()> {
+    let root = session.paths.docs();
+    let mine = tisty_core::docs::read(&root, id)
+        .map_err(|e| blamed(channel::SYNC, "a task's page could not be read", e))?;
+    let heading = marked
+        .map(str::trim)
+        .filter(|one| !one.is_empty())
+        .map_or_else(
+            || "Other version".to_string(),
+            |said| {
+                let mut letters = said.chars();
+                letters
+                    .next()
+                    .map(|first| first.to_uppercase().chain(letters).collect())
+                    .unwrap_or_default()
+            },
+        );
+    let both = tisty_core::task_docs::kept_beside(&mine, theirs, &heading);
+    if both == mine {
+        return Ok(());
+    }
+    tisty_core::docs::write(&root, id, &both)
+        .map_err(|e| blamed(channel::SYNC, "the other version could not be kept", e))?;
+    witness::note(
+        channel::SYNC,
+        "the other version was kept on the task's page",
+        &[("at", Fact::Id(id.to_string()))],
+    );
+    session.mind_body(id, &tisty_core::docs::settled(&both));
+    session.corpus.forget(id);
+    let hand = signing(&session.state);
+    session.retell(id, &both, hand);
+    Ok(())
 }
 
 // Unsigned, as settling writes nothing new, yet another machine asks about a body no history answers for.

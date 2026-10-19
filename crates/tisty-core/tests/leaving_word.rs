@@ -101,3 +101,12 @@ fn quotes_callouts_tasks_and_a_numbered_list_from_three_come_through() {
         assert!(said.contains(piece), "{piece:?} missing from {said}");
     }
 }
+
+#[test]
+fn a_control_character_xml_forbids_is_left_out_so_word_still_opens_the_file() {
+    let body = "# Plan\n\nuno\u{0B}dos\u{0C}tres\u{01} [ve\u{02}r](https://x.y)";
+    let (said, _) = back(&to_word(&[body.to_string()], &mut |_| None).unwrap());
+
+    assert!(said.contains("unodostres"), "{said}");
+    assert!(said.contains("[ver](https://x.y)"), "{said}");
+}

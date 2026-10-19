@@ -36,6 +36,20 @@ pub fn token_refused(
     body: &str,
     lost: &[&str],
 ) -> Hitch {
+    let error = serde_json::from_str::<TokenRefusal>(body)
+        .ok()
+        .and_then(|one| one.error)
+        .unwrap_or_default();
+    use tisty_core::witness::{self, Fact, channel};
+    witness::warn(
+        channel::CLOUD,
+        "the provider would not renew the sign-in",
+        &[
+            ("who", Fact::Id(who.to_string())),
+            ("status", Fact::Count(status.into())),
+            ("error", Fact::Code(oauth_code(&error))),
+        ],
+    );
     match status {
         429 => Hitch::Limited {
             wait: wait.unwrap_or(WAITED_UNTOLD),
@@ -45,16 +59,36 @@ pub fn token_refused(
             // Never the provider's store itself, so a round's spending and its stall guard leave it out.
             None => Hitch::Unreachable(None, format!("{who} answered {status}")),
         },
-        _ => {
-            let error = serde_json::from_str::<TokenRefusal>(body)
-                .ok()
-                .and_then(|one| one.error)
-                .unwrap_or_default();
-            match lost.contains(&error.as_str()) {
-                true => Hitch::Lost,
-                false => Hitch::Broke(format!("{who} refused the token: {error}")),
-            }
-        }
+        _ => match lost.contains(&error.as_str()) {
+            true => Hitch::Lost,
+            false => Hitch::Broke(format!("{who} refused the token: {error}")),
+        },
+    }
+}
+
+/// A provider may put anything in its error, so only the names OAuth defines are kept.
+pub fn oauth_code(error: &str) -> &'static str {
+    const NAMED: [&str; 12] = [
+        "invalid_grant",
+        "invalid_client",
+        "invalid_request",
+        "invalid_scope",
+        "unauthorized_client",
+        "unsupported_grant_type",
+        "interaction_required",
+        "consent_required",
+        "login_required",
+        "access_denied",
+        "temporarily_unavailable",
+        "server_error",
+    ];
+    match error {
+        "" => "none",
+        said => NAMED
+            .iter()
+            .find(|one| **one == said)
+            .copied()
+            .unwrap_or("other"),
     }
 }
 

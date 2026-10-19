@@ -51,9 +51,13 @@ pub fn noticed_in(word: &Word, spoken: &str) -> String {
     let (es, en) = match crate::config::bound(&word.to) {
         crate::config::Bound::Cloud { provider, email } => {
             let shown = crate::config::shown_of(provider);
+            let whose = match email.is_empty() {
+                true => String::new(),
+                false => format!(" ({email})"),
+            };
             (
-                format!("en el espacio de Tisty en {shown} ({email})"),
-                format!("in Tisty's space in {shown} ({email})"),
+                format!("en el espacio de Tisty en {shown}{whose}"),
+                format!("in Tisty's space in {shown}{whose}"),
             )
         }
         crate::config::Bound::Folder(folder) => (

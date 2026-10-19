@@ -41,6 +41,17 @@ fn a_folder_left_for_the_cloud_says_where_its_copies_went_in_both_languages_and_
 }
 
 #[test]
+fn a_folder_left_for_a_cloud_account_with_no_address_names_only_the_cloud() {
+    let note = noticed(&crate::moved::read(&word("folder:OneDrive · ")).unwrap());
+
+    assert!(note.contains("in Tisty's space in OneDrive.\n"), "{note}");
+    assert!(
+        note.contains("en el espacio de Tisty en OneDrive.\n"),
+        "{note}"
+    );
+}
+
+#[test]
 fn a_folder_left_for_another_folder_or_this_computer_alone_says_so() {
     let to_folder = noticed(&crate::moved::read(&word("folder:Nueva")).unwrap());
     let alone = noticed(&crate::moved::read(&word("alone")).unwrap());

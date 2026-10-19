@@ -29,7 +29,7 @@ export function useTaskAsks(
           pick({ multiple: true })
             .then((chosen) =>
               keptAll(
-                listed(chosen).map((one) => attach(one, undefined, true)),
+                listed(chosen).map((one) => attach(one)),
                 said,
               ),
             )

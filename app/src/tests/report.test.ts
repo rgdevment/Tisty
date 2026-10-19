@@ -25,13 +25,15 @@ const seen: Facts = {
   attachmentBytes: 1_700_000,
   loose: 3,
   looseBytes: 311_000,
+  unread: false,
   weight: 2_100_000,
   syncs: true,
   shared: true,
   backedUpAt: null,
   quiet: ["chime"],
-  attachUpTo: 5 * 1024 * 1024,
   shortcut: "Ctrl+Shift+Space",
+  installed: "download",
+  assistant: false,
 };
 
 const at = new Date("2026-08-11T17:04:00");
@@ -51,7 +53,7 @@ describe("the report a bug gets attached to", () => {
   it("puts placeholders where the names would be", () => {
     const paper = written(seen, at);
 
-    expect(paper).toContain("lista#1, lista#2, lista#3");
+    expect(paper).toContain("list#1, list#2, list#3");
     expect(paper).toContain("tag#1, tag#2");
   });
 
@@ -63,7 +65,7 @@ describe("the report a bug gets attached to", () => {
 
     expect(paper).toContain("dentist, house, work");
     expect(paper).toContain("health, home");
-    expect(paper).not.toContain("lista#1");
+    expect(paper).not.toContain("list#1");
   });
 
   it("says which notices are on, not which are off", () => {
@@ -125,6 +127,24 @@ describe("the report a bug gets attached to", () => {
     const paper = written({ ...seen, shared: false, backedUpAt: null }, at);
 
     expect(paper).toContain("none yet");
+  });
+
+  it("says loose was not checked when a document could not be read, rather than none", () => {
+    const paper = written({ ...seen, loose: 0, looseBytes: 0, unread: true }, at);
+
+    expect(paper).toContain("loose not checked: a document could not be read");
+    expect(paper).not.toContain("0 loose");
+  });
+
+  it("says how this copy was installed and whether an assistant can file", () => {
+    expect(written(seen, at)).toMatch(/installed from\s+a download/);
+    expect(written({ ...seen, installed: "disk" }, at)).toContain("the disk image");
+    expect(written(seen, at)).toMatch(/assistants\s+cannot file here/);
+    expect(written({ ...seen, assistant: true }, at)).toMatch(/assistants\s+can file here/);
+  });
+
+  it("leaves out how large an attachment may be, which never changes", () => {
+    expect(written(seen, at)).not.toContain("copies up to");
   });
 
   it("says on its face that nothing has been sent", () => {

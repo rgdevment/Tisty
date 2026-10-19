@@ -798,3 +798,16 @@ fn a_link_is_lent_for_what_exists_and_only_where_the_provider_lends() {
         assert_eq!(remote.lends("nada").unwrap(), None, "{who}");
     });
 }
+
+#[test]
+fn a_hitch_printed_for_the_log_never_carries_the_account_found() {
+    let hitch = Hitch::Elsewhere {
+        found: "maria@example.com".into(),
+    };
+
+    let said = format!("{hitch:?}");
+
+    assert!(!said.contains("maria"), "{said}");
+    assert_eq!(hitch.code(), "elsewhere");
+    assert_eq!(format!("{:?}", Hitch::Full), "Full");
+}

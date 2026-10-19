@@ -54,10 +54,7 @@ impl Session {
             return Err(tisty_core::Error::StoreNotMoved(why));
         }
         let paths = Paths::resolve()?;
-        tisty_core::witness::keeps(
-            tisty_core::witness::file(&paths),
-            tisty_core::witness::wants_all(),
-        );
+        tisty_core::witness::opens(&paths, tisty_core::witness::mark::WINDOW);
         if settled == Some(tisty_core::moving::Settled::Moved) {
             tisty_core::witness::note(
                 tisty_core::witness::channel::STORE,
@@ -400,17 +397,31 @@ impl Session {
             .filter(|_| self.config.holds() != tisty_core::config::Holds::Everywhere)
     }
 
-    /// What the tasks and the documents point at, as written.
-    pub fn pointed_at(&self) -> Vec<String> {
-        let mut named: Vec<String> = self
-            .state
+    // A document that cannot be read fails it with its title: what it names is then unknown.
+    pub fn pointed_at(&self) -> Result<Vec<String>, String> {
+        let mut named = self.tasks_point_at();
+        let docs = self.paths.docs();
+        named.extend(
+            tisty_core::docs::referenced(&docs)
+                .map_err(|id| tisty_core::docs::title_of(&docs, &id).unwrap_or_default())?,
+        );
+        Ok(named)
+    }
+
+    pub fn checked_adrift(&self) -> (tisty_core::attach::Loose, Option<String>) {
+        match self.pointed_at() {
+            Ok(held) => (self.adrift(&held), None),
+            Err(title) => (tisty_core::attach::Loose::default(), Some(title)),
+        }
+    }
+
+    pub fn tasks_point_at(&self) -> Vec<String> {
+        self.state
             .tasks
             .values()
             .flat_map(|task| task.references())
             .map(|one| one.target)
-            .collect();
-        named.extend(tisty_core::docs::referenced(&self.paths.docs()));
-        named
+            .collect()
     }
 
     pub fn adrift(&self, held: &[String]) -> tisty_core::attach::Loose {
@@ -439,14 +450,10 @@ impl Session {
             return Ok(0);
         }
         let now = jiff::Timestamp::now().as_second();
-        let mut held_by: Vec<String> = self
-            .state
-            .tasks
-            .values()
-            .flat_map(|task| task.references())
-            .map(|one| one.target)
-            .collect();
-        held_by.extend(tisty_core::docs::referenced(&self.paths.docs()));
+        let held_by = self.pointed_at().map_err(|title| match title.is_empty() {
+            true => Refusal::of("retireUnreadAny"),
+            false => Refusal::about("retireUnread", title),
+        })?;
 
         let mut told = Vec::new();
         for reference in references {

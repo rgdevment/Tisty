@@ -426,7 +426,7 @@ export default function Docs({
               keptAll(
                 files.map((one) =>
                   one.size > PASTED_UP_TO
-                    ? Promise.reject({ code: "attachmentTooBigHere", name: "650 MB" })
+                    ? Promise.reject({ code: "attachmentTooBig", name: "650 MB" })
                     : one
                         .arrayBuffer()
                         .then((bytes) => attachPasted(one.name, one.type, new Uint8Array(bytes))),
@@ -441,7 +441,7 @@ export default function Docs({
                 pick({ multiple: true })
                   .then((chosen) =>
                     keptAll(
-                      listed(chosen).map((one) => attach(one, undefined, true)),
+                      listed(chosen).map((one) => attach(one)),
                       onError,
                     ),
                   )

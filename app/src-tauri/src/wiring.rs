@@ -121,11 +121,10 @@ pub enum Stuck {
 }
 
 pub fn seen() -> Vec<Seen> {
-    let shipped = command::beside().is_some();
     CLIENTS
         .iter()
         .filter(|it| about(it))
-        .filter_map(|it| Some(told(it, &file(it)?, shipped)))
+        .filter_map(|it| Some(told(it, &file(it)?)))
         .collect()
 }
 
@@ -164,7 +163,7 @@ fn asked(id: &str) -> Result<(&'static Client, PathBuf), Stuck> {
     Ok((client, at))
 }
 
-fn told(client: &'static Client, at: &Path, shipped: bool) -> Seen {
+fn told(client: &'static Client, at: &Path) -> Seen {
     let text = std::fs::read_to_string(at).unwrap_or_default();
     let points = match client.kind {
         Kind::Json(key) => json::reads(&text, key, NAME),
@@ -175,18 +174,15 @@ fn told(client: &'static Client, at: &Path, shipped: bool) -> Seen {
         name: client.name,
         at: at.display().to_string(),
         wired: points.is_some(),
-        astray: points.as_deref().is_some_and(|one| adrift(one, shipped)),
+        astray: points.as_deref().is_some_and(adrift),
         points,
     }
 }
 
-// A bare name is the Store's alias; anywhere else the PATH that answered it is no longer kept.
-fn adrift(command: &str, shipped_beside: bool) -> bool {
+// A bare name is answered by whatever PATH the client starts with, which this window cannot see.
+fn adrift(command: &str) -> bool {
     let at = Path::new(command);
-    match at.components().count() > 1 {
-        true => !at.is_file(),
-        false => shipped_beside,
-    }
+    at.components().count() > 1 && !at.is_file()
 }
 
 fn entry(kind: Kind) -> String {

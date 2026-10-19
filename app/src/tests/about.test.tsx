@@ -242,7 +242,7 @@ describe("a newer version the Store itself offers", () => {
     expect(saidPlainly(problems[0])).toMatch(/did not answer/i);
   });
 
-  const waiting = { version: "1.15.0", route: "store" as const, package: null, installs: true };
+  const waiting = { version: "1.15.0", route: "store" as const, installs: true };
 
   // The Store says nothing about an update it is already fetching, so the only thing the person
   // can be told is that one is on the way — with no number to put on it and nothing to press.
@@ -252,7 +252,6 @@ describe("a newer version the Store itself offers", () => {
         ready={{
           version: "",
           route: "store",
-          package: null,
           installs: false,
           coming: true,
         }}
@@ -274,7 +273,6 @@ describe("a newer version the Store itself offers", () => {
         ready={{
           version: "1.22.1",
           route: "store",
-          package: null,
           installs: false,
           coming: true,
         }}
@@ -300,14 +298,13 @@ describe("a newer version the Store itself offers", () => {
         return Promise.resolve({
           version: "1.17.0",
           route: "download",
-          package: null,
           installs: true,
         });
       return Promise.resolve(build);
     };
     render(
       <About
-        ready={{ version: "1.15.1", route: "download", package: null, installs: true }}
+        ready={{ version: "1.15.1", route: "download", installs: true }}
         onError={(problem) => problems.push(problem)}
       />,
     );

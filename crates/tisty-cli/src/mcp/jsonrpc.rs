@@ -16,12 +16,20 @@ pub(super) fn introduced(params: &Value) {
         .and_then(|info| info.get("name"))
         .and_then(Value::as_str)
         .and_then(tisty_core::agent::client_said);
+    let protocol = params
+        .get("protocolVersion")
+        .and_then(Value::as_str)
+        .unwrap_or("?");
+    let mut facts = vec![("protocol", Fact::Id(short(protocol)))];
+    if let Some(said) = &said {
+        facts.push(("as", Fact::Why(said.clone())));
+    }
+    witness::note(
+        witness::channel::AGENT,
+        "a client introduced itself",
+        &facts,
+    );
     if let Some(said) = said {
-        witness::note(
-            witness::channel::AGENT,
-            "a client introduced itself",
-            &[("as", Fact::Why(said.clone()))],
-        );
         let _ = SPEAKING_THROUGH.set(said);
     }
 }
@@ -31,12 +39,32 @@ pub(super) fn speaking_through() -> Option<String> {
     SPEAKING_THROUGH.get().cloned()
 }
 
+/// What the client chose to send is cut, so it cannot fill the log.
+pub(super) fn short(said: &str) -> String {
+    said.chars().take(64).collect()
+}
+
 pub(super) fn named_tool(params: &Value) -> String {
-    params
-        .get("name")
-        .and_then(Value::as_str)
-        .unwrap_or("?")
-        .to_string()
+    short(params.get("name").and_then(Value::as_str).unwrap_or("?"))
+}
+
+#[derive(Default)]
+pub(super) struct Tally {
+    pub(super) calls: usize,
+    pub(super) refused: usize,
+}
+
+impl Tally {
+    pub(super) fn closed(&self) {
+        witness::note(
+            witness::channel::DOOR,
+            "the assistant's door closed",
+            &[
+                ("calls", Fact::Count(self.calls)),
+                ("refused", Fact::Count(self.refused)),
+            ],
+        );
+    }
 }
 
 pub(super) fn discovered() -> Value {
@@ -99,10 +127,20 @@ pub(super) fn wrong(why: &str) -> Value {
     })
 }
 
+/// Some clients hand the model the structured answer alone, so a short text travels inside it too.
 pub(super) fn told(text: String, structured: Value) -> Value {
+    let structured = match structured {
+        Value::Object(mut fields) if text.chars().count() <= SAID_WITHIN => {
+            fields.entry("said").or_insert_with(|| json!(text));
+            Value::Object(fields)
+        }
+        other => other,
+    };
     json!({
         "resultType": "complete",
         "content": [{ "type": "text", "text": text }],
         "structuredContent": structured,
     })
 }
+
+const SAID_WITHIN: usize = 600;

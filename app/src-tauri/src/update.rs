@@ -24,18 +24,24 @@ pub enum Route {
     Download,
 }
 
+impl Route {
+    pub const fn code(self) -> &'static str {
+        match self {
+            Route::Store => "store",
+            Route::Brew => "brew",
+            Route::Download => "download",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Kept {
     pub route: Route,
-    pub package: Option<&'static str>,
 }
 
 impl Kept {
     const fn plain(route: Route) -> Self {
-        Self {
-            route,
-            package: None,
-        }
+        Self { route }
     }
 }
 
@@ -44,7 +50,6 @@ impl Kept {
 pub struct Ready {
     pub version: String,
     pub route: Route,
-    pub package: Option<&'static str>,
     pub installs: bool,
     pub coming: bool,
 }
@@ -53,7 +58,6 @@ pub fn on_its_way(version: Option<&str>) -> Ready {
     Ready {
         version: version.unwrap_or_default().to_string(),
         route: Route::Store,
-        package: None,
         installs: false,
         coming: true,
     }
@@ -145,7 +149,6 @@ fn offered(version: String, kept: Kept) -> Ready {
     Ready {
         version,
         route: kept.route,
-        package: kept.package,
         installs: self_installs(kept.route) && !from_a_mount(),
         coming: false,
     }
@@ -160,7 +163,6 @@ pub fn from_the_shop(version: &str, now: &str) -> Option<Ready> {
     (said > here).then(|| Ready {
         version: said.to_string(),
         route: Route::Store,
-        package: None,
         installs: true,
         coming: false,
     })
@@ -221,18 +223,12 @@ fn chosen(running: Option<&std::path::Path>, there: impl Fn(&std::path::Path) ->
         return Kept::plain(Route::Store);
     }
 
-    for package in CASKS {
-        let brewed = PREFIXES
+    let brewed = CASKS.iter().any(|package| {
+        PREFIXES
             .iter()
-            .any(|root| there(std::path::Path::new(&format!("{root}/Caskroom/{package}"))));
-        if brewed {
-            return Kept {
-                route: Route::Brew,
-                package: Some(package),
-            };
-        }
-    }
-    Kept::plain(Route::Download)
+            .any(|root| there(std::path::Path::new(&format!("{root}/Caskroom/{package}"))))
+    });
+    Kept::plain(if brewed { Route::Brew } else { Route::Download })
 }
 
 pub fn feed_key() -> Option<&'static str> {
@@ -245,7 +241,8 @@ pub fn trusted(said: &[u8], signature: &[u8], key: &str, name: &str) -> bool {
 }
 
 fn named(url: &str) -> &str {
-    url.rsplit('/').next().unwrap_or(url)
+    let file = url.rsplit('/').next().unwrap_or(url);
+    file.split('?').next().unwrap_or(file)
 }
 
 pub enum Heard {
@@ -255,12 +252,31 @@ pub enum Heard {
 }
 
 fn asked(client: &reqwest::blocking::Client, url: &str) -> Option<Vec<u8>> {
-    let answer = client.get(url).send().ok()?;
+    let answer = match client.get(url).send() {
+        Ok(answer) => answer,
+        Err(e) => {
+            witness::standing(
+                channel::UPDATE,
+                "the release feed could not be reached",
+                &[
+                    ("file", Fact::Id(named(url).to_string())),
+                    (
+                        "why",
+                        Fact::Why(tisty_carrier::said::told(&e.without_url())),
+                    ),
+                ],
+            );
+            return None;
+        }
+    };
     if !answer.status().is_success() {
         witness::warn(
-            channel::WINDOW,
+            channel::UPDATE,
             "the release feed answered with a refusal",
-            &[("code", Fact::Count(answer.status().as_u16() as usize))],
+            &[
+                ("file", Fact::Id(named(url).to_string())),
+                ("code", Fact::Count(answer.status().as_u16() as usize)),
+            ],
         );
         return None;
     }
@@ -316,22 +332,43 @@ pub fn fetch() -> Heard {
     let Some(client) = client() else {
         return Heard::Nothing;
     };
-    let text = |said: Vec<u8>| String::from_utf8(said).map_or(Heard::Nothing, Heard::Said);
+    let text = |said: Vec<u8>| match String::from_utf8(said) {
+        Ok(said) => Heard::Said(said),
+        Err(_) => {
+            set_aside(MANIFEST, "not-text");
+            Heard::Nothing
+        }
+    };
     let Some(key) = feed_key() else {
+        static ONCE: std::sync::Once = std::sync::Once::new();
+        ONCE.call_once(|| {
+            witness::note(
+                channel::UPDATE,
+                "this build has no feed key, so the release feed is read unsigned",
+                &[],
+            );
+        });
         return asked(&client, MANIFEST).map_or(Heard::Nothing, text);
     };
     match read_signed(&client, MANIFEST, key, |_| true) {
         Signed::Said(said) => text(said),
         Signed::Nothing => Heard::Nothing,
         Signed::Unsigned => {
-            witness::warn(
-                channel::WINDOW,
-                "the release manifest did not verify against the feed's key, and was set aside",
-                &[],
-            );
+            set_aside(MANIFEST, "signature");
             Heard::Unsigned
         }
     }
+}
+
+fn set_aside(url: &str, why: &'static str) {
+    witness::warn(
+        channel::UPDATE,
+        "a file from the release feed was set aside",
+        &[
+            ("file", Fact::Id(named(url).to_string())),
+            ("why", Fact::Code(why)),
+        ],
+    );
 }
 
 pub fn same_channel(said: &[u8], read: &serde_json::Value) -> bool {
@@ -346,17 +383,22 @@ pub fn channel_vouched(read: &serde_json::Value, version: &str) -> bool {
     let Some(client) = client() else {
         return false;
     };
-    let vouched = feeds_for(version).into_iter().any(|url| {
+    let feeds = feeds_for(version);
+    let vouched = feeds.iter().any(|url| {
         matches!(
             read_signed(&client, url, key, |said| same_channel(said, read)),
             Signed::Said(_)
         )
     });
     if !vouched {
+        let files: Vec<&str> = feeds.iter().map(|url| named(url)).collect();
         witness::warn(
-            channel::WINDOW,
-            "the update channel the installer came from did not match one the feed's key signed",
-            &[],
+            channel::UPDATE,
+            "a file from the release feed was set aside",
+            &[
+                ("file", Fact::Id(files.join(","))),
+                ("why", Fact::Code("channel-differs")),
+            ],
         );
     }
     vouched

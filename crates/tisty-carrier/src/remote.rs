@@ -17,7 +17,7 @@ pub enum Expect {
     Any,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Hitch {
     Missing(String),
     Changed(String),
@@ -42,6 +42,51 @@ pub enum Hitch {
     /// Everything the store held up there is gone at once, deleted outside Tisty, and is never read as each file deleted.
     Emptied,
     Broke(String),
+}
+
+impl Hitch {
+    pub fn code(&self) -> &'static str {
+        match self {
+            Hitch::Missing(_) => "missing",
+            Hitch::Changed(_) => "changed",
+            Hitch::Limited { .. } => "limited",
+            Hitch::Busy { .. } => "busy",
+            Hitch::Spent => "spent",
+            Hitch::Paused => "paused",
+            Hitch::Full => "full",
+            Hitch::Lost => "lost",
+            Hitch::Elsewhere { .. } => "elsewhere",
+            Hitch::Unreachable(..) => "unreachable",
+            Hitch::Troubled(_) => "troubled",
+            Hitch::Emptied => "emptied",
+            Hitch::Broke(_) => "broke",
+        }
+    }
+}
+
+/// The account found is the person's address, and what is printed may end up in a shared log.
+impl std::fmt::Debug for Hitch {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Hitch::Missing(name) => f.debug_tuple("Missing").field(name).finish(),
+            Hitch::Changed(name) => f.debug_tuple("Changed").field(name).finish(),
+            Hitch::Limited { wait } => f.debug_struct("Limited").field("wait", wait).finish(),
+            Hitch::Busy { wait } => f.debug_struct("Busy").field("wait", wait).finish(),
+            Hitch::Elsewhere { .. } => f.debug_struct("Elsewhere").finish_non_exhaustive(),
+            Hitch::Unreachable(cause, why) => f
+                .debug_tuple("Unreachable")
+                .field(cause)
+                .field(why)
+                .finish(),
+            Hitch::Troubled(why) => f.debug_tuple("Troubled").field(why).finish(),
+            Hitch::Broke(why) => f.debug_tuple("Broke").field(why).finish(),
+            Hitch::Spent => f.write_str("Spent"),
+            Hitch::Paused => f.write_str("Paused"),
+            Hitch::Full => f.write_str("Full"),
+            Hitch::Lost => f.write_str("Lost"),
+            Hitch::Emptied => f.write_str("Emptied"),
+        }
+    }
 }
 
 impl From<std::io::Error> for Hitch {

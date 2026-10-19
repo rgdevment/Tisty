@@ -14,6 +14,37 @@ Esta guía te tomará un par de minutos y podrás conocer un poco más de qué p
 
 Cuando necesites ayuda en el camino, pulsa `F1` o el `?` al pie de la barra lateral: abre la [guía de Markdown de Tisty](https://markdown.tisty.app/es/) aquí mismo, en lo que estás escribiendo, y funciona sin conexión. Las tareas, los asistentes y todo lo demás se explican en [www.tisty.app/es/ayuda](https://www.tisty.app/es/ayuda/).
 
+## ¿Tarea o documento?
+
+Tisty guarda dos tipos de cosas, y distinguirlas es buena parte de usarlo bien.
+
+- **Una tarea es algo por hacer.** Termina, muchas veces pronto: la completas y pasa al archivo. Pero no desaparece. Lo que escribiste en su página, sus pasos y sus notas se quedan, y meses después una búsqueda la encuentra y te cuenta cómo lo resolviste. Una tarea es conocimiento con fecha.
+- **Un documento es algo para guardar.** Un manual, una receta, las notas de un cliente o de una máquina, las actas de un año: se lee una y otra vez, se corrige y se amplía, y crece durante años. Rara vez termina.
+
+Por eso una tarea tiene una página propia: una tarea también es un documento, uno que termina. Piensa en un **spike**, una investigación para saber cómo se puede hacer algo antes de hacerlo:
+
+1. Empieza como una tarea, «Averiguar cómo sincronizar con OneDrive». En su página escribes lo que leíste, lo que probaste y lo que descartaste, sección por sección, y vuelves a corregirlo a medida que aprendes. Adjuntas lo que una descripción fija nunca podría contener: la grabación de la reunión, un video de la falla, el análisis del código, el PDF del proveedor.
+2. Cuando el camino está claro, el trabajo se divide en **partes**: «Iniciar sesión», «Subir archivos grandes», «Retomar una subida cortada». Cada una es una tarea con sus propios pasos y notas.
+3. Las partes se completan una a una, y después el spike. Pasa al archivo.
+4. No se pierde nada. Un año después, «¿cómo resolvimos las subidas a OneDrive?» lo encuentra: su página, sus partes y cada paso, tal como quedaron.
+
+```mermaid
+flowchart TD
+  A[Aparece algo] --> B{¿Lo vas a hacer,<br/>o a volver a leer?}
+  B -->|Hacerlo| T[Una tarea]
+  B -->|Volver a leerlo| D[Un documento]
+  T --> P[Su página: notas, pasos,<br/>archivos, grabaciones]
+  P --> S{¿Es mucho para una vez?}
+  S -->|Sí| K[Divídela en partes]
+  K --> C
+  S -->|No| C[Complétala]
+  C --> R[El archivo:<br/>la búsqueda te dice cómo lo resolviste]
+  P -.->|Aprendiste algo que<br/>vas a necesitar de nuevo| D
+  D --> G[Léelo, corrígelo y amplíalo<br/>durante años]
+```
+
+Lo que vas a hacer es una tarea. Lo que vas a volver a consultar es un documento: una receta no es una tarea con pasos, y un pendiente no es un documento. Cuando hacer una tarea te enseña algo que vas a necesitar de nuevo más allá de ella —el arreglo de una falla que vuelve, cómo quiere un proveedor que le pidan— guárdalo también en un documento.
+
 ---
 
 ## Las tareas
@@ -343,7 +374,7 @@ Un calendario también entra. Arrastra un `.ics` a la ventana, fuera de un docum
 
 ### 11. Un asistente puede escribir aquí
 
-Si usas un asistente, puede archivar documentos y proponer tareas por su cuenta. Lo que no puede es cerrar, borrar ni tocar lo que tú escribiste. También puede **marcar** un documento o una página que ya cumplió su vida: verás un rombo junto a su nombre y, al abrirlo, lo que dijo. Es una propuesta, no un borrado — borrar sigue siendo tuyo, y el rombo se quita con un clic. Lo que escribe va firmado con el nombre del programa por el que habló —«por Claude Code», «por Codex»—, y lo que se escribió antes de que los programas dijeran su nombre se lee «por un asistente».
+Si usas un asistente, puede proponer tareas y escribir documentos por su cuenta, y añadir o corregir en los documentos donde puede escribir. Lo que nunca hace es cerrar ni borrar una tarea, borrar un documento ni cambiar una tarea que escribiste tú, salvo que abras esa tarea a los agentes. También puede **marcar** un documento o una página que ya cumplió su vida: verás un rombo junto a su nombre y, al abrirlo, lo que dijo. Es una propuesta, no un borrado — borrar sigue siendo tuyo, y el rombo se quita con un clic. Lo que escribe va firmado con el nombre del programa por el que habló —«por Claude Code», «por Codex»—, y lo que se escribió antes de que los programas dijeran su nombre se lee «por un asistente».
 
 Cuando termina una de las tareas que anotó él, lo dice y deja en la bitácora la cuenta de lo que hizo. La tarea sigue abierta, reunida bajo **Por confirmar** con la hora en que habló —salvo que venza hoy o esté atrasada, que se queda donde la buscas—. Tú la terminas, o la devuelves con **Sigue pendiente** y vuelve a su día con la cuenta guardada.
 
@@ -353,7 +384,7 @@ Para reescribir un documento entero se le entrega una huella del texto exacto qu
 
 ### 12. Tus copias
 
-Tisty trabaja siempre en este equipo. Si quieres alcanzarlo desde otro, dile dónde dejar las copias: te ofrece Google Drive, OneDrive, iCloud y Dropbox —los que encuentre instalados, con su carpeta ya resuelta— o cualquier otra que los dos equipos alcancen, un NAS o un disco externo. Tu Google Drive también se puede conectar directamente, desde Configuración, sin tener instalado ningún programa de Google.
+Tisty trabaja siempre en este equipo. Si quieres alcanzarlo desde otro, dile dónde dejar las copias: te ofrece Google Drive, OneDrive, iCloud y Dropbox —los que encuentre instalados, con su carpeta ya resuelta— o cualquier otra que los dos equipos alcancen, un NAS o un disco externo. Tu Google Drive o tu OneDrive también se pueden conectar directamente, desde Configuración, sin tener instalado ningún programa de Google ni de Microsoft.
 
 Quien sube y baja esa carpeta es el programa de tu proveedor, no Tisty. Si no está en marcha, las tareas esperan ahí hasta que lo esté.
 

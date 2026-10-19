@@ -9,13 +9,14 @@ import Unvouched from "../ui/Unvouched";
 const ipc = vi.hoisted(() => ({
   asked: 0,
   found: [] as { at: string; bytes: number }[],
+  unread: null as string | null,
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string) => {
     if (cmd === "unvouched_attachments") {
       ipc.asked += 1;
-      return Promise.resolve(ipc.found);
+      return Promise.resolve({ found: ipc.found, unread: ipc.unread });
     }
     return Promise.resolve(null);
   },
@@ -24,6 +25,7 @@ vi.mock("@tauri-apps/api/core", () => ({
 beforeEach(() => {
   ipc.asked = 0;
   ipc.found = [];
+  ipc.unread = null;
 });
 
 const MB = 1024 * 1024;
@@ -47,6 +49,14 @@ describe("the attachments with no print in Maintenance", () => {
 
     expect(await screen.findByText(t("unvouchedNone"))).toBeTruthy();
     expect(screen.queryByRole("button", { name: t("unvouchedDo") })).toBeNull();
+  });
+
+  it("names the document it could not read instead of saying every print is there", async () => {
+    ipc.unread = "Recetas";
+    render(<Unvouched held={false} vouch={() => {}} className="" />);
+
+    expect(await screen.findByText(fill("unvouchedUnread", "Recetas"))).toBeTruthy();
+    expect(screen.queryByText(t("unvouchedNone"))).toBeNull();
   });
 
   it("writes them down on a click and looks again afterwards", async () => {

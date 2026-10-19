@@ -39,7 +39,6 @@ const TOWARD = { kind: "cloud" as const, account: "0123", email: "ana@example.co
 
 const folder = {
   asked: true,
-  loose: 0,
   open: 0,
   archived: 0,
   lists: 0,

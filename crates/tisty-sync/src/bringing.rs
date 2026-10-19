@@ -154,7 +154,7 @@ fn answers_for_itself(
                 stood = Some(says);
             }
             Some(says) if hosted(data, device, theirs, &who, &says, knew) => {
-                witness::note(
+                witness::standing(
                     channel::SYNC,
                     "an agent was answered for by the host it runs on, already confirmed here",
                     &[("at", Fact::Id(named.to_string()))],
@@ -162,7 +162,7 @@ fn answers_for_itself(
                 stood = Some(says);
             }
             Some(_) => {
-                witness::note(
+                witness::standing(
                     channel::SYNC,
                     "a machine says it signs what it writes and nobody here has answered for its key, so what it writes waits",
                     &[("at", Fact::Id(named.to_string()))],
@@ -171,7 +171,7 @@ fn answers_for_itself(
             }
             None if adopting && !said_a_key => return Answered::Unsaid,
             None => {
-                witness::note(
+                witness::standing(
                     channel::SYNC,
                     "a machine signs what it writes and has not yet said with what, so what it writes waits",
                     &[("at", Fact::Id(named.to_string()))],

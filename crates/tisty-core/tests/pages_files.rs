@@ -163,7 +163,7 @@ fn deleting_a_page_and_its_document_leaves_a_shared_attachment_named_by_another_
     );
     assert_eq!(std::fs::read(&stored).unwrap(), b"shared payload bytes");
 
-    let referenced = docs::referenced(&data.join("docs"));
+    let referenced = docs::referenced(&data.join("docs")).unwrap();
     assert!(referenced.contains(&kept.at));
     let loose = attach::loose(data, &referenced);
     assert!(
@@ -214,7 +214,7 @@ fn deleting_a_page_alone_leaves_its_document_and_a_shared_attachment_untouched()
     docs::remove(&data.join("docs"), &page_file).unwrap();
     assert!(docs::read(&data.join("docs"), &parent_file).is_ok());
 
-    let referenced = docs::referenced(&data.join("docs"));
+    let referenced = docs::referenced(&data.join("docs")).unwrap();
     let loose = attach::loose(data, &referenced);
     assert!(!loose.items.iter().any(|one| one.at == kept.at));
 }
@@ -251,7 +251,7 @@ fn deleting_a_documents_only_page_that_named_a_file_leaves_it_loose_until_someth
         docs::remove(&data.join("docs"), file).unwrap();
     }
 
-    let referenced = docs::referenced(&data.join("docs"));
+    let referenced = docs::referenced(&data.join("docs")).unwrap();
     assert!(!referenced.contains(&kept.at));
 
     let loose = attach::loose(data, &referenced);

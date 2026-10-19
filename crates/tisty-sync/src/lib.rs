@@ -86,6 +86,34 @@ pub enum Trouble {
     Moved(String),
 }
 
+impl Trouble {
+    pub fn code(&self) -> &'static str {
+        match self {
+            Trouble::NotThere(_) => "not-there",
+            Trouble::OtherStore { .. } => "other-store",
+            Trouble::Unreadable(_) => "unreadable",
+            Trouble::Refused(_) => "refused",
+            Trouble::Broke(_) => "broke",
+            Trouble::WouldReset { .. } => "would-reset",
+            Trouble::NotAllowed(_) => "not-allowed",
+            Trouble::SameName(_) => "same-name",
+            Trouble::Emptied(_) => "emptied",
+            Trouble::Newer(_) => "newer",
+            Trouble::Shape(_) => "shape",
+            Trouble::Needs(_) => "needs",
+            Trouble::Unshaped(_) => "unshaped",
+            Trouble::CloudFull { .. } => "cloud-full",
+            Trouble::CloudEmptied { .. } => "cloud-emptied",
+            Trouble::CloudLost { .. } => "cloud-lost",
+            Trouble::CloudElsewhere { .. } => "cloud-elsewhere",
+            Trouble::CloudSpent { .. } => "cloud-spent",
+            Trouble::StuckOn { .. } => "stuck-on",
+            Trouble::NotNow(_) => "not-now",
+            Trouble::Moved(_) => "moved",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Way {
     Both,
@@ -139,6 +167,21 @@ pub enum Reason {
     Troubled,
     /// Attachments that could not go up, each kept here: unreadable, changed, refused or too big.
     Unsent,
+}
+
+impl Reason {
+    pub fn code(self) -> &'static str {
+        match self {
+            Reason::Limit => "limit",
+            Reason::Budget => "budget",
+            Reason::Paused => "paused",
+            Reason::Busy => "busy",
+            Reason::Offline => "offline",
+            Reason::Changed => "changed",
+            Reason::Troubled => "troubled",
+            Reason::Unsent => "unsent",
+        }
+    }
 }
 
 /// What stood between this machine and the provider, read off the failed request alone.
@@ -469,7 +512,7 @@ pub fn carry_through(
         }
     }
     if taking && attachments.takes() {
-        let reachable = adrift.then(|| named_now(&told, data));
+        let reachable = adrift.then(|| named_now(&told, data)).flatten();
         let buried_again;
         let buried = match moved.arrived.is_empty() {
             true => &buried,
@@ -501,19 +544,22 @@ pub fn buried_now(told: &tisty_core::State, data: &Path) -> std::collections::BT
     if told.retired.is_empty() {
         return Default::default();
     }
-    let named = named_now(told, data);
+    // A document that could not be read may name any of them, so none is buried this round.
+    let Some(named) = named_now(told, data) else {
+        return Default::default();
+    };
     told.retired.difference(&named).cloned().collect()
 }
 
-fn named_now(told: &tisty_core::State, data: &Path) -> std::collections::BTreeSet<String> {
+fn named_now(told: &tisty_core::State, data: &Path) -> Option<std::collections::BTreeSet<String>> {
     let mut named: std::collections::BTreeSet<String> = told
         .tasks
         .values()
         .flat_map(|task| task.references())
         .map(|one| one.target)
         .collect();
-    named.extend(tisty_core::docs::referenced(&data.join(PAPERS)));
-    named
+    named.extend(tisty_core::docs::referenced(&data.join(PAPERS)).ok()?);
+    Some(named)
 }
 
 fn as_told(store: &Path, aside: Option<&Path>) -> Option<tisty_core::State> {

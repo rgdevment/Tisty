@@ -8,13 +8,14 @@ use std::time::Duration;
 use reqwest::blocking::Client as Http;
 use serde::Deserialize;
 use tisty_carrier::{Changes, Costs, Expect, Hitch, Limits, Remote, Seen, Tokens};
+use tisty_core::witness::{self, Fact, channel};
 
 mod tree;
 mod upload;
 mod wire;
 
 use tree::{DriveItem, ITEM_FIELDS, Tree, moved, within};
-use wire::{given, json, judged, judged_carried, transfer_http};
+use wire::{given, json, judged, judged_carried, judged_whole, transfer_http};
 
 use crate::{ASKED_WITHIN, names, unreachable};
 
@@ -27,6 +28,10 @@ const WHOLE_AT_MOST: u64 = 250 * 1000 * 1000;
 // Cursors passed with the paths each one moved, so a round asking from an older one still hears them all.
 const PASSED_AT_MOST: usize = 64;
 const UPLOADS_KEPT_FOR: u64 = 2 * 24 * 60 * 60;
+const PAGE_TRIES: u32 = 3;
+const PAGE_PAUSE: Duration = Duration::from_secs(1);
+// A longer pace asked of a listing pauses the round instead of holding the pages read so far.
+const PAGE_WAITS_AT_MOST: Duration = Duration::from_secs(30);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GraphAt {
@@ -77,6 +82,16 @@ impl Known {
             .flat_map(|(_, touched)| touched.iter().cloned())
             .collect()
     }
+}
+
+#[derive(Deserialize)]
+struct Page {
+    #[serde(default)]
+    value: Vec<DriveItem>,
+    #[serde(rename = "@odata.nextLink")]
+    next: Option<String>,
+    #[serde(rename = "@odata.deltaLink")]
+    delta: Option<String>,
 }
 
 enum Walked {
@@ -165,9 +180,16 @@ impl OneDrive {
         let account = self.account()?;
         match account.id == expected {
             true => Ok(account),
-            false => Err(Hitch::Elsewhere {
-                found: account.email,
-            }),
+            false => {
+                witness::warn(
+                    channel::CLOUD,
+                    "OneDrive answered for another account than the one chosen",
+                    &[],
+                );
+                Err(Hitch::Elsewhere {
+                    found: account.email,
+                })
+            }
         }
     }
 
@@ -187,22 +209,13 @@ impl OneDrive {
     fn root(&self) -> Result<String, Hitch> {
         let url = format!("{}/me/drive/special/approot", self.at.api);
         self.spent(1);
-        let root: DriveItem = json(self.call(Some(ASKED_WITHIN), |http| {
+        let root: DriveItem = json(judged_whole(self.sent(Some(ASKED_WITHIN), |http| {
             http.get(&url).query(&[("$select", "id")])
-        })?)?;
+        })?)?)?;
         Ok(root.id)
     }
 
     fn walked(&self, from: &str) -> Result<Walked, Hitch> {
-        #[derive(Deserialize)]
-        struct Page {
-            #[serde(default)]
-            value: Vec<DriveItem>,
-            #[serde(rename = "@odata.nextLink")]
-            next: Option<String>,
-            #[serde(rename = "@odata.deltaLink")]
-            delta: Option<String>,
-        }
         let mut link = from.to_string();
         let mut all = Vec::new();
         let mut pages = 0;
@@ -212,12 +225,9 @@ impl OneDrive {
                 self.spent(1);
             }
             pages += 1;
-            let answer = self.sent(Some(ASKED_WITHIN), |http| http.get(&link))?;
-            // A cursor of a folder OneDrive made anew answers 404, and one it let lapse 410: both are read whole again.
-            if matches!(answer.status().as_u16(), 404 | 410) {
+            let Some(page) = self.page_at(&link)? else {
                 return Ok(Walked::Gone);
-            }
-            let page: Page = json(judged(answer)?)?;
+            };
             all.extend(page.value);
             match (page.next, page.delta) {
                 (Some(next), _) => link = next,
@@ -228,6 +238,42 @@ impl OneDrive {
                     ));
                 }
             }
+        }
+    }
+
+    // A page refused for a moment is asked for again where the listing got to, so the pages before it are kept.
+    fn page_at(&self, link: &str) -> Result<Option<Page>, Hitch> {
+        let mut failed = 0;
+        loop {
+            let asked = self
+                .sent(Some(ASKED_WITHIN), |http| http.get(link))
+                .and_then(|answer| match answer.status().as_u16() {
+                    // A cursor of a folder OneDrive made anew answers 404, and one it let lapse 410: both are read whole again.
+                    status @ (404 | 410) => {
+                        witness::note(
+                            channel::CLOUD,
+                            "OneDrive let a listing cursor lapse, so the folder is read whole again",
+                            &[("status", Fact::Count(status.into()))],
+                        );
+                        Ok(None)
+                    }
+                    _ => json(judged_whole(answer)?).map(Some),
+                });
+            match asked {
+                Err(Hitch::Troubled(_) | Hitch::Unreachable(None, _))
+                    if failed + 1 < PAGE_TRIES =>
+                {
+                    std::thread::sleep(PAGE_PAUSE * (failed + 1));
+                }
+                Err(Hitch::Limited { wait })
+                    if failed + 1 < PAGE_TRIES && wait <= PAGE_WAITS_AT_MOST =>
+                {
+                    std::thread::sleep(wait);
+                }
+                other => return other,
+            }
+            failed += 1;
+            self.spent(1);
         }
     }
 
@@ -412,7 +458,12 @@ impl Remote for OneDrive {
                 .traced(asked.build().map_err(unreachable)?, Some("download"))
                 .map_err(unreachable)?;
             match answer.status().as_u16() {
-                206 => break (item, answer, 0),
+                206 if begins_at(&answer, from) => break (item, answer, 0),
+                206 => {
+                    return Err(Hitch::Broke(format!(
+                        "OneDrive sent another part of «{name}» than the one asked for"
+                    )));
+                }
                 // OneDrive may send the whole file when it cannot cut it, so what was already here is passed over.
                 200 => break (item, answer, from),
                 // The address outlives its permission after a while; a fresh one is asked for once, never the sign-in.
@@ -420,8 +471,12 @@ impl Remote for OneDrive {
                     renewed = true;
                     self.spent(1);
                 }
-                // A fresh address refused again is the grant itself gone.
-                401 | 403 => return Err(judged(answer).err().unwrap_or(Hitch::Lost)),
+                // One file refused twice is left for a later round; the sign-in still stands for every other.
+                401 | 403 => {
+                    return Err(Hitch::Broke(format!(
+                        "OneDrive would not hand over «{name}» even from a fresh address"
+                    )));
+                }
                 _ => {
                     return Err(match judged_carried(answer) {
                         Err(Hitch::Missing(_)) => Hitch::Missing(name.to_string()),
@@ -580,6 +635,11 @@ impl Remote for OneDrive {
             {
                 return Ok(caught_up);
             }
+            witness::note(
+                channel::CLOUD,
+                "the changes OneDrive gave fell back to a whole listing",
+                &[],
+            );
         }
         self.enumerated()?;
         Ok(Changes::Whole {
@@ -587,6 +647,18 @@ impl Remote for OneDrive {
             cursor: self.cursor().unwrap_or_default(),
         })
     }
+}
+
+// Only a piece that begins where this copy stopped may be written after it.
+fn begins_at(answer: &reqwest::blocking::Response, from: u64) -> bool {
+    answer
+        .headers()
+        .get(reqwest::header::CONTENT_RANGE)
+        .and_then(|one| one.to_str().ok())
+        .and_then(|one| one.trim().strip_prefix("bytes "))
+        .and_then(|one| one.split_once('-'))
+        .and_then(|(start, _)| start.trim().parse::<u64>().ok())
+        == Some(from)
 }
 
 #[cfg(test)]

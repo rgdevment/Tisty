@@ -14,6 +14,37 @@ This guide takes a couple of minutes, and you will come out of it knowing a litt
 
 When you need help along the way, press `F1` or the `?` at the foot of the sidebar: it opens the [Tisty Markdown guide](https://markdown.tisty.app) right here, on what you are writing, and it works offline. Tasks, assistants and everything else are explained at [www.tisty.app/docs](https://www.tisty.app/docs/).
 
+## A task or a document?
+
+Tisty keeps two kinds of things, and telling them apart is most of using it well.
+
+- **A task is something to do.** It ends, often soon: you complete it and it goes to the archive. But it does not go away. What you wrote on its page, its steps and its notes stay, and months later a search finds it and tells you how you solved it. A task is knowledge with a date.
+- **A document is something to keep.** A manual, a recipe, the notes on a client or a machine, a year of minutes: it is read again and again, corrected and added to, and it grows for years. It rarely ends.
+
+That is why a task has a page of its own: a task is also a document, one with an end. Take a **spike** — finding out how something can be done before doing it:
+
+1. It starts as a task, «Find out how to sync with OneDrive». On its page you write what you read, what you tried and what you ruled out, section by section, and you go back and correct it as you learn. You attach what a single description could never hold: the recording of the meeting, a video of the fault, the code analysis, the PDF from the vendor.
+2. When the way is clear, the work is split into **parts**: «Sign in», «Upload large files», «Resume a cut upload». Each one is a task with its own steps and notes.
+3. The parts are completed one by one, and then the spike itself. It goes to the archive.
+4. Nothing is lost. A year later, «how did we solve the OneDrive uploads?» finds it: its page, its parts and every step, as they were left.
+
+```mermaid
+flowchart TD
+  A[Something comes up] --> B{Will you do it,<br/>or come back to read it?}
+  B -->|Do it| T[A task]
+  B -->|Read it again| D[A document]
+  T --> P[Its page: notes, steps,<br/>files, recordings]
+  P --> S{Too big for one go?}
+  S -->|Yes| K[Split it into parts]
+  K --> C
+  S -->|No| C[Complete it]
+  C --> R[The archive:<br/>search finds how you solved it]
+  P -.->|You learned something<br/>you will need again| D
+  D --> G[Read, correct and add to it<br/>for years]
+```
+
+Something you will do is a task. Something you will come back to is a document — a recipe is not a task with steps, and a to-do is not a document. When doing a task teaches you something you will need again beyond it — the fix for a fault that returns, how a supplier wants an order — put it in a document as well.
+
 ---
 
 ## Tasks
@@ -343,7 +374,7 @@ A calendar comes in too. Drag an `.ics` onto the window, away from a document, o
 
 ### 11. An assistant can write here
 
-If you use an assistant, it can file documents and propose tasks of its own accord. What it cannot do is close, delete or touch what you wrote. It can also **mark** a document or a page that has had its day: you will see a diamond beside its name and, when you open it, what the assistant said. It is a proposal, not a deletion — deleting stays yours, and the diamond comes off with one click. What it writes is signed with the name of the program it spoke through — «by Claude Code», «by Codex» — and what was written before programs said their name reads «by an assistant».
+If you use an assistant, it can propose tasks and write documents of its own accord, and add to or correct the documents it may write in. What it never does is close or delete a task, delete a document, or change a task you wrote — unless you open that task to agents. It can also **mark** a document or a page that has had its day: you will see a diamond beside its name and, when you open it, what the assistant said. It is a proposal, not a deletion — deleting stays yours, and the diamond comes off with one click. What it writes is signed with the name of the program it spoke through — «by Claude Code», «by Codex» — and what was written before programs said their name reads «by an assistant».
 
 When it finishes one of the tasks it filed, it says so and leaves the account of what it did in the journal. The task stays open, gathered under **To confirm** with the hour it spoke — unless it is due today or overdue, which stays where you look for it. You finish it, or you send it back with **Still to do** and it returns to its day with the account kept.
 
@@ -353,7 +384,7 @@ To rewrite a whole document it is handed a print of the exact text it read, and 
 
 ### 12. Your copies
 
-Tisty always works on this computer. To reach it from another one, tell it where to leave the copies: it offers Google Drive, OneDrive, iCloud and Dropbox — whichever it finds installed, folder already worked out — or any other folder both computers reach, a NAS or an external disk. Your Google Drive can also be connected directly, from Settings, with no program of Google's installed.
+Tisty always works on this computer. To reach it from another one, tell it where to leave the copies: it offers Google Drive, OneDrive, iCloud and Dropbox — whichever it finds installed, folder already worked out — or any other folder both computers reach, a NAS or an external disk. Your Google Drive or OneDrive can also be connected directly, from Settings, with no program of Google's or Microsoft's installed.
 
 Whoever takes that folder up and down is your provider's program, not Tisty. If it is not running, the tasks wait there until it is.
 

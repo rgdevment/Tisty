@@ -155,7 +155,10 @@ pub fn opened(state: &State, task: TaskId, template: &str) -> String {
         .map(str::trim)
         .filter(|said| !said.is_empty());
     let mut steps = one.map(|one| crate::stages::lines(&crate::stages::ordered(one)));
-    let mut notes = one.filter(|one| one.is_open()).and_then(noted);
+    // A round's own words are logged when it closes, so its journal never comes onto its page.
+    let mut notes = one
+        .filter(|one| one.is_open() && one.repeat.is_none() && one.after.is_none())
+        .and_then(noted);
     let mut out = seed(task);
     let template = template.replace("\r\n", "\n");
     let template = template.trim();
@@ -197,6 +200,18 @@ pub fn opened(state: &State, task: TaskId, template: &str) -> String {
         Some(one) => crate::stages::ticked(one, &out),
         None => out,
     }
+}
+
+/// Another machine's words for a task's page stay on the page under their own heading, never as a document apart.
+pub fn kept_beside(page: &str, theirs: &str, heading: &str) -> String {
+    let past = tisty_markdown::front::span(theirs).map_or(0, |at| at.end);
+    let said = deeper(theirs[past..].trim());
+    if said.trim().is_empty() || page.contains(&said) {
+        return page.to_string();
+    }
+    let line = if page.contains("\r\n") { "\r\n" } else { "\n" };
+    let kept = page.trim_end_matches(['\n', '\r']);
+    format!("{kept}{line}{line}## {heading}{line}{line}{said}{line}")
 }
 
 // A description's own headings sit one level under its section, so they never read as the template's.
@@ -246,7 +261,7 @@ fn unboxed(line: &str) -> String {
     }
 }
 
-const NOTES: [&str; 4] = ["## Notes", "## Notas", "## This time", "## Esta vez"];
+const NOTES: [&str; 2] = ["## Notes", "## Notas"];
 
 // An open task's journal comes to its page as notes, each under its day; a box in one is no step.
 fn noted(task: &crate::model::Task) -> Option<String> {

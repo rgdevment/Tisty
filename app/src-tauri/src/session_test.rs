@@ -96,3 +96,39 @@ fn writing_over_a_store_a_round_wrote_into_still_brings_that_machine_in() {
     assert!(session.reload().unwrap());
     assert!(session.state.tasks.contains_key(&theirs));
 }
+
+#[test]
+fn a_document_that_cannot_be_read_counts_nothing_loose_and_names_itself() {
+    let kept = tempfile::tempdir().unwrap();
+    let paths = somewhere(&kept);
+    let session = Session::at(paths.clone()).unwrap();
+    let device = tisty_core::DeviceId("dev_a".into());
+    std::fs::create_dir_all(paths.data().join("attachments")).unwrap();
+    std::fs::write(paths.data().join("attachments/foto-91f2ab00.png"), b"png").unwrap();
+    let broken = tisty_core::docs::create(&paths.docs(), &device, "# Plan").unwrap();
+    let at = tisty_core::docs::resolve(&paths.docs(), &broken.id).unwrap();
+    std::fs::write(at, b"# Plan\n\n\xff\xfe").unwrap();
+
+    let (adrift, unread) = session.checked_adrift();
+
+    assert_eq!(unread.as_deref(), Some("Plan"));
+    assert_eq!(adrift.files(), 0);
+}
+
+#[test]
+fn letting_go_while_a_document_cannot_be_read_names_the_document_not_its_id() {
+    let kept = tempfile::tempdir().unwrap();
+    let paths = somewhere(&kept);
+    let mut session = Session::at(paths.clone()).unwrap();
+    let device = tisty_core::DeviceId("dev_a".into());
+    let broken = tisty_core::docs::create(&paths.docs(), &device, "# Plan").unwrap();
+    let at = tisty_core::docs::resolve(&paths.docs(), &broken.id).unwrap();
+    std::fs::write(at, b"# Plan\n\n\xff\xfe").unwrap();
+
+    let refused = session
+        .retire(&["attachments/foto-91f2ab00.png".to_string()])
+        .unwrap_err();
+
+    assert_eq!(refused.code, "retireUnread");
+    assert_eq!(refused.name.as_deref(), Some("Plan"));
+}

@@ -9,6 +9,8 @@ const A: &str = "http://schemas.openxmlformats.org/drawingml/2006/main";
 
 // Past this a document is a book of pictures, and nothing a person pastes by hand.
 pub const WORD_AT_MOST: u64 = 32 * 1024 * 1024;
+// The words alone are read whole into memory several times over, pictures aside.
+const WORDS_AT_MOST: u64 = 8 * 1024 * 1024;
 
 pub struct Word {
     pub html: String,
@@ -19,8 +21,11 @@ pub fn from_word(bytes: &[u8]) -> Option<Word> {
     let mut zip = zip::ZipArchive::new(std::io::Cursor::new(bytes)).ok()?;
     let mut part = |name: &str| -> Option<String> {
         let file = zip.by_name(name).ok()?;
+        if file.size() > WORDS_AT_MOST {
+            return None;
+        }
         let mut said = String::new();
-        file.take(WORD_AT_MOST).read_to_string(&mut said).ok()?;
+        file.take(WORDS_AT_MOST).read_to_string(&mut said).ok()?;
         Some(said)
     };
     let body = part("word/document.xml")?;
@@ -56,7 +61,7 @@ pub fn from_word(bytes: &[u8]) -> Option<Word> {
             continue;
         }
         left -= bytes.len() as u64;
-        pictures.insert(name, bytes);
+        pictures.insert(laid(&name), bytes);
     }
     Some(Word {
         html,
@@ -147,6 +152,26 @@ fn media(target: &str) -> Option<String> {
     let name = inside.strip_prefix("media/")?;
     let plain = !name.is_empty() && name != ".." && !name.contains(['/', '\\', ':']);
     plain.then(|| name.to_string())
+}
+
+// A zip holds names Windows will not write, and one such picture must not cost the whole document.
+fn laid(name: &str) -> String {
+    let plain = name
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '_'));
+    if plain && !name.starts_with('.') && !name.ends_with('.') && !crate::attach::reserved(name) {
+        return name.to_string();
+    }
+    let ext = name
+        .rsplit_once('.')
+        .map(|(_, ext)| ext)
+        .filter(|ext| {
+            !ext.is_empty() && ext.len() <= 8 && ext.chars().all(|c| c.is_ascii_alphanumeric())
+        })
+        .map(|ext| format!(".{ext}"))
+        .unwrap_or_default();
+    let printed = crate::attach::printed(name.as_bytes());
+    format!("picture-{}{ext}", &printed[..16])
 }
 
 fn hex(one: &str) -> Option<String> {
@@ -497,7 +522,7 @@ impl Reading {
         match target {
             Some(name) => format!(
                 "<img src=\"media/{}\" alt=\"{}\">",
-                escaped(&name),
+                escaped(&laid(&name)),
                 escaped(alt)
             ),
             None => String::new(),

@@ -7,9 +7,9 @@ use ulid::Ulid;
 use super::super::asked::text;
 use super::super::jsonrpc::told;
 use super::super::{
-    Refused, UNSETTLED, WHOLE_UP_TO, by_how_much, folder_named, grew, hitch, left_loose,
-    loose_words, named_doc, named_twice, opened, retold, room_for_a_notice, trail, twice_words,
-    up_named, with_echo, wrapped, wrote,
+    Refused, UNSETTLED, WHOLE_UP_TO, by_how_much, doc_titled, folder_named, grew, hitch,
+    left_loose, loose_words, named_doc, named_twice, opened, retold, room_for_a_notice, trail,
+    twice_words, up_named, with_echo, wrapped, wrote,
 };
 
 pub(in crate::mcp) fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
@@ -96,14 +96,14 @@ pub(in crate::mcp) fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Re
         match (&held_by, &where_at) {
             (Some(named), _) if matches!(named_there, tisty_core::docs::Naming::Wrote { .. }) => {
                 format!(
-                    "Wrote {:?} as {}, a page of {named}, and named it at the end of that \
-                     document. Where a page is named is where it sits.",
+                    "Wrote the document {:?}, a page of {named}, and named it at the end of that \
+                     document. Where a page is named is where it sits. [{}]",
                     made.title, made.id
                 )
             }
             (Some(named), _) => format!(
-                "Wrote {:?} as {}, a page of {named}, but no line naming it was written, so it \
-                 is loose: {}. Name it with `page_doc` once that is dealt with.",
+                "Wrote the document {:?} [{}], a page of {named}, but no line naming it was \
+                 written, so it is loose: {}. Name it with `page_doc` once that is dealt with.",
                 made.title,
                 made.id,
                 match named_there {
@@ -115,13 +115,25 @@ pub(in crate::mcp) fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Re
                     _ => "that document could not be read back",
                 }
             ),
-            (None, Some(named)) => format!("Wrote {:?} as {} in {named}.", made.title, made.id),
+            (None, Some(named)) => format!(
+                "Wrote the document {:?} in the folder {named}. [{}]",
+                made.title, made.id
+            ),
             (None, None) => format!(
-                "Wrote {:?} as {}, in no folder. `docs` says which folders exist.",
+                "Wrote the document {:?}, in no folder; `docs` says which folders exist. [{}]",
                 made.title, made.id
             ),
         },
         json!({
+            "for_the_person": match (under.as_deref(), &where_at) {
+                (Some(up), _) => format!(
+                    "the document {:?}, a page of {}",
+                    made.title,
+                    doc_titled(&state, up)
+                ),
+                (None, Some(named)) => format!("the document {:?}, in the folder {named}", made.title),
+                (None, None) => format!("the document {:?}, outside any folder", made.title),
+            },
             "doc": made.id,
             "title": made.title,
             "folder": where_at,

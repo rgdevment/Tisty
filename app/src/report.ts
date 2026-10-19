@@ -22,6 +22,7 @@ export function written(facts: Facts, now = new Date()): string {
     ...(facts.sandbox ? ([[t("wordSandbox"), facts.sandbox]] as Line[]) : []),
     [t("wordLocale"), facts.locale],
     [t("wordZone"), facts.zone],
+    [t("wordInstalled"), facts.installed in INSTALLED ? t(INSTALLED[facts.installed]) : "?"],
   ]);
 
   block(t("reportSystem"), [
@@ -38,12 +39,12 @@ export function written(facts: Facts, now = new Date()): string {
       t("wordTasks"),
       `${fill("openTasks", String(facts.open))} · ${fill("archivedTasks", String(facts.archived))}`,
     ],
-    [t("wordLists"), named(facts.lists, facts.listNames, "lista")],
-    [t("wordTags"), named(facts.tags, facts.tagNames, "tag")],
+    [t("wordLists"), named(facts.lists, facts.listNames, t("reportList"))],
+    [t("wordTags"), named(facts.tags, facts.tagNames, t("reportTag"))],
     [t("wordCache"), t(CACHE[facts.cache])],
     [
       t("wordAttachments"),
-      `${facts.attachments} · ${weigh(facts.attachmentBytes)} · ${facts.loose} ${t("wordLoose")} (${weigh(facts.looseBytes)})`,
+      `${facts.attachments} · ${weigh(facts.attachmentBytes)} · ${loose(facts)}`,
     ],
     [t("wordWeight"), weigh(facts.weight)],
   ]);
@@ -62,11 +63,23 @@ export function written(facts: Facts, now = new Date()): string {
       `${t("backupAvailable")} · ${facts.backedUpAt ? stamped(facts.backedUpAt, now) : t("backupNever")}`,
     ],
     [t("wordNotices"), speaking(facts.quiet)],
-    [t("wordCopiesUpTo"), weigh(facts.attachUpTo)],
+    [t("wordAssistant"), t(facts.assistant ? "assistantDoorOpen" : "assistantDoorShut")],
     [t("wordShortcut"), facts.shortcut ?? t("nothingBound")],
   ]);
 
   return `${said.join("\n")}\n`;
+}
+
+const INSTALLED = {
+  store: "installStore",
+  brew: "installBrew",
+  download: "installDownload",
+  disk: "installDisk",
+} as const;
+
+function loose(facts: Facts): string {
+  if (facts.unread) return t("wordLooseUnchecked");
+  return `${facts.loose} ${t("wordLoose")} (${weigh(facts.looseBytes)})`;
 }
 
 const CACHE = {

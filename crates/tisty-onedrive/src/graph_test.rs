@@ -171,6 +171,42 @@ fn every_file_under_the_app_s_folder_is_named_by_its_path_across_pages() {
 }
 
 #[test]
+fn a_page_refused_for_a_moment_is_asked_again_and_the_pages_before_it_are_kept() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = graph(|base| {
+        vec![
+            said("200 OK", ROOT),
+            said(
+                "200 OK",
+                &page(
+                    &[
+                        folder("S", "store", "R"),
+                        file("F", "active.tisty", "S", "e1"),
+                    ],
+                    "@odata.nextLink",
+                    &format!("{base}/v1.0/me/drive/special/approot/delta?token=p2"),
+                ),
+            ),
+            said_with("429 Too Many Requests", "Retry-After: 1", "{}"),
+            whole(base, &[file("T", "tisty.toml", "R", "e2")], "d1"),
+        ]
+    });
+    let drive = onedrive(at, home.path());
+
+    let listed = drive.list("").unwrap();
+
+    let names: Vec<&str> = listed.iter().map(|one| one.name.as_str()).collect();
+    assert_eq!(names, ["store/active.tisty", "tisty.toml"]);
+    let asked = served.join().unwrap();
+    assert_eq!(
+        asked.len(),
+        4,
+        "the listing began again from its first page"
+    );
+    assert!(asked[3].line.contains("token=p2"), "{}", asked[3].line);
+}
+
+#[test]
 fn changes_from_the_cursor_held_bring_only_what_moved_and_a_renamed_folder_moves_its_files() {
     let home = tempfile::tempdir().unwrap();
     let (at, served) = graph(|base| {
@@ -387,7 +423,7 @@ fn a_file_is_brought_from_its_own_address_without_the_token_and_from_where_it_wa
                     r#"{{"id":"F","name":"a.tisty","eTag":"e1","size":6,"file":{{}},"@microsoft.graph.downloadUrl":"{base}/dl/F"}}"#
                 ),
             ),
-            said("206 Partial Content", "cdef"),
+            said_with("206 Partial Content", "Content-Range: bytes 2-5/6", "cdef"),
         ]
     });
     let drive = onedrive(at, home.path());
@@ -408,6 +444,33 @@ fn a_file_is_brought_from_its_own_address_without_the_token_and_from_where_it_wa
     assert_eq!(asked[1].line, "GET /dl/F HTTP/1.1");
     assert_eq!(header(&asked[1], "range").as_deref(), Some("bytes=2-"));
     assert_eq!(header(&asked[1], "authorization"), None);
+}
+
+#[test]
+fn a_piece_other_than_the_one_asked_for_is_never_written_after_what_is_here() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, _served) = graph(|base| {
+        vec![
+            said(
+                "200 OK",
+                &format!(
+                    r#"{{"id":"F","name":"a.tisty","eTag":"e1","size":6,"file":{{}},"@microsoft.graph.downloadUrl":"{base}/dl/F"}}"#
+                ),
+            ),
+            said_with(
+                "206 Partial Content",
+                "Content-Range: bytes 0-5/6",
+                "abcdef",
+            ),
+        ]
+    });
+    let drive = onedrive(at, home.path());
+    let mut got = Vec::new();
+
+    let refused = drive.fetch("a.tisty", 2, &mut got);
+
+    assert!(matches!(refused, Err(Hitch::Broke(_))), "{refused:?}");
+    assert!(got.is_empty());
 }
 
 #[test]
@@ -531,6 +594,31 @@ fn a_download_address_that_lapsed_is_asked_for_again_and_never_the_sign_in() {
 }
 
 #[test]
+fn a_file_whose_fresh_address_is_refused_too_is_left_and_the_sign_in_still_stands() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = graph(|base| {
+        let item = format!(
+            r#"{{"id":"F","name":"a.tisty","eTag":"e1","size":3,"file":{{}},"@microsoft.graph.downloadUrl":"{base}/dl/F"}}"#
+        );
+        vec![
+            said("200 OK", &item),
+            said("403 Forbidden", r#"{"error":{"code":"accessDenied"}}"#),
+            said("200 OK", &item),
+            said("403 Forbidden", r#"{"error":{"code":"accessDenied"}}"#),
+        ]
+    });
+    let drive = onedrive(at, home.path());
+
+    let refused = drive.fetch("store/a.tisty", 0, &mut Vec::new());
+
+    assert!(
+        matches!(&refused, Err(Hitch::Broke(why)) if why.contains("store/a.tisty")),
+        "{refused:?}"
+    );
+    assert_eq!(served.join().unwrap().len(), 4);
+}
+
+#[test]
 fn a_new_small_file_lands_whole_and_only_where_nothing_is() {
     let home = tempfile::tempdir().unwrap();
     let (at, served) = graph(|_| vec![said("201 Created", &file("F", "a b#c.tisty", "S", "e1"))]);
@@ -561,6 +649,30 @@ fn a_new_small_file_lands_whole_and_only_where_nothing_is() {
     );
     assert_eq!(asked[0].body, b"abcd");
     assert_eq!(header(&asked[0], "if-match"), None);
+}
+
+#[test]
+fn a_whole_write_whose_token_is_renewed_sends_the_file_again_from_its_start() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = graph(|_| {
+        vec![
+            said("401 Unauthorized", "{}"),
+            said("201 Created", &file("F", "a.tisty", "R", "e1")),
+        ]
+    });
+    let drive = onedrive(at, home.path());
+
+    drive
+        .put("a.tisty", &written(&home, b"abcd"), Expect::Absent)
+        .unwrap();
+
+    let asked = served.join().unwrap();
+    assert_eq!(asked[0].body, b"abcd");
+    assert_eq!(asked[1].body, b"abcd");
+    assert_eq!(
+        header(&asked[1], "authorization").as_deref(),
+        Some("Bearer access-2")
+    );
 }
 
 #[test]
@@ -698,6 +810,39 @@ fn an_upload_cut_short_carries_on_after_a_restart_from_where_onedrive_says_it_go
 }
 
 #[test]
+fn a_session_that_kept_every_byte_is_waited_on_while_the_file_is_not_there_yet() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = graph(|base| {
+        vec![
+            said("200 OK", &format!(r#"{{"uploadUrl":"{base}/up/1"}}"#)),
+            said("202 Accepted", r#"{"nextExpectedRanges":["4-"]}"#),
+            said_with("429 Too Many Requests", "Retry-After: 1", "{}"),
+            said("200 OK", r#"{"nextExpectedRanges":[]}"#),
+            said("404 Not Found", r#"{"error":{"code":"itemNotFound"}}"#),
+        ]
+    });
+    let local = written(&home, b"0123456789");
+    let first = onedrive(at.clone(), home.path())
+        .with_chunk(4)
+        .keeping_at(home.path());
+    assert!(
+        first
+            .put("attachments/big.pdf", &local, Expect::Absent)
+            .is_err()
+    );
+
+    let again = onedrive(at, home.path())
+        .with_chunk(4)
+        .keeping_at(home.path());
+    let waited = again.put("attachments/big.pdf", &local, Expect::Absent);
+
+    assert!(matches!(waited, Err(Hitch::Troubled(_))), "{waited:?}");
+    let asked = served.join().unwrap();
+    assert_eq!(asked.len(), 5, "the session was let go or begun again");
+    assert!(home.path().join("uploading.json").exists());
+}
+
+#[test]
 fn an_upload_refused_on_its_last_piece_is_let_go_of_up_there() {
     let home = tempfile::tempdir().unwrap();
     let (at, served) = graph(|base| {
@@ -823,7 +968,7 @@ fn each_refusal_onedrive_gives_is_read_as_what_it_means() {
         })
     );
     assert_eq!(drive.about("a.tisty"), Err(Hitch::Full));
-    assert_eq!(drive.about("a.tisty"), Err(Hitch::Lost));
+    assert!(matches!(drive.about("a.tisty"), Err(Hitch::Broke(_))));
     assert!(matches!(drive.about("a.tisty"), Err(Hitch::Troubled(_))));
     assert_eq!(drive.about("a.tisty"), Err(Hitch::Full));
     assert!(matches!(drive.about("a.tisty"), Err(Hitch::Limited { .. })));
@@ -994,4 +1139,18 @@ fn every_verb_asks_whose_drive_it_is_before_touching_it() {
             .iter()
             .all(|one| one.line.starts_with("GET /v1.0/me?"))
     );
+}
+
+#[test]
+fn the_folder_itself_refused_is_the_sign_in_lost_not_one_file() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, _served) = graph(|_| {
+        vec![
+            said("200 OK", ROOT),
+            said("403 Forbidden", r#"{"error":{"code":"accessDenied"}}"#),
+        ]
+    });
+    let drive = onedrive(at, home.path());
+
+    assert!(matches!(drive.list(""), Err(Hitch::Lost)));
 }

@@ -4,7 +4,7 @@ use tisty_markdown::{Block, Kind};
 use ulid::Ulid;
 
 use crate::event::{Op, StepAdd, StepRef, StepReorder, StepText};
-use crate::model::{STEP_AT_MOST, Step, Task};
+use crate::model::{STEP_AT_MOST, Step, StepId, Task};
 use crate::text::one_line;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -287,11 +287,12 @@ pub fn reconciled_with(
 }
 
 /// The line of an open step written over with its new words, so the document never shows both.
-pub fn reworded(body: &str, was: &str, now: &str) -> Option<String> {
+pub fn reworded(body: &str, task: &Task, step: StepId, now: &str) -> Option<String> {
     let found = stages(body);
-    let stage = found
+    let at = steps_of(task, &found)
         .iter()
-        .find(|one| !one.done && title(&one.text) == title(was))?;
+        .position(|one| one.is_some_and(|one| one.id == step))?;
+    let stage = found.get(at).filter(|one| !one.done)?;
     let own = own_lines(body, stage);
     let line = &body[own.clone()];
     let mark = line.find(']')? + 1;
@@ -305,8 +306,7 @@ pub fn reworded(body: &str, was: &str, now: &str) -> Option<String> {
 }
 
 /// The lines of open steps taken off, so a box with no step is never left to be ticked back.
-pub fn unplanned(body: &str, gone: &[String]) -> String {
-    let gone: Vec<String> = gone.iter().map(|one| title(one)).collect();
+pub fn unplanned(body: &str, task: &Task, gone: &[StepId]) -> String {
     let lines: Vec<&str> = body.split_inclusive('\n').collect();
     let starts: Vec<usize> = lines
         .iter()
@@ -325,9 +325,11 @@ pub fn unplanned(body: &str, gone: &[String]) -> String {
     let mut dropped = vec![false; lines.len()];
     let mut shift = vec![0; lines.len()];
     let taken = stages(body);
-    for stage in taken
+    let of = steps_of(task, &taken);
+    for (stage, _) in taken
         .iter()
-        .filter(|stage| !stage.done && gone.contains(&title(&stage.text)))
+        .zip(&of)
+        .filter(|(stage, step)| !stage.done && step.is_some_and(|step| gone.contains(&step.id)))
     {
         let own = own_lines(body, stage);
         let first = line_of(own.start);
@@ -356,6 +358,38 @@ pub fn unplanned(body: &str, gone: &[String]) -> String {
         .filter(|(at, _)| !dropped[*at])
         .map(|(at, line)| &line[shift[at].min(lead(line))..])
         .collect()
+}
+
+pub fn boxed_in(task: &Task, body: &str, span: Range<usize>) -> Vec<StepId> {
+    let found = stages(body);
+    steps_of(task, &found)
+        .iter()
+        .zip(&found)
+        .filter(|(_, stage)| span.contains(&stage.at.start))
+        .filter_map(|(step, _)| step.map(|one| one.id))
+        .collect()
+}
+
+pub fn shown(task: &Task, body: &str) -> Vec<(StepId, bool)> {
+    let found = stages(body);
+    steps_of(task, &found)
+        .iter()
+        .zip(&found)
+        .filter_map(|(step, stage)| step.map(|one| (one.id, stage.done)))
+        .collect()
+}
+
+// Lines read alike pair with steps by where they stand, so the second of two never answers for the first.
+fn steps_of<'a>(task: &'a Task, found: &[Stage]) -> Vec<Option<&'a Step>> {
+    let steps = ordered(task);
+    paired(
+        &titled(steps.iter().map(|one| &one.text)),
+        &titled(found.iter().map(|one| &one.text)),
+        false,
+    )
+    .into_iter()
+    .map(|at| at.map(|at| steps[at]))
+    .collect()
 }
 
 // An item's own lines are its first and those carrying its words on, never the items under it.
@@ -464,14 +498,23 @@ pub fn ticked(task: &Task, body: &str) -> String {
         out.replace_range(at..at + 1, if step.done { "x" } else { " " });
     }
     // A step filed from elsewhere has no line yet, and a step nobody can see cannot be ticked.
-    let missing: Vec<&Step> = (0..steps.len())
+    let missing = (0..steps.len())
         .filter(|at| !of.contains(&Some(*at)))
-        .map(|at| steps[at])
-        .collect();
-    if missing.is_empty() {
-        return out;
+        .map(|at| steps[at]);
+    for step in missing {
+        let found = stages(&out);
+        let grown = with_line(&out, &found, step);
+        // A line swallowed by what the text leaves open, a fence say, would be added again on every open.
+        if stages(&grown).len() == found.len() + 1 {
+            out = grown;
+        }
     }
-    let grown = match slot(&out, &found) {
+    out
+}
+
+fn with_line(out: &str, found: &[Stage], step: &Step) -> String {
+    let mark = if step.done { "x" } else { " " };
+    match slot(out, found) {
         Some(Slot { at, lead, apart }) => {
             let head = &out[..at];
             let mut said = String::new();
@@ -481,10 +524,7 @@ pub fn ticked(task: &Task, body: &str) -> String {
             if apart {
                 said.push('\n');
             }
-            for step in &missing {
-                let mark = if step.done { "x" } else { " " };
-                said.push_str(&format!("{lead}[{mark}] {}\n", step.text));
-            }
+            said.push_str(&format!("{lead}[{mark}] {}\n", step.text));
             format!("{head}{said}{}", &out[at..])
         }
         None => {
@@ -492,14 +532,9 @@ pub fn ticked(task: &Task, body: &str) -> String {
             if !grown.is_empty() {
                 grown.push_str("\n\n");
             }
-            grown.push_str(&lines(&missing));
+            grown.push_str(&lines(&[step]));
             grown
         }
-    };
-    // Lines swallowed by what the text leaves open, a fence say, would be added again on every open.
-    match stages(&grown).len() == found.len() + missing.len() {
-        true => grown,
-        false => out,
     }
 }
 

@@ -193,6 +193,9 @@ fn linked(text: &str, at: usize, keep: &mut impl FnMut(Ref)) -> usize {
     let label = &rest[..shut];
 
     let after = at + 1 + shut + 1;
+    if text.as_bytes().get(after) == Some(&b':') && !label.starts_with('^') && leads(text, at) {
+        return defined(text, after + 1, keep);
+    }
     if text.as_bytes().get(after) != Some(&b'(') {
         return at + 1;
     }
@@ -227,29 +230,49 @@ fn linked(text: &str, at: usize, keep: &mut impl FnMut(Ref)) -> usize {
     after + 1 + close + 1
 }
 
+fn leads(text: &str, at: usize) -> bool {
+    let line = text[..at].rfind('\n').map_or(0, |n| n + 1);
+    text[line..at].chars().all(|c| c == ' ' || c == '>')
+}
+
+// A picture written as `![p][1]` is named only by the line that defines `[1]`.
+fn defined(text: &str, from: usize, keep: &mut impl FnMut(Ref)) -> usize {
+    let line = text[from..].find('\n').map_or(text.len(), |n| from + n);
+    let said = text[from..line].trim();
+    let target = match said.strip_prefix('<') {
+        Some(wrapped) => wrapped.split('>').next().unwrap_or(""),
+        None => said.split_whitespace().next().unwrap_or(""),
+    };
+    if !target.is_empty() {
+        keep(Ref {
+            kind: Kind::Link,
+            target: target.to_string(),
+            label: None,
+        });
+    }
+    line
+}
+
 // An aligned paragraph is html, and a file named only there would read as loose and be swept.
 fn tagged(rest: &str, at: usize, keep: &mut impl FnMut(Ref)) -> usize {
     let opens = rest[1..]
         .chars()
         .next()
         .is_some_and(|c| c.is_ascii_alphabetic() || c == '/');
-    // A tag ends on its own line, or one stray angle would swallow every reference after it.
-    let shut = rest.find('\n').unwrap_or(rest.len());
+    // A tag ends before a blank line, or one stray angle would swallow every reference after it.
+    let shut = rest.find("\n\n").unwrap_or(rest.len());
     let Some(end) = opens.then(|| rest[..shut].find('>')).flatten() else {
         return at + 1;
     };
     let tag = &rest[..end];
-    if !tag.contains('=') {
+    // A real tag holds no other tag nor a Markdown link; one that does began at a stray angle.
+    if !tag.contains('=') || tag[1..].contains('<') || tag.contains("](") {
         return at + 1;
     }
-    for name in [" href=\"", " src=\""] {
-        let Some(from) = tag.find(name).map(|n| n + name.len()) else {
+    for name in ["href", "src"] {
+        let Some(target) = valued(tag, name).map(str::trim) else {
             continue;
         };
-        let Some(stop) = tag[from..].find('"').map(|n| from + n) else {
-            continue;
-        };
-        let target = tag[from..stop].trim();
         if !target.is_empty() {
             keep(Ref {
                 kind: Kind::Link,
@@ -262,6 +285,34 @@ fn tagged(rest: &str, at: usize, keep: &mut impl FnMut(Ref)) -> usize {
         }
     }
     at + end + 1
+}
+
+fn valued<'a>(tag: &'a str, name: &str) -> Option<&'a str> {
+    let lower = tag.to_ascii_lowercase();
+    let mut from = 0;
+    while let Some(found) = lower[from..].find(name).map(|n| from + n) {
+        from = found + name.len();
+        if !lower[..found].ends_with(char::is_whitespace) {
+            continue;
+        }
+        let Some(value) = tag[from..].trim_start().strip_prefix('=') else {
+            continue;
+        };
+        let value = value.trim_start();
+        return match value.chars().next() {
+            Some(quote @ ('"' | '\'')) => value[1..].find(quote).map(|n| &value[1..1 + n]),
+            _ => {
+                let word = value.split_whitespace().next().unwrap_or("");
+                let closes = word.len() == value.len();
+                Some(if closes {
+                    word.strip_suffix('/').unwrap_or(word)
+                } else {
+                    word
+                })
+            }
+        };
+    }
+    None
 }
 
 fn bare(rest: &str, at: usize, keep: &mut impl FnMut(Ref)) -> usize {

@@ -114,7 +114,7 @@ beforeEach(() => {
       case "docs":
         return Promise.resolve({ folders: [], docs: [] });
       case "sync_state":
-        return Promise.resolve({ asked: true, loose: 0 });
+        return Promise.resolve({ asked: true });
       case "snapshot":
         return Promise.resolve(shot(args.view as { archive?: boolean } | undefined));
       case "task_story":
@@ -348,7 +348,6 @@ describe("what a sync brings in", () => {
           return Promise.resolve({
             chosen: "G:/My Drive/tisty",
             asked: true,
-            loose: 0,
           });
         case "sync_now":
           return Promise.resolve({ carried: "came", undecided: [], unreadable: [] });
@@ -377,7 +376,6 @@ describe("what the maintenance screen writes", () => {
           return Promise.resolve({
             chosen: "G:/My Drive/tisty",
             asked: true,
-            loose: 0,
           });
         case "sync_now":
           return Promise.resolve({ carried: "same", undecided: [], unreadable: [] });
@@ -473,7 +471,6 @@ describe("the views nothing else opens", () => {
         return Promise.resolve({
           version: "9.9.9",
           route: "download",
-          package: null,
           installs: true,
         });
       }
@@ -505,7 +502,6 @@ describe("the views nothing else opens", () => {
         return Promise.resolve({
           version: "9.9.9",
           route: "store",
-          package: null,
           installs: true,
         });
       }
@@ -535,7 +531,6 @@ describe("the views nothing else opens", () => {
         return Promise.resolve({
           version: "9.9.9",
           route: "store",
-          package: null,
           installs: true,
         });
       }
@@ -569,7 +564,6 @@ describe("the views nothing else opens", () => {
         return Promise.resolve({
           version: "9.9.9",
           route: "download",
-          package: null,
           installs: true,
         });
       }

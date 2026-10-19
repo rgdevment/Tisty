@@ -385,19 +385,11 @@ pub async fn settle_in(
 
 #[tauri::command(async)]
 pub fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying> {
-    let (config, paths, mut held, open, archived, lists, let_go, keeping) = {
+    let (config, paths, open, archived, lists, let_go, keeping) = {
         let session = held(&session);
-        let named: Vec<String> = session
-            .state
-            .tasks
-            .values()
-            .flat_map(|task| task.references())
-            .map(|one| one.target)
-            .collect();
         (
             session.config.clone(),
             session.paths.clone(),
-            named,
             session.state.matching(&Filter::default(), today()).len(),
             session
                 .state
@@ -414,8 +406,6 @@ pub fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying>
             session.keeping(),
         )
     };
-    held.extend(tisty_core::docs::referenced(&paths.docs()));
-
     let held_at = tisty_carrier::place_of(config.sync.as_ref());
     let said = held_at.as_deref().map(told);
 
@@ -426,7 +416,6 @@ pub fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying>
         asked: config.sync.is_some(),
         last: config.synced_at.map(|at| at.to_string()),
         heard: config.heard_at.map(|at| at.to_string()),
-        loose: tisty_core::attach::loose(paths.data(), &held).files(),
         open,
         archived,
         lists,
@@ -1058,7 +1047,7 @@ async fn carried_round(
         + done.unconfirmed.len()
         + done.waiting.len()
         + done.astray.len();
-    let facts = [
+    let mut facts = vec![
         ("moved", Fact::Word(if moved { "yes" } else { "no" })),
         ("sent", Fact::Count(done.sent)),
         ("brought", Fact::Count(done.brought)),
@@ -1072,7 +1061,18 @@ async fn carried_round(
         ("astray", Fact::Count(done.astray.len())),
         ("joined", Fact::Count(done.joined.len())),
     ];
+    if let Some(deferred) = &done.deferred {
+        facts.push(("deferred", Fact::Code(deferred.reason.code())));
+        facts.push(("left", Fact::Count(deferred.left)));
+    }
+    if let Some(refused) = &done.refused {
+        facts.push(("refused", Fact::Code(refused.code())));
+    }
     let carried = done.sent + done.brought + done.arrived.len() + done.joined.len();
+    let put_off = done
+        .deferred
+        .as_ref()
+        .is_some_and(|one| one.reason != tisty_carrier::Reason::Unsent);
     if unsettled > 0 {
         witness::warn(
             channel::SYNC,
@@ -1081,6 +1081,8 @@ async fn carried_round(
         );
     } else if carried > 0 || moved {
         witness::note(channel::SYNC, "a carry finished", &facts);
+    } else if put_off || done.refused.is_some() {
+        witness::standing(channel::SYNC, "a carry finished", &facts);
     }
     for one in done
         .unreadable
@@ -1378,11 +1380,6 @@ pub async fn restore(
     })?;
     *held(&session) = fresh;
     Ok(done.files)
-}
-
-#[tauri::command]
-pub fn roomy() -> u64 {
-    tisty_core::docs::BODY_ROOMY
 }
 
 #[tauri::command]

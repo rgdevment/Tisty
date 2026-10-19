@@ -8,8 +8,6 @@ const TELLS_OF_TROUBLE: &[&str] = &[
     "noSuchDoc",
     "noSuchTask",
     "deleteRefused",
-    "internal",
-    "internalNamed",
     "storeNewer",
     "otherStore",
     "restoredApart",
