@@ -389,6 +389,7 @@ fn there_is_no_tool_for_closing_dropping_or_deleting() {
             "read",
             "find",
             "lists",
+            "rules",
             "language",
             "tags"
         ]
@@ -3862,8 +3863,20 @@ fn the_instructions_do_not_promise_what_the_tools_no_longer_hold_to() {
     let served = Served::new();
 
     let said = served.talk(&[r#"{"jsonrpc":"2.0","id":1,"method":"server/discover","params":{}}"#]);
-    let taught = said[0]["result"]["instructions"].as_str().unwrap();
+    let head = said[0]["result"]["instructions"].as_str().unwrap();
+    let rules = served.call("rules", serde_json::json!({}));
+    let taught = format!(
+        "{head}\n{}",
+        rules["result"]["structuredContent"]["rules"]
+            .as_str()
+            .unwrap()
+    );
+    let taught = taught.as_str();
 
+    assert!(
+        head.chars().count() < 2000 && head.contains("`rules`"),
+        "some clients cut the instructions near two thousand characters, so they point at the rest: {head}"
+    );
     assert!(
         !taught.contains("edit what the person wrote"),
         "an assistant may edit a document now, and being told otherwise is being told a lie: \

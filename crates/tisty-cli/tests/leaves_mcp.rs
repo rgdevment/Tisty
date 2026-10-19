@@ -4207,9 +4207,16 @@ fn the_instructions_name_the_doors_for_taking_back_and_for_not_doing() {
                     "clientInfo": { "name": "test", "version": "1" } },
     })
     .to_string()]);
-    let told = said[0]["result"]["instructions"]
-        .as_str()
-        .unwrap_or_default();
+    let rules = served.call("rules", serde_json::json!({}));
+    let told = format!(
+        "{}\n{}",
+        said[0]["result"]["instructions"]
+            .as_str()
+            .unwrap_or_default(),
+        rules["result"]["structuredContent"]["rules"]
+            .as_str()
+            .unwrap_or_default()
+    );
 
     assert!(told.contains("say_not_doing"), "{told}");
     assert!(told.contains("untick"), "{told}");

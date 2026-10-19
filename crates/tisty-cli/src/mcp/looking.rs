@@ -650,15 +650,16 @@ pub(super) fn language(args: &Value) -> Value {
     };
     let whole = format!("{drawn}llms-full.txt");
     let index = format!("{GUIDE}llms.txt");
+    let reference = tisty_markdown::reference(spanish).trim_end();
     told(
         format!(
-            "{}
+            "{reference}
 
 The same guide, with every example drawn, is published at {drawn}; this whole text at {whole}, and an index of its topics at {index}.
-",
-            tisty_markdown::reference(spanish).trim_end()
+"
         ),
         json!({
+            "reference": reference,
             "lang": if spanish { "es" } else { "en" },
             "guide": drawn,
             "full": whole,
