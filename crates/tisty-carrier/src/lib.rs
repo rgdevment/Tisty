@@ -17,6 +17,8 @@ mod folder;
 #[cfg(not(windows))]
 mod keychain;
 pub mod loopback;
+#[cfg(feature = "net")]
+pub mod net;
 pub mod off;
 mod remote;
 pub mod said;
@@ -24,6 +26,7 @@ mod shift;
 #[cfg(feature = "testing")]
 pub mod testing;
 mod tokens;
+pub mod uploads;
 
 pub use cloud::standing::{
     LastRound, OWED_BACK, Standing, cloud_joined, kin_mirrored, mirrored_at, round_forgotten,
@@ -36,7 +39,7 @@ pub use keychain::Keychain;
 
 pub use remote::{
     BYTES_A_DAY, Changes, Costs, Expect, Hitch, Limits, Remote, Seen, UNITS_A_DAY, Watch,
-    named_well,
+    named_well, renamed_by_copy,
 };
 pub use shift::{Owed, Shift, all_home, filling, homing, homing_up_to, shift};
 pub use tokens::{Renew, Renewed, Secrets, Tokens};

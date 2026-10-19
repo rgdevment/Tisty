@@ -447,6 +447,90 @@ fn a_file_not_there_is_missing_when_brought_and_absent_when_asked_about() {
 }
 
 #[test]
+fn a_small_file_whose_answer_was_lost_is_found_landed_rather_than_sent_twice() {
+    let home = tempfile::tempdir().unwrap();
+    let local = written(&home, b"abcd");
+    let hash = crate::quickxor::of_file(&local).unwrap();
+    let (at, served) = graph(|_| {
+        vec![
+            said("503 Service Unavailable", "{}"),
+            said(
+                "200 OK",
+                &format!(
+                    r#"{{"id":"F","name":"a.tisty","eTag":"e1","size":4,"file":{{"hashes":{{"quickXorHash":"{hash}"}}}}}}"#
+                ),
+            ),
+        ]
+    });
+    let drive = onedrive(at, home.path());
+
+    let seen = drive.put("store/a.tisty", &local, Expect::Absent).unwrap();
+
+    assert_eq!(seen.revision, "e1");
+    assert_eq!(served.join().unwrap().len(), 2);
+}
+
+#[test]
+fn a_file_of_the_same_size_another_machine_left_is_never_taken_for_this_write() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = graph(|_| {
+        vec![
+            said("503 Service Unavailable", "{}"),
+            said(
+                "200 OK",
+                r#"{"id":"F","name":"a.tisty","eTag":"e1","size":4,"file":{"hashes":{"quickXorHash":"other"}}}"#,
+            ),
+            said("409 Conflict", r#"{"error":{"code":"nameAlreadyExists"}}"#),
+        ]
+    });
+    let drive = onedrive(at, home.path());
+
+    let refused = drive.put("store/a.tisty", &written(&home, b"abcd"), Expect::Absent);
+
+    assert!(matches!(refused, Err(Hitch::Changed(_))));
+    assert_eq!(served.join().unwrap().len(), 3);
+}
+
+#[test]
+fn a_download_address_outside_microsoft_is_never_followed() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, _served) = graph(|_| {
+        vec![said(
+            "200 OK",
+            r#"{"id":"F","name":"a.tisty","eTag":"e1","size":6,"file":{},"@microsoft.graph.downloadUrl":"https://elsewhere.example/dl/F"}"#,
+        )]
+    });
+    let drive = onedrive(at, home.path());
+
+    let refused = drive.fetch("store/a.tisty", 0, &mut Vec::new());
+
+    assert!(matches!(refused, Err(Hitch::Broke(_))));
+}
+
+#[test]
+fn a_download_address_that_lapsed_is_asked_for_again_and_never_the_sign_in() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = graph(|base| {
+        let item = format!(
+            r#"{{"id":"F","name":"a.tisty","eTag":"e1","size":3,"file":{{}},"@microsoft.graph.downloadUrl":"{base}/dl/F"}}"#
+        );
+        vec![
+            said("200 OK", &item),
+            said("401 Unauthorized", "{}"),
+            said("200 OK", &item),
+            said("200 OK", "abc"),
+        ]
+    });
+    let drive = onedrive(at, home.path());
+    let mut got = Vec::new();
+
+    drive.fetch("store/a.tisty", 0, &mut got).unwrap();
+
+    assert_eq!(got, b"abc");
+    assert_eq!(served.join().unwrap().len(), 4);
+}
+
+#[test]
 fn a_new_small_file_lands_whole_and_only_where_nothing_is() {
     let home = tempfile::tempdir().unwrap();
     let (at, served) = graph(|_| vec![said("201 Created", &file("F", "a b#c.tisty", "S", "e1"))]);
@@ -568,6 +652,52 @@ fn a_large_file_goes_up_in_pieces_without_the_token_and_lands_on_the_last_one() 
 }
 
 #[test]
+fn an_upload_cut_short_carries_on_after_a_restart_from_where_onedrive_says_it_got() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = graph(|base| {
+        vec![
+            said("200 OK", &format!(r#"{{"uploadUrl":"{base}/up/1"}}"#)),
+            said("202 Accepted", r#"{"nextExpectedRanges":["4-"]}"#),
+            said_with("429 Too Many Requests", "Retry-After: 1", "{}"),
+            said("200 OK", r#"{"nextExpectedRanges":["4-"]}"#),
+            said("202 Accepted", r#"{"nextExpectedRanges":["8-"]}"#),
+            said("201 Created", &file("F", "big.pdf", "A", "e1")),
+        ]
+    });
+    let local = written(&home, b"0123456789");
+    let first = onedrive(at.clone(), home.path())
+        .with_chunk(4)
+        .keeping_at(home.path());
+
+    let cut = first.put("attachments/big.pdf", &local, Expect::Absent);
+    assert!(cut.is_err());
+    assert!(home.path().join("uploading.json").exists());
+
+    let again = onedrive(at, home.path())
+        .with_chunk(4)
+        .keeping_at(home.path());
+    let seen = again
+        .put("attachments/big.pdf", &local, Expect::Absent)
+        .unwrap();
+
+    assert_eq!(seen.revision, "e1");
+    let asked = served.join().unwrap();
+    assert_eq!(asked[3].line, "GET /up/1 HTTP/1.1");
+    assert_eq!(
+        header(&asked[4], "content-range").as_deref(),
+        Some("bytes 4-7/10")
+    );
+    assert_eq!(
+        header(&asked[5], "content-range").as_deref(),
+        Some("bytes 8-9/10")
+    );
+    assert!(
+        !home.path().join("uploading.json").exists(),
+        "a finished upload was still written down as going on"
+    );
+}
+
+#[test]
 fn an_upload_refused_on_its_last_piece_is_let_go_of_up_there() {
     let home = tempfile::tempdir().unwrap();
     let (at, served) = graph(|base| {
@@ -585,6 +715,38 @@ fn an_upload_refused_on_its_last_piece_is_let_go_of_up_there() {
     assert!(matches!(refused, Err(Hitch::Changed(_))));
     let asked = served.join().unwrap();
     assert_eq!(asked[3].line, "DELETE /up/1 HTTP/1.1");
+}
+
+#[test]
+fn a_file_is_moved_in_place_into_a_folder_that_is_there() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = graph(|_| {
+        vec![
+            said("200 OK", &file("F", "old.pdf", "A", "e1")),
+            said("200 OK", &folder("B", "kept", "R")),
+            said("200 OK", &file("F", "new.pdf", "B", "e2")),
+        ]
+    });
+    let drive = onedrive(at, home.path());
+
+    drive
+        .renamed("attachments/old.pdf", "kept/new.pdf")
+        .unwrap();
+
+    let asked = served.join().unwrap();
+    assert!(
+        asked[2].line.starts_with("PATCH /v1.0/me/drive/items/F?"),
+        "{}",
+        asked[2].line
+    );
+    let body: serde_json::Value = serde_json::from_slice(&asked[2].body).unwrap();
+    assert_eq!(body["name"], "new.pdf");
+    assert_eq!(body["parentReference"]["id"], "B");
+    assert_eq!(
+        asked.len(),
+        3,
+        "the bytes went down and up instead of moving"
+    );
 }
 
 #[test]
@@ -645,6 +807,11 @@ fn each_refusal_onedrive_gives_is_read_as_what_it_means() {
                 "400 Bad Request",
                 r#"{"error":{"code":"invalidRequest","innerError":{"code":"quotaLimitReached"}}}"#,
             ),
+            said("423 Locked", r#"{"error":{"code":"resourceLocked"}}"#),
+            said(
+                "403 Forbidden",
+                r#"{"error":{"code":"activityLimitReached"}}"#,
+            ),
         ]
     });
     let drive = onedrive(at, home.path());
@@ -659,6 +826,8 @@ fn each_refusal_onedrive_gives_is_read_as_what_it_means() {
     assert_eq!(drive.about("a.tisty"), Err(Hitch::Lost));
     assert!(matches!(drive.about("a.tisty"), Err(Hitch::Troubled(_))));
     assert_eq!(drive.about("a.tisty"), Err(Hitch::Full));
+    assert!(matches!(drive.about("a.tisty"), Err(Hitch::Limited { .. })));
+    assert!(matches!(drive.about("a.tisty"), Err(Hitch::Limited { .. })));
 }
 
 #[test]

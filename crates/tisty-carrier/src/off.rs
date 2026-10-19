@@ -82,6 +82,14 @@ impl<R: Remote> Remote for OffRuntime<R> {
         away(|| self.0.delete(name, expect))
     }
 
+    fn renamed(&self, from: &str, to: &str) -> Result<(), Hitch> {
+        away(|| self.0.renamed(from, to))
+    }
+
+    fn moved_on(&self) {
+        self.0.moved_on();
+    }
+
     fn hash_of(&self, local: &Path) -> std::io::Result<String> {
         self.0.hash_of(local)
     }

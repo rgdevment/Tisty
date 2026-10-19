@@ -14,7 +14,7 @@ mod upload;
 mod wire;
 
 use tree::{DriveItem, ITEM_FIELDS, Tree, moved, within};
-use wire::{given, json, judged, transfer_http};
+use wire::{given, json, judged, judged_carried, transfer_http};
 
 use crate::{ASKED_WITHIN, names, unreachable};
 
@@ -26,6 +26,7 @@ const CHUNK: u64 = 10 * MIB;
 const WHOLE_AT_MOST: u64 = 250 * 1000 * 1000;
 // Cursors passed with the paths each one moved, so a round asking from an older one still hears them all.
 const PASSED_AT_MOST: usize = 64;
+const UPLOADS_KEPT_FOR: u64 = 2 * 24 * 60 * 60;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GraphAt {
@@ -93,6 +94,7 @@ pub struct OneDrive {
     expected: Option<String>,
     vouched: AtomicBool,
     beyond: AtomicU64,
+    uploads: Option<tisty_carrier::uploads::Uploads>,
 }
 
 impl OneDrive {
@@ -106,7 +108,17 @@ impl OneDrive {
             expected: None,
             vouched: AtomicBool::new(false),
             beyond: AtomicU64::new(0),
+            uploads: None,
         })
+    }
+
+    // OneDrive keeps an upload session for days, so one cut short by a restart carries on from where it got.
+    pub fn keeping_at(mut self, home: &Path) -> Self {
+        self.uploads = Some(tisty_carrier::uploads::Uploads::under(
+            home,
+            UPLOADS_KEPT_FOR,
+        ));
+        self
     }
 
     /// Reads and writes only once OneDrive says it is this account, so two accounts never mix.
@@ -377,33 +389,46 @@ impl Remote for OneDrive {
     fn fetch(&self, name: &str, from: u64, into: &mut dyn Write) -> Result<Seen, Hitch> {
         names::fitting(name)?;
         self.vouched_for()?;
-        let item = self
-            .item(name, None)?
-            .filter(DriveItem::is_file)
-            .ok_or_else(|| Hitch::Missing(name.to_string()))?;
-        // Everything is already here: a range past the end would be refused.
-        if item.size.is_some_and(|bytes| from >= bytes) {
-            return Ok(item.seen(name));
-        }
-        let link = item.download.clone().ok_or_else(|| {
-            Hitch::Broke("OneDrive gave no address to bring the file from".into())
-        })?;
-        // The address carries its own permission, and the range is only taken there.
-        let mut asked = self.http.get(&link).timeout(given(item.size.unwrap_or(0)));
-        if from > 0 {
-            asked = asked.header(reqwest::header::RANGE, format!("bytes={from}-"));
-        }
-        let mut answer = asked.send().map_err(unreachable)?;
-        let mut skipped = match answer.status().as_u16() {
-            206 => 0,
-            // OneDrive may send the whole file when it cannot cut it, so what was already here is passed over.
-            200 => from,
-            _ => {
-                return Err(match judged(answer) {
-                    Err(Hitch::Missing(_)) => Hitch::Missing(name.to_string()),
-                    Err(other) => other,
-                    Ok(_) => Hitch::Broke("OneDrive answered a download oddly".into()),
-                });
+        let mut renewed = false;
+        let (item, mut answer, mut skipped) = loop {
+            let item = self
+                .item(name, None)?
+                .filter(DriveItem::is_file)
+                .ok_or_else(|| Hitch::Missing(name.to_string()))?;
+            // Everything is already here: a range past the end would be refused.
+            if item.size.is_some_and(|bytes| from >= bytes) {
+                return Ok(item.seen(name));
+            }
+            let link = item.download.clone().ok_or_else(|| {
+                Hitch::Broke("OneDrive gave no address to bring the file from".into())
+            })?;
+            self.carries(&link)?;
+            // The address carries its own permission, and the range is only taken there.
+            let mut asked = self.http.get(&link).timeout(given(item.size.unwrap_or(0)));
+            if from > 0 {
+                asked = asked.header(reqwest::header::RANGE, format!("bytes={from}-"));
+            }
+            let answer = self
+                .traced(asked.build().map_err(unreachable)?, Some("download"))
+                .map_err(unreachable)?;
+            match answer.status().as_u16() {
+                206 => break (item, answer, 0),
+                // OneDrive may send the whole file when it cannot cut it, so what was already here is passed over.
+                200 => break (item, answer, from),
+                // The address outlives its permission after a while; a fresh one is asked for once, never the sign-in.
+                401 | 403 if !renewed => {
+                    renewed = true;
+                    self.spent(1);
+                }
+                // A fresh address refused again is the grant itself gone.
+                401 | 403 => return Err(judged(answer).err().unwrap_or(Hitch::Lost)),
+                _ => {
+                    return Err(match judged_carried(answer) {
+                        Err(Hitch::Missing(_)) => Hitch::Missing(name.to_string()),
+                        Err(other) => other,
+                        Ok(_) => Hitch::Broke("OneDrive answered a download oddly".into()),
+                    });
+                }
             }
         };
         let mut block = vec![0u8; 64 * 1024];
@@ -438,6 +463,57 @@ impl Remote for OneDrive {
             Expect::Absent | Expect::Any => self.in_parts(name, from, &expect, bytes)?,
         };
         Ok(landed.seen(name))
+    }
+
+    // Moved in place over what bears the name already, as the copy it replaces did; a missing folder is made by that copy.
+    fn renamed(&self, from: &str, to: &str) -> Result<(), Hitch> {
+        names::fitting(from)?;
+        names::fitting(to)?;
+        self.vouched_for()?;
+        let item = self
+            .item(from, Some(ITEM_FIELDS))?
+            .filter(DriveItem::is_file)
+            .ok_or_else(|| Hitch::Missing(from.to_string()))?;
+        let (folder, leaf) = to.rsplit_once('/').unwrap_or(("", to));
+        let same = from.rsplit_once('/').map_or("", |(was, _)| was) == folder;
+        let parent = match (same, folder) {
+            (true, _) => item.parent.as_ref().and_then(|one| one.id.clone()),
+            (false, "") => Some(self.root()?),
+            (false, folder) => {
+                self.spent(1);
+                self.item(folder, Some(ITEM_FIELDS))?
+                    .filter(|one| !one.is_file())
+                    .map(|one| one.id)
+            }
+        };
+        let Some(parent) = parent else {
+            let costs = self.limits().costs;
+            self.spent(costs.fetch + costs.delete);
+            return tisty_carrier::renamed_by_copy(self, from, to);
+        };
+        let url = self.item_url(&item.id)?;
+        let body =
+            serde_json::json!({ "name": leaf, "parentReference": { "id": parent } }).to_string();
+        let answer = self.sent(Some(ASKED_WITHIN), |http| {
+            http.patch(&url)
+                .query(&[
+                    ("@microsoft.graph.conflictBehavior", "replace"),
+                    ("$select", ITEM_FIELDS),
+                ])
+                .header(reqwest::header::CONTENT_TYPE, "application/json")
+                .body(body.clone())
+        })?;
+        // Left to the next feed of changes, which tells the move as one so the index learns its new revision.
+        match judged(answer) {
+            Ok(_) => Ok(()),
+            // A name taken already is written over, as the copy this move replaces would have done.
+            Err(Hitch::Changed(_)) => {
+                let costs = self.limits().costs;
+                self.spent(costs.fetch + costs.delete);
+                tisty_carrier::renamed_by_copy(self, from, to)
+            }
+            Err(other) => Err(other),
+        }
     }
 
     fn delete(&self, name: &str, expect: Option<&str>) -> Result<(), Hitch> {

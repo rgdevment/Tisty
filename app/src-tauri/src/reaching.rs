@@ -119,7 +119,8 @@ fn onedrive_of(home: &Path, at: &CloudAt) -> Result<(Shared, Arc<Tokens>), Strin
     let tokens = Arc::new(Tokens::new(secrets, Arc::new(renew), KEPT_AS, home));
     let drive = tisty_onedrive::OneDrive::new(tokens.clone(), tisty_onedrive::GraphAt::microsoft())
         .map_err(|e| format!("{e:?}"))?
-        .for_account(&at.account);
+        .for_account(&at.account)
+        .keeping_at(home);
     let remote = Arc::new(tisty_carrier::off::OffRuntime(drive));
     Ok((Arc::new(Cloud::over(remote, home)), tokens))
 }

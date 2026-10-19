@@ -10,7 +10,6 @@ use crate::reaching::{GOOGLE, KEPT_AS, ONEDRIVE, secrets_for};
 use crate::{Answer, Refusal, Session, held};
 
 const CONSENT_WAITED: Duration = Duration::from_secs(5 * 60);
-const ONEDRIVE_PROBED: &str = "https://graph.microsoft.com/v1.0/me";
 // Microsoft has no way to revoke a personal account's grant from here, so the person is taken where they can.
 const ONEDRIVE_CONSENTS: &str = "https://account.live.com/consent/Manage";
 
@@ -50,16 +49,12 @@ pub async fn cloud_health(provider: Option<String>) -> Answer<&'static str> {
         _ => return Err(Refusal::of("cloudNotOffered")),
     };
     let health = tauri::async_runtime::spawn_blocking(move || match onedrive {
-        true => tisty_google::health::probe_at(
-            ONEDRIVE_PROBED,
-            tisty_google::health::REACHED_WITHIN,
-            tisty_google::health::PROBED_WITHIN,
-        ),
+        true => tisty_onedrive::probe(),
         false => tisty_google::health::probe(),
     })
     .await
     .map_err(|_| Refusal::of("internal"))?;
-    if health != tisty_google::health::Health::Reachable {
+    if health != tisty_carrier::net::Health::Reachable {
         tisty_core::witness::note(
             tisty_core::witness::channel::CLOUD,
             "the way to the cloud's API host did not answer as it should",

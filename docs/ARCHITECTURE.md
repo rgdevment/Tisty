@@ -1006,13 +1006,22 @@ stateDiagram-v2
   offers no cloud.
 - OneDrive's `Remote` in `crates/tisty-onedrive` (`OneDrive`, over Microsoft
   Graph in the app's own folder, `Files.ReadWrite.AppFolder`), with
-  `MicrosoftRenew` and OneDrive's `quickXorHash`. Not wired into the window
-  yet: nothing builds it, and a build without `TISTY_MICROSOFT_CLIENT_ID` would
-  offer no OneDrive. Graph names nothing by path in its feed of changes, so the
-  folder is held by id and each path is rebuilt up to the app's folder; a feed
-  OneDrive let lapse (410) is listed again whole. A write lands whole up to
-  10 MiB, or in pieces of an upload session past it; `If-Match` with the eTag
-  and `conflictBehavior=fail` make every write conditional.
+  `MicrosoftRenew` and OneDrive's `quickXorHash`, built by `reaching.rs` once
+  the person connects it; a build without `TISTY_MICROSOFT_CLIENT_ID` offers no
+  OneDrive. Graph names nothing by path in its feed of changes, so the folder is
+  held by id and each path is rebuilt up to the app's folder; a feed OneDrive
+  let lapse (410) is listed again whole. A write lands whole up to 10 MiB, tried
+  three times when the way fails and taken as landed when a new file is found
+  there; past it, it goes in pieces of an upload session kept in
+  `uploading.json` (`tisty_carrier::uploads`, shared with Drive), so a cut piece
+  asks OneDrive where it got and one cut by a restart carries on. `If-Match`
+  with the eTag and `conflictBehavior=fail` make every write conditional. A
+  rename moves the item in place with `PATCH`. A lock (423) and
+  `activityLimitReached` wait like a 429; a download address that lapsed is
+  asked for again, never the sign-in; download and upload addresses are taken
+  only from Microsoft's hosts. The way check, the token asks and the reading of
+  a failed request live in `tisty_carrier::net`, behind the `net` feature the
+  providers and the window turn on and the command line does not.
 - `Sync::Cloud` in `config.rs`, naming the provider and the account.
 - The window: the Google Drive card with its states, the local switch, the
   day's spend, *Free space*, and the move between this machine, a folder and
@@ -1489,7 +1498,7 @@ checks that a test would notice a changed line.
 
 ## Not built yet
 
-- A `Remote` for OneDrive and Dropbox.
+- A `Remote` for Dropbox.
 - A command that writes `device.rotate`; the format is read and honoured.
 - Anything that consults `forebears` when a machine arrives from a merged store.
 - Undo in the window.
