@@ -22,12 +22,9 @@ impl Person {
         }
     }
 
-    /// A first task of the person's own, with the lists a new store is sown with.
     pub fn begins(&self, title: &str) {
-        let config = Config::load_or_init(&self.paths).unwrap();
         if self.state().lists.is_empty() {
-            let code = tisty_core::model::spoken(config.locale.as_deref());
-            self.wrote(tisty_core::model::sown(&code));
+            self.wrote(tisty_core::model::sown("en"));
         }
         self.captures(title);
     }
@@ -57,7 +54,6 @@ impl Person {
         tisty_core::agent::retire(&self.paths).unwrap();
     }
 
-    /// Read as the window reads what the person types, `#words` and dates included.
     pub fn captures(&self, text: &str) -> TaskId {
         let read = tisty_nl::parse(text, &jiff::Zoned::now(), "en");
         let plan = tisty_core::capture::plan(&self.state(), tisty_core::capture::Draft::from(read))
@@ -66,8 +62,17 @@ impl Person {
         plan.task
     }
 
+    // A name taken already is refused, as the window refuses it.
     pub fn adds_list(&self, name: &str) {
-        let order = self.state().next_list_order();
+        let state = self.state();
+        if state
+            .lists
+            .values()
+            .any(|one| one.name.eq_ignore_ascii_case(name))
+        {
+            return;
+        }
+        let order = state.next_list_order();
         self.wrote(vec![Op::ListAdd {
             id: Ulid::generate(),
             d: ListAdd {
@@ -78,13 +83,12 @@ impl Person {
         }]);
     }
 
-    /// Every open task, one title a line.
     pub fn open(&self) -> String {
         let state = self.state();
         state
             .ordered_open()
             .iter()
-            .map(|task| task.title.clone())
+            .map(|task| line_of(task))
             .collect::<Vec<_>>()
             .join("\n")
     }
@@ -95,7 +99,7 @@ impl Person {
             .ordered_open()
             .iter()
             .filter(|task| task.list.is_none())
-            .map(|task| task.title.clone())
+            .map(|task| line_of(task))
             .collect::<Vec<_>>()
             .join("\n")
     }
@@ -103,7 +107,7 @@ impl Person {
     pub fn closed(&self) -> String {
         self.state()
             .archived_tasks()
-            .map(|task| task.title.clone())
+            .map(line_of)
             .collect::<Vec<_>>()
             .join("\n")
     }
@@ -117,7 +121,6 @@ impl Person {
             .id
     }
 
-    /// The task as the person reads it: title, where it came from, description, steps and journal.
     pub fn card(&self, id: TaskId) -> String {
         let state = self.state();
         let task = &state.tasks[&id];
@@ -129,7 +132,7 @@ impl Person {
         said.join("\n")
     }
 
-    /// Closed as the window closes it: what was written for the close in the round goes first.
+    // What the person wrote for the close in the round goes first, as the window does it.
     pub fn closes(&self, id: TaskId) {
         let mut store = self.store();
         let state = self.state();
@@ -184,7 +187,6 @@ impl Person {
         }]);
     }
 
-    /// Ticks the step at this place, counting from one as the window shows them.
     pub fn ticks(&self, id: TaskId, place: usize) {
         let step = self.state().tasks[&id].steps[place - 1].id;
         self.wrote(vec![Op::StepDone {
@@ -228,33 +230,47 @@ impl Person {
 
     pub fn repeats(&self, id: TaskId, said: &str) {
         let read = tisty_nl::parse(&format!("· {said}"), &jiff::Zoned::now(), "en");
+        let over = read
+            .repeat
+            .unwrap_or_else(|| panic!("{said:?} is not a cadence"));
         self.patches(
             id,
             TaskPatch {
-                repeat: Some(read.repeat),
+                repeat: Some(Some(over)),
                 ..TaskPatch::default()
             },
         );
     }
 
-    /// The person's own last change taken back, as undo in the window does.
+    // A change is the whole batch it was written in, taken back last first.
     pub fn takes_back_the_last(&self) {
-        let store = self.store();
+        let mut store = self.store();
         let events = store.read_all().unwrap();
         let last = events
             .iter()
             .rposition(|one| &one.device == store.device())
             .unwrap();
-        let before = State::replay(&events[..last]);
-        let ops = tisty_core::inverse(&events[last], &before).unwrap();
-        self.store().append_batch_tagged(ops, true, false).unwrap();
+        let batch = events[last].batch;
+        let mut state = State::default();
+        let mut inverses = Vec::new();
+        for (at, event) in events.iter().enumerate() {
+            let wanted = match batch {
+                Some(batch) => event.batch == Some(batch),
+                None => at == last,
+            };
+            if wanted {
+                inverses.push(tisty_core::inverse(event, &state).unwrap());
+            }
+            state.apply(event);
+        }
+        let ops = inverses.into_iter().rev().flatten().collect();
+        store.append_batch_tagged(ops, true, false).unwrap();
     }
 
     fn patches(&self, id: TaskId, d: TaskPatch) {
         self.wrote(vec![Op::TaskUpdate { id, d }]);
     }
 
-    /// Attached as the window does: the file is kept in the store and the journal says so.
     pub fn attaches(&self, id: TaskId, from: &Path) {
         let config = Config::load_or_init(&self.paths).unwrap();
         let kept =
@@ -273,4 +289,12 @@ impl Person {
     pub fn doc(&self, file: &str) -> String {
         tisty_core::docs::read(&self.paths.docs(), file).unwrap()
     }
+}
+
+// What the person reads on a line: the title, then its tags.
+fn line_of(task: &tisty_core::Task) -> String {
+    std::iter::once(task.title.clone())
+        .chain(task.tags.iter().map(|tag| format!("#{tag}")))
+        .collect::<Vec<_>>()
+        .join(" ")
 }

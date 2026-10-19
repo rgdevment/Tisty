@@ -5863,7 +5863,7 @@ fn one_bad_part_and_nothing_at_all_is_written() {
 #[test]
 fn a_part_goes_only_under_a_task_the_agent_may_fill_in() {
     let served = Served::new();
-    let persons = { served.person().captures("the persons own").to_string() };
+    let persons = served.person().captures("the persons own").to_string();
     served.person().lets_the_agent_in();
     let its_own = filed(&served, "plan the move");
 
@@ -6022,12 +6022,7 @@ fn again_reaches_the_parts_of_a_whole_filed_anew() {
 }
 
 fn persons_task(served: &Served, title: &str) -> String {
-    served.person().captures(title);
-    served.call("find", serde_json::json!({ "query": title }))["result"]["structuredContent"]
-        ["matches"][0]["id"]
-        .as_str()
-        .unwrap()
-        .to_string()
+    served.person().captures(title).to_string()
 }
 
 fn read_back(served: &Served, id: &str) -> serde_json::Value {
