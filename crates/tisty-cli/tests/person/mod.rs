@@ -297,6 +297,10 @@ impl Person {
         made.id
     }
 
+    pub fn saves_doc(&self, file: &str, body: &str) {
+        tisty_core::docs::write(&self.paths.docs(), file, body).unwrap();
+    }
+
     fn patches(&self, id: TaskId, d: TaskPatch) {
         self.wrote(vec![Op::TaskUpdate { id, d }]);
     }

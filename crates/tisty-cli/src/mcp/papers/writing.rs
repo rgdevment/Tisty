@@ -36,11 +36,17 @@ pub(super) fn written_doc(
     };
 
     if let Some(which) = text(args, "doc") {
+        let mut first = None;
         if let Some(kept) = state.docs.values().find(|one| one.file == which) {
-            super::compacting::released(&state, kept, args, &mut store)?;
+            first = super::compacting::correcting(paths, kept, args);
+            if first.is_none() {
+                super::compacting::released(&state, kept, args, &mut store)?;
+            }
         }
         if super::compacting::compacting(args) {
-            return super::compacting::compacted(paths, args, &state, &mut store, &which, &body);
+            return super::compacting::compacted(
+                paths, args, &state, &mut store, &which, &body, first,
+            );
         }
         return over_again(paths, args, &state, &mut store, &which, &body);
     }

@@ -410,7 +410,7 @@ fn a_document_the_person_began_is_compacted_only_when_they_asked() {
             "doc": &doc,
             "print": print,
             "compact": true,
-            "asked": asked,
+            "person_asked": asked,
             "body": "# Recipes\n\n## Soup\n\nSoup.\n",
         })
     };
@@ -556,11 +556,11 @@ fn a_compacted_document_takes_no_other_write_until_the_person_decides() {
         "edit_doc",
         json!({ "doc": &doc, "old": "One. Two.", "new": "One, two." }),
     ));
-    let again = refused(&served.call(
+    let whole = refused(&served.call(
         "write_doc",
-        json!({ "doc": &doc, "print": now, "compact": true, "body": "# Login\n\nOne.\n" }),
+        json!({ "doc": &doc, "print": now, "body": "# Login\n\nOne.\n" }),
     ));
-    for told in [&added, &edited, &again] {
+    for told in [&added, &edited, &whole] {
         assert!(told.contains("waits for the person"), "{told}");
     }
 
@@ -591,7 +591,7 @@ fn the_person_keeping_a_compaction_in_the_conversation_lets_the_next_write_throu
 
     went(&served.call(
         "append_doc",
-        json!({ "doc": &doc, "body": "Three.", "kept": true }),
+        json!({ "doc": &doc, "body": "Three.", "keep_compaction": true }),
     ));
 
     let read = said(&served.call("read_doc", json!({ "doc": &doc }))).clone();
@@ -600,7 +600,33 @@ fn the_person_keeping_a_compaction_in_the_conversation_lets_the_next_write_throu
 }
 
 #[test]
-fn a_compaction_lists_the_links_it_took_out() {
+fn a_compaction_that_loses_a_link_is_refused_naming_it() {
+    let served = Served::new();
+    let other = served.paper("# Tokens\n\nHow they are kept.\n");
+    let doc = served.paper(&format!(
+        "# Login\n\nOne, see https://example.com/old and [tokens](tisty:doc/{other}).\n\n## Session 1\n\nTwo.\n\n## Session 2\n\nTwo.\n"
+    ));
+    let print = said(&served.call("read_doc", json!({ "doc": &doc })))["print"].clone();
+
+    let lost = refused(&served.call(
+        "write_doc",
+        json!({ "doc": &doc, "print": print, "compact": true, "body": "# Login\n\nOne. Two.\n" }),
+    ));
+
+    assert!(lost.contains("nowhere in the new one"), "{lost}");
+    assert!(lost.contains("https://example.com/old"), "{lost}");
+    assert!(lost.contains(&format!("tisty:doc/{other}")), "{lost}");
+    assert!(lost.contains("nothing was written"), "{lost}");
+    let read = said(&served.call("read_doc", json!({ "doc": &doc }))).clone();
+    assert!(read["compacted"].is_null(), "{read}");
+    assert!(
+        read["body"].as_str().unwrap().contains("Session 1"),
+        "{read}"
+    );
+}
+
+#[test]
+fn a_compaction_lists_the_links_its_history_only_mentions() {
     let served = Served::new();
     let doc = served.paper(
         "# Login\n\nOne, see https://example.com/old.\n\n## Session 1\n\nTwo.\n\n## Session 2\n\nTwo.\n",
@@ -609,7 +635,12 @@ fn a_compaction_lists_the_links_it_took_out() {
 
     let done = served.call(
         "write_doc",
-        json!({ "doc": &doc, "print": print, "compact": true, "body": "# Login\n\nOne. Two.\n" }),
+        json!({
+            "doc": &doc,
+            "print": print,
+            "compact": true,
+            "body": "# Login\n\nOne. Two.\n\n## History\n\nTook out `https://example.com/old`.\n",
+        }),
     );
 
     went(&done);
@@ -618,6 +649,93 @@ fn a_compaction_lists_the_links_it_took_out() {
         json!(["https://example.com/old"]),
         "{done}"
     );
+}
+
+#[test]
+fn a_compaction_still_the_last_write_is_corrected_and_undoes_to_the_first_body() {
+    let served = Served::new();
+    let doc = served.paper("# Login\n\nOne.\n\n## Session 1\n\nTwo.\n\n## Session 2\n\nTwo.\n");
+    let print = said(&served.call("read_doc", json!({ "doc": &doc })))["print"].clone();
+    went(&served.call(
+        "write_doc",
+        json!({ "doc": &doc, "print": print, "compact": true, "body": "# Login\n\nOne. Two.\n" }),
+    ));
+    let now = said(&served.call("read_doc", json!({ "doc": &doc })))["print"].clone();
+
+    went(&served.call(
+        "write_doc",
+        json!({ "doc": &doc, "print": now, "compact": true, "body": "# Login\n\nOne, two.\n" }),
+    ));
+    let read = said(&served.call("read_doc", json!({ "doc": &doc }))).clone();
+    assert!(read["compacted"]["at"].is_string(), "{read}");
+    assert!(
+        read["body"].as_str().unwrap().contains("One, two."),
+        "{read}"
+    );
+
+    went(&served.call("restore_doc", json!({ "doc": &doc })));
+    let back = said(&served.call("read_doc", json!({ "doc": &doc }))).clone();
+    let body = back["body"].as_str().unwrap();
+    assert!(body.contains("Session 1"), "{back}");
+    assert!(!body.contains("One. Two."), "{back}");
+    assert!(back["compacted"].is_null(), "{back}");
+}
+
+#[test]
+fn a_compaction_written_over_since_is_not_compacted_again() {
+    let served = Served::new();
+    let doc = served.paper("# Login\n\nOne.\n\n## Session 1\n\nTwo.\n\n## Session 2\n\nTwo.\n");
+    let print = said(&served.call("read_doc", json!({ "doc": &doc })))["print"].clone();
+    went(&served.call(
+        "write_doc",
+        json!({ "doc": &doc, "print": print, "compact": true, "body": "# Login\n\nOne. Two.\n" }),
+    ));
+    served
+        .person()
+        .saves_doc(&doc, "# Login\n\nOne. Two. Three.\n");
+    let now = said(&served.call("read_doc", json!({ "doc": &doc })))["print"].clone();
+
+    let again = refused(&served.call(
+        "write_doc",
+        json!({ "doc": &doc, "print": now, "compact": true, "body": "# Login\n\nOne.\n" }),
+    ));
+    assert!(again.contains("waits for the person"), "{again}");
+}
+
+#[test]
+fn a_compaction_that_grows_the_body_says_so() {
+    let served = Served::new();
+    let doc = served.paper("# Login\n\nOne.\n");
+    let print = said(&served.call("read_doc", json!({ "doc": &doc })))["print"].clone();
+
+    let done = served.call(
+        "write_doc",
+        json!({
+            "doc": &doc,
+            "print": print,
+            "compact": true,
+            "body": "# Login\n\nOne, and a good deal more than there was.\n",
+        }),
+    );
+
+    went(&done);
+    let text = done["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(text.contains("The body grew from"), "{text}");
+    assert!(text.contains("say why to the person"), "{text}");
+}
+
+#[test]
+fn the_outline_names_links_that_lead_nowhere() {
+    let served = Served::new();
+    let doc = served.paper("# Login\n\nSee [gone](tisty:doc/zzzzzzzz-9999).\n");
+
+    let outline = served.call("outline_doc", json!({ "doc": &doc }));
+    went(&outline);
+    let told = said(&outline);
+    assert_eq!(told["dead"][0]["to"], "tisty:doc/zzzzzzzz-9999", "{told}");
+    assert_eq!(told["dead"][0]["in"], doc.as_str(), "{told}");
+    let text = outline["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(text.contains("Links that lead nowhere (1)"), "{text}");
 }
 
 fn files_under(at: &std::path::Path) -> usize {

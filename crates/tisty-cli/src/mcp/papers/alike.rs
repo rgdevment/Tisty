@@ -1,7 +1,7 @@
 use serde_json::{Value, json};
-use tisty_core::State;
 use tisty_core::docs::Card;
 use tisty_core::model::Kept;
+use tisty_core::{Paths, State};
 
 use super::compacting::agents_wrote;
 
@@ -77,6 +77,29 @@ pub(super) fn repeated(own: (&str, &Card), pages: &[(&str, &Card)]) -> Vec<Value
         .filter(|(_, _, all)| all.len() > 1 && (pages_held < 3 || all.len() < pages_held))
         .map(|(_, heading, all)| json!({ "heading": heading, "in": all }))
         .collect()
+}
+
+pub(super) fn dead(paths: &Paths, state: &State, bodies: &[(&str, String)]) -> Vec<Value> {
+    let mut found = Vec::new();
+    for (file, body) in bodies {
+        for one in tisty_core::refs::extract(body) {
+            let gone = match one.target.strip_prefix(tisty_core::refs::DOC) {
+                Some(at) => {
+                    let at = at.split(['#', '?']).next().unwrap_or_default();
+                    !state.docs.values().any(|kept| kept.file == at)
+                }
+                None => {
+                    tisty_core::attach::names_an_attachment(&one.target)
+                        && !tisty_core::attach::resolve(&one.target, paths.data())
+                            .is_ok_and(|at| at.is_file())
+                }
+            };
+            if gone {
+                found.push(json!({ "in": file, "to": one.target }));
+            }
+        }
+    }
+    found
 }
 
 #[cfg(test)]

@@ -190,6 +190,15 @@ pub(in crate::mcp) fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, 
         .collect();
     let alike = super::alike::alike(&state, kept, &pages);
     let repeated = super::alike::repeated((which.as_str(), &card), &page_cards);
+    let bodies: Vec<(&str, String)> = std::iter::once((which.as_str(), whole.clone()))
+        .chain(pages.iter().map(|one| {
+            (
+                one.file.as_str(),
+                tisty_core::docs::read(&paths.docs(), &one.file).unwrap_or_default(),
+            )
+        }))
+        .collect();
+    let dead = super::alike::dead(paths, &state, &bodies);
     let mut kept_of = serde_json::Map::new();
     kept_of.insert("doc".into(), json!(which));
     kept_of.insert("title".into(), json!(card.title));
@@ -199,6 +208,9 @@ pub(in crate::mcp) fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, 
     }
     if !repeated.is_empty() {
         kept_of.insert("repeated".into(), json!(repeated));
+    }
+    if !dead.is_empty() {
+        kept_of.insert("dead".into(), json!(dead));
     }
     kept_of.insert("chars".into(), json!(card.chars));
     kept_of.insert("lines".into(), json!(card.lines));
@@ -335,6 +347,17 @@ pub(in crate::mcp) fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, 
                     one["heading"],
                     one["in"].as_array().map_or(0, Vec::len)
                 ))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ));
+    }
+    if !dead.is_empty() {
+        shown.push_str(&format!(
+            "\n\nLinks that lead nowhere ({}): {}. Nothing here answers them — mend each or take \
+             it out.",
+            dead.len(),
+            dead.iter()
+                .map(|one| format!("{} in {}", said(one, "to"), said(one, "in")))
                 .collect::<Vec<_>>()
                 .join(", ")
         ));

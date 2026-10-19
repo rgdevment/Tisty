@@ -59,6 +59,29 @@ pub(super) fn subject_free(state: &State, args: &Value, body: &str) -> Result<()
     )))
 }
 
+pub(super) struct Original {
+    body: String,
+    print: Option<String>,
+}
+
+/// Correcting a compaction still last keeps going back leading to the body before the first.
+pub(super) fn correcting(paths: &Paths, kept: &Kept, args: &Value) -> Option<Original> {
+    if !compacting(args) || flag(args, "keep_compaction") {
+        return None;
+    }
+    let first = kept.compacted.as_ref()?;
+    let now = tisty_core::docs::read(&paths.docs(), &kept.file).ok()?;
+    if !first.still_last(&now) {
+        return None;
+    }
+    let body = tisty_core::docs::read_before(paths.data(), &kept.file)?;
+    let print = Some(tisty_core::attach::printed(body.as_bytes()));
+    match &first.before {
+        Some(before) if Some(before) != print.as_ref() => None,
+        _ => Some(Original { body, print }),
+    }
+}
+
 pub(super) fn compacted(
     paths: &Paths,
     args: &Value,
@@ -66,25 +89,42 @@ pub(super) fn compacted(
     store: &mut Store,
     which: &str,
     body: &str,
+    first: Option<Original>,
 ) -> Result<Value, Refused> {
     let Some(kept) = state.docs.values().find(|one| one.file == which) else {
         return Err(Refused::Tool(format!(
             "no document here is called {which:?}. `docs` lists them all."
         )));
     };
-    if !agents_wrote(state, kept) && !flag(args, "asked") {
+    if !agents_wrote(state, kept) && !flag(args, "person_asked") {
         return Err(Refused::Tool(format!(
             "{} was begun by the person, so it is theirs to have compacted: nothing was written. \
-             Do it only when they ask you in this conversation, and then send `asked`.",
+             Do it only when they ask you in this conversation, and then send `person_asked`.",
             doc_named(state, which)
         )));
     }
     let (id, loose) = (kept.id, kept.folder.is_none() && kept.page_of.is_none());
-    let was = tisty_core::docs::read(&paths.docs(), which).map_err(hitch)?;
+    let was = match &first {
+        Some(one) => one.body.clone(),
+        None => tisty_core::docs::read(&paths.docs(), which).map_err(hitch)?,
+    };
+    unsaid(state, kept, &was, body)?;
     let mut said = over_again(paths, args, state, store, which, body)?;
     let whole = tisty_core::docs::read(&paths.docs(), which).unwrap_or_else(|_| body.to_string());
+    if let Some(one) = &first
+        && let Err(e) = tisty_core::docs::kept_before(paths.data(), which, &one.body, &whole)
+    {
+        tisty_core::witness::warn(
+            tisty_core::witness::channel::DOOR,
+            "a compaction was written again but the body before the first could not be kept",
+            &[("code", tisty_core::witness::Fact::Code(e.coded()))],
+        );
+    }
     let print = Some(tisty_core::attach::printed(whole.as_bytes()));
-    let before = Some(tisty_core::attach::printed(was.as_bytes()));
+    let before = match first {
+        Some(one) => one.print,
+        None => Some(tisty_core::attach::printed(was.as_bytes())),
+    };
     // The body is already rewritten, so a mark that fails to land must not read as a write that did not happen.
     if let Err(e) = store.append(Op::DocCompacted { id, print, before }) {
         tisty_core::witness::warn(
@@ -103,12 +143,19 @@ pub(super) fn compacted(
     let title = tisty_core::docs::titled(&whole);
     let more = format!(
         " Compacted from {before} to {after} characters; the window shows the person that you \
-         did, with one click to undo, and `restore_doc` brings the old body back.{}{}",
+         did, with one click to undo, and `restore_doc` brings the old body back.{}{}{}",
+        match after > before {
+            true => format!(
+                " The body grew from {before} to {after} characters: compacting folds and \
+                 moves, it should not add; if this is right, say why to the person."
+            ),
+            false => String::new(),
+        },
         match dropped.is_empty() {
             true => String::new(),
             false => format!(
-                " These files were named before and are not now, so the body no longer shows \
-                 them: {}. Put each back where it belongs unless losing it was the point.",
+                " These files were shown before and are only mentioned now: {}. Put each back \
+                 where it belongs unless losing it was the point.",
                 dropped.join(", ")
             ),
         },
@@ -120,8 +167,7 @@ pub(super) fn compacted(
     let more = match unlinked.is_empty() {
         true => more,
         false => format!(
-            "{more} These links were in the old body and are not in this one: {}. List them in \
-             its history, so a link taken out is never a link lost.",
+            "{more} These links were in the old body and are only mentioned in this one: {}.",
             unlinked.join(", ")
         ),
     };
@@ -137,6 +183,51 @@ pub(super) fn compacted(
     said["structuredContent"]["unlinked"] = json!(unlinked);
     said["structuredContent"]["compacted"] = json!(true);
     Ok(said)
+}
+
+/// Pages the write names again by itself are not lost, so only what nothing carries is refused.
+fn unsaid(state: &State, kept: &Kept, was: &str, body: &str) -> Result<(), Refused> {
+    let put_back: Vec<String> = state
+        .pages_of(kept.id)
+        .into_iter()
+        .filter(|one| one.flagged.is_none())
+        .map(|one| format!("{}{}", tisty_core::refs::DOC, one.file))
+        .collect();
+    let lost = |gone: Vec<String>| -> Vec<String> {
+        gone.into_iter()
+            .filter(|one| !put_back.contains(one) && !mentioned(body, one))
+            .collect()
+    };
+    let (links, files) = (lost(unlinked(was, body)), lost(dropped(was, body)));
+    let mut told = Vec::new();
+    if !links.is_empty() {
+        told.push(format!(
+            "These links are in the old body and nowhere in the new one: {}.",
+            links.join(", ")
+        ));
+    }
+    if !files.is_empty() {
+        told.push(format!(
+            "These files are named in the old body and nowhere in the new one: {}.",
+            files.join(", ")
+        ));
+    }
+    match told.is_empty() {
+        true => Ok(()),
+        false => Err(Refused::Tool(format!(
+            "{} List them in the history of the body you send, so a link taken out is never a \
+             link lost; nothing was written.",
+            told.join(" ")
+        ))),
+    }
+}
+
+fn mentioned(body: &str, target: &str) -> bool {
+    body.contains(target)
+        || target
+            .strip_prefix(tisty_core::refs::DOC)
+            .is_some_and(|file| body.contains(file))
+        || tisty_core::attach::leaf_of(target).is_some_and(|leaf| body.contains(leaf))
 }
 
 fn dropped(was: &str, whole: &str) -> Vec<String> {
@@ -210,8 +301,10 @@ pub(in crate::mcp) fn awaiting(state: &State, kept: &Kept) -> Result<(), Refused
         Some(_) => Err(Refused::Tool(format!(
             "{} was compacted and waits for the person to keep it or undo it in the window; \
              another write now would cost them that one-click undo, so nothing was written. \
-             Tell them what you would still change; when they tell you in this conversation to \
-             keep it, send `kept` with your next write.",
+             While it is still the last write you may correct it with one more `write_doc` \
+             with `compact`; otherwise tell them what you would still change, and when they \
+             tell you in this conversation to keep it, send `keep_compaction` with your next \
+             write.",
             doc_named(state, &kept.file)
         ))),
     }
@@ -223,7 +316,7 @@ pub(in crate::mcp) fn released(
     args: &Value,
     store: &mut Store,
 ) -> Result<(), Refused> {
-    if kept.compacted.is_some() && flag(args, "kept") {
+    if kept.compacted.is_some() && flag(args, "keep_compaction") {
         return store
             .append(Op::DocUncompacted { id: kept.id })
             .map(|_| ())

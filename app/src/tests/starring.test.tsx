@@ -246,6 +246,18 @@ describe("the card for an assistant turned away at the door", () => {
     expect(door()).toBeNull();
   });
 
+  it("lets it in from the card without leaving the screen", async () => {
+    ipc.agents = { why: "knocked", by: "codex" };
+    await started();
+    await waitFor(() => expect(door()).toBeTruthy());
+
+    await userEvent.click(screen.getByRole("button", { name: /let it in/i }));
+
+    await waitFor(() => expect(screen.getByText(/codex can work with you now/i)).toBeTruthy());
+    expect(ipc.calls.some((one) => one.cmd === "agent_turn" && one.args.on === true)).toBe(true);
+    expect(screen.queryByRole("tab", { name: /assistants/i })).toBeNull();
+  });
+
   it("stays when the person moves to another screen", async () => {
     ipc.agents = { why: "knocked", by: null };
     await started();

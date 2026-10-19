@@ -542,7 +542,7 @@ pub(super) fn tools() -> Value {
             "description": "Write something to keep and read again — a recipe, a procedure, a reference, a summary; work to do is a task (`propose`). In the Tisty language (`language` has it whole): Markdown from elsewhere is turned into it on the way in, the answer says what changed under `turned`, and only what has no way in is refused, naming it. Left alone it writes a new document; with `doc` and `print` it writes an existing one again, whole — pages the body does not name keep their lines, put back at the end. To change one passage, `edit_doc` does it without carrying the whole both ways. Before writing a new one, `find`: a subject that has a document gets `edit_doc`, or this with `doc` and `print`, not a second document; a title carrying a ticket, a date or «v2» is the sign you are writing one, and a title already taken is refused, naming it. With `compact` it writes a document back into the living shape the instructions give: needs `print`, keeps the old body for `restore_doc`, and the answer says what shrank and what was kept back. A document is tagged by writing #word in its own text, for what it is about: six is already a lot, past 64 the rest are dropped, and `tags` lists those in use.",
             "inputSchema": shaped(json!({
                 "properties": {
-                    "kept": { "type": "boolean", "description": "Only when the person told you in this conversation to keep a compaction of this document that waits for their word: it is kept, and this write goes ahead" },
+                    "keep_compaction": { "type": "boolean", "description": "Only when the person told you in this conversation to keep a compaction of this document that waits for their word: it is kept, and this write goes ahead" },
                     "body": {
                         "type": "string",
                         "description": "The whole document. Its first line becomes its title. Each paragraph goes on one line, however long: in the Tisty language a single newline is a line break, so markdown wrapped at 80 columns reads broken in the middle of its sentences. Nothing checks this on the way in"
@@ -561,9 +561,9 @@ pub(super) fn tools() -> Value {
                     },
                     "compact": {
                         "type": "boolean",
-                        "description": "With `doc` and `print`: this writing puts the document back in order — what holds today, the subject, the decisions, the history — rather than changing what it says. Refused on a document the person began unless `asked`. The window shows the person it was compacted, by whom and when, with one click to undo"
+                        "description": "With `doc` and `print`: this writing puts the document back in order — what holds today, the subject, the decisions, the history — rather than changing what it says. Refused on a document the person began unless `person_asked`. The window shows the person it was compacted, by whom and when, with one click to undo"
                     },
-                    "asked": {
+                    "person_asked": {
                         "type": "boolean",
                         "description": "With `compact`: the person asked you in this conversation to compact a document they began. Never otherwise"
                     },
@@ -591,7 +591,7 @@ pub(super) fn tools() -> Value {
             "description": "Add to a document that exists, at the end or under a heading you name. What is already written stays exactly as it is — you are adding, never rewriting, so nothing the person wrote can be lost and no `print` is needed. For what is chronological by nature — a log, minutes, the dated notes on a task's page. For a fact that changed, `edit_doc` the passage that says the old one: adding the new fact under the old leaves the document saying both. With `under` you can put a paragraph in the right part of a long document without reading any of it; `outline_doc` tells you which headings there are. The answer says how many characters it `grew` by; with `echo` it hands back the lines around what you added. A task's page takes it too, named by the task's id, on a task an agent filed or one the person opened to agents: what you add goes under the assistant's own notes, dated and signed, never among their words. On a task's page, `replace` writes the assistant's notes again whole instead of adding.",
             "inputSchema": shaped(json!({
                 "properties": {
-                    "kept": { "type": "boolean", "description": "Only when the person told you in this conversation to keep a compaction of this document that waits for their word: it is kept, and this write goes ahead" },
+                    "keep_compaction": { "type": "boolean", "description": "Only when the person told you in this conversation to keep a compaction of this document that waits for their word: it is kept, and this write goes ahead" },
                     "doc": {
                         "type": "string",
                         "description": "The document's id, as `docs` hands it back — an opaque name like `q7ntmzbm-0001`, not its title — or a task's id, to add to that task's page"
@@ -640,7 +640,7 @@ pub(super) fn tools() -> Value {
             "description": "Replace one passage of a document with another, named either by what it says with `old` or by where it sits with `section` or a line range — which let you change a part of a document you never read. What it said before is kept first, and if that cannot be done the edit is refused rather than made; `restore_doc` puts it back. The answer says how many characters the document `grew` by, which is worth reading: an edit should not change the size by much more than what you sent.",
             "inputSchema": shaped(json!({
                 "properties": {
-                    "kept": { "type": "boolean", "description": "Only when the person told you in this conversation to keep a compaction of this document that waits for their word: it is kept, and this write goes ahead" },
+                    "keep_compaction": { "type": "boolean", "description": "Only when the person told you in this conversation to keep a compaction of this document that waits for their word: it is kept, and this write goes ahead" },
                     "doc": named_doc_field(),
                     "old": {
                         "type": "string",

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DoorDue } from "../core";
@@ -97,14 +97,38 @@ describe("the card that offers the assistant a door", () => {
 describe("the card for assistants wired to a closed door", () => {
   const mute: DoorDue = { why: "mute", by: null };
 
-  it("says the door is closed and offers to let them in", async () => {
+  it("says the door is closed and lets them in right there", async () => {
     const said = shown(mute);
 
     expect(screen.getByText(/connected, but the door is closed/i)).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: /let it in/i }));
 
+    await screen.findByText("Your assistant can work with you now.");
+    expect(said.opened).toBe(0);
+    expect(ipc.sent).toEqual(["agent_turn", "door_done"]);
+    expect(said.settled).toBe(0);
+  });
+
+  it("still walks to the settings from its link", async () => {
+    const said = shown(mute);
+
+    await userEvent.click(screen.getByRole("button", { name: /see in settings/i }));
+
     expect(said.opened).toBe(1);
+    expect(said.settled).toBe(1);
     expect(ipc.sent).toEqual(["door_done"]);
+  });
+
+  it("says so when the door cannot be opened, and stays", async () => {
+    ipc.refuse = true;
+    const said = shown(mute);
+
+    await userEvent.click(screen.getByRole("button", { name: /let it in/i }));
+
+    await waitFor(() => expect(said.problems.length).toBe(1));
+    expect(screen.queryByText(/can work with you now/i)).toBeNull();
+    expect(screen.getByText(/connected, but the door is closed/i)).toBeTruthy();
+    expect(said.settled).toBe(0);
   });
 
   it("can be told not to come back", async () => {
@@ -133,10 +157,38 @@ describe("the card for an assistant turned away at the door", () => {
     expect(screen.getByText("An assistant tried to come in.")).toBeTruthy();
   });
 
-  it("walks to the assistants and counts the knock as heard", async () => {
+  it("opens the door right there, names who came in and counts the knock as heard", async () => {
     const said = shown(knocked);
 
     await userEvent.click(screen.getByRole("button", { name: /let it in/i }));
+
+    await screen.findByText("Claude Code can work with you now.");
+    expect(ipc.sent).toEqual(["agent_turn", "door_heard"]);
+    expect(said.opened).toBe(0);
+  });
+
+  it("goes on any click once it has said so", async () => {
+    const said = shown(knocked);
+    await userEvent.click(screen.getByRole("button", { name: /let it in/i }));
+    await screen.findByText(/can work with you now/i);
+
+    await userEvent.click(document.body);
+
+    expect(said.settled).toBe(1);
+  });
+
+  it("goes by itself after a moment", async () => {
+    const said = shown(knocked);
+    await userEvent.click(screen.getByRole("button", { name: /let it in/i }));
+    await screen.findByText(/can work with you now/i);
+
+    await waitFor(() => expect(said.settled).toBe(1), { timeout: 4000 });
+  });
+
+  it("walks to the assistants from its link and counts the knock as heard", async () => {
+    const said = shown(knocked);
+
+    await userEvent.click(screen.getByRole("button", { name: /see in settings/i }));
 
     expect(said.opened).toBe(1);
     expect(said.settled).toBe(1);
