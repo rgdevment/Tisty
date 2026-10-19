@@ -594,39 +594,6 @@ fn what_it_attaches_says_where_it_came_from() {
 }
 
 #[test]
-fn a_file_over_the_limit_is_refused_with_the_size_it_copies() {
-    let served = Served::new();
-    served.person().lets_the_agent_in();
-    let filed = served.call(
-        "propose",
-        serde_json::json!({ "title": "somewhere to put it" }),
-    );
-    let id = filed["result"]["structuredContent"]["id"].as_str().unwrap();
-
-    let heavy = served.home.path().join("holiday.mp4");
-    let mut bytes = b"    ftypisom".to_vec();
-    bytes.resize(27_000_000, 0);
-    std::fs::write(&heavy, bytes).unwrap();
-    let said = served.call(
-        "attach",
-        serde_json::json!({ "task": id, "path": heavy.to_string_lossy() }),
-    );
-
-    let why = said["result"]["content"][0]["text"].as_str().unwrap();
-    assert_eq!(said["result"]["isError"], true, "{said}");
-    assert!(
-        why.contains("MB"),
-        "the refusal has to say the size it copies, or the model cannot adjust: {why}"
-    );
-    assert!(
-        walked(&served.home.path().join("data/attachments"))
-            .next()
-            .is_none(),
-        "nothing over the limit reaches the store"
-    );
-}
-
-#[test]
 fn a_file_kept_in_a_document_is_added_at_its_end() {
     let served = Served::new();
     served.person().lets_the_agent_in();
@@ -654,7 +621,7 @@ fn a_file_kept_in_a_document_is_added_at_its_end() {
 }
 
 #[test]
-fn a_document_takes_a_file_a_task_will_not() {
+fn a_task_takes_a_large_file_as_a_document_does() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     let filed = served.call("propose", serde_json::json!({ "title": "la charla" }));
@@ -673,9 +640,9 @@ fn a_document_takes_a_file_a_task_will_not() {
         "attach",
         serde_json::json!({ "task": id, "path": heavy.to_string_lossy() }),
     );
-    assert_eq!(
-        onto["result"]["isError"], true,
-        "a task copies up to 25 megabytes: {onto}"
+    assert!(
+        onto["result"]["isError"].is_null(),
+        "a task's page holds what a document does: {onto}"
     );
 
     let into = served.call(
@@ -684,7 +651,7 @@ fn a_document_takes_a_file_a_task_will_not() {
     );
     assert!(
         into["result"]["isError"].is_null(),
-        "a document holds far more than a task does: {into}"
+        "a document takes it too: {into}"
     );
     assert!(body_of(&served, &doc).contains("charla.mp4"));
 }

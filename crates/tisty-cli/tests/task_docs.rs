@@ -311,9 +311,14 @@ fn an_old_copy_of_a_task_s_page_is_turned_away_rather_than_erase_what_came_since
     assert!(body.contains("- [ ] Bring the card"), "{body}");
 
     served.call(
+        "tick",
+        serde_json::json!({ "task": task, "step": "Bring the card" }),
+    );
+    let done = served.call(
         "say_done",
         serde_json::json!({ "task": task, "body": "booked" }),
     );
+    assert!(done["result"]["isError"].is_null(), "{done}");
     std::fs::write(&at, body).unwrap();
     let late = served.call(
         "import_doc",
