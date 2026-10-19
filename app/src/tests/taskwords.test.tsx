@@ -9,6 +9,7 @@ const ipc = vi.hoisted(() => ({
   doc: null as unknown,
   moved: false,
   woven: true,
+  weaving: undefined as (() => void) | undefined,
   sheets: [] as {
     file?: string;
     value: string;
@@ -26,7 +27,10 @@ vi.mock("@tauri-apps/api/core", () => ({
     if (cmd === "doc_write" && ipc.moved && !args.anyway) {
       return Promise.reject({ code: "documentMoved", name: "t_one-0001" });
     }
-    if (cmd === "task_doc_merge") return Promise.resolve(ipc.woven);
+    if (cmd === "task_doc_merge") {
+      ipc.weaving?.();
+      return Promise.resolve(ipc.woven);
+    }
     if (cmd === "doc_write" && args.anyway) ipc.doc = { ...(ipc.doc as object), body: args.body };
     if (cmd === "task_doc_make") {
       ipc.doc = { file: "t_one-0001", body: "Words it held.\n", held: false };
@@ -54,6 +58,7 @@ beforeEach(() => {
   ipc.doc = null;
   ipc.moved = false;
   ipc.woven = true;
+  ipc.weaving = undefined;
   ipc.sheets = [];
 });
 
@@ -176,6 +181,29 @@ describe("a task document changed on disk meanwhile", () => {
       { cmd: "task_doc_merge", args: { id: "one", base: "mine\n", mine: "mine, edited\n" } },
     ]);
     expect(failed).not.toHaveBeenCalled();
+  });
+
+  it("weaves again what was typed while the first weave was out, so none of it is lost", async () => {
+    ipc.doc = { file: "t_one-0001", body: "mine\n", held: false };
+    render(<TaskWords task={task()} />);
+    await screen.findByText("sheet:mine");
+
+    ipc.moved = true;
+    ipc.doc = { file: "t_one-0001", body: "theirs\nmine, edited, more\n", held: false };
+    const sheet = ipc.sheets[ipc.sheets.length - 1];
+    ipc.weaving = () => {
+      ipc.weaving = undefined;
+      sheet.onWrite("mine, edited, more\n");
+    };
+    sheet.onWrite("mine, edited\n");
+
+    expect(
+      await screen.findByText("sheet:theirs mine, edited, more", {}, { timeout: 2000 }),
+    ).toBeTruthy();
+    expect(sent("task_doc_merge").map((one) => one.args)).toEqual([
+      { id: "one", base: "mine\n", mine: "mine, edited\n" },
+      { id: "one", base: "mine, edited\n", mine: "mine, edited, more\n" },
+    ]);
   });
 
   it("keeps what was typed until the person chooses when the two cannot be woven", async () => {

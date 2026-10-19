@@ -810,7 +810,7 @@ fn an_upload_cut_short_carries_on_after_a_restart_from_where_onedrive_says_it_go
 }
 
 #[test]
-fn a_session_that_kept_every_byte_but_never_made_the_file_is_let_go_and_begun_again() {
+fn a_session_that_kept_every_byte_is_waited_on_while_the_file_is_not_there_yet() {
     let home = tempfile::tempdir().unwrap();
     let (at, served) = graph(|base| {
         vec![
@@ -819,11 +819,6 @@ fn a_session_that_kept_every_byte_but_never_made_the_file_is_let_go_and_begun_ag
             said_with("429 Too Many Requests", "Retry-After: 1", "{}"),
             said("200 OK", r#"{"nextExpectedRanges":[]}"#),
             said("404 Not Found", r#"{"error":{"code":"itemNotFound"}}"#),
-            said("204 No Content", ""),
-            said("200 OK", &format!(r#"{{"uploadUrl":"{base}/up/2"}}"#)),
-            said("202 Accepted", r#"{"nextExpectedRanges":["4-"]}"#),
-            said("202 Accepted", r#"{"nextExpectedRanges":["8-"]}"#),
-            said("201 Created", &file("F", "big.pdf", "A", "e1")),
         ]
     });
     let local = written(&home, b"0123456789");
@@ -839,23 +834,12 @@ fn a_session_that_kept_every_byte_but_never_made_the_file_is_let_go_and_begun_ag
     let again = onedrive(at, home.path())
         .with_chunk(4)
         .keeping_at(home.path());
-    let seen = again
-        .put("attachments/big.pdf", &local, Expect::Absent)
-        .unwrap();
+    let waited = again.put("attachments/big.pdf", &local, Expect::Absent);
 
-    assert_eq!(seen.revision, "e1");
+    assert!(matches!(waited, Err(Hitch::Troubled(_))), "{waited:?}");
     let asked = served.join().unwrap();
-    assert_eq!(asked[5].line, "DELETE /up/1 HTTP/1.1");
-    assert!(
-        asked[6].line.contains(":/createUploadSession"),
-        "{}",
-        asked[6].line
-    );
-    assert_eq!(
-        header(&asked[7], "content-range").as_deref(),
-        Some("bytes 0-3/10")
-    );
-    assert!(!home.path().join("uploading.json").exists());
+    assert_eq!(asked.len(), 5, "the session was let go or begun again");
+    assert!(home.path().join("uploading.json").exists());
 }
 
 #[test]
@@ -930,27 +914,6 @@ fn a_file_is_deleted_only_at_the_revision_named() {
     assert_eq!(asked.len(), 3, "a newer revision is never asked to go");
     assert_eq!(asked[1].line, "DELETE /v1.0/me/drive/items/F!1 HTTP/1.1");
     assert_eq!(header(&asked[1], "if-match").as_deref(), Some("e1"));
-}
-
-#[test]
-fn a_file_is_deleted_at_its_content_tag_whatever_a_rename_did_to_its_etag() {
-    let home = tempfile::tempdir().unwrap();
-    let (at, served) = graph(|_| {
-        vec![
-            said(
-                "200 OK",
-                r#"{"id":"F","name":"a.tisty","eTag":"e9","cTag":"c1","size":4,"file":{}}"#,
-            ),
-            said("204 No Content", ""),
-        ]
-    });
-    let drive = onedrive(at, home.path());
-
-    drive.delete("a.tisty", Some("c1")).unwrap();
-
-    let asked = served.join().unwrap();
-    assert!(asked[0].line.contains("cTag"), "{}", asked[0].line);
-    assert_eq!(header(&asked[1], "if-match").as_deref(), Some("c1"));
 }
 
 #[test]

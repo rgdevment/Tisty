@@ -360,7 +360,6 @@ pub fn unplanned(body: &str, task: &Task, gone: &[StepId]) -> String {
         .collect()
 }
 
-/// The steps whose boxes sit inside `span` of the page, each paired to its own line.
 pub fn boxed_in(task: &Task, body: &str, span: Range<usize>) -> Vec<StepId> {
     let found = stages(body);
     steps_of(task, &found)
@@ -371,7 +370,6 @@ pub fn boxed_in(task: &Task, body: &str, span: Range<usize>) -> Vec<StepId> {
         .collect()
 }
 
-/// The steps the page shows a box for, and whether that box is ticked.
 pub fn shown(task: &Task, body: &str) -> Vec<(StepId, bool)> {
     let found = stages(body);
     steps_of(task, &found)

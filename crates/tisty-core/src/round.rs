@@ -73,13 +73,16 @@ pub fn round_cleared(paths: &Paths, store: &mut Store, state: &State, id: TaskId
         return;
     }
     let mut once = Vec::new();
-    written(paths, store, id, |was| {
+    let cleared = written(paths, store, id, |was| {
         let (_, cleared) = this_time(was).filter(|(now, _)| now == said)?;
         if let (Some(task), Some((_, words))) = (state.tasks.get(&id), held(was, &THIS_TIME)) {
             once = crate::stages::boxed_in(task, was, words);
         }
         Some(cleared)
     });
+    if !cleared {
+        return;
+    }
     let ops = left_behind(state, id, &once);
     if !ops.is_empty()
         && let Err(e) = store.append_batch(ops)

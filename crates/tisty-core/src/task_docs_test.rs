@@ -633,6 +633,25 @@ fn another_machine_s_version_of_a_page_stays_on_it_under_its_own_heading() {
 }
 
 #[test]
+fn keeping_another_version_beside_a_page_adds_no_step_and_ticks_none() {
+    let task = Ulid::generate();
+    let mine = format!("{}\n## Every round\n- [ ] water\n- [x] feed\n", seed(task));
+    let theirs = format!(
+        "{}\n## Every round\n- [ ] water\n- [x] feed\n* [ ] starred\n+ [X] plus\n1. [ ] numbered\n2) [x] parens\n  - [ ] indented\n\t- [ ] tabbed\n> - [ ] quoted\n",
+        seed(task)
+    );
+
+    let kept = super::kept_beside(&mine, &theirs, "Other version");
+
+    assert_ne!(kept, mine, "{kept}");
+    assert_eq!(
+        crate::stages::stages(&kept),
+        crate::stages::stages(&mine),
+        "{kept}"
+    );
+}
+
+#[test]
 fn a_description_s_own_headings_sit_one_level_under_its_section() {
     let mut state = State::default();
     let task = Ulid::generate();

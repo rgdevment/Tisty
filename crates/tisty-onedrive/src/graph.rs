@@ -578,7 +578,7 @@ impl Remote for OneDrive {
             .item(name, Some(ITEM_FIELDS))?
             .filter(DriveItem::is_file)
             .ok_or_else(|| Hitch::Missing(name.to_string()))?;
-        if expect.is_some_and(|wanted| item.revision() != wanted) {
+        if expect.is_some_and(|wanted| item.etag.as_deref() != Some(wanted)) {
             return Err(Hitch::Changed(name.to_string()));
         }
         let url = self.item_url(&item.id)?;

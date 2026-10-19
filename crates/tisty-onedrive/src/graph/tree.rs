@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, HashMap};
 use serde::Deserialize;
 use tisty_carrier::Seen;
 
-pub(super) const ITEM_FIELDS: &str = "id,name,eTag,cTag,size,file,folder,deleted,parentReference";
+pub(super) const ITEM_FIELDS: &str = "id,name,eTag,size,file,folder,deleted,parentReference";
 // A loop in what the feed says is never followed forever: no path Tisty writes goes this deep.
 const DEEPEST: usize = 64;
 
@@ -14,8 +14,6 @@ pub(super) struct DriveItem {
     pub name: Option<String>,
     #[serde(default, rename = "eTag")]
     pub etag: Option<String>,
-    #[serde(default, rename = "cTag")]
-    pub ctag: Option<String>,
     #[serde(default)]
     pub size: Option<u64>,
     #[serde(default)]
@@ -54,16 +52,8 @@ impl DriveItem {
             name: name.to_string(),
             bytes: self.size.unwrap_or(0),
             hash: self.hash(),
-            revision: self.revision(),
+            revision: self.etag.clone().unwrap_or_default(),
         }
-    }
-
-    // The content's own tag stays put through a rename or OneDrive's own touch-ups, which change the eTag.
-    pub fn revision(&self) -> String {
-        self.ctag
-            .clone()
-            .or_else(|| self.etag.clone())
-            .unwrap_or_default()
     }
 
     // Printed as `hash_of` prints a file here, so the two are compared as they are.

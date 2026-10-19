@@ -54,7 +54,10 @@ impl DateSpec {
 
     pub fn passed(&self, now: &jiff::Zoned) -> bool {
         match self.has_time {
-            true => self.at < now.datetime(),
+            true => match self.instant(now.time_zone()) {
+                Ok(at) => at < now.timestamp(),
+                Err(_) => self.at < now.datetime(),
+            },
             false => self.date() < now.date(),
         }
     }

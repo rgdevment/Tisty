@@ -203,6 +203,21 @@ function Written({
   const typed = useRef(doc.body);
   const [clash, setClash] = useState(false);
 
+  // Typing that came while one weave was out is woven again over it, so none of it is dropped.
+  const weave = useCallback(
+    async (base: string): Promise<boolean> => {
+      let from = base;
+      let mine = typed.current;
+      while (await taskDocMerge(task.id, from, mine).catch(() => false)) {
+        if (typed.current === mine) return true;
+        from = mine;
+        mine = typed.current;
+      }
+      return false;
+    },
+    [task.id],
+  );
+
   // What was typed is woven into what moved on beneath it, or kept until the person chooses.
   const clashed = useCallback(
     (e: unknown) => {
@@ -210,11 +225,9 @@ function Written({
       if (!file.current && named) file.current = named;
       if (stale.current) return;
       stale.current = true;
-      void taskDocMerge(task.id, known.current, typed.current)
-        .catch(() => false)
-        .then((woven) => (woven ? moved.current() : setClash(true)));
+      void weave(known.current).then((woven) => (woven ? moved.current() : setClash(true)));
     },
-    [task.id],
+    [weave],
   );
 
   // The first words written make the file; whatever comes after waits for it to be there.

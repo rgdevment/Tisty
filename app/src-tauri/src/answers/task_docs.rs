@@ -219,27 +219,28 @@ pub fn task_page_import(
     let (raw, _) = super::carrying::read_any(from)?;
     let zone = jiff::tz::TimeZone::system();
     let tz = zone.iana_name().unwrap_or("UTC").to_string();
-    let paths = {
-        let mut session = held(&session);
-        session.reload()?;
-        let Some(id) = tisty_core::task_front::read(&raw, &tz).task else {
-            return Ok(None);
-        };
-        if !session.state.tasks.contains_key(&id) {
-            return Ok(None);
-        }
-        // Refused before the files beside it are brought in, so a refusal leaves none behind.
-        open_task(&session, id)?;
-        if let Some(file) = file_of(&session, id) {
-            writable(&session.state, &file)?;
-            behind(&session, &raw, &file, &tz, anyway)?;
-        }
-        session.paths.clone()
+    let mut session = held(&session);
+    session.reload()?;
+    let Some(id) = tisty_core::task_front::read(&raw, &tz).task else {
+        return Ok(None);
     };
-    let own: Vec<std::path::PathBuf> = [paths.data(), paths.config(), paths.cache()]
-        .iter()
-        .filter_map(|one| one.canonicalize().ok())
-        .collect();
+    if !session.state.tasks.contains_key(&id) {
+        return Ok(None);
+    }
+    // Refused before the files beside it are brought in, so a refusal leaves none behind.
+    open_task(&session, id)?;
+    if let Some(file) = file_of(&session, id) {
+        writable(&session.state, &file)?;
+        behind(&session, &raw, &file, &tz, anyway)?;
+    }
+    let own: Vec<std::path::PathBuf> = [
+        session.paths.data(),
+        session.paths.config(),
+        session.paths.cache(),
+    ]
+    .iter()
+    .filter_map(|one| one.canonicalize().ok())
+    .collect();
     let mut reach = |at: &std::path::Path| {
         let at = at
             .canonicalize()
@@ -250,7 +251,7 @@ pub fn task_page_import(
         }
     };
     let (body, brought) = tisty_core::beside::brought(
-        &paths,
+        &session.paths,
         from,
         &raw,
         &mut tisty_core::beside::Way {
@@ -259,8 +260,6 @@ pub fn task_page_import(
             notes: false,
         },
     );
-    let mut session = held(&session);
-    session.reload()?;
     let file = tisty_core::task_front::read(&body, &tz)
         .task
         .and_then(|id| file_of(&session, id).map(|file| (id, file)));
@@ -272,17 +271,6 @@ pub fn task_page_import(
         return Ok(None);
     };
     let id = taken.task;
-    open_task(&session, id)?;
-    if taken.takes_away && !anyway {
-        return Err(Refusal::of("taskPageBehind"));
-    }
-    if taken.takes_away {
-        witness::warn(
-            channel::STORE,
-            "an old copy of a task's page was brought in anyway",
-            &[("task", Fact::Id(id.to_string()))],
-        );
-    }
     let mut ops = brought.told;
     ops.extend(taken.ops);
     let mut over = file.map(|(_, file)| file);

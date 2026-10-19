@@ -138,9 +138,8 @@ fn nothing_said_and_nothing_written_closes_with_nothing_more() {
     );
 }
 
-#[test]
-fn a_step_written_under_this_time_does_not_come_back_with_the_next_round() {
-    let mut room = room();
+// A weekly round whose page held a step under This time, closed with its next round open.
+fn closed_round(room: &mut Room) -> Ulid {
     let id = Ulid::generate();
     let mut d = TaskAdd::new("Water the plants", "a0");
     d.date = Some(crate::model::DateSpec::all_day(
@@ -173,21 +172,49 @@ fn a_step_written_under_this_time_does_not_come_back_with_the_next_round() {
     room.store.append_batch(closing.ops).unwrap();
     let ops = room.state().completing(id, jiff::Zoned::now());
     room.store.append_batch(ops).unwrap();
-    let state = room.state();
+    id
+}
 
-    round_cleared(&room.paths, &mut room.store, &state, id, "- [ ] buy a cake");
-
+fn next_steps(room: &Room, id: Ulid) -> Vec<String> {
     let state = room.state();
     let next = state
         .tasks
         .values()
         .find(|one| one.after == Some(id))
         .unwrap();
-    let left: Vec<&str> = next.steps.iter().map(|one| one.text.as_str()).collect();
-    assert_eq!(left, vec!["water"]);
+    next.steps.iter().map(|one| one.text.clone()).collect()
+}
+
+#[test]
+fn a_step_written_under_this_time_does_not_come_back_with_the_next_round() {
+    let mut room = room();
+    let id = closed_round(&mut room);
+    let state = room.state();
+
+    round_cleared(&room.paths, &mut room.store, &state, id, "- [ ] buy a cake");
+
+    assert_eq!(next_steps(&room, id), vec!["water"]);
     assert_eq!(
-        state.tasks[&id].steps.len(),
+        room.state().tasks[&id].steps.len(),
         2,
         "the closed round keeps its own"
     );
+}
+
+#[test]
+fn a_page_that_could_not_be_cleared_keeps_the_next_round_s_steps_too() {
+    let mut room = room();
+    let id = closed_round(&mut room);
+    let state = room.state();
+    let page = room.page(id).unwrap();
+    let originals = room.paths.data().join("originals");
+    let _ = std::fs::remove_dir_all(&originals);
+    std::fs::write(&originals, b"not a folder").unwrap();
+
+    round_cleared(&room.paths, &mut room.store, &state, id, "- [ ] buy a cake");
+
+    assert_eq!(room.page(id).unwrap(), page);
+    let mut left = next_steps(&room, id);
+    left.sort();
+    assert_eq!(left, vec!["buy a cake", "water"]);
 }

@@ -44,7 +44,7 @@ fn a_settings_file_that_is_not_there_yet_is_written() {
 
     wire_at(&CODE, &at).unwrap();
 
-    assert!(told(&CODE, &at, true).wired);
+    assert!(told(&CODE, &at).wired);
     assert!(!at.with_file_name(format!("mcp.json.{BEFORE}")).exists());
 }
 
@@ -97,10 +97,10 @@ fn a_table_is_written_and_taken_back_out_of_a_toml() {
     std::fs::write(&at, "model = \"gpt\"\n").unwrap();
 
     wire_at(&CODEX, &at).unwrap();
-    assert!(told(&CODEX, &at, true).wired);
+    assert!(told(&CODEX, &at).wired);
 
     unwire_at(&CODEX, &at).unwrap();
-    assert!(!told(&CODEX, &at, true).wired);
+    assert!(!told(&CODEX, &at).wired);
     assert!(std::fs::read_to_string(&at).unwrap().contains("model"));
 }
 
@@ -111,7 +111,7 @@ fn what_it_points_at_is_reported_back() {
 
     wire_at(&CODE, &at).unwrap();
 
-    assert_eq!(told(&CODE, &at, true).points, Some(command::calling()));
+    assert_eq!(told(&CODE, &at).points, Some(command::calling()));
 }
 
 #[test]
@@ -121,24 +121,14 @@ fn a_command_that_is_no_longer_there_is_astray() {
         false => "/Applications/Gone.app/Contents/MacOS/tisty",
     };
 
-    assert!(adrift(gone, true));
+    assert!(adrift(gone));
 }
 
 #[test]
-fn a_bare_name_is_the_stores_alias_and_astray_where_nothing_answers_it() {
-    assert!(!adrift("tisty", false));
-    assert!(adrift("tisty-answered-by-nothing", true));
-}
-
-#[test]
-fn a_bare_name_an_older_install_still_answers_on_the_path_is_not_astray() {
-    let tmp = tempfile::tempdir().unwrap();
-    let named = if cfg!(windows) { "older.exe" } else { "older" };
-    std::fs::write(tmp.path().join(named), b"an older tisty").unwrap();
-    let path = std::env::join_paths([tmp.path()]).unwrap();
-
-    assert!(answered_on("older", &path));
-    assert!(!answered_on("tisty-answered-by-nothing", &path));
+fn a_bare_name_is_never_astray() {
+    assert!(!adrift("tisty"));
+    assert!(!adrift("tisty-mcp"));
+    assert!(!adrift("tisty-answered-by-nothing"));
 }
 
 #[test]
@@ -147,7 +137,7 @@ fn the_command_beside_the_window_is_not_astray() {
     let at = tmp.path().join(command::CLI);
     std::fs::write(&at, b"a command").unwrap();
 
-    assert!(!adrift(&at.display().to_string(), true));
+    assert!(!adrift(&at.display().to_string()));
 }
 
 #[test]

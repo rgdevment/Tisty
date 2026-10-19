@@ -118,7 +118,7 @@ impl OneDrive {
                     self.settled(&upload, key, &sent);
                     return sent;
                 }
-                // Every byte went up a round ago, so a session that still says so is let go rather than waited on for days.
+                // OneDrive may still be putting the pieces together, so the session is kept until it lapses.
                 Ok(Held::Whole) => {
                     if let Some(landed) = self.landed_already(name, from)? {
                         witness::note(
@@ -129,8 +129,7 @@ impl OneDrive {
                         uploads.closed(key);
                         return Ok(landed);
                     }
-                    self.dropped(&upload);
-                    uploads.closed(key);
+                    return Err(assembling());
                 }
                 Err(cut) if passing(&cut) => return Err(cut),
                 Ok(Held::Gone) | Err(_) => {
