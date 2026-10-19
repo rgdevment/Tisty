@@ -12,7 +12,7 @@ workspace = true
 [features]
 # Doubles and a request reader for the providers' own tests, never in a build that ships.
 testing = []
-# Only the providers and the window reach the network; the command line builds without it.
+# Only the providers and the window reach the network; the assistant's door builds without it.
 net = ["dep:reqwest"]
 
 [dependencies]

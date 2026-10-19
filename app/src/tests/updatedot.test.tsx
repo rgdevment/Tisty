@@ -74,7 +74,7 @@ describe("what About suggests", () => {
     version: "0.3.0",
     route,
     package: named,
-    installs: route !== "brewCli",
+    installs: true,
   });
 
   // An offer a Store copy sees is one the Store itself made, so it is taken like any other.
@@ -97,15 +97,6 @@ describe("what About suggests", () => {
 
     expect(await screen.findByRole("button", { name: "Update" })).toBeTruthy();
     expect(screen.queryByText(/brew upgrade/)).toBeNull();
-  });
-
-  it("gives the formula its own command, without the cask flag or a button", async () => {
-    render(<About ready={ready("brewCli", "tisty-cli")} onError={vi.fn()} />);
-
-    const said = await screen.findByText(/brew upgrade tisty-cli/);
-    expect(said.textContent).toContain("brew update &&");
-    expect(said.textContent).not.toContain("--cask");
-    expect(screen.queryByRole("button", { name: "Update" })).toBeNull();
   });
 
   it("shows how far the download has got, and then that it is installing", async () => {

@@ -5,6 +5,8 @@ use std::process::{Command, Stdio};
 use tempfile::TempDir;
 use tisty_core::event::SCHEMA_VERSION;
 
+mod person;
+
 struct Cli {
     home: TempDir,
     binary: PathBuf,
@@ -16,11 +18,23 @@ struct Run {
     code: i32,
 }
 
-impl Cli {
-    fn current() -> Self {
-        Self::of(PathBuf::from(env!("CARGO_BIN_EXE_tisty")))
+struct Current {
+    home: TempDir,
+}
+
+impl Current {
+    fn new() -> Self {
+        Self {
+            home: tempfile::tempdir().unwrap(),
+        }
     }
 
+    fn person(&self) -> person::Person {
+        person::Person::at(self.home.path())
+    }
+}
+
+impl Cli {
     fn earlier() -> Self {
         let named = std::env::var("TISTY_PREVIOUS")
             .expect("TISTY_PREVIOUS names the earlier release's tisty: .github/workflows/versions.yml sets it");
@@ -63,16 +77,6 @@ impl Cli {
     }
 }
 
-fn named(cli: &Cli) -> String {
-    let at = cli.ok(&["config", "path"]);
-    let body = std::fs::read_to_string(at.trim()).unwrap();
-    body.lines()
-        .find_map(|line| line.strip_prefix("device_id = "))
-        .unwrap()
-        .trim_matches('"')
-        .to_string()
-}
-
 fn earlier_schema() -> u32 {
     std::env::var("TISTY_PREVIOUS_SCHEMA")
         .expect("TISTY_PREVIOUS_SCHEMA says which schema the earlier release writes")
@@ -110,7 +114,7 @@ fn snapshot(dir: &Path) -> BTreeMap<PathBuf, Vec<u8>> {
     found
 }
 
-fn written_in_turn(shared: &Path) -> (Cli, Cli) {
+fn written_in_turn(shared: &Path) -> (Cli, Current) {
     let met = shared.display().to_string();
 
     let earlier = Cli::earlier();
@@ -118,10 +122,11 @@ fn written_in_turn(shared: &Path) -> (Cli, Cli) {
     earlier.ok(&["written by the earlier release"]);
     earlier.ok(&["sync"]);
 
-    let current = Cli::current();
-    current.ok(&["config", "set", "remote", &met]);
-    current.ok(&["sync"]);
-    current.ok(&["sync"]);
+    let current = Current::new();
+    let person = current.person();
+    person.shares_through(shared);
+    person.syncs().unwrap();
+    person.syncs().unwrap();
     (earlier, current)
 }
 
@@ -132,7 +137,7 @@ fn this_build_takes_in_what_an_earlier_release_synced() {
 
     let (_earlier, current) = written_in_turn(shared.path());
 
-    let seen = current.ok(&["ls", "all"]);
+    let seen = current.person().open();
     assert!(seen.contains("written by the earlier release"), "{seen}");
 }
 
@@ -141,8 +146,8 @@ fn this_build_takes_in_what_an_earlier_release_synced() {
 fn an_earlier_release_and_this_build_share_a_folder_as_far_as_their_schemas_allow() {
     let shared = tempfile::tempdir().unwrap();
     let (earlier, current) = written_in_turn(shared.path());
-    current.ok(&["written by this build"]);
-    current.ok(&["sync"]);
+    current.person().captures("written by this build");
+    current.person().syncs().unwrap();
     let before = snapshot(shared.path());
 
     let run = earlier.run(&["sync"]);
@@ -161,7 +166,7 @@ fn an_earlier_release_and_this_build_share_a_folder_as_far_as_their_schemas_allo
         );
     } else {
         assert_eq!(run.code, 0, "{}", run.err);
-        earlier.ok(&["sync", "--confirm", &named(&current), "--force"]);
+        earlier.ok(&["sync", "--confirm", &current.person().device(), "--force"]);
         earlier.ok(&["sync"]);
         let taken = earlier.ok(&["ls", "all"]);
         assert!(taken.contains("written by this build"), "{taken}");
@@ -180,8 +185,8 @@ fn an_earlier_release_stops_at_a_place_this_build_arranged_and_leaves_it_as_it_w
     }
     let shared = tempfile::tempdir().unwrap();
     let (earlier, current) = written_in_turn(shared.path());
-    current.ok(&["written by this build"]);
-    current.ok(&["sync"]);
+    current.person().captures("written by this build");
+    current.person().syncs().unwrap();
     let said = std::fs::read_to_string(shared.path().join("tisty.toml")).unwrap();
     assert!(
         said.contains(&format!("shape = {}", tisty_carrier::SHAPE)),
@@ -213,14 +218,16 @@ fn an_earlier_release_stops_at_a_place_a_machine_left_with_a_word_and_leaves_it_
     }
     let shared = tempfile::tempdir().unwrap();
     let (earlier, current) = written_in_turn(shared.path());
-    current.ok(&["written by this build before it left"]);
-    current.ok(&["sync"]);
+    current
+        .person()
+        .captures("written by this build before it left");
+    current.person().syncs().unwrap();
     let data = current.home.path().join("data");
     let key = tisty_core::signing::SigningKey::from_bytes(&[7; 32]);
     let word = tisty_core::moved::said(
         &key,
         tisty_core::moved::Leaving {
-            by: &tisty_core::DeviceId(named(&current)),
+            by: &tisty_core::DeviceId(current.person().device()),
             to: "folder:elsewhere",
             at: 1_760_000_000,
             store: &tisty_core::moved::store_of(&data),

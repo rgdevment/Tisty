@@ -16,10 +16,7 @@ path = "src/main.rs"
 [dependencies]
 tisty-core.workspace = true
 tisty-carrier.workspace = true
-tisty-nl.workspace = true
 tisty-markdown.workspace = true
-clap.workspace = true
-dialoguer.workspace = true
 anyhow.workspace = true
 serde.workspace = true
 serde_json.workspace = true
@@ -30,10 +27,7 @@ ulid.workspace = true
 [target.'cfg(any(windows, target_os = "macos"))'.dependencies]
 sys-locale.workspace = true
 
-[target.'cfg(windows)'.dependencies]
-sysinfo.workspace = true
-
 [dev-dependencies]
+tisty-nl.workspace = true
 proptest.workspace = true
-rusqlite.workspace = true
 tempfile.workspace = true

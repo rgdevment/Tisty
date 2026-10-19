@@ -35,7 +35,6 @@ body:
         - The Tisty Markdown language
         - Syncing or backups
         - Assistants through MCP
-        - The command line
         - Somewhere else
     validations:
       required: true

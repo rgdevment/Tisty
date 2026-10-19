@@ -160,15 +160,13 @@ export default function About({
                 )
               ) : (
                 <span className="mt-0.5 block text-[12.5px] text-soft">
-                  {newer.installs ? (
-                    t("updateAsk")
-                  ) : newer.coming ? (
-                    t("updateComingWhy")
-                  ) : newer.route === "store" ? (
-                    t("updateLanded")
-                  ) : (
-                    <code>{fill("updateBrewCli", newer.package ?? "tisty")}</code>
-                  )}
+                  {newer.installs
+                    ? t("updateAsk")
+                    : newer.coming
+                      ? t("updateComingWhy")
+                      : newer.route === "store"
+                        ? t("updateLanded")
+                        : t("updateFromTheDisk")}
                 </span>
               )}
             </span>

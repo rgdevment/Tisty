@@ -14,18 +14,6 @@ const FALLBACK: &str = "en";
 struct Catalog {
     #[serde(flatten)]
     messages: BTreeMap<String, String>,
-    #[serde(default)]
-    plural: BTreeMap<String, PluralForms>,
-    #[serde(default)]
-    weekday: BTreeMap<String, String>,
-    #[serde(default)]
-    month: BTreeMap<String, String>,
-}
-
-#[derive(Debug, Deserialize)]
-struct PluralForms {
-    one: String,
-    other: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -59,10 +47,6 @@ impl Lang {
         )
     }
 
-    pub fn code(self) -> &'static str {
-        self.0
-    }
-
     pub fn known(code: &str) -> Option<Self> {
         let code = code.to_lowercase();
         let tag = code.split(['_', '-', '.']).next().unwrap_or_default();
@@ -72,45 +56,10 @@ impl Lang {
             .map(|(name, _)| Self(name))
     }
 
-    pub fn available() -> String {
-        LOCALES
-            .iter()
-            .map(|(name, _)| *name)
-            .collect::<Vec<_>>()
-            .join(" · ")
-    }
-
     pub fn get(self, key: &str) -> &'static str {
         catalog(self.0)
             .and_then(|c| c.messages.get(key))
             .or_else(|| catalog(FALLBACK).and_then(|c| c.messages.get(key)))
-            .map_or("⟨?⟩", |s| s.as_str())
-    }
-
-    pub fn plural(self, key: &str, n: usize) -> String {
-        let forms = catalog(self.0)
-            .and_then(|c| c.plural.get(key))
-            .or_else(|| catalog(FALLBACK).and_then(|c| c.plural.get(key)));
-
-        match forms {
-            Some(f) if n == 1 => f.one.clone(),
-            Some(f) => f.other.replace("{n}", &n.to_string()),
-            None => format!("⟨{key}⟩"),
-        }
-    }
-
-    pub fn weekday(self, index: u8) -> &'static str {
-        self.from(|c| c.weekday.get(&index.to_string()))
-    }
-
-    pub fn month(self, index: u8) -> &'static str {
-        self.from(|c| c.month.get(&index.to_string()))
-    }
-
-    fn from(self, pick: impl Fn(&'static Catalog) -> Option<&'static String>) -> &'static str {
-        catalog(self.0)
-            .and_then(&pick)
-            .or_else(|| catalog(FALLBACK).and_then(&pick))
             .map_or("⟨?⟩", |s| s.as_str())
     }
 
@@ -160,41 +109,6 @@ fn catalog(code: &str) -> Option<&'static Catalog> {
                 .collect()
         })
         .get(code)
-}
-
-pub const FILTERS: &str = "today · tomorrow · week · overdue · inbox · archive · folded · stories · routines · trace · all · @list · #tag · !do";
-
-pub fn canonical_filter(raw: &str) -> Option<&'static str> {
-    let raw = raw.to_lowercase();
-    for (canonical, aliases) in [
-        ("today", &["today", "hoy"][..]),
-        ("tomorrow", &["tomorrow", "mañana", "manana"][..]),
-        ("week", &["week", "semana"][..]),
-        ("overdue", &["overdue", "vencidas", "atrasadas"][..]),
-        ("all", &["all", "todas", "todo"][..]),
-        ("inbox", &["inbox", "bandeja"][..]),
-        ("archive", &["archive", "archivo", "hechas", "done"][..]),
-        (
-            "folded",
-            &[
-                "folded",
-                "hidden",
-                "ocultas",
-                "ocultos",
-                "plegadas",
-                "descartadas",
-                "dropped",
-            ][..],
-        ),
-        ("story", &["stories", "story", "historias", "historia"][..]),
-        ("routine", &["routines", "routine", "rutinas", "rutina"][..]),
-        ("trace", &["traces", "trace", "rastro", "rastros"][..]),
-    ] {
-        if aliases.contains(&raw.as_str()) {
-            return Some(canonical);
-        }
-    }
-    None
 }
 
 #[cfg(test)]

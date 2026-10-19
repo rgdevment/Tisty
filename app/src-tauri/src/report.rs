@@ -32,7 +32,6 @@ pub struct Facts {
     pub backed_up_at: Option<String>,
     pub quiet: Vec<String>,
     pub attach_up_to: u64,
-    pub in_path: bool,
     pub shortcut: Option<String>,
 }
 

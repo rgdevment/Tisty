@@ -2,7 +2,6 @@ mod asked;
 mod attaching;
 mod catalogue;
 mod chores;
-mod door;
 mod handing;
 mod jsonrpc;
 mod looking;
@@ -28,7 +27,6 @@ use catalogue::{instructions, tools};
 use chores::{
     describe, note, plan, propose, remind, reschedule, say_done, say_not_doing, tick, untick,
 };
-pub(crate) use door::turn;
 use looking::{
     NEWEST_SHOWN, catch_up, find, gone, how_it_ended, language, lists, read, sum_up, tags,
 };

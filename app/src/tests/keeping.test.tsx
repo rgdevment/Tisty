@@ -83,11 +83,7 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
 }));
 
 const standing = {
-  shipped: true,
-  withinReach: false,
-  onPath: true,
-  at: "C:/Programs/Tisty",
-  through: "C:/Programs/Tisty",
+  binary: "C:/Programs/Tisty/tisty.exe",
 };
 
 const kept = { lines: [] as string[] };
@@ -133,11 +129,7 @@ beforeEach(() => {
   Object.assign(arriving, { kin: "strangers", fresh: true, holds: false, alias: null });
   Object.assign(rousing, { offered: true, wakes: false, theirs: false });
   Object.assign(standing, {
-    shipped: true,
-    withinReach: false,
-    onPath: true,
-    at: "C:/Programs/Tisty",
-    through: "C:/Programs/Tisty",
+    binary: "C:/Programs/Tisty/tisty.exe",
   });
   kept.lines = [];
   asked.folder = null;
@@ -353,7 +345,6 @@ beforeEach(() => {
           holds: "everywhere",
           shares: true,
           onlySharedAbove: 50 * 1024 * 1024,
-          inPath: true,
           shortcut: null,
         });
       case "logs":
@@ -3074,40 +3065,6 @@ describe("the first-run assistant", () => {
     await waitFor(() => expect(sent("sign")).toHaveLength(1));
     expect(sent("sign")[0].args.alias).toBeUndefined();
   });
-
-  // The command line is being retired: it is no longer offered, and whoever put it within
-  // reach before is told so and can only take it back out.
-  it("no longer offers the command line", async () => {
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await ready();
-
-    expect(screen.queryByText(/command line/i)).toBeNull();
-    expect(screen.queryByRole("switch", { name: /make it reachable/i })).toBeNull();
-  });
-
-  it("says nothing when there is no command line to offer", async () => {
-    standing.shipped = false;
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await ready();
-
-    expect(screen.queryByRole("switch", { name: /make it reachable/i })).toBeNull();
-  });
 });
 
 describe("the report a bug gets attached to", () => {
@@ -3160,30 +3117,6 @@ describe("the report a bug gets attached to", () => {
     await waitFor(() => expect(sent("keep_report").length).toBe(1));
     expect(sent("keep_report")[0].args.at).toBe("D:/issues/tisty-report.zip");
     expect(sent("keep_report")[0].args.logs).toBe(true);
-  });
-});
-
-describe("the command line on a Mac", () => {
-  it("no longer points at Homebrew or a shell profile, whether or not the folder is searched", async () => {
-    for (const onPath of [false, true]) {
-      standing.withinReach = true;
-      standing.onPath = onPath;
-      const { unmount } = render(
-        <Keeping
-          onPack={() => {}}
-          onUnpack={() => {}}
-          onGreet={() => {}}
-          onChanged={() => {}}
-          onDoc={() => {}}
-        />,
-      );
-      await ready();
-
-      expect(screen.queryByText(/terminal finds/i)).toBeNull();
-      expect(screen.queryByText(/no shell looks in that folder/i)).toBeNull();
-      expect(screen.queryByText(/brew install/)).toBeNull();
-      unmount();
-    }
   });
 });
 

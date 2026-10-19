@@ -820,7 +820,6 @@ const en = {
   renameIt: "Rename",
   dropFolderSure:
     "Delete «{name}»? Its documents go to Unfiled and its subfolders move up a level. Nothing is lost, but this cannot be undone.",
-  updateBrewCli: "Run brew update && brew upgrade {name}",
   updateAsk: "Do you want to update it?",
   updateInstall: "Update",
   updateGetting: "Getting it — {name}",
@@ -829,6 +828,8 @@ const en = {
   updateBusy: "An update is already on its way.",
   updateElsewhere: "That update comes from somewhere it should not. Nothing was downloaded.",
   updateNotHere: "Something else keeps this copy up to date.",
+  updateFromTheDisk:
+    "Move Tisty to Applications first: a copy opened from the disk image cannot update itself.",
   updateGone: "That version is no longer offered.",
   updateUnconfirmed: "The list of updates could not be confirmed just now. Try again in a while.",
   updateMoved: "That version is no longer offered; {name} is.",
@@ -1644,7 +1645,6 @@ const en = {
   closingSettingWhy: "What the window's close button does",
   closingAsk: "Ask each time",
   closingHideBar: "Leave it in the menu bar",
-  terminal: "Command line",
   settlingIn: "Settling in — bringing your machines together",
   otherTools: "Other tools",
   toolCoPanda:
@@ -1788,8 +1788,7 @@ const en = {
     "For anything larger, write a document and reference it from the task instead of dragging the file in.",
   noticesMore:
     "Notices are prepared and shown on this machine. None of it reaches the internet or passes through a server.",
-  reviewWhat:
-    "Compares what the log says with what the cache holds. It is the same thing `tisty doctor` does in the terminal.",
+  reviewWhat: "Compares what the log says with what the cache holds.",
   reviewAgain: "Review again",
   inTheLog: "In the log",
   cacheIs: "Cache",
@@ -1919,7 +1918,6 @@ const en = {
   wordBackup: "backup",
   wordNotices: "notices",
   wordCopiesUpTo: "copies up to",
-  wordTerminal: "terminal",
   wordShortcut: "shortcut",
   wordSandbox: "sandbox",
   yesShared: "yes, shared folder",
@@ -1927,8 +1925,6 @@ const en = {
   yesLocal: "yes, this machine only",
   noSync: "no",
   backupAvailable: "available",
-  inThePath: "in the PATH",
-  notInThePath: "not in the PATH",
   nothingBound: "nothing bound",
   wordNone: "none",
   welcomeSigning: "How should we call you?",
@@ -2850,7 +2846,6 @@ const es: Catalog = {
   renameIt: "Renombrar",
   dropFolderSure:
     "¿Borrar «{name}»? Sus documentos pasan a Sin clasificar y sus subcarpetas suben un nivel. No se pierde nada, pero no se puede deshacer.",
-  updateBrewCli: "Ejecuta brew update && brew upgrade {name}",
   updateAsk: "¿Quieres actualizarla?",
   updateInstall: "Actualizar",
   updateGetting: "Descargando — {name}",
@@ -2859,6 +2854,8 @@ const es: Catalog = {
   updateBusy: "Ya hay una actualización en camino.",
   updateElsewhere: "Esa actualización viene de donde no debe. No se descargó nada.",
   updateNotHere: "De esta copia se encarga otro.",
+  updateFromTheDisk:
+    "Mueve Tisty a Aplicaciones primero: una copia abierta desde la imagen de disco no puede actualizarse.",
   updateGone: "Esa versión ya no se ofrece.",
   updateUnconfirmed:
     "Ahora mismo no se pudo confirmar la lista de actualizaciones. Prueba de nuevo en un rato.",
@@ -3678,7 +3675,6 @@ const es: Catalog = {
   closingSettingWhy: "Lo que hace el botón de cerrar la ventana",
   closingAsk: "Preguntar cada vez",
   closingHideBar: "Dejarlo en la barra de menús",
-  terminal: "Línea de comandos",
   settlingIn: "Poniéndose al día — juntando lo de tus equipos",
   otherTools: "Otras herramientas",
   toolCoPanda:
@@ -3823,8 +3819,7 @@ const es: Catalog = {
     "Para algo más grande, crea un documento y enlázalo desde la tarea en vez de arrastrar el archivo.",
   noticesMore:
     "Los avisos se preparan y se muestran en este mismo equipo. Nada de esto sale a internet ni pasa por un servidor.",
-  reviewWhat:
-    "Compara lo que dice el registro con lo que tiene la caché. Es lo mismo que hace `tisty doctor` en la terminal.",
+  reviewWhat: "Compara lo que dice el registro con lo que tiene la caché.",
   reviewAgain: "Revisar de nuevo",
   inTheLog: "En el registro",
   cacheIs: "Caché",
@@ -3954,7 +3949,6 @@ const es: Catalog = {
   wordBackup: "respaldo",
   wordNotices: "avisos",
   wordCopiesUpTo: "adjunta hasta",
-  wordTerminal: "terminal",
   wordShortcut: "atajo",
   wordSandbox: "sandbox",
   yesShared: "sí, carpeta compartida",
@@ -3962,8 +3956,6 @@ const es: Catalog = {
   yesLocal: "sí, solo este equipo",
   noSync: "no",
   backupAvailable: "disponible",
-  inThePath: "en el PATH",
-  notInThePath: "fuera del PATH",
   nothingBound: "sin asignar",
   wordNone: "ninguno",
   welcomeSigning: "¿Cómo quieres que te llamemos?",

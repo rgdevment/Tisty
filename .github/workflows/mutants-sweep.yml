@@ -163,7 +163,7 @@ jobs:
         with:
           tool: cargo-mutants
 
-      - name: One quarter of every mutant the command line carries
+      - name: One quarter of every mutant the assistant's door carries
         id: run
         run: |
           set +e
