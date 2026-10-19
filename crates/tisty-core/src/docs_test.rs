@@ -2013,7 +2013,7 @@ fn what_only_a_document_names_is_not_adrift() {
     )
     .unwrap();
 
-    let named = referenced(root.path());
+    let named = referenced(root.path()).unwrap();
 
     assert!(
         named.contains(&"attachments/informe-91f2ab00.pdf".to_string()),
@@ -2026,7 +2026,26 @@ fn a_document_that_names_nothing_adds_nothing() {
     let root = root();
     create(root.path(), &device("dev_a"), "# Solo palabras").unwrap();
 
-    assert!(referenced(root.path()).is_empty());
+    assert!(referenced(root.path()).unwrap().is_empty());
+}
+
+#[test]
+fn a_document_that_cannot_be_read_leaves_nothing_counted_as_loose() {
+    let root = root();
+    create(
+        root.path(),
+        &device("dev_a"),
+        "# Notas\n\n![p](foto-91f2ab00.png)",
+    )
+    .unwrap();
+    let broken = create(root.path(), &device("dev_a"), "# Otra").unwrap();
+    std::fs::write(
+        resolve(root.path(), &broken.id).unwrap(),
+        [0xff, 0xfe, 0x00],
+    )
+    .unwrap();
+
+    assert_eq!(referenced(root.path()), Err(broken.id));
 }
 
 #[test]
@@ -3107,6 +3126,38 @@ fn a_document_taken_out_names_its_files_where_they_land_beside_it() {
         said,
         "# Minuta\n\n![una foto](attachments/foto-91f2ab00.png) y <mark data-pen=\"green\">ojo</mark>"
     );
+}
+
+#[test]
+fn a_file_named_by_reference_or_by_html_is_taken_out_and_named_where_it_lands() {
+    let room = tempfile::tempdir().unwrap();
+    let data = room.path();
+    std::fs::create_dir_all(data.join("docs")).unwrap();
+    let shed = data.join("attachments");
+    std::fs::create_dir_all(&shed).unwrap();
+    std::fs::write(shed.join("foto-91f2ab00.png"), b"a picture").unwrap();
+    std::fs::write(shed.join("plano-91f2ab01.png"), b"a plan").unwrap();
+    std::fs::write(
+        data.join("docs").join("mac0-0001.md"),
+        "# Minuta\n\n![una foto][1]\n\n<img src='plano-91f2ab01.png'>\n\n[1]: foto-91f2ab00.png\n",
+    )
+    .unwrap();
+
+    let out = tempfile::tempdir().unwrap();
+    exported(data, "mac0-0001", out.path()).unwrap();
+
+    let folder = out.path().join("Minuta");
+    let said = std::fs::read_to_string(folder.join("Minuta.md")).unwrap();
+    assert!(
+        said.contains("[1]: attachments/foto-91f2ab00.png"),
+        "{said}"
+    );
+    assert!(
+        said.contains("src='attachments/plano-91f2ab01.png'"),
+        "{said}"
+    );
+    assert!(folder.join("attachments/foto-91f2ab00.png").is_file());
+    assert!(folder.join("attachments/plano-91f2ab01.png").is_file());
 }
 
 #[test]

@@ -256,3 +256,43 @@ fn accents_do_not_shift_the_scan() {
         ["mañana", "https://x.example/ñ"]
     );
 }
+
+#[test]
+fn a_picture_named_by_reference_is_pointed_at_by_the_line_that_defines_it() {
+    let said = "![p][1]\n\n[1]: photo-3fa1b2c3.png \"una foto\"\n";
+
+    assert_eq!(targets(said), ["attachments/photo-3fa1b2c3.png"]);
+    assert_eq!(
+        targets("> [uno]: <attachments/ab/plano 1.pdf>"),
+        ["attachments/ab/plano 1.pdf"]
+    );
+}
+
+#[test]
+fn a_footnote_or_a_bracket_mid_line_defines_nothing() {
+    assert!(targets("[^nota]: attachments/ab/x-1111.pdf").is_empty());
+    assert!(targets("ver [uno]: attachments/ab/x-1111.pdf").is_empty());
+}
+
+#[test]
+fn html_points_at_a_file_whatever_quotes_it_wears() {
+    assert_eq!(
+        targets("<img src='attachments/ab/a-1111.png'>"),
+        ["attachments/ab/a-1111.png"]
+    );
+    assert_eq!(
+        targets("<img SRC = attachments/ab/b-1111.png alt=x>"),
+        ["attachments/ab/b-1111.png"]
+    );
+    assert_eq!(
+        targets("<img src=attachments/ab/c-1111.png/>"),
+        ["attachments/ab/c-1111.png"]
+    );
+}
+
+#[test]
+fn a_tag_split_across_lines_still_points_where_it_points() {
+    let said = "<img\n  alt=\"x\"\n  src=\"attachments/ab/d-1111.png\"\n>";
+
+    assert_eq!(targets(said), ["attachments/ab/d-1111.png"]);
+}

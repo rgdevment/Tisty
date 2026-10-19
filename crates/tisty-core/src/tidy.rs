@@ -119,7 +119,8 @@ impl Sweeping {
 
     pub fn walk(self) -> Walked {
         let named = match self.owed {
-            true => crate::docs::referenced(&self.paths.docs()),
+            true => crate::docs::referenced(&self.paths.docs())
+                .unwrap_or_else(|_| self.retired.iter().cloned().collect()),
             false => Vec::new(),
         };
         Walked { job: self, named }

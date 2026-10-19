@@ -400,8 +400,9 @@ impl Session {
             .filter(|_| self.config.holds() != tisty_core::config::Holds::Everywhere)
     }
 
-    /// What the tasks and the documents point at, as written.
-    pub fn pointed_at(&self) -> Vec<String> {
+    /// What the tasks and the documents point at, as written; a document that cannot be read
+    /// fails it with that document's id.
+    pub fn pointed_at(&self) -> Result<Vec<String>, String> {
         let mut named: Vec<String> = self
             .state
             .tasks
@@ -409,8 +410,8 @@ impl Session {
             .flat_map(|task| task.references())
             .map(|one| one.target)
             .collect();
-        named.extend(tisty_core::docs::referenced(&self.paths.docs()));
-        named
+        named.extend(tisty_core::docs::referenced(&self.paths.docs())?);
+        Ok(named)
     }
 
     pub fn adrift(&self, held: &[String]) -> tisty_core::attach::Loose {
@@ -439,14 +440,9 @@ impl Session {
             return Ok(0);
         }
         let now = jiff::Timestamp::now().as_second();
-        let mut held_by: Vec<String> = self
-            .state
-            .tasks
-            .values()
-            .flat_map(|task| task.references())
-            .map(|one| one.target)
-            .collect();
-        held_by.extend(tisty_core::docs::referenced(&self.paths.docs()));
+        let held_by = self
+            .pointed_at()
+            .map_err(|id| Refusal::about("cannotRead", id))?;
 
         let mut told = Vec::new();
         for reference in references {

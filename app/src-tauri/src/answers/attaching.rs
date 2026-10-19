@@ -381,3 +381,8 @@ fn safe_to_open(at: &std::path::Path) -> bool {
 #[cfg(test)]
 #[path = "attaching_test.rs"]
 mod tests;
+
+#[tauri::command]
+pub fn roomy() -> u64 {
+    tisty_core::docs::BODY_ROOMY
+}

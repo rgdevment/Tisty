@@ -512,7 +512,10 @@ fn named_now(told: &tisty_core::State, data: &Path) -> std::collections::BTreeSe
         .flat_map(|task| task.references())
         .map(|one| one.target)
         .collect();
-    named.extend(tisty_core::docs::referenced(&data.join(PAPERS)));
+    match tisty_core::docs::referenced(&data.join(PAPERS)) {
+        Ok(more) => named.extend(more),
+        Err(_) => named.extend(told.retired.iter().cloned()),
+    }
     named
 }
 

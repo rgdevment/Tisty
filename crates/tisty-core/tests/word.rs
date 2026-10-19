@@ -122,3 +122,48 @@ fn what_is_not_a_word_document_is_told_apart() {
     assert!(tisty_core::arriving::from_word(b"not a zip").is_none());
     assert!(tisty_core::arriving::from_word(&docx(&[("other.xml", b"<x/>")])).is_none());
 }
+
+#[test]
+fn a_picture_named_what_windows_cannot_write_comes_in_under_a_name_it_can() {
+    let body = format!(
+        r#"<w:document {W}><w:body>
+<w:p><w:r><w:drawing><wp:inline><a:graphic><a:graphicData><a:blip r:embed="rId1"/></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>
+<w:p><w:r><w:drawing><wp:inline><a:graphic><a:graphicData><a:blip r:embed="rId2"/></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>
+<w:p><w:r><w:drawing><wp:inline><a:graphic><a:graphicData><a:blip r:embed="rId3"/></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>
+</w:body></w:document>"#
+    );
+    let rels = r#"<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Target="media/a?b.png"/><Relationship Id="rId2" Target="media/CON.png"/><Relationship Id="rId3" Target="media/ok.png"/></Relationships>"#;
+    let bytes = docx(&[
+        ("word/document.xml", body.as_bytes()),
+        ("word/_rels/document.xml.rels", rels.as_bytes()),
+        ("word/media/a?b.png", b"\x89PNG\r\n\x1a\none"),
+        ("word/media/CON.png", b"\x89PNG\r\n\x1a\ntwo"),
+        ("word/media/ok.png", b"\x89PNG\r\n\x1a\nthree"),
+    ]);
+
+    let word = tisty_core::arriving::from_word(&bytes).unwrap();
+
+    assert_eq!(word.pictures.len(), 3);
+    for (name, _) in &word.pictures {
+        let plain = name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '_'));
+        assert!(plain && !tisty_core::attach::reserved(name), "{name}");
+        assert!(
+            word.html.contains(&format!("media/{name}")),
+            "{}",
+            word.html
+        );
+    }
+    assert!(word.pictures.iter().any(|(name, _)| name == "ok.png"));
+}
+
+#[test]
+fn words_past_eight_megabytes_are_refused_before_they_are_read() {
+    let filler = "<w:p><w:r><w:t>palabra</w:t></w:r></w:p>".repeat(8 * 1024 * 1024 / 40 + 1);
+    let body = format!(r#"<w:document {W}><w:body>{filler}</w:body></w:document>"#);
+
+    assert!(
+        tisty_core::arriving::from_word(&docx(&[("word/document.xml", body.as_bytes())])).is_none()
+    );
+}

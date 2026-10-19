@@ -1108,7 +1108,7 @@ pub fn run() {
             answers::attaching::kept_here,
             answers::attaching::attached,
             answers::attaching::weighs,
-            answers::storing::roomy,
+            answers::attaching::roomy,
             answers::attaching::opened,
             answers::storing::revealed,
             linking::open_link,

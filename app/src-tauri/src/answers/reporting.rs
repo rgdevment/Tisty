@@ -40,8 +40,10 @@ pub fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
             Refusal::of("internal")
         })?;
 
-    let held = session.pointed_at();
-    let adrift = session.adrift(&held);
+    let adrift = session
+        .pointed_at()
+        .map(|held| session.adrift(&held))
+        .unwrap_or_default();
 
     let kept = report::attachments(session.paths.data());
     let told = tisty_core::store::read_all(session.paths.store()).unwrap_or_default();
@@ -133,8 +135,10 @@ pub fn facts(
     let store = session.paths.store();
     let audit = tisty_core::cache::audit(&store, session.paths.cache());
 
-    let referenced = session.pointed_at();
-    let adrift = session.adrift(&referenced);
+    let adrift = session
+        .pointed_at()
+        .map(|referenced| session.adrift(&referenced))
+        .unwrap_or_default();
     let kept = report::attachments(session.paths.data());
 
     let shown = |raw: String| if paths { raw } else { report::hidden(&raw) };

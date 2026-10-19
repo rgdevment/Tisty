@@ -414,7 +414,10 @@ pub fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying>
             session.keeping(),
         )
     };
-    held.extend(tisty_core::docs::referenced(&paths.docs()));
+    let loose = tisty_core::docs::referenced(&paths.docs()).map_or(0, |named| {
+        held.extend(named);
+        tisty_core::attach::loose(paths.data(), &held).files()
+    });
 
     let held_at = tisty_carrier::place_of(config.sync.as_ref());
     let said = held_at.as_deref().map(told);
@@ -426,7 +429,7 @@ pub fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying>
         asked: config.sync.is_some(),
         last: config.synced_at.map(|at| at.to_string()),
         heard: config.heard_at.map(|at| at.to_string()),
-        loose: tisty_core::attach::loose(paths.data(), &held).files(),
+        loose,
         open,
         archived,
         lists,
@@ -1378,11 +1381,6 @@ pub async fn restore(
     })?;
     *held(&session) = fresh;
     Ok(done.files)
-}
-
-#[tauri::command]
-pub fn roomy() -> u64 {
-    tisty_core::docs::BODY_ROOMY
 }
 
 #[tauri::command]
