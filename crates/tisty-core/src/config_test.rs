@@ -290,23 +290,11 @@ mod ceilings {
     use super::*;
 
     #[test]
-    fn a_task_never_takes_a_file_past_what_the_product_promises() {
-        let mut config = bare();
-        config.attach_up_to = Some(200 * 1024 * 1024);
-
-        assert_eq!(
-            config.copies_up_to(),
-            crate::attach::COPIED_UP_TO,
-            "a setting talked the ceiling above what a task is meant to hold"
-        );
-    }
-
-    #[test]
-    fn a_task_holds_25_mb_whatever_an_older_setting_asked_for() {
+    fn a_task_holds_what_a_document_does_whatever_an_older_setting_asked_for() {
         let mut config = bare();
         config.attach_up_to = Some(5 * 1024 * 1024);
 
-        assert_eq!(config.copies_up_to(), 25 * 1024 * 1024);
+        assert_eq!(config.copies_up_to(), 650 * 1024 * 1024);
     }
 
     #[test]
@@ -316,13 +304,7 @@ mod ceilings {
 
         let made = Config::load_or_init(&paths).unwrap();
 
-        assert_eq!(made.copies_up_to(), crate::attach::COPIED_UP_TO);
-    }
-
-    #[test]
-    fn a_document_holds_650_mb() {
-        assert_eq!(bare().copies_in_a_doc(), 650 * 1024 * 1024);
-        assert!(bare().copies_in_a_doc() > bare().copies_up_to());
+        assert_eq!(made.copies_up_to(), crate::attach::COPIED_IN_DOC);
     }
 }
 

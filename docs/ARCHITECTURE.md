@@ -1125,8 +1125,8 @@ stateDiagram-v2
   folded to ASCII, the extension is lowercased. A second copy of the same bytes
   finds the first. The reference written into the task journal or document is
   `![label](<attachments/…>)`.
-- **Limits.** Fixed, not a setting. A task copies up to `COPIED_UP_TO` =
-  25 MB. A document copies up to `COPIED_IN_DOC` = 650 MB, and refuses before
+- **Limits.** Fixed, not a setting. A task and a document both copy up to
+  `COPIED_IN_DOC` = 650 MB; a document refuses before
   copying when the line would not fit or the document already names 150 files.
   Nothing larger than `HELD_UP_TO` = 750 MB is taken in from another machine
   or the cloud.

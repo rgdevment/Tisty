@@ -1276,9 +1276,7 @@ const en = {
   restoredApart:
     "This machine went back to a copy, and «{name}» still holds the history it went back on. Carrying now would bring all of it back. Choose which side wins first.",
   otherStore: "That belongs to another Tisty",
-  attachmentTooBig:
-    "That file is over {name}, the most a task takes. Attach it inside a document instead, which takes up to 650 MB.",
-  attachmentTooBigHere: "That file is over {name}, which is as much as a document will hold.",
+  attachmentTooBig: "That file is over {name}, the most a task or a document holds.",
   textTooLong:
     "That is over {name} of text. Anything that long belongs in a document you can reference from here.",
   widgetTooBig: "A widget can hold up to {name}; this one is bigger, so it is shown as code.",
@@ -1346,8 +1344,7 @@ const en = {
   cloudLimitIsGoogle: "{maker} sets the limit",
   cloudLimitIsGoogleWhy:
     "Your copies use space in your account: what you have in {maker} is your ceiling.",
-  cloudCaps:
-    "Attachments up to 25 MB per task and 650 MB inside a document, the same as with a folder.",
+  cloudCaps: "Attachments up to 650 MB, on a task or in a document, the same as with a folder.",
   cloudOpenGoogle: "Open {maker}",
   cloudWaiting: "Finish in your browser; Tisty waits here.",
   cloudConnectedTitle: "Done, your cloud is connected",
@@ -3307,9 +3304,7 @@ const es: Catalog = {
   restoredApart:
     "Este equipo volvió a una copia, y «{name}» todavía guarda el historial que esa copia deshizo. Acarrear ahora lo traería todo de vuelta. Elige primero qué lado manda.",
   otherStore: "Eso es de otro Tisty",
-  attachmentTooBig:
-    "Ese archivo pasa de {name}, el máximo de una tarea. Adjúntalo mejor dentro de un documento, que admite hasta 650 MB.",
-  attachmentTooBigHere: "Ese archivo pasa de {name}, que es todo lo que un documento admite.",
+  attachmentTooBig: "Ese archivo pasa de {name}, el máximo que admite una tarea o un documento.",
   textTooLong:
     "Eso supera los {name} de texto. Algo tan largo va mejor en un documento, y lo enlazas desde aquí.",
   widgetTooBig:
@@ -3377,8 +3372,7 @@ const es: Catalog = {
   cloudLimitIsGoogle: "El límite lo pone {maker}",
   cloudLimitIsGoogleWhy:
     "Tus copias ocupan espacio de tu cuenta: el que tengas en {maker} es tu techo.",
-  cloudCaps:
-    "Adjuntos hasta 25 MB por tarea y 650 MB dentro de un documento, igual que con una carpeta.",
+  cloudCaps: "Adjuntos hasta 650 MB, en una tarea o en un documento, igual que con una carpeta.",
   cloudOpenGoogle: "Abrir {maker}",
   cloudWaiting: "Termina en tu navegador; Tisty espera aquí.",
   cloudConnectedTitle: "Listo, tu nube está conectada",

@@ -200,7 +200,11 @@ code and their own PDF.
 then it stays, so that months later you can look up how you solved it. A
 document is something to keep and read again — a manual, a recipe, the notes on
 a client — that grows and lasts for years. Something you will do is a task;
-something you will come back to is a document.
+something you will come back to is a document. A spike is the clearest case: a
+task whose page gathers what you found out — notes, recordings, code analysis — split into parts that each get done,
+then completed and archived — and a year later a search still brings back how it
+was solved, every step of it. That is why a task has a page: it is also a
+document, one with an end.
 
 **It is for one person.** No assignees, no permissions, no boards. If you need
 to run a team, Tisty will not carry that, and you deserve to know before you

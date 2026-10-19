@@ -110,7 +110,6 @@ const KNOWN = [
   "storeNewer",
   "cannotWrite",
   "attachmentTooBig",
-  "attachmentTooBigHere",
   "textTooLong",
   "widgetTooBig",
   "pageTooBig",

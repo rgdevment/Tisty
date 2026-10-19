@@ -454,8 +454,8 @@ export interface Agent {
 export const agentState = (): Promise<Agent> => invoke("agent");
 export const agentTurn = (on: boolean): Promise<Agent> => invoke("agent_turn", { on });
 
-export const attach = (path: string, label?: string, roomy?: boolean): Promise<string> =>
-  invoke("attach", { path, label, roomy });
+export const attach = (path: string, label?: string): Promise<string> =>
+  invoke("attach", { path, label });
 export const attachPasted = (name: string, kind: string, bytes: Uint8Array): Promise<string> =>
   invoke("attach_pasted", bytes, {
     headers: { "x-name": encodeURIComponent(name), "x-kind": encodeURIComponent(kind) },

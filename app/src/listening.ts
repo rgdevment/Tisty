@@ -184,7 +184,7 @@ export function useListening({
       whenFilesLand((target, paths, at) => {
         setError(null);
         keptAll(
-          paths.map((one) => attach(one, undefined, where.current.named === "docs")),
+          paths.map((one) => attach(one)),
           setError,
         ).then((written) => {
           if (written && !handTo(target, written, at)) setError(t("attachmentLost"));

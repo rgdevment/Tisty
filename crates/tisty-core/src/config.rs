@@ -229,11 +229,8 @@ impl Config {
         self.quiet.as_deref().unwrap_or_default()
     }
 
+    // A task's page holds what a document does, so a file is taken up to the same ceiling on either.
     pub fn copies_up_to(&self) -> u64 {
-        crate::attach::COPIED_UP_TO
-    }
-
-    pub fn copies_in_a_doc(&self) -> u64 {
         crate::attach::COPIED_IN_DOC
     }
 
@@ -245,7 +242,7 @@ impl Config {
         }
     }
 
-    /// The same ceiling a task allows at most: below it everything travels as it always did.
+    /// Below it everything travels as it always did.
     pub fn only_shared_above(&self) -> u64 {
         crate::attach::COPIED_UP_TO
     }
