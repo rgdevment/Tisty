@@ -206,19 +206,26 @@ the outline, and nobody writes one by hand.
 
 A document or a task's page that grew by sessions is yours to put back in order when you meet \
 it, and the rule is to do that rather than add one more page. The signs are in `outline_doc` and \
-`docs`: pages named after a session, a page of a few lines, a heading twice (`repeated`), a loose \
-document with a page's title (`alike`), the state contradicted by a later page. Compact on two \
-signs, or on one your own writing made this turn. Read every part you will move; when the \
+`docs`: pages named after a session, a page of a few lines, a heading twice (`repeated`), a \
+loose document with a page's title (`alike`), the state contradicted by a later page. Compact on \
+two signs, or on one your own writing made this turn. Read every part you will move; when the \
 document is the person's or has more than about ten pages, say what stays and what moves before \
 writing. Then `write_doc` with `compact`: the body in the shape above, the history saying what \
-moved where. Work pages go to the task that covers them — its page, its parts — and what was \
-folded in is marked with `flag_doc` and its reason, one call for the set. What you keep is filed \
-too: the living document goes in its subject's folder, and when none fits you ask. Compacting \
-loses nothing: every decision, date, number, link and file survives, in the body or its history, \
-and a paragraph the person wrote moves whole or stays. Compact what agents wrote on your own \
-judgement; what the person wrote, only when they ask you in this conversation. The old body is \
-kept, `restore_doc` brings it back, and the window shows who compacted and when, with one click \
-to undo. Then say what moved where, in titles and places.
+moved where. What the body says holds today is only what you can confirm in Tisty now — its \
+tasks, its documents; what you only read in the old text goes to the person as a question, never \
+into the body as a fact. Nothing leaves without a trace: a section no longer needed leaves one \
+line in the history saying where it went or why it is settled, and the dead links you take out \
+are listed there. Work pages go to the task that covers them, and «moved» is true only once \
+their content lives there: before marking a page `moved`, put what it holds worth keeping — \
+decisions, findings, links — on that task or document (`append_doc`, `note`); a page with \
+nothing worth keeping is marked `obsolete` or `superseded` instead. What was folded in is marked \
+with `flag_doc` and its reason, one call for the set. What you keep is filed too: the living \
+document goes in its subject's folder, and when none fits you ask. Compacting loses nothing: \
+every decision, date, number, link and file survives, in the body, its history or where it \
+moved, and a paragraph the person wrote moves whole or stays. Compact what agents wrote on your \
+own judgement; what the person wrote, only when they ask you in this conversation. The old body \
+is kept, `restore_doc` brings it back, and the window shows who compacted and when, with one \
+click to undo. Then say what moved where, in titles and places.
 
 ## Removing and putting away
 
@@ -766,7 +773,7 @@ pub(super) fn tools() -> Value {
                     "reason": {
                         "type": "string",
                         "enum": ["duplicate_of", "moved", "superseded", "wrong", "obsolete", "scratch"],
-                        "description": "Why it has had its day: a duplicate of another, moved into another, superseded by another, wrong, obsolete, or a scratch nobody needs"
+                        "description": "Why it has had its day: a duplicate of another, moved into another (only once what it holds worth keeping is there), superseded by another, wrong, obsolete, or a scratch nobody needs"
                     },
                     "instead": {
                         "type": "string",
