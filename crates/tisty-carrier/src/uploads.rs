@@ -82,7 +82,10 @@ impl Uploads {
                     if let Some(dir) = self.at.parent() {
                         std::fs::create_dir_all(dir)?;
                     }
-                    tisty_core::store::write_atomic(&self.at, &bytes).map_err(std::io::Error::other)
+                    tisty_core::store::write_atomic(&self.at, &bytes)
+                        .map_err(std::io::Error::other)?;
+                    // Each address lets anyone holding it write into the drive without a sign-in.
+                    tisty_core::paths::ours_alone(&self.at)
                 }),
         };
         if let Err(why) = written {

@@ -1846,3 +1846,42 @@ fn a_file_of_the_same_name_and_another_size_with_no_checksum_is_never_taken_for_
         "another file was taken for ours: {asked:?}"
     );
 }
+
+#[test]
+fn a_file_moved_in_place_is_held_at_the_version_drive_gave_the_move_and_its_twin_stays() {
+    let home = tempfile::tempdir().unwrap();
+    let one = r#"{"id":"A1","name":"a.md","parents":["R"],"version":"1"}"#;
+    let two = format!(r#"{one},{{"id":"A2","name":"a.md","parents":["R"],"version":"1"}}"#);
+    let (at, asked) = google(vec![
+        said("200 OK", &whole(&two)),
+        said("200 OK", &listing("")),
+        said("200 OK", one),
+        said(
+            "200 OK",
+            r#"{"id":"A1","name":"b.md","parents":["R"],"version":"2"}"#,
+        ),
+    ]);
+    let drive = drive(at, home.path());
+
+    drive.renamed("a.md", "b.md").unwrap();
+
+    let held: Vec<(String, String)> = drive
+        .shown("")
+        .unwrap()
+        .into_iter()
+        .map(|one| (one.name, one.revision))
+        .collect();
+    assert_eq!(
+        held,
+        [
+            ("a.md".to_string(), "A2.1".to_string()),
+            ("b.md".to_string(), "A1.2".to_string()),
+        ]
+    );
+    let asked = asked.join().unwrap();
+    assert!(
+        asked[3].line.starts_with("PATCH /drive/v3/files/A1"),
+        "{}",
+        asked[3].line
+    );
+}

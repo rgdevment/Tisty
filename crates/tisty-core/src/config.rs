@@ -71,12 +71,16 @@ pub fn bound(to: &str) -> Bound<'_> {
                 let email = named
                     .strip_prefix(shown_of(provider))?
                     .strip_prefix(" · ")?;
-                let address = email.contains('@') && !email.contains(['/', '\\', ' ']);
-                address.then_some(Bound::Cloud { provider, email })
+                // An account with no address, one signed in by phone, is written with none after the dot.
+                (email.is_empty() || addressed(email)).then_some(Bound::Cloud { provider, email })
             })
             .unwrap_or(Bound::Folder(named)),
         _ => Bound::Alone,
     }
+}
+
+fn addressed(email: &str) -> bool {
+    email.contains('@') && !email.contains(['/', '\\', ' '])
 }
 
 impl CloudAt {
@@ -88,7 +92,10 @@ impl CloudAt {
     pub fn word(&self) -> String {
         match self.provider.as_str() {
             GOOGLE => format!("cloud:{}", self.email),
-            _ => format!("folder:{} · {}", self.shown(), self.email),
+            _ => match addressed(&self.email) {
+                true => format!("folder:{} · {}", self.shown(), self.email),
+                false => format!("folder:{} · ", self.shown()),
+            },
         }
     }
 }

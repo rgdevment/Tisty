@@ -788,3 +788,23 @@ fn a_moved_word_names_google_as_1_30_reads_it_and_a_later_cloud_as_a_folder_name
     assert_eq!(bound("alone"), Bound::Alone);
     assert_eq!(at(ONEDRIVE).shown(), "OneDrive");
 }
+
+#[test]
+fn a_later_cloud_whose_account_has_no_address_still_reads_as_that_cloud() {
+    let at = |email: &str| CloudAt {
+        provider: ONEDRIVE.into(),
+        account: "1".into(),
+        email: email.into(),
+    };
+
+    for email in ["", "+56 9 1234 5678"] {
+        assert_eq!(at(email).word(), "folder:OneDrive · ");
+        assert_eq!(
+            bound(&at(email).word()),
+            Bound::Cloud {
+                provider: ONEDRIVE,
+                email: ""
+            }
+        );
+    }
+}

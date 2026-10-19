@@ -1,7 +1,7 @@
 use std::io::Read;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
-use reqwest::blocking::{RequestBuilder, Response};
+use reqwest::blocking::{Body, RequestBuilder, Response};
 use serde::Deserialize;
 use tisty_carrier::{Expect, Hitch, Remote};
 
@@ -23,7 +23,7 @@ fn conflict(expect: &Expect) -> &'static str {
 
 fn expecting(asked: RequestBuilder, expect: &Expect) -> RequestBuilder {
     match expect {
-        Expect::Revision(etag) => asked.header(reqwest::header::IF_MATCH, etag),
+        Expect::Revision(revision) => asked.header(reqwest::header::IF_MATCH, revision),
         Expect::Absent | Expect::Any => asked,
     }
 }
@@ -63,14 +63,14 @@ impl OneDrive {
 
     /// One request that either lands whole or leaves the file as it was: what Tisty's own files always take.
     fn whole_once(&self, name: &str, from: &Path, expect: &Expect) -> Result<DriveItem, Hitch> {
-        let body = std::fs::read(from)?;
+        let bytes = std::fs::metadata(from)?.len();
         let url = self.by_path(name, Some("content"))?;
-        let answer = self.sent(Some(given(body.len() as u64)), |http| {
+        let answer = self.sent(Some(given(bytes)), |http| {
             expecting(
                 http.put(&url)
                     .query(&[("@microsoft.graph.conflictBehavior", conflict(expect))])
                     .header(reqwest::header::CONTENT_TYPE, "application/octet-stream")
-                    .body(body.clone()),
+                    .body(Body::sized(Reopened::at(from), bytes)),
                 expect,
             )
         })?;
@@ -112,7 +112,15 @@ impl OneDrive {
                     self.settled(&upload, key, &sent);
                     return sent;
                 }
-                Ok(Held::Whole) => return Err(assembling()),
+                // Every byte went up a round ago, so a session that still says so is let go rather than waited on for days.
+                Ok(Held::Whole) => {
+                    if let Some(landed) = self.landed_already(name, from)? {
+                        uploads.closed(key);
+                        return Ok(landed);
+                    }
+                    self.dropped(&upload);
+                    uploads.closed(key);
+                }
                 Err(cut) if passing(&cut) => return Err(cut),
                 Ok(Held::Gone) | Err(_) => {
                     self.dropped(&upload);
@@ -302,6 +310,31 @@ impl OneDrive {
             }
             _ => judged(answer),
         }
+    }
+}
+
+// Opened anew for each send, so a renewed token sends the file from its start and it never sits whole in memory.
+struct Reopened {
+    at: PathBuf,
+    file: Option<std::fs::File>,
+}
+
+impl Reopened {
+    fn at(from: &Path) -> Self {
+        Self {
+            at: from.to_path_buf(),
+            file: None,
+        }
+    }
+}
+
+impl Read for Reopened {
+    fn read(&mut self, into: &mut [u8]) -> std::io::Result<usize> {
+        let file = match &mut self.file {
+            Some(file) => file,
+            None => self.file.insert(std::fs::File::open(&self.at)?),
+        };
+        file.read(into)
     }
 }
 

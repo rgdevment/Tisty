@@ -27,6 +27,10 @@ const WHOLE_AT_MOST: u64 = 250 * 1000 * 1000;
 // Cursors passed with the paths each one moved, so a round asking from an older one still hears them all.
 const PASSED_AT_MOST: usize = 64;
 const UPLOADS_KEPT_FOR: u64 = 2 * 24 * 60 * 60;
+const PAGE_TRIES: u32 = 3;
+const PAGE_PAUSE: Duration = Duration::from_secs(1);
+// A longer pace asked of a listing pauses the round instead of holding the pages read so far.
+const PAGE_WAITS_AT_MOST: Duration = Duration::from_secs(30);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GraphAt {
@@ -77,6 +81,16 @@ impl Known {
             .flat_map(|(_, touched)| touched.iter().cloned())
             .collect()
     }
+}
+
+#[derive(Deserialize)]
+struct Page {
+    #[serde(default)]
+    value: Vec<DriveItem>,
+    #[serde(rename = "@odata.nextLink")]
+    next: Option<String>,
+    #[serde(rename = "@odata.deltaLink")]
+    delta: Option<String>,
 }
 
 enum Walked {
@@ -194,15 +208,6 @@ impl OneDrive {
     }
 
     fn walked(&self, from: &str) -> Result<Walked, Hitch> {
-        #[derive(Deserialize)]
-        struct Page {
-            #[serde(default)]
-            value: Vec<DriveItem>,
-            #[serde(rename = "@odata.nextLink")]
-            next: Option<String>,
-            #[serde(rename = "@odata.deltaLink")]
-            delta: Option<String>,
-        }
         let mut link = from.to_string();
         let mut all = Vec::new();
         let mut pages = 0;
@@ -212,12 +217,9 @@ impl OneDrive {
                 self.spent(1);
             }
             pages += 1;
-            let answer = self.sent(Some(ASKED_WITHIN), |http| http.get(&link))?;
-            // A cursor of a folder OneDrive made anew answers 404, and one it let lapse 410: both are read whole again.
-            if matches!(answer.status().as_u16(), 404 | 410) {
+            let Some(page) = self.page_at(&link)? else {
                 return Ok(Walked::Gone);
-            }
-            let page: Page = json(judged(answer)?)?;
+            };
             all.extend(page.value);
             match (page.next, page.delta) {
                 (Some(next), _) => link = next,
@@ -228,6 +230,35 @@ impl OneDrive {
                     ));
                 }
             }
+        }
+    }
+
+    // A page refused for a moment is asked for again where the listing got to, so the pages before it are kept.
+    fn page_at(&self, link: &str) -> Result<Option<Page>, Hitch> {
+        let mut failed = 0;
+        loop {
+            let asked = self
+                .sent(Some(ASKED_WITHIN), |http| http.get(link))
+                .and_then(|answer| match answer.status().as_u16() {
+                    // A cursor of a folder OneDrive made anew answers 404, and one it let lapse 410: both are read whole again.
+                    404 | 410 => Ok(None),
+                    _ => json(judged(answer)?).map(Some),
+                });
+            match asked {
+                Err(Hitch::Troubled(_) | Hitch::Unreachable(None, _))
+                    if failed + 1 < PAGE_TRIES =>
+                {
+                    std::thread::sleep(PAGE_PAUSE * (failed + 1));
+                }
+                Err(Hitch::Limited { wait })
+                    if failed + 1 < PAGE_TRIES && wait <= PAGE_WAITS_AT_MOST =>
+                {
+                    std::thread::sleep(wait);
+                }
+                other => return other,
+            }
+            failed += 1;
+            self.spent(1);
         }
     }
 
@@ -412,7 +443,12 @@ impl Remote for OneDrive {
                 .traced(asked.build().map_err(unreachable)?, Some("download"))
                 .map_err(unreachable)?;
             match answer.status().as_u16() {
-                206 => break (item, answer, 0),
+                206 if begins_at(&answer, from) => break (item, answer, 0),
+                206 => {
+                    return Err(Hitch::Broke(format!(
+                        "OneDrive sent another part of «{name}» than the one asked for"
+                    )));
+                }
                 // OneDrive may send the whole file when it cannot cut it, so what was already here is passed over.
                 200 => break (item, answer, from),
                 // The address outlives its permission after a while; a fresh one is asked for once, never the sign-in.
@@ -420,8 +456,12 @@ impl Remote for OneDrive {
                     renewed = true;
                     self.spent(1);
                 }
-                // A fresh address refused again is the grant itself gone.
-                401 | 403 => return Err(judged(answer).err().unwrap_or(Hitch::Lost)),
+                // One file refused twice is left for a later round; the sign-in still stands for every other.
+                401 | 403 => {
+                    return Err(Hitch::Broke(format!(
+                        "OneDrive would not hand over «{name}» even from a fresh address"
+                    )));
+                }
                 _ => {
                     return Err(match judged_carried(answer) {
                         Err(Hitch::Missing(_)) => Hitch::Missing(name.to_string()),
@@ -523,7 +563,7 @@ impl Remote for OneDrive {
             .item(name, Some(ITEM_FIELDS))?
             .filter(DriveItem::is_file)
             .ok_or_else(|| Hitch::Missing(name.to_string()))?;
-        if expect.is_some_and(|wanted| item.etag.as_deref() != Some(wanted)) {
+        if expect.is_some_and(|wanted| item.revision() != wanted) {
             return Err(Hitch::Changed(name.to_string()));
         }
         let url = self.item_url(&item.id)?;
@@ -587,6 +627,18 @@ impl Remote for OneDrive {
             cursor: self.cursor().unwrap_or_default(),
         })
     }
+}
+
+// Only a piece that begins where this copy stopped may be written after it.
+fn begins_at(answer: &reqwest::blocking::Response, from: u64) -> bool {
+    answer
+        .headers()
+        .get(reqwest::header::CONTENT_RANGE)
+        .and_then(|one| one.to_str().ok())
+        .and_then(|one| one.trim().strip_prefix("bytes "))
+        .and_then(|one| one.split_once('-'))
+        .and_then(|(start, _)| start.trim().parse::<u64>().ok())
+        == Some(from)
 }
 
 #[cfg(test)]

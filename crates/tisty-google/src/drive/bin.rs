@@ -96,6 +96,7 @@ impl Drive {
             return Ok(());
         }
         self.moved_into(id, split(name).1, (bin, parent))
+            .map(|_| ())
     }
 
     pub(super) fn moved_into(
@@ -103,21 +104,20 @@ impl Drive {
         id: &str,
         named: &str,
         (from, to): (&str, &str),
-    ) -> Result<(), Hitch> {
+    ) -> Result<File, Hitch> {
         let url = format!("{}/files/{id}", self.at.api);
         let body = serde_json::json!({ "name": named });
         self.spent(EDIT);
-        self.call(Some(ASKED_WITHIN), |http| {
+        json(self.call(Some(ASKED_WITHIN), |http| {
             http.patch(&url)
                 .query(&[
                     ("addParents", to),
                     ("removeParents", from),
-                    ("fields", "id"),
+                    ("fields", FILE_FIELDS),
                 ])
                 .header(reqwest::header::CONTENT_TYPE, "application/json")
                 .body(body.to_string())
-        })?;
-        Ok(())
+        })?)
     }
 
     // Read again before it goes, since a listing held for hours may have seen a file that was put back since.

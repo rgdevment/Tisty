@@ -203,8 +203,10 @@ fn refusal(status: u16, wait: Option<Duration>, refused: Option<&Refused>) -> Hi
         401 => Hitch::Lost,
         _ if names("quotaLimitReached") => Hitch::Full,
         507 => Hitch::Full,
-        // Signing in again is what hands Tisty its folder back.
-        403 if names("accessDenied") || names("unauthenticated") => Hitch::Lost,
+        // A token Microsoft no longer takes answers 401 even once renewed; a refusal here is about one thing, not the sign-in.
+        403 if names("accessDenied") => Hitch::Broke(format!(
+            "OneDrive holds something in Tisty's folder that Tisty may not touch: {message}"
+        )),
         404 => Hitch::Missing(message),
         409 | 412 => Hitch::Changed(message),
         // A file held by someone else, or a pace Microsoft asks for, passes on its own.
