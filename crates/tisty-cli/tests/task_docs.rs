@@ -312,7 +312,7 @@ fn an_old_copy_of_a_task_s_page_is_turned_away_rather_than_erase_what_came_since
 
     served.call(
         "tick",
-        serde_json::json!({ "task": task, "step": "Bring the card" }),
+        serde_json::json!({ "task": task, "steps": ["Call the vet", "Bring the card"] }),
     );
     let done = served.call(
         "say_done",
