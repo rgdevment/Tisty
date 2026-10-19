@@ -44,7 +44,7 @@ fn a_settings_file_that_is_not_there_yet_is_written() {
 
     wire_at(&CODE, &at).unwrap();
 
-    assert!(told(&CODE, &at).wired);
+    assert!(told(&CODE, &at, true).wired);
     assert!(!at.with_file_name(format!("mcp.json.{BEFORE}")).exists());
 }
 
@@ -97,10 +97,10 @@ fn a_table_is_written_and_taken_back_out_of_a_toml() {
     std::fs::write(&at, "model = \"gpt\"\n").unwrap();
 
     wire_at(&CODEX, &at).unwrap();
-    assert!(told(&CODEX, &at).wired);
+    assert!(told(&CODEX, &at, true).wired);
 
     unwire_at(&CODEX, &at).unwrap();
-    assert!(!told(&CODEX, &at).wired);
+    assert!(!told(&CODEX, &at, true).wired);
     assert!(std::fs::read_to_string(&at).unwrap().contains("model"));
 }
 
@@ -111,7 +111,7 @@ fn what_it_points_at_is_reported_back() {
 
     wire_at(&CODE, &at).unwrap();
 
-    assert_eq!(told(&CODE, &at).points, Some(command::calling()));
+    assert_eq!(told(&CODE, &at, true).points, Some(command::calling()));
 }
 
 #[test]

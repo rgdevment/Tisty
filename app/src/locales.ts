@@ -828,6 +828,8 @@ const en = {
   updateBusy: "An update is already on its way.",
   updateElsewhere: "That update comes from somewhere it should not. Nothing was downloaded.",
   updateNotHere: "Something else keeps this copy up to date.",
+  updateFromTheDisk:
+    "Move Tisty to Applications first: a copy opened from the disk image cannot update itself.",
   updateGone: "That version is no longer offered.",
   updateUnconfirmed: "The list of updates could not be confirmed just now. Try again in a while.",
   updateMoved: "That version is no longer offered; {name} is.",
@@ -2853,6 +2855,8 @@ const es: Catalog = {
   updateBusy: "Ya hay una actualización en camino.",
   updateElsewhere: "Esa actualización viene de donde no debe. No se descargó nada.",
   updateNotHere: "De esta copia se encarga otro.",
+  updateFromTheDisk:
+    "Mueve Tisty a Aplicaciones primero: una copia abierta desde la imagen de disco no puede actualizarse.",
   updateGone: "Esa versión ya no se ofrece.",
   updateUnconfirmed:
     "Ahora mismo no se pudo confirmar la lista de actualizaciones. Prueba de nuevo en un rato.",

@@ -75,13 +75,6 @@ pub const fn self_installs(route: Route) -> bool {
     matches!(route, Route::Brew | Route::Download)
 }
 
-/// Where asking for candidates can lead anywhere. The Store is sent none, and the command line's
-/// candidates live in a formula of another name, so the command that route prints could never
-/// hand over the version it had just announced.
-pub const fn takes_candidates(route: Route) -> bool {
-    matches!(route, Route::Brew | Route::Download)
-}
-
 /// Where a release of ours can possibly come from. The plugin fetches whatever address the feed
 /// names, so a feed that was tampered with could otherwise send the download anywhere.
 const FROM: [&str; 2] = ["github.com", "objects.githubusercontent.com"];

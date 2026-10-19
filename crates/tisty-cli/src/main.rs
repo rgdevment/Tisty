@@ -14,8 +14,7 @@ fn main() -> ExitCode {
     match first.as_deref() {
         Some("mcp") => served(),
         Some("--version" | "-V") => {
-            let said =
-                Lang::detect(None).fill("version", &[("version", env!("CARGO_PKG_VERSION"))]);
+            let said = spoken().fill("version", &[("version", env!("CARGO_PKG_VERSION"))]);
             println!("{said}");
             ExitCode::SUCCESS
         }
@@ -24,7 +23,7 @@ fn main() -> ExitCode {
 }
 
 fn retired() -> ExitCode {
-    let lang = Lang::detect(None);
+    let lang = spoken();
     eprintln!("{}", lang.get("retired"));
     ExitCode::from(EXIT_ERROR)
 }
@@ -42,7 +41,7 @@ fn served() -> ExitCode {
                 "the assistant's door ended in an error",
                 &facts,
             );
-            let lang = Lang::detect(None);
+            let lang = spoken();
             let said = match e.downcast_ref::<tisty_core::Error>() {
                 Some(tisty_core::Error::UnsupportedVersion { version, .. })
                     if *version == tisty_core::moving::FENCE_VERSION =>
@@ -85,4 +84,17 @@ fn serve() -> anyhow::Result<ExitCode> {
         )],
     );
     mcp::serve(paths)
+}
+
+// The settings are read, never written: nothing is opened for the person by a command that only answers.
+fn spoken() -> Lang {
+    let configured = tisty_core::Paths::resolve()
+        .ok()
+        .and_then(|paths| {
+            tisty_core::Config::load(&paths.config_file())
+                .ok()
+                .flatten()
+        })
+        .and_then(|config| config.locale);
+    Lang::detect(configured.as_deref())
 }

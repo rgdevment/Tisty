@@ -121,10 +121,11 @@ pub enum Stuck {
 }
 
 pub fn seen() -> Vec<Seen> {
+    let shipped = command::beside().is_some();
     CLIENTS
         .iter()
         .filter(|it| about(it))
-        .filter_map(|it| Some(told(it, &file(it)?)))
+        .filter_map(|it| Some(told(it, &file(it)?, shipped)))
         .collect()
 }
 
@@ -163,7 +164,7 @@ fn asked(id: &str) -> Result<(&'static Client, PathBuf), Stuck> {
     Ok((client, at))
 }
 
-fn told(client: &'static Client, at: &Path) -> Seen {
+fn told(client: &'static Client, at: &Path, shipped: bool) -> Seen {
     let text = std::fs::read_to_string(at).unwrap_or_default();
     let points = match client.kind {
         Kind::Json(key) => json::reads(&text, key, NAME),
@@ -174,9 +175,7 @@ fn told(client: &'static Client, at: &Path) -> Seen {
         name: client.name,
         at: at.display().to_string(),
         wired: points.is_some(),
-        astray: points
-            .as_deref()
-            .is_some_and(|one| adrift(one, command::beside().is_some())),
+        astray: points.as_deref().is_some_and(|one| adrift(one, shipped)),
         points,
     }
 }

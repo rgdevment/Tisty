@@ -262,7 +262,9 @@ jobs:
   build-macos:
     name: tisty-macos-mcp
     needs: version
-    if: needs.version.outputs.macos == 'true' && needs.version.outputs.prerelease == 'false'
+    if: >-
+      needs.version.outputs.macos == 'true'
+      && (needs.version.outputs.prerelease == 'false' || github.event_name == 'workflow_dispatch')
     runs-on: macos-latest
     environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'release' || '' }}
     timeout-minutes: 45
@@ -390,7 +392,7 @@ jobs:
   build-windows:
     name: tisty-windows-mcp
     needs: version
-    if: needs.version.outputs.prerelease == 'false'
+    if: needs.version.outputs.prerelease == 'false' || github.event_name == 'workflow_dispatch'
     runs-on: windows-latest
     environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'release' || '' }}
     timeout-minutes: 45
@@ -1011,7 +1013,8 @@ jobs:
     name: tisty-mcp-bundle
     needs: [version, build-macos, build-windows]
     if: >-
-      !cancelled() && needs.version.outputs.prerelease == 'false'
+      !cancelled()
+      && (needs.version.outputs.prerelease == 'false' || github.event_name == 'workflow_dispatch')
       && needs.build-macos.result == 'success' && needs.build-windows.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -1894,7 +1897,8 @@ jobs:
           CASK
           fi
 
-          for stale in Formula/tisty.rb Formula/tisty-beta.rb; do
+          # The command line was retired: its formulas are taken out, so nobody installs a frozen one.
+          for stale in Formula/tisty.rb Formula/tisty-beta.rb Formula/tisty-cli.rb Formula/tisty-cli-beta.rb; do
             if [ -f "$stale" ]; then
               git rm -q "$stale"
               echo "removed $stale, which the cask replaces"

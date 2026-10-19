@@ -337,7 +337,7 @@ pub fn about(session: tauri::State<'_, Mutex<Session>>) -> Answer<About> {
         candidates: update::tracking(HERE, session.config.candidates),
         // The Store keeps its own tracks, and offers no candidates at all: a box here would be a
         // switch wired to nothing.
-        candidates_apply: update::takes_candidates(update::route().route),
+        candidates_apply: update::self_installs(update::route().route),
         kept_by_the_store: update::route().route == update::Route::Store,
     })
 }

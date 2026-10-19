@@ -337,10 +337,10 @@ fn a_copy_that_cannot_replace_itself_is_not_offered_a_button() {
 
 #[test]
 fn candidates_are_only_asked_for_where_one_could_arrive() {
-    assert!(takes_candidates(Route::Download));
-    assert!(takes_candidates(Route::Brew));
+    assert!(self_installs(Route::Download));
+    assert!(self_installs(Route::Brew));
     assert!(
-        !takes_candidates(Route::Store),
+        !self_installs(Route::Store),
         "the store is sent finished versions only"
     );
 }

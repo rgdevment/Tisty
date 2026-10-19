@@ -292,6 +292,7 @@ impl Person {
 
     pub fn syncs(&self) -> Result<(), String> {
         let config = Config::load_or_init(&self.paths).unwrap();
+        self.seated(&config.device_id);
         let via = tisty_carrier::chosen(config.sync.as_ref())
             .carrier
             .ok_or("no way of syncing is chosen")?;
@@ -335,7 +336,6 @@ impl Person {
                 &moved.arrived,
             ));
         }
-        self.seated(&config.device_id);
         Ok(())
     }
 
@@ -352,11 +352,7 @@ impl Person {
         if starting {
             tisty_core::vouched::confirm_each(self.paths.data(), &state.keys);
         }
-        let allowed = tisty_core::store::ledger(self.paths.store())
-            .unwrap()
-            .allowed
-            .contains(who);
-        match (allowed, starting) {
+        match (state.devices.contains(who), starting) {
             (true, true) => self.wrote(vec![Op::DeviceKey {
                 d: who.clone(),
                 p: shown,

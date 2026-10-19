@@ -166,7 +166,7 @@ export default function About({
                       ? t("updateComingWhy")
                       : newer.route === "store"
                         ? t("updateLanded")
-                        : null}
+                        : t("updateFromTheDisk")}
                 </span>
               )}
             </span>
