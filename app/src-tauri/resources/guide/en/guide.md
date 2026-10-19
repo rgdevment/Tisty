@@ -28,6 +28,21 @@ That is why a task has a page of its own: a task is also a document, one with an
 3. The parts are completed one by one, and then the spike itself. It goes to the archive.
 4. Nothing is lost. A year later, «how did we solve the OneDrive uploads?» finds it: its page, its parts and every step, as they were left.
 
+```mermaid
+flowchart TD
+  A[Something comes up] --> B{Will you do it,<br/>or come back to read it?}
+  B -->|Do it| T[A task]
+  B -->|Read it again| D[A document]
+  T --> P[Its page: notes, steps,<br/>files, recordings]
+  P --> S{Too big for one go?}
+  S -->|Yes| K[Split it into parts]
+  K --> C
+  S -->|No| C[Complete it]
+  C --> R[The archive:<br/>search finds how you solved it]
+  P -.->|You learned something<br/>you will need again| D
+  D --> G[Read, correct and add to it<br/>for years]
+```
+
 Something you will do is a task. Something you will come back to is a document — a recipe is not a task with steps, and a to-do is not a document. When doing a task teaches you something you will need again beyond it — the fix for a fault that returns, how a supplier wants an order — put it in a document as well.
 
 ---

@@ -28,6 +28,21 @@ Por eso una tarea tiene una página propia: una tarea también es un documento, 
 3. Las partes se completan una a una, y después el spike. Pasa al archivo.
 4. No se pierde nada. Un año después, «¿cómo resolvimos las subidas a OneDrive?» lo encuentra: su página, sus partes y cada paso, tal como quedaron.
 
+```mermaid
+flowchart TD
+  A[Aparece algo] --> B{¿Lo vas a hacer,<br/>o a volver a leer?}
+  B -->|Hacerlo| T[Una tarea]
+  B -->|Volver a leerlo| D[Un documento]
+  T --> P[Su página: notas, pasos,<br/>archivos, grabaciones]
+  P --> S{¿Es mucho para una vez?}
+  S -->|Sí| K[Divídela en partes]
+  K --> C
+  S -->|No| C[Complétala]
+  C --> R[El archivo:<br/>la búsqueda te dice cómo lo resolviste]
+  P -.->|Aprendiste algo que<br/>vas a necesitar de nuevo| D
+  D --> G[Léelo, corrígelo y amplíalo<br/>durante años]
+```
+
 Lo que vas a hacer es una tarea. Lo que vas a volver a consultar es un documento: una receta no es una tarea con pasos, y un pendiente no es un documento. Cuando hacer una tarea te enseña algo que vas a necesitar de nuevo más allá de ella —el arreglo de una falla que vuelve, cómo quiere un proveedor que le pidan— guárdalo también en un documento.
 
 ---

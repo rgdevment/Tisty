@@ -205,10 +205,26 @@ pronto, y después se queda, para que meses más tarde consultes cómo lo
 resolviste. Un documento es algo para guardar y volver a leer —un manual, una
 receta, las notas de un cliente— que crece y dura años. Lo que vas a hacer es
 una tarea; lo que vas a volver a consultar es un documento. Un spike es el caso
-más claro: una tarea cuya página reúne lo que averiguaste —notas, grabaciones, análisis de código—, dividida en partes que
-se van completando, que luego se completa y se archiva, y un año después una
-búsqueda todavía trae cómo se resolvió, paso por paso. Por eso una tarea tiene
-página: también es un documento, uno que termina.
+más claro: una tarea cuya página reúne lo que averiguaste —notas, grabaciones,
+análisis de código—, dividida en partes que se van completando, que luego se
+completa y se archiva, y un año después una búsqueda todavía trae cómo se
+resolvió, paso por paso. Por eso una tarea tiene página: también es un
+documento, uno que termina.
+
+```mermaid
+flowchart TD
+  A[Aparece algo] --> B{¿Lo vas a hacer,<br/>o a volver a leer?}
+  B -->|Hacerlo| T[Una tarea]
+  B -->|Volver a leerlo| D[Un documento]
+  T --> P[Su página: notas, pasos,<br/>archivos, grabaciones]
+  P --> S{¿Es mucho para una vez?}
+  S -->|Sí| K[Divídela en partes]
+  K --> C
+  S -->|No| C[Complétala]
+  C --> R[El archivo:<br/>la búsqueda te dice cómo lo resolviste]
+  P -.->|Aprendiste algo que<br/>vas a necesitar de nuevo| D
+  D --> G[Léelo, corrígelo y amplíalo<br/>durante años]
+```
 
 **Es para una persona.** Sin responsables, sin permisos, sin tableros. Si
 necesitas llevar un equipo, Tisty no va a sostener eso, y mereces saberlo antes
