@@ -30,12 +30,30 @@ pub(super) fn alike(state: &State, kept: &Kept, pages: &[&Kept]) -> Vec<Value> {
         .filter_map(|one| {
             let title = one.title.as_deref()?;
             let subject = tisty_core::text::subject(title);
-            let (_, like) = subjects.iter().find(|(had, _)| *had == subject)?;
+            let (_, like) = subjects.iter().find(|(had, _)| near(had, &subject))?;
             Some(json!({ "doc": one.file, "title": title, "like": like }))
         })
         .collect();
     found.sort_by(|a, b| a["doc"].as_str().cmp(&b["doc"].as_str()));
     found
+}
+
+// A hint, not a refusal: titles sharing most of their words are worth a look, however they are dressed.
+fn near(one: &str, other: &str) -> bool {
+    let words = |subject: &str| -> std::collections::BTreeSet<String> {
+        subject
+            .split(|c: char| !c.is_alphanumeric())
+            .filter(|word| word.chars().count() >= 3 && !word.chars().all(|c| c.is_ascii_digit()))
+            .map(str::to_string)
+            .collect()
+    };
+    if one == other {
+        return true;
+    }
+    let (a, b) = (words(one), words(other));
+    let shared = a.intersection(&b).count();
+    let fewer = a.len().min(b.len());
+    shared >= 2 && shared * 4 >= fewer * 3
 }
 
 pub(super) fn repeated(own: (&str, &Card), pages: &[(&str, &Card)]) -> Vec<Value> {
@@ -62,3 +80,7 @@ pub(super) fn repeated(own: (&str, &Card), pages: &[(&str, &Card)]) -> Vec<Value
         .map(|(_, heading, all)| json!({ "heading": heading, "in": all }))
         .collect()
 }
+
+#[cfg(test)]
+#[path = "alike_test.rs"]
+mod tests;
