@@ -279,6 +279,99 @@ impl Person {
     }
 }
 
+impl Person {
+    pub fn device(&self) -> String {
+        Config::load_or_init(&self.paths).unwrap().device_id.0
+    }
+
+    pub fn shares_through(&self, folder: &Path) {
+        let mut config = Config::load_or_init(&self.paths).unwrap();
+        config.sync = Some(tisty_core::config::Sync::folder(folder));
+        config.save(&self.paths).unwrap();
+    }
+
+    // The round the window runs, with the seat this machine takes in the place the first time.
+    pub fn syncs(&self) -> Result<(), String> {
+        let config = Config::load_or_init(&self.paths).unwrap();
+        let via = tisty_carrier::chosen(config.sync.as_ref())
+            .carrier
+            .ok_or("no way of syncing is chosen")?;
+        let state = self.state();
+        let alive: Vec<String> = state.docs.values().map(|one| one.file.clone()).collect();
+        let mut quiet = |_: tisty_carrier::Reached| {};
+        let moved = via
+            .carry(
+                &tisty_carrier::Here::of(&self.paths, &config),
+                tisty_carrier::Round {
+                    way: tisty_carrier::Way::Both,
+                    alive: &alive,
+                    holds: config.holds(),
+                    saying: &mut quiet,
+                },
+            )
+            .map_err(|trouble| format!("{trouble:?}"))?;
+        let mut ops: Vec<Op> = moved
+            .let_go
+            .iter()
+            .map(|at| Op::AttachLetGo { d: at.clone() })
+            .collect();
+        ops.extend(
+            moved
+                .took_in
+                .iter()
+                .map(|(at, sha256, bytes)| Op::AttachKept {
+                    d: tisty_core::event::Held {
+                        at: at.clone(),
+                        sha256: sha256.clone(),
+                        bytes: *bytes,
+                    },
+                }),
+        );
+        self.wrote(ops);
+        if moved.brought > 0 {
+            let state = self.state();
+            self.wrote(tisty_core::tidy::settling_what_arrived(
+                &self.paths,
+                &state,
+                &moved.arrived,
+            ));
+        }
+        self.seated(&config.device_id);
+        Ok(())
+    }
+
+    fn seated(&self, who: &tisty_core::DeviceId) {
+        let Some(shown) = tisty_core::signing::mine(&self.paths, who)
+            .as_ref()
+            .map(tisty_core::signing::shown)
+        else {
+            return;
+        };
+        tisty_core::vouched::confirm(self.paths.data(), who, &shown);
+        let state = self.state();
+        let starting = !state.keys.contains_key(who);
+        if starting {
+            tisty_core::vouched::confirm_each(self.paths.data(), &state.keys);
+        }
+        let allowed = tisty_core::store::ledger(self.paths.store())
+            .unwrap()
+            .allowed
+            .contains(who);
+        match (allowed, starting) {
+            (true, true) => self.wrote(vec![Op::DeviceKey {
+                d: who.clone(),
+                p: shown,
+            }]),
+            (true, false) => {}
+            (false, _) => self.wrote(vec![Op::DeviceJoin {
+                d: who.clone(),
+                k: Some(tisty_core::DeviceKind::Machine),
+                p: Some(shown),
+            }]),
+        }
+    }
+}
+
 fn line_of(task: &tisty_core::Task) -> String {
     std::iter::once(task.title.clone())
         .chain(task.tags.iter().map(|tag| format!("#{tag}")))

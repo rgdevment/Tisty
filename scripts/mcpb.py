@@ -41,14 +41,14 @@ MANIFEST = {
 def taken(where, named):
     at = os.path.join(where, named)
     if not os.path.isfile(at):
-        sys.exit(f"the bundle needs {at}, and the command line job did not leave it")
+        sys.exit(f"the bundle needs {at}, and the job that builds the server did not leave it")
     return io.open(at, "rb").read()
 
 
 def main():
     staged = os.environ["STAGED"]
-    mac = taken(os.path.join(staged, f"tisty-cli-{VERSION}-macos-universal"), "tisty")
-    win = taken(os.path.join(staged, f"tisty-cli-{VERSION}-windows-x86_64"), "tisty.exe")
+    mac = taken(os.path.join(staged, "server-macos-universal"), "tisty")
+    win = taken(os.path.join(staged, "server-windows-x86_64"), "tisty.exe")
 
     os.makedirs(DIST, exist_ok=True)
     # The Unix bit does not survive a zip written on Windows, and a server nobody can
