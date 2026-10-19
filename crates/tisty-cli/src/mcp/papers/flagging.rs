@@ -124,12 +124,27 @@ fn instead_of(
                 .into(),
         ));
     }
-    let a_doc = state.docs.values().any(|one| one.file == instead);
-    let a_task = instead
+    let doc = state.docs.values().find(|one| one.file == instead);
+    let task = instead
         .parse::<TaskId>()
         .ok()
-        .is_some_and(|id| state.tasks.contains_key(&id));
-    match a_doc || a_task {
+        .and_then(|id| state.tasks.get(&id));
+    // What a mark points at has to be able to hold what moved, or deleting the mark loses it.
+    if doc.is_some_and(|one| one.flagged.is_some() || state.held_away(one)) {
+        return Err(Refused::Tool(
+            "`instead` names a document that is marked or put away itself; point at the one \
+             that stays."
+                .into(),
+        ));
+    }
+    if task.is_some_and(|one| !one.is_open()) {
+        return Err(Refused::Tool(
+            "`instead` names a closed task, which takes nothing more; point at an open task, or \
+             mark the document `obsolete` if nothing in it needs keeping."
+                .into(),
+        ));
+    }
+    match doc.is_some() || task.is_some() {
         true => Ok(Some(instead)),
         false => Err(Refused::Tool(format!(
             "`instead` is {instead:?}, and no document or task here has that id. `docs` and \

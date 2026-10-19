@@ -4,13 +4,8 @@ use super::trail;
 
 const NAMED_AT_MOST: usize = 3;
 
-/// Words too short to say what something is about would make every folder look close.
 fn words(said: &str) -> Vec<String> {
-    tisty_core::text::folded(said)
-        .split(|one: char| !one.is_alphanumeric())
-        .filter(|one| one.chars().count() >= 3)
-        .map(str::to_string)
-        .collect()
+    tisty_core::text::telling(said)
 }
 
 fn closest(title: &str, named: Vec<String>) -> Vec<String> {

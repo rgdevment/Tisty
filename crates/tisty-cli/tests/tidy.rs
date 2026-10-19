@@ -574,6 +574,52 @@ fn a_compacted_document_takes_no_other_write_until_the_person_decides() {
     went(&served.call("append_doc", json!({ "doc": &doc, "body": "Three." })));
 }
 
+#[test]
+fn the_person_keeping_a_compaction_in_the_conversation_lets_the_next_write_through() {
+    let served = Served::new();
+    let doc = served.paper("# Login\n\nOne.\n\n## Session 1\n\nTwo.\n\n## Session 2\n\nTwo.\n");
+    let print = said(&served.call("read_doc", json!({ "doc": &doc })))["print"].clone();
+    went(&served.call(
+        "write_doc",
+        json!({
+            "doc": &doc,
+            "print": print,
+            "compact": true,
+            "body": "# Login\n\nOne. Two.\n",
+        }),
+    ));
+
+    went(&served.call(
+        "append_doc",
+        json!({ "doc": &doc, "body": "Three.", "kept": true }),
+    ));
+
+    let read = said(&served.call("read_doc", json!({ "doc": &doc }))).clone();
+    assert!(read["compacted"].is_null(), "{read}");
+    assert!(read["body"].as_str().unwrap().contains("Three."), "{read}");
+}
+
+#[test]
+fn a_compaction_lists_the_links_it_took_out() {
+    let served = Served::new();
+    let doc = served.paper(
+        "# Login\n\nOne, see https://example.com/old.\n\n## Session 1\n\nTwo.\n\n## Session 2\n\nTwo.\n",
+    );
+    let print = said(&served.call("read_doc", json!({ "doc": &doc })))["print"].clone();
+
+    let done = served.call(
+        "write_doc",
+        json!({ "doc": &doc, "print": print, "compact": true, "body": "# Login\n\nOne. Two.\n" }),
+    );
+
+    went(&done);
+    assert_eq!(
+        said(&done)["unlinked"],
+        json!(["https://example.com/old"]),
+        "{done}"
+    );
+}
+
 fn files_under(at: &std::path::Path) -> usize {
     std::fs::read_dir(at).map_or(0, |all| {
         all.flatten()

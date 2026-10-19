@@ -36,6 +36,9 @@ pub(super) fn written_doc(
     };
 
     if let Some(which) = text(args, "doc") {
+        if let Some(kept) = state.docs.values().find(|one| one.file == which) {
+            super::compacting::released(&state, kept, args, &mut store)?;
+        }
         if super::compacting::compacting(args) {
             return super::compacting::compacted(paths, args, &state, &mut store, &which, &body);
         }
@@ -296,7 +299,7 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
             "{which:?} is put away, so nothing more goes into it. Write a new document instead."
         )));
     }
-    super::compacting::awaiting(&state, kept)?;
+    super::compacting::released(&state, kept, args, &mut store)?;
     if state.shut(kept.id) {
         return Err(Refused::Tool(format!(
             "{which:?} is locked. The person shut it so nothing writes in it — not the \
@@ -389,7 +392,6 @@ pub(super) fn over_again(
             "{which:?} is put away, so nothing is written over it."
         )));
     }
-    super::compacting::awaiting(state, kept)?;
     if state.shut(kept.id) {
         return Err(Refused::Tool(format!(
             "{which:?} is locked. The person shut it so nothing writes in it — not the \
@@ -408,10 +410,13 @@ pub(super) fn over_again(
     };
 
     let named = tisty_core::refs::papers(body);
+    // A compaction leaves out on purpose the pages it marked; only unmarked ones keep a line.
+    let compacting = super::compacting::compacting(args);
     let loose: Vec<&tisty_core::model::Kept> = state
         .pages_of(kept.id)
         .into_iter()
         .filter(|one| !named.contains(&one.file))
+        .filter(|one| !(compacting && one.flagged.is_some()))
         .collect();
     let walled_off = tisty_core::docs::ends_fenced(body);
     let adrift: Vec<String> = match walled_off {
@@ -609,6 +614,7 @@ pub(super) fn where_it_lands(
                      document of its own instead."
                 )));
             }
+            super::compacting::awaiting(state, up)?;
             if state.shut(up.id) {
                 return Err(Refused::Tool(format!(
                     "{said} is locked, and hanging a page off it writes the line that names \

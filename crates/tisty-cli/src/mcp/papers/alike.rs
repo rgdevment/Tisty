@@ -41,11 +41,7 @@ pub(super) fn alike(state: &State, kept: &Kept, pages: &[&Kept]) -> Vec<Value> {
 // A hint, not a refusal: titles sharing most of their words are worth a look, however they are dressed.
 fn near(one: &str, other: &str) -> bool {
     let words = |subject: &str| -> std::collections::BTreeSet<String> {
-        subject
-            .split(|c: char| !c.is_alphanumeric())
-            .filter(|word| word.chars().count() >= 3 && !word.chars().all(|c| c.is_ascii_digit()))
-            .map(str::to_string)
-            .collect()
+        tisty_core::text::telling(subject).into_iter().collect()
     };
     if one == other {
         return true;
@@ -53,7 +49,7 @@ fn near(one: &str, other: &str) -> bool {
     let (a, b) = (words(one), words(other));
     let shared = a.intersection(&b).count();
     let fewer = a.len().min(b.len());
-    shared >= 2 && shared * 4 >= fewer * 3
+    shared >= 2 && shared * 3 >= fewer * 2
 }
 
 pub(super) fn repeated(own: (&str, &Card), pages: &[(&str, &Card)]) -> Vec<Value> {
@@ -75,8 +71,10 @@ pub(super) fn repeated(own: (&str, &Card), pages: &[(&str, &Card)]) -> Vec<Value
             }
         }
     }
+    // A heading every page carries is the pages' template, as minutes have, not a repetition.
+    let pages_held = 1 + pages.len();
     seen.into_iter()
-        .filter(|(_, _, all)| all.len() > 1)
+        .filter(|(_, _, all)| all.len() > 1 && (pages_held < 3 || all.len() < pages_held))
         .map(|(_, heading, all)| json!({ "heading": heading, "in": all }))
         .collect()
 }

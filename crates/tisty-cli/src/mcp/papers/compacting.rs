@@ -98,6 +98,7 @@ pub(super) fn compacted(
     }
 
     let dropped = dropped(&was, &whole);
+    let unlinked = unlinked(&was, &whole);
     let (before, after) = (was.chars().count(), whole.chars().count());
     let title = tisty_core::docs::titled(&whole);
     let more = format!(
@@ -116,6 +117,14 @@ pub(super) fn compacted(
             false => String::new(),
         }
     );
+    let more = match unlinked.is_empty() {
+        true => more,
+        false => format!(
+            "{more} These links were in the old body and are not in this one: {}. List them in \
+             its history, so a link taken out is never a link lost.",
+            unlinked.join(", ")
+        ),
+    };
     if let Some(text) = said["content"][0]["text"].as_str() {
         let text = format!("{text}{more}");
         said["content"][0]["text"] = json!(text);
@@ -125,20 +134,29 @@ pub(super) fn compacted(
     }
     said["structuredContent"]["shrunk"] = json!({ "before": before, "after": after });
     said["structuredContent"]["dropped"] = json!(dropped);
+    said["structuredContent"]["unlinked"] = json!(unlinked);
     said["structuredContent"]["compacted"] = json!(true);
     Ok(said)
 }
 
 fn dropped(was: &str, whole: &str) -> Vec<String> {
-    let files = |body: &str| -> Vec<String> {
+    gone_from(was, whole, true)
+}
+
+fn unlinked(was: &str, whole: &str) -> Vec<String> {
+    gone_from(was, whole, false)
+}
+
+fn gone_from(was: &str, whole: &str, files: bool) -> Vec<String> {
+    let named = |body: &str| -> Vec<String> {
         tisty_core::refs::extract(body)
             .into_iter()
             .map(|one| one.target)
-            .filter(|one| tisty_core::attach::names_an_attachment(one))
+            .filter(|one| tisty_core::attach::names_an_attachment(one) == files)
             .collect()
     };
-    let now = files(whole);
-    let mut gone: Vec<String> = files(was)
+    let now = named(whole);
+    let mut gone: Vec<String> = named(was)
         .into_iter()
         .filter(|one| !now.contains(one))
         .collect();
@@ -186,14 +204,30 @@ pub(super) fn only_the_notes(now: &str, was: &str) -> Result<(), Refused> {
 }
 
 // A compaction is a proposal until the person keeps or undoes it, and only one step back is kept.
-pub(super) fn awaiting(state: &State, kept: &tisty_core::model::Kept) -> Result<(), Refused> {
+pub(in crate::mcp) fn awaiting(state: &State, kept: &Kept) -> Result<(), Refused> {
     match kept.compacted {
         None => Ok(()),
         Some(_) => Err(Refused::Tool(format!(
             "{} was compacted and waits for the person to keep it or undo it in the window; \
              another write now would cost them that one-click undo, so nothing was written. \
-             Tell them what you would still change, and write once they have kept it.",
+             Tell them what you would still change; when they tell you in this conversation to \
+             keep it, send `kept` with your next write.",
             doc_named(state, &kept.file)
         ))),
     }
+}
+
+pub(in crate::mcp) fn released(
+    state: &State,
+    kept: &Kept,
+    args: &Value,
+    store: &mut Store,
+) -> Result<(), Refused> {
+    if kept.compacted.is_some() && flag(args, "kept") {
+        return store
+            .append(Op::DocUncompacted { id: kept.id })
+            .map(|_| ())
+            .map_err(hitch);
+    }
+    awaiting(state, kept)
 }

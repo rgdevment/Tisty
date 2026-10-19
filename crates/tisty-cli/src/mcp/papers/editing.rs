@@ -49,7 +49,7 @@ pub(in crate::mcp) fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
             "{which:?} is put away, so it is not edited any more."
         )));
     }
-    super::compacting::awaiting(&state, kept)?;
+    super::compacting::released(&state, kept, args, &mut store)?;
     if state.shut(kept.id) {
         return Err(Refused::Tool(format!(
             "{which:?} is locked. The person shut it so nothing writes in it — not the \
