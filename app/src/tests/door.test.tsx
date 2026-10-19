@@ -1,7 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { DoorDue } from "../core";
 import Door from "../ui/Door";
+import { knowAgents } from "../who";
 
 const ipc = vi.hoisted(() => ({ sent: [] as string[], refuse: false }));
 
@@ -13,11 +15,12 @@ vi.mock("@tauri-apps/api/core", () => ({
   },
 }));
 
-function shown() {
+function shown(due: DoorDue = { why: "installed", by: null }) {
   const said = { settled: 0, opened: 0, problems: [] as unknown[] };
   render(
     <Door
       apart="right-3"
+      due={due}
       onSettled={() => (said.settled += 1)}
       onOpen={() => (said.opened += 1)}
       onError={(problem) => said.problems.push(problem)}
@@ -29,6 +32,7 @@ function shown() {
 beforeEach(() => {
   ipc.sent = [];
   ipc.refuse = false;
+  knowAgents({}, { clients: { "claude-code": "Claude Code" } });
 });
 
 describe("the card that offers the assistant a door", () => {
@@ -87,5 +91,65 @@ describe("the card that offers the assistant a door", () => {
 
     expect(said.problems.length).toBe(1);
     expect(String(said.problems[0])).toMatch(/would not take it/);
+  });
+});
+
+describe("the card for assistants wired to a closed door", () => {
+  const mute: DoorDue = { why: "mute", by: null };
+
+  it("says the door is closed and offers to let them in", async () => {
+    const said = shown(mute);
+
+    expect(screen.getByText(/connected, but the door is closed/i)).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: /let it in/i }));
+
+    expect(said.opened).toBe(1);
+    expect(ipc.sent).toEqual(["door_done"]);
+  });
+
+  it("can be told not to come back", async () => {
+    const said = shown(mute);
+
+    await userEvent.click(screen.getByRole("button", { name: /don't show again/i }));
+
+    expect(said.opened).toBe(0);
+    expect(ipc.sent).toEqual(["door_done"]);
+  });
+});
+
+describe("the card for an assistant turned away at the door", () => {
+  const knocked: DoorDue = { why: "knocked", by: "claude-code" };
+
+  it("names who tried, in the name the person knows it by", () => {
+    shown(knocked);
+
+    expect(screen.getByText("Claude Code tried to come in.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /don't show again/i })).toBeNull();
+  });
+
+  it("speaks of an assistant when it gave no name", () => {
+    shown({ why: "knocked", by: null });
+
+    expect(screen.getByText("An assistant tried to come in.")).toBeTruthy();
+  });
+
+  it("walks to the assistants and counts the knock as heard", async () => {
+    const said = shown(knocked);
+
+    await userEvent.click(screen.getByRole("button", { name: /let it in/i }));
+
+    expect(said.opened).toBe(1);
+    expect(said.settled).toBe(1);
+    expect(ipc.sent).toEqual(["door_heard"]);
+  });
+
+  it("is heard as well when put off, so the same knock does not return", async () => {
+    const said = shown(knocked);
+
+    await userEvent.click(screen.getByRole("button", { name: /not now/i }));
+
+    expect(said.opened).toBe(0);
+    expect(said.settled).toBe(1);
+    expect(ipc.sent).toEqual(["door_heard"]);
   });
 });

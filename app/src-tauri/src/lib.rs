@@ -363,8 +363,33 @@ fn asking(
     Asking::Now
 }
 
-fn offering(seen: usize, wired: usize) -> bool {
-    seen > 0 && wired == 0
+#[derive(serde::Serialize, Debug, PartialEq, Eq)]
+pub struct DoorDue {
+    why: &'static str,
+    by: Option<String>,
+}
+
+fn knocking(
+    open: bool,
+    knock: Option<tisty_core::agent::Knock>,
+    heard: Option<jiff::Timestamp>,
+) -> Option<DoorDue> {
+    let knock = knock.filter(|one| !open && heard.is_none_or(|heard| one.at > heard))?;
+    Some(DoorDue {
+        why: "knocked",
+        by: knock.by,
+    })
+}
+
+fn offering(seen: usize, wired: usize, open: bool) -> Option<DoorDue> {
+    let why = if seen > 0 && wired == 0 {
+        "installed"
+    } else if wired > 0 && !open {
+        "mute"
+    } else {
+        return None;
+    };
+    Some(DoorDue { why, by: None })
 }
 
 #[tauri::command]
@@ -1184,6 +1209,7 @@ pub fn run() {
             answers::tasks::star_done,
             answers::tasks::door_due,
             answers::tasks::door_done,
+            answers::tasks::door_heard,
             answers::tasks::logs,
             answers::settings::icons,
             answers::settings::families,

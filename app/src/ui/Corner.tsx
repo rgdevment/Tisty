@@ -13,7 +13,7 @@ interface Props {
   title: string;
   why: string;
   go: Act;
-  no: Act;
+  no?: Act;
   later: Act;
 }
 
@@ -58,13 +58,15 @@ export default function Corner({ apart, label, mark, title, why, go, no, later }
         >
           {go.label}
         </button>
-        <button
-          type="button"
-          onClick={no.onClick}
-          className="cursor-pointer rounded-[10px] border border-line px-2.5 py-1 text-[12.5px] text-soft outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent"
-        >
-          {no.label}
-        </button>
+        {no && (
+          <button
+            type="button"
+            onClick={no.onClick}
+            className="cursor-pointer rounded-[10px] border border-line px-2.5 py-1 text-[12.5px] text-soft outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            {no.label}
+          </button>
+        )}
       </div>
     </section>
   );

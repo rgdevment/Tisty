@@ -338,23 +338,24 @@ fn pointed(name: &str) -> Option<&'static str> {
     })
 }
 
+fn turned_away(paths: &Paths) -> Refused {
+    let _ = tisty_core::agent::knock(paths, speaking_through().as_deref());
+    Refused::Tool(
+        "no agent is registered on this machine. The person turns one on in Tisty's settings, \
+         under Assistants."
+            .into(),
+    )
+}
+
 fn opened(paths: &Paths) -> Result<(State, Store), Refused> {
     let config = tisty_core::Config::load_or_init(paths).map_err(hitch)?;
     let Some(agent) = config.agent_id.clone() else {
-        return Err(Refused::Tool(
-            "no agent is registered on this machine. The person turns one on in Tisty's settings, \
-             under Assistants."
-                .into(),
-        ));
+        return Err(turned_away(paths));
     };
     let state = tisty_core::cache::project(&paths.store(), paths.cache()).map_err(hitch)?;
     // The log says who may write, not the settings file an agent could edit itself.
     if !state.agents.contains(&agent) {
-        return Err(Refused::Tool(
-            "no agent is registered on this machine. The person turns one on in Tisty's settings, \
-             under Assistants."
-                .into(),
-        ));
+        return Err(turned_away(paths));
     }
     let key = tisty_core::signing::mine(paths, &agent);
     let store = Store::open(paths.store(), agent)

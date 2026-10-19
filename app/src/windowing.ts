@@ -3,6 +3,7 @@ import type { carrying } from "./carrying";
 import {
   type Afoot,
   DEEPEST,
+  type DoorDue,
   type Filed,
   type Folded,
   type Found,
@@ -272,7 +273,7 @@ export function useWindow() {
 function useOverlays() {
   const [greet, setGreet] = useState(false);
   const [starring, setStarring] = useState(false);
-  const [offering, setOffering] = useState(false);
+  const [offering, setOffering] = useState<DoorDue | null>(null);
   const [greeted, setGreeted] = useState(0);
   const [leaving, setLeaving] = useState(false);
   const [torn, setTorn] = useState<Torn | null>(null);

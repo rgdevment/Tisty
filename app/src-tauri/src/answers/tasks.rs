@@ -5,10 +5,10 @@ use tisty_core::witness::{self, Fact, channel};
 use tisty_core::{Config, Op, Tag, Task};
 
 use crate::{
-    Answer, Asking, Change, Filter, Logs, Refusal, Scope, Session, Snapshot, View, ahead, asking,
-    coming, dated_field, erasing, finding, held, herald, language, offering, opening_to_agents,
-    recalled, recurring, refusal_code, repeated, tagged, tags_in_use, tally, today, weighed,
-    wiring, zone,
+    Answer, Asking, Change, DoorDue, Filter, Logs, Refusal, Scope, Session, Snapshot, View, ahead,
+    asking, coming, dated_field, erasing, finding, held, herald, knocking, language, offering,
+    opening_to_agents, recalled, recurring, refusal_code, repeated, tagged, tags_in_use, tally,
+    today, weighed, wiring, zone,
 };
 
 #[tauri::command]
@@ -613,15 +613,34 @@ pub fn star_done(session: tauri::State<'_, Mutex<Session>>) -> Answer<()> {
 }
 
 #[tauri::command]
-pub fn door_due(session: tauri::State<'_, Mutex<Session>>) -> Answer<bool> {
-    if held(&session).config.asked_to_wire.unwrap_or(false) {
-        return Ok(false);
+pub fn door_due(session: tauri::State<'_, Mutex<Session>>) -> Answer<Option<DoorDue>> {
+    let (open, asked) = {
+        let session = held(&session);
+        let open = session
+            .config
+            .agent_id
+            .as_ref()
+            .is_some_and(|who| session.state.agents.contains(who));
+        let knock = tisty_core::agent::knocked(&session.paths);
+        if let Some(due) = knocking(open, knock, session.config.knock_heard) {
+            return Ok(Some(due));
+        }
+        (open, session.config.asked_to_wire.unwrap_or(false))
+    };
+    if asked {
+        return Ok(None);
     }
     let seen = wiring::seen();
     Ok(offering(
         seen.len(),
         seen.iter().filter(|one| one.wired).count(),
+        open,
     ))
+}
+
+#[tauri::command]
+pub fn door_heard(session: tauri::State<'_, Mutex<Session>>) -> Answer<()> {
+    held(&session).keep(|c| c.knock_heard = Some(jiff::Timestamp::now()))
 }
 
 #[tauri::command]

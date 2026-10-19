@@ -907,6 +907,14 @@ const en = {
   doorGo: "Open Settings",
   doorNo: "Don't show again",
   doorLater: "Not now",
+  doorMute: "Your assistants are connected, but the door is closed.",
+  doorMuteWhy:
+    "Everything they try is turned away until you let them in — one switch in Settings › Assistants.",
+  doorKnocked: "{name} tried to come in.",
+  doorKnockedUnnamed: "An assistant tried to come in.",
+  doorKnockedWhy:
+    "The door is closed, so it was turned away. Let it in from Settings › Assistants, and close it again whenever you like.",
+  doorLetIn: "Let it in",
   saidDone: "Completed: {name}",
   saidFiled: "Filed: {name}",
   reviewRedo: "Redo the cache",
@@ -2979,6 +2987,14 @@ const es: Catalog = {
   doorGo: "Ver en Configuración",
   doorNo: "No mostrar más",
   doorLater: "Ahora no",
+  doorMute: "Tus asistentes están conectados, pero la puerta está cerrada.",
+  doorMuteWhy:
+    "Todo lo que intenten se rechaza hasta que los dejes entrar: es un interruptor en Configuración › Asistentes.",
+  doorKnocked: "{name} intentó entrar.",
+  doorKnockedUnnamed: "Un asistente intentó entrar.",
+  doorKnockedWhy:
+    "La puerta está cerrada, así que lo rechazó. Déjalo entrar desde Configuración › Asistentes y ciérrala cuando quieras.",
+  doorLetIn: "Dejarlo entrar",
   saidDone: "Completada: {name}",
   saidFiled: "Guardada: {name}",
   reviewRedo: "Rehacer la caché",

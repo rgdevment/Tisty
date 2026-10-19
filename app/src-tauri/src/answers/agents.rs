@@ -142,6 +142,9 @@ pub fn agent_turn(session: tauri::State<'_, Mutex<Session>>, on: bool) -> Answer
             .flatten()
             .unwrap_or_else(|| session.config.clone());
         session.reproject()?;
+        if on {
+            let _ = session.keep(|c| c.knock_heard = Some(jiff::Timestamp::now()));
+        }
     }
     agent(session)
 }

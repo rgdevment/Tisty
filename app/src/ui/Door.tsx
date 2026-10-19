@@ -1,18 +1,44 @@
-import { doorDone } from "../core";
-import { t } from "../locales";
+import { type DoorDue, doorDone, doorHeard } from "../core";
+import { fill, t } from "../locales";
+import { clientNamed } from "../who";
 import Corner from "./Corner";
 
 interface Props {
   apart: string;
+  due: DoorDue;
   onSettled: () => void;
   onOpen: () => void;
   onError: (problem: unknown) => void;
 }
 
-export default function Door({ apart, onSettled, onOpen, onError }: Props) {
+export default function Door({ apart, due, onSettled, onOpen, onError }: Props) {
+  if (due.why === "knocked") return <Knocked {...{ apart, due, onSettled, onOpen, onError }} />;
   const settle = (open: boolean) => {
     onSettled();
     doorDone().catch(onError);
+    if (open) onOpen();
+  };
+  const mute = due.why === "mute";
+
+  return (
+    <Corner
+      apart={apart}
+      label={t("doorTitle")}
+      mark={<DoorMark className="mt-px size-[15px] shrink-0 text-hue-blue" />}
+      title={t(mute ? "doorMute" : "doorThanks")}
+      why={t(mute ? "doorMuteWhy" : "doorWhy")}
+      go={{ label: t(mute ? "doorLetIn" : "doorGo"), onClick: () => settle(true) }}
+      no={{ label: t("doorNo"), onClick: () => settle(false) }}
+      later={{ label: t("doorLater"), onClick: onSettled }}
+    />
+  );
+}
+
+function Knocked({ apart, due, onSettled, onOpen, onError }: Props) {
+  const name = clientNamed(due.by);
+  const heard = (open: boolean) => {
+    onSettled();
+    doorHeard().catch(onError);
     if (open) onOpen();
   };
 
@@ -21,11 +47,10 @@ export default function Door({ apart, onSettled, onOpen, onError }: Props) {
       apart={apart}
       label={t("doorTitle")}
       mark={<DoorMark className="mt-px size-[15px] shrink-0 text-hue-blue" />}
-      title={t("doorThanks")}
-      why={t("doorWhy")}
-      go={{ label: t("doorGo"), onClick: () => settle(true) }}
-      no={{ label: t("doorNo"), onClick: () => settle(false) }}
-      later={{ label: t("doorLater"), onClick: onSettled }}
+      title={name ? fill("doorKnocked", name) : t("doorKnockedUnnamed")}
+      why={t("doorKnockedWhy")}
+      go={{ label: t("doorLetIn"), onClick: () => heard(true) }}
+      later={{ label: t("doorLater"), onClick: () => heard(false) }}
     />
   );
 }

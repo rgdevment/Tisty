@@ -59,12 +59,17 @@ export default function Margins() {
         />
       )}
 
-      {offering && quiet && (aside || chosen.named === "docs") && (
+      {offering && quiet && (offering.why === "knocked" || aside || chosen.named === "docs") && (
         <Door
           apart={
-            aside ? "right-3 @min-[884px]:right-[324px]" : "right-3 @min-[1440px]:right-[344px]"
+            aside
+              ? "right-3 @min-[884px]:right-[324px]"
+              : chosen.named === "docs"
+                ? "right-3 @min-[1440px]:right-[344px]"
+                : "right-3"
           }
-          onSettled={() => setOffering(false)}
+          due={offering}
+          onSettled={() => setOffering(null)}
           onOpen={() => setChosen({ named: "keeping", tab: "agents" })}
           onError={(problem) => setError(saidPlainly(problem))}
         />

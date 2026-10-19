@@ -518,3 +518,61 @@ fn a_machine_with_no_agent_speaks_for_nobody() {
     let config = Config::load_or_init(&paths).unwrap();
     assert!(vouch(&config, &paths, &[]).is_none());
 }
+
+#[test]
+fn a_door_nobody_knocked_on_tells_nothing() {
+    let tmp = tempfile::tempdir().unwrap();
+    assert_eq!(knocked(&paths(tmp.path())), None);
+}
+
+#[test]
+fn a_knock_is_kept_with_who_knocked_and_when() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(tmp.path());
+
+    knock(&paths, Some("Claude Code")).unwrap();
+
+    let heard = knocked(&paths).unwrap();
+    assert_eq!(heard.by.as_deref(), Some("Claude Code"));
+    assert!(paths.private().join("knocked.json").is_file());
+    knock(&paths, None).unwrap();
+    assert_eq!(knocked(&paths).unwrap().by, None);
+}
+
+#[test]
+fn the_same_hand_knocking_within_a_minute_is_the_same_knock() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(tmp.path());
+    let first: jiff::Timestamp = "2026-10-19T10:00:00Z".parse().unwrap();
+
+    knocked_at(&paths, Some("Codex"), first).unwrap();
+    knocked_at(
+        &paths,
+        Some("Codex"),
+        "2026-10-19T10:00:30Z".parse().unwrap(),
+    )
+    .unwrap();
+    assert_eq!(knocked(&paths).unwrap().at, first);
+
+    let later: jiff::Timestamp = "2026-10-19T10:01:30Z".parse().unwrap();
+    knocked_at(&paths, Some("Codex"), later).unwrap();
+    assert_eq!(knocked(&paths).unwrap().at, later);
+
+    let other: jiff::Timestamp = "2026-10-19T10:01:40Z".parse().unwrap();
+    knocked_at(&paths, Some("Claude Code"), other).unwrap();
+    let heard = knocked(&paths).unwrap();
+    assert_eq!(heard.at, other);
+    assert_eq!(heard.by.as_deref(), Some("Claude Code"));
+}
+
+#[test]
+fn a_knock_left_unreadable_tells_nothing() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(tmp.path());
+    std::fs::create_dir_all(paths.private()).unwrap();
+    std::fs::write(paths.private().join("knocked.json"), b"{not json").unwrap();
+
+    assert_eq!(knocked(&paths), None);
+    knock(&paths, Some("Codex")).unwrap();
+    assert_eq!(knocked(&paths).unwrap().by.as_deref(), Some("Codex"));
+}

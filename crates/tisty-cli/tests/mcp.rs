@@ -91,6 +91,51 @@ fn nothing_can_be_filed_until_a_person_turns_an_agent_on() {
 }
 
 #[test]
+fn a_hand_turned_away_leaves_its_knock_for_the_window() {
+    let served = Served::new();
+    let knocked = served.home.path().join("config/private/knocked.json");
+    let greeted = serde_json::json!({
+        "jsonrpc": "2.0", "id": 1, "method": "initialize",
+        "params": { "protocolVersion": "2025-06-18", "capabilities": {},
+                    "clientInfo": { "name": "claude-code", "version": "1" } },
+    })
+    .to_string();
+    let asked = serde_json::json!({
+        "jsonrpc": "2.0", "id": 2, "method": "tools/call",
+        "params": { "name": "propose", "arguments": { "title": "not yet" } },
+    })
+    .to_string();
+    assert!(!knocked.exists());
+
+    let said = served.talk(&[&greeted, &asked]);
+
+    assert!(
+        said.iter()
+            .any(|one| one["id"] == 2 && one["result"]["isError"] == true)
+    );
+    let left: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&knocked).unwrap()).unwrap();
+    assert_eq!(left["by"], "claude-code", "{left}");
+    assert!(left["at"].is_string(), "{left}");
+}
+
+#[test]
+fn a_hand_let_in_leaves_no_knock() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+
+    served.call("propose", serde_json::json!({ "title": "welcome" }));
+
+    assert!(
+        !served
+            .home
+            .path()
+            .join("config/private/knocked.json")
+            .exists()
+    );
+}
+
+#[test]
 fn what_the_agent_files_is_written_by_the_agent_and_not_by_the_person() {
     let served = Served::new();
     served.person().lets_the_agent_in();
