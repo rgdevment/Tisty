@@ -771,6 +771,10 @@ pub(crate) fn as_asked_for(at: &std::path::Path) -> std::path::PathBuf {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 fn settled(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    // The command line was retired, so a `tisty` an older install put on the PATH is taken back off.
+    std::thread::spawn(|| {
+        let _ = command::out_of_reach();
+    });
     let argv = waking::said();
     let here = std::env::current_dir().ok();
     let mut wanted = viewing::wanted(&argv, here.as_deref());

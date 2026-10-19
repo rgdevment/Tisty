@@ -1788,8 +1788,7 @@ const en = {
     "For anything larger, write a document and reference it from the task instead of dragging the file in.",
   noticesMore:
     "Notices are prepared and shown on this machine. None of it reaches the internet or passes through a server.",
-  reviewWhat:
-    "Compares what the log says with what the cache holds. It is the same thing `tisty doctor` does in the terminal.",
+  reviewWhat: "Compares what the log says with what the cache holds.",
   reviewAgain: "Review again",
   inTheLog: "In the log",
   cacheIs: "Cache",
@@ -1919,7 +1918,6 @@ const en = {
   wordBackup: "backup",
   wordNotices: "notices",
   wordCopiesUpTo: "copies up to",
-  wordTerminal: "terminal",
   wordShortcut: "shortcut",
   wordSandbox: "sandbox",
   yesShared: "yes, shared folder",
@@ -1927,8 +1925,6 @@ const en = {
   yesLocal: "yes, this machine only",
   noSync: "no",
   backupAvailable: "available",
-  inThePath: "in the PATH",
-  notInThePath: "not in the PATH",
   nothingBound: "nothing bound",
   wordNone: "none",
   welcomeSigning: "How should we call you?",
@@ -3823,8 +3819,7 @@ const es: Catalog = {
     "Para algo más grande, crea un documento y enlázalo desde la tarea en vez de arrastrar el archivo.",
   noticesMore:
     "Los avisos se preparan y se muestran en este mismo equipo. Nada de esto sale a internet ni pasa por un servidor.",
-  reviewWhat:
-    "Compara lo que dice el registro con lo que tiene la caché. Es lo mismo que hace `tisty doctor` en la terminal.",
+  reviewWhat: "Compara lo que dice el registro con lo que tiene la caché.",
   reviewAgain: "Revisar de nuevo",
   inTheLog: "En el registro",
   cacheIs: "Caché",
@@ -3954,7 +3949,6 @@ const es: Catalog = {
   wordBackup: "respaldo",
   wordNotices: "avisos",
   wordCopiesUpTo: "adjunta hasta",
-  wordTerminal: "terminal",
   wordShortcut: "atajo",
   wordSandbox: "sandbox",
   yesShared: "sí, carpeta compartida",
@@ -3962,8 +3956,6 @@ const es: Catalog = {
   yesLocal: "sí, solo este equipo",
   noSync: "no",
   backupAvailable: "disponible",
-  inThePath: "en el PATH",
-  notInThePath: "fuera del PATH",
   nothingBound: "sin asignar",
   wordNone: "ninguno",
   welcomeSigning: "¿Cómo quieres que te llamemos?",

@@ -75,63 +75,13 @@ fn called(folder: Option<&Path>) -> String {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Reach {
-    pub shipped: bool,
-    pub within_reach: bool,
-    pub at: Option<String>,
     pub binary: Option<String>,
-    pub through: Option<String>,
-    pub on_path: bool,
 }
 
 pub fn reach() -> Reach {
-    let folder = beside();
     Reach {
-        shipped: folder.is_some(),
-        within_reach: folder.as_deref().is_some_and(already),
-        at: folder.as_ref().map(|at| at.display().to_string()),
-        binary: folder.map(|at| at.join(CLI).display().to_string()),
-        through: through(),
-        on_path: on_path(),
+        binary: beside().map(|at| at.join(CLI).display().to_string()),
     }
-}
-
-#[cfg(windows)]
-fn on_path() -> bool {
-    true
-}
-
-#[cfg(not(windows))]
-fn on_path() -> bool {
-    let Some(shelf) = shelf() else {
-        return false;
-    };
-    std::env::var_os("PATH")
-        .map(|path| std::env::split_paths(&path).any(|one| one == shelf))
-        .unwrap_or(false)
-}
-
-#[cfg(windows)]
-fn through() -> Option<String> {
-    beside().map(|at| at.display().to_string())
-}
-
-#[cfg(not(windows))]
-fn through() -> Option<String> {
-    link().map(|at| at.display().to_string())
-}
-
-#[cfg(windows)]
-fn already(folder: &Path) -> bool {
-    let named = folder.display().to_string();
-    read()
-        .unwrap_or_default()
-        .split(SEPARATOR)
-        .any(|one| same(one, &named))
-}
-
-#[cfg(not(windows))]
-fn already(_folder: &Path) -> bool {
-    ours()
 }
 
 #[cfg(windows)]
@@ -181,11 +131,6 @@ fn shelf() -> Option<PathBuf> {
 #[cfg(not(windows))]
 fn link() -> Option<PathBuf> {
     Some(shelf()?.join("tisty"))
-}
-
-#[cfg(not(windows))]
-fn ours() -> bool {
-    link().is_some_and(|at| is_our_own_link(&at))
 }
 
 #[cfg(not(windows))]
