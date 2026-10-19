@@ -754,11 +754,13 @@ pub fn unreach() -> std::io::Result<bool> {
             };
         }
     }
-    for at in tisty_core::Paths::shims()
-        .into_iter()
-        .filter(|at| command::ours_on_the_shelf(at))
-    {
-        let _ = std::fs::remove_file(&at);
+    if let Some(home) = command::beside() {
+        for at in tisty_core::Paths::shims()
+            .into_iter()
+            .filter(|at| command::ours_on_the_shelf(at, &home))
+        {
+            let _ = std::fs::remove_file(&at);
+        }
     }
     // Revoking would cut every other machine off too, so leaving takes only this machine's copy.
     #[cfg(windows)]

@@ -160,18 +160,26 @@ fn is_our_own_link(at: &Path) -> bool {
 }
 
 // Only what points into an app bundle was ours: a formula's or a build of somebody's own stays.
+#[cfg(not(windows))]
 fn into_a_bundle(to: &Path) -> bool {
     to.components()
         .any(|one| one.as_os_str().to_string_lossy().ends_with(".app"))
 }
 
-/// A link of ours, or a script an older version wrote to call the app's own copy.
-pub fn ours_on_the_shelf(at: &Path) -> bool {
+// Only what calls this install's own copy goes: a wrapper of the person's for anything else stays.
+pub fn ours_on_the_shelf(at: &Path, home: &Path) -> bool {
+    let named = |text: &str| {
+        text.to_lowercase()
+            .contains(&home.display().to_string().to_lowercase())
+    };
     match at.symlink_metadata() {
-        Ok(it) if it.is_symlink() => std::fs::read_link(at).is_ok_and(|to| into_a_bundle(&to)),
-        Ok(_) => std::fs::read(at).is_ok_and(|bytes| {
-            bytes.len() < 4096 && String::from_utf8_lossy(&bytes).contains(".app/")
-        }),
+        Ok(it) if it.is_symlink() => {
+            std::fs::read_link(at).is_ok_and(|to| named(&to.display().to_string()))
+        }
+        Ok(it) => {
+            it.len() < 4096
+                && std::fs::read(at).is_ok_and(|bytes| named(&String::from_utf8_lossy(&bytes)))
+        }
         Err(_) => false,
     }
 }

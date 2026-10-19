@@ -1,6 +1,6 @@
 error = "error"
 store-newer-store = "This Tisty came from the Microsoft Store: if another Tisty installed some other way runs on this computer, that one wrote it"
-store-moved = "your data moved to a new place while this command was running; run it again"
+store-moved = "your data moved to a new place while the assistant was connected; start the assistant again"
 store-newer = "a newer Tisty updated your data (the machine {device} wrote it). Update this one so the two agree again — reading half of it would lose work"
 attached-from = "kept from {path}"
 secret-warning = "Something here reads like a live credential rather than an example: {what}. It came in as written — remove it, change it, or delete this notice."

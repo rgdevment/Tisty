@@ -1277,8 +1277,9 @@ interface text.
 ### The `tisty` binary
 
 `crates/tisty-cli` builds `tisty`, which serves MCP and nothing else. It
-answers `tisty mcp` and `tisty --version`; any other command prints `retired`,
-which sends the person to the window, and exits with an error. The command
+answers `tisty mcp` and `tisty --version`. A bare `tisty`, `help`, `-h` and
+`--help` print `retired`, which sends the person to the window, and exit cleanly;
+any other command prints the same and exits with an error. The command
 line that was here is gone, and with it the only general undo: `undo.rs` in
 `tisty-core` still computes an inverse per event, but the window offers none,
 only putting a document's body back.

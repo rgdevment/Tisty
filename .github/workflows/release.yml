@@ -1902,7 +1902,7 @@ jobs:
           for stale in Formula/tisty.rb Formula/tisty-beta.rb Formula/tisty-cli.rb Formula/tisty-cli-beta.rb; do
             if [ -f "$stale" ]; then
               git rm -q "$stale"
-              echo "removed $stale, which the cask replaces"
+              echo "removed $stale"
             fi
           done
 

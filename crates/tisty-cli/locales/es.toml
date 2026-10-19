@@ -1,6 +1,6 @@
 error = "error"
 store-newer-store = "Este Tisty es el de Microsoft Store: si en este equipo hay otro Tisty instalado de otra forma, fue ese"
-store-moved = "tus datos se mudaron a un lugar nuevo mientras corría este comando; vuelve a ejecutarlo"
+store-moved = "tus datos se mudaron a un lugar nuevo mientras el asistente estaba conectado; vuelve a iniciar el asistente"
 store-newer = "una versión más nueva de Tisty actualizó tus datos (la escribió la máquina {device}). Actualiza este Tisty para que los dos vuelvan a entenderse: leer la mitad perdería trabajo"
 attached-from = "guardado desde {path}"
 secret-warning = "Aquí hay algo que parece una credencial de verdad, no un ejemplo: {what}. Entró tal como llegó: bórralo, cámbialo, o borra este aviso."

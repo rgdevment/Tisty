@@ -59,7 +59,7 @@ impl Paths {
         ["tisty-mcp", "tisty"]
             .iter()
             .map(|one| home.join(".local").join("bin").join(one))
-            .filter(|at| at.is_file())
+            .filter(|at| at.symlink_metadata().is_ok_and(|it| !it.is_dir()))
             .collect()
     }
 

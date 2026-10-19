@@ -292,7 +292,6 @@ impl Person {
 
     pub fn syncs(&self) -> Result<(), String> {
         let config = Config::load_or_init(&self.paths).unwrap();
-        self.seated(&config.device_id);
         let via = tisty_carrier::chosen(config.sync.as_ref())
             .carrier
             .ok_or("no way of syncing is chosen")?;
@@ -336,6 +335,8 @@ impl Person {
                 &moved.arrived,
             ));
         }
+        // After the round, as the window does: a store that wrote nothing yet still takes in the place's.
+        self.seated(&config.device_id);
         Ok(())
     }
 
