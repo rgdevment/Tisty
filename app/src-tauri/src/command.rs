@@ -152,16 +152,28 @@ fn untie_at(link: &Path) -> std::io::Result<bool> {
     Ok(true)
 }
 
-// Only a link into an app bundle was ours: one aimed at a formula or a build of somebody's own stays.
 #[cfg(not(windows))]
 fn is_our_own_link(at: &Path) -> bool {
     at.symlink_metadata().is_ok_and(|it| it.is_symlink())
-        && std::fs::read_link(at).is_ok_and(|to| {
-            to.file_name().is_some_and(|n| n == "tisty")
-                && to
-                    .components()
-                    .any(|one| one.as_os_str().to_string_lossy().ends_with(".app"))
-        })
+        && std::fs::read_link(at)
+            .is_ok_and(|to| to.file_name().is_some_and(|n| n == "tisty") && into_a_bundle(&to))
+}
+
+// Only what points into an app bundle was ours: a formula's or a build of somebody's own stays.
+fn into_a_bundle(to: &Path) -> bool {
+    to.components()
+        .any(|one| one.as_os_str().to_string_lossy().ends_with(".app"))
+}
+
+/// A link of ours, or a script an older version wrote to call the app's own copy.
+pub fn ours_on_the_shelf(at: &Path) -> bool {
+    match at.symlink_metadata() {
+        Ok(it) if it.is_symlink() => std::fs::read_link(at).is_ok_and(|to| into_a_bundle(&to)),
+        Ok(_) => std::fs::read(at).is_ok_and(|bytes| {
+            bytes.len() < 4096 && String::from_utf8_lossy(&bytes).contains(".app/")
+        }),
+        Err(_) => false,
+    }
 }
 
 #[cfg(windows)]

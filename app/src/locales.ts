@@ -1645,7 +1645,6 @@ const en = {
   closingSettingWhy: "What the window's close button does",
   closingAsk: "Ask each time",
   closingHideBar: "Leave it in the menu bar",
-  terminal: "Command line",
   settlingIn: "Settling in — bringing your machines together",
   otherTools: "Other tools",
   toolCoPanda:
@@ -3676,7 +3675,6 @@ const es: Catalog = {
   closingSettingWhy: "Lo que hace el botón de cerrar la ventana",
   closingAsk: "Preguntar cada vez",
   closingHideBar: "Dejarlo en la barra de menús",
-  terminal: "Línea de comandos",
   settlingIn: "Poniéndose al día — juntando lo de tus equipos",
   otherTools: "Otras herramientas",
   toolCoPanda:

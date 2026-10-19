@@ -174,7 +174,7 @@ fn shared_home() -> Option<PathBuf> {
     Some(directories::UserDirs::new()?.home_dir().join(".tisty"))
 }
 
-/// Only the window moves the store; the command line uses whichever root exists.
+/// Only the window moves the store; the assistant's door uses whichever root exists.
 pub fn settle_home() -> Option<crate::moving::Settled> {
     settle_home_telling(&mut |_, _| {})
 }

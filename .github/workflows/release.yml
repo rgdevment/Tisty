@@ -1727,6 +1727,7 @@ jobs:
       && needs.version.result == 'success' && needs.publish.result == 'success'
       && needs.verify.result == 'success'
       && needs.version.outputs.prerelease == 'false'
+      && needs.version.outputs.macos == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:

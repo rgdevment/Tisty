@@ -76,10 +76,11 @@ Little, and all of it reversible.
   your other per-user programs, and deliberately **not** in the folder your
   tasks live in.
 - The `tisty` binary your assistants start travels inside the installer, but
-  **nothing is added to your PATH**, and a `tisty` entry an older version put
-  there is taken off when the app starts. (An installer did it once and
-  destroyed a PATH doing it: the tool that builds Windows installers reads at
-  most 1024 characters and writes back what it managed to read.)
+  **nothing is added to your PATH**; an entry an older version put there is left
+  alone, since an assistant may still call it, and goes when you uninstall. (An
+  installer did it once and destroyed a PATH doing it: the tool that builds
+  Windows installers reads at most 1024 characters and writes back what it
+  managed to read.)
 - **Uninstalling removes the program and leaves your data alone.** It takes
   its own settings and cache with it, and the PATH entry if an older version
   added one; your tasks, documents and attachments stay. Wanting the program

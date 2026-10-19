@@ -101,7 +101,7 @@ fn streaked(before: Option<&LastRound>, mut round: LastRound) -> LastRound {
     round
 }
 
-/// What `tisty doctor` says about a cloud, read off this disk alone: no request, no keychain.
+/// What Maintenance says about a cloud, read off this disk alone: no request, no keychain.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Standing {
     pub listed: bool,

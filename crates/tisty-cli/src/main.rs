@@ -18,6 +18,10 @@ fn main() -> ExitCode {
             println!("{said}");
             ExitCode::SUCCESS
         }
+        None | Some("--help" | "-h" | "help") => {
+            eprintln!("{}", spoken().get("retired"));
+            ExitCode::SUCCESS
+        }
         _ => retired(),
     }
 }
@@ -86,15 +90,12 @@ fn serve() -> anyhow::Result<ExitCode> {
     mcp::serve(paths)
 }
 
-// The settings are read, never written: nothing is opened for the person by a command that only answers.
+// Read straight off the file: loading the settings may settle and write them, which a command that only answers must not do.
 fn spoken() -> Lang {
     let configured = tisty_core::Paths::resolve()
         .ok()
-        .and_then(|paths| {
-            tisty_core::Config::load(&paths.config_file())
-                .ok()
-                .flatten()
-        })
-        .and_then(|config| config.locale);
+        .and_then(|paths| std::fs::read_to_string(paths.config_file()).ok())
+        .and_then(|text| toml::from_str::<toml::Table>(&text).ok())
+        .and_then(|table| table.get("locale")?.as_str().map(str::to_string));
     Lang::detect(configured.as_deref())
 }
