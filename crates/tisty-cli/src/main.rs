@@ -1,321 +1,48 @@
 #![recursion_limit = "256"]
 
-mod app;
-mod cmd;
-mod filter;
 mod i18n;
 mod mcp;
-mod render;
-mod select;
-mod style;
-mod typist;
 
 use std::process::ExitCode;
 
-use clap::{Args, Parser, Subcommand};
-
-use app::App;
 use i18n::Lang;
 
 pub const EXIT_ERROR: u8 = 1;
-pub const EXIT_NOT_FOUND: u8 = 4;
-pub const EXIT_NOT_FOR_AN_ASSISTANT: u8 = 5;
-
-const SUBCOMMANDS: &[&str] = &[
-    "add", "ls", "done", "undone", "drop", "rm", "set", "mv", "desc", "log", "step", "search",
-    "show", "story", "series", "undo", "redo", "sync", "doctor", "demo", "lists", "list", "tag",
-    "config", "export", "help", "mcp", "agent", "attach", "doc", "leave",
-];
-
-#[derive(Parser)]
-#[command(name = "tisty", version, about = "A local, private task manager")]
-pub struct Cli {
-    #[command(subcommand)]
-    command: Command,
-}
-
-#[derive(Args)]
-#[command(
-    after_help = "Plain language is read, not obeyed: check the confirmation before \
-moving on. What it guessed it says so, and `tisty undo` takes the capture back. The window \
-lets you correct the reading before saving; here you correct it after, with `tisty set`."
-)]
-pub struct AddArgs {
-    pub text: Vec<String>,
-    #[arg(long, alias = "fecha")]
-    pub date: Option<String>,
-    #[arg(long, alias = "limite")]
-    pub deadline: Option<String>,
-    #[arg(long, alias = "prioridad", value_name = "QUADRANT")]
-    pub priority: Option<String>,
-    #[arg(long, alias = "lista")]
-    pub list: Option<String>,
-    #[arg(long)]
-    pub json: bool,
-}
-
-#[derive(Args)]
-pub struct SetArgs {
-    pub selector: String,
-    #[arg(long, alias = "titulo")]
-    pub title: Option<String>,
-    #[arg(long, alias = "fecha")]
-    pub date: Option<String>,
-    #[arg(long, alias = "limite")]
-    pub deadline: Option<String>,
-    #[arg(long, alias = "prioridad", value_name = "QUADRANT")]
-    pub priority: Option<String>,
-    #[arg(long, alias = "etiqueta")]
-    pub tag: Vec<String>,
-    #[arg(long)]
-    pub untag: Vec<String>,
-    #[arg(long, conflicts_with = "date")]
-    pub no_date: bool,
-    #[arg(long, conflicts_with = "deadline")]
-    pub no_deadline: bool,
-    #[arg(long, alias = "repetir")]
-    pub repeat: Option<String>,
-    #[arg(long, conflicts_with = "repeat")]
-    pub no_repeat: bool,
-    #[arg(long, alias = "recordar")]
-    pub remind: Option<String>,
-    #[arg(long)]
-    pub unremind: Option<String>,
-    /// story, trace, or auto to read it by what it holds again
-    #[arg(long, alias = "leer-como", value_name = "LAYER")]
-    pub read_as: Option<String>,
-}
-
-#[derive(Subcommand)]
-pub enum Command {
-    Add(AddArgs),
-    Ls {
-        filter: Vec<String>,
-        #[arg(long)]
-        json: bool,
-    },
-    Done {
-        selector: Option<String>,
-        #[arg(long, value_name = "DATES", value_delimiter = ',')]
-        also: Vec<String>,
-    },
-    Undone {
-        selector: String,
-    },
-    Drop {
-        selector: String,
-    },
-    Rm {
-        selector: String,
-        #[arg(long, short)]
-        force: bool,
-    },
-    Set(SetArgs),
-    Mv {
-        selector: String,
-        list: Option<String>,
-        #[arg(long, conflicts_with = "list")]
-        inbox: bool,
-    },
-    Desc {
-        selector: String,
-        text: Vec<String>,
-        #[arg(long, conflicts_with = "text")]
-        clear: bool,
-    },
-    Log {
-        selector: String,
-        text: Vec<String>,
-    },
-    Step {
-        selector: String,
-        #[command(subcommand)]
-        action: StepAction,
-    },
-    Search {
-        query: Vec<String>,
-        #[arg(long)]
-        open: bool,
-        #[arg(long, conflicts_with = "open")]
-        archive: bool,
-        #[arg(long)]
-        json: bool,
-    },
-    Show {
-        selector: String,
-        #[arg(long)]
-        json: bool,
-    },
-    Story {
-        selector: String,
-        #[arg(long)]
-        json: bool,
-    },
-    Series {
-        selector: Option<String>,
-        #[arg(long)]
-        json: bool,
-    },
-    Undo,
-    Redo,
-    Demo {
-        #[arg(long)]
-        force: bool,
-    },
-    Sync {
-        #[arg(long)]
-        push: bool,
-        #[arg(long, conflicts_with = "push")]
-        pull: bool,
-        #[arg(long, conflicts_with_all = ["push", "pull"])]
-        again: bool,
-        #[arg(long, value_name = "BACKUP", conflicts_with_all = ["push", "pull", "again"])]
-        join: Option<std::path::PathBuf>,
-        #[arg(long, value_name = "BACKUP", conflicts_with_all = ["push", "pull", "again", "join"])]
-        take_over: Option<std::path::PathBuf>,
-        #[arg(long, value_name = "BACKUP", conflicts_with_all = ["push", "pull", "again", "join", "take_over"])]
-        merge: Option<std::path::PathBuf>,
-        #[arg(long, value_name = "MACHINE", conflicts_with_all = ["push", "pull", "again", "join", "take_over", "merge"])]
-        confirm: Option<String>,
-        #[arg(long, requires = "confirm")]
-        force: bool,
-    },
-    Doctor {
-        #[arg(long)]
-        repair: bool,
-    },
-    Lists {
-        #[arg(long)]
-        json: bool,
-    },
-    List {
-        #[command(subcommand)]
-        action: Option<ListAction>,
-    },
-    Tag {
-        #[command(subcommand)]
-        action: Option<TagAction>,
-    },
-    Config {
-        #[command(subcommand)]
-        action: Option<ConfigAction>,
-    },
-    Export {
-        filter: Vec<String>,
-        #[arg(long)]
-        markdown: bool,
-    },
-    /// List documents, read one, or write one with --new
-    Doc {
-        which: Option<String>,
-        #[arg(long, conflicts_with = "which")]
-        new: bool,
-    },
-    /// Keep a copy of a file with a task, or in a document
-    Attach {
-        /// A task, or the name of a document
-        selector: String,
-        path: std::path::PathBuf,
-        #[arg(long)]
-        label: Option<String>,
-    },
-    /// Speak MCP over stdin and stdout, so an assistant can file work here
-    Mcp,
-    /// Take Tisty's own settings, cache and command line off this machine. Your documents,
-    /// tasks and attachments stay where they are.
-    Leave {
-        /// Say it without being asked
-        #[arg(long)]
-        yes: bool,
-    },
-    /// Let an assistant file work here, or stop it
-    Agent {
-        #[arg(long, conflicts_with = "off")]
-        on: bool,
-        #[arg(long)]
-        off: bool,
-    },
-}
-
-#[derive(Subcommand)]
-pub enum ConfigAction {
-    Get { key: String },
-    Set { key: String, value: String },
-    Unset { key: String },
-    Path,
-}
-
-#[derive(Subcommand)]
-pub enum StepAction {
-    Add { text: Vec<String> },
-    Done { number: usize },
-    Undone { number: usize },
-    Text { number: usize, text: Vec<String> },
-    Rm { number: usize },
-}
-
-#[derive(Subcommand)]
-pub enum ListAction {
-    Ls {
-        #[arg(long)]
-        json: bool,
-    },
-    Add {
-        name: Vec<String>,
-    },
-    Rename {
-        selector: String,
-        name: Vec<String>,
-    },
-    Archive {
-        selector: String,
-    },
-    Unarchive {
-        selector: String,
-    },
-    Rm {
-        selector: String,
-        #[arg(long, short)]
-        force: bool,
-    },
-}
-
-#[derive(Subcommand)]
-pub enum TagAction {
-    Ls {
-        #[arg(long)]
-        json: bool,
-    },
-    Rename {
-        old: String,
-        new: String,
-    },
-    Rm {
-        tag: String,
-        #[arg(long, short)]
-        force: bool,
-    },
-}
 
 fn main() -> ExitCode {
-    match run() {
+    let first = std::env::args().nth(1);
+    match first.as_deref() {
+        Some("mcp") => served(),
+        Some("--version" | "-V") => {
+            let said =
+                Lang::detect(None).fill("version", &[("version", env!("CARGO_PKG_VERSION"))]);
+            println!("{said}");
+            ExitCode::SUCCESS
+        }
+        _ => retired(),
+    }
+}
+
+// Everything but the assistant's door left with the command line; whoever types anything else is sent to the window.
+fn retired() -> ExitCode {
+    let lang = Lang::detect(None);
+    eprintln!("{}", lang.get("retired"));
+    ExitCode::from(EXIT_ERROR)
+}
+
+fn served() -> ExitCode {
+    match serve() {
         Ok(code) => code,
         Err(e) => {
-            let facts = blamed(asked(), &e);
-            // Ours knows what broke; anything else is the person being told no, which is the
-            // command working. Only the first is worth a warning in a log somebody sends us.
-            match e.downcast_ref::<tisty_core::Error>() {
-                Some(_) => tisty_core::witness::warn(
-                    tisty_core::witness::channel::TERMINAL,
-                    "a command ended in an error",
-                    &facts,
-                ),
-                None => tisty_core::witness::note(
-                    tisty_core::witness::channel::TERMINAL,
-                    "a command turned the person away",
-                    &facts,
-                ),
+            let mut facts = vec![("command", tisty_core::witness::Fact::Code("mcp"))];
+            if let Some(ours) = e.downcast_ref::<tisty_core::Error>() {
+                facts.extend(ours.told());
             }
+            tisty_core::witness::warn(
+                tisty_core::witness::channel::TERMINAL,
+                "the assistant's door ended in an error",
+                &facts,
+            );
             let lang = Lang::detect(None);
             let said = match e.downcast_ref::<tisty_core::Error>() {
                 Some(tisty_core::Error::UnsupportedVersion { version, .. })
@@ -332,84 +59,14 @@ fn main() -> ExitCode {
                 }
                 _ => e.to_string(),
             };
-            eprintln!("{}: {said}", style::paint(style::RED, lang.get("error")));
+            eprintln!("{}: {said}", lang.get("error"));
             ExitCode::from(EXIT_ERROR)
         }
     }
 }
 
-fn blamed(
-    command: &'static str,
-    e: &anyhow::Error,
-) -> Vec<(&'static str, tisty_core::witness::Fact)> {
-    let mut facts = vec![("command", tisty_core::witness::Fact::Code(command))];
-    if let Some(ours) = e.downcast_ref::<tisty_core::Error>() {
-        facts.extend(ours.told());
-    }
-    facts
-}
-
-fn asked() -> &'static str {
-    named(std::env::args().nth(1).as_deref())
-}
-
-fn named(first: Option<&str>) -> &'static str {
-    let Some(first) = first else {
-        return "none";
-    };
-    SUBCOMMANDS
-        .iter()
-        .copied()
-        .find(|known| *known == first)
-        .unwrap_or("add")
-}
-
-fn leaving(paths: &tisty_core::Paths, yes: bool, lang: Lang) -> anyhow::Result<ExitCode> {
-    let swept: Vec<std::path::PathBuf> = paths
-        .swept_on_leaving()
-        .into_iter()
-        .chain(tisty_core::Paths::shims())
-        .filter(|at| at.exists())
-        .collect();
-
-    println!(
-        "  {}",
-        lang.fill(
-            "leave-keeps",
-            &[("at", &paths.data().display().to_string())]
-        )
-    );
-    for at in &swept {
-        println!("  {}", style::dim(&at.display().to_string()));
-    }
-    if swept.is_empty() {
-        println!("  {}", style::dim(lang.get("leave-nothing")));
-        return Ok(ExitCode::SUCCESS);
-    }
-    if !yes
-        && !dialoguer::Confirm::new()
-            .with_prompt(lang.get("leave-sure"))
-            .default(false)
-            .interact()
-            .unwrap_or(false)
-    {
-        return Ok(ExitCode::SUCCESS);
-    }
-    for at in &swept {
-        let gone = match at.is_dir() {
-            true => std::fs::remove_dir_all(at),
-            false => std::fs::remove_file(at),
-        };
-        if let Err(why) = gone {
-            eprintln!("  {}: {why}", at.display());
-        }
-    }
-    println!("  {}", lang.get("leave-done"));
-    Ok(ExitCode::SUCCESS)
-}
-
-fn run() -> anyhow::Result<ExitCode> {
-    let cli = Cli::parse_from(normalise(std::env::args()));
+// Serving does not hold a store open: each call reads what is on disk, so a window writing beside it is never a stale read.
+fn serve() -> anyhow::Result<ExitCode> {
     let paths = tisty_core::Paths::resolve()?;
     tisty_core::witness::keeps(
         tisty_core::witness::file(&paths),
@@ -417,108 +74,16 @@ fn run() -> anyhow::Result<ExitCode> {
     );
     tisty_core::witness::catches(tisty_core::witness::channel::TERMINAL);
     tisty_core::store::brought_home(&paths);
-    if typist::at_the_persons_store(&paths) {
+    if paths.the_persons_own() {
         tisty_core::store::keys_guarded(&paths);
     }
     tisty_core::witness::note(
         tisty_core::witness::channel::TERMINAL,
-        "a command ran",
+        "the assistant's door opened",
         &[(
             "version",
             tisty_core::witness::Fact::Id(env!("CARGO_PKG_VERSION").to_string()),
         )],
     );
-    // Serving does not hold a store open: each call reads what is on disk, so a window writing
-    // beside it is never a stale read.
-    if matches!(cli.command, Command::Mcp) {
-        return mcp::serve(paths);
-    }
-    // The terminal writes as the person. An assistant with a shell would type it the moment
-    // its MCP server is down, or let itself in with `agent --on`; the refusal is the one
-    // instruction that reaches it without that server.
-    if typist::at_the_persons_store(&paths)
-        && let Some(sign) = typist::assistant()
-    {
-        tisty_core::witness::note(
-            tisty_core::witness::channel::TERMINAL,
-            "an assistant was turned away from the terminal",
-            &[
-                ("command", tisty_core::witness::Fact::Code(asked())),
-                ("sign", tisty_core::witness::Fact::Code(sign.kind())),
-                ("name", tisty_core::witness::Fact::Id(sign.name())),
-            ],
-        );
-        // The config is read, never written here: the person's language, and nothing opened.
-        let configured = tisty_core::Config::load(&paths.config_file())
-            .ok()
-            .flatten()
-            .and_then(|config| config.locale);
-        let lang = Lang::detect(configured.as_deref());
-        eprintln!(
-            "{}: {}",
-            style::paint(style::RED, lang.get("error")),
-            lang.get("not-for-an-assistant")
-        );
-        // A person taken for an assistant has to be told which mark did it, or they cannot undo
-        // it: that mark is the whole reason, and the witness alone is not where they would look.
-        eprintln!(
-            "{}",
-            lang.fill(
-                match sign {
-                    typist::Sign::Env(_) => "taken-for-env",
-                    typist::Sign::Ancestor(_) => "taken-for-ancestor",
-                    typist::Sign::Ide(_) => "taken-for-ide",
-                },
-                &[("name", &sign.name())]
-            )
-        );
-        return Ok(ExitCode::from(EXIT_NOT_FOR_AN_ASSISTANT));
-    }
-    if let Command::Leave { yes } = cli.command {
-        let lang = Lang::detect(tisty_core::Config::load_or_init(&paths)?.locale.as_deref());
-        return leaving(&paths, yes, lang);
-    }
-    if let Command::Agent { on, off } = cli.command {
-        let lang = Lang::detect(tisty_core::Config::load_or_init(&paths)?.locale.as_deref());
-        return mcp::turn(&paths, (on || off).then_some(on), lang);
-    }
-
-    let mut app = match cli.command {
-        Command::Config { .. } => App::without_store(paths)?,
-        Command::Ls { .. } | Command::Lists { .. } => App::listing(paths)?,
-        _ => App::at(paths)?,
-    };
-    let lang = Lang::detect(app.locale());
-    let today = render::today();
-
-    cmd::dispatch(cli.command, &mut app, lang, today)
+    mcp::serve(paths)
 }
-
-fn normalise(args: impl Iterator<Item = String>) -> Vec<String> {
-    let args: Vec<String> = args.collect();
-    let is_command = args
-        .get(1)
-        .is_none_or(|a| SUBCOMMANDS.contains(&a.as_str()) || a.starts_with('-'));
-
-    if is_command {
-        return args;
-    }
-
-    let mut out = vec![args[0].clone(), "add".into()];
-    out.extend(args.into_iter().skip(1));
-    out
-}
-
-pub fn date_flag(raw: Option<&str>, lang: Lang) -> anyhow::Result<Option<tisty_core::DateSpec>> {
-    let Some(raw) = raw else { return Ok(None) };
-    let now = jiff::Zoned::now();
-
-    match tisty_nl::parse_date(raw, &now, lang.code()) {
-        Some(spec) => Ok(Some(spec)),
-        None => anyhow::bail!("{}", lang.fill("not-a-date", &[("value", raw)])),
-    }
-}
-
-#[cfg(test)]
-#[path = "main_test.rs"]
-mod tests;

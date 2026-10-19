@@ -1,4 +1,3 @@
-use super::door::{Door, let_in};
 use super::unpathing::{absolute, unpathed};
 use super::*;
 
@@ -202,18 +201,6 @@ fn names_a_key(shape: &Value, key: &str) -> bool {
         Value::Array(all) => all.iter().any(|one| names_a_key(one, key)),
         _ => false,
     }
-}
-
-#[test]
-fn an_assistant_is_let_in_only_by_somebody_at_a_terminal() {
-    assert_eq!(let_in(true, true), Door::Asks);
-    assert_eq!(let_in(true, false), Door::NoTerminal);
-}
-
-#[test]
-fn a_store_the_person_did_not_choose_asks_nobody() {
-    assert_eq!(let_in(false, false), Door::Open);
-    assert_eq!(let_in(false, true), Door::Open);
 }
 
 #[test]
