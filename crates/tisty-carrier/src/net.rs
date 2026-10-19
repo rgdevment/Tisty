@@ -56,7 +56,6 @@ pub fn probe_at(url: &str, reached_within: Duration, within: Duration) -> Health
     }
 }
 
-/// One reading of a failed request, shared by the check before connecting and every round after it.
 pub fn kind_of(e: reqwest::Error) -> (Health, String) {
     let slow = e.is_timeout();
     let said = told(&e.without_url());

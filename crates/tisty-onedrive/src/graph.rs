@@ -485,6 +485,8 @@ impl Remote for OneDrive {
             }
         };
         let Some(parent) = parent else {
+            let costs = self.limits().costs;
+            self.spent(costs.fetch + costs.delete);
             return tisty_carrier::renamed_by_copy(self, from, to);
         };
         let url = self.item_url(&item.id)?;

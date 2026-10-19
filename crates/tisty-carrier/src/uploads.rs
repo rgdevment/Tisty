@@ -25,7 +25,6 @@ pub fn key_of(url: &str, name: &str, from: &Path, bytes: u64) -> Option<String> 
     Some(format!("{url}\u{0}{name}\u{0}{bytes}\u{0}{changed}"))
 }
 
-/// Where long uploads had got to, so one cut short carries on after a restart instead of starting over.
 pub struct Uploads {
     at: PathBuf,
     kept_for: u64,

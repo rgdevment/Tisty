@@ -38,7 +38,7 @@ impl OneDrive {
     ) -> Result<DriveItem, Hitch> {
         retried(|failed| {
             if failed > 0 {
-                self.spent(1);
+                self.spent(self.limits().costs.put);
                 if let Some(landed) = self.landed_already(name, from) {
                     return Ok(landed);
                 }
@@ -51,6 +51,10 @@ impl OneDrive {
     fn landed_already(&self, name: &str, from: &Path) -> Option<DriveItem> {
         self.spent(1);
         let item = self.item(name, Some(ITEM_FIELDS)).ok()??;
+        // Hashing a large file costs far more than one look at its size, which rules most out first.
+        if item.size != std::fs::metadata(from).ok().map(|one| one.len()) {
+            return None;
+        }
         let here = self.hash_of(from).ok()?;
         (item.seen(name).hash == here).then_some(item)
     }
@@ -102,12 +106,16 @@ impl OneDrive {
             };
             match asked {
                 Ok(Some(at)) => {
-                    let sent = self.pieces(name, &upload, from, bytes, at);
+                    let sent = self.pieces(name, (&upload, Some(key)), from, bytes, at);
                     self.settled(&upload, key, &sent);
                     return sent;
                 }
-                // A way that is down keeps the session for the next round; anything else begins anew.
-                Err(cut @ (Hitch::Unreachable(..) | Hitch::Limited { .. })) => return Err(cut),
+                // A way that is down or a passing fault keeps the session for the next round; anything else begins anew.
+                Err(
+                    cut @ (Hitch::Unreachable(..) | Hitch::Limited { .. } | Hitch::Troubled(_)),
+                ) => {
+                    return Err(cut);
+                }
                 Ok(None) | Err(_) => {
                     uploads.closed(key);
                     if let Some(landed) = self.landed_already(name, from) {
@@ -132,7 +140,13 @@ impl OneDrive {
         if let Some((uploads, key)) = kept {
             uploads.opened(key, &session.upload_url);
         }
-        let sent = self.pieces(name, &session.upload_url, from, bytes, 0);
+        let sent = self.pieces(
+            name,
+            (&session.upload_url, kept.map(|(_, key)| key)),
+            from,
+            bytes,
+            0,
+        );
         match kept {
             Some((_, key)) => self.settled(&session.upload_url, key, &sent),
             None if sent.is_err() => self.dropped(&session.upload_url),
@@ -176,7 +190,8 @@ impl OneDrive {
         self.spent(1);
         let answer = self.traced(asked, Some("upload")).map_err(unreachable)?;
         match answer.status().as_u16() {
-            404 | 410 => Ok(None),
+            // An address that carries its own permission and refuses has lapsed, as one OneDrive forgot has.
+            401 | 403 | 404 | 410 => Ok(None),
             _ => {
                 let status: Status = json(judged_carried(answer)?)?;
                 Ok(status
@@ -188,11 +203,10 @@ impl OneDrive {
         }
     }
 
-    // A piece cut on its way is asked after, and the upload carries on from what OneDrive says it holds.
     fn pieces(
         &self,
         name: &str,
-        upload: &str,
+        (upload, key): (&str, Option<&str>),
         from: &Path,
         bytes: u64,
         start: u64,
@@ -204,6 +218,9 @@ impl OneDrive {
                     Some(at) => at,
                     // The last piece may have landed with its answer lost: the session is gone and the file is there.
                     None => {
+                        if let (Some(uploads), Some(key)) = (&self.uploads, key) {
+                            uploads.closed(key);
+                        }
                         return self.landed_already(name, from).ok_or_else(|| {
                             Hitch::Troubled("OneDrive let the upload lapse before it ended".into())
                         });
@@ -281,11 +298,12 @@ impl OneDrive {
     }
 }
 
+// Only a line cut mid-answer or a passing fault is tried again; a way that never opened will not open in a second.
 fn retried<T>(mut attempt: impl FnMut(u32) -> Result<T, Hitch>) -> Result<T, Hitch> {
     let mut failed = 0;
     loop {
         match attempt(failed) {
-            Err(Hitch::Troubled(_) | Hitch::Unreachable(..)) if failed + 1 < TRIES => {}
+            Err(Hitch::Troubled(_) | Hitch::Unreachable(None, _)) if failed + 1 < TRIES => {}
             other => return other,
         }
         failed += 1;
