@@ -154,12 +154,56 @@ pub fn task_doc_settled(
     answered(&session, id).map(Some)
 }
 
+// Words typed over a page that moved on meanwhile are woven into it, so neither side is lost.
+#[tauri::command(async)]
+pub fn task_doc_merge(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    base: String,
+    mine: String,
+) -> Answer<bool> {
+    let id = task_id(&id)?;
+    let mut session = held(&session);
+    session.reload()?;
+    let task = open_task(&session, id)?;
+    let file = file_of(&session, id).ok_or_else(|| Refusal::of("noSuchDoc"))?;
+    writable(&session.state, &file)?;
+    let root = session.paths.docs();
+    let raw = tisty_core::docs::read(&root, &file)
+        .map_err(|e| blamed(channel::WINDOW, "a task's page could not be read", e))?;
+    let Some(merged) = tisty_core::merge::merged(&base, &mine, &raw) else {
+        return Ok(false);
+    };
+    let whole = tisty_core::stages::ticked(&task, &merged);
+    let theirs = tisty_core::stages::ticked(&task, &raw);
+    if !tisty_core::docs::unchanged(&raw, &whole) {
+        tisty_core::docs::write(&root, &file, &whole)
+            .map_err(|e| blamed(channel::WINDOW, "a task's page could not be written", e))?;
+        session.corpus.forget(&file);
+        let hand = signing(&session.state);
+        session.retell(&file, &whole, hand);
+    }
+    session.mind_body(&file, &tisty_core::docs::settled(&whole));
+    let mut ops = tisty_core::stages::reconciled(&task, Some(&theirs), &whole);
+    let at = jiff::Timestamp::now().as_second();
+    let paged = tisty_core::paged::paged(task.id, &theirs, &whole);
+    ops.extend(tisty_core::paged::quieted(paged, &session.written, at));
+    if !ops.is_empty() {
+        let sent = ops.clone();
+        session.commit_all(ops)?;
+        tisty_core::paged::told(&mut session.written, &sent, at);
+    }
+    Ok(true)
+}
+
 // A task's page coming back hands the task its properties and words; anything else is a document.
 #[tauri::command(async)]
 pub fn task_page_import(
     session: tauri::State<'_, Mutex<Session>>,
     from: String,
+    anyway: Option<bool>,
 ) -> Answer<Option<String>> {
+    let anyway = anyway.unwrap_or(false);
     let from = std::path::Path::new(&from);
     let markdown = from
         .extension()
@@ -183,6 +227,7 @@ pub fn task_page_import(
         open_task(&session, id)?;
         if let Some(file) = file_of(&session, id) {
             writable(&session.state, &file)?;
+            behind(&session, &raw, &file, &tz, anyway)?;
         }
         session.paths.clone()
     };
@@ -223,6 +268,9 @@ pub fn task_page_import(
     };
     let id = taken.task;
     open_task(&session, id)?;
+    if taken.takes_away && !anyway {
+        return Err(Refusal::of("taskPageBehind"));
+    }
     let mut ops = brought.told;
     ops.extend(taken.ops);
     let mut over = file.map(|(_, file)| file);
@@ -255,6 +303,17 @@ pub fn task_page_import(
         session.retell(&file, &taken.body, hand);
     }
     Ok(Some(id.to_string()))
+}
+
+// An old copy would take away what the task and its page hold now, so the person says so first.
+fn behind(session: &Session, raw: &str, file: &str, tz: &str, anyway: bool) -> Answer<()> {
+    let was = tisty_core::docs::read(&session.paths.docs(), file).ok();
+    let takes = tisty_core::task_front::taken_in(&session.state, raw, was.as_deref(), tz)
+        .is_some_and(|taken| taken.takes_away);
+    match takes && !anyway {
+        true => Err(Refusal::of("taskPageBehind")),
+        false => Ok(()),
+    }
 }
 
 fn settled_after(session: &mut Session, id: TaskId) {

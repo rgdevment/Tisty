@@ -1091,6 +1091,7 @@ pub fn run() {
             answers::task_docs::task_doc_open,
             answers::task_docs::task_doc_make,
             answers::task_docs::task_doc_settled,
+            answers::task_docs::task_doc_merge,
             answers::task_docs::task_page_import,
             answers::tasks::task_step_dates,
             answers::parts::task_of,

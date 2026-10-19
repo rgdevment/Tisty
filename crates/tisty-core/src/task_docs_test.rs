@@ -588,6 +588,51 @@ fn an_open_task_s_journal_comes_to_its_page_as_notes_and_a_closed_one_s_stays_be
 }
 
 #[test]
+fn a_routine_s_journal_stays_off_its_page_since_its_close_logs_this_time_again() {
+    let mut state = State::default();
+    let task = Ulid::generate();
+    let mut round = TaskAdd::new("Water the plants", "a0");
+    round.repeat = Some(crate::model::Repeat::due(crate::model::Cadence {
+        every: 1,
+        unit: crate::model::Unit::Week,
+    }));
+    applied(&mut state, Op::TaskAdd { id: task, d: round });
+    applied(
+        &mut state,
+        Op::TaskLog {
+            id: task,
+            d: crate::event::LogAdd::new(Ulid::generate(), "The fern looked dry."),
+        },
+    );
+
+    let page = super::opened(
+        &state,
+        task,
+        "## Every round\n<!-- - [ ] What to do -->\n\n## This time\n<!-- Anything different? -->\n",
+    );
+    assert!(!page.contains("The fern looked dry."), "{page}");
+    assert!(crate::closing::said_in(&page, &crate::closing::THIS_TIME).is_empty());
+}
+
+#[test]
+fn another_machine_s_version_of_a_page_stays_on_it_under_its_own_heading() {
+    let task = Ulid::generate();
+    let mine = format!("{}\n## Notes\nMine.\n", seed(task));
+    let theirs = format!("{}\n## Notes\nTheirs.\n- [ ] a box of theirs\n", seed(task));
+
+    let kept = super::kept_beside(&mine, &theirs, "Other version");
+
+    assert!(kept.starts_with(mine.trim_end()), "{kept}");
+    assert!(
+        kept.contains("## Other version\n\n### Notes\nTheirs."),
+        "{kept}"
+    );
+    assert_eq!(kept.matches("task:").count(), 1, "{kept}");
+    assert_eq!(crate::stages::stages(&kept).len(), 0, "{kept}");
+    assert_eq!(super::kept_beside(&kept, &theirs, "Other version"), kept);
+}
+
+#[test]
 fn a_description_s_own_headings_sit_one_level_under_its_section() {
     let mut state = State::default();
     let task = Ulid::generate();

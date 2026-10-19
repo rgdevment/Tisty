@@ -23,6 +23,13 @@ import { saidPlainly } from "./refusal";
 import { sure } from "./sure";
 import type { Chosen } from "./views";
 
+// An old copy of a task's page would take away what the task holds now, so the person says so first.
+export const pageHome = (at: string): Promise<string | null | undefined> =>
+  taskPageImport(at).catch(async (e: unknown) => {
+    if ((e as { code?: string } | null)?.code !== "taskPageBehind") throw e;
+    return (await sure(t("taskPageBehindSure"))) ? taskPageImport(at, true) : undefined;
+  });
+
 export const steady = <T>(was: T, found: T): T =>
   JSON.stringify(was) === JSON.stringify(found) ? was : found;
 
@@ -77,7 +84,8 @@ export function usePapers({
       .then(async (at) => {
         if (typeof at !== "string") return null;
         // A task's own page coming back goes to its task, never into the documents.
-        const task = await taskPageImport(at);
+        const task = await pageHome(at);
+        if (task === undefined) return null;
         if (task) {
           openTask(task);
           return null;

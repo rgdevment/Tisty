@@ -7,11 +7,12 @@ import {
   type Task,
   type TaskDoc,
   taskDocMake,
+  taskDocMerge,
   taskDocOpen,
 } from "../core";
 import { WROTE } from "../detailing";
 import { stamped } from "../format";
-import { fill } from "../locales";
+import { fill, t } from "../locales";
 import { holds, queued } from "../saving";
 import { useKeptHeight } from "./heights";
 import { usePartCards } from "./partcards";
@@ -197,10 +198,24 @@ function Written({
   const made = useRef<Promise<string> | null>(null);
   // Once the disk has moved on, what was typed over the old words is not written over the new.
   const stale = useRef(false);
-  const away = () => {
-    stale.current = true;
-    moved.current();
-  };
+  const known = useRef(doc.body);
+  const learnt = useRef(doc.body);
+  const typed = useRef(doc.body);
+  const [clash, setClash] = useState(false);
+
+  // What was typed is woven into what moved on beneath it, or kept until the person chooses.
+  const clashed = useCallback(
+    (e: unknown) => {
+      const named = (e as { name?: string } | null)?.name;
+      if (!file.current && named) file.current = named;
+      if (stale.current) return;
+      stale.current = true;
+      taskDocMerge(task.id, known.current, typed.current)
+        .catch(() => false)
+        .then((woven) => (woven ? moved.current() : setClash(true)));
+    },
+    [task.id],
+  );
 
   // The first words written make the file; whatever comes after waits for it to be there.
   const ensure = useCallback((body: string): Promise<string> => {
@@ -225,20 +240,23 @@ function Written({
     if (!onSettle) return;
     line.current = line.current.then(async () => {
       const from = unsettled.current ?? before;
+      let refused: unknown = null;
       const problem = await ensure(now)
         .then(() => onSettle(from, now, renamed))
         .catch((e: unknown) => {
+          refused = e;
           if ((e as { code?: string } | null)?.code === "documentMoved") return "documentMoved";
           failed.current?.(e);
           return "failed";
         });
       if (problem === null || problem === WROTE) {
         if (unsettled.current === from) unsettled.current = null;
+        learnt.current = now;
         return;
       }
       // A settle that failed left its lines unlearnt, so the next one still starts from its text.
       unsettled.current ??= from;
-      if (problem === "documentMoved") away();
+      if (problem === "documentMoved") clashed(refused);
     });
   };
 
@@ -252,14 +270,12 @@ function Written({
       const first = !file.current && !made.current;
       const into = await ensure(next);
       if (!first) await docWrite(into, next);
+      known.current = next;
     }).catch((e) => {
-      failed.current?.(e);
-      // What is on disk now is newer than what was typed, so the page reads it again.
-      if ((e as { code?: string } | null)?.code !== "documentMoved") return;
-      stale.current = true;
-      moved.current();
+      if ((e as { code?: string } | null)?.code === "documentMoved") clashed(e);
+      else failed.current?.(e);
     });
-  }, [task.id, ensure]);
+  }, [task.id, ensure, clashed]);
 
   useEffect(() => holds(flush), [flush]);
   useEffect(() => {
@@ -272,13 +288,52 @@ function Written({
 
   const wrote = (next: string) => {
     setText(next);
+    typed.current = next;
     waiting.current = next;
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(flush, SETTLES);
   };
 
+  const mineStands = () => {
+    const mine = typed.current;
+    setClash(false);
+    ensure(mine)
+      .then((into) => docWrite(into, mine, true))
+      .then(() => {
+        known.current = mine;
+        settled(learnt.current, mine);
+        return line.current;
+      })
+      .then(
+        () => moved.current(),
+        (e: unknown) => {
+          failed.current?.(e);
+          setClash(true);
+        },
+      );
+  };
+
   return (
     <Suspense fallback={<div style={{ minHeight: room }} />}>
+      {clash && (
+        <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px]">
+          <span className="text-soft">{t("documentMoved")}</span>
+          <button
+            type="button"
+            onClick={mineStands}
+            className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
+          >
+            {t("clashSave")}
+          </button>
+          <button
+            type="button"
+            onClick={() => moved.current()}
+            className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
+          >
+            {t("clashLook")}
+          </button>
+        </div>
+      )}
       <Sheet
         file={doc.file || `unwritten:${task.id}`}
         value={text}

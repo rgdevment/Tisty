@@ -52,6 +52,13 @@ impl DateSpec {
         self.at.date()
     }
 
+    pub fn passed(&self, now: &jiff::Zoned) -> bool {
+        match self.has_time {
+            true => self.at < now.datetime(),
+            false => self.date() < now.date(),
+        }
+    }
+
     pub fn instant(&self, now_tz: &jiff::tz::TimeZone) -> Result<jiff::Timestamp, jiff::Error> {
         let zone = if self.floating {
             now_tz.clone()

@@ -1,12 +1,14 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Task } from "../core";
+import { t } from "../locales";
 import TaskWords from "../ui/TaskWords";
 
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
   doc: null as unknown,
   moved: false,
+  woven: true,
   sheets: [] as {
     file?: string;
     value: string;
@@ -21,7 +23,11 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args: Record<string, unknown>) => {
     ipc.calls.push({ cmd, args: args ?? {} });
     if (cmd === "task_doc_open") return Promise.resolve(ipc.doc);
-    if (cmd === "doc_write" && ipc.moved) return Promise.reject({ code: "documentMoved" });
+    if (cmd === "doc_write" && ipc.moved && !args.anyway) {
+      return Promise.reject({ code: "documentMoved", name: "t_one-0001" });
+    }
+    if (cmd === "task_doc_merge") return Promise.resolve(ipc.woven);
+    if (cmd === "doc_write" && args.anyway) ipc.doc = { ...(ipc.doc as object), body: args.body };
     if (cmd === "task_doc_make") {
       ipc.doc = { file: "t_one-0001", body: "Words it held.\n", held: false };
       return Promise.resolve("t_one-0001");
@@ -47,6 +53,7 @@ beforeEach(() => {
   ipc.calls = [];
   ipc.doc = null;
   ipc.moved = false;
+  ipc.woven = true;
   ipc.sheets = [];
 });
 
@@ -152,18 +159,45 @@ describe("a task with its document", () => {
 });
 
 describe("a task document changed on disk meanwhile", () => {
-  it("reads it again and says so, instead of failing every save after", async () => {
+  it("weaves what was typed into what moved on and reads the page again", async () => {
     ipc.doc = { file: "t_one-0001", body: "mine\n", held: false };
     const failed = vi.fn();
     render(<TaskWords task={task()} onError={failed} />);
     await screen.findByText("sheet:mine");
 
     ipc.moved = true;
+    ipc.doc = { file: "t_one-0001", body: "theirs\nmine, edited\n", held: false };
+    ipc.sheets[ipc.sheets.length - 1].onWrite("mine, edited\n");
+
+    expect(
+      await screen.findByText("sheet:theirs mine, edited", {}, { timeout: 2000 }),
+    ).toBeTruthy();
+    expect(sent("task_doc_merge")).toEqual([
+      { cmd: "task_doc_merge", args: { id: "one", base: "mine\n", mine: "mine, edited\n" } },
+    ]);
+    expect(failed).not.toHaveBeenCalled();
+  });
+
+  it("keeps what was typed until the person chooses when the two cannot be woven", async () => {
+    ipc.doc = { file: "t_one-0001", body: "mine\n", held: false };
+    render(<TaskWords task={task()} />);
+    await screen.findByText("sheet:mine");
+
+    ipc.moved = true;
+    ipc.woven = false;
     ipc.doc = { file: "t_one-0001", body: "theirs\n", held: false };
     ipc.sheets[ipc.sheets.length - 1].onWrite("mine, edited\n");
 
-    expect(await screen.findByText("sheet:theirs", {}, { timeout: 2000 })).toBeTruthy();
-    expect(failed).toHaveBeenCalledWith({ code: "documentMoved" });
+    fireEvent.click(await screen.findByText(t("clashSave"), {}, { timeout: 2000 }));
+
+    await waitFor(() =>
+      expect(sent("doc_write").map((one) => one.args)).toContainEqual({
+        id: "t_one-0001",
+        body: "mine, edited\n",
+        anyway: true,
+      }),
+    );
+    expect(await screen.findByText("sheet:mine, edited")).toBeTruthy();
   });
 });
 

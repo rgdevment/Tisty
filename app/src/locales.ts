@@ -650,6 +650,10 @@ const en = {
   bringBackHolder: "Bring the document back",
   documentLocked: "This document is locked. Unlock it before writing in it",
   documentMoved: "Something wrote in this document while you had it open here",
+  taskPageBehind:
+    "This copy leaves out words, steps or ticks the task holds now, perhaps written after it was taken out",
+  taskPageBehindSure:
+    "This copy leaves out words, steps or ticks the task holds now, perhaps written after it was taken out. Bring it in anyway and let them go?",
   docStirred: "Something wrote in this document, and what you are reading is what it left",
   docBolted: "You locked this document. Nothing writes in it, not even an assistant",
   docShelved:
@@ -2672,6 +2676,10 @@ const es: Catalog = {
   bringBackHolder: "Desarchivar el documento",
   documentLocked: "Este documento está bloqueado. Desbloquéalo antes de escribir en él",
   documentMoved: "Algo escribió en este documento mientras lo tenías abierto aquí",
+  taskPageBehind:
+    "Esta copia deja fuera palabras, pasos o marcas que la tarea tiene ahora, quizá escritos después de sacarla",
+  taskPageBehindSure:
+    "Esta copia deja fuera palabras, pasos o marcas que la tarea tiene ahora, quizá escritos después de sacarla. ¿La traes igual y los dejas ir?",
   docStirred: "Algo escribió en este documento, y lo que lees es lo que dejó",
   docBolted: "Bloqueaste este documento. Nada escribe en él, ni siquiera un asistente",
   docShelved:

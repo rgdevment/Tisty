@@ -42,6 +42,11 @@ vi.mock("@tauri-apps/api/core", () => ({
         ],
       });
     }
+    if (cmd === "task_of") {
+      return args?.id === "01M563T6T541A3Q2PP5YQW5XK1"
+        ? Promise.resolve({ id: args.id, title: "Rina's booster" })
+        : Promise.reject({ code: "notATaskId" });
+    }
     if (cmd === "paper_rifts") {
       return torn.shut ? Promise.reject({ code: "documentLocked" }) : Promise.resolve(torn.said);
     }
@@ -146,6 +151,13 @@ describe("deciding what to do with a document written on both sides", () => {
 
     expect(asked.said[0]).not.toMatch(/dev_a-0002/);
     expect(asked.said[0]).toMatch(/Untitled/i);
+  });
+
+  it("calls a task's page by its task's title, since the documents leave it out", async () => {
+    await decideAll(["t_01m563t6t541a3q2pp5yqw5xk1-0001"]);
+
+    expect(asked.said[0]).toMatch(/Rina's booster/);
+    expect(asked.said[0]).not.toMatch(/Untitled/i);
   });
 
   it("asks once for a document two syncs both call undecided", async () => {

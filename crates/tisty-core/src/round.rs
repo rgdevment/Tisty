@@ -1,4 +1,4 @@
-use crate::closing::{THIS_TIME, said_in, summed, this_time};
+use crate::closing::{THIS_TIME, held, said_in, summed, this_time};
 use crate::event::{LogAdd, Op};
 use crate::model::TaskId;
 use crate::{Paths, State, Store};
@@ -72,11 +72,62 @@ pub fn round_cleared(paths: &Paths, store: &mut Store, state: &State, id: TaskId
     if state.written_shut(kept.id) {
         return;
     }
+    let mut once = Vec::new();
     written(paths, store, id, |was| {
-        this_time(was)
-            .filter(|(now, _)| now == said)
-            .map(|(_, cleared)| cleared)
+        let (_, cleared) = this_time(was).filter(|(now, _)| now == said)?;
+        if let (Some(task), Some((_, words))) = (state.tasks.get(&id), held(was, &THIS_TIME)) {
+            once = crate::stages::boxed_in(task, was, words);
+        }
+        Some(cleared)
     });
+    let ops = left_behind(state, id, &once);
+    if !ops.is_empty()
+        && let Err(e) = store.append_batch(ops)
+    {
+        crate::witness::warn(
+            crate::witness::channel::STORE,
+            "a round's own steps could not be left behind",
+            &[("why", crate::witness::Fact::Why(e.to_string()))],
+        );
+    }
+}
+
+// Steps whose boxes sat under This time were for that round alone, so the next one goes without them.
+fn left_behind(state: &State, id: TaskId, once: &[crate::model::StepId]) -> Vec<Op> {
+    let Some(closed) = state.tasks.get(&id) else {
+        return Vec::new();
+    };
+    let Some(next) = next_round(state, id) else {
+        return Vec::new();
+    };
+    let mut taken = Vec::new();
+    for step in once.iter().filter_map(|one| closed.step(*one)) {
+        let twin = next.steps.iter().find(|one| {
+            one.text == step.text && one.order == step.order && !taken.contains(&one.id)
+        });
+        if let Some(twin) = twin {
+            taken.push(twin.id);
+        }
+    }
+    taken
+        .into_iter()
+        .map(|step| Op::StepRemove {
+            id: next.id,
+            d: crate::event::StepRef { step },
+        })
+        .collect()
+}
+
+fn next_round(state: &State, id: TaskId) -> Option<&crate::model::Task> {
+    let mut at = id;
+    for _ in 0..state.tasks.len() {
+        let next = state.tasks.values().find(|one| one.after == Some(at))?;
+        if next.is_open() {
+            return Some(next);
+        }
+        at = next.id;
+    }
+    None
 }
 
 fn written(

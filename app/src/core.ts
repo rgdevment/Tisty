@@ -360,8 +360,10 @@ export const taskDocSettled = (
 export const partsOf = (id: string): Promise<Task[]> => invoke("parts_of", { id });
 export type StepDated = { text: string; born?: string | null; done?: string | null };
 export const stepDates = (id: string): Promise<StepDated[]> => invoke("task_step_dates", { id });
-export const taskPageImport = (from: string): Promise<string | null> =>
-  invoke("task_page_import", { from });
+export const taskDocMerge = (id: string, base: string, mine: string): Promise<boolean> =>
+  invoke("task_doc_merge", { id, base, mine });
+export const taskPageImport = (from: string, anyway?: boolean): Promise<string | null> =>
+  invoke("task_page_import", { from, anyway });
 export const taskOf = (id: string): Promise<Task> => invoke("task_of", { id });
 export const addPart = (whole: string, title: string): Promise<Task> =>
   invoke("add_part", { whole, title });
@@ -1067,7 +1069,11 @@ export const weighs = (reference: string): Promise<number> => invoke("weighs", {
 
 export const roomy = (): Promise<number> => invoke("roomy");
 export const reopen = (id: string): Promise<Task> => invoke("reopen", { id });
-export const discard = (id: string): Promise<Task> => invoke("discard", { id });
+// The last words typed on its page have to land before letting it go puts the page away.
+export const discard = async (id: string): Promise<Task> => {
+  await settled();
+  return invoke("discard", { id });
+};
 export const erase = (id: string): Promise<void> => invoke("erase", { id });
 
 export interface Doc {
