@@ -358,7 +358,7 @@ fn a_document_an_agent_wrote_is_compacted_and_says_so() {
             "doc": &doc,
             "print": print,
             "compact": true,
-            "body": "# Login\n\nOne. Two.\n\n## History\n\n- Sessions folded in.\n",
+            "body": "# Login\n\nOne. Two.\n",
         }),
     );
     went(&done);

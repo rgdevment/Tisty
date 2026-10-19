@@ -705,6 +705,10 @@ pub(super) fn tools() -> Value {
                     "page_of": {
                         "type": "string",
                         "description": "The id of the document this becomes a page of"
+                    },
+                    "anyway": {
+                        "type": "boolean",
+                        "description": "Bring it in although a document on the same subject is here already — only when this really is another subject; otherwise update that one"
                     }
                 },
                 "required": ["path"]
