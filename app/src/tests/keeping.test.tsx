@@ -3403,7 +3403,7 @@ describe("letting an assistant file work here", () => {
     await openTab();
 
     expect(await screen.findByText(/An assistant can file work here/i)).toBeTruthy();
-    expect(screen.getByText(/Complete, reopen, drop or delete anything/i)).toBeTruthy();
+    expect(screen.getByText(/Complete, reopen, drop or delete a task/i)).toBeTruthy();
     expect(screen.getByText(/your undo never reaches what it filed/i)).toBeTruthy();
     expect(screen.getByText(/"mcpServers"/)).toBeTruthy();
     expect(screen.getByText(/mcp add tisty/)).toBeTruthy();
