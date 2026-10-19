@@ -45,7 +45,8 @@ impl OneDrive {
             if let Some(patience) = patience {
                 asked = asked.timeout(patience);
             }
-            let answer = asked.send().map_err(unreachable)?;
+            let asked = asked.build().map_err(unreachable)?;
+            let answer = self.traced(asked).map_err(unreachable)?;
             if answer.status().as_u16() == 401 && !renewed {
                 self.tokens.spoiled(&access);
                 renewed = true;
@@ -84,6 +85,51 @@ impl OneDrive {
             }
         }
         Ok(at.into())
+    }
+
+    pub(super) fn traced(&self, asked: reqwest::blocking::Request) -> reqwest::Result<Response> {
+        let (verb, kind) = (verb_of(asked.method()), kind_of(&asked));
+        let sent = asked
+            .body()
+            .and_then(|body| body.as_bytes())
+            .map_or(0, |body| body.len() as u64);
+        let began = std::time::Instant::now();
+        let answer = self.http.execute(asked);
+        let held = answer.as_ref().ok();
+        tisty_carrier::said::traced(
+            "OneDrive was asked",
+            tisty_carrier::said::Asked {
+                verb,
+                kind,
+                status: held.map(|one| one.status().as_u16()),
+                began,
+                sent,
+                received: held.and_then(Response::content_length).unwrap_or(0),
+            },
+        );
+        answer
+    }
+
+    // Download and upload addresses carry their own permission, so they are taken only from Microsoft's hosts.
+    pub(super) fn carries(&self, link: &str) -> Result<(), Hitch> {
+        let api = self.at.api.parse::<url::Url>().ok();
+        let ok = link.parse::<url::Url>().is_ok_and(|at| {
+            let host = at.host_str().unwrap_or_default();
+            let same = api
+                .as_ref()
+                .is_some_and(|api| api.scheme() == at.scheme() && api.host_str() == Some(host));
+            let theirs = at.scheme() == "https"
+                && CARRIERS
+                    .iter()
+                    .any(|one| host == *one || host.ends_with(&format!(".{one}")));
+            same || theirs
+        });
+        match ok {
+            true => Ok(()),
+            false => Err(Hitch::Broke(
+                "OneDrive handed an address outside Microsoft's own".into(),
+            )),
+        }
     }
 
     // Graph hands back whole addresses to carry on from; the token only ever goes where Graph itself lives.
@@ -147,7 +193,11 @@ fn refusal(status: u16, wait: Option<Duration>, refused: Option<&Refused>) -> Hi
         403 if names("accessDenied") || names("unauthenticated") => Hitch::Lost,
         404 => Hitch::Missing(message),
         409 | 412 => Hitch::Changed(message),
-        429 | 509 => Hitch::Limited {
+        // A file held by someone else, or a pace Microsoft asks for, passes on its own.
+        423 | 429 | 509 => Hitch::Limited {
+            wait: wait.unwrap_or(WAITED_UNTOLD),
+        },
+        _ if names("activityLimitReached") => Hitch::Limited {
             wait: wait.unwrap_or(WAITED_UNTOLD),
         },
         500.. => match wait {
@@ -158,5 +208,39 @@ fn refusal(status: u16, wait: Option<Duration>, refused: Option<&Refused>) -> Hi
             "OneDrive refused: {status} {} {message}",
             codes.join("/")
         )),
+    }
+}
+
+const CARRIERS: [&str; 6] = [
+    "1drv.com",
+    "onedrive.com",
+    "live.com",
+    "livefilestore.com",
+    "sharepoint.com",
+    "microsoft.com",
+];
+
+fn verb_of(verb: &reqwest::Method) -> &'static str {
+    match *verb {
+        reqwest::Method::GET => "GET",
+        reqwest::Method::POST => "POST",
+        reqwest::Method::PUT => "PUT",
+        reqwest::Method::PATCH => "PATCH",
+        reqwest::Method::DELETE => "DELETE",
+        _ => "OTHER",
+    }
+}
+
+fn kind_of(asked: &reqwest::blocking::Request) -> &'static str {
+    let path = asked.url().path();
+    match *asked.method() {
+        reqwest::Method::DELETE => "delete",
+        reqwest::Method::PATCH => "edit",
+        _ if path.ends_with("createUploadSession") => "upload-open",
+        _ if path.ends_with("/content") || path.ends_with(":/content") => "upload",
+        _ if path.contains("delta") => "changes",
+        _ if path.ends_with("/drive") => "about",
+        _ if path.ends_with("/me") => "account",
+        _ => "read",
     }
 }

@@ -389,33 +389,44 @@ impl Remote for OneDrive {
     fn fetch(&self, name: &str, from: u64, into: &mut dyn Write) -> Result<Seen, Hitch> {
         names::fitting(name)?;
         self.vouched_for()?;
-        let item = self
-            .item(name, None)?
-            .filter(DriveItem::is_file)
-            .ok_or_else(|| Hitch::Missing(name.to_string()))?;
-        // Everything is already here: a range past the end would be refused.
-        if item.size.is_some_and(|bytes| from >= bytes) {
-            return Ok(item.seen(name));
-        }
-        let link = item.download.clone().ok_or_else(|| {
-            Hitch::Broke("OneDrive gave no address to bring the file from".into())
-        })?;
-        // The address carries its own permission, and the range is only taken there.
-        let mut asked = self.http.get(&link).timeout(given(item.size.unwrap_or(0)));
-        if from > 0 {
-            asked = asked.header(reqwest::header::RANGE, format!("bytes={from}-"));
-        }
-        let mut answer = asked.send().map_err(unreachable)?;
-        let mut skipped = match answer.status().as_u16() {
-            206 => 0,
-            // OneDrive may send the whole file when it cannot cut it, so what was already here is passed over.
-            200 => from,
-            _ => {
-                return Err(match judged(answer) {
-                    Err(Hitch::Missing(_)) => Hitch::Missing(name.to_string()),
-                    Err(other) => other,
-                    Ok(_) => Hitch::Broke("OneDrive answered a download oddly".into()),
-                });
+        let mut renewed = false;
+        let (item, mut answer, mut skipped) = loop {
+            let item = self
+                .item(name, None)?
+                .filter(DriveItem::is_file)
+                .ok_or_else(|| Hitch::Missing(name.to_string()))?;
+            // Everything is already here: a range past the end would be refused.
+            if item.size.is_some_and(|bytes| from >= bytes) {
+                return Ok(item.seen(name));
+            }
+            let link = item.download.clone().ok_or_else(|| {
+                Hitch::Broke("OneDrive gave no address to bring the file from".into())
+            })?;
+            self.carries(&link)?;
+            // The address carries its own permission, and the range is only taken there.
+            let mut asked = self.http.get(&link).timeout(given(item.size.unwrap_or(0)));
+            if from > 0 {
+                asked = asked.header(reqwest::header::RANGE, format!("bytes={from}-"));
+            }
+            let answer = self
+                .traced(asked.build().map_err(unreachable)?)
+                .map_err(unreachable)?;
+            match answer.status().as_u16() {
+                206 => break (item, answer, 0),
+                // OneDrive may send the whole file when it cannot cut it, so what was already here is passed over.
+                200 => break (item, answer, from),
+                // The address outlives its permission after a while; a fresh one is asked for once, never the sign-in.
+                401 | 403 if !renewed => renewed = true,
+                _ => {
+                    return Err(match judged(answer) {
+                        Err(Hitch::Missing(_)) => Hitch::Missing(name.to_string()),
+                        Err(Hitch::Lost) => {
+                            Hitch::Troubled("OneDrive refused its own download address".into())
+                        }
+                        Err(other) => other,
+                        Ok(_) => Hitch::Broke("OneDrive answered a download oddly".into()),
+                    });
+                }
             }
         };
         let mut block = vec![0u8; 64 * 1024];

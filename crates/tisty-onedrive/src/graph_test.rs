@@ -447,6 +447,67 @@ fn a_file_not_there_is_missing_when_brought_and_absent_when_asked_about() {
 }
 
 #[test]
+fn a_small_file_whose_answer_was_lost_is_found_landed_rather_than_sent_twice() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = graph(|_| {
+        vec![
+            said("503 Service Unavailable", "{}"),
+            said(
+                "200 OK",
+                r#"{"id":"F","name":"a.tisty","eTag":"e1","size":4,"file":{}}"#,
+            ),
+        ]
+    });
+    let drive = onedrive(at, home.path());
+
+    let seen = drive
+        .put("store/a.tisty", &written(&home, b"abcd"), Expect::Absent)
+        .unwrap();
+
+    assert_eq!(seen.revision, "e1");
+    assert_eq!(served.join().unwrap().len(), 2);
+}
+
+#[test]
+fn a_download_address_outside_microsoft_is_never_followed() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, _served) = graph(|_| {
+        vec![said(
+            "200 OK",
+            r#"{"id":"F","name":"a.tisty","eTag":"e1","size":6,"file":{},"@microsoft.graph.downloadUrl":"https://elsewhere.example/dl/F"}"#,
+        )]
+    });
+    let drive = onedrive(at, home.path());
+
+    let refused = drive.fetch("store/a.tisty", 0, &mut Vec::new());
+
+    assert!(matches!(refused, Err(Hitch::Broke(_))));
+}
+
+#[test]
+fn a_download_address_that_lapsed_is_asked_for_again_and_never_the_sign_in() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = graph(|base| {
+        let item = format!(
+            r#"{{"id":"F","name":"a.tisty","eTag":"e1","size":3,"file":{{}},"@microsoft.graph.downloadUrl":"{base}/dl/F"}}"#
+        );
+        vec![
+            said("200 OK", &item),
+            said("401 Unauthorized", "{}"),
+            said("200 OK", &item),
+            said("200 OK", "abc"),
+        ]
+    });
+    let drive = onedrive(at, home.path());
+    let mut got = Vec::new();
+
+    drive.fetch("store/a.tisty", 0, &mut got).unwrap();
+
+    assert_eq!(got, b"abc");
+    assert_eq!(served.join().unwrap().len(), 4);
+}
+
+#[test]
 fn a_new_small_file_lands_whole_and_only_where_nothing_is() {
     let home = tempfile::tempdir().unwrap();
     let (at, served) = graph(|_| vec![said("201 Created", &file("F", "a b#c.tisty", "S", "e1"))]);
@@ -574,7 +635,7 @@ fn an_upload_cut_short_carries_on_after_a_restart_from_where_onedrive_says_it_go
         vec![
             said("200 OK", &format!(r#"{{"uploadUrl":"{base}/up/1"}}"#)),
             said("202 Accepted", r#"{"nextExpectedRanges":["4-"]}"#),
-            said("503 Service Unavailable", "{}"),
+            said_with("429 Too Many Requests", "Retry-After: 1", "{}"),
             said("200 OK", r#"{"nextExpectedRanges":["4-"]}"#),
             said("202 Accepted", r#"{"nextExpectedRanges":["8-"]}"#),
             said("201 Created", &file("F", "big.pdf", "A", "e1")),
@@ -691,6 +752,11 @@ fn each_refusal_onedrive_gives_is_read_as_what_it_means() {
                 "400 Bad Request",
                 r#"{"error":{"code":"invalidRequest","innerError":{"code":"quotaLimitReached"}}}"#,
             ),
+            said("423 Locked", r#"{"error":{"code":"resourceLocked"}}"#),
+            said(
+                "403 Forbidden",
+                r#"{"error":{"code":"activityLimitReached"}}"#,
+            ),
         ]
     });
     let drive = onedrive(at, home.path());
@@ -705,6 +771,8 @@ fn each_refusal_onedrive_gives_is_read_as_what_it_means() {
     assert_eq!(drive.about("a.tisty"), Err(Hitch::Lost));
     assert!(matches!(drive.about("a.tisty"), Err(Hitch::Troubled(_))));
     assert_eq!(drive.about("a.tisty"), Err(Hitch::Full));
+    assert!(matches!(drive.about("a.tisty"), Err(Hitch::Limited { .. })));
+    assert!(matches!(drive.about("a.tisty"), Err(Hitch::Limited { .. })));
 }
 
 #[test]

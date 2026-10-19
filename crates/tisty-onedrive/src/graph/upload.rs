@@ -10,6 +10,9 @@ use super::tree::{DriveItem, ITEM_FIELDS};
 use super::wire::{given, json, judged};
 use crate::{ASKED_WITHIN, unreachable};
 
+const TRIES: u32 = 3;
+const PAUSE: std::time::Duration = std::time::Duration::from_secs(1);
+
 // A file that must not be there yet is refused if it is; any other write takes the place of what is there.
 fn conflict(expect: &Expect) -> &'static str {
     match expect {
@@ -26,13 +29,33 @@ fn expecting(asked: RequestBuilder, expect: &Expect) -> RequestBuilder {
 }
 
 impl OneDrive {
-    /// One request that either lands whole or leaves the file as it was: what Tisty's own files always take.
+    // A passing fault would otherwise pause a whole round for one small file.
     pub(super) fn whole(
         &self,
         name: &str,
         from: &Path,
         expect: &Expect,
     ) -> Result<DriveItem, Hitch> {
+        let mut failed = 0;
+        loop {
+            match self.whole_once(name, from, expect) {
+                Err(Hitch::Troubled(_) | Hitch::Unreachable(..)) if failed + 1 < TRIES => {}
+                other => return other,
+            }
+            failed += 1;
+            std::thread::sleep(PAUSE * failed);
+            // A new file whose answer was lost on the way back may have landed, and is taken as it is.
+            if matches!(expect, Expect::Absent)
+                && let Ok(Some(landed)) = self.item(name, Some(ITEM_FIELDS))
+                && landed.size == std::fs::metadata(from).ok().map(|one| one.len())
+            {
+                return Ok(landed);
+            }
+        }
+    }
+
+    /// One request that either lands whole or leaves the file as it was: what Tisty's own files always take.
+    fn whole_once(&self, name: &str, from: &Path, expect: &Expect) -> Result<DriveItem, Hitch> {
         let body = std::fs::read(from)?;
         let url = self.by_path(name, Some("content"))?;
         let answer = self.sent(Some(given(body.len() as u64)), |http| {
@@ -67,12 +90,12 @@ impl OneDrive {
             && let Some(upload) = uploads.session_for(key)
         {
             match self.got_to(&upload) {
-                Some(at) => {
+                Some(at) if self.carries(&upload).is_ok() => {
                     let sent = self.pieces(name, &upload, from, bytes, at);
                     self.settled(&upload, key, &sent);
                     return sent;
                 }
-                None => uploads.closed(key),
+                _ => uploads.closed(key),
             }
         }
         let body =
@@ -87,6 +110,7 @@ impl OneDrive {
             )
         })?;
         let session: Session = json(self.landed(name, answer)?)?;
+        self.carries(&session.upload_url)?;
         if let Some((uploads, key)) = kept {
             uploads.opened(key, &session.upload_url);
         }
@@ -140,8 +164,32 @@ impl OneDrive {
             .ok()
     }
 
-    // The session's own address carries its permission: OneDrive refuses a piece that also brings the token.
+    // A piece cut on its way is asked after, and the upload carries on from what OneDrive says it holds.
     fn pieces(
+        &self,
+        name: &str,
+        upload: &str,
+        from: &Path,
+        bytes: u64,
+        start: u64,
+    ) -> Result<DriveItem, Hitch> {
+        let mut at = start;
+        let mut failed = 0;
+        loop {
+            match self.pieces_from(name, upload, from, bytes, at) {
+                Err(Hitch::Troubled(_) | Hitch::Unreachable(..)) if failed + 1 < TRIES => {}
+                other => return other,
+            }
+            failed += 1;
+            std::thread::sleep(PAUSE * failed);
+            at = self.got_to(upload).ok_or_else(|| {
+                Hitch::Troubled("OneDrive let the upload lapse before it ended".into())
+            })?;
+        }
+    }
+
+    // The session's own address carries its permission: OneDrive refuses a piece that also brings the token.
+    fn pieces_from(
         &self,
         name: &str,
         upload: &str,
@@ -157,7 +205,7 @@ impl OneDrive {
             let size = self.chunk.min(bytes - at);
             let mut piece = vec![0u8; usize::try_from(size).unwrap_or(usize::MAX)];
             file.read_exact(&mut piece)?;
-            let answer = self
+            let asked = self
                 .http
                 .put(upload)
                 .timeout(given(size))
@@ -166,8 +214,9 @@ impl OneDrive {
                     format!("bytes {at}-{}/{bytes}", at + size - 1),
                 )
                 .body(piece)
-                .send()
+                .build()
                 .map_err(unreachable)?;
+            let answer = self.traced(asked).map_err(unreachable)?;
             at += size;
             match answer.status().as_u16() {
                 202 if at < bytes => {}
