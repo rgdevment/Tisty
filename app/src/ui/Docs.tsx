@@ -8,11 +8,11 @@ import {
   docBack,
   docBackable,
   docExport,
+  docKeepCompacted,
   docLock,
   docOrder,
   docPage,
   docRead,
-  docUnflag,
   docWrite,
   type Filed,
   type Folded,
@@ -20,9 +20,9 @@ import {
   opened,
   type Paper,
   roomy,
+  type Task,
   viewDoc,
 } from "../core";
-import { stamped } from "../format";
 import { laidIn, withLandscape, withPaper, withSheets } from "../front";
 import { keptAll, PASTED_UP_TO } from "../kept";
 import { fill, t } from "../locales";
@@ -31,7 +31,6 @@ import { crowd, MANY, weighed } from "../previews";
 import { saidPlainly } from "../refusal";
 import { busy, holds, queued } from "../saving";
 import { sure } from "../sure";
-import { clientNamed } from "../who";
 import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
 import { blurbing, cardsOf } from "./carding";
@@ -43,6 +42,7 @@ import { pdfOf, signature } from "./printing";
 import Ribbon, { Onward } from "./Ribbon";
 import { acrossOf, PAPER, pageFor, sheetFor } from "./sheets";
 import type { Asking } from "./slashing";
+import { CompactBar, MarkBar } from "./Tidied";
 import { useLeaving } from "./useLeaving";
 import { clearOfChrome } from "./WindowChrome";
 
@@ -98,6 +98,8 @@ interface Props {
   tags?: readonly string[];
   onShown?: (file: string | null) => void;
   onDrop?: (doc: Filed) => void;
+  onDropAll?: (docs: Filed[]) => void;
+  onTask?: (task: Task) => void;
   onBack?: (doc: Filed) => void;
   fresh?: number;
 }
@@ -124,6 +126,8 @@ export default function Docs({
   tags = NO_TAGS,
   onShown,
   onDrop,
+  onDropAll,
+  onTask,
   onBack,
   fresh = 0,
 }: Props) {
@@ -216,9 +220,10 @@ export default function Docs({
   }, [keep, open]);
 
   const [backable, setBackable] = useState(false);
+  const compacted = Boolean(filed(known, open?.file)?.compacted);
 
   useEffect(() => {
-    if (!stirred || !open) {
+    if (!(stirred || compacted) || !open) {
       setBackable(false);
       return;
     }
@@ -233,7 +238,7 @@ export default function Docs({
     return () => {
       mine = false;
     };
-  }, [open, stirred]);
+  }, [open, stirred, compacted]);
 
   const wentBack = useCallback(async () => {
     if (!open) return;
@@ -775,7 +780,7 @@ export default function Docs({
                 ? fill("docCrowded", String(packed))
                 : ""}
         </div>
-        {stirred && !clashed && open && (
+        {stirred && !clashed && !compacted && open && (
           <div
             style={wall}
             className="mx-auto mb-2 flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]"
@@ -849,51 +854,36 @@ export default function Docs({
             )}
           </div>
         )}
-        {own?.flagged && open && !shelved && (
-          <div
+        {own?.compacted && open && !shelved && (
+          <CompactBar
+            own={own}
             style={wall}
-            className="mx-auto mb-2 flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]"
-          >
-            <span className="font-medium text-hue-teal">
-              <span aria-hidden="true">◆ </span>
-              {clientNamed(own.flagged.via)
-                ? fill("docFlaggedBy", clientNamed(own.flagged.via) as string)
-                : t("docFlagged")}
-            </span>
-            <span className="text-faint">{stamped(own.flagged.at)}</span>
-            <button
-              type="button"
-              onClick={() =>
-                docAway(own.id, true)
-                  .then(() => onKept({ id: open.id, title: called }))
-                  .catch((e) => onError(saidPlainly(e)))
-              }
-              className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
-            >
-              {t("putAway")}
-            </button>
-            {onDrop && !own.locked && (
-              <button
-                type="button"
-                onClick={() => onDrop(own)}
-                className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] text-urgent hover:bg-hover"
-              >
-                {t("deleteIt")}
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() =>
-                docUnflag(own.id)
-                  .then(() => onKept({ id: open.id, title: called }))
-                  .catch((e) => onError(saidPlainly(e)))
-              }
-              className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
-            >
-              {t("unflagIt")}
-            </button>
-            <span className="w-full text-soft">{own.flagged.said}</span>
-          </div>
+            backable={backable}
+            onUndo={() => void wentBack()}
+            onKeep={() =>
+              docKeepCompacted(own.id)
+                .then(() => onKept({ id: open.id, title: called }))
+                .catch((e) => onError(saidPlainly(e)))
+            }
+          />
+        )}
+        {own?.flagged && open && !shelved && (
+          <MarkBar
+            own={own}
+            known={known}
+            style={wall}
+            onKept={() => onKept({ id: open.id, title: called })}
+            onError={onError}
+            onAway={() =>
+              docAway(own.id, true)
+                .then(() => onKept({ id: open.id, title: called }))
+                .catch((e) => onError(saidPlainly(e)))
+            }
+            onDrop={onDrop}
+            onDropAll={onDropAll}
+            onDoc={onDoc}
+            onTask={onTask}
+          />
         )}
         {bolted && !shelved && open && (
           <div
