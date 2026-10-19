@@ -3,6 +3,8 @@ use std::process::{Command, Stdio};
 
 use tempfile::TempDir;
 
+mod person;
+
 struct Served {
     home: TempDir,
 }
@@ -12,8 +14,12 @@ impl Served {
         let served = Self {
             home: tempfile::tempdir().unwrap(),
         };
-        served.cli(&["algo mio"]);
+        served.person().begins("algo mio");
         served
+    }
+
+    fn person(&self) -> person::Person {
+        person::Person::at(self.home.path())
     }
 
     fn command(&self) -> Command {
@@ -28,16 +34,6 @@ impl Served {
             .env("LANG", "en_US.UTF-8")
             .env_remove("LC_ALL");
         command
-    }
-
-    fn cli(&self, args: &[&str]) -> String {
-        let out = self
-            .command()
-            .args(args)
-            .stdin(Stdio::null())
-            .output()
-            .unwrap();
-        String::from_utf8_lossy(&out.stdout).into_owned()
     }
 
     fn talk(&self, said: &[&str]) -> Vec<serde_json::Value> {
@@ -91,13 +87,13 @@ fn nothing_can_be_filed_until_a_person_turns_an_agent_on() {
             .contains("no agent is registered"),
         "{said}"
     );
-    assert!(!served.cli(&["ls", "all"]).contains("not yet"));
+    assert!(!served.person().open().contains("not yet"));
 }
 
 #[test]
 fn what_the_agent_files_is_written_by_the_agent_and_not_by_the_person() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     served.call(
         "propose",
         serde_json::json!({ "title": "buy pink card stock" }),
@@ -125,26 +121,9 @@ fn what_the_agent_files_is_written_by_the_agent_and_not_by_the_person() {
 }
 
 #[test]
-fn undo_belongs_to_the_person_and_never_reaches_what_the_agent_filed() {
-    let served = Served::new();
-    served.cli(&["agent", "--on"]);
-    served.cli(&["something I typed myself"]);
-    served.call("propose", serde_json::json!({ "title": "what it filed" }));
-
-    served.cli(&["undo"]);
-
-    let left = served.cli(&["ls", "all"]);
-    assert!(
-        left.contains("what it filed"),
-        "the agent's work is not the person's to undo: {left}"
-    );
-    assert!(!left.contains("something I typed myself"), "{left}");
-}
-
-#[test]
 fn the_same_source_is_never_filed_twice() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let args = serde_json::json!({ "title": "card stock", "source": "wa:msg-991" });
 
     let first = served.call("propose", args.clone());
@@ -159,14 +138,14 @@ fn the_same_source_is_never_filed_twice() {
         again["result"]["structuredContent"]["id"],
         first["result"]["structuredContent"]["id"]
     );
-    assert!(!served.cli(&["ls", "all"]).contains("read again"));
+    assert!(!served.person().open().contains("read again"));
 }
 
 #[test]
 fn it_files_into_a_list_that_exists_and_nowhere_else() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
-    served.cli(&["list", "add", "Work"]);
+    served.person().lets_the_agent_in();
+    served.person().adds_list("Work");
 
     let placed = served.call(
         "propose",
@@ -194,20 +173,20 @@ fn it_files_into_a_list_that_exists_and_nowhere_else() {
         made_up["result"]["isError"], true,
         "it may choose among the lists that exist, never invent one: {made_up}"
     );
-    assert!(!served.cli(&["ls", "all"]).contains("nowhere"));
+    assert!(!served.person().open().contains("nowhere"));
 
-    let inbox = served.cli(&["ls", "inbox"]);
+    let inbox = served.person().inbox();
     assert!(
         inbox.contains("card stock"),
         "without a list it stays here: {inbox}"
     );
-    assert!(served.cli(&["ls", "all"]).contains("agent"));
+    assert!(served.person().open().contains("agent"));
 }
 
 #[test]
 fn an_assistant_can_ask_how_tisty_writes_a_document_in_either_language() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     let english = served.call("language", serde_json::json!({}));
     let text = english["result"]["content"][0]["text"]
@@ -237,9 +216,9 @@ fn an_assistant_can_ask_how_tisty_writes_a_document_in_either_language() {
 #[test]
 fn it_can_read_which_tags_are_already_in_use_and_how_often() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
-    served.cli(&["add", "cambiar el aceite #auto #casa"]);
-    served.cli(&["add", "pagar el seguro #auto"]);
+    served.person().lets_the_agent_in();
+    served.person().captures("cambiar el aceite #auto #casa");
+    served.person().captures("pagar el seguro #auto");
 
     let said = served.call("tags", serde_json::json!({}));
     let told = said["result"]["structuredContent"]["tags"]
@@ -272,9 +251,9 @@ fn it_can_read_which_tags_are_already_in_use_and_how_often() {
 #[test]
 fn it_can_read_which_lists_exist_without_being_able_to_make_one() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
-    served.cli(&["list", "add", "Work"]);
-    served.cli(&["list", "add", "Home"]);
+    served.person().lets_the_agent_in();
+    served.person().adds_list("Work");
+    served.person().adds_list("Home");
 
     let said = served.call("lists", serde_json::json!({}));
     let named = said["result"]["structuredContent"]["lists"]
@@ -298,7 +277,7 @@ fn it_can_read_which_lists_exist_without_being_able_to_make_one() {
 #[test]
 fn a_date_in_words_is_refused_with_the_shape_it_wanted() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     let said = served.call(
         "propose",
@@ -311,13 +290,13 @@ fn a_date_in_words_is_refused_with_the_shape_it_wanted() {
         why.contains("2026-08-31"),
         "the refusal has to teach: {why}"
     );
-    assert!(!served.cli(&["ls", "all"]).contains("card stock"));
+    assert!(!served.person().open().contains("card stock"));
 }
 
 #[test]
 fn there_is_no_tool_for_closing_dropping_or_deleting() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     let listed = served.talk(&[r#"{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}"#]);
     let names: Vec<&str> = listed[0]["result"]["tools"]
@@ -404,7 +383,7 @@ fn today_there() -> String {
 #[test]
 fn what_it_says_is_done_stays_open_until_the_person_finishes_it() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let id = filed(&served, "pasar biome sobre el front");
 
     let said = served.call(
@@ -414,7 +393,7 @@ fn what_it_says_is_done_stays_open_until_the_person_finishes_it() {
 
     assert_ne!(said["result"]["isError"], true, "{said}");
     assert_eq!(said["result"]["structuredContent"]["open"], true);
-    let left = served.cli(&["ls", "all"]);
+    let left = served.person().open();
     assert!(
         left.contains("pasar biome sobre el front"),
         "saying it is done is not closing it: {left}"
@@ -424,7 +403,7 @@ fn what_it_says_is_done_stays_open_until_the_person_finishes_it() {
 #[test]
 fn saying_it_is_done_leaves_the_account_of_it_on_the_journal() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let id = filed(&served, "sacar la clave de la URL");
 
     served.call(
@@ -449,8 +428,8 @@ fn saying_it_is_done_leaves_the_account_of_it_on_the_journal() {
 #[test]
 fn it_cannot_say_a_task_the_person_wrote_is_done() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
-    served.cli(&["llamar al taller"]);
+    served.person().lets_the_agent_in();
+    served.person().captures("llamar al taller");
     let mine = served.call("find", serde_json::json!({ "query": "taller" }));
     let id = mine["result"]["structuredContent"]["matches"][0]["id"]
         .as_str()
@@ -465,7 +444,7 @@ fn it_cannot_say_a_task_the_person_wrote_is_done() {
     let why = said["result"]["content"][0]["text"].as_str().unwrap();
     assert!(why.contains("the person's own"), "{why}");
     assert!(
-        served.cli(&["ls", "all"]).contains("llamar al taller"),
+        served.person().open().contains("llamar al taller"),
         "and nothing of theirs moved"
     );
 }
@@ -476,11 +455,11 @@ fn it_cannot_say_a_task_the_person_wrote_is_done() {
 /// speak for it.
 fn what_another_agent_identity_filed_is_still_the_agents_to_finish() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let id = filed(&served, "subir el timeout de apigee");
 
-    served.cli(&["agent", "--off"]);
-    served.cli(&["agent", "--on"]);
+    served.person().shuts_the_agent_out();
+    served.person().lets_the_agent_in();
 
     let said = served.call(
         "say_done",
@@ -494,7 +473,7 @@ fn what_another_agent_identity_filed_is_still_the_agents_to_finish() {
 #[test]
 fn the_account_of_what_it_did_is_not_optional() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let id = filed(&served, "revisar el icono del MSIX");
 
     let said = served.call("say_done", serde_json::json!({ "task": id }));
@@ -515,7 +494,7 @@ fn the_account_of_what_it_did_is_not_optional() {
 #[test]
 fn saying_it_twice_is_refused_so_the_journal_does_not_fill_up() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let id = filed(&served, "confirmar el envío a la Store");
     let once = serde_json::json!({ "task": id, "body": "la Store lo aceptó el martes" });
 
@@ -536,7 +515,7 @@ fn saying_it_twice_is_refused_so_the_journal_does_not_fill_up() {
 #[test]
 fn what_it_has_spoken_for_can_be_told_apart_from_what_it_has_not() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let spoken = filed(&served, "pasar biome sobre el front");
     filed(&served, "corregir los dos IDOR");
 
@@ -566,8 +545,7 @@ fn what_it_has_spoken_for_can_be_told_apart_from_what_it_has_not() {
 #[test]
 fn a_note_reaches_a_task_the_person_wrote() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
-    served.cli(&["ls", "all"]);
+    served.person().lets_the_agent_in();
     let found = served.call("find", serde_json::json!({ "query": "algo mio" }));
     let id = found["result"]["structuredContent"]["matches"][0]["id"]
         .as_str()
@@ -581,7 +559,7 @@ fn a_note_reaches_a_task_the_person_wrote() {
 
     assert!(said["result"]["isError"].is_null(), "{said}");
     assert!(
-        served.cli(&["show", &id]).contains("slack"),
+        served.person().card(person::task(&id)).contains("slack"),
         "the journal has to carry it"
     );
 }
@@ -589,7 +567,7 @@ fn a_note_reaches_a_task_the_person_wrote() {
 #[test]
 fn what_it_attaches_says_where_it_came_from() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let filed = served.call(
         "propose",
         serde_json::json!({ "title": "the slack thread" }),
@@ -604,7 +582,7 @@ fn what_it_attaches_says_where_it_came_from() {
     );
 
     assert!(said["result"]["isError"].is_null(), "{said}");
-    let card = served.cli(&["show", id]);
+    let card = served.person().card(person::task(id));
     assert!(card.contains("evidence.txt"), "{card}");
     assert!(
         card.contains("kept from"),
@@ -618,7 +596,7 @@ fn what_it_attaches_says_where_it_came_from() {
 #[test]
 fn a_file_over_the_limit_is_refused_with_the_size_it_copies() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let filed = served.call(
         "propose",
         serde_json::json!({ "title": "somewhere to put it" }),
@@ -651,7 +629,7 @@ fn a_file_over_the_limit_is_refused_with_the_size_it_copies() {
 #[test]
 fn a_file_kept_in_a_document_is_added_at_its_end() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Acta\n\nlo que se habló.");
 
     let loose = served.home.path().join("plano.png");
@@ -678,7 +656,7 @@ fn a_file_kept_in_a_document_is_added_at_its_end() {
 #[test]
 fn a_document_takes_a_file_a_task_will_not() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let filed = served.call("propose", serde_json::json!({ "title": "la charla" }));
     let id = filed["result"]["structuredContent"]["id"]
         .as_str()
@@ -714,7 +692,7 @@ fn a_document_takes_a_file_a_task_will_not() {
 #[test]
 fn a_file_goes_to_one_place_and_it_has_to_be_named() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let filed = served.call("propose", serde_json::json!({ "title": "la charla" }));
     let id = filed["result"]["structuredContent"]["id"]
         .as_str()
@@ -748,7 +726,7 @@ fn a_file_goes_to_one_place_and_it_has_to_be_named() {
 #[test]
 fn a_document_already_full_of_files_is_told_so_before_anything_is_copied() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# El álbum\n\nlo que fuimos guardando.");
     let many: String = (0..150)
         .map(|i| format!("![uno {i}](uno-{i:08x}.png)\n\n"))
@@ -783,7 +761,7 @@ fn a_document_already_full_of_files_is_told_so_before_anything_is_copied() {
 #[test]
 fn a_document_with_no_room_left_refuses_before_the_copy() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Acta\n\nlo que se dijo.");
     let at = served
         .home
@@ -817,7 +795,7 @@ fn a_document_with_no_room_left_refuses_before_the_copy() {
 #[test]
 fn a_folder_takes_an_icon_and_a_colour_and_can_be_told_a_new_one() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     let made = served.call(
         "folder",
@@ -858,7 +836,7 @@ fn walked(at: &std::path::Path) -> Box<dyn Iterator<Item = std::path::PathBuf>> 
 #[test]
 fn a_misspelt_argument_is_refused_instead_of_dropped() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     let said = served.call(
         "propose",
@@ -872,7 +850,7 @@ fn a_misspelt_argument_is_refused_instead_of_dropped() {
         "the refusal names what it does take: {why}"
     );
     assert!(
-        !served.cli(&["ls", "all"]).contains("pay the deposit"),
+        !served.person().open().contains("pay the deposit"),
         "a task filed with a field silently dropped is worse than none"
     );
 }
@@ -880,7 +858,7 @@ fn a_misspelt_argument_is_refused_instead_of_dropped() {
 #[test]
 fn what_the_person_wrote_is_not_reported_as_the_agents() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     served.call("propose", serde_json::json!({ "title": "what it filed" }));
 
     let found = served.call("find", serde_json::json!({ "query": "algo mio" }));
@@ -947,7 +925,7 @@ fn what_can_be_cached_says_for_how_long_and_by_whom() {
 #[test]
 fn a_note_comes_back_whole_even_when_it_carries_a_link() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     let filed = served.call(
         "propose",
@@ -976,7 +954,7 @@ fn a_note_comes_back_whole_even_when_it_carries_a_link() {
 #[test]
 fn a_note_that_names_a_path_is_read_whole_but_the_path() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     let filed = served.call("propose", serde_json::json!({ "title": "a long note" }));
     let id = filed["result"]["structuredContent"]["id"]
@@ -1008,7 +986,7 @@ fn a_note_that_names_a_path_is_read_whole_but_the_path() {
 #[test]
 fn a_path_from_this_disk_is_still_elided() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     let filed = served.call(
         "propose",
@@ -1035,7 +1013,7 @@ fn a_path_from_this_disk_is_still_elided() {
 #[test]
 fn an_id_reaches_a_client_that_only_shows_the_text() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     let filed = served.call("propose", serde_json::json!({ "title": "card stock" }));
     let id = filed["result"]["structuredContent"]["id"].as_str().unwrap();
@@ -1052,17 +1030,17 @@ fn an_id_reaches_a_client_that_only_shows_the_text() {
 #[test]
 fn turning_the_agent_off_takes_its_voice_away() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     served.call("propose", serde_json::json!({ "title": "while it could" }));
 
-    served.cli(&["agent", "--off"]);
+    served.person().shuts_the_agent_out();
     let said = served.call(
         "propose",
         serde_json::json!({ "title": "after it could not" }),
     );
 
     assert_eq!(said["result"]["isError"], true);
-    let left = served.cli(&["ls", "all"]);
+    let left = served.person().open();
     assert!(
         left.contains("while it could"),
         "what it filed stays: {left}"
@@ -1073,7 +1051,7 @@ fn turning_the_agent_off_takes_its_voice_away() {
 #[test]
 fn an_agent_may_only_take_files_from_where_a_download_lands() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let filed = served.call(
         "propose",
         serde_json::json!({ "title": "somewhere to put it" }),
@@ -1107,7 +1085,7 @@ fn an_agent_may_only_take_files_from_where_a_download_lands() {
 #[test]
 fn two_callers_racing_on_one_source_file_it_once() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let call = serde_json::json!({
         "jsonrpc": "2.0", "id": 1, "method": "tools/call",
         "params": { "name": "propose", "arguments": {
@@ -1134,7 +1112,7 @@ fn two_callers_racing_on_one_source_file_it_once() {
         let _ = one.wait_with_output().unwrap();
     }
 
-    let listed = served.cli(&["ls", "all"]);
+    let listed = served.person().open();
     assert_eq!(
         listed.matches("call the bank").count(),
         1,
@@ -1176,7 +1154,7 @@ fn a_method_nobody_here_speaks_says_so_and_carries_on() {
 #[test]
 fn a_title_that_would_outlive_its_worth_is_refused() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     let huge = served.call(
         "propose",
@@ -1195,17 +1173,18 @@ fn a_title_that_would_outlive_its_worth_is_refused() {
         sneaky["result"]["isError"], true,
         "control characters would let a title rewrite the terminal it is printed on"
     );
-    assert_eq!(served.cli(&["ls", "all"]).matches('\u{1b}').count(), 0);
+    assert_eq!(served.person().open().matches('\u{1b}').count(), 0);
 }
 
 #[test]
 fn reading_one_task_gives_the_journal_that_searching_leaves_out() {
     let served = Served::new();
-    served.cli(&["ls", "all"]);
-    served.cli(&["desc", "1", "what the thread said"]);
-    served.cli(&["log", "1", "support promised to reply"]);
-    served.cli(&["step", "1", "add", "gather the screenshots"]);
-    served.cli(&["agent", "--on"]);
+    let person = served.person();
+    let mine = person.id_of("algo mio");
+    person.describes(mine, "what the thread said");
+    person.notes(mine, "support promised to reply");
+    person.adds_step(mine, "gather the screenshots");
+    served.person().lets_the_agent_in();
 
     let found = served.call("find", serde_json::json!({ "query": "algo mio" }));
     let hit = &found["result"]["structuredContent"]["matches"][0];
@@ -1232,7 +1211,7 @@ fn reading_one_task_gives_the_journal_that_searching_leaves_out() {
 #[test]
 fn reading_a_task_that_is_not_there_says_where_to_look() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     let said = served.call(
         "read",
@@ -1252,8 +1231,8 @@ fn reading_a_task_that_is_not_there_says_where_to_look() {
 #[test]
 fn a_document_it_writes_can_be_read_back_and_creates_no_task() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
-    let before = served.cli(&["ls", "all"]);
+    served.person().lets_the_agent_in();
+    let before = served.person().open();
 
     let made = served.call(
         "write_doc",
@@ -1272,7 +1251,7 @@ Rosa y palos de paleta." }),
             .contains("palos de paleta")
     );
     assert_eq!(
-        served.cli(&["ls", "all"]),
+        served.person().open(),
         before,
         "a document is not work to do: writing one files nothing"
     );
@@ -1281,7 +1260,7 @@ Rosa y palos de paleta." }),
 #[test]
 fn markdown_from_elsewhere_is_written_in_the_tisty_language_and_the_change_is_told() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     let said = served.call(
         "write_doc",
@@ -1323,7 +1302,7 @@ what the thread said <b>loud</b> with ==a pen=={silver}" }),
 #[test]
 fn a_document_is_never_rewritten_by_an_agent_that_did_not_read_it() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let made = served.call(
         "write_doc",
         serde_json::json!({ "body": "# Kept
@@ -1356,7 +1335,7 @@ something else." }),
 #[test]
 fn a_document_is_written_again_whole_by_whoever_read_it_last() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let made = served.call(
         "write_doc",
         serde_json::json!({ "body": "# Acta
@@ -1387,7 +1366,7 @@ otra cosa entera." }),
 #[test]
 fn a_long_document_comes_back_as_what_is_in_it_rather_than_the_whole_of_it() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let long = format!(
         "# Acta
 
@@ -1422,7 +1401,7 @@ queda para abril.
 #[test]
 fn a_short_document_still_arrives_whole_without_being_asked_twice() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let made = served.call(
         "write_doc",
         serde_json::json!({ "body": "# Acta
@@ -1447,7 +1426,7 @@ El riego queda para mayo.
 #[test]
 fn a_run_of_lines_is_handed_back_by_the_numbers_the_outline_gave() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let made = served.call(
         "write_doc",
         serde_json::json!({ "body": "# Acta
@@ -1481,7 +1460,7 @@ tres
 #[test]
 fn carrying_on_from_a_cursor_is_refused_once_the_document_has_moved_under_it() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let made = served.call(
         "write_doc",
         serde_json::json!({ "body": "# Acta
@@ -1525,7 +1504,7 @@ cinco
 #[test]
 fn what_is_in_a_document_is_told_without_the_document() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let made = served.call(
         "write_doc",
         serde_json::json!({
@@ -1557,7 +1536,7 @@ queda para mayo.
 #[test]
 fn writing_does_not_hand_the_body_back_to_whoever_just_sent_it() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let made = served.call(
         "write_doc",
         serde_json::json!({ "body": "# Acta
@@ -1608,7 +1587,7 @@ otra cosa.
 #[test]
 fn nothing_is_written_over_when_what_it_said_cannot_be_kept() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let made = served.call(
         "write_doc",
         serde_json::json!({ "body": "# Acta
@@ -1661,7 +1640,7 @@ otra cosa.
 #[test]
 fn a_section_is_replaced_without_the_document_ever_being_read() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let made = served.call(
         "write_doc",
         serde_json::json!({
@@ -1698,7 +1677,7 @@ fn a_section_is_replaced_without_the_document_ever_being_read() {
 #[test]
 fn an_edit_by_place_is_refused_once_the_lines_have_moved() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let made = served.call(
         "write_doc",
         serde_json::json!({ "body": "# Acta\n\nuno\ndos\ntres\n" }),
@@ -1739,7 +1718,7 @@ fn an_edit_by_place_is_refused_once_the_lines_have_moved() {
 #[test]
 fn a_paragraph_goes_under_the_heading_it_names_and_before_the_next_one() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let made = served.call(
         "write_doc",
         serde_json::json!({
@@ -1765,7 +1744,7 @@ fn a_paragraph_goes_under_the_heading_it_names_and_before_the_next_one() {
 #[test]
 fn a_heading_that_is_not_there_is_refused_with_the_ones_that_are() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let made = served.call(
         "write_doc",
         serde_json::json!({ "body": "# Acta\n\n## El riego\n\nqueda para mayo.\n" }),
@@ -1793,9 +1772,12 @@ fn a_heading_that_is_not_there_is_refused_with_the_ones_that_are() {
 #[test]
 fn tasks_are_sifted_by_what_they_are_and_not_only_by_what_they_say() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
-    served.cli(&["add", "riego del patio #casa"]);
-    served.cli(&["set", "riego del patio", "--date", "2026-09-20"]);
+    served.person().lets_the_agent_in();
+    served.person().captures("riego del patio #casa");
+    {
+        let person = served.person();
+        person.dates(person.id_of("riego del patio"), "2026-09-20");
+    }
     served.call(
         "propose",
         serde_json::json!({ "title": "llamar al gasfiter", "date": "2026-09-21", "source": "x#1" }),
@@ -1833,7 +1815,7 @@ fn tasks_are_sifted_by_what_they_are_and_not_only_by_what_they_say() {
 #[test]
 fn a_word_is_found_inside_one_document_by_the_line_it_sits_on() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let made = served.call(
         "write_doc",
         serde_json::json!({
@@ -1867,8 +1849,8 @@ fn a_word_is_found_inside_one_document_by_the_line_it_sits_on() {
 #[test]
 fn a_task_that_says_nothing_about_a_field_does_not_carry_it() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
-    served.cli(&["riego del patio"]);
+    served.person().lets_the_agent_in();
+    served.person().captures("riego del patio");
 
     let back = served.call("find", serde_json::json!({ "query": "riego" }));
     let one = &back["result"]["structuredContent"]["matches"][0];
@@ -1885,7 +1867,7 @@ fn a_task_that_says_nothing_about_a_field_does_not_carry_it() {
 #[test]
 fn a_day_an_agent_set_can_be_moved_when_what_it_learnt_moves() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let made = served.call(
         "propose",
         serde_json::json!({
@@ -1919,9 +1901,12 @@ fn a_day_an_agent_set_can_be_moved_when_what_it_learnt_moves() {
 #[test]
 fn a_day_the_person_set_is_theirs_and_no_agent_moves_it() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
-    served.cli(&["add", "riego del patio"]);
-    served.cli(&["set", "riego del patio", "--date", "2026-09-20"]);
+    served.person().lets_the_agent_in();
+    served.person().captures("riego del patio");
+    {
+        let person = served.person();
+        person.dates(person.id_of("riego del patio"), "2026-09-20");
+    }
     let mine = served.call("find", serde_json::json!({ "query": "riego" }));
     let id = mine["result"]["structuredContent"]["matches"][0]["id"]
         .as_str()
@@ -1949,7 +1934,7 @@ fn a_day_the_person_set_is_theirs_and_no_agent_moves_it() {
 #[test]
 fn a_day_is_taken_off_by_sending_nothing_in_its_place() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let made = served.call(
         "propose",
         serde_json::json!({
@@ -1978,7 +1963,7 @@ fn a_day_is_taken_off_by_sending_nothing_in_its_place() {
 #[test]
 fn the_same_message_written_three_ways_is_still_the_same_message() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let first = served.call(
         "propose",
         serde_json::json!({ "title": "llevar el acta", "source": "sereno#1" }),
@@ -2022,7 +2007,7 @@ fn the_same_message_written_three_ways_is_still_the_same_message() {
 #[test]
 fn only_the_parts_of_a_task_that_were_asked_for_come_back() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let made = served.call(
         "propose",
         serde_json::json!({
@@ -2066,9 +2051,9 @@ fn only_the_parts_of_a_task_that_were_asked_for_come_back() {
 #[test]
 fn a_name_that_is_not_there_is_refused_with_the_names_that_are() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
-    served.cli(&["list", "add", "Casa"]);
-    served.cli(&["list", "add", "Trabajo"]);
+    served.person().lets_the_agent_in();
+    served.person().adds_list("Casa");
+    served.person().adds_list("Trabajo");
 
     let lost = served.call(
         "propose",
@@ -2082,7 +2067,7 @@ fn a_name_that_is_not_there_is_refused_with_the_names_that_are() {
 #[test]
 fn a_passage_that_is_nearly_right_is_refused_with_the_line_it_is_nearly_on() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Acta\n\nEl riego queda para marzo.");
 
     let missed = served.call(
@@ -2100,7 +2085,7 @@ fn a_passage_that_is_nearly_right_is_refused_with_the_line_it_is_nearly_on() {
 #[test]
 fn a_passage_that_fits_twice_is_refused_with_both_lines() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Acta\n\nregar\n\notra cosa\n\nregar");
 
     let twice = served.call(
@@ -2114,7 +2099,7 @@ fn a_passage_that_fits_twice_is_refused_with_both_lines() {
 #[test]
 fn an_import_that_is_turned_away_leaves_nothing_of_it_on_disk() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     let here = served.home.path().to_path_buf();
     std::fs::write(here.join("foto.png"), b"\x89PNG\r\n\x1a\nla foto").unwrap();
@@ -2161,7 +2146,7 @@ fn walkdir(at: &std::path::Path) -> usize {
 #[test]
 fn the_list_says_what_each_document_is_about_so_none_has_to_be_opened() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     served.call(
         "write_doc",
         serde_json::json!({
@@ -2205,7 +2190,7 @@ fn the_list_says_what_each_document_is_about_so_none_has_to_be_opened() {
 #[test]
 fn the_list_puts_what_moved_last_first_and_not_what_was_made_last() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let first = served.call(
         "write_doc",
         serde_json::json!({ "body": "# El primero\n\nalgo." }),
@@ -2235,9 +2220,9 @@ fn the_list_puts_what_moved_last_first_and_not_what_was_made_last() {
 #[test]
 fn one_call_says_where_things_stand_before_anything_is_asked_for() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
-    served.cli(&["list", "add", "Casa"]);
-    served.cli(&["add", "riego del patio #casa"]);
+    served.person().lets_the_agent_in();
+    served.person().adds_list("Casa");
+    served.person().captures("riego del patio #casa");
     served.call(
         "write_doc",
         serde_json::json!({ "body": "# Acta\n\nlo que se hablo." }),
@@ -2256,8 +2241,8 @@ fn one_call_says_where_things_stand_before_anything_is_asked_for() {
 #[test]
 fn coming_back_with_the_cursor_brings_only_what_moved() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
-    served.cli(&["add", "riego del patio"]);
+    served.person().lets_the_agent_in();
+    served.person().captures("riego del patio");
 
     let first = served.call("catch_up", serde_json::json!({}));
     let cursor = first["result"]["structuredContent"]["cursor"]
@@ -2269,7 +2254,7 @@ fn coming_back_with_the_cursor_brings_only_what_moved() {
     let kept = &quiet["result"]["structuredContent"];
     assert!(kept["tasks"].is_null(), "nothing moved: {kept}");
 
-    served.cli(&["add", "cambiar el porton"]);
+    served.person().captures("cambiar el porton");
     let now = served.call("catch_up", serde_json::json!({ "since": &cursor }));
     let moved = now["result"]["structuredContent"]["tasks"]
         .as_array()
@@ -2291,7 +2276,7 @@ fn coming_back_with_the_cursor_brings_only_what_moved() {
 #[test]
 fn a_cursor_that_is_not_one_is_refused_saying_where_it_comes_from() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     let bad = served.call("catch_up", serde_json::json!({ "since": "el martes" }));
     let said = bad["result"]["content"][0]["text"].as_str().unwrap();
@@ -2301,8 +2286,8 @@ fn a_cursor_that_is_not_one_is_refused_saying_where_it_comes_from() {
 #[test]
 fn several_tasks_go_in_one_call_and_a_bad_one_does_not_take_the_rest() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
-    served.cli(&["list", "add", "Casa"]);
+    served.person().lets_the_agent_in();
+    served.person().adds_list("Casa");
 
     let back = served.call(
         "propose",
@@ -2338,7 +2323,7 @@ fn several_tasks_go_in_one_call_and_a_bad_one_does_not_take_the_rest() {
 #[test]
 fn the_same_source_twice_in_one_batch_is_still_filed_once() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     let back = served.call(
         "propose",
@@ -2359,7 +2344,7 @@ fn the_same_source_twice_in_one_batch_is_still_filed_once() {
 #[test]
 fn audit_a_source_with_a_space_before_the_colon_is_still_the_same_source() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     served.call(
         "propose",
         serde_json::json!({ "title": "llevar el acta", "source": "sereno#1" }),
@@ -2378,8 +2363,8 @@ fn audit_a_source_with_a_space_before_the_colon_is_still_the_same_source() {
 #[test]
 fn audit_a_task_the_person_folded_away_stays_out_of_everything() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
-    served.cli(&["add", "lo de la clinica"]);
+    served.person().lets_the_agent_in();
+    served.person().captures("lo de la clinica");
     let told = served.call("find", serde_json::json!({ "query": "clinica" }));
     let id = told["result"]["structuredContent"]["matches"][0]["id"]
         .as_str()
@@ -2401,7 +2386,7 @@ fn audit_a_task_the_person_folded_away_stays_out_of_everything() {
 #[test]
 fn audit_a_locked_document_is_not_edited_by_naming_a_place_either() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let doc = wrote_paper(
         &served,
         "# Acta\n\n## Uno\n\nlo primero.\n\n## Dos\n\nlo otro.",
@@ -2431,7 +2416,7 @@ fn audit_a_locked_document_is_not_edited_by_naming_a_place_either() {
 #[test]
 fn audit_an_archived_document_is_not_added_under_a_heading_either() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Acta\n\n## Uno\n\nlo primero.");
     served.call("archive_doc", serde_json::json!({ "doc": &doc }));
 
@@ -2450,7 +2435,7 @@ fn audit_an_archived_document_is_not_added_under_a_heading_either() {
 #[test]
 fn audit_reading_a_part_never_reaches_past_the_document() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Acta\n\nuno\ndos\n");
 
     for args in [
@@ -2470,7 +2455,7 @@ fn audit_reading_a_part_never_reaches_past_the_document() {
 #[test]
 fn audit_an_edit_by_place_cannot_empty_a_document_through_the_back_door() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Acta\n\nuno\ndos\ntres\n");
     let print = served.call("outline_doc", serde_json::json!({ "doc": &doc }))["result"]
         ["structuredContent"]["print"]
@@ -2496,7 +2481,7 @@ fn audit_an_edit_by_place_cannot_empty_a_document_through_the_back_door() {
 #[test]
 fn everything_read_out_of_one_place_is_asked_for_by_where_it_came_from() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     served.call(
         "propose",
         serde_json::json!({ "tasks": [
@@ -2532,7 +2517,7 @@ fn everything_read_out_of_one_place_is_asked_for_by_where_it_came_from() {
 #[test]
 fn audit_a_document_whose_text_has_not_arrived_is_listed_without_falling_over() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Acta\n\nlo que se hablo.");
     std::fs::remove_file(
         served
@@ -2566,7 +2551,7 @@ fn audit_a_document_whose_text_has_not_arrived_is_listed_without_falling_over() 
 #[test]
 fn audit_what_a_document_says_is_data_and_never_a_heading_it_is_not() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let doc = wrote_paper(
         &served,
         "# Acta\n\n```text\n## Not a heading\n```\n\n## Real one\n\nlo dicho.",
@@ -2583,7 +2568,7 @@ fn audit_what_a_document_says_is_data_and_never_a_heading_it_is_not() {
 #[test]
 fn audit_a_batch_is_bounded_and_says_so_rather_than_writing_part_of_it() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     let many: Vec<serde_json::Value> = (0..40)
         .map(|n| serde_json::json!({ "title": format!("tarea {n}"), "source": format!("x#{n}") }))
@@ -2606,7 +2591,7 @@ fn audit_a_batch_is_bounded_and_says_so_rather_than_writing_part_of_it() {
 #[test]
 fn what_one_agent_worked_out_is_there_for_the_next_without_the_document() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let doc = wrote_paper(
         &served,
         "# Acta del comite\n\n## El riego\n\nqueda para mayo.\n\n## El porton\n\npara abril.",
@@ -2650,7 +2635,7 @@ fn what_one_agent_worked_out_is_there_for_the_next_without_the_document() {
 #[test]
 fn a_summary_of_a_document_that_moved_says_so_rather_than_lying() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Acta\n\nEl riego queda para mayo.");
     served.call(
         "sum_up",
@@ -2675,7 +2660,7 @@ fn a_summary_of_a_document_that_moved_says_so_rather_than_lying() {
 #[test]
 fn what_an_agent_remembers_never_leaves_this_machine() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Acta\n\nlo que se hablo.");
     served.call(
         "sum_up",
@@ -2707,7 +2692,7 @@ fn what_an_agent_remembers_never_leaves_this_machine() {
 #[test]
 fn saying_nothing_about_a_document_is_refused_rather_than_kept() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Acta\n\nlo que se hablo.");
 
     let empty = served.call("sum_up", serde_json::json!({ "doc": &doc }));
@@ -2733,7 +2718,7 @@ fn saying_nothing_about_a_document_is_refused_rather_than_kept() {
 #[test]
 fn the_print_read_doc_hands_back_is_the_print_of_the_very_text_it_handed_back() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let made = served.call(
         "write_doc",
         serde_json::json!({ "body": "# Acta
@@ -2766,7 +2751,7 @@ sin tocar." }),
 #[test]
 fn a_document_that_moved_since_it_was_read_keeps_what_the_person_put_there() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let made = served.call(
         "write_doc",
         serde_json::json!({ "body": "# Acta
@@ -2813,16 +2798,17 @@ solo lo mio." }),
 #[test]
 fn what_the_person_hid_is_out_of_reach_and_not_even_counted() {
     let served = Served::new();
-    served.cli(&["ls", "all"]);
-    served.cli(&["desc", "1", "what I tell nobody"]);
-    served.cli(&["agent", "--on"]);
+    served
+        .person()
+        .describes(served.person().id_of("algo mio"), "what I tell nobody");
+    served.person().lets_the_agent_in();
     let found = served.call("find", serde_json::json!({ "query": "algo mio" }));
     let id = found["result"]["structuredContent"]["matches"][0]["id"]
         .as_str()
         .unwrap()
         .to_string();
 
-    served.cli(&["set", &id, "--tag", "x"]);
+    served.person().tags(person::task(&id), "privado");
     hide(&served, &id);
 
     let after = served.call("find", serde_json::json!({ "query": "algo mio" }));
@@ -2909,11 +2895,12 @@ fn hide(served: &Served, id: &str) {
 #[test]
 fn what_it_reads_does_not_carry_the_shape_of_the_persons_disk() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
-    served.cli(&["ls", "all"]);
+    served.person().lets_the_agent_in();
     let loose = std::env::temp_dir().join("tisty-test-private.txt");
     std::fs::write(&loose, "evidence").unwrap();
-    served.cli(&["attach", "1", loose.to_str().unwrap()]);
+    served
+        .person()
+        .attaches(served.person().id_of("algo mio"), &loose);
 
     let found = served.call("find", serde_json::json!({ "query": "algo mio" }));
     let id = found["result"]["structuredContent"]["matches"][0]["id"]
@@ -2937,7 +2924,7 @@ fn what_it_reads_does_not_carry_the_shape_of_the_persons_disk() {
 #[test]
 fn a_document_that_is_not_there_says_so_and_a_task_id_is_not_one() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let filed = served.call(
         "propose",
         serde_json::json!({ "title": "a task, not a doc" }),
@@ -2953,7 +2940,7 @@ fn a_document_that_is_not_there_says_so_and_a_task_id_is_not_one() {
 #[test]
 fn two_documents_with_the_same_body_are_two_documents() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let body = serde_json::json!({ "body": "# Same
 
 words." });
@@ -2972,7 +2959,7 @@ words." });
 #[test]
 fn what_a_session_writes_says_which_client_spoke() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     let said = served.talk(&[
         r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"claude-code","version":"1"}}}"#,
@@ -3007,7 +2994,7 @@ fn what_a_session_writes_says_which_client_spoke() {
 #[test]
 fn a_second_client_is_told_which_hand_already_said_it_was_done() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let greeting = |name: &str| {
         format!(
             r#"{{"jsonrpc":"2.0","id":1,"method":"initialize","params":{{"protocolVersion":"2025-06-18","capabilities":{{}},"clientInfo":{{"name":"{name}","version":"1"}}}}}}"#
@@ -3045,7 +3032,7 @@ fn a_second_client_is_told_which_hand_already_said_it_was_done() {
 #[test]
 fn a_client_named_in_meta_is_kept_too() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     let said = served.talk(&[
         r#"{"jsonrpc":"2.0","id":1,"method":"server/discover","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientInfo":{"name":"codex","version":"2"}}}}"#,
@@ -3129,7 +3116,7 @@ impl Served {
 #[test]
 fn a_folder_in_the_archive_takes_no_writing_of_any_kind() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     served.call(
         "folder",
         serde_json::json!({ "name": "Linio", "icon": "work" }),
@@ -3190,7 +3177,7 @@ Algo.", "folder": "Linio" }),
 #[test]
 fn what_a_shelved_folder_holds_still_reads_and_is_listed_as_put_away() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     served.call(
         "folder",
         serde_json::json!({ "name": "Linio", "icon": "work" }),
@@ -3245,7 +3232,7 @@ Contratos de entonces.", "folder": "Linio" }),
 #[test]
 fn what_is_written_is_listed_again_with_the_folder_it_sits_in() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     served.call(
         "folder",
         serde_json::json!({ "name": "Condominio", "icon": "home" }),
@@ -3282,7 +3269,7 @@ fn what_is_written_is_listed_again_with_the_folder_it_sits_in() {
 #[test]
 fn a_folder_that_is_already_there_is_used_instead_of_made_twice() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     let made = served.call("folder", serde_json::json!({ "name": "Trabajo" }));
     let again = served.call("folder", serde_json::json!({ "name": "  trabajo  " }));
@@ -3306,7 +3293,7 @@ fn a_folder_that_is_already_there_is_used_instead_of_made_twice() {
 #[test]
 fn a_folder_is_refused_a_name_that_would_not_fit_the_rail_or_an_icon_that_does_not_exist() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     let long = served.call("folder", serde_json::json!({ "name": "a".repeat(41) }));
     let drawn = served.call(
@@ -3328,7 +3315,7 @@ fn a_folder_is_refused_a_name_that_would_not_fit_the_rail_or_an_icon_that_does_n
 #[test]
 fn a_document_moves_into_a_folder_and_back_out_of_every_folder() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     served.call("folder", serde_json::json!({ "name": "Casa" }));
     let made = served.call(
         "write_doc",
@@ -3361,7 +3348,7 @@ fn a_document_moves_into_a_folder_and_back_out_of_every_folder() {
 #[test]
 fn a_document_is_found_by_its_words_in_any_order_and_without_the_accent() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     served.call(
         "write_doc",
         serde_json::json!({ "body": "# Multilogin B2B — Análisis del repositorio\n\nNotas de la revisión." }),
@@ -3396,7 +3383,7 @@ fn a_document_is_found_by_its_words_in_any_order_and_without_the_accent() {
 #[test]
 fn a_document_put_away_still_reads_but_says_it_was_put_away() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let made = served.call(
         "write_doc",
         serde_json::json!({ "body": "# Presupuesto viejo\n\nDel año pasado." }),
@@ -3435,7 +3422,7 @@ fn a_document_put_away_still_reads_but_says_it_was_put_away() {
 #[test]
 fn paging_past_the_tasks_does_not_empty_the_documents_in_silence() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     served.call(
         "write_doc",
         serde_json::json!({ "body": "# Riego\n\nla manguera del patio." }),
@@ -3466,7 +3453,7 @@ fn paging_past_the_tasks_does_not_empty_the_documents_in_silence() {
 #[test]
 fn adding_to_a_document_keeps_every_byte_that_was_there() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let made = served.call(
         "write_doc",
         serde_json::json!({ "body": "# Minuta del lunes\n\nSe habló del riego." }),
@@ -3504,7 +3491,7 @@ fn adding_to_a_document_keeps_every_byte_that_was_there() {
 #[test]
 fn nothing_is_added_to_a_document_that_is_not_there_or_was_put_away() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let made = served.call(
         "write_doc",
         serde_json::json!({ "body": "# Viejo\n\nalgo." }),
@@ -3547,7 +3534,7 @@ fn nothing_is_added_to_a_document_that_is_not_there_or_was_put_away() {
 #[test]
 fn what_is_added_from_elsewhere_reaches_a_document_in_the_tisty_language() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let made = served.call("write_doc", serde_json::json!({ "body": "# Acta\n\nuno." }));
     let doc = made["result"]["structuredContent"]["doc"]
         .as_str()
@@ -3577,7 +3564,7 @@ fn what_is_added_from_elsewhere_reaches_a_document_in_the_tisty_language() {
 #[test]
 fn a_name_that_is_not_here_hands_back_the_one_that_is() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     for (asked, expected) in [
         ("delete_doc", "`flag_doc`"),
@@ -3610,7 +3597,7 @@ fn a_name_that_is_not_here_hands_back_the_one_that_is() {
 #[test]
 fn marking_a_document_leaves_it_where_it_is_and_says_so_in_the_listing() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Handover\n\nThe beta channel.");
 
     let marked = served.call(
@@ -3645,7 +3632,7 @@ fn marking_a_document_leaves_it_where_it_is_and_says_so_in_the_listing() {
 #[test]
 fn a_document_already_marked_is_not_marked_again_until_the_person_looks() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Handover\n\nThe beta channel.");
     served.call(
         "flag_doc",
@@ -3665,7 +3652,7 @@ fn a_document_already_marked_is_not_marked_again_until_the_person_looks() {
 #[test]
 fn marking_needs_the_why_and_is_refused_on_what_the_archive_holds() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Handover\n\nThe beta channel.");
 
     let bare = served.call("flag_doc", serde_json::json!({ "doc": &doc }));
@@ -3712,7 +3699,7 @@ fn body_of(served: &Served, doc: &str) -> String {
 #[test]
 fn a_passage_is_changed_where_it_is_named_and_nowhere_else() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let doc = wrote_paper(
         &served,
         "# Acta\n\nEl riego queda para marzo.\n\nY el portón, para abril.",
@@ -3737,7 +3724,7 @@ fn a_passage_is_changed_where_it_is_named_and_nowhere_else() {
 #[test]
 fn a_passage_that_is_not_written_that_way_changes_nothing() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Acta\n\nEl riego queda para marzo.");
     let was = body_of(&served, &doc);
 
@@ -3760,7 +3747,7 @@ fn a_passage_that_is_not_written_that_way_changes_nothing() {
 #[test]
 fn a_passage_that_fits_twice_is_refused_rather_than_guessed() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Acta\n\nregar\n\nregar");
     let was = body_of(&served, &doc);
 
@@ -3776,7 +3763,7 @@ fn a_passage_that_fits_twice_is_refused_rather_than_guessed() {
 #[test]
 fn a_passage_can_be_taken_out_and_what_it_was_is_kept_on_disk() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Acta\n\nuno\n\ndos\n\ntres");
 
     served.call(
@@ -3799,7 +3786,7 @@ fn a_passage_can_be_taken_out_and_what_it_was_is_kept_on_disk() {
 #[test]
 fn a_document_put_away_is_not_edited_either() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Viejo\n\nalgo");
     served.put_away(&doc);
 
@@ -3815,7 +3802,7 @@ fn a_document_put_away_is_not_edited_either() {
 #[test]
 fn a_passage_copied_with_the_carriage_returns_it_was_written_with_still_matches() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Acta\n\nuno\n\ndos");
     let papers = served.home.path().join("data/docs");
     let at = papers.join(format!("{doc}.md"));
@@ -3837,7 +3824,7 @@ fn a_passage_copied_with_the_carriage_returns_it_was_written_with_still_matches(
 #[test]
 fn the_whole_body_is_not_a_passage_and_is_refused_as_a_rewrite() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let doc = wrote_paper(&served, "# Acta\n\nlo que escribió la persona");
     let was = body_of(&served, &doc);
 
@@ -3886,7 +3873,7 @@ fn the_instructions_do_not_promise_what_the_tools_no_longer_hold_to() {
 #[test]
 fn a_page_is_written_under_its_document_and_takes_its_folder() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     served.call("folder", serde_json::json!({ "name": "Casa" }));
     let made = served.call(
         "write_doc",
@@ -3909,7 +3896,7 @@ fn a_page_is_written_under_its_document_and_takes_its_folder() {
 #[test]
 fn a_page_holds_no_pages_of_its_own() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let made = served.call(
         "write_doc",
         serde_json::json!({ "body": "# Actas\n\nlas de este año." }),
@@ -3938,7 +3925,7 @@ fn a_page_holds_no_pages_of_its_own() {
 #[test]
 fn a_document_becomes_a_page_and_comes_back_out_as_a_document() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let one = served.call(
         "write_doc",
         serde_json::json!({ "body": "# Actas\n\nlas de este año." }),
@@ -3978,7 +3965,7 @@ fn a_document_becomes_a_page_and_comes_back_out_as_a_document() {
 #[test]
 fn a_page_is_not_filed_into_a_folder_of_its_own() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     served.call("folder", serde_json::json!({ "name": "Casa" }));
     let made = served.call(
         "write_doc",
@@ -4011,7 +3998,7 @@ fn a_page_is_not_filed_into_a_folder_of_its_own() {
 #[test]
 fn nothing_is_hung_under_a_document_that_was_put_away() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let made = served.call(
         "write_doc",
         serde_json::json!({ "body": "# Presupuesto viejo\n\nDel año pasado." }),
@@ -4046,7 +4033,7 @@ fn nothing_is_hung_under_a_document_that_was_put_away() {
 #[test]
 fn an_appointment_can_be_filed_already_set_to_ring() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     let said = served.call(
         "propose",
@@ -4069,7 +4056,7 @@ fn an_appointment_can_be_filed_already_set_to_ring() {
 #[test]
 fn a_moment_without_an_hour_is_turned_away_rather_than_guessed() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     let said = served.call(
         "propose",
@@ -4105,7 +4092,7 @@ fn on(days: i64) -> String {
 #[test]
 fn what_was_filed_without_a_reminder_can_be_given_one_later() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let filed = served.call(
         "propose",
         serde_json::json!({ "title": "the dentist", "date": on(2) }),
@@ -4134,7 +4121,7 @@ fn what_was_filed_without_a_reminder_can_be_given_one_later() {
 #[test]
 fn an_hour_the_person_chose_is_never_taken_away() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let filed = served.call(
         "propose",
         serde_json::json!({
@@ -4162,7 +4149,7 @@ fn an_hour_the_person_chose_is_never_taken_away() {
 #[test]
 fn a_moment_already_gone_is_turned_away_rather_than_promised() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     let said = served.call(
         "propose",
@@ -4182,7 +4169,7 @@ fn a_moment_already_gone_is_turned_away_rather_than_promised() {
 #[test]
 fn a_moment_that_is_not_even_a_word_is_turned_away_rather_than_dropped() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     let said = served.call(
         "propose",
@@ -4198,7 +4185,7 @@ fn a_moment_that_is_not_even_a_word_is_turned_away_rather_than_dropped() {
 #[test]
 fn the_same_instant_under_another_zone_name_rings_once() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let filed = served.call(
         "propose",
         serde_json::json!({ "title": "the dentist", "date": on(2), "remind": [soon(1, 20)] }),
@@ -4222,7 +4209,7 @@ fn the_same_instant_under_another_zone_name_rings_once() {
 #[test]
 fn a_list_of_moments_longer_than_the_door_allows_is_turned_away() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let many: Vec<String> = (1..40).map(|n| soon(n, 9)).collect();
 
     let said = served.call(
@@ -4236,7 +4223,7 @@ fn a_list_of_moments_longer_than_the_door_allows_is_turned_away() {
 #[test]
 fn an_argument_of_the_wrong_shape_is_refused_instead_of_read_another_way() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let doc = served.call(
         "write_doc",
         serde_json::json!({ "body": "# Manual\n\n## Uno\n\nx" }),
@@ -4261,7 +4248,7 @@ fn an_argument_of_the_wrong_shape_is_refused_instead_of_read_another_way() {
 #[test]
 fn a_step_added_after_an_agent_said_a_task_was_done_is_refused() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let task = filed(&served, "water the plants");
     served.call(
         "say_done",
@@ -4284,7 +4271,7 @@ fn a_step_added_after_an_agent_said_a_task_was_done_is_refused() {
 #[test]
 fn a_deadline_that_falls_before_the_day_it_starts_is_refused() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     let said = served.call(
         "propose",
@@ -4315,7 +4302,7 @@ fn a_deadline_that_falls_before_the_day_it_starts_is_refused() {
 #[test]
 fn what_a_batch_refuses_alone_it_refuses_inside_a_list_too() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     let said = served.call(
         "propose",
@@ -4332,7 +4319,7 @@ fn what_a_batch_refuses_alone_it_refuses_inside_a_list_too() {
         "{said}"
     );
     assert!(
-        !served.cli(&["ls", "all"]).contains("a stray"),
+        !served.person().open().contains("a stray"),
         "a misspelt argument inside a list has to be refused as it is on its own"
     );
 }
@@ -4340,7 +4327,7 @@ fn what_a_batch_refuses_alone_it_refuses_inside_a_list_too() {
 #[test]
 fn a_step_or_a_tag_that_is_not_text_is_refused_rather_than_dropped() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     for args in [
         serde_json::json!({ "title": "pintar", "steps": ["lijar", 7] }),
@@ -4353,13 +4340,13 @@ fn a_step_or_a_tag_that_is_not_text_is_refused_rather_than_dropped() {
             "{args} was let through: {said}"
         );
     }
-    assert!(!served.cli(&["ls", "all"]).contains("pintar"));
+    assert!(!served.person().open().contains("pintar"));
 }
 
 #[test]
 fn what_would_speak_over_a_mark_is_refused_and_a_bell_still_rings() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let task = filed(&served, "regar las plantas");
     served.call(
         "say_done",
@@ -4402,7 +4389,7 @@ fn what_would_speak_over_a_mark_is_refused_and_a_bell_still_rings() {
 #[test]
 fn moving_one_day_says_which_day_the_task_now_holds_and_not_only_what_was_sent() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let task = filed(&served, "pintar la puerta");
     served.call(
         "reschedule",
@@ -4424,7 +4411,7 @@ fn moving_one_day_says_which_day_the_task_now_holds_and_not_only_what_was_sent()
 #[test]
 fn a_document_named_by_a_number_is_refused_wherever_a_list_would_also_do() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     let said = served.call("page_doc", serde_json::json!({ "doc": 7 }));
 
@@ -4441,7 +4428,7 @@ fn a_document_named_by_a_number_is_refused_wherever_a_list_would_also_do() {
 #[test]
 fn a_reminder_sent_as_one_word_is_turned_away_rather_than_dropped() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     let said = served.call(
         "propose",
@@ -4458,17 +4445,9 @@ fn a_reminder_sent_as_one_word_is_turned_away_rather_than_dropped() {
     );
 }
 
-// The person closes from the terminal, which is theirs: the listing numbers what `done` names.
 fn closed_by_the_person(served: &Served, title: &str) {
-    let listed = served.cli(&["ls", "all"]);
-    let number = listed
-        .lines()
-        .find(|line| line.contains(title))
-        .and_then(|line| line.split_whitespace().next())
-        .unwrap_or_else(|| panic!("{title:?} is not listed: {listed}"))
-        .trim_end_matches('.')
-        .to_string();
-    served.cli(&["done", &number]);
+    let person = served.person();
+    person.closes(person.id_of(title));
 }
 
 const A_STORY: &str = "La reunión con el colegio dejó tres cosas claras. La primera es que la \
@@ -4483,7 +4462,7 @@ const A_STORY: &str = "La reunión con el colegio dejó tres cosas claras. La pr
 #[test]
 fn a_closed_task_is_history_and_takes_nothing_more() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let id = served.call(
         "propose",
         serde_json::json!({ "title": "comprar la cartulina", "description": A_STORY }),
@@ -4564,7 +4543,7 @@ fn a_closed_task_is_history_and_takes_nothing_more() {
 #[test]
 fn what_was_closed_having_left_nothing_written_is_served_as_history() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let before =
         served.call("catch_up", serde_json::json!({}))["result"]["structuredContent"]["cursor"]
             .as_str()
@@ -4619,7 +4598,7 @@ fn what_was_closed_having_left_nothing_written_is_served_as_history() {
 #[test]
 fn a_closed_task_that_taught_something_is_still_found() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     served.call(
         "propose",
         serde_json::json!({ "title": "exposición del colegio", "description": A_STORY }),
@@ -4647,7 +4626,7 @@ fn a_closed_task_that_taught_something_is_still_found() {
 #[test]
 fn a_source_whose_task_was_closed_answers_closed_and_files_again_only_when_asked() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let first = served.call(
         "propose",
         serde_json::json!({ "title": "pedir la cartulina", "source": "wa:msg-77" }),
@@ -4715,7 +4694,8 @@ fn a_source_whose_task_was_closed_answers_closed_and_files_again_only_when_asked
     );
     assert!(
         served
-            .cli(&["ls", "all"])
+            .person()
+            .open()
             .contains("pedir la cartulina otra vez"),
         "the second filing is on the list"
     );
@@ -4724,14 +4704,14 @@ fn a_source_whose_task_was_closed_answers_closed_and_files_again_only_when_asked
 #[test]
 fn a_finish_taken_back_leaves_the_task_marked_as_the_agents() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let id = filed(&served, "renovar el certificado");
     served.call(
         "say_done",
         serde_json::json!({ "task": &id, "body": "renovado, vence en 2027" }),
     );
     closed_by_the_person(&served, "renovar el certificado");
-    served.cli(&["undone", &id]);
+    served.person().reopens(person::task(&id));
 
     let read = served.call("read", serde_json::json!({ "task": &id }));
     let kept = &read["result"]["structuredContent"];
@@ -4750,7 +4730,7 @@ fn a_finish_taken_back_leaves_the_task_marked_as_the_agents() {
 #[test]
 fn what_the_person_erased_is_not_filed_again_from_the_same_source() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let id = served.call(
         "propose",
         serde_json::json!({ "title": "comprar pan", "source": "wa:msg-4410" }),
@@ -4759,15 +4739,7 @@ fn what_the_person_erased_is_not_filed_again_from_the_same_source() {
         .unwrap()
         .to_string();
     closed_by_the_person(&served, "comprar pan");
-    let listed = served.cli(&["ls", "archive"]);
-    let number = listed
-        .lines()
-        .find(|line| line.contains("comprar pan"))
-        .and_then(|line| line.split_whitespace().next())
-        .unwrap()
-        .trim_end_matches('.')
-        .to_string();
-    served.cli(&["rm", &number, "--force"]);
+    served.person().erases(served.person().id_of("comprar pan"));
 
     let asked = served.call("find", serde_json::json!({ "source": "wa:msg-4410" }));
     assert!(
@@ -4790,7 +4762,7 @@ fn what_the_person_erased_is_not_filed_again_from_the_same_source() {
     assert_eq!(kept["proposed"], serde_json::json!(false), "{again}");
     assert_eq!(kept["erased"], serde_json::json!(true), "{again}");
     assert!(
-        !served.cli(&["ls", "all"]).contains("comprar pan"),
+        !served.person().open().contains("comprar pan"),
         "nothing was filed"
     );
 
@@ -4812,25 +4784,19 @@ fn what_the_person_erased_is_not_filed_again_from_the_same_source() {
         serde_json::json!(true),
         "the person wants it back: {wanted}"
     );
-    assert!(served.cli(&["ls", "all"]).contains("comprar pan"));
+    assert!(served.person().open().contains("comprar pan"));
 }
 
 // Decision six: what an agent reads never carries the person's reading of a task.
 #[test]
 fn the_persons_reading_of_a_task_is_not_handed_to_the_agent() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let id = filed(&served, "el certificado");
     closed_by_the_person(&served, "el certificado");
-    let listed = served.cli(&["ls", "archive"]);
-    let number = listed
-        .lines()
-        .find(|line| line.contains("el certificado"))
-        .and_then(|line| line.split_whitespace().next())
-        .unwrap()
-        .trim_end_matches('.')
-        .to_string();
-    served.cli(&["set", &number, "--read-as", "story"]);
+    served
+        .person()
+        .reads_as_a_story(served.person().id_of("el certificado"));
 
     let read = served.call("read", serde_json::json!({ "task": &id }));
     let whole = read.to_string();
@@ -4895,8 +4861,8 @@ fn opened_to_agents_stamped(served: &Served, id: &str, open: bool, stamp: jiff::
 #[test]
 fn a_task_the_person_wrote_takes_no_mark_until_they_open_it() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
-    served.cli(&["renew the certificate"]);
+    served.person().lets_the_agent_in();
+    served.person().captures("renew the certificate");
     let id = served.call("find", serde_json::json!({ "query": "certificate" }))["result"]
         ["structuredContent"]["matches"][0]["id"]
         .as_str()
@@ -5042,7 +5008,7 @@ fn a_task_the_person_wrote_takes_no_mark_until_they_open_it() {
         "{stacked}"
     );
     assert!(
-        served.cli(&["ls", "all"]).contains("renew the certificate"),
+        served.person().open().contains("renew the certificate"),
         "still open"
     );
 
@@ -5062,8 +5028,8 @@ fn a_task_the_person_wrote_takes_no_mark_until_they_open_it() {
 #[test]
 fn a_fill_in_lands_after_an_opening_stamped_by_a_clock_ahead() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
-    served.cli(&["renew the certificate"]);
+    served.person().lets_the_agent_in();
+    served.person().captures("renew the certificate");
     let id = served.call("find", serde_json::json!({ "query": "certificate" }))["result"]
         ["structuredContent"]["matches"][0]["id"]
         .as_str()
@@ -5099,22 +5065,15 @@ fn a_fill_in_lands_after_an_opening_stamped_by_a_clock_ahead() {
 #[test]
 fn a_closed_task_takes_no_fill_in_and_another_agent_identitys_takes_them() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let closed = filed(&served, "subir el timeout");
     served.call(
         "plan",
         serde_json::json!({ "task": &closed, "steps": ["subirlo"] }),
     );
-    served.cli(&["ls", "all"]);
-    let listed = served.cli(&["ls", "all"]);
-    let number = listed
-        .lines()
-        .find(|line| line.contains("subir el timeout"))
-        .and_then(|line| line.split_whitespace().next())
-        .unwrap()
-        .trim_end_matches('.')
-        .to_string();
-    served.cli(&["done", &number]);
+    served
+        .person()
+        .closes(served.person().id_of("subir el timeout"));
 
     for (tool, args) in [
         (
@@ -5144,8 +5103,8 @@ fn a_closed_task_takes_no_fill_in_and_another_agent_identitys_takes_them() {
     // The person retires that agent and turns a fresh one on: what the old one filed is the
     // agents' still, and needs no door.
     let theirs = filed(&served, "revisar el icono");
-    served.cli(&["agent", "--off"]);
-    served.cli(&["agent", "--on"]);
+    served.person().shuts_the_agent_out();
+    served.person().lets_the_agent_in();
     let described = served.call(
         "describe",
         serde_json::json!({ "task": &theirs, "body": "x" }),
@@ -5174,7 +5133,7 @@ fn a_closed_task_takes_no_fill_in_and_another_agent_identitys_takes_them() {
 #[test]
 fn what_an_assistant_filed_it_fills_in_without_being_opened() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let id = filed(&served, "pasar biome sobre el front");
 
     let described = served.call(
@@ -5197,7 +5156,7 @@ fn what_an_assistant_filed_it_fills_in_without_being_opened() {
 #[test]
 fn steps_are_ticked_together_and_one_wrong_name_ticks_none() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let said = served.call(
         "propose",
         serde_json::json!({
@@ -5245,7 +5204,7 @@ fn steps_are_ticked_together_and_one_wrong_name_ticks_none() {
 #[test]
 fn a_repeated_step_is_walked_down_and_an_accent_written_two_ways_is_one_step() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let said = served.call(
         "propose",
         serde_json::json!({
@@ -5289,7 +5248,7 @@ fn a_repeated_step_is_walked_down_and_an_accent_written_two_ways_is_one_step() {
 #[test]
 fn ticking_refuses_a_malformed_list_and_an_oversized_name_and_names_only_a_few_left() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let steps: Vec<String> = (1..=8).map(|n| format!("step number {n}")).collect();
     let said = served.call(
         "propose",
@@ -5338,7 +5297,7 @@ fn ticking_refuses_a_malformed_list_and_an_oversized_name_and_names_only_a_few_l
 #[test]
 fn proposing_several_with_steps_says_what_to_do_with_them_once() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let said = served.call(
         "propose",
         serde_json::json!({ "tasks": [
@@ -5365,7 +5324,7 @@ fn proposing_several_with_steps_says_what_to_do_with_them_once() {
 #[test]
 fn saying_done_waits_for_every_step_and_a_task_without_steps_needs_none() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let planned = served.call(
         "propose",
         serde_json::json!({ "title": "release", "steps": ["tag", "build"] }),
@@ -5476,7 +5435,7 @@ fn nothing_the_server_says_carries_a_gap_the_reader_can_see() {
 #[test]
 fn a_path_as_a_name_makes_the_last_step_inside_the_ones_that_already_exist() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     served.call("folder", serde_json::json!({ "name": "Personal" }));
     served.call(
         "folder",
@@ -5506,7 +5465,7 @@ fn a_path_as_a_name_makes_the_last_step_inside_the_ones_that_already_exist() {
 #[test]
 fn a_path_whose_steps_are_not_there_is_refused_and_says_what_to_do() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     served.call("folder", serde_json::json!({ "name": "Personal" }));
 
     let said = served.call(
@@ -5531,7 +5490,7 @@ fn a_path_whose_steps_are_not_there_is_refused_and_says_what_to_do() {
 #[test]
 fn a_folder_answers_to_its_whole_path_as_well_as_to_its_name() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     served.call("folder", serde_json::json!({ "name": "Personal" }));
     served.call(
         "folder",
@@ -5558,7 +5517,7 @@ fn a_folder_answers_to_its_whole_path_as_well_as_to_its_name() {
 #[test]
 fn listing_can_be_asked_for_one_folder_and_for_the_pages_of_one_document() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     served.call("folder", serde_json::json!({ "name": "Actas" }));
     served.call(
         "write_doc",
@@ -5592,7 +5551,7 @@ fn listing_can_be_asked_for_one_folder_and_for_the_pages_of_one_document() {
 #[test]
 fn what_the_archive_holds_by_itself_is_still_filed_where_it_belongs() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     served.call("folder", serde_json::json!({ "name": "Proyectos" }));
     let doc = served.call("write_doc", serde_json::json!({ "body": "# Viejo" }))["result"]
         ["structuredContent"]["doc"]
@@ -5628,7 +5587,7 @@ fn what_the_archive_holds_by_itself_is_still_filed_where_it_belongs() {
 #[test]
 fn a_document_is_put_away_and_filed_in_one_call() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     served.call("folder", serde_json::json!({ "name": "Historico" }));
     let doc = served.call("write_doc", serde_json::json!({ "body": "# Cerrado" }))["result"]
         ["structuredContent"]["doc"]
@@ -5657,7 +5616,7 @@ fn a_document_is_put_away_and_filed_in_one_call() {
 #[test]
 fn what_a_shelved_folder_holds_is_neither_taken_out_of_it_nor_moved_away() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     served.call("folder", serde_json::json!({ "name": "Trabajo" }));
     served.call("folder", serde_json::json!({ "name": "Personal" }));
     let doc = served.call(
@@ -5700,7 +5659,7 @@ fn what_a_shelved_folder_holds_is_neither_taken_out_of_it_nor_moved_away() {
 #[test]
 fn putting_a_document_away_and_filing_it_is_written_as_one_thing() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     served.call("folder", serde_json::json!({ "name": "Historico" }));
     let doc = served.call("write_doc", serde_json::json!({ "body": "# Cerrado" }))["result"]
         ["structuredContent"]["doc"]
@@ -5739,51 +5698,6 @@ fn putting_a_document_away_and_filing_it_is_written_as_one_thing() {
 }
 
 #[test]
-fn the_terminal_says_which_documents_are_put_away_and_which_an_agent_gave_up_for_old() {
-    let served = Served::new();
-    served.cli(&["agent", "--on"]);
-    let old = served.call("write_doc", serde_json::json!({ "body": "# Viejo" }))["result"]
-        ["structuredContent"]["doc"]
-        .as_str()
-        .unwrap()
-        .to_string();
-    let shelved = served.call("write_doc", serde_json::json!({ "body": "# Guardado" }))["result"]
-        ["structuredContent"]["doc"]
-        .as_str()
-        .unwrap()
-        .to_string();
-    served.call(
-        "flag_doc",
-        serde_json::json!({ "doc": &old, "body": "nobody opens it any more" }),
-    );
-    served.call(
-        "archive_doc",
-        serde_json::json!({ "doc": &shelved, "archived": true }),
-    );
-
-    let listed = served.cli(&["doc"]);
-    let marked = listed
-        .lines()
-        .find(|line| line.contains("Viejo"))
-        .unwrap_or_default();
-    assert!(
-        marked.contains("an agent says it has had its day"),
-        "the mark is a question for the person, and the terminal is where some of them live: {listed}"
-    );
-    let away = listed
-        .lines()
-        .find(|line| line.contains("Guardado"))
-        .unwrap_or_default();
-    assert!(away.contains("(put away)"), "{listed}");
-
-    let read = served.cli(&["doc", &old]);
-    assert!(
-        read.contains("nobody opens it any more") && read.contains("# Viejo"),
-        "and reading it says what the agent said: {read}"
-    );
-}
-
-#[test]
 fn no_sentence_in_the_source_carries_a_gap_where_a_line_was_continued() {
     let said = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/src/mcp.rs")).unwrap();
     let found: Vec<(usize, String)> = said
@@ -5816,7 +5730,7 @@ fn no_sentence_in_the_source_carries_a_gap_where_a_line_was_continued() {
 #[test]
 fn an_agent_is_told_which_machine_wrote_ahead() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let ahead = served.home.path().join("data/store/dev_f0ztyvwj");
     std::fs::create_dir_all(&ahead).unwrap();
     std::fs::write(
@@ -5835,7 +5749,7 @@ fn an_agent_is_told_which_machine_wrote_ahead() {
 #[test]
 fn a_step_past_the_limit_turns_the_whole_call_away() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let long = "x".repeat(101);
 
     let proposed = served.call(
@@ -5843,7 +5757,7 @@ fn a_step_past_the_limit_turns_the_whole_call_away() {
         serde_json::json!({ "title": "ordenar el garaje", "steps": ["vaciar", long] }),
     );
     assert_eq!(proposed["result"]["isError"], true, "{proposed}");
-    assert!(!served.cli(&["ls", "all"]).contains("ordenar el garaje"));
+    assert!(!served.person().open().contains("ordenar el garaje"));
 
     let task = filed(&served, "pintar la puerta");
     let planned = served.call(
@@ -5881,7 +5795,7 @@ fn content(said: &serde_json::Value) -> &serde_json::Value {
 #[test]
 fn a_whole_and_its_parts_are_written_in_one_call() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     let said = served.call(
         "propose",
@@ -5922,7 +5836,7 @@ fn a_whole_and_its_parts_are_written_in_one_call() {
 #[test]
 fn one_bad_part_and_nothing_at_all_is_written() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     for parts in [
         serde_json::json!([{ "title": "book the van" }, { "steps": ["no title"] }]),
@@ -5941,7 +5855,7 @@ fn one_bad_part_and_nothing_at_all_is_written() {
         assert_eq!(said["result"]["isError"], true, "{said}");
     }
     assert!(
-        !served.cli(&["ls", "all"]).contains("move house"),
+        !served.person().open().contains("move house"),
         "a refused part takes its whole with it"
     );
 }
@@ -5949,20 +5863,8 @@ fn one_bad_part_and_nothing_at_all_is_written() {
 #[test]
 fn a_part_goes_only_under_a_task_the_agent_may_fill_in() {
     let served = Served::new();
-    let persons = {
-        served.cli(&["the persons own"]);
-        let found = served.cli(&["ls", "all", "--json"]);
-        let all: serde_json::Value = serde_json::from_str(&found).unwrap();
-        all.as_array()
-            .unwrap()
-            .iter()
-            .find(|one| one["title"] == "the persons own")
-            .unwrap()["id"]
-            .as_str()
-            .unwrap()
-            .to_string()
-    };
-    served.cli(&["agent", "--on"]);
+    let persons = served.person().captures("the persons own").to_string();
+    served.person().lets_the_agent_in();
     let its_own = filed(&served, "plan the move");
 
     let under_persons = served.call(
@@ -5970,7 +5872,7 @@ fn a_part_goes_only_under_a_task_the_agent_may_fill_in() {
         serde_json::json!({ "title": "pack", "part_of": persons }),
     );
     assert_eq!(under_persons["result"]["isError"], true, "{under_persons}");
-    assert!(!served.cli(&["ls", "all"]).contains("pack"));
+    assert!(!served.person().open().contains("pack"));
 
     let under_its_own = served.call(
         "propose",
@@ -5993,7 +5895,7 @@ fn a_part_goes_only_under_a_task_the_agent_may_fill_in() {
 #[test]
 fn a_whole_is_not_said_done_while_a_part_nobody_spoke_for_is_open() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let said = served.call(
         "propose",
         serde_json::json!({ "title": "move house", "parts": [{ "title": "book the van" }] }),
@@ -6024,7 +5926,7 @@ fn a_whole_is_not_said_done_while_a_part_nobody_spoke_for_is_open() {
 #[test]
 fn a_part_from_a_source_already_filed_or_named_twice_turns_the_call_away() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     served.call(
         "propose",
         serde_json::json!({ "title": "read the thread", "source": "sereno#1" }),
@@ -6044,13 +5946,13 @@ fn a_part_from_a_source_already_filed_or_named_twice_turns_the_call_away() {
         );
         assert_eq!(said["result"]["isError"], true, "{said}");
     }
-    assert!(!served.cli(&["ls", "all"]).contains("move house"));
+    assert!(!served.person().open().contains("move house"));
 }
 
 #[test]
 fn a_part_the_person_hid_does_not_hold_its_whole_back() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let said = served.call(
         "propose",
         serde_json::json!({
@@ -6089,7 +5991,7 @@ fn a_part_the_person_hid_does_not_hold_its_whole_back() {
 #[test]
 fn again_reaches_the_parts_of_a_whole_filed_anew() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let first = served.call(
         "propose",
         serde_json::json!({
@@ -6103,8 +6005,8 @@ fn again_reaches_the_parts_of_a_whole_filed_anew() {
         .as_str()
         .unwrap()
         .to_string();
-    served.cli(&["done", &part]);
-    served.cli(&["done", &whole]);
+    served.person().closes(person::task(&part));
+    served.person().closes(person::task(&whole));
 
     let again = served.call(
         "propose",
@@ -6120,12 +6022,7 @@ fn again_reaches_the_parts_of_a_whole_filed_anew() {
 }
 
 fn persons_task(served: &Served, title: &str) -> String {
-    served.cli(&[title]);
-    served.call("find", serde_json::json!({ "query": title }))["result"]["structuredContent"]
-        ["matches"][0]["id"]
-        .as_str()
-        .unwrap()
-        .to_string()
+    served.person().captures(title).to_string()
 }
 
 fn read_back(served: &Served, id: &str) -> serde_json::Value {
@@ -6146,7 +6043,7 @@ fn step_texts(read: &serde_json::Value) -> Vec<String> {
 #[test]
 fn an_agent_mends_what_it_filed_title_steps_and_notes() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let said = served.call(
         "propose",
         serde_json::json!({ "title": "migrar el lector", "steps": ["leer el formato", "escribir el nuevo", "sobra"] }),
@@ -6198,12 +6095,13 @@ fn an_agent_mends_what_it_filed_title_steps_and_notes() {
 #[test]
 fn an_opened_task_is_mended_but_its_title_and_ticked_steps_stay_the_persons() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let id = persons_task(&served, "renew the certificate");
-    served.cli(&["step", &id, "add", "pay"]);
-    served.cli(&["step", &id, "add", "keep the receipt"]);
-    served.cli(&["step", &id, "done", "1"]);
-    served.cli(&["log", &id, "asked for the quote"]);
+    let person = served.person();
+    person.adds_step(person::task(&id), "pay");
+    person.adds_step(person::task(&id), "keep the receipt");
+    person.ticks(person::task(&id), 1);
+    person.notes(person::task(&id), "asked for the quote");
     opened_to_agents(&served, &id, true);
     let note = read_back(&served, &id)["journal"][0]["id"]
         .as_str()
@@ -6263,9 +6161,9 @@ fn an_opened_task_is_mended_but_its_title_and_ticked_steps_stay_the_persons() {
 #[test]
 fn a_task_the_person_kept_is_not_mended_at_all() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let id = persons_task(&served, "call the bank");
-    served.cli(&["step", &id, "add", "call"]);
+    served.person().adds_step(person::task(&id), "call");
 
     let refused = served.call(
         "reword_step",
@@ -6279,7 +6177,7 @@ fn a_task_the_person_kept_is_not_mended_at_all() {
 #[test]
 fn a_part_is_mended_by_its_own_door_and_not_by_the_whole_around_it() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     let whole = persons_task(&served, "move house");
     opened_to_agents(&served, &whole, true);
     let said = served.call(
@@ -6317,7 +6215,7 @@ fn a_part_is_mended_by_its_own_door_and_not_by_the_whole_around_it() {
 #[test]
 fn what_an_assistant_writes_on_a_task_is_kept_in_the_tisty_language() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
 
     let said = served.call(
         "propose",

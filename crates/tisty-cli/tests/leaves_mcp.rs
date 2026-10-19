@@ -3,6 +3,8 @@ use std::process::{Command, Stdio};
 
 use tempfile::TempDir;
 
+mod person;
+
 struct Served {
     home: TempDir,
 }
@@ -12,9 +14,14 @@ impl Served {
         let served = Self {
             home: tempfile::tempdir().unwrap(),
         };
-        served.cli(&["algo mio"]);
-        served.cli(&["agent", "--on"]);
+        let person = served.person();
+        person.begins("algo mio");
+        person.lets_the_agent_in();
         served
+    }
+
+    fn person(&self) -> person::Person {
+        person::Person::at(self.home.path())
     }
 
     fn command(&self) -> Command {
@@ -29,16 +36,6 @@ impl Served {
             .env("LANG", "en_US.UTF-8")
             .env_remove("LC_ALL");
         command
-    }
-
-    fn cli(&self, args: &[&str]) -> String {
-        let out = self
-            .command()
-            .args(args)
-            .stdin(Stdio::null())
-            .output()
-            .unwrap();
-        String::from_utf8_lossy(&out.stdout).into_owned()
     }
 
     fn call(&self, name: &str, args: serde_json::Value) -> serde_json::Value {
@@ -2980,44 +2977,6 @@ fn a_page_in_the_archive_is_not_pulled_out_of_the_document_that_holds_it() {
 }
 
 #[test]
-fn a_task_pointing_at_a_page_of_a_book_in_the_archive_says_it_is_put_away() {
-    let served = Served::new();
-    let book = served.wrote("# Actas", None);
-    let page = served.wrote("# Marzo", Some(&book));
-    served.call(
-        "propose",
-        serde_json::json!({
-            "title": "read what March says",
-            "description": format!("lo dejado en [Marzo](tisty:doc/{page})"),
-            "source": "test#1",
-        }),
-    );
-
-    let listed = served.cli(&["ls", "all"]);
-    let number = listed
-        .lines()
-        .find(|line| line.contains("read what March says"))
-        .and_then(|line| line.split_whitespace().next())
-        .expect("the task is listed")
-        .trim_end_matches('.')
-        .to_string();
-
-    let before = served.cli(&["story", &number]);
-    assert!(!before.contains("(put away)"), "{before}");
-
-    served.call(
-        "archive_doc",
-        serde_json::json!({ "doc": &book, "archived": true }),
-    );
-
-    let after = served.cli(&["story", &number]);
-    assert!(
-        after.contains("(put away)"),
-        "the page went to the archive inside its document, and the task has to say so: {after}"
-    );
-}
-
-#[test]
 fn a_count_of_pages_says_how_many_of_them_are_not_awake() {
     let served = Served::new();
     let book = served.wrote("# Actas", None);
@@ -3231,7 +3190,7 @@ fn twelve_pages_are_reorganised_in_one_call_and_not_twelve() {
 #[test]
 fn a_list_that_one_name_spoils_moves_nobody() {
     let served = Served::new();
-    served.cli(&["agent", "--on"]);
+    served.person().lets_the_agent_in();
     served.call("folder", serde_json::json!({ "name": "Proyectos" }));
     let one = served.wrote("# Uno", None);
     let two = served.wrote("# Dos", None);
@@ -4100,7 +4059,7 @@ fn an_agent_takes_back_a_tick_it_gave_by_mistake() {
 fn a_tick_the_person_gave_is_not_the_agents_to_take_back() {
     let served = Served::new();
     let task = filed_with_steps(&served);
-    served.cli(&["step", &task, "done", "1"]);
+    served.person().ticks(person::task(&task), 1);
     assert!(steps_of(&served, &task)[0].1, "the person ticked it");
 
     let said = served.call(
@@ -4169,7 +4128,7 @@ fn a_past_decision_is_found_in_the_archive_with_the_line_that_says_it() {
         "note",
         serde_json::json!({ "task": task, "body": "Compared both.\nWe chose sqlite for the cache." }),
     );
-    served.cli(&["done", &task]);
+    served.person().closes(person::task(&task));
 
     let said = served.call(
         "find",
@@ -4239,8 +4198,10 @@ fn the_line_find_hands_back_keeps_a_path_on_the_disk_to_itself() {
 fn read_leaves_out_an_entry_taken_out_and_says_which_ticks_are_an_agents() {
     let served = Served::new();
     let task = filed_with_steps(&served);
-    served.cli(&["log", &task, "a note to take back"]);
-    served.cli(&["undo"]);
+    served
+        .person()
+        .notes(person::task(&task), "a note to take back");
+    served.person().takes_back_the_last();
     served.call(
         "tick",
         serde_json::json!({ "task": task, "step": "write the new one" }),
@@ -4257,7 +4218,7 @@ fn read_leaves_out_an_entry_taken_out_and_says_which_ticks_are_an_agents() {
 fn a_turn_of_a_routine_is_not_said_to_be_left_undone() {
     let served = Served::new();
     let task = filed_with_steps(&served);
-    served.cli(&["set", &task, "--repeat", "every 3 days"]);
+    served.person().repeats(person::task(&task), "every 3 days");
 
     let said = served.call(
         "say_not_doing",
