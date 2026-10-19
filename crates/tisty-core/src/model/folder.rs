@@ -75,11 +75,19 @@ pub struct Compacted {
     pub via: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub print: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub before: Option<String>,
 }
 
 impl Compacted {
     pub fn still_last(&self, body: &str) -> bool {
         self.print.as_deref() == Some(crate::attach::printed(body.as_bytes()).as_str())
+    }
+
+    /// Going back past it, however many writes later, takes the compaction back too.
+    pub fn undone_by(&self, now: &str, put_back: &str) -> bool {
+        self.still_last(now)
+            || self.before.as_deref() == Some(crate::attach::printed(put_back.as_bytes()).as_str())
     }
 }
 

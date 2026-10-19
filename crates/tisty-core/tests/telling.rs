@@ -599,6 +599,7 @@ fn saying_a_document_was_compacted_is_a_line_an_older_build_walks_past() {
     let said = tisty_core::Op::DocCompacted {
         id: ulid::Ulid::generate(),
         print: Some("p".into()),
+        before: Some("b".into()),
     };
     let settled = tisty_core::Op::DocUncompacted {
         id: ulid::Ulid::generate(),

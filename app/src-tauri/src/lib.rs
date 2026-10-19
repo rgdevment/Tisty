@@ -1238,6 +1238,7 @@ pub fn run() {
             answers::papers::doc_away,
             answers::papers::doc_unflag,
             answers::papers::doc_keep_compacted,
+            answers::papers::doc_compacted_last,
             answers::shelves::folder_away,
             answers::papers::doc_lock,
             desktop::parted,

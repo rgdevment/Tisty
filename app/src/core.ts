@@ -1117,7 +1117,6 @@ export interface Marked {
 export interface Compaction {
   at: string;
   via?: string | null;
-  last: boolean;
 }
 
 export interface Filed {
@@ -1233,6 +1232,8 @@ export const docLock = (id: string, shut: boolean): Promise<void> =>
   invoke("doc_lock", { id, shut });
 export const docUnflag = (id: string): Promise<void> => invoke("doc_unflag", { id });
 export const docKeepCompacted = (id: string): Promise<void> => invoke("doc_keep_compacted", { id });
+export const docCompactedLast = (id: string): Promise<boolean> =>
+  invoke("doc_compacted_last", { id });
 
 export const docCopy = (id: string): Promise<Doc> => invoke("doc_copy", { id });
 

@@ -7,6 +7,7 @@ import {
   docAway,
   docBack,
   docBackable,
+  docCompactedLast,
   docExport,
   docKeepCompacted,
   docLock,
@@ -220,7 +221,26 @@ export default function Docs({
   }, [keep, open]);
 
   const [backable, setBackable] = useState(false);
-  const compacted = Boolean(filed(known, open?.file)?.compacted?.last);
+  const marked = filed(known, open?.file)?.compacted;
+  const [compacted, setCompacted] = useState(false);
+
+  useEffect(() => {
+    if (!(marked && open)) {
+      setCompacted(false);
+      return;
+    }
+    let mine = true;
+    docCompactedLast(open.file)
+      .then((last) => {
+        if (mine) setCompacted(last);
+      })
+      .catch(() => {
+        if (mine) setCompacted(false);
+      });
+    return () => {
+      mine = false;
+    };
+  }, [open, marked]);
 
   useEffect(() => {
     if (!(stirred || compacted) || !open) {
@@ -858,6 +878,7 @@ export default function Docs({
           <CompactBar
             own={own}
             style={wall}
+            last={compacted}
             backable={backable}
             onUndo={() => void wentBack()}
             onKeep={() =>

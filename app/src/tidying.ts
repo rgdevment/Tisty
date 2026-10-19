@@ -51,6 +51,15 @@ export const goingWith = (all: Filed[], docs: Filed[]) => {
   return { going, pages };
 };
 
+const withPages = (docs: number, pages: number): Word =>
+  docs === 1
+    ? pages === 1
+      ? "flagDropOnePageSure"
+      : "flagDropOnePagesSure"
+    : pages === 1
+      ? "flagDropAllPageSure"
+      : "flagDropAllPagesSure";
+
 export const dropAllAsked = (going: Filed[], pages: Filed[]): string => {
   const named = going
     .map((doc) =>
@@ -61,14 +70,14 @@ export const dropAllAsked = (going: Filed[], pages: Filed[]): string => {
     .join("\n");
   const many = String(going.length);
   return pages.length
-    ? `${fill("flagDropAllPagesSure", many, String(pages.length))}\n\n${named}`
+    ? `${fill(withPages(going.length, pages.length), many, String(pages.length))}\n\n${named}`
     : fill("flagDropAllSure", many, named);
 };
 
-export const compactedBy = (doc: Filed): string =>
+export const compactedBy = (doc: Filed, last = true): string =>
   doc.compacted
     ? fill(
-        doc.compacted.last ? "docCompactedBy" : "docCompactedSince",
+        last ? "docCompactedBy" : "docCompactedSince",
         clientNamed(doc.compacted.via) ?? t("anAssistant"),
         dayOf(doc.compacted.at),
       )

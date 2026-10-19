@@ -191,6 +191,8 @@ pub enum Op {
         id: DocId,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         print: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        before: Option<String>,
     },
     #[serde(rename = "doc.uncompacted")]
     DocUncompacted { id: DocId },
@@ -373,7 +375,7 @@ impl Op {
             Op::DocArchive { .. } => Op::DocArchive { id },
             Op::DocFlag { d, .. } => Op::DocFlag { id, d },
             Op::DocUnflag { .. } => Op::DocUnflag { id },
-            Op::DocCompacted { print, .. } => Op::DocCompacted { id, print },
+            Op::DocCompacted { print, before, .. } => Op::DocCompacted { id, print, before },
             Op::DocUncompacted { .. } => Op::DocUncompacted { id },
             Op::DocUnarchive { .. } => Op::DocUnarchive { id },
             Op::DocLock { .. } => Op::DocLock { id },

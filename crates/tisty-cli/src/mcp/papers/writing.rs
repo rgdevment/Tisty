@@ -13,6 +13,15 @@ use super::super::{
 };
 
 pub(in crate::mcp) fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
+    written_doc(paths, args, None)
+}
+
+/// An import has judged the subject already, and the files it copied are told with the document.
+pub(super) fn written_doc(
+    paths: &Paths,
+    args: &Value,
+    imported: Option<Vec<Op>>,
+) -> Result<Value, Refused> {
     let Some(body) = text(args, "body") else {
         return Err(Refused::Tool("a document needs a `body`.".into()));
     };
@@ -41,7 +50,9 @@ pub(in crate::mcp) fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Re
     }
 
     let (folder, page_of) = where_it_lands(&state, args)?;
-    super::compacting::subject_free(&state, args, &body)?;
+    if imported.is_none() {
+        super::compacting::subject_free(&state, args, &body)?;
+    }
     let made = tisty_core::docs::create(&paths.docs(), store.device(), &body).map_err(|e| match e {
         tisty_core::Error::DocumentTooBig { limit, .. } => Refused::Tool(format!(
             "that body is past the {limit} bytes Tisty can open. Send a shorter document, or split it into pages."
@@ -56,7 +67,7 @@ pub(in crate::mcp) fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Re
             .map(|one| one.order.as_str()),
     );
     let id = Ulid::generate();
-    if let Err(e) = store.append(Op::DocAdd {
+    let add = Op::DocAdd {
         id,
         d: tisty_core::event::DocAdd {
             wrote: None,
@@ -70,7 +81,16 @@ pub(in crate::mcp) fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Re
             page_of,
             task_of: None,
         },
-    }) && !wrote(&mut store, id)
+    };
+    let added = match imported {
+        Some(mut ops) => {
+            ops.push(add);
+            store.append_batch(ops).map(|_| ())
+        }
+        None => store.append(add).map(|_| ()),
+    };
+    if let Err(e) = added
+        && !wrote(&mut store, id)
     {
         let _ = tisty_core::docs::remove(&paths.docs(), &made.id);
         return Err(hitch(e));
@@ -209,7 +229,7 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
         && kept
             .compacted
             .as_ref()
-            .is_some_and(|one| one.still_last(&now))
+            .is_some_and(|one| one.undone_by(&now, &was))
     {
         let _ = store.append(Op::DocUncompacted { id: kept.id });
     }

@@ -164,20 +164,21 @@ export function MarkBar({
 interface CompactProps {
   own: Filed;
   style: CSSProperties;
+  last: boolean;
   backable: boolean;
   onUndo: () => void;
   onKeep: () => void;
 }
 
-export function CompactBar({ own, style, backable, onUndo, onKeep }: CompactProps) {
+export function CompactBar({ own, style, last, backable, onUndo, onKeep }: CompactProps) {
   if (!own.compacted) return null;
   return (
     <div style={style} className={BAR}>
       <span className="font-medium text-hue-teal">
         <span aria-hidden="true">◇ </span>
-        {compactedBy(own)}
+        {compactedBy(own, last)}
       </span>
-      {own.compacted.last && backable && (
+      {last && backable && (
         <button type="button" onClick={onUndo} className={MILD}>
           {t("compactUndo")}
         </button>

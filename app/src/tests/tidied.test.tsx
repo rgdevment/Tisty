@@ -15,6 +15,7 @@ const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
   tasks: {} as Record<string, unknown>,
   docs: [] as unknown[],
+  last: true,
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -25,6 +26,8 @@ vi.mock("@tauri-apps/api/core", () => ({
         return Promise.resolve("# Notes\n\nwords");
       case "doc_backable":
         return Promise.resolve(true);
+      case "doc_compacted_last":
+        return Promise.resolve(ipc.last);
       case "doc_back":
         return Promise.resolve({ id: args.id, title: "Notes" });
       case "docs":
@@ -89,6 +92,7 @@ const show = (known: Filed[], more: Partial<Parameters<typeof Docs>[0]> = {}) =>
 
 beforeEach(() => {
   ipc.calls = [];
+  ipc.last = true;
   ipc.tasks = {};
   ipc.docs = [];
   asksSure(null);
@@ -284,10 +288,27 @@ describe("deleting a set", () => {
     await result.current.dropDocs(all);
 
     expect(asked).toEqual([
-      `${fill("flagDropAllPagesSure", "2", "1")}\n\n· Draft A\n    · Draft B\n· Draft C`,
+      `${fill("flagDropAllPageSure", "2", "1")}\n\n· Draft A\n    · Draft B\n· Draft C`,
     ]);
     expect(called("doc_drop").map((one) => one.args.id)).toEqual(["D1", "D3"]);
     expect(given.setChosen).toHaveBeenCalledWith({ named: "docs" });
+  });
+
+  it("says this document and the page it holds when there is one of each", async () => {
+    const asked: string[] = [];
+    asksSure((said) => {
+      asked.push(said);
+      return Promise.resolve(true);
+    });
+    const { result } = renderHook(() => usePapers(hands()));
+
+    await result.current.dropDocs([
+      doc({ id: "D1", file: "d-1", title: "Draft A" }),
+      doc({ id: "D2", file: "d-2", title: "Draft B", pageOf: "D1" }),
+    ]);
+
+    expect(asked).toEqual([`${t("flagDropOnePageSure")}\n\n· Draft A\n    · Draft B`]);
+    expect(called("doc_drop").map((one) => one.args.id)).toEqual(["D1"]);
   });
 
   it("asks with the plain titles when no page goes along", async () => {
@@ -317,17 +338,20 @@ describe("deleting a set", () => {
 });
 
 describe("a document an assistant compacted", () => {
-  const compacted = (last = true) =>
-    doc({ id: "D1", file: "d-1", compacted: { at: AT, via: "claude-code", last } });
+  const compacted = (last = true) => {
+    ipc.last = last;
+    return doc({ id: "D1", file: "d-1", compacted: { at: AT, via: "claude-code" } });
+  };
 
   it("says who compacted it and when", async () => {
     show([compacted()]);
 
     expect(await screen.findByText(fill("docCompactedBy", "Claude Code", dayOf(AT)))).toBeTruthy();
+    expect(called("doc_compacted_last").map((one) => one.args.id)).toContain("d-1");
   });
 
   it("names an assistant when it did not say its name", async () => {
-    show([doc({ id: "D1", file: "d-1", compacted: { at: AT, last: true } })]);
+    show([doc({ id: "D1", file: "d-1", compacted: { at: AT } })]);
 
     expect(
       await screen.findByText(fill("docCompactedBy", t("anAssistant"), dayOf(AT))),

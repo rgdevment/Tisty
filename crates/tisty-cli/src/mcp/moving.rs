@@ -1,7 +1,7 @@
 use serde_json::{Value, json};
 use tisty_core::event::{Op, TaskMove};
 use tisty_core::model::{ListId, Task, TaskId};
-use tisty_core::{Paths, State};
+use tisty_core::{MoveBarred, Paths, State};
 
 use super::asked::text;
 use super::chores::{filling, still_filling};
@@ -57,16 +57,6 @@ pub(super) fn move_task(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         part_of,
         ..Default::default()
     };
-    if let (Some(Some(next)), Some(up)) = (part_of, held_by)
-        && Some(next) != task.part_of
-        && !state.attended_by_agents(up)
-    {
-        return Err(Refused::Tool(format!(
-            "{:?} is a part of {:?}, which the person keeps closed to agents, so moving it to \
-             another whole is theirs. Say where it belongs with `note`.",
-            task.title, up.title
-        )));
-    }
     if part_of == Some(None) {
         let Some(up) = held_by else {
             return Ok(told(
@@ -77,13 +67,6 @@ pub(super) fn move_task(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 json!({ "id": id.to_string(), "title": task.title, "moved": false }),
             ));
         };
-        if !state.attended_by_agents(up) {
-            return Err(Refused::Tool(format!(
-                "{:?} is a part of {:?}, which the person keeps closed to agents, so letting it \
-                 go is theirs. Say why it stands apart with `note`.",
-                task.title, up.title
-            )));
-        }
         if d.list.is_none()
             && task.list.is_none()
             && up.list.is_some()
@@ -100,6 +83,9 @@ pub(super) fn move_task(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             ),
             json!({ "id": id.to_string(), "title": task.title, "moved": false }),
         ));
+    }
+    if let Some(why) = state.agent_move_barred(task, &d) {
+        return Err(barred(&state, task, &d, why));
     }
     let written = store
         .append_batch_unless(vec![Op::TaskMove { id, d: d.clone() }], |events| {
@@ -150,6 +136,39 @@ pub(super) fn move_task(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             "list": listed,
         }),
     ))
+}
+
+fn barred(state: &State, task: &Task, d: &TaskMove, why: MoveBarred) -> Refused {
+    let title = |id: TaskId| state.tasks.get(&id).map_or("", |one| one.title.as_str());
+    Refused::Tool(match why {
+        MoveBarred::NotFiled => format!(
+            "{:?} is the person's own: its list is theirs, opened to agents or not. Say where \
+             you would put it with `note`.",
+            task.title
+        ),
+        MoveBarred::NotOpened => format!(
+            "{:?} is the person's, kept closed to agents, so where it hangs is theirs. Say where \
+             it belongs with `note`.",
+            task.title
+        ),
+        MoveBarred::WholeClosed(up) if d.part_of == Some(None) => format!(
+            "{:?} is a part of {:?}, which the person keeps closed to agents, so letting it \
+             go is theirs. Say why it stands apart with `note`.",
+            task.title,
+            title(up)
+        ),
+        MoveBarred::WholeClosed(up) => format!(
+            "{:?} is a part of {:?}, which the person keeps closed to agents, so moving it to \
+             another whole is theirs. Say where it belongs with `note`.",
+            task.title,
+            title(up)
+        ),
+        MoveBarred::NextClosed(up) => format!(
+            "{:?} is the person's, kept closed to agents: a part goes only under a task you \
+             filed or one the person opened to you. Nothing was moved.",
+            title(up)
+        ),
+    })
 }
 
 fn list_named(state: &State, task: &Task, name: &str) -> Result<ListId, Refused> {

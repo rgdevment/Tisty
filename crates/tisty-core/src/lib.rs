@@ -70,6 +70,7 @@ pub use model::{
     DateSpec, List, ListId, LogEntry, LogId, Priority, Reading, Status, Step, StepId, Tag, Task,
     TaskId,
 };
+pub use parts::MoveBarred;
 pub use paths::Paths;
 pub use refs::Ref;
 pub use state::State;

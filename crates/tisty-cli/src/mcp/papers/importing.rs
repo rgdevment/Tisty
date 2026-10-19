@@ -1,6 +1,6 @@
 use serde_json::{Value, json};
 
-use super::writing::{beside_the_file, said_of, where_it_lands, write_doc};
+use super::writing::{beside_the_file, said_of, where_it_lands, written_doc};
 
 use super::reachable_or;
 use tisty_core::Paths;
@@ -62,18 +62,24 @@ pub(in crate::mcp) fn import_doc(paths: &Paths, args: &Value) -> Result<Value, R
         ))
     })?;
     short_and_plain(&json!({ "body": made.body }))?;
-    // The files beside it are copied in below, and a document turned away after that would
-    // leave them on the person's disk with nothing pointing at them.
     let (state, mut store) = opened(paths)?;
     let home = task_named(&state, &store, &made.body)?;
-    match home {
-        Some(id) => coming_home(paths, &state, id, &made.body)?,
+    let first = match home {
+        Some(id) => {
+            coming_home(paths, &state, id, &made.body)?;
+            made.body.clone()
+        }
         None => {
             where_it_lands(&state, args)?;
-            super::compacting::subject_free(&state, args, &titled(args, &at, &made.body))?;
+            let body = titled(args, &at, &made.body);
+            super::compacting::subject_free(&state, args, &body)?;
+            fits(&said, &asked_with(args, &body))?;
+            body
         }
-    }
-    let (whole, brought) = beside_the_file(paths, &at, &made.body);
+    };
+    let shelf = paths.data().join("attachments");
+    let there_before = files_in(&shelf);
+    let (whole, brought) = beside_the_file(paths, &at, &first);
     if let Some(id) = home {
         if !brought.told.is_empty() {
             store.append_batch(brought.told).map_err(hitch)?;
@@ -81,33 +87,17 @@ pub(in crate::mcp) fn import_doc(paths: &Paths, args: &Value) -> Result<Value, R
         drop(store);
         return came_home(paths, id, &whole);
     }
-    let made = tisty_core::arriving::Tidied {
-        body: whole,
-        changed: made.changed,
-    };
-
-    let body = titled(args, &at, &made.body);
-
-    let mut asked_again = args.clone();
-    if let Some(one) = asked_again.as_object_mut() {
-        one.remove("path");
-        one.remove("title");
-        one.insert("body".into(), json!(body));
-    }
-    let long = body.chars().count();
-    if long > body_at_most() {
-        return Err(Refused::Tool(format!(
-            "{said:?} reads as {long} characters once it is tidied, and a document is kept up \
-             to {}. Split it before bringing it in.",
-            body_at_most()
-        )));
-    }
-    short_and_plain(&asked_again)?;
-    if !brought.told.is_empty() {
-        store.append_batch(brought.told).map_err(hitch)?;
-    }
     drop(store);
-    let written = write_doc(paths, &asked_again)?;
+    let asked_again = asked_with(args, &whole);
+    let written = fits(&said, &asked_again)
+        .and_then(|()| written_doc(paths, &asked_again, Some(brought.told.clone())))
+        .inspect_err(|_| {
+            for made in copied(paths, &brought.told) {
+                if !there_before.contains(&made) {
+                    let _ = std::fs::remove_file(made);
+                }
+            }
+        })?;
 
     let changed = made.changed.join(", ");
     Ok(told(
@@ -160,6 +150,54 @@ pub(in crate::mcp) fn import_doc(paths: &Paths, args: &Value) -> Result<Value, R
             other => other,
         },
     ))
+}
+
+fn asked_with(args: &Value, body: &str) -> Value {
+    let mut asked = args.clone();
+    if let Some(one) = asked.as_object_mut() {
+        one.remove("path");
+        one.remove("title");
+        one.insert("body".into(), json!(body));
+    }
+    asked
+}
+
+// Judged before the files beside it are copied, and again once their links point at the copies.
+fn fits(said: &str, asked: &Value) -> Result<(), Refused> {
+    let long = asked["body"].as_str().map_or(0, |one| one.chars().count());
+    if long > body_at_most() {
+        return Err(Refused::Tool(format!(
+            "{said:?} reads as {long} characters once it is tidied, and a document is kept up \
+             to {}. Split it before bringing it in.",
+            body_at_most()
+        )));
+    }
+    short_and_plain(asked)
+}
+
+fn files_in(at: &std::path::Path) -> std::collections::BTreeSet<std::path::PathBuf> {
+    std::fs::read_dir(at).map_or_else(
+        |_| Default::default(),
+        |all| {
+            all.flatten()
+                .flat_map(|one| match one.path().is_dir() {
+                    true => files_in(&one.path()),
+                    false => std::iter::once(one.path()).collect(),
+                })
+                .collect()
+        },
+    )
+}
+
+fn copied(paths: &Paths, told: &[tisty_core::Op]) -> Vec<std::path::PathBuf> {
+    told.iter()
+        .filter_map(|op| match op {
+            tisty_core::Op::AttachKept { d } => {
+                tisty_core::attach::resolve(&d.at, paths.data()).ok()
+            }
+            _ => None,
+        })
+        .collect()
 }
 
 fn titled(args: &Value, at: &std::path::Path, whole: &str) -> String {

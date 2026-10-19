@@ -84,8 +84,9 @@ pub(super) fn compacted(
     let mut said = over_again(paths, args, state, store, which, body)?;
     let whole = tisty_core::docs::read(&paths.docs(), which).unwrap_or_default();
     let print = Some(tisty_core::attach::printed(whole.as_bytes()));
+    let before = Some(tisty_core::attach::printed(was.as_bytes()));
     store
-        .append(Op::DocCompacted { id, print })
+        .append(Op::DocCompacted { id, print, before })
         .map_err(hitch)?;
 
     let dropped = dropped(&was, &whole);

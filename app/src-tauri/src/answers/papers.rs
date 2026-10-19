@@ -440,6 +440,23 @@ pub fn doc_keep_compacted(session: tauri::State<'_, Mutex<Session>>, id: String)
     )
 }
 
+#[tauri::command(async)]
+pub fn doc_compacted_last(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<bool> {
+    Ok(compacted_last(&held(&session), &id))
+}
+
+pub fn compacted_last(session: &Session, id: &str) -> bool {
+    session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == id)
+        .and_then(|one| one.compacted.as_ref())
+        .is_some_and(|done| {
+            tisty_core::docs::read(&session.paths.docs(), id).is_ok_and(|now| done.still_last(&now))
+        })
+}
+
 fn unmarked(
     session: &tauri::State<'_, Mutex<Session>>,
     id: &str,
@@ -898,7 +915,6 @@ pub struct Compaction {
     at: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     via: Option<String>,
-    last: bool,
 }
 
 #[derive(serde::Serialize)]
@@ -1021,8 +1037,6 @@ fn gathered(session: &Session) -> Vec<Filed> {
             compacted: kept.compacted.as_ref().map(|done| Compaction {
                 at: done.at.to_string(),
                 via: done.via.clone(),
-                last: tisty_core::docs::read(&session.paths.docs(), &kept.file)
-                    .is_ok_and(|now| done.still_last(&now)),
             }),
             folder_was: kept.folder_was.clone(),
         })
@@ -1088,7 +1102,7 @@ pub fn went_back(session: &mut Session, id: &str) -> Answer<tisty_core::docs::Do
         .filter(|one| {
             one.compacted
                 .as_ref()
-                .is_some_and(|done| done.still_last(&now))
+                .is_some_and(|done| done.undone_by(&now, &was))
         })
         .map(|one| one.id);
     tisty_core::docs::kept_before(session.paths.data(), id, &now, &was)

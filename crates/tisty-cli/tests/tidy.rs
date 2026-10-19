@@ -498,6 +498,69 @@ fn a_refused_import_leaves_no_file_behind() {
     assert_eq!(files_under(&shelf), 0);
 }
 
+#[test]
+fn an_import_refused_once_its_files_are_copied_takes_back_only_those_it_copied() {
+    let served = Served::new();
+    let from = tempfile::tempdir_in(std::env::temp_dir()).unwrap();
+    std::fs::write(from.path().join("shot.png"), b"\x89PNG\r\n\x1a\n").unwrap();
+    std::fs::write(from.path().join("fresh.png"), b"\x89PNG\r\n\x1a\n\0").unwrap();
+    std::fs::write(
+        from.path().join("shots.md"),
+        "# Shots\n\n![shot](shot.png)\n",
+    )
+    .unwrap();
+    went(&served.call(
+        "import_doc",
+        json!({ "path": from.path().join("shots.md").to_str().unwrap() }),
+    ));
+    let shelf = served.home.path().join("data").join("attachments");
+    assert_eq!(files_under(&shelf), 1);
+    let docs = served.person().state().docs.len();
+    let head = "# Long\n\n![shot](shot.png) ![fresh](fresh.png)\n\n";
+    let filler = "a".repeat(64_000 - head.chars().count() - 1);
+    std::fs::write(from.path().join("long.md"), format!("{head}{filler}\n")).unwrap();
+
+    let long = refused(&served.call(
+        "import_doc",
+        json!({ "path": from.path().join("long.md").to_str().unwrap() }),
+    ));
+
+    assert!(long.contains("characters"), "{long}");
+    assert_eq!(
+        files_under(&shelf),
+        1,
+        "the file kept before stays, the new one goes"
+    );
+    assert_eq!(served.person().state().kept.len(), 1);
+    assert_eq!(served.person().state().docs.len(), docs);
+}
+
+#[test]
+fn going_back_over_writing_after_a_compaction_settles_its_mark() {
+    let served = Served::new();
+    let doc = served.paper("# Login\n\nOne.\n\n## Session 1\n\nTwo.\n\n## Session 2\n\nTwo.\n");
+    let print = said(&served.call("read_doc", json!({ "doc": &doc })))["print"].clone();
+    went(&served.call(
+        "write_doc",
+        json!({
+            "doc": &doc,
+            "print": print,
+            "compact": true,
+            "body": "# Login\n\nOne. Two.\n",
+        }),
+    ));
+    went(&served.call("append_doc", json!({ "doc": &doc, "body": "Three." })));
+
+    went(&served.call("restore_doc", json!({ "doc": &doc, "even_if_more": true })));
+
+    let back = said(&served.call("read_doc", json!({ "doc": &doc }))).clone();
+    assert!(
+        back["body"].as_str().unwrap().contains("Session 1"),
+        "{back}"
+    );
+    assert!(back["compacted"].is_null(), "{back}");
+}
+
 fn files_under(at: &std::path::Path) -> usize {
     std::fs::read_dir(at).map_or(0, |all| {
         all.flatten()

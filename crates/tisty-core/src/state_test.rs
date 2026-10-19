@@ -4939,7 +4939,16 @@ fn a_compacted_document_says_by_whom_and_when_until_the_person_settles_it() {
     let one = doc(&mut state, "a3f1-0001", None);
 
     let print = Some(crate::attach::printed(b"# Short\n"));
-    let mut said = ev(5, "dev_agent", Op::DocCompacted { id: one, print });
+    let before = Some(crate::attach::printed(b"# Short\n\nOnce long.\n"));
+    let mut said = ev(
+        5,
+        "dev_agent",
+        Op::DocCompacted {
+            id: one,
+            print,
+            before,
+        },
+    );
     said.via = Some("claude-code".into());
     state.apply(&said);
 
@@ -4949,6 +4958,8 @@ fn a_compacted_document_says_by_whom_and_when_until_the_person_settles_it() {
         .expect("the mark was lost");
     assert!(done.still_last("# Short\n"));
     assert!(!done.still_last("# Short\n\nWritten since.\n"));
+    assert!(done.undone_by("# Short\n\nWritten since.\n", "# Short\n\nOnce long.\n"));
+    assert!(!done.undone_by("# Short\n\nWritten since.\n", "# Something else\n"));
     assert_eq!(done.by, DeviceId("dev_agent".into()));
     assert_eq!(done.via.as_deref(), Some("claude-code"));
     assert_eq!(done.at, jiff::Timestamp::from_millisecond(5).unwrap());

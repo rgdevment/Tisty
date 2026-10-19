@@ -788,6 +788,12 @@ const en = {
     "Delete these {name} documents? They and what they hold go for good. This cannot be undone.\n\n{other}",
   flagDropAllPagesSure:
     "Delete these {name} documents and the {other} pages they hold? They go for good. This cannot be undone.",
+  flagDropAllPageSure:
+    "Delete these {name} documents and the page they hold? They go for good. This cannot be undone.",
+  flagDropOnePagesSure:
+    "Delete this document and the {other} pages it holds? They go for good. This cannot be undone.",
+  flagDropOnePageSure:
+    "Delete this document and the page it holds? Both go for good. This cannot be undone.",
   flagUnmarkAllSure: "Take the mark off these {name} documents? They stay as they are.\n\n{other}",
   docCompactedBy: "Compacted by {name} on {other}",
   docCompactedSince: "Compacted by {name} on {other}, and changed since",
@@ -2851,6 +2857,12 @@ const es: Catalog = {
     "¿Borrar estos {name} documentos? Ellos y su contenido se van para siempre. Esto no se puede deshacer.\n\n{other}",
   flagDropAllPagesSure:
     "¿Borrar estos {name} documentos y las {other} páginas que guardan? Se van para siempre. Esto no se puede deshacer.",
+  flagDropAllPageSure:
+    "¿Borrar estos {name} documentos y la página que guardan? Se van para siempre. Esto no se puede deshacer.",
+  flagDropOnePagesSure:
+    "¿Borrar este documento y las {other} páginas que contiene? Se van para siempre. Esto no se puede deshacer.",
+  flagDropOnePageSure:
+    "¿Borrar este documento y la página que contiene? Ambos se van para siempre. Esto no se puede deshacer.",
   flagUnmarkAllSure:
     "¿Quitar la marca de estos {name} documentos? Quedan tal como están.\n\n{other}",
   docCompactedBy: "Compactado por {name} el {other}",
