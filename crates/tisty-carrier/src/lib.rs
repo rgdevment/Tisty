@@ -17,6 +17,8 @@ mod folder;
 #[cfg(not(windows))]
 mod keychain;
 pub mod loopback;
+#[cfg(feature = "net")]
+pub mod net;
 pub mod off;
 mod remote;
 pub mod said;

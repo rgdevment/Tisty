@@ -10,7 +10,7 @@ publish.workspace = true
 workspace = true
 
 [dependencies]
-tisty-carrier.workspace = true
+tisty-carrier = { workspace = true, features = ["net"] }
 serde.workspace = true
 serde_json.workspace = true
 reqwest.workspace = true
@@ -18,5 +18,5 @@ url.workspace = true
 base64.workspace = true
 
 [dev-dependencies]
-tisty-carrier = { workspace = true, features = ["testing"] }
+tisty-carrier = { workspace = true, features = ["testing", "net"] }
 tempfile.workspace = true

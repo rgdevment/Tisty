@@ -12,6 +12,8 @@ workspace = true
 [features]
 # Doubles and a request reader for the providers' own tests, never in a build that ships.
 testing = []
+# Only the providers and the window reach the network; the command line builds without it.
+net = ["dep:reqwest"]
 
 [dependencies]
 tisty-core.workspace = true
@@ -24,6 +26,7 @@ base64.workspace = true
 sha2.workspace = true
 rand_core.workspace = true
 tokio = { version = "1", default-features = false, features = ["rt"] }
+reqwest = { workspace = true, optional = true }
 
 [target.'cfg(not(windows))'.dependencies]
 keyring-core.workspace = true

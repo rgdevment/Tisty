@@ -5855,6 +5855,7 @@ dependencies = [
  "minisign-verify 0.2.5",
  "proptest",
  "rand_core 0.9.5",
+ "reqwest",
  "serde",
  "serde_json",
  "sha2 0.11.1",

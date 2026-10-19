@@ -5,7 +5,8 @@ use serde::Deserialize;
 use tisty_carrier::Hitch;
 
 use super::OneDrive;
-use crate::{WAITED_UNTOLD, told, unreachable, waited};
+use crate::{WAITED_UNTOLD, unreachable, waited};
+use tisty_carrier::said::told;
 
 const CONNECTED_WITHIN: Duration = Duration::from_secs(30);
 const SLOWEST: u64 = 64 * 1024;

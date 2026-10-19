@@ -3,6 +3,7 @@ use std::net::TcpListener;
 use std::time::Duration;
 
 use super::*;
+use tisty_carrier::{Cause, Hitch};
 
 const SOON: Duration = Duration::from_millis(500);
 

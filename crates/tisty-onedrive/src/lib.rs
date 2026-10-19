@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use tisty_carrier::{Hitch, Renew, Renewed};
 
-pub(crate) use tisty_carrier::said::{WAITED_UNTOLD, cause_of, told};
+pub(crate) use tisty_carrier::said::WAITED_UNTOLD;
 
 mod consent;
 mod graph;
@@ -46,29 +46,21 @@ impl Endpoints {
     }
 }
 
-// Blocking on purpose: every carrier call already runs off the window's async runtime.
 pub(crate) fn http() -> Result<reqwest::blocking::Client, Hitch> {
-    reqwest::blocking::Client::builder()
-        .timeout(ASKED_WITHIN)
-        .build()
-        .map_err(|e| Hitch::Broke(told(&e.without_url())))
+    tisty_carrier::net::client(ASKED_WITHIN)
 }
 
-pub(crate) fn waited(headers: &reqwest::header::HeaderMap) -> Option<Duration> {
-    tisty_carrier::said::retry_after(
-        headers
-            .get(reqwest::header::RETRY_AFTER)
-            .and_then(|one| one.to_str().ok()),
-    )
+pub(crate) use tisty_carrier::net::{unreachable, waited};
+
+/// Asked with no account and no token: Microsoft answers 401 at once when the way to it is open.
+pub const PROBED: &str = "https://graph.microsoft.com/v1.0/me";
+
+pub fn probe() -> tisty_carrier::net::Health {
+    tisty_carrier::net::probe_at(PROBED, PROBED_REACHED, PROBED_WITHIN)
 }
 
-// Only a way that never opened says what stood in it; a line cut mid-answer is tried again with no cause.
-pub(crate) fn unreachable(e: reqwest::Error) -> Hitch {
-    let opening = e.is_connect() || e.is_timeout();
-    let slow = e.is_timeout();
-    let said = told(&e.without_url());
-    Hitch::Unreachable(opening.then(|| cause_of(slow, &said)), said)
-}
+const PROBED_REACHED: Duration = Duration::from_secs(5);
+const PROBED_WITHIN: Duration = Duration::from_secs(10);
 
 #[derive(serde::Deserialize)]
 pub(crate) struct TokenAnswer {
@@ -85,33 +77,7 @@ pub(crate) fn posted(
     lost: &[&str],
     fields: &[(&str, &str)],
 ) -> Result<TokenAnswer, Hitch> {
-    let body = url::form_urlencoded::Serializer::new(String::new())
-        .extend_pairs(fields)
-        .finish();
-    let answer = http
-        .post(url)
-        .header(
-            reqwest::header::CONTENT_TYPE,
-            "application/x-www-form-urlencoded",
-        )
-        .body(body)
-        .send()
-        .map_err(unreachable)?;
-    let status = answer.status().as_u16();
-    let wait = waited(answer.headers());
-    let text = answer.text().map_err(unreachable)?;
-    match status {
-        200 => serde_json::from_str(&text).map_err(|_| {
-            Hitch::Broke("Microsoft answered the sign-in in a shape Tisty does not read".into())
-        }),
-        status => Err(tisty_carrier::said::token_refused(
-            "Microsoft",
-            status,
-            wait,
-            &text,
-            lost,
-        )),
-    }
+    tisty_carrier::net::token_asked(http, "Microsoft", url, lost, fields)
 }
 
 pub struct MicrosoftRenew {
