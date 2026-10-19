@@ -160,6 +160,25 @@ fn a_closed_task_and_one_kept_from_agents_take_no_part() {
 }
 
 #[test]
+fn a_part_stays_under_a_whole_kept_closed_to_agents() {
+    let served = Served::new();
+    let elsewhere = served.filed("Release 2.0");
+    let persons = served.person().captures("move house");
+    let part = served.person().adds_part(persons, "book the van");
+    served.person().opens_to_agents(part);
+
+    let moved = refused(&served.call(
+        "move",
+        json!({ "task": part.to_string(), "part_of": &elsewhere }),
+    ));
+    assert!(moved.contains("closed to agents"), "{moved}");
+    let let_go =
+        refused(&served.call("move", json!({ "task": part.to_string(), "part_of": null })));
+    assert!(let_go.contains("closed to agents"), "{let_go}");
+    assert_eq!(served.person().state().tasks[&part].part_of, Some(persons));
+}
+
+#[test]
 fn a_list_is_chosen_only_for_what_an_agent_filed() {
     let served = Served::new();
     served.person().adds_list("Work");
@@ -428,6 +447,66 @@ fn a_new_document_on_a_subject_already_kept_is_refused_naming_it() {
         "write_doc",
         json!({ "body": "# TIS-42 · inicio de sesion\n\nOtra vez.", "anyway": true }),
     ));
+}
+
+#[test]
+fn only_open_documents_hold_a_subject_and_pages_never_do() {
+    let served = Served::new();
+    let put_away = served.paper("# Login\n\nOld.");
+    went(&served.call("archive_doc", json!({ "doc": &put_away, "archived": true })));
+    went(&served.call("write_doc", json!({ "body": "# Login\n\nNew." })));
+
+    let marked = served.paper("# Billing\n\nOld.");
+    went(&served.call(
+        "flag_doc",
+        json!({ "doc": &marked, "reason": "obsolete", "body": "retired" }),
+    ));
+    went(&served.call("write_doc", json!({ "body": "# Billing\n\nNew." })));
+
+    let one = served.paper("# Search\n\nA.");
+    let two = served.paper("# Export\n\nB.");
+    went(&served.call(
+        "write_doc",
+        json!({ "body": "# Overview\n\nA.", "page_of": &one }),
+    ));
+    went(&served.call(
+        "write_doc",
+        json!({ "body": "# Overview\n\nB.", "page_of": &two }),
+    ));
+}
+
+#[test]
+fn a_refused_import_leaves_no_file_behind() {
+    let served = Served::new();
+    served.paper("# Login\n\nHow it works.");
+    let from = tempfile::tempdir_in(std::env::temp_dir()).unwrap();
+    std::fs::write(from.path().join("shot.png"), b"\x89PNG\r\n\x1a\n").unwrap();
+    std::fs::write(
+        from.path().join("login.md"),
+        "# Login\n\n![shot](shot.png)\n",
+    )
+    .unwrap();
+    let shelf = served.home.path().join("data").join("attachments");
+
+    let again = refused(&served.call(
+        "import_doc",
+        json!({ "path": from.path().join("login.md").to_str().unwrap() }),
+    ));
+
+    assert!(again.contains("already holds that subject"), "{again}");
+    assert!(served.person().state().kept.is_empty());
+    assert_eq!(files_under(&shelf), 0);
+}
+
+fn files_under(at: &std::path::Path) -> usize {
+    std::fs::read_dir(at).map_or(0, |all| {
+        all.flatten()
+            .map(|one| match one.path().is_dir() {
+                true => files_under(&one.path()),
+                false => 1,
+            })
+            .sum()
+    })
 }
 
 #[test]

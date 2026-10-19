@@ -1065,8 +1065,7 @@ pub(super) fn tools() -> Value {
     ])
 }
 
-/// Seven tools take the same field, and seven wordings of it would drift apart the first time
-/// one was touched.
+/// Seven tools take this field, and seven wordings of it would drift apart.
 fn named_doc_field() -> Value {
     json!({
         "type": "string",

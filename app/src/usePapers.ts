@@ -21,7 +21,7 @@ import { leftBehind } from "./leftBehind";
 import { fill, t } from "./locales";
 import { saidPlainly } from "./refusal";
 import { sure } from "./sure";
-import { listOf } from "./tidying";
+import { dropAllAsked, goingWith } from "./tidying";
 import type { Chosen } from "./views";
 
 // An old copy of a task's page would take away what the task holds now, so the person says so first.
@@ -132,15 +132,9 @@ export function usePapers({
       .catch((e) => setError(saidPlainly(e)));
 
   const dropDocs = async (all: Filed[]) => {
-    if (!(await sure(fill("flagDropAllSure", String(all.length), listOf(all))))) return;
-    // A page goes with the document that holds it, so asking for it again would find nothing.
-    const going = all.filter((one) => !all.some((up) => up.id === one.pageOf));
-    const files = new Set([
-      ...all.map((one) => one.file),
-      ...papers.docs
-        .filter((one) => going.some((doc) => doc.id === one.pageOf))
-        .map((one) => one.file),
-    ]);
+    const { going, pages } = goingWith(all, papers.docs);
+    if (!(await sure(dropAllAsked(going, pages)))) return;
+    const files = new Set([...all.map((one) => one.file), ...pages.map((one) => one.file)]);
     if (chosen.doc && files.has(chosen.doc)) setChosen({ named: "docs" });
     const first = going[0];
     if (first) setReturning(first.pageOf ?? first.folder ?? "unfiled");

@@ -5686,11 +5686,59 @@ fn putting_a_document_away_and_filing_it_is_written_as_one_thing() {
 }
 
 #[test]
+fn no_tool_description_carries_a_double_space() {
+    let served = Served::new();
+    let listed = served.talk(&[r#"{"jsonrpc":"2.0","id":1,"method":"tools/list"}"#]);
+    let mut left = vec![listed[0]["result"]["tools"].clone()];
+    let mut found = Vec::new();
+    while let Some(one) = left.pop() {
+        match one {
+            serde_json::Value::Array(all) => left.extend(all),
+            serde_json::Value::Object(all) => {
+                for (key, value) in all {
+                    match value.as_str() {
+                        Some(said) if key == "description" => {
+                            if said.lines().any(|line| line.trim().contains("  ")) {
+                                found.push(said.chars().take(90).collect::<String>());
+                            }
+                        }
+                        _ => left.push(value),
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    assert!(found.is_empty(), "{found:#?}");
+}
+
+#[test]
 fn no_sentence_in_the_source_carries_a_gap_where_a_line_was_continued() {
-    let said = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/src/mcp.rs")).unwrap();
-    let found: Vec<(usize, String)> = said
-        .lines()
-        .enumerate()
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let mut files = vec![root.join("mcp.rs")];
+    let mut dirs = vec![root.join("mcp")];
+    while let Some(dir) = dirs.pop() {
+        for one in std::fs::read_dir(dir).unwrap().flatten() {
+            match one.path().is_dir() {
+                true => dirs.push(one.path()),
+                false => files.push(one.path()),
+            }
+        }
+    }
+    let lines: Vec<(String, String)> = files
+        .iter()
+        .flat_map(|at| {
+            let said = std::fs::read_to_string(at).unwrap();
+            let name = at.display().to_string();
+            said.lines()
+                .enumerate()
+                .map(|(n, line)| (format!("{name}:{}", n + 1), line.to_string()))
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    let found: Vec<(String, String)> = lines
+        .into_iter()
         .filter(|(_, line)| {
             let trimmed = line.trim_start();
             trimmed.starts_with('"')
@@ -5706,7 +5754,7 @@ fn no_sentence_in_the_source_carries_a_gap_where_a_line_was_continued() {
                     && !held.contains("{wide}")
             })
         })
-        .map(|(at, line)| (at + 1, line.trim().chars().take(90).collect()))
+        .map(|(at, line)| (at, line.trim().chars().take(90).collect()))
         .collect();
 
     assert!(

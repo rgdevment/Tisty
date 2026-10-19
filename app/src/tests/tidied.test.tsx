@@ -160,7 +160,7 @@ describe("a mark that says why", () => {
     show([doc({ id: "D1", file: "d-1", flagged: marked({ reason: "someday" }) })]);
 
     expect(await screen.findByText(t("docFlagged"))).toBeTruthy();
-    expect(screen.getByRole("button", { name: t("deleteIt") })).toBeTruthy();
+    expect(screen.getByRole("button", { name: t("flagDropIt") })).toBeTruthy();
   });
 
   it("takes the mark off with the existing unflag", async () => {
@@ -244,9 +244,10 @@ describe("a set marked in one go", () => {
 
   it("calls the delete by what the mark said", () => {
     expect(dropWord("duplicate_of")).toBe("flagDropCopy");
-    expect(dropWord("scratch")).toBe("flagDropCopy");
-    expect(dropWord("obsolete")).toBe("flagDropIt");
-    expect(dropWord(undefined)).toBe("deleteIt");
+    for (const other of ["moved", "superseded", "scratch", "wrong", "obsolete", "someday"]) {
+      expect(dropWord(other)).toBe("flagDropIt");
+    }
+    expect(dropWord(undefined)).toBe("flagDropIt");
   });
 });
 
@@ -266,7 +267,7 @@ describe("deleting a set", () => {
     paging: { current: null },
   });
 
-  it("asks once with every title, then deletes each, a page going with its holder", async () => {
+  it("asks once naming each document and the pages that go with it", async () => {
     const asked: string[] = [];
     asksSure((said) => {
       asked.push(said);
@@ -282,9 +283,27 @@ describe("deleting a set", () => {
 
     await result.current.dropDocs(all);
 
-    expect(asked).toEqual([fill("flagDropAllSure", "3", "· Draft A\n· Draft B\n· Draft C")]);
+    expect(asked).toEqual([
+      `${fill("flagDropAllPagesSure", "2", "1")}\n\n· Draft A\n    · Draft B\n· Draft C`,
+    ]);
     expect(called("doc_drop").map((one) => one.args.id)).toEqual(["D1", "D3"]);
     expect(given.setChosen).toHaveBeenCalledWith({ named: "docs" });
+  });
+
+  it("asks with the plain titles when no page goes along", async () => {
+    const asked: string[] = [];
+    asksSure((said) => {
+      asked.push(said);
+      return Promise.resolve(true);
+    });
+    const { result } = renderHook(() => usePapers(hands()));
+
+    await result.current.dropDocs([
+      doc({ id: "D1", file: "d-1", title: "Draft A" }),
+      doc({ id: "D3", file: "d-3", title: "Draft C" }),
+    ]);
+
+    expect(asked).toEqual([fill("flagDropAllSure", "2", "· Draft A\n· Draft C")]);
   });
 
   it("deletes nothing when the person says no", async () => {
@@ -298,7 +317,8 @@ describe("deleting a set", () => {
 });
 
 describe("a document an assistant compacted", () => {
-  const compacted = () => doc({ id: "D1", file: "d-1", compacted: { at: AT, via: "claude-code" } });
+  const compacted = (last = true) =>
+    doc({ id: "D1", file: "d-1", compacted: { at: AT, via: "claude-code", last } });
 
   it("says who compacted it and when", async () => {
     show([compacted()]);
@@ -307,7 +327,7 @@ describe("a document an assistant compacted", () => {
   });
 
   it("names an assistant when it did not say its name", async () => {
-    show([doc({ id: "D1", file: "d-1", compacted: { at: AT } })]);
+    show([doc({ id: "D1", file: "d-1", compacted: { at: AT, last: true } })]);
 
     expect(
       await screen.findByText(fill("docCompactedBy", t("anAssistant"), dayOf(AT))),
@@ -326,6 +346,16 @@ describe("a document an assistant compacted", () => {
     await waitFor(() => expect(onKept).toHaveBeenCalled());
     expect(called("doc_back").map((one) => one.args.id)).toEqual(["d-1"]);
     expect(asked).toEqual([t("backSure")]);
+  });
+
+  it("offers no undo once something was written after it", async () => {
+    show([compacted(false)]);
+
+    expect(
+      await screen.findByText(fill("docCompactedSince", "Claude Code", dayOf(AT))),
+    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: t("compactKeep") })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: t("compactUndo") })).toBeNull();
   });
 
   it("keeps it and lets the mark go", async () => {

@@ -205,7 +205,6 @@ pub(super) fn unplan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     ))
 }
 
-/// Steps handed on go to a task this hand may fill, open and not yet spoken for.
 fn handed_to<'a>(
     state: &'a State,
     store: &tisty_core::Store,

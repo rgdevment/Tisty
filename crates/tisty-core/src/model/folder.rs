@@ -73,6 +73,14 @@ pub struct Compacted {
     pub by: crate::event::DeviceId,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub via: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub print: Option<String>,
+}
+
+impl Compacted {
+    pub fn still_last(&self, body: &str) -> bool {
+        self.print.as_deref() == Some(crate::attach::printed(body.as_bytes()).as_str())
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

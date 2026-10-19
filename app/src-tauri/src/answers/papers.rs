@@ -422,28 +422,40 @@ pub fn doc_away(session: tauri::State<'_, Mutex<Session>>, id: String, away: boo
 
 #[tauri::command]
 pub fn doc_unflag(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
-    let id = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
-    let mut session = held(&session);
-    match session.state.docs.get(&id) {
-        None => return Err(Refusal::of("noSuchDoc")),
-        Some(one) if one.flagged.is_none() => return Ok(()),
-        Some(_) => {}
-    }
-    session.commit(Op::DocUnflag { id })?;
-    Ok(())
+    unmarked(
+        &session,
+        &id,
+        |one| one.flagged.is_some(),
+        |id| Op::DocUnflag { id },
+    )
 }
 
 #[tauri::command]
 pub fn doc_keep_compacted(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
+    unmarked(
+        &session,
+        &id,
+        |one| one.compacted.is_some(),
+        |id| Op::DocUncompacted { id },
+    )
+}
+
+fn unmarked(
+    session: &tauri::State<'_, Mutex<Session>>,
+    id: &str,
+    marked: impl Fn(&tisty_core::model::Kept) -> bool,
+    settle: impl Fn(tisty_core::model::DocId) -> Op,
+) -> Answer<()> {
     let id = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
-    let mut session = held(&session);
+    let mut session = held(session);
     match session.state.docs.get(&id) {
-        None => return Err(Refusal::of("noSuchDoc")),
-        Some(one) if one.compacted.is_none() => return Ok(()),
-        Some(_) => {}
+        None => Err(Refusal::of("noSuchDoc")),
+        Some(one) if !marked(one) => Ok(()),
+        Some(_) => {
+            session.commit(settle(id))?;
+            Ok(())
+        }
     }
-    session.commit(Op::DocUncompacted { id })?;
-    Ok(())
 }
 
 #[tauri::command]
@@ -886,6 +898,7 @@ pub struct Compaction {
     at: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     via: Option<String>,
+    last: bool,
 }
 
 #[derive(serde::Serialize)]
@@ -1008,6 +1021,8 @@ fn gathered(session: &Session) -> Vec<Filed> {
             compacted: kept.compacted.as_ref().map(|done| Compaction {
                 at: done.at.to_string(),
                 via: done.via.clone(),
+                last: tisty_core::docs::read(&session.paths.docs(), &kept.file)
+                    .is_ok_and(|now| done.still_last(&now)),
             }),
             folder_was: kept.folder_was.clone(),
         })
@@ -1065,6 +1080,17 @@ pub fn went_back(session: &mut Session, id: &str) -> Answer<tisty_core::docs::Do
     let now = tisty_core::docs::read(&root, id)
         .map_err(|e| blamed(channel::WINDOW, "a document could not be read", e))?;
     let print = tisty_core::attach::printed(now.as_bytes());
+    let undone = session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == id)
+        .filter(|one| {
+            one.compacted
+                .as_ref()
+                .is_some_and(|done| done.still_last(&now))
+        })
+        .map(|one| one.id);
     tisty_core::docs::kept_before(session.paths.data(), id, &now, &was)
         .map_err(|e| blamed(channel::WINDOW, "what a document said could not be kept", e))?;
     let made =
@@ -1082,10 +1108,7 @@ pub fn went_back(session: &mut Session, id: &str) -> Answer<tisty_core::docs::Do
     session.corpus.forget(id);
     let hand = signing(&session.state);
     session.retell(id, &whole, hand);
-    if let Some(kept) = session.state.docs.values().find(|one| one.file == id)
-        && kept.compacted.is_some()
-    {
-        let doc = kept.id;
+    if let Some(doc) = undone {
         session.commit(Op::DocUncompacted { id: doc })?;
     }
     Ok(tisty_core::docs::Doc {

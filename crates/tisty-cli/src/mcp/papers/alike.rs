@@ -12,7 +12,6 @@ pub(super) fn by(state: &State, kept: &Kept) -> &'static str {
     }
 }
 
-/// Documents elsewhere whose title names the same subject as this one or one of its pages.
 pub(super) fn alike(state: &State, kept: &Kept, pages: &[&Kept]) -> Vec<Value> {
     let inside: Vec<&str> = std::iter::once(kept)
         .chain(pages.iter().copied())
@@ -38,7 +37,6 @@ pub(super) fn alike(state: &State, kept: &Kept, pages: &[&Kept]) -> Vec<Value> {
     found
 }
 
-/// A heading written in more than one page is one thing said in two places.
 pub(super) fn repeated(own: (&str, &Card), pages: &[(&str, &Card)]) -> Vec<Value> {
     let mut seen: Vec<(String, String, Vec<String>)> = Vec::new();
     for (file, card) in std::iter::once(&own).chain(pages.iter()) {

@@ -39,7 +39,8 @@ pub(super) fn propose(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .and_then(|all| all.keys().find(|key| *key != "tasks"))
     {
         return Err(Refused::Tool(format!(
-            "with `tasks`, every field goes inside each task, so `{beside}` beside them would be              lost. Nothing was written."
+            "with `tasks`, every field goes inside each task, so `{beside}` beside them would be \
+             lost. Nothing was written."
         )));
     }
     if many.is_empty() {

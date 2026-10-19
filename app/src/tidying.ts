@@ -21,10 +21,8 @@ export const pointedWord = (reason?: string | null): Word | undefined =>
 export const plainWord = (reason?: string | null): Word | undefined =>
   reason ? PLAIN[reason] : undefined;
 
-export const dropWord = (reason?: string | null): Word => {
-  if (reason === "wrong" || reason === "obsolete") return "flagDropIt";
-  return reason && (reason in POINTING || reason === "scratch") ? "flagDropCopy" : "deleteIt";
-};
+export const dropWord = (reason?: string | null): Word =>
+  reason === "duplicate_of" ? "flagDropCopy" : "flagDropIt";
 
 const ULID = /^[0-9A-HJKMNP-TV-Z]{26}$/i;
 
@@ -45,10 +43,32 @@ export const alike = (known: Filed[], own: Filed): Filed[] => {
 export const listOf = (docs: Filed[]): string =>
   docs.map((one) => `· ${one.title || t("untitledDoc")}`).join("\n");
 
+// A page goes with the document that holds it, so asking for it again would find nothing.
+export const goingWith = (all: Filed[], docs: Filed[]) => {
+  const going = all.filter((one) => !all.some((up) => up.id === one.pageOf));
+  const known = new Map([...docs, ...all].map((one) => [one.id, one]));
+  const pages = [...known.values()].filter((one) => going.some((doc) => doc.id === one.pageOf));
+  return { going, pages };
+};
+
+export const dropAllAsked = (going: Filed[], pages: Filed[]): string => {
+  const named = going
+    .map((doc) =>
+      [doc, ...pages.filter((one) => one.pageOf === doc.id)]
+        .map((one) => `${one === doc ? "" : "    "}${listOf([one])}`)
+        .join("\n"),
+    )
+    .join("\n");
+  const many = String(going.length);
+  return pages.length
+    ? `${fill("flagDropAllPagesSure", many, String(pages.length))}\n\n${named}`
+    : fill("flagDropAllSure", many, named);
+};
+
 export const compactedBy = (doc: Filed): string =>
   doc.compacted
     ? fill(
-        "docCompactedBy",
+        doc.compacted.last ? "docCompactedBy" : "docCompactedSince",
         clientNamed(doc.compacted.via) ?? t("anAssistant"),
         dayOf(doc.compacted.at),
       )

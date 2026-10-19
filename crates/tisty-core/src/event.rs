@@ -125,7 +125,7 @@ impl Event {
             | Op::DocUnarchive { id }
             | Op::DocFlag { id, .. }
             | Op::DocUnflag { id }
-            | Op::DocCompacted { id }
+            | Op::DocCompacted { id, .. }
             | Op::DocUncompacted { id }
             | Op::DocLock { id }
             | Op::DocUnlock { id } => Some(*id),

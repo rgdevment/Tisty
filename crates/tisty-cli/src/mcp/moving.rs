@@ -57,6 +57,16 @@ pub(super) fn move_task(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         part_of,
         ..Default::default()
     };
+    if let (Some(Some(next)), Some(up)) = (part_of, held_by)
+        && Some(next) != task.part_of
+        && !state.attended_by_agents(up)
+    {
+        return Err(Refused::Tool(format!(
+            "{:?} is a part of {:?}, which the person keeps closed to agents, so moving it to \
+             another whole is theirs. Say where it belongs with `note`.",
+            task.title, up.title
+        )));
+    }
     if part_of == Some(None) {
         let Some(up) = held_by else {
             return Ok(told(

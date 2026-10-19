@@ -21,7 +21,6 @@ pub fn noted(body: &str, note: &str, spanish: bool) -> String {
     format!("{head}{line}{line}{note}{line}{tail}{rest}")
 }
 
-/// The section written again whole, as one digest; nothing outside it moves.
 pub fn rewritten(body: &str, note: &str, spanish: bool) -> String {
     let Some((_, words)) = crate::closing::held(body, &ASSISTANT_NOTES) else {
         return noted(body, note, spanish);
@@ -34,7 +33,6 @@ pub fn rewritten(body: &str, note: &str, spanish: bool) -> String {
     format!("{head}{line}{line}{note}{line}{tail}{rest}")
 }
 
-/// What the page says outside the assistant's notes, which a going back must leave as it is.
 pub fn outside(body: &str) -> String {
     match crate::closing::held(body, &ASSISTANT_NOTES) {
         Some((head, words)) => format!("{}{}", &body[..head.start], &body[words.end..]),

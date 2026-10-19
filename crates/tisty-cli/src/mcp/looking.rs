@@ -413,7 +413,8 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         whole["notice"] = json!(notice);
     } else if task.open_to_agents {
         plainly.push_str(
-            " (open to agents: yours to describe, plan, tick, untick, reword or unplan an open step, \n             reword a note, and say done or not doing)",
+            " (open to agents: yours to describe, plan, tick, untick, reword or unplan an open step, \
+             reword a note, and say done or not doing)",
         );
     }
     if let Some(body) = &task.description

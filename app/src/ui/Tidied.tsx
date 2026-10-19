@@ -177,7 +177,7 @@ export function CompactBar({ own, style, backable, onUndo, onKeep }: CompactProp
         <span aria-hidden="true">◇ </span>
         {compactedBy(own)}
       </span>
-      {backable && (
+      {own.compacted.last && backable && (
         <button type="button" onClick={onUndo} className={MILD}>
           {t("compactUndo")}
         </button>

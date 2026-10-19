@@ -376,11 +376,12 @@ impl State {
             Op::DocUnarchive { id } => self.shelve(*id, false, true),
             Op::DocFlag { id, d } => self.doc_flagged(event, id, d),
             Op::DocUnflag { id } => self.doc_marked(id, |doc| doc.flagged = None),
-            Op::DocCompacted { id } => {
+            Op::DocCompacted { id, print } => {
                 let said = crate::model::Compacted {
                     at: event.timestamp,
                     by: event.device.clone(),
                     via: event.via.clone(),
+                    print: print.clone(),
                 };
                 self.doc_marked(id, |doc| doc.compacted = Some(said));
             }

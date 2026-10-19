@@ -1117,6 +1117,7 @@ export interface Marked {
 export interface Compaction {
   at: string;
   via?: string | null;
+  last: boolean;
 }
 
 export interface Filed {

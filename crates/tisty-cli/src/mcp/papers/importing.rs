@@ -70,6 +70,7 @@ pub(in crate::mcp) fn import_doc(paths: &Paths, args: &Value) -> Result<Value, R
         Some(id) => coming_home(paths, &state, id, &made.body)?,
         None => {
             where_it_lands(&state, args)?;
+            super::compacting::subject_free(&state, args, &titled(args, &at, &made.body))?;
         }
     }
     let (whole, brought) = beside_the_file(paths, &at, &made.body);
@@ -85,30 +86,7 @@ pub(in crate::mcp) fn import_doc(paths: &Paths, args: &Value) -> Result<Value, R
         changed: made.changed,
     };
 
-    let past = tisty_markdown::front::span(&made.body).map_or(0, |at| at.end);
-    let (front, rest) = made.body.split_at(past);
-    let front = match front.is_empty() || front.ends_with('\n') {
-        true => front.to_string(),
-        false => format!("{front}\n"),
-    };
-    let named_above = tisty_markdown::front::title(&front).is_some();
-    let headed = named_above
-        || rest
-            .lines()
-            .find(|one| !one.trim().is_empty())
-            .is_some_and(|one| one.starts_with("# "));
-    let body = match (text(args, "title"), headed) {
-        (Some(said), _) if named_above => format!(
-            "{}{rest}",
-            tisty_markdown::front::titled_as(&front, &said).unwrap_or(front.clone())
-        ),
-        (Some(said), _) => format!("{front}# {said}\n\n{}", rest.trim_start()),
-        (None, true) => made.body.clone(),
-        (None, false) => {
-            let named = at.file_stem().unwrap_or_default().to_string_lossy();
-            format!("{front}# {named}\n\n{}", rest.trim_start())
-        }
-    };
+    let body = titled(args, &at, &made.body);
 
     let mut asked_again = args.clone();
     if let Some(one) = asked_again.as_object_mut() {
@@ -182,6 +160,33 @@ pub(in crate::mcp) fn import_doc(paths: &Paths, args: &Value) -> Result<Value, R
             other => other,
         },
     ))
+}
+
+fn titled(args: &Value, at: &std::path::Path, whole: &str) -> String {
+    let past = tisty_markdown::front::span(whole).map_or(0, |at| at.end);
+    let (front, rest) = whole.split_at(past);
+    let front = match front.is_empty() || front.ends_with('\n') {
+        true => front.to_string(),
+        false => format!("{front}\n"),
+    };
+    let named_above = tisty_markdown::front::title(&front).is_some();
+    let headed = named_above
+        || rest
+            .lines()
+            .find(|one| !one.trim().is_empty())
+            .is_some_and(|one| one.starts_with("# "));
+    match (text(args, "title"), headed) {
+        (Some(said), _) if named_above => format!(
+            "{}{rest}",
+            tisty_markdown::front::titled_as(&front, &said).unwrap_or(front.clone())
+        ),
+        (Some(said), _) => format!("{front}# {said}\n\n{}", rest.trim_start()),
+        (None, true) => whole.to_string(),
+        (None, false) => {
+            let named = at.file_stem().unwrap_or_default().to_string_lossy();
+            format!("{front}# {named}\n\n{}", rest.trim_start())
+        }
+    }
 }
 
 fn zone() -> String {

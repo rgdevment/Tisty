@@ -69,7 +69,9 @@ pub(super) fn noted_on_page(
         return Ok(told(
             match replace {
                 true => format!(
-                    "Wrote the assistant's notes on {title:?}'s page again, whole; the rest of                      the page is as it was. What they said before is kept: `restore_doc` with                      the task's id puts it back.{elsewhere}"
+                    "Wrote the assistant's notes on {title:?}'s page again, whole; the rest of \
+                     the page is as it was. What they said before is kept: `restore_doc` with \
+                     the task's id puts it back.{elsewhere}"
                 ),
                 false => {
                     format!("Added under the assistant's notes on {title:?}'s page.{elsewhere}")

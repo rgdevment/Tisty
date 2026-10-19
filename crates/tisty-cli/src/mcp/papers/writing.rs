@@ -206,7 +206,10 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
         &was,
     )?;
     if let Some(kept) = state.docs.values().find(|one| one.file == which)
-        && kept.compacted.is_some()
+        && kept
+            .compacted
+            .as_ref()
+            .is_some_and(|one| one.still_last(&now))
     {
         let _ = store.append(Op::DocUncompacted { id: kept.id });
     }
@@ -253,7 +256,8 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
     }
     if args.get("replace").and_then(Value::as_bool) == Some(true) {
         return Err(Refused::Tool(
-            "`replace` writes the assistant's notes on a task's page again, so it needs a task's              id in `doc`. A document's passage is changed with `edit_doc`."
+            "`replace` writes the assistant's notes on a task's page again, so it needs a task's \
+             id in `doc`. A document's passage is changed with `edit_doc`."
                 .into(),
         ));
     }

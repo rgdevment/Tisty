@@ -786,8 +786,11 @@ const en = {
   flagUnmarkAll: "Unmark all {name}",
   flagDropAllSure:
     "Delete these {name} documents? They and what they hold go for good. This cannot be undone.\n\n{other}",
+  flagDropAllPagesSure:
+    "Delete these {name} documents and the {other} pages they hold? They go for good. This cannot be undone.",
   flagUnmarkAllSure: "Take the mark off these {name} documents? They stay as they are.\n\n{other}",
   docCompactedBy: "Compacted by {name} on {other}",
+  docCompactedSince: "Compacted by {name} on {other}, and changed since",
   compactUndo: "Undo",
   compactKeep: "Keep",
   backWhere: "Unarchive «{name}»",
@@ -2842,13 +2845,16 @@ const es: Catalog = {
   flagNoLonger: "algo que ya no existe",
   flagDropCopy: "Borrar esta copia",
   flagDropIt: "Borrarlo",
-  flagDropAll: "Borrar las {name}",
+  flagDropAll: "Borrar los {name}",
   flagUnmarkAll: "Quitar las {name} marcas",
   flagDropAllSure:
     "¿Borrar estos {name} documentos? Ellos y su contenido se van para siempre. Esto no se puede deshacer.\n\n{other}",
+  flagDropAllPagesSure:
+    "¿Borrar estos {name} documentos y las {other} páginas que guardan? Se van para siempre. Esto no se puede deshacer.",
   flagUnmarkAllSure:
     "¿Quitar la marca de estos {name} documentos? Quedan tal como están.\n\n{other}",
   docCompactedBy: "Compactado por {name} el {other}",
+  docCompactedSince: "Compactado por {name} el {other}, y cambió desde entonces",
   compactUndo: "Deshacer",
   compactKeep: "Conservar",
   backWhere: "Desarchivar «{name}»",

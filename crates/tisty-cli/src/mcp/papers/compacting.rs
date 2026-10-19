@@ -40,9 +40,13 @@ pub(super) fn subject_free(state: &State, args: &Value, body: &str) -> Result<()
         return Ok(());
     }
     let Some(taken) = state.papers().find(|one| {
-        one.title
-            .as_deref()
-            .is_some_and(|title| tisty_core::text::subject(title) == wanted)
+        one.page_of.is_none()
+            && one.flagged.is_none()
+            && !state.held_away(one)
+            && one
+                .title
+                .as_deref()
+                .is_some_and(|title| tisty_core::text::subject(title) == wanted)
     }) else {
         return Ok(());
     };
@@ -78,9 +82,12 @@ pub(super) fn compacted(
     let (id, loose) = (kept.id, kept.folder.is_none() && kept.page_of.is_none());
     let was = tisty_core::docs::read(&paths.docs(), which).map_err(hitch)?;
     let mut said = over_again(paths, args, state, store, which, body)?;
-    store.append(Op::DocCompacted { id }).map_err(hitch)?;
-
     let whole = tisty_core::docs::read(&paths.docs(), which).unwrap_or_default();
+    let print = Some(tisty_core::attach::printed(whole.as_bytes()));
+    store
+        .append(Op::DocCompacted { id, print })
+        .map_err(hitch)?;
+
     let dropped = dropped(&was, &whole);
     let (before, after) = (was.chars().count(), whole.chars().count());
     let title = tisty_core::docs::titled(&whole);
@@ -131,7 +138,6 @@ fn dropped(was: &str, whole: &str) -> Vec<String> {
     gone
 }
 
-/// A task's page is named by the task; going back on it reaches only the assistant's notes.
 pub(super) fn page_to_restore(paths: &Paths, which: &str) -> Result<(String, bool), Refused> {
     let Ok(id) = which.parse::<TaskId>() else {
         return Ok((which.to_string(), false));

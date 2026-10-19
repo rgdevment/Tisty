@@ -432,3 +432,41 @@ fn an_assistant_does_not_let_a_part_go_from_a_whole_kept_closed_to_it() {
 
     assert_eq!(whole_of(&state, part), Some(whole));
 }
+
+#[test]
+fn an_assistant_does_not_move_a_part_out_of_a_whole_kept_closed_to_it() {
+    let mut state = with_an_agent();
+    let whole = written(&mut state, 2, "dev_a", "move house", None);
+    let part = written(&mut state, 3, "dev_a", "book the van", Some(whole));
+    opened_to_agents(&mut state, 4, part);
+    let elsewhere = written(&mut state, 5, "dev_agent", "plan the move", None);
+
+    agent_moves(
+        &mut state,
+        6,
+        part,
+        TaskMove {
+            part_of: Some(Some(elsewhere)),
+            ..Default::default()
+        },
+    );
+
+    assert_eq!(whole_of(&state, part), Some(whole));
+}
+
+#[test]
+fn an_assistant_moves_a_part_only_into_a_whole_it_may_work_on() {
+    let mut state = with_an_agent();
+    let whole = written(&mut state, 2, "dev_agent", "plan the move", None);
+    let part = written(&mut state, 3, "dev_agent", "book the van", Some(whole));
+    let persons = written(&mut state, 4, "dev_a", "move house", None);
+    let task = state.tasks[&part].clone();
+    let into = |next| TaskMove {
+        part_of: Some(Some(next)),
+        ..Default::default()
+    };
+
+    assert!(!state.agent_may_move(&task, &into(persons)));
+    opened_to_agents(&mut state, 5, persons);
+    assert!(state.agent_may_move(&task, &into(persons)));
+}

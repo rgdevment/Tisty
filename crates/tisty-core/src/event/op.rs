@@ -187,7 +187,11 @@ pub enum Op {
     #[serde(rename = "doc.unflag")]
     DocUnflag { id: DocId },
     #[serde(rename = "doc.compacted")]
-    DocCompacted { id: DocId },
+    DocCompacted {
+        id: DocId,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        print: Option<String>,
+    },
     #[serde(rename = "doc.uncompacted")]
     DocUncompacted { id: DocId },
     #[serde(rename = "doc.lock")]
@@ -369,7 +373,7 @@ impl Op {
             Op::DocArchive { .. } => Op::DocArchive { id },
             Op::DocFlag { d, .. } => Op::DocFlag { id, d },
             Op::DocUnflag { .. } => Op::DocUnflag { id },
-            Op::DocCompacted { .. } => Op::DocCompacted { id },
+            Op::DocCompacted { print, .. } => Op::DocCompacted { id, print },
             Op::DocUncompacted { .. } => Op::DocUncompacted { id },
             Op::DocUnarchive { .. } => Op::DocUnarchive { id },
             Op::DocLock { .. } => Op::DocLock { id },
@@ -509,7 +513,7 @@ impl Op {
             | Op::DocUnarchive { id }
             | Op::DocFlag { id, .. }
             | Op::DocUnflag { id }
-            | Op::DocCompacted { id }
+            | Op::DocCompacted { id, .. }
             | Op::DocUncompacted { id }
             | Op::DocLock { id }
             | Op::DocUnlock { id } => Some(*id),

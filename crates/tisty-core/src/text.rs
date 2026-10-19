@@ -59,8 +59,6 @@ pub fn terms(query: &str) -> Vec<String> {
 
 pub use tisty_markdown::tags::composed;
 
-/// Two titles name one subject when they differ only in case, accents, spacing, the punctuation
-/// around them, or a ticket written in front: «ABC-123 · Login» is about «login».
 pub fn subject(title: &str) -> String {
     let plain = |one: char| !one.is_alphanumeric();
     let bare = title.trim_matches(plain);

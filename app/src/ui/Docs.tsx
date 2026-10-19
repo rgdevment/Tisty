@@ -220,7 +220,7 @@ export default function Docs({
   }, [keep, open]);
 
   const [backable, setBackable] = useState(false);
-  const compacted = Boolean(filed(known, open?.file)?.compacted);
+  const compacted = Boolean(filed(known, open?.file)?.compacted?.last);
 
   useEffect(() => {
     if (!(stirred || compacted) || !open) {

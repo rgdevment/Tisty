@@ -26,17 +26,18 @@ impl State {
             && (!self.assistants.contains(&event.device) || self.attended_by_agents(holder))
     }
 
-    /// A list is the filer's to choose, and a part is let go only from a whole open to agents.
+    /// A whole the person closed to agents keeps its parts, and a list is the filer's to choose.
     pub(crate) fn agent_may_move(&self, task: &Task, d: &TaskMove) -> bool {
-        let whole_open = || {
-            task.part_of
+        let attended = |whole: Option<TaskId>| {
+            whole
                 .and_then(|whole| self.tasks.get(&whole))
                 .is_none_or(|whole| self.attended_by_agents(whole))
         };
         (d.list.is_some() || d.part_of.is_some())
             && (d.list.is_none() || self.filed_by_agents(task))
-            && (d.part_of.is_none() || self.attended_by_agents(task))
-            && (d.part_of != Some(None) || whole_open())
+            && d.part_of.is_none_or(|next| {
+                self.attended_by_agents(task) && attended(task.part_of) && attended(next)
+            })
     }
 
     pub(crate) fn task_parted(&mut self, id: TaskId, whole: Option<TaskId>, event: &Event) {
