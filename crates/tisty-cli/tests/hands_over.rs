@@ -5,6 +5,8 @@ use std::time::{Duration, SystemTime};
 
 use tempfile::TempDir;
 
+mod person;
+
 struct Door {
     home: TempDir,
     binary: PathBuf,
@@ -20,8 +22,9 @@ impl Door {
         std::fs::create_dir_all(binary.parent().unwrap()).unwrap();
         std::fs::copy(env!("CARGO_BIN_EXE_tisty"), &binary).unwrap();
         let door = Self { home, binary };
-        door.command().args(["algo mio"]).output().unwrap();
-        door.command().args(["agent", "--on"]).output().unwrap();
+        let person = person::Person::at(door.home.path());
+        person.begins("algo mio");
+        person.lets_the_agent_in();
         door
     }
 

@@ -3,6 +3,8 @@ use std::process::{Command, Stdio};
 
 use tempfile::TempDir;
 
+mod person;
+
 struct Served {
     home: TempDir,
 }
@@ -12,9 +14,14 @@ impl Served {
         let served = Self {
             home: tempfile::tempdir().unwrap(),
         };
-        served.cli(&["algo mio"]);
-        served.cli(&["agent", "--on"]);
+        let person = served.person();
+        person.begins("algo mio");
+        person.lets_the_agent_in();
         served
+    }
+
+    fn person(&self) -> person::Person {
+        person::Person::at(self.home.path())
     }
 
     fn command(&self) -> Command {
@@ -29,16 +36,6 @@ impl Served {
             .env("LANG", "en_US.UTF-8")
             .env_remove("LC_ALL");
         command
-    }
-
-    fn cli(&self, args: &[&str]) -> String {
-        let out = self
-            .command()
-            .args(args)
-            .stdin(Stdio::null())
-            .output()
-            .unwrap();
-        String::from_utf8_lossy(&out.stdout).into_owned()
     }
 
     fn call(&self, name: &str, args: serde_json::Value) -> serde_json::Value {
