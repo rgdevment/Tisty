@@ -160,7 +160,7 @@ written once with the crates that carry it.
 | `uuid` | 14.0.3 | MIT |
 | `w3c-keyname` | 2.2.8 | MIT |
 
-## In the core (380 crates)
+## In the core (360 crates)
 
 | Crate | Version | Licence |
 | --- | --- | --- |
@@ -170,11 +170,6 @@ written once with the crates that carry it.
 | `alloc-no-stdlib` | 3.0.0 | BSD-3-Clause |
 | `alloc-stdlib` | 0.3.0 | BSD-3-Clause |
 | `ammonia` | 4.2.4 | MIT OR Apache-2.0 |
-| `anstream` | 1.0.0 | MIT OR Apache-2.0 |
-| `anstyle` | 1.0.14 | MIT OR Apache-2.0 |
-| `anstyle-parse` | 1.0.0 | MIT OR Apache-2.0 |
-| `anstyle-query` | 1.1.5 | MIT OR Apache-2.0 |
-| `anstyle-wincon` | 3.0.11 | MIT OR Apache-2.0 |
 | `anyhow` | 1.0.104 | MIT OR Apache-2.0 |
 | `apple-native-keyring-store` | 1.0.2 | MIT OR Apache-2.0 |
 | `arboard` | 3.7.0 | MIT OR Apache-2.0 |
@@ -197,13 +192,8 @@ written once with the crates that carry it.
 | `chacha20` | 0.10.2 | MIT OR Apache-2.0 |
 | `chacha20poly1305` | 0.11.0 | Apache-2.0 OR MIT |
 | `cipher` | 0.5.2 | MIT OR Apache-2.0 |
-| `clap` | 4.6.7 | MIT OR Apache-2.0 |
-| `clap_builder` | 4.6.7 | MIT OR Apache-2.0 |
-| `clap_lex` | 1.1.1 | MIT OR Apache-2.0 |
 | `clipboard-win` | 5.4.1 | BSL-1.0 |
 | `cmov` | 0.5.4 | Apache-2.0 OR MIT |
-| `colorchoice` | 1.0.5 | MIT OR Apache-2.0 |
-| `console` | 0.16.6 | MIT |
 | `const-oid` | 0.10.2 | Apache-2.0 OR MIT |
 | `cookie` | 0.18.2 | MIT OR Apache-2.0 |
 | `core_detect` | 1.0.0 | MIT/Apache-2.0 |
@@ -223,7 +213,6 @@ written once with the crates that carry it.
 | `ctutils` | 0.4.3 | Apache-2.0 OR MIT |
 | `curve25519-dalek` | 5.0.0 | BSD-3-Clause |
 | `deranged` | 0.5.9 | MIT OR Apache-2.0 |
-| `dialoguer` | 0.12.0 | MIT |
 | `digest` | 0.11.3 | MIT OR Apache-2.0 |
 | `directories` | 6.0.0 | MIT OR Apache-2.0 |
 | `dirs` | 7.0.0 | MIT OR Apache-2.0 |
@@ -237,7 +226,6 @@ written once with the crates that carry it.
 | `ed25519-dalek` | 3.0.0 | BSD-3-Clause |
 | `embed_plist` | 1.2.2 | MIT OR Apache-2.0 |
 | `emojis` | 0.9.1 | (MIT OR Apache-2.0) AND Unicode-3.0 |
-| `encode_unicode` | 1.0.0 | Apache-2.0 OR MIT |
 | `encoding_rs` | 0.8.42 | (Apache-2.0 OR MIT) AND BSD-3-Clause |
 | `equivalent` | 1.0.3 | Apache-2.0 OR MIT |
 | `erased-serde` | 0.4.10 | MIT OR Apache-2.0 |
@@ -263,7 +251,6 @@ written once with the crates that carry it.
 | `futures-sink` | 0.3.34 | MIT OR Apache-2.0 |
 | `futures-task` | 0.3.34 | MIT OR Apache-2.0 |
 | `futures-util` | 0.3.34 | MIT OR Apache-2.0 |
-| `fuzzy-matcher` | 0.3.7 | MIT |
 | `getrandom` | 0.2.17 | MIT OR Apache-2.0 |
 | `getrandom` | 0.3.4 | MIT OR Apache-2.0 |
 | `getrandom` | 0.4.3 | MIT OR Apache-2.0 |
@@ -301,7 +288,6 @@ written once with the crates that carry it.
 | `infer` | 0.22.0 | MIT |
 | `inout` | 0.2.4 | MIT OR Apache-2.0 |
 | `ipnet` | 2.12.2 | MIT OR Apache-2.0 |
-| `is_terminal_polyfill` | 1.70.2 | MIT OR Apache-2.0 |
 | `itoa` | 1.0.18 | MIT OR Apache-2.0 |
 | `jiff` | 0.2.38 | Unlicense OR MIT |
 | `jiff-core` | 0.1.1 | Unlicense OR MIT |
@@ -356,7 +342,6 @@ written once with the crates that carry it.
 | `objc2-quartz-core` | 0.3.2 | Zlib OR Apache-2.0 OR MIT |
 | `objc2-web-kit` | 0.3.2 | Zlib OR Apache-2.0 OR MIT |
 | `once_cell` | 1.21.4 | MIT OR Apache-2.0 |
-| `once_cell_polyfill` | 1.70.2 | MIT OR Apache-2.0 |
 | `open` | 5.4.4 | MIT |
 | `option-ext` | 0.2.0 | MPL-2.0 |
 | `osakit` | 0.3.1 | MIT OR Apache-2.0 |
@@ -417,7 +402,6 @@ written once with the crates that carry it.
 | `serde-untagged` | 0.1.9 | MIT OR Apache-2.0 |
 | `serialize-to-javascript` | 0.1.2 | MIT OR Apache-2.0 |
 | `sha2` | 0.11.1 | MIT OR Apache-2.0 |
-| `shell-words` | 1.1.1 | MIT/Apache-2.0 |
 | `signature` | 3.0.0 | Apache-2.0 OR MIT |
 | `simd-adler32` | 0.3.10 | MIT |
 | `simdutf8` | 0.1.5 | MIT OR Apache-2.0 |
@@ -432,7 +416,6 @@ written once with the crates that carry it.
 | `static_assertions` | 1.1.0 | MIT OR Apache-2.0 |
 | `string_cache` | 0.9.0 | MIT OR Apache-2.0 |
 | `string_cache` | 0.11.0 | MIT OR Apache-2.0 |
-| `strsim` | 0.11.1 | MIT |
 | `strum` | 0.28.0 | MIT |
 | `subtle` | 2.6.1 | BSD-3-Clause |
 | `sync_wrapper` | 1.0.2 | Apache-2.0 |
@@ -458,7 +441,6 @@ written once with the crates that carry it.
 | `tempfile` | 3.27.0 | MIT OR Apache-2.0 |
 | `tendril` | 0.5.1 | MIT OR Apache-2.0 |
 | `thiserror` | 2.0.21 | MIT OR Apache-2.0 |
-| `thread_local` | 1.1.10 | MIT OR Apache-2.0 |
 | `tiff` | 0.11.3 | MIT |
 | `time` | 0.3.55 | MIT OR Apache-2.0 |
 | `time-core` | 0.1.9 | MIT OR Apache-2.0 |
@@ -488,13 +470,11 @@ written once with the crates that carry it.
 | `unicase` | 2.10.0 | MIT OR Apache-2.0 |
 | `unicode-normalization` | 0.1.26 | (MIT OR Apache-2.0) AND Unicode-3.0 |
 | `unicode-segmentation` | 1.13.3 | MIT OR Apache-2.0 |
-| `unicode-width` | 0.2.2 | MIT OR Apache-2.0 |
 | `universal-hash` | 0.6.1 | MIT OR Apache-2.0 |
 | `untrusted` | 0.9.0 | ISC |
 | `url` | 2.5.8 | MIT OR Apache-2.0 |
 | `urlpattern` | 0.6.0 | MIT |
 | `utf8_iter` | 1.0.4 | Apache-2.0 OR MIT |
-| `utf8parse` | 0.2.2 | Apache-2.0 OR MIT |
 | `uuid` | 1.28.0 | Apache-2.0 OR MIT |
 | `walkdir` | 2.5.0 | Unlicense/MIT |
 | `want` | 0.3.2 | MIT |

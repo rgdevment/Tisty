@@ -1912,12 +1912,11 @@ jobs:
             if [ -n "$beta" ] \
                && [ "$(printf '%s\n%s\n' "${beta%%-*}" "$VERSION" | sort -V | tail -1)" \
                     = "$VERSION" ]; then
-              for gone in "Casks/${CASK_OTHER}.rb"; do
-                if [ -f "$gone" ]; then
-                  git rm -q "$gone"
-                  echo "retired $gone: it still offered $beta, and $VERSION passes it"
-                fi
-              done
+              gone="Casks/${CASK_OTHER}.rb"
+              if [ -f "$gone" ]; then
+                git rm -q "$gone"
+                echo "retired $gone: it still offered $beta, and $VERSION passes it"
+              fi
             fi
           fi
 
