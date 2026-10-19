@@ -568,6 +568,52 @@ fn a_large_file_goes_up_in_pieces_without_the_token_and_lands_on_the_last_one() 
 }
 
 #[test]
+fn an_upload_cut_short_carries_on_after_a_restart_from_where_onedrive_says_it_got() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = graph(|base| {
+        vec![
+            said("200 OK", &format!(r#"{{"uploadUrl":"{base}/up/1"}}"#)),
+            said("202 Accepted", r#"{"nextExpectedRanges":["4-"]}"#),
+            said("503 Service Unavailable", "{}"),
+            said("200 OK", r#"{"nextExpectedRanges":["4-"]}"#),
+            said("202 Accepted", r#"{"nextExpectedRanges":["8-"]}"#),
+            said("201 Created", &file("F", "big.pdf", "A", "e1")),
+        ]
+    });
+    let local = written(&home, b"0123456789");
+    let first = onedrive(at.clone(), home.path())
+        .with_chunk(4)
+        .keeping_at(home.path());
+
+    let cut = first.put("attachments/big.pdf", &local, Expect::Absent);
+    assert!(cut.is_err());
+    assert!(home.path().join("uploading.json").exists());
+
+    let again = onedrive(at, home.path())
+        .with_chunk(4)
+        .keeping_at(home.path());
+    let seen = again
+        .put("attachments/big.pdf", &local, Expect::Absent)
+        .unwrap();
+
+    assert_eq!(seen.revision, "e1");
+    let asked = served.join().unwrap();
+    assert_eq!(asked[3].line, "GET /up/1 HTTP/1.1");
+    assert_eq!(
+        header(&asked[4], "content-range").as_deref(),
+        Some("bytes 4-7/10")
+    );
+    assert_eq!(
+        header(&asked[5], "content-range").as_deref(),
+        Some("bytes 8-9/10")
+    );
+    assert!(
+        !home.path().join("uploading.json").exists(),
+        "a finished upload was still written down as going on"
+    );
+}
+
+#[test]
 fn an_upload_refused_on_its_last_piece_is_let_go_of_up_there() {
     let home = tempfile::tempdir().unwrap();
     let (at, served) = graph(|base| {

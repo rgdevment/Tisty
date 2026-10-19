@@ -26,6 +26,7 @@ const CHUNK: u64 = 10 * MIB;
 const WHOLE_AT_MOST: u64 = 250 * 1000 * 1000;
 // Cursors passed with the paths each one moved, so a round asking from an older one still hears them all.
 const PASSED_AT_MOST: usize = 64;
+const UPLOADS_KEPT_FOR: u64 = 2 * 24 * 60 * 60;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GraphAt {
@@ -93,6 +94,7 @@ pub struct OneDrive {
     expected: Option<String>,
     vouched: AtomicBool,
     beyond: AtomicU64,
+    uploads: Option<tisty_carrier::uploads::Uploads>,
 }
 
 impl OneDrive {
@@ -106,7 +108,17 @@ impl OneDrive {
             expected: None,
             vouched: AtomicBool::new(false),
             beyond: AtomicU64::new(0),
+            uploads: None,
         })
+    }
+
+    // OneDrive keeps an upload session for days, so one cut short by a restart carries on from where it got.
+    pub fn keeping_at(mut self, home: &Path) -> Self {
+        self.uploads = Some(tisty_carrier::uploads::Uploads::under(
+            home,
+            UPLOADS_KEPT_FOR,
+        ));
+        self
     }
 
     /// Reads and writes only once OneDrive says it is this account, so two accounts never mix.

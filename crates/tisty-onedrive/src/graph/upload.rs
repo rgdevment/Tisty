@@ -61,6 +61,20 @@ impl OneDrive {
             upload_url: String,
         }
         let url = self.by_path(name, Some("createUploadSession"))?;
+        let key = tisty_carrier::uploads::key_of(&url, name, from, bytes);
+        let kept = self.uploads.as_ref().zip(key.as_deref());
+        if let Some((uploads, key)) = kept
+            && let Some(upload) = uploads.session_for(key)
+        {
+            match self.got_to(&upload) {
+                Some(at) => {
+                    let sent = self.pieces(name, &upload, from, bytes, at);
+                    self.settled(&upload, key, &sent);
+                    return sent;
+                }
+                None => uploads.closed(key),
+            }
+        }
         let body =
             serde_json::json!({ "item": { "@microsoft.graph.conflictBehavior": conflict(expect) } })
                 .to_string();
@@ -73,15 +87,57 @@ impl OneDrive {
             )
         })?;
         let session: Session = json(self.landed(name, answer)?)?;
-        let sent = self.pieces(name, &session.upload_url, from, bytes);
-        if sent.is_err() {
-            let _ = self
-                .http
-                .delete(&session.upload_url)
-                .timeout(ASKED_WITHIN)
-                .send();
+        if let Some((uploads, key)) = kept {
+            uploads.opened(key, &session.upload_url);
+        }
+        let sent = self.pieces(name, &session.upload_url, from, bytes, 0);
+        match kept {
+            Some((_, key)) => self.settled(&session.upload_url, key, &sent),
+            None if sent.is_err() => self.dropped(&session.upload_url),
+            None => {}
         }
         sent
+    }
+
+    // Only a way that was cut keeps the session for next time; anything OneDrive refused is begun again.
+    fn settled(&self, upload: &str, key: &str, sent: &Result<DriveItem, Hitch>) {
+        let Some(uploads) = &self.uploads else {
+            return;
+        };
+        match sent {
+            Err(Hitch::Unreachable(..) | Hitch::Limited { .. } | Hitch::Troubled(_)) => {}
+            Err(_) => {
+                self.dropped(upload);
+                uploads.closed(key);
+            }
+            Ok(_) => uploads.closed(key),
+        }
+    }
+
+    fn dropped(&self, upload: &str) {
+        let _ = self.http.delete(upload).timeout(ASKED_WITHIN).send();
+    }
+
+    // The first byte OneDrive still waits for; a session it no longer knows answers nothing.
+    fn got_to(&self, upload: &str) -> Option<u64> {
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Status {
+            #[serde(default)]
+            next_expected_ranges: Vec<String>,
+        }
+        let answer = self.http.get(upload).timeout(ASKED_WITHIN).send().ok()?;
+        if !answer.status().is_success() {
+            return None;
+        }
+        let status: Status = json(answer).ok()?;
+        status
+            .next_expected_ranges
+            .first()?
+            .split('-')
+            .next()?
+            .parse()
+            .ok()
     }
 
     // The session's own address carries its permission: OneDrive refuses a piece that also brings the token.
@@ -91,9 +147,12 @@ impl OneDrive {
         upload: &str,
         from: &Path,
         bytes: u64,
+        start: u64,
     ) -> Result<DriveItem, Hitch> {
+        use std::io::Seek;
         let mut file = std::fs::File::open(from)?;
-        let mut at = 0;
+        file.seek(std::io::SeekFrom::Start(start))?;
+        let mut at = start;
         while at < bytes {
             let size = self.chunk.min(bytes - at);
             let mut piece = vec![0u8; usize::try_from(size).unwrap_or(usize::MAX)];
