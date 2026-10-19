@@ -196,30 +196,23 @@ pub(super) fn tools() -> Value {
         {
             "name": "propose",
             "title": "Propose a task",
-            "description": "Propose a task: something to be done, which ends and is then kept in the archive. What is to be consulted again and again is a document instead (`write_doc`). Give it a `title`. Reading a thread that holds several, send them \
-                            together in `tasks` rather than one call each: each one is judged on \
-                            its own and told apart in the answer, so a bad one does not take the \
-                            good ones with it. Size the work first: a step is one line of a \
-                            checklist, a part is a task of its own with its steps, day and \
-                            journal. Work that is several tasks with one end — a move, a release, \
-                            a plan — goes in `parts`, one level only, not packed into steps. \
-                            Tisty tags it #agent by itself.",
+            "description": "Propose a task — something to do; what will be read again is a document (`write_doc`). Give it a `title`. Several read from one thread go together in `tasks`, each judged on its own, so a bad one does not sink the rest. A step is one line of a checklist; work that is several tasks with one end — a move, a release, a plan — goes in `parts`, one level deep, rather than packed into steps. Tisty tags it #agent by itself.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "tasks": {
                         "type": "array",
                         "items": { "type": "object" },
-                        "description": "Several at once, each written as a single one is. Left out when proposing one"
+                        "description": "Several at once, each shaped like a single one. Left out when proposing one"
                     },
                     "title": { "type": "string", "description": "What has to be done, in a line" },
                     "parts": {
                         "type": "array",
                         "items": { "type": "object" },
-                        "description": "When the work is several separate tasks with one end — a move, a release, a plan — the tasks it is made of, each written the way a single one is, with its own steps. The task around them is finished when they are; one level only, at most 32 here, the rest in rounds with `part_of`. A step is a line; a part is a task"
+                        "description": "The tasks the work is made of, each shaped like a single one with its own steps; the task around them is finished when they are. One level, at most 32 here — add more later with `part_of`"
                     },
                     "part_of": {
                         "type": "string",
-                        "description": "The id of a task this one is a part of: one you filed, or one the person opened to agents. Left out, it stands on its own"
+                        "description": "The id of a task you may work on — one an agent filed, or one the person opened to agents — that this one is a part of"
                     },
                     "description": {
                         "type": "string",
@@ -236,11 +229,7 @@ pub(super) fn tools() -> Value {
                     "remind": {
                         "type": "array",
                         "items": { "type": "string" },
-                        "description": "When to ring, each as a day and an hour like \
-                                        2026-08-30T20:00. Only for what happens at a set time and \
-                                        cannot be caught up on later — an appointment, a flight — \
-                                        and set it the evening before. Not for work that can be \
-                                        done any day, nor for what repeats"
+                        "description": "When to ring, each like 2026-08-30T20:00. Only for what happens once at a set time and cannot be caught up on — an appointment, a flight — set the evening before; never for work any day will do, nor for what repeats"
                     },
                     "priority": {
                         "type": "string",
@@ -254,12 +243,12 @@ pub(super) fn tools() -> Value {
                     "tags": {
                         "type": "array",
                         "items": { "type": "string" },
-                        "description": "The subjects the task is about — what it is for, where it belongs, what it is part of — in the plain words the person would say. One word each, no spaces; capitals and accents decide nothing. Six subjects is already a lot, and a word that merely appears in the title is no subject. Call `tags` first and reuse one that means the same."
+                        "description": "The subjects it is about, one word each in the person's plain words; capitals and accents decide nothing. Six is already a lot, and a word that merely appears in the title is no subject. Reuse what `tags` lists when it means the same"
                     },
                     "steps": {
                         "type": "array",
                         "items": { "type": "string" },
-                        "description": "A checklist, if the thing has parts: each step at most 100 characters. What needs more is a task of its own"
+                        "description": "A checklist, each step at most 100 characters; what needs more is a part"
                     },
                     "source": {
                         "type": "string",
@@ -429,7 +418,7 @@ pub(super) fn tools() -> Value {
         {
             "name": "write_doc",
             "title": "Write a document",
-            "description": "Write something down to keep and consult again: a recipe, a procedure, a reference, a summary — what lasts and grows rather than ends. Work to be done is a task instead (`propose`). In the Tisty language (`language` has it whole); Markdown from elsewhere is turned into it on the way in and the answer says what changed under `turned`, and only what has no way in is refused, naming it. Documents do not create tasks. Left alone it writes a new document; with `doc` and `print` it writes an existing one again, whole — save for the pages your body does not name, whose lines are put back at the end rather than left pointing at nothing. That is for reshaping a document, not for changing a passage: `edit_doc` does that without carrying the whole of it both ways. A document takes no tag of its own: it is tagged by writing #word in the text itself, for the subjects the writing is about — six is already a lot, and past 64 the rest are dropped without a word; `tags` says which are already in use.",
+            "description": "Write something to keep and read again — a recipe, a procedure, a reference, a summary; work to do is a task (`propose`). In the Tisty language (`language` has it whole): Markdown from elsewhere is turned into it on the way in, the answer says what changed under `turned`, and only what has no way in is refused, naming it. Left alone it writes a new document; with `doc` and `print` it writes an existing one again, whole — pages the body does not name keep their lines, put back at the end. To change one passage, `edit_doc` does it without carrying the whole both ways. A document is tagged by writing #word in its own text, for what it is about: six is already a lot, past 64 the rest are dropped, and `tags` lists those in use.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "body": {
@@ -866,17 +855,7 @@ pub(super) fn tools() -> Value {
         {
             "name": "find",
             "title": "Search the list and the archive",
-            "description": "Search the tasks and the documents. By text with `query`, by what a \
-                            task is rather than what it says with the sifting fields — alone or \
-                            narrowing a query — or by `source` alone, to check whether something \
-                            was already filed from it. A task found by what its journal, \
-                            description, steps or document say — the archive included — comes \
-                            with `in` \
-                            and the `line` that says it, so a past decision reads without \
-                            `read`. With `doc` it looks inside that one \
-                            document instead and hands back the lines that match with their \
-                            numbers and the section each sits in, so you can read or change \
-                            just that part.",
+            "description": "Search the tasks — open and archived alike — and the documents: by words with `query`, by what a task is with the sifting fields (alone or narrowing a query), or by `source` alone to see whether something was filed from it already. A task found by what its page, description, steps or notes say comes with `in` and the `line` that says it, so a past decision often reads without `read`. With `doc` it searches inside that one document instead and hands back the matching lines with their numbers and the section each sits in.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "query": { "type": "string", "description": "Words to look for, not a phrase: each word has to turn up in the same task or document (on the same line, with `doc`), in any order, accents or not; put a phrase in quotes when the order is the point. Not needed when sifting by the fields below" },
@@ -888,13 +867,13 @@ pub(super) fn tools() -> Value {
                         "type": "string",
                         "description": "Look inside this one document rather than across the tasks. Hands back the lines where every word of the query turns up, accents or not, with their numbers, the lines around them, and the section each sits in"
                     },
-                    "tag": { "type": "string", "description": "Carrying this tag, with or without the #. It sifts the tasks only: any sifting field leaves the documents out of the answer altogether, so a tag on its own says nothing about them" },
+                    "tag": { "type": "string", "description": "Carrying this tag, with or without the #. Any sifting field leaves the documents out of the answer" },
                     "list": { "type": "string", "description": "In this list, named as `lists` names it" },
                     "by_agent": { "type": "boolean", "description": "True for what an agent filed, false for what the person wrote" },
                     "said_done": { "type": "boolean", "description": "True for what an agent spoke for — said done, or said should not be done — and the person has not decided yet; false for what nobody spoke for" },
                     "open_to_agents": { "type": "boolean", "description": "True for the person's own tasks they opened to agents — yours to fill in and to say done — false for what they kept to themselves" },
                     "part_of": { "type": "string", "description": "Only the parts of this task, by its id" },
-                    "from_source": { "type": "string", "description": "Only tasks whose `source` starts with this, so «sereno» brings everything read out of that one place. However it is written: «sereno», «sereno#» and «sereno: » all match" },
+                    "from_source": { "type": "string", "description": "Only tasks whose `source` starts with this, however it is written: «sereno», «sereno#» and «sereno: » all bring everything read out of that one place" },
                     "from": { "type": "string", "description": "Its date or deadline on this day or after (2026-08-31)" },
                     "to": { "type": "string", "description": "Its date or deadline on this day or before" },
                     "scope": {
@@ -905,10 +884,7 @@ pub(super) fn tools() -> Value {
                     "limit": { "type": "integer", "description": "At most 100, 20 by default" },
                     "after": {
                         "type": "integer",
-                        "description": "Skip this many tasks. With `total` higher than what came \
-                                        back, ask again with `after` set to how many you have. \
-                                        Documents are not paged: `docsTotal` says how many match \
-                                        and a higher `limit` brings more of them"
+                        "description": "Skip this many tasks, to page on while `total` is higher than what came back. Documents are not paged: `docsTotal` says how many match, and a higher `limit` brings more"
                     }
                 }
             }))
