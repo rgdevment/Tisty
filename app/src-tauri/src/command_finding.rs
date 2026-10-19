@@ -50,3 +50,21 @@ fn the_packaged_window_is_not_taken_for_the_command() {
 
     assert_eq!(with_cli(&window), None);
 }
+
+#[test]
+fn only_a_launcher_that_calls_this_install_is_taken_off_the_shelf() {
+    let tmp = tempfile::tempdir().unwrap();
+    let home = tmp.path().join("Programs").join("Tisty");
+    let ours = tmp.path().join("tisty");
+    let theirs = tmp.path().join("tisty-mcp");
+    std::fs::write(&ours, format!("\"{}\" %*", home.join(CLI).display())).unwrap();
+    std::fs::write(
+        &theirs,
+        "\"/Applications/Other.app/Contents/MacOS/other\" \"$@\"",
+    )
+    .unwrap();
+
+    assert!(ours_on_the_shelf(&ours, &home));
+    assert!(!ours_on_the_shelf(&theirs, &home));
+    assert!(!ours_on_the_shelf(&tmp.path().join("gone"), &home));
+}

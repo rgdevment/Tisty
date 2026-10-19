@@ -63,7 +63,6 @@ export function written(facts: Facts, now = new Date()): string {
     ],
     [t("wordNotices"), speaking(facts.quiet)],
     [t("wordCopiesUpTo"), weigh(facts.attachUpTo)],
-    [t("wordTerminal"), t(facts.inPath ? "inThePath" : "notInThePath")],
     [t("wordShortcut"), facts.shortcut ?? t("nothingBound")],
   ]);
 

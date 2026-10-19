@@ -50,7 +50,7 @@ jobs:
       attestations: read
     strategy:
       fail-fast: false
-      # The releases carry a command line for Windows and macOS only.
+      # The releases carry a command line for Windows and macOS only, and none from 1.31 on.
       matrix:
         os: [windows-latest, macos-latest]
         release: ["1.23.1", "1.24.4", "1.25.0", "1.25.1", "1.30.0"]

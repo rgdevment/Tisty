@@ -18,7 +18,9 @@ The installers and disk images on the releases page — and the copies that
 Homebrew and the Windows Package Manager take from there — are the AGPL-3.0
 program, and everything that licence grants over them is granted. Mirror them,
 hand them to a colleague, put them on a USB stick: none of that needs anyone's
-permission.
+permission. The command line once published beside them, loose and as the
+Homebrew formula `tisty-cli`, was retired; a copy installed only from that
+formula stays on 1.30.
 
 The AGPL asks one thing in return, and it is the same thing it asks of any
 binary: whoever receives a build has to be able to reach the source that made
@@ -73,16 +75,17 @@ Little, and all of it reversible.
 - It puts the program in `%LOCALAPPDATA%\Programs\Tisty` on Windows — beside
   your other per-user programs, and deliberately **not** in the folder your
   tasks live in.
-- The command line travels inside the installer, but **nothing is added to your
-  PATH**. The app offers that from Settings → General, where it can ask first
-  and can be undone. (An installer did it once and destroyed a PATH doing it:
-  the tool that builds Windows installers reads at most 1024 characters and
-  writes back what it managed to read.)
+- The `tisty` binary your assistants start travels inside the installer, but
+  **nothing is added to your PATH**; an entry an older version put there is left
+  alone, since an assistant may still call it, and goes when you uninstall. (An
+  installer did it once and destroyed a PATH doing it: the tool that builds
+  Windows installers reads at most 1024 characters and writes back what it
+  managed to read.)
 - **Uninstalling removes the program and leaves your data alone.** It takes
-  its own settings and cache with it, and the PATH entry if you added one; your
-  tasks, documents and attachments stay. Wanting the program gone is not the
-  same as wanting your history gone. If you do want it gone, the folder is
-  yours to delete.
+  its own settings and cache with it, and the PATH entry if an older version
+  added one; your tasks, documents and attachments stay. Wanting the program
+  gone is not the same as wanting your history gone. If you do want it gone,
+  the folder is yours to delete.
 
 ## What it does with your data
 

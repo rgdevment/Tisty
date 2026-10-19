@@ -12,7 +12,7 @@ computers. It has three faces over one core.
 | Face | What it is |
 |---|---|
 | Window | `tisty-gui`: a Tauri 2 app, Rust backend and React/TypeScript front end, with a tray icon, a quick-capture window and reminders |
-| `tisty` | The command line binary. It carries `tisty mcp` and the maintenance commands, and the window bundles it as a sidecar |
+| `tisty` | The binary assistants start. It answers `tisty mcp` and `tisty --version` and nothing else, and the window bundles it as a sidecar |
 | `tisty mcp` | An MCP server over stdin and stdout, so assistants on the machine can file work. It proposes; it never closes, drops or deletes |
 
 Everything the person writes lives in plain files on that machine: a JSON-lines
@@ -58,7 +58,7 @@ secret offers no cloud at all.
 flowchart TB
   react["app/src<br/>React + TypeScript"]
   gui["tisty-gui<br/>app/src-tauri"]
-  cli["tisty-cli<br/>CLI + MCP server"]
+  cli["tisty-cli<br/>tisty binary: MCP server"]
   carrier["tisty-carrier<br/>Carrier: Folder, Cloud<br/>Remote, Hitch, Tokens"]
   sync["tisty-sync<br/>one round over a folder"]
   nl["tisty-nl<br/>natural-language capture"]
@@ -68,7 +68,6 @@ flowchart TB
   gui --> nl
   gui --> core
   cli --> carrier
-  cli --> nl
   cli --> core
   carrier --> sync
   carrier --> core
@@ -82,7 +81,7 @@ flowchart TB
 | `tisty-nl` | `parse` turns a sentence typed in the capture bar into a title plus date, deadline, priority, tags, list and repeat, in English and Spanish (`vocab.rs`) | `tisty-core` |
 | `tisty-sync` | One sync round over a folder (`carry_through`): histories, document bodies, attachments; lineage (`kinship`, `stitch`); settling a document by hand | `tisty-core` |
 | `tisty-carrier` | The `Carrier` contract and its two implementations, `Folder` (hands every call to `tisty-sync`) and `Cloud` (the same round over a local mirror of a `Remote`); `Remote`, `Hitch`, `Tokens` | `tisty-core`, `tisty-sync` |
-| `tisty-cli` | The `tisty` binary: terminal commands, the MCP server, `doctor`, `agent`, `leave`, `demo` | `tisty-core`, `tisty-carrier`, `tisty-nl` |
+| `tisty-cli` | The `tisty` binary: the MCP server and nothing else; any other command is refused and sends the person to the window | `tisty-core`, `tisty-carrier`, `tisty-markdown` |
 | `tisty-gui` | Tauri commands (`answers/`), the `Session`, tray, reminders, updater, wiring settings of assistants | `tisty-core`, `tisty-carrier`, `tisty-nl` |
 | `app/src` | The React UI: `App.tsx` shell, `ui/` components, `core.ts` typed `invoke` wrappers, `locales.ts` | none; talks to `tisty-gui` over IPC |
 
@@ -96,7 +95,6 @@ everything else asks the `Carrier` it was handed.
 flowchart LR
   subgraph machine["One computer"]
     win["Window<br/>Mutex of Session"]
-    term["tisty CLI<br/>one process per command"]
     door["tisty mcp<br/>one per assistant client"]
     subgraph files["Local files"]
       person["store/dev_person/"]
@@ -108,16 +106,14 @@ flowchart LR
   end
   shared["Shared folder"]
   win -- "append under lock" --> person
-  term -- "append under lock" --> person
   door -- "append under lock" --> agent
   win -- "round" --> shared
-  term -- "round" --> shared
   shared -- "verified copies" --> copies
   person -- "pushed copy" --> shared
 ```
 
-The window and the CLI are the same device: both use `config.device_id`, so
-they share one directory and one lock. The MCP server writes as a separate agent
+The window writes as the person's device (`config.device_id`), in one
+directory under one lock. The MCP server writes as a separate agent
 device (`config.agent_id`) with a directory, a key and an undo history of its
 own. Every process reads every directory.
 
@@ -150,8 +146,8 @@ How an append stays safe (`Store`):
 
 ### Network
 
-`tisty-core`, `tisty-sync`, `tisty-nl`, `tisty-carrier` and the CLI contain no
-network code; `deny.toml` lets `reqwest` be wrapped by the window,
+`tisty-core`, `tisty-sync`, `tisty-nl`, `tisty-carrier` and `tisty-cli` contain
+no network code; `deny.toml` lets `reqwest` be wrapped by the window,
 `tisty-google` and `tisty-onedrive` alone, on every target the release builds.
 `tisty-gui` holds the version check and the updater (`update.rs`, limited to
 GitHub hosts) and the preview of a link the person asks for (`glimpse.rs`).
@@ -312,7 +308,7 @@ recognised from that version.
 | A known operation that fails to parse | The read fails: corruption, whatever `opt` says |
 | This build's own live segment holds a newer line | `Store` refuses to append (`UnsupportedVersion`) |
 | Another machine's newest line is above this build | A sync round refuses in both directions (`Trouble::Newer`) |
-| Window or CLI meets the refusal | The window tells the person to update (`storeNewer`, and a dialog at start that links to where this copy is updated from); the CLI prints `store-newer` |
+| Window or MCP server meets the refusal | The window tells the person to update (`storeNewer`, and a dialog at start that links to where this copy is updated from); `tisty mcp` prints `store-newer` |
 
 `opt` is set by `Store::minted` from `Op::is_optional`: `person.signed`,
 `device.host`, `device.named`, `doc.flag`, `doc.unflag`. Mark only an operation
@@ -355,16 +351,12 @@ name at its word.
 - Any failure opening or reading it falls back to the log. It is never
   synced and never backed up.
 
-`tisty doctor` replays the log and compares it with the cache. The cache is
-absent, stale, in agreement, or wrong; only wrong exits non-zero.
-`tisty doctor --repair` discards the cache. With a cloud chosen, `doctor` also
-says what this disk knows of it, with no request and no keychain
-(`tisty_carrier::standing`): the account, whether it was ever read, how many
-files are mirrored and attachments held there, what waits (to bring again, to
-delete there, to put back for another machine), today's spend against the
-day's limits, a pause here or from afar, and the number of the signed word
-kept. For any place it names a word another machine left there, when one
-confirmed here signed it, and a word still owed to the place left behind.
+The review in Settings › Maintenance (`checked`) replays the log and compares
+it with the cache (`cache::audit`): absent, stale, in agreement, or wrong.
+Rebuilding there (`rebuild`) discards the cache. With a cloud chosen, the
+window also shows what this disk knows of it, with no request and no keychain
+(`tisty_carrier::standing`): what waits, today's spend against the day's
+limits, a pause here or from afar, and how the last round ended.
 
 ## On disk
 
@@ -411,7 +403,7 @@ the data home*) and sets the folder hidden and private to the account.
 | `<config>/private/tisty.log` | The local log (rolls at 256 KiB to `tisty.log.1`) | never | never |
 | `<config>/cloud/<provider>-<account>-<hash>/` | Where `Paths::cloud_home` puts a cloud carrier's mirror, index, caches and how its last round ended | never | never |
 | `<cache>/read.db` | The read cache | never | never |
-| `<cache>/selection.json`, `vouched.json`, `glimpses/` | CLI listing numbers; digests of shared-folder attachments; link previews | never | never |
+| `<cache>/vouched.json`, `glimpses/` | Digests of shared-folder attachments; link previews | never | never |
 | `<cache>/carried-to`, `adopting` | Memo that this machine has been to a folder; machines to take up | never | never |
 
 The shared folder (`<shared>`) holds:
@@ -487,7 +479,7 @@ machine claims.
 
 | Case | Rule |
 |---|---|
-| The person compares the 20-digit code (`signing::spoken`) in the window, or runs `tisty sync --confirm <machine>` | The key stands |
+| The person compares the 20-digit code (`signing::spoken`) in the window and confirms it | The key stands |
 | First folder this machine takes up, while it has confirmed nobody else | Machines already writing in it are confirmed without asking |
 | A machine this store held from before it signed (`store::before`) | Its first key is taken once, if the folder's copy begins with the local copy byte for byte and verifies under that key; kept as `carried` |
 | An agent whose host this machine confirmed | The host's own `device.host` carries the agent's key, and the agent joined as an agent under that key; kept as `host:<device>` |
@@ -527,7 +519,7 @@ flowchart TD
 The checked copy is what is installed: whoever can write in the folder cannot
 change a file between the check and the copy. A history with nothing new is not
 copied at all. Round scratch lives in `<data>/.bringing/<pid>-<stamp>`, one per
-round, so the window and the CLI never touch each other's.
+round, so two rounds never touch each other's.
 
 `answers` memoises how far a machine's history was verified (`.verified-to`,
 per folder and device), so a round checks only what follows. What it cannot
@@ -568,7 +560,7 @@ One round is `tisty_sync::carry_through`. A `Way` picks the direction: `Both`,
 
 ```mermaid
 sequenceDiagram
-  participant W as Window or CLI
+  participant W as Window
   participant C as Carrier
   participant R as carry_through
   participant F as Shared folder or mirror
@@ -744,11 +736,11 @@ ordered concatenation of its segments: one side must be a prefix of the other.
 | `Clash` | A device name appears on both sides holding different bytes, or an id survives only in a `device.remove` | Nothing: two writers under one name is the one thing the design forbids (`SameName`) |
 | `Unsure` | A file could not be read | Nothing until it can be |
 
-The three choices: join them (`backup::reset`, `tisty sync --join`: back this
-machine up, empty it, take the folder's with a new device id), take over
-(`backup::take_over`, `--take-over`: back the folder up, empty it, leave ours),
-merge (`stitch`, `--merge`: hold both). A merge writes `stores.joined` before it
-takes the folder's name, so an interruption leaves the question to come back.
+The three choices: join them (`backup::reset`: back this machine up, empty it,
+take the folder's with a new device id), take over (`backup::take_over`: back
+the folder up, empty it, leave ours), merge (`stitch`: hold both). A merge
+writes `stores.joined` before it takes the folder's name, so an interruption
+leaves the question to come back.
 After a merge, lists with the same name become one (`doubled.rs`) and the guide
 each side brought stays once.
 
@@ -790,11 +782,10 @@ carrier is built from settings: `Local` and no setting give no carrier
 (`Chosen::Alone`), `Folder` gives a `Folder`, `Cloud` gives `Chosen::Cloud` and
 whatever the `Reach` builds, `Unknown` gives none and `Chosen::Later`. Only the
 window has a `Reach` (`reaching.rs`): `chosen(sync)` is `chosen_with(sync, None)`,
-so the command line and the agents see a chosen cloud and never reach the
-network; `tisty sync` says the window carries it, and `config set remote`
-refuses to leave it. A build without Google's ids builds nothing and the window
-says so (`cloudNotOffered`). `Reaching` keeps the carrier it built for an
-account, so Drive's listing outlives a command. A `Sync::Cloud` names the
+so the agents see a chosen cloud and never reach the network. A build without
+Google's ids builds nothing and the window says so (`cloudNotOffered`).
+`Reaching` keeps the carrier it built for an account, so Drive's listing
+outlives a command. A `Sync::Cloud` names the
 provider, the provider's id for the account and its address; one named any
 other way is a later build's and is kept whole as `Unknown`. Leaving a cloud is
 never a choice of another way (`Leaving::Cloud`): it goes through the move that
@@ -991,7 +982,7 @@ stateDiagram-v2
   window drives it (`answers/relocating.rs`, *Move to another place…* in
   Settings): `move_plan` says what will travel, `move_to` runs steps until
   `Ready`, changes the pointer, and leaves the signed `moved.json` in the old
-  place so the other machines follow. The command line offers no move.
+  place so the other machines follow.
 
 ### What exists
 
@@ -1021,14 +1012,13 @@ stateDiagram-v2
   asked for again, never the sign-in; download and upload addresses are taken
   only from Microsoft's hosts. The way check, the token asks and the reading of
   a failed request live in `tisty_carrier::net`, behind the `net` feature the
-  providers and the window turn on and the command line does not.
+  providers and the window turn on and `tisty-cli` does not.
 - `Sync::Cloud` in `config.rs`, naming the provider and the account.
 - The window: the Google Drive card with its states, the local switch, the
   day's spend, *Free space*, and the move between this machine, a folder and
   the cloud (`answers/clouding.rs`, `answers/relocating.rs`,
-  `answers/freeing.rs`). The command line and MCP never reach the network:
-  `tisty sync` leaves a cloud round to the window, and `tisty doctor` reads the
-  cloud's standing off this disk.
+  `answers/freeing.rs`). The MCP server never reaches the network: a cloud
+  round is the window's.
 
 ## Documents and attachments
 
@@ -1077,8 +1067,8 @@ the log and is capped at `BODY_AT_MOST` = 500 KiB.
 - **Deleting** is `doc.delete`, made from the window only: every machine that
   reads it removes its own file (`State::shed`), the document's pages go with
   it, and the window asks the carrier to remove the body from the shared folder
-  (`forget_paper`). Files the log does not name are counted by `tisty doctor`
-  and Maintenance and are never deleted on a guess.
+  (`forget_paper`). Files the log does not name are counted by Maintenance and
+  are never deleted on a guess.
 - **What the editor may write** is plain Markdown: headings, lists, emphasis,
   links, tables with alignment, fenced code with its language, `[!WARNING]`
   callouts. A fenced block with language `widget` is HTML drawn in a sealed
@@ -1161,7 +1151,7 @@ stateDiagram-v2
   deleted documents. `tidy::Already` remembers in the cache what this machine
   already took out, so a sweep costs what is new.
 
-## The window, the CLI and the MCP server
+## The window and the MCP server
 
 ### Window
 
@@ -1278,43 +1268,29 @@ of an address (`masked.rs`); a panic hook records a `fatal` line. The window sho
 the log to the person, and nothing is sent anywhere.
 
 Interface text is English and Spanish. The window has catalogs in `locales.ts`
-(plus `worded` in Rust for the tray, menu and notifications); the CLI has
-`crates/tisty-cli/locales/en.toml` and `es.toml`. The language is the person's
-setting (`config.locale`) or the system's. Code, comments and test names are in
-English, and `rules.sh` checks that CLI source holds no interface text.
+(plus `worded` in Rust for the tray, menu and notifications); the `tisty`
+binary has `crates/tisty-cli/locales/en.toml` and `es.toml`. The language is
+the person's setting (`config.locale`) or the system's. Code, comments and test
+names are in English, and `rules.sh` checks that the binary's source holds no
+interface text.
 
-### CLI
+### The `tisty` binary
 
-The `tisty` binary has two roles.
+`crates/tisty-cli` builds `tisty`, which serves MCP and nothing else. It
+answers `tisty mcp` and `tisty --version`. A bare `tisty`, `help`, `-h` and
+`--help` print `retired`, which sends the person to the window, and exit cleanly;
+any other command prints the same and exits with an error. The command
+line that was here is gone, and with it the only general undo: `undo.rs` in
+`tisty-core` still computes an inverse per event, but the window offers none,
+only putting a document's body back.
 
-- **The door and maintenance, which stay:** `mcp`, `agent` (turn the assistant
-  device on or off), `doctor`, `sync`, `export`, `leave` (remove Tisty's
-  settings and cache, keep the data), `demo`.
-- **The terminal as a second window, which is frozen:** every other
-  subcommand: `add`, `ls`, `done`, `undone`, `drop`, `rm`, `set`, `mv`, `desc`,
-  `log`, `step`, `search`, `show`, `story`, `series`, `undo`, `redo`, `lists`,
-  `list`, `tag`, `config`, `attach`, `doc`. No feature reaches them and none is
-  added (`.github/frozen-cli.txt`, checked by `rules.sh`). Where a rule must
-  hold in the terminal for safety it is enforced in `tisty-core` and the command
-  obeys. When they are retired, the binary is the MCP door plus the maintenance
-  commands. General undo exists only here (`undo.rs` computes an inverse per
-  event); the window has none, only putting a document's body back.
+The window bundles the binary as a sidecar, and the `.mcpb` bundle carries it
+for Claude Desktop, because it is how assistants reach Tisty.
 
-`CLI` commands go through `App` (`app.rs`): it opens this device's `Store`,
-projects the state with the cache, appends under the device lock and refreshes
-the cache. Settings are re-read from disk before every change.
-
-**The terminal is the person's, and the binary checks it.** Before opening the
-store, every subcommand except `mcp` asks `typist::assistant()` who is at the
-keyboard and refuses (exit code 5) when a coding assistant is: an environment
-mark (`CLAUDECODE`, `CODEX_SANDBOX`, …), an assistant up the process tree
-(`claude`, `codex`, `gemini`, …), or an editor up the tree with no terminal
-attached. The refusal is written for the assistant that reads it, and noted in
-the log. A store that is not at the person's own location (a `TISTY_DATA`
-pointing elsewhere, a profile, a temporary directory) is not guarded, which lets
-tests and `demo` run under an assistant. The check is a heuristic.
-`tisty agent --on` additionally asks on the terminal itself, and a shell with no
-terminal is turned away.
+Its tests in `crates/tisty-cli/tests` spawn the binary for the assistant's side
+and do the person's side through `tisty-core` (`tests/person`), so the door is
+tested alone. `tests/versions.rs` meets earlier released binaries, and does
+what this build would through the core.
 
 ### The MCP server
 
@@ -1329,7 +1305,7 @@ The server holds no store open. Each tool call loads the configuration, projects
 the state, and opens a `Store` as the agent device (`opened`); the log, not the
 settings file, says who may write: the call is refused unless the log lists the
 agent. An agent is minted only by the person (`agent::register`, from the Agents
-tab or `tisty agent --on`): the join and the host line are written together,
+tab): the join and the host line are written together,
 signed by the agent's own key, and the host machine then writes `device.host`
 with the agent's key in its own signed history so other machines can take the
 agent on that word.
@@ -1403,9 +1379,9 @@ The Agents tab finds assistants by the settings file each keeps, not by the
 `PATH`, and writes Tisty's server entry into it (`wiring/`). Only the `tisty`
 entry is written; the rest is left byte for byte (JSON is edited in place,
 a TOML table replaced as text), the original is copied to
-`<file>.before-tisty`, and the write is atomic. What is written is the CLI
-beside the window, or the bare name when the window is `Tisty.exe` from the
-Store.
+`<file>.before-tisty`, and the write is atomic. What is written is the `tisty`
+binary beside the window, or the bare name (the Store's execution alias) when
+the window is `Tisty.exe` from the Store, with the arguments `["mcp"]`.
 
 ## Backup, restore, moving the data home
 
@@ -1461,9 +1437,10 @@ nothing else (`PROPTEST_CASES=1000` in the scheduled run).
 
 **Stores of released versions.** `fixtures/stores/v15`, `v16` and `v17` are
 histories written by published releases; `earlier_stores.rs` reads them. The
-`versions` workflow downloads the published CLI of three releases and runs
-`cargo test -p tisty-cli --test versions -- --ignored` to check that each and
-this build read and refuse each other's stores correctly.
+`versions` workflow downloads the `tisty` binary published with three earlier
+releases and runs `cargo test -p tisty-cli --test versions -- --ignored` to
+check that each and this build, through the core, read and refuse each other's
+stores correctly.
 
 **Workflows** (`.github/workflows/`):
 
@@ -1482,10 +1459,9 @@ this build read and refuse each other's stores correctly.
   is empty);
 - no four-line comment block;
 - identifiers, comments and error messages in English; no interface text in the
-  CLI source;
+  `tisty` binary's source;
 - `tisty-core` prints nothing; `tisty-core`, `tisty-sync` and `tisty-carrier` do
   not call `unwrap`, `expect`, `panic!` or `todo!`;
-- nothing new reaches the frozen command line;
 - every test that spawns the binary pins its language;
 - a way of syncing is named only in `config.rs` and `chosen()`, and a second
   check proves the rule can fail;

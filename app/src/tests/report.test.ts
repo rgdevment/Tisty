@@ -31,7 +31,6 @@ const seen: Facts = {
   backedUpAt: null,
   quiet: ["chime"],
   attachUpTo: 5 * 1024 * 1024,
-  inPath: true,
   shortcut: "Ctrl+Shift+Space",
 };
 

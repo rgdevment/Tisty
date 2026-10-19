@@ -1,5 +1,5 @@
 name: Package the binary
-description: Runs the built binary, archives it with its documents, and uploads it.
+description: Runs the built binary and hands it to the bundle for assistants.
 
 inputs:
   version:
@@ -27,28 +27,9 @@ runs:
         fi
         test "$("$bin" --version)" = "tisty $VERSION"
 
-    - name: Package
-      shell: bash
-      env:
-        TARGET: ${{ inputs.target }}
-        VERSION: ${{ inputs.version }}
-        SLUG: ${{ inputs.name }}
-      run: |
-        name="tisty-cli-$VERSION-$SLUG"
-        mkdir -p dist "$name"
-        cp README.md LICENSE "$name"/
-
-        if [[ "$RUNNER_OS" == "Windows" ]]; then
-          cp "target/$TARGET/release/tisty.exe" "$name"/
-          7z a "dist/$name.zip" "$name"
-        else
-          cp "target/$TARGET/release/tisty" "$name"/
-          tar czf "dist/$name.tar.gz" "$name"
-        fi
-
     - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
-        name: cli-${{ inputs.name }}
-        path: dist/*
+        name: server-${{ inputs.name }}
+        path: target/${{ inputs.target }}/release/tisty${{ runner.os == 'Windows' && '.exe' || '' }}
         if-no-files-found: error
         retention-days: 5

@@ -3,7 +3,7 @@ use std::sync::Mutex;
 use tisty_core::view::{Filter, Scope};
 use tisty_core::witness::{self, Fact, channel};
 
-use crate::{Answer, Bound, Refusal, Session, blamed, command, held, report, today};
+use crate::{Answer, Bound, Refusal, Session, blamed, held, report, today};
 
 #[tauri::command(async)]
 pub fn rebuild(session: tauri::State<'_, Mutex<Session>>) -> Answer<()> {
@@ -203,7 +203,6 @@ pub fn facts(
         backed_up_at: session.config.backed_up_at.map(|at| at.to_string()),
         quiet: session.config.muted().to_vec(),
         attach_up_to: session.config.copies_up_to(),
-        in_path: command::reach().within_reach,
         shortcut: bound.0.clone(),
     })
 }

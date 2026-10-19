@@ -669,7 +669,6 @@ export interface Facts {
   backedUpAt: string | null;
   quiet: string[];
   attachUpTo: number;
-  inPath: boolean;
   shortcut: string | null;
 }
 
@@ -727,7 +726,7 @@ export const logs = (most: number): Promise<Logs> => invoke("logs", { most });
 export const noteTrouble = (code: string, name?: string): Promise<void> =>
   invoke("note_trouble", { code, name });
 
-export type Route = "store" | "brew" | "brewCli" | "download";
+export type Route = "store" | "brew" | "download";
 
 export interface Ready {
   version: string;
@@ -960,12 +959,7 @@ export const settlePaper = (
 ): Promise<string | null> => invoke("settle_paper", { id, keep, marked });
 
 export interface Reach {
-  shipped: boolean;
-  onPath: boolean;
-  withinReach: boolean;
-  at?: string;
   binary?: string;
-  through?: string;
 }
 
 export const reachable = (): Promise<Reach> => invoke("reachable");

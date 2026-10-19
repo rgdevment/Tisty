@@ -382,7 +382,7 @@ describe("what the maintenance screen writes", () => {
         case "sync_now":
           return Promise.resolve({ carried: "same", undecided: [], unreadable: [] });
         case "reachable":
-          return Promise.resolve({ shipped: true, withinReach: false, onPath: true });
+          return Promise.resolve({ binary: "C:/Programs/Tisty/tisty.exe" });
         case "checked":
           return Promise.resolve({
             tasks: 1,

@@ -162,32 +162,6 @@ nothing_the_core_prints() {
     && went_well "the core produces no terminal output"
 }
 
-nothing_new_reaches_the_command_line() {
-  local kept now added
-  kept=.github/frozen-cli.txt
-  if [ ! -f "$kept" ]; then
-    amiss "what the command line already carries is not written down, so nobody saw it grow"
-    return
-  fi
-  now=$( { awk '/^pub enum Command/,/^}/' crates/tisty-cli/src/main.rs \
-            | awk '/^    [A-Z]/ { kept = ($0 ~ /^    (Demo|Sync|Doctor|Export|Mcp|Leave|Agent)([^A-Za-z]|$)/) } !kept'
-          awk '/^pub (enum [A-Za-z]*Action|struct (Cli|AddArgs|SetArgs))/,/^}/' \
-            crates/tisty-cli/src/main.rs; } \
-          | grep -oE '^    [A-Z][A-Za-z]*|^ +(pub )?[a-z_]+:|alias = "[a-z-]+"' \
-          | sed 's/pub //; s/alias = //; s/[ :"]//g' | sort -u)
-  if [ -z "$now" ]; then
-    amiss "the command line could not be read, so nobody saw whether it grew"
-    return
-  fi
-  added=$(comm -13 <(tr -d '\015' < "$kept" | sort) <(printf '%s\n' "$now"))
-  if [ -n "$added" ]; then
-    printf '%s\n' "$added"
-    amiss "the command line is frozen: a feature is done when the core and the window have it"
-  else
-    went_well "nothing new reached the command line"
-  fi
-}
-
 every_spawn_pins_its_language() {
   local at spawns pinned bad=0
   if [ ! -d crates/tisty-cli/tests ]; then
@@ -303,7 +277,6 @@ written_in_english
 nothing_the_window_cannot_translate
 nothing_the_core_prints
 nothing_that_takes_the_window_down
-nothing_new_reaches_the_command_line
 every_spawn_pins_its_language
 the_way_of_syncing_is_named_once
 the_rule_on_the_way_of_syncing_can_fail

@@ -38,7 +38,6 @@ body:
         - Documents, pages or the editor
         - Syncing or backups
         - An assistant through MCP
-        - The command line
         - Installing or updating
         - Somewhere else
     validations:
@@ -72,12 +71,6 @@ body:
       render: text
     validations:
       required: true
-  - type: textarea
-    id: doctor
-    attributes:
-      label: What tisty doctor says
-      description: Only for syncing or the command line. Run `tisty doctor` and paste what it answers.
-      render: text
   - type: textarea
     id: more
     attributes:

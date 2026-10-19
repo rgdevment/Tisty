@@ -21,7 +21,6 @@ const APART: jiff::SignedDuration = jiff::SignedDuration::from_hours(24);
 pub enum Route {
     Store,
     Brew,
-    BrewCli,
     Download,
 }
 
@@ -73,13 +72,6 @@ pub fn published(now: &str, manifest: &str, wants: Option<bool>) -> Option<Strin
 }
 
 pub const fn self_installs(route: Route) -> bool {
-    matches!(route, Route::Brew | Route::Download)
-}
-
-/// Where asking for candidates can lead anywhere. The Store is sent none, and the command line's
-/// candidates live in a formula of another name, so the command that route prints could never
-/// hand over the version it had just announced.
-pub const fn takes_candidates(route: Route) -> bool {
     matches!(route, Route::Brew | Route::Download)
 }
 
@@ -223,27 +215,21 @@ pub fn platform(translated: bool) -> Option<&'static str> {
 
 const PREFIXES: [&str; 2] = ["/opt/homebrew", "/usr/local"];
 const CASKS: [&str; 2] = ["tisty", "tisty-beta"];
-const FORMULAE: [&str; 2] = ["tisty-cli", "tisty-cli-beta"];
 
 fn chosen(running: Option<&std::path::Path>, there: impl Fn(&std::path::Path) -> bool) -> Kept {
     if running.is_some_and(tisty_core::paths::under_windows_apps) {
         return Kept::plain(Route::Store);
     }
 
-    for (shelf, names, route) in [
-        ("Caskroom", CASKS, Route::Brew),
-        ("Cellar", FORMULAE, Route::BrewCli),
-    ] {
-        for package in names {
-            let brewed = PREFIXES
-                .iter()
-                .any(|root| there(std::path::Path::new(&format!("{root}/{shelf}/{package}"))));
-            if brewed {
-                return Kept {
-                    route,
-                    package: Some(package),
-                };
-            }
+    for package in CASKS {
+        let brewed = PREFIXES
+            .iter()
+            .any(|root| there(std::path::Path::new(&format!("{root}/Caskroom/{package}"))));
+        if brewed {
+            return Kept {
+                route: Route::Brew,
+                package: Some(package),
+            };
         }
     }
     Kept::plain(Route::Download)

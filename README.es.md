@@ -151,7 +151,6 @@ que nadie usa. Sin anuncios, sin telemetría, sin cuentas, sin suscripciones: un
 - [Qué hace](#qué-hace)
 - [Tus datos y tu privacidad](#tus-datos-y-tu-privacidad)
 - [Dos equipos, si tienes dos](#dos-equipos-si-tienes-dos)
-- [Una línea de comandos, si la quieres](#una-línea-de-comandos-si-la-quieres)
 - [Un asistente, si usas uno](#un-asistente-si-usas-uno)
 - [Qué nunca va a hacer](#qué-nunca-va-a-hacer)
 - [Preguntas frecuentes](#preguntas-frecuentes)
@@ -484,8 +483,8 @@ o tirarla como cualquier otra cosa que escribas.
 
 **La configuración responde cuatro preguntas en vez de llevar cinco etiquetas.**
 *General* es cómo se porta Tisty contigo: idioma, arranque, captura rápida,
-avisos, actualizaciones, y las dos cosas que ocurren fuera de la ventana —la
-línea de comandos y la bienvenida—. *Tus datos* es todo lo que toca tus
+avisos, actualizaciones, y lo único que ocurre fuera de la ventana: la
+bienvenida. *Tus datos* es todo lo que toca tus
 archivos, con la sincronización como bloque propio porque tiene estado, un aviso
 que depende de quién guarde tu carpeta y cuatro acciones. *Asistentes* y
 *Mantenimiento* son lo que dicen.
@@ -678,9 +677,8 @@ cambios se pisan de verdad hay una pregunta.
 **Cada equipo firma lo que escribe**, y uno por el que aquí nadie ha respondido
 espera en la puerta: su ficha en Configuración › *Mantenimiento* muestra la
 clave con la que firma, la comparas con la que ese equipo muestra en su propia
-ficha, y la confirmas —o escribes `tisty sync --confirm <máquina>`—. Hasta
-entonces no entra nada de lo que escribe; desde ese momento, lo que no responda
-a esa clave se rechaza, y Tisty te lo dice.
+ficha, y la confirmas. Hasta entonces no entra nada de lo que escribe; desde
+ese momento, lo que no responda a esa clave se rechaza, y Tisty te lo dice.
 
 **Y respalda a mano, con carpeta compartida o sin ella.** Un zip con todo tu
 historial, guardado donde quieras, y restaurado desde el mismo sitio en *Tus
@@ -702,32 +700,6 @@ enumera las causas en el orden en que conviene revisarlas, y qué significa cada
 aviso de Google Drive, de *Reconectar* a un Drive lleno o
 [algo que bloquea el camino](https://github.com/rgdevment/Tisty/wiki/Sincronizar-y-respaldar#cuando-algo-se-interpone-con-google).
 
-## Una línea de comandos, si la quieres
-
-La ventana es la entrada. La terminal fue una segunda —el mismo almacén, las
-mismas tareas, el mismo lenguaje natural— y se retira por etapas: lo que aún
-hace sigue funcionando, ninguna función nueva le llega —solo una regla que la
-ventana guarda por seguridad, y que obedece—, y los comandos de tareas y
-documentos se van en la siguiente versión mayor. Lo que se queda es el binario
-`tisty`, porque es la puerta por la que entra tu asistente (`tisty mcp`) y el
-sitio del mantenimiento: `doctor`, `sync`, `export`, `agent`.
-
-Ni la línea de comandos ni la puerta del asistente salen nunca a la red.
-Conectar Google Drive se hace solo en la ventana, y en una copia que sincroniza
-con él `tisty sync` le deja la ronda a la ventana; `tisty doctor` igual te dice,
-con lo que hay en este disco, cómo terminó la última y cuánto queda del cupo de
-hoy.
-
-```console
-$ tisty doctor
-$ tisty sync
-$ tisty export --markdown
-```
-
-Si tienes scripts contra `tisty ls --json` o `tisty add`, ve pensando en
-moverlos: Tisty pasa en la ventana, y la puerta del asistente es como un
-programa llega a ella.
-
 ## Un asistente, si usas uno
 
 ![Trae a tus agentes favoritos, ellos ordenan la casa: Ajustes › Asistentes muestra los que hay en este computador y conecta cada uno por MCP, sin IA dentro de Tisty](assets/store/es-07-mcp.png)
@@ -743,13 +715,15 @@ guardar — el grupo del colegio pide cartulina para el lunes, la cuenta vence e
 Configuración › Asistentes enumera los asistentes que ya tienes instalados en
 este equipo y conecta el que elijas: escribe una sola línea en la configuración
 de ese asistente, deja el resto de ese archivo donde estaba y guarda al lado una
-copia de cómo era. Para uno que no conozca, basta una línea:
+copia de cómo era. Para uno que no conozca, basta una línea, y la pestaña te la
+muestra con la ruta del `tisty` que vino con la app en este equipo:
 
 ```console
-$ <tu-asistente> mcp add tisty -- tisty mcp
+$ <tu-asistente> mcp add tisty -- <ruta-de-tisty> mcp
 ```
 
-Donde `<tu-asistente>` es como se llame el tuyo. Habla
+Donde `<tu-asistente>` es como se llame el tuyo. Ese `tisty` ya no es una línea
+de comandos: solo abre la puerta del asistente. Habla
 [MCP](https://modelcontextprotocol.io) dentro del mismo equipo: sin
 cuenta, sin token, nada por la red. **Quien la abre eres tú.** El asistente
 aparece en Configuración › Asistentes como un dispositivo al que tienes que dar
@@ -786,22 +760,6 @@ una tuya—. Su día, su título, su lista y su cierre siguen siendo tuyos igual
 Lo que escribe un asistente va firmado con el nombre del programa por el que
 habló —«por Claude Code», «por Codex»— en la fila, el detalle y la bitácora, y
 Configuración › Asistentes cuenta lo que anotó cada uno.
-
-**La línea de comandos es tuya, no del asistente.** Un asistente con shell
-podría teclear `tisty done 3` el día que su servidor MCP no esté conectado, y
-actuar como tú; o `tisty agent --on`, y darse entrada solo. Así que `tisty` mira
-quién está al teclado antes de abrir nada, y rechaza todo comando salvo `tisty
-mcp` cuando lo está un asistente de programación: por las marcas que lleva su
-entorno, por lo que hay encima de él en el árbol de procesos, o por un editor
-encima y ninguna terminal. Y `tisty agent --on` te pregunta a ti, en la
-terminal, antes de dar entrada a nadie: una shell sin terminal desde la que
-responder se rechaza sin más, la maneje quien la maneje. El rechazo está
-escrito para el asistente que lo lee:
-ve por el servidor, o dile a la persona que está caído. Es una heurística, y una
-honesta: al mismo usuario en el mismo shell no se le distingue con certeza, así
-que donde el cliente de tu asistente pueda negar el comando antes de que corra
-—un hook, una regla—, esa es la capa que no depende del servidor, y esta es el
-suelo debajo.
 
 También lee con mesura, que es asunto tuyo tanto como suyo. Tisty guarda una
 ficha de cada documento —sus títulos, cuánto ocupa, las palabras en que se
@@ -1039,7 +997,6 @@ del registro; [jiff](https://github.com/BurntSushi/jiff) hace las fechas y las
 zonas horarias, que es la parte que nadie debería escribir dos veces;
 [SQLite](https://sqlite.org), a través de
 [rusqlite](https://github.com/rusqlite/rusqlite), guarda la caché de lectura;
-[clap](https://github.com/clap-rs/clap) es la línea de comandos;
 [ULID](https://github.com/dylanhart/ulid-rs) le da a cada tarea un identificador
 que ordena por tiempo y no necesita coordinación.
 

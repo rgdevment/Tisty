@@ -42,9 +42,9 @@ report will never be dismissed for being inconvenient.
   system keychain on macOS and Linux and, on Windows, in a file sealed for your
   user with DPAPI under your profile that uninstalling removes, and masks tokens
   and signed addresses in its own log. Only the window holds it and only the
-  window connects an account; the command line and assistants never reach the
-  network. Nothing goes to a server of ours. A daily allowance per computer keeps
-  one copy from spending the project's shared quota, and the one remote switch
+  window connects an account; assistants never reach the network. Nothing goes
+  to a server of ours. A daily allowance per computer keeps one copy from
+  spending the project's shared quota, and the one remote switch
   that can lower it or pause syncing, `cloud.json`, is refused unless it is
   signed with minisign against a key fixed in the build, is no larger than
   16 KiB and is newer than the last one heard. You can withdraw Tisty's access
@@ -179,10 +179,10 @@ Being explicit here matters more than sounding reassuring.
   a history written at the signed schema or later that arrives with none is not
   taken in at all. A machine whose key nobody here has confirmed is not trusted
   on the folder's word: what it writes waits until you confirm its key, in the
-  window or with `tisty sync --confirm <machine>`. Those confirmations are kept
-  on this machine only, and a key once confirmed is replaced only on its own
-  word: a change of key that the confirmed key itself signed is followed, and a
-  new key nobody vouched for still waits for you. Nothing in this version
+  window. Those confirmations are kept on this machine only, and a key once
+  confirmed is replaced only on its own word: a change of key that the
+  confirmed key itself signed is followed, and a new key nobody vouched for
+  still waits for you. Nothing in this version
   changes a key; it only reads such a change, so that a later one can. The same
   word does not help against a key already stolen, since whoever holds it can
   sign a change too: that machine is removed and confirmed again by looking. The
@@ -255,8 +255,8 @@ Being explicit here matters more than sounding reassuring.
   name for the store, so the old secret simply stays under the old one, and the
   safety copy written moments before can be put back and recognised with nothing
   done by hand. A secret is never destroyed, only displaced: what a build has to
-  move out of the way is kept under the hour it was replaced. `tisty doctor` says
-  how many of those there are, and putting one back is renaming it. Leaving takes
+  move out of the way is kept under the hour it was replaced, and putting one
+  back is renaming it. Leaving takes
   the diary and the settings, never any of this.
 
   The other side of that: a store opened with somebody else's settings — a data
@@ -286,9 +286,8 @@ arriving over the wire can register an agent; the log decides who may write, so
 an
 assistant cannot grant itself a voice by editing the file it can reach.
 
-**It writes under a device of its own.** Your undo never reaches what it filed,
-and
-throwing it out leaves everything it wrote in place. What it files is tagged,
+**It writes under a device of its own.** Throwing it out leaves everything it
+wrote in place. What it files is tagged,
 and it
 may only file into a list that already exists — it cannot make one.
 

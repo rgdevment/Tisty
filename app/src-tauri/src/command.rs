@@ -75,63 +75,13 @@ fn called(folder: Option<&Path>) -> String {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Reach {
-    pub shipped: bool,
-    pub within_reach: bool,
-    pub at: Option<String>,
     pub binary: Option<String>,
-    pub through: Option<String>,
-    pub on_path: bool,
 }
 
 pub fn reach() -> Reach {
-    let folder = beside();
     Reach {
-        shipped: folder.is_some(),
-        within_reach: folder.as_deref().is_some_and(already),
-        at: folder.as_ref().map(|at| at.display().to_string()),
-        binary: folder.map(|at| at.join(CLI).display().to_string()),
-        through: through(),
-        on_path: on_path(),
+        binary: beside().map(|at| at.join(CLI).display().to_string()),
     }
-}
-
-#[cfg(windows)]
-fn on_path() -> bool {
-    true
-}
-
-#[cfg(not(windows))]
-fn on_path() -> bool {
-    let Some(shelf) = shelf() else {
-        return false;
-    };
-    std::env::var_os("PATH")
-        .map(|path| std::env::split_paths(&path).any(|one| one == shelf))
-        .unwrap_or(false)
-}
-
-#[cfg(windows)]
-fn through() -> Option<String> {
-    beside().map(|at| at.display().to_string())
-}
-
-#[cfg(not(windows))]
-fn through() -> Option<String> {
-    link().map(|at| at.display().to_string())
-}
-
-#[cfg(windows)]
-fn already(folder: &Path) -> bool {
-    let named = folder.display().to_string();
-    read()
-        .unwrap_or_default()
-        .split(SEPARATOR)
-        .any(|one| same(one, &named))
-}
-
-#[cfg(not(windows))]
-fn already(_folder: &Path) -> bool {
-    ours()
 }
 
 #[cfg(windows)]
@@ -184,11 +134,6 @@ fn link() -> Option<PathBuf> {
 }
 
 #[cfg(not(windows))]
-fn ours() -> bool {
-    link().is_some_and(|at| is_our_own_link(&at))
-}
-
-#[cfg(not(windows))]
 fn untie() -> std::io::Result<bool> {
     match link() {
         Some(link) => untie_at(&link),
@@ -210,7 +155,33 @@ fn untie_at(link: &Path) -> std::io::Result<bool> {
 #[cfg(not(windows))]
 fn is_our_own_link(at: &Path) -> bool {
     at.symlink_metadata().is_ok_and(|it| it.is_symlink())
-        && std::fs::read_link(at).is_ok_and(|to| to.file_name().is_some_and(|n| n == "tisty"))
+        && std::fs::read_link(at)
+            .is_ok_and(|to| to.file_name().is_some_and(|n| n == "tisty") && into_a_bundle(&to))
+}
+
+// Only what points into an app bundle was ours: a formula's or a build of somebody's own stays.
+#[cfg(not(windows))]
+fn into_a_bundle(to: &Path) -> bool {
+    to.components()
+        .any(|one| one.as_os_str().to_string_lossy().ends_with(".app"))
+}
+
+// Only what calls this install's own copy goes: a wrapper of the person's for anything else stays.
+pub fn ours_on_the_shelf(at: &Path, home: &Path) -> bool {
+    let named = |text: &str| {
+        text.to_lowercase()
+            .contains(&home.display().to_string().to_lowercase())
+    };
+    match at.symlink_metadata() {
+        Ok(it) if it.is_symlink() => {
+            std::fs::read_link(at).is_ok_and(|to| named(&to.display().to_string()))
+        }
+        Ok(it) => {
+            it.len() < 4096
+                && std::fs::read(at).is_ok_and(|bytes| named(&String::from_utf8_lossy(&bytes)))
+        }
+        Err(_) => false,
+    }
 }
 
 #[cfg(windows)]
@@ -291,6 +262,16 @@ mod tests {
 
         assert!(!untie_at(&it.link).unwrap());
         assert!(it.link.is_file());
+    }
+
+    #[test]
+    fn a_link_to_a_command_installed_some_other_way_is_left_alone() {
+        let it = laid();
+        std::fs::create_dir_all(&it.shelf).unwrap();
+        std::os::unix::fs::symlink("/opt/homebrew/bin/tisty", &it.link).unwrap();
+
+        assert!(!untie_at(&it.link).unwrap());
+        assert!(it.link.symlink_metadata().is_ok());
     }
 
     #[test]

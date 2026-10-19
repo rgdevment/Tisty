@@ -201,7 +201,6 @@ fn only_a_copy_that_owns_its_own_folder_replaces_itself() {
     assert!(self_installs(Route::Download));
     assert!(self_installs(Route::Brew));
     assert!(!self_installs(Route::Store), "the store keeps its own");
-    assert!(!self_installs(Route::BrewCli), "brew keeps the formula");
 }
 
 #[test]
@@ -338,15 +337,11 @@ fn a_copy_that_cannot_replace_itself_is_not_offered_a_button() {
 
 #[test]
 fn candidates_are_only_asked_for_where_one_could_arrive() {
-    assert!(takes_candidates(Route::Download));
-    assert!(takes_candidates(Route::Brew));
+    assert!(self_installs(Route::Download));
+    assert!(self_installs(Route::Brew));
     assert!(
-        !takes_candidates(Route::Store),
+        !self_installs(Route::Store),
         "the store is sent finished versions only"
-    );
-    assert!(
-        !takes_candidates(Route::BrewCli),
-        "and the formula keeps its candidates under another name"
     );
 }
 
@@ -437,41 +432,12 @@ fn a_cask_answers_with_its_own_command() {
 }
 
 #[test]
-fn the_command_line_is_a_formula_and_lives_where_formulas_do() {
-    assert_eq!(
-        chosen(
-            at("/opt/homebrew/bin/tisty"),
-            only("/opt/homebrew/Cellar/tisty-cli")
-        ),
-        Kept {
-            route: Route::BrewCli,
-            package: Some("tisty-cli")
-        }
-    );
-    assert_eq!(
-        chosen(at(APP), only("/opt/homebrew/Caskroom/tisty-cli")),
-        Kept::plain(Route::Download),
-        "no formula is ever kept under Caskroom"
-    );
-}
-
-#[test]
 fn a_candidate_is_upgraded_by_the_name_it_was_installed_under() {
     assert_eq!(
         chosen(at(APP), only("/opt/homebrew/Caskroom/tisty-beta")),
         Kept {
             route: Route::Brew,
             package: Some("tisty-beta")
-        }
-    );
-    assert_eq!(
-        chosen(
-            at("/opt/homebrew/bin/tisty"),
-            only("/opt/homebrew/Cellar/tisty-cli-beta")
-        ),
-        Kept {
-            route: Route::BrewCli,
-            package: Some("tisty-cli-beta")
         }
     );
 }
@@ -483,16 +449,6 @@ fn the_older_homebrew_root_answers_too() {
         Kept {
             route: Route::Brew,
             package: Some("tisty")
-        }
-    );
-    assert_eq!(
-        chosen(
-            at("/usr/local/bin/tisty"),
-            only("/usr/local/Cellar/tisty-cli")
-        ),
-        Kept {
-            route: Route::BrewCli,
-            package: Some("tisty-cli")
         }
     );
 }

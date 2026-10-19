@@ -78,7 +78,7 @@ Tiers, current terms and quotes: <rgdevment@tisty.app>.
 These stay free under the AGPL-3.0, permanently, and no commercial tier will
 ever gate them:
 
-- The command line interface.
+- The door assistants come through (`tisty mcp`).
 - The complete task module.
 - The documents module.
 - Synchronisation against your own repository or folder.
