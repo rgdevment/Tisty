@@ -820,7 +820,6 @@ const en = {
   renameIt: "Rename",
   dropFolderSure:
     "Delete «{name}»? Its documents go to Unfiled and its subfolders move up a level. Nothing is lost, but this cannot be undone.",
-  updateBrewCli: "Run brew update && brew upgrade {name}",
   updateAsk: "Do you want to update it?",
   updateInstall: "Update",
   updateGetting: "Getting it — {name}",
@@ -2846,7 +2845,6 @@ const es: Catalog = {
   renameIt: "Renombrar",
   dropFolderSure:
     "¿Borrar «{name}»? Sus documentos pasan a Sin clasificar y sus subcarpetas suben un nivel. No se pierde nada, pero no se puede deshacer.",
-  updateBrewCli: "Ejecuta brew update && brew upgrade {name}",
   updateAsk: "¿Quieres actualizarla?",
   updateInstall: "Actualizar",
   updateGetting: "Descargando — {name}",

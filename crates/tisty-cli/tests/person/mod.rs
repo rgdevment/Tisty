@@ -290,7 +290,6 @@ impl Person {
         config.save(&self.paths).unwrap();
     }
 
-    // The round the window runs, with the seat this machine takes in the place the first time.
     pub fn syncs(&self) -> Result<(), String> {
         let config = Config::load_or_init(&self.paths).unwrap();
         let via = tisty_carrier::chosen(config.sync.as_ref())

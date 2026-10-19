@@ -174,16 +174,20 @@ fn told(client: &'static Client, at: &Path) -> Seen {
         name: client.name,
         at: at.display().to_string(),
         wired: points.is_some(),
-        astray: points.as_deref().is_some_and(adrift),
+        astray: points
+            .as_deref()
+            .is_some_and(|one| adrift(one, command::beside().is_some())),
         points,
     }
 }
 
-/// A bare name is answered by the PATH — which is the Store's own answer — and only a path we can
-/// look at says whether an older copy left it pointing at nothing.
-fn adrift(command: &str) -> bool {
+// A bare name is the Store's alias; anywhere else the PATH that answered it is no longer kept.
+fn adrift(command: &str, shipped_beside: bool) -> bool {
     let at = Path::new(command);
-    at.components().count() > 1 && !at.is_file()
+    match at.components().count() > 1 {
+        true => !at.is_file(),
+        false => shipped_beside,
+    }
 }
 
 fn entry(kind: Kind) -> String {

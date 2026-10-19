@@ -23,7 +23,6 @@ fn main() -> ExitCode {
     }
 }
 
-// Everything but the assistant's door left with the command line; whoever types anything else is sent to the window.
 fn retired() -> ExitCode {
     let lang = Lang::detect(None);
     eprintln!("{}", lang.get("retired"));

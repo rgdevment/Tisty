@@ -771,9 +771,15 @@ pub(crate) fn as_asked_for(at: &std::path::Path) -> std::path::PathBuf {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 fn settled(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
-    // The command line was retired, so a `tisty` an older install put on the PATH is taken back off.
+    // The command line was retired, so a `tisty` an older install put on the PATH is taken back off, once.
     std::thread::spawn(|| {
-        let _ = command::out_of_reach();
+        let Ok(paths) = tisty_core::Paths::resolve() else {
+            return;
+        };
+        let done = paths.config().join("command-off-path");
+        if !done.exists() && command::out_of_reach().is_ok() {
+            let _ = std::fs::write(&done, b"");
+        }
     });
     let argv = waking::said();
     let here = std::env::current_dir().ok();

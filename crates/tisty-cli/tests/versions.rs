@@ -18,7 +18,6 @@ struct Run {
     code: i32,
 }
 
-// This build is the window, which has no command line: what it does is done through the core.
 struct Current {
     home: TempDir,
 }

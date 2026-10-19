@@ -152,10 +152,16 @@ fn untie_at(link: &Path) -> std::io::Result<bool> {
     Ok(true)
 }
 
+// Only a link into an app bundle was ours: one aimed at a formula or a build of somebody's own stays.
 #[cfg(not(windows))]
 fn is_our_own_link(at: &Path) -> bool {
     at.symlink_metadata().is_ok_and(|it| it.is_symlink())
-        && std::fs::read_link(at).is_ok_and(|to| to.file_name().is_some_and(|n| n == "tisty"))
+        && std::fs::read_link(at).is_ok_and(|to| {
+            to.file_name().is_some_and(|n| n == "tisty")
+                && to
+                    .components()
+                    .any(|one| one.as_os_str().to_string_lossy().ends_with(".app"))
+        })
 }
 
 #[cfg(windows)]
@@ -236,6 +242,16 @@ mod tests {
 
         assert!(!untie_at(&it.link).unwrap());
         assert!(it.link.is_file());
+    }
+
+    #[test]
+    fn a_link_to_a_command_installed_some_other_way_is_left_alone() {
+        let it = laid();
+        std::fs::create_dir_all(&it.shelf).unwrap();
+        std::os::unix::fs::symlink("/opt/homebrew/bin/tisty", &it.link).unwrap();
+
+        assert!(!untie_at(&it.link).unwrap());
+        assert!(it.link.symlink_metadata().is_ok());
     }
 
     #[test]

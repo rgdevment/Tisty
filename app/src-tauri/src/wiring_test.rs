@@ -121,12 +121,13 @@ fn a_command_that_is_no_longer_there_is_astray() {
         false => "/Applications/Gone.app/Contents/MacOS/tisty",
     };
 
-    assert!(adrift(gone));
+    assert!(adrift(gone, true));
 }
 
 #[test]
-fn a_bare_name_is_left_to_the_path_rather_than_called_astray() {
-    assert!(!adrift("tisty"));
+fn a_bare_name_is_the_stores_alias_and_astray_anywhere_else() {
+    assert!(!adrift("tisty", false));
+    assert!(adrift("tisty", true));
 }
 
 #[test]
@@ -135,7 +136,7 @@ fn the_command_beside_the_window_is_not_astray() {
     let at = tmp.path().join(command::CLI);
     std::fs::write(&at, b"a command").unwrap();
 
-    assert!(!adrift(&at.display().to_string()));
+    assert!(!adrift(&at.display().to_string(), true));
 }
 
 #[test]

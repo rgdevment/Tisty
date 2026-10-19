@@ -262,7 +262,7 @@ jobs:
   build-macos:
     name: tisty-macos-mcp
     needs: version
-    if: needs.version.outputs.macos == 'true'
+    if: needs.version.outputs.macos == 'true' && needs.version.outputs.prerelease == 'false'
     runs-on: macos-latest
     environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'release' || '' }}
     timeout-minutes: 45
@@ -390,6 +390,7 @@ jobs:
   build-windows:
     name: tisty-windows-mcp
     needs: version
+    if: needs.version.outputs.prerelease == 'false'
     runs-on: windows-latest
     environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'release' || '' }}
     timeout-minutes: 45
@@ -1856,7 +1857,7 @@ jobs:
           cd /tmp/tap
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          mkdir -p Casks
+          mkdir -p Casks Formula
 
           if [ -n "$ARM_SHA" ] && [ -n "$INTEL_SHA" ]; then
             cat > "Casks/${CASK}.rb" <<-CASK

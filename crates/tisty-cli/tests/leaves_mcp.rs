@@ -398,17 +398,6 @@ impl Served {
             .unwrap();
     }
 
-    fn complained(&self, args: &[&str]) -> String {
-        let out = self
-            .command()
-            .args(args)
-            .stdin(Stdio::null())
-            .output()
-            .unwrap();
-        assert!(!out.status.success(), "the command went through");
-        String::from_utf8_lossy(&out.stderr).into_owned()
-    }
-
     fn said(&self, name: &str, args: serde_json::Value) -> String {
         let told = self.call(name, args);
         assert!(told["result"]["isError"].as_bool() != Some(true), "{told}");
@@ -498,30 +487,6 @@ fn a_page_of_a_locked_book_is_shut_as_tightly_as_the_book() {
             .as_bool()
             .unwrap(),
         "read_doc has to say so before an assistant tries"
-    );
-}
-
-#[test]
-fn the_terminal_puts_no_file_into_a_locked_document_either() {
-    let served = Served::new();
-    let book = served.wrote(
-        "# Minuta
-
-lo que dije",
-        None,
-    );
-    served.bolt(&book);
-    let at = served.home.path().join("nota.txt");
-    std::fs::write(&at, b"algo").unwrap();
-
-    let why = served.complained(&["attach", &book, at.to_str().unwrap()]);
-
-    assert!(why.contains("locked"), "{why}");
-    assert_eq!(
-        served.body_of(&book).trim_end(),
-        "# Minuta
-
-lo que dije"
     );
 }
 
