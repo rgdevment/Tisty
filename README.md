@@ -196,6 +196,12 @@ documents included.
 tasks: they are Markdown files that grow into books, with diagrams, formulas,
 code and their own PDF.
 
+**A task or a document?** A task is something to do: it ends, often soon, and
+then it stays, so that months later you can look up how you solved it. A
+document is something to keep and read again — a manual, a recipe, the notes on
+a client — that grows and lasts for years. Something you will do is a task;
+something you will come back to is a document.
+
 **It is for one person.** No assignees, no permissions, no boards. If you need
 to run a team, Tisty will not carry that, and you deserve to know before you
 install it rather than after.

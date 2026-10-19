@@ -14,6 +14,15 @@ This guide takes a couple of minutes, and you will come out of it knowing a litt
 
 When you need help along the way, press `F1` or the `?` at the foot of the sidebar: it opens the [Tisty Markdown guide](https://markdown.tisty.app) right here, on what you are writing, and it works offline. Tasks, assistants and everything else are explained at [www.tisty.app/docs](https://www.tisty.app/docs/).
 
+## A task or a document?
+
+Tisty keeps two kinds of things, and telling them apart is most of using it well.
+
+- **A task is something to do.** It ends, often soon: you complete it and it goes to the archive. But it does not go away. What you wrote on its page, its steps and its notes stay, and months later a search finds it and tells you how you solved it. A task is knowledge with a date.
+- **A document is something to keep.** A manual, a recipe, the notes on a client or a machine, a year of minutes: it is read again and again, corrected and added to, and it grows for years. It rarely ends.
+
+Something you will do is a task. Something you will come back to is a document. When doing a task teaches you something you will need again — the fix for a fault that returns, how a supplier wants an order — put it in a document as well.
+
 ---
 
 ## Tasks

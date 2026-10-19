@@ -200,6 +200,12 @@ pasa al archivo, y la búsqueda llega a todo, documentos incluidos.
 pegado a las tareas: son archivos Markdown que crecen hasta ser libros, con
 diagramas, fórmulas, código y su propio PDF.
 
+**¿Tarea o documento?** Una tarea es algo por hacer: termina, muchas veces
+pronto, y después se queda, para que meses más tarde consultes cómo lo
+resolviste. Un documento es algo para guardar y volver a leer —un manual, una
+receta, las notas de un cliente— que crece y dura años. Lo que vas a hacer es
+una tarea; lo que vas a volver a consultar es un documento.
+
 **Es para una persona.** Sin responsables, sin permisos, sin tableros. Si
 necesitas llevar un equipo, Tisty no va a sostener eso, y mereces saberlo antes
 de instalarlo y no después.

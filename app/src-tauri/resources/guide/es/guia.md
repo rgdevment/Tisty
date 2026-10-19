@@ -14,6 +14,15 @@ Esta guía te tomará un par de minutos y podrás conocer un poco más de qué p
 
 Cuando necesites ayuda en el camino, pulsa `F1` o el `?` al pie de la barra lateral: abre la [guía de Markdown de Tisty](https://markdown.tisty.app/es/) aquí mismo, en lo que estás escribiendo, y funciona sin conexión. Las tareas, los asistentes y todo lo demás se explican en [www.tisty.app/es/ayuda](https://www.tisty.app/es/ayuda/).
 
+## ¿Tarea o documento?
+
+Tisty guarda dos tipos de cosas, y distinguirlas es buena parte de usarlo bien.
+
+- **Una tarea es algo por hacer.** Termina, muchas veces pronto: la completas y pasa al archivo. Pero no desaparece. Lo que escribiste en su página, sus pasos y sus notas se quedan, y meses después una búsqueda la encuentra y te cuenta cómo lo resolviste. Una tarea es conocimiento con fecha.
+- **Un documento es algo para guardar.** Un manual, una receta, las notas de un cliente o de una máquina, las actas de un año: se lee una y otra vez, se corrige y se amplía, y crece durante años. Rara vez termina.
+
+Lo que vas a hacer es una tarea. Lo que vas a volver a consultar es un documento. Cuando hacer una tarea te enseña algo que vas a necesitar de nuevo —el arreglo de una falla que vuelve, cómo quiere un proveedor que le pidan— guárdalo también en un documento.
+
 ---
 
 ## Las tareas
