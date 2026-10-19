@@ -153,6 +153,7 @@ pub(in crate::mcp) fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, 
         .map(|one| {
             let mut row = serde_json::Map::new();
             row.insert("doc".into(), json!(one.file));
+            row.insert("by".into(), json!(super::alike::by(&state, one)));
             if let Some(card) = cards.get(&one.file) {
                 row.insert("title".into(), json!(card.title));
                 row.insert("words".into(), json!(card.words));
@@ -183,9 +184,22 @@ pub(in crate::mcp) fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, 
         .collect();
 
     let pointing = pointed_at(paths, &state, &which);
+    let page_cards: Vec<(&str, &tisty_core::docs::Card)> = pages
+        .iter()
+        .filter_map(|one| cards.get(&one.file).map(|card| (one.file.as_str(), card)))
+        .collect();
+    let alike = super::alike::alike(&state, kept, &pages);
+    let repeated = super::alike::repeated((which.as_str(), &card), &page_cards);
     let mut kept_of = serde_json::Map::new();
     kept_of.insert("doc".into(), json!(which));
     kept_of.insert("title".into(), json!(card.title));
+    kept_of.insert("by".into(), json!(super::alike::by(&state, kept)));
+    if !alike.is_empty() {
+        kept_of.insert("alike".into(), json!(alike));
+    }
+    if !repeated.is_empty() {
+        kept_of.insert("repeated".into(), json!(repeated));
+    }
     kept_of.insert("chars".into(), json!(card.chars));
     kept_of.insert("lines".into(), json!(card.lines));
     kept_of.insert("words".into(), json!(card.words));
@@ -296,6 +310,35 @@ pub(in crate::mcp) fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, 
             ));
         }
     }
+    if !alike.is_empty() {
+        shown.push_str(&format!(
+            "\n\nElsewhere under the same subject: {}.",
+            alike
+                .iter()
+                .map(|one| format!(
+                    "{} [{}], like {:?}",
+                    one["title"],
+                    said(one, "doc"),
+                    said(one, "like")
+                ))
+                .collect::<Vec<_>>()
+                .join("; ")
+        ));
+    }
+    if !repeated.is_empty() {
+        shown.push_str(&format!(
+            "\n\nHeadings written in more than one page: {}.",
+            repeated
+                .iter()
+                .map(|one| format!(
+                    "{} ({})",
+                    one["heading"],
+                    one["in"].as_array().map_or(0, Vec::len)
+                ))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ));
+    }
     if !pointing.is_empty() {
         let few: Vec<String> = pointing.iter().take(NEWEST_SHOWN).cloned().collect();
         shown.push_str(&format!(
@@ -385,7 +428,18 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
     if let Some(mark) = &kept.flagged {
         kept_of.insert(
             "flagged".into(),
-            json!({ "at": mark.at.to_string(), "said": mark.body }),
+            json!({
+                "at": mark.at.to_string(),
+                "said": mark.body,
+                "reason": mark.reason,
+                "instead": mark.instead,
+            }),
+        );
+    }
+    if let Some(done) = &kept.compacted {
+        kept_of.insert(
+            "compacted".into(),
+            json!({ "at": done.at.to_string(), "via": done.via }),
         );
     }
 

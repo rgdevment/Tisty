@@ -27,8 +27,12 @@ pub(in crate::mcp) fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Re
     };
 
     if let Some(which) = text(args, "doc") {
+        if super::compacting::compacting(args) {
+            return super::compacting::compacted(paths, args, &state, &mut store, &which, &body);
+        }
         return over_again(paths, args, &state, &mut store, &which, &body);
     }
+    super::compacting::not_alone(args)?;
     if text(args, "print").is_some() {
         return Err(Refused::Tool(
             "`print` says which body you mean to replace, so it needs the `doc` it belongs to. Without one, `write_doc` writes a new document."
@@ -37,6 +41,7 @@ pub(in crate::mcp) fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Re
     }
 
     let (folder, page_of) = where_it_lands(&state, args)?;
+    super::compacting::subject_free(&state, args, &body)?;
     let made = tisty_core::docs::create(&paths.docs(), store.device(), &body).map_err(|e| match e {
         tisty_core::Error::DocumentTooBig { limit, .. } => Refused::Tool(format!(
             "that body is past the {limit} bytes Tisty can open. Send a shorter document, or split it into pages."
@@ -120,8 +125,10 @@ pub(in crate::mcp) fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Re
                 made.title, made.id
             ),
             (None, None) => format!(
-                "Wrote the document {:?}, in no folder; `docs` says which folders exist. [{}]",
-                made.title, made.id
+                "Wrote the document {:?}.{} [{}]",
+                made.title,
+                super::super::placing::loose_doc(&state, &made.title),
+                made.id
             ),
         },
         json!({
@@ -153,6 +160,7 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
             "going back needs the `doc` name of the document to put back.".into(),
         ));
     };
+    let (which, a_task_s) = super::compacting::page_to_restore(paths, &which)?;
     let Some(was) = tisty_core::docs::read_before(paths.data(), &which) else {
         return Err(Refused::Tool(format!(
             "nothing is kept beside {which:?} to go back to. Only a write that replaced a body \
@@ -161,6 +169,9 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
         )));
     };
     let now = tisty_core::docs::read(&paths.docs(), &which).map_err(hitch)?;
+    if a_task_s {
+        super::compacting::only_the_notes(&now, &was)?;
+    }
     if tisty_core::docs::unchanged(&now, &was) {
         return Err(Refused::Tool(format!(
             "{which:?} already says what is kept beside it, so there is nothing to go back to."
@@ -194,6 +205,11 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
         &which,
         &was,
     )?;
+    if let Some(kept) = state.docs.values().find(|one| one.file == which)
+        && kept.compacted.is_some()
+    {
+        let _ = store.append(Op::DocUncompacted { id: kept.id });
+    }
     if more {
         if let Some(text) = said["content"][0]["text"].as_str() {
             said["content"][0]["text"] = json!(format!(
@@ -221,6 +237,10 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
     if let Some(task) = super::super::task_notes::task_named(&state, &which) {
         tisty_core::docs::survives(&body).map_err(|eats| Refused::Tool(not_spoken(eats)))?;
         let under = text(args, "under");
+        let replace = args
+            .get("replace")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
         return super::super::task_notes::noted_on_page(
             paths,
             &state,
@@ -228,7 +248,14 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
             task,
             &body,
             under.as_deref(),
+            replace,
         );
+    }
+    if args.get("replace").and_then(Value::as_bool) == Some(true) {
+        return Err(Refused::Tool(
+            "`replace` writes the assistant's notes on a task's page again, so it needs a task's              id in `doc`. A document's passage is changed with `edit_doc`."
+                .into(),
+        ));
     }
     let Some(kept) = state.docs.values().find(|one| one.file == which) else {
         return Err(Refused::Tool(format!(
@@ -314,7 +341,7 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
     ))
 }
 
-fn over_again(
+pub(super) fn over_again(
     paths: &Paths,
     args: &Value,
     state: &tisty_core::State,
@@ -447,6 +474,7 @@ print: {}",
                 "chars": whole.chars().count(),
                 "lines": whole.lines().count(),
                 "print": tisty_core::attach::printed(whole.as_bytes()),
+                "pages_kept_back": kept_back,
                 }),
             ))
         }

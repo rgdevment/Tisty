@@ -4903,3 +4903,53 @@ fn reopening_takes_back_a_successor_and_leaves_the_routine_s_document() {
         "{ops:?}"
     );
 }
+
+#[test]
+fn a_mark_says_why_and_where_what_it_said_went() {
+    let mut state = State::default();
+    let one = doc(&mut state, "a3f1-0001", None);
+
+    state.apply(&ev(
+        2,
+        "dev_agent",
+        Op::DocFlag {
+            id: one,
+            d: crate::event::Flag::new("the same as the login page")
+                .because(Some("duplicate_of".into()), Some("a3f1-0002".into())),
+        },
+    ));
+
+    let mark = state.docs[&one].flagged.clone().expect("the mark was lost");
+    assert_eq!(mark.reason.as_deref(), Some("duplicate_of"));
+    assert_eq!(mark.instead.as_deref(), Some("a3f1-0002"));
+}
+
+#[test]
+fn a_mark_from_before_reasons_reads_without_one() {
+    let read: crate::event::Flag =
+        serde_json::from_str(r#"{"body":"old"}"#).expect("an older mark still reads");
+
+    assert_eq!(read.reason, None);
+    assert_eq!(read.instead, None);
+}
+
+#[test]
+fn a_compacted_document_says_by_whom_and_when_until_the_person_settles_it() {
+    let mut state = State::default();
+    let one = doc(&mut state, "a3f1-0001", None);
+
+    let mut said = ev(5, "dev_agent", Op::DocCompacted { id: one });
+    said.via = Some("claude-code".into());
+    state.apply(&said);
+
+    let done = state.docs[&one]
+        .compacted
+        .clone()
+        .expect("the mark was lost");
+    assert_eq!(done.by, DeviceId("dev_agent".into()));
+    assert_eq!(done.via.as_deref(), Some("claude-code"));
+    assert_eq!(done.at, jiff::Timestamp::from_millisecond(5).unwrap());
+
+    state.apply(&ev(6, "dev_laptop", Op::DocUncompacted { id: one }));
+    assert!(state.docs[&one].compacted.is_none(), "kept or taken back");
+}

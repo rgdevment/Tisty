@@ -8,7 +8,7 @@ use super::super::asked::text;
 use super::super::jsonrpc::told;
 use super::super::{
     FOLDER_NAME_AT_MOST, Refused, as_path, doc_named, folder_named, hitch, holder, named_all,
-    named_doc, opened, speaking_through, trail, up_named, when,
+    named_doc, opened, trail, up_named,
 };
 
 pub(in crate::mcp) fn archive_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
@@ -165,69 +165,6 @@ pub(in crate::mcp) fn archive_doc(paths: &Paths, args: &Value) -> Result<Value, 
             "pages": pages,
             "pointed_at": pointing,
         }),
-    ))
-}
-
-pub(in crate::mcp) fn flag_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
-    let Some(which) = text(args, "doc") else {
-        return Err(Refused::Tool(
-            "marking a document needs its `doc` name.".into(),
-        ));
-    };
-    let Some(body) = text(args, "body") else {
-        return Err(Refused::Tool(
-            "marking a document needs a `body`: what makes it old and how you know. Without it \
-             the person has only your word and nothing to weigh it against."
-                .into(),
-        ));
-    };
-    let (state, mut store) = opened(paths)?;
-    let Some(kept) = state.docs.values().find(|one| one.file == which) else {
-        return Err(Refused::Tool(format!(
-            "no document here is called {which:?}. `docs` lists them all."
-        )));
-    };
-    if state.held_away(kept) {
-        return Err(Refused::Tool(format!(
-            "{} is already in the archive, so it is out of the way. Nothing to mark.",
-            doc_named(&state, &which)
-        )));
-    }
-    if let Some(already) = &kept.flagged {
-        let who = match already.by == *store.device() && already.via == speaking_through() {
-            true => "you".to_string(),
-            false => already
-                .via
-                .as_deref()
-                .map(tisty_core::agent::client_named)
-                .unwrap_or_else(|| "an assistant".to_string()),
-        };
-        return Err(Refused::Tool(format!(
-            "{who} already marked {} on {}, and the person has not looked yet. Marking \
-             it again would only say the same thing twice.",
-            doc_named(&state, &which),
-            when(already.at)
-        )));
-    }
-    let id = kept.id;
-    let me = store.device().clone();
-    store
-        .append(Op::DocFlag {
-            id,
-            d: tisty_core::event::Flag::new(body)
-                .said_by(jiff::Timestamp::now(), me)
-                .through(speaking_through()),
-        })
-        .map_err(hitch)?;
-
-    Ok(told(
-        format!(
-            "Marked {} as one that has had its day. It is untouched and still reads the \
-             same: the person sees the mark when they open it, and archiving it, deleting \
-             it or taking the mark off are all theirs.",
-            doc_named(&state, &which)
-        ),
-        json!({ "doc": which, "flagged": true }),
     ))
 }
 

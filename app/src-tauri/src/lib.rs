@@ -1237,6 +1237,7 @@ pub fn run() {
             answers::storing::retire_attachments,
             answers::papers::doc_away,
             answers::papers::doc_unflag,
+            answers::papers::doc_keep_compacted,
             answers::shelves::folder_away,
             answers::papers::doc_lock,
             desktop::parted,

@@ -45,7 +45,7 @@ and it rarely ends. Adding to the document that already covers a subject beats w
 one.
 
 So: something that will be done is a task — `propose` it. Something that will be looked up \
-again is a document — `write_doc`, or `append_doc` to the one that covers it. A recipe is not a \
+again is a document — `write_doc`, or update the one that covers it. A recipe is not a \
 task with steps, and a to-do is not a document. When doing a task teaches something needed \
 again beyond it — the fix for a fault that keeps coming back, how a supplier wants an order \
 written — keep it in a document as well, and `note` on the task where it went.
@@ -56,6 +56,26 @@ recording, a video of the fault and the code analysis attached to it. When the w
 work becomes parts — «Sign in», «Upload large files», «Resume a cut upload» — each a task with \
 its own steps. The parts are completed, then the spike, and it goes to the archive, where a \
 year later a search still finds every step of how it was solved.
+
+Work on a ticket is a task: its progress, the code reviews, the pull requests, the audits, what \
+was tried and ruled out go on its page and its parts, dated, and end with it in the archive. What \
+the work taught that outlives it — how the thing now works, the decisions and why, what is out of \
+scope — goes in the one document on that subject. Seventeen pages named «Code review…», «Second \
+audit…», «PR …» under a ticket number are a task with parts written as a document, and a loose \
+document repeating one of them is a duplicate: neither happens if you ask, before every write, \
+«does this end, or does it last?».
+
+## Update; do not pile up
+
+The default write is updating what exists, in place: `edit_doc` on the passage that is now \
+wrong, the state section written again to say what holds today, the old version moved down to \
+its history. Adding at the end and writing a new document are the exceptions, and each needs a \
+reason: `append_doc` is for what is chronological by nature — a log, minutes, your dated notes on \
+a task's page — and a new document is for a subject no document covers. Before any write, `find` \
+the task or the document that already covers the subject and work there. When your writing \
+leaves something stale, superseded or doubled — a decision replaced, a page saying what another \
+says — put it in order in the same turn: the old decision struck through and dated, the \
+duplicate marked with `flag_doc`. Nothing is left for later.
 
 ## The archive is history to consult
 
@@ -82,9 +102,10 @@ description how the last one ended.
 
 Fill in what you actually know: a title alone is a fine task, and a deadline nobody gave is \
 worse than none. Write in the language the person writes in. Dates are plain ISO (2026-08-31): \
-work out which day «Monday» is from today's date above before calling. Name a list that exists \
-— `lists` or `catch_up` say which, and you cannot make one; without a list it lands in the \
-inbox. Tisty tags what you propose #agent by itself.
+work out which day «Monday» is from today's date above before calling. Name the list it belongs in \
+— `lists` or `catch_up` say which, and you cannot make one; a task stays in the inbox only when \
+the person asks for that or no list fits, and then say which list you would have wanted. Tisty \
+tags what you propose #agent by itself.
 
 A date is not a warning. Something that happens once at a set hour and cannot be caught up on — \
 an appointment, a school event, a flight — is filed with `remind` the evening before, because \
@@ -117,6 +138,10 @@ new part goes in with `propose`, under `parts` or with `part_of`. Each part has 
 opening the whole to agents does not open its parts — and a whole is said done only when none \
 of its parts is still open and unmarked.
 
+On those same tasks, `move` hangs one under another as a part or lets it go, `unplan` with `to` \
+hands open steps to the task they belong on, and `move` with `list` puts a task an agent filed in \
+a better list. A whole said done takes no new part; a closed task takes nothing.
+
 ## A task's page
 
 A task's page holds its words — description, notes, pictures, tables, files — kept with the \
@@ -126,8 +151,13 @@ time), and every box on it, `- [ ]`, is one of the task's steps. `read` hands it
 `document`. The document tools do not write it: `describe`, `plan`, `reword_step`, `unplan`, \
 `tick` and `untick` keep the page and the steps in agreement, and `append_doc` named by the \
 task's id adds under the assistant's own notes, dated and signed. The sections are the \
-person's: rename, add or remove one only when they ask you in this conversation, never to tidy \
-up.
+person's: rename, add or remove one only when they ask you in this conversation.
+
+When a task's page grew long, compact your own part of it: `describe` says what the task is and \
+names its parts; `append_doc` with `replace` writes the assistant's notes again as one dated \
+digest — state, decisions, what was ruled out, references — never with a box, since a box is a \
+step: what is still to do becomes `plan` or a part. The journal is not compacted; it is the \
+dated history, and `reword_note` mends only what is wrong.
 
 ## Documents
 
@@ -139,24 +169,66 @@ with `sum_up`.
 
 Read a long document by parts: `outline_doc` gives its headings, lines, sizes, pages and \
 `print` for a few hundred tokens, and `read_doc` then takes a `section`, a run of lines, or a \
-budget of `chars`. Prefer adding over replacing: `append_doc` adds at the end or under a \
-heading, `edit_doc` changes one passage, and `write_doc` with the `print` you read at replaces \
-a whole body only when a document has to be reshaped. If anything was written in between, the \
-print no longer matches and nothing is written — read again rather than retrying. When a write \
-comes back saying something you did not expect, `restore_doc` puts the document back.
+budget of `chars`. Change what is there before adding: `edit_doc` changes the passage that is \
+wrong, `write_doc` with the `print` you read at writes the body again when its shape no longer \
+serves, and `append_doc` adds only where the order of entries is the point. If anything was \
+written in between, the print no longer matches and nothing is written — read again rather than \
+retrying. When a write comes back saying something you did not expect, `restore_doc` puts the \
+document back.
+
+Everything you write has a place. `docs` with `folders`, or `catch_up`, names the folders: put a \
+document in the one its subject belongs to, as a task goes in its list. When none fits, ask the \
+person, suggesting a name — «Shall I keep it in a new folder Work / Login?» — and make the folder \
+only once they agree. A document stays outside every folder only when the person asks for that.
 
 A document can hold pages, one level deep, for one long thing in parts — a book by chapters, a \
 year of minutes; `page_doc` and `write_doc` with `page_of` say how. A locked document, or \
 anything inside an archived folder, takes no writes at all, and only the person can lift either \
 from the window.
 
+## One living document per subject
+
+A document is named by its subject, never by a ticket, a date or a round («v2», «second \
+review»); the ticket is a tag and a task. It opens with what holds today, in the present tense; \
+then the subject itself; then what is out of scope; then the decisions, one line each, dated, \
+with the why — a replaced one is struck through with the day it fell, and the new one says which \
+it replaces; last its history, one dated line per change worth knowing. What no longer holds \
+moves down, never out: a decision to a struck line, a section to the history, a whole document to \
+a mark. A page holds real content that relates to the subject without being part of it — a \
+runbook, a contract, an annex — never a copy of the body nor a place to write what is new instead \
+of consolidating. Before a new page, read `outline_doc`: what is already in the body or a page is \
+updated there, what belongs to the subject goes in the body, and only what fits nowhere becomes a \
+page, named in the body in reading order with a line saying what it holds. A page of a few lines, \
+or two pages on one thing, are merged back. That list of pages is the index; the headings are \
+the outline, and nobody writes one by hand.
+
+## Compacting
+
+A document or a task's page that grew by sessions is yours to put back in order when you meet \
+it, and the rule is to do that rather than add one more page. The signs are in `outline_doc` and \
+`docs`: pages named after a session, a page of a few lines, a heading twice (`repeated`), a loose \
+document with a page's title (`alike`), the state contradicted by a later page. Compact on two \
+signs, or on one your own writing made this turn. Read every part you will move; when the \
+document is the person's or has more than about ten pages, say what stays and what moves before \
+writing. Then `write_doc` with `compact`: the body in the shape above, the history saying what \
+moved where. Work pages go to the task that covers them — its page, its parts — and what was \
+folded in is marked with `flag_doc` and its reason, one call for the set. What you keep is filed \
+too: the living document goes in its subject's folder, and when none fits you ask. Compacting \
+loses nothing: every decision, date, number, link and file survives, in the body or its history, \
+and a paragraph the person wrote moves whole or stays. Compact what agents wrote on your own \
+judgement; what the person wrote, only when they ask you in this conversation. The old body is \
+kept, `restore_doc` brings it back, and the window shows who compacted and when, with one click \
+to undo. Then say what moved where, in titles and places.
+
 ## Removing and putting away
 
-You never delete. «Delete this document» is answered with `flag_doc`: it marks the document \
-with what makes it old and how you know, and the person deletes it in one click — say plainly \
-that it is marked and waiting for them. `archive_doc` puts a document away, or brings it back, \
-when the person asks for that. Nothing here closes, drops or erases a task: finishing one is \
-`say_done`, and the closing stays theirs.
+You never delete. «Delete this document» is answered with `flag_doc`: it marks the document with \
+the reason — a duplicate of which, moved where, replaced by what, wrong, obsolete, a scratch — \
+and the person deletes it in one click or takes the mark off; say plainly that it is marked and \
+waiting for them. Several copies of one thing are marked in one call, so one click settles them. \
+`archive_doc` puts a document away, or brings it back, only when the person asks for that. \
+Nothing here closes, drops or erases a task: finishing one is `say_done`, and the closing stays \
+theirs.
 
 ## Writing
 
@@ -196,7 +268,7 @@ pub(super) fn tools() -> Value {
         {
             "name": "propose",
             "title": "Propose a task",
-            "description": "Propose a task — something to do; what will be read again is a document (`write_doc`). Give it a `title`. Several read from one thread go together in `tasks`, each judged on its own, so a bad one does not sink the rest. A step is one line of a checklist; work that is several tasks with one end — a move, a release, a plan — goes in `parts`, one level deep, rather than packed into steps. Tisty tags it #agent by itself.",
+            "description": "Propose a task — something to do; what will be read again is a document (`write_doc`). Give it a `title`. Several read from one thread go together in `tasks`, each judged on its own, so a bad one does not sink the rest. A step is one line of a checklist; work that is several tasks with one end — a move, a release, a plan — goes in `parts`, one level deep, rather than packed into steps. A ticket's progress, its reviews, pull requests and audits are this task's page and its parts, never documents. Tisty tags it #agent by itself.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "tasks": {
@@ -238,7 +310,7 @@ pub(super) fn tools() -> Value {
                     },
                     "list": {
                         "type": "string",
-                        "description": "An existing list, by name; `lists` says which. Left out, it lands in the inbox"
+                        "description": "The existing list it belongs in, by name; `lists` says which. Expected: left out, it lands in the inbox, and that needs a reason"
                     },
                     "tags": {
                         "type": "array",
@@ -357,8 +429,45 @@ pub(super) fn tools() -> Value {
             "title": "Take open steps off a task",
             "description": "Take off steps that are not ticked, on a task you filed or one the \
                             person opened to agents: a step that no longer applies, or one \
-                            written twice. One ticked step among them and nothing is taken off.",
-            "inputSchema": on_a_task(steps_by_text("to take off"), &[])
+                            written twice. With `to` they are not dropped but handed on, added \
+                            after the steps of the task they belong on. One ticked step among \
+                            them and nothing is taken off.",
+            "inputSchema": on_a_task(
+                {
+                    let mut fields = steps_by_text("to take off");
+                    fields["to"] = json!({
+                        "type": "string",
+                        "description": "The id of another task you may work on, open and not said done, to add these steps to after its own"
+                    });
+                    fields
+                },
+                &[],
+            )
+        },
+        {
+            "name": "move",
+            "title": "Hang a task under another, let it go, or put it in a list",
+            "description": "On a task you may work on — one an agent filed, or one the person \
+                            opened to agents. `part_of` hangs it under another such task as one \
+                            of its parts, or with null lets it go to stand on its own. `list` \
+                            puts a task an agent filed in a better list; a task the person filed \
+                            keeps its list. One level only: a task with parts is no part, and a \
+                            part holds none. A closed task, on either side, takes nothing, and a \
+                            whole said done or not to be done takes no new part until the person \
+                            decides.",
+            "inputSchema": on_a_task(
+                json!({
+                    "part_of": {
+                        "type": ["string", "null"],
+                        "description": "The id of the task to hang it under, or null to let it go from the one it is a part of"
+                    },
+                    "list": {
+                        "type": "string",
+                        "description": "An existing list, by name, for a task an agent filed; `lists` says which"
+                    }
+                }),
+                &[],
+            )
         },
         {
             "name": "reword_note",
@@ -418,7 +527,7 @@ pub(super) fn tools() -> Value {
         {
             "name": "write_doc",
             "title": "Write a document",
-            "description": "Write something to keep and read again — a recipe, a procedure, a reference, a summary; work to do is a task (`propose`). In the Tisty language (`language` has it whole): Markdown from elsewhere is turned into it on the way in, the answer says what changed under `turned`, and only what has no way in is refused, naming it. Left alone it writes a new document; with `doc` and `print` it writes an existing one again, whole — pages the body does not name keep their lines, put back at the end. To change one passage, `edit_doc` does it without carrying the whole both ways. A document is tagged by writing #word in its own text, for what it is about: six is already a lot, past 64 the rest are dropped, and `tags` lists those in use.",
+            "description": "Write something to keep and read again — a recipe, a procedure, a reference, a summary; work to do is a task (`propose`). In the Tisty language (`language` has it whole): Markdown from elsewhere is turned into it on the way in, the answer says what changed under `turned`, and only what has no way in is refused, naming it. Left alone it writes a new document; with `doc` and `print` it writes an existing one again, whole — pages the body does not name keep their lines, put back at the end. To change one passage, `edit_doc` does it without carrying the whole both ways. Before writing a new one, `find`: a subject that has a document gets `edit_doc`, or this with `doc` and `print`, not a second document; a title carrying a ticket, a date or «v2» is the sign you are writing one, and a title already taken is refused, naming it. With `compact` it writes a document back into the living shape the instructions give: needs `print`, keeps the old body for `restore_doc`, and the answer says what shrank and what was kept back. A document is tagged by writing #word in its own text, for what it is about: six is already a lot, past 64 the rest are dropped, and `tags` lists those in use.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "body": {
@@ -435,7 +544,19 @@ pub(super) fn tools() -> Value {
                     },
                     "folder": {
                         "type": "string",
-                        "description": "A folder that already exists to keep it in, by its name, its whole path or its id. `docs` says which exist; the `folder` tool is what makes a new one, and a name no folder has is refused here. Left out, it sits outside them all. Writing an existing document again with `doc` and `print` cannot take `folder`: `file_doc` moves one that is already here"
+                        "description": "The existing folder its subject belongs in, by its name, its whole path or its id. Expected: `docs` says which exist, the `folder` tool makes a new one once the person agrees, and a name no folder has is refused here. Left out, it sits outside them all, and that needs a reason. Writing an existing document again with `doc` and `print` cannot take `folder`: `file_doc` moves one that is already here"
+                    },
+                    "compact": {
+                        "type": "boolean",
+                        "description": "With `doc` and `print`: this writing puts the document back in order — what holds today, the subject, the decisions, the history — rather than changing what it says. Refused on a document the person began unless `asked`. The window shows the person it was compacted, by whom and when, with one click to undo"
+                    },
+                    "asked": {
+                        "type": "boolean",
+                        "description": "With `compact`: the person asked you in this conversation to compact a document they began. Never otherwise"
+                    },
+                    "anyway": {
+                        "type": "boolean",
+                        "description": "A new document whose title names the same subject as one already here is refused; this writes it all the same. Only when it truly is another subject"
                     },
                     "page_of": {
                         "type": "string",
@@ -454,7 +575,7 @@ pub(super) fn tools() -> Value {
         {
             "name": "append_doc",
             "title": "Add to a document, or to a task's page",
-            "description": "Add to a document that exists, at the end or under a heading you name. What is already written stays exactly as it is — you are adding, never rewriting, so nothing the person wrote can be lost and no `print` is needed. Use it to keep a document alive: a running minute, a log, a list that grows. With `under` you can put a paragraph in the right part of a long document without reading any of it; `outline_doc` tells you which headings there are. The answer says how many characters it `grew` by; with `echo` it hands back the lines around what you added. A task's page takes it too, named by the task's id, on a task an agent filed or one the person opened to agents: what you add goes under the assistant's own notes, dated and signed, never among their words.",
+            "description": "Add to a document that exists, at the end or under a heading you name. What is already written stays exactly as it is — you are adding, never rewriting, so nothing the person wrote can be lost and no `print` is needed. For what is chronological by nature — a log, minutes, the dated notes on a task's page. For a fact that changed, `edit_doc` the passage that says the old one: adding the new fact under the old leaves the document saying both. With `under` you can put a paragraph in the right part of a long document without reading any of it; `outline_doc` tells you which headings there are. The answer says how many characters it `grew` by; with `echo` it hands back the lines around what you added. A task's page takes it too, named by the task's id, on a task an agent filed or one the person opened to agents: what you add goes under the assistant's own notes, dated and signed, never among their words. On a task's page, `replace` writes the assistant's notes again whole instead of adding.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": {
@@ -472,6 +593,10 @@ pub(super) fn tools() -> Value {
                     "echo": {
                         "type": "boolean",
                         "description": "Hand back the lines around the change as well, instead of reading the document again to see it"
+                    },
+                    "replace": {
+                        "type": "boolean",
+                        "description": "Only with a task's id in `doc`: the assistant's notes on its page are written again, whole, as `body` — one dated digest of state, decisions, what was ruled out and references. The rest of the page stays as it is, a box in it never becomes a step, and what it replaced is kept for `restore_doc` with the task's id"
                     }
                 },
                 "required": ["doc", "body"]
@@ -483,7 +608,10 @@ pub(super) fn tools() -> Value {
             "description": "Undo a write to a document. Changing a passage and replacing a body keep what they replaced, and this puts it back; adding to the end keeps nothing, and neither do the person's own saves. Refused unless the document still reads as that write left it — going back would undo whatever came after — with `even_if_more` to go back over all of it once you have read the document and know that is what you want. What it puts back is kept in turn, so calling it twice leaves the document where it started, which makes it safe to try. Reach for it the moment a write comes back saying something you did not expect, instead of retyping the document from memory.",
             "inputSchema": shaped(json!({
                 "properties": {
-                    "doc": named_doc_field(),
+                    "doc": {
+                        "type": "string",
+                        "description": "The document's id, as `docs` hands it back — an opaque name like `q7ntmzbm-0001`, not its title — or a task's id, to put back the assistant's notes on its page as they were before the last write"
+                    },
                     "even_if_more": {
                         "type": "boolean",
                         "description": "Go back even when the document has been written since the kept body was set aside, undoing that writing too. Only when you know what has happened to it — the refusal without this names the risk, and the person may be what was written since"
@@ -572,7 +700,7 @@ pub(super) fn tools() -> Value {
                     },
                     "folder": {
                         "type": "string",
-                        "description": "An existing folder to keep it in, by its name, its whole path or its id"
+                        "description": "The existing folder its subject belongs in, by its name, its whole path or its id. Expected: left out, it sits outside them all, and that needs a reason"
                     },
                     "page_of": {
                         "type": "string",
@@ -621,10 +749,25 @@ pub(super) fn tools() -> Value {
         {
             "name": "flag_doc",
             "title": "Say a document has had its day, which is how a document gets deleted",
-            "description": "The tool for «delete this document», and the only one: you cannot delete, so you mark and the person deletes. Mark a document you found is no longer worth keeping — a handover for a flow that was retired, notes for a decision already taken — and say in `body` what makes it old and how you know. The mark changes nothing: the document reads the same, stays where it is, and the person sees the mark when they open it. Deleting it and taking the mark off are theirs, from the window; `archive_doc` puts it away only when they ask for that. One mark at a time — a document already marked is refused until the person has looked.",
+            "description": "The tool for «delete this document», and the only one: you cannot delete, so you mark and the person deletes. Mark a document you found is no longer worth keeping — a copy of another, notes folded into a living document, a handover for a flow that was retired — with its `reason`, where what it said lives now in `instead`, and in `body` what makes it old and how you know. Several copies of one thing go in one call, marked alike, so the person settles the set with one click. The mark changes nothing: the document reads the same, stays where it is, and the person sees the mark when they open it. Deleting it and taking the mark off are theirs, from the window; `archive_doc` puts it away only when they ask for that. One mark at a time — a document already marked is refused until the person has looked, and in a set it is skipped and named.",
             "inputSchema": shaped(json!({
                 "properties": {
-                    "doc": named_doc_field(),
+                    "doc": {
+                        "anyOf": [
+                            { "type": "string" },
+                            { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+                        ],
+                        "description": "The id of the document to mark, as `docs` hands it back — an opaque name like `q7ntmzbm-0001`, not its title. A list of ids marks them all alike in one go"
+                    },
+                    "reason": {
+                        "type": "string",
+                        "enum": ["duplicate_of", "moved", "superseded", "wrong", "obsolete", "scratch"],
+                        "description": "Why it has had its day: a duplicate of another, moved into another, superseded by another, wrong, obsolete, or a scratch nobody needs"
+                    },
+                    "instead": {
+                        "type": "string",
+                        "description": "The id of the document or the task that holds what it said now. Needed with duplicate_of, moved and superseded"
+                    },
                     "body": {
                         "type": "string",
                         "description": "What makes it old and how you know, in the person's language: what it describes that no longer exists, and what replaced it"
@@ -651,7 +794,7 @@ pub(super) fn tools() -> Value {
         {
             "name": "page_doc",
             "title": "Make one document, or several, into pages, put their pages in order, or take them back out",
-            "description": "Needs `doc`, or `order` with `page_of`. Hang a document from another as one of its pages, or take a page out \
+            "description": "Needs `doc`, or `order` with `page_of`. A page is real content related to one subject but not part of it — a runbook, a contract, an annex — never a session: a review, a day's progress or a PR's notes belong on the task. Hang a document from another as one of its pages, or take a page out \
                             by leaving `page_of` out, which makes it a document of its own again, \
                             back in the folder it came from. A page goes with its document \
                             everywhere — folder, archive and deletion — and holds no pages of its \
@@ -828,7 +971,7 @@ pub(super) fn tools() -> Value {
         {
             "name": "outline_doc",
             "title": "What is in a document",
-            "description": "The headings of a document with the lines each one spans and how many characters it holds, how long the whole is, its `print`, and for a document with pages a row per page with its title, length and sections, in reading order — a few hundred tokens instead of the bodies. Ask for this first when a document is long or when you only mean to change one part of it: with the outline you know which `section` to read and what it costs, and with the print you can write into it without having read it at all. It also says which other documents point at this one, which is what you want to know before putting it away: those links go on pointing at it in the archive.",
+            "description": "The headings of a document with the lines each one spans and how many characters it holds, how long the whole is, its `print`, and for a document with pages a row per page with its title, length and sections, in reading order — a few hundred tokens instead of the bodies. Ask for this first when a document is long or when you only mean to change one part of it: with the outline you know which `section` to read and what it costs, and with the print you can write into it without having read it at all. It also says which other documents point at this one, which is what you want to know before putting it away: those links go on pointing at it in the archive. `by` says whether an agent or the person began it and each page, `alike` names documents elsewhere whose title names the same subject as this one or one of its pages, and `repeated` the headings written in more than one page — the signs that it wants compacting.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": named_doc_field()
@@ -918,7 +1061,7 @@ pub(super) fn tools() -> Value {
     ])
 }
 
-/// Nine tools take the same field, and nine wordings of it would drift apart the first time
+/// Seven tools take the same field, and seven wordings of it would drift apart the first time
 /// one was touched.
 fn named_doc_field() -> Value {
     json!({

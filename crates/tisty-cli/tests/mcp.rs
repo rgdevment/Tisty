@@ -318,6 +318,7 @@ fn there_is_no_tool_for_closing_dropping_or_deleting() {
             "rename",
             "reword_step",
             "unplan",
+            "move",
             "reword_note",
             "note",
             "attach",
@@ -3838,6 +3839,22 @@ fn the_instructions_do_not_promise_what_the_tools_no_longer_hold_to() {
     assert!(
         taught.contains("a task is also a document, one with an end"),
         "{taught}"
+    );
+    assert!(
+        taught.contains("The default write is updating what exists, in place"),
+        "updating in place is the default, not adding: {taught}"
+    );
+    assert!(
+        taught.contains("## One living document per subject") && taught.contains("## Compacting"),
+        "{taught}"
+    );
+    assert!(
+        taught.contains("Everything you write has a place"),
+        "nothing is left loose without a reason: {taught}"
+    );
+    assert!(
+        !taught.contains("Prefer adding over replacing"),
+        "adding is the exception now: {taught}"
     );
 }
 

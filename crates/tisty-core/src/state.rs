@@ -374,22 +374,17 @@ impl State {
             Op::DocLock { id } => self.bolt(*id, true),
             Op::DocUnlock { id } => self.bolt(*id, false),
             Op::DocUnarchive { id } => self.shelve(*id, false, true),
-            Op::DocFlag { id, d } => {
-                let said = crate::model::Flagged {
-                    at: d.at.unwrap_or(event.timestamp),
-                    by: d.by.clone().unwrap_or_else(|| event.device.clone()),
-                    body: d.body.clone(),
-                    via: d.via.clone().or_else(|| event.via.clone()),
+            Op::DocFlag { id, d } => self.doc_flagged(event, id, d),
+            Op::DocUnflag { id } => self.doc_marked(id, |doc| doc.flagged = None),
+            Op::DocCompacted { id } => {
+                let said = crate::model::Compacted {
+                    at: event.timestamp,
+                    by: event.device.clone(),
+                    via: event.via.clone(),
                 };
-                if let Some(doc) = self.docs.get_mut(id) {
-                    doc.flagged = Some(said);
-                }
+                self.doc_marked(id, |doc| doc.compacted = Some(said));
             }
-            Op::DocUnflag { id } => {
-                if let Some(doc) = self.docs.get_mut(id) {
-                    doc.flagged = None;
-                }
-            }
+            Op::DocUncompacted { id } => self.doc_marked(id, |doc| doc.compacted = None),
             Op::DeviceJoin { d, k, p } => self.device_joined(event, d, k, p),
             Op::DeviceKey { d, p } => self.key_published(event, d, p),
             Op::DeviceRotate { d, p } => {
@@ -500,6 +495,7 @@ impl State {
             Op::StepText { d, .. } => self.mendable_by_agents(task, d.step),
             Op::StepRemove { d, .. } => self.mendable_by_agents(task, d.step),
             Op::TaskLogEdit { d, .. } => self.attended_by_agents(task) && !d.body.trim().is_empty(),
+            Op::TaskMove { d, .. } => self.agent_may_move(task, d),
             _ => false,
         }
     }

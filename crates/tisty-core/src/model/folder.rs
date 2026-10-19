@@ -47,6 +47,32 @@ pub struct Flagged {
     pub body: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub via: Option<String>,
+    /// One of `FLAG_REASONS`, kept as written so a reason a later build adds still reads here.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub instead: Option<String>,
+}
+
+pub const FLAG_REASONS: [&str; 6] = [
+    "duplicate_of",
+    "moved",
+    "superseded",
+    "wrong",
+    "obsolete",
+    "scratch",
+];
+
+pub fn reason_points_elsewhere(reason: &str) -> bool {
+    matches!(reason, "duplicate_of" | "moved" | "superseded")
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Compacted {
+    pub at: jiff::Timestamp,
+    pub by: crate::event::DeviceId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub via: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -90,6 +116,8 @@ pub struct Kept {
     pub tags: Vec<crate::model::Tag>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub flagged: Option<Flagged>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub compacted: Option<Compacted>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub folder_was: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

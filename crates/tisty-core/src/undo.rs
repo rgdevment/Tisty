@@ -31,7 +31,8 @@ pub fn inverse(event: &Event, before: &State) -> Option<Vec<Op>> {
             id: *id,
             d: crate::event::Flag::new(said.body)
                 .said_by(said.at, said.by)
-                .through(said.via),
+                .through(said.via)
+                .because(said.reason, said.instead),
         });
     }
     Some(back)
@@ -308,7 +309,9 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
         | Op::DocUnlock { .. }
         | Op::DocSaid { .. }
         | Op::DocFlag { .. }
-        | Op::DocUnflag { .. } => None,
+        | Op::DocUnflag { .. }
+        | Op::DocCompacted { .. }
+        | Op::DocUncompacted { .. } => None,
 
         Op::TaskDelete { .. } | Op::ListDelete { .. } => None,
 

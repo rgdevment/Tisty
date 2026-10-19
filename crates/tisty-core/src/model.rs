@@ -9,7 +9,10 @@ mod tag;
 mod task;
 
 pub use date::DateSpec;
-pub use folder::{DEEPEST, DocId, FOLDER_NAME_AT_MOST, Flagged, Folder, FolderId, Kept};
+pub use folder::{
+    Compacted, DEEPEST, DocId, FLAG_REASONS, FOLDER_NAME_AT_MOST, Flagged, Folder, FolderId, Kept,
+    reason_points_elsewhere,
+};
 pub use list::{FIRST, List, ListId, first_lists, sown, spoken};
 pub use repeat::{Cadence, From, Repeat, Unit};
 pub use tag::{AGENT_TAG, InvalidTag, Tag};

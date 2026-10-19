@@ -258,10 +258,13 @@ pub(super) fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     if !parted.is_empty() {
         kept.insert("parts".into(), json!(parted));
     }
-    let parts_said = match parted.len() {
+    let mut parts_said = match parted.len() {
         0 => String::new(),
         n => format!(" It holds {n} part(s), each a task of its own: `read` it to see them."),
     };
+    if landed.is_none() && whole.is_none() {
+        parts_said.push_str(&super::placing::loose_task(&state, &title));
+    }
     Ok(told(
         match planned {
             0 => format!(

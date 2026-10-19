@@ -434,6 +434,19 @@ pub fn doc_unflag(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answ
 }
 
 #[tauri::command]
+pub fn doc_keep_compacted(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
+    let id = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
+    let mut session = held(&session);
+    match session.state.docs.get(&id) {
+        None => return Err(Refusal::of("noSuchDoc")),
+        Some(one) if one.compacted.is_none() => return Ok(()),
+        Some(_) => {}
+    }
+    session.commit(Op::DocUncompacted { id })?;
+    Ok(())
+}
+
+#[tauri::command]
 pub fn spelled(said: String) -> String {
     tisty_core::docs::spelled(&said)
 }
@@ -862,7 +875,17 @@ pub struct Filed {
     #[serde(skip_serializing_if = "Option::is_none")]
     flagged: Option<Marked>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    compacted: Option<Compaction>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     folder_was: Option<Vec<String>>,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Compaction {
+    at: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    via: Option<String>,
 }
 
 #[derive(serde::Serialize)]
@@ -872,6 +895,10 @@ pub struct Marked {
     said: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     via: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    reason: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    instead: Option<String>,
 }
 
 #[tauri::command(async)]
@@ -975,6 +1002,12 @@ fn gathered(session: &Session) -> Vec<Filed> {
                 at: mark.at.to_string(),
                 said: mark.body.clone(),
                 via: mark.via.clone(),
+                reason: mark.reason.clone(),
+                instead: mark.instead.clone(),
+            }),
+            compacted: kept.compacted.as_ref().map(|done| Compaction {
+                at: done.at.to_string(),
+                via: done.via.clone(),
             }),
             folder_was: kept.folder_was.clone(),
         })
@@ -1049,6 +1082,12 @@ pub fn went_back(session: &mut Session, id: &str) -> Answer<tisty_core::docs::Do
     session.corpus.forget(id);
     let hand = signing(&session.state);
     session.retell(id, &whole, hand);
+    if let Some(kept) = session.state.docs.values().find(|one| one.file == id)
+        && kept.compacted.is_some()
+    {
+        let doc = kept.id;
+        session.commit(Op::DocUncompacted { id: doc })?;
+    }
     Ok(tisty_core::docs::Doc {
         title: tisty_core::docs::titled(&whole),
         id: id.to_string(),

@@ -593,3 +593,20 @@ fn what_cannot_be_walked_past_without_losing_something_is_not_optional() {
         );
     }
 }
+
+#[test]
+fn saying_a_document_was_compacted_is_a_line_an_older_build_walks_past() {
+    let said = tisty_core::Op::DocCompacted {
+        id: ulid::Ulid::generate(),
+    };
+    let settled = tisty_core::Op::DocUncompacted {
+        id: ulid::Ulid::generate(),
+    };
+
+    assert!(said.is_optional(), "an older build would choke on it");
+    assert!(settled.is_optional(), "an older build would choke on it");
+    assert!(
+        said.settles() && settled.settles(),
+        "without this, undo stops at a mark that changes nothing"
+    );
+}

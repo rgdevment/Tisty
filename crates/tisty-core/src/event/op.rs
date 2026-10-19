@@ -70,6 +70,8 @@ pub const KNOWN_OPS: &[&str] = &[
     "doc.unarchive",
     "doc.flag",
     "doc.unflag",
+    "doc.compacted",
+    "doc.uncompacted",
     "doc.lock",
     "doc.unlock",
     "doc.signed",
@@ -184,6 +186,10 @@ pub enum Op {
     DocFlag { id: DocId, d: Flag },
     #[serde(rename = "doc.unflag")]
     DocUnflag { id: DocId },
+    #[serde(rename = "doc.compacted")]
+    DocCompacted { id: DocId },
+    #[serde(rename = "doc.uncompacted")]
+    DocUncompacted { id: DocId },
     #[serde(rename = "doc.lock")]
     DocLock { id: DocId },
     #[serde(rename = "doc.unlock")]
@@ -286,6 +292,8 @@ impl Op {
                 | Op::DocSaid { .. }
                 | Op::DocFlag { .. }
                 | Op::DocUnflag { .. }
+                | Op::DocCompacted { .. }
+                | Op::DocUncompacted { .. }
                 | Op::Signed { .. }
                 | Op::DocSigned { .. }
                 | Op::DeviceHost { .. }
@@ -311,6 +319,8 @@ impl Op {
                 | Op::DeviceNamed { .. }
                 | Op::DocFlag { .. }
                 | Op::DocUnflag { .. }
+                | Op::DocCompacted { .. }
+                | Op::DocUncompacted { .. }
                 | Op::TaskPaged { .. }
         )
     }
@@ -359,6 +369,8 @@ impl Op {
             Op::DocArchive { .. } => Op::DocArchive { id },
             Op::DocFlag { d, .. } => Op::DocFlag { id, d },
             Op::DocUnflag { .. } => Op::DocUnflag { id },
+            Op::DocCompacted { .. } => Op::DocCompacted { id },
+            Op::DocUncompacted { .. } => Op::DocUncompacted { id },
             Op::DocUnarchive { .. } => Op::DocUnarchive { id },
             Op::DocLock { .. } => Op::DocLock { id },
             Op::DocUnlock { .. } => Op::DocUnlock { id },
@@ -497,6 +509,8 @@ impl Op {
             | Op::DocUnarchive { id }
             | Op::DocFlag { id, .. }
             | Op::DocUnflag { id }
+            | Op::DocCompacted { id }
+            | Op::DocUncompacted { id }
             | Op::DocLock { id }
             | Op::DocUnlock { id } => Some(*id),
             Op::DeviceJoin { .. }
@@ -699,6 +713,10 @@ pub struct Flag {
     pub by: Option<DeviceId>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub via: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub instead: Option<String>,
 }
 
 impl Flag {
@@ -708,7 +726,15 @@ impl Flag {
             at: None,
             by: None,
             via: None,
+            reason: None,
+            instead: None,
         }
+    }
+
+    pub fn because(mut self, reason: Option<String>, instead: Option<String>) -> Self {
+        self.reason = reason;
+        self.instead = instead;
+        self
     }
 
     pub fn said_by(mut self, at: jiff::Timestamp, by: DeviceId) -> Self {

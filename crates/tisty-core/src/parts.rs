@@ -1,4 +1,4 @@
-use crate::event::{Event, Op};
+use crate::event::{Event, Op, TaskMove};
 use crate::model::{Status, Task, TaskId};
 use crate::state::State;
 
@@ -24,6 +24,19 @@ impl State {
             && !repeats(holder)
             && !repeats(part)
             && (!self.assistants.contains(&event.device) || self.attended_by_agents(holder))
+    }
+
+    /// A list is the filer's to choose, and a part is let go only from a whole open to agents.
+    pub(crate) fn agent_may_move(&self, task: &Task, d: &TaskMove) -> bool {
+        let whole_open = || {
+            task.part_of
+                .and_then(|whole| self.tasks.get(&whole))
+                .is_none_or(|whole| self.attended_by_agents(whole))
+        };
+        (d.list.is_some() || d.part_of.is_some())
+            && (d.list.is_none() || self.filed_by_agents(task))
+            && (d.part_of.is_none() || self.attended_by_agents(task))
+            && (d.part_of != Some(None) || whole_open())
     }
 
     pub(crate) fn task_parted(&mut self, id: TaskId, whole: Option<TaskId>, event: &Event) {

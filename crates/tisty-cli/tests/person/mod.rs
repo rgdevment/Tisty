@@ -259,6 +259,44 @@ impl Person {
         store.append_batch_tagged(ops, true, false).unwrap();
     }
 
+    pub fn opens_to_agents(&self, id: TaskId) {
+        self.patches(
+            id,
+            TaskPatch {
+                open_to_agents: Some(true),
+                ..TaskPatch::default()
+            },
+        );
+    }
+
+    pub fn adds_part(&self, whole: TaskId, title: &str) -> TaskId {
+        let part = self.captures(title);
+        self.wrote(vec![Op::TaskMove {
+            id: part,
+            d: tisty_core::event::TaskMove {
+                part_of: Some(Some(whole)),
+                ..Default::default()
+            },
+        }]);
+        part
+    }
+
+    // The file first, then the log learns of it, as the window writes a new document.
+    pub fn writes_doc(&self, body: &str) -> String {
+        let config = Config::load_or_init(&self.paths).unwrap();
+        let made = tisty_core::docs::create(&self.paths.docs(), &config.device_id, body).unwrap();
+        self.wrote(vec![Op::DocAdd {
+            id: Ulid::generate(),
+            d: tisty_core::event::DocAdd {
+                file: made.id.clone(),
+                order: "a0".into(),
+                said: Some(tisty_core::event::Said::of(body)),
+                ..Default::default()
+            },
+        }]);
+        made.id
+    }
+
     fn patches(&self, id: TaskId, d: TaskPatch) {
         self.wrote(vec![Op::TaskUpdate { id, d }]);
     }

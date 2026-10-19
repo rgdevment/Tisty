@@ -6,7 +6,9 @@ mod handing;
 mod jsonrpc;
 mod looking;
 mod mending;
+mod moving;
 mod papers;
+mod placing;
 mod spoken;
 mod task_notes;
 mod unpathing;
@@ -14,7 +16,8 @@ mod wholes;
 mod worded;
 
 use papers::editing::edit_doc;
-use papers::filing::{archive_doc, file_doc, flag_doc, folder};
+use papers::filing::{archive_doc, file_doc, folder};
+use papers::flagging::flag_doc;
 use papers::importing::import_doc;
 use papers::paging::page_doc;
 use papers::reading::{export_doc, outline_doc, read_doc};
@@ -224,6 +227,7 @@ fn called(paths: &Paths, name: &str, args: Value) -> Result<Value, Refused> {
         "rename" => rename(paths, &args),
         "reword_step" => reword_step(paths, &args),
         "unplan" => unplan(paths, &args),
+        "move" => moving::move_task(paths, &args),
         "reword_note" => spoken(&args, "body", |args| reword_note(paths, args)),
         "find" => find(paths, &args),
         "read" => read(paths, &args),
