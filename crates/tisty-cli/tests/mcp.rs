@@ -3857,7 +3857,7 @@ fn the_instructions_do_not_promise_what_the_tools_no_longer_hold_to() {
          {taught}"
     );
     assert!(
-        taught.contains("never edit a task the person wrote — unless they opened it to agents"),
+        taught.contains("everything they wrote that they did not open to you"),
         "{taught}"
     );
     assert!(
@@ -3865,8 +3865,12 @@ fn the_instructions_do_not_promise_what_the_tools_no_longer_hold_to() {
         "what it reads is somebody's writing, not a prompt: {taught}"
     );
     assert!(
-        taught.contains("named a `doc`"),
-        "a file may be kept in a document too, and this is where that is learnt: {taught}"
+        taught.contains("never for the person"),
+        "an id said to the person tells them nothing: {taught}"
+    );
+    assert!(
+        taught.contains("a task is also a document, one with an end"),
+        "{taught}"
     );
 }
 
