@@ -34,7 +34,14 @@ impl Health {
     }
 }
 
+pub const REACHED_WITHIN: Duration = Duration::from_secs(5);
+pub const PROBED_WITHIN: Duration = Duration::from_secs(10);
+
 /// Goes through whatever proxy the system names, like every other request: never around it.
+pub fn probe(url: &str) -> Health {
+    probe_at(url, REACHED_WITHIN, PROBED_WITHIN)
+}
+
 pub fn probe_at(url: &str, reached_within: Duration, within: Duration) -> Health {
     let Ok(http) = reqwest::blocking::Client::builder()
         .timeout(within)
@@ -53,11 +60,9 @@ pub fn probe_at(url: &str, reached_within: Duration, within: Duration) -> Health
 pub fn kind_of(e: reqwest::Error) -> (Health, String) {
     let slow = e.is_timeout();
     let said = told(&e.without_url());
-    // A filter that stalls the handshake until it times out is still a filter.
-    match (failed(&said), slow) {
-        (Health::Inspected, _) => (Health::Inspected, said),
-        (_, true) => (Health::Slow, said),
-        (health, false) => (health, said),
+    match slow {
+        true => (Health::Slow, said),
+        false => (failed(&said), said),
     }
 }
 
@@ -110,7 +115,6 @@ pub fn waited(headers: &reqwest::header::HeaderMap) -> Option<Duration> {
     )
 }
 
-/// What a sign-in or a renewal asks of a provider's token address, read the same way for every provider.
 pub fn token_asked<T: serde::de::DeserializeOwned>(
     http: &reqwest::blocking::Client,
     who: &str,

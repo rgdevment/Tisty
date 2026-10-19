@@ -14,7 +14,7 @@ mod upload;
 mod wire;
 
 use tree::{DriveItem, ITEM_FIELDS, Tree, moved, within};
-use wire::{given, json, judged, transfer_http};
+use wire::{given, json, judged, judged_carried, transfer_http};
 
 use crate::{ASKED_WITHIN, names, unreachable};
 
@@ -416,13 +416,13 @@ impl Remote for OneDrive {
                 // OneDrive may send the whole file when it cannot cut it, so what was already here is passed over.
                 200 => break (item, answer, from),
                 // The address outlives its permission after a while; a fresh one is asked for once, never the sign-in.
-                401 | 403 if !renewed => renewed = true,
+                401 | 403 if !renewed => {
+                    renewed = true;
+                    self.spent(1);
+                }
                 _ => {
-                    return Err(match judged(answer) {
+                    return Err(match judged_carried(answer) {
                         Err(Hitch::Missing(_)) => Hitch::Missing(name.to_string()),
-                        Err(Hitch::Lost) => {
-                            Hitch::Troubled("OneDrive refused its own download address".into())
-                        }
                         Err(other) => other,
                         Ok(_) => Hitch::Broke("OneDrive answered a download oddly".into()),
                     });
@@ -473,12 +473,16 @@ impl Remote for OneDrive {
             .filter(DriveItem::is_file)
             .ok_or_else(|| Hitch::Missing(from.to_string()))?;
         let (folder, leaf) = to.rsplit_once('/').unwrap_or(("", to));
-        let parent = match folder {
-            "" => Some(self.root()?),
-            folder => self
-                .item(folder, Some(ITEM_FIELDS))?
-                .filter(|one| !one.is_file())
-                .map(|one| one.id),
+        let same = from.rsplit_once('/').map_or("", |(was, _)| was) == folder;
+        let parent = match (same, folder) {
+            (true, _) => item.parent.as_ref().and_then(|one| one.id.clone()),
+            (false, "") => Some(self.root()?),
+            (false, folder) => {
+                self.spent(1);
+                self.item(folder, Some(ITEM_FIELDS))?
+                    .filter(|one| !one.is_file())
+                    .map(|one| one.id)
+            }
         };
         let Some(parent) = parent else {
             return tisty_carrier::renamed_by_copy(self, from, to);
@@ -495,13 +499,8 @@ impl Remote for OneDrive {
                 .header(reqwest::header::CONTENT_TYPE, "application/json")
                 .body(body.clone())
         })?;
-        let landed: DriveItem = json(judged(answer)?)?;
-        if let Ok(mut held) = self.known.lock()
-            && let Some(known) = held.as_mut()
-        {
-            known.tree.applied(vec![landed]);
-        }
-        Ok(())
+        // Left to the next feed of changes, which tells the move as one so the index learns its new revision.
+        judged(answer).map(|_| ())
     }
 
     fn delete(&self, name: &str, expect: Option<&str>) -> Result<(), Hitch> {

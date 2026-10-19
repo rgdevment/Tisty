@@ -7,7 +7,7 @@ use tisty_carrier::{Expect, Hitch, Remote};
 
 use super::OneDrive;
 use super::tree::{DriveItem, ITEM_FIELDS};
-use super::wire::{given, json, judged};
+use super::wire::{given, json, judged, judged_carried};
 use crate::{ASKED_WITHIN, unreachable};
 
 const TRIES: u32 = 3;
@@ -36,22 +36,20 @@ impl OneDrive {
         from: &Path,
         expect: &Expect,
     ) -> Result<DriveItem, Hitch> {
-        let mut failed = 0;
-        loop {
-            match self.whole_once(name, from, expect) {
-                Err(Hitch::Troubled(_) | Hitch::Unreachable(..)) if failed + 1 < TRIES => {}
-                other => return other,
+        retried(|failed| {
+            if failed > 0 {
+                self.spent(1);
+                if let Some(landed) = self.landed_already(name, from) {
+                    return Ok(landed);
+                }
             }
-            failed += 1;
-            std::thread::sleep(PAUSE * failed);
-            if let Some(landed) = self.landed_already(name, from) {
-                return Ok(landed);
-            }
-        }
+            self.whole_once(name, from, expect)
+        })
     }
 
     // A write whose answer was lost may have landed; it is taken as this one only when the bytes there are these.
     fn landed_already(&self, name: &str, from: &Path) -> Option<DriveItem> {
+        self.spent(1);
         let item = self.item(name, Some(ITEM_FIELDS)).ok()??;
         let here = self.hash_of(from).ok()?;
         (item.seen(name).hash == here).then_some(item)
@@ -98,20 +96,22 @@ impl OneDrive {
         if let Some((uploads, key)) = kept
             && let Some(upload) = uploads.session_for(key)
         {
-            if self.carries(&upload).is_err() {
-                uploads.closed(key);
-            } else {
-                match self.got_to(&upload)? {
-                    Some(at) => {
-                        let sent = self.pieces(name, &upload, from, bytes, at);
-                        self.settled(&upload, key, &sent);
-                        return sent;
-                    }
-                    None => {
-                        uploads.closed(key);
-                        if let Some(landed) = self.landed_already(name, from) {
-                            return Ok(landed);
-                        }
+            let asked = match self.carries(&upload) {
+                Ok(()) => self.got_to(&upload),
+                Err(refused) => Err(refused),
+            };
+            match asked {
+                Ok(Some(at)) => {
+                    let sent = self.pieces(name, &upload, from, bytes, at);
+                    self.settled(&upload, key, &sent);
+                    return sent;
+                }
+                // A way that is down keeps the session for the next round; anything else begins anew.
+                Err(cut @ (Hitch::Unreachable(..) | Hitch::Limited { .. })) => return Err(cut),
+                Ok(None) | Err(_) => {
+                    uploads.closed(key);
+                    if let Some(landed) = self.landed_already(name, from) {
+                        return Ok(landed);
                     }
                 }
             }
@@ -160,7 +160,6 @@ impl OneDrive {
         let _ = self.http.delete(upload).timeout(ASKED_WITHIN).send();
     }
 
-    // The first byte OneDrive still waits for; None is a session it no longer holds, a way that failed is said.
     fn got_to(&self, upload: &str) -> Result<Option<u64>, Hitch> {
         #[derive(Deserialize)]
         #[serde(rename_all = "camelCase")]
@@ -174,11 +173,12 @@ impl OneDrive {
             .timeout(ASKED_WITHIN)
             .build()
             .map_err(unreachable)?;
+        self.spent(1);
         let answer = self.traced(asked, Some("upload")).map_err(unreachable)?;
         match answer.status().as_u16() {
             404 | 410 => Ok(None),
             _ => {
-                let status: Status = json(judged(answer)?)?;
+                let status: Status = json(judged_carried(answer)?)?;
                 Ok(status
                     .next_expected_ranges
                     .first()
@@ -198,24 +198,20 @@ impl OneDrive {
         start: u64,
     ) -> Result<DriveItem, Hitch> {
         let mut at = start;
-        let mut failed = 0;
-        loop {
-            match self.pieces_from(name, upload, from, bytes, at) {
-                Err(Hitch::Troubled(_) | Hitch::Unreachable(..)) if failed + 1 < TRIES => {}
-                other => return other,
+        retried(|failed| {
+            if failed > 0 {
+                at = match self.got_to(upload)? {
+                    Some(at) => at,
+                    // The last piece may have landed with its answer lost: the session is gone and the file is there.
+                    None => {
+                        return self.landed_already(name, from).ok_or_else(|| {
+                            Hitch::Troubled("OneDrive let the upload lapse before it ended".into())
+                        });
+                    }
+                };
             }
-            failed += 1;
-            std::thread::sleep(PAUSE * failed);
-            at = match self.got_to(upload)? {
-                Some(at) => at,
-                // The last piece may have landed with its answer lost: the session is gone and the file is there.
-                None => {
-                    return self.landed_already(name, from).ok_or_else(|| {
-                        Hitch::Troubled("OneDrive let the upload lapse before it ended".into())
-                    });
-                }
-            };
-        }
+            self.pieces_from(name, upload, from, bytes, at)
+        })
     }
 
     // The session's own address carries its permission: OneDrive refuses a piece that also brings the token.
@@ -258,7 +254,7 @@ impl OneDrive {
                 }
                 409 | 412 => return Err(Hitch::Changed(name.to_string())),
                 _ => {
-                    return Err(judged(answer).err().unwrap_or_else(|| {
+                    return Err(judged_carried(answer).err().unwrap_or_else(|| {
                         Hitch::Broke("OneDrive answered an upload oddly".into())
                     }));
                 }
@@ -282,5 +278,17 @@ impl OneDrive {
             }
             _ => judged(answer),
         }
+    }
+}
+
+fn retried<T>(mut attempt: impl FnMut(u32) -> Result<T, Hitch>) -> Result<T, Hitch> {
+    let mut failed = 0;
+    loop {
+        match attempt(failed) {
+            Err(Hitch::Troubled(_) | Hitch::Unreachable(..)) if failed + 1 < TRIES => {}
+            other => return other,
+        }
+        failed += 1;
+        std::thread::sleep(PAUSE * failed);
     }
 }

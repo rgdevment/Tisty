@@ -56,11 +56,8 @@ pub(crate) use tisty_carrier::net::{unreachable, waited};
 pub const PROBED: &str = "https://graph.microsoft.com/v1.0/me";
 
 pub fn probe() -> tisty_carrier::net::Health {
-    tisty_carrier::net::probe_at(PROBED, PROBED_REACHED, PROBED_WITHIN)
+    tisty_carrier::net::probe(PROBED)
 }
-
-const PROBED_REACHED: Duration = Duration::from_secs(5);
-const PROBED_WITHIN: Duration = Duration::from_secs(10);
 
 #[derive(serde::Deserialize)]
 pub(crate) struct TokenAnswer {

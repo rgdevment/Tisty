@@ -175,6 +175,14 @@ fn codes_of(refused: &Refused) -> Vec<&str> {
     codes
 }
 
+// An address that carries its own permission and refuses has lapsed; the sign-in still stands.
+pub(super) fn judged_carried(answer: Response) -> Result<Response, Hitch> {
+    judged(answer).map_err(|refused| match refused {
+        Hitch::Lost => Hitch::Troubled("OneDrive refused an address it had handed out".into()),
+        other => other,
+    })
+}
+
 pub(super) fn judged(answer: Response) -> Result<Response, Hitch> {
     if answer.status().is_success() {
         return Ok(answer);
