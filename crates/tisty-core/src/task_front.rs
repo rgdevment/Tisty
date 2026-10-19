@@ -363,27 +363,57 @@ pub fn left_out(was: &str, body: &str) -> bool {
             .filter(|line| !line.is_empty())
             .collect()
     };
-    let mut theirs = lines(body);
+    let mut theirs: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    for line in lines(body) {
+        *theirs.entry(line).or_default() += 1;
+    }
     lines(was)
         .into_iter()
-        .any(|line| match theirs.iter().position(|one| *one == line) {
-            Some(at) => {
-                theirs.swap_remove(at);
+        .any(|line| match theirs.get_mut(&line) {
+            Some(left) if *left > 0 => {
+                *left -= 1;
                 false
             }
-            None => true,
+            _ => true,
         })
 }
 
-// A link's target changes on every trip out and back and a tick is weighed as a step, so neither counts.
+// Every target is rewritten on a trip out and back and a tick is weighed as a step, so none counts.
 fn unlinked(line: &str) -> String {
-    let mut out = String::new();
     let line = line.trim().replace("[x]", "[ ]").replace("[X]", "[ ]");
+    if line.starts_with('[')
+        && let Some(at) = line.find("]:")
+    {
+        return line[..at + 2].to_string();
+    }
+    let mut out = String::new();
     let mut rest = line.as_str();
     while let Some(at) = rest.find("](") {
         out.push_str(&rest[..=at]);
         rest = &rest[at + 2..];
         rest = rest.find(')').map_or("", |end| &rest[end + 1..]);
+    }
+    out.push_str(rest);
+    unvalued(&out)
+}
+
+fn unvalued(line: &str) -> String {
+    let mut out = String::new();
+    let mut rest = line;
+    while let Some(at) = ["src=", "href="]
+        .iter()
+        .filter_map(|name| rest.find(name).map(|at| at + name.len()))
+        .min()
+    {
+        out.push_str(&rest[..at]);
+        rest = &rest[at..];
+        let end = match rest.chars().next() {
+            Some(quote @ ('"' | '\'')) => rest[1..].find(quote).map_or(rest.len(), |n| n + 2),
+            _ => rest
+                .find(|one: char| one.is_whitespace() || one == '>')
+                .unwrap_or(rest.len()),
+        };
+        rest = &rest[end..];
     }
     out.push_str(rest);
     out

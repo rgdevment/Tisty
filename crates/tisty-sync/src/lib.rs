@@ -469,7 +469,7 @@ pub fn carry_through(
         }
     }
     if taking && attachments.takes() {
-        let reachable = adrift.then(|| named_now(&told, data));
+        let reachable = adrift.then(|| named_now(&told, data)).flatten();
         let buried_again;
         let buried = match moved.arrived.is_empty() {
             true => &buried,
@@ -501,22 +501,22 @@ pub fn buried_now(told: &tisty_core::State, data: &Path) -> std::collections::BT
     if told.retired.is_empty() {
         return Default::default();
     }
-    let named = named_now(told, data);
+    // A document that could not be read may name any of them, so none is buried this round.
+    let Some(named) = named_now(told, data) else {
+        return Default::default();
+    };
     told.retired.difference(&named).cloned().collect()
 }
 
-fn named_now(told: &tisty_core::State, data: &Path) -> std::collections::BTreeSet<String> {
+fn named_now(told: &tisty_core::State, data: &Path) -> Option<std::collections::BTreeSet<String>> {
     let mut named: std::collections::BTreeSet<String> = told
         .tasks
         .values()
         .flat_map(|task| task.references())
         .map(|one| one.target)
         .collect();
-    match tisty_core::docs::referenced(&data.join(PAPERS)) {
-        Ok(more) => named.extend(more),
-        Err(_) => named.extend(told.retired.iter().cloned()),
-    }
-    named
+    named.extend(tisty_core::docs::referenced(&data.join(PAPERS)).ok()?);
+    Some(named)
 }
 
 fn as_told(store: &Path, aside: Option<&Path>) -> Option<tisty_core::State> {

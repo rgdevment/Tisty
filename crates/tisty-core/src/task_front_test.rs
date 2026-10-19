@@ -1,4 +1,4 @@
-use super::{Front, day, day_in, dressed, moved, patch, read, repeat, repeat_in};
+use super::{Front, day, day_in, dressed, left_out, moved, patch, read, repeat, repeat_in};
 use crate::model::{Cadence, DateSpec, From, Priority, Repeat, Tag, Task, Unit};
 use jiff::civil::date;
 use ulid::Ulid;
@@ -386,4 +386,13 @@ fn a_page_coming_in_sets_no_repeat_on_a_whole_nor_a_deadline_already_gone() {
         "{:?}",
         taken.ops
     );
+}
+
+#[test]
+fn a_page_out_and_back_untouched_leaves_nothing_out_whatever_its_links_point_at() {
+    let was = "# Rina\n\n<img src=\"attachments/ab/x-1111.png\">\n\n![p][1]\n\n[1]: attachments/ab/y-1111.png\n";
+    let back = "# Rina\n\n<img src=\"x-1111.png\">\n\n![p][1]\n\n[1]: y-1111.png\n";
+
+    assert!(!left_out(was, back));
+    assert!(left_out(was, "# Rina\n"));
 }

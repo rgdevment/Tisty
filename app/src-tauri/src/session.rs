@@ -400,18 +400,20 @@ impl Session {
             .filter(|_| self.config.holds() != tisty_core::config::Holds::Everywhere)
     }
 
-    /// What the tasks and the documents point at, as written; a document that cannot be read
-    /// fails it with that document's id.
+    // A document that cannot be read fails it with its id: what it names is then unknown.
     pub fn pointed_at(&self) -> Result<Vec<String>, String> {
-        let mut named: Vec<String> = self
-            .state
+        let mut named = self.tasks_point_at();
+        named.extend(tisty_core::docs::referenced(&self.paths.docs())?);
+        Ok(named)
+    }
+
+    pub fn tasks_point_at(&self) -> Vec<String> {
+        self.state
             .tasks
             .values()
             .flat_map(|task| task.references())
             .map(|one| one.target)
-            .collect();
-        named.extend(tisty_core::docs::referenced(&self.paths.docs())?);
-        Ok(named)
+            .collect()
     }
 
     pub fn adrift(&self, held: &[String]) -> tisty_core::attach::Loose {

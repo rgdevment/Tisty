@@ -607,8 +607,7 @@ fn beside(body: &str, copied: &std::collections::BTreeSet<String>) -> String {
     out
 }
 
-/// The id of a document that could not be read when it fails: what it names is then unknown,
-/// and nothing may be called loose on a guess.
+/// Fails with the id of a document that could not be read, so nothing is called loose on a guess.
 pub fn referenced(root: &Path) -> std::result::Result<Vec<String>, String> {
     let mut named = Vec::new();
     for doc in all(root) {

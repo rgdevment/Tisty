@@ -265,7 +265,8 @@ fn tagged(rest: &str, at: usize, keep: &mut impl FnMut(Ref)) -> usize {
         return at + 1;
     };
     let tag = &rest[..end];
-    if !tag.contains('=') {
+    // A real tag holds no other tag nor a Markdown link; one that does began at a stray angle.
+    if !tag.contains('=') || tag[1..].contains('<') || tag.contains("](") {
         return at + 1;
     }
     for name in ["href", "src"] {

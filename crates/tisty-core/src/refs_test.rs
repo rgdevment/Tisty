@@ -296,3 +296,10 @@ fn a_tag_split_across_lines_still_points_where_it_points() {
 
     assert_eq!(targets(said), ["attachments/ab/d-1111.png"]);
 }
+
+#[test]
+fn a_stray_angle_does_not_swallow_the_picture_on_the_next_line() {
+    let said = "si x<y y ratio=2\n![recibo](attachments/ab/e-1111.png)\nluego -> sigue";
+
+    assert_eq!(targets(said), ["attachments/ab/e-1111.png"]);
+}

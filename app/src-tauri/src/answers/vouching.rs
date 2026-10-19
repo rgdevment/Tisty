@@ -18,7 +18,7 @@ fn asked(session: &tauri::State<'_, Mutex<Session>>) -> (Vec<String>, Vec<PathBu
     let session = held(session);
     let wanted = session
         .pointed_at()
-        .unwrap_or_default()
+        .unwrap_or_else(|_| session.tasks_point_at())
         .into_iter()
         .filter(|at| !session.state.kept.contains_key(at))
         .collect();

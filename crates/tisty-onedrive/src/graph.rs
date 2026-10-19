@@ -14,7 +14,7 @@ mod upload;
 mod wire;
 
 use tree::{DriveItem, ITEM_FIELDS, Tree, moved, within};
-use wire::{given, json, judged, judged_carried, transfer_http};
+use wire::{given, json, judged, judged_carried, judged_whole, transfer_http};
 
 use crate::{ASKED_WITHIN, names, unreachable};
 
@@ -201,9 +201,9 @@ impl OneDrive {
     fn root(&self) -> Result<String, Hitch> {
         let url = format!("{}/me/drive/special/approot", self.at.api);
         self.spent(1);
-        let root: DriveItem = json(self.call(Some(ASKED_WITHIN), |http| {
+        let root: DriveItem = json(judged_whole(self.sent(Some(ASKED_WITHIN), |http| {
             http.get(&url).query(&[("$select", "id")])
-        })?)?;
+        })?)?)?;
         Ok(root.id)
     }
 
@@ -242,7 +242,7 @@ impl OneDrive {
                 .and_then(|answer| match answer.status().as_u16() {
                     // A cursor of a folder OneDrive made anew answers 404, and one it let lapse 410: both are read whole again.
                     404 | 410 => Ok(None),
-                    _ => json(judged(answer)?).map(Some),
+                    _ => json(judged_whole(answer)?).map(Some),
                 });
             match asked {
                 Err(Hitch::Troubled(_) | Hitch::Unreachable(None, _))

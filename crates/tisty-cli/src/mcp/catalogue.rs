@@ -23,10 +23,10 @@ An id — `46zdmrtt-0109`, `01M47GC6P37SV4C4YW2AP3Q1WJ` — is for your next cal
 person. They do not know it is an id, and the window gives them no way to look one up, so \
 «Tisty: 46zdmrtt-0109» or «saved as zs9kf3wq-0065» tells them nothing. Say what it is, its \
 title and where it went: «I added the task \"Renew the passport\" to Errands», «I wrote it down \
-in the document \"Release plan\", in the folder Work». Answers that write something carry \
-`for_the_person`, that sentence ready to use, and `said`, a line for you; in either, what sits \
-in square brackets is an id, kept for your calls. Show an id only when the person asks for it \
-by name.
+in the document \"Release plan\", in the folder Work». A new task or document comes back with \
+`for_the_person`, the words to tell them; a short answer also carries `said`, a line for you. \
+Anywhere in an answer, what sits in square brackets is an id, kept for your calls. Show an id \
+only when the person asks for it by name.
 
 ## A task or a document
 

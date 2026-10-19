@@ -1177,3 +1177,17 @@ fn every_verb_asks_whose_drive_it_is_before_touching_it() {
             .all(|one| one.line.starts_with("GET /v1.0/me?"))
     );
 }
+
+#[test]
+fn the_folder_itself_refused_is_the_sign_in_lost_not_one_file() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, _served) = graph(|_| {
+        vec![
+            said("200 OK", ROOT),
+            said("403 Forbidden", r#"{"error":{"code":"accessDenied"}}"#),
+        ]
+    });
+    let drive = onedrive(at, home.path());
+
+    assert!(matches!(drive.list(""), Err(Hitch::Lost)));
+}

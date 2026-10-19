@@ -1,7 +1,7 @@
 use std::io::Read;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
-use reqwest::blocking::{Body, RequestBuilder, Response};
+use reqwest::blocking::{RequestBuilder, Response};
 use serde::Deserialize;
 use tisty_carrier::{Expect, Hitch, Remote};
 
@@ -63,14 +63,14 @@ impl OneDrive {
 
     /// One request that either lands whole or leaves the file as it was: what Tisty's own files always take.
     fn whole_once(&self, name: &str, from: &Path, expect: &Expect) -> Result<DriveItem, Hitch> {
-        let bytes = std::fs::metadata(from)?.len();
+        let body = std::fs::read(from)?;
         let url = self.by_path(name, Some("content"))?;
-        let answer = self.sent(Some(given(bytes)), |http| {
+        let answer = self.sent(Some(given(body.len() as u64)), |http| {
             expecting(
                 http.put(&url)
                     .query(&[("@microsoft.graph.conflictBehavior", conflict(expect))])
                     .header(reqwest::header::CONTENT_TYPE, "application/octet-stream")
-                    .body(Body::sized(Reopened::at(from), bytes)),
+                    .body(body.clone()),
                 expect,
             )
         })?;
@@ -310,31 +310,6 @@ impl OneDrive {
             }
             _ => judged(answer),
         }
-    }
-}
-
-// Opened anew for each send, so a renewed token sends the file from its start and it never sits whole in memory.
-struct Reopened {
-    at: PathBuf,
-    file: Option<std::fs::File>,
-}
-
-impl Reopened {
-    fn at(from: &Path) -> Self {
-        Self {
-            at: from.to_path_buf(),
-            file: None,
-        }
-    }
-}
-
-impl Read for Reopened {
-    fn read(&mut self, into: &mut [u8]) -> std::io::Result<usize> {
-        let file = match &mut self.file {
-            Some(file) => file,
-            None => self.file.insert(std::fs::File::open(&self.at)?),
-        };
-        file.read(into)
     }
 }
 

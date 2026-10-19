@@ -175,6 +175,15 @@ fn codes_of(refused: &Refused) -> Vec<&str> {
     codes
 }
 
+// The folder itself refused is the grant to it gone, not one file inside it.
+pub(super) fn judged_whole(answer: Response) -> Result<Response, Hitch> {
+    let forbidden = answer.status().as_u16() == 403;
+    judged(answer).map_err(|refused| match refused {
+        Hitch::Broke(_) if forbidden => Hitch::Lost,
+        other => other,
+    })
+}
+
 // An address that carries its own permission and refuses has lapsed; the sign-in still stands.
 pub(super) fn judged_carried(answer: Response) -> Result<Response, Hitch> {
     judged(answer).map_err(|refused| match refused {

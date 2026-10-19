@@ -235,10 +235,10 @@ fn coming_home(
         .is_some_and(|was| tisty_core::task_front::left_out(was, &taken.body))
     {
         return Err(Refused::Tool(format!(
-            "{:?}'s page holds words this file leaves out, likely written after the file was \
-             taken out, so bringing it in would erase them; nothing was changed. `read` the task \
-             for its page as it is now and bring your changes in with `tick`, `plan`, `unplan`, \
-             `reword_step`, `describe` or `note`.",
+            "{:?}'s page holds lines this file leaves out or words differently — written since \
+             the file was taken out, or changed in the copy — so bringing it in would erase them; \
+             nothing was changed. `read` the task for its page as it is now and bring your changes \
+             in with `tick`, `plan`, `unplan`, `reword_step`, `describe`, `note` or `append_doc`.",
             task.title
         )));
     }
