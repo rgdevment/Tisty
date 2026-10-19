@@ -210,7 +210,7 @@ function Written({
       if (!file.current && named) file.current = named;
       if (stale.current) return;
       stale.current = true;
-      taskDocMerge(task.id, known.current, typed.current)
+      void taskDocMerge(task.id, known.current, typed.current)
         .catch(() => false)
         .then((woven) => (woven ? moved.current() : setClash(true)));
     },
