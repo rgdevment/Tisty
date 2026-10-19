@@ -536,7 +536,7 @@ fn an_import_refused_once_its_files_are_copied_takes_back_only_those_it_copied()
 }
 
 #[test]
-fn going_back_over_writing_after_a_compaction_settles_its_mark() {
+fn a_compacted_document_takes_no_other_write_until_the_person_decides() {
     let served = Served::new();
     let doc = served.paper("# Login\n\nOne.\n\n## Session 1\n\nTwo.\n\n## Session 2\n\nTwo.\n");
     let print = said(&served.call("read_doc", json!({ "doc": &doc })))["print"].clone();
@@ -549,16 +549,29 @@ fn going_back_over_writing_after_a_compaction_settles_its_mark() {
             "body": "# Login\n\nOne. Two.\n",
         }),
     ));
-    went(&served.call("append_doc", json!({ "doc": &doc, "body": "Three." })));
+    let now = said(&served.call("read_doc", json!({ "doc": &doc })))["print"].clone();
 
-    went(&served.call("restore_doc", json!({ "doc": &doc, "even_if_more": true })));
+    let added = refused(&served.call("append_doc", json!({ "doc": &doc, "body": "Three." })));
+    let edited = refused(&served.call(
+        "edit_doc",
+        json!({ "doc": &doc, "old": "One. Two.", "new": "One, two." }),
+    ));
+    let again = refused(&served.call(
+        "write_doc",
+        json!({ "doc": &doc, "print": now, "compact": true, "body": "# Login\n\nOne.\n" }),
+    ));
+    for told in [&added, &edited, &again] {
+        assert!(told.contains("waits for the person"), "{told}");
+    }
 
+    went(&served.call("restore_doc", json!({ "doc": &doc })));
     let back = said(&served.call("read_doc", json!({ "doc": &doc }))).clone();
     assert!(
         back["body"].as_str().unwrap().contains("Session 1"),
         "{back}"
     );
     assert!(back["compacted"].is_null(), "{back}");
+    went(&served.call("append_doc", json!({ "doc": &doc, "body": "Three." })));
 }
 
 fn files_under(at: &std::path::Path) -> usize {

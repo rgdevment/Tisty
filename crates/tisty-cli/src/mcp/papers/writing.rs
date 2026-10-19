@@ -296,6 +296,7 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
             "{which:?} is put away, so nothing more goes into it. Write a new document instead."
         )));
     }
+    super::compacting::awaiting(&state, kept)?;
     if state.shut(kept.id) {
         return Err(Refused::Tool(format!(
             "{which:?} is locked. The person shut it so nothing writes in it — not the \
@@ -388,6 +389,7 @@ pub(super) fn over_again(
             "{which:?} is put away, so nothing is written over it."
         )));
     }
+    super::compacting::awaiting(state, kept)?;
     if state.shut(kept.id) {
         return Err(Refused::Tool(format!(
             "{which:?} is locked. The person shut it so nothing writes in it — not the \

@@ -184,3 +184,16 @@ pub(super) fn only_the_notes(now: &str, was: &str) -> Result<(), Refused> {
         )),
     }
 }
+
+// A compaction is a proposal until the person keeps or undoes it, and only one step back is kept.
+pub(super) fn awaiting(state: &State, kept: &tisty_core::model::Kept) -> Result<(), Refused> {
+    match kept.compacted {
+        None => Ok(()),
+        Some(_) => Err(Refused::Tool(format!(
+            "{} was compacted and waits for the person to keep it or undo it in the window; \
+             another write now would cost them that one-click undo, so nothing was written. \
+             Tell them what you would still change, and write once they have kept it.",
+            doc_named(state, &kept.file)
+        ))),
+    }
+}

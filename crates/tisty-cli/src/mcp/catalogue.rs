@@ -207,25 +207,30 @@ the outline, and nobody writes one by hand.
 A document or a task's page that grew by sessions is yours to put back in order when you meet \
 it, and the rule is to do that rather than add one more page. The signs are in `outline_doc` and \
 `docs`: pages named after a session, a page of a few lines, a heading twice (`repeated`), a \
-loose document with a page's title (`alike`), the state contradicted by a later page. Compact on \
-two signs, or on one your own writing made this turn. Read every part you will move; when the \
+document with a title like this one's (`alike`), the state contradicted by a later page. Compact \
+on two signs, or on one your own writing made this turn. Read every part you will move; when the \
 document is the person's or has more than about ten pages, say what stays and what moves before \
-writing. Then `write_doc` with `compact`: the body in the shape above, the history saying what \
-moved where. What the body says holds today is only what you can confirm in Tisty now — its \
-tasks, its documents; what you only read in the old text goes to the person as a question, never \
-into the body as a fact. Nothing leaves without a trace: a section no longer needed leaves one \
-line in the history saying where it went or why it is settled, and the dead links you take out \
-are listed there. Work pages go to the task that covers them, and «moved» is true only once \
-their content lives there: before marking a page `moved`, put what it holds worth keeping — \
-decisions, findings, links — on that task or document (`append_doc`, `note`); a page with \
-nothing worth keeping is marked `obsolete` or `superseded` instead. What was folded in is marked \
-with `flag_doc` and its reason, one call for the set. What you keep is filed too: the living \
-document goes in its subject's folder, and when none fits you ask. Compacting loses nothing: \
-every decision, date, number, link and file survives, in the body, its history or where it \
-moved, and a paragraph the person wrote moves whole or stays. Compact what agents wrote on your \
-own judgement; what the person wrote, only when they ask you in this conversation. The old body \
-is kept, `restore_doc` brings it back, and the window shows who compacted and when, with one \
-click to undo. Then say what moved where, in titles and places.
+writing. Every document `alike` names is settled in the same turn: one an agent wrote is folded \
+in where it adds something and marked `duplicate_of` the one that stays; one the person wrote is \
+named to them, with what you would do. Then `write_doc` with `compact`, once and whole: until \
+the person keeps or undoes it, the document takes no other write of yours, so what you would \
+still change is said to them. The body follows the shape above, its history saying what moved \
+where. What the body says holds today is only what you can confirm in Tisty now — its tasks, its \
+documents; a version, a date or a number you only read in the old text is not confirmed by \
+repeating it, and goes to the person as a question, never into the body as a fact. Nothing \
+leaves without a trace: a section no longer needed leaves one line in the history saying where \
+it went or why it is settled, and the links you take out are listed there. Work pages go to the \
+task that covers them, and «moved» is true only once their content lives there: before marking a \
+page `moved`, put what it holds worth keeping — decisions, findings, links — on that task or \
+document (`append_doc`, `note`); a page with nothing worth keeping is marked `obsolete` or \
+`superseded` instead. What was folded in is marked with `flag_doc` and its reason, one call for \
+the set. What you keep is filed too: the living document goes in its subject's folder, and when \
+none fits you ask. Compacting loses nothing: every decision, date, number, link and file \
+survives, in the body, its history or where it moved, and a paragraph the person wrote moves \
+whole or stays. Compact what agents wrote on your own judgement; what the person wrote, only \
+when they ask you in this conversation. The old body is kept, `restore_doc` brings it back, and \
+the window shows who compacted and when, with one click to undo. Then say what moved where, in \
+titles and places.
 
 ## Removing and putting away
 
