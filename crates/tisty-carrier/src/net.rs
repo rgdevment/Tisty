@@ -53,9 +53,22 @@ pub fn probe_at(url: &str, reached_within: Duration, within: Duration) -> Health
 pub fn kind_of(e: reqwest::Error) -> (Health, String) {
     let slow = e.is_timeout();
     let said = told(&e.without_url());
-    match slow {
-        true => (Health::Slow, said),
-        false => (failed(&said), said),
+    // A filter that stalls the handshake until it times out is still a filter.
+    match (failed(&said), slow) {
+        (Health::Inspected, _) => (Health::Inspected, said),
+        (_, true) => (Health::Slow, said),
+        (health, false) => (health, said),
+    }
+}
+
+pub fn verb_of(verb: &reqwest::Method) -> &'static str {
+    match *verb {
+        reqwest::Method::GET => "GET",
+        reqwest::Method::POST => "POST",
+        reqwest::Method::PUT => "PUT",
+        reqwest::Method::PATCH => "PATCH",
+        reqwest::Method::DELETE => "DELETE",
+        _ => "OTHER",
     }
 }
 

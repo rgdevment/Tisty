@@ -449,23 +449,46 @@ fn a_file_not_there_is_missing_when_brought_and_absent_when_asked_about() {
 #[test]
 fn a_small_file_whose_answer_was_lost_is_found_landed_rather_than_sent_twice() {
     let home = tempfile::tempdir().unwrap();
+    let local = written(&home, b"abcd");
+    let hash = crate::quickxor::of_file(&local).unwrap();
     let (at, served) = graph(|_| {
         vec![
             said("503 Service Unavailable", "{}"),
             said(
                 "200 OK",
-                r#"{"id":"F","name":"a.tisty","eTag":"e1","size":4,"file":{}}"#,
+                &format!(
+                    r#"{{"id":"F","name":"a.tisty","eTag":"e1","size":4,"file":{{"hashes":{{"quickXorHash":"{hash}"}}}}}}"#
+                ),
             ),
         ]
     });
     let drive = onedrive(at, home.path());
 
-    let seen = drive
-        .put("store/a.tisty", &written(&home, b"abcd"), Expect::Absent)
-        .unwrap();
+    let seen = drive.put("store/a.tisty", &local, Expect::Absent).unwrap();
 
     assert_eq!(seen.revision, "e1");
     assert_eq!(served.join().unwrap().len(), 2);
+}
+
+#[test]
+fn a_file_of_the_same_size_another_machine_left_is_never_taken_for_this_write() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = graph(|_| {
+        vec![
+            said("503 Service Unavailable", "{}"),
+            said(
+                "200 OK",
+                r#"{"id":"F","name":"a.tisty","eTag":"e1","size":4,"file":{"hashes":{"quickXorHash":"other"}}}"#,
+            ),
+            said("409 Conflict", r#"{"error":{"code":"nameAlreadyExists"}}"#),
+        ]
+    });
+    let drive = onedrive(at, home.path());
+
+    let refused = drive.put("store/a.tisty", &written(&home, b"abcd"), Expect::Absent);
+
+    assert!(matches!(refused, Err(Hitch::Changed(_))));
+    assert_eq!(served.join().unwrap().len(), 3);
 }
 
 #[test]

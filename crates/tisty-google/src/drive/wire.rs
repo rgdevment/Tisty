@@ -88,7 +88,7 @@ pub(super) fn traced(
     tisty_carrier::said::traced(
         "Google Drive was asked",
         tisty_carrier::said::Asked {
-            verb: verb_of(verb),
+            verb: tisty_carrier::net::verb_of(verb),
             kind,
             status: answer.map(|one| one.status().as_u16()),
             began,
@@ -96,17 +96,6 @@ pub(super) fn traced(
             received: answer.and_then(Response::content_length).unwrap_or(0),
         },
     );
-}
-
-pub(crate) fn verb_of(verb: &Method) -> &'static str {
-    match *verb {
-        Method::GET => "GET",
-        Method::POST => "POST",
-        Method::PUT => "PUT",
-        Method::PATCH => "PATCH",
-        Method::DELETE => "DELETE",
-        _ => "OTHER",
-    }
 }
 
 pub(super) fn kind_of(asked: &Request) -> &'static str {

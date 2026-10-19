@@ -47,7 +47,7 @@ impl OneDrive {
                 asked = asked.timeout(patience);
             }
             let asked = asked.build().map_err(unreachable)?;
-            let answer = self.traced(asked).map_err(unreachable)?;
+            let answer = self.traced(asked, None).map_err(unreachable)?;
             if answer.status().as_u16() == 401 && !renewed {
                 self.tokens.spoiled(&access);
                 renewed = true;
@@ -88,8 +88,13 @@ impl OneDrive {
         Ok(at.into())
     }
 
-    pub(super) fn traced(&self, asked: reqwest::blocking::Request) -> reqwest::Result<Response> {
-        let (verb, kind) = (verb_of(asked.method()), kind_of(&asked));
+    pub(super) fn traced(
+        &self,
+        asked: reqwest::blocking::Request,
+        kind: Option<&'static str>,
+    ) -> reqwest::Result<Response> {
+        let verb = tisty_carrier::net::verb_of(asked.method());
+        let kind = kind.unwrap_or_else(|| kind_of(&asked));
         let sent = asked
             .body()
             .and_then(|body| body.as_bytes())
@@ -212,8 +217,10 @@ fn refusal(status: u16, wait: Option<Duration>, refused: Option<&Refused>) -> Hi
     }
 }
 
-const CARRIERS: [&str; 6] = [
+const CARRIERS: [&str; 8] = [
     "1drv.com",
+    "microsoftpersonalcontent.com",
+    "svc.ms",
     "onedrive.com",
     "live.com",
     "livefilestore.com",
@@ -221,24 +228,13 @@ const CARRIERS: [&str; 6] = [
     "microsoft.com",
 ];
 
-fn verb_of(verb: &reqwest::Method) -> &'static str {
-    match *verb {
-        reqwest::Method::GET => "GET",
-        reqwest::Method::POST => "POST",
-        reqwest::Method::PUT => "PUT",
-        reqwest::Method::PATCH => "PATCH",
-        reqwest::Method::DELETE => "DELETE",
-        _ => "OTHER",
-    }
-}
-
 fn kind_of(asked: &reqwest::blocking::Request) -> &'static str {
     let path = asked.url().path();
     match *asked.method() {
         reqwest::Method::DELETE => "delete",
         reqwest::Method::PATCH => "edit",
         _ if path.ends_with("createUploadSession") => "upload-open",
-        _ if path.ends_with("/content") || path.ends_with(":/content") => "upload",
+        _ if path.ends_with("/content") => "upload",
         _ if path.contains("delta") => "changes",
         _ if path.ends_with("/drive") => "about",
         _ if path.ends_with("/me") => "account",

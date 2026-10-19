@@ -3,7 +3,7 @@ use std::path::Path;
 
 use reqwest::blocking::{RequestBuilder, Response};
 use serde::Deserialize;
-use tisty_carrier::{Expect, Hitch};
+use tisty_carrier::{Expect, Hitch, Remote};
 
 use super::OneDrive;
 use super::tree::{DriveItem, ITEM_FIELDS};
@@ -44,14 +44,17 @@ impl OneDrive {
             }
             failed += 1;
             std::thread::sleep(PAUSE * failed);
-            // A new file whose answer was lost on the way back may have landed, and is taken as it is.
-            if matches!(expect, Expect::Absent)
-                && let Ok(Some(landed)) = self.item(name, Some(ITEM_FIELDS))
-                && landed.size == std::fs::metadata(from).ok().map(|one| one.len())
-            {
+            if let Some(landed) = self.landed_already(name, from) {
                 return Ok(landed);
             }
         }
+    }
+
+    // A write whose answer was lost may have landed; it is taken as this one only when the bytes there are these.
+    fn landed_already(&self, name: &str, from: &Path) -> Option<DriveItem> {
+        let item = self.item(name, Some(ITEM_FIELDS)).ok()??;
+        let here = self.hash_of(from).ok()?;
+        (item.seen(name).hash == here).then_some(item)
     }
 
     /// One request that either lands whole or leaves the file as it was: what Tisty's own files always take.
@@ -84,18 +87,33 @@ impl OneDrive {
             upload_url: String,
         }
         let url = self.by_path(name, Some("createUploadSession"))?;
-        let key = tisty_carrier::uploads::key_of(&url, name, from, bytes);
+        // A session holds the conflict it was opened with, so one opened for another write is never taken.
+        let key = tisty_carrier::uploads::key_of(
+            &url,
+            &format!("{name}\u{0}{}", conflict(expect)),
+            from,
+            bytes,
+        );
         let kept = self.uploads.as_ref().zip(key.as_deref());
         if let Some((uploads, key)) = kept
             && let Some(upload) = uploads.session_for(key)
         {
-            match self.got_to(&upload) {
-                Some(at) if self.carries(&upload).is_ok() => {
-                    let sent = self.pieces(name, &upload, from, bytes, at);
-                    self.settled(&upload, key, &sent);
-                    return sent;
+            if self.carries(&upload).is_err() {
+                uploads.closed(key);
+            } else {
+                match self.got_to(&upload)? {
+                    Some(at) => {
+                        let sent = self.pieces(name, &upload, from, bytes, at);
+                        self.settled(&upload, key, &sent);
+                        return sent;
+                    }
+                    None => {
+                        uploads.closed(key);
+                        if let Some(landed) = self.landed_already(name, from) {
+                            return Ok(landed);
+                        }
+                    }
                 }
-                _ => uploads.closed(key),
             }
         }
         let body =
@@ -142,26 +160,32 @@ impl OneDrive {
         let _ = self.http.delete(upload).timeout(ASKED_WITHIN).send();
     }
 
-    // The first byte OneDrive still waits for; a session it no longer knows answers nothing.
-    fn got_to(&self, upload: &str) -> Option<u64> {
+    // The first byte OneDrive still waits for; None is a session it no longer holds, a way that failed is said.
+    fn got_to(&self, upload: &str) -> Result<Option<u64>, Hitch> {
         #[derive(Deserialize)]
         #[serde(rename_all = "camelCase")]
         struct Status {
             #[serde(default)]
             next_expected_ranges: Vec<String>,
         }
-        let answer = self.http.get(upload).timeout(ASKED_WITHIN).send().ok()?;
-        if !answer.status().is_success() {
-            return None;
+        let asked = self
+            .http
+            .get(upload)
+            .timeout(ASKED_WITHIN)
+            .build()
+            .map_err(unreachable)?;
+        let answer = self.traced(asked, Some("upload")).map_err(unreachable)?;
+        match answer.status().as_u16() {
+            404 | 410 => Ok(None),
+            _ => {
+                let status: Status = json(judged(answer)?)?;
+                Ok(status
+                    .next_expected_ranges
+                    .first()
+                    .and_then(|range| range.split('-').next())
+                    .and_then(|first| first.parse().ok()))
+            }
         }
-        let status: Status = json(answer).ok()?;
-        status
-            .next_expected_ranges
-            .first()?
-            .split('-')
-            .next()?
-            .parse()
-            .ok()
     }
 
     // A piece cut on its way is asked after, and the upload carries on from what OneDrive says it holds.
@@ -182,9 +206,15 @@ impl OneDrive {
             }
             failed += 1;
             std::thread::sleep(PAUSE * failed);
-            at = self.got_to(upload).ok_or_else(|| {
-                Hitch::Troubled("OneDrive let the upload lapse before it ended".into())
-            })?;
+            at = match self.got_to(upload)? {
+                Some(at) => at,
+                // The last piece may have landed with its answer lost: the session is gone and the file is there.
+                None => {
+                    return self.landed_already(name, from).ok_or_else(|| {
+                        Hitch::Troubled("OneDrive let the upload lapse before it ended".into())
+                    });
+                }
+            };
         }
     }
 
@@ -216,7 +246,7 @@ impl OneDrive {
                 .body(piece)
                 .build()
                 .map_err(unreachable)?;
-            let answer = self.traced(asked).map_err(unreachable)?;
+            let answer = self.traced(asked, Some("upload")).map_err(unreachable)?;
             at += size;
             match answer.status().as_u16() {
                 202 if at < bytes => {}

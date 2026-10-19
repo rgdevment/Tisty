@@ -409,7 +409,7 @@ impl Remote for OneDrive {
                 asked = asked.header(reqwest::header::RANGE, format!("bytes={from}-"));
             }
             let answer = self
-                .traced(asked.build().map_err(unreachable)?)
+                .traced(asked.build().map_err(unreachable)?, Some("download"))
                 .map_err(unreachable)?;
             match answer.status().as_u16() {
                 206 => break (item, answer, 0),
@@ -463,7 +463,7 @@ impl Remote for OneDrive {
         Ok(landed.seen(name))
     }
 
-    // Moved in place when its folder is there; a folder that is not yet is made by the copy that lands in it.
+    // Moved in place over what bears the name already, as the copy it replaces did; a missing folder is made by that copy.
     fn renamed(&self, from: &str, to: &str) -> Result<(), Hitch> {
         names::fitting(from)?;
         names::fitting(to)?;
@@ -489,7 +489,7 @@ impl Remote for OneDrive {
         let answer = self.sent(Some(ASKED_WITHIN), |http| {
             http.patch(&url)
                 .query(&[
-                    ("@microsoft.graph.conflictBehavior", "fail"),
+                    ("@microsoft.graph.conflictBehavior", "replace"),
                     ("$select", ITEM_FIELDS),
                 ])
                 .header(reqwest::header::CONTENT_TYPE, "application/json")
