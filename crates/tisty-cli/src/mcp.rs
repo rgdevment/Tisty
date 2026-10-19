@@ -34,8 +34,8 @@ use mending::{rename, reword_note, reword_step, unplan};
 use spoken::spoken;
 
 use jsonrpc::{
-    discovered, fault, introduced, legacy_greeting, named_tool, reply, speaking_through, told,
-    wrong,
+    Tally, discovered, fault, introduced, legacy_greeting, named_tool, reply, short,
+    speaking_through, told, wrong,
 };
 
 use std::io::{BufRead, Write};
@@ -56,6 +56,13 @@ const INBOX_TAG: &str = tisty_core::model::AGENT_TAG;
 const LISTED_AT_MOST: usize = 200;
 
 pub fn serve(paths: Paths) -> anyhow::Result<ExitCode> {
+    let mut tally = Tally::default();
+    let ended = served(&paths, &mut tally);
+    tally.closed();
+    ended
+}
+
+fn served(paths: &Paths, tally: &mut Tally) -> anyhow::Result<ExitCode> {
     let mut stdin = std::io::stdin().lock();
     let mut born = handing::Born::now();
     let mut greeting: Option<String> = None;
@@ -74,7 +81,7 @@ pub fn serve(paths: Paths) -> anyhow::Result<ExitCode> {
         if handing::greets(&line) {
             greeting = Some(line.clone());
         }
-        let Some(said) = answer(&paths, &line) else {
+        let Some(said) = answer(paths, &line, tally) else {
             continue;
         };
         let mut out = std::io::stdout().lock();
@@ -86,12 +93,20 @@ pub fn serve(paths: Paths) -> anyhow::Result<ExitCode> {
 
 /// What the client called itself, kept for the session — one process serves one client — so
 /// every event written from here says which hand spoke. Nothing decides on it.
-fn answer(paths: &Paths, line: &str) -> Option<String> {
+fn answer(paths: &Paths, line: &str, tally: &mut Tally) -> Option<String> {
     let asked: Value = match serde_json::from_str(line) {
         Ok(asked) => asked,
-        Err(why) => return Some(fault(Value::Null, -32700, &format!("parse error: {why}"))),
+        Err(why) => {
+            witness::standing(
+                witness::channel::DOOR,
+                "the door was sent a line it could not read",
+                &[],
+            );
+            return Some(fault(Value::Null, -32700, &format!("parse error: {why}")));
+        }
     };
     if asked.is_array() {
+        witness::standing(witness::channel::DOOR, "the door was sent a batch", &[]);
         return Some(fault(
             Value::Null,
             -32600,
@@ -122,39 +137,60 @@ fn answer(paths: &Paths, line: &str) -> Option<String> {
                 "cacheScope": "public",
             }),
         ),
-        "tools/call" => match called(paths, &params) {
-            Ok(said) => {
-                witness::trace(
-                    witness::channel::AGENT,
-                    "the door answered a tool",
-                    &[("tool", Fact::Id(named_tool(&params)))],
-                );
-                reply(id, said)
+        "tools/call" => {
+            tally.calls += 1;
+            let name = params.get("name").and_then(Value::as_str).unwrap_or("");
+            let (stage, done) = match vetted(name, &params) {
+                Ok(args) => ("tool", called(paths, name, args)),
+                Err(refused) => ("arguments", Err(refused)),
+            };
+            if done.is_err() {
+                tally.refused += 1;
             }
-            Err(Refused::Protocol(code, why)) => {
-                witness::warn(
-                    witness::channel::AGENT,
-                    "the door was spoken to in a way it does not know",
-                    &[
-                        ("tool", Fact::Id(named_tool(&params))),
-                        ("code", Fact::Count(code.unsigned_abs() as usize)),
-                    ],
-                );
-                fault(id, code, &why)
+            let told = TOLD.take();
+            match done {
+                Ok(said) => {
+                    witness::trace(
+                        witness::channel::AGENT,
+                        "the door answered a tool",
+                        &[("tool", Fact::Id(named_tool(&params)))],
+                    );
+                    reply(id, said)
+                }
+                Err(Refused::Protocol(code, why)) => {
+                    witness::warn(
+                        witness::channel::AGENT,
+                        "the door was spoken to in a way it does not know",
+                        &[
+                            ("tool", Fact::Id(named_tool(&params))),
+                            ("code", Fact::Count(code.unsigned_abs() as usize)),
+                        ],
+                    );
+                    fault(id, code, &why)
+                }
+                Err(Refused::Tool(why)) => {
+                    if !told {
+                        witness::note(
+                            witness::channel::AGENT,
+                            "the door turned a tool away",
+                            &[
+                                ("tool", Fact::Id(named_tool(&params))),
+                                ("by", Fact::Code(stage)),
+                            ],
+                        );
+                    }
+                    reply(id, wrong(&why))
+                }
             }
-            Err(Refused::Tool(why)) => {
-                witness::warn(
-                    witness::channel::AGENT,
-                    "the door turned a tool away",
-                    &[
-                        ("tool", Fact::Id(named_tool(&params))),
-                        ("why", Fact::Why(why.clone())),
-                    ],
-                );
-                reply(id, wrong(&why))
-            }
-        },
-        _ => fault(id, -32601, &format!("unknown method: {method}")),
+        }
+        _ => {
+            witness::standing(
+                witness::channel::DOOR,
+                "the door was asked for a method it does not know",
+                &[("method", Fact::Id(short(method)))],
+            );
+            fault(id, -32601, &format!("unknown method: {method}"))
+        }
     })
 }
 
@@ -163,13 +199,20 @@ enum Refused {
     Tool(String),
 }
 
-fn called(paths: &Paths, params: &Value) -> Result<Value, Refused> {
-    let name = params.get("name").and_then(Value::as_str).unwrap_or("");
+thread_local! {
+    // A refusal the store's own failure caused is already in the log, with its code.
+    static TOLD: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+fn vetted(name: &str, params: &Value) -> Result<Value, Refused> {
     let args = without_nulls(name, params.get("arguments").cloned().unwrap_or(json!({})));
     only_what_it_takes(name, &args)?;
     short_and_plain(&args)?;
     not_a_task_s_words(name, &args)?;
+    Ok(args)
+}
 
+fn called(paths: &Paths, name: &str, args: Value) -> Result<Value, Refused> {
     match name {
         "propose" => spoken(&args, "description", |args| propose(paths, args)),
         "remind" => remind(paths, &args),
@@ -346,6 +389,28 @@ fn retold(state: &State, store: &mut Store, doc: &str, body: &str) -> Result<(),
 }
 
 fn hitch(e: tisty_core::Error) -> Refused {
+    use tisty_core::Error as E;
+    let said = match e {
+        E::AlreadyRunning => Some((false, "the door found the store busy")),
+        E::Io(_)
+        | E::Json(_)
+        | E::MalformedEvent { .. }
+        | E::TruncatedSegment { .. }
+        | E::MissingSegment { .. }
+        | E::UnsupportedVersion { .. }
+        | E::StoreNotMoved(_)
+        | E::ConfigParse(_)
+        | E::ConfigWrite(_)
+        | E::NoHomeDirectory => Some((true, "the door could not read or write the store")),
+        _ => None,
+    };
+    if let Some((broke, said)) = said {
+        match broke {
+            true => witness::warn(witness::channel::DOOR, said, &e.told()),
+            false => witness::note(witness::channel::DOOR, said, &e.told()),
+        }
+        TOLD.set(true);
+    }
     Refused::Tool(match e {
         tisty_core::Error::AlreadyRunning => {
             "Tisty is being written to right now. Try the same call again.".into()

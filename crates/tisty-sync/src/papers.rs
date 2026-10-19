@@ -164,7 +164,7 @@ pub(crate) fn carry_papers_leaning_on(
                 Move::Bring | Move::TheyDecide if !taking => continue,
                 // Only a body nobody here touched waits: one edited on both sides is put to the person as ever.
                 Move::Bring if answer == Answer::Waits && !shut.contains(id) => {
-                    witness::note(
+                    witness::standing(
                         channel::SYNC,
                         "a body a machine still waiting to be confirmed answers for waits with it",
                         &[("at", Fact::Id(id.clone()))],
@@ -174,7 +174,7 @@ pub(crate) fn carry_papers_leaning_on(
                 }
                 Move::Bring if landing.is_some() => {
                     if landing == Some(true) {
-                        witness::note(
+                        witness::standing(
                             channel::SYNC,
                             "a body landed ahead of the history that answers for it, so it waits for that history",
                             &[("at", Fact::Id(id.clone()))],

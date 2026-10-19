@@ -65,7 +65,7 @@ pub fn doc_export(
                 "a document went out without everything it points at",
                 &[
                     ("id", Fact::Id(id.clone())),
-                    ("left", Fact::Why(took.left.join("; "))),
+                    ("left", Fact::Count(took.left.len())),
                 ],
             );
         }
@@ -408,7 +408,7 @@ pub async fn docs_pack(
         witness::warn(
             channel::WINDOW,
             "a parcel went out without everything it points at",
-            &[("left", Fact::Why(sent.left.join("; ")))],
+            &[("left", Fact::Count(sent.left.len()))],
         );
     }
     Ok(Packed {
@@ -465,7 +465,7 @@ pub async fn docs_take_out(
         witness::warn(
             channel::WINDOW,
             "documents went out without everything they point at",
-            &[("left", Fact::Why(sent.left.join("; ")))],
+            &[("left", Fact::Count(sent.left.len()))],
         );
     }
     Ok(Packed {

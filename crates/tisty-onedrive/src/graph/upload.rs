@@ -4,6 +4,7 @@ use std::path::Path;
 use reqwest::blocking::{RequestBuilder, Response};
 use serde::Deserialize;
 use tisty_carrier::{Expect, Hitch, Remote};
+use tisty_core::witness::{self, Fact, channel};
 
 use super::OneDrive;
 use super::tree::{DriveItem, ITEM_FIELDS};
@@ -108,6 +109,11 @@ impl OneDrive {
             };
             match asked {
                 Ok(Held::At(at)) => {
+                    witness::note(
+                        channel::CLOUD,
+                        "a long upload to OneDrive carried on where it stopped",
+                        &[("at", Fact::Bytes(at)), ("of", Fact::Bytes(bytes))],
+                    );
                     let sent = self.pieces(name, (&upload, Some(key)), from, bytes, at);
                     self.settled(&upload, key, &sent);
                     return sent;
@@ -115,6 +121,11 @@ impl OneDrive {
                 // Every byte went up a round ago, so a session that still says so is let go rather than waited on for days.
                 Ok(Held::Whole) => {
                     if let Some(landed) = self.landed_already(name, from)? {
+                        witness::note(
+                            channel::CLOUD,
+                            "a long upload to OneDrive was whole already",
+                            &[("of", Fact::Bytes(bytes))],
+                        );
                         uploads.closed(key);
                         return Ok(landed);
                     }
@@ -123,6 +134,11 @@ impl OneDrive {
                 }
                 Err(cut) if passing(&cut) => return Err(cut),
                 Ok(Held::Gone) | Err(_) => {
+                    witness::note(
+                        channel::CLOUD,
+                        "OneDrive had let a long upload go, so it is begun again",
+                        &[("of", Fact::Bytes(bytes))],
+                    );
                     self.dropped(&upload);
                     uploads.closed(key);
                     if let Some(landed) = self.landed_already(name, from)? {
@@ -229,6 +245,11 @@ impl OneDrive {
                 return Err(lapsed());
             }
             if failed > 0 {
+                witness::standing(
+                    channel::CLOUD,
+                    "a piece of an upload to OneDrive was sent again",
+                    &[("tries", Fact::Count(failed as usize))],
+                );
                 at = match self.got_to(upload)? {
                     Held::At(at) => at,
                     Held::Whole => return Err(assembling()),

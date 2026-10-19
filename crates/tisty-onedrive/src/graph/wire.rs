@@ -3,6 +3,7 @@ use std::time::Duration;
 use reqwest::blocking::{Client as Http, RequestBuilder, Response};
 use serde::Deserialize;
 use tisty_carrier::Hitch;
+use tisty_core::witness::{self, Fact, channel};
 
 use super::OneDrive;
 use crate::{WAITED_UNTOLD, unreachable, waited};
@@ -48,10 +49,23 @@ impl OneDrive {
             }
             let asked = asked.build().map_err(unreachable)?;
             let answer = self.traced(asked, None).map_err(unreachable)?;
-            if answer.status().as_u16() == 401 && !renewed {
-                self.tokens.spoiled(&access);
-                renewed = true;
-                continue;
+            match (answer.status().as_u16(), renewed) {
+                (401, false) => {
+                    witness::note(
+                        channel::CLOUD,
+                        "OneDrive no longer took the token, so it was renewed",
+                        &[],
+                    );
+                    self.tokens.spoiled(&access);
+                    renewed = true;
+                    continue;
+                }
+                (401, true) => witness::warn(
+                    channel::CLOUD,
+                    "OneDrive refused the token even once renewed",
+                    &[],
+                ),
+                _ => {}
             }
             return Ok(answer);
         }
@@ -177,9 +191,23 @@ fn codes_of(refused: &Refused) -> Vec<&str> {
 
 // The folder itself refused is the grant to it gone, not one file inside it.
 pub(super) fn judged_whole(answer: Response) -> Result<Response, Hitch> {
-    let forbidden = answer.status().as_u16() == 403;
-    judged(answer).map_err(|refused| match refused {
-        Hitch::Broke(_) if forbidden => Hitch::Lost,
+    if answer.status().as_u16() != 403 {
+        return judged(answer);
+    }
+    let (status, wait, refused) = read_refusal(answer);
+    Err(match refusal(status, wait, refused.as_ref()) {
+        Hitch::Broke(_) => {
+            let codes = refused.as_ref().map(codes_of).unwrap_or_default();
+            witness::warn(
+                channel::CLOUD,
+                "OneDrive refused the app folder itself, so the sign-in has to be given again",
+                &[
+                    ("status", Fact::Count(status.into())),
+                    ("codes", Fact::Id(codes.join("/"))),
+                ],
+            );
+            Hitch::Lost
+        }
         other => other,
     })
 }
@@ -196,12 +224,17 @@ pub(super) fn judged(answer: Response) -> Result<Response, Hitch> {
     if answer.status().is_success() {
         return Ok(answer);
     }
+    let (status, wait, refused) = read_refusal(answer);
+    Err(refusal(status, wait, refused.as_ref()))
+}
+
+fn read_refusal(answer: Response) -> (u16, Option<Duration>, Option<Refused>) {
     let status = answer.status().as_u16();
     let wait = waited(answer.headers());
     let refused = serde_json::from_reader::<_, Refusal>(answer)
         .ok()
         .map(|one| one.error);
-    Err(refusal(status, wait, refused.as_ref()))
+    (status, wait, refused)
 }
 
 fn refusal(status: u16, wait: Option<Duration>, refused: Option<&Refused>) -> Hitch {

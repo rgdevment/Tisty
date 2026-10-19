@@ -352,6 +352,13 @@ fn came_home(paths: &Paths, id: TaskId, body: &str) -> Result<Value, Refused> {
             retold(&state, &mut store, file, &whole)?;
         }
     }
+    if kept_as_it_was {
+        tisty_core::witness::note(
+            tisty_core::witness::channel::DOOR,
+            "a task's page changed while a copy came in, so its words were kept",
+            &[("task", tisty_core::witness::Fact::Id(task.id.to_string()))],
+        );
+    }
     let title = task.title.clone();
     let words = match kept_as_it_was {
         true => " Its page changed while this came in, so the page's words were left as they are.",

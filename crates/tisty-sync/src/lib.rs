@@ -86,6 +86,34 @@ pub enum Trouble {
     Moved(String),
 }
 
+impl Trouble {
+    pub fn code(&self) -> &'static str {
+        match self {
+            Trouble::NotThere(_) => "not-there",
+            Trouble::OtherStore { .. } => "other-store",
+            Trouble::Unreadable(_) => "unreadable",
+            Trouble::Refused(_) => "refused",
+            Trouble::Broke(_) => "broke",
+            Trouble::WouldReset { .. } => "would-reset",
+            Trouble::NotAllowed(_) => "not-allowed",
+            Trouble::SameName(_) => "same-name",
+            Trouble::Emptied(_) => "emptied",
+            Trouble::Newer(_) => "newer",
+            Trouble::Shape(_) => "shape",
+            Trouble::Needs(_) => "needs",
+            Trouble::Unshaped(_) => "unshaped",
+            Trouble::CloudFull { .. } => "cloud-full",
+            Trouble::CloudEmptied { .. } => "cloud-emptied",
+            Trouble::CloudLost { .. } => "cloud-lost",
+            Trouble::CloudElsewhere { .. } => "cloud-elsewhere",
+            Trouble::CloudSpent { .. } => "cloud-spent",
+            Trouble::StuckOn { .. } => "stuck-on",
+            Trouble::NotNow(_) => "not-now",
+            Trouble::Moved(_) => "moved",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Way {
     Both,
@@ -139,6 +167,21 @@ pub enum Reason {
     Troubled,
     /// Attachments that could not go up, each kept here: unreadable, changed, refused or too big.
     Unsent,
+}
+
+impl Reason {
+    pub fn code(self) -> &'static str {
+        match self {
+            Reason::Limit => "limit",
+            Reason::Budget => "budget",
+            Reason::Paused => "paused",
+            Reason::Busy => "busy",
+            Reason::Offline => "offline",
+            Reason::Changed => "changed",
+            Reason::Troubled => "troubled",
+            Reason::Unsent => "unsent",
+        }
+    }
 }
 
 /// What stood between this machine and the provider, read off the failed request alone.

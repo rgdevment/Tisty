@@ -54,10 +54,7 @@ impl Session {
             return Err(tisty_core::Error::StoreNotMoved(why));
         }
         let paths = Paths::resolve()?;
-        tisty_core::witness::keeps(
-            tisty_core::witness::file(&paths),
-            tisty_core::witness::wants_all(),
-        );
+        tisty_core::witness::opens(&paths, tisty_core::witness::mark::WINDOW);
         if settled == Some(tisty_core::moving::Settled::Moved) {
             tisty_core::witness::note(
                 tisty_core::witness::channel::STORE,

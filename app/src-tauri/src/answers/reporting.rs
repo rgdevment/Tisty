@@ -223,8 +223,7 @@ pub fn keep_report(
 
     let carried: Vec<(String, Vec<u8>)> = if logs {
         let session = held(&session);
-        let live = witness::file(&session.paths);
-        [live.clone(), live.with_extension("log.1")]
+        witness::kept_files(&session.paths)
             .into_iter()
             .filter_map(|one| {
                 let named = one.file_name()?.to_string_lossy().into_owned();

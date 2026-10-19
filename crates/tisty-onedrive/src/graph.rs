@@ -8,6 +8,7 @@ use std::time::Duration;
 use reqwest::blocking::Client as Http;
 use serde::Deserialize;
 use tisty_carrier::{Changes, Costs, Expect, Hitch, Limits, Remote, Seen, Tokens};
+use tisty_core::witness::{self, Fact, channel};
 
 mod tree;
 mod upload;
@@ -179,9 +180,16 @@ impl OneDrive {
         let account = self.account()?;
         match account.id == expected {
             true => Ok(account),
-            false => Err(Hitch::Elsewhere {
-                found: account.email,
-            }),
+            false => {
+                witness::warn(
+                    channel::CLOUD,
+                    "OneDrive answered for another account than the one chosen",
+                    &[],
+                );
+                Err(Hitch::Elsewhere {
+                    found: account.email,
+                })
+            }
         }
     }
 
@@ -241,7 +249,14 @@ impl OneDrive {
                 .sent(Some(ASKED_WITHIN), |http| http.get(link))
                 .and_then(|answer| match answer.status().as_u16() {
                     // A cursor of a folder OneDrive made anew answers 404, and one it let lapse 410: both are read whole again.
-                    404 | 410 => Ok(None),
+                    status @ (404 | 410) => {
+                        witness::note(
+                            channel::CLOUD,
+                            "OneDrive let a listing cursor lapse, so the folder is read whole again",
+                            &[("status", Fact::Count(status.into()))],
+                        );
+                        Ok(None)
+                    }
                     _ => json(judged_whole(answer)?).map(Some),
                 });
             match asked {
@@ -620,6 +635,11 @@ impl Remote for OneDrive {
             {
                 return Ok(caught_up);
             }
+            witness::note(
+                channel::CLOUD,
+                "the changes OneDrive gave fell back to a whole listing",
+                &[],
+            );
         }
         self.enumerated()?;
         Ok(Changes::Whole {

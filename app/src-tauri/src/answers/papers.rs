@@ -624,11 +624,16 @@ pub async fn settle_paper(
             session.asked.get(&id).cloned(),
         )
     };
-    let keep = match keep.as_str() {
-        "mine" => tisty_carrier::Keep::Mine,
-        "theirs" => tisty_carrier::Keep::Theirs,
-        _ => tisty_carrier::Keep::Both,
+    let (keep, kept) = match keep.as_str() {
+        "mine" => (tisty_carrier::Keep::Mine, "mine"),
+        "theirs" => (tisty_carrier::Keep::Theirs, "theirs"),
+        _ => (tisty_carrier::Keep::Both, "both"),
     };
+    witness::note(
+        channel::SYNC,
+        "a document two machines wrote was settled",
+        &[("at", Fact::Id(id.clone())), ("kept", Fact::Word(kept))],
+    );
     let (asking, there, at) = (carrier.clone(), here.clone(), id.clone());
     let brought = elsewhere(move || {
         if !matches!(keep, tisty_carrier::Keep::Theirs)
@@ -754,6 +759,11 @@ fn kept_on_the_page(
     }
     tisty_core::docs::write(&root, id, &both)
         .map_err(|e| blamed(channel::SYNC, "the other version could not be kept", e))?;
+    witness::note(
+        channel::SYNC,
+        "the other version was kept on the task's page",
+        &[("at", Fact::Id(id.to_string()))],
+    );
     session.mind_body(id, &tisty_core::docs::settled(&both));
     session.corpus.forget(id);
     let hand = signing(&session.state);

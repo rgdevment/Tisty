@@ -1047,7 +1047,7 @@ async fn carried_round(
         + done.unconfirmed.len()
         + done.waiting.len()
         + done.astray.len();
-    let facts = [
+    let mut facts = vec![
         ("moved", Fact::Word(if moved { "yes" } else { "no" })),
         ("sent", Fact::Count(done.sent)),
         ("brought", Fact::Count(done.brought)),
@@ -1061,7 +1061,18 @@ async fn carried_round(
         ("astray", Fact::Count(done.astray.len())),
         ("joined", Fact::Count(done.joined.len())),
     ];
+    if let Some(deferred) = &done.deferred {
+        facts.push(("deferred", Fact::Code(deferred.reason.code())));
+        facts.push(("left", Fact::Count(deferred.left)));
+    }
+    if let Some(refused) = &done.refused {
+        facts.push(("refused", Fact::Code(refused.code())));
+    }
     let carried = done.sent + done.brought + done.arrived.len() + done.joined.len();
+    let put_off = done
+        .deferred
+        .as_ref()
+        .is_some_and(|one| one.reason != tisty_carrier::Reason::Unsent);
     if unsettled > 0 {
         witness::warn(
             channel::SYNC,
@@ -1070,6 +1081,8 @@ async fn carried_round(
         );
     } else if carried > 0 || moved {
         witness::note(channel::SYNC, "a carry finished", &facts);
+    } else if put_off || done.refused.is_some() {
+        witness::standing(channel::SYNC, "a carry finished", &facts);
     }
     for one in done
         .unreadable

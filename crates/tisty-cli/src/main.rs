@@ -36,12 +36,12 @@ fn served() -> ExitCode {
     match serve() {
         Ok(code) => code,
         Err(e) => {
-            let mut facts = vec![("command", tisty_core::witness::Fact::Code("mcp"))];
+            let mut facts = Vec::new();
             if let Some(ours) = e.downcast_ref::<tisty_core::Error>() {
                 facts.extend(ours.told());
             }
             tisty_core::witness::warn(
-                tisty_core::witness::channel::TERMINAL,
+                tisty_core::witness::channel::DOOR,
                 "the assistant's door ended in an error",
                 &facts,
             );
@@ -70,17 +70,14 @@ fn served() -> ExitCode {
 // Serving does not hold a store open: each call reads what is on disk, so a window writing beside it is never a stale read.
 fn serve() -> anyhow::Result<ExitCode> {
     let paths = tisty_core::Paths::resolve()?;
-    tisty_core::witness::keeps(
-        tisty_core::witness::file(&paths),
-        tisty_core::witness::wants_all(),
-    );
-    tisty_core::witness::catches(tisty_core::witness::channel::TERMINAL);
+    tisty_core::witness::opens(&paths, tisty_core::witness::mark::DOOR);
+    tisty_core::witness::catches(tisty_core::witness::channel::DOOR);
     tisty_core::store::brought_home(&paths);
     if paths.the_persons_own() {
         tisty_core::store::keys_guarded(&paths);
     }
     tisty_core::witness::note(
-        tisty_core::witness::channel::TERMINAL,
+        tisty_core::witness::channel::DOOR,
         "the assistant's door opened",
         &[(
             "version",

@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use super::{WAITED_UNTOLD, retry_after, token_refused};
+use super::{WAITED_UNTOLD, oauth_code, retry_after, token_refused};
 use crate::Hitch;
 
 #[test]
@@ -44,4 +44,11 @@ fn a_refused_token_says_whether_signing_in_again_mends_it() {
         token_refused("Microsoft", 502, None, "", &lost),
         Hitch::Unreachable(None, "Microsoft answered 502".into())
     );
+}
+
+#[test]
+fn only_an_oauth_error_name_reaches_the_log() {
+    assert_eq!(oauth_code("invalid_grant"), "invalid_grant");
+    assert_eq!(oauth_code(""), "none");
+    assert_eq!(oauth_code("maria@example.com was refused"), "other");
 }

@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use tisty_core::witness::channel;
+use tisty_core::witness::{self, Fact, channel};
 use tisty_core::{Op, Task, TaskId};
 
 use super::papers::writable;
@@ -172,6 +172,11 @@ pub fn task_doc_merge(
     let raw = tisty_core::docs::read(&root, &file)
         .map_err(|e| blamed(channel::WINDOW, "a task's page could not be read", e))?;
     let Some(merged) = tisty_core::merge::merged(&base, &mine, &raw) else {
+        witness::note(
+            channel::STORE,
+            "a task's page changed on both sides and could not be merged",
+            &[("task", Fact::Id(id.to_string()))],
+        );
         return Ok(false);
     };
     let whole = tisty_core::stages::ticked(&task, &merged);
@@ -271,6 +276,13 @@ pub fn task_page_import(
     if taken.takes_away && !anyway {
         return Err(Refusal::of("taskPageBehind"));
     }
+    if taken.takes_away {
+        witness::warn(
+            channel::STORE,
+            "an old copy of a task's page was brought in anyway",
+            &[("task", Fact::Id(id.to_string()))],
+        );
+    }
     let mut ops = brought.told;
     ops.extend(taken.ops);
     let mut over = file.map(|(_, file)| file);
@@ -310,9 +322,17 @@ fn behind(session: &Session, raw: &str, file: &str, tz: &str, anyway: bool) -> A
     let was = tisty_core::docs::read(&session.paths.docs(), file).ok();
     let takes = tisty_core::task_front::taken_in(&session.state, raw, was.as_deref(), tz)
         .is_some_and(|taken| taken.takes_away);
-    match takes && !anyway {
-        true => Err(Refusal::of("taskPageBehind")),
-        false => Ok(()),
+    match (takes, anyway) {
+        (true, false) => Err(Refusal::of("taskPageBehind")),
+        (true, true) => {
+            witness::warn(
+                channel::STORE,
+                "an old copy of a task's page was brought in anyway",
+                &[("at", Fact::Id(file.to_string()))],
+            );
+            Ok(())
+        }
+        (false, _) => Ok(()),
     }
 }
 
