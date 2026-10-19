@@ -1149,9 +1149,20 @@ fn doc_named(state: &State, which: &str) -> String {
         .map(str::trim)
         .filter(|one| !one.is_empty())
     {
-        Some(title) => format!("{title:?} ({which})"),
+        Some(title) => format!("{title:?} [{which}]"),
         None => which.to_string(),
     }
+}
+
+fn doc_titled(state: &State, which: &str) -> String {
+    state
+        .docs
+        .values()
+        .find(|one| one.file == which)
+        .and_then(|kept| kept.title.as_deref())
+        .map(str::trim)
+        .filter(|one| !one.is_empty())
+        .map_or_else(|| "a document".to_string(), |title| format!("{title:?}"))
 }
 
 fn up_named(state: &State, id: tisty_core::model::DocId) -> Option<String> {

@@ -101,7 +101,7 @@ pub(super) fn propose(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             done.iter()
                 .map(|one| match one.get("refused").and_then(Value::as_str) {
                     Some(why) => format!("{} — {why}", said(one, "title")),
-                    None => format!("{} — {}", said(one, "id"), said(one, "title")),
+                    None => format!("{:?} [{}]", said(one, "title"), said(one, "id")),
                 })
                 .collect::<Vec<_>>()
                 .join("\n"),
@@ -210,9 +210,9 @@ pub(super) fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         {
             return Ok(told(
                 format!(
-                    "A part's source, {from:?}, was proposed meanwhile, as {}: {:?}. Nothing was \
-                     written — neither the task nor any of its parts.",
-                    part.id, part.title
+                    "A part's source, {from:?}, was proposed meanwhile, as the task {:?} [{}]. \
+                     Nothing was written — neither the task nor any of its parts.",
+                    part.title, part.id
                 ),
                 json!({ "id": null, "proposed": false, "collided": part.id.to_string() }),
             ));
@@ -220,8 +220,9 @@ pub(super) fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         return Ok(told(
             match task {
                 Some(task) => format!(
-                    "Already proposed from that source, as {}: {:?}. Nothing was written.",
-                    task.id, task.title
+                    "Already proposed from that source, as the task {:?} [{}]. Nothing was \
+                     written.",
+                    task.title, task.id
                 ),
                 None => "Already proposed from that source. Nothing was written.".into(),
             },
@@ -238,6 +239,13 @@ pub(super) fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         None => "in the inbox".to_string(),
     };
     let mut kept = serde_json::Map::new();
+    kept.insert(
+        "for_the_person".into(),
+        json!(match &landed {
+            Some(name) => format!("the task {title:?}, in the list {name}"),
+            None => format!("the task {title:?}, in the inbox"),
+        }),
+    );
     kept.insert("id".into(), json!(id.to_string()));
     kept.insert("title".into(), json!(title));
     if let Some(landed) = &landed {
@@ -256,10 +264,12 @@ pub(super) fn proposed(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     };
     Ok(told(
         match planned {
-            0 => format!("Proposed {title:?} as {id} {where_at}, tagged #{INBOX_TAG}.{parts_said}"),
+            0 => format!(
+                "Proposed the task {title:?} {where_at}, tagged #{INBOX_TAG}.{parts_said} [{id}]"
+            ),
             n => format!(
-                "Proposed {title:?} as {id} {where_at}, tagged #{INBOX_TAG}, with {n} step(s): \
-                 `tick` each as you do it, `say_done` when all are.{parts_said}"
+                "Proposed the task {title:?} {where_at}, tagged #{INBOX_TAG}, with {n} step(s): \
+                 `tick` each as you do it, `say_done` when all are.{parts_said} [{id}]"
             ),
         },
         Value::Object(kept),

@@ -99,10 +99,20 @@ pub(super) fn wrong(why: &str) -> Value {
     })
 }
 
+/// Some clients hand the model the structured answer alone, so a short text travels inside it too.
 pub(super) fn told(text: String, structured: Value) -> Value {
+    let structured = match structured {
+        Value::Object(mut fields) if text.chars().count() <= SAID_WITHIN => {
+            fields.entry("said").or_insert_with(|| json!(text));
+            Value::Object(fields)
+        }
+        other => other,
+    };
     json!({
         "resultType": "complete",
         "content": [{ "type": "text", "text": text }],
         "structuredContent": structured,
     })
 }
+
+const SAID_WITHIN: usize = 600;
