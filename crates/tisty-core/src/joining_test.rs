@@ -66,3 +66,14 @@ fn a_longer_name_that_holds_the_one_that_goes_is_left_alone() {
 
     assert_eq!(relinked(&body, from, "playa-a42d4603.png"), None);
 }
+
+#[test]
+fn a_link_through_an_old_shelf_is_told_from_a_flat_one() {
+    let leaf = "foto-a42d4603.png";
+
+    assert!(shelved(&format!("![a](attachments/b7/{leaf})"), leaf));
+    assert!(!shelved(
+        &format!("![a](attachments/{leaf}) ![b]({leaf})"),
+        leaf
+    ));
+}

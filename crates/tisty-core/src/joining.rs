@@ -80,6 +80,17 @@ fn ends_a_name(after: &str) -> bool {
     }
 }
 
+/// Whether the body reaches `leaf` through an old shelf, `attachments/xx/<leaf>`.
+pub fn shelved(body: &str, leaf: &str) -> bool {
+    let tail = format!("/{leaf}");
+    body.match_indices(&tail).any(|(at, _)| {
+        let before = &body[..at];
+        before
+            .rfind('/')
+            .is_some_and(|cut| before[..cut].ends_with(crate::attach::SHED) && cut + 1 < at)
+    })
+}
+
 #[cfg(test)]
 #[path = "joining_test.rs"]
 mod tests;
