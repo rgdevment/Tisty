@@ -287,7 +287,7 @@ pub(in crate::mcp) fn file_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
                     .join(", "),
                 match &where_at {
                     Some(named) => format!("in the folder {named}"),
-                    None => "outside every folder".to_string(),
+                    None => "outside any folder".to_string(),
                 }
             ),
             "doc": said_docs(&names, listed),

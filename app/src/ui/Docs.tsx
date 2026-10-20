@@ -56,9 +56,12 @@ const SETTLES = 700;
 
 const REMEMBERS = 12;
 
-const remembered = (held: Map<string, string>, file: string, text: string) => {
+// `print` is of the body on disk the words were typed over; `unwoven` holds a woven body the screen has yet to show.
+type Read = { text: string; print?: string; unwoven?: boolean };
+
+const remembered = (held: Map<string, Read>, file: string, read: Read) => {
   held.delete(file);
-  held.set(file, text);
+  held.set(file, read);
   while (held.size > REMEMBERS) {
     const oldest = held.keys().next().value;
     if (oldest === undefined) break;
@@ -148,9 +151,7 @@ export default function Docs({
   const [stirred, setStirred] = useState(false);
   const [lately, setLately] = useState<[number, number] | null>(null);
   const [looking, setLooking] = useState(0);
-  const lastRead = useRef(new Map<string, string>());
-  // The print of the words in `lastRead`: a save lands only on the body they were typed over.
-  const printed = useRef(new Map<string, string>());
+  const lastRead = useRef(new Map<string, Read>());
   const onScreen = useRef<string | null>(null);
   const settling = useRef<ReturnType<typeof setTimeout>>(null);
   const held = useRef<{ id: string; body: string } | null>(null);
@@ -189,11 +190,10 @@ export default function Docs({
       const wrote_at = typed.current;
       const mine = queued(id, async () => {
         try {
-          const since = lastRead.current.has(id) ? printed.current.get(id) : undefined;
-          const fresh = await docWrite(id, text, anyway, since);
+          const fresh = await docWrite(id, text, anyway, lastRead.current.get(id)?.print);
           return { fresh, woven: null };
         } catch (e) {
-          const base = lastRead.current.get(id);
+          const base = lastRead.current.get(id)?.text;
           if ((e as { code?: string } | null)?.code !== "documentMoved" || base === undefined) {
             throw e;
           }
@@ -207,8 +207,7 @@ export default function Docs({
           setClashed(false);
           setSaved((many) => many + 1);
           if (fresh) {
-            remembered(lastRead.current, id, text);
-            printed.current.set(id, fresh.print);
+            remembered(lastRead.current, id, { text, print: fresh.print });
             onKept(fresh);
             return;
           }
@@ -216,11 +215,11 @@ export default function Docs({
           onKept({ id, title: woven.title });
           // Words typed since are woven by their own save, over what this one sent; the old print keeps it refused.
           if (typed.current !== wrote_at) {
-            remembered(lastRead.current, id, text);
+            const was = lastRead.current.get(id)?.print;
+            remembered(lastRead.current, id, { text, print: was, unwoven: true });
             return;
           }
-          remembered(lastRead.current, id, woven.body);
-          printed.current.set(id, woven.print);
+          remembered(lastRead.current, id, { text: woven.body, print: woven.print });
           if (onScreen.current !== id) return;
           shaped.current = woven.body;
           setBody(woven.body);
@@ -309,8 +308,7 @@ export default function Docs({
     try {
       const said = await docBack(open.file);
       const { body: text, print } = await docOpened(open.file);
-      remembered(lastRead.current, open.file, text);
-      printed.current.set(open.file, print);
+      remembered(lastRead.current, open.file, { text, print });
       shaped.current = text;
       setBody(text);
       setPacked(crowd(text));
@@ -328,8 +326,7 @@ export default function Docs({
     drop();
     docOpened(open.file)
       .then(({ body: text, print }) => {
-        remembered(lastRead.current, open.file, text);
-        printed.current.set(open.file, print);
+        remembered(lastRead.current, open.file, { text, print });
         shaped.current = text;
         setBody(text);
         setPacked(crowd(text));
@@ -402,12 +399,11 @@ export default function Docs({
         // Somebody typed while this was in flight: reading it back over them would lose the
         // words and drop the caret at the end.
         if (typed.current !== wrote_at) return;
-        const last = lastRead.current.get(wanted.file);
+        const last = lastRead.current.get(wanted.file)?.text;
         const astir = last !== undefined && tailless(last) !== tailless(text);
         // A round that brought other things reads this one again; the same words leave the block being written open.
         const same = before === wanted.file && !astir;
-        remembered(lastRead.current, wanted.file, text);
-        printed.current.set(wanted.file, print);
+        remembered(lastRead.current, wanted.file, { text, print });
         shaped.current = text;
         setStirred(astir);
         if (astir) setLately(changedIn(last, text));
@@ -459,7 +455,7 @@ export default function Docs({
     setCompacted(false);
     setBody(text);
     const last = lastRead.current.get(open.file);
-    const back = last !== undefined && tailless(last) === tailless(text);
+    const back = last !== undefined && !last.unwoven && tailless(last.text) === tailless(text);
     if (back) {
       // A chapter moved and moved back inside the beat would otherwise be written in the order it passed through.
       setWaiting(false);

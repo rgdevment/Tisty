@@ -269,9 +269,10 @@ fn called(paths: &Paths, name: &str, args: Value) -> Result<Value, Refused> {
     }
 }
 
-// Every other tool may have written, and an open window is told so at once.
-const ONLY_READS: [&str; 11] = [
+// A tool missing here only rings for nothing; the window's own round still catches what it wrote.
+const ONLY_READS: [&str; 12] = [
     "find",
+    "sum_up",
     "read",
     "read_doc",
     "outline_doc",
@@ -1247,16 +1248,17 @@ fn doc_named(state: &State, which: &str) -> String {
 /// The words to tell the person what was written: its title and where it sits, never its id.
 fn for_the_person(state: &State, which: &str, title: &str) -> String {
     let kept = state.docs.values().find(|one| one.file == which);
+    let called = match title.trim() {
+        "" => "an untitled document".to_string(),
+        title => format!("the document {title:?}"),
+    };
     let up = kept
         .and_then(|one| one.page_of)
         .and_then(|up| named_doc(state, up));
     match (up, kept.and_then(|one| one.folder)) {
-        (Some(up), _) => format!(
-            "the document {title:?}, a page of {}",
-            doc_titled(state, &up)
-        ),
-        (None, Some(at)) => format!("the document {title:?}, in the folder {}", trail(state, at)),
-        (None, None) => format!("the document {title:?}, outside any folder"),
+        (Some(up), _) => format!("{called}, a page of {}", doc_titled(state, &up)),
+        (None, Some(at)) => format!("{called}, in the folder {}", trail(state, at)),
+        (None, None) => format!("{called}, outside any folder"),
     }
 }
 

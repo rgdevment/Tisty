@@ -60,9 +60,7 @@ type Props = {
   readonly inline?: boolean;
   readonly shaping?: boolean;
   readonly sheet?: SheetSize;
-  // The bytes words from outside changed, marked on the page until the person has seen them.
   readonly lately?: readonly [number, number] | null;
-  // Each new count takes the page to the first passage marked.
   readonly looking?: number;
 };
 
@@ -610,7 +608,8 @@ export default function Sheet(props: Readonly<Props>) {
   // `turned` is each new drawing of the page, which comes without the marks.
   useEffect(() => {
     const page = shown.current?.document;
-    if (!page) return;
+    // A page drawn before the open block followed new words counts bytes the marks do not.
+    if (!page || drawn !== latest.current) return;
     for (const one of page.querySelectorAll<HTMLElement>(".page > [data-at]")) {
       const at = spanned(one.dataset.at ?? null);
       one.classList.toggle(
@@ -618,7 +617,7 @@ export default function Sheet(props: Readonly<Props>) {
         Boolean(lately && at && at[0] < lately[1] && at[1] > lately[0]),
       );
     }
-  }, [lately, turned]);
+  }, [lately, turned, drawn]);
 
   useEffect(() => {
     if (!looking) return;

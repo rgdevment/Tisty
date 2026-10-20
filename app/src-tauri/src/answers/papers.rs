@@ -1238,6 +1238,11 @@ pub fn doc_merge(
     let Some(whole) = tisty_core::merge::merged(&base, &mine, &theirs) else {
         return Ok(None);
     };
+    // The merge joins lines with `\n`; a body kept with `\r\n` stays so, or every line would read as changed.
+    let whole = match theirs.contains("\r\n") {
+        true => whole.replace("\r\n", "\n").replace('\n', "\r\n"),
+        false => whole,
+    };
     let seen = tisty_core::docs::print_of_text(&theirs);
     if !tisty_core::docs::write_over(&root, &id, &whole, &seen).map_err(unwritten)? {
         return Ok(None);

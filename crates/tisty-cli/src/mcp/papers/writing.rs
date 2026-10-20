@@ -518,6 +518,7 @@ print: {}",
                     if settled { "" } else { UNSETTLED }
                 ),
                 json!({
+                "for_the_person": for_the_person(state, which, &tisty_core::docs::titled(&whole)),
                 "doc": which,
                 "title": tisty_core::docs::titled(&whole),
                 "chars": whole.chars().count(),
