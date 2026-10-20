@@ -408,8 +408,12 @@ pub fn joined_in_ledger(
     bytes: u64,
 ) -> Result<()> {
     let keep = canonical(keep).ok_or_else(|| Error::OutsideTheStore(keep.to_string()))?;
+    let held = crate::docs::hold_named(root, LEDGER_LOCK, JOIN_WAIT_MS);
     let at = ledger(root);
-    let text = std::fs::read_to_string(&at).unwrap_or_default();
+    let text = match held {
+        Some(_) => std::fs::read_to_string(&at).unwrap_or_default(),
+        None => String::new(),
+    };
     let left: String = text
         .lines()
         .filter(|line| {
@@ -419,14 +423,15 @@ pub fn joined_in_ledger(
         })
         .map(|line| format!("{line}\n"))
         .collect();
-    if left != text {
+    // Unheld, the lines of the copies that went stay: the ledger names a copy still here first anyway.
+    if held.is_some() && left != text {
         crate::store::write_atomic(&at, left.as_bytes())?;
     }
     if digests(root)
         .get(&keep)
         .is_none_or(|(sha, _)| sha != sha256)
     {
-        noted_line(
+        noted_line_held(
             root,
             &Kept {
                 at: keep,
@@ -438,7 +443,21 @@ pub fn joined_in_ledger(
     Ok(())
 }
 
+const LEDGER_LOCK: &str = "attachments.lock";
+const BIN_LOCK: &str = "bin.lock";
+/// Held open by a writer, so a move or a backup passes them by instead of copying them.
+pub const LOCKS: [&str; 2] = [LEDGER_LOCK, BIN_LOCK];
+const LEDGER_WAIT_MS: u64 = 2000;
+// A join holds the window while it waits, so it waits less and leaves the old lines when it must.
+const JOIN_WAIT_MS: u64 = 500;
+
+// An append that cannot wait still goes in: a lost line costs a hash later, a refused keep costs a file.
 fn noted_line(root: &Path, kept: &Kept) {
+    let _held = crate::docs::hold_named(root, LEDGER_LOCK, LEDGER_WAIT_MS);
+    noted_line_held(root, kept);
+}
+
+fn noted_line_held(root: &Path, kept: &Kept) {
     let line = match serde_json::to_string(&Noted {
         at: kept.at.clone(),
         sha256: kept.sha256.clone(),
@@ -616,6 +635,35 @@ fn bin_ledger(root: &Path) -> PathBuf {
     root.join("bin.jsonl")
 }
 
+fn binned(root: &Path) -> Vec<Binned> {
+    std::fs::read_to_string(bin_ledger(root))
+        .unwrap_or_default()
+        .lines()
+        .filter_map(|line| serde_json::from_str(line).ok())
+        .collect()
+}
+
+fn rebinned(root: &Path, kept: &[Binned]) {
+    let left: String = kept
+        .iter()
+        .filter_map(|one| serde_json::to_string(one).ok())
+        .map(|line| format!("{line}\n"))
+        .collect();
+    if let Err(why) = crate::store::write_atomic(&bin_ledger(root), left.as_bytes()) {
+        witness::warn(
+            channel::ATTACH,
+            "the bin's ledger was not written, so what it holds may be named wrong",
+            &[("why", Fact::Why(why.to_string()))],
+        );
+    }
+}
+
+// A bin filled before the shelves went keeps them, and the last step finds either.
+fn in_bin(root: &Path, at: &str) -> Result<PathBuf> {
+    let rest = leaf_of(at).unwrap_or(at.trim_start_matches("attachments/"));
+    resolve(&format!("bin/{rest}"), root)
+}
+
 pub use tisty_markdown::kept::{SHED, leaf_of, lower_hex, stamped, stamped_by};
 
 pub fn canonical(reference: &str) -> Option<String> {
@@ -648,6 +696,9 @@ pub fn set_aside(root: &Path, reference: &str, now: i64) -> Result<()> {
         when: now,
     })
     .map_err(|e| Error::Io(std::io::Error::other(e)))?;
+    // Unheld, a whole rewrite of the bin's ledger could drop this line and leave the file untracked.
+    let _held =
+        crate::docs::hold_named(root, BIN_LOCK, LEDGER_WAIT_MS).ok_or(Error::AlreadyRunning)?;
     let ledger = bin_ledger(root);
     let whole = if tailed(&ledger) {
         format!("{line}\n")
@@ -666,15 +717,10 @@ pub fn set_aside(root: &Path, reference: &str, now: i64) -> Result<()> {
 }
 
 pub fn empty_the_bin(root: &Path, now: i64) -> usize {
-    let Ok(text) = std::fs::read_to_string(bin_ledger(root)) else {
+    let Some(_held) = crate::docs::hold_named(root, BIN_LOCK, LEDGER_WAIT_MS) else {
         return 0;
     };
-    let all: Vec<Binned> = text
-        .lines()
-        .filter_map(|line| serde_json::from_str(line).ok())
-        .collect();
-
-    let (stale, held): (Vec<Binned>, Vec<Binned>) = all
+    let (stale, held): (Vec<Binned>, Vec<Binned>) = binned(root)
         .into_iter()
         .partition(|one| now - one.when >= BIN_HOLDS_FOR);
     if stale.is_empty() {
@@ -683,9 +729,7 @@ pub fn empty_the_bin(root: &Path, now: i64) -> usize {
 
     let mut gone = 0;
     for one in &stale {
-        // A bin filled before the shelves went keeps them, and the last step finds either.
-        let rest = leaf_of(&one.at).unwrap_or(one.at.trim_start_matches("attachments/"));
-        let Ok(at) = resolve(&format!("bin/{rest}"), root) else {
+        let Ok(at) = in_bin(root, &one.at) else {
             continue;
         };
         match std::fs::remove_file(&at) {
@@ -698,19 +742,7 @@ pub fn empty_the_bin(root: &Path, now: i64) -> usize {
             ),
         }
     }
-
-    let left: String = held
-        .iter()
-        .filter_map(|one| serde_json::to_string(one).ok())
-        .map(|line| format!("{line}\n"))
-        .collect();
-    if let Err(why) = crate::store::write_atomic(&bin_ledger(root), left.as_bytes()) {
-        witness::warn(
-            channel::ATTACH,
-            "the bin was emptied but its ledger was not written, so what went may be named still",
-            &[("why", Fact::Why(why.to_string()))],
-        );
-    }
+    rebinned(root, &held);
     gone
 }
 

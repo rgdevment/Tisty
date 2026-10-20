@@ -3241,3 +3241,36 @@ fn the_window_writes_back_a_body_gone_from_the_disk() {
         "# Acta\n\nlo de la ventana\n"
     );
 }
+
+#[test]
+fn a_body_rewritten_for_good_leaves_no_step_back() {
+    let room = root();
+    let data = tempfile::tempdir().unwrap();
+    write(
+        room.path(),
+        "mac0-0001",
+        "# Acta\n\n![](foto-a42d4603.png)\n",
+    )
+    .unwrap();
+    let print = print_of(&resolve(room.path(), "mac0-0001").unwrap())
+        .unwrap()
+        .unwrap();
+
+    let made = rewrite_for_good(
+        room.path(),
+        "mac0-0001",
+        "# Acta\n\n![](playa-a42d4603.png)\n",
+        &print,
+    )
+    .unwrap();
+
+    assert!(matches!(made, Rewrite::Made { .. }));
+    assert!(read_before(data.path(), "mac0-0001").is_none());
+    assert!(
+        matches!(
+            rewrite_for_good(room.path(), "mac0-0001", "# Otra\n", &print).unwrap(),
+            Rewrite::Moved
+        ),
+        "a print read before the write no longer matches"
+    );
+}
