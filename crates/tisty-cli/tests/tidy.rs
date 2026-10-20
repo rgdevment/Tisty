@@ -854,6 +854,28 @@ fn a_new_document_outside_every_folder_is_pointed_at_the_closest_ones() {
 }
 
 #[test]
+fn two_plain_words_in_common_point_at_no_folder() {
+    let served = Served::new();
+    served.call("folder", json!({ "name": "Work" }));
+    let doc = served.paper(
+        "# Meeting notes weekly
+
+Who said what.",
+    );
+    served.call("file_doc", json!({ "doc": doc, "folder": "Work" }));
+
+    let loose = served.call(
+        "write_doc",
+        json!({ "body": "# Meeting notes dentist
+
+Next visit.", "anyway": true }),
+    );
+
+    let text = loose["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(!text.contains("Work"), "{text}");
+}
+
+#[test]
 fn a_new_document_is_pointed_at_the_folder_whose_documents_read_like_it() {
     let served = Served::new();
     served.call("folder", json!({ "name": "Projects" }));

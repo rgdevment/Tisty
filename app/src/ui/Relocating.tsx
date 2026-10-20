@@ -144,6 +144,7 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
           onCloud={() => setStep("cloud")}
           onFolder={() => setStep("folder")}
           onCancel={close}
+          busy={busy}
         />
       )}
 

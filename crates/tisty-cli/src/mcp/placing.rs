@@ -4,6 +4,7 @@ use super::trail;
 
 const NAMED_AT_MOST: usize = 3;
 const ALIKE_AT_LEAST: usize = 2;
+const WORDED_AT_LEAST: usize = 3;
 
 fn words(said: &str) -> Vec<String> {
     tisty_core::text::telling(said)
@@ -51,21 +52,28 @@ pub(super) fn closest_lists(state: &State, title: &str) -> Vec<String> {
     closest(title, all)
 }
 
-fn said_of(kept: &tisty_core::model::Kept) -> std::collections::BTreeSet<String> {
-    let mut all: std::collections::BTreeSet<String> =
-        words(kept.title.as_deref().unwrap_or_default())
-            .into_iter()
-            .collect();
-    all.extend(kept.tags.iter().map(|tag| tag.as_str().to_string()));
-    all
+type Told = (
+    std::collections::BTreeSet<String>,
+    std::collections::BTreeSet<String>,
+);
+
+fn told(title: &str, tags: impl Iterator<Item = String>) -> Told {
+    (words(title).into_iter().collect(), tags.collect())
+}
+
+// Two plain words like «meeting notes» say little; a shared tag, or three words, say the subject.
+fn alike((words, tags): &Told, (theirs, labels): &Told) -> bool {
+    let tagged = tags.intersection(labels).count();
+    let worded = words.intersection(theirs).count();
+    (tagged >= 1 && tagged + worded >= ALIKE_AT_LEAST) || worded >= WORDED_AT_LEAST
 }
 
 // A project's folder is named after the project, not after what its documents say, so they are asked too.
 fn alike_folders(state: &State, title: &str, body: &str) -> Vec<String> {
-    let mut mine: std::collections::BTreeSet<String> = words(title).into_iter().collect();
-    mine.extend(
+    let mine = told(
+        title,
         tisty_core::tagging::tags_in(body)
-            .iter()
+            .into_iter()
             .map(|tag| tag.as_str().to_string()),
     );
     let mut held: std::collections::BTreeMap<_, usize> = Default::default();
@@ -76,7 +84,11 @@ fn alike_folders(state: &State, title: &str, body: &str) -> Vec<String> {
         let Some(folder) = kept.folder else {
             continue;
         };
-        if said_of(kept).intersection(&mine).count() >= ALIKE_AT_LEAST {
+        let theirs = told(
+            kept.title.as_deref().unwrap_or_default(),
+            kept.tags.iter().map(|tag| tag.as_str().to_string()),
+        );
+        if alike(&mine, &theirs) {
             *held.entry(folder).or_default() += 1;
         }
     }
@@ -94,7 +106,14 @@ fn alike_folders(state: &State, title: &str, body: &str) -> Vec<String> {
 
 pub(super) fn loose_doc(state: &State, title: &str, body: &str) -> String {
     let named = closest_folders(state, title);
-    let alike = alike_folders(state, title, body);
+    let alike: Vec<String> = alike_folders(state, title, body)
+        .into_iter()
+        .filter(|one| {
+            !named
+                .iter()
+                .any(|name| one.starts_with(&format!("{name} (")))
+        })
+        .collect();
     match (named.as_slice(), alike.as_slice()) {
         ([], []) if state.folders.is_empty() => " It sits in no folder, and there are none yet: \
              ask the person where it belongs, suggesting a name, and make the folder once they agree."
