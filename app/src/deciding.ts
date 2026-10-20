@@ -1,5 +1,14 @@
 import { useSyncExternalStore } from "react";
-import { docs, type Pick, paperRifts, type Rift, settlePaper, taskOf, weavePaper } from "./core";
+import {
+  docs,
+  type Pick,
+  paperRifts,
+  type Rift,
+  settlePaper,
+  stillAtOdds,
+  taskOf,
+  weavePaper,
+} from "./core";
 import { fill, t } from "./locales";
 import { type Refusal, saidPlainly } from "./refusal";
 import { sure } from "./sure";
@@ -10,6 +19,9 @@ const decidedAt = new Map<string, number>();
 let decisions = 0;
 let queue: Promise<unknown> = Promise.resolve();
 const watching = new Set<() => void>();
+const tell = () => {
+  for (const one of watching) one();
+};
 
 type Asking = (named: string, rifts: Rift[]) => Promise<Pick[] | null>;
 type AskingWhole = (named: string) => Promise<Pick | null>;
@@ -92,7 +104,7 @@ const decideInTurn = async (ids: string[], byHand: boolean, since: number): Prom
   const putOff = byHand ? [] : fresh.filter((id) => later.has(id) && !reminded.has(id));
   const finish = (shut: string[], said: string | null): Decided => {
     for (const id of putOff) reminded.add(id);
-    for (const one of watching) one();
+    tell();
     return { shut, said, putOff };
   };
   if (!asking.length) return finish([], null);
@@ -142,6 +154,29 @@ const decideInTurn = async (ids: string[], byHand: boolean, since: number): Prom
 };
 
 export const leftForLater = (): string[] => [...later];
+
+let sifting: Promise<void> | null = null;
+
+export const settledElsewhere = (): Promise<void> => {
+  if (sifting || !later.size) return sifting ?? Promise.resolve();
+  const ids = [...later];
+  const since = decisions;
+  sifting = stillAtOdds(ids)
+    .catch(() => ids)
+    .then((said) => {
+      const still = new Set(said);
+      // One decided again while this looked was looked at too early to let go.
+      const gone = ids.filter(
+        (id) => !still.has(id) && later.has(id) && (decidedAt.get(id) ?? 0) <= since,
+      );
+      for (const id of gone) letGo(id);
+      if (gone.length) tell();
+    })
+    .finally(() => {
+      sifting = null;
+    });
+  return sifting;
+};
 
 const subscribe = (change: () => void) => {
   watching.add(change);

@@ -9,6 +9,7 @@ import { keptAll } from "./kept";
 import { t } from "./locales";
 import { saidPlainly } from "./refusal";
 import { settled } from "./saving";
+import { lookAgain } from "./syncSeen";
 import { CALENDAR_DROPPED } from "./ui/Calendars";
 import type { Chosen } from "./views";
 
@@ -147,11 +148,13 @@ export function useListening({
       latest.current();
       lookPapers();
       setCarried((was) => was + 1);
+      void lookAgain();
     });
     const landed = listen<string>("carried", (far) => {
       latest.current();
       if (far.payload === "papers") lookPapers();
       setCarried((was) => was + 1);
+      void lookAgain();
     });
     const sound = listen<unknown>("chime", (rung) => {
       if (heard(rung.payload)) play(rung.payload);

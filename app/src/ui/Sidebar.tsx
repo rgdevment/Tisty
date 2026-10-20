@@ -30,7 +30,6 @@ interface Props {
   onDocMenu: (doc: Filed, at: { x: number; y: number }) => void;
   onDocsMenu: (at: { x: number; y: number }) => void;
   onHereMenu: (at: { x: number; y: number }) => void;
-  carried?: number;
   onSync?: () => Promise<unknown> | undefined;
   onTrouble?: (text: string) => void;
 }
@@ -63,7 +62,6 @@ export default function Sidebar({
   onDocMenu,
   onDocsMenu,
   onHereMenu,
-  carried,
   onSync,
   onTrouble,
 }: Props) {
@@ -171,7 +169,6 @@ export default function Sidebar({
         </button>
         {onSync ? (
           <SyncFoot
-            carried={carried}
             onSync={onSync}
             onTrouble={onTrouble}
             onOpen={() => onChoose({ named: "keeping", tab: "sync", movedAt: Date.now() })}

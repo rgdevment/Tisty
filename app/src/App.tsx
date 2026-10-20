@@ -101,7 +101,6 @@ export default function App() {
             setMenu({ at, label: t("docsActions"), choices: hereChoices(hands, here ?? undefined) })
           }
           onChoose={choose}
-          carried={held.carried}
           onSync={() => held.carries.current?.now()}
           onTrouble={setError}
         />
