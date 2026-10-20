@@ -49,6 +49,8 @@ export function stamped(iso: string, now = new Date()): string {
   return daysFrom(iso, now) === 0 ? time : `${formats().day.format(at)} ${time}`;
 }
 
+export const dayOf = (iso: string): string => formats().day.format(new Date(iso));
+
 export const todayLong = (now = new Date()): string =>
   new Intl.DateTimeFormat(locale(), {
     weekday: "long",

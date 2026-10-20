@@ -2,8 +2,8 @@ use serde_json::{Value, json};
 use tisty_core::Paths;
 
 use tisty_core::State;
-use tisty_core::event::{LogEdit, Op, StepRef, StepText, TaskPatch};
-use tisty_core::model::{StepId, Task};
+use tisty_core::event::{LogEdit, Op, StepAdd, StepRef, StepText, TaskPatch};
+use tisty_core::model::{StepId, Task, TaskId};
 
 use super::asked::text;
 use super::chores::{
@@ -127,39 +127,100 @@ pub(super) fn unplan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     }
     let chosen = open_steps(task, &wanted, "taken off")?;
     let ids: Vec<StepId> = chosen.iter().map(|(step, _)| *step).collect();
-    let ops = ids
+    let to = match text(args, "to") {
+        Some(other) => Some(handed_to(&state, &store, id, &other)?),
+        None => None,
+    };
+    let mut ops: Vec<Op> = ids
         .iter()
         .map(|step| Op::StepRemove {
             id,
             d: StepRef { step: *step },
         })
         .collect();
+    if let Some((there, other)) = to {
+        let mut order = state.step_order_between(there, other.steps.last().map(|s| s.id), None);
+        for (_, words) in &chosen {
+            ops.push(Op::StepAdd {
+                id: there,
+                d: StepAdd {
+                    step: ulid::Ulid::generate(),
+                    text: words.clone(),
+                    order: order.clone(),
+                },
+            });
+            order = tisty_core::order::after(&order);
+        }
+    }
     let written = store
         .append_batch_unless(ops, |events| {
             let held = State::replay(events);
-            held.tasks.get(&id).is_none_or(|now| {
-                unsteady(&held, now)
-                    || !ids
-                        .iter()
+            let gone = |one: TaskId| held.tasks.get(&one).is_none_or(|now| unsteady(&held, now));
+            gone(id)
+                || to.is_some_and(|(there, _)| gone(there))
+                || held.tasks.get(&id).is_some_and(|now| {
+                    !ids.iter()
                         .all(|one| now.step(*one).is_some_and(|step| !step.done))
-            })
+                })
         })
         .map_err(hitch)?;
     if written.is_none() {
         return Err(moved(task));
     }
-    let page = super::worded::worded(paths, &mut store, id, |body, _| {
+    let mut page = super::worded::worded(paths, &mut store, id, |body, _| {
         Some(tisty_core::stages::unplanned(body, task, &ids))
     });
+    if let Some((there, _)) = to {
+        let also = super::worded::worded(paths, &mut store, there, |was, now| {
+            Some(tisty_core::stages::ticked(now, was))
+        });
+        if page.is_empty() {
+            page = also;
+        }
+    }
     let left = task.steps.len() - ids.len();
-    Ok(told(
-        format!(
+    let said = match to {
+        Some((_, other)) => format!(
+            "Moved {} step(s) from {:?} to the end of {:?}'s steps. {left} left on {:?}.{page}",
+            ids.len(),
+            task.title,
+            other.title,
+            task.title
+        ),
+        None => format!(
             "Took {} step(s) off {:?}. {left} left.{page}",
             ids.len(),
             task.title
         ),
-        json!({ "id": id.to_string(), "title": task.title, "removed": ids.len(), "left": left }),
+    };
+    Ok(told(
+        said,
+        json!({
+            "id": id.to_string(),
+            "title": task.title,
+            "removed": ids.len(),
+            "left": left,
+            "to": to.map(|(there, _)| there.to_string()),
+        }),
     ))
+}
+
+fn handed_to<'a>(
+    state: &'a State,
+    store: &tisty_core::Store,
+    from: TaskId,
+    said: &str,
+) -> Result<(TaskId, &'a Task), Refused> {
+    let (there, other) = filling(state, store, said)?;
+    if there == from {
+        return Err(Refused::Tool(
+            "`to` names the same task the steps are on; nothing was moved.".into(),
+        ));
+    }
+    if let Some(why) = already_said_done(other, "adding steps to it") {
+        return Err(why);
+    }
+    Ok((there, other))
 }
 
 pub(super) fn reword_note(paths: &Paths, args: &Value) -> Result<Value, Refused> {

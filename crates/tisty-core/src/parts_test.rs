@@ -338,3 +338,165 @@ fn taking_back_a_repeat_from_an_older_build_hangs_the_parts_again() {
 
     assert_eq!(whole_of(&state, part), Some(whole));
 }
+
+fn agent_moves(state: &mut State, ms: i64, id: TaskId, d: TaskMove) {
+    state.apply(&ev(ms, "dev_agent", Op::TaskMove { id, d }));
+}
+
+fn opened_to_agents(state: &mut State, ms: i64, id: TaskId) {
+    state.apply(&ev(
+        ms,
+        "dev_a",
+        Op::TaskUpdate {
+            id,
+            d: TaskPatch {
+                open_to_agents: Some(true),
+                ..Default::default()
+            },
+        },
+    ));
+}
+
+#[test]
+fn an_assistant_hangs_and_lets_go_what_it_may_work_on() {
+    let mut state = with_an_agent();
+    let whole = written(&mut state, 2, "dev_agent", "plan the move", None);
+    let persons = written(&mut state, 3, "dev_a", "pack", None);
+    opened_to_agents(&mut state, 4, persons);
+
+    let hung = TaskMove {
+        part_of: Some(Some(whole)),
+        ..Default::default()
+    };
+    agent_moves(&mut state, 5, persons, hung);
+    assert_eq!(whole_of(&state, persons), Some(whole), "opened to agents");
+
+    let let_go = TaskMove {
+        part_of: Some(None),
+        ..Default::default()
+    };
+    agent_moves(&mut state, 6, persons, let_go);
+    assert_eq!(whole_of(&state, persons), None);
+}
+
+#[test]
+fn an_assistant_files_in_a_list_only_what_an_agent_filed() {
+    let mut state = with_an_agent();
+    let list = Ulid::generate();
+    state.apply(&ev(
+        2,
+        "dev_a",
+        Op::ListAdd {
+            id: list,
+            d: crate::event::ListAdd {
+                name: "Work".into(),
+                order: "a0".into(),
+                color: None,
+            },
+        },
+    ));
+    let its_own = written(&mut state, 3, "dev_agent", "plan the move", None);
+    let persons = written(&mut state, 4, "dev_a", "pack", None);
+    opened_to_agents(&mut state, 5, persons);
+    let filed = || TaskMove {
+        list: Some(Some(list)),
+        ..Default::default()
+    };
+
+    agent_moves(&mut state, 6, its_own, filed());
+    agent_moves(&mut state, 7, persons, filed());
+
+    assert_eq!(state.tasks[&its_own].list, Some(list));
+    assert_eq!(
+        state.tasks[&persons].list, None,
+        "the person's keeps its list"
+    );
+}
+
+#[test]
+fn an_assistant_does_not_let_a_part_go_from_a_whole_kept_closed_to_it() {
+    let mut state = with_an_agent();
+    let whole = written(&mut state, 2, "dev_a", "move house", None);
+    let part = written(&mut state, 3, "dev_a", "book the van", Some(whole));
+    opened_to_agents(&mut state, 4, part);
+
+    agent_moves(
+        &mut state,
+        5,
+        part,
+        TaskMove {
+            part_of: Some(None),
+            ..Default::default()
+        },
+    );
+
+    assert_eq!(whole_of(&state, part), Some(whole));
+}
+
+#[test]
+fn an_assistant_does_not_move_a_part_out_of_a_whole_kept_closed_to_it() {
+    let mut state = with_an_agent();
+    let whole = written(&mut state, 2, "dev_a", "move house", None);
+    let part = written(&mut state, 3, "dev_a", "book the van", Some(whole));
+    opened_to_agents(&mut state, 4, part);
+    let elsewhere = written(&mut state, 5, "dev_agent", "plan the move", None);
+
+    agent_moves(
+        &mut state,
+        6,
+        part,
+        TaskMove {
+            part_of: Some(Some(elsewhere)),
+            ..Default::default()
+        },
+    );
+
+    assert_eq!(whole_of(&state, part), Some(whole));
+}
+
+#[test]
+fn an_assistant_moves_a_part_only_into_a_whole_it_may_work_on() {
+    let mut state = with_an_agent();
+    let whole = written(&mut state, 2, "dev_agent", "plan the move", None);
+    let part = written(&mut state, 3, "dev_agent", "book the van", Some(whole));
+    let persons = written(&mut state, 4, "dev_a", "move house", None);
+    let task = state.tasks[&part].clone();
+    let into = |next| TaskMove {
+        part_of: Some(Some(next)),
+        ..Default::default()
+    };
+
+    assert!(!state.agent_may_move(&task, &into(persons)));
+    opened_to_agents(&mut state, 5, persons);
+    assert!(state.agent_may_move(&task, &into(persons)));
+}
+
+#[test]
+fn a_refused_move_says_which_whole_keeps_it() {
+    let mut state = with_an_agent();
+    let persons = written(&mut state, 2, "dev_a", "move house", None);
+    let part = written(&mut state, 3, "dev_a", "book the van", Some(persons));
+    opened_to_agents(&mut state, 4, part);
+    let elsewhere = written(&mut state, 5, "dev_agent", "plan the move", None);
+    let task = state.tasks[&part].clone();
+    let to = |part_of| TaskMove {
+        part_of: Some(part_of),
+        ..Default::default()
+    };
+
+    assert_eq!(
+        state.agent_move_barred(&task, &to(Some(elsewhere))),
+        Some(MoveBarred::WholeClosed(persons))
+    );
+    assert_eq!(
+        state.agent_move_barred(&task, &to(None)),
+        Some(MoveBarred::WholeClosed(persons))
+    );
+    opened_to_agents(&mut state, 6, persons);
+    let mine = written(&mut state, 7, "dev_a", "pack the books", None);
+    assert_eq!(
+        state.agent_move_barred(&task, &to(Some(mine))),
+        Some(MoveBarred::NextClosed(mine))
+    );
+    assert_eq!(state.agent_move_barred(&task, &to(Some(elsewhere))), None);
+}

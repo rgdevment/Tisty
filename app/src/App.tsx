@@ -76,6 +76,7 @@ export default function App() {
           counts={data.counts}
           chosen={chosen}
           waiting={ready ? ready.version || t("updateWaiting") : undefined}
+          tried={desk.offering?.why === "knocked"}
           here={here}
           acting={menu?.on ?? null}
           onHere={(folder) => {

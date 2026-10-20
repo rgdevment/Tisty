@@ -1,5 +1,5 @@
 use super::Session;
-use crate::answers::papers::{one_step_back, went_back};
+use crate::answers::papers::{compacted_last, one_step_back, went_back};
 use tisty_core::{Op, Paths};
 
 struct Desk {
@@ -128,4 +128,67 @@ fn a_document_the_archive_holds_does_not_go_back() {
     assert_eq!(why.code, "documentAway");
     let now = tisty_core::docs::read(&session.paths.docs(), &doc).unwrap();
     assert!(now.contains("dos"), "nothing was written: {now}");
+}
+
+fn compacted(
+    session: &mut Session,
+    doc: &str,
+    print: &str,
+    before: &str,
+) -> tisty_core::model::DocId {
+    let id = session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == doc)
+        .unwrap()
+        .id;
+    session
+        .commit(Op::DocCompacted {
+            id,
+            print: Some(tisty_core::attach::printed(print.as_bytes())),
+            before: Some(tisty_core::attach::printed(before.as_bytes())),
+        })
+        .unwrap();
+    id
+}
+
+#[test]
+fn going_back_to_the_body_a_compaction_replaced_settles_its_mark() {
+    let desk = desk();
+    let mut session = Session::at(desk.paths.clone()).unwrap();
+    let doc = wrote(&mut session, "# Acta\n\nuno\n\nuno\n");
+    agent_wrote(&session, &doc, "# Acta\n\nuno\n");
+    let id = compacted(
+        &mut session,
+        &doc,
+        "# Acta\n\nuno, ya no\n",
+        "# Acta\n\nuno\n\nuno\n",
+    );
+    assert!(
+        !compacted_last(&session, &doc),
+        "written since, by its print"
+    );
+
+    went_back(&mut session, &doc).unwrap();
+
+    assert!(session.state.docs[&id].compacted.is_none());
+}
+
+#[test]
+fn a_compaction_is_the_last_word_only_while_the_body_is_its_own() {
+    let desk = desk();
+    let mut session = Session::at(desk.paths.clone()).unwrap();
+    let doc = wrote(&mut session, "# Acta\n\nuno\n\nuno\n");
+    agent_wrote(&session, &doc, "# Acta\n\nuno\n");
+    compacted(
+        &mut session,
+        &doc,
+        "# Acta\n\nuno\n",
+        "# Acta\n\nuno\n\nuno\n",
+    );
+
+    assert!(compacted_last(&session, &doc));
+    tisty_core::docs::write(&session.paths.docs(), &doc, "# Acta\n\ndos\n").unwrap();
+    assert!(!compacted_last(&session, &doc));
 }

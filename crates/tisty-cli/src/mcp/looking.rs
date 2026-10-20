@@ -139,7 +139,7 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .zip(&wheres)
         .map(|(task, said)| match said {
             Some((kind, line)) => format!(
-                "{:?} {} ({}) [{}]\n    {kind}: {line}",
+                "{:?} {} ({}) [{}]\n  {kind}: {line}",
                 task.title,
                 placed(&state, task),
                 standing(task),
@@ -413,7 +413,8 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         whole["notice"] = json!(notice);
     } else if task.open_to_agents {
         plainly.push_str(
-            " (open to agents: yours to describe, plan, tick, untick, reword or unplan an open step, \n             reword a note, and say done or not doing)",
+            " (open to agents: yours to describe, plan, tick, untick, reword or unplan an open step, \
+             reword a note, and say done or not doing)",
         );
     }
     if let Some(body) = &task.description
@@ -649,15 +650,16 @@ pub(super) fn language(args: &Value) -> Value {
     };
     let whole = format!("{drawn}llms-full.txt");
     let index = format!("{GUIDE}llms.txt");
+    let reference = tisty_markdown::reference(spanish).trim_end();
     told(
         format!(
-            "{}
+            "{reference}
 
 The same guide, with every example drawn, is published at {drawn}; this whole text at {whole}, and an index of its topics at {index}.
-",
-            tisty_markdown::reference(spanish).trim_end()
+"
         ),
         json!({
+            "reference": reference,
             "lang": if spanish { "es" } else { "en" },
             "guide": drawn,
             "full": whole,

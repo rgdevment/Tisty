@@ -770,9 +770,16 @@ export const starDue = (): Promise<boolean> => invoke("star_due");
 
 export const starDone = (): Promise<void> => invoke("star_done");
 
-export const doorDue = (): Promise<boolean> => invoke("door_due");
+export interface DoorDue {
+  why: "installed" | "mute" | "knocked";
+  by: string | null;
+}
+
+export const doorDue = (): Promise<DoorDue | null> => invoke("door_due");
 
 export const doorDone = (): Promise<void> => invoke("door_done");
+
+export const doorHeard = (): Promise<void> => invoke("door_heard");
 export const facts = (names: boolean, paths: boolean): Promise<Facts> =>
   invoke("facts", { names, paths });
 export const keepReport = (at: string, text: string, logs: boolean): Promise<void> =>
@@ -1110,6 +1117,13 @@ export interface Marked {
   at: string;
   said: string;
   via?: string | null;
+  reason?: string | null;
+  instead?: string | null;
+}
+
+export interface Compaction {
+  at: string;
+  via?: string | null;
 }
 
 export interface Filed {
@@ -1130,6 +1144,7 @@ export interface Filed {
   guest?: string | null;
   tags?: string[];
   flagged?: Marked | null;
+  compacted?: Compaction | null;
   folderWas?: string[] | null;
 }
 
@@ -1223,6 +1238,9 @@ export const folderAway = (id: string, away: boolean): Promise<void> =>
 export const docLock = (id: string, shut: boolean): Promise<void> =>
   invoke("doc_lock", { id, shut });
 export const docUnflag = (id: string): Promise<void> => invoke("doc_unflag", { id });
+export const docKeepCompacted = (id: string): Promise<void> => invoke("doc_keep_compacted", { id });
+export const docCompactedLast = (id: string): Promise<boolean> =>
+  invoke("doc_compacted_last", { id });
 
 export const docCopy = (id: string): Promise<Doc> => invoke("doc_copy", { id });
 

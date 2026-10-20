@@ -40,6 +40,7 @@ fn beside(state: &State, args: &Value) -> Result<Beside, Refused> {
                     "no document here is called {which:?}. `docs` lists them all."
                 )));
             };
+            super::papers::compacting::awaiting(state, kept)?;
             if state.shut(kept.id) {
                 return Err(Refused::Tool(format!(
                     "{which:?} is locked. The person shut it so nothing writes in it — not the \

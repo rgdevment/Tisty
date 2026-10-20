@@ -91,6 +91,51 @@ fn nothing_can_be_filed_until_a_person_turns_an_agent_on() {
 }
 
 #[test]
+fn a_hand_turned_away_leaves_its_knock_for_the_window() {
+    let served = Served::new();
+    let knocked = served.home.path().join("config/private/knocked.json");
+    let greeted = serde_json::json!({
+        "jsonrpc": "2.0", "id": 1, "method": "initialize",
+        "params": { "protocolVersion": "2025-06-18", "capabilities": {},
+                    "clientInfo": { "name": "claude-code", "version": "1" } },
+    })
+    .to_string();
+    let asked = serde_json::json!({
+        "jsonrpc": "2.0", "id": 2, "method": "tools/call",
+        "params": { "name": "propose", "arguments": { "title": "not yet" } },
+    })
+    .to_string();
+    assert!(!knocked.exists());
+
+    let said = served.talk(&[&greeted, &asked]);
+
+    assert!(
+        said.iter()
+            .any(|one| one["id"] == 2 && one["result"]["isError"] == true)
+    );
+    let left: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&knocked).unwrap()).unwrap();
+    assert_eq!(left["by"], "claude-code", "{left}");
+    assert!(left["at"].is_string(), "{left}");
+}
+
+#[test]
+fn a_hand_let_in_leaves_no_knock() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+
+    served.call("propose", serde_json::json!({ "title": "welcome" }));
+
+    assert!(
+        !served
+            .home
+            .path()
+            .join("config/private/knocked.json")
+            .exists()
+    );
+}
+
+#[test]
 fn what_the_agent_files_is_written_by_the_agent_and_not_by_the_person() {
     let served = Served::new();
     served.person().lets_the_agent_in();
@@ -318,6 +363,7 @@ fn there_is_no_tool_for_closing_dropping_or_deleting() {
             "rename",
             "reword_step",
             "unplan",
+            "move",
             "reword_note",
             "note",
             "attach",
@@ -343,6 +389,7 @@ fn there_is_no_tool_for_closing_dropping_or_deleting() {
             "read",
             "find",
             "lists",
+            "rules",
             "language",
             "tags"
         ]
@@ -3816,8 +3863,24 @@ fn the_instructions_do_not_promise_what_the_tools_no_longer_hold_to() {
     let served = Served::new();
 
     let said = served.talk(&[r#"{"jsonrpc":"2.0","id":1,"method":"server/discover","params":{}}"#]);
-    let taught = said[0]["result"]["instructions"].as_str().unwrap();
+    let head = said[0]["result"]["instructions"].as_str().unwrap();
+    let rules = served.call("rules", serde_json::json!({}));
+    let tidying = served.call("rules", serde_json::json!({ "topic": "tidying" }));
+    let taught = format!(
+        "{head}\n{}\n{}",
+        rules["result"]["structuredContent"]["rules"]
+            .as_str()
+            .unwrap(),
+        tidying["result"]["structuredContent"]["rules"]
+            .as_str()
+            .unwrap()
+    );
+    let taught = taught.as_str();
 
+    assert!(
+        head.chars().count() < 2000 && head.contains("`rules`"),
+        "some clients cut the instructions near two thousand characters, so they point at the rest: {head}"
+    );
     assert!(
         !taught.contains("edit what the person wrote"),
         "an assistant may edit a document now, and being told otherwise is being told a lie: \
@@ -3838,6 +3901,22 @@ fn the_instructions_do_not_promise_what_the_tools_no_longer_hold_to() {
     assert!(
         taught.contains("a task is also a document, one with an end"),
         "{taught}"
+    );
+    assert!(
+        taught.contains("The default write is updating what exists, in place"),
+        "updating in place is the default, not adding: {taught}"
+    );
+    assert!(
+        taught.contains("## One living document per subject") && taught.contains("## Compacting"),
+        "{taught}"
+    );
+    assert!(
+        taught.contains("Everything you write has a place"),
+        "nothing is left loose without a reason: {taught}"
+    );
+    assert!(
+        !taught.contains("Prefer adding over replacing"),
+        "adding is the exception now: {taught}"
     );
 }
 
@@ -5669,11 +5748,59 @@ fn putting_a_document_away_and_filing_it_is_written_as_one_thing() {
 }
 
 #[test]
+fn no_tool_description_carries_a_double_space() {
+    let served = Served::new();
+    let listed = served.talk(&[r#"{"jsonrpc":"2.0","id":1,"method":"tools/list"}"#]);
+    let mut left = vec![listed[0]["result"]["tools"].clone()];
+    let mut found = Vec::new();
+    while let Some(one) = left.pop() {
+        match one {
+            serde_json::Value::Array(all) => left.extend(all),
+            serde_json::Value::Object(all) => {
+                for (key, value) in all {
+                    match value.as_str() {
+                        Some(said) if key == "description" => {
+                            if said.lines().any(|line| line.trim().contains("  ")) {
+                                found.push(said.chars().take(90).collect::<String>());
+                            }
+                        }
+                        _ => left.push(value),
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    assert!(found.is_empty(), "{found:#?}");
+}
+
+#[test]
 fn no_sentence_in_the_source_carries_a_gap_where_a_line_was_continued() {
-    let said = std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/src/mcp.rs")).unwrap();
-    let found: Vec<(usize, String)> = said
-        .lines()
-        .enumerate()
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let mut files = vec![root.join("mcp.rs")];
+    let mut dirs = vec![root.join("mcp")];
+    while let Some(dir) = dirs.pop() {
+        for one in std::fs::read_dir(dir).unwrap().flatten() {
+            match one.path().is_dir() {
+                true => dirs.push(one.path()),
+                false => files.push(one.path()),
+            }
+        }
+    }
+    let lines: Vec<(String, String)> = files
+        .iter()
+        .flat_map(|at| {
+            let said = std::fs::read_to_string(at).unwrap();
+            let name = at.display().to_string();
+            said.lines()
+                .enumerate()
+                .map(|(n, line)| (format!("{name}:{}", n + 1), line.to_string()))
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    let found: Vec<(String, String)> = lines
+        .into_iter()
         .filter(|(_, line)| {
             let trimmed = line.trim_start();
             trimmed.starts_with('"')
@@ -5689,7 +5816,7 @@ fn no_sentence_in_the_source_carries_a_gap_where_a_line_was_continued() {
                     && !held.contains("{wide}")
             })
         })
-        .map(|(at, line)| (at + 1, line.trim().chars().take(90).collect()))
+        .map(|(at, line)| (at, line.trim().chars().take(90).collect()))
         .collect();
 
     assert!(

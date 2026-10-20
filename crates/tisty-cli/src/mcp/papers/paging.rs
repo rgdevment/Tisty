@@ -107,6 +107,7 @@ pub(in crate::mcp) fn page_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
                     named_all(&state, &many)
                 )));
             }
+            super::compacting::awaiting(&state, up)?;
             if state.shut(up.id) {
                 return Err(Refused::Tool(format!(
                     "{said} is locked, and hanging a page off it writes the line that names \
@@ -323,6 +324,7 @@ fn which_ones_move(state: &State, many: &[String], up: Option<DocId>) -> Result<
                 "no document here is called {which:?}. `docs` lists them all."
             )));
         };
+        super::compacting::awaiting(state, kept)?;
         if state.shut(kept.id) {
             return Err(Refused::Tool(format!(
                 "{which} is locked. Where a locked document sits is part of what the person shut \

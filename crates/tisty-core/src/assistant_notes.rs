@@ -21,6 +21,25 @@ pub fn noted(body: &str, note: &str, spanish: bool) -> String {
     format!("{head}{line}{line}{note}{line}{tail}{rest}")
 }
 
+pub fn rewritten(body: &str, note: &str, spanish: bool) -> String {
+    let Some((_, words)) = crate::closing::held(body, &ASSISTANT_NOTES) else {
+        return noted(body, note, spanish);
+    };
+    let line = if body.contains("\r\n") { "\r\n" } else { "\n" };
+    let note = kept_inside(note.trim()).replace('\n', line);
+    let head = body[..words.start].trim_end_matches(['\n', '\r']);
+    let rest = &body[words.end..];
+    let tail = if rest.is_empty() { "" } else { line };
+    format!("{head}{line}{line}{note}{line}{tail}{rest}")
+}
+
+pub fn outside(body: &str) -> String {
+    match crate::closing::held(body, &ASSISTANT_NOTES) {
+        Some((head, words)) => format!("{}{}", &body[..head.start], &body[words.end..]),
+        None => body.to_string(),
+    }
+}
+
 // Its headings sit under the section and a fence left open is closed, so nothing it says leaves it.
 fn kept_inside(note: &str) -> String {
     let deeper = crate::task_docs::deeper(note);

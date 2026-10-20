@@ -184,6 +184,42 @@ pub fn retire(paths: &Paths) -> Result<Option<DeviceId>> {
     Ok(Some(who))
 }
 
+const KNOCKED: &str = "knocked.json";
+const KNOCKED_AGAIN: jiff::SignedDuration = jiff::SignedDuration::from_secs(60);
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct Knock {
+    pub at: jiff::Timestamp,
+    pub by: Option<String>,
+}
+
+/// A hand turned away at a closed door, kept so the window can tell the person it came.
+pub fn knock(paths: &Paths, by: Option<&str>) -> Result<()> {
+    knocked_at(paths, by, jiff::Timestamp::now())
+}
+
+fn knocked_at(paths: &Paths, by: Option<&str>, now: jiff::Timestamp) -> Result<()> {
+    let again = knocked(paths).is_some_and(|last| {
+        last.by.as_deref() == by && now.duration_since(last.at) < KNOCKED_AGAIN
+    });
+    if again {
+        return Ok(());
+    }
+    let private = paths.private();
+    std::fs::create_dir_all(&private)?;
+    let _ = crate::paths::ours_alone(&private);
+    let told = serde_json::to_vec(&Knock {
+        at: now,
+        by: by.map(str::to_string),
+    })?;
+    crate::store::write_atomic(&private.join(KNOCKED), &told)
+}
+
+pub fn knocked(paths: &Paths) -> Option<Knock> {
+    let told = std::fs::read(paths.private().join(KNOCKED)).ok()?;
+    serde_json::from_slice(&told).ok()
+}
+
 pub fn registered(paths: &Paths) -> Result<Option<DeviceId>> {
     Ok(Config::load_or_init(paths)?.agent_id)
 }

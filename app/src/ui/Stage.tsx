@@ -29,6 +29,7 @@ export default function Stage() {
     detailing,
     docMenu,
     dropDoc,
+    dropDocs,
     folderMenu,
     greeted,
     here,
@@ -36,6 +37,7 @@ export default function Stage() {
     load,
     lookPapers,
     openDoc,
+    opening,
     paging,
     papers,
     papersChanged,
@@ -113,6 +115,11 @@ export default function Stage() {
       onShown={setShowing}
       onDoc={openDoc}
       onDrop={dropDoc}
+      onDropAll={(all) => void dropDocs(all)}
+      onTask={(one) => {
+        if (one.list) setChosen({ named: "lists", list: one.list });
+        opening(one);
+      }}
       onBack={bringBack}
       fresh={carried}
     />

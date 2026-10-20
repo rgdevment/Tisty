@@ -316,7 +316,7 @@ fn neither_word_about_a_task_being_done_settles_by_itself() {
 
     assert!(
         !said.settles() && !rejected.settles(),
-        "cada una es la inversa de la otra: si una se saltara, deshacer volveria sobre sus pasos          para siempre"
+        "cada una es la inversa de la otra: si una se saltara, deshacer volveria sobre sus pasos para siempre"
     );
 }
 
@@ -592,4 +592,23 @@ fn what_cannot_be_walked_past_without_losing_something_is_not_optional() {
             "an older build walking past this loses something it cannot get back: {one:?}"
         );
     }
+}
+
+#[test]
+fn saying_a_document_was_compacted_is_a_line_an_older_build_walks_past() {
+    let said = tisty_core::Op::DocCompacted {
+        id: ulid::Ulid::generate(),
+        print: Some("p".into()),
+        before: Some("b".into()),
+    };
+    let settled = tisty_core::Op::DocUncompacted {
+        id: ulid::Ulid::generate(),
+    };
+
+    assert!(said.is_optional(), "an older build would choke on it");
+    assert!(settled.is_optional(), "an older build would choke on it");
+    assert!(
+        said.settles() && settled.settles(),
+        "without this, undo stops at a mark that changes nothing"
+    );
 }

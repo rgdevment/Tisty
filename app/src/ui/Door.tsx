@@ -1,20 +1,65 @@
-import { doorDone } from "../core";
-import { t } from "../locales";
+import { useEffect, useRef, useState } from "react";
+import { agentTurn, type DoorDue, doorDone, doorHeard } from "../core";
+import { fill, t } from "../locales";
+import { clientNamed } from "../who";
 import Corner from "./Corner";
+
+const WELCOMED_FOR_MS = 2600;
 
 interface Props {
   apart: string;
+  due: DoorDue;
   onSettled: () => void;
   onOpen: () => void;
   onError: (problem: unknown) => void;
 }
 
-export default function Door({ apart, onSettled, onOpen, onError }: Props) {
+export default function Door({ apart, due, onSettled, onOpen, onError }: Props) {
+  const [welcomed, setWelcomed] = useState(false);
+  if (welcomed) {
+    const name = clientNamed(due.by);
+    return (
+      <Welcomed
+        apart={apart}
+        title={name ? fill("doorWelcomed", name) : t("doorWelcomedUnnamed")}
+        onSettled={onSettled}
+      />
+    );
+  }
+  const letIn = (heard: () => Promise<void>) => {
+    agentTurn(true)
+      .then(() => {
+        setWelcomed(true);
+        return heard();
+      })
+      .catch(onError);
+  };
+  if (due.why === "knocked") {
+    return (
+      <Knocked {...{ apart, due, onSettled, onOpen, onError }} letIn={() => letIn(doorHeard)} />
+    );
+  }
   const settle = (open: boolean) => {
     onSettled();
     doorDone().catch(onError);
     if (open) onOpen();
   };
+
+  if (due.why === "mute") {
+    return (
+      <Corner
+        apart={apart}
+        label={t("doorTitle")}
+        mark={<DoorMark className="mt-px size-[15px] shrink-0 text-hue-blue" />}
+        title={t("doorMute")}
+        why={t("doorMuteWhy")}
+        go={{ label: t("doorLetIn"), onClick: () => letIn(doorDone) }}
+        aside={{ label: t("doorSeeSettings"), onClick: () => settle(true) }}
+        no={{ label: t("doorNo"), onClick: () => settle(false) }}
+        later={{ label: t("doorLater"), onClick: onSettled }}
+      />
+    );
+  }
 
   return (
     <Corner
@@ -27,6 +72,65 @@ export default function Door({ apart, onSettled, onOpen, onError }: Props) {
       no={{ label: t("doorNo"), onClick: () => settle(false) }}
       later={{ label: t("doorLater"), onClick: onSettled }}
     />
+  );
+}
+
+function Knocked({ apart, due, onSettled, onOpen, onError, letIn }: Props & { letIn: () => void }) {
+  const name = clientNamed(due.by);
+  const heard = (open: boolean) => {
+    onSettled();
+    doorHeard().catch(onError);
+    if (open) onOpen();
+  };
+
+  return (
+    <Corner
+      apart={apart}
+      label={t("doorTitle")}
+      mark={<DoorMark className="mt-px size-[15px] shrink-0 text-hue-blue" />}
+      title={name ? fill("doorKnocked", name) : t("doorKnockedUnnamed")}
+      why={t("doorKnockedWhy")}
+      go={{ label: t("doorLetIn"), onClick: letIn }}
+      aside={{ label: t("doorSeeSettings"), onClick: () => heard(true) }}
+      later={{ label: t("doorLater"), onClick: () => heard(false) }}
+    />
+  );
+}
+
+function Welcomed({
+  apart,
+  title,
+  onSettled,
+}: {
+  apart: string;
+  title: string;
+  onSettled: () => void;
+}) {
+  const settled = useRef(onSettled);
+  settled.current = onSettled;
+  useEffect(() => {
+    const away = () => settled.current();
+    const timer = window.setTimeout(away, WELCOMED_FOR_MS);
+    window.addEventListener("click", away, true);
+    window.addEventListener("keydown", away, true);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("click", away, true);
+      window.removeEventListener("keydown", away, true);
+    };
+  }, []);
+
+  return (
+    <section
+      role="status"
+      aria-label={t("doorTitle")}
+      className={`arrive absolute bottom-3 z-30 w-[280px] rounded-[10px] border border-line bg-bg px-[13px] py-3 shadow-lift ${apart}`}
+    >
+      <div className="flex items-start gap-2.5">
+        <DoorMark className="mt-px size-[15px] shrink-0 text-hue-blue" />
+        <b className="block min-w-0 flex-1 text-[13px] leading-snug font-semibold">{title}</b>
+      </div>
+    </section>
   );
 }
 

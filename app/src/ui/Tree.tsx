@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Filed, Folded, Papers } from "../core";
 import { led } from "../leading";
 import { fill, t } from "../locales";
+import { compactedBy } from "../tidying";
 import { clientNamed } from "../who";
 import {
   type Carried,
@@ -570,6 +571,11 @@ export default function Tree({
                 className="shrink-0 text-[9px] text-hue-teal"
               >
                 ◆
+              </span>
+            )}
+            {doc.compacted && !doc.away && (
+              <span title={compactedBy(doc)} className="shrink-0 text-[9px] text-hue-teal">
+                ◇
               </span>
             )}
             {doc.guest !== null && doc.guest !== undefined && (

@@ -6,7 +6,9 @@ mod handing;
 mod jsonrpc;
 mod looking;
 mod mending;
+mod moving;
 mod papers;
+mod placing;
 mod spoken;
 mod task_notes;
 mod unpathing;
@@ -14,7 +16,8 @@ mod wholes;
 mod worded;
 
 use papers::editing::edit_doc;
-use papers::filing::{archive_doc, file_doc, flag_doc, folder};
+use papers::filing::{archive_doc, file_doc, folder};
+use papers::flagging::flag_doc;
 use papers::importing::import_doc;
 use papers::paging::page_doc;
 use papers::reading::{export_doc, outline_doc, read_doc};
@@ -224,6 +227,7 @@ fn called(paths: &Paths, name: &str, args: Value) -> Result<Value, Refused> {
         "rename" => rename(paths, &args),
         "reword_step" => reword_step(paths, &args),
         "unplan" => unplan(paths, &args),
+        "move" => moving::move_task(paths, &args),
         "reword_note" => spoken(&args, "body", |args| reword_note(paths, args)),
         "find" => find(paths, &args),
         "read" => read(paths, &args),
@@ -249,6 +253,7 @@ fn called(paths: &Paths, name: &str, args: Value) -> Result<Value, Refused> {
         "lists" => lists(paths),
         "tags" => tags(paths),
         "language" => Ok(language(&args)),
+        "rules" => Ok(catalogue::rules(&args)),
         "attach" => attach(paths, &args),
         "" => Err(Refused::Protocol(-32602, "a call needs a name".into())),
         other => Err(Refused::Protocol(
@@ -334,23 +339,24 @@ fn pointed(name: &str) -> Option<&'static str> {
     })
 }
 
+fn turned_away(paths: &Paths) -> Refused {
+    let _ = tisty_core::agent::knock(paths, speaking_through().as_deref());
+    Refused::Tool(
+        "no agent is registered on this machine. The person turns one on in Tisty's settings, \
+         under Assistants."
+            .into(),
+    )
+}
+
 fn opened(paths: &Paths) -> Result<(State, Store), Refused> {
     let config = tisty_core::Config::load_or_init(paths).map_err(hitch)?;
     let Some(agent) = config.agent_id.clone() else {
-        return Err(Refused::Tool(
-            "no agent is registered on this machine. The person turns one on in Tisty's settings, \
-             under Assistants."
-                .into(),
-        ));
+        return Err(turned_away(paths));
     };
     let state = tisty_core::cache::project(&paths.store(), paths.cache()).map_err(hitch)?;
     // The log says who may write, not the settings file an agent could edit itself.
     if !state.agents.contains(&agent) {
-        return Err(Refused::Tool(
-            "no agent is registered on this machine. The person turns one on in Tisty's settings, \
-             under Assistants."
-                .into(),
-        ));
+        return Err(turned_away(paths));
     }
     let key = tisty_core::signing::mine(paths, &agent);
     let store = Store::open(paths.store(), agent)

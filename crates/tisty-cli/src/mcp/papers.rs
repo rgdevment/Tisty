@@ -1,5 +1,8 @@
+pub(super) mod alike;
+pub(super) mod compacting;
 pub(super) mod editing;
 pub(super) mod filing;
+pub(super) mod flagging;
 pub(super) mod importing;
 pub(super) mod paging;
 pub(super) mod reading;

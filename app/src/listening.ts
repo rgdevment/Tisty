@@ -2,7 +2,7 @@ import { listen } from "@tauri-apps/api/event";
 import { type MutableRefObject, useEffect, useRef } from "react";
 import { carrying } from "./carrying";
 import { heard, play } from "./chime";
-import { type Afoot, attach, doorDue, parted, syncState } from "./core";
+import { type Afoot, attach, type DoorDue, doorDue, parted, syncState } from "./core";
 import { decideAll, putOffSaid } from "./deciding";
 import { CALENDAR, handTo, whenFilesLand } from "./dropped";
 import { keptAll } from "./kept";
@@ -30,7 +30,7 @@ interface Hands {
   setGreet: (greet: boolean) => void;
   setLeaving: (leaving: boolean) => void;
   setStarring: Setter<boolean>;
-  setOffering: Setter<boolean>;
+  setOffering: Setter<DoorDue | null>;
   setAfoot: Setter<Afoot | null>;
 }
 
@@ -56,6 +56,11 @@ export function useListening({
     const again = () => {
       latest.current();
       lookPapers();
+      doorDue()
+        .then((due) => {
+          if (due?.why === "knocked") setOffering(due);
+        })
+        .catch(() => {});
     };
     const shownAgain = () => {
       if (document.visibilityState === "visible") again();
@@ -66,7 +71,7 @@ export function useListening({
       window.removeEventListener("focus", again);
       document.removeEventListener("visibilitychange", shownAgain);
     };
-  }, [latest, lookPapers]);
+  }, [latest, lookPapers, setOffering]);
 
   useEffect(() => {
     let day = new Date().getDate();
@@ -134,7 +139,7 @@ export function useListening({
     const stop = listen("closing", () => setLeaving(true));
     const gone = listen("withdrawn", () => {
       setStarring(false);
-      setOffering(false);
+      setOffering(null);
     });
     const caught = listen("captured", () => latest.current());
     // The snapshot carries no documents, so a paper written from outside would go unseen till relaunch.
@@ -170,12 +175,12 @@ export function useListening({
 
   useEffect(() => {
     setStarring(false);
-    setOffering(false);
+    setOffering((was) => (was?.why === "knocked" ? was : null));
   }, [chosen, setStarring, setOffering]);
 
   useEffect(() => {
     doorDue()
-      .then((due) => setOffering((was) => was || due))
+      .then((due) => setOffering((was) => (due?.why === "knocked" ? due : (was ?? due))))
       .catch(() => {});
   }, [greeted, setOffering]);
 

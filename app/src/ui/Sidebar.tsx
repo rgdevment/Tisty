@@ -16,6 +16,7 @@ interface Props {
   counts: Record<string, number>;
   chosen: Chosen;
   waiting?: string;
+  tried?: boolean;
   onChoose: (chosen: Chosen) => void;
 
   here?: string | null;
@@ -46,6 +47,7 @@ export default function Sidebar({
   counts,
   chosen,
   waiting,
+  tried,
   onChoose,
   here,
   acting,
@@ -60,6 +62,7 @@ export default function Sidebar({
 }: Props) {
   const [openDocs, setOpenDocs] = useState(true);
   const knocked = useKnocking().waiting.length > 0;
+  const told = knocked ? t("knockDot") : tried ? t("doorKnockedUnnamed") : undefined;
 
   return (
     <aside className="flex flex-col overflow-hidden">
@@ -139,7 +142,7 @@ export default function Sidebar({
       <div className="flex shrink-0 items-center border-t border-hair px-2.5 py-2">
         <button
           type="button"
-          aria-label={knocked ? `${t("keeping")} · ${t("knockDot")}` : t("keeping")}
+          aria-label={told ? `${t("keeping")} · ${told}` : t("keeping")}
           title={t("keeping")}
           onClick={() => onChoose({ named: "keeping" })}
           className={`relative grid size-7 place-items-center rounded-[10px] hover:bg-hover ${
@@ -151,6 +154,13 @@ export default function Sidebar({
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.2.62.77 1.05 1.42 1.06H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
           </Drawn>
           <KnockDot />
+          {tried && !knocked && (
+            <span
+              role="img"
+              aria-label={t("doorKnockedUnnamed")}
+              className="absolute top-1 right-1 h-[7px] w-[7px] rounded-full bg-hue-blue"
+            />
+          )}
         </button>
         <Mode onOpen={() => onChoose({ named: "keeping" })} />
         <button
