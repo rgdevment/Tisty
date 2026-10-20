@@ -813,19 +813,6 @@ impl Session {
         self.place()
     }
 
-    /// A body gone back may name a copy a join set aside; it comes back now, not at the next start.
-    pub fn unbin_named(&self, body: &str) {
-        let data = self.paths.data();
-        if !tisty_core::attach::binned_any(data) {
-            return;
-        }
-        let named = tisty_core::refs::extract(body)
-            .into_iter()
-            .filter_map(|one| tisty_core::attach::canonical(&one.target))
-            .collect();
-        tisty_core::attach::unbinned(data, &named);
-    }
-
     pub fn tidy_up(&mut self, bin: bool) {
         tisty_core::parcel::swept(self.paths.data());
         tisty_core::attach::swept(self.paths.data());

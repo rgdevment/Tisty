@@ -658,10 +658,6 @@ fn rebinned(root: &Path, kept: &[Binned]) {
     }
 }
 
-pub fn binned_any(root: &Path) -> bool {
-    std::fs::metadata(bin_ledger(root)).is_ok_and(|told| told.len() > 0)
-}
-
 // A bin filled before the shelves went keeps them, and the last step finds either.
 fn in_bin(root: &Path, at: &str) -> Result<PathBuf> {
     let rest = leaf_of(at).unwrap_or(at.trim_start_matches("attachments/"));
@@ -718,35 +714,6 @@ pub fn set_aside(root: &Path, reference: &str, now: i64) -> Result<()> {
 
     std::fs::rename(&from, &into)?;
     Ok(())
-}
-
-/// What an undo or a page gone back to names again comes back out of the bin, never emptied while named.
-pub fn unbinned(root: &Path, held: &std::collections::BTreeSet<String>) -> usize {
-    let Some(_held) = crate::docs::hold_named(root, BIN_LOCK, LEDGER_WAIT_MS) else {
-        return 0;
-    };
-    let mut back = 0;
-    let mut kept = Vec::new();
-    for one in binned(root) {
-        let named = canonical(&one.at).filter(|at| held.contains(at));
-        let Some(named) = named else {
-            kept.push(one);
-            continue;
-        };
-        let (Ok(from), Ok(into)) = (in_bin(root, &one.at), resolve(&named, root)) else {
-            kept.push(one);
-            continue;
-        };
-        if into.exists() || !from.is_file() || std::fs::rename(&from, &into).is_err() {
-            kept.push(one);
-            continue;
-        }
-        back += 1;
-    }
-    if back > 0 {
-        rebinned(root, &kept);
-    }
-    back
 }
 
 pub fn empty_the_bin(root: &Path, now: i64) -> usize {

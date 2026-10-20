@@ -89,7 +89,6 @@ pub struct Sweeping {
 pub struct Walked {
     job: Sweeping,
     named: Vec<String>,
-    read: bool,
 }
 
 impl Sweeping {
@@ -119,25 +118,18 @@ impl Sweeping {
     }
 
     pub fn walk(self) -> Walked {
-        let binning = self.bin && crate::attach::binned_any(self.paths.data());
-        let (named, read) = match self.owed || binning {
-            true => match crate::docs::referenced(&self.paths.docs()) {
-                Ok(named) => (named, true),
-                Err(_) => (self.retired.iter().cloned().collect(), false),
-            },
-            false => (Vec::new(), false),
+        let named = match self.owed {
+            true => crate::docs::referenced(&self.paths.docs())
+                .unwrap_or_else(|_| self.retired.iter().cloned().collect()),
+            false => Vec::new(),
         };
-        Walked {
-            job: self,
-            named,
-            read,
-        }
+        Walked { job: self, named }
     }
 }
 
 impl Walked {
     pub fn with(self, state: &State) -> (Swept, Already) {
-        let Walked { job, named, read } = self;
+        let Walked { job, named } = self;
         let Sweeping {
             paths,
             shed,
@@ -155,24 +147,13 @@ impl Walked {
                 .flat_map(|task| task.references())
                 .map(|one| one.target)
                 .collect();
-            all.extend(named.iter().cloned());
+            all.extend(named);
             all
-        };
-        // With a document unread, what it names is unknown: nothing comes back and nothing is emptied.
-        let binned = match bin && (read || !crate::attach::binned_any(paths.data())) {
-            true => {
-                if read {
-                    let named: BTreeSet<String> = held().into_iter().collect();
-                    crate::attach::unbinned(paths.data(), &named);
-                }
-                self::bin(&paths)
-            }
-            false => 0,
         };
         let swept = Swept {
             papers: papers(&paths, &shed, dest, &mut done),
             attachments: attachments(&paths, &retired, dest, held, &mut done),
-            binned,
+            binned: if bin { self::bin(&paths) } else { 0 },
         };
         (swept, done)
     }

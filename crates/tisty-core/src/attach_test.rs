@@ -1636,25 +1636,3 @@ fn after_a_join_the_same_bytes_land_on_the_copy_that_stayed_even_with_neither_he
 
     assert_eq!(again.at, stays);
 }
-
-#[test]
-fn a_copy_named_again_comes_back_out_of_the_bin_and_the_rest_stay() {
-    let root = tempfile::tempdir().unwrap();
-    let shed = root.path().join("attachments");
-    std::fs::create_dir_all(&shed).unwrap();
-    std::fs::write(shed.join("foto-a1b2c3d4.png"), b"una foto").unwrap();
-    std::fs::write(shed.join("otra-a1b2c3d5.png"), b"otra foto").unwrap();
-    set_aside(root.path(), "attachments/foto-a1b2c3d4.png", 10).unwrap();
-    set_aside(root.path(), "attachments/otra-a1b2c3d5.png", 10).unwrap();
-
-    let named: std::collections::BTreeSet<String> =
-        ["attachments/foto-a1b2c3d4.png".to_string()].into();
-    let back = unbinned(root.path(), &named);
-
-    assert_eq!(back, 1);
-    assert!(shed.join("foto-a1b2c3d4.png").is_file());
-    assert!(!shed.join("otra-a1b2c3d5.png").exists());
-    let gone = empty_the_bin(root.path(), 10 + BIN_HOLDS_FOR);
-    assert_eq!(gone, 1, "only what was never named again is emptied");
-    assert!(shed.join("foto-a1b2c3d4.png").is_file());
-}

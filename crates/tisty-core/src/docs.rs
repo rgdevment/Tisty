@@ -284,6 +284,22 @@ pub fn rewrite(root: &Path, data: &Path, id: &str, body: &str, print: &str) -> R
     })
 }
 
+/// Written over the body it was read from, with no step back kept: going back would name what is gone.
+pub fn rewrite_for_good(root: &Path, id: &str, body: &str, print: &str) -> Result<Rewrite> {
+    alone(root, || {
+        let at = resolve(root, id)?;
+        if print_of(&at)?.as_deref() != Some(print) {
+            return Ok(Rewrite::Moved);
+        }
+        let was = read(root, id)?;
+        written(root, id, body)?;
+        Ok(Rewrite::Made {
+            was,
+            whole: settled(body),
+        })
+    })
+}
+
 pub fn edit(root: &Path, data: &Path, id: &str, old: &str, new: &str) -> Result<Change> {
     if old.is_empty() {
         return Ok(Change::Missing);
