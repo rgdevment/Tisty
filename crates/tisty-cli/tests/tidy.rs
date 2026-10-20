@@ -616,7 +616,7 @@ fn a_compaction_that_loses_a_link_is_refused_naming_it() {
     assert!(lost.contains("nowhere in the new one"), "{lost}");
     assert!(lost.contains("https://example.com/old"), "{lost}");
     assert!(lost.contains(&format!("tisty:doc/{other}")), "{lost}");
-    assert!(lost.contains("nothing was written"), "{lost}");
+    assert!(lost.contains("Nothing was written"), "{lost}");
     let read = said(&served.call("read_doc", json!({ "doc": &doc }))).clone();
     assert!(read["compacted"].is_null(), "{read}");
     assert!(
