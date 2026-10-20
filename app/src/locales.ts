@@ -1585,6 +1585,26 @@ const en = {
   syncOnlyFolder:
     "Tisty writes to and reads from that folder. What uploads it is your provider's own program, not Tisty: if that program is not running, Tisty cannot tell.",
   syncNow: "Sync now",
+  footUpToDate: "Up to date · {name}",
+  footSyncingOf: "Syncing… {name} of {other}",
+  footWait: "{name} asks to wait",
+  footWaitWhy:
+    "{name} asked Tisty to slow down. Tisty tries again on its own; there's nothing to do.",
+  footTroubled: "{name} is having trouble",
+  footTroubledWhy: "Tisty tries again on its own. What you write stays here meanwhile.",
+  footHalted: "Paused for a while · {name}",
+  footHaltedWhy:
+    "Tisty paused syncing on every computer for a while and picks it up again on its own. What you write stays here.",
+  footSpent: "Today's limit reached · tomorrow",
+  footOffline: "Offline",
+  footOfflineWhy: "Tisty syncs again on its own when the connection is back.",
+  footSignIn: "Sign in again",
+  footPaused: "Paused · Resume",
+  footPausedWhy:
+    "Syncing is off on this computer. Resume it to bring in what your other computers wrote.",
+  footLook: "Something to look at",
+  footLookWhy: "A computer waiting to be confirmed, or something sync needs you to decide.",
+  footLookDocs: "A document was written on two computers. Choose which one stays.",
   revealFolder: "Open the folder",
   syncSetUp: "Set-up:",
   syncAgain: "Send everything again",
@@ -1693,6 +1713,19 @@ const en = {
   whereItLives: "Where it lives",
   tabGeneral: "General",
   tabData: "Your data",
+  leaveTitle: "Leave Tisty",
+  leaveWhy:
+    "Guides you to back up, disconnect the cloud and leave this computer clean. Your tasks and documents stay.",
+  leaveOpen: "Leave…",
+  leaveBackup: "Make a backup first, if you want one.",
+  leaveBackupDone: "Backup made",
+  leaveCloud:
+    "This computer stops syncing and forgets its access. Your other computers keep going.",
+  leaveRevoke: "Also remove Tisty's access on every computer",
+  leaveLeft:
+    "What Tisty left on this computer: settings, cache, log, this computer's keys and starting with the system.",
+  leaveThen:
+    "Then it's yours: Tisty closes and shows you your folder. Uninstall the app like any other.",
   tabUpkeep: "Maintenance",
   tabAgents: "Assistants",
   bandWindow: "This window",
@@ -1905,7 +1938,7 @@ const en = {
     "It is saved where you say, you open it, you read it, and you share it only if you agree.",
   reportLogs: "Include the error log",
   reportLogsWhy:
-    "What has failed on this computer, from a warning up. It carries no titles, no descriptions and no journals — the record cannot hold them.",
+    "What Tisty noted while working on this computer, from notes up to failures. It carries no titles, no descriptions and no journals — the record cannot hold them.",
   reportNames: "Include the names of lists and tags",
   reportNamesWhy:
     "They help reproduce a fault in the filters. Off, they come out as «list#1», «tag#2».",
@@ -3695,6 +3728,26 @@ const es: Catalog = {
   syncOnlyFolder:
     "Tisty escribe y lee en esa carpeta. Quien la sube es el programa de tu proveedor, no Tisty: si ese programa no está en marcha, Tisty no puede saberlo.",
   syncNow: "Sincronizar ahora",
+  footUpToDate: "Al día · {name}",
+  footSyncingOf: "Sincronizando… {name} de {other}",
+  footWait: "{name} pide esperar",
+  footWaitWhy:
+    "{name} le pidió a Tisty ir más lento. Tisty vuelve a intentarlo solo; no tienes que hacer nada.",
+  footTroubled: "{name} tiene problemas",
+  footTroubledWhy: "Tisty vuelve a intentarlo solo. Mientras tanto, lo que escribas queda aquí.",
+  footHalted: "En pausa un rato · {name}",
+  footHaltedWhy:
+    "Tisty pausó la sincronización en todos los equipos por un rato y la retoma solo. Lo que escribas queda aquí.",
+  footSpent: "Límite de hoy alcanzado · mañana",
+  footOffline: "Sin conexión",
+  footOfflineWhy: "Tisty vuelve a sincronizar solo cuando regrese la conexión.",
+  footSignIn: "Vuelve a iniciar sesión",
+  footPaused: "En pausa · Reanudar",
+  footPausedWhy:
+    "La sincronización está apagada en este equipo. Reanúdala para traer lo que escribieron tus otros equipos.",
+  footLook: "Hay algo que revisar",
+  footLookWhy: "Un equipo espera que lo confirmes, o la sincronización necesita que decidas algo.",
+  footLookDocs: "Un documento se escribió en dos equipos. Elige cuál se queda.",
   revealFolder: "Abrir la carpeta",
   syncSetUp: "Configuración:",
   syncAgain: "Volver a enviar todo",
@@ -3803,6 +3856,18 @@ const es: Catalog = {
   whereItLives: "Dónde vive",
   tabGeneral: "General",
   tabData: "Tus datos",
+  leaveTitle: "Salir de Tisty",
+  leaveWhy:
+    "Te guía para respaldar, desconectar la nube y dejar este equipo limpio. Tus tareas y documentos se quedan.",
+  leaveOpen: "Salir…",
+  leaveBackup: "Haz un respaldo antes, si quieres.",
+  leaveBackupDone: "Respaldo hecho",
+  leaveCloud: "Este equipo deja de sincronizar y olvida su acceso. Tus otros equipos siguen.",
+  leaveRevoke: "Quitar también el acceso de Tisty en todos los equipos",
+  leaveLeft:
+    "Lo que Tisty dejó en este equipo: ajustes, caché, registro, las llaves de este equipo y el inicio con el sistema.",
+  leaveThen:
+    "Después queda en tus manos: Tisty se cierra y te muestra tu carpeta. Desinstala la app como cualquier otra.",
   tabUpkeep: "Mantenimiento",
   tabAgents: "Asistentes",
   bandWindow: "Esta ventana",
@@ -4016,7 +4081,7 @@ const es: Catalog = {
     "Se guarda donde tú digas, lo abres, lo lees, y lo compartes solo si estás de acuerdo.",
   reportLogs: "Incluir el registro de errores",
   reportLogsWhy:
-    "Lo que falló en este equipo, de aviso para arriba. No lleva títulos, ni descripciones, ni bitácoras: el registro no puede guardarlos.",
+    "Lo que Tisty fue anotando mientras trabajaba en este equipo, desde notas hasta fallas. No lleva títulos, ni descripciones, ni bitácoras: el registro no puede guardarlos.",
   reportNames: "Incluir los nombres de listas y etiquetas",
   reportNamesWhy:
     "Ayudan a reproducir un problema con los filtros. Si lo apagas, salen como «lista#1», «etiqueta#2».",

@@ -790,16 +790,19 @@ pub fn asked_to_unreach() -> bool {
 }
 
 pub fn unreach() -> std::io::Result<bool> {
+    unreach_from(tisty_core::Paths::resolve().ok().as_ref())
+}
+
+fn unreach_from(paths: Option<&tisty_core::Paths>) -> std::io::Result<bool> {
+    if let Some(paths) = paths {
+        sweep(paths);
+    }
+    // A sandbox leaves only itself: starting with the system, the PATH and the keys are the real install's.
+    if tisty_core::paths::profile().is_some() {
+        return Ok(false);
+    }
     let _ = waking::wake(false);
     let reached = command::out_of_reach();
-    if let Ok(paths) = tisty_core::Paths::resolve() {
-        for at in paths.swept_on_leaving() {
-            let _ = match at.is_dir() {
-                true => std::fs::remove_dir_all(&at),
-                false => std::fs::remove_file(&at),
-            };
-        }
-    }
     if let Some(home) = command::beside() {
         for at in tisty_core::Paths::shims()
             .into_iter()
@@ -814,6 +817,23 @@ pub fn unreach() -> std::io::Result<bool> {
         let _ = std::fs::remove_dir_all(sealed);
     }
     reached
+}
+
+fn sweep(paths: &tisty_core::Paths) {
+    for at in paths.swept_on_leaving() {
+        let _ = match at.is_dir() {
+            true => std::fs::remove_dir_all(&at),
+            false => std::fs::remove_file(&at),
+        };
+    }
+}
+
+/// Leaving from the window: the same sweep as the uninstaller, then gone before anything writes the settings back.
+#[tauri::command]
+fn leave_here(session: tauri::State<'_, Mutex<Session>>) {
+    let session = held(&session);
+    let _ = unreach_from(Some(&session.paths));
+    std::process::exit(0);
 }
 
 pub(crate) fn as_asked_for(at: &std::path::Path) -> std::path::PathBuf {
@@ -1158,6 +1178,7 @@ pub fn run() {
             answers::attaching::roomy,
             answers::attaching::opened,
             answers::storing::revealed,
+            leave_here,
             linking::open_link,
             answers::storing::sync_state,
             answers::storing::choose_sync,

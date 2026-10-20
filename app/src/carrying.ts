@@ -174,6 +174,7 @@ export function carrying(
   const glancing = setInterval(glance, A_GLANCE);
 
   return {
+    now: both,
     changed() {
       clearTimeout(soon);
       soon = setTimeout(() => go("push"), AFTER_A_CHANGE);

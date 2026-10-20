@@ -153,6 +153,10 @@ export default function Keeping({
   const [moving, setMoving] = useState<{ heading?: Heading; resume?: Toward } | null>(null);
 
   useEffect(() => {
+    if (start) setTab(start);
+  }, [start, movedAt]);
+
+  useEffect(() => {
     if (!move) return;
     setTab("sync");
     setMoving({ heading: move });

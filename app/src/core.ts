@@ -1074,6 +1074,7 @@ export const folderAstir = (): Promise<string> => invoke("folder_astir");
 export const restore = (from: string): Promise<number> => invoke("restore", { from });
 
 export const revealed = (path: string): Promise<void> => invoke("revealed", { path });
+export const leaveHere = (): Promise<void> => invoke("leave_here");
 
 export const copied = (text: string): Promise<void> => writeText(text);
 

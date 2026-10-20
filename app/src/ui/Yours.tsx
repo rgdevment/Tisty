@@ -1,4 +1,5 @@
 import { open, save } from "@tauri-apps/plugin-dialog";
+import { useState } from "react";
 import { type About, backUp, type Carrying, restore, revealed } from "../core";
 import { weigh } from "../format";
 import { fill, t } from "../locales";
@@ -6,7 +7,8 @@ import { saidPlainly } from "../refusal";
 import { sure } from "../sure";
 import Backup from "./Backup";
 import type { Run, Which, Word } from "./Card";
-import { Band, Line, mild } from "./Rows";
+import Leave from "./Leave";
+import { Band, Line, mild, risky } from "./Rows";
 
 interface Props {
   state: Carrying;
@@ -36,6 +38,7 @@ export default function Yours({
   tell,
 }: Props) {
   const held = busy !== null;
+  const [leaving, setLeaving] = useState(false);
 
   const makeBackup = () => {
     if (held) return;
@@ -125,7 +128,19 @@ export default function Yours({
             {t("aboutReveal")}
           </button>
         </Line>
+        <Line title={t("leaveTitle")} why={t("leaveWhy")} which="store">
+          <button type="button" disabled={held} onClick={() => setLeaving(true)} className={risky}>
+            {t("leaveOpen")}
+          </button>
+        </Line>
       </div>
+      {leaving && (
+        <Leave
+          cloud={state.mode === "cloud"}
+          store={build?.store}
+          onClose={() => setLeaving(false)}
+        />
+      )}
     </>
   );
 }

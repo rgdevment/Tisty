@@ -8,6 +8,7 @@ import Glyph from "./Glyph";
 import Knocking, { KnockDot } from "./Knocking";
 import Mode from "./Mode";
 import MoveNotice from "./MoveNotice";
+import SyncFoot from "./SyncFoot";
 import Tree from "./Tree";
 
 interface Props {
@@ -29,6 +30,9 @@ interface Props {
   onDocMenu: (doc: Filed, at: { x: number; y: number }) => void;
   onDocsMenu: (at: { x: number; y: number }) => void;
   onHereMenu: (at: { x: number; y: number }) => void;
+  carried?: number;
+  onSync?: () => Promise<unknown> | undefined;
+  onTrouble?: (text: string) => void;
 }
 
 const NAMED: { key: Named; icon: string }[] = [
@@ -59,6 +63,9 @@ export default function Sidebar({
   onDocMenu,
   onDocsMenu,
   onHereMenu,
+  carried,
+  onSync,
+  onTrouble,
 }: Props) {
   const [openDocs, setOpenDocs] = useState(true);
   const knocked = useKnocking().waiting.length > 0;
@@ -139,6 +146,14 @@ export default function Sidebar({
       <Coming
         onOpen={(move) => onChoose({ named: "keeping", tab: "sync", move, movedAt: Date.now() })}
       />
+      {onSync && (
+        <SyncFoot
+          carried={carried}
+          onSync={onSync}
+          onTrouble={onTrouble}
+          onOpen={() => onChoose({ named: "keeping", tab: "sync", movedAt: Date.now() })}
+        />
+      )}
       <div className="flex shrink-0 items-center border-t border-hair px-2.5 py-2">
         <button
           type="button"

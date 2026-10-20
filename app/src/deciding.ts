@@ -1,3 +1,4 @@
+import { useSyncExternalStore } from "react";
 import { docs, type Pick, paperRifts, type Rift, settlePaper, taskOf, weavePaper } from "./core";
 import { fill, t } from "./locales";
 import { type Refusal, saidPlainly } from "./refusal";
@@ -8,6 +9,7 @@ const reminded = new Set<string>();
 const decidedAt = new Map<string, number>();
 let decisions = 0;
 let queue: Promise<unknown> = Promise.resolve();
+const watching = new Set<() => void>();
 
 type Asking = (named: string, rifts: Rift[]) => Promise<Pick[] | null>;
 type AskingWhole = (named: string) => Promise<Pick | null>;
@@ -85,6 +87,7 @@ const decideInTurn = async (ids: string[], byHand: boolean, since: number): Prom
   const putOff = byHand ? [] : fresh.filter((id) => later.has(id) && !reminded.has(id));
   const finish = (shut: string[], said: string | null): Decided => {
     for (const id of putOff) reminded.add(id);
+    for (const one of watching) one();
     return { shut, said, putOff };
   };
   if (!asking.length) return finish([], null);
@@ -131,3 +134,14 @@ const decideInTurn = async (ids: string[], byHand: boolean, since: number): Prom
     : [];
   return finish(locked, [...lockedSaid, ...told].join(" ") || null);
 };
+
+export const leftForLater = (): string[] => [...later];
+
+const subscribe = (change: () => void) => {
+  watching.add(change);
+  return () => {
+    watching.delete(change);
+  };
+};
+
+export const useLeftForLater = (): number => useSyncExternalStore(subscribe, () => later.size);
