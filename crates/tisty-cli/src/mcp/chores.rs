@@ -1023,11 +1023,12 @@ fn vouch(mut store: Store, id: TaskId, task: &Task, wanted: &[String]) -> Result
         return Err(refusal);
     }
     let chosen = steps_named(task, wanted, "said done", |step| !step.done && !step.said)?;
-    let fresh: Vec<tisty_core::model::StepId> = chosen
+    let read: Vec<(tisty_core::model::StepId, String)> = chosen
         .iter()
         .filter(|step| !step.done && !step.said)
-        .map(|step| step.id)
+        .map(|step| (step.id, step.text.clone()))
         .collect();
+    let fresh: Vec<tisty_core::model::StepId> = read.iter().map(|(step, _)| *step).collect();
     if fresh.is_empty() {
         return Err(Refused::Tool(format!(
             "Every step you named on {:?} is ticked already or already carries your word, so \
@@ -1035,11 +1036,6 @@ fn vouch(mut store: Store, id: TaskId, task: &Task, wanted: &[String]) -> Result
             task.title
         )));
     }
-    let read: Vec<(tisty_core::model::StepId, String)> = chosen
-        .iter()
-        .filter(|step| !step.done && !step.said)
-        .map(|step| (step.id, step.text.clone()))
-        .collect();
     worded(
         &mut store,
         task,
@@ -1190,8 +1186,7 @@ pub(super) fn steps_named<'a>(
     Ok(chosen)
 }
 
-// Judged again under the lock: a word holds for the steps as they were read, so none reworded,
-// ticked or taken back meanwhile is spoken for.
+// Judged again under the lock: a word holds only for the steps as they were read.
 fn worded(
     store: &mut Store,
     task: &Task,

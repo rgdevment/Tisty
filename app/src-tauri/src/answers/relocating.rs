@@ -595,18 +595,8 @@ pub async fn cloud_wipe(
     Ok(gone)
 }
 
-#[cfg(test)]
-pub(crate) fn wiped(
-    carrier: &dyn tisty_carrier::Carrier,
-    here: &tisty_carrier::Here,
-    alive: &[String],
-) -> Answer<usize> {
-    all_home(carrier, here, alive)?;
-    emptied(carrier, &mut |_, _| {})
-}
-
 /// Asked of the cloud itself, never of the mirror here: emptied only once all is home and the word is up there.
-fn all_home(
+pub(crate) fn all_home(
     carrier: &dyn tisty_carrier::Carrier,
     here: &tisty_carrier::Here,
     alive: &[String],
@@ -622,7 +612,7 @@ fn all_home(
     }
 }
 
-fn emptied(
+pub(crate) fn emptied(
     carrier: &dyn tisty_carrier::Carrier,
     along: &mut dyn FnMut(usize, usize),
 ) -> Answer<usize> {

@@ -126,8 +126,8 @@ pub struct Step {
 impl Step {
     // A word was given for the words it read, not for what the step says now.
     pub fn reword(&mut self, text: &str) {
+        self.said &= self.text == text;
         self.text = text.to_string();
-        self.said = false;
     }
 }
 

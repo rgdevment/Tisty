@@ -180,8 +180,13 @@ impl Asking {
 pub async fn cloud_connect(
     session: tauri::State<'_, Mutex<Session>>,
     consenting: tauri::State<'_, Consenting>,
+    erasing: tauri::State<'_, crate::Erasing>,
     provider: Option<String>,
 ) -> Answer<Connected> {
+    // Which account a sign-in brings is known only after it, and an erase lets go of its keys when it ends.
+    if erasing.going() {
+        return Err(Refusal::of("wipeGoing"));
+    }
     let provider = provider.unwrap_or_else(|| GOOGLE.to_string());
     let done = connecting(&session, &consenting, &provider).await;
     told_connecting(&provider, &done);

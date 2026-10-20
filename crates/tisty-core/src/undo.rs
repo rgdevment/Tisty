@@ -25,7 +25,7 @@ pub fn inverse(event: &Event, before: &State) -> Option<Vec<Op>> {
     }
     // A tick or a reword clears the assistant's word on a step, so taking it back gives the word back.
     let marked = match &event.op {
-        Op::StepDone { id, d } => Some((*id, d.step)),
+        Op::StepDone { id, d } | Op::StepRemove { id, d } => Some((*id, d.step)),
         Op::StepText { id, d } => Some((*id, d.step)),
         _ => None,
     };
@@ -217,12 +217,12 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
             d: StepRef { step: d.step },
         }),
         Op::StepUndone { id, d } => {
-            let was = before.tasks.get(id)?.step(d.step)?;
+            let was = before.tasks.get(id).and_then(|task| task.step(d.step));
             let step = StepRef { step: d.step };
-            Some(match (was.done, was.said) {
-                (true, _) => Op::StepDone { id: *id, d: step },
-                (false, true) => Op::StepSaid { id: *id, d: step },
-                (false, false) => Op::StepUndone { id: *id, d: step },
+            Some(match was.map(|one| (one.done, one.said)) {
+                Some((false, true)) => Op::StepSaid { id: *id, d: step },
+                Some((false, false)) => Op::StepUndone { id: *id, d: step },
+                _ => Op::StepDone { id: *id, d: step },
             })
         }
         Op::StepSaid { id, d } | Op::StepUnsaid { id, d } => {

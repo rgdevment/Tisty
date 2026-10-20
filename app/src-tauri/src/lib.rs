@@ -659,6 +659,10 @@ impl Erasing {
     fn of(&self, account: &str) -> bool {
         self.held().as_deref() == Some(account)
     }
+
+    fn going(&self) -> bool {
+        self.held().is_some()
+    }
 }
 
 impl Packing {
