@@ -89,7 +89,11 @@ describe("leaving Tisty", () => {
     await userEvent.click(screen.getByRole("button", { name: "Leave Tisty" }));
     await screen.findByRole("alert");
 
-    expect(said()).toEqual(["cloud_pause", "cloud_forget", "cloud_pause"]);
+    expect(said().filter((cmd) => cmd !== "note_trouble")).toEqual([
+      "cloud_pause",
+      "cloud_forget",
+      "cloud_pause",
+    ]);
     expect(ipc.calls[0].args).toEqual({ paused: true });
     expect(ipc.calls[2].args).toEqual({ paused: false });
   });

@@ -785,7 +785,7 @@ describe("the maintenance panel", () => {
     expect(sent("unused_attachments")).toHaveLength(0);
   });
 
-  it("with a cloud of its own, still offers a backup, and says what stays in the cloud", async () => {
+  it("with a cloud of its own, still offers a backup but no restore, and says what stays in the cloud", async () => {
     carrying.freesSpace = true;
     asked.file = "C:/keep/tisty-backup.zip";
     try {
@@ -802,7 +802,7 @@ describe("the maintenance panel", () => {
 
       expect(screen.getByText(t("backupCloudWhat"))).toBeTruthy();
       expect(screen.queryByText(t("backupWhat"))).toBeNull();
-      expect(screen.getByRole("button", { name: /restore from/i })).toBeTruthy();
+      expect(screen.queryByRole("button", { name: /restore from/i })).toBeNull();
       await userEvent.click(screen.getByRole("button", { name: /create backup/i }));
       await waitFor(() => expect(sent("back_up")).toHaveLength(1));
     } finally {
