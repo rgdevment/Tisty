@@ -3,7 +3,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   type About,
   about,
-  type Carrying,
   chooseSync,
   cloudForget,
   cloudStatus,
@@ -15,7 +14,6 @@ import {
   settings as readSettings,
   type Settings,
   shortcut,
-  syncState,
   type Toward,
   type Waking,
   waking,
@@ -23,6 +21,7 @@ import {
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { afterMove } from "../relocation";
+import { refresh, useSyncSeen } from "../syncSeen";
 import type { Heading, Tab } from "../views";
 import Agents, { useAgents } from "./Agents";
 import { NAMED, type Which } from "./Card";
@@ -70,7 +69,10 @@ export default function Keeping({
   movedAt,
 }: Props) {
   const [tab, setTab] = useState<Tab>(start ?? "general");
-  const [state, setState] = useState<Carrying | null>(null);
+  const shared = useSyncSeen();
+  const [read, setRead] = useState(false);
+  // What another view read before this one opened may be old, so the settings wait for their own look.
+  const state = read ? shared.state : null;
   const [audit, setAudit] = useState<Reviewed | null>(null);
   const [kept, setKept] = useState<Settings | null>(null);
   const [freeing, setFreeing] = useFreeing();
@@ -88,8 +90,8 @@ export default function Keeping({
 
   const look = useCallback(() => {
     lookSigned();
-    syncState()
-      .then(setState)
+    refresh()
+      .then(() => setRead(true))
       .catch((e) => setTrouble({ card: "sync", text: saidPlainly(e) }));
     readSettings()
       .then(setKept)

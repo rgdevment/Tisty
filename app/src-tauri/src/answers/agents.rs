@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use tisty_core::witness::channel;
+use tisty_core::witness::{self, Fact, channel};
 use tisty_core::{Config, Event, Op};
 
 use crate::{Answer, Session, blamed, held, wiring};
@@ -130,6 +130,8 @@ pub fn agent_turn(session: tauri::State<'_, Mutex<Session>>, on: bool) -> Answer
         let mut session = held(&session);
         session.reload()?;
         let paths = session.paths.clone();
+        // Kept before the turn, so a choice that could not be written never leaves the door to reopen on its own.
+        session.keep(|c| c.door_chosen = Some(on))?;
         if on {
             tisty_core::agent::register(&paths)
                 .map_err(|e| blamed(channel::STORE, "the agent could not be registered", e))?;
@@ -147,4 +149,21 @@ pub fn agent_turn(session: tauri::State<'_, Mutex<Session>>, on: bool) -> Answer
         }
     }
     agent(session)
+}
+
+pub fn opened_by_default(session: &mut Session) {
+    match tisty_core::agent::open_by_default(&session.paths) {
+        Ok(Some(_)) => {
+            if let Ok(Some(now)) = Config::load(&session.paths.config_file()) {
+                session.config = now;
+            }
+            let _ = session.reproject();
+        }
+        Ok(None) => {}
+        Err(e) => witness::warn(
+            channel::STORE,
+            "the door for assistants could not be opened",
+            &[("why", Fact::Why(e.to_string()))],
+        ),
+    }
 }

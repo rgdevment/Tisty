@@ -47,6 +47,31 @@ pub fn paper_rifts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Ans
     })
 }
 
+// Only both sides holding the same words means settled elsewhere; a side missing or unread may still be at odds.
+#[tauri::command(async)]
+pub fn still_at_odds(session: tauri::State<'_, Mutex<Session>>, ids: Vec<String>) -> Vec<String> {
+    let (carrier, docs) = {
+        let session = held(&session);
+        let Ok(carrier) = session.carrying() else {
+            return ids;
+        };
+        (carrier, session.paths.docs())
+    };
+    ids.into_iter()
+        .filter(|id| !settled(&carrier, &docs, id))
+        .collect()
+}
+
+fn settled(carrier: &tisty_carrier::Shared, docs: &std::path::Path, id: &str) -> bool {
+    let Ok(at) = tisty_core::docs::resolve(docs, id) else {
+        return false;
+    };
+    let Ok(Some(mine)) = tisty_core::docs::print_of(&at) else {
+        return false;
+    };
+    carrier.paper_print(id).is_some_and(|theirs| theirs == mine)
+}
+
 #[tauri::command(async)]
 pub fn weave_paper(
     session: tauri::State<'_, Mutex<Session>>,

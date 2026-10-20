@@ -8,10 +8,12 @@ import {
   syncState,
   whatWentAmiss,
 } from "./core";
+import { settledElsewhere } from "./deciding";
 import { knock, settled } from "./knocking";
 import { t } from "./locales";
 import { saidPlainly } from "./refusal";
 import { lastingCause } from "./syncSaid";
+import { lookAgain } from "./syncSeen";
 
 const AFTER_A_CHANGE = 4_000;
 const EVERY_SO_OFTEN = 15 * 60_000;
@@ -104,6 +106,10 @@ export function carrying(
           expire = undefined;
           running = false;
         }
+        if (!gone && mine === round && !stalled) {
+          void lookAgain();
+          if (way !== "push") void settledElsewhere();
+        }
         if (owed === null || gone || running) return;
         const again = owed;
         owed = null;
@@ -180,6 +186,7 @@ export function carrying(
       soon = setTimeout(() => go("push"), AFTER_A_CHANGE);
     },
     recheck() {
+      void lookAgain();
       void settings((was) => {
         if (was !== folder) void both();
       });
