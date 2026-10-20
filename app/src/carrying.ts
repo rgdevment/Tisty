@@ -8,10 +8,12 @@ import {
   syncState,
   whatWentAmiss,
 } from "./core";
+import { settledElsewhere } from "./deciding";
 import { knock, settled } from "./knocking";
 import { t } from "./locales";
 import { saidPlainly } from "./refusal";
 import { lastingCause } from "./syncSaid";
+import { lookAgain } from "./syncSeen";
 
 const AFTER_A_CHANGE = 4_000;
 const EVERY_SO_OFTEN = 15 * 60_000;
@@ -104,6 +106,8 @@ export function carrying(
           expire = undefined;
           running = false;
         }
+        void lookAgain();
+        void settledElsewhere();
         if (owed === null || gone || running) return;
         const again = owed;
         owed = null;

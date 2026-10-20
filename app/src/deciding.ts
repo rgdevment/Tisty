@@ -1,5 +1,14 @@
 import { useSyncExternalStore } from "react";
-import { docs, type Pick, paperRifts, type Rift, settlePaper, taskOf, weavePaper } from "./core";
+import {
+  docs,
+  type Pick,
+  paperRifts,
+  type Rift,
+  settlePaper,
+  stillAtOdds,
+  taskOf,
+  weavePaper,
+} from "./core";
 import { fill, t } from "./locales";
 import { type Refusal, saidPlainly } from "./refusal";
 import { sure } from "./sure";
@@ -142,6 +151,18 @@ const decideInTurn = async (ids: string[], byHand: boolean, since: number): Prom
 };
 
 export const leftForLater = (): string[] => [...later];
+
+// Settled on another computer or gone from this one, a document put off has nothing left to ask.
+export const settledElsewhere = async (): Promise<void> => {
+  const ids = [...later];
+  if (!ids.length) return;
+  const said = await stillAtOdds(ids).catch(() => ids);
+  const still = new Set(Array.isArray(said) ? said : ids);
+  const gone = ids.filter((id) => !still.has(id));
+  if (!gone.length) return;
+  for (const id of gone) letGo(id);
+  for (const one of watching) one();
+};
 
 const subscribe = (change: () => void) => {
   watching.add(change);

@@ -15,6 +15,8 @@ const torn = vi.hoisted(() => ({
   locked: false,
   blind: false,
   shut: false,
+  still: null as string[] | null,
+  refuseStill: false,
 }));
 
 const asked = vi.hoisted(() => ({
@@ -47,6 +49,10 @@ vi.mock("@tauri-apps/api/core", () => ({
         ? Promise.resolve({ id: args.id, title: "Rina's booster" })
         : Promise.reject({ code: "notATaskId" });
     }
+    if (cmd === "still_at_odds") {
+      if (torn.refuseStill) return Promise.reject({ code: "internal" });
+      return torn.still ? Promise.resolve(torn.still) : Promise.resolve(args?.ids);
+    }
     if (cmd === "paper_rifts") {
       return torn.shut ? Promise.reject({ code: "documentLocked" }) : Promise.resolve(torn.said);
     }
@@ -71,6 +77,8 @@ beforeEach(async () => {
   torn.said = { rifts: [], print: "" };
   torn.refuses = false;
   torn.moved = false;
+  torn.still = null;
+  torn.refuseStill = false;
   torn.locked = false;
   torn.blind = false;
   torn.shut = false;
@@ -316,6 +324,28 @@ describe("a document that comes back at odds after it was decided", () => {
     await decideAll(["dev_a-0008"], true);
 
     expect(leftForLater()).toEqual([]);
+  });
+
+  it("lets go of a put-off document that is no longer at odds, and keeps the rest", async () => {
+    const { leftForLater, settledElsewhere } = await import("../deciding");
+    decidesWhole(async () => null);
+    await decideAll(["dev_a-0010", "dev_a-0011"]);
+
+    torn.still = ["dev_a-0011"];
+    await settledElsewhere();
+
+    expect(leftForLater()).toEqual(["dev_a-0011"]);
+  });
+
+  it("keeps every put-off document when it cannot tell which are still at odds", async () => {
+    const { leftForLater, settledElsewhere } = await import("../deciding");
+    decidesWhole(async () => null);
+    await decideAll(["dev_a-0012"]);
+
+    torn.refuseStill = true;
+    await settledElsewhere();
+
+    expect(leftForLater()).toEqual(["dev_a-0012"]);
   });
 
   it("tells a sync by hand what was left for later", async () => {

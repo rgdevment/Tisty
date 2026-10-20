@@ -23,6 +23,7 @@ import {
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { afterMove } from "../relocation";
+import { lookAgain } from "../syncSeen";
 import type { Heading, Tab } from "../views";
 import Agents, { useAgents } from "./Agents";
 import { NAMED, type Which } from "./Card";
@@ -88,6 +89,7 @@ export default function Keeping({
 
   const look = useCallback(() => {
     lookSigned();
+    void lookAgain();
     syncState()
       .then(setState)
       .catch((e) => setTrouble({ card: "sync", text: saidPlainly(e) }));

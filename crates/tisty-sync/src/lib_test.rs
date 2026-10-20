@@ -9142,3 +9142,22 @@ fn a_trouble_and_a_reason_are_told_by_codes_that_name_nothing_of_the_person() {
     assert_eq!(Trouble::Broke("x".into()).code(), "broke");
     assert_eq!(Reason::Troubled.code(), "troubled");
 }
+
+#[test]
+fn a_document_is_at_odds_only_while_both_sides_moved_apart() {
+    assert!(super::at_odds(Some("mine"), Some("theirs"), Some("agreed")));
+    assert!(super::at_odds(Some("mine"), Some("theirs"), None));
+    assert!(!super::at_odds(Some("same"), Some("same"), Some("agreed")));
+    assert!(!super::at_odds(
+        Some("agreed"),
+        Some("theirs"),
+        Some("agreed")
+    ));
+    assert!(!super::at_odds(
+        Some("mine"),
+        Some("agreed"),
+        Some("agreed")
+    ));
+    assert!(!super::at_odds(None, Some("theirs"), Some("agreed")));
+    assert!(super::at_odds(Some("mine"), None, Some("agreed")));
+}

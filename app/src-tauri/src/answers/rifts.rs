@@ -47,6 +47,30 @@ pub fn paper_rifts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Ans
     })
 }
 
+/// Which of these documents are still at odds, read from both sides without the network.
+#[tauri::command(async)]
+pub fn still_at_odds(session: tauri::State<'_, Mutex<Session>>, ids: Vec<String>) -> Vec<String> {
+    let session = held(&session);
+    let Ok(carrier) = session.carrying() else {
+        return ids;
+    };
+    let data = session.paths.data();
+    let agreed = tisty_core::docs::Carried::read(data);
+    let mine = |id: &str| {
+        let at = tisty_core::docs::resolve(&session.paths.docs(), id).ok()?;
+        tisty_core::docs::print_of(&at).ok().flatten()
+    };
+    ids.into_iter()
+        .filter(|id| {
+            tisty_carrier::at_odds(
+                mine(id).as_deref(),
+                carrier.paper_print(id).as_deref(),
+                agreed.of(id),
+            )
+        })
+        .collect()
+}
+
 #[tauri::command(async)]
 pub fn weave_paper(
     session: tauri::State<'_, Mutex<Session>>,

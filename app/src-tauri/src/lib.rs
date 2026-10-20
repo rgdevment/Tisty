@@ -1086,9 +1086,8 @@ fn window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
     }
 }
 
-pub fn run() {
+fn plugged() -> tauri::Builder<tauri::Wry> {
     let mut building = tauri::Builder::default();
-
     if tisty_core::paths::profile().is_none() {
         building = building.plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
             if !viewing::heard(app, &argv, Some(std::path::Path::new(&cwd))) {
@@ -1096,7 +1095,6 @@ pub fn run() {
             }
         }));
     }
-
     building
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
@@ -1109,6 +1107,10 @@ pub fn run() {
                 .state::<widgets::Lent>()
                 .shown(request.uri())
         })
+}
+
+pub fn run() {
+    plugged()
         .setup(settled)
         .on_window_event(window_event)
         .manage(OneAtATime::default())
@@ -1230,6 +1232,7 @@ pub fn run() {
             answers::storing::retire_attachment,
             answers::papers::settle_paper,
             answers::rifts::paper_rifts,
+            answers::rifts::still_at_odds,
             answers::rifts::weave_paper,
             answers::papers::docs_brittle,
             answers::reporting::checked,

@@ -1,19 +1,19 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useComing, useStuck } from "../coming";
-import { type Carrying, type CloudStatus, cloudPause, cloudStatus, syncState } from "../core";
-import { decideAll, leftForLater, useLeftForLater } from "../deciding";
+import { type Carrying, cloudPause } from "../core";
+import { decideAll, leftForLater, settledElsewhere, useLeftForLater } from "../deciding";
 import { type Footing, footing, offered } from "../footing";
 import { budgetResets, stamped } from "../format";
 import { useKnocking } from "../knocking";
 import { cloudNamed, fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { offlineNow } from "../syncSaid";
+import { lookAgain, useSyncSeen } from "../syncSeen";
 import { leaf } from "./Mode";
 
 const A_WHILE = 60_000;
 
 interface Props {
-  carried?: number;
   onSync: () => Promise<unknown> | undefined;
   onOpen: () => void;
   onTrouble?: (text: string) => void;
@@ -67,44 +67,33 @@ function told(foot: Footing, state: Carrying, cloud: string): { line: string; wh
   }
 }
 
-export default function SyncFoot({ carried, onSync, onOpen, onTrouble, fallback }: Props) {
-  const [state, setState] = useState<Carrying | null>(null);
-  const [status, setStatus] = useState<CloudStatus | null>(null);
+export default function SyncFoot({ onSync, onOpen, onTrouble, fallback }: Props) {
+  const { state, status } = useSyncSeen();
   const [mine, setMine] = useState(false);
   const [offline, setOffline] = useState(offlineNow);
+  const [, tick] = useState(0);
   const coming = useComing();
   const stuck = useStuck();
   const knocked = useKnocking().waiting.length > 0;
   const putOff = useLeftForLater();
-  const going = coming !== null;
+  const look = () => void lookAgain();
 
-  const look = useCallback(() => {
-    syncState()
-      .then((now) => {
-        setState(now ?? null);
-        return now?.mode === "cloud" ? cloudStatus() : null;
-      })
-      .then((now) => setStatus(now ?? null))
-      .catch(() => undefined);
+  useEffect(() => {
+    void lookAgain();
   }, []);
 
-  useEffect(() => {
-    if (!going) look();
-  }, [look, going, stuck, carried]);
-
+  // The rounds keep what is seen up to date; this only moves «a minute ago» along.
   useEffect(() => {
     const online = () => setOffline(offlineNow());
-    const ticking = setInterval(look, A_WHILE);
-    window.addEventListener("focus", look);
+    const ticking = setInterval(() => tick((was) => was + 1), A_WHILE);
     window.addEventListener("online", online);
     window.addEventListener("offline", online);
     return () => {
       clearInterval(ticking);
-      window.removeEventListener("focus", look);
       window.removeEventListener("online", online);
       window.removeEventListener("offline", online);
     };
-  }, [look]);
+  }, []);
 
   const foot = footing({ state, status, coming, mine, offline, knocked, putOff, stuck });
   if (!foot || !state) return fallback ?? null;
@@ -138,7 +127,8 @@ export default function SyncFoot({ carried, onSync, onOpen, onTrouble, fallback 
           look();
         });
     if (foot.kind === "look" && foot.putOff)
-      return void decideAll(leftForLater(), true)
+      return void settledElsewhere()
+        .then(() => decideAll(leftForLater(), true))
         .then(({ said }) => {
           if (said) onTrouble?.(said);
           syncNow();
