@@ -47,7 +47,7 @@ function Copy({
   return (
     <li
       className={`flex flex-col gap-1.5 rounded-[10px] border p-2.5 ${
-        stays ? "border-hue-green/50 bg-hue-green/5" : "border-hair"
+        stays ? "border-hue-green/40 bg-hue-green/10" : "border-hair"
       }`}
     >
       <span className="font-mono text-[11.5px] break-all text-soft">
