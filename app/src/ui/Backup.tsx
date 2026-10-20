@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { Carrying } from "../core";
 import { stamped, weigh } from "../format";
 import { fill, t } from "../locales";
@@ -12,18 +13,30 @@ interface Props {
   trouble?: Word;
   onMake: () => void;
   onTake: () => void;
+  children?: ReactNode;
 }
 
-export default function Backup({ state, holds, held, said, trouble, onMake, onTake }: Props) {
+export default function Backup({
+  state,
+  holds,
+  held,
+  said,
+  trouble,
+  onMake,
+  onTake,
+  children,
+}: Props) {
   return (
     <>
-      <Band label={t("backup")} />
+      <Band label={t("bandCopies")} />
       <div className="border-t border-hair">
         <Line
           title={t("backupSave")}
           why={
             <>
-              <span className="block">{t("backupWhat")}</span>
+              <span className="block">
+                {t(state.freesSpace ? "backupCloudWhat" : "backupWhat")}
+              </span>
               <span className="mt-0.5 block tabular-nums">
                 {[
                   holds,
@@ -60,6 +73,7 @@ export default function Backup({ state, holds, held, said, trouble, onMake, onTa
             {t("restoreFrom")}
           </button>
         </Line>
+        {children}
       </div>
     </>
   );

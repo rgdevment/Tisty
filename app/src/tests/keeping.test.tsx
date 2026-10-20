@@ -393,12 +393,19 @@ beforeEach(() => {
 
 const sent = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd);
 
-const go = (tab: RegExp) => userEvent.click(screen.getByRole("tab", { name: tab }));
-
 const ready = () => screen.findByRole("tab", { name: /general/i });
 
 const data = async () => {
   await userEvent.click(await screen.findByRole("tab", { name: /your data/i }));
+};
+
+const sync = async () => {
+  await userEvent.click(await screen.findByRole("tab", { name: /^sync$/i }));
+};
+
+const upkeep = async () => {
+  await userEvent.click(await screen.findByRole("tab", { name: /maintenance/i }));
+  await screen.findByRole("button", { name: /^check again$/i });
 };
 
 const folders = async () => {
@@ -424,9 +431,9 @@ describe("the maintenance panel", () => {
       />,
     );
 
-    await data();
+    await sync();
 
-    expect(screen.getByText(/only on this machine/i)).toBeTruthy();
+    expect(screen.getByText(/only on this computer/i)).toBeTruthy();
     expect(screen.getByText("no destination")).toBeTruthy();
     expect(screen.queryByRole("button", { name: /sync now/i })).toBeNull();
   });
@@ -441,7 +448,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
+    await sync();
 
     await userEvent.click(screen.getByRole("button", { name: /turn on/i }));
     await folders();
@@ -461,7 +468,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
+    await sync();
 
     await turnedOn();
 
@@ -481,9 +488,10 @@ describe("the maintenance panel", () => {
       />,
     );
 
-    await data();
+    await sync();
 
     expect(screen.getByText(/leaving copies in/i)).toBeTruthy();
+    await data();
     expect(screen.getByRole("button", { name: /create backup/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /restore/i })).toBeTruthy();
   });
@@ -563,11 +571,12 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
+    await sync();
 
     await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
 
     expect((await screen.findAllByText(/waiting for «syncing»/i)).length).toBe(1);
+    await data();
     expect(screen.getByRole("button", { name: /restore from/i }).hasAttribute("disabled")).toBe(
       true,
     );
@@ -598,7 +607,7 @@ describe("the maintenance panel", () => {
     await ready();
 
     await userEvent.click(await screen.findByRole("switch", { name: /a short tone/i }));
-    await data();
+    await sync();
 
     const where = await screen.findByRole("combobox", { name: /where large attachments/i });
     await waitFor(() => expect(where.hasAttribute("disabled")).toBe(true));
@@ -616,7 +625,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
+    await sync();
 
     const where = await screen.findByRole("combobox", { name: /where large attachments/i });
     expect((where as HTMLSelectElement).value).toBe("everywhere");
@@ -651,7 +660,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
+    await sync();
 
     const where = await screen.findByRole("combobox", { name: /where large attachments/i });
     expect(where.hasAttribute("disabled")).toBe(true);
@@ -672,7 +681,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
+    await sync();
 
     const where = await screen.findByRole("combobox", { name: /where large attachments/i });
     await userEvent.selectOptions(where, "shared");
@@ -695,10 +704,10 @@ describe("the maintenance panel", () => {
           onDoc={() => {}}
         />,
       );
-      await data();
+      await sync();
       expect(screen.queryByRole("combobox", { name: /where large attachments/i })).toBeNull();
       expect(screen.queryByRole("combobox", { name: /unused for/i })).toBeNull();
-      await go(/maintenance/i);
+      await upkeep();
 
       const unused = await screen.findByRole("combobox", { name: /unused for/i });
       await screen.findByText(/set by your cloud provider, not by Tisty/i);
@@ -736,8 +745,7 @@ describe("the maintenance panel", () => {
           onDoc={() => {}}
         />,
       );
-      await data();
-      await go(/maintenance/i);
+      await upkeep();
 
       await screen.findByText(/nothing unused that long/i);
       expect(screen.getByRole("button", { name: /^free$/i }).hasAttribute("disabled")).toBe(true);
@@ -769,17 +777,17 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
+    await sync();
 
     await screen.findByRole("combobox", { name: /where large attachments/i });
-    await go(/maintenance/i);
-    await screen.findByRole("button", { name: /^review$/i });
+    await upkeep();
     expect(screen.queryByRole("combobox", { name: /unused for/i })).toBeNull();
     expect(sent("unused_attachments")).toHaveLength(0);
   });
 
-  it("with a cloud of its own, leaves backing up and restoring out of sight", async () => {
+  it("with a cloud of its own, still offers a backup, and says what stays in the cloud", async () => {
     carrying.freesSpace = true;
+    asked.file = "C:/keep/tisty-backup.zip";
     try {
       render(
         <Keeping
@@ -792,12 +800,110 @@ describe("the maintenance panel", () => {
       );
       await data();
 
-      await screen.findByText(t("whereItLives"));
-      expect(screen.queryByRole("button", { name: /create backup/i })).toBeNull();
-      expect(screen.queryByRole("button", { name: /restore from/i })).toBeNull();
+      expect(screen.getByText(t("backupCloudWhat"))).toBeTruthy();
+      expect(screen.queryByText(t("backupWhat"))).toBeNull();
+      expect(screen.getByRole("button", { name: /restore from/i })).toBeTruthy();
+      await userEvent.click(screen.getByRole("button", { name: /create backup/i }));
+      await waitFor(() => expect(sent("back_up")).toHaveLength(1));
     } finally {
       carrying.freesSpace = false;
     }
+  });
+
+  it("keeps where it syncs, the computers and the backup on tabs of their own", async () => {
+    carrying.chosen = "G:/My Drive/tisty";
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
+
+    await sync();
+    expect(screen.getByText(t("whereItSyncs"))).toBeTruthy();
+    expect(await screen.findByText("salvia 07")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /create backup/i })).toBeNull();
+
+    await data();
+    expect(screen.getByRole("button", { name: /create backup/i })).toBeTruthy();
+    expect(screen.getByText(t("parcelsTitle"))).toBeTruthy();
+    expect(screen.getByText(t("whereItLives"))).toBeTruthy();
+    expect(screen.queryByText(t("whereItSyncs"))).toBeNull();
+  });
+
+  it("lists the computers as soon as the tab opens, without a review first", async () => {
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
+
+    await sync();
+
+    expect(await screen.findByText("cedro 14")).toBeTruthy();
+    expect(sent("checked")).toHaveLength(1);
+  });
+
+  it("folds the exits nobody takes every day, and keeps moving and changing folder in sight", async () => {
+    carrying.chosen = "G:/My Drive/tisty";
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
+
+    await sync();
+
+    const fold = screen.getByText(t("moreOptions")).closest("details");
+    expect(fold).toBeTruthy();
+    expect(fold?.open).toBe(false);
+    const inside = within(fold as HTMLElement);
+    expect(inside.getByRole("button", { name: t("syncAgain") })).toBeTruthy();
+    expect(inside.getByRole("button", { name: t("syncOffNow") })).toBeTruthy();
+    expect(inside.queryByRole("button", { name: t("changeFolder") })).toBeNull();
+    expect(screen.getByRole("button", { name: t("changeFolder") })).toBeTruthy();
+  });
+
+  it("opens on the Sync tab when asked to move, and still on Your data by its old name", async () => {
+    const { unmount } = render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+        start="data"
+      />,
+    );
+    expect(
+      (await screen.findByRole("tab", { name: /your data/i })).getAttribute("aria-selected"),
+    ).toBe("true");
+    unmount();
+
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+        start="sync"
+      />,
+    );
+    expect(
+      (await screen.findByRole("tab", { name: /^sync$/i })).getAttribute("aria-selected"),
+    ).toBe("true");
   });
 
   it("fetches the ones that are not here when told to hold them all", async () => {
@@ -810,7 +916,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
+    await sync();
     const where = await screen.findByRole("combobox", { name: /where large attachments/i });
     await userEvent.selectOptions(where, "shared");
     await waitFor(() => expect(sent("free_up")).toHaveLength(1));
@@ -831,9 +937,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
-    await go(/maintenance/i);
-    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    await upkeep();
 
     await screen.findByText("lejos-c3d4.mp4");
     expect(screen.getByText(/in the shared folder/)).toBeTruthy();
@@ -849,14 +953,11 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
-    await go(/maintenance/i);
-
-    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    await sync();
 
     expect(await screen.findByText(/mac0-0001/)).toBeTruthy();
     expect(screen.getByText(/win1-0002/)).toBeTruthy();
-    expect(screen.getByText("This machine")).toBeTruthy();
+    expect(screen.getByText("This computer")).toBeTruthy();
   });
 
   it("calls every machine something a person can read out loud", async () => {
@@ -869,10 +970,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
-    await go(/maintenance/i);
-
-    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    await sync();
 
     expect(await screen.findByText("cedro 14")).toBeTruthy();
     expect(screen.getByText("salvia 07")).toBeTruthy();
@@ -888,12 +986,9 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
-    await go(/maintenance/i);
+    await sync();
 
-    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
-
-    await screen.findByText("This machine");
+    await screen.findByText("This computer");
     expect(screen.getAllByRole("button", { name: /^remove$/i })).toHaveLength(1);
     expect(screen.getByText(/not removable/i)).toBeTruthy();
   });
@@ -909,9 +1004,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
-    await go(/maintenance/i);
-    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    await sync();
     await screen.findByText("salvia 07");
 
     await userEvent.click(screen.getByRole("button", { name: /^remove$/i }));
@@ -931,12 +1024,9 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
-    await go(/maintenance/i);
+    await sync();
 
-    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
-
-    const said = await screen.findByText(/may still be using what looks loose below/i);
+    const said = await screen.findByText(/may still be using attachments that look unused/i);
 
     expect(said.textContent).toMatch(/have not written here in a while/i);
     expect(said.textContent).not.toMatch(/synced/i);
@@ -967,9 +1057,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
-    await go(/maintenance/i);
-    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    await sync();
   };
 
   const aMachine = (more: Record<string, unknown>) => ({
@@ -1212,10 +1300,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
-    await go(/maintenance/i);
-
-    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    await sync();
 
     await screen.findByText(/mac0-0001/);
     expect(screen.queryByText(/have not synced in a while/i)).toBeNull();
@@ -1232,12 +1317,10 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
-    await go(/maintenance/i);
-    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    await upkeep();
     await screen.findByText("charla-a3f9.mp4");
 
-    await userEvent.click(screen.getAllByRole("button", { name: /take it out/i })[0]);
+    await userEvent.click(screen.getAllByRole("button", { name: /^move to the bin$/i })[0]);
 
     await waitFor(() => expect(sent("retire_attachment")).toHaveLength(0));
   });
@@ -1253,13 +1336,11 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
-    await go(/maintenance/i);
-    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    await upkeep();
     await screen.findByText("charla-a3f9.mp4");
     const looks = sent("checked").length;
 
-    await userEvent.click(screen.getAllByRole("button", { name: /take it out/i })[0]);
+    await userEvent.click(screen.getAllByRole("button", { name: /^move to the bin$/i })[0]);
 
     await waitFor(() => expect(sent("retire_attachment")).toHaveLength(1));
     expect(sent("retire_attachment")[0].args.reference).toBe("attachments/ab/charla-a3f9.mp4");
@@ -1284,12 +1365,10 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
-    await go(/maintenance/i);
-    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    await upkeep();
     await screen.findByText("charla-a3f9.mp4");
 
-    await userEvent.click(screen.getAllByRole("button", { name: /take it out/i })[0]);
+    await userEvent.click(screen.getAllByRole("button", { name: /^move to the bin$/i })[0]);
 
     await waitFor(() => expect(said).toHaveLength(1));
     expect(said[0]).toMatch(/30 days/i);
@@ -1312,12 +1391,10 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
-    await go(/maintenance/i);
-    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    await upkeep();
     await screen.findByText("charla-a3f9.mp4");
 
-    await userEvent.click(screen.getAllByRole("button", { name: /take it out/i })[0]);
+    await userEvent.click(screen.getAllByRole("button", { name: /^move to the bin$/i })[0]);
 
     await waitFor(() =>
       expect(screen.getAllByText(/references that attachment now/i).length).toBeGreaterThan(0),
@@ -1334,10 +1411,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
-    await go(/maintenance/i);
-
-    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    await sync();
 
     await screen.findByText("win1-0002");
     expect(screen.getAllByRole("button", { name: /^remove$/i })).toHaveLength(1);
@@ -1354,9 +1428,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
-    await go(/maintenance/i);
-    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    await sync();
     await screen.findByText("win1-0002");
 
     await userEvent.click(screen.getByRole("button", { name: /^remove$/i }));
@@ -1375,9 +1447,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
-    await go(/maintenance/i);
-    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    await sync();
     await screen.findByText("win1-0002");
     const looks = sent("checked").length;
 
@@ -1398,10 +1468,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
-    await go(/maintenance/i);
-
-    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    await upkeep();
 
     expect(await screen.findByText(/before deciding what is left over/i)).toBeTruthy();
   });
@@ -1424,10 +1491,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
-    await go(/maintenance/i);
-
-    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    await upkeep();
 
     await screen.findByText("charla-a3f9.mp4");
     expect(screen.queryByText(/before deciding what is left over/i)).toBeNull();
@@ -1443,10 +1507,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
-    await go(/maintenance/i);
-
-    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    await upkeep();
 
     expect(await screen.findByText("charla-a3f9.mp4")).toBeTruthy();
     expect(screen.getByText("notas-b1c2.pdf")).toBeTruthy();
@@ -1472,12 +1533,11 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
-    await go(/maintenance/i);
+    await upkeep();
 
     expect(sent("twinned")).toHaveLength(0);
 
-    await userEvent.click(screen.getByRole("button", { name: /look for copies/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^see which$/i }));
 
     expect(await screen.findByText("ab/video-a3f9.mp4")).toBeTruthy();
     expect(screen.getByText(/does not choose which|no elige cuál/i)).toBeTruthy();
@@ -1495,10 +1555,9 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
-    await go(/maintenance/i);
+    await upkeep();
 
-    await userEvent.click(screen.getByRole("button", { name: /look for copies/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^see which$/i }));
 
     expect(await screen.findByText(/nothing is kept twice/i)).toBeTruthy();
   });
@@ -1513,10 +1572,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
-    await go(/maintenance/i);
-
-    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    await upkeep();
 
     expect(await screen.findByText(/your cloud keeps it in its own bin/i)).toBeTruthy();
   });
@@ -1531,12 +1587,9 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
-    await go(/maintenance/i);
+    await upkeep();
 
-    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
-
-    expect(await screen.findByText(/the log weighs/i)).toBeTruthy();
+    expect(await screen.findByText(/the history weighs/i)).toBeTruthy();
     expect(screen.getByText(/the documents weigh/i)).toBeTruthy();
     expect(screen.getByText(/the attachments weigh/i)).toBeTruthy();
   });
@@ -1553,7 +1606,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
+    await sync();
 
     const said = await screen.findByText(/without anything arriving/i);
 
@@ -1573,7 +1626,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
+    await sync();
 
     expect(screen.queryByText(/without anything arriving/i)).toBeNull();
   });
@@ -1594,7 +1647,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
+    await sync();
 
     await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
 
@@ -1625,7 +1678,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
+    await sync();
 
     await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
 
@@ -1653,7 +1706,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
+    await sync();
 
     await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
 
@@ -1675,7 +1728,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
+    await sync();
 
     await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
 
@@ -1714,7 +1767,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
+    await sync();
     await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
   };
 
@@ -1729,7 +1782,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
+    await sync();
 
     await turnedOn();
 
@@ -1771,7 +1824,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
+    await sync();
 
     await turnedOn();
 
@@ -1790,7 +1843,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
+    await sync();
     await turnedOn();
 
     const doors = await screen.findByRole("dialog");
@@ -1813,7 +1866,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
+    await sync();
     await turnedOn();
 
     await userEvent.click(await screen.findByRole("button", { name: /keep this machine/i }));
@@ -1886,7 +1939,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
+    await sync();
 
     await userEvent.click(screen.getByRole("button", { name: /sync now/i }));
 
@@ -2037,8 +2090,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
-    await go(/maintenance/i);
+    await upkeep();
 
     await userEvent.click(screen.getByRole("button", { name: /go through the documents/i }));
 
@@ -2060,8 +2112,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
-    await go(/maintenance/i);
+    await upkeep();
 
     await userEvent.click(screen.getByRole("button", { name: /go through the documents/i }));
 
@@ -2078,13 +2129,10 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
-    await go(/maintenance/i);
-
-    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    await upkeep();
 
     expect(await screen.findByText(/7 tasks · 2 lists/i)).toBeTruthy();
-    expect(screen.getByText(/311.0 kB/)).toBeTruthy();
+    expect(screen.getByText(/you can free up to 311.0 kB/i)).toBeTruthy();
   });
 
   it("reads its settings again once the welcome has been through", async () => {
@@ -2098,7 +2146,7 @@ describe("the maintenance panel", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
+    await sync();
     const before = sent("settings").length;
 
     rerender(
@@ -3064,7 +3112,7 @@ describe("the first-run assistant", () => {
 });
 
 describe("the report a bug gets attached to", () => {
-  const upkeep = async () => {
+  const report = async () => {
     render(
       <Keeping
         onPack={() => {}}
@@ -3074,12 +3122,12 @@ describe("the report a bug gets attached to", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
-    await go(/maintenance/i);
+    await upkeep();
+    await userEvent.click(screen.getByRole("button", { name: /prepare/i }));
   };
 
   it("offers the log as one more answer, on by default", async () => {
-    await upkeep();
+    await report();
 
     const box = screen.getByRole("checkbox", { name: /include the error log/i });
     expect((box as HTMLInputElement).checked).toBe(true);
@@ -3087,7 +3135,7 @@ describe("the report a bug gets attached to", () => {
 
   it("shows the log inside what would be sent", async () => {
     kept.lines = ["2026-08-11 10:00:00-04  WARN   sync      folder unreachable"];
-    await upkeep();
+    await report();
 
     await userEvent.click(screen.getByText(/see the report/i));
 
@@ -3096,7 +3144,7 @@ describe("the report a bug gets attached to", () => {
 
   it("leaves it out once it is unticked", async () => {
     kept.lines = ["2026-08-11 10:00:00-04  WARN   sync      folder unreachable"];
-    await upkeep();
+    await report();
 
     await userEvent.click(screen.getByRole("checkbox", { name: /include the error log/i }));
     await userEvent.click(screen.getByText(/see the report/i));
@@ -3106,13 +3154,98 @@ describe("the report a bug gets attached to", () => {
 
   it("writes one zip, and says whether the log goes in it", async () => {
     asked.file = "D:/issues/tisty-report.zip";
-    await upkeep();
+    await report();
 
     await userEvent.click(screen.getByRole("button", { name: /save the report/i }));
 
     await waitFor(() => expect(sent("keep_report").length).toBe(1));
     expect(sent("keep_report")[0].args.at).toBe("D:/issues/tisty-report.zip");
     expect(sent("keep_report")[0].args.logs).toBe(true);
+  });
+});
+
+describe("Maintenance looking by itself", () => {
+  const shown = () =>
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
+
+  it("reviews as soon as the tab opens, and says when everything is in order", async () => {
+    shown();
+    await userEvent.click(await screen.findByRole("tab", { name: /maintenance/i }));
+
+    expect(await screen.findByText(/everything in order · checked/i)).toBeTruthy();
+    expect(sent("checked")).toHaveLength(1);
+    expect(sent("repeated_lists")).toHaveLength(1);
+    expect(sent("unvouched_attachments")).toHaveLength(1);
+    expect(screen.queryByText(t("toLookAt"))).toBeNull();
+  });
+
+  it("says it is checking on the button while the review runs", async () => {
+    const otherwise = ipc.answer;
+    ipc.answer = (cmd, args) => (cmd === "checked" ? new Promise(() => {}) : otherwise(cmd, args));
+    shown();
+    await userEvent.click(await screen.findByRole("tab", { name: /maintenance/i }));
+
+    const button = await screen.findByRole("button", { name: t("reviewing") });
+    expect((button as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("counts what needs a look, and shows only those cards", async () => {
+    const otherwise = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "checked"
+        ? otherwise(cmd, args).then((was) => ({
+            ...(was as Record<string, unknown>),
+            agrees: false,
+            stranded: [{ file: "mac0-0042", title: "Minutes", bytes: 21_000, when: 1_754_000_000 }],
+          }))
+        : otherwise(cmd, args);
+    shown();
+    await upkeep();
+
+    expect(screen.getByText(fill("healthMany", "2"))).toBeTruthy();
+    expect(screen.getByText(t("toLookAt"))).toBeTruthy();
+    expect(screen.getByText(t("cacheOffTitle"))).toBeTruthy();
+    expect(screen.getByText(t("upkeepLook"))).toBeTruthy();
+    expect(screen.queryByText(t("missingTitle"))).toBeNull();
+    expect(screen.queryByText(t("repeatedLists"))).toBeNull();
+  });
+
+  it("checks again when asked", async () => {
+    shown();
+    await upkeep();
+
+    await userEvent.click(screen.getByRole("button", { name: /^check again$/i }));
+
+    await waitFor(() => expect(sent("checked")).toHaveLength(2));
+  });
+
+  it("keeps the tools folded until asked", async () => {
+    shown();
+    await upkeep();
+
+    const tools = screen.getByText(t("tools")).closest("details");
+    expect(tools?.open).toBe(false);
+    expect(
+      within(tools as HTMLElement).getByRole("button", { name: t("reviewRedo") }),
+    ).toBeTruthy();
+  });
+
+  it("says the report in one line, and opens it only when asked", async () => {
+    shown();
+    await upkeep();
+
+    expect(screen.queryByRole("checkbox", { name: /include the error log/i })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: /prepare/i }));
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    expect(screen.getByRole("checkbox", { name: /include the error log/i })).toBeTruthy();
   });
 });
 
@@ -3204,9 +3337,7 @@ describe("documents on disk the log does not name", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
-    await go(/maintenance/i);
-    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    await upkeep();
   };
 
   it("offers to take one in before it offers to let it go", async () => {
@@ -3214,8 +3345,8 @@ describe("documents on disk the log does not name", () => {
     await opened();
 
     expect(await screen.findByText("Minutes")).toBeTruthy();
-    const takeIn = screen.getByRole("button", { name: /take it in/i });
-    const letGo = screen.getByRole("button", { name: /let it go/i });
+    const takeIn = screen.getByRole("button", { name: /^recover$/i });
+    const letGo = screen.getByRole("button", { name: /delete for good/i });
     expect(takeIn.compareDocumentPosition(letGo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
@@ -3223,7 +3354,7 @@ describe("documents on disk the log does not name", () => {
     strayed();
     await opened();
 
-    await userEvent.click(await screen.findByRole("button", { name: /take it in/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /^recover$/i }));
     await waitFor(() => expect(sent("doc_adopt")).toHaveLength(1));
     expect(sent("doc_adopt")[0]?.args.file).toBe("mac0-0042");
   });
@@ -3233,16 +3364,15 @@ describe("documents on disk the log does not name", () => {
     await opened();
 
     asked.sure = false;
-    await userEvent.click(await screen.findByRole("button", { name: /let it go/i }));
-    await waitFor(() => expect(asked.said).toMatch(/goes for good/i));
+    await userEvent.click(await screen.findByRole("button", { name: /delete for good/i }));
+    await waitFor(() => expect(asked.said).toMatch(/for good/i));
     expect(sent("doc_let_go")).toHaveLength(0);
   });
 
   it("says nothing when every file on disk is in the log", async () => {
     await opened();
 
-    await screen.findByText(/mac0-0001/);
-    expect(screen.queryByRole("button", { name: /take it in/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^recover$/i })).toBeNull();
   });
 });
 
@@ -3257,7 +3387,7 @@ describe("letting an assistant file work here", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
+    await sync();
     await userEvent.click(screen.getByRole("tab", { name: /assistants/i }));
   };
 
@@ -3446,9 +3576,7 @@ describe("documents the log names with no file", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
-    await go(/maintenance/i);
-    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    await upkeep();
   };
 
   it("will not let one be forgotten while a machine has been quiet", async () => {
@@ -3456,8 +3584,8 @@ describe("documents the log names with no file", () => {
     await opened();
 
     expect(await screen.findByText("Recipes")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /forget it/i })).toBeNull();
-    expect(screen.getByText(/sage 07 has spoken/i)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /delete on every computer/i })).toBeNull();
+    expect(screen.getByText(/until sage 07 syncs/i)).toBeTruthy();
   });
 
   it("offers to forget one once every machine has spoken, and asks first", async () => {
@@ -3465,12 +3593,12 @@ describe("documents the log names with no file", () => {
     await opened();
 
     asked.sure = false;
-    await userEvent.click(await screen.findByRole("button", { name: /forget it/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /delete on every computer/i }));
     await waitFor(() => expect(asked.said).toMatch(/for good/i));
     expect(sent("doc_drop")).toHaveLength(0);
 
     asked.sure = true;
-    await userEvent.click(screen.getByRole("button", { name: /forget it/i }));
+    await userEvent.click(screen.getByRole("button", { name: /delete on every computer/i }));
     await waitFor(() => expect(sent("doc_drop")).toHaveLength(1));
     expect(sent("doc_drop")[0]?.args.id).toBe("01M1ER4WK1E6BZJF2S9H9V0KYB");
   });
@@ -3487,16 +3615,14 @@ describe("taking every loose attachment out at once", () => {
         onDoc={() => {}}
       />,
     );
-    await data();
-    await go(/maintenance/i);
-    await userEvent.click(screen.getByRole("button", { name: /^review$/i }));
+    await upkeep();
   };
 
   it("says how many before it takes any, and takes none when told no", async () => {
     await opened();
 
     asked.sure = false;
-    await userEvent.click(await screen.findByRole("button", { name: /take them all out/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /move 3 to the bin/i }));
     await waitFor(() => expect(asked.said).toMatch(/3/));
     expect(sent("retire_attachments")).toHaveLength(0);
   });
@@ -3505,7 +3631,7 @@ describe("taking every loose attachment out at once", () => {
     await opened();
 
     asked.sure = true;
-    await userEvent.click(await screen.findByRole("button", { name: /take them all out/i }));
+    await userEvent.click(await screen.findByRole("button", { name: /move 3 to the bin/i }));
     await waitFor(() => expect(sent("retire_attachments")).toHaveLength(1));
     const references = sent("retire_attachments")[0]?.args.references as string[];
     expect(references).toHaveLength(3);
@@ -3544,7 +3670,7 @@ describe("taking every loose attachment out at once", () => {
       />,
     );
 
-    await data();
+    await sync();
 
     expect(screen.getByText(/not sharing since you restored/i)).toBeTruthy();
     expect(screen.getByText(/G:\/My Drive\/tisty/)).toBeTruthy();
@@ -3562,7 +3688,7 @@ describe("taking every loose attachment out at once", () => {
       />,
     );
 
-    await data();
+    await sync();
 
     expect(screen.getByText(t("syncOffRestoredLater"))).toBeTruthy();
     expect(screen.queryByText(t("syncOff"))).toBeNull();
@@ -3581,7 +3707,7 @@ describe("taking every loose attachment out at once", () => {
       />,
     );
 
-    await data();
+    await sync();
 
     expect(screen.getByText(t("syncLaterCard"))).toBeTruthy();
     expect(screen.queryByText(/not sharing since you restored/i)).toBeNull();

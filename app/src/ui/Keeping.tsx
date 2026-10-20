@@ -32,12 +32,14 @@ import Modal from "./Modal";
 import Relocating from "./Relocating";
 import { strong } from "./Rows";
 import { useSigning } from "./Signing";
+import Sync from "./Sync";
 import Upkeep from "./Upkeep";
 import { useCarry } from "./useCarry";
 import Yours from "./Yours";
 
 const TABS: { key: Tab; label: Parameters<typeof t>[0] }[] = [
   { key: "general", label: "tabGeneral" },
+  { key: "sync", label: "tabSync" },
   { key: "data", label: "tabData" },
   { key: "agents", label: "tabAgents" },
   { key: "upkeep", label: "tabUpkeep" },
@@ -152,7 +154,7 @@ export default function Keeping({
 
   useEffect(() => {
     if (!move) return;
-    setTab("data");
+    setTab("sync");
     setMoving({ heading: move });
   }, [move, movedAt]);
   const [was, setWas] = useState<string>();
@@ -288,7 +290,7 @@ export default function Keeping({
           ))}
         </div>
 
-        {busy !== null && (tab === "general" || tab === "data") && (
+        {busy !== null && (tab === "general" || tab === "sync" || tab === "data") && (
           <p className="text-[11.5px] text-faint">{fill("waitFor", t(NAMED[busy]))}</p>
         )}
 
@@ -312,12 +314,12 @@ export default function Keeping({
           />
         )}
 
-        {tab === "data" && (
-          <Yours
+        {tab === "sync" && (
+          <Sync
             state={state}
             kept={kept}
-            holds={holds}
-            build={build}
+            audit={audit}
+            setAudit={setAudit}
             freeing={freeing}
             setFreeing={setFreeing}
             busy={busy}
@@ -325,11 +327,25 @@ export default function Keeping({
             said={said}
             trouble={trouble}
             run={run}
+            tell={setSaid}
             fail={setTrouble}
             carry={(way) => void carryNow(way)}
             pickFolder={pickFolder}
             onMove={(resume) => setMoving({ resume })}
             remember={remember}
+          />
+        )}
+
+        {tab === "data" && (
+          <Yours
+            state={state}
+            holds={holds}
+            build={build}
+            busy={busy}
+            said={said}
+            trouble={trouble}
+            run={run}
+            fail={setTrouble}
             onPack={onPack}
             onUnpack={onUnpack}
             tell={setSaid}
@@ -360,12 +376,14 @@ export default function Keeping({
             freeDays={freeDays}
             setFreeDays={setFreeDays}
             busy={busy}
+            busySince={busySince}
             said={said}
             trouble={trouble}
             run={run}
             quietly={quietly}
             tell={setSaid}
             fail={setTrouble}
+            onSync={() => setTab("sync")}
           />
         )}
       </div>

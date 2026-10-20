@@ -29,7 +29,7 @@ describe("what a sync says went amiss", () => {
     const said = whatWentAmiss(settled({ unconfirmed: ["dev_w"], waiting: ["uno-0001"] }));
 
     expect(said).toBe("someoneUnconfirmedHolds");
-    expect(t("someoneUnconfirmedHolds")).toMatch(/Maintenance/);
+    expect(t("someoneUnconfirmedHolds")).toMatch(/Settings → Sync/);
   });
 
   it("says it on a background sync too, which leaves the waiting machines to the sidebar", () => {

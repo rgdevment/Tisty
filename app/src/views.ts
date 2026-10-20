@@ -16,7 +16,7 @@ export type Named =
   | "aboutScreen"
   | "help";
 
-export type Tab = "general" | "data" | "agents" | "upkeep";
+export type Tab = "general" | "sync" | "data" | "agents" | "upkeep";
 
 export type Heading = "pick" | "cloud" | "folder";
 

@@ -1223,12 +1223,6 @@ pub async fn back_up(
     let _done = alone.inner().waited(crate::ROUND_WAITED_OUT).await?;
     let (data, aside, also) = {
         let session = held(&session);
-        if session
-            .carrier()
-            .is_some_and(|carrier| carrier.frees_space())
-        {
-            return Err(Refusal::of("backupCloudOff"));
-        }
         (
             session.paths.data().to_path_buf(),
             session.paths.cache().to_path_buf(),

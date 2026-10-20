@@ -133,11 +133,11 @@ export default function Sidebar({
       <Knocking />
       <MoveNotice
         onOpen={() =>
-          onChoose({ named: "keeping", tab: "data", move: "pick", movedAt: Date.now() })
+          onChoose({ named: "keeping", tab: "sync", move: "pick", movedAt: Date.now() })
         }
       />
       <Coming
-        onOpen={(move) => onChoose({ named: "keeping", tab: "data", move, movedAt: Date.now() })}
+        onOpen={(move) => onChoose({ named: "keeping", tab: "sync", move, movedAt: Date.now() })}
       />
       <div className="flex shrink-0 items-center border-t border-hair px-2.5 py-2">
         <button

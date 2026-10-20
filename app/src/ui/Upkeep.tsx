@@ -1,35 +1,25 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   type About,
-  type Astray,
   type Carrying,
   checked,
-  confirmMachineKey,
-  docAdopt,
-  docDrop,
-  docLetGo,
   type Freeing,
-  type Gone,
-  type Machine,
+  type Repeated,
   type Reviewed,
-  readTags,
-  rebuild,
-  removeMachine,
-  retireAttachment,
-  retireAttachments,
-  type Stray,
+  repeatedLists,
+  type Unvouching,
+  unvouchedAttachments,
 } from "../core";
-import { weigh } from "../format";
+import { stamped } from "../format";
 import { fill, t } from "../locales";
-import { saidPlainly } from "../refusal";
-import { sure } from "../sure";
-import Card, { type Run, type Which, type Word } from "./Card";
-import FreeSpace from "./FreeSpace";
-import { Asked, MachineList } from "./Keys";
-import Leftovers from "./Leftovers";
+import { type Run, type Which, type Word, working } from "./Card";
+import FreeUp from "./FreeUp";
+import Leftovers, { lookAt } from "./Leftovers";
+import Modal from "./Modal";
 import Reporting from "./Reporting";
-import { dated, Group, mild, strong } from "./Rows";
-import Tidying from "./Tidying";
+import { Line, mild } from "./Rows";
+import Tools from "./Tools";
+import { useSince } from "./useSince";
 
 interface Props {
   audit: Reviewed | null;
@@ -41,13 +31,24 @@ interface Props {
   freeDays: number;
   setFreeDays: (days: number) => void;
   busy: Which | null;
+  busySince?: number;
   said?: Word;
   trouble?: Word;
   run: Run;
   quietly: Run;
   tell: (word?: Word) => void;
   fail: (word?: Word) => void;
+  onSync: () => void;
 }
+
+type Found = [Reviewed, Repeated[] | null, Unvouching | null];
+
+const looked = (): Promise<Found> =>
+  Promise.all([
+    checked(),
+    repeatedLists().catch(() => null),
+    unvouchedAttachments().catch(() => null),
+  ]);
 
 export default function Upkeep({
   audit,
@@ -59,266 +60,130 @@ export default function Upkeep({
   freeDays,
   setFreeDays,
   busy,
+  busySince,
   said,
   trouble,
   run,
   quietly,
   tell,
   fail,
+  onSync,
 }: Props) {
   const held = busy !== null;
-  const [keyOf, setKeyOf] = useState<Machine | null>(null);
-  const [astray, setAstray] = useState<Machine | null>(null);
+  const secs = useSince(held, busySince);
+  const [twice, setTwice] = useState<Repeated[]>([]);
+  const [unproven, setUnproven] = useState<Unvouching | null>(null);
+  const [at, setAt] = useState<string | null>(null);
+  const [reporting, setReporting] = useState(false);
 
-  const letGoOfAll = (astray: Astray[]) => {
-    if (held || astray.length === 0) return;
-    sure(fill("upkeepSafeAllSure", String(astray.length)))
-      .then((sure) => {
-        if (!sure) return;
-        run("review", retireAttachments(astray.map((one) => one.at)).then(checked), (now) => {
-          setAudit(now);
-          tell({ card: "review", text: t("looseDropped") });
-        });
-      })
-      .catch((e) => fail({ card: "review", text: saidPlainly(e) }));
+  const took = ([now, lists, unvouched]: Found) => {
+    setAudit(now);
+    setTwice(lists ?? []);
+    setUnproven(unvouched);
+    setAt(new Date().toISOString());
   };
 
-  const forgetMissing = (one: Gone) => {
-    if (held) return;
-    sure(fill("dropDocSure", one.title || one.file))
-      .then(
-        (sure) =>
-          sure &&
-          run("review", docDrop(one.id).then(checked), (now) => {
-            setAudit(now);
-            tell({ card: "review", text: t("looseDropped") });
-          }),
-      )
-      .catch((e) => fail({ card: "review", text: saidPlainly(e) }));
+  const review = () => quietly("review", looked(), took);
+  const relook = () => {
+    looked()
+      .then(took)
+      .catch(() => undefined);
   };
 
-  const takeInAll = (strays: Stray[]) =>
-    run(
-      "review",
-      strays
-        .reduce((so, one) => so.then(() => docAdopt(one.file).then(() => {})), Promise.resolve())
-        .then(checked),
-      setAudit,
-    );
+  const first = useRef(review);
+  first.current = review;
+  useEffect(() => first.current(), []);
 
-  const takeIn = (file: string) =>
-    run(
-      "review",
-      docAdopt(file).then(async (made) => ({ made, now: await checked() })),
-      (both) => {
-        setAudit(both.now);
-        tell({ card: "review", text: fill("upkeepTakenIn", both.made.title || both.made.id) });
-      },
-    );
-
-  const letGoOfPaper = (one: Stray) => {
-    if (held) return;
-    sure(fill("upkeepDropSure", one.title || one.file))
-      .then(
-        (sure) =>
-          sure &&
-          run("review", docLetGo(one.file).then(checked), (now) => {
-            setAudit(now);
-            tell({ card: "review", text: t("upkeepDropped") });
-          }),
-      )
-      .catch((e) => fail({ card: "review", text: saidPlainly(e) }));
-  };
-
-  const letGo = (reference: string, shared?: boolean) => {
-    if (held) return;
-    const named = reference.split("/").pop() ?? reference;
-    sure(fill(shared ? "looseDropSharedSure" : "looseDropSure", named))
-      .then(
-        (sure) =>
-          sure &&
-          run("review", retireAttachment(reference).then(checked), (now) => {
-            setAudit(now);
-            tell({ card: "review", text: t("looseDropped") });
-          }),
-      )
-      .catch((e) => fail({ card: "review", text: saidPlainly(e) }));
-  };
-
-  // A refusal says "look again", so the window looks rather than leave a live button on a stale key.
-  const confirmKey = (one: Machine) => {
-    if (held || !one.signs) return;
-    const said = one.signs;
-    setKeyOf(null);
-    run(
-      "machines",
-      confirmMachineKey(one.id, said)
-        .then(() => null)
-        .catch((e) => saidPlainly(e))
-        .then((amiss) => checked().then((now) => ({ amiss, now }))),
-      ({ amiss, now }) => {
-        setAudit(now);
-        if (amiss) fail({ card: "machines", text: amiss });
-        else tell({ card: "machines", text: t("machineKeyDone") });
-      },
-    );
-  };
-
-  const dropMachine = (one: Machine) => {
-    if (held) return;
-    const said = `${fill("machineDropSure", one.called)}\n\n${fill(
-      "machineDropWhen",
-      one.when === 0 ? t("machineNever") : dated(one.when),
-    )}`;
-    sure(said)
-      .then(
-        (sure) =>
-          sure &&
-          run("machines", removeMachine(one.id).then(checked), (now) => {
-            setAudit(now);
-            tell({ card: "machines", text: t("machineDropped") });
-          }),
-      )
-      .catch((e) => fail({ card: "machines", text: saidPlainly(e) }));
-  };
+  const many =
+    audit && at ? Object.values(lookAt(audit, twice, unproven)).filter(Boolean).length : -1;
+  const health =
+    !audit || !at
+      ? t("reviewWhat")
+      : many === 0
+        ? fill("healthy", stamped(at))
+        : many === 1
+          ? t("healthOne")
+          : fill("healthMany", String(many));
+  const [dot, ink] =
+    many < 0
+      ? ["bg-hair", "text-faint"]
+      : many === 0
+        ? ["bg-hue-green", "text-hue-green"]
+        : ["bg-hue-amber", "text-hue-amber"];
+  const shown = { busy, secs, said, trouble, run, tell, fail };
 
   return (
     <>
-      <Asked
-        keyOf={keyOf}
-        astray={astray}
-        busy={held}
-        onConfirm={confirmKey}
-        onClose={() => {
-          setKeyOf(null);
-          setAstray(null);
-        }}
-      />
-      <Group label={t("theStore")} />
+      <section className="flex flex-wrap items-center gap-2.5 rounded-[10px] border border-hair px-4 py-3">
+        <span aria-hidden="true" className={`h-2 w-2 shrink-0 rounded-full ${dot}`} />
+        <span role="status" className={`min-w-0 flex-1 text-[12.5px] font-medium ${ink}`}>
+          {health}
+        </span>
+        <button type="button" disabled={held} onClick={review} className={mild}>
+          {busy === "review" ? working("reviewing", secs) : t("reviewAgain")}
+        </button>
+      </section>
+      {trouble?.card === "review" && (
+        <p className="mt-2 text-[11.5px] text-urgent">{trouble.text}</p>
+      )}
 
-      <Card title={t("review")} which="review" busy={busy} said={said} trouble={trouble}>
-        <p className="text-[12.5px] leading-relaxed text-soft">{t("reviewWhat")}</p>
-        {audit && (
-          <dl className="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-0.5 text-[12.5px]">
-            <dt className="text-faint">{t("inTheLog")}</dt>
-            <dd className="text-soft">
-              {[
-                fill("reviewCount", String(audit.tasks)),
-                fill("reviewLists", String(audit.lists)),
-                `${audit.events} ${t("wordEvents")}`,
-              ].join(" · ")}
-            </dd>
-            <dt className="text-faint">{t("cacheIs")}</dt>
-            <dd className={audit.agrees ? "text-accent" : "text-urgent"}>
-              {t(audit.agrees ? "cacheAgrees" : "cacheDiverged")}
-            </dd>
-            <dt className="text-faint">{t("weighsLog")}</dt>
-            <dd className="tabular-nums text-soft">{weigh(audit.logBytes)}</dd>
-            <dt className="text-faint">{t("weighsDocs")}</dt>
-            <dd className="tabular-nums text-soft">{weigh(audit.docsBytes)}</dd>
-            <dt className="text-faint">{t("weighsHeld")}</dt>
-            <dd className="tabular-nums text-soft">
-              {`${audit.heldFiles} · ${weigh(audit.heldBytes)}`}
-            </dd>
-          </dl>
-        )}
-        <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
-          <button
-            type="button"
-            disabled={held}
-            onClick={() => run("review", checked(), setAudit)}
-            className={mild}
-          >
-            {t(audit ? "reviewAgain" : "reviewRun")}
-          </button>
-          {audit && !audit.agrees && (
-            <button
-              type="button"
-              disabled={held}
-              onClick={() =>
-                run("review", rebuild().then(checked), (now) => {
-                  setAudit(now);
-                  tell({ card: "review", text: t("reviewRebuilt") });
-                })
-              }
-              className={strong}
-            >
-              {t("reviewRedo")}
-            </button>
-          )}
-        </div>
-      </Card>
-
-      {state.freesSpace && (
-        <FreeSpace
-          busy={busy}
-          freeing={freeing}
-          setFreeing={setFreeing}
-          days={freeDays}
-          setDays={setFreeDays}
-          said={said}
-          trouble={trouble}
-          fail={fail}
+      {audit && at && (
+        <Leftovers
+          audit={audit}
+          twice={twice}
+          unproven={unproven}
+          {...shown}
+          setAudit={setAudit}
+          relook={relook}
+          onSync={onSync}
         />
       )}
 
-      <Group label={t("theMachines")} />
-
-      <Card title={t("theMachines")} which="machines" busy={busy} said={said} trouble={trouble}>
-        <p className="text-[12.5px] leading-relaxed text-soft">{t("machinesWhat")}</p>
-        <MachineList
-          all={audit?.machines ?? null}
-          busy={held}
-          onKey={setKeyOf}
-          onAstray={setAstray}
-          onDrop={dropMachine}
-        />
-      </Card>
-
-      <Card title={t("tagsRead")} which="tagging" busy={busy} said={said} trouble={trouble}>
-        <p className="text-[12.5px] leading-relaxed text-soft">{t("tagsReadWhy")}</p>
-        <div className="mt-2.5 flex items-center gap-2.5">
-          <button
-            type="button"
-            disabled={held}
-            onClick={() =>
-              run("tagging", readTags(), (many) =>
-                tell({ card: "tagging", text: fill("tagsReadDone", String(many)) }),
-              )
-            }
-            className={mild}
-          >
-            {t("tagsReadDo")}
-          </button>
-        </div>
-      </Card>
-
-      <Tidying busy={busy} said={said} trouble={trouble} run={run} tell={tell} mild={mild} />
-
-      <Leftovers
+      <FreeUp
         audit={audit}
+        setAudit={setAudit}
         build={build}
-        busy={busy}
-        said={said}
-        trouble={trouble}
-        run={run}
-        fail={fail}
-        letGo={letGo}
-        letGoOfAll={letGoOfAll}
-        takeIn={takeIn}
-        takeInAll={takeInAll}
-        letGoOfPaper={letGoOfPaper}
-        forgetMissing={forgetMissing}
+        state={state}
+        freeing={freeing}
+        setFreeing={setFreeing}
+        days={freeDays}
+        setDays={setFreeDays}
+        {...shown}
       />
 
-      <Reporting
-        busy={busy}
-        said={said}
-        trouble={trouble}
-        tell={tell}
-        fail={fail}
-        quietly={quietly}
-      />
+      <Tools audit={audit} setAudit={setAudit} {...shown} />
+
+      <div className="mt-5 border-t border-hair">
+        <Line
+          title={t("reportTitle")}
+          why={t("reportLine")}
+          which="report"
+          said={reporting ? undefined : said}
+          trouble={reporting ? undefined : trouble}
+        >
+          <button type="button" onClick={() => setReporting(true)} className={mild}>
+            {t("reportPrepare")}
+          </button>
+        </Line>
+      </div>
+
+      {reporting && (
+        <Modal title={t("reportTitle")} wide onClose={() => setReporting(false)}>
+          <Reporting
+            busy={busy}
+            said={said}
+            trouble={trouble}
+            tell={tell}
+            fail={fail}
+            quietly={quietly}
+          />
+          <div className="mt-5 flex justify-end">
+            <button type="button" onClick={() => setReporting(false)} className={mild}>
+              {t("close")}
+            </button>
+          </div>
+        </Modal>
+      )}
     </>
   );
 }
