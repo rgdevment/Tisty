@@ -641,7 +641,10 @@ pub(super) fn plan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 pub(super) fn tick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let (said, wanted) = steps_asked(args, "ticking", "each step you did")?;
     let (state, mut store) = opened(paths)?;
-    let (id, task) = filling(&state, &store, &said)?;
+    let (id, task) = reaching(&state, &said)?;
+    if !state.attended_by_agents(task) {
+        return vouch(store, id, task, &wanted);
+    }
     if let Some(refusal) = already_said_done(task, "ticking") {
         return Err(refusal);
     }
@@ -705,7 +708,10 @@ pub(super) fn tick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 pub(super) fn untick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let (said, wanted) = steps_asked(args, "unticking", "each step an agent ticked by mistake")?;
     let (state, mut store) = opened(paths)?;
-    let (id, task) = filling(&state, &store, &said)?;
+    let (id, task) = reaching(&state, &said)?;
+    if !state.attended_by_agents(task) {
+        return unsay(store, id, task, &wanted);
+    }
     if let Some(refusal) = already_said_done(task, "unticking") {
         return Err(refusal);
     }
@@ -840,14 +846,6 @@ fn spoken_for(paths: &Paths, args: &Value, drop: bool) -> Result<Value, Refused>
         return Err(gone(&state, &said));
     };
     let me = store.device().clone();
-    if !state.attended_by_agents(task) {
-        return Err(Refused::Tool(format!(
-            "{:?} is the person's own, and they have not opened it to you: whether it is done \
-             is theirs to say. You can only speak for what an agent filed, or for what they \
-             opened to agents. Say what you have learnt with `note` instead.",
-            task.title
-        )));
-    }
     if !task.is_open() {
         return Err(history(task));
     }
@@ -903,6 +901,7 @@ fn spoken_for(paths: &Paths, args: &Value, drop: bool) -> Result<Value, Refused>
         return Err(refusal);
     }
 
+    let attended = state.attended_by_agents(task);
     let zone = jiff::tz::TimeZone::system();
     let entry = Ulid::generate();
     // Judged again under the lock: the mark must not land beside a step the person just
@@ -918,15 +917,17 @@ fn spoken_for(paths: &Paths, args: &Value, drop: bool) -> Result<Value, Refused>
                     id,
                     d: Resolve::new(entry)
                         .said_by(jiff::Timestamp::now(), me.clone())
-                        .dropping(drop),
+                        .dropping(drop)
+                        .as_word(!attended),
                 },
             ],
             |events| {
                 let held = State::replay(events);
                 held.tasks.get(&id).is_none_or(|now| {
-                    !still_filling(&held, now)
+                    !still_in_sight(now)
+                        || held.attended_by_agents(now) != attended
                         || now.resolved.is_some()
-                        || (!drop && now.steps.iter().any(|step| !step.done))
+                        || (!drop && now.steps.iter().any(|step| !step.done && !step.said))
                 })
             },
         )
@@ -996,13 +997,8 @@ pub(super) fn steps_fit(steps: &[String]) -> Result<(), Refused> {
     }
 }
 
-/// What an assistant may fill in: a task it filed, or one the person opened to agents — open,
-/// and not folded away. The refusal says which of the three it is not.
-pub(super) fn filling<'a>(
-    state: &'a State,
-    store: &Store,
-    said: &str,
-) -> Result<(TaskId, &'a Task), Refused> {
+/// An open task, not folded away, named by its id; whose it is, the caller asks.
+fn reaching<'a>(state: &'a State, said: &str) -> Result<(TaskId, &'a Task), Refused> {
     let Ok(id) = said.parse::<TaskId>() else {
         return Err(Refused::Tool(format!(
             "{said:?} is not a task id. Use the `id` that `find` or `propose` gave you."
@@ -1014,11 +1010,80 @@ pub(super) fn filling<'a>(
     if !task.is_open() {
         return Err(history(task));
     }
+    Ok((id, task))
+}
+
+pub(super) fn still_in_sight(now: &Task) -> bool {
+    now.is_open() && !now.folded()
+}
+
+// The person may not look for days, so the step waits unticked rather than ticked in their name.
+fn vouch(mut store: Store, id: TaskId, task: &Task, wanted: &[String]) -> Result<Value, Refused> {
+    if let Some(refusal) = already_said_done(task, "saying steps are done") {
+        return Err(refusal);
+    }
+    let chosen = steps_named(task, wanted, "said done", |step| !step.done && !step.said)?;
+    let read: Vec<(tisty_core::model::StepId, String)> = chosen
+        .iter()
+        .filter(|step| !step.done && !step.said)
+        .map(|step| (step.id, step.text.clone()))
+        .collect();
+    let fresh: Vec<tisty_core::model::StepId> = read.iter().map(|(step, _)| *step).collect();
+    if fresh.is_empty() {
+        return Err(Refused::Tool(format!(
+            "Every step you named on {:?} is ticked already or already carries your word, so \
+             there is nothing more to say.",
+            task.title
+        )));
+    }
+    worded(
+        &mut store,
+        task,
+        &fresh,
+        |step| Op::StepSaid { id, d: step },
+        |now| {
+            read.iter().all(|(step, text)| {
+                now.step(*step)
+                    .is_some_and(|one| !one.done && !one.said && &one.text == text)
+            })
+        },
+    )?;
+    let left = task
+        .steps
+        .iter()
+        .filter(|step| !step.done && !step.said)
+        .count()
+        - fresh.len();
+    Ok(told(
+        format!(
+            "Said {} step(s) of {:?} are done. It is the person's own task, so they stay unticked \
+             until the person takes your word; `say_done` when the whole of it is done. {left} \
+             step(s) not spoken for.",
+            fresh.len(),
+            task.title
+        ),
+        json!({
+            "id": id.to_string(),
+            "title": task.title,
+            "said": fresh.len(),
+            "ticked": 0,
+            "left": left,
+        }),
+    ))
+}
+
+/// What an assistant may fill in: a task it filed, or one the person opened to agents.
+pub(super) fn filling<'a>(
+    state: &'a State,
+    store: &Store,
+    said: &str,
+) -> Result<(TaskId, &'a Task), Refused> {
+    let (id, task) = reaching(state, said)?;
     if !state.attended_by_agents(task) {
         return Err(Refused::Tool(format!(
             "{:?} is the person's own, and they have not opened it to you. You fill in what an \
-             agent filed, or what they opened to agents; on the rest, say what you have learnt \
-             with `note`.",
+             agent filed; on the rest, say what you have learnt with `note`, and when you did the \
+             work, `tick` its steps or `say_done` as your word for the person to take.",
             task.title
         )));
     }
@@ -1028,7 +1093,7 @@ pub(super) fn filling<'a>(
 
 /// Still open, in sight, and open to this hand: what every fill-in checks again under the lock.
 pub(super) fn still_filling(held: &State, now: &Task) -> bool {
-    now.is_open() && !now.folded() && held.attended_by_agents(now)
+    still_in_sight(now) && held.attended_by_agents(now)
 }
 
 pub(super) fn already_said_done(task: &Task, doing: &str) -> Option<Refused> {
@@ -1119,4 +1184,68 @@ pub(super) fn steps_named<'a>(
         }
     }
     Ok(chosen)
+}
+
+// Judged again under the lock: a word holds only for the steps as they were read.
+fn worded(
+    store: &mut Store,
+    task: &Task,
+    steps: &[tisty_core::model::StepId],
+    op: impl Fn(StepRef) -> Op,
+    still: impl Fn(&Task) -> bool,
+) -> Result<(), Refused> {
+    let id = task.id;
+    let ops = steps
+        .iter()
+        .map(|step| op(StepRef { step: *step }))
+        .collect();
+    let written = store
+        .append_batch_unless(ops, |events| {
+            State::replay(events)
+                .tasks
+                .get(&id)
+                .is_none_or(|now| !still_in_sight(now) || now.resolved.is_some() || !still(now))
+        })
+        .map_err(hitch)?;
+    match written {
+        Some(_) => Ok(()),
+        None => Err(moved(task)),
+    }
+}
+
+fn unsay(mut store: Store, id: TaskId, task: &Task, wanted: &[String]) -> Result<Value, Refused> {
+    if let Some(refusal) = already_said_done(task, "taking back a word on its steps") {
+        return Err(refusal);
+    }
+    let chosen = steps_named(task, wanted, "taken back", |step| step.said)?;
+    let gone: Vec<tisty_core::model::StepId> = chosen
+        .iter()
+        .filter(|step| step.said)
+        .map(|step| step.id)
+        .collect();
+    if gone.is_empty() {
+        return Err(Refused::Tool(format!(
+            "No step you named on {:?} carries your word: a tick the person gave is theirs, and a \
+             step you never said was done has nothing to take back.",
+            task.title
+        )));
+    }
+    worded(
+        &mut store,
+        task,
+        &gone,
+        |step| Op::StepUnsaid { id, d: step },
+        |now| {
+            gone.iter()
+                .all(|step| now.step(*step).is_some_and(|one| one.said))
+        },
+    )?;
+    Ok(told(
+        format!(
+            "Took back your word on {} step(s) of {:?}; the person's ticks are theirs.",
+            gone.len(),
+            task.title
+        ),
+        json!({ "id": id.to_string(), "title": task.title, "unsaid": gone.len() }),
+    ))
 }

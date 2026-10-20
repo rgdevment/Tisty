@@ -13,6 +13,7 @@ fn task(steps: &[(&str, bool, &str)]) -> Task {
             done: *done,
             order: (*order).into(),
             by_agent: false,
+            said: false,
         })
         .collect();
     task

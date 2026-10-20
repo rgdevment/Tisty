@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { heard } from "../coming";
 import type { Carrying } from "../core";
+import { forgetErasing } from "../erasing";
 import { weigh } from "../format";
 import { adopt, fill, t } from "../locales";
 import { endMove, RETRY_IN } from "../relocation";
@@ -101,6 +102,7 @@ afterEach(() => {
   vi.useRealTimers();
   Reflect.deleteProperty(navigator, "onLine");
   act(() => endMove());
+  act(() => forgetErasing());
   heard(null);
 });
 

@@ -628,6 +628,43 @@ struct Updating(OneAtATime);
 #[derive(Default)]
 struct Packing(OneAtATime);
 
+/// The account whose cloud left behind is being emptied, which goes on without the round's hold.
+#[derive(Default)]
+struct Erasing(Mutex<Option<String>>);
+
+struct Emptying<'a>(&'a Erasing);
+
+impl Drop for Emptying<'_> {
+    fn drop(&mut self) {
+        *self.0.held() = None;
+    }
+}
+
+impl Erasing {
+    fn held(&self) -> std::sync::MutexGuard<'_, Option<String>> {
+        self.0
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    fn claim(&self, account: &str) -> Option<Emptying<'_>> {
+        let mut held = self.held();
+        if held.is_some() {
+            return None;
+        }
+        *held = Some(account.to_string());
+        Some(Emptying(self))
+    }
+
+    fn of(&self, account: &str) -> bool {
+        self.held().as_deref() == Some(account)
+    }
+
+    fn going(&self) -> bool {
+        self.held().is_some()
+    }
+}
+
 impl Packing {
     fn taken(&self) -> Answer<Releasing<'_>> {
         self.0.claim().ok_or_else(|| Refusal::of("stillPacking"))
@@ -1053,6 +1090,7 @@ pub fn run() {
         .manage(widgets::Lent::default())
         .manage(viewing::Views::default())
         .manage(Packing::default())
+        .manage(Erasing::default())
         .manage(Updating::default())
         .manage(desktop::Leaving::default())
         .manage(desktop::Departed::default())
@@ -1132,6 +1170,7 @@ pub fn run() {
             answers::parts::wholes_offered,
             answers::tasks::fold,
             answers::tasks::still_open,
+            answers::tasks::steps_said,
             answers::tasks::discard,
             answers::attaching::attach,
             answers::attaching::attach_pasted,

@@ -51,14 +51,12 @@ describe("letting an agent fill a task in", () => {
     knowAgents({});
   });
 
-  it("is offered on an open task the person wrote, behind «more», and opens it", async () => {
-    const door = open(task());
+  it("is no longer offered on a task the person wrote, which assistants may only speak for", async () => {
+    open(task());
 
-    await userEvent.click(screen.getByRole("button", { name: /^more$/i }));
-    await userEvent.click(screen.getByRole("menuitem", { name: /^allow agents$/i }));
-
-    expect(door).toHaveBeenCalledWith(true);
-    expect(screen.queryByText(/open to agents/i)).toBeNull();
+    const more = screen.queryByRole("button", { name: /^more$/i });
+    if (more) await userEvent.click(more);
+    expect(screen.queryByRole("menuitem", { name: /^allow agents$/i })).toBeNull();
   });
 
   it("says the task is open, and offers to keep it again", async () => {
@@ -87,5 +85,42 @@ describe("letting an agent fill a task in", () => {
     expect(screen.queryByRole("menuitem", { name: /^no agents$/i })).toBeNull();
     expect(screen.queryByRole("menuitem", { name: /^allow agents$/i })).toBeNull();
     expect(screen.getByText(/· was open to agents/i)).toBeTruthy();
+  });
+});
+
+describe("steps an assistant says are done", () => {
+  it("wait on the task's page until the person ticks them or says not yet", async () => {
+    const answer = vi.fn();
+    render(
+      <Detail
+        task={task({
+          steps: [
+            { id: "s1", text: "pay the fee", done: false, order: "a0", said: true },
+            { id: "s2", text: "download it", done: false, order: "a1" },
+          ],
+        } as Partial<Task>)}
+        lists={[]}
+        known={[]}
+        onCollapse={() => {}}
+        onPatch={() => {}}
+        onComplete={() => {}}
+        onDiscard={() => {}}
+        onReopen={() => {}}
+        onStillOpen={() => {}}
+        onStepsSaid={answer}
+        onErase={() => {}}
+        onFold={() => {}}
+        onReadAs={() => {}}
+        onOpenToAgents={() => {}}
+        onClose={() => {}}
+      />,
+    );
+
+    expect(screen.getByText("An assistant says this step is done")).toBeTruthy();
+    expect(screen.getByText("pay the fee")).toBeTruthy();
+    expect(screen.queryByText("download it")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Tick them" }));
+
+    expect(answer).toHaveBeenCalledWith(true, ["s1"]);
   });
 });

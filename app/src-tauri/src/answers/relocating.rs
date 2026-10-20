@@ -9,7 +9,7 @@ use super::storing::{
     joined_on, went_back_on,
 };
 use crate::reaching::GOOGLE;
-use crate::{Answer, OneAtATime, Refusal, Session, held, said};
+use crate::{Answer, Erasing, OneAtATime, Refusal, Session, held, said};
 
 const PENDING: &str = "moving.json";
 const WAITED: std::time::Duration = std::time::Duration::from_secs(30);
@@ -263,10 +263,11 @@ pub async fn move_to(
     app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
     alone: tauri::State<'_, OneAtATime>,
+    erasing: tauri::State<'_, Erasing>,
     toward: Toward,
 ) -> Answer<Moving> {
     let kind = toward.kind();
-    let answer = moving(app, &session, &alone, toward).await;
+    let answer = moving(app, &session, &alone, &erasing, toward).await;
     noted(&answer, kind);
     answer
 }
@@ -316,9 +317,16 @@ async fn moving(
     app: tauri::AppHandle,
     session: &tauri::State<'_, Mutex<Session>>,
     alone: &tauri::State<'_, OneAtATime>,
+    erasing: &tauri::State<'_, Erasing>,
     toward: Toward,
 ) -> Answer<Moving> {
     let _done = alone.inner().waited(WAITED).await?;
+    // Asked holding the round: a cloud being emptied is let go of when that ends, so no move may lean on one.
+    if let Toward::Cloud { account, .. } = &toward
+        && erasing.of(account)
+    {
+        return Err(Refusal::of("wipeGoing"));
+    }
     accessible(&toward).await?;
     let (mut end, paths, left) = {
         let mut session = held(session);
@@ -513,15 +521,26 @@ pub fn move_dropped(session: tauri::State<'_, Mutex<Session>>) {
     }
 }
 
+#[derive(Clone, serde::Serialize)]
+struct Wiping {
+    gone: usize,
+    of: usize,
+}
+
 #[tauri::command(async)]
 pub async fn cloud_wipe(
+    app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
     alone: tauri::State<'_, OneAtATime>,
+    erasing: tauri::State<'_, Erasing>,
     account: String,
     email: String,
     provider: Option<String>,
 ) -> Answer<usize> {
-    let _done = alone.inner().waited(WAITED).await?;
+    let _erasing = erasing
+        .claim(&account)
+        .ok_or_else(|| Refusal::of("wipeGoing"))?;
+    let done = alone.inner().waited(WAITED).await?;
     let at = CloudAt {
         provider: provider.unwrap_or_else(google),
         account,
@@ -545,7 +564,8 @@ pub async fn cloud_wipe(
     if crate::leaving::owed_to(&paths, &at.account) {
         return Err(Refusal::of("wipeUntold"));
     }
-    let gone = tauri::async_runtime::spawn_blocking(move || wiped(&*carrier, &here, &alive))
+    let checking = carrier.clone();
+    let home = tauri::async_runtime::spawn_blocking(move || all_home(&*checking, &here, &alive))
         .await
         .map_err(|_| Refusal::of("internal"))?;
     catching_up(
@@ -555,21 +575,64 @@ pub async fn cloud_wipe(
         channel::SYNC,
     )
     .await?;
-    let gone = gone?;
+    home?;
+    // Emptying touches only the cloud left behind, whose own lock keeps it apart, so rounds here go on meanwhile.
+    drop(done);
+    let gone = tauri::async_runtime::spawn_blocking(move || {
+        let mut told = None;
+        emptied(&*carrier, &mut |gone, of| {
+            // Told by the hundredth, so thousands of copies do not mean thousands of redraws.
+            let now = (gone * 100).checked_div(of);
+            if now != told {
+                told = now;
+                let _ = app.emit("wiping", Wiping { gone, of });
+            }
+        })
+    })
+    .await
+    .map_err(|_| Refusal::of("internal"))??;
     super::clouding::let_go_of(&at);
     Ok(gone)
 }
 
 /// Asked of the cloud itself, never of the mirror here: emptied only once all is home and the word is up there.
-pub(crate) fn wiped(
+pub(crate) fn all_home(
     carrier: &dyn tisty_carrier::Carrier,
     here: &tisty_carrier::Here,
     alive: &[String],
-) -> Answer<usize> {
-    if !tisty_carrier::all_home(carrier, here, alive).map_err(said)? {
-        return Err(Refusal::of("wipeNotHome"));
+) -> Answer<()> {
+    tisty_core::witness::note(
+        channel::SYNC,
+        "a cloud left behind is checked before it is emptied",
+        &[],
+    );
+    match tisty_carrier::all_home(carrier, here, alive).map_err(said)? {
+        true => Ok(()),
+        false => Err(Refusal::of("wipeNotHome")),
     }
-    carrier.wipe().map_err(|trouble| match trouble {
+}
+
+pub(crate) fn emptied(
+    carrier: &dyn tisty_carrier::Carrier,
+    along: &mut dyn FnMut(usize, usize),
+) -> Answer<usize> {
+    use tisty_core::witness::{self, Fact};
+    let began = std::time::Instant::now();
+    let gone = carrier.wipe_along(along);
+    let secs = Fact::Count(usize::try_from(began.elapsed().as_secs()).unwrap_or(usize::MAX));
+    match &gone {
+        Ok(gone) => witness::note(
+            channel::SYNC,
+            "a cloud left behind was emptied",
+            &[("gone", Fact::Count(*gone)), ("secs", secs)],
+        ),
+        Err(trouble) => witness::warn(
+            channel::SYNC,
+            "a cloud left behind was not emptied",
+            &[("why", Fact::Why(format!("{trouble:?}"))), ("secs", secs)],
+        ),
+    }
+    gone.map_err(|trouble| match trouble {
         tisty_carrier::Trouble::NotThere(name) if name == tisty_core::moved::NAMED => {
             Refusal::of("wipeUntold")
         }

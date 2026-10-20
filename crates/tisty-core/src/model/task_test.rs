@@ -135,6 +135,7 @@ fn stepped(many: usize) -> Vec<Step> {
             done: false,
             order: format!("a{n}"),
             by_agent: false,
+            said: false,
         })
         .collect()
 }

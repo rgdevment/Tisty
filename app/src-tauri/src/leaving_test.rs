@@ -5,6 +5,15 @@ use tisty_core::config::CloudAt;
 use super::*;
 use crate::Session;
 
+fn wiped(
+    carrier: &dyn tisty_carrier::Carrier,
+    here: &tisty_carrier::Here,
+    alive: &[String],
+) -> crate::Answer<usize> {
+    crate::answers::relocating::all_home(carrier, here, alive)?;
+    crate::answers::relocating::emptied(carrier, &mut |_, _| {})
+}
+
 fn machine(room: &Path, named: &str) -> Session {
     let paths = tisty_core::Paths::new(
         room.join(named).join("data"),
@@ -498,7 +507,10 @@ impl tisty_carrier::Carrier for Refusing {
             .store(self.owed_at.is_file(), std::sync::atomic::Ordering::Relaxed);
         Err(self.said.clone())
     }
-    fn wipe(&self) -> Result<usize, tisty_carrier::Trouble> {
+    fn wipe_along(
+        &self,
+        _along: &mut dyn FnMut(usize, usize),
+    ) -> Result<usize, tisty_carrier::Trouble> {
         self.wiping.clone()
     }
 }
@@ -522,7 +534,7 @@ fn a_word_a_full_limited_or_offline_cloud_did_not_take_stays_owed_and_its_copies
         let old: tisty_carrier::Shared = refusing.clone();
 
         let told = left_said(&one.paths, &ana(), "me fui", Some(old));
-        let wiped = crate::answers::relocating::wiped(&*refusing, &one.here(), &[]);
+        let wiped = wiped(&*refusing, &one.here(), &[]);
 
         assert!(
             !told,
@@ -564,7 +576,7 @@ fn a_cloud_that_brought_something_new_while_its_copies_were_about_to_go_keeps_th
     let mut refusing = Refusing::with(tisty_carrier::Trouble::NotNow("busy".into()), &one.paths);
     refusing.brought = 1;
 
-    let wiped = crate::answers::relocating::wiped(&refusing, &one.here(), &[]);
+    let wiped = wiped(&refusing, &one.here(), &[]);
 
     assert_eq!(wiped.map_err(|one| one.code), Err("wipeNotHome"));
 }
@@ -574,7 +586,7 @@ fn wiped_with(wiping: Result<usize, tisty_carrier::Trouble>) -> Answer<usize> {
     let one = machine(room.path(), "one");
     let mut refusing = Refusing::with(tisty_carrier::Trouble::NotNow("busy".into()), &one.paths);
     refusing.wiping = wiping;
-    crate::answers::relocating::wiped(&refusing, &one.here(), &[])
+    wiped(&refusing, &one.here(), &[])
 }
 
 fn refused(answer: Answer<usize>) -> Result<usize, (&'static str, Option<String>)> {
@@ -638,7 +650,7 @@ fn a_cloud_still_bringing_something_home_is_never_emptied_even_when_it_could_be(
     refusing.brought = 1;
     refusing.wiping = Ok(5);
 
-    let wiped = crate::answers::relocating::wiped(&refusing, &one.here(), &[]);
+    let wiped = wiped(&refusing, &one.here(), &[]);
 
     assert_eq!(wiped.map_err(|one| one.code), Err("wipeNotHome"));
 }

@@ -99,6 +99,8 @@ impl Event {
             | Op::StepAdd { id, .. }
             | Op::StepDone { id, .. }
             | Op::StepUndone { id, .. }
+            | Op::StepSaid { id, .. }
+            | Op::StepUnsaid { id, .. }
             | Op::StepText { id, .. }
             | Op::StepRemove { id, .. }
             | Op::StepReorder { id, .. }

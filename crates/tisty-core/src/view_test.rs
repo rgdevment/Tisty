@@ -256,6 +256,7 @@ fn a_layer_filter_keeps_only_what_reads_that_way() {
             done: true,
             order: format!("a{n}"),
             by_agent: false,
+            said: false,
         })
         .collect();
     told.retally();

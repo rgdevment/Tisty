@@ -496,6 +496,48 @@ pub fn fold(session: tauri::State<'_, Mutex<Session>>, id: String, away: bool) -
 }
 
 #[tauri::command]
+pub fn steps_said(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    steps: Vec<String>,
+    keep: bool,
+) -> Answer<Task> {
+    let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
+    let mut session = held(&session);
+    let said: Vec<tisty_core::model::StepId> = session
+        .state
+        .tasks
+        .get(&id)
+        .ok_or_else(|| Refusal::of("notATaskId"))?
+        .steps
+        .iter()
+        // Only the steps the person was shown: a word that arrived meanwhile waits for its own answer.
+        .filter(|one| one.said && !one.done && steps.contains(&one.id.to_string()))
+        .map(|one| one.id)
+        .collect();
+    // Turned down, a step was never ticked, so the trail must not read it as unticked.
+    let answered: Vec<Op> = said
+        .into_iter()
+        .map(|step| {
+            let d = tisty_core::event::StepRef { step };
+            match keep {
+                true => Op::StepDone { id, d },
+                false => Op::StepUnsaid { id, d },
+            }
+        })
+        .collect();
+    if !answered.is_empty() {
+        session.commit_all(answered)?;
+    }
+    session
+        .state
+        .tasks
+        .get(&id)
+        .cloned()
+        .ok_or_else(|| Refusal::of("notATaskId"))
+}
+
+#[tauri::command]
 pub fn still_open(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Task> {
     let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
     let mut session = held(&session);

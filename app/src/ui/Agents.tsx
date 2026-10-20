@@ -6,6 +6,7 @@ import {
   agentTurn,
   assistants,
   copied,
+  openLink,
   seenAgents,
   unwireAgent,
   type Wired,
@@ -102,6 +103,17 @@ export default function Agents({ busy, said, trouble, quietly, tell, fail, binar
         </div>
 
         <p className="mt-3 text-[12.5px] leading-relaxed text-soft">{t("agentsUndo")}</p>
+        <button
+          type="button"
+          onClick={() =>
+            openLink(t("agentsGuideAt")).catch((e) =>
+              fail({ card: "settings", text: saidPlainly(e) }),
+            )
+          }
+          className="mt-2 text-[12.5px] text-accent hover:underline"
+        >
+          {t("agentsGuide")} <span aria-hidden="true">↗</span>
+        </button>
       </Card>
 
       <Card title={t("wiringTitle")} which="wiring" busy={busy} said={said} trouble={trouble}>

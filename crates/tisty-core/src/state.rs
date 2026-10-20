@@ -318,7 +318,12 @@ impl State {
             Op::StepAdd { id, d } => self.with_task(*id, |t| add_step(t, d)),
             Op::StepDone { id, d } => self.step_marked(event, *id, d.step, true),
             Op::StepUndone { id, d } => self.step_marked(event, *id, d.step, false),
-            Op::StepText { id, d } => self.with_step(*id, d.step, |s| s.text = d.text.clone()),
+            Op::StepSaid { id, d } if self.tasks.get(id).is_some_and(Task::is_open) => {
+                self.with_step(*id, d.step, |s| s.said = !s.done)
+            }
+            Op::StepSaid { .. } => {}
+            Op::StepUnsaid { id, d } => self.with_step(*id, d.step, |s| s.said = false),
+            Op::StepText { id, d } => self.with_step(*id, d.step, |s| s.reword(&d.text)),
             Op::StepReorder { id, d } => {
                 self.with_step(*id, d.step, |s| s.order = d.order.clone());
                 self.with_task(*id, sort_steps);
@@ -489,10 +494,12 @@ impl State {
         match op {
             Op::TaskLog { .. } => true,
             Op::TaskUpdate { d, .. } => self.filed_by_agents(task) || only_bells(d),
-            Op::TaskResolve { .. }
-            | Op::TaskDescribe { .. }
-            | Op::StepAdd { .. }
-            | Op::StepDone { .. } => self.attended_by_agents(task),
+            // A word on any task is only a word: the person decides, so it needs no door.
+            Op::TaskResolve { d, .. } => d.word || self.attended_by_agents(task),
+            Op::StepSaid { .. } | Op::StepUnsaid { .. } => true,
+            Op::TaskDescribe { .. } | Op::StepAdd { .. } | Op::StepDone { .. } => {
+                self.attended_by_agents(task)
+            }
             Op::StepUndone { d, .. } => self.untickable_by_agents(task, d.step),
             Op::StepText { d, .. } => self.mendable_by_agents(task, d.step),
             Op::StepRemove { d, .. } => self.mendable_by_agents(task, d.step),
@@ -516,6 +523,7 @@ impl State {
             // A redundant tick never takes a person's tick over; a person's always claims it.
             s.by_agent = done && agent && (!s.done || s.by_agent);
             s.done = done;
+            s.said = false;
         });
     }
 
@@ -818,6 +826,7 @@ impl State {
     /// A whole's parts still open are let go in the same transaction, so one undo takes it back.
     pub fn completing(&self, id: TaskId, now: jiff::Zoned) -> Vec<Op> {
         let mut ops = self.open_parts_dropped(id);
+        ops.extend(self.said_ticked(id));
         ops.extend(self.finishing(id, now));
         ops
     }
@@ -975,7 +984,8 @@ impl State {
         wanted.sort_unstable();
         wanted.dedup();
 
-        let mut ops = vec![Op::TaskDone { id, filled: false }];
+        let mut ops = self.said_ticked(id);
+        ops.push(Op::TaskDone { id, filled: false });
         let mut before = id;
         let mut last = due.clone();
         let mut order = self.order_last_in(task.list);
@@ -1451,6 +1461,7 @@ fn add_step(task: &mut Task, d: &StepAdd) {
         done: false,
         order: d.order.clone(),
         by_agent: false,
+        said: false,
     });
     sort_steps(task);
 }

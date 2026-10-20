@@ -3435,6 +3435,18 @@ describe("letting an assistant file work here", () => {
     expect(screen.getByRole("button", { name: /Let an assistant file here/i })).toBeTruthy();
   });
 
+  it("points to how assistants work with Tisty, on the site", async () => {
+    await openTab();
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: /How assistants work with Tisty/i }),
+    );
+
+    await waitFor(() =>
+      expect(sent("open_link")[0]?.args.url).toBe("https://www.tisty.app/docs/assistants-and-mcp/"),
+    );
+  });
+
   it("registering is a click of the person's, never something that arrives over the wire", async () => {
     await openTab();
 

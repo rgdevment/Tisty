@@ -119,6 +119,16 @@ pub struct Step {
     pub order: String,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub by_agent: bool,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub said: bool,
+}
+
+impl Step {
+    // A word was given for the words it read, not for what the step says now.
+    pub fn reword(&mut self, text: &str) {
+        self.said &= self.text == text;
+        self.text = text.to_string();
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
