@@ -1476,6 +1476,9 @@ figure.widget:hover .card-more,
   max-width: 70ch;
   text-wrap: pretty;
 }
+html[style*="--wide"] .page > :is(p, ul, ol, blockquote) {
+  max-width: none;
+}
 .page strong {
   font-weight: 600;
 }

@@ -859,9 +859,9 @@ fn a_new_document_is_pointed_at_the_folder_whose_documents_read_like_it() {
     served.call("folder", json!({ "name": "Projects" }));
     served.call("folder", json!({ "name": "Kitchen" }));
     for body in [
-        "# Attachments in one place
+        "# Plan: attachments in one place
 
-Where attachments live. #attachments",
+Where they live. #attachments",
         "# Plan for the attachments bin
 
 How they are let go. #attachments",

@@ -445,7 +445,7 @@ function Settled({
         ...(task.resolved
           ? [{ key: "still", label: t("stillOpen"), icon: "↩", onPick: onStillOpen }]
           : [discard]),
-        ...(onShape
+        ...(onShape && !shaping
           ? [
               {
                 key: "shape",
@@ -527,7 +527,7 @@ function Settled({
                 </button>
               ) : (
                 <>
-                  {owing && !folded && (
+                  {owing && (
                     <span className="shrink-0 px-2">{fill("partsLeft", String(left))}</span>
                   )}
                   <button
@@ -587,7 +587,7 @@ function Settled({
               )}
             </>
           )}
-          {open && onShape && !folded && (
+          {open && onShape && (!folded || shaping) && (
             <button
               type="button"
               aria-pressed={shaping}
@@ -617,7 +617,7 @@ function Settled({
                 const box = e.currentTarget.getBoundingClientRect();
                 setMore(more ? null : { x: box.right - 8, y: box.top - 4 });
               }}
-              className={`${open && onShape && !folded ? "" : "ml-auto "}flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-faint hover:bg-hover hover:text-ink`}
+              className={`${open && onShape && (!folded || shaping) ? "" : "ml-auto "}flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-faint hover:bg-hover hover:text-ink`}
             >
               <span aria-hidden="true">⋯</span>
             </button>

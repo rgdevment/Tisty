@@ -80,7 +80,7 @@ export default function SyncFoot({ onSync, onOpen, onTrouble, fallback }: Props)
   const idle = coming === null;
   const foot = footing({ state, status, coming, mine, offline, knocked, putOff, stuck });
   // Google and Microsoft can ask to wait, and let go again, in the middle of one long round.
-  const often = !idle || foot?.kind === "wait" || foot?.kind === "halted";
+  const often = !idle || foot?.kind === "wait";
   // A round that ends, or a refusal that comes or goes, may have written what the foot shows.
   useEffect(() => {
     if (idle) void lookAgain();

@@ -51,28 +51,30 @@ pub(super) fn closest_lists(state: &State, title: &str) -> Vec<String> {
     closest(title, all)
 }
 
-fn said_of(kept: &tisty_core::model::Kept) -> Vec<String> {
-    let mut all = words(kept.title.as_deref().unwrap_or_default());
+fn said_of(kept: &tisty_core::model::Kept) -> std::collections::BTreeSet<String> {
+    let mut all: std::collections::BTreeSet<String> =
+        words(kept.title.as_deref().unwrap_or_default())
+            .into_iter()
+            .collect();
     all.extend(kept.tags.iter().map(|tag| tag.as_str().to_string()));
     all
 }
 
 // A project's folder is named after the project, not after what its documents say, so they are asked too.
-fn alike_folders(state: &State, title: &str, body: &str) -> Vec<(String, usize)> {
-    let mut mine = words(title);
+fn alike_folders(state: &State, title: &str, body: &str) -> Vec<String> {
+    let mut mine: std::collections::BTreeSet<String> = words(title).into_iter().collect();
     if let Some(tags) = tisty_core::event::Said::of(body).tags {
         mine.extend(tags.iter().map(|tag| tag.as_str().to_string()));
     }
     let mut held: std::collections::BTreeMap<_, usize> = Default::default();
-    for kept in state.docs.values() {
+    for kept in state
+        .papers()
+        .filter(|one| one.page_of.is_none() && one.flagged.is_none() && !state.held_away(one))
+    {
         let Some(folder) = kept.folder.filter(|one| !state.folder_away(*one)) else {
             continue;
         };
-        if kept.page_of.is_some() || kept.archived {
-            continue;
-        }
-        let theirs = said_of(kept);
-        if mine.iter().filter(|one| theirs.contains(one)).count() >= ALIKE_AT_LEAST {
+        if said_of(kept).intersection(&mine).count() >= ALIKE_AT_LEAST {
             *held.entry(folder).or_default() += 1;
         }
     }
@@ -81,33 +83,37 @@ fn alike_folders(state: &State, title: &str, body: &str) -> Vec<(String, usize)>
         .map(|(folder, many)| (trail(state, folder), many))
         .collect();
     ranked.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
-    ranked.truncate(NAMED_AT_MOST);
     ranked
+        .into_iter()
+        .take(NAMED_AT_MOST)
+        .map(|(folder, many)| format!("{folder} ({many} alike)"))
+        .collect()
 }
 
 pub(super) fn loose_doc(state: &State, title: &str, body: &str) -> String {
-    if let near @ [_, ..] = closest_folders(state, title).as_slice() {
-        return format!(
-            " It sits in no folder; the closest by name: {}. `file_doc` puts it in one.",
-            near.join(", ")
-        );
-    }
-    match alike_folders(state, title, body).as_slice() {
-        [] if state.folders.is_empty() => " It sits in no folder, and there are none yet: ask \
-             the person where it belongs, suggesting a name, and make the folder once they agree."
+    let named = closest_folders(state, title);
+    let alike = alike_folders(state, title, body);
+    match (named.as_slice(), alike.as_slice()) {
+        ([], []) if state.folders.is_empty() => " It sits in no folder, and there are none yet: \
+             ask the person where it belongs, suggesting a name, and make the folder once they agree."
             .to_string(),
-        [] => " It sits in no folder, and nothing kept in one reads like it: ask the person \
+        ([], []) => " It sits in no folder, and nothing kept in one reads like it: ask the person \
              where it belongs, suggesting a name, rather than leaving it loose."
             .to_string(),
-        alike => format!(
-            " It sits in no folder; what it says is closest to what these hold: {}. `file_doc` \
-             puts it in one, or ask the person.",
-            alike
-                .iter()
-                .map(|(folder, many)| format!("{folder} ({many} alike)"))
-                .collect::<Vec<_>>()
-                .join(", ")
-        ),
+        _ => {
+            let mut said = String::from(" It sits in no folder;");
+            if !named.is_empty() {
+                said.push_str(&format!(" the closest by name: {}.", named.join(", ")));
+            }
+            if !alike.is_empty() {
+                said.push_str(&format!(
+                    " What it says is closest to what these hold: {}.",
+                    alike.join(", ")
+                ));
+            }
+            said.push_str(" `file_doc` puts it in one, or ask the person.");
+            said
+        }
     }
 }
 

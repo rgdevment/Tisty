@@ -53,6 +53,20 @@ describe("the trail", () => {
     expect(screen.getByText(/undone/i)).toBeTruthy();
   });
 
+  it("keeps the opening words of a note taken back, which the page no longer shows", async () => {
+    await shown([
+      {
+        at: "2026-08-05T22:05:00Z",
+        by: "dev_a",
+        chapter: "wrote",
+        body: "see [the minutes](tisty:doc/abc) first",
+        undoing: true,
+      },
+    ]);
+
+    expect(screen.getByText("see the minutes first")).toBeTruthy();
+  });
+
   it("says a note was written without copying it, since the page already shows it", async () => {
     await shown([
       {
