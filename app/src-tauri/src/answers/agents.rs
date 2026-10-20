@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use tisty_core::witness::channel;
+use tisty_core::witness::{self, Fact, channel};
 use tisty_core::{Config, Event, Op};
 
 use crate::{Answer, Session, blamed, held, wiring};
@@ -142,9 +142,27 @@ pub fn agent_turn(session: tauri::State<'_, Mutex<Session>>, on: bool) -> Answer
             .flatten()
             .unwrap_or_else(|| session.config.clone());
         session.reproject()?;
+        let _ = session.keep(|c| c.door_chosen = Some(on));
         if on {
             let _ = session.keep(|c| c.knock_heard = Some(jiff::Timestamp::now()));
         }
     }
     agent(session)
+}
+
+pub fn opened_by_default(session: &mut Session) {
+    match tisty_core::agent::open_by_default(&session.paths) {
+        Ok(Some(_)) => {
+            if let Ok(Some(now)) = Config::load(&session.paths.config_file()) {
+                session.config = now;
+            }
+            let _ = session.reproject();
+        }
+        Ok(None) => {}
+        Err(e) => witness::warn(
+            channel::STORE,
+            "the door for assistants could not be opened",
+            &[("why", Fact::Why(e.to_string()))],
+        ),
+    }
 }

@@ -886,7 +886,7 @@ pub(crate) fn opened(
     app: &tauri::AppHandle,
     viewing: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let session = match Session::open() {
+    let mut session = match Session::open() {
         Ok(session) => session,
         Err(why) => {
             use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
@@ -933,6 +933,7 @@ pub(crate) fn opened(
         }
     }
 
+    answers::agents::opened_by_default(&mut session);
     news::raise(
         app,
         session.paths.config(),

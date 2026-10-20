@@ -43,6 +43,15 @@ pub fn register(paths: &Paths) -> Result<DeviceId> {
     Ok(who)
 }
 
+/// Opening Tisty is the person's act, so the door opens with it until they choose otherwise.
+pub fn open_by_default(paths: &Paths) -> Result<Option<DeviceId>> {
+    let config = Config::load_or_init(paths)?;
+    if config.agent_id.is_some() || config.door_chosen.is_some() {
+        return Ok(None);
+    }
+    register(paths).map(Some)
+}
+
 /// An agent that joined before `device.host` existed says where it lives, even with no key to vouch.
 pub fn unhosted(config: &Config, state: &crate::State) -> Option<Op> {
     let who = config.agent_id.clone()?;
