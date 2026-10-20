@@ -326,7 +326,8 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
         | Op::AttachLetGo { .. }
         | Op::AttachRetire { .. }
         | Op::StoresJoined { .. }
-        | Op::TaskPaged { .. } => None,
+        | Op::TaskPaged { .. }
+        | Op::StepSaid { .. } => None,
     }
 }
 

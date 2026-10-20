@@ -44,6 +44,7 @@ pub const KNOWN_OPS: &[&str] = &[
     "task.unresolve",
     "task.step.add",
     "task.step.done",
+    "task.step.said",
     "task.step.undone",
     "task.step.text",
     "task.step.remove",
@@ -132,6 +133,9 @@ pub enum Op {
     StepDone { id: TaskId, d: StepRef },
     #[serde(rename = "task.step.undone")]
     StepUndone { id: TaskId, d: StepRef },
+    /// An assistant's word that a step of the person's is done; only the person ticks it.
+    #[serde(rename = "task.step.said")]
+    StepSaid { id: TaskId, d: StepRef },
     #[serde(rename = "task.step.text")]
     StepText { id: TaskId, d: StepText },
     #[serde(rename = "task.step.remove")]
@@ -328,6 +332,7 @@ impl Op {
                 | Op::DocCompacted { .. }
                 | Op::DocUncompacted { .. }
                 | Op::TaskPaged { .. }
+                | Op::StepSaid { .. }
         )
     }
 
@@ -350,6 +355,7 @@ impl Op {
             Op::StepAdd { d, .. } => Op::StepAdd { id, d },
             Op::StepDone { d, .. } => Op::StepDone { id, d },
             Op::StepUndone { d, .. } => Op::StepUndone { id, d },
+            Op::StepSaid { d, .. } => Op::StepSaid { id, d },
             Op::StepText { d, .. } => Op::StepText { id, d },
             Op::StepRemove { d, .. } => Op::StepRemove { id, d },
             Op::TaskPaged { d, .. } => Op::TaskPaged { id, d },
@@ -489,6 +495,7 @@ impl Op {
             | Op::StepAdd { id, .. }
             | Op::StepDone { id, .. }
             | Op::StepUndone { id, .. }
+            | Op::StepSaid { id, .. }
             | Op::StepText { id, .. }
             | Op::StepRemove { id, .. }
             | Op::StepReorder { id, .. }

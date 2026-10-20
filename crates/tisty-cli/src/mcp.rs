@@ -469,7 +469,7 @@ fn unticked(task: &Task) -> Option<Refused> {
     let left: Vec<&str> = task
         .steps
         .iter()
-        .filter(|step| !step.done)
+        .filter(|step| !step.done && !step.said)
         .map(|step| step.text.trim())
         .collect();
     if left.is_empty() {

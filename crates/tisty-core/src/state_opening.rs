@@ -136,7 +136,10 @@ fn a_fill_in_on_a_task_the_person_kept_is_let_go_at_replay() {
     let task = &state.tasks[&id];
     assert_eq!(task.description, None);
     assert!(task.steps.is_empty());
-    assert!(task.resolved.is_none(), "no mark on what was never theirs");
+    assert!(
+        task.resolved.is_some(),
+        "a word that it is done needs no door: the person still decides"
+    );
     assert_eq!(
         task.log.len(),
         1,
@@ -475,4 +478,98 @@ fn a_closed_step_an_emptied_note_and_a_kept_task_are_never_the_assistants_to_men
         "emptying is erasing"
     );
     assert_eq!(state.tasks[&kept].step(call).unwrap().text, "call");
+}
+
+fn stepped(state: &mut State, ms: i64, id: TaskId) -> StepId {
+    let step = Ulid::generate();
+    state.apply(&ev(
+        ms,
+        "dev_laptop",
+        Op::StepAdd {
+            id,
+            d: StepAdd {
+                step,
+                text: "pay".into(),
+                order: "a0".into(),
+            },
+        },
+    ));
+    step
+}
+
+fn said(id: TaskId, step: StepId) -> Op {
+    Op::StepSaid {
+        id,
+        d: StepRef { step },
+    }
+}
+
+#[test]
+fn an_assistant_says_a_task_of_the_persons_is_done_without_a_door() {
+    let mut state = with_an_agent();
+    let id = written(&mut state, 2, "dev_laptop", "renew the certificate");
+    let entry = Ulid::generate();
+
+    state.apply(&ev(
+        3,
+        "dev_agent",
+        Op::TaskLog {
+            id,
+            d: LogAdd::new(entry, "renewed on the portal"),
+        },
+    ));
+    state.apply(&ev(
+        4,
+        "dev_agent",
+        Op::TaskResolve {
+            id,
+            d: Resolve::new(entry),
+        },
+    ));
+
+    let task = &state.tasks[&id];
+    assert!(
+        task.resolved.is_some(),
+        "a word is only a word: the person decides"
+    );
+    assert!(task.is_open(), "and the task stays open until they do");
+}
+
+#[test]
+fn a_step_an_assistant_says_is_done_waits_for_the_person() {
+    let mut state = with_an_agent();
+    let id = written(&mut state, 2, "dev_laptop", "renew the certificate");
+    let step = stepped(&mut state, 3, id);
+
+    state.apply(&ev(4, "dev_agent", said(id, step)));
+
+    let one = state.tasks[&id].step(step).unwrap();
+    assert!(one.said && !one.done, "said, not ticked");
+
+    state.apply(&ev(5, "dev_laptop", Op::TaskDone { id, filled: false }));
+    let one = state.tasks[&id].step(step).unwrap();
+    assert!(
+        one.done && !one.said,
+        "closing the task takes the word on its steps"
+    );
+}
+
+#[test]
+fn the_person_turning_a_said_step_down_clears_the_word() {
+    let mut state = with_an_agent();
+    let id = written(&mut state, 2, "dev_laptop", "renew the certificate");
+    let step = stepped(&mut state, 3, id);
+    state.apply(&ev(4, "dev_agent", said(id, step)));
+
+    state.apply(&ev(
+        5,
+        "dev_laptop",
+        Op::StepUndone {
+            id,
+            d: StepRef { step },
+        },
+    ));
+
+    let one = state.tasks[&id].step(step).unwrap();
+    assert!(!one.said && !one.done);
 }

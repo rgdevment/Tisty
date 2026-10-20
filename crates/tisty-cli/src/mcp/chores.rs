@@ -641,7 +641,10 @@ pub(super) fn plan(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 pub(super) fn tick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let (said, wanted) = steps_asked(args, "ticking", "each step you did")?;
     let (state, mut store) = opened(paths)?;
-    let (id, task) = filling(&state, &store, &said)?;
+    let (id, task) = reaching(&state, &said)?;
+    if !state.attended_by_agents(task) {
+        return vouch(store, id, task, &wanted);
+    }
     if let Some(refusal) = already_said_done(task, "ticking") {
         return Err(refusal);
     }
@@ -840,14 +843,6 @@ fn spoken_for(paths: &Paths, args: &Value, drop: bool) -> Result<Value, Refused>
         return Err(gone(&state, &said));
     };
     let me = store.device().clone();
-    if !state.attended_by_agents(task) {
-        return Err(Refused::Tool(format!(
-            "{:?} is the person's own, and they have not opened it to you: whether it is done \
-             is theirs to say. You can only speak for what an agent filed, or for what they \
-             opened to agents. Say what you have learnt with `note` instead.",
-            task.title
-        )));
-    }
     if !task.is_open() {
         return Err(history(task));
     }
@@ -924,9 +919,9 @@ fn spoken_for(paths: &Paths, args: &Value, drop: bool) -> Result<Value, Refused>
             |events| {
                 let held = State::replay(events);
                 held.tasks.get(&id).is_none_or(|now| {
-                    !still_filling(&held, now)
+                    !still_in_sight(now)
                         || now.resolved.is_some()
-                        || (!drop && now.steps.iter().any(|step| !step.done))
+                        || (!drop && now.steps.iter().any(|step| !step.done && !step.said))
                 })
             },
         )
@@ -1024,6 +1019,81 @@ pub(super) fn filling<'a>(
     }
     let _ = store;
     Ok((id, task))
+}
+
+/// A task anyone may speak for: there, open and in sight, whoever wrote it.
+fn reaching<'a>(state: &'a State, said: &str) -> Result<(TaskId, &'a Task), Refused> {
+    let Ok(id) = said.parse::<TaskId>() else {
+        return Err(Refused::Tool(format!(
+            "{said:?} is not a task id. Use the `id` that `find` or `propose` gave you."
+        )));
+    };
+    let Some(task) = state.tasks.get(&id).filter(|one| !one.folded()) else {
+        return Err(gone(state, said));
+    };
+    if !task.is_open() {
+        return Err(history(task));
+    }
+    Ok((id, task))
+}
+
+pub(super) fn still_in_sight(now: &Task) -> bool {
+    now.is_open() && !now.folded()
+}
+
+// On the person's own task a tick is only a word: the step waits for them to take it.
+fn vouch(mut store: Store, id: TaskId, task: &Task, wanted: &[String]) -> Result<Value, Refused> {
+    if let Some(refusal) = already_said_done(task, "saying steps are done") {
+        return Err(refusal);
+    }
+    let chosen = steps_named(task, wanted, "said done", |step| !step.done && !step.said)?;
+    let fresh: Vec<tisty_core::model::StepId> = chosen
+        .iter()
+        .filter(|step| !step.done && !step.said)
+        .map(|step| step.id)
+        .collect();
+    if !fresh.is_empty() {
+        let ops = fresh
+            .iter()
+            .map(|step| Op::StepSaid {
+                id,
+                d: StepRef { step: *step },
+            })
+            .collect();
+        let written = store
+            .append_batch_unless(ops, |events| {
+                State::replay(events)
+                    .tasks
+                    .get(&id)
+                    .is_none_or(|now| !still_in_sight(now) || now.resolved.is_some())
+            })
+            .map_err(hitch)?;
+        if written.is_none() {
+            return Err(moved(task));
+        }
+    }
+    let left = task
+        .steps
+        .iter()
+        .filter(|step| !step.done && !step.said)
+        .count()
+        - fresh.len();
+    Ok(told(
+        format!(
+            "Said {} step(s) of {:?} are done. It is the person's own task, so they stay unticked \
+             until the person takes your word; `say_done` when the whole of it is done. {left} \
+             step(s) not spoken for.",
+            fresh.len(),
+            task.title
+        ),
+        json!({
+            "id": id.to_string(),
+            "title": task.title,
+            "said": fresh.len(),
+            "ticked": 0,
+            "left": left,
+        }),
+    ))
 }
 
 /// Still open, in sight, and open to this hand: what every fill-in checks again under the lock.

@@ -272,6 +272,12 @@ impl State {
             Op::TaskDone { id, filled } => {
                 let zone = event.zone.clone();
                 self.with_task(*id, |t| {
+                    // Closing it takes the assistant at its word on the steps it said were done.
+                    for step in t.steps.iter_mut().filter(|one| one.said) {
+                        step.done = true;
+                        step.by_agent = true;
+                        step.said = false;
+                    }
                     t.status = Status::Done;
                     t.completed_at = Some(event.timestamp);
                     t.filled = *filled;
@@ -318,6 +324,7 @@ impl State {
             Op::StepAdd { id, d } => self.with_task(*id, |t| add_step(t, d)),
             Op::StepDone { id, d } => self.step_marked(event, *id, d.step, true),
             Op::StepUndone { id, d } => self.step_marked(event, *id, d.step, false),
+            Op::StepSaid { id, d } => self.with_step(*id, d.step, |s| s.said = !s.done),
             Op::StepText { id, d } => self.with_step(*id, d.step, |s| s.text = d.text.clone()),
             Op::StepReorder { id, d } => {
                 self.with_step(*id, d.step, |s| s.order = d.order.clone());
@@ -489,10 +496,11 @@ impl State {
         match op {
             Op::TaskLog { .. } => true,
             Op::TaskUpdate { d, .. } => self.filed_by_agents(task) || only_bells(d),
-            Op::TaskResolve { .. }
-            | Op::TaskDescribe { .. }
-            | Op::StepAdd { .. }
-            | Op::StepDone { .. } => self.attended_by_agents(task),
+            // A word on any task is only a word: the person decides, so it needs no door.
+            Op::TaskResolve { .. } | Op::StepSaid { .. } => true,
+            Op::TaskDescribe { .. } | Op::StepAdd { .. } | Op::StepDone { .. } => {
+                self.attended_by_agents(task)
+            }
             Op::StepUndone { d, .. } => self.untickable_by_agents(task, d.step),
             Op::StepText { d, .. } => self.mendable_by_agents(task, d.step),
             Op::StepRemove { d, .. } => self.mendable_by_agents(task, d.step),
@@ -516,6 +524,7 @@ impl State {
             // A redundant tick never takes a person's tick over; a person's always claims it.
             s.by_agent = done && agent && (!s.done || s.by_agent);
             s.done = done;
+            s.said = false;
         });
     }
 
@@ -1451,6 +1460,7 @@ fn add_step(task: &mut Task, d: &StepAdd) {
         done: false,
         order: d.order.clone(),
         by_agent: false,
+        said: false,
     });
     sort_steps(task);
 }

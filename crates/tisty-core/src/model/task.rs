@@ -119,6 +119,8 @@ pub struct Step {
     pub order: String,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub by_agent: bool,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub said: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
