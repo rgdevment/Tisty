@@ -1,6 +1,5 @@
 import { cleanup } from "@testing-library/react";
 import { afterEach, beforeAll, vi } from "vitest";
-import { forgetErasing } from "../erasing";
 import { adopt } from "../locales";
 
 vi.mock("@tauri-apps/api/event", () => ({
@@ -53,7 +52,6 @@ spanned.getBoundingClientRect ??= flat;
 // already gone, which ends the run on `window is not defined` with every test passing.
 afterEach(() => {
   cleanup();
-  forgetErasing();
   if (vi.isFakeTimers()) {
     vi.advanceTimersByTime(50);
   }
