@@ -708,7 +708,10 @@ pub(super) fn tick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 pub(super) fn untick(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let (said, wanted) = steps_asked(args, "unticking", "each step an agent ticked by mistake")?;
     let (state, mut store) = opened(paths)?;
-    let (id, task) = filling(&state, &store, &said)?;
+    let (id, task) = reaching(&state, &said)?;
+    if !state.attended_by_agents(task) {
+        return unsay(store, id, task, &wanted);
+    }
     if let Some(refusal) = already_said_done(task, "unticking") {
         return Err(refusal);
     }
@@ -913,7 +916,8 @@ fn spoken_for(paths: &Paths, args: &Value, drop: bool) -> Result<Value, Refused>
                     id,
                     d: Resolve::new(entry)
                         .said_by(jiff::Timestamp::now(), me.clone())
-                        .dropping(drop),
+                        .dropping(drop)
+                        .as_word(!state.attended_by_agents(task)),
                 },
             ],
             |events| {
@@ -993,35 +997,6 @@ pub(super) fn steps_fit(steps: &[String]) -> Result<(), Refused> {
 
 /// What an assistant may fill in: a task it filed, or one the person opened to agents — open,
 /// and not folded away. The refusal says which of the three it is not.
-pub(super) fn filling<'a>(
-    state: &'a State,
-    store: &Store,
-    said: &str,
-) -> Result<(TaskId, &'a Task), Refused> {
-    let Ok(id) = said.parse::<TaskId>() else {
-        return Err(Refused::Tool(format!(
-            "{said:?} is not a task id. Use the `id` that `find` or `propose` gave you."
-        )));
-    };
-    let Some(task) = state.tasks.get(&id).filter(|one| !one.folded()) else {
-        return Err(gone(state, said));
-    };
-    if !task.is_open() {
-        return Err(history(task));
-    }
-    if !state.attended_by_agents(task) {
-        return Err(Refused::Tool(format!(
-            "{:?} is the person's own, and they have not opened it to you. You fill in what an \
-             agent filed, or what they opened to agents; on the rest, say what you have learnt \
-             with `note`.",
-            task.title
-        )));
-    }
-    let _ = store;
-    Ok((id, task))
-}
-
-/// A task anyone may speak for: there, open and in sight, whoever wrote it.
 fn reaching<'a>(state: &'a State, said: &str) -> Result<(TaskId, &'a Task), Refused> {
     let Ok(id) = said.parse::<TaskId>() else {
         return Err(Refused::Tool(format!(
@@ -1041,7 +1016,7 @@ pub(super) fn still_in_sight(now: &Task) -> bool {
     now.is_open() && !now.folded()
 }
 
-// On the person's own task a tick is only a word: the step waits for them to take it.
+// The person may not look for days, so the step waits unticked rather than ticked in their name.
 fn vouch(mut store: Store, id: TaskId, task: &Task, wanted: &[String]) -> Result<Value, Refused> {
     if let Some(refusal) = already_said_done(task, "saying steps are done") {
         return Err(refusal);
@@ -1096,9 +1071,27 @@ fn vouch(mut store: Store, id: TaskId, task: &Task, wanted: &[String]) -> Result
     ))
 }
 
+pub(super) fn filling<'a>(
+    state: &'a State,
+    store: &Store,
+    said: &str,
+) -> Result<(TaskId, &'a Task), Refused> {
+    let (id, task) = reaching(state, said)?;
+    if !state.attended_by_agents(task) {
+        return Err(Refused::Tool(format!(
+            "{:?} is the person's own, and they have not opened it to you. You fill in what an \
+             agent filed, or what they opened to agents; on the rest, say what you have learnt \
+             with `note`.",
+            task.title
+        )));
+    }
+    let _ = store;
+    Ok((id, task))
+}
+
 /// Still open, in sight, and open to this hand: what every fill-in checks again under the lock.
 pub(super) fn still_filling(held: &State, now: &Task) -> bool {
-    now.is_open() && !now.folded() && held.attended_by_agents(now)
+    still_in_sight(now) && held.attended_by_agents(now)
 }
 
 pub(super) fn already_said_done(task: &Task, doing: &str) -> Option<Refused> {
@@ -1189,4 +1182,31 @@ pub(super) fn steps_named<'a>(
         }
     }
     Ok(chosen)
+}
+
+fn unsay(mut store: Store, id: TaskId, task: &Task, wanted: &[String]) -> Result<Value, Refused> {
+    let chosen = steps_named(task, wanted, "taken back", |step| step.said)?;
+    let gone: Vec<tisty_core::model::StepId> = chosen
+        .iter()
+        .filter(|step| step.said)
+        .map(|step| step.id)
+        .collect();
+    if !gone.is_empty() {
+        let ops = gone
+            .iter()
+            .map(|step| Op::StepUnsaid {
+                id,
+                d: StepRef { step: *step },
+            })
+            .collect();
+        store.append_batch(ops).map_err(hitch)?;
+    }
+    Ok(told(
+        format!(
+            "Took back your word on {} step(s) of {:?}; the person's ticks are theirs.",
+            gone.len(),
+            task.title
+        ),
+        json!({ "id": id.to_string(), "title": task.title, "unsaid": gone.len() }),
+    ))
 }

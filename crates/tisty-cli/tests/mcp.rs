@@ -6377,3 +6377,20 @@ fn on_the_persons_own_task_a_tick_and_a_done_are_only_words() {
         "marked, still open"
     );
 }
+
+#[test]
+fn a_word_on_a_step_of_the_persons_can_be_taken_back_by_the_assistant() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let task = served.person().captures("renew the certificate");
+    served.person().adds_step(task, "pay");
+    let id = task.to_string();
+    served.call("tick", serde_json::json!({ "task": &id, "step": "pay" }));
+
+    let back = served.call("untick", serde_json::json!({ "task": &id, "step": "pay" }));
+
+    assert_ne!(back["result"]["isError"], true, "{back}");
+    assert_eq!(back["result"]["structuredContent"]["unsaid"], 1, "{back}");
+    let step = &served.person().state().tasks[&task].steps[0];
+    assert!(!step.said && !step.done);
+}

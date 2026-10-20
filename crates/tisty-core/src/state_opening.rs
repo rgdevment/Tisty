@@ -137,8 +137,8 @@ fn a_fill_in_on_a_task_the_person_kept_is_let_go_at_replay() {
     assert_eq!(task.description, None);
     assert!(task.steps.is_empty());
     assert!(
-        task.resolved.is_some(),
-        "a word that it is done needs no door: the person still decides"
+        task.resolved.is_none(),
+        "a mark written before words existed replays as it always did"
     );
     assert_eq!(
         task.log.len(),
@@ -523,7 +523,7 @@ fn an_assistant_says_a_task_of_the_persons_is_done_without_a_door() {
         "dev_agent",
         Op::TaskResolve {
             id,
-            d: Resolve::new(entry),
+            d: Resolve::new(entry).as_word(true),
         },
     ));
 
@@ -546,11 +546,39 @@ fn a_step_an_assistant_says_is_done_waits_for_the_person() {
     let one = state.tasks[&id].step(step).unwrap();
     assert!(one.said && !one.done, "said, not ticked");
 
-    state.apply(&ev(5, "dev_laptop", Op::TaskDone { id, filled: false }));
+    let closing = state.completing(id, jiff::Zoned::now());
+    for (n, op) in closing.into_iter().enumerate() {
+        state.apply(&ev(5 + n as i64, "dev_laptop", op));
+    }
     let one = state.tasks[&id].step(step).unwrap();
     assert!(
         one.done && !one.said,
         "closing the task takes the word on its steps"
+    );
+    assert!(!state.tasks[&id].is_open());
+}
+
+#[test]
+fn a_word_on_a_closed_task_is_not_kept_and_an_unsaid_one_is_taken_back() {
+    let mut state = with_an_agent();
+    let id = written(&mut state, 2, "dev_laptop", "renew the certificate");
+    let step = stepped(&mut state, 3, id);
+    state.apply(&ev(4, "dev_agent", said(id, step)));
+    state.apply(&ev(
+        5,
+        "dev_agent",
+        Op::StepUnsaid {
+            id,
+            d: StepRef { step },
+        },
+    ));
+    assert!(!state.tasks[&id].step(step).unwrap().said);
+
+    state.apply(&ev(6, "dev_laptop", Op::TaskDone { id, filled: false }));
+    state.apply(&ev(7, "dev_agent", said(id, step)));
+    assert!(
+        !state.tasks[&id].step(step).unwrap().said,
+        "a closed task takes no word"
     );
 }
 

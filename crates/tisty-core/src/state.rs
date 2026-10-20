@@ -272,12 +272,6 @@ impl State {
             Op::TaskDone { id, filled } => {
                 let zone = event.zone.clone();
                 self.with_task(*id, |t| {
-                    // Closing it takes the assistant at its word on the steps it said were done.
-                    for step in t.steps.iter_mut().filter(|one| one.said) {
-                        step.done = true;
-                        step.by_agent = true;
-                        step.said = false;
-                    }
                     t.status = Status::Done;
                     t.completed_at = Some(event.timestamp);
                     t.filled = *filled;
@@ -324,7 +318,11 @@ impl State {
             Op::StepAdd { id, d } => self.with_task(*id, |t| add_step(t, d)),
             Op::StepDone { id, d } => self.step_marked(event, *id, d.step, true),
             Op::StepUndone { id, d } => self.step_marked(event, *id, d.step, false),
-            Op::StepSaid { id, d } => self.with_step(*id, d.step, |s| s.said = !s.done),
+            Op::StepSaid { id, d } if self.tasks.get(id).is_some_and(Task::is_open) => {
+                self.with_step(*id, d.step, |s| s.said = !s.done)
+            }
+            Op::StepSaid { .. } => {}
+            Op::StepUnsaid { id, d } => self.with_step(*id, d.step, |s| s.said = false),
             Op::StepText { id, d } => self.with_step(*id, d.step, |s| s.text = d.text.clone()),
             Op::StepReorder { id, d } => {
                 self.with_step(*id, d.step, |s| s.order = d.order.clone());
@@ -497,7 +495,8 @@ impl State {
             Op::TaskLog { .. } => true,
             Op::TaskUpdate { d, .. } => self.filed_by_agents(task) || only_bells(d),
             // A word on any task is only a word: the person decides, so it needs no door.
-            Op::TaskResolve { .. } | Op::StepSaid { .. } => true,
+            Op::TaskResolve { d, .. } => d.word || self.attended_by_agents(task),
+            Op::StepSaid { .. } | Op::StepUnsaid { .. } => true,
             Op::TaskDescribe { .. } | Op::StepAdd { .. } | Op::StepDone { .. } => {
                 self.attended_by_agents(task)
             }
@@ -827,6 +826,16 @@ impl State {
     /// A whole's parts still open are let go in the same transaction, so one undo takes it back.
     pub fn completing(&self, id: TaskId, now: jiff::Zoned) -> Vec<Op> {
         let mut ops = self.open_parts_dropped(id);
+        // Closing it takes the assistant at its word on the steps it said were done.
+        ops.extend(self.tasks.get(&id).into_iter().flat_map(|task| {
+            task.steps
+                .iter()
+                .filter(|one| one.said && !one.done)
+                .map(move |one| Op::StepDone {
+                    id,
+                    d: crate::event::StepRef { step: one.id },
+                })
+        }));
         ops.extend(self.finishing(id, now));
         ops
     }

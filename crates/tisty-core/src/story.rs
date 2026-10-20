@@ -146,7 +146,8 @@ fn lets(op: &Op, standing: &Standing) -> bool {
     match op {
         Op::TaskAdd { .. } | Op::TaskLog { .. } => true,
         Op::TaskUpdate { d, .. } => standing.filed_by_agent || crate::state::only_bells(d),
-        Op::TaskResolve { .. } | Op::StepSaid { .. } => true,
+        Op::TaskResolve { d, .. } => d.word || attended,
+        Op::StepSaid { .. } | Op::StepUnsaid { .. } => true,
         Op::TaskDescribe { .. } | Op::StepAdd { .. } | Op::StepDone { .. } => attended,
         Op::StepUndone { d, .. } => {
             attended && standing.ticked_by_agent.get(&d.step) == Some(&true)

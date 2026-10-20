@@ -352,9 +352,15 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         whole["steps"] = json!(
             task.steps
                 .iter()
-                .map(|one| match one.by_agent {
-                    true => json!({ "text": one.text, "done": one.done, "by_agent": true }),
-                    false => json!({ "text": one.text, "done": one.done }),
+                .map(|one| {
+                    let mut step = json!({ "text": one.text, "done": one.done });
+                    if one.by_agent {
+                        step["by_agent"] = json!(true);
+                    }
+                    if one.said {
+                        step["said_done"] = json!(true);
+                    }
+                    step
                 })
                 .collect::<Vec<_>>()
         );
