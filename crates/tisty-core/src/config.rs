@@ -354,6 +354,9 @@ pub struct Config {
     pub opened_by: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub on_close: Option<Closing>,
+    /// A click on a document opens it whole rather than the block under it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub edit_whole: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub theme: Option<Theme>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -448,6 +451,7 @@ impl Config {
             holds: None,
             opened_by: None,
             on_close: None,
+            edit_whole: None,
             theme: None,
             backed_up_at: None,
             restored_at: None,

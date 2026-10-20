@@ -746,6 +746,7 @@ export interface Settings {
   onlySharedAbove: number;
   onClose?: "hide" | "quit";
   quickKeys?: string;
+  editWhole?: boolean;
 }
 
 export interface Logs {
@@ -1071,6 +1072,8 @@ export const keepLocale = (locale?: string): Promise<string | null> =>
 export const keepTheme = (theme?: Theme): Promise<Theme | null> => invoke("keep_theme", { theme });
 export const keepClosing = (how: "hide" | "quit" | "ask"): Promise<void> =>
   invoke("keep_closing", { how });
+export const keepEditWhole = (whole: boolean): Promise<void> =>
+  invoke("keep_edit_whole", { whole });
 export const guide = (): Promise<Doc> => invoke("guide");
 export type BackedUp = { bytes: number; leftOut: number; leftOutBytes: number };
 export const backUp = (into: string): Promise<BackedUp> => invoke("back_up", { into });

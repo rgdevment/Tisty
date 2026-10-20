@@ -251,16 +251,18 @@ export const edited = (
   onLeave: (text: string, renamed: [string, string][]) => void,
   asking?: () => Asking | undefined,
   oneLine = false,
+  whole = false,
+  onAll?: () => void,
 ): Editing => {
   const page = block.ownerDocument;
   const host = page.createElement("div");
-  host.className = "editing";
+  host.className = whole ? "editing whole" : "editing";
   // The block is written where it is read, so it keeps the room and the look the page gave it.
   const look = page.defaultView?.getComputedStyle(block);
   if (look) host.style.margin = look.margin;
   const first = block.parentElement?.firstElementChild;
   const heads = first === block || (first?.matches(".front") && first.nextElementSibling === block);
-  if (heads && block.matches("html:not(.untitled) .page > *:not(.front)")) {
+  if (!whole && heads && block.matches("html:not(.untitled) .page > *:not(.front)")) {
     host.classList.add("titled");
   }
   if (block.matches(".page > .front:first-child")) host.classList.add("fronted");
@@ -308,6 +310,16 @@ export const edited = (
                 return oneLine;
               },
             },
+            // A block already chosen whole is chosen past, so the next Ctrl+A takes the whole document.
+            {
+              key: "Mod-a",
+              run: (one) => {
+                const chosen = one.state.selection.main;
+                if (!onAll || chosen.from !== 0 || chosen.to !== one.state.doc.length) return false;
+                onAll();
+                return true;
+              },
+            },
             ...pendingKeys,
             ...blockKeys,
             ...tableKeys,
@@ -326,7 +338,18 @@ export const edited = (
         syntaxHighlighting(inked),
         marked,
         slashing(asking),
-        EditorView.domEventHandlers({ paste: (event, view) => pasting(event, view, asking) }),
+        EditorView.domEventHandlers({
+          paste: (event, view) => pasting(event, view, asking),
+          // The first click opened the block before the editor heard it, so a double one is told by the browser's count.
+          mousedown: (event, view) => {
+            if (event.detail !== 2) return false;
+            const at = view.posAtCoords({ x: event.clientX, y: event.clientY });
+            const word = at === null ? null : view.state.wordAt(at);
+            if (!word) return false;
+            view.dispatch({ selection: { anchor: word.from, head: word.to } });
+            return true;
+          },
+        }),
         dressing,
         EditorView.lineWrapping,
         boxed,

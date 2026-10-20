@@ -1,3 +1,4 @@
+import { listen } from "@tauri-apps/api/event";
 import { save as intoFile, open as pick } from "@tauri-apps/plugin-dialog";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { asPlain } from "../copying";
@@ -38,6 +39,7 @@ import { changedIn } from "./anchoring";
 import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
 import { blurbing, cardsOf } from "./carding";
+import { useEditWhole } from "./editWhole";
 import Modal from "./Modal";
 import Picking, { type Picked } from "./Picking";
 import type { Head } from "./paging";
@@ -45,7 +47,7 @@ import { usePreviewing } from "./previewing";
 import { pdfOf, signature } from "./printing";
 import Ribbon, { Onward } from "./Ribbon";
 import { acrossOf, PAPER, pageFor, sheetFor } from "./sheets";
-import type { Asking } from "./slashing";
+import { type Asking, pressed } from "./slashing";
 import { CompactBar, MarkBar } from "./Tidied";
 import { useLeaving } from "./useLeaving";
 import { clearOfChrome } from "./WindowChrome";
@@ -150,6 +152,8 @@ export default function Docs({
   const [clashed, setClashed] = useState(false);
   const [stirred, setStirred] = useState(false);
   const [lately, setLately] = useState<[number, number] | null>(null);
+  const [whole, setWhole] = useState(false);
+  const clickWhole = useEditWhole();
   const [looking, setLooking] = useState(0);
   const lastRead = useRef(new Map<string, Read>());
   const onScreen = useRef<string | null>(null);
@@ -486,6 +490,32 @@ export default function Docs({
   // What the archive holds is read-only, whether the document says so or the folder above it does.
   const shelved = Boolean(own?.away);
   const bolted = Boolean(own?.locked) || shelved;
+
+  // The page hears every Ctrl key the block left alone, so the switch works from inside a block too.
+  useEffect(() => {
+    if (!open || bolted) return;
+    const flip = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || !event.shiftKey) return;
+      if (event.key.toLowerCase() !== "e") return;
+      event.preventDefault();
+      setWhole((was) => !was);
+    };
+    window.addEventListener("keydown", flip);
+    // On a Mac the menu holds the keys, so the switch arrives as its item.
+    let drop: (() => void) | undefined;
+    let gone = false;
+    listen("whole", () => setWhole((was) => !was))
+      .then((off) => {
+        if (gone) off();
+        else drop = off;
+      })
+      .catch(() => undefined);
+    return () => {
+      gone = true;
+      drop?.();
+      window.removeEventListener("keydown", flip);
+    };
+  }, [open, bolted]);
   const stood = useRef(new Map<string, number>());
   const from = useRef<{ doc: string; page: string } | null>(null);
   const seek = own?.file ? stood.current.get(own.file) : undefined;
@@ -726,6 +756,25 @@ export default function Docs({
   return (
     <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-desk">
       <div data-tauri-drag-region className="h-9 shrink-0" />
+      {open && !bolted && (
+        <fieldset
+          aria-label={t("editingMode")}
+          className={`absolute top-11 z-10 flex rounded-md border border-line text-[11.5px] ${beside ? "right-3" : "right-10"}`}
+        >
+          {[false, true].map((all) => (
+            <button
+              key={String(all)}
+              type="button"
+              aria-pressed={whole === all}
+              title={all ? `${t("editWholeDoc")} · ${pressed("Shift E")}` : t("editBlock")}
+              onClick={() => setWhole(all)}
+              className={`px-2 py-0.5 first:rounded-l-md last:rounded-r-md ${whole === all ? "bg-hover text-ink" : "text-faint hover:text-ink"}`}
+            >
+              {t(all ? "editingWhole" : "editingBlock")}
+            </button>
+          ))}
+        </fieldset>
+      )}
       {open && !beside && (
         <button
           type="button"
@@ -747,6 +796,9 @@ export default function Docs({
               <Sheet
                 sheet={sheetOf}
                 file={open.file}
+                whole={whole}
+                onWhole={setWhole}
+                clickWhole={clickWhole}
                 lately={stirred ? lately : null}
                 looking={looking}
                 onOwn={(file) => {

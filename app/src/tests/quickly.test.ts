@@ -38,6 +38,26 @@ describe("words picked on the drawn page", () => {
     expect(picked(drawn)).toBeNull();
   });
 
+  it("writes over the words picked with the key pressed, and keeps them picked on Enter", () => {
+    const drawn = page('<p data-at="0-20">Rina likes her walks</p>');
+    const onChoose = vi.fn();
+    quickly(drawn, () => ({ onChoose }));
+    const words = drawn.querySelector("p")?.firstChild as Node;
+    choose(drawn, words, 11, 14);
+    drawn.dispatchEvent(new KeyboardEvent("keydown", { key: "h", cancelable: true }));
+    expect(onChoose).toHaveBeenLastCalledWith(expect.objectContaining({ said: "her", typed: "h" }));
+    drawn.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", cancelable: true }));
+    expect(onChoose).toHaveBeenLastCalledWith(expect.objectContaining({ typed: null }));
+    drawn.dispatchEvent(new KeyboardEvent("keydown", { key: "Backspace", cancelable: true }));
+    expect(onChoose).toHaveBeenLastCalledWith(expect.objectContaining({ typed: "" }));
+    drawn.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "c", ctrlKey: true, cancelable: true }),
+    );
+    drawn.getSelection()?.removeAllRanges();
+    drawn.dispatchEvent(new KeyboardEvent("keydown", { key: "x", cancelable: true }));
+    expect(onChoose).toHaveBeenCalledTimes(3);
+  });
+
   it("asks for a format with what was picked, and leaves the page alone when nobody can write it", async () => {
     const drawn = page('<p data-at="0-20">Rina likes her walks</p>');
     const onFormat = vi.fn();

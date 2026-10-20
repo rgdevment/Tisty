@@ -47,6 +47,32 @@ describe("writing a block in place", () => {
     page.remove();
   });
 
+  it("takes the whole document on a second Ctrl+A, once the block is chosen whole", () => {
+    const { page, one } = block();
+    const whole = vi.fn();
+    const editing = edited(
+      one,
+      "Hola",
+      () => {},
+      () => {},
+      undefined,
+      false,
+      false,
+      whole,
+    );
+    const press = () =>
+      editing.view.contentDOM.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "a", ctrlKey: true, bubbles: true, cancelable: true }),
+      );
+    press();
+    expect(whole).not.toHaveBeenCalled();
+    expect(editing.view.state.selection.main).toMatchObject({ from: 0, to: 4 });
+    press();
+    expect(whole).toHaveBeenCalledTimes(1);
+    editing.leave();
+    page.remove();
+  });
+
   it("is left with Escape", () => {
     const { page, one } = block();
     const left: string[] = [];

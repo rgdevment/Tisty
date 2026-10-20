@@ -93,6 +93,8 @@ pub struct Settings {
     on_close: Option<tisty_core::config::Closing>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     quick_keys: Option<String>,
+    #[serde(default)]
+    edit_whole: bool,
 }
 
 #[tauri::command]
@@ -111,6 +113,7 @@ fn as_settings(session: &Session) -> Settings {
         only_shared_above: session.config.only_shared_above(),
         on_close: session.config.on_close,
         quick_keys: session.config.quick_keys.clone(),
+        edit_whole: session.config.edit_whole.unwrap_or(false),
     }
 }
 
@@ -398,6 +401,12 @@ pub fn appearance<R: tauri::Runtime>(
             );
         }
     }
+}
+
+#[tauri::command]
+pub fn keep_edit_whole(session: tauri::State<'_, Mutex<Session>>, whole: bool) -> Answer<()> {
+    held(&session).keep(|config| config.edit_whole = whole.then_some(true))?;
+    Ok(())
 }
 
 #[tauri::command]

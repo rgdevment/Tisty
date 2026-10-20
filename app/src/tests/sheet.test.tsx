@@ -456,6 +456,39 @@ describe("the sheet in the main window", () => {
     expect(ipc.left).toBe(1);
   });
 
+  it("opens the whole document in one editor when asked, and gives the blocks back as it is left", async () => {
+    const told: boolean[] = [];
+    const sheet = (whole: boolean) => (
+      <Sheet
+        value={BODY}
+        label="Compras"
+        onWrite={() => {}}
+        whole={whole}
+        onWhole={(on) => told.push(on)}
+      />
+    );
+    const view = render(sheet(false));
+    const page = await loaded(await shown(view.container));
+    view.rerender(sheet(true));
+    expect(ipc.opened.map((one) => one.said)).toEqual([BODY]);
+    expect(page.querySelector<HTMLElement>('p[data-at="11-17"]')?.hidden).toBe(true);
+    expect(told).toEqual([true]);
+    view.rerender(sheet(false));
+    expect(ipc.left).toBe(1);
+    expect(told).toEqual([true, false]);
+    expect(page.querySelector<HTMLElement>('p[data-at="11-17"]')?.hidden).toBe(false);
+  });
+
+  it("opens the whole document from a click on a block when the person chose so", async () => {
+    const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} clickWhole />);
+    const page = await loaded(await shown(view.container));
+    page
+      .querySelector('p[data-at="11-17"]')
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(ipc.opened.map((one) => one.said)).toEqual([BODY]);
+    expect(ipc.opened[0].caret).toBe(11);
+  });
+
   it("keeps the block being written open when words from outside land elsewhere", async () => {
     const writes: string[] = [];
     const view = render(

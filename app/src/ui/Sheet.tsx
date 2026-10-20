@@ -19,12 +19,12 @@ import Page from "./Page";
 import { charsAt, type Head, spanned, type Went } from "./paging";
 import type { PartCarded } from "./partcarding";
 import { closed, laid, parting } from "./parting";
-import type { Formatting, Menued } from "./quickly";
+import type { Chosen, Formatting, Menued } from "./quickly";
 import { filedAs, type Reshape, reshaped } from "./recarding";
 import Skeleton from "./Skeleton";
 import { ASIDE_MARGIN, settles } from "./seeking";
 import type { Sheet as SheetSize } from "./sheeting";
-import { type Asking, putBlock, stagesIn } from "./slashing";
+import { type Asking, pressed, putBlock, stagesIn } from "./slashing";
 import { stepLine, steppedTitle } from "./staging";
 import { widened } from "./tabling";
 
@@ -62,6 +62,9 @@ type Props = {
   readonly sheet?: SheetSize;
   readonly lately?: readonly [number, number] | null;
   readonly looking?: number;
+  readonly whole?: boolean;
+  readonly onWhole?: (whole: boolean) => void;
+  readonly clickWhole?: boolean;
 };
 
 export default function Sheet(props: Readonly<Props>) {
@@ -74,6 +77,8 @@ export default function Sheet(props: Readonly<Props>) {
   const open = useRef<Editing | null>(null);
   // Follows the open block through words written around it from outside; false when they reach it.
   const follows = useRef<((was: string, now: string) => boolean) | null>(null);
+  // The blocks the whole-document editor covers, shown again as it is left.
+  const veiled = useRef<(() => void) | null>(null);
   const showing = useRef(value);
   showing.current = drawn;
   const latest = useRef(value);
@@ -192,10 +197,14 @@ export default function Sheet(props: Readonly<Props>) {
     seed = "",
     read = "",
     asked?: Pick<Formatting, "said" | "open" | "close">,
+    whole?: { caret: number; all?: boolean },
   ) => {
     if (open.current) return left();
     // A click on the page still on screen while the next one is drawn names bytes of an older text.
     if (reading || showing.current !== latest.current) return;
+    if (!whole && !seed && !asked && said.current.clickWhole && at[0] !== at[1]) {
+      return wholly(at[0] + caretAt(latest.current.slice(at[0], at[1]), read));
+    }
     let [from, end] = at;
     const piece = latest.current.slice(from, end);
     const tail = /\r?\n$/.exec(piece)?.[0] ?? "";
@@ -235,6 +244,9 @@ export default function Sheet(props: Readonly<Props>) {
       (_, renamed) => {
         open.current = null;
         follows.current = null;
+        veiled.current?.();
+        veiled.current = null;
+        if (whole) said.current.onWhole?.(false);
         // Only a block left by the person closes its gap: text from outside or another file is not its own.
         const ours = home === onFile.current && latest.current === mine;
         if (ours && !quiet.current && !fresh && !latest.current.slice(from, end).trim()) {
@@ -256,6 +268,8 @@ export default function Sheet(props: Readonly<Props>) {
         };
       },
       Boolean(said.current.inline && said.current.shaping),
+      Boolean(whole),
+      whole || fixed ? undefined : () => queueMicrotask(() => wholly(0, true)),
     );
     follows.current = (was, now) => {
       const moved = reanchored(was, now, from, end);
@@ -268,9 +282,50 @@ export default function Sheet(props: Readonly<Props>) {
     };
     open.current.kept(said.current.kept ?? true);
     const editing = open.current.view;
-    const caret = seed ? seed.length : caretAt(editing.state.sliceDoc(), read);
-    editing.dispatch({ selection: { anchor: caret }, scrollIntoView: true });
+    const caret = whole
+      ? whole.caret
+      : seed
+        ? seed.length
+        : caretAt(editing.state.sliceDoc(), read);
+    const length = editing.state.doc.length;
+    editing.dispatch({
+      selection: whole?.all ? { anchor: 0, head: length } : { anchor: Math.min(caret, length) },
+      scrollIntoView: true,
+    });
     if (asked) formatted(editing, read, asked);
+  };
+
+  const asWhole = props.whole;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `wholly` and `left` read only refs, so the switch alone decides.
+  useEffect(() => {
+    if (!ready || asWhole === undefined) return;
+    const on = veiled.current !== null;
+    if (asWhole && !on) wholly();
+    if (!asWhole && on) left();
+  }, [asWhole, ready]);
+
+  // One editor over every word, laid where the blocks were, which are only hidden meanwhile.
+  const wholly = (caret = 0, all = false) => {
+    const sheet = shown.current?.document.querySelector<HTMLElement>(".page");
+    if (!sheet || reading || fixed) return;
+    if (open.current) left();
+    const hidden = [...sheet.children]
+      .map((one) => one as HTMLElement)
+      .filter((one) => !one.hidden);
+    for (const one of hidden) one.hidden = true;
+    veiled.current = () => {
+      for (const one of hidden) one.hidden = false;
+    };
+    const fresh = sheet.ownerDocument.createElement("div");
+    sheet.prepend(fresh);
+    block([0, latest.current.length], fresh, "", "", undefined, { caret, all });
+    if (!open.current) {
+      veiled.current();
+      veiled.current = null;
+      fresh.remove();
+      return;
+    }
+    said.current.onWhole?.(true);
   };
 
   const formatted = (
@@ -289,6 +344,21 @@ export default function Sheet(props: Readonly<Props>) {
 
   const format = (asked: Formatting) => {
     if (!open.current) block(asked.at, asked.block, "", asked.read, asked);
+  };
+
+  const chose = ({ at, block: element, read, said: words, typed }: Chosen) => {
+    if (open.current) return;
+    block(at, element, "", read);
+    const editing = (open.current as Editing | null)?.view;
+    if (!editing) return;
+    // Opened whole, the editor holds the page, but the words read still count from their block.
+    const from = veiled.current ? at[0] : 0;
+    const end = from + caretAt(editing.state.sliceDoc(from), read + words);
+    // Words drawn across marks are not in the Markdown as read, so only the caret is placed.
+    if (editing.state.sliceDoc(end - words.length, end) !== words) return;
+    editing.dispatch({ selection: { anchor: end - words.length, head: end } });
+    if (typed !== null)
+      editing.dispatch(editing.state.replaceSelection(typed), { userEvent: "input.type" });
   };
 
   const writingChoices = (editing: Editing["view"]): Choice[] => {
@@ -363,6 +433,15 @@ export default function Sheet(props: Readonly<Props>) {
         label: t("editBlock"),
         apart: true,
         onPick: () => block(under.at, under.element),
+      });
+    }
+    if (free && !fixed) {
+      choices.push({
+        key: "whole",
+        label: t("editWholeDoc"),
+        hint: pressed("Shift E"),
+        apart: !under,
+        onPick: () => wholly(under ? under.at[0] : 0),
       });
     }
     if (choices.length > 0) setMenu({ ...at, choices });
@@ -672,6 +751,7 @@ export default function Sheet(props: Readonly<Props>) {
           onCut={reading || !fixed ? undefined : cut}
           onWiden={reading || fixed ? undefined : widen}
           onFormat={reading || fixed ? undefined : format}
+          onChoose={reading || fixed ? undefined : chose}
           onMend={reading || fixed ? undefined : mended}
           onMenu={fixed ? undefined : menued}
           onMore={reading || fixed ? undefined : asked}

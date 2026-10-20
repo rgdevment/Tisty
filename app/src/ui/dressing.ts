@@ -9,7 +9,7 @@ import { type Attaching, attachedAs, lents, pressed } from "./attached";
 import { type Carding, carded } from "./carding";
 import { charsAt, colored, HUES, saidKinds, spanned, type Went, went, widgetsIn } from "./paging";
 import { type PartCarded, partCarded } from "./partcarding";
-import { type Formatting, type Menued, quickly } from "./quickly";
+import { type Chosen, type Formatting, type Menued, quickly } from "./quickly";
 import { offeredAsParts, staged } from "./staging";
 import { webCarded } from "./webcarding";
 import { gripped, widening } from "./widening";
@@ -39,6 +39,7 @@ export type Reaching = Carding & {
   readonly onWiden?: (at: [number, number], column: number, dashes: number) => void;
   readonly onFormat?: (asked: Formatting) => void;
   readonly onMenu?: (asked: Menued) => void;
+  readonly onChoose?: (asked: Chosen) => void;
 };
 
 const asking = (page: Document, asked: string, said: string): HTMLButtonElement => {
@@ -401,9 +402,10 @@ export const wired = (page: Document, reach: () => Reaching) => {
       charsAt(now.body, at[0]),
       charsAt(now.body, at[1]),
     ];
-    const { onFormat, onMenu } = now;
+    const { onFormat, onMenu, onChoose } = now;
     return {
       onFormat: onFormat && ((asked) => onFormat({ ...asked, at: chars(asked.at) })),
+      onChoose: onChoose && ((asked) => onChoose({ ...asked, at: chars(asked.at) })),
       onMenu:
         onMenu &&
         ((asked) =>
