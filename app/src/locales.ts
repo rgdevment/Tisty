@@ -1963,6 +1963,13 @@ const en = {
   twinsLater: "Not now",
   twinsJoined: "Done: {name} freed, {other} links changed.",
   twinsJoinedOne: "Done: {name} freed, 1 link changed.",
+  twinsLeft: "{name} copies could not be set aside and are still here: join them again.",
+  twinsLeftOne: "One copy could not be set aside and is still here: join them again.",
+  twinsAside: "You left them for later. Look again to see them.",
+  twinsTaskGone:
+    "A task that links these copies was deleted meanwhile, so the join stopped there. Join again to finish it.",
+  twinsUnreadBy: "Can't join yet: «{name}» could not be read, so what it links is not known.",
+  twinsSee: "See it",
   twinsDocTooLong:
     "Pointing «{name}» at the copy that stays would make it longer than a document allows, so nothing was joined.",
   twinsEdited:
@@ -4161,6 +4168,14 @@ const es: Catalog = {
   twinsLater: "Ahora no",
   twinsJoined: "Listo: se liberaron {name} y cambiaron {other} enlaces.",
   twinsJoinedOne: "Listo: se liberaron {name} y cambió 1 enlace.",
+  twinsLeft: "{name} copias no se pudieron apartar y siguen aquí: vuelve a unirlas.",
+  twinsLeftOne: "Una copia no se pudo apartar y sigue aquí: vuelve a unirlas.",
+  twinsAside: "Las dejaste para después. Busca otra vez para verlas.",
+  twinsTaskGone:
+    "Una tarea que enlaza estas copias se borró mientras tanto, así que la unión se detuvo ahí. Vuelve a unir para terminarla.",
+  twinsUnreadBy:
+    "Todavía no se puede unir: no se pudo leer «{name}», así que no se sabe qué enlaza.",
+  twinsSee: "Verla",
   twinsDocTooLong:
     "Apuntar «{name}» a la copia que se queda lo dejaría más largo de lo que admite un documento, así que no se unió nada.",
   twinsEdited:

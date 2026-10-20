@@ -30,6 +30,8 @@ pub struct Pair {
     bytes: u64,
     stays: String,
     copies: Vec<Twin>,
+    /// A document that could not be read, so who links what is not known for sure.
+    unread: Option<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -37,6 +39,8 @@ pub struct Pair {
 pub struct Joined {
     freed: u64,
     relinked: usize,
+    /// Copies that could not be set aside and are still on disk.
+    left: Vec<String>,
 }
 
 #[derive(Default)]
@@ -52,18 +56,20 @@ struct Read {
     body: String,
 }
 
-fn read_all(root: &std::path::Path) -> Vec<Read> {
-    tisty_core::docs::all(root)
-        .into_iter()
-        .filter_map(|doc| {
-            let body = tisty_core::docs::read(root, &doc.id).ok()?;
-            Some(Read {
+fn read_all(root: &std::path::Path) -> (Vec<Read>, Option<String>) {
+    let mut unread = None;
+    let mut all = Vec::new();
+    for doc in tisty_core::docs::all(root) {
+        match tisty_core::docs::read(root, &doc.id) {
+            Ok(body) => all.push(Read {
                 id: doc.id,
                 title: doc.title,
                 body,
-            })
-        })
-        .collect()
+            }),
+            Err(_) => unread = unread.or(Some(doc.title)),
+        }
+    }
+    (all, unread)
 }
 
 fn namings(session: &Session, docs: &[Read]) -> BTreeMap<String, Naming> {
@@ -128,11 +134,16 @@ pub fn twinned(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<Pair>> {
     if groups.is_empty() {
         return Ok(Vec::new());
     }
-    let docs = read_all(&paths.docs());
-    Ok(seen(&held(&session), groups, &docs))
+    let (docs, unread) = read_all(&paths.docs());
+    Ok(seen(&held(&session), groups, &docs, unread))
 }
 
-fn seen(session: &Session, groups: Vec<tisty_core::attach::Twins>, docs: &[Read]) -> Vec<Pair> {
+fn seen(
+    session: &Session,
+    groups: Vec<tisty_core::attach::Twins>,
+    docs: &[Read],
+    unread: Option<String>,
+) -> Vec<Pair> {
     let named = namings(session, docs);
     let data = session.paths.data();
     groups
@@ -163,6 +174,7 @@ fn seen(session: &Session, groups: Vec<tisty_core::attach::Twins>, docs: &[Read]
                         locked: named.get(at).and_then(|one| one.locked.clone()),
                     })
                     .collect(),
+                unread: unread.clone(),
             }
         })
         .collect()
@@ -177,6 +189,11 @@ fn names_any(body: &str, going: &[String]) -> bool {
 struct Plan {
     docs: Vec<(String, String, String, String)>,
     ops: Vec<Op>,
+    read: Vec<(
+        tisty_core::model::TaskId,
+        Option<tisty_core::model::LogId>,
+        String,
+    )>,
     links: usize,
 }
 
@@ -190,13 +207,13 @@ fn planned(session: &Session, go: &[String], going: &[(String, String)]) -> Answ
     let mut plan = Plan {
         docs: Vec::new(),
         ops: Vec::new(),
+        read: Vec::new(),
         links: 0,
     };
     for doc in tisty_core::docs::all(&root) {
         let Ok(body) = tisty_core::docs::read(&root, &doc.id) else {
             return Err(Refusal::about("retireUnread", doc.title));
         };
-        let print = tisty_core::attach::printed(tisty_core::docs::settled(&body).as_bytes());
         let now = relinked_all(&body, going);
         let after = now
             .as_ref()
@@ -213,6 +230,7 @@ fn planned(session: &Session, go: &[String], going: &[(String, String)]) -> Answ
         if tisty_core::docs::settled(&now).len() as u64 > tisty_core::docs::BODY_AT_MOST {
             return Err(Refusal::about("twinsDocTooLong", doc.title));
         }
+        let print = tisty_core::attach::printed(tisty_core::docs::settled(&body).as_bytes());
         plan.links += moved;
         plan.docs.push((doc.id, doc.title, now, print));
     }
@@ -225,6 +243,7 @@ fn planned(session: &Session, go: &[String], going: &[(String, String)]) -> Answ
                     left |= names_any(&now, go);
                     long |= !fits(&now);
                     plan.links += moved;
+                    plan.read.push((task.id, None, body.to_string()));
                     plan.ops.push(Op::TaskDescribe {
                         id: task.id,
                         d: tisty_core::event::Body { body: Some(now) },
@@ -239,6 +258,8 @@ fn planned(session: &Session, go: &[String], going: &[(String, String)]) -> Answ
                     left |= names_any(&now, go);
                     long |= !fits(&now);
                     plan.links += moved;
+                    plan.read
+                        .push((task.id, Some(entry.id), entry.body.clone()));
                     plan.ops.push(Op::TaskLogEdit {
                         id: task.id,
                         d: tisty_core::event::LogEdit {
@@ -296,6 +317,33 @@ fn alike(
     Ok((keep, go, same))
 }
 
+// The log may have moved under the plan, from another process, while documents were written.
+fn unmoved(session: &mut Session, plan: &Plan) -> Answer<()> {
+    session.reload().map_err(|e| {
+        blamed(
+            channel::ATTACH,
+            "the log could not be read again before the join",
+            e,
+        )
+    })?;
+    for (id, entry, was) in &plan.read {
+        let Some(task) = session.state.tasks.get(id) else {
+            return Err(Refusal::of("twinsTaskGone"));
+        };
+        let now = match entry {
+            None => task.description.clone().unwrap_or_default(),
+            Some(entry) => match task.entry(*entry) {
+                Some(one) => one.body.clone(),
+                None => return Err(Refusal::of("twinsTaskGone")),
+            },
+        };
+        if &now != was {
+            return Err(Refusal::about("twinsEdited", task.title.clone()));
+        }
+    }
+    Ok(())
+}
+
 fn joined(
     session: &mut Session,
     keep: String,
@@ -309,18 +357,21 @@ fn joined(
         .filter_map(|one| leaf_of(one).map(|from| (from.to_string(), to.clone())))
         .collect();
     let plan = planned(session, &go, &going)?;
+    // Asked before any document is written too, so a task that moved stops it before it starts.
+    unmoved(session, &plan)?;
 
     let root = session.paths.docs();
     let hand = crate::signing(&session.state);
     for (id, title, body, print) in &plan.docs {
         // Written only over the body it was read from, and what it said is kept to go back to.
         let made = tisty_core::docs::rewrite(&root, session.paths.data(), id, body, print)
-            .map_err(|e| {
-                blamed(
+            .map_err(|e| match e {
+                tisty_core::Error::AlreadyRunning => Refusal::of("documentBeingWritten"),
+                e => blamed(
                     channel::ATTACH,
                     "a document could not be pointed at the copy that stays",
                     e,
-                )
+                ),
             })?;
         // What went before stays pointed at the copy that stays: joining again finishes the rest.
         let tisty_core::docs::Rewrite::Made { whole, .. } = made else {
@@ -331,6 +382,7 @@ fn joined(
         session.retell(id, &whole, hand.clone());
     }
     if !plan.ops.is_empty() {
+        unmoved(session, &plan)?;
         session.commit_all(plan.ops).map_err(|e| {
             blamed(
                 channel::ATTACH,
@@ -339,19 +391,22 @@ fn joined(
             )
         })?;
     }
-    let gone = session.retire(&go)?;
-    tisty_core::attach::joined_in_ledger(session.paths.data(), &keep, &go, &sha256, each).map_err(
-        |e| {
+    // One at a time, so a copy that cannot be set aside is told rather than failing the rest.
+    let (went, left): (Vec<String>, Vec<String>) = go
+        .into_iter()
+        .partition(|one| session.retire(std::slice::from_ref(one)).is_ok());
+    tisty_core::attach::joined_in_ledger(session.paths.data(), &keep, &went, &sha256, each)
+        .map_err(|e| {
             blamed(
                 channel::ATTACH,
                 "the ledger could not name the copy that stays",
                 e,
             )
-        },
-    )?;
+        })?;
     Ok(Joined {
-        freed: each * gone as u64,
+        freed: each * went.len() as u64,
         relinked: plan.links,
+        left,
     })
 }
 

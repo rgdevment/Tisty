@@ -9,12 +9,14 @@ import { mild, strong } from "./Rows";
 
 function Seen({ at }: Readonly<{ at: string }>) {
   const [src, setSrc] = useState<string>();
+  const [asked, setAsked] = useState(false);
   const shown = previewOf(at);
   const plays = shown?.as === "video" || shown?.as === "audio";
   const looks = pictured(at);
 
+  // Asked for by a click: serving a copy counts as using it, and from a cloud it brings it down.
   useEffect(() => {
-    if (!looks && !plays) return;
+    if (!asked || (!looks && !plays)) return;
     let live = true;
     serve(at)
       .then((path) => live && setSrc(convertFileSrc(path)))
@@ -22,7 +24,14 @@ function Seen({ at }: Readonly<{ at: string }>) {
     return () => {
       live = false;
     };
-  }, [at, looks, plays]);
+  }, [at, asked, looks, plays]);
+
+  if (!asked && (looks || plays))
+    return (
+      <button type="button" onClick={() => setAsked(true)} className={`self-start ${mild}`}>
+        {t("twinsSee")}
+      </button>
+    );
 
   if (src && looks) return <img src={src} alt="" className="max-h-28 rounded-md object-contain" />;
   if (src && shown?.as === "video")
@@ -100,6 +109,7 @@ export default function Twins({
   const [stays, setStays] = useState(pair.stays);
   const going = pair.copies.filter((one) => one.at !== stays);
   const locked = going.find((one) => one.locked)?.locked;
+  const held = locked ?? pair.unread ?? undefined;
 
   return (
     <li className="flex flex-col gap-2">
@@ -119,10 +129,13 @@ export default function Twins({
         ))}
       </ul>
       {locked && <p className="text-[11.5px] text-urgent">{fill("twinsLockedBy", locked)}</p>}
+      {!locked && pair.unread && (
+        <p className="text-[11.5px] text-urgent">{fill("twinsUnreadBy", pair.unread)}</p>
+      )}
       <span className="flex gap-2">
         <button
           type="button"
-          disabled={busy || Boolean(locked)}
+          disabled={busy || Boolean(held)}
           onClick={() =>
             onJoin(
               stays,
