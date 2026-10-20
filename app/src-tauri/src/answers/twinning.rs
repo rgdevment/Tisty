@@ -3,7 +3,7 @@ use std::sync::Mutex;
 
 use tisty_core::Op;
 use tisty_core::attach::{canonical, leaf_of};
-use tisty_core::joining::{Copy, keeper, relinked_all, shelved};
+use tisty_core::joining::{Candidate, keeper, relinked_all, shelved};
 use tisty_core::witness::channel;
 
 use crate::{Answer, Refusal, Session, blamed, held};
@@ -121,10 +121,10 @@ fn seen(session: &Session, groups: Vec<tisty_core::attach::Twins>) -> Vec<Pair> 
     groups
         .into_iter()
         .map(|group| {
-            let copies: Vec<Copy> = group
+            let copies: Vec<Candidate> = group
                 .at
                 .iter()
-                .map(|at| Copy {
+                .map(|at| Candidate {
                     at: at.clone(),
                     links: named.get(at).map_or(0, |one| one.links.len()),
                     shelved: named.get(at).is_some_and(|one| one.shelved),
@@ -158,9 +158,13 @@ fn names_any(body: &str, going: &[String]) -> bool {
 }
 
 struct Plan {
-    docs: Vec<(String, String)>,
+    docs: Vec<(String, String, String)>,
     ops: Vec<Op>,
     links: usize,
+}
+
+fn fits(body: &str) -> bool {
+    tisty_core::state::short_enough(body).is_ok()
 }
 
 // Rewritten in memory first, so nothing is written while any link to a going copy would be left.
@@ -172,7 +176,10 @@ fn planned(session: &Session, go: &[String], going: &[(String, String)]) -> Answ
         links: 0,
     };
     for doc in tisty_core::docs::all(&root) {
-        let Ok(body) = tisty_core::docs::read(&root, &doc.id) else {
+        let print = tisty_core::docs::resolve(&root, &doc.id)
+            .ok()
+            .and_then(|at| tisty_core::docs::print_of(&at).ok().flatten());
+        let (Ok(body), Some(print)) = (tisty_core::docs::read(&root, &doc.id), print) else {
             return Err(Refusal::about("retireUnread", doc.title));
         };
         let now = relinked_all(&body, going);
@@ -188,15 +195,20 @@ fn planned(session: &Session, go: &[String], going: &[(String, String)]) -> Answ
         if session.state.bolted(&doc.id) {
             return Err(Refusal::about("twinsLocked", doc.title));
         }
+        if now.len() as u64 > tisty_core::docs::BODY_AT_MOST {
+            return Err(Refusal::about("twinsTooLong", doc.title));
+        }
         plan.links += moved;
-        plan.docs.push((doc.id, now));
+        plan.docs.push((doc.id, now, print));
     }
     for task in session.state.tasks.values() {
         let mut left = false;
+        let mut long = false;
         if let Some(body) = task.description.as_deref() {
             match relinked_all(body, going) {
                 Some((now, moved)) => {
                     left |= names_any(&now, go);
+                    long |= !fits(&now);
                     plan.links += moved;
                     plan.ops.push(Op::TaskDescribe {
                         id: task.id,
@@ -210,6 +222,7 @@ fn planned(session: &Session, go: &[String], going: &[(String, String)]) -> Answ
             match relinked_all(&entry.body, going) {
                 Some((now, moved)) => {
                     left |= names_any(&now, go);
+                    long |= !fits(&now);
                     plan.links += moved;
                     plan.ops.push(Op::TaskLogEdit {
                         id: task.id,
@@ -225,17 +238,7 @@ fn planned(session: &Session, go: &[String], going: &[(String, String)]) -> Answ
         if left {
             return Err(Refusal::about("twinsStill", task.title.clone()));
         }
-        let too_long = plan.ops.iter().any(|op| match op {
-            Op::TaskDescribe { id, d } if *id == task.id => d
-                .body
-                .as_deref()
-                .is_some_and(|body| tisty_core::state::short_enough(body).is_err()),
-            Op::TaskLogEdit { id, d } if *id == task.id => {
-                tisty_core::state::short_enough(&d.body).is_err()
-            }
-            _ => false,
-        });
-        if too_long {
+        if long {
             return Err(Refusal::about("twinsTooLong", task.title.clone()));
         }
     }
@@ -248,12 +251,19 @@ pub fn twins_join(
     keep: String,
     go: Vec<String>,
 ) -> Answer<Joined> {
-    joined(&mut held(&session), keep, go)
+    let data = held(&session).paths.data().to_path_buf();
+    // Read with the session let go: two large videos take seconds the rest of the window would wait.
+    let (keep, go, same) = alike(&data, &keep, &go)?;
+    joined(&mut held(&session), keep, go, same)
 }
 
-fn joined(session: &mut Session, keep: String, go: Vec<String>) -> Answer<Joined> {
-    let _ = session.reload();
-    let keep = canonical(&keep).ok_or_else(|| Refusal::about("twinsGone", keep.clone()))?;
+fn alike(
+    data: &std::path::Path,
+    keep: &str,
+    go: &[String],
+) -> Answer<(String, Vec<String>, (String, u64))> {
+    let gone = || Refusal::about("twinsGone", keep.to_string());
+    let keep = canonical(keep).ok_or_else(gone)?;
     let go: Vec<String> = go
         .iter()
         .filter_map(|one| canonical(one))
@@ -261,12 +271,21 @@ fn joined(session: &mut Session, keep: String, go: Vec<String>) -> Answer<Joined
         .collect();
     let mut all = vec![keep.clone()];
     all.extend(go.iter().cloned());
-    // Read again from the files: only copies the same bytes through and through become one.
-    let each = tisty_core::attach::same_bytes(session.paths.data(), &all)
+    let same = tisty_core::attach::same_bytes(data, &all)
         .ok()
         .flatten()
         .filter(|_| !go.is_empty())
-        .ok_or_else(|| Refusal::about("twinsGone", keep.clone()))?;
+        .ok_or_else(gone)?;
+    Ok((keep, go, same))
+}
+
+fn joined(
+    session: &mut Session,
+    keep: String,
+    go: Vec<String>,
+    (sha256, each): (String, u64),
+) -> Answer<Joined> {
+    let _ = session.reload();
     let to = leaf_of(&keep).unwrap_or_default().to_string();
     let going: Vec<(String, String)> = go
         .iter()
@@ -274,7 +293,7 @@ fn joined(session: &mut Session, keep: String, go: Vec<String>) -> Answer<Joined
         .collect();
     let plan = planned(session, &go, &going)?;
 
-    tisty_core::attach::stays_listed(session.paths.data(), &keep).map_err(|e| {
+    tisty_core::attach::stays_listed(session.paths.data(), &keep, &sha256, each).map_err(|e| {
         blamed(
             channel::ATTACH,
             "the copy that stays could not be named in the ledger",
@@ -283,14 +302,19 @@ fn joined(session: &mut Session, keep: String, go: Vec<String>) -> Answer<Joined
     })?;
     let root = session.paths.docs();
     let hand = crate::signing(&session.state);
-    for (id, body) in &plan.docs {
-        tisty_core::docs::write(&root, id, body).map_err(|e| {
-            blamed(
-                channel::ATTACH,
-                "a document could not be pointed at the copy that stays",
-                e,
-            )
-        })?;
+    for (id, body, print) in &plan.docs {
+        // Written only over the body it was read from, and what it said is kept to go back to.
+        let made = tisty_core::docs::rewrite(&root, session.paths.data(), id, body, print)
+            .map_err(|e| {
+                blamed(
+                    channel::ATTACH,
+                    "a document could not be pointed at the copy that stays",
+                    e,
+                )
+            })?;
+        if matches!(made, tisty_core::docs::Rewrite::Moved) {
+            return Err(Refusal::about("twinsGone", keep.clone()));
+        }
         // Left unminded, so an editor holding the old body is told the file moved under it.
         session.corpus.forget(id);
         session.retell(id, body, hand.clone());

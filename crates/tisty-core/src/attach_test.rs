@@ -1629,7 +1629,13 @@ fn the_copy_two_became_one_in_is_where_the_same_bytes_land_next_time() {
     )
     .unwrap();
 
-    stays_listed(root.path(), &format!("attachments/{stays}")).unwrap();
+    stays_listed(
+        root.path(),
+        &format!("attachments/{stays}"),
+        &first.sha256,
+        first.bytes,
+    )
+    .unwrap();
     std::fs::remove_file(shed.join(first.at.trim_start_matches("attachments/"))).unwrap();
     let again = keep(&source, root.path(), u64::MAX).unwrap();
 

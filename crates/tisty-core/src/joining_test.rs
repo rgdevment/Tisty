@@ -3,8 +3,8 @@ use super::*;
 const READABLE: &str = "attachments/revision-diseno-a42d4603.mp4";
 const REPEATED: &str = "attachments/ttkjw8qofb-a42d4603-a42d4603-a42d4603.mp4";
 
-fn copy(at: &str, links: usize, shelved: bool, since: i64) -> Copy {
-    Copy {
+fn copy(at: &str, links: usize, shelved: bool, since: i64) -> Candidate {
+    Candidate {
         at: at.to_string(),
         links,
         shelved,
@@ -107,4 +107,12 @@ fn a_name_glued_to_another_is_never_taken_for_a_link() {
         relinked(&format!("![a](x{from}{from})"), from, "otra-abc12345.png"),
         None
     );
+}
+
+#[test]
+fn a_name_in_parentheses_or_quotes_in_a_sentence_keeps_its_words() {
+    let from = "scan-ab12cd34.pdf";
+    let body = format!("the old file ({from}) was wrong, the one called \"{from}\" too");
+
+    assert_eq!(relinked(&body, from, "otra-ab12cd34.pdf"), None);
 }

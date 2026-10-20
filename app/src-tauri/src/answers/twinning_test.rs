@@ -60,12 +60,13 @@ fn the_copy_with_a_readable_name_and_no_old_shelf_is_proposed_to_stay() {
 fn joining_points_every_link_at_the_copy_that_stays_and_bins_the_other() {
     let (_kept, mut session, doc, task) = with_twins();
 
-    let done = joined(
-        &mut session,
-        format!("attachments/{STAYS}"),
-        vec![format!("attachments/{GOES}")],
+    let (keep, go, same) = alike(
+        session.paths.data(),
+        &format!("attachments/{STAYS}"),
+        &[format!("attachments/{GOES}")],
     )
     .unwrap();
+    let done = joined(&mut session, keep, go, same).unwrap();
 
     assert_eq!(
         done.relinked, 2,
@@ -89,17 +90,17 @@ fn joining_points_every_link_at_the_copy_that_stays_and_bins_the_other() {
 
 #[test]
 fn copies_that_are_not_the_same_bytes_are_never_joined() {
-    let (_kept, mut session, _doc, _task) = with_twins();
+    let (_kept, session, _doc, _task) = with_twins();
     std::fs::write(
         session.paths.data().join("attachments").join(GOES),
         b"another video!",
     )
     .unwrap();
 
-    let refused = joined(
-        &mut session,
-        format!("attachments/{STAYS}"),
-        vec![format!("attachments/{GOES}")],
+    let refused = alike(
+        session.paths.data(),
+        &format!("attachments/{STAYS}"),
+        &[format!("attachments/{GOES}")],
     )
     .unwrap_err();
 

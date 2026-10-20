@@ -1,14 +1,14 @@
 use crate::attach::{leaf_of, lower_hex, stamped_by};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Copy {
+pub struct Candidate {
     pub at: String,
     pub links: usize,
     pub shelved: bool,
     pub since: i64,
 }
 
-pub fn keeper(copies: &[Copy]) -> usize {
+pub fn keeper(copies: &[Candidate]) -> usize {
     (0..copies.len())
         .min_by_key(|&one| {
             let copy = &copies[one];
@@ -55,16 +55,14 @@ pub fn relinked_all(body: &str, going: &[(String, String)]) -> Option<(String, u
 }
 
 pub fn relinked(body: &str, from: &str, to: &str) -> Option<(String, usize)> {
-    let code = crate::beside::written_as_code(body);
     let mut out = String::with_capacity(body.len());
     let mut last = 0;
     let mut changed = 0;
     for (at, _) in body.match_indices(from) {
-        let named = !code.get(at).copied().unwrap_or(false)
-            && body[..at]
-                .chars()
-                .next_back()
-                .is_none_or(|one| !in_a_name(one))
+        let named = body[..at]
+            .chars()
+            .next_back()
+            .is_none_or(|one| !in_a_name(one))
             && ends_a_name(&body[at + from.len()..])
             && a_link_leads_to(&body[..at]);
         if named {
@@ -90,7 +88,11 @@ fn a_link_leads_to(before: &str) -> bool {
             lead = &lead[..cut];
         }
     }
-    lead.ends_with(['(', '<', '"', '\'', '=']) || lead.trim_end_matches(' ').ends_with("]:")
+    let lead = lead.strip_suffix('<').unwrap_or(lead);
+    ["](", "[[", "src=\"", "src='", "href=\"", "href='"]
+        .iter()
+        .any(|one| lead.ends_with(one))
+        || lead.trim_end_matches(' ').ends_with("]:")
 }
 
 fn in_a_name(one: char) -> bool {

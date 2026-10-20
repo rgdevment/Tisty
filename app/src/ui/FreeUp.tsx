@@ -66,10 +66,12 @@ export default function FreeUp({
   const [alike, setAlike] = useState<Pair[] | null>(null);
 
   const join = (keep: string, go: string[]) => {
+    setJoining(true);
     const asked = twinsJoin(keep, go).then((done) => {
       setAlike((was) => was?.filter((one) => !one.copies.some((copy) => copy.at === keep)) ?? null);
       return done;
     });
+    void asked.finally(() => setJoining(false)).catch(() => undefined);
     run("twins", asked, (done: Joined) => {
       tell({
         card: "twins",
@@ -86,6 +88,7 @@ export default function FreeUp({
   const loose = audit?.loose ?? 0;
   const [aside, setAside] = useState<string[]>([]);
   const [looks, setLooks] = useState(0);
+  const [joining, setJoining] = useState(false);
   const keyOf = (one: Pair) => one.copies.map((copy) => copy.at).join("|");
   const shownTwins = (alike ?? []).filter((one) => !aside.includes(keyOf(one)));
   // A copy nothing links to is already counted as loose, so only what loose leaves out adds here.
@@ -244,7 +247,7 @@ export default function FreeUp({
             }
             className={mild}
           >
-            {busy === "twins"
+            {busy === "twins" && !joining
               ? working("twinsLooking", secs)
               : t(alike ? "twinsAgain" : "twinsRun")}
           </button>

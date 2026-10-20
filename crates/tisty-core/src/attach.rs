@@ -386,27 +386,25 @@ fn note(root: &Path, kept: &Kept) {
 }
 
 /// Read from the files themselves, never the ledger: the bytes may have changed under the same size.
-pub fn same_bytes(root: &Path, all: &[String]) -> Result<Option<u64>> {
+pub fn same_bytes(root: &Path, all: &[String]) -> Result<Option<(String, u64)>> {
     let mut seen: Option<(String, u64)> = None;
     for at in all {
-        let held = resolve(at, root)?;
-        let one = (fingerprint_of(&held)?, std::fs::metadata(&held)?.len());
+        let one = hashed(&resolve(at, root)?)?;
         match &seen {
             Some(first) if *first != one => return Ok(None),
             Some(_) => {}
             None => seen = Some(one),
         }
     }
-    Ok(seen.map(|(_, bytes)| bytes))
+    Ok(seen)
 }
 
 /// The copy two became one in is named in the ledger, so the same bytes kept again land on it.
-pub fn stays_listed(root: &Path, at: &str) -> Result<()> {
+pub fn stays_listed(root: &Path, at: &str, sha256: &str, bytes: u64) -> Result<()> {
     let at = canonical(at).ok_or_else(|| Error::OutsideTheStore(at.to_string()))?;
-    let held = resolve(&at, root)?;
     let kept = Kept {
-        sha256: fingerprint_of(&held)?,
-        bytes: std::fs::metadata(&held)?.len(),
+        sha256: sha256.to_string(),
+        bytes,
         at,
     };
     if digests(root)
