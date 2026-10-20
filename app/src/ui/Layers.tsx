@@ -162,7 +162,7 @@ export default function Layers({ parcels }: { parcels: ReactNode }) {
           onTakeMe={() => {
             setStuck(false);
             setError(null);
-            setChosen({ named: "keeping" });
+            setChosen({ named: "keeping", tab: "sync", movedAt: Date.now() });
           }}
           onInstall={() => {
             setUnderway({ stage: "getting", far: 0 });

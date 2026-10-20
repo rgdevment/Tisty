@@ -16,9 +16,7 @@ import { endMove, useMove } from "../relocation";
 import { syncingSaid } from "../syncSaid";
 import type { Run, Which, Word } from "./Card";
 import Clouded from "./Clouded";
-import Here from "./Here";
-import { ConfirmHere } from "./Knocking";
-import { Band, mild, risky, strong, Warned } from "./Rows";
+import { Band, Fold, mild, risky, strong, Warned } from "./Rows";
 import { useSince } from "./useSince";
 
 const QUIET_DAYS = 3;
@@ -101,7 +99,7 @@ export default function Syncing({
   if (state.mode === "cloud")
     return (
       <>
-        <Band label={t("syncing")} />
+        <Band label={t("whereItSyncs")} />
         <section className="rounded-[10px] border border-hair px-4 py-3.5">
           <Pending state={state} onMove={onMove} />
           <Clouded
@@ -120,7 +118,7 @@ export default function Syncing({
     );
   return (
     <>
-      <Band label={t("syncing")} />
+      <Band label={t("whereItSyncs")} />
       <section className="rounded-[10px] border border-hair px-4 py-3.5">
         <Pending state={state} onMove={onMove} />
         <p className="text-[12.5px] leading-relaxed text-soft">
@@ -192,6 +190,8 @@ export default function Syncing({
                     {t("moveOpen")}
                   </button>
                 )}
+              </div>
+              <Fold>
                 <button
                   type="button"
                   disabled={held}
@@ -209,12 +209,10 @@ export default function Syncing({
                 >
                   {t("syncOffNow")}
                 </button>
-              </div>
+              </Fold>
             </div>
           </>
         )}
-        {state.chosen && <Here held={held} />}
-        {state.chosen && <ConfirmHere />}
         {trouble?.card === "sync" && (
           <p className="mt-2 text-[11.5px] text-urgent">{trouble.text}</p>
         )}

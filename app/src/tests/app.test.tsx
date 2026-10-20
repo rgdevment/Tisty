@@ -367,7 +367,7 @@ describe("what a sync brings in", () => {
   });
 });
 
-describe("what the maintenance screen writes", () => {
+describe("what the computers list writes", () => {
   const withMachines = () => {
     const plain = ipc.answer;
     ipc.answer = (cmd, args) => {
@@ -417,8 +417,7 @@ describe("what the maintenance screen writes", () => {
     await started();
 
     await user.click(screen.getByRole("button", { name: /settings/i }));
-    await user.click(await screen.findByRole("tab", { name: /maintenance/i }));
-    await user.click(screen.getByRole("button", { name: /^review$/i }));
+    await user.click(await screen.findByRole("tab", { name: /^sync$/i }));
     await screen.findByText("win1-0002");
     await user.click(screen.getByRole("button", { name: /^remove$/i }));
     await user.click(await screen.findByRole("button", { name: /^go on$/i }));

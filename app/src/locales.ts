@@ -323,25 +323,22 @@ const en = {
   cardRemove: "Remove from the page",
   docItself: "This very document",
   documentTooBig: "That document is larger than {name}, so it was not imported",
-  upkeepNothing: "Nothing to get back",
-  upkeepSafeAll: "Take them all out",
+  upkeepSafeAll: "Move {name} to the bin · {other}",
   upkeepSafeAllSure:
-    "Take out {name} attachments nothing names? Those on this computer go to the bin for 30 days; those kept only in the folder you share are deleted from it, and your cloud keeps them in its own bin.",
-  upkeepLook: "Worth a look first",
+    "Move {name} attachments nothing uses to the bin? Those on this computer stay there for 30 days; those kept only in the folder you share are deleted from it, and your cloud keeps them in its own bin.",
+  upkeepLook: "Documents to recover",
   upkeepLookWhat:
-    "Documents on disk the log does not name. They may be the only copy of something that lost its event. Taking one in gives it back to Tisty, and can never be wrong.",
-  upkeepTakeIn: "Take it in",
-  upkeepTakeInAll: "Take them all in",
-  upkeepTakenIn: "Taken in as {name}",
-  upkeepDropIt: "Let it go",
-  upkeepDropSure:
-    "Let «{name}» go? The file goes for good, and nothing here has a copy of it. This cannot be undone.",
-  upkeepDropped: "Let go",
-  upkeepWaiting: "Waiting for {name}",
+    "Documents in your folder that the history does not name. They may be the only copy of something whose change was lost. Recovering one gives it back to Tisty, and can never be wrong.",
+  upkeepTakeIn: "Recover",
+  upkeepTakeInAll: "Recover them all",
+  upkeepTakenIn: "Recovered as {name}",
+  upkeepDropIt: "Delete for good",
+  upkeepDropSure: "Delete «{name}» for good? Nothing here has a copy of it. This cannot be undone.",
+  upkeepDropped: "Deleted",
   upkeepWaitingWhat:
-    "The log names it and the file is not here. It may arrive when that machine syncs. Forgetting it deletes it everywhere, and that does not come back.",
-  upkeepForget: "Forget it",
-  upkeepForgetWaits: "it wakes when {name} has spoken",
+    "The history names them and the file is not here. It may arrive when another computer syncs. Deleting one deletes it on every computer, and that does not come back.",
+  upkeepForget: "Delete on every computer",
+  upkeepForgetWaits: "waits until {name} syncs",
   diagramIt: "Diagram",
   formulaIt: "Formula",
   widgetIt: "Widget",
@@ -681,17 +678,17 @@ const en = {
     "This machine left its large attachments in {name}. Set «Where large attachments stay» back to «On every machine» and sync once, so they come home before you point Tisty elsewhere",
   holdsTitle: "Where large attachments stay",
   holdsWhy:
-    "An attachment over {name} can stay in the shared folder instead of being carried onto every machine.",
-  holdsEverywhere: "On every machine",
+    "An attachment over {name} can stay in the shared folder instead of being carried onto every computer.",
+  holdsEverywhere: "On every computer",
   holdsMine: "Only what I attached here",
   holdsShared: "Only in the shared folder",
-  holdsNeedsShared: "There is no shared folder yet, so everything stays on this machine.",
+  holdsNeedsShared: "There is no shared folder yet, so everything stays on this computer.",
   holdsFreeing: "Freeing what the shared folder already holds — {name} so far",
   holdsFreed: "{name} freed. What could not be checked against the shared folder stayed here",
   holdsStop: "Stop",
-  freeTitle: "Free space",
+  freeTitle: "Free up space",
   freeWhy:
-    "Every attachment stays on this machine once it is opened. Letting go of the ones you have not used in a while frees space here; the next time you open one, it comes down from your cloud again.",
+    "Every attachment stays on this computer once it is opened. Letting go of the ones you have not used in a while frees space here; the next time you open one, it comes down from your cloud again.",
   freeQuota:
     "Bringing it down again spends the quota and bandwidth of your cloud account. Those limits are set by your cloud provider, not by Tisty.",
   freeUnused: "Unused for",
@@ -873,7 +870,7 @@ const en = {
   updateFailed: "The update could not be installed — {name}",
   updateUnanswered:
     "The Microsoft Store did not answer, so nothing is known about updates right now. What it last said still stands.",
-  aboutStore: "Store",
+  aboutStore: "Your files",
   aboutSite: "Visit www.tisty.app",
   newsOver: "What's new",
   newsTitle: "What's new in Tisty",
@@ -883,7 +880,7 @@ const en = {
   aboutRepo: "Open the repository",
   aboutNotices: "Third-party notices",
   aboutLicences: "Licence texts",
-  aboutReveal: "Show the store",
+  aboutReveal: "Show folder",
   supportTitle: "Support Tisty",
   supportWhy:
     "Tisty is free and always will be. If it earns a place in your day, a star helps it get found — and a coffee keeps the work going.",
@@ -920,8 +917,8 @@ const en = {
   doorWelcomedUnnamed: "Your assistant can work with you now.",
   saidDone: "Completed: {name}",
   saidFiled: "Filed: {name}",
-  reviewRedo: "Redo the cache",
-  reviewRebuilt: "Rebuilt from the log",
+  reviewRedo: "Rebuild the quick index",
+  reviewRebuilt: "Rebuilt from your history",
   completeIt: "Complete {name}",
   hintRepeat: "every tuesday",
   quick: "Quick capture",
@@ -1003,13 +1000,13 @@ const en = {
   repeatedRow: "{name} lists · {other} tasks",
   repeatedDo: "Join them",
   repeatedDone: "The repeated lists are now one each.",
-  unvouchedTitle: "Attachments with no print",
+  unvouchedTitle: "Attachments to verify",
   unvouchedWhat:
-    "Attachments a document or a task points at that no history vouches for: they came in before Tisty wrote down every attachment's print, or they are kept only in the folder you share and no machine has brought them home. They open today; once Tisty checks every attachment against its print, they would not. Writing them down reads each one whole, so your cloud brings down any it keeps online only.",
-  unvouchedNone: "Every attachment has its print.",
+    "Attachments a document or a task points at that no history vouches for yet: they came in before Tisty kept a fingerprint of each attachment, or they are kept only in the folder you share and no computer has brought them home. They open today; once Tisty checks every attachment, they would not. Verifying reads each one whole, so your cloud brings down any it keeps online only.",
+  unvouchedNone: "Every attachment is verified.",
   unvouchedCount: "{name} attachments · {other}",
-  unvouchedDo: "Write them down",
-  unvouchedDone: "{name} attachments now have their print.",
+  unvouchedDo: "Verify them",
+  unvouchedDone: "{name} attachments verified.",
   unvouchedUnlike: "{name} did not match their name and were left as they are.",
   unvouchedGone: "{name} could not be found or read.",
   unvouchedUnread:
@@ -1131,14 +1128,14 @@ const en = {
   cloudEmptied:
     "Tisty's copies in {name} were deleted outside Tisty. Nothing here changed: send everything again, or move to another place.",
   cloudFull:
-    "{name} has no room left. Tisty sends your tasks first; the rest, including what your other computers send, waits until you free up space in {name} or get more. Everything you write stays safe on this machine meanwhile.",
+    "{name} has no room left. Tisty sends your tasks first; the rest, including what your other computers send, waits until you free up space in {name} or get more. Everything you write stays safe on this computer meanwhile.",
   cloudLost:
-    "{name} no longer lets Tisty in: the access was withdrawn or ran out. Connect {name} again; until then everything you write stays safe on this machine.",
+    "{name} no longer lets Tisty in: the access was withdrawn or ran out. Connect {name} again; until then everything you write stays safe on this computer.",
   cloudElsewhere:
     "The cloud now answers as another account ({name}). Tisty stops rather than mix two accounts: connect the one you used before.",
   cloudNotNow: "Your cloud could not be asked first, so nothing was done. Try again in a while",
   cloudToLeave:
-    "Leaving the cloud goes through a move that first brings everything to this machine, so nothing stays behind there. Nothing was changed.",
+    "Leaving the cloud goes through a move that first brings everything to this computer, so nothing stays behind there. Nothing was changed.",
   cloudNeedsMove:
     "This copy already syncs another way. Moving to the cloud brings everything over first, so nothing stays behind. Nothing was changed.",
   cloudNotOffered:
@@ -1156,7 +1153,7 @@ const en = {
   movedAlone:
     "Your other machines stopped syncing here. This copy stopped too, so nothing goes on alone; choose again how it syncs in Settings.",
   deferredBudget:
-    "Your cloud reached its limit for today. What you write stays safe on this machine, and syncing carries on {name}.",
+    "Your cloud reached its limit for today. What you write stays safe on this computer, and syncing carries on {name}.",
   budgetResetsToday: "today at {name}",
   budgetResetsTomorrow: "tomorrow at {name}",
   budgetResetsTodayAtOne: "today at {name}",
@@ -1164,11 +1161,11 @@ const en = {
   deferredTroubled:
     "{maker} is having trouble on its side. What you write stays safe here, and Tisty tries again on the next sync.",
   deferredUnsent:
-    "Some attachments could not travel and stay safe on this machine: one may be open in another program, have changed since it was attached, or be too big to travel.",
+    "Some attachments could not travel and stay safe on this computer: one may be open in another program, have changed since it was attached, or be too big to travel.",
   deferredBusy: "Tisty was already talking to your cloud. It carries on in a moment.",
   deferredChanged: "Your cloud changed meanwhile. What is left goes on the next step.",
   deferredLimit: "Your cloud asked to wait a moment. What is left goes on the next sync.",
-  deferredPaused: "The cloud is paused. Your changes stay on this machine until it goes on.",
+  deferredPaused: "The cloud is paused. Your changes stay on this computer until it goes on.",
   deferredLeft: "{name} left for later: {other}.",
   deferredMore: "{name} and {other} more",
   deferredCount: "{name} left for later.",
@@ -1179,13 +1176,13 @@ const en = {
   syncRefused:
     "The system refused access to the sync folder. On macOS, a folder inside Documents, Desktop or Downloads needs your permission: System Settings → Privacy & Security → Files and Folders.",
   syncShape:
-    "Nothing was synced, in either direction. The shared folder is arranged in a way this Tisty does not know, so a newer one has been there. Update this machine and try once more — writing into it now could undo what it left.",
+    "Nothing was synced, in either direction. The shared folder is arranged in a way this Tisty does not know, so a newer one has been there. Update this computer and try once more — writing into it now could undo what it left.",
   syncUnshaped:
-    "Nothing was synced, in either direction. The shared folder no longer says what shape it is in, or says it in a way that cannot be read — which is what a round that did not finish looks like. If a cloud client is still bringing the folder down, wait for it; otherwise sync from the machine that last wrote there.",
+    "Nothing was synced, in either direction. The shared folder no longer says what shape it is in, or says it in a way that cannot be read — which is what a round that did not finish looks like. If a cloud client is still bringing the folder down, wait for it; otherwise sync from the computer that last wrote there.",
   syncNeeds:
     "Nothing was synced, in either direction. Another of your computers uses Tisty {name}: update this one to keep syncing. What you write here stays here meanwhile.",
   syncNewer:
-    "Nothing was synced, in either direction. «{name}» writes with a newer Tisty than this one, so what you write here stays here until you update this machine. Update it and try once more.",
+    "Nothing was synced, in either direction. «{name}» writes with a newer Tisty than this one, so what you write here stays here until you update this computer. Update it and try once more.",
   storeNewer:
     "A newer Tisty updated your data. Update this one so the two agree again — reading half of it would lose work.",
   someLockedAtOdds:
@@ -1215,7 +1212,7 @@ const en = {
   ownLogUnreadable:
     "This machine's own log could not be read, so nothing travelled either way. Usually a newer Tisty wrote it, or a file of the log was left half written. Nothing is lost: everything stayed where it was.",
   someoneUnconfirmedHolds:
-    "A computer not yet confirmed as yours changed documents, and they wait with it, untouched. Confirm it right here or from the sidebar only if you recognise it, and they settle on the next sync. If you do not, remove it in Settings → Maintenance and you will be asked about them.",
+    "A computer not yet confirmed as yours changed documents, and they wait with it, untouched. Confirm it right here or from the sidebar only if you recognise it, and they settle on the next sync. If you do not, remove it in Settings → Sync and you will be asked about them.",
   someoneUnconfirmed:
     "A computer is waiting for you to confirm it is yours, so nothing it writes has come in yet. Confirm it right here or from the notice in the sidebar — what it wrote stays where it is meanwhile and arrives whole.",
   someoneUnreadable:
@@ -1320,7 +1317,7 @@ const en = {
     "A filter on your network or an antivirus is inspecting secure connections and Tisty cannot trust it. If you are on a work network, ask for Tisty to be let through. Your changes stay saved on this computer.",
   roundSlow: "{name} is taking a while to answer from this network. Tisty keeps trying.",
   restoredApart:
-    "This machine went back to a copy, and «{name}» still holds the history it went back on. Carrying now would bring all of it back. Choose which side wins first.",
+    "This computer went back to a copy, and «{name}» still holds the history it went back on. Carrying now would bring all of it back. Choose which side wins first.",
   otherStore: "That belongs to another Tisty",
   attachmentTooBig: "That file is over {name}, the most a task or a document holds.",
   textTooLong:
@@ -1341,7 +1338,7 @@ const en = {
   showWhole: "Read it in full",
   keeping: "Settings",
   syncing: "Syncing",
-  syncOff: "Off. Your tasks live only on this machine.",
+  syncOff: "Off. Your tasks live only on this computer.",
   syncLaterCard:
     "Syncing a way a newer Tisty chose, which this version does not know. Your tasks are safe here; update Tisty to sync again.",
   syncOffRestoredLater:
@@ -1462,7 +1459,7 @@ const en = {
   movedFollowCloud: "Go to the cloud",
   movedFollowFolder: "Choose the folder",
   movedToCloud:
-    "Your other machines moved to {name} and stopped syncing here. This copy stopped too, so nothing goes on alone; follow them from Settings.",
+    "Your other computers moved to {name} and stopped syncing here. This copy stopped too, so nothing goes on alone; follow them from Settings.",
   moveOpen: "Move to another place…",
   moveTitle: "Move to another place",
   moveWhy:
@@ -1581,23 +1578,43 @@ const en = {
   syncOffNow: "Turn off",
   syncNever: "never",
   syncLast: "my last round: {name}",
-  syncHeard: "something last arrived from another machine: {name}",
-  syncHeardNever: "nothing has arrived from another machine yet",
+  syncHeard: "something last arrived from another computer: {name}",
+  syncHeardNever: "nothing has arrived from another computer yet",
   syncNothingSince:
-    "Days have gone by without anything arriving from your other machines. They may be off, or the program that uploads this folder may not be running.",
+    "Days have gone by without anything arriving from your other computers. They may be off, or the program that uploads this folder may not be running.",
   syncOnlyFolder:
     "Tisty writes to and reads from that folder. What uploads it is your provider's own program, not Tisty: if that program is not running, Tisty cannot tell.",
   syncNow: "Sync now",
+  footUpToDate: "Up to date · {name}",
+  footSyncingOf: "Syncing… {name} of {other}",
+  footWait: "{name} asks to wait",
+  footWaitWhy:
+    "{name} asked Tisty to slow down. Tisty tries again on its own; there's nothing to do.",
+  footTroubled: "{name} is having trouble",
+  footTroubledWhy: "Tisty tries again on its own. What you write stays here meanwhile.",
+  footHalted: "Paused for a while · {name}",
+  footHaltedWhy:
+    "Tisty paused syncing on every computer for a while and picks it up again on its own. What you write stays here.",
+  footSpent: "Today's limit reached · tomorrow",
+  footOffline: "Offline",
+  footOfflineWhy: "Tisty syncs again on its own when the connection is back.",
+  footSignIn: "Sign in again",
+  footPaused: "Paused · Resume",
+  footPausedWhy:
+    "Syncing is off on this computer. Resume it to bring in what your other computers wrote.",
+  footLook: "Something to look at",
+  footLookWhy: "A computer waiting to be confirmed, or something sync needs you to decide.",
+  footLookDocs: "A document was written on two computers. Choose which one stays.",
   revealFolder: "Open the folder",
   syncSetUp: "Set-up:",
-  syncAgain: "Send again",
+  syncAgain: "Send everything again",
   syncAgainWhy:
-    "Copies everything of this machine's to the folder again, without asking whether it is already there. For a folder that lost a file, or a cloud client that missed one.",
+    "Sends everything on this computer again, without asking whether it is already there. For a place that lost a file, or a cloud client that missed one.",
   syncing_: "Syncing…",
   syncingFor: "Syncing for {name} min…",
   syncCame: "something came back",
-  syncSent: "this machine's changes were written to the folder",
-  syncBoth: "this machine's changes were written to the folder, and something came back",
+  syncSent: "this computer's changes were written to the folder",
+  syncBoth: "this computer's changes were written to the folder, and something came back",
   syncSame: "nothing new",
   syncResultAt: "Synced at {name}",
   thisMachineIs: "This computer is called {name}",
@@ -1615,20 +1632,17 @@ const en = {
   noDestination: "no destination",
   backup: "Backup",
   backupWhat:
-    "One file with your whole history, from every machine. Keep it wherever you like and come back to it after a format.",
+    "One file with your whole history, from every computer. Keep it wherever you like and come back to it after a format.",
   backupMake: "Create backup…",
-  backupCloudOff:
-    "With your cloud account, attachments you have not opened live only there, so a backup here would not hold everything. Your cloud keeps the whole store; to have all of it on a disk, move to a folder.",
   backupMade: "{name} saved",
-  backupLeftOut: "{name} saved. Attachments this machine does not hold stayed out of it: {other}",
+  backupLeftOut: "{name} saved. Attachments this computer does not hold stayed out of it: {other}",
   restored: "{name} files restored",
   restoreFailed: "Nothing was changed — the restore could not finish: {name}",
   restoreSure:
-    "Restore goes back to that moment, and everything after it is lost. A shared folder still holds what you are undoing, so this machine stops sharing it; choosing it again asks you which side wins before anything moves. Restore anyway?",
+    "Restore goes back to that moment, and everything after it is lost. A shared folder still holds what you are undoing, so this computer stops sharing it; choosing it again asks you which side wins before anything moves. Restore anyway?",
   review: "Review",
   reviewCount: "{name} tasks",
   reviewLists: "{name} lists",
-  reviewRun: "Review",
   linkGlimpse: "Bring the preview",
   keepersWhy:
     "Tisty writes and reads in a folder both computers can reach. Whoever uploads it is your provider's program, not Tisty.",
@@ -1697,14 +1711,28 @@ const en = {
   whereItLives: "Where it lives",
   tabGeneral: "General",
   tabData: "Your data",
+  leaveTitle: "Leave Tisty",
+  leaveWhy:
+    "Guides you to back up, disconnect the cloud and leave this computer clean. Your tasks and documents stay.",
+  leaveOpen: "Leave…",
+  leaveBackup: "Make a backup first, if you want one.",
+  leaveBackupDone: "Backup made",
+  leaveCloud:
+    "This computer stops syncing and forgets its access. Your other computers keep going.",
+  leaveRevoke: "Also remove Tisty's access on every computer",
+  leaveCloudGone:
+    "Your cloud is already disconnected on this computer, but Tisty could not finish leaving.",
+  leaveHeldOpen:
+    "These stayed on this computer, most likely held open by another program. Close it, then remove them by hand:",
+  leaveAnyway: "Close Tisty",
+  leaveLeft:
+    "What Tisty left on this computer: settings, cache, log, this computer's keys and starting with the system.",
+  leaveThen:
+    "Then it's yours: Tisty closes and shows you your folder. Uninstall the app like any other.",
   tabUpkeep: "Maintenance",
   tabAgents: "Assistants",
   bandWindow: "This window",
   bandSigning: "Who writes here",
-  bandParcels: "Documents that travel",
-  packAllPlain: "Take your documents to another Tisty",
-  packAllWhy:
-    "One file with every document, its folders and what they carry. It asks who it is for: open to hand to somebody, or locked with a number for another machine of your own. It is not a backup — importing it twice makes a second copy.",
   packWho: "Who is this for?",
   packWhoWhy:
     "What you hand to somebody goes out open, for anyone holding the file to read, and lands there as theirs. What goes to another machine of your own is locked with a number, and lands there as yours.",
@@ -1725,10 +1753,7 @@ const en = {
   openNumber: "The number it was locked with",
   openLocked: "Open…",
   packAllDo: "Export…",
-  unpackPlain: "Bring documents from another Tisty",
-  unpackWhy:
-    "Documents somebody handed you, or your own from another machine. They land as new documents here.",
-  unpackDo: "Open…",
+  unpackDo: "Import…",
   alias: "Alias",
   aliasShort: "What you sign your writing with.",
   aliasNone: "unsigned",
@@ -1824,36 +1849,38 @@ const en = {
   archivedTasks: "{name} archived",
   someAttachments: "{name} attachments",
   restoreTitle: "Restore",
+  restoreCloudOff:
+    "With your cloud freeing space here, some attachments live only there, and restoring a backup over them would lose them. Move to a folder first, or restore on a computer that keeps everything.",
   restoreWhat:
-    "Replaces everything on this machine with whatever the file carries. It cannot be undone, so it asks first.",
+    "Replaces everything on this computer with whatever the file carries. It cannot be undone, so it asks first.",
   restoreFrom: "Restore from a file…",
   storeFixed:
     "The folder cannot be changed: your tasks are text files, and always knowing where they are is part of them being yours.",
   noticesMore:
     "Notices are prepared and shown on this machine. None of it reaches the internet or passes through a server.",
-  reviewWhat: "Compares what the log says with what the cache holds.",
-  reviewAgain: "Review again",
-  inTheLog: "In the log",
-  cacheIs: "Cache",
-  looseAre: "Attachments with no reference",
-  theStore: "The store",
-  weighsLog: "The log weighs",
+  reviewWhat: "Looking over your history, documents and attachments…",
+  reviewPartly: "Some checks could not run",
+  reviewAgain: "Check again",
+  inTheLog: "In the history",
+  cacheIs: "Quick index",
+  looseAre: "Attachments nothing uses",
+  weighsLog: "The history weighs",
   weighsDocs: "The documents weigh",
   weighsHeld: "The attachments weigh",
-  theMachines: "The machines",
+  theMachines: "Your computers",
   machinesWhat:
-    "Every machine writes its own log into the shared folder. One that has not written in a while may still be using what looks loose here.",
-  machineHere: "This machine",
+    "Every computer writes its own history where you sync. Confirm the ones that are yours; remove one you no longer use.",
+  machineHere: "This computer",
   machineNeverDrop: "not removable",
   machineDrop: "Remove",
   machineDropSure:
-    "Remove {name}?\n\nIt stops being able to write in the shared folder, but what it already wrote stays there and every machine still sees it.\n\nIf it comes back, it returns as a new machine: it is backed up and emptied first, so whatever it has unsynced by then is left in the backup alone.",
+    "Remove {name}?\n\nIt stops being able to write in the shared folder, but what it already wrote stays there and every computer still sees it.\n\nIf it comes back, it returns as a new computer: it is backed up and emptied first, so whatever it has unsynced by then is left in the backup alone.",
   machineDropWhen: "It last wrote {name}.",
-  machineDropped: "That machine no longer writes here",
+  machineDropped: "That computer no longer writes here",
   machineNever: "has never written",
-  machinesNone: "No machine has written yet",
+  machinesNone: "No computer has written yet",
   machineHushed:
-    "Some machines have not written here in a while. They may still be using what looks loose below.",
+    "Some computers have not written here in a while. They may still be using attachments that look unused in Maintenance.",
   machineKeyLoose: "unconfirmed",
   machineWaits: "Waiting",
   machineWaitsWhy: "Nothing it writes comes in until you confirm it",
@@ -1864,53 +1891,52 @@ const en = {
   machineKeyAsk: "What happened",
   machineKeyTitle: "Confirm the code of {name}?",
   machineKeyRead:
-    "Open Settings → Maintenance on {name} and read its code there. If it is the one below, confirm it.",
+    "Open Settings → Sync on {name} and read its code there. If it is the one below, confirm it.",
   machineKeyThen:
     "From the moment you confirm it, only what {name} signs with this key is read here. If one day it signs with another, its log stops coming in and we tell you.",
   machineKeyForGood:
-    "This is not changed later. A machine that needs a new key has to join the folder afresh, which gives it a new name here and empties what it holds first.",
-  machineKeyDone: "Confirmed: it syncs with this machine now",
+    "This is not changed later. A computer that needs a new key has to join the folder afresh, which gives it a new name here and empties what it holds first.",
+  machineKeyDone: "Confirmed: it syncs with this computer now",
   machineKeyMine:
-    "This is the code your other machines see for this one. Read it out when one of them asks.",
+    "This is the code your other computers see for this one. Read it out when one of them asks.",
   machineKeyNone: "It has not said what it signs with. Nothing it writes is checked.",
   machineAstrayStood: "the one you confirmed {name}",
   machineAstrayNow: "the one it signs with now",
   machineAstrayWhat:
-    "Nothing this machine has written since then has come in here, and it will not. What was already here stays where it was.",
+    "Nothing this computer has written since then has come in here, and it will not. What was already here stays where it was.",
   machineAstrayDo:
-    "If you gave it a new key yourself — you reinstalled it, you changed disks — that machine has to join the folder afresh, which gives it a new name here and empties what it holds first, so back it up there before you do. Removing it from this list does not give it a new key. If you have done none of that, ask at that machine before touching anything.",
+    "If you gave it a new key yourself — you reinstalled it, you changed disks — that computer has to join the folder afresh, which gives it a new name here and empties what it holds first, so back it up there before you do. Removing it from this list does not give it a new key. If you have done none of that, ask at that computer before touching anything.",
   machineAstrayMine:
-    "This is this machine, so its own history is the one the others are turning away. The key it signs with is not the one it answered for — restore the key file if you still have it, or let this machine join the folder afresh, which empties what it holds first.",
+    "This is this computer, so its own history is the one the others are turning away. The key it signs with is not the one it answered for — restore the key file if you still have it, or let this computer join the folder afresh, which empties what it holds first.",
   machineAstrayStoodEver: "the one answered for here",
   machineKeyStandsEver: "confirmed",
   machineKeyOurs: "its own",
   machineAstrayOnly:
-    "A machine whose key nobody ever confirmed never reaches this: the first key it publishes is taken as good. This only shows where somebody said «this is the one».",
+    "A computer whose key nobody ever confirmed never reaches this: the first key it publishes is taken as good. This only shows where somebody said «this is the one».",
   looseWhat:
-    "No task and no document references these. Taking them out puts this computer's copies in the bin for 30 days; a copy kept only in the folder you share is deleted from it, and your cloud keeps it in its own bin.",
+    "No task and no document uses these. Moving them to the bin keeps this computer's copies there for 30 days; a copy kept only in the folder you share is deleted from it, and your cloud keeps it in its own bin.",
   looseWait:
-    "Some machines have not written here in a while, and may still reference these. Take that into account before deciding what is left over.",
-  looseNone: "Nothing loose",
+    "Some computers have not written here in a while, and may still use these. Take that into account before deciding what is left over.",
+  looseNone: "Nothing goes unused",
   looseUnread: "Could not check: «{name}» could not be read. Open it or fix it, and look again.",
   twinsAre: "The same file kept twice",
   twinsWhat:
-    "Two machines attached these before they had synced, so each kept it under the name it came with. Nothing is lost — the copies are simply taking up room. The size is what letting the spares go would give back. Tisty does not choose which.",
+    "Two computers attached these before they had synced, so each kept it under the name it came with. Nothing is lost — the copies are simply taking up room. The size is what letting the spares go would give back. Tisty does not choose which.",
   twinsNone: "Nothing is kept twice",
-  twinsRun: "Look for copies",
+  twinsRun: "See which",
   twinsAgain: "Look again",
   looseShared: "in the shared folder",
   looseDropSharedSure:
-    "{name} is only in the shared folder, so this machine has no copy to set aside: taking it out takes it out for good. Take it out?",
-  looseDrop: "Take it out",
+    "{name} is only in the shared folder, so this computer has no copy to set aside: it is deleted for good. Delete it?",
+  looseDrop: "Move to the bin",
   looseDropSure:
-    "Take {name} out?\n\nIt is kept aside here for 30 days in case you change your mind, and taken out of every machine that syncs. One that shows up later does not get it back: it says the file is no longer there.",
-  looseDropped: "Kept aside, and taken out of the shared folder",
-  looseTotal: "{name} files",
-  cacheAgrees: "matches",
-  cacheStale: "behind the log",
-  cacheDiverged: "disagrees with the log",
+    "Move {name} to the bin?\n\nIt is kept aside here for 30 days in case you change your mind, and taken out of every computer that syncs. One that shows up later does not get it back: it says the file is no longer there.",
+  looseDropped: "In the bin, and out of the shared folder",
+  cacheAgrees: "matches the history",
+  cacheStale: "behind the history",
+  cacheDiverged: "does not match the history",
   cacheNone: "not built yet",
-  reportTitle: "Report for a bug",
+  reportTitle: "Report a problem",
   reportWhat:
     "Saves one file with what it takes to understand a fault: version, operating system, counts and, if you want it, the error log.",
   reportNeverSent: "Nothing is sent.",
@@ -1918,7 +1944,7 @@ const en = {
     "It is saved where you say, you open it, you read it, and you share it only if you agree.",
   reportLogs: "Include the error log",
   reportLogsWhy:
-    "What has failed on this machine, from a warning up. It carries no titles, no descriptions and no journals — the record cannot hold them.",
+    "What Tisty noted while working on this computer, from notes up to failures. It carries no titles, no descriptions and no journals — the record cannot hold them.",
   reportNames: "Include the names of lists and tags",
   reportNamesWhy:
     "They help reproduce a fault in the filters. Off, they come out as «list#1», «tag#2».",
@@ -1934,7 +1960,7 @@ const en = {
   reportNoClipboard: "The clipboard refused it — save the file instead",
   reportHead: "Tisty report",
   reportMade: "made",
-  reportStays: "none of this leaves your machine until you send it",
+  reportStays: "none of this leaves your computer until you send it",
   reportBuild: "tisty",
   reportSystem: "system",
   reportStore: "store",
@@ -2003,13 +2029,13 @@ const en = {
   comingUploading: "Sending your changes…",
   comingOf: "{name} of {other}",
   knockOne: "«{name}» wants to sync",
-  knockUnnamed: "A new machine wants to sync",
-  knockMany: "{name} machines want to sync",
+  knockUnnamed: "A new computer wants to sync",
+  knockMany: "{name} computers want to sync",
   knockWhy: "Nothing it writes comes in until you confirm it is yours.",
   knockManyWhy: "Nothing they write comes in until you confirm they are yours.",
   knockConfirm: "Confirm…",
   knockLater: "Not now",
-  knockDot: "A machine is waiting for you to confirm it",
+  knockDot: "A computer is waiting for you to confirm it",
   confirmTitle: "Is «{name}» yours?",
   confirmTitleUnnamed: "Is this new machine yours?",
   confirmUnnamed:
@@ -2025,7 +2051,7 @@ const en = {
   confirmWhat:
     "That is what the computer calls itself. Before letting in what it writes, check that it is yours: the same code has to show on both.",
   confirmStep:
-    "On that computer, open Tisty → Settings → Maintenance. «The machines» shows its name and its code.",
+    "On that computer, open Tisty → Settings → Sync. «Your computers» shows its name and its code.",
   confirmCodeOf: "Code of «{name}»",
   confirmAsk: "Is it the same one that computer shows?",
   confirmYes: "Yes, it is the same",
@@ -2059,9 +2085,9 @@ const en = {
   welcomeAnyway: "Go in anyway",
   welcomeOlder: "This Tisty is older than the one in your folder",
   welcomeOlderWhy:
-    "So the two versions never mix, it stays on this machine only for now. Once you update it, choose the folder again in Settings › Syncing.",
+    "So the two versions never mix, it stays on this machine only for now. Once you update it, choose the folder again in Settings › Sync.",
   welcomeOlderBy:
-    "«{name}» writes with a newer Tisty. So the two versions never mix, this one stays on this machine only for now. Once you update it, choose the folder again in Settings › Syncing.",
+    "«{name}» writes with a newer Tisty. So the two versions never mix, this one stays on this machine only for now. Once you update it, choose the folder again in Settings › Sync.",
   welcomeStayHere: "Stay on this machine only",
   welcomeOtherFolder: "Choose another folder",
   keepersUnreadable: "This folder's history could not be read",
@@ -2070,6 +2096,44 @@ const en = {
   keepersStrays: "{name} documents another computer left in this folder",
   keepersStraysWhy:
     "That computer wrote them here, but what it did has not reached this folder yet. Nothing of yours is lost: they stay in the folder untouched, and they show up once that computer syncs here.",
+  tabSync: "Sync",
+  whereItSyncs: "Where it syncs",
+  moreOptions: "More options",
+  bandCopies: "Copies",
+  backupCloudWhat:
+    "Your whole history in one file. The cloud copies a mistake or a deletion to all your computers too; a backup does not. Attachments you never opened here stay in your {cloud}.",
+  parcelsTitle: "Documents from another Tisty",
+  parcelsWhy:
+    "Take your documents to another Tisty, or bring in the ones somebody handed you. It is not a backup: importing a file twice makes a second copy.",
+  healthy: "Everything in order · checked {name}",
+  healthOne: "1 thing to look at",
+  healthMany: "{name} things to look at",
+  reviewing: "Checking…",
+  toLookAt: "To look at",
+  cacheOffTitle: "The quick index does not match the history",
+  cacheOffWhat:
+    "Tisty answers from a quick index built out of your history. Rebuilding it reads the history again; nothing you wrote changes.",
+  quickIndex: "Quick index",
+  quickIndexWhy:
+    "Rebuilds the index Tisty answers from, reading your whole history again. Nothing you wrote changes.",
+  missingTitle: "Documents missing here",
+  upkeepForgotten: "Deleted on every computer",
+  unreadTitle: "A document could not be read",
+  keysTitle: "A computer signs with another key",
+  keysWhat: "Nothing {name} wrote since then comes in. See what happened in Your computers.",
+  keysSee: "See your computers",
+  freeTotal: "You can free up to {name}",
+  freeNothing: "Nothing to free up right now",
+  freeUnusedTitle: "Attachments not opened in a while",
+  tools: "Tools",
+  reportLine:
+    "A file with what it takes to understand a fault, that you read before you share it. Nothing is sent.",
+  reportPrepare: "Prepare…",
+  workingFor: "{name} ({other} min)",
+  twinsLooking: "Looking…",
+  tagsReading: "Reading…",
+  brittleReading: "Going through…",
+  unvouchedWorking: "Verifying…",
 };
 
 type Catalog = typeof en;
@@ -2401,25 +2465,22 @@ const es: Catalog = {
   cardRemove: "Quitar de la página",
   docItself: "Este mismo documento",
   documentTooBig: "Ese documento pasa de {name}, así que no se importó",
-  upkeepNothing: "Nada que recuperar",
-  upkeepSafeAll: "Sacarlos todos",
+  upkeepSafeAll: "Mover {name} a la papelera · {other}",
   upkeepSafeAllSure:
-    "¿Sacar {name} adjuntos que nadie nombra? Los de este equipo van a la papelera por 30 días; los que están solo en la carpeta compartida se borran de ella y tu nube los guarda en su propia papelera.",
-  upkeepLook: "Míralos tú",
+    "¿Mover a la papelera {name} adjuntos que nada usa? Los de este equipo quedan ahí por 30 días; los que están solo en la carpeta compartida se borran de ella y tu nube los guarda en su propia papelera.",
+  upkeepLook: "Documentos para recuperar",
   upkeepLookWhat:
-    "Documentos en el disco que el registro no nombra. Pueden ser la única copia de algo que perdió su evento. Adoptarlos los devuelve a Tisty y nunca puede estar mal.",
-  upkeepTakeIn: "Adoptarlo",
-  upkeepTakeInAll: "Adoptarlos todos",
-  upkeepTakenIn: "Adoptado como {name}",
-  upkeepDropIt: "Soltarlo",
-  upkeepDropSure:
-    "¿Soltar «{name}»? El archivo se va para siempre y aquí no queda copia. Esto no se puede deshacer.",
-  upkeepDropped: "Soltado",
-  upkeepWaiting: "Esperando a {name}",
+    "Documentos en tu carpeta que el historial no nombra. Pueden ser la única copia de algo cuyo cambio se perdió. Recuperarlos los devuelve a Tisty y nunca puede estar mal.",
+  upkeepTakeIn: "Recuperar",
+  upkeepTakeInAll: "Recuperarlos todos",
+  upkeepTakenIn: "Recuperado como {name}",
+  upkeepDropIt: "Borrar para siempre",
+  upkeepDropSure: "¿Borrar «{name}» para siempre? Aquí no queda copia. Esto no se puede deshacer.",
+  upkeepDropped: "Borrado",
   upkeepWaitingWhat:
-    "El registro lo nombra y el archivo no está aquí. Puede llegar cuando esa máquina sincronice. Olvidarlo lo borra en todas, y eso no vuelve.",
-  upkeepForget: "Olvidarlo",
-  upkeepForgetWaits: "se activa cuando {name} haya hablado",
+    "El historial los nombra y el archivo no está aquí. Puede llegar cuando otro equipo sincronice. Borrarlo lo borra en todos los equipos, y eso no vuelve.",
+  upkeepForget: "Borrar en todos los equipos",
+  upkeepForgetWaits: "espera a que {name} sincronice",
   diagramIt: "Diagrama",
   formulaIt: "Fórmula",
   widgetIt: "Widget",
@@ -2955,7 +3016,7 @@ const es: Catalog = {
   updateFailed: "No se pudo instalar la actualización — {name}",
   updateUnanswered:
     "La Microsoft Store no respondió, así que ahora mismo no se sabe nada de actualizaciones. Sigue valiendo lo último que dijo.",
-  aboutStore: "Almacén",
+  aboutStore: "Tu carpeta",
   aboutSite: "Visitar www.tisty.app",
   newsOver: "Novedades",
   newsTitle: "Lo nuevo de Tisty",
@@ -2965,7 +3026,7 @@ const es: Catalog = {
   aboutRepo: "Abrir el repositorio",
   aboutNotices: "Avisos de terceros",
   aboutLicences: "Textos de las licencias",
-  aboutReveal: "Ver el almacén",
+  aboutReveal: "Mostrar carpeta",
   supportTitle: "Apoyar a Tisty",
   supportWhy:
     "Tisty es gratuita y lo seguirá siendo. Si se gana un lugar en tu día, una estrella ayuda a que la encuentren y un café mantiene el trabajo en marcha.",
@@ -3003,8 +3064,8 @@ const es: Catalog = {
   doorWelcomedUnnamed: "Tu asistente ya puede trabajar contigo.",
   saidDone: "Completada: {name}",
   saidFiled: "Guardada: {name}",
-  reviewRedo: "Rehacer la caché",
-  reviewRebuilt: "Rehecha desde el registro",
+  reviewRedo: "Rehacer el índice rápido",
+  reviewRebuilt: "Rehecho desde tu historial",
   completeIt: "Completar {name}",
   hintRepeat: "cada martes",
   quick: "Captura rápida",
@@ -3088,14 +3149,14 @@ const es: Catalog = {
   repeatedRow: "{name} listas · {other} tareas",
   repeatedDo: "Juntarlas",
   repeatedDone: "Las listas repetidas quedaron en una de cada nombre.",
-  unvouchedTitle: "Adjuntos sin huella",
+  unvouchedTitle: "Adjuntos por verificar",
   unvouchedWhat:
-    "Adjuntos que un documento o una tarea enlazan y que ninguna historia respalda: llegaron antes de que Tisty anotara la huella de cada adjunto, o viven solo en la carpeta compartida y ningún equipo los ha traído. Hoy se abren; cuando Tisty compruebe cada adjunto contra su huella, ya no. Registrarlos lee cada uno entero, así que tu nube bajará los que tenga solo en línea.",
-  unvouchedNone: "Todos los adjuntos tienen su huella.",
+    "Adjuntos que un documento o una tarea enlazan y que ningún historial respalda todavía: llegaron antes de que Tisty guardara la huella de cada adjunto, o viven solo en la carpeta compartida y ningún equipo los ha traído. Hoy se abren; cuando Tisty compruebe cada adjunto, ya no. Verificarlos lee cada uno entero, así que tu nube bajará los que tenga solo en línea.",
+  unvouchedNone: "Todos los adjuntos están verificados.",
   unvouchedCount: "{name} adjuntos · {other}",
-  unvouchedDo: "Registrarlos",
-  unvouchedDone: "{name} adjuntos quedaron con su huella.",
-  unvouchedUnlike: "{name} no calzaban con su nombre y se dejaron como estaban.",
+  unvouchedDo: "Verificarlos",
+  unvouchedDone: "{name} adjuntos verificados.",
+  unvouchedUnlike: "{name} no coincidían con su nombre y se dejaron como estaban.",
   unvouchedGone: "{name} no se encontraron o no se pudieron leer.",
   unvouchedUnread:
     "No se revisaron todos los adjuntos: no se pudo leer «{name}», así que lo que guarda quedó fuera.",
@@ -3301,7 +3362,7 @@ const es: Catalog = {
   ownLogUnreadable:
     "No se pudo leer el registro de esta máquina, así que no viajó nada ni en un sentido ni en el otro. Suele ser que lo escribió un Tisty más nuevo, o que un archivo del registro quedó a medio escribir. No se perdió nada: todo sigue donde estaba.",
   someoneUnconfirmedHolds:
-    "Un computador que aún no confirmas como tuyo cambió documentos, y esperan con él, sin tocarse. Confírmalo aquí mismo o desde la barra lateral solo si lo reconoces, y se asientan en la próxima sincronización. Si no, quítalo en Configuración → Mantenimiento y te preguntaremos por ellos.",
+    "Un computador que aún no confirmas como tuyo cambió documentos, y esperan con él, sin tocarse. Confírmalo aquí mismo o desde la barra lateral solo si lo reconoces, y se asientan en la próxima sincronización. Si no, quítalo en Configuración → Sincronizar y te preguntaremos por ellos.",
   someoneUnconfirmed:
     "Un computador espera que confirmes que es tuyo, así que todavía no entra nada de lo que escribe. Confírmalo aquí mismo o desde el aviso de la barra lateral — lo que escribió sigue donde está mientras tanto y llega entero.",
   someoneUnreadable:
@@ -3381,7 +3442,7 @@ const es: Catalog = {
     "Esta máquina se respalda y queda con lo que guarda {name}.\n\nLo que tienes aquí ahora deja de estar en la aplicación y queda solo en el respaldo, que se abre sin Tisty.",
   syncTheFolder: "la carpeta",
   syncAdopted:
-    "Este computador solo tenía lo que trae Tisty al empezar, así que tomó lo que guarda {name} sin preguntarte. Lo que tenía quedó en un respaldo.",
+    "Este equipo solo tenía lo que trae Tisty al empezar, así que tomó lo que guarda {name} sin preguntarte. Lo que tenía quedó en un respaldo.",
   syncChoosing: "esperando que elijas",
   stuckChoosing: "La sincronización espera que elijas qué pasa con el otro Tisty.",
   stateApart: "Tu {name} ya guarda otro Tisty",
@@ -3666,18 +3727,38 @@ const es: Catalog = {
   syncOffNow: "Desactivar",
   syncNever: "nunca",
   syncLast: "mi última ronda: {name}",
-  syncHeard: "lo último que llegó de otra máquina: {name}",
-  syncHeardNever: "todavía no ha llegado nada de otra máquina",
+  syncHeard: "lo último que llegó de otro equipo: {name}",
+  syncHeardNever: "todavía no ha llegado nada de otro equipo",
   syncNothingSince:
-    "Llevas días sin recibir nada de tus otras máquinas. Puede que estén apagadas, o que el programa que sube esta carpeta no esté en marcha.",
+    "Llevas días sin recibir nada de tus otros equipos. Puede que estén apagados, o que el programa que sube esta carpeta no esté en marcha.",
   syncOnlyFolder:
     "Tisty escribe y lee en esa carpeta. Quien la sube es el programa de tu proveedor, no Tisty: si ese programa no está en marcha, Tisty no puede saberlo.",
   syncNow: "Sincronizar ahora",
+  footUpToDate: "Al día · {name}",
+  footSyncingOf: "Sincronizando… {name} de {other}",
+  footWait: "{name} pide esperar",
+  footWaitWhy:
+    "{name} le pidió a Tisty ir más lento. Tisty vuelve a intentarlo solo; no tienes que hacer nada.",
+  footTroubled: "{name} tiene problemas",
+  footTroubledWhy: "Tisty vuelve a intentarlo solo. Mientras tanto, lo que escribas queda aquí.",
+  footHalted: "En pausa un rato · {name}",
+  footHaltedWhy:
+    "Tisty pausó la sincronización en todos los equipos por un rato y la retoma solo. Lo que escribas queda aquí.",
+  footSpent: "Límite de hoy alcanzado · mañana",
+  footOffline: "Sin conexión",
+  footOfflineWhy: "Tisty vuelve a sincronizar solo cuando regrese la conexión.",
+  footSignIn: "Vuelve a iniciar sesión",
+  footPaused: "En pausa · Reanudar",
+  footPausedWhy:
+    "La sincronización está apagada en este equipo. Reanúdala para traer lo que escribieron tus otros equipos.",
+  footLook: "Hay algo que revisar",
+  footLookWhy: "Un equipo espera que lo confirmes, o la sincronización necesita que decidas algo.",
+  footLookDocs: "Un documento se escribió en dos equipos. Elige cuál se queda.",
   revealFolder: "Abrir la carpeta",
   syncSetUp: "Configuración:",
-  syncAgain: "Volver a enviar",
+  syncAgain: "Volver a enviar todo",
   syncAgainWhy:
-    "Copia otra vez a la carpeta todo lo de este equipo, sin preguntar si ya está. Para una carpeta que perdió un archivo, o un cliente de nube que se saltó uno.",
+    "Vuelve a enviar todo lo de este equipo, sin preguntar si ya está. Para un lugar que perdió un archivo, o un cliente de nube que se saltó uno.",
   syncing_: "Sincronizando…",
   syncingFor: "Sincronizando desde hace {name} min…",
   syncCame: "llegó algo",
@@ -3703,8 +3784,6 @@ const es: Catalog = {
   backupWhat:
     "Un archivo con todo tu historial, de todos tus equipos. Guárdalo donde quieras y recupéralo cuando lo necesites.",
   backupMake: "Crear respaldo…",
-  backupCloudOff:
-    "Con tu cuenta en la nube, los adjuntos que no has abierto viven solo allá, así que un respaldo aquí no lo tendría todo. Tu nube guarda el almacén completo; para tenerlo entero en un disco, múdate a una carpeta.",
   backupMade: "{name} guardados",
   backupLeftOut: "{name} guardados. Quedaron fuera los adjuntos que este equipo no tiene: {other}",
   restored: "{name} archivos restaurados",
@@ -3714,7 +3793,6 @@ const es: Catalog = {
   review: "Revisión",
   reviewCount: "{name} tareas",
   reviewLists: "{name} listas",
-  reviewRun: "Revisar",
   linkGlimpse: "Traer la vista previa",
   keepersWhy:
     "Tisty escribe y lee en una carpeta que los dos equipos alcancen. Quien la sube es el programa de tu proveedor, no Tisty.",
@@ -3782,14 +3860,27 @@ const es: Catalog = {
   whereItLives: "Dónde vive",
   tabGeneral: "General",
   tabData: "Tus datos",
+  leaveTitle: "Salir de Tisty",
+  leaveWhy:
+    "Te guía para respaldar, desconectar la nube y dejar este equipo limpio. Tus tareas y documentos se quedan.",
+  leaveOpen: "Salir…",
+  leaveBackup: "Haz un respaldo antes, si quieres.",
+  leaveBackupDone: "Respaldo hecho",
+  leaveCloud: "Este equipo deja de sincronizar y olvida su acceso. Tus otros equipos siguen.",
+  leaveRevoke: "Quitar también el acceso de Tisty en todos los equipos",
+  leaveCloudGone:
+    "Tu nube ya quedó desconectada en este equipo, pero Tisty no pudo terminar de salir.",
+  leaveHeldOpen:
+    "Esto quedó en el equipo, lo más probable es que otro programa lo tenga abierto. Ciérralo y quítalo a mano:",
+  leaveAnyway: "Cerrar Tisty",
+  leaveLeft:
+    "Lo que Tisty dejó en este equipo: ajustes, caché, registro, las llaves de este equipo y el inicio con el sistema.",
+  leaveThen:
+    "Después queda en tus manos: Tisty se cierra y te muestra tu carpeta. Desinstala la app como cualquier otra.",
   tabUpkeep: "Mantenimiento",
   tabAgents: "Asistentes",
   bandWindow: "Esta ventana",
   bandSigning: "Quién escribe aquí",
-  bandParcels: "Documentos que viajan",
-  packAllPlain: "Llevar tus documentos a otro Tisty",
-  packAllWhy:
-    "Un archivo con todos los documentos, sus carpetas y lo que llevan dentro. Te pregunta para quién es: abierto para dárselo a alguien, o cerrado con un número para otro equipo tuyo. No es una copia de seguridad: importarlo dos veces deja todo duplicado.",
   packWho: "¿Para quién es?",
   packWhoWhy:
     "Lo que le das a otra persona sale abierto, lo lee quien tenga el archivo, y llega allí como suyo. Lo que llevas a otro equipo tuyo se cierra con un número, y llega allí como tuyo.",
@@ -3810,10 +3901,7 @@ const es: Catalog = {
   openNumber: "El número con el que se cerró",
   openLocked: "Abrir…",
   packAllDo: "Exportar…",
-  unpackPlain: "Traer documentos de otro Tisty",
-  unpackWhy:
-    "Documentos que alguien te pasó, o los tuyos desde otro equipo. Aquí entran como documentos nuevos.",
-  unpackDo: "Abrir…",
+  unpackDo: "Importar…",
   alias: "Alias",
   aliasShort: "Con lo que firmas lo que escribes.",
   aliasNone: "sin firmar",
@@ -3910,6 +3998,8 @@ const es: Catalog = {
   archivedTasks: "{name} archivadas",
   someAttachments: "{name} adjuntos",
   restoreTitle: "Restaurar",
+  restoreCloudOff:
+    "Con tu nube liberando espacio aquí, algunos adjuntos viven solo allá, y restaurar un respaldo encima los perdería. Múdate primero a una carpeta, o restaura en un equipo que lo guarde todo.",
   restoreWhat:
     "Sustituye todo lo que hay en este equipo por lo que traiga el archivo. No se puede deshacer, así que se pide confirmación.",
   restoreFrom: "Restaurar desde un archivo…",
@@ -3917,32 +4007,32 @@ const es: Catalog = {
     "La carpeta no se puede cambiar: tus tareas son archivos de texto, y saber siempre dónde están es parte de que sean tuyas.",
   noticesMore:
     "Los avisos se preparan y se muestran en este mismo equipo. Nada de esto sale a internet ni pasa por un servidor.",
-  reviewWhat: "Compara lo que dice el registro con lo que tiene la caché.",
+  reviewWhat: "Revisando tu historial, documentos y adjuntos…",
+  reviewPartly: "Algunas revisiones no se pudieron hacer",
   reviewAgain: "Revisar de nuevo",
-  inTheLog: "En el registro",
-  cacheIs: "Caché",
-  looseAre: "Adjuntos sin referencia",
-  theStore: "El almacén",
-  weighsLog: "El log pesa",
+  inTheLog: "En el historial",
+  cacheIs: "Índice rápido",
+  looseAre: "Adjuntos que nada usa",
+  weighsLog: "El historial pesa",
   weighsDocs: "Los documentos pesan",
   weighsHeld: "Los adjuntos pesan",
-  theMachines: "Las máquinas",
+  theMachines: "Tus equipos",
   machinesWhat:
-    "Cada máquina escribe su propio log en la carpeta compartida. Una que lleva tiempo sin escribir puede seguir usando lo que aquí parece suelto.",
-  machineHere: "Esta máquina",
-  machineNeverDrop: "no se remueve",
-  machineDrop: "Remover",
+    "Cada equipo escribe su propio historial donde sincronizas. Confirma los que son tuyos; quita el que ya no uses.",
+  machineHere: "Este equipo",
+  machineNeverDrop: "no se quita",
+  machineDrop: "Quitar",
   machineDropSure:
-    "¿Remover {name}?\n\nDeja de poder escribir en la carpeta compartida, pero lo que ya escribió se queda ahí y todas las máquinas lo siguen viendo.\n\nSi vuelve, entra como máquina nueva: se respalda y se vacía antes, así que lo que tenga sin sincronizar en ese momento queda solo en el respaldo.",
+    "¿Quitar {name}?\n\nDeja de poder escribir en la carpeta compartida, pero lo que ya escribió se queda ahí y todos los equipos lo siguen viendo.\n\nSi vuelve, entra como equipo nuevo: se respalda y se vacía antes, así que lo que tenga sin sincronizar en ese momento queda solo en el respaldo.",
   machineDropWhen: "Escribió por última vez {name}.",
-  machineDropped: "Esa máquina ya no escribe aquí",
+  machineDropped: "Ese equipo ya no escribe aquí",
   machineNever: "no ha escrito nunca",
-  machinesNone: "Ninguna máquina ha escrito todavía",
+  machinesNone: "Ningún equipo ha escrito todavía",
   machineHushed:
-    "Hay equipos que llevan tiempo sin escribir aquí. Puede que sigan usando lo que abajo parece suelto.",
+    "Hay equipos que llevan tiempo sin escribir aquí. Puede que sigan usando adjuntos que en Mantenimiento parecen sin uso.",
   machineKeyLoose: "sin confirmar",
   machineWaits: "Esperando",
-  machineWaitsWhy: "Nada de lo que escribe entra hasta que la confirmes",
+  machineWaitsWhy: "Nada de lo que escribe entra hasta que lo confirmes",
   machineKeyStands: "confirmada {name}",
   machineKeyAstray: "firma con una clave que no es la confirmada",
   machineKeyConfirm: "Confirmar",
@@ -3950,11 +4040,11 @@ const es: Catalog = {
   machineKeyAsk: "Qué pasó",
   machineKeyTitle: "¿Confirmar el código de {name}?",
   machineKeyRead:
-    "Abre Configuración → Mantenimiento en {name} y lee ahí su código. Si es el de abajo, confírmalo.",
+    "Abre Configuración → Sincronizar en {name} y lee ahí su código. Si es el de abajo, confírmalo.",
   machineKeyThen:
     "Desde que la confirmes, solo lo que {name} firme con esta clave se lee aquí. Si algún día firma con otra, su registro deja de entrar y te lo decimos.",
   machineKeyForGood:
-    "Esto no se cambia después. Una máquina que necesite clave nueva tiene que entrar de nuevo a la carpeta, lo que le da otro nombre aquí y vacía antes lo que tenga.",
+    "Esto no se cambia después. Un equipo que necesite clave nueva tiene que entrar de nuevo a la carpeta, lo que le da otro nombre aquí y vacía antes lo que tenga.",
   machineKeyDone: "Confirmado: ya sincroniza con este equipo",
   machineKeyMine:
     "Este es el código que tus otros equipos ven de este. Léelo en voz alta cuando alguno lo pida.",
@@ -3962,41 +4052,40 @@ const es: Catalog = {
   machineAstrayStood: "la que confirmaste {name}",
   machineAstrayNow: "la que usa ahora",
   machineAstrayWhat:
-    "Nada de lo que esta máquina ha escrito desde entonces ha entrado aquí, y no entrará. Lo que ya estaba sigue donde estaba.",
+    "Nada de lo que este equipo ha escrito desde entonces ha entrado aquí, y no entrará. Lo que ya estaba sigue donde estaba.",
   machineAstrayDo:
-    "Si le diste una clave nueva tú —la reinstalaste, cambiaste de disco—, esa máquina tiene que entrar de nuevo a la carpeta, lo que le da otro nombre aquí y vacía antes lo que tenga, así que respáldala allí primero. Removerla de esta lista no le da una clave nueva. Si no has hecho nada de eso, pregunta en esa máquina antes de tocar nada.",
+    "Si le diste una clave nueva tú —lo reinstalaste, cambiaste de disco—, ese equipo tiene que entrar de nuevo a la carpeta, lo que le da otro nombre aquí y vacía antes lo que tenga, así que respáldalo allí primero. Quitarlo de esta lista no le da una clave nueva. Si no has hecho nada de eso, pregunta en ese equipo antes de tocar nada.",
   machineAstrayMine:
-    "Esta es esta máquina, así que su propio historial es el que las demás están rechazando. La clave con la que firma no es la que respondió por ella: restaura el archivo de la clave si lo tienes, o deja que esta máquina entre de nuevo a la carpeta, lo que vacía antes lo que tenga.",
+    "Este es este equipo, así que su propio historial es el que los demás están rechazando. La clave con la que firma no es la que respondió por él: restaura el archivo de la clave si lo tienes, o deja que este equipo entre de nuevo a la carpeta, lo que vacía antes lo que tenga.",
   machineAstrayStoodEver: "la que se confirmó aquí",
   machineKeyStandsEver: "confirmada",
   machineKeyOurs: "la suya",
   machineAstrayOnly:
-    "Una máquina cuya clave nadie confirmó nunca no llega a esto: la primera clave que publica se toma por buena. Esto solo aparece donde alguien dijo «esta es».",
+    "Un equipo cuya clave nadie confirmó nunca no llega a esto: la primera clave que publica se toma por buena. Esto solo aparece donde alguien dijo «esta es».",
   looseWhat:
-    "Ninguna tarea ni documento los referencia. Al sacarlos, las copias de este equipo van a la papelera por 30 días; la que está solo en la carpeta compartida se borra de ella y tu nube la guarda en su propia papelera.",
+    "Ninguna tarea ni documento los usa. Al moverlos a la papelera, las copias de este equipo quedan ahí por 30 días; la que está solo en la carpeta compartida se borra de ella y tu nube la guarda en su propia papelera.",
   looseWait:
-    "Hay equipos que llevan tiempo sin escribir aquí y podrían seguir referenciándolos. Tenlo en cuenta antes de decidir qué sobra.",
-  looseNone: "Nada suelto",
+    "Hay equipos que llevan tiempo sin escribir aquí y podrían seguir usándolos. Tenlo en cuenta antes de decidir qué sobra.",
+  looseNone: "No hay adjuntos sin uso",
   looseUnread: "No se pudo revisar: no se pudo leer «{name}». Ábrelo o arréglalo y vuelve a mirar.",
   twinsAre: "El mismo archivo guardado dos veces",
   twinsWhat:
-    "Dos máquinas lo adjuntaron antes de sincronizar, así que cada una lo guardó con el nombre que traía. No se pierde nada: las copias solo ocupan sitio. El tamaño es lo que se recupera soltando las de más. Tisty no elige cuál.",
+    "Dos equipos lo adjuntaron antes de sincronizar, así que cada uno lo guardó con el nombre que traía. No se pierde nada: las copias solo ocupan sitio. El tamaño es lo que se recupera soltando las de más. Tisty no elige cuál.",
   twinsNone: "Nada guardado dos veces",
-  twinsRun: "Buscar copias",
+  twinsRun: "Ver cuáles",
   twinsAgain: "Buscar otra vez",
   looseShared: "en la carpeta compartida",
   looseDropSharedSure:
-    "{name} solo está en la carpeta compartida, así que este equipo no tiene copia que apartar: quitarlo lo quita para siempre. ¿Lo quitas?",
-  looseDrop: "Quitar",
+    "{name} solo está en la carpeta compartida, así que este equipo no tiene copia que apartar: se borra para siempre. ¿Lo borras?",
+  looseDrop: "Mover a la papelera",
   looseDropSure:
-    "¿Quitar {name}?\n\nSe guarda aquí 30 días por si cambias de opinión, y se saca de todas las máquinas que sincronicen. La que aparezca más tarde no lo recupera: dirá que el archivo ya no está.",
-  looseDropped: "Guardado aparte, y sacado de la carpeta compartida",
-  looseTotal: "{name} archivos",
-  cacheAgrees: "coincide",
-  cacheStale: "está atrasada respecto del registro",
-  cacheDiverged: "no coincide con el registro",
+    "¿Mover {name} a la papelera?\n\nSe guarda aquí 30 días por si cambias de opinión, y se saca de todos los equipos que sincronicen. El que aparezca más tarde no lo recupera: dirá que el archivo ya no está.",
+  looseDropped: "En la papelera, y fuera de la carpeta compartida",
+  cacheAgrees: "coincide con el historial",
+  cacheStale: "está atrasado respecto del historial",
+  cacheDiverged: "no coincide con el historial",
   cacheNone: "aún sin construir",
-  reportTitle: "Informe para reportar un problema",
+  reportTitle: "Reportar un problema",
   reportWhat:
     "Guarda un solo archivo con lo necesario para entender un problema: versión, sistema operativo, cifras y, si quieres, el registro de errores.",
   reportNeverSent: "No se envía nada.",
@@ -4004,7 +4093,7 @@ const es: Catalog = {
     "Se guarda donde tú digas, lo abres, lo lees, y lo compartes solo si estás de acuerdo.",
   reportLogs: "Incluir el registro de errores",
   reportLogsWhy:
-    "Lo que falló en este equipo, de aviso para arriba. No lleva títulos, ni descripciones, ni bitácoras: el registro no puede guardarlos.",
+    "Lo que Tisty fue anotando mientras trabajaba en este equipo, desde notas hasta fallas. No lleva títulos, ni descripciones, ni bitácoras: el registro no puede guardarlos.",
   reportNames: "Incluir los nombres de listas y etiquetas",
   reportNamesWhy:
     "Ayudan a reproducir un problema con los filtros. Si lo apagas, salen como «lista#1», «etiqueta#2».",
@@ -4111,7 +4200,7 @@ const es: Catalog = {
   confirmWhat:
     "Así se llama ese computador. Antes de dejar entrar lo que escribe, comprueba que es tuyo: el mismo código tiene que verse en los dos.",
   confirmStep:
-    "En ese computador, abre Tisty → Configuración → Mantenimiento. En «Las máquinas» aparece su nombre y su código.",
+    "En ese computador, abre Tisty → Configuración → Sincronizar. En «Tus equipos» aparece su nombre y su código.",
   confirmCodeOf: "Código de «{name}»",
   confirmAsk: "¿Es el mismo que muestra ese computador?",
   confirmYes: "Sí, es el mismo",
@@ -4156,6 +4245,44 @@ const es: Catalog = {
   keepersStrays: "{name} documentos que otro computador dejó en esta carpeta",
   keepersStraysWhy:
     "Ese computador los escribió aquí, pero lo que hizo todavía no llega a esta carpeta. No se pierde nada tuyo: se quedan en la carpeta sin tocar, y aparecen cuando ese computador sincronice aquí.",
+  tabSync: "Sincronizar",
+  whereItSyncs: "Dónde se sincroniza",
+  moreOptions: "Más opciones",
+  bandCopies: "Copias",
+  backupCloudWhat:
+    "Todo tu historial en un archivo. La nube también copia un error o un borrado a todos tus equipos; un respaldo no. Los adjuntos que nunca abriste aquí se quedan en tu {cloud}.",
+  parcelsTitle: "Documentos de otro Tisty",
+  parcelsWhy:
+    "Lleva tus documentos a otro Tisty, o trae los que alguien te pasó. No es un respaldo: importar un archivo dos veces deja una segunda copia.",
+  healthy: "Todo en orden · revisado {name}",
+  healthOne: "1 cosa por revisar",
+  healthMany: "{name} cosas por revisar",
+  reviewing: "Revisando…",
+  toLookAt: "Por revisar",
+  cacheOffTitle: "El índice rápido no coincide con el historial",
+  cacheOffWhat:
+    "Tisty responde desde un índice rápido hecho con tu historial. Rehacerlo vuelve a leer el historial; no cambia nada de lo que escribiste.",
+  quickIndex: "Índice rápido",
+  quickIndexWhy:
+    "Rehace el índice con que Tisty responde, leyendo de nuevo todo tu historial. No cambia nada de lo que escribiste.",
+  missingTitle: "Documentos que faltan aquí",
+  upkeepForgotten: "Borrado en todos los equipos",
+  unreadTitle: "No se pudo leer un documento",
+  keysTitle: "Un equipo firma con otra clave",
+  keysWhat: "Nada de lo que {name} escribió desde entonces entra. Mira qué pasó en Tus equipos.",
+  keysSee: "Ver tus equipos",
+  freeTotal: "Puedes liberar hasta {name}",
+  freeNothing: "Nada que liberar por ahora",
+  freeUnusedTitle: "Adjuntos que no abres hace tiempo",
+  tools: "Herramientas",
+  reportLine:
+    "Un archivo con lo necesario para entender un problema, que lees antes de compartirlo. No se envía nada.",
+  reportPrepare: "Preparar…",
+  workingFor: "{name} ({other} min)",
+  twinsLooking: "Buscando…",
+  tagsReading: "Leyendo…",
+  brittleReading: "Recorriendo…",
+  unvouchedWorking: "Verificando…",
 };
 
 const catalogs: Record<string, Catalog> = { en, es };

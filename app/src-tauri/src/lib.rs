@@ -790,16 +790,21 @@ pub fn asked_to_unreach() -> bool {
 }
 
 pub fn unreach() -> std::io::Result<bool> {
+    let reached = unreach_system();
+    // Last, since a step above that fails writes the log the sweep removes.
+    if let Ok(paths) = tisty_core::Paths::resolve() {
+        sweep(&paths);
+    }
+    reached
+}
+
+fn unreach_system() -> std::io::Result<bool> {
+    // A sandbox leaves only itself: starting with the system, the PATH and the keys are the real install's.
+    if tisty_core::paths::profile().is_some() {
+        return Ok(false);
+    }
     let _ = waking::wake(false);
     let reached = command::out_of_reach();
-    if let Ok(paths) = tisty_core::Paths::resolve() {
-        for at in paths.swept_on_leaving() {
-            let _ = match at.is_dir() {
-                true => std::fs::remove_dir_all(&at),
-                false => std::fs::remove_file(&at),
-            };
-        }
-    }
     if let Some(home) = command::beside() {
         for at in tisty_core::Paths::shims()
             .into_iter()
@@ -814,6 +819,47 @@ pub fn unreach() -> std::io::Result<bool> {
         let _ = std::fs::remove_dir_all(sealed);
     }
     reached
+}
+
+fn sweep(paths: &tisty_core::Paths) -> Vec<std::path::PathBuf> {
+    paths
+        .swept_on_leaving()
+        .into_iter()
+        .filter(|at| {
+            let _ = match at.is_dir() {
+                true => std::fs::remove_dir_all(at),
+                false => std::fs::remove_file(at),
+            };
+            at.exists()
+        })
+        .collect()
+}
+
+/// Leaving from the window as the uninstaller does; what could not be undone is named, unless asked to go anyway.
+#[tauri::command]
+async fn leave_here(
+    session: tauri::State<'_, Mutex<Session>>,
+    alone: tauri::State<'_, OneAtATime>,
+    anyway: Option<bool>,
+) -> Answer<Vec<String>> {
+    let _done = alone.inner().waited(ROUND_WAITED_OUT).await?;
+    let reached = tauri::async_runtime::spawn_blocking(unreach_system)
+        .await
+        .map_err(|_| Refusal::of("internal"))?;
+    let mut session = held(&session);
+    // Windows keeps an open database from being deleted, so the cache lets go before the sweep.
+    session.cache = None;
+    let mut left: Vec<String> = sweep(&session.paths)
+        .iter()
+        .map(|at| at.display().to_string())
+        .collect();
+    if reached.is_err() {
+        left.extend(command::beside().map(|home| format!("PATH: {}", home.display())));
+    }
+    if left.is_empty() || anyway == Some(true) {
+        std::process::exit(0);
+    }
+    Ok(left)
 }
 
 pub(crate) fn as_asked_for(at: &std::path::Path) -> std::path::PathBuf {
@@ -1158,6 +1204,7 @@ pub fn run() {
             answers::attaching::roomy,
             answers::attaching::opened,
             answers::storing::revealed,
+            leave_here,
             linking::open_link,
             answers::storing::sync_state,
             answers::storing::choose_sync,

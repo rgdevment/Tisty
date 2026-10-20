@@ -1,37 +1,22 @@
-import { useCallback, useEffect, useState } from "react";
-import { type Unvouching, unvouchedAttachments } from "../core";
+import type { Unvouched as Seen } from "../core";
 import { weigh } from "../format";
 import { fill, t } from "../locales";
 
 interface Props {
+  seen: Seen[];
   held: boolean;
-  vouch: (then: () => void) => void;
+  vouch: () => void;
   className: string;
+  label?: string;
 }
 
-export default function Unvouched({ held, vouch, className }: Props) {
-  const [told, setTold] = useState<Unvouching | null>(null);
-  const look = useCallback(() => {
-    unvouchedAttachments()
-      .then(setTold)
-      .catch(() => setTold(null));
-  }, []);
-  useEffect(look, [look]);
-
-  const seen = told?.found;
-  const bytes = (seen ?? []).reduce((all, one) => all + one.bytes, 0);
+export default function Unvouched({ seen, held, vouch, className, label }: Props) {
+  const bytes = seen.reduce((all, one) => all + one.bytes, 0);
   return (
     <>
       <p className="text-[12.5px] leading-relaxed text-soft">{t("unvouchedWhat")}</p>
-      {told?.unread != null && (
-        <p className="mt-2 text-[12.5px] text-soft">
-          {fill("unvouchedUnread", told.unread || t("untitledDoc"))}
-        </p>
-      )}
-      {seen?.length === 0 && told?.unread == null && (
-        <p className="mt-2 text-[12.5px] text-faint">{t("unvouchedNone")}</p>
-      )}
-      {seen && seen.length > 0 && (
+      {seen.length === 0 && <p className="mt-2 text-[12.5px] text-faint">{t("unvouchedNone")}</p>}
+      {seen.length > 0 && (
         <>
           <p className="mt-2 text-[12.5px] tabular-nums text-soft">
             {fill("unvouchedCount", String(seen.length), weigh(bytes))}
@@ -47,8 +32,8 @@ export default function Unvouched({ held, vouch, className }: Props) {
             ))}
           </ul>
           <div className="mt-2.5 flex items-center gap-2.5">
-            <button type="button" disabled={held} onClick={() => vouch(look)} className={className}>
-              {t("unvouchedDo")}
+            <button type="button" disabled={held} onClick={vouch} className={className}>
+              {label ?? t("unvouchedDo")}
             </button>
           </div>
         </>

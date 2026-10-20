@@ -4,8 +4,8 @@ import { copied, facts, keepReport, logs } from "../core";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { written } from "../report";
-import Card, { type Run, type Which, type Word } from "./Card";
-import { Group, mild, strong } from "./Rows";
+import type { Run, Which, Word } from "./Card";
+import { mild, strong } from "./Rows";
 
 const TAIL = 300;
 const LOGS = "\n--- tisty.log ---";
@@ -73,74 +73,74 @@ export default function Reporting({ busy, said, trouble, tell, fail, quietly }: 
 
   return (
     <>
-      <Group label={t("reportTitle")} />
+      <p className="text-[12.5px] leading-relaxed text-soft">
+        {t("reportWhat")} <span className="text-ink">{t("reportNeverSent")}</span>{" "}
+        {t("reportYours")}
+      </p>
 
-      <Card title={t("reportTitle")} which="report" busy={busy} said={said} trouble={trouble}>
-        <p className="text-[12.5px] leading-relaxed text-soft">
-          {t("reportWhat")} <span className="text-ink">{t("reportNeverSent")}</span>{" "}
-          {t("reportYours")}
-        </p>
+      <div className="mt-2.5 flex flex-col gap-2">
+        <label className="flex items-start gap-2 text-[12.5px]">
+          <input
+            type="checkbox"
+            checked={told.logs}
+            disabled={held}
+            onChange={(e) => changeTold({ ...told, logs: e.target.checked })}
+            className="mt-0.5"
+          />
+          <span>
+            {t("reportLogs")}
+            <span className="block text-[11.5px] text-faint">{t("reportLogsWhy")}</span>
+          </span>
+        </label>
+        <label className="flex items-start gap-2 text-[12.5px]">
+          <input
+            type="checkbox"
+            checked={told.names}
+            disabled={held}
+            onChange={(e) => changeTold({ ...told, names: e.target.checked })}
+            className="mt-0.5"
+          />
+          <span>
+            {t("reportNames")}
+            <span className="block text-[11.5px] text-faint">{t("reportNamesWhy")}</span>
+          </span>
+        </label>
+        <label className="flex items-start gap-2 text-[12.5px]">
+          <input
+            type="checkbox"
+            checked={told.paths}
+            disabled={held}
+            onChange={(e) => changeTold({ ...told, paths: e.target.checked })}
+            className="mt-0.5"
+          />
+          <span>
+            {t("reportPaths")}
+            <span className="block text-[11.5px] text-faint">{t("reportPathsWhy")}</span>
+          </span>
+        </label>
+      </div>
 
-        <div className="mt-2.5 flex flex-col gap-2">
-          <label className="flex items-start gap-2 text-[12.5px]">
-            <input
-              type="checkbox"
-              checked={told.logs}
-              disabled={held}
-              onChange={(e) => changeTold({ ...told, logs: e.target.checked })}
-              className="mt-0.5"
-            />
-            <span>
-              {t("reportLogs")}
-              <span className="block text-[11.5px] text-faint">{t("reportLogsWhy")}</span>
-            </span>
-          </label>
-          <label className="flex items-start gap-2 text-[12.5px]">
-            <input
-              type="checkbox"
-              checked={told.names}
-              disabled={held}
-              onChange={(e) => changeTold({ ...told, names: e.target.checked })}
-              className="mt-0.5"
-            />
-            <span>
-              {t("reportNames")}
-              <span className="block text-[11.5px] text-faint">{t("reportNamesWhy")}</span>
-            </span>
-          </label>
-          <label className="flex items-start gap-2 text-[12.5px]">
-            <input
-              type="checkbox"
-              checked={told.paths}
-              disabled={held}
-              onChange={(e) => changeTold({ ...told, paths: e.target.checked })}
-              className="mt-0.5"
-            />
-            <span>
-              {t("reportPaths")}
-              <span className="block text-[11.5px] text-faint">{t("reportPathsWhy")}</span>
-            </span>
-          </label>
-        </div>
+      <p className="mt-2.5 text-[11.5px] leading-relaxed text-faint">{t("reportNever")}</p>
 
-        <p className="mt-2.5 text-[11.5px] leading-relaxed text-faint">{t("reportNever")}</p>
+      <details className="mt-2.5" onToggle={showReport}>
+        <summary className="cursor-pointer text-[12.5px] text-accent">{t("reportShow")}</summary>
+        <pre className="scroller mt-2 max-h-[22rem] overflow-x-auto rounded-[10px] bg-hover px-3 py-2.5 font-mono text-[11.5px] leading-relaxed text-soft">
+          {paper ?? "…"}
+        </pre>
+      </details>
 
-        <details className="mt-2.5" onToggle={showReport}>
-          <summary className="cursor-pointer text-[12.5px] text-accent">{t("reportShow")}</summary>
-          <pre className="scroller mt-2 max-h-[22rem] overflow-x-auto rounded-[10px] bg-hover px-3 py-2.5 font-mono text-[11.5px] leading-relaxed text-soft">
-            {paper ?? "…"}
-          </pre>
-        </details>
-
-        <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
-          <button type="button" disabled={held} onClick={saveReport} className={strong}>
-            {t("reportSave")}
-          </button>
-          <button type="button" disabled={held} onClick={copyReport} className={mild}>
-            {t("reportCopy")}
-          </button>
-        </div>
-      </Card>
+      <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
+        <button type="button" disabled={held} onClick={saveReport} className={strong}>
+          {t("reportSave")}
+        </button>
+        <button type="button" disabled={held} onClick={copyReport} className={mild}>
+          {t("reportCopy")}
+        </button>
+      </div>
+      {trouble?.card === "report" && (
+        <p className="mt-2 text-[11.5px] text-urgent">{trouble.text}</p>
+      )}
+      {said?.card === "report" && <p className="mt-2 text-[11.5px] text-faint">{said.text}</p>}
     </>
   );
 }

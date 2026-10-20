@@ -1808,3 +1808,27 @@ fn a_sheet_laid_landscape_is_as_wide_as_it_was_tall() {
     let (wide, tall) = crate::pdf::leaf("a4-landscape");
     assert!(wide > tall);
 }
+
+#[test]
+fn leaving_sweeps_what_tisty_left_and_never_the_person_s_folder() {
+    let room = tempfile::tempdir().unwrap();
+    let paths = tisty_core::Paths::new(room.path().join("data"), room.path().join("config"));
+    let store = paths.store().join("tasks.log");
+    let doc = paths.data().join("docs").join("plan.md");
+    let log = tisty_core::witness::file(&paths);
+    let cached = paths.cache().join("selection.json");
+    for at in [&store, &doc, &log, &cached, &paths.config_file()] {
+        std::fs::create_dir_all(at.parent().unwrap()).unwrap();
+        std::fs::write(at, b"x").unwrap();
+    }
+
+    super::sweep(&paths);
+
+    assert!(
+        store.is_file() && doc.is_file(),
+        "leaving took the person's folder"
+    );
+    assert!(!paths.config_file().exists(), "the settings stayed");
+    assert!(!paths.cache().exists(), "the cache stayed");
+    assert!(!log.exists(), "the log stayed");
+}

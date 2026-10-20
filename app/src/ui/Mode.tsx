@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { type Carrying, syncState } from "../core";
 import { fill, t } from "../locales";
 
-const leaf = (at: string) => at.split(/[\\/]/).filter(Boolean).pop() ?? at;
+export const leaf = (at: string) => at.split(/[\\/]/).filter(Boolean).pop() ?? at;
 
 export const modeSaid = (state: Carrying): string => {
   if (state.mode === "later") return t("modeLater");

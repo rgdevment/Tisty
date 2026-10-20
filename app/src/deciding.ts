@@ -1,3 +1,4 @@
+import { useSyncExternalStore } from "react";
 import { docs, type Pick, paperRifts, type Rift, settlePaper, taskOf, weavePaper } from "./core";
 import { fill, t } from "./locales";
 import { type Refusal, saidPlainly } from "./refusal";
@@ -8,6 +9,7 @@ const reminded = new Set<string>();
 const decidedAt = new Map<string, number>();
 let decisions = 0;
 let queue: Promise<unknown> = Promise.resolve();
+const watching = new Set<() => void>();
 
 type Asking = (named: string, rifts: Rift[]) => Promise<Pick[] | null>;
 type AskingWhole = (named: string) => Promise<Pick | null>;
@@ -52,6 +54,11 @@ export const decide = async (id: string, called?: string): Promise<boolean> => {
   return true;
 };
 
+const letGo = (id: string) => {
+  later.delete(id);
+  reminded.delete(id);
+};
+
 // A task's page is left out of the documents, so it is named after the task it belongs to.
 const taskTitled = (id: string): Promise<string | undefined> => {
   const task = /^t_([0-9a-z]{26})-\d+$/i.exec(id)?.[1];
@@ -85,6 +92,7 @@ const decideInTurn = async (ids: string[], byHand: boolean, since: number): Prom
   const putOff = byHand ? [] : fresh.filter((id) => later.has(id) && !reminded.has(id));
   const finish = (shut: string[], said: string | null): Decided => {
     for (const id of putOff) reminded.add(id);
+    for (const one of watching) one();
     return { shut, said, putOff };
   };
   if (!asking.length) return finish([], null);
@@ -109,8 +117,7 @@ const decideInTurn = async (ids: string[], byHand: boolean, since: number): Prom
       decisions += 1;
       decidedAt.set(id, decisions);
       if (settled) {
-        later.delete(id);
-        reminded.delete(id);
+        letGo(id);
       } else {
         later.add(id);
         putOff.push(id);
@@ -121,6 +128,8 @@ const decideInTurn = async (ids: string[], byHand: boolean, since: number): Prom
         shut.add(id);
         continue;
       }
+      // Still at odds, the next round names it again; settled elsewhere, it would otherwise wait forever.
+      letGo(id);
       const plain = saidPlainly(problem);
       told.add(code === "movedUnderfoot" ? fill("changedWhileDeciding", named(id)) : plain);
     }
@@ -131,3 +140,14 @@ const decideInTurn = async (ids: string[], byHand: boolean, since: number): Prom
     : [];
   return finish(locked, [...lockedSaid, ...told].join(" ") || null);
 };
+
+export const leftForLater = (): string[] => [...later];
+
+const subscribe = (change: () => void) => {
+  watching.add(change);
+  return () => {
+    watching.delete(change);
+  };
+};
+
+export const useLeftForLater = (): number => useSyncExternalStore(subscribe, () => later.size);
