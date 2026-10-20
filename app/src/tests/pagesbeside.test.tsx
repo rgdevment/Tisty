@@ -7,8 +7,8 @@ import Docs from "../ui/Docs";
 
 const store = vi.hoisted(() => ({ heads: true }));
 
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (cmd: string) => {
+vi.mock("@tauri-apps/api/core", async () => ({
+  invoke: (await import("./opened")).opening((cmd: string) => {
     switch (cmd) {
       case "doc_read":
         return Promise.resolve("# Compras\n\nleche");
@@ -24,7 +24,7 @@ vi.mock("@tauri-apps/api/core", () => ({
       default:
         return Promise.resolve(null);
     }
-  },
+  }),
 }));
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({

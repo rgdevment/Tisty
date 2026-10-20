@@ -3174,3 +3174,50 @@ fn a_task_document_is_found_by_its_words_and_never_by_the_line_naming_its_task()
     );
     assert_eq!(super::shown_around(body, &terms("01m563t6t5")), None);
 }
+
+#[test]
+fn the_window_writes_over_only_the_body_it_typed_on() {
+    let room = root();
+    write(
+        room.path(),
+        "mac0-0001",
+        "# Acta\n\nlo que leyo la ventana\n",
+    )
+    .unwrap();
+    let seen = print_of_text("# Acta\n\nlo que leyo la ventana");
+    write(
+        room.path(),
+        "mac0-0001",
+        "# Acta\n\nlo que escribio un agente\n",
+    )
+    .unwrap();
+
+    assert!(
+        !write_over(
+            room.path(),
+            "mac0-0001",
+            "# Acta\n\nlo de la ventana\n",
+            &seen
+        )
+        .unwrap()
+    );
+    assert_eq!(
+        read(room.path(), "mac0-0001").unwrap(),
+        "# Acta\n\nlo que escribio un agente\n"
+    );
+
+    let now = print_of_text("# Acta\n\nlo que escribio un agente\n");
+    assert!(
+        write_over(
+            room.path(),
+            "mac0-0001",
+            "# Acta\n\nlo de la ventana\n",
+            &now
+        )
+        .unwrap()
+    );
+    assert_eq!(
+        read(room.path(), "mac0-0001").unwrap(),
+        "# Acta\n\nlo de la ventana\n"
+    );
+}

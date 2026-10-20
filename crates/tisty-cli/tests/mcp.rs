@@ -1271,6 +1271,30 @@ Rosa y palos de paleta." }),
 }
 
 #[test]
+fn a_write_rings_the_open_window_and_a_read_does_not() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let bell = served.home.path().join("cache").join("stirred");
+
+    served.call("docs", serde_json::json!({}));
+    assert!(
+        !bell.exists(),
+        "reading writes nothing the window must catch up with"
+    );
+
+    served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Cartulinas
+
+Rosa." }),
+    );
+    assert!(
+        bell.exists(),
+        "a write tells the window at once, not at its next round"
+    );
+}
+
+#[test]
 fn markdown_from_elsewhere_is_written_in_the_tisty_language_and_the_change_is_told() {
     let served = Served::new();
     served.person().lets_the_agent_in();

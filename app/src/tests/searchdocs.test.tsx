@@ -8,8 +8,10 @@ const ipc = vi.hoisted(() => ({
   answer: (_cmd: string, _args: Record<string, unknown>): Promise<unknown> => Promise.resolve(null),
 }));
 
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (cmd: string, args?: Record<string, unknown>) => ipc.answer(cmd, args ?? {}),
+vi.mock("@tauri-apps/api/core", async () => ({
+  invoke: (await import("./opened")).opening((cmd: string, args?: Record<string, unknown>) =>
+    ipc.answer(cmd, args ?? {}),
+  ),
 }));
 
 vi.mock("@tauri-apps/api/webview", () => ({

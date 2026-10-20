@@ -91,10 +91,29 @@ pub fn beside_docs(
 
 #[tauri::command(async)]
 pub fn doc_read(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<String> {
-    let root = held(&session).paths.docs();
+    read_minded(&session, id)
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Opened {
+    body: String,
+    print: String,
+}
+
+/// The print rides back with the save, so only the words the window actually holds are written over.
+#[tauri::command(async)]
+pub fn doc_opened(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Opened> {
+    let body = read_minded(&session, id)?;
+    let print = tisty_core::docs::print_of_text(&body);
+    Ok(Opened { body, print })
+}
+
+fn read_minded(session: &tauri::State<'_, Mutex<Session>>, id: String) -> Answer<String> {
+    let root = held(session).paths.docs();
     let read = tisty_core::docs::read(&root, &id);
     if let Ok(body) = &read {
-        let mut session = held(&session);
+        let mut session = held(session);
         session.mind_body(&id, body);
         noted(&mut session, &id, body);
     }
@@ -110,7 +129,7 @@ pub fn doc_read(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer
             );
             Refusal::about("documentTooBig", weighed(limit))
         }
-        _ if !root.join(format!("{id}.md")).exists() && still_coming(&session, &id) => {
+        _ if !root.join(format!("{id}.md")).exists() && still_coming(session, &id) => {
             Refusal::about("docComing", id)
         }
         _ => Refusal::about("noSuchDoc", id),
@@ -1140,39 +1159,87 @@ pub fn doc_backable(session: tauri::State<'_, Mutex<Session>>, id: String) -> An
     Ok(!session.state.bolted(&id) && one_step_back(&session, &id).is_some())
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Kept {
+    id: String,
+    title: String,
+    print: String,
+}
+
 #[tauri::command(async)]
 pub fn doc_write(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
     body: String,
     anyway: Option<bool>,
-) -> Answer<tisty_core::docs::Doc> {
+    since: Option<String>,
+) -> Answer<Kept> {
     let mut session = held(&session);
     writable(&session.state, &id)?;
-    if !anyway.unwrap_or(false) && session.moved(&id) {
+    let since = since.filter(|_| !anyway.unwrap_or(false));
+    if since.is_none() && !anyway.unwrap_or(false) && session.moved(&id) {
         return Err(Refusal::about("documentMoved", id));
     }
     let root = session.paths.docs();
+    let print = tisty_core::docs::print_of_text(&body);
+    let title = tisty_core::docs::titled(&body);
     if tisty_core::docs::read(&root, &id).is_ok_and(|was| tisty_core::docs::unchanged(&was, &body))
     {
-        return Ok(tisty_core::docs::Doc {
-            title: tisty_core::docs::titled(&body),
-            id,
-        });
+        return Ok(Kept { id, title, print });
     }
-    tisty_core::docs::write(&root, &id, &body).map_err(|e| match e {
+    let wrote = match &since {
+        Some(seen) => tisty_core::docs::write_over(&root, &id, &body, seen),
+        None => tisty_core::docs::write(&root, &id, &body).map(|()| true),
+    };
+    if !wrote.map_err(unwritten)? {
+        return Err(Refusal::about("documentMoved", id));
+    }
+    session.mind_body(&id, &tisty_core::docs::settled(&body));
+    session.corpus.forget(&id);
+    let hand = signing(&session.state);
+    session.retell(&id, &body, hand);
+    Ok(Kept { id, title, print })
+}
+
+fn unwritten(e: tisty_core::Error) -> Refusal {
+    match e {
         tisty_core::Error::DocumentTooBig { limit, .. } => {
             Refusal::about("documentTooLong", weighed(limit))
         }
         tisty_core::Error::AlreadyRunning => Refusal::of("documentBeingWritten"),
         _ => blamed(channel::WINDOW, "a document could not be written", e),
-    })?;
-    session.mind_body(&id, &tisty_core::docs::settled(&body));
+    }
+}
+
+/// Words typed over a body that moved on meanwhile are woven into it when the two touched apart;
+/// `None` when they touched the same place and only the person can choose.
+#[tauri::command(async)]
+pub fn doc_merge(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    base: String,
+    mine: String,
+) -> Answer<Option<Opened>> {
+    let mut session = held(&session);
+    writable(&session.state, &id)?;
+    let root = session.paths.docs();
+    let theirs = tisty_core::docs::read(&root, &id)
+        .map_err(|e| blamed(channel::WINDOW, "a document could not be read", e))?;
+    let Some(whole) = tisty_core::merge::merged(&base, &mine, &theirs) else {
+        return Ok(None);
+    };
+    let seen = tisty_core::docs::print_of_text(&theirs);
+    if !tisty_core::docs::write_over(&root, &id, &whole, &seen).map_err(unwritten)? {
+        return Ok(None);
+    }
+    let body = tisty_core::docs::settled(&whole);
+    session.mind_body(&id, &body);
     session.corpus.forget(&id);
     let hand = signing(&session.state);
     session.retell(&id, &body, hand);
-    let title = tisty_core::docs::titled(&body);
-    Ok(tisty_core::docs::Doc { title, id })
+    let print = tisty_core::docs::print_of_text(&body);
+    Ok(Some(Opened { body, print }))
 }
 
 /// What reading a body catches up with: the title and the tags both come out of it, and neither

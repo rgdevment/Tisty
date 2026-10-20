@@ -13,7 +13,7 @@ pub use cards::{Card, Gist, card_of, cards_of, forget_stray_cards, sighted};
 use carried::kept_still;
 pub use carried::{
     Carried, before_left_at, carried_at, carried_print, forget_carried, forget_what_was_carried,
-    keep_carried, kept_before, print_of, read_as_printed, read_before, read_carried,
+    keep_carried, kept_before, print_of, print_of_text, read_as_printed, read_before, read_carried,
 };
 pub use prints::{Prints, Seen};
 use text::{Fencing, as_written, unspanned, wordless};
@@ -130,6 +130,18 @@ pub fn unchanged(was: &str, now: &str) -> bool {
 /// One door for every writer: a body read by one is never written under another.
 pub fn write(root: &Path, id: &str, body: &str) -> Result<()> {
     alone(root, || written(root, id, body))
+}
+
+/// The window's save lands only on the body its words were typed over, judged under the same lock.
+pub fn write_over(root: &Path, id: &str, body: &str, print: &str) -> Result<bool> {
+    alone(root, || {
+        let at = resolve(root, id)?;
+        if print_of(&at)?.as_deref() != Some(print) {
+            return Ok(false);
+        }
+        written(root, id, body)?;
+        Ok(true)
+    })
 }
 
 fn written(root: &Path, id: &str, body: &str) -> Result<()> {

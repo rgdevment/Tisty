@@ -9,8 +9,9 @@ import type { Asking } from "../ui/slashing";
 
 const store = vi.hoisted(() => ({
   bodies: {} as Record<string, string>,
-  writes: [] as { id: string; body: string; anyway: boolean }[],
+  writes: [] as { id: string; body: string; anyway: boolean; since?: unknown }[],
   clash: false,
+  woven: null as string | null,
   delays: [] as number[],
   reads: 0,
   mute: false,
@@ -31,60 +32,64 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
   open: () => Promise.resolve(store.picked),
 }));
 
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (
-    cmd: string,
-    args?: Record<string, unknown>,
-    options?: { headers: Record<string, string> },
-  ) => {
-    switch (cmd) {
-      case "doc_lock":
-        store.locks.push({ id: String(args?.id), shut: Boolean(args?.shut) });
-        return Promise.resolve(null);
-      case "doc_read":
-        store.reads += 1;
-        if (store.coming) return Promise.reject({ code: "docComing" });
-        if (store.refuse) return Promise.reject(store.refuse);
-        return Promise.resolve(store.bodies[String(args?.id)] ?? "");
-      case "attach":
-        return Promise.resolve(`![${String(args?.path)}](${String(args?.path)})`);
-      case "attach_pasted": {
-        const name = decodeURIComponent(options?.headers["x-name"] ?? "");
-        if (name === "roto.png") return Promise.reject({ code: "cannotRead", name });
-        return Promise.resolve(`![${name}](${name})`);
+vi.mock("@tauri-apps/api/core", async () => ({
+  invoke: (await import("./opened")).opening(
+    (
+      cmd: string,
+      args?: Record<string, unknown>,
+      options?: { headers: Record<string, string> },
+    ) => {
+      switch (cmd) {
+        case "doc_lock":
+          store.locks.push({ id: String(args?.id), shut: Boolean(args?.shut) });
+          return Promise.resolve(null);
+        case "doc_read":
+          store.reads += 1;
+          if (store.coming) return Promise.reject({ code: "docComing" });
+          if (store.refuse) return Promise.reject(store.refuse);
+          return Promise.resolve(store.bodies[String(args?.id)] ?? "");
+        case "attach":
+          return Promise.resolve(`![${String(args?.path)}](${String(args?.path)})`);
+        case "attach_pasted": {
+          const name = decodeURIComponent(options?.headers["x-name"] ?? "");
+          if (name === "roto.png") return Promise.reject({ code: "cannotRead", name });
+          return Promise.resolve(`![${name}](${name})`);
+        }
+        case "doc_backable":
+          return Promise.resolve(store.before[String(args?.id)] !== undefined);
+        case "doc_back": {
+          const id = String(args?.id);
+          store.backs.push(id);
+          const was = store.before[id];
+          if (was === undefined) return Promise.reject({ code: "nothingKeptBeside" });
+          store.bodies[id] = was;
+          return Promise.resolve({ id, title: "Compra" });
+        }
+        case "doc_write": {
+          const id = String(args?.id);
+          const body = String(args?.body);
+          const anyway = args?.anyway === true;
+          store.writes.push({ id, body, anyway, since: args?.since });
+          if (store.clash && !anyway) return Promise.reject({ code: "documentMoved" });
+          const title = body
+            .split("\n")[0]
+            .replace(/^#+\s*/, "")
+            .trim();
+          const waits = store.delays.shift() ?? 0;
+          return new Promise((go) =>
+            setTimeout(() => {
+              store.bodies[id] = body;
+              go({ id, title });
+            }, waits),
+          );
+        }
+        case "doc_merge":
+          return Promise.resolve(store.woven && { body: store.woven, print: "woven" });
+        default:
+          return Promise.resolve(null);
       }
-      case "doc_backable":
-        return Promise.resolve(store.before[String(args?.id)] !== undefined);
-      case "doc_back": {
-        const id = String(args?.id);
-        store.backs.push(id);
-        const was = store.before[id];
-        if (was === undefined) return Promise.reject({ code: "nothingKeptBeside" });
-        store.bodies[id] = was;
-        return Promise.resolve({ id, title: "Compra" });
-      }
-      case "doc_write": {
-        const id = String(args?.id);
-        const body = String(args?.body);
-        const anyway = args?.anyway === true;
-        store.writes.push({ id, body, anyway });
-        if (store.clash && !anyway) return Promise.reject({ code: "documentMoved" });
-        const title = body
-          .split("\n")[0]
-          .replace(/^#+\s*/, "")
-          .trim();
-        const waits = store.delays.shift() ?? 0;
-        return new Promise((go) =>
-          setTimeout(() => {
-            store.bodies[id] = body;
-            go({ id, title });
-          }, waits),
-        );
-      }
-      default:
-        return Promise.resolve(null);
-    }
-  },
+    },
+  ),
 }));
 
 vi.mock("../ui/Sheet", () => ({
@@ -176,6 +181,7 @@ describe("a document the archive holds through its folder", () => {
 
 describe("the document being written", () => {
   beforeEach(() => {
+    store.woven = null;
     store.bodies = { "a3f1-0001": "# Compras\n\nleche", "a3f1-0002": "# Notas" };
     store.writes = [];
     store.reads = 0;
@@ -297,6 +303,35 @@ describe("the document being written", () => {
 
     await waitFor(() => expect(store.reads).toBeGreaterThan(1));
     expect(screen.queryByText(/wrote in this document, and what you are reading/i)).toBeNull();
+  });
+
+  it("saves over only the words it read, by their print", async () => {
+    const props = { open: "a3f1-0001", known, onKept: vi.fn(), onError: vi.fn() };
+    const was = store.bodies["a3f1-0001"];
+    render(<Docs {...props} />);
+    const editor = await waitFor(() => screen.getByLabelText("editor"));
+    await userEvent.click(editor);
+    await userEvent.keyboard(" y algo mio");
+    await settled();
+
+    expect(store.writes[store.writes.length - 1]?.since).toBe(`print:${was}`);
+  });
+
+  it("weaves the words in when something wrote elsewhere in the document meanwhile", async () => {
+    store.clash = true;
+    store.woven = "# Compras\n\nlo que dejo un agente\n\nleche y algo mio";
+    const props = { open: "a3f1-0001", known, onKept: vi.fn(), onError: vi.fn() };
+    render(<Docs {...props} />);
+    const editor = await waitFor(() => screen.getByLabelText("editor"));
+    await userEvent.click(editor);
+    await userEvent.keyboard(" y algo mio");
+
+    await waitFor(() =>
+      expect((screen.getByLabelText("editor") as HTMLTextAreaElement).value).toContain(
+        "lo que dejo un agente",
+      ),
+    );
+    expect(screen.queryByText(/wrote in this document while you had it open/i)).toBeNull();
   });
 
   it("reads the document again when the person says theirs stands", async () => {
@@ -624,6 +659,20 @@ describe("a document that moved on disk while it was open", () => {
     await waitFor(() =>
       expect(screen.getByLabelText<HTMLTextAreaElement>("editor").value).toContain("pan"),
     );
+  });
+
+  it("offers to show what something wrote beside the window", async () => {
+    const props = { open: "a3f1-0001", known, onKept: vi.fn(), onError: vi.fn(), fresh: 0 };
+    const { rerender } = render(<Docs {...props} />);
+    await waitFor(() => expect(screen.getByLabelText("editor")).toHaveProperty("value"));
+    expect(screen.queryByRole("button", { name: t("docStirredSee") })).toBeNull();
+
+    store.bodies["a3f1-0001"] = "# Compras\n\nleche\n\npan";
+    rerender(<Docs {...props} fresh={1} />);
+
+    await screen.findByRole("button", { name: t("docStirredSee") });
+    await userEvent.click(screen.getByRole("button", { name: t("docStirredGone") }));
+    expect(screen.queryByRole("button", { name: t("docStirredSee") })).toBeNull();
   });
 
   it("leaves the words on screen alone when a round reads back the same ones", async () => {

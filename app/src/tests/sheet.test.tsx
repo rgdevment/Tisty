@@ -456,6 +456,27 @@ describe("the sheet in the main window", () => {
     expect(ipc.left).toBe(1);
   });
 
+  it("keeps the block being written open when words from outside land elsewhere", async () => {
+    const writes: string[] = [];
+    const view = render(
+      <Sheet value={BODY} label="Compras" onWrite={(text) => writes.push(text)} />,
+    );
+    const page = await loaded(await shown(view.container));
+    page
+      .querySelector('p[data-at="11-17"]')
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    view.rerender(
+      <Sheet
+        value={"# Compras de hoy\n\nleche\n\npan\n\nfruta\n"}
+        label="Compras"
+        onWrite={(text) => writes.push(text)}
+      />,
+    );
+    expect(ipc.left).toBe(0);
+    ipc.opened[0].change("leche fresca");
+    expect(writes[writes.length - 1]).toBe("# Compras de hoy\n\nleche fresca\n\npan\n\nfruta\n");
+  });
+
   it("ends the block being written when its words change from outside", async () => {
     const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} />);
     const page = await loaded(await shown(view.container));

@@ -6,6 +6,7 @@ import { t } from "../locales";
 import { DOC, partCard } from "../markdown";
 import type { Moved } from "../paging";
 import { named } from "../previews";
+import { reanchored } from "./anchoring";
 import { FORMATS, flipped } from "./barring";
 import { caretAt, type Editing, edited } from "./blocking";
 import { cardedAt, movedCard, putCard } from "./carded";
@@ -59,6 +60,10 @@ type Props = {
   readonly inline?: boolean;
   readonly shaping?: boolean;
   readonly sheet?: SheetSize;
+  // The bytes words from outside changed, marked on the page until the person has seen them.
+  readonly lately?: readonly [number, number] | null;
+  // Each new count takes the page to the first passage marked.
+  readonly looking?: number;
 };
 
 export default function Sheet(props: Readonly<Props>) {
@@ -69,6 +74,8 @@ export default function Sheet(props: Readonly<Props>) {
   said.current = props;
   const [drawn, setDrawn] = useState(value);
   const open = useRef<Editing | null>(null);
+  // Follows the open block through words written around it from outside; false when they reach it.
+  const follows = useRef<((was: string, now: string) => boolean) | null>(null);
   const showing = useRef(value);
   showing.current = drawn;
   const latest = useRef(value);
@@ -77,6 +84,7 @@ export default function Sheet(props: Readonly<Props>) {
   const putting = useRef(-1);
   const hanging = useRef(false);
   const [ready, setReady] = useState(false);
+  const [turned, setTurned] = useState(0);
   const kept = useKeptHeight<HTMLDivElement>(file ?? label);
   const [more, setMore] = useState<Extract<Went, { kind: "more" }> | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; choices: Choice[] } | null>(null);
@@ -111,6 +119,7 @@ export default function Sheet(props: Readonly<Props>) {
     const was = open.current;
     if (!was) return;
     open.current = null;
+    follows.current = null;
     was.leave();
   }, []);
 
@@ -172,10 +181,11 @@ export default function Sheet(props: Readonly<Props>) {
       return;
     }
     echoes.current = [];
-    // Words from outside (a reload, a step back) end the block being written: it spoke of the old ones.
+    // Words from outside end the block being written only when they reach it: it spoke of the old ones.
+    const was = latest.current;
     latest.current = value;
-    if (open.current) left();
-    else setDrawn(value);
+    if (!open.current) setDrawn(value);
+    else if (!follows.current?.(was, value)) left();
   }, [value, left]);
 
   const block = (
@@ -188,8 +198,7 @@ export default function Sheet(props: Readonly<Props>) {
     if (open.current) return left();
     // A click on the page still on screen while the next one is drawn names bytes of an older text.
     if (reading || showing.current !== latest.current) return;
-    const [from] = at;
-    let end = at[1];
+    let [from, end] = at;
     const piece = latest.current.slice(from, end);
     const tail = /\r?\n$/.exec(piece)?.[0] ?? "";
     // A new block is kept apart from the ones around it by a blank line, as Markdown needs.
@@ -210,7 +219,7 @@ export default function Sheet(props: Readonly<Props>) {
         : parting(upto, false, line);
     const behind = fresh ? parting(latest.current.slice(end), true, line) : "";
     const home = onFile.current;
-    const before = latest.current;
+    let before = latest.current;
     let mine = latest.current;
     const spliced = (text: string) => {
       const now = latest.current;
@@ -227,6 +236,7 @@ export default function Sheet(props: Readonly<Props>) {
       (text) => written(spliced(text)),
       (_, renamed) => {
         open.current = null;
+        follows.current = null;
         // Only a block left by the person closes its gap: text from outside or another file is not its own.
         const ours = home === onFile.current && latest.current === mine;
         if (ours && !quiet.current && !fresh && !latest.current.slice(from, end).trim()) {
@@ -249,6 +259,15 @@ export default function Sheet(props: Readonly<Props>) {
       },
       Boolean(said.current.inline && said.current.shaping),
     );
+    follows.current = (was, now) => {
+      const moved = reanchored(was, now, from, end);
+      if (!moved) return false;
+      [from, end] = moved;
+      // What the person changed is still told against the block as it opened, now among the new words.
+      before = `${now.slice(0, from)}${piece}${now.slice(end)}`;
+      mine = now;
+      return true;
+    };
     open.current.kept(said.current.kept ?? true);
     const editing = open.current.view;
     const caret = seed ? seed.length : caretAt(editing.state.sliceDoc(), read);
@@ -587,6 +606,33 @@ export default function Sheet(props: Readonly<Props>) {
     });
   }, [ready]);
 
+  const { lately, looking } = props;
+  // `turned` is each new drawing of the page, which comes without the marks.
+  useEffect(() => {
+    const page = shown.current?.document;
+    if (!page) return;
+    for (const one of page.querySelectorAll<HTMLElement>(".page > [data-at]")) {
+      const at = spanned(one.dataset.at ?? null);
+      one.classList.toggle(
+        "lately",
+        Boolean(lately && at && at[0] < lately[1] && at[1] > lately[0]),
+      );
+    }
+  }, [lately, turned]);
+
+  useEffect(() => {
+    if (!looking) return;
+    const sheet = room.current;
+    const found = shown.current?.document.querySelector<HTMLElement>(".page > .lately");
+    const frame = shown.current?.frameElement?.getBoundingClientRect();
+    if (!sheet || !found || !frame) return;
+    const above = found.getBoundingClientRect().top + frame.top;
+    sheet.scrollTo({
+      top: Math.max(0, above - sheet.getBoundingClientRect().top + sheet.scrollTop - ASIDE_MARGIN),
+      behavior: "smooth",
+    });
+  }, [looking]);
+
   return (
     <div
       ref={room}
@@ -652,6 +698,7 @@ export default function Sheet(props: Readonly<Props>) {
           onShown={(page) => {
             shown.current = page;
             if (page) setReady(true);
+            setTurned((many) => many + 1);
           }}
         />
       </div>

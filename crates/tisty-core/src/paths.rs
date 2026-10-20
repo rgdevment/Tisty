@@ -106,6 +106,10 @@ impl Paths {
         self.cache.join("selection.json")
     }
 
+    pub fn stirred_file(&self) -> PathBuf {
+        self.cache.join("stirred")
+    }
+
     pub fn store(&self) -> PathBuf {
         self.data.join("store")
     }

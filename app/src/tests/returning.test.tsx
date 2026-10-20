@@ -21,11 +21,12 @@ const grew = () => {
   for (const tell of [...watching]) tell();
 };
 
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (cmd: string, args?: Record<string, unknown>) =>
+vi.mock("@tauri-apps/api/core", async () => ({
+  invoke: (await import("./opened")).opening((cmd: string, args?: Record<string, unknown>) =>
     cmd === "doc_read"
       ? Promise.resolve(store.bodies[String(args?.id)] ?? "")
       : Promise.resolve(null),
+  ),
 }));
 
 vi.mock("../ui/Page", () => import("./pagestub"));

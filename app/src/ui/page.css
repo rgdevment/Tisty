@@ -119,6 +119,11 @@ html.sheeted .page > .sheet-turn {
 .page > [data-at] {
   cursor: text;
 }
+.page > .lately {
+  border-radius: 6px;
+  background: var(--tisty-accent-soft);
+  box-shadow: 0 0 0 6px var(--tisty-accent-soft);
+}
 html.tall .page:has(> .editing) {
   padding-bottom: 300px;
 }

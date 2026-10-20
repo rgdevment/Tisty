@@ -147,6 +147,9 @@ fn answer(paths: &Paths, line: &str, tally: &mut Tally) -> Option<String> {
                 Ok(args) => ("tool", called(paths, name, args)),
                 Err(refused) => ("arguments", Err(refused)),
             };
+            if done.is_ok() && !ONLY_READS.contains(&name) {
+                tisty_core::stirring::stir(paths);
+            }
             if done.is_err() {
                 tally.refused += 1;
             }
@@ -265,6 +268,21 @@ fn called(paths: &Paths, name: &str, args: Value) -> Result<Value, Refused> {
         )),
     }
 }
+
+// Every other tool may have written, and an open window is told so at once.
+const ONLY_READS: [&str; 11] = [
+    "find",
+    "read",
+    "read_doc",
+    "outline_doc",
+    "docs",
+    "export_doc",
+    "catch_up",
+    "lists",
+    "tags",
+    "language",
+    "rules",
+];
 
 const WRITES_DOCUMENTS: [&str; 9] = [
     "write_doc",
