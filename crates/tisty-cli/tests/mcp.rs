@@ -473,7 +473,7 @@ fn saying_it_is_done_leaves_the_account_of_it_on_the_journal() {
 }
 
 #[test]
-fn it_cannot_say_a_task_the_person_wrote_is_done() {
+fn it_says_a_task_the_person_wrote_is_done_only_as_a_word() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     served.person().captures("llamar al taller");
@@ -487,12 +487,11 @@ fn it_cannot_say_a_task_the_person_wrote_is_done() {
         serde_json::json!({ "task": id, "body": "lo di por hecho" }),
     );
 
-    assert_eq!(said["result"]["isError"], true, "{said}");
-    let why = said["result"]["content"][0]["text"].as_str().unwrap();
-    assert!(why.contains("the person's own"), "{why}");
+    assert!(said["result"]["isError"].is_null(), "{said}");
+    assert_eq!(said["result"]["structuredContent"]["open"], true, "{said}");
     assert!(
         served.person().open().contains("llamar al taller"),
-        "and nothing of theirs moved"
+        "it stays open until the person takes the word"
     );
 }
 
