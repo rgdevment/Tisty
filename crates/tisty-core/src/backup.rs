@@ -686,6 +686,7 @@ fn kept_out(parts: &[std::borrow::Cow<'_, str>]) -> bool {
     let under = parts.first().map(|one| one.as_ref()).unwrap_or_default();
     leaf == store::KEEP
         || leaf == ".lock"
+        || crate::attach::LOCKS.contains(&leaf)
         || crate::holes::marker(leaf)
         || (under == "attachments" && leaf.starts_with('.') && leaf.ends_with(".part"))
         || (under != "attachments" && (leaf.ends_with(".part") || leaf.ends_with(".tmp")))

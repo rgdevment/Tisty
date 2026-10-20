@@ -291,6 +291,7 @@ fn copied(
 
 fn passing(named: &str, attachments: bool) -> bool {
     named == ".lock"
+        || crate::attach::LOCKS.contains(&named)
         || crate::holes::marker(named)
         || match attachments {
             true => named.starts_with('.') && named.ends_with(".part"),

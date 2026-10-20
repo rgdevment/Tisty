@@ -284,6 +284,22 @@ pub fn rewrite(root: &Path, data: &Path, id: &str, body: &str, print: &str) -> R
     })
 }
 
+/// Written over the body it was read from, with no step back kept: going back would name what is gone.
+pub fn rewrite_for_good(root: &Path, id: &str, body: &str, print: &str) -> Result<Rewrite> {
+    alone(root, || {
+        let at = resolve(root, id)?;
+        if print_of(&at)?.as_deref() != Some(print) {
+            return Ok(Rewrite::Moved);
+        }
+        let was = read(root, id)?;
+        written(root, id, body)?;
+        Ok(Rewrite::Made {
+            was,
+            whole: settled(body),
+        })
+    })
+}
+
 pub fn edit(root: &Path, data: &Path, id: &str, old: &str, new: &str) -> Result<Change> {
     if old.is_empty() {
         return Ok(Change::Missing);
@@ -345,6 +361,11 @@ impl Drop for Alone {
 
 /// For a writer that would rather carry on unheld than not write at all.
 pub fn hold(root: &Path) -> Option<Alone> {
+    hold_named(root, LOCK, LOCK_WAIT_MS)
+}
+
+/// One writer at a time on what `name` guards in `root`, across processes; `None` once the wait runs out.
+pub fn hold_named(root: &Path, name: &str, wait_ms: u64) -> Option<Alone> {
     std::fs::create_dir_all(root).ok()?;
 
     let mut waited = 0;
@@ -353,13 +374,13 @@ pub fn hold(root: &Path) -> Option<Alone> {
             .create(true)
             .write(true)
             .truncate(false)
-            .open(root.join(LOCK))
+            .open(root.join(name))
             .ok()
             .filter(|file| file.try_lock().is_ok());
         if let Some(file) = taken {
             return Some(Alone(file));
         }
-        if waited >= LOCK_WAIT_MS {
+        if waited >= wait_ms {
             return None;
         }
         std::thread::sleep(std::time::Duration::from_millis(LOCK_POLL_MS));
