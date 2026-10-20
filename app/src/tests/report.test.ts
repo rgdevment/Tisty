@@ -148,6 +148,6 @@ describe("the report a bug gets attached to", () => {
   });
 
   it("says on its face that nothing has been sent", () => {
-    expect(written(seen, at)).toContain("none of this leaves your machine");
+    expect(written(seen, at)).toContain("none of this leaves your computer until you send it");
   });
 });
