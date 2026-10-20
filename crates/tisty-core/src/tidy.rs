@@ -158,9 +158,9 @@ impl Walked {
             all.extend(named.iter().cloned());
             all
         };
-        let binned = match bin {
+        // With a document unread, what it names is unknown: nothing comes back and nothing is emptied.
+        let binned = match bin && (read || !crate::attach::binned_any(paths.data())) {
             true => {
-                // Only what every document was read for comes back: an unread one would name all that was retired.
                 if read {
                     let named: BTreeSet<String> = held().into_iter().collect();
                     crate::attach::unbinned(paths.data(), &named);

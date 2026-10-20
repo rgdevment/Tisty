@@ -445,6 +445,8 @@ pub fn joined_in_ledger(
 
 const LEDGER_LOCK: &str = "attachments.lock";
 const BIN_LOCK: &str = "bin.lock";
+/// Held open by a writer, so a move or a backup passes them by instead of copying them.
+pub const LOCKS: [&str; 2] = [LEDGER_LOCK, BIN_LOCK];
 const LEDGER_WAIT_MS: u64 = 2000;
 // A join holds the window while it waits, so it waits less and leaves the old lines when it must.
 const JOIN_WAIT_MS: u64 = 500;
@@ -657,7 +659,13 @@ fn rebinned(root: &Path, kept: &[Binned]) {
 }
 
 pub fn binned_any(root: &Path) -> bool {
-    !binned(root).is_empty()
+    std::fs::metadata(bin_ledger(root)).is_ok_and(|told| told.len() > 0)
+}
+
+// A bin filled before the shelves went keeps them, and the last step finds either.
+fn in_bin(root: &Path, at: &str) -> Result<PathBuf> {
+    let rest = leaf_of(at).unwrap_or(at.trim_start_matches("attachments/"));
+    resolve(&format!("bin/{rest}"), root)
 }
 
 pub use tisty_markdown::kept::{SHED, leaf_of, lower_hex, stamped, stamped_by};
@@ -692,7 +700,9 @@ pub fn set_aside(root: &Path, reference: &str, now: i64) -> Result<()> {
         when: now,
     })
     .map_err(|e| Error::Io(std::io::Error::other(e)))?;
-    let _held = crate::docs::hold_named(root, BIN_LOCK, LEDGER_WAIT_MS);
+    // Unheld, a whole rewrite of the bin's ledger could drop this line and leave the file untracked.
+    let _held =
+        crate::docs::hold_named(root, BIN_LOCK, LEDGER_WAIT_MS).ok_or(Error::AlreadyRunning)?;
     let ledger = bin_ledger(root);
     let whole = if tailed(&ledger) {
         format!("{line}\n")
@@ -723,9 +733,7 @@ pub fn unbinned(root: &Path, held: &std::collections::BTreeSet<String>) -> usize
             kept.push(one);
             continue;
         };
-        let rest = leaf_of(&named).unwrap_or_default().to_string();
-        let (Ok(from), Ok(into)) = (resolve(&format!("bin/{rest}"), root), resolve(&named, root))
-        else {
+        let (Ok(from), Ok(into)) = (in_bin(root, &one.at), resolve(&named, root)) else {
             kept.push(one);
             continue;
         };
@@ -754,9 +762,7 @@ pub fn empty_the_bin(root: &Path, now: i64) -> usize {
 
     let mut gone = 0;
     for one in &stale {
-        // A bin filled before the shelves went keeps them, and the last step finds either.
-        let rest = leaf_of(&one.at).unwrap_or(one.at.trim_start_matches("attachments/"));
-        let Ok(at) = resolve(&format!("bin/{rest}"), root) else {
+        let Ok(at) = in_bin(root, &one.at) else {
             continue;
         };
         match std::fs::remove_file(&at) {
