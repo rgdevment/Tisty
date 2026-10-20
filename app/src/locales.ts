@@ -179,9 +179,6 @@ const en = {
     "Keep it as a story: it leaves the trace, and a story is only ever hidden. The trail keeps the move",
   keptAsStory: "kept as a story",
   readAsTraceNow: "read as a trace",
-  letAgentFill: "Allow agents",
-  letAgentFillWhy:
-    "Let an assistant work on this task: say it is done — for you to confirm — describe it, plan its steps and tick them. Its day, title and closing stay yours",
   keepToMyself: "No agents",
   keepToMyselfWhy: "Take the permission back. What the agent filled in stays",
   openToAgents:
@@ -1092,6 +1089,10 @@ const en = {
     "Nothing for today. Write «buy bread tomorrow at 10» — the date is read from the sentence.",
   someday: "Someday",
   agentBand: "To confirm",
+  stepsSaidOne: "An assistant says this step is done",
+  stepsSaidMany: "An assistant says these steps are done",
+  stepsSaidTake: "Tick them",
+  stepsSaidLeave: "Not yet",
   agentSaidDone: "An agent says this is done",
   agentNamedSaidDone: "{name} says this is done",
   agentSaidNotDoing: "An agent says this should not be done",
@@ -2312,9 +2313,6 @@ const es: Catalog = {
     "Guardarla como historia: sale del rastro, y una historia solo se oculta. El trayecto guarda el movimiento",
   keptAsStory: "guardada como historia",
   readAsTraceNow: "leída como rastro",
-  letAgentFill: "Permitir agentes",
-  letAgentFillWhy:
-    "Deja que un asistente trabaje esta tarea: darla por hecha —tú confirmas—, describirla, planear sus pasos y marcarlos. Su día, su título y su cierre siguen siendo tuyos",
   keepToMyself: "Sin agentes",
   keepToMyselfWhy: "Retira el permiso. Lo que el agente completó se queda",
   openToAgents:
@@ -3234,6 +3232,10 @@ const es: Catalog = {
   todayEmpty: "Nada para hoy. Escribe «comprar pan mañana a las 10»: la fecha se lee de la frase.",
   someday: "Algún día",
   agentBand: "Por confirmar",
+  stepsSaidOne: "Un asistente dice que este paso está listo",
+  stepsSaidMany: "Un asistente dice que estos pasos están listos",
+  stepsSaidTake: "Marcarlos",
+  stepsSaidLeave: "Todavía no",
   agentSaidDone: "Un agente la da por hecha",
   agentNamedSaidDone: "{name} la da por hecha",
   agentSaidNotDoing: "Un agente dice que no se hará",

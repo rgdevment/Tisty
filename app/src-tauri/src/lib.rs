@@ -1132,6 +1132,7 @@ pub fn run() {
             answers::parts::wholes_offered,
             answers::tasks::fold,
             answers::tasks::still_open,
+            answers::tasks::steps_said,
             answers::tasks::discard,
             answers::attaching::attach,
             answers::attaching::attach_pasted,

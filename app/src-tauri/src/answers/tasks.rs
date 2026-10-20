@@ -495,6 +495,40 @@ pub fn fold(session: tauri::State<'_, Mutex<Session>>, id: String, away: bool) -
         .ok_or_else(|| Refusal::of("notATaskId"))
 }
 
+/// The person's answer to the steps an assistant said were done: ticked when taken, unsaid when not.
+#[tauri::command]
+pub fn steps_said(
+    session: tauri::State<'_, Mutex<Session>>,
+    id: String,
+    keep: bool,
+) -> Answer<Task> {
+    let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
+    let mut session = held(&session);
+    let said: Vec<tisty_core::model::StepId> = session
+        .state
+        .tasks
+        .get(&id)
+        .ok_or_else(|| Refusal::of("notATaskId"))?
+        .steps
+        .iter()
+        .filter(|one| one.said && !one.done)
+        .map(|one| one.id)
+        .collect();
+    for step in said {
+        let d = tisty_core::event::StepRef { step };
+        session.commit(match keep {
+            true => Op::StepDone { id, d },
+            false => Op::StepUndone { id, d },
+        })?;
+    }
+    session
+        .state
+        .tasks
+        .get(&id)
+        .cloned()
+        .ok_or_else(|| Refusal::of("notATaskId"))
+}
+
 #[tauri::command]
 pub fn still_open(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Task> {
     let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;

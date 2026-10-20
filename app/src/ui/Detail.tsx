@@ -41,6 +41,7 @@ interface Props {
   onDiscard: () => void;
   onReopen: () => void;
   onStillOpen: () => void;
+  onStepsSaid?: (keep: boolean) => void;
   onErase: () => void;
   onFold: (away: boolean) => void;
   onReadAs: (how: "story" | "trace") => void;
@@ -83,6 +84,7 @@ export default function Detail({
   onDiscard,
   onReopen,
   onStillOpen,
+  onStepsSaid,
   onErase,
   onFold,
   onReadAs,
@@ -215,6 +217,7 @@ export default function Detail({
           <span className="ml-auto font-normal text-faint">{stamped(task.resolved.at)}</span>
         </p>
       )}
+      {task.status === "open" && onStepsSaid && <Vouched task={task} onAnswer={onStepsSaid} />}
       {task.status === "open" && task.open_to_agents && (
         <p className="mt-3 mb-4 flex items-center gap-2 rounded-md border border-hair bg-hover px-2.5 py-1.5 text-[12.5px] text-soft">
           <span aria-hidden="true">⊚</span>
@@ -387,16 +390,17 @@ function Settled({
           : task.resolved
             ? [discard]
             : []),
-        ...(agentNamed(task.created_by)
+        // Opening a task to assistants is gone; one opened before can still be shut.
+        ...(agentNamed(task.created_by) || !task.open_to_agents
           ? []
           : [
               {
                 key: "agents",
-                label: t(task.open_to_agents ? "keepToMyself" : "letAgentFill"),
+                label: t("keepToMyself"),
                 icon: "⊚",
-                hint: t(task.open_to_agents ? "keepToMyselfWhy" : "letAgentFillWhy"),
+                hint: t("keepToMyselfWhy"),
                 apart: task.resolved !== undefined,
-                onPick: () => onOpenToAgents(!task.open_to_agents),
+                onPick: () => onOpenToAgents(false),
               },
             ]),
       ]
@@ -770,4 +774,34 @@ function journalled(task: Task): { count: number; last: string } {
     undefined,
   );
   return { count: kept.length, last: last ? wroteAt(last.at, last.tz) : "" };
+}
+
+function Vouched({ task, onAnswer }: Readonly<{ task: Task; onAnswer: (keep: boolean) => void }>) {
+  const said = (task.steps ?? []).filter((one) => one.said && !one.done);
+  if (said.length === 0) return null;
+  return (
+    <div className="mt-3 mb-4 rounded-md border border-hue-teal/40 bg-hue-teal/10 px-2.5 py-2 text-[12.5px] text-hue-teal">
+      <p className="flex items-center gap-2 font-medium">
+        <span aria-hidden="true">◆</span>
+        {t(said.length === 1 ? "stepsSaidOne" : "stepsSaidMany")}
+      </p>
+      <ul className="mt-1 ml-6 list-disc text-soft">
+        {said.map((one) => (
+          <li key={one.id}>{one.text}</li>
+        ))}
+      </ul>
+      <div className="mt-1.5 ml-6 flex gap-3">
+        <button
+          type="button"
+          onClick={() => onAnswer(true)}
+          className="font-medium hover:underline"
+        >
+          {t("stepsSaidTake")}
+        </button>
+        <button type="button" onClick={() => onAnswer(false)} className="text-soft hover:underline">
+          {t("stepsSaidLeave")}
+        </button>
+      </div>
+    </div>
+  );
 }

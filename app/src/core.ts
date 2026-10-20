@@ -19,6 +19,7 @@ export interface Step {
   text: string;
   done: boolean;
   order: string;
+  said?: boolean;
 }
 
 export interface LogEntry {
@@ -376,6 +377,8 @@ export const readAs = (id: string, how: "story" | "trace"): Promise<Task> =>
 export const openToAgents = (id: string, open: boolean): Promise<Task> =>
   invoke("open_to_agents", { id, open });
 export const stillOpen = (id: string): Promise<Task> => invoke("still_open", { id });
+export const stepsSaid = (id: string, keep: boolean): Promise<Task> =>
+  invoke("steps_said", { id, keep });
 // What this round wrote has to reach the page before closing reads it.
 export const complete = async (id: string, also?: string[], summary?: string): Promise<Task> => {
   await settled();
