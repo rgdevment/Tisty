@@ -947,7 +947,6 @@ export const whatWaits = (said: Settled): (typeof WAITS)[keyof typeof WAITS] | n
 
 export const syncNow = (way?: "push" | "pull" | "again"): Promise<Settled> =>
   invoke("sync_now", { way });
-export const docsBrittle = (): Promise<string[]> => invoke("docs_brittle");
 export interface Rift {
   was: string[];
   mine: string[];
@@ -1181,7 +1180,6 @@ export const docFacts = (id: string): Promise<DocFacts> => invoke("doc_facts", {
 
 export const docs = (): Promise<Papers> => invoke("docs");
 export const docsCatchUp = (): Promise<Filed[]> => invoke("docs_catch_up");
-export const readTags = (): Promise<number> => invoke("read_tags");
 export const folderAdd = (
   name: string,
   parent?: string,

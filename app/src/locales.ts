@@ -988,11 +988,6 @@ const en = {
   owedFill: "Add {name}",
   left: "What it left",
   carries: "What it carries",
-  tagsRead: "Tags in documents",
-  tagsReadWhy:
-    "A document learns its tags when it is saved. Everything written before Tisty could read them stays bare until it is touched, and whatever was filed under an older rule — a bare number, a single letter — stays filed under it. Reading them all now, in one pass over the folder, settles both.",
-  tagsReadDo: "Read them now",
-  tagsReadDone: "{name} documents changed tags",
   repeatedLists: "Repeated lists",
   repeatedWhat:
     "Lists with the same name, left twice by a reinstall or by putting two copies together. Joining them keeps one of each name, the one holding the most, and moves every task into it; nothing is lost.",
@@ -1327,13 +1322,6 @@ const en = {
     "This page is over {name}, too large to draw as a widget; show it as an attachment to open it.",
   docBrimming: "{name} — this document is getting long enough to feel it while typing",
   docCrowded: "{count} attachments in view — enough to feel while typing",
-  brittleAre: "Documents with markup outside Tisty's own words",
-  brittleWhat:
-    "Some documents bring markup Tisty has no words for. They open, edit and save whole, but that part shows as it is written while you edit it. This goes through every one of them.",
-  brittleNone: "Every document speaks Tisty's own words",
-  brittleRun: "Go through the documents",
-  brittleAgain: "Go through them again",
-  frailHtml: "HTML",
   cannotWrite: "{name} could not be written",
   showWhole: "Read it in full",
   keeping: "Settings",
@@ -2131,8 +2119,6 @@ const en = {
   reportPrepare: "Prepare…",
   workingFor: "{name} ({other} min)",
   twinsLooking: "Looking…",
-  tagsReading: "Reading…",
-  brittleReading: "Going through…",
   unvouchedWorking: "Verifying…",
 };
 
@@ -3137,11 +3123,6 @@ const es: Catalog = {
   owedFill: "Añadir {name}",
   left: "Lo que dejó",
   carries: "Lo que lleva",
-  tagsRead: "Etiquetas en los documentos",
-  tagsReadWhy:
-    "Un documento aprende sus etiquetas al guardarse. Todo lo escrito antes de que Tisty supiera leerlas se queda sin ellas hasta que lo toques, y lo que quedó archivado bajo una regla vieja —un número suelto, una sola letra— sigue ahí. Leerlas todas ahora, de una pasada por la carpeta, resuelve las dos cosas.",
-  tagsReadDo: "Leerlas ahora",
-  tagsReadDone: "{name} documentos cambiaron de etiquetas",
   repeatedLists: "Listas repetidas",
   repeatedWhat:
     "Listas con el mismo nombre, que quedaron dobles por una reinstalación o por juntar dos copias. Al juntarlas queda una de cada nombre, la que tiene más tareas, y todas las tareas pasan a ella; no se pierde nada.",
@@ -3478,13 +3459,6 @@ const es: Catalog = {
     "Esta página pasa de {name}, demasiado para dibujarla como widget; muéstrala como adjunto para abrirla.",
   docBrimming: "{name} — este documento empieza a ser largo y se nota al escribir",
   docCrowded: "{count} adjuntos a la vista — suficientes para que se note al escribir",
-  brittleAre: "Documentos con construcciones fuera del lenguaje de Tisty",
-  brittleWhat:
-    "Algunos documentos traen construcciones para las que Tisty no tiene palabras. Se abren, se editan y se guardan enteros, pero esa parte se ve tal como está escrita mientras la editas. Esto los recorre todos.",
-  brittleNone: "Todos los documentos hablan el lenguaje de Tisty",
-  brittleRun: "Recorrer los documentos",
-  brittleAgain: "Recorrerlos otra vez",
-  frailHtml: "HTML",
   cannotWrite: "No se pudo escribir {name}",
   showWhole: "Verlo completo",
   keeping: "Configuración",
@@ -4280,8 +4254,6 @@ const es: Catalog = {
   reportPrepare: "Preparar…",
   workingFor: "{name} ({other} min)",
   twinsLooking: "Buscando…",
-  tagsReading: "Leyendo…",
-  brittleReading: "Recorriendo…",
   unvouchedWorking: "Verificando…",
 };
 

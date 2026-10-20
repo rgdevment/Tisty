@@ -1,16 +1,13 @@
-import { useState } from "react";
-import { checked, type Reviewed, readTags, rebuild } from "../core";
+import { checked, type Reviewed, rebuild } from "../core";
 import { weigh } from "../format";
 import { fill, t } from "../locales";
-import { type Brittle, scanned } from "../scanning";
-import { type Run, type Which, type Word, working } from "./Card";
+import type { Run, Which, Word } from "./Card";
 import { Line, mild } from "./Rows";
 
 interface Props {
   audit: Reviewed | null;
   setAudit: (audit: Reviewed) => void;
   busy: Which | null;
-  secs: number;
   said?: Word;
   trouble?: Word;
   run: Run;
@@ -28,9 +25,8 @@ export const rebuildNow = (
     tell({ card, text: t("reviewRebuilt") });
   });
 
-export default function Tools({ audit, setAudit, busy, secs, said, trouble, run, tell }: Props) {
+export default function Tools({ audit, setAudit, busy, said, trouble, run, tell }: Props) {
   const held = busy !== null;
-  const [brittle, setBrittle] = useState<Brittle[] | null>(null);
 
   return (
     <details className="mt-5">
@@ -62,65 +58,6 @@ export default function Tools({ audit, setAudit, busy, secs, said, trouble, run,
         </dl>
       )}
       <div className="mt-2 border-t border-hair">
-        <Line
-          title={t("tagsRead")}
-          why={t("tagsReadWhy")}
-          which="tagging"
-          said={said}
-          trouble={trouble}
-        >
-          <button
-            type="button"
-            disabled={held}
-            onClick={() =>
-              run("tagging", readTags(), (many) =>
-                tell({ card: "tagging", text: fill("tagsReadDone", String(many)) }),
-              )
-            }
-            className={mild}
-          >
-            {busy === "tagging" ? working("tagsReading", secs) : t("tagsReadDo")}
-          </button>
-        </Line>
-        <Line
-          title={t("brittleAre")}
-          why={t("brittleWhat")}
-          which="brittle"
-          said={said}
-          trouble={trouble}
-          more={
-            brittle && (
-              <>
-                {brittle.length === 0 && (
-                  <p className="mt-2 text-[12.5px] text-faint">{t("brittleNone")}</p>
-                )}
-                {brittle.length > 0 && (
-                  <ul className="scroller mt-2 flex max-h-[22rem] flex-col gap-1.5 overflow-y-auto text-[12.5px]">
-                    {brittle.map((one) => (
-                      <li key={one.file}>
-                        <span className="text-soft">{one.title || one.file}</span>
-                        <span className="block text-[11.5px] text-faint">
-                          {one.brings.map((what) => t(what as Parameters<typeof t>[0])).join(" · ")}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </>
-            )
-          }
-        >
-          <button
-            type="button"
-            disabled={held}
-            onClick={() => run("brittle", scanned(), setBrittle)}
-            className={mild}
-          >
-            {busy === "brittle"
-              ? working("brittleReading", secs)
-              : t(brittle ? "brittleAgain" : "brittleRun")}
-          </button>
-        </Line>
         <Line
           title={t("quickIndex")}
           why={t("quickIndexWhy")}

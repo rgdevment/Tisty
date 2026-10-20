@@ -254,40 +254,6 @@ struct Settling {
 
 const HERE: &str = env!("CARGO_PKG_VERSION");
 
-/// A document only learns its tags where its body is read, and a body is read when it is saved.
-/// Everything written before this existed is caught up here, in one pass over the folder.
-#[tauri::command(async)]
-fn read_tags(session: tauri::State<'_, Mutex<Session>>) -> Answer<usize> {
-    let root = held(&session).paths.docs();
-    let owing: Vec<(tisty_core::model::DocId, String)> = held(&session)
-        .state
-        .docs
-        .values()
-        .map(|one| (one.id, one.file.clone()))
-        .collect();
-
-    let mut ops: Vec<Op> = Vec::new();
-    for (id, file) in owing {
-        let Ok(body) = tisty_core::docs::read(&root, &file) else {
-            continue;
-        };
-        let session = held(&session);
-        let said = tisty_core::event::Said::of(&body).by(None);
-        let Some(kept) = session.state.docs.get(&id) else {
-            continue;
-        };
-        if said.news_for(kept) {
-            ops.push(Op::DocSaid { id, d: said });
-        }
-    }
-
-    let told = ops.len();
-    if !ops.is_empty() {
-        held(&session).commit_all(ops)?;
-    }
-    Ok(told)
-}
-
 fn stop(found: Option<Option<usize>>) -> Option<usize> {
     found.flatten()
 }
@@ -1235,7 +1201,6 @@ pub fn run() {
             answers::rifts::paper_rifts,
             answers::rifts::still_at_odds,
             answers::rifts::weave_paper,
-            answers::papers::docs_brittle,
             answers::reporting::checked,
             answers::reporting::twinned,
             answers::reporting::rebuild,
@@ -1272,7 +1237,6 @@ pub fn run() {
             answers::shelves::list_unarchive,
             answers::papers::docs,
             answers::papers::docs_catch_up,
-            read_tags,
             answers::shelves::folder_add,
             answers::shelves::folder_rename,
             answers::shelves::folder_look,

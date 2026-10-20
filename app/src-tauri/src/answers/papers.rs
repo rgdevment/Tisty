@@ -633,19 +633,6 @@ pub fn doc_drop(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer
     held(&session).drop_doc(&id)
 }
 
-// The documents a stricter save would refuse, found by the same rule every writer here follows.
-#[tauri::command(async)]
-pub fn docs_brittle(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<String>> {
-    let papers = held(&session).paths.docs();
-    Ok(tisty_core::docs::names(&papers)
-        .into_iter()
-        .filter(|file| {
-            tisty_core::docs::read(&papers, file)
-                .is_ok_and(|body| tisty_core::docs::survives(&body).is_err())
-        })
-        .collect())
-}
-
 #[tauri::command]
 pub async fn settle_paper(
     session: tauri::State<'_, Mutex<Session>>,

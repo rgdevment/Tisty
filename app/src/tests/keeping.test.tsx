@@ -383,8 +383,6 @@ beforeEach(() => {
             },
           ],
         });
-      case "docs_brittle":
-        return Promise.resolve(["a-0002"]);
       default:
         return Promise.resolve(null);
     }
@@ -2078,45 +2076,6 @@ describe("the maintenance panel", () => {
     await waitFor(() => expect(sent("choose_sync")).toHaveLength(1));
     expect(sent("join_them")).toHaveLength(0);
     expect(sent("take_over")).toHaveLength(0);
-  });
-
-  it("names the documents with markup outside Tisty's own words, and what each brings", async () => {
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await upkeep();
-
-    await userEvent.click(screen.getByRole("button", { name: /go through the documents/i }));
-
-    expect(await screen.findByText("Minuta del lunes")).toBeTruthy();
-    expect(screen.getByText("HTML")).toBeTruthy();
-    expect(screen.queryByText("Limpio")).toBeNull();
-  });
-
-  it("says so plainly when every document speaks Tisty's own words", async () => {
-    const otherwise = ipc.answer;
-    ipc.answer = (cmd, args) =>
-      cmd === "docs_brittle" ? Promise.resolve([]) : otherwise(cmd, args);
-    render(
-      <Keeping
-        onPack={() => {}}
-        onUnpack={() => {}}
-        onGreet={() => {}}
-        onChanged={() => {}}
-        onDoc={() => {}}
-      />,
-    );
-    await upkeep();
-
-    await userEvent.click(screen.getByRole("button", { name: /go through the documents/i }));
-
-    expect(await screen.findByText(/every document speaks Tisty's own words/i)).toBeTruthy();
   });
 
   it("says what the review found", async () => {
