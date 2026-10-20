@@ -5,11 +5,9 @@ import { capture, type Priority, type Snapshot, snapshot } from "./core";
 import { adopt, fill, t } from "./locales";
 import { said } from "./quadrants";
 import { saidPlainly } from "./refusal";
-import { Head, Paws, useBeaver } from "./ui/Beaver";
 import CaptureField from "./ui/CaptureField";
 
 export default function Quick() {
-  const peeks = useBeaver();
   const [data, setData] = useState<Snapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [kept, setKept] = useState<string>();
@@ -66,7 +64,7 @@ export default function Quick() {
 
   if (!data) {
     return (
-      <Frame peeks={peeks}>
+      <Frame>
         <p className="text-[21px] leading-snug -tracking-[0.011em] text-soft">
           {error ?? t("addTask")}
         </p>
@@ -75,49 +73,39 @@ export default function Quick() {
   }
 
   return (
-    <Frame peeks={peeks}>
+    <Frame>
       {kept ? (
         <p className="flex items-baseline gap-2.5 text-[21px] leading-snug -tracking-[0.011em]">
           <span className="text-[13px] text-accent">✓</span> {kept}
         </p>
       ) : (
-        <div className={peeks ? "peeking awake quick-peeking" : undefined}>
-          {peeks && (
-            <div className="beaver-hidden">
-              <Head />
-            </div>
-          )}
-          <div className="beaver-over">
-            <CaptureField
-              key={round}
-              invite={where === "unset" ? t("addTask") : fill("addTo", said(where))}
-              lists={data.lists}
-              tags={data.tags}
-              onCapture={(written, edits) => {
-                setError(null);
-                const asked = where === "unset" ? edits : { ...edits, priority: where };
-                return capture(written, {}, asked).then((task) => {
-                  setKept(task.title);
-                  void emit("captured");
-                  going.current = setTimeout(() => void getCurrentWindow().hide(), 900);
-                  return task;
-                });
-              }}
-              onError={setError}
-            />
-          </div>
-          {peeks && <Paws />}
-        </div>
+        <CaptureField
+          key={round}
+          invite={where === "unset" ? t("addTask") : fill("addTo", said(where))}
+          lists={data.lists}
+          tags={data.tags}
+          onCapture={(written, edits) => {
+            setError(null);
+            const asked = where === "unset" ? edits : { ...edits, priority: where };
+            return capture(written, {}, asked).then((task) => {
+              setKept(task.title);
+              void emit("captured");
+              going.current = setTimeout(() => void getCurrentWindow().hide(), 900);
+              return task;
+            });
+          }}
+          onError={setError}
+        />
       )}
       {error && <p className="pt-1 text-[11.5px] text-urgent">{error}</p>}
     </Frame>
   );
 }
 
-function Frame({ children, peeks }: { children: React.ReactNode; peeks: boolean }) {
+function Frame({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className={`relative flex h-full flex-col justify-center overflow-hidden rounded-[10px] border border-hair bg-bg/70 px-[22px] shadow-lift-tall backdrop-blur-xl ${peeks ? "pt-8 pb-4" : "py-5"}`}
+      className={`relative flex h-full flex-col justify-center overflow-hidden rounded-[10px] border border-hair bg-bg/70 px-[22px] shadow-lift-tall backdrop-blur-xl py-5`}
     >
       {children}
     </div>
