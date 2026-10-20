@@ -308,6 +308,7 @@ export default function Keeping({
             tell={setSaid}
             fail={setTrouble}
             onSync={() => setTab("sync")}
+            onDoc={onDoc}
             seen={seen}
             setSeen={setSeen}
           />

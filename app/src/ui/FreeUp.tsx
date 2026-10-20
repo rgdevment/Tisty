@@ -5,12 +5,14 @@ import {
   type Carrying,
   checked,
   type Freeing,
+  type Joined,
+  type Pair,
   type Reviewed,
   retireAttachment,
   retireAttachments,
   revealed,
-  type Twins,
   twinned,
+  twinsJoin,
   type Unused,
 } from "../core";
 import { weigh } from "../format";
@@ -21,6 +23,7 @@ import { type Run, type Which, type Word, working } from "./Card";
 import FreeSpace from "./FreeSpace";
 import { hushed } from "./Keys";
 import { Band, dated, Line, mild, risky } from "./Rows";
+import Twins from "./Twins";
 
 interface Props {
   audit: Reviewed | null;
@@ -38,6 +41,7 @@ interface Props {
   run: Run;
   tell: (word?: Word) => void;
   fail: (word?: Word) => void;
+  onDoc?: (paper: string) => void;
 }
 
 export default function FreeUp({
@@ -56,9 +60,16 @@ export default function FreeUp({
   run,
   tell,
   fail,
+  onDoc,
 }: Props) {
   const held = busy !== null;
-  const [alike, setAlike] = useState<Twins[] | null>(null);
+  const [alike, setAlike] = useState<Pair[] | null>(null);
+
+  const join = (keep: string, go: string[]): Promise<Joined> => {
+    const asked = twinsJoin(keep, go);
+    run("twins", asked.then(checked), setAudit);
+    return asked;
+  };
   const [unused, setUnused] = useState<Unused | null>(null);
   const loose = audit?.loose ?? 0;
   const total = (audit?.looseBytes ?? 0) + (state.freesSpace ? (unused?.bytes ?? 0) : 0);
@@ -182,19 +193,15 @@ export default function FreeUp({
                   <p className="mt-2 text-[12.5px] text-faint">{t("twinsNone")}</p>
                 )}
                 {alike.length > 0 && (
-                  <ul className="scroller mt-2 flex max-h-[22rem] flex-col gap-2 overflow-y-auto text-[12.5px]">
+                  <ul className="scroller mt-2 flex max-h-[32rem] flex-col gap-4 overflow-y-auto">
                     {alike.map((one) => (
-                      <li key={one.at.join("|")}>
-                        <span className="tabular-nums text-faint">{weigh(one.bytes)}</span>
-                        {one.at.map((named) => (
-                          <span
-                            key={named}
-                            className="block font-mono text-[11.5px] break-all text-soft"
-                          >
-                            {named.replace("attachments/", "")}
-                          </span>
-                        ))}
-                      </li>
+                      <Twins
+                        key={one.copies.map((copy) => copy.at).join("|")}
+                        pair={one}
+                        busy={held}
+                        onJoin={join}
+                        onDoc={onDoc}
+                      />
                     ))}
                   </ul>
                 )}
