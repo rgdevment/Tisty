@@ -1228,9 +1228,10 @@ fn named_all(state: &State, files: &[String]) -> String {
         .join(", ")
 }
 
+// The id stays in brackets, for the next call, and an untitled document is still called something.
 fn doc_named(state: &State, which: &str) -> String {
     let Some(kept) = state.docs.values().find(|one| one.file == which) else {
-        return which.to_string();
+        return format!("[{which}]");
     };
     match kept
         .title
@@ -1239,7 +1240,23 @@ fn doc_named(state: &State, which: &str) -> String {
         .filter(|one| !one.is_empty())
     {
         Some(title) => format!("{title:?} [{which}]"),
-        None => which.to_string(),
+        None => format!("an untitled document [{which}]"),
+    }
+}
+
+/// The words to tell the person what was written: its title and where it sits, never its id.
+fn for_the_person(state: &State, which: &str, title: &str) -> String {
+    let kept = state.docs.values().find(|one| one.file == which);
+    let up = kept
+        .and_then(|one| one.page_of)
+        .and_then(|up| named_doc(state, up));
+    match (up, kept.and_then(|one| one.folder)) {
+        (Some(up), _) => format!(
+            "the document {title:?}, a page of {}",
+            doc_titled(state, &up)
+        ),
+        (None, Some(at)) => format!("the document {title:?}, in the folder {}", trail(state, at)),
+        (None, None) => format!("the document {title:?}, outside any folder"),
     }
 }
 

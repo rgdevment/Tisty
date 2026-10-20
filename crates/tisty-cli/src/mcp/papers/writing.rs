@@ -7,9 +7,9 @@ use ulid::Ulid;
 use super::super::asked::text;
 use super::super::jsonrpc::told;
 use super::super::{
-    Refused, UNSETTLED, WHOLE_UP_TO, by_how_much, doc_titled, folder_named, grew, hitch,
-    left_loose, loose_words, named_doc, named_twice, opened, retold, room_for_a_notice, trail,
-    twice_words, up_named, with_echo, wrapped, wrote,
+    Refused, UNSETTLED, WHOLE_UP_TO, by_how_much, doc_named, doc_titled, folder_named,
+    for_the_person, grew, hitch, left_loose, loose_words, named_doc, named_twice, opened, retold,
+    room_for_a_notice, trail, twice_words, up_named, with_echo, wrapped, wrote,
 };
 
 pub(in crate::mcp) fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
@@ -190,9 +190,13 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
         ));
     };
     let (which, a_task_s) = super::compacting::page_to_restore(paths, &which)?;
+    let named = opened(paths).map_or_else(
+        |_| format!("[{which}]"),
+        |(state, _)| doc_named(&state, &which),
+    );
     let Some(was) = tisty_core::docs::read_before(paths.data(), &which) else {
         return Err(Refused::Tool(format!(
-            "nothing is kept beside {which:?} to go back to. Only a write that replaced a body \
+            "nothing is kept beside {named} to go back to. Only a write that replaced a body \
              is held, and adding to the end — `append_doc`, or a file kept with `attach` — \
              replaces nothing."
         )));
@@ -203,7 +207,7 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
     }
     if tisty_core::docs::unchanged(&now, &was) {
         return Err(Refused::Tool(format!(
-            "{which:?} already says what is kept beside it, so there is nothing to go back to."
+            "{named} already says what is kept beside it, so there is nothing to go back to."
         )));
     }
     // Adding to the end keeps nothing, and neither does the window's own save. Either one leaves
@@ -217,7 +221,7 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
         .unwrap_or(false);
     if more && !asked {
         return Err(Refused::Tool(format!(
-            "{which:?} has been written since the body kept beside it was set aside, so going \
+            "{named} has been written since the body kept beside it was set aside, so going \
              back would undo that writing as well and not only the one write. Nothing was \
              changed. Read it and edit the part that is wrong instead — or send \
              `even_if_more` to go back over all of it, which is itself kept and can be undone \
@@ -300,15 +304,16 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
             "no document here is called {which:?}. `docs` lists them all."
         )));
     };
+    let named = doc_named(&state, &which);
     if state.held_away(kept) {
         return Err(Refused::Tool(format!(
-            "{which:?} is put away, so nothing more goes into it. Write a new document instead."
+            "{named} is put away, so nothing more goes into it. Write a new document instead."
         )));
     }
     super::compacting::released(&state, kept, args, &mut store)?;
     if state.shut(kept.id) {
         return Err(Refused::Tool(format!(
-            "{which:?} is locked. The person shut it so nothing writes in it — not the \
+            "{named} is locked. The person shut it so nothing writes in it — not the \
              window, not you. Ask them to unlock it if it truly has to change."
         )));
     }
@@ -366,6 +371,7 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
         ),
         with_echo(
             json!({
+                "for_the_person": for_the_person(&state, &which, &tisty_core::docs::titled(&whole)),
                 "doc": which,
                 "title": tisty_core::docs::titled(&whole),
                 "chars": whole.chars().count(),
@@ -393,25 +399,26 @@ pub(super) fn over_again(
             "no document here is called {which:?}. `docs` lists them all."
         )));
     };
+    let called = doc_named(state, which);
     if state.held_away(kept) {
         return Err(Refused::Tool(format!(
-            "{which:?} is put away, so nothing is written over it."
+            "{called} is put away, so nothing is written over it."
         )));
     }
     if state.shut(kept.id) {
         return Err(Refused::Tool(format!(
-            "{which:?} is locked. The person shut it so nothing writes in it — not the \
+            "{called} is locked. The person shut it so nothing writes in it — not the \
              window, not you. Ask them to unlock it if it truly has to change."
         )));
     }
     if text(args, "folder").is_some() || text(args, "page_of").is_some() {
         return Err(Refused::Tool(format!(
-            "replacing the body of {which:?} does not move it. `file_doc` puts a document in a folder and `page_doc` makes it a page."
+            "replacing the body of {called} does not move it. `file_doc` puts a document in a folder and `page_doc` makes it a page."
         )));
     }
     let Some(print) = text(args, "print") else {
         return Err(Refused::Tool(format!(
-            "replacing the body of {which:?} needs the `print` you read it at, which `read_doc` hands back beside the text. Read it, then send that print with the new body."
+            "replacing the body of {called} needs the `print` you read it at, which `read_doc` hands back beside the text. Read it, then send that print with the new body."
         )));
     };
 
@@ -479,7 +486,7 @@ pub(super) fn over_again(
                 ),
             };
             format!(
-                "{which:?} does not read as it did when you took that print — the person, or another agent, wrote in it since. Nothing was changed, and nothing of theirs was lost. Here is {shown}
+                "{called} does not read as it did when you took that print — the person, or another agent, wrote in it since. Nothing was changed, and nothing of theirs was lost. Here is {shown}
 
 print: {}",
                 tisty_core::attach::printed(now.as_bytes())
@@ -608,22 +615,23 @@ pub(super) fn where_it_lands(
                     "no document here is called {said:?}. `docs` lists them all."
                 )));
             };
+            let named = doc_named(state, &said);
             if up.page_of.is_some() {
                 return Err(Refused::Tool(format!(
-                    "{said} is a page itself, and a page holds no pages. Name the document it \
+                    "{named} is a page itself, and a page holds no pages. Name the document it \
                      belongs to."
                 )));
             }
             if state.held_away(up) {
                 return Err(Refused::Tool(format!(
-                    "{said} is put away, and a page of it would be put away unread. Write a \
+                    "{named} is put away, and a page of it would be put away unread. Write a \
                      document of its own instead."
                 )));
             }
             super::compacting::awaiting(state, up)?;
             if state.shut(up.id) {
                 return Err(Refused::Tool(format!(
-                    "{said} is locked, and hanging a page off it writes the line that names \
+                    "{named} is locked, and hanging a page off it writes the line that names \
                      it in its body. Ask the person to unlock it first."
                 )));
             }
@@ -718,6 +726,7 @@ pub(super) fn in_its_place(
     args: &Value,
     new: &str,
 ) -> Result<Value, Refused> {
+    let named = doc_named(state, which);
     let Some(print) = text(args, "print") else {
         return Err(Refused::Tool(
             "an edit that names a place rather than a passage needs the `print` the document read \
@@ -758,7 +767,7 @@ pub(super) fn in_its_place(
 
     if from <= 1 && to >= last {
         return Err(Refused::Tool(format!(
-            "that names the whole of {which:?}, which `edit_doc` will not take: a passage it \
+            "that names the whole of {named}, which `edit_doc` will not take: a passage it \
              cannot tell from the document is a rewrite wearing an edit's clothes. Nothing was \
              changed. Name the part that differs, or replace the body with `write_doc`."
         )));
@@ -775,7 +784,7 @@ pub(super) fn in_its_place(
     );
     if !holds_together(&body, &head, &rest) {
         return Err(Refused::Tool(format!(
-            "lines {from} to {to} could not be cut out of {which:?} cleanly, so nothing was \
+            "lines {from} to {to} could not be cut out of {named} cleanly, so nothing was \
              written. Read it again and name the passage."
         )));
     }
@@ -787,7 +796,7 @@ pub(super) fn in_its_place(
         .map_err(hitch)?
     {
         tisty_core::docs::Rewrite::Moved => Err(Refused::Tool(format!(
-            "{which:?} does not read as it did when you took that print, so line {from} is no \
+            "{named} does not read as it did when you took that print, so line {from} is no \
              longer where you left it and nothing was changed. Ask `outline_doc` where the \
              passage sits now."
         ))),
@@ -806,6 +815,7 @@ pub(super) fn in_its_place(
                 ),
                 with_echo(
                     json!({
+                        "for_the_person": for_the_person(state, which, &tisty_core::docs::titled(&whole)),
                         "doc": which,
                         "title": tisty_core::docs::titled(&whole),
                         "chars": whole.chars().count(),

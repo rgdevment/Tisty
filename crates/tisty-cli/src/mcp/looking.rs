@@ -8,7 +8,9 @@ use ulid::Ulid;
 use super::asked::{strings, text};
 use super::jsonrpc::told;
 use super::unpathing::unpathed;
-use super::{Refused, alike, already, hitch, named, named_doc, opened, said, scoped, trail, when};
+use super::{
+    Refused, alike, already, doc_named, hitch, named, named_doc, opened, said, scoped, trail, when,
+};
 
 pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let (state, _) = opened(paths)?;
@@ -225,6 +227,7 @@ pub(super) fn inside_a_doc(
             "no document here is called {which:?}. `docs` lists them all."
         )));
     }
+    let named = doc_named(state, which);
     let body = tisty_core::docs::read(&paths.docs(), which).map_err(hitch)?;
     let most = args
         .get("limit")
@@ -276,9 +279,9 @@ pub(super) fn inside_a_doc(
         .collect();
 
     let said = match all {
-        0 => format!("Nothing in {which:?} says {query:?}."),
+        0 => format!("Nothing in {named} says {query:?}."),
         _ => format!(
-            "{all} line(s) of {which:?} say {query:?}; showing {}.\n{}",
+            "{all} line(s) of {named} say {query:?}; showing {}.\n{}",
             found.len(),
             found
                 .iter()
