@@ -488,8 +488,12 @@ fn a_wipe_cut_by_a_long_pause_says_not_now_and_the_next_wipe_bins_only_the_rest(
             matches!(paused, Err(Trouble::NotNow(_))),
             "{who}: {paused:?}"
         );
-        assert_eq!(between, copies - 1, "{who}");
-        assert_eq!(rest, Ok(copies - 1), "{who}");
+        // Several go at once, so how many went before the pause is not fixed; the one it hit stays.
+        assert!(
+            (1..copies).contains(&between),
+            "{who}: {between} of {copies}"
+        );
+        assert_eq!(rest, Ok(between), "{who}");
         assert!(still_there(&setting).is_empty(), "{who}");
         assert!(the_word_stays(&setting), "{who}");
     }
