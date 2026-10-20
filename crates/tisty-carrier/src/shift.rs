@@ -75,7 +75,7 @@ pub fn shift(
                 saying(far);
             }
         };
-        let moved = from.bring_home(
+        let brought = from.bring_home(
             here,
             Round {
                 way: Way::Pull,
@@ -83,19 +83,23 @@ pub fn shift(
                 holds: Holds::Everywhere,
                 saying: &mut heard,
             },
-        )?;
-        let Some(moved) = settled(moved)? else {
-            return Ok(Shift::Unsettled);
-        };
-        let deferred = holding_back(moved.deferred);
-        // Only when nothing else holds the move back, so a lasting fault is never hidden behind a download.
-        let (rest, coming) = still_away(from, here);
-        if deferred.is_none() && rest.nothing() && !coming.nothing() {
-            return Ok(Shift::Fetching { owed: coming });
-        }
-        let owed = homing(from, here);
-        if !owed.nothing() || deferred.is_some() {
-            return Ok(Shift::Homing { owed, deferred });
+        );
+        // Emptied once everyone had left, only the word stays there: nothing is left to bring.
+        let emptied = matches!(brought, Err(Trouble::Unshaped(_))) && from.word_left().is_some();
+        if !emptied {
+            let Some(moved) = settled(brought?)? else {
+                return Ok(Shift::Unsettled);
+            };
+            let deferred = holding_back(moved.deferred);
+            // Only when nothing else holds the move back, so a lasting fault is never hidden behind a download.
+            let (rest, coming) = still_away(from, here);
+            if deferred.is_none() && rest.nothing() && !coming.nothing() {
+                return Ok(Shift::Fetching { owed: coming });
+            }
+            let owed = homing(from, here);
+            if !owed.nothing() || deferred.is_some() {
+                return Ok(Shift::Homing { owed, deferred });
+            }
         }
     }
     if let Some(to) = to {
