@@ -25,7 +25,15 @@ export const rebuildNow = (
     tell({ card, text: t("reviewRebuilt") });
   });
 
-export default function Tools({ audit, setAudit, busy, said, trouble, run, tell }: Props) {
+export default function Tools({
+  audit,
+  setAudit,
+  busy,
+  said,
+  trouble,
+  run,
+  tell,
+}: Readonly<Props>) {
   const held = busy !== null;
 
   return (

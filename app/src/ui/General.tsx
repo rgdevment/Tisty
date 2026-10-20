@@ -6,6 +6,7 @@ import {
   keepShortcut,
   keepTheme,
   type Settings,
+  shortcut,
   shortcutsOffered,
   type Theme,
   type Waking,
@@ -56,6 +57,7 @@ export default function General({
 }: Props) {
   const held = busy !== null;
   const [offered, setOffered] = useState<string[]>([]);
+  const chosenOff = kept?.quickKeys === "off";
   useEffect(() => {
     shortcutsOffered()
       .then((all) => setOffered(all ?? []))
@@ -202,9 +204,7 @@ export default function General({
 
         <Line
           title={t("quick")}
-          why={
-            keys ? fill("quickOn", keys) : t(kept?.quickKeys === "off" ? "quickOff" : "quickNone")
-          }
+          why={keys ? fill("quickOn", keys) : t(chosenOff ? "quickOff" : "quickNone")}
           which="quick"
           said={said}
           trouble={trouble}
@@ -212,14 +212,19 @@ export default function General({
           {kept && (
             <select
               aria-label={t("quickKeys")}
-              value={keys ?? (kept.quickKeys === "off" ? "off" : "")}
+              value={keys ?? (chosenOff ? "off" : "")}
               disabled={held}
               onChange={(e) => {
                 const wanted = e.target.value;
-                run("quick", keepShortcut(wanted), (now) => {
-                  setKeys(now);
-                  setKept({ ...kept, quickKeys: wanted });
-                });
+                run(
+                  "quick",
+                  keepShortcut(wanted).finally(() => {
+                    shortcut()
+                      .then(setKeys)
+                      .catch(() => {});
+                  }),
+                  () => setKept({ ...kept, quickKeys: wanted }),
+                );
               }}
               className={`rounded-[10px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
             >
@@ -229,7 +234,7 @@ export default function General({
                 </option>
               ))}
               <option value="off">{t("quickKeysOff")}</option>
-              {!keys && kept.quickKeys !== "off" && <option value="" disabled hidden />}
+              {!keys && !chosenOff && <option value="" disabled hidden />}
             </select>
           )}
         </Line>

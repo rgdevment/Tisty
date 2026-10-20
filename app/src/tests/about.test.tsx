@@ -114,6 +114,8 @@ describe("the other tools", () => {
     await userEvent.click(screen.getByRole("button", { name: "Prepare…" }));
 
     expect(await screen.findByRole("dialog", { name: "Report a problem" })).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 });
 

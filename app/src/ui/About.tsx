@@ -401,7 +401,7 @@ export default function About({
   );
 }
 
-function Away({ said, onPick }: { said: string; onPick: () => void }) {
+function Away({ said, onPick }: Readonly<{ said: string; onPick: () => void }>) {
   return (
     <button
       type="button"

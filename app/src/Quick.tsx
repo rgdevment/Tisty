@@ -102,7 +102,7 @@ export default function Quick() {
   );
 }
 
-function Frame({ children }: { children: React.ReactNode }) {
+function Frame({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <div className="relative flex h-full flex-col justify-center overflow-hidden rounded-[10px] border border-hair bg-bg/70 px-[22px] py-5 shadow-lift-tall backdrop-blur-xl">
       {children}

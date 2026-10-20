@@ -3070,6 +3070,54 @@ describe("the first-run assistant", () => {
   });
 });
 
+describe("the quick capture shortcut", () => {
+  const shown = (keep: (keys: string) => Promise<unknown>) => {
+    let bound: string | null = "Ctrl+Shift+Space";
+    const otherwise = ipc.answer;
+    ipc.answer = (cmd, args) => {
+      if (cmd === "shortcuts_offered") return Promise.resolve(["Ctrl+Shift+Space", "Ctrl+Shift+T"]);
+      if (cmd === "shortcut") return Promise.resolve(bound);
+      if (cmd === "keep_shortcut")
+        return keep(String(args?.keys)).then((now) => {
+          bound = now as string | null;
+          return now;
+        });
+      return otherwise(cmd, args);
+    };
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
+  };
+
+  it("keeps the shortcut the person picks", async () => {
+    shown((keys) => Promise.resolve(keys));
+    const picker = await screen.findByRole("combobox", { name: t("quickKeys") });
+    await waitFor(() => expect(screen.getByRole("option", { name: "Ctrl+Shift+T" })).toBeTruthy());
+
+    await userEvent.selectOptions(picker, "Ctrl+Shift+T");
+
+    await waitFor(() => expect(sent("keep_shortcut")[0]?.args.keys).toBe("Ctrl+Shift+T"));
+    await waitFor(() => expect((picker as HTMLSelectElement).value).toBe("Ctrl+Shift+T"));
+  });
+
+  it("says which application holds a shortcut that could not be taken", async () => {
+    shown((keys) => Promise.reject({ code: "keysTaken", name: keys }));
+    const picker = await screen.findByRole("combobox", { name: t("quickKeys") });
+    await waitFor(() => expect(screen.getByRole("option", { name: "Ctrl+Shift+T" })).toBeTruthy());
+
+    await userEvent.selectOptions(picker, "Ctrl+Shift+T");
+
+    expect(await screen.findByText(fill("keysTaken", "Ctrl+Shift+T"))).toBeTruthy();
+    expect((picker as HTMLSelectElement).value).toBe("Ctrl+Shift+Space");
+  });
+});
+
 describe("the report a bug gets attached to", () => {
   const report = async () => {
     render(
@@ -3084,6 +3132,14 @@ describe("the report a bug gets attached to", () => {
     await upkeep();
     await userEvent.click(screen.getByRole("button", { name: /prepare/i }));
   };
+
+  it("closes and leaves the maintenance page as it was", async () => {
+    await report();
+
+    await userEvent.click(screen.getByRole("button", { name: t("close") }));
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
 
   it("offers the log as one more answer, on by default", async () => {
     await report();

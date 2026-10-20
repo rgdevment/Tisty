@@ -54,9 +54,15 @@ pub(crate) fn listen_for<R: tauri::Runtime>(
     }
     if let Some(said) = chosen
         && let Some(wanted) = combo(said)
-        && take(app, wanted)
     {
-        return Some(said.to_string());
+        if take(app, wanted) {
+            return Some(said.to_string());
+        }
+        witness::note(
+            channel::WINDOW,
+            "the chosen shortcut was taken, so another stands in",
+            &[],
+        );
     }
     for (said, combo) in offered() {
         if chosen != Some(said) && take(app, combo) {

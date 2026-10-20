@@ -32,7 +32,7 @@ export default function Only({ lists, chosen, onChange }: Props) {
   // The panel lives at the end of the page, so focus is carried into it and back.
   useEffect(() => {
     if (!open) return;
-    panel.current?.querySelector("input")?.focus();
+    panel.current?.querySelector("input")?.focus({ preventScroll: true });
     const inside = (target: EventTarget | null) =>
       box.current?.contains(target as Node) || panel.current?.contains(target as Node);
     const away = (e: MouseEvent) => {
