@@ -32,6 +32,20 @@ fn an_empty_store_weighs_nothing_instead_of_failing() {
 }
 
 #[test]
+fn what_is_carried_leaves_out_what_else_shares_the_folder() {
+    let root = tempfile::tempdir().unwrap();
+    let data = root.path();
+    std::fs::create_dir_all(data.join("docs")).unwrap();
+    std::fs::create_dir_all(data.join("attachments")).unwrap();
+    std::fs::create_dir_all(data.join("sandboxes/trial")).unwrap();
+    std::fs::write(data.join("docs/a.md"), [0u8; 10]).unwrap();
+    std::fs::write(data.join("attachments/b.png"), [0u8; 20]).unwrap();
+    std::fs::write(data.join("sandboxes/trial/huge.bin"), [0u8; 500]).unwrap();
+
+    assert_eq!(carried(data), 30);
+}
+
+#[test]
 fn what_is_under_the_root_is_weighed_all_the_way_down() {
     let tmp = tempfile::tempdir().unwrap();
     let deep = tmp.path().join("store").join("dev_a");

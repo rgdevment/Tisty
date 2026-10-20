@@ -90,6 +90,14 @@ pub fn weighed(root: &Path) -> u64 {
         .sum()
 }
 
+// What is weighed is what a move or a backup carries, never whatever else shares the folder.
+pub fn carried(data: &Path) -> u64 {
+    tisty_core::backup::CARRIED
+        .iter()
+        .map(|one| weighed(&data.join(one)))
+        .sum()
+}
+
 pub struct Held {
     pub files: usize,
     pub bytes: u64,

@@ -6,7 +6,7 @@ use crate::{
     witness::{self, Fact, channel},
 };
 
-const CARRIED: [&str; 4] = ["store", "docs", "originals", "attachments"];
+pub const CARRIED: [&str; 4] = ["store", "docs", "originals", "attachments"];
 const TASKS_AND_DOCS: [&str; 3] = ["store", "docs", "originals"];
 const BEFORE_A_CHANGE: &str = "before-a-change";
 const BEFORE_JOINING: &str = "before-joining";
