@@ -28,7 +28,7 @@ export default function Panel({
       tabIndex={-1}
       onKeyDown={onKeyDown}
       aria-label={label}
-      className={`absolute top-11 bottom-3 z-20 flex w-[380px] flex-col overflow-hidden rounded-[10px] border border-hair bg-sheet shadow-lift [&_.gutter]:px-0 outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset ${apart ?? "right-3"}`}
+      className={`absolute top-11 bottom-3 z-20 flex w-[380px] flex-col overflow-hidden rounded-[10px] border border-hair bg-sheet shadow-lift [&_.gutter]:px-0 outline-none ${apart ?? "right-3"}`}
     >
       <div className="flex items-center justify-between gap-1 px-3 pt-2.5 text-[13px] text-faint">
         <button

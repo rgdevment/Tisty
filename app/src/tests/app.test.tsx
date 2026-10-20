@@ -267,7 +267,8 @@ describe("saying a task will not be done", () => {
     await started();
 
     await user.click(screen.getByText("write the report"));
-    await user.click(await screen.findByRole("button", { name: /Not doing it/ }));
+    await user.click(await screen.findByRole("button", { name: "More" }));
+    await user.click(await screen.findByRole("menuitem", { name: /Not doing it/ }));
 
     await waitFor(() => expect(screen.queryByRole("textbox", { name: "Title" })).toBeNull());
     expect(await screen.findByText("call the bank")).toBeTruthy();
