@@ -67,8 +67,29 @@ pub fn calling() -> String {
 
 fn called(folder: Option<&Path>) -> String {
     match folder {
-        Some(at) => at.join(CLI).display().to_string(),
-        None => "tisty".to_string(),
+        Some(at) => settled(&at.join(CLI)).display().to_string(),
+        None => aliased().map_or_else(|| "tisty".to_string(), |at| at.display().to_string()),
+    }
+}
+
+// The alias's own path does not move with the Store's updates and needs no PATH to be found.
+fn aliased() -> Option<PathBuf> {
+    let local = std::env::var_os("LOCALAPPDATA")?;
+    let at = Path::new(&local)
+        .join("Microsoft")
+        .join("WindowsApps")
+        .join(CLI);
+    (cfg!(windows) && at.exists()).then_some(at)
+}
+
+// Opened from the disk image or moved aside by macOS, the path is gone once the app is quit.
+fn settled(at: &Path) -> PathBuf {
+    let shown = at.display().to_string();
+    let passing = shown.contains("/AppTranslocation/") || shown.starts_with("/Volumes/");
+    let installed = Path::new("/Applications/Tisty.app/Contents/MacOS").join(CLI);
+    match passing && installed.is_file() {
+        true => installed,
+        false => at.to_path_buf(),
     }
 }
 

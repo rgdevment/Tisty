@@ -48,12 +48,21 @@ fn a_client_is_one_row_whatever_it_called_itself_and_a_join_is_not_writing() {
         wrote("dev_laptop", None, 40, task("the person's own")),
     ];
     let seen = vec![super::wiring::Seen {
-        id: "codex",
-        name: "Codex",
+        id: "codex".into(),
+        name: "Codex".into(),
+        also: None,
+        place: None,
         at: "~/.codex/config.toml".into(),
         wired: true,
         astray: false,
         points: None,
+        maybe: false,
+        by_hand: false,
+        manual: super::wiring::Manual {
+            file: "~/.codex/config.toml".into(),
+            snippet: String::new(),
+            cli: None,
+        },
     }];
 
     let rows = hands(&events, &[agent].into_iter().collect(), &seen);

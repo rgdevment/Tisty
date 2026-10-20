@@ -118,10 +118,11 @@ pub fn member(text: &[u8], obj: usize, name: &str) -> Option<Member> {
 
 /// The value as written, so a caller can read a string back out of a file serde would refuse for
 /// its comments.
-pub fn said(text: &str, span: (usize, usize)) -> Option<String> {
+pub fn said<T: serde::de::DeserializeOwned>(text: &str, span: (usize, usize)) -> Option<T> {
     serde_json::from_str(&text[span.0..span.1]).ok()
 }
 
+/// The command as written, whether a string or, as OpenCode wants it, the first of a list.
 pub fn reads(text: &str, key: &str, name: &str) -> Option<String> {
     let raw = text.as_bytes();
     let under = member(raw, opens(raw)?, key)?;
@@ -130,7 +131,53 @@ pub fn reads(text: &str, key: &str, name: &str) -> Option<String> {
     }
     let it = member(raw, under.value.0, name)?;
     let command = member(raw, it.value.0, "command")?;
-    said(text, command.value)
+    match said::<serde_json::Value>(text, command.value)? {
+        serde_json::Value::String(one) => Some(one),
+        serde_json::Value::Array(all) => all.first()?.as_str().map(str::to_string),
+        _ => None,
+    }
+}
+
+/// Ours set field by field, so what the person added to the entry stays; `true` overwrites.
+pub fn set_fields(
+    text: &str,
+    key: &str,
+    name: &str,
+    fields: &[(&str, String, bool)],
+) -> Option<String> {
+    let whole: Vec<String> = fields
+        .iter()
+        .map(|(field, value, _)| format!("\"{field}\": {value}"))
+        .collect();
+    let whole = format!("{{ {} }}", whole.join(", "));
+    if text.trim().is_empty() {
+        return set(text, key, name, &whole);
+    }
+    let found = |text: &str| -> Option<Option<usize>> {
+        let raw = text.as_bytes();
+        let Some(under) = member(raw, opens(raw)?, key) else {
+            return Some(None);
+        };
+        Some(member(raw, under.value.0, name).map(|it| it.value.0))
+    };
+    let Some(mut at) = found(text)? else {
+        return set(text, key, name, &whole);
+    };
+    let mut now = text.to_string();
+    for (field, value, overwrite) in fields {
+        if now.as_bytes().get(at) != Some(&b'{') {
+            return None;
+        }
+        now = match member(now.as_bytes(), at, field) {
+            Some(there) if *overwrite => {
+                format!("{}{value}{}", &now[..there.value.0], &now[there.value.1..])
+            }
+            Some(_) => continue,
+            None => put(&now, at, &format!("\"{field}\": {value}")),
+        };
+        at = found(&now)??;
+    }
+    Some(now)
 }
 
 pub fn set(text: &str, key: &str, name: &str, entry: &str) -> Option<String> {
