@@ -1940,6 +1940,8 @@ const en = {
   twinsLater: "Not now",
   twinsJoined: "Done: {name} freed, {other} links changed.",
   twinsJoinedOne: "Done: {name} freed, 1 link changed.",
+  twinsDocTooLong:
+    "Pointing «{name}» at the copy that stays would make it longer than a document allows, so nothing was joined.",
   twinsEdited:
     "«{name}» changed while the copies were being joined, so the join stopped there. Join again to finish it.",
   twinsTooLong:
@@ -4112,6 +4114,8 @@ const es: Catalog = {
   twinsLater: "Ahora no",
   twinsJoined: "Listo: se liberaron {name} y cambiaron {other} enlaces.",
   twinsJoinedOne: "Listo: se liberaron {name} y cambió 1 enlace.",
+  twinsDocTooLong:
+    "Apuntar «{name}» a la copia que se queda lo dejaría más largo de lo que admite un documento, así que no se unió nada.",
   twinsEdited:
     "«{name}» cambió mientras se unían las copias, así que la unión se detuvo ahí. Vuelve a unir para terminarla.",
   twinsTooLong:

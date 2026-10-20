@@ -55,14 +55,17 @@ pub fn relinked_all(body: &str, going: &[(String, String)]) -> Option<(String, u
 }
 
 pub fn relinked(body: &str, from: &str, to: &str) -> Option<(String, usize)> {
+    // An example in code shows a link, it is not one, and stays as it was written.
+    let code = crate::beside::written_as_code(body);
     let mut out = String::with_capacity(body.len());
     let mut last = 0;
     let mut changed = 0;
     for (at, _) in body.match_indices(from) {
-        let named = body[..at]
-            .chars()
-            .next_back()
-            .is_none_or(|one| !in_a_name(one))
+        let named = !code.get(at).copied().unwrap_or(false)
+            && body[..at]
+                .chars()
+                .next_back()
+                .is_none_or(|one| !in_a_name(one))
             && ends_a_name(&body[at + from.len()..])
             && a_link_leads_to(&body[..at]);
         if named {

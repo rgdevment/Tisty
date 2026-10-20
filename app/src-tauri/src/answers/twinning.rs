@@ -46,7 +46,27 @@ struct Naming {
     locked: Option<String>,
 }
 
-fn namings(session: &Session) -> BTreeMap<String, Naming> {
+struct Read {
+    id: String,
+    title: String,
+    body: String,
+}
+
+fn read_all(root: &std::path::Path) -> Vec<Read> {
+    tisty_core::docs::all(root)
+        .into_iter()
+        .filter_map(|doc| {
+            let body = tisty_core::docs::read(root, &doc.id).ok()?;
+            Some(Read {
+                id: doc.id,
+                title: doc.title,
+                body,
+            })
+        })
+        .collect()
+}
+
+fn namings(session: &Session, docs: &[Read]) -> BTreeMap<String, Naming> {
     let mut found: BTreeMap<String, Naming> = BTreeMap::new();
     let mut note = |at: String, linked: Linked, body: &str, locked: bool| {
         let Some(leaf) = leaf_of(&at).map(str::to_string) else {
@@ -61,19 +81,15 @@ fn namings(session: &Session) -> BTreeMap<String, Naming> {
             one.links.push(linked);
         }
     };
-    let root = session.paths.docs();
-    for doc in tisty_core::docs::all(&root) {
-        let Ok(body) = tisty_core::docs::read(&root, &doc.id) else {
-            continue;
-        };
+    for doc in docs {
         let locked = session.state.bolted(&doc.id);
-        for one in tisty_core::refs::extract(&body) {
+        for one in tisty_core::refs::extract(&doc.body) {
             let linked = Linked {
                 kind: "doc",
                 id: doc.id.clone(),
                 title: doc.title.clone(),
             };
-            note(one.target, linked, &body, locked);
+            note(one.target, linked, &doc.body, locked);
         }
     }
     for task in session.state.tasks.values() {
@@ -106,17 +122,18 @@ fn since(data: &std::path::Path, at: &str) -> i64 {
 
 #[tauri::command(async)]
 pub fn twinned(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<Pair>> {
-    let data = held(&session).paths.data().to_path_buf();
-    // Hashing goes on without the session, which is held only to read who links what.
-    let groups = tisty_core::attach::twins(&data);
+    let paths = held(&session).paths.clone();
+    // Hashing and reading go on without the session, which is held only to ask the tasks.
+    let groups = tisty_core::attach::twins(paths.data());
     if groups.is_empty() {
         return Ok(Vec::new());
     }
-    Ok(seen(&held(&session), groups))
+    let docs = read_all(&paths.docs());
+    Ok(seen(&held(&session), groups, &docs))
 }
 
-fn seen(session: &Session, groups: Vec<tisty_core::attach::Twins>) -> Vec<Pair> {
-    let named = namings(session);
+fn seen(session: &Session, groups: Vec<tisty_core::attach::Twins>, docs: &[Read]) -> Vec<Pair> {
+    let named = namings(session, docs);
     let data = session.paths.data();
     groups
         .into_iter()
@@ -179,7 +196,7 @@ fn planned(session: &Session, go: &[String], going: &[(String, String)]) -> Answ
         let Ok(body) = tisty_core::docs::read(&root, &doc.id) else {
             return Err(Refusal::about("retireUnread", doc.title));
         };
-        let print = tisty_core::attach::printed(body.as_bytes());
+        let print = tisty_core::attach::printed(tisty_core::docs::settled(&body).as_bytes());
         let now = relinked_all(&body, going);
         let after = now
             .as_ref()
@@ -194,7 +211,7 @@ fn planned(session: &Session, go: &[String], going: &[(String, String)]) -> Answ
             return Err(Refusal::about("twinsLocked", doc.title));
         }
         if tisty_core::docs::settled(&now).len() as u64 > tisty_core::docs::BODY_AT_MOST {
-            return Err(Refusal::about("twinsTooLong", doc.title));
+            return Err(Refusal::about("twinsDocTooLong", doc.title));
         }
         plan.links += moved;
         plan.docs.push((doc.id, doc.title, now, print));
@@ -262,11 +279,13 @@ fn alike(
 ) -> Answer<(String, Vec<String>, (String, u64))> {
     let gone = || Refusal::about("twinsGone", keep.to_string());
     let keep = canonical(keep).ok_or_else(gone)?;
-    let go: Vec<String> = go
+    let mut go: Vec<String> = go
         .iter()
         .filter_map(|one| canonical(one))
         .filter(|one| *one != keep)
         .collect();
+    go.sort();
+    go.dedup();
     let mut all = vec![keep.clone()];
     all.extend(go.iter().cloned());
     let same = tisty_core::attach::same_bytes(data, &all)

@@ -42,7 +42,12 @@ fn with_twins() -> (tempfile::TempDir, Session, String, ulid::Ulid) {
 fn the_copy_with_a_readable_name_and_no_old_shelf_is_proposed_to_stay() {
     let (_kept, session, doc, task) = with_twins();
 
-    let pairs = seen(&session, tisty_core::attach::twins(session.paths.data()));
+    let docs = read_all(&session.paths.docs());
+    let pairs = seen(
+        &session,
+        tisty_core::attach::twins(session.paths.data()),
+        &docs,
+    );
 
     assert_eq!(pairs.len(), 1);
     assert_eq!(pairs[0].stays, format!("attachments/{STAYS}"));

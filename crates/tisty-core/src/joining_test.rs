@@ -116,3 +116,14 @@ fn a_name_in_parentheses_or_quotes_in_a_sentence_keeps_its_words() {
 
     assert_eq!(relinked(&body, from, "otra-ab12cd34.pdf"), None);
 }
+
+#[test]
+fn a_link_shown_as_code_is_left_as_it_was_written() {
+    let from = "foto-a42d4603.png";
+    let body = format!("```\n![a]({from})\n```\n`![b]({from})` ![c]({from})");
+
+    let (now, moved) = relinked(&body, from, "playa-a42d4603.png").unwrap();
+
+    assert_eq!(moved, 1);
+    assert_eq!(now.matches(from).count(), 2, "{now}");
+}
