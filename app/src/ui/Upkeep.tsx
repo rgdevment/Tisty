@@ -12,6 +12,7 @@ import {
 } from "../core";
 import { stamped } from "../format";
 import { fill, t } from "../locales";
+import { saidPlainly } from "../refusal";
 import { type Run, type Which, type Word, working } from "./Card";
 import FreeUp from "./FreeUp";
 import Leftovers, { lookAt } from "./Leftovers";
@@ -45,14 +46,28 @@ interface Props {
 
 export interface Seen {
   twice: Repeated[];
-  unproven: Unvouching;
+  unproven: Unvouching | null;
   at: string;
+  missed?: string;
 }
 
-type Found = [Reviewed, Repeated[], Unvouching];
+type Found = [Reviewed, Repeated[] | null, Unvouching | null, string | undefined];
 
-const looked = (): Promise<Found> =>
-  Promise.all([checked(), repeatedLists(), unvouchedAttachments()]);
+// One check that cannot run leaves the others standing, but never lets the whole read as in order.
+const looked = async (): Promise<Found> => {
+  let missed: string | undefined;
+  const or = <T,>(asked: Promise<T>) =>
+    asked.catch((e) => {
+      missed ??= saidPlainly(e);
+      return null;
+    });
+  const [now, lists, unvouched] = await Promise.all([
+    checked(),
+    or(repeatedLists()),
+    or(unvouchedAttachments()),
+  ]);
+  return [now, lists, unvouched, missed];
+};
 
 export default function Upkeep({
   audit,
@@ -82,9 +97,9 @@ export default function Upkeep({
   const unproven = seen?.unproven ?? null;
   const at = seen?.at ?? null;
 
-  const took = ([now, lists, unvouched]: Found) => {
+  const took = ([now, lists, unvouched, missed]: Found) => {
     setAudit(now);
-    setSeen({ twice: lists, unproven: unvouched, at: new Date().toISOString() });
+    setSeen({ twice: lists ?? [], unproven: unvouched, at: new Date().toISOString(), missed });
   };
 
   const review = () => quietly("review", looked(), took);
@@ -102,18 +117,21 @@ export default function Upkeep({
 
   const many =
     audit && at ? Object.values(lookAt(audit, twice, unproven)).filter(Boolean).length : -1;
+  const missed = seen?.missed;
   const health =
     !audit || !at
       ? t("reviewWhat")
-      : many === 0
-        ? fill("healthy", stamped(at))
-        : many === 1
-          ? t("healthOne")
-          : fill("healthMany", String(many));
+      : missed && many === 0
+        ? t("reviewPartly")
+        : many === 0
+          ? fill("healthy", stamped(at))
+          : many === 1
+            ? t("healthOne")
+            : fill("healthMany", String(many));
   const [dot, ink] =
     many < 0
       ? ["bg-hair", "text-faint"]
-      : many === 0
+      : many === 0 && !missed
         ? ["bg-hue-green", "text-hue-green"]
         : ["bg-hue-amber", "text-hue-amber"];
   const shown = { busy, secs, said, trouble, run, tell, fail };
@@ -131,6 +149,9 @@ export default function Upkeep({
       </section>
       {trouble?.card === "review" && (
         <p className="mt-2 text-[11.5px] text-urgent">{trouble.text}</p>
+      )}
+      {missed && trouble?.card !== "review" && (
+        <p className="mt-2 text-[11.5px] text-urgent">{missed}</p>
       )}
 
       {audit && at && (

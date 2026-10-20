@@ -61,10 +61,7 @@ export default function FreeUp({
   const [alike, setAlike] = useState<Twins[] | null>(null);
   const [unused, setUnused] = useState<Unused | null>(null);
   const loose = audit?.loose ?? 0;
-  const total =
-    (audit?.looseBytes ?? 0) +
-    (alike ?? []).reduce((all, one) => all + one.bytes, 0) +
-    (state.freesSpace ? (unused?.bytes ?? 0) : 0);
+  const total = (audit?.looseBytes ?? 0) + (state.freesSpace ? (unused?.bytes ?? 0) : 0);
 
   const letGo = (one: Astray) => {
     if (held) return;

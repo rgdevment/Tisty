@@ -1720,6 +1720,8 @@ const en = {
   leaveCloud:
     "This computer stops syncing and forgets its access. Your other computers keep going.",
   leaveRevoke: "Also remove Tisty's access on every computer",
+  leaveCloudGone:
+    "Your cloud is already disconnected on this computer, but Tisty could not finish leaving.",
   leaveLeft:
     "What Tisty left on this computer: settings, cache, log, this computer's keys and starting with the system.",
   leaveThen:
@@ -1852,6 +1854,7 @@ const en = {
   noticesMore:
     "Notices are prepared and shown on this machine. None of it reaches the internet or passes through a server.",
   reviewWhat: "Looking over your history, documents and attachments…",
+  reviewPartly: "Some checks could not run",
   reviewAgain: "Check again",
   inTheLog: "In the history",
   cacheIs: "Quick index",
@@ -3860,6 +3863,8 @@ const es: Catalog = {
   leaveBackupDone: "Respaldo hecho",
   leaveCloud: "Este equipo deja de sincronizar y olvida su acceso. Tus otros equipos siguen.",
   leaveRevoke: "Quitar también el acceso de Tisty en todos los equipos",
+  leaveCloudGone:
+    "Tu nube ya quedó desconectada en este equipo, pero Tisty no pudo terminar de salir.",
   leaveLeft:
     "Lo que Tisty dejó en este equipo: ajustes, caché, registro, las llaves de este equipo y el inicio con el sistema.",
   leaveThen:
@@ -3993,6 +3998,7 @@ const es: Catalog = {
   noticesMore:
     "Los avisos se preparan y se muestran en este mismo equipo. Nada de esto sale a internet ni pasa por un servidor.",
   reviewWhat: "Revisando tu historial, documentos y adjuntos…",
+  reviewPartly: "Algunas revisiones no se pudieron hacer",
   reviewAgain: "Revisar de nuevo",
   inTheLog: "En el historial",
   cacheIs: "Índice rápido",

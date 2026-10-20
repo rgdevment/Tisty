@@ -3205,7 +3205,7 @@ describe("Maintenance looking by itself", () => {
     shown();
     await userEvent.click(await screen.findByRole("tab", { name: /maintenance/i }));
 
-    expect(await screen.findByText(t("reviewWhat"))).toBeTruthy();
+    expect(await screen.findByText(t("reviewPartly"))).toBeTruthy();
     expect(screen.queryByText(/everything in order · checked/i)).toBeNull();
   });
 

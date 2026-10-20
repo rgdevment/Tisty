@@ -1,9 +1,8 @@
-import { save } from "@tauri-apps/plugin-dialog";
 import { useState } from "react";
 import { backUp, cloudForget, cloudRevoke, leaveHere, revealed } from "../core";
-import { weigh } from "../format";
-import { fill, t } from "../locales";
+import { t } from "../locales";
 import { saidPlainly } from "../refusal";
+import { backupMadeSaid, whereToBackUp } from "./Backup";
 import Modal from "./Modal";
 import { mild } from "./Rows";
 
@@ -35,20 +34,12 @@ export default function Leave({ cloud, store, onClose }: Props) {
 
   const backup = () => {
     setTrouble(undefined);
-    save({ defaultPath: "tisty-backup.zip", filters: [{ name: "Tisty", extensions: ["zip"] }] })
+    whereToBackUp()
       .then(async (at) => {
         if (typeof at !== "string") return;
         setBacking("busy");
         const made = await backUp(at);
-        setShort(
-          made.leftOut
-            ? fill(
-                "backupLeftOut",
-                weigh(made.bytes),
-                `${made.leftOut} · ${weigh(made.leftOutBytes)}`,
-              )
-            : undefined,
-        );
+        setShort(made.leftOut ? backupMadeSaid(made) : undefined);
         setBacking("done");
       })
       .catch((e) => {
@@ -61,12 +52,14 @@ export default function Leave({ cloud, store, onClose }: Props) {
   const leave = async () => {
     setGoing(true);
     setTrouble(undefined);
+    let letGo = false;
     try {
       if (cloud) await (revoke ? cloudRevoke() : cloudForget());
+      letGo = cloud;
       if (store) await revealed(store).catch(() => undefined);
       await leaveHere();
     } catch (e) {
-      setTrouble(saidPlainly(e));
+      setTrouble(letGo ? `${t("leaveCloudGone")} ${saidPlainly(e)}` : saidPlainly(e));
       setGoing(false);
     }
   };

@@ -839,8 +839,10 @@ async fn leave_here(
     alone: tauri::State<'_, OneAtATime>,
 ) -> Answer<()> {
     let _done = alone.inner().waited(ROUND_WAITED_OUT).await?;
-    let paths = held(&session).paths.clone();
-    let _ = unreach_from(Some(&paths));
+    let mut session = held(&session);
+    // Windows keeps an open database from being deleted, so the cache lets go before the sweep.
+    session.cache = None;
+    let _ = unreach_from(Some(&session.paths));
     std::process::exit(0);
 }
 

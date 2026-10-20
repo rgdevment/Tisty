@@ -64,6 +64,15 @@ describe("leaving Tisty", () => {
     await waitFor(() => expect(said()).toEqual(["revealed", "leave_here"]));
   });
 
+  it("says the cloud is already let go when leaving fails after it", async () => {
+    ipc.refuse = "leave_here";
+    render(<Leave cloud store="C:/Tisty" onClose={vi.fn()} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Leave Tisty" }));
+
+    expect((await screen.findByRole("alert")).textContent).toContain("already disconnected");
+  });
+
   it("stays when the cloud will not let go, and says why", async () => {
     ipc.refuse = "cloud_forget";
     render(<Leave cloud store="C:/Tisty" onClose={vi.fn()} />);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   type Carrying,
   checked,
@@ -44,7 +44,10 @@ export default function Computers({
   const [astray, setAstray] = useState<Machine | null>(null);
   const synced = Boolean(state.chosen) || state.mode === "cloud";
 
+  // A card still working will look again when it lands, and a read now could land after it.
+  const working = useRef(held);
   useEffect(() => {
+    if (working.current) return;
     checked()
       .then(setAudit)
       .catch((e) => fail({ card: "machines", text: saidPlainly(e) }));

@@ -137,18 +137,6 @@ const decideInTurn = async (ids: string[], byHand: boolean, since: number): Prom
 
 export const leftForLater = (): string[] => [...later];
 
-// A full round names every document still at odds, so one it no longer names was settled elsewhere.
-export const stillAtOdds = (ids: string[]): void => {
-  const now = new Set(ids);
-  const gone = [...later].filter((id) => !now.has(id));
-  if (!gone.length) return;
-  for (const id of gone) {
-    later.delete(id);
-    reminded.delete(id);
-  }
-  for (const one of watching) one();
-};
-
 const subscribe = (change: () => void) => {
   watching.add(change);
   return () => {

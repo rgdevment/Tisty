@@ -1,9 +1,18 @@
+import { save } from "@tauri-apps/plugin-dialog";
 import type { ReactNode } from "react";
-import type { Carrying } from "../core";
+import type { BackedUp, Carrying } from "../core";
 import { stamped, weigh } from "../format";
 import { fill, t } from "../locales";
 import type { Word } from "./Card";
 import { Band, Line, mild, risky } from "./Rows";
+
+export const whereToBackUp = () =>
+  save({ defaultPath: "tisty-backup.zip", filters: [{ name: "Tisty", extensions: ["zip"] }] });
+
+export const backupMadeSaid = (made: BackedUp): string =>
+  made.leftOut
+    ? fill("backupLeftOut", weigh(made.bytes), `${made.leftOut} · ${weigh(made.leftOutBytes)}`)
+    : fill("backupMade", weigh(made.bytes));
 
 interface Props {
   state: Carrying;
@@ -62,17 +71,19 @@ export default function Backup({
           </button>
         </Line>
 
-        <Line
-          title={t("restoreTitle")}
-          why={t("restoreWhat")}
-          which="restore"
-          said={said}
-          trouble={trouble}
-        >
-          <button type="button" disabled={held} onClick={onTake} className={risky}>
-            {t("restoreFrom")}
-          </button>
-        </Line>
+        {!state.freesSpace && (
+          <Line
+            title={t("restoreTitle")}
+            why={t("restoreWhat")}
+            which="restore"
+            said={said}
+            trouble={trouble}
+          >
+            <button type="button" disabled={held} onClick={onTake} className={risky}>
+              {t("restoreFrom")}
+            </button>
+          </Line>
+        )}
         {children}
       </div>
     </>

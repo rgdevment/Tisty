@@ -1,11 +1,10 @@
-import { open, save } from "@tauri-apps/plugin-dialog";
+import { open } from "@tauri-apps/plugin-dialog";
 import { useState } from "react";
 import { type About, backUp, type Carrying, restore, revealed } from "../core";
-import { weigh } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { sure } from "../sure";
-import Backup from "./Backup";
+import Backup, { backupMadeSaid, whereToBackUp } from "./Backup";
 import type { Run, Which, Word } from "./Card";
 import Leave from "./Leave";
 import { Band, Line, mild, risky } from "./Rows";
@@ -42,22 +41,11 @@ export default function Yours({
 
   const makeBackup = () => {
     if (held) return;
-    save({ defaultPath: "tisty-backup.zip", filters: [{ name: "Tisty", extensions: ["zip"] }] })
+    whereToBackUp()
       .then(
         (at) =>
           typeof at === "string" &&
-          run("backup", backUp(at), (made) =>
-            tell({
-              card: "backup",
-              text: made.leftOut
-                ? fill(
-                    "backupLeftOut",
-                    weigh(made.bytes),
-                    `${made.leftOut} · ${weigh(made.leftOutBytes)}`,
-                  )
-                : fill("backupMade", weigh(made.bytes)),
-            }),
-          ),
+          run("backup", backUp(at), (made) => tell({ card: "backup", text: backupMadeSaid(made) })),
       )
       .catch((e) => fail({ card: "backup", text: saidPlainly(e) }));
   };
