@@ -28,3 +28,7 @@ export const changedIn = (was: string, now: string): [number, number] | null => 
   const bytes = (upto: number) => new TextEncoder().encode(now.slice(0, upto)).length;
   return [bytes(head), bytes(now.length - tail)];
 };
+
+// A passage taken out leaves no bytes, so the blocks either side of where it was count as touched.
+export const touches = (at: readonly [number, number], span: readonly [number, number]): boolean =>
+  span[0] === span[1] ? at[0] <= span[0] && at[1] >= span[0] : at[0] < span[1] && at[1] > span[0];

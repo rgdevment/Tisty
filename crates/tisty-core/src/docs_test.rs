@@ -3221,3 +3221,23 @@ fn the_window_writes_over_only_the_body_it_typed_on() {
         "# Acta\n\nlo de la ventana\n"
     );
 }
+
+#[test]
+fn the_window_writes_back_a_body_gone_from_the_disk() {
+    let room = root();
+    let seen = print_of_text("# Acta\n\nlo que leyo la ventana\n");
+
+    assert!(
+        write_over(
+            room.path(),
+            "mac0-0001",
+            "# Acta\n\nlo de la ventana\n",
+            &seen
+        )
+        .unwrap()
+    );
+    assert_eq!(
+        read(room.path(), "mac0-0001").unwrap(),
+        "# Acta\n\nlo de la ventana\n"
+    );
+}

@@ -161,6 +161,9 @@ export default function Docs({
   const wide = room >= WIDE;
   const [heads, setHeads] = useState<Head[]>([]);
   const [saved, setSaved] = useState(0);
+  // A round that came while a save was in flight is read once the save lands, not dropped.
+  const missed = useRef(false);
+  const [behind, setBehind] = useState(0);
   const [sized, setSized] = useState<Record<string, Paper>>(leaves);
   const [making, setMaking] = useState(false);
   const [seeing, setSeeing] = useState<string | null>(null);
@@ -233,7 +236,11 @@ export default function Docs({
         })
         .finally(() => {
           setSaving(false);
-          if (!held.current) setWaiting(false);
+          if (held.current) return;
+          setWaiting(false);
+          if (!missed.current) return;
+          missed.current = false;
+          setBehind((many) => many + 1);
         });
       return mine;
     },
@@ -370,6 +377,7 @@ export default function Docs({
       return;
     }
     if (asked === open?.file && (fresh === seen.current || held.current)) {
+      if (fresh !== seen.current) missed.current = true;
       turn.current += 1;
       return;
     }
@@ -405,7 +413,8 @@ export default function Docs({
         const same = before === wanted.file && !astir;
         remembered(lastRead.current, wanted.file, { text, print });
         shaped.current = text;
-        setStirred(astir);
+        // Words woven in by the window's own save are already told; reading them back is no reason to forget it.
+        setStirred((was) => astir || (was && before === wanted.file));
         if (astir) setLately(changedIn(last, text));
         setOpen(wanted);
         setClashed(false);
@@ -432,7 +441,7 @@ export default function Docs({
         }
         onError(saidPlainly(e));
       });
-  }, [asked, known, open, flush, onError, fresh]);
+  }, [asked, known, open, flush, onError, fresh, behind]);
 
   useEffect(() => {
     onScreen.current = open?.file ?? null;

@@ -6,7 +6,7 @@ import { t } from "../locales";
 import { DOC, partCard } from "../markdown";
 import type { Moved } from "../paging";
 import { named } from "../previews";
-import { reanchored } from "./anchoring";
+import { reanchored, touches } from "./anchoring";
 import { FORMATS, flipped } from "./barring";
 import { caretAt, type Editing, edited } from "./blocking";
 import { cardedAt, movedCard, putCard } from "./carded";
@@ -612,10 +612,7 @@ export default function Sheet(props: Readonly<Props>) {
     if (!page || drawn !== latest.current) return;
     for (const one of page.querySelectorAll<HTMLElement>(".page > [data-at]")) {
       const at = spanned(one.dataset.at ?? null);
-      one.classList.toggle(
-        "lately",
-        Boolean(lately && at && at[0] < lately[1] && at[1] > lately[0]),
-      );
+      one.classList.toggle("lately", Boolean(lately && at && touches(at, lately)));
     }
   }, [lately, turned, drawn]);
 

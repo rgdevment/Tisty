@@ -136,7 +136,8 @@ pub fn write(root: &Path, id: &str, body: &str) -> Result<()> {
 pub fn write_over(root: &Path, id: &str, body: &str, print: &str) -> Result<bool> {
     alone(root, || {
         let at = resolve(root, id)?;
-        if print_of(&at)?.as_deref() != Some(print) {
+        // A body gone from the disk under the window is written back, as any save would.
+        if print_of(&at)?.is_some_and(|now| now != print) {
             return Ok(false);
         }
         written(root, id, body)?;

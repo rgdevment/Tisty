@@ -1239,7 +1239,7 @@ pub fn doc_merge(
         return Ok(None);
     };
     // The merge joins lines with `\n`; a body kept with `\r\n` stays so, or every line would read as changed.
-    let whole = match theirs.contains("\r\n") {
+    let whole = match theirs.contains("\r\n") && !theirs.replace("\r\n", "").contains('\n') {
         true => whole.replace("\r\n", "\n").replace('\n', "\r\n"),
         false => whole,
     };

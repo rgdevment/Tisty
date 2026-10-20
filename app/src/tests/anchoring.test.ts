@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { changedIn, reanchored } from "../ui/anchoring";
+import { changedIn, reanchored, touches } from "../ui/anchoring";
 
 describe("the block being written when words arrive from outside", () => {
   const was = "# Acta\n\nuno\n\nlo mio\n\ntres\n";
@@ -31,5 +31,18 @@ describe("what words from outside changed", () => {
 
   it("names nothing when nothing changed", () => {
     expect(changedIn("# Igual\n", "# Igual\n")).toBeNull();
+  });
+});
+
+describe("the blocks a change touches", () => {
+  it("counts the blocks either side of a passage taken out", () => {
+    expect(touches([10, 20], [20, 20])).toBe(true);
+    expect(touches([20, 30], [20, 20])).toBe(true);
+    expect(touches([30, 40], [20, 20])).toBe(false);
+  });
+
+  it("counts only the blocks a change runs into", () => {
+    expect(touches([10, 20], [20, 25])).toBe(false);
+    expect(touches([20, 30], [20, 25])).toBe(true);
   });
 });
