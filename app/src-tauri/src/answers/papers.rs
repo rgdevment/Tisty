@@ -1182,12 +1182,14 @@ pub fn doc_write(
         return Err(Refusal::about("documentMoved", id));
     }
     let root = session.paths.docs();
-    let print = tisty_core::docs::print_of_text(&body);
     let title = tisty_core::docs::titled(&body);
-    if tisty_core::docs::read(&root, &id).is_ok_and(|was| tisty_core::docs::unchanged(&was, &body))
+    if let Ok(was) = tisty_core::docs::read(&root, &id)
+        && tisty_core::docs::unchanged(&was, &body)
     {
+        let print = tisty_core::docs::print_of_text(&was);
         return Ok(Kept { id, title, print });
     }
+    let print = tisty_core::docs::print_of_text(&body);
     let wrote = match &since {
         Some(seen) => tisty_core::docs::write_over(&root, &id, &body, seen),
         None => tisty_core::docs::write(&root, &id, &body).map(|()| true),
@@ -1212,15 +1214,22 @@ fn unwritten(e: tisty_core::Error) -> Refusal {
     }
 }
 
-/// Words typed over a body that moved on meanwhile are woven into it when the two touched apart;
-/// `None` when they touched the same place and only the person can choose.
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Woven {
+    body: String,
+    print: String,
+    title: String,
+}
+
+/// `None` when the two touched the same place, which only the person can choose between.
 #[tauri::command(async)]
 pub fn doc_merge(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
     base: String,
     mine: String,
-) -> Answer<Option<Opened>> {
+) -> Answer<Option<Woven>> {
     let mut session = held(&session);
     writable(&session.state, &id)?;
     let root = session.paths.docs();
@@ -1239,7 +1248,8 @@ pub fn doc_merge(
     let hand = signing(&session.state);
     session.retell(&id, &body, hand);
     let print = tisty_core::docs::print_of_text(&body);
-    Ok(Some(Opened { body, print }))
+    let title = tisty_core::docs::titled(&body);
+    Ok(Some(Woven { body, print, title }))
 }
 
 /// What reading a body catches up with: the title and the tags both come out of it, and neither

@@ -189,7 +189,8 @@ export default function Docs({
       const wrote_at = typed.current;
       const mine = queued(id, async () => {
         try {
-          const fresh = await docWrite(id, text, anyway, printed.current.get(id));
+          const since = lastRead.current.has(id) ? printed.current.get(id) : undefined;
+          const fresh = await docWrite(id, text, anyway, since);
           return { fresh, woven: null };
         } catch (e) {
           const base = lastRead.current.get(id);
@@ -211,8 +212,13 @@ export default function Docs({
             onKept(fresh);
             return;
           }
-          // Words typed since would be lost under the woven body: their own save weaves again.
-          if (!woven || typed.current !== wrote_at) return;
+          if (!woven) return;
+          onKept({ id, title: woven.title });
+          // Words typed since are woven by their own save, over what this one sent; the old print keeps it refused.
+          if (typed.current !== wrote_at) {
+            remembered(lastRead.current, id, text);
+            return;
+          }
           remembered(lastRead.current, id, woven.body);
           printed.current.set(id, woven.print);
           if (onScreen.current !== id) return;
@@ -448,6 +454,7 @@ export default function Docs({
   const wrote = (text: string) => {
     if (!open || bolted) return;
     typed.current = Date.now();
+    setLately(null);
     // Once the person writes, going back would take their words, not the compaction.
     setCompacted(false);
     setBody(text);

@@ -1267,8 +1267,11 @@ export const docWrite = (
   anyway?: boolean,
   since?: string,
 ): Promise<Doc & { print: string }> => invoke("doc_write", { id, body, anyway, since });
-export const docMerge = (id: string, base: string, mine: string): Promise<Opened | null> =>
-  invoke("doc_merge", { id, base, mine });
+export const docMerge = (
+  id: string,
+  base: string,
+  mine: string,
+): Promise<(Opened & { title: string }) | null> => invoke("doc_merge", { id, base, mine });
 export const docBack = (id: string): Promise<Doc> => invoke("doc_back", { id });
 export const docBackable = (id: string): Promise<boolean> => invoke("doc_backable", { id });
 export const folderFile = (id: string, parent?: string, before?: string): Promise<void> =>

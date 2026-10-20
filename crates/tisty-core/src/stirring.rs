@@ -1,5 +1,4 @@
-//! A bell an agent rings after it writes, so an open window reads the change at once. It is a hint
-//! only: the window's own round still finds every change, rung or not.
+//! A hint only: the window's own round still finds every change, rung or not.
 
 use crate::Paths;
 
