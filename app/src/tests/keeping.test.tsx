@@ -25,6 +25,8 @@ const installed = vi.hoisted(() => ({
     wired: boolean;
     astray: boolean;
     points?: string;
+    maybe?: boolean;
+    byHand?: boolean;
   }[],
   hands: [] as {
     via: string | null;
@@ -3535,13 +3537,13 @@ describe("letting an assistant file work here", () => {
     expect(sent("wire").length).toBe(0);
   });
 
-  it("a copy that is no longer there is said plainly, and pointing it here writes again", async () => {
+  it("one pointing at another Tisty is said plainly, and fixing it writes again", async () => {
     installed.seen = [
       {
         id: "codex",
         name: "Codex",
         at: "C:/Users/someone/.codex/config.toml",
-        wired: true,
+        wired: false,
         astray: true,
         points: "C:/Programs/Gone/tisty.exe",
       },
@@ -3549,8 +3551,8 @@ describe("letting an assistant file work here", () => {
 
     await openTab();
 
-    expect(await screen.findByText(/no longer there/i)).toBeTruthy();
-    await userEvent.click(screen.getByRole("button", { name: /Point it here/i }));
+    expect(await screen.findByText(/Points at another Tisty/i)).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: /^Fix$/ }));
 
     await waitFor(() => expect(sent("wire").length).toBe(1));
     expect(sent("wire")[0].args.id).toBe("codex");

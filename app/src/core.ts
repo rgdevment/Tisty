@@ -1004,13 +1004,26 @@ export const reachable = (): Promise<Reach> => invoke("reachable");
 export interface Wired {
   id: string;
   name: string;
+  also?: string | null;
+  place?: string | null;
   at: string;
   wired: boolean;
   astray: boolean;
-  points?: string;
+  points?: string | null;
+  maybe: boolean;
+  byHand: boolean;
+  manual: { file: string; snippet: string; cli?: string | null };
+}
+
+export interface InDistro {
+  distro: { name: string; shut: boolean; command?: string | null };
+  seen: Wired[];
 }
 
 export const seenAgents = (): Promise<Wired[]> => invoke("wiring");
+export const wiringKnown = (): Promise<Wired[]> => invoke("wiring_known");
+export const wslDistros = (): Promise<string[]> => invoke("wsl_distros");
+export const wslSeen = (name: string): Promise<InDistro> => invoke("wsl_seen", { name });
 
 /** One assistant as the person meets it: what it is called, whether it is wired, what it wrote. */
 export interface Assistant {

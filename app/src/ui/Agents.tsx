@@ -8,15 +8,14 @@ import {
   copied,
   openLink,
   seenAgents,
-  unwireAgent,
   type Wired,
-  wireAgent,
 } from "../core";
 import { stamped } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import Card, { type Run, type Which, type Word } from "./Card";
 import { Group } from "./Rows";
+import Wiring from "./Wiring";
 
 interface Props {
   busy: Which | null;
@@ -57,14 +56,6 @@ export default function Agents({ busy, said, trouble, quietly, tell, fail, binar
   const { agent, setAgent, agents, setAgents, hands } = known;
   const [wired, setWired] = useState(false);
   const [typed, setTyped] = useState(false);
-
-  const join = (one: Wired) => {
-    const out = one.wired && !one.astray;
-    quietly("wiring", out ? unwireAgent(one.id) : wireAgent(one.id), (now) => {
-      setAgents(now);
-      tell({ card: "wiring", text: t(out ? "wiringGone" : "wiringFresh") });
-    });
-  };
 
   return (
     <>
@@ -117,70 +108,16 @@ export default function Agents({ busy, said, trouble, quietly, tell, fail, binar
       </Card>
 
       <Card title={t("wiringTitle")} which="wiring" busy={busy} said={said} trouble={trouble}>
-        <p className="text-[12.5px] leading-relaxed text-soft">{t("wiringWhat")}</p>
-
-        {agents?.length === 0 && (
-          <p className="mt-3 text-[12.5px] leading-relaxed text-faint">{t("wiringNone")}</p>
-        )}
-
-        {agents && agents.length > 0 && (
-          <div className="mt-3 overflow-hidden rounded-[10px] border border-hair">
-            {agents.map((one) => (
-              <div
-                key={one.id}
-                className="flex items-center gap-3 border-t border-hair px-3 py-2.5 first:border-t-0"
-              >
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[13px] font-semibold">{one.name}</span>
-                  <span className="block text-[12.5px] text-soft">
-                    {wroteSaid(hands?.find((hand) => hand.via === one.id))}
-                  </span>
-                  <span className="block truncate font-mono text-[10.5px] text-faint">
-                    {one.at}
-                  </span>
-                  {one.astray && (
-                    <span className="block text-[11.5px] text-high">{t("wiringAstray")}</span>
-                  )}
-                </span>
-                {one.wired && !one.astray && (
-                  <span className="shrink-0 rounded-full border border-hue-green/40 px-2 py-0.5 text-[11.5px] text-hue-green">
-                    {t("wiringOn")}
-                  </span>
-                )}
-                <button
-                  type="button"
-                  disabled={held}
-                  onClick={() => join(one)}
-                  className={`shrink-0 rounded-md border px-2.5 py-1 text-[12.5px] disabled:text-faint ${
-                    one.wired && !one.astray
-                      ? "border-line text-soft hover:border-urgent hover:text-urgent"
-                      : "border-accent text-accent"
-                  }`}
-                >
-                  {one.astray ? t("wiringAgain") : one.wired ? t("wiringOut") : t("wiringJoin")}
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {hands
-          ?.filter((hand) => !agents?.some((one) => one.id === hand.via))
-          .map((hand) => (
-            <div
-              key={hand.via ?? "unnamed"}
-              className="mt-2 flex items-center gap-3 rounded-[10px] border border-hair px-3 py-2.5"
-              title={hand.via ? undefined : t("assistantUnnamedWhy")}
-            >
-              <span className="min-w-0 flex-1">
-                <span className="block text-[13px] font-semibold">
-                  {hand.named || t("assistantUnnamed")}
-                </span>
-                <span className="block text-[12.5px] text-soft">{wroteSaid(hand)}</span>
-              </span>
-            </div>
-          ))}
-
+        <Wiring
+          agents={agents}
+          setAgents={setAgents}
+          hands={hands}
+          held={held}
+          quietly={quietly}
+          tell={tell}
+          fail={fail}
+          wroteSaid={wroteSaid}
+        />
         {agents && agents.length > 0 && (
           <>
             {agent?.on === false && (
