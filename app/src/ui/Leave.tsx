@@ -1,7 +1,8 @@
 import { save } from "@tauri-apps/plugin-dialog";
 import { useState } from "react";
 import { backUp, cloudForget, cloudRevoke, leaveHere, revealed } from "../core";
-import { t } from "../locales";
+import { weigh } from "../format";
+import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import Modal from "./Modal";
 import { mild } from "./Rows";
@@ -26,6 +27,7 @@ function Step({ n, children }: { n: number; children: React.ReactNode }) {
 
 export default function Leave({ cloud, store, onClose }: Props) {
   const [backing, setBacking] = useState<"idle" | "busy" | "done">("idle");
+  const [short, setShort] = useState<string>();
   const [revoke, setRevoke] = useState(false);
   const [going, setGoing] = useState(false);
   const [trouble, setTrouble] = useState<string>();
@@ -37,7 +39,16 @@ export default function Leave({ cloud, store, onClose }: Props) {
       .then(async (at) => {
         if (typeof at !== "string") return;
         setBacking("busy");
-        await backUp(at);
+        const made = await backUp(at);
+        setShort(
+          made.leftOut
+            ? fill(
+                "backupLeftOut",
+                weigh(made.bytes),
+                `${made.leftOut} · ${weigh(made.leftOutBytes)}`,
+              )
+            : undefined,
+        );
         setBacking("done");
       })
       .catch((e) => {
@@ -68,15 +79,22 @@ export default function Leave({ cloud, store, onClose }: Props) {
           <span className="flex items-center gap-2.5">
             <span className="flex-1">{t("leaveBackup")}</span>
             {backing === "done" ? (
-              <span role="status" className="text-[12.5px] text-hue-green">
-                ✓ {t("leaveBackupDone")}
-              </span>
+              !short && (
+                <span role="status" className="text-[12.5px] text-hue-green">
+                  ✓ {t("leaveBackupDone")}
+                </span>
+              )
             ) : (
               <button type="button" disabled={held} onClick={backup} className={mild}>
                 {t("backupMake")}
               </button>
             )}
           </span>
+          {short && (
+            <span role="status" className="mt-1 block text-hue-amber">
+              {short}
+            </span>
+          )}
         </Step>
         {cloud && (
           <Step n={2}>

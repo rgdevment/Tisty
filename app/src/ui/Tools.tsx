@@ -17,6 +17,17 @@ interface Props {
   tell: (word?: Word) => void;
 }
 
+export const rebuildNow = (
+  card: "index" | "rebuild",
+  run: Run,
+  setAudit: (audit: Reviewed) => void,
+  tell: (word?: Word) => void,
+) =>
+  run(card, rebuild().then(checked), (now) => {
+    setAudit(now);
+    tell({ card, text: t("reviewRebuilt") });
+  });
+
 export default function Tools({ audit, setAudit, busy, secs, said, trouble, run, tell }: Props) {
   const held = busy !== null;
   const [brittle, setBrittle] = useState<Brittle[] | null>(null);
@@ -120,12 +131,7 @@ export default function Tools({ audit, setAudit, busy, secs, said, trouble, run,
           <button
             type="button"
             disabled={held}
-            onClick={() =>
-              run("index", rebuild().then(checked), (now) => {
-                setAudit(now);
-                tell({ card: "index", text: t("reviewRebuilt") });
-              })
-            }
+            onClick={() => rebuildNow("index", run, setAudit, tell)}
             className={mild}
           >
             {t("reviewRedo")}

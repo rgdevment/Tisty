@@ -3187,6 +3187,28 @@ describe("Maintenance looking by itself", () => {
     expect(screen.queryByText(t("toLookAt"))).toBeNull();
   });
 
+  it("does not check again when the tab is opened a second time", async () => {
+    shown();
+    await userEvent.click(await screen.findByRole("tab", { name: /maintenance/i }));
+    await screen.findByText(/everything in order · checked/i);
+    await userEvent.click(screen.getByRole("tab", { name: /general/i }));
+    await userEvent.click(screen.getByRole("tab", { name: /maintenance/i }));
+
+    expect(await screen.findByText(/everything in order · checked/i)).toBeTruthy();
+    expect(sent("repeated_lists")).toHaveLength(1);
+  });
+
+  it("says when a check could not run instead of calling everything in order", async () => {
+    const otherwise = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "unvouched_attachments" ? Promise.reject({ code: "internal" }) : otherwise(cmd, args);
+    shown();
+    await userEvent.click(await screen.findByRole("tab", { name: /maintenance/i }));
+
+    expect(await screen.findByText(t("reviewWhat"))).toBeTruthy();
+    expect(screen.queryByText(/everything in order · checked/i)).toBeNull();
+  });
+
   it("says it is checking on the button while the review runs", async () => {
     const otherwise = ipc.answer;
     ipc.answer = (cmd, args) => (cmd === "checked" ? new Promise(() => {}) : otherwise(cmd, args));

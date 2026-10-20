@@ -93,7 +93,6 @@ const KNOWN = [
   "wipeStopped",
   "forgetUntold",
   "cloudNotLost",
-  "backupCloudOff",
   "wouldReset",
   "sameName",
   "noBase",

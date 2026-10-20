@@ -794,11 +794,11 @@ pub fn unreach() -> std::io::Result<bool> {
 }
 
 fn unreach_from(paths: Option<&tisty_core::Paths>) -> std::io::Result<bool> {
-    if let Some(paths) = paths {
-        sweep(paths);
-    }
     // A sandbox leaves only itself: starting with the system, the PATH and the keys are the real install's.
     if tisty_core::paths::profile().is_some() {
+        if let Some(paths) = paths {
+            sweep(paths);
+        }
         return Ok(false);
     }
     let _ = waking::wake(false);
@@ -816,6 +816,10 @@ fn unreach_from(paths: Option<&tisty_core::Paths>) -> std::io::Result<bool> {
     if let Some(sealed) = sealed::home() {
         let _ = std::fs::remove_dir_all(sealed);
     }
+    // Last, since a step above that fails writes the log the sweep removes.
+    if let Some(paths) = paths {
+        sweep(paths);
+    }
     reached
 }
 
@@ -830,9 +834,13 @@ fn sweep(paths: &tisty_core::Paths) {
 
 /// Leaving from the window: the same sweep as the uninstaller, then gone before anything writes the settings back.
 #[tauri::command]
-fn leave_here(session: tauri::State<'_, Mutex<Session>>) {
-    let session = held(&session);
-    let _ = unreach_from(Some(&session.paths));
+async fn leave_here(
+    session: tauri::State<'_, Mutex<Session>>,
+    alone: tauri::State<'_, OneAtATime>,
+) -> Answer<()> {
+    let _done = alone.inner().waited(ROUND_WAITED_OUT).await?;
+    let paths = held(&session).paths.clone();
+    let _ = unreach_from(Some(&paths));
     std::process::exit(0);
 }
 

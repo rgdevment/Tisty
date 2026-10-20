@@ -25,7 +25,7 @@ import { saidPlainly } from "../refusal";
 import { afterMove } from "../relocation";
 import type { Heading, Tab } from "../views";
 import Agents, { useAgents } from "./Agents";
-import { NAMED, type Which, type Word } from "./Card";
+import { NAMED, type Which } from "./Card";
 import Choosing from "./Choosing";
 import General from "./General";
 import Modal from "./Modal";
@@ -33,7 +33,8 @@ import Relocating from "./Relocating";
 import { strong } from "./Rows";
 import { useSigning } from "./Signing";
 import Sync from "./Sync";
-import Upkeep from "./Upkeep";
+import Upkeep, { type Seen } from "./Upkeep";
+import { useCards } from "./useCards";
 import { useCarry } from "./useCarry";
 import Yours from "./Yours";
 
@@ -71,28 +72,16 @@ export default function Keeping({
   const [tab, setTab] = useState<Tab>(start ?? "general");
   const [state, setState] = useState<Carrying | null>(null);
   const [audit, setAudit] = useState<Reviewed | null>(null);
-  const [reach, setReach] = useState<Reach | null>(null);
-  const [wake, setWake] = useState<Waking | null>(null);
-  const [keys, setKeys] = useState<string | null>(null);
   const [kept, setKept] = useState<Settings | null>(null);
-  const [freeing, setFreeing] = useState<Freeing | null>(null);
+  const [freeing, setFreeing] = useFreeing();
   const [freeDays, setFreeDays] = useState(30);
-
-  useEffect(() => {
-    const off = listen<Freeing>("freeing", (told) => setFreeing(told.payload));
-    return () => {
-      void off.then((stop) => stop());
-    };
-  }, []);
-  const [build, setBuild] = useState<About | null>(null);
-  const [busy, setHeld] = useState<Which | null>(null);
-  const [busySince, setBusySince] = useState(0);
-  const setBusy = useCallback((card: Which | null) => {
-    setHeld(card);
-    setBusySince(card ? Date.now() : 0);
-  }, []);
-  const [said, setSaid] = useState<Word>();
-  const [trouble, setTrouble] = useState<Word>();
+  const [seen, setSeen] = useState<Seen | null>(null);
+  const { busy, busySince, setBusy, said, setSaid, trouble, setTrouble, run, quietly } = useCards(
+    () => {
+      look();
+      onChanged();
+    },
+  );
   const signs = useSigning();
   const { lookSigned } = signs;
   const known = useAgents(tab === "agents", setTrouble);
@@ -105,49 +94,10 @@ export default function Keeping({
     readSettings()
       .then(setKept)
       .catch(() => {});
-  }, [lookSigned]);
+  }, [lookSigned, setTrouble]);
 
   useEffect(look, [look]);
-
-  useEffect(() => {
-    reachable()
-      .then(setReach)
-      .catch(() => {});
-    waking()
-      .then(setWake)
-      .catch(() => {});
-    shortcut()
-      .then(setKeys)
-      .catch(() => {});
-    about()
-      .then(setBuild)
-      .catch(() => {});
-    look();
-  }, [greeted, look]);
-
-  const run = <T,>(card: Which, work: Promise<T>, then: (answer: T) => void) => {
-    setBusy(card);
-    setSaid(undefined);
-    setTrouble(undefined);
-    work
-      .then((answer) => {
-        then(answer);
-        look();
-        onChanged();
-      })
-      .catch((e) => setTrouble({ card, text: saidPlainly(e) }))
-      .finally(() => setBusy(null));
-  };
-
-  const quietly = <T,>(card: Which, work: Promise<T>, then: (answer: T) => void) => {
-    setBusy(card);
-    setSaid(undefined);
-    setTrouble(undefined);
-    work
-      .then(then)
-      .catch((e) => setTrouble({ card, text: saidPlainly(e) }))
-      .finally(() => setBusy(null));
-  };
+  const { reach, wake, setWake, keys, build } = useAbout(greeted, look);
 
   const [picking, setPicking] = useState(false);
   const [moving, setMoving] = useState<{ heading?: Heading; resume?: Toward } | null>(null);
@@ -183,29 +133,13 @@ export default function Keeping({
 
   if (!state) {
     return (
-      <main className="flex flex-col overflow-hidden">
-        <div data-tauri-drag-region className="h-9 shrink-0" />
-        <div className="mx-auto w-full max-w-[560px] px-6">
-          <h2 className="mb-3.5 text-[21px] font-semibold">{t("keeping")}</h2>
-          {trouble && (
-            <div className="rounded-[10px] border border-hair bg-panel p-4">
-              <p role="alert" className="text-[12.5px] leading-relaxed text-urgent">
-                {trouble.text}
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  setTrouble(undefined);
-                  look();
-                }}
-                className={`mt-2.5 ${strong}`}
-              >
-                {t("tryAgain")}
-              </button>
-            </div>
-          )}
-        </div>
-      </main>
+      <Unread
+        trouble={trouble?.text}
+        retry={() => {
+          setTrouble(undefined);
+          look();
+        }}
+      />
     );
   }
 
@@ -275,24 +209,7 @@ export default function Keeping({
       <div className="scroller mx-auto w-full max-w-[560px] px-6 pb-12">
         <h2 className="mb-3.5 text-[21px] font-semibold">{t("keeping")}</h2>
 
-        <div role="tablist" className="mb-4 flex flex-wrap gap-1">
-          {TABS.map((one) => (
-            <button
-              key={one.key}
-              type="button"
-              role="tab"
-              aria-selected={tab === one.key}
-              onClick={() => setTab(one.key)}
-              className={`rounded-full border px-2.5 py-0.5 text-[11.5px] ${
-                tab === one.key
-                  ? "border-ink bg-ink text-bg"
-                  : "border-line text-faint hover:text-soft"
-              }`}
-            >
-              {t(one.label)}
-            </button>
-          ))}
-        </div>
+        <Tabs tab={tab} setTab={setTab} />
 
         {busy !== null && (tab === "general" || tab === "sync" || tab === "data") && (
           <p className="text-[11.5px] text-faint">{fill("waitFor", t(NAMED[busy]))}</p>
@@ -388,9 +305,87 @@ export default function Keeping({
             tell={setSaid}
             fail={setTrouble}
             onSync={() => setTab("sync")}
+            seen={seen}
+            setSeen={setSeen}
           />
         )}
       </div>
     </main>
   );
+}
+
+function Tabs({ tab, setTab }: { tab: Tab; setTab: (tab: Tab) => void }) {
+  return (
+    <div role="tablist" className="mb-4 flex flex-wrap gap-1">
+      {TABS.map((one) => (
+        <button
+          key={one.key}
+          type="button"
+          role="tab"
+          aria-selected={tab === one.key}
+          onClick={() => setTab(one.key)}
+          className={`rounded-full border px-2.5 py-0.5 text-[11.5px] ${
+            tab === one.key ? "border-ink bg-ink text-bg" : "border-line text-faint hover:text-soft"
+          }`}
+        >
+          {t(one.label)}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function Unread({ trouble, retry }: { trouble?: string; retry: () => void }) {
+  return (
+    <main className="flex flex-col overflow-hidden">
+      <div data-tauri-drag-region className="h-9 shrink-0" />
+      <div className="mx-auto w-full max-w-[560px] px-6">
+        <h2 className="mb-3.5 text-[21px] font-semibold">{t("keeping")}</h2>
+        {trouble && (
+          <div className="rounded-[10px] border border-hair bg-panel p-4">
+            <p role="alert" className="text-[12.5px] leading-relaxed text-urgent">
+              {trouble}
+            </p>
+            <button type="button" onClick={retry} className={`mt-2.5 ${strong}`}>
+              {t("tryAgain")}
+            </button>
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}
+
+function useFreeing() {
+  const [freeing, setFreeing] = useState<Freeing | null>(null);
+  useEffect(() => {
+    const off = listen<Freeing>("freeing", (told) => setFreeing(told.payload));
+    return () => {
+      void off.then((stop) => stop());
+    };
+  }, []);
+  return [freeing, setFreeing] as const;
+}
+
+function useAbout(greeted: number | undefined, look: () => void) {
+  const [reach, setReach] = useState<Reach | null>(null);
+  const [wake, setWake] = useState<Waking | null>(null);
+  const [keys, setKeys] = useState<string | null>(null);
+  const [build, setBuild] = useState<About | null>(null);
+  useEffect(() => {
+    reachable()
+      .then(setReach)
+      .catch(() => {});
+    waking()
+      .then(setWake)
+      .catch(() => {});
+    shortcut()
+      .then(setKeys)
+      .catch(() => {});
+    about()
+      .then(setBuild)
+      .catch(() => {});
+    look();
+  }, [greeted, look]);
+  return { reach, wake, setWake, keys, build };
 }

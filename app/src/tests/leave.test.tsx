@@ -6,6 +6,7 @@ import Leave from "../ui/Leave";
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
   refuse: null as string | null,
+  leftOut: 0,
 }));
 
 const asked = vi.hoisted(() => ({ file: null as string | null }));
@@ -14,7 +15,8 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: Record<string, unknown>) => {
     ipc.calls.push({ cmd, args: args ?? {} });
     if (cmd === ipc.refuse) return Promise.reject({ code: "forgetUntold" });
-    if (cmd === "back_up") return Promise.resolve({ bytes: 10, leftOut: 0, leftOutBytes: 0 });
+    if (cmd === "back_up")
+      return Promise.resolve({ bytes: 10, leftOut: ipc.leftOut, leftOutBytes: ipc.leftOut * 1024 });
     return Promise.resolve(null);
   },
 }));
@@ -28,6 +30,7 @@ const said = () => ipc.calls.map((one) => one.cmd);
 beforeEach(() => {
   ipc.calls.length = 0;
   ipc.refuse = null;
+  ipc.leftOut = 0;
   asked.file = null;
 });
 
@@ -79,6 +82,18 @@ describe("leaving Tisty", () => {
 
     expect((await screen.findByRole("status")).textContent).toContain("Backup made");
     expect(ipc.calls[0]).toEqual({ cmd: "back_up", args: { into: "C:/out/tisty-backup.zip" } });
+  });
+
+  it("says what the backup left out instead of marking it done", async () => {
+    asked.file = "C:/out/tisty-backup.zip";
+    ipc.leftOut = 3;
+    render(<Leave cloud store="C:/Tisty" onClose={vi.fn()} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Create backup…" }));
+
+    const status = await screen.findByRole("status");
+    expect(status.textContent).toContain("stayed out of it");
+    expect(screen.queryByText(/Backup made/)).toBeNull();
   });
 
   it("cancels without touching anything", async () => {

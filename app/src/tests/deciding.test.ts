@@ -276,6 +276,17 @@ describe("asking inside the window", () => {
     expect(settled()[0].args.keep).toBe("mine");
   });
 
+  it("lets go of a document left for later once a full round no longer names it", async () => {
+    const { leftForLater, stillAtOdds } = await import("../deciding");
+    decidesWhole(async () => null);
+
+    await decideAll(["dev_a-0008", "dev_a-0009"]);
+    expect(leftForLater()).toEqual(["dev_a-0008", "dev_a-0009"]);
+
+    stillAtOdds(["dev_a-0009"]);
+    expect(leftForLater()).toEqual(["dev_a-0009"]);
+  });
+
   it("asks one thing at a time, and never again for what a round waiting behind it named", async () => {
     const held: ((pick: Pick) => void)[] = [];
     decidesWhole(() => new Promise((answer) => held.push(answer)));

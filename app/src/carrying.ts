@@ -8,6 +8,7 @@ import {
   syncState,
   whatWentAmiss,
 } from "./core";
+import { stillAtOdds } from "./deciding";
 import { knock, settled } from "./knocking";
 import { t } from "./locales";
 import { saidPlainly } from "./refusal";
@@ -75,6 +76,7 @@ export function carrying(
           stalled = true;
         }
         if (answer.carried !== "busy" && !answer.deferred) toldAside(null);
+        if (answer.carried !== "busy" && !answer.deferred && !way) stillAtOdds(answer.undecided);
         if (mine !== round) return answer.carried;
         if (answer.undecided.length) atOdds(answer.undecided);
         // A history turned away is the whole point of signing it, and the round that finds it is

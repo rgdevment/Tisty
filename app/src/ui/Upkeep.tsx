@@ -39,16 +39,20 @@ interface Props {
   tell: (word?: Word) => void;
   fail: (word?: Word) => void;
   onSync: () => void;
+  seen: Seen | null;
+  setSeen: (seen: Seen) => void;
 }
 
-type Found = [Reviewed, Repeated[] | null, Unvouching | null];
+export interface Seen {
+  twice: Repeated[];
+  unproven: Unvouching;
+  at: string;
+}
+
+type Found = [Reviewed, Repeated[], Unvouching];
 
 const looked = (): Promise<Found> =>
-  Promise.all([
-    checked(),
-    repeatedLists().catch(() => null),
-    unvouchedAttachments().catch(() => null),
-  ]);
+  Promise.all([checked(), repeatedLists(), unvouchedAttachments()]);
 
 export default function Upkeep({
   audit,
@@ -68,19 +72,19 @@ export default function Upkeep({
   tell,
   fail,
   onSync,
+  seen,
+  setSeen,
 }: Props) {
   const held = busy !== null;
   const secs = useSince(held, busySince);
-  const [twice, setTwice] = useState<Repeated[]>([]);
-  const [unproven, setUnproven] = useState<Unvouching | null>(null);
-  const [at, setAt] = useState<string | null>(null);
   const [reporting, setReporting] = useState(false);
+  const twice = seen?.twice ?? [];
+  const unproven = seen?.unproven ?? null;
+  const at = seen?.at ?? null;
 
   const took = ([now, lists, unvouched]: Found) => {
     setAudit(now);
-    setTwice(lists ?? []);
-    setUnproven(unvouched);
-    setAt(new Date().toISOString());
+    setSeen({ twice: lists, unproven: unvouched, at: new Date().toISOString() });
   };
 
   const review = () => quietly("review", looked(), took);
@@ -90,8 +94,10 @@ export default function Upkeep({
       .catch(() => undefined);
   };
 
-  const first = useRef(review);
-  first.current = review;
+  // Looked at once per visit to the settings, and never over another card that is still working.
+  const first = useRef(() => {
+    if (!seen && !held) review();
+  });
   useEffect(() => first.current(), []);
 
   const many =

@@ -6,7 +6,6 @@ import {
   type Gone,
   type Repeated,
   type Reviewed,
-  rebuild,
   type Stray,
   type Unvouching,
 } from "../core";
@@ -18,6 +17,7 @@ import Card, { type Run, type Which, type Word } from "./Card";
 import { astrayKey, hushedName, named } from "./Keys";
 import { Band, dated, mild, risky, strong } from "./Rows";
 import Tidying from "./Tidying";
+import { rebuildNow } from "./Tools";
 
 interface Props {
   audit: Reviewed;
@@ -127,12 +127,7 @@ export default function Leftovers({
               <button
                 type="button"
                 disabled={held}
-                onClick={() =>
-                  run("rebuild", rebuild().then(checked), (now) => {
-                    setAudit(now);
-                    tell({ card: "rebuild", text: t("reviewRebuilt") });
-                  })
-                }
+                onClick={() => rebuildNow("rebuild", run, setAudit, tell)}
                 className={strong}
               >
                 {t("reviewRedo")}
