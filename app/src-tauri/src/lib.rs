@@ -790,17 +790,18 @@ pub fn asked_to_unreach() -> bool {
 }
 
 pub fn unreach() -> std::io::Result<bool> {
-    let reached = unreach_from(tisty_core::Paths::resolve().ok().as_ref());
-    reached.0
+    let reached = unreach_system();
+    // Last, since a step above that fails writes the log the sweep removes.
+    if let Ok(paths) = tisty_core::Paths::resolve() {
+        sweep(&paths);
+    }
+    reached
 }
 
-type Unreached = (std::io::Result<bool>, Vec<std::path::PathBuf>);
-
-fn unreach_from(paths: Option<&tisty_core::Paths>) -> Unreached {
-    let swept = |paths: Option<&tisty_core::Paths>| paths.map(sweep).unwrap_or_default();
+fn unreach_system() -> std::io::Result<bool> {
     // A sandbox leaves only itself: starting with the system, the PATH and the keys are the real install's.
     if tisty_core::paths::profile().is_some() {
-        return (Ok(false), swept(paths));
+        return Ok(false);
     }
     let _ = waking::wake(false);
     let reached = command::out_of_reach();
@@ -817,8 +818,7 @@ fn unreach_from(paths: Option<&tisty_core::Paths>) -> Unreached {
     if let Some(sealed) = sealed::home() {
         let _ = std::fs::remove_dir_all(sealed);
     }
-    // Last, since a step above that fails writes the log the sweep removes.
-    (reached, swept(paths))
+    reached
 }
 
 fn sweep(paths: &tisty_core::Paths) -> Vec<std::path::PathBuf> {
@@ -835,8 +835,7 @@ fn sweep(paths: &tisty_core::Paths) -> Vec<std::path::PathBuf> {
         .collect()
 }
 
-/// Leaving from the window: the same sweep as the uninstaller, then gone before anything writes the settings back.
-/// What another program still holds open stays and is named, unless the person already chose to go anyway.
+/// Leaving from the window as the uninstaller does; what could not be undone is named, unless asked to go anyway.
 #[tauri::command]
 async fn leave_here(
     session: tauri::State<'_, Mutex<Session>>,
@@ -844,14 +843,23 @@ async fn leave_here(
     anyway: Option<bool>,
 ) -> Answer<Vec<String>> {
     let _done = alone.inner().waited(ROUND_WAITED_OUT).await?;
+    let reached = tauri::async_runtime::spawn_blocking(unreach_system)
+        .await
+        .map_err(|_| Refusal::of("internal"))?;
     let mut session = held(&session);
     // Windows keeps an open database from being deleted, so the cache lets go before the sweep.
     session.cache = None;
-    let (_, left) = unreach_from(Some(&session.paths));
+    let mut left: Vec<String> = sweep(&session.paths)
+        .iter()
+        .map(|at| at.display().to_string())
+        .collect();
+    if reached.is_err() {
+        left.extend(command::beside().map(|home| format!("PATH: {}", home.display())));
+    }
     if left.is_empty() || anyway == Some(true) {
         std::process::exit(0);
     }
-    Ok(left.iter().map(|at| at.display().to_string()).collect())
+    Ok(left)
 }
 
 pub(crate) fn as_asked_for(at: &std::path::Path) -> std::path::PathBuf {

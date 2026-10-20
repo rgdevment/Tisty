@@ -1723,7 +1723,7 @@ const en = {
   leaveCloudGone:
     "Your cloud is already disconnected on this computer, but Tisty could not finish leaving.",
   leaveHeldOpen:
-    "Another program still has these open, so they stayed. Close it, then delete them by hand:",
+    "These stayed on this computer, most likely held open by another program. Close it, then remove them by hand:",
   leaveAnyway: "Close Tisty",
   leaveLeft:
     "What Tisty left on this computer: settings, cache, log, this computer's keys and starting with the system.",
@@ -3871,7 +3871,7 @@ const es: Catalog = {
   leaveCloudGone:
     "Tu nube ya quedó desconectada en este equipo, pero Tisty no pudo terminar de salir.",
   leaveHeldOpen:
-    "Otro programa todavía tiene esto abierto, así que quedó. Ciérralo y bórralo a mano:",
+    "Esto quedó en el equipo, lo más probable es que otro programa lo tenga abierto. Ciérralo y quítalo a mano:",
   leaveAnyway: "Cerrar Tisty",
   leaveLeft:
     "Lo que Tisty dejó en este equipo: ajustes, caché, registro, las llaves de este equipo y el inicio con el sistema.",

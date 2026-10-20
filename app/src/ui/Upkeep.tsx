@@ -109,11 +109,15 @@ export default function Upkeep({
       .catch((e) => fail({ card: "review", text: saidPlainly(e) }));
   };
 
-  // Looked at once per visit to the settings, and never over another card that is still working.
-  const first = useRef(() => {
-    if (!seen && !held) review();
-  });
-  useEffect(() => first.current(), []);
+  // Looked at once per visit to the settings, after any card still working has landed.
+  const asked = useRef(seen !== null);
+  const first = useRef(review);
+  first.current = review;
+  useEffect(() => {
+    if (held || asked.current) return;
+    asked.current = true;
+    first.current();
+  }, [held]);
 
   const many =
     audit && at ? Object.values(lookAt(audit, twice, unproven)).filter(Boolean).length : -1;

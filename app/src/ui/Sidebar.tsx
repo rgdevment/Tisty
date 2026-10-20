@@ -175,10 +175,14 @@ export default function Sidebar({
             onSync={onSync}
             onTrouble={onTrouble}
             onOpen={() => onChoose({ named: "keeping", tab: "sync", movedAt: Date.now() })}
-            fallback={<Mode onOpen={() => onChoose({ named: "keeping" })} />}
+            fallback={
+              <Mode
+                onOpen={() => onChoose({ named: "keeping", tab: "sync", movedAt: Date.now() })}
+              />
+            }
           />
         ) : (
-          <Mode onOpen={() => onChoose({ named: "keeping" })} />
+          <Mode onOpen={() => onChoose({ named: "keeping", tab: "sync", movedAt: Date.now() })} />
         )}
         <button
           type="button"

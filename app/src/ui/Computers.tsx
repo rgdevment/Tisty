@@ -7,6 +7,7 @@ import {
   type Reviewed,
   removeMachine,
 } from "../core";
+import { synced } from "../footing";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { sure } from "../sure";
@@ -42,7 +43,7 @@ export default function Computers({
   const held = busy !== null;
   const [keyOf, setKeyOf] = useState<Machine | null>(null);
   const [astray, setAstray] = useState<Machine | null>(null);
-  const synced = Boolean(state.chosen) || state.mode === "cloud";
+  const shared = synced(state);
 
   // Read once a visit, after any card still working has landed, and not when the settings already hold it.
   const asked = useRef(audit !== null);
@@ -106,7 +107,7 @@ export default function Computers({
       <Band label={t("theMachines")} />
       <section className="rounded-[10px] border border-hair px-4 py-3.5">
         <p className="text-[12.5px] leading-relaxed text-soft">{t("machinesWhat")}</p>
-        {synced && <ConfirmHere />}
+        {shared && <ConfirmHere />}
         <MachineList
           all={audit?.machines ?? null}
           busy={held}
@@ -114,7 +115,7 @@ export default function Computers({
           onAstray={setAstray}
           onDrop={dropMachine}
         />
-        {synced && <Here held={held} />}
+        {shared && <Here held={held} />}
         {trouble?.card === "machines" && (
           <p className="mt-2 text-[11.5px] text-urgent">{trouble.text}</p>
         )}

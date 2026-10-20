@@ -63,12 +63,12 @@ export const footing = (seen: Seen): Footing | null => {
   const now = seen.now ?? Date.now() / 1000;
   if (seen.coming || seen.mine)
     return { kind: "syncing", done: seen.coming?.done ?? 0, whole: seen.coming?.whole ?? 0 };
-  if (status?.pausedHere) return { kind: "paused" };
   const said = new Set<Said | null>([
     status?.last ? saidOf(status.last.code, status.last.at, now) : null,
     saidOf(codeOf(seen.stuck), now, now),
   ]);
   if (said.has("lost")) return { kind: "lost" };
+  if (status?.pausedHere) return { kind: "paused" };
   if (seen.putOff > 0) return { kind: "look", putOff: true };
   if (seen.knocked || choiceWaits(seen.stuck) || status?.lost || said.has("look"))
     return { kind: "look", putOff: false };

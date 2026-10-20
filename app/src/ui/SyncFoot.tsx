@@ -8,6 +8,7 @@ import { useKnocking } from "../knocking";
 import { cloudNamed, fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { offlineNow } from "../syncSaid";
+import { leaf } from "./Mode";
 
 const A_WHILE = 60_000;
 
@@ -30,8 +31,6 @@ const DOT: Record<Footing["kind"], string> = {
   paused: "bg-faint",
   look: "bg-hue-blue",
 };
-
-const folderName = (at: string): string => at.split(/[\\/]/).filter(Boolean).pop() ?? at;
 
 const until = (secs: number): string => stamped(new Date(secs * 1000).toISOString());
 
@@ -113,7 +112,7 @@ export default function SyncFoot({ carried, onSync, onOpen, onTrouble, fallback 
   const named =
     state.mode === "cloud"
       ? cloudNamed(status?.provider ?? state.cloudProvider)
-      : folderName(state.chosen ?? "");
+      : leaf(state.chosen ?? "");
   const { line, why } = told(foot, state, named);
 
   const failed = (problem: unknown) => onTrouble?.(saidPlainly(problem));

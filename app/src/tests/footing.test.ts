@@ -127,6 +127,11 @@ describe("the sync foot", () => {
     expect(foot && offered(foot)).toBe(true);
   });
 
+  it("asks to sign in again before offering to resume a paused cloud whose access is gone", () => {
+    const foot = footing(seen({ status: cloud({ pausedHere: true, last: round("cloudLost") }) }));
+    expect(foot).toEqual({ kind: "lost" });
+  });
+
   it("points at what waits for the person before any wait that passes by itself", () => {
     const waiting = cloud({ last: round("cloudNotNow") });
     expect(footing(seen({ status: waiting, knocked: true }))).toEqual({

@@ -31,6 +31,7 @@ export default function Leave({ cloud, store, onClose }: Props) {
   const [going, setGoing] = useState(false);
   const [trouble, setTrouble] = useState<string>();
   const [stayed, setStayed] = useState<string[]>([]);
+  const [letGo, setLetGo] = useState(false);
   const held = going || backing === "busy";
 
   const backup = () => {
@@ -49,27 +50,38 @@ export default function Leave({ cloud, store, onClose }: Props) {
       });
   };
 
-  // The cloud lets go before the sweep, since forgetting the access is what clears it from the keychain.
-  // Paused first, so no round starts in between without the access it needs.
+  const failed = (e: unknown, gone: boolean) => {
+    setTrouble(gone ? `${t("leaveCloudGone")} ${saidPlainly(e)}` : saidPlainly(e));
+    setGoing(false);
+  };
+
+  // Paused, then forgotten before the sweep: forgetting is what clears the keychain, and no round starts in between.
   const leave = async () => {
     setGoing(true);
     setTrouble(undefined);
-    let letGo = false;
+    let gone = letGo;
     try {
-      if (cloud) {
+      if (cloud && !gone) {
         await cloudPause(true);
         await (revoke ? cloudRevoke() : cloudForget()).catch(async (e) => {
           await cloudPause(false).catch(() => undefined);
           throw e;
         });
+        gone = true;
+        setLetGo(true);
       }
-      letGo = cloud;
       if (store) await revealed(store).catch(() => undefined);
       setStayed((await leaveHere()) ?? []);
-    } catch (e) {
-      setTrouble(letGo ? `${t("leaveCloudGone")} ${saidPlainly(e)}` : saidPlainly(e));
       setGoing(false);
+    } catch (e) {
+      failed(e, gone);
     }
+  };
+
+  const anyway = () => {
+    setGoing(true);
+    setTrouble(undefined);
+    leaveHere(true).catch((e) => failed(e, letGo));
   };
 
   if (stayed.length > 0) {
@@ -83,8 +95,9 @@ export default function Leave({ cloud, store, onClose }: Props) {
             <li key={at}>{at}</li>
           ))}
         </ul>
+        {trouble && <p className="mt-2.5 text-[11.5px] text-urgent">{trouble}</p>}
         <div className="mt-4 flex justify-end">
-          <button type="button" onClick={() => void leaveHere(true)} className={leaving}>
+          <button type="button" disabled={going} onClick={anyway} className={leaving}>
             {t("leaveAnyway")}
           </button>
         </div>
