@@ -323,7 +323,7 @@ impl State {
             }
             Op::StepSaid { .. } => {}
             Op::StepUnsaid { id, d } => self.with_step(*id, d.step, |s| s.said = false),
-            Op::StepText { id, d } => self.with_step(*id, d.step, |s| s.text = d.text.clone()),
+            Op::StepText { id, d } => self.with_step(*id, d.step, |s| s.reword(&d.text)),
             Op::StepReorder { id, d } => {
                 self.with_step(*id, d.step, |s| s.order = d.order.clone());
                 self.with_task(*id, sort_steps);
@@ -826,16 +826,7 @@ impl State {
     /// A whole's parts still open are let go in the same transaction, so one undo takes it back.
     pub fn completing(&self, id: TaskId, now: jiff::Zoned) -> Vec<Op> {
         let mut ops = self.open_parts_dropped(id);
-        // Closing it takes the assistant at its word on the steps it said were done.
-        ops.extend(self.tasks.get(&id).into_iter().flat_map(|task| {
-            task.steps
-                .iter()
-                .filter(|one| one.said && !one.done)
-                .map(move |one| Op::StepDone {
-                    id,
-                    d: crate::event::StepRef { step: one.id },
-                })
-        }));
+        ops.extend(self.said_ticked(id));
         ops.extend(self.finishing(id, now));
         ops
     }
@@ -993,7 +984,8 @@ impl State {
         wanted.sort_unstable();
         wanted.dedup();
 
-        let mut ops = vec![Op::TaskDone { id, filled: false }];
+        let mut ops = self.said_ticked(id);
+        ops.push(Op::TaskDone { id, filled: false });
         let mut before = id;
         let mut last = due.clone();
         let mut order = self.order_last_in(task.list);

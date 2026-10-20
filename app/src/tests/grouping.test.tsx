@@ -104,17 +104,6 @@ describe("grouping the open tasks", () => {
     expect(heads()).toEqual(["Home1", "No list2", "To confirm1"]);
   });
 
-  it("brings a task to confirm when an agent only said some of its steps are done", async () => {
-    const vouched = {
-      ...task("5", "renew the certificate", "01H"),
-      steps: [{ id: "s1", text: "pay", done: false, order: "a0", said: true }],
-    } as Task;
-    show({ tasks: [...open, vouched] });
-    await groupBy(/List/);
-
-    expect(heads()).toEqual(["Home1", "No list2", "To confirm1"]);
-  });
-
   it("opens a task an agent says should not be done instead of completing it", async () => {
     const select = vi.fn();
     const complete = vi.fn();

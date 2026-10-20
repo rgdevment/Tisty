@@ -901,6 +901,7 @@ fn spoken_for(paths: &Paths, args: &Value, drop: bool) -> Result<Value, Refused>
         return Err(refusal);
     }
 
+    let attended = state.attended_by_agents(task);
     let zone = jiff::tz::TimeZone::system();
     let entry = Ulid::generate();
     // Judged again under the lock: the mark must not land beside a step the person just
@@ -917,13 +918,14 @@ fn spoken_for(paths: &Paths, args: &Value, drop: bool) -> Result<Value, Refused>
                     d: Resolve::new(entry)
                         .said_by(jiff::Timestamp::now(), me.clone())
                         .dropping(drop)
-                        .as_word(!state.attended_by_agents(task)),
+                        .as_word(!attended),
                 },
             ],
             |events| {
                 let held = State::replay(events);
                 held.tasks.get(&id).is_none_or(|now| {
                     !still_in_sight(now)
+                        || held.attended_by_agents(now) != attended
                         || now.resolved.is_some()
                         || (!drop && now.steps.iter().any(|step| !step.done && !step.said))
                 })

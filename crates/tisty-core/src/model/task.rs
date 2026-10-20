@@ -123,6 +123,14 @@ pub struct Step {
     pub said: bool,
 }
 
+impl Step {
+    // A word was given for the words it read, not for what the step says now.
+    pub fn reword(&mut self, text: &str) {
+        self.text = text.to_string();
+        self.said = false;
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LogEntry {
     pub id: LogId,

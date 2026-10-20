@@ -202,6 +202,14 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
             id: *id,
             d: StepRef { step: d.step },
         }),
+        Op::StepSaid { id, d } => Some(Op::StepUnsaid {
+            id: *id,
+            d: StepRef { step: d.step },
+        }),
+        Op::StepUnsaid { id, d } => Some(Op::StepSaid {
+            id: *id,
+            d: StepRef { step: d.step },
+        }),
         Op::StepText { id, d } => Some(Op::StepText {
             id: *id,
             d: StepText {
@@ -326,9 +334,7 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
         | Op::AttachLetGo { .. }
         | Op::AttachRetire { .. }
         | Op::StoresJoined { .. }
-        | Op::TaskPaged { .. }
-        | Op::StepSaid { .. }
-        | Op::StepUnsaid { .. } => None,
+        | Op::TaskPaged { .. } => None,
     }
 }
 

@@ -63,7 +63,7 @@ export function shelved(tasks: Task[], axis: Axis, lists: List[]): Row[] {
 
 export function regrouped(tasks: Task[], axis: Axis, lists: List[], now = new Date()): Row[] {
   const spoken = (task: Task) =>
-    (Boolean(task.resolved) || (task.steps ?? []).some((one) => one.said && !one.done)) &&
+    Boolean(task.resolved) &&
     task.status === "open" &&
     !(task.date && daysFrom(task.date.at, now) <= 0);
   const waiting: Row[] = tasks

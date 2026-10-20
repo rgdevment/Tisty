@@ -41,7 +41,7 @@ interface Props {
   onDiscard: () => void;
   onReopen: () => void;
   onStillOpen: () => void;
-  onStepsSaid?: (keep: boolean) => void;
+  onStepsSaid?: (keep: boolean, steps: string[]) => void;
   onErase: () => void;
   onFold: (away: boolean) => void;
   onReadAs: (how: "story" | "trace") => void;
@@ -776,7 +776,10 @@ function journalled(task: Task): { count: number; last: string } {
   return { count: kept.length, last: last ? wroteAt(last.at, last.tz) : "" };
 }
 
-function Vouched({ task, onAnswer }: Readonly<{ task: Task; onAnswer: (keep: boolean) => void }>) {
+function Vouched({
+  task,
+  onAnswer,
+}: Readonly<{ task: Task; onAnswer: (keep: boolean, steps: string[]) => void }>) {
   const said = (task.steps ?? []).filter((one) => one.said && !one.done);
   if (said.length === 0) return null;
   return (
@@ -793,12 +796,26 @@ function Vouched({ task, onAnswer }: Readonly<{ task: Task; onAnswer: (keep: boo
       <div className="mt-1.5 ml-6 flex gap-3">
         <button
           type="button"
-          onClick={() => onAnswer(true)}
+          onClick={() =>
+            onAnswer(
+              true,
+              said.map((one) => one.id),
+            )
+          }
           className="font-medium hover:underline"
         >
           {t("stepsSaidTake")}
         </button>
-        <button type="button" onClick={() => onAnswer(false)} className="text-soft hover:underline">
+        <button
+          type="button"
+          onClick={() =>
+            onAnswer(
+              false,
+              said.map((one) => one.id),
+            )
+          }
+          className="text-soft hover:underline"
+        >
           {t("stepsSaidLeave")}
         </button>
       </div>

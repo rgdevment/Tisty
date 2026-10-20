@@ -121,6 +121,6 @@ describe("steps an assistant says are done", () => {
     expect(screen.queryByText("download it")).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Tick them" }));
 
-    expect(answer).toHaveBeenCalledWith(true);
+    expect(answer).toHaveBeenCalledWith(true, ["s1"]);
   });
 });

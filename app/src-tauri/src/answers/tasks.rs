@@ -495,11 +495,11 @@ pub fn fold(session: tauri::State<'_, Mutex<Session>>, id: String, away: bool) -
         .ok_or_else(|| Refusal::of("notATaskId"))
 }
 
-/// The person's answer to the steps an assistant said were done: ticked when taken, unsaid when not.
 #[tauri::command]
 pub fn steps_said(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
+    steps: Vec<String>,
     keep: bool,
 ) -> Answer<Task> {
     let id = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
@@ -511,15 +511,23 @@ pub fn steps_said(
         .ok_or_else(|| Refusal::of("notATaskId"))?
         .steps
         .iter()
-        .filter(|one| one.said && !one.done)
+        // Only the steps the person was shown: a word that arrived meanwhile waits for its own answer.
+        .filter(|one| one.said && !one.done && steps.contains(&one.id.to_string()))
         .map(|one| one.id)
         .collect();
-    for step in said {
-        let d = tisty_core::event::StepRef { step };
-        session.commit(match keep {
-            true => Op::StepDone { id, d },
-            false => Op::StepUndone { id, d },
-        })?;
+    // Turned down, a step was never ticked, so the trail must not read it as unticked.
+    let answered: Vec<Op> = said
+        .into_iter()
+        .map(|step| {
+            let d = tisty_core::event::StepRef { step };
+            match keep {
+                true => Op::StepDone { id, d },
+                false => Op::StepUnsaid { id, d },
+            }
+        })
+        .collect();
+    if !answered.is_empty() {
+        session.commit_all(answered)?;
     }
     session
         .state
