@@ -77,15 +77,19 @@ pub fn also_weighed(data: &Path, also: Option<&Path>) -> u64 {
 }
 
 pub fn weighed(root: &Path) -> u64 {
+    weighed_if(root, &|_| true)
+}
+
+fn weighed_if(root: &Path, keep: &dyn Fn(&Path) -> bool) -> u64 {
     let Ok(entries) = std::fs::read_dir(root) else {
         return 0;
     };
     entries
         .filter_map(|one| one.ok())
         .map(|one| match one.file_type() {
-            Ok(kind) if kind.is_dir() => weighed(&one.path()),
-            Ok(_) => one.metadata().map(|m| m.len()).unwrap_or(0),
-            Err(_) => 0,
+            Ok(kind) if kind.is_dir() => weighed_if(&one.path(), keep),
+            Ok(_) if keep(&one.path()) => one.metadata().map(|m| m.len()).unwrap_or(0),
+            _ => 0,
         })
         .sum()
 }
@@ -94,7 +98,12 @@ pub fn weighed(root: &Path) -> u64 {
 pub fn carried(data: &Path) -> u64 {
     tisty_core::backup::CARRIED
         .iter()
-        .map(|one| weighed(&data.join(one)))
+        .map(|one| match *one {
+            "docs" | "attachments" => weighed_if(&data.join(one), &|at| {
+                tisty_core::backup::carried_alone(data, at)
+            }),
+            _ => weighed(&data.join(one)),
+        })
         .sum()
 }
 

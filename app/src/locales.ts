@@ -1525,6 +1525,8 @@ const en = {
   moveErasing: "Deleting your copies from {cloud}: {name} of {other}.",
   moveErasingStill: "Checking before deleting the copies in the cloud you left…",
   moveErasingAlong: "Deleting the copies in the cloud you left: {name} of {other}",
+  moveErasingStopped: "Deleting the copies in the cloud you left stopped. Open it to see why.",
+  moveErasedAll: "The copies in the cloud you left were deleted.",
   moveWipingAway:
     "You can close this window and keep working: the deleting goes on, and Tisty keeps syncing meanwhile.",
   moveWiped: "{name} copies were deleted from your {cloud}.",
@@ -3674,6 +3676,9 @@ const es: Catalog = {
   moveErasing: "Borrando tus copias de {cloud}: {name} de {other}.",
   moveErasingStill: "Revisando antes de borrar las copias de la nube que dejaste…",
   moveErasingAlong: "Borrando las copias de la nube que dejaste: {name} de {other}",
+  moveErasingStopped:
+    "El borrado de las copias de la nube que dejaste se detuvo. Ábrelo para ver por qué.",
+  moveErasedAll: "Se borraron las copias de la nube que dejaste.",
   moveWipingAway:
     "Puedes cerrar esta ventana y seguir trabajando: el borrado continúa y Tisty sigue sincronizando mientras tanto.",
   moveWiped: "Se borraron {name} copias de tu {cloud}.",

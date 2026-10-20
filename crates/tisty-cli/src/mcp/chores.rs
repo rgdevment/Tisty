@@ -1035,24 +1035,23 @@ fn vouch(mut store: Store, id: TaskId, task: &Task, wanted: &[String]) -> Result
             task.title
         )));
     }
-    let ops = fresh
+    let read: Vec<(tisty_core::model::StepId, String)> = chosen
         .iter()
-        .map(|step| Op::StepSaid {
-            id,
-            d: StepRef { step: *step },
-        })
+        .filter(|step| !step.done && !step.said)
+        .map(|step| (step.id, step.text.clone()))
         .collect();
-    let written = store
-        .append_batch_unless(ops, |events| {
-            State::replay(events)
-                .tasks
-                .get(&id)
-                .is_none_or(|now| !still_in_sight(now) || now.resolved.is_some())
-        })
-        .map_err(hitch)?;
-    if written.is_none() {
-        return Err(moved(task));
-    }
+    worded(
+        &mut store,
+        task,
+        &fresh,
+        |step| Op::StepSaid { id, d: step },
+        |now| {
+            read.iter().all(|(step, text)| {
+                now.step(*step)
+                    .is_some_and(|one| !one.done && !one.said && &one.text == text)
+            })
+        },
+    )?;
     let left = task
         .steps
         .iter()
@@ -1077,8 +1076,7 @@ fn vouch(mut store: Store, id: TaskId, task: &Task, wanted: &[String]) -> Result
     ))
 }
 
-/// What an assistant may fill in: a task it filed, or one the person opened to agents, open and not
-/// folded away. The refusal says which of the three it is not.
+/// What an assistant may fill in: a task it filed, or one the person opened to agents.
 pub(super) fn filling<'a>(
     state: &'a State,
     store: &Store,
@@ -1192,6 +1190,34 @@ pub(super) fn steps_named<'a>(
     Ok(chosen)
 }
 
+// Judged again under the lock: a word holds for the steps as they were read, so none reworded,
+// ticked or taken back meanwhile is spoken for.
+fn worded(
+    store: &mut Store,
+    task: &Task,
+    steps: &[tisty_core::model::StepId],
+    op: impl Fn(StepRef) -> Op,
+    still: impl Fn(&Task) -> bool,
+) -> Result<(), Refused> {
+    let id = task.id;
+    let ops = steps
+        .iter()
+        .map(|step| op(StepRef { step: *step }))
+        .collect();
+    let written = store
+        .append_batch_unless(ops, |events| {
+            State::replay(events)
+                .tasks
+                .get(&id)
+                .is_none_or(|now| !still_in_sight(now) || now.resolved.is_some() || !still(now))
+        })
+        .map_err(hitch)?;
+    match written {
+        Some(_) => Ok(()),
+        None => Err(moved(task)),
+    }
+}
+
 fn unsay(mut store: Store, id: TaskId, task: &Task, wanted: &[String]) -> Result<Value, Refused> {
     if let Some(refusal) = already_said_done(task, "taking back a word on its steps") {
         return Err(refusal);
@@ -1209,24 +1235,16 @@ fn unsay(mut store: Store, id: TaskId, task: &Task, wanted: &[String]) -> Result
             task.title
         )));
     }
-    let ops = gone
-        .iter()
-        .map(|step| Op::StepUnsaid {
-            id,
-            d: StepRef { step: *step },
-        })
-        .collect();
-    let written = store
-        .append_batch_unless(ops, |events| {
-            State::replay(events)
-                .tasks
-                .get(&id)
-                .is_none_or(|now| !still_in_sight(now) || now.resolved.is_some())
-        })
-        .map_err(hitch)?;
-    if written.is_none() {
-        return Err(moved(task));
-    }
+    worded(
+        &mut store,
+        task,
+        &gone,
+        |step| Op::StepUnsaid { id, d: step },
+        |now| {
+            gone.iter()
+                .all(|step| now.step(*step).is_some_and(|one| one.said))
+        },
+    )?;
     Ok(told(
         format!(
             "Took back your word on {} step(s) of {:?}; the person's ticks are theirs.",

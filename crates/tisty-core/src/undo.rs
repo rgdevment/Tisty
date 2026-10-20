@@ -216,10 +216,15 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
             id: *id,
             d: StepRef { step: d.step },
         }),
-        Op::StepUndone { id, d } => Some(Op::StepDone {
-            id: *id,
-            d: StepRef { step: d.step },
-        }),
+        Op::StepUndone { id, d } => {
+            let was = before.tasks.get(id)?.step(d.step)?;
+            let step = StepRef { step: d.step };
+            Some(match (was.done, was.said) {
+                (true, _) => Op::StepDone { id: *id, d: step },
+                (false, true) => Op::StepSaid { id: *id, d: step },
+                (false, false) => Op::StepUndone { id: *id, d: step },
+            })
+        }
         Op::StepSaid { id, d } | Op::StepUnsaid { id, d } => {
             let step = StepRef { step: d.step };
             Some(match before.tasks.get(id)?.step(d.step)?.said {

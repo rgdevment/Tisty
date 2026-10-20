@@ -603,7 +603,7 @@ fn the_person_turning_a_said_step_down_clears_the_word() {
 }
 
 #[test]
-fn taking_back_a_tick_or_a_reword_gives_the_assistant_its_word_back() {
+fn taking_back_a_tick_a_reword_or_a_no_gives_the_assistant_its_word_back() {
     let mut state = with_an_agent();
     let id = written(&mut state, 2, "dev_laptop", "renew the certificate");
     let step = stepped(&mut state, 3, id);
@@ -615,6 +615,10 @@ fn taking_back_a_tick_or_a_reword_gives_the_assistant_its_word_back() {
             d: StepRef { step },
         },
         reworded(id, step, "pay the fee"),
+        Op::StepUndone {
+            id,
+            d: StepRef { step },
+        },
     ]
     .into_iter()
     .enumerate()

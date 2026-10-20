@@ -628,13 +628,36 @@ struct Updating(OneAtATime);
 #[derive(Default)]
 struct Packing(OneAtATime);
 
-/// Held while a cloud left behind is emptied, which goes on without the round's hold.
+/// The account whose cloud left behind is being emptied, which goes on without the round's hold.
 #[derive(Default)]
-struct Erasing(OneAtATime);
+struct Erasing(Mutex<Option<String>>);
+
+struct Emptying<'a>(&'a Erasing);
+
+impl Drop for Emptying<'_> {
+    fn drop(&mut self) {
+        *self.0.held() = None;
+    }
+}
 
 impl Erasing {
-    fn going(&self) -> bool {
-        self.0.held.load(std::sync::atomic::Ordering::Acquire)
+    fn held(&self) -> std::sync::MutexGuard<'_, Option<String>> {
+        self.0
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    fn claim(&self, account: &str) -> Option<Emptying<'_>> {
+        let mut held = self.held();
+        if held.is_some() {
+            return None;
+        }
+        *held = Some(account.to_string());
+        Some(Emptying(self))
+    }
+
+    fn of(&self, account: &str) -> bool {
+        self.held().as_deref() == Some(account)
     }
 }
 

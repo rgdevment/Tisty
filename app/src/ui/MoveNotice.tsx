@@ -9,6 +9,8 @@ const said = (run: Run, erasing: Erasing | null): string => {
     return erasing.erased?.of
       ? filled(t("moveErasingAlong"), String(erasing.erased.gone), String(erasing.erased.of))
       : t("moveErasingStill");
+  if (erasing?.failed !== undefined) return t("moveErasingStopped");
+  if (erasing?.gone !== undefined) return t("moveErasedAll");
   if (run.going) return alongSaid(run) ?? t("moveMoving");
   const paused = pauseSaid(run);
   if (paused) return paused;
@@ -19,7 +21,9 @@ const said = (run: Run, erasing: Erasing | null): string => {
 
 export default function MoveNotice({ onOpen }: { onOpen: () => void }) {
   const run = useMove();
-  const erasing = useErasing();
+  const anyErasing = useErasing();
+  const left = run?.result?.state === "done" ? run.result.leftCloud : undefined;
+  const erasing = anyErasing && anyErasing.account === left?.account ? anyErasing : null;
   useTicking(run?.pausedUntil !== undefined);
   if (!run || run.watched) return null;
   const done = run.result?.state === "done" && !run.going;

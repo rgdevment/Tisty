@@ -322,7 +322,9 @@ async fn moving(
 ) -> Answer<Moving> {
     let _done = alone.inner().waited(WAITED).await?;
     // Asked holding the round: a cloud being emptied is let go of when that ends, so no move may lean on one.
-    if erasing.going() && matches!(toward, Toward::Cloud { .. }) {
+    if let Toward::Cloud { account, .. } = &toward
+        && erasing.of(account)
+    {
         return Err(Refusal::of("wipeGoing"));
     }
     accessible(&toward).await?;
@@ -535,7 +537,9 @@ pub async fn cloud_wipe(
     email: String,
     provider: Option<String>,
 ) -> Answer<usize> {
-    let _erasing = erasing.0.claim().ok_or_else(|| Refusal::of("wipeGoing"))?;
+    let _erasing = erasing
+        .claim(&account)
+        .ok_or_else(|| Refusal::of("wipeGoing"))?;
     let done = alone.inner().waited(WAITED).await?;
     let at = CloudAt {
         provider: provider.unwrap_or_else(google),

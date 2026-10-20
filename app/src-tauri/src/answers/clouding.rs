@@ -337,10 +337,19 @@ pub(crate) fn ended(how: tisty_carrier::loopback::Ended, shown: &str) -> Refusal
     }
 }
 
+// An erase going on deletes with this account's keys and lets go of them itself when it ends.
+fn unerased(erasing: &crate::Erasing, at: &CloudAt) -> Answer<()> {
+    match erasing.of(&at.account) {
+        true => Err(Refusal::of("wipeGoing")),
+        false => Ok(()),
+    }
+}
+
 /// Only a copy that shares with nobody starts on the cloud here; any other way has things to bring over first.
 #[tauri::command(async)]
 pub async fn cloud_choose(
     app: tauri::AppHandle,
+    erasing: tauri::State<'_, crate::Erasing>,
     account: String,
     email: String,
     provider: Option<String>,
@@ -350,6 +359,7 @@ pub async fn cloud_choose(
         account,
         email,
     };
+    unerased(&erasing, &at)?;
     // Choosing may reach the cloud to clear a word left there, so it runs away from the window's thread.
     tauri::async_runtime::spawn_blocking(move || chosen_cloud_now(&app, at))
         .await
@@ -407,11 +417,8 @@ pub async fn cloud_forget(
     account: Option<String>,
     provider: Option<String>,
 ) -> Answer<()> {
-    // An erase going on deletes with these keys, and lets go of them itself when it ends.
-    if erasing.going() {
-        return Err(Refusal::of("wipeGoing"));
-    }
     let at = whose(&session, account, provider)?;
+    unerased(&erasing, &at)?;
     forget_here(app, &session, at).await
 }
 
@@ -444,10 +451,12 @@ async fn forget_here(
 pub async fn cloud_revoke(
     app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
+    erasing: tauri::State<'_, crate::Erasing>,
     account: Option<String>,
     provider: Option<String>,
 ) -> Answer<()> {
     let at = whose(&session, account, provider)?;
+    unerased(&erasing, &at)?;
     if at.provider == ONEDRIVE {
         // Forgotten here first, so the page Microsoft keeps never opens over an access this machine still holds.
         forget_here(app, &session, at).await?;
