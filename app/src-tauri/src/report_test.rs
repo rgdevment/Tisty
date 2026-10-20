@@ -38,9 +38,12 @@ fn what_is_carried_leaves_out_what_else_shares_the_folder() {
     std::fs::create_dir_all(data.join("docs")).unwrap();
     std::fs::create_dir_all(data.join("attachments")).unwrap();
     std::fs::create_dir_all(data.join("sandboxes/trial")).unwrap();
-    std::fs::write(data.join("docs/a.md"), [0u8; 10]).unwrap();
-    std::fs::write(data.join("attachments/b.png"), [0u8; 20]).unwrap();
+    std::fs::write(data.join("docs/a3f1-0001.md"), [0u8; 10]).unwrap();
+    std::fs::write(data.join("attachments/foto-a1b2c3d4.png"), [0u8; 20]).unwrap();
     std::fs::write(data.join("sandboxes/trial/huge.bin"), [0u8; 500]).unwrap();
+    // Named as no backup takes them, so they are not weighed either.
+    std::fs::write(data.join("docs/notes.txt"), [0u8; 40]).unwrap();
+    std::fs::write(data.join("attachments/b.png.part"), [0u8; 80]).unwrap();
 
     assert_eq!(carried(data), 30);
 }
