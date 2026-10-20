@@ -59,6 +59,43 @@ pub fn terms(query: &str) -> Vec<String> {
 
 pub use tisty_markdown::tags::composed;
 
+pub fn subject(title: &str) -> String {
+    let plain = |one: char| !one.is_alphanumeric();
+    let bare = title.trim_matches(plain);
+    let bare = without_ticket(bare).map_or(bare, |rest| rest.trim_matches(plain));
+    one_line(&folded(bare))
+}
+
+fn without_ticket(title: &str) -> Option<&str> {
+    let letters = title.chars().take_while(char::is_ascii_uppercase).count();
+    let rest = title[letters..].strip_prefix('-')?;
+    let digits = rest.chars().take_while(char::is_ascii_digit).count();
+    let after = &rest[digits..];
+    (letters >= 2
+        && digits > 0
+        && after
+            .chars()
+            .next()
+            .is_none_or(|one| !one.is_alphanumeric()))
+    .then_some(after)
+}
+
 #[cfg(test)]
 #[path = "text_test.rs"]
 mod tests;
+
+// Words that say nothing of a subject would make every title and folder look alike.
+const EMPTY: [&str; 20] = [
+    "and", "for", "the", "with", "from", "into", "por", "con", "del", "para", "los", "las", "una",
+    "que", "sin", "sus", "como", "este", "esta", "entre",
+];
+
+pub fn telling(said: &str) -> Vec<String> {
+    folded(said)
+        .split(|one: char| !one.is_alphanumeric())
+        .filter(|one| one.chars().count() >= 3)
+        .filter(|one| !one.chars().all(|c| c.is_ascii_digit()))
+        .filter(|one| !EMPTY.contains(one))
+        .map(str::to_string)
+        .collect()
+}

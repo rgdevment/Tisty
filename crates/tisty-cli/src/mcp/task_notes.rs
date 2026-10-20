@@ -20,6 +20,7 @@ pub(super) fn noted_on_page(
     id: TaskId,
     body: &str,
     under: Option<&str>,
+    replace: bool,
 ) -> Result<Value, Refused> {
     let Some(task) = state.tasks.get(&id) else {
         return Err(Refused::Tool("that task is not here any more.".into()));
@@ -59,12 +60,24 @@ pub(super) fn noted_on_page(
         None => "",
     };
     let written = tisty_core::task_docs::wrote(paths, store, id, |was, _| {
-        Some(tisty_core::assistant_notes::noted(was, &note, spanish))
+        Some(match replace {
+            true => tisty_core::assistant_notes::rewritten(was, &note, spanish),
+            false => tisty_core::assistant_notes::noted(was, &note, spanish),
+        })
     });
     if written.is_ok() {
         return Ok(told(
-            format!("Added under the assistant's notes on {title:?}'s page.{elsewhere}"),
-            json!({ "task": id.to_string(), "title": title }),
+            match replace {
+                true => format!(
+                    "Wrote the assistant's notes on {title:?}'s page again, whole; the rest of \
+                     the page is as it was. What they said before is kept: `restore_doc` with \
+                     the task's id puts it back.{elsewhere}"
+                ),
+                false => {
+                    format!("Added under the assistant's notes on {title:?}'s page.{elsewhere}")
+                }
+            },
+            json!({ "task": id.to_string(), "title": title, "replaced": replace }),
         ));
     }
     // A page that cannot take it right now leaves the note in the History, never nowhere.

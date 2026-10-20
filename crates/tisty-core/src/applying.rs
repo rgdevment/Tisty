@@ -302,6 +302,24 @@ impl State {
         }
     }
 
+    pub(crate) fn doc_flagged(&mut self, event: &Event, id: &DocId, d: &crate::event::Flag) {
+        let said = crate::model::Flagged {
+            at: d.at.unwrap_or(event.timestamp),
+            by: d.by.clone().unwrap_or_else(|| event.device.clone()),
+            body: d.body.clone(),
+            via: d.via.clone().or_else(|| event.via.clone()),
+            reason: d.reason.clone(),
+            instead: d.instead.clone(),
+        };
+        self.doc_marked(id, |doc| doc.flagged = Some(said));
+    }
+
+    pub(crate) fn doc_marked(&mut self, id: &DocId, mark: impl FnOnce(&mut Kept)) {
+        if let Some(doc) = self.docs.get_mut(id) {
+            mark(doc);
+        }
+    }
+
     pub(crate) fn doc_added(&mut self, event: &Event, id: &DocId, d: &crate::event::DocAdd) {
         // Every machine names a task's document alike, so the second making must not undo the first.
         if d.task_of.is_some() && self.docs.contains_key(id) {
@@ -358,6 +376,7 @@ impl State {
                         .unwrap_or_default(),
                 ),
                 flagged: None,
+                compacted: None,
                 folder_was: None,
                 task_of: d.task_of,
             },

@@ -422,15 +422,57 @@ pub fn doc_away(session: tauri::State<'_, Mutex<Session>>, id: String, away: boo
 
 #[tauri::command]
 pub fn doc_unflag(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
+    unmarked(
+        &session,
+        &id,
+        |one| one.flagged.is_some(),
+        |id| Op::DocUnflag { id },
+    )
+}
+
+#[tauri::command]
+pub fn doc_keep_compacted(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
+    unmarked(
+        &session,
+        &id,
+        |one| one.compacted.is_some(),
+        |id| Op::DocUncompacted { id },
+    )
+}
+
+#[tauri::command(async)]
+pub fn doc_compacted_last(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<bool> {
+    Ok(compacted_last(&held(&session), &id))
+}
+
+pub fn compacted_last(session: &Session, id: &str) -> bool {
+    session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == id)
+        .and_then(|one| one.compacted.as_ref())
+        .is_some_and(|done| {
+            tisty_core::docs::read(&session.paths.docs(), id).is_ok_and(|now| done.still_last(&now))
+        })
+}
+
+fn unmarked(
+    session: &tauri::State<'_, Mutex<Session>>,
+    id: &str,
+    marked: impl Fn(&tisty_core::model::Kept) -> bool,
+    settle: impl Fn(tisty_core::model::DocId) -> Op,
+) -> Answer<()> {
     let id = id.parse().map_err(|_| Refusal::of("noSuchDoc"))?;
-    let mut session = held(&session);
+    let mut session = held(session);
     match session.state.docs.get(&id) {
-        None => return Err(Refusal::of("noSuchDoc")),
-        Some(one) if one.flagged.is_none() => return Ok(()),
-        Some(_) => {}
+        None => Err(Refusal::of("noSuchDoc")),
+        Some(one) if !marked(one) => Ok(()),
+        Some(_) => {
+            session.commit(settle(id))?;
+            Ok(())
+        }
     }
-    session.commit(Op::DocUnflag { id })?;
-    Ok(())
 }
 
 #[tauri::command]
@@ -862,7 +904,17 @@ pub struct Filed {
     #[serde(skip_serializing_if = "Option::is_none")]
     flagged: Option<Marked>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    compacted: Option<Compaction>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     folder_was: Option<Vec<String>>,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Compaction {
+    at: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    via: Option<String>,
 }
 
 #[derive(serde::Serialize)]
@@ -872,6 +924,10 @@ pub struct Marked {
     said: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     via: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    reason: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    instead: Option<String>,
 }
 
 #[tauri::command(async)]
@@ -975,6 +1031,12 @@ fn gathered(session: &Session) -> Vec<Filed> {
                 at: mark.at.to_string(),
                 said: mark.body.clone(),
                 via: mark.via.clone(),
+                reason: mark.reason.clone(),
+                instead: mark.instead.clone(),
+            }),
+            compacted: kept.compacted.as_ref().map(|done| Compaction {
+                at: done.at.to_string(),
+                via: done.via.clone(),
             }),
             folder_was: kept.folder_was.clone(),
         })
@@ -1032,6 +1094,17 @@ pub fn went_back(session: &mut Session, id: &str) -> Answer<tisty_core::docs::Do
     let now = tisty_core::docs::read(&root, id)
         .map_err(|e| blamed(channel::WINDOW, "a document could not be read", e))?;
     let print = tisty_core::attach::printed(now.as_bytes());
+    let undone = session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == id)
+        .filter(|one| {
+            one.compacted
+                .as_ref()
+                .is_some_and(|done| done.undone_by(&now, &was))
+        })
+        .map(|one| one.id);
     tisty_core::docs::kept_before(session.paths.data(), id, &now, &was)
         .map_err(|e| blamed(channel::WINDOW, "what a document said could not be kept", e))?;
     let made =
@@ -1049,6 +1122,16 @@ pub fn went_back(session: &mut Session, id: &str) -> Answer<tisty_core::docs::Do
     session.corpus.forget(id);
     let hand = signing(&session.state);
     session.retell(id, &whole, hand);
+    // The body is back already; a mark left standing is a lesser wrong than reporting the undo as failed.
+    if let Some(doc) = undone
+        && let Err(e) = session.commit(Op::DocUncompacted { id: doc })
+    {
+        tisty_core::witness::warn(
+            tisty_core::witness::channel::STORE,
+            "a document went back past its compaction but the mark stayed",
+            &[("why", tisty_core::witness::Fact::Why(e.to_string()))],
+        );
+    }
     Ok(tisty_core::docs::Doc {
         title: tisty_core::docs::titled(&whole),
         id: id.to_string(),

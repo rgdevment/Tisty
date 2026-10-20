@@ -13,11 +13,12 @@ interface Props {
   title: string;
   why: string;
   go: Act;
-  no: Act;
+  aside?: Act;
+  no?: Act;
   later: Act;
 }
 
-export default function Corner({ apart, label, mark, title, why, go, no, later }: Props) {
+export default function Corner({ apart, label, mark, title, why, go, aside, no, later }: Props) {
   useEffect(() => {
     const away = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
@@ -58,13 +59,24 @@ export default function Corner({ apart, label, mark, title, why, go, no, later }
         >
           {go.label}
         </button>
-        <button
-          type="button"
-          onClick={no.onClick}
-          className="cursor-pointer rounded-[10px] border border-line px-2.5 py-1 text-[12.5px] text-soft outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent"
-        >
-          {no.label}
-        </button>
+        {aside && (
+          <button
+            type="button"
+            onClick={aside.onClick}
+            className="cursor-pointer rounded-md px-1 text-[12px] text-soft underline-offset-2 outline-none hover:text-ink hover:underline focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            {aside.label}
+          </button>
+        )}
+        {no && (
+          <button
+            type="button"
+            onClick={no.onClick}
+            className="cursor-pointer rounded-[10px] border border-line px-2.5 py-1 text-[12.5px] text-soft outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            {no.label}
+          </button>
+        )}
       </div>
     </section>
   );

@@ -83,3 +83,17 @@ fn composing_twice_changes_nothing_the_second_time() {
 
     assert_eq!(composed(&once), once);
 }
+
+#[test]
+fn a_ticket_in_front_and_the_punctuation_around_name_no_other_subject() {
+    assert_eq!(subject("ABC-123 · Inicio de sesión"), "inicio de sesion");
+    assert_eq!(subject("  «Inicio  de Sesion».  "), "inicio de sesion");
+    assert_eq!(subject("TIS-9: inicio de sesión"), "inicio de sesion");
+    assert_eq!(subject("ABC-123"), "");
+}
+
+#[test]
+fn words_that_only_look_like_a_ticket_stay_in_the_subject() {
+    assert_eq!(subject("covid-19 rules"), "covid-19 rules");
+    assert_eq!(subject("Release plan v2"), "release plan v2");
+}

@@ -2,14 +2,14 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
-import type { Snapshot, Task } from "../core";
+import type { DoorDue, Snapshot, Task } from "../core";
 
 Object.defineProperty(window, "innerWidth", { configurable: true, value: 1440 });
 
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
   due: false,
-  agents: false,
+  agents: null as DoorDue | null,
   answer: (_cmd: string, _args: Record<string, unknown>): Promise<unknown> => Promise.resolve(null),
 }));
 
@@ -84,7 +84,7 @@ beforeEach(() => {
   localStorage.clear();
   ipc.calls = [];
   ipc.due = false;
-  ipc.agents = false;
+  ipc.agents = null;
   bus.heard.clear();
   tasks = structuredClone([bread]);
   ipc.answer = (cmd, args) => {
@@ -181,7 +181,7 @@ describe("what takes the card away without answering it", () => {
 
 describe("the card that offers the assistant a door", () => {
   it("waits for nothing to be finished, unlike the star", async () => {
-    ipc.agents = true;
+    ipc.agents = { why: "installed", by: null };
     await started();
 
     await waitFor(() => expect(door()).toBeTruthy());
@@ -196,7 +196,7 @@ describe("the card that offers the assistant a door", () => {
 
   it("goes first when the star falls due at the same moment", async () => {
     ipc.due = true;
-    ipc.agents = true;
+    ipc.agents = { why: "installed", by: null };
     await started();
     await complete();
 
@@ -205,7 +205,7 @@ describe("the card that offers the assistant a door", () => {
   });
 
   it("walks to the assistants, not to the settings at large", async () => {
-    ipc.agents = true;
+    ipc.agents = { why: "installed", by: null };
     await started();
     await waitFor(() => expect(door()).toBeTruthy());
 
@@ -215,5 +215,57 @@ describe("the card that offers the assistant a door", () => {
     expect(screen.getByRole("tab", { name: /assistants/i }).getAttribute("aria-selected")).toBe(
       "true",
     );
+  });
+});
+
+describe("the card for an assistant turned away at the door", () => {
+  it("arrives when the window comes back, without a restart", async () => {
+    await started();
+    await waitFor(() => expect(ipc.calls.some((one) => one.cmd === "door_due")).toBe(true));
+    expect(door()).toBeNull();
+
+    ipc.agents = { why: "knocked", by: "codex" };
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+    });
+
+    await waitFor(() => expect(screen.getByText(/codex tried to come in/i)).toBeTruthy());
+  });
+
+  it("does not bring back a card put off for now when the window comes back", async () => {
+    ipc.agents = { why: "installed", by: null };
+    await started();
+    await waitFor(() => expect(door()).toBeTruthy());
+    await userEvent.click(screen.getByRole("button", { name: /not now/i }));
+    expect(door()).toBeNull();
+
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+    });
+
+    expect(door()).toBeNull();
+  });
+
+  it("lets it in from the card without leaving the screen", async () => {
+    ipc.agents = { why: "knocked", by: "codex" };
+    await started();
+    await waitFor(() => expect(door()).toBeTruthy());
+
+    await userEvent.click(screen.getByRole("button", { name: /let it in/i }));
+
+    await waitFor(() => expect(screen.getByText(/codex can work with you now/i)).toBeTruthy());
+    expect(ipc.calls.some((one) => one.cmd === "agent_turn" && one.args.on === true)).toBe(true);
+    expect(screen.queryByRole("tab", { name: /assistants/i })).toBeNull();
+  });
+
+  it("stays when the person moves to another screen", async () => {
+    ipc.agents = { why: "knocked", by: null };
+    await started();
+    await waitFor(() => expect(door()).toBeTruthy());
+
+    await userEvent.click(screen.getByRole("button", { name: /^archive$/i }));
+
+    expect(door()).toBeTruthy();
+    expect(screen.getByText("An assistant tried to come in.")).toBeTruthy();
   });
 });

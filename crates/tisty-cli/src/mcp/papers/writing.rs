@@ -13,6 +13,15 @@ use super::super::{
 };
 
 pub(in crate::mcp) fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
+    written_doc(paths, args, None)
+}
+
+/// An import has judged the subject already, and the files it copied are told with the document.
+pub(super) fn written_doc(
+    paths: &Paths,
+    args: &Value,
+    imported: Option<Vec<Op>>,
+) -> Result<Value, Refused> {
     let Some(body) = text(args, "body") else {
         return Err(Refused::Tool("a document needs a `body`.".into()));
     };
@@ -27,8 +36,21 @@ pub(in crate::mcp) fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Re
     };
 
     if let Some(which) = text(args, "doc") {
+        let mut first = None;
+        if let Some(kept) = state.docs.values().find(|one| one.file == which) {
+            first = super::compacting::correcting(paths, kept, args);
+            if first.is_none() {
+                super::compacting::released(&state, kept, args, &mut store)?;
+            }
+        }
+        if super::compacting::compacting(args) {
+            return super::compacting::compacted(
+                paths, args, &state, &mut store, &which, &body, first,
+            );
+        }
         return over_again(paths, args, &state, &mut store, &which, &body);
     }
+    super::compacting::not_alone(args)?;
     if text(args, "print").is_some() {
         return Err(Refused::Tool(
             "`print` says which body you mean to replace, so it needs the `doc` it belongs to. Without one, `write_doc` writes a new document."
@@ -37,6 +59,9 @@ pub(in crate::mcp) fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Re
     }
 
     let (folder, page_of) = where_it_lands(&state, args)?;
+    if imported.is_none() {
+        super::compacting::subject_free(&state, args, &body)?;
+    }
     let made = tisty_core::docs::create(&paths.docs(), store.device(), &body).map_err(|e| match e {
         tisty_core::Error::DocumentTooBig { limit, .. } => Refused::Tool(format!(
             "that body is past the {limit} bytes Tisty can open. Send a shorter document, or split it into pages."
@@ -51,7 +76,7 @@ pub(in crate::mcp) fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Re
             .map(|one| one.order.as_str()),
     );
     let id = Ulid::generate();
-    if let Err(e) = store.append(Op::DocAdd {
+    let add = Op::DocAdd {
         id,
         d: tisty_core::event::DocAdd {
             wrote: None,
@@ -65,7 +90,16 @@ pub(in crate::mcp) fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Re
             page_of,
             task_of: None,
         },
-    }) && !wrote(&mut store, id)
+    };
+    let added = match imported {
+        Some(mut ops) => {
+            ops.push(add);
+            store.append_batch(ops).map(|_| ())
+        }
+        None => store.append(add).map(|_| ()),
+    };
+    if let Err(e) = added
+        && !wrote(&mut store, id)
     {
         let _ = tisty_core::docs::remove(&paths.docs(), &made.id);
         return Err(hitch(e));
@@ -120,8 +154,10 @@ pub(in crate::mcp) fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Re
                 made.title, made.id
             ),
             (None, None) => format!(
-                "Wrote the document {:?}, in no folder; `docs` says which folders exist. [{}]",
-                made.title, made.id
+                "Wrote the document {:?}.{} [{}]",
+                made.title,
+                super::super::placing::loose_doc(&state, &made.title),
+                made.id
             ),
         },
         json!({
@@ -153,6 +189,7 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
             "going back needs the `doc` name of the document to put back.".into(),
         ));
     };
+    let (which, a_task_s) = super::compacting::page_to_restore(paths, &which)?;
     let Some(was) = tisty_core::docs::read_before(paths.data(), &which) else {
         return Err(Refused::Tool(format!(
             "nothing is kept beside {which:?} to go back to. Only a write that replaced a body \
@@ -161,6 +198,9 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
         )));
     };
     let now = tisty_core::docs::read(&paths.docs(), &which).map_err(hitch)?;
+    if a_task_s {
+        super::compacting::only_the_notes(&now, &was)?;
+    }
     if tisty_core::docs::unchanged(&now, &was) {
         return Err(Refused::Tool(format!(
             "{which:?} already says what is kept beside it, so there is nothing to go back to."
@@ -194,6 +234,19 @@ pub(in crate::mcp) fn restore_doc(paths: &Paths, args: &Value) -> Result<Value, 
         &which,
         &was,
     )?;
+    if let Some(kept) = state.docs.values().find(|one| one.file == which)
+        && kept
+            .compacted
+            .as_ref()
+            .is_some_and(|one| one.undone_by(&now, &was))
+        && let Err(e) = store.append(Op::DocUncompacted { id: kept.id })
+    {
+        tisty_core::witness::warn(
+            tisty_core::witness::channel::DOOR,
+            "a document went back past its compaction but the mark stayed",
+            &[("code", tisty_core::witness::Fact::Code(e.coded()))],
+        );
+    }
     if more {
         if let Some(text) = said["content"][0]["text"].as_str() {
             said["content"][0]["text"] = json!(format!(
@@ -221,6 +274,10 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
     if let Some(task) = super::super::task_notes::task_named(&state, &which) {
         tisty_core::docs::survives(&body).map_err(|eats| Refused::Tool(not_spoken(eats)))?;
         let under = text(args, "under");
+        let replace = args
+            .get("replace")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
         return super::super::task_notes::noted_on_page(
             paths,
             &state,
@@ -228,7 +285,15 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
             task,
             &body,
             under.as_deref(),
+            replace,
         );
+    }
+    if args.get("replace").and_then(Value::as_bool) == Some(true) {
+        return Err(Refused::Tool(
+            "`replace` writes the assistant's notes on a task's page again, so it needs a task's \
+             id in `doc`. A document's passage is changed with `edit_doc`."
+                .into(),
+        ));
     }
     let Some(kept) = state.docs.values().find(|one| one.file == which) else {
         return Err(Refused::Tool(format!(
@@ -240,6 +305,7 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
             "{which:?} is put away, so nothing more goes into it. Write a new document instead."
         )));
     }
+    super::compacting::released(&state, kept, args, &mut store)?;
     if state.shut(kept.id) {
         return Err(Refused::Tool(format!(
             "{which:?} is locked. The person shut it so nothing writes in it — not the \
@@ -314,7 +380,7 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
     ))
 }
 
-fn over_again(
+pub(super) fn over_again(
     paths: &Paths,
     args: &Value,
     state: &tisty_core::State,
@@ -350,10 +416,13 @@ fn over_again(
     };
 
     let named = tisty_core::refs::papers(body);
+    // A compaction leaves out on purpose the pages it marked; only unmarked ones keep a line.
+    let compacting = super::compacting::compacting(args);
     let loose: Vec<&tisty_core::model::Kept> = state
         .pages_of(kept.id)
         .into_iter()
         .filter(|one| !named.contains(&one.file))
+        .filter(|one| !(compacting && one.flagged.is_some()))
         .collect();
     let walled_off = tisty_core::docs::ends_fenced(body);
     let adrift: Vec<String> = match walled_off {
@@ -447,6 +516,7 @@ print: {}",
                 "chars": whole.chars().count(),
                 "lines": whole.lines().count(),
                 "print": tisty_core::attach::printed(whole.as_bytes()),
+                "pages_kept_back": kept_back,
                 }),
             ))
         }
@@ -550,6 +620,7 @@ pub(super) fn where_it_lands(
                      document of its own instead."
                 )));
             }
+            super::compacting::awaiting(state, up)?;
             if state.shut(up.id) {
                 return Err(Refused::Tool(format!(
                     "{said} is locked, and hanging a page off it writes the line that names \

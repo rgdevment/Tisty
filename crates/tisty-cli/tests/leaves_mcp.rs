@@ -86,8 +86,8 @@ impl Served {
 
     fn wrote(&self, body: &str, page_of: Option<&str>) -> String {
         let args = match page_of {
-            Some(up) => serde_json::json!({ "body": body, "page_of": up }),
-            None => serde_json::json!({ "body": body }),
+            Some(up) => serde_json::json!({ "body": body, "page_of": up, "anyway": true }),
+            None => serde_json::json!({ "body": body, "anyway": true }),
         };
         self.call("write_doc", args)["result"]["structuredContent"]["doc"]
             .as_str()
@@ -1681,7 +1681,7 @@ fn a_file_outside_the_folder_reads_the_same_whether_it_is_there_or_not() {
         std::fs::write(&at, format!("# Notes\n\n![one](../elsewhere/{named})\n")).unwrap();
         let out = served.call(
             "import_doc",
-            serde_json::json!({ "path": at.to_str().unwrap() }),
+            serde_json::json!({ "path": at.to_str().unwrap(), "anyway": true }),
         );
         out["result"]["content"][0]["text"]
             .as_str()
@@ -2323,7 +2323,10 @@ fn a_body_the_editor_could_not_keep_is_never_written_by_the_warning() {
             .unwrap_or_else(|| panic!("no entro: {said} para {sent:?}"));
         let body = served.body_of(doc);
 
-        let again = served.call("write_doc", serde_json::json!({ "body": body.clone() }));
+        let again = served.call(
+            "write_doc",
+            serde_json::json!({ "body": body.clone(), "anyway": true }),
+        );
         assert!(
             again["result"]["isError"] != serde_json::json!(true),
             "lo que se guardo ya no se puede volver a escribir: {again} para {body:?}"
@@ -4204,9 +4207,20 @@ fn the_instructions_name_the_doors_for_taking_back_and_for_not_doing() {
                     "clientInfo": { "name": "test", "version": "1" } },
     })
     .to_string()]);
-    let told = said[0]["result"]["instructions"]
-        .as_str()
-        .unwrap_or_default();
+    let rules = served.call("rules", serde_json::json!({}));
+    let tidying = served.call("rules", serde_json::json!({ "topic": "tidying" }));
+    let told = format!(
+        "{}\n{}\n{}",
+        said[0]["result"]["instructions"]
+            .as_str()
+            .unwrap_or_default(),
+        rules["result"]["structuredContent"]["rules"]
+            .as_str()
+            .unwrap_or_default(),
+        tidying["result"]["structuredContent"]["rules"]
+            .as_str()
+            .unwrap_or_default()
+    );
 
     assert!(told.contains("say_not_doing"), "{told}");
     assert!(told.contains("untick"), "{told}");
