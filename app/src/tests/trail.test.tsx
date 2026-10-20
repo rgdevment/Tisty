@@ -53,6 +53,21 @@ describe("the trail", () => {
     expect(screen.getByText(/undone/i)).toBeTruthy();
   });
 
+  it("keeps the opening line of a note taken back, which the page no longer shows", async () => {
+    await shown([
+      {
+        at: "2026-08-05T22:05:00Z",
+        by: "dev_a",
+        chapter: "wrote",
+        body: "see [the minutes](tisty:doc/abc) first",
+        undoing: true,
+      },
+    ]);
+
+    const said = screen.getByText("see the minutes first");
+    expect(said.className).toContain("line-clamp-1");
+  });
+
   it("quotes what was written, not just that something was", async () => {
     await shown([
       {

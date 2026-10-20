@@ -194,12 +194,16 @@ export function Pick({
   onAlone,
   onCloud,
   onFolder,
-}: {
+  onCancel,
+  busy,
+}: Readonly<{
   state: Carrying;
+  busy?: boolean;
   onAlone: () => void;
   onCloud: () => void;
   onFolder: () => void;
-}) {
+  onCancel: () => void;
+}>) {
   return (
     <div className="flex flex-col gap-2">
       <p className="mb-1 text-[12.5px] leading-relaxed text-soft">{t("moveWhy")}</p>
@@ -210,6 +214,14 @@ export function Pick({
         <Option said={t("chooseCloud")} why={t("chooseCloudWhy")} onPick={onCloud} />
       )}
       <Option said={t("chooseFolder")} why={t("chooseFolderWhy")} onPick={onFolder} />
+      <button
+        type="button"
+        disabled={busy}
+        onClick={onCancel}
+        className={`mt-1 self-start ${quiet}`}
+      >
+        {t("cancel")}
+      </button>
     </div>
   );
 }

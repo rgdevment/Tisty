@@ -63,12 +63,12 @@ describe("getting back out of an open task", () => {
     expect(closed).not.toHaveBeenCalled();
   });
 
-  it("shows where the focus went", () => {
+  it("takes the focus for its keys without framing the page like a control", () => {
     show();
 
     const panel = document.querySelector("main") as HTMLElement;
     expect(document.activeElement).toBe(panel);
-    expect(panel.className).toContain("focus-visible:ring-2");
+    expect(panel.className).not.toContain("ring");
   });
 });
 

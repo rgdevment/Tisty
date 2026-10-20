@@ -44,6 +44,38 @@ const open = (one: Task) => {
   return done;
 };
 
+describe("finishing a task from a narrow card", () => {
+  it("keeps the way to close in sight and folds the rest into the menu", async () => {
+    const discard = vi.fn();
+    render(
+      <Detail
+        task={task()}
+        lists={[]}
+        known={[]}
+        expanded={false}
+        onCollapse={() => {}}
+        onPatch={() => {}}
+        onComplete={() => {}}
+        onDiscard={discard}
+        onReopen={() => {}}
+        onStillOpen={() => {}}
+        onErase={() => {}}
+        onFold={() => {}}
+        onReadAs={() => {}}
+        onOpenToAgents={() => {}}
+        onClose={() => {}}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /complete/i })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /not doing it/i })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "More" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: /not doing it/i }));
+
+    expect(discard).toHaveBeenCalled();
+  });
+});
+
 describe("finishing a task from the panel", () => {
   it("completes it from the column", async () => {
     const done = open(task());

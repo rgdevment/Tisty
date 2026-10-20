@@ -846,9 +846,66 @@ fn a_new_document_outside_every_folder_is_pointed_at_the_closest_ones() {
 
     let far = served.call("write_doc", json!({ "body": "# Holidays\n\nBeach." }));
     let text = far["result"]["content"][0]["text"].as_str().unwrap();
-    assert!(text.contains("no folder's name is near"), "{text}");
+    assert!(text.contains("nothing kept in one reads like it"), "{text}");
     assert!(
         !text.contains("Recipes") && !text.contains("Work"),
+        "{text}"
+    );
+}
+
+#[test]
+fn two_plain_words_in_common_point_at_no_folder() {
+    let served = Served::new();
+    served.call("folder", json!({ "name": "Work" }));
+    let doc = served.paper(
+        "# Meeting notes weekly
+
+Who said what.",
+    );
+    served.call("file_doc", json!({ "doc": doc, "folder": "Work" }));
+
+    let loose = served.call(
+        "write_doc",
+        json!({ "body": "# Meeting notes dentist
+
+Next visit.", "anyway": true }),
+    );
+
+    let text = loose["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(!text.contains("Work"), "{text}");
+}
+
+#[test]
+fn a_new_document_is_pointed_at_the_folder_whose_documents_read_like_it() {
+    let served = Served::new();
+    served.call("folder", json!({ "name": "Projects" }));
+    served.call("folder", json!({ "name": "Kitchen" }));
+    for body in [
+        "# Plan: attachments in one place
+
+Where they live. #attachments",
+        "# Plan for the attachments bin
+
+How they are let go. #attachments",
+    ] {
+        let doc = served.paper(body);
+        served.call("file_doc", json!({ "doc": doc, "folder": "Projects" }));
+    }
+
+    let loose = served.call(
+        "write_doc",
+        json!({
+            "body": "# Plan: join duplicate attachments
+
+Keep one copy. #attachments",
+            "anyway": true
+        }),
+    );
+
+    let text = loose["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(text.contains("closest to what these hold"), "{text}");
+    assert!(
+        text.contains("Projects (2 alike)") && !text.contains("Kitchen"),
         "{text}"
     );
 }
