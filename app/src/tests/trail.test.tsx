@@ -53,7 +53,7 @@ describe("the trail", () => {
     expect(screen.getByText(/undone/i)).toBeTruthy();
   });
 
-  it("quotes what was written, not just that something was", async () => {
+  it("says a note was written without copying it, since the page already shows it", async () => {
     await shown([
       {
         at: "2026-08-05T22:05:00Z",
@@ -63,7 +63,8 @@ describe("the trail", () => {
       },
     ]);
 
-    expect(screen.getByText("the certificate took nine days to issue")).toBeTruthy();
+    expect(screen.getAllByRole("listitem")).toHaveLength(1);
+    expect(screen.queryByText("the certificate took nine days to issue")).toBeNull();
   });
 
   it("has a phrase for every kind of chapter the core can emit", async () => {
@@ -123,75 +124,6 @@ describe("the trail", () => {
     await shown([{ at: "2026-07-28T18:40:00Z", by: "dev_a", chapter: "filed", to: "01L" }]);
 
     expect(screen.getByText(/Work/)).toBeTruthy();
-  });
-
-  it("reads a written reference by its name, not by the syntax it was written with", async () => {
-    await shown([
-      {
-        at: "2026-08-27T01:24:00Z",
-        by: "dev_a",
-        chapter: "wrote",
-        body: "![Minuta del lunes](tisty:doc/yve6v7mz-0001)",
-      } as Draft,
-    ]);
-
-    expect(screen.getByText("Minuta del lunes")).toBeTruthy();
-    expect(screen.queryByText(/tisty:doc/)).toBeNull();
-  });
-
-  it("names an icon written into the entry rather than showing its markup", async () => {
-    await shown([
-      {
-        at: "2026-08-27T01:24:00Z",
-        by: "dev_a",
-        chapter: "wrote",
-        body: 'listo <span data-ico="rocket" data-hue="teal">:rocket:</span>',
-      } as Draft,
-    ]);
-
-    expect(screen.getByText(/listo :rocket:/)).toBeTruthy();
-    expect(screen.queryByText(/data-ico/)).toBeNull();
-  });
-
-  it("names an icon written in Tisty's own words, as it does one from before them", async () => {
-    await shown([
-      {
-        at: "2026-08-27T01:24:00Z",
-        by: "dev_a",
-        chapter: "wrote",
-        body: "listo ::rocket teal::",
-      } as Draft,
-    ]);
-
-    expect(screen.getByText(/listo :rocket:/)).toBeTruthy();
-  });
-
-  it("names an icon wrapped in another span, instead of leaking what it held", async () => {
-    await shown([
-      {
-        at: "2026-08-27T01:24:00Z",
-        by: "dev_a",
-        chapter: "wrote",
-        body: 'listo <span class="a"><span data-ico="rocket">x</span></span>',
-      } as Draft,
-    ]);
-
-    expect(screen.getByText(/listo :rocket:/)).toBeTruthy();
-  });
-
-  it("keeps what a span without an icon was wrapping, and names no icon for it", async () => {
-    await shown([
-      {
-        at: "2026-08-27T01:24:00Z",
-        by: "dev_a",
-        chapter: "wrote",
-        body: 'listo <span class="whatever" data-hue="teal">del todo</span>',
-      } as Draft,
-    ]);
-
-    expect(screen.getByText(/listo del todo/)).toBeTruthy();
-    expect(screen.queryByText(/::/)).toBeNull();
-    expect(screen.queryByText(/span/)).toBeNull();
   });
 });
 

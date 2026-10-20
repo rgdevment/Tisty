@@ -59,11 +59,6 @@ export default function Trail({ task, moved, lists, onError, heading, before, su
               >
                 {phrase(page, named)}
                 {page.undoing && <span className="ml-1.5 text-[11.5px]">· {t("trailUndone")}</span>}
-                {page.chapter === "wrote" && page.body.trim() && (
-                  <q className="mt-1 block border-l-2 border-hair pl-2.5 text-soft italic">
-                    {plainly(page.body ?? "")}
-                  </q>
-                )}
               </span>
             </li>
           ))}
@@ -207,17 +202,4 @@ function phrase(page: Page, named: (id?: string | null) => string | undefined): 
 function unreadable(page: never): string {
   void page;
   return "";
-}
-
-/// The trail is a record, not a page: a reference reads as what it was called, not as its syntax.
-function plainly(body: string): string {
-  return (
-    body
-      // The log is never rewritten, so what was written before Tisty had its own words still says it the old way.
-      .replace(/<span[^>]*data-ico="([a-z0-9-]+)"[^>]*>[\s\S]*?<\/span>/g, ":$1:")
-      .replace(/::([a-z0-9-]+)(?: [a-z]+)?::/g, ":$1:")
-      .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
-      .replace(/<[^>]+>/g, "")
-      .trim()
-  );
 }
