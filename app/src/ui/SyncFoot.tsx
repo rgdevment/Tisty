@@ -12,6 +12,7 @@ import { lookAgain, useSyncSeen } from "../syncSeen";
 import { leaf } from "./Mode";
 
 const A_WHILE = 60_000;
+const SOON = 10_000;
 
 interface Props {
   onSync: () => Promise<unknown> | undefined;
@@ -77,28 +78,39 @@ export default function SyncFoot({ onSync, onOpen, onTrouble, fallback }: Props)
   const knocked = useKnocking().waiting.length > 0;
   const putOff = useLeftForLater();
   const idle = coming === null;
+  const foot = footing({ state, status, coming, mine, offline, knocked, putOff, stuck });
+  // Google and Microsoft can ask to wait, and let go again, in the middle of one long round.
+  const often = !idle || foot?.kind === "wait" || foot?.kind === "halted";
   // A round that ends, or a refusal that comes or goes, may have written what the foot shows.
   useEffect(() => {
     if (idle) void lookAgain();
   }, [idle, stuck]);
 
-  // The rounds keep what is seen; a look on focus catches what was written beside them, and the tick turns «today» over at midnight.
+  useEffect(() => {
+    const ticking = setInterval(
+      () => {
+        tick((was) => was + 1);
+        void lookAgain();
+      },
+      often ? SOON : A_WHILE,
+    );
+    return () => clearInterval(ticking);
+  }, [often]);
+
+  // A look on focus catches what was written beside the rounds.
   useEffect(() => {
     const look = () => void lookAgain();
     const online = () => setOffline(offlineNow());
-    const ticking = setInterval(() => tick((was) => was + 1), A_WHILE);
     window.addEventListener("focus", look);
     window.addEventListener("online", online);
     window.addEventListener("offline", online);
     return () => {
-      clearInterval(ticking);
       window.removeEventListener("focus", look);
       window.removeEventListener("online", online);
       window.removeEventListener("offline", online);
     };
   }, []);
 
-  const foot = footing({ state, status, coming, mine, offline, knocked, putOff, stuck });
   if (!foot || !state) return fallback ?? null;
 
   const named =

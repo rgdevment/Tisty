@@ -76,7 +76,7 @@ export default function Keeping({
   const [audit, setAudit] = useState<Reviewed | null>(null);
   const [kept, setKept] = useState<Settings | null>(null);
   const [freeing, setFreeing] = useFreeing();
-  const [freeDays, setFreeDays] = useState(30);
+  const [freeDays, setFreeDays] = useState(90);
   const [seen, setSeen] = useState<Seen | null>(null);
   const { busy, busySince, setBusy, said, setSaid, trouble, setTrouble, run, quietly } = useCards(
     () => {
