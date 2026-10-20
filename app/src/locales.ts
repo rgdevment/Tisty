@@ -1521,7 +1521,10 @@ const en = {
     "Tisty's copies are deleted from your {cloud} for good: Tisty's space there has no bin, so they can't be brought back. Everything stays on this computer and in the new place. Only the note that tells your other computers where you went stays in {cloud}.",
   moveWipeKeep: "Leave them there",
   moveWiping:
-    "Working on it: checking that everything is on this computer and deleting your copies from {cloud}. It can take a few minutes.",
+    "Checking that everything is on this computer before deleting your copies from {cloud}…",
+  moveErasing: "Deleting your copies from {cloud}: {name} of {other}.",
+  moveWipingAway:
+    "You can close this window and keep working: the deleting goes on, and Tisty keeps syncing meanwhile.",
   moveWiped: "{name} copies were deleted from your {cloud}.",
   moveWipedOne: "1 copy was deleted from your {cloud}.",
   movePending: "A move to {name} is halfway.",
@@ -3663,8 +3666,10 @@ const es: Catalog = {
   moveWipeSure:
     "Las copias de Tisty se borran para siempre de tu {cloud}: el espacio de Tisty ahí no tiene papelera, así que no se pueden recuperar. Todo sigue en este equipo y en el nuevo lugar. En {cloud} solo queda el aviso que les dice a tus otros equipos adónde te fuiste.",
   moveWipeKeep: "Dejarlas ahí",
-  moveWiping:
-    "Procesando: revisamos que todo esté en este equipo y borramos tus copias de {cloud}. Puede tardar unos minutos.",
+  moveWiping: "Revisando que todo esté en este equipo antes de borrar tus copias de {cloud}…",
+  moveErasing: "Borrando tus copias de {cloud}: {name} de {other}.",
+  moveWipingAway:
+    "Puedes cerrar esta ventana y seguir trabajando: el borrado continúa y Tisty sigue sincronizando mientras tanto.",
   moveWiped: "Se borraron {name} copias de tu {cloud}.",
   moveWipedOne: "Se borró 1 copia de tu {cloud}.",
   movePending: "Hay una mudanza a medias hacia {name}.",

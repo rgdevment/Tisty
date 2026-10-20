@@ -513,15 +513,22 @@ pub fn move_dropped(session: tauri::State<'_, Mutex<Session>>) {
     }
 }
 
+#[derive(Clone, serde::Serialize)]
+struct Wiping {
+    gone: usize,
+    of: usize,
+}
+
 #[tauri::command(async)]
 pub async fn cloud_wipe(
+    app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
     alone: tauri::State<'_, OneAtATime>,
     account: String,
     email: String,
     provider: Option<String>,
 ) -> Answer<usize> {
-    let _done = alone.inner().waited(WAITED).await?;
+    let done = alone.inner().waited(WAITED).await?;
     let at = CloudAt {
         provider: provider.unwrap_or_else(google),
         account,
@@ -545,7 +552,8 @@ pub async fn cloud_wipe(
     if crate::leaving::owed_to(&paths, &at.account) {
         return Err(Refusal::of("wipeUntold"));
     }
-    let gone = tauri::async_runtime::spawn_blocking(move || wiped(&*carrier, &here, &alive))
+    let checking = carrier.clone();
+    let home = tauri::async_runtime::spawn_blocking(move || all_home(&*checking, &here, &alive))
         .await
         .map_err(|_| Refusal::of("internal"))?;
     catching_up(
@@ -555,21 +563,68 @@ pub async fn cloud_wipe(
         channel::SYNC,
     )
     .await?;
-    let gone = gone?;
+    home?;
+    // Emptying touches only the cloud left behind, whose own lock keeps it apart, so rounds here go on meanwhile.
+    drop(done);
+    let gone = tauri::async_runtime::spawn_blocking(move || {
+        emptied(&*carrier, &mut |gone, of| {
+            let _ = app.emit("wiping", Wiping { gone, of });
+        })
+    })
+    .await
+    .map_err(|_| Refusal::of("internal"))??;
     super::clouding::let_go_of(&at);
     Ok(gone)
 }
 
-/// Asked of the cloud itself, never of the mirror here: emptied only once all is home and the word is up there.
+#[cfg(test)]
 pub(crate) fn wiped(
     carrier: &dyn tisty_carrier::Carrier,
     here: &tisty_carrier::Here,
     alive: &[String],
 ) -> Answer<usize> {
-    if !tisty_carrier::all_home(carrier, here, alive).map_err(said)? {
-        return Err(Refusal::of("wipeNotHome"));
+    all_home(carrier, here, alive)?;
+    emptied(carrier, &mut |_, _| {})
+}
+
+/// Asked of the cloud itself, never of the mirror here: emptied only once all is home and the word is up there.
+fn all_home(
+    carrier: &dyn tisty_carrier::Carrier,
+    here: &tisty_carrier::Here,
+    alive: &[String],
+) -> Answer<()> {
+    tisty_core::witness::note(
+        channel::SYNC,
+        "a cloud left behind is checked before it is emptied",
+        &[],
+    );
+    match tisty_carrier::all_home(carrier, here, alive).map_err(said)? {
+        true => Ok(()),
+        false => Err(Refusal::of("wipeNotHome")),
     }
-    carrier.wipe().map_err(|trouble| match trouble {
+}
+
+fn emptied(
+    carrier: &dyn tisty_carrier::Carrier,
+    along: &mut dyn FnMut(usize, usize),
+) -> Answer<usize> {
+    use tisty_core::witness::{self, Fact};
+    let began = std::time::Instant::now();
+    let gone = carrier.wipe_along(along);
+    let secs = Fact::Count(usize::try_from(began.elapsed().as_secs()).unwrap_or(usize::MAX));
+    match &gone {
+        Ok(gone) => witness::note(
+            channel::SYNC,
+            "a cloud left behind was emptied",
+            &[("gone", Fact::Count(*gone)), ("secs", secs)],
+        ),
+        Err(trouble) => witness::warn(
+            channel::SYNC,
+            "a cloud left behind was not emptied",
+            &[("why", Fact::Why(format!("{trouble:?}"))), ("secs", secs)],
+        ),
+    }
+    gone.map_err(|trouble| match trouble {
         tisty_carrier::Trouble::NotThere(name) if name == tisty_core::moved::NAMED => {
             Refusal::of("wipeUntold")
         }

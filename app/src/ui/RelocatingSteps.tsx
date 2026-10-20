@@ -378,11 +378,17 @@ export function Waiting({
   );
 }
 
+export interface Erased {
+  gone: number;
+  of: number;
+}
+
 export function Done({
   toward,
   untold,
   wiped,
   wiping,
+  erased,
   offersWipe,
   wipeFrom = "google",
   busy,
@@ -394,6 +400,7 @@ export function Done({
   untold: boolean;
   wiped?: string;
   wiping?: boolean;
+  erased?: Erased;
   offersWipe: boolean;
   wipeFrom?: string;
   busy: boolean;
@@ -411,11 +418,21 @@ export function Done({
       {wiping && (
         <div className="flex flex-col gap-2">
           <span aria-hidden="true" className="block h-1 overflow-hidden rounded-full bg-line">
-            <span className="sliding block h-full w-1/3 rounded-full bg-accent" />
+            {erased?.of ? (
+              <span
+                className="block h-full rounded-full bg-accent transition-[width]"
+                style={{ width: `${Math.round((erased.gone / erased.of) * 100)}%` }}
+              />
+            ) : (
+              <span className="sliding block h-full w-1/3 rounded-full bg-accent" />
+            )}
           </span>
           <p role="status" className="text-[12.5px] text-soft">
-            {said("moveWiping", wipeFrom)}
+            {erased?.of
+              ? filled(said("moveErasing", wipeFrom), String(erased.gone), String(erased.of))
+              : said("moveWiping", wipeFrom)}
           </p>
+          <p className="text-[11.5px] text-faint">{t("moveWipingAway")}</p>
         </div>
       )}
       <div className="flex flex-wrap items-center gap-2.5">
@@ -434,7 +451,12 @@ export function Done({
             </button>
           </>
         )}
-        <button type="button" disabled={busy} onClick={onClose} className={`ml-auto ${go}`}>
+        <button
+          type="button"
+          disabled={busy && !wiping}
+          onClick={onClose}
+          className={`ml-auto ${go}`}
+        >
           {t("close")}
         </button>
       </div>

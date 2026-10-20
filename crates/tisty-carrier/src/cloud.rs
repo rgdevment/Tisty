@@ -24,6 +24,7 @@ pub mod policy;
 mod resting;
 mod shelf;
 pub mod standing;
+mod wiping;
 
 use budget::{Class, Metered};
 use index::Index;
@@ -875,7 +876,7 @@ impl Carrier for Cloud {
             .map(|seen| seen.is_some())
     }
 
-    fn wipe(&self) -> Result<usize, Trouble> {
+    fn wipe_along(&self, along: &mut dyn FnMut(usize, usize)) -> Result<usize, Trouble> {
         let provider = self.remote.limits().provider;
         let stopped = |hitch| match judge(hitch, provider) {
             Judged::Pause(reason, ..) => Trouble::NotNow(format!("{reason:?}")),
@@ -886,20 +887,27 @@ impl Carrier for Cloud {
             if !all.iter().any(|one| one.name == tisty_core::moved::NAMED) {
                 return Err(Trouble::NotThere(tisty_core::moved::NAMED.to_string()));
             }
-            let mut gone = 0;
-            for one in all
+            let going: Vec<&Seen> = all
                 .iter()
                 .filter(|one| one.name != tisty_core::moved::NAMED)
-            {
-                match patiently(|| remote.delete(&one.name, Some(&one.revision))) {
-                    Ok(()) | Err(crate::Hitch::Missing(_)) => {
-                        index.tree.remove(&one.name);
-                        index.shelf.remove(&one.name);
-                        gone += 1;
-                    }
-                    Err(hitch) => return Err(stopped(hitch)),
-                }
-            }
+                .collect();
+            let mut gone = 0;
+            along(gone, going.len());
+            let ended = wiping::deleted_all(
+                remote,
+                &going,
+                &mut |name| {
+                    index.tree.remove(name);
+                    index.shelf.remove(name);
+                    gone += 1;
+                    along(gone, going.len());
+                },
+                |remote, one| match patiently(|| remote.delete(&one.name, Some(&one.revision))) {
+                    Ok(()) | Err(crate::Hitch::Missing(_)) => Ok(()),
+                    Err(hitch) => Err(hitch),
+                },
+            );
+            ended.map_err(stopped)?;
             Ok((gone, None))
         })?;
         let gone = done

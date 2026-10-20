@@ -150,6 +150,10 @@ pub trait Carrier: Send + std::marker::Sync {
             .is_some_and(|dest| tisty_core::store::inhabited(dest.join(STORE)))
     }
     fn wipe(&self) -> Result<usize, Trouble> {
+        self.wipe_along(&mut |_, _| {})
+    }
+    /// Says how many are gone of how many as it goes.
+    fn wipe_along(&self, _along: &mut dyn FnMut(usize, usize)) -> Result<usize, Trouble> {
         Ok(0)
     }
     /// Bytes the place can still take, where it says; a folder's disk is never asked.

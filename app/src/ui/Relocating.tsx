@@ -1,3 +1,4 @@
+import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
 import { letGoUnused } from "../cloudState";
 import {
@@ -17,7 +18,7 @@ import type { Heading } from "../views";
 import Clouding from "./Clouding";
 import Keepers from "./Keepers";
 import Modal from "./Modal";
-import { Done, Pick, Plan, quiet, Underway, Waiting } from "./RelocatingSteps";
+import { Done, type Erased, Pick, Plan, quiet, Underway, Waiting } from "./RelocatingSteps";
 
 interface Props {
   state: Carrying;
@@ -40,6 +41,7 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
   const [trouble, setTrouble] = useState<string>();
   const [wiped, setWiped] = useState<string>();
   const [wiping, setWiping] = useState(false);
+  const [erased, setErased] = useState<Erased>();
   const [busy, setBusy] = useState(false);
   const [deciding, setDeciding] = useState(false);
   const settled = useRef(false);
@@ -82,7 +84,21 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
   const leftCloud = done?.told ? done.leftCloud : undefined;
   const connectedHere = toward?.kind === "cloud" && !resume;
 
+  useEffect(() => {
+    if (!wiping) return;
+    const off = listen<Erased>("wiping", (step) => setErased(step.payload));
+    return () => {
+      void off.then((stop) => stop());
+    };
+  }, [wiping]);
+
   const close = () => {
+    // The erasing goes on without the dialog, and lets go of the old cloud itself when it ends.
+    if (wiping) {
+      endMove();
+      onClose();
+      return;
+    }
     if (busy) return;
     if (now && underway(now)) {
       onClose();
@@ -111,6 +127,7 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
     if (!leftCloud || busy || !(await sure(said("moveWipeSure", from)))) return;
     setBusy(true);
     setWiping(true);
+    setErased(undefined);
     setTrouble(undefined);
     cloudWipe(leftCloud.account, leftCloud.email, leftCloud.provider)
       .then((gone) => {
@@ -216,6 +233,7 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
           untold={done?.told === false}
           wiped={wiped}
           wiping={wiping}
+          erased={erased}
           offersWipe={Boolean(leftCloud)}
           wipeFrom={leftCloud?.provider}
           busy={busy}
