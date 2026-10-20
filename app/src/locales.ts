@@ -1785,6 +1785,8 @@ const en = {
   agentsTitle: "Tisty has no AI inside it",
   agentsWhat:
     "None, and none is going in: the natural language it reads is rules running on this machine, with no model and no cloud. But if you already use an assistant and it works for you, here is a door for it. It can file what you tell it — the card stock the school group wants on Monday, the thing you were tagged about on Slack — through a program already on this machine. None of this reaches the network. You decide whether to open it, and you can close it whenever you like.",
+  agentsGuide: "How assistants work with Tisty",
+  agentsGuideAt: "https://www.tisty.app/docs/assistants-and-mcp/",
   agentsOff: "No assistant can file work here",
   agentsOn: "An assistant can file work here",
   agentsSignsAs: "This machine's agent signs the log as «{name}» · code {other}",
@@ -3924,6 +3926,8 @@ const es: Catalog = {
   agentsTitle: "Tisty no lleva IA dentro",
   agentsWhat:
     "Ninguna, y no se la vamos a poner: el lenguaje natural que lee son reglas corriendo en esta máquina, sin modelo y sin nube. Pero si ya usas un asistente y te sirve, aquí tiene una puerta. Puede anotar lo que tú le cuentes —las cartulinas que el grupo del colegio pide para el lunes, aquello por lo que te mencionaron en Slack— a través de un programa que ya está en este equipo. Nada de esto sale a la red. Tú decides si la abres, y puedes cerrarla cuando quieras.",
+  agentsGuide: "Cómo trabajan los asistentes con Tisty",
+  agentsGuideAt: "https://www.tisty.app/es/ayuda/asistentes-y-mcp/",
   agentsOff: "Ningún asistente puede anotar aquí",
   agentsOn: "Un asistente puede anotar aquí",
   agentsSignsAs: "El agente de este equipo firma el registro como «{name}» · código {other}",
