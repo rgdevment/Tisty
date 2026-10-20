@@ -1,11 +1,12 @@
+import { useEffect, useState } from "react";
 import {
   guide,
   keepClosing,
   keepLocale,
   keepShortcut,
   keepTheme,
-  QUICK_KEYS,
   type Settings,
+  shortcutsOffered,
   type Theme,
   type Waking,
   wakeFor,
@@ -54,6 +55,12 @@ export default function General({
   onDoc,
 }: Props) {
   const held = busy !== null;
+  const [offered, setOffered] = useState<string[]>([]);
+  useEffect(() => {
+    shortcutsOffered()
+      .then((all) => setOffered(all ?? []))
+      .catch(() => {});
+  }, []);
   return (
     <>
       <Band label={t("bandWindow")} />
@@ -216,7 +223,7 @@ export default function General({
               }}
               className={`rounded-[10px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
             >
-              {QUICK_KEYS.filter((one) => !(ON_MAC && one.includes("Alt"))).map((one) => (
+              {offered.map((one) => (
                 <option key={one} value={one}>
                   {one}
                 </option>

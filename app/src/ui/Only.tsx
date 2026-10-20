@@ -38,8 +38,13 @@ export default function Only({ lists, chosen, onChange }: Props) {
     const away = (e: MouseEvent) => {
       if (!inside(e.target)) setOpen(false);
     };
+    // Only a scroll that moves the button leaves the panel adrift; the app's own scrolls elsewhere do not.
     const scrolled = (e: Event) => {
-      if (!inside(e.target)) setOpen(false);
+      const moved = e.target instanceof Node && e.target.contains(box.current);
+      if (moved && !inside(e.target)) setOpen(false);
+    };
+    const left = (e: FocusEvent) => {
+      if (e.relatedTarget && !inside(e.relatedTarget)) setOpen(false);
     };
     const key = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
@@ -50,11 +55,13 @@ export default function Only({ lists, chosen, onChange }: Props) {
     document.addEventListener("mousedown", away);
     document.addEventListener("scroll", scrolled, true);
     document.addEventListener("keydown", key);
+    document.addEventListener("focusout", left);
     window.addEventListener("resize", shut);
     return () => {
       document.removeEventListener("mousedown", away);
       document.removeEventListener("scroll", scrolled, true);
       document.removeEventListener("keydown", key);
+      document.removeEventListener("focusout", left);
       window.removeEventListener("resize", shut);
     };
   }, [open]);
@@ -80,7 +87,6 @@ export default function Only({ lists, chosen, onChange }: Props) {
           const seen = e.currentTarget.getBoundingClientRect();
           const left = Math.max(8, Math.min(seen.left, window.innerWidth - WIDE - 8));
           const below = window.innerHeight - seen.bottom - 12;
-          // Near the bottom it opens upward, where there is more room than below.
           setAt(
             below < 160 && seen.top > below
               ? { left, bottom: window.innerHeight - seen.top + 4, room: seen.top - 12 }

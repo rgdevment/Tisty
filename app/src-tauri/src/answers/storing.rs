@@ -1383,6 +1383,7 @@ pub async fn restore(
         )
     })?;
     *held(&session) = fresh;
+    let _ = held(&session).keep(|config| config.tags_read = None);
     Ok(done.files)
 }
 

@@ -68,6 +68,11 @@ pub(crate) fn listen_for<R: tauri::Runtime>(
 }
 
 #[tauri::command]
+pub fn shortcuts_offered() -> Vec<&'static str> {
+    offered().into_iter().map(|(said, _)| said).collect()
+}
+
+#[tauri::command]
 pub fn shortcut(bound: tauri::State<'_, Bound>) -> Option<String> {
     bound.0.lock().ok().and_then(|now| now.clone())
 }

@@ -1075,6 +1075,7 @@ pub fn run() {
             answers::settings::close_window,
             quick_keys::shortcut,
             quick_keys::keep_shortcut,
+            quick_keys::shortcuts_offered,
             answers::storing::settle_in,
             reachable,
             answers::clouding::cloud_connect,

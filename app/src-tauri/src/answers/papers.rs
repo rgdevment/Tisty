@@ -1223,6 +1223,12 @@ pub fn doc_order(
 #[path = "papers_test.rs"]
 mod tests;
 
+type Seen = (Option<String>, Vec<tisty_core::model::Tag>);
+
+fn seen(kept: &tisty_core::model::Kept) -> Seen {
+    (kept.title.clone(), kept.tags.clone())
+}
+
 /// Front matter tags only count since 1.31, so what an older build filed learns them once, off the window's way.
 pub fn tags_once(app: tauri::AppHandle) {
     use tauri::{Emitter, Manager};
@@ -1233,38 +1239,66 @@ pub fn tags_once(app: tauri::AppHandle) {
             if held.config.tags_read == Some(true) {
                 return;
             }
-            let owing: Vec<(tisty_core::model::DocId, String)> = held
+            let owing: Vec<(tisty_core::model::DocId, String, Seen)> = held
                 .state
                 .docs
                 .values()
-                .map(|one| (one.id, one.file.clone()))
+                .map(|one| (one.id, one.file.clone(), seen(one)))
                 .collect();
             (held.paths.docs(), owing)
         };
         for some in owing.chunks(CATCHING_UP_AT_ONCE) {
-            let read: Vec<_> = some
-                .iter()
-                .filter_map(|(id, file)| {
-                    let body = tisty_core::docs::read(&root, file).ok()?;
-                    Some((*id, tisty_core::event::Said::of(&body).by(None)))
-                })
-                .collect();
-            let mut held = held(&session);
-            let ops: Vec<Op> = read
-                .into_iter()
-                .filter(|(id, said)| {
-                    held.state
-                        .docs
-                        .get(id)
-                        .is_some_and(|kept| said.news_for(kept))
-                })
-                .map(|(id, said)| Op::DocSaid { id, d: said })
-                .collect();
-            if !ops.is_empty() && held.commit_all(ops).is_err() {
+            if !tags_read_in(&session, &root, some) {
                 return;
             }
         }
         let _ = held(&session).keep(|config| config.tags_read = Some(true));
         let _ = app.emit("stirred", ());
     });
+}
+
+// A file the folder has not brought down is left for when it is opened, never pulled down here.
+fn tags_read_in(
+    session: &tauri::State<'_, Mutex<Session>>,
+    root: &std::path::Path,
+    some: &[(tisty_core::model::DocId, String, Seen)],
+) -> bool {
+    let read: Vec<_> = some
+        .iter()
+        .filter_map(|(id, file, was)| {
+            let at = tisty_core::docs::resolve(root, file).ok()?;
+            if tisty_core::holes::a_hole(&at) {
+                return None;
+            }
+            let body = tisty_core::docs::read(root, file).ok()?;
+            Some((*id, was, tisty_core::event::Said::of(&body).by(None)))
+        })
+        .collect();
+    let mut held = held(session);
+    if held.paths.docs() != root {
+        return false;
+    }
+    // A document saved while this read it already holds what it says now.
+    let ops: Vec<Op> = read
+        .into_iter()
+        .filter(|(id, was, said)| {
+            held.state
+                .docs
+                .get(id)
+                .is_some_and(|kept| seen(kept) == **was && said.news_for(kept))
+        })
+        .map(|(id, _, said)| Op::DocSaid { id, d: said })
+        .collect();
+    if ops.is_empty() {
+        return true;
+    }
+    if let Err(e) = held.commit_all(ops) {
+        witness::warn(
+            channel::WINDOW,
+            "the tags of older documents could not be written down",
+            &[("why", Fact::Why(e.to_string()))],
+        );
+        return false;
+    }
+    true
 }
