@@ -601,3 +601,34 @@ fn the_person_turning_a_said_step_down_clears_the_word() {
     let one = state.tasks[&id].step(step).unwrap();
     assert!(!one.said && !one.done);
 }
+
+#[test]
+fn taking_back_a_tick_or_a_reword_gives_the_assistant_its_word_back() {
+    let mut state = with_an_agent();
+    let id = written(&mut state, 2, "dev_laptop", "renew the certificate");
+    let step = stepped(&mut state, 3, id);
+    state.apply(&ev(4, "dev_agent", said(id, step)));
+
+    for (n, op) in [
+        Op::StepDone {
+            id,
+            d: StepRef { step },
+        },
+        reworded(id, step, "pay the fee"),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let before = state.clone();
+        let done = ev(5 + n as i64 * 2, "dev_laptop", op);
+        state.apply(&done);
+        assert!(!state.tasks[&id].step(step).unwrap().said);
+
+        for back in crate::undo::inverse(&done, &before).unwrap() {
+            state.apply(&ev(6 + n as i64 * 2, "dev_laptop", back));
+        }
+
+        let one = state.tasks[&id].step(step).unwrap();
+        assert!(one.said && !one.done, "{n}: the word is back");
+    }
+}

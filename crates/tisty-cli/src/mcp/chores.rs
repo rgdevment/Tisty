@@ -997,8 +997,7 @@ pub(super) fn steps_fit(steps: &[String]) -> Result<(), Refused> {
     }
 }
 
-/// What an assistant may fill in: a task it filed, or one the person opened to agents — open,
-/// and not folded away. The refusal says which of the three it is not.
+/// An open task, not folded away, named by its id; whose it is, the caller asks.
 fn reaching<'a>(state: &'a State, said: &str) -> Result<(TaskId, &'a Task), Refused> {
     let Ok(id) = said.parse::<TaskId>() else {
         return Err(Refused::Tool(format!(
@@ -1073,6 +1072,8 @@ fn vouch(mut store: Store, id: TaskId, task: &Task, wanted: &[String]) -> Result
     ))
 }
 
+/// What an assistant may fill in: a task it filed, or one the person opened to agents, open and not
+/// folded away. The refusal says which of the three it is not.
 pub(super) fn filling<'a>(
     state: &'a State,
     store: &Store,
@@ -1082,8 +1083,8 @@ pub(super) fn filling<'a>(
     if !state.attended_by_agents(task) {
         return Err(Refused::Tool(format!(
             "{:?} is the person's own, and they have not opened it to you. You fill in what an \
-             agent filed, or what they opened to agents; on the rest, say what you have learnt \
-             with `note`.",
+             agent filed; on the rest, say what you have learnt with `note`, and when you did the \
+             work, `tick` its steps or `say_done` as your word for the person to take.",
             task.title
         )));
     }
@@ -1193,16 +1194,21 @@ fn unsay(mut store: Store, id: TaskId, task: &Task, wanted: &[String]) -> Result
         .filter(|step| step.said)
         .map(|step| step.id)
         .collect();
-    if !gone.is_empty() {
-        let ops = gone
-            .iter()
-            .map(|step| Op::StepUnsaid {
-                id,
-                d: StepRef { step: *step },
-            })
-            .collect();
-        store.append_batch(ops).map_err(hitch)?;
+    if gone.is_empty() {
+        return Err(Refused::Tool(format!(
+            "No step you named on {:?} carries your word: a tick the person gave is theirs, and a \
+             step you never said was done has nothing to take back.",
+            task.title
+        )));
     }
+    let ops = gone
+        .iter()
+        .map(|step| Op::StepUnsaid {
+            id,
+            d: StepRef { step: *step },
+        })
+        .collect();
+    store.append_batch(ops).map_err(hitch)?;
     Ok(told(
         format!(
             "Took back your word on {} step(s) of {:?}; the person's ticks are theirs.",

@@ -462,10 +462,11 @@ pub(super) fn tools() -> Value {
             "name": "untick",
             "title": "Take back a tick given by mistake",
             "description": "Unmark steps an agent ticked that are not done after all, on a task \
-                            you filed or one the person opened to agents. Only a tick an agent \
-                            gave can be taken back: one the person gave is theirs, and naming \
-                            it unticks nothing. Name each step by its text as `read` shows it. \
-                            Unticking closes and opens nothing; the task stays as it was.",
+                            you filed or one the person opened to agents. On any other of the person's tasks it \
+                            takes back your word on steps you said were done. Only a tick or a word an agent gave \
+                            can be taken back: one the person gave is theirs, and naming it unticks nothing. Name \
+                            each step by its text as `read` shows it. Unticking closes and opens nothing; the task \
+                            stays as it was.",
             "inputSchema": on_a_task(steps_by_text("to untick"), &[])
         },
         {
