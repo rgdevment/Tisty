@@ -16,9 +16,16 @@ export const reanchored = (
 ): [number, number] | null => {
   const [head, tail] = shared(was, now);
   if (head >= end) return [from, end];
-  if (was.length - tail > from) return null;
-  const moved = now.length - was.length;
-  return [from + moved, end + moved];
+  // A change ending right where the block starts may be its own first words, so it ends the block.
+  if (was.length - tail < from) {
+    const moved = now.length - was.length;
+    return [from + moved, end + moved];
+  }
+  // Changes on both sides read as one span over the block; words found once still say where it went.
+  const piece = was.slice(from, end);
+  const at = now.indexOf(piece);
+  if (!piece.trim() || at < 0 || now.indexOf(piece, at + 1) >= 0) return null;
+  return [at, at + piece.length];
 };
 
 // In bytes, as the page's `data-at` counts them.

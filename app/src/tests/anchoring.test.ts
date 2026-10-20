@@ -13,7 +13,13 @@ describe("the block being written when words arrive from outside", () => {
   it("moves along when the change lands before it", () => {
     const now = was.replace("uno", "uno y medio");
     const at = reanchored(was, now, from, end);
-    expect(at).toEqual([from + 7, end + 7]);
+    expect(at).toEqual([from + 8, end + 8]);
+    expect(at && now.slice(...at)).toBe("lo mio");
+  });
+
+  it("follows its words when changes land on both sides of it", () => {
+    const now = "# Acta de hoy\n\nuno\n\nlo mio\n\ntres\n\ncuatro\n";
+    const at = reanchored(was, now, from, end);
     expect(at && now.slice(...at)).toBe("lo mio");
   });
 
