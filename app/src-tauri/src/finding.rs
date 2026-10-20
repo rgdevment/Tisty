@@ -91,14 +91,7 @@ pub async fn fetched<T: Send + 'static>(
     work: impl FnOnce(String, Where) -> Answer<T> + Send + 'static,
 ) -> Answer<T> {
     let at = where_to(session, &reference);
-    elsewhere(move || {
-        // Asked for, it is named again: an undo after a join brings it back out of the bin.
-        if let Some(named) = tisty_core::attach::canonical(&reference) {
-            tisty_core::attach::unbinned(&at.data, &[named].into_iter().collect());
-        }
-        work(reference, at)
-    })
-    .await?
+    elsewhere(move || work(reference, at)).await?
 }
 
 /// The store first, then the shared folder, which is where a machine that let go of it kept it.

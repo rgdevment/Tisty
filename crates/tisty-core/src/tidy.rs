@@ -89,6 +89,7 @@ pub struct Sweeping {
 pub struct Walked {
     job: Sweeping,
     named: Vec<String>,
+    read: bool,
 }
 
 impl Sweeping {
@@ -118,19 +119,25 @@ impl Sweeping {
     }
 
     pub fn walk(self) -> Walked {
-        // Emptying the bin asks what is still named, so a copy an undo named again comes back first.
-        let named = match self.owed || self.bin {
-            true => crate::docs::referenced(&self.paths.docs())
-                .unwrap_or_else(|_| self.retired.iter().cloned().collect()),
-            false => Vec::new(),
+        let binning = self.bin && crate::attach::binned_any(self.paths.data());
+        let (named, read) = match self.owed || binning {
+            true => match crate::docs::referenced(&self.paths.docs()) {
+                Ok(named) => (named, true),
+                Err(_) => (self.retired.iter().cloned().collect(), false),
+            },
+            false => (Vec::new(), false),
         };
-        Walked { job: self, named }
+        Walked {
+            job: self,
+            named,
+            read,
+        }
     }
 }
 
 impl Walked {
     pub fn with(self, state: &State) -> (Swept, Already) {
-        let Walked { job, named } = self;
+        let Walked { job, named, read } = self;
         let Sweeping {
             paths,
             shed,
@@ -153,8 +160,11 @@ impl Walked {
         };
         let binned = match bin {
             true => {
-                let named: BTreeSet<String> = held().into_iter().collect();
-                crate::attach::unbinned(paths.data(), &named);
+                // Only what every document was read for comes back: an unread one would name all that was retired.
+                if read {
+                    let named: BTreeSet<String> = held().into_iter().collect();
+                    crate::attach::unbinned(paths.data(), &named);
+                }
                 self::bin(&paths)
             }
             false => 0,
