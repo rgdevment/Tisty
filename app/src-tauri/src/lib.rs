@@ -1263,6 +1263,8 @@ pub fn run() {
             answers::paging::help_drawn,
             answers::paging::help_anchors,
             answers::papers::doc_read,
+            answers::papers::doc_opened,
+            answers::papers::doc_merge,
             answers::papers::doc_facts,
             answers::papers::keep_file,
             answers::papers::doc_word,

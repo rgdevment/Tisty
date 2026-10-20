@@ -147,6 +147,9 @@ fn answer(paths: &Paths, line: &str, tally: &mut Tally) -> Option<String> {
                 Ok(args) => ("tool", called(paths, name, args)),
                 Err(refused) => ("arguments", Err(refused)),
             };
+            if done.is_ok() && !ONLY_READS.contains(&name) {
+                tisty_core::stirring::stir(paths);
+            }
             if done.is_err() {
                 tally.refused += 1;
             }
@@ -265,6 +268,22 @@ fn called(paths: &Paths, name: &str, args: Value) -> Result<Value, Refused> {
         )),
     }
 }
+
+// A tool missing here only rings for nothing; the window's own round still catches what it wrote.
+const ONLY_READS: [&str; 12] = [
+    "find",
+    "sum_up",
+    "read",
+    "read_doc",
+    "outline_doc",
+    "docs",
+    "export_doc",
+    "catch_up",
+    "lists",
+    "tags",
+    "language",
+    "rules",
+];
 
 const WRITES_DOCUMENTS: [&str; 9] = [
     "write_doc",
@@ -1210,9 +1229,10 @@ fn named_all(state: &State, files: &[String]) -> String {
         .join(", ")
 }
 
+// The id stays in brackets, for the next call, and an untitled document is still called something.
 fn doc_named(state: &State, which: &str) -> String {
     let Some(kept) = state.docs.values().find(|one| one.file == which) else {
-        return which.to_string();
+        return format!("[{which}]");
     };
     match kept
         .title
@@ -1221,7 +1241,24 @@ fn doc_named(state: &State, which: &str) -> String {
         .filter(|one| !one.is_empty())
     {
         Some(title) => format!("{title:?} [{which}]"),
-        None => which.to_string(),
+        None => format!("an untitled document [{which}]"),
+    }
+}
+
+/// The words to tell the person what was written: its title and where it sits, never its id.
+fn for_the_person(state: &State, which: &str, title: &str) -> String {
+    let kept = state.docs.values().find(|one| one.file == which);
+    let called = match title.trim() {
+        "" => "an untitled document".to_string(),
+        title => format!("the document {title:?}"),
+    };
+    let up = kept
+        .and_then(|one| one.page_of)
+        .and_then(|up| named_doc(state, up));
+    match (up, kept.and_then(|one| one.folder)) {
+        (Some(up), _) => format!("{called}, a page of {}", doc_titled(state, &up)),
+        (None, Some(at)) => format!("{called}, in the folder {}", trail(state, at)),
+        (None, None) => format!("{called}, outside any folder"),
     }
 }
 

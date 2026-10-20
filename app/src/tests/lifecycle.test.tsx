@@ -62,11 +62,11 @@ const ipc = vi.hoisted(() => ({
   calls: [] as string[],
 }));
 
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (cmd: string, args?: Record<string, unknown>) => {
+vi.mock("@tauri-apps/api/core", async () => ({
+  invoke: (await import("./opened")).opening((cmd: string, args?: Record<string, unknown>) => {
     ipc.calls.push(cmd);
     return ipc.answer(cmd, args ?? {});
-  },
+  }),
 }));
 
 vi.mock("../carrying", () => ({

@@ -7,8 +7,8 @@ use tisty_core::Paths;
 use super::super::asked::text;
 use super::super::jsonrpc::told;
 use super::super::{
-    Refused, UNSETTLED, by_how_much, grew, hitch, left_loose, loose_words, named_twice, nearest,
-    opened, raw, retold, twice_words, with_echo, wrapped,
+    Refused, UNSETTLED, by_how_much, doc_named, for_the_person, grew, hitch, left_loose,
+    loose_words, named_twice, nearest, opened, raw, retold, twice_words, with_echo, wrapped,
 };
 
 pub(in crate::mcp) fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
@@ -44,15 +44,16 @@ pub(in crate::mcp) fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
             "no document here is called {which:?}. `docs` lists them all."
         )));
     };
+    let named = doc_named(&state, &which);
     if state.held_away(kept) {
         return Err(Refused::Tool(format!(
-            "{which:?} is put away, so it is not edited any more."
+            "{named} is put away, so it is not edited any more."
         )));
     }
     super::compacting::released(&state, kept, args, &mut store)?;
     if state.shut(kept.id) {
         return Err(Refused::Tool(format!(
-            "{which:?} is locked. The person shut it so nothing writes in it — not the \
+            "{named} is locked. The person shut it so nothing writes in it — not the \
              window, not you. Ask them to unlock it if it truly has to change."
         )));
     }
@@ -80,29 +81,29 @@ pub(in crate::mcp) fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
             let body = tisty_core::docs::read(&paths.docs(), &which).unwrap_or_default();
             match nearest(&body, old) {
                 Some((line, near)) => format!(
-                    "nothing in {which:?} reads exactly like that `old`, so nothing was changed. \
+                    "nothing in {named} reads exactly like that `old`, so nothing was changed. \
                      The nearest it has is line {line}:\n\n{near}\n\nCopy it character for \
                      character as `read_doc` hands it back, or name the place with `section` \
                      or `from` and `to`."
                 ),
                 None => format!(
-                    "nothing in {which:?} reads like that `old`, so nothing was changed. Ask \
+                    "nothing in {named} reads like that `old`, so nothing was changed. Ask \
                      `find` with this `doc` where the words are, or `read_doc` for the part you \
                      mean."
                 ),
             }
         })),
         tisty_core::docs::Change::TheLot => Err(Refused::Tool(format!(
-            "that `old` is the whole of {which:?}, which `edit_doc` will not take: a passage it \
+            "that `old` is the whole of {named}, which `edit_doc` will not take: a passage it \
              cannot tell from the document is a rewrite wearing an edit's clothes. Nothing was \
              changed. Edit the passage that differs, or replace the body with `write_doc`, naming \
-             {which:?} and the `print` `read_doc` gave you."
+             {named} and the `print` `read_doc` gave you."
         ))),
         tisty_core::docs::Change::Twice(many) => Err(Refused::Tool({
             let body = tisty_core::docs::read(&paths.docs(), &which).unwrap_or_default();
             let at = where_over(&body, old);
             format!(
-                "that `old` fits {many} places in {which:?}, and Tisty will not choose for you, \
+                "that `old` fits {many} places in {named}, and Tisty will not choose for you, \
                  so nothing was changed. It starts on lines {}. Send more of the lines around \
                  the one you mean, or name it with `from` and `to`.",
                 at.iter()
@@ -128,6 +129,7 @@ pub(in crate::mcp) fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
                 ),
                 with_echo(
                     json!({
+                        "for_the_person": for_the_person(&state, &which, &tisty_core::docs::titled(&whole)),
                         "doc": which,
                         "title": tisty_core::docs::titled(&whole),
                         "chars": whole.chars().count(),

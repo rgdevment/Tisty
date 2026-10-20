@@ -657,6 +657,7 @@ const en = {
     "This one is in the archive. It reads, it does not write — bring it back to write in it again",
   docStirredGone: "Got it",
   docStirredBack: "Put back what it said before",
+  docStirredSee: "See what changed",
   nothingKeptBeside: "Nothing is kept beside this one to go back to",
   backSure:
     "Going back leaves this document as it read before the write that stirred it. What it says now is kept in its place, so you can come back to it.",
@@ -2855,6 +2856,7 @@ const es: Catalog = {
     "Este está en el archivo. Se lee, no se escribe — desarchívalo para volver a escribir en él",
   docStirredGone: "Entendido",
   docStirredBack: "Volver a lo que decía antes",
+  docStirredSee: "Ver qué cambió",
   nothingKeptBeside: "No hay nada guardado al lado de este para volver atrás",
   backSure:
     "Volver atrás deja este documento como se leía antes de la escritura que lo movió. Lo que dice ahora queda guardado en su lugar, así que puedes regresar a ello.",

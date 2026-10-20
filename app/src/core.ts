@@ -1256,8 +1256,22 @@ export type Mend = {
 };
 
 export const mendsIn = (body: string): Promise<Mend[]> => invoke("mends_in", { body });
-export const docWrite = (id: string, body: string, anyway?: boolean): Promise<Doc> =>
-  invoke("doc_write", { id, body, anyway });
+export interface Opened {
+  body: string;
+  print: string;
+}
+export const docOpened = (id: string): Promise<Opened> => invoke("doc_opened", { id });
+export const docWrite = (
+  id: string,
+  body: string,
+  anyway?: boolean,
+  since?: string,
+): Promise<Doc & { print: string }> => invoke("doc_write", { id, body, anyway, since });
+export const docMerge = (
+  id: string,
+  base: string,
+  mine: string,
+): Promise<(Opened & { title: string }) | null> => invoke("doc_merge", { id, base, mine });
 export const docBack = (id: string): Promise<Doc> => invoke("doc_back", { id });
 export const docBackable = (id: string): Promise<boolean> => invoke("doc_backable", { id });
 export const folderFile = (id: string, parent?: string, before?: string): Promise<void> =>

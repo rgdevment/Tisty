@@ -139,8 +139,9 @@ pub(in crate::mcp) fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, 
     let held = tisty_core::cache::Cache::open(paths.cache()).ok().flatten();
     let Some(card) = tisty_core::docs::card_of(&paths.docs(), held.as_ref(), &which) else {
         return Err(Refused::Tool(format!(
-            "{which:?} is named in the log but its text is not on this machine yet. It may still \
-             be arriving from another one."
+            "{} is named in the log but its text is not on this machine yet. It may still \
+             be arriving from another one.",
+            doc_named(&state, &which)
         )));
     };
     let whole = tisty_core::docs::read(&paths.docs(), &which).unwrap_or_default();

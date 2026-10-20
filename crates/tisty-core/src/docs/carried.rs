@@ -115,6 +115,10 @@ fn printed_body(bytes: &[u8]) -> String {
     crate::attach::printed(&as_settled(bytes))
 }
 
+pub fn print_of_text(body: &str) -> String {
+    printed_body(body.as_bytes())
+}
+
 pub fn print_of(at: &Path) -> std::io::Result<Option<String>> {
     Ok(whole_of(at)?.map(|bytes| printed_body(&bytes)))
 }

@@ -50,6 +50,7 @@ pub mod signing;
 pub mod speaking;
 pub mod stages;
 pub mod state;
+pub mod stirring;
 pub mod store;
 pub mod story;
 pub mod tagging;

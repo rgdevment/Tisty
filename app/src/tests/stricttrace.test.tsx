@@ -13,12 +13,12 @@ const store = vi.hoisted(() => ({
   writes: [] as string[],
 }));
 
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (cmd: string, args?: Record<string, unknown>) => {
+vi.mock("@tauri-apps/api/core", async () => ({
+  invoke: (await import("./opened")).opening((cmd: string, args?: Record<string, unknown>) => {
     if (cmd === "doc_read") return Promise.resolve(store.bodies[String(args?.id)] ?? "");
     if (cmd === "doc_write") return Promise.resolve({ id: String(args?.id), title: "Libro" });
     return Promise.resolve(null);
-  },
+  }),
 }));
 
 vi.mock("../ui/Sheet", async () => {
