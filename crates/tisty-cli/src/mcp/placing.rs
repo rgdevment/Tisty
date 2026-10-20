@@ -3,6 +3,7 @@ use tisty_core::State;
 use super::trail;
 
 const NAMED_AT_MOST: usize = 3;
+const ALIKE_AT_LEAST: usize = 2;
 
 fn words(said: &str) -> Vec<String> {
     tisty_core::text::telling(said)
@@ -50,17 +51,62 @@ pub(super) fn closest_lists(state: &State, title: &str) -> Vec<String> {
     closest(title, all)
 }
 
-pub(super) fn loose_doc(state: &State, title: &str) -> String {
-    match closest_folders(state, title).as_slice() {
+fn said_of(kept: &tisty_core::model::Kept) -> Vec<String> {
+    let mut all = words(kept.title.as_deref().unwrap_or_default());
+    all.extend(kept.tags.iter().map(|tag| tag.as_str().to_string()));
+    all
+}
+
+// A project's folder is named after the project, not after what its documents say, so they are asked too.
+fn alike_folders(state: &State, title: &str, body: &str) -> Vec<(String, usize)> {
+    let mut mine = words(title);
+    if let Some(tags) = tisty_core::event::Said::of(body).tags {
+        mine.extend(tags.iter().map(|tag| tag.as_str().to_string()));
+    }
+    let mut held: std::collections::BTreeMap<_, usize> = Default::default();
+    for kept in state.docs.values() {
+        let Some(folder) = kept.folder.filter(|one| !state.folder_away(*one)) else {
+            continue;
+        };
+        if kept.page_of.is_some() || kept.archived {
+            continue;
+        }
+        let theirs = said_of(kept);
+        if mine.iter().filter(|one| theirs.contains(one)).count() >= ALIKE_AT_LEAST {
+            *held.entry(folder).or_default() += 1;
+        }
+    }
+    let mut ranked: Vec<(String, usize)> = held
+        .into_iter()
+        .map(|(folder, many)| (trail(state, folder), many))
+        .collect();
+    ranked.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+    ranked.truncate(NAMED_AT_MOST);
+    ranked
+}
+
+pub(super) fn loose_doc(state: &State, title: &str, body: &str) -> String {
+    if let near @ [_, ..] = closest_folders(state, title).as_slice() {
+        return format!(
+            " It sits in no folder; the closest by name: {}. `file_doc` puts it in one.",
+            near.join(", ")
+        );
+    }
+    match alike_folders(state, title, body).as_slice() {
         [] if state.folders.is_empty() => " It sits in no folder, and there are none yet: ask \
              the person where it belongs, suggesting a name, and make the folder once they agree."
             .to_string(),
-        [] => " It sits in no folder, and no folder's name is near its title: ask the person \
+        [] => " It sits in no folder, and nothing kept in one reads like it: ask the person \
              where it belongs, suggesting a name, rather than leaving it loose."
             .to_string(),
-        near => format!(
-            " It sits in no folder; the closest by name: {}. `file_doc` puts it in one.",
-            near.join(", ")
+        alike => format!(
+            " It sits in no folder; what it says is closest to what these hold: {}. `file_doc` \
+             puts it in one, or ask the person.",
+            alike
+                .iter()
+                .map(|(folder, many)| format!("{folder} ({many} alike)"))
+                .collect::<Vec<_>>()
+                .join(", ")
         ),
     }
 }
