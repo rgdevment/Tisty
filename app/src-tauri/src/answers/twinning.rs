@@ -40,7 +40,7 @@ pub struct Joined {
     freed: u64,
     relinked: usize,
     /// Copies that could not be set aside and are still on disk.
-    left: usize,
+    left: Vec<String>,
 }
 
 #[derive(Default)]
@@ -332,10 +332,10 @@ fn unmoved(session: &mut Session, plan: &Plan) -> Answer<()> {
         };
         let now = match entry {
             None => task.description.clone().unwrap_or_default(),
-            Some(entry) => task
-                .entry(*entry)
-                .map(|one| one.body.clone())
-                .unwrap_or_default(),
+            Some(entry) => match task.entry(*entry) {
+                Some(one) => one.body.clone(),
+                None => return Err(Refusal::of("twinsTaskGone")),
+            },
         };
         if &now != was {
             return Err(Refusal::about("twinsEdited", task.title.clone()));
@@ -357,6 +357,8 @@ fn joined(
         .filter_map(|one| leaf_of(one).map(|from| (from.to_string(), to.clone())))
         .collect();
     let plan = planned(session, &go, &going)?;
+    // Asked before any document is written too, so a task that moved stops it before it starts.
+    unmoved(session, &plan)?;
 
     let root = session.paths.docs();
     let hand = crate::signing(&session.state);
@@ -389,12 +391,12 @@ fn joined(
             )
         })?;
     }
-    let gone = session.retire(&go)?;
-    // A copy retire passed over is still on disk, so its ledger line stays and it is said.
-    let data = session.paths.data();
-    let (still, went): (Vec<String>, Vec<String>) = go
-        .into_iter()
-        .partition(|one| tisty_core::attach::resolve(one, data).is_ok_and(|at| at.is_file()));
+    // One at a time, so a copy that cannot be set aside is told rather than failing the rest.
+    let (went, left): (Vec<String>, Vec<String>) = go.into_iter().partition(|one| {
+        session
+            .retire(std::slice::from_ref(one))
+            .is_ok_and(|gone| gone > 0)
+    });
     tisty_core::attach::joined_in_ledger(session.paths.data(), &keep, &went, &sha256, each)
         .map_err(|e| {
             blamed(
@@ -404,9 +406,9 @@ fn joined(
             )
         })?;
     Ok(Joined {
-        freed: each * gone as u64,
+        freed: each * went.len() as u64,
         relinked: plan.links,
-        left: still.len(),
+        left,
     })
 }
 

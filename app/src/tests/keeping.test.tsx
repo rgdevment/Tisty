@@ -1566,7 +1566,7 @@ describe("the maintenance panel", () => {
             ],
           },
         ]);
-      if (cmd === "twins_join") return Promise.resolve({ freed: 300_000, relinked: 2 });
+      if (cmd === "twins_join") return Promise.resolve({ freed: 300_000, relinked: 2, left: [] });
       return otherwise(cmd, args);
     };
     render(

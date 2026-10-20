@@ -593,7 +593,7 @@ export interface Pair {
 export interface Joined {
   freed: number;
   relinked: number;
-  left: number;
+  left: string[];
 }
 
 export interface Machine {

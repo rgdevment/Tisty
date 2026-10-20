@@ -73,11 +73,22 @@ export default function FreeUp({
   const join = (keep: string, go: string[]) => {
     setJoining(true);
     const asked = twinsJoin(keep, go).then((done) => {
-      // A copy left on disk keeps the pair listed, to be joined again.
-      if (done.left === 0)
-        setAlike(
-          (was) => was?.filter((one) => !one.copies.some((copy) => copy.at === keep)) ?? null,
-        );
+      // A copy left on disk keeps the pair listed with only what is still there, to be joined again.
+      setAlike(
+        (was) =>
+          was
+            ?.map((one) =>
+              one.copies.some((copy) => copy.at === keep)
+                ? {
+                    ...one,
+                    copies: one.copies.filter(
+                      (copy) => copy.at === keep || done.left.includes(copy.at),
+                    ),
+                  }
+                : one,
+            )
+            .filter((one) => one.copies.length > 1) ?? null,
+      );
       return done;
     });
     void asked.finally(() => setJoining(false)).catch(() => undefined);
@@ -87,10 +98,9 @@ export default function FreeUp({
         weigh(done.freed),
         String(done.relinked),
       );
-      const left = done.left === 1 ? t("twinsLeftOne") : fill("twinsLeft", String(done.left));
-      tell({ card: "twins", text: done.left > 0 ? `${joined} ${left}` : joined });
-      // What was set aside is gone from the pair, so it is looked for again rather than shown stale.
-      if (done.left > 0) void twinned().then(setAlike, () => undefined);
+      const many = done.left.length;
+      const left = many === 1 ? t("twinsLeftOne") : fill("twinsLeft", String(many));
+      tell({ card: "twins", text: many > 0 ? `${joined} ${left}` : joined });
       void checked().then(setAudit, () => undefined);
     });
   };
@@ -99,7 +109,7 @@ export default function FreeUp({
   // A copy nothing links to is already counted as loose, so only what loose leaves out adds here.
   const doubled = shownTwins.reduce((sum, one) => {
     const each = one.bytes / Math.max(one.copies.length - 1, 1);
-    const counted = one.copies.filter((copy) => copy.links.length === 0).length;
+    const counted = audit ? one.copies.filter((copy) => copy.links.length === 0).length : 0;
     return sum + Math.max(one.bytes - each * counted, 0);
   }, 0);
   const total = (audit?.looseBytes ?? 0) + (state.freesSpace ? (unused?.bytes ?? 0) : 0) + doubled;
@@ -220,7 +230,9 @@ export default function FreeUp({
             alike && (
               <>
                 {shownTwins.length === 0 && (
-                  <p className="mt-2 text-[12.5px] text-faint">{t("twinsNone")}</p>
+                  <p className="mt-2 text-[12.5px] text-faint">
+                    {t(alike.length === 0 ? "twinsNone" : "twinsAside")}
+                  </p>
                 )}
                 {shownTwins.length > 0 && (
                   <ul className="scroller mt-2 flex max-h-[32rem] flex-col gap-4 overflow-y-auto">

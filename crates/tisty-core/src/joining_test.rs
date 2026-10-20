@@ -184,3 +184,28 @@ fn hex_words_that_are_not_its_stamp_are_words() {
         1
     );
 }
+
+#[test]
+fn a_link_through_any_one_folder_is_relinked_but_prose_after_an_equals_is_not() {
+    let from = "foto-a42d4603.png";
+    let body = format!("![](attachments/old/{from}) set href= {from} and NOTE]: {from}");
+
+    let (now, moved) = relinked(&body, from, "playa-a42d4603.png").unwrap();
+
+    assert_eq!(moved, 1, "{now}");
+    assert!(
+        now.starts_with("![](attachments/playa-a42d4603.png)"),
+        "{now}"
+    );
+}
+
+#[test]
+fn a_twelve_letter_stamp_said_twice_is_a_repeat() {
+    let doubled = "attachments/foo-abcdef123456-abcdef123456.png";
+    let once = "attachments/foo-abcdef123456.png";
+
+    assert_eq!(
+        keeper(&[copy(doubled, 1, false, 1), copy(once, 1, false, 9)]),
+        1
+    );
+}
