@@ -39,6 +39,7 @@ pub mod parting;
 mod parts;
 pub mod paths;
 pub mod refs;
+mod repeating;
 pub mod round;
 pub mod seal;
 pub mod series;
