@@ -17,9 +17,8 @@ import {
 import { fill, t } from "../locales";
 import { offerMoved, saidPlainly } from "../refusal";
 import Glyph from "./Glyph";
-import Modal from "./Modal";
 import { waitingOn } from "./Older";
-import Reporting from "./Reporting";
+import { ReportOpen } from "./Reporting";
 import { useCards } from "./useCards";
 import Written from "./Written";
 
@@ -388,21 +387,15 @@ export default function About({
         )}
       </div>
       {reporting && (
-        <Modal title={t("reportTitle")} wide onClose={() => setReporting(false)}>
-          <Reporting
-            busy={cards.busy}
-            said={cards.said}
-            trouble={cards.trouble}
-            tell={cards.setSaid}
-            fail={cards.setTrouble}
-            quietly={cards.quietly}
-          />
-          <div className="mt-5 flex justify-end">
-            <button type="button" onClick={() => setReporting(false)} className={mild}>
-              {t("close")}
-            </button>
-          </div>
-        </Modal>
+        <ReportOpen
+          busy={cards.busy}
+          said={cards.said}
+          trouble={cards.trouble}
+          tell={cards.setSaid}
+          fail={cards.setTrouble}
+          quietly={cards.quietly}
+          onClose={() => setReporting(false)}
+        />
       )}
     </main>
   );

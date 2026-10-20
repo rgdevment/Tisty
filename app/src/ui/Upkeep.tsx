@@ -16,8 +16,7 @@ import { saidPlainly } from "../refusal";
 import { type Run, type Which, type Word, working } from "./Card";
 import FreeUp from "./FreeUp";
 import Leftovers, { lookAt } from "./Leftovers";
-import Modal from "./Modal";
-import Reporting from "./Reporting";
+import { ReportOpen } from "./Reporting";
 import { Line, mild } from "./Rows";
 import Tools from "./Tools";
 import { useSince } from "./useSince";
@@ -199,21 +198,15 @@ export default function Upkeep({
       </div>
 
       {reporting && (
-        <Modal title={t("reportTitle")} wide onClose={() => setReporting(false)}>
-          <Reporting
-            busy={busy}
-            said={said}
-            trouble={trouble}
-            tell={tell}
-            fail={fail}
-            quietly={quietly}
-          />
-          <div className="mt-5 flex justify-end">
-            <button type="button" onClick={() => setReporting(false)} className={mild}>
-              {t("close")}
-            </button>
-          </div>
-        </Modal>
+        <ReportOpen
+          busy={busy}
+          said={said}
+          trouble={trouble}
+          tell={tell}
+          fail={fail}
+          quietly={quietly}
+          onClose={() => setReporting(false)}
+        />
       )}
     </>
   );

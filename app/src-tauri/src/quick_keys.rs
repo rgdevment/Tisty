@@ -45,7 +45,6 @@ fn take<R: tauri::Runtime>(app: &tauri::AppHandle<R>, combo: Shortcut) -> bool {
         .is_ok()
 }
 
-/// The person's choice first; with none, the first combination no other program holds.
 pub(crate) fn listen_for<R: tauri::Runtime>(
     app: &tauri::AppHandle<R>,
     chosen: Option<&str>,
@@ -60,7 +59,7 @@ pub(crate) fn listen_for<R: tauri::Runtime>(
         return Some(said.to_string());
     }
     for (said, combo) in offered() {
-        if take(app, combo) {
+        if chosen != Some(said) && take(app, combo) {
             return Some(said.to_string());
         }
     }
@@ -84,20 +83,31 @@ pub fn keep_shortcut(
         OFF => None,
         said => Some(combo(said).ok_or_else(|| Refusal::of("keysUnknown"))?),
     };
+    // The session first and then the shortcut, the order every other reader takes them in.
+    let mut session = held(&session);
     let mut now = bound.0.lock().map_err(|_| Refusal::of("internal"))?;
     let was = now.as_deref().and_then(combo);
+    let back = |now: &mut Option<String>| {
+        if let Some(wanted) = wanted {
+            let _ = app.global_shortcut().unregister(wanted);
+        }
+        if was.is_none_or(|was| !take(&app, was)) {
+            *now = None;
+        }
+    };
     if let Some(was) = was {
         let _ = app.global_shortcut().unregister(was);
     }
     if let Some(wanted) = wanted
         && !take(&app, wanted)
     {
-        if let Some(was) = was {
-            take(&app, was);
-        }
+        back(&mut now);
         return Err(Refusal::about("keysTaken", keys));
     }
-    *now = wanted.map(|_| keys.clone());
-    held(&session).keep(|config| config.quick_keys = Some(keys))?;
+    if let Err(refused) = session.keep(|config| config.quick_keys = Some(keys.clone())) {
+        back(&mut now);
+        return Err(refused);
+    }
+    *now = wanted.map(|_| keys);
     Ok(now.clone())
 }

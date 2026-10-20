@@ -893,10 +893,10 @@ pub(crate) fn opened(
     };
     let watched = session.paths.clone();
     let quiet = session.config.muted().to_vec();
+    let session_keys = session.config.quick_keys.clone();
     // An update relaunches with the arguments it was started with, so a copy that opened
     // with the session comes back hidden — looking, to whoever pressed the button, like it
     // never came back at all.
-    let session_keys = session.config.quick_keys.clone();
     let came_back = session.config.found_version.as_deref() == Some(HERE);
     answers::settings::appearance(app, session.config.theme);
     app.manage(Mutex::new(session));
@@ -904,6 +904,7 @@ pub(crate) fn opened(
     herald::watch(app.clone(), watched);
     hearing::listen(app.clone());
     leaving::keep_telling(app.clone());
+    answers::papers::tags_once(app.clone());
 
     app.manage(answers::freeing::Stopping::default());
     let perched = tray::raise(app, &words).is_some();

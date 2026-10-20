@@ -1222,3 +1222,49 @@ pub fn doc_order(
 #[cfg(test)]
 #[path = "papers_test.rs"]
 mod tests;
+
+/// Front matter tags only count since 1.31, so what an older build filed learns them once, off the window's way.
+pub fn tags_once(app: tauri::AppHandle) {
+    use tauri::{Emitter, Manager};
+    std::thread::spawn(move || {
+        let session = app.state::<Mutex<Session>>();
+        let (root, owing) = {
+            let held = held(&session);
+            if held.config.tags_read == Some(true) {
+                return;
+            }
+            let owing: Vec<(tisty_core::model::DocId, String)> = held
+                .state
+                .docs
+                .values()
+                .map(|one| (one.id, one.file.clone()))
+                .collect();
+            (held.paths.docs(), owing)
+        };
+        for some in owing.chunks(CATCHING_UP_AT_ONCE) {
+            let read: Vec<_> = some
+                .iter()
+                .filter_map(|(id, file)| {
+                    let body = tisty_core::docs::read(&root, file).ok()?;
+                    Some((*id, tisty_core::event::Said::of(&body).by(None)))
+                })
+                .collect();
+            let mut held = held(&session);
+            let ops: Vec<Op> = read
+                .into_iter()
+                .filter(|(id, said)| {
+                    held.state
+                        .docs
+                        .get(id)
+                        .is_some_and(|kept| said.news_for(kept))
+                })
+                .map(|(id, said)| Op::DocSaid { id, d: said })
+                .collect();
+            if !ops.is_empty() && held.commit_all(ops).is_err() {
+                return;
+            }
+        }
+        let _ = held(&session).keep(|config| config.tags_read = Some(true));
+        let _ = app.emit("stirred", ());
+    });
+}

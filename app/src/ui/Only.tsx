@@ -10,6 +10,8 @@ interface Props {
   onChange: (lists: string[]) => void;
 }
 
+const WIDE = 224;
+
 export const said = (lists: List[], chosen: string[]): string => {
   if (chosen.length === 0) return t("onlyIn");
   if (chosen.length === 1) {
@@ -20,12 +22,17 @@ export const said = (lists: List[], chosen: string[]): string => {
 
 export default function Only({ lists, chosen, onChange }: Props) {
   const [open, setOpen] = useState(false);
-  const [at, setAt] = useState({ left: 0, top: 0, room: 256 });
+  const [at, setAt] = useState<{ left: number; top?: number; bottom?: number; room: number }>({
+    left: 0,
+    room: 256,
+  });
   const box = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLFieldSetElement>(null);
 
+  // The panel lives at the end of the page, so focus is carried into it and back.
   useEffect(() => {
     if (!open) return;
+    panel.current?.querySelector("input")?.focus();
     const inside = (target: EventTarget | null) =>
       box.current?.contains(target as Node) || panel.current?.contains(target as Node);
     const away = (e: MouseEvent) => {
@@ -35,7 +42,9 @@ export default function Only({ lists, chosen, onChange }: Props) {
       if (!inside(e.target)) setOpen(false);
     };
     const key = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      box.current?.querySelector("button")?.focus();
     };
     const shut = () => setOpen(false);
     document.addEventListener("mousedown", away);
@@ -69,8 +78,14 @@ export default function Only({ lists, chosen, onChange }: Props) {
         aria-pressed={some}
         onClick={(e) => {
           const seen = e.currentTarget.getBoundingClientRect();
-          const top = seen.bottom + 4;
-          setAt({ left: seen.left, top, room: Math.max(120, window.innerHeight - top - 12) });
+          const left = Math.max(8, Math.min(seen.left, window.innerWidth - WIDE - 8));
+          const below = window.innerHeight - seen.bottom - 12;
+          // Near the bottom it opens upward, where there is more room than below.
+          setAt(
+            below < 160 && seen.top > below
+              ? { left, bottom: window.innerHeight - seen.top + 4, room: seen.top - 12 }
+              : { left, top: seen.bottom + 4, room: below },
+          );
           setOpen((was) => !was);
         }}
         className={`flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11.5px] ${
@@ -87,8 +102,14 @@ export default function Only({ lists, chosen, onChange }: Props) {
         createPortal(
           <fieldset
             ref={panel}
-            style={{ left: at.left, top: at.top, maxHeight: at.room }}
-            className="fixed z-[70] flex w-56 flex-col rounded-[10px] border border-hair bg-bg p-1.5 shadow-lift"
+            style={{
+              left: at.left,
+              top: at.top,
+              bottom: at.bottom,
+              maxHeight: at.room,
+              width: WIDE,
+            }}
+            className="fixed z-[70] flex flex-col rounded-[10px] border border-hair bg-bg p-1.5 shadow-lift"
           >
             <legend className="sr-only">{t("onlyIn")}</legend>
             <div className="scroller min-h-0 flex-1">

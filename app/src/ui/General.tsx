@@ -205,7 +205,7 @@ export default function General({
           {kept && (
             <select
               aria-label={t("quickKeys")}
-              value={keys ?? "off"}
+              value={keys ?? (kept.quickKeys === "off" ? "off" : "")}
               disabled={held}
               onChange={(e) => {
                 const wanted = e.target.value;
@@ -222,6 +222,7 @@ export default function General({
                 </option>
               ))}
               <option value="off">{t("quickKeysOff")}</option>
+              {!keys && kept.quickKeys !== "off" && <option value="" disabled hidden />}
             </select>
           )}
         </Line>
