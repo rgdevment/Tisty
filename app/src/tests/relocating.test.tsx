@@ -92,6 +92,17 @@ afterEach(() => {
   heard(null);
 });
 
+describe("choosing where to move", () => {
+  it("can be left without choosing anything", async () => {
+    const { closed } = opened({ resume: undefined });
+
+    await userEvent.click(await screen.findByRole("button", { name: t("cancel") }));
+
+    expect(closed).toHaveBeenCalled();
+    expect(ipc.calls.map((one) => one.cmd)).not.toContain("move_to");
+  });
+});
+
 describe("moving to another place", () => {
   it("says what comes down from the cloud and that nothing is deleted there", async () => {
     opened({ resume: { kind: "folder", at: "G:/Mi unidad/Tisty" } });
