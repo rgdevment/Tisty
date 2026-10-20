@@ -749,7 +749,7 @@ describe("the maintenance panel", () => {
       expect(screen.getByRole("button", { name: /^free$/i }).hasAttribute("disabled")).toBe(true);
 
       unused = 2;
-      await userEvent.selectOptions(screen.getByRole("combobox", { name: /unused for/i }), "90");
+      await userEvent.selectOptions(screen.getByRole("combobox", { name: /unused for/i }), "60");
       await screen.findByText(/2 unused/i);
       await userEvent.click(screen.getByRole("button", { name: /^free$/i }));
 

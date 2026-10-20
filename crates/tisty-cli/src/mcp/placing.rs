@@ -3,6 +3,8 @@ use tisty_core::State;
 use super::trail;
 
 const NAMED_AT_MOST: usize = 3;
+const ALIKE_AT_LEAST: usize = 2;
+const WORDED_AT_LEAST: usize = 3;
 
 fn words(said: &str) -> Vec<String> {
     tisty_core::text::telling(said)
@@ -50,18 +52,89 @@ pub(super) fn closest_lists(state: &State, title: &str) -> Vec<String> {
     closest(title, all)
 }
 
-pub(super) fn loose_doc(state: &State, title: &str) -> String {
-    match closest_folders(state, title).as_slice() {
-        [] if state.folders.is_empty() => " It sits in no folder, and there are none yet: ask \
-             the person where it belongs, suggesting a name, and make the folder once they agree."
+type Told = (
+    std::collections::BTreeSet<String>,
+    std::collections::BTreeSet<String>,
+);
+
+fn told(title: &str, tags: impl Iterator<Item = String>) -> Told {
+    (words(title).into_iter().collect(), tags.collect())
+}
+
+// Two plain words like «meeting notes» say little; a shared tag, or three words, say the subject.
+fn alike((words, tags): &Told, (theirs, labels): &Told) -> bool {
+    let tagged = tags.intersection(labels).count();
+    let worded = words.intersection(theirs).count();
+    (tagged >= 1 && tagged + worded >= ALIKE_AT_LEAST) || worded >= WORDED_AT_LEAST
+}
+
+// A project's folder is named after the project, not after what its documents say, so they are asked too.
+fn alike_folders(state: &State, title: &str, body: &str) -> Vec<String> {
+    let mine = told(
+        title,
+        tisty_core::tagging::tags_in(body)
+            .into_iter()
+            .map(|tag| tag.as_str().to_string()),
+    );
+    let mut held: std::collections::BTreeMap<_, usize> = Default::default();
+    for kept in state
+        .papers()
+        .filter(|one| one.page_of.is_none() && one.flagged.is_none() && !state.held_away(one))
+    {
+        let Some(folder) = kept.folder else {
+            continue;
+        };
+        let theirs = told(
+            kept.title.as_deref().unwrap_or_default(),
+            kept.tags.iter().map(|tag| tag.as_str().to_string()),
+        );
+        if alike(&mine, &theirs) {
+            *held.entry(folder).or_default() += 1;
+        }
+    }
+    let mut ranked: Vec<(String, usize)> = held
+        .into_iter()
+        .map(|(folder, many)| (trail(state, folder), many))
+        .collect();
+    ranked.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+    ranked
+        .into_iter()
+        .take(NAMED_AT_MOST)
+        .map(|(folder, many)| format!("{folder} ({many} alike)"))
+        .collect()
+}
+
+pub(super) fn loose_doc(state: &State, title: &str, body: &str) -> String {
+    let named = closest_folders(state, title);
+    let alike: Vec<String> = alike_folders(state, title, body)
+        .into_iter()
+        .filter(|one| {
+            !named
+                .iter()
+                .any(|name| one.starts_with(&format!("{name} (")))
+        })
+        .collect();
+    match (named.as_slice(), alike.as_slice()) {
+        ([], []) if state.folders.is_empty() => " It sits in no folder, and there are none yet: \
+             ask the person where it belongs, suggesting a name, and make the folder once they agree."
             .to_string(),
-        [] => " It sits in no folder, and no folder's name is near its title: ask the person \
+        ([], []) => " It sits in no folder, and nothing kept in one reads like it: ask the person \
              where it belongs, suggesting a name, rather than leaving it loose."
             .to_string(),
-        near => format!(
-            " It sits in no folder; the closest by name: {}. `file_doc` puts it in one.",
-            near.join(", ")
-        ),
+        _ => {
+            let mut said = String::from(" It sits in no folder;");
+            if !named.is_empty() {
+                said.push_str(&format!(" the closest by name: {}.", named.join(", ")));
+            }
+            if !alike.is_empty() {
+                said.push_str(&format!(
+                    " What it says is closest to what these hold: {}.",
+                    alike.join(", ")
+                ));
+            }
+            said.push_str(" `file_doc` puts it in one, or ask the person.");
+            said
+        }
     }
 }
 

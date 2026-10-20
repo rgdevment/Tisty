@@ -156,7 +156,7 @@ pub(super) fn written_doc(
             (None, None) => format!(
                 "Wrote the document {:?}.{} [{}]",
                 made.title,
-                super::super::placing::loose_doc(&state, &made.title),
+                super::super::placing::loose_doc(&state, &made.title, &body),
                 made.id
             ),
         },

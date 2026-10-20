@@ -161,7 +161,7 @@ pub(super) fn compacted(
             ),
         },
         match loose {
-            true => super::super::placing::loose_doc(state, &title),
+            true => super::super::placing::loose_doc(state, &title, &whole),
             false => String::new(),
         }
     );

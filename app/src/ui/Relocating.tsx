@@ -143,6 +143,8 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
           onAlone={() => chose({ kind: "alone" })}
           onCloud={() => setStep("cloud")}
           onFolder={() => setStep("folder")}
+          onCancel={close}
+          busy={busy}
         />
       )}
 

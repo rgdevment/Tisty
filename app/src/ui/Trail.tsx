@@ -60,8 +60,11 @@ export default function Trail({ task, moved, lists, onError, heading, before, su
                 {phrase(page, named)}
                 {page.undoing && <span className="ml-1.5 text-[11.5px]">· {t("trailUndone")}</span>}
                 {page.chapter === "wrote" && page.body.trim() && (
-                  <q className="mt-1 block border-l-2 border-hair pl-2.5 text-soft italic">
-                    {plainly(page.body ?? "")}
+                  <q
+                    title={plainly(page.body)}
+                    className="mt-0.5 line-clamp-1 border-l-2 border-hair pl-2.5 text-faint italic"
+                  >
+                    {plainly(page.body)}
                   </q>
                 )}
               </span>
@@ -209,7 +212,7 @@ function unreadable(page: never): string {
   return "";
 }
 
-/// The trail is a record, not a page: a reference reads as what it was called, not as its syntax.
+// A note rewritten or taken back since lives only in the log, so the trail is where its words still read.
 function plainly(body: string): string {
   return (
     body
