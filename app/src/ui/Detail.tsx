@@ -443,16 +443,24 @@ function Settled({
               },
             ]),
         ...(task.resolved
-          ? [{ key: "still", label: t("stillOpen"), icon: "↩", onPick: onStillOpen }]
+          ? [
+              {
+                key: "still",
+                label: t("stillOpen"),
+                icon: "↩",
+                hint: fill("stillOpenIt", task.title),
+                onPick: onStillOpen,
+              },
+            ]
           : [discard]),
         ...(onShape && !shaping
           ? [
               {
                 key: "shape",
-                label: t(shaping ? "shapeDone" : "shapeEdit"),
-                icon: "✎",
+                label: t("shapeEdit"),
+                icon: "§",
                 hint: t("shapeWhy"),
-                onPick: () => onShape(!shaping),
+                onPick: () => onShape(true),
               },
             ]
           : []),

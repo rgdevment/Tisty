@@ -1471,13 +1471,8 @@ figure.widget:hover .card-more,
   background: var(--tisty-hover);
 }
 
-/* Running text keeps a readable measure; tables, pictures and code still take the page's width. */
 .page > :is(p, ul, ol, blockquote) {
-  max-width: 70ch;
   text-wrap: pretty;
-}
-html[style*="--wide"] .page > :is(p, ul, ol, blockquote) {
-  max-width: none;
 }
 .page strong {
   font-weight: 600;

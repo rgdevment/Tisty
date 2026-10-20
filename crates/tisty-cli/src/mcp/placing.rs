@@ -63,15 +63,17 @@ fn said_of(kept: &tisty_core::model::Kept) -> std::collections::BTreeSet<String>
 // A project's folder is named after the project, not after what its documents say, so they are asked too.
 fn alike_folders(state: &State, title: &str, body: &str) -> Vec<String> {
     let mut mine: std::collections::BTreeSet<String> = words(title).into_iter().collect();
-    if let Some(tags) = tisty_core::event::Said::of(body).tags {
-        mine.extend(tags.iter().map(|tag| tag.as_str().to_string()));
-    }
+    mine.extend(
+        tisty_core::tagging::tags_in(body)
+            .iter()
+            .map(|tag| tag.as_str().to_string()),
+    );
     let mut held: std::collections::BTreeMap<_, usize> = Default::default();
     for kept in state
         .papers()
         .filter(|one| one.page_of.is_none() && one.flagged.is_none() && !state.held_away(one))
     {
-        let Some(folder) = kept.folder.filter(|one| !state.folder_away(*one)) else {
+        let Some(folder) = kept.folder else {
             continue;
         };
         if said_of(kept).intersection(&mine).count() >= ALIKE_AT_LEAST {

@@ -90,7 +90,7 @@ export default function SyncFoot({ onSync, onOpen, onTrouble, fallback }: Props)
     const ticking = setInterval(
       () => {
         tick((was) => was + 1);
-        void lookAgain();
+        if (often) void lookAgain();
       },
       often ? SOON : A_WHILE,
     );

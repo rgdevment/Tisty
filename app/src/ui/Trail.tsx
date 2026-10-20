@@ -59,8 +59,8 @@ export default function Trail({ task, moved, lists, onError, heading, before, su
               >
                 {phrase(page, named)}
                 {page.undoing && <span className="ml-1.5 text-[11.5px]">· {t("trailUndone")}</span>}
-                {page.chapter === "wrote" && page.undoing && page.body.trim() && (
-                  <q className="mt-1 line-clamp-2 border-l-2 border-hair pl-2.5 text-faint italic">
+                {page.chapter === "wrote" && page.body.trim() && (
+                  <q className="mt-0.5 line-clamp-1 border-l-2 border-hair pl-2.5 text-faint italic">
                     {plainly(page.body)}
                   </q>
                 )}
@@ -209,7 +209,7 @@ function unreadable(page: never): string {
   return "";
 }
 
-// A note taken back is no longer on the page, so the trail keeps its opening words, read as text.
+// The trail is the record of a note rewritten or taken back since, so it keeps its opening line, read as text.
 function plainly(body: string): string {
   return (
     body
