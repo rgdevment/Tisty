@@ -1528,13 +1528,29 @@ body {
   }
 }
 
-.quick-beaver {
-  position: absolute;
-  right: 18px;
-  bottom: -40px;
-  width: 78px;
-  height: auto;
-  pointer-events: none;
+/* The quick window has little room above its field, so Tisto is smaller and only its brow shows. */
+.quick-peeking > .beaver-hidden {
+  right: 32px;
+  bottom: calc(100% - 16px);
+  width: 64px;
+  height: 44px;
+}
+.quick-peeking > .beaver-hidden svg {
+  width: 64px;
+}
+.quick-peeking > .paws {
+  top: -7px;
+  right: 32px;
+  width: 64px;
+  padding: 0 6px;
+}
+.quick-peeking > .paws .paw {
+  width: 22px;
+  height: 14px;
+  border-width: 2.5px;
+}
+.quick-peeking > .paws .paw i {
+  height: 5px;
 }
 
 .cheer {

@@ -5,7 +5,7 @@ import { capture, type Priority, type Snapshot, snapshot } from "./core";
 import { adopt, fill, t } from "./locales";
 import { said } from "./quadrants";
 import { saidPlainly } from "./refusal";
-import { Head, useBeaver } from "./ui/Beaver";
+import { Head, Paws, useBeaver } from "./ui/Beaver";
 import CaptureField from "./ui/CaptureField";
 
 export default function Quick() {
@@ -81,23 +81,33 @@ export default function Quick() {
           <span className="text-[13px] text-accent">✓</span> {kept}
         </p>
       ) : (
-        <CaptureField
-          key={round}
-          invite={where === "unset" ? t("addTask") : fill("addTo", said(where))}
-          lists={data.lists}
-          tags={data.tags}
-          onCapture={(written, edits) => {
-            setError(null);
-            const asked = where === "unset" ? edits : { ...edits, priority: where };
-            return capture(written, {}, asked).then((task) => {
-              setKept(task.title);
-              void emit("captured");
-              going.current = setTimeout(() => void getCurrentWindow().hide(), 900);
-              return task;
-            });
-          }}
-          onError={setError}
-        />
+        <div className={peeks ? "peeking awake quick-peeking" : undefined}>
+          {peeks && (
+            <div className="beaver-hidden">
+              <Head />
+            </div>
+          )}
+          <div className="beaver-over">
+            <CaptureField
+              key={round}
+              invite={where === "unset" ? t("addTask") : fill("addTo", said(where))}
+              lists={data.lists}
+              tags={data.tags}
+              onCapture={(written, edits) => {
+                setError(null);
+                const asked = where === "unset" ? edits : { ...edits, priority: where };
+                return capture(written, {}, asked).then((task) => {
+                  setKept(task.title);
+                  void emit("captured");
+                  going.current = setTimeout(() => void getCurrentWindow().hide(), 900);
+                  return task;
+                });
+              }}
+              onError={setError}
+            />
+          </div>
+          {peeks && <Paws />}
+        </div>
       )}
       {error && <p className="pt-1 text-[11.5px] text-urgent">{error}</p>}
     </Frame>
@@ -107,10 +117,9 @@ export default function Quick() {
 function Frame({ children, peeks }: { children: React.ReactNode; peeks: boolean }) {
   return (
     <div
-      className={`relative flex h-full flex-col justify-center overflow-hidden rounded-[10px] border border-hair bg-bg/70 px-[22px] py-5 shadow-lift-tall backdrop-blur-xl${peeks ? " pr-[110px]" : ""}`}
+      className={`relative flex h-full flex-col justify-center overflow-hidden rounded-[10px] border border-hair bg-bg/70 px-[22px] shadow-lift-tall backdrop-blur-xl ${peeks ? "pt-8 pb-4" : "py-5"}`}
     >
       {children}
-      {peeks && <Head className="quick-beaver" />}
     </div>
   );
 }

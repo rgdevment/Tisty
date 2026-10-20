@@ -13,6 +13,7 @@ mod linking;
 mod moving;
 mod news;
 mod pdf;
+mod quick_keys;
 mod reaching;
 mod refusing;
 mod report;
@@ -589,44 +590,6 @@ fn reading_as(session: &mut Session, id: tisty_core::TaskId, how: Reading) -> An
 
 struct Perched(bool);
 
-struct Bound(Option<String>);
-
-fn listen_for<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> Option<String> {
-    use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
-
-    let tries = [
-        (
-            "Ctrl+Shift+Space",
-            Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::Space),
-        ),
-        #[cfg(not(target_os = "macos"))]
-        (
-            "Ctrl+Alt+Space",
-            Shortcut::new(Some(Modifiers::CONTROL | Modifiers::ALT), Code::Space),
-        ),
-        (
-            "Ctrl+Shift+T",
-            Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::KeyT),
-        ),
-    ];
-
-    for (said, combo) in tries {
-        let handle = app.clone();
-        let taken = app
-            .global_shortcut()
-            .on_shortcut(combo, move |_, _, event| {
-                if event.state() == tauri_plugin_global_shortcut::ShortcutState::Pressed {
-                    tray::quicken(&handle);
-                }
-            });
-        if taken.is_ok() {
-            return Some(said.to_string());
-        }
-    }
-    witness::warn(channel::WINDOW, "no shortcut was free", &[]);
-    None
-}
-
 fn worded(locale: &Option<String>, key: &str) -> String {
     let spanish = locale
         .as_deref()
@@ -933,6 +896,7 @@ pub(crate) fn opened(
     // An update relaunches with the arguments it was started with, so a copy that opened
     // with the session comes back hidden — looking, to whoever pressed the button, like it
     // never came back at all.
+    let session_keys = session.config.quick_keys.clone();
     let came_back = session.config.found_version.as_deref() == Some(HERE);
     answers::settings::appearance(app, session.config.theme);
     app.manage(Mutex::new(session));
@@ -944,7 +908,10 @@ pub(crate) fn opened(
     app.manage(answers::freeing::Stopping::default());
     let perched = tray::raise(app, &words).is_some();
     app.manage(Perched(perched));
-    app.manage(Bound(listen_for(app)));
+    app.manage(quick_keys::Bound(Mutex::new(quick_keys::listen_for(
+        app,
+        session_keys.as_deref(),
+    ))));
 
     {
         let held = app.state::<Mutex<Session>>();
@@ -1105,7 +1072,8 @@ pub fn run() {
             answers::agents::agent_turn,
             answers::tasks::archive_shape,
             answers::settings::close_window,
-            answers::settings::shortcut,
+            quick_keys::shortcut,
+            quick_keys::keep_shortcut,
             answers::storing::settle_in,
             reachable,
             answers::clouding::cloud_connect,

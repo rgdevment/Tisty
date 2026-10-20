@@ -17,7 +17,10 @@ import {
 import { fill, t } from "../locales";
 import { offerMoved, saidPlainly } from "../refusal";
 import Glyph from "./Glyph";
+import Modal from "./Modal";
 import { waitingOn } from "./Older";
+import Reporting from "./Reporting";
+import { useCards } from "./useCards";
 import Written from "./Written";
 
 const COFFEE = "https://buymeacoffee.com/rgdevment";
@@ -60,6 +63,8 @@ export default function About({
   const [texts, setTexts] = useState<string | null>(null);
   const [looking, setLooking] = useState(false);
   const [found, setFound] = useState<Ready | "none" | null>(null);
+  const [reporting, setReporting] = useState(false);
+  const cards = useCards(() => {});
 
   const look = useCallback(() => {
     setTrouble(null);
@@ -311,52 +316,59 @@ export default function About({
           </button>
         ))}
 
+        <div className="mt-4 flex items-center gap-3 rounded-[10px] border border-hair px-3.5 py-3">
+          <span className="min-w-0 flex-1">
+            <span className="block text-[13px] font-semibold">{t("reportTitle")}</span>
+            <span className="mt-0.5 block text-[12.5px] leading-relaxed text-soft">
+              {t("reportLine")}
+            </span>
+          </span>
+          <button type="button" onClick={() => setReporting(true)} className={mild}>
+            {t("reportPrepare")}
+          </button>
+        </div>
+
         {build && (
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => openLink(t("aboutSiteAt")).catch(onError)}
-              className={mild}
-            >
-              {t("aboutSite")}
-            </button>
-            <button
-              type="button"
-              onClick={() => openLink(build.repository).catch(onError)}
-              className={mild}
-            >
-              {t("aboutRepo")}
-            </button>
-            <button
-              type="button"
-              onClick={() => openLink(ALTERNATIVE).catch(onError)}
-              className={mild}
-            >
-              {t("aboutAlternative")}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (said !== null) return setSaid(null);
-                notices().then(setSaid).catch(onError);
-              }}
-              aria-expanded={said !== null}
-              className={mild}
-            >
-              {t("aboutNotices")}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (texts !== null) return setTexts(null);
-                licences().then(setTexts).catch(onError);
-              }}
-              aria-expanded={texts !== null}
-              className={mild}
-            >
-              {t("aboutLicences")}
-            </button>
-          </div>
+          <>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Away
+                said={t("aboutSite")}
+                onPick={() => openLink(t("aboutSiteAt")).catch(onError)}
+              />
+              <Away
+                said={t("aboutRepo")}
+                onPick={() => openLink(build.repository).catch(onError)}
+              />
+              <Away
+                said={t("aboutAlternative")}
+                onPick={() => openLink(ALTERNATIVE).catch(onError)}
+              />
+            </div>
+            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11.5px]">
+              <button
+                type="button"
+                onClick={() => {
+                  if (said !== null) return setSaid(null);
+                  notices().then(setSaid).catch(onError);
+                }}
+                aria-expanded={said !== null}
+                className="text-faint hover:text-ink"
+              >
+                {t("aboutNotices")}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (texts !== null) return setTexts(null);
+                  licences().then(setTexts).catch(onError);
+                }}
+                aria-expanded={texts !== null}
+                className="text-faint hover:text-ink"
+              >
+                {t("aboutLicences")}
+              </button>
+            </div>
+          </>
         )}
         {said !== null && (
           <Written
@@ -375,7 +387,39 @@ export default function About({
           />
         )}
       </div>
+      {reporting && (
+        <Modal title={t("reportTitle")} wide onClose={() => setReporting(false)}>
+          <Reporting
+            busy={cards.busy}
+            said={cards.said}
+            trouble={cards.trouble}
+            tell={cards.setSaid}
+            fail={cards.setTrouble}
+            quietly={cards.quietly}
+          />
+          <div className="mt-5 flex justify-end">
+            <button type="button" onClick={() => setReporting(false)} className={mild}>
+              {t("close")}
+            </button>
+          </div>
+        </Modal>
+      )}
     </main>
+  );
+}
+
+function Away({ said, onPick }: { said: string; onPick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onPick}
+      className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1 text-[12.5px] hover:bg-hover"
+    >
+      {said}
+      <span aria-hidden="true" className="text-faint">
+        ↗
+      </span>
+    </button>
   );
 }
 

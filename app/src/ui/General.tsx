@@ -2,7 +2,9 @@ import {
   guide,
   keepClosing,
   keepLocale,
+  keepShortcut,
   keepTheme,
+  QUICK_KEYS,
   type Settings,
   type Theme,
   type Waking,
@@ -20,6 +22,7 @@ interface Props {
   wake: Waking | null;
   setWake: (wake: Waking) => void;
   keys: string | null;
+  setKeys: (keys: string | null) => void;
   busy: Which | null;
   said?: Word;
   trouble?: Word;
@@ -38,6 +41,7 @@ export default function General({
   wake,
   setWake,
   keys,
+  setKeys,
   busy,
   said,
   trouble,
@@ -191,11 +195,36 @@ export default function General({
 
         <Line
           title={t("quick")}
-          why={keys ? fill("quickOn", keys) : t("quickNone")}
+          why={
+            keys ? fill("quickOn", keys) : t(kept?.quickKeys === "off" ? "quickOff" : "quickNone")
+          }
           which="quick"
           said={said}
           trouble={trouble}
-        />
+        >
+          {kept && (
+            <select
+              aria-label={t("quickKeys")}
+              value={keys ?? "off"}
+              disabled={held}
+              onChange={(e) => {
+                const wanted = e.target.value;
+                run("quick", keepShortcut(wanted), (now) => {
+                  setKeys(now);
+                  setKept({ ...kept, quickKeys: wanted });
+                });
+              }}
+              className={`rounded-[10px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
+            >
+              {QUICK_KEYS.filter((one) => !(ON_MAC && one.includes("Alt"))).map((one) => (
+                <option key={one} value={one}>
+                  {one}
+                </option>
+              ))}
+              <option value="off">{t("quickKeysOff")}</option>
+            </select>
+          )}
+        </Line>
       </div>
 
       <Signing busy={busy} said={said} trouble={trouble} run={run} tell={tell} signs={signs} />

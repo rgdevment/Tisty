@@ -403,6 +403,8 @@ pub struct Config {
     pub knock_heard: Option<jiff::Timestamp>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub door_chosen: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub quick_keys: Option<String>,
     /// The place's history this machine took without asking, so it never takes that one again on its own.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub took_quietly: Option<String>,
@@ -460,6 +462,7 @@ impl Config {
             asked_to_wire: None,
             knock_heard: None,
             door_chosen: None,
+            quick_keys: None,
             took_quietly: None,
             homes: std::collections::BTreeMap::new(),
             rest: toml::Table::new(),

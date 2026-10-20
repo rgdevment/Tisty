@@ -722,6 +722,7 @@ export interface Settings {
   shares: boolean;
   onlySharedAbove: number;
   onClose?: "hide" | "quit";
+  quickKeys?: string;
 }
 
 export interface Logs {
@@ -1021,6 +1022,9 @@ export interface Settling {
 export const settleIn = (): Promise<Settling> => invoke("settle_in");
 
 export const shortcut = (): Promise<string | null> => invoke("shortcut");
+export const QUICK_KEYS = ["Ctrl+Shift+Space", "Ctrl+Alt+Space", "Ctrl+Shift+T"];
+export const keepShortcut = (keys: string): Promise<string | null> =>
+  invoke("keep_shortcut", { keys });
 
 export const closeWindow = (how?: "hide" | "quit", remember?: boolean): Promise<void> =>
   invoke("close_window", { how, remember });
