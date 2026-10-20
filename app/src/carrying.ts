@@ -106,8 +106,10 @@ export function carrying(
           expire = undefined;
           running = false;
         }
-        void lookAgain();
-        void settledElsewhere();
+        if (!stalled) {
+          void lookAgain();
+          void settledElsewhere();
+        }
         if (owed === null || gone || running) return;
         const again = owed;
         owed = null;
@@ -184,6 +186,7 @@ export function carrying(
       soon = setTimeout(() => go("push"), AFTER_A_CHANGE);
     },
     recheck() {
+      void lookAgain();
       void settings((was) => {
         if (was !== folder) void both();
       });

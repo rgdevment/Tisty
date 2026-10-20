@@ -76,20 +76,18 @@ export default function SyncFoot({ onSync, onOpen, onTrouble, fallback }: Props)
   const stuck = useStuck();
   const knocked = useKnocking().waiting.length > 0;
   const putOff = useLeftForLater();
-  const look = () => void lookAgain();
-
+  // The rounds keep what is seen; a look on focus catches what was written beside them, and the tick turns «today» over at midnight.
   useEffect(() => {
-    void lookAgain();
-  }, []);
-
-  // The rounds keep what is seen up to date; this only moves «a minute ago» along.
-  useEffect(() => {
+    const look = () => void lookAgain();
     const online = () => setOffline(offlineNow());
     const ticking = setInterval(() => tick((was) => was + 1), A_WHILE);
+    look();
+    window.addEventListener("focus", look);
     window.addEventListener("online", online);
     window.addEventListener("offline", online);
     return () => {
       clearInterval(ticking);
+      window.removeEventListener("focus", look);
       window.removeEventListener("online", online);
       window.removeEventListener("offline", online);
     };
@@ -110,10 +108,7 @@ export default function SyncFoot({ onSync, onOpen, onTrouble, fallback }: Props)
     setMine(true);
     void Promise.resolve(onSync())
       .catch(failed)
-      .finally(() => {
-        setMine(false);
-        look();
-      });
+      .finally(() => setMine(false));
   };
 
   const press = () => {
@@ -124,7 +119,7 @@ export default function SyncFoot({ onSync, onOpen, onTrouble, fallback }: Props)
         .then(syncNow)
         .catch((problem) => {
           failed(problem);
-          look();
+          void lookAgain();
         });
     if (foot.kind === "look" && foot.putOff)
       return void settledElsewhere()

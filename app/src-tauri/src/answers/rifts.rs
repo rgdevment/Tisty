@@ -47,28 +47,32 @@ pub fn paper_rifts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Ans
     })
 }
 
-/// Which of these documents are still at odds, read from both sides without the network.
+// Only two things mean settled elsewhere: both sides hold the same words, or this side holds none; the rest stays put off.
 #[tauri::command(async)]
 pub fn still_at_odds(session: tauri::State<'_, Mutex<Session>>, ids: Vec<String>) -> Vec<String> {
-    let session = held(&session);
-    let Ok(carrier) = session.carrying() else {
-        return ids;
-    };
-    let data = session.paths.data();
-    let agreed = tisty_core::docs::Carried::read(data);
-    let mine = |id: &str| {
-        let at = tisty_core::docs::resolve(&session.paths.docs(), id).ok()?;
-        tisty_core::docs::print_of(&at).ok().flatten()
+    let (carrier, docs) = {
+        let session = held(&session);
+        let Ok(carrier) = session.carrying() else {
+            return ids;
+        };
+        (carrier, session.paths.docs())
     };
     ids.into_iter()
-        .filter(|id| {
-            tisty_carrier::at_odds(
-                mine(id).as_deref(),
-                carrier.paper_print(id).as_deref(),
-                agreed.of(id),
-            )
-        })
+        .filter(|id| !settled(&carrier, &docs, id))
         .collect()
+}
+
+fn settled(carrier: &tisty_carrier::Shared, docs: &std::path::Path, id: &str) -> bool {
+    let Ok(at) = tisty_core::docs::resolve(docs, id) else {
+        return false;
+    };
+    if !at.exists() {
+        return true;
+    }
+    let Ok(Some(mine)) = tisty_core::docs::print_of(&at) else {
+        return false;
+    };
+    carrier.paper_print(id).is_some_and(|theirs| theirs == mine)
 }
 
 #[tauri::command(async)]

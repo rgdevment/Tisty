@@ -894,17 +894,6 @@ pub fn held_there(dest: &Path, id: &str) -> Option<String> {
     tisty_core::docs::print_of(&at).ok().flatten()
 }
 
-/// Both sides moved off what they last agreed on, and not to the same place. A side that cannot be read yet still counts as moved.
-pub fn at_odds(mine: Option<&str>, theirs: Option<&str>, agreed: Option<&str>) -> bool {
-    let Some(mine) = mine else {
-        return false;
-    };
-    let Some(theirs) = theirs else {
-        return true;
-    };
-    mine != theirs && agreed != Some(mine) && agreed != Some(theirs)
-}
-
 pub fn forget_paper(dest: &Path, id: &str) {
     let Ok(theirs) = tisty_core::docs::resolve(&dest.join(PAPERS), id) else {
         return;

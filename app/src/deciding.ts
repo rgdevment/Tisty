@@ -19,6 +19,9 @@ const decidedAt = new Map<string, number>();
 let decisions = 0;
 let queue: Promise<unknown> = Promise.resolve();
 const watching = new Set<() => void>();
+const tell = () => {
+  for (const one of watching) one();
+};
 
 type Asking = (named: string, rifts: Rift[]) => Promise<Pick[] | null>;
 type AskingWhole = (named: string) => Promise<Pick | null>;
@@ -101,7 +104,7 @@ const decideInTurn = async (ids: string[], byHand: boolean, since: number): Prom
   const putOff = byHand ? [] : fresh.filter((id) => later.has(id) && !reminded.has(id));
   const finish = (shut: string[], said: string | null): Decided => {
     for (const id of putOff) reminded.add(id);
-    for (const one of watching) one();
+    tell();
     return { shut, said, putOff };
   };
   if (!asking.length) return finish([], null);
@@ -152,16 +155,23 @@ const decideInTurn = async (ids: string[], byHand: boolean, since: number): Prom
 
 export const leftForLater = (): string[] => [...later];
 
-// Settled on another computer or gone from this one, a document put off has nothing left to ask.
-export const settledElsewhere = async (): Promise<void> => {
+let sifting: Promise<void> | null = null;
+
+export const settledElsewhere = (): Promise<void> => {
+  if (sifting || !later.size) return sifting ?? Promise.resolve();
   const ids = [...later];
-  if (!ids.length) return;
-  const said = await stillAtOdds(ids).catch(() => ids);
-  const still = new Set(Array.isArray(said) ? said : ids);
-  const gone = ids.filter((id) => !still.has(id));
-  if (!gone.length) return;
-  for (const id of gone) letGo(id);
-  for (const one of watching) one();
+  sifting = stillAtOdds(ids)
+    .catch(() => ids)
+    .then((said) => {
+      const still = new Set(said);
+      const gone = ids.filter((id) => !still.has(id));
+      for (const id of gone) letGo(id);
+      if (gone.length) tell();
+    })
+    .finally(() => {
+      sifting = null;
+    });
+  return sifting;
 };
 
 const subscribe = (change: () => void) => {

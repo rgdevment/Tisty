@@ -11,6 +11,7 @@ import {
 import { done, hush, knock, shownAs } from "../knocking";
 import { fill, locale, t } from "../locales";
 import { saidPlainly } from "../refusal";
+import { lookAgain } from "../syncSeen";
 import Modal from "./Modal";
 
 type Step = "compare" | "bringing" | "brought" | "later" | "mismatch";
@@ -61,6 +62,7 @@ export default function Confirming({ waiting: asked }: { waiting: Machine[] }) {
             .then((said) => {
               setStep(arrived(said, one.id) ? "brought" : "later");
               void emit("stirred");
+              void lookAgain();
             })
             .catch(() => setStep("later")),
         (e) => {
