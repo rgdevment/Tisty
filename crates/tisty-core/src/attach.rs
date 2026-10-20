@@ -408,6 +408,7 @@ pub fn joined_in_ledger(
     bytes: u64,
 ) -> Result<()> {
     let keep = canonical(keep).ok_or_else(|| Error::OutsideTheStore(keep.to_string()))?;
+    let _held = ledger_held(root).ok_or(Error::AlreadyRunning)?;
     let at = ledger(root);
     let text = std::fs::read_to_string(&at).unwrap_or_default();
     let left: String = text
@@ -426,7 +427,7 @@ pub fn joined_in_ledger(
         .get(&keep)
         .is_none_or(|(sha, _)| sha != sha256)
     {
-        noted_line(
+        noted_line_held(
             root,
             &Kept {
                 at: keep,
@@ -438,7 +439,38 @@ pub fn joined_in_ledger(
     Ok(())
 }
 
+const LEDGER_LOCK: &str = "attachments.lock";
+const LEDGER_WAIT_MS: u64 = 2000;
+const LEDGER_POLL_MS: u64 = 25;
+
+/// Held while the ledger is written: a join rewrites it whole, and a line appended meanwhile by
+/// another process would be lost.
+fn ledger_held(root: &Path) -> Option<std::fs::File> {
+    std::fs::create_dir_all(root).ok()?;
+    let mut waited = 0;
+    loop {
+        let taken = std::fs::OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(false)
+            .open(root.join(LEDGER_LOCK))
+            .ok()
+            .filter(|file| file.try_lock().is_ok());
+        if taken.is_some() || waited >= LEDGER_WAIT_MS {
+            return taken;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(LEDGER_POLL_MS));
+        waited += LEDGER_POLL_MS;
+    }
+}
+
+// An append that cannot wait still goes in: a lost line costs a hash later, a refused keep costs a file.
 fn noted_line(root: &Path, kept: &Kept) {
+    let _held = ledger_held(root);
+    noted_line_held(root, kept);
+}
+
+fn noted_line_held(root: &Path, kept: &Kept) {
     let line = match serde_json::to_string(&Noted {
         at: kept.at.clone(),
         sha256: kept.sha256.clone(),
@@ -663,6 +695,47 @@ pub fn set_aside(root: &Path, reference: &str, now: i64) -> Result<()> {
 
     std::fs::rename(&from, &into)?;
     Ok(())
+}
+
+/// What is named again after it was set aside, by an undo or a page gone back to, comes back out
+/// of the bin; the bin never takes what is still named.
+pub fn unbinned(root: &Path, held: &std::collections::BTreeSet<String>) -> usize {
+    let Ok(text) = std::fs::read_to_string(bin_ledger(root)) else {
+        return 0;
+    };
+    let all: Vec<Binned> = text
+        .lines()
+        .filter_map(|line| serde_json::from_str(line).ok())
+        .collect();
+    let mut back = 0;
+    let mut kept = Vec::new();
+    for one in all {
+        let named = canonical(&one.at).filter(|at| held.contains(at));
+        let Some(named) = named else {
+            kept.push(one);
+            continue;
+        };
+        let rest = leaf_of(&named).unwrap_or_default().to_string();
+        let (Ok(from), Ok(into)) = (resolve(&format!("bin/{rest}"), root), resolve(&named, root))
+        else {
+            kept.push(one);
+            continue;
+        };
+        if into.exists() || !from.is_file() || std::fs::rename(&from, &into).is_err() {
+            kept.push(one);
+            continue;
+        }
+        back += 1;
+    }
+    if back > 0 {
+        let left: String = kept
+            .iter()
+            .filter_map(|one| serde_json::to_string(one).ok())
+            .map(|line| format!("{line}\n"))
+            .collect();
+        let _ = crate::store::write_atomic(&bin_ledger(root), left.as_bytes());
+    }
+    back
 }
 
 pub fn empty_the_bin(root: &Path, now: i64) -> usize {

@@ -118,7 +118,8 @@ impl Sweeping {
     }
 
     pub fn walk(self) -> Walked {
-        let named = match self.owed {
+        // Emptying the bin asks what is still named, so a copy an undo named again comes back first.
+        let named = match self.owed || self.bin {
             true => crate::docs::referenced(&self.paths.docs())
                 .unwrap_or_else(|_| self.retired.iter().cloned().collect()),
             false => Vec::new(),
@@ -147,13 +148,21 @@ impl Walked {
                 .flat_map(|task| task.references())
                 .map(|one| one.target)
                 .collect();
-            all.extend(named);
+            all.extend(named.iter().cloned());
             all
+        };
+        let binned = match bin {
+            true => {
+                let named: BTreeSet<String> = held().into_iter().collect();
+                crate::attach::unbinned(paths.data(), &named);
+                self::bin(&paths)
+            }
+            false => 0,
         };
         let swept = Swept {
             papers: papers(&paths, &shed, dest, &mut done),
             attachments: attachments(&paths, &retired, dest, held, &mut done),
-            binned: if bin { self::bin(&paths) } else { 0 },
+            binned,
         };
         (swept, done)
     }
