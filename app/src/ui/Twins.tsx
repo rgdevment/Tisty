@@ -1,6 +1,6 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useEffect, useState } from "react";
-import { type Joined, opened, type Pair, type Twin } from "../core";
+import { opened, type Pair, type Twin } from "../core";
 import { weigh } from "../format";
 import { serve } from "../inUse";
 import { fill, t } from "../locales";
@@ -92,22 +92,15 @@ export default function Twins({
 }: Readonly<{
   pair: Pair;
   busy: boolean;
-  onJoin: (keep: string, go: string[]) => Promise<Joined>;
+  onJoin: (keep: string, go: string[]) => void;
   onDoc?: (id: string) => void;
 }>) {
   const [stays, setStays] = useState(pair.stays);
   const [later, setLater] = useState(false);
-  const [done, setDone] = useState<Joined>();
   const going = pair.copies.filter((one) => one.at !== stays);
   const locked = going.find((one) => one.locked)?.locked;
 
   if (later) return null;
-  if (done)
-    return (
-      <li role="status" className="text-[12.5px] text-soft">
-        {fill("twinsJoined", weigh(done.freed), String(done.relinked))}
-      </li>
-    );
   return (
     <li className="flex flex-col gap-2">
       <span className="flex items-center gap-2 text-[12.5px]">
@@ -131,10 +124,10 @@ export default function Twins({
           type="button"
           disabled={busy || Boolean(locked)}
           onClick={() =>
-            void onJoin(
+            onJoin(
               stays,
               going.map((one) => one.at),
-            ).then(setDone, () => undefined)
+            )
           }
           className={strong}
         >

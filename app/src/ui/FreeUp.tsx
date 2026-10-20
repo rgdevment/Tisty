@@ -65,14 +65,23 @@ export default function FreeUp({
   const held = busy !== null;
   const [alike, setAlike] = useState<Pair[] | null>(null);
 
-  const join = (keep: string, go: string[]): Promise<Joined> => {
-    const asked = twinsJoin(keep, go);
-    run("twins", asked.then(checked), setAudit);
-    return asked;
+  const join = (keep: string, go: string[]) => {
+    const asked = twinsJoin(keep, go).then((done) => {
+      setAlike((was) => was?.filter((one) => !one.copies.some((copy) => copy.at === keep)) ?? null);
+      return done;
+    });
+    run("twins", asked, (done: Joined) => {
+      tell({
+        card: "twins",
+        text: fill("twinsJoined", weigh(done.freed), String(done.relinked)),
+      });
+      void checked().then(setAudit, () => undefined);
+    });
   };
   const [unused, setUnused] = useState<Unused | null>(null);
   const loose = audit?.loose ?? 0;
-  const total = (audit?.looseBytes ?? 0) + (state.freesSpace ? (unused?.bytes ?? 0) : 0);
+  const doubled = (alike ?? []).reduce((sum, one) => sum + one.bytes, 0);
+  const total = (audit?.looseBytes ?? 0) + (state.freesSpace ? (unused?.bytes ?? 0) : 0) + doubled;
 
   const letGo = (one: Astray) => {
     if (held) return;
