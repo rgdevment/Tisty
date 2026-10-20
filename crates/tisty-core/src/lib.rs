@@ -20,6 +20,7 @@ mod growing;
 pub mod herald;
 pub mod holes;
 pub mod ics;
+pub mod joining;
 pub mod keepers;
 pub mod lately;
 pub mod lcs;

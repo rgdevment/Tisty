@@ -261,12 +261,20 @@ fn ledger(root: &Path) -> PathBuf {
     root.join("attachments.jsonl")
 }
 
+// A copy let go of when two became one keeps its line, so the one still here is named first.
 fn listed(root: &Path, sha256: &str) -> Option<String> {
     let text = std::fs::read_to_string(ledger(root)).ok()?;
-    text.lines()
+    let named: Vec<String> = text
+        .lines()
         .filter_map(|line| serde_json::from_str::<Noted>(line).ok())
-        .find(|one| one.sha256 == sha256)
+        .filter(|one| one.sha256 == sha256)
         .map(|one| canonical(&one.at).unwrap_or(one.at))
+        .collect();
+    named
+        .iter()
+        .find(|at| resolve(at, root).is_ok_and(|held| held.is_file()))
+        .or(named.first())
+        .cloned()
 }
 
 pub fn digests(root: &Path) -> std::collections::BTreeMap<String, (String, u64)> {
