@@ -11,6 +11,8 @@ import {
   docExport,
   docKeepCompacted,
   docLock,
+  docMerge,
+  docOpened,
   docOrder,
   docPage,
   docRead,
@@ -32,6 +34,7 @@ import { crowd, MANY, weighed } from "../previews";
 import { saidPlainly } from "../refusal";
 import { busy, holds, queued } from "../saving";
 import { sure } from "../sure";
+import { changedIn } from "./anchoring";
 import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
 import { blurbing, cardsOf } from "./carding";
@@ -53,9 +56,12 @@ const SETTLES = 700;
 
 const REMEMBERS = 12;
 
-const remembered = (held: Map<string, string>, file: string, text: string) => {
+// `print` is of the body on disk the words were typed over; `unwoven` holds a woven body the screen has yet to show.
+type Read = { text: string; print?: string; unwoven?: boolean };
+
+const remembered = (held: Map<string, Read>, file: string, read: Read) => {
   held.delete(file);
-  held.set(file, text);
+  held.set(file, read);
   while (held.size > REMEMBERS) {
     const oldest = held.keys().next().value;
     if (oldest === undefined) break;
@@ -143,7 +149,10 @@ export default function Docs({
   const [coming, setComing] = useState(false);
   const [clashed, setClashed] = useState(false);
   const [stirred, setStirred] = useState(false);
-  const lastRead = useRef(new Map<string, string>());
+  const [lately, setLately] = useState<[number, number] | null>(null);
+  const [looking, setLooking] = useState(0);
+  const lastRead = useRef(new Map<string, Read>());
+  const onScreen = useRef<string | null>(null);
   const settling = useRef<ReturnType<typeof setTimeout>>(null);
   const held = useRef<{ id: string; body: string } | null>(null);
   const turn = useRef(0);
@@ -152,6 +161,9 @@ export default function Docs({
   const wide = room >= WIDE;
   const [heads, setHeads] = useState<Head[]>([]);
   const [saved, setSaved] = useState(0);
+  // A round that came while a save was in flight is read once the save lands, not dropped.
+  const missed = useRef(false);
+  const [behind, setBehind] = useState(0);
   const [sized, setSized] = useState<Record<string, Paper>>(leaves);
   const [making, setMaking] = useState(false);
   const [seeing, setSeeing] = useState<string | null>(null);
@@ -178,13 +190,45 @@ export default function Docs({
   const keep = useCallback(
     (id: string, text: string, anyway?: boolean) => {
       setSaving(true);
-      const mine = queued(id, () => docWrite(id, text, anyway))
-        .then((fresh) => {
+      const wrote_at = typed.current;
+      const mine = queued(id, async () => {
+        try {
+          const fresh = await docWrite(id, text, anyway, lastRead.current.get(id)?.print);
+          return { fresh, woven: null };
+        } catch (e) {
+          const base = lastRead.current.get(id)?.text;
+          if ((e as { code?: string } | null)?.code !== "documentMoved" || base === undefined) {
+            throw e;
+          }
+          const woven = await docMerge(id, base, text);
+          if (!woven) throw e;
+          return { fresh: null, woven };
+        }
+      })
+        .then(({ fresh, woven }) => {
           if (held.current?.id === id && held.current.body === text) held.current = null;
-          remembered(lastRead.current, id, text);
           setClashed(false);
           setSaved((many) => many + 1);
-          onKept(fresh);
+          if (fresh) {
+            remembered(lastRead.current, id, { text, print: fresh.print });
+            onKept(fresh);
+            return;
+          }
+          if (!woven) return;
+          onKept({ id, title: woven.title });
+          // Words typed since are woven by their own save, over what this one sent; the old print keeps it refused.
+          if (typed.current !== wrote_at) {
+            const was = lastRead.current.get(id)?.print;
+            remembered(lastRead.current, id, { text, print: was, unwoven: true });
+            return;
+          }
+          remembered(lastRead.current, id, { text: woven.body, print: woven.print });
+          if (onScreen.current !== id) return;
+          shaped.current = woven.body;
+          setBody(woven.body);
+          setPacked(crowd(woven.body));
+          setLately(changedIn(text, woven.body));
+          setStirred(true);
         })
         .catch((e) => {
           if ((e as { code?: string } | null)?.code === "documentMoved") setClashed(true);
@@ -192,7 +236,11 @@ export default function Docs({
         })
         .finally(() => {
           setSaving(false);
-          if (!held.current) setWaiting(false);
+          if (held.current) return;
+          setWaiting(false);
+          if (!missed.current) return;
+          missed.current = false;
+          setBehind((many) => many + 1);
         });
       return mine;
     },
@@ -266,8 +314,8 @@ export default function Docs({
     drop();
     try {
       const said = await docBack(open.file);
-      const text = await docRead(open.file);
-      remembered(lastRead.current, open.file, text);
+      const { body: text, print } = await docOpened(open.file);
+      remembered(lastRead.current, open.file, { text, print });
       shaped.current = text;
       setBody(text);
       setPacked(crowd(text));
@@ -283,9 +331,9 @@ export default function Docs({
     if (!open) return;
     if (!(await sure(t("clashSure")))) return;
     drop();
-    docRead(open.file)
-      .then((text) => {
-        remembered(lastRead.current, open.file, text);
+    docOpened(open.file)
+      .then(({ body: text, print }) => {
+        remembered(lastRead.current, open.file, { text, print });
         shaped.current = text;
         setBody(text);
         setPacked(crowd(text));
@@ -329,6 +377,7 @@ export default function Docs({
       return;
     }
     if (asked === open?.file && (fresh === seen.current || held.current)) {
+      if (fresh !== seen.current) missed.current = true;
       turn.current += 1;
       return;
     }
@@ -352,19 +401,21 @@ export default function Docs({
     const wrote_at = typed.current;
     (busy(wanted.file) ?? Promise.resolve())
       .catch(() => {})
-      .then(() => docRead(wanted.file))
-      .then((text) => {
+      .then(() => docOpened(wanted.file))
+      .then(({ body: text, print }) => {
         if (turn.current !== mine) return;
         // Somebody typed while this was in flight: reading it back over them would lose the
         // words and drop the caret at the end.
         if (typed.current !== wrote_at) return;
-        const last = lastRead.current.get(wanted.file);
+        const last = lastRead.current.get(wanted.file)?.text;
         const astir = last !== undefined && tailless(last) !== tailless(text);
         // A round that brought other things reads this one again; the same words leave the block being written open.
         const same = before === wanted.file && !astir;
-        remembered(lastRead.current, wanted.file, text);
+        remembered(lastRead.current, wanted.file, { text, print });
         shaped.current = text;
-        setStirred(astir);
+        // Words woven in by the window's own save are already told; reading them back is no reason to forget it.
+        setStirred((was) => astir || (was && before === wanted.file));
+        if (astir) setLately(changedIn(last, text));
         setOpen(wanted);
         setClashed(false);
         if (!same) {
@@ -390,9 +441,10 @@ export default function Docs({
         }
         onError(saidPlainly(e));
       });
-  }, [asked, known, open, flush, onError, fresh]);
+  }, [asked, known, open, flush, onError, fresh, behind]);
 
   useEffect(() => {
+    onScreen.current = open?.file ?? null;
     onShown?.(open?.file ?? null);
   }, [open, onShown]);
 
@@ -407,11 +459,12 @@ export default function Docs({
   const wrote = (text: string) => {
     if (!open || bolted) return;
     typed.current = Date.now();
+    setLately(null);
     // Once the person writes, going back would take their words, not the compaction.
     setCompacted(false);
     setBody(text);
     const last = lastRead.current.get(open.file);
-    const back = last !== undefined && tailless(last) === tailless(text);
+    const back = last !== undefined && !last.unwoven && tailless(last.text) === tailless(text);
     if (back) {
       // A chapter moved and moved back inside the beat would otherwise be written in the order it passed through.
       setWaiting(false);
@@ -694,6 +747,8 @@ export default function Docs({
               <Sheet
                 sheet={sheetOf}
                 file={open.file}
+                lately={stirred ? lately : null}
+                looking={looking}
                 onOwn={(file) => {
                   const page = known.find((one) => one.file === file);
                   if (page)
@@ -808,6 +863,15 @@ export default function Docs({
             className="mx-auto mb-2 flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]"
           >
             <span className="text-soft">{t("docStirred")}</span>
+            {lately && (
+              <button
+                type="button"
+                onClick={() => setLooking((many) => many + 1)}
+                className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
+              >
+                {t("docStirredSee")}
+              </button>
+            )}
             {backable && (
               <button
                 type="button"

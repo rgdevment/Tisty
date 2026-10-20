@@ -5,12 +5,12 @@ import type { Filed, Papers } from "../core";
 import Docs from "../ui/Docs";
 import Tree from "../ui/Tree";
 
-vi.mock("@tauri-apps/api/core", () => ({
-  invoke: (cmd: string) => {
+vi.mock("@tauri-apps/api/core", async () => ({
+  invoke: (await import("./opened")).opening((cmd: string) => {
     if (cmd === "doc_read") return Promise.resolve("");
     if (cmd === "icons") return Promise.resolve(["work"]);
     return Promise.resolve(null);
-  },
+  }),
 }));
 
 const known: Filed[] = [

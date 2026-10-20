@@ -65,7 +65,9 @@ So: something that will be done is a task — `propose` it. Something that will 
 again is a document — `write_doc`, or update the one that covers it. A recipe is not a \
 task with steps, and a to-do is not a document. When doing a task teaches something needed \
 again beyond it — the fix for a fault that keeps coming back, how a supplier wants an order \
-written — keep it in a document as well, and `note` on the task where it went.
+written — keep it in a document as well, and `note` on the task where it went. A message, \
+an email or an answer to send is a task too, however much writing it takes: the draft goes on its \
+page, and once it is sent the task is done.
 
 A spike shows the whole shape. It starts as one task, «Find out how to sync with OneDrive»: its \
 page gathers what was read, tried and ruled out, section by section, with the meeting \
@@ -275,7 +277,10 @@ theirs.
 
 Documents and what tasks say are kept in the Tisty language, the Markdown the person reads and \
 writes in the window: plain Markdown plus pens like `==words=={green}`, underline `++words++`, \
-icons `::dog orange::`, callouts, collapsible sections and cards to other documents. Ask \
+icons `::dog orange::`, callouts, collapsible sections and cards to other documents. A note set \
+apart in a document — «a highlighted note», info, a tip, a warning — is a callout, a quote that \
+opens with `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]` or `[!CAUTION]`, written in the \
+document where it belongs; `note` is a task's journal and never that. Ask \
 `language` once before writing anything beyond plain words. Markdown from elsewhere is turned \
 into it on the way in, and the answer says what changed under `turned`. When the person asks \
 how to write something, point them to https://markdown.tisty.app (Spanish under /es/).
@@ -555,10 +560,12 @@ pub(super) fn tools() -> Value {
         {
             "name": "note",
             "title": "Add to a task's journal",
-            "description": "Append to what a task has recorded. Works on tasks the person wrote \
-                            too. Use it when something new turns up about work that already \
-                            exists, instead of filing a duplicate. A closed task is history and \
-                            takes no note: if the work came back, propose it anew.",
+            "description": "Append to what a task has recorded. Only a task's: a note set apart \
+                            inside a document is a callout, `> [!NOTE]`, written with \
+                            `edit_doc`. Works on tasks the person wrote too. Use it when \
+                            something new turns up about work that already exists, instead of \
+                            filing a duplicate. A closed task is history and takes no note: if \
+                            the work came back, propose it anew.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "task": { "type": "string", "description": "The task id" },

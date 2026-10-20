@@ -7,8 +7,8 @@ use ulid::Ulid;
 use super::super::asked::text;
 use super::super::jsonrpc::told;
 use super::super::{
-    FOLDER_NAME_AT_MOST, Refused, as_path, doc_named, folder_named, hitch, holder, named_all,
-    named_doc, opened, trail, up_named,
+    FOLDER_NAME_AT_MOST, Refused, as_path, doc_named, doc_titled, folder_named, hitch, holder,
+    named_all, named_doc, opened, trail, up_named,
 };
 
 pub(in crate::mcp) fn archive_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
@@ -278,6 +278,18 @@ pub(in crate::mcp) fn file_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
             ),
         },
         json!({
+            "for_the_person": format!(
+                "{} {}",
+                names
+                    .iter()
+                    .map(|one| doc_titled(&state, one))
+                    .collect::<Vec<_>>()
+                    .join(", "),
+                match &where_at {
+                    Some(named) => format!("in the folder {named}"),
+                    None => "outside any folder".to_string(),
+                }
+            ),
             "doc": said_docs(&names, listed),
             "folder": where_at,
             "archived": moving.iter().any(|(_, _, away)| *away),

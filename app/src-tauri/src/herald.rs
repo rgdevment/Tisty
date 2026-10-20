@@ -128,13 +128,23 @@ fn speaks(channel: &str, quiet: &[String]) -> bool {
 }
 
 const EVERY: std::time::Duration = std::time::Duration::from_secs(30);
+// An agent's bell is a hint, so the round above still runs whether it rings or not.
+const LISTENS: std::time::Duration = std::time::Duration::from_secs(1);
 
 pub fn watch(app: tauri::AppHandle, paths: tisty_core::Paths) {
     std::thread::spawn(move || {
         let mut watching = Watching::default();
         let mut since = jiff::Timestamp::now();
+        let mut heard = tisty_core::stirring::rung(&paths);
+        let mut round = std::time::Instant::now();
         loop {
-            std::thread::sleep(EVERY);
+            std::thread::sleep(LISTENS);
+            let bell = tisty_core::stirring::rung(&paths);
+            if bell == heard && round.elapsed() < EVERY {
+                continue;
+            }
+            heard = bell;
+            round = std::time::Instant::now();
             let now = jiff::Timestamp::now();
             let mut kept: Option<jiff::Timestamp> = None;
 
