@@ -180,3 +180,15 @@ li.task > .to-part:hover {
 html.untitled .page > ul > li.task:has(> .to-part) {
   padding-right: 40px;
 }
+
+/* A task's page is read beside its side column, so it reads a step smaller and calmer than a document. */
+html.untitled body {
+  font-size: 15px;
+  line-height: 1.65;
+}
+html.untitled .page > :is(p, ul, ol, blockquote) {
+  text-wrap: pretty;
+}
+html.untitled .page strong {
+  font-weight: 600;
+}

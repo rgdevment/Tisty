@@ -240,7 +240,7 @@ export default function Detail({
 
   const sealed = (
     <>
-      <h1 className="text-[21px] leading-snug font-semibold">{task.title}</h1>
+      <h1 className="text-[21px] leading-snug font-semibold text-balance">{task.title}</h1>
       <Stamps task={task} lists={lists} />
 
       <TaskWords task={task} onError={onError} onDoc={onDoc} onTask={onOpenPart} />
@@ -257,10 +257,11 @@ export default function Detail({
   const shown = task.status === "open" ? body : sealed;
   const left = (whole?.open ?? 0) + (whole?.away ?? 0);
 
-  const settled = (edge?: number) => (
+  const settled = (edge?: number, compact = false) => (
     <Settled
       task={task}
       edge={edge}
+      compact={compact}
       onComplete={onComplete}
       onDiscard={onDiscard}
       onReopen={onReopen}
@@ -284,7 +285,7 @@ export default function Detail({
         onKeyDown={leave}
         onExpand={onExpand}
         onClose={onClose}
-        footer={settled()}
+        footer={settled(undefined, true)}
       >
         {shown}
         {aside}
@@ -297,7 +298,7 @@ export default function Detail({
       ref={opened}
       tabIndex={-1}
       onKeyDown={leave}
-      className="flex flex-col overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset"
+      className="flex flex-col overflow-hidden outline-none"
     >
       <div data-tauri-drag-region className="h-9 shrink-0" />
       <div className="flex items-center gap-1 px-6 pb-2 text-[13px] text-faint">
@@ -331,6 +332,7 @@ const SUMMED_AT_MOST = 280;
 function Settled({
   task,
   edge,
+  compact,
   onComplete,
   onDiscard,
   onReopen,
@@ -345,6 +347,7 @@ function Settled({
 }: {
   task: Task;
   edge?: number;
+  compact?: boolean;
   left?: number;
   onComplete: (summary?: string) => void;
   onDiscard: () => void;
@@ -424,6 +427,39 @@ function Settled({
           : []),
       ];
 
+  // A narrow card keeps the one way to close in sight and folds the rest into the menu.
+  const folded = Boolean(compact) && open;
+  const tucked: Choice[] = folded
+    ? [
+        ...(task.resolved?.drop
+          ? []
+          : [
+              {
+                key: "summed",
+                label: t("closeSummed"),
+                icon: "✎",
+                hint: t("closeSummedWhy"),
+                onPick: () => setSumming(""),
+              },
+            ]),
+        ...(task.resolved
+          ? [{ key: "still", label: t("stillOpen"), icon: "↩", onPick: onStillOpen }]
+          : [discard]),
+        ...(onShape
+          ? [
+              {
+                key: "shape",
+                label: t(shaping ? "shapeDone" : "shapeEdit"),
+                icon: "✎",
+                hint: t("shapeWhy"),
+                onPick: () => onShape(!shaping),
+              },
+            ]
+          : []),
+      ]
+    : [];
+  const offered = [...tucked, ...choices];
+
   return (
     <>
       {summing !== null && (
@@ -491,7 +527,7 @@ function Settled({
                 </button>
               ) : (
                 <>
-                  {owing && (
+                  {owing && !folded && (
                     <span className="shrink-0 px-2">{fill("partsLeft", String(left))}</span>
                   )}
                   <button
@@ -502,17 +538,19 @@ function Settled({
                   >
                     <span aria-hidden="true">✓</span> {owing ? t("closeLettingGo") : t("markDone")}
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setSumming("")}
-                    title={t("closeSummedWhy")}
-                    className={`${seat} hover:text-ink`}
-                  >
-                    <span aria-hidden="true">✎</span> {t("closeSummed")}
-                  </button>
+                  {!folded && (
+                    <button
+                      type="button"
+                      onClick={() => setSumming("")}
+                      title={t("closeSummedWhy")}
+                      className={`${seat} hover:text-ink`}
+                    >
+                      <span aria-hidden="true">✎</span> {t("closeSummed")}
+                    </button>
+                  )}
                 </>
               )}
-              {task.resolved ? (
+              {folded ? null : task.resolved ? (
                 <button
                   type="button"
                   onClick={onStillOpen}
@@ -549,7 +587,7 @@ function Settled({
               )}
             </>
           )}
-          {open && onShape && (
+          {open && onShape && !folded && (
             <button
               type="button"
               aria-pressed={shaping}
@@ -561,7 +599,7 @@ function Settled({
               {t(shaping ? "shapeDone" : "shapeEdit")}
             </button>
           )}
-          {choices.length > 0 && (
+          {offered.length > 0 && (
             <button
               type="button"
               aria-label={t("more")}
@@ -579,7 +617,7 @@ function Settled({
                 const box = e.currentTarget.getBoundingClientRect();
                 setMore(more ? null : { x: box.right - 8, y: box.top - 4 });
               }}
-              className={`${open && onShape ? "" : "ml-auto "}flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-faint hover:bg-hover hover:text-ink`}
+              className={`${open && onShape && !folded ? "" : "ml-auto "}flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-faint hover:bg-hover hover:text-ink`}
             >
               <span aria-hidden="true">⋯</span>
             </button>
@@ -590,7 +628,7 @@ function Settled({
         <Menu
           at={more}
           up
-          choices={choices}
+          choices={offered}
           label={t("taskDoings")}
           onClose={() => setMore(null)}
         />
@@ -633,7 +671,7 @@ function Title({ task, onRename }: { task: Task; onRename: (title: string) => vo
           e.currentTarget.blur();
         }
       }}
-      className="mb-3 field-sizing-content w-full resize-none rounded-md bg-transparent text-[21px] leading-snug font-semibold -tracking-[0.01em] outline-none hover:bg-hover focus:bg-hover"
+      className="mb-3 field-sizing-content w-full resize-none rounded-md bg-transparent text-[21px] leading-snug font-semibold -tracking-[0.01em] text-balance outline-none hover:bg-hover focus:bg-hover"
     />
   );
 }
