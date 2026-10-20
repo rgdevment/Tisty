@@ -197,6 +197,13 @@ jobs:
         with:
           persist-credentials: false
       - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
+        with:
+          command: check bans licenses sources
+      # A warning on a pull request, like npm's: an advisory published today would otherwise fail every one at once.
+      - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
+        continue-on-error: ${{ github.event_name == 'pull_request' }}
+        with:
+          command: check advisories
 
   npm-audit:
     name: npm advisories

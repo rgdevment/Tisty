@@ -1926,10 +1926,32 @@ const en = {
   looseUnread: "Could not check: «{name}» could not be read. Open it or fix it, and look again.",
   twinsAre: "The same file kept twice",
   twinsWhat:
-    "Two computers attached these before they had synced, so each kept it under the name it came with. Nothing is lost — the copies are simply taking up room. The size is what letting the spares go would give back. Tisty does not choose which.",
+    "Two computers attached these before they had synced, so each kept it under the name it came with. Nothing is lost — the copies are simply taking up room. Tisty proposes which copy stays; you can see them side by side, pick another, and join them: every link then points at the one that stays, and the others go to the bin for 30 days.",
   twinsNone: "Nothing is kept twice",
   twinsRun: "See which",
   twinsAgain: "Look again",
+  twinsSame: "Identical content",
+  twinsStays: "Stays",
+  twinsKeepThis: "Keep this one",
+  twinsLinked: "Linked in",
+  twinsNowhere: "Nothing links to it",
+  twinsOpen: "Open",
+  twinsJoin: "Join",
+  twinsLater: "Not now",
+  twinsJoined: "Done: {name} freed, {other} links changed.",
+  twinsJoinedOne: "Done: {name} freed, 1 link changed.",
+  twinsDocTooLong:
+    "Pointing «{name}» at the copy that stays would make it longer than a document allows, so nothing was joined.",
+  twinsEdited:
+    "«{name}» changed while the copies were being joined, so the join stopped there. Join again to finish it.",
+  twinsTooLong:
+    "Pointing «{name}» at the copy that stays would make it longer than a task allows, so nothing was joined.",
+  twinsLockedBy: "Can't join yet: «{name}» is locked or archived, so its links can't be changed.",
+  twinsGone: "These copies changed since they were found. Look again.",
+  twinsStill:
+    "«{name}» still names a copy that would go in a way Tisty can't change, so nothing was joined.",
+  twinsLocked:
+    "«{name}» is locked or archived, so its links can't be changed. Unlock it and try again.",
   looseShared: "in the shared folder",
   looseDropSharedSure:
     "{name} is only in the shared folder, so this computer has no copy to set aside: it is deleted for good. Delete it?",
@@ -4078,10 +4100,33 @@ const es: Catalog = {
   looseUnread: "No se pudo revisar: no se pudo leer «{name}». Ábrelo o arréglalo y vuelve a mirar.",
   twinsAre: "El mismo archivo guardado dos veces",
   twinsWhat:
-    "Dos equipos lo adjuntaron antes de sincronizar, así que cada uno lo guardó con el nombre que traía. No se pierde nada: las copias solo ocupan sitio. El tamaño es lo que se recupera soltando las de más. Tisty no elige cuál.",
+    "Dos equipos lo adjuntaron antes de sincronizar, así que cada uno lo guardó con el nombre que traía. No se pierde nada: las copias solo ocupan sitio. Tisty propone cuál se queda; puedes verlas lado a lado, elegir otra y unirlas: todos los enlaces pasan a la que se queda y las demás van a la papelera por 30 días.",
   twinsNone: "Nada guardado dos veces",
   twinsRun: "Ver cuáles",
   twinsAgain: "Buscar otra vez",
+  twinsSame: "Contenido idéntico",
+  twinsStays: "Se queda",
+  twinsKeepThis: "Dejar esta",
+  twinsLinked: "Enlazada en",
+  twinsNowhere: "Nada la enlaza",
+  twinsOpen: "Abrir",
+  twinsJoin: "Unir",
+  twinsLater: "Ahora no",
+  twinsJoined: "Listo: se liberaron {name} y cambiaron {other} enlaces.",
+  twinsJoinedOne: "Listo: se liberaron {name} y cambió 1 enlace.",
+  twinsDocTooLong:
+    "Apuntar «{name}» a la copia que se queda lo dejaría más largo de lo que admite un documento, así que no se unió nada.",
+  twinsEdited:
+    "«{name}» cambió mientras se unían las copias, así que la unión se detuvo ahí. Vuelve a unir para terminarla.",
+  twinsTooLong:
+    "Apuntar «{name}» a la copia que se queda la dejaría más larga de lo que admite una tarea, así que no se unió nada.",
+  twinsLockedBy:
+    "Todavía no se puede unir: «{name}» está bloqueado o archivado, así que sus enlaces no se pueden cambiar.",
+  twinsGone: "Estas copias cambiaron desde que se encontraron. Vuelve a buscar.",
+  twinsStill:
+    "«{name}» todavía nombra una copia que se iría de una forma que Tisty no puede cambiar, así que no se unió nada.",
+  twinsLocked:
+    "«{name}» está bloqueado o archivado, así que sus enlaces no se pueden cambiar. Desbloquéalo y vuelve a intentarlo.",
   looseShared: "en la carpeta compartida",
   looseDropSharedSure:
     "{name} solo está en la carpeta compartida, así que este equipo no tiene copia que apartar: se borra para siempre. ¿Lo borras?",
