@@ -150,6 +150,9 @@ pub fn set_fields(
         .map(|(field, value, _)| format!("\"{field}\": {value}"))
         .collect();
     let whole = format!("{{ {} }}", whole.join(", "));
+    if text.trim().is_empty() {
+        return set(text, key, name, &whole);
+    }
     let found = |text: &str| -> Option<Option<usize>> {
         let raw = text.as_bytes();
         let Some(under) = member(raw, opens(raw)?, key) else {
