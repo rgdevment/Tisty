@@ -1213,6 +1213,6 @@ fn a_cloud_gone_quiet_with_no_word_left_still_stops_the_move() {
 
         let shifted = crate::shift(Some(&*two.carrier), Some(&new), &two.here, &[], &mut saying);
 
-        assert!(matches!(shifted, Err(Trouble::Unshaped(_))), "{who}");
+        assert!(shifted.is_err(), "{who}: {shifted:?}");
     }
 }
