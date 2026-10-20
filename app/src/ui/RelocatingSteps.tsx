@@ -419,7 +419,7 @@ export function Done({
         </div>
       )}
       <div className="flex flex-wrap items-center gap-2.5">
-        {offersWipe && !wiped && (
+        {offersWipe && !wiped && !wiping && (
           <>
             <button type="button" disabled={busy} onClick={onKeep} className={quiet}>
               {t("moveWipeKeep")}

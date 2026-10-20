@@ -360,6 +360,8 @@ describe("deleting the copies left in Google Drive", () => {
     );
     const { rerender } = render(shown(true));
     expect(screen.getByRole("status").textContent).toBe(t("moveWiping"));
+    expect(screen.queryByRole("button", { name: t("moveWipeKeep") })).toBeNull();
+    expect(screen.queryByRole("button", { name: t("moveWipe") })).toBeNull();
 
     rerender(shown(false));
     expect(screen.queryByRole("status")).toBeNull();
