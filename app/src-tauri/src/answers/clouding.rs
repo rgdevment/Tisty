@@ -403,9 +403,14 @@ pub(crate) fn choosing_cloud(
 pub async fn cloud_forget(
     app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
+    erasing: tauri::State<'_, crate::Erasing>,
     account: Option<String>,
     provider: Option<String>,
 ) -> Answer<()> {
+    // An erase going on deletes with these keys, and lets go of them itself when it ends.
+    if erasing.going() {
+        return Err(Refusal::of("wipeGoing"));
+    }
     let at = whose(&session, account, provider)?;
     forget_here(app, &session, at).await
 }

@@ -6394,3 +6394,24 @@ fn a_word_on_a_step_of_the_persons_can_be_taken_back_by_the_assistant() {
     let step = &served.person().state().tasks[&task].steps[0];
     assert!(!step.said && !step.done);
 }
+
+#[test]
+fn once_the_whole_task_is_said_done_its_steps_keep_the_word() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let task = served.person().captures("renew the certificate");
+    served.person().adds_step(task, "pay");
+    let id = task.to_string();
+    served.call("tick", serde_json::json!({ "task": &id, "step": "pay" }));
+    let again = served.call("tick", serde_json::json!({ "task": &id, "step": "pay" }));
+    assert_eq!(again["result"]["isError"], true, "{again}");
+    served.call(
+        "say_done",
+        serde_json::json!({ "task": &id, "body": "paid at the registry" }),
+    );
+
+    let back = served.call("untick", serde_json::json!({ "task": &id, "step": "pay" }));
+
+    assert_eq!(back["result"]["isError"], true, "{back}");
+    assert!(served.person().state().tasks[&task].steps[0].said);
+}

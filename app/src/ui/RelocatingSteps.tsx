@@ -447,12 +447,7 @@ export function Done({
             </button>
           </>
         )}
-        <button
-          type="button"
-          disabled={busy && !wiping}
-          onClick={onClose}
-          className={`ml-auto ${go}`}
-        >
+        <button type="button" onClick={onClose} className={`ml-auto ${go}`}>
           {t("close")}
         </button>
       </div>

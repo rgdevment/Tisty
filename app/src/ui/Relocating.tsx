@@ -38,9 +38,7 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
   const [plan, setPlan] = useState<MovePlan>();
   const [agreed, setAgreed] = useState(false);
   const [trouble, setTrouble] = useState<string>();
-  const erasing = useErasing();
-  const wiping = Boolean(erasing?.going);
-  const busy = wiping;
+  const anyErasing = useErasing();
   const [deciding, setDeciding] = useState(false);
   const settled = useRef(false);
 
@@ -82,6 +80,10 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
   const leftCloud = done?.told ? done.leftCloud : undefined;
   const connectedHere = toward?.kind === "cloud" && !resume;
 
+  // Only the erasing of the cloud this move left is this dialog's to show.
+  const erasing = anyErasing?.account === leftCloud?.account ? anyErasing : null;
+  const wiping = Boolean(erasing?.going);
+  const busy = wiping;
   const from = leftCloud?.provider ?? "google";
   const gone = erasing?.gone;
   const wiped =
@@ -135,7 +137,7 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
   const wipe = async () => {
     if (!leftCloud || busy || !(await sure(said("moveWipeSure", from)))) return;
     setTrouble(undefined);
-    erase(leftCloud.account, leftCloud.email, leftCloud.provider);
+    void erase(leftCloud.account, leftCloud.email, leftCloud.provider);
   };
 
   const keep = () => {

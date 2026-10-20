@@ -266,12 +266,8 @@ pub async fn move_to(
     erasing: tauri::State<'_, Erasing>,
     toward: Toward,
 ) -> Answer<Moving> {
-    // A cloud being emptied is let go of when that ends, so no move may lean on one meanwhile.
-    if erasing.going() && matches!(toward, Toward::Cloud { .. }) {
-        return Err(Refusal::of("wipeGoing"));
-    }
     let kind = toward.kind();
-    let answer = moving(app, &session, &alone, toward).await;
+    let answer = moving(app, &session, &alone, &erasing, toward).await;
     noted(&answer, kind);
     answer
 }
@@ -321,9 +317,14 @@ async fn moving(
     app: tauri::AppHandle,
     session: &tauri::State<'_, Mutex<Session>>,
     alone: &tauri::State<'_, OneAtATime>,
+    erasing: &tauri::State<'_, Erasing>,
     toward: Toward,
 ) -> Answer<Moving> {
     let _done = alone.inner().waited(WAITED).await?;
+    // Asked holding the round: a cloud being emptied is let go of when that ends, so no move may lean on one.
+    if erasing.going() && matches!(toward, Toward::Cloud { .. }) {
+        return Err(Refusal::of("wipeGoing"));
+    }
     accessible(&toward).await?;
     let (mut end, paths, left) = {
         let mut session = held(session);

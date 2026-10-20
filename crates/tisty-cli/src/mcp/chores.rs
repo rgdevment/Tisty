@@ -1028,25 +1028,30 @@ fn vouch(mut store: Store, id: TaskId, task: &Task, wanted: &[String]) -> Result
         .filter(|step| !step.done && !step.said)
         .map(|step| step.id)
         .collect();
-    if !fresh.is_empty() {
-        let ops = fresh
-            .iter()
-            .map(|step| Op::StepSaid {
-                id,
-                d: StepRef { step: *step },
-            })
-            .collect();
-        let written = store
-            .append_batch_unless(ops, |events| {
-                State::replay(events)
-                    .tasks
-                    .get(&id)
-                    .is_none_or(|now| !still_in_sight(now) || now.resolved.is_some())
-            })
-            .map_err(hitch)?;
-        if written.is_none() {
-            return Err(moved(task));
-        }
+    if fresh.is_empty() {
+        return Err(Refused::Tool(format!(
+            "Every step you named on {:?} is ticked already or already carries your word, so \
+             there is nothing more to say.",
+            task.title
+        )));
+    }
+    let ops = fresh
+        .iter()
+        .map(|step| Op::StepSaid {
+            id,
+            d: StepRef { step: *step },
+        })
+        .collect();
+    let written = store
+        .append_batch_unless(ops, |events| {
+            State::replay(events)
+                .tasks
+                .get(&id)
+                .is_none_or(|now| !still_in_sight(now) || now.resolved.is_some())
+        })
+        .map_err(hitch)?;
+    if written.is_none() {
+        return Err(moved(task));
     }
     let left = task
         .steps
@@ -1188,6 +1193,9 @@ pub(super) fn steps_named<'a>(
 }
 
 fn unsay(mut store: Store, id: TaskId, task: &Task, wanted: &[String]) -> Result<Value, Refused> {
+    if let Some(refusal) = already_said_done(task, "taking back a word on its steps") {
+        return Err(refusal);
+    }
     let chosen = steps_named(task, wanted, "taken back", |step| step.said)?;
     let gone: Vec<tisty_core::model::StepId> = chosen
         .iter()
@@ -1208,7 +1216,17 @@ fn unsay(mut store: Store, id: TaskId, task: &Task, wanted: &[String]) -> Result
             d: StepRef { step: *step },
         })
         .collect();
-    store.append_batch(ops).map_err(hitch)?;
+    let written = store
+        .append_batch_unless(ops, |events| {
+            State::replay(events)
+                .tasks
+                .get(&id)
+                .is_none_or(|now| !still_in_sight(now) || now.resolved.is_some())
+        })
+        .map_err(hitch)?;
+    if written.is_none() {
+        return Err(moved(task));
+    }
     Ok(told(
         format!(
             "Took back your word on {} step(s) of {:?}; the person's ticks are theirs.",

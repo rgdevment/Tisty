@@ -8,6 +8,7 @@ export interface Erased {
 }
 
 export interface Erasing {
+  account: string;
   going: boolean;
   erased?: Erased;
   gone?: number;
@@ -23,16 +24,17 @@ const set = (next: Erasing | null) => {
 };
 
 // Kept outside the dialog, so closing it leaves the erasing going and opening it again shows where it stands.
-export const erase = (account: string, email: string, provider?: string) => {
+export const erase = async (account: string, email: string, provider?: string) => {
   if (now?.going) return;
-  set({ going: true });
-  const off = listen<Erased>("wiping", (step) => {
+  set({ account, going: true });
+  // Listened to before asking, so the first counts are not said to nobody.
+  const off = await listen<Erased>("wiping", (step) => {
     if (now?.going) set({ ...now, erased: step.payload });
-  });
-  cloudWipe(account, email, provider)
-    .then((gone) => set({ going: false, gone }))
-    .catch((failed) => set({ going: false, failed }))
-    .finally(() => void off.then((stop) => stop()));
+  }).catch(() => undefined);
+  await cloudWipe(account, email, provider)
+    .then((gone) => set({ account, going: false, gone }))
+    .catch((failed) => set({ account, going: false, failed }));
+  off?.();
 };
 
 export const forgetErasing = () => {
