@@ -13,7 +13,30 @@ pub fn set(text: &str, key: &str, name: &str, entry: &str) -> Option<String> {
     }
     let head = format!("[{key}.{name}]");
     if let Some((from, to)) = span(text, key, name) {
-        return Some(format!("{}{head}\n{entry}\n{}", &text[..from], &text[to..]));
+        // What the person added beside our two keys stays in the table.
+        let theirs: String = text[from..to]
+            .split_inclusive('\n')
+            .skip(1)
+            .filter(|line| {
+                let named = line.split('=').next().unwrap_or_default().trim();
+                !matches!(named, "command" | "args")
+            })
+            .collect();
+        let theirs = theirs.trim_end_matches(['\n', '\r']);
+        let rest = match theirs.trim().is_empty() {
+            true => String::new(),
+            false => format!("{theirs}\n"),
+        };
+        let gap = if to < text.len() && !rest.is_empty() {
+            "\n"
+        } else {
+            ""
+        };
+        return Some(format!(
+            "{}{head}\n{entry}\n{rest}{gap}{}",
+            &text[..from],
+            &text[to..]
+        ));
     }
     // Written some other way — inline, or a name we would not recognise — and rewriting it would
     // mean guessing at somebody else's formatting.

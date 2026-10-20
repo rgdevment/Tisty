@@ -188,6 +188,8 @@ const KNOWN = [
   "noClipboard",
   "noSuchAgent",
   "settingsPuzzling",
+  "wslShut",
+  "wslUnread",
 ] as const;
 
 type Known = (typeof KNOWN)[number];
