@@ -1722,6 +1722,9 @@ const en = {
   leaveRevoke: "Also remove Tisty's access on every computer",
   leaveCloudGone:
     "Your cloud is already disconnected on this computer, but Tisty could not finish leaving.",
+  leaveHeldOpen:
+    "Another program still has these open, so they stayed. Close it, then delete them by hand:",
+  leaveAnyway: "Close Tisty",
   leaveLeft:
     "What Tisty left on this computer: settings, cache, log, this computer's keys and starting with the system.",
   leaveThen:
@@ -1846,6 +1849,8 @@ const en = {
   archivedTasks: "{name} archived",
   someAttachments: "{name} attachments",
   restoreTitle: "Restore",
+  restoreCloudOff:
+    "With your cloud freeing space here, some attachments live only there, and restoring a backup over them would lose them. Move to a folder first, or restore on a computer that keeps everything.",
   restoreWhat:
     "Replaces everything on this computer with whatever the file carries. It cannot be undone, so it asks first.",
   restoreFrom: "Restore from a file…",
@@ -3865,6 +3870,9 @@ const es: Catalog = {
   leaveRevoke: "Quitar también el acceso de Tisty en todos los equipos",
   leaveCloudGone:
     "Tu nube ya quedó desconectada en este equipo, pero Tisty no pudo terminar de salir.",
+  leaveHeldOpen:
+    "Otro programa todavía tiene esto abierto, así que quedó. Ciérralo y bórralo a mano:",
+  leaveAnyway: "Cerrar Tisty",
   leaveLeft:
     "Lo que Tisty dejó en este equipo: ajustes, caché, registro, las llaves de este equipo y el inicio con el sistema.",
   leaveThen:
@@ -3990,6 +3998,8 @@ const es: Catalog = {
   archivedTasks: "{name} archivadas",
   someAttachments: "{name} adjuntos",
   restoreTitle: "Restaurar",
+  restoreCloudOff:
+    "Con tu nube liberando espacio aquí, algunos adjuntos viven solo allá, y restaurar un respaldo encima los perdería. Múdate primero a una carpeta, o restaura en un equipo que lo guarde todo.",
   restoreWhat:
     "Sustituye todo lo que hay en este equipo por lo que traiga el archivo. No se puede deshacer, así que se pide confirmación.",
   restoreFrom: "Restaurar desde un archivo…",

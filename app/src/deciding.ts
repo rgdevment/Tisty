@@ -54,6 +54,11 @@ export const decide = async (id: string, called?: string): Promise<boolean> => {
   return true;
 };
 
+const letGo = (id: string) => {
+  later.delete(id);
+  reminded.delete(id);
+};
+
 // A task's page is left out of the documents, so it is named after the task it belongs to.
 const taskTitled = (id: string): Promise<string | undefined> => {
   const task = /^t_([0-9a-z]{26})-\d+$/i.exec(id)?.[1];
@@ -112,8 +117,7 @@ const decideInTurn = async (ids: string[], byHand: boolean, since: number): Prom
       decisions += 1;
       decidedAt.set(id, decisions);
       if (settled) {
-        later.delete(id);
-        reminded.delete(id);
+        letGo(id);
       } else {
         later.add(id);
         putOff.push(id);
@@ -124,6 +128,8 @@ const decideInTurn = async (ids: string[], byHand: boolean, since: number): Prom
         shut.add(id);
         continue;
       }
+      // Still at odds, the next round names it again; settled elsewhere, it would otherwise wait forever.
+      letGo(id);
       const plain = saidPlainly(problem);
       told.add(code === "movedUnderfoot" ? fill("changedWhileDeciding", named(id)) : plain);
     }

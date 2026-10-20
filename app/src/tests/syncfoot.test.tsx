@@ -87,14 +87,18 @@ describe("the sync foot in the sidebar", () => {
     await waitFor(() => expect(onSync).toHaveBeenCalledOnce());
   });
 
-  it("never offers a sync the cloud would turn away, and says why", async () => {
+  it("never offers a sync the cloud would turn away: it says why and opens Settings › Sync", async () => {
     ipc.status = cloud({ last: { at: 1, code: "cloudNotNow", left: 0, names: [] } });
     const onSync = vi.fn();
-    render(<SyncFoot onSync={onSync} onOpen={vi.fn()} />);
+    const onOpen = vi.fn();
+    render(<SyncFoot onSync={onSync} onOpen={onOpen} />);
 
     const foot = await screen.findByRole("button", { name: /asks to wait/ });
-    expect((foot as HTMLButtonElement).disabled).toBe(true);
     expect(foot.getAttribute("aria-label")).toMatch(/tries again on its own/);
+    await userEvent.click(foot);
+
+    expect(onOpen).toHaveBeenCalledOnce();
+    expect(onSync).not.toHaveBeenCalled();
   });
 
   it("opens Settings › Sync when the access is gone", async () => {

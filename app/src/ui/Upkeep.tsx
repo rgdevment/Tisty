@@ -106,7 +106,7 @@ export default function Upkeep({
   const relook = () => {
     looked()
       .then(took)
-      .catch(() => undefined);
+      .catch((e) => fail({ card: "review", text: saidPlainly(e) }));
   };
 
   // Looked at once per visit to the settings, and never over another card that is still working.

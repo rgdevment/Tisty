@@ -790,16 +790,17 @@ pub fn asked_to_unreach() -> bool {
 }
 
 pub fn unreach() -> std::io::Result<bool> {
-    unreach_from(tisty_core::Paths::resolve().ok().as_ref())
+    let reached = unreach_from(tisty_core::Paths::resolve().ok().as_ref());
+    reached.0
 }
 
-fn unreach_from(paths: Option<&tisty_core::Paths>) -> std::io::Result<bool> {
+type Unreached = (std::io::Result<bool>, Vec<std::path::PathBuf>);
+
+fn unreach_from(paths: Option<&tisty_core::Paths>) -> Unreached {
+    let swept = |paths: Option<&tisty_core::Paths>| paths.map(sweep).unwrap_or_default();
     // A sandbox leaves only itself: starting with the system, the PATH and the keys are the real install's.
     if tisty_core::paths::profile().is_some() {
-        if let Some(paths) = paths {
-            sweep(paths);
-        }
-        return Ok(false);
+        return (Ok(false), swept(paths));
     }
     let _ = waking::wake(false);
     let reached = command::out_of_reach();
@@ -817,33 +818,40 @@ fn unreach_from(paths: Option<&tisty_core::Paths>) -> std::io::Result<bool> {
         let _ = std::fs::remove_dir_all(sealed);
     }
     // Last, since a step above that fails writes the log the sweep removes.
-    if let Some(paths) = paths {
-        sweep(paths);
-    }
-    reached
+    (reached, swept(paths))
 }
 
-fn sweep(paths: &tisty_core::Paths) {
-    for at in paths.swept_on_leaving() {
-        let _ = match at.is_dir() {
-            true => std::fs::remove_dir_all(&at),
-            false => std::fs::remove_file(&at),
-        };
-    }
+fn sweep(paths: &tisty_core::Paths) -> Vec<std::path::PathBuf> {
+    paths
+        .swept_on_leaving()
+        .into_iter()
+        .filter(|at| {
+            let _ = match at.is_dir() {
+                true => std::fs::remove_dir_all(at),
+                false => std::fs::remove_file(at),
+            };
+            at.exists()
+        })
+        .collect()
 }
 
 /// Leaving from the window: the same sweep as the uninstaller, then gone before anything writes the settings back.
+/// What another program still holds open stays and is named, unless the person already chose to go anyway.
 #[tauri::command]
 async fn leave_here(
     session: tauri::State<'_, Mutex<Session>>,
     alone: tauri::State<'_, OneAtATime>,
-) -> Answer<()> {
+    anyway: Option<bool>,
+) -> Answer<Vec<String>> {
     let _done = alone.inner().waited(ROUND_WAITED_OUT).await?;
     let mut session = held(&session);
     // Windows keeps an open database from being deleted, so the cache lets go before the sweep.
     session.cache = None;
-    let _ = unreach_from(Some(&session.paths));
-    std::process::exit(0);
+    let (_, left) = unreach_from(Some(&session.paths));
+    if left.is_empty() || anyway == Some(true) {
+        std::process::exit(0);
+    }
+    Ok(left.iter().map(|at| at.display().to_string()).collect())
 }
 
 pub(crate) fn as_asked_for(at: &std::path::Path) -> std::path::PathBuf {

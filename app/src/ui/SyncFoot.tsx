@@ -129,6 +129,7 @@ export default function SyncFoot({ carried, onSync, onOpen, onTrouble, fallback 
   };
 
   const press = () => {
+    if (!offered(foot)) return onOpen();
     if (foot.kind === "ok") return syncNow();
     if (foot.kind === "paused")
       return void cloudPause(false)
@@ -151,10 +152,9 @@ export default function SyncFoot({ carried, onSync, onOpen, onTrouble, fallback 
     <span title={why ?? `${named} · ${line}`} className="mx-1.5 flex min-w-0 flex-1">
       <button
         type="button"
-        disabled={!offered(foot)}
         aria-label={[named, line, foot.kind === "ok" ? undefined : why].filter(Boolean).join(" · ")}
         onClick={press}
-        className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1 text-left text-[11.5px] text-faint hover:bg-hover hover:text-ink disabled:hover:bg-transparent disabled:hover:text-faint"
+        className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1 text-left text-[11.5px] text-faint hover:bg-hover hover:text-ink"
       >
         <span
           aria-hidden="true"

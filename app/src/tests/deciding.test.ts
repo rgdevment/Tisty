@@ -305,6 +305,19 @@ describe("a document that comes back at odds after it was decided", () => {
     expect(whole).toHaveBeenCalledTimes(2);
   });
 
+  it("lets go of a put-off document that can no longer be settled, so it does not wait forever", async () => {
+    const { leftForLater } = await import("../deciding");
+    decidesWhole(async () => null);
+    await decideAll(["dev_a-0008"]);
+    expect(leftForLater()).toEqual(["dev_a-0008"]);
+
+    decidesWhole(async () => "mine");
+    torn.moved = true;
+    await decideAll(["dev_a-0008"], true);
+
+    expect(leftForLater()).toEqual([]);
+  });
+
   it("tells a sync by hand what was left for later", async () => {
     decidesWhole(async () => null);
 

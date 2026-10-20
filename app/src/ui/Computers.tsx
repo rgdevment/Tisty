@@ -44,14 +44,15 @@ export default function Computers({
   const [astray, setAstray] = useState<Machine | null>(null);
   const synced = Boolean(state.chosen) || state.mode === "cloud";
 
-  // A card still working will look again when it lands, and a read now could land after it.
-  const working = useRef(held);
+  // Read once a visit, after any card still working has landed, and not when the settings already hold it.
+  const asked = useRef(audit !== null);
   useEffect(() => {
-    if (working.current) return;
+    if (held || asked.current) return;
+    asked.current = true;
     checked()
       .then(setAudit)
       .catch((e) => fail({ card: "machines", text: saidPlainly(e) }));
-  }, [setAudit, fail]);
+  }, [held, setAudit, fail]);
 
   // A refusal says "look again", so the window looks rather than leave a live button on a stale key.
   const confirmKey = (one: Machine) => {

@@ -7,6 +7,7 @@ const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
   refuse: null as string | null,
   leftOut: 0,
+  stayed: null as string[] | null,
 }));
 
 const asked = vi.hoisted(() => ({ file: null as string | null }));
@@ -15,6 +16,7 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: Record<string, unknown>) => {
     ipc.calls.push({ cmd, args: args ?? {} });
     if (cmd === ipc.refuse) return Promise.reject({ code: "forgetUntold" });
+    if (cmd === "leave_here") return Promise.resolve(args?.anyway ? null : ipc.stayed);
     if (cmd === "back_up")
       return Promise.resolve({ bytes: 10, leftOut: ipc.leftOut, leftOutBytes: ipc.leftOut * 1024 });
     return Promise.resolve(null);
@@ -31,6 +33,7 @@ beforeEach(() => {
   ipc.calls.length = 0;
   ipc.refuse = null;
   ipc.leftOut = 0;
+  ipc.stayed = null;
   asked.file = null;
 });
 
@@ -40,8 +43,10 @@ describe("leaving Tisty", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Leave Tisty" }));
 
-    await waitFor(() => expect(said()).toEqual(["cloud_forget", "revealed", "leave_here"]));
-    expect(ipc.calls[1].args).toEqual({ path: "C:/Tisty" });
+    await waitFor(() =>
+      expect(said()).toEqual(["cloud_pause", "cloud_forget", "revealed", "leave_here"]),
+    );
+    expect(ipc.calls[2].args).toEqual({ path: "C:/Tisty" });
   });
 
   it("takes the access away on every computer only when asked", async () => {
@@ -52,7 +57,9 @@ describe("leaving Tisty", () => {
     await userEvent.click(everywhere);
     await userEvent.click(screen.getByRole("button", { name: "Leave Tisty" }));
 
-    await waitFor(() => expect(said()).toEqual(["cloud_revoke", "revealed", "leave_here"]));
+    await waitFor(() =>
+      expect(said()).toEqual(["cloud_pause", "cloud_revoke", "revealed", "leave_here"]),
+    );
   });
 
   it("has no cloud step when there is no cloud", async () => {
@@ -62,6 +69,29 @@ describe("leaving Tisty", () => {
     await userEvent.click(screen.getByRole("button", { name: "Leave Tisty" }));
 
     await waitFor(() => expect(said()).toEqual(["revealed", "leave_here"]));
+  });
+
+  it("names what another program kept open, and closes when asked", async () => {
+    ipc.stayed = ["C:/Users/me/.tisty/cache"];
+    render(<Leave cloud={false} store="C:/Tisty" onClose={vi.fn()} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Leave Tisty" }));
+    expect(await screen.findByText("C:/Users/me/.tisty/cache")).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Close Tisty" }));
+
+    expect(ipc.calls[ipc.calls.length - 1]).toEqual({ cmd: "leave_here", args: { anyway: true } });
+  });
+
+  it("pauses the cloud before letting it go, and resumes it when it will not let go", async () => {
+    ipc.refuse = "cloud_forget";
+    render(<Leave cloud store="C:/Tisty" onClose={vi.fn()} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Leave Tisty" }));
+    await screen.findByRole("alert");
+
+    expect(said()).toEqual(["cloud_pause", "cloud_forget", "cloud_pause"]);
+    expect(ipc.calls[0].args).toEqual({ paused: true });
+    expect(ipc.calls[2].args).toEqual({ paused: false });
   });
 
   it("says the cloud is already let go when leaving fails after it", async () => {

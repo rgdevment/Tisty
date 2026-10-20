@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { backUp, cloudForget, cloudRevoke, leaveHere, revealed } from "../core";
+import { backUp, cloudForget, cloudPause, cloudRevoke, leaveHere, revealed } from "../core";
 import { t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { backupMadeSaid, whereToBackUp } from "./Backup";
@@ -30,6 +30,7 @@ export default function Leave({ cloud, store, onClose }: Props) {
   const [revoke, setRevoke] = useState(false);
   const [going, setGoing] = useState(false);
   const [trouble, setTrouble] = useState<string>();
+  const [stayed, setStayed] = useState<string[]>([]);
   const held = going || backing === "busy";
 
   const backup = () => {
@@ -49,20 +50,47 @@ export default function Leave({ cloud, store, onClose }: Props) {
   };
 
   // The cloud lets go before the sweep, since forgetting the access is what clears it from the keychain.
+  // Paused first, so no round starts in between without the access it needs.
   const leave = async () => {
     setGoing(true);
     setTrouble(undefined);
     let letGo = false;
     try {
-      if (cloud) await (revoke ? cloudRevoke() : cloudForget());
+      if (cloud) {
+        await cloudPause(true);
+        await (revoke ? cloudRevoke() : cloudForget()).catch(async (e) => {
+          await cloudPause(false).catch(() => undefined);
+          throw e;
+        });
+      }
       letGo = cloud;
       if (store) await revealed(store).catch(() => undefined);
-      await leaveHere();
+      setStayed((await leaveHere()) ?? []);
     } catch (e) {
       setTrouble(letGo ? `${t("leaveCloudGone")} ${saidPlainly(e)}` : saidPlainly(e));
       setGoing(false);
     }
   };
+
+  if (stayed.length > 0) {
+    return (
+      <Modal title={t("leaveTitle")} wide>
+        <p role="alert" className="text-[12.5px] leading-relaxed text-soft">
+          {t("leaveHeldOpen")}
+        </p>
+        <ul className="mt-2 font-mono text-[11.5px] break-all text-ink">
+          {stayed.map((at) => (
+            <li key={at}>{at}</li>
+          ))}
+        </ul>
+        <div className="mt-4 flex justify-end">
+          <button type="button" onClick={() => void leaveHere(true)} className={leaving}>
+            {t("leaveAnyway")}
+          </button>
+        </div>
+      </Modal>
+    );
+  }
 
   const after = cloud ? 3 : 2;
   return (
