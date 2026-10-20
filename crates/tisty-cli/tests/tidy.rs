@@ -738,6 +738,25 @@ fn the_outline_names_links_that_lead_nowhere() {
     assert!(text.contains("Links that lead nowhere (1)"), "{text}");
 }
 
+#[test]
+fn links_to_nothing_or_to_documents_marked_now_need_no_line_in_the_history() {
+    let served = Served::new();
+    let old = served.paper("# Old plan\n\nDone long ago.");
+    let doc = served.paper(&format!(
+        "# Login\n\nOne.\n\n[the plan](tisty:doc/{old})\n\n[gone](tisty:doc/zzzzzzzz-0099)\n\n## Session 1\n\nTwo.\n"
+    ));
+    went(&served.call(
+        "flag_doc",
+        json!({ "doc": &old, "reason": "obsolete", "body": "Its branch was merged." }),
+    ));
+    let print = said(&served.call("read_doc", json!({ "doc": &doc })))["print"].clone();
+
+    went(&served.call(
+        "write_doc",
+        json!({ "doc": &doc, "print": print, "compact": true, "body": "# Login\n\nOne. Two.\n" }),
+    ));
+}
+
 fn files_under(at: &std::path::Path) -> usize {
     std::fs::read_dir(at).map_or(0, |all| {
         all.flatten()

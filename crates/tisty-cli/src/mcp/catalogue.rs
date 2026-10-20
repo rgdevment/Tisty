@@ -240,14 +240,17 @@ nothing worth keeping is `obsolete` or `superseded`. One `flag_doc` call per rea
 destination.\n\
 3. Settle every document `alike` names: one an agent wrote is folded in and marked \
 `duplicate_of` the one that stays; one the person wrote is named to them once, with what you \
-would do — if they keep both, the history says so and you do not ask again.\n\
+would do, as a question of its own — a yes given to several questions at once does not cover \
+marking what they wrote. If they keep both, the history says so and you do not ask again. \
+`alike` is a hint: titles alike on unrelated subjects are left alone.\n\
 4. Then `write_doc` with `compact`, whole, in the shape above: today first, then the subject, \
 the decisions, and a history saying what moved where, what was settled, and every link and file \
-you took out — a compaction that loses one without naming it is refused. What holds today is \
-only what Tisty itself confirms — a task's state (open, closed, said done), not what an old text \
-says; a version, a date or a number you only read is kept as it was written, dated and marked \
-unconfirmed, and asked about, never dropped and never stated as fact. Compacting folds and \
-moves: a body that grows says why.\n\
+you took out, by its address or the title of the document it leads to — one lost without a name \
+is refused; links to nothing and to documents you marked in this pass need no line. What holds \
+today is only what Tisty itself confirms — a task's state (open, closed, said done), not what an \
+old text says; a version, a date or a number you only read is kept as it was written, dated and \
+marked unconfirmed, and asked about, never dropped and never stated as fact. Compacting folds \
+and moves: a body that grows says why.\n\
 5. Say what moved where, in titles and places. The old body is kept and the window offers the \
 person one click to undo. Until they keep or undo it, the document takes no other write of yours \
 except one more whole `compact` to correct your own, which still undoes to the original; what \

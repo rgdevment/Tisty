@@ -143,7 +143,8 @@ pub(super) fn compacted(
     let title = tisty_core::docs::titled(&whole);
     let more = format!(
         " Compacted from {before} to {after} characters; the window shows the person that you \
-         did, with one click to undo, and `restore_doc` brings the old body back.{}{}{}",
+         did, with one click to undo, and `restore_doc` brings the old body back. Leave what you worked out \
+         with `sum_up`, so the next reader does not read it all again.{}{}{}",
         match after > before {
             true => format!(
                 " The body grew from {before} to {after} characters: compacting folds and \
@@ -193,9 +194,25 @@ fn unsaid(state: &State, kept: &Kept, was: &str, body: &str) -> Result<(), Refus
         .filter(|one| one.flagged.is_none())
         .map(|one| format!("{}{}", tisty_core::refs::DOC, one.file))
         .collect();
+    // A link to nothing, or to a document marked in this same pass, already has its trace.
+    let settled = |target: &str| -> bool {
+        let Some(file) = target.strip_prefix(tisty_core::refs::DOC) else {
+            return false;
+        };
+        let file = file.split(['#', '?']).next().unwrap_or(file);
+        match state.docs.values().find(|one| one.file == file) {
+            None => true,
+            Some(one) => {
+                one.flagged.is_some()
+                    || one.title.as_deref().is_some_and(|title| {
+                        !title.trim().is_empty() && body.contains(title.trim())
+                    })
+            }
+        }
+    };
     let lost = |gone: Vec<String>| -> Vec<String> {
         gone.into_iter()
-            .filter(|one| !put_back.contains(one) && !mentioned(body, one))
+            .filter(|one| !put_back.contains(one) && !mentioned(body, one) && !settled(one))
             .collect()
     };
     let (links, files) = (lost(unlinked(was, body)), lost(dropped(was, body)));
@@ -215,8 +232,10 @@ fn unsaid(state: &State, kept: &Kept, was: &str, body: &str) -> Result<(), Refus
     match told.is_empty() {
         true => Ok(()),
         false => Err(Refused::Tool(format!(
-            "{} List them in the history of the body you send, so a link taken out is never a \
-             link lost; nothing was written.",
+            "{} Name each in the history of the body you send — by its address, or a \
+             document that still exists by its title — so a link taken out is never a link \
+             lost; links to nothing, and to documents marked in this pass, need no line. \
+             Nothing was written.",
             told.join(" ")
         ))),
     }
