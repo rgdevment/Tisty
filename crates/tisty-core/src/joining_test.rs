@@ -155,3 +155,32 @@ fn links_written_other_ways_are_found_too() {
 
     assert_eq!(moved, 3);
 }
+
+#[test]
+fn a_link_right_after_another_attachment_keeps_its_neighbour() {
+    let from = "foto-a42d4603.png";
+    let body =
+        format!("[x](attachments/a-abcdef12.png)![]({from}) ![](attachments/b7/{from})![]({from})");
+
+    let (now, moved) = relinked(&body, from, "playa-a42d4603.png").unwrap();
+
+    assert_eq!(moved, 3);
+    assert!(now.contains("[x](attachments/a-abcdef12.png)"), "{now}");
+}
+
+#[test]
+fn hex_words_that_are_not_its_stamp_are_words() {
+    let uuid = "attachments/550e8400-e29b-41d4-a716-446655440000-abcdef12.jpg";
+    let bare = "attachments/abcdef12.jpg";
+    let numeric = "attachments/foto-12345678-1234567890abcdef.png";
+    let once = "attachments/foto-12345678.png";
+
+    assert_eq!(
+        keeper(&[copy(bare, 1, false, 1), copy(uuid, 1, false, 9)]),
+        1
+    );
+    assert_eq!(
+        keeper(&[copy(numeric, 1, false, 1), copy(once, 1, false, 9)]),
+        1
+    );
+}

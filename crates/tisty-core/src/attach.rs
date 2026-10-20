@@ -886,7 +886,7 @@ pub fn sweep(
     gone
 }
 
-pub fn since_epoch(when: std::time::SystemTime) -> i64 {
+fn since_epoch(when: std::time::SystemTime) -> i64 {
     when.duration_since(std::time::UNIX_EPOCH)
         .map(|gone| gone.as_secs() as i64)
         .unwrap_or(0)

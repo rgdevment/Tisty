@@ -87,10 +87,10 @@ export default function FreeUp({
         weigh(done.freed),
         String(done.relinked),
       );
-      tell({
-        card: "twins",
-        text: done.left > 0 ? `${joined} ${fill("twinsLeft", String(done.left))}` : joined,
-      });
+      const left = done.left === 1 ? t("twinsLeftOne") : fill("twinsLeft", String(done.left));
+      tell({ card: "twins", text: done.left > 0 ? `${joined} ${left}` : joined });
+      // What was set aside is gone from the pair, so it is looked for again rather than shown stale.
+      if (done.left > 0) void twinned().then(setAlike, () => undefined);
       void checked().then(setAudit, () => undefined);
     });
   };

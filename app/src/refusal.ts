@@ -98,6 +98,7 @@ const KNOWN = [
   "twinsTooLong",
   "twinsEdited",
   "twinsDocTooLong",
+  "twinsTaskGone",
   "forgetUntold",
   "keysTaken",
   "keysUnknown",

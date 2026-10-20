@@ -122,7 +122,8 @@ fn since(data: &std::path::Path, at: &str) -> i64 {
     tisty_core::attach::resolve(at, data)
         .ok()
         .and_then(|held| std::fs::metadata(held).ok()?.modified().ok())
-        .map_or(i64::MAX, tisty_core::attach::since_epoch)
+        .and_then(|when| when.duration_since(std::time::UNIX_EPOCH).ok())
+        .map_or(i64::MAX, |gone| gone.as_secs() as i64)
 }
 
 #[tauri::command(async)]
@@ -318,10 +319,16 @@ fn alike(
 
 // The log may have moved under the plan, from another process, while documents were written.
 fn unmoved(session: &mut Session, plan: &Plan) -> Answer<()> {
-    let _ = session.reload();
+    session.reload().map_err(|e| {
+        blamed(
+            channel::ATTACH,
+            "the log could not be read again before the join",
+            e,
+        )
+    })?;
     for (id, entry, was) in &plan.read {
         let Some(task) = session.state.tasks.get(id) else {
-            return Err(Refusal::of("twinsGone"));
+            return Err(Refusal::of("twinsTaskGone"));
         };
         let now = match entry {
             None => task.description.clone().unwrap_or_default(),

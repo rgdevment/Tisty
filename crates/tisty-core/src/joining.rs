@@ -29,12 +29,11 @@ fn parts(leaf: &str) -> impl Iterator<Item = &str> {
     leaf.split('.').next().unwrap_or_default().split('-')
 }
 
-// A stamp is 8 or 16 hex with a letter in it; a date or a number of the same length is a word.
+// Kept again, a name grew its own stamp once more, at 8 or 16: the one shares the other's start.
 fn a_stamp(part: &str, own: &str) -> bool {
-    part == own
-        || (matches!(part.len(), 8 | 16)
-            && lower_hex(part)
-            && part.bytes().any(|b| b.is_ascii_alphabetic()))
+    matches!(part.len(), 8 | 16)
+        && lower_hex(part)
+        && (part.starts_with(own) || own.starts_with(part))
 }
 
 fn words(leaf: &str) -> usize {
@@ -76,7 +75,11 @@ pub fn relinked(body: &str, from: &str, to: &str) -> Option<(String, usize)> {
                 .next_back()
                 .is_none_or(|one| !in_a_name(one))
             && ends_a_name(&body[at + from.len()..]);
-        let Some(start) = alone.then(|| link_start(&body[..at])).flatten() else {
+        let Some(start) = alone
+            .then(|| link_start(&body[..at]))
+            .flatten()
+            .filter(|start| *start >= last)
+        else {
             continue;
         };
         out.push_str(&body[last..start]);
@@ -95,25 +98,30 @@ pub fn relinked(body: &str, from: &str, to: &str) -> Option<(String, usize)> {
 
 // Only a link's target is a name to change, never the same words said in a sentence.
 fn link_start(before: &str) -> Option<usize> {
-    let mut start = before.len();
-    if let Some(cut) = before.rfind(crate::attach::SHED) {
-        let path = &before[cut + crate::attach::SHED.len()..];
-        if path.starts_with('/')
-            && !path.contains(char::is_whitespace)
-            && path.matches('/').count() <= 2
-        {
-            start = cut;
-        }
-    }
+    // Only the folder right before the name counts: `attachments/` or an old shelf, `attachments/b7/`.
+    let shelf = |path: &str| {
+        path == "/"
+            || (path.len() == 4
+                && path.starts_with('/')
+                && path.ends_with('/')
+                && path[1..3].bytes().all(|b| b.is_ascii_hexdigit()))
+    };
+    let start = before
+        .rfind(crate::attach::SHED)
+        .filter(|cut| shelf(&before[cut + crate::attach::SHED.len()..]))
+        .unwrap_or(before.len());
     let lead = &before[..start];
     let lead = lead.strip_suffix('<').unwrap_or(lead).trim_end_matches(' ');
-    let lead = lead.to_ascii_lowercase();
+    let tail = lead.as_bytes();
+    let ends = |one: &str| {
+        tail.len() >= one.len()
+            && tail[tail.len() - one.len()..].eq_ignore_ascii_case(one.as_bytes())
+    };
     let opens = [
-        "](", "[[", "src=\"", "src='", "href=\"", "href='", "src=", "href=",
+        "](", "[[", "src=\"", "src='", "href=\"", "href='", "src=", "href=", "]:",
     ]
     .iter()
-    .any(|one| lead.ends_with(one))
-        || lead.ends_with("]:");
+    .any(|one| ends(one));
     opens.then_some(start)
 }
 
