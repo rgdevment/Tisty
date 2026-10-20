@@ -261,7 +261,7 @@ fn ledger(root: &Path) -> PathBuf {
     root.join("attachments.jsonl")
 }
 
-// A copy let go of when two became one keeps its line, so the one still here, or else the latest, wins.
+// A copy let go of when two became one keeps its line, so the one still here is named first.
 fn listed(root: &Path, sha256: &str) -> Option<String> {
     let text = std::fs::read_to_string(ledger(root)).ok()?;
     let named: Vec<String> = text
@@ -273,7 +273,7 @@ fn listed(root: &Path, sha256: &str) -> Option<String> {
     named
         .iter()
         .find(|at| resolve(at, root).is_ok_and(|held| held.is_file()))
-        .or(named.last())
+        .or(named.first())
         .cloned()
 }
 
