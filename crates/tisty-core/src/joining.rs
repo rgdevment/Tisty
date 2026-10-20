@@ -29,16 +29,24 @@ fn parts(leaf: &str) -> impl Iterator<Item = &str> {
     leaf.split('.').next().unwrap_or_default().split('-')
 }
 
+// Kept again, a name grew its own stamp once more, maybe longer: the one shares the other's start.
+fn a_stamp(part: &str, own: &str) -> bool {
+    (8..=16).contains(&part.len())
+        && lower_hex(part)
+        && (part.starts_with(own) || own.starts_with(part))
+}
+
 fn words(leaf: &str) -> usize {
+    let own = stamped_by(leaf);
     parts(leaf)
-        .filter(|part| !part.is_empty() && !(part.len() >= 8 && lower_hex(part)))
+        .filter(|part| !part.is_empty() && !a_stamp(part, own))
         .count()
 }
 
-// A copy kept again before names carried their stamp once says it over and over.
+// A copy kept again before names carried their stamp once says one, or two of other lengths, over and over.
 fn repeats_stamp(leaf: &str) -> bool {
-    let stamp = stamped_by(leaf);
-    parts(leaf).filter(|part| *part == stamp).count() > 1
+    let own = stamped_by(leaf);
+    parts(leaf).filter(|part| a_stamp(part, own)).count() > 1
 }
 
 /// Every copy that goes, named in the body, pointed at the one that stays, with how many links moved.
@@ -61,41 +69,75 @@ pub fn relinked(body: &str, from: &str, to: &str) -> Option<(String, usize)> {
     let mut last = 0;
     let mut changed = 0;
     for (at, _) in body.match_indices(from) {
-        let named = !code.get(at).copied().unwrap_or(false)
+        let alone = !code.get(at).copied().unwrap_or(false)
             && body[..at]
                 .chars()
                 .next_back()
                 .is_none_or(|one| !in_a_name(one))
-            && ends_a_name(&body[at + from.len()..])
-            && a_link_leads_to(&body[..at]);
-        if named {
-            out.push_str(&body[last..at]);
-            out.push_str(to);
-            last = at + from.len();
-            changed += 1;
+            && ends_a_name(&body[at + from.len()..]);
+        let Some(start) = alone
+            .then(|| link_start(&body[..at]))
+            .flatten()
+            .filter(|start| *start >= last)
+        else {
+            continue;
+        };
+        out.push_str(&body[last..start]);
+        // Through a folder or an old shelf, it is written flat, as every link to an attachment now is.
+        if start < at {
+            out.push_str(crate::attach::SHED);
+            out.push('/');
         }
+        out.push_str(to);
+        last = at + from.len();
+        changed += 1;
     }
     out.push_str(&body[last..]);
     (changed > 0).then_some((out, changed))
 }
 
 // Only a link's target is a name to change, never the same words said in a sentence.
-fn a_link_leads_to(before: &str) -> bool {
-    let mut lead = before;
-    if let Some(cut) = lead.rfind(crate::attach::SHED) {
-        let path = &lead[cut + crate::attach::SHED.len()..];
-        if path.starts_with('/')
-            && !path.contains(char::is_whitespace)
-            && path.matches('/').count() <= 2
-        {
-            lead = &lead[..cut];
-        }
-    }
+fn link_start(before: &str) -> Option<usize> {
+    // Only the folder right before the name counts: `attachments/`, or one folder under it like an old shelf.
+    let folder = |path: &str| {
+        path == "/"
+            || path
+                .strip_prefix('/')
+                .and_then(|rest| rest.strip_suffix('/'))
+                .is_some_and(|one| {
+                    !one.is_empty()
+                        && one
+                            .chars()
+                            .all(|c| c.is_ascii_alphanumeric() || "._-".contains(c))
+                })
+    };
+    let start = before
+        .rfind(crate::attach::SHED)
+        .filter(|cut| folder(&before[cut + crate::attach::SHED.len()..]))
+        .unwrap_or(before.len());
+    let lead = &before[..start];
     let lead = lead.strip_suffix('<').unwrap_or(lead);
-    ["](", "[[", "src=\"", "src='", "href=\"", "href='"]
+    let ends = |text: &str, one: &str| {
+        let tail = text.as_bytes();
+        tail.len() >= one.len()
+            && tail[tail.len() - one.len()..].eq_ignore_ascii_case(one.as_bytes())
+    };
+    // A space may follow a bracket, never an attribute's equals sign.
+    let spaced = lead.trim_end_matches(' ');
+    let markdown = spaced.ends_with("](") || spaced.ends_with("[[") || defined(spaced);
+    let html = ["src=\"", "src='", "href=\"", "href='", "src=", "href="]
         .iter()
-        .any(|one| lead.ends_with(one))
-        || lead.trim_end_matches(' ').ends_with("]:")
+        .any(|one| ends(lead, one));
+    (markdown || html).then_some(start)
+}
+
+// A reference definition opens its own line: `[label]: target`.
+fn defined(lead: &str) -> bool {
+    let Some(line) = lead.strip_suffix("]:") else {
+        return false;
+    };
+    let line = line.rsplit('\n').next().unwrap_or_default().trim_start();
+    line.starts_with('[') && !line[1..].contains(']')
 }
 
 fn in_a_name(one: char) -> bool {

@@ -587,11 +587,13 @@ export interface Pair {
   bytes: number;
   stays: string;
   copies: Twin[];
+  unread?: string | null;
 }
 
 export interface Joined {
   freed: number;
   relinked: number;
+  left: string[];
 }
 
 export interface Machine {

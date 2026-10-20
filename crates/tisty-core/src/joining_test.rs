@@ -55,7 +55,8 @@ fn every_form_of_a_link_is_pointed_at_the_copy_that_stays() {
     assert_eq!(moved, 5, "the sentence and the code keep their words");
     assert_eq!(now.matches(to).count(), 5, "{now}");
     assert_eq!(now.matches(from).count(), 2, "{now}");
-    assert!(now.contains(&format!("attachments/b7/{to}")));
+    assert!(now.contains(&format!("[d]: attachments/{to}")), "{now}");
+    assert!(!now.contains("b7"), "{now}");
     assert!(now.contains(&format!("(<{to}>)")));
     assert!(now.contains(&format!("{to}?x=1")));
 }
@@ -126,4 +127,85 @@ fn a_link_shown_as_code_is_left_as_it_was_written() {
 
     assert_eq!(moved, 1);
     assert_eq!(now.matches(from).count(), 2, "{now}");
+}
+
+#[test]
+fn a_date_is_a_word_and_two_stamps_of_other_lengths_are_a_repeat() {
+    let dated = "attachments/report-20241015-abcdef12.pdf";
+    let bare = "attachments/abcdef12.pdf";
+    let doubled = "attachments/foo-abcdef12-abcdef1234567890.png";
+    let once = "attachments/foo-abcdef12.png";
+
+    assert_eq!(
+        keeper(&[copy(bare, 1, false, 1), copy(dated, 1, false, 9)]),
+        1
+    );
+    assert_eq!(
+        keeper(&[copy(doubled, 1, false, 1), copy(once, 1, false, 9)]),
+        1
+    );
+}
+
+#[test]
+fn links_written_other_ways_are_found_too() {
+    let from = "foto-a42d4603.png";
+    let body = format!("[a]( {from}) <img SRC=\"{from}\"> <img src={from}>");
+
+    let (_, moved) = relinked(&body, from, "playa-a42d4603.png").unwrap();
+
+    assert_eq!(moved, 3);
+}
+
+#[test]
+fn a_link_right_after_another_attachment_keeps_its_neighbour() {
+    let from = "foto-a42d4603.png";
+    let body =
+        format!("[x](attachments/a-abcdef12.png)![]({from}) ![](attachments/b7/{from})![]({from})");
+
+    let (now, moved) = relinked(&body, from, "playa-a42d4603.png").unwrap();
+
+    assert_eq!(moved, 3);
+    assert!(now.contains("[x](attachments/a-abcdef12.png)"), "{now}");
+}
+
+#[test]
+fn hex_words_that_are_not_its_stamp_are_words() {
+    let uuid = "attachments/550e8400-e29b-41d4-a716-446655440000-abcdef12.jpg";
+    let bare = "attachments/abcdef12.jpg";
+    let numeric = "attachments/foto-12345678-1234567890abcdef.png";
+    let once = "attachments/foto-12345678.png";
+
+    assert_eq!(
+        keeper(&[copy(bare, 1, false, 1), copy(uuid, 1, false, 9)]),
+        1
+    );
+    assert_eq!(
+        keeper(&[copy(numeric, 1, false, 1), copy(once, 1, false, 9)]),
+        1
+    );
+}
+
+#[test]
+fn a_link_through_any_one_folder_is_relinked_but_prose_after_an_equals_is_not() {
+    let from = "foto-a42d4603.png";
+    let body = format!("![](attachments/old/{from}) set href= {from} and NOTE]: {from}");
+
+    let (now, moved) = relinked(&body, from, "playa-a42d4603.png").unwrap();
+
+    assert_eq!(moved, 1, "{now}");
+    assert!(
+        now.starts_with("![](attachments/playa-a42d4603.png)"),
+        "{now}"
+    );
+}
+
+#[test]
+fn a_twelve_letter_stamp_said_twice_is_a_repeat() {
+    let doubled = "attachments/foo-abcdef123456-abcdef123456.png";
+    let once = "attachments/foo-abcdef123456.png";
+
+    assert_eq!(
+        keeper(&[copy(doubled, 1, false, 1), copy(once, 1, false, 9)]),
+        1
+    );
 }
