@@ -1615,29 +1615,24 @@ fn keeping_bytes_whose_first_ledger_name_was_let_go_lands_on_the_copy_still_here
 }
 
 #[test]
-fn the_copy_two_became_one_in_is_where_the_same_bytes_land_next_time() {
+fn after_a_join_the_same_bytes_land_on_the_copy_that_stayed_even_with_neither_here() {
     let root = tempfile::tempdir().unwrap();
     let outside = tempfile::tempdir().unwrap();
     let source = outside.path().join("demo.mp4");
     std::fs::write(&source, b"the same video").unwrap();
     let first = keep(&source, root.path(), u64::MAX).unwrap();
-    let shed = root.path().join("attachments");
-    let stays = format!("otra-{}", first.at.rsplit('-').next().unwrap());
-    std::fs::copy(
-        shed.join(first.at.trim_start_matches("attachments/")),
-        shed.join(&stays),
-    )
-    .unwrap();
+    let stays = format!("attachments/otra-{}", first.at.rsplit('-').next().unwrap());
 
-    stays_listed(
+    joined_in_ledger(
         root.path(),
-        &format!("attachments/{stays}"),
+        &stays,
+        std::slice::from_ref(&first.at),
         &first.sha256,
         first.bytes,
     )
     .unwrap();
-    std::fs::remove_file(shed.join(first.at.trim_start_matches("attachments/"))).unwrap();
+    std::fs::remove_file(root.path().join(&first.at)).unwrap();
     let again = keep(&source, root.path(), u64::MAX).unwrap();
 
-    assert_eq!(again.at, format!("attachments/{stays}"));
+    assert_eq!(again.at, stays);
 }

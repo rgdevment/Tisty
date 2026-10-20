@@ -94,8 +94,8 @@ export default function FreeUp({
   // A copy nothing links to is already counted as loose, so only what loose leaves out adds here.
   const doubled = shownTwins.reduce((sum, one) => {
     const each = one.bytes / Math.max(one.copies.length - 1, 1);
-    const loose = one.copies.filter((copy) => copy.links.length === 0).length;
-    return sum + Math.max(one.bytes - each * loose, 0);
+    const counted = audit ? one.copies.filter((copy) => copy.links.length === 0).length : 0;
+    return sum + Math.max(one.bytes - each * counted, 0);
   }, 0);
   const total = (audit?.looseBytes ?? 0) + (state.freesSpace ? (unused?.bytes ?? 0) : 0) + doubled;
 

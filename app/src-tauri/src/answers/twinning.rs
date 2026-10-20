@@ -53,7 +53,7 @@ fn namings(session: &Session) -> BTreeMap<String, Naming> {
             return;
         };
         let one = found.entry(at).or_default();
-        one.shelved |= shelved(body, &leaf);
+        one.shelved = one.shelved || shelved(body, &leaf);
         if locked && one.locked.is_none() {
             one.locked = Some(linked.title.clone());
         }
@@ -158,7 +158,7 @@ fn names_any(body: &str, going: &[String]) -> bool {
 }
 
 struct Plan {
-    docs: Vec<(String, String, String)>,
+    docs: Vec<(String, String, String, String)>,
     ops: Vec<Op>,
     links: usize,
 }
@@ -176,12 +176,10 @@ fn planned(session: &Session, go: &[String], going: &[(String, String)]) -> Answ
         links: 0,
     };
     for doc in tisty_core::docs::all(&root) {
-        let print = tisty_core::docs::resolve(&root, &doc.id)
-            .ok()
-            .and_then(|at| tisty_core::docs::print_of(&at).ok().flatten());
-        let (Ok(body), Some(print)) = (tisty_core::docs::read(&root, &doc.id), print) else {
+        let Ok(body) = tisty_core::docs::read(&root, &doc.id) else {
             return Err(Refusal::about("retireUnread", doc.title));
         };
+        let print = tisty_core::attach::printed(body.as_bytes());
         let now = relinked_all(&body, going);
         let after = now
             .as_ref()
@@ -195,11 +193,11 @@ fn planned(session: &Session, go: &[String], going: &[(String, String)]) -> Answ
         if session.state.bolted(&doc.id) {
             return Err(Refusal::about("twinsLocked", doc.title));
         }
-        if now.len() as u64 > tisty_core::docs::BODY_AT_MOST {
+        if tisty_core::docs::settled(&now).len() as u64 > tisty_core::docs::BODY_AT_MOST {
             return Err(Refusal::about("twinsTooLong", doc.title));
         }
         plan.links += moved;
-        plan.docs.push((doc.id, now, print));
+        plan.docs.push((doc.id, doc.title, now, print));
     }
     for task in session.state.tasks.values() {
         let mut left = false;
@@ -293,16 +291,9 @@ fn joined(
         .collect();
     let plan = planned(session, &go, &going)?;
 
-    tisty_core::attach::stays_listed(session.paths.data(), &keep, &sha256, each).map_err(|e| {
-        blamed(
-            channel::ATTACH,
-            "the copy that stays could not be named in the ledger",
-            e,
-        )
-    })?;
     let root = session.paths.docs();
     let hand = crate::signing(&session.state);
-    for (id, body, print) in &plan.docs {
+    for (id, title, body, print) in &plan.docs {
         // Written only over the body it was read from, and what it said is kept to go back to.
         let made = tisty_core::docs::rewrite(&root, session.paths.data(), id, body, print)
             .map_err(|e| {
@@ -312,12 +303,13 @@ fn joined(
                     e,
                 )
             })?;
-        if matches!(made, tisty_core::docs::Rewrite::Moved) {
-            return Err(Refusal::about("twinsGone", keep.clone()));
-        }
+        // What went before stays pointed at the copy that stays: joining again finishes the rest.
+        let tisty_core::docs::Rewrite::Made { whole, .. } = made else {
+            return Err(Refusal::about("twinsEdited", title.clone()));
+        };
         // Left unminded, so an editor holding the old body is told the file moved under it.
         session.corpus.forget(id);
-        session.retell(id, body, hand.clone());
+        session.retell(id, &whole, hand.clone());
     }
     if !plan.ops.is_empty() {
         session.commit_all(plan.ops).map_err(|e| {
@@ -329,6 +321,15 @@ fn joined(
         })?;
     }
     let gone = session.retire(&go)?;
+    tisty_core::attach::joined_in_ledger(session.paths.data(), &keep, &go, &sha256, each).map_err(
+        |e| {
+            blamed(
+                channel::ATTACH,
+                "the ledger could not name the copy that stays",
+                e,
+            )
+        },
+    )?;
     Ok(Joined {
         freed: each * gone as u64,
         relinked: plan.links,

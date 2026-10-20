@@ -399,19 +399,41 @@ pub fn same_bytes(root: &Path, all: &[String]) -> Result<Option<(String, u64)>> 
     Ok(seen)
 }
 
-/// The copy two became one in is named in the ledger, so the same bytes kept again land on it.
-pub fn stays_listed(root: &Path, at: &str, sha256: &str, bytes: u64) -> Result<()> {
-    let at = canonical(at).ok_or_else(|| Error::OutsideTheStore(at.to_string()))?;
-    let kept = Kept {
-        sha256: sha256.to_string(),
-        bytes,
-        at,
-    };
+/// Lines naming a copy that went are dropped, so the same bytes kept again can only land on the one that stays.
+pub fn joined_in_ledger(
+    root: &Path,
+    keep: &str,
+    go: &[String],
+    sha256: &str,
+    bytes: u64,
+) -> Result<()> {
+    let keep = canonical(keep).ok_or_else(|| Error::OutsideTheStore(keep.to_string()))?;
+    let at = ledger(root);
+    let text = std::fs::read_to_string(&at).unwrap_or_default();
+    let left: String = text
+        .lines()
+        .filter(|line| {
+            serde_json::from_str::<Noted>(line)
+                .map(|one| !go.contains(&canonical(&one.at).unwrap_or(one.at)))
+                .unwrap_or(true)
+        })
+        .map(|line| format!("{line}\n"))
+        .collect();
+    if left != text {
+        crate::store::write_atomic(&at, left.as_bytes())?;
+    }
     if digests(root)
-        .get(&kept.at)
-        .is_none_or(|(sha, _)| *sha != kept.sha256)
+        .get(&keep)
+        .is_none_or(|(sha, _)| sha != sha256)
     {
-        noted_line(root, &kept);
+        noted_line(
+            root,
+            &Kept {
+                at: keep,
+                sha256: sha256.to_string(),
+                bytes,
+            },
+        );
     }
     Ok(())
 }
