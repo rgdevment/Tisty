@@ -821,7 +821,7 @@ impl Session {
         }
         let named = tisty_core::refs::extract(body)
             .into_iter()
-            .map(|one| one.target)
+            .filter_map(|one| tisty_core::attach::canonical(&one.target))
             .collect();
         tisty_core::attach::unbinned(data, &named);
     }
