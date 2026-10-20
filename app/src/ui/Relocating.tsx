@@ -135,7 +135,13 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
   };
 
   const wipe = async () => {
-    if (!leftCloud || busy || !(await sure(said("moveWipeSure", from)))) return;
+    if (!leftCloud || busy) return;
+    // Another cloud is still being emptied, and only one goes at a time.
+    if (anyErasing?.going) {
+      setTrouble(t("wipeGoing"));
+      return;
+    }
+    if (!(await sure(said("moveWipeSure", from)))) return;
     setTrouble(undefined);
     void erase(leftCloud.account, leftCloud.email, leftCloud.provider);
   };
