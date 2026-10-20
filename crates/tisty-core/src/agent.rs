@@ -45,8 +45,17 @@ pub fn register(paths: &Paths) -> Result<DeviceId> {
 
 /// Opening Tisty is the person's act, so the door opens with it until they choose otherwise.
 pub fn open_by_default(paths: &Paths) -> Result<Option<DeviceId>> {
-    let config = Config::load_or_init(paths)?;
+    let mut config = Config::load_or_init(paths)?;
     if config.agent_id.is_some() || config.door_chosen.is_some() {
+        return Ok(None);
+    }
+    // An agent that lived here and left was shut out by the person before this choice was kept.
+    let shut_before = crate::store::read_all(paths.store())?
+        .iter()
+        .any(|one| matches!(&one.op, Op::DeviceHost { of, .. } if *of == config.device_id));
+    if shut_before {
+        config.door_chosen = Some(false);
+        config.save(paths)?;
         return Ok(None);
     }
     register(paths).map(Some)

@@ -76,12 +76,17 @@ export default function SyncFoot({ onSync, onOpen, onTrouble, fallback }: Props)
   const stuck = useStuck();
   const knocked = useKnocking().waiting.length > 0;
   const putOff = useLeftForLater();
+  const idle = coming === null;
+  // A round that ends, or a refusal that comes or goes, may have written what the foot shows.
+  useEffect(() => {
+    if (idle) void lookAgain();
+  }, [idle, stuck]);
+
   // The rounds keep what is seen; a look on focus catches what was written beside them, and the tick turns «today» over at midnight.
   useEffect(() => {
     const look = () => void lookAgain();
     const online = () => setOffline(offlineNow());
     const ticking = setInterval(() => tick((was) => was + 1), A_WHILE);
-    look();
     window.addEventListener("focus", look);
     window.addEventListener("online", online);
     window.addEventListener("offline", online);

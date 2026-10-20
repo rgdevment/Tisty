@@ -130,6 +130,8 @@ pub fn agent_turn(session: tauri::State<'_, Mutex<Session>>, on: bool) -> Answer
         let mut session = held(&session);
         session.reload()?;
         let paths = session.paths.clone();
+        // Kept before the turn, so a choice that could not be written never leaves the door to reopen on its own.
+        session.keep(|c| c.door_chosen = Some(on))?;
         if on {
             tisty_core::agent::register(&paths)
                 .map_err(|e| blamed(channel::STORE, "the agent could not be registered", e))?;
@@ -142,7 +144,6 @@ pub fn agent_turn(session: tauri::State<'_, Mutex<Session>>, on: bool) -> Answer
             .flatten()
             .unwrap_or_else(|| session.config.clone());
         session.reproject()?;
-        let _ = session.keep(|c| c.door_chosen = Some(on));
         if on {
             let _ = session.keep(|c| c.knock_heard = Some(jiff::Timestamp::now()));
         }

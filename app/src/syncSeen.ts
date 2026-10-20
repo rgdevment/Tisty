@@ -22,6 +22,11 @@ const read = async (): Promise<Seen> => {
   const state = (await syncState()) ?? null;
   const kept = sameCloud(seen.state, state) ? seen.status : null;
   const status = state?.mode === "cloud" ? await cloudStatus().catch(() => kept) : null;
+  if (
+    JSON.stringify(state) === JSON.stringify(seen.state) &&
+    JSON.stringify(status) === JSON.stringify(seen.status)
+  )
+    return seen;
   seen = { state, status };
   for (const one of watching) one();
   return seen;
@@ -49,7 +54,11 @@ export const lookAgain = (): Promise<void> => {
 };
 
 // Read after the call, never handed one that started before it.
-export const refresh = (): Promise<Seen> => (asking ? asking.then(start, start) : start());
+export const refresh = (): Promise<Seen> => {
+  if (!asking) return start();
+  const after = () => asking ?? start();
+  return asking.then(after, after);
+};
 
 const subscribe = (change: () => void) => {
   watching.add(change);

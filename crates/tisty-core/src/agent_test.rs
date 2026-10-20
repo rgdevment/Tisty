@@ -160,6 +160,21 @@ fn the_door_opens_by_default_until_the_person_chooses() {
 }
 
 #[test]
+fn a_door_shut_before_the_choice_was_kept_stays_shut() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(tmp.path());
+    register(&paths).unwrap();
+    retire(&paths).unwrap();
+
+    assert_eq!(open_by_default(&paths).unwrap(), None);
+    assert_eq!(registered(&paths).unwrap(), None);
+    assert_eq!(
+        Config::load_or_init(&paths).unwrap().door_chosen,
+        Some(false)
+    );
+}
+
+#[test]
 fn a_door_the_person_shut_stays_shut() {
     let tmp = tempfile::tempdir().unwrap();
     let paths = paths(tmp.path());

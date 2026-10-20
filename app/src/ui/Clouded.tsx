@@ -21,7 +21,6 @@ import { named } from "../previews";
 import { plainly, saidPlainly } from "../refusal";
 import { sure } from "../sure";
 import { syncingSaid } from "../syncSaid";
-import { lookAgain } from "../syncSeen";
 import type { Run, Which, Word } from "./Card";
 import CloudMark from "./CloudMark";
 import { Fold, mild, risky, strong } from "./Rows";
@@ -86,11 +85,7 @@ export default function Clouded({
   const paused = status?.pausedHere ?? false;
   const left = status?.last?.left ?? 0;
 
-  const switched = (on: boolean) =>
-    run("sync", cloudPause(!on), () => {
-      look();
-      void lookAgain();
-    });
+  const switched = (on: boolean) => run("sync", cloudPause(!on), look);
 
   // A copy this machine already carried stays with its account; one never carried may change it.
   const reconnected = async () => {
