@@ -1223,12 +1223,6 @@ pub async fn back_up(
     let _done = alone.inner().waited(crate::ROUND_WAITED_OUT).await?;
     let (data, aside, also) = {
         let session = held(&session);
-        if session
-            .carrier()
-            .is_some_and(|carrier| carrier.frees_space())
-        {
-            return Err(Refusal::of("backupCloudOff"));
-        }
         (
             session.paths.data().to_path_buf(),
             session.paths.cache().to_path_buf(),
@@ -1357,7 +1351,17 @@ pub async fn restore(
     from: String,
 ) -> Answer<usize> {
     let _done = alone.inner().waited(crate::ROUND_WAITED_OUT).await?;
-    let paths = { held(&session).paths.clone() };
+    let paths = {
+        let session = held(&session);
+        // Attachments freed here live only in the cloud, and a backup laid over them would lose them.
+        if session
+            .carrier()
+            .is_some_and(|carrier| carrier.frees_space())
+        {
+            return Err(Refusal::of("restoreCloudOff"));
+        }
+        session.paths.clone()
+    };
 
     let at = std::path::PathBuf::from(&from);
     let done = tauri::async_runtime::spawn_blocking(move || tisty_core::backup::read(&paths, &at))

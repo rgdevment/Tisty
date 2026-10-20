@@ -23,9 +23,7 @@ import { sure } from "../sure";
 import { syncingSaid } from "../syncSaid";
 import type { Run, Which, Word } from "./Card";
 import CloudMark from "./CloudMark";
-import Here from "./Here";
-import { ConfirmHere } from "./Knocking";
-import { mild, risky, strong } from "./Rows";
+import { Fold, mild, risky, strong } from "./Rows";
 import { useSince } from "./useSince";
 
 interface Props {
@@ -247,33 +245,43 @@ export default function Clouded({
         </ul>
       )}
 
-      <div className="mt-3 grid grid-cols-2 gap-2 border-t border-hair pt-3">
-        <p className="col-span-2 text-[11.5px] text-faint">{t("syncSetUp")}</p>
-        {status?.joined && (
-          <button type="button" disabled={held} onClick={onMove} className={mild}>
-            {t("moveOpen")}
+      <div className="mt-3 border-t border-hair pt-3">
+        <div className="grid grid-cols-2 gap-2">
+          <p className="col-span-2 text-[11.5px] text-faint">{t("syncSetUp")}</p>
+          {status?.joined && (
+            <button type="button" disabled={held} onClick={onMove} className={mild}>
+              {t("moveOpen")}
+            </button>
+          )}
+          {status && !status.joined && (
+            <button type="button" disabled={held} onClick={stop} className={mild}>
+              {t("cloudStop")}
+            </button>
+          )}
+          <button type="button" disabled={held} onClick={forget} className={mild}>
+            {t("cloudForgetHere")}
           </button>
-        )}
-        {status && !status.joined && (
-          <button type="button" disabled={held} onClick={stop} className={mild}>
-            {t("cloudStop")}
+          {status?.lost && (
+            <button type="button" disabled={held} onClick={abandon} className={risky}>
+              {t("cloudAbandon")}
+            </button>
+          )}
+        </div>
+        <Fold>
+          <button
+            type="button"
+            disabled={held || paused}
+            title={t("syncAgainWhy")}
+            onClick={() => void exit("again")}
+            className={mild}
+          >
+            {t("syncAgain")}
           </button>
-        )}
-        <button type="button" disabled={held} onClick={forget} className={mild}>
-          {t("cloudForgetHere")}
-        </button>
-        {status?.lost && (
-          <button type="button" disabled={held} onClick={abandon} className={risky}>
-            {t("cloudAbandon")}
+          <button type="button" disabled={held} onClick={revoke} className={risky}>
+            {t("cloudRevokeAll")}
           </button>
-        )}
-        <button type="button" disabled={held} onClick={revoke} className={risky}>
-          {t("cloudRevokeAll")}
-        </button>
+        </Fold>
       </div>
-
-      <Here held={held} />
-      <ConfirmHere />
       {trouble?.card === "sync" && !repeats && (
         <p className="mt-2 text-[11.5px] text-urgent">{trouble.text}</p>
       )}

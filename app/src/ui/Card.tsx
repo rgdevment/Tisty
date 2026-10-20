@@ -27,7 +27,15 @@ export type Which =
   | "tongue"
   | "look"
   | "closing"
-  | "beaver";
+  | "beaver"
+  | "rebuild"
+  | "recover"
+  | "missing"
+  | "unread"
+  | "twins"
+  | "keys"
+  | "loose"
+  | "index";
 /** `busy` marks a round turned away by another, whatever its words say. */
 export type Word = { card: Which; text: string; busy?: boolean };
 
@@ -36,7 +44,7 @@ export type Run = <T>(card: Which, work: Promise<T>, then: (answer: T) => void) 
 export const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   sync: "syncing",
   signing: "alias",
-  parcel: "bandParcels",
+  parcel: "parcelsTitle",
   backup: "backup",
   restore: "restoreTitle",
   review: "review",
@@ -60,7 +68,20 @@ export const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   wiring: "wiringTitle",
   report: "reportTitle",
   store: "aboutStore",
+  rebuild: "quickIndex",
+  recover: "upkeepLook",
+  missing: "missingTitle",
+  unread: "unreadTitle",
+  twins: "twinsAre",
+  keys: "keysTitle",
+  loose: "looseAre",
+  index: "quickIndex",
 };
+
+const TAKING_LONG = 60;
+
+export const working = (key: Parameters<typeof t>[0], secs: number): string =>
+  secs >= TAKING_LONG ? fill("workingFor", t(key), String(Math.floor(secs / 60))) : t(key);
 
 interface CardProps {
   title: string;

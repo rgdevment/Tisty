@@ -1,6 +1,7 @@
 import type { Keeper } from "../core";
 import { stamped } from "../format";
 import { warningOf } from "../keepers";
+import { t } from "../locales";
 import type { Which, Word } from "./Card";
 
 export const dated = (when: number): string => {
@@ -132,5 +133,16 @@ export function Warned({ keeper, named }: { keeper: Keeper; named?: string }) {
       <span className="block text-[12.5px] font-semibold text-ink">{warning.said}</span>
       {warning.why}
     </div>
+  );
+}
+
+export function Fold({ children }: { children: React.ReactNode }) {
+  return (
+    <details className="mt-2.5">
+      <summary className="cursor-pointer text-[12.5px] text-faint hover:text-soft">
+        {t("moreOptions")}
+      </summary>
+      <div className="mt-2 grid grid-cols-2 gap-2">{children}</div>
+    </details>
   );
 }

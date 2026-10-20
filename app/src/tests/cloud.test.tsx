@@ -356,6 +356,29 @@ describe("the cloud in Settings", () => {
     await waitFor(() => expect(sent("cloud_forget")).toHaveLength(1));
   });
 
+  it("folds sending everything again and the access on every computer, and asks before sending", async () => {
+    const { carry } = card();
+    const fold = (await screen.findByText(t("moreOptions"))).closest("details");
+    expect(fold?.open).toBe(false);
+    const inside = within(fold as HTMLElement);
+    expect(inside.getByRole("button", { name: t("cloudRevokeAll") })).toBeTruthy();
+    expect(inside.queryByRole("button", { name: t("cloudForgetHere") })).toBeNull();
+    expect(screen.getByRole("button", { name: t("cloudForgetHere") })).toBeTruthy();
+
+    opened.sure = false;
+    await userEvent.click(inside.getByRole("button", { name: t("syncAgain") }));
+    expect(carry).not.toHaveBeenCalled();
+    opened.sure = true;
+    await userEvent.click(inside.getByRole("button", { name: t("syncAgain") }));
+    await waitFor(() => expect(carry).toHaveBeenCalledWith("again"));
+  });
+
+  it("keeps leaving without the cloud out of the fold when it is the only way on", async () => {
+    card({ lost: true, last: round("cloudLost") });
+    const leave = await screen.findByRole("button", { name: t("cloudAbandon") });
+    expect(leave.closest("details")).toBeNull();
+  });
+
   it("removes the access on every machine only once the person is sure", async () => {
     card();
     await userEvent.click(await screen.findByRole("button", { name: t("cloudRevokeAll") }));

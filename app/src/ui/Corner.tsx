@@ -63,7 +63,7 @@ export default function Corner({ apart, label, mark, title, why, go, aside, no, 
           <button
             type="button"
             onClick={aside.onClick}
-            className="cursor-pointer rounded-md px-1 text-[12px] text-soft underline-offset-2 outline-none hover:text-ink hover:underline focus-visible:ring-2 focus-visible:ring-accent"
+            className="cursor-pointer rounded-md px-1 text-[12.5px] text-soft underline-offset-2 outline-none hover:text-ink hover:underline focus-visible:ring-2 focus-visible:ring-accent"
           >
             {aside.label}
           </button>

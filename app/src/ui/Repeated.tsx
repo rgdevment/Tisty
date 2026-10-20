@@ -1,27 +1,19 @@
-import { useCallback, useEffect, useState } from "react";
-import { type Repeated as Group, repeatedLists } from "../core";
+import type { Repeated as Group } from "../core";
 import { fill, t } from "../locales";
 
 interface Props {
+  seen: Group[];
   held: boolean;
-  join: (then: () => void) => void;
+  join: () => void;
   className: string;
 }
 
-export default function Repeated({ held, join, className }: Props) {
-  const [seen, setSeen] = useState<Group[] | null>(null);
-  const look = useCallback(() => {
-    repeatedLists()
-      .then(setSeen)
-      .catch(() => setSeen(null));
-  }, []);
-  useEffect(look, [look]);
-
+export default function Repeated({ seen, held, join, className }: Props) {
   return (
     <>
       <p className="text-[12.5px] leading-relaxed text-soft">{t("repeatedWhat")}</p>
-      {seen?.length === 0 && <p className="mt-2 text-[12.5px] text-faint">{t("repeatedNone")}</p>}
-      {seen && seen.length > 0 && (
+      {seen.length === 0 && <p className="mt-2 text-[12.5px] text-faint">{t("repeatedNone")}</p>}
+      {seen.length > 0 && (
         <>
           <ul className="mt-2 flex flex-col gap-1 text-[12.5px]">
             {seen.map((one) => (
@@ -34,7 +26,7 @@ export default function Repeated({ held, join, className }: Props) {
             ))}
           </ul>
           <div className="mt-2.5 flex items-center gap-2.5">
-            <button type="button" disabled={held} onClick={() => join(look)} className={className}>
+            <button type="button" disabled={held} onClick={join} className={className}>
               {t("repeatedDo")}
             </button>
           </div>
