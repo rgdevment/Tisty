@@ -363,9 +363,22 @@ const readTo = (page: Document, event: MouseEvent): string => {
 
 export const wired = (page: Document, reach: () => Reaching) => {
   const refused = (event: Event) => event.preventDefault();
+  // A selection dragged out of the block being written still belongs to it, wherever it is let go.
+  let pressedIn = false;
+  page.addEventListener(
+    "mousedown",
+    (event) => {
+      pressedIn = Boolean((event.target as Element | null)?.closest?.(".editing"));
+    },
+    true,
+  );
   page.addEventListener("click", (event) => {
     const target = event.target as Element | null;
     if (event.button !== 0 || typeof target?.closest !== "function") return;
+    if (pressedIn) {
+      pressedIn = false;
+      return;
+    }
     if (target.closest(".quick-bar, .mend-said, .cm-dock")) return;
     const selecting = !(page.getSelection()?.isCollapsed ?? true);
     if (target.closest("a")) event.preventDefault();

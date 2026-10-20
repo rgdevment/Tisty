@@ -510,6 +510,20 @@ describe("a sheet with nothing written yet", () => {
     expect(away()).toBe(1);
   });
 
+  it("keeps the block being written when a selection is dragged out of it and let go", () => {
+    const drawn = page('<p data-at="0-5">Leche</p><div class="editing"><span>x</span></div>');
+    const { asked, reach, away } = writer("Leche");
+    wired(drawn, () => reach);
+    drawn
+      .querySelector(".editing span")
+      ?.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
+    press(drawn.querySelector("p"), 0);
+    expect(away()).toBe(0);
+    expect(asked).toEqual([]);
+    press(drawn.body, 0);
+    expect(away()).toBe(1);
+  });
+
   it("hands the block the words read before the click, so the caret lands there", () => {
     const drawn = page('<p data-at="0-11">Leche y pan</p>');
     const text = drawn.querySelector("p")?.firstChild as Text;
