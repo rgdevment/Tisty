@@ -13,6 +13,7 @@ mod linking;
 mod moving;
 mod news;
 mod pdf;
+mod quick_keys;
 mod reaching;
 mod refusing;
 mod report;
@@ -253,40 +254,6 @@ struct Settling {
 }
 
 const HERE: &str = env!("CARGO_PKG_VERSION");
-
-/// A document only learns its tags where its body is read, and a body is read when it is saved.
-/// Everything written before this existed is caught up here, in one pass over the folder.
-#[tauri::command(async)]
-fn read_tags(session: tauri::State<'_, Mutex<Session>>) -> Answer<usize> {
-    let root = held(&session).paths.docs();
-    let owing: Vec<(tisty_core::model::DocId, String)> = held(&session)
-        .state
-        .docs
-        .values()
-        .map(|one| (one.id, one.file.clone()))
-        .collect();
-
-    let mut ops: Vec<Op> = Vec::new();
-    for (id, file) in owing {
-        let Ok(body) = tisty_core::docs::read(&root, &file) else {
-            continue;
-        };
-        let session = held(&session);
-        let said = tisty_core::event::Said::of(&body).by(None);
-        let Some(kept) = session.state.docs.get(&id) else {
-            continue;
-        };
-        if said.news_for(kept) {
-            ops.push(Op::DocSaid { id, d: said });
-        }
-    }
-
-    let told = ops.len();
-    if !ops.is_empty() {
-        held(&session).commit_all(ops)?;
-    }
-    Ok(told)
-}
 
 fn stop(found: Option<Option<usize>>) -> Option<usize> {
     found.flatten()
@@ -623,44 +590,6 @@ fn reading_as(session: &mut Session, id: tisty_core::TaskId, how: Reading) -> An
 
 struct Perched(bool);
 
-struct Bound(Option<String>);
-
-fn listen_for<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> Option<String> {
-    use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
-
-    let tries = [
-        (
-            "Ctrl+Shift+Space",
-            Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::Space),
-        ),
-        #[cfg(not(target_os = "macos"))]
-        (
-            "Ctrl+Alt+Space",
-            Shortcut::new(Some(Modifiers::CONTROL | Modifiers::ALT), Code::Space),
-        ),
-        (
-            "Ctrl+Shift+T",
-            Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::KeyT),
-        ),
-    ];
-
-    for (said, combo) in tries {
-        let handle = app.clone();
-        let taken = app
-            .global_shortcut()
-            .on_shortcut(combo, move |_, _, event| {
-                if event.state() == tauri_plugin_global_shortcut::ShortcutState::Pressed {
-                    tray::quicken(&handle);
-                }
-            });
-        if taken.is_ok() {
-            return Some(said.to_string());
-        }
-    }
-    witness::warn(channel::WINDOW, "no shortcut was free", &[]);
-    None
-}
-
 fn worded(locale: &Option<String>, key: &str) -> String {
     let spanish = locale
         .as_deref()
@@ -964,6 +893,7 @@ pub(crate) fn opened(
     };
     let watched = session.paths.clone();
     let quiet = session.config.muted().to_vec();
+    let session_keys = session.config.quick_keys.clone();
     // An update relaunches with the arguments it was started with, so a copy that opened
     // with the session comes back hidden — looking, to whoever pressed the button, like it
     // never came back at all.
@@ -974,11 +904,15 @@ pub(crate) fn opened(
     herald::watch(app.clone(), watched);
     hearing::listen(app.clone());
     leaving::keep_telling(app.clone());
+    answers::papers::tags_once(app.clone());
 
     app.manage(answers::freeing::Stopping::default());
     let perched = tray::raise(app, &words).is_some();
     app.manage(Perched(perched));
-    app.manage(Bound(listen_for(app)));
+    app.manage(quick_keys::Bound(Mutex::new(quick_keys::listen_for(
+        app,
+        session_keys.as_deref(),
+    ))));
 
     {
         let held = app.state::<Mutex<Session>>();
@@ -1139,7 +1073,9 @@ pub fn run() {
             answers::agents::agent_turn,
             answers::tasks::archive_shape,
             answers::settings::close_window,
-            answers::settings::shortcut,
+            quick_keys::shortcut,
+            quick_keys::keep_shortcut,
+            quick_keys::shortcuts_offered,
             answers::storing::settle_in,
             reachable,
             answers::clouding::cloud_connect,
@@ -1235,7 +1171,6 @@ pub fn run() {
             answers::rifts::paper_rifts,
             answers::rifts::still_at_odds,
             answers::rifts::weave_paper,
-            answers::papers::docs_brittle,
             answers::reporting::checked,
             answers::reporting::twinned,
             answers::reporting::rebuild,
@@ -1272,7 +1207,6 @@ pub fn run() {
             answers::shelves::list_unarchive,
             answers::papers::docs,
             answers::papers::docs_catch_up,
-            read_tags,
             answers::shelves::folder_add,
             answers::shelves::folder_rename,
             answers::shelves::folder_look,

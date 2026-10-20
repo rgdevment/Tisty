@@ -1528,15 +1528,6 @@ body {
   }
 }
 
-.quick-beaver {
-  position: absolute;
-  right: 18px;
-  bottom: -40px;
-  width: 78px;
-  height: auto;
-  pointer-events: none;
-}
-
 .cheer {
   position: fixed;
   z-index: 40;

@@ -61,7 +61,7 @@ use tauri::{Emitter, Manager};
 use tisty_core::Op;
 use tisty_core::witness::{self, Fact, channel};
 
-use crate::{Answer, Bound, HERE, Refusal, Session, desktop, held, herald, language, update};
+use crate::{Answer, HERE, Refusal, Session, desktop, held, herald, language, update};
 
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -91,6 +91,8 @@ pub struct Settings {
     only_shared_above: u64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     on_close: Option<tisty_core::config::Closing>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    quick_keys: Option<String>,
 }
 
 #[tauri::command]
@@ -108,6 +110,7 @@ fn as_settings(session: &Session) -> Settings {
         shares: session.config.shares(),
         only_shared_above: session.config.only_shared_above(),
         on_close: session.config.on_close,
+        quick_keys: session.config.quick_keys.clone(),
     }
 }
 
@@ -407,11 +410,6 @@ pub fn keep_closing(session: tauri::State<'_, Mutex<Session>>, how: String) -> A
     };
     held(&session).keep(|config| config.on_close = how)?;
     Ok(())
-}
-
-#[tauri::command]
-pub fn shortcut(bound: tauri::State<'_, Bound>) -> Option<String> {
-    bound.0.clone()
 }
 
 #[tauri::command]

@@ -5,6 +5,7 @@ import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { written } from "../report";
 import type { Run, Which, Word } from "./Card";
+import Modal from "./Modal";
 import { mild, strong } from "./Rows";
 
 const TAIL = 300;
@@ -142,5 +143,18 @@ export default function Reporting({ busy, said, trouble, tell, fail, quietly }: 
       )}
       {said?.card === "report" && <p className="mt-2 text-[11.5px] text-faint">{said.text}</p>}
     </>
+  );
+}
+
+export function ReportOpen({ onClose, ...cards }: Props & { onClose: () => void }) {
+  return (
+    <Modal title={t("reportTitle")} wide onClose={onClose}>
+      <Reporting {...cards} />
+      <div className="mt-5 flex justify-end">
+        <button type="button" onClick={onClose} className={mild}>
+          {t("close")}
+        </button>
+      </div>
+    </Modal>
   );
 }

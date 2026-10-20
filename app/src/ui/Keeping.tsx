@@ -99,7 +99,7 @@ export default function Keeping({
   }, [lookSigned, setTrouble]);
 
   useEffect(look, [look]);
-  const { reach, wake, setWake, keys, build } = useAbout(greeted, look);
+  const { reach, wake, setWake, keys, setKeys, build } = useAbout(greeted, look);
 
   const [picking, setPicking] = useState(false);
   const [moving, setMoving] = useState<{ heading?: Heading; resume?: Toward } | null>(null);
@@ -224,6 +224,7 @@ export default function Keeping({
             wake={wake}
             setWake={setWake}
             keys={keys}
+            setKeys={setKeys}
             busy={busy}
             said={said}
             trouble={trouble}
@@ -389,5 +390,5 @@ function useAbout(greeted: number | undefined, look: () => void) {
       .catch(() => {});
     look();
   }, [greeted, look]);
-  return { reach, wake, setWake, keys, build };
+  return { reach, wake, setWake, keys, setKeys, build };
 }

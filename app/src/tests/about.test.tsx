@@ -93,7 +93,7 @@ describe("the other tools", () => {
     render(<About ready={null} onError={() => {}} />);
     await screen.findByText("0.1.0");
 
-    await userEvent.click(screen.getByRole("button", { name: /repository/i }));
+    await userEvent.click(screen.getByRole("button", { name: /code on github/i }));
 
     expect(opened.urls).toContain("https://github.com/rgdevment/tisty");
   });
@@ -102,9 +102,20 @@ describe("the other tools", () => {
     render(<About ready={null} onError={() => {}} />);
     await screen.findByText("0.1.0");
 
-    await userEvent.click(screen.getByRole("button", { name: /www\.tisty\.app/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^tisty\.app/i }));
 
     expect(opened.urls).toEqual(["https://www.tisty.app/"]);
+  });
+
+  it("prepares a report from the end of the page too", async () => {
+    render(<About ready={null} onError={() => {}} />);
+    await screen.findByText("0.1.0");
+
+    await userEvent.click(screen.getByRole("button", { name: "Prepare…" }));
+
+    expect(await screen.findByRole("dialog", { name: "Report a problem" })).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 });
 

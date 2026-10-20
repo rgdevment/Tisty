@@ -14,13 +14,11 @@ export type Which =
   | "attach"
   | "holds"
   | "free"
-  | "tagging"
   | "repeated"
   | "unvouched"
   | "wiring"
   | "report"
   | "store"
-  | "brittle"
   | "greet"
   | "signing"
   | "parcel"
@@ -49,7 +47,6 @@ export const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   restore: "restoreTitle",
   review: "review",
   machines: "theMachines",
-  brittle: "brittleAre",
   quick: "quick",
   waking: "wake",
   greet: "greetAgain",
@@ -62,7 +59,6 @@ export const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   attach: "attachTitle",
   holds: "holdsTitle",
   free: "freeTitle",
-  tagging: "tagsRead",
   repeated: "repeatedLists",
   unvouched: "unvouchedTitle",
   wiring: "wiringTitle",

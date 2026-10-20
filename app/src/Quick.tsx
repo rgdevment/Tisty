@@ -5,11 +5,9 @@ import { capture, type Priority, type Snapshot, snapshot } from "./core";
 import { adopt, fill, t } from "./locales";
 import { said } from "./quadrants";
 import { saidPlainly } from "./refusal";
-import { Head, useBeaver } from "./ui/Beaver";
 import CaptureField from "./ui/CaptureField";
 
 export default function Quick() {
-  const peeks = useBeaver();
   const [data, setData] = useState<Snapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [kept, setKept] = useState<string>();
@@ -66,7 +64,7 @@ export default function Quick() {
 
   if (!data) {
     return (
-      <Frame peeks={peeks}>
+      <Frame>
         <p className="text-[21px] leading-snug -tracking-[0.011em] text-soft">
           {error ?? t("addTask")}
         </p>
@@ -75,7 +73,7 @@ export default function Quick() {
   }
 
   return (
-    <Frame peeks={peeks}>
+    <Frame>
       {kept ? (
         <p className="flex items-baseline gap-2.5 text-[21px] leading-snug -tracking-[0.011em]">
           <span className="text-[13px] text-accent">✓</span> {kept}
@@ -104,13 +102,10 @@ export default function Quick() {
   );
 }
 
-function Frame({ children, peeks }: { children: React.ReactNode; peeks: boolean }) {
+function Frame({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <div
-      className={`relative flex h-full flex-col justify-center overflow-hidden rounded-[10px] border border-hair bg-bg/70 px-[22px] py-5 shadow-lift-tall backdrop-blur-xl${peeks ? " pr-[110px]" : ""}`}
-    >
+    <div className="relative flex h-full flex-col justify-center overflow-hidden rounded-[10px] border border-hair bg-bg/70 px-[22px] py-5 shadow-lift-tall backdrop-blur-xl">
       {children}
-      {peeks && <Head className="quick-beaver" />}
     </div>
   );
 }

@@ -92,6 +92,8 @@ const KNOWN = [
   "wipeNotHome",
   "wipeStopped",
   "forgetUntold",
+  "keysTaken",
+  "keysUnknown",
   "restoreCloudOff",
   "cloudNotLost",
   "wouldReset",
