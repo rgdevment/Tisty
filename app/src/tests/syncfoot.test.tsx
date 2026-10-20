@@ -47,6 +47,14 @@ describe("the sync foot in the sidebar", () => {
     expect(screen.queryByRole("button")).toBeNull();
   });
 
+  it("leaves the mode in its place when this computer does not sync", async () => {
+    ipc.state = { mode: "alone" };
+    render(<SyncFoot onSync={vi.fn()} onOpen={vi.fn()} fallback={<span>Only here</span>} />);
+
+    await waitFor(() => expect(ipc.calls).toContain("sync_state"));
+    expect(screen.getByText("Only here")).toBeTruthy();
+  });
+
   it("syncs now when everything is up to date", async () => {
     const onSync = vi.fn(() => Promise.resolve());
     render(<SyncFoot onSync={onSync} onOpen={vi.fn()} />);

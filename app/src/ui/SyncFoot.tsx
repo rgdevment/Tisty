@@ -16,6 +16,7 @@ interface Props {
   onSync: () => Promise<unknown> | undefined;
   onOpen: () => void;
   onTrouble?: (text: string) => void;
+  fallback?: React.ReactNode;
 }
 
 const DOT: Record<Footing["kind"], string> = {
@@ -67,7 +68,7 @@ function told(foot: Footing, state: Carrying, cloud: string): { line: string; wh
   }
 }
 
-export default function SyncFoot({ carried, onSync, onOpen, onTrouble }: Props) {
+export default function SyncFoot({ carried, onSync, onOpen, onTrouble, fallback }: Props) {
   const [state, setState] = useState<Carrying | null>(null);
   const [status, setStatus] = useState<CloudStatus | null>(null);
   const [mine, setMine] = useState(false);
@@ -107,7 +108,7 @@ export default function SyncFoot({ carried, onSync, onOpen, onTrouble }: Props) 
   }, [look]);
 
   const foot = footing({ state, status, coming, mine, offline, knocked, putOff, stuck });
-  if (!foot || !state) return null;
+  if (!foot || !state) return fallback ?? null;
 
   const named =
     state.mode === "cloud"
@@ -147,25 +148,24 @@ export default function SyncFoot({ carried, onSync, onOpen, onTrouble }: Props) 
   };
 
   return (
-    <div title={why} className="shrink-0 border-t border-hair px-2.5 pt-2">
+    <span title={why ?? `${named} · ${line}`} className="mx-1.5 flex min-w-0 flex-1">
       <button
         type="button"
         disabled={!offered(foot)}
         aria-label={[named, line, foot.kind === "ok" ? undefined : why].filter(Boolean).join(" · ")}
         onClick={press}
-        className="flex min-h-11 w-full items-center gap-2.5 rounded-[10px] px-2.5 py-1.5 text-left hover:bg-hover disabled:hover:bg-transparent"
+        className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1 text-left text-[11.5px] text-faint hover:bg-hover hover:text-ink disabled:hover:bg-transparent disabled:hover:text-faint"
       >
         <span
           aria-hidden="true"
-          className={`size-2 shrink-0 rounded-full ${DOT[foot.kind]} ${
+          className={`size-1.5 shrink-0 rounded-full ${DOT[foot.kind]} ${
             foot.kind === "syncing" ? "motion-safe:animate-pulse" : ""
           }`}
         />
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-[13px] font-medium text-ink">{named}</span>
-          <span className="block truncate text-[11.5px] text-faint">{line}</span>
+        <span className="min-w-0 truncate">
+          {named} · {line}
         </span>
       </button>
-    </div>
+    </span>
   );
 }

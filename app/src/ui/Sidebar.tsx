@@ -146,14 +146,6 @@ export default function Sidebar({
       <Coming
         onOpen={(move) => onChoose({ named: "keeping", tab: "sync", move, movedAt: Date.now() })}
       />
-      {onSync && (
-        <SyncFoot
-          carried={carried}
-          onSync={onSync}
-          onTrouble={onTrouble}
-          onOpen={() => onChoose({ named: "keeping", tab: "sync", movedAt: Date.now() })}
-        />
-      )}
       <div className="flex shrink-0 items-center border-t border-hair px-2.5 py-2">
         <button
           type="button"
@@ -177,7 +169,17 @@ export default function Sidebar({
             />
           )}
         </button>
-        <Mode onOpen={() => onChoose({ named: "keeping" })} />
+        {onSync ? (
+          <SyncFoot
+            carried={carried}
+            onSync={onSync}
+            onTrouble={onTrouble}
+            onOpen={() => onChoose({ named: "keeping", tab: "sync", movedAt: Date.now() })}
+            fallback={<Mode onOpen={() => onChoose({ named: "keeping" })} />}
+          />
+        ) : (
+          <Mode onOpen={() => onChoose({ named: "keeping" })} />
+        )}
         <button
           type="button"
           aria-label={t("help")}
