@@ -116,7 +116,10 @@ export default function SyncFoot({ onSync, onOpen, onTrouble, fallback }: Props)
     if (foot.kind === "ok") return syncNow();
     if (foot.kind === "paused")
       return void cloudPause(false)
-        .then(syncNow)
+        .then(() => {
+          void lookAgain();
+          syncNow();
+        })
         .catch((problem) => {
           failed(problem);
           void lookAgain();

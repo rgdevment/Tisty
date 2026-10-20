@@ -47,7 +47,7 @@ pub fn paper_rifts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Ans
     })
 }
 
-// Only two things mean settled elsewhere: both sides hold the same words, or this side holds none; the rest stays put off.
+// Only both sides holding the same words means settled elsewhere; a side missing or unread may still be at odds.
 #[tauri::command(async)]
 pub fn still_at_odds(session: tauri::State<'_, Mutex<Session>>, ids: Vec<String>) -> Vec<String> {
     let (carrier, docs) = {
@@ -66,9 +66,6 @@ fn settled(carrier: &tisty_carrier::Shared, docs: &std::path::Path, id: &str) ->
     let Ok(at) = tisty_core::docs::resolve(docs, id) else {
         return false;
     };
-    if !at.exists() {
-        return true;
-    }
     let Ok(Some(mine)) = tisty_core::docs::print_of(&at) else {
         return false;
     };

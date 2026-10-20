@@ -160,11 +160,15 @@ let sifting: Promise<void> | null = null;
 export const settledElsewhere = (): Promise<void> => {
   if (sifting || !later.size) return sifting ?? Promise.resolve();
   const ids = [...later];
+  const since = decisions;
   sifting = stillAtOdds(ids)
     .catch(() => ids)
     .then((said) => {
       const still = new Set(said);
-      const gone = ids.filter((id) => !still.has(id));
+      // One decided again while this looked was looked at too early to let go.
+      const gone = ids.filter(
+        (id) => !still.has(id) && later.has(id) && (decidedAt.get(id) ?? 0) <= since,
+      );
       for (const id of gone) letGo(id);
       if (gone.length) tell();
     })

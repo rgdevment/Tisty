@@ -106,9 +106,9 @@ export function carrying(
           expire = undefined;
           running = false;
         }
-        if (!stalled) {
+        if (!gone && mine === round && !stalled) {
           void lookAgain();
-          void settledElsewhere();
+          if (way !== "push") void settledElsewhere();
         }
         if (owed === null || gone || running) return;
         const again = owed;

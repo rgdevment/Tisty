@@ -11,36 +11,45 @@ let asking: Promise<Seen> | null = null;
 let again = false;
 const watching = new Set<() => void>();
 
-// A cloud status that cannot be read keeps the last one, so a pause or a lost access is not forgotten in between.
+const sameCloud = (one: Carrying | null, other: Carrying | null) =>
+  one?.mode === "cloud" &&
+  other?.mode === "cloud" &&
+  one.cloud === other.cloud &&
+  one.cloudProvider === other.cloudProvider;
+
+// A status that cannot be read keeps the last one of the same account, so a pause or a lost access is not forgotten.
 const read = async (): Promise<Seen> => {
   const state = (await syncState()) ?? null;
-  const status = state?.mode === "cloud" ? await cloudStatus().catch(() => seen.status) : null;
+  const kept = sameCloud(seen.state, state) ? seen.status : null;
+  const status = state?.mode === "cloud" ? await cloudStatus().catch(() => kept) : null;
   seen = { state, status };
   for (const one of watching) one();
   return seen;
 };
 
-// A look asked for while one is out may come after what that one read, so it runs once more.
-export const refresh = (): Promise<Seen> => {
-  if (asking) {
-    again = true;
-    return asking;
-  }
-  asking = read().finally(() => {
-    asking = null;
+const start = (): Promise<Seen> => {
+  const now: Promise<Seen> = read().finally(() => {
+    if (asking === now) asking = null;
     if (again) {
       again = false;
       void lookAgain();
     }
   });
-  return asking;
+  asking = now;
+  return now;
 };
 
-export const lookAgain = (): Promise<void> =>
-  refresh().then(
+// A look asked for while one is out may come after what that one read, so it runs once more.
+export const lookAgain = (): Promise<void> => {
+  if (asking) again = true;
+  return (asking ?? start()).then(
     () => undefined,
     () => undefined,
   );
+};
+
+// Read after the call, never handed one that started before it.
+export const refresh = (): Promise<Seen> => (asking ? asking.then(start, start) : start());
 
 const subscribe = (change: () => void) => {
   watching.add(change);

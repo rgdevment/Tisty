@@ -1,7 +1,7 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import SyncFoot from "../ui/SyncFoot";
+import type Foot from "../ui/SyncFoot";
 
 const ipc = vi.hoisted(() => ({
   calls: [] as string[],
@@ -32,7 +32,12 @@ const cloud = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
-beforeEach(() => {
+// The foot reads a store kept by its module, so each test starts from a fresh one.
+let SyncFoot: typeof Foot;
+
+beforeEach(async () => {
+  vi.resetModules();
+  SyncFoot = (await import("../ui/SyncFoot")).default;
   ipc.calls.length = 0;
   ipc.state = { mode: "cloud", cloudProvider: "google", last: "2026-06-10T08:30:00Z" };
   ipc.status = cloud({ last: { at: 1, code: "ok", left: 0, names: [] } });
@@ -44,14 +49,17 @@ describe("the sync foot in the sidebar", () => {
     render(<SyncFoot onSync={vi.fn()} onOpen={vi.fn()} />);
 
     await waitFor(() => expect(ipc.calls).toContain("sync_state"));
-    await waitFor(() => expect(screen.queryByRole("button")).toBeNull());
+    await act(async () => {});
+    expect(screen.queryByRole("button")).toBeNull();
   });
 
   it("leaves the mode in its place when this computer does not sync", async () => {
     ipc.state = { mode: "alone" };
     render(<SyncFoot onSync={vi.fn()} onOpen={vi.fn()} fallback={<span>Only here</span>} />);
 
-    expect(await screen.findByText("Only here")).toBeTruthy();
+    await waitFor(() => expect(ipc.calls).toContain("sync_state"));
+    await act(async () => {});
+    expect(screen.getByText("Only here")).toBeTruthy();
   });
 
   it("syncs now when everything is up to date", async () => {
