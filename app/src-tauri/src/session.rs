@@ -84,7 +84,8 @@ impl Session {
             ],
         );
         let guarding = paths.clone();
-        let session = Self::at(paths)?;
+        let mut session = Self::at(paths)?;
+        crate::answers::agents::open_by_default(&mut session);
         std::thread::spawn(move || {
             tisty_core::store::keys_guarded(&guarding);
             tisty_core::paths::home_set_aside(&guarding);

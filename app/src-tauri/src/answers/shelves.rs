@@ -370,7 +370,9 @@ pub fn sow(app: tauri::AppHandle, priority: Option<String>) {
 
 #[tauri::command]
 pub fn sow_lists(session: tauri::State<'_, Mutex<Session>>) -> Answer<()> {
-    held(&session).sow_if_due();
+    let mut session = held(&session);
+    session.sow_if_due();
+    super::agents::open_by_default(&mut session);
     Ok(())
 }
 

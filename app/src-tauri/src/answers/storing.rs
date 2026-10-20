@@ -1041,6 +1041,7 @@ async fn carried_round(
             &[("why", Fact::Why(e.to_string()))],
         );
     }
+    super::agents::open_by_default(&mut session);
     let unsettled = done.undecided.len()
         + done.unreadable.len()
         + done.disowned.len()

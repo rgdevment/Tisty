@@ -224,6 +224,15 @@ pub fn registered(paths: &Paths) -> Result<Option<DeviceId>> {
     Ok(Config::load_or_init(paths)?.agent_id)
 }
 
+/// Nobody here ever chose: no agent, no answer to the door's notices, none in the log alive or retired.
+pub fn undecided(config: &Config, state: &crate::State) -> bool {
+    config.agent_id.is_none()
+        && config.door_default.is_none()
+        && config.asked_to_wire != Some(true)
+        && config.knock_heard.is_none()
+        && state.assistants.is_empty()
+}
+
 /// Where an agent may take a file from: what it attaches reaches the shared folder.
 pub fn may_attach(source: &std::path::Path, paths: &Paths) -> Result<std::path::PathBuf> {
     let refused = || crate::Error::OutsideTheStore(source.display().to_string());

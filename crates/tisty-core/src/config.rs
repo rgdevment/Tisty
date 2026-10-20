@@ -401,6 +401,9 @@ pub struct Config {
     pub asked_to_wire: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub knock_heard: Option<jiff::Timestamp>,
+    /// When Tisty opened the door for somebody who never chose, so it never opens it twice.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub door_default: Option<jiff::Timestamp>,
     /// The place's history this machine took without asking, so it never takes that one again on its own.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub took_quietly: Option<String>,
@@ -457,6 +460,7 @@ impl Config {
             asked_for_a_star: None,
             asked_to_wire: None,
             knock_heard: None,
+            door_default: None,
             took_quietly: None,
             homes: std::collections::BTreeMap::new(),
             rest: toml::Table::new(),

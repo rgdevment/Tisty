@@ -915,6 +915,9 @@ const en = {
   doorSeeSettings: "See in Settings",
   doorWelcomed: "{name} can work with you now.",
   doorWelcomedUnnamed: "Your assistant can work with you now.",
+  doorOpened: "Your assistants' door is open.",
+  doorOpenedWhy:
+    "They can write your documents and propose you tasks, never close or delete anything. Close it whenever you like in Settings › Assistants.",
   saidDone: "Completed: {name}",
   saidFiled: "Filed: {name}",
   reviewRedo: "Rebuild the quick index",
@@ -1816,9 +1819,18 @@ const en = {
     "It writes under its own name, so your undo never reaches what it filed — and turning it off leaves everything it wrote in place. There is one door: however many assistants you connect, they all file under that same name, and they all leave together when you close it.",
   agentsHowTitle: "How to connect one",
   agentsHow:
-    "Add Tisty as an MCP server in your assistant, whichever way it takes one. Both of these already carry the path on this machine, so nothing needs to be on your PATH, and both want the assistant restarted afterwards. Then let an assistant file, above — until you do, everything it asks for is refused.",
+    "Add Tisty as an MCP server in your assistant, whichever way it takes one. Both of these already carry the path on this machine, so nothing needs to be on your PATH, and both want the assistant restarted afterwards.",
   agentsHowAlias:
-    "Add Tisty as an MCP server in your assistant, whichever way it takes one. Both of these call «tisty», the name the Store's copy answers to on this machine, so nothing needs to be on your PATH, and both want the assistant restarted afterwards. Then let an assistant file, above — until you do, everything it asks for is refused.",
+    "Add Tisty as an MCP server in your assistant, whichever way it takes one. Both of these call «tisty», the name the Store's copy answers to on this machine, so nothing needs to be on your PATH, and both want the assistant restarted afterwards.",
+  agentsHowShut:
+    "Then let an assistant file, above — until you do, everything it asks for is refused.",
+  agentsByDefault:
+    "Tisty opened it when it was installed. «Stop it» closes it, and whatever it wrote stays.",
+  agentsClickTitle: "In one click",
+  agentsClick:
+    "Your assistant opens and asks you to confirm before it adds Tisty. Restart it afterwards if it asks.",
+  agentsClickMcpb:
+    "For Claude Desktop this downloads an extension that carries its own copy of Tisty's server, and it does not update with Tisty. If Claude Desktop shows in the list above, connecting it there keeps it up to date.",
   agentsByFile: "In a configuration file — what most of them read",
   agentsByLine: "In one line — for the ones that bring their own command",
   agentsCalled: "agent",
@@ -3062,6 +3074,9 @@ const es: Catalog = {
   doorSeeSettings: "Ver en Configuración",
   doorWelcomed: "{name} ya puede trabajar contigo.",
   doorWelcomedUnnamed: "Tu asistente ya puede trabajar contigo.",
+  doorOpened: "La puerta de tus asistentes está abierta.",
+  doorOpenedWhy:
+    "Pueden escribir tus documentos y proponerte tareas, nunca cerrar ni borrar nada. Ciérrala cuando quieras en Configuración › Asistentes.",
   saidDone: "Completada: {name}",
   saidFiled: "Guardada: {name}",
   reviewRedo: "Rehacer el índice rápido",
@@ -3964,9 +3979,17 @@ const es: Catalog = {
     "Escribe con nombre propio, así que tu deshacer nunca alcanza lo que él anotó, y quitarle la voz deja en su sitio todo lo que escribió. La puerta es una sola: conectes los asistentes que conectes, todos anotan bajo ese mismo nombre y se van juntos cuando la cierras.",
   agentsHowTitle: "Cómo conectar uno",
   agentsHow:
-    "Añade Tisty como servidor MCP en tu asistente, por la vía que él admita. Las dos traen ya la ruta de este equipo, así que no hace falta tener nada en el PATH, y las dos piden reiniciar el asistente después. Luego dale entrada arriba: mientras no lo hagas, todo lo que pida se le niega.",
+    "Añade Tisty como servidor MCP en tu asistente, por la vía que él admita. Las dos traen ya la ruta de este equipo, así que no hace falta tener nada en el PATH, y las dos piden reiniciar el asistente después.",
   agentsHowAlias:
-    "Añade Tisty como servidor MCP en tu asistente, por la vía que él admita. Las dos llaman a «tisty», el nombre al que responde la copia de la Store en este equipo, así que no hace falta tener nada en el PATH, y las dos piden reiniciar el asistente después. Luego dale entrada arriba: mientras no lo hagas, todo lo que pida se le niega.",
+    "Añade Tisty como servidor MCP en tu asistente, por la vía que él admita. Las dos llaman a «tisty», el nombre al que responde la copia de la Store en este equipo, así que no hace falta tener nada en el PATH, y las dos piden reiniciar el asistente después.",
+  agentsHowShut: "Luego dale entrada arriba: mientras no lo hagas, todo lo que pida se le niega.",
+  agentsByDefault:
+    "Tisty la abrió al instalarse. «Quitarle la voz» la cierra, y lo que escribió se queda.",
+  agentsClickTitle: "En un clic",
+  agentsClick:
+    "Tu asistente se abre y te pide confirmar antes de agregar Tisty. Reinícialo después si te lo pide.",
+  agentsClickMcpb:
+    "Para Claude Desktop se descarga una extensión que trae su propia copia del servidor de Tisty y no se actualiza con Tisty. Si Claude Desktop aparece en la lista de arriba, conectarlo ahí lo mantiene al día.",
   agentsByFile: "En un archivo de configuración: lo que casi todos leen",
   agentsByLine: "En una línea: los que traen su propio comando",
   agentsCalled: "agente",

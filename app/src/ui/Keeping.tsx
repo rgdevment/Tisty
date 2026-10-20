@@ -282,6 +282,7 @@ export default function Keeping({
             tell={setSaid}
             fail={setTrouble}
             binary={reach?.binary}
+            build={build}
             known={known}
           />
         )}

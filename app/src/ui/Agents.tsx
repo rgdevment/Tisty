@@ -1,5 +1,7 @@
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { useEffect, useState } from "react";
 import {
+  type About,
   type Agent,
   type Assistant,
   agentState,
@@ -25,6 +27,7 @@ interface Props {
   tell: (word?: Word) => void;
   fail: (word?: Word) => void;
   binary?: string;
+  build?: About | null;
   known: Known;
 }
 
@@ -51,7 +54,8 @@ export function useAgents(shown: boolean, fail: (word?: Word) => void) {
 
 export type Known = ReturnType<typeof useAgents>;
 
-export default function Agents({ busy, said, trouble, quietly, tell, fail, binary, known }: Props) {
+export default function Agents(props: Props) {
+  const { busy, said, trouble, quietly, tell, fail, binary, build, known } = props;
   const held = busy !== null;
   const { agent, setAgent, agents, setAgents, hands } = known;
   const [wired, setWired] = useState(false);
@@ -81,6 +85,9 @@ export default function Agents({ busy, said, trouble, quietly, tell, fail, binar
               <span className="block text-[12.5px] text-soft">
                 {fill("agentsSignsAs", agent.called ?? "", agent.code ?? "—")}
               </span>
+            )}
+            {agent?.on && agent.byDefault && (
+              <span className="block text-[12.5px] text-soft">{t("agentsByDefault")}</span>
             )}
           </span>
           <button
@@ -193,10 +200,22 @@ export default function Agents({ busy, said, trouble, quietly, tell, fail, binar
         <p className="text-[12.5px] leading-relaxed text-soft">{t("agentsCannot")}</p>
       </Card>
 
+      <OneClick
+        busy={busy}
+        said={said}
+        trouble={trouble}
+        fail={fail}
+        binary={binary}
+        build={build}
+      />
+
       <Card title={t("agentsHowTitle")} which="settings" busy={busy} said={said} trouble={trouble}>
         <p className="text-[12.5px] leading-relaxed text-soft">
           {t(binary ? "agentsHow" : "agentsHowAlias")}
         </p>
+        {!agent?.on && (
+          <p className="mt-2 text-[12.5px] leading-relaxed text-soft">{t("agentsHowShut")}</p>
+        )}
 
         <p className="mt-3 text-[12.5px] font-semibold">{t("agentsByFile")}</p>
         <pre className="mt-1 overflow-x-auto rounded-[10px] border border-hair px-3 py-2 font-mono text-[11.5px] text-soft">
@@ -236,6 +255,58 @@ export default function Agents({ busy, said, trouble, quietly, tell, fail, binar
     </>
   );
 }
+
+type Clicked = Pick<Props, "busy" | "said" | "trouble" | "fail" | "binary" | "build">;
+
+function OneClick({ busy, said, trouble, fail, binary, build }: Clicked) {
+  const go = (url: string) => {
+    openUrl(url).catch((e) => fail({ card: "wiring", text: saidPlainly(e) }));
+  };
+  const links = [
+    { name: "Visual Studio Code", url: vscodeLink(binary) },
+    { name: "Cursor", url: cursorLink(binary) },
+    ...(build ? [{ name: "Claude Desktop", url: mcpbLink(build) }] : []),
+  ];
+
+  return (
+    <Card title={t("agentsClickTitle")} which="wiring" busy={busy} said={said} trouble={trouble}>
+      <p className="text-[12.5px] leading-relaxed text-soft">{t("agentsClick")}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {links.map((one) => (
+          <button
+            key={one.name}
+            type="button"
+            disabled={busy !== null}
+            onClick={() => go(one.url)}
+            className="rounded-md border border-accent px-2.5 py-1 text-[12.5px] text-accent disabled:text-faint"
+          >
+            {one.name}
+          </button>
+        ))}
+      </div>
+      {build && (
+        <p className="mt-2.5 text-[11.5px] leading-relaxed text-faint">{t("agentsClickMcpb")}</p>
+      )}
+    </Card>
+  );
+}
+
+const served = (at?: string) => ({ command: at ?? "tisty", args: ["mcp"] });
+
+export const vscodeLink = (at?: string) =>
+  `vscode:mcp/install?${encodeURIComponent(JSON.stringify({ name: "tisty", type: "stdio", ...served(at) }))}`;
+
+const base64 = (text: string) =>
+  btoa(Array.from(new TextEncoder().encode(text), (byte) => String.fromCharCode(byte)).join(""));
+
+export const cursorLink = (at?: string) =>
+  `cursor://anysphere.cursor-deeplink/mcp/install?name=tisty&config=${encodeURIComponent(base64(JSON.stringify(served(at))))}`;
+
+// A candidate build has no bundle of its own: the release job makes one only for stable tags.
+export const mcpbLink = ({ repository, version }: Pick<About, "repository" | "version">) =>
+  version.includes("-")
+    ? `${repository}/releases/latest`
+    : `${repository}/releases/download/v${version}/tisty-mcp-${version}.mcpb`;
 
 const wroteSaid = (hand: Assistant | undefined): string => {
   if (!hand || hand.wrote === 0) return t("assistantNothing");

@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use tisty_core::witness::channel;
+use tisty_core::witness::{self, Fact, channel};
 use tisty_core::{Config, Event, Op};
 
 use crate::{Answer, Session, blamed, held, wiring};
@@ -9,6 +9,7 @@ use crate::{Answer, Session, blamed, held, wiring};
 #[serde(rename_all = "camelCase")]
 pub struct Agent {
     on: bool,
+    by_default: bool,
     called: Option<String>,
     code: Option<String>,
 }
@@ -117,6 +118,7 @@ pub fn agent(session: tauri::State<'_, Mutex<Session>>) -> Answer<Agent> {
     let who = session.config.agent_id.clone();
     Ok(Agent {
         on: who.is_some(),
+        by_default: who.is_some() && session.config.door_default.is_some(),
         code: spoken_by(&session.paths, who.as_ref()),
         called: who.map(|one| tisty_core::config::nicknamed(&one.0)),
     })
@@ -142,9 +144,39 @@ pub fn agent_turn(session: tauri::State<'_, Mutex<Session>>, on: bool) -> Answer
             .flatten()
             .unwrap_or_else(|| session.config.clone());
         session.reproject()?;
-        if on {
-            let _ = session.keep(|c| c.knock_heard = Some(jiff::Timestamp::now()));
-        }
+        let _ = session.keep(|c| {
+            c.door_default = None;
+            if on {
+                c.knock_heard = Some(jiff::Timestamp::now());
+            }
+        });
     }
     agent(session)
+}
+
+/// Reached from the window and its rounds, the person's acts: nothing over the MCP wire comes this way.
+pub fn open_by_default(session: &mut Session) {
+    // An empty store would stop looking new, and joining a shared folder would ask about two histories.
+    if !tisty_core::agent::undecided(&session.config, &session.state)
+        || !tisty_core::store::inhabited(session.paths.store())
+    {
+        return;
+    }
+    if let Err(why) = tisty_core::agent::register(&session.paths) {
+        witness::warn(
+            channel::STORE,
+            "the assistants' door could not be opened, so it is tried again next time",
+            &[("why", Fact::Why(why.to_string()))],
+        );
+        return;
+    }
+    session.refresh_settings();
+    if let Err(why) = session.reproject() {
+        witness::warn(
+            channel::STORE,
+            "the door opened but the window has not seen it yet",
+            &[("why", Fact::Why(why.to_string()))],
+        );
+    }
+    let _ = session.keep(|c| c.door_default = Some(jiff::Timestamp::now()));
 }

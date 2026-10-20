@@ -147,6 +147,61 @@ fn retiring_when_none_was_registered_is_not_an_error() {
     assert_eq!(retire(&paths(tmp.path())).unwrap(), None);
 }
 
+fn replayed(paths: &Paths) -> crate::State {
+    crate::State::replay(&crate::store::read_all(paths.store()).unwrap())
+}
+
+#[test]
+fn somebody_who_never_touched_the_door_has_not_chosen() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(tmp.path());
+    let config = Config::load_or_init(&paths).unwrap();
+
+    assert!(undecided(&config, &replayed(&paths)));
+}
+
+#[test]
+fn an_agent_turned_on_or_off_is_a_choice() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(tmp.path());
+
+    register(&paths).unwrap();
+    let on = Config::load_or_init(&paths).unwrap();
+    assert!(!undecided(&on, &replayed(&paths)));
+
+    retire(&paths).unwrap();
+    let off = Config::load_or_init(&paths).unwrap();
+    assert!(off.agent_id.is_none());
+    assert!(
+        !undecided(&off, &replayed(&paths)),
+        "closing it is choosing"
+    );
+}
+
+#[test]
+fn an_answer_to_the_door_or_a_door_opened_once_is_a_choice() {
+    let tmp = tempfile::tempdir().unwrap();
+    let paths = paths(tmp.path());
+    let state = replayed(&paths);
+    let fresh = Config::load_or_init(&paths).unwrap();
+
+    let asked = Config {
+        asked_to_wire: Some(true),
+        ..fresh.clone()
+    };
+    let heard = Config {
+        knock_heard: Some(jiff::Timestamp::now()),
+        ..fresh.clone()
+    };
+    let opened = Config {
+        door_default: Some(jiff::Timestamp::now()),
+        ..fresh
+    };
+    for one in [asked, heard, opened] {
+        assert!(!undecided(&one, &state));
+    }
+}
+
 fn headed(mark: &[u8]) -> Vec<u8> {
     let mut head = vec![b'-'; 320];
     head[..mark.len()].copy_from_slice(mark);

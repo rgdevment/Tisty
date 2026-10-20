@@ -205,3 +205,25 @@ describe("the card for an assistant turned away at the door", () => {
     expect(ipc.sent).toEqual(["door_heard"]);
   });
 });
+
+describe("the card for a door Tisty opened on its own", () => {
+  const opened: DoorDue = { why: "opened", by: null };
+
+  it("says the door is open and walks to the settings to close it", async () => {
+    const said = shown(opened);
+
+    expect(screen.getByText(/door is open/i)).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: /open settings/i }));
+
+    expect(said.opened).toBe(1);
+    expect(ipc.sent).toEqual(["door_done"]);
+  });
+
+  it("never opens or closes the door itself", async () => {
+    shown(opened);
+
+    await userEvent.click(screen.getByRole("button", { name: /don't show again/i }));
+
+    expect(ipc.sent).toEqual(["door_done"]);
+  });
+});

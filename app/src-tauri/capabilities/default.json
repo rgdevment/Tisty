@@ -17,7 +17,11 @@
     "opener:default",
     {
       "identifier": "opener:allow-open-url",
-      "allow": [{ "url": "ms-windows-store://*" }]
+      "allow": [
+        { "url": "ms-windows-store://*" },
+        { "url": "vscode:mcp/install*" },
+        { "url": "cursor://anysphere.cursor-deeplink/mcp/install*" }
+      ]
     },
     "clipboard-manager:allow-write-text",
     "dialog:default",

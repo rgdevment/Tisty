@@ -449,6 +449,7 @@ export const archiveShape = (): Promise<Shape> => invoke("archive_shape");
 
 export interface Agent {
   on: boolean;
+  byDefault: boolean;
   called?: string;
   code?: string;
 }
@@ -771,7 +772,7 @@ export const starDue = (): Promise<boolean> => invoke("star_due");
 export const starDone = (): Promise<void> => invoke("star_done");
 
 export interface DoorDue {
-  why: "installed" | "mute" | "knocked";
+  why: "installed" | "mute" | "knocked" | "opened";
   by: string | null;
 }
 
