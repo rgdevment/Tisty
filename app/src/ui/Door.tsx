@@ -45,21 +45,6 @@ export default function Door({ apart, due, onSettled, onOpen, onError }: Props) 
     if (open) onOpen();
   };
 
-  if (due.why === "opened") {
-    return (
-      <Corner
-        apart={apart}
-        label={t("doorTitle")}
-        mark={<DoorMark className="mt-px size-[15px] shrink-0 text-hue-blue" />}
-        title={t("doorOpened")}
-        why={t("doorOpenedWhy")}
-        go={{ label: t("doorGo"), onClick: () => settle(true) }}
-        no={{ label: t("doorNo"), onClick: () => settle(false) }}
-        later={{ label: t("doorLater"), onClick: onSettled }}
-      />
-    );
-  }
-
   if (due.why === "mute") {
     return (
       <Corner

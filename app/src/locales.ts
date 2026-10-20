@@ -915,9 +915,6 @@ const en = {
   doorSeeSettings: "See in Settings",
   doorWelcomed: "{name} can work with you now.",
   doorWelcomedUnnamed: "Your assistant can work with you now.",
-  doorOpened: "Your assistants' door is open.",
-  doorOpenedWhy:
-    "They can write your documents and propose you tasks, never close or delete anything. Close it whenever you like in Settings › Assistants.",
   saidDone: "Completed: {name}",
   saidFiled: "Filed: {name}",
   reviewRedo: "Rebuild the quick index",
@@ -3074,9 +3071,6 @@ const es: Catalog = {
   doorSeeSettings: "Ver en Configuración",
   doorWelcomed: "{name} ya puede trabajar contigo.",
   doorWelcomedUnnamed: "Tu asistente ya puede trabajar contigo.",
-  doorOpened: "La puerta de tus asistentes está abierta.",
-  doorOpenedWhy:
-    "Pueden escribir tus documentos y proponerte tareas, nunca cerrar ni borrar nada. Ciérrala cuando quieras en Configuración › Asistentes.",
   saidDone: "Completada: {name}",
   saidFiled: "Guardada: {name}",
   reviewRedo: "Rehacer el índice rápido",

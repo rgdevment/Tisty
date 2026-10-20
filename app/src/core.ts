@@ -772,7 +772,7 @@ export const starDue = (): Promise<boolean> => invoke("star_due");
 export const starDone = (): Promise<void> => invoke("star_done");
 
 export interface DoorDue {
-  why: "installed" | "mute" | "knocked" | "opened";
+  why: "installed" | "mute" | "knocked";
   by: string | null;
 }
 

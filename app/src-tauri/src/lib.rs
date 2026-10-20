@@ -381,10 +381,8 @@ fn knocking(
     })
 }
 
-fn offering(seen: usize, wired: usize, open: bool, by_default: bool) -> Option<DoorDue> {
-    let why = if seen > 0 && open && by_default {
-        "opened"
-    } else if seen > 0 && wired == 0 {
+fn offering(seen: usize, wired: usize, open: bool) -> Option<DoorDue> {
+    let why = if seen > 0 && wired == 0 {
         "installed"
     } else if wired > 0 && !open {
         "mute"

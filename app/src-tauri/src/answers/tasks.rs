@@ -614,7 +614,7 @@ pub fn star_done(session: tauri::State<'_, Mutex<Session>>) -> Answer<()> {
 
 #[tauri::command]
 pub fn door_due(session: tauri::State<'_, Mutex<Session>>) -> Answer<Option<DoorDue>> {
-    let (open, asked, by_default) = {
+    let (open, asked) = {
         let session = held(&session);
         let open = session
             .config
@@ -625,11 +625,7 @@ pub fn door_due(session: tauri::State<'_, Mutex<Session>>) -> Answer<Option<Door
         if let Some(due) = knocking(open, knock, session.config.knock_heard) {
             return Ok(Some(due));
         }
-        (
-            open,
-            session.config.asked_to_wire.unwrap_or(false),
-            session.config.door_default.is_some(),
-        )
+        (open, session.config.asked_to_wire.unwrap_or(false))
     };
     if asked {
         return Ok(None);
@@ -639,7 +635,6 @@ pub fn door_due(session: tauri::State<'_, Mutex<Session>>) -> Answer<Option<Door
         seen.len(),
         seen.iter().filter(|one| one.wired).count(),
         open,
-        by_default,
     ))
 }
 
