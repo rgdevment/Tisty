@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { heard } from "../coming";
 import type { Carrying } from "../core";
 import { goesOnAt, weigh } from "../format";
-import { adopt, fill, t } from "../locales";
+import { adopt, fill, filled, said, t } from "../locales";
 import { endMove, RETRY_IN, type Run, startMove } from "../relocation";
 import Coming, { SHOWN_AFTER } from "../ui/Coming";
 import MoveNotice from "../ui/MoveNotice";
@@ -360,9 +360,37 @@ describe("deleting the copies left in Google Drive", () => {
     );
     const { rerender } = render(shown(true));
     expect(screen.getByRole("status").textContent).toBe(t("moveWiping"));
+    expect(screen.queryByRole("button", { name: t("moveWipeKeep") })).toBeNull();
+    expect(screen.queryByRole("button", { name: t("moveWipe") })).toBeNull();
 
     rerender(shown(false));
     expect(screen.queryByRole("status")).toBeNull();
+  });
+});
+
+describe("counting the copies as they go", () => {
+  it("says how many are gone of how many and lets the dialog close meanwhile", async () => {
+    const { Done } = await import("../ui/RelocatingSteps");
+    const close = vi.fn();
+    render(
+      <Done
+        toward={{ kind: "folder", at: "G:Tisty" } as never}
+        untold={false}
+        wiping
+        erased={{ gone: 3, of: 10 }}
+        offersWipe
+        busy
+        onKeep={() => {}}
+        onWipe={() => {}}
+        onClose={close}
+      />,
+    );
+
+    expect(screen.getByRole("status").textContent).toBe(
+      filled(said("moveErasing", "google"), "3", "10"),
+    );
+    act(() => screen.getByRole("button", { name: t("close") }).click());
+    expect(close).toHaveBeenCalled();
   });
 });
 

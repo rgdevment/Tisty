@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { heard } from "../coming";
 import type { Carrying } from "../core";
+import { forgetErasing } from "../erasing";
 import { adopt, fill, t } from "../locales";
 import { afterMove, endMove, startMove, useMove } from "../relocation";
 import MoveNotice from "../ui/MoveNotice";
@@ -89,6 +90,7 @@ afterEach(() => {
   for (const unhook of unhooks.splice(0)) unhook();
   vi.useRealTimers();
   act(() => endMove());
+  act(() => forgetErasing());
   heard(null);
 });
 

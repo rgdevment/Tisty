@@ -179,9 +179,6 @@ const en = {
     "Keep it as a story: it leaves the trace, and a story is only ever hidden. The trail keeps the move",
   keptAsStory: "kept as a story",
   readAsTraceNow: "read as a trace",
-  letAgentFill: "Allow agents",
-  letAgentFillWhy:
-    "Let an assistant work on this task: say it is done — for you to confirm — describe it, plan its steps and tick them. Its day, title and closing stay yours",
   keepToMyself: "No agents",
   keepToMyselfWhy: "Take the permission back. What the agent filled in stays",
   openToAgents:
@@ -1092,6 +1089,10 @@ const en = {
     "Nothing for today. Write «buy bread tomorrow at 10» — the date is read from the sentence.",
   someday: "Someday",
   agentBand: "To confirm",
+  stepsSaidOne: "An assistant says this step is done",
+  stepsSaidMany: "An assistant says these steps are done",
+  stepsSaidTake: "Tick them",
+  stepsSaidLeave: "Not yet",
   agentSaidDone: "An agent says this is done",
   agentNamedSaidDone: "{name} says this is done",
   agentSaidNotDoing: "An agent says this should not be done",
@@ -1520,7 +1521,14 @@ const en = {
     "Tisty's copies are deleted from your {cloud} for good: Tisty's space there has no bin, so they can't be brought back. Everything stays on this computer and in the new place. Only the note that tells your other computers where you went stays in {cloud}.",
   moveWipeKeep: "Leave them there",
   moveWiping:
-    "Working on it: checking that everything is on this computer and deleting your copies from {cloud}. It can take a few minutes.",
+    "Checking that everything is on this computer before deleting your copies from {cloud}…",
+  moveErasing: "Deleting your copies from {cloud}: {name} of {other}.",
+  moveErasingStill: "Checking before deleting the copies in the cloud you left…",
+  moveErasingAlong: "Deleting the copies in the cloud you left: {name} of {other}",
+  moveErasingStopped: "Deleting the copies in the cloud you left stopped. Open it to see why.",
+  moveErasedAll: "The copies in the cloud you left were deleted.",
+  moveWipingAway:
+    "You can close this window and keep working: the deleting goes on, and Tisty keeps syncing meanwhile.",
   moveWiped: "{name} copies were deleted from your {cloud}.",
   moveWipedOne: "1 copy was deleted from your {cloud}.",
   movePending: "A move to {name} is halfway.",
@@ -1546,6 +1554,8 @@ const en = {
     "Where this copy syncs now can't be reached, so nothing can be brought from there. Reconnect first; nothing was changed.",
   moveToUnreachable: "The new place can't be reached. Nothing was changed.",
   wipeChosen: "That cloud is still the one this copy syncs with, so its copies stay.",
+  wipeGoing:
+    "Tisty is still deleting the copies in the cloud you left. Wait for it to finish, then try again.",
   wipeStopped:
     "{maker} did not answer, so the deleting stopped. Whatever was deleted stays deleted and everything is still on this computer; press the button again in a while to delete the rest.",
   wipeNotHome:
@@ -1785,6 +1795,8 @@ const en = {
   agentsTitle: "Tisty has no AI inside it",
   agentsWhat:
     "None, and none is going in: the natural language it reads is rules running on this machine, with no model and no cloud. But if you already use an assistant and it works for you, here is a door for it. It can file what you tell it — the card stock the school group wants on Monday, the thing you were tagged about on Slack — through a program already on this machine. None of this reaches the network. You decide whether to open it, and you can close it whenever you like.",
+  agentsGuide: "How assistants work with Tisty",
+  agentsGuideAt: "https://www.tisty.app/docs/assistants-and-mcp/",
   agentsOff: "No assistant can file work here",
   agentsOn: "An assistant can file work here",
   agentsSignsAs: "This machine's agent signs the log as «{name}» · code {other}",
@@ -2310,9 +2322,6 @@ const es: Catalog = {
     "Guardarla como historia: sale del rastro, y una historia solo se oculta. El trayecto guarda el movimiento",
   keptAsStory: "guardada como historia",
   readAsTraceNow: "leída como rastro",
-  letAgentFill: "Permitir agentes",
-  letAgentFillWhy:
-    "Deja que un asistente trabaje esta tarea: darla por hecha —tú confirmas—, describirla, planear sus pasos y marcarlos. Su día, su título y su cierre siguen siendo tuyos",
   keepToMyself: "Sin agentes",
   keepToMyselfWhy: "Retira el permiso. Lo que el agente completó se queda",
   openToAgents:
@@ -3232,6 +3241,10 @@ const es: Catalog = {
   todayEmpty: "Nada para hoy. Escribe «comprar pan mañana a las 10»: la fecha se lee de la frase.",
   someday: "Algún día",
   agentBand: "Por confirmar",
+  stepsSaidOne: "Un asistente dice que este paso está listo",
+  stepsSaidMany: "Un asistente dice que estos pasos están listos",
+  stepsSaidTake: "Marcarlos",
+  stepsSaidLeave: "Todavía no",
   agentSaidDone: "Un agente la da por hecha",
   agentNamedSaidDone: "{name} la da por hecha",
   agentSaidNotDoing: "Un agente dice que no se hará",
@@ -3659,8 +3672,15 @@ const es: Catalog = {
   moveWipeSure:
     "Las copias de Tisty se borran para siempre de tu {cloud}: el espacio de Tisty ahí no tiene papelera, así que no se pueden recuperar. Todo sigue en este equipo y en el nuevo lugar. En {cloud} solo queda el aviso que les dice a tus otros equipos adónde te fuiste.",
   moveWipeKeep: "Dejarlas ahí",
-  moveWiping:
-    "Procesando: revisamos que todo esté en este equipo y borramos tus copias de {cloud}. Puede tardar unos minutos.",
+  moveWiping: "Revisando que todo esté en este equipo antes de borrar tus copias de {cloud}…",
+  moveErasing: "Borrando tus copias de {cloud}: {name} de {other}.",
+  moveErasingStill: "Revisando antes de borrar las copias de la nube que dejaste…",
+  moveErasingAlong: "Borrando las copias de la nube que dejaste: {name} de {other}",
+  moveErasingStopped:
+    "El borrado de las copias de la nube que dejaste se detuvo. Ábrelo para ver por qué.",
+  moveErasedAll: "Se borraron las copias de la nube que dejaste.",
+  moveWipingAway:
+    "Puedes cerrar esta ventana y seguir trabajando: el borrado continúa y Tisty sigue sincronizando mientras tanto.",
   moveWiped: "Se borraron {name} copias de tu {cloud}.",
   moveWipedOne: "Se borró 1 copia de tu {cloud}.",
   movePending: "Hay una mudanza a medias hacia {name}.",
@@ -3686,6 +3706,8 @@ const es: Catalog = {
     "No se puede llegar adonde sincroniza esta copia ahora, así que no se puede traer nada de ahí. Reconecta primero; no se cambió nada.",
   moveToUnreachable: "No se puede llegar al nuevo lugar. No se cambió nada.",
   wipeChosen: "Esa nube sigue siendo la que usa esta copia, así que sus copias se quedan.",
+  wipeGoing:
+    "Tisty todavía está borrando las copias de la nube que dejaste. Espera a que termine y vuelve a intentarlo.",
   wipeStopped:
     "{maker} no respondió y el borrado se detuvo. Lo que alcanzó a borrarse queda borrado y todo sigue en este equipo; vuelve a pulsar el botón en un rato para borrar el resto.",
   wipeNotHome:
@@ -3924,6 +3946,8 @@ const es: Catalog = {
   agentsTitle: "Tisty no lleva IA dentro",
   agentsWhat:
     "Ninguna, y no se la vamos a poner: el lenguaje natural que lee son reglas corriendo en esta máquina, sin modelo y sin nube. Pero si ya usas un asistente y te sirve, aquí tiene una puerta. Puede anotar lo que tú le cuentes —las cartulinas que el grupo del colegio pide para el lunes, aquello por lo que te mencionaron en Slack— a través de un programa que ya está en este equipo. Nada de esto sale a la red. Tú decides si la abres, y puedes cerrarla cuando quieras.",
+  agentsGuide: "Cómo trabajan los asistentes con Tisty",
+  agentsGuideAt: "https://www.tisty.app/es/ayuda/asistentes-y-mcp/",
   agentsOff: "Ningún asistente puede anotar aquí",
   agentsOn: "Un asistente puede anotar aquí",
   agentsSignsAs: "El agente de este equipo firma el registro como «{name}» · código {other}",

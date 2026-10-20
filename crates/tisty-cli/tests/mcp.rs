@@ -473,7 +473,7 @@ fn saying_it_is_done_leaves_the_account_of_it_on_the_journal() {
 }
 
 #[test]
-fn it_cannot_say_a_task_the_person_wrote_is_done() {
+fn it_says_a_task_the_person_wrote_is_done_only_as_a_word() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     served.person().captures("llamar al taller");
@@ -487,12 +487,11 @@ fn it_cannot_say_a_task_the_person_wrote_is_done() {
         serde_json::json!({ "task": id, "body": "lo di por hecho" }),
     );
 
-    assert_eq!(said["result"]["isError"], true, "{said}");
-    let why = said["result"]["content"][0]["text"].as_str().unwrap();
-    assert!(why.contains("the person's own"), "{why}");
+    assert!(said["result"]["isError"].is_null(), "{said}");
+    assert_eq!(said["result"]["structuredContent"]["open"], true, "{said}");
     assert!(
         served.person().open().contains("llamar al taller"),
-        "and nothing of theirs moved"
+        "it stays open until the person takes the word"
     );
 }
 
@@ -4909,7 +4908,7 @@ fn opened_to_agents_stamped(served: &Served, id: &str, open: bool, stamp: jiff::
 }
 
 #[test]
-fn a_task_the_person_wrote_takes_no_mark_until_they_open_it() {
+fn a_task_the_person_wrote_takes_no_fill_in_until_they_open_it() {
     let served = Served::new();
     served.person().lets_the_agent_in();
     served.person().captures("renew the certificate");
@@ -4921,10 +4920,6 @@ fn a_task_the_person_wrote_takes_no_mark_until_they_open_it() {
 
     for (tool, args) in [
         (
-            "say_done",
-            serde_json::json!({ "task": &id, "body": "renewed" }),
-        ),
-        (
             "describe",
             serde_json::json!({ "task": &id, "body": "the yearly one" }),
         ),
@@ -4932,7 +4927,6 @@ fn a_task_the_person_wrote_takes_no_mark_until_they_open_it() {
             "plan",
             serde_json::json!({ "task": &id, "steps": ["pay", "download"] }),
         ),
-        ("tick", serde_json::json!({ "task": &id, "step": "pay" })),
     ] {
         let tried = served.call(tool, args);
         assert_eq!(tried["result"]["isError"], true, "{tool}: {tried}");
@@ -6356,4 +6350,68 @@ fn what_an_assistant_writes_on_a_task_is_kept_in_the_tisty_language() {
         "see [[Rina's record]], step [[#2]] and **this**",
         "a reference is the language's own and stays as it was written"
     );
+}
+
+#[test]
+fn on_the_persons_own_task_a_tick_and_a_done_are_only_words() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let task = served.person().captures("renew the certificate");
+    served.person().adds_step(task, "pay");
+    let id = task.to_string();
+
+    let ticked = served.call("tick", serde_json::json!({ "task": &id, "step": "pay" }));
+    assert_ne!(ticked["result"]["isError"], true, "{ticked}");
+    assert_eq!(ticked["result"]["structuredContent"]["said"], 1, "{ticked}");
+    let step = &served.person().state().tasks[&task].steps[0];
+    assert!(step.said && !step.done, "the step waits for the person");
+
+    let done = served.call(
+        "say_done",
+        serde_json::json!({ "task": &id, "body": "paid at the registry, receipt 4471" }),
+    );
+    assert_ne!(done["result"]["isError"], true, "{done}");
+    let after = &served.person().state().tasks[&task];
+    assert!(
+        after.resolved.is_some() && after.is_open(),
+        "marked, still open"
+    );
+}
+
+#[test]
+fn a_word_on_a_step_of_the_persons_can_be_taken_back_by_the_assistant() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let task = served.person().captures("renew the certificate");
+    served.person().adds_step(task, "pay");
+    let id = task.to_string();
+    served.call("tick", serde_json::json!({ "task": &id, "step": "pay" }));
+
+    let back = served.call("untick", serde_json::json!({ "task": &id, "step": "pay" }));
+
+    assert_ne!(back["result"]["isError"], true, "{back}");
+    assert_eq!(back["result"]["structuredContent"]["unsaid"], 1, "{back}");
+    let step = &served.person().state().tasks[&task].steps[0];
+    assert!(!step.said && !step.done);
+}
+
+#[test]
+fn once_the_whole_task_is_said_done_its_steps_keep_the_word() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let task = served.person().captures("renew the certificate");
+    served.person().adds_step(task, "pay");
+    let id = task.to_string();
+    served.call("tick", serde_json::json!({ "task": &id, "step": "pay" }));
+    let again = served.call("tick", serde_json::json!({ "task": &id, "step": "pay" }));
+    assert_eq!(again["result"]["isError"], true, "{again}");
+    served.call(
+        "say_done",
+        serde_json::json!({ "task": &id, "body": "paid at the registry" }),
+    );
+
+    let back = served.call("untick", serde_json::json!({ "task": &id, "step": "pay" }));
+
+    assert_eq!(back["result"]["isError"], true, "{back}");
+    assert!(served.person().state().tasks[&task].steps[0].said);
 }

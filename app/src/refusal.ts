@@ -91,6 +91,7 @@ const KNOWN = [
   "wipeChosen",
   "wipeNotHome",
   "wipeStopped",
+  "wipeGoing",
   "forgetUntold",
   "keysTaken",
   "keysUnknown",

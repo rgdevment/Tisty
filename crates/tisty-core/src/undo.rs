@@ -23,6 +23,24 @@ pub fn inverse(event: &Event, before: &State) -> Option<Vec<Op>> {
     {
         back.push(Op::TaskHide { id: *id });
     }
+    // A tick or a reword clears the assistant's word on a step, so taking it back gives the word back.
+    let marked = match &event.op {
+        Op::StepDone { id, d } | Op::StepRemove { id, d } => Some((*id, d.step)),
+        Op::StepText { id, d } => Some((*id, d.step)),
+        _ => None,
+    };
+    if let Some((id, step)) = marked
+        && before
+            .tasks
+            .get(&id)
+            .and_then(|task| task.step(step))
+            .is_some_and(|one| one.said)
+    {
+        back.push(Op::StepSaid {
+            id,
+            d: StepRef { step },
+        });
+    }
     if let Op::DocArchive { id } = &event.op
         && !before.assistants.contains(&event.device)
         && let Some(said) = before.docs.get(id).and_then(|one| one.flagged.clone())
@@ -198,10 +216,22 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
             id: *id,
             d: StepRef { step: d.step },
         }),
-        Op::StepUndone { id, d } => Some(Op::StepDone {
-            id: *id,
-            d: StepRef { step: d.step },
-        }),
+        Op::StepUndone { id, d } => {
+            let was = before.tasks.get(id).and_then(|task| task.step(d.step));
+            let step = StepRef { step: d.step };
+            Some(match was.map(|one| (one.done, one.said)) {
+                Some((false, true)) => Op::StepSaid { id: *id, d: step },
+                Some((false, false)) => Op::StepUndone { id: *id, d: step },
+                _ => Op::StepDone { id: *id, d: step },
+            })
+        }
+        Op::StepSaid { id, d } | Op::StepUnsaid { id, d } => {
+            let step = StepRef { step: d.step };
+            Some(match before.tasks.get(id)?.step(d.step)?.said {
+                true => Op::StepSaid { id: *id, d: step },
+                false => Op::StepUnsaid { id: *id, d: step },
+            })
+        }
         Op::StepText { id, d } => Some(Op::StepText {
             id: *id,
             d: StepText {

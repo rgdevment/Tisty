@@ -287,7 +287,8 @@ describe("erasing what is already archived", () => {
 
   it("is never offered while the task is open", async () => {
     shown(task({ status: "open" }));
-    await behindMore();
+    const more = screen.queryByRole("button", { name: /^more$/i });
+    if (more) await userEvent.click(more);
 
     expect(screen.queryByRole("menuitem", { name: /^erase$/i })).toBeNull();
     expect(screen.queryByRole("menuitem", { name: /move to the/i })).toBeNull();

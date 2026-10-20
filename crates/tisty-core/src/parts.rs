@@ -97,6 +97,20 @@ impl State {
         }
     }
 
+    // Closing a task takes the assistant at its word on the steps it said were done.
+    pub(crate) fn said_ticked(&self, id: TaskId) -> Vec<Op> {
+        self.tasks.get(&id).map_or_else(Vec::new, |task| {
+            task.steps
+                .iter()
+                .filter(|one| one.said && !one.done)
+                .map(|one| Op::StepDone {
+                    id,
+                    d: crate::event::StepRef { step: one.id },
+                })
+                .collect()
+        })
+    }
+
     pub(crate) fn open_parts_dropped(&self, id: TaskId) -> Vec<Op> {
         self.parts_of(id)
             .filter(|part| part.status == Status::Open)

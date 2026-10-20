@@ -148,7 +148,9 @@ the person decides. Mark only work you did yourself; something you only read abo
 `note`, however plainly the text says it is settled.
 
 Every other task of the person's takes only what adds without changing: `note`, `remind` and \
-`attach`.
+`attach`. On those you may still give your word that work is done: `tick` a step you did, and \
+`say_done` or `say_not_doing` the task, with the same account. Nothing is ticked or closed: the \
+person sees what you said and takes it or not.
 
 A task can hold parts, one level deep: tasks of their own, with their steps, day and notes. A \
 new part goes in with `propose`, under `parts` or with `part_of`. Each part has its own door — \
@@ -447,23 +449,24 @@ pub(super) fn tools() -> Value {
         {
             "name": "tick",
             "title": "Tick the steps you did",
-            "description": "Mark steps of a task done, on a task you filed or one the person \
-                            opened to agents, when you did them yourself — the moment you did, \
-                            not at the end. Name each by its text as `read` shows it; one \
-                            unknown name and nothing is ticked, and a name two steps share \
-                            ticks the next one still open. No confirmation waits on it: a step \
-                            is not the task, and the task stays open until `say_done` and the \
-                            person.",
+            "description": "Mark steps of a task done when you did them yourself — the moment \
+                            you did, not at the end. Name each by its text as `read` shows it; \
+                            one unknown name and nothing is ticked, and a name two steps share \
+                            ticks the next one still open. On a task you filed or one the \
+                            person opened to agents the step is ticked; on any other of the \
+                            person's it stays unticked, said done, until they take your word. \
+                            Either way the task stays open until `say_done` and the person.",
             "inputSchema": on_a_task(steps_by_text("you did"), &[])
         },
         {
             "name": "untick",
             "title": "Take back a tick given by mistake",
             "description": "Unmark steps an agent ticked that are not done after all, on a task \
-                            you filed or one the person opened to agents. Only a tick an agent \
-                            gave can be taken back: one the person gave is theirs, and naming \
-                            it unticks nothing. Name each step by its text as `read` shows it. \
-                            Unticking closes and opens nothing; the task stays as it was.",
+                            you filed or one the person opened to agents. On any other of the person's tasks it \
+                            takes back your word on steps you said were done. Only a tick or a word an agent gave \
+                            can be taken back: one the person gave is theirs, and naming it unticks nothing. Name \
+                            each step by its text as `read` shows it. Unticking closes and opens nothing; the task \
+                            stays as it was.",
             "inputSchema": on_a_task(steps_by_text("to untick"), &[])
         },
         {
@@ -994,12 +997,12 @@ pub(super) fn tools() -> Value {
         },
         {
             "name": "say_done",
-            "title": "Say a task you filed, or were given, is finished",
-            "description": "Say that a task is done, when you did the work yourself — one you \
-                            filed, or one the person opened to agents (`open_to_agents` in \
-                            what `read` and `find` hand back). Say it in the turn the work \
-                            ends. Every step has to be ticked first; with one unticked it is \
-                            refused, and so is a whole with a part still open and unmarked. \
+            "title": "Say a task is finished",
+            "description": "Say that a task is done, when you did the work yourself — any task \
+                            of the person's too, since it is only your word. Say it in the turn \
+                            the work ends. Every step has to be ticked or said done first; with \
+                            one left it is refused, and so is a whole with a part still open and \
+                            unmarked. \
                             Reading that it no longer matters is not doing it, and \
                             goes in `say_not_doing`. It closes nothing: the task stays open, marked, \
                             until the person finishes it or takes the mark off. Say it once; if \
@@ -1014,10 +1017,10 @@ pub(super) fn tools() -> Value {
         },
         {
             "name": "say_not_doing",
-            "title": "Say a task you filed, or were given, should not be done",
+            "title": "Say a task should not be done",
             "description": "Say that a task will not be done — it no longer matters, something \
-                            else made it moot — on one you filed or one the person opened to \
-                            agents. Unticked steps do not stop it. It drops nothing: the task \
+                            else made it moot — on any task, the person's too, since it is only \
+                            your word. Unticked steps do not stop it. It drops nothing: the task \
                             stays open, marked, until the person drops it or takes the mark \
                             off. Say it once; what is new after that goes in `note`.",
             "inputSchema": shaped(json!({

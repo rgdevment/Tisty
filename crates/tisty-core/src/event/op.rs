@@ -44,6 +44,8 @@ pub const KNOWN_OPS: &[&str] = &[
     "task.unresolve",
     "task.step.add",
     "task.step.done",
+    "task.step.said",
+    "task.step.unsaid",
     "task.step.undone",
     "task.step.text",
     "task.step.remove",
@@ -132,6 +134,11 @@ pub enum Op {
     StepDone { id: TaskId, d: StepRef },
     #[serde(rename = "task.step.undone")]
     StepUndone { id: TaskId, d: StepRef },
+    /// An assistant's word that a step of the person's is done; only the person ticks it.
+    #[serde(rename = "task.step.said")]
+    StepSaid { id: TaskId, d: StepRef },
+    #[serde(rename = "task.step.unsaid")]
+    StepUnsaid { id: TaskId, d: StepRef },
     #[serde(rename = "task.step.text")]
     StepText { id: TaskId, d: StepText },
     #[serde(rename = "task.step.remove")]
@@ -328,6 +335,8 @@ impl Op {
                 | Op::DocCompacted { .. }
                 | Op::DocUncompacted { .. }
                 | Op::TaskPaged { .. }
+                | Op::StepSaid { .. }
+                | Op::StepUnsaid { .. }
         )
     }
 
@@ -350,6 +359,8 @@ impl Op {
             Op::StepAdd { d, .. } => Op::StepAdd { id, d },
             Op::StepDone { d, .. } => Op::StepDone { id, d },
             Op::StepUndone { d, .. } => Op::StepUndone { id, d },
+            Op::StepSaid { d, .. } => Op::StepSaid { id, d },
+            Op::StepUnsaid { d, .. } => Op::StepUnsaid { id, d },
             Op::StepText { d, .. } => Op::StepText { id, d },
             Op::StepRemove { d, .. } => Op::StepRemove { id, d },
             Op::TaskPaged { d, .. } => Op::TaskPaged { id, d },
@@ -489,6 +500,8 @@ impl Op {
             | Op::StepAdd { id, .. }
             | Op::StepDone { id, .. }
             | Op::StepUndone { id, .. }
+            | Op::StepSaid { id, .. }
+            | Op::StepUnsaid { id, .. }
             | Op::StepText { id, .. }
             | Op::StepRemove { id, .. }
             | Op::StepReorder { id, .. }
@@ -680,6 +693,9 @@ pub struct Resolve {
     /// Said not to be done at all: confirming it drops the task rather than closing it.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub drop: bool,
+    /// Said of a task the person kept: only a word, so older logs that lack it replay as before.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub word: bool,
 }
 
 impl Resolve {
@@ -690,7 +706,13 @@ impl Resolve {
             by: None,
             via: None,
             drop: false,
+            word: false,
         }
+    }
+
+    pub fn as_word(mut self, word: bool) -> Self {
+        self.word = word;
+        self
     }
 
     pub fn dropping(mut self, drop: bool) -> Self {
