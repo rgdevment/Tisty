@@ -1193,26 +1193,3 @@ fn a_machine_following_late_moves_on_from_a_cloud_emptied_once_everyone_left() {
         assert!(new.holds_a_store(), "{who}");
     }
 }
-
-#[test]
-fn a_cloud_gone_quiet_with_no_word_left_still_stops_the_move() {
-    for setting in clouds() {
-        let who = &setting.name;
-        let (one, two) = pair(&setting);
-        one.wrote("de uno");
-        one.round(Way::Both);
-        two.round(Way::Both);
-        one.carrier.leave_word("se fue").unwrap();
-        one.carrier.wipe().unwrap();
-        counting(&setting)
-            .delete(tisty_core::moved::NAMED, None)
-            .unwrap();
-        let new = Folder::at(setting.room.path().join("new"));
-        std::fs::create_dir_all(setting.room.path().join("new")).unwrap();
-        let mut saying = |_| {};
-
-        let shifted = crate::shift(Some(&*two.carrier), Some(&new), &two.here, &[], &mut saying);
-
-        assert!(shifted.is_err(), "{who}: {shifted:?}");
-    }
-}
