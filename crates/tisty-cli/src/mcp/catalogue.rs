@@ -14,8 +14,8 @@ new document only for a subject nothing covers. What your writing makes stale or
 marked with `flag_doc` in the same turn.\n\
 - You never close, drop or delete: `say_done` and `flag_doc` leave the decision to the person.\n\
 - Everything has a place: a folder for a document, a list for a task; ask when none fits.\n\
-Before you write, tidy or compact anything, call `rules` once: the full rules are there, and \
-this summary is not enough to follow them.";
+Before you write anything, call `rules` once: the full rules are there, and this summary is not \
+enough to follow them. Before you tidy or compact, call it with `topic` «tidying».";
 
 const TAUGHT: &str = "\
 ## What Tisty is, and your place in it
@@ -186,7 +186,8 @@ with `sum_up`.
 
 Read a long document by parts: `outline_doc` gives its headings, lines, sizes, pages and \
 `print` for a few hundred tokens, and `read_doc` then takes a `section`, a run of lines, or a \
-budget of `chars`. Change what is there before adding: `edit_doc` changes the passage that is \
+budget of `chars`, about 12,000 characters at a time: a document longer than that asked for \
+whole comes back as its outline, so ask for the parts. Change what is there before adding: `edit_doc` changes the passage that is \
 wrong, `write_doc` with the `print` you read at writes the body again when its shape no longer \
 serves, and `append_doc` adds only where the order of entries is the point. If anything was \
 written in between, the print no longer matches and nothing is written — read again rather than \
@@ -230,9 +231,10 @@ this by design and are left as they are. Compact what agents wrote on your own j
 the person wrote, only when they ask you in this conversation, and then send `person_asked`. \
 Compacting is one pass, in this order:\n\
 1. Read every page you will touch; a page you did not read is left as it is, and you say so. \
-Then stop and give the person your diagnosis — what is stale, doubled or out of place, and what \
-you would move where — and wait for their word when they asked to see it first, when the \
-document is theirs, or when it has more than about ten pages.\n\
+Give the person your diagnosis — what is stale, doubled or out of place, and what you would move \
+where. Wait for their word only when they asked to see it before you act, or the document is \
+theirs; otherwise go on, and end by telling them how to undo it: one click in the window, or \
+asking you to restore it.\n\
 2. Move what each leaving page holds worth keeping — decisions, findings, links — onto the open \
 task or document it belongs to (`append_doc`, `note`), and only then mark it `moved` there. A \
 page whose task is closed already lives in that task's journal: mark it `obsolete`. A page with \
@@ -285,9 +287,31 @@ pub(super) fn instructions(today: jiff::civil::Date) -> String {
     format!("Today is {today}.\n\n{HEAD}")
 }
 
-// Some clients cut the instructions short, so the whole of them is a call away.
-pub(super) fn rules() -> Value {
-    super::jsonrpc::told(TAUGHT.to_string(), json!({ "rules": TAUGHT }))
+// Some clients cut the instructions short, so the whole of them is a call away, in two parts.
+pub(super) fn rules(args: &Value) -> Value {
+    let (general, tidying) = parted();
+    let said = match args["topic"].as_str() {
+        Some("tidying") => tidying,
+        _ => format!(
+            "{general}\n\nBefore you tidy or compact anything, call `rules` with `topic` set to \
+             «tidying»: how it is done is there."
+        ),
+    };
+    super::jsonrpc::told(said.clone(), json!({ "rules": said }))
+}
+
+fn parted() -> (String, String) {
+    let Some(from) = TAUGHT.find("## Compacting") else {
+        return (TAUGHT.to_string(), String::new());
+    };
+    let to = TAUGHT[from + 2..]
+        .find("\n## ")
+        .map_or(TAUGHT.len(), |at| from + 2 + at);
+    let general = format!("{}{}", &TAUGHT[..from], TAUGHT[to..].trim_start());
+    (
+        general.trim_end().to_string(),
+        TAUGHT[from..to].trim_end().to_string(),
+    )
 }
 
 /// Every tool says its arguments the same way, and the three lines that say so were three lines
@@ -569,7 +593,7 @@ pub(super) fn tools() -> Value {
         {
             "name": "write_doc",
             "title": "Write a document",
-            "description": "Write something to keep and read again — a recipe, a procedure, a reference, a summary; work to do is a task (`propose`). In the Tisty language (`language` has it whole): Markdown from elsewhere is turned into it on the way in, the answer says what changed under `turned`, and only what has no way in is refused, naming it. Left alone it writes a new document; with `doc` and `print` it writes an existing one again, whole — pages the body does not name keep their lines, put back at the end. To change one passage, `edit_doc` does it without carrying the whole both ways. Before writing a new one, `find`: a subject that has a document gets `edit_doc`, or this with `doc` and `print`, not a second document; a title carrying a ticket, a date or «v2» is the sign you are writing one, and a title already taken is refused, naming it. With `compact` it writes a document back into the living shape the instructions give: needs `print`, keeps the old body for `restore_doc`, and the answer says what shrank and what was kept back. A document is tagged by writing #word in its own text, for what it is about: six is already a lot, past 64 the rest are dropped, and `tags` lists those in use.",
+            "description": "Write something to keep and read again — a recipe, a procedure, a reference, a summary; work to do is a task (`propose`). In the Tisty language (`language` has it whole): Markdown from elsewhere is turned into it on the way in, the answer says what changed under `turned`, and only what has no way in is refused, naming it. Left alone it writes a new document; with `doc` and `print` it writes an existing one again, whole — pages the body does not name keep their lines, put back at the end — except, when compacting, the pages you marked, which leave the body. To change one passage, `edit_doc` does it without carrying the whole both ways. Before writing a new one, `find`: a subject that has a document gets `edit_doc`, or this with `doc` and `print`, not a second document; a title carrying a ticket, a date or «v2» is the sign you are writing one, and a title already taken is refused, naming it. With `compact` it writes a document back into the living shape the instructions give: needs `print`, keeps the old body for `restore_doc`, and the answer gives the `size` before and after and what was kept back. A document is tagged by writing #word in its own text, for what it is about: six is already a lot, past 64 the rest are dropped, and `tags` lists those in use.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "keep_compaction": { "type": "boolean", "description": "Only when the person told you in this conversation to keep a compaction of this document that waits for their word: it is kept, and this write goes ahead" },
@@ -928,7 +952,7 @@ pub(super) fn tools() -> Value {
         {
             "name": "read_doc",
             "title": "Read a document, or a part of one",
-            "description": "The text of a document and the `print` it reads at. Left alone it brings the whole body; a long one comes back as its outline instead, with `whole` set to false, and then you ask for the part you want. Reading a part is the ordinary way to work: the print comes with every answer, so a passage can be changed with `edit_doc` without ever bringing the rest.",
+            "description": "The text of a document and the `print` it reads at. Left alone it brings the whole body; one past about 12,000 characters comes back as its outline instead, with `whole` set to false, and then you ask for a `section`, a run of lines or a budget of `chars`, about 12,000 at a time. Reading a part is the ordinary way to work: the print comes with every answer, so a passage can be changed with `edit_doc` without ever bringing the rest.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": named_doc_field(),
@@ -1090,8 +1114,16 @@ pub(super) fn tools() -> Value {
         json!({
             "name": "rules",
             "title": "The full rules for working here",
-            "description": "Everything about writing, tidying and compacting in Tisty: when something is a task or a document, how a living document is kept, how to compact one without losing anything, what you may change on a task and what stays the person's, and how removing works. The instructions you were given are only their summary. Call it once at the start, before you write, tidy or compact anything.",
-            "inputSchema": { "type": "object", "additionalProperties": false }
+            "description": "The full rules for working in Tisty: when something is a task or a document, how a living document is kept, what you may change on a task and what stays the person's, and how removing works. The instructions you were given are only their summary. Call it once at the start, before you write anything; with `topic` «tidying», before you tidy or compact, it gives how that is done.",
+            "inputSchema": shaped(json!({
+                "properties": {
+                    "topic": {
+                        "type": "string",
+                        "enum": ["general", "tidying"],
+                        "description": "general, left out, for everything; tidying for putting documents and task pages back in order and compacting them"
+                    }
+                }
+            }))
         }),
         json!({
             "name": "language",

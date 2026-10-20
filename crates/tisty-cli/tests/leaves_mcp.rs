@@ -4208,12 +4208,16 @@ fn the_instructions_name_the_doors_for_taking_back_and_for_not_doing() {
     })
     .to_string()]);
     let rules = served.call("rules", serde_json::json!({}));
+    let tidying = served.call("rules", serde_json::json!({ "topic": "tidying" }));
     let told = format!(
-        "{}\n{}",
+        "{}\n{}\n{}",
         said[0]["result"]["instructions"]
             .as_str()
             .unwrap_or_default(),
         rules["result"]["structuredContent"]["rules"]
+            .as_str()
+            .unwrap_or_default(),
+        tidying["result"]["structuredContent"]["rules"]
             .as_str()
             .unwrap_or_default()
     );

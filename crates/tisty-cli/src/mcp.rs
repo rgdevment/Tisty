@@ -253,7 +253,7 @@ fn called(paths: &Paths, name: &str, args: Value) -> Result<Value, Refused> {
         "lists" => lists(paths),
         "tags" => tags(paths),
         "language" => Ok(language(&args)),
-        "rules" => Ok(catalogue::rules()),
+        "rules" => Ok(catalogue::rules(&args)),
         "attach" => attach(paths, &args),
         "" => Err(Refused::Protocol(-32602, "a call needs a name".into())),
         other => Err(Refused::Protocol(

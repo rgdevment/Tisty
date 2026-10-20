@@ -98,8 +98,30 @@ pub(super) fn dead(paths: &Paths, state: &State, bodies: &[(&str, String)]) -> V
                 found.push(json!({ "in": file, "to": one.target }));
             }
         }
+        for id in task_ids(body) {
+            if !state.tasks.contains_key(&id) {
+                found.push(json!({ "in": file, "to": format!("task {id}") }));
+            }
+        }
     }
     found
+}
+
+// A task named by its id in the text outlives nothing: once erased, the id points nowhere.
+fn task_ids(body: &str) -> Vec<tisty_core::model::TaskId> {
+    let mut ids: Vec<tisty_core::model::TaskId> = body
+        .split(|one: char| !one.is_ascii_alphanumeric())
+        .filter(|word| {
+            word.len() == 26
+                && word
+                    .chars()
+                    .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit())
+        })
+        .filter_map(|word| word.parse().ok())
+        .collect();
+    ids.sort();
+    ids.dedup();
+    ids
 }
 
 #[cfg(test)]

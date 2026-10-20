@@ -3865,9 +3865,13 @@ fn the_instructions_do_not_promise_what_the_tools_no_longer_hold_to() {
     let said = served.talk(&[r#"{"jsonrpc":"2.0","id":1,"method":"server/discover","params":{}}"#]);
     let head = said[0]["result"]["instructions"].as_str().unwrap();
     let rules = served.call("rules", serde_json::json!({}));
+    let tidying = served.call("rules", serde_json::json!({ "topic": "tidying" }));
     let taught = format!(
-        "{head}\n{}",
+        "{head}\n{}\n{}",
         rules["result"]["structuredContent"]["rules"]
+            .as_str()
+            .unwrap(),
+        tidying["result"]["structuredContent"]["rules"]
             .as_str()
             .unwrap()
     );

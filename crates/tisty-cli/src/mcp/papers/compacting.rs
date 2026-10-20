@@ -165,6 +165,10 @@ pub(super) fn compacted(
             false => String::new(),
         }
     );
+    let unlinked: Vec<String> = unlinked
+        .into_iter()
+        .filter(|one| live(state, one))
+        .collect();
     let more = match unlinked.is_empty() {
         true => more,
         false => format!(
@@ -179,7 +183,7 @@ pub(super) fn compacted(
             said["structuredContent"]["said"] = json!(text);
         }
     }
-    said["structuredContent"]["shrunk"] = json!({ "before": before, "after": after });
+    said["structuredContent"]["size"] = json!({ "before": before, "after": after });
     said["structuredContent"]["dropped"] = json!(dropped);
     said["structuredContent"]["unlinked"] = json!(unlinked);
     said["structuredContent"]["compacted"] = json!(true);
@@ -342,4 +346,16 @@ pub(in crate::mcp) fn released(
             .map_err(hitch);
     }
     awaiting(state, kept)
+}
+
+fn live(state: &State, target: &str) -> bool {
+    let Some(file) = target.strip_prefix(tisty_core::refs::DOC) else {
+        return true;
+    };
+    let file = file.split(['#', '?']).next().unwrap_or(file);
+    state
+        .docs
+        .values()
+        .find(|one| one.file == file)
+        .is_some_and(|one| one.flagged.is_none())
 }

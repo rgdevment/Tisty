@@ -381,7 +381,7 @@ fn a_document_an_agent_wrote_is_compacted_and_says_so() {
         }),
     );
     went(&done);
-    assert!(said(&done)["shrunk"]["after"].as_u64() < said(&done)["shrunk"]["before"].as_u64());
+    assert!(said(&done)["size"]["after"].as_u64() < said(&done)["size"]["before"].as_u64());
     assert_eq!(said(&done)["dropped"], json!([]));
 
     let read = said(&served.call("read_doc", json!({ "doc": &doc }))).clone();
