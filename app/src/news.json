@@ -168,5 +168,88 @@
         "said": "each window loads only what it needs, quick capture stops working while it's hidden, and Tisty keeps less in memory while you use it."
       }
     ]
+  },
+  {
+    "version": "1.31.0",
+    "headline": {
+      "es": "Tisty ahora se sincroniza con OneDrive, y cada tarea tiene su página",
+      "en": "Tisty now syncs with OneDrive, and every task has a page of its own"
+    },
+    "es": [
+      {
+        "title": "Ahora también con OneDrive",
+        "said": "conecta tu OneDrive desde Configuración, igual que Google Drive: tus tareas y documentos viajan en un espacio que solo Tisty abre, sin cuenta de Tisty ni servidores nuestros. Las subidas largas siguen donde quedaron si se cortan."
+      },
+      {
+        "title": "Cada tarea tiene su página",
+        "said": "abre una tarea y escribe en ella como en un documento: pasos, notas, imágenes y adjuntos en un solo lugar. Sus partes aparecen como tarjetas, un paso puede volverse una parte, y la página se archiva junto con la tarea."
+      },
+      {
+        "title": "Un editor que escribe como se lee",
+        "said": "cada bloque se edita tal como se ve, con el menú / para insertar, una barra de formato al seleccionar, tablas que se editan en su lugar, secciones plegables, notas al pie y fórmulas. Arrastra o pega archivos para adjuntarlos."
+      },
+      {
+        "title": "Trae y lleva tus documentos",
+        "said": "importa desde Word, páginas web y Obsidian, y abre archivos de calendario para traer sus eventos y pendientes como tareas. Exporta como Markdown estándar, una página web o un archivo de Word."
+      },
+      {
+        "title": "La guía de Tisty Markdown",
+        "said": "todo lo que un documento puede tener, explicado con ejemplos: ábrela con F1 o con los botones ?, y también en markdown.tisty.app."
+      },
+      {
+        "title": "Configuración más ordenada",
+        "said": "cinco pestañas: General, Sincronizar, Tus datos, Asistentes y Mantenimiento. Mantenimiento revisa todo al abrirse y te dice en una línea si algo necesita atención, y puedes hacer un respaldo aunque sincronices con la nube."
+      },
+      {
+        "title": "La sincronización de un vistazo",
+        "said": "el pie de la barra lateral muestra cómo va: al día, sincronizando, esperando o sin conexión. Un clic sincroniza, reanuda una pausa o te lleva adonde haga falta. Y si quieres dejar Tisty en un equipo, una guía paso a paso lo deja limpio."
+      },
+      {
+        "title": "Tus asistentes, listos para ayudar",
+        "said": "los asistentes conectados a Tisty pueden anotar tareas y documentos desde el primer momento; si prefieres que no, ciérrales la puerta en Configuración › Asistentes. Ahora también ordenan lo que creció: mueven partes, marcan copias con su motivo y resumen documentos largos diciéndote cómo deshacerlo. El comando tisty queda solo para conectarlos (tisty mcp)."
+      },
+      {
+        "title": "Actualizaciones firmadas",
+        "said": "cada actualización que Tisty ofrece viene firmada, y Tisty la comprueba antes de instalarla."
+      }
+    ],
+    "en": [
+      {
+        "title": "Now with OneDrive too",
+        "said": "connect your OneDrive from Settings, just like Google Drive: your tasks and documents travel in a space only Tisty opens, with no Tisty account and no server of ours. Long uploads pick up where they left off if they are cut."
+      },
+      {
+        "title": "Every task has a page",
+        "said": "open a task and write in it like a document: steps, notes, pictures and attachments in one place. Its parts show as cards, a step can become a part, and the page is put away together with the task."
+      },
+      {
+        "title": "An editor that writes as it reads",
+        "said": "each block is edited just as it looks, with the / menu to insert, a format bar when you select, tables edited in place, collapsible sections, footnotes and formulas. Drag or paste files to attach them."
+      },
+      {
+        "title": "Bring your documents in and take them out",
+        "said": "import from Word, web pages and Obsidian, and open calendar files to bring their events and to-dos in as tasks. Export as standard Markdown, a web page or a Word file."
+      },
+      {
+        "title": "The Tisty Markdown guide",
+        "said": "everything a document can hold, explained with examples: open it with F1 or the ? buttons, and also at markdown.tisty.app."
+      },
+      {
+        "title": "Tidier Settings",
+        "said": "five tabs: General, Sync, Your data, Assistants and Maintenance. Maintenance checks everything as soon as you open it and tells you in one line whether something needs a look, and you can make a backup even when you sync with a cloud."
+      },
+      {
+        "title": "Sync at a glance",
+        "said": "the foot of the sidebar shows how syncing is going: up to date, syncing, waiting or offline. One click syncs, resumes a pause or takes you where you need to go. And if you want Tisty off a computer, a step-by-step guide leaves it clean."
+      },
+      {
+        "title": "Your assistants, ready to help",
+        "said": "assistants connected to Tisty can note tasks and documents from the start; if you would rather they did not, close the door in Settings › Assistants. They now also tidy what grew: they move parts, mark copies with a reason and condense long documents while telling you how to undo it. The tisty command now only connects them (tisty mcp)."
+      },
+      {
+        "title": "Signed updates",
+        "said": "every update Tisty offers comes signed, and Tisty checks it before installing it."
+      }
+    ]
   }
 ]

@@ -871,13 +871,13 @@ const en = {
   updateUnanswered:
     "The Microsoft Store did not answer, so nothing is known about updates right now. What it last said still stands.",
   aboutStore: "Your files",
-  aboutSite: "Visit www.tisty.app",
+  aboutSite: "tisty.app",
   newsOver: "What's new",
   newsTitle: "What's new in Tisty",
   newsAll: "See every release",
   newsOk: "Got it",
   aboutSiteAt: "https://www.tisty.app/",
-  aboutRepo: "Open the repository",
+  aboutRepo: "Code on GitHub",
   aboutNotices: "Third-party notices",
   aboutLicences: "Licence texts",
   aboutReveal: "Show folder",
@@ -888,7 +888,7 @@ const en = {
   supportSponsor: "Sponsor on GitHub",
   supportStar: "Star on GitHub",
   supportRate: "Rate it in the Store",
-  aboutAlternative: "See Tisty on AlternativeTo",
+  aboutAlternative: "AlternativeTo",
   badgeLocal: "Your data, yours",
   badgeOpen: "Open source",
   badgeFree: "Free",
@@ -926,6 +926,11 @@ const en = {
     "{name} opens a small field over whatever you are doing. What you write is filed under Tasks, with no list, and Tisty stays where it was.",
   quickNone:
     "No shortcut could be taken — another application holds them all. Tisty still captures from its own window.",
+  quickOff: "No shortcut. Tisty still captures from its own window.",
+  quickKeys: "Shortcut for quick capture",
+  quickKeysOff: "No shortcut",
+  keysTaken: "Another application already uses {name}. Pick another one.",
+  keysUnknown: "That shortcut is not one Tisty offers.",
   wake: "Start with the computer",
   wakeOn:
     "Tisty opens by itself when you sign in and waits out of the way, with no window until you ask for one.",
@@ -988,11 +993,6 @@ const en = {
   owedFill: "Add {name}",
   left: "What it left",
   carries: "What it carries",
-  tagsRead: "Tags in documents",
-  tagsReadWhy:
-    "A document learns its tags when it is saved. Everything written before Tisty could read them stays bare until it is touched, and whatever was filed under an older rule — a bare number, a single letter — stays filed under it. Reading them all now, in one pass over the folder, settles both.",
-  tagsReadDo: "Read them now",
-  tagsReadDone: "{name} documents changed tags",
   repeatedLists: "Repeated lists",
   repeatedWhat:
     "Lists with the same name, left twice by a reinstall or by putting two copies together. Joining them keeps one of each name, the one holding the most, and moves every task into it; nothing is lost.",
@@ -1327,13 +1327,6 @@ const en = {
     "This page is over {name}, too large to draw as a widget; show it as an attachment to open it.",
   docBrimming: "{name} — this document is getting long enough to feel it while typing",
   docCrowded: "{count} attachments in view — enough to feel while typing",
-  brittleAre: "Documents with markup outside Tisty's own words",
-  brittleWhat:
-    "Some documents bring markup Tisty has no words for. They open, edit and save whole, but that part shows as it is written while you edit it. This goes through every one of them.",
-  brittleNone: "Every document speaks Tisty's own words",
-  brittleRun: "Go through the documents",
-  brittleAgain: "Go through them again",
-  frailHtml: "HTML",
   cannotWrite: "{name} could not be written",
   showWhole: "Read it in full",
   keeping: "Settings",
@@ -2131,8 +2124,6 @@ const en = {
   reportPrepare: "Prepare…",
   workingFor: "{name} ({other} min)",
   twinsLooking: "Looking…",
-  tagsReading: "Reading…",
-  brittleReading: "Going through…",
   unvouchedWorking: "Verifying…",
 };
 
@@ -3017,13 +3008,13 @@ const es: Catalog = {
   updateUnanswered:
     "La Microsoft Store no respondió, así que ahora mismo no se sabe nada de actualizaciones. Sigue valiendo lo último que dijo.",
   aboutStore: "Tu carpeta",
-  aboutSite: "Visitar www.tisty.app",
+  aboutSite: "tisty.app",
   newsOver: "Novedades",
   newsTitle: "Lo nuevo de Tisty",
   newsAll: "Ver todas las versiones",
   newsOk: "Entendido",
   aboutSiteAt: "https://www.tisty.app/es/",
-  aboutRepo: "Abrir el repositorio",
+  aboutRepo: "Código en GitHub",
   aboutNotices: "Avisos de terceros",
   aboutLicences: "Textos de las licencias",
   aboutReveal: "Mostrar carpeta",
@@ -3034,7 +3025,7 @@ const es: Catalog = {
   supportSponsor: "Patrocinar en GitHub",
   supportStar: "Dar una estrella en GitHub",
   supportRate: "Valorar en la Store",
-  aboutAlternative: "Ver Tisty en AlternativeTo",
+  aboutAlternative: "AlternativeTo",
   badgeLocal: "Tus datos, tuyos",
   badgeOpen: "Código abierto",
   badgeFree: "Gratis",
@@ -3073,6 +3064,11 @@ const es: Catalog = {
     "{name} abre un campo pequeño encima de lo que estés haciendo. Lo que escribas se guarda en Tareas, sin lista, y Tisty se queda donde estaba.",
   quickNone:
     "No se pudo tomar ningún atajo porque otra aplicación ya los usa. Tisty sigue capturando desde su propia ventana.",
+  quickOff: "Sin atajo. Tisty sigue capturando desde su propia ventana.",
+  quickKeys: "Atajo de la captura rápida",
+  quickKeysOff: "Sin atajo",
+  keysTaken: "Otra aplicación ya usa {name}. Elige otro.",
+  keysUnknown: "Ese atajo no es uno de los que ofrece Tisty.",
   wake: "Iniciar con el equipo",
   wakeOn:
     "Tisty se abre solo al iniciar sesión y espera apartado, sin ventana hasta que se la pidas.",
@@ -3137,11 +3133,6 @@ const es: Catalog = {
   owedFill: "Añadir {name}",
   left: "Lo que dejó",
   carries: "Lo que lleva",
-  tagsRead: "Etiquetas en los documentos",
-  tagsReadWhy:
-    "Un documento aprende sus etiquetas al guardarse. Todo lo escrito antes de que Tisty supiera leerlas se queda sin ellas hasta que lo toques, y lo que quedó archivado bajo una regla vieja —un número suelto, una sola letra— sigue ahí. Leerlas todas ahora, de una pasada por la carpeta, resuelve las dos cosas.",
-  tagsReadDo: "Leerlas ahora",
-  tagsReadDone: "{name} documentos cambiaron de etiquetas",
   repeatedLists: "Listas repetidas",
   repeatedWhat:
     "Listas con el mismo nombre, que quedaron dobles por una reinstalación o por juntar dos copias. Al juntarlas queda una de cada nombre, la que tiene más tareas, y todas las tareas pasan a ella; no se pierde nada.",
@@ -3478,13 +3469,6 @@ const es: Catalog = {
     "Esta página pasa de {name}, demasiado para dibujarla como widget; muéstrala como adjunto para abrirla.",
   docBrimming: "{name} — este documento empieza a ser largo y se nota al escribir",
   docCrowded: "{count} adjuntos a la vista — suficientes para que se note al escribir",
-  brittleAre: "Documentos con construcciones fuera del lenguaje de Tisty",
-  brittleWhat:
-    "Algunos documentos traen construcciones para las que Tisty no tiene palabras. Se abren, se editan y se guardan enteros, pero esa parte se ve tal como está escrita mientras la editas. Esto los recorre todos.",
-  brittleNone: "Todos los documentos hablan el lenguaje de Tisty",
-  brittleRun: "Recorrer los documentos",
-  brittleAgain: "Recorrerlos otra vez",
-  frailHtml: "HTML",
   cannotWrite: "No se pudo escribir {name}",
   showWhole: "Verlo completo",
   keeping: "Configuración",
@@ -4280,8 +4264,6 @@ const es: Catalog = {
   reportPrepare: "Preparar…",
   workingFor: "{name} ({other} min)",
   twinsLooking: "Buscando…",
-  tagsReading: "Leyendo…",
-  brittleReading: "Recorriendo…",
   unvouchedWorking: "Verificando…",
 };
 

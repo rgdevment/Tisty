@@ -1,9 +1,13 @@
+import { useEffect, useState } from "react";
 import {
   guide,
   keepClosing,
   keepLocale,
+  keepShortcut,
   keepTheme,
   type Settings,
+  shortcut,
+  shortcutsOffered,
   type Theme,
   type Waking,
   wakeFor,
@@ -20,6 +24,7 @@ interface Props {
   wake: Waking | null;
   setWake: (wake: Waking) => void;
   keys: string | null;
+  setKeys: (keys: string | null) => void;
   busy: Which | null;
   said?: Word;
   trouble?: Word;
@@ -38,6 +43,7 @@ export default function General({
   wake,
   setWake,
   keys,
+  setKeys,
   busy,
   said,
   trouble,
@@ -50,6 +56,13 @@ export default function General({
   onDoc,
 }: Props) {
   const held = busy !== null;
+  const [offered, setOffered] = useState<string[]>([]);
+  const chosenOff = kept?.quickKeys === "off";
+  useEffect(() => {
+    shortcutsOffered()
+      .then((all) => setOffered(all ?? []))
+      .catch(() => {});
+  }, []);
   return (
     <>
       <Band label={t("bandWindow")} />
@@ -191,11 +204,40 @@ export default function General({
 
         <Line
           title={t("quick")}
-          why={keys ? fill("quickOn", keys) : t("quickNone")}
+          why={keys ? fill("quickOn", keys) : t(chosenOff ? "quickOff" : "quickNone")}
           which="quick"
           said={said}
           trouble={trouble}
-        />
+        >
+          {kept && (
+            <select
+              aria-label={t("quickKeys")}
+              value={keys ?? (chosenOff ? "off" : "")}
+              disabled={held}
+              onChange={(e) => {
+                const wanted = e.target.value;
+                run(
+                  "quick",
+                  keepShortcut(wanted).finally(() => {
+                    shortcut()
+                      .then(setKeys)
+                      .catch(() => {});
+                  }),
+                  () => setKept({ ...kept, quickKeys: wanted }),
+                );
+              }}
+              className={`rounded-[10px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
+            >
+              {offered.map((one) => (
+                <option key={one} value={one}>
+                  {one}
+                </option>
+              ))}
+              <option value="off">{t("quickKeysOff")}</option>
+              {!keys && !chosenOff && <option value="" disabled hidden />}
+            </select>
+          )}
+        </Line>
       </div>
 
       <Signing busy={busy} said={said} trouble={trouble} run={run} tell={tell} signs={signs} />
