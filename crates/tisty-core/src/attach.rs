@@ -261,7 +261,7 @@ fn ledger(root: &Path) -> PathBuf {
     root.join("attachments.jsonl")
 }
 
-// A copy let go of when two became one keeps its line, so the one still here is named first.
+// A copy let go of when two became one keeps its line, so the one still here, or else the latest, wins.
 fn listed(root: &Path, sha256: &str) -> Option<String> {
     let text = std::fs::read_to_string(ledger(root)).ok()?;
     let named: Vec<String> = text
@@ -273,7 +273,7 @@ fn listed(root: &Path, sha256: &str) -> Option<String> {
     named
         .iter()
         .find(|at| resolve(at, root).is_ok_and(|held| held.is_file()))
-        .or(named.first())
+        .or(named.last())
         .cloned()
 }
 
@@ -383,6 +383,21 @@ fn note(root: &Path, kept: &Kept) {
         return;
     }
     noted_line(root, kept);
+}
+
+/// Read from the files themselves, never the ledger: the bytes may have changed under the same size.
+pub fn same_bytes(root: &Path, all: &[String]) -> Result<Option<u64>> {
+    let mut seen: Option<(String, u64)> = None;
+    for at in all {
+        let held = resolve(at, root)?;
+        let one = (fingerprint_of(&held)?, std::fs::metadata(&held)?.len());
+        match &seen {
+            Some(first) if *first != one => return Ok(None),
+            Some(_) => {}
+            None => seen = Some(one),
+        }
+    }
+    Ok(seen.map(|(_, bytes)| bytes))
 }
 
 /// The copy two became one in is named in the ledger, so the same bytes kept again land on it.

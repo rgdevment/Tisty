@@ -225,6 +225,19 @@ fn planned(session: &Session, go: &[String], going: &[(String, String)]) -> Answ
         if left {
             return Err(Refusal::about("twinsStill", task.title.clone()));
         }
+        let too_long = plan.ops.iter().any(|op| match op {
+            Op::TaskDescribe { id, d } if *id == task.id => d
+                .body
+                .as_deref()
+                .is_some_and(|body| tisty_core::state::short_enough(body).is_err()),
+            Op::TaskLogEdit { id, d } if *id == task.id => {
+                tisty_core::state::short_enough(&d.body).is_err()
+            }
+            _ => false,
+        });
+        if too_long {
+            return Err(Refusal::about("twinsTooLong", task.title.clone()));
+        }
     }
     Ok(plan)
 }
@@ -246,10 +259,12 @@ fn joined(session: &mut Session, keep: String, go: Vec<String>) -> Answer<Joined
         .filter_map(|one| canonical(one))
         .filter(|one| *one != keep)
         .collect();
-    // Asked again now: only copies the same bytes through and through become one.
-    let group = tisty_core::attach::twins(session.paths.data())
-        .into_iter()
-        .find(|group| group.at.contains(&keep) && go.iter().all(|one| group.at.contains(one)))
+    let mut all = vec![keep.clone()];
+    all.extend(go.iter().cloned());
+    // Read again from the files: only copies the same bytes through and through become one.
+    let each = tisty_core::attach::same_bytes(session.paths.data(), &all)
+        .ok()
+        .flatten()
         .filter(|_| !go.is_empty())
         .ok_or_else(|| Refusal::about("twinsGone", keep.clone()))?;
     let to = leaf_of(&keep).unwrap_or_default().to_string();
@@ -290,7 +305,6 @@ fn joined(session: &mut Session, keep: String, go: Vec<String>) -> Answer<Joined
         })?;
     }
     let gone = session.retire(&go)?;
-    let each = group.bytes / (group.at.len() as u64 - 1).max(1);
     Ok(Joined {
         freed: each * gone as u64,
         relinked: plan.links,

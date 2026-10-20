@@ -55,23 +55,42 @@ pub fn relinked_all(body: &str, going: &[(String, String)]) -> Option<(String, u
 }
 
 pub fn relinked(body: &str, from: &str, to: &str) -> Option<(String, usize)> {
+    let code = crate::beside::written_as_code(body);
     let mut out = String::with_capacity(body.len());
-    let mut rest = body;
+    let mut last = 0;
     let mut changed = 0;
-    while let Some(at) = rest.find(from) {
-        let before = rest[..at].chars().next_back();
-        let after = &rest[at + from.len()..];
-        out.push_str(&rest[..at]);
-        if before.is_none_or(|one| !in_a_name(one)) && ends_a_name(after) {
+    for (at, _) in body.match_indices(from) {
+        let named = !code.get(at).copied().unwrap_or(false)
+            && body[..at]
+                .chars()
+                .next_back()
+                .is_none_or(|one| !in_a_name(one))
+            && ends_a_name(&body[at + from.len()..])
+            && a_link_leads_to(&body[..at]);
+        if named {
+            out.push_str(&body[last..at]);
             out.push_str(to);
+            last = at + from.len();
             changed += 1;
-        } else {
-            out.push_str(from);
         }
-        rest = after;
     }
-    out.push_str(rest);
+    out.push_str(&body[last..]);
     (changed > 0).then_some((out, changed))
+}
+
+// Only a link's target is a name to change, never the same words said in a sentence.
+fn a_link_leads_to(before: &str) -> bool {
+    let mut lead = before;
+    if let Some(cut) = lead.rfind(crate::attach::SHED) {
+        let path = &lead[cut + crate::attach::SHED.len()..];
+        if path.starts_with('/')
+            && !path.contains(char::is_whitespace)
+            && path.matches('/').count() <= 2
+        {
+            lead = &lead[..cut];
+        }
+    }
+    lead.ends_with(['(', '<', '"', '\'', '=']) || lead.trim_end_matches(' ').ends_with("]:")
 }
 
 fn in_a_name(one: char) -> bool {

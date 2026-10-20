@@ -73,7 +73,11 @@ export default function FreeUp({
     run("twins", asked, (done: Joined) => {
       tell({
         card: "twins",
-        text: fill("twinsJoined", weigh(done.freed), String(done.relinked)),
+        text: fill(
+          done.relinked === 1 ? "twinsJoinedOne" : "twinsJoined",
+          weigh(done.freed),
+          String(done.relinked),
+        ),
       });
       void checked().then(setAudit, () => undefined);
     });
@@ -84,11 +88,11 @@ export default function FreeUp({
   const [looks, setLooks] = useState(0);
   const keyOf = (one: Pair) => one.copies.map((copy) => copy.at).join("|");
   const shownTwins = (alike ?? []).filter((one) => !aside.includes(keyOf(one)));
-  // A spare nothing links to is already counted as loose, so only the linked ones add here.
+  // A copy nothing links to is already counted as loose, so only what loose leaves out adds here.
   const doubled = shownTwins.reduce((sum, one) => {
     const each = one.bytes / Math.max(one.copies.length - 1, 1);
-    const linked = one.copies.filter((copy) => copy.at !== one.stays && copy.links.length > 0);
-    return sum + each * linked.length;
+    const loose = one.copies.filter((copy) => copy.links.length === 0).length;
+    return sum + Math.max(one.bytes - each * loose, 0);
   }, 0);
   const total = (audit?.looseBytes ?? 0) + (state.freesSpace ? (unused?.bytes ?? 0) : 0) + doubled;
 

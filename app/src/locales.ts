@@ -1939,6 +1939,9 @@ const en = {
   twinsJoin: "Join",
   twinsLater: "Not now",
   twinsJoined: "Done: {name} freed, {other} links changed.",
+  twinsJoinedOne: "Done: {name} freed, 1 link changed.",
+  twinsTooLong:
+    "Pointing «{name}» at the copy that stays would make it longer than a task allows, so nothing was joined.",
   twinsLockedBy: "Can't join yet: «{name}» is locked or archived, so its links can't be changed.",
   twinsGone: "These copies changed since they were found. Look again.",
   twinsStill:
@@ -4106,6 +4109,9 @@ const es: Catalog = {
   twinsJoin: "Unir",
   twinsLater: "Ahora no",
   twinsJoined: "Listo: se liberaron {name} y cambiaron {other} enlaces.",
+  twinsJoinedOne: "Listo: se liberaron {name} y cambió 1 enlace.",
+  twinsTooLong:
+    "Apuntar «{name}» a la copia que se queda la dejaría más larga de lo que admite una tarea, así que no se unió nada.",
   twinsLockedBy:
     "Todavía no se puede unir: «{name}» está bloqueado o archivado, así que sus enlaces no se pueden cambiar.",
   twinsGone: "Estas copias cambiaron desde que se encontraron. Vuelve a buscar.",

@@ -47,14 +47,14 @@ fn every_form_of_a_link_is_pointed_at_the_copy_that_stays() {
     let to = "playa-a42d4603.png";
     let body = format!(
         "![a]({from}) ![b](<{from}>) [c](attachments/{from}?x=1)\n\
-         [d]: attachments/b7/{from}\n<img src=\"{from}\"> el archivo {from}."
+         [d]: attachments/b7/{from}\n<img src=\"{from}\"> el archivo {from}. `{from}`"
     );
 
     let (now, moved) = relinked(&body, from, to).unwrap();
 
-    assert_eq!(moved, 6);
-    assert!(!now.contains(from), "{now}");
-    assert_eq!(now.matches(to).count(), 6, "{now}");
+    assert_eq!(moved, 5, "the sentence and the code keep their words");
+    assert_eq!(now.matches(to).count(), 5, "{now}");
+    assert_eq!(now.matches(from).count(), 2, "{now}");
     assert!(now.contains(&format!("attachments/b7/{to}")));
     assert!(now.contains(&format!("(<{to}>)")));
     assert!(now.contains(&format!("{to}?x=1")));
@@ -97,4 +97,14 @@ fn several_copies_that_go_are_pointed_at_the_one_that_stays_and_counted() {
 
     assert_eq!(moved, 3);
     assert_eq!(now.matches("playa-a42d4603.png").count(), 3);
+}
+
+#[test]
+fn a_name_glued_to_another_is_never_taken_for_a_link() {
+    let from = "abc12345.png";
+
+    assert_eq!(
+        relinked(&format!("![a](x{from}{from})"), from, "otra-abc12345.png"),
+        None
+    );
 }

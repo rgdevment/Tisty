@@ -95,6 +95,7 @@ const KNOWN = [
   "twinsGone",
   "twinsLocked",
   "twinsStill",
+  "twinsTooLong",
   "forgetUntold",
   "keysTaken",
   "keysUnknown",
