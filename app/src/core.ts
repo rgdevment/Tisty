@@ -571,9 +571,27 @@ export interface Astray {
   shared?: boolean;
 }
 
-export interface Twins {
+export interface Linked {
+  kind: "doc" | "task";
+  id: string;
+  title: string;
+}
+
+export interface Twin {
+  at: string;
+  links: Linked[];
+  locked?: string | null;
+}
+
+export interface Pair {
   bytes: number;
-  at: string[];
+  stays: string;
+  copies: Twin[];
+}
+
+export interface Joined {
+  freed: number;
+  relinked: number;
 }
 
 export interface Machine {
@@ -790,7 +808,9 @@ export const keepReport = (at: string, text: string, logs: boolean): Promise<voi
   invoke("keep_report", { at, text, logs });
 export const rebuild = (): Promise<void> => invoke("rebuild");
 export const checked = (): Promise<Reviewed> => invoke("checked");
-export const twinned = (): Promise<Twins[]> => invoke("twinned");
+export const twinned = (): Promise<Pair[]> => invoke("twinned");
+export const twinsJoin = (keep: string, go: string[]): Promise<Joined> =>
+  invoke("twins_join", { keep, go });
 export const syncState = (): Promise<Carrying> =>
   invoke<Carrying>("sync_state").then((state) => {
     speakOf(state?.cloudProvider);

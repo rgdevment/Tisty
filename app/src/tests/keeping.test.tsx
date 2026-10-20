@@ -1518,7 +1518,14 @@ describe("the maintenance panel", () => {
         ? Promise.resolve([
             {
               bytes: 300_000,
-              at: ["attachments/ab/charla-a3f9.mp4", "attachments/ab/video-a3f9.mp4"],
+              stays: "attachments/charla-a3f9.mp4",
+              copies: [
+                { at: "attachments/charla-a3f9.mp4", links: [] },
+                {
+                  at: "attachments/video-a3f9.mp4",
+                  links: [{ kind: "doc", id: "a3f1-0001", title: "Demo" }],
+                },
+              ],
             },
           ])
         : otherwise(cmd, args);
@@ -1537,8 +1544,49 @@ describe("the maintenance panel", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /^see which$/i }));
 
-    expect(await screen.findByText("ab/video-a3f9.mp4")).toBeTruthy();
-    expect(screen.getByText(/does not choose which|no elige cuál/i)).toBeTruthy();
+    expect(await screen.findByText("video-a3f9.mp4")).toBeTruthy();
+    expect(screen.getByText(/proposes which copy stays/i)).toBeTruthy();
+    expect(screen.getByText("Stays")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Demo" })).toBeTruthy();
+  });
+
+  it("joins the copies into the one chosen to stay and says what was freed", async () => {
+    const otherwise = ipc.answer;
+    ipc.answer = (cmd, args) => {
+      if (cmd === "twinned")
+        return Promise.resolve([
+          {
+            bytes: 300_000,
+            stays: "attachments/charla-a3f9.mp4",
+            copies: [
+              { at: "attachments/charla-a3f9.mp4", links: [] },
+              { at: "attachments/video-a3f9.mp4", links: [] },
+            ],
+          },
+        ]);
+      if (cmd === "twins_join") return Promise.resolve({ freed: 300_000, relinked: 2 });
+      return otherwise(cmd, args);
+    };
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
+    await upkeep();
+    await userEvent.click(screen.getByRole("button", { name: /^see which$/i }));
+
+    await userEvent.click(await screen.findByRole("button", { name: "Keep this one" }));
+    await userEvent.click(screen.getByRole("button", { name: "Join" }));
+
+    expect(sent("twins_join")[0].args).toEqual({
+      keep: "attachments/video-a3f9.mp4",
+      go: ["attachments/charla-a3f9.mp4"],
+    });
+    expect(await screen.findByText(/2 links changed/)).toBeTruthy();
   });
 
   it("says nothing is kept twice when nothing is", async () => {

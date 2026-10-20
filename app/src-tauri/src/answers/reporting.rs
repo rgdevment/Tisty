@@ -20,14 +20,6 @@ pub fn rebuild(session: tauri::State<'_, Mutex<Session>>) -> Answer<()> {
 }
 
 #[tauri::command(async)]
-pub fn twinned(
-    session: tauri::State<'_, Mutex<Session>>,
-) -> Answer<Vec<tisty_core::attach::Twins>> {
-    let data = held(&session).paths.data().to_path_buf();
-    Ok(tisty_core::attach::twins(&data))
-}
-
-#[tauri::command(async)]
 pub fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
     let mut session = held(&session);
     let _ = session.reload();

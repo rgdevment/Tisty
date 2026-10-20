@@ -261,12 +261,20 @@ fn ledger(root: &Path) -> PathBuf {
     root.join("attachments.jsonl")
 }
 
+// A copy let go of outside a join keeps its line, so the one still here is named first.
 fn listed(root: &Path, sha256: &str) -> Option<String> {
     let text = std::fs::read_to_string(ledger(root)).ok()?;
-    text.lines()
+    let named: Vec<String> = text
+        .lines()
         .filter_map(|line| serde_json::from_str::<Noted>(line).ok())
-        .find(|one| one.sha256 == sha256)
+        .filter(|one| one.sha256 == sha256)
         .map(|one| canonical(&one.at).unwrap_or(one.at))
+        .collect();
+    named
+        .iter()
+        .find(|at| resolve(at, root).is_ok_and(|held| held.is_file()))
+        .or(named.first())
+        .cloned()
 }
 
 pub fn digests(root: &Path) -> std::collections::BTreeMap<String, (String, u64)> {
@@ -374,6 +382,63 @@ fn note(root: &Path, kept: &Kept) {
     if listed(root, &kept.sha256).is_some() {
         return;
     }
+    noted_line(root, kept);
+}
+
+/// Read from the files themselves, never the ledger: the bytes may have changed under the same size.
+pub fn same_bytes(root: &Path, all: &[String]) -> Result<Option<(String, u64)>> {
+    let mut seen: Option<(String, u64)> = None;
+    for at in all {
+        let one = hashed(&resolve(at, root)?)?;
+        match &seen {
+            Some(first) if *first != one => return Ok(None),
+            Some(_) => {}
+            None => seen = Some(one),
+        }
+    }
+    Ok(seen)
+}
+
+/// Lines naming a copy that went are dropped, so the same bytes kept again can only land on the one that stays.
+pub fn joined_in_ledger(
+    root: &Path,
+    keep: &str,
+    go: &[String],
+    sha256: &str,
+    bytes: u64,
+) -> Result<()> {
+    let keep = canonical(keep).ok_or_else(|| Error::OutsideTheStore(keep.to_string()))?;
+    let at = ledger(root);
+    let text = std::fs::read_to_string(&at).unwrap_or_default();
+    let left: String = text
+        .lines()
+        .filter(|line| {
+            serde_json::from_str::<Noted>(line)
+                .map(|one| !go.contains(&canonical(&one.at).unwrap_or(one.at)))
+                .unwrap_or(true)
+        })
+        .map(|line| format!("{line}\n"))
+        .collect();
+    if left != text {
+        crate::store::write_atomic(&at, left.as_bytes())?;
+    }
+    if digests(root)
+        .get(&keep)
+        .is_none_or(|(sha, _)| sha != sha256)
+    {
+        noted_line(
+            root,
+            &Kept {
+                at: keep,
+                sha256: sha256.to_string(),
+                bytes,
+            },
+        );
+    }
+    Ok(())
+}
+
+fn noted_line(root: &Path, kept: &Kept) {
     let line = match serde_json::to_string(&Noted {
         at: kept.at.clone(),
         sha256: kept.sha256.clone(),

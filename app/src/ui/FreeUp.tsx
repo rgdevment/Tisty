@@ -5,12 +5,14 @@ import {
   type Carrying,
   checked,
   type Freeing,
+  type Joined,
+  type Pair,
   type Reviewed,
   retireAttachment,
   retireAttachments,
   revealed,
-  type Twins,
   twinned,
+  twinsJoin,
   type Unused,
 } from "../core";
 import { weigh } from "../format";
@@ -21,6 +23,7 @@ import { type Run, type Which, type Word, working } from "./Card";
 import FreeSpace from "./FreeSpace";
 import { hushed } from "./Keys";
 import { Band, dated, Line, mild, risky } from "./Rows";
+import Twins from "./Twins";
 
 interface Props {
   audit: Reviewed | null;
@@ -38,6 +41,7 @@ interface Props {
   run: Run;
   tell: (word?: Word) => void;
   fail: (word?: Word) => void;
+  onDoc?: (paper: string) => void;
 }
 
 export default function FreeUp({
@@ -56,12 +60,44 @@ export default function FreeUp({
   run,
   tell,
   fail,
+  onDoc,
 }: Props) {
   const held = busy !== null;
-  const [alike, setAlike] = useState<Twins[] | null>(null);
+  const [alike, setAlike] = useState<Pair[] | null>(null);
+
+  const join = (keep: string, go: string[]) => {
+    setJoining(true);
+    const asked = twinsJoin(keep, go).then((done) => {
+      setAlike((was) => was?.filter((one) => !one.copies.some((copy) => copy.at === keep)) ?? null);
+      return done;
+    });
+    void asked.finally(() => setJoining(false)).catch(() => undefined);
+    run("twins", asked, (done: Joined) => {
+      tell({
+        card: "twins",
+        text: fill(
+          done.relinked === 1 ? "twinsJoinedOne" : "twinsJoined",
+          weigh(done.freed),
+          String(done.relinked),
+        ),
+      });
+      void checked().then(setAudit, () => undefined);
+    });
+  };
   const [unused, setUnused] = useState<Unused | null>(null);
   const loose = audit?.loose ?? 0;
-  const total = (audit?.looseBytes ?? 0) + (state.freesSpace ? (unused?.bytes ?? 0) : 0);
+  const [aside, setAside] = useState<string[]>([]);
+  const [looks, setLooks] = useState(0);
+  const [joining, setJoining] = useState(false);
+  const keyOf = (one: Pair) => one.copies.map((copy) => copy.at).join("|");
+  const shownTwins = (alike ?? []).filter((one) => !aside.includes(keyOf(one)));
+  // A copy nothing links to is already counted as loose, so only what loose leaves out adds here.
+  const doubled = shownTwins.reduce((sum, one) => {
+    const each = one.bytes / Math.max(one.copies.length - 1, 1);
+    const counted = audit ? one.copies.filter((copy) => copy.links.length === 0).length : 0;
+    return sum + Math.max(one.bytes - each * counted, 0);
+  }, 0);
+  const total = (audit?.looseBytes ?? 0) + (state.freesSpace ? (unused?.bytes ?? 0) : 0) + doubled;
 
   const letGo = (one: Astray) => {
     if (held) return;
@@ -182,19 +218,16 @@ export default function FreeUp({
                   <p className="mt-2 text-[12.5px] text-faint">{t("twinsNone")}</p>
                 )}
                 {alike.length > 0 && (
-                  <ul className="scroller mt-2 flex max-h-[22rem] flex-col gap-2 overflow-y-auto text-[12.5px]">
-                    {alike.map((one) => (
-                      <li key={one.at.join("|")}>
-                        <span className="tabular-nums text-faint">{weigh(one.bytes)}</span>
-                        {one.at.map((named) => (
-                          <span
-                            key={named}
-                            className="block font-mono text-[11.5px] break-all text-soft"
-                          >
-                            {named.replace("attachments/", "")}
-                          </span>
-                        ))}
-                      </li>
+                  <ul className="scroller mt-2 flex max-h-[32rem] flex-col gap-4 overflow-y-auto">
+                    {shownTwins.map((one) => (
+                      <Twins
+                        key={`${looks}:${keyOf(one)}`}
+                        pair={one}
+                        busy={held}
+                        onJoin={join}
+                        onLater={() => setAside((was) => [...was, keyOf(one)])}
+                        onDoc={onDoc}
+                      />
                     ))}
                   </ul>
                 )}
@@ -205,10 +238,16 @@ export default function FreeUp({
           <button
             type="button"
             disabled={held}
-            onClick={() => run("twins", twinned(), setAlike)}
+            onClick={() =>
+              run("twins", twinned(), (found: Pair[]) => {
+                setAside([]);
+                setLooks((was) => was + 1);
+                setAlike(found);
+              })
+            }
             className={mild}
           >
-            {busy === "twins"
+            {busy === "twins" && !joining
               ? working("twinsLooking", secs)
               : t(alike ? "twinsAgain" : "twinsRun")}
           </button>

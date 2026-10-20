@@ -39,6 +39,7 @@ interface Props {
   tell: (word?: Word) => void;
   fail: (word?: Word) => void;
   onSync: () => void;
+  onDoc?: (paper: string) => void;
   seen: Seen | null;
   setSeen: (seen: Seen) => void;
 }
@@ -86,6 +87,7 @@ export default function Upkeep({
   tell,
   fail,
   onSync,
+  onDoc,
   seen,
   setSeen,
 }: Props) {
@@ -178,6 +180,7 @@ export default function Upkeep({
         setFreeing={setFreeing}
         days={freeDays}
         setDays={setFreeDays}
+        onDoc={onDoc}
         {...shown}
       />
 

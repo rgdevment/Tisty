@@ -1576,3 +1576,63 @@ fn a_hex_word_that_is_not_the_stamp_stays_in_the_name() {
         "build-deadbeef-c471259d.png"
     );
 }
+
+#[test]
+fn keeping_bytes_whose_first_ledger_name_was_let_go_lands_on_the_copy_still_here() {
+    let root = tempfile::tempdir().unwrap();
+    let outside = tempfile::tempdir().unwrap();
+    let source = outside.path().join("demo.mp4");
+    std::fs::write(&source, b"the same video").unwrap();
+    let first = keep(&source, root.path(), u64::MAX).unwrap();
+    let shed = root.path().join("attachments");
+    let other = format!("otra-{}", first.at.rsplit('-').next().unwrap());
+    std::fs::copy(
+        shed.join(first.at.trim_start_matches("attachments/")),
+        shed.join(&other),
+    )
+    .unwrap();
+    let mut ledger = std::fs::OpenOptions::new()
+        .append(true)
+        .open(root.path().join("attachments.jsonl"))
+        .unwrap();
+    use std::io::Write;
+    writeln!(
+        ledger,
+        "{}",
+        serde_json::json!({ "at": format!("attachments/{other}"), "sha256": first.sha256, "bytes": first.bytes })
+    )
+    .unwrap();
+    std::fs::remove_file(shed.join(first.at.trim_start_matches("attachments/"))).unwrap();
+
+    let again = keep(&source, root.path(), u64::MAX).unwrap();
+
+    assert_eq!(again.at, format!("attachments/{other}"));
+    assert!(
+        !shed
+            .join(first.at.trim_start_matches("attachments/"))
+            .exists()
+    );
+}
+
+#[test]
+fn after_a_join_the_same_bytes_land_on_the_copy_that_stayed_even_with_neither_here() {
+    let root = tempfile::tempdir().unwrap();
+    let outside = tempfile::tempdir().unwrap();
+    let source = outside.path().join("demo.mp4");
+    std::fs::write(&source, b"the same video").unwrap();
+    let first = keep(&source, root.path(), u64::MAX).unwrap();
+    let stays = format!("attachments/otra-{}", first.at.rsplit('-').next().unwrap());
+
+    joined_in_ledger(
+        root.path(),
+        &stays,
+        std::slice::from_ref(&first.at),
+        &first.sha256,
+        first.bytes,
+    )
+    .unwrap();
+    std::fs::remove_file(root.path().join(&first.at)).unwrap();
+    let again = keep(&source, root.path(), u64::MAX).unwrap();
+
+    assert_eq!(again.at, stays);
+}
