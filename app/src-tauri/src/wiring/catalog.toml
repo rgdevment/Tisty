@@ -1,0 +1,273 @@
+# Where each assistant keeps its MCP servers and how it wants Tisty written.
+# Paths start with a root: ~ (home), appdata: and localappdata: (Windows), support: (macOS
+# Application Support), config: (~/.config, or $XDG_CONFIG_HOME), store:<prefix>: (a Windows Store
+# package's private roaming folder). Read with the docs of each assistant, October 2026.
+
+[[client]]
+id = "claude-code"
+name = "Claude Code"
+shape = "stdio"
+key = "mcpServers"
+everywhere = ["~/.claude.json"]
+bins = ["claude"]
+dirs = ["~/.claude"]
+cli = "claude mcp add --scope user tisty -- {command} mcp"
+
+[[client]]
+id = "claude-desktop"
+name = "Claude Desktop"
+shape = "plain"
+key = "mcpServers"
+windows = ["store:Claude_:Claude/claude_desktop_config.json", "appdata:Claude/claude_desktop_config.json"]
+macos = ["support:Claude/claude_desktop_config.json"]
+linux = ["config:Claude/claude_desktop_config.json"]
+apps = ["localappdata:AnthropicClaude/claude.exe", "/Applications/Claude.app"]
+dirs = ["store:Claude_:Claude", "appdata:Claude", "support:Claude"]
+
+[[client]]
+id = "codex"
+name = "Codex"
+also = "ChatGPT, Warp"
+shape = "toml"
+key = "mcp_servers"
+everywhere = ["~/.codex/config.toml"]
+bins = ["codex"]
+dirs = ["~/.codex"]
+cli = "codex mcp add tisty -- {command} mcp"
+
+[[client]]
+id = "copilot"
+name = "GitHub Copilot CLI"
+also = "VS Code"
+shape = "copilot"
+key = "mcpServers"
+everywhere = ["~/.copilot/mcp-config.json"]
+bins = ["copilot"]
+dirs = ["~/.copilot"]
+cli = "copilot mcp add tisty -- {command} mcp"
+
+[[client]]
+id = "vscode"
+name = "Visual Studio Code"
+shape = "stdio"
+key = "servers"
+windows = ["appdata:Code/User/mcp.json"]
+macos = ["support:Code/User/mcp.json"]
+linux = ["config:Code/User/mcp.json"]
+bins = ["code"]
+apps = ["localappdata:Programs/Microsoft VS Code/Code.exe", "/Applications/Visual Studio Code.app"]
+dirs = ["appdata:Code/User", "support:Code/User", "config:Code/User"]
+
+[[client]]
+id = "cursor"
+name = "Cursor"
+shape = "plain"
+key = "mcpServers"
+everywhere = ["~/.cursor/mcp.json"]
+bins = ["cursor"]
+apps = ["localappdata:Programs/cursor/Cursor.exe", "/Applications/Cursor.app"]
+dirs = ["~/.cursor"]
+
+[[client]]
+id = "devin"
+name = "Devin Desktop"
+shape = "plain"
+key = "mcpServers"
+windows = ["appdata:devin/mcp_config.json"]
+macos = ["config:devin/mcp_config.json"]
+linux = ["config:devin/mcp_config.json"]
+apps = ["localappdata:Programs/Devin/Devin.exe", "/Applications/Devin.app"]
+dirs = ["appdata:devin", "config:devin"]
+
+[[client]]
+id = "windsurf"
+name = "Windsurf"
+shape = "plain"
+key = "mcpServers"
+everywhere = ["~/.codeium/windsurf/mcp_config.json"]
+bins = ["windsurf"]
+apps = ["localappdata:Programs/Windsurf/Windsurf.exe", "/Applications/Windsurf.app"]
+dirs = ["~/.codeium/windsurf"]
+
+[[client]]
+id = "antigravity"
+name = "Antigravity"
+shape = "plain"
+key = "mcpServers"
+everywhere = ["~/.gemini/config/mcp_config.json"]
+bins = ["antigravity"]
+apps = ["localappdata:Programs/Antigravity/Antigravity.exe", "/Applications/Antigravity.app"]
+dirs = ["~/.gemini/config", "appdata:Antigravity", "support:Antigravity"]
+
+[[client]]
+id = "gemini-cli"
+name = "Gemini CLI"
+shape = "plain"
+key = "mcpServers"
+everywhere = ["~/.gemini/settings.json"]
+bins = ["gemini"]
+cli = "gemini mcp add -s user tisty {command} mcp"
+
+[[client]]
+id = "qwen"
+name = "Qwen Code"
+shape = "plain"
+key = "mcpServers"
+everywhere = ["~/.qwen/settings.json"]
+bins = ["qwen"]
+dirs = ["~/.qwen"]
+cli = "qwen mcp add -s user tisty {command} mcp"
+
+[[client]]
+id = "opencode"
+name = "OpenCode"
+shape = "opencode"
+key = "mcp"
+everywhere = ["~/.config/opencode/opencode.json", "~/.config/opencode/opencode.jsonc"]
+bins = ["opencode"]
+dirs = ["~/.config/opencode"]
+
+[[client]]
+id = "kilo"
+name = "Kilo Code"
+shape = "opencode"
+key = "mcp"
+everywhere = ["~/.config/kilo/kilo.json", "~/.config/kilo/kilo.jsonc"]
+bins = ["kilo"]
+dirs = ["~/.config/kilo"]
+
+[[client]]
+id = "zed"
+name = "Zed"
+shape = "plain"
+key = "context_servers"
+windows = ["appdata:Zed/settings.json"]
+macos = ["config:zed/settings.json"]
+linux = ["config:zed/settings.json"]
+bins = ["zed"]
+apps = ["localappdata:Programs/Zed/Zed.exe", "/Applications/Zed.app"]
+
+[[client]]
+id = "junie"
+name = "Junie"
+shape = "plain"
+key = "mcpServers"
+everywhere = ["~/.junie/mcp/mcp.json"]
+bins = ["junie"]
+dirs = ["~/.junie"]
+
+[[client]]
+id = "kiro"
+name = "Kiro"
+shape = "plain"
+key = "mcpServers"
+everywhere = ["~/.kiro/settings/mcp.json"]
+bins = ["kiro", "kiro-cli"]
+apps = ["localappdata:Programs/Kiro/Kiro.exe", "/Applications/Kiro.app"]
+dirs = ["~/.kiro"]
+
+[[client]]
+id = "warp"
+name = "Warp"
+shape = "plain"
+key = "mcpServers"
+everywhere = ["~/.warp/.mcp.json"]
+apps = ["localappdata:Programs/Warp/warp.exe", "/Applications/Warp.app"]
+dirs = ["~/.warp"]
+
+[[client]]
+id = "lmstudio"
+name = "LM Studio"
+shape = "plain"
+key = "mcpServers"
+everywhere = ["~/.lmstudio/mcp.json"]
+bins = ["lms"]
+apps = ["localappdata:Programs/LM Studio/LM Studio.exe", "/Applications/LM Studio.app"]
+dirs = ["~/.lmstudio"]
+
+[[client]]
+id = "amp"
+name = "Amp"
+shape = "plain"
+key = "amp.mcpServers"
+windows = ["appdata:amp/settings.json"]
+macos = ["config:amp/settings.json"]
+linux = ["config:amp/settings.json"]
+bins = ["amp"]
+cli = "amp mcp add tisty -- {command} mcp"
+
+[[client]]
+id = "augment"
+name = "Augment"
+shape = "plain"
+key = "mcpServers"
+everywhere = ["~/.augment/settings.json"]
+bins = ["auggie"]
+dirs = ["~/.augment"]
+
+[[client]]
+id = "factory"
+name = "Factory Droid"
+shape = "stdio"
+key = "mcpServers"
+everywhere = ["~/.factory/mcp.json"]
+bins = ["droid"]
+dirs = ["~/.factory"]
+
+[[client]]
+id = "trae"
+name = "Trae"
+shape = "plain"
+key = "mcpServers"
+windows = ["appdata:Trae/User/mcp.json"]
+macos = ["support:Trae/User/mcp.json"]
+linux = ["config:Trae/User/mcp.json"]
+apps = ["localappdata:Programs/Trae/Trae.exe", "/Applications/Trae.app"]
+dirs = ["appdata:Trae", "support:Trae"]
+
+[[client]]
+id = "cline"
+name = "Cline"
+shape = "plain"
+key = "mcpServers"
+windows = ["appdata:Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json"]
+macos = ["support:Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json"]
+linux = ["config:Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json"]
+dirs = ["appdata:Code/User/globalStorage/saoudrizwan.claude-dev", "support:Code/User/globalStorage/saoudrizwan.claude-dev", "config:Code/User/globalStorage/saoudrizwan.claude-dev"]
+
+[[client]]
+id = "roo"
+name = "Roo Code"
+shape = "plain"
+key = "mcpServers"
+windows = ["appdata:Code/User/globalStorage/rooveterinaryinc.roo-cline/settings/mcp_settings.json"]
+macos = ["support:Code/User/globalStorage/rooveterinaryinc.roo-cline/settings/mcp_settings.json"]
+linux = ["config:Code/User/globalStorage/rooveterinaryinc.roo-cline/settings/mcp_settings.json"]
+dirs = ["appdata:Code/User/globalStorage/rooveterinaryinc.roo-cline", "support:Code/User/globalStorage/rooveterinaryinc.roo-cline", "config:Code/User/globalStorage/rooveterinaryinc.roo-cline"]
+
+[[client]]
+id = "boltai"
+name = "BoltAI"
+shape = "plain"
+key = "mcpServers"
+macos = ["~/.boltai/mcp.json"]
+apps = ["/Applications/BoltAI.app"]
+
+[[client]]
+id = "goose"
+name = "Goose"
+shape = "manual"
+key = "extensions"
+windows = ["appdata:Block/goose/config/config.yaml"]
+macos = ["config:goose/config.yaml"]
+linux = ["config:goose/config.yaml"]
+bins = ["goose"]
+dirs = ["appdata:Block/goose", "config:goose"]
+
+[[client]]
+id = "continue"
+name = "Continue"
+shape = "manual"
+key = "mcpServers"
+everywhere = ["~/.continue/config.yaml"]
+dirs = ["~/.continue"]
