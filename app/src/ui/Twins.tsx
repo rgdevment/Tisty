@@ -88,19 +88,19 @@ export default function Twins({
   pair,
   busy,
   onJoin,
+  onLater,
   onDoc,
 }: Readonly<{
   pair: Pair;
   busy: boolean;
   onJoin: (keep: string, go: string[]) => void;
+  onLater: () => void;
   onDoc?: (id: string) => void;
 }>) {
   const [stays, setStays] = useState(pair.stays);
-  const [later, setLater] = useState(false);
   const going = pair.copies.filter((one) => one.at !== stays);
   const locked = going.find((one) => one.locked)?.locked;
 
-  if (later) return null;
   return (
     <li className="flex flex-col gap-2">
       <span className="flex items-center gap-2 text-[12.5px]">
@@ -133,7 +133,7 @@ export default function Twins({
         >
           {t("twinsJoin")}
         </button>
-        <button type="button" disabled={busy} onClick={() => setLater(true)} className={mild}>
+        <button type="button" disabled={busy} onClick={onLater} className={mild}>
           {t("twinsLater")}
         </button>
       </span>

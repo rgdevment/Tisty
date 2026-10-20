@@ -50,8 +50,9 @@ fn every_form_of_a_link_is_pointed_at_the_copy_that_stays() {
          [d]: attachments/b7/{from}\n<img src=\"{from}\"> el archivo {from}."
     );
 
-    let now = relinked(&body, from, to).unwrap();
+    let (now, moved) = relinked(&body, from, to).unwrap();
 
+    assert_eq!(moved, 6);
     assert!(!now.contains(from), "{now}");
     assert_eq!(now.matches(to).count(), 6, "{now}");
     assert!(now.contains(&format!("attachments/b7/{to}")));
@@ -76,4 +77,24 @@ fn a_link_through_an_old_shelf_is_told_from_a_flat_one() {
         &format!("![a](attachments/{leaf}) ![b]({leaf})"),
         leaf
     ));
+}
+
+#[test]
+fn several_copies_that_go_are_pointed_at_the_one_that_stays_and_counted() {
+    let body = "![a](uno-a42d4603.png) ![b](dos-a42d4603.png) ![c](uno-a42d4603.png)";
+    let going = [
+        (
+            "uno-a42d4603.png".to_string(),
+            "playa-a42d4603.png".to_string(),
+        ),
+        (
+            "dos-a42d4603.png".to_string(),
+            "playa-a42d4603.png".to_string(),
+        ),
+    ];
+
+    let (now, moved) = relinked_all(body, &going).unwrap();
+
+    assert_eq!(moved, 3);
+    assert_eq!(now.matches("playa-a42d4603.png").count(), 3);
 }

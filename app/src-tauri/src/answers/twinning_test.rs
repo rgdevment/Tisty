@@ -42,7 +42,7 @@ fn with_twins() -> (tempfile::TempDir, Session, String, ulid::Ulid) {
 fn the_copy_with_a_readable_name_and_no_old_shelf_is_proposed_to_stay() {
     let (_kept, session, doc, task) = with_twins();
 
-    let pairs = seen(&session);
+    let pairs = seen(&session, tisty_core::attach::twins(session.paths.data()));
 
     assert_eq!(pairs.len(), 1);
     assert_eq!(pairs[0].stays, format!("attachments/{STAYS}"));
@@ -67,7 +67,10 @@ fn joining_points_every_link_at_the_copy_that_stays_and_bins_the_other() {
     )
     .unwrap();
 
-    assert_eq!(done.relinked, 2);
+    assert_eq!(
+        done.relinked, 2,
+        "one link in the document and one in the task"
+    );
     assert_eq!(done.freed, b"the same video".len() as u64);
     let body = tisty_core::docs::read(&session.paths.docs(), &doc).unwrap();
     assert!(body.contains(STAYS) && !body.contains(GOES), "{body}");

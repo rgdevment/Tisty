@@ -382,6 +382,28 @@ fn note(root: &Path, kept: &Kept) {
     if listed(root, &kept.sha256).is_some() {
         return;
     }
+    noted_line(root, kept);
+}
+
+/// The copy two became one in is named in the ledger, so the same bytes kept again land on it.
+pub fn stays_listed(root: &Path, at: &str) -> Result<()> {
+    let at = canonical(at).ok_or_else(|| Error::OutsideTheStore(at.to_string()))?;
+    let held = resolve(&at, root)?;
+    let kept = Kept {
+        sha256: fingerprint_of(&held)?,
+        bytes: std::fs::metadata(&held)?.len(),
+        at,
+    };
+    if digests(root)
+        .get(&kept.at)
+        .is_none_or(|(sha, _)| *sha != kept.sha256)
+    {
+        noted_line(root, &kept);
+    }
+    Ok(())
+}
+
+fn noted_line(root: &Path, kept: &Kept) {
     let line = match serde_json::to_string(&Noted {
         at: kept.at.clone(),
         sha256: kept.sha256.clone(),

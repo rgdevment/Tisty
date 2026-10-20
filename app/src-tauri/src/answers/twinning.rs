@@ -3,7 +3,7 @@ use std::sync::Mutex;
 
 use tisty_core::Op;
 use tisty_core::attach::{canonical, leaf_of};
-use tisty_core::joining::{Copy, keeper, relinked, shelved};
+use tisty_core::joining::{Copy, keeper, relinked_all, shelved};
 use tisty_core::witness::channel;
 
 use crate::{Answer, Refusal, Session, blamed, held};
@@ -21,7 +21,6 @@ pub struct Linked {
 pub struct Twin {
     at: String,
     links: Vec<Linked>,
-    /// A locked or archived document names it, so its links cannot be changed from here.
     locked: Option<String>,
 }
 
@@ -40,22 +39,20 @@ pub struct Joined {
     relinked: usize,
 }
 
+#[derive(Default)]
 struct Naming {
     links: Vec<Linked>,
     shelved: bool,
     locked: Option<String>,
 }
 
-// What names each attachment, read from every document and task body once.
 fn namings(session: &Session) -> BTreeMap<String, Naming> {
     let mut found: BTreeMap<String, Naming> = BTreeMap::new();
     let mut note = |at: String, linked: Linked, body: &str, locked: bool| {
-        let leaf = leaf_of(&at).unwrap_or_default().to_string();
-        let one = found.entry(at).or_insert(Naming {
-            links: Vec::new(),
-            shelved: false,
-            locked: None,
-        });
+        let Some(leaf) = leaf_of(&at).map(str::to_string) else {
+            return;
+        };
+        let one = found.entry(at).or_default();
         one.shelved |= shelved(body, &leaf);
         if locked && one.locked.is_none() {
             one.locked = Some(linked.title.clone());
@@ -80,13 +77,13 @@ fn namings(session: &Session) -> BTreeMap<String, Naming> {
         }
     }
     for task in session.state.tasks.values() {
-        let bodies: Vec<&str> = task
+        let whole: Vec<&str> = task
             .description
             .as_deref()
             .into_iter()
             .chain(task.log.iter().map(|entry| entry.body.as_str()))
             .collect();
-        let whole = bodies.join("\n");
+        let whole = whole.join("\n");
         for one in task.references() {
             let linked = Linked {
                 kind: "task",
@@ -99,8 +96,8 @@ fn namings(session: &Session) -> BTreeMap<String, Naming> {
     found
 }
 
-fn since(session: &Session, at: &str) -> i64 {
-    tisty_core::attach::resolve(at, session.paths.data())
+fn since(data: &std::path::Path, at: &str) -> i64 {
+    tisty_core::attach::resolve(at, data)
         .ok()
         .and_then(|held| std::fs::metadata(held).ok()?.modified().ok())
         .and_then(|when| when.duration_since(std::time::UNIX_EPOCH).ok())
@@ -109,12 +106,18 @@ fn since(session: &Session, at: &str) -> i64 {
 
 #[tauri::command(async)]
 pub fn twinned(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<Pair>> {
-    Ok(seen(&held(&session)))
+    let data = held(&session).paths.data().to_path_buf();
+    // Hashing goes on without the session, which is held only to read who links what.
+    let groups = tisty_core::attach::twins(&data);
+    if groups.is_empty() {
+        return Ok(Vec::new());
+    }
+    Ok(seen(&held(&session), groups))
 }
 
-fn seen(session: &Session) -> Vec<Pair> {
+fn seen(session: &Session, groups: Vec<tisty_core::attach::Twins>) -> Vec<Pair> {
     let named = namings(session);
-    let groups = tisty_core::attach::twins(session.paths.data());
+    let data = session.paths.data();
     groups
         .into_iter()
         .map(|group| {
@@ -125,13 +128,12 @@ fn seen(session: &Session) -> Vec<Pair> {
                     at: at.clone(),
                     links: named.get(at).map_or(0, |one| one.links.len()),
                     shelved: named.get(at).is_some_and(|one| one.shelved),
-                    since: since(session, at),
+                    since: since(data, at),
                 })
                 .collect();
-            let stays = group.at[keeper(&copies)].clone();
             Pair {
                 bytes: group.bytes,
-                stays,
+                stays: group.at[keeper(&copies)].clone(),
                 copies: group
                     .at
                     .iter()
@@ -149,38 +151,82 @@ fn seen(session: &Session) -> Vec<Pair> {
         .collect()
 }
 
-// The task bodies that name a copy going, each written again to name the one that stays.
-fn tasks_relinked(session: &Session, going: &[(String, String)]) -> Vec<Op> {
-    let swapped = |body: &str| {
-        let mut now: Option<String> = None;
-        for (from, to) in going {
-            if let Some(changed) = relinked(now.as_deref().unwrap_or(body), from, to) {
-                now = Some(changed);
-            }
-        }
-        now
+fn names_any(body: &str, going: &[String]) -> bool {
+    tisty_core::refs::extract(body)
+        .iter()
+        .any(|one| going.contains(&one.target))
+}
+
+struct Plan {
+    docs: Vec<(String, String)>,
+    ops: Vec<Op>,
+    links: usize,
+}
+
+// Rewritten in memory first, so nothing is written while any link to a going copy would be left.
+fn planned(session: &Session, go: &[String], going: &[(String, String)]) -> Answer<Plan> {
+    let root = session.paths.docs();
+    let mut plan = Plan {
+        docs: Vec::new(),
+        ops: Vec::new(),
+        links: 0,
     };
-    let mut ops = Vec::new();
+    for doc in tisty_core::docs::all(&root) {
+        let Ok(body) = tisty_core::docs::read(&root, &doc.id) else {
+            return Err(Refusal::about("retireUnread", doc.title));
+        };
+        let now = relinked_all(&body, going);
+        let after = now
+            .as_ref()
+            .map_or(body.as_str(), |(text, _)| text.as_str());
+        if names_any(after, go) {
+            return Err(Refusal::about("twinsStill", doc.title));
+        }
+        let Some((now, moved)) = now else {
+            continue;
+        };
+        if session.state.bolted(&doc.id) {
+            return Err(Refusal::about("twinsLocked", doc.title));
+        }
+        plan.links += moved;
+        plan.docs.push((doc.id, now));
+    }
     for task in session.state.tasks.values() {
-        if let Some(body) = task.description.as_deref().and_then(swapped) {
-            ops.push(Op::TaskDescribe {
-                id: task.id,
-                d: tisty_core::event::Body { body: Some(body) },
-            });
+        let mut left = false;
+        if let Some(body) = task.description.as_deref() {
+            match relinked_all(body, going) {
+                Some((now, moved)) => {
+                    left |= names_any(&now, go);
+                    plan.links += moved;
+                    plan.ops.push(Op::TaskDescribe {
+                        id: task.id,
+                        d: tisty_core::event::Body { body: Some(now) },
+                    });
+                }
+                None => left |= names_any(body, go),
+            }
         }
         for entry in &task.log {
-            if let Some(body) = swapped(&entry.body) {
-                ops.push(Op::TaskLogEdit {
-                    id: task.id,
-                    d: tisty_core::event::LogEdit {
-                        entry: entry.id,
-                        body,
-                    },
-                });
+            match relinked_all(&entry.body, going) {
+                Some((now, moved)) => {
+                    left |= names_any(&now, go);
+                    plan.links += moved;
+                    plan.ops.push(Op::TaskLogEdit {
+                        id: task.id,
+                        d: tisty_core::event::LogEdit {
+                            entry: entry.id,
+                            body: now,
+                        },
+                    });
+                }
+                None => left |= names_any(&entry.body, go),
             }
         }
+        if left {
+            return Err(Refusal::about("twinsStill", task.title.clone()));
+        }
     }
-    ops
+    Ok(plan)
 }
 
 #[tauri::command(async)]
@@ -211,30 +257,18 @@ fn joined(session: &mut Session, keep: String, go: Vec<String>) -> Answer<Joined
         .iter()
         .filter_map(|one| leaf_of(one).map(|from| (from.to_string(), to.clone())))
         .collect();
+    let plan = planned(session, &go, &going)?;
 
+    tisty_core::attach::stays_listed(session.paths.data(), &keep).map_err(|e| {
+        blamed(
+            channel::ATTACH,
+            "the copy that stays could not be named in the ledger",
+            e,
+        )
+    })?;
     let root = session.paths.docs();
-    let mut written = Vec::new();
-    for doc in tisty_core::docs::all(&root) {
-        let Ok(body) = tisty_core::docs::read(&root, &doc.id) else {
-            return Err(Refusal::about("retireUnread", doc.title));
-        };
-        let mut now: Option<String> = None;
-        for (from, to) in &going {
-            if let Some(changed) = relinked(now.as_deref().unwrap_or(&body), from, to) {
-                now = Some(changed);
-            }
-        }
-        let Some(now) = now else {
-            continue;
-        };
-        if session.state.bolted(&doc.id) {
-            return Err(Refusal::about("twinsLocked", doc.title));
-        }
-        written.push((doc.id, now));
-    }
-
     let hand = crate::signing(&session.state);
-    for (id, body) in &written {
+    for (id, body) in &plan.docs {
         tisty_core::docs::write(&root, id, body).map_err(|e| {
             blamed(
                 channel::ATTACH,
@@ -242,14 +276,12 @@ fn joined(session: &mut Session, keep: String, go: Vec<String>) -> Answer<Joined
                 e,
             )
         })?;
-        session.mind_body(id, &tisty_core::docs::settled(body));
+        // Left unminded, so an editor holding the old body is told the file moved under it.
         session.corpus.forget(id);
         session.retell(id, body, hand.clone());
     }
-    let ops = tasks_relinked(session, &going);
-    let relinked = written.len() + ops.len();
-    if !ops.is_empty() {
-        session.commit_all(ops).map_err(|e| {
+    if !plan.ops.is_empty() {
+        session.commit_all(plan.ops).map_err(|e| {
             blamed(
                 channel::ATTACH,
                 "the tasks could not be pointed at the copy that stays",
@@ -261,7 +293,7 @@ fn joined(session: &mut Session, keep: String, go: Vec<String>) -> Answer<Joined
     let each = group.bytes / (group.at.len() as u64 - 1).max(1);
     Ok(Joined {
         freed: each * gone as u64,
-        relinked,
+        relinked: plan.links,
     })
 }
 

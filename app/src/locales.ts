@@ -1941,6 +1941,8 @@ const en = {
   twinsJoined: "Done: {name} freed, {other} links changed.",
   twinsLockedBy: "Can't join yet: «{name}» is locked or archived, so its links can't be changed.",
   twinsGone: "These copies changed since they were found. Look again.",
+  twinsStill:
+    "«{name}» still names a copy that would go in a way Tisty can't change, so nothing was joined.",
   twinsLocked:
     "«{name}» is locked or archived, so its links can't be changed. Unlock it and try again.",
   looseShared: "in the shared folder",
@@ -4107,6 +4109,8 @@ const es: Catalog = {
   twinsLockedBy:
     "Todavía no se puede unir: «{name}» está bloqueado o archivado, así que sus enlaces no se pueden cambiar.",
   twinsGone: "Estas copias cambiaron desde que se encontraron. Vuelve a buscar.",
+  twinsStill:
+    "«{name}» todavía nombra una copia que se iría de una forma que Tisty no puede cambiar, así que no se unió nada.",
   twinsLocked:
     "«{name}» está bloqueado o archivado, así que sus enlaces no se pueden cambiar. Desbloquéalo y vuelve a intentarlo.",
   looseShared: "en la carpeta compartida",

@@ -80,7 +80,16 @@ export default function FreeUp({
   };
   const [unused, setUnused] = useState<Unused | null>(null);
   const loose = audit?.loose ?? 0;
-  const doubled = (alike ?? []).reduce((sum, one) => sum + one.bytes, 0);
+  const [aside, setAside] = useState<string[]>([]);
+  const [looks, setLooks] = useState(0);
+  const keyOf = (one: Pair) => one.copies.map((copy) => copy.at).join("|");
+  const shownTwins = (alike ?? []).filter((one) => !aside.includes(keyOf(one)));
+  // A spare nothing links to is already counted as loose, so only the linked ones add here.
+  const doubled = shownTwins.reduce((sum, one) => {
+    const each = one.bytes / Math.max(one.copies.length - 1, 1);
+    const linked = one.copies.filter((copy) => copy.at !== one.stays && copy.links.length > 0);
+    return sum + each * linked.length;
+  }, 0);
   const total = (audit?.looseBytes ?? 0) + (state.freesSpace ? (unused?.bytes ?? 0) : 0) + doubled;
 
   const letGo = (one: Astray) => {
@@ -203,12 +212,13 @@ export default function FreeUp({
                 )}
                 {alike.length > 0 && (
                   <ul className="scroller mt-2 flex max-h-[32rem] flex-col gap-4 overflow-y-auto">
-                    {alike.map((one) => (
+                    {shownTwins.map((one) => (
                       <Twins
-                        key={one.copies.map((copy) => copy.at).join("|")}
+                        key={`${looks}:${keyOf(one)}`}
                         pair={one}
                         busy={held}
                         onJoin={join}
+                        onLater={() => setAside((was) => [...was, keyOf(one)])}
                         onDoc={onDoc}
                       />
                     ))}
@@ -221,7 +231,13 @@ export default function FreeUp({
           <button
             type="button"
             disabled={held}
-            onClick={() => run("twins", twinned(), setAlike)}
+            onClick={() =>
+              run("twins", twinned(), (found: Pair[]) => {
+                setAside([]);
+                setLooks((was) => was + 1);
+                setAlike(found);
+              })
+            }
             className={mild}
           >
             {busy === "twins"

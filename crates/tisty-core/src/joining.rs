@@ -1,6 +1,5 @@
 use crate::attach::{leaf_of, lower_hex, stamped_by};
 
-/// One copy of an attachment kept twice, as the person is shown it before the two become one.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Copy {
     pub at: String,
@@ -9,8 +8,6 @@ pub struct Copy {
     pub since: i64,
 }
 
-/// The copy that stays, best first: no link through an old shelf, a readable name, the most links,
-/// the oldest.
 pub fn keeper(copies: &[Copy]) -> usize {
     (0..copies.len())
         .min_by_key(|&one| {
@@ -44,26 +41,37 @@ fn repeats_stamp(leaf: &str) -> bool {
     parts(leaf).filter(|part| *part == stamp).count() > 1
 }
 
-/// The body with every link to `from` pointing at `to` instead, in whatever form it was written;
-/// `None` when nothing in it names `from`.
-pub fn relinked(body: &str, from: &str, to: &str) -> Option<String> {
+/// Every copy that goes, named in the body, pointed at the one that stays, with how many links moved.
+pub fn relinked_all(body: &str, going: &[(String, String)]) -> Option<(String, usize)> {
+    let mut now: Option<(String, usize)> = None;
+    for (from, to) in going {
+        let was = now.as_ref().map_or(body, |(text, _)| text.as_str());
+        if let Some((changed, moved)) = relinked(was, from, to) {
+            let before = now.map_or(0, |(_, count)| count);
+            now = Some((changed, before + moved));
+        }
+    }
+    now
+}
+
+pub fn relinked(body: &str, from: &str, to: &str) -> Option<(String, usize)> {
     let mut out = String::with_capacity(body.len());
     let mut rest = body;
-    let mut changed = false;
+    let mut changed = 0;
     while let Some(at) = rest.find(from) {
         let before = rest[..at].chars().next_back();
         let after = &rest[at + from.len()..];
         out.push_str(&rest[..at]);
         if before.is_none_or(|one| !in_a_name(one)) && ends_a_name(after) {
             out.push_str(to);
-            changed = true;
+            changed += 1;
         } else {
             out.push_str(from);
         }
         rest = after;
     }
     out.push_str(rest);
-    changed.then_some(out)
+    (changed > 0).then_some((out, changed))
 }
 
 fn in_a_name(one: char) -> bool {
@@ -80,7 +88,6 @@ fn ends_a_name(after: &str) -> bool {
     }
 }
 
-/// Whether the body reaches `leaf` through an old shelf, `attachments/xx/<leaf>`.
 pub fn shelved(body: &str, leaf: &str) -> bool {
     let tail = format!("/{leaf}");
     body.match_indices(&tail).any(|(at, _)| {
