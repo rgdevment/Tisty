@@ -842,6 +842,12 @@ impl Carrier for Cloud {
         }
     }
 
+    fn only_word_left(&self) -> bool {
+        self.remote.list("").is_ok_and(|all| {
+            !all.is_empty() && all.iter().all(|one| one.name == tisty_core::moved::NAMED)
+        })
+    }
+
     // Read after a pull, so a machine stops before the round that would write there alone.
     fn word_left(&self) -> Option<String> {
         std::fs::read_to_string(self.looked_again().join(tisty_core::moved::NAMED)).ok()

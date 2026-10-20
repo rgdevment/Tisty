@@ -498,7 +498,10 @@ impl tisty_carrier::Carrier for Refusing {
             .store(self.owed_at.is_file(), std::sync::atomic::Ordering::Relaxed);
         Err(self.said.clone())
     }
-    fn wipe(&self) -> Result<usize, tisty_carrier::Trouble> {
+    fn wipe_along(
+        &self,
+        _along: &mut dyn FnMut(usize, usize),
+    ) -> Result<usize, tisty_carrier::Trouble> {
         self.wiping.clone()
     }
 }

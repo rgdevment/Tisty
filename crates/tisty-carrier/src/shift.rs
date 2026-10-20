@@ -85,7 +85,7 @@ pub fn shift(
             },
         );
         // Emptied once everyone had left, only the word stays there: nothing is left to bring.
-        let emptied = matches!(brought, Err(Trouble::Unshaped(_))) && from.word_left().is_some();
+        let emptied = matches!(brought, Err(Trouble::Unshaped(_))) && from.only_word_left();
         if !emptied {
             let Some(moved) = settled(brought?)? else {
                 return Ok(Shift::Unsettled);

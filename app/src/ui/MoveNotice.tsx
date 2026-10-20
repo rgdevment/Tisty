@@ -1,9 +1,14 @@
-import { t } from "../locales";
+import { type Erasing, useErasing } from "../erasing";
+import { filled, t } from "../locales";
 import { dismissMove, type Run, useMove } from "../relocation";
 import { alongSaid, doneSaid, pauseSaid, sayFor, useTicking, waitingSaid } from "./RelocatingSteps";
 
-const said = (run: Run): string => {
+const said = (run: Run, erasing: Erasing | null): string => {
   if (run.failed) return t("moveStopped");
+  if (erasing?.going)
+    return erasing.erased?.of
+      ? filled(t("moveErasingAlong"), String(erasing.erased.gone), String(erasing.erased.of))
+      : t("moveErasingStill");
   if (run.going) return alongSaid(run) ?? t("moveMoving");
   const paused = pauseSaid(run);
   if (paused) return paused;
@@ -14,6 +19,7 @@ const said = (run: Run): string => {
 
 export default function MoveNotice({ onOpen }: { onOpen: () => void }) {
   const run = useMove();
+  const erasing = useErasing();
   useTicking(run?.pausedUntil !== undefined);
   if (!run || run.watched) return null;
   const done = run.result?.state === "done" && !run.going;
@@ -36,7 +42,7 @@ export default function MoveNotice({ onOpen }: { onOpen: () => void }) {
           failed ? "text-urgent" : done || waiting ? "text-ink" : "text-soft"
         }`}
       >
-        {said(run)}
+        {said(run, erasing)}
       </span>
       <button
         type="button"

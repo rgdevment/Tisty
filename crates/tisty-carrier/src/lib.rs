@@ -137,6 +137,10 @@ pub trait Carrier: Send + std::marker::Sync {
     fn word_left(&self) -> Option<String> {
         None
     }
+    /// Asked of the place itself: nothing is left there but the word that everyone moved on.
+    fn only_word_left(&self) -> bool {
+        false
+    }
     fn forget_word(&self) -> Result<(), Trouble> {
         Ok(())
     }
@@ -149,6 +153,7 @@ pub trait Carrier: Send + std::marker::Sync {
         self.place()
             .is_some_and(|dest| tisty_core::store::inhabited(dest.join(STORE)))
     }
+    /// Never overridden: a carrier that empties itself does so in `wipe_along`.
     fn wipe(&self) -> Result<usize, Trouble> {
         self.wipe_along(&mut |_, _| {})
     }

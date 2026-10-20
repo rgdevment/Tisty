@@ -1,15 +1,14 @@
-import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
 import { letGoUnused } from "../cloudState";
 import {
   type Carrying,
   cloudForget,
-  cloudWipe,
   type MovePlan,
   moveDropped,
   movePlan,
   type Toward,
 } from "../core";
+import { erase, forgetErasing, useErasing } from "../erasing";
 import { filled, said, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { dismissMove, endMove, startMove, underway, useMove, watchMove } from "../relocation";
@@ -18,7 +17,7 @@ import type { Heading } from "../views";
 import Clouding from "./Clouding";
 import Keepers from "./Keepers";
 import Modal from "./Modal";
-import { Done, type Erased, Pick, Plan, quiet, Underway, Waiting } from "./RelocatingSteps";
+import { Done, Pick, Plan, quiet, Underway, Waiting } from "./RelocatingSteps";
 
 interface Props {
   state: Carrying;
@@ -39,10 +38,9 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
   const [plan, setPlan] = useState<MovePlan>();
   const [agreed, setAgreed] = useState(false);
   const [trouble, setTrouble] = useState<string>();
-  const [wiped, setWiped] = useState<string>();
-  const [wiping, setWiping] = useState(false);
-  const [erased, setErased] = useState<Erased>();
-  const [busy, setBusy] = useState(false);
+  const erasing = useErasing();
+  const wiping = Boolean(erasing?.going);
+  const busy = wiping;
   const [deciding, setDeciding] = useState(false);
   const settled = useRef(false);
 
@@ -84,28 +82,40 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
   const leftCloud = done?.told ? done.leftCloud : undefined;
   const connectedHere = toward?.kind === "cloud" && !resume;
 
+  const from = leftCloud?.provider ?? "google";
+  const gone = erasing?.gone;
+  const wiped =
+    gone === undefined
+      ? undefined
+      : gone === 1
+        ? said("moveWipedOne", from)
+        : filled(said("moveWiped", from), String(gone));
+  // The erasing lets go of the old cloud itself once its copies are gone.
+  if (gone !== undefined) settled.current = true;
+
   useEffect(() => {
-    if (!wiping) return;
-    const off = listen<Erased>("wiping", (step) => setErased(step.payload));
-    return () => {
-      void off.then((stop) => stop());
-    };
-  }, [wiping]);
+    const failed = erasing?.failed;
+    if (failed === undefined) return;
+    setTrouble(
+      (failed as { code?: string })?.code === "wipeStopped"
+        ? said("wipeStopped", from)
+        : saidPlainly(failed),
+    );
+  }, [erasing?.failed, from]);
 
   const close = () => {
-    // The erasing goes on without the dialog, and lets go of the old cloud itself when it ends.
+    // The erasing goes on without the dialog, and the notice brings it back to see where it stands.
     if (wiping) {
-      endMove();
       onClose();
       return;
     }
-    if (busy) return;
     if (now && underway(now)) {
       onClose();
       return;
     }
     if (connectedHere && toward?.kind === "cloud" && !now) letGoUnused(toward);
     dismissMove(!settled.current);
+    forgetErasing();
     onClose();
   };
 
@@ -123,26 +133,9 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
   };
 
   const wipe = async () => {
-    const from = leftCloud?.provider ?? "google";
     if (!leftCloud || busy || !(await sure(said("moveWipeSure", from)))) return;
-    setBusy(true);
-    setWiping(true);
-    setErased(undefined);
     setTrouble(undefined);
-    cloudWipe(leftCloud.account, leftCloud.email, leftCloud.provider)
-      .then((gone) => {
-        settled.current = true;
-        setWiped(
-          gone === 1 ? said("moveWipedOne", from) : filled(said("moveWiped", from), String(gone)),
-        );
-      })
-      .catch((e) =>
-        setTrouble(e?.code === "wipeStopped" ? said("wipeStopped", from) : saidPlainly(e)),
-      )
-      .finally(() => {
-        setWiping(false);
-        setBusy(false);
-      });
+    erase(leftCloud.account, leftCloud.email, leftCloud.provider);
   };
 
   const keep = () => {
@@ -233,7 +226,7 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
           untold={done?.told === false}
           wiped={wiped}
           wiping={wiping}
-          erased={erased}
+          erased={erasing?.erased}
           offersWipe={Boolean(leftCloud)}
           wipeFrom={leftCloud?.provider}
           busy={busy}

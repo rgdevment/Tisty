@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Carrying, Cause, MovePlan, Moving, Toward, Weight } from "../core";
+import type { Erased } from "../erasing";
 import { goesOnAt, weigh } from "../format";
 import { cloudNamed, fill, filled, said, t, type Word } from "../locales";
 import type { Run, Waited } from "../relocation";
@@ -376,11 +377,6 @@ export function Waiting({
       </div>
     </div>
   );
-}
-
-export interface Erased {
-  gone: number;
-  of: number;
 }
 
 export function Done({

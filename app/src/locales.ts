@@ -1523,6 +1523,8 @@ const en = {
   moveWiping:
     "Checking that everything is on this computer before deleting your copies from {cloud}…",
   moveErasing: "Deleting your copies from {cloud}: {name} of {other}.",
+  moveErasingStill: "Checking before deleting the copies in the cloud you left…",
+  moveErasingAlong: "Deleting the copies in the cloud you left: {name} of {other}",
   moveWipingAway:
     "You can close this window and keep working: the deleting goes on, and Tisty keeps syncing meanwhile.",
   moveWiped: "{name} copies were deleted from your {cloud}.",
@@ -1550,6 +1552,8 @@ const en = {
     "Where this copy syncs now can't be reached, so nothing can be brought from there. Reconnect first; nothing was changed.",
   moveToUnreachable: "The new place can't be reached. Nothing was changed.",
   wipeChosen: "That cloud is still the one this copy syncs with, so its copies stay.",
+  wipeGoing:
+    "Tisty is still deleting the copies in the cloud you left. Wait for it to finish, then try again.",
   wipeStopped:
     "{maker} did not answer, so the deleting stopped. Whatever was deleted stays deleted and everything is still on this computer; press the button again in a while to delete the rest.",
   wipeNotHome:
@@ -3668,6 +3672,8 @@ const es: Catalog = {
   moveWipeKeep: "Dejarlas ahí",
   moveWiping: "Revisando que todo esté en este equipo antes de borrar tus copias de {cloud}…",
   moveErasing: "Borrando tus copias de {cloud}: {name} de {other}.",
+  moveErasingStill: "Revisando antes de borrar las copias de la nube que dejaste…",
+  moveErasingAlong: "Borrando las copias de la nube que dejaste: {name} de {other}",
   moveWipingAway:
     "Puedes cerrar esta ventana y seguir trabajando: el borrado continúa y Tisty sigue sincronizando mientras tanto.",
   moveWiped: "Se borraron {name} copias de tu {cloud}.",
@@ -3695,6 +3701,8 @@ const es: Catalog = {
     "No se puede llegar adonde sincroniza esta copia ahora, así que no se puede traer nada de ahí. Reconecta primero; no se cambió nada.",
   moveToUnreachable: "No se puede llegar al nuevo lugar. No se cambió nada.",
   wipeChosen: "Esa nube sigue siendo la que usa esta copia, así que sus copias se quedan.",
+  wipeGoing:
+    "Tisty todavía está borrando las copias de la nube que dejaste. Espera a que termine y vuelve a intentarlo.",
   wipeStopped:
     "{maker} no respondió y el borrado se detuvo. Lo que alcanzó a borrarse queda borrado y todo sigue en este equipo; vuelve a pulsar el botón en un rato para borrar el resto.",
   wipeNotHome:

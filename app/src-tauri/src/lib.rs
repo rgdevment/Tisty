@@ -628,6 +628,16 @@ struct Updating(OneAtATime);
 #[derive(Default)]
 struct Packing(OneAtATime);
 
+/// Held while a cloud left behind is emptied, which goes on without the round's hold.
+#[derive(Default)]
+struct Erasing(OneAtATime);
+
+impl Erasing {
+    fn going(&self) -> bool {
+        self.0.held.load(std::sync::atomic::Ordering::Acquire)
+    }
+}
+
 impl Packing {
     fn taken(&self) -> Answer<Releasing<'_>> {
         self.0.claim().ok_or_else(|| Refusal::of("stillPacking"))
@@ -1053,6 +1063,7 @@ pub fn run() {
         .manage(widgets::Lent::default())
         .manage(viewing::Views::default())
         .manage(Packing::default())
+        .manage(Erasing::default())
         .manage(Updating::default())
         .manage(desktop::Leaving::default())
         .manage(desktop::Departed::default())

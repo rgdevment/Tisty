@@ -9,7 +9,7 @@ use super::storing::{
     joined_on, went_back_on,
 };
 use crate::reaching::GOOGLE;
-use crate::{Answer, OneAtATime, Refusal, Session, held, said};
+use crate::{Answer, Erasing, OneAtATime, Refusal, Session, held, said};
 
 const PENDING: &str = "moving.json";
 const WAITED: std::time::Duration = std::time::Duration::from_secs(30);
@@ -263,8 +263,13 @@ pub async fn move_to(
     app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
     alone: tauri::State<'_, OneAtATime>,
+    erasing: tauri::State<'_, Erasing>,
     toward: Toward,
 ) -> Answer<Moving> {
+    // A cloud being emptied is let go of when that ends, so no move may lean on one meanwhile.
+    if erasing.going() && matches!(toward, Toward::Cloud { .. }) {
+        return Err(Refusal::of("wipeGoing"));
+    }
     let kind = toward.kind();
     let answer = moving(app, &session, &alone, toward).await;
     noted(&answer, kind);
@@ -524,10 +529,12 @@ pub async fn cloud_wipe(
     app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
     alone: tauri::State<'_, OneAtATime>,
+    erasing: tauri::State<'_, Erasing>,
     account: String,
     email: String,
     provider: Option<String>,
 ) -> Answer<usize> {
+    let _erasing = erasing.0.claim().ok_or_else(|| Refusal::of("wipeGoing"))?;
     let done = alone.inner().waited(WAITED).await?;
     let at = CloudAt {
         provider: provider.unwrap_or_else(google),
@@ -567,8 +574,14 @@ pub async fn cloud_wipe(
     // Emptying touches only the cloud left behind, whose own lock keeps it apart, so rounds here go on meanwhile.
     drop(done);
     let gone = tauri::async_runtime::spawn_blocking(move || {
+        let mut told = None;
         emptied(&*carrier, &mut |gone, of| {
-            let _ = app.emit("wiping", Wiping { gone, of });
+            // Told by the hundredth, so thousands of copies do not mean thousands of redraws.
+            let now = (gone * 100).checked_div(of);
+            if now != told {
+                told = now;
+                let _ = app.emit("wiping", Wiping { gone, of });
+            }
         })
     })
     .await
