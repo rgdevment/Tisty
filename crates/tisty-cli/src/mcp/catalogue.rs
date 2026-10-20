@@ -196,8 +196,7 @@ wrong, `write_doc` with the `print` you read at writes the body again when its s
 serves, and `append_doc` adds only where the order of entries is the point. If anything was \
 written in between, the print no longer matches and nothing is written — read again rather than \
 retrying. When a write comes back saying something you did not expect, `restore_doc` puts the \
-document back. The window shows what you write on its own, usually within a second, even with \
-the document open, so never ask the person to close it or open it again.
+document back.
 
 Everything you write has a place. `docs` with `folders`, or `catch_up`, names the folders: put a \
 document in the one its subject belongs to, as a task goes in its list. When none fits, ask the \
