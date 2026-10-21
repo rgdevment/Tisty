@@ -74,7 +74,7 @@ describe("the sync foot in the sidebar", () => {
   });
 
   it("says the sync asked for by hand is complete for a moment, then goes back", async () => {
-    const onSync = vi.fn(() => Promise.resolve());
+    const onSync = vi.fn(() => Promise.resolve("same"));
     render(<SyncFoot onSync={onSync} onOpen={vi.fn()} />);
 
     await userEvent.click(await screen.findByRole("button", { name: /Up to date/ }));

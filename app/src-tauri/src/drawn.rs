@@ -5,6 +5,7 @@ const DRAWN: &str = "drawn";
 const LONGEST: u32 = 2048;
 const FULL_QUALITY: f32 = 0.95;
 const LIGHT_QUALITY: f32 = 0.8;
+#[cfg(windows)]
 const SEEN_QUALITY: f32 = 0.9;
 static TURNS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
