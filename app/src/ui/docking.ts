@@ -74,15 +74,19 @@ export const docked = (
     const slot = side ? slotIn(frame?.ownerDocument, 40) : null;
     if (slot) {
       dress(slot.ownerDocument);
-      if (bar.parentElement !== slot) slot.append(bar);
-      bar.classList.add("docked");
-      bar.classList.add("side");
-      bar.style.top = "";
-      bar.style.left = "";
+      // The slot only says where: a node of React's own holds nothing it did not draw.
+      const room = slot.ownerDocument.body;
+      if (bar.parentElement !== room) room.append(bar);
+      bar.classList.add("docked", "side");
+      bar.dataset.keepsWriting = "";
+      const at = slot.getBoundingClientRect();
+      bar.style.top = `${at.top}px`;
+      bar.style.left = `${at.left}px`;
       return;
     }
     if (bar.parentElement !== page.body) page.body.append(bar);
     bar.classList.remove("docked");
+    delete bar.dataset.keepsWriting;
     bar.classList.remove("side");
     if (side) {
       bar.style.top = `${Math.min(bottom, Math.max(top + REST, stuck))}px`;

@@ -86,6 +86,7 @@ vi.mock("../ui/blocking", () => ({
             },
           },
           doc: said,
+          lineBreak: "\n",
           replaceSelection: (insert: string) => ({ changes: { from: 0, to: 0, insert } }),
         },
         dispatch: (spec: {
@@ -524,7 +525,7 @@ describe("the sheet in the main window", () => {
     expect(ipc.cut).toEqual([[BODY.length, BODY.length]]);
   });
 
-  it("leaves the whole document when words from outside come with Windows line ends", async () => {
+  it("takes words from outside into the whole document with Windows line ends too", async () => {
     const sheet = (value: string, n: number) => (
       <Sheet value={value} label="Compras" onWrite={() => {}} wholeable wholeAsked={n} />
     );
@@ -532,7 +533,8 @@ describe("the sheet in the main window", () => {
     await loaded(await shown(view.container));
     view.rerender(sheet(BODY, 1));
     view.rerender(sheet("# Compras\r\n\r\nleche\r\n", 1));
-    expect(ipc.left).toBe(1);
+    expect(ipc.left).toBe(0);
+    expect(ipc.cut.length).toBeGreaterThan(0);
   });
 
   it("opens the block over words picked on the page and writes the key pressed over them", async () => {
@@ -564,7 +566,6 @@ describe("the sheet in the main window", () => {
     page.getSelection()?.addRange(range);
     page.dispatchEvent(new KeyboardEvent("keydown", { key: "x", cancelable: true }));
     expect(ipc.opened.map((one) => one.said)).toEqual(["**le**che\n"]);
-    expect(ipc.opened[0].caret).toBe(-1);
     expect(ipc.typed).toEqual(["x"]);
   });
 

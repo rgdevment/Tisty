@@ -32,7 +32,8 @@ fn outward(
     toward: &dyn Fn(Toward) -> Option<String>,
     edits: &mut Edits,
 ) {
-    let said = &text[block.at.clone()];
+    // A block followed by more words carries its line end, and the fence that closes it sits before.
+    let said = text[block.at.clone()].trim_end_matches(['\r', '\n']);
     let start = block.at.start;
     match &block.kind {
         Kind::Callout(kind) if said.starts_with(":::") => quoted(said, start, *kind, edits),
@@ -43,7 +44,7 @@ fn outward(
                 start..start + first,
                 format!("<details>\n<summary>{}</summary>", escaped(summary)),
             ));
-            edits.push((start + last..block.at.end, "</details>".to_string()));
+            edits.push((start + last..start + said.len(), "</details>".to_string()));
         }
         Kind::Callout(_) => headed(said, start, edits),
         _ => {}

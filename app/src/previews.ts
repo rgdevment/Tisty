@@ -148,9 +148,10 @@ export const pictured = (href: string): boolean =>
   !href.startsWith(DOC) && SEEABLE.includes(ending(href));
 
 export const weighed = (bytes: number): string => {
-  const units = ["B", "kB", "MB", "GB"];
+  if (!Number.isFinite(bytes)) return "—";
+  const units = ["B", "kB", "MB", "GB", "TB"];
   let step = 0;
-  let left = bytes;
+  let left = Math.max(0, bytes);
   while (left >= 1000 && step < units.length - 1) {
     left /= 1000;
     step += 1;

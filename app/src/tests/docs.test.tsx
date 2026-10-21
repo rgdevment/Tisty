@@ -686,7 +686,13 @@ describe("a document that moved on disk while it was open", () => {
       vi.advanceTimersByTime(4100);
     });
     expect(screen.queryByRole("button", { name: t("docStirredSee") })).toBeNull();
-    expect(screen.getByText(/wrote in this document; what is marked/i)).toBeTruthy();
+    expect(screen.queryByText(/what is marked/i)).toBeNull();
+    expect(screen.getByText(t("docStirredFaded"))).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: t("docStirredAgain") }));
+    expect(screen.getByRole("button", { name: t("docStirredSee") })).toBeTruthy();
+    expect(screen.getByText(/what is marked/i)).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: t("docStirredGone") }));
+    expect(screen.queryByRole("button", { name: t("docStirredAgain") })).toBeNull();
   });
 
   it("offers to show what something wrote beside the window", async () => {

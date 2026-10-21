@@ -524,6 +524,23 @@ describe("a sheet with nothing written yet", () => {
     expect(away()).toBe(1);
   });
 
+  it("sends a press beside the whole document to its end instead of leaving it", () => {
+    // A parsed page has no selection of its own, so the test window's document stands in.
+    document.body.innerHTML =
+      '<article class="page whole"><div class="editing"><div class="cm-content" contenteditable="true"><div>uno</div><div>dos</div></div></div><p data-at="0-5" hidden>Leche</p></article>';
+    const drawn = document;
+    const { asked, reach, away } = writer("Leche");
+    wired(drawn, () => reach);
+    press(drawn.querySelector(".page"));
+    expect(away()).toBe(0);
+    expect(asked).toEqual([]);
+    const caret = drawn.getSelection();
+    expect(caret?.isCollapsed).toBe(true);
+    expect(drawn.querySelector(".cm-content")?.contains(caret?.anchorNode ?? null)).toBe(true);
+    expect(caret?.toString()).toBe("");
+    document.body.innerHTML = "";
+  });
+
   it("hands the block the words read before the click, so the caret lands there", () => {
     const drawn = page('<p data-at="0-11">Leche y pan</p>');
     const text = drawn.querySelector("p")?.firstChild as Text;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { changedIn, reanchored, spanOf, touches } from "../ui/anchoring";
+import { changedIn, inEditor, reanchored, spanOf, touches } from "../ui/anchoring";
 
 describe("the block being written when words arrive from outside", () => {
   const was = "# Acta\n\nuno\n\nlo mio\n\ntres\n";
@@ -72,5 +72,13 @@ describe("the one edit an open editor takes from outside", () => {
 
   it("asks for nothing when nothing changed", () => {
     expect(spanOf("igual", "igual")).toEqual({ from: 5, to: 5, insert: "" });
+  });
+});
+
+describe("places counted as the editor counts them", () => {
+  it("counts a Windows line end as one place, and Unix text as it is", () => {
+    expect(inEditor("uno\r\ndos\r\ntres", 10)).toBe(8);
+    expect(inEditor("uno\r\ndos", 3)).toBe(3);
+    expect(inEditor("uno\ndos\ntres", 8)).toBe(8);
   });
 });
