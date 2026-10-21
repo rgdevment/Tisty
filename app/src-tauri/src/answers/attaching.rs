@@ -4,9 +4,9 @@ use tisty_core::witness::{self, Fact, channel};
 
 use crate::{Answer, Refusal, Session, Task, finding, held, herald, show, weighed};
 
-// Off the window's thread: turning a photo can take seconds, and the window would freeze meanwhile.
-#[tauri::command(async)]
-pub fn attach(
+// Turning a photo can take seconds, so it runs where blocking work goes, as a pasted file's keeping does.
+#[tauri::command]
+pub async fn attach(
     session: tauri::State<'_, Mutex<Session>>,
     path: String,
     label: Option<String>,
@@ -21,24 +21,37 @@ pub fn attach(
                 .map(str::to_string)
         })
         .unwrap_or_default();
-    let (source, name, room) = match shape.as_deref() {
-        None => (source, name, None),
-        Some(how) => {
-            let named = as_jpeg(&name);
-            let made = crate::drawn::reshaped(&source, &named, how == "light")
-                .ok_or_else(|| Refusal::about("cannotTurn", name.clone()))?;
-            let room = made.parent().map(std::path::Path::to_path_buf);
-            (made, named, room)
-        }
-    };
     let (root, ceiling) = room_for(&session);
-    let kept = kept_at(&source, &root, ceiling, &name);
-    if let Some(room) = room {
+    let kept =
+        crate::elsewhere(move || shaped(&source, name, shape.as_deref(), &root, ceiling)).await??;
+    noted(&session, &kept.0);
+    Ok(kept.0.written(&kept.1))
+}
+
+// Asked once by the window: where nothing here can draw a HEIC, it stays a file to open elsewhere.
+#[tauri::command]
+pub fn draws_heic() -> bool {
+    crate::drawn::draws_heic()
+}
+
+fn shaped(
+    source: &std::path::Path,
+    name: String,
+    shape: Option<&str>,
+    root: &std::path::Path,
+    ceiling: u64,
+) -> Answer<(tisty_core::attach::Kept, String)> {
+    let Some(how) = shape else {
+        return kept_at(source, root, ceiling, &name).map(|kept| (kept, name));
+    };
+    let named = as_jpeg(&name);
+    let made = crate::drawn::reshaped(source, &named, how == "light")
+        .ok_or_else(|| Refusal::about("cannotTurn", name.clone()))?;
+    let kept = kept_at(&made, root, ceiling, &named);
+    if let Some(room) = made.parent() {
         let _ = std::fs::remove_dir_all(room);
     }
-    let kept = kept?;
-    noted(&session, &kept);
-    Ok(kept.written(&name))
+    kept.map(|kept| (kept, named))
 }
 
 fn as_jpeg(name: &str) -> String {

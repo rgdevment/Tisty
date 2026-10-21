@@ -6,6 +6,7 @@ const LONGEST: u32 = 2048;
 const FULL_QUALITY: f32 = 0.95;
 const LIGHT_QUALITY: f32 = 0.8;
 const SEEN_QUALITY: f32 = 0.9;
+static TURNS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
 pub fn folder(cache: &Path) -> PathBuf {
     cache.join(DRAWN)
@@ -35,13 +36,23 @@ pub fn as_seen(found: PathBuf, cache: &Path) -> Option<PathBuf> {
     Some(found)
 }
 
-/// A photo turned into a JPEG named `named`, whole or lighter, in a folder of its own among the
-/// system's temporary files; the caller removes that folder once the photo is kept.
+pub fn draws_heic() -> bool {
+    #[cfg(windows)]
+    let can = wic::reads_heif();
+    #[cfg(target_os = "macos")]
+    let can = true;
+    #[cfg(not(any(windows, target_os = "macos")))]
+    let can = false;
+    can
+}
+
+// Its own folder, so the caller can take it away whole once the photo is kept.
 pub fn reshaped(from: &Path, named: &str, light: bool) -> Option<PathBuf> {
-    let stamp = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map_or(0, |since| since.as_nanos());
-    let room = std::env::temp_dir().join(format!("tisty-reshaped-{stamp}"));
+    let room = std::env::temp_dir().join(format!(
+        "tisty-reshaped-{}-{}",
+        std::process::id(),
+        TURNS.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+    ));
     std::fs::create_dir_all(&room).ok()?;
     let into = room.join(named);
     let quality = if light { LIGHT_QUALITY } else { FULL_QUALITY };
@@ -88,13 +99,13 @@ mod wic {
 
     use windows::Win32::Foundation::GENERIC_READ;
     use windows::Win32::Graphics::Imaging::{
-        CLSID_WICImagingFactory, GUID_ContainerFormatJpeg, GUID_WICPixelFormat24bppBGR,
-        IWICBitmapFrameDecode, IWICBitmapFrameEncode, IWICBitmapSource, IWICImagingFactory,
-        WICBitmapDitherTypeNone, WICBitmapEncoderNoCache, WICBitmapInterpolationModeFant,
-        WICBitmapPaletteTypeCustom, WICBitmapTransformFlipHorizontal,
-        WICBitmapTransformFlipVertical, WICBitmapTransformOptions, WICBitmapTransformRotate0,
-        WICBitmapTransformRotate90, WICBitmapTransformRotate180, WICBitmapTransformRotate270,
-        WICDecodeMetadataCacheOnDemand,
+        CLSID_WICImagingFactory, GUID_ContainerFormatHeif, GUID_ContainerFormatJpeg,
+        GUID_WICPixelFormat24bppBGR, IWICBitmapFrameDecode, IWICBitmapFrameEncode,
+        IWICBitmapSource, IWICImagingFactory, WICBitmapDitherTypeNone, WICBitmapEncoderNoCache,
+        WICBitmapInterpolationModeFant, WICBitmapPaletteTypeCustom,
+        WICBitmapTransformFlipHorizontal, WICBitmapTransformFlipVertical,
+        WICBitmapTransformOptions, WICBitmapTransformRotate0, WICBitmapTransformRotate90,
+        WICBitmapTransformRotate180, WICBitmapTransformRotate270, WICDecodeMetadataCacheOnDemand,
     };
     use windows::Win32::System::Com::StructuredStorage::{IPropertyBag2, PROPBAG2, PROPVARIANT};
     use windows::Win32::System::Com::{
@@ -102,6 +113,20 @@ mod wic {
     };
     use windows::Win32::System::Variant::VARIANT;
     use windows::core::{HSTRING, Interface, PWSTR};
+
+    // A HEIF decoder registered with Windows is what its extension from the Store installs.
+    pub fn reads_heif() -> bool {
+        unsafe {
+            let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
+            CoCreateInstance::<_, IWICImagingFactory>(
+                &CLSID_WICImagingFactory,
+                None,
+                CLSCTX_INPROC_SERVER,
+            )
+            .and_then(|factory| factory.CreateDecoder(&GUID_ContainerFormatHeif, std::ptr::null()))
+            .is_ok()
+        }
+    }
 
     pub struct Shape {
         pub quality: f32,
@@ -168,7 +193,14 @@ mod wic {
                 WICDecodeMetadataCacheOnDemand,
             )?;
             let frame = decoder.GetFrame(0)?;
-            let turned = upright(orientation(&frame));
+            // HEIF carries its own turn inside the container; reading EXIF on top of it would turn it twice.
+            let heif = from.extension().is_some_and(|one| {
+                one.eq_ignore_ascii_case("heic") || one.eq_ignore_ascii_case("heif")
+            });
+            let turned = match heif {
+                true => WICBitmapTransformRotate0,
+                false => upright(orientation(&frame)),
+            };
             let mut source: IWICBitmapSource = frame.cast()?;
             if turned != WICBitmapTransformRotate0 {
                 let rotator = factory.CreateBitmapFlipRotator()?;

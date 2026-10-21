@@ -143,7 +143,7 @@ export default function SyncFoot({ onSync, onOpen, onTrouble, fallback }: Props)
 
   const press = () => {
     // Just done, another press would only start the same round again.
-    if (finished) return;
+    if (finished && foot.kind === "ok") return;
     if (!offered(foot)) return onOpen();
     if (foot.kind === "ok") return syncNow();
     if (foot.kind === "paused")

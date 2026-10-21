@@ -496,6 +496,7 @@ export const viewWidget = (lent: Lent, from?: Viewed): Promise<void> =>
 export const viewDoc = (paper: Viewed): Promise<void> => invoke("view_doc", { paper });
 
 export const served = (reference: string): Promise<string> => invoke("served", { reference });
+export const drawsHeicHere = (): Promise<boolean> => invoke("draws_heic");
 
 export const attached = (reference: string): Promise<number[]> => invoke("attached", { reference });
 export const keptHere = (reference: string): Promise<boolean> => invoke("kept_here", { reference });

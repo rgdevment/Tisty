@@ -37,11 +37,21 @@ const askedPlainly: Asking = async (said) => {
 /** Asked once for every photo dropped together, then each one is attached the way that was chosen. */
 export async function attachedAll(paths: string[]): Promise<Promise<string>[]> {
   const asked = paths.filter(turnable);
-  if (asked.length === 0) return paths.map((one) => attach(one));
+  if (asked.length === 0) return inTurn(paths, () => undefined);
   const said =
     asked.length === 1
       ? fill("reshapeAskOne", leaf(asked[0]))
       : fill("reshapeAskMany", String(asked.length));
   const shape = await (asking ?? askedPlainly)(said);
-  return paths.map((one) => attach(one, undefined, turnable(one) ? shape : undefined));
+  return inTurn(paths, (one) => (turnable(one) ? shape : undefined));
+}
+
+// One after another, as the window kept them before: keeping two at once can store one file twice.
+function inTurn(paths: string[], shapeOf: (path: string) => Shape | undefined): Promise<string>[] {
+  let before: Promise<unknown> = Promise.resolve();
+  return paths.map((one) => {
+    const kept = before.then(() => attach(one, undefined, shapeOf(one)));
+    before = kept.catch(() => undefined);
+    return kept;
+  });
 }

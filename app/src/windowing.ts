@@ -4,6 +4,7 @@ import {
   type Afoot,
   DEEPEST,
   type DoorDue,
+  drawsHeicHere,
   type Filed,
   type Folded,
   type Found,
@@ -16,6 +17,7 @@ import { useNote } from "./glance";
 import { useListening } from "./listening";
 import { useMarking } from "./marking";
 import { useOnly, useOnlyAlive } from "./only";
+import { drawsHeic } from "./previews";
 import { saidPlainly } from "./refusal";
 import { asksShape, type Shape } from "./reshaping";
 import { useSnapshot } from "./snapshotting";
@@ -314,6 +316,9 @@ function useOverlays() {
     });
     // One question at a time, as with being sure: a second drop waits instead of taking the first's place.
     let shapes: Promise<unknown> = Promise.resolve();
+    drawsHeicHere()
+      .then(drawsHeic)
+      .catch(() => undefined);
     asksShape((said) => {
       const answer = shapes.then(
         () => new Promise<Shape | undefined>((done) => setShaping({ said, done })),

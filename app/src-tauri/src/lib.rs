@@ -1190,6 +1190,7 @@ pub fn run() {
             answers::attaching::attach,
             answers::attaching::attach_pasted,
             answers::attaching::served,
+            answers::attaching::draws_heic,
             answers::attaching::copied,
             answers::attaching::kept_here,
             answers::attaching::attached,

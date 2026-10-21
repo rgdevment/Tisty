@@ -674,7 +674,7 @@ const en = {
     "Going back leaves this document as it read before the write that stirred it. What it says now is kept in its place, so you can come back to it.",
   comingDown: "{name} is in iCloud and is being brought back. Try again in a moment",
   cannotDraw:
-    "{name} is a HEIC picture and this Windows has nothing to draw it with. Install «HEIF Image Extensions» from the Microsoft Store, or open it with another program",
+    "{name} couldn't be drawn on this Windows. HEIC pictures usually need «HEIF Image Extensions» and «HEVC Video Extensions» from the Microsoft Store; meanwhile, open it with another program",
   cannotTurn:
     "{name} couldn't be turned into a JPG on this computer, so it wasn't attached. Attach it again and choose «Keep as it is»",
   cloudLater:
@@ -2895,7 +2895,7 @@ const es: Catalog = {
     "Volver atrás deja este documento como se leía antes de la escritura que lo movió. Lo que dice ahora queda guardado en su lugar, así que puedes regresar a ello.",
   comingDown: "{name} está en iCloud y se está trayendo. Inténtalo de nuevo en un momento",
   cannotDraw:
-    "{name} es una imagen HEIC y este Windows no tiene con qué dibujarla. Instala «Extensiones de imagen HEIF» desde Microsoft Store, o ábrela con otro programa",
+    "{name} no se pudo dibujar en este Windows. Las imágenes HEIC suelen necesitar «Extensiones de imagen HEIF» y «Extensiones de vídeo HEVC» de Microsoft Store; mientras tanto, ábrela con otro programa",
   cannotTurn:
     "{name} no se pudo convertir a JPG en este equipo, así que no se adjuntó. Adjúntala de nuevo y elige «Dejarla como está»",
   cloudLater:
