@@ -336,7 +336,7 @@ export const barred = (view: EditorView, whole = false, onWhole?: () => void): B
   let scanned: EditorView["state"]["doc"] | null = null;
   let some = false;
   const marking = (state: EditorView["state"]) => {
-    const on = state.field(marksShown);
+    const on = state.field(marksShown, false) ?? false;
     if (state.doc !== scanned) {
       scanned = state.doc;
       some = marked(state);
