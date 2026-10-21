@@ -749,13 +749,17 @@ pub(super) fn tools() -> Value {
                                         how much it holds. The answer already names them all in \
                                         its text, so ask for this only when a name is not enough"
                     },
+                    "deep": {
+                        "type": "boolean",
+                        "description": "With `folder`: the documents of the folders below it too"
+                    },
                     "folder": {
                         "type": "string",
                         "description": "Only the documents that sit in this one folder, by its \
                                         name, its whole path or its id. Pages are left out — they \
                                         are kept where their document is — and what the folders \
                                         below it hold is theirs, not this one's: the answer \
-                                        names them under `below`"
+                                        names them under `below`, and `deep` brings their documents"
                     },
                     "page_of": {
                         "type": "string",
@@ -1092,7 +1096,11 @@ pub(super) fn tools() -> Value {
                     },
                     "doc": {
                         "type": "string",
-                        "description": "Look inside this one document rather than across the tasks. Hands back the lines where every word of the query turns up, accents or not, with their numbers, the lines around them when those are not blank, and the section each sits in"
+                        "description": "Look inside this one document rather than across the tasks. Hands back the lines where every word of the query turns up, accents or not, with their numbers, the lines around them when those are not blank, and the section each sits in. A line in `around` is cut at 200 characters; `read_doc` with `from` and `to` brings it whole"
+                    },
+                    "around": {
+                        "type": "integer",
+                        "description": "With `doc`: how many lines to bring on each side of a hit, 1 by default, 0 for none, at most 10"
                     },
                     "tag": { "type": "string", "description": "Carrying this tag, with or without the #. Any sifting field leaves the documents out of the answer" },
                     "list": { "type": "string", "description": "In this list, named as `lists` names it" },

@@ -2727,6 +2727,19 @@ fn looking_inside_a_document_takes_words_in_any_order_and_accents_decide_nothing
         around, "- uno\n- dos\n- tres",
         "the line before and the line after, no more"
     );
+    let reach = |lines: u64| {
+        served.call(
+            "find",
+            serde_json::json!({ "doc": &listed, "query": "dos", "around": lines }),
+        )["result"]["structuredContent"]["lines"][0]["around"]
+            .clone()
+    };
+    assert!(reach(0).is_null(), "none asked for, none given");
+    assert_eq!(
+        reach(2),
+        "\n- uno\n- dos\n- tres\n",
+        "two on each side when asked"
+    );
 
     assert_eq!(
         inside("\"macos va\"")["total"],
@@ -4392,6 +4405,17 @@ fn a_folder_that_holds_nothing_itself_names_the_folders_below_it_that_do() {
         "{listed}"
     );
     assert_eq!(listed["below"][0]["docs"], 1, "{listed}");
+
+    let deep = served.call(
+        "docs",
+        serde_json::json!({ "folder": "Trabajo", "deep": true }),
+    )["result"]["structuredContent"]
+        .clone();
+    assert_eq!(
+        deep["total"], 1,
+        "asked for, the folders below come too: {deep}"
+    );
+    assert!(deep["below"].is_null(), "{deep}");
 }
 
 #[test]

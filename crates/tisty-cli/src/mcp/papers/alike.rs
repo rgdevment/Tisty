@@ -121,8 +121,8 @@ pub(super) fn told_mislabeled(mislabeled: &[Value]) -> String {
         return String::new();
     }
     format!(
-        "\n\nPage lines that show another name than the page's title ({}): {}. Write each line \
-         again with the title, so the window and the reader agree.",
+        "\n\nPage lines that show another name than the page's title ({}): {}. If the window \
+         should show the title, each line is worth writing again with it.",
         mislabeled.len(),
         mislabeled
             .iter()

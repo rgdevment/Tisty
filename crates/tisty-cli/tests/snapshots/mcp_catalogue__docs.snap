@@ -11,8 +11,12 @@ expression: tool
         "description": "Skip this many. With `total` higher than what came back, ask again with `after` set to how many you have",
         "type": "integer"
       },
+      "deep": {
+        "description": "With `folder`: the documents of the folders below it too",
+        "type": "boolean"
+      },
       "folder": {
-        "description": "Only the documents that sit in this one folder, by its name, its whole path or its id. Pages are left out — they are kept where their document is — and what the folders below it hold is theirs, not this one's: the answer names them under `below`",
+        "description": "Only the documents that sit in this one folder, by its name, its whole path or its id. Pages are left out — they are kept where their document is — and what the folders below it hold is theirs, not this one's: the answer names them under `below`, and `deep` brings their documents",
         "type": "string"
       },
       "folders": {

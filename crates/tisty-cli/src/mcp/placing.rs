@@ -165,23 +165,46 @@ pub(super) fn loose_task(state: &State, title: &str) -> String {
     }
 }
 
+pub(super) fn listed_in(
+    state: &State,
+    one: &tisty_core::model::Kept,
+    at: tisty_core::model::FolderId,
+    deep: bool,
+) -> bool {
+    one.page_of.is_none()
+        && (one.folder == Some(at) || deep && one.folder.is_some_and(|it| beneath(state, it, at)))
+}
+
+pub(super) fn below(
+    state: &State,
+    scope: tisty_core::view::Scope,
+    within: Option<tisty_core::model::FolderId>,
+) -> Vec<Value> {
+    within.map_or_else(Vec::new, |at| held_below(state, scope, at))
+}
+
+fn beneath(
+    state: &State,
+    from: tisty_core::model::FolderId,
+    at: tisty_core::model::FolderId,
+) -> bool {
+    let mut walk = state.folders.get(&from).and_then(|one| one.parent);
+    for _ in 0..=tisty_core::model::DEEPEST {
+        match walk {
+            Some(up) if up == at => return true,
+            Some(up) => walk = state.folders.get(&up).and_then(|one| one.parent),
+            None => return false,
+        }
+    }
+    false
+}
+
 // Asked for one folder, a parent that holds nothing itself would otherwise read as empty.
-pub(super) fn held_below(
+fn held_below(
     state: &State,
     scope: tisty_core::view::Scope,
     at: tisty_core::model::FolderId,
 ) -> Vec<Value> {
-    let beneath = |from: tisty_core::model::FolderId| {
-        let mut walk = state.folders.get(&from).and_then(|one| one.parent);
-        for _ in 0..=tisty_core::model::DEEPEST {
-            match walk {
-                Some(up) if up == at => return true,
-                Some(up) => walk = state.folders.get(&up).and_then(|one| one.parent),
-                None => return false,
-            }
-        }
-        false
-    };
     let mut held: std::collections::HashMap<tisty_core::model::FolderId, usize> =
         std::collections::HashMap::new();
     for kept in state.papers() {
@@ -195,7 +218,7 @@ pub(super) fn held_below(
     let mut found: Vec<Value> = state
         .folders
         .values()
-        .filter(|one| beneath(one.id))
+        .filter(|one| beneath(state, one.id, at))
         .filter_map(|one| {
             let docs = held.get(&one.id).copied().unwrap_or_default();
             (docs > 0).then(|| json!({ "folder": trail(state, one.id), "docs": docs }))
@@ -208,7 +231,7 @@ pub(super) fn held_below(
 pub(super) fn told_below(below: &[Value]) -> Option<String> {
     (!below.is_empty()).then(|| {
         format!(
-            "Folders below it hold documents of their own, listed only when asked for by name or path: {}.",
+            "Folders below it hold documents of their own, listed when asked for by name or path, or with `deep`: {}.",
             below
                 .iter()
                 .map(|one| format!("{} ({})", super::said(one, "folder"), one["docs"]))
