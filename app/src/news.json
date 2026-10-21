@@ -310,5 +310,72 @@
         "said": "the bar offers «Show every mark» only when there is one and remembers your choice, inline code is now Ctrl+Shift+C, and sizes near the next unit read right."
       }
     ]
+  },
+  {
+    "version": "1.31.5",
+    "headline": {
+      "es": "Tus adjuntos y tus asistentes, en todos tus equipos",
+      "en": "Your attachments and your assistants, on every computer"
+    },
+    "es": [
+      {
+        "title": "Lo que adjuntas en otro equipo se abre aquí",
+        "said": "una imagen o un archivo que adjuntaste en otro equipo ahora se abre cuando sincronizas con OneDrive o Google Drive, en vez de decir que todavía no llega."
+      },
+      {
+        "title": "Tus asistentes vuelven a conectarse",
+        "said": "los que arrancan Tisty desde Linux dentro de Windows o con un lanzador propio vuelven a conectarse. En Configuración › Asistentes, «Buscar de nuevo» encuentra uno recién instalado y «Reparar» corrige de una vez los que apuntan a otro Tisty o a uno borrado. En Mac aparecen los instalados con Homebrew o npm, como GitHub Copilot CLI."
+      },
+      {
+        "title": "Tu asistente te dice cuándo terminó",
+        "said": "puede decir que una tarea o un paso está hecho cuando hizo el trabajo. Nada se marca ni se cierra solo: la tarea muestra lo que dijo y tú decides."
+      },
+      {
+        "title": "Asistentes más ágiles",
+        "said": "al conectarse leen una guía corta y piden el resto solo cuando lo necesitan. Buscan primero por título, notan las páginas listadas con un nombre viejo y te avisan de contraseñas y claves escritas dentro de comandos."
+      },
+      {
+        "title": "En Mac, solo en la barra de menús",
+        "said": "si cierras la ventana para dejar Tisty abierto, queda solo en la barra de menús de arriba y ya no también en el Dock."
+      },
+      {
+        "title": "Sincronización más clara",
+        "said": "cuando Google Drive u OneDrive piden esperar, el pie de la barra lateral lo muestra en segundos. Borrar tus copias de la nube que dejaste es mucho más rápido y puedes seguir trabajando mientras tanto."
+      },
+      {
+        "title": "Detalles que se notan",
+        "said": "Configuración y Acerca de se desplazan con la rueda en cualquier parte, renombrar una página la renombra también donde su documento la lista, y los documentos y las páginas de tareas se leen con más calma."
+      }
+    ],
+    "en": [
+      {
+        "title": "What you attach on another computer opens here",
+        "said": "an image or a file you attached on another computer now opens when you sync with OneDrive or Google Drive, instead of saying it has not arrived yet."
+      },
+      {
+        "title": "Your assistants connect again",
+        "said": "the ones that start Tisty from Linux inside Windows, or through a launcher of their own, connect again. In Settings › Assistants, «Look again» finds one you just installed and «Repair» fixes in one go the ones pointing at another Tisty or a deleted one. On Mac, those installed with Homebrew or npm, such as GitHub Copilot CLI, show up."
+      },
+      {
+        "title": "Your assistant tells you when it is done",
+        "said": "it can say a task or a step is done when it did the work. Nothing is ticked or closed on its own: the task shows what it said, and you decide."
+      },
+      {
+        "title": "Quicker assistants",
+        "said": "when they connect they read a short guide and ask for the rest only when they need it. They search by title first, notice pages listed under an old name, and warn you about passwords and keys written inside commands."
+      },
+      {
+        "title": "On Mac, only in the menu bar",
+        "said": "if you close the window to keep Tisty running, it stays only in the menu bar at the top, and no longer in the Dock too."
+      },
+      {
+        "title": "Clearer syncing",
+        "said": "when Google Drive or OneDrive asks to wait, the foot of the sidebar shows it within seconds. Erasing your copies from a cloud you left is much faster, and you can keep working meanwhile."
+      },
+      {
+        "title": "Small things you will notice",
+        "said": "Settings and About scroll with the wheel anywhere, renaming a page also renames it where its document lists it, and documents and task pages read more calmly."
+      }
+    ]
   }
 ]
