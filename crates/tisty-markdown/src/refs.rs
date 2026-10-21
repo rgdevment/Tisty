@@ -58,17 +58,47 @@ pub fn paper_lines(text: &str) -> Vec<(String, usize)> {
 
 // Only a card places a page: a plain link is a mention, and a card inside code is an example.
 fn papered(text: &str) -> Vec<(usize, String)> {
-    let code = crate::fences::fenced_spans(text);
-    let bytes = text.as_bytes();
-    marked_past(text, &code)
+    carded(text)
         .into_iter()
-        .filter(|(at, _)| *at > 0 && bytes[at - 1] == b'!')
         .filter_map(|(at, one)| {
             one.target
                 .strip_prefix(DOC)
                 .map(|file| (at, file.to_string()))
         })
         .collect()
+}
+
+fn carded(text: &str) -> Vec<(usize, Ref)> {
+    let code = crate::fences::fenced_spans(text);
+    let bytes = text.as_bytes();
+    marked_past(text, &code)
+        .into_iter()
+        .filter(|(at, _)| *at > 0 && bytes[at - 1] == b'!')
+        .filter(|(_, one)| one.target.starts_with(DOC))
+        .collect()
+}
+
+/// Each page card with its words, written once: a page renamed since keeps its old name there.
+pub fn paper_labels(text: &str) -> Vec<(String, String)> {
+    carded(text)
+        .into_iter()
+        .filter_map(|(_, one)| {
+            let file = one.target.strip_prefix(DOC)?.to_string();
+            Some((file, unescaped(&one.label?)))
+        })
+        .collect()
+}
+
+fn unescaped(label: &str) -> String {
+    let mut said = String::with_capacity(label.len());
+    let mut chars = label.chars().peekable();
+    while let Some(c) = chars.next() {
+        match chars.next_if(|next| c == '\\' && matches!(next, '[' | ']' | '\\')) {
+            Some(kept) => said.push(kept),
+            None => said.push(c),
+        }
+    }
+    said
 }
 
 pub fn extract(text: &str) -> Vec<Ref> {

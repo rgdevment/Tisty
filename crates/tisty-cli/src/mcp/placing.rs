@@ -1,3 +1,4 @@
+use serde_json::{Value, json};
 use tisty_core::State;
 
 use super::trail;
@@ -162,4 +163,51 @@ pub(super) fn loose_task(state: &State, title: &str) -> String {
             near.join(", ")
         ),
     }
+}
+
+// Asked for one folder, a parent that holds nothing itself would otherwise read as empty.
+pub(super) fn held_below(
+    state: &State,
+    scope: tisty_core::view::Scope,
+    at: tisty_core::model::FolderId,
+) -> Vec<Value> {
+    let beneath = |from: tisty_core::model::FolderId| {
+        let mut walk = state.folders.get(&from).and_then(|one| one.parent);
+        for _ in 0..=tisty_core::model::DEEPEST {
+            match walk {
+                Some(up) if up == at => return true,
+                Some(up) => walk = state.folders.get(&up).and_then(|one| one.parent),
+                None => return false,
+            }
+        }
+        false
+    };
+    let mut found: Vec<Value> = state
+        .folders
+        .values()
+        .filter(|one| beneath(one.id))
+        .filter_map(|one| {
+            let docs = state
+                .papers()
+                .filter(|kept| kept.folder == Some(one.id) && kept.page_of.is_none())
+                .filter(|kept| state.doc_kept_by(scope, kept))
+                .count();
+            (docs > 0).then(|| json!({ "folder": trail(state, one.id), "docs": docs }))
+        })
+        .collect();
+    found.sort_by(|a, b| a["folder"].as_str().cmp(&b["folder"].as_str()));
+    found
+}
+
+pub(super) fn told_below(below: &[Value]) -> Option<String> {
+    (!below.is_empty()).then(|| {
+        format!(
+            "Folders below it hold documents of their own, listed only when asked by their path: {}.",
+            below
+                .iter()
+                .map(|one| format!("{} ({})", super::said(one, "folder"), one["docs"]))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    })
 }

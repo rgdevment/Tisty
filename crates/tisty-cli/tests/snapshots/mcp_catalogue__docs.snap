@@ -12,7 +12,7 @@ expression: tool
         "type": "integer"
       },
       "folder": {
-        "description": "Only the documents that sit in this one folder, by its name, its whole path or its id. Pages are left out — they are kept where their document is — and what the folders below it hold is theirs, not this one's",
+        "description": "Only the documents that sit in this one folder, by its name, its whole path or its id. Pages are left out — they are kept where their document is — and what the folders below it hold is theirs, not this one's: the answer names them under `below`",
         "type": "string"
       },
       "folders": {

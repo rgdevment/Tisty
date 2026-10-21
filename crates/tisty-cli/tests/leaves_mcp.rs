@@ -2702,9 +2702,9 @@ fn looking_inside_a_document_takes_words_in_any_order_and_accents_decide_nothing
     assert_eq!(kept["lines"][0]["line"], 7);
     assert_eq!(kept["lines"][0]["section"]["at"], 1);
     assert_eq!(kept["lines"][0]["section"]["title"], "El riego");
-    assert_eq!(
-        kept["lines"][0]["around"], "\nLa migración a Windows y macOS va en mayo.\n",
-        "the line before and the line after, no more"
+    assert!(
+        kept["lines"][0]["around"].is_null(),
+        "blank lines on both sides add nothing to the line itself: {kept}"
     );
 
     let kept = inside("migracion");
@@ -2712,6 +2712,17 @@ fn looking_inside_a_document_takes_words_in_any_order_and_accents_decide_nothing
 
     let kept = inside("porton");
     assert_eq!(kept["lines"][0]["line"], 9);
+
+    let listed = served.wrote("# Lista\n\n- uno\n- dos\n- tres\n\nfin\n", None);
+    let kept = served.call(
+        "find",
+        serde_json::json!({ "doc": &listed, "query": "dos" }),
+    )["result"]["structuredContent"]
+        .clone();
+    assert_eq!(
+        kept["lines"][0]["around"], "- uno\n- dos\n- tres",
+        "the line before and the line after, no more"
+    );
     assert_eq!(
         kept["lines"][0]["section"]["at"], 2,
         "a hit on the heading line itself belongs to that section: {kept}"
@@ -4356,4 +4367,49 @@ fn kept_in(body: &str, ending: &str) -> bool {
     tisty_core::refs::extract(body).iter().any(|one| {
         tisty_core::attach::names_an_attachment(&one.target) && one.target.ends_with(ending)
     })
+}
+
+#[test]
+fn a_folder_that_holds_nothing_itself_names_the_folders_below_it_that_do() {
+    let served = Served::new();
+    served.call("folder", serde_json::json!({ "name": "Trabajo" }));
+    served.call(
+        "folder",
+        serde_json::json!({ "name": "Cliente", "inside": "Trabajo" }),
+    );
+    served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Notas del cliente\n\nuna\n", "folder": "Trabajo / Cliente" }),
+    );
+
+    let listed = served.call("docs", serde_json::json!({ "folder": "Trabajo" }))["result"]
+        ["structuredContent"]
+        .clone();
+
+    assert_eq!(listed["total"], 0, "{listed}");
+    assert_eq!(
+        listed["below"][0]["folder"], "Trabajo / Cliente",
+        "{listed}"
+    );
+    assert_eq!(listed["below"][0]["docs"], 1, "{listed}");
+}
+
+#[test]
+fn what_is_added_keeps_the_indent_of_its_first_line() {
+    let served = Served::new();
+    let doc = served.wrote("# Lista\n\n- uno\n", None);
+
+    served.call(
+        "append_doc",
+        serde_json::json!({ "doc": &doc, "body": "\n  - uno y medio\n- dos\n" }),
+    );
+
+    let read =
+        served.call("read_doc", serde_json::json!({ "doc": &doc }))["result"]["structuredContent"]
+            .clone();
+    let body = read["body"].as_str().unwrap();
+    assert!(
+        body.contains("\n  - uno y medio\n- dos"),
+        "the nested item lost its indent: {body:?}"
+    );
 }

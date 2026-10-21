@@ -270,7 +270,15 @@ pub(super) fn inside_a_doc(
             let mut hit = serde_json::Map::new();
             hit.insert("line".into(), json!(n + 1));
             hit.insert("text".into(), json!(lines[*n]));
-            hit.insert("around".into(), json!(lines[first..=last].join("\n")));
+            if (first..=last).any(|at| at != *n && !lines[at].trim().is_empty()) {
+                let around: Vec<String> = (first..=last)
+                    .map(|at| match at == *n {
+                        true => shortened_line(lines[at]),
+                        false => lines[at].to_string(),
+                    })
+                    .collect();
+                hit.insert("around".into(), json!(around.join("\n")));
+            }
             if let Some(section) = section_of(n + 1) {
                 hit.insert("section".into(), section);
             }
@@ -800,6 +808,18 @@ pub(super) fn sum_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 }
 
 const AROUND_A_HIT: usize = 1;
+// `text` carries the hit whole, so `around` only needs enough of it to place the neighbours.
+const HIT_SHOWN_AROUND: usize = 200;
+
+fn shortened_line(line: &str) -> String {
+    match line.chars().count() > HIT_SHOWN_AROUND {
+        true => format!(
+            "{}…",
+            line.chars().take(HIT_SHOWN_AROUND).collect::<String>()
+        ),
+        false => line.to_string(),
+    }
+}
 
 pub(super) const NEWEST_SHOWN: usize = 8;
 

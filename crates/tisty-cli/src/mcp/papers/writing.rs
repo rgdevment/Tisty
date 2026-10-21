@@ -22,7 +22,7 @@ pub(super) fn written_doc(
     args: &Value,
     imported: Option<Vec<Op>>,
 ) -> Result<Value, Refused> {
-    let Some(body) = text(args, "body") else {
+    let Some(body) = super::super::asked::body(args, "body") else {
         return Err(Refused::Tool("a document needs a `body`.".into()));
     };
     let body = tisty_core::speaking::turned(&body);
@@ -270,7 +270,7 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
             "adding to a document needs its `doc` name.".into(),
         ));
     };
-    let Some(body) = text(args, "body") else {
+    let Some(body) = super::super::asked::body(args, "body") else {
         return Err(Refused::Tool("adding needs a `body` to add.".into()));
     };
     let body = tisty_core::speaking::turned(&body);

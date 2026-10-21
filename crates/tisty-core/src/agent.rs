@@ -376,6 +376,7 @@ fn bared(said: &str) -> &str {
 
 fn a_name(key: &str) -> Option<&str> {
     let name = key.trim().rsplit([' ', '\t']).next()?.trim();
+    let name = name.trim_start_matches(['"', '\'', '`']);
     let plain = !name.is_empty()
         && name
             .chars()
@@ -451,10 +452,27 @@ fn told_by(line: &str) -> Option<(bool, &str, &'static str)> {
     written_as(line, '=').or_else(|| written_as(line, ':'))
 }
 
+// A shell line goes on past ` \`, and a header names its scheme before the credential.
+fn in_a_command(value: &str) -> &str {
+    let value = value.trim().trim_end_matches('\\').trim();
+    let value = match value.strip_suffix(['"', '\'', '`']) {
+        Some(inner) if !value.starts_with(['"', '\'', '`']) => inner,
+        _ => value,
+    };
+    let word = value.split_whitespace().next().unwrap_or_default();
+    match ["Bearer", "Basic", "Token"]
+        .iter()
+        .any(|one| word.eq_ignore_ascii_case(one))
+    {
+        true => value[word.len()..].trim(),
+        false => value,
+    }
+}
+
 fn written_as(line: &str, mark: char) -> Option<(bool, &str, &'static str)> {
     let (key, value) = line.split_once(mark)?;
     let name = a_name(bared(key))?;
-    let value = bared(value);
+    let value = in_a_command(bared(value));
     if carries_a_prefix(value) {
         return Some((true, name, "a value carrying a provider's key prefix"));
     }

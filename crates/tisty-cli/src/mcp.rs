@@ -1025,6 +1025,7 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         })
         .collect();
     folders.sort_by(|a, b| a["path"].as_str().cmp(&b["path"].as_str()));
+    let below = within.map_or_else(Vec::new, |at| placing::held_below(&state, scope, at));
 
     let mut lines: Vec<String> = shown
         .iter()
@@ -1060,6 +1061,7 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             )
         })
         .collect();
+    lines.extend(placing::told_below(&below));
     lines.push(match folders.is_empty() {
         true => "No folders here yet.".into(),
         false => format!(
@@ -1073,6 +1075,9 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     });
 
     let mut kept = json!({ "docs": shown, "total": all });
+    if !below.is_empty() {
+        kept["below"] = json!(below);
+    }
     if args
         .get("folders")
         .and_then(Value::as_bool)

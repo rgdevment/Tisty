@@ -3,6 +3,7 @@ use tisty_core::docs::Card;
 use tisty_core::model::Kept;
 use tisty_core::{Paths, State};
 
+use super::super::said;
 use super::compacting::agents_wrote;
 
 pub(super) fn by(state: &State, kept: &Kept) -> &'static str {
@@ -77,6 +78,64 @@ pub(super) fn repeated(own: (&str, &Card), pages: &[(&str, &Card)]) -> Vec<Value
         .filter(|(_, _, all)| all.len() > 1 && (pages_held < 3 || all.len() < pages_held))
         .map(|(_, heading, all)| json!({ "heading": heading, "in": all }))
         .collect()
+}
+
+// Past this a card's words are a pasted body, not a name, and only their start is worth showing.
+const LABEL_SHOWN: usize = 80;
+
+pub(super) fn mislabeled(whole: &str, pages: &[(&str, &Card)]) -> Vec<Value> {
+    tisty_core::refs::paper_labels(whole)
+        .into_iter()
+        .filter_map(|(file, shows)| {
+            let (_, card) = pages.iter().find(|(had, _)| *had == file)?;
+            let title = card.title.as_str();
+            let differs = tisty_core::text::subject(&shows) != tisty_core::text::subject(title);
+            differs.then(|| {
+                let shown: String = shows.chars().take(LABEL_SHOWN).collect();
+                let cut = match shown.len() < shows.len() {
+                    true => "…",
+                    false => "",
+                };
+                json!({ "doc": file, "shows": format!("{shown}{cut}"), "title": title })
+            })
+        })
+        .collect()
+}
+
+pub(super) fn told_mislabeled(mislabeled: &[Value]) -> String {
+    if mislabeled.is_empty() {
+        return String::new();
+    }
+    format!(
+        "\n\nPage lines that show another name than the page's title ({}): {}. Write each line \
+         again with the title, so the window and the reader agree.",
+        mislabeled.len(),
+        mislabeled
+            .iter()
+            .map(|one| format!(
+                "{:?} for {:?} [{}]",
+                said(one, "shows"),
+                said(one, "title"),
+                said(one, "doc")
+            ))
+            .collect::<Vec<_>>()
+            .join(", ")
+    )
+}
+
+pub(super) fn told_dead(dead: &[Value]) -> String {
+    if dead.is_empty() {
+        return String::new();
+    }
+    format!(
+        "\n\nLinks that lead nowhere ({}): {}. Nothing here answers them — mend each or take \
+         it out.",
+        dead.len(),
+        dead.iter()
+            .map(|one| format!("{} in {}", said(one, "to"), said(one, "in")))
+            .collect::<Vec<_>>()
+            .join(", ")
+    )
 }
 
 pub(super) fn dead(paths: &Paths, state: &State, bodies: &[(&str, String)]) -> Vec<Value> {

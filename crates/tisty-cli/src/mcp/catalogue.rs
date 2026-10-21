@@ -754,7 +754,8 @@ pub(super) fn tools() -> Value {
                         "description": "Only the documents that sit in this one folder, by its \
                                         name, its whole path or its id. Pages are left out — they \
                                         are kept where their document is — and what the folders \
-                                        below it hold is theirs, not this one's"
+                                        below it hold is theirs, not this one's: the answer \
+                                        names them under `below`"
                     },
                     "page_of": {
                         "type": "string",
@@ -962,7 +963,7 @@ pub(super) fn tools() -> Value {
         {
             "name": "read_doc",
             "title": "Read a document, or a part of one",
-            "description": "The text of a document and the `print` it reads at. Left alone it brings the whole body; one past about 12,000 characters comes back as its outline instead, with `whole` set to false, and then you ask for a `section`, a run of lines or a budget of `chars`, about 12,000 at a time. Reading a part is the ordinary way to work: the print comes with every answer, so a passage can be changed with `edit_doc` without ever bringing the rest.",
+            "description": "The text of a document and the `print` it reads at. Left alone it brings the whole body; one past about 12,000 characters comes back as its outline instead, with `whole` set to false, and then you ask for a `section`, a run of lines or a budget of `chars`, about 12,000 at a time. Reading a part is the ordinary way to work: the print comes with every answer, so a passage can be changed with `edit_doc` without ever bringing the rest. `pages_loose` names the pages no line in the body names.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": named_doc_field(),
@@ -1054,7 +1055,7 @@ pub(super) fn tools() -> Value {
         {
             "name": "outline_doc",
             "title": "What is in a document",
-            "description": "The headings of a document with the lines each one spans and how many characters it holds, how long the whole is, its `print`, and for a document with pages a row per page with its title, length and sections, in reading order — a few hundred tokens instead of the bodies. Ask for this first when a document is long or when you only mean to change one part of it: with the outline you know which `section` to read and what it costs, and with the print you can write into it without having read it at all. It also says which other documents point at this one, which is what you want to know before putting it away: those links go on pointing at it in the archive. `by` says whether an agent or the person began it and each page, `alike` names documents elsewhere whose title names the same subject as this one or one of its pages, and `repeated` the headings written in more than one page — the signs that it wants compacting.",
+            "description": "The headings of a document with the lines each one spans and how many characters it holds, how long the whole is, its `print`, and for a document with pages a row per page with its title, length and sections, in reading order — a few hundred tokens instead of the bodies. Ask for this first when a document is long or when you only mean to change one part of it: with the outline you know which `section` to read and what it costs, and with the print you can write into it without having read it at all. It also says which other documents point at this one, which is what you want to know before putting it away: those links go on pointing at it in the archive. `by` says whether an agent or the person began it and each page, `alike` names documents elsewhere whose title names the same subject as this one or one of its pages, and `repeated` the headings written in more than one page — the signs that it wants compacting. `dead` lists the links that lead nowhere, `mislabeled` the page lines showing another name than the page's title, and a page marked `loose` has no line naming it, so the window gives it no place.",
             "inputSchema": shaped(json!({
                 "properties": {
                     "doc": named_doc_field()
@@ -1091,7 +1092,7 @@ pub(super) fn tools() -> Value {
                     },
                     "doc": {
                         "type": "string",
-                        "description": "Look inside this one document rather than across the tasks. Hands back the lines where every word of the query turns up, accents or not, with their numbers, the lines around them, and the section each sits in"
+                        "description": "Look inside this one document rather than across the tasks. Hands back the lines where every word of the query turns up, accents or not, with their numbers, the lines around them when those are not blank, and the section each sits in"
                     },
                     "tag": { "type": "string", "description": "Carrying this tag, with or without the #. Any sifting field leaves the documents out of the answer" },
                     "list": { "type": "string", "description": "In this list, named as `lists` names it" },
