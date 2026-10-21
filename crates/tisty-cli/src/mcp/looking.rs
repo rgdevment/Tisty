@@ -557,8 +557,9 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 kept.insert("newest".into(), json!(newest));
             }
             format!(
-                "{} list(s), {} folder(s), {} tag(s), {} open task(s), {} document(s). Send the \
-                 `cursor` back next time and what moved since comes with it as well.",
+                "{} list(s), {} folder(s), {} tag(s), {} open task(s), {} document(s) not put \
+                 away, pages included. Send the `cursor` back next time and what moved since \
+                 comes with it as well.",
                 named.len(),
                 folders.len(),
                 tags.len(),
@@ -658,33 +659,6 @@ pub(super) fn lists(paths: &Paths) -> Result<Value, Refused> {
 
 // The same text is published, drawn for people and whole for assistants, so an answer can point a person there.
 pub(super) const GUIDE: &str = "https://markdown.tisty.app/";
-
-pub(super) fn language(args: &Value) -> Value {
-    let spanish = args["lang"].as_str() == Some("es");
-    let drawn = if spanish {
-        format!("{GUIDE}es/")
-    } else {
-        GUIDE.to_string()
-    };
-    let whole = format!("{drawn}llms-full.txt");
-    let index = format!("{GUIDE}llms.txt");
-    let reference = tisty_markdown::reference(spanish).trim_end();
-    told(
-        format!(
-            "{reference}
-
-The same guide, with every example drawn, is published at {drawn}; this whole text at {whole}, and an index of its topics at {index}.
-"
-        ),
-        json!({
-            "reference": reference,
-            "lang": if spanish { "es" } else { "en" },
-            "guide": drawn,
-            "full": whole,
-            "index": index,
-        }),
-    )
-}
 
 pub(super) fn tags(paths: &Paths) -> Result<Value, Refused> {
     let (state, _) = opened(paths)?;

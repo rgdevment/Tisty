@@ -240,3 +240,15 @@ pub(super) fn told_below(below: &[Value]) -> Option<String> {
         )
     })
 }
+
+// The same word counts differently by what was asked, and `catch_up` counts what is not put away.
+pub(super) fn counted(args: &Value, every_folder: bool) -> &'static str {
+    match (args["scope"].as_str(), every_folder) {
+        (Some("open"), true) => ", not put away, pages included",
+        (Some("archive"), true) => " in the archive, pages included",
+        (_, true) => ", open and put away alike, pages included",
+        (Some("open"), false) => ", not put away",
+        (Some("archive"), false) => " in the archive",
+        (_, false) => ", open and put away alike",
+    }
+}

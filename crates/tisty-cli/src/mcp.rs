@@ -2,6 +2,7 @@ mod asked;
 mod attaching;
 mod catalogue;
 mod chores;
+mod guide;
 mod handing;
 mod jsonrpc;
 mod looking;
@@ -30,9 +31,8 @@ use catalogue::{instructions, tools};
 use chores::{
     describe, note, plan, propose, remind, reschedule, say_done, say_not_doing, tick, untick,
 };
-use looking::{
-    NEWEST_SHOWN, catch_up, find, gone, how_it_ended, language, lists, read, sum_up, tags,
-};
+use guide::language;
+use looking::{NEWEST_SHOWN, catch_up, find, gone, how_it_ended, lists, read, sum_up, tags};
 use mending::{rename, reword_note, reword_step, unplan};
 use spoken::spoken;
 
@@ -1089,7 +1089,8 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 
     Ok(told(
         format!(
-            "{all} document(s); showing {}.\n{}",
+            "{all} document(s){}; showing {}.\n{}",
+            placing::counted(args, within.is_none() && under.is_none()),
             shown.len(),
             lines.join("\n")
         ),
