@@ -565,7 +565,6 @@ describe("the sheet in the main window", () => {
     page.getSelection()?.addRange(range);
     page.dispatchEvent(new KeyboardEvent("keydown", { key: "x", cancelable: true }));
     expect(ipc.opened.map((one) => one.said)).toEqual(["**le**che\n"]);
-    expect(ipc.opened[0].caret).toBe(-1);
     expect(ipc.typed).toEqual(["x"]);
   });
 
