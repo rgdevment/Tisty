@@ -86,6 +86,7 @@ vi.mock("../ui/blocking", () => ({
             },
           },
           doc: said,
+          lineBreak: "\n",
           replaceSelection: (insert: string) => ({ changes: { from: 0, to: 0, insert } }),
         },
         dispatch: (spec: {
