@@ -188,7 +188,7 @@ pub fn mentioned_where(task: &Task, query: &str) -> Option<(&'static str, String
         })
 }
 
-fn clipped(line: &str) -> String {
+pub fn clipped(line: &str) -> String {
     const MOST: usize = 200;
     match line.char_indices().nth(MOST) {
         Some((at, _)) => format!("{}…", &line[..at]),

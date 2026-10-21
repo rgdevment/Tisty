@@ -208,7 +208,7 @@ pub(super) fn held_below(
 pub(super) fn told_below(below: &[Value]) -> Option<String> {
     (!below.is_empty()).then(|| {
         format!(
-            "Folders below it hold documents of their own, listed only when asked by their path: {}.",
+            "Folders below it hold documents of their own, listed only when asked for by name or path: {}.",
             below
                 .iter()
                 .map(|one| format!("{} ({})", super::said(one, "folder"), one["docs"]))

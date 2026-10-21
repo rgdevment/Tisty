@@ -32,3 +32,22 @@ fn a_page_line_showing_another_name_than_its_title_is_told() {
     assert_eq!(found[0]["shows"], "Old name");
     assert_eq!(found[0]["title"], "New name");
 }
+
+#[test]
+fn a_shorter_title_or_a_changed_number_still_reads_as_another_name() {
+    let whole = "# Plan\n\n![Plan viejo](tisty:doc/aaaa-0001)\n\n![Informe 2025](tisty:doc/aaaa-0002)\n\n![Plan *v2*](tisty:doc/aaaa-0003)\n";
+    let shorter = tisty_core::docs::Card::read_from("# Plan\n\nbody\n");
+    let later = tisty_core::docs::Card::read_from("# Informe 2026\n\nbody\n");
+    let marked = tisty_core::docs::Card::read_from("# Plan v2\n\nbody\n");
+    let found = mislabeled(
+        whole,
+        &[
+            ("aaaa-0001", &shorter),
+            ("aaaa-0002", &later),
+            ("aaaa-0003", &marked),
+        ],
+    );
+
+    let named: Vec<&str> = found.iter().filter_map(|one| one["doc"].as_str()).collect();
+    assert_eq!(named, ["aaaa-0001", "aaaa-0002"]);
+}
