@@ -1,0 +1,5 @@
+---
+source: crates/tisty-markdown/tests/snapshots.rs
+expression: "page(\"==yellow== and ==blue=={blue} and ++under++ with ::star:: and ::flag red::\\n\")"
+---
+<p data-at="0-75"><mark>yellow</mark> and <mark data-pen="blue">blue</mark> and <u>under</u> with <span class="ico" data-ico="star" data-hue="" title="star"></span> and <span class="ico" data-ico="flag" data-hue="red" title="flag"></span></p>

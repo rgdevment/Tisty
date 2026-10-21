@@ -1,0 +1,5 @@
+---
+source: crates/tisty-markdown/tests/snapshots.rs
+expression: "to_tisty(&standard(\"==blue=={blue} and ++under++ and ::star:: and ![p](plano-0006bf09.png)\\n\"))"
+---
+==blue=={blue} and <ins>under</ins> and ::star:: and ![p](plano-0006bf09.png)
