@@ -93,6 +93,7 @@ pub trait Carrier: Send + std::marker::Sync {
     fn lends_from(&self) -> Option<PathBuf>;
     /// Attachments always stay here and space is freed by hand: there is no copy kept only there.
     fn frees_space(&self) -> bool;
+    /// Takes an attachment however a body names it, by its leaf or whole, since the window passes what it read.
     fn brought(&self, here: &Here, reference: &str) -> Result<Brought, Trouble>;
     fn shelf(&self) -> Option<BTreeMap<String, u64>>;
     fn reachable(&self) -> bool;

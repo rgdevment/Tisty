@@ -265,10 +265,6 @@ struct Round<'r> {
     again: bool,
 }
 
-pub fn named_well(reference: &str) -> bool {
-    attach::names_an_attachment(reference)
-}
-
 /// Where it lies, and what it read when no history answers for it yet.
 pub type Fetched = (PathBuf, Option<(String, u64)>);
 

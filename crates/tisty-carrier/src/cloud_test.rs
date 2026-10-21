@@ -2180,3 +2180,37 @@ fn a_look_at_a_cloud_not_chosen_yet_spends_nothing_here_and_an_unanswered_one_is
         assert_eq!(two.carrier.peeks_a_store(false), None, "{who}");
     }
 }
+
+#[test]
+fn an_attachment_asked_for_by_the_leaf_a_body_names_is_brought_all_the_same() {
+    for setting in settings() {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        let kept = one.kept("captura", b"los bytes de una captura");
+        one.store().append(kept.told()).unwrap();
+        one.wrote("con captura");
+        one.round(Way::Both);
+        if let Place::Cloud(_) = setting.place {
+            two.round(Way::Pull);
+        }
+        let leaf = tisty_core::attach::leaf_of(&kept.at).unwrap();
+
+        let at = two.carrier.brought(&two.here, leaf).unwrap();
+
+        let crate::Brought::At(at) = at else {
+            panic!("{who}: asked by its leaf, nothing was brought: {at:?}");
+        };
+        assert_eq!(
+            std::fs::read(&at).unwrap(),
+            b"los bytes de una captura",
+            "{who}"
+        );
+        if let Place::Cloud(_) = setting.place {
+            assert_eq!(
+                Some(at),
+                tisty_core::attach::resolve(&kept.at, &two.here.data).ok(),
+                "{who}: it landed where the whole name puts it"
+            );
+        }
+    }
+}
