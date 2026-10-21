@@ -63,6 +63,17 @@ describe("a photo not every computer shows", () => {
     expect(ipc.calls[0].args.shape).toBeUndefined();
   });
 
+  it("asks in the window's own dress when the window is there to ask", async () => {
+    const { asksShape, attachedAll } = await onWindows();
+    asksShape(() => Promise.resolve("full"));
+
+    await Promise.all(await attachedAll(["C:/a/uno.heic"]));
+
+    expect(ipc.asked, "the system's dialog stays shut").toBe(0);
+    expect(ipc.calls[0].args.shape).toBe("full");
+    asksShape(null);
+  });
+
   it("asks nothing when every file shows everywhere", async () => {
     const { attachedAll } = await onWindows();
 
