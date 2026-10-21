@@ -9,6 +9,7 @@ pub fn attach(
     session: tauri::State<'_, Mutex<Session>>,
     path: String,
     label: Option<String>,
+    shape: Option<String>,
 ) -> Answer<String> {
     let source = std::path::PathBuf::from(&path);
     let name = label
@@ -19,10 +20,30 @@ pub fn attach(
                 .map(str::to_string)
         })
         .unwrap_or_default();
+    // A photo not every window can draw is kept as JPEG when the person chose so; failing that, as it came.
+    let reshaped = shape
+        .as_deref()
+        .and_then(|how| crate::drawn::reshaped(&source, how == "light"));
+    let (source, name) = match &reshaped {
+        Some(made) => (made.clone(), as_jpeg(&name)),
+        None => (source, name),
+    };
     let (root, ceiling) = room_for(&session);
-    let kept = kept_at(&source, &root, ceiling, &name)?;
+    let kept = kept_at(&source, &root, ceiling, &name);
+    if let Some(made) = &reshaped {
+        let _ = std::fs::remove_file(made);
+    }
+    let kept = kept?;
     noted(&session, &kept);
     Ok(kept.written(&name))
+}
+
+fn as_jpeg(name: &str) -> String {
+    let stem = std::path::Path::new(name)
+        .file_stem()
+        .and_then(|one| one.to_str())
+        .unwrap_or(name);
+    format!("{stem}.jpg")
 }
 
 pub(crate) fn pasted_name(raw: &str, kind: &str) -> String {

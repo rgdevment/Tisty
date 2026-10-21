@@ -289,6 +289,14 @@ const en = {
   stepToPart: "Make it a part",
   stepTicked: "ticked {name}",
   attachFile: "Attach a file",
+  reshapeTitle: "A photo not every computer shows",
+  reshapeAskOne:
+    "{name} is in a format some of your computers can't show. Keep it as a JPG so it shows everywhere?",
+  reshapeAskMany:
+    "{name} photos are in a format some of your computers can't show. Keep them as JPG so they show everywhere?",
+  reshapeFull: "Same size and quality",
+  reshapeLight: "Lighter",
+  reshapeKeep: "Keep as it is",
   insertNewDoc: "A new document",
   insertNewPage: "A new page",
   insertPage: "A page that already exists",
@@ -2499,6 +2507,14 @@ const es: Catalog = {
   stepToPart: "Volverla una parte",
   stepTicked: "marcado {name}",
   attachFile: "Adjuntar un archivo",
+  reshapeTitle: "Una foto que no todos los equipos muestran",
+  reshapeAskOne:
+    "{name} está en un formato que algunos de tus equipos no pueden mostrar. ¿La guardo como JPG para que se vea en todas partes?",
+  reshapeAskMany:
+    "{name} fotos están en un formato que algunos de tus equipos no pueden mostrar. ¿Las guardo como JPG para que se vean en todas partes?",
+  reshapeFull: "Mismo tamaño y calidad",
+  reshapeLight: "Más liviana",
+  reshapeKeep: "Dejarla como está",
   insertNewDoc: "Un documento nuevo",
   insertNewPage: "Una página nueva",
   insertPage: "Una página que ya existe",
