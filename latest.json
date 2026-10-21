@@ -1,18 +1,18 @@
 {
-  "version": "1.31.4",
-  "notes": "https://github.com/rgdevment/Tisty/releases/tag/v1.31.4",
+  "version": "1.31.5",
+  "notes": "https://github.com/rgdevment/Tisty/releases/tag/v1.31.5",
   "platforms": {
     "windows-x86_64": {
-      "url": "https://github.com/rgdevment/Tisty/releases/download/v1.31.4/tisty-installer-1.31.4-windows-x86_64.exe",
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUQ3FzSkppRG5qTWdBMldZcURKMHpaQlpJenc5bGc1dHNEWm54dkp1c1FwMjM3NGJuUm5aWDZLcWovK0RDejB0bjNTQVVZazk3ZU5kRVcxSXBWejlqRW5ORnpiQ0oveFFZPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyNTk4NjQ4CWZpbGU6dGlzdHktaW5zdGFsbGVyLTEuMzEuNC13aW5kb3dzLXg4Nl82NC5leGUJdmVyc2lvbjoxLjMxLjQKTjliVFMrNDllb1VwaHhsYjhSU1A1NTMyRGxVSEJPb0lKdGtIUDZlWkh6S0NLNmNCay9uWVVVSXFrbmdxSy9XOFFYR3FyblVJbVBqbmhLcSt4bW1nQVE9PQo="
+      "url": "https://github.com/rgdevment/Tisty/releases/download/v1.31.5/tisty-installer-1.31.5-windows-x86_64.exe",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUQ3FzSkppRG5qTW9SQTRHVzNnQThQZ2JoOXRMTUc5cGZRNmhjRGZZLzRZMldneUh6b2RJOTZZUkFJdGRVRUoyYytwOTdnTVNhSmV4L091Ni9OZjdSa3A4ZjZVYy9tTHd3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyNjA2NjM1CWZpbGU6dGlzdHktaW5zdGFsbGVyLTEuMzEuNS13aW5kb3dzLXg4Nl82NC5leGUJdmVyc2lvbjoxLjMxLjUKNEJDQmtRK1RRTVFDcU9TVHN4U2kvSEIvcW84RWNBNWlzZ3NKcEVBTTdvSlM0QmF2UzQ0RTJLUUM0YldXSkRRUDFHdDkxZ1Nzcm5wVFltUTJxTUxJQmc9PQo="
     },
     "darwin-aarch64": {
-      "url": "https://github.com/rgdevment/Tisty/releases/download/v1.31.4/tisty-1.31.4-macos-aarch64.app.tar.gz",
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUQ3FzSkppRG5qTXAyRnNSeVZ3NDdRTmU2ekFFdGdkaU80N2hmdFA2djg2R1IzMFJGVlRIMnhTL0c1ZWpXNG9HOEFqVlJGRi9XZVFuK2R3dU15eExIZzBvUjlzclR2NEFvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyNTk4NjQ4CWZpbGU6dGlzdHktMS4zMS40LW1hY29zLWFhcmNoNjQuYXBwLnRhci5negl2ZXJzaW9uOjEuMzEuNAp1TC8weXZUZ1ErS2dXOWhPVk5XTlA1NkpOcXF4MlYzbVN4aUttL0NUWklNQ2lhQjMzU1UyY283ckF4VHBLc2ZDRnZ1N25xLy8zSEMzR211dzdScTZCZz09Cg=="
+      "url": "https://github.com/rgdevment/Tisty/releases/download/v1.31.5/tisty-1.31.5-macos-aarch64.app.tar.gz",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUQ3FzSkppRG5qTWxlYmxtcVF3WTQrVXArczIyVkd4UVBKMENJMkZEM1ZyeUl3d0kvNStYYVJwQUpRUk5PaEhsaEhpZHZpdS9Xb0xDSnJUdHQ1QklieWdlUFFvV3NjT1EwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyNjA2NjM2CWZpbGU6dGlzdHktMS4zMS41LW1hY29zLWFhcmNoNjQuYXBwLnRhci5negl2ZXJzaW9uOjEuMzEuNQpNQmFERVp1Wmg0emNuOW1pc3JsWjF0N1dkRllldEhVR2J0MDhRSlFFdlpCRDVFWkVyM3pLRmNTdGF5L2xVVmJaaVVpeHgxd0dRWDBRUXUxdEp2UEZDZz09Cg=="
     },
     "darwin-x86_64": {
-      "url": "https://github.com/rgdevment/Tisty/releases/download/v1.31.4/tisty-1.31.4-macos-x86_64.app.tar.gz",
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUQ3FzSkppRG5qTXJjUjhHdDRrY1BKYnFBNXVBQXhEdW9YNDZ2aG1kMVY5ZkVYem1tVWJUNG5oK1BadSt6VVgzTkNoRnh4VDJzZGhRNDZObHUyRE1XQ2R5a1lIdjdWMVFVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyNTk4NjQ4CWZpbGU6dGlzdHktMS4zMS40LW1hY29zLXg4Nl82NC5hcHAudGFyLmd6CXZlcnNpb246MS4zMS40ClhHQU9RQjN4d2QwVS81VXJYUFR1UStBdUFVcktIcVJUN1gxeG9vRHBFOEUveU5UVXc0enNyWVd3TXkzc0h5RjhHQkV1bWFROXlQMXRIbGt0UVFPNEJBPT0K"
+      "url": "https://github.com/rgdevment/Tisty/releases/download/v1.31.5/tisty-1.31.5-macos-x86_64.app.tar.gz",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUQ3FzSkppRG5qTWtZN1c1b25HclNOSWRiZnRoQnA1bkRKNGpITGQ5dWo0YXhGcXlMM1hjNFI2SXc1R2tGREFoMjg3OVg4UWJXTUs2Y1BaTEpiU09nbE5WbVBwZU9LUndvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyNjA2NjM2CWZpbGU6dGlzdHktMS4zMS41LW1hY29zLXg4Nl82NC5hcHAudGFyLmd6CXZlcnNpb246MS4zMS41CmQzQmdVWW9Ua3lXZlUrMExSNUUvNXJZSnhnS25ZSVlBN3gwakdzRXRUUmpGSFlUckZjcXNBWkVudDhjM0NjYzIrT205WXBqaklUOGRJZE5WcE16REJRPT0K"
     }
   }
 }
