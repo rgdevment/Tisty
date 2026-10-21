@@ -454,7 +454,7 @@ fn told_by(line: &str) -> Option<(bool, &str, &'static str)> {
 
 // A shell line goes on past ` \`, and a header names its scheme before the credential.
 fn in_a_command(value: &str) -> &str {
-    let value = value.trim().trim_end_matches('\\').trim();
+    let value = bared(value.trim().trim_end_matches('\\'));
     let value = match value.strip_suffix(['"', '\'', '`']) {
         Some(inner) if !value.starts_with(['"', '\'', '`']) => inner,
         _ => value,

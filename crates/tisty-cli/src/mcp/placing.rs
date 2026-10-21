@@ -182,16 +182,22 @@ pub(super) fn held_below(
         }
         false
     };
+    let mut held: std::collections::HashMap<tisty_core::model::FolderId, usize> =
+        std::collections::HashMap::new();
+    for kept in state.papers() {
+        if let Some(folder) = kept.folder
+            && kept.page_of.is_none()
+            && state.doc_kept_by(scope, kept)
+        {
+            *held.entry(folder).or_default() += 1;
+        }
+    }
     let mut found: Vec<Value> = state
         .folders
         .values()
         .filter(|one| beneath(one.id))
         .filter_map(|one| {
-            let docs = state
-                .papers()
-                .filter(|kept| kept.folder == Some(one.id) && kept.page_of.is_none())
-                .filter(|kept| state.doc_kept_by(scope, kept))
-                .count();
+            let docs = held.get(&one.id).copied().unwrap_or_default();
             (docs > 0).then(|| json!({ "folder": trail(state, one.id), "docs": docs }))
         })
         .collect();

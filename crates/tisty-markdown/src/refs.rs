@@ -80,13 +80,16 @@ fn carded(text: &str) -> Vec<(usize, Ref)> {
 
 /// Each page card with its words, written once: a page renamed since keeps its old name there.
 pub fn paper_labels(text: &str) -> Vec<(String, String)> {
-    carded(text)
-        .into_iter()
-        .filter_map(|(_, one)| {
-            let file = one.target.strip_prefix(DOC)?.to_string();
-            Some((file, unescaped(&one.label?)))
-        })
-        .collect()
+    let mut found: Vec<(String, String)> = Vec::new();
+    for (_, one) in carded(text) {
+        let (Some(file), Some(label)) = (one.target.strip_prefix(DOC), one.label) else {
+            continue;
+        };
+        if !found.iter().any(|(had, _)| had == file) {
+            found.push((file.to_string(), unescaped(&label)));
+        }
+    }
+    found
 }
 
 fn unescaped(label: &str) -> String {

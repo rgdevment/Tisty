@@ -22,7 +22,7 @@ pub(super) fn written_doc(
     args: &Value,
     imported: Option<Vec<Op>>,
 ) -> Result<Value, Refused> {
-    let Some(body) = super::super::asked::body(args, "body") else {
+    let Some(body) = text(args, "body") else {
         return Err(Refused::Tool("a document needs a `body`.".into()));
     };
     let body = tisty_core::speaking::turned(&body);

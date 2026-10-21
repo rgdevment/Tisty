@@ -271,12 +271,8 @@ pub(super) fn inside_a_doc(
             hit.insert("line".into(), json!(n + 1));
             hit.insert("text".into(), json!(lines[*n]));
             if (first..=last).any(|at| at != *n && !lines[at].trim().is_empty()) {
-                let around: Vec<String> = (first..=last)
-                    .map(|at| match at == *n {
-                        true => shortened_line(lines[at]),
-                        false => lines[at].to_string(),
-                    })
-                    .collect();
+                let around: Vec<String> =
+                    (first..=last).map(|at| shortened_line(lines[at])).collect();
                 hit.insert("around".into(), json!(around.join("\n")));
             }
             if let Some(section) = section_of(n + 1) {
@@ -808,7 +804,7 @@ pub(super) fn sum_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 }
 
 const AROUND_A_HIT: usize = 1;
-// `text` carries the hit whole, so `around` only needs enough of it to place the neighbours.
+// `text` carries the hit whole, so `around` only needs enough of each line to place it.
 const HIT_SHOWN_AROUND: usize = 200;
 
 fn shortened_line(line: &str) -> String {

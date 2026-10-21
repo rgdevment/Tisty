@@ -2712,20 +2712,20 @@ fn looking_inside_a_document_takes_words_in_any_order_and_accents_decide_nothing
 
     let kept = inside("porton");
     assert_eq!(kept["lines"][0]["line"], 9);
-
-    let listed = served.wrote("# Lista\n\n- uno\n- dos\n- tres\n\nfin\n", None);
-    let kept = served.call(
-        "find",
-        serde_json::json!({ "doc": &listed, "query": "dos" }),
-    )["result"]["structuredContent"]
-        .clone();
-    assert_eq!(
-        kept["lines"][0]["around"], "- uno\n- dos\n- tres",
-        "the line before and the line after, no more"
-    );
     assert_eq!(
         kept["lines"][0]["section"]["at"], 2,
         "a hit on the heading line itself belongs to that section: {kept}"
+    );
+
+    let listed = served.wrote("# Lista\n\n- uno\n- dos\n- tres\n\nfin\n", None);
+    let around = served.call(
+        "find",
+        serde_json::json!({ "doc": &listed, "query": "dos" }),
+    )["result"]["structuredContent"]["lines"][0]["around"]
+        .clone();
+    assert_eq!(
+        around, "- uno\n- dos\n- tres",
+        "the line before and the line after, no more"
     );
 
     assert_eq!(

@@ -89,7 +89,9 @@ pub(super) fn mislabeled(whole: &str, pages: &[(&str, &Card)]) -> Vec<Value> {
         .filter_map(|(file, shows)| {
             let (_, card) = pages.iter().find(|(had, _)| *had == file)?;
             let title = card.title.as_str();
-            let differs = tisty_core::text::subject(&shows) != tisty_core::text::subject(title);
+            // Words alone, so markup in the line and a title cut short on its card both still agree.
+            let differs =
+                !tisty_core::text::telling(&shows).starts_with(&tisty_core::text::telling(title));
             differs.then(|| {
                 let shown: String = shows.chars().take(LABEL_SHOWN).collect();
                 let cut = match shown.len() < shows.len() {
