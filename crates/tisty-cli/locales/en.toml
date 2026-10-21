@@ -7,3 +7,6 @@ secret-warning = "Something here reads like a live credential rather than an exa
 secret-a-key = "a private key"
 retired = "The tisty command line was retired: open the Tisty window for your tasks and documents. Only `tisty mcp`, the door your assistant uses, is still here."
 version = "tisty {version}"
+help-usage = "Usage: tisty mcp"
+help-commands = "Commands:"
+help-mcp = "the door your assistant uses, spoken over standard input and output"

@@ -19,6 +19,8 @@ pub struct Place {
     pub bins: Vec<PathBuf>,
     pub command: String,
     pub open: bool,
+    /// Where the distro mounts Windows drives, `/mnt/` by default; empty on this computer.
+    pub mount: String,
 }
 
 impl Place {
@@ -34,9 +36,10 @@ impl Place {
             "HOME"
         })?;
         let config = var("XDG_CONFIG_HOME").unwrap_or_else(|| home.join(".config"));
-        let bins = std::env::var_os("PATH")
+        let mut bins: Vec<PathBuf> = std::env::var_os("PATH")
             .map(|all| std::env::split_paths(&all).collect())
             .unwrap_or_default();
+        bins.extend(usual_bins(os, &home));
         Some(Self {
             distro: None,
             os,
@@ -47,6 +50,7 @@ impl Place {
             bins,
             command,
             open: true,
+            mount: String::new(),
         })
     }
 
@@ -78,6 +82,32 @@ impl Place {
         Some(at)
     }
 
+    // A bare name is looked up on the PATH when the assistant starts it, so there is no file to check.
+    pub fn reached(&self, said: &str) -> Option<PathBuf> {
+        let said = said.trim();
+        let Some(distro) = &self.distro else {
+            let at = PathBuf::from(said);
+            return at.is_absolute().then_some(at);
+        };
+        let drive = said
+            .strip_prefix(self.mount.trim_end_matches('/'))
+            .and_then(|rest| rest.strip_prefix('/'))
+            .and_then(|rest| rest.split_once('/'))
+            .filter(|(drive, _)| drive.len() == 1);
+        if let Some((drive, rest)) = drive {
+            let drive = drive.to_ascii_uppercase();
+            return Some(PathBuf::from(format!(
+                "{drive}:\\{}",
+                rest.replace('/', "\\")
+            )));
+        }
+        let rest = said.strip_prefix('/')?;
+        Some(
+            rest.split('/')
+                .fold(distro_root(distro), |at, step| at.join(step)),
+        )
+    }
+
     pub fn runs(&self, name: &str) -> bool {
         let named: &[&str] = match self.os {
             Os::Windows => &[".exe", ".cmd", ".bat", ""],
@@ -89,6 +119,38 @@ impl Place {
                 .any(|end| dir.join(format!("{name}{end}")).is_file())
         })
     }
+}
+
+/// An app opened from the Finder gets a bare PATH, without where Homebrew, npm or pipx put a command.
+pub fn usual_bins(os: Os, home: &Path) -> Vec<PathBuf> {
+    if os == Os::Windows {
+        return Vec::new();
+    }
+    let system: &[&str] = match os {
+        Os::Macos => &["/opt/homebrew/bin", "/usr/local/bin"],
+        _ => &[],
+    };
+    let mut found: Vec<PathBuf> = system
+        .iter()
+        .map(PathBuf::from)
+        .chain(
+            [
+                ".local/bin",
+                ".npm-global/bin",
+                ".bun/bin",
+                ".volta/bin",
+                ".cargo/bin",
+            ]
+            .iter()
+            .map(|one| home.join(one)),
+        )
+        .collect();
+    let nvm = home.join(".nvm").join("versions").join("node");
+    let versions: Vec<PathBuf> = std::fs::read_dir(nvm)
+        .map(|all| all.flatten().map(|one| one.path().join("bin")).collect())
+        .unwrap_or_default();
+    found.extend(versions);
+    found
 }
 
 fn var(named: &str) -> Option<PathBuf> {
@@ -210,9 +272,13 @@ pub fn distros() -> Vec<(String, u32)> {
     Vec::new()
 }
 
+pub fn distro_root(name: &str) -> PathBuf {
+    PathBuf::from(format!(r"\\wsl.localhost\{name}"))
+}
+
 /// A distro as a place: reading its files over `\\wsl.localhost` starts it when it was stopped.
 pub fn distro(name: &str, uid: u32, windows_command: &str) -> Option<Place> {
-    let root = PathBuf::from(format!("\\\\wsl.localhost\\{name}"));
+    let root = distro_root(name);
     let passwd = std::fs::read_to_string(root.join("etc").join("passwd")).ok()?;
     let conf = std::fs::read_to_string(root.join("etc").join("wsl.conf")).unwrap_or_default();
     let linux_home = user_in(&conf)
@@ -238,6 +304,7 @@ pub fn distro(name: &str, uid: u32, windows_command: &str) -> Option<Place> {
         command: from_linux(windows_command, &mount)?,
         home,
         open,
+        mount,
     })
 }
 

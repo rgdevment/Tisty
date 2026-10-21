@@ -18,12 +18,29 @@ fn main() -> ExitCode {
             println!("{said}");
             ExitCode::SUCCESS
         }
-        None | Some("--help" | "-h" | "help") => {
+        // Bare, it may be an assistant missing `mcp`, whose stdout is the protocol: words go to stderr.
+        None => {
             eprintln!("{}", spoken().get("retired"));
+            ExitCode::SUCCESS
+        }
+        Some("--help" | "-h" | "help") => {
+            helped();
             ExitCode::SUCCESS
         }
         _ => retired(),
     }
+}
+
+// On stdout and in the usual shape, so a launcher that looks for `mcp` in the help still finds it.
+fn helped() {
+    let lang = spoken();
+    println!(
+        "{}\n\n{}\n\n{}\n  mcp    {}",
+        lang.get("retired"),
+        lang.get("help-usage"),
+        lang.get("help-commands"),
+        lang.get("help-mcp")
+    );
 }
 
 fn retired() -> ExitCode {

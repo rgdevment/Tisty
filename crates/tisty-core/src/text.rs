@@ -90,6 +90,15 @@ const EMPTY: [&str; 20] = [
     "que", "sin", "sus", "como", "este", "esta", "entre",
 ];
 
+/// Every word, numbers and short ones too, so markup around them decides nothing.
+pub fn worded(said: &str) -> String {
+    folded(said)
+        .split(|one: char| !one.is_alphanumeric())
+        .filter(|word| !word.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
 pub fn telling(said: &str) -> Vec<String> {
     folded(said)
         .split(|one: char| !one.is_alphanumeric())

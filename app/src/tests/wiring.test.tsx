@@ -83,6 +83,30 @@ describe("connecting assistants", () => {
     expect(sent("wire").map((call) => call.args.id)).toEqual(["codex", "copilot"]);
   });
 
+  it("repairs the ones pointing at another Tisty or at one that is gone, apart from the new ones", async () => {
+    shown([
+      one("codex"),
+      one("copilot", { astray: true, points: "/home/someone/.local/bin/tisty-mcp" }),
+      one("gemini", { astray: true, gone: true, points: "/old/debug/tisty" }),
+    ]);
+
+    expect(screen.getByText("Points at /old/debug/tisty, which is no longer there")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Connect the 1 found" })).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Repair 2" }));
+
+    await waitFor(() => expect(sent("wire").length).toBe(2));
+    expect(sent("wire").map((call) => call.args.id)).toEqual(["copilot", "gemini"]);
+  });
+
+  it("looks again for assistants without closing the window", async () => {
+    shown([one("codex")]);
+    const before = sent("wiring").length;
+
+    await userEvent.click(screen.getByRole("button", { name: "Look again" }));
+
+    await waitFor(() => expect(sent("wiring").length).toBe(before + 1));
+  });
+
   it("shows how to connect one by hand, its own command and its lines", async () => {
     shown([one("codex")]);
 
