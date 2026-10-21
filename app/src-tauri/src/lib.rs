@@ -1098,6 +1098,7 @@ pub fn run() {
         .setup(settled)
         .on_window_event(window_event)
         .manage(OneAtATime::default())
+        .manage(answers::attaching::Keeping::default())
         .manage(answers::clouding::Consenting::default())
         .manage(widgets::Lent::default())
         .manage(viewing::Views::default())

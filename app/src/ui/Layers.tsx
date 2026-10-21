@@ -12,7 +12,7 @@ import {
 import { useDesk } from "../desk";
 import { fill, t } from "../locales";
 import { offerMoved, saidPlainly } from "../refusal";
-import type { Shape } from "../reshaping";
+import type { ShapeChoice } from "../reshaping";
 import { Alarm, Progress } from "./Banners";
 import BringingBack from "./BringingBack";
 import Cheer from "./Cheer";
@@ -42,7 +42,7 @@ export interface Asked {
 
 export interface Shaping {
   said: string;
-  done: (shape: Shape | undefined) => void;
+  done: (chosen: ShapeChoice) => void;
 }
 
 export interface MenuOpen {
@@ -140,8 +140,8 @@ export default function Layers({ parcels }: { parcels: ReactNode }) {
       {shaping && (
         <Reshape
           said={shaping.said}
-          onAnswer={(shape) => {
-            shaping.done(shape);
+          onAnswer={(chosen) => {
+            shaping.done(chosen);
             setShaping(null);
           }}
         />

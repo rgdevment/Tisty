@@ -1,12 +1,16 @@
 import { message } from "@tauri-apps/plugin-dialog";
 import { attach } from "./core";
 import { fill, t } from "./locales";
+import { ending, heicReadable } from "./previews";
 
 export type Shape = "full" | "light";
-type Asking = (said: string) => Promise<Shape | undefined>;
+/** What the person chose: a shape, keeping it as it came, or null when they backed out. */
+export type ShapeChoice = Shape | "keep" | null;
+type Asking = (said: string) => Promise<ShapeChoice>;
 
 // Photos a window on another computer may not draw; the rest reads the same everywhere.
 const NOT_EVERYWHERE = ["heic", "heif", "tif", "tiff", "bmp"];
+const HEIF = ["heic", "heif"];
 // Only Windows and macOS carry what turns them; elsewhere they are kept as they came.
 const CAN_TURN = ["Macintosh", "Windows"].some((one) => navigator.userAgent.includes(one));
 
@@ -18,10 +22,12 @@ export const asksShape = (one: Asking | null): void => {
 };
 
 const leaf = (path: string): string => path.split(/[\\/]/).pop() ?? path;
-const ending = (path: string): string => leaf(path).split(".").pop()?.toLowerCase() ?? "";
 
-export const turnable = (path: string): boolean =>
-  CAN_TURN && NOT_EVERYWHERE.includes(ending(path));
+// A Windows that cannot read HEIC cannot turn it either, so it is not offered there.
+export const turnable = (path: string): boolean => {
+  const kind = ending(path);
+  return CAN_TURN && NOT_EVERYWHERE.includes(kind) && (!HEIF.includes(kind) || heicReadable());
+};
 
 const askedPlainly: Asking = async (said) => {
   const full = t("reshapeFull");
@@ -31,7 +37,7 @@ const askedPlainly: Asking = async (said) => {
     kind: "info",
     buttons: { yes: full, no: light, cancel: t("reshapeKeep") },
   });
-  return chosen === full ? "full" : chosen === light ? "light" : undefined;
+  return chosen === full ? "full" : chosen === light ? "light" : "keep";
 };
 
 /** Asked once for every photo dropped together, then each one is attached the way that was chosen. */
@@ -42,7 +48,9 @@ export async function attachedAll(paths: string[]): Promise<Promise<string>[]> {
     asked.length === 1
       ? fill("reshapeAskOne", leaf(asked[0]))
       : fill("reshapeAskMany", String(asked.length));
-  const shape = await (asking ?? askedPlainly)(said);
+  const chosen = await (asking ?? askedPlainly)(said);
+  if (chosen === null) return [];
+  const shape = chosen === "keep" ? undefined : chosen;
   return inTurn(paths, (one) => (turnable(one) ? shape : undefined));
 }
 

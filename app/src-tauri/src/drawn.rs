@@ -117,7 +117,7 @@ mod wic {
 
     // A HEIF decoder registered with Windows is what its extension from the Store installs.
     pub fn reads_heif() -> bool {
-        unsafe {
+        let container = unsafe {
             let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
             CoCreateInstance::<_, IWICImagingFactory>(
                 &CLSID_WICImagingFactory,
@@ -126,6 +126,39 @@ mod wic {
             )
             .and_then(|factory| factory.CreateDecoder(&GUID_ContainerFormatHeif, std::ptr::null()))
             .is_ok()
+        };
+        container && reads_hevc()
+    }
+
+    // The HEIF container comes with Windows; the HEVC pictures inside it need a decoder of their own.
+    fn reads_hevc() -> bool {
+        use windows::Win32::Media::MediaFoundation::{
+            IMFActivate, MFMediaType_Video, MFT_CATEGORY_VIDEO_DECODER, MFT_ENUM_FLAG_ALL,
+            MFT_REGISTER_TYPE_INFO, MFTEnumEx, MFVideoFormat_HEVC,
+        };
+        use windows::Win32::System::Com::CoTaskMemFree;
+        let asked = MFT_REGISTER_TYPE_INFO {
+            guidMajorType: MFMediaType_Video,
+            guidSubtype: MFVideoFormat_HEVC,
+        };
+        let mut found: *mut Option<IMFActivate> = std::ptr::null_mut();
+        let mut count = 0u32;
+        unsafe {
+            let listed = MFTEnumEx(
+                MFT_CATEGORY_VIDEO_DECODER,
+                MFT_ENUM_FLAG_ALL,
+                Some(&asked),
+                None,
+                &mut found,
+                &mut count,
+            );
+            if !found.is_null() {
+                for at in 0..count as usize {
+                    drop(found.add(at).read());
+                }
+                CoTaskMemFree(Some(found.cast()));
+            }
+            listed.is_ok() && count > 0
         }
     }
 

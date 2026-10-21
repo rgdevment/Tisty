@@ -22,13 +22,15 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
 }));
 
 // Only Windows and macOS turn a photo, and the module reads which one it runs on when it loads.
-const onWindows = async () => {
+const onWindows = async (readsHeic = true) => {
   Object.defineProperty(window.navigator, "userAgent", {
     value: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
     configurable: true,
   });
   vi.resetModules();
-  return import("../reshaping");
+  const shaping = await import("../reshaping");
+  (await import("../previews")).drawsHeic(readsHeic);
+  return shaping;
 };
 
 beforeEach(() => {
@@ -72,6 +74,30 @@ describe("a photo not every computer shows", () => {
     expect(ipc.asked, "the system's dialog stays shut").toBe(0);
     expect(ipc.calls[0].args.shape).toBe("full");
     asksShape(null);
+  });
+
+  it("attaches nothing when the person backs out of the question", async () => {
+    const { asksShape, attachedAll } = await onWindows();
+    asksShape(() => Promise.resolve(null));
+
+    const all = await attachedAll(["C:/a/uno.heic", "C:/a/acta.pdf"]);
+
+    expect(all).toHaveLength(0);
+    expect(ipc.calls).toHaveLength(0);
+    asksShape(null);
+  });
+
+  it("does not offer to turn a HEIC on a Windows that cannot read one", async () => {
+    const { attachedAll } = await onWindows(false);
+    ipc.chosen = "Lighter";
+
+    await Promise.all(await attachedAll(["C:/a/uno.heic", "C:/a/dos.tiff"]));
+
+    const shapes = ipc.calls.map((one) => [one.args.path, one.args.shape]);
+    expect(shapes).toEqual([
+      ["C:/a/uno.heic", undefined],
+      ["C:/a/dos.tiff", "light"],
+    ]);
   });
 
   it("asks nothing when every file shows everywhere", async () => {

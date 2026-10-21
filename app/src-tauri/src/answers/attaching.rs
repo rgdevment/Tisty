@@ -4,10 +4,34 @@ use tisty_core::witness::{self, Fact, channel};
 
 use crate::{Answer, Refusal, Session, Task, finding, held, herald, show, weighed};
 
+// Two keepings at once can each miss the other and store one file twice, so one keeps at a time.
+#[derive(Default)]
+pub struct Keeping(std::sync::Arc<Mutex<()>>);
+
+impl Keeping {
+    fn turn(&self) -> std::sync::Arc<Mutex<()>> {
+        self.0.clone()
+    }
+}
+
+fn kept_alone(
+    lock: &Mutex<()>,
+    source: &std::path::Path,
+    root: &std::path::Path,
+    ceiling: u64,
+    name: &str,
+) -> Answer<tisty_core::attach::Kept> {
+    let _alone = lock
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    kept_at(source, root, ceiling, name)
+}
+
 // Turning a photo can take seconds, so it runs where blocking work goes, as a pasted file's keeping does.
 #[tauri::command]
 pub async fn attach(
     session: tauri::State<'_, Mutex<Session>>,
+    keeping: tauri::State<'_, Keeping>,
     path: String,
     label: Option<String>,
     shape: Option<String>,
@@ -22,8 +46,10 @@ pub async fn attach(
         })
         .unwrap_or_default();
     let (root, ceiling) = room_for(&session);
+    let lock = keeping.turn();
     let kept =
-        crate::elsewhere(move || shaped(&source, name, shape.as_deref(), &root, ceiling)).await??;
+        crate::elsewhere(move || shaped(&lock, &source, name, shape.as_deref(), &root, ceiling))
+            .await??;
     noted(&session, &kept.0);
     Ok(kept.0.written(&kept.1))
 }
@@ -35,6 +61,7 @@ pub fn draws_heic() -> bool {
 }
 
 fn shaped(
+    lock: &Mutex<()>,
     source: &std::path::Path,
     name: String,
     shape: Option<&str>,
@@ -42,12 +69,12 @@ fn shaped(
     ceiling: u64,
 ) -> Answer<(tisty_core::attach::Kept, String)> {
     let Some(how) = shape else {
-        return kept_at(source, root, ceiling, &name).map(|kept| (kept, name));
+        return kept_alone(lock, source, root, ceiling, &name).map(|kept| (kept, name));
     };
     let named = as_jpeg(&name);
     let made = crate::drawn::reshaped(source, &named, how == "light")
         .ok_or_else(|| Refusal::about("cannotTurn", name.clone()))?;
-    let kept = kept_at(&made, root, ceiling, &named);
+    let kept = kept_alone(lock, &made, root, ceiling, &named);
     if let Some(room) = made.parent() {
         let _ = std::fs::remove_dir_all(room);
     }
@@ -98,6 +125,7 @@ static PASTED: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(
 #[tauri::command]
 pub async fn attach_pasted(
     session: tauri::State<'_, Mutex<Session>>,
+    keeping: tauri::State<'_, Keeping>,
     request: tauri::ipc::Request<'_>,
 ) -> Answer<String> {
     let said = |key: &str| {
@@ -118,13 +146,15 @@ pub async fn attach_pasted(
     };
     let bytes = bytes.clone();
     let (root, ceiling) = room_for(&session);
-    let kept = crate::elsewhere(move || parked(&bytes, name, &root, ceiling)).await??;
+    let lock = keeping.turn();
+    let kept = crate::elsewhere(move || parked(&lock, &bytes, name, &root, ceiling)).await??;
     noted(&session, &kept.0);
     Ok(kept.0.written(&kept.1))
 }
 
 // A pasted file has no place on disk, so it waits in a folder of its own until it is kept.
 fn parked(
+    lock: &Mutex<()>,
     bytes: &[u8],
     name: String,
     root: &std::path::Path,
@@ -139,7 +169,7 @@ fn parked(
     let kept = std::fs::create_dir_all(&room)
         .and_then(|()| std::fs::write(&source, bytes))
         .map_err(|_| Refusal::about("cannotRead", name.clone()))
-        .and_then(|()| kept_at(&source, root, ceiling, &name))
+        .and_then(|()| kept_alone(lock, &source, root, ceiling, &name))
         .map(|kept| (kept, name));
     let _ = std::fs::remove_dir_all(&room);
     kept

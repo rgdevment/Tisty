@@ -84,6 +84,8 @@ export const drawsHeic = (yes: boolean): void => {
   heicDrawn = yes;
 };
 
+export const heicReadable = (): boolean => heicDrawn;
+
 const WATCHABLE = ["mp4", "webm", "m4v", "mov", "ogv"];
 const HEARABLE = ["mp3", "m4a", "wav", "ogg", "oga", "aac", "flac"];
 
