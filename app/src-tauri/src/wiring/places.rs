@@ -126,7 +126,11 @@ pub fn usual_bins(os: Os, home: &Path) -> Vec<PathBuf> {
     if os == Os::Windows {
         return Vec::new();
     }
-    let mut found: Vec<PathBuf> = ["/opt/homebrew/bin", "/usr/local/bin"]
+    let system: &[&str] = match os {
+        Os::Macos => &["/opt/homebrew/bin", "/usr/local/bin"],
+        _ => &[],
+    };
+    let mut found: Vec<PathBuf> = system
         .iter()
         .map(PathBuf::from)
         .chain(

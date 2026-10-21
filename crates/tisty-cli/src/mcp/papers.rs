@@ -130,9 +130,12 @@ pub(super) fn named_anew(
     else {
         return String::new();
     };
-    let _ = super::retold(state, store, &up.file, &now);
+    let unsettled = match super::retold(state, store, &up.file, &now) {
+        Ok(()) => "",
+        Err(_) => " That document's record settles the next time it is written or opened.",
+    };
     format!(
-        " Its line in {:?} now shows the new title, so a print you hold of that one is old.",
+        " Its line in {:?} now shows the new title, so a print you hold of that one is old.{unsettled}",
         tisty_core::docs::titled(&now)
     )
 }

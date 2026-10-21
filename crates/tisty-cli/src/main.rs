@@ -18,7 +18,12 @@ fn main() -> ExitCode {
             println!("{said}");
             ExitCode::SUCCESS
         }
-        None | Some("--help" | "-h" | "help") => {
+        // Bare, it may be an assistant missing `mcp`, whose stdout is the protocol: words go to stderr.
+        None => {
+            eprintln!("{}", spoken().get("retired"));
+            ExitCode::SUCCESS
+        }
+        Some("--help" | "-h" | "help") => {
             helped();
             ExitCode::SUCCESS
         }

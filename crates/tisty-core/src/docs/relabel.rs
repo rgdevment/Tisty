@@ -14,8 +14,9 @@ pub fn book_to_relabel<'a>(state: &'a State, page: &str, title: &str) -> Option<
         return None;
     }
     let up = state.docs.get(&kept.page_of?)?;
-    // A compaction waiting for the person keeps its one undo; its line is mended once they decide.
-    up.compacted.is_none().then_some(up)
+    // A compaction waiting for the person keeps its one undo, and a locked book takes no writes.
+    let open = up.compacted.is_none() && !state.bolted(&up.file) && !state.held_away(up);
+    open.then_some(up)
 }
 
 /// No step back is kept: the line follows the page's heading, and one would cost an earlier undo.
@@ -32,15 +33,9 @@ pub fn relabel_page(root: &Path, parent: &str, page: &str, title: &str) -> Resul
 
 pub fn relabeled(whole: &str, page: &str, title: &str) -> Option<String> {
     let named = crate::text::worded(title);
-    let stale = crate::refs::paper_labels(whole)
-        .into_iter()
-        .any(|(file, said)| {
-            file == page && another_name(&crate::text::worded(&said), &named, title)
-        });
-    if named.is_empty() || !stale {
+    if named.is_empty() {
         return None;
     }
-    let target = format!("]({}{page})", crate::refs::DOC);
     let card = crate::refs::card(page, title);
     let mut fence = super::Fencing::default();
     let mut changed = false;
@@ -48,12 +43,7 @@ pub fn relabeled(whole: &str, page: &str, title: &str) -> Option<String> {
         .split_inclusive('\n')
         .map(|line| {
             let flat = line.trim_end_matches(['\n', '\r']);
-            let bare = flat.trim();
-            // A card in code is an example, and a line holding more than this card keeps the rest.
-            let alone = bare.starts_with("![")
-                && bare.ends_with(&target)
-                && bare.matches("](").count() == 1;
-            if fence.inside(flat) || !alone {
+            if fence.inside(flat) || !stale_card(flat, page, &named, title) {
                 return line.to_string();
             }
             changed = true;
@@ -63,6 +53,18 @@ pub fn relabeled(whole: &str, page: &str, title: &str) -> Option<String> {
         .collect();
     let now = lines.concat();
     (changed && super::titled(&now) == super::titled(whole)).then_some(now)
+}
+
+// Only a line that is this one card and nothing else: anything beside it on the line stays.
+fn stale_card(line: &str, page: &str, named: &str, title: &str) -> bool {
+    let bare = line.trim();
+    if !(bare.starts_with("![") && bare.ends_with(')')) || crate::refs::extract(bare).len() != 1 {
+        return false;
+    }
+    match crate::refs::paper_labels(bare).as_slice() {
+        [(file, said)] => file == page && another_name(&crate::text::worded(said), named, title),
+        _ => false,
+    }
 }
 
 pub fn another_name(said: &str, named: &str, title: &str) -> bool {

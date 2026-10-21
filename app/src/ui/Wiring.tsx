@@ -32,6 +32,8 @@ const remember = (all: string[]) => {
   }
 };
 
+// An assistant that may be uninstalled keeps its old line until the person connects it by hand.
+const fixable = (one: Wired) => one.astray && !one.maybe;
 const ready = (one: Wired) => !one.wired && !one.astray && !one.byHand && !one.maybe;
 
 function Manual({ one }: Readonly<{ one: Wired }>) {
@@ -267,8 +269,8 @@ export default function Wiring({
     );
 
   const astray = [
-    ...(agents ?? []).filter((one) => one.astray),
-    ...Object.values(inside).flatMap((one) => (one.shut ? [] : one.seen.filter((it) => it.astray))),
+    ...(agents ?? []).filter(fixable),
+    ...Object.values(inside).flatMap((one) => (one.shut ? [] : one.seen.filter(fixable))),
   ];
   // Assistants installed or moved while the window was open show up without closing it.
   const lookAgain = () => {

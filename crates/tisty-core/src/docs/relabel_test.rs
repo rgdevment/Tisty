@@ -62,6 +62,15 @@ fn a_card_shown_as_an_example_in_code_is_left_as_written() {
 }
 
 #[test]
+fn every_card_of_the_page_is_looked_at_not_only_the_first() {
+    let whole = "# Plan\n\n![New name](tisty:doc/aaaa-0001)\n\n![Old name](tisty:doc/aaaa-0001)\n";
+
+    let now = relabeled(whole, "aaaa-0001", "New name").unwrap();
+
+    assert!(!now.contains("Old name"), "{now}");
+}
+
+#[test]
 fn a_book_whose_title_is_the_card_itself_is_not_renamed_by_its_page() {
     let whole = "![Old name](tisty:doc/aaaa-0001)\n\nmore\n";
 
