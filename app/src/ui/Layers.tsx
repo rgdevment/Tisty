@@ -12,6 +12,7 @@ import {
 import { useDesk } from "../desk";
 import { fill, t } from "../locales";
 import { offerMoved, saidPlainly } from "../refusal";
+import type { ShapeChoice } from "../reshaping";
 import { Alarm, Progress } from "./Banners";
 import BringingBack from "./BringingBack";
 import Cheer from "./Cheer";
@@ -20,6 +21,7 @@ import Menu, { type Choice } from "./Menu";
 import Naming from "./Naming";
 import Notice from "./Notice";
 import Raised from "./Raised";
+import Reshape from "./Reshape";
 import Rifts from "./Rifts";
 import Sure from "./Sure";
 import Versions from "./Versions";
@@ -38,6 +40,11 @@ export interface Asked {
   done: (yes: boolean) => void;
 }
 
+export interface Shaping {
+  said: string;
+  done: (chosen: ShapeChoice) => void;
+}
+
 export interface MenuOpen {
   at: { x: number; y: number };
   label: string;
@@ -54,6 +61,8 @@ export default function Layers({ parcels }: { parcels: ReactNode }) {
     afoot,
     aloud,
     asked,
+    shaping,
+    setShaping,
     backing,
     behind,
     captured,
@@ -124,6 +133,16 @@ export default function Layers({ parcels }: { parcels: ReactNode }) {
           onAnswer={(yes) => {
             asked.done(yes);
             setAsked(null);
+          }}
+        />
+      )}
+
+      {shaping && (
+        <Reshape
+          said={shaping.said}
+          onAnswer={(chosen) => {
+            shaping.done(chosen);
+            setShaping(null);
           }}
         />
       )}

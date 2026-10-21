@@ -13,6 +13,8 @@ import { leaf } from "./Mode";
 
 const A_WHILE = 60_000;
 const SOON = 10_000;
+// A round asked for by hand can end before the eye sees it start, so its end stays a moment.
+const DONE_SHOWN = 2_000;
 
 interface Props {
   onSync: () => Promise<unknown> | undefined;
@@ -71,6 +73,7 @@ function told(foot: Footing, state: Carrying, cloud: string): { line: string; wh
 export default function SyncFoot({ onSync, onOpen, onTrouble, fallback }: Props) {
   const { state, status } = useSyncSeen();
   const [mine, setMine] = useState(false);
+  const [finished, setFinished] = useState(false);
   const [offline, setOffline] = useState(offlineNow);
   const [, tick] = useState(0);
   const coming = useComing();
@@ -97,6 +100,12 @@ export default function SyncFoot({ onSync, onOpen, onTrouble, fallback }: Props)
     return () => clearInterval(ticking);
   }, [often]);
 
+  useEffect(() => {
+    if (!finished) return;
+    const gone = setTimeout(() => setFinished(false), DONE_SHOWN);
+    return () => clearTimeout(gone);
+  }, [finished]);
+
   // A look on focus catches what was written beside the rounds.
   useEffect(() => {
     const look = () => void lookAgain();
@@ -117,18 +126,24 @@ export default function SyncFoot({ onSync, onOpen, onTrouble, fallback }: Props)
     state.mode === "cloud"
       ? cloudNamed(status?.provider ?? state.cloudProvider)
       : leaf(state.chosen ?? "");
-  const { line, why } = told(foot, state, named);
+  const { line, why } =
+    finished && foot.kind === "ok"
+      ? { line: t("footDone"), why: t("syncNow") }
+      : told(foot, state, named);
 
   const failed = (problem: unknown) => onTrouble?.(saidPlainly(problem));
 
   const syncNow = () => {
     setMine(true);
     void Promise.resolve(onSync())
+      .then((carried) => setFinished(carried !== undefined && carried !== "busy"))
       .catch(failed)
       .finally(() => setMine(false));
   };
 
   const press = () => {
+    // Just done, another press would only start the same round again.
+    if (finished && foot.kind === "ok") return;
     if (!offered(foot)) return onOpen();
     if (foot.kind === "ok") return syncNow();
     if (foot.kind === "paused")

@@ -4,6 +4,7 @@ mod answers;
 mod asked;
 mod command;
 mod desktop;
+mod drawn;
 mod finding;
 mod glimpse;
 mod hearing;
@@ -921,6 +922,11 @@ pub(crate) fn opened(
     }
     app.asset_protocol_scope()
         .allow_directory(as_asked_for(&attachments), true)?;
+    let drawn_at = drawn::folder(session.paths.cache());
+    let _ = std::fs::create_dir_all(&drawn_at);
+    drawn::swept(session.paths.cache(), &attachments);
+    app.asset_protocol_scope()
+        .allow_directory(as_asked_for(&drawn_at), true)?;
     let words = tray::Words {
         show: worded(&session.locale, "show"),
         capture: worded(&session.locale, "capture"),
@@ -1093,6 +1099,7 @@ pub fn run() {
         .setup(settled)
         .on_window_event(window_event)
         .manage(OneAtATime::default())
+        .manage(answers::attaching::Keeping::default())
         .manage(answers::clouding::Consenting::default())
         .manage(widgets::Lent::default())
         .manage(viewing::Views::default())
@@ -1185,6 +1192,7 @@ pub fn run() {
             answers::attaching::attach,
             answers::attaching::attach_pasted,
             answers::attaching::served,
+            answers::attaching::draws_heic,
             answers::attaching::copied,
             answers::attaching::kept_here,
             answers::attaching::attached,

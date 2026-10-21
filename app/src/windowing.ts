@@ -17,10 +17,11 @@ import { useListening } from "./listening";
 import { useMarking } from "./marking";
 import { useOnly, useOnlyAlive } from "./only";
 import { saidPlainly } from "./refusal";
+import { asksShape, type ShapeChoice } from "./reshaping";
 import { useSnapshot } from "./snapshotting";
 import { asksSure } from "./sure";
 import { useBeaver } from "./ui/Beaver";
-import type { Asked, MenuOpen, Torn } from "./ui/Layers";
+import type { Asked, MenuOpen, Shaping, Torn } from "./ui/Layers";
 import { useParcels } from "./ui/Parcels";
 import { SETTLING_MS } from "./ui/Sure";
 import { usePapers } from "./usePapers";
@@ -278,6 +279,7 @@ function useOverlays() {
   const [leaving, setLeaving] = useState(false);
   const [torn, setTorn] = useState<Torn | null>(null);
   const [asked, setAsked] = useState<Asked | null>(null);
+  const [shaping, setShaping] = useState<Shaping | null>(null);
 
   useEffect(() => {
     decidesByBlock((named, rifts) => new Promise((answer) => setTorn({ named, rifts, answer })));
@@ -310,10 +312,20 @@ function useOverlays() {
       turn = answer.catch(() => undefined);
       return answer;
     });
+    // One question at a time, as with being sure: a second drop waits instead of taking the first's place.
+    let shapes: Promise<unknown> = Promise.resolve();
+    asksShape((said) => {
+      const answer = shapes.then(
+        () => new Promise<ShapeChoice>((done) => setShaping({ said, done })),
+      );
+      shapes = answer.catch(() => undefined);
+      return answer;
+    });
     return () => {
       decidesByBlock(null);
       decidesWhole(null);
       asksSure(null);
+      asksShape(null);
     };
   }, []);
 
@@ -332,5 +344,7 @@ function useOverlays() {
     setTorn,
     asked,
     setAsked,
+    shaping,
+    setShaping,
   };
 }

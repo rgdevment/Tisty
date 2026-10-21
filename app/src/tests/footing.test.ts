@@ -78,11 +78,13 @@ describe("the sync foot", () => {
   });
 
   it("waits, without offering a sync, when the cloud asks to", () => {
-    for (const code of ["cloudNotNow", "deferred-limit", "deferred-busy"]) {
+    for (const code of ["cloudNotNow", "deferred-limit"]) {
       const foot = footing(seen({ status: cloud({ last: round(code) }) }));
       expect(foot).toEqual({ kind: "wait", troubled: false });
       expect(foot && offered(foot)).toBe(false);
     }
+    const busy = footing(seen({ status: cloud({ last: round("deferred-busy") }) }));
+    expect(busy?.kind, "another round of this computer's held the cloud").toBe("ok");
     expect(footing(seen({ status: cloud({ last: round("deferred-troubled") }) }))).toEqual({
       kind: "wait",
       troubled: true,
