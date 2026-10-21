@@ -237,14 +237,5 @@ export function wroteAt(at: string, tz?: string, now = new Date(), reader = here
 
 const cityOf = (tz: string): string => (tz.split("/").pop() ?? tz).replace(/_/g, " ");
 
-export function weigh(bytes: number): string {
-  if (!Number.isFinite(bytes)) return "—";
-  const units = ["B", "kB", "MB", "GB", "TB"];
-  let step = 0;
-  let left = Math.max(0, bytes);
-  while (left >= 1000 && step < units.length - 1) {
-    left /= 1000;
-    step += 1;
-  }
-  return `${step === 0 ? left : left.toFixed(1)} ${units[step]}`;
-}
+// One way to weigh bytes everywhere: the copy that lived here showed «1000.0 kB» for a step behind.
+export { weighed as weigh } from "./previews";
