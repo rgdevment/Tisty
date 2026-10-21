@@ -79,9 +79,11 @@ describe("the sync foot in the sidebar", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: /Up to date/ }));
 
-    expect(await screen.findByRole("button", { name: /Sync complete/ })).toBeTruthy();
+    const done = await screen.findByRole("button", { name: /Sync complete/ });
+    await userEvent.click(done);
+    expect(onSync, "a press while it says complete starts nothing").toHaveBeenCalledOnce();
     await act(async () => {
-      vi.advanceTimersByTime(1_600);
+      vi.advanceTimersByTime(2_100);
     });
     expect(screen.getByRole("button", { name: /Up to date/ })).toBeTruthy();
   });

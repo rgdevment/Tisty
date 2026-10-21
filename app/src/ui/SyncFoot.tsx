@@ -14,7 +14,7 @@ import { leaf } from "./Mode";
 const A_WHILE = 60_000;
 const SOON = 10_000;
 // A round asked for by hand can end before the eye sees it start, so its end stays a moment.
-const DONE_SHOWN = 1_500;
+const DONE_SHOWN = 2_000;
 
 interface Props {
   onSync: () => Promise<unknown> | undefined;
@@ -142,6 +142,8 @@ export default function SyncFoot({ onSync, onOpen, onTrouble, fallback }: Props)
   };
 
   const press = () => {
+    // Just done, another press would only start the same round again.
+    if (finished) return;
     if (!offered(foot)) return onOpen();
     if (foot.kind === "ok") return syncNow();
     if (foot.kind === "paused")
