@@ -294,6 +294,7 @@ pub fn open(app: &AppHandle, shown: Shown) {
     .build();
     match made {
         Ok(window) => {
+            crate::tray::docked(app, true);
             let gone = app.clone();
             let named = label.clone();
             window.on_window_event(move |event| {
@@ -304,6 +305,7 @@ pub fn open(app: &AppHandle, shown: Shown) {
                     held.remove(&named);
                 }
                 gone.state::<widgets::Lent>().release(&named);
+                crate::tray::undock_unless_seen(&gone, &named);
             });
         }
         Err(why) => {

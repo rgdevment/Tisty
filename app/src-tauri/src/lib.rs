@@ -1008,7 +1008,10 @@ pub(crate) fn opened(
         desktop::proofread(&window);
         if came_back || !(waking::hushed() || viewing) {
             desktop::fitted(&window);
+            tray::docked(app, true);
             let _ = window.show();
+        } else if !viewing {
+            tray::undock_unless_seen(app, "main");
         }
     }
     Ok(())
@@ -1053,8 +1056,7 @@ fn window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
         }
         Some(tisty_core::config::Closing::Hide) => {
             api.prevent_close();
-            let _ = window.emit("withdrawn", ());
-            let _ = window.hide();
+            tray::withdraw(window);
         }
         None => {
             api.prevent_close();

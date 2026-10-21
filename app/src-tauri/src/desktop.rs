@@ -303,7 +303,7 @@ pub(crate) fn leave<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
 }
 
 #[derive(Default)]
-pub(crate) struct Leaving(std::sync::atomic::AtomicBool);
+pub(crate) struct Leaving(pub(crate) std::sync::atomic::AtomicBool);
 
 #[derive(Default)]
 pub(crate) struct Departed(std::sync::atomic::AtomicBool);
