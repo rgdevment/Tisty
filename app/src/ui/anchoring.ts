@@ -7,6 +7,10 @@ const shared = (was: string, now: string): [number, number] => {
   return [head, tail];
 };
 
+// The editor counts a Windows line end as one place; the text it hands back, as two.
+export const inEditor = (text: string, at: number): number =>
+  at - (text.slice(0, at).match(/\r\n/g)?.length ?? 0);
+
 // The one edit that turns `was` into `now`, for an editor holding `was` to take in place.
 export const spanOf = (was: string, now: string) => {
   const [head, tail] = shared(was, now);

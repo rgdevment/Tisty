@@ -44,6 +44,14 @@ fn colon_callouts_and_folds_become_the_forms_github_reads() {
         "<details>\n<summary>Más</summary>\n\nAdentro.\n\n</details>"
     );
     assert_eq!(
+        alone(":::tip\n\nOjo con esto.\n\n:::\n\nDespués."),
+        "> [!TIP]\n>\n> Ojo con esto.\n>\n\nDespués."
+    );
+    assert_eq!(
+        alone(":::details Más\n\nAdentro.\n\n:::\n\nDespués."),
+        "<details>\n<summary>Más</summary>\n\nAdentro.\n\n</details>\n\nDespués."
+    );
+    assert_eq!(
         alone("> [!NOTE] Antes de salir\n> Lleva agua."),
         "> [!NOTE]\n> Antes de salir\\\n> Lleva agua."
     );

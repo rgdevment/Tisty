@@ -18,8 +18,9 @@ export function useWholeKeys(shown: boolean, wholeable: boolean) {
         event.preventDefault();
         setWholeAsked((many) => many + 1);
       }
-      // A page just opened has the window's focus, not its own, so select-all is handed to it.
-      if (key === "a" && event.target !== window) {
+      // A page just opened has the window's focus, not its own, so select-all is handed to it;
+      // the page's own keys come back aimed at the window itself, which is no element.
+      if (key === "a" && event.target instanceof Node) {
         event.preventDefault();
         setAllAsked((many) => many + 1);
       }

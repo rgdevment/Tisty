@@ -69,14 +69,17 @@ describe("the words the window says about dates", () => {
 
 describe("the words the window says about sizes and files", () => {
   it("weighs bytes the same way in both places", () => {
-    const sizes = [0, 999, 1000, 1_700_000, 2_100_000_000];
+    const sizes = [0, 999, 1000, 999_950, 1_700_000, 2_100_000_000, -5, Number.NaN];
     expect(sizes.map((one) => `${weigh(one)} | ${weighed(one)}`)).toMatchInlineSnapshot(`
       [
         "0 B | 0 B",
         "999 B | 999 B",
         "1.0 kB | 1.0 kB",
+        "1.0 MB | 1.0 MB",
         "1.7 MB | 1.7 MB",
         "2.1 GB | 2.1 GB",
+        "0 B | 0 B",
+        "— | —",
       ]
     `);
   });

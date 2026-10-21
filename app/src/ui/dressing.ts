@@ -381,6 +381,17 @@ export const wired = (page: Document, reach: () => Reaching) => {
       return;
     }
     if (target.closest(".quick-bar, .mend-said, .cm-dock")) return;
+    // The whole document is the only thing written: a press beside or under it goes to its end.
+    const whole = page.querySelector<HTMLElement>(".page.whole .cm-content");
+    if (whole && !target.closest(".editing")) {
+      const end = page.createRange();
+      end.selectNodeContents(whole);
+      end.collapse(false);
+      page.getSelection()?.removeAllRanges();
+      page.getSelection()?.addRange(end);
+      whole.focus();
+      return;
+    }
     const selecting = !(page.getSelection()?.isCollapsed ?? true);
     if (target.closest("a")) event.preventDefault();
     const shaping = page.documentElement.classList.contains("shaping");
