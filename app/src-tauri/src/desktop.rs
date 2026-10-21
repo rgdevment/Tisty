@@ -215,6 +215,13 @@ pub(crate) fn menued(
     use tauri::menu::{AboutMetadata, MenuItem, PredefinedMenuItem, Submenu};
 
     let leave = MenuItem::with_id(app, "leave", worded(locale, "quit"), true, Some("Cmd+Q"))?;
+    let whole = MenuItem::with_id(
+        app,
+        "whole",
+        worded(locale, "wholeDoc"),
+        true,
+        Some("Cmd+E"),
+    )?;
     let app_menu = Submenu::with_items(
         app,
         "Tisty",
@@ -241,6 +248,8 @@ pub(crate) fn menued(
             &PredefinedMenuItem::copy(app, None)?,
             &PredefinedMenuItem::paste(app, None)?,
             &PredefinedMenuItem::select_all(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &whole,
         ],
     )?;
     let window = Submenu::with_items(

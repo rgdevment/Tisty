@@ -7,6 +7,12 @@ const shared = (was: string, now: string): [number, number] => {
   return [head, tail];
 };
 
+// The one edit that turns `was` into `now`, for an editor holding `was` to take in place.
+export const spanOf = (was: string, now: string) => {
+  const [head, tail] = shared(was, now);
+  return { from: head, to: was.length - tail, insert: now.slice(head, now.length - tail) };
+};
+
 // Null when `now` changed inside the block, which then ends: it spoke of the old words.
 export const reanchored = (
   was: string,

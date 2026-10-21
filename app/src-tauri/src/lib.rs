@@ -605,6 +605,8 @@ fn worded(locale: &Option<String>, key: &str) -> String {
         ("windowMenu", false) => "Window".into(),
         ("help", true) => "Ayuda".into(),
         ("help", false) => "Help".into(),
+        ("wholeDoc", true) => "Editar todo el documento".into(),
+        ("wholeDoc", false) => "Edit the whole document".into(),
         ("helpGuide", true) => "Guía de Tisty Markdown".into(),
         ("helpGuide", false) => "Tisty Markdown guide".into(),
         ("copy", true) => " (copia)".into(),
@@ -988,6 +990,9 @@ pub(crate) fn opened(
                     }
                     if event.id() == "help" {
                         let _ = tauri::Emitter::emit_to(app, "main", "help", ());
+                    }
+                    if event.id() == "whole" {
+                        let _ = tauri::Emitter::emit_to(app, "main", "whole", ());
                     }
                 });
             }

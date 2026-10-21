@@ -2,7 +2,7 @@ import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { EditorSelection, EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { describe, expect, it } from "vitest";
-import { marksShown, seen, showMarks, visual } from "../ui/seeing";
+import { keepShown, marked, marksShown, seen, showMarks, visual } from "../ui/seeing";
 
 const state = (doc: string, at = doc.length, shown = false) =>
   EditorState.create({
@@ -191,5 +191,39 @@ describe("a block written as it reads", () => {
     expect(view.dom.querySelector(".cm-check")).toBeNull();
     expect(view.state.field(marksShown)).toBe(true);
     view.destroy();
+  });
+});
+
+describe("whether a block has marks to show", () => {
+  it("finds none in plain words", () => {
+    expect(marked(state("Tisty guarda lo que escribes, sin más."))).toBe(false);
+  });
+
+  it("finds Markdown's own marks, wherever the caret is", () => {
+    expect(marked(state("# Título", 0))).toBe(true);
+    expect(marked(state("> dicho", 0))).toBe(true);
+    expect(marked(state("- uno", 0))).toBe(true);
+    expect(marked(state("algo **fuerte**", 0))).toBe(true);
+    expect(marked(state("un `código`", 0))).toBe(true);
+    expect(marked(state("un [enlace](https://tisty.app)", 0))).toBe(true);
+  });
+
+  it("finds Tisty's own marks and the properties", () => {
+    expect(marked(state("==resaltado=={green}", 0))).toBe(true);
+    expect(marked(state("++subrayado++", 0))).toBe(true);
+    expect(marked(state("---\ntitle: Acta\n---\nhola", 0))).toBe(true);
+  });
+});
+
+describe("the marks as the person left them", () => {
+  it("opens the next block as the last one was left, and starts hidden on a first day", () => {
+    localStorage.removeItem("tisty.marksShown");
+    expect(EditorState.create({ extensions: [marksShown] }).field(marksShown)).toBe(false);
+    keepShown(true);
+    expect(localStorage.getItem("tisty.marksShown")).toBe("1");
+    expect(EditorState.create({ extensions: [marksShown] }).field(marksShown)).toBe(true);
+    keepShown(false);
+    expect(localStorage.getItem("tisty.marksShown")).toBe("0");
+    expect(EditorState.create({ extensions: [marksShown] }).field(marksShown)).toBe(false);
   });
 });

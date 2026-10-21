@@ -129,6 +129,7 @@ export default function Page(props: Readonly<Props>) {
             onCut: one.turn === turns.current ? reach.current.onCut : undefined,
             onWiden: one.turn === turns.current ? reach.current.onWiden : undefined,
             onFormat: one.turn === turns.current ? reach.current.onFormat : undefined,
+            onChoose: one.turn === turns.current ? reach.current.onChoose : undefined,
             onMenu: one.turn === turns.current ? reach.current.onMenu : undefined,
             onMore: one.turn === turns.current ? reach.current.onMore : undefined,
           })}

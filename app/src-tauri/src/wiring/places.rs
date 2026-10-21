@@ -128,7 +128,27 @@ pub fn from_linux(windows: &str, root: &str) -> Option<String> {
 pub fn told_by(conf: &str) -> (String, bool) {
     let mut root = "/mnt/".to_string();
     let mut open = true;
+    for (part, key, said) in settings(conf) {
+        match (part.as_str(), key.as_str()) {
+            ("automount", "root") => root = said,
+            ("interop", "enabled") => open = !said.eq_ignore_ascii_case("false"),
+            _ => {}
+        }
+    }
+    (root, open)
+}
+
+/// `[user] default`, which WSL logs in as before the uid the registry keeps, often root's.
+pub fn user_in(conf: &str) -> Option<String> {
+    settings(conf)
+        .into_iter()
+        .find(|(part, key, said)| part == "user" && key == "default" && !said.is_empty())
+        .map(|(_, _, said)| said)
+}
+
+fn settings(conf: &str) -> Vec<(String, String, String)> {
     let mut part = String::new();
+    let mut found = Vec::new();
     for line in conf.lines() {
         let line = line.split('#').next().unwrap_or_default().trim();
         if let Some(named) = line.strip_prefix('[').and_then(|it| it.strip_suffix(']')) {
@@ -138,21 +158,25 @@ pub fn told_by(conf: &str) -> (String, bool) {
         let Some((key, said)) = line.split_once('=') else {
             continue;
         };
-        let said = said.trim().trim_matches(['"', '\'']);
-        match (part.as_str(), key.trim().to_ascii_lowercase().as_str()) {
-            ("automount", "root") => root = said.to_string(),
-            ("interop", "enabled") => open = !said.eq_ignore_ascii_case("false"),
-            _ => {}
-        }
+        let said = said.trim().trim_matches(['"', '\'']).to_string();
+        found.push((part.clone(), key.trim().to_ascii_lowercase(), said));
     }
-    (root, open)
+    found
 }
 
 /// The home of the distro's default user, read from its own `/etc/passwd`.
 pub fn home_in(passwd: &str, uid: u32) -> Option<String> {
+    home_where(passwd, |parts| parts[2] == uid.to_string())
+}
+
+pub fn home_of(passwd: &str, user: &str) -> Option<String> {
+    home_where(passwd, |parts| parts[0] == user)
+}
+
+fn home_where(passwd: &str, wanted: impl Fn(&[&str]) -> bool) -> Option<String> {
     passwd.lines().find_map(|line| {
         let parts: Vec<&str> = line.split(':').collect();
-        (parts.len() > 5 && parts[2] == uid.to_string()).then(|| parts[5].to_string())
+        (parts.len() > 5 && wanted(&parts)).then(|| parts[5].to_string())
     })
 }
 
@@ -190,8 +214,10 @@ pub fn distros() -> Vec<(String, u32)> {
 pub fn distro(name: &str, uid: u32, windows_command: &str) -> Option<Place> {
     let root = PathBuf::from(format!("\\\\wsl.localhost\\{name}"));
     let passwd = std::fs::read_to_string(root.join("etc").join("passwd")).ok()?;
-    let linux_home = home_in(&passwd, uid)?;
     let conf = std::fs::read_to_string(root.join("etc").join("wsl.conf")).unwrap_or_default();
+    let linux_home = user_in(&conf)
+        .and_then(|user| home_of(&passwd, &user))
+        .or_else(|| home_in(&passwd, uid))?;
     let (mount, open) = told_by(&conf);
     let home = linux_home
         .trim_start_matches('/')

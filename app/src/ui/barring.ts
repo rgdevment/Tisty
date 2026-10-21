@@ -4,7 +4,7 @@ import { frontLines } from "../front";
 import { markup } from "../glyphs";
 import { t } from "../locales";
 import { coded, wrapped } from "./formatting";
-import { marksShown, showMarks } from "./seeing";
+import { keepShown, marked, marksShown, showMarks } from "./seeing";
 import { openMenu, pressed, putBlock } from "./slashing";
 import { type Retable, retable, tableHere } from "./tabling";
 
@@ -140,7 +140,9 @@ export const blockKeys: KeyBinding[] = [
 ];
 
 export const flipped = (view: EditorView): boolean => {
-  view.dispatch({ effects: showMarks.of(!view.state.field(marksShown)) });
+  const on = !view.state.field(marksShown);
+  view.dispatch({ effects: showMarks.of(on) });
+  keepShown(on);
   return true;
 };
 
@@ -156,7 +158,7 @@ export const FORMATS = [
   ["italic", "I", "*", "*", "italic"],
   ["underlined", "U", "++", "++", "underline"],
   ["struck", "Shift X", "~~", "~~", "strike"],
-  ["codeSpan", "E", "`", "`", "code"],
+  ["codeSpan", "Shift C", "`", "`", "code"],
   ["linkIt", "K", "[", "]()", "link"],
 ] as const;
 
@@ -232,7 +234,7 @@ export const formatButtons = (page: Document, pick: (open: string, close: string
   }),
 });
 
-export const barred = (view: EditorView): Barred => {
+export const barred = (view: EditorView, whole = false, onWhole?: () => void): Barred => {
   const page = view.dom.ownerDocument;
   const made = <K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text = "") =>
     madeIn(page, tag, className, text);
@@ -309,8 +311,45 @@ export const barred = (view: EditorView): Barred => {
     } catch {}
   };
 
+  // Pressed while the whole document is open, so the bar says which of the two is being written.
+  const wide = onWhole
+    ? button(
+        "cm-bar-button cm-bar-whole",
+        `${t(whole ? "wholeLeave" : "editWholeDoc")} (${pressed("E")})`,
+        onWhole,
+      )
+    : null;
+  wide?.append(drawnIn(page, whole ? "shrink" : "expand"));
+  wide?.setAttribute("aria-pressed", String(whole));
+
+  const marks = button(
+    "cm-bar-button cm-bar-marks",
+    `${t("marksShown")} (${pressed("Shift M")})`,
+    () => {
+      flipped(view);
+      view.focus();
+    },
+  );
+  marks.append(drawnIn(page, "scan-text"));
+  // Words with no mark to show have nothing for it to do, so it waits until one is written.
+  // The words are scanned again only when they change, not at every move of the caret.
+  let scanned: EditorView["state"]["doc"] | null = null;
+  let some = false;
+  const marking = (state: EditorView["state"]) => {
+    const on = state.field(marksShown, false) ?? false;
+    if (state.doc !== scanned) {
+      scanned = state.doc;
+      some = marked(state);
+    }
+    marks.setAttribute("aria-pressed", String(on));
+    marks.hidden = !on && !some;
+    marksKey.hidden = marks.hidden;
+  };
+
   bar.append(kinds, made("span", "cm-bar-sep"), ...formats);
-  bar.append(made("span", "cm-bar-sep"), ...pens, made("span", "cm-bar-sep"), slash, fold);
+  bar.append(made("span", "cm-bar-sep"), ...pens, made("span", "cm-bar-sep"));
+  if (wide) bar.append(wide);
+  bar.append(marks, slash, fold);
   folding(foldedBefore());
 
   const hint = made("div", "cm-hint");
@@ -320,18 +359,20 @@ export const barred = (view: EditorView): Barred => {
     return one;
   };
   const state = made("span", "cm-hint-kept");
+  const marksKey = key(pressed("Shift M"), t("hintMarks"));
   hint.append(
     key(pressed("/"), t("hintInsert")),
-    key("# ␣", t("bigTitle").toLocaleLowerCase()),
-    key(pressed("Shift M"), t("hintMarks")),
-    key("Esc", t("hintRead")),
+    marksKey,
+    ...(onWhole ? [key(pressed("E"), t(whole ? "hintWholeLeave" : "hintWhole"))] : []),
     state,
   );
+  marking(view.state);
 
   const follow = (current: EditorView) => {
     const { head } = current.state.selection.main;
     tabled = tableHere(current.state) !== null;
     kindSaid.textContent = tabled ? t("table") : t(kindOf(current.state.doc.lineAt(head).text));
+    marking(current.state);
     menu.hidden = true;
     table.hidden = true;
   };

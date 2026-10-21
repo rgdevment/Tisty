@@ -20,6 +20,7 @@ const ipc = vi.hoisted(() => ({
   copied: [] as string[],
   picked: { from: 0, to: 0 },
   cut: [] as [number, number][],
+  typed: [] as string[],
   mends: [] as {
     from: number;
     to: number;
@@ -85,13 +86,15 @@ vi.mock("../ui/blocking", () => ({
             },
           },
           doc: said,
+          replaceSelection: (insert: string) => ({ changes: { from: 0, to: 0, insert } }),
         },
         dispatch: (spec: {
           selection?: { anchor: number };
-          changes?: { from: number; to: number };
+          changes?: { from: number; to: number; insert?: string };
         }) => {
           if (spec.selection) opened.caret = spec.selection.anchor;
           if (spec.changes) ipc.cut.push([spec.changes.from, spec.changes.to]);
+          if (spec.changes?.insert) ipc.typed.push(spec.changes.insert);
         },
         focus: () => {},
       },
@@ -137,6 +140,7 @@ beforeEach(() => {
   ipc.copied = [];
   ipc.picked = { from: 0, to: 0 };
   ipc.cut = [];
+  ipc.typed = [];
   ipc.mends = [];
 });
 
@@ -454,6 +458,129 @@ describe("the sheet in the main window", () => {
     expect(ipc.left).toBe(0);
     view.rerender(<Sheet value={writes[0]} label="Compras" onWrite={() => {}} />);
     expect(ipc.left).toBe(1);
+  });
+
+  it("opens the whole document in one editor when asked, and gives the blocks back as it is left", async () => {
+    const sheet = (n: number) => (
+      <Sheet value={BODY} label="Compras" onWrite={() => {}} wholeable wholeAsked={n} />
+    );
+    const view = render(sheet(0));
+    const page = await loaded(await shown(view.container));
+    view.rerender(sheet(1));
+    expect(ipc.opened.map((one) => one.said)).toEqual([BODY]);
+    expect(page.querySelector(".page")?.classList.contains("whole")).toBe(true);
+    view.rerender(sheet(2));
+    expect(ipc.left).toBe(1);
+    expect(page.querySelector(".page")?.classList.contains("whole")).toBe(false);
+    // The stand-in editor stays where it was put; only the whole editor's placeholder must be gone.
+    expect(page.querySelectorAll(".page > div:not([data-at], .editing)")).toHaveLength(0);
+  });
+
+  it("never opens a task's page whole, from a key or from the menu", async () => {
+    const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} wholeAsked={0} />);
+    const page = await loaded(await shown(view.container));
+    view.rerender(<Sheet value={BODY} label="Compras" onWrite={() => {}} wholeAsked={1} />);
+    expect(ipc.opened).toHaveLength(0);
+    expect(page.querySelector(".page")?.classList.contains("whole")).toBe(false);
+    page
+      .querySelector('p[data-at="11-17"]')
+      ?.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true }));
+    await waitFor(() => expect(offered()).toContain("Edit this block"));
+    expect(offered()).not.toContain("Edit the whole document");
+  });
+
+  it("offers a document's whole in the menu beside its block", async () => {
+    const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} wholeable />);
+    const page = await loaded(await shown(view.container));
+    page
+      .querySelector('p[data-at="11-17"]')
+      ?.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true }));
+    await waitFor(() => expect(offered()).toContain("Edit the whole document"));
+    chosen("Edit the whole document");
+    expect(ipc.opened.map((one) => one.said)).toEqual([BODY]);
+  });
+
+  it("chooses every word of the page as read when select-all is handed to it", async () => {
+    const sheet = (n: number) => (
+      <Sheet value={BODY} label="Compras" onWrite={() => {}} allAsked={n} />
+    );
+    const view = render(sheet(0));
+    const page = await loaded(await shown(view.container));
+    view.rerender(sheet(1));
+    expect(page.getSelection()?.toString()).toContain("leche");
+    expect(ipc.opened).toHaveLength(0);
+  });
+
+  it("takes words written from outside into the whole document without leaving it", async () => {
+    const sheet = (value: string, n: number) => (
+      <Sheet value={value} label="Compras" onWrite={() => {}} wholeable wholeAsked={n} />
+    );
+    const view = render(sheet(BODY, 0));
+    await loaded(await shown(view.container));
+    view.rerender(sheet(BODY, 1));
+    expect(ipc.opened.map((one) => one.said)).toEqual([BODY]);
+    view.rerender(sheet(`${BODY}\nfruta\n`, 1));
+    expect(ipc.left).toBe(0);
+    expect(ipc.cut).toEqual([[BODY.length, BODY.length]]);
+  });
+
+  it("leaves the whole document when words from outside come with Windows line ends", async () => {
+    const sheet = (value: string, n: number) => (
+      <Sheet value={value} label="Compras" onWrite={() => {}} wholeable wholeAsked={n} />
+    );
+    const view = render(sheet(BODY, 0));
+    await loaded(await shown(view.container));
+    view.rerender(sheet(BODY, 1));
+    view.rerender(sheet("# Compras\r\n\r\nleche\r\n", 1));
+    expect(ipc.left).toBe(1);
+  });
+
+  it("opens the block over words picked on the page and writes the key pressed over them", async () => {
+    const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} />);
+    const page = await loaded(await shown(view.container));
+    pick(page, 0, 5);
+    page.dispatchEvent(new KeyboardEvent("keydown", { key: "x", cancelable: true }));
+    expect(ipc.opened.map((one) => one.said)).toEqual(["leche\n"]);
+    expect(ipc.opened[0].caret).toBe(0);
+    expect(ipc.typed).toEqual(["x"]);
+  });
+
+  it("still writes the key when the words picked cross a mark the page does not show", async () => {
+    ipc.drawn =
+      '<h1 data-at="0-10">Compras</h1><p data-at="11-21"><b>le</b>che</p><p data-at="22-26">pan</p>';
+    const view = render(
+      <Sheet value={"# Compras\n\n**le**che\n\npan\n"} label="Compras" onWrite={() => {}} />,
+    );
+    const page = await loaded(await shown(view.container));
+    const measured = page.defaultView?.Range.prototype as unknown as {
+      getBoundingClientRect?: () => unknown;
+    };
+    measured.getBoundingClientRect ??= () => ({ top: 0, left: 0, width: 0, height: 0 });
+    const words = page.querySelector('p[data-at="11-21"]') as HTMLElement;
+    const range = page.createRange();
+    range.setStart(words.firstChild?.firstChild as Node, 0);
+    range.setEnd(words.lastChild as Node, 3);
+    page.getSelection()?.removeAllRanges();
+    page.getSelection()?.addRange(range);
+    page.dispatchEvent(new KeyboardEvent("keydown", { key: "x", cancelable: true }));
+    expect(ipc.opened.map((one) => one.said)).toEqual(["**le**che\n"]);
+    expect(ipc.opened[0].caret).toBe(-1);
+    expect(ipc.typed).toEqual(["x"]);
+  });
+
+  it("opens the whole document where the block being written stood, not at its start", async () => {
+    ipc.picked = { from: 2, to: 2, head: 2 } as typeof ipc.picked;
+    const sheet = (n: number) => (
+      <Sheet value={BODY} label="Compras" onWrite={() => {}} wholeable wholeAsked={n} />
+    );
+    const view = render(sheet(0));
+    const page = await loaded(await shown(view.container));
+    page
+      .querySelector('p[data-at="11-17"]')
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    view.rerender(sheet(1));
+    expect(ipc.opened.map((one) => one.said)).toEqual(["leche\n", BODY]);
+    expect(ipc.opened[1].caret).toBe(13);
   });
 
   it("keeps the block being written open when words from outside land elsewhere", async () => {

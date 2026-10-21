@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { changedIn, reanchored, touches } from "../ui/anchoring";
+import { changedIn, reanchored, spanOf, touches } from "../ui/anchoring";
 
 describe("the block being written when words arrive from outside", () => {
   const was = "# Acta\n\nuno\n\nlo mio\n\ntres\n";
@@ -50,5 +50,27 @@ describe("the blocks a change touches", () => {
   it("counts only the blocks a change runs into", () => {
     expect(touches([10, 20], [20, 25])).toBe(false);
     expect(touches([20, 30], [20, 25])).toBe(true);
+  });
+});
+
+describe("the one edit an open editor takes from outside", () => {
+  it("replaces only the words that differ", () => {
+    expect(spanOf("uno dos tres", "uno DOS tres")).toEqual({ from: 4, to: 7, insert: "DOS" });
+  });
+
+  it("inserts where the new words begin and removes nothing", () => {
+    expect(spanOf("uno tres", "uno dos tres")).toEqual({ from: 4, to: 4, insert: "dos " });
+  });
+
+  it("removes what was taken out and inserts nothing", () => {
+    expect(spanOf("uno dos tres", "uno tres")).toEqual({ from: 4, to: 8, insert: "" });
+  });
+
+  it("adds at the end what was appended", () => {
+    expect(spanOf("uno", "uno\n\ndos")).toEqual({ from: 3, to: 3, insert: "\n\ndos" });
+  });
+
+  it("asks for nothing when nothing changed", () => {
+    expect(spanOf("igual", "igual")).toEqual({ from: 5, to: 5, insert: "" });
   });
 });
