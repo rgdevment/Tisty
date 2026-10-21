@@ -332,10 +332,17 @@ export const barred = (view: EditorView, whole = false, onWhole?: () => void): B
   );
   marks.append(drawnIn(page, "scan-text"));
   // Words with no mark to show have nothing for it to do, so it waits until one is written.
+  // The words are scanned again only when they change, not at every move of the caret.
+  let scanned: EditorView["state"]["doc"] | null = null;
+  let some = false;
   const marking = (state: EditorView["state"]) => {
     const on = state.field(marksShown);
+    if (state.doc !== scanned) {
+      scanned = state.doc;
+      some = marked(state);
+    }
     marks.setAttribute("aria-pressed", String(on));
-    marks.hidden = !on && !marked(state);
+    marks.hidden = !on && !some;
     marksKey.hidden = marks.hidden;
   };
 

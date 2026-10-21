@@ -112,11 +112,11 @@ export const docked = (
   const around = Outer && frame ? new Outer(place) : null;
   if (sheet) inner?.observe(sheet);
   if (frame) around?.observe(frame);
-  // The panel opens and shuts without the page changing size, so the window's own changes are watched.
+  // The panel opens and shuts without the page changing size; it comes and goes beside the sheet.
   const Watch = outer?.MutationObserver;
   const panels = side && Watch ? new Watch(place) : null;
-  const body = frame?.ownerDocument.body;
-  if (body) panels?.observe(body, { childList: true, subtree: true });
+  const room = frame?.closest("main");
+  if (room) panels?.observe(room, { childList: true });
   const stop = () => {
     outer?.removeEventListener("scroll", scrolled, listen);
     outer?.removeEventListener("resize", place);

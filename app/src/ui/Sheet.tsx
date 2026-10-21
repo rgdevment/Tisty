@@ -1,3 +1,4 @@
+import { Transaction } from "@codemirror/state";
 import { save as intoFile } from "@tauri-apps/plugin-dialog";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { copied, copyAttached, type Mend, viewWidget } from "../core";
@@ -83,7 +84,9 @@ export default function Sheet(props: Readonly<Props>) {
   // The blocks the whole-document editor covers, shown again as it is left.
   const veiled = useRef<(() => void) | null>(null);
   // Asked while the page was still being drawn again, so it opens once the new one is shown.
-  const pending = useRef<{ caret: number; all: boolean } | null>(null);
+  const pending = useRef<{ caret: number; all: boolean; turn: number } | null>(null);
+  // Where the caret stands in the whole text, so the whole document opens where the block was.
+  const caretNow = useRef<(() => number) | null>(null);
   const showing = useRef(value);
   showing.current = drawn;
   const latest = useRef(value);
@@ -93,6 +96,8 @@ export default function Sheet(props: Readonly<Props>) {
   const hanging = useRef(false);
   const [ready, setReady] = useState(false);
   const [turned, setTurned] = useState(0);
+  const turnedNow = useRef(0);
+  turnedNow.current = turned;
   const kept = useKeptHeight<HTMLDivElement>(file ?? label);
   const [more, setMore] = useState<Extract<Went, { kind: "more" }> | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; choices: Choice[] } | null>(null);
@@ -165,6 +170,7 @@ export default function Sheet(props: Readonly<Props>) {
   const onFile = useRef(file);
   useEffect(() => {
     if (file === onFile.current) return;
+    pending.current = null;
     // Another document keeps this sheet, so its page stays in view until the next one is drawn.
     onFile.current = file;
     left();
@@ -272,7 +278,7 @@ export default function Sheet(props: Readonly<Props>) {
       Boolean(whole),
       fixed || !said.current.wholeable
         ? undefined
-        : (all) => queueMicrotask(() => (whole && !all ? left() : wholly(0, all))),
+        : (all) => queueMicrotask(() => (whole && !all ? left() : wholly(undefined, all))),
     );
     follows.current = (was, now) => {
       // The whole document takes the words in place, the caret carried along, instead of ending.
@@ -283,8 +289,13 @@ export default function Sheet(props: Readonly<Props>) {
         end = now.length;
         before = now;
         mine = now;
+        // Not the person's to undo: Ctrl+Z takes back their words, never the agent's.
         if (changes.from !== changes.to || changes.insert)
-          writing.dispatch({ changes, userEvent: "outside" });
+          writing.dispatch({
+            changes,
+            userEvent: "outside",
+            annotations: Transaction.addToHistory.of(false),
+          });
         return true;
       }
       const moved = reanchored(was, now, from, end);
@@ -295,6 +306,7 @@ export default function Sheet(props: Readonly<Props>) {
       mine = now;
       return true;
     };
+    caretNow.current = () => from + (open.current?.view.state.selection.main.head ?? 0);
     open.current.kept(said.current.kept ?? true);
     const editing = open.current.view;
     const caret = whole
@@ -340,19 +352,21 @@ export default function Sheet(props: Readonly<Props>) {
   // biome-ignore lint/correctness/useExhaustiveDependencies: each new drawing of the page may be the one a pending ask waits for.
   useEffect(() => {
     const waiting = pending.current;
-    if (!waiting || drawn !== latest.current) return;
+    // Only a drawing made after the ask holds the words; the old page is about to be thrown away.
+    if (!waiting || drawn !== latest.current || turned === waiting.turn) return;
     pending.current = null;
     wholly(waiting.caret, waiting.all);
   }, [turned, drawn]);
 
   // One editor over every word, laid where the blocks were, which are only hidden meanwhile.
-  const wholly = (caret = 0, all = false) => {
+  const wholly = (asked?: number, all = false) => {
     if (reading || fixed || !said.current.wholeable) return;
+    const caret = asked ?? (open.current ? caretNow.current?.() : undefined) ?? 0;
     if (open.current) left();
     const sheet = shown.current?.document.querySelector<HTMLElement>(".page");
     // A block just left draws the page again, and an editor laid in the old one would go with it.
     if (!sheet || showing.current !== latest.current) {
-      pending.current = { caret, all };
+      pending.current = { caret, all, turn: turnedNow.current };
       return;
     }
     const fresh = sheet.ownerDocument.createElement("div");
@@ -391,12 +405,10 @@ export default function Sheet(props: Readonly<Props>) {
     block(at, element, "", read);
     const editing = (open.current as Editing | null)?.view;
     if (!editing) return;
-    // Opened whole, the editor holds the page, but the words read still count from their block.
-    const from = veiled.current ? at[0] : 0;
-    const end = from + caretAt(editing.state.sliceDoc(from), read + words);
-    // Words drawn across marks are not in the Markdown as read, so only the caret is placed.
-    if (editing.state.sliceDoc(end - words.length, end) !== words) return;
-    editing.dispatch({ selection: { anchor: end - words.length, head: end } });
+    const end = caretAt(editing.state.sliceDoc(), read + words);
+    // Words drawn across marks are not in the Markdown as read: the key still lands, at the caret.
+    if (editing.state.sliceDoc(end - words.length, end) === words)
+      editing.dispatch({ selection: { anchor: end - words.length, head: end } });
     if (typed !== null)
       editing.dispatch(editing.state.replaceSelection(typed), { userEvent: "input.type" });
   };
