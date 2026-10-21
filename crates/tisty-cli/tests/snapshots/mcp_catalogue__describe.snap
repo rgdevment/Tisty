@@ -1,0 +1,27 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "description": "Write the description of a task you filed, or one the person opened to agents: what it is, in the Tisty language. One already there is written over whole, so `read` it first and keep what still holds; what you learnt on the way goes in `note`.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "body": {
+        "description": "What the task is, in the Tisty language",
+        "type": "string"
+      },
+      "task": {
+        "description": "The task id",
+        "type": "string"
+      }
+    },
+    "required": [
+      "task",
+      "body"
+    ],
+    "type": "object"
+  },
+  "name": "describe",
+  "title": "Describe a task"
+}

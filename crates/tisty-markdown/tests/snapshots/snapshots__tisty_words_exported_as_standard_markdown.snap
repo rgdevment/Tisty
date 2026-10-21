@@ -1,0 +1,7 @@
+---
+source: crates/tisty-markdown/tests/snapshots.rs
+expression: "standard(\"# Title\\n\\n==blue=={blue} and ++under++ and ::star::\\n\")"
+---
+# Title
+
+<mark data-pen="blue">blue</mark> and <ins>under</ins> and <span data-ico="star">:star:</span>

@@ -1,0 +1,27 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "description": "Give a better title to a task an agent filed. A task the person wrote keeps its title, opened to agents or not.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "task": {
+        "description": "The task id",
+        "type": "string"
+      },
+      "title": {
+        "description": "The new title",
+        "type": "string"
+      }
+    },
+    "required": [
+      "task",
+      "title"
+    ],
+    "type": "object"
+  },
+  "name": "rename",
+  "title": "Rename a task an agent filed"
+}

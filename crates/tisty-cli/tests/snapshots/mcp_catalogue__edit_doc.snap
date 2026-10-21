@@ -1,0 +1,55 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "description": "Replace one passage of a document with another, named either by what it says with `old` or by where it sits with `section` or a line range — which let you change a part of a document you never read. What it said before is kept first, and if that cannot be done the edit is refused rather than made; `restore_doc` puts it back. The answer says how many characters the document `grew` by, which is worth reading: an edit should not change the size by much more than what you sent.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "doc": {
+        "description": "The document's id, as `docs` hands it back — an opaque name like `q7ntmzbm-0001`, not its title",
+        "type": "string"
+      },
+      "echo": {
+        "description": "Hand back the lines around the change as well, instead of reading the document again to see it",
+        "type": "boolean"
+      },
+      "from": {
+        "description": "First line to replace, counting from 1. Needs `print`",
+        "type": "integer"
+      },
+      "keep_compaction": {
+        "description": "Only when the person told you in this conversation to keep a compaction of this document that waits for their word: it is kept, and this write goes ahead",
+        "type": "boolean"
+      },
+      "new": {
+        "description": "What takes its place. Empty takes the passage out",
+        "type": "string"
+      },
+      "old": {
+        "description": "The passage as it is written now, copied from `read_doc`, matching one place only — take in the lines around it if a short one would fit twice. Leave it out when naming a `section` or a line range",
+        "type": "string"
+      },
+      "print": {
+        "description": "The print the document read at, from `read_doc` or `outline_doc`. It goes with `section` or a line range and nothing else uses it: an edit named by `old` is matched against the text itself. If anyone wrote since you took it, nothing is changed and you are told to ask `outline_doc` where the passage sits now",
+        "type": "string"
+      },
+      "section": {
+        "description": "One heading and everything under it, named by its number and not by its words: the `at` of a heading in the `outline` `outline_doc` hands back, counting from 0. Needs `print`",
+        "type": "integer"
+      },
+      "to": {
+        "description": "Last line to replace. Left out, it runs to the end. It goes with `from`: on its own it names no place and the edit is refused",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "doc",
+      "new"
+    ],
+    "type": "object"
+  },
+  "name": "edit_doc",
+  "title": "Change a passage of a document"
+}

@@ -1,0 +1,147 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`the markup of small parts of the window > draws a glyph from the table and a plain mark 1`] = `
+<DocumentFragment>
+  <svg
+    aria-hidden="true"
+    class="glyph shrink-0 h-4 w-4"
+    viewBox="0 0 24 24"
+  >
+    <path
+      d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"
+    />
+     
+    <path
+      d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
+    />
+  </svg>
+  <span
+    aria-hidden="true"
+    class="glyph grid shrink-0 place-items-center h-6 w-6"
+  >
+    🦫
+  </span>
+</DocumentFragment>
+`;
+
+exports[`the markup of small parts of the window > draws the repeated lists as a held button 1`] = `
+<DocumentFragment>
+  <p
+    class="text-[12.5px] leading-relaxed text-soft"
+  >
+    Lists with the same name, left twice by a reinstall or by putting two copies together. Joining them keeps one of each name, the one holding the most, and moves every task into it; nothing is lost.
+  </p>
+  <ul
+    class="mt-2 flex flex-col gap-1 text-[12.5px]"
+  >
+    <li
+      class="flex items-baseline justify-between gap-4"
+    >
+      <span
+        class="text-ink"
+      >
+        Casa
+      </span>
+      <span
+        class="tabular-nums text-faint"
+      >
+        2 lists · 1 tasks
+      </span>
+    </li>
+  </ul>
+  <div
+    class="mt-2.5 flex items-center gap-2.5"
+  >
+    <button
+      class="join"
+      disabled=""
+      type="button"
+    >
+      Join them
+    </button>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`the markup of small parts of the window > draws the repeated lists with the button to join them 1`] = `
+<DocumentFragment>
+  <p
+    class="text-[12.5px] leading-relaxed text-soft"
+  >
+    Lists with the same name, left twice by a reinstall or by putting two copies together. Joining them keeps one of each name, the one holding the most, and moves every task into it; nothing is lost.
+  </p>
+  <ul
+    class="mt-2 flex flex-col gap-1 text-[12.5px]"
+  >
+    <li
+      class="flex items-baseline justify-between gap-4"
+    >
+      <span
+        class="text-ink"
+      >
+        Trabajo
+      </span>
+      <span
+        class="tabular-nums text-faint"
+      >
+        2 lists · 14 tasks
+      </span>
+    </li>
+    <li
+      class="flex items-baseline justify-between gap-4"
+    >
+      <span
+        class="text-ink"
+      >
+        Familia
+      </span>
+      <span
+        class="tabular-nums text-faint"
+      >
+        3 lists · 0 tasks
+      </span>
+    </li>
+  </ul>
+  <div
+    class="mt-2.5 flex items-center gap-2.5"
+  >
+    <button
+      class="join"
+      type="button"
+    >
+      Join them
+    </button>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`the markup of small parts of the window > draws the tag picker with the chosen ones marked 1`] = `
+<DocumentFragment>
+  <div
+    class="scroller flex max-h-[34vh] flex-wrap content-start gap-2 rounded-[10px] border border-hair bg-sheet p-2.5 shadow-lift"
+  >
+    <button
+      class="flex items-center gap-2 rounded-md px-2.5 py-1 text-[12.5px] bg-hover text-soft hover:text-ink"
+      type="button"
+    >
+      #work
+      <span
+        class="text-[10.5px] text-faint tabular-nums"
+      >
+        4
+      </span>
+    </button>
+    <button
+      class="flex items-center gap-2 rounded-md px-2.5 py-1 text-[12.5px] bg-mark-tag text-ink"
+      type="button"
+    >
+      #home
+      <span
+        class="text-[10.5px] text-faint tabular-nums"
+      >
+        2 · 3
+      </span>
+    </button>
+  </div>
+</DocumentFragment>
+`;

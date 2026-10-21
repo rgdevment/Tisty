@@ -1,0 +1,78 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`the report a bug gets attached to, as a whole > reads the same on a fresh install 1`] = `
+"# Tisty report
+made  05:04 PM
+
+none of this leaves your computer until you send it
+
+[tisty]
+version         0.1.0
+channel         development
+language        en
+time zone       America/Santiago
+installed from  a download
+
+[system]
+os            Windows 11 Pro 24H2 (10.0.26200.1234)
+architecture  x86_64
+webview       132.0.2957.140
+
+[store]
+path         C:\\Users\\···\\AppData\\Roaming\\tisty
+machines     2
+events       1481
+tasks        7 open · 23 archived
+lists        3   (list#1, list#2, list#3)
+tags         2   (tag#1, tag#2)
+cache        matches the history
+attachments  12 · 1.7 MB · 3 loose (311.0 kB)
+weight       2.1 MB
+
+[settings]
+syncs       yes, shared folder
+backup      available · none yet
+notices     A notification from the system
+assistants  cannot file here
+shortcut    Ctrl+Shift+Space
+"
+`;
+
+exports[`the report a bug gets attached to, as a whole > reads the same with real names, a sandbox, a cloud and an assistant 1`] = `
+"# Tisty report
+made  05:04 PM
+
+none of this leaves your computer until you send it
+
+[tisty]
+version         0.1.0
+channel         development
+sandbox         pruebas
+language        en
+time zone       America/Santiago
+installed from  the disk image, not moved to Applications
+
+[system]
+os            Windows 11 Pro 24H2 (10.0.26200.1234)
+architecture  x86_64
+webview       132.0.2957.140
+
+[store]
+path         C:\\Users\\···\\AppData\\Roaming\\tisty
+machines     2
+events       1481
+tasks        7 open · 23 archived
+lists        3   (dentist, house, work)
+tags         2   (health, home)
+cache        matches the history
+attachments  12 · 1.7 MB · 3 loose (311.0 kB)
+weight       2.1 MB
+
+[settings]
+syncs       yes, Google Drive
+backup      available · Tue, Aug 4 10:00 AM
+notices     A notification from the system
+assistants  can file here
+shortcut    Ctrl+Shift+Space
+"
+`;

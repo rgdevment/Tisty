@@ -11,6 +11,7 @@ license = "AGPL-3.0-only"
 publish = false
 
 [workspace.dependencies]
+insta = { version = "1.49.0", features = ["json"] }
 minisign-verify = "0.2"
 tisty-carrier = { path = "crates/tisty-carrier" }
 tisty-google = { path = "crates/tisty-google" }

@@ -1,0 +1,5 @@
+---
+source: crates/tisty-markdown/tests/snapshots.rs
+expression: "page(\"# Title\\n\\nSome **strong**, *soft*, ~~gone~~ and `code` with a [link](https://example.org).\\n\\n## Section\\n\\nLine one\\\\\\nline two.\\n\")"
+---
+<h1 id="title" data-at="0-8">Title</h1><p data-at="9-90">Some <strong>strong</strong>, <em>soft</em>, <s>gone</s> and <code>code</code> with a <a href="https://example.org">link</a>.</p><h2 id="section" data-at="91-102">Section</h2><p data-at="103-123">Line one<br>line two.</p>

@@ -1,0 +1,23 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "description": "The full rules for working in Tisty: when something is a task or a document, how a living document is kept, what you may change on a task and what stays the person's, and how removing works. The instructions you were given are only their summary. Call it once at the start, before you write anything; with `topic` «tidying», before you tidy or compact, it gives how that is done.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "topic": {
+        "description": "general, left out, for everything; tidying for putting documents and task pages back in order and compacting them",
+        "enum": [
+          "general",
+          "tidying"
+        ],
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "name": "rules",
+  "title": "The full rules for working here"
+}

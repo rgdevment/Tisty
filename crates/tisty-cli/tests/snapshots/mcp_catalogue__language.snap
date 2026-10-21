@@ -1,0 +1,23 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "description": "The whole Tisty language, the Markdown a document is kept in: headings, lists and stages, pens with their colours, underline, icons and their names, callouts, collapsible sections, tags, cards to other documents, attachments, references, code, diagrams, formulas and tables — each with how it is written on disk and the rules that decide when it counts. Ask for it once before writing anything beyond plain words, so a pen colour or an icon you use is one Tisty knows instead of text the person has to clean up. `lang` picks English or Spanish; the language itself is the same.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "lang": {
+        "description": "en for English, es for Spanish. Left out, English",
+        "enum": [
+          "en",
+          "es"
+        ],
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "name": "language",
+  "title": "How Tisty writes a document"
+}

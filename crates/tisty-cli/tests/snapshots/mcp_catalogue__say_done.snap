@@ -1,0 +1,27 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "description": "Say that a task is done, when you did the work yourself — any task of the person's too, since it is only your word. Say it in the turn the work ends. Every step has to be ticked or said done first; with one left it is refused, and so is a whole with a part still open and unmarked. Reading that it no longer matters is not doing it, and goes in `say_not_doing`. It closes nothing: the task stays open, marked, until the person finishes it or takes the mark off. Say it once; if they have not looked yet, what is new goes in `note` too.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "body": {
+        "description": "The account the person reads before deciding: what you did and what makes you sure — the command you ran and what it answered, the commit. In the Tisty language",
+        "type": "string"
+      },
+      "task": {
+        "description": "The task's id, as `find` or `propose` gave it",
+        "type": "string"
+      }
+    },
+    "required": [
+      "task",
+      "body"
+    ],
+    "type": "object"
+  },
+  "name": "say_done",
+  "title": "Say a task is finished"
+}

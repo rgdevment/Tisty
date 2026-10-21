@@ -1,0 +1,54 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "description": "The tool for «delete this document», and the only one: you cannot delete, so you mark and the person deletes. Mark a document you found is no longer worth keeping — a copy of another, notes folded into a living document, a handover for a flow that was retired — with its `reason`, where what it said lives now in `instead`, and in `body` what makes it old and how you know. Several copies of one thing go in one call, marked alike, so the person settles the set with one click. The mark changes nothing: the document reads the same, stays where it is, and the person sees the mark when they open it. Deleting it and taking the mark off are theirs, from the window; `archive_doc` puts it away only when they ask for that. One mark at a time — a document already marked is refused until the person has looked, and in a set it is skipped and named.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "body": {
+        "description": "What makes it old and how you know, in the person's language: what it describes that no longer exists, and what replaced it",
+        "type": "string"
+      },
+      "doc": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        ],
+        "description": "The id of the document to mark, as `docs` hands it back — an opaque name like `q7ntmzbm-0001`, not its title. A list of ids marks them all alike in one go"
+      },
+      "instead": {
+        "description": "The id of the document or the task that holds what it said now. Needed with duplicate_of, moved and superseded",
+        "type": "string"
+      },
+      "reason": {
+        "description": "Why it has had its day: a duplicate of another, moved into another (only once what it holds worth keeping is there), superseded by another, wrong, obsolete, or a scratch nobody needs",
+        "enum": [
+          "duplicate_of",
+          "moved",
+          "superseded",
+          "wrong",
+          "obsolete",
+          "scratch"
+        ],
+        "type": "string"
+      }
+    },
+    "required": [
+      "doc",
+      "body"
+    ],
+    "type": "object"
+  },
+  "name": "flag_doc",
+  "title": "Say a document has had its day, which is how a document gets deleted"
+}

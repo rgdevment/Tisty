@@ -1,0 +1,57 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "description": "Needs `doc`, or `order` with `page_of`. A page is real content related to one subject but not part of it — a runbook, a contract, an annex — never a session: a review, a day's progress or a PR's notes belong on the task. Hang a document from another as one of its pages, or take a page out by leaving `page_of` out, which makes it a document of its own again, back in the folder it came from. A page goes with its document everywhere — folder, archive and deletion — and holds no pages of its own. Hanging one writes the line that names it at the end of that document, the same line `write_doc` with `page_of` writes; `after`, `before` and `at` say where that line goes instead. Taking a page out writes nothing: the line stays where it was, now pointing at a document of its own, and taking it out of the text is yours to do. `order` is the third thing this does: it takes the pages of one document and deals the lines they already have back out in the order you name, which is how several are put in order in one call. The order pages are read in is the order their lines sit in the document, and nothing else. The line is `![Its title](tisty:doc/its-name)`, opening bang and all — without it the line is a mention in a sentence and gives the page no place — and a square bracket in the title goes in with a backslash before it.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "after": {
+        "description": "The id of another page of that same document. The line naming this page is written straight after the line naming that one, which is what puts it next in reading order. Needs `page_of`, takes one `doc`, and the page you name has to have a line already",
+        "type": "string"
+      },
+      "at": {
+        "description": "Where to write the line when you are not naming a page to sit beside: \"first\" puts it before every page the document names, \"last\" after them all. It is what to send for a document whose pages no line names yet, since there is no page there to name",
+        "enum": [
+          "first",
+          "last"
+        ],
+        "type": "string"
+      },
+      "before": {
+        "description": "The same, on the other side: the line goes straight before the one naming this page",
+        "type": "string"
+      },
+      "doc": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        ],
+        "description": "The id of the document to hang or to take out, as `docs` hands it back — an opaque name like `q7ntmzbm-0001`, not its title. A list of ids does the same to all of them in one go, and if one of them cannot, none of them moves."
+      },
+      "order": {
+        "description": "The pages of one document, by their ids, in the order they are to be read. Their lines are moved into each other's places and nothing else in the text moves, so pages you leave out stay where they are. Two or more ids, each named once. Needs `page_of`, and goes on its own: no `doc`, `after`, `before` or `at` — one call says an order, another puts one page somewhere. Every page it names has to have a line of its own already",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "page_of": {
+        "description": "The id of the document it becomes a page of — an opaque name like `q7ntmzbm-0001`, not its title. Leave it out to make it a document of its own",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "name": "page_doc",
+  "title": "Make one document, or several, into pages, put their pages in order, or take them back out"
+}

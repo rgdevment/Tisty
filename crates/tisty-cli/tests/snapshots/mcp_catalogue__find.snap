@@ -1,0 +1,80 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "description": "Search the tasks — open and archived alike — and the documents: by words with `query`, by what a task is with the sifting fields (alone or narrowing a query), or by `source` alone to see whether something was filed from it already. A task found by what its page, description, steps or notes say comes with `in` and the `line` that says it, so a past decision often reads without `read`. With `doc` it searches inside that one document instead and hands back the matching lines with their numbers and the section each sits in.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "after": {
+        "description": "Skip this many tasks, to page on while `total` is higher than what came back. Documents are not paged: `docsTotal` says how many match, and a higher `limit` brings more",
+        "type": "integer"
+      },
+      "by_agent": {
+        "description": "True for what an agent filed, false for what the person wrote",
+        "type": "boolean"
+      },
+      "doc": {
+        "description": "Look inside this one document rather than across the tasks. Hands back the lines where every word of the query turns up, accents or not, with their numbers, the lines around them, and the section each sits in",
+        "type": "string"
+      },
+      "from": {
+        "description": "Its date or deadline on this day or after (2026-08-31)",
+        "type": "string"
+      },
+      "from_source": {
+        "description": "Only tasks whose `source` starts with this, however it is written: «sereno», «sereno#» and «sereno: » all bring everything read out of that one place",
+        "type": "string"
+      },
+      "limit": {
+        "description": "At most 100, 20 by default",
+        "type": "integer"
+      },
+      "list": {
+        "description": "In this list, named as `lists` names it",
+        "type": "string"
+      },
+      "open_to_agents": {
+        "description": "True for the person's own tasks they opened to agents — yours to fill in and to say done — false for what they kept to themselves",
+        "type": "boolean"
+      },
+      "part_of": {
+        "description": "Only the parts of this task, by its id",
+        "type": "string"
+      },
+      "query": {
+        "description": "Words to look for, not a phrase: each word has to turn up in the same task or document (on the same line, with `doc`), in any order, accents or not; put a phrase in quotes when the order is the point. Not needed when sifting by the fields below",
+        "type": "string"
+      },
+      "said_done": {
+        "description": "True for what an agent spoke for — said done, or said should not be done — and the person has not decided yet; false for what nobody spoke for",
+        "type": "boolean"
+      },
+      "scope": {
+        "description": "Defaults to either: the open tasks and the archive together, which is where how something was solved before is found",
+        "enum": [
+          "open",
+          "archive",
+          "either"
+        ],
+        "type": "string"
+      },
+      "source": {
+        "description": "Ask whether this exact source was proposed already",
+        "type": "string"
+      },
+      "tag": {
+        "description": "Carrying this tag, with or without the #. Any sifting field leaves the documents out of the answer",
+        "type": "string"
+      },
+      "to": {
+        "description": "Its date or deadline on this day or before",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "name": "find",
+  "title": "Search the list and the archive"
+}

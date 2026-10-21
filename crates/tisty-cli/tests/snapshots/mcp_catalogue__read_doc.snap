@@ -1,0 +1,46 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "description": "The text of a document and the `print` it reads at. Left alone it brings the whole body; one past about 12,000 characters comes back as its outline instead, with `whole` set to false, and then you ask for a `section`, a run of lines or a budget of `chars`, about 12,000 at a time. Reading a part is the ordinary way to work: the print comes with every answer, so a passage can be changed with `edit_doc` without ever bringing the rest.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "chars": {
+        "description": "About how many characters to bring. The answer says `next` when there is more",
+        "type": "integer"
+      },
+      "cursor": {
+        "description": "The `next` a previous answer gave, to carry on from there. It goes with `chars`; on its own it is ignored and the reading starts again from the top",
+        "type": "integer"
+      },
+      "doc": {
+        "description": "The document's id, as `docs` hands it back — an opaque name like `q7ntmzbm-0001`, not its title",
+        "type": "string"
+      },
+      "from": {
+        "description": "First line, counting from 1",
+        "type": "integer"
+      },
+      "print": {
+        "description": "The `print` the previous part came with. Needed only alongside `cursor`, so that two halves are known to be the same document",
+        "type": "string"
+      },
+      "section": {
+        "description": "One heading and everything under it, numbered as `outline_doc` numbers them, from 0",
+        "type": "integer"
+      },
+      "to": {
+        "description": "Last line. Left out, it reads to the end",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "doc"
+    ],
+    "type": "object"
+  },
+  "name": "read_doc",
+  "title": "Read a document, or a part of one"
+}

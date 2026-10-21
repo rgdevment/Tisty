@@ -31,3 +31,4 @@ sys-locale.workspace = true
 tisty-nl.workspace = true
 proptest.workspace = true
 tempfile.workspace = true
+insta.workspace = true
