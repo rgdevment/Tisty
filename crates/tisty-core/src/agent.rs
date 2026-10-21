@@ -454,7 +454,8 @@ fn told_by(line: &str) -> Option<(bool, &str, &'static str)> {
 
 // A shell line goes on past ` \`, and the quote that opened before its name closes after the value.
 fn in_a_command(value: &str) -> &str {
-    let value = bared(value.trim().trim_end_matches('\\'));
+    let value = value.trim();
+    let value = bared(value.strip_suffix(" \\").unwrap_or(value));
     match value.strip_suffix(['"', '\'', '`']) {
         Some(inner) if !value.starts_with(['"', '\'', '`']) => inner,
         _ => value,
@@ -463,7 +464,7 @@ fn in_a_command(value: &str) -> &str {
 
 // An authorization header names its scheme before the credential itself.
 fn past_the_scheme<'a>(name: &str, value: &'a str) -> &'a str {
-    if !name.to_ascii_uppercase().contains("AUTH") {
+    if !name.to_ascii_uppercase().ends_with("AUTHORIZATION") {
         return value;
     }
     let word = value.split_whitespace().next().unwrap_or_default();

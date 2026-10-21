@@ -1026,7 +1026,7 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         })
         .collect();
     folders.sort_by(|a, b| a["path"].as_str().cmp(&b["path"].as_str()));
-    let below = placing::below(&state, scope, within.filter(|_| !deep));
+    let below = placing::below(&state, scope, within.filter(|_| !deep && under.is_none()));
 
     let mut lines: Vec<String> = shown
         .iter()

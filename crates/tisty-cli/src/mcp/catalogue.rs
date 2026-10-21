@@ -1096,7 +1096,7 @@ pub(super) fn tools() -> Value {
                     },
                     "doc": {
                         "type": "string",
-                        "description": "Look inside this one document rather than across the tasks. Hands back the lines where every word of the query turns up, accents or not, with their numbers, the lines around them when those are not blank, and the section each sits in. A line in `around` is cut at 200 characters; `read_doc` with `from` and `to` brings it whole"
+                        "description": "Look inside this one document rather than across the tasks. Hands back the lines where every word of the query turns up, accents or not, with their numbers, the lines around them unless every one of those is blank, and the section each sits in. A line in `around` is cut at 200 characters; `read_doc` with `from` and `to` brings it whole"
                     },
                     "around": {
                         "type": "integer",
