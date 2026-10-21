@@ -665,6 +665,8 @@ const en = {
   backSure:
     "Going back leaves this document as it read before the write that stirred it. What it says now is kept in its place, so you can come back to it.",
   comingDown: "{name} is in iCloud and is being brought back. Try again in a moment",
+  cannotDraw:
+    "{name} is a HEIC picture and this Windows has nothing to draw it with. Install «HEIF Image Extensions» from the Microsoft Store, or open it with another program",
   cloudLater:
     "{name} hasn't arrived from your cloud yet: the computer that attached it may still be sending it, its cloud may be full, or your cloud asked to wait. Try again after the next sync",
   cloudGone:
@@ -2874,6 +2876,8 @@ const es: Catalog = {
   backSure:
     "Volver atrás deja este documento como se leía antes de la escritura que lo movió. Lo que dice ahora queda guardado en su lugar, así que puedes regresar a ello.",
   comingDown: "{name} está en iCloud y se está trayendo. Inténtalo de nuevo en un momento",
+  cannotDraw:
+    "{name} es una imagen HEIC y este Windows no tiene con qué dibujarla. Instala «Extensiones de imagen HEIF» desde Microsoft Store, o ábrela con otro programa",
   cloudLater:
     "{name} todavía no llega desde tu nube: puede que el equipo que lo adjuntó aún lo esté enviando, que su nube esté llena, o que tu nube pidiera esperar. Vuelve a intentarlo después de la próxima sincronización",
   cloudGone:

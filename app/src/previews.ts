@@ -75,8 +75,8 @@ const FAMILIES: Record<string, string> = {
 
 export const family = (kind: string): string => FAMILIES[KINDS[kind] ?? ""] ?? "plain";
 
-// Only WebKit draws HEIC in an <img>; elsewhere it would land as a broken picture.
-const DRAWS_HEIC = navigator.userAgent.includes("Macintosh");
+// WebKit draws HEIC itself, and on Windows Tisty hands over a PNG Windows drew from it; elsewhere it would land broken.
+const DRAWS_HEIC = ["Macintosh", "Windows"].some((one) => navigator.userAgent.includes(one));
 
 export const SEEABLE = ["png", "jpg", "jpeg", "gif", "svg", "webp", "avif"].concat(
   DRAWS_HEIC ? ["heic"] : [],

@@ -179,6 +179,7 @@ const KNOWN = [
   "comingDown",
   "cloudLater",
   "cloudGone",
+  "cannotDraw",
   "docComing",
   "sharedAway",
   "heldAway",

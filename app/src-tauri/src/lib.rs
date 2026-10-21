@@ -4,6 +4,7 @@ mod answers;
 mod asked;
 mod command;
 mod desktop;
+mod drawn;
 mod finding;
 mod glimpse;
 mod hearing;
@@ -921,6 +922,8 @@ pub(crate) fn opened(
     }
     app.asset_protocol_scope()
         .allow_directory(as_asked_for(&attachments), true)?;
+    app.asset_protocol_scope()
+        .allow_directory(drawn::folder(session.paths.cache()), true)?;
     let words = tray::Words {
         show: worded(&session.locale, "show"),
         capture: worded(&session.locale, "capture"),

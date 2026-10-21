@@ -240,7 +240,15 @@ pub async fn served(
     session: tauri::State<'_, Mutex<Session>>,
     reference: String,
 ) -> Answer<String> {
-    finding::fetched(&session, reference, pointed_at).await
+    let cache = held(&session).paths.cache().to_path_buf();
+    finding::fetched(&session, reference, move |reference, at| {
+        let named = reference.clone();
+        let found = pointed_at(reference, at)?;
+        let seen = crate::drawn::as_seen(std::path::PathBuf::from(found), &cache)
+            .ok_or_else(|| Refusal::about("cannotDraw", named))?;
+        Ok(seen.to_string_lossy().into_owned())
+    })
+    .await
 }
 
 pub fn copied_out(reference: String, at: finding::Where, to: &str) -> Answer<()> {
