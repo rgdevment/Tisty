@@ -23,6 +23,10 @@ expression: tool
         "description": "Look inside this one document rather than across the tasks. Hands back the lines where every word of the query turns up, accents or not, with their numbers, the lines around them unless every one of those is blank, and the section each sits in. A line in `around` is cut at 200 characters; `read_doc` with `from` and `to` brings it whole",
         "type": "string"
       },
+      "folder": {
+        "description": "Only the documents in this folder and the folders below it, by its name, its whole path or its id. Documents whose title says the words come first either way, before those that only mention them",
+        "type": "string"
+      },
       "from": {
         "description": "Its date or deadline on this day or after (2026-08-31)",
         "type": "string"

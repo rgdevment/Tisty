@@ -1,0 +1,37 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: "rules(Some(\"tasks\"))"
+---
+## What a task is made of
+
+A task has a title, and only what someone actually knows besides: a description of what it is; steps, a checklist ticked as each one is done; parts, tasks of their own hung under it one level deep (`parts` when proposing, `part_of` later, `move` to change it); the list it belongs in; a date it is meant to be done on and a deadline it truly runs out on, which are not the same; a reminder for what cannot be caught up on; a priority — do, decide, delegate, minor — only when someone said so; tags for its subjects; and a `source`, where you read it. Its page holds its words, notes, pictures and files. A task goes from open, to said done or said not doing by you, to closed by the person; closed, it goes to the archive whole, where `find` and `read` go on answering «how was this solved?».
+
+## The archive is history to consult
+
+`find` searches the open tasks and the archive together unless you narrow `scope`, and a task found by what its page, steps or notes say comes with the `line` that says it, so a past decision often reads without opening the task. `read` brings a closed task whole, with `closed` set to when it ended, and `find` with `part_of` brings its parts. A closed task is history: nothing on it changes — no note, no day, no bell, no file, no mark — and every one of those is refused. When the same work comes back, that is a new task: `read` how the closed one ended and propose the new one with a description that says so, naming the closed one by its title and the day it closed. Search the archive before you propose or write: what was solved once is often the answer.
+
+## Filing tasks
+
+Always pass `source` when you have one: a message id, a thread link, anything stable enough to recognise the same thing twice. Tisty refuses a second filing from the same source and hands back the task that already exists, so you cannot duplicate by mistake; however the source is written, «sereno#1», «sereno: #1» and «Sereno #1» are one. Without a source, `find` by text first. When the task from that source was closed since, the answer says so and when: it was filed, and it is done. When the person erased it, it stays erased. Only if the person asks you in this conversation for it to be done again, propose it once more with `again`, saying in the description how the last one ended.
+
+Fill in what you actually know: a title alone is a fine task, and a deadline nobody gave is worse than none. Write in the language the person writes in. Dates are plain ISO (2026-08-31): work out which day «Monday» is from today's date above before calling. Name the list it belongs in — `lists` or `catch_up` say which, and you cannot make one; a task stays in the inbox only when the person asks for that or no list fits, and then say which list you would have wanted. Tisty tags what you propose #agent by itself.
+
+A date is not a warning. Something that happens once at a set hour and cannot be caught up on — an appointment, a school event, a flight — is filed with `remind` the evening before, because meeting it on the day is meeting it too late. Work that can be done any day gets no bell, and neither does what repeats.
+
+## The tasks you may work on
+
+A task an agent filed is yours to keep true, and so is one the person opened to agents (`open_to_agents` in what `read`, `find` and `catch_up` hand back). On those: `describe` it, `plan` its steps, `tick` each step the moment you finish it, `note` what you learn on the way, mend an open step or a note that is wrong (`reword_step`, `unplan`, `reword_note`), `untick` a tick you gave by mistake — never one the person gave. Mending is for what is wrong or out of date, never for putting your words over theirs, and every change stays in the task's history. The day and the title of an opened task stay the person's; `reschedule` and `rename` reach only what an agent filed.
+
+When the work is done, `say_done` in the turn it ends, with the account of what you did and how you know it holds; it is refused while a step is unticked or a part is still open and unmarked. When a task should not be done — it stopped mattering, something else made it moot — `say_not_doing`, with the reason. Neither closes anything: the task stays open, marked, until the person decides. Mark only work you did yourself; something you only read about goes in `note`, however plainly the text says it is settled.
+
+Every other task of the person's takes only what adds without changing: `note`, `remind` and `attach`. On those you may still give your word that work is done: `tick` a step you did, and `say_done` or `say_not_doing` the task, with the same account. Nothing is ticked or closed: the person sees what you said and takes it or not.
+
+A task can hold parts, one level deep: tasks of their own, with their steps, day and notes. A new part goes in with `propose`, under `parts` or with `part_of`. Each part has its own door — opening the whole to agents does not open its parts — and a whole is said done only when none of its parts is still open and unmarked.
+
+On those same tasks, `move` hangs one under another as a part or lets it go, `unplan` with `to` hands open steps to the task they belong on, and `move` with `list` puts a task an agent filed in a better list. A whole said done takes no new part; a closed task takes nothing.
+
+## A task's page
+
+A task's page holds its words — description, notes, pictures, tables, files — kept with the task rather than among the documents. It is made from a template with sections (a task's: Description, Done when, Steps, Notes, When it closes; a routine's: What for, Every round, This time), and every box on it, `- [ ]`, is one of the task's steps. `read` hands it back as `document`. The document tools do not write it: `describe`, `plan`, `reword_step`, `unplan`, `tick` and `untick` keep the page and the steps in agreement, and `append_doc` named by the task's id adds under the assistant's own notes, dated and signed. The sections are the person's: rename, add or remove one only when they ask you in this conversation.
+
+When a task's page grew long, compact your own part of it: `describe` says what the task is and names its parts; `append_doc` with `replace` writes the assistant's notes again as one dated digest — state, decisions, what was ruled out, references — never with a box, since a box is a step: what is still to do becomes `plan` or a part. The journal is not compacted; it is the dated history, and `reword_note` mends only what is wrong.
