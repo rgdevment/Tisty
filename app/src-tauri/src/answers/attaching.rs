@@ -4,7 +4,8 @@ use tisty_core::witness::{self, Fact, channel};
 
 use crate::{Answer, Refusal, Session, Task, finding, held, herald, show, weighed};
 
-#[tauri::command]
+// Off the window's thread: turning a photo can take seconds, and the window would freeze meanwhile.
+#[tauri::command(async)]
 pub fn attach(
     session: tauri::State<'_, Mutex<Session>>,
     path: String,
@@ -20,18 +21,20 @@ pub fn attach(
                 .map(str::to_string)
         })
         .unwrap_or_default();
-    // A photo not every window can draw is kept as JPEG when the person chose so; failing that, as it came.
-    let reshaped = shape
-        .as_deref()
-        .and_then(|how| crate::drawn::reshaped(&source, how == "light"));
-    let (source, name) = match &reshaped {
-        Some(made) => (made.clone(), as_jpeg(&name)),
-        None => (source, name),
+    let (source, name, room) = match shape.as_deref() {
+        None => (source, name, None),
+        Some(how) => {
+            let named = as_jpeg(&name);
+            let made = crate::drawn::reshaped(&source, &named, how == "light")
+                .ok_or_else(|| Refusal::about("cannotTurn", name.clone()))?;
+            let room = made.parent().map(std::path::Path::to_path_buf);
+            (made, named, room)
+        }
     };
     let (root, ceiling) = room_for(&session);
     let kept = kept_at(&source, &root, ceiling, &name);
-    if let Some(made) = &reshaped {
-        let _ = std::fs::remove_file(made);
+    if let Some(room) = room {
+        let _ = std::fs::remove_dir_all(room);
     }
     let kept = kept?;
     noted(&session, &kept);

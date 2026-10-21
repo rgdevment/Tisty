@@ -71,15 +71,14 @@ export function carrying(
       .then((answer) => {
         if (gone) return undefined;
         if (answer.carried === "came" || answer.carried === "both") brought();
-        // Busy is a round that did nothing, so what was asked for is still owed. The cloud says so
-        // too when another round holds it, as the Tisty an update replaced does while it closes.
+        // A round that did nothing, here or in the cloud another round held, still owes what was asked.
         const busy = answer.carried === "busy" || answer.deferred?.reason === "busy";
         if (busy) {
           owed = owing(owed, way);
           stalled = true;
         }
         if (!busy && !answer.deferred) toldAside(null);
-        if (mine !== round) return answer.carried;
+        if (mine !== round) return busy ? "busy" : answer.carried;
         if (answer.undecided.length) atOdds(answer.undecided);
         // A history turned away is the whole point of signing it, and the round that finds it is
         // the one nobody is watching: saying nothing here is how it goes unnoticed for months.
@@ -96,7 +95,7 @@ export function carrying(
                 ? { why: "away", said: away }
                 : null,
         );
-        return answer.carried;
+        return busy ? "busy" : answer.carried;
       })
       .catch((problem) => {
         if (!gone && mine === round) awry({ why: "broke", said: saidPlainly(problem) });

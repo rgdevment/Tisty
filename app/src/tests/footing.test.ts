@@ -84,7 +84,7 @@ describe("the sync foot", () => {
       expect(foot && offered(foot)).toBe(false);
     }
     const busy = footing(seen({ status: cloud({ last: round("deferred-busy") }) }));
-    expect(busy?.kind, "another round of this computer's held the cloud").not.toBe("wait");
+    expect(busy?.kind, "another round of this computer's held the cloud").toBe("ok");
     expect(footing(seen({ status: cloud({ last: round("deferred-troubled") }) }))).toEqual({
       kind: "wait",
       troubled: true,

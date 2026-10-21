@@ -675,6 +675,8 @@ const en = {
   comingDown: "{name} is in iCloud and is being brought back. Try again in a moment",
   cannotDraw:
     "{name} is a HEIC picture and this Windows has nothing to draw it with. Install «HEIF Image Extensions» from the Microsoft Store, or open it with another program",
+  cannotTurn:
+    "{name} couldn't be turned into a JPG on this computer, so it wasn't attached. Attach it again and choose «Keep as it is»",
   cloudLater:
     "{name} hasn't arrived from your cloud yet: the computer that attached it may still be sending it, its cloud may be full, or your cloud asked to wait. Try again after the next sync",
   cloudGone:
@@ -2894,6 +2896,8 @@ const es: Catalog = {
   comingDown: "{name} está en iCloud y se está trayendo. Inténtalo de nuevo en un momento",
   cannotDraw:
     "{name} es una imagen HEIC y este Windows no tiene con qué dibujarla. Instala «Extensiones de imagen HEIF» desde Microsoft Store, o ábrela con otro programa",
+  cannotTurn:
+    "{name} no se pudo convertir a JPG en este equipo, así que no se adjuntó. Adjúntala de nuevo y elige «Dejarla como está»",
   cloudLater:
     "{name} todavía no llega desde tu nube: puede que el equipo que lo adjuntó aún lo esté enviando, que su nube esté llena, o que tu nube pidiera esperar. Vuelve a intentarlo después de la próxima sincronización",
   cloudGone:

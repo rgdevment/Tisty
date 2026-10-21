@@ -180,6 +180,7 @@ const KNOWN = [
   "cloudLater",
   "cloudGone",
   "cannotDraw",
+  "cannotTurn",
   "docComing",
   "sharedAway",
   "heldAway",

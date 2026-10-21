@@ -17,7 +17,7 @@ import { useListening } from "./listening";
 import { useMarking } from "./marking";
 import { useOnly, useOnlyAlive } from "./only";
 import { saidPlainly } from "./refusal";
-import { asksShape } from "./reshaping";
+import { asksShape, type Shape } from "./reshaping";
 import { useSnapshot } from "./snapshotting";
 import { asksSure } from "./sure";
 import { useBeaver } from "./ui/Beaver";
@@ -312,7 +312,15 @@ function useOverlays() {
       turn = answer.catch(() => undefined);
       return answer;
     });
-    asksShape((said) => new Promise((done) => setShaping({ said, done })));
+    // One question at a time, as with being sure: a second drop waits instead of taking the first's place.
+    let shapes: Promise<unknown> = Promise.resolve();
+    asksShape((said) => {
+      const answer = shapes.then(
+        () => new Promise<Shape | undefined>((done) => setShaping({ said, done })),
+      );
+      shapes = answer.catch(() => undefined);
+      return answer;
+    });
     return () => {
       decidesByBlock(null);
       decidesWhole(null);

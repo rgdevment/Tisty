@@ -922,8 +922,10 @@ pub(crate) fn opened(
     }
     app.asset_protocol_scope()
         .allow_directory(as_asked_for(&attachments), true)?;
+    let drawn_at = drawn::folder(session.paths.cache());
+    let _ = std::fs::create_dir_all(&drawn_at);
     app.asset_protocol_scope()
-        .allow_directory(drawn::folder(session.paths.cache()), true)?;
+        .allow_directory(as_asked_for(&drawn_at), true)?;
     let words = tray::Words {
         show: worded(&session.locale, "show"),
         capture: worded(&session.locale, "capture"),

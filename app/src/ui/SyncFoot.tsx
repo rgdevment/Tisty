@@ -136,7 +136,7 @@ export default function SyncFoot({ onSync, onOpen, onTrouble, fallback }: Props)
   const syncNow = () => {
     setMine(true);
     void Promise.resolve(onSync())
-      .then(() => setFinished(true))
+      .then((carried) => setFinished(carried !== undefined && carried !== "busy"))
       .catch(failed)
       .finally(() => setMine(false));
   };
