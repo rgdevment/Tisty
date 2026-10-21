@@ -220,7 +220,7 @@ pub(crate) fn menued(
         "whole",
         worded(locale, "wholeDoc"),
         true,
-        Some("Cmd+Shift+E"),
+        Some("Cmd+E"),
     )?;
     let app_menu = Submenu::with_items(
         app,

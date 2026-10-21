@@ -100,6 +100,11 @@
   font-size: 11px;
   color: var(--tisty-soft);
 }
+.cm-hint.under {
+  margin: 6px 0 0.8em;
+  padding-top: 0;
+  border-top: 0;
+}
 .cm-hint-kept {
   margin-left: auto;
 }

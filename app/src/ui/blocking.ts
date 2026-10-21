@@ -252,7 +252,7 @@ export const edited = (
   asking?: () => Asking | undefined,
   oneLine = false,
   whole = false,
-  onAll?: () => void,
+  onWhole?: (all: boolean) => void,
 ): Editing => {
   const page = block.ownerDocument;
   const host = page.createElement("div");
@@ -315,8 +315,11 @@ export const edited = (
               key: "Mod-a",
               run: (one) => {
                 const chosen = one.state.selection.main;
-                if (!onAll || chosen.from !== 0 || chosen.to !== one.state.doc.length) return false;
-                onAll();
+                const length = one.state.doc.length;
+                if (whole || !onWhole || !length || chosen.from !== 0 || chosen.to !== length) {
+                  return false;
+                }
+                onWhole(true);
                 return true;
               },
             },
@@ -340,15 +343,6 @@ export const edited = (
         slashing(asking),
         EditorView.domEventHandlers({
           paste: (event, view) => pasting(event, view, asking),
-          // The first click opened the block before the editor heard it, so a double one is told by the browser's count.
-          mousedown: (event, view) => {
-            if (event.detail !== 2) return false;
-            const at = view.posAtCoords({ x: event.clientX, y: event.clientY });
-            const word = at === null ? null : view.state.wordAt(at);
-            if (!word) return false;
-            view.dispatch({ selection: { anchor: word.from, head: word.to } });
-            return true;
-          },
         }),
         dressing,
         EditorView.lineWrapping,
@@ -366,16 +360,21 @@ export const edited = (
       ],
     }),
   });
-  const bar = barred(view);
+  const bar = barred(view, whole, onWhole && (() => onWhole(false)));
   follow = bar.follow;
-  const dock = docked(bar.bar, bar.hint, () => {
-    const chosen = view.state.selection.main;
-    if (!chosen.empty) return view.coordsAtPos(chosen.from)?.top ?? null;
-    // A task's bar rests at the top of its page; a document's rests over the block being written.
-    return page.documentElement.classList.contains("untitled")
-      ? null
-      : view.dom.getBoundingClientRect().top;
-  });
+  const dock = docked(
+    bar.bar,
+    bar.hint,
+    () => {
+      const chosen = view.state.selection.main;
+      if (!chosen.empty) return view.coordsAtPos(chosen.from)?.top ?? null;
+      // A task's bar rests at the top of its page; a document's rests over the block being written.
+      return page.documentElement.classList.contains("untitled")
+        ? null
+        : view.dom.getBoundingClientRect().top;
+    },
+    host,
+  );
   undock = dock.stop;
   replace = dock.place;
   view.focus();

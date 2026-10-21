@@ -62,9 +62,12 @@ type Props = {
   readonly sheet?: SheetSize;
   readonly lately?: readonly [number, number] | null;
   readonly looking?: number;
-  readonly whole?: boolean;
-  readonly onWhole?: (whole: boolean) => void;
-  readonly clickWhole?: boolean;
+  // Only a document is written whole; a task's page keeps the sections of its template.
+  readonly wholeable?: boolean;
+  // Each new count opens the whole document, or leaves it when it is open.
+  readonly wholeAsked?: number;
+  // Each new count chooses every word: the block being written, or the page as read.
+  readonly allAsked?: number;
 };
 
 export default function Sheet(props: Readonly<Props>) {
@@ -79,6 +82,8 @@ export default function Sheet(props: Readonly<Props>) {
   const follows = useRef<((was: string, now: string) => boolean) | null>(null);
   // The blocks the whole-document editor covers, shown again as it is left.
   const veiled = useRef<(() => void) | null>(null);
+  // Asked while the page was still being drawn again, so it opens once the new one is shown.
+  const pending = useRef<{ caret: number; all: boolean } | null>(null);
   const showing = useRef(value);
   showing.current = drawn;
   const latest = useRef(value);
@@ -202,9 +207,6 @@ export default function Sheet(props: Readonly<Props>) {
     if (open.current) return left();
     // A click on the page still on screen while the next one is drawn names bytes of an older text.
     if (reading || showing.current !== latest.current) return;
-    if (!whole && !seed && !asked && said.current.clickWhole && at[0] !== at[1]) {
-      return wholly(at[0] + caretAt(latest.current.slice(at[0], at[1]), read));
-    }
     let [from, end] = at;
     const piece = latest.current.slice(from, end);
     const tail = /\r?\n$/.exec(piece)?.[0] ?? "";
@@ -246,7 +248,6 @@ export default function Sheet(props: Readonly<Props>) {
         follows.current = null;
         veiled.current?.();
         veiled.current = null;
-        if (whole) said.current.onWhole?.(false);
         // Only a block left by the person closes its gap: text from outside or another file is not its own.
         const ours = home === onFile.current && latest.current === mine;
         if (ours && !quiet.current && !fresh && !latest.current.slice(from, end).trim()) {
@@ -269,7 +270,9 @@ export default function Sheet(props: Readonly<Props>) {
       },
       Boolean(said.current.inline && said.current.shaping),
       Boolean(whole),
-      whole || fixed ? undefined : () => queueMicrotask(() => wholly(0, true)),
+      fixed || !said.current.wholeable
+        ? undefined
+        : (all) => queueMicrotask(() => (whole && !all ? left() : wholly(0, all))),
     );
     follows.current = (was, now) => {
       const moved = reanchored(was, now, from, end);
@@ -295,37 +298,62 @@ export default function Sheet(props: Readonly<Props>) {
     if (asked) formatted(editing, read, asked);
   };
 
-  const asWhole = props.whole;
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `wholly` and `left` read only refs, so the switch alone decides.
+  const { wholeAsked, allAsked } = props;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `wholly` and `left` read only refs, so the count alone decides.
   useEffect(() => {
-    if (!ready || asWhole === undefined) return;
-    const on = veiled.current !== null;
-    if (asWhole && !on) wholly();
-    if (!asWhole && on) left();
-  }, [asWhole, ready]);
+    if (!wholeAsked) return;
+    if (veiled.current) left();
+    else wholly();
+  }, [wholeAsked]);
+
+  useEffect(() => {
+    if (!allAsked) return;
+    const editing = open.current?.view;
+    if (editing) {
+      editing.focus();
+      editing.dispatch({ selection: { anchor: 0, head: editing.state.doc.length } });
+      return;
+    }
+    const page = shown.current;
+    const sheet = page?.document.querySelector(".page");
+    if (!page || !sheet) return;
+    page.focus();
+    const range = page.document.createRange();
+    range.selectNodeContents(sheet);
+    const chosen = page.getSelection();
+    chosen?.removeAllRanges();
+    chosen?.addRange(range);
+  }, [allAsked]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: each new drawing of the page may be the one a pending ask waits for.
+  useEffect(() => {
+    const waiting = pending.current;
+    if (!waiting || drawn !== latest.current) return;
+    pending.current = null;
+    wholly(waiting.caret, waiting.all);
+  }, [turned, drawn]);
 
   // One editor over every word, laid where the blocks were, which are only hidden meanwhile.
   const wholly = (caret = 0, all = false) => {
-    const sheet = shown.current?.document.querySelector<HTMLElement>(".page");
-    if (!sheet || reading || fixed) return;
+    if (reading || fixed || !said.current.wholeable) return;
     if (open.current) left();
-    const hidden = [...sheet.children]
-      .map((one) => one as HTMLElement)
-      .filter((one) => !one.hidden);
-    for (const one of hidden) one.hidden = true;
-    veiled.current = () => {
-      for (const one of hidden) one.hidden = false;
-    };
-    const fresh = sheet.ownerDocument.createElement("div");
-    sheet.prepend(fresh);
-    block([0, latest.current.length], fresh, "", "", undefined, { caret, all });
-    if (!open.current) {
-      veiled.current();
-      veiled.current = null;
-      fresh.remove();
+    const sheet = shown.current?.document.querySelector<HTMLElement>(".page");
+    // A block just left draws the page again, and an editor laid in the old one would go with it.
+    if (!sheet || showing.current !== latest.current) {
+      pending.current = { caret, all };
       return;
     }
-    said.current.onWhole?.(true);
+    const fresh = sheet.ownerDocument.createElement("div");
+    sheet.prepend(fresh);
+    sheet.classList.add("whole");
+    veiled.current = () => {
+      sheet.classList.remove("whole");
+      fresh.remove();
+    };
+    block([0, latest.current.length], fresh, "", "", undefined, { caret, all });
+    if (open.current) return;
+    veiled.current();
+    veiled.current = null;
   };
 
   const formatted = (
@@ -435,11 +463,11 @@ export default function Sheet(props: Readonly<Props>) {
         onPick: () => block(under.at, under.element),
       });
     }
-    if (free && !fixed) {
+    if (free && !fixed && said.current.wholeable) {
       choices.push({
         key: "whole",
         label: t("editWholeDoc"),
-        hint: pressed("Shift E"),
+        hint: pressed("E"),
         apart: !under,
         onPick: () => wholly(under ? under.at[0] : 0),
       });

@@ -156,7 +156,7 @@ export const FORMATS = [
   ["italic", "I", "*", "*", "italic"],
   ["underlined", "U", "++", "++", "underline"],
   ["struck", "Shift X", "~~", "~~", "strike"],
-  ["codeSpan", "E", "`", "`", "code"],
+  ["codeSpan", "Shift C", "`", "`", "code"],
   ["linkIt", "K", "[", "]()", "link"],
 ] as const;
 
@@ -232,7 +232,7 @@ export const formatButtons = (page: Document, pick: (open: string, close: string
   }),
 });
 
-export const barred = (view: EditorView): Barred => {
+export const barred = (view: EditorView, whole = false, onWhole?: () => void): Barred => {
   const page = view.dom.ownerDocument;
   const made = <K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text = "") =>
     madeIn(page, tag, className, text);
@@ -309,8 +309,21 @@ export const barred = (view: EditorView): Barred => {
     } catch {}
   };
 
+  // Pressed while the whole document is open, so the bar says which of the two is being written.
+  const wide = onWhole
+    ? button(
+        "cm-bar-button cm-bar-whole",
+        `${t(whole ? "wholeLeave" : "editWholeDoc")} (${pressed("E")})`,
+        onWhole,
+      )
+    : null;
+  wide?.append(drawnIn(page, whole ? "shrink" : "expand"));
+  wide?.setAttribute("aria-pressed", String(whole));
+
   bar.append(kinds, made("span", "cm-bar-sep"), ...formats);
-  bar.append(made("span", "cm-bar-sep"), ...pens, made("span", "cm-bar-sep"), slash, fold);
+  bar.append(made("span", "cm-bar-sep"), ...pens, made("span", "cm-bar-sep"), slash);
+  if (wide) bar.append(wide);
+  bar.append(fold);
   folding(foldedBefore());
 
   const hint = made("div", "cm-hint");
@@ -322,9 +335,8 @@ export const barred = (view: EditorView): Barred => {
   const state = made("span", "cm-hint-kept");
   hint.append(
     key(pressed("/"), t("hintInsert")),
-    key("# ␣", t("bigTitle").toLocaleLowerCase()),
     key(pressed("Shift M"), t("hintMarks")),
-    key("Esc", t("hintRead")),
+    ...(onWhole ? [key(pressed("E"), t(whole ? "hintWholeLeave" : "hintWhole"))] : []),
     state,
   );
 

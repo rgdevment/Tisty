@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import {
   guide,
   keepClosing,
-  keepEditWhole,
   keepLocale,
   keepShortcut,
   keepTheme,
@@ -16,7 +15,6 @@ import {
 import { adopt, fill, t } from "../locales";
 import { QUIET, switched, tell as tellBeaver } from "./Beaver";
 import type { Run, Which, Word } from "./Card";
-import { tellWhole } from "./editWhole";
 import { Band, Knob, Line, mild, ON_MAC, off } from "./Rows";
 import Signing, { type Signs } from "./Signing";
 
@@ -143,33 +141,6 @@ export default function General({
               <option value="ask">{t("closingAsk")}</option>
               <option value="hide">{t(ON_MAC ? "closingHideBar" : "closingHide")}</option>
               <option value="quit">{t("closingQuit")}</option>
-            </select>
-          </Line>
-        )}
-
-        {kept && (
-          <Line
-            title={t("editingSetting")}
-            why={fill("editingSettingWhy", ON_MAC ? "⌘⇧E" : "Ctrl+Shift+E")}
-            which="editing"
-            said={said}
-            trouble={trouble}
-          >
-            <select
-              aria-label={t("editingSetting")}
-              value={kept.editWhole ? "whole" : "block"}
-              disabled={held}
-              onChange={(e) => {
-                const whole = e.target.value === "whole";
-                run("editing", keepEditWhole(whole), () => {
-                  setKept({ ...kept, editWhole: whole });
-                  tellWhole(whole);
-                });
-              }}
-              className={`rounded-[10px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
-            >
-              <option value="block">{t("editingClicked")}</option>
-              <option value="whole">{t("editingAll")}</option>
             </select>
           </Line>
         )}

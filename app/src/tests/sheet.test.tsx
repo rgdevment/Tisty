@@ -457,36 +457,53 @@ describe("the sheet in the main window", () => {
   });
 
   it("opens the whole document in one editor when asked, and gives the blocks back as it is left", async () => {
-    const told: boolean[] = [];
-    const sheet = (whole: boolean) => (
-      <Sheet
-        value={BODY}
-        label="Compras"
-        onWrite={() => {}}
-        whole={whole}
-        onWhole={(on) => told.push(on)}
-      />
+    const sheet = (n: number) => (
+      <Sheet value={BODY} label="Compras" onWrite={() => {}} wholeable wholeAsked={n} />
     );
-    const view = render(sheet(false));
+    const view = render(sheet(0));
     const page = await loaded(await shown(view.container));
-    view.rerender(sheet(true));
+    view.rerender(sheet(1));
     expect(ipc.opened.map((one) => one.said)).toEqual([BODY]);
-    expect(page.querySelector<HTMLElement>('p[data-at="11-17"]')?.hidden).toBe(true);
-    expect(told).toEqual([true]);
-    view.rerender(sheet(false));
+    expect(page.querySelector(".page")?.classList.contains("whole")).toBe(true);
+    view.rerender(sheet(2));
     expect(ipc.left).toBe(1);
-    expect(told).toEqual([true, false]);
-    expect(page.querySelector<HTMLElement>('p[data-at="11-17"]')?.hidden).toBe(false);
+    expect(page.querySelector(".page")?.classList.contains("whole")).toBe(false);
+    expect(page.querySelectorAll(".page > div:not([data-at])")).toHaveLength(0);
   });
 
-  it("opens the whole document from a click on a block when the person chose so", async () => {
-    const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} clickWhole />);
+  it("never opens a task's page whole, from a key or from the menu", async () => {
+    const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} wholeAsked={0} />);
+    const page = await loaded(await shown(view.container));
+    view.rerender(<Sheet value={BODY} label="Compras" onWrite={() => {}} wholeAsked={1} />);
+    expect(ipc.opened).toHaveLength(0);
+    expect(page.querySelector(".page")?.classList.contains("whole")).toBe(false);
+    page
+      .querySelector('p[data-at="11-17"]')
+      ?.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true }));
+    await waitFor(() => expect(offered()).toContain("Edit this block"));
+    expect(offered()).not.toContain("Edit the whole document");
+  });
+
+  it("offers a document's whole in the menu beside its block", async () => {
+    const view = render(<Sheet value={BODY} label="Compras" onWrite={() => {}} wholeable />);
     const page = await loaded(await shown(view.container));
     page
       .querySelector('p[data-at="11-17"]')
-      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      ?.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true }));
+    await waitFor(() => expect(offered()).toContain("Edit the whole document"));
+    chosen("Edit the whole document");
     expect(ipc.opened.map((one) => one.said)).toEqual([BODY]);
-    expect(ipc.opened[0].caret).toBe(11);
+  });
+
+  it("chooses every word of the page as read when select-all is handed to it", async () => {
+    const sheet = (n: number) => (
+      <Sheet value={BODY} label="Compras" onWrite={() => {}} allAsked={n} />
+    );
+    const view = render(sheet(0));
+    const page = await loaded(await shown(view.container));
+    view.rerender(sheet(1));
+    expect(page.getSelection()?.toString()).toContain("leche");
+    expect(ipc.opened).toHaveLength(0);
   });
 
   it("keeps the block being written open when words from outside land elsewhere", async () => {

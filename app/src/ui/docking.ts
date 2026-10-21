@@ -14,7 +14,12 @@ const scrollerOf = (from: Element | null | undefined): Element | null => {
 export type Dock = { readonly stop: () => void; readonly place: () => void };
 
 // The page grows to its full height inside whatever scrolls it, so the bar follows that scroll, not its own.
-export const docked = (bar: HTMLElement, hint: HTMLElement, aim?: () => number | null): Dock => {
+export const docked = (
+  bar: HTMLElement,
+  hint: HTMLElement,
+  aim?: () => number | null,
+  under?: HTMLElement,
+): Dock => {
   const page = bar.ownerDocument;
   const view = page.defaultView;
   const sheet = page.querySelector<HTMLElement>(".page");
@@ -23,7 +28,11 @@ export const docked = (bar: HTMLElement, hint: HTMLElement, aim?: () => number |
   bar.classList.add("cm-dock");
   hint.classList.add("cm-dock");
   page.body.append(bar);
-  (sheet ?? page.body).append(hint);
+  // The help sits under the block being written, where the eye is, not at the foot of a long page.
+  if (under && sheet) {
+    hint.classList.add("under");
+    under.after(hint);
+  } else (sheet ?? page.body).append(hint);
   const place = () => {
     if (!sheet || !view) return;
     const zoom = Number.parseFloat(page.documentElement.style.zoom || "1") || 1;

@@ -1153,7 +1153,6 @@ pub fn run() {
             answers::wired::wake_for,
             answers::settings::keep_locale,
             answers::settings::keep_closing,
-            answers::settings::keep_edit_whole,
             answers::settings::keep_theme,
             answers::tasks::erase,
             answers::papers::read_as,

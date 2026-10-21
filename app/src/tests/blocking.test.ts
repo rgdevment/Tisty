@@ -68,8 +68,47 @@ describe("writing a block in place", () => {
     expect(whole).not.toHaveBeenCalled();
     expect(editing.view.state.selection.main).toMatchObject({ from: 0, to: 4 });
     press();
-    expect(whole).toHaveBeenCalledTimes(1);
+    expect(whole).toHaveBeenCalledWith(true);
     editing.leave();
+    page.remove();
+  });
+
+  it("keeps a second Ctrl+A in the block when nothing larger can be written", () => {
+    const { page, one } = block();
+    const editing = edited(
+      one,
+      "Hola",
+      () => {},
+      () => {},
+    );
+    const press = () =>
+      editing.view.contentDOM.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "a", ctrlKey: true, bubbles: true, cancelable: true }),
+      );
+    press();
+    press();
+    expect(editing.view.state.selection.main).toMatchObject({ from: 0, to: 4 });
+    editing.leave();
+    page.remove();
+  });
+
+  it("lays the keys under the block being written, not at the foot of the page", () => {
+    const { page, one } = block();
+    const after = document.createElement("p");
+    after.textContent = "Después.";
+    page.append(after);
+    const editing = edited(
+      one,
+      "Hola",
+      () => {},
+      () => {},
+    );
+    const hint = page.querySelector(".cm-hint");
+    expect(hint?.previousElementSibling?.classList.contains("editing")).toBe(true);
+    expect(hint?.nextElementSibling).toBe(after);
+    expect(hint?.classList.contains("under")).toBe(true);
+    editing.leave();
+    expect(page.querySelector(".cm-hint")).toBeNull();
     page.remove();
   });
 

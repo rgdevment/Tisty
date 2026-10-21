@@ -25,7 +25,6 @@ export type Which =
   | "tongue"
   | "look"
   | "closing"
-  | "editing"
   | "beaver"
   | "rebuild"
   | "recover"
@@ -53,7 +52,6 @@ export const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   greet: "greetAgain",
   tongue: "tongue",
   closing: "closingSetting",
-  editing: "editingSetting",
   beaver: "beaverPeeks",
   look: "look",
   settings: "settingsTitle",

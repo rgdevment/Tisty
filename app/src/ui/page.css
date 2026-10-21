@@ -119,6 +119,9 @@ html.sheeted .page > .sheet-turn {
 .page > [data-at] {
   cursor: text;
 }
+.page.whole > :not(.editing, .cm-dock) {
+  display: none !important;
+}
 .page > .lately {
   border-radius: 6px;
   background: var(--tisty-accent-soft);

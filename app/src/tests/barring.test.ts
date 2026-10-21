@@ -53,6 +53,70 @@ describe("the bar over the block being written", () => {
     editor.destroy();
   });
 
+  it("tells under a document's block the keys it answers to, and opens the whole from the bar", () => {
+    const editor = view("leche y pan");
+    let asked = 0;
+    const { bar, hint } = barred(editor, false, () => {
+      asked += 1;
+    });
+    const items = Array.from(hint.querySelectorAll(".cm-hint-item")).map((one) => one.textContent);
+    expect(items).toMatchInlineSnapshot(`
+      [
+        "Ctrl / insert",
+        "Ctrl Shift M marks",
+        "Ctrl E whole document",
+      ]
+    `);
+    const wide = bar.querySelector<HTMLButtonElement>(".cm-bar-whole");
+    expect(wide?.getAttribute("aria-label")).toMatchInlineSnapshot(
+      `"Edit the whole document (Ctrl E)"`,
+    );
+    expect(wide?.getAttribute("aria-pressed")).toBe("false");
+    wide?.click();
+    expect(asked).toBe(1);
+    editor.destroy();
+  });
+
+  it("says, with the whole document open, that the same key goes back to reading", () => {
+    const editor = view("leche y pan");
+    const { bar, hint } = barred(editor, true, () => {});
+    const items = Array.from(hint.querySelectorAll(".cm-hint-item")).map((one) => one.textContent);
+    expect(items).toMatchInlineSnapshot(`
+      [
+        "Ctrl / insert",
+        "Ctrl Shift M marks",
+        "Ctrl E back to reading",
+      ]
+    `);
+    const wide = bar.querySelector<HTMLButtonElement>(".cm-bar-whole");
+    expect(wide?.getAttribute("aria-label")).toMatchInlineSnapshot(`"Back to reading (Ctrl E)"`);
+    expect(wide?.getAttribute("aria-pressed")).toBe("true");
+    editor.destroy();
+  });
+
+  it("offers a task's page no whole document, neither in the bar nor among the keys", () => {
+    const editor = view("leche y pan");
+    const { bar, hint } = barred(editor);
+    expect(bar.querySelector(".cm-bar-whole")).toBeNull();
+    const items = Array.from(hint.querySelectorAll(".cm-hint-item")).map((one) => one.textContent);
+    expect(items).toMatchInlineSnapshot(`
+      [
+        "Ctrl / insert",
+        "Ctrl Shift M marks",
+      ]
+    `);
+    editor.destroy();
+  });
+
+  it("marks words as code with Ctrl+Shift+C, since Ctrl+E opens the whole document", () => {
+    const editor = view("leche y pan");
+    const { bar } = barred(editor);
+    expect(
+      bar.querySelector<HTMLButtonElement>(".cm-bar-code")?.getAttribute("aria-label"),
+    ).toMatchInlineSnapshot(`"Code (Ctrl Shift C)"`);
+    editor.destroy();
+  });
+
   it("formats, pens and changes the kind from its buttons, and says whether the words are kept", () => {
     const editor = view("leche y pan", 0, 5);
     const { bar, hint, follow, kept } = barred(editor);
