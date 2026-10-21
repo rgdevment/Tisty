@@ -380,6 +380,7 @@ export const wired = (page: Document, reach: () => Reaching) => {
       pressedIn = false;
       return;
     }
+    if (target.closest(".quick-bar, .mend-said, .cm-dock")) return;
     // The whole document is the only thing written: a press beside or under it goes to its end.
     const whole = page.querySelector<HTMLElement>(".page.whole .cm-content");
     if (whole && !target.closest(".editing")) {
@@ -391,7 +392,6 @@ export const wired = (page: Document, reach: () => Reaching) => {
       whole.focus();
       return;
     }
-    if (target.closest(".quick-bar, .mend-said, .cm-dock")) return;
     const selecting = !(page.getSelection()?.isCollapsed ?? true);
     if (target.closest("a")) event.preventDefault();
     const shaping = page.documentElement.classList.contains("shaping");

@@ -38,6 +38,7 @@ import { changedIn } from "./anchoring";
 import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
 import { blurbing, cardsOf } from "./carding";
+import { MARKED_FOR } from "./lately";
 import Modal from "./Modal";
 import Picking, { type Picked } from "./Picking";
 import type { Head } from "./paging";
@@ -56,8 +57,6 @@ const Sheet = lazy(() => import("./Sheet"));
 const SETTLES = 700;
 
 const REMEMBERS = 12;
-
-const MARKED_FOR = 4000;
 
 // `print` is of the body on disk the words were typed over; `unwoven` holds a woven body the screen has yet to show.
 type Read = { text: string; print?: string; unwoven?: boolean };
@@ -161,9 +160,10 @@ export default function Docs({
   }, [lately]);
   // Once faded, the same change can be marked again from the notice, as long as the notice stays.
   const [markedLast, setMarkedLast] = useState<[number, number] | null>(null);
-  useEffect(() => {
-    if (lately) setMarkedLast(lately);
-  }, [lately]);
+  const mark = useCallback((at: [number, number] | null) => {
+    setLately(at);
+    setMarkedLast(at);
+  }, []);
   useEffect(() => {
     if (!stirred) setMarkedLast(null);
   }, [stirred]);
@@ -244,7 +244,7 @@ export default function Docs({
           shaped.current = woven.body;
           setBody(woven.body);
           setPacked(crowd(woven.body));
-          setLately(changedIn(text, woven.body));
+          mark(changedIn(text, woven.body));
           setStirred(true);
         })
         .catch((e) => {
@@ -261,7 +261,7 @@ export default function Docs({
         });
       return mine;
     },
-    [onError, onKept],
+    [onError, onKept, mark],
   );
 
   const flush = useCallback(() => {
@@ -433,7 +433,7 @@ export default function Docs({
         shaped.current = text;
         // Words woven in by the window's own save are already told; reading them back is no reason to forget it.
         setStirred((was) => astir || (was && before === wanted.file));
-        if (astir) setLately(changedIn(last, text));
+        if (astir) mark(changedIn(last, text));
         setOpen(wanted);
         setClashed(false);
         if (!same) {
@@ -459,7 +459,7 @@ export default function Docs({
         }
         onError(saidPlainly(e));
       });
-  }, [asked, known, open, flush, onError, fresh, behind]);
+  }, [asked, known, open, flush, onError, fresh, behind, mark]);
 
   useEffect(() => {
     onScreen.current = open?.file ?? null;
@@ -477,7 +477,8 @@ export default function Docs({
   const wrote = (text: string) => {
     if (!open || bolted) return;
     typed.current = Date.now();
-    setLately(null);
+    // Words typed since move what the mark spoke of, so it cannot be shown again either.
+    mark(null);
     // Once the person writes, going back would take their words, not the compaction.
     setCompacted(false);
     setBody(text);

@@ -237,5 +237,5 @@ export function wroteAt(at: string, tz?: string, now = new Date(), reader = here
 
 const cityOf = (tz: string): string => (tz.split("/").pop() ?? tz).replace(/_/g, " ");
 
-// One way to weigh bytes everywhere: the copy that lived here showed «1000.0 kB» for a step behind.
+// Every size the window shows is weighed by the same rule, wherever it is asked for.
 export { weighed as weigh } from "./previews";

@@ -14,7 +14,7 @@ import { cardedAt, movedCard, putCard } from "./carded";
 import type { Carded } from "./carding";
 import { wrapped } from "./formatting";
 import { useKeptHeight } from "./heights";
-import { markLately } from "./lately";
+import { MARKED_FOR, markLately } from "./lately";
 import Menu, { type Choice } from "./Menu";
 import { mended as mendedText } from "./mending";
 import Page from "./Page";
@@ -72,8 +72,6 @@ type Props = {
   readonly allAsked?: number;
 };
 
-const MARKED_FOR = 4000;
-
 export default function Sheet(props: Readonly<Props>) {
   const { file, value, label, reading = false, above, below } = props;
   const fixed = Boolean(props.inline && props.shaping);
@@ -90,13 +88,12 @@ export default function Sheet(props: Readonly<Props>) {
   const pending = useRef<{ caret: number; all: boolean; turn: number } | null>(null);
   // Where the caret stands in the whole text, so the whole document opens where the block was.
   const caretNow = useRef<(() => number) | null>(null);
-  // The words an agent last wrote into the whole document, to be marked again when asked.
-  const markedAt = useRef<{ from: number; to: number } | null>(null);
+  // One fading at a time: a mark laid again outlives the timer of the one before.
+  const fading = useRef<ReturnType<typeof setTimeout> | null>(null);
   const markIn = (writing: Editing["view"], at: { from: number; to: number }) => {
-    markedAt.current = at;
     writing.dispatch({ effects: markLately.of(at) });
-    // The mark fades with the page's own, and goes once its fading is done.
-    setTimeout(() => {
+    if (fading.current) clearTimeout(fading.current);
+    fading.current = setTimeout(() => {
       if (open.current?.view === writing) writing.dispatch({ effects: markLately.of(null) });
     }, MARKED_FOR);
   };
@@ -298,7 +295,9 @@ export default function Sheet(props: Readonly<Props>) {
       const writing = (open.current as Editing | null)?.view;
       if (whole && writing) {
         const kept = writing.state.sliceDoc();
-        const span = spanOf(kept, now.replace(/\r?\n$/, ""));
+        // The editor keeps the line ends it opened with, whatever the agent wrote with.
+        const theirs = now.replace(/\r?\n$/, "").replace(/\r?\n/g, writing.state.lineBreak);
+        const span = spanOf(kept, theirs);
         const changes = {
           from: inEditor(kept, span.from),
           to: inEditor(kept, span.to),
@@ -332,7 +331,7 @@ export default function Sheet(props: Readonly<Props>) {
       const head = writing?.state.selection.main.head ?? 0;
       // Back to the text's own count, where a Windows line end takes two places.
       const ends =
-        writing && latest.current.includes("\r\n") ? writing.state.doc.lineAt(head).number - 1 : 0;
+        writing?.state.lineBreak === "\r\n" ? writing.state.doc.lineAt(head).number - 1 : 0;
       return from + head + ends;
     };
     open.current.kept(said.current.kept ?? true);
@@ -782,10 +781,13 @@ export default function Sheet(props: Readonly<Props>) {
   useEffect(() => {
     if (!looking) return;
     const writing = open.current?.view;
-    const again = markedAt.current;
-    if (veiled.current && writing && again) {
-      const most = writing.state.doc.length;
-      markIn(writing, { from: Math.min(again.from, most), to: Math.min(again.to, most) });
+    const asked = said.current.lately;
+    if (veiled.current && writing && asked) {
+      // The page's mark counts bytes of the words as they are now; the editor counts its own places.
+      const text = latest.current;
+      const place = (bytes: number) =>
+        Math.min(inEditor(text, charsAt(text, bytes)), writing.state.doc.length);
+      markIn(writing, { from: place(asked[0]), to: place(asked[1]) });
     }
     const sheet = room.current;
     const found = shown.current?.document.querySelector<HTMLElement>(".page > .lately, .cm-lately");
