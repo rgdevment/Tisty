@@ -42,7 +42,7 @@ function Manual({ one }: Readonly<{ one: Wired }>) {
       window.setTimeout(() => setDone(undefined), 1500);
     });
   return (
-    <div className="mt-2 flex flex-col gap-2 rounded-[10px] border border-hair bg-bg px-3 py-2.5">
+    <div className="mt-2 flex min-w-0 flex-col gap-2 rounded-[10px] border border-hair bg-bg px-3 py-2.5">
       {one.manual.cli && (
         <>
           <span className="text-[12.5px] text-soft">{t("wiringByCli")}</span>
@@ -54,7 +54,9 @@ function Manual({ one }: Readonly<{ one: Wired }>) {
           </button>
         </>
       )}
-      <span className="text-[12.5px] text-soft">{fill("wiringByPaste", one.manual.file)}</span>
+      <span className="text-[12.5px] text-soft [overflow-wrap:anywhere]">
+        {fill("wiringByPaste", one.manual.file)}
+      </span>
       <pre className="overflow-x-auto rounded-md border border-hair px-2.5 py-1.5 font-mono text-[11.5px] text-soft">
         {one.manual.snippet}
       </pre>
@@ -113,10 +115,15 @@ function Row({
               <span className="font-normal text-soft"> · {fill("wiringAlso", one.also)}</span>
             )}
           </span>
-          {detail && <span className="block text-[12.5px] text-soft">{detail}</span>}
+          {/* A path has no spaces to break at, so without this it runs under the state beside it. */}
+          {detail && (
+            <span className="block text-[12.5px] text-soft [overflow-wrap:anywhere]">{detail}</span>
+          )}
           <span className="block truncate font-mono text-[10.5px] text-faint">{one.at}</span>
         </span>
-        <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[11.5px] ${chip}`}>
+        <span
+          className={`shrink-0 rounded-full border px-2 py-0.5 text-[11.5px] whitespace-nowrap ${chip}`}
+        >
           {t(state)}
         </span>
         {!one.byHand && (
