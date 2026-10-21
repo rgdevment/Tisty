@@ -1008,9 +1008,10 @@ pub(crate) fn opened(
         desktop::proofread(&window);
         if came_back || !(waking::hushed() || viewing) {
             desktop::fitted(&window);
+            tray::docked(app, true);
             let _ = window.show();
         } else if !viewing {
-            tray::docked(app, false);
+            tray::undock_unless_seen(app, "main");
         }
     }
     Ok(())

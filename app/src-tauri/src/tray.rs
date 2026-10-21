@@ -194,12 +194,26 @@ pub fn docked<R: Runtime>(app: &AppHandle<R>, shown: bool) {
 
 /// A window on its way out may still be listed as visible, so it is named and left out.
 pub fn undock_unless_seen<R: Runtime>(app: &AppHandle<R>, leaving: &str) {
-    let seen = app.webview_windows().iter().any(|(label, window)| {
-        label != leaving && label != "quick" && window.is_visible().unwrap_or(false)
-    });
-    if !seen {
-        docked(app, false);
+    #[cfg(target_os = "macos")]
+    {
+        // Quitting tears the windows down, and a message after the event loop is gone makes tao panic.
+        if app
+            .try_state::<crate::desktop::Leaving>()
+            .is_some_and(|it| it.0.load(std::sync::atomic::Ordering::SeqCst))
+        {
+            return;
+        }
+        let seen = app.webview_windows().iter().any(|(label, window)| {
+            label != leaving
+                && label != "quick"
+                && (window.is_visible().unwrap_or(false) || window.is_minimized().unwrap_or(false))
+        });
+        if !seen {
+            docked(app, false);
+        }
     }
+    #[cfg(not(target_os = "macos"))]
+    let _ = (app, leaving);
 }
 
 pub fn withdraw<R: Runtime>(window: &tauri::Window<R>) {

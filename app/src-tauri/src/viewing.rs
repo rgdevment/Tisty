@@ -279,7 +279,6 @@ pub fn open(app: &AppHandle, shown: Shown) {
         held.insert(label.clone(), shown);
     }
     let sized = beside_main(app);
-    crate::tray::docked(app, true);
     let made = tauri::WebviewWindowBuilder::new(
         app,
         &label,
@@ -295,6 +294,7 @@ pub fn open(app: &AppHandle, shown: Shown) {
     .build();
     match made {
         Ok(window) => {
+            crate::tray::docked(app, true);
             let gone = app.clone();
             let named = label.clone();
             window.on_window_event(move |event| {
