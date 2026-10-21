@@ -94,7 +94,7 @@ fn a_command_in_a_distro_is_reached_where_windows_keeps_it() {
     assert_eq!(
         place.reached("/home/mario/.local/bin/tisty-mcp"),
         Some(
-            PathBuf::from(r"\wsl.localhost\Ubuntu")
+            distro_root("Ubuntu")
                 .join("home")
                 .join("mario")
                 .join(".local")

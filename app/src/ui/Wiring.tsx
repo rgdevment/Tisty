@@ -285,8 +285,9 @@ export default function Wiring({
         Promise.resolve([]),
       ),
       () => {
-        tell({ card: "wiring", text: t("wiringRepaired") });
+        // Looking again clears what the card said, so the confirmation comes after it.
         lookAgain();
+        tell({ card: "wiring", text: t("wiringRepaired") });
       },
     );
 

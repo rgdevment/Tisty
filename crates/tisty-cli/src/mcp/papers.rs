@@ -114,21 +114,25 @@ pub(super) fn said_docs(many: &[String], listed: bool) -> Value {
     }
 }
 
-// A page that took a new heading shows it where its document lists it.
-pub(super) fn named_anew(paths: &Paths, state: &State, store: &mut Store, page: &str, whole: &str) {
-    let Some(up) = state
-        .docs
-        .values()
-        .find(|one| one.file == page)
-        .and_then(|kept| kept.page_of)
-        .and_then(|up| state.docs.get(&up))
-    else {
-        return;
-    };
+// A page that took a new heading shows it where its document lists it, and the agent is told.
+pub(super) fn named_anew(
+    paths: &Paths,
+    state: &State,
+    store: &mut Store,
+    page: &str,
+    whole: &str,
+) -> String {
     let title = tisty_core::docs::titled(whole);
-    if let Ok(Some(now)) =
-        tisty_core::docs::relabel_page(&paths.docs(), paths.data(), &up.file, page, &title)
-    {
-        let _ = super::retold(state, store, &up.file, &now);
-    }
+    let Some(up) = tisty_core::docs::book_to_relabel(state, page, &title) else {
+        return String::new();
+    };
+    let Ok(Some(now)) = tisty_core::docs::relabel_page(&paths.docs(), &up.file, page, &title)
+    else {
+        return String::new();
+    };
+    let _ = super::retold(state, store, &up.file, &now);
+    format!(
+        " Its line in {:?} now shows the new title, so a print you hold of that one is old.",
+        tisty_core::docs::titled(&now)
+    )
 }

@@ -82,7 +82,7 @@ impl Place {
         Some(at)
     }
 
-    /// The file a configured command names, as this computer reaches it, when it names one at all.
+    // A bare name is looked up on the PATH when the assistant starts it, so there is no file to check.
     pub fn reached(&self, said: &str) -> Option<PathBuf> {
         let said = said.trim();
         let Some(distro) = &self.distro else {
@@ -102,8 +102,10 @@ impl Place {
             )));
         }
         let rest = said.strip_prefix('/')?;
-        let root = PathBuf::from(format!("\\\\wsl.localhost\\{distro}"));
-        Some(rest.split('/').fold(root, |at, step| at.join(step)))
+        Some(
+            rest.split('/')
+                .fold(distro_root(distro), |at, step| at.join(step)),
+        )
     }
 
     pub fn runs(&self, name: &str) -> bool {
@@ -140,11 +142,10 @@ pub fn usual_bins(os: Os, home: &Path) -> Vec<PathBuf> {
         )
         .collect();
     let nvm = home.join(".nvm").join("versions").join("node");
-    let mut versions: Vec<PathBuf> = std::fs::read_dir(nvm)
+    let versions: Vec<PathBuf> = std::fs::read_dir(nvm)
         .map(|all| all.flatten().map(|one| one.path().join("bin")).collect())
         .unwrap_or_default();
-    versions.sort();
-    found.extend(versions.into_iter().rev());
+    found.extend(versions);
     found
 }
 
@@ -267,9 +268,13 @@ pub fn distros() -> Vec<(String, u32)> {
     Vec::new()
 }
 
+pub fn distro_root(name: &str) -> PathBuf {
+    PathBuf::from(format!(r"\\wsl.localhost\{name}"))
+}
+
 /// A distro as a place: reading its files over `\\wsl.localhost` starts it when it was stopped.
 pub fn distro(name: &str, uid: u32, windows_command: &str) -> Option<Place> {
-    let root = PathBuf::from(format!("\\\\wsl.localhost\\{name}"));
+    let root = distro_root(name);
     let passwd = std::fs::read_to_string(root.join("etc").join("passwd")).ok()?;
     let conf = std::fs::read_to_string(root.join("etc").join("wsl.conf")).unwrap_or_default();
     let linux_home = user_in(&conf)

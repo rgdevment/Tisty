@@ -354,7 +354,7 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
 
     // The text is already written: refusing here would have a dutiful retry add it twice.
     let settled = retold(&state, &mut store, &which, &whole).is_ok();
-    super::named_anew(paths, &state, &mut store, &which, &whole);
+    let anew = super::named_anew(paths, &state, &mut store, &which, &whole);
     let twice = named_twice(&state, &which, &whole);
 
     Ok(told(
@@ -366,7 +366,7 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
             },
             tisty_core::docs::titled(&whole),
             by_how_much(&before, &whole),
-            twice_words(&state, &twice),
+            twice_words(&state, &twice) + &anew,
             if settled { "" } else { UNSETTLED },
             wrapped(&body)
         ),
@@ -495,14 +495,14 @@ print: {}",
         })),
         tisty_core::docs::Rewrite::Made { whole, .. } => {
             let settled = retold(state, store, which, &whole).is_ok();
-            super::named_anew(paths, state, store, which, &whole);
+            let anew = super::named_anew(paths, state, store, which, &whole);
             let twice = named_twice(state, which, &whole);
             Ok(told(
                 format!(
                     "Wrote {:?} again, whole. {}{}{}{}{}",
                     tisty_core::docs::titled(&whole),
                     "What it said before is kept beside the documents.",
-                    twice_words(state, &twice),
+                    twice_words(state, &twice) + &anew,
                     match kept_back.is_empty() {
                         true => String::new(),
                         false => format!(
@@ -807,14 +807,14 @@ pub(super) fn in_its_place(
             let loose = left_loose(state, which, &body, &whole);
             let twice = named_twice(state, which, &whole);
             let settled = retold(state, store, which, &whole).is_ok();
-            super::named_anew(paths, state, store, which, &whole);
+            let anew = super::named_anew(paths, state, store, which, &whole);
             Ok(told(
                 format!(
                     "Changed lines {from} to {to} of {:?}. What it was is kept beside the \
                      documents.{}{}{}",
                     tisty_core::docs::titled(&whole),
                     loose_words(state, &loose),
-                    twice_words(state, &twice),
+                    twice_words(state, &twice) + &anew,
                     if settled { "" } else { UNSETTLED }
                 ),
                 with_echo(

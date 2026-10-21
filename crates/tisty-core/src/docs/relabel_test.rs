@@ -37,3 +37,33 @@ fn a_mention_in_a_sentence_is_not_a_card_and_stays() {
     );
     assert!(now.contains("![New name](tisty:doc/aaaa-0001)"), "{now}");
 }
+
+#[test]
+fn a_line_holding_more_than_the_card_keeps_all_of_it() {
+    let whole = "# Plan\n\n![la foto](foto.png) ![Old name](tisty:doc/aaaa-0001)\n";
+
+    assert_eq!(relabeled(whole, "aaaa-0001", "New name"), None);
+}
+
+#[test]
+fn a_card_shown_as_an_example_in_code_is_left_as_written() {
+    let whole = "# Plan\n\n![Old name](tisty:doc/aaaa-0001)\n\n```md\n![Old name](tisty:doc/aaaa-0001)\n```\n";
+
+    let now = relabeled(whole, "aaaa-0001", "New name").unwrap();
+
+    assert!(
+        now.contains("```md\n![Old name](tisty:doc/aaaa-0001)\n```"),
+        "{now}"
+    );
+    assert!(
+        now.starts_with("# Plan\n\n![New name](tisty:doc/aaaa-0001)"),
+        "{now}"
+    );
+}
+
+#[test]
+fn a_book_whose_title_is_the_card_itself_is_not_renamed_by_its_page() {
+    let whole = "![Old name](tisty:doc/aaaa-0001)\n\nmore\n";
+
+    assert_eq!(relabeled(whole, "aaaa-0001", "New name"), None);
+}

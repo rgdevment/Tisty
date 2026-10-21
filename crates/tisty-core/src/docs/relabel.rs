@@ -1,30 +1,35 @@
 use std::path::Path;
 
 use crate::Result;
+use crate::model::Kept;
+use crate::state::State;
 
 // A card's title stops at this many characters, so a longer line only has to begin with it.
 const TITLE_KEPT: usize = 120;
 
-/// A page given a new heading shows it where its document lists it; the new body when it changed.
-pub fn relabel_page(
-    root: &Path,
-    data: &Path,
-    parent: &str,
-    page: &str,
-    title: &str,
-) -> Result<Option<String>> {
+/// The book whose line for `page` should change, read only when the page's heading did.
+pub fn book_to_relabel<'a>(state: &'a State, page: &str, title: &str) -> Option<&'a Kept> {
+    let kept = state.docs.values().find(|one| one.file == page)?;
+    if kept.title.as_deref() == Some(title) {
+        return None;
+    }
+    let up = state.docs.get(&kept.page_of?)?;
+    // A compaction waiting for the person keeps its one undo; its line is mended once they decide.
+    up.compacted.is_none().then_some(up)
+}
+
+/// No step back is kept: the line follows the page's heading, and one would cost an earlier undo.
+pub fn relabel_page(root: &Path, parent: &str, page: &str, title: &str) -> Result<Option<String>> {
     super::alone(root, || {
         let was = super::read(root, parent)?;
         let Some(now) = relabeled(&was, page, title) else {
             return Ok(None);
         };
-        super::kept_before(data, parent, &was, &now)?;
         super::written(root, parent, &now)?;
-        Ok(Some(now))
+        Ok(Some(super::settled(&now)))
     })
 }
 
-/// The body with every card of `page` showing `title`, when the words it shows are another name.
 pub fn relabeled(whole: &str, page: &str, title: &str) -> Option<String> {
     let named = crate::text::worded(title);
     let stale = crate::refs::paper_labels(whole)
@@ -37,13 +42,18 @@ pub fn relabeled(whole: &str, page: &str, title: &str) -> Option<String> {
     }
     let target = format!("]({}{page})", crate::refs::DOC);
     let card = crate::refs::card(page, title);
+    let mut fence = super::Fencing::default();
     let mut changed = false;
     let lines: Vec<String> = whole
         .split_inclusive('\n')
         .map(|line| {
             let flat = line.trim_end_matches(['\n', '\r']);
             let bare = flat.trim();
-            if !(bare.starts_with("![") && bare.ends_with(&target)) {
+            // A card in code is an example, and a line holding more than this card keeps the rest.
+            let alone = bare.starts_with("![")
+                && bare.ends_with(&target)
+                && bare.matches("](").count() == 1;
+            if fence.inside(flat) || !alone {
                 return line.to_string();
             }
             changed = true;
@@ -51,10 +61,11 @@ pub fn relabeled(whole: &str, page: &str, title: &str) -> Option<String> {
             format!("{indent}{card}{}", &line[flat.len()..])
         })
         .collect();
-    changed.then(|| lines.concat())
+    let now = lines.concat();
+    (changed && super::titled(&now) == super::titled(whole)).then_some(now)
 }
 
-fn another_name(said: &str, named: &str, title: &str) -> bool {
+pub fn another_name(said: &str, named: &str, title: &str) -> bool {
     let cut_short = title.chars().count() >= TITLE_KEPT && said.starts_with(named);
     said != named && !cut_short
 }

@@ -218,12 +218,12 @@ pub(super) fn pointed_at(body: &str) -> (usize, usize) {
         if bytes.get(at + 1 + shut + 1) != Some(&b'(') {
             continue;
         }
-        // A page's card is neither: it places a page, and outline_doc counts pages on their own.
+        // A card of a page or a task is neither: it places the thing itself, counted on its own.
         let target = body[at + 1 + shut + 2..]
             .trim_start()
             .trim_start_matches('<');
         let drawn_here = at > 0 && bytes[at - 1] == b'!';
-        if drawn_here && target.starts_with(crate::refs::DOC) {
+        if drawn_here && target.starts_with("tisty:") {
             continue;
         }
         match drawn_here {

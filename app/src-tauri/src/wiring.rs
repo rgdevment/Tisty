@@ -36,7 +36,7 @@ pub struct Seen {
     pub wired: bool,
     /// It points at a Tisty that is not this one.
     pub astray: bool,
-    /// What it points at is a file that is no longer there.
+    /// Told apart from astray so "Repair" can say the old Tisty was deleted, not just moved.
     pub gone: bool,
     pub points: Option<String>,
     /// Only a folder that outlives an uninstall says it is here.

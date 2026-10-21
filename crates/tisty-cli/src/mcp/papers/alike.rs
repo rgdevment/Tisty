@@ -83,9 +83,6 @@ pub(super) fn repeated(own: (&str, &Card), pages: &[(&str, &Card)]) -> Vec<Value
 // Past this a card's words are a pasted body, not a name, and only their start is worth showing.
 const LABEL_SHOWN: usize = 80;
 
-// A card's title stops at this many characters, so a longer line only has to begin with it.
-const TITLE_KEPT: usize = 120;
-
 pub(super) fn mislabeled(whole: &str, pages: &[(&str, &Card)]) -> Vec<Value> {
     tisty_core::refs::paper_labels(whole)
         .into_iter()
@@ -96,8 +93,7 @@ pub(super) fn mislabeled(whole: &str, pages: &[(&str, &Card)]) -> Vec<Value> {
                 tisty_core::text::worded(&shows),
                 tisty_core::text::worded(title),
             );
-            let cut_short = title.chars().count() >= TITLE_KEPT && said.starts_with(&named);
-            let differs = said != named && !cut_short;
+            let differs = tisty_core::docs::another_name(&said, &named, title);
             differs.then(|| {
                 let shown: String = shows.chars().take(LABEL_SHOWN).collect();
                 let cut = match shown.len() < shows.len() {
