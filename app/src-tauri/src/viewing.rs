@@ -279,6 +279,7 @@ pub fn open(app: &AppHandle, shown: Shown) {
         held.insert(label.clone(), shown);
     }
     let sized = beside_main(app);
+    crate::tray::docked(app, true);
     let made = tauri::WebviewWindowBuilder::new(
         app,
         &label,
@@ -304,6 +305,7 @@ pub fn open(app: &AppHandle, shown: Shown) {
                     held.remove(&named);
                 }
                 gone.state::<widgets::Lent>().release(&named);
+                crate::tray::undock_unless_seen(&gone, &named);
             });
         }
         Err(why) => {

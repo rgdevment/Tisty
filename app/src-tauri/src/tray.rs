@@ -178,21 +178,34 @@ pub fn tuck<R: Runtime>(app: &AppHandle<R>) {
     let _ = window.as_ref().hide();
 }
 
-/// macOS keeps a hidden app standing in the Dock; while only the menu bar holds Tisty it leaves.
+/// The activation policy, not tao's Dock hiding, which drops Cmd+H and skips a hide right after a show.
 pub fn docked<R: Runtime>(app: &AppHandle<R>, shown: bool) {
     #[cfg(target_os = "macos")]
     kept(
-        app.set_dock_visibility(shown),
+        app.set_activation_policy(match shown {
+            true => tauri::ActivationPolicy::Regular,
+            false => tauri::ActivationPolicy::Accessory,
+        }),
         "the Dock icon would not change",
     );
     #[cfg(not(target_os = "macos"))]
     let _ = (app, shown);
 }
 
+/// A window on its way out may still be listed as visible, so it is named and left out.
+pub fn undock_unless_seen<R: Runtime>(app: &AppHandle<R>, leaving: &str) {
+    let seen = app.webview_windows().iter().any(|(label, window)| {
+        label != leaving && label != "quick" && window.is_visible().unwrap_or(false)
+    });
+    if !seen {
+        docked(app, false);
+    }
+}
+
 pub fn withdraw<R: Runtime>(window: &tauri::Window<R>) {
     let _ = window.emit("withdrawn", ());
     let _ = window.hide();
-    docked(window.app_handle(), false);
+    undock_unless_seen(window.app_handle(), window.label());
 }
 
 pub fn surface<R: Runtime>(app: &AppHandle<R>) {
