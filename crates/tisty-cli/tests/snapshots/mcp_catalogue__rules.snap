@@ -3,15 +3,18 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
-  "description": "The full rules for working in Tisty: when something is a task or a document, how a living document is kept, what you may change on a task and what stays the person's, and how removing works. The instructions you were given are only their summary. Call it once at the start, before you write anything; with `topic` «tidying», before you tidy or compact, it gives how that is done.",
+  "description": "The rules for working in Tisty, one short guide at a time. Left alone it gives the basics — task or document, whose words count, speaking in titles, updating before adding — and an index of the rest. Ask for the guide your next step needs: «tasks» before filing or working a task, «documents» before writing or changing a document, «tidying» before putting things back in order, consolidating or compacting. «all» gives every rule at once.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
       "topic": {
-        "description": "general, left out, for everything; tidying for putting documents and task pages back in order and compacting them",
+        "description": "tasks, documents or tidying for that guide; all for every rule at once; left out, the basics and the index. general is what all gave before tidying was split off",
         "enum": [
-          "general",
-          "tidying"
+          "tasks",
+          "documents",
+          "tidying",
+          "all",
+          "general"
         ],
         "type": "string"
       }
@@ -19,5 +22,5 @@ expression: tool
     "type": "object"
   },
   "name": "rules",
-  "title": "The full rules for working here"
+  "title": "The rules for working here, by topic"
 }

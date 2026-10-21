@@ -130,8 +130,12 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         })
         .collect();
     // `after` walks the tasks only — paging past them would empty this list without saying why.
+    let within = match text(args, "folder") {
+        Some(said) => Some(super::folder_found(&state, &said)?),
+        None => None,
+    };
     let papers = match (&query, sifted.none()) {
-        (Some(_), true) => papers_matching(&state, &seen, scope),
+        (Some(_), true) => papers_matching(&state, &seen, scope, within),
         _ => Vec::new(),
     };
     let papers_all = papers.len();
@@ -557,8 +561,9 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 kept.insert("newest".into(), json!(newest));
             }
             format!(
-                "{} list(s), {} folder(s), {} tag(s), {} open task(s), {} document(s). Send the \
-                 `cursor` back next time and what moved since comes with it as well.",
+                "{} list(s), {} folder(s), {} tag(s), {} open task(s), {} document(s) not put \
+                 away, pages included. Send the `cursor` back next time and what moved since \
+                 comes with it as well.",
                 named.len(),
                 folders.len(),
                 tags.len(),
@@ -658,33 +663,6 @@ pub(super) fn lists(paths: &Paths) -> Result<Value, Refused> {
 
 // The same text is published, drawn for people and whole for assistants, so an answer can point a person there.
 pub(super) const GUIDE: &str = "https://markdown.tisty.app/";
-
-pub(super) fn language(args: &Value) -> Value {
-    let spanish = args["lang"].as_str() == Some("es");
-    let drawn = if spanish {
-        format!("{GUIDE}es/")
-    } else {
-        GUIDE.to_string()
-    };
-    let whole = format!("{drawn}llms-full.txt");
-    let index = format!("{GUIDE}llms.txt");
-    let reference = tisty_markdown::reference(spanish).trim_end();
-    told(
-        format!(
-            "{reference}
-
-The same guide, with every example drawn, is published at {drawn}; this whole text at {whole}, and an index of its topics at {index}.
-"
-        ),
-        json!({
-            "reference": reference,
-            "lang": if spanish { "es" } else { "en" },
-            "guide": drawn,
-            "full": whole,
-            "index": index,
-        }),
-    )
-}
 
 pub(super) fn tags(paths: &Paths) -> Result<Value, Refused> {
     let (state, _) = opened(paths)?;
@@ -873,10 +851,17 @@ fn papers_matching(
     state: &State,
     seen: &[tisty_core::docs::Sighting],
     scope: tisty_core::view::Scope,
+    within: Option<tisty_core::model::FolderId>,
 ) -> Vec<Value> {
+    let inside = |one: &tisty_core::model::Kept| {
+        within.is_none_or(|at| {
+            one.folder
+                .is_some_and(|it| it == at || super::placing::beneath(state, it, at))
+        })
+    };
     let here: std::collections::HashMap<String, (bool, Option<String>, bool)> = state
         .papers()
-        .filter(|one| state.doc_kept_by(scope, one))
+        .filter(|one| state.doc_kept_by(scope, one) && inside(one))
         .map(|one| {
             (
                 one.file.clone(),
@@ -889,8 +874,13 @@ fn papers_matching(
         })
         .collect();
 
-    seen.iter()
+    // A title that says it comes before a body that only mentions it, an example among them.
+    let mut seen: Vec<&tisty_core::docs::Sighting> = seen
+        .iter()
         .filter(|one| here.contains_key(&one.id))
+        .collect();
+    seen.sort_by_key(|one| !one.line.is_empty());
+    seen.into_iter()
         .map(|one| {
             let (archived, page_of, flagged) =
                 here.get(&one.id).cloned().unwrap_or((false, None, false));

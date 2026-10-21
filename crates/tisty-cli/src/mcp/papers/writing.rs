@@ -12,6 +12,9 @@ use super::super::{
     room_for_a_notice, trail, twice_words, up_named, with_echo, wrapped, wrote,
 };
 
+// What the answer carries is what a reading back would bring, so it says so and saves the call.
+const READ_BACK_NOT_NEEDED: &str = " Its title, place and print are here: no need to read it back.";
+
 pub(in crate::mcp) fn write_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     written_doc(paths, args, None)
 }
@@ -127,39 +130,44 @@ pub(super) fn written_doc(
     let under = page_of.and_then(|up| named_doc(&state, up));
     let held_by = page_of.and_then(|up| up_named(&state, up));
     Ok(told(
-        match (&held_by, &where_at) {
-            (Some(named), _) if matches!(named_there, tisty_core::docs::Naming::Wrote { .. }) => {
-                format!(
-                    "Wrote the document {:?}, a page of {named}, and named it at the end of that \
+        format!(
+            "{}{READ_BACK_NOT_NEEDED}",
+            match (&held_by, &where_at) {
+                (Some(named), _)
+                    if matches!(named_there, tisty_core::docs::Naming::Wrote { .. }) =>
+                {
+                    format!(
+                        "Wrote the document {:?}, a page of {named}, and named it at the end of that \
                      document. Where a page is named is where it sits. [{}]",
-                    made.title, made.id
-                )
-            }
-            (Some(named), _) => format!(
-                "Wrote the document {:?} [{}], a page of {named}, but no line naming it was \
-                 written, so it is loose: {}. Name it with `page_doc` once that is dealt with.",
-                made.title,
-                made.id,
-                match named_there {
-                    tisty_core::docs::Naming::Fenced =>
-                        "that document ends inside a fence, and a line in code is not a way in",
-                    tisty_core::docs::Naming::WouldRename =>
-                        "that document says nothing a title could come from yet, so the line \
-                         would have become its title",
-                    _ => "that document could not be read back",
+                        made.title, made.id
+                    )
                 }
-            ),
-            (None, Some(named)) => format!(
-                "Wrote the document {:?} in the folder {named}. [{}]",
-                made.title, made.id
-            ),
-            (None, None) => format!(
-                "Wrote the document {:?}.{} [{}]",
-                made.title,
-                super::super::placing::loose_doc(&state, &made.title, &body),
-                made.id
-            ),
-        },
+                (Some(named), _) => format!(
+                    "Wrote the document {:?} [{}], a page of {named}, but no line naming it was \
+                 written, so it is loose: {}. Name it with `page_doc` once that is dealt with.",
+                    made.title,
+                    made.id,
+                    match named_there {
+                        tisty_core::docs::Naming::Fenced =>
+                            "that document ends inside a fence, and a line in code is not a way in",
+                        tisty_core::docs::Naming::WouldRename =>
+                            "that document says nothing a title could come from yet, so the line \
+                         would have become its title",
+                        _ => "that document could not be read back",
+                    }
+                ),
+                (None, Some(named)) => format!(
+                    "Wrote the document {:?} in the folder {named}. [{}]",
+                    made.title, made.id
+                ),
+                (None, None) => format!(
+                    "Wrote the document {:?}.{} [{}]",
+                    made.title,
+                    super::super::placing::loose_doc(&state, &made.title, &body),
+                    made.id
+                ),
+            }
+        ),
         json!({
             "for_the_person": match (under.as_deref(), &where_at) {
                 (Some(up), _) => format!(

@@ -1,0 +1,25 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: "rules(Some(\"documents\"))"
+---
+## Documents
+
+Start with `catch_up`, which says where things stand and what moved since you last asked; `docs` lists the documents and folders. Before opening a document see whether it carries a `gist`, an earlier reader's summary: it helps you choose, never stands in for the text, and one marked `stale` was written against an older version. After reading a long document, leave yours with `sum_up`.
+
+Read a long document by parts: `outline_doc` gives its headings, lines, sizes, pages and `print` for a few hundred tokens, and `read_doc` then takes a `section`, a run of lines, or a budget of `chars`, about 12,000 characters at a time: a document longer than that asked for whole comes back as its outline, so ask for the parts. Change what is there before adding: `edit_doc` changes the passage that is wrong, `write_doc` with the `print` you read at writes the body again when its shape no longer serves, and `append_doc` adds only where the order of entries is the point. If anything was written in between, the print no longer matches and nothing is written — read again rather than retrying. When a write comes back saying something you did not expect, `restore_doc` puts the document back.
+
+Everything you write has a place. `docs` with `folders`, or `catch_up`, names the folders: put a document in the one its subject belongs to, as a task goes in its list. When none fits, ask the person, suggesting a name — «Shall I keep it in a new folder Work / Login?» — and make the folder only once they agree. A document stays outside every folder only when the person asks for that.
+
+A document can hold pages, one level deep, for one long thing in parts — a book by chapters, a year of minutes; `page_doc` and `write_doc` with `page_of` say how. A locked document, or anything inside an archived folder, takes no writes at all, and only the person can lift either from the window.
+
+## One living document per subject
+
+A document is named by its subject, never by a ticket, a date or a round («v2», «second review»); the ticket is a tag and a task. It opens with what holds today, in the present tense; then the subject itself; then what is out of scope; then the decisions, one line each, dated, with the why — a replaced one is struck through with the day it fell, and the new one says which it replaces; last its history, one dated line per change worth knowing. What no longer holds moves down, never out: a decision to a struck line, a section to the history, a whole document to a mark. A page holds real content that relates to the subject without being part of it — a runbook, a contract, an annex — never a copy of the body nor a place to write what is new instead of consolidating. Before a new page, read `outline_doc`: what is already in the body or a page is updated there, what belongs to the subject goes in the body, and only what fits nowhere becomes a page, named in the body in reading order with a line saying what it holds. A page of a few lines, or two pages on one thing, are merged back. That list of pages is the index; the headings are the outline, and nobody writes one by hand.
+
+## Removing and putting away
+
+You never delete. «Delete this document» is answered with `flag_doc`: it marks the document with the reason — a duplicate of which, moved where, replaced by what, wrong, obsolete, a scratch — and the person deletes it in one click or takes the mark off; say plainly that it is marked and waiting for them. Several copies of one thing are marked in one call, so one click settles them. `archive_doc` puts a document away, or brings it back, only when the person asks for that. Nothing here closes, drops or erases a task: finishing one is `say_done`, and the closing stays theirs.
+
+## Writing
+
+Documents and what tasks say are kept in the Tisty language, the Markdown the person reads and writes in the window: plain Markdown plus pens like `==words=={green}`, underline `++words++`, icons `::dog orange::`, callouts, collapsible sections and cards to other documents. A note set apart in a document — «a highlighted note», info, a tip, a warning — is a callout, a quote that opens with `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]` or `[!CAUTION]`, written in the document where it belongs; `note` is a task's journal and never that. Plain Markdown is enough: it is turned into the Tisty language on the way in, and the answer says what changed under `turned`. `language` lists what Tisty adds to Markdown and gives one topic at a time. When the person asks how to write something, point them to https://markdown.tisty.app (Spanish under /es/).

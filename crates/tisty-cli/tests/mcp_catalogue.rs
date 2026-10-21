@@ -70,6 +70,16 @@ fn the_tidying_rules_an_agent_is_handed() {
 }
 
 #[test]
+fn the_task_rules_an_agent_is_handed() {
+    insta::assert_snapshot!(rules(Some("tasks")));
+}
+
+#[test]
+fn the_document_rules_an_agent_is_handed() {
+    insta::assert_snapshot!(rules(Some("documents")));
+}
+
+#[test]
 fn the_names_of_the_tools_an_agent_is_offered() {
     let said = ask(&[request("tools/list", &json!({}))]);
     let names: Vec<&str> = said[0]["result"]["tools"]

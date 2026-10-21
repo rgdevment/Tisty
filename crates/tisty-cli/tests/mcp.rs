@@ -237,14 +237,29 @@ fn an_assistant_can_ask_how_tisty_writes_a_document_in_either_language() {
     let text = english["result"]["content"][0]["text"]
         .as_str()
         .unwrap_or("");
-    assert!(text.starts_with("# "));
-    assert!(text.contains("=={green}"));
-    assert_eq!(english["result"]["structuredContent"]["lang"], "en");
-    assert_eq!(
-        english["result"]["structuredContent"]["full"],
-        "https://markdown.tisty.app/llms-full.txt"
+    assert!(
+        text.contains("- pens:") && text.len() < 3000,
+        "left alone it is the index, not the whole guide: {text}"
     );
+    assert_eq!(english["result"]["structuredContent"]["lang"], "en");
     assert!(text.contains("https://markdown.tisty.app/"));
+
+    let pens = served.call("language", serde_json::json!({ "topic": "pens" }));
+    let pens = pens["result"]["structuredContent"]["language"]
+        .as_str()
+        .unwrap_or("");
+    assert!(
+        pens.starts_with("## ") && pens.contains("=={green}"),
+        "{pens}"
+    );
+
+    let whole = served.call("language", serde_json::json!({ "topic": "all" }));
+    assert!(
+        whole["result"]["structuredContent"]["language"]
+            .as_str()
+            .unwrap_or("")
+            .starts_with("# ")
+    );
 
     let spanish = served.call("language", serde_json::json!({ "lang": "es" }));
     assert_eq!(spanish["result"]["structuredContent"]["lang"], "es");
@@ -3909,7 +3924,7 @@ fn the_instructions_do_not_promise_what_the_tools_no_longer_hold_to() {
 
     let said = served.talk(&[r#"{"jsonrpc":"2.0","id":1,"method":"server/discover","params":{}}"#]);
     let head = said[0]["result"]["instructions"].as_str().unwrap();
-    let rules = served.call("rules", serde_json::json!({}));
+    let rules = served.call("rules", serde_json::json!({ "topic": "all" }));
     let tidying = served.call("rules", serde_json::json!({ "topic": "tidying" }));
     let taught = format!(
         "{head}\n{}\n{}",

@@ -3,7 +3,7 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
-  "description": "The whole Tisty language, the Markdown a document is kept in: headings, lists and stages, pens with their colours, underline, icons and their names, callouts, collapsible sections, tags, cards to other documents, attachments, references, code, diagrams, formulas and tables — each with how it is written on disk and the rules that decide when it counts. Ask for it once before writing anything beyond plain words, so a pen colour or an icon you use is one Tisty knows instead of text the person has to clean up. `lang` picks English or Spanish; the language itself is the same.",
+  "description": "Plain Markdown needs nothing from here: Tisty takes it as it is and turns it on the way in. Left alone this gives the index of what Tisty adds — pens and their colours, underline, icons, callouts, collapsible sections, tags, cards to other documents, attachments, references, diagrams — apart from what reads as Markdown anywhere. Ask with a `topic` for the one you mean to write, so a pen colour or an icon is one Tisty knows; «all» gives the whole guide. `lang` picks English or Spanish; the language itself is the same.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
@@ -14,10 +14,42 @@ expression: tool
           "es"
         ],
         "type": "string"
+      },
+      "topic": {
+        "description": "One part of the guide, named as the index names it, or all for the whole of it. Left out, the index",
+        "enum": [
+          "glance",
+          "properties",
+          "title",
+          "headings",
+          "paragraphs",
+          "emphasis",
+          "underline",
+          "pens",
+          "links",
+          "lists",
+          "callouts",
+          "collapsible",
+          "tags",
+          "icons",
+          "emoji",
+          "documents",
+          "attachments",
+          "references",
+          "footnotes",
+          "code",
+          "diagrams",
+          "tables",
+          "page-breaks",
+          "comments",
+          "outside",
+          "all"
+        ],
+        "type": "string"
       }
     },
     "type": "object"
   },
   "name": "language",
-  "title": "How Tisty writes a document"
+  "title": "What Tisty adds to Markdown"
 }

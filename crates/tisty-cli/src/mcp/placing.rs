@@ -183,7 +183,7 @@ pub(super) fn below(
     within.map_or_else(Vec::new, |at| held_below(state, scope, at))
 }
 
-fn beneath(
+pub(super) fn beneath(
     state: &State,
     from: tisty_core::model::FolderId,
     at: tisty_core::model::FolderId,
@@ -239,4 +239,16 @@ pub(super) fn told_below(below: &[Value]) -> Option<String> {
                 .join(", ")
         )
     })
+}
+
+// The same word counts differently by what was asked, and `catch_up` counts what is not put away.
+pub(super) fn counted(args: &Value, every_folder: bool) -> &'static str {
+    match (args["scope"].as_str(), every_folder) {
+        (Some("open"), true) => ", not put away, pages included",
+        (Some("archive"), true) => " in the archive, pages included",
+        (_, true) => ", open and put away alike, pages included",
+        (Some("open"), false) => ", not put away",
+        (Some("archive"), false) => " in the archive",
+        (_, false) => ", open and put away alike",
+    }
 }
