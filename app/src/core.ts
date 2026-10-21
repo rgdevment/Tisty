@@ -1011,6 +1011,7 @@ export interface Wired {
   at: string;
   wired: boolean;
   astray: boolean;
+  gone?: boolean;
   points?: string | null;
   maybe: boolean;
   byHand: boolean;

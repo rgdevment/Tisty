@@ -32,7 +32,7 @@ const remember = (all: string[]) => {
   }
 };
 
-const ready = (one: Wired) => !one.wired && !one.byHand && !one.maybe;
+const ready = (one: Wired) => !one.wired && !one.astray && !one.byHand && !one.maybe;
 
 function Manual({ one }: Readonly<{ one: Wired }>) {
   const [done, setDone] = useState<string>();
@@ -46,7 +46,8 @@ function Manual({ one }: Readonly<{ one: Wired }>) {
       {one.manual.cli && (
         <>
           <span className="text-[12.5px] text-soft">{t("wiringByCli")}</span>
-          <pre className="overflow-x-auto rounded-md border border-hair px-2.5 py-1.5 font-mono text-[11.5px] text-soft">
+          {/* Wrapped, not scrolled: on a Mac that always shows scroll bars, the bar ate the one line. */}
+          <pre className="shrink-0 rounded-md border border-hair px-2.5 py-1.5 font-mono text-[11.5px] whitespace-pre-wrap text-soft [overflow-wrap:anywhere]">
             {one.manual.cli}
           </pre>
           <button type="button" onClick={() => copy(one.manual.cli ?? "")} className={small}>
@@ -57,7 +58,7 @@ function Manual({ one }: Readonly<{ one: Wired }>) {
       <span className="text-[12.5px] text-soft [overflow-wrap:anywhere]">
         {fill("wiringByPaste", one.manual.file)}
       </span>
-      <pre className="overflow-x-auto rounded-md border border-hair px-2.5 py-1.5 font-mono text-[11.5px] text-soft">
+      <pre className="shrink-0 overflow-x-auto rounded-md border border-hair px-2.5 py-1.5 font-mono text-[11.5px] text-soft">
         {one.manual.snippet}
       </pre>
       <button type="button" onClick={() => copy(one.manual.snippet)} className={small}>
@@ -101,7 +102,7 @@ function Row({
         ? "wiringAnyway"
         : "wiringJoin";
   const detail = one.astray
-    ? fill("wiringPoints", one.points ?? "")
+    ? fill(one.gone ? "wiringPointsGone" : "wiringPoints", one.points ?? "")
     : one.maybe && !one.wired
       ? t("wiringMaybe")
       : hand;
@@ -265,6 +266,30 @@ export default function Wiring({
       },
     );
 
+  const astray = [
+    ...(agents ?? []).filter((one) => one.astray),
+    ...Object.values(inside).flatMap((one) => (one.shut ? [] : one.seen.filter((it) => it.astray))),
+  ];
+  // Assistants installed or moved while the window was open show up without closing it.
+  const lookAgain = () => {
+    seenAgents()
+      .then(setAgents)
+      .catch((e) => fail({ card: "wiring", text: saidPlainly(e) }));
+    for (const name of Object.keys(inside)) look(name);
+  };
+  const repair = () =>
+    quietly(
+      "wiring",
+      astray.reduce<Promise<Wired[]>>(
+        (before, one) => before.then(() => wireAgent(one.id)),
+        Promise.resolve([]),
+      ),
+      () => {
+        tell({ card: "wiring", text: t("wiringRepaired") });
+        lookAgain();
+      },
+    );
+
   const hand = (one: Wired) => wroteSaid(hands?.find((it) => it.via === one.id));
   const others = hands?.filter((it) => !agents?.some((one) => one.id === it.via)) ?? [];
   const found = (known ?? []).filter(
@@ -273,8 +298,26 @@ export default function Wiring({
 
   return (
     <>
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-[12.5px] leading-relaxed text-soft">{t("wiringWhat")}</p>
+      <p className="text-[12.5px] leading-relaxed text-soft">{t("wiringWhat")}</p>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          disabled={held}
+          onClick={lookAgain}
+          className="shrink-0 rounded-md border border-line px-2.5 py-1 text-[12.5px] hover:bg-hover disabled:text-faint"
+        >
+          {t("wiringLookAgain")}
+        </button>
+        {astray.length > 0 && (
+          <button
+            type="button"
+            disabled={held}
+            onClick={repair}
+            className="shrink-0 rounded-md border border-hue-amber/40 px-2.5 py-1 text-[12.5px] text-hue-amber disabled:text-faint"
+          >
+            {fill("wiringRepair", String(astray.length))}
+          </button>
+        )}
         {waiting.length > 0 && (
           <button
             type="button"

@@ -19,11 +19,23 @@ fn main() -> ExitCode {
             ExitCode::SUCCESS
         }
         None | Some("--help" | "-h" | "help") => {
-            eprintln!("{}", spoken().get("retired"));
+            helped();
             ExitCode::SUCCESS
         }
         _ => retired(),
     }
+}
+
+// On stdout and in the usual shape, so a launcher that looks for `mcp` in the help still finds it.
+fn helped() {
+    let lang = spoken();
+    println!(
+        "{}\n\n{}\n\n{}\n  mcp    {}",
+        lang.get("retired"),
+        lang.get("help-usage"),
+        lang.get("help-commands"),
+        lang.get("help-mcp")
+    );
 }
 
 fn retired() -> ExitCode {

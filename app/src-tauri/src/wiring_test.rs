@@ -15,6 +15,7 @@ fn place(home: &Path, command: &str) -> Place {
         bins: Vec::new(),
         command: command.to_string(),
         open: true,
+        mount: String::new(),
     }
 }
 
@@ -84,6 +85,24 @@ fn an_entry_pointing_at_another_tisty_is_told_apart() {
 
     assert!(seen.astray && !seen.wired);
     assert_eq!(seen.points.as_deref(), Some("/old/tisty"));
+}
+
+#[test]
+fn an_entry_pointing_at_a_file_that_is_gone_says_so() {
+    let tmp = tempfile::tempdir().unwrap();
+    let there = tmp.path().join("debug-tisty");
+    std::fs::write(&there, b"").unwrap();
+    let there = there.display().to_string();
+    let gone = tmp.path().join("no-such-tisty").display().to_string();
+    let client = client("cursor");
+
+    wired_here("cursor", tmp.path(), &there);
+    let seen = told(&client, &place(tmp.path(), "/opt/tisty"), None).unwrap();
+    assert!(seen.astray && !seen.gone, "another Tisty, still on disk");
+
+    wired_here("cursor", tmp.path(), &gone);
+    let seen = told(&client, &place(tmp.path(), "/opt/tisty"), None).unwrap();
+    assert!(seen.astray && seen.gone, "a Tisty that is no longer there");
 }
 
 #[test]

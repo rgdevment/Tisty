@@ -36,6 +36,8 @@ pub struct Seen {
     pub wired: bool,
     /// It points at a Tisty that is not this one.
     pub astray: bool,
+    /// What it points at is a file that is no longer there.
+    pub gone: bool,
     pub points: Option<String>,
     /// Only a folder that outlives an uninstall says it is here.
     pub maybe: bool,
@@ -139,6 +141,11 @@ fn told(client: &Client, place: &Place, found: Option<Found>) -> Option<Seen> {
         at: at.display().to_string(),
         wired,
         astray: points.is_some() && !wired,
+        gone: !wired
+            && points
+                .as_deref()
+                .and_then(|one| place.reached(one))
+                .is_some_and(|at| !at.exists()),
         points,
         maybe: found == Some(Found::Maybe),
         by_hand: client.shape == Shape::Manual,

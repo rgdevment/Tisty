@@ -54,6 +54,7 @@ fn roots_resolve_only_where_they_exist() {
         bins: Vec::new(),
         command: "/mnt/c/tisty.exe".into(),
         open: true,
+        mount: "/mnt/".into(),
     };
     assert_eq!(
         place.resolve("~/.claude.json"),
@@ -69,4 +70,54 @@ fn roots_resolve_only_where_they_exist() {
     );
     assert_eq!(place.resolve("appdata:Claude/x.json"), None);
     assert_eq!(place.resolve("/Applications/Claude.app"), None);
+}
+
+#[test]
+fn a_command_in_a_distro_is_reached_where_windows_keeps_it() {
+    let place = Place {
+        distro: Some("Ubuntu".into()),
+        os: Os::Linux,
+        home: PathBuf::from("/home/mario"),
+        config: PathBuf::from("/home/mario/.config"),
+        appdata: None,
+        local: None,
+        bins: Vec::new(),
+        command: "/mnt/c/tisty.exe".into(),
+        open: true,
+        mount: "/mnt/".into(),
+    };
+
+    assert_eq!(
+        place.reached("/mnt/c/Users/Mario/Tisty/tisty.exe"),
+        Some(PathBuf::from(r"C:\Users\Mario\Tisty\tisty.exe"))
+    );
+    assert_eq!(
+        place.reached("/home/mario/.local/bin/tisty-mcp"),
+        Some(
+            PathBuf::from(r"\wsl.localhost\Ubuntu")
+                .join("home")
+                .join("mario")
+                .join(".local")
+                .join("bin")
+                .join("tisty-mcp")
+        )
+    );
+    assert_eq!(
+        place.reached("tisty"),
+        None,
+        "a bare name is found on the PATH, not here"
+    );
+}
+
+#[test]
+fn a_bare_path_on_a_mac_is_widened_to_where_commands_are_installed() {
+    let home = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(home.path().join(".nvm/versions/node/v22.1.0/bin")).unwrap();
+
+    let found = usual_bins(Os::Macos, home.path());
+
+    assert!(found.contains(&PathBuf::from("/opt/homebrew/bin")));
+    assert!(found.contains(&home.path().join(".local/bin")));
+    assert!(found.contains(&home.path().join(".nvm/versions/node/v22.1.0").join("bin")));
+    assert!(usual_bins(Os::Windows, home.path()).is_empty());
 }
