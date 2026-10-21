@@ -75,12 +75,16 @@ const FAMILIES: Record<string, string> = {
 
 export const family = (kind: string): string => FAMILIES[KINDS[kind] ?? ""] ?? "plain";
 
-// Only WebKit draws HEIC in an <img>; elsewhere it would land as a broken picture.
-const DRAWS_HEIC = navigator.userAgent.includes("Macintosh");
+export const SEEABLE = ["png", "jpg", "jpeg", "gif", "svg", "webp", "avif"];
 
-export const SEEABLE = ["png", "jpg", "jpeg", "gif", "svg", "webp", "avif"].concat(
-  DRAWS_HEIC ? ["heic"] : [],
-);
+// WebKit draws HEIC itself and a Windows with the HEIF decoder draws it for Tisty; elsewhere it stays a file.
+let heicDrawn = navigator.userAgent.includes("Macintosh");
+
+export const drawsHeic = (yes: boolean): void => {
+  heicDrawn = yes;
+};
+
+export const heicReadable = (): boolean => heicDrawn;
 
 const WATCHABLE = ["mp4", "webm", "m4v", "mov", "ogv"];
 const HEARABLE = ["mp3", "m4a", "wav", "ogg", "oga", "aac", "flac"];
@@ -144,8 +148,10 @@ export const previewOf = (href: string): Preview | null => {
   return { as: "file", at, kind };
 };
 
-export const pictured = (href: string): boolean =>
-  !href.startsWith(DOC) && SEEABLE.includes(ending(href));
+export const pictured = (href: string): boolean => {
+  const kind = ending(href);
+  return !href.startsWith(DOC) && (SEEABLE.includes(kind) || (kind === "heic" && heicDrawn));
+};
 
 export const weighed = (bytes: number): string => {
   if (!Number.isFinite(bytes)) return "—";

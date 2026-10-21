@@ -170,4 +170,12 @@ describe("a picture the webview may not be able to draw", () => {
       kind: "heic",
     });
   });
+
+  it("draws it on Windows once Tisty says that Windows can", async () => {
+    const { drawsHeic, pictured } = await asked("Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
+
+    drawsHeic(true);
+
+    expect(pictured("attachments/aa/foto-1c0a.heic")).toBe(true);
+  });
 });

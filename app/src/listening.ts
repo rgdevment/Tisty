@@ -2,12 +2,13 @@ import { listen } from "@tauri-apps/api/event";
 import { type MutableRefObject, useEffect, useRef } from "react";
 import { carrying } from "./carrying";
 import { heard, play } from "./chime";
-import { type Afoot, attach, type DoorDue, doorDue, parted, syncState } from "./core";
+import { type Afoot, type DoorDue, doorDue, parted, syncState } from "./core";
 import { decideAll, putOffSaid } from "./deciding";
 import { CALENDAR, handTo, whenFilesLand } from "./dropped";
 import { keptAll } from "./kept";
 import { t } from "./locales";
 import { saidPlainly } from "./refusal";
+import { attachedAll } from "./reshaping";
 import { settled } from "./saving";
 import { lookAgain } from "./syncSeen";
 import { CALENDAR_DROPPED } from "./ui/Calendars";
@@ -191,12 +192,11 @@ export function useListening({
     () =>
       whenFilesLand((target, paths, at) => {
         setError(null);
-        keptAll(
-          paths.map((one) => attach(one)),
-          setError,
-        ).then((written) => {
-          if (written && !handTo(target, written, at)) setError(t("attachmentLost"));
-        }, setError);
+        attachedAll(paths)
+          .then((all) => keptAll(all, setError))
+          .then((written) => {
+            if (written && !handTo(target, written, at)) setError(t("attachmentLost"));
+          }, setError);
       }, calendarsDropped),
     [setError],
   );

@@ -289,6 +289,14 @@ const en = {
   stepToPart: "Make it a part",
   stepTicked: "ticked {name}",
   attachFile: "Attach a file",
+  reshapeTitle: "A photo not every computer shows",
+  reshapeAskOne:
+    "{name} is in a format some of your computers can't show. Keep it as a JPG so it shows everywhere?",
+  reshapeAskMany:
+    "{name} photos are in a format some of your computers can't show. Keep them as JPG so they show everywhere?",
+  reshapeFull: "Same size and quality",
+  reshapeLight: "Lighter",
+  reshapeKeep: "Keep as it is",
   insertNewDoc: "A new document",
   insertNewPage: "A new page",
   insertPage: "A page that already exists",
@@ -665,6 +673,10 @@ const en = {
   backSure:
     "Going back leaves this document as it read before the write that stirred it. What it says now is kept in its place, so you can come back to it.",
   comingDown: "{name} is in iCloud and is being brought back. Try again in a moment",
+  cannotDraw:
+    "{name} couldn't be drawn on this Windows. HEIC pictures usually need «HEIF Image Extensions» and «HEVC Video Extensions» from the Microsoft Store; meanwhile, open it with another program",
+  cannotTurn:
+    "{name} couldn't be turned into a JPG on this computer, so it wasn't attached. Attach it again and choose «Keep as it is»",
   cloudLater:
     "{name} hasn't arrived from your cloud yet: the computer that attached it may still be sending it, its cloud may be full, or your cloud asked to wait. Try again after the next sync",
   cloudGone:
@@ -1595,6 +1607,7 @@ const en = {
     "Tisty writes to and reads from that folder. What uploads it is your provider's own program, not Tisty: if that program is not running, Tisty cannot tell.",
   syncNow: "Sync now",
   footUpToDate: "Up to date · {name}",
+  footDone: "Sync complete",
   footSyncingOf: "Syncing… {name} of {other}",
   footWait: "{name} asks to wait",
   footWaitWhy:
@@ -2496,6 +2509,14 @@ const es: Catalog = {
   stepToPart: "Volverla una parte",
   stepTicked: "marcado {name}",
   attachFile: "Adjuntar un archivo",
+  reshapeTitle: "Una foto que no todos los equipos muestran",
+  reshapeAskOne:
+    "{name} está en un formato que algunos de tus equipos no pueden mostrar. ¿La guardo como JPG para que se vea en todas partes?",
+  reshapeAskMany:
+    "{name} fotos están en un formato que algunos de tus equipos no pueden mostrar. ¿Las guardo como JPG para que se vean en todas partes?",
+  reshapeFull: "Mismo tamaño y calidad",
+  reshapeLight: "Más liviana",
+  reshapeKeep: "Dejarla como está",
   insertNewDoc: "Un documento nuevo",
   insertNewPage: "Una página nueva",
   insertPage: "Una página que ya existe",
@@ -2873,6 +2894,10 @@ const es: Catalog = {
   backSure:
     "Volver atrás deja este documento como se leía antes de la escritura que lo movió. Lo que dice ahora queda guardado en su lugar, así que puedes regresar a ello.",
   comingDown: "{name} está en iCloud y se está trayendo. Inténtalo de nuevo en un momento",
+  cannotDraw:
+    "{name} no se pudo dibujar en este Windows. Las imágenes HEIC suelen necesitar «Extensiones de imagen HEIF» y «Extensiones de vídeo HEVC» de Microsoft Store; mientras tanto, ábrela con otro programa",
+  cannotTurn:
+    "{name} no se pudo convertir a JPG en este equipo, así que no se adjuntó. Adjúntala de nuevo y elige «Dejarla como está»",
   cloudLater:
     "{name} todavía no llega desde tu nube: puede que el equipo que lo adjuntó aún lo esté enviando, que su nube esté llena, o que tu nube pidiera esperar. Vuelve a intentarlo después de la próxima sincronización",
   cloudGone:
@@ -3809,6 +3834,7 @@ const es: Catalog = {
     "Tisty escribe y lee en esa carpeta. Quien la sube es el programa de tu proveedor, no Tisty: si ese programa no está en marcha, Tisty no puede saberlo.",
   syncNow: "Sincronizar ahora",
   footUpToDate: "Al día · {name}",
+  footDone: "Sincronización completa",
   footSyncingOf: "Sincronizando… {name} de {other}",
   footWait: "{name} pide esperar",
   footWaitWhy:

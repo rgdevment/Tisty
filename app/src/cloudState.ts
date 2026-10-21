@@ -54,7 +54,6 @@ const BY_CODE: Record<string, Standing> = {
   "deferred-limit": { said: "stateWait", why: "stateWaitWhy" },
   "deferred-troubled": { said: "stateTroubled", why: "stateTroubledWhy" },
   "deferred-unsent": { said: "stateUnsent", why: "stateUnsentWhy" },
-  "deferred-busy": { said: "stateWait", why: "stateWaitWhy" },
   cloudNotNow: { said: "stateWait", why: "stateWaitWhy" },
 };
 
@@ -65,7 +64,8 @@ const APART: Standing = {
   exitSaid: "stateApartDo",
 };
 
-const QUIET = new Set(["ok", "deferred-changed", "deferred-paused"]);
+// Busy is another round of this computer's holding the cloud, not the cloud asking to wait.
+const QUIET = new Set(["ok", "deferred-changed", "deferred-paused", "deferred-busy"]);
 
 const DAY = 86_400;
 

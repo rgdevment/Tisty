@@ -1,8 +1,9 @@
 import { open as pick } from "@tauri-apps/plugin-dialog";
 import { type ReactNode, useMemo, useRef, useState } from "react";
-import { attach, type Filed } from "../core";
+import type { Filed } from "../core";
 import { keptAll } from "../kept";
 import { t } from "../locales";
+import { attachedAll } from "../reshaping";
 import Picking, { type Picked } from "./Picking";
 import type { Asking } from "./slashing";
 
@@ -27,12 +28,8 @@ export function useTaskAsks(
           const said = (text: string) => failed.current?.(text);
           if (kind !== "file") return setPicked({ kind, at, put });
           pick({ multiple: true })
-            .then((chosen) =>
-              keptAll(
-                listed(chosen).map((one) => attach(one)),
-                said,
-              ),
-            )
+            .then((chosen) => attachedAll(listed(chosen)))
+            .then((all) => keptAll(all, said))
             .then((text) => {
               if (text && !put(text)) said(t("attachmentLost"));
             })

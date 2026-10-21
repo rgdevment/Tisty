@@ -2,7 +2,6 @@ import { save as intoFile, open as pick } from "@tauri-apps/plugin-dialog";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { asPlain } from "../copying";
 import {
-  attach,
   attachPasted,
   docAway,
   docBack,
@@ -32,6 +31,7 @@ import { fill, t } from "../locales";
 import { filed, inTextOrder, type Moved, namesIn, pagesOf, under } from "../paging";
 import { crowd, MANY, weighed } from "../previews";
 import { saidPlainly } from "../refusal";
+import { attachedAll } from "../reshaping";
 import { busy, holds, queued } from "../saving";
 import { sure } from "../sure";
 import { changedIn } from "./anchoring";
@@ -540,12 +540,8 @@ export default function Docs({
                 // An attachment as a document's first words would become its title.
                 if (first) return onError(t("fileNeedsTitle"));
                 pick({ multiple: true })
-                  .then((chosen) =>
-                    keptAll(
-                      listed(chosen).map((one) => attach(one)),
-                      onError,
-                    ),
-                  )
+                  .then((chosen) => attachedAll(listed(chosen)))
+                  .then((all) => keptAll(all, onError))
                   .then((text) => {
                     if (text && !put(text)) onError(t("attachmentLost"));
                   })

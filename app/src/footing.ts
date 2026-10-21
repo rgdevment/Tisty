@@ -31,7 +31,6 @@ const SAID: Record<string, Said> = {
   cloudElsewhere: "lost",
   cloudNotNow: "wait",
   "deferred-limit": "wait",
-  "deferred-busy": "wait",
   "deferred-troubled": "troubled",
   "deferred-unsent": "troubled",
   "deferred-offline": "offline",
@@ -39,7 +38,8 @@ const SAID: Record<string, Said> = {
   cloudSpent: "spent",
 };
 
-const QUIET = new Set(["", "ok", "deferred-changed", "deferred-paused"]);
+// Busy is another round of this computer's holding the cloud, which passes by itself.
+const QUIET = new Set(["", "ok", "deferred-changed", "deferred-paused", "deferred-busy"]);
 
 const DAY = 86_400;
 

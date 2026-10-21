@@ -73,6 +73,21 @@ describe("the sync foot in the sidebar", () => {
     expect(onSync).toHaveBeenCalledOnce();
   });
 
+  it("says the sync asked for by hand is complete for a moment, then goes back", async () => {
+    const onSync = vi.fn(() => Promise.resolve("same"));
+    render(<SyncFoot onSync={onSync} onOpen={vi.fn()} />);
+
+    await userEvent.click(await screen.findByRole("button", { name: /Up to date/ }));
+
+    const done = await screen.findByRole("button", { name: /Sync complete/ });
+    await userEvent.click(done);
+    expect(onSync, "a press while it says complete starts nothing").toHaveBeenCalledOnce();
+    await act(async () => {
+      vi.advanceTimersByTime(2_100);
+    });
+    expect(screen.getByRole("button", { name: /Up to date/ })).toBeTruthy();
+  });
+
   it("names a folder by its own name", async () => {
     ipc.state = { mode: "folder", chosen: "D:\\Shared\\Tisty" };
     ipc.status = null;

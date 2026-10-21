@@ -71,22 +71,23 @@ export function carrying(
       .then((answer) => {
         if (gone) return undefined;
         if (answer.carried === "came" || answer.carried === "both") brought();
-        // Busy is a round that did nothing, so what was asked for is still owed.
-        if (answer.carried === "busy") {
+        // A round that did nothing, here or in the cloud another round held, still owes what was asked.
+        const busy = answer.carried === "busy" || answer.deferred?.reason === "busy";
+        if (busy) {
           owed = owing(owed, way);
           stalled = true;
         }
-        if (answer.carried !== "busy" && !answer.deferred) toldAside(null);
-        if (mine !== round) return answer.carried;
+        if (!busy && !answer.deferred) toldAside(null);
+        if (mine !== round) return busy ? "busy" : answer.carried;
         if (answer.undecided.length) atOdds(answer.undecided);
         // A history turned away is the whole point of signing it, and the round that finds it is
         // the one nobody is watching: saying nothing here is how it goes unnoticed for months.
         if (answer.unconfirmed?.length) void knock();
-        else if (answer.carried !== "busy" && way !== "push") settled();
+        else if (!busy && way !== "push") settled();
         const amiss = whatWentAmiss({ ...answer, unconfirmed: [] });
         const away = answer.deferred?.reason === "offline" ? lastingCause(answer.deferred) : null;
         awry(
-          answer.carried === "busy"
+          busy
             ? { why: "busy" }
             : amiss
               ? { why: "amiss", said: t(amiss) }
@@ -94,7 +95,7 @@ export function carrying(
                 ? { why: "away", said: away }
                 : null,
         );
-        return answer.carried;
+        return busy ? "busy" : answer.carried;
       })
       .catch((problem) => {
         if (!gone && mine === round) awry({ why: "broke", said: saidPlainly(problem) });
