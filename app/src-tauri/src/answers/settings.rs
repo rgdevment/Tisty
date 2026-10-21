@@ -57,7 +57,7 @@ pub const GUIDE_EN: &str = include_str!("../../resources/guide/en/guide.md");
 pub const NOTICES: &str = include_str!("../../../../THIRD-PARTY-BUNDLED.md");
 pub const LICENCES: &str = include_str!("../../../../THIRD-PARTY-LICENSES.md");
 
-use tauri::{Emitter, Manager};
+use tauri::Manager;
 use tisty_core::Op;
 use tisty_core::witness::{self, Fact, channel};
 
@@ -429,10 +429,7 @@ pub fn close_window(
         held(&session).keep(|c| c.on_close = Some(how))?;
     }
     match how {
-        tisty_core::config::Closing::Hide => {
-            let _ = window.emit("withdrawn", ());
-            let _ = window.hide();
-        }
+        tisty_core::config::Closing::Hide => crate::tray::withdraw(&window),
         tisty_core::config::Closing::Quit => desktop::parting(window.app_handle()),
     }
     Ok(())

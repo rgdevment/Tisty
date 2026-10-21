@@ -178,6 +178,23 @@ pub fn tuck<R: Runtime>(app: &AppHandle<R>) {
     let _ = window.as_ref().hide();
 }
 
+/// macOS keeps a hidden app standing in the Dock; while only the menu bar holds Tisty it leaves.
+pub fn docked<R: Runtime>(app: &AppHandle<R>, shown: bool) {
+    #[cfg(target_os = "macos")]
+    kept(
+        app.set_dock_visibility(shown),
+        "the Dock icon would not change",
+    );
+    #[cfg(not(target_os = "macos"))]
+    let _ = (app, shown);
+}
+
+pub fn withdraw<R: Runtime>(window: &tauri::Window<R>) {
+    let _ = window.emit("withdrawn", ());
+    let _ = window.hide();
+    docked(window.app_handle(), false);
+}
+
 pub fn surface<R: Runtime>(app: &AppHandle<R>) {
     // While the store is still moving no session stands behind the main window, so the move shows.
     let label = match app.try_state::<crate::Perched>() {
@@ -187,6 +204,7 @@ pub fn surface<R: Runtime>(app: &AppHandle<R>) {
     let Some(window) = app.get_webview_window(label) else {
         return;
     };
+    docked(app, true);
     let _ = window.show();
     let _ = window.unminimize();
     let _ = window.set_focus();
