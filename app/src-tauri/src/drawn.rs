@@ -37,14 +37,37 @@ pub fn as_seen(found: PathBuf, cache: &Path) -> Option<PathBuf> {
     Some(found)
 }
 
+// Asked by every window as it opens, and what is installed does not change while Tisty runs.
 pub fn draws_heic() -> bool {
-    #[cfg(windows)]
-    let can = wic::reads_heif();
-    #[cfg(target_os = "macos")]
-    let can = true;
-    #[cfg(not(any(windows, target_os = "macos")))]
-    let can = false;
-    can
+    static KNOWN: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *KNOWN.get_or_init(|| {
+        #[cfg(windows)]
+        let can = wic::reads_heif();
+        #[cfg(target_os = "macos")]
+        let can = true;
+        #[cfg(not(any(windows, target_os = "macos")))]
+        let can = false;
+        can
+    })
+}
+
+/// A drawn copy whose attachment is gone goes with it, as a private photo should not outlive its file.
+pub fn swept(cache: &Path, attachments: &Path) {
+    let Ok(drawn) = std::fs::read_dir(folder(cache)) else {
+        return;
+    };
+    for one in drawn.flatten() {
+        let at = one.path();
+        let Some(stem) = at.file_stem().and_then(|it| it.to_str()) else {
+            continue;
+        };
+        let held = ["heic", "HEIC"]
+            .iter()
+            .any(|ending| attachments.join(format!("{stem}.{ending}")).is_file());
+        if !held {
+            let _ = std::fs::remove_file(&at);
+        }
+    }
 }
 
 // Its own folder, so the caller can take it away whole once the photo is kept.
@@ -133,8 +156,9 @@ mod wic {
     // The HEIF container comes with Windows; the HEVC pictures inside it need a decoder of their own.
     fn reads_hevc() -> bool {
         use windows::Win32::Media::MediaFoundation::{
-            IMFActivate, MFMediaType_Video, MFT_CATEGORY_VIDEO_DECODER, MFT_ENUM_FLAG_ALL,
-            MFT_REGISTER_TYPE_INFO, MFTEnumEx, MFVideoFormat_HEVC,
+            IMFActivate, MFMediaType_Video, MFT_CATEGORY_VIDEO_DECODER, MFT_ENUM_FLAG_ASYNCMFT,
+            MFT_ENUM_FLAG_SORTANDFILTER, MFT_ENUM_FLAG_SYNCMFT, MFT_REGISTER_TYPE_INFO, MFTEnumEx,
+            MFVideoFormat_HEVC,
         };
         use windows::Win32::System::Com::CoTaskMemFree;
         let asked = MFT_REGISTER_TYPE_INFO {
@@ -146,7 +170,8 @@ mod wic {
         unsafe {
             let listed = MFTEnumEx(
                 MFT_CATEGORY_VIDEO_DECODER,
-                MFT_ENUM_FLAG_ALL,
+                // A graphics driver's own decoder is no sign WIC's HEIF decoder can reach one.
+                MFT_ENUM_FLAG_SYNCMFT | MFT_ENUM_FLAG_ASYNCMFT | MFT_ENUM_FLAG_SORTANDFILTER,
                 Some(&asked),
                 None,
                 &mut found,

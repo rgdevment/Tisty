@@ -43,26 +43,29 @@ beforeEach(() => {
 describe("a photo not every computer shows", () => {
   it("is asked about once for all dropped together, and the choice reaches each one", async () => {
     const { attachedAll } = await onWindows();
-    ipc.chosen = "Lighter";
+    ipc.chosen = "Same size and quality";
 
-    await Promise.all(await attachedAll(["C:/a/uno.HEIC", "C:/a/dos.tiff", "C:/a/tres.png"]));
+    await Promise.all(await attachedAll(["C:/a/uno.HEIC", "C:/#viaje/dos.heif", "C:/a/tres.png"]));
 
     expect(ipc.asked).toBe(1);
     const shapes = ipc.calls.map((one) => [one.args.path, one.args.shape]);
     expect(shapes).toEqual([
-      ["C:/a/uno.HEIC", "light"],
-      ["C:/a/dos.tiff", "light"],
+      ["C:/a/uno.HEIC", "full"],
+      ["C:/#viaje/dos.heif", "full"],
       ["C:/a/tres.png", undefined],
     ]);
   });
 
-  it("is kept as it came when the person says so or closes the question", async () => {
+  it("is kept as it came when the person says so, and not at all when they close the question", async () => {
     const { attachedAll } = await onWindows();
-    ipc.chosen = "Cancel";
-
+    ipc.chosen = "Keep as it is";
     await Promise.all(await attachedAll(["C:/a/uno.heic"]));
-
     expect(ipc.calls[0].args.shape).toBeUndefined();
+
+    ipc.calls = [];
+    ipc.chosen = "Cancel";
+    expect(await attachedAll(["C:/a/uno.heic"])).toHaveLength(0);
+    expect(ipc.calls).toHaveLength(0);
   });
 
   it("asks in the window's own dress when the window is there to ask", async () => {
@@ -89,15 +92,11 @@ describe("a photo not every computer shows", () => {
 
   it("does not offer to turn a HEIC on a Windows that cannot read one", async () => {
     const { attachedAll } = await onWindows(false);
-    ipc.chosen = "Lighter";
 
-    await Promise.all(await attachedAll(["C:/a/uno.heic", "C:/a/dos.tiff"]));
+    await Promise.all(await attachedAll(["C:/a/uno.heic"]));
 
-    const shapes = ipc.calls.map((one) => [one.args.path, one.args.shape]);
-    expect(shapes).toEqual([
-      ["C:/a/uno.heic", undefined],
-      ["C:/a/dos.tiff", "light"],
-    ]);
+    expect(ipc.asked).toBe(0);
+    expect(ipc.calls[0].args.shape).toBeUndefined();
   });
 
   it("asks nothing when every file shows everywhere", async () => {

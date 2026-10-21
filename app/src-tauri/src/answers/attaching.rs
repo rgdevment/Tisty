@@ -55,7 +55,7 @@ pub async fn attach(
 }
 
 // Asked once by the window: where nothing here can draw a HEIC, it stays a file to open elsewhere.
-#[tauri::command]
+#[tauri::command(async)]
 pub fn draws_heic() -> bool {
     crate::drawn::draws_heic()
 }
