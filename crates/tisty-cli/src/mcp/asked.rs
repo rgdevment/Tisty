@@ -266,6 +266,24 @@ pub(super) fn text(args: &Value, key: &str) -> Option<String> {
         .map(ToString::to_string)
 }
 
+/// A body keeps the indent of its first line, which opens a code block or a nested item.
+pub(super) fn body(args: &Value, key: &str) -> Option<String> {
+    let said = args.get(key).and_then(Value::as_str)?;
+    let said = past_blank_lines(said).trim_end();
+    (!said.is_empty()).then(|| said.to_string())
+}
+
+pub(super) fn past_blank_lines(said: &str) -> &str {
+    let mut from = 0;
+    for line in said.split_inclusive('\n') {
+        if !line.trim().is_empty() {
+            break;
+        }
+        from += line.len();
+    }
+    &said[from..]
+}
+
 pub(super) fn in_order(on: Option<&DateSpec>, owed: Option<&DateSpec>) -> Result<(), Refused> {
     let (Some(on), Some(owed)) = (on, owed) else {
         return Ok(());

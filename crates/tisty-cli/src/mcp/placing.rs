@@ -1,3 +1,4 @@
+use serde_json::{Value, json};
 use tisty_core::State;
 
 use super::trail;
@@ -162,4 +163,80 @@ pub(super) fn loose_task(state: &State, title: &str) -> String {
             near.join(", ")
         ),
     }
+}
+
+pub(super) fn listed_in(
+    state: &State,
+    one: &tisty_core::model::Kept,
+    at: tisty_core::model::FolderId,
+    deep: bool,
+) -> bool {
+    one.page_of.is_none()
+        && (one.folder == Some(at) || deep && one.folder.is_some_and(|it| beneath(state, it, at)))
+}
+
+pub(super) fn below(
+    state: &State,
+    scope: tisty_core::view::Scope,
+    within: Option<tisty_core::model::FolderId>,
+) -> Vec<Value> {
+    within.map_or_else(Vec::new, |at| held_below(state, scope, at))
+}
+
+fn beneath(
+    state: &State,
+    from: tisty_core::model::FolderId,
+    at: tisty_core::model::FolderId,
+) -> bool {
+    let mut walk = state.folders.get(&from).and_then(|one| one.parent);
+    for _ in 0..=tisty_core::model::DEEPEST {
+        match walk {
+            Some(up) if up == at => return true,
+            Some(up) => walk = state.folders.get(&up).and_then(|one| one.parent),
+            None => return false,
+        }
+    }
+    false
+}
+
+// Asked for one folder, a parent that holds nothing itself would otherwise read as empty.
+fn held_below(
+    state: &State,
+    scope: tisty_core::view::Scope,
+    at: tisty_core::model::FolderId,
+) -> Vec<Value> {
+    let mut held: std::collections::HashMap<tisty_core::model::FolderId, usize> =
+        std::collections::HashMap::new();
+    for kept in state.papers() {
+        if let Some(folder) = kept.folder
+            && kept.page_of.is_none()
+            && state.doc_kept_by(scope, kept)
+        {
+            *held.entry(folder).or_default() += 1;
+        }
+    }
+    let mut found: Vec<Value> = state
+        .folders
+        .values()
+        .filter(|one| beneath(state, one.id, at))
+        .filter_map(|one| {
+            let docs = held.get(&one.id).copied().unwrap_or_default();
+            (docs > 0).then(|| json!({ "folder": trail(state, one.id), "docs": docs }))
+        })
+        .collect();
+    found.sort_by(|a, b| a["folder"].as_str().cmp(&b["folder"].as_str()));
+    found
+}
+
+pub(super) fn told_below(below: &[Value]) -> Option<String> {
+    (!below.is_empty()).then(|| {
+        format!(
+            "Folders below it hold documents of their own, listed when asked for by name or path, or with `deep`: {}.",
+            below
+                .iter()
+                .map(|one| format!("{} ({})", super::said(one, "folder"), one["docs"]))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    })
 }

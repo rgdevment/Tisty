@@ -261,16 +261,25 @@ pub(super) fn inside_a_doc(
             .find(|one| one.line <= line && line <= one.to)
             .map(|one| json!({ "at": one.at, "title": one.title }))
     };
+    let reach = args
+        .get("around")
+        .and_then(Value::as_u64)
+        .map_or(AROUND_A_HIT, |asked| (asked as usize).min(AROUND_AT_MOST));
     let found: Vec<Value> = at
         .iter()
         .take(most)
         .map(|n| {
-            let first = n.saturating_sub(AROUND_A_HIT);
-            let last = (n + AROUND_A_HIT).min(lines.len().saturating_sub(1));
+            let first = n.saturating_sub(reach);
+            let last = (n + reach).min(lines.len().saturating_sub(1));
             let mut hit = serde_json::Map::new();
             hit.insert("line".into(), json!(n + 1));
             hit.insert("text".into(), json!(lines[*n]));
-            hit.insert("around".into(), json!(lines[first..=last].join("\n")));
+            if (first..=last).any(|at| at != *n && !lines[at].trim().is_empty()) {
+                let around: Vec<String> = (first..=last)
+                    .map(|at| tisty_core::view::clipped(lines[at]))
+                    .collect();
+                hit.insert("around".into(), json!(around.join("\n")));
+            }
             if let Some(section) = section_of(n + 1) {
                 hit.insert("section".into(), section);
             }
@@ -800,7 +809,7 @@ pub(super) fn sum_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 }
 
 const AROUND_A_HIT: usize = 1;
-
+const AROUND_AT_MOST: usize = 10;
 pub(super) const NEWEST_SHOWN: usize = 8;
 
 const TAGS_SHOWN: usize = 300;

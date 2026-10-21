@@ -200,6 +200,7 @@ pub(in crate::mcp) fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, 
         }))
         .collect();
     let dead = super::alike::dead(paths, &state, &bodies);
+    let mislabeled = super::alike::mislabeled(&whole, &page_cards);
     let mut kept_of = serde_json::Map::new();
     kept_of.insert("doc".into(), json!(which));
     kept_of.insert("title".into(), json!(card.title));
@@ -212,6 +213,9 @@ pub(in crate::mcp) fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, 
     }
     if !dead.is_empty() {
         kept_of.insert("dead".into(), json!(dead));
+    }
+    if !mislabeled.is_empty() {
+        kept_of.insert("mislabeled".into(), json!(mislabeled));
     }
     kept_of.insert("chars".into(), json!(card.chars));
     kept_of.insert("lines".into(), json!(card.lines));
@@ -352,17 +356,8 @@ pub(in crate::mcp) fn outline_doc(paths: &Paths, args: &Value) -> Result<Value, 
                 .join(", ")
         ));
     }
-    if !dead.is_empty() {
-        shown.push_str(&format!(
-            "\n\nLinks that lead nowhere ({}): {}. Nothing here answers them — mend each or take \
-             it out.",
-            dead.len(),
-            dead.iter()
-                .map(|one| format!("{} in {}", said(one, "to"), said(one, "in")))
-                .collect::<Vec<_>>()
-                .join(", ")
-        ));
-    }
+    shown.push_str(&super::alike::told_dead(&dead));
+    shown.push_str(&super::alike::told_mislabeled(&mislabeled));
     if !pointing.is_empty() {
         let few: Vec<String> = pointing.iter().take(NEWEST_SHOWN).cloned().collect();
         shown.push_str(&format!(

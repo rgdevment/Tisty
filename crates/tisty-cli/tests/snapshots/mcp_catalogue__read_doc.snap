@@ -3,7 +3,7 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
-  "description": "The text of a document and the `print` it reads at. Left alone it brings the whole body; one past about 12,000 characters comes back as its outline instead, with `whole` set to false, and then you ask for a `section`, a run of lines or a budget of `chars`, about 12,000 at a time. Reading a part is the ordinary way to work: the print comes with every answer, so a passage can be changed with `edit_doc` without ever bringing the rest.",
+  "description": "The text of a document and the `print` it reads at. Left alone it brings the whole body; one past about 12,000 characters comes back as its outline instead, with `whole` set to false, and then you ask for a `section`, a run of lines or a budget of `chars`, about 12,000 at a time. Reading a part is the ordinary way to work: the print comes with every answer, so a passage can be changed with `edit_doc` without ever bringing the rest. `pages_loose` names the pages no line in the body names.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {

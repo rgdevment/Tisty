@@ -1,5 +1,5 @@
 pub(crate) use tisty_markdown::refs::shuts;
-pub use tisty_markdown::refs::{DOC, Kind, Ref, alerted, card, paper_lines, papers};
+pub use tisty_markdown::refs::{DOC, Kind, Ref, alerted, card, paper_labels, paper_lines, papers};
 
 /// What a body points at, with an attachment named by its one key whichever way the body wrote it.
 pub fn extract(text: &str) -> Vec<Ref> {
