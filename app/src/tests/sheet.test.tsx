@@ -468,7 +468,8 @@ describe("the sheet in the main window", () => {
     view.rerender(sheet(2));
     expect(ipc.left).toBe(1);
     expect(page.querySelector(".page")?.classList.contains("whole")).toBe(false);
-    expect(page.querySelectorAll(".page > div:not([data-at])")).toHaveLength(0);
+    // The stand-in editor stays where it was put; only the whole editor's placeholder must be gone.
+    expect(page.querySelectorAll(".page > div:not([data-at], .editing)")).toHaveLength(0);
   });
 
   it("never opens a task's page whole, from a key or from the menu", async () => {
