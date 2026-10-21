@@ -912,10 +912,11 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let past = args.get("after").and_then(Value::as_u64).unwrap_or(0) as usize;
 
     let reading = under.is_some();
+    let deep = args.get("deep").and_then(Value::as_bool).unwrap_or(false);
     let mut kept: Vec<&tisty_core::model::Kept> = state
         .papers()
         .filter(|one| state.doc_kept_by(scope, one))
-        .filter(|one| within.is_none_or(|at| one.folder == Some(at) && one.page_of.is_none()))
+        .filter(|one| within.is_none_or(|at| placing::listed_in(&state, one, at, deep)))
         .filter(|one| under.is_none_or(|up| one.page_of == Some(up)))
         .collect();
     match reading {
@@ -1025,6 +1026,7 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         })
         .collect();
     folders.sort_by(|a, b| a["path"].as_str().cmp(&b["path"].as_str()));
+    let below = placing::below(&state, scope, within.filter(|_| !deep && under.is_none()));
 
     let mut lines: Vec<String> = shown
         .iter()
@@ -1060,6 +1062,7 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             )
         })
         .collect();
+    lines.extend(placing::told_below(&below));
     lines.push(match folders.is_empty() {
         true => "No folders here yet.".into(),
         false => format!(
@@ -1073,6 +1076,9 @@ fn papers(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     });
 
     let mut kept = json!({ "docs": shown, "total": all });
+    if !below.is_empty() {
+        kept["below"] = json!(below);
+    }
     if args
         .get("folders")
         .and_then(Value::as_bool)

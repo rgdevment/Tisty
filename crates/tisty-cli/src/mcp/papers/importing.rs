@@ -218,11 +218,17 @@ fn titled(args: &Value, at: &std::path::Path, whole: &str) -> String {
             "{}{rest}",
             tisty_markdown::front::titled_as(&front, &said).unwrap_or(front.clone())
         ),
-        (Some(said), _) => format!("{front}# {said}\n\n{}", rest.trim_start()),
+        (Some(said), _) => format!(
+            "{front}# {said}\n\n{}",
+            super::super::asked::past_blank_lines(rest)
+        ),
         (None, true) => whole.to_string(),
         (None, false) => {
             let named = at.file_stem().unwrap_or_default().to_string_lossy();
-            format!("{front}# {named}\n\n{}", rest.trim_start())
+            format!(
+                "{front}# {named}\n\n{}",
+                super::super::asked::past_blank_lines(rest)
+            )
         }
     }
 }

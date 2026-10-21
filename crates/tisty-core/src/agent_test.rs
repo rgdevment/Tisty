@@ -336,6 +336,30 @@ fn what_reads_as_a_credential_is_told() {
 }
 
 #[test]
+fn a_credential_inside_a_curl_command_is_told() {
+    let told = secrets_in(
+        concat!(
+            "curl --location 'https://api.example.com/v1/authorization' \\\n",
+            "--data-urlencode 'client_id=0vJ3GFoQ3aJg63Afw7Np' \\\n",
+            "--data-urlencode 'client_secret=ZopA2QFclbDy1fTrYSC5ehj8UfQ5JE2f' \\\n",
+            "--header 'Authorization: Bearer WtWZWVHA7ktMRtk2mQhw8gCzbugr' \\\n",
+        )
+        .as_bytes(),
+    );
+
+    let named: Vec<&str> = told.iter().map(|one| one.named.as_str()).collect();
+    assert_eq!(named, ["client_secret", "Authorization"]);
+
+    let quoted = secrets_in(b"-d data='sk_live_abc123def456ghi789jkl' \\\n");
+    assert_eq!(
+        quoted.len(),
+        1,
+        "a known prefix inside quotes on a continued line"
+    );
+    assert_eq!(quoted[0].named, "data");
+}
+
+#[test]
 fn what_only_looks_like_a_credential_is_left_alone() {
     let quiet = |text: &str| {
         let found = secrets_in(text.as_bytes());
