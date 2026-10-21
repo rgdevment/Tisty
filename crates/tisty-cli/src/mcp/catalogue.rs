@@ -1175,6 +1175,7 @@ pub(super) fn tools() -> Value {
                     },
                     "tag": { "type": "string", "description": "Carrying this tag, with or without the #. Any sifting field leaves the documents out of the answer" },
                     "list": { "type": "string", "description": "In this list, named as `lists` names it" },
+                    "folder": { "type": "string", "description": "Only the documents in this folder and the folders below it, by its name, its whole path or its id. Documents whose title says the words come first either way, before those that only mention them" },
                     "by_agent": { "type": "boolean", "description": "True for what an agent filed, false for what the person wrote" },
                     "said_done": { "type": "boolean", "description": "True for what an agent spoke for — said done, or said should not be done — and the person has not decided yet; false for what nobody spoke for" },
                     "open_to_agents": { "type": "boolean", "description": "True for the person's own tasks they opened to agents — yours to fill in and to say done — false for what they kept to themselves" },

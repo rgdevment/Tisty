@@ -4247,7 +4247,7 @@ fn the_instructions_name_the_doors_for_taking_back_and_for_not_doing() {
                     "clientInfo": { "name": "test", "version": "1" } },
     })
     .to_string()]);
-    let rules = served.call("rules", serde_json::json!({}));
+    let rules = served.call("rules", serde_json::json!({ "topic": "tasks" }));
     let tidying = served.call("rules", serde_json::json!({ "topic": "tidying" }));
     let told = format!(
         "{}\n{}\n{}",
@@ -4473,4 +4473,35 @@ fn a_page_given_a_new_heading_takes_it_where_its_document_lists_it() {
     let listed = served.body_of(&book);
     assert!(listed.contains("![Capitulo nuevo]"), "{listed}");
     assert!(!listed.contains("Capitulo viejo"), "{listed}");
+}
+
+#[test]
+fn documents_found_by_their_title_come_first_and_a_folder_narrows_them() {
+    let served = Served::new();
+    served.call("folder", serde_json::json!({ "name": "Trabajo" }));
+    served.call("folder", serde_json::json!({ "name": "Casa" }));
+    served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# Notas sueltas\n\nun ejemplo: CUSTMC-9999\n", "folder": "Casa" }),
+    );
+    served.call(
+        "write_doc",
+        serde_json::json!({ "body": "# CUSTMC-9999 consentimientos\n\nel ticket\n", "folder": "Trabajo" }),
+    );
+
+    let found = served.call("find", serde_json::json!({ "query": "CUSTMC-9999" }))["result"]
+        ["structuredContent"]
+        .clone();
+    assert_eq!(
+        found["docs"][0]["title"], "CUSTMC-9999 consentimientos",
+        "{found}"
+    );
+
+    let narrowed = served.call(
+        "find",
+        serde_json::json!({ "query": "CUSTMC-9999", "folder": "Casa" }),
+    )["result"]["structuredContent"]
+        .clone();
+    assert_eq!(narrowed["docsTotal"], 1, "{narrowed}");
+    assert_eq!(narrowed["docs"][0]["title"], "Notas sueltas", "{narrowed}");
 }

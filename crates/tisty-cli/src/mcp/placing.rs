@@ -183,7 +183,7 @@ pub(super) fn below(
     within.map_or_else(Vec::new, |at| held_below(state, scope, at))
 }
 
-fn beneath(
+pub(super) fn beneath(
     state: &State,
     from: tisty_core::model::FolderId,
     at: tisty_core::model::FolderId,

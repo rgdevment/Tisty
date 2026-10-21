@@ -17,7 +17,7 @@ pub(super) fn spoken(
         return Ok(reply);
     }
     let note = format!(
-        " It came in another Markdown and was written in the Tisty language: {}. Writing it that way to begin with keeps every word as you meant it; `language` has the whole of it, and {} shows it drawn ({}es/ in Spanish).",
+        " It came in another Markdown and was written in the Tisty language: {}. Writing it that way to begin with keeps every word as you meant it; `language` gives each part of it by topic, and {} shows it drawn ({}es/ in Spanish).",
         changed.join(", "),
         super::looking::GUIDE,
         super::looking::GUIDE

@@ -130,8 +130,12 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         })
         .collect();
     // `after` walks the tasks only — paging past them would empty this list without saying why.
+    let within = match text(args, "folder") {
+        Some(said) => Some(super::folder_found(&state, &said)?),
+        None => None,
+    };
     let papers = match (&query, sifted.none()) {
-        (Some(_), true) => papers_matching(&state, &seen, scope),
+        (Some(_), true) => papers_matching(&state, &seen, scope, within),
         _ => Vec::new(),
     };
     let papers_all = papers.len();
@@ -847,10 +851,17 @@ fn papers_matching(
     state: &State,
     seen: &[tisty_core::docs::Sighting],
     scope: tisty_core::view::Scope,
+    within: Option<tisty_core::model::FolderId>,
 ) -> Vec<Value> {
+    let inside = |one: &tisty_core::model::Kept| {
+        within.is_none_or(|at| {
+            one.folder
+                .is_some_and(|it| it == at || super::placing::beneath(state, it, at))
+        })
+    };
     let here: std::collections::HashMap<String, (bool, Option<String>, bool)> = state
         .papers()
-        .filter(|one| state.doc_kept_by(scope, one))
+        .filter(|one| state.doc_kept_by(scope, one) && inside(one))
         .map(|one| {
             (
                 one.file.clone(),
@@ -863,8 +874,13 @@ fn papers_matching(
         })
         .collect();
 
-    seen.iter()
+    // A title that says it comes before a body that only mentions it, an example among them.
+    let mut seen: Vec<&tisty_core::docs::Sighting> = seen
+        .iter()
         .filter(|one| here.contains_key(&one.id))
+        .collect();
+    seen.sort_by_key(|one| !one.line.is_empty());
+    seen.into_iter()
         .map(|one| {
             let (archived, page_of, flagged) =
                 here.get(&one.id).cloned().unwrap_or((false, None, false));
