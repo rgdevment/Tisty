@@ -16,6 +16,7 @@ minisign-verify = "0.2"
 tisty-carrier = { path = "crates/tisty-carrier" }
 tisty-google = { path = "crates/tisty-google" }
 tisty-onedrive = { path = "crates/tisty-onedrive" }
+tisty-webdav = { path = "crates/tisty-webdav" }
 tisty-core = { path = "crates/tisty-core" }
 tisty-markdown = { path = "crates/tisty-markdown", default-features = false }
 tisty-nl = { path = "crates/tisty-nl" }
@@ -56,6 +57,7 @@ scrypt = { version = "0.12", default-features = false }
 rand_core = { version = "0.9", features = ["os_rng"] }
 reqwest = { version = "0.13", default-features = false, features = ["blocking", "default-tls", "charset", "http2", "query", "system-proxy"] }
 url = "2"
+percent-encoding = "2"
 base64 = "0.22"
 zeroize = "1"
 hmac = "0.13"
