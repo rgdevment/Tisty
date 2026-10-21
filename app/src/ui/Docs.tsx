@@ -57,6 +57,8 @@ const SETTLES = 700;
 
 const REMEMBERS = 12;
 
+const MARKED_FOR = 4000;
+
 // `print` is of the body on disk the words were typed over; `unwoven` holds a woven body the screen has yet to show.
 type Read = { text: string; print?: string; unwoven?: boolean };
 
@@ -151,6 +153,12 @@ export default function Docs({
   const [clashed, setClashed] = useState(false);
   const [stirred, setStirred] = useState(false);
   const [lately, setLately] = useState<[number, number] | null>(null);
+  // The mark shows where the words changed, then fades, so the page goes back to reading as it was.
+  useEffect(() => {
+    if (!lately) return;
+    const gone = setTimeout(() => setLately(null), MARKED_FOR);
+    return () => clearTimeout(gone);
+  }, [lately]);
   const [looking, setLooking] = useState(0);
   const lastRead = useRef(new Map<string, Read>());
   const onScreen = useRef<string | null>(null);
@@ -379,7 +387,8 @@ export default function Docs({
     }
     if (asked === open?.file && (fresh === seen.current || held.current)) {
       if (fresh !== seen.current) missed.current = true;
-      turn.current += 1;
+      // A round already read lands even when the list refreshes behind it; only typing calls it off.
+      if (held.current) turn.current += 1;
       return;
     }
     seen.current = fresh;
@@ -746,6 +755,11 @@ export default function Docs({
       >
         {open ? (
           <div style={sheetRoom} className="relative mx-auto flex min-h-0 w-full flex-1 flex-col">
+            <div
+              data-bar-slot="desk"
+              data-keeps-writing=""
+              className="absolute top-2 left-full z-10 ml-3"
+            />
             <Suspense fallback={<div className="min-h-0 flex-1" />}>
               <Sheet
                 sheet={sheetOf}

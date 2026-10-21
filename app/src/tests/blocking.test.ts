@@ -112,6 +112,24 @@ describe("writing a block in place", () => {
     page.remove();
   });
 
+  it("hands back the person's words but never the ones taken in from outside", () => {
+    const { page, one } = block();
+    const changes: string[] = [];
+    const editing = edited(
+      one,
+      "Hola",
+      (text) => changes.push(text),
+      () => {},
+    );
+    editing.view.dispatch({ changes: { from: 4, insert: " mundo" }, userEvent: "outside" });
+    expect(changes).toEqual([]);
+    expect(editing.view.state.sliceDoc()).toBe("Hola mundo");
+    editing.view.dispatch({ changes: { from: 10, insert: "!" }, userEvent: "input.type" });
+    expect(changes).toEqual(["Hola mundo!"]);
+    editing.leave();
+    page.remove();
+  });
+
   it("is left with Escape", () => {
     const { page, one } = block();
     const left: string[] = [];

@@ -506,6 +506,30 @@ describe("the sheet in the main window", () => {
     expect(ipc.opened).toHaveLength(0);
   });
 
+  it("takes words written from outside into the whole document without leaving it", async () => {
+    const sheet = (value: string, n: number) => (
+      <Sheet value={value} label="Compras" onWrite={() => {}} wholeable wholeAsked={n} />
+    );
+    const view = render(sheet(BODY, 0));
+    await loaded(await shown(view.container));
+    view.rerender(sheet(BODY, 1));
+    expect(ipc.opened.map((one) => one.said)).toEqual([BODY]);
+    view.rerender(sheet(`${BODY}\nfruta\n`, 1));
+    expect(ipc.left).toBe(0);
+    expect(ipc.cut).toEqual([[BODY.length, BODY.length]]);
+  });
+
+  it("leaves the whole document when words from outside come with Windows line ends", async () => {
+    const sheet = (value: string, n: number) => (
+      <Sheet value={value} label="Compras" onWrite={() => {}} wholeable wholeAsked={n} />
+    );
+    const view = render(sheet(BODY, 0));
+    await loaded(await shown(view.container));
+    view.rerender(sheet(BODY, 1));
+    view.rerender(sheet("# Compras\r\n\r\nleche\r\n", 1));
+    expect(ipc.left).toBe(1);
+  });
+
   it("keeps the block being written open when words from outside land elsewhere", async () => {
     const writes: string[] = [];
     const view = render(

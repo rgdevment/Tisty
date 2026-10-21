@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed } from "../core";
@@ -258,10 +258,10 @@ describe("the document being written", () => {
     rerender(<Docs {...props} fresh={1} />);
 
     await waitFor(() =>
-      expect(screen.getByText(/wrote in this document, and what you are reading/i)).toBeTruthy(),
+      expect(screen.getByText(/wrote in this document; what is marked/i)).toBeTruthy(),
     );
     await userEvent.click(screen.getByRole("button", { name: /got it/i }));
-    expect(screen.queryByText(/wrote in this document, and what you are reading/i)).toBeNull();
+    expect(screen.queryByText(/wrote in this document; what is marked/i)).toBeNull();
   });
 
   it("says nothing when the poll finds only what the person themselves saved", async () => {
@@ -276,7 +276,7 @@ describe("the document being written", () => {
     rerender(<Docs {...props} fresh={1} />);
 
     await waitFor(() => expect(store.reads).toBeGreaterThan(1));
-    expect(screen.queryByText(/wrote in this document, and what you are reading/i)).toBeNull();
+    expect(screen.queryByText(/wrote in this document; what is marked/i)).toBeNull();
   });
 
   it("still says so about a document it left and came back to", async () => {
@@ -290,7 +290,7 @@ describe("the document being written", () => {
     rerender(<Docs open="a3f1-0001" {...props} fresh={0} />);
 
     await waitFor(() =>
-      expect(screen.getByText(/wrote in this document, and what you are reading/i)).toBeTruthy(),
+      expect(screen.getByText(/wrote in this document; what is marked/i)).toBeTruthy(),
     );
   });
 
@@ -302,7 +302,7 @@ describe("the document being written", () => {
     rerender(<Docs {...props} fresh={1} />);
 
     await waitFor(() => expect(store.reads).toBeGreaterThan(1));
-    expect(screen.queryByText(/wrote in this document, and what you are reading/i)).toBeNull();
+    expect(screen.queryByText(/wrote in this document; what is marked/i)).toBeNull();
   });
 
   it("saves over only the words it read, by their print", async () => {
@@ -659,6 +659,34 @@ describe("a document that moved on disk while it was open", () => {
     await waitFor(() =>
       expect(screen.getByLabelText<HTMLTextAreaElement>("editor").value).toContain("pan"),
     );
+  });
+
+  it("lands a round's words though the list behind it refreshes while they are read", async () => {
+    const props = { open: "a3f1-0001", onKept: vi.fn(), onError: vi.fn() };
+    const { rerender } = render(<Docs {...props} known={known} fresh={0} />);
+    await waitFor(() => expect(screen.getByLabelText("editor")).toHaveProperty("value"));
+    store.bodies["a3f1-0001"] = "# Compras\n\nleche\n\nlo que dejo un agente";
+    rerender(<Docs {...props} known={known} fresh={1} />);
+    rerender(<Docs {...props} known={[...known]} fresh={1} />);
+    await waitFor(() =>
+      expect(screen.getByLabelText<HTMLTextAreaElement>("editor").value).toContain(
+        "lo que dejo un agente",
+      ),
+    );
+  });
+
+  it("lets the mark of what changed fade, while the notice stays until it is seen", async () => {
+    const props = { open: "a3f1-0001", known, onKept: vi.fn(), onError: vi.fn(), fresh: 0 };
+    const { rerender } = render(<Docs {...props} />);
+    await waitFor(() => expect(screen.getByLabelText("editor")).toHaveProperty("value"));
+    store.bodies["a3f1-0001"] = "# Compras\n\nleche\n\npan";
+    rerender(<Docs {...props} fresh={1} />);
+    await screen.findByRole("button", { name: t("docStirredSee") });
+    await act(async () => {
+      vi.advanceTimersByTime(4100);
+    });
+    expect(screen.queryByRole("button", { name: t("docStirredSee") })).toBeNull();
+    expect(screen.getByText(/wrote in this document; what is marked/i)).toBeTruthy();
   });
 
   it("offers to show what something wrote beside the window", async () => {

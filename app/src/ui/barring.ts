@@ -4,7 +4,7 @@ import { frontLines } from "../front";
 import { markup } from "../glyphs";
 import { t } from "../locales";
 import { coded, wrapped } from "./formatting";
-import { marksShown, showMarks } from "./seeing";
+import { keepShown, marked, marksShown, showMarks } from "./seeing";
 import { openMenu, pressed, putBlock } from "./slashing";
 import { type Retable, retable, tableHere } from "./tabling";
 
@@ -140,7 +140,9 @@ export const blockKeys: KeyBinding[] = [
 ];
 
 export const flipped = (view: EditorView): boolean => {
-  view.dispatch({ effects: showMarks.of(!view.state.field(marksShown)) });
+  const on = !view.state.field(marksShown);
+  view.dispatch({ effects: showMarks.of(on) });
+  keepShown(on);
   return true;
 };
 
@@ -320,10 +322,27 @@ export const barred = (view: EditorView, whole = false, onWhole?: () => void): B
   wide?.append(drawnIn(page, whole ? "shrink" : "expand"));
   wide?.setAttribute("aria-pressed", String(whole));
 
+  const marks = button(
+    "cm-bar-button cm-bar-marks",
+    `${t("marksShown")} (${pressed("Shift M")})`,
+    () => {
+      flipped(view);
+      view.focus();
+    },
+  );
+  marks.append(drawnIn(page, "scan-text"));
+  // Words with no mark to show have nothing for it to do, so it waits until one is written.
+  const marking = (state: EditorView["state"]) => {
+    const on = state.field(marksShown);
+    marks.setAttribute("aria-pressed", String(on));
+    marks.hidden = !on && !marked(state);
+    marksKey.hidden = marks.hidden;
+  };
+
   bar.append(kinds, made("span", "cm-bar-sep"), ...formats);
-  bar.append(made("span", "cm-bar-sep"), ...pens, made("span", "cm-bar-sep"), slash);
+  bar.append(made("span", "cm-bar-sep"), ...pens, made("span", "cm-bar-sep"));
   if (wide) bar.append(wide);
-  bar.append(fold);
+  bar.append(marks, slash, fold);
   folding(foldedBefore());
 
   const hint = made("div", "cm-hint");
@@ -333,17 +352,20 @@ export const barred = (view: EditorView, whole = false, onWhole?: () => void): B
     return one;
   };
   const state = made("span", "cm-hint-kept");
+  const marksKey = key(pressed("Shift M"), t("hintMarks"));
   hint.append(
     key(pressed("/"), t("hintInsert")),
-    key(pressed("Shift M"), t("hintMarks")),
+    marksKey,
     ...(onWhole ? [key(pressed("E"), t(whole ? "hintWholeLeave" : "hintWhole"))] : []),
     state,
   );
+  marking(view.state);
 
   const follow = (current: EditorView) => {
     const { head } = current.state.selection.main;
     tabled = tableHere(current.state) !== null;
     kindSaid.textContent = tabled ? t("table") : t(kindOf(current.state.doc.lineAt(head).text));
+    marking(current.state);
     menu.hidden = true;
     table.hidden = true;
   };

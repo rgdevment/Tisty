@@ -652,7 +652,7 @@ const en = {
     "This copy leaves out words, steps or ticks the task holds now, perhaps written after it was taken out",
   taskPageBehindSure:
     "This copy leaves out words, steps or ticks the task holds now, perhaps written after it was taken out. Bring it in anyway and let them go?",
-  docStirred: "Something wrote in this document, and what you are reading is what it left",
+  docStirred: "Something wrote in this document; what is marked is what changed",
   docBolted: "You locked this document. Nothing writes in it, not even an assistant",
   docShelved:
     "This one is in the archive. It reads, it does not write — bring it back to write in it again",
@@ -2854,7 +2854,7 @@ const es: Catalog = {
     "Esta copia deja fuera palabras, pasos o marcas que la tarea tiene ahora, quizá escritos después de sacarla",
   taskPageBehindSure:
     "Esta copia deja fuera palabras, pasos o marcas que la tarea tiene ahora, quizá escritos después de sacarla. ¿La traes igual y los dejas ir?",
-  docStirred: "Algo escribió en este documento, y lo que lees es lo que dejó",
+  docStirred: "Algo escribió en este documento; lo marcado es lo que cambió",
   docBolted: "Bloqueaste este documento. Nada escribe en él, ni siquiera un asistente",
   docShelved:
     "Este está en el archivo. Se lee, no se escribe — desarchívalo para volver a escribir en él",

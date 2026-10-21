@@ -6,7 +6,7 @@ import { t } from "../locales";
 import { DOC, partCard } from "../markdown";
 import type { Moved } from "../paging";
 import { named } from "../previews";
-import { reanchored, touches } from "./anchoring";
+import { reanchored, spanOf, touches } from "./anchoring";
 import { FORMATS, flipped } from "./barring";
 import { caretAt, type Editing, edited } from "./blocking";
 import { cardedAt, movedCard, putCard } from "./carded";
@@ -275,6 +275,18 @@ export default function Sheet(props: Readonly<Props>) {
         : (all) => queueMicrotask(() => (whole && !all ? left() : wholly(0, all))),
     );
     follows.current = (was, now) => {
+      // The whole document takes the words in place, the caret carried along, instead of ending.
+      const writing = (open.current as Editing | null)?.view;
+      if (whole && writing && !now.includes("\r\n")) {
+        const kept = writing.state.sliceDoc();
+        const changes = spanOf(kept, now.replace(/\n$/, ""));
+        end = now.length;
+        before = now;
+        mine = now;
+        if (changes.from !== changes.to || changes.insert)
+          writing.dispatch({ changes, userEvent: "outside" });
+        return true;
+      }
       const moved = reanchored(was, now, from, end);
       if (!moved) return false;
       [from, end] = moved;

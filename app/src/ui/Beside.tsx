@@ -97,6 +97,7 @@ export default function Beside({
 
   return (
     <aside
+      data-beside=""
       aria-label={t("aboutPaper")}
       className="absolute top-11 right-3 bottom-3 flex w-[320px] flex-col overflow-hidden rounded-[10px] border border-hair bg-panel shadow-lift"
     >

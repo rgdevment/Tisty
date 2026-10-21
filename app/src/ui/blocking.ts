@@ -349,7 +349,9 @@ export const edited = (
         boxed,
         oneLine ? labelled : [],
         EditorView.updateListener.of((update) => {
-          if (update.docChanged) onChange(update.state.sliceDoc());
+          // Words taken in from outside are already the sheet's; only the person's are handed back.
+          const theirs = update.transactions.every((one) => one.isUserEvent("outside"));
+          if (update.docChanged && !theirs) onChange(update.state.sliceDoc());
           if (update.transactions.length > 0) follow(update.view);
           // The editor's layout cannot be read inside its own update, so the bar moves on the next frame.
           if (update.selectionSet || update.docChanged)
@@ -374,6 +376,7 @@ export const edited = (
         : view.dom.getBoundingClientRect().top;
     },
     host,
+    whole,
   );
   undock = dock.stop;
   replace = dock.place;

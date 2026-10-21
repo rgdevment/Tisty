@@ -108,6 +108,68 @@ describe("the bar over the block being written", () => {
     editor.destroy();
   });
 
+  it("offers the marks only where a block has some, with its key beside it", () => {
+    localStorage.removeItem("tisty.marksShown");
+    const plain = view("leche y pan");
+    const bare = barred(plain);
+    const marks = () => bare.bar.querySelector<HTMLButtonElement>(".cm-bar-marks");
+    const told = () =>
+      Array.from(bare.hint.querySelectorAll<HTMLElement>(".cm-hint-item")).find((one) =>
+        one.textContent?.includes(t("hintMarks")),
+      );
+    expect(marks()?.hidden).toBe(true);
+    expect(told()?.hidden).toBe(true);
+    plain.dispatch({ changes: { from: 0, insert: "**" }, selection: { anchor: 2 } });
+    plain.dispatch({ changes: { from: 7, insert: "**" } });
+    bare.follow(plain);
+    expect(marks()?.hidden).toBe(false);
+    expect(told()?.hidden).toBe(false);
+    plain.destroy();
+  });
+
+  it("shows the marks switch held while it is on, keeps it there with no marks left, and remembers it", () => {
+    localStorage.removeItem("tisty.marksShown");
+    const editor = view("**leche** y pan");
+    const { bar, follow } = barred(editor);
+    const marks = bar.querySelector<HTMLButtonElement>(".cm-bar-marks");
+    expect(marks?.getAttribute("aria-label")).toMatchInlineSnapshot(
+      `"Show every mark (Ctrl Shift M)"`,
+    );
+    expect(marks?.getAttribute("aria-pressed")).toBe("false");
+    marks?.click();
+    follow(editor);
+    expect(editor.state.field(marksShown)).toBe(true);
+    expect(marks?.getAttribute("aria-pressed")).toBe("true");
+    expect(localStorage.getItem("tisty.marksShown")).toBe("1");
+    editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: "leche" } });
+    follow(editor);
+    expect(marks?.hidden).toBe(false);
+    marks?.click();
+    follow(editor);
+    expect(marks?.getAttribute("aria-pressed")).toBe("false");
+    expect(marks?.hidden).toBe(true);
+    expect(localStorage.getItem("tisty.marksShown")).toBe("0");
+    editor.destroy();
+  });
+
+  it("lays the whole document's switch before the marks, and the insert menu last but the fold", () => {
+    const editor = view("**leche**");
+    const { bar } = barred(editor, false, () => {});
+    const order = Array.from(bar.querySelectorAll("button"))
+      .map((one) => one.className)
+      .filter((one) => /cm-bar-(whole|marks|more|fold)/.test(one))
+      .map((one) => /cm-bar-(whole|marks|more|fold)/.exec(one)?.[1]);
+    expect(order).toMatchInlineSnapshot(`
+      [
+        "whole",
+        "marks",
+        "more",
+        "fold",
+      ]
+    `);
+    editor.destroy();
+  });
+
   it("marks words as code with Ctrl+Shift+C, since Ctrl+E opens the whole document", () => {
     const editor = view("leche y pan");
     const { bar } = barred(editor);

@@ -1,3 +1,83 @@
+.cm-bar-glyph {
+  display: inline-flex;
+  align-items: center;
+}
+.cm-bar-glyph svg {
+  width: 1.05em;
+  height: 1.05em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.cm-bar-glyph svg .solid {
+  fill: currentColor;
+  stroke: none;
+}
+.cm-bar {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  max-width: calc(100vw - 16px);
+  box-sizing: border-box;
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid var(--tisty-hair);
+  background: color-mix(in srgb, var(--tisty-ink) 5%, var(--tisty-sheet));
+  box-shadow: 0 4px 12px var(--tisty-cast);
+  font-size: 12.5px;
+  line-height: 1;
+  white-space: nowrap;
+}
+.cm-bar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--tisty-ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cm-bar button:hover {
+  background: var(--tisty-hover);
+}
+.cm-bar button[hidden] {
+  display: none;
+}
+.cm-bar.side {
+  flex-direction: column;
+  flex-wrap: nowrap;
+}
+.cm-bar.side .cm-bar-sep {
+  width: 16px;
+  height: 1px;
+  margin: 3px 0;
+}
+/* A switch left on is tinted, not loud: the bar says what is showing without pulling the eye. */
+.cm-bar button[aria-pressed="true"] {
+  background: var(--tisty-accent-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tisty-accent) 22%, transparent);
+  color: var(--tisty-accent);
+}
+.cm-bar button[aria-pressed="true"]:hover {
+  background: color-mix(in srgb, var(--tisty-accent) 14%, transparent);
+}
+/* Laid on the desk beside the sheet, it sits where it is put. */
+.cm-bar.docked {
+  position: static;
+  max-width: 100%;
+}
 .cm-bar.folded > :not(.cm-bar-fold) {
   display: none;
 }
