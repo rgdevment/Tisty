@@ -2193,7 +2193,7 @@ fn an_attachment_asked_for_by_the_leaf_a_body_names_is_brought_all_the_same() {
         if let Place::Cloud(_) = setting.place {
             two.round(Way::Pull);
         }
-        let leaf = kept.at.rsplit('/').next().unwrap();
+        let leaf = tisty_core::attach::leaf_of(&kept.at).unwrap();
 
         let at = two.carrier.brought(&two.here, leaf).unwrap();
 
@@ -2205,5 +2205,12 @@ fn an_attachment_asked_for_by_the_leaf_a_body_names_is_brought_all_the_same() {
             b"los bytes de una captura",
             "{who}"
         );
+        if let Place::Cloud(_) = setting.place {
+            assert_eq!(
+                Some(at),
+                tisty_core::attach::resolve(&kept.at, &two.here.data).ok(),
+                "{who}: it landed where the whole name puts it"
+            );
+        }
     }
 }
