@@ -122,13 +122,16 @@ html.sheeted .page > .sheet-turn {
     background-color 0.9s ease,
     box-shadow 0.9s ease;
 }
+/* A few words want a stronger tint than a whole block to be seen at all. */
 @keyframes lately-fades {
   0%,
-  70% {
-    background: var(--tisty-accent-soft);
+  75% {
+    background: color-mix(in srgb, var(--tisty-accent) 30%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--tisty-accent) 30%, transparent);
   }
   100% {
     background: transparent;
+    box-shadow: none;
   }
 }
 .cm-lately {

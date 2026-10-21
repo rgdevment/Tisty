@@ -159,6 +159,14 @@ export default function Docs({
     const gone = setTimeout(() => setLately(null), MARKED_FOR);
     return () => clearTimeout(gone);
   }, [lately]);
+  // Once faded, the same change can be marked again from the notice, as long as the notice stays.
+  const [markedLast, setMarkedLast] = useState<[number, number] | null>(null);
+  useEffect(() => {
+    if (lately) setMarkedLast(lately);
+  }, [lately]);
+  useEffect(() => {
+    if (!stirred) setMarkedLast(null);
+  }, [stirred]);
   const [looking, setLooking] = useState(0);
   const lastRead = useRef(new Map<string, Read>());
   const onScreen = useRef<string | null>(null);
@@ -882,14 +890,18 @@ export default function Docs({
             style={wall}
             className="mx-auto mb-2 flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-10 text-[11.5px]"
           >
-            <span className="text-soft">{t("docStirred")}</span>
-            {lately && (
+            {/* The words speak of the mark only while it is there to be seen. */}
+            <span className="text-soft">{t(lately ? "docStirred" : "docStirredFaded")}</span>
+            {(lately || markedLast) && (
               <button
                 type="button"
-                onClick={() => setLooking((many) => many + 1)}
+                onClick={() => {
+                  if (!lately) setLately(markedLast);
+                  setLooking((many) => many + 1);
+                }}
                 className="rounded-[10px] border border-line px-2 py-0.5 text-[11.5px] hover:bg-hover"
               >
-                {t("docStirredSee")}
+                {t(lately ? "docStirredSee" : "docStirredAgain")}
               </button>
             )}
             {backable && (

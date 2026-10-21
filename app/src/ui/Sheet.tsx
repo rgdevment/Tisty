@@ -90,6 +90,16 @@ export default function Sheet(props: Readonly<Props>) {
   const pending = useRef<{ caret: number; all: boolean; turn: number } | null>(null);
   // Where the caret stands in the whole text, so the whole document opens where the block was.
   const caretNow = useRef<(() => number) | null>(null);
+  // The words an agent last wrote into the whole document, to be marked again when asked.
+  const markedAt = useRef<{ from: number; to: number } | null>(null);
+  const markIn = (writing: Editing["view"], at: { from: number; to: number }) => {
+    markedAt.current = at;
+    writing.dispatch({ effects: markLately.of(at) });
+    // The mark fades with the page's own, and goes once its fading is done.
+    setTimeout(() => {
+      if (open.current?.view === writing) writing.dispatch({ effects: markLately.of(null) });
+    }, MARKED_FOR);
+  };
   const showing = useRef(value);
   showing.current = drawn;
   const latest = useRef(value);
@@ -302,14 +312,10 @@ export default function Sheet(props: Readonly<Props>) {
           const to = changes.from + inEditor(span.insert, span.insert.length);
           writing.dispatch({
             changes,
-            effects: markLately.of({ from: changes.from, to }),
             userEvent: "outside",
             annotations: Transaction.addToHistory.of(false),
           });
-          // The mark fades with the page's own, and goes once its fading is done.
-          setTimeout(() => {
-            if (open.current?.view === writing) writing.dispatch({ effects: markLately.of(null) });
-          }, MARKED_FOR);
+          markIn(writing, { from: changes.from, to });
         }
         return true;
       }
@@ -772,8 +778,15 @@ export default function Sheet(props: Readonly<Props>) {
     }
   }, [lately, turned, drawn]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `markIn` reads only refs, so the count alone decides.
   useEffect(() => {
     if (!looking) return;
+    const writing = open.current?.view;
+    const again = markedAt.current;
+    if (veiled.current && writing && again) {
+      const most = writing.state.doc.length;
+      markIn(writing, { from: Math.min(again.from, most), to: Math.min(again.to, most) });
+    }
     const sheet = room.current;
     const found = shown.current?.document.querySelector<HTMLElement>(".page > .lately, .cm-lately");
     const frame = shown.current?.frameElement?.getBoundingClientRect();

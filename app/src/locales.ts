@@ -653,12 +653,14 @@ const en = {
   taskPageBehindSure:
     "This copy leaves out words, steps or ticks the task holds now, perhaps written after it was taken out. Bring it in anyway and let them go?",
   docStirred: "Something wrote in this document; what is marked is what changed",
+  docStirredFaded: "Something wrote in this document",
   docBolted: "You locked this document. Nothing writes in it, not even an assistant",
   docShelved:
     "This one is in the archive. It reads, it does not write — bring it back to write in it again",
   docStirredGone: "Got it",
   docStirredBack: "Put back what it said before",
   docStirredSee: "See what changed",
+  docStirredAgain: "See again what changed",
   nothingKeptBeside: "Nothing is kept beside this one to go back to",
   backSure:
     "Going back leaves this document as it read before the write that stirred it. What it says now is kept in its place, so you can come back to it.",
@@ -2855,12 +2857,14 @@ const es: Catalog = {
   taskPageBehindSure:
     "Esta copia deja fuera palabras, pasos o marcas que la tarea tiene ahora, quizá escritos después de sacarla. ¿La traes igual y los dejas ir?",
   docStirred: "Algo escribió en este documento; lo marcado es lo que cambió",
+  docStirredFaded: "Algo escribió en este documento",
   docBolted: "Bloqueaste este documento. Nada escribe en él, ni siquiera un asistente",
   docShelved:
     "Este está en el archivo. Se lee, no se escribe — desarchívalo para volver a escribir en él",
   docStirredGone: "Entendido",
   docStirredBack: "Volver a lo que decía antes",
   docStirredSee: "Ver qué cambió",
+  docStirredAgain: "Ver de nuevo qué cambió",
   nothingKeptBeside: "No hay nada guardado al lado de este para volver atrás",
   backSure:
     "Volver atrás deja este documento como se leía antes de la escritura que lo movió. Lo que dice ahora queda guardado en su lugar, así que puedes regresar a ello.",
