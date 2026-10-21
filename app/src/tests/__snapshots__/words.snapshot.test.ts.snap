@@ -1,0 +1,78 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`the front matter of a document > lists its fields in order 1`] = `
+[
+  {
+    "key": "title",
+    "values": [
+      "Plan",
+    ],
+  },
+  {
+    "key": "tags",
+    "values": [
+      "work",
+      "home office",
+    ],
+  },
+  {
+    "key": "aliases",
+    "values": [
+      "one",
+      "two",
+    ],
+  },
+  {
+    "key": "paper",
+    "values": [
+      "a4",
+    ],
+  },
+]
+`;
+
+exports[`the front matter of a document > writes the page layout back into the block 1`] = `
+"---
+title: Plan
+tags: [work, 'home office']
+aliases:
+  - one
+  - two
+# a comment
+paper: letter
+orientation: landscape
+sheets: on
+---
+
+# Plan"
+`;
+
+exports[`the words the window says about sizes and files > tells what a link in a note would open 1`] = `
+{
+  "": null,
+  "attachments/ab/plan-0006bf09.pdf": {
+    "as": "file",
+    "at": "attachments/ab/plan-0006bf09.pdf",
+    "kind": "pdf",
+  },
+  "https://example.org/a/b": {
+    "as": "web",
+    "at": "https://example.org/a/b",
+    "host": "example.org",
+  },
+  "https://example.org/clip.mp4": {
+    "as": "web",
+    "at": "https://example.org/clip.mp4",
+    "host": "example.org",
+  },
+  "notes/readme": null,
+  "song.mp3": {
+    "as": "audio",
+    "at": "song.mp3",
+  },
+  "tisty:doc/01JABC": {
+    "as": "doc",
+    "id": "01JABC",
+  },
+}
+`;
