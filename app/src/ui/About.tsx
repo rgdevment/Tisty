@@ -88,303 +88,310 @@ export default function About({
   return (
     <main className="flex flex-col overflow-hidden">
       <div data-tauri-drag-region className="h-9 shrink-0" />
-      <div className="scroller mx-auto w-full max-w-[560px] px-6 pb-12">
-        {build?.sandbox && (
-          <p className="mb-4 rounded-[10px] bg-mark-priority px-4 py-3 text-[12.5px] text-ink">
-            {fill("inSandbox", build.sandbox)}
-          </p>
-        )}
-
-        <div className="flex items-center gap-3.5">
-          <img
-            src={tisty}
-            alt=""
-            className="h-[52px] w-auto shrink-0 dark:drop-shadow-[0_0_1px_rgb(248_250_255/0.9)]"
-          />
-          <span className="min-w-0">
-            <h2 className="text-[21px] font-semibold tracking-[-0.015em]">Tisty</h2>
-            <span className="mt-px flex items-center gap-2 text-[11.5px] text-faint tabular-nums">
-              <span>{build?.version ?? "—"}</span>
-              <span aria-hidden="true" className="size-[3px] rounded-full bg-line" />
-              <span>{build?.license ?? t("aboutBuild")}</span>
-            </span>
-          </span>
-        </div>
-
-        <div className="mt-4 rounded-[10px] border border-hair bg-panel px-4 py-3.5">
-          <p className="flex items-center gap-1.5 text-[10.5px] font-semibold tracking-[0.06em] text-faint uppercase">
-            <Glyph name="badge-info" className="size-[13px]" />
-            Tisty
-          </p>
-          <p className="mt-2.5 text-[12.5px] leading-relaxed text-soft">{t("aboutWhat")}</p>
-          <p className="mt-1 text-[12.5px] leading-relaxed text-faint">{t("aboutPrivacy")}</p>
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            <Badge icon="key" said={t("badgeLocal")} />
-            <Badge icon="code" said={t("badgeOpen")} />
-            <Badge icon="gift" said={t("badgeFree")} />
-            <Badge icon="cloud-off" said={t("badgeQuiet")} />
-          </div>
-        </div>
-
-        {trouble && (
-          <div className="mt-4">
-            <p role="alert" className="text-[12.5px] leading-relaxed text-urgent">
-              {t("aboutFailed")}
+      {/* The whole width scrolls, so the wheel moves the page wherever the pointer is. */}
+      <div className="scroller min-h-0 flex-1">
+        <div className="mx-auto w-full max-w-[560px] px-6 pb-12">
+          {build?.sandbox && (
+            <p className="mb-4 rounded-[10px] bg-mark-priority px-4 py-3 text-[12.5px] text-ink">
+              {fill("inSandbox", build.sandbox)}
             </p>
-            <p className="mt-1 text-[11.5px] leading-relaxed text-faint">{trouble}</p>
-            <button type="button" onClick={look} className={`mt-2 ${mild}`}>
-              {t("tryAgain")}
-            </button>
-          </div>
-        )}
+          )}
 
-        {newer ? (
-          <div className="mt-5 flex items-center gap-3 rounded-[10px] border border-hair bg-accent-soft px-3.5 py-3">
-            <Pip />
-            <span className="min-w-0 flex-1">
-              <span className="block text-[13px] font-semibold">
-                {newer.version ? fill("updateThere", newer.version) : t("updateComing")}
-              </span>
-              {step ? (
-                step.stage === "installing" ? (
-                  <span className="mt-0.5 block text-[12.5px] text-soft">
-                    {t(newer.route === "store" ? "updateInstallingStore" : "updateInstalling")}
-                  </span>
-                ) : (
-                  <>
-                    <span className="mt-0.5 block text-[12.5px] text-soft">
-                      {fill("updateGetting", `${step.far} %`)}
-                    </span>
-                    <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-desk">
-                      <span
-                        className="block h-full rounded-full bg-accent motion-safe:transition-[width]"
-                        style={{ width: `${step.far}%` }}
-                      />
-                    </span>
-                  </>
-                )
-              ) : (
-                <span className="mt-0.5 block text-[12.5px] text-soft">
-                  {t(newer.installs ? "updateAsk" : waitingOn(newer))}
-                </span>
-              )}
-            </span>
-            {!step && newer.coming && (
-              <button type="button" onClick={() => openLink(SHELF).catch(onError)} className={mild}>
-                {t("updateOpenShop")}
-              </button>
-            )}
-            {!step && newer.installs && (
-              <button
-                type="button"
-                disabled={asked}
-                onClick={() => {
-                  setAsked(true);
-                  updateInstall()
-                    // Every other route takes the process with it, and a button handed back there
-                    // would only offer an update to a copy on its way out.
-                    .then(() => {
-                      if (newer.route !== "store") return;
-                      setAsked(false);
-                      onGaveUp?.();
-                      lookAgain();
-                    })
-                    .catch((problem) => {
-                      setAsked(false);
-                      onGaveUp?.();
-                      onError(problem);
-                      if (offerMoved(problem)) lookAgain();
-                    });
-                }}
-                className="shrink-0 rounded-[10px] bg-accent px-3 py-1.5 text-[12.5px] font-medium text-white disabled:opacity-60"
-              >
-                {t("updateInstall")}
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="mt-5 flex items-center gap-3">
-            <Pip ok />
-            <span className="flex-1 text-[12.5px] text-soft">
-              {looking
-                ? t("lookingNow")
-                : t(build?.keptByTheStore ? "lookNowNoneStore" : "lookNowNone")}
-            </span>
-            <button type="button" disabled={looking} onClick={lookAgain} className={mild}>
-              {t("lookNow")}
-            </button>
-          </div>
-        )}
-
-        {build?.candidatesApply && (
-          <label className="mt-3 flex cursor-pointer items-start gap-2.5">
-            <input
-              type="checkbox"
-              checked={build?.candidates ?? false}
-              onChange={(e) => {
-                const wants = e.target.checked;
-                setBuild((was) => (was ? { ...was, candidates: wants } : was));
-                updateCandidates(wants)
-                  .then(lookAgain)
-                  .catch((problem) => {
-                    setBuild((was) => (was ? { ...was, candidates: !wants } : was));
-                    onError(problem);
-                  });
-              }}
-              className="mt-px size-[13px] shrink-0 accent-accent"
+          <div className="flex items-center gap-3.5">
+            <img
+              src={tisty}
+              alt=""
+              className="h-[52px] w-auto shrink-0 dark:drop-shadow-[0_0_1px_rgb(248_250_255/0.9)]"
             />
             <span className="min-w-0">
-              <span className="block text-[12.5px]">{t("betaTake")}</span>
-              <span className="mt-0.5 block text-[11.5px] leading-relaxed text-faint">
-                {t("betaWarns")}
+              <h2 className="text-[21px] font-semibold tracking-[-0.015em]">Tisty</h2>
+              <span className="mt-px flex items-center gap-2 text-[11.5px] text-faint tabular-nums">
+                <span>{build?.version ?? "—"}</span>
+                <span aria-hidden="true" className="size-[3px] rounded-full bg-line" />
+                <span>{build?.license ?? t("aboutBuild")}</span>
               </span>
             </span>
-          </label>
-        )}
+          </div>
 
-        <Rule said={t("supportTitle")} />
-        <p className="text-[13px] leading-relaxed text-soft">{t("supportWhy")}</p>
-        <div className="mt-2.5 grid grid-cols-2 gap-2.5">
-          <Gives
-            wide={!build?.keptByTheStore}
-            said={t("supportStar")}
-            where="github.com/rgdevment/Tisty"
-            onPick={() => openLink(STARS).catch(onError)}
-          >
-            <path
-              fill="#e3b341"
-              d="M8 1.2l2.1 4.3 4.7.7-3.4 3.3.8 4.7L8 12l-4.2 2.2.8-4.7L1.2 6.2l4.7-.7L8 1.2z"
-            />
-          </Gives>
-          {build?.keptByTheStore && (
+          <div className="mt-4 rounded-[10px] border border-hair bg-panel px-4 py-3.5">
+            <p className="flex items-center gap-1.5 text-[10.5px] font-semibold tracking-[0.06em] text-faint uppercase">
+              <Glyph name="badge-info" className="size-[13px]" />
+              Tisty
+            </p>
+            <p className="mt-2.5 text-[12.5px] leading-relaxed text-soft">{t("aboutWhat")}</p>
+            <p className="mt-1 text-[12.5px] leading-relaxed text-faint">{t("aboutPrivacy")}</p>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              <Badge icon="key" said={t("badgeLocal")} />
+              <Badge icon="code" said={t("badgeOpen")} />
+              <Badge icon="gift" said={t("badgeFree")} />
+              <Badge icon="cloud-off" said={t("badgeQuiet")} />
+            </div>
+          </div>
+
+          {trouble && (
+            <div className="mt-4">
+              <p role="alert" className="text-[12.5px] leading-relaxed text-urgent">
+                {t("aboutFailed")}
+              </p>
+              <p className="mt-1 text-[11.5px] leading-relaxed text-faint">{trouble}</p>
+              <button type="button" onClick={look} className={`mt-2 ${mild}`}>
+                {t("tryAgain")}
+              </button>
+            </div>
+          )}
+
+          {newer ? (
+            <div className="mt-5 flex items-center gap-3 rounded-[10px] border border-hair bg-accent-soft px-3.5 py-3">
+              <Pip />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[13px] font-semibold">
+                  {newer.version ? fill("updateThere", newer.version) : t("updateComing")}
+                </span>
+                {step ? (
+                  step.stage === "installing" ? (
+                    <span className="mt-0.5 block text-[12.5px] text-soft">
+                      {t(newer.route === "store" ? "updateInstallingStore" : "updateInstalling")}
+                    </span>
+                  ) : (
+                    <>
+                      <span className="mt-0.5 block text-[12.5px] text-soft">
+                        {fill("updateGetting", `${step.far} %`)}
+                      </span>
+                      <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-desk">
+                        <span
+                          className="block h-full rounded-full bg-accent motion-safe:transition-[width]"
+                          style={{ width: `${step.far}%` }}
+                        />
+                      </span>
+                    </>
+                  )
+                ) : (
+                  <span className="mt-0.5 block text-[12.5px] text-soft">
+                    {t(newer.installs ? "updateAsk" : waitingOn(newer))}
+                  </span>
+                )}
+              </span>
+              {!step && newer.coming && (
+                <button
+                  type="button"
+                  onClick={() => openLink(SHELF).catch(onError)}
+                  className={mild}
+                >
+                  {t("updateOpenShop")}
+                </button>
+              )}
+              {!step && newer.installs && (
+                <button
+                  type="button"
+                  disabled={asked}
+                  onClick={() => {
+                    setAsked(true);
+                    updateInstall()
+                      // Every other route takes the process with it, and a button handed back there
+                      // would only offer an update to a copy on its way out.
+                      .then(() => {
+                        if (newer.route !== "store") return;
+                        setAsked(false);
+                        onGaveUp?.();
+                        lookAgain();
+                      })
+                      .catch((problem) => {
+                        setAsked(false);
+                        onGaveUp?.();
+                        onError(problem);
+                        if (offerMoved(problem)) lookAgain();
+                      });
+                  }}
+                  className="shrink-0 rounded-[10px] bg-accent px-3 py-1.5 text-[12.5px] font-medium text-white disabled:opacity-60"
+                >
+                  {t("updateInstall")}
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="mt-5 flex items-center gap-3">
+              <Pip ok />
+              <span className="flex-1 text-[12.5px] text-soft">
+                {looking
+                  ? t("lookingNow")
+                  : t(build?.keptByTheStore ? "lookNowNoneStore" : "lookNowNone")}
+              </span>
+              <button type="button" disabled={looking} onClick={lookAgain} className={mild}>
+                {t("lookNow")}
+              </button>
+            </div>
+          )}
+
+          {build?.candidatesApply && (
+            <label className="mt-3 flex cursor-pointer items-start gap-2.5">
+              <input
+                type="checkbox"
+                checked={build?.candidates ?? false}
+                onChange={(e) => {
+                  const wants = e.target.checked;
+                  setBuild((was) => (was ? { ...was, candidates: wants } : was));
+                  updateCandidates(wants)
+                    .then(lookAgain)
+                    .catch((problem) => {
+                      setBuild((was) => (was ? { ...was, candidates: !wants } : was));
+                      onError(problem);
+                    });
+                }}
+                className="mt-px size-[13px] shrink-0 accent-accent"
+              />
+              <span className="min-w-0">
+                <span className="block text-[12.5px]">{t("betaTake")}</span>
+                <span className="mt-0.5 block text-[11.5px] leading-relaxed text-faint">
+                  {t("betaWarns")}
+                </span>
+              </span>
+            </label>
+          )}
+
+          <Rule said={t("supportTitle")} />
+          <p className="text-[13px] leading-relaxed text-soft">{t("supportWhy")}</p>
+          <div className="mt-2.5 grid grid-cols-2 gap-2.5">
             <Gives
-              said={t("supportRate")}
-              where="Microsoft Store"
-              onPick={() => openLink(RATING).catch(onError)}
+              wide={!build?.keptByTheStore}
+              said={t("supportStar")}
+              where="github.com/rgdevment/Tisty"
+              onPick={() => openLink(STARS).catch(onError)}
             >
               <path
-                fill="#0078d4"
-                d="M2 3h12a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H6l-4 3V4a1 1 0 0 1 1-1Z"
+                fill="#e3b341"
+                d="M8 1.2l2.1 4.3 4.7.7-3.4 3.3.8 4.7L8 12l-4.2 2.2.8-4.7L1.2 6.2l4.7-.7L8 1.2z"
               />
             </Gives>
-          )}
-          <Gives
-            said={t("supportSponsor")}
-            where="github.com/sponsors"
-            onPick={() => openLink(SPONSOR).catch(onError)}
-          >
-            <path
-              fill="#db61a2"
-              d="M8 14.25 6.84 13.2C2.72 9.47 0 7.01 0 4.5 0 2.42 1.57 1 3.5 1c1.1 0 2.16.51 2.84 1.32h1.32C8.34 1.51 9.4 1 10.5 1 12.43 1 14 2.42 14 4.5c0 2.51-2.72 4.97-6.84 8.7L8 14.25Z"
-            />
-          </Gives>
-          <Gives
-            said={t("supportCoffee")}
-            where="buymeacoffee.com"
-            onPick={() => openLink(COFFEE).catch(onError)}
-          >
-            <path
-              fill="#c8892a"
-              d="M2 5h9v5a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V5Zm10 0h1.5A2.5 2.5 0 0 1 16 7.5 2.5 2.5 0 0 1 13.5 10H12V5ZM2 14h9v1H2v-1Z"
-            />
-          </Gives>
-        </div>
+            {build?.keptByTheStore && (
+              <Gives
+                said={t("supportRate")}
+                where="Microsoft Store"
+                onPick={() => openLink(RATING).catch(onError)}
+              >
+                <path
+                  fill="#0078d4"
+                  d="M2 3h12a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H6l-4 3V4a1 1 0 0 1 1-1Z"
+                />
+              </Gives>
+            )}
+            <Gives
+              said={t("supportSponsor")}
+              where="github.com/sponsors"
+              onPick={() => openLink(SPONSOR).catch(onError)}
+            >
+              <path
+                fill="#db61a2"
+                d="M8 14.25 6.84 13.2C2.72 9.47 0 7.01 0 4.5 0 2.42 1.57 1 3.5 1c1.1 0 2.16.51 2.84 1.32h1.32C8.34 1.51 9.4 1 10.5 1 12.43 1 14 2.42 14 4.5c0 2.51-2.72 4.97-6.84 8.7L8 14.25Z"
+              />
+            </Gives>
+            <Gives
+              said={t("supportCoffee")}
+              where="buymeacoffee.com"
+              onPick={() => openLink(COFFEE).catch(onError)}
+            >
+              <path
+                fill="#c8892a"
+                d="M2 5h9v5a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V5Zm10 0h1.5A2.5 2.5 0 0 1 16 7.5 2.5 2.5 0 0 1 13.5 10H12V5ZM2 14h9v1H2v-1Z"
+              />
+            </Gives>
+          </div>
 
-        <Rule said={t("otherTools")} />
-        {TOOLS.map((tool) => (
-          <button
-            key={tool.name}
-            type="button"
-            onClick={() => openLink(tool.at).catch(onError)}
-            className="mb-2 flex w-full items-start gap-3 rounded-[10px] border border-hair px-3.5 py-3 text-left outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent"
-          >
-            <img
-              src={tool.icon}
-              alt=""
-              className="mt-px size-7 shrink-0 object-contain dark:drop-shadow-[0_0_1px_rgb(248_250_255/0.9)]"
-            />
+          <Rule said={t("otherTools")} />
+          {TOOLS.map((tool) => (
+            <button
+              key={tool.name}
+              type="button"
+              onClick={() => openLink(tool.at).catch(onError)}
+              className="mb-2 flex w-full items-start gap-3 rounded-[10px] border border-hair px-3.5 py-3 text-left outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent"
+            >
+              <img
+                src={tool.icon}
+                alt=""
+                className="mt-px size-7 shrink-0 object-contain dark:drop-shadow-[0_0_1px_rgb(248_250_255/0.9)]"
+              />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[13px] font-semibold">{tool.name}</span>
+                <span className="mt-0.5 block text-[12.5px] leading-relaxed text-soft">
+                  {t(tool.said)}
+                </span>
+              </span>
+              <span aria-hidden="true" className="mt-0.5 text-[13px] text-faint">
+                ↗
+              </span>
+            </button>
+          ))}
+
+          <div className="mt-4 flex items-center gap-3 rounded-[10px] border border-hair px-3.5 py-3">
             <span className="min-w-0 flex-1">
-              <span className="block text-[13px] font-semibold">{tool.name}</span>
+              <span className="block text-[13px] font-semibold">{t("reportTitle")}</span>
               <span className="mt-0.5 block text-[12.5px] leading-relaxed text-soft">
-                {t(tool.said)}
+                {t("reportLine")}
               </span>
             </span>
-            <span aria-hidden="true" className="mt-0.5 text-[13px] text-faint">
-              ↗
-            </span>
-          </button>
-        ))}
+            <button type="button" onClick={() => setReporting(true)} className={mild}>
+              {t("reportPrepare")}
+            </button>
+          </div>
 
-        <div className="mt-4 flex items-center gap-3 rounded-[10px] border border-hair px-3.5 py-3">
-          <span className="min-w-0 flex-1">
-            <span className="block text-[13px] font-semibold">{t("reportTitle")}</span>
-            <span className="mt-0.5 block text-[12.5px] leading-relaxed text-soft">
-              {t("reportLine")}
-            </span>
-          </span>
-          <button type="button" onClick={() => setReporting(true)} className={mild}>
-            {t("reportPrepare")}
-          </button>
+          {build && (
+            <>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Away
+                  said={t("aboutSite")}
+                  onPick={() => openLink(t("aboutSiteAt")).catch(onError)}
+                />
+                <Away
+                  said={t("aboutRepo")}
+                  onPick={() => openLink(build.repository).catch(onError)}
+                />
+                <Away
+                  said={t("aboutAlternative")}
+                  onPick={() => openLink(ALTERNATIVE).catch(onError)}
+                />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11.5px]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (said !== null) return setSaid(null);
+                    notices().then(setSaid).catch(onError);
+                  }}
+                  aria-expanded={said !== null}
+                  className="text-faint hover:text-ink"
+                >
+                  {t("aboutNotices")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (texts !== null) return setTexts(null);
+                    licences().then(setTexts).catch(onError);
+                  }}
+                  aria-expanded={texts !== null}
+                  className="text-faint hover:text-ink"
+                >
+                  {t("aboutLicences")}
+                </button>
+              </div>
+            </>
+          )}
+          {said !== null && (
+            <Written
+              label={t("aboutNotices")}
+              text={said}
+              onError={onError}
+              className="prose mt-2.5 rounded-[10px] border border-hair px-3 py-2 text-[12.5px] leading-relaxed text-soft"
+            />
+          )}
+          {texts !== null && (
+            <Written
+              label={t("aboutLicences")}
+              text={texts}
+              onError={onError}
+              className="prose mt-2.5 rounded-[10px] border border-hair px-3 py-2 text-[12.5px] leading-relaxed text-soft"
+            />
+          )}
         </div>
-
-        {build && (
-          <>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Away
-                said={t("aboutSite")}
-                onPick={() => openLink(t("aboutSiteAt")).catch(onError)}
-              />
-              <Away
-                said={t("aboutRepo")}
-                onPick={() => openLink(build.repository).catch(onError)}
-              />
-              <Away
-                said={t("aboutAlternative")}
-                onPick={() => openLink(ALTERNATIVE).catch(onError)}
-              />
-            </div>
-            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11.5px]">
-              <button
-                type="button"
-                onClick={() => {
-                  if (said !== null) return setSaid(null);
-                  notices().then(setSaid).catch(onError);
-                }}
-                aria-expanded={said !== null}
-                className="text-faint hover:text-ink"
-              >
-                {t("aboutNotices")}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (texts !== null) return setTexts(null);
-                  licences().then(setTexts).catch(onError);
-                }}
-                aria-expanded={texts !== null}
-                className="text-faint hover:text-ink"
-              >
-                {t("aboutLicences")}
-              </button>
-            </div>
-          </>
-        )}
-        {said !== null && (
-          <Written
-            label={t("aboutNotices")}
-            text={said}
-            onError={onError}
-            className="prose scroller mt-2.5 max-h-[380px] rounded-[10px] border border-hair px-3 py-2 text-[12.5px] leading-relaxed text-soft"
-          />
-        )}
-        {texts !== null && (
-          <Written
-            label={t("aboutLicences")}
-            text={texts}
-            onError={onError}
-            className="prose scroller mt-2.5 max-h-[380px] rounded-[10px] border border-hair px-3 py-2 text-[12.5px] leading-relaxed text-soft"
-          />
-        )}
       </div>
       {reporting && (
         <ReportOpen
