@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed } from "../core";
@@ -683,13 +683,11 @@ describe("a document that moved on disk while it was open", () => {
     store.bodies["a3f1-0001"] = "# Compras\n\nleche\n\npan";
     rerender(<Docs {...props} fresh={1} />);
     await screen.findByRole("button", { name: t("docStirredSee") });
-    await act(async () => {
+    // On a loaded runner the mark's own timer may only be set once the clock has moved on, so every try moves it again.
+    await waitFor(() => {
       vi.advanceTimersByTime(MARKED_FOR + 100);
+      expect(screen.queryByRole("button", { name: t("docStirredSee") })).toBeNull();
     });
-    // On a loaded runner the mark's own timer may only be set once the clock has moved on.
-    await waitFor(() =>
-      expect(screen.queryByRole("button", { name: t("docStirredSee") })).toBeNull(),
-    );
     expect(screen.queryByText(/what is marked/i)).toBeNull();
     expect(screen.getByText(t("docStirredFaded"))).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: t("docStirredAgain") }));
