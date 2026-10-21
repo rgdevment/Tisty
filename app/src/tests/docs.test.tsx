@@ -5,6 +5,7 @@ import type { Filed } from "../core";
 import { t } from "../locales";
 import { settled } from "../saving";
 import Docs from "../ui/Docs";
+import { MARKED_FOR } from "../ui/lately";
 import type { Asking } from "../ui/slashing";
 
 const store = vi.hoisted(() => ({
@@ -683,9 +684,12 @@ describe("a document that moved on disk while it was open", () => {
     rerender(<Docs {...props} fresh={1} />);
     await screen.findByRole("button", { name: t("docStirredSee") });
     await act(async () => {
-      vi.advanceTimersByTime(4100);
+      vi.advanceTimersByTime(MARKED_FOR + 100);
     });
-    expect(screen.queryByRole("button", { name: t("docStirredSee") })).toBeNull();
+    // On a loaded runner the mark's own timer may only be set once the clock has moved on.
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: t("docStirredSee") })).toBeNull(),
+    );
     expect(screen.queryByText(/what is marked/i)).toBeNull();
     expect(screen.getByText(t("docStirredFaded"))).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: t("docStirredAgain") }));
