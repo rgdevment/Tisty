@@ -9,7 +9,7 @@ pub(super) mod reading;
 pub(super) mod writing;
 
 use serde_json::{Value, json};
-use tisty_core::{Paths, State};
+use tisty_core::{Paths, State, Store};
 
 use super::Refused;
 use super::asked::text;
@@ -111,5 +111,24 @@ pub(super) fn said_docs(many: &[String], listed: bool) -> Value {
     match listed {
         true => json!(many),
         false => json!(many.first().cloned().unwrap_or_default()),
+    }
+}
+
+// A page that took a new heading shows it where its document lists it.
+pub(super) fn named_anew(paths: &Paths, state: &State, store: &mut Store, page: &str, whole: &str) {
+    let Some(up) = state
+        .docs
+        .values()
+        .find(|one| one.file == page)
+        .and_then(|kept| kept.page_of)
+        .and_then(|up| state.docs.get(&up))
+    else {
+        return;
+    };
+    let title = tisty_core::docs::titled(whole);
+    if let Ok(Some(now)) =
+        tisty_core::docs::relabel_page(&paths.docs(), paths.data(), &up.file, page, &title)
+    {
+        let _ = super::retold(state, store, &up.file, &now);
     }
 }

@@ -1242,6 +1242,22 @@ fn a_title_in_front_matter_names_the_note_and_takes_the_one_asked_for() {
 }
 
 #[test]
+fn a_title_asked_for_takes_the_place_of_the_files_own_heading() {
+    let served = Served::new();
+    let (_dir, at) = on_disk("viejo.md", "\n# Viejo\n\nlo dicho\n");
+
+    let said = served.call(
+        "import_doc",
+        serde_json::json!({ "path": at.to_str().unwrap(), "title": "Nuevo" }),
+    );
+
+    let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
+    let body = served.body_of(doc);
+    assert!(body.starts_with("# Nuevo\n\nlo dicho"), "{body}");
+    assert!(!body.contains("# Viejo"), "one title, not two: {body}");
+}
+
+#[test]
 fn a_file_with_no_title_of_its_own_is_named_after_itself() {
     let served = Served::new();
     let (_dir, at) = on_disk("Notas de la reunion.md", "lo que se dijo\n");
@@ -4436,4 +4452,25 @@ fn what_is_added_keeps_the_indent_of_its_first_line() {
         body.contains("\n  - uno y medio\n- dos"),
         "the nested item lost its indent: {body:?}"
     );
+}
+
+#[test]
+fn a_page_given_a_new_heading_takes_it_where_its_document_lists_it() {
+    let served = Served::new();
+    let book = served.wrote("# Libro\n\nintro\n", None);
+    let page = served.wrote("# Capitulo viejo\n\ntexto\n", Some(&book));
+    assert!(
+        served.body_of(&book).contains("![Capitulo viejo]"),
+        "{}",
+        served.body_of(&book)
+    );
+
+    served.call(
+        "edit_doc",
+        serde_json::json!({ "doc": &page, "old": "# Capitulo viejo", "new": "# Capitulo nuevo" }),
+    );
+
+    let listed = served.body_of(&book);
+    assert!(listed.contains("![Capitulo nuevo]"), "{listed}");
+    assert!(!listed.contains("Capitulo viejo"), "{listed}");
 }

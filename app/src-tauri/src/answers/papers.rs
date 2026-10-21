@@ -1201,7 +1201,33 @@ pub fn doc_write(
     session.corpus.forget(&id);
     let hand = signing(&session.state);
     session.retell(&id, &body, hand);
+    named_anew(&mut session, &id, &body);
     Ok(Kept { id, title, print })
+}
+
+// A page that took a new heading shows it where its document lists it.
+fn named_anew(session: &mut Session, id: &str, body: &str) {
+    let Some(up) = session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == id)
+        .and_then(|kept| kept.page_of)
+        .and_then(|up| session.state.docs.get(&up))
+        .map(|one| one.file.clone())
+    else {
+        return;
+    };
+    let title = tisty_core::docs::titled(body);
+    let docs = session.paths.docs();
+    if let Ok(Some(now)) =
+        tisty_core::docs::relabel_page(&docs, session.paths.data(), &up, id, &title)
+    {
+        session.mind_body(&up, &now);
+        session.corpus.forget(&up);
+        let hand = signing(&session.state);
+        session.retell(&up, &now, hand);
+    }
 }
 
 fn unwritten(e: tisty_core::Error) -> Refusal {

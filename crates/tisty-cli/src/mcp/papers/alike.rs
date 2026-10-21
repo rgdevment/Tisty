@@ -86,22 +86,16 @@ const LABEL_SHOWN: usize = 80;
 // A card's title stops at this many characters, so a longer line only has to begin with it.
 const TITLE_KEPT: usize = 120;
 
-// Every word, numbers and short ones too, so markup in the line decides nothing.
-fn worded(said: &str) -> String {
-    tisty_core::text::folded(said)
-        .split(|one: char| !one.is_alphanumeric())
-        .filter(|word| !word.is_empty())
-        .collect::<Vec<_>>()
-        .join(" ")
-}
-
 pub(super) fn mislabeled(whole: &str, pages: &[(&str, &Card)]) -> Vec<Value> {
     tisty_core::refs::paper_labels(whole)
         .into_iter()
         .filter_map(|(file, shows)| {
             let (_, card) = pages.iter().find(|(had, _)| *had == file)?;
             let title = card.title.as_str();
-            let (said, named) = (worded(&shows), worded(title));
+            let (said, named) = (
+                tisty_core::text::worded(&shows),
+                tisty_core::text::worded(title),
+            );
             let cut_short = title.chars().count() >= TITLE_KEPT && said.starts_with(&named);
             let differs = said != named && !cut_short;
             differs.then(|| {

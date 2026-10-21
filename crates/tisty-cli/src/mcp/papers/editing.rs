@@ -116,6 +116,7 @@ pub(in crate::mcp) fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
             let loose = left_loose(&state, &which, &was, &whole);
             let twice = named_twice(&state, &which, &whole);
             let settled = retold(&state, &mut store, &which, &whole).is_ok();
+            super::named_anew(paths, &state, &mut store, &which, &whole);
             Ok(told(
                 format!(
                     "Changed that passage in {:?}, {}. What it was is kept beside the \

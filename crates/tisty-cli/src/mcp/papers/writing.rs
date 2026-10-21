@@ -354,6 +354,7 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
 
     // The text is already written: refusing here would have a dutiful retry add it twice.
     let settled = retold(&state, &mut store, &which, &whole).is_ok();
+    super::named_anew(paths, &state, &mut store, &which, &whole);
     let twice = named_twice(&state, &which, &whole);
 
     Ok(told(
@@ -494,6 +495,7 @@ print: {}",
         })),
         tisty_core::docs::Rewrite::Made { whole, .. } => {
             let settled = retold(state, store, which, &whole).is_ok();
+            super::named_anew(paths, state, store, which, &whole);
             let twice = named_twice(state, which, &whole);
             Ok(told(
                 format!(
@@ -805,6 +807,7 @@ pub(super) fn in_its_place(
             let loose = left_loose(state, which, &body, &whole);
             let twice = named_twice(state, which, &whole);
             let settled = retold(state, store, which, &whole).is_ok();
+            super::named_anew(paths, state, store, which, &whole);
             Ok(told(
                 format!(
                     "Changed lines {from} to {to} of {:?}. What it was is kept beside the \
