@@ -1595,6 +1595,7 @@ const en = {
     "Tisty writes to and reads from that folder. What uploads it is your provider's own program, not Tisty: if that program is not running, Tisty cannot tell.",
   syncNow: "Sync now",
   footUpToDate: "Up to date · {name}",
+  footDone: "Sync complete",
   footSyncingOf: "Syncing… {name} of {other}",
   footWait: "{name} asks to wait",
   footWaitWhy:
@@ -3809,6 +3810,7 @@ const es: Catalog = {
     "Tisty escribe y lee en esa carpeta. Quien la sube es el programa de tu proveedor, no Tisty: si ese programa no está en marcha, Tisty no puede saberlo.",
   syncNow: "Sincronizar ahora",
   footUpToDate: "Al día · {name}",
+  footDone: "Sincronización completa",
   footSyncingOf: "Sincronizando… {name} de {other}",
   footWait: "{name} pide esperar",
   footWaitWhy:
