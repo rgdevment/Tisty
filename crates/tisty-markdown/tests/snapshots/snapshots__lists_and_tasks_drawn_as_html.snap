@@ -1,0 +1,5 @@
+---
+source: crates/tisty-markdown/tests/snapshots.rs
+expression: "page(\"- one\\n- two\\n  - nested\\n\\n1. first\\n2. second\\n\\n- [ ] open task\\n- [x] done task\\n\")"
+---
+<ul data-at="0-24"><li data-at="0-6">one</li><li data-at="6-24">two<ul data-at="14-24"><li data-at="14-24">nested</li></ul></li></ul><ol data-at="24-44"><li data-at="24-33">first</li><li data-at="33-44">second</li></ol><ul data-at="44-76"><li class="task" data-at="44-60"><span class="check" data-done="false"></span>open task</li><li class="task" data-at="60-76"><span class="check" data-done="true"></span>done task</li></ul>

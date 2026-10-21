@@ -1,0 +1,34 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "description": "Make a folder for documents, and give it an icon and a colour if they fit. If a folder by that name is already there it is used as it is — and without `inside`, one by that name is found however deep it sits, so a name you mean as a new top-level folder may hand you one inside another. An icon or colour you send changes how it looks; nothing is renamed, moved or deleted. Folders hold documents, not tasks; tasks go in lists.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "color": {
+        "description": "red, orange, amber, green, teal, blue, indigo, purple, pink, brown or gray",
+        "type": "string"
+      },
+      "icon": {
+        "description": "A single emoji, or one name from the drawn catalogue: home, work, money, study, travel, health, food, family, code and the like. An emoji is often the plainer choice",
+        "type": "string"
+      },
+      "inside": {
+        "description": "An existing folder to nest it in, by its name, its whole path or its id. Four deep at most",
+        "type": "string"
+      },
+      "name": {
+        "description": "A word or two, at most 40 characters. It is the folder's own name, never a path: send the whole path only to say where to nest it, and then every step but the last has to exist already",
+        "type": "string"
+      }
+    },
+    "required": [
+      "name"
+    ],
+    "type": "object"
+  },
+  "name": "folder",
+  "title": "Make a folder"
+}

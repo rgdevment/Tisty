@@ -35,3 +35,4 @@ ammonia = { workspace = true, optional = true }
 
 [dev-dependencies]
 serde_json.workspace = true
+insta.workspace = true

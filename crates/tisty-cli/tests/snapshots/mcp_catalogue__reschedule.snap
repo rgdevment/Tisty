@@ -1,0 +1,36 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "description": "Change the `date` or the `deadline` of a task an agent proposed, when what you learnt since moves it: the meeting slipped a week, the document arrived early. It reaches only what an agent filed — a day the person set is theirs, and naming one of their tasks is refused. Send null to take a day off. Nothing else about the task changes, and closing it is still never yours.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "date": {
+        "description": "The day it is to be done (2026-08-31), or null to take it off",
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "deadline": {
+        "description": "The day it is owed by, or null to take it off",
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "task": {
+        "description": "The task's id, as `find` or `propose` gave it",
+        "type": "string"
+      }
+    },
+    "required": [
+      "task"
+    ],
+    "type": "object"
+  },
+  "name": "reschedule",
+  "title": "Move the day of a task you filed"
+}

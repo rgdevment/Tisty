@@ -1,0 +1,32 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "description": "Rewrite a step that is not ticked, on a task you filed or one the person opened to agents. A ticked step is refused: `untick` it first if the tick was yours by mistake.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "step": {
+        "description": "The step, by its text as `read` shows it",
+        "type": "string"
+      },
+      "task": {
+        "description": "The task id",
+        "type": "string"
+      },
+      "text": {
+        "description": "What the step says now, at most 100 characters",
+        "type": "string"
+      }
+    },
+    "required": [
+      "task",
+      "step",
+      "text"
+    ],
+    "type": "object"
+  },
+  "name": "reword_step",
+  "title": "Rewrite an open step"
+}

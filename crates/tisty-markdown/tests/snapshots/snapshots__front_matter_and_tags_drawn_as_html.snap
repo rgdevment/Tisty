@@ -1,0 +1,5 @@
+---
+source: crates/tisty-markdown/tests/snapshots.rs
+expression: "page(\"---\\ntitle: Plan\\ntags: [work, home]\\n---\\n\\n# Plan\\n\\nA #hashtag in text.\\n\")"
+---
+<dl class="front" data-at="0-39"><div><dt>title</dt><dd>Plan</dd></div><div><dt>tags</dt><dd><span class="tag" data-tag="work">#work</span><span class="tag" data-tag="home">#home</span></dd></div></dl><h1 id="plan" data-at="40-47">Plan</h1><p data-at="48-68">A <span class="tag" data-tag="hashtag">#hashtag</span> in text.</p>

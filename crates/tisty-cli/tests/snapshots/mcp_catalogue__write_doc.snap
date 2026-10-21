@@ -1,0 +1,54 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "description": "Write something to keep and read again — a recipe, a procedure, a reference, a summary; work to do is a task (`propose`). In the Tisty language (`language` has it whole): Markdown from elsewhere is turned into it on the way in, the answer says what changed under `turned`, and only what has no way in is refused, naming it. Left alone it writes a new document; with `doc` and `print` it writes an existing one again, whole — pages the body does not name keep their lines, put back at the end — except, when compacting, the pages you marked, which leave the body. To change one passage, `edit_doc` does it without carrying the whole both ways. Before writing a new one, `find`: a subject that has a document gets `edit_doc`, or this with `doc` and `print`, not a second document; a title carrying a ticket, a date or «v2» is the sign you are writing one, and a title already taken is refused, naming it. With `compact` it writes a document back into the living shape the instructions give: needs `print`, keeps the old body for `restore_doc`, and the answer gives the `size` before and after and what was kept back. A document is tagged by writing #word in its own text, for what it is about: six is already a lot, past 64 the rest are dropped, and `tags` lists those in use.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "anyway": {
+        "description": "A new document whose title names the same subject as one already here is refused; this writes it all the same. Only when it truly is another subject",
+        "type": "boolean"
+      },
+      "body": {
+        "description": "The whole document. Its first line becomes its title. Each paragraph goes on one line, however long: in the Tisty language a single newline is a line break, so markdown wrapped at 80 columns reads broken in the middle of its sentences. Nothing checks this on the way in",
+        "type": "string"
+      },
+      "compact": {
+        "description": "With `doc` and `print`: this writing puts the document back in order — what holds today, the subject, the decisions, the history — rather than changing what it says. Call `rules` first: it says the order. In one whole write: before it, move what leaving pages hold and mark them; in it, today first, then the subject, the decisions and a history naming every link and file taken out — one lost without a name is refused. Only what Tisty confirms is stated as today; what you only read stays dated and unconfirmed. Refused on a document the person began unless `person_asked`. The window shows the person it was compacted, by whom and when, with one click to undo; until they decide, only one more whole `compact` of yours goes in",
+        "type": "boolean"
+      },
+      "doc": {
+        "description": "The id of a document to write again — an opaque name like `q7ntmzbm-0001`, not its title — replacing its body. Needs `print`. Left out, a new document is written instead",
+        "type": "string"
+      },
+      "folder": {
+        "description": "The existing folder its subject belongs in, by its name, its whole path or its id. Expected: `docs` says which exist, the `folder` tool makes a new one once the person agrees, and a name no folder has is refused here. Left out, it sits outside them all, and that needs a reason. Writing an existing document again with `doc` and `print` cannot take `folder`: `file_doc` moves one that is already here",
+        "type": "string"
+      },
+      "keep_compaction": {
+        "description": "Only when the person told you in this conversation to keep a compaction of this document that waits for their word: it is kept, and this write goes ahead",
+        "type": "boolean"
+      },
+      "page_of": {
+        "description": "The id of the document this one is a page of — an opaque name like `q7ntmzbm-0001`, not its title. The page is named at the end of that document, and where it is named is where it sits; `page_doc` with `after` puts that line somewhere else. A page follows that document everywhere and takes its folder, so `folder` is ignored, and it holds no pages of its own",
+        "type": "string"
+      },
+      "person_asked": {
+        "description": "With `compact`: the person asked you in this conversation to compact a document they began. Never otherwise",
+        "type": "boolean"
+      },
+      "print": {
+        "description": "The `print` `read_doc` gave you with the text you are working from. If the document has moved on since, nothing is written and you are told to read it again — so the person cannot lose what they wrote while you were thinking",
+        "type": "string"
+      }
+    },
+    "required": [
+      "body"
+    ],
+    "type": "object"
+  },
+  "name": "write_doc",
+  "title": "Write a document"
+}

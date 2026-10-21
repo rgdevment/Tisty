@@ -1,0 +1,32 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "description": "Rewrite a note in the journal of a task you filed or one the person opened to agents, named by the id `read` shows beside it. The new body replaces the old one whole; a note cannot be emptied.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "body": {
+        "description": "What the note says now, in the Tisty language",
+        "type": "string"
+      },
+      "note": {
+        "description": "The note's id, from `read` with `journal`",
+        "type": "string"
+      },
+      "task": {
+        "description": "The task id",
+        "type": "string"
+      }
+    },
+    "required": [
+      "task",
+      "note",
+      "body"
+    ],
+    "type": "object"
+  },
+  "name": "reword_note",
+  "title": "Rewrite a note in a task's journal"
+}

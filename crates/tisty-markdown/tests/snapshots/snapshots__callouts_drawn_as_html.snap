@@ -1,0 +1,5 @@
+---
+source: crates/tisty-markdown/tests/snapshots.rs
+expression: "page(\"> [!NOTE]\\n> Remember this.\\n\\n> [!WARNING] Careful **now**\\n\\n:::tip\\n\\nA colon callout.\\n\\n:::\\n\")"
+---
+<blockquote class="callout" data-callout="note" data-at="0-27"><p data-at="12-27">Remember this.</p></blockquote><blockquote class="callout" data-callout="warning" data-at="28-57"><p data-at="30-57">Careful <strong>now</strong></p></blockquote><blockquote class="callout" data-callout="tip" data-at="58-88"><p data-at="66-83">A colon callout.</p></blockquote>

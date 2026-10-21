@@ -1,0 +1,30 @@
+---
+source: crates/tisty-markdown/tests/snapshots.rs
+expression: outline(&doc)
+---
+[
+    Head {
+        level: 1,
+        said: "One",
+        id: "one",
+        at: 0..6,
+    },
+    Head {
+        level: 2,
+        said: "Two",
+        id: "two",
+        at: 7..14,
+    },
+    Head {
+        level: 3,
+        said: "Three",
+        id: "three",
+        at: 15..25,
+    },
+    Head {
+        level: 2,
+        said: "Four",
+        id: "four",
+        at: 26..34,
+    },
+]
