@@ -32,6 +32,17 @@ fn the_default_users_home_is_read_from_passwd() {
 }
 
 #[test]
+fn the_user_wsl_conf_names_wins_over_the_uid_the_registry_keeps() {
+    let conf = "[boot]\nsystemd=true\n\n[user]\ndefault=mario\n";
+    assert_eq!(user_in(conf).as_deref(), Some("mario"));
+    assert_eq!(user_in("[user]\ndefault=\n"), None);
+    assert_eq!(user_in("[boot]\ndefault=mario\n"), None);
+    let passwd = "root:x:0:0:root:/root:/bin/bash\nmario:x:1000:1000::/home/mario:/usr/bin/zsh\n";
+    assert_eq!(home_of(passwd, "mario").as_deref(), Some("/home/mario"));
+    assert_eq!(home_of(passwd, "nadie"), None);
+}
+
+#[test]
 fn roots_resolve_only_where_they_exist() {
     let place = Place {
         distro: Some("Ubuntu".into()),

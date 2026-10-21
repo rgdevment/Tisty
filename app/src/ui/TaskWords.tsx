@@ -19,6 +19,7 @@ import { usePartCards } from "./partcards";
 import Skeleton from "./Skeleton";
 import type { Asking } from "./slashing";
 import { useTaskAsks } from "./taskAsking";
+import { useWholeKeys } from "./wholeKeys";
 
 const Sheet = lazy(() => import("./Sheet"));
 
@@ -182,6 +183,8 @@ function Written({
   onTask?: (id: string) => void;
   onPart?: (title: string) => Promise<string | null>;
 }) {
+  // A task's page keeps its template's sections, so it is written by block alone.
+  const { allAsked } = useWholeKeys(true, false);
   const [text, setText] = useState(doc.body);
   const cards = usePartCards(task, text);
   const waiting = useRef<string | null>(null);
@@ -352,6 +355,7 @@ function Written({
         value={text}
         label={label}
         reading={doc.held}
+        allAsked={allAsked}
         inline
         shaping={shaping}
         onWrite={wrote}

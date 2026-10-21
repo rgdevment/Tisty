@@ -47,6 +47,89 @@ describe("writing a block in place", () => {
     page.remove();
   });
 
+  it("takes the whole document on a second Ctrl+A, once the block is chosen whole", () => {
+    const { page, one } = block();
+    const whole = vi.fn();
+    const editing = edited(
+      one,
+      "Hola",
+      () => {},
+      () => {},
+      undefined,
+      false,
+      false,
+      whole,
+    );
+    const press = () =>
+      editing.view.contentDOM.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "a", ctrlKey: true, bubbles: true, cancelable: true }),
+      );
+    press();
+    expect(whole).not.toHaveBeenCalled();
+    expect(editing.view.state.selection.main).toMatchObject({ from: 0, to: 4 });
+    press();
+    expect(whole).toHaveBeenCalledWith(true);
+    editing.leave();
+    page.remove();
+  });
+
+  it("keeps a second Ctrl+A in the block when nothing larger can be written", () => {
+    const { page, one } = block();
+    const editing = edited(
+      one,
+      "Hola",
+      () => {},
+      () => {},
+    );
+    const press = () =>
+      editing.view.contentDOM.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "a", ctrlKey: true, bubbles: true, cancelable: true }),
+      );
+    press();
+    press();
+    expect(editing.view.state.selection.main).toMatchObject({ from: 0, to: 4 });
+    editing.leave();
+    page.remove();
+  });
+
+  it("lays the keys under the block being written, not at the foot of the page", () => {
+    const { page, one } = block();
+    const after = document.createElement("p");
+    after.textContent = "Después.";
+    page.append(after);
+    const editing = edited(
+      one,
+      "Hola",
+      () => {},
+      () => {},
+    );
+    const hint = page.querySelector(".cm-hint");
+    expect(hint?.previousElementSibling?.classList.contains("editing")).toBe(true);
+    expect(hint?.nextElementSibling).toBe(after);
+    expect(hint?.classList.contains("under")).toBe(true);
+    editing.leave();
+    expect(page.querySelector(".cm-hint")).toBeNull();
+    page.remove();
+  });
+
+  it("hands back the person's words but never the ones taken in from outside", () => {
+    const { page, one } = block();
+    const changes: string[] = [];
+    const editing = edited(
+      one,
+      "Hola",
+      (text) => changes.push(text),
+      () => {},
+    );
+    editing.view.dispatch({ changes: { from: 4, insert: " mundo" }, userEvent: "outside" });
+    expect(changes).toEqual([]);
+    expect(editing.view.state.sliceDoc()).toBe("Hola mundo");
+    editing.view.dispatch({ changes: { from: 10, insert: "!" }, userEvent: "input.type" });
+    expect(changes).toEqual(["Hola mundo!"]);
+    editing.leave();
+    page.remove();
+  });
+
   it("is left with Escape", () => {
     const { page, one } = block();
     const left: string[] = [];

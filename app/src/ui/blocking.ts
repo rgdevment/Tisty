@@ -251,16 +251,18 @@ export const edited = (
   onLeave: (text: string, renamed: [string, string][]) => void,
   asking?: () => Asking | undefined,
   oneLine = false,
+  whole = false,
+  onWhole?: (all: boolean) => void,
 ): Editing => {
   const page = block.ownerDocument;
   const host = page.createElement("div");
-  host.className = "editing";
+  host.className = whole ? "editing whole" : "editing";
   // The block is written where it is read, so it keeps the room and the look the page gave it.
   const look = page.defaultView?.getComputedStyle(block);
   if (look) host.style.margin = look.margin;
   const first = block.parentElement?.firstElementChild;
   const heads = first === block || (first?.matches(".front") && first.nextElementSibling === block);
-  if (heads && block.matches("html:not(.untitled) .page > *:not(.front)")) {
+  if (!whole && heads && block.matches("html:not(.untitled) .page > *:not(.front)")) {
     host.classList.add("titled");
   }
   if (block.matches(".page > .front:first-child")) host.classList.add("fronted");
@@ -308,6 +310,19 @@ export const edited = (
                 return oneLine;
               },
             },
+            // A block already chosen whole is chosen past, so the next Ctrl+A takes the whole document.
+            {
+              key: "Mod-a",
+              run: (one) => {
+                const chosen = one.state.selection.main;
+                const length = one.state.doc.length;
+                if (whole || !onWhole || !length || chosen.from !== 0 || chosen.to !== length) {
+                  return false;
+                }
+                onWhole(true);
+                return true;
+              },
+            },
             ...pendingKeys,
             ...blockKeys,
             ...tableKeys,
@@ -326,13 +341,17 @@ export const edited = (
         syntaxHighlighting(inked),
         marked,
         slashing(asking),
-        EditorView.domEventHandlers({ paste: (event, view) => pasting(event, view, asking) }),
+        EditorView.domEventHandlers({
+          paste: (event, view) => pasting(event, view, asking),
+        }),
         dressing,
         EditorView.lineWrapping,
         boxed,
         oneLine ? labelled : [],
         EditorView.updateListener.of((update) => {
-          if (update.docChanged) onChange(update.state.sliceDoc());
+          // Words taken in from outside are already the sheet's; only the person's are handed back.
+          const theirs = update.transactions.every((one) => one.isUserEvent("outside"));
+          if (update.docChanged && !theirs) onChange(update.state.sliceDoc());
           if (update.transactions.length > 0) follow(update.view);
           // The editor's layout cannot be read inside its own update, so the bar moves on the next frame.
           if (update.selectionSet || update.docChanged)
@@ -343,16 +362,22 @@ export const edited = (
       ],
     }),
   });
-  const bar = barred(view);
+  const bar = barred(view, whole, onWhole && (() => onWhole(false)));
   follow = bar.follow;
-  const dock = docked(bar.bar, bar.hint, () => {
-    const chosen = view.state.selection.main;
-    if (!chosen.empty) return view.coordsAtPos(chosen.from)?.top ?? null;
-    // A task's bar rests at the top of its page; a document's rests over the block being written.
-    return page.documentElement.classList.contains("untitled")
-      ? null
-      : view.dom.getBoundingClientRect().top;
-  });
+  const dock = docked(
+    bar.bar,
+    bar.hint,
+    () => {
+      const chosen = view.state.selection.main;
+      if (!chosen.empty) return view.coordsAtPos(chosen.from)?.top ?? null;
+      // A task's bar rests at the top of its page; a document's rests over the block being written.
+      return page.documentElement.classList.contains("untitled")
+        ? null
+        : view.dom.getBoundingClientRect().top;
+    },
+    host,
+    whole,
+  );
   undock = dock.stop;
   replace = dock.place;
   view.focus();

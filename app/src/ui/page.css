@@ -118,6 +118,12 @@ html.sheeted .page > .sheet-turn {
 }
 .page > [data-at] {
   cursor: text;
+  transition:
+    background-color 0.9s ease,
+    box-shadow 0.9s ease;
+}
+.page.whole > :not(.editing, .cm-dock) {
+  display: none !important;
 }
 .page > .lately {
   border-radius: 6px;
@@ -1089,43 +1095,6 @@ kbd {
 .cm-bar-glyph svg .solid {
   fill: currentColor;
   stroke: none;
-}
-.cm-bar {
-  position: absolute;
-  z-index: 5;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 2px;
-  max-width: calc(100vw - 16px);
-  box-sizing: border-box;
-  padding: 3px;
-  border-radius: 8px;
-  border: 1px solid var(--tisty-hair);
-  background: color-mix(in srgb, var(--tisty-ink) 5%, var(--tisty-sheet));
-  box-shadow: 0 4px 12px var(--tisty-cast);
-  font-size: 12.5px;
-  line-height: 1;
-  white-space: nowrap;
-}
-.cm-bar button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-width: 26px;
-  height: 26px;
-  padding: 0 6px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--tisty-ink);
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-.cm-bar button:hover {
-  background: var(--tisty-hover);
 }
 .cm-pending-strong {
   font-weight: 640;

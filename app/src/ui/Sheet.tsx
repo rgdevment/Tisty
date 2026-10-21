@@ -1,3 +1,4 @@
+import { Transaction } from "@codemirror/state";
 import { save as intoFile } from "@tauri-apps/plugin-dialog";
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { copied, copyAttached, type Mend, viewWidget } from "../core";
@@ -6,7 +7,7 @@ import { t } from "../locales";
 import { DOC, partCard } from "../markdown";
 import type { Moved } from "../paging";
 import { named } from "../previews";
-import { reanchored, touches } from "./anchoring";
+import { reanchored, spanOf, touches } from "./anchoring";
 import { FORMATS, flipped } from "./barring";
 import { caretAt, type Editing, edited } from "./blocking";
 import { cardedAt, movedCard, putCard } from "./carded";
@@ -19,12 +20,12 @@ import Page from "./Page";
 import { charsAt, type Head, spanned, type Went } from "./paging";
 import type { PartCarded } from "./partcarding";
 import { closed, laid, parting } from "./parting";
-import type { Formatting, Menued } from "./quickly";
+import type { Chosen, Formatting, Menued } from "./quickly";
 import { filedAs, type Reshape, reshaped } from "./recarding";
 import Skeleton from "./Skeleton";
 import { ASIDE_MARGIN, settles } from "./seeking";
 import type { Sheet as SheetSize } from "./sheeting";
-import { type Asking, putBlock, stagesIn } from "./slashing";
+import { type Asking, pressed, putBlock, stagesIn } from "./slashing";
 import { stepLine, steppedTitle } from "./staging";
 import { widened } from "./tabling";
 
@@ -62,6 +63,12 @@ type Props = {
   readonly sheet?: SheetSize;
   readonly lately?: readonly [number, number] | null;
   readonly looking?: number;
+  // Only a document is written whole; a task's page keeps the sections of its template.
+  readonly wholeable?: boolean;
+  // Each new count opens the whole document, or leaves it when it is open.
+  readonly wholeAsked?: number;
+  // Each new count chooses every word: the block being written, or the page as read.
+  readonly allAsked?: number;
 };
 
 export default function Sheet(props: Readonly<Props>) {
@@ -74,6 +81,12 @@ export default function Sheet(props: Readonly<Props>) {
   const open = useRef<Editing | null>(null);
   // Follows the open block through words written around it from outside; false when they reach it.
   const follows = useRef<((was: string, now: string) => boolean) | null>(null);
+  // The blocks the whole-document editor covers, shown again as it is left.
+  const veiled = useRef<(() => void) | null>(null);
+  // Asked while the page was still being drawn again, so it opens once the new one is shown.
+  const pending = useRef<{ caret: number; all: boolean; turn: number } | null>(null);
+  // Where the caret stands in the whole text, so the whole document opens where the block was.
+  const caretNow = useRef<(() => number) | null>(null);
   const showing = useRef(value);
   showing.current = drawn;
   const latest = useRef(value);
@@ -83,6 +96,8 @@ export default function Sheet(props: Readonly<Props>) {
   const hanging = useRef(false);
   const [ready, setReady] = useState(false);
   const [turned, setTurned] = useState(0);
+  const turnedNow = useRef(0);
+  turnedNow.current = turned;
   const kept = useKeptHeight<HTMLDivElement>(file ?? label);
   const [more, setMore] = useState<Extract<Went, { kind: "more" }> | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; choices: Choice[] } | null>(null);
@@ -155,6 +170,7 @@ export default function Sheet(props: Readonly<Props>) {
   const onFile = useRef(file);
   useEffect(() => {
     if (file === onFile.current) return;
+    pending.current = null;
     // Another document keeps this sheet, so its page stays in view until the next one is drawn.
     onFile.current = file;
     left();
@@ -192,6 +208,7 @@ export default function Sheet(props: Readonly<Props>) {
     seed = "",
     read = "",
     asked?: Pick<Formatting, "said" | "open" | "close">,
+    whole?: { caret: number; all?: boolean },
   ) => {
     if (open.current) return left();
     // A click on the page still on screen while the next one is drawn names bytes of an older text.
@@ -235,6 +252,8 @@ export default function Sheet(props: Readonly<Props>) {
       (_, renamed) => {
         open.current = null;
         follows.current = null;
+        veiled.current?.();
+        veiled.current = null;
         // Only a block left by the person closes its gap: text from outside or another file is not its own.
         const ours = home === onFile.current && latest.current === mine;
         if (ours && !quiet.current && !fresh && !latest.current.slice(from, end).trim()) {
@@ -256,8 +275,29 @@ export default function Sheet(props: Readonly<Props>) {
         };
       },
       Boolean(said.current.inline && said.current.shaping),
+      Boolean(whole),
+      fixed || !said.current.wholeable
+        ? undefined
+        : (all) => queueMicrotask(() => (whole && !all ? left() : wholly(undefined, all))),
     );
     follows.current = (was, now) => {
+      // The whole document takes the words in place, the caret carried along, instead of ending.
+      const writing = (open.current as Editing | null)?.view;
+      if (whole && writing && !now.includes("\r\n")) {
+        const kept = writing.state.sliceDoc();
+        const changes = spanOf(kept, now.replace(/\n$/, ""));
+        end = now.length;
+        before = now;
+        mine = now;
+        // Not the person's to undo: Ctrl+Z takes back their words, never the agent's.
+        if (changes.from !== changes.to || changes.insert)
+          writing.dispatch({
+            changes,
+            userEvent: "outside",
+            annotations: Transaction.addToHistory.of(false),
+          });
+        return true;
+      }
       const moved = reanchored(was, now, from, end);
       if (!moved) return false;
       [from, end] = moved;
@@ -266,11 +306,80 @@ export default function Sheet(props: Readonly<Props>) {
       mine = now;
       return true;
     };
+    caretNow.current = () => from + (open.current?.view.state.selection.main.head ?? 0);
     open.current.kept(said.current.kept ?? true);
     const editing = open.current.view;
-    const caret = seed ? seed.length : caretAt(editing.state.sliceDoc(), read);
-    editing.dispatch({ selection: { anchor: caret }, scrollIntoView: true });
+    const caret = whole
+      ? whole.caret
+      : seed
+        ? seed.length
+        : caretAt(editing.state.sliceDoc(), read);
+    const length = editing.state.doc.length;
+    editing.dispatch({
+      selection: whole?.all ? { anchor: 0, head: length } : { anchor: Math.min(caret, length) },
+      scrollIntoView: true,
+    });
     if (asked) formatted(editing, read, asked);
+  };
+
+  const { wholeAsked, allAsked } = props;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `wholly` and `left` read only refs, so the count alone decides.
+  useEffect(() => {
+    if (!wholeAsked) return;
+    if (veiled.current) left();
+    else wholly();
+  }, [wholeAsked]);
+
+  useEffect(() => {
+    if (!allAsked) return;
+    const editing = open.current?.view;
+    if (editing) {
+      editing.focus();
+      editing.dispatch({ selection: { anchor: 0, head: editing.state.doc.length } });
+      return;
+    }
+    const page = shown.current;
+    const sheet = page?.document.querySelector(".page");
+    if (!page || !sheet) return;
+    page.focus();
+    const range = page.document.createRange();
+    range.selectNodeContents(sheet);
+    const chosen = page.getSelection();
+    chosen?.removeAllRanges();
+    chosen?.addRange(range);
+  }, [allAsked]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: each new drawing of the page may be the one a pending ask waits for.
+  useEffect(() => {
+    const waiting = pending.current;
+    // Only a drawing made after the ask holds the words; the old page is about to be thrown away.
+    if (!waiting || drawn !== latest.current || turned === waiting.turn) return;
+    pending.current = null;
+    wholly(waiting.caret, waiting.all);
+  }, [turned, drawn]);
+
+  // One editor over every word, laid where the blocks were, which are only hidden meanwhile.
+  const wholly = (asked?: number, all = false) => {
+    if (reading || fixed || !said.current.wholeable) return;
+    const caret = asked ?? (open.current ? caretNow.current?.() : undefined) ?? 0;
+    if (open.current) left();
+    const sheet = shown.current?.document.querySelector<HTMLElement>(".page");
+    // A block just left draws the page again, and an editor laid in the old one would go with it.
+    if (!sheet || showing.current !== latest.current) {
+      pending.current = { caret, all, turn: turnedNow.current };
+      return;
+    }
+    const fresh = sheet.ownerDocument.createElement("div");
+    sheet.prepend(fresh);
+    sheet.classList.add("whole");
+    veiled.current = () => {
+      sheet.classList.remove("whole");
+      fresh.remove();
+    };
+    block([0, latest.current.length], fresh, "", "", undefined, { caret, all });
+    if (open.current) return;
+    veiled.current();
+    veiled.current = null;
   };
 
   const formatted = (
@@ -289,6 +398,19 @@ export default function Sheet(props: Readonly<Props>) {
 
   const format = (asked: Formatting) => {
     if (!open.current) block(asked.at, asked.block, "", asked.read, asked);
+  };
+
+  const chose = ({ at, block: element, read, said: words, typed }: Chosen) => {
+    if (open.current) return;
+    block(at, element, "", read);
+    const editing = (open.current as Editing | null)?.view;
+    if (!editing) return;
+    const end = caretAt(editing.state.sliceDoc(), read + words);
+    // Words drawn across marks are not in the Markdown as read: the key still lands, at the caret.
+    if (editing.state.sliceDoc(end - words.length, end) === words)
+      editing.dispatch({ selection: { anchor: end - words.length, head: end } });
+    if (typed !== null)
+      editing.dispatch(editing.state.replaceSelection(typed), { userEvent: "input.type" });
   };
 
   const writingChoices = (editing: Editing["view"]): Choice[] => {
@@ -363,6 +485,15 @@ export default function Sheet(props: Readonly<Props>) {
         label: t("editBlock"),
         apart: true,
         onPick: () => block(under.at, under.element),
+      });
+    }
+    if (free && !fixed && said.current.wholeable) {
+      choices.push({
+        key: "whole",
+        label: t("editWholeDoc"),
+        hint: pressed("E"),
+        apart: !under,
+        onPick: () => wholly(under ? under.at[0] : 0),
       });
     }
     if (choices.length > 0) setMenu({ ...at, choices });
@@ -672,6 +803,7 @@ export default function Sheet(props: Readonly<Props>) {
           onCut={reading || !fixed ? undefined : cut}
           onWiden={reading || fixed ? undefined : widen}
           onFormat={reading || fixed ? undefined : format}
+          onChoose={reading || fixed ? undefined : chose}
           onMend={reading || fixed ? undefined : mended}
           onMenu={fixed ? undefined : menued}
           onMore={reading || fixed ? undefined : asked}

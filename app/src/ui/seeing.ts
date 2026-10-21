@@ -18,8 +18,25 @@ import { waiting } from "./pending";
 
 export const showMarks = StateEffect.define<boolean>();
 
+const SHOWN = "tisty.marksShown";
+
+// The marks stay as the person last left them, from one block and one day to the next.
+const shownBefore = (): boolean => {
+  try {
+    return localStorage.getItem(SHOWN) === "1";
+  } catch {
+    return false;
+  }
+};
+
+export const keepShown = (on: boolean) => {
+  try {
+    localStorage.setItem(SHOWN, on ? "1" : "0");
+  } catch {}
+};
+
 export const marksShown = StateField.define<boolean>({
-  create: () => false,
+  create: shownBefore,
   update: (was, done) => {
     for (const one of done.effects) if (one.is(showMarks)) return one.value;
     return was;
@@ -37,6 +54,21 @@ const MARKS = new Set([
   "LinkTitle",
 ]);
 const CALLOUT = /^(\s*>\s?)(\[!(note|tip|important|warning|caution)\])\s*$/i;
+const HIDDEN = new Set([...MARKS, "HeaderMark", "QuoteMark", "ListMark"]);
+
+// Whether showing every mark would change anything, wherever the caret happens to be.
+export const marked = (state: EditorState): boolean => {
+  if (owning().test(state.doc.toString()) || frontLines(state.doc.toString())) return true;
+  let found = false;
+  syntaxTree(state).iterate({
+    enter: (node) => {
+      if (found) return false;
+      found = HIDDEN.has(node.name);
+      return !found;
+    },
+  });
+  return found;
+};
 
 class Bullet extends WidgetType {
   eq() {

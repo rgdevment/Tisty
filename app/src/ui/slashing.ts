@@ -93,7 +93,14 @@ export const SLASHED: readonly Slashed[] = [
     put: { wrap: "~~" },
     keys: "Shift X",
   },
-  { key: "inline", label: "codeSpan", hint: "`", icon: "code", put: { wrap: "`" }, keys: "E" },
+  {
+    key: "inline",
+    label: "codeSpan",
+    hint: "`",
+    icon: "code",
+    put: { wrap: "`" },
+    keys: "Shift C",
+  },
   {
     key: "link",
     label: "linkIt",
