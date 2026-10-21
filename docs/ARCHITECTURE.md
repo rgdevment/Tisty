@@ -1019,7 +1019,8 @@ stateDiagram-v2
   It speaks RFC 4918 to any server, Nextcloud being one of many: Tisty keeps a
   `Tisty/` folder inside the one the person names, lists it folder by folder
   with `PROPFIND` (many servers refuse `Depth: infinity`), writes with
-  `If-None-Match: *` or `If-Match` and the ETag, moves with `MOVE`, and reads
+  `If-None-Match: *` or `If-Match` and the ETag (quoted alike whether a server
+  lists it with quotes or not), moves with `MOVE`, and reads
   the room left from `quota-available-bytes`. The password is sent by Basic
   over https only (a server on this machine is spared), never across a
   redirect, and is kept like a refresh token; `Password` hands it back as it is,

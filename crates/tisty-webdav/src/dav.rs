@@ -13,7 +13,7 @@ mod multistatus;
 mod wire;
 
 use multistatus::{ASKED, Found};
-use wire::{given, judged, refusal, strong, transfer_http, verb};
+use wire::{given, judged, quoted, refusal, strong, transfer_http, verb};
 
 use crate::{ASKED_WITHIN, DavAt, names};
 
@@ -124,7 +124,10 @@ impl WebDav {
 
     // The server's word for what landed; only a strong ETag in its answer saves asking again.
     fn landed(&self, name: &str, bytes: u64, answer: &Response) -> Result<Seen, Hitch> {
-        if let Some(etag) = header(answer, ETAG).filter(|etag| strong(etag)) {
+        if let Some(etag) = header(answer, ETAG)
+            .map(|etag| quoted(&etag))
+            .filter(|etag| strong(etag))
+        {
             return Ok(Seen {
                 name: name.to_string(),
                 bytes,
@@ -269,7 +272,7 @@ impl Remote for WebDav {
                 ));
             }
         };
-        let etag = header(&answer, ETAG);
+        let etag = header(&answer, ETAG).map(|etag| quoted(&etag));
         Self::poured(name, answer, skipped, into)?;
         match (etag, bytes) {
             (Some(revision), Some(bytes)) => Ok(Seen {

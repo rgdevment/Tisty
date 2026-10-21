@@ -1,6 +1,6 @@
 use tisty_carrier::Hitch;
 
-use super::{given, refusal, strong};
+use super::{given, quoted, refusal, strong};
 
 #[test]
 fn each_refusal_reads_as_what_the_round_does_with_it() {
@@ -29,4 +29,11 @@ fn only_a_strong_etag_can_guard_a_write() {
 #[test]
 fn a_bigger_transfer_is_given_longer() {
     assert!(given(1 << 30) > given(1 << 10));
+}
+
+#[test]
+fn an_etag_reads_the_same_with_or_without_its_quotes() {
+    assert_eq!(quoted("abc-1"), "\"abc-1\"");
+    assert_eq!(quoted("\"abc-1\""), "\"abc-1\"");
+    assert_eq!(quoted(" W/\"abc\" "), "W/\"abc\"");
 }

@@ -21,7 +21,7 @@ impl Found {
     /// Its ETag as given, or, from a server that keeps none, its size and date: a revision either way.
     pub(super) fn revision(&self) -> String {
         match &self.etag {
-            Some(etag) => etag.clone(),
+            Some(etag) => super::wire::quoted(etag),
             None => format!(
                 "modified:{}:{}",
                 self.modified.as_deref().unwrap_or_default(),

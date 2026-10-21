@@ -69,3 +69,10 @@ fn the_question_asks_only_what_tells_a_file_apart_and_the_room_left() {
     assert!(ASKED.contains("quota-available-bytes"));
     assert!(!ASKED.contains("owner"));
 }
+
+#[test]
+fn an_etag_listed_without_quotes_reads_as_the_header_gives_it() {
+    let said = r#"<d:multistatus xmlns:d="DAV:"><d:response><d:href>/a</d:href><d:propstat><d:prop><d:getetag>abc-1</d:getetag></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>"#;
+
+    assert_eq!(read(said).unwrap()[0].revision(), "\"abc-1\"");
+}

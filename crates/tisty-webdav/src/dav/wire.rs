@@ -150,7 +150,16 @@ pub(super) fn refusal(status: u16, wait: Option<Duration>) -> Hitch {
     }
 }
 
-/// Only a strong ETag can be sent back in `If-Match`; a weak one, or none, is checked by asking first.
+/// Some servers leave the quotes off an ETag in a listing and put them on in a header, so one revision reads one way.
+pub(crate) fn quoted(etag: &str) -> String {
+    let etag = etag.trim();
+    match etag.starts_with('"') || etag.starts_with("W/") {
+        true => etag.to_string(),
+        false => format!("\"{etag}\""),
+    }
+}
+
+/// Only a strong ETag can be sent back in `If-Match`; a weak one, or none, refuses the write.
 pub(super) fn strong(revision: &str) -> bool {
     revision.starts_with('"')
 }
