@@ -1,0 +1,30 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "description": "Leave what you worked out about a document, so the next agent — or you, next week — does not have to read it again to know whether it is the one. A `summary` of what it says, `notes` for what somebody working with it should know. Kept on this machine only: it never syncs, it is not part of the document, and the person does not see it. Stored against the text as it reads now, so a later write marks it as describing an older version. Write it after reading a long document, never instead of reading one, and write what the document says rather than what you would like it to say: the next agent will act on this without opening the document.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "doc": {
+        "description": "The document's id, as `docs` hands it back — an opaque name like `q7ntmzbm-0001`, not its title",
+        "type": "string"
+      },
+      "notes": {
+        "description": "What the next agent should know about working with it — which section holds what, what is out of date, what it is missing",
+        "type": "string"
+      },
+      "summary": {
+        "description": "What the document says and what a reader would come to it for, in a few lines",
+        "type": "string"
+      }
+    },
+    "required": [
+      "doc"
+    ],
+    "type": "object"
+  },
+  "name": "sum_up",
+  "title": "Say what a document is about"
+}

@@ -1,0 +1,22 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "description": "The headings of a document with the lines each one spans and how many characters it holds, how long the whole is, its `print`, and for a document with pages a row per page with its title, length and sections, in reading order — a few hundred tokens instead of the bodies. Ask for this first when a document is long or when you only mean to change one part of it: with the outline you know which `section` to read and what it costs, and with the print you can write into it without having read it at all. It also says which other documents point at this one, which is what you want to know before putting it away: those links go on pointing at it in the archive. `by` says whether an agent or the person began it and each page, `alike` names documents elsewhere whose title names the same subject as this one or one of its pages, and `repeated` the headings written in more than one page — the signs that it wants compacting.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "doc": {
+        "description": "The document's id, as `docs` hands it back — an opaque name like `q7ntmzbm-0001`, not its title",
+        "type": "string"
+      }
+    },
+    "required": [
+      "doc"
+    ],
+    "type": "object"
+  },
+  "name": "outline_doc",
+  "title": "What is in a document"
+}

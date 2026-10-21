@@ -1,0 +1,27 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "description": "Write a document out as markdown files in a folder the person can reach, with its pages numbered in reading order and its attachments beside them. Nothing here changes and nothing is deleted: an export is a copy. Use it to hand work to something outside Tisty.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "doc": {
+        "description": "The document's id, as `docs` hands it back — an opaque name like `q7ntmzbm-0001`, not its title",
+        "type": "string"
+      },
+      "into": {
+        "description": "A folder that exists on this machine, which an export of this document has not been taken to already: one is made inside it, named after the title, under Downloads, Documents, Pictures, Desktop or the temporary folder",
+        "type": "string"
+      }
+    },
+    "required": [
+      "doc",
+      "into"
+    ],
+    "type": "object"
+  },
+  "name": "export_doc",
+  "title": "Take a document out to a folder on this machine"
+}

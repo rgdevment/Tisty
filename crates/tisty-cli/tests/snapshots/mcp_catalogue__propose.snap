@@ -1,0 +1,92 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "description": "Propose a task — something to do; what will be read again is a document (`write_doc`). Give it a `title`. Several read from one thread go together in `tasks`, each judged on its own, so a bad one does not sink the rest. A step is one line of a checklist; work that is several tasks with one end — a move, a release, a plan — goes in `parts`, one level deep, rather than packed into steps. A ticket's progress, its reviews, pull requests and audits are this task's page and its parts, never documents. Tisty tags it #agent by itself.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "again": {
+        "description": "Only when the person asks you in this conversation to do again what was already proposed from this source and closed since: files a new task despite the source being known. Say in the description how the last one ended. Never for a source whose task is still open",
+        "type": "boolean"
+      },
+      "date": {
+        "description": "The day it is meant to be done (2026-08-31)",
+        "type": "string"
+      },
+      "deadline": {
+        "description": "The day it actually runs out (2026-08-31)",
+        "type": "string"
+      },
+      "description": {
+        "description": "What you read, in the Tisty language",
+        "type": "string"
+      },
+      "list": {
+        "description": "The existing list it belongs in, by name; `lists` says which. Expected: left out, it lands in the inbox, and that needs a reason",
+        "type": "string"
+      },
+      "part_of": {
+        "description": "The id of a task you may work on — one an agent filed, or one the person opened to agents — that this one is a part of",
+        "type": "string"
+      },
+      "parts": {
+        "description": "The tasks the work is made of, each shaped like a single one with its own steps; the task around them is finished when they are. One level, at most 32 here — add more later with `part_of`",
+        "items": {
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "priority": {
+        "description": "Only if someone said so. Leave it out otherwise",
+        "enum": [
+          "do",
+          "decide",
+          "delegate",
+          "minor"
+        ],
+        "type": "string"
+      },
+      "remind": {
+        "description": "When to ring, each like 2026-08-30T20:00. Only for what happens once at a set time and cannot be caught up on — an appointment, a flight — set the evening before; never for work any day will do, nor for what repeats",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "source": {
+        "description": "Where you read it — a message id, a thread link",
+        "type": "string"
+      },
+      "steps": {
+        "description": "A checklist, each step at most 100 characters; what needs more is a part",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "tags": {
+        "description": "The subjects it is about, one word each in the person's plain words; capitals and accents decide nothing. Six is already a lot, and a word that merely appears in the title is no subject. Reuse what `tags` lists when it means the same",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "tasks": {
+        "description": "Several at once, each shaped like a single one. Left out when proposing one",
+        "items": {
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "title": {
+        "description": "What has to be done, in a line",
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "name": "propose",
+  "title": "Propose a task"
+}

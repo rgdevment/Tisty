@@ -1,0 +1,44 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "description": "Everything written down to consult — not the words a task keeps with it, which come with the task — the one written most recently first, with the folder each one sits in, whether it was put away, whether it is locked, and for each one what it is about: how many words it holds, how many sections, and the words it leans on. That is enough to pick which document to open without opening any of them; the `print` of the one you go on to edit comes back from `read_doc` or `outline_doc`. Ask for it before writing, so you do not write again what is already kept.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "after": {
+        "description": "Skip this many. With `total` higher than what came back, ask again with `after` set to how many you have",
+        "type": "integer"
+      },
+      "folder": {
+        "description": "Only the documents that sit in this one folder, by its name, its whole path or its id. Pages are left out — they are kept where their document is — and what the folders below it hold is theirs, not this one's",
+        "type": "string"
+      },
+      "folders": {
+        "description": "Send every folder back too, with its id, path, icon and how much it holds. The answer already names them all in its text, so ask for this only when a name is not enough",
+        "type": "boolean"
+      },
+      "limit": {
+        "description": "At most 200, 50 by default",
+        "type": "integer"
+      },
+      "page_of": {
+        "description": "Only the pages of this one document, by its id, in reading order",
+        "type": "string"
+      },
+      "scope": {
+        "description": "Defaults to either",
+        "enum": [
+          "open",
+          "archive",
+          "either"
+        ],
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "name": "docs",
+  "title": "The documents and the folders"
+}

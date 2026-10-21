@@ -1,0 +1,38 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "description": "Read one markdown file from disk and keep it here as a document, turning on the way in what the Tisty language has no word for into what it can say, and saying what it changed. Every file the text points at beside it — pictures, video, PDFs — is copied in too, and the text is pointed at Tisty's own copies: nothing is left pointing outside. What cannot come in has its link taken out rather than left dangling. The files on disk are left untouched. Nothing is turned away for what it holds: a document carrying what looks like a live credential comes in as written, with a warning at the top for the person to decide about. A task's page brought back hands the task its properties and its words, and makes no document. Takes `folder` and `page_of` like `write_doc`. One file per call — walk an export folder yourself and call it for each, so the person sees what happened to each one.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "anyway": {
+        "description": "Bring it in although a document on the same subject is here already — only when this really is another subject; otherwise update that one",
+        "type": "boolean"
+      },
+      "folder": {
+        "description": "The existing folder its subject belongs in, by its name, its whole path or its id. Expected: left out, it sits outside them all, and that needs a reason",
+        "type": "string"
+      },
+      "page_of": {
+        "description": "The id of the document this becomes a page of",
+        "type": "string"
+      },
+      "path": {
+        "description": "A markdown file under Downloads, Documents, Pictures, Desktop or the temporary folder",
+        "type": "string"
+      },
+      "title": {
+        "description": "A title to put at the top, for a file whose first line is not one. Left out, the file name is used",
+        "type": "string"
+      }
+    },
+    "required": [
+      "path"
+    ],
+    "type": "object"
+  },
+  "name": "import_doc",
+  "title": "Bring a markdown file on this machine in as a document"
+}

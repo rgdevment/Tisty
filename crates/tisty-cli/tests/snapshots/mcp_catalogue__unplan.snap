@@ -1,0 +1,37 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "description": "Take off steps that are not ticked, on a task you filed or one the person opened to agents: a step that no longer applies, or one written twice. With `to` they are not dropped but handed on, added after the steps of the task they belong on. One ticked step among them and nothing is taken off.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "step": {
+        "description": "One step, by its text — the same as `steps` with one entry",
+        "type": "string"
+      },
+      "steps": {
+        "description": "The steps to take off, each by its text as `read` shows it — capitals, accents and the spaces at either end decide nothing. One of `steps` or `step` has to come with the call",
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "task": {
+        "description": "The task id",
+        "type": "string"
+      },
+      "to": {
+        "description": "The id of another task you may work on, open and not said done, to add these steps to after its own",
+        "type": "string"
+      }
+    },
+    "required": [
+      "task"
+    ],
+    "type": "object"
+  },
+  "name": "unplan",
+  "title": "Take open steps off a task"
+}

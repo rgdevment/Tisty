@@ -1,0 +1,43 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "description": "Add to a document that exists, at the end or under a heading you name. What is already written stays exactly as it is — you are adding, never rewriting, so nothing the person wrote can be lost and no `print` is needed. For what is chronological by nature — a log, minutes, the dated notes on a task's page. For a fact that changed, `edit_doc` the passage that says the old one: adding the new fact under the old leaves the document saying both. With `under` you can put a paragraph in the right part of a long document without reading any of it; `outline_doc` tells you which headings there are. The answer says how many characters it `grew` by; with `echo` it hands back the lines around what you added. A task's page takes it too, named by the task's id, on a task an agent filed or one the person opened to agents: what you add goes under the assistant's own notes, dated and signed, never among their words. On a task's page, `replace` writes the assistant's notes again whole instead of adding.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "body": {
+        "description": "Markdown to add. A blank line is put between this and what was there",
+        "type": "string"
+      },
+      "doc": {
+        "description": "The document's id, as `docs` hands it back — an opaque name like `q7ntmzbm-0001`, not its title — or a task's id, to add to that task's page",
+        "type": "string"
+      },
+      "echo": {
+        "description": "Hand back the lines around the change as well, instead of reading the document again to see it",
+        "type": "boolean"
+      },
+      "keep_compaction": {
+        "description": "Only when the person told you in this conversation to keep a compaction of this document that waits for their word: it is kept, and this write goes ahead",
+        "type": "boolean"
+      },
+      "replace": {
+        "description": "Only with a task's id in `doc`: the assistant's notes on its page are written again, whole, as `body` — one dated digest of state, decisions, what was ruled out and references. The rest of the page stays as it is, a box in it never becomes a step, and what it replaced is kept for `restore_doc` with the task's id",
+        "type": "boolean"
+      },
+      "under": {
+        "description": "A heading to add under, written as it reads. It goes at the end of what that heading holds, before the next one of its rank. Left out, it goes at the end of the document",
+        "type": "string"
+      }
+    },
+    "required": [
+      "doc",
+      "body"
+    ],
+    "type": "object"
+  },
+  "name": "append_doc",
+  "title": "Add to a document, or to a task's page"
+}
