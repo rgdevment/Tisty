@@ -111,7 +111,7 @@ describe("what the cloud's state says", () => {
     expect(of("deferred-offline")?.said).toBe("stateOffline");
     expect(of("deferred-budget")?.said).toBe("stateBudget");
     expect(of("deferred-limit")?.said).toBe("stateWait");
-    expect(of("deferred-busy")?.said).toBe("stateWait");
+    expect(of("deferred-busy"), "another round of this computer's, not the cloud").toBeNull();
     expect(of("cloudNotNow")?.said).toBe("stateWait");
     expect(of("deferred-troubled")?.said).toBe("stateTroubled");
     expect(of("deferred-unsent")?.said).toBe("stateUnsent");

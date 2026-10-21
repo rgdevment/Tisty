@@ -165,6 +165,27 @@ describe("carrying on its own", () => {
     expect(ways.some((one) => one === "push" || one === undefined)).toBe(true);
   });
 
+  it("tries again soon when the cloud was held by another round of this computer's", async () => {
+    let first = true;
+    ipc.answer = (cmd) => {
+      if (cmd === "sync_state") return Promise.resolve({ ...state });
+      if (!first) return Promise.resolve({ carried: "none", undecided: [] });
+      first = false;
+      return Promise.resolve({
+        carried: "none",
+        undecided: [],
+        deferred: { reason: "busy", left: 0 },
+      });
+    };
+    carried = carrying(() => {});
+    await settle();
+    expect(sent("sync_now").length).toBe(1);
+
+    await vi.advanceTimersByTimeAsync(5_000);
+
+    expect(sent("sync_now").length).toBe(2);
+  });
+
   it("brings it home the moment the window is seen again, focus or no focus", async () => {
     let shown = "hidden";
     const seen = vi

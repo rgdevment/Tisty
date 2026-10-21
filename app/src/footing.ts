@@ -31,7 +31,6 @@ const SAID: Record<string, Said> = {
   cloudElsewhere: "lost",
   cloudNotNow: "wait",
   "deferred-limit": "wait",
-  "deferred-busy": "wait",
   "deferred-troubled": "troubled",
   "deferred-unsent": "troubled",
   "deferred-offline": "offline",
