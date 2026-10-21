@@ -27,6 +27,7 @@ import { known } from "../glyphs";
 import { barred, blockKeys, flipped } from "./barring";
 import { docked } from "./docking";
 import { coded, owning } from "./formatting";
+import { latelyMarked } from "./lately";
 import { HUES } from "./paging";
 import { pendingFormat, pendingKeys, settle } from "./pending";
 import { visual } from "./seeing";
@@ -337,6 +338,7 @@ export const edited = (
         ]),
         markdown({ base: markdownLanguage }),
         visual,
+        latelyMarked,
         pendingFormat,
         syntaxHighlighting(inked),
         marked,

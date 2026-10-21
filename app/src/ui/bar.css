@@ -75,8 +75,7 @@
 }
 /* Laid on the desk beside the sheet, it sits where it is put. */
 .cm-bar.docked {
-  position: static;
-  max-width: 100%;
+  position: fixed;
 }
 .cm-bar.folded > :not(.cm-bar-fold) {
   display: none;

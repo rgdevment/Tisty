@@ -524,7 +524,7 @@ describe("the sheet in the main window", () => {
     expect(ipc.cut).toEqual([[BODY.length, BODY.length]]);
   });
 
-  it("leaves the whole document when words from outside come with Windows line ends", async () => {
+  it("takes words from outside into the whole document with Windows line ends too", async () => {
     const sheet = (value: string, n: number) => (
       <Sheet value={value} label="Compras" onWrite={() => {}} wholeable wholeAsked={n} />
     );
@@ -532,7 +532,8 @@ describe("the sheet in the main window", () => {
     await loaded(await shown(view.container));
     view.rerender(sheet(BODY, 1));
     view.rerender(sheet("# Compras\r\n\r\nleche\r\n", 1));
-    expect(ipc.left).toBe(1);
+    expect(ipc.left).toBe(0);
+    expect(ipc.cut.length).toBeGreaterThan(0);
   });
 
   it("opens the block over words picked on the page and writes the key pressed over them", async () => {

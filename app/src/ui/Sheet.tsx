@@ -7,13 +7,14 @@ import { t } from "../locales";
 import { DOC, partCard } from "../markdown";
 import type { Moved } from "../paging";
 import { named } from "../previews";
-import { reanchored, spanOf, touches } from "./anchoring";
+import { inEditor, reanchored, spanOf, touches } from "./anchoring";
 import { FORMATS, flipped } from "./barring";
 import { caretAt, type Editing, edited } from "./blocking";
 import { cardedAt, movedCard, putCard } from "./carded";
 import type { Carded } from "./carding";
 import { wrapped } from "./formatting";
 import { useKeptHeight } from "./heights";
+import { markLately } from "./lately";
 import Menu, { type Choice } from "./Menu";
 import { mended as mendedText } from "./mending";
 import Page from "./Page";
@@ -70,6 +71,8 @@ type Props = {
   // Each new count chooses every word: the block being written, or the page as read.
   readonly allAsked?: number;
 };
+
+const MARKED_FOR = 4000;
 
 export default function Sheet(props: Readonly<Props>) {
   const { file, value, label, reading = false, above, below } = props;
@@ -283,19 +286,31 @@ export default function Sheet(props: Readonly<Props>) {
     follows.current = (was, now) => {
       // The whole document takes the words in place, the caret carried along, instead of ending.
       const writing = (open.current as Editing | null)?.view;
-      if (whole && writing && !now.includes("\r\n")) {
+      if (whole && writing) {
         const kept = writing.state.sliceDoc();
-        const changes = spanOf(kept, now.replace(/\n$/, ""));
+        const span = spanOf(kept, now.replace(/\r?\n$/, ""));
+        const changes = {
+          from: inEditor(kept, span.from),
+          to: inEditor(kept, span.to),
+          insert: span.insert,
+        };
         end = now.length;
         before = now;
         mine = now;
         // Not the person's to undo: Ctrl+Z takes back their words, never the agent's.
-        if (changes.from !== changes.to || changes.insert)
+        if (changes.from !== changes.to || changes.insert) {
+          const to = changes.from + inEditor(span.insert, span.insert.length);
           writing.dispatch({
             changes,
+            effects: markLately.of({ from: changes.from, to }),
             userEvent: "outside",
             annotations: Transaction.addToHistory.of(false),
           });
+          // The mark fades with the page's own, and goes once its fading is done.
+          setTimeout(() => {
+            if (open.current?.view === writing) writing.dispatch({ effects: markLately.of(null) });
+          }, MARKED_FOR);
+        }
         return true;
       }
       const moved = reanchored(was, now, from, end);
@@ -306,14 +321,21 @@ export default function Sheet(props: Readonly<Props>) {
       mine = now;
       return true;
     };
-    caretNow.current = () => from + (open.current?.view.state.selection.main.head ?? 0);
+    caretNow.current = () => {
+      const writing = open.current?.view;
+      const head = writing?.state.selection.main.head ?? 0;
+      // Back to the text's own count, where a Windows line end takes two places.
+      const ends =
+        writing && latest.current.includes("\r\n") ? writing.state.doc.lineAt(head).number - 1 : 0;
+      return from + head + ends;
+    };
     open.current.kept(said.current.kept ?? true);
     const editing = open.current.view;
     const caret = whole
-      ? whole.caret
+      ? inEditor(latest.current, whole.caret)
       : seed
         ? seed.length
-        : caretAt(editing.state.sliceDoc(), read);
+        : inEditor(editing.state.sliceDoc(), caretAt(editing.state.sliceDoc(), read));
     const length = editing.state.doc.length;
     editing.dispatch({
       selection: whole?.all ? { anchor: 0, head: length } : { anchor: Math.min(caret, length) },
@@ -405,10 +427,13 @@ export default function Sheet(props: Readonly<Props>) {
     block(at, element, "", read);
     const editing = (open.current as Editing | null)?.view;
     if (!editing) return;
-    const end = caretAt(editing.state.sliceDoc(), read + words);
+    const text = editing.state.sliceDoc();
+    const end = caretAt(text, read + words);
     // Words drawn across marks are not in the Markdown as read: the key still lands, at the caret.
-    if (editing.state.sliceDoc(end - words.length, end) === words)
-      editing.dispatch({ selection: { anchor: end - words.length, head: end } });
+    if (text.slice(end - words.length, end) === words)
+      editing.dispatch({
+        selection: { anchor: inEditor(text, end - words.length), head: inEditor(text, end) },
+      });
     if (typed !== null)
       editing.dispatch(editing.state.replaceSelection(typed), { userEvent: "input.type" });
   };
@@ -750,7 +775,7 @@ export default function Sheet(props: Readonly<Props>) {
   useEffect(() => {
     if (!looking) return;
     const sheet = room.current;
-    const found = shown.current?.document.querySelector<HTMLElement>(".page > .lately");
+    const found = shown.current?.document.querySelector<HTMLElement>(".page > .lately, .cm-lately");
     const frame = shown.current?.frameElement?.getBoundingClientRect();
     if (!sheet || !found || !frame) return;
     const above = found.getBoundingClientRect().top + frame.top;

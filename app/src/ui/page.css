@@ -122,6 +122,19 @@ html.sheeted .page > .sheet-turn {
     background-color 0.9s ease,
     box-shadow 0.9s ease;
 }
+@keyframes lately-fades {
+  0%,
+  70% {
+    background: var(--tisty-accent-soft);
+  }
+  100% {
+    background: transparent;
+  }
+}
+.cm-lately {
+  border-radius: 3px;
+  animation: lately-fades 4s ease forwards;
+}
 .page.whole > :not(.editing, .cm-dock) {
   display: none !important;
 }
