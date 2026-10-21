@@ -1126,8 +1126,11 @@ pub fn went_back(session: &mut Session, id: &str) -> Answer<tisty_core::docs::Do
     };
     session.mind_body(id, &tisty_core::docs::settled(&whole));
     session.corpus.forget(id);
+    let title = tisty_core::docs::titled(&whole);
+    let book = book_of(session, id, &title);
     let hand = signing(&session.state);
     session.retell(id, &whole, hand);
+    named_anew(session, book, id, &title);
     // The body is back already; a mark left standing is a lesser wrong than reporting the undo as failed.
     if let Some(doc) = undone
         && let Err(e) = session.commit(Op::DocUncompacted { id: doc })
@@ -1199,9 +1202,28 @@ pub fn doc_write(
     }
     session.mind_body(&id, &tisty_core::docs::settled(&body));
     session.corpus.forget(&id);
+    let book = book_of(&session, &id, &title);
     let hand = signing(&session.state);
     session.retell(&id, &body, hand);
+    named_anew(&mut session, book, &id, &title);
     Ok(Kept { id, title, print })
+}
+
+// Asked before the page's new heading is told, while the state still knows its old one.
+fn book_of(session: &Session, page: &str, title: &str) -> Option<String> {
+    tisty_core::docs::book_to_relabel(&session.state, page, title).map(|up| up.file.clone())
+}
+
+// Left unminded on purpose: an editor holding the book's old body is then told it moved.
+fn named_anew(session: &mut Session, book: Option<String>, page: &str, title: &str) {
+    let Some(up) = book else {
+        return;
+    };
+    if let Ok(Some(now)) = tisty_core::docs::relabel_page(&session.paths.docs(), &up, page, title) {
+        session.corpus.forget(&up);
+        let hand = signing(&session.state);
+        session.retell(&up, &now, hand);
+    }
 }
 
 fn unwritten(e: tisty_core::Error) -> Refusal {
@@ -1250,10 +1272,12 @@ pub fn doc_merge(
     let body = tisty_core::docs::settled(&whole);
     session.mind_body(&id, &body);
     session.corpus.forget(&id);
+    let title = tisty_core::docs::titled(&body);
+    let book = book_of(&session, &id, &title);
     let hand = signing(&session.state);
     session.retell(&id, &body, hand);
+    named_anew(&mut session, book, &id, &title);
     let print = tisty_core::docs::print_of_text(&body);
-    let title = tisty_core::docs::titled(&body);
     Ok(Some(Woven { body, print, title }))
 }
 

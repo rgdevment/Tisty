@@ -116,6 +116,7 @@ pub(in crate::mcp) fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
             let loose = left_loose(&state, &which, &was, &whole);
             let twice = named_twice(&state, &which, &whole);
             let settled = retold(&state, &mut store, &which, &whole).is_ok();
+            let anew = super::named_anew(paths, &state, &mut store, &which, &whole);
             Ok(told(
                 format!(
                     "Changed that passage in {:?}, {}. What it was is kept beside the \
@@ -123,7 +124,7 @@ pub(in crate::mcp) fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
                     tisty_core::docs::titled(&whole),
                     by_how_much(&was, &whole),
                     loose_words(&state, &loose),
-                    twice_words(&state, &twice),
+                    twice_words(&state, &twice) + &anew,
                     if settled { "" } else { UNSETTLED },
                     wrapped(new)
                 ),

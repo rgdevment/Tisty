@@ -9,7 +9,7 @@ pub(super) mod reading;
 pub(super) mod writing;
 
 use serde_json::{Value, json};
-use tisty_core::{Paths, State};
+use tisty_core::{Paths, State, Store};
 
 use super::Refused;
 use super::asked::text;
@@ -112,4 +112,30 @@ pub(super) fn said_docs(many: &[String], listed: bool) -> Value {
         true => json!(many),
         false => json!(many.first().cloned().unwrap_or_default()),
     }
+}
+
+// A page that took a new heading shows it where its document lists it, and the agent is told.
+pub(super) fn named_anew(
+    paths: &Paths,
+    state: &State,
+    store: &mut Store,
+    page: &str,
+    whole: &str,
+) -> String {
+    let title = tisty_core::docs::titled(whole);
+    let Some(up) = tisty_core::docs::book_to_relabel(state, page, &title) else {
+        return String::new();
+    };
+    let Ok(Some(now)) = tisty_core::docs::relabel_page(&paths.docs(), &up.file, page, &title)
+    else {
+        return String::new();
+    };
+    let unsettled = match super::retold(state, store, &up.file, &now) {
+        Ok(()) => "",
+        Err(_) => " That document's record settles the next time it is written or opened.",
+    };
+    format!(
+        " Its line in {:?} now shows the new title, so a print you hold of that one is old.{unsettled}",
+        tisty_core::docs::titled(&now)
+    )
 }

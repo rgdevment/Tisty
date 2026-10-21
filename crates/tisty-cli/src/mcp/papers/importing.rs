@@ -218,7 +218,13 @@ fn titled(args: &Value, at: &std::path::Path, whole: &str) -> String {
             "{}{rest}",
             tisty_markdown::front::titled_as(&front, &said).unwrap_or(front.clone())
         ),
-        (Some(said), _) => format!(
+        // The file's own heading gives way to the title asked for, rather than sitting under it.
+        (Some(said), true) => {
+            let body = super::super::asked::past_blank_lines(rest);
+            let after = body.split_once('\n').map_or("", |(_, more)| more);
+            format!("{front}# {said}\n{after}")
+        }
+        (Some(said), false) => format!(
             "{front}# {said}\n\n{}",
             super::super::asked::past_blank_lines(rest)
         ),

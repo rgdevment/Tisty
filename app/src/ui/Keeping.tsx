@@ -208,111 +208,114 @@ export default function Keeping({
       )}
       {carrying.shown}
       <div data-tauri-drag-region className="h-9 shrink-0" />
-      <div className="scroller mx-auto w-full max-w-[560px] px-6 pb-12">
-        <h2 className="mb-3.5 text-[21px] font-semibold">{t("keeping")}</h2>
+      {/* The whole width scrolls, so the wheel moves the page wherever the pointer is. */}
+      <div className="scroller min-h-0 flex-1">
+        <div className="mx-auto w-full max-w-[560px] px-6 pb-12">
+          <h2 className="mb-3.5 text-[21px] font-semibold">{t("keeping")}</h2>
 
-        <Tabs tab={tab} setTab={setTab} />
+          <Tabs tab={tab} setTab={setTab} />
 
-        {busy !== null && (tab === "general" || tab === "sync" || tab === "data") && (
-          <p className="text-[11.5px] text-faint">{fill("waitFor", t(NAMED[busy]))}</p>
-        )}
+          {busy !== null && (tab === "general" || tab === "sync" || tab === "data") && (
+            <p className="text-[11.5px] text-faint">{fill("waitFor", t(NAMED[busy]))}</p>
+          )}
 
-        {tab === "general" && (
-          <General
-            kept={kept}
-            setKept={setKept}
-            wake={wake}
-            setWake={setWake}
-            keys={keys}
-            setKeys={setKeys}
-            busy={busy}
-            said={said}
-            trouble={trouble}
-            run={run}
-            tell={setSaid}
-            remember={remember}
-            signs={signs}
-            onChanged={onChanged}
-            onGreet={onGreet}
-            onDoc={onDoc}
-          />
-        )}
+          {tab === "general" && (
+            <General
+              kept={kept}
+              setKept={setKept}
+              wake={wake}
+              setWake={setWake}
+              keys={keys}
+              setKeys={setKeys}
+              busy={busy}
+              said={said}
+              trouble={trouble}
+              run={run}
+              tell={setSaid}
+              remember={remember}
+              signs={signs}
+              onChanged={onChanged}
+              onGreet={onGreet}
+              onDoc={onDoc}
+            />
+          )}
 
-        {tab === "sync" && (
-          <Sync
-            state={state}
-            kept={kept}
-            audit={audit}
-            setAudit={setAudit}
-            freeing={freeing}
-            setFreeing={setFreeing}
-            busy={busy}
-            busySince={busySince}
-            said={said}
-            trouble={trouble}
-            run={run}
-            tell={setSaid}
-            fail={setTrouble}
-            carry={(way) => void carryNow(way)}
-            pickFolder={pickFolder}
-            onMove={(resume) => setMoving({ resume })}
-            remember={remember}
-          />
-        )}
+          {tab === "sync" && (
+            <Sync
+              state={state}
+              kept={kept}
+              audit={audit}
+              setAudit={setAudit}
+              freeing={freeing}
+              setFreeing={setFreeing}
+              busy={busy}
+              busySince={busySince}
+              said={said}
+              trouble={trouble}
+              run={run}
+              tell={setSaid}
+              fail={setTrouble}
+              carry={(way) => void carryNow(way)}
+              pickFolder={pickFolder}
+              onMove={(resume) => setMoving({ resume })}
+              remember={remember}
+            />
+          )}
 
-        {tab === "data" && (
-          <Yours
-            state={state}
-            holds={holds}
-            build={build}
-            busy={busy}
-            said={said}
-            trouble={trouble}
-            run={run}
-            fail={setTrouble}
-            onPack={onPack}
-            onUnpack={onUnpack}
-            tell={setSaid}
-          />
-        )}
+          {tab === "data" && (
+            <Yours
+              state={state}
+              holds={holds}
+              build={build}
+              busy={busy}
+              said={said}
+              trouble={trouble}
+              run={run}
+              fail={setTrouble}
+              onPack={onPack}
+              onUnpack={onUnpack}
+              tell={setSaid}
+            />
+          )}
 
-        {tab === "agents" && (
-          <Agents
-            busy={busy}
-            said={said}
-            trouble={trouble}
-            quietly={quietly}
-            tell={setSaid}
-            fail={setTrouble}
-            binary={reach?.binary}
-            known={known}
-          />
-        )}
+          {tab === "agents" && (
+            <Agents
+              busy={busy}
+              said={said}
+              trouble={trouble}
+              quietly={quietly}
+              tell={setSaid}
+              fail={setTrouble}
+              binary={reach?.binary}
+              known={known}
+            />
+          )}
 
-        {tab === "upkeep" && (
-          <Upkeep
-            audit={audit}
-            setAudit={setAudit}
-            build={build}
-            state={state}
-            freeing={freeing}
-            setFreeing={setFreeing}
-            freeDays={freeDays}
-            setFreeDays={setFreeDays}
-            busy={busy}
-            busySince={busySince}
-            said={said}
-            trouble={trouble}
-            run={run}
-            quietly={quietly}
-            tell={setSaid}
-            fail={setTrouble}
-            onSync={() => setTab("sync")}
-            onDoc={onDoc}
-            seen={seen}
-            setSeen={setSeen}
-          />
-        )}
+          {tab === "upkeep" && (
+            <Upkeep
+              audit={audit}
+              setAudit={setAudit}
+              build={build}
+              state={state}
+              freeing={freeing}
+              setFreeing={setFreeing}
+              freeDays={freeDays}
+              setFreeDays={setFreeDays}
+              busy={busy}
+              busySince={busySince}
+              said={said}
+              trouble={trouble}
+              run={run}
+              quietly={quietly}
+              tell={setSaid}
+              fail={setTrouble}
+              onSync={() => setTab("sync")}
+              onDoc={onDoc}
+              seen={seen}
+              setSeen={setSeen}
+            />
+          )}
+        </div>
       </div>
     </main>
   );

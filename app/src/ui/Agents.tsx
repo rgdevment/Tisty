@@ -165,7 +165,7 @@ export default function Agents({ busy, said, trouble, quietly, tell, fail, binar
         </button>
 
         <p className="mt-4 text-[12.5px] font-semibold">{t("agentsByLine")}</p>
-        <pre className="mt-1 overflow-x-auto rounded-[10px] border border-hair px-3 py-2 font-mono text-[11.5px] text-soft">
+        <pre className="mt-1 rounded-[10px] border border-hair px-3 py-2 font-mono text-[11.5px] whitespace-pre-wrap text-soft [overflow-wrap:anywhere]">
           {oneLine(binary, t("agentsCalled"))}
         </pre>
         <p className="mt-1 text-[11.5px] text-faint">{t("agentsWhichever")}</p>

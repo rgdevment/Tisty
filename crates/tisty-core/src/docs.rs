@@ -7,6 +7,7 @@ use crate::{Error, Result, event::DeviceId, store::write_atomic};
 mod cards;
 mod carried;
 mod prints;
+mod relabel;
 mod text;
 
 pub use cards::{Card, Gist, card_of, cards_of, forget_stray_cards, sighted};
@@ -16,6 +17,7 @@ pub use carried::{
     keep_carried, kept_before, print_of, print_of_text, read_as_printed, read_before, read_carried,
 };
 pub use prints::{Prints, Seen};
+pub use relabel::{another_name, book_to_relabel, relabel_page, relabeled};
 use text::{Fencing, as_written, unspanned, wordless};
 pub use text::{
     Heading, ends_fenced, fencing, headings, lines_between, marked, outlined, section_lines,

@@ -218,7 +218,15 @@ pub(super) fn pointed_at(body: &str) -> (usize, usize) {
         if bytes.get(at + 1 + shut + 1) != Some(&b'(') {
             continue;
         }
-        match at > 0 && bytes[at - 1] == b'!' {
+        // A card of a page or a task is neither: it places the thing itself, counted on its own.
+        let target = body[at + 1 + shut + 2..]
+            .trim_start()
+            .trim_start_matches('<');
+        let drawn_here = at > 0 && bytes[at - 1] == b'!';
+        if drawn_here && target.starts_with("tisty:") {
+            continue;
+        }
+        match drawn_here {
             true => drawn += 1,
             false => followed += 1,
         }

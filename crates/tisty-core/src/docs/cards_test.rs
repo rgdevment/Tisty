@@ -251,3 +251,16 @@ fn a_document_that_is_gone_stops_being_remembered() {
         "and what it said is forgotten"
     );
 }
+
+#[test]
+fn a_page_card_is_counted_as_neither_a_picture_nor_a_link() {
+    let card = Card::read_from(
+        "# Plan\n\n![la foto](foto.png)\n\n![Una página](tisty:doc/abcd-0001)\n\nver [otra](tisty:doc/abcd-0002)\n",
+    );
+
+    assert_eq!(
+        card.pictures, 1,
+        "the page's card places a page, it draws nothing"
+    );
+    assert_eq!(card.links, 1, "a mention of a document is still a link");
+}

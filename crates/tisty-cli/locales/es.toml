@@ -7,3 +7,6 @@ secret-warning = "Aquí hay algo que parece una credencial de verdad, no un ejem
 secret-a-key = "una clave privada"
 retired = "La línea de comandos de tisty se retiró: abre la ventana de Tisty para tus tareas y documentos. Solo queda `tisty mcp`, la puerta que usa tu asistente."
 version = "tisty {version}"
+help-usage = "Uso: tisty mcp"
+help-commands = "Órdenes:"
+help-mcp = "la puerta que usa tu asistente, por la entrada y la salida estándar"
