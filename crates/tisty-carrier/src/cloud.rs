@@ -613,6 +613,9 @@ impl Carrier for Cloud {
     }
 
     fn brought(&self, here: &Here, reference: &str) -> Result<Brought, Trouble> {
+        // A body names an attachment by its leaf; the shelf, the log and the cloud name it whole.
+        let whole = tisty_core::attach::canonical(reference);
+        let reference = whole.as_deref().unwrap_or(reference);
         let state = crate::shift::logged(here);
         if !shelf::named_well(reference)
             || tisty_sync::buried_now(&state, &here.data).contains(reference)
