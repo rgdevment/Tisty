@@ -251,5 +251,64 @@
         "said": "every update Tisty offers comes signed, and Tisty checks it before installing it."
       }
     ]
+  },
+  {
+    "version": "1.31.3",
+    "headline": {
+      "es": "Edita el documento completo y ve al instante lo que escribe tu asistente",
+      "en": "Edit the whole document, and see what your assistant writes the moment it writes"
+    },
+    "es": [
+      {
+        "title": "Ves lo que escribe tu asistente",
+        "said": "si un asistente cambia el documento que tienes abierto, lo ves al momento y queda marcado unos segundos, sin perder nada de lo que estabas escribiendo. «Ver de nuevo qué cambió» lo vuelve a marcar y «Volver a lo que decía antes» deshace su último cambio."
+      },
+      {
+        "title": "El documento completo, de una vez",
+        "said": "pulsa Ctrl+E o el botón ⤢ de la barra para editar todo el documento en un solo lugar, y vuelve a leer con Ctrl+E o Esc. Dentro de un bloque, Ctrl+A dos veces lo selecciona entero."
+      },
+      {
+        "title": "Escribe sobre lo que seleccionas",
+        "said": "selecciona unas palabras y escribe: el bloque se abre y las reemplaza. Ctrl+A selecciona el documento apenas lo abres, y arrastrar una selección más allá del bloque ya no lo cierra."
+      },
+      {
+        "title": "Tus asistentes, también en Linux",
+        "said": "Configuración › Asistentes reconoce unos 27 asistentes y los conecta sin tocar el resto de su configuración, también los que tienes en Ubuntu u otro Linux dentro de Windows."
+      },
+      {
+        "title": "Adjuntos repetidos, uno solo",
+        "said": "Tisty junta los archivos que quedaron guardados dos veces, te los muestra antes y mantiene cada enlace que los nombra."
+      },
+      {
+        "title": "Detalles que se notan",
+        "said": "la barra muestra «Mostrar todas las marcas» solo cuando hay alguna y recuerda tu elección, el código en línea ahora es Ctrl+Shift+C, y los tamaños cerca de un cambio de unidad se leen bien."
+      }
+    ],
+    "en": [
+      {
+        "title": "See what your assistant writes",
+        "said": "when an assistant changes the document you have open, you see it at once, marked for a few seconds, and nothing you were writing is lost. «See again what changed» marks it again and «Put back what it said before» undoes its last change."
+      },
+      {
+        "title": "The whole document at once",
+        "said": "press Ctrl+E or the ⤢ button on the bar to edit the whole document in one place, and go back to reading with Ctrl+E or Esc. Inside a block, Ctrl+A twice chooses all of it."
+      },
+      {
+        "title": "Type over what you pick",
+        "said": "pick some words and type: the block opens and replaces them. Ctrl+A chooses the document as soon as you open it, and dragging a selection past the block no longer closes it."
+      },
+      {
+        "title": "Your assistants, on Linux too",
+        "said": "Settings › Assistants knows some 27 assistants and connects them without touching the rest of their settings, including the ones in Ubuntu or another Linux inside Windows."
+      },
+      {
+        "title": "Attachments kept twice, kept once",
+        "said": "Tisty joins files that were saved twice, shows them to you first and keeps every link that names them."
+      },
+      {
+        "title": "Small things you will notice",
+        "said": "the bar offers «Show every mark» only when there is one and remembers your choice, inline code is now Ctrl+Shift+C, and sizes near the next unit read right."
+      }
+    ]
   }
 ]
