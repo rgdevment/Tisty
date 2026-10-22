@@ -443,6 +443,14 @@ fn long_blocks_of_every_kind_read_draw_and_print_in_proportion() {
         many(&|n| format!("::star:: :tada: {n} ")),
         many(&|n| format!("![a{n}](x{n}.png) ")),
         many(&|n| format!("see [[note {n}]] ")),
+        many(&|n| format!("at https://x.example/{n} ")),
+        format!(
+            "![{}](x.png)",
+            many(&|n| format!(
+                "alt {n} `c`
+"
+            ))
+        ),
     ];
 
     let started = std::time::Instant::now();

@@ -45,3 +45,15 @@ fn what_lies_outside_skips_every_silent_range_once_in_order() {
         Vec::<Range<usize>>::new()
     );
 }
+
+#[test]
+fn overlapping_ranges_fold_into_one_and_leave_the_same_outside() {
+    let ranges = vec![0..100, 10..12, 50..51, 120..130, 125..140, 200..210];
+    let folded = Nearby::merged(ranges.clone());
+
+    assert_eq!(folded.ranges(), &[0..100, 120..140, 200..210]);
+    assert_eq!(
+        outside(0..250, folded.near(&(0..250))),
+        outside(0..250, Nearby::of(ranges).near(&(0..250)))
+    );
+}

@@ -180,7 +180,6 @@ fn repeated(text: &str, skip: usize, blocks: &[Block], found: &[Block]) -> Vec<B
                 .collect(),
         )
     });
-    let claimed = |at: usize| held.holds(at);
     let mut out = Vec::new();
     let mut at = skip;
     for line in text[skip..].split_inclusive('\n') {
@@ -188,7 +187,7 @@ fn repeated(text: &str, skip: usize, blocks: &[Block], found: &[Block]) -> Vec<B
         at += line.len();
         let said = line.trim();
         // The cheap look first: asking every block about every line made a long document quadratic.
-        if !said.starts_with('[') || said.starts_with("[^") || claimed(start) {
+        if !said.starts_with('[') || said.starts_with("[^") || held.holds(start) {
             continue;
         }
         let Some((label, to)) = said[1..].split_once("]:") else {

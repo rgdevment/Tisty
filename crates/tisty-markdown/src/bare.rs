@@ -4,13 +4,9 @@ use crate::ranges::{Nearby, outside};
 use crate::{Mark, Span};
 
 pub fn fold(spans: &mut Vec<Span>, text: &str) {
-    let linked = Nearby::of(
-        spans
-            .iter()
-            .filter(|one| matches!(one.mark, Mark::Link { .. } | Mark::Image { .. }))
-            .map(|one| one.at.clone())
-            .collect(),
-    );
+    let linked = Nearby::of_marks(spans, |mark| {
+        matches!(mark, Mark::Link { .. } | Mark::Image { .. })
+    });
     let mut found = Vec::new();
     for run in runs(spans, text) {
         if linked.holding(&run) {

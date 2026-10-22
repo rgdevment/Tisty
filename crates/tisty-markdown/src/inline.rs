@@ -6,6 +6,7 @@ use crate::ranges::{Nearby, outside};
 use crate::{Mark, Span};
 
 pub fn inline(spans: &[Span], text: &str, out: &mut String) {
+    debug_assert!(spans.is_sorted_by_key(|one| one.at.start));
     let atoms: Vec<&Span> = spans.iter().filter(|one| atom(&one.mark)).collect();
     let mut items: Vec<(usize, Item)> = atoms
         .iter()
@@ -13,7 +14,7 @@ pub fn inline(spans: &[Span], text: &str, out: &mut String) {
         .collect();
     let mut silent: Vec<Range<usize>> = atoms.iter().map(|one| one.at.clone()).collect();
     silent.extend(walls(spans, text));
-    let silent = Nearby::of(silent);
+    let silent = Nearby::merged(silent);
     for span in spans.iter().filter(|one| one.mark == Mark::Text) {
         for piece in outside(span.at.clone(), silent.near(&span.at)) {
             items.push((piece.start, Item::Words(piece)));
@@ -221,7 +222,6 @@ pub(crate) fn code_words(said: &str) -> String {
 
 // A block's spans are sorted by start, so only those from the image's start on are looked at.
 pub(crate) fn alt(image: &Span, spans: &[Span], text: &str) -> String {
-    debug_assert!(spans.is_sorted_by_key(|one| one.at.start));
     let first = spans.partition_point(|one| one.at.start < image.at.start);
     spans[first..]
         .iter()

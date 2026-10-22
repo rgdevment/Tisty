@@ -169,7 +169,7 @@ fn runs(spans: &[Span], text: &str) -> Vec<Value> {
         .iter()
         .map(|one| (one.at.start, Some(*one), one.at.clone()))
         .collect();
-    let silent = Nearby::of(silent);
+    let silent = Nearby::merged(silent);
     for span in spans.iter().filter(|one| one.mark == Mark::Text) {
         for piece in outside(span.at.clone(), silent.near(&span.at)) {
             items.push((piece.start, None, piece));
@@ -177,6 +177,7 @@ fn runs(spans: &[Span], text: &str) -> Vec<Value> {
     }
     items.sort_by_key(|(at, ..)| *at);
     let kept = paired(spans, text);
+    debug_assert!(spans.is_sorted_by_key(|one| one.at.start));
     let containers: Vec<&Span> = spans.iter().filter(|one| holds(&one.mark)).collect();
     // Walked once beside the items, keeping only the marks still open, as the page does.
     let (mut next, mut open) = (0, Vec::<&Span>::new());

@@ -1,5 +1,7 @@
 use std::ops::Range;
 
+use crate::{Mark, Span};
+
 /// Ranges sorted once, so each piece of a long paragraph asks only those around it instead of all of them.
 pub(crate) struct Nearby {
     ranges: Vec<Range<usize>>,
@@ -17,6 +19,29 @@ impl Nearby {
             })
             .collect();
         Self { ranges, reach }
+    }
+
+    pub(crate) fn of_marks(spans: &[Span], kept: impl Fn(&Mark) -> bool) -> Self {
+        Self::of(
+            spans
+                .iter()
+                .filter(|one| kept(&one.mark))
+                .map(|one| one.at.clone())
+                .collect(),
+        )
+    }
+
+    // Overlaps folded into one: what lies outside them is the same, and a long range no longer makes every later look start from it.
+    pub(crate) fn merged(ranges: Vec<Range<usize>>) -> Self {
+        let mut sorted = Self::of(ranges).ranges;
+        let mut folded: Vec<Range<usize>> = Vec::with_capacity(sorted.len());
+        for one in sorted.drain(..) {
+            match folded.last_mut() {
+                Some(last) if one.start <= last.end => last.end = last.end.max(one.end),
+                _ => folded.push(one),
+            }
+        }
+        Self::of(folded)
     }
 
     pub(crate) fn ranges(&self) -> &[Range<usize>] {

@@ -10,13 +10,7 @@ pub fn fold(spans: &mut Vec<Span>, text: &str) {
         return;
     }
     // An icon carries its own `:name:`, which is the icon's and not a second, emoji one.
-    let icons = crate::ranges::Nearby::of(
-        spans
-            .iter()
-            .filter(|one| matches!(one.mark, Mark::Icon { .. }))
-            .map(|one| one.at.clone())
-            .collect(),
-    );
+    let icons = crate::ranges::Nearby::of_marks(spans, |mark| matches!(mark, Mark::Icon { .. }));
     found.retain(|one| !icons.holding(&one.at));
     spans.extend(found);
 }

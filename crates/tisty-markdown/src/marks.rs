@@ -19,13 +19,7 @@ pub fn named(spans: &mut Vec<Span>, text: &str) {
     if !text[from..to].contains("[[") {
         return;
     }
-    let words = Nearby::of(
-        spans
-            .iter()
-            .filter(|one| one.mark == Mark::Text)
-            .map(|one| one.at.clone())
-            .collect(),
-    );
+    let words = Nearby::of_marks(spans, |mark| *mark == Mark::Text);
     let mut found = Vec::new();
     let mut at = from;
     while let Some(open) = text[at..to].find("[[").map(|step| at + step) {
@@ -78,25 +72,18 @@ fn mark_lines(block: &mut Block, text: &str, filed: &HashSet<String>) {
         .max()
         .unwrap_or(first);
     let mut from = text[..first].rfind('\n').map_or(0, |at| at + 1);
-    let of = |kept: fn(&Mark) -> bool| {
-        Nearby::of(
-            block
-                .spans
-                .iter()
-                .filter(|one| kept(&one.mark))
-                .map(|one| one.at.clone())
-                .collect(),
-        )
-    };
     // Built only once a filed tag turns up, so a block without one pays nothing for them.
-    let words = std::cell::LazyCell::new(|| of(|mark| *mark == Mark::Text));
-    let refs = std::cell::LazyCell::new(|| of(|mark| matches!(mark, Mark::Ref { .. })));
+    let words =
+        std::cell::LazyCell::new(|| Nearby::of_marks(&block.spans, |mark| *mark == Mark::Text));
+    let refs = std::cell::LazyCell::new(|| {
+        Nearby::of_marks(&block.spans, |mark| matches!(mark, Mark::Ref { .. }))
+    });
     let mut found = Vec::new();
     while from < last {
         let to = text[from..].find('\n').map_or(text.len(), |at| from + at);
         for (at, name) in crate::tags::spots_as_written(&text[from..to]) {
             let at = from + at.start..from + at.end;
-            if filed.contains(&name) && written(&words, &at) && !referred(&refs, &at) {
+            if filed.contains(&name) && written(&words, &at) && !refs.holding(&at) {
                 found.push(Span {
                     mark: Mark::Tag { name },
                     at,
@@ -114,9 +101,4 @@ fn mark_lines(block: &mut Block, text: &str, filed: &HashSet<String>) {
 // Plain words from end to end: nothing in code, html or the markup between two words.
 fn written(words: &Nearby, at: &Range<usize>) -> bool {
     at.clone().all(|byte| words.holds(byte))
-}
-
-#[cfg(feature = "tags")]
-fn referred(refs: &Nearby, at: &Range<usize>) -> bool {
-    refs.holding(at)
 }
