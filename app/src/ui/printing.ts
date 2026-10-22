@@ -57,9 +57,25 @@ export const pdfOf = async (bodies: string[], sheet: PaperSheet): Promise<Blob> 
   return new Blob([new Uint8Array(await pagePdf(page, paper))], { type: "application/pdf" });
 };
 
-// Where the sheets on screen turn, read off the page as it is drawn.
-export const turnsIn = (page: Document | null | undefined): string[] =>
-  Array.from(page?.querySelectorAll<HTMLElement>(".page > .sheet-turn") ?? []).flatMap((one) => {
-    const at = (one.nextElementSibling as HTMLElement | null)?.dataset.at;
+export interface Seen {
+  /** The blocks that open a sheet on screen, by where they sit in the text. */
+  readonly turns: string[];
+  /** The folded blocks left open on screen, which print open where they are. */
+  readonly opened: string[];
+}
+
+const placed = (all: Iterable<Element | null>): string[] =>
+  Array.from(all).flatMap((one) => {
+    const at = (one as HTMLElement | null)?.dataset.at;
     return at ? [at] : [];
   });
+
+// The page as it is drawn on screen: where its sheets turn and which folds are open.
+export const seenIn = (page: Document | null | undefined): Seen => ({
+  turns: placed(
+    Array.from(page?.querySelectorAll(".page > .sheet-turn") ?? []).map(
+      (one) => one.nextElementSibling,
+    ),
+  ),
+  opened: placed(page?.querySelectorAll(".page > details[open]") ?? []),
+});

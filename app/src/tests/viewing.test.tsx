@@ -43,7 +43,7 @@ vi.mock("../ui/printing", () => ({
   stampOf: (_: string, __: string, chosen: { credited: boolean }) =>
     Promise.resolve({ credited: chosen.credited }),
   factsCard: () => Promise.resolve(undefined),
-  turnsIn: () => [],
+  seenIn: () => ({ turns: [], opened: [] }),
 }));
 
 vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({ writeText: () => Promise.resolve() }));

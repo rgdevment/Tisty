@@ -88,16 +88,20 @@ export type PaperSheet = {
   readonly leaf: Paper;
   readonly landscape?: boolean;
   readonly stamp?: Stamp;
-  /** The blocks of the first body that open a sheet on screen, by where they sit in its text. */
+  /** How the first body is seen on screen: where its sheets turn, which folds are open. */
   readonly turns?: readonly string[];
+  readonly opened?: readonly string[];
 };
 
-// Paper turns where the screen's sheets turn, so what is read there is what is printed.
-const turnedAt = (drawn: string, turns: readonly string[] = []): string => {
-  if (!turns.length) return drawn;
+// Paper turns where the screen's sheets turn and folds what the screen folds, so what is read there is what is printed.
+const asSeen = (drawn: string, { turns = [], opened = [] }: PaperSheet): string => {
+  if (!turns.length && !opened.length) return drawn;
   const held = new DOMParser().parseFromString(`<body>${drawn}</body>`, "text/html").body;
-  for (const one of held.children)
-    if (turns.includes((one as HTMLElement).dataset.at ?? "")) one.classList.add("turned");
+  for (const one of held.children) {
+    const at = (one as HTMLElement).dataset.at ?? "";
+    if (turns.includes(at)) one.classList.add("turned");
+    if (one.tagName === "DETAILS" && opened.includes(at)) one.setAttribute("open", "");
+  }
   return held.innerHTML;
 };
 
@@ -116,7 +120,7 @@ export const webPage = async (
   sheet?: PaperSheet,
 ): Promise<string> => {
   const drawn = await Promise.all(bodies.map(docDrawn));
-  if (drawn.length) drawn[0] = turnedAt(drawn[0], sheet?.turns);
+  if (drawn.length && sheet) drawn[0] = asSeen(drawn[0], sheet);
   const page = new DOMParser().parseFromString(shell(drawn.join("<hr>")), "text/html");
   page.documentElement.classList.remove("dark");
   const light = lit();

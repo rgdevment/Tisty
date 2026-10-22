@@ -52,7 +52,7 @@ vi.mock("../ui/printing", () => ({
     return Promise.resolve({ credited: chosen.credited });
   },
   factsCard: () => Promise.resolve(undefined),
-  turnsIn: () => [],
+  seenIn: () => ({ turns: [], opened: [] }),
 }));
 
 vi.mock("../ui/Sheet", () => ({

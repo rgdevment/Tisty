@@ -16,7 +16,7 @@ import { leftBehind } from "./leftBehind";
 import { adopt, fill, t } from "./locales";
 import { saidPlainly } from "./refusal";
 import Menu from "./ui/Menu";
-import { turnsIn } from "./ui/printing";
+import { seenIn } from "./ui/printing";
 import { pageFor } from "./ui/sheets";
 import { leaveAsHtml, leaveAsWord } from "./ui/useLeaving";
 import { type Acts, choicesFor, darkNow, keysFor, PLAIN, ZOOMS } from "./ui/viewer/acting";
@@ -118,7 +118,7 @@ export default function Viewing() {
     leaf,
     paper,
     named,
-    turns: () => turnsIn(drawn.current?.document),
+    seen: () => seenIn(drawn.current?.document),
     onFail: fail,
   });
 

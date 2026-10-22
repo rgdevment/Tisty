@@ -44,7 +44,7 @@ import PdfTicks from "./PdfTicks";
 import Picking, { type Picked } from "./Picking";
 import type { Head } from "./paging";
 import { usePreviewing } from "./previewing";
-import { pdfOf, STAMPING, type Stamp, type Stamping, stampOf, turnsIn } from "./printing";
+import { pdfOf, STAMPING, type Stamp, type Stamping, seenIn, stampOf } from "./printing";
 import Ribbon, { Onward } from "./Ribbon";
 import { acrossOf, PAPER, pageFor, sheetFor } from "./sheets";
 import type { Asking } from "./slashing";
@@ -641,8 +641,8 @@ export default function Docs({
   const blobOf = async (stamp: Stamp): Promise<Blob | null> => {
     const read = await book();
     if (!read) return null;
-    const turns = turnsIn(drawn.current?.document);
-    return pdfOf([body, ...read.written], { leaf, landscape, stamp, turns });
+    const seen = seenIn(drawn.current?.document);
+    return pdfOf([body, ...read.written], { leaf, landscape, stamp, ...seen });
   };
 
   const see = async (chosen: Stamping) => {
