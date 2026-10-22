@@ -43,6 +43,7 @@ webview2-com = "0.39"
 tisty-carrier = { workspace = true, features = ["net"] }
 tisty-google.workspace = true
 tisty-onedrive.workspace = true
+tisty-webdav.workspace = true
 tisty-core.workspace = true
 tisty-markdown = { workspace = true, features = ["default"] }
 tisty-nl.workspace = true

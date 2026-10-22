@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { followedTo, letGoUnused } from "../cloudState";
-import { CLOUDS, cloudOf } from "../clouds";
+import { CLOUDS, cloudOf, typed } from "../clouds";
 import { useStuck } from "../coming";
 import {
   type Connected,
@@ -15,6 +15,7 @@ import { fill, said, t, type Word } from "../locales";
 import { saidPlainly } from "../refusal";
 import CloudHealth from "./CloudHealth";
 import CloudMark from "./CloudMark";
+import DavForm from "./DavForm";
 
 interface Props {
   clouds?: string[];
@@ -53,6 +54,7 @@ function Points({ title, points }: { title: string; points: string[] }) {
 export default function Clouding({ clouds, busy, onTrouble, onBack, onDone, onConnected }: Props) {
   const followed = followedTo(useStuck());
   const [waiting, setWaiting] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [held, setHeld] = useState(false);
   const [connected, setConnected] = useState<Connected>();
   const [weight, setWeight] = useState<number>();
@@ -111,10 +113,21 @@ export default function Clouding({ clouds, busy, onTrouble, onBack, onDone, onCo
       .catch(() => undefined);
   }, [connected, onConnected]);
 
-  const stuck = busy || held || waiting || !picked;
+  const stuck = busy || held || waiting || checking || !picked;
+
+  const signedIn = (account: Connected) => {
+    if (gone.current) return letGoUnused(account);
+    unused.current = account;
+    setConnected(account);
+  };
 
   const connect = (provider: string) => {
     if (stuck) return;
+    // A server signed in to with a password typed here asks for it below, and no browser opens.
+    if (typed(provider)) {
+      onTrouble(undefined);
+      return setPicked(provider);
+    }
     onTrouble(undefined);
     setPicked(provider);
     setWaiting(true);
@@ -122,8 +135,7 @@ export default function Clouding({ clouds, busy, onTrouble, onBack, onDone, onCo
     cloudConnect(provider)
       .then((account) => {
         if (gone.current) return mine === asking ? letGoUnused(account) : undefined;
-        unused.current = account;
-        setConnected(account);
+        signedIn(account);
       })
       .catch((e) => !gone.current && e?.code !== "cloudDropped" && onTrouble(saidPlainly(e)))
       .finally(() => !gone.current && mine === asking && setWaiting(false));
@@ -226,7 +238,9 @@ export default function Clouding({ clouds, busy, onTrouble, onBack, onDone, onCo
               <span className="block text-[13px] font-medium">{t(one.name)}</span>
               <span className="block text-[11.5px] text-faint">{t(one.why)}</span>
             </span>
-            <span className="flex-none text-[11.5px] text-accent">{t("cloudConnectDo")}</span>
+            {!(typed(one.id) && one.id === picked) && (
+              <span className="flex-none text-[11.5px] text-accent">{t("cloudConnectDo")}</span>
+            )}
           </button>
         ) : (
           <div key={one.id} aria-disabled="true" className={`${row} border-hair opacity-70`}>
@@ -238,7 +252,15 @@ export default function Clouding({ clouds, busy, onTrouble, onBack, onDone, onCo
           </div>
         ),
       )}
-      {picked && <CloudHealth name={nameOf(picked)} provider={picked} />}
+      {picked && typed(picked) && (
+        <DavForm
+          busy={busy || held}
+          onConnected={signedIn}
+          onTrouble={onTrouble}
+          onChecking={setChecking}
+        />
+      )}
+      {picked && !typed(picked) && <CloudHealth name={nameOf(picked)} provider={picked} />}
       <Points title={t("cloudWhatHappens")} points={[t("cloudFirstAll"), of("cloudNoPassword")]} />
       <Points
         title={of("cloudLimitIsGoogle")}
@@ -256,14 +278,16 @@ export default function Clouding({ clouds, busy, onTrouble, onBack, onDone, onCo
         <button type="button" disabled={busy || held} onClick={leave} className={back}>
           {t("welcomeBack")}
         </button>
-        <button
-          type="button"
-          disabled={stuck}
-          onClick={() => picked && connect(picked)}
-          className={go}
-        >
-          {of("cloudOpenGoogle")}
-        </button>
+        {!(picked && typed(picked)) && (
+          <button
+            type="button"
+            disabled={stuck}
+            onClick={() => picked && connect(picked)}
+            className={go}
+          >
+            {of("cloudOpenGoogle")}
+          </button>
+        )}
       </div>
     </div>
   );

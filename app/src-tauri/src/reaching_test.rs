@@ -146,3 +146,46 @@ fn a_cloud_built_apart_leaves_the_one_kept_for_the_chosen_account_alone() {
     assert!(reaching.apart(&other).is_none());
     assert!(reaching.built.lock().unwrap().is_none());
 }
+
+#[test]
+fn a_webdav_server_is_always_offered_and_its_password_kept_under_a_short_name() {
+    let dav = CloudAt {
+        provider: WEBDAV.into(),
+        account: "https://mario@cloud.example.com/remote.php/dav/files/mario/Tisty/".into(),
+        email: "mario@cloud.example.com".into(),
+    };
+    let scope = scope_of(&dav);
+
+    assert!(offers(WEBDAV));
+    assert!(clouds().contains(&WEBDAV));
+    assert!(scope.starts_with("webdav-"));
+    assert!(
+        scope
+            .chars()
+            .all(|one| one.is_ascii_alphanumeric() || one == '-')
+    );
+    assert_ne!(
+        scope,
+        scope_of(&CloudAt {
+            account: "https://rodrigo@cloud.example.com/remote.php/dav/files/rodrigo/Tisty/".into(),
+            ..dav.clone()
+        })
+    );
+}
+
+#[test]
+fn a_webdav_cloud_is_built_from_its_account_and_one_that_is_no_address_is_not() {
+    let home = tempfile::tempdir().unwrap();
+    let dav = CloudAt {
+        provider: WEBDAV.into(),
+        account: "https://mario@cloud.example.com/dav/Tisty/".into(),
+        email: "mario@cloud.example.com".into(),
+    };
+    let broken = CloudAt {
+        account: "not an address".into(),
+        ..dav.clone()
+    };
+
+    assert!(cloud_of(home.path(), &dav).is_ok());
+    assert!(cloud_of(home.path(), &broken).is_err());
+}

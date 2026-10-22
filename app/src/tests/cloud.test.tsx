@@ -600,3 +600,102 @@ describe("a place raised past the builds before 1.30", () => {
     expect(screen.queryByRole("status")).toBeNull();
   });
 });
+
+describe("a WebDAV server", () => {
+  const RODRIGO = {
+    provider: "webdav",
+    account: "https://rodrigo@dav.example.com/files/rodrigo/Tisty/",
+    email: "rodrigo@dav.example.com",
+  };
+
+  it("is connected with the address, user and password typed here, and no browser opens", async () => {
+    ipc.answers.sync_state = () => Promise.resolve(carrying({ clouds: ["google", "webdav"] }));
+    ipc.answers.cloud_connect_dav = () => Promise.resolve(RODRIGO);
+    const done = choosing();
+
+    await userEvent.click(screen.getByRole("button", { name: new RegExp(t("chooseCloud"), "i") }));
+    await userEvent.click(await screen.findByRole("button", { name: /WebDAV/ }));
+    const connect = screen.getByRole("button", { name: t("davConnect") });
+    await userEvent.click(connect);
+    expect(sent("cloud_connect_dav")).toHaveLength(0);
+    expect(screen.queryByRole("button", { name: t("cloudOpenGoogle") })).toBeNull();
+    await userEvent.type(
+      screen.getByLabelText(t("davAddress")),
+      "https://dav.example.com/files/rodrigo",
+    );
+    await userEvent.type(screen.getByLabelText(t("davUser")), "rodrigo");
+    await userEvent.type(screen.getByLabelText(new RegExp(`^${t("davKey")}`)), "r0ck4me!");
+    await userEvent.click(connect);
+
+    expect(await screen.findByText(t("cloudConnectedTitle"))).toBeTruthy();
+    expect(sent("cloud_connect")).toHaveLength(0);
+    expect(sent("cloud_connect_dav")[0].args).toEqual({
+      address: "https://dav.example.com/files/rodrigo",
+      user: "rodrigo",
+      password: "r0ck4me!",
+    });
+    expect(opened.urls).toEqual([]);
+    await userEvent.click(screen.getByRole("button", { name: t("cloudStart") }));
+    await waitFor(() => expect(done).toHaveBeenCalledWith("cloud"));
+    expect(sent("cloud_choose")[0].args).toEqual(RODRIGO);
+  });
+
+  it("says why the server was not connected and stays on the form", async () => {
+    ipc.answers.sync_state = () => Promise.resolve(carrying({ clouds: ["webdav"] }));
+    ipc.answers.cloud_connect_dav = () => Promise.reject({ code: "davUnguarded" });
+    const trouble = vi.fn();
+    render(<Choosing busy={false} offered onTrouble={trouble} onDone={vi.fn()} />);
+
+    await userEvent.click(screen.getByRole("button", { name: new RegExp(t("chooseCloud"), "i") }));
+    await userEvent.type(await screen.findByLabelText(t("davAddress")), "https://dav.example.com");
+    await userEvent.type(screen.getByLabelText(t("davUser")), "rodrigo");
+    await userEvent.type(screen.getByLabelText(new RegExp(`^${t("davKey")}`)), "r0ck4me!");
+    await userEvent.click(screen.getByRole("button", { name: t("davConnect") }));
+
+    await waitFor(() => expect(trouble).toHaveBeenCalledWith(t("davUnguarded")));
+    expect(screen.getByLabelText(t("davAddress"))).toBeTruthy();
+  });
+
+  it("asks only for the password again to reconnect, and offers no access to remove everywhere", async () => {
+    ipc.answers.cloud_connect_dav = () => Promise.resolve(RODRIGO);
+    const { carry } = card({ ...RODRIGO, last: round("cloudLost") });
+
+    await userEvent.click(await screen.findByRole("button", { name: t("stateReconnectDo") }));
+    expect(screen.queryByLabelText(t("davAddress"))).toBeNull();
+    await userEvent.type(screen.getByLabelText(new RegExp(`^${t("davKey")}`)), "r0ck4me!");
+    await userEvent.click(screen.getByRole("button", { name: t("davConnect") }));
+
+    await waitFor(() => expect(carry).toHaveBeenCalled());
+    expect(sent("cloud_connect")).toHaveLength(0);
+    expect(sent("cloud_connect_dav")[0].args).toEqual({
+      account: RODRIGO.account,
+      password: "r0ck4me!",
+    });
+    expect(sent("cloud_choose")[0].args.provider).toBe("webdav");
+    expect(screen.queryByRole("button", { name: t("cloudRevokeAll") })).toBeNull();
+  });
+
+  it("keeps the other clouds out of reach while the server is checked", async () => {
+    ipc.answers.sync_state = () => Promise.resolve(carrying({ clouds: ["google", "webdav"] }));
+    ipc.answers.cloud_connect_dav = () => new Promise(() => {});
+    choosing();
+
+    await userEvent.click(screen.getByRole("button", { name: new RegExp(t("chooseCloud"), "i") }));
+    await userEvent.click(await screen.findByRole("button", { name: /WebDAV/ }));
+    await userEvent.type(screen.getByLabelText(t("davAddress")), "https://dav.example.com");
+    await userEvent.type(screen.getByLabelText(t("davUser")), "mario");
+    await userEvent.type(screen.getByLabelText(new RegExp(`^${t("davKey")}`)), "r0ck4me!");
+    await userEvent.click(screen.getByRole("button", { name: t("davConnect") }));
+
+    expect(await screen.findByText(t("davChecking"))).toBeTruthy();
+    const google = screen.getByRole("button", { name: new RegExp(t("cloudGoogle")) });
+    expect(google.hasAttribute("disabled")).toBe(true);
+  });
+
+  it("says a full server is full without a button that goes nowhere", () => {
+    const full = { last: round("cloudFull") };
+    expect(cloudStanding(status({ ...full, provider: "webdav" }))?.exit).toBeUndefined();
+    expect(cloudStanding(status({ ...full, provider: "webdav" }))?.said).toBe("stateFull");
+    expect(cloudStanding(status(full))?.exit).toBe("storage");
+  });
+});

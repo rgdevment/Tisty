@@ -8,6 +8,8 @@ import { mild } from "./Rows";
 
 interface Props {
   cloud: boolean;
+  // Whether the cloud can take Tisty's access away on every computer at once.
+  revokes: boolean;
   store?: string;
   onClose: () => void;
 }
@@ -24,7 +26,7 @@ function Step({ n, children }: { n: number; children: React.ReactNode }) {
   );
 }
 
-export default function Leave({ cloud, store, onClose }: Props) {
+export default function Leave({ cloud, revokes, store, onClose }: Readonly<Props>) {
   const [backing, setBacking] = useState<"idle" | "busy" | "done">("idle");
   const [short, setShort] = useState<string>();
   const [revoke, setRevoke] = useState(false);
@@ -133,15 +135,17 @@ export default function Leave({ cloud, store, onClose }: Props) {
         {cloud && (
           <Step n={2}>
             <span className="block">{t("leaveCloud")}</span>
-            <label className="mt-1.5 flex items-center gap-2 text-ink">
-              <input
-                type="checkbox"
-                checked={revoke}
-                disabled={held}
-                onChange={(e) => setRevoke(e.target.checked)}
-              />
-              {t("leaveRevoke")}
-            </label>
+            {revokes && (
+              <label className="mt-1.5 flex items-center gap-2 text-ink">
+                <input
+                  type="checkbox"
+                  checked={revoke}
+                  disabled={held}
+                  onChange={(e) => setRevoke(e.target.checked)}
+                />
+                {t("leaveRevoke")}
+              </label>
+            )}
           </Step>
         )}
         <Step n={after}>{t("leaveLeft")}</Step>

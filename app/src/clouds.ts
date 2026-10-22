@@ -10,6 +10,10 @@ export interface Cloud {
   hue: string;
   storage?: string;
   variant?: string;
+  // Signed in to with an address and a password typed here, so no browser opens and nothing can be revoked everywhere.
+  typed?: boolean;
+  // With no fingerprint up there, a copy is never proved the same as this one, so attachments always stay here too.
+  keepsAll?: boolean;
 }
 
 export const CLOUDS: Cloud[] = [
@@ -35,6 +39,18 @@ export const CLOUDS: Cloud[] = [
     variant: "OneDrive",
   },
   {
+    id: "webdav",
+    shown: "WebDAV",
+    maker: "WebDAV",
+    name: "cloudWebDav",
+    why: "cloudWebDavWhy",
+    letter: "W",
+    hue: "bg-[#3d5a80]",
+    variant: "WebDav",
+    typed: true,
+    keepsAll: true,
+  },
+  {
     id: "dropbox",
     shown: "Dropbox",
     maker: "Dropbox",
@@ -47,3 +63,7 @@ export const CLOUDS: Cloud[] = [
 
 export const cloudOf = (id?: string | null): Cloud | undefined =>
   CLOUDS.find((one) => one.id === id);
+
+export const typed = (id?: string | null): boolean => cloudOf(id)?.typed === true;
+
+export const freesSpace = (id?: string | null): boolean => cloudOf(id)?.keepsAll !== true;

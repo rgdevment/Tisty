@@ -1132,6 +1132,7 @@ pub fn run() {
             reachable,
             answers::clouding::cloud_connect,
             answers::clouding::cloud_connect_cancel,
+            answers::clouding::cloud_connect_dav,
             answers::clouding::cloud_choose,
             answers::clouding::cloud_forget,
             answers::clouding::cloud_revoke,

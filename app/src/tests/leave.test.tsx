@@ -39,7 +39,7 @@ beforeEach(() => {
 
 describe("leaving Tisty", () => {
   it("lets the cloud go, shows the folder and then leaves, in that order", async () => {
-    render(<Leave cloud store="C:/Tisty" onClose={vi.fn()} />);
+    render(<Leave cloud revokes store="C:/Tisty" onClose={vi.fn()} />);
 
     await userEvent.click(screen.getByRole("button", { name: "Leave Tisty" }));
 
@@ -50,7 +50,7 @@ describe("leaving Tisty", () => {
   });
 
   it("takes the access away on every computer only when asked", async () => {
-    render(<Leave cloud store="C:/Tisty" onClose={vi.fn()} />);
+    render(<Leave cloud revokes store="C:/Tisty" onClose={vi.fn()} />);
 
     const everywhere = screen.getByRole("checkbox", { name: /on every computer/ });
     expect((everywhere as HTMLInputElement).checked).toBe(false);
@@ -63,7 +63,7 @@ describe("leaving Tisty", () => {
   });
 
   it("has no cloud step when there is no cloud", async () => {
-    render(<Leave cloud={false} store="C:/Tisty" onClose={vi.fn()} />);
+    render(<Leave cloud={false} revokes={false} store="C:/Tisty" onClose={vi.fn()} />);
 
     expect(screen.queryByRole("checkbox")).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Leave Tisty" }));
@@ -73,7 +73,7 @@ describe("leaving Tisty", () => {
 
   it("names what another program kept open, and closes when asked", async () => {
     ipc.stayed = ["C:/Users/me/.tisty/cache"];
-    render(<Leave cloud={false} store="C:/Tisty" onClose={vi.fn()} />);
+    render(<Leave cloud={false} revokes={false} store="C:/Tisty" onClose={vi.fn()} />);
 
     await userEvent.click(screen.getByRole("button", { name: "Leave Tisty" }));
     expect(await screen.findByText("C:/Users/me/.tisty/cache")).toBeTruthy();
@@ -84,7 +84,7 @@ describe("leaving Tisty", () => {
 
   it("pauses the cloud before letting it go, and resumes it when it will not let go", async () => {
     ipc.refuse = "cloud_forget";
-    render(<Leave cloud store="C:/Tisty" onClose={vi.fn()} />);
+    render(<Leave cloud revokes store="C:/Tisty" onClose={vi.fn()} />);
 
     await userEvent.click(screen.getByRole("button", { name: "Leave Tisty" }));
     await screen.findByRole("alert");
@@ -100,7 +100,7 @@ describe("leaving Tisty", () => {
 
   it("says the cloud is already let go when leaving fails after it", async () => {
     ipc.refuse = "leave_here";
-    render(<Leave cloud store="C:/Tisty" onClose={vi.fn()} />);
+    render(<Leave cloud revokes store="C:/Tisty" onClose={vi.fn()} />);
 
     await userEvent.click(screen.getByRole("button", { name: "Leave Tisty" }));
 
@@ -109,7 +109,7 @@ describe("leaving Tisty", () => {
 
   it("stays when the cloud will not let go, and says why", async () => {
     ipc.refuse = "cloud_forget";
-    render(<Leave cloud store="C:/Tisty" onClose={vi.fn()} />);
+    render(<Leave cloud revokes store="C:/Tisty" onClose={vi.fn()} />);
 
     await userEvent.click(screen.getByRole("button", { name: "Leave Tisty" }));
 
@@ -119,7 +119,7 @@ describe("leaving Tisty", () => {
 
   it("makes a backup on the way and marks it done", async () => {
     asked.file = "C:/out/tisty-backup.zip";
-    render(<Leave cloud={false} store="C:/Tisty" onClose={vi.fn()} />);
+    render(<Leave cloud={false} revokes={false} store="C:/Tisty" onClose={vi.fn()} />);
 
     await userEvent.click(screen.getByRole("button", { name: "Create backup…" }));
 
@@ -130,7 +130,7 @@ describe("leaving Tisty", () => {
   it("says what the backup left out instead of marking it done", async () => {
     asked.file = "C:/out/tisty-backup.zip";
     ipc.leftOut = 3;
-    render(<Leave cloud store="C:/Tisty" onClose={vi.fn()} />);
+    render(<Leave cloud revokes store="C:/Tisty" onClose={vi.fn()} />);
 
     await userEvent.click(screen.getByRole("button", { name: "Create backup…" }));
 
@@ -141,7 +141,7 @@ describe("leaving Tisty", () => {
 
   it("cancels without touching anything", async () => {
     const onClose = vi.fn();
-    render(<Leave cloud store="C:/Tisty" onClose={onClose} />);
+    render(<Leave cloud revokes store="C:/Tisty" onClose={onClose} />);
 
     await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
 

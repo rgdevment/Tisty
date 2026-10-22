@@ -33,7 +33,7 @@ fn said_with(status: &'static str, headers: &str, body: &str) -> Said {
 fn server(script: Vec<Said>) -> (DavAt, JoinHandle<Vec<Asked>>) {
     let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
     let base = format!(
-        "http://127.0.0.1:{}/dav/files/ana",
+        "http://127.0.0.1:{}/dav/files/mario",
         listener.local_addr().unwrap().port()
     );
     let served = std::thread::spawn(move || {
@@ -55,12 +55,12 @@ fn server(script: Vec<Said>) -> (DavAt, JoinHandle<Vec<Asked>>) {
             })
             .collect()
     });
-    (DavAt::under(&base, "ana").unwrap(), served)
+    (DavAt::under(&base, "mario").unwrap(), served)
 }
 
 fn dav(at: DavAt, home: &std::path::Path) -> WebDav {
     let tokens = Tokens::new(
-        Arc::new(Kept::holding("refresh", "app-password")),
+        Arc::new(Kept::holding("refresh", "r0ck4me!")),
         Arc::new(Password),
         "refresh",
         home,
@@ -93,7 +93,7 @@ fn file(href: &str, bytes: u64, etag: &str) -> String {
     )
 }
 
-const ROOT: &str = "/dav/files/ana/Tisty/";
+const ROOT: &str = "/dav/files/mario/Tisty/";
 
 #[test]
 fn every_file_under_tisty_s_folder_is_listed_by_its_path_folder_by_folder() {
@@ -439,4 +439,138 @@ fn no_fingerprint_is_given_since_none_is_kept_up_there() {
     assert_eq!(dav.hash_of(&local).unwrap(), "");
     assert!(dav.hash_of(&home.path().join("no-such-file")).is_err());
     served.join().unwrap();
+}
+
+#[test]
+fn a_server_already_holding_tisty_is_judged_by_the_etag_of_what_it_keeps() {
+    let home = tempfile::tempdir().unwrap();
+    let listing = |etag: &str| {
+        said(
+            "207 Multi-Status",
+            &multistatus(&[folder(ROOT), file(&format!("{ROOT}a.md"), 4, etag)]),
+        )
+    };
+    let (strong_at, strong_served) = server(vec![listing("\"e1\"")]);
+    let (weak_at, weak_served) = server(vec![listing("W/\"e1\"")]);
+
+    assert!(dav(strong_at, home.path()).guards_writes().unwrap());
+    assert!(!dav(weak_at, home.path()).guards_writes().unwrap());
+    assert_eq!(strong_served.join().unwrap().len(), 1);
+    weak_served.join().unwrap();
+}
+
+#[test]
+fn an_empty_server_is_judged_by_a_note_written_twice_and_taken_back() {
+    let home = tempfile::tempdir().unwrap();
+    let probe = file(&format!("{ROOT}tisty-probe"), 11, "\"e1\"");
+    let (at, served) = server(vec![
+        said("404 Not Found", ""),
+        said("404 Not Found", ""),
+        said("201 Created", ""),
+        said_with("201 Created", "ETag: \"e1\"", ""),
+        said("412 Precondition Failed", ""),
+        said(
+            "207 Multi-Status",
+            &multistatus(std::slice::from_ref(&probe)),
+        ),
+        said("204 No Content", ""),
+    ]);
+
+    assert!(dav(at, home.path()).guards_writes().unwrap());
+    let asked = served.join().unwrap();
+    assert!(
+        asked[1]
+            .line
+            .starts_with(&format!("DELETE {ROOT}tisty-probe ")),
+        "{}",
+        asked[1].line
+    );
+    for again in [3, 4] {
+        assert!(
+            asked[again]
+                .line
+                .starts_with(&format!("PUT {ROOT}tisty-probe ")),
+            "{}",
+            asked[again].line
+        );
+        assert_eq!(asked[again].header("if-none-match").as_deref(), Some("*"));
+    }
+    assert!(
+        asked[6]
+            .line
+            .starts_with(&format!("DELETE {ROOT}tisty-probe ")),
+        "{}",
+        asked[6].line
+    );
+}
+
+#[test]
+fn a_server_that_takes_a_write_it_was_told_to_refuse_does_not_guard_writes() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = server(vec![
+        said("404 Not Found", ""),
+        said("404 Not Found", ""),
+        said("201 Created", ""),
+        said_with("201 Created", "ETag: \"e1\"", ""),
+        said_with("204 No Content", "ETag: \"e2\"", ""),
+        said("204 No Content", ""),
+    ]);
+
+    assert!(!dav(at, home.path()).guards_writes().unwrap());
+    let asked = served.join().unwrap();
+    assert!(
+        asked[5]
+            .line
+            .starts_with(&format!("DELETE {ROOT}tisty-probe ")),
+        "{}",
+        asked[5].line
+    );
+}
+
+#[test]
+fn an_empty_server_that_gives_no_etag_for_the_note_does_not_guard_writes() {
+    let home = tempfile::tempdir().unwrap();
+    let probe = file(&format!("{ROOT}tisty-probe"), 11, "");
+    let (at, served) = server(vec![
+        said("404 Not Found", ""),
+        said("404 Not Found", ""),
+        said("201 Created", ""),
+        said("201 Created", ""),
+        said(
+            "207 Multi-Status",
+            &multistatus(std::slice::from_ref(&probe)),
+        ),
+        said("412 Precondition Failed", ""),
+        said(
+            "207 Multi-Status",
+            &multistatus(std::slice::from_ref(&probe)),
+        ),
+        said("204 No Content", ""),
+    ]);
+
+    assert!(!dav(at, home.path()).guards_writes().unwrap());
+    served.join().unwrap();
+}
+
+#[test]
+fn a_note_that_could_not_be_written_twice_is_still_taken_back() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = server(vec![
+        said("404 Not Found", ""),
+        said("404 Not Found", ""),
+        said("201 Created", ""),
+        said_with("201 Created", "ETag: \"e1\"", ""),
+        said("403 Forbidden", ""),
+        said("204 No Content", ""),
+    ]);
+
+    assert!(dav(at, home.path()).guards_writes().is_err());
+    let asked = served.join().unwrap();
+    assert!(
+        asked[5]
+            .line
+            .starts_with(&format!("DELETE {ROOT}tisty-probe ")),
+        "{}",
+        asked[5].line
+    );
 }

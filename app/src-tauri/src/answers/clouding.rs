@@ -4,9 +4,9 @@ use std::time::Duration;
 
 use tauri::{Emitter, Manager};
 use tisty_carrier::{Hitch, Secrets, Tokens};
-use tisty_core::config::{CloudAt, GOOGLE_SHOWN, Leaving, ONEDRIVE_SHOWN, Sync};
+use tisty_core::config::{CloudAt, GOOGLE_SHOWN, Leaving, ONEDRIVE_SHOWN, Sync, WEBDAV_SHOWN};
 
-use crate::reaching::{GOOGLE, KEPT_AS, ONEDRIVE, secrets_for};
+use crate::reaching::{GOOGLE, KEPT_AS, ONEDRIVE, WEBDAV, secrets_for};
 use crate::{Answer, Refusal, Session, held};
 
 const CONSENT_WAITED: Duration = Duration::from_secs(5 * 60);
@@ -198,6 +198,7 @@ fn told_connecting(provider: &str, done: &Answer<Connected>) {
     let provider = match provider {
         GOOGLE => GOOGLE,
         ONEDRIVE => ONEDRIVE,
+        WEBDAV => WEBDAV,
         _ => "other",
     };
     match done {
@@ -222,7 +223,7 @@ fn how_it_ended(code: &str) -> &'static str {
     match code {
         "cloudNoAnswer" => "no-answer",
         "cloudDropped" => "dropped",
-        "cloudDenied" | "cloudLost" => "denied",
+        "cloudDenied" | "cloudLost" | "davDenied" => "denied",
         "cloudNotNow" => "unreachable",
         _ => "refused",
     }
@@ -243,7 +244,12 @@ async fn connecting(
         .await
         .map_err(|_| Refusal::of("internal"))?;
     consenting.done_with(&dropping);
-    // A token kept from before the new grant must not be written back over it.
+    let_go_replaced(session, &done);
+    done
+}
+
+// A token kept from before the new grant must not be written back over it.
+fn let_go_replaced(session: &tauri::State<'_, Mutex<Session>>, done: &Answer<Connected>) {
     let in_use = |now: &Connected| {
         let session = held(session);
         tisty_carrier::cloud_of(session.config.sync.as_ref())
@@ -254,7 +260,87 @@ async fn connecting(
     if let Some(tokens) = done.as_ref().ok().and_then(in_use) {
         tokens.let_go();
     }
+}
+
+/// A WebDAV server is signed in to with what the person types, named anew or, to reconnect, by the account it was kept under.
+#[tauri::command(async)]
+pub async fn cloud_connect_dav(
+    session: tauri::State<'_, Mutex<Session>>,
+    erasing: tauri::State<'_, crate::Erasing>,
+    address: Option<String>,
+    user: Option<String>,
+    account: Option<String>,
+    password: String,
+) -> Answer<Connected> {
+    if erasing.going() {
+        return Err(Refusal::of("wipeGoing"));
+    }
+    let done = dav_connecting(&session, address, user, account, password).await;
+    told_connecting(WEBDAV, &done);
+    let_go_replaced(&session, &done);
     done
+}
+
+async fn dav_connecting(
+    session: &tauri::State<'_, Mutex<Session>>,
+    address: Option<String>,
+    user: Option<String>,
+    account: Option<String>,
+    password: String,
+) -> Answer<Connected> {
+    let dav = match account {
+        Some(account) => tisty_webdav::DavAt::of_account(&account),
+        None => tisty_webdav::DavAt::under(
+            address.as_deref().unwrap_or_default(),
+            user.as_deref().unwrap_or_default(),
+        ),
+    }
+    .map_err(|_| Refusal::of("davNotAnAddress"))?;
+    if password.is_empty() {
+        return Err(Refusal::of("davDenied"));
+    }
+    let aside = held(session).paths.cache().to_path_buf();
+    tauri::async_runtime::spawn_blocking(move || dav_connected(dav, password, &aside))
+        .await
+        .map_err(|_| Refusal::of("internal"))?
+}
+
+// Kept only once the server took the password and showed it refuses a write over another copy.
+fn dav_connected(
+    dav: tisty_webdav::DavAt,
+    password: String,
+    aside: &std::path::Path,
+) -> Answer<Connected> {
+    let unfiled = Arc::new(Unfiled(Mutex::new(Some(password.clone()))));
+    let tokens = Tokens::new(unfiled, Arc::new(tisty_webdav::Password), KEPT_AS, aside);
+    let guards = tisty_webdav::WebDav::new(Arc::new(tokens), dav.clone())
+        .and_then(|server| server.guards_writes())
+        .map_err(dav_refused)?;
+    if !guards {
+        return Err(Refusal::of("davUnguarded"));
+    }
+    let at = CloudAt {
+        provider: WEBDAV.to_string(),
+        account: dav.account(),
+        email: dav.shown(),
+    };
+    secrets_for(&at)
+        .and_then(|kept| kept.write(KEPT_AS, &password))
+        .map_err(|e| refused(e, WEBDAV_SHOWN))?;
+    Ok(Connected {
+        provider: WEBDAV,
+        account: at.account,
+        email: at.email,
+    })
+}
+
+fn dav_refused(hitch: Hitch) -> Refusal {
+    match hitch {
+        Hitch::Lost => Refusal::of("davDenied"),
+        // A folder that is not there, or a note in the way, is what a wrong address looks like from here.
+        Hitch::Broke(_) | Hitch::Missing(_) | Hitch::Changed(_) => Refusal::of("davRefused"),
+        other => refused(other, WEBDAV_SHOWN),
+    }
 }
 
 #[tauri::command]

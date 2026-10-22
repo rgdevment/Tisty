@@ -57,7 +57,7 @@ export default function Modal({ title, wide, art, onClose, children }: Props) {
     >
       <div
         ref={box}
-        className={`w-full ${wide ? "max-w-lg" : "max-w-md"} rounded-[10px] border border-hair bg-bg p-6 shadow-lift-tall`}
+        className={`scroller max-h-full w-full ${wide ? "max-w-lg" : "max-w-md"} rounded-[10px] border border-hair bg-bg p-6 shadow-lift-tall`}
       >
         {art}
         <h2 id={heading} className={`mb-3.5 text-[21px] font-semibold ${art ? "text-center" : ""}`}>
