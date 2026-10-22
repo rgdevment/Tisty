@@ -12,8 +12,9 @@ pub fn inline(spans: &[Span], text: &str, out: &mut String) {
         .collect();
     let mut silent: Vec<Range<usize>> = atoms.iter().map(|one| one.at.clone()).collect();
     silent.extend(walls(spans, text));
+    let silent = Nearby::of(silent);
     for span in spans.iter().filter(|one| one.mark == Mark::Text) {
-        for piece in outside(span.at.clone(), &silent) {
+        for piece in outside(span.at.clone(), silent.near(&span.at)) {
             items.push((piece.start, Item::Words(piece)));
         }
     }
@@ -82,6 +83,33 @@ pub(crate) fn walls(spans: &[Span], text: &str) -> Vec<Range<usize>> {
         })
         .flatten()
         .collect()
+}
+
+/// Ranges sorted once, so each piece of a long paragraph asks only those around it instead of all of them.
+pub(crate) struct Nearby {
+    ranges: Vec<Range<usize>>,
+    reach: Vec<usize>,
+}
+
+impl Nearby {
+    pub(crate) fn of(mut ranges: Vec<Range<usize>>) -> Self {
+        ranges.sort_by_key(|one| one.start);
+        let reach = ranges
+            .iter()
+            .scan(0, |far, one| {
+                *far = (*far).max(one.end);
+                Some(*far)
+            })
+            .collect();
+        Self { ranges, reach }
+    }
+
+    /// Every range that can touch `within`, and perhaps a few between them that do not.
+    pub(crate) fn near(&self, within: &Range<usize>) -> &[Range<usize>] {
+        let from = self.reach.partition_point(|far| *far <= within.start);
+        let to = self.ranges.partition_point(|one| one.start < within.end);
+        &self.ranges[from..to.max(from)]
+    }
 }
 
 pub(crate) fn outside(within: Range<usize>, silent: &[Range<usize>]) -> Vec<Range<usize>> {

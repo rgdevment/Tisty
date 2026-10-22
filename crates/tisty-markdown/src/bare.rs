@@ -1,16 +1,20 @@
 use std::ops::Range;
 
+use crate::inline::Nearby;
 use crate::{Mark, Span};
 
 pub fn fold(spans: &mut Vec<Span>, text: &str) {
-    let linked: Vec<Range<usize>> = spans
-        .iter()
-        .filter(|one| matches!(one.mark, Mark::Link { .. } | Mark::Image { .. }))
-        .map(|one| one.at.clone())
-        .collect();
+    let linked = Nearby::of(
+        spans
+            .iter()
+            .filter(|one| matches!(one.mark, Mark::Link { .. } | Mark::Image { .. }))
+            .map(|one| one.at.clone())
+            .collect(),
+    );
     let mut found = Vec::new();
     for run in runs(spans, text) {
         if linked
+            .near(&run)
             .iter()
             .any(|one| one.start <= run.start && run.end <= one.end)
         {
@@ -22,17 +26,19 @@ pub fn fold(spans: &mut Vec<Span>, text: &str) {
         return;
     }
     let mut kept = Vec::with_capacity(spans.len() + found.len() * 2);
+    let near = Nearby::of(found.clone());
     for span in spans.drain(..) {
         if span.mark != Mark::Text {
             kept.push(span);
             continue;
         }
-        let inside = found.iter().filter_map(|one| {
+        let around = near.near(&span.at);
+        let inside = around.iter().filter_map(|one| {
             let start = one.start.max(span.at.start);
             let end = one.end.min(span.at.end);
             (start < end).then_some(start..end)
         });
-        let pieces: Vec<Range<usize>> = crate::inline::outside(span.at.clone(), &found)
+        let pieces: Vec<Range<usize>> = crate::inline::outside(span.at.clone(), around)
             .into_iter()
             .chain(inside)
             .collect();

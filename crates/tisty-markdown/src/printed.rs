@@ -168,8 +168,9 @@ fn runs(spans: &[Span], text: &str) -> Vec<Value> {
         .iter()
         .map(|one| (one.at.start, Some(*one), one.at.clone()))
         .collect();
+    let silent = crate::inline::Nearby::of(silent);
     for span in spans.iter().filter(|one| one.mark == Mark::Text) {
-        for piece in outside(span.at.clone(), &silent) {
+        for piece in outside(span.at.clone(), silent.near(&span.at)) {
             items.push((piece.start, None, piece));
         }
     }

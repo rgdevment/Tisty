@@ -4,6 +4,7 @@ use pulldown_cmark::{
     Alignment, BlockQuoteKind, CodeBlockKind, Event, LinkType, Options, Parser, Tag, TagEnd,
 };
 
+use crate::inline::Nearby;
 use crate::{Block, Callout, Column, Doc, Kind, Lean, Mark, Span};
 
 pub fn read(text: &str) -> Doc {
@@ -143,6 +144,7 @@ fn tokens(text: &str) -> impl Iterator<Item = (Event<'_>, Range<usize>)> {
 
 // The tokenizer drops a link's definition from what it hands over, so the page would have nowhere to show or edit it.
 fn defined(text: &str, skip: usize, blocks: &mut Vec<Block>) {
+    let held = Nearby::of(blocks.iter().map(|one| one.at.clone()).collect());
     let parser = Parser::new_ext(&text[skip..], options());
     let mut found: Vec<Block> = parser
         .reference_definitions()
@@ -156,9 +158,10 @@ fn defined(text: &str, skip: usize, blocks: &mut Vec<Block>) {
             leaf(kind, at)
         })
         .filter(|one| {
-            !blocks
+            !held
+                .near(&one.at)
                 .iter()
-                .any(|held| held.at.start < one.at.end && one.at.start < held.at.end)
+                .any(|held| held.start < one.at.end && one.at.start < held.end)
         })
         .collect();
     found.extend(repeated(text, skip, blocks, &found));
@@ -171,11 +174,17 @@ fn defined(text: &str, skip: usize, blocks: &mut Vec<Block>) {
 
 // The parser keeps one definition per label, so a label written twice leaves its later lines unclaimed.
 fn repeated(text: &str, skip: usize, blocks: &[Block], found: &[Block]) -> Vec<Block> {
-    let claimed = |at: usize| {
+    let held = Nearby::of(
         blocks
             .iter()
             .chain(found)
-            .any(|one| one.at.start <= at && at < one.at.end)
+            .map(|one| one.at.clone())
+            .collect(),
+    );
+    let claimed = |at: usize| {
+        held.near(&(at..at + 1))
+            .iter()
+            .any(|one| one.start <= at && at < one.end)
     };
     let mut out = Vec::new();
     let mut at = skip;
@@ -183,7 +192,8 @@ fn repeated(text: &str, skip: usize, blocks: &[Block], found: &[Block]) -> Vec<B
         let start = at;
         at += line.len();
         let said = line.trim();
-        if claimed(start) || !said.starts_with('[') || said.starts_with("[^") {
+        // The cheap look first: asking every block about every line made a long document quadratic.
+        if !said.starts_with('[') || said.starts_with("[^") || claimed(start) {
             continue;
         }
         let Some((label, to)) = said[1..].split_once("]:") else {
