@@ -479,6 +479,18 @@ body {
   max-width: var(--sheet-wide, none);
   margin-inline: auto;
 }
+/* On sheets the paper's own margin opens the page, so the bar stands apart instead of seeming part of it. */
+.on-sheets > .ribbon {
+  margin-bottom: 14px;
+  border-radius: 10px;
+}
+.on-sheets.stuck > .ribbon {
+  border-radius: 0;
+}
+.on-sheets > .ribbon + .tisty-sheet {
+  border-start-start-radius: 10px;
+  border-start-end-radius: 10px;
+}
 .ribbon + .tisty-sheet {
   border-start-start-radius: 0;
   border-start-end-radius: 0;

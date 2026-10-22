@@ -821,7 +821,7 @@ export default function Sheet(props: Readonly<Props>) {
         if (sheet.scrollHeight <= sheet.clientHeight) return;
         said.current.onSeen?.(sheet.scrollTop);
       }}
-      className={`scroller gutter flex min-h-0 flex-1 flex-col outline-none${above || below ? " leafed" : ""}${stuck ? " stuck" : ""}`}
+      className={`scroller gutter flex min-h-0 flex-1 flex-col outline-none${above || below ? " leafed" : ""}${stuck ? " stuck" : ""}${props.sheet ? " on-sheets" : ""}`}
       style={props.sheet && ({ "--sheet-wide": `${props.sheet.wide}px` } as CSSProperties)}
     >
       {above}
