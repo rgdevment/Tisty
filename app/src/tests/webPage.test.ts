@@ -42,19 +42,28 @@ describe("a document as one web page that travels alone", () => {
 });
 
 describe("a document as a page on paper", () => {
-  it("takes the sheet, opens what folds and signs at the foot", async () => {
+  it("takes the sheet, opens what folds, cards it under the title and credits Tisty at the end", async () => {
     drawn.refused = false;
     const light = document.createElement("style");
     light.textContent = ":root{--tisty-ink:#123456}";
     document.head.append(light);
     const made = await webPage(["Plan<details><summary>Más</summary>x</details>"], "Plan", {
       leaf: "a4",
-      signed: "Escrito por Ana",
+      stamp: { card: [{ label: "Autor", said: "Ana Pérez" }], credited: true },
     });
     light.remove();
+    const sheet = new DOMParser().parseFromString(made, "text/html").querySelector("article.page");
 
     expect(made).toContain("@page{size:A4");
     expect(made).toContain("<details open");
-    expect(made).toContain('class="signed">Escrito por Ana');
+    expect(sheet?.querySelector("h1 + dl.stamp")?.textContent).toBe("AutorAna Pérez");
+    expect(sheet?.lastElementChild?.className).toBe("credit");
+  });
+
+  it("leaves the card and the credit out unless asked for", async () => {
+    const made = await webPage(["Plan"], "Plan", { leaf: "a4", stamp: { credited: false } });
+
+    expect(made).not.toContain('class="stamp"');
+    expect(made).not.toContain('class="credit"');
   });
 });

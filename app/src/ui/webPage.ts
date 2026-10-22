@@ -3,6 +3,7 @@ import { t } from "../locales";
 import { named, pictured } from "../previews";
 import { iconed } from "./dressing";
 import { coloredAll, escaped, saidKinds, shell } from "./paging";
+import type { Stamp } from "./printing";
 import { PRINTED, sizeOf } from "./sheets";
 
 const KINDS: Record<string, string> = {
@@ -80,19 +81,49 @@ const lit = (): string => {
   return found.filter((one) => !/[<>{}]/.test(one)).join(";");
 };
 
-type Sheet = { readonly leaf: Paper; readonly landscape?: boolean; readonly signed?: string };
+type Sheet = { readonly leaf: Paper; readonly landscape?: boolean; readonly stamp?: Stamp };
 
-const papered = (page: Document, { leaf, landscape, signed }: Sheet) => {
+const STAMPED =
+  ".stamp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.85em 2em;margin:0 0 2em;padding:1em 1.25em;border:1px solid var(--tisty-line);border-radius:10px;background:var(--tisty-rail);break-inside:avoid}.stamp>div{min-width:0}.stamp dt{margin:0 0 .2em;font-size:.68em;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--tisty-faint)}.stamp dd{margin:0;font-size:.9em;color:var(--tisty-ink);overflow-wrap:anywhere}.credit{margin-top:3em;text-align:center;font-size:.7em;color:var(--tisty-faint);opacity:.75}.credit a{color:inherit;text-decoration:none}";
+
+const cardOn = (page: Document, card: Stamp["card"]) => {
+  const sheet = page.querySelector("article.page");
+  if (!sheet || !card?.length) return;
+  const list = page.createElement("dl");
+  list.className = "stamp";
+  for (const { label, said } of card) {
+    const pair = page.createElement("div");
+    const named = page.createElement("dt");
+    named.textContent = label;
+    const told = page.createElement("dd");
+    told.textContent = said;
+    pair.append(named, told);
+    list.append(pair);
+  }
+  const head = Array.from(sheet.children).find((one) => !one.matches(".front, .fronted"));
+  if (head && /^H[1-3]$/.test(head.tagName)) head.after(list);
+  else if (head) head.before(list);
+  else sheet.append(list);
+};
+
+const creditOn = (page: Document) => {
+  const said = page.createElement("p");
+  said.className = "credit";
+  const home = page.createElement("a");
+  home.href = "https://www.tisty.app";
+  home.textContent = t("pdfCredit");
+  said.append(home);
+  page.querySelector("article.page")?.append(said);
+};
+
+const papered = (page: Document, { leaf, landscape, stamp }: Sheet) => {
   page.head.insertAdjacentHTML(
     "beforeend",
-    `<style>@page{size:${sizeOf(leaf, landscape)};${PRINTED}}html:not(.tall),html:not(.tall) body{background:#fff;padding:0}html:not(.tall) .page{max-width:none;margin:0;padding:0;border-radius:0;box-shadow:none;background:none}.page>*{content-visibility:visible}.page>hr{break-after:page;height:0;margin:0;background:none}.page>hr::before,.page>hr::after{display:none}.signed{margin-top:2em;font-size:.8em;color:var(--tisty-faint)}</style>`,
+    `<style>@page{size:${sizeOf(leaf, landscape)};${PRINTED}}html:not(.tall),html:not(.tall) body{background:#fff;padding:0}html:not(.tall) .page{max-width:none;margin:0;padding:0;border-radius:0;box-shadow:none;background:none}.page>*{content-visibility:visible}.page>hr{break-after:page;height:0;margin:0;background:none}.page>hr::before,.page>hr::after{display:none}${STAMPED}</style>`,
   );
   for (const one of page.querySelectorAll("details")) one.setAttribute("open", "");
-  if (!signed) return;
-  const said = page.createElement("p");
-  said.className = "signed";
-  said.textContent = signed;
-  page.querySelector("article.page")?.append(said);
+  cardOn(page, stamp?.card);
+  if (stamp?.credited) creditOn(page);
 };
 
 export const webPage = async (bodies: string[], title: string, sheet?: Sheet): Promise<string> => {

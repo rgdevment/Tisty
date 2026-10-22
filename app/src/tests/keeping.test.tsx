@@ -40,6 +40,7 @@ const installed = vi.hoisted(() => ({
 
 const signing = vi.hoisted(() => ({
   alias: null as string | null,
+  name: null as string | null,
   before: [] as string[],
   mine: 0,
 }));
@@ -171,6 +172,7 @@ beforeEach(() => {
   ];
   holders.told = { keeper: "plain" };
   signing.alias = null;
+  signing.name = null;
   signing.before = [];
   signing.mine = 0;
   ipc.answer = (cmd) => {
@@ -196,6 +198,11 @@ beforeEach(() => {
         });
       case "signed":
         return Promise.resolve({ ...signing });
+      case "sign_name": {
+        const said = ipc.calls[ipc.calls.length - 1]?.args.name;
+        signing.name = typeof said === "string" ? said : null;
+        return Promise.resolve({ ...signing });
+      }
       case "sign": {
         const said = ipc.calls[ipc.calls.length - 1]?.args.alias;
         if ((typeof said === "string" ? said : null) === signing.alias)
@@ -3117,6 +3124,59 @@ describe("the first-run assistant", () => {
 
     await waitFor(() => expect(sent("sign")).toHaveLength(1));
     expect(sent("sign")[0].args.alias).toBeUndefined();
+  });
+
+  const keeping = async () => {
+    render(
+      <Keeping
+        onPack={() => {}}
+        onUnpack={() => {}}
+        onGreet={() => {}}
+        onChanged={() => {}}
+        onDoc={() => {}}
+      />,
+    );
+    await ready();
+    const field = await screen.findByRole("textbox", { name: t("signName") });
+    return field as HTMLInputElement;
+  };
+
+  it("keeps the name the person signs PDFs with, apart from the alias, and says so", async () => {
+    signing.alias = "rgdevment";
+    const field = await keeping();
+    expect(field.placeholder).toBe("rgdevment");
+
+    await userEvent.type(field, "  Mario Hidalgo  ");
+    fireEvent.blur(field);
+
+    await waitFor(() => expect(sent("sign_name")).toHaveLength(1));
+    expect(sent("sign_name")[0].args.name).toBe("Mario Hidalgo");
+    expect(sent("sign")).toHaveLength(0);
+    expect(await screen.findByText(fill("signNameKept", "Mario Hidalgo"))).toBeTruthy();
+    expect(field.value).toBe("Mario Hidalgo");
+  });
+
+  it("takes an emptied name as going back to the alias", async () => {
+    signing.name = "Mario Hidalgo";
+    const field = await keeping();
+    await waitFor(() => expect(field.value).toBe("Mario Hidalgo"));
+
+    await userEvent.clear(field);
+    fireEvent.blur(field);
+
+    await waitFor(() => expect(sent("sign_name")).toHaveLength(1));
+    expect(sent("sign_name")[0].args.name).toBeUndefined();
+    expect(await screen.findByText(t("signNameGone"))).toBeTruthy();
+  });
+
+  it("writes nothing when the name is left as it was", async () => {
+    signing.name = "Mario Hidalgo";
+    const field = await keeping();
+    await waitFor(() => expect(field.value).toBe("Mario Hidalgo"));
+
+    fireEvent.blur(field);
+
+    expect(sent("sign_name")).toHaveLength(0);
   });
 });
 

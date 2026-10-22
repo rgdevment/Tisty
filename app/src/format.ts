@@ -4,6 +4,7 @@ import { fill, filled, locale, t, type Word } from "./locales";
 type Formats = {
   day: Intl.DateTimeFormat;
   clock: Intl.DateTimeFormat;
+  whole: Intl.DateTimeFormat;
   relative: Intl.RelativeTimeFormat;
 };
 
@@ -16,6 +17,7 @@ function formats(): Formats {
       for: code,
       day: new Intl.DateTimeFormat(code, { weekday: "short", day: "numeric", month: "short" }),
       clock: new Intl.DateTimeFormat(code, { hour: "2-digit", minute: "2-digit" }),
+      whole: new Intl.DateTimeFormat(code, { dateStyle: "long", timeStyle: "short" }),
       relative: new Intl.RelativeTimeFormat(code, { numeric: "auto" }),
     };
   }
@@ -48,6 +50,9 @@ export function stamped(iso: string, now = new Date()): string {
   const time = formats().clock.format(at);
   return daysFrom(iso, now) === 0 ? time : `${formats().day.format(at)} ${time}`;
 }
+
+// On paper a date is read later and elsewhere, so it says the whole day, never «today».
+export const wholeStamp = (at: Date): string => formats().whole.format(at);
 
 export const dayOf = (iso: string): string => formats().day.format(new Date(iso));
 

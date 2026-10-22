@@ -24,7 +24,8 @@ export function Band({ label }: { label: string }) {
   );
 }
 
-export function Ask({ said }: { said: string }) {
+/** `end` opens the bubble leftward, for a mark near the right edge of the window. */
+export function Ask({ said, end }: { said: string; end?: boolean }) {
   return (
     <span className="relative inline-flex">
       <button
@@ -36,7 +37,7 @@ export function Ask({ said }: { said: string }) {
       </button>
       <span
         aria-hidden
-        className="pointer-events-none absolute top-6 left-0 z-20 w-[300px] rounded-[10px] border border-line bg-bg p-3 text-[12.5px] leading-relaxed font-normal whitespace-pre-line text-soft opacity-0 shadow-lift transition-opacity peer-hover:opacity-100 peer-focus-visible:opacity-100 motion-reduce:transition-none"
+        className={`pointer-events-none absolute top-6 ${end ? "right-0" : "left-0"} z-20 w-[300px] rounded-[10px] border border-line bg-bg p-3 text-[12.5px] leading-relaxed font-normal whitespace-pre-line text-soft opacity-0 shadow-lift transition-opacity peer-hover:opacity-100 peer-focus-visible:opacity-100 motion-reduce:transition-none`}
       >
         {said}
       </span>

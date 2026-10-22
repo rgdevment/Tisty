@@ -89,10 +89,15 @@ export type Laid = {
   readonly landscape: boolean;
 };
 
+const keyed = (all: Field[], key: string): string[] | undefined =>
+  all.find((one) => one.key.toLowerCase() === key)?.values;
+
+export const valuesIn = (body: string, key: string): string[] | undefined =>
+  keyed(fields(body), key);
+
 export const laidIn = (body: string): Laid => {
   const all = fields(body);
-  const said = (key: string) =>
-    all.find((one) => one.key.toLowerCase() === key)?.values[0]?.toLowerCase();
+  const said = (key: string) => keyed(all, key)?.[0]?.toLowerCase();
   const sheets = said("sheets") === "on";
   return {
     paper: PAPERS.find((one) => one === said("paper")) ?? null,
