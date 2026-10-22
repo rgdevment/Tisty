@@ -1,7 +1,9 @@
 import { useEffect, useRef } from "react";
 import { fitted, type Reaching, type Worn, wired, worn } from "./dressing";
 import { dressed } from "./paging";
+import type { Told } from "./printing";
 import { type Sheet, sheeting } from "./sheeting";
+import { cardOn } from "./stamped";
 
 type Props = {
   readonly html: string;
@@ -14,6 +16,7 @@ type Props = {
   readonly wide?: number;
   readonly zoom?: number;
   readonly sheet?: Sheet;
+  readonly stamp?: readonly Told[];
   readonly reach: () => Reaching;
   readonly onReady: (frame: HTMLIFrameElement) => void;
 };
@@ -75,6 +78,7 @@ export default function Frame(props: Readonly<Props>) {
       fitted(page, said.current.wide, said.current.zoom);
       dressedUp = worn(page, stranger, alive, said.current.reach());
       if (tall) stopGrowing = grows(held, page);
+      cardOn(page, said.current.stamp);
       const sheets = sheeting(page, () => said.current.sheet);
       stopSheeting = sheets.stop;
       laid.current = sheets.lay;
@@ -107,6 +111,14 @@ export default function Frame(props: Readonly<Props>) {
     const page = frame.current?.contentDocument;
     if (page?.querySelector(".page")) fitted(page, wide, zoom);
   }, [wide, zoom]);
+
+  const card = JSON.stringify(props.stamp ?? []);
+  useEffect(() => {
+    const page = frame.current?.contentDocument;
+    if (!page?.querySelector(".page")) return;
+    cardOn(page, JSON.parse(card));
+    laid.current();
+  }, [card]);
 
   const { tall: sheetTall, x: sheetX, y: sheetY } = props.sheet ?? {};
   useEffect(() => laid.current(), [sheetTall, sheetX, sheetY]);

@@ -1,8 +1,8 @@
-import { docFacts, type Paper, pagePdf } from "../core";
+import { docFacts, pagePdf } from "../core";
 import { wholeStamp } from "../format";
-import { valuesIn } from "../front";
+import { laidIn, valuesIn } from "../front";
 import { t } from "../locales";
-import { webPage } from "./webPage";
+import { type PaperSheet, webPage } from "./webPage";
 
 export interface Told {
   readonly label: string;
@@ -36,27 +36,22 @@ export const factsCard = async (file: string, body: string): Promise<Told[] | un
   return told.length ? told : undefined;
 };
 
-export interface Stamping {
-  readonly carded: boolean;
-  readonly credited: boolean;
-}
-
-export const STAMPING: Stamping = { carded: true, credited: false };
-
-export const stampOf = async (
-  file: string,
-  body: string,
-  { carded, credited }: Stamping,
-): Promise<Stamp> => ({ card: carded ? await factsCard(file, body) : undefined, credited });
+// The card is the document's own choice, made beside the page, so the export only adds the credit.
+export const stampOf = async (file: string, body: string, credited: boolean): Promise<Stamp> => ({
+  card: laidIn(body).carded ? await factsCard(file, body) : undefined,
+  credited,
+});
 
 // The PDF is the web page on paper, laid out by the window's own engine.
-export const pdfOf = async (
-  bodies: string[],
-  leaf: Paper,
-  stamp?: Stamp,
-  landscape = false,
-): Promise<Blob> => {
-  const page = await webPage(bodies, "", { leaf, landscape, stamp });
-  const paper = landscape ? `${leaf}-landscape` : leaf;
+export const pdfOf = async (bodies: string[], sheet: PaperSheet): Promise<Blob> => {
+  const page = await webPage(bodies, "", sheet);
+  const paper = sheet.landscape ? `${sheet.leaf}-landscape` : sheet.leaf;
   return new Blob([new Uint8Array(await pagePdf(page, paper))], { type: "application/pdf" });
 };
+
+// Where the sheets on screen turn, read off the page as it is drawn.
+export const turnsIn = (page: Document | null | undefined): string[] =>
+  Array.from(page?.querySelectorAll<HTMLElement>(".page > .sheet-turn") ?? []).flatMap((one) => {
+    const at = (one.nextElementSibling as HTMLElement | null)?.dataset.at;
+    return at ? [at] : [];
+  });

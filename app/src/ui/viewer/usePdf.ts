@@ -4,7 +4,7 @@ import { keepFile, type Paper, type Viewed } from "../../core";
 import { landscapeIn } from "../../front";
 import { t } from "../../locales";
 import { usePreviewing } from "../previewing";
-import { pdfOf, STAMPING, type Stamping, stampOf } from "../printing";
+import { pdfOf, stampOf } from "../printing";
 
 interface Asked {
   ready: boolean;
@@ -12,20 +12,20 @@ interface Asked {
   leaf: Paper;
   paper: Viewed | null;
   named: string;
+  /** Where the sheets on screen turn, read when the PDF is made. */
+  turns: () => string[];
   onFail: (problem: unknown) => void;
 }
 
-export default function usePdf({ ready, body, leaf, paper, named, onFail }: Asked) {
+export default function usePdf({ ready, body, leaf, paper, named, turns, onFail }: Asked) {
   const [seeing, setSeeing] = useState<string | null>(null);
-  const [stamping, setStamping] = useState<Stamping>(STAMPING);
+  const [crediting, setCrediting] = useState(false);
   const [making, setMaking] = useState(false);
   usePreviewing(Boolean(seeing));
 
   const made = async () => {
-    const stamp = paper
-      ? await stampOf(paper.file, body, stamping)
-      : { credited: stamping.credited };
-    return pdfOf([body], leaf, stamp, landscapeIn(body));
+    const stamp = paper ? await stampOf(paper.file, body, crediting) : { credited: crediting };
+    return pdfOf([body], { leaf, landscape: landscapeIn(body), stamp, turns: turns() });
   };
 
   const working = async (work: () => Promise<void>) => {
@@ -71,13 +71,13 @@ export default function usePdf({ ready, body, leaf, paper, named, onFail }: Aske
   open.current = seeing;
   useEffect(() => {
     if (open.current) void redraw.current();
-  }, [leaf, stamping]);
+  }, [leaf, crediting, body]);
 
   return {
     seeing,
-    stamping,
+    crediting,
     making,
-    setStamping,
+    setCrediting,
     preview,
     keep,
     shut,

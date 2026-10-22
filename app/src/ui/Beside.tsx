@@ -7,6 +7,7 @@ import PaperFacts from "./PaperFacts";
 import Properties from "./Properties";
 import type { Head } from "./paging";
 import { Knob } from "./Rows";
+import StampFields, { type Declared } from "./StampFields";
 import { LEAVES, leafWord } from "./sheets";
 import { often } from "./tagging";
 
@@ -42,6 +43,11 @@ interface Props {
   landscape?: boolean;
   onSheets?: (on: boolean) => void;
   onLandscape?: (turned: boolean) => void;
+  carded?: boolean;
+  author?: string;
+  version?: string;
+  onCard?: (on: boolean) => void;
+  onDeclare?: (key: Declared, said: string) => void;
   making: boolean;
   onPdf: () => void;
   onSee: () => void;
@@ -68,6 +74,11 @@ export default function Beside({
   landscape = false,
   onSheets,
   onLandscape,
+  carded = false,
+  author = "",
+  version = "",
+  onCard,
+  onDeclare,
   making,
   onPdf,
   onSee,
@@ -211,6 +222,16 @@ export default function Beside({
                 </span>
               )}
             </div>
+          )}
+          {onCard && onDeclare && (
+            <StampFields
+              carded={carded}
+              author={author}
+              version={version}
+              signer={facts?.signedAs}
+              onCard={onCard}
+              onDeclare={onDeclare}
+            />
           )}
         </section>
 

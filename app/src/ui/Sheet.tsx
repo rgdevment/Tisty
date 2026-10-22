@@ -21,6 +21,7 @@ import Page from "./Page";
 import { charsAt, type Head, spanned, type Went } from "./paging";
 import type { PartCarded } from "./partcarding";
 import { closed, laid, parting } from "./parting";
+import type { Told } from "./printing";
 import type { Chosen, Formatting, Menued } from "./quickly";
 import { filedAs, type Reshape, reshaped } from "./recarding";
 import Skeleton from "./Skeleton";
@@ -62,6 +63,9 @@ type Props = {
   readonly inline?: boolean;
   readonly shaping?: boolean;
   readonly sheet?: SheetSize;
+  readonly stamp?: readonly Told[];
+  /** The page as it is drawn, for whoever prints it the way it is seen. */
+  readonly onPage?: (page: Window | null) => void;
   readonly lately?: readonly [number, number] | null;
   readonly looking?: number;
   // Only a document is written whole; a task's page keeps the sections of its template.
@@ -818,7 +822,8 @@ export default function Sheet(props: Readonly<Props>) {
       <div
         ref={kept.ref}
         style={{
-          ...(props.sheet && { maxWidth: props.sheet.wide }),
+          // A sheet narrower than its paper would wrap more, and turn earlier than the PDF does.
+          ...(props.sheet && { maxWidth: props.sheet.wide, minWidth: props.sheet.wide }),
           // Until it is drawn the page holds the room it last took, so nothing under it jumps.
           ...(!ready && { minHeight: kept.height ?? 240 }),
         }}
@@ -827,6 +832,7 @@ export default function Sheet(props: Readonly<Props>) {
         {!ready && <Skeleton inset={props.inline ? "46px 32px" : undefined} />}
         <Page
           sheet={props.sheet}
+          stamp={props.stamp}
           body={drawn}
           label={label}
           stranger={false}
@@ -865,6 +871,7 @@ export default function Sheet(props: Readonly<Props>) {
           onOutline={(heads) => said.current.onOutline?.(heads)}
           onShown={(page) => {
             shown.current = page;
+            said.current.onPage?.(page);
             if (page) setReady(true);
             setTurned((many) => many + 1);
           }}

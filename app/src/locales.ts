@@ -724,9 +724,10 @@ const en = {
   toHtml: "Export as HTML…",
   toWord: "Export as Word…",
   toPdfDo: "Export PDF",
-  pdfSign: "A card up top: author, version and dates",
+  cardShown: "A card up top",
+  cardVersionNone: "1.0",
   pdfSignAsk:
-    "A small table under the title with the author, the version and when it was created and last written.\n\nAuthor: the document's own author: line, or else the name you sign with in Settings, or else your alias.\nVersion: the document's version: line, if it has one.\nDate: the document's date: line, if it has one.",
+    "A small table under the title, on screen and in the PDF alike, so the sheets you see are the pages you get.\n\nAuthor: what you write here; if you leave it empty, the name you sign with in Settings, or else your alias.\nVersion: what you write here, if anything.\nDate: the document's date: line, if it has one.\nCreated and last written: from Tisty itself.\n\nIt is kept in the document as card: on, author: and version:.",
   pdfCreditTick: "A quiet “Made with Tisty” at the end",
   pdfCreditAsk:
     "One small grey line at the very end of the PDF, linking to the Tisty site. Nothing else changes.",
@@ -2961,9 +2962,10 @@ const es: Catalog = {
   toHtml: "Exportar como HTML…",
   toWord: "Exportar como Word…",
   toPdfDo: "Exportar PDF",
-  pdfSign: "Ficha al inicio: autor, versión y fechas",
+  cardShown: "Ficha al inicio",
+  cardVersionNone: "1.0",
   pdfSignAsk:
-    "Una pequeña tabla bajo el título con el autor, la versión y cuándo se creó y se escribió por última vez.\n\nAutor: la línea author: del documento; si no está, el nombre con que firmas en Ajustes; si no, tu alias.\nVersión: la línea version: del documento, si la tiene.\nFecha: la línea date: del documento, si la tiene.",
+    "Una pequeña tabla bajo el título, igual en pantalla y en el PDF, para que las hojas que ves sean las páginas que salen.\n\nAutor: lo que escribas aquí; si lo dejas vacío, el nombre con que firmas en Ajustes y, si no hay, tu alias.\nVersión: lo que escribas aquí, si quieres.\nFecha: la línea date: del documento, si la tiene.\nCreado y última edición: los pone Tisty.\n\nQueda guardado en el documento como card: on, author: y version:.",
   pdfCreditTick: "Pie discreto «Generado con Tisty»",
   pdfCreditAsk:
     "Una línea pequeña y gris al final del PDF, con enlace a la web de Tisty. Nada más cambia.",

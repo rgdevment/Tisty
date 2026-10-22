@@ -91,7 +91,7 @@ describe("sheets laid on the page", () => {
     const turns = sheet.querySelectorAll<HTMLElement>(".sheet-turn");
     expect(turns).toHaveLength(1);
     expect(turns[0].nextElementSibling?.tagName).toBe("H2");
-    expect(turns[0].style.getPropertyValue("--fill")).toBe("80px");
+    expect(turns[0].style.getPropertyValue("--fill")).toBe("79px");
   });
 
   it("leaves a heading that already opens its sheet where it is", () => {
@@ -115,7 +115,7 @@ describe("sheets laid on the page", () => {
     ]);
     sheeted(document, { wide: 794, tall: 140, x: 10, y: 10 });
     expect(sheet.querySelectorAll(".sheet-turn")).toHaveLength(0);
-    expect((sheet.children[1] as HTMLElement).style.getPropertyValue("--fill")).toBe("80px");
+    expect((sheet.children[1] as HTMLElement).style.getPropertyValue("--fill")).toBe("79px");
     sheet.insertAdjacentHTML("beforeend", '<div class="editing"></div>');
     (sheet.children[1] as HTMLElement).style.removeProperty("--fill");
     sheeted(document, { wide: 794, tall: 140, x: 10, y: 10 });

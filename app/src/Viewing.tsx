@@ -11,12 +11,14 @@ import {
   viewImport,
   viewShown,
 } from "./core";
-import { landscapeIn } from "./front";
+import { landscapeIn, paperIn } from "./front";
 import { leftBehind } from "./leftBehind";
 import { adopt, fill, t } from "./locales";
 import { saidPlainly } from "./refusal";
 import Menu from "./ui/Menu";
+import { turnsIn } from "./ui/printing";
 import { pageFor } from "./ui/sheets";
+import useCard from "./ui/useCard";
 import { leaveAsHtml, leaveAsWord } from "./ui/useLeaving";
 import { type Acts, choicesFor, darkNow, keysFor, PLAIN, ZOOMS } from "./ui/viewer/acting";
 import { button } from "./ui/viewer/Glyphs";
@@ -53,7 +55,8 @@ export default function Viewing() {
   const [shown, setShown] = useState<Showing | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [band, setBand] = useState<string | null>(null);
-  const [{ side, leaf }, setKept] = useState(remembered);
+  const [kept, setKept] = useState(remembered);
+  const { side } = kept;
   const [raw, setRaw] = useState(false);
   const [zoom, setZoom] = useState(PLAIN);
   const [finding, setFinding] = useState(false);
@@ -80,11 +83,11 @@ export default function Viewing() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(KEPT, JSON.stringify({ leaf }));
+      localStorage.setItem(KEPT, JSON.stringify({ leaf: kept.leaf }));
     } catch {
       void 0;
     }
-  }, [leaf]);
+  }, [kept.leaf]);
 
   const reading = shown?.kind === "file" || shown?.kind === "doc";
 
@@ -103,11 +106,23 @@ export default function Viewing() {
   }, [reading, shown]);
   const body = reading ? shown.body : "";
   const turned = landscapeIn(body);
+  // The paper a document names is its own; the one kept here only fills in when it names none.
+  const leaf = paperIn(body) ?? kept.leaf;
   useEffect(() => pageFor(leaf, turned), [leaf, turned]);
   const paper = shown?.kind === "doc" ? shown.paper : null;
+  const card = useCard(paper?.file, body);
+  const drawn = useRef<Window | null>(null);
   const fail = (problem: unknown) => setNote(saidPlainly(problem));
   const named = shown?.kind === "file" ? shown.name.replace(/\.[^.]+$/, "") : (paper?.title ?? "");
-  const pdf = usePdf({ ready: reading, body, leaf, paper, named, onFail: fail });
+  const pdf = usePdf({
+    ready: reading,
+    body,
+    leaf,
+    paper,
+    named,
+    turns: () => turnsIn(drawn.current?.document),
+    onFail: fail,
+  });
 
   useEffect(() => {
     if (shown?.kind !== "doc") return;
@@ -238,6 +253,10 @@ export default function Viewing() {
           raw={raw}
           zoom={ZOOMS[zoom]}
           leaf={leaf}
+          stamp={card}
+          onPage={(page) => {
+            drawn.current = page;
+          }}
           facts={facts}
           finding={finding}
           onLeaf={(one) => setKept((was) => ({ ...was, leaf: one }))}
@@ -291,10 +310,9 @@ export default function Viewing() {
         <Preview
           shown={pdf.seeing}
           leaf={leaf}
-          stamping={pdf.stamping}
-          cardable={Boolean(paper)}
+          crediting={pdf.crediting}
           making={pdf.making}
-          onStamp={pdf.setStamping}
+          onCredit={pdf.setCrediting}
           onKeep={() => void pdf.keep()}
           onClose={pdf.shut}
         />

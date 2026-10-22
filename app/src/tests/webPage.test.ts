@@ -42,7 +42,7 @@ describe("a document as one web page that travels alone", () => {
 });
 
 describe("a document as a page on paper", () => {
-  it("takes the sheet, opens what folds, cards it under the title and credits Tisty at the end", async () => {
+  it("takes the sheet, folds what folds on screen, cards it under the title and credits Tisty at the end", async () => {
     drawn.refused = false;
     const light = document.createElement("style");
     light.textContent = ":root{--tisty-ink:#123456}";
@@ -55,9 +55,19 @@ describe("a document as a page on paper", () => {
     const sheet = new DOMParser().parseFromString(made, "text/html").querySelector("article.page");
 
     expect(made).toContain("@page{size:A4");
-    expect(made).toContain("<details open");
+    expect(made).not.toContain("<details open");
     expect(sheet?.querySelector("h1 + dl.stamp")?.textContent).toBe("AutorAna Pérez");
     expect(sheet?.lastElementChild?.className).toBe("credit");
+  });
+
+  it("turns the paper where the screen's sheets turn, and only in the first body", async () => {
+    const made = await webPage(["Plan", "Anexo"], "Plan", { leaf: "a4", turns: ["7-40"] });
+    const sheet = new DOMParser().parseFromString(made, "text/html").querySelector("article.page");
+    const turned = sheet?.querySelectorAll(".turned");
+
+    expect(turned).toHaveLength(1);
+    expect(turned?.[0].textContent).toContain("ver");
+    expect(made).toContain(".page>.turned{break-before:page");
   });
 
   it("leaves the card and the credit out unless asked for", async () => {

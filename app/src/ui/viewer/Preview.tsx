@@ -1,7 +1,6 @@
 import type { Paper } from "../../core";
 import { t } from "../../locales";
-import PdfTicks from "../PdfTicks";
-import type { Stamping } from "../printing";
+import CreditTick from "../CreditTick";
 import { leafWord } from "../sheets";
 import { clearOfChrome, onMac } from "../WindowChrome";
 import { button, tinted } from "./Glyphs";
@@ -9,10 +8,9 @@ import { button, tinted } from "./Glyphs";
 interface Props {
   shown: string;
   leaf: Paper;
-  stamping: Stamping;
-  cardable: boolean;
+  crediting: boolean;
   making: boolean;
-  onStamp: (chosen: Stamping) => void;
+  onCredit: (on: boolean) => void;
   onKeep: () => void;
   onClose: () => void;
 }
@@ -20,10 +18,9 @@ interface Props {
 export default function Preview({
   shown,
   leaf,
-  stamping,
-  cardable,
+  crediting,
   making,
-  onStamp,
+  onCredit,
   onKeep,
   onClose,
 }: Props) {
@@ -47,13 +44,7 @@ export default function Preview({
           · {t(leafWord(leaf))}
         </span>
         <div data-tauri-drag-region className="flex-1" />
-        <PdfTicks
-          barred
-          stamping={stamping}
-          cardable={cardable}
-          disabled={making}
-          onStamp={onStamp}
-        />
+        <CreditTick barred on={crediting} disabled={making} onTick={onCredit} />
         <button type="button" className={tinted} disabled={making} onClick={onKeep}>
           {t("toPdf")}
         </button>

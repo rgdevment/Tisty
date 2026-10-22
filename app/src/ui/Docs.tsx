@@ -25,7 +25,15 @@ import {
   type Task,
   viewDoc,
 } from "../core";
-import { laidIn, withLandscape, withPaper, withSheets } from "../front";
+import {
+  laidIn,
+  valuesIn,
+  withCard,
+  withDeclared,
+  withLandscape,
+  withPaper,
+  withSheets,
+} from "../front";
 import { keptAll, PASTED_UP_TO } from "../kept";
 import { fill, t } from "../locales";
 import { filed, inTextOrder, type Moved, namesIn, pagesOf, under } from "../paging";
@@ -37,18 +45,19 @@ import { sure } from "../sure";
 import { changedIn } from "./anchoring";
 import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
+import CreditTick from "./CreditTick";
 import { blurbing, cardsOf } from "./carding";
 import { MARKED_FOR } from "./lately";
 import Modal from "./Modal";
-import PdfTicks from "./PdfTicks";
 import Picking, { type Picked } from "./Picking";
 import type { Head } from "./paging";
 import { usePreviewing } from "./previewing";
-import { pdfOf, STAMPING, type Stamp, type Stamping, stampOf } from "./printing";
+import { pdfOf, type Stamp, stampOf, turnsIn } from "./printing";
 import Ribbon, { Onward } from "./Ribbon";
 import { acrossOf, PAPER, pageFor, sheetFor } from "./sheets";
 import type { Asking } from "./slashing";
 import { CompactBar, MarkBar } from "./Tidied";
+import useCard from "./useCard";
 import { useLeaving } from "./useLeaving";
 import { clearOfChrome } from "./WindowChrome";
 import { useWholeKeys } from "./wholeKeys";
@@ -186,7 +195,8 @@ export default function Docs({
   const [making, setMaking] = useState(false);
   const [seeing, setSeeing] = useState<string | null>(null);
   const [pdfAsked, setPdfAsked] = useState(false);
-  const [stamping, setStamping] = useState<Stamping>(STAMPING);
+  const [crediting, setCrediting] = useState(false);
+  const drawn = useRef<Window | null>(null);
   const putting = useRef<((page: Filed) => boolean) | null>(null);
   const paged = useRef(onPaging);
   paged.current = onPaging;
@@ -609,6 +619,7 @@ export default function Docs({
     (open && (bolted ? (sized[open.file] ?? laid.paper) : (laid.paper ?? sized[open.file]))) ||
     "a4";
   const sheets = Boolean(open) && laid.sheets;
+  const stamp = useCard(open?.file, body, saved);
   const landscape = Boolean(open) && laid.landscape;
   const across = acrossOf(leaf, landscape);
   const wall = { maxWidth: `${across}px` };
@@ -640,14 +651,15 @@ export default function Docs({
   const blobOf = async (stamp: Stamp): Promise<Blob | null> => {
     const read = await book();
     if (!read) return null;
-    return pdfOf([body, ...read.written], leaf, stamp, landscape);
+    const turns = turnsIn(drawn.current?.document);
+    return pdfOf([body, ...read.written], { leaf, landscape, stamp, turns });
   };
 
-  const see = async (chosen: Stamping) => {
+  const see = async (credited: boolean) => {
     if (!open || making) return;
     setMaking(true);
     try {
-      const blob = await blobOf(await stampOf(open.file, body, chosen));
+      const blob = await blobOf(await stampOf(open.file, body, credited));
       if (blob) setSeeing(URL.createObjectURL(blob));
     } catch (e) {
       onError(saidPlainly(e));
@@ -657,12 +669,12 @@ export default function Docs({
   };
 
   // What the preview shows is what the export dialog then offers, so the two never disagree.
-  const restamp = (chosen: Stamping) => {
-    setStamping(chosen);
-    void see(chosen);
+  const recredit = (credited: boolean) => {
+    setCrediting(credited);
+    void see(credited);
   };
 
-  const preview = () => see(stamping);
+  const preview = () => see(crediting);
 
   const asking = useRef({ preview: () => {}, toPdf: () => {} });
 
@@ -687,12 +699,12 @@ export default function Docs({
     setPdfAsked(true);
   };
 
-  const madePdf = async (chosen: Stamping) => {
+  const madePdf = async (credited: boolean) => {
     if (!open || making) return;
     setPdfAsked(false);
     setMaking(true);
     try {
-      const blob = await blobOf(await stampOf(open.file, body, chosen));
+      const blob = await blobOf(await stampOf(open.file, body, credited));
       if (!blob) return;
       const where = await intoFile({
         defaultPath: `${called || t("untitledDoc")}.pdf`,
@@ -775,6 +787,10 @@ export default function Docs({
             <Suspense fallback={<div className="min-h-0 flex-1" />}>
               <Sheet
                 sheet={sheetOf}
+                stamp={stamp}
+                onPage={(page) => {
+                  drawn.current = page;
+                }}
                 file={open.file}
                 wholeable
                 wholeAsked={wholeAsked}
@@ -1043,7 +1059,7 @@ export default function Docs({
               {t("previewBack")}
             </button>
             <div className="flex-1" />
-            <PdfTicks barred stamping={stamping} disabled={making} onStamp={restamp} />
+            <CreditTick barred on={crediting} disabled={making} onTick={recredit} />
           </div>
           <iframe src={seeing} title={t("seePdf")} className="min-h-0 flex-1 border-0 bg-bg" />
         </div>
@@ -1051,7 +1067,7 @@ export default function Docs({
       {pdfAsked && open && (
         <Modal title={t("toPdf")} onClose={() => setPdfAsked(false)}>
           <p className="mt-3 text-[12.5px] leading-relaxed text-soft">{t("pdfSignWhy")}</p>
-          <PdfTicks stamping={stamping} onStamp={setStamping} />
+          <CreditTick on={crediting} onTick={setCrediting} />
           <div className="mt-5 flex items-center justify-end gap-2 text-[12.5px]">
             <button
               type="button"
@@ -1062,7 +1078,7 @@ export default function Docs({
             </button>
             <button
               type="button"
-              onClick={() => madePdf(stamping)}
+              onClick={() => madePdf(crediting)}
               className="cursor-pointer rounded-[10px] bg-accent px-3.5 py-1.5 text-bg"
             >
               {t("toPdfDo")}
@@ -1108,6 +1124,13 @@ export default function Docs({
           }
           onLandscape={
             bolted ? undefined : (turned) => reshape((now) => withLandscape(now, turned))
+          }
+          carded={laid.carded}
+          author={valuesIn(body, "author")?.join(", ") ?? ""}
+          version={valuesIn(body, "version")?.join(", ") ?? ""}
+          onCard={bolted ? undefined : (on) => reshape((now) => withCard(now, on))}
+          onDeclare={
+            bolted ? undefined : (key, said) => reshape((now) => withDeclared(now, key, said))
           }
           making={making}
           onPdf={toPdf}

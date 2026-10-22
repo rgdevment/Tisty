@@ -25,7 +25,8 @@ export const sheeted = (page: Document, { tall, y, said }: Sheet) => {
   if (!sheet || page.querySelector(".editing")) return false;
   for (const one of sheet.querySelectorAll(`.${TURN}, .${SAID}`)) one.remove();
   for (const one of sheet.querySelectorAll<HTMLElement>(BREAKS)) one.style.removeProperty("--fill");
-  const room = tall - 2 * y;
+  // A pixel short of the sheet, since the paper's own room is a fraction less than the rounded one here.
+  const room = tall - 2 * y - 1;
   let begins = y;
   let ended = y;
   let fresh = true;
