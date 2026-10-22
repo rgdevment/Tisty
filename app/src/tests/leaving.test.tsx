@@ -41,7 +41,7 @@ vi.mock("../ui/webPage", () => ({
   },
 }));
 
-import { cardOf, pdfOf } from "../ui/printing";
+import { factsCard, pdfOf } from "../ui/printing";
 import { useLeaving } from "../ui/useLeaving";
 
 const leave = (book: () => Promise<string[] | null>, onError = vi.fn()) =>
@@ -97,14 +97,14 @@ describe("the PDF as the page on paper", () => {
   });
 
   it("cards who wrote it and when, and nothing when nothing is known", async () => {
-    const said = async (body: string) => (await cardOf("a-0001", body))?.map((one) => one.said);
-    expect(await cardOf("a-0001", "# Plan")).toBeUndefined();
+    const said = async (body: string) => (await factsCard("a-0001", body))?.map((one) => one.said);
+    expect(await factsCard("a-0001", "# Plan")).toBeUndefined();
     sent.facts = { author: "ana", signedAs: "Ana Pérez", made: 1_700_000_000 };
     expect(await said("# Plan")).toContain("Ana Pérez");
     expect(await said("---\nauthor: Equipo Norte\nversion: 1.2\n---\n# Plan")).toEqual(
       expect.arrayContaining(["Equipo Norte", "1.2"]),
     );
     sent.facts = {};
-    expect(await cardOf("a-0001", "# Plan")).toBeUndefined();
+    expect(await factsCard("a-0001", "# Plan")).toBeUndefined();
   });
 });

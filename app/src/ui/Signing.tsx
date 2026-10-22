@@ -201,9 +201,11 @@ export default function Signing({ busy, said, trouble, run, tell, signs }: Props
                 return;
               }
               run("naming", signName(typed || undefined), (now) => {
+                const was = namedAs.current;
                 took(now);
                 setName(now.name ?? "");
                 namedAs.current = now.name ?? "";
+                if (namedAs.current === was) return;
                 tell({
                   card: "naming",
                   text: now.name ? fill("signNameKept", now.name) : t("signNameGone"),

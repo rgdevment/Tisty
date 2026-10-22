@@ -182,11 +182,11 @@ describe("reading in the viewer", () => {
     pressed("p");
     expect(await screen.findByTitle(t("seePdf"))).toBeTruthy();
     expect(screen.getByText(t("seePdf")).parentElement?.className).toContain("pr-[7.5rem]");
-    await userEvent.click(screen.getByRole("checkbox", { name: t("viewWithCard") }));
+    await userEvent.click(screen.getByRole("checkbox", { name: t("pdfSign") }));
     await waitFor(() =>
       expect(asked("pdf").map((one) => one.args.card)).toEqual(["Firmado", null]),
     );
-    await userEvent.click(screen.getByRole("checkbox", { name: t("viewWithCredit") }));
+    await userEvent.click(screen.getByRole("checkbox", { name: t("pdfCreditTick") }));
     await waitFor(() =>
       expect(asked("pdf").map((one) => one.args.credited)).toEqual([false, false, true]),
     );

@@ -25,7 +25,7 @@ export default function PdfTick({ on, label, why, disabled, barred, onTick }: Pr
         />
         {label}
       </label>
-      {why && <Ask said={why} />}
+      {why && <Ask said={why} end={barred} />}
     </div>
   );
 }

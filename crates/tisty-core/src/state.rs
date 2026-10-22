@@ -1104,8 +1104,7 @@ impl State {
         }
     }
 
-    /// Mine is what a hand of mine signed, or what nobody ever signed at all. Another name is
-    /// another person, whether it arrived in a parcel or through a store two people share.
+    /// Another name is another person, whether it came in a parcel or through a shared store.
     pub fn mine(&self, kept: &crate::model::Kept) -> bool {
         match kept.by.as_deref() {
             Some(by) => !kept.guest && self.mine_to_write(by),
@@ -1113,7 +1112,7 @@ impl State {
         }
     }
 
-    fn mine_to_write(&self, hand: &str) -> bool {
+    pub fn mine_to_write(&self, hand: &str) -> bool {
         alike(Some(hand), self.signed.alias.as_deref())
             || self.signed_before.iter().any(|was| same_name(was, hand))
     }

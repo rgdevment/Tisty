@@ -53,7 +53,8 @@ export default function Preview({
             barred
             on={carding}
             disabled={making}
-            label={t("viewWithCard")}
+            label={t("pdfSign")}
+            why={t("pdfSignAsk")}
             onTick={onCard}
           />
         )}
@@ -61,7 +62,8 @@ export default function Preview({
           barred
           on={crediting}
           disabled={making}
-          label={t("viewWithCredit")}
+          label={t("pdfCreditTick")}
+          why={t("pdfCreditAsk")}
           onTick={onCredit}
         />
         <button type="button" className={tinted} disabled={making} onClick={onKeep}>

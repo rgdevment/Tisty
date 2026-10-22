@@ -643,17 +643,27 @@ export default function Docs({
     return pdfOf([body, ...read.written], leaf, stamp, landscape);
   };
 
-  const preview = async () => {
+  const preview = async (chosen = stamping) => {
     if (!open || making) return;
     setMaking(true);
     try {
-      const blob = await blobOf(await stampOf(open.file, body, STAMPING));
-      if (blob) setSeeing(URL.createObjectURL(blob));
+      const blob = await blobOf(await stampOf(open.file, body, chosen));
+      if (!blob) return;
+      setSeeing((was) => {
+        if (was) URL.revokeObjectURL(was);
+        return URL.createObjectURL(blob);
+      });
     } catch (e) {
       onError(saidPlainly(e));
     } finally {
       setMaking(false);
     }
+  };
+
+  // What the preview shows is what the export dialog then offers, so the two never disagree.
+  const restamp = (chosen: Stamping) => {
+    setStamping(chosen);
+    void preview(chosen);
   };
 
   const asking = useRef({ preview: () => {}, toPdf: () => {} });
@@ -676,7 +686,6 @@ export default function Docs({
 
   const toPdf = () => {
     if (!open || making) return;
-    setStamping(STAMPING);
     setPdfAsked(true);
   };
 
@@ -1035,18 +1044,29 @@ export default function Docs({
             >
               {t("previewBack")}
             </button>
+            <div className="flex-1" />
+            <PdfTick
+              barred
+              on={stamping.carded}
+              disabled={making}
+              label={t("pdfSign")}
+              why={t("pdfSignAsk")}
+              onTick={(carded) => restamp({ ...stamping, carded })}
+            />
+            <PdfTick
+              barred
+              on={stamping.credited}
+              disabled={making}
+              label={t("pdfCreditTick")}
+              why={t("pdfCreditAsk")}
+              onTick={(credited) => restamp({ ...stamping, credited })}
+            />
           </div>
           <iframe src={seeing} title={t("seePdf")} className="min-h-0 flex-1 border-0 bg-bg" />
         </div>
       )}
       {pdfAsked && open && (
-        <Modal
-          title={t("toPdf")}
-          onClose={() => {
-            setPdfAsked(false);
-            setStamping(STAMPING);
-          }}
-        >
+        <Modal title={t("toPdf")} onClose={() => setPdfAsked(false)}>
           <p className="mt-3 text-[12.5px] leading-relaxed text-soft">{t("pdfSignWhy")}</p>
           <PdfTick
             on={stamping.carded}
@@ -1063,10 +1083,7 @@ export default function Docs({
           <div className="mt-5 flex items-center justify-end gap-2 text-[12.5px]">
             <button
               type="button"
-              onClick={() => {
-                setPdfAsked(false);
-                setStamping(STAMPING);
-              }}
+              onClick={() => setPdfAsked(false)}
               className="rounded-[10px] px-3 py-1.5 text-faint hover:text-ink"
             >
               {t("cancel")}

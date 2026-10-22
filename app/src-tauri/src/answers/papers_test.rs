@@ -195,3 +195,21 @@ fn on_paper_my_documents_carry_my_name_and_a_guests_keeps_theirs() {
         "Mario Hidalgo"
     );
 }
+
+#[test]
+fn on_paper_an_unsigned_guest_document_names_nobody() {
+    let (_tmp, mut session) = session();
+    session
+        .commit(Op::Signed {
+            d: tisty_core::event::Signature {
+                alias: Some("mario".into()),
+                name: Some("Mario Hidalgo".into()),
+                ..Default::default()
+            },
+        })
+        .unwrap();
+    let mut theirs = arrived(&mut session, "ana", true);
+    theirs.by = None;
+
+    assert_eq!(signed_on_paper(&session.state, &theirs), None);
+}

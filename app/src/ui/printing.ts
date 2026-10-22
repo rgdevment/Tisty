@@ -20,7 +20,7 @@ const declared = (body: string, key: string): string | undefined =>
   valuesIn(body, key)?.join(", ").trim() || undefined;
 
 // What the document says of itself goes before what Tisty saw happen to it.
-export const cardOf = async (file: string, body: string): Promise<Told[] | undefined> => {
+export const factsCard = async (file: string, body: string): Promise<Told[] | undefined> => {
   const facts = await docFacts(file).catch(() => null);
   const rows: [Parameters<typeof t>[0], string | null | undefined][] = [
     ["pdfAuthor", declared(body, "author") ?? facts?.signedAs],
@@ -45,7 +45,7 @@ export const stampOf = async (
   file: string,
   body: string,
   { carded, credited }: Stamping,
-): Promise<Stamp> => ({ card: carded ? await cardOf(file, body) : undefined, credited });
+): Promise<Stamp> => ({ card: carded ? await factsCard(file, body) : undefined, credited });
 
 // The PDF is the web page on paper, laid out by the window's own engine.
 export const pdfOf = async (

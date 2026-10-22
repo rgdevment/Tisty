@@ -404,29 +404,25 @@ pub fn sign_name(
     Ok(as_signed(&session))
 }
 
-// On paper the person's own documents carry the name they sign with, or else the alias they use now.
+// On paper my own documents carry the name I sign with, or else the alias I use now.
 fn signed_on_paper(state: &State, kept: &tisty_core::model::Kept) -> Option<String> {
-    match state.mine(kept) {
-        true => state
+    let mine = !kept.guest && state.mine(kept);
+    let me = || {
+        state
             .signed
             .name
             .clone()
-            .or_else(|| state.signed.alias.clone()),
-        false => None,
-    }
-    .or_else(|| state.author_of(kept).map(str::to_string))
+            .or_else(|| state.signed.alias.clone())
+    };
+    mine.then(me)
+        .flatten()
+        .or_else(|| state.author_of(kept).map(str::to_string))
 }
 
 // My hand on another person's document reads as my name too; on a guest's it stays as written.
 fn edited_on_paper(state: &State, kept: &tisty_core::model::Kept, hand: &str) -> String {
-    let mine = !kept.guest
-        && state
-            .signed
-            .alias
-            .as_deref()
-            .is_some_and(|alias| tisty_core::state::same_name(hand, alias));
-    match (&state.signed.name, mine) {
-        (Some(name), true) => name.clone(),
+    match &state.signed.name {
+        Some(name) if !kept.guest && state.mine_to_write(hand) => name.clone(),
         _ => hand.to_string(),
     }
 }
