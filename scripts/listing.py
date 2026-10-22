@@ -4,6 +4,8 @@ import io
 import json
 import os
 import sys
+import urllib.error
+import urllib.request
 
 VERSION = os.environ["VERSION"]
 BUNDLE = os.environ["BUNDLE"]
@@ -17,7 +19,13 @@ listing["packages"][0]["identifier"] = URL
 listing["packages"][0]["fileSha256"] = hashlib.sha256(io.open(BUNDLE, "rb").read()).hexdigest()
 # Pinned to the tag: a listed version is never revisited, so an icon on main could change under it.
 for icon in listing.get("icons", []):
-    icon["src"] = f"https://raw.githubusercontent.com/{REPO}/v{VERSION}/{icon['src'].split('/main/', 1)[1]}"
+    if "/v0.0.0/" not in icon["src"]:
+        sys.exit(f"the template's icon has to sit under /v0.0.0/ to be stamped, and it is {icon['src']}")
+    icon["src"] = f"https://raw.githubusercontent.com/{REPO}/v{VERSION}/{icon['src'].split('/v0.0.0/', 1)[1]}"
+    try:
+        urllib.request.urlopen(urllib.request.Request(icon["src"], method="HEAD"), timeout=30)
+    except urllib.error.URLError as failed:
+        sys.exit(f"the icon the listing names is not there: {icon['src']} ({failed})")
 
 if len(listing["description"]) > 100:
     sys.exit(f"the registry takes 100 characters, and this is {len(listing['description'])}")

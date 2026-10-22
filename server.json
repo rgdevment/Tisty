@@ -6,7 +6,7 @@
   "websiteUrl": "https://www.tisty.app/",
   "icons": [
     {
-      "src": "https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/icons/tisty-512.png",
+      "src": "https://raw.githubusercontent.com/rgdevment/Tisty/v0.0.0/assets/icons/tisty-512.png",
       "mimeType": "image/png",
       "sizes": ["512x512"]
     }
