@@ -5,7 +5,7 @@ use tisty_core::witness::{self, Fact, channel};
 fn unwritten(why: &std::io::Error) {
     witness::error(
         channel::TERMINAL,
-        "the retired tisty command could not be taken off PATH",
+        "the tisty command could not be taken off PATH",
         &[("why", Fact::Why(why.to_string()))],
     );
 }
@@ -46,12 +46,13 @@ fn called(folder: Option<&Path>) -> String {
 
 // The alias's own path does not move with the Store's updates and needs no PATH to be found.
 fn aliased() -> Option<PathBuf> {
-    let local = std::env::var_os("LOCALAPPDATA")?;
-    let at = Path::new(&local)
-        .join("Microsoft")
-        .join("WindowsApps")
-        .join(CLI);
+    let at = aliases()?.join(CLI);
     (cfg!(windows) && at.exists()).then_some(at)
+}
+
+pub fn aliases() -> Option<PathBuf> {
+    let local = std::env::var_os("LOCALAPPDATA")?;
+    Some(Path::new(&local).join("Microsoft").join("WindowsApps"))
 }
 
 // Opened from the disk image or moved aside by macOS, the path is gone once the app is quit.
@@ -179,6 +180,7 @@ pub fn ours_on_the_shelf(at: &Path, home: &Path) -> bool {
 
 #[cfg(windows)]
 pub fn out_of_reach() -> std::io::Result<bool> {
+    crate::pathing::leaving();
     let Some(folder) = beside() else {
         return Ok(false);
     };

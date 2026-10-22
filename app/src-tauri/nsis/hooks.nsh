@@ -3,7 +3,7 @@
 ;
 ; PATH is left alone. NSIS reads at most 1024 characters and writes back what
 ; it managed to read, which cost a 1724-character PATH its twenty-two entries.
-; Nothing needs it: assistants are given the full path to the binary.
+; The app adds its own folder from Rust while assistants have a voice.
 ;
 ; The data directory is left alone too: wanting the program gone is not wanting
 ; the history gone.

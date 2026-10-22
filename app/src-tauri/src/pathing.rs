@@ -81,10 +81,11 @@ pub fn within(
     ahead_of: Option<&str>,
     expand: &dyn Fn(&str) -> String,
 ) -> Option<String> {
-    let mut entries: Vec<&str> = path
-        .split(SEPARATOR)
-        .filter(|one| !one.is_empty())
-        .collect();
+    // Empty entries stay, so taking the folder out again gives back the PATH as it was spelled.
+    let mut entries: Vec<&str> = match path.is_empty() {
+        true => Vec::new(),
+        false => path.split(SEPARATOR).collect(),
+    };
     let mine = entries.iter().position(|one| alike(one, dir, expand));
     let theirs =
         ahead_of.and_then(|other| entries.iter().position(|one| alike(one, other, expand)));
@@ -113,6 +114,17 @@ pub fn without(path: &str, dir: &str, expand: &dyn Fn(&str) -> String) -> Option
     Some(kept.join(&SEPARATOR.to_string()))
 }
 
+// Leaving does not wait for a `keep` already under way, so that one checks this after it writes.
+static LEAVING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+pub fn leaving() {
+    LEAVING.store(true, std::sync::atomic::Ordering::SeqCst);
+}
+
+fn left() -> bool {
+    LEAVING.load(std::sync::atomic::Ordering::SeqCst)
+}
+
 #[cfg(windows)]
 pub fn keep(paths: tisty_core::Paths) {
     windows_side::keep(&paths);
@@ -128,9 +140,8 @@ mod windows_side {
     use semver::Version;
     use tisty_core::witness::{self, Fact, channel};
 
-    use super::{Due, HERE, due, expanded, steady, within, without};
+    use super::{Due, HERE, due, expanded, left, steady, within, without};
 
-    const PACKAGED_AS: &str = "rgdevment.Tisty";
     // A start and a quick turn of the voice would otherwise race, and the older choice could write last.
     static ONE_AT_A_TIME: Mutex<()> = Mutex::new(());
 
@@ -139,7 +150,8 @@ mod windows_side {
             .lock()
             .unwrap_or_else(|held| held.into_inner());
         // A sandbox profile, or the Store copy whose registry writes Windows keeps in its own container.
-        if tisty_core::paths::profile().is_some()
+        if left()
+            || tisty_core::paths::profile().is_some()
             || windows::ApplicationModel::Package::Current().is_ok()
         {
             return;
@@ -168,12 +180,18 @@ mod windows_side {
             Due::Untouched => None,
             Due::Out => without(&path, &dir, &expanded),
             Due::In { ahead_of_the_store } => {
-                let alias = ahead_of_the_store.then(alias_folder).flatten();
+                let alias = ahead_of_the_store
+                    .then(crate::command::aliases)
+                    .flatten()
+                    .map(|at| at.display().to_string());
                 within(&path, &dir, alias.as_deref(), &expanded)
             }
         };
         let Some(next) = changed else { return };
         match crate::command::set_user_path(&next) {
+            Ok(()) if left() => {
+                let _ = crate::command::out_of_reach();
+            }
             Ok(()) => {
                 announce();
                 witness::note(
@@ -192,23 +210,17 @@ mod windows_side {
 
     fn store() -> Option<Version> {
         let shelf = windows::Management::Deployment::PackageManager::new().ok()?;
-        let everyone_of_mine = windows::core::HSTRING::new();
+        let this_user = windows::core::HSTRING::new();
+        let family = windows::core::HSTRING::from(tisty_core::paths::STORE_PACKAGE);
         shelf
-            .FindPackagesByUserSecurityId(&everyone_of_mine)
+            .FindPackagesByUserSecurityIdPackageFamilyName(&this_user, &family)
             .ok()?
             .into_iter()
             .filter_map(|one| {
-                let id = one.Id().ok()?;
-                (id.Name().ok()? == PACKAGED_AS).then_some(())?;
-                let v = id.Version().ok()?;
+                let v = one.Id().ok()?.Version().ok()?;
                 Some(Version::new(v.Major.into(), v.Minor.into(), v.Build.into()))
             })
             .max()
-    }
-
-    fn alias_folder() -> Option<String> {
-        let local = std::env::var("LOCALAPPDATA").ok()?;
-        Some(format!(r"{local}\Microsoft\WindowsApps"))
     }
 
     /// Without this only programs started after the next sign-in would see the change.

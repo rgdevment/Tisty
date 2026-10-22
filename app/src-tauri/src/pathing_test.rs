@@ -169,3 +169,11 @@ fn leaving_keeps_the_rest_in_order_and_unexpanded() {
 fn leaving_what_was_never_there_writes_nothing() {
     assert_eq!(without(r"C:\one", r"C:\Programs\Tisty", &plain), None);
 }
+
+#[test]
+fn empty_entries_come_back_as_they_were_spelled() {
+    let path = r"C:\one;;C:\two;";
+    let added = within(path, r"C:\Programs\Tisty", None, &plain).unwrap();
+    assert_eq!(added, r"C:\one;;C:\two;;C:\Programs\Tisty");
+    assert_eq!(without(&added, r"C:\Programs\Tisty", &plain).unwrap(), path);
+}
