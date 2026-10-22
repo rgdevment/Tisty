@@ -148,6 +148,7 @@ const KNOWN = [
   "nothingToCarry",
   "stillPacking",
   "aliasTooLong",
+  "nameTooLong",
   "tooBig",
   "deleteRefused",
   "alreadyKept",

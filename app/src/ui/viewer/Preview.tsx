@@ -7,14 +7,51 @@ import { button, tinted } from "./Glyphs";
 interface Props {
   shown: string;
   leaf: Paper;
-  signing: boolean | null;
+  carding: boolean | null;
+  crediting: boolean;
   making: boolean;
-  onSign: (signed: boolean) => void;
+  onCard: (on: boolean) => void;
+  onCredit: (on: boolean) => void;
   onKeep: () => void;
   onClose: () => void;
 }
 
-export default function Preview({ shown, leaf, signing, making, onSign, onKeep, onClose }: Props) {
+function Tick({
+  on,
+  making,
+  label,
+  onTick,
+}: {
+  on: boolean;
+  making: boolean;
+  label: string;
+  onTick: (on: boolean) => void;
+}) {
+  return (
+    <label className="mr-1 flex items-center gap-1.5 text-[12.5px] text-soft">
+      <input
+        type="checkbox"
+        checked={on}
+        disabled={making}
+        onChange={(e) => onTick(e.target.checked)}
+        className="h-3.5 w-3.5 accent-accent"
+      />
+      {label}
+    </label>
+  );
+}
+
+export default function Preview({
+  shown,
+  leaf,
+  carding,
+  crediting,
+  making,
+  onCard,
+  onCredit,
+  onKeep,
+  onClose,
+}: Props) {
   return (
     <div className="absolute inset-0 z-30 flex flex-col bg-desk">
       <div
@@ -35,18 +72,10 @@ export default function Preview({ shown, leaf, signing, making, onSign, onKeep, 
           · {t(leafWord(leaf))}
         </span>
         <div data-tauri-drag-region className="flex-1" />
-        {signing !== null && (
-          <label className="mr-1 flex items-center gap-1.5 text-[12.5px] text-soft">
-            <input
-              type="checkbox"
-              checked={signing}
-              disabled={making}
-              onChange={(e) => onSign(e.target.checked)}
-              className="h-3.5 w-3.5 accent-accent"
-            />
-            {t("viewWithSign")}
-          </label>
+        {carding !== null && (
+          <Tick on={carding} making={making} label={t("viewWithCard")} onTick={onCard} />
         )}
+        <Tick on={crediting} making={making} label={t("viewWithCredit")} onTick={onCredit} />
         <button type="button" className={tinted} disabled={making} onClick={onKeep}>
           {t("toPdf")}
         </button>

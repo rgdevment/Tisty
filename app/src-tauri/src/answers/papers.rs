@@ -151,6 +151,8 @@ pub struct Facts {
     author: Option<String>,
     editor: Option<String>,
     born: Option<String>,
+    signed_as: Option<String>,
+    edited_as: Option<String>,
 }
 
 /// A file from outside Tisty tells only what the disk knows of it; no log names its author.
@@ -165,6 +167,8 @@ pub(crate) fn outside_facts(at: &std::path::Path) -> Answer<Facts> {
         author: None,
         editor: None,
         born: None,
+        signed_as: None,
+        edited_as: None,
     })
 }
 
@@ -279,6 +283,7 @@ pub fn doc_word(
 #[serde(rename_all = "camelCase")]
 pub struct Signed {
     alias: Option<String>,
+    name: Option<String>,
     before: Vec<String>,
     mine: usize,
 }
@@ -292,6 +297,7 @@ pub fn signed(session: tauri::State<'_, Mutex<Session>>) -> Answer<Signed> {
 fn as_signed(session: &Session) -> Signed {
     Signed {
         alias: session.state.signed.alias.clone(),
+        name: session.state.signed.name.clone(),
         before: {
             let mut seen: Vec<String> = Vec::new();
             for was in session.state.signed_before.iter().rev() {
@@ -368,6 +374,44 @@ pub fn sign(session: tauri::State<'_, Mutex<Session>>, alias: Option<String>) ->
     Ok(as_signed(&session))
 }
 
+const NAME_AT_MOST: usize = 80;
+
+#[tauri::command]
+pub fn sign_name(
+    session: tauri::State<'_, Mutex<Session>>,
+    name: Option<String>,
+) -> Answer<Signed> {
+    let said = name
+        .map(|one| tisty_core::text::plainly(&one).trim().to_string())
+        .filter(|one| !one.is_empty());
+    if said
+        .as_ref()
+        .is_some_and(|one| one.chars().count() > NAME_AT_MOST)
+    {
+        return Err(Refusal::about("nameTooLong", NAME_AT_MOST.to_string()));
+    }
+
+    let mut session = held(&session);
+    if said == session.state.signed.name {
+        return Ok(as_signed(&session));
+    }
+    let mut signature = session.state.signed.clone();
+    signature.name = said;
+    session
+        .commit(Op::Signed { d: signature })
+        .map_err(|e| blamed(channel::WINDOW, "the signature could not be written", e))?;
+    Ok(as_signed(&session))
+}
+
+// On paper, any alias of the person's own reads as the name they sign with.
+fn on_paper(session: &Session, hand: Option<&str>) -> Option<String> {
+    let hand = hand?;
+    Some(match &session.state.signed.name {
+        Some(name) if session.state.mine_to_write(hand) => name.clone(),
+        _ => hand.to_string(),
+    })
+}
+
 #[tauri::command]
 pub fn doc_facts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Facts> {
     let session = held(&session);
@@ -394,6 +438,8 @@ pub fn doc_facts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answe
         .and_then(|one| one.wrote)
         .map(|at| at.as_second())
         .or_else(|| seconds(about.modified()));
+    let signed_as = on_paper(&session, author.as_deref());
+    let edited_as = on_paper(&session, editor.as_deref());
     Ok(Facts {
         made,
         wrote,
@@ -402,6 +448,8 @@ pub fn doc_facts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answe
         author,
         editor,
         born,
+        signed_as,
+        edited_as,
     })
 }
 

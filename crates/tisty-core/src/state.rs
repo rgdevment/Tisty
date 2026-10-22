@@ -1110,7 +1110,7 @@ impl State {
         }
     }
 
-    fn mine_to_write(&self, hand: &str) -> bool {
+    pub fn mine_to_write(&self, hand: &str) -> bool {
         alike(Some(hand), self.signed.alias.as_deref())
             || self.signed_before.iter().any(|was| same_name(was, hand))
     }

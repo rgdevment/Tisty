@@ -41,7 +41,7 @@ vi.mock("../ui/webPage", () => ({
   },
 }));
 
-import { pdfOf, signature } from "../ui/printing";
+import { cardOf, pdfOf } from "../ui/printing";
 import { useLeaving } from "../ui/useLeaving";
 
 const leave = (book: () => Promise<string[] | null>, onError = vi.fn()) =>
@@ -90,17 +90,21 @@ describe("a document leaving as a web page or a Word file", () => {
 
 describe("the PDF as the page on paper", () => {
   it("lays the page out on the chosen sheet", async () => {
-    const made = await pdfOf(["# Plan"], "letter", "Firmado");
+    const made = await pdfOf(["# Plan"], "letter", { credited: true });
 
     expect(made.type).toBe("application/pdf");
     expect(sent.pdf[sent.pdf.length - 1]?.paper).toBe("letter");
   });
 
-  it("signs with who wrote it and when, and with nothing when nothing is known", async () => {
-    expect(await signature("a-0001")).toBeUndefined();
-    sent.facts = { author: "Ana", made: 1_700_000_000 };
-    expect(await signature("a-0001")).toContain("Ana");
+  it("cards who wrote it and when, and nothing when nothing is known", async () => {
+    const said = async (body: string) => (await cardOf("a-0001", body))?.map((one) => one.said);
+    expect(await cardOf("a-0001", "# Plan")).toBeUndefined();
+    sent.facts = { author: "ana", signedAs: "Ana Pérez", made: 1_700_000_000 };
+    expect(await said("# Plan")).toContain("Ana Pérez");
+    expect(await said("---\nauthor: Equipo Norte\nversion: 1.2\n---\n# Plan")).toEqual(
+      expect.arrayContaining(["Equipo Norte", "1.2"]),
+    );
     sent.facts = {};
-    expect(await signature("a-0001")).toBeUndefined();
+    expect(await cardOf("a-0001", "# Plan")).toBeUndefined();
   });
 });

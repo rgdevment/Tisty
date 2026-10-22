@@ -1,5 +1,13 @@
 import { useCallback, useRef, useState } from "react";
-import { ALIAS_AT_MOST, type Signed, sign, signed, signTheRest } from "../core";
+import {
+  ALIAS_AT_MOST,
+  NAME_AT_MOST,
+  type Signed,
+  sign,
+  signed,
+  signName,
+  signTheRest,
+} from "../core";
 import { fill, t } from "../locales";
 import type { Run, Which, Word } from "./Card";
 import Modal from "./Modal";
@@ -17,6 +25,8 @@ interface Props {
 export function useSigning() {
   const [alias, setAlias] = useState("");
   const signedAs = useRef("");
+  const [name, setName] = useState("");
+  const namedAs = useRef("");
   const [aliases, setAliases] = useState<string[]>([]);
   const [mine, setMine] = useState(0);
   const [asking, setAsking] = useState<string | null>(null);
@@ -26,6 +36,9 @@ export function useSigning() {
     // A name still being typed is the person's until they leave the field.
     setAlias((typed) => (typed === signedAs.current ? fresh : typed));
     signedAs.current = fresh;
+    const named = now.name ?? "";
+    setName((typed) => (typed === namedAs.current ? named : typed));
+    namedAs.current = named;
     setAliases(now.before);
     setMine(now.mine);
   }, []);
@@ -36,14 +49,29 @@ export function useSigning() {
       .catch(() => {});
   }, [took]);
 
-  return { alias, setAlias, signedAs, aliases, mine, setMine, asking, setAsking, took, lookSigned };
+  return {
+    alias,
+    setAlias,
+    signedAs,
+    name,
+    setName,
+    namedAs,
+    aliases,
+    mine,
+    setMine,
+    asking,
+    setAsking,
+    took,
+    lookSigned,
+  };
 }
 
 export type Signs = ReturnType<typeof useSigning>;
 
 export default function Signing({ busy, said, trouble, run, tell, signs }: Props) {
   const held = busy !== null;
-  const { alias, setAlias, signedAs, aliases, mine, setMine, asking, setAsking, took } = signs;
+  const { alias, setAlias, signedAs, name, setName, namedAs } = signs;
+  const { aliases, mine, setMine, asking, setAsking, took } = signs;
   const before = aliases.filter((one) => one !== alias);
 
   return (
@@ -145,6 +173,45 @@ export default function Signing({ busy, said, trouble, run, tell, signs }: Props
               ))}
             </datalist>
           )}
+        </Line>
+        <Line
+          title={
+            <span className="flex items-center gap-1.5">
+              {t("signName")}
+              <Ask said={t("signNameWhy")} />
+            </span>
+          }
+          why={t("signNameShort")}
+          which="naming"
+          said={said}
+          trouble={trouble}
+        >
+          <input
+            type="text"
+            aria-label={t("signName")}
+            value={name}
+            disabled={held}
+            maxLength={NAME_AT_MOST}
+            placeholder={alias || t("signNameNone")}
+            onChange={(e) => setName(e.target.value)}
+            onBlur={() => {
+              const typed = name.trim();
+              if (typed === namedAs.current) {
+                setName(namedAs.current);
+                return;
+              }
+              run("naming", signName(typed || undefined), (now) => {
+                took(now);
+                setName(now.name ?? "");
+                namedAs.current = now.name ?? "";
+                tell({
+                  card: "naming",
+                  text: now.name ? fill("signNameKept", now.name) : t("signNameGone"),
+                });
+              });
+            }}
+            className={`w-40 rounded-[10px] border border-line bg-bg px-2 py-1 text-[12.5px] ${off}`}
+          />
         </Line>
       </div>
     </>

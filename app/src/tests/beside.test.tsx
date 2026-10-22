@@ -45,7 +45,8 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
 
 vi.mock("../ui/printing", () => ({
   pdfOf: () => Promise.resolve(new Blob(["%PDF"], { type: "application/pdf" })),
-  signature: () => Promise.resolve("Firmado"),
+  STAMPING: { carded: true, credited: true },
+  stampOf: () => Promise.resolve({ credited: true }),
 }));
 
 vi.mock("../ui/Sheet", () => ({
@@ -364,7 +365,7 @@ describe("what the column offers for the document", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /^export$/i }));
 
-    const box = await screen.findByText("Add who wrote it and when");
+    const box = await screen.findByText("A card up top: author, version and dates");
     const tick = within(box.closest("label") as HTMLElement).getByRole("checkbox");
     expect((tick as HTMLInputElement).checked).toBe(true);
     await userEvent.click(tick);

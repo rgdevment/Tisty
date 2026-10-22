@@ -1206,18 +1206,23 @@ export interface DocFacts {
   author: string | null;
   editor: string | null;
   born: string | null;
+  signedAs: string | null;
+  editedAs: string | null;
 }
 
 export const ALIAS_AT_MOST = 40;
+export const NAME_AT_MOST = 80;
 
 export interface Signed {
   alias: string | null;
+  name: string | null;
   before: string[];
   mine: number;
 }
 
 export const signed = (): Promise<Signed> => invoke("signed");
 export const sign = (alias?: string): Promise<Signed> => invoke("sign", { alias });
+export const signName = (name?: string): Promise<Signed> => invoke("sign_name", { name });
 export const signTheRest = (): Promise<number> => invoke("sign_the_rest");
 
 export const docFacts = (id: string): Promise<DocFacts> => invoke("doc_facts", { id });

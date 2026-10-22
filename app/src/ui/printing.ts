@@ -1,30 +1,66 @@
 import { docFacts, type Paper, pagePdf } from "../core";
-import { stamped } from "../format";
-import { fill } from "../locales";
+import { fields } from "../front";
+import { locale, t } from "../locales";
 import { webPage } from "./webPage";
 
-const dated = (when: number): string => stamped(new Date(when * 1000).toISOString());
+export interface Told {
+  readonly label: string;
+  readonly said: string;
+}
 
-export const signature = async (file: string): Promise<string | undefined> => {
+export interface Stamp {
+  readonly card?: readonly Told[];
+  readonly credited?: boolean;
+}
+
+// On paper a date is read later and elsewhere, so it says the whole day, never «today».
+const dated = (when: number): string =>
+  new Intl.DateTimeFormat(locale(), { dateStyle: "long", timeStyle: "short" }).format(
+    new Date(when * 1000),
+  );
+
+const declared = (body: string, key: string): string | undefined =>
+  fields(body)
+    .find((one) => one.key.toLowerCase() === key)
+    ?.values.join(", ")
+    .trim() || undefined;
+
+// What the document says of itself goes before what Tisty saw happen to it.
+export const cardOf = async (file: string, body: string): Promise<Told[] | undefined> => {
   const facts = await docFacts(file).catch(() => null);
-  if (!facts) return undefined;
-  const said = [
-    facts.author ? fill("pdfBy", facts.author) : "",
-    facts.editor ? fill("pdfEditedBy", facts.editor) : "",
-    facts.made ? fill("pdfMade", dated(facts.made)) : "",
-    facts.wrote ? fill("pdfWrote", dated(facts.wrote)) : "",
-  ].filter(Boolean);
-  return said.length ? said.join("  ·  ") : undefined;
+  const rows: [Parameters<typeof t>[0], string | null | undefined][] = [
+    ["pdfAuthor", declared(body, "author") ?? facts?.signedAs],
+    ["pdfEditor", facts?.editedAs],
+    ["pdfVersion", declared(body, "version")],
+    ["pdfDate", declared(body, "date")],
+    ["pdfMade", facts?.made ? dated(facts.made) : null],
+    ["pdfWrote", facts?.wrote ? dated(facts.wrote) : null],
+  ];
+  const told = rows.flatMap(([label, said]) => (said ? [{ label: t(label), said }] : []));
+  return told.length ? told : undefined;
 };
+
+export interface Stamping {
+  readonly carded: boolean;
+  readonly credited: boolean;
+}
+
+export const STAMPING: Stamping = { carded: true, credited: true };
+
+export const stampOf = async (
+  file: string,
+  body: string,
+  { carded, credited }: Stamping,
+): Promise<Stamp> => ({ card: carded ? await cardOf(file, body) : undefined, credited });
 
 // The PDF is the web page on paper, laid out by the window's own engine.
 export const pdfOf = async (
   bodies: string[],
   leaf: Paper,
-  signed?: string,
+  stamp?: Stamp,
   landscape = false,
 ): Promise<Blob> => {
-  const page = await webPage(bodies, "", { leaf, landscape, signed });
+  const page = await webPage(bodies, "", { leaf, landscape, stamp });
   const paper = landscape ? `${leaf}-landscape` : leaf;
   return new Blob([new Uint8Array(await pagePdf(page, paper))], { type: "application/pdf" });
 };

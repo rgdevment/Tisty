@@ -1297,6 +1297,7 @@ pub fn run() {
             answers::carrying::doc_export,
             answers::papers::signed,
             answers::papers::sign,
+            answers::papers::sign_name,
             answers::papers::sign_the_rest,
             answers::papers::spelled,
             answers::carrying::docs_pack,

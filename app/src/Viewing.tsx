@@ -291,9 +291,11 @@ export default function Viewing() {
         <Preview
           shown={pdf.seeing}
           leaf={leaf}
-          signing={paper ? pdf.signing : null}
+          carding={paper ? pdf.carding : null}
+          crediting={pdf.crediting}
           making={pdf.making}
-          onSign={pdf.setSigning}
+          onCard={pdf.setCarding}
+          onCredit={pdf.setCrediting}
           onKeep={() => void pdf.keep()}
           onClose={pdf.shut}
         />
