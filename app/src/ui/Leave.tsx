@@ -26,7 +26,7 @@ function Step({ n, children }: { n: number; children: React.ReactNode }) {
   );
 }
 
-export default function Leave({ cloud, revokes, store, onClose }: Props) {
+export default function Leave({ cloud, revokes, store, onClose }: Readonly<Props>) {
   const [backing, setBacking] = useState<"idle" | "busy" | "done">("idle");
   const [short, setShort] = useState<string>();
   const [revoke, setRevoke] = useState(false);

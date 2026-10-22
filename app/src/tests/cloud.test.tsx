@@ -624,7 +624,7 @@ describe("a WebDAV server", () => {
       "https://dav.example.com/files/rodrigo",
     );
     await userEvent.type(screen.getByLabelText(t("davUser")), "rodrigo");
-    await userEvent.type(screen.getByLabelText(new RegExp(`^${t("davPassword")}`)), "r0ck4me!");
+    await userEvent.type(screen.getByLabelText(new RegExp(`^${t("davKey")}`)), "r0ck4me!");
     await userEvent.click(connect);
 
     expect(await screen.findByText(t("cloudConnectedTitle"))).toBeTruthy();
@@ -649,7 +649,7 @@ describe("a WebDAV server", () => {
     await userEvent.click(screen.getByRole("button", { name: new RegExp(t("chooseCloud"), "i") }));
     await userEvent.type(await screen.findByLabelText(t("davAddress")), "https://dav.example.com");
     await userEvent.type(screen.getByLabelText(t("davUser")), "rodrigo");
-    await userEvent.type(screen.getByLabelText(new RegExp(`^${t("davPassword")}`)), "r0ck4me!");
+    await userEvent.type(screen.getByLabelText(new RegExp(`^${t("davKey")}`)), "r0ck4me!");
     await userEvent.click(screen.getByRole("button", { name: t("davConnect") }));
 
     await waitFor(() => expect(trouble).toHaveBeenCalledWith(t("davUnguarded")));
@@ -662,7 +662,7 @@ describe("a WebDAV server", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: t("stateReconnectDo") }));
     expect(screen.queryByLabelText(t("davAddress"))).toBeNull();
-    await userEvent.type(screen.getByLabelText(new RegExp(`^${t("davPassword")}`)), "r0ck4me!");
+    await userEvent.type(screen.getByLabelText(new RegExp(`^${t("davKey")}`)), "r0ck4me!");
     await userEvent.click(screen.getByRole("button", { name: t("davConnect") }));
 
     await waitFor(() => expect(carry).toHaveBeenCalled());
@@ -684,7 +684,7 @@ describe("a WebDAV server", () => {
     await userEvent.click(await screen.findByRole("button", { name: /WebDAV/ }));
     await userEvent.type(screen.getByLabelText(t("davAddress")), "https://dav.example.com");
     await userEvent.type(screen.getByLabelText(t("davUser")), "mario");
-    await userEvent.type(screen.getByLabelText(new RegExp(`^${t("davPassword")}`)), "r0ck4me!");
+    await userEvent.type(screen.getByLabelText(new RegExp(`^${t("davKey")}`)), "r0ck4me!");
     await userEvent.click(screen.getByRole("button", { name: t("davConnect") }));
 
     expect(await screen.findByText(t("davChecking"))).toBeTruthy();

@@ -20,7 +20,13 @@ const label = "flex flex-col gap-1 text-[11.5px] text-soft";
 const go =
   "ml-auto rounded-[10px] bg-accent px-4 py-2 text-[13px] font-medium text-white hover:opacity-90 disabled:opacity-60";
 
-export default function DavForm({ account, busy, onConnected, onTrouble, onChecking }: Props) {
+export default function DavForm({
+  account,
+  busy,
+  onConnected,
+  onTrouble,
+  onChecking,
+}: Readonly<Props>) {
   const [address, setAddress] = useState("");
   const [user, setUser] = useState("");
   const [password, setPassword] = useState("");
@@ -80,7 +86,7 @@ export default function DavForm({ account, busy, onConnected, onTrouble, onCheck
         </>
       )}
       <label className={label}>
-        {t("davPassword")}
+        {t("davKey")}
         <input
           type="password"
           value={password}
@@ -90,7 +96,7 @@ export default function DavForm({ account, busy, onConnected, onTrouble, onCheck
           onChange={(e) => setPassword(e.target.value)}
           className={field}
         />
-        <span className="text-faint">{t("davPasswordWhy")}</span>
+        <span className="text-faint">{t("davKeyWhy")}</span>
       </label>
       {checking && (
         <p role="status" aria-live="polite" className="text-[11.5px] text-faint">
