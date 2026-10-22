@@ -374,8 +374,6 @@ pub fn sign(session: tauri::State<'_, Mutex<Session>>, alias: Option<String>) ->
     Ok(as_signed(&session))
 }
 
-const NAME_AT_MOST: usize = 80;
-
 #[tauri::command]
 pub fn sign_name(
     session: tauri::State<'_, Mutex<Session>>,
@@ -386,9 +384,12 @@ pub fn sign_name(
         .filter(|one| !one.is_empty());
     if said
         .as_ref()
-        .is_some_and(|one| one.chars().count() > NAME_AT_MOST)
+        .is_some_and(|one| one.chars().count() > tisty_core::event::NAME_AT_MOST)
     {
-        return Err(Refusal::about("nameTooLong", NAME_AT_MOST.to_string()));
+        return Err(Refusal::about(
+            "nameTooLong",
+            tisty_core::event::NAME_AT_MOST.to_string(),
+        ));
     }
 
     let mut session = held(&session);
@@ -403,13 +404,31 @@ pub fn sign_name(
     Ok(as_signed(&session))
 }
 
-// On paper, any alias of the person's own reads as the name they sign with.
-fn on_paper(session: &Session, hand: Option<&str>) -> Option<String> {
-    let hand = hand?;
-    Some(match &session.state.signed.name {
-        Some(name) if session.state.mine_to_write(hand) => name.clone(),
+// On paper the person's own documents carry the name they sign with, or else the alias they use now.
+fn signed_on_paper(state: &State, kept: &tisty_core::model::Kept) -> Option<String> {
+    match state.mine(kept) {
+        true => state
+            .signed
+            .name
+            .clone()
+            .or_else(|| state.signed.alias.clone()),
+        false => None,
+    }
+    .or_else(|| state.author_of(kept).map(str::to_string))
+}
+
+// My hand on another person's document reads as my name too; on a guest's it stays as written.
+fn edited_on_paper(state: &State, kept: &tisty_core::model::Kept, hand: &str) -> String {
+    let mine = !kept.guest
+        && state
+            .signed
+            .alias
+            .as_deref()
+            .is_some_and(|alias| tisty_core::state::same_name(hand, alias));
+    match (&state.signed.name, mine) {
+        (Some(name), true) => name.clone(),
         _ => hand.to_string(),
-    })
+    }
 }
 
 #[tauri::command]
@@ -438,8 +457,12 @@ pub fn doc_facts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answe
         .and_then(|one| one.wrote)
         .map(|at| at.as_second())
         .or_else(|| seconds(about.modified()));
-    let signed_as = on_paper(&session, author.as_deref());
-    let edited_as = on_paper(&session, editor.as_deref());
+    let signed_as = kept.and_then(|one| signed_on_paper(&session.state, one));
+    let edited_as = kept.and_then(|one| {
+        editor
+            .as_deref()
+            .map(|hand| edited_on_paper(&session.state, one, hand))
+    });
     Ok(Facts {
         made,
         wrote,

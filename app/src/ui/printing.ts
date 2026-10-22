@@ -1,6 +1,7 @@
 import { docFacts, type Paper, pagePdf } from "../core";
-import { fields } from "../front";
-import { locale, t } from "../locales";
+import { wholeStamp } from "../format";
+import { valuesIn } from "../front";
+import { t } from "../locales";
 import { webPage } from "./webPage";
 
 export interface Told {
@@ -13,17 +14,10 @@ export interface Stamp {
   readonly credited?: boolean;
 }
 
-// On paper a date is read later and elsewhere, so it says the whole day, never «today».
-const dated = (when: number): string =>
-  new Intl.DateTimeFormat(locale(), { dateStyle: "long", timeStyle: "short" }).format(
-    new Date(when * 1000),
-  );
+const dated = (when: number): string => wholeStamp(new Date(when * 1000));
 
 const declared = (body: string, key: string): string | undefined =>
-  fields(body)
-    .find((one) => one.key.toLowerCase() === key)
-    ?.values.join(", ")
-    .trim() || undefined;
+  valuesIn(body, key)?.join(", ").trim() || undefined;
 
 // What the document says of itself goes before what Tisty saw happen to it.
 export const cardOf = async (file: string, body: string): Promise<Told[] | undefined> => {
@@ -45,7 +39,7 @@ export interface Stamping {
   readonly credited: boolean;
 }
 
-export const STAMPING: Stamping = { carded: true, credited: true };
+export const STAMPING: Stamping = { carded: true, credited: false };
 
 export const stampOf = async (
   file: string,

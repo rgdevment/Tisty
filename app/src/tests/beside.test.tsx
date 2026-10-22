@@ -45,7 +45,7 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
 
 vi.mock("../ui/printing", () => ({
   pdfOf: () => Promise.resolve(new Blob(["%PDF"], { type: "application/pdf" })),
-  STAMPING: { carded: true, credited: true },
+  STAMPING: { carded: true, credited: false },
   stampOf: () => Promise.resolve({ credited: true }),
 }));
 

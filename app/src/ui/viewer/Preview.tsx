@@ -1,5 +1,6 @@
 import type { Paper } from "../../core";
 import { t } from "../../locales";
+import PdfTick from "../PdfTick";
 import { leafWord } from "../sheets";
 import { clearOfChrome, onMac } from "../WindowChrome";
 import { button, tinted } from "./Glyphs";
@@ -14,31 +15,6 @@ interface Props {
   onCredit: (on: boolean) => void;
   onKeep: () => void;
   onClose: () => void;
-}
-
-function Tick({
-  on,
-  making,
-  label,
-  onTick,
-}: {
-  on: boolean;
-  making: boolean;
-  label: string;
-  onTick: (on: boolean) => void;
-}) {
-  return (
-    <label className="mr-1 flex items-center gap-1.5 text-[12.5px] text-soft">
-      <input
-        type="checkbox"
-        checked={on}
-        disabled={making}
-        onChange={(e) => onTick(e.target.checked)}
-        className="h-3.5 w-3.5 accent-accent"
-      />
-      {label}
-    </label>
-  );
 }
 
 export default function Preview({
@@ -73,9 +49,21 @@ export default function Preview({
         </span>
         <div data-tauri-drag-region className="flex-1" />
         {carding !== null && (
-          <Tick on={carding} making={making} label={t("viewWithCard")} onTick={onCard} />
+          <PdfTick
+            barred
+            on={carding}
+            disabled={making}
+            label={t("viewWithCard")}
+            onTick={onCard}
+          />
         )}
-        <Tick on={crediting} making={making} label={t("viewWithCredit")} onTick={onCredit} />
+        <PdfTick
+          barred
+          on={crediting}
+          disabled={making}
+          label={t("viewWithCredit")}
+          onTick={onCredit}
+        />
         <button type="button" className={tinted} disabled={making} onClick={onKeep}>
           {t("toPdf")}
         </button>

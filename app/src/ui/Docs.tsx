@@ -647,7 +647,7 @@ export default function Docs({
     if (!open || making) return;
     setMaking(true);
     try {
-      const blob = await blobOf(await stampOf(open.file, body, stamping));
+      const blob = await blobOf(await stampOf(open.file, body, STAMPING));
       if (blob) setSeeing(URL.createObjectURL(blob));
     } catch (e) {
       onError(saidPlainly(e));

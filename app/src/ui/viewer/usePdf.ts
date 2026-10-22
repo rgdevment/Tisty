@@ -4,7 +4,7 @@ import { keepFile, type Paper, type Viewed } from "../../core";
 import { landscapeIn } from "../../front";
 import { t } from "../../locales";
 import { usePreviewing } from "../previewing";
-import { pdfOf, stampOf } from "../printing";
+import { pdfOf, STAMPING, stampOf } from "../printing";
 
 interface Asked {
   ready: boolean;
@@ -17,8 +17,8 @@ interface Asked {
 
 export default function usePdf({ ready, body, leaf, paper, named, onFail }: Asked) {
   const [seeing, setSeeing] = useState<string | null>(null);
-  const [carding, setCarding] = useState(true);
-  const [crediting, setCrediting] = useState(true);
+  const [carding, setCarding] = useState(STAMPING.carded);
+  const [crediting, setCrediting] = useState(STAMPING.credited);
   const [making, setMaking] = useState(false);
   usePreviewing(Boolean(seeing));
 
@@ -71,8 +71,7 @@ export default function usePdf({ ready, body, leaf, paper, named, onFail }: Aske
   const open = useRef(seeing);
   open.current = seeing;
   useEffect(() => {
-    if (open.current && leaf && carding !== undefined && crediting !== undefined)
-      void redraw.current();
+    if (open.current) void redraw.current();
   }, [leaf, carding, crediting]);
 
   return {

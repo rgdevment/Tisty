@@ -1081,13 +1081,7 @@ impl State {
         self.docs
             .values()
             .filter(|one| !self.written_shut(one.id))
-            // Mine to re-sign is what a hand of mine signed, or what nobody ever signed at all.
-            // Another name is another person, whether it arrived in a parcel or through a store
-            // two people share.
-            .filter(|one| match one.by.as_deref() {
-                Some(by) => !one.guest && self.mine_to_write(by),
-                None => true,
-            })
+            .filter(|one| self.mine(one))
             .filter(|one| !alike(one.by.as_deref(), now))
             .map(|one| one.id)
             .collect()
@@ -1110,7 +1104,16 @@ impl State {
         }
     }
 
-    pub fn mine_to_write(&self, hand: &str) -> bool {
+    /// Mine is what a hand of mine signed, or what nobody ever signed at all. Another name is
+    /// another person, whether it arrived in a parcel or through a store two people share.
+    pub fn mine(&self, kept: &crate::model::Kept) -> bool {
+        match kept.by.as_deref() {
+            Some(by) => !kept.guest && self.mine_to_write(by),
+            None => true,
+        }
+    }
+
+    fn mine_to_write(&self, hand: &str) -> bool {
         alike(Some(hand), self.signed.alias.as_deref())
             || self.signed_before.iter().any(|was| same_name(was, hand))
     }

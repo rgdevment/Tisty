@@ -912,6 +912,7 @@ pub struct DocAdd {
 /// Kept whole so that a name or an address can be filled in later without the log learning a
 /// new shape: what is written today is the alias alone.
 pub const ALIAS_AT_MOST: usize = 40;
+pub const NAME_AT_MOST: usize = 80;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Signature {

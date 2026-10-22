@@ -174,7 +174,7 @@ describe("a widget's own width", () => {
 });
 
 describe("reading in the viewer", () => {
-  it("previews a Tisty document as a PDF with its card and credit by default, drops each, saves it and closes on Esc", async () => {
+  it("previews a Tisty document as a PDF with its card and no credit by default, flips each, saves it and closes on Esc", async () => {
     ipc.shown = tisty;
     render(<Viewing />);
     await screen.findByText(`Proyectos · ${t("viewOnlyReading")}`);
@@ -188,7 +188,7 @@ describe("reading in the viewer", () => {
     );
     await userEvent.click(screen.getByRole("checkbox", { name: t("viewWithCredit") }));
     await waitFor(() =>
-      expect(asked("pdf").map((one) => one.args.credited)).toEqual([true, true, false]),
+      expect(asked("pdf").map((one) => one.args.credited)).toEqual([false, false, true]),
     );
     await userEvent.click(screen.getByRole("button", { name: t("toPdf") }));
     await waitFor(() => expect(asked("keep_file")).toHaveLength(1));
