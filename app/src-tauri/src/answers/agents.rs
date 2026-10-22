@@ -126,7 +126,7 @@ pub fn agent(session: tauri::State<'_, Mutex<Session>>) -> Answer<Agent> {
 /// which is what stops one granting itself a voice by connecting.
 #[tauri::command]
 pub fn agent_turn(session: tauri::State<'_, Mutex<Session>>, on: bool) -> Answer<Agent> {
-    {
+    let reach = {
         let mut session = held(&session);
         session.reload()?;
         let paths = session.paths.clone();
@@ -147,9 +147,10 @@ pub fn agent_turn(session: tauri::State<'_, Mutex<Session>>, on: bool) -> Answer
         if on {
             let _ = session.keep(|c| c.knock_heard = Some(jiff::Timestamp::now()));
         }
-    }
+        paths
+    };
     // The name plugins call goes with the voice: shutting the door takes it off the PATH too.
-    std::thread::spawn(move || crate::pathing::keep(on));
+    std::thread::spawn(move || crate::pathing::keep(reach));
     agent(session)
 }
 

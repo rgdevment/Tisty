@@ -904,8 +904,8 @@ pub(crate) fn opened(
     }
 
     answers::agents::opened_by_default(&mut session);
-    let voice = session.config.agent_id.is_some();
-    std::thread::spawn(move || pathing::keep(voice));
+    let paths = session.paths.clone();
+    std::thread::spawn(move || pathing::keep(paths));
     news::raise(
         app,
         session.paths.config(),
