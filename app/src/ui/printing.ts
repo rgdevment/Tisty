@@ -1,6 +1,6 @@
 import { docFacts, pagePdf } from "../core";
 import { wholeStamp } from "../format";
-import { laidIn, valuesIn } from "../front";
+import { valuesIn } from "../front";
 import { t } from "../locales";
 import { type PaperSheet, webPage } from "./webPage";
 
@@ -36,11 +36,19 @@ export const factsCard = async (file: string, body: string): Promise<Told[] | un
   return told.length ? told : undefined;
 };
 
-// The card is the document's own choice, made beside the page, so the export only adds the credit.
-export const stampOf = async (file: string, body: string, credited: boolean): Promise<Stamp> => ({
-  card: laidIn(body).carded ? await factsCard(file, body) : undefined,
-  credited,
-});
+export interface Stamping {
+  readonly covered: boolean;
+  readonly credited: boolean;
+}
+
+export const STAMPING: Stamping = { covered: false, credited: false };
+
+// The card goes on a cover of its own, so the pages after it are the sheets seen on screen.
+export const stampOf = async (
+  file: string,
+  body: string,
+  { covered, credited }: Stamping,
+): Promise<Stamp> => ({ card: covered ? await factsCard(file, body) : undefined, credited });
 
 // The PDF is the web page on paper, laid out by the window's own engine.
 export const pdfOf = async (bodies: string[], sheet: PaperSheet): Promise<Blob> => {

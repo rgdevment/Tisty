@@ -4,7 +4,7 @@ import { keepFile, type Paper, type Viewed } from "../../core";
 import { landscapeIn } from "../../front";
 import { t } from "../../locales";
 import { usePreviewing } from "../previewing";
-import { pdfOf, stampOf } from "../printing";
+import { pdfOf, STAMPING, type Stamping, stampOf } from "../printing";
 
 interface Asked {
   ready: boolean;
@@ -19,12 +19,14 @@ interface Asked {
 
 export default function usePdf({ ready, body, leaf, paper, named, turns, onFail }: Asked) {
   const [seeing, setSeeing] = useState<string | null>(null);
-  const [crediting, setCrediting] = useState(false);
+  const [stamping, setStamping] = useState<Stamping>(STAMPING);
   const [making, setMaking] = useState(false);
   usePreviewing(Boolean(seeing));
 
   const made = async () => {
-    const stamp = paper ? await stampOf(paper.file, body, crediting) : { credited: crediting };
+    const stamp = paper
+      ? await stampOf(paper.file, body, stamping)
+      : { credited: stamping.credited };
     return pdfOf([body], { leaf, landscape: landscapeIn(body), stamp, turns: turns() });
   };
 
@@ -71,13 +73,13 @@ export default function usePdf({ ready, body, leaf, paper, named, turns, onFail 
   open.current = seeing;
   useEffect(() => {
     if (open.current) void redraw.current();
-  }, [leaf, crediting, body]);
+  }, [leaf, stamping, body]);
 
   return {
     seeing,
-    crediting,
+    stamping,
     making,
-    setCrediting,
+    setStamping,
     preview,
     keep,
     shut,

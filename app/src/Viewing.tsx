@@ -18,7 +18,6 @@ import { saidPlainly } from "./refusal";
 import Menu from "./ui/Menu";
 import { turnsIn } from "./ui/printing";
 import { pageFor } from "./ui/sheets";
-import useCard from "./ui/useCard";
 import { leaveAsHtml, leaveAsWord } from "./ui/useLeaving";
 import { type Acts, choicesFor, darkNow, keysFor, PLAIN, ZOOMS } from "./ui/viewer/acting";
 import { button } from "./ui/viewer/Glyphs";
@@ -110,7 +109,6 @@ export default function Viewing() {
   const leaf = paperIn(body) ?? kept.leaf;
   useEffect(() => pageFor(leaf, turned), [leaf, turned]);
   const paper = shown?.kind === "doc" ? shown.paper : null;
-  const card = useCard(paper?.file, body);
   const drawn = useRef<Window | null>(null);
   const fail = (problem: unknown) => setNote(saidPlainly(problem));
   const named = shown?.kind === "file" ? shown.name.replace(/\.[^.]+$/, "") : (paper?.title ?? "");
@@ -253,7 +251,6 @@ export default function Viewing() {
           raw={raw}
           zoom={ZOOMS[zoom]}
           leaf={leaf}
-          stamp={card}
           onPage={(page) => {
             drawn.current = page;
           }}
@@ -310,9 +307,10 @@ export default function Viewing() {
         <Preview
           shown={pdf.seeing}
           leaf={leaf}
-          crediting={pdf.crediting}
+          stamping={pdf.stamping}
+          coverable={Boolean(paper)}
           making={pdf.making}
-          onCredit={pdf.setCrediting}
+          onStamp={pdf.setStamping}
           onKeep={() => void pdf.keep()}
           onClose={pdf.shut}
         />

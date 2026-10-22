@@ -1,29 +1,32 @@
 import { t } from "../locales";
 import type { Told } from "./printing";
 
-// The card sits under the title, on screen as on paper, so the sheets lay out the same in both.
-export const cardOn = (page: Document, card: readonly Told[] | undefined) => {
+// The card is a cover of its own, so the pages after it are the sheets seen on screen.
+export const coverOn = (page: Document, card: readonly Told[] | undefined) => {
   const sheet = page.querySelector("article.page");
-  for (const one of sheet?.querySelectorAll(":scope > .stamp") ?? []) one.remove();
   if (!sheet || !card?.length) return;
+  const cover = page.createElement("section");
+  cover.className = "cover";
+  const named = sheet.querySelector(":scope > h1")?.textContent?.trim();
+  if (named) {
+    const title = page.createElement("p");
+    title.className = "cover-title";
+    title.textContent = named;
+    cover.append(title);
+  }
   const list = page.createElement("dl");
   list.className = "stamp";
-  list.setAttribute("inert", "");
   for (const { label, said } of card) {
     const pair = page.createElement("div");
-    const named = page.createElement("dt");
-    named.textContent = label;
+    const term = page.createElement("dt");
+    term.textContent = label;
     const told = page.createElement("dd");
     told.textContent = said;
-    pair.append(named, told);
+    pair.append(term, told);
     list.append(pair);
   }
-  const head = Array.from(sheet.children).find(
-    (one) => !one.matches(".front, .fronted, .sheet-turn, .break-said"),
-  );
-  if (head && /^H[1-3]$/.test(head.tagName)) head.after(list);
-  else if (head) head.before(list);
-  else sheet.append(list);
+  cover.append(list);
+  sheet.prepend(cover);
 };
 
 export const creditOn = (page: Document) => {

@@ -87,7 +87,6 @@ export type Laid = {
   readonly paper: Paper | null;
   readonly sheets: boolean;
   readonly landscape: boolean;
-  readonly carded: boolean;
 };
 
 const keyed = (all: Field[], key: string): string[] | undefined =>
@@ -104,7 +103,6 @@ export const laidIn = (body: string): Laid => {
     paper: PAPERS.find((one) => one === said("paper")) ?? null,
     sheets,
     landscape: sheets && said("orientation") === "landscape",
-    carded: said("card") === "on",
   };
 };
 
@@ -144,17 +142,3 @@ export const withLandscape = (body: string, landscape: boolean): string =>
 
 export const withSheets = (body: string, on: boolean): string =>
   withProperty(body, "sheets", on ? "on" : null);
-
-export const withCard = (body: string, on: boolean): string =>
-  withProperty(body, "card", on ? "on" : null);
-
-// A value YAML would read otherwise is kept in quotes, the way the Rust side writes a title.
-const quotedIfNeeded = (said: string): string => {
-  if (!/[:#'"[\]{},&*!|>%@`]|^[-?\s]|\s$/.test(said)) return said;
-  return said.includes('"') ? `'${said.replace(/'/g, "''")}'` : `"${said}"`;
-};
-
-export const withDeclared = (body: string, key: "author" | "version", said: string): string => {
-  const plain = said.replace(/[\r\n]+/g, " ").trim();
-  return withProperty(body, key, plain ? quotedIfNeeded(plain) : null);
-};

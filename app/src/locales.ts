@@ -724,10 +724,9 @@ const en = {
   toHtml: "Export as HTML…",
   toWord: "Export as Word…",
   toPdfDo: "Export PDF",
-  cardShown: "A card up top",
-  cardVersionNone: "1.0",
+  pdfSign: "A cover with author, version and dates",
   pdfSignAsk:
-    "A small table under the title, on screen and in the PDF alike, so the sheets you see are the pages you get.\n\nAuthor: what you write here; if you leave it empty, the name you sign with in Settings, or else your alias.\nVersion: what you write here, if anything.\nDate: the document's date: line, if it has one.\nCreated and last written: from Tisty itself.\n\nIt is kept in the document as card: on, author: and version:.",
+    "A first page of its own with the title and a small table: author, version and when it was created and last written. The pages after it are the sheets you see.\n\nAuthor: the document's author: line, or else the name you sign with in Settings, or else your alias.\nVersion and date: the document's version: and date: lines, if it has them.",
   pdfCreditTick: "A quiet “Made with Tisty” at the end",
   pdfCreditAsk:
     "One small grey line at the very end of the PDF, linking to the Tisty site. Nothing else changes.",
@@ -2962,10 +2961,9 @@ const es: Catalog = {
   toHtml: "Exportar como HTML…",
   toWord: "Exportar como Word…",
   toPdfDo: "Exportar PDF",
-  cardShown: "Ficha al inicio",
-  cardVersionNone: "1.0",
+  pdfSign: "Portada con autor, versión y fechas",
   pdfSignAsk:
-    "Una pequeña tabla bajo el título, igual en pantalla y en el PDF, para que las hojas que ves sean las páginas que salen.\n\nAutor: lo que escribas aquí; si lo dejas vacío, el nombre con que firmas en Ajustes y, si no hay, tu alias.\nVersión: lo que escribas aquí, si quieres.\nFecha: la línea date: del documento, si la tiene.\nCreado y última edición: los pone Tisty.\n\nQueda guardado en el documento como card: on, author: y version:.",
+    "Una primera página propia con el título y una pequeña tabla: autor, versión y cuándo se creó y se escribió por última vez. Las páginas siguientes son las hojas que ves.\n\nAutor: la línea author: del documento; si no está, el nombre con que firmas en Ajustes y, si no hay, tu alias.\nVersión y fecha: las líneas version: y date: del documento, si las tiene.",
   pdfCreditTick: "Pie discreto «Generado con Tisty»",
   pdfCreditAsk:
     "Una línea pequeña y gris al final del PDF, con enlace a la web de Tisty. Nada más cambia.",

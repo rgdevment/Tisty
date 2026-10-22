@@ -5,7 +5,6 @@ import Frame from "./Frame";
 import { mendable } from "./mending";
 import type { Head } from "./paging";
 import { escaped, heads, shell } from "./paging";
-import type { Told } from "./printing";
 import type { Sheet } from "./sheeting";
 
 type Props = Reaching & {
@@ -19,7 +18,6 @@ type Props = Reaching & {
   readonly onOutline?: (heads: Head[]) => void;
   readonly onShown?: (page: Window | null) => void;
   readonly sheet?: Sheet;
-  readonly stamp?: readonly Told[];
   readonly again?: string;
   readonly draw?: (body: string) => Promise<string>;
   readonly onMend?: (one: Mend, body: string) => void;
@@ -120,7 +118,6 @@ export default function Page(props: Readonly<Props>) {
           hidden={one.turn !== shown}
           wide={wide}
           sheet={props.sheet}
-          stamp={props.stamp}
           zoom={zoom}
           reach={() => ({
             ...reach.current,

@@ -42,7 +42,7 @@ describe("a document as one web page that travels alone", () => {
 });
 
 describe("a document as a page on paper", () => {
-  it("takes the sheet, folds what folds on screen, cards it under the title and credits Tisty at the end", async () => {
+  it("takes the sheet, folds what folds on screen, opens with a cover and credits Tisty at the end", async () => {
     drawn.refused = false;
     const light = document.createElement("style");
     light.textContent = ":root{--tisty-ink:#123456}";
@@ -56,7 +56,10 @@ describe("a document as a page on paper", () => {
 
     expect(made).toContain("@page{size:A4");
     expect(made).not.toContain("<details open");
-    expect(sheet?.querySelector("h1 + dl.stamp")?.textContent).toBe("AutorAna Pérez");
+    const cover = sheet?.firstElementChild;
+    expect(cover?.className).toBe("cover");
+    expect(cover?.querySelector(".stamp")?.textContent).toBe("AutorAna Pérez");
+    expect(cover?.nextElementSibling?.tagName).toBe("H1");
     expect(sheet?.lastElementChild?.className).toBe("credit");
   });
 
@@ -73,7 +76,7 @@ describe("a document as a page on paper", () => {
   it("leaves the card and the credit out unless asked for", async () => {
     const made = await webPage(["Plan"], "Plan", { leaf: "a4", stamp: { credited: false } });
 
-    expect(made).not.toContain('class="stamp"');
+    expect(made).not.toContain('class="cover"');
     expect(made).not.toContain('class="credit"');
   });
 });

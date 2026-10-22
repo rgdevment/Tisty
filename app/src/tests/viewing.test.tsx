@@ -39,7 +39,9 @@ vi.mock("../ui/printing", () => ({
     });
     return Promise.resolve(new Blob(["%PDF"]));
   },
-  stampOf: (_: string, __: string, credited: boolean) => Promise.resolve({ credited }),
+  STAMPING: { covered: false, credited: false },
+  stampOf: (_: string, __: string, chosen: { credited: boolean }) =>
+    Promise.resolve({ credited: chosen.credited }),
   factsCard: () => Promise.resolve(undefined),
   turnsIn: () => [],
 }));
