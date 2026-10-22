@@ -33,7 +33,7 @@ fn said_with(status: &'static str, headers: &str, body: &str) -> Said {
 fn server(script: Vec<Said>) -> (DavAt, JoinHandle<Vec<Asked>>) {
     let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
     let base = format!(
-        "http://127.0.0.1:{}/dav/files/ana",
+        "http://127.0.0.1:{}/dav/files/mario",
         listener.local_addr().unwrap().port()
     );
     let served = std::thread::spawn(move || {
@@ -55,12 +55,12 @@ fn server(script: Vec<Said>) -> (DavAt, JoinHandle<Vec<Asked>>) {
             })
             .collect()
     });
-    (DavAt::under(&base, "ana").unwrap(), served)
+    (DavAt::under(&base, "mario").unwrap(), served)
 }
 
 fn dav(at: DavAt, home: &std::path::Path) -> WebDav {
     let tokens = Tokens::new(
-        Arc::new(Kept::holding("refresh", "app-password")),
+        Arc::new(Kept::holding("refresh", "r0ck4me!")),
         Arc::new(Password),
         "refresh",
         home,
@@ -93,7 +93,7 @@ fn file(href: &str, bytes: u64, etag: &str) -> String {
     )
 }
 
-const ROOT: &str = "/dav/files/ana/Tisty/";
+const ROOT: &str = "/dav/files/mario/Tisty/";
 
 #[test]
 fn every_file_under_tisty_s_folder_is_listed_by_its_path_folder_by_folder() {

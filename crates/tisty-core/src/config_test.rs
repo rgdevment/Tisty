@@ -801,17 +801,17 @@ fn a_moved_word_names_google_as_1_30_reads_it_and_a_later_cloud_as_a_folder_name
 fn a_webdav_server_is_told_as_a_folder_named_after_it_with_its_user_and_host() {
     let at = CloudAt {
         provider: WEBDAV.into(),
-        account: "https://ana@cloud.example.com/remote.php/dav/files/ana/Tisty/".into(),
-        email: "ana@cloud.example.com".into(),
+        account: "https://mario@cloud.example.com/remote.php/dav/files/mario/Tisty/".into(),
+        email: "mario@cloud.example.com".into(),
     };
 
     assert_eq!(at.shown(), "WebDAV");
-    assert_eq!(at.word(), "folder:WebDAV · ana@cloud.example.com");
+    assert_eq!(at.word(), "folder:WebDAV · mario@cloud.example.com");
     assert_eq!(
         bound(&at.word()),
         Bound::Cloud {
             provider: WEBDAV,
-            email: "ana@cloud.example.com"
+            email: "mario@cloud.example.com"
         }
     );
 }

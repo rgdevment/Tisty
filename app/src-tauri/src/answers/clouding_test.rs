@@ -269,7 +269,7 @@ fn dav_server(
     use std::io::{BufRead, Read, Write};
     let listener = std::net::TcpListener::bind(("127.0.0.1", 0)).unwrap();
     let base = format!(
-        "http://127.0.0.1:{}/dav/ana",
+        "http://127.0.0.1:{}/dav/mario",
         listener.local_addr().unwrap().port()
     );
     let served = std::thread::spawn(move || {
@@ -299,12 +299,12 @@ fn dav_server(
             .unwrap();
         }
     });
-    (tisty_webdav::DavAt::under(&base, "ana").unwrap(), served)
+    (tisty_webdav::DavAt::under(&base, "mario").unwrap(), served)
 }
 
 fn kept_note(etag: &str) -> String {
     format!(
-        r#"<?xml version="1.0"?><d:multistatus xmlns:d="DAV:"><d:response><d:href>/dav/ana/Tisty/a.md</d:href><d:propstat><d:prop><d:resourcetype/><d:getcontentlength>4</d:getcontentlength><d:getetag>{etag}</d:getetag></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>"#
+        r#"<?xml version="1.0"?><d:multistatus xmlns:d="DAV:"><d:response><d:href>/dav/mario/Tisty/a.md</d:href><d:propstat><d:prop><d:resourcetype/><d:getcontentlength>4</d:getcontentlength><d:getetag>{etag}</d:getetag></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>"#
     )
 }
 
@@ -313,7 +313,7 @@ fn a_webdav_server_that_guards_writes_is_connected_and_its_password_kept() {
     let aside = tempfile::tempdir().unwrap();
     let (dav, served) = dav_server(vec![("207 Multi-Status", kept_note("\"e1\""))]);
 
-    let connected = dav_connected(dav.clone(), "app-pass".into(), aside.path()).unwrap();
+    let connected = dav_connected(dav.clone(), "r0ck4me!".into(), aside.path()).unwrap();
 
     served.join().unwrap();
     assert_eq!(connected.provider, WEBDAV);
@@ -333,7 +333,7 @@ fn a_webdav_server_with_no_strong_etag_is_never_connected() {
     let aside = tempfile::tempdir().unwrap();
     let (dav, served) = dav_server(vec![("207 Multi-Status", kept_note("W/\"e1\""))]);
 
-    let refused = dav_connected(dav.clone(), "app-pass".into(), aside.path()).unwrap_err();
+    let refused = dav_connected(dav.clone(), "r0ck4me!".into(), aside.path()).unwrap_err();
 
     served.join().unwrap();
     assert_eq!(refused.code, "davUnguarded");

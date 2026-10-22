@@ -151,8 +151,8 @@ fn a_cloud_built_apart_leaves_the_one_kept_for_the_chosen_account_alone() {
 fn a_webdav_server_is_always_offered_and_its_password_kept_under_a_short_name() {
     let dav = CloudAt {
         provider: WEBDAV.into(),
-        account: "https://ana@cloud.example.com/remote.php/dav/files/ana/Tisty/".into(),
-        email: "ana@cloud.example.com".into(),
+        account: "https://mario@cloud.example.com/remote.php/dav/files/mario/Tisty/".into(),
+        email: "mario@cloud.example.com".into(),
     };
     let scope = scope_of(&dav);
 
@@ -167,7 +167,7 @@ fn a_webdav_server_is_always_offered_and_its_password_kept_under_a_short_name() 
     assert_ne!(
         scope,
         scope_of(&CloudAt {
-            account: "https://bea@cloud.example.com/remote.php/dav/files/bea/Tisty/".into(),
+            account: "https://rodrigo@cloud.example.com/remote.php/dav/files/rodrigo/Tisty/".into(),
             ..dav.clone()
         })
     );
@@ -178,8 +178,8 @@ fn a_webdav_cloud_is_built_from_its_account_and_one_that_is_no_address_is_not() 
     let home = tempfile::tempdir().unwrap();
     let dav = CloudAt {
         provider: WEBDAV.into(),
-        account: "https://ana@cloud.example.com/dav/Tisty/".into(),
-        email: "ana@cloud.example.com".into(),
+        account: "https://mario@cloud.example.com/dav/Tisty/".into(),
+        email: "mario@cloud.example.com".into(),
     };
     let broken = CloudAt {
         account: "not an address".into(),
@@ -195,8 +195,8 @@ fn a_webdav_cloud_never_offers_to_free_space_and_another_cloud_still_does() {
     let home = tempfile::tempdir().unwrap();
     let dav = CloudAt {
         provider: WEBDAV.into(),
-        account: "https://ana@cloud.example.com/dav/Tisty/".into(),
-        email: "ana@cloud.example.com".into(),
+        account: "https://mario@cloud.example.com/dav/Tisty/".into(),
+        email: "mario@cloud.example.com".into(),
     };
     let (carrier, _) = cloud_of(home.path(), &dav).unwrap();
 
