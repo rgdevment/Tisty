@@ -21,6 +21,7 @@ mod page;
 #[cfg(feature = "pens")]
 mod pens;
 mod printed;
+mod ranges;
 mod reading;
 pub mod refs;
 mod short;

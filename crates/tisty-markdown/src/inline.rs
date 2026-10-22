@@ -2,9 +2,11 @@ use std::collections::HashSet;
 use std::fmt::Write as _;
 use std::ops::Range;
 
+use crate::ranges::{Nearby, outside};
 use crate::{Mark, Span};
 
 pub fn inline(spans: &[Span], text: &str, out: &mut String) {
+    debug_assert!(spans.is_sorted_by_key(|one| one.at.start));
     let atoms: Vec<&Span> = spans.iter().filter(|one| atom(&one.mark)).collect();
     let mut items: Vec<(usize, Item)> = atoms
         .iter()
@@ -12,8 +14,9 @@ pub fn inline(spans: &[Span], text: &str, out: &mut String) {
         .collect();
     let mut silent: Vec<Range<usize>> = atoms.iter().map(|one| one.at.clone()).collect();
     silent.extend(walls(spans, text));
+    let silent = Nearby::merged(silent);
     for span in spans.iter().filter(|one| one.mark == Mark::Text) {
-        for piece in outside(span.at.clone(), &silent) {
+        for piece in outside(span.at.clone(), silent.near(&span.at)) {
             items.push((piece.start, Item::Words(piece)));
         }
     }
@@ -82,22 +85,6 @@ pub(crate) fn walls(spans: &[Span], text: &str) -> Vec<Range<usize>> {
         })
         .flatten()
         .collect()
-}
-
-pub(crate) fn outside(within: Range<usize>, silent: &[Range<usize>]) -> Vec<Range<usize>> {
-    let mut pieces = vec![within];
-    for one in silent {
-        pieces = pieces
-            .into_iter()
-            .flat_map(|piece| {
-                let before = piece.start..one.start.clamp(piece.start, piece.end);
-                let after = one.end.clamp(piece.start, piece.end)..piece.end;
-                [before, after]
-            })
-            .filter(|piece| !piece.is_empty())
-            .collect();
-    }
-    pieces
 }
 
 fn opening(mark: &Mark, out: &mut String) {
@@ -233,12 +220,13 @@ pub(crate) fn code_words(said: &str) -> String {
     }
 }
 
+// A block's spans are sorted by start, so only those from the image's start on are looked at.
 pub(crate) fn alt(image: &Span, spans: &[Span], text: &str) -> String {
-    spans
+    let first = spans.partition_point(|one| one.at.start < image.at.start);
+    spans[first..]
         .iter()
-        .filter(|one| {
-            one.mark == Mark::Text && image.at.start <= one.at.start && one.at.end <= image.at.end
-        })
+        .take_while(|one| one.at.start < image.at.end)
+        .filter(|one| one.mark == Mark::Text && one.at.end <= image.at.end)
         .map(|one| &text[one.at.clone()])
         .collect()
 }

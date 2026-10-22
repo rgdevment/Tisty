@@ -1,6 +1,7 @@
 use serde_json::{Value, json};
 
-use crate::inline::{alt, atom, code_words, holds, outside, paired, walls};
+use crate::inline::{alt, atom, code_words, holds, paired, walls};
+use crate::ranges::{Nearby, outside};
 use crate::{Block, Callout, Column, Doc, Kind, Lean, Mark, Span};
 
 pub fn printed(doc: &Doc) -> Value {
@@ -168,20 +169,26 @@ fn runs(spans: &[Span], text: &str) -> Vec<Value> {
         .iter()
         .map(|one| (one.at.start, Some(*one), one.at.clone()))
         .collect();
+    let silent = Nearby::merged(silent);
     for span in spans.iter().filter(|one| one.mark == Mark::Text) {
-        for piece in outside(span.at.clone(), &silent) {
+        for piece in outside(span.at.clone(), silent.near(&span.at)) {
             items.push((piece.start, None, piece));
         }
     }
     items.sort_by_key(|(at, ..)| *at);
     let kept = paired(spans, text);
+    debug_assert!(spans.is_sorted_by_key(|one| one.at.start));
+    let containers: Vec<&Span> = spans.iter().filter(|one| holds(&one.mark)).collect();
+    // Walked once beside the items, keeping only the marks still open, as the page does.
+    let (mut next, mut open) = (0, Vec::<&Span>::new());
     let mut out = Vec::new();
     for (at, one, piece) in items {
-        let marks: Vec<Value> = spans
-            .iter()
-            .filter(|span| holds(&span.mark) && span.at.start <= at && at < span.at.end)
-            .filter_map(|span| marked(&span.mark))
-            .collect();
+        while next < containers.len() && containers[next].at.start <= at {
+            open.push(containers[next]);
+            next += 1;
+        }
+        open.retain(|span| at < span.at.end);
+        let marks: Vec<Value> = open.iter().filter_map(|span| marked(&span.mark)).collect();
         let said = &text[piece];
         let Some(span) = one else {
             out.push(json!({ "type": "text", "text": decoded(said), "marks": marks }));

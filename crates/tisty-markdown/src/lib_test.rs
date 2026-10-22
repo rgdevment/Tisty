@@ -418,3 +418,47 @@ fn a_link_definition_stands_on_the_page_where_it_was_written() {
         "one held inside a list is that list's to edit"
     );
 }
+
+#[test]
+fn long_blocks_of_every_kind_read_draw_and_print_in_proportion() {
+    let many = |piece: &dyn Fn(usize) -> String| (0..20_000).map(piece).collect::<String>();
+    let cases = [
+        many(&|n| {
+            format!(
+                "> line {n} **b**
+"
+            )
+        }),
+        many(&|n| {
+            format!(
+                "see [a{n}]
+
+[a{n}]: https://x/{n}
+
+"
+            )
+        }),
+        many(&|n| format!("word {n} [l](https://x/{n}) ")),
+        many(&|n| format!("w ==x{n}== ")),
+        many(&|n| format!("::star:: :tada: {n} ")),
+        many(&|n| format!("![a{n}](x{n}.png) ")),
+        many(&|n| format!("see [[note {n}]] ")),
+        many(&|n| format!("at https://x.example/{n} ")),
+        format!(
+            "![{}](x.png)",
+            many(&|n| format!(
+                "alt {n} `c`
+"
+            ))
+        ),
+    ];
+
+    let started = std::time::Instant::now();
+    for text in &cases {
+        let doc = read(text);
+        assert!(!html(&doc).is_empty());
+        assert!(!format!("{:?}", printed(&doc)).is_empty());
+    }
+    // In proportion all of them take a few seconds even with coverage; asking every piece of every other one took many minutes.
+    assert!(started.elapsed() < std::time::Duration::from_secs(60));
+}

@@ -1,9 +1,11 @@
+use std::cell::LazyCell;
 use std::ops::Range;
 
 use pulldown_cmark::{
     Alignment, BlockQuoteKind, CodeBlockKind, Event, LinkType, Options, Parser, Tag, TagEnd,
 };
 
+use crate::ranges::Nearby;
 use crate::{Block, Callout, Column, Doc, Kind, Lean, Mark, Span};
 
 pub fn read(text: &str) -> Doc {
@@ -143,6 +145,8 @@ fn tokens(text: &str) -> impl Iterator<Item = (Event<'_>, Range<usize>)> {
 
 // The tokenizer drops a link's definition from what it hands over, so the page would have nowhere to show or edit it.
 fn defined(text: &str, skip: usize, blocks: &mut Vec<Block>) {
+    // Built only once a definition turns up, so a document with none pays nothing for it.
+    let held = LazyCell::new(|| Nearby::of(blocks.iter().map(|one| one.at.clone()).collect()));
     let parser = Parser::new_ext(&text[skip..], options());
     let mut found: Vec<Block> = parser
         .reference_definitions()
@@ -155,11 +159,7 @@ fn defined(text: &str, skip: usize, blocks: &mut Vec<Block>) {
             };
             leaf(kind, at)
         })
-        .filter(|one| {
-            !blocks
-                .iter()
-                .any(|held| held.at.start < one.at.end && one.at.start < held.at.end)
-        })
+        .filter(|one| held.touching(&one.at).next().is_none())
         .collect();
     found.extend(repeated(text, skip, blocks, &found));
     if found.is_empty() {
@@ -171,19 +171,23 @@ fn defined(text: &str, skip: usize, blocks: &mut Vec<Block>) {
 
 // The parser keeps one definition per label, so a label written twice leaves its later lines unclaimed.
 fn repeated(text: &str, skip: usize, blocks: &[Block], found: &[Block]) -> Vec<Block> {
-    let claimed = |at: usize| {
-        blocks
-            .iter()
-            .chain(found)
-            .any(|one| one.at.start <= at && at < one.at.end)
-    };
+    let held = LazyCell::new(|| {
+        Nearby::of(
+            blocks
+                .iter()
+                .chain(found)
+                .map(|one| one.at.clone())
+                .collect(),
+        )
+    });
     let mut out = Vec::new();
     let mut at = skip;
     for line in text[skip..].split_inclusive('\n') {
         let start = at;
         at += line.len();
         let said = line.trim();
-        if claimed(start) || !said.starts_with('[') || said.starts_with("[^") {
+        // The cheap look first: asking every block about every line made a long document quadratic.
+        if !said.starts_with('[') || said.starts_with("[^") || held.holds(start) {
             continue;
         }
         let Some((label, to)) = said[1..].split_once("]:") else {
