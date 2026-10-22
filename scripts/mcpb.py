@@ -13,6 +13,16 @@ LISTING = os.environ.get("LISTING", "server.json")
 OUT = os.path.join(DIST, f"tisty-mcp-{VERSION}.mcpb")
 REPO = os.environ.get("REPO", "rgdevment/Tisty")
 SAID = json.load(io.open(LISTING, encoding="utf-8"))["description"]
+ICON = "assets/icons/tisty-512.png"
+SCREENSHOTS = ["en-07-mcp.png", "en-01-record.png", "en-02-tasks.png", "en-03-notes.png"]
+
+LONG = """Tisty is a free, open source desktop app for Windows and macOS for notes, documents and tasks, kept as plain Markdown on your own disk. No account, no subscription, no telemetry, no server.
+
+This server comes with the app and runs on the same machine over stdio. Your assistant can file tasks with steps and dates, set reminders, write documents and correct them passage by passage, file them into folders, attach files, and search open and archived work alike. It cannot close or delete anything: it says a task is done and you confirm it.
+
+**Requires the Tisty app.** Install it from the [Microsoft Store](https://apps.microsoft.com/detail/9PGVWXD8X93N) or with `brew install --cask rgdevment/tap/tisty`, then let the assistant in from Settings › Assistants. Until you do, every call is refused.
+
+Long documents are read by outline and by section, so a whole document is never sent to a model for one paragraph. How documents are written: [the Tisty Markdown guide](https://markdown.tisty.app)."""
 
 MANIFEST = {
     "manifest_version": "0.3",
@@ -20,9 +30,16 @@ MANIFEST = {
     "display_name": "Tisty",
     "version": VERSION,
     "description": SAID,
+    "long_description": LONG,
     "author": {"name": REPO.split("/")[0], "url": f"https://github.com/{REPO.split('/')[0]}"},
     "homepage": "https://www.tisty.app/",
+    "documentation": "https://www.tisty.app/docs/",
+    "support": f"https://github.com/{REPO}/issues",
     "repository": {"type": "git", "url": f"https://github.com/{REPO}"},
+    "icon": "icon.png",
+    "screenshots": [f"screenshots/{named}" for named in SCREENSHOTS],
+    "keywords": ["notes", "tasks", "documents", "markdown", "local-first", "productivity", "todo", "knowledge-base"],
+    "license": "AGPL-3.0-only",
     "server": {
         "type": "binary",
         "entry_point": "server/tisty",
@@ -54,7 +71,9 @@ def main():
     # The Unix bit does not survive a zip written on Windows, and a server nobody can
     # execute installs and then fails in the client with nothing to read.
     items = [
-        ("manifest.json", json.dumps(MANIFEST, indent=2).encode() + b"\n", 0o644),
+        ("manifest.json", json.dumps(MANIFEST, indent=2, ensure_ascii=False).encode() + b"\n", 0o644),
+        ("icon.png", taken(".", ICON), 0o644),
+        *[(f"screenshots/{named}", taken("assets/store", named), 0o644) for named in SCREENSHOTS],
         ("server/tisty", mac, 0o755),
         ("server/tisty.exe", win, 0o644),
     ]
