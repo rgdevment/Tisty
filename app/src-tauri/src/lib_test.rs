@@ -626,6 +626,7 @@ fn nothing_else_in_the_project_is_allowed_to_be_unsafe() {
     let audited = [
         "src-tauri/src/desktop.rs",
         "src-tauri/src/drawn.rs",
+        "src-tauri/src/pathing.rs",
         "src-tauri/src/pdf.rs",
         "src-tauri/src/sealed.rs",
         "src-tauri/src/shop.rs",
