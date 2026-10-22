@@ -118,3 +118,98 @@ fn a_file_from_outside_that_went_away_is_said_missing_by_its_path() {
         Some(at.display().to_string().as_str())
     );
 }
+
+fn arrived(session: &mut Session, by: &str, guest: bool) -> tisty_core::model::Kept {
+    let made = tisty_core::docs::create(
+        &session.paths.docs(),
+        &session.config.device_id,
+        "# De Ana\n",
+    )
+    .unwrap();
+    session
+        .commit(Op::DocAdd {
+            id: ulid::Ulid::generate(),
+            d: tisty_core::event::DocAdd {
+                wrote: None,
+                guest,
+                made: None,
+                by: Some(by.into()),
+                said: None,
+                file: made.id.clone(),
+                order: made.id.clone(),
+                folder: None,
+                page_of: None,
+                task_of: None,
+            },
+        })
+        .unwrap();
+    session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == made.id)
+        .unwrap()
+        .clone()
+}
+
+#[test]
+fn on_paper_my_documents_carry_my_name_and_a_guests_keeps_theirs() {
+    let (_tmp, mut session) = session();
+    let mine = filed(&mut session, "# Mío\n");
+    for alias in ["ana", "mario"] {
+        session
+            .commit(Op::Signed {
+                d: tisty_core::event::Signature {
+                    alias: Some(alias.into()),
+                    name: Some("Mario Hidalgo".into()),
+                    ..Default::default()
+                },
+            })
+            .unwrap();
+    }
+    let unsigned = session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == mine)
+        .unwrap()
+        .clone();
+    let theirs = arrived(&mut session, "ana", true);
+    let old_hand = arrived(&mut session, "ana", false);
+
+    assert_eq!(
+        signed_on_paper(&session.state, &unsigned).as_deref(),
+        Some("Mario Hidalgo")
+    );
+    assert_eq!(
+        signed_on_paper(&session.state, &theirs).as_deref(),
+        Some("ana")
+    );
+    assert_eq!(
+        signed_on_paper(&session.state, &old_hand).as_deref(),
+        Some("Mario Hidalgo")
+    );
+    assert_eq!(edited_on_paper(&session.state, &theirs, "mario"), "mario");
+    assert_eq!(
+        edited_on_paper(&session.state, &old_hand, "mario"),
+        "Mario Hidalgo"
+    );
+}
+
+#[test]
+fn on_paper_an_unsigned_guest_document_names_nobody() {
+    let (_tmp, mut session) = session();
+    session
+        .commit(Op::Signed {
+            d: tisty_core::event::Signature {
+                alias: Some("mario".into()),
+                name: Some("Mario Hidalgo".into()),
+                ..Default::default()
+            },
+        })
+        .unwrap();
+    let mut theirs = arrived(&mut session, "ana", true);
+    theirs.by = None;
+
+    assert_eq!(signed_on_paper(&session.state, &theirs), None);
+}

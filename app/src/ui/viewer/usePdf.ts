@@ -4,7 +4,7 @@ import { keepFile, type Paper, type Viewed } from "../../core";
 import { landscapeIn } from "../../front";
 import { t } from "../../locales";
 import { usePreviewing } from "../previewing";
-import { pdfOf, signature } from "../printing";
+import { pdfOf, STAMPING, type Stamping, stampOf } from "../printing";
 
 interface Asked {
   ready: boolean;
@@ -17,13 +17,15 @@ interface Asked {
 
 export default function usePdf({ ready, body, leaf, paper, named, onFail }: Asked) {
   const [seeing, setSeeing] = useState<string | null>(null);
-  const [signing, setSigning] = useState(true);
+  const [stamping, setStamping] = useState<Stamping>(STAMPING);
   const [making, setMaking] = useState(false);
   usePreviewing(Boolean(seeing));
 
   const made = async () => {
-    const signed = paper && signing ? await signature(paper.file) : undefined;
-    return pdfOf([body], leaf, signed, landscapeIn(body));
+    const stamp = paper
+      ? await stampOf(paper.file, body, stamping)
+      : { credited: stamping.credited };
+    return pdfOf([body], leaf, stamp, landscapeIn(body));
   };
 
   const working = async (work: () => Promise<void>) => {
@@ -68,8 +70,16 @@ export default function usePdf({ ready, body, leaf, paper, named, onFail }: Aske
   const open = useRef(seeing);
   open.current = seeing;
   useEffect(() => {
-    if (open.current && leaf && signing !== undefined) void redraw.current();
-  }, [leaf, signing]);
+    if (open.current) void redraw.current();
+  }, [leaf, stamping]);
 
-  return { seeing, signing, making, setSigning, preview, keep, shut };
+  return {
+    seeing,
+    stamping,
+    making,
+    setStamping,
+    preview,
+    keep,
+    shut,
+  };
 }

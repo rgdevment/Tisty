@@ -32,11 +32,19 @@ vi.mock("@tauri-apps/api/event", () => ({
 }));
 
 vi.mock("../ui/printing", () => ({
-  pdfOf: (_: string[], __: string, signed?: string) => {
-    ipc.calls.push({ cmd: "pdf", args: { signed: signed ?? null } });
+  pdfOf: (_: string[], __: string, stamp?: { card?: { said: string }[]; credited?: boolean }) => {
+    ipc.calls.push({
+      cmd: "pdf",
+      args: { card: stamp?.card?.[0]?.said ?? null, credited: stamp?.credited ?? null },
+    });
     return Promise.resolve(new Blob(["%PDF"]));
   },
-  signature: () => Promise.resolve("Firmado"),
+  STAMPING: { carded: true, credited: false },
+  stampOf: (_: string, __: string, chosen: { carded: boolean; credited: boolean }) =>
+    Promise.resolve({
+      card: chosen.carded ? [{ label: "Autor", said: "Firmado" }] : undefined,
+      credited: chosen.credited,
+    }),
 }));
 
 vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({ writeText: () => Promise.resolve() }));
@@ -167,7 +175,7 @@ describe("a widget's own width", () => {
 });
 
 describe("reading in the viewer", () => {
-  it("previews a Tisty document as a PDF signed by default, unsigns it, saves it and closes on Esc", async () => {
+  it("previews a Tisty document as a PDF with its card and no credit by default, flips each, saves it and closes on Esc", async () => {
     ipc.shown = tisty;
     render(<Viewing />);
     await screen.findByText(`Proyectos · ${t("viewOnlyReading")}`);
@@ -175,9 +183,13 @@ describe("reading in the viewer", () => {
     pressed("p");
     expect(await screen.findByTitle(t("seePdf"))).toBeTruthy();
     expect(screen.getByText(t("seePdf")).parentElement?.className).toContain("pr-[7.5rem]");
-    await userEvent.click(screen.getByRole("checkbox", { name: t("viewWithSign") }));
+    await userEvent.click(screen.getByRole("checkbox", { name: t("pdfSign") }));
     await waitFor(() =>
-      expect(asked("pdf").map((one) => one.args.signed)).toEqual(["Firmado", null]),
+      expect(asked("pdf").map((one) => one.args.card)).toEqual(["Firmado", null]),
+    );
+    await userEvent.click(screen.getByRole("checkbox", { name: t("pdfCreditTick") }));
+    await waitFor(() =>
+      expect(asked("pdf").map((one) => one.args.credited)).toEqual([false, false, true]),
     );
     await userEvent.click(screen.getByRole("button", { name: t("toPdf") }));
     await waitFor(() => expect(asked("keep_file")).toHaveLength(1));

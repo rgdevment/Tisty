@@ -21,6 +21,7 @@ export type Which =
   | "store"
   | "greet"
   | "signing"
+  | "naming"
   | "parcel"
   | "tongue"
   | "look"
@@ -42,6 +43,7 @@ export type Run = <T>(card: Which, work: Promise<T>, then: (answer: T) => void) 
 export const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   sync: "syncing",
   signing: "alias",
+  naming: "signName",
   parcel: "parcelsTitle",
   backup: "backup",
   restore: "restoreTitle",

@@ -40,10 +40,11 @@ import Contents from "./Contents";
 import { blurbing, cardsOf } from "./carding";
 import { MARKED_FOR } from "./lately";
 import Modal from "./Modal";
+import PdfTicks from "./PdfTicks";
 import Picking, { type Picked } from "./Picking";
 import type { Head } from "./paging";
 import { usePreviewing } from "./previewing";
-import { pdfOf, signature } from "./printing";
+import { pdfOf, STAMPING, type Stamp, type Stamping, stampOf } from "./printing";
 import Ribbon, { Onward } from "./Ribbon";
 import { acrossOf, PAPER, pageFor, sheetFor } from "./sheets";
 import type { Asking } from "./slashing";
@@ -185,7 +186,7 @@ export default function Docs({
   const [making, setMaking] = useState(false);
   const [seeing, setSeeing] = useState<string | null>(null);
   const [pdfAsked, setPdfAsked] = useState(false);
-  const [signing, setSigning] = useState(true);
+  const [stamping, setStamping] = useState<Stamping>(STAMPING);
   const putting = useRef<((page: Filed) => boolean) | null>(null);
   const paged = useRef(onPaging);
   paged.current = onPaging;
@@ -636,17 +637,17 @@ export default function Docs({
     onError,
   });
 
-  const blobOf = async (signed?: string): Promise<Blob | null> => {
+  const blobOf = async (stamp: Stamp): Promise<Blob | null> => {
     const read = await book();
     if (!read) return null;
-    return pdfOf([body, ...read.written], leaf, signed, landscape);
+    return pdfOf([body, ...read.written], leaf, stamp, landscape);
   };
 
-  const preview = async () => {
+  const see = async (chosen: Stamping) => {
     if (!open || making) return;
     setMaking(true);
     try {
-      const blob = await blobOf(signing ? await signature(open.file) : undefined);
+      const blob = await blobOf(await stampOf(open.file, body, chosen));
       if (blob) setSeeing(URL.createObjectURL(blob));
     } catch (e) {
       onError(saidPlainly(e));
@@ -654,6 +655,14 @@ export default function Docs({
       setMaking(false);
     }
   };
+
+  // What the preview shows is what the export dialog then offers, so the two never disagree.
+  const restamp = (chosen: Stamping) => {
+    setStamping(chosen);
+    void see(chosen);
+  };
+
+  const preview = () => see(stamping);
 
   const asking = useRef({ preview: () => {}, toPdf: () => {} });
 
@@ -675,17 +684,15 @@ export default function Docs({
 
   const toPdf = () => {
     if (!open || making) return;
-    setSigning(true);
     setPdfAsked(true);
   };
 
-  const madePdf = async (signed: boolean) => {
+  const madePdf = async (chosen: Stamping) => {
     if (!open || making) return;
     setPdfAsked(false);
     setMaking(true);
     try {
-      const said = signed ? await signature(open.file) : undefined;
-      const blob = await blobOf(said);
+      const blob = await blobOf(await stampOf(open.file, body, chosen));
       if (!blob) return;
       const where = await intoFile({
         defaultPath: `${called || t("untitledDoc")}.pdf`,
@@ -1035,42 +1042,27 @@ export default function Docs({
             >
               {t("previewBack")}
             </button>
+            <div className="flex-1" />
+            <PdfTicks barred stamping={stamping} disabled={making} onStamp={restamp} />
           </div>
           <iframe src={seeing} title={t("seePdf")} className="min-h-0 flex-1 border-0 bg-bg" />
         </div>
       )}
       {pdfAsked && open && (
-        <Modal
-          title={t("toPdf")}
-          onClose={() => {
-            setPdfAsked(false);
-            setSigning(true);
-          }}
-        >
+        <Modal title={t("toPdf")} onClose={() => setPdfAsked(false)}>
           <p className="mt-3 text-[12.5px] leading-relaxed text-soft">{t("pdfSignWhy")}</p>
-          <label className="mt-4 flex items-center gap-2.5 text-[13px]">
-            <input
-              type="checkbox"
-              checked={signing}
-              onChange={(e) => setSigning(e.target.checked)}
-              className="h-3.5 w-3.5 accent-accent"
-            />
-            {t("pdfSign")}
-          </label>
+          <PdfTicks stamping={stamping} onStamp={setStamping} />
           <div className="mt-5 flex items-center justify-end gap-2 text-[12.5px]">
             <button
               type="button"
-              onClick={() => {
-                setPdfAsked(false);
-                setSigning(true);
-              }}
+              onClick={() => setPdfAsked(false)}
               className="rounded-[10px] px-3 py-1.5 text-faint hover:text-ink"
             >
               {t("cancel")}
             </button>
             <button
               type="button"
-              onClick={() => madePdf(signing)}
+              onClick={() => madePdf(stamping)}
               className="cursor-pointer rounded-[10px] bg-accent px-3.5 py-1.5 text-bg"
             >
               {t("toPdfDo")}

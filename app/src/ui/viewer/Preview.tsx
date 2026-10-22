@@ -1,5 +1,7 @@
 import type { Paper } from "../../core";
 import { t } from "../../locales";
+import PdfTicks from "../PdfTicks";
+import type { Stamping } from "../printing";
 import { leafWord } from "../sheets";
 import { clearOfChrome, onMac } from "../WindowChrome";
 import { button, tinted } from "./Glyphs";
@@ -7,14 +9,24 @@ import { button, tinted } from "./Glyphs";
 interface Props {
   shown: string;
   leaf: Paper;
-  signing: boolean | null;
+  stamping: Stamping;
+  cardable: boolean;
   making: boolean;
-  onSign: (signed: boolean) => void;
+  onStamp: (chosen: Stamping) => void;
   onKeep: () => void;
   onClose: () => void;
 }
 
-export default function Preview({ shown, leaf, signing, making, onSign, onKeep, onClose }: Props) {
+export default function Preview({
+  shown,
+  leaf,
+  stamping,
+  cardable,
+  making,
+  onStamp,
+  onKeep,
+  onClose,
+}: Props) {
   return (
     <div className="absolute inset-0 z-30 flex flex-col bg-desk">
       <div
@@ -35,18 +47,13 @@ export default function Preview({ shown, leaf, signing, making, onSign, onKeep, 
           · {t(leafWord(leaf))}
         </span>
         <div data-tauri-drag-region className="flex-1" />
-        {signing !== null && (
-          <label className="mr-1 flex items-center gap-1.5 text-[12.5px] text-soft">
-            <input
-              type="checkbox"
-              checked={signing}
-              disabled={making}
-              onChange={(e) => onSign(e.target.checked)}
-              className="h-3.5 w-3.5 accent-accent"
-            />
-            {t("viewWithSign")}
-          </label>
-        )}
+        <PdfTicks
+          barred
+          stamping={stamping}
+          cardable={cardable}
+          disabled={making}
+          onStamp={onStamp}
+        />
         <button type="button" className={tinted} disabled={making} onClick={onKeep}>
           {t("toPdf")}
         </button>

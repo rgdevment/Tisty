@@ -151,6 +151,8 @@ pub struct Facts {
     author: Option<String>,
     editor: Option<String>,
     born: Option<String>,
+    signed_as: Option<String>,
+    edited_as: Option<String>,
 }
 
 /// A file from outside Tisty tells only what the disk knows of it; no log names its author.
@@ -165,6 +167,8 @@ pub(crate) fn outside_facts(at: &std::path::Path) -> Answer<Facts> {
         author: None,
         editor: None,
         born: None,
+        signed_as: None,
+        edited_as: None,
     })
 }
 
@@ -279,6 +283,7 @@ pub fn doc_word(
 #[serde(rename_all = "camelCase")]
 pub struct Signed {
     alias: Option<String>,
+    name: Option<String>,
     before: Vec<String>,
     mine: usize,
 }
@@ -292,6 +297,7 @@ pub fn signed(session: tauri::State<'_, Mutex<Session>>) -> Answer<Signed> {
 fn as_signed(session: &Session) -> Signed {
     Signed {
         alias: session.state.signed.alias.clone(),
+        name: session.state.signed.name.clone(),
         before: {
             let mut seen: Vec<String> = Vec::new();
             for was in session.state.signed_before.iter().rev() {
@@ -369,6 +375,59 @@ pub fn sign(session: tauri::State<'_, Mutex<Session>>, alias: Option<String>) ->
 }
 
 #[tauri::command]
+pub fn sign_name(
+    session: tauri::State<'_, Mutex<Session>>,
+    name: Option<String>,
+) -> Answer<Signed> {
+    let said = name
+        .map(|one| tisty_core::text::plainly(&one).trim().to_string())
+        .filter(|one| !one.is_empty());
+    if said
+        .as_ref()
+        .is_some_and(|one| one.chars().count() > tisty_core::event::NAME_AT_MOST)
+    {
+        return Err(Refusal::about(
+            "nameTooLong",
+            tisty_core::event::NAME_AT_MOST.to_string(),
+        ));
+    }
+
+    let mut session = held(&session);
+    if said == session.state.signed.name {
+        return Ok(as_signed(&session));
+    }
+    let mut signature = session.state.signed.clone();
+    signature.name = said;
+    session
+        .commit(Op::Signed { d: signature })
+        .map_err(|e| blamed(channel::WINDOW, "the signature could not be written", e))?;
+    Ok(as_signed(&session))
+}
+
+// On paper my own documents carry the name I sign with, or else the alias I use now.
+fn signed_on_paper(state: &State, kept: &tisty_core::model::Kept) -> Option<String> {
+    let mine = !kept.guest && state.mine(kept);
+    let me = || {
+        state
+            .signed
+            .name
+            .clone()
+            .or_else(|| state.signed.alias.clone())
+    };
+    mine.then(me)
+        .flatten()
+        .or_else(|| state.author_of(kept).map(str::to_string))
+}
+
+// My hand on another person's document reads as my name too; on a guest's it stays as written.
+fn edited_on_paper(state: &State, kept: &tisty_core::model::Kept, hand: &str) -> String {
+    match &state.signed.name {
+        Some(name) if !kept.guest && state.mine_to_write(hand) => name.clone(),
+        _ => hand.to_string(),
+    }
+}
+
+#[tauri::command]
 pub fn doc_facts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Facts> {
     let session = held(&session);
     let root = session.paths.docs();
@@ -394,6 +453,19 @@ pub fn doc_facts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answe
         .and_then(|one| one.wrote)
         .map(|at| at.as_second())
         .or_else(|| seconds(about.modified()));
+    let signed_as = kept.and_then(|one| signed_on_paper(&session.state, one));
+    // One person who both wrote and edited it is said once on paper.
+    let edited_as = kept
+        .and_then(|one| {
+            editor
+                .as_deref()
+                .map(|hand| edited_on_paper(&session.state, one, hand))
+        })
+        .filter(|hand| {
+            !signed_as
+                .as_deref()
+                .is_some_and(|by| tisty_core::state::same_name(by, hand))
+        });
     Ok(Facts {
         made,
         wrote,
@@ -402,6 +474,8 @@ pub fn doc_facts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answe
         author,
         editor,
         born,
+        signed_as,
+        edited_as,
     })
 }
 
