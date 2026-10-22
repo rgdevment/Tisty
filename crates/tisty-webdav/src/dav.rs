@@ -272,7 +272,10 @@ impl Remote for WebDav {
                 ));
             }
         };
-        let etag = header(&answer, ETAG).map(|etag| quoted(&etag));
+        // A weak ETag on a download may not be the one the listing gave, so the listing is asked instead.
+        let etag = header(&answer, ETAG)
+            .map(|etag| quoted(&etag))
+            .filter(|etag| strong(etag));
         Self::poured(name, answer, skipped, into)?;
         match (etag, bytes) {
             (Some(revision), Some(bytes)) => Ok(Seen {

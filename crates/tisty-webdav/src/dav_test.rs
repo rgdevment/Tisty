@@ -301,6 +301,27 @@ fn a_server_that_sends_the_whole_file_has_what_was_here_passed_over() {
 }
 
 #[test]
+fn a_download_with_a_weak_etag_takes_its_revision_from_the_listing() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = server(vec![
+        said_with("200 OK", "ETag: W/\"e1\"", "abcdef"),
+        said(
+            "207 Multi-Status",
+            &multistatus(&[file(&format!("{ROOT}a.md"), 6, "\"e1\"")]),
+        ),
+    ]);
+    let dav = dav(at, home.path());
+    let mut got = Vec::new();
+
+    let seen = dav.fetch("a.md", 0, &mut got).unwrap();
+
+    assert_eq!(got, b"abcdef");
+    assert_eq!(seen.revision, "\"e1\"");
+    let asked = served.join().unwrap();
+    assert_eq!(asked[1].header("depth").as_deref(), Some("0"));
+}
+
+#[test]
 fn a_part_that_does_not_begin_where_asked_is_refused() {
     let home = tempfile::tempdir().unwrap();
     let (at, served) = server(vec![said_with(
