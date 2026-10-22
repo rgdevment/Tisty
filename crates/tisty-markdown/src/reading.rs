@@ -1,3 +1,4 @@
+use std::cell::LazyCell;
 use std::ops::Range;
 
 use pulldown_cmark::{
@@ -144,7 +145,8 @@ fn tokens(text: &str) -> impl Iterator<Item = (Event<'_>, Range<usize>)> {
 
 // The tokenizer drops a link's definition from what it hands over, so the page would have nowhere to show or edit it.
 fn defined(text: &str, skip: usize, blocks: &mut Vec<Block>) {
-    let held = Nearby::of(blocks.iter().map(|one| one.at.clone()).collect());
+    // Built only once a definition turns up, so a document with none pays nothing for it.
+    let held = LazyCell::new(|| Nearby::of(blocks.iter().map(|one| one.at.clone()).collect()));
     let parser = Parser::new_ext(&text[skip..], options());
     let mut found: Vec<Block> = parser
         .reference_definitions()
@@ -157,12 +159,7 @@ fn defined(text: &str, skip: usize, blocks: &mut Vec<Block>) {
             };
             leaf(kind, at)
         })
-        .filter(|one| {
-            !held
-                .near(&one.at)
-                .iter()
-                .any(|held| held.start < one.at.end && one.at.start < held.end)
-        })
+        .filter(|one| held.touching(&one.at).next().is_none())
         .collect();
     found.extend(repeated(text, skip, blocks, &found));
     if found.is_empty() {
@@ -174,18 +171,16 @@ fn defined(text: &str, skip: usize, blocks: &mut Vec<Block>) {
 
 // The parser keeps one definition per label, so a label written twice leaves its later lines unclaimed.
 fn repeated(text: &str, skip: usize, blocks: &[Block], found: &[Block]) -> Vec<Block> {
-    let held = Nearby::of(
-        blocks
-            .iter()
-            .chain(found)
-            .map(|one| one.at.clone())
-            .collect(),
-    );
-    let claimed = |at: usize| {
-        held.near(&(at..at + 1))
-            .iter()
-            .any(|one| one.start <= at && at < one.end)
-    };
+    let held = LazyCell::new(|| {
+        Nearby::of(
+            blocks
+                .iter()
+                .chain(found)
+                .map(|one| one.at.clone())
+                .collect(),
+        )
+    });
+    let claimed = |at: usize| held.holds(at);
     let mut out = Vec::new();
     let mut at = skip;
     for line in text[skip..].split_inclusive('\n') {

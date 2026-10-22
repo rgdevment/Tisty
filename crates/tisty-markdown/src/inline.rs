@@ -104,26 +104,48 @@ impl Nearby {
         Self { ranges, reach }
     }
 
-    /// Every range that can touch `within`, and perhaps a few between them that do not.
+    pub(crate) fn ranges(&self) -> &[Range<usize>] {
+        &self.ranges
+    }
+
+    // Sorted by start and cut by how far each run reaches, so a long range earlier on is never missed.
     pub(crate) fn near(&self, within: &Range<usize>) -> &[Range<usize>] {
         let from = self.reach.partition_point(|far| *far <= within.start);
         let to = self.ranges.partition_point(|one| one.start < within.end);
         &self.ranges[from..to.max(from)]
     }
+
+    pub(crate) fn touching(&self, within: &Range<usize>) -> impl Iterator<Item = &Range<usize>> {
+        self.near(within)
+            .iter()
+            .filter(move |one| one.start < within.end && within.start < one.end)
+    }
+
+    pub(crate) fn holding(&self, within: &Range<usize>) -> bool {
+        self.touching(within)
+            .any(|one| one.start <= within.start && within.end <= one.end)
+    }
+
+    pub(crate) fn holds(&self, at: usize) -> bool {
+        self.holding(&(at..at + 1))
+    }
 }
 
+// One sweep over `silent`, sorted by start: splitting the pieces again for every range made a long text quadratic.
 pub(crate) fn outside(within: Range<usize>, silent: &[Range<usize>]) -> Vec<Range<usize>> {
-    let mut pieces = vec![within];
+    let mut pieces = Vec::new();
+    let mut from = within.start;
     for one in silent {
-        pieces = pieces
-            .into_iter()
-            .flat_map(|piece| {
-                let before = piece.start..one.start.clamp(piece.start, piece.end);
-                let after = one.end.clamp(piece.start, piece.end)..piece.end;
-                [before, after]
-            })
-            .filter(|piece| !piece.is_empty())
-            .collect();
+        if one.start >= within.end {
+            break;
+        }
+        if one.start > from {
+            pieces.push(from..one.start);
+        }
+        from = from.max(one.end);
+    }
+    if from < within.end {
+        pieces.push(from..within.end);
     }
     pieces
 }
@@ -261,12 +283,13 @@ pub(crate) fn code_words(said: &str) -> String {
     }
 }
 
+// A block's spans are sorted by start, so only those from the image's start on are looked at.
 pub(crate) fn alt(image: &Span, spans: &[Span], text: &str) -> String {
-    spans
+    let first = spans.partition_point(|one| one.at.start < image.at.start);
+    spans[first..]
         .iter()
-        .filter(|one| {
-            one.mark == Mark::Text && image.at.start <= one.at.start && one.at.end <= image.at.end
-        })
+        .take_while(|one| one.at.start < image.at.end)
+        .filter(|one| one.mark == Mark::Text && one.at.end <= image.at.end)
         .map(|one| &text[one.at.clone()])
         .collect()
 }

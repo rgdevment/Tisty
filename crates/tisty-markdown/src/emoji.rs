@@ -7,16 +7,14 @@ pub fn fold(spans: &mut Vec<Span>, text: &str) {
         named(text, span.at.clone(), &mut found);
     }
     // An icon carries its own `:name:`, which is the icon's and not a second, emoji one.
-    let icons: Vec<std::ops::Range<usize>> = spans
-        .iter()
-        .filter(|one| matches!(one.mark, Mark::Icon { .. }))
-        .map(|one| one.at.clone())
-        .collect();
-    found.retain(|one| {
-        !icons
+    let icons = crate::inline::Nearby::of(
+        spans
             .iter()
-            .any(|icon| icon.start <= one.at.start && one.at.end <= icon.end)
-    });
+            .filter(|one| matches!(one.mark, Mark::Icon { .. }))
+            .map(|one| one.at.clone())
+            .collect(),
+    );
+    found.retain(|one| !icons.holding(&one.at));
     spans.extend(found);
 }
 

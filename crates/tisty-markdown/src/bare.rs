@@ -13,11 +13,7 @@ pub fn fold(spans: &mut Vec<Span>, text: &str) {
     );
     let mut found = Vec::new();
     for run in runs(spans, text) {
-        if linked
-            .near(&run)
-            .iter()
-            .any(|one| one.start <= run.start && run.end <= one.end)
-        {
+        if linked.holding(&run) {
             continue;
         }
         found.extend(addresses(text, run));
@@ -26,13 +22,13 @@ pub fn fold(spans: &mut Vec<Span>, text: &str) {
         return;
     }
     let mut kept = Vec::with_capacity(spans.len() + found.len() * 2);
-    let near = Nearby::of(found.clone());
+    let found = Nearby::of(found);
     for span in spans.drain(..) {
         if span.mark != Mark::Text {
             kept.push(span);
             continue;
         }
-        let around = near.near(&span.at);
+        let around = found.near(&span.at);
         let inside = around.iter().filter_map(|one| {
             let start = one.start.max(span.at.start);
             let end = one.end.min(span.at.end);
@@ -47,7 +43,7 @@ pub fn fold(spans: &mut Vec<Span>, text: &str) {
             at,
         }));
     }
-    for at in found {
+    for at in found.ranges().iter().cloned() {
         kept.push(Span {
             mark: Mark::Link {
                 to: target(&text[at.clone()]),

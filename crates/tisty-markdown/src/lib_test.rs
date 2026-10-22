@@ -441,19 +441,37 @@ fn ranges_near_a_piece_are_every_one_that_touches_it() {
 }
 
 #[test]
-fn a_long_quote_many_definitions_and_one_long_paragraph_read_and_draw_in_proportion() {
-    let quote: String = (0..20_000).map(|n| format!("> line {n} **b**\n")).collect();
-    let defined: String = (0..20_000)
-        .map(|n| format!("see [a{n}]\n\n[a{n}]: https://x/{n}\n\n"))
-        .collect();
-    let paragraph: String = (0..20_000)
-        .map(|n| format!("word {n} [l](https://x/{n}) "))
-        .collect();
+fn long_blocks_of_every_kind_read_draw_and_print_in_proportion() {
+    let many = |piece: &dyn Fn(usize) -> String| (0..20_000).map(piece).collect::<String>();
+    let cases = [
+        many(&|n| {
+            format!(
+                "> line {n} **b**
+"
+            )
+        }),
+        many(&|n| {
+            format!(
+                "see [a{n}]
+
+[a{n}]: https://x/{n}
+
+"
+            )
+        }),
+        many(&|n| format!("word {n} [l](https://x/{n}) ")),
+        many(&|n| format!("w ==x{n}== ")),
+        many(&|n| format!("::star:: :tada: {n} ")),
+        many(&|n| format!("![a{n}](x{n}.png) ")),
+        many(&|n| format!("see [[note {n}]] ")),
+    ];
 
     let started = std::time::Instant::now();
-    for text in [quote, defined, paragraph] {
-        assert!(!html(&read(&text)).is_empty());
+    for text in &cases {
+        let doc = read(text);
+        assert!(!html(&doc).is_empty());
+        assert!(!format!("{:?}", printed(&doc)).is_empty());
     }
-    // Each took minutes when every piece asked every other one; in proportion they take well under a second.
-    assert!(started.elapsed() < std::time::Duration::from_secs(20));
+    // Each took seconds to minutes when every piece asked every other one; in proportion all of them take about one.
+    assert!(started.elapsed() < std::time::Duration::from_secs(15));
 }
