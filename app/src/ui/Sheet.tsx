@@ -1,6 +1,13 @@
 import { Transaction } from "@codemirror/state";
 import { save as intoFile } from "@tauri-apps/plugin-dialog";
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { copied, copyAttached, type Mend, viewWidget } from "../core";
 import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
@@ -815,6 +822,7 @@ export default function Sheet(props: Readonly<Props>) {
         said.current.onSeen?.(sheet.scrollTop);
       }}
       className={`scroller gutter flex min-h-0 flex-1 flex-col outline-none${above || below ? " leafed" : ""}${stuck ? " stuck" : ""}`}
+      style={props.sheet && ({ "--sheet-wide": `${props.sheet.wide}px` } as CSSProperties)}
     >
       {above}
       <div

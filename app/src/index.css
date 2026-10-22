@@ -471,6 +471,14 @@ body {
       box-shadow 0.15s;
   }
 }
+/* On sheets the page is as wide as its paper, and what frames it above and below is too. */
+.ribbon,
+.leaves,
+.onward {
+  width: 100%;
+  max-width: var(--sheet-wide, none);
+  margin-inline: auto;
+}
 .ribbon + .tisty-sheet {
   border-start-start-radius: 0;
   border-start-end-radius: 0;
