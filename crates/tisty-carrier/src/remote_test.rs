@@ -353,7 +353,11 @@ fn the_hash_follows_the_content_and_is_the_one_the_provider_reports() {
         let hashed = remote.hash_of(&one).unwrap();
 
         assert_eq!(hashed, remote.hash_of(&same).unwrap(), "{who}");
-        assert_ne!(hashed, remote.hash_of(&other).unwrap(), "{who}");
+        // A provider that keeps no fingerprint says so the same way everywhere, and size and revision stand in.
+        match remote.reports_hashes() {
+            true => assert_ne!(hashed, remote.hash_of(&other).unwrap(), "{who}"),
+            false => assert!(hashed.is_empty(), "{who}"),
+        }
         let landed = remote.put("x", &one, Expect::Absent).unwrap();
         assert_eq!(landed.hash, hashed, "{who}: a landing is checked unread");
         assert_eq!(listing(remote)["x"].hash, landed.hash, "{who}");

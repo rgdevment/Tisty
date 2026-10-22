@@ -33,7 +33,7 @@ wildcards = "deny"
 allow-wildcard-paths = true
 # HTTP reaches only the window and the clouds (the carrier's `net` feature, off in the assistant's door); a new user names itself here.
 deny = [
-  { crate = "reqwest", wrappers = ["tisty-gui", "tauri-plugin-updater", "tisty-google", "tisty-onedrive", "tisty-carrier"] },
+  { crate = "reqwest", wrappers = ["tisty-gui", "tauri-plugin-updater", "tisty-google", "tisty-onedrive", "tisty-webdav", "tisty-carrier"] },
   { crate = "hyper", wrappers = ["reqwest", "hyper-util", "hyper-rustls"] },
   { crate = "hyper-util", wrappers = ["reqwest", "hyper-rustls"] },
   { crate = "ureq" },

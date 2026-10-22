@@ -148,7 +148,8 @@ How an append stays safe (`Store`):
 
 `tisty-core`, `tisty-sync`, `tisty-nl`, `tisty-carrier` and `tisty-cli` contain
 no network code; `deny.toml` lets `reqwest` be wrapped by the window,
-`tisty-google` and `tisty-onedrive` alone, on every target the release builds.
+`tisty-google`, `tisty-onedrive` and `tisty-webdav` alone, on every target the
+release builds.
 `tisty-gui` holds the version check and the updater (`update.rs`, limited to
 GitHub hosts) and the preview of a link the person asks for (`glimpse.rs`).
 `tisty-google`, which only the window depends on, holds Google's sign-in and
@@ -988,7 +989,8 @@ stateDiagram-v2
 
 - `Folder`: complete and in use.
 - `Cloud`, `Shelf`, `Tokens` and the `Remote` contract, proved against test
-  providers (`remote_fakes.rs` simulates Drive, OneDrive and Dropbox with their
+  providers (`remote_fakes.rs` simulates Drive, OneDrive, Dropbox and a WebDAV
+  server with their
   limits, a lagging index, truncated downloads and conflict copies;
   `remote_folder_backed.rs` serves a real folder through the same contract).
 - Google Drive's `Remote` in `crates/tisty-google` (`Drive`, scope `drive.appdata`,
@@ -1013,6 +1015,21 @@ stateDiagram-v2
   only from Microsoft's hosts. The way check, the token asks and the reading of
   a failed request live in `tisty_carrier::net`, behind the `net` feature the
   providers and the window turn on and `tisty-cli` does not.
+- A WebDAV `Remote` in `crates/tisty-webdav` (`WebDav`), not yet in the window.
+  It speaks RFC 4918 to any server, Nextcloud being one of many: Tisty keeps a
+  `Tisty/` folder inside the one the person names, lists it folder by folder
+  with `PROPFIND` (many servers refuse `Depth: infinity`), writes with
+  `If-None-Match: *` or `If-Match` and the ETag (quoted alike whether a server
+  lists it with quotes or not), moves with `MOVE`, and reads
+  the room left from `quota-available-bytes`. The password is sent by Basic
+  over https only (a server on this machine is spared), never across a
+  redirect, and is kept like a refresh token; `Password` hands it back as it is,
+  and a second 401 is `Lost`. A server with no strong ETag cannot guard a write,
+  so a write or a delete against a revision is refused there rather than made
+  blindly. No server shares a fingerprint, so `Seen.hash` is empty and size and
+  revision stand in, a case `Cloud` already handles; there is no feed of
+  changes, push or link. `tests/real_server.rs` runs the contract against a
+  server named in the environment.
 - `Sync::Cloud` in `config.rs`, naming the provider and the account.
 - The window: the Google Drive card with its states, the local switch, the
   day's spend, *Free space*, and the move between this machine, a folder and
@@ -1425,10 +1442,13 @@ same file and runs it again on a `Cloud` whose `FolderBacked` provider keeps its
 files in that same folder. A case marked `folder_only!` does not apply to a
 cloud.
 
-**Fakes.** `remote_fakes.rs`: `Fake::drive()`, `onedrive()`, `dropbox()` with
+**Fakes.** `remote_fakes.rs`: `Fake::drive()`, `onedrive()`, `dropbox()`,
+`webdav()` with
 each provider's chunk, page, case folding and cost numbers, a lagging index,
 truncated downloads, conflict copies, injected failures (`fail_after`) and
 request counts; `Bare` hides the optional verbs so the defaults are tested too.
+A provider declares whether it reports a fingerprint (`reports_hashes`); the
+WebDAV one does not, and the contract holds it to that.
 
 **Property tests.** `converge_test.rs`: two or three machines apply random
 sequences of writes, rounds in either direction and cut connections against
@@ -1475,6 +1495,7 @@ checks that a test would notice a changed line.
 ## Not built yet
 
 - A `Remote` for Dropbox.
+- WebDAV in the window: connecting a server, and `reaching.rs` building it.
 - A command that writes `device.rotate`; the format is read and honoured.
 - Anything that consults `forebears` when a machine arrives from a merged store.
 - Undo in the window.
