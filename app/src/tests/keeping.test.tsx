@@ -3137,7 +3137,8 @@ describe("the first-run assistant", () => {
       />,
     );
     await ready();
-    return screen.findByRole("textbox", { name: t("signName") }) as Promise<HTMLInputElement>;
+    const field = await screen.findByRole("textbox", { name: t("signName") });
+    return field as HTMLInputElement;
   };
 
   it("keeps the name the person signs PDFs with, apart from the alias, and says so", async () => {
