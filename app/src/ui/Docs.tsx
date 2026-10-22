@@ -44,7 +44,7 @@ import PdfTicks from "./PdfTicks";
 import Picking, { type Picked } from "./Picking";
 import type { Head } from "./paging";
 import { usePreviewing } from "./previewing";
-import { pdfOf, STAMPING, type Stamp, type Stamping, stampOf } from "./printing";
+import { pdfOf, STAMPING, type Stamp, type Stamping, seenIn, stampOf } from "./printing";
 import Ribbon, { Onward } from "./Ribbon";
 import { acrossOf, PAPER, pageFor, sheetFor } from "./sheets";
 import type { Asking } from "./slashing";
@@ -187,6 +187,7 @@ export default function Docs({
   const [seeing, setSeeing] = useState<string | null>(null);
   const [pdfAsked, setPdfAsked] = useState(false);
   const [stamping, setStamping] = useState<Stamping>(STAMPING);
+  const drawn = useRef<Window | null>(null);
   const putting = useRef<((page: Filed) => boolean) | null>(null);
   const paged = useRef(onPaging);
   paged.current = onPaging;
@@ -640,7 +641,8 @@ export default function Docs({
   const blobOf = async (stamp: Stamp): Promise<Blob | null> => {
     const read = await book();
     if (!read) return null;
-    return pdfOf([body, ...read.written], leaf, stamp, landscape);
+    const seen = seenIn(drawn.current?.document);
+    return pdfOf([body, ...read.written], { leaf, landscape, stamp, ...seen });
   };
 
   const see = async (chosen: Stamping) => {
@@ -775,6 +777,9 @@ export default function Docs({
             <Suspense fallback={<div className="min-h-0 flex-1" />}>
               <Sheet
                 sheet={sheetOf}
+                onPage={(page) => {
+                  drawn.current = page;
+                }}
                 file={open.file}
                 wholeable
                 wholeAsked={wholeAsked}

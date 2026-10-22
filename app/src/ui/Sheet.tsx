@@ -1,6 +1,13 @@
 import { Transaction } from "@codemirror/state";
 import { save as intoFile } from "@tauri-apps/plugin-dialog";
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { copied, copyAttached, type Mend, viewWidget } from "../core";
 import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
@@ -62,6 +69,8 @@ type Props = {
   readonly inline?: boolean;
   readonly shaping?: boolean;
   readonly sheet?: SheetSize;
+  /** The page as it is drawn, for whoever prints it the way it is seen. */
+  readonly onPage?: (page: Window | null) => void;
   readonly lately?: readonly [number, number] | null;
   readonly looking?: number;
   // Only a document is written whole; a task's page keeps the sections of its template.
@@ -812,7 +821,8 @@ export default function Sheet(props: Readonly<Props>) {
         if (sheet.scrollHeight <= sheet.clientHeight) return;
         said.current.onSeen?.(sheet.scrollTop);
       }}
-      className={`scroller gutter flex min-h-0 flex-1 flex-col outline-none${above || below ? " leafed" : ""}${stuck ? " stuck" : ""}`}
+      className={`scroller gutter flex min-h-0 flex-1 flex-col outline-none${above || below ? " leafed" : ""}${stuck ? " stuck" : ""}${props.sheet ? " on-sheets" : ""}`}
+      style={props.sheet && ({ "--sheet-wide": `${props.sheet.wide}px` } as CSSProperties)}
     >
       {above}
       <div
@@ -865,6 +875,7 @@ export default function Sheet(props: Readonly<Props>) {
           onOutline={(heads) => said.current.onOutline?.(heads)}
           onShown={(page) => {
             shown.current = page;
+            said.current.onPage?.(page);
             if (page) setReady(true);
             setTurned((many) => many + 1);
           }}

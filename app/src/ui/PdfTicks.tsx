@@ -7,7 +7,6 @@ interface Props {
   label: string;
   why: string;
   disabled?: boolean;
-  /** Sits in a bar beside other controls rather than as a line of a dialog. */
   barred?: boolean;
   onTick: (on: boolean) => void;
 }
@@ -35,23 +34,24 @@ function PdfTick({ on, label, why, disabled, barred, onTick }: Props) {
 interface Ticks {
   stamping: Stamping;
   onStamp: (chosen: Stamping) => void;
-  /** A file from outside Tisty has no log to fill a card from. */
-  cardable?: boolean;
+  /** A file from outside Tisty has no log to fill a cover from. */
+  coverable?: boolean;
   disabled?: boolean;
+  /** Sits in a bar beside other controls rather than as lines of a dialog. */
   barred?: boolean;
 }
 
-export default function PdfTicks({ stamping, onStamp, cardable = true, disabled, barred }: Ticks) {
+export default function PdfTicks({ stamping, onStamp, coverable = true, disabled, barred }: Ticks) {
   return (
     <>
-      {cardable && (
+      {coverable && (
         <PdfTick
-          on={stamping.carded}
+          on={stamping.covered}
           label={t("pdfSign")}
           why={t("pdfSignAsk")}
           disabled={disabled}
           barred={barred}
-          onTick={(carded) => onStamp({ ...stamping, carded })}
+          onTick={(covered) => onStamp({ ...stamping, covered })}
         />
       )}
       <PdfTick

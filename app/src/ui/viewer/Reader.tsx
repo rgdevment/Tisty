@@ -25,6 +25,8 @@ interface Props {
   onFound: () => void;
   onDoc: (file: string) => void;
   onOpen?: (reference: string) => void;
+  /** The page as it is drawn, for whoever prints it the way it is seen. */
+  onPage?: (page: Window | null) => void;
 }
 
 const heading = "mx-2 mb-2 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-faint";
@@ -180,6 +182,7 @@ export default function Reader(props: Readonly<Props>) {
               onOpen={props.onOpen}
               onShown={(at) => {
                 shown.current = at;
+                props.onPage?.(at);
               }}
             />
           </Suspense>

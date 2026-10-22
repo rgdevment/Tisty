@@ -1,8 +1,8 @@
-import { docFacts, type Paper, pagePdf } from "../core";
+import { docFacts, pagePdf } from "../core";
 import { wholeStamp } from "../format";
 import { valuesIn } from "../front";
 import { t } from "../locales";
-import { webPage } from "./webPage";
+import { type PaperSheet, webPage } from "./webPage";
 
 export interface Told {
   readonly label: string;
@@ -37,26 +37,45 @@ export const factsCard = async (file: string, body: string): Promise<Told[] | un
 };
 
 export interface Stamping {
-  readonly carded: boolean;
+  readonly covered: boolean;
   readonly credited: boolean;
 }
 
-export const STAMPING: Stamping = { carded: true, credited: false };
+export const STAMPING: Stamping = { covered: false, credited: false };
 
+// The card goes on a cover of its own, so the pages after it are the sheets seen on screen.
 export const stampOf = async (
   file: string,
   body: string,
-  { carded, credited }: Stamping,
-): Promise<Stamp> => ({ card: carded ? await factsCard(file, body) : undefined, credited });
+  { covered, credited }: Stamping,
+): Promise<Stamp> => ({ card: covered ? await factsCard(file, body) : undefined, credited });
 
 // The PDF is the web page on paper, laid out by the window's own engine.
-export const pdfOf = async (
-  bodies: string[],
-  leaf: Paper,
-  stamp?: Stamp,
-  landscape = false,
-): Promise<Blob> => {
-  const page = await webPage(bodies, "", { leaf, landscape, stamp });
-  const paper = landscape ? `${leaf}-landscape` : leaf;
+export const pdfOf = async (bodies: string[], sheet: PaperSheet): Promise<Blob> => {
+  const page = await webPage(bodies, "", sheet);
+  const paper = sheet.landscape ? `${sheet.leaf}-landscape` : sheet.leaf;
   return new Blob([new Uint8Array(await pagePdf(page, paper))], { type: "application/pdf" });
 };
+
+export interface Seen {
+  /** The blocks that open a sheet on screen, by where they sit in the text. */
+  readonly turns: string[];
+  /** The folded blocks left open on screen, which print open where they are. */
+  readonly opened: string[];
+}
+
+const placed = (all: Iterable<Element | null>): string[] =>
+  Array.from(all).flatMap((one) => {
+    const at = (one as HTMLElement | null)?.dataset.at;
+    return at ? [at] : [];
+  });
+
+// The page as it is drawn on screen: where its sheets turn and which folds are open.
+export const seenIn = (page: Document | null | undefined): Seen => ({
+  turns: placed(
+    Array.from(page?.querySelectorAll(".page > .sheet-turn") ?? []).map(
+      (one) => one.nextElementSibling,
+    ),
+  ),
+  opened: placed(page?.querySelectorAll(".page > details[open]") ?? []),
+});

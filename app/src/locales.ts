@@ -724,9 +724,9 @@ const en = {
   toHtml: "Export as HTML…",
   toWord: "Export as Word…",
   toPdfDo: "Export PDF",
-  pdfSign: "A card up top: author, version and dates",
+  pdfSign: "A cover with author, version and dates",
   pdfSignAsk:
-    "A small table under the title with the author, the version and when it was created and last written.\n\nAuthor: the document's own author: line, or else the name you sign with in Settings, or else your alias.\nVersion: the document's version: line, if it has one.\nDate: the document's date: line, if it has one.",
+    "A first page of its own with the title and a small table: author, version and when it was created and last written. The pages after it are the sheets you see.\n\nAuthor: the document's author: line, or else the name you sign with in Settings, or else your alias.\nVersion and date: the document's version: and date: lines, if it has them.",
   pdfCreditTick: "A quiet “Made with Tisty” at the end",
   pdfCreditAsk:
     "One small grey line at the very end of the PDF, linking to the Tisty site. Nothing else changes.",
@@ -2961,9 +2961,9 @@ const es: Catalog = {
   toHtml: "Exportar como HTML…",
   toWord: "Exportar como Word…",
   toPdfDo: "Exportar PDF",
-  pdfSign: "Ficha al inicio: autor, versión y fechas",
+  pdfSign: "Portada con autor, versión y fechas",
   pdfSignAsk:
-    "Una pequeña tabla bajo el título con el autor, la versión y cuándo se creó y se escribió por última vez.\n\nAutor: la línea author: del documento; si no está, el nombre con que firmas en Ajustes; si no, tu alias.\nVersión: la línea version: del documento, si la tiene.\nFecha: la línea date: del documento, si la tiene.",
+    "Una primera página propia con el título y una pequeña tabla: autor, versión y cuándo se creó y se escribió por última vez. Las páginas siguientes son las hojas que ves.\n\nAutor: la línea author: del documento; si no está, el nombre con que firmas en Ajustes y, si no hay, tu alias.\nVersión y fecha: las líneas version: y date: del documento, si las tiene.",
   pdfCreditTick: "Pie discreto «Generado con Tisty»",
   pdfCreditAsk:
     "Una línea pequeña y gris al final del PDF, con enlace a la web de Tisty. Nada más cambia.",
