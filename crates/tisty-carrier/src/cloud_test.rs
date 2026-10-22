@@ -42,7 +42,11 @@ fn settings() -> Vec<Setting> {
         room,
         place: Place::Folder(shared),
     }];
-    for fake in fakes::every() {
+    // These rounds pin counts and freeing that rest on a fingerprint; one without it answers to the contract and to convergence.
+    for fake in fakes::every()
+        .into_iter()
+        .filter(|one| one.reports_hashes())
+    {
         all.push(Setting {
             name: format!("cloud over {}", fake.who()),
             room: tempfile::tempdir().unwrap(),

@@ -14,6 +14,8 @@ pub enum Kind {
     Drive,
     OneDrive,
     Dropbox,
+    /// A WebDAV server: no fingerprint of its own, no feed of changes and nothing pushed.
+    WebDav,
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -42,6 +44,7 @@ pub trait Counting: Remote {
     fn native_changes(&self) -> bool;
     fn hears_pushed(&self) -> bool;
     fn lends_links(&self) -> bool;
+    fn reports_hashes(&self) -> bool;
 }
 
 struct Entry {
@@ -110,6 +113,10 @@ impl Fake {
 
     pub fn dropbox() -> Self {
         Self::new(Kind::Dropbox)
+    }
+
+    pub fn webdav() -> Self {
+        Self::new(Kind::WebDav).without_hashes()
     }
 
     pub fn with_page(mut self, page: usize) -> Self {
@@ -272,6 +279,7 @@ impl Fake {
             Kind::Drive => "md5",
             Kind::OneDrive => "quickxor",
             Kind::Dropbox => "content",
+            Kind::WebDav => "webdav",
         };
         format!("{kind}:{}", tisty_core::attach::printed(body))
     }
@@ -420,12 +428,28 @@ impl Remote for Fake {
                     checks: 0,
                 },
             ),
+            Kind::WebDav => (
+                2 * GIB,
+                1000,
+                2 * GIB,
+                120,
+                Costs {
+                    list: 1,
+                    fetch: 1,
+                    put: 1,
+                    delete: 1,
+                    about: 1,
+                    changes: 1,
+                    checks: 0,
+                },
+            ),
         };
         Limits {
             provider: match self.kind {
                 Kind::Drive => "Google Drive",
                 Kind::OneDrive => "OneDrive",
                 Kind::Dropbox => "Dropbox",
+                Kind::WebDav => "WebDAV",
             },
             units_a_day: crate::UNITS_A_DAY,
             bytes_a_day: crate::BYTES_A_DAY,
@@ -674,6 +698,7 @@ impl Counting for Fake {
             Kind::Drive => "drive",
             Kind::OneDrive => "onedrive",
             Kind::Dropbox => "dropbox",
+            Kind::WebDav => "webdav",
         }
     }
 
@@ -711,6 +736,10 @@ impl Counting for Fake {
 
     fn lends_links(&self) -> bool {
         true
+    }
+
+    fn reports_hashes(&self) -> bool {
+        !self.hashless
     }
 }
 
@@ -754,6 +783,7 @@ impl Counting for Bare {
             Kind::Drive => "bare-drive",
             Kind::OneDrive => "bare-onedrive",
             Kind::Dropbox => "bare-dropbox",
+            Kind::WebDav => "bare-webdav",
         }
     }
 
@@ -786,6 +816,10 @@ impl Counting for Bare {
     fn lends_links(&self) -> bool {
         false
     }
+
+    fn reports_hashes(&self) -> bool {
+        self.0.reports_hashes()
+    }
 }
 
 pub fn every() -> Vec<Box<dyn Counting>> {
@@ -799,5 +833,6 @@ pub fn every_with(shape: impl Fn(Fake) -> Fake) -> Vec<Box<dyn Counting>> {
         Box::new(shape(Fake::dropbox())),
         Box::new(Bare::over(shape(Fake::drive()))),
         Box::new(Bare::over(shape(Fake::dropbox()))),
+        Box::new(Bare::over(shape(Fake::webdav()))),
     ]
 }

@@ -271,11 +271,11 @@ jobs:
         if: needs.changes.outputs.rust != 'true'
         run: touch lcov-rust.info
 
-      - name: The seven crates the window does not need to build
+      - name: The eight crates the window does not need to build
         if: needs.changes.outputs.rust == 'true'
         run: |
           cargo llvm-cov nextest \
-            -p tisty-core -p tisty-nl -p tisty-sync -p tisty-carrier -p tisty-google -p tisty-onedrive \
+            -p tisty-core -p tisty-nl -p tisty-sync -p tisty-carrier -p tisty-google -p tisty-onedrive -p tisty-webdav \
             -p tisty-cli \
             --lcov --output-path lcov-rust.info
 

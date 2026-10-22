@@ -236,4 +236,8 @@ impl Counting for FolderBacked {
     fn lends_links(&self) -> bool {
         false
     }
+
+    fn reports_hashes(&self) -> bool {
+        true
+    }
 }

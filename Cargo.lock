@@ -5904,6 +5904,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "tisty-webdav"
+version = "0.1.0"
+dependencies = [
+ "percent-encoding",
+ "reqwest",
+ "roxmltree",
+ "tempfile",
+ "tisty-carrier",
+ "tisty-core",
+ "url",
+]
+
+[[package]]
 name = "tokio"
 version = "1.53.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
