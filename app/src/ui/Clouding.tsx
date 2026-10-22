@@ -54,6 +54,7 @@ function Points({ title, points }: { title: string; points: string[] }) {
 export default function Clouding({ clouds, busy, onTrouble, onBack, onDone, onConnected }: Props) {
   const followed = followedTo(useStuck());
   const [waiting, setWaiting] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [held, setHeld] = useState(false);
   const [connected, setConnected] = useState<Connected>();
   const [weight, setWeight] = useState<number>();
@@ -112,7 +113,7 @@ export default function Clouding({ clouds, busy, onTrouble, onBack, onDone, onCo
       .catch(() => undefined);
   }, [connected, onConnected]);
 
-  const stuck = busy || held || waiting || !picked;
+  const stuck = busy || held || waiting || checking || !picked;
 
   const signedIn = (account: Connected) => {
     if (gone.current) return letGoUnused(account);
@@ -252,7 +253,12 @@ export default function Clouding({ clouds, busy, onTrouble, onBack, onDone, onCo
         ),
       )}
       {picked && typed(picked) && (
-        <DavForm busy={busy || held} onConnected={signedIn} onTrouble={onTrouble} />
+        <DavForm
+          busy={busy || held}
+          onConnected={signedIn}
+          onTrouble={onTrouble}
+          onChecking={setChecking}
+        />
       )}
       {picked && !typed(picked) && <CloudHealth name={nameOf(picked)} provider={picked} />}
       <Points title={t("cloudWhatHappens")} points={[t("cloudFirstAll"), of("cloudNoPassword")]} />

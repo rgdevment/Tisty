@@ -674,4 +674,28 @@ describe("a WebDAV server", () => {
     expect(sent("cloud_choose")[0].args.provider).toBe("webdav");
     expect(screen.queryByRole("button", { name: t("cloudRevokeAll") })).toBeNull();
   });
+
+  it("keeps the other clouds out of reach while the server is checked", async () => {
+    ipc.answers.sync_state = () => Promise.resolve(carrying({ clouds: ["google", "webdav"] }));
+    ipc.answers.cloud_connect_dav = () => new Promise(() => {});
+    choosing();
+
+    await userEvent.click(screen.getByRole("button", { name: new RegExp(t("chooseCloud"), "i") }));
+    await userEvent.click(await screen.findByRole("button", { name: /WebDAV/ }));
+    await userEvent.type(screen.getByLabelText(t("davAddress")), "https://dav.example.com");
+    await userEvent.type(screen.getByLabelText(t("davUser")), "mario");
+    await userEvent.type(screen.getByLabelText(new RegExp(`^${t("davPassword")}`)), "r0ck4me!");
+    await userEvent.click(screen.getByRole("button", { name: t("davConnect") }));
+
+    expect(await screen.findByText(t("davChecking"))).toBeTruthy();
+    const google = screen.getByRole("button", { name: new RegExp(t("cloudGoogle")) });
+    expect(google.hasAttribute("disabled")).toBe(true);
+  });
+
+  it("says a full server is full without a button that goes nowhere", () => {
+    const full = { last: round("cloudFull") };
+    expect(cloudStanding(status({ ...full, provider: "webdav" }))?.exit).toBeUndefined();
+    expect(cloudStanding(status({ ...full, provider: "webdav" }))?.said).toBe("stateFull");
+    expect(cloudStanding(status(full))?.exit).toBe("storage");
+  });
 });

@@ -10,6 +10,8 @@ interface Props {
   busy: boolean;
   onConnected: (account: Connected) => void;
   onTrouble: (said?: string) => void;
+  // Told while the server is checked, so nothing around the form starts another sign-in meanwhile.
+  onChecking?: (checking: boolean) => void;
 }
 
 const field =
@@ -18,18 +20,23 @@ const label = "flex flex-col gap-1 text-[11.5px] text-soft";
 const go =
   "ml-auto rounded-[10px] bg-accent px-4 py-2 text-[13px] font-medium text-white hover:opacity-90 disabled:opacity-60";
 
-export default function DavForm({ account, busy, onConnected, onTrouble }: Props) {
+export default function DavForm({ account, busy, onConnected, onTrouble, onChecking }: Props) {
   const [address, setAddress] = useState("");
   const [user, setUser] = useState("");
   const [password, setPassword] = useState("");
   const [checking, setChecking] = useState(false);
   const held = busy || checking;
 
+  const check = (now: boolean) => {
+    setChecking(now);
+    onChecking?.(now);
+  };
+
   const connect = (e: FormEvent) => {
     e.preventDefault();
     if (held) return;
     onTrouble(undefined);
-    setChecking(true);
+    check(true);
     const signIn = account ? { account, password } : { address, user, password };
     cloudConnectDav(signIn)
       .then((connected) => {
@@ -37,7 +44,7 @@ export default function DavForm({ account, busy, onConnected, onTrouble }: Props
         onConnected(connected);
       })
       .catch((e) => onTrouble(saidPlainly(e)))
-      .finally(() => setChecking(false));
+      .finally(() => check(false));
   };
 
   return (

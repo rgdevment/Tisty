@@ -363,5 +363,13 @@ fn a_webdav_password_refused_is_said_as_such() {
 fn what_a_webdav_server_refuses_reads_as_what_the_window_can_say() {
     assert_eq!(dav_refused(Hitch::Lost).code, "davDenied");
     assert_eq!(dav_refused(Hitch::Broke("409".into())).code, "davRefused");
+    assert_eq!(
+        dav_refused(Hitch::Missing("Tisty".into())).code,
+        "davRefused"
+    );
+    assert_eq!(
+        dav_refused(Hitch::Changed("tisty-probe".into())).code,
+        "davRefused"
+    );
     assert_eq!(dav_refused(Hitch::Full).code, "cloudFull");
 }

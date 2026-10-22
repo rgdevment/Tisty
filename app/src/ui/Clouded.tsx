@@ -216,7 +216,7 @@ export default function Clouded({
         </div>
       )}
 
-      {askingPassword && status && (
+      {askingPassword && status && standing?.exit === "reconnect" && (
         <div className="mt-2.5 rounded-[10px] border border-hair px-3 py-2">
           <DavForm
             account={status.account}

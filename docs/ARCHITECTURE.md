@@ -1032,10 +1032,12 @@ stateDiagram-v2
   server named in the environment. The window signs in with an address, a user
   and a password typed there (`cloud_connect_dav`), and keeps the password only
   once `guards_writes` shows the server refuses a write over another copy:
-  judged by what Tisty already keeps there, or by a note written and taken
-  back. Its keychain entry is named by a digest of the account, an address too
-  long and loose for a file name. Reconnecting asks for the password alone;
-  there is no access to revoke everywhere, and *Free space* is not offered.
+  judged by a file Tisty already keeps at its root, or by a note written,
+  refused when written again only if absent, and taken back. Its keychain
+  entry is named by a digest of the account, an address too long and loose for
+  a file name. Reconnecting asks for the password alone; there is no access to
+  revoke everywhere, and the window offers no *Free up space*, since `Cloud`
+  never frees what it cannot prove the same.
 - `Sync::Cloud` in `config.rs`, naming the provider and the account.
 - The window: the Google Drive card with its states, the local switch, the
   day's spend, *Free space*, and the move between this machine, a folder and

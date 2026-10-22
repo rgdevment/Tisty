@@ -275,6 +275,19 @@ pub async fn cloud_connect_dav(
     if erasing.going() {
         return Err(Refusal::of("wipeGoing"));
     }
+    let done = dav_connecting(&session, address, user, account, password).await;
+    told_connecting(WEBDAV, &done);
+    let_go_replaced(&session, &done);
+    done
+}
+
+async fn dav_connecting(
+    session: &tauri::State<'_, Mutex<Session>>,
+    address: Option<String>,
+    user: Option<String>,
+    account: Option<String>,
+    password: String,
+) -> Answer<Connected> {
     let dav = match account {
         Some(account) => tisty_webdav::DavAt::of_account(&account),
         None => tisty_webdav::DavAt::under(
@@ -286,13 +299,10 @@ pub async fn cloud_connect_dav(
     if password.is_empty() {
         return Err(Refusal::of("davDenied"));
     }
-    let aside = held(&session).paths.cache().to_path_buf();
-    let done = tauri::async_runtime::spawn_blocking(move || dav_connected(dav, password, &aside))
+    let aside = held(session).paths.cache().to_path_buf();
+    tauri::async_runtime::spawn_blocking(move || dav_connected(dav, password, &aside))
         .await
-        .map_err(|_| Refusal::of("internal"))?;
-    told_connecting(WEBDAV, &done);
-    let_go_replaced(&session, &done);
-    done
+        .map_err(|_| Refusal::of("internal"))?
 }
 
 // Kept only once the server took the password and showed it refuses a write over another copy.
@@ -327,7 +337,8 @@ fn dav_connected(
 fn dav_refused(hitch: Hitch) -> Refusal {
     match hitch {
         Hitch::Lost => Refusal::of("davDenied"),
-        Hitch::Broke(_) => Refusal::of("davRefused"),
+        // A folder that is not there, or a note in the way, is what a wrong address looks like from here.
+        Hitch::Broke(_) | Hitch::Missing(_) | Hitch::Changed(_) => Refusal::of("davRefused"),
         other => refused(other, WEBDAV_SHOWN),
     }
 }

@@ -189,21 +189,3 @@ fn a_webdav_cloud_is_built_from_its_account_and_one_that_is_no_address_is_not() 
     assert!(cloud_of(home.path(), &dav).is_ok());
     assert!(cloud_of(home.path(), &broken).is_err());
 }
-
-#[test]
-fn a_webdav_cloud_never_offers_to_free_space_and_another_cloud_still_does() {
-    let home = tempfile::tempdir().unwrap();
-    let dav = CloudAt {
-        provider: WEBDAV.into(),
-        account: "https://mario@cloud.example.com/dav/Tisty/".into(),
-        email: "mario@cloud.example.com".into(),
-    };
-    let (carrier, _) = cloud_of(home.path(), &dav).unwrap();
-
-    assert!(!frees_space(
-        Some(&*carrier),
-        Some(&Sync::cloud(dav.clone()))
-    ));
-    assert!(frees_space(Some(&*carrier), Some(&Sync::cloud(ana()))));
-    assert!(!frees_space(None, Some(&Sync::cloud(ana()))));
-}

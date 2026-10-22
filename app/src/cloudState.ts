@@ -96,6 +96,9 @@ export const cloudStanding = (status: CloudStatus, now = Date.now() / 1000): Sta
   if (cause) return { said: "stateOffline", told: cause, urgent: true };
   const name = last.name ?? undefined;
   const found = BY_CODE[last.code];
+  // A cloud with no storage page of its own, like a WebDAV server, is told its state with no button that goes nowhere.
+  if (found?.exit === "storage" && !storageOf(status.provider))
+    return { said: found.said, why: found.why, name };
   if (found) return { ...found, name };
   return { said: "stateFailed", told: plainly({ code: last.code, name }) };
 };

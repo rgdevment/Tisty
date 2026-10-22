@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use tisty_carrier::{Cloud, Hitch, Reach, Secrets, Shared, Tokens, policy};
 use tisty_core::Paths;
-use tisty_core::config::{CloudAt, Sync};
+use tisty_core::config::CloudAt;
 pub use tisty_core::config::{GOOGLE, ONEDRIVE, WEBDAV};
 use tisty_core::witness::{self, Fact, channel};
 
@@ -103,12 +103,6 @@ pub fn offers(provider: &str) -> bool {
         WEBDAV => true,
         _ => false,
     }
-}
-
-// With no fingerprint up there, a WebDAV copy is never proved the same as this one, so nothing would be freed.
-pub fn frees_space(carrier: Option<&dyn tisty_carrier::Carrier>, sync: Option<&Sync>) -> bool {
-    carrier.is_some_and(|carrier| carrier.frees_space())
-        && tisty_carrier::cloud_of(sync).is_none_or(|at| at.provider != WEBDAV)
 }
 
 fn cloud_of(home: &Path, at: &CloudAt) -> Result<(Shared, Arc<Tokens>), String> {

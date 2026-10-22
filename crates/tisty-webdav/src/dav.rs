@@ -45,18 +45,44 @@ impl WebDav {
         })
     }
 
-    /// Whether the server can refuse a write over another copy: what Tisty keeps there says so, or a note written and taken back.
+    /// Whether the server refuses a write over another copy: what Tisty keeps at its root says so, or a note proves it.
     pub fn guards_writes(&self) -> Result<bool, Hitch> {
-        if let Some(one) = self.list("")?.first() {
-            return Ok(strong(&one.revision));
+        // One look at the root, not the whole tree: a file there was written by a Tisty already checked.
+        let root = self.found(&self.url_of("", true)?, Depth::Children)?;
+        let kept = root.iter().flatten().find(|one| {
+            !one.collection && self.name_of(&one.href).is_some_and(|name| name != PROBE)
+        });
+        match kept {
+            Some(one) => Ok(strong(&one.revision())),
+            None => self.probed(),
         }
-        let note = std::env::temp_dir().join(format!("tisty-{PROBE}-{}", std::process::id()));
+    }
+
+    // Written once, then again only if absent: a server that takes the second write ignores the condition.
+    fn probed(&self) -> Result<bool, Hitch> {
+        // Two checks at once never share a note, so neither takes the other's away.
+        static NOTES: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+        let nth = NOTES.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let note = std::env::temp_dir().join(format!("tisty-{PROBE}-{}-{nth}", std::process::id()));
         std::fs::write(&note, PROBE)?;
-        let landed = self.put(PROBE, &note, Expect::Absent);
+        let cleared = |done: Result<(), Hitch>| match done {
+            Err(Hitch::Missing(_)) => Ok(()),
+            other => other,
+        };
+        let tried = cleared(self.delete(PROBE, None)).and_then(|()| {
+            let landed = self.put(PROBE, &note, Expect::Absent)?;
+            let again = self.put(PROBE, &note, Expect::Absent);
+            Ok((landed, again))
+        });
         let _ = std::fs::remove_file(&note);
-        let landed = landed?;
-        self.delete(PROBE, None)?;
-        Ok(strong(&landed.revision))
+        let swept = cleared(self.delete(PROBE, None));
+        let (landed, again) = tried?;
+        swept?;
+        match again {
+            Ok(_) => Ok(false),
+            Err(Hitch::Changed(_)) => Ok(strong(&landed.revision)),
+            Err(other) => Err(other),
+        }
     }
 
     /// What a server answered for at an address, or None when nothing is there.
