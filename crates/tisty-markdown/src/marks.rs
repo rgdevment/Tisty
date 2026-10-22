@@ -4,6 +4,7 @@ use std::ops::Range;
 
 #[cfg(feature = "tags")]
 use crate::Block;
+use crate::ranges::Nearby;
 use crate::{Mark, Span};
 
 #[cfg(feature = "refs")]
@@ -15,6 +16,10 @@ pub fn named(spans: &mut Vec<Span>, text: &str) {
     ) else {
         return;
     };
+    if !text[from..to].contains("[[") {
+        return;
+    }
+    let words = Nearby::of_marks(spans, |mark| *mark == Mark::Text);
     let mut found = Vec::new();
     let mut at = from;
     while let Some(open) = text[at..to].find("[[").map(|step| at + step) {
@@ -23,7 +28,7 @@ pub fn named(spans: &mut Vec<Span>, text: &str) {
         };
         let whole = open..open + end + 2;
         match name {
-            Some(name) if written(spans, &whole) => {
+            Some(name) if written(&words, &whole) => {
                 found.push(Span {
                     mark: Mark::Ref {
                         name: name.to_string(),
@@ -67,12 +72,18 @@ fn mark_lines(block: &mut Block, text: &str, filed: &HashSet<String>) {
         .max()
         .unwrap_or(first);
     let mut from = text[..first].rfind('\n').map_or(0, |at| at + 1);
+    // Built only once a filed tag turns up, so a block without one pays nothing for them.
+    let words =
+        std::cell::LazyCell::new(|| Nearby::of_marks(&block.spans, |mark| *mark == Mark::Text));
+    let refs = std::cell::LazyCell::new(|| {
+        Nearby::of_marks(&block.spans, |mark| matches!(mark, Mark::Ref { .. }))
+    });
     let mut found = Vec::new();
     while from < last {
         let to = text[from..].find('\n').map_or(text.len(), |at| from + at);
         for (at, name) in crate::tags::spots_as_written(&text[from..to]) {
             let at = from + at.start..from + at.end;
-            if filed.contains(&name) && written(&block.spans, &at) && !referred(&block.spans, &at) {
+            if filed.contains(&name) && written(&words, &at) && !refs.holding(&at) {
                 found.push(Span {
                     mark: Mark::Tag { name },
                     at,
@@ -88,17 +99,6 @@ fn mark_lines(block: &mut Block, text: &str, filed: &HashSet<String>) {
 }
 
 // Plain words from end to end: nothing in code, html or the markup between two words.
-fn written(spans: &[Span], at: &Range<usize>) -> bool {
-    at.clone().all(|byte| {
-        spans
-            .iter()
-            .any(|one| one.mark == Mark::Text && one.at.start <= byte && byte < one.at.end)
-    })
-}
-
-#[cfg(feature = "tags")]
-fn referred(spans: &[Span], at: &Range<usize>) -> bool {
-    spans.iter().any(|one| {
-        matches!(one.mark, Mark::Ref { .. }) && one.at.start <= at.start && at.end <= one.at.end
-    })
+fn written(words: &Nearby, at: &Range<usize>) -> bool {
+    at.clone().all(|byte| words.holds(byte))
 }
