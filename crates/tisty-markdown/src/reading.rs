@@ -5,7 +5,7 @@ use pulldown_cmark::{
     Alignment, BlockQuoteKind, CodeBlockKind, Event, LinkType, Options, Parser, Tag, TagEnd,
 };
 
-use crate::inline::Nearby;
+use crate::ranges::Nearby;
 use crate::{Block, Callout, Column, Doc, Kind, Lean, Mark, Span};
 
 pub fn read(text: &str) -> Doc {

@@ -6,8 +6,11 @@ pub fn fold(spans: &mut Vec<Span>, text: &str) {
     for span in spans.iter().filter(|one| one.mark == Mark::Text) {
         named(text, span.at.clone(), &mut found);
     }
+    if found.is_empty() {
+        return;
+    }
     // An icon carries its own `:name:`, which is the icon's and not a second, emoji one.
-    let icons = crate::inline::Nearby::of(
+    let icons = crate::ranges::Nearby::of(
         spans
             .iter()
             .filter(|one| matches!(one.mark, Mark::Icon { .. }))

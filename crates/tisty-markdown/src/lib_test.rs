@@ -420,27 +420,6 @@ fn a_link_definition_stands_on_the_page_where_it_was_written() {
 }
 
 #[test]
-fn ranges_near_a_piece_are_every_one_that_touches_it() {
-    let nearby = crate::inline::Nearby::of(vec![30..32, 0..100, 10..12, 50..51, 200..210]);
-
-    let touching = |within: std::ops::Range<usize>| {
-        let mut found: Vec<_> = nearby
-            .near(&within)
-            .iter()
-            .filter(|one| one.start < within.end && within.start < one.end)
-            .cloned()
-            .collect();
-        found.sort_by_key(|one| one.start);
-        found
-    };
-
-    assert_eq!(touching(40..60), vec![0..100, 50..51]);
-    assert_eq!(touching(5..11), vec![0..100, 10..12]);
-    assert_eq!(touching(150..190), Vec::<std::ops::Range<usize>>::new());
-    assert_eq!(touching(205..300), vec![200..210]);
-}
-
-#[test]
 fn long_blocks_of_every_kind_read_draw_and_print_in_proportion() {
     let many = |piece: &dyn Fn(usize) -> String| (0..20_000).map(piece).collect::<String>();
     let cases = [
@@ -472,6 +451,6 @@ fn long_blocks_of_every_kind_read_draw_and_print_in_proportion() {
         assert!(!html(&doc).is_empty());
         assert!(!format!("{:?}", printed(&doc)).is_empty());
     }
-    // Each took seconds to minutes when every piece asked every other one; in proportion all of them take about one.
-    assert!(started.elapsed() < std::time::Duration::from_secs(15));
+    // In proportion all of them take a few seconds even with coverage; asking every piece of every other one took many minutes.
+    assert!(started.elapsed() < std::time::Duration::from_secs(60));
 }

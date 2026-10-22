@@ -1,6 +1,7 @@
 use serde_json::{Value, json};
 
-use crate::inline::{alt, atom, code_words, holds, outside, paired, walls};
+use crate::inline::{alt, atom, code_words, holds, paired, walls};
+use crate::ranges::{Nearby, outside};
 use crate::{Block, Callout, Column, Doc, Kind, Lean, Mark, Span};
 
 pub fn printed(doc: &Doc) -> Value {
@@ -168,7 +169,7 @@ fn runs(spans: &[Span], text: &str) -> Vec<Value> {
         .iter()
         .map(|one| (one.at.start, Some(*one), one.at.clone()))
         .collect();
-    let silent = crate::inline::Nearby::of(silent);
+    let silent = Nearby::of(silent);
     for span in spans.iter().filter(|one| one.mark == Mark::Text) {
         for piece in outside(span.at.clone(), silent.near(&span.at)) {
             items.push((piece.start, None, piece));

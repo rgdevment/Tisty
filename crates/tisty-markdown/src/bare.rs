@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use crate::inline::Nearby;
+use crate::ranges::{Nearby, outside};
 use crate::{Mark, Span};
 
 pub fn fold(spans: &mut Vec<Span>, text: &str) {
@@ -34,7 +34,7 @@ pub fn fold(spans: &mut Vec<Span>, text: &str) {
             let end = one.end.min(span.at.end);
             (start < end).then_some(start..end)
         });
-        let pieces: Vec<Range<usize>> = crate::inline::outside(span.at.clone(), around)
+        let pieces: Vec<Range<usize>> = outside(span.at.clone(), around)
             .into_iter()
             .chain(inside)
             .collect();

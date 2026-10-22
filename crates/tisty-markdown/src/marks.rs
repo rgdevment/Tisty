@@ -4,7 +4,7 @@ use std::ops::Range;
 
 #[cfg(feature = "tags")]
 use crate::Block;
-use crate::inline::Nearby;
+use crate::ranges::Nearby;
 use crate::{Mark, Span};
 
 #[cfg(feature = "refs")]
@@ -16,6 +16,9 @@ pub fn named(spans: &mut Vec<Span>, text: &str) {
     ) else {
         return;
     };
+    if !text[from..to].contains("[[") {
+        return;
+    }
     let words = Nearby::of(
         spans
             .iter()
@@ -85,8 +88,9 @@ fn mark_lines(block: &mut Block, text: &str, filed: &HashSet<String>) {
                 .collect(),
         )
     };
-    let words = of(|mark| *mark == Mark::Text);
-    let refs = of(|mark| matches!(mark, Mark::Ref { .. }));
+    // Built only once a filed tag turns up, so a block without one pays nothing for them.
+    let words = std::cell::LazyCell::new(|| of(|mark| *mark == Mark::Text));
+    let refs = std::cell::LazyCell::new(|| of(|mark| matches!(mark, Mark::Ref { .. })));
     let mut found = Vec::new();
     while from < last {
         let to = text[from..].find('\n').map_or(text.len(), |at| from + at);
