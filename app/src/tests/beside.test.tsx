@@ -14,6 +14,7 @@ const store = vi.hoisted(() => ({
   editor: null as string | null,
   born: null as string | null,
   sent: [] as string[],
+  stamped: [] as { carded: boolean; credited: boolean }[],
 }));
 
 vi.mock("@tauri-apps/api/core", async () => ({
@@ -46,7 +47,10 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
 vi.mock("../ui/printing", () => ({
   pdfOf: () => Promise.resolve(new Blob(["%PDF"], { type: "application/pdf" })),
   STAMPING: { carded: true, credited: false },
-  stampOf: () => Promise.resolve({ credited: true }),
+  stampOf: (_: string, __: string, chosen: { carded: boolean; credited: boolean }) => {
+    store.stamped.push(chosen);
+    return Promise.resolve({ credited: chosen.credited });
+  },
 }));
 
 vi.mock("../ui/Sheet", () => ({
@@ -391,6 +395,24 @@ describe("what the column offers for the document", () => {
 
     expect(await screen.findByRole("button", { name: "← Back to the document" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
+  });
+
+  it("previews with the same choices the export offers, and redraws as they change", async () => {
+    store.stamped = [];
+    widen(1500);
+    show();
+    await userEvent.click(await screen.findByRole("button", { name: "Preview" }));
+    const credit = await screen.findByRole("checkbox", {
+      name: "A quiet “Made with Tisty” at the end",
+    });
+    await waitFor(() => expect(store.stamped).toEqual([{ carded: true, credited: false }]));
+
+    await userEvent.click(credit);
+
+    await waitFor(() =>
+      expect(store.stamped[store.stamped.length - 1]).toEqual({ carded: true, credited: true }),
+    );
+    expect((credit as HTMLInputElement).checked).toBe(true);
   });
 
   it("lets the preview go when the section is left, instead of leaking it", async () => {
