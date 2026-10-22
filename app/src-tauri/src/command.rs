@@ -109,7 +109,7 @@ pub fn reach() -> Reach {
 const WHERE: &str = "Environment";
 
 #[cfg(windows)]
-fn read() -> Option<String> {
+pub(crate) fn user_path() -> Option<String> {
     read_from(WHERE)
 }
 
@@ -123,7 +123,7 @@ fn read_from(at: &str) -> Option<String> {
 }
 
 #[cfg(windows)]
-fn write(value: &str) -> std::io::Result<()> {
+pub(crate) fn set_user_path(value: &str) -> std::io::Result<()> {
     write_to(WHERE, value)
 }
 
@@ -210,10 +210,10 @@ pub fn out_of_reach() -> std::io::Result<bool> {
     let Some(folder) = beside() else {
         return Ok(false);
     };
-    let path = read().unwrap_or_default();
+    let path = user_path().unwrap_or_default();
     match without(&path, &folder.display().to_string()) {
         Some(next) => {
-            write(&next).inspect_err(unwritten)?;
+            set_user_path(&next).inspect_err(unwritten)?;
             Ok(true)
         }
         None => Ok(false),

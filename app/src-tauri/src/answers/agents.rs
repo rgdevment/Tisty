@@ -148,6 +148,8 @@ pub fn agent_turn(session: tauri::State<'_, Mutex<Session>>, on: bool) -> Answer
             let _ = session.keep(|c| c.knock_heard = Some(jiff::Timestamp::now()));
         }
     }
+    // The name plugins call goes with the voice: shutting the door takes it off the PATH too.
+    std::thread::spawn(move || crate::pathing::keep(on));
     agent(session)
 }
 
