@@ -237,7 +237,9 @@ export default function Clouding({ clouds, busy, onTrouble, onBack, onDone, onCo
               <span className="block text-[13px] font-medium">{t(one.name)}</span>
               <span className="block text-[11.5px] text-faint">{t(one.why)}</span>
             </span>
-            <span className="flex-none text-[11.5px] text-accent">{t("cloudConnectDo")}</span>
+            {!(typed(one.id) && one.id === picked) && (
+              <span className="flex-none text-[11.5px] text-accent">{t("cloudConnectDo")}</span>
+            )}
           </button>
         ) : (
           <div key={one.id} aria-disabled="true" className={`${row} border-hair opacity-70`}>
@@ -249,15 +251,15 @@ export default function Clouding({ clouds, busy, onTrouble, onBack, onDone, onCo
           </div>
         ),
       )}
+      {picked && typed(picked) && (
+        <DavForm busy={busy || held} onConnected={signedIn} onTrouble={onTrouble} />
+      )}
       {picked && !typed(picked) && <CloudHealth name={nameOf(picked)} provider={picked} />}
       <Points title={t("cloudWhatHappens")} points={[t("cloudFirstAll"), of("cloudNoPassword")]} />
       <Points
         title={of("cloudLimitIsGoogle")}
         points={[of("cloudLimitIsGoogleWhy"), t("cloudCaps")]}
       />
-      {picked && typed(picked) && (
-        <DavForm busy={busy || held} onConnected={signedIn} onTrouble={onTrouble} />
-      )}
       {waiting && (
         <p role="status" aria-live="polite" className="text-[11.5px] text-faint">
           {t("cloudWaiting")}{" "}

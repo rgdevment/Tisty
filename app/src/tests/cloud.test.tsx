@@ -616,7 +616,8 @@ describe("a WebDAV server", () => {
     await userEvent.click(screen.getByRole("button", { name: new RegExp(t("chooseCloud"), "i") }));
     await userEvent.click(await screen.findByRole("button", { name: /WebDAV/ }));
     const connect = screen.getByRole("button", { name: t("davConnect") });
-    expect(connect.hasAttribute("disabled")).toBe(true);
+    await userEvent.click(connect);
+    expect(sent("cloud_connect_dav")).toHaveLength(0);
     expect(screen.queryByRole("button", { name: t("cloudOpenGoogle") })).toBeNull();
     await userEvent.type(
       screen.getByLabelText(t("davAddress")),

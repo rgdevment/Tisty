@@ -24,11 +24,10 @@ export default function DavForm({ account, busy, onConnected, onTrouble }: Props
   const [password, setPassword] = useState("");
   const [checking, setChecking] = useState(false);
   const held = busy || checking;
-  const filled = password !== "" && (account !== undefined || (address !== "" && user !== ""));
 
   const connect = (e: FormEvent) => {
     e.preventDefault();
-    if (held || !filled) return;
+    if (held) return;
     onTrouble(undefined);
     setChecking(true);
     const signIn = account ? { account, password } : { address, user, password };
@@ -51,6 +50,7 @@ export default function DavForm({ account, busy, onConnected, onTrouble }: Props
               type="url"
               value={address}
               disabled={held}
+              required
               placeholder="https://"
               autoComplete="url"
               spellCheck={false}
@@ -63,6 +63,7 @@ export default function DavForm({ account, busy, onConnected, onTrouble }: Props
             <input
               value={user}
               disabled={held}
+              required
               autoComplete="username"
               spellCheck={false}
               onChange={(e) => setUser(e.target.value)}
@@ -77,6 +78,7 @@ export default function DavForm({ account, busy, onConnected, onTrouble }: Props
           type="password"
           value={password}
           disabled={held}
+          required
           autoComplete="current-password"
           onChange={(e) => setPassword(e.target.value)}
           className={field}
@@ -89,7 +91,7 @@ export default function DavForm({ account, busy, onConnected, onTrouble }: Props
         </p>
       )}
       <div className="flex items-center">
-        <button type="submit" disabled={held || !filled} className={go}>
+        <button type="submit" disabled={held} className={go}>
           {t("davConnect")}
         </button>
       </div>
