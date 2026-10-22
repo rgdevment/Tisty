@@ -1170,6 +1170,14 @@ const en = {
   cloudNoAnswer:
     "The browser never came back from {name}, so nothing was connected. Try again when you are ready.",
   cloudDropped: "The sign-in was stopped, so nothing was connected.",
+  davNotAnAddress:
+    "That is not a WebDAV address. Write it whole, starting with https://, as your server shows it.",
+  davDenied:
+    "The server did not take that user and password, so nothing was connected. If your server offers app passwords, use one.",
+  davRefused:
+    "The server answered, but would not let Tisty keep its folder there, so nothing was connected. Check the address.",
+  davUnguarded:
+    "This server cannot tell two computers' changes apart, so Tisty would overwrite one with the other. Nothing was connected.",
   cloudSpent:
     "{name} reached what Tisty may ask of it today, so nothing was done. It can be done again {other}.",
   changeUnbacked:
@@ -1395,6 +1403,31 @@ const en = {
     "Tisty's copies are deleted from your OneDrive and go to its recycle bin, where OneDrive keeps them for a while before deleting them for good. Everything stays on this computer and in the new place. Only the note that tells your other computers where you went stays in OneDrive.",
   cloudRevokeAllSureOneDrive:
     "This computer forgets its access and your Microsoft account opens in the browser: remove Tisty there and it loses access on every computer at once. Your copies stay in your OneDrive, and each computer will have to connect again.",
+  cloudWebDav: "WebDAV",
+  cloudWebDavWhy:
+    "Your own server: Nextcloud, ownCloud, Synology and others. Tisty keeps its copies in a Tisty folder there.",
+  cloudConnectWhyWebDav:
+    "Write your server's WebDAV address, your user and a password. Tisty checks the server before connecting.",
+  cloudNoPasswordWebDav:
+    "The password stays on this computer, kept by the system. An app password from your server is better than your main one: you can remove it there.",
+  cloudLimitIsGoogleWebDav: "Your server sets the limit",
+  cloudLimitIsGoogleWhyWebDav:
+    "Your copies use space on your server: what it has free is your ceiling. Attachments always stay on this computer too.",
+  cloudGooglePaceWebDav: "Your server sets the pace",
+  cloudGooglePaceWhyWebDav:
+    "Tisty looks for changes every two minutes. If the server asks to slow down, Tisty waits and carries on by itself.",
+  cloudWhereWebDav:
+    "Your copies live in the Tisty folder of your server. You can see it there, but leave it to Tisty: what you change by hand is read as a change from another computer. Disconnecting keeps them, here and on the server. Attachments always stay on this computer as well, so «Free up space» is not offered.",
+  stateEmptiedWhyWebDav:
+    "They were deleted outside Tisty, perhaps with the Tisty folder on your server. If your server keeps a bin, restore it there and nothing is lost. Nothing here changed. Send everything again from this computer, or move to another place.",
+  moveWipeSureWebDav:
+    "Tisty's copies are deleted from your server; if it keeps a bin, they go there. Everything stays on this computer and in the new place. Only the note that tells your other computers where you went stays on the server.",
+  davAddress: "Server address",
+  davUser: "User",
+  davKey: "Password",
+  davKeyWhy: "An app password, if your server offers one.",
+  davChecking: "Checking the server…",
+  davConnect: "Connect",
   cloudDropbox: "Dropbox",
   cloudConnectDo: "Connect",
   cloudComing: "Later",
@@ -3413,6 +3446,14 @@ const es: Catalog = {
   cloudNoAnswer:
     "El navegador nunca volvió de {name}, así que no se conectó nada. Vuelve a intentarlo cuando quieras.",
   cloudDropped: "Se detuvo el inicio de sesión, así que no se conectó nada.",
+  davNotAnAddress:
+    "Esa no es una dirección WebDAV. Escríbela entera, empezando con https://, como la muestra tu servidor.",
+  davDenied:
+    "El servidor no aceptó ese usuario y contraseña, así que no se conectó nada. Si tu servidor ofrece contraseñas de aplicación, usa una.",
+  davRefused:
+    "El servidor respondió, pero no dejó que Tisty guarde su carpeta ahí, así que no se conectó nada. Revisa la dirección.",
+  davUnguarded:
+    "Este servidor no distingue los cambios de dos equipos, así que Tisty pisaría unos con otros. No se conectó nada.",
   cloudSpent:
     "{name} llegó a lo que Tisty puede pedirle hoy, así que no se hizo nada. Se puede volver a hacer {other}.",
   changeUnbacked:
@@ -3639,6 +3680,31 @@ const es: Catalog = {
     "Las copias de Tisty se borran de tu OneDrive y van a su papelera de reciclaje, donde OneDrive las guarda un tiempo antes de borrarlas para siempre. Todo sigue en este equipo y en el nuevo lugar. En OneDrive solo queda el aviso que les dice a tus otros equipos adónde te fuiste.",
   cloudRevokeAllSureOneDrive:
     "Este equipo olvida su acceso y se abre tu cuenta de Microsoft en el navegador: quita ahí a Tisty y pierde el acceso en todos tus equipos a la vez. Tus copias quedan en tu OneDrive, y cada equipo tendrá que conectarse de nuevo.",
+  cloudWebDav: "WebDAV",
+  cloudWebDavWhy:
+    "Tu propio servidor: Nextcloud, ownCloud, Synology y otros. Tisty guarda sus copias en una carpeta Tisty ahí.",
+  cloudConnectWhyWebDav:
+    "Escribe la dirección WebDAV de tu servidor, tu usuario y una contraseña. Tisty revisa el servidor antes de conectarse.",
+  cloudNoPasswordWebDav:
+    "La contraseña queda en este equipo, guardada por el sistema. Mejor una contraseña de aplicación de tu servidor que la principal: ahí la puedes quitar.",
+  cloudLimitIsGoogleWebDav: "Tu servidor pone el límite",
+  cloudLimitIsGoogleWhyWebDav:
+    "Tus copias ocupan espacio en tu servidor: lo que tenga libre es tu techo. Los adjuntos también quedan siempre en este equipo.",
+  cloudGooglePaceWebDav: "Tu servidor pone el ritmo",
+  cloudGooglePaceWhyWebDav:
+    "Tisty busca cambios cada dos minutos. Si el servidor pide ir más lento, Tisty espera y sigue solo.",
+  cloudWhereWebDav:
+    "Tus copias viven en la carpeta Tisty de tu servidor. Ahí la puedes ver, pero déjasela a Tisty: lo que cambies a mano se lee como un cambio de otro equipo. Desconectar las conserva, aquí y en el servidor. Los adjuntos también quedan siempre en este equipo, así que no se ofrece «Liberar espacio».",
+  stateEmptiedWhyWebDav:
+    "Se borraron fuera de Tisty, quizás con la carpeta Tisty de tu servidor. Si tu servidor tiene papelera, restáurala ahí y no se pierde nada. Aquí no cambió nada. Vuelve a subirlo todo desde este equipo, o múdate a otro lugar.",
+  moveWipeSureWebDav:
+    "Las copias de Tisty se borran de tu servidor; si tiene papelera, van ahí. Todo sigue en este equipo y en el nuevo lugar. En el servidor solo queda el aviso que les dice a tus otros equipos adónde te fuiste.",
+  davAddress: "Dirección del servidor",
+  davUser: "Usuario",
+  davKey: "Contraseña",
+  davKeyWhy: "Una contraseña de aplicación, si tu servidor la ofrece.",
+  davChecking: "Revisando el servidor…",
+  davConnect: "Conectar",
   cloudDropbox: "Dropbox",
   cloudConnectDo: "Conectar",
   cloudComing: "Más adelante",

@@ -861,6 +861,14 @@ export interface CloudStatus {
 export const cloudConnect = (provider: string): Promise<Connected> =>
   invoke("cloud_connect", { provider });
 export const cloudConnectCancel = (): Promise<void> => invoke("cloud_connect_cancel");
+export interface DavSignIn {
+  address?: string;
+  user?: string;
+  account?: string;
+  password: string;
+}
+export const cloudConnectDav = (signIn: DavSignIn): Promise<Connected> =>
+  invoke("cloud_connect_dav", { ...signIn });
 export const cloudChoose = (account: string, email: string, provider?: string): Promise<void> =>
   invoke<void>("cloud_choose", { account, email, provider }).then(() => speakOf(provider));
 export const cloudForget = (account?: string, provider?: string): Promise<void> =>

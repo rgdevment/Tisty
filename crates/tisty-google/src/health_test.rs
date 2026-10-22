@@ -137,22 +137,23 @@ fn asked(url: &str, within: Duration) -> reqwest::Error {
 fn a_round_reads_a_failed_request_the_way_the_check_before_connecting_does() {
     let silent = TcpListener::bind(("127.0.0.1", 0)).unwrap();
     let quiet = format!("http://{}/drive/v3/files", silent.local_addr().unwrap());
-    let shut = TcpListener::bind(("127.0.0.1", 0))
-        .unwrap()
-        .local_addr()
-        .unwrap();
+    // A port let go of can be taken by a test running beside this one, so a few are tried before it counts.
+    let refused = || {
+        let shut = TcpListener::bind(("127.0.0.1", 0))
+            .unwrap()
+            .local_addr()
+            .unwrap();
+        unreachable(asked(
+            &format!("http://{shut}/drive/v3/files"),
+            Duration::from_secs(8),
+        ))
+    };
 
     assert!(matches!(
         unreachable(asked(&quiet, SOON)),
         Hitch::Unreachable(Some(Cause::Slow), _)
     ));
-    assert!(matches!(
-        unreachable(asked(
-            &format!("http://{shut}/drive/v3/files"),
-            Duration::from_secs(8)
-        )),
-        Hitch::Unreachable(Some(Cause::Blocked), _)
-    ));
+    assert!((0..5).any(|_| matches!(refused(), Hitch::Unreachable(Some(Cause::Blocked), _))));
     drop(silent);
 }
 

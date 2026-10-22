@@ -1015,8 +1015,8 @@ stateDiagram-v2
   only from Microsoft's hosts. The way check, the token asks and the reading of
   a failed request live in `tisty_carrier::net`, behind the `net` feature the
   providers and the window turn on and `tisty-cli` does not.
-- A WebDAV `Remote` in `crates/tisty-webdav` (`WebDav`), not yet in the window.
-  It speaks RFC 4918 to any server, Nextcloud being one of many: Tisty keeps a
+- A WebDAV `Remote` in `crates/tisty-webdav` (`WebDav`). It speaks RFC 4918
+  to any server, Nextcloud being one of many: Tisty keeps a
   `Tisty/` folder inside the one the person names, lists it folder by folder
   with `PROPFIND` (many servers refuse `Depth: infinity`), writes with
   `If-None-Match: *` or `If-Match` and the ETag (quoted alike whether a server
@@ -1029,7 +1029,15 @@ stateDiagram-v2
   blindly. No server shares a fingerprint, so `Seen.hash` is empty and size and
   revision stand in, a case `Cloud` already handles; there is no feed of
   changes, push or link. `tests/real_server.rs` runs the contract against a
-  server named in the environment.
+  server named in the environment. The window signs in with an address, a user
+  and a password typed there (`cloud_connect_dav`), and keeps the password only
+  once `guards_writes` shows the server refuses a write over another copy:
+  judged by a file Tisty already keeps at its root, or by a note written,
+  refused when written again only if absent, and taken back. Its keychain
+  entry is named by a digest of the account, an address too long and loose for
+  a file name. Reconnecting asks for the password alone; there is no access to
+  revoke everywhere, and the window offers no *Free up space*, since `Cloud`
+  never frees what it cannot prove the same.
 - `Sync::Cloud` in `config.rs`, naming the provider and the account.
 - The window: the Google Drive card with its states, the local switch, the
   day's spend, *Free space*, and the move between this machine, a folder and
@@ -1495,7 +1503,6 @@ checks that a test would notice a changed line.
 ## Not built yet
 
 - A `Remote` for Dropbox.
-- WebDAV in the window: connecting a server, and `reaching.rs` building it.
 - A command that writes `device.rotate`; the format is read and honoured.
 - Anything that consults `forebears` when a machine arrives from a merged store.
 - Undo in the window.

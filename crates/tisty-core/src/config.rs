@@ -34,19 +34,22 @@ pub struct CloudAt {
 
 pub const GOOGLE: &str = "google";
 pub const ONEDRIVE: &str = "onedrive";
+pub const WEBDAV: &str = "webdav";
 pub const GOOGLE_SHOWN: &str = "Google Drive";
 pub const ONEDRIVE_SHOWN: &str = "OneDrive";
+pub const WEBDAV_SHOWN: &str = "WebDAV";
 
 /// The provider as a person reads it; one this build does not know is named by its own id.
 pub fn shown_of(provider: &str) -> &str {
     match provider {
         GOOGLE => GOOGLE_SHOWN,
         ONEDRIVE => ONEDRIVE_SHOWN,
+        WEBDAV => WEBDAV_SHOWN,
         other => other,
     }
 }
 
-const LATER_CLOUDS: [&str; 1] = [ONEDRIVE];
+const LATER_CLOUDS: [&str; 2] = [ONEDRIVE, WEBDAV];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Bound<'a> {

@@ -1,10 +1,12 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useCallback, useEffect, useState } from "react";
 import { cloudStanding, type Exit, storageOf } from "../cloudState";
+import { typed } from "../clouds";
 import { carding, unstuck, useAwaitsChoice } from "../coming";
 import {
   type Carrying,
   type CloudStatus,
+  type Connected,
   chooseSync,
   cloudAbandon,
   cloudChoose,
@@ -23,6 +25,7 @@ import { sure } from "../sure";
 import { syncingSaid } from "../syncSaid";
 import type { Run, Which, Word } from "./Card";
 import CloudMark from "./CloudMark";
+import DavForm from "./DavForm";
 import { Fold, mild, risky, strong } from "./Rows";
 import { useSince } from "./useSince";
 
@@ -54,6 +57,7 @@ export default function Clouded({
   const [status, setStatus] = useState<CloudStatus | null>(null);
   const [which, setWhich] = useState(false);
   const [signedAt, setSignedAt] = useState<number>();
+  const [askingPassword, setAskingPassword] = useState(false);
   const held = busy !== null;
   const waiting = useAwaitsChoice();
   const running = useSince(busy === "sync", busySince);
@@ -87,9 +91,10 @@ export default function Clouded({
 
   const switched = (on: boolean) => run("sync", cloudPause(!on), look);
 
+  const provider = status?.provider ?? state.cloudProvider ?? "google";
+
   // A copy this machine already carried stays with its account; one never carried may change it.
-  const reconnected = async () => {
-    const account = await cloudConnect(status?.provider ?? state.cloudProvider ?? "google");
+  const reconnected = async (account: Connected) => {
     const was = status?.account;
     if (was && was !== account.account && status?.joined) {
       await cloudForget(account.account, account.provider).catch(() => undefined);
@@ -102,7 +107,15 @@ export default function Clouded({
     unstuck();
   };
 
-  const reconnect = () => run("sync", reconnected(), () => carry());
+  const reconnect = () => {
+    if (typed(provider)) return setAskingPassword(true);
+    run("sync", cloudConnect(provider).then(reconnected), () => carry());
+  };
+
+  const passwordGiven = (account: Connected) => {
+    setAskingPassword(false);
+    run("sync", reconnected(account), () => carry());
+  };
 
   const stop = () => {
     const was = status?.account;
@@ -157,7 +170,7 @@ export default function Clouded({
   return (
     <>
       <div className="flex items-center gap-2.5 rounded-[10px] border border-hair px-3 py-2">
-        <CloudMark provider={status?.provider ?? state.cloudProvider ?? "google"} />
+        <CloudMark provider={provider} />
         <span className="min-w-0 flex-1">
           <span className="block text-[13px] font-medium">{t("cloudChosen")}</span>
           <span className="block truncate text-[11.5px] text-faint">
@@ -200,6 +213,17 @@ export default function Clouded({
               {t(standing.exitSaid)}
             </button>
           )}
+        </div>
+      )}
+
+      {askingPassword && status && standing?.exit === "reconnect" && (
+        <div className="mt-2.5 rounded-[10px] border border-hair px-3 py-2">
+          <DavForm
+            account={status.account}
+            busy={held}
+            onConnected={passwordGiven}
+            onTrouble={(text) => fail(text ? { card: "sync", text } : undefined)}
+          />
         </div>
       )}
 
@@ -277,9 +301,11 @@ export default function Clouded({
           >
             {t("syncAgain")}
           </button>
-          <button type="button" disabled={held} onClick={revoke} className={risky}>
-            {t("cloudRevokeAll")}
-          </button>
+          {!typed(provider) && (
+            <button type="button" disabled={held} onClick={revoke} className={risky}>
+              {t("cloudRevokeAll")}
+            </button>
+          )}
         </Fold>
       </div>
       {trouble?.card === "sync" && !repeats && (

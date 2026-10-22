@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { freesSpace } from "../clouds";
 import {
   type About,
   type Astray,
@@ -112,7 +113,8 @@ export default function FreeUp({
     const counted = audit ? one.copies.filter((copy) => copy.links.length === 0).length : 0;
     return sum + Math.max(one.bytes - each * counted, 0);
   }, 0);
-  const total = (audit?.looseBytes ?? 0) + (state.freesSpace ? (unused?.bytes ?? 0) : 0) + doubled;
+  const frees = state.freesSpace && freesSpace(state.cloudProvider);
+  const total = (audit?.looseBytes ?? 0) + (frees ? (unused?.bytes ?? 0) : 0) + doubled;
 
   const letGo = (one: Astray) => {
     if (held) return;
@@ -269,7 +271,7 @@ export default function FreeUp({
               : t(alike ? "twinsAgain" : "twinsRun")}
           </button>
         </Line>
-        {state.freesSpace && (
+        {frees && (
           <FreeSpace
             busy={busy}
             freeing={freeing}
