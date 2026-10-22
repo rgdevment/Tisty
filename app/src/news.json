@@ -377,5 +377,48 @@
         "said": "Settings and About scroll with the wheel anywhere, renaming a page also renames it where its document lists it, and documents and task pages read more calmly."
       }
     ]
+  },
+  {
+    "version": "1.32.0",
+    "headline": {
+      "es": "Tu propio servidor, como tu nube",
+      "en": "Your own server, as your cloud"
+    },
+    "es": [
+      {
+        "title": "WebDAV junto a Google Drive y OneDrive",
+        "said": "Tisty puede guardar tus copias en tu propio servidor: Nextcloud, ownCloud, Synology y otros. Las deja en una carpeta Tisty ahí."
+      },
+      {
+        "title": "Una dirección, un usuario y una contraseña",
+        "said": "los escribes en Configuración y Tisty revisa el servidor antes de conectarse. No se abre ningún navegador."
+      },
+      {
+        "title": "Tu contraseña queda en este equipo",
+        "said": "la guarda el sistema. Una contraseña de aplicación de tu servidor es mejor que la principal: la puedes quitar ahí cuando quieras. Si el servidor vuelve a pedirla, Tisty solo te pide la contraseña."
+      },
+      {
+        "title": "Más fácil de encontrar para tu asistente",
+        "said": "donde los asistentes buscan herramientas para conectar, Tisty ahora muestra su ícono, capturas y una descripción completa, con enlaces a la documentación, la guía para escribir en Tisty y la wiki."
+      }
+    ],
+    "en": [
+      {
+        "title": "WebDAV beside Google Drive and OneDrive",
+        "said": "Tisty can keep your copies on your own server: Nextcloud, ownCloud, Synology and others. It keeps them in a Tisty folder there."
+      },
+      {
+        "title": "An address, a user and a password",
+        "said": "you write them in Settings and Tisty checks the server before connecting. No browser opens."
+      },
+      {
+        "title": "Your password stays on this computer",
+        "said": "the system keeps it. An app password from your server is better than your main one: you can remove it there whenever you like. If the server asks again, Tisty only asks you for the password."
+      },
+      {
+        "title": "Easier to find for your assistant",
+        "said": "wherever assistants look for tools to connect, Tisty now shows its icon, screenshots and a full description, with links to the documentation, the guide to writing in Tisty and the wiki."
+      }
+    ]
   }
 ]
