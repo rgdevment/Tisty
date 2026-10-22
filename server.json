@@ -4,6 +4,13 @@
   "title": "Tisty",
   "description": "Notes, documents and tasks as plain Markdown on your own disk. No account, no server.",
   "websiteUrl": "https://www.tisty.app/",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/rgdevment/Tisty/v0.0.0/assets/icons/tisty-512.png",
+      "mimeType": "image/png",
+      "sizes": ["512x512"]
+    }
+  ],
   "repository": {
     "url": "https://github.com/rgdevment/Tisty",
     "source": "github"
