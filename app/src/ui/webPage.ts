@@ -119,7 +119,7 @@ const creditOn = (page: Document) => {
 const papered = (page: Document, { leaf, landscape, stamp }: Sheet) => {
   page.head.insertAdjacentHTML(
     "beforeend",
-    `<style>@page{size:${sizeOf(leaf, landscape)};${PRINTED}}html:not(.tall),html:not(.tall) body{background:#fff;padding:0}html:not(.tall) .page{max-width:none;margin:0;padding:0;border-radius:0;box-shadow:none;background:none}.page>*{content-visibility:visible}.page>hr{break-after:page;height:0;margin:0;background:none}.page>hr::before,.page>hr::after{display:none}${STAMPED}</style>`,
+    `<style>@page{size:${sizeOf(leaf, landscape)};${PRINTED}}html:not(.tall),html:not(.tall) body{background:#fff;padding:0}html:not(.tall) .page{max-width:none;margin:0;padding:0;border-radius:0;box-shadow:none;background:none}.page>*{content-visibility:visible}.page>hr{break-after:page;height:0;margin:0;background:none}.page>hr::before,.page>hr::after{display:none}.page>:is(h1,h2,h3,h4,h5,h6){break-after:avoid;page-break-after:avoid}${STAMPED}</style>`,
   );
   for (const one of page.querySelectorAll("details")) one.setAttribute("open", "");
   cardOn(page, stamp?.card);

@@ -80,6 +80,33 @@ describe("sheets laid on the page", () => {
     expect(turns[0].nextElementSibling?.tagName).toBe("P");
   });
 
+  it("takes a heading left at the foot of a sheet to the next one, with what it heads", () => {
+    const sheet = laid([
+      ["p", 10, 40],
+      ["h2", 60, 30],
+      ["h3", 90, 20],
+      ["p", 110, 40],
+    ]);
+    sheeted(document, { wide: 794, tall: 140, x: 10, y: 10 });
+    const turns = sheet.querySelectorAll<HTMLElement>(".sheet-turn");
+    expect(turns).toHaveLength(1);
+    expect(turns[0].nextElementSibling?.tagName).toBe("H2");
+    expect(turns[0].style.getPropertyValue("--fill")).toBe("80px");
+  });
+
+  it("leaves a heading that already opens its sheet where it is", () => {
+    const sheet = laid([
+      ["p", 10, 120],
+      ["h2", 130, 30],
+      ["p", 160, 200],
+    ]);
+    sheeted(document, { wide: 794, tall: 140, x: 10, y: 10 });
+    const turns = sheet.querySelectorAll(".sheet-turn");
+    expect(turns).toHaveLength(2);
+    expect(turns[0].nextElementSibling?.tagName).toBe("H2");
+    expect(turns[1].nextElementSibling?.tagName).toBe("P");
+  });
+
   it("lets a manual break end its sheet and lays nothing while a block is being written", () => {
     const sheet = laid([
       ["p", 10, 40],
