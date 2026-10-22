@@ -12,6 +12,8 @@ const SAID = "break-said";
 
 const BREAKS = ".page > hr, .page > .sheet-turn";
 
+const HEADING = /^H[1-6]$/;
+
 const topOf = (one: HTMLElement, sheet: HTMLElement) =>
   one.offsetParent === sheet ? one.offsetTop : one.offsetTop - sheet.offsetTop;
 
@@ -23,25 +25,43 @@ export const sheeted = (page: Document, { tall, y, said }: Sheet) => {
   if (!sheet || page.querySelector(".editing")) return false;
   for (const one of sheet.querySelectorAll(`.${TURN}, .${SAID}`)) one.remove();
   for (const one of sheet.querySelectorAll<HTMLElement>(BREAKS)) one.style.removeProperty("--fill");
-  const room = tall - 2 * y;
+  // A pixel short of the sheet, since the paper's own room is a fraction less than the rounded one here.
+  const room = tall - 2 * y - 1;
   let begins = y;
   let ended = y;
   let fresh = true;
+  // A heading never stays alone at the foot: the turn takes the headings right above along.
+  let heads: HTMLElement[] = [];
+  let headsEnded = y;
+  let headsOpen = false;
   for (const one of Array.from(sheet.children) as HTMLElement[]) {
     if (one.matches(BREAKS)) {
       one.style.setProperty("--fill", `${Math.max(0, begins + room - ended)}px`);
       begins = bottomOf(one, sheet) + y;
       ended = begins;
       fresh = true;
+      heads = [];
       continue;
     }
     if (!fresh && bottomOf(one, sheet) - begins > room) {
+      const moving = heads.length > 0 && !headsOpen;
       const turn = page.createElement("div");
       turn.className = TURN;
       turn.setAttribute("aria-hidden", "true");
-      turn.style.setProperty("--fill", `${Math.max(0, begins + room - ended)}px`);
-      one.before(turn);
+      turn.style.setProperty(
+        "--fill",
+        `${Math.max(0, begins + room - (moving ? headsEnded : ended))}px`,
+      );
+      (moving ? heads[0] : one).before(turn);
       begins = bottomOf(turn, sheet) + y;
+      fresh = true;
+      if (!moving) heads = [];
+      headsOpen = true;
+    }
+    if (!HEADING.test(one.tagName)) heads = [];
+    else if (heads.push(one) === 1) {
+      headsEnded = ended;
+      headsOpen = fresh;
     }
     fresh = false;
     ended = bottomOf(one, sheet);

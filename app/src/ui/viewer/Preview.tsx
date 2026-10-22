@@ -10,7 +10,7 @@ interface Props {
   shown: string;
   leaf: Paper;
   stamping: Stamping;
-  cardable: boolean;
+  coverable: boolean;
   making: boolean;
   onStamp: (chosen: Stamping) => void;
   onKeep: () => void;
@@ -21,7 +21,7 @@ export default function Preview({
   shown,
   leaf,
   stamping,
-  cardable,
+  coverable,
   making,
   onStamp,
   onKeep,
@@ -50,7 +50,7 @@ export default function Preview({
         <PdfTicks
           barred
           stamping={stamping}
-          cardable={cardable}
+          coverable={coverable}
           disabled={making}
           onStamp={onStamp}
         />

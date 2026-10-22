@@ -90,7 +90,7 @@ describe("a document leaving as a web page or a Word file", () => {
 
 describe("the PDF as the page on paper", () => {
   it("lays the page out on the chosen sheet", async () => {
-    const made = await pdfOf(["# Plan"], "letter", { credited: true });
+    const made = await pdfOf(["# Plan"], { leaf: "letter", stamp: { credited: true } });
 
     expect(made.type).toBe("application/pdf");
     expect(sent.pdf[sent.pdf.length - 1]?.paper).toBe("letter");

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { landscapeIn, paperIn, sheetsIn, withLandscape, withPaper, withSheets } from "../front";
+import { seenIn } from "../ui/printing";
 import { sheeted } from "../ui/sheeting";
 
 describe("the paper a document asks for", () => {
@@ -80,6 +81,33 @@ describe("sheets laid on the page", () => {
     expect(turns[0].nextElementSibling?.tagName).toBe("P");
   });
 
+  it("takes a heading left at the foot of a sheet to the next one, with what it heads", () => {
+    const sheet = laid([
+      ["p", 10, 40],
+      ["h2", 60, 30],
+      ["h3", 90, 20],
+      ["p", 110, 40],
+    ]);
+    sheeted(document, { wide: 794, tall: 140, x: 10, y: 10 });
+    const turns = sheet.querySelectorAll<HTMLElement>(".sheet-turn");
+    expect(turns).toHaveLength(1);
+    expect(turns[0].nextElementSibling?.tagName).toBe("H2");
+    expect(turns[0].style.getPropertyValue("--fill")).toBe("79px");
+  });
+
+  it("leaves a heading that already opens its sheet where it is", () => {
+    const sheet = laid([
+      ["p", 10, 120],
+      ["h2", 130, 30],
+      ["p", 160, 200],
+    ]);
+    sheeted(document, { wide: 794, tall: 140, x: 10, y: 10 });
+    const turns = sheet.querySelectorAll(".sheet-turn");
+    expect(turns).toHaveLength(2);
+    expect(turns[0].nextElementSibling?.tagName).toBe("H2");
+    expect(turns[1].nextElementSibling?.tagName).toBe("P");
+  });
+
   it("lets a manual break end its sheet and lays nothing while a block is being written", () => {
     const sheet = laid([
       ["p", 10, 40],
@@ -88,10 +116,20 @@ describe("sheets laid on the page", () => {
     ]);
     sheeted(document, { wide: 794, tall: 140, x: 10, y: 10 });
     expect(sheet.querySelectorAll(".sheet-turn")).toHaveLength(0);
-    expect((sheet.children[1] as HTMLElement).style.getPropertyValue("--fill")).toBe("80px");
+    expect((sheet.children[1] as HTMLElement).style.getPropertyValue("--fill")).toBe("79px");
     sheet.insertAdjacentHTML("beforeend", '<div class="editing"></div>');
     (sheet.children[1] as HTMLElement).style.removeProperty("--fill");
     sheeted(document, { wide: 794, tall: 140, x: 10, y: 10 });
     expect((sheet.children[1] as HTMLElement).style.getPropertyValue("--fill")).toBe("");
+  });
+});
+
+describe("the page as it is seen, handed to the PDF", () => {
+  it("says where the sheets turn and which folds are left open", () => {
+    document.body.innerHTML =
+      '<article class="page"><p data-at="0-5">uno</p><details open data-at="6-20"><summary>a</summary>x</details><details data-at="21-30"><summary>b</summary>y</details><div class="sheet-turn"></div><p data-at="31-40">dos</p></article>';
+
+    expect(seenIn(document)).toEqual({ turns: ["31-40"], opened: ["6-20"] });
+    expect(seenIn(null)).toEqual({ turns: [], opened: [] });
   });
 });

@@ -5,6 +5,7 @@ import { iconed } from "./dressing";
 import { coloredAll, escaped, saidKinds, shell } from "./paging";
 import type { Stamp } from "./printing";
 import { PRINTED, sizeOf } from "./sheets";
+import { coverOn, creditOn } from "./stamped";
 
 const KINDS: Record<string, string> = {
   png: "image/png",
@@ -37,6 +38,8 @@ const worded = (page: Document, said: string): HTMLSpanElement => {
 const carried = (page: Document): Promise<unknown> =>
   Promise.all(
     Array.from(page.querySelectorAll<HTMLImageElement>(".page img[src]")).map(async (img) => {
+      // A picture waiting to be scrolled to would never be, in a window nobody sees.
+      img.removeAttribute("loading");
       const at = img.getAttribute("src") ?? "";
       if (!at || /^(https?|data):/i.test(at)) return;
       const words = img.getAttribute("alt") || named(at);
@@ -81,53 +84,43 @@ const lit = (): string => {
   return found.filter((one) => !/[<>{}]/.test(one)).join(";");
 };
 
-type Sheet = { readonly leaf: Paper; readonly landscape?: boolean; readonly stamp?: Stamp };
+export type PaperSheet = {
+  readonly leaf: Paper;
+  readonly landscape?: boolean;
+  readonly stamp?: Stamp;
+  /** How the first body is seen on screen: where its sheets turn, which folds are open. */
+  readonly turns?: readonly string[];
+  readonly opened?: readonly string[];
+};
 
-const STAMPED =
-  ".stamp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.85em 2em;margin:0 0 2em;padding:1em 1.25em;border:1px solid var(--tisty-line);border-radius:10px;background:var(--tisty-rail);break-inside:avoid}.stamp>div{min-width:0}.stamp dt{margin:0 0 .2em;font-size:.68em;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--tisty-faint)}.stamp dd{margin:0;font-size:.9em;color:var(--tisty-ink);overflow-wrap:anywhere}.credit{margin-top:3em;text-align:center;font-size:.7em;color:var(--tisty-faint);opacity:.75}.credit a{color:inherit;text-decoration:none}";
-
-const cardOn = (page: Document, card: Stamp["card"]) => {
-  const sheet = page.querySelector("article.page");
-  if (!sheet || !card?.length) return;
-  const list = page.createElement("dl");
-  list.className = "stamp";
-  for (const { label, said } of card) {
-    const pair = page.createElement("div");
-    const named = page.createElement("dt");
-    named.textContent = label;
-    const told = page.createElement("dd");
-    told.textContent = said;
-    pair.append(named, told);
-    list.append(pair);
+// Paper turns where the screen's sheets turn and folds what the screen folds, so what is read there is what is printed.
+const asSeen = (drawn: string, { turns = [], opened = [] }: PaperSheet): string => {
+  if (!turns.length && !opened.length) return drawn;
+  const held = new DOMParser().parseFromString(`<body>${drawn}</body>`, "text/html").body;
+  for (const one of held.children) {
+    const at = (one as HTMLElement).dataset.at ?? "";
+    if (turns.includes(at)) one.classList.add("turned");
+    if (one.tagName === "DETAILS" && opened.includes(at)) one.setAttribute("open", "");
   }
-  const head = Array.from(sheet.children).find((one) => !one.matches(".front, .fronted"));
-  if (head && /^H[1-3]$/.test(head.tagName)) head.after(list);
-  else if (head) head.before(list);
-  else sheet.append(list);
+  return held.innerHTML;
 };
 
-const creditOn = (page: Document) => {
-  const said = page.createElement("p");
-  said.className = "credit";
-  const home = page.createElement("a");
-  home.href = "https://www.tisty.app";
-  home.textContent = t("pdfCredit");
-  said.append(home);
-  page.querySelector("article.page")?.append(said);
-};
-
-const papered = (page: Document, { leaf, landscape, stamp }: Sheet) => {
+const papered = (page: Document, { leaf, landscape, stamp }: PaperSheet) => {
   page.head.insertAdjacentHTML(
     "beforeend",
-    `<style>@page{size:${sizeOf(leaf, landscape)};${PRINTED}}html:not(.tall),html:not(.tall) body{background:#fff;padding:0}html:not(.tall) .page{max-width:none;margin:0;padding:0;border-radius:0;box-shadow:none;background:none}.page>*{content-visibility:visible}.page>hr{break-after:page;height:0;margin:0;background:none}.page>hr::before,.page>hr::after{display:none}${STAMPED}</style>`,
+    `<style>@page{size:${sizeOf(leaf, landscape)};${PRINTED}}html:not(.tall),html:not(.tall) body{background:#fff;padding:0}html:not(.tall) .page{max-width:none;margin:0;padding:0;border-radius:0;box-shadow:none;background:none}.page>*{content-visibility:visible}.page>hr{break-after:page;height:0;margin:0;background:none}.page>hr::before,.page>hr::after{display:none}.page>:is(h1,h2,h3,h4,h5,h6){break-after:avoid;page-break-after:avoid}.page>:not(hr){break-inside:avoid;page-break-inside:avoid}.page>.turned{break-before:page;page-break-before:always}.page>hr+*,.page>.turned{margin-top:0}</style>`,
   );
-  for (const one of page.querySelectorAll("details")) one.setAttribute("open", "");
-  cardOn(page, stamp?.card);
+  coverOn(page, stamp?.card);
   if (stamp?.credited) creditOn(page);
 };
 
-export const webPage = async (bodies: string[], title: string, sheet?: Sheet): Promise<string> => {
+export const webPage = async (
+  bodies: string[],
+  title: string,
+  sheet?: PaperSheet,
+): Promise<string> => {
   const drawn = await Promise.all(bodies.map(docDrawn));
+  if (drawn.length && sheet) drawn[0] = asSeen(drawn[0], sheet);
   const page = new DOMParser().parseFromString(shell(drawn.join("<hr>")), "text/html");
   page.documentElement.classList.remove("dark");
   const light = lit();
