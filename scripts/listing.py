@@ -15,6 +15,9 @@ listing = json.load(io.open(AT, encoding="utf-8"))
 listing["version"] = VERSION
 listing["packages"][0]["identifier"] = URL
 listing["packages"][0]["fileSha256"] = hashlib.sha256(io.open(BUNDLE, "rb").read()).hexdigest()
+# Pinned to the tag: a listed version is never revisited, so an icon on main could change under it.
+for icon in listing.get("icons", []):
+    icon["src"] = f"https://raw.githubusercontent.com/{REPO}/v{VERSION}/{icon['src'].split('/main/', 1)[1]}"
 
 if len(listing["description"]) > 100:
     sys.exit(f"the registry takes 100 characters, and this is {len(listing['description'])}")

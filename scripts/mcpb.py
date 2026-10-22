@@ -5,6 +5,7 @@ import json
 import os
 import stat
 import sys
+import tomllib
 import zipfile
 
 VERSION = os.environ["VERSION"]
@@ -13,6 +14,7 @@ LISTING = os.environ.get("LISTING", "server.json")
 OUT = os.path.join(DIST, f"tisty-mcp-{VERSION}.mcpb")
 REPO = os.environ.get("REPO", "rgdevment/Tisty")
 SAID = json.load(io.open(LISTING, encoding="utf-8"))["description"]
+LICENSE = tomllib.load(io.open("Cargo.toml", "rb"))["workspace"]["package"]["license"]
 ICON = "assets/icons/tisty-512.png"
 SCREENSHOTS = ["en-07-mcp.png", "en-01-record.png", "en-02-tasks.png", "en-03-notes.png"]
 
@@ -20,7 +22,7 @@ LONG = """Tisty is a free, open source desktop app for Windows and macOS for not
 
 This server comes with the app and runs on the same machine over stdio. Your assistant can file tasks with steps and dates, set reminders, write documents and correct them passage by passage, file them into folders, attach files, and search open and archived work alike. It cannot close or delete anything: it says a task is done and you confirm it.
 
-**Requires the Tisty app.** Install it from the [Microsoft Store](https://apps.microsoft.com/detail/9PGVWXD8X93N) or with `brew install --cask rgdevment/tap/tisty`, then let the assistant in from Settings › Assistants. Until you do, every call is refused.
+**Requires the Tisty app.** Install it from the [Microsoft Store](https://apps.microsoft.com/detail/9PGVWXD8X93N), with `brew install --cask rgdevment/tap/tisty` on macOS, or with the installers on [GitHub Releases](https://github.com/rgdevment/Tisty/releases/latest), then let the assistant in from Settings › Assistants. Until you do, every call is refused.
 
 Long documents are read by outline and by section, so a whole document is never sent to a model for one paragraph. How documents are written: [the Tisty Markdown guide](https://markdown.tisty.app)."""
 
@@ -33,13 +35,13 @@ MANIFEST = {
     "long_description": LONG,
     "author": {"name": REPO.split("/")[0], "url": f"https://github.com/{REPO.split('/')[0]}"},
     "homepage": "https://www.tisty.app/",
-    "documentation": "https://www.tisty.app/docs/",
+    "documentation": "https://www.tisty.app/docs/assistants-and-mcp/",
     "support": f"https://github.com/{REPO}/issues",
     "repository": {"type": "git", "url": f"https://github.com/{REPO}"},
     "icon": "icon.png",
     "screenshots": [f"screenshots/{named}" for named in SCREENSHOTS],
     "keywords": ["notes", "tasks", "documents", "markdown", "local-first", "productivity", "todo", "knowledge-base"],
-    "license": "AGPL-3.0-only",
+    "license": LICENSE,
     "server": {
         "type": "binary",
         "entry_point": "server/tisty",
@@ -62,6 +64,12 @@ def taken(where, named):
     return io.open(at, "rb").read()
 
 
+def kept(named):
+    if not os.path.isfile(named):
+        sys.exit(f"the bundle needs {named} from the checkout, and it is not there")
+    return io.open(named, "rb").read()
+
+
 def main():
     staged = os.environ["STAGED"]
     mac = taken(os.path.join(staged, "server-macos-universal"), "tisty")
@@ -72,8 +80,8 @@ def main():
     # execute installs and then fails in the client with nothing to read.
     items = [
         ("manifest.json", json.dumps(MANIFEST, indent=2, ensure_ascii=False).encode() + b"\n", 0o644),
-        ("icon.png", taken(".", ICON), 0o644),
-        *[(f"screenshots/{named}", taken("assets/store", named), 0o644) for named in SCREENSHOTS],
+        ("icon.png", kept(ICON), 0o644),
+        *[(f"screenshots/{named}", kept(f"assets/store/{named}"), 0o644) for named in SCREENSHOTS],
         ("server/tisty", mac, 0o755),
         ("server/tisty.exe", win, 0o644),
     ]
