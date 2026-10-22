@@ -454,11 +454,18 @@ pub fn doc_facts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answe
         .map(|at| at.as_second())
         .or_else(|| seconds(about.modified()));
     let signed_as = kept.and_then(|one| signed_on_paper(&session.state, one));
-    let edited_as = kept.and_then(|one| {
-        editor
-            .as_deref()
-            .map(|hand| edited_on_paper(&session.state, one, hand))
-    });
+    // One person who both wrote and edited it is said once on paper.
+    let edited_as = kept
+        .and_then(|one| {
+            editor
+                .as_deref()
+                .map(|hand| edited_on_paper(&session.state, one, hand))
+        })
+        .filter(|hand| {
+            !signed_as
+                .as_deref()
+                .is_some_and(|by| tisty_core::state::same_name(by, hand))
+        });
     Ok(Facts {
         made,
         wrote,

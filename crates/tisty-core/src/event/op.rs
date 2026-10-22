@@ -909,11 +909,10 @@ pub struct DocAdd {
     pub task_of: Option<crate::model::TaskId>,
 }
 
-/// Kept whole so that a name or an address can be filled in later without the log learning a
-/// new shape: what is written today is the alias alone.
 pub const ALIAS_AT_MOST: usize = 40;
 pub const NAME_AT_MOST: usize = 80;
 
+/// Kept whole so an address can be filled in later without the log learning a new shape.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Signature {
     #[serde(default, skip_serializing_if = "Option::is_none")]

@@ -22,9 +22,11 @@ const declared = (body: string, key: string): string | undefined =>
 // What the document says of itself goes before what Tisty saw happen to it.
 export const factsCard = async (file: string, body: string): Promise<Told[] | undefined> => {
   const facts = await docFacts(file).catch(() => null);
+  const author = declared(body, "author");
   const rows: [Parameters<typeof t>[0], string | null | undefined][] = [
-    ["pdfAuthor", declared(body, "author") ?? facts?.signedAs],
-    ["pdfEditor", facts?.editedAs],
+    ["pdfAuthor", author ?? facts?.signedAs],
+    // An author the document declares is not the one the log saw edit it.
+    ["pdfEditor", author ? null : facts?.editedAs],
     ["pdfVersion", declared(body, "version")],
     ["pdfDate", declared(body, "date")],
     ["pdfMade", facts?.made ? dated(facts.made) : null],

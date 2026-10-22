@@ -1,6 +1,7 @@
 import type { Paper } from "../../core";
 import { t } from "../../locales";
-import PdfTick from "../PdfTick";
+import PdfTicks from "../PdfTicks";
+import type { Stamping } from "../printing";
 import { leafWord } from "../sheets";
 import { clearOfChrome, onMac } from "../WindowChrome";
 import { button, tinted } from "./Glyphs";
@@ -8,11 +9,10 @@ import { button, tinted } from "./Glyphs";
 interface Props {
   shown: string;
   leaf: Paper;
-  carding: boolean | null;
-  crediting: boolean;
+  stamping: Stamping;
+  cardable: boolean;
   making: boolean;
-  onCard: (on: boolean) => void;
-  onCredit: (on: boolean) => void;
+  onStamp: (chosen: Stamping) => void;
   onKeep: () => void;
   onClose: () => void;
 }
@@ -20,11 +20,10 @@ interface Props {
 export default function Preview({
   shown,
   leaf,
-  carding,
-  crediting,
+  stamping,
+  cardable,
   making,
-  onCard,
-  onCredit,
+  onStamp,
   onKeep,
   onClose,
 }: Props) {
@@ -48,23 +47,12 @@ export default function Preview({
           · {t(leafWord(leaf))}
         </span>
         <div data-tauri-drag-region className="flex-1" />
-        {carding !== null && (
-          <PdfTick
-            barred
-            on={carding}
-            disabled={making}
-            label={t("pdfSign")}
-            why={t("pdfSignAsk")}
-            onTick={onCard}
-          />
-        )}
-        <PdfTick
+        <PdfTicks
           barred
-          on={crediting}
+          stamping={stamping}
+          cardable={cardable}
           disabled={making}
-          label={t("pdfCreditTick")}
-          why={t("pdfCreditAsk")}
-          onTick={onCredit}
+          onStamp={onStamp}
         />
         <button type="button" className={tinted} disabled={making} onClick={onKeep}>
           {t("toPdf")}
