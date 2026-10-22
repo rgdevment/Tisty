@@ -21,6 +21,7 @@ const MIB: u64 = 1024 * 1024;
 const GIB: u64 = 1024 * MIB;
 // Without a way to send a file in parts that every server shares, one request carries it whole.
 const WHOLE_AT_MOST: u64 = 2 * GIB;
+const PROBE: &str = "tisty-probe";
 
 pub struct WebDav {
     tokens: Arc<Tokens>,
@@ -42,6 +43,20 @@ impl WebDav {
             at,
             made: Mutex::new(BTreeSet::new()),
         })
+    }
+
+    /// Whether the server can refuse a write over another copy: what Tisty keeps there says so, or a note written and taken back.
+    pub fn guards_writes(&self) -> Result<bool, Hitch> {
+        if let Some(one) = self.list("")?.first() {
+            return Ok(strong(&one.revision));
+        }
+        let note = std::env::temp_dir().join(format!("tisty-{PROBE}-{}", std::process::id()));
+        std::fs::write(&note, PROBE)?;
+        let landed = self.put(PROBE, &note, Expect::Absent);
+        let _ = std::fs::remove_file(&note);
+        let landed = landed?;
+        self.delete(PROBE, None)?;
+        Ok(strong(&landed.revision))
     }
 
     /// What a server answered for at an address, or None when nothing is there.

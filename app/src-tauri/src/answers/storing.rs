@@ -434,7 +434,7 @@ pub fn sync_state(session: tauri::State<'_, Mutex<Session>>) -> Answer<Carrying>
         cloud_offered: crate::reaching::offered(),
         clouds: crate::reaching::clouds(),
         backed_up_at: config.backed_up_at.map(|at| at.to_string()),
-        frees_space: keeping.carrier.is_some_and(|carrier| carrier.frees_space()),
+        frees_space: crate::reaching::frees_space(keeping.carrier.as_deref(), config.sync.as_ref()),
     })
 }
 

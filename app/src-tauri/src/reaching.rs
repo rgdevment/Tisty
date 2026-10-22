@@ -5,8 +5,8 @@ use std::time::Duration;
 
 use tisty_carrier::{Cloud, Hitch, Reach, Secrets, Shared, Tokens, policy};
 use tisty_core::Paths;
-use tisty_core::config::CloudAt;
-pub use tisty_core::config::{GOOGLE, ONEDRIVE};
+use tisty_core::config::{CloudAt, Sync};
+pub use tisty_core::config::{GOOGLE, ONEDRIVE, WEBDAV};
 use tisty_core::witness::{self, Fact, channel};
 
 pub const KEPT_AS: &str = "refresh";
@@ -89,7 +89,7 @@ pub fn offered() -> bool {
 }
 
 pub fn clouds() -> Vec<&'static str> {
-    [GOOGLE, ONEDRIVE]
+    [GOOGLE, ONEDRIVE, WEBDAV]
         .into_iter()
         .filter(|one| offers(one))
         .collect()
@@ -99,14 +99,23 @@ pub fn offers(provider: &str) -> bool {
     match provider {
         GOOGLE => tisty_google::client().is_some(),
         ONEDRIVE => tisty_onedrive::client().is_some(),
+        // The person brings the server and the password, so no build lacks what it needs.
+        WEBDAV => true,
         _ => false,
     }
+}
+
+// With no fingerprint up there, a WebDAV copy is never proved the same as this one, so nothing would be freed.
+pub fn frees_space(carrier: Option<&dyn tisty_carrier::Carrier>, sync: Option<&Sync>) -> bool {
+    carrier.is_some_and(|carrier| carrier.frees_space())
+        && tisty_carrier::cloud_of(sync).is_none_or(|at| at.provider != WEBDAV)
 }
 
 fn cloud_of(home: &Path, at: &CloudAt) -> Result<(Shared, Arc<Tokens>), String> {
     match at.provider.as_str() {
         GOOGLE => google_of(home, at),
         ONEDRIVE => onedrive_of(home, at),
+        WEBDAV => webdav_of(home, at),
         other => Err(format!("this build does not know the cloud {other}")),
     }
 }
@@ -122,6 +131,20 @@ fn onedrive_of(home: &Path, at: &CloudAt) -> Result<(Shared, Arc<Tokens>), Strin
         .for_account(&at.account)
         .keeping_at(home);
     let remote = Arc::new(tisty_carrier::off::OffRuntime(drive));
+    Ok((Arc::new(Cloud::over(remote, home)), tokens))
+}
+
+fn webdav_of(home: &Path, at: &CloudAt) -> Result<(Shared, Arc<Tokens>), String> {
+    let dav = tisty_webdav::DavAt::of_account(&at.account).map_err(|e| format!("{e:?}"))?;
+    let secrets = secrets_for(at).map_err(|e| format!("{e:?}"))?;
+    let tokens = Arc::new(Tokens::new(
+        secrets,
+        Arc::new(tisty_webdav::Password),
+        KEPT_AS,
+        home,
+    ));
+    let server = tisty_webdav::WebDav::new(tokens.clone(), dav).map_err(|e| format!("{e:?}"))?;
+    let remote = Arc::new(tisty_carrier::off::OffRuntime(server));
     Ok((Arc::new(Cloud::over(remote, home)), tokens))
 }
 
@@ -143,6 +166,11 @@ fn google_of(home: &Path, at: &CloudAt) -> Result<(Shared, Arc<Tokens>), String>
 fn scope_of(at: &CloudAt) -> String {
     match at.provider.as_str() {
         GOOGLE => at.account.clone(),
+        // A WebDAV account is a whole address, too long and too loose to name a file or a keychain entry.
+        WEBDAV => format!(
+            "{WEBDAV}-{}",
+            tisty_core::attach::printed(at.account.as_bytes())
+        ),
         other => format!("{other}-{}", at.account),
     }
 }

@@ -440,3 +440,68 @@ fn no_fingerprint_is_given_since_none_is_kept_up_there() {
     assert!(dav.hash_of(&home.path().join("no-such-file")).is_err());
     served.join().unwrap();
 }
+
+#[test]
+fn a_server_already_holding_tisty_is_judged_by_the_etag_of_what_it_keeps() {
+    let home = tempfile::tempdir().unwrap();
+    let listing = |etag: &str| {
+        said(
+            "207 Multi-Status",
+            &multistatus(&[folder(ROOT), file(&format!("{ROOT}a.md"), 4, etag)]),
+        )
+    };
+    let (strong_at, strong_served) = server(vec![listing("\"e1\"")]);
+    let (weak_at, weak_served) = server(vec![listing("W/\"e1\"")]);
+
+    assert!(dav(strong_at, home.path()).guards_writes().unwrap());
+    assert!(!dav(weak_at, home.path()).guards_writes().unwrap());
+    assert_eq!(strong_served.join().unwrap().len(), 1);
+    weak_served.join().unwrap();
+}
+
+#[test]
+fn an_empty_server_is_judged_by_a_note_written_and_taken_back() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = server(vec![
+        said("404 Not Found", ""),
+        said("201 Created", ""),
+        said_with("201 Created", "ETag: \"e1\"", ""),
+        said("204 No Content", ""),
+    ]);
+
+    assert!(dav(at, home.path()).guards_writes().unwrap());
+    let asked = served.join().unwrap();
+    assert!(
+        asked[2]
+            .line
+            .starts_with(&format!("PUT {ROOT}tisty-probe ")),
+        "{}",
+        asked[2].line
+    );
+    assert_eq!(asked[2].header("if-none-match").as_deref(), Some("*"));
+    assert!(
+        asked[3]
+            .line
+            .starts_with(&format!("DELETE {ROOT}tisty-probe ")),
+        "{}",
+        asked[3].line
+    );
+}
+
+#[test]
+fn an_empty_server_that_gives_no_etag_for_the_note_does_not_guard_writes() {
+    let home = tempfile::tempdir().unwrap();
+    let (at, served) = server(vec![
+        said("404 Not Found", ""),
+        said("201 Created", ""),
+        said("201 Created", ""),
+        said(
+            "207 Multi-Status",
+            &multistatus(&[file(&format!("{ROOT}tisty-probe"), 11, "")]),
+        ),
+        said("204 No Content", ""),
+    ]);
+
+    assert!(!dav(at, home.path()).guards_writes().unwrap());
+    served.join().unwrap();
+}

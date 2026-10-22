@@ -1,5 +1,6 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { useState } from "react";
+import { typed } from "../clouds";
 import { type About, backUp, type Carrying, restore, revealed } from "../core";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
@@ -125,6 +126,7 @@ export default function Yours({
       {leaving && (
         <Leave
           cloud={state.mode === "cloud"}
+          revokes={!typed(state.cloudProvider)}
           store={build?.store}
           onClose={() => setLeaving(false)}
         />

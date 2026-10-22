@@ -600,3 +600,77 @@ describe("a place raised past the builds before 1.30", () => {
     expect(screen.queryByRole("status")).toBeNull();
   });
 });
+
+describe("a WebDAV server", () => {
+  const BEA = {
+    provider: "webdav",
+    account: "https://bea@dav.example.com/files/bea/Tisty/",
+    email: "bea@dav.example.com",
+  };
+
+  it("is connected with the address, user and password typed here, and no browser opens", async () => {
+    ipc.answers.sync_state = () => Promise.resolve(carrying({ clouds: ["google", "webdav"] }));
+    ipc.answers.cloud_connect_dav = () => Promise.resolve(BEA);
+    const done = choosing();
+
+    await userEvent.click(screen.getByRole("button", { name: new RegExp(t("chooseCloud"), "i") }));
+    await userEvent.click(await screen.findByRole("button", { name: /WebDAV/ }));
+    const connect = screen.getByRole("button", { name: t("davConnect") });
+    expect(connect.hasAttribute("disabled")).toBe(true);
+    expect(screen.queryByRole("button", { name: t("cloudOpenGoogle") })).toBeNull();
+    await userEvent.type(
+      screen.getByLabelText(t("davAddress")),
+      "https://dav.example.com/files/bea",
+    );
+    await userEvent.type(screen.getByLabelText(t("davUser")), "bea");
+    await userEvent.type(screen.getByLabelText(new RegExp(`^${t("davPassword")}`)), "app-pass");
+    await userEvent.click(connect);
+
+    expect(await screen.findByText(t("cloudConnectedTitle"))).toBeTruthy();
+    expect(sent("cloud_connect")).toHaveLength(0);
+    expect(sent("cloud_connect_dav")[0].args).toEqual({
+      address: "https://dav.example.com/files/bea",
+      user: "bea",
+      password: "app-pass",
+    });
+    expect(opened.urls).toEqual([]);
+    await userEvent.click(screen.getByRole("button", { name: t("cloudStart") }));
+    await waitFor(() => expect(done).toHaveBeenCalledWith("cloud"));
+    expect(sent("cloud_choose")[0].args).toEqual(BEA);
+  });
+
+  it("says why the server was not connected and stays on the form", async () => {
+    ipc.answers.sync_state = () => Promise.resolve(carrying({ clouds: ["webdav"] }));
+    ipc.answers.cloud_connect_dav = () => Promise.reject({ code: "davUnguarded" });
+    const trouble = vi.fn();
+    render(<Choosing busy={false} offered onTrouble={trouble} onDone={vi.fn()} />);
+
+    await userEvent.click(screen.getByRole("button", { name: new RegExp(t("chooseCloud"), "i") }));
+    await userEvent.type(await screen.findByLabelText(t("davAddress")), "https://dav.example.com");
+    await userEvent.type(screen.getByLabelText(t("davUser")), "bea");
+    await userEvent.type(screen.getByLabelText(new RegExp(`^${t("davPassword")}`)), "app-pass");
+    await userEvent.click(screen.getByRole("button", { name: t("davConnect") }));
+
+    await waitFor(() => expect(trouble).toHaveBeenCalledWith(t("davUnguarded")));
+    expect(screen.getByLabelText(t("davAddress"))).toBeTruthy();
+  });
+
+  it("asks only for the password again to reconnect, and offers no access to remove everywhere", async () => {
+    ipc.answers.cloud_connect_dav = () => Promise.resolve(BEA);
+    const { carry } = card({ ...BEA, last: round("cloudLost") });
+
+    await userEvent.click(await screen.findByRole("button", { name: t("stateReconnectDo") }));
+    expect(screen.queryByLabelText(t("davAddress"))).toBeNull();
+    await userEvent.type(screen.getByLabelText(new RegExp(`^${t("davPassword")}`)), "new-pass");
+    await userEvent.click(screen.getByRole("button", { name: t("davConnect") }));
+
+    await waitFor(() => expect(carry).toHaveBeenCalled());
+    expect(sent("cloud_connect")).toHaveLength(0);
+    expect(sent("cloud_connect_dav")[0].args).toEqual({
+      account: BEA.account,
+      password: "new-pass",
+    });
+    expect(sent("cloud_choose")[0].args.provider).toBe("webdav");
+    expect(screen.queryByRole("button", { name: t("cloudRevokeAll") })).toBeNull();
+  });
+});

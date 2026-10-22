@@ -85,4 +85,5 @@ fn a_real_server_keeps_the_contract_every_provider_keeps() {
     dav.delete(&moved, Some(&there.revision)).unwrap();
     assert!(matches!(dav.delete(&moved, None), Err(Hitch::Missing(_))));
     assert!(dav.list(&folder).unwrap().is_empty());
+    assert!(dav.guards_writes().unwrap());
 }

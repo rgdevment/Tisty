@@ -261,3 +261,107 @@ fn a_sign_in_that_did_not_finish_is_told_by_how_it_ended() {
     assert_eq!(how_it_ended("cloudNotNow"), "unreachable");
     assert_eq!(how_it_ended("cloudElsewhere"), "refused");
 }
+
+// Answers each request in turn with what the script says, reading it whole first so nothing is cut while it is sent.
+fn dav_server(
+    script: Vec<(&'static str, String)>,
+) -> (tisty_webdav::DavAt, std::thread::JoinHandle<()>) {
+    use std::io::{BufRead, Read, Write};
+    let listener = std::net::TcpListener::bind(("127.0.0.1", 0)).unwrap();
+    let base = format!(
+        "http://127.0.0.1:{}/dav/ana",
+        listener.local_addr().unwrap().port()
+    );
+    let served = std::thread::spawn(move || {
+        for (status, body) in script {
+            let (stream, _) = listener.accept().unwrap();
+            let mut reading = std::io::BufReader::new(stream);
+            let mut length = 0;
+            loop {
+                let mut line = String::new();
+                reading.read_line(&mut line).unwrap();
+                if line.trim().is_empty() {
+                    break;
+                }
+                if let Some((name, value)) = line.split_once(':')
+                    && name.eq_ignore_ascii_case("content-length")
+                {
+                    length = value.trim().parse().unwrap();
+                }
+            }
+            let mut asked = vec![0u8; length];
+            reading.read_exact(&mut asked).unwrap();
+            write!(
+                reading.get_mut(),
+                "HTTP/1.1 {status}\r\nContent-Type: application/xml\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                body.len()
+            )
+            .unwrap();
+        }
+    });
+    (tisty_webdav::DavAt::under(&base, "ana").unwrap(), served)
+}
+
+fn kept_note(etag: &str) -> String {
+    format!(
+        r#"<?xml version="1.0"?><d:multistatus xmlns:d="DAV:"><d:response><d:href>/dav/ana/Tisty/a.md</d:href><d:propstat><d:prop><d:resourcetype/><d:getcontentlength>4</d:getcontentlength><d:getetag>{etag}</d:getetag></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response></d:multistatus>"#
+    )
+}
+
+#[test]
+fn a_webdav_server_that_guards_writes_is_connected_and_its_password_kept() {
+    let aside = tempfile::tempdir().unwrap();
+    let (dav, served) = dav_server(vec![("207 Multi-Status", kept_note("\"e1\""))]);
+
+    let connected = dav_connected(dav.clone(), "app-pass".into(), aside.path()).unwrap();
+
+    served.join().unwrap();
+    assert_eq!(connected.provider, WEBDAV);
+    assert_eq!(connected.account, dav.account());
+    assert_eq!(connected.email, dav.shown());
+    let at = tisty_core::config::CloudAt {
+        provider: WEBDAV.into(),
+        account: connected.account,
+        email: connected.email,
+    };
+    assert!(has_access(&at).is_ok());
+    forgotten(&at).unwrap();
+}
+
+#[test]
+fn a_webdav_server_with_no_strong_etag_is_never_connected() {
+    let aside = tempfile::tempdir().unwrap();
+    let (dav, served) = dav_server(vec![("207 Multi-Status", kept_note("W/\"e1\""))]);
+
+    let refused = dav_connected(dav.clone(), "app-pass".into(), aside.path()).unwrap_err();
+
+    served.join().unwrap();
+    assert_eq!(refused.code, "davUnguarded");
+    assert!(access_gone(&tisty_core::config::CloudAt {
+        provider: WEBDAV.into(),
+        account: dav.account(),
+        email: dav.shown(),
+    }));
+}
+
+#[test]
+fn a_webdav_password_refused_is_said_as_such() {
+    let aside = tempfile::tempdir().unwrap();
+    let (dav, served) = dav_server(vec![
+        ("401 Unauthorized", String::new()),
+        ("401 Unauthorized", String::new()),
+    ]);
+
+    let refused = dav_connected(dav, "wrong".into(), aside.path()).unwrap_err();
+
+    served.join().unwrap();
+    assert_eq!(refused.code, "davDenied");
+    assert_eq!(how_it_ended(refused.code), "denied");
+}
+
+#[test]
+fn what_a_webdav_server_refuses_reads_as_what_the_window_can_say() {
+    assert_eq!(dav_refused(Hitch::Lost).code, "davDenied");
+    assert_eq!(dav_refused(Hitch::Broke("409".into())).code, "davRefused");
+    assert_eq!(dav_refused(Hitch::Full).code, "cloudFull");
+}
