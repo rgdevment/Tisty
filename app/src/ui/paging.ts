@@ -82,7 +82,29 @@ export type Went =
   | { kind: "hint"; at: [number, number]; seed: string; from: "hint" | "add-step" | "add-section" }
   | { kind: "section"; at: [number, number] }
   | { kind: "cut"; at: [number, number] }
+  | { kind: "picture"; nth: number }
   | null;
+
+// A picture or a diagram, as the viewer shows it; only a kept file can be saved or opened.
+export type Shot = { readonly src: string; readonly kept: string | null; readonly alt: string };
+
+const shotsIn = (page: Document): HTMLImageElement[] =>
+  Array.from(page.querySelectorAll<HTMLImageElement>(".page img[src]")).filter(
+    (one) => !one.closest(".doc-card"),
+  );
+
+export const shotAt = (page: Document, target: Element | null): number | null => {
+  const shot = target?.closest<HTMLImageElement>(".page img[src]");
+  const nth = shot ? shotsIn(page).indexOf(shot) : -1;
+  return nth >= 0 ? nth : null;
+};
+
+export const shotsOf = (page: Document): Shot[] =>
+  shotsIn(page).map((one) => ({
+    src: one.currentSrc || one.src,
+    kept: one.dataset.kept ?? null,
+    alt: one.alt,
+  }));
 
 // What a label holds runs to the next label, so writing under it starts past the last of it.
 const sectionEnd = (label: Element): [number, number] | null => {
@@ -152,6 +174,9 @@ export const went = (target: Element, selecting: boolean): Went => {
   if (ref?.dataset.ref) return null;
   const tag = target.closest<HTMLElement>(".tag")?.dataset.tag;
   if (tag) return { kind: "tag", name: tag };
+  // A picture or a diagram is looked at; it is written only from the block's own menu.
+  const shot = selecting ? null : shotAt(target.ownerDocument, target);
+  if (shot !== null) return { kind: "picture", nth: shot };
   if (selecting || target.closest("summary, figure.widget, .media, .col-grip, .picture-away"))
     return null;
   // A stage's box ticks where it is read; the words beside it still open the block.

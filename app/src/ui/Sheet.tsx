@@ -8,7 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { copied, copyAttached, type Mend, viewWidget } from "../core";
+import { copied, copyAttached, type Mend, opened, viewWidget } from "../core";
 import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
 import { DOC, partCard } from "../markdown";
@@ -25,7 +25,8 @@ import { MARKED_FOR, markLately } from "./lately";
 import Menu, { type Choice } from "./Menu";
 import { mended as mendedText } from "./mending";
 import Page from "./Page";
-import { charsAt, type Head, spanned, type Went } from "./paging";
+import PictureViewer from "./PictureViewer";
+import { charsAt, type Head, type Shot, shotsOf, spanned, type Went } from "./paging";
 import type { PartCarded } from "./partcarding";
 import { closed, laid, parting } from "./parting";
 import type { Chosen, Formatting, Menued } from "./quickly";
@@ -119,6 +120,7 @@ export default function Sheet(props: Readonly<Props>) {
   turnedNow.current = turned;
   const kept = useKeptHeight<HTMLDivElement>(file ?? label);
   const [more, setMore] = useState<Extract<Went, { kind: "more" }> | null>(null);
+  const [viewing, setViewing] = useState<{ shots: Shot[]; nth: number } | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; choices: Choice[] } | null>(null);
   const askedOn = useRef("");
   const [stuck, setStuck] = useState(false);
@@ -503,10 +505,30 @@ export default function Sheet(props: Readonly<Props>) {
     const at = { x: (frame?.left ?? 0) + asked.x, y: (frame?.top ?? 0) + asked.y };
     const editing = open.current?.view;
     if (asked.writing) return editing && setMenu({ ...at, choices: writingChoices(editing) });
-    const { picked, block: under } = asked;
+    const { picked, block: under, picture } = asked;
     const choices: Choice[] = [];
+    const page = shown.current?.document;
+    const shots = picture !== null && page ? shotsOf(page) : [];
+    const shot = picture !== null ? shots[picture] : undefined;
+    if (shot && picture !== null) {
+      choices.push({
+        key: "look",
+        label: t("pictureLook"),
+        onPick: () => setViewing({ shots, nth: picture }),
+      });
+      const kept = shot.kept;
+      if (kept) {
+        choices.push({ key: "save", label: t("pictureSave"), onPick: () => void keepCopy(kept) });
+        choices.push({ key: "open", label: t("pictureOpen"), onPick: () => void openKept(kept) });
+      }
+    }
     if (picked)
-      choices.push({ key: "copy", label: t("copyIt"), onPick: () => void copied(picked.said) });
+      choices.push({
+        key: "copy",
+        label: t("copyIt"),
+        apart: choices.length > 0,
+        onPick: () => void copied(picked.said),
+      });
     const free = !reading && !editing;
     if (free && picked) {
       for (const [said, , mark, close] of FORMATS) {
@@ -651,6 +673,9 @@ export default function Sheet(props: Readonly<Props>) {
     intoFile({ defaultPath: named(reference) })
       .then((where) => (where ? copyAttached(reference, where) : undefined))
       .catch((error_) => said.current.onFail?.(error_));
+
+  const openKept = (reference: string) =>
+    opened(reference).catch((error_) => said.current.onFail?.(error_));
 
   const offered = (one: Extract<Went, { kind: "more" }>): Choice[] => {
     const file = one.target.startsWith(DOC) ? one.target.slice(DOC.length) : null;
@@ -857,6 +882,7 @@ export default function Sheet(props: Readonly<Props>) {
           onMend={reading || fixed ? undefined : mended}
           onMenu={fixed ? undefined : menued}
           onMore={reading || fixed ? undefined : asked}
+          onPicture={(shots, nth) => setViewing({ shots, nth })}
           onAway={left}
           card={props.card}
           part={props.part}
@@ -890,6 +916,15 @@ export default function Sheet(props: Readonly<Props>) {
           choices={menu.choices}
           keeps
           onClose={() => setMenu(null)}
+        />
+      )}
+      {viewing && (
+        <PictureViewer
+          shots={viewing.shots}
+          start={viewing.nth}
+          onSave={(kept) => void keepCopy(kept)}
+          onOpen={(kept) => void openKept(kept)}
+          onClose={() => setViewing(null)}
         />
       )}
       {more && (
