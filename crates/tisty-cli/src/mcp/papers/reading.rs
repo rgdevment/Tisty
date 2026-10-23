@@ -472,7 +472,7 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
         (false, None) => None,
     };
     if super::outward::asked(args)? {
-        return super::outward::carried(&body, standing, pages.len(), kept_of);
+        return super::outward::carried(&body, standing, &pages, kept_of);
     }
 
     match part_asked(&body, args)? {

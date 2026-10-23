@@ -105,3 +105,11 @@ fn a_diagram_fenced_as_mmd_goes_out_as_mermaid_for_the_places_that_draw_it() {
     let named = "```mermaid\ngraph TD; A-->B\n```\n";
     assert_eq!(alone(named), named);
 }
+
+#[test]
+fn only_the_word_mmd_turns_into_mermaid_never_letters_inside_a_title() {
+    assert_eq!(
+        alone("```title=\"commd\" mmd\ngraph TD; A-->B\n```\n"),
+        "```title=\"commd\" mermaid\ngraph TD; A-->B\n```\n"
+    );
+}
