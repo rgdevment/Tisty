@@ -1158,9 +1158,9 @@ stateDiagram-v2
 - **Events.** `attach.kept { at, sha256, bytes }` says a machine holds a copy,
   and since 1.33 also how it came (`came`: `window`, `assistant`, `imported`,
   `parcel` or `guide`), optional so an older build reads it as before. It never
-  says what the file was called: the log is shared and never forgets; `attach.let_go` says it released its copy;
-  `attach.retire` retires the name for every machine, with `why` (`unused` or
-  `joined`).
+  says what the file was called: the log is shared and never forgets.
+  `attach.let_go` says it released its copy; `attach.retire` retires the name
+  for every machine, with `why` (`unused` or `joined`).
 - **The ledger stays.** `attachments.jsonl` is the local index that finds a
   copy of the same bytes at once; the log could answer the same, but every
   caller of `attach` would then need the projected state, not only the folder.
