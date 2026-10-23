@@ -47,6 +47,27 @@ fn outward(
             edits.push((start + last..start + said.len(), "</details>".to_string()));
         }
         Kind::Callout(_) => headed(said, start, edits),
+        // Tisty draws `mmd` too; GitHub and GitLab draw only a fence that says `mermaid`.
+        Kind::Code {
+            tongue: Some(tongue),
+            ..
+        } if tongue == "mmd" => {
+            let line = &said[..said.find('\n').unwrap_or(said.len())];
+            let fence = line.len() - line.trim_start_matches([' ', '`', '~']).len();
+            // The word itself, never three letters inside a title written beside it.
+            let word = line[fence..]
+                .match_indices("mmd")
+                .map(|(at, _)| fence + at)
+                .find(|&at| {
+                    let before = line[..at].chars().next_back();
+                    let after = line[at + 3..].chars().next();
+                    before.is_none_or(|one| one.is_whitespace() || one == '`' || one == '~')
+                        && after.is_none_or(char::is_whitespace)
+                });
+            if let Some(at) = word {
+                edits.push((start + at..start + at + 3, "mermaid".to_string()));
+            }
+        }
         _ => {}
     }
     for span in &block.spans {
