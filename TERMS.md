@@ -14,7 +14,8 @@ backup, a sync you trust — is in your hands.
 
 The Tisty desktop app for Windows and macOS, the `tisty` command that comes
 inside it and opens the door for assistants, the plugins and the `tisty-mcp`
-launcher that connect assistants to it, and the website www.tisty.app.
+launcher that connect assistants to it, and the website
+[www.tisty.app](https://www.tisty.app/).
 
 A service to share documents by link is planned. It is not covered here, and
 will have terms of its own before it opens.
