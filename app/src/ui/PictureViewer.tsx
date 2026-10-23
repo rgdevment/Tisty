@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { fill, t } from "../locales";
+import { REACHABLE } from "./Modal";
 import type { Shot } from "./paging";
 
 const MOST = 6;
@@ -22,7 +23,15 @@ export default function PictureViewer({ shots, start, onClose, onSave, onOpen }:
   const [zoom, setZoom] = useState(1);
   const [shift, setShift] = useState({ x: 0, y: 0 });
   const dragging = useRef<{ x: number; y: number } | null>(null);
+  const box = useRef<HTMLDivElement>(null);
   const shot = shots[nth];
+
+  // As a modal does: the focus comes in, stays in, and goes back to where it was.
+  useEffect(() => {
+    const came = document.activeElement as HTMLElement | null;
+    box.current?.querySelector<HTMLElement>(REACHABLE)?.focus();
+    return () => came?.focus?.();
+  }, []);
 
   const reset = () => {
     setZoom(1);
@@ -40,29 +49,41 @@ export default function PictureViewer({ shots, start, onClose, onSave, onOpen }:
       return next;
     });
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the keys read the state as it stands when pressed
-  useEffect(() => {
-    const keyed = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-      else if (event.key === "ArrowRight") go(1);
-      else if (event.key === "ArrowLeft") go(-1);
-      else if (event.key === "+" || event.key === "=") zoomed(1.25);
-      else if (event.key === "-") zoomed(0.8);
-      else if (event.key === "0") reset();
-      else return;
+  // Keys are answered here and go no further: nothing behind the picture hears them.
+  const keyed = (event: React.KeyboardEvent) => {
+    event.stopPropagation();
+    if (event.ctrlKey || event.metaKey || event.altKey) {
       event.preventDefault();
-    };
-    window.addEventListener("keydown", keyed);
-    return () => window.removeEventListener("keydown", keyed);
-  }, [shots.length]);
+      return;
+    }
+    if (event.key === "Tab") {
+      const inside = Array.from(box.current?.querySelectorAll<HTMLElement>(REACHABLE) ?? []);
+      const edge = event.shiftKey ? inside[0] : inside[inside.length - 1];
+      if (inside.length > 0 && document.activeElement === edge) {
+        event.preventDefault();
+        (event.shiftKey ? inside[inside.length - 1] : inside[0]).focus();
+      }
+      return;
+    }
+    if (event.key === "Escape") onClose();
+    else if (event.key === "ArrowRight") go(1);
+    else if (event.key === "ArrowLeft") go(-1);
+    else if (event.key === "+" || event.key === "=") zoomed(1.25);
+    else if (event.key === "-") zoomed(0.8);
+    else if (event.key === "0") reset();
+    else return;
+    event.preventDefault();
+  };
 
   if (!shot) return null;
 
   return createPortal(
     <div
+      ref={box}
       role="dialog"
       aria-modal="true"
       aria-label={shot.alt || t("pictureLook")}
+      onKeyDown={keyed}
       className="fixed inset-0 z-50 flex flex-col bg-black/70 backdrop-blur-sm"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();

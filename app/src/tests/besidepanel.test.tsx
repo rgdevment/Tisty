@@ -15,10 +15,10 @@ const headed = (many: number): Head[] =>
     go: () => {},
   }));
 
-const beside = (heads: Head[], more: { onCopy?: () => void } = {}) => (
+const beside = (heads: Head[], more: { onCopy?: () => void } = {}, paper = "dev_a-0001") => (
   <Beside
     title="Notas"
-    paper="dev_a-0001"
+    paper={paper}
     body="# Notas"
     tags={[]}
     kept={0}
@@ -27,8 +27,6 @@ const beside = (heads: Head[], more: { onCopy?: () => void } = {}) => (
     leaf="a4"
     onLeaf={() => {}}
     making={false}
-    onPdf={() => {}}
-    onSee={() => {}}
     onCopy={more.onCopy ?? (() => {})}
     onTakeOut={() => {}}
     onShut={() => {}}
@@ -90,6 +88,55 @@ describe("the document's column", () => {
   });
 });
 
+describe("the export button", () => {
+  it("closes its menu when pressed again", async () => {
+    panel(headed(2));
+    const button = screen.getByRole("button", { name: t("exportIt") });
+    await userEvent.click(button);
+    expect(screen.queryByRole("menu")).toBeTruthy();
+    await userEvent.click(button);
+    expect(screen.queryByRole("menu")).toBeNull();
+  });
+
+  it("keeps the PDF in its menu while one is being made, saying so", async () => {
+    render(
+      <Beside
+        title="Notas"
+        paper="dev_a-0001"
+        body="# Notas"
+        tags={[]}
+        kept={0}
+        heads={[]}
+        pages={[]}
+        leaf="a4"
+        onLeaf={() => {}}
+        making
+        onCopy={() => {}}
+        onTakeOut={() => {}}
+        onShut={() => {}}
+        onApart={() => {}}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: t("exportIt") }));
+    expect(screen.getByRole("menuitem", { name: new RegExp(t("makingPdf")) })).toBeTruthy();
+    expect(screen.getByRole("menuitem", { name: new RegExp(t("toPdf")) })).toBeTruthy();
+  });
+});
+
+describe("the details coming back to a document", () => {
+  it("decide afresh for it, whatever another document left them as", async () => {
+    const view = render(beside(headed(12)));
+    await userEvent.click(screen.getByRole("button", { name: new RegExp(t("besideDetails")) }));
+    view.rerender(beside(headed(2), {}, "dev_a-0002"));
+    view.rerender(beside(headed(12)));
+    expect(
+      screen
+        .getByRole("button", { name: new RegExp(t("besideDetails")) })
+        .getAttribute("aria-expanded"),
+    ).toBe("false");
+  });
+});
+
 describe("a page's column", () => {
   it("takes the person back to the document the page belongs to", async () => {
     const onPage = vi.fn();
@@ -115,8 +162,6 @@ describe("a page's column", () => {
         leaf="a4"
         onLeaf={() => {}}
         making={false}
-        onPdf={() => {}}
-        onSee={() => {}}
         onCopy={() => {}}
         onTakeOut={() => {}}
         onShut={() => {}}

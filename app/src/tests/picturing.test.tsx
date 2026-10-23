@@ -69,3 +69,34 @@ describe("the picture viewer", () => {
     expect(screen.getByRole("button", { name: "100%" })).toBeTruthy();
   });
 });
+
+describe("the picture viewer over a task", () => {
+  it("keeps its keys to itself, so Escape closes the picture and not what is behind it", async () => {
+    const behind = vi.fn();
+    const onClose = vi.fn();
+    render(
+      // biome-ignore lint/a11y/noStaticElementInteractions: stands in for a panel that closes on Escape
+      <div onKeyDown={behind}>
+        <PictureViewer
+          shots={[{ src: "asset://rina.jpg", alt: "La Rina", kept: null }]}
+          start={0}
+          onClose={onClose}
+        />
+      </div>,
+    );
+    await userEvent.keyboard("{Escape}");
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(behind).not.toHaveBeenCalled();
+  });
+
+  it("takes the focus in when it opens", () => {
+    render(
+      <PictureViewer
+        shots={[{ src: "asset://rina.jpg", alt: "La Rina", kept: null }]}
+        start={0}
+        onClose={() => {}}
+      />,
+    );
+    expect(screen.getByRole("dialog").contains(document.activeElement)).toBe(true);
+  });
+});

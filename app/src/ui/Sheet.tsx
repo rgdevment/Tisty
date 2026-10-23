@@ -531,11 +531,12 @@ export default function Sheet(props: Readonly<Props>) {
       });
     const free = !reading && !editing;
     if (free && picked) {
+      const before = choices.length;
       for (const [said, , mark, close] of FORMATS) {
         choices.push({
           key: `format-${said}`,
           label: t(said),
-          apart: choices.length === 1,
+          apart: choices.length === before && before > 0,
           onPick: () => format({ ...picked, open: mark, close }),
         });
       }

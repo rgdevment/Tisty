@@ -8,7 +8,7 @@ interface Props {
   children: React.ReactNode;
 }
 
-const REACHABLE =
+export const REACHABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export default function Modal({ title, wide, art, onClose, children }: Props) {

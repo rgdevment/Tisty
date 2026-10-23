@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Filed, Folded } from "../core";
 import { type DocFacts, docFacts, type Paper } from "../core";
 import { weigh } from "../format";
+import { waysOut } from "../leaving";
 import { fill, t } from "../locales";
 import Glyph from "./Glyph";
 import Menu, { type Choice } from "./Menu";
@@ -34,6 +35,10 @@ const tool =
 const control =
   "flex h-7 items-center rounded-md border border-line text-[11.5px] text-faint hover:text-ink";
 const label = "text-[10.5px] tracking-[0.07em] text-faint uppercase";
+const row =
+  "flex shrink-0 items-center gap-2 rounded-md px-1.5 py-1 text-left text-[12.5px] hover:bg-hover hover:text-ink";
+
+const held = (pages: number) => (pages === 1 ? t("pageHeld") : fill("pagesHeld", String(pages)));
 
 type Part = "details" | "shared";
 
@@ -55,8 +60,6 @@ interface Props {
   onSheets?: (on: boolean) => void;
   onLandscape?: (turned: boolean) => void;
   making: boolean;
-  onPdf: () => void;
-  onSee: () => void;
   onCopy: () => void;
   onTakeOut: () => void;
   onShut: () => void;
@@ -104,38 +107,208 @@ function Fold({
   );
 }
 
-export default function Beside({
-  title,
-  paper,
-  body,
-  tags,
-  kept,
-  heads,
-  pages,
-  up,
-  onPage,
+function Controls({
   leaf,
   onLeaf,
-  sheets = false,
-  landscape = false,
+  sheets,
+  landscape,
   onSheets,
   onLandscape,
   making,
-  onPdf,
-  onSee,
   onCopy,
   onTakeOut,
-  onShut,
-  onApart,
-  trail = [],
-  onFolder,
-}: Props) {
+}: Readonly<
+  Pick<
+    Props,
+    "leaf" | "onLeaf" | "onSheets" | "onLandscape" | "making" | "onCopy" | "onTakeOut"
+  > & { sheets: boolean; landscape: boolean }
+>) {
+  const [out, setOut] = useState<{ x: number; y: number } | null>(null);
+  const ways: Choice[] = [
+    ...waysOut(false, making),
+    { key: "copy", icon: "⧉", label: t("copyPlain"), apart: true, onPick: onCopy },
+    { key: "save", icon: "⇩", label: t("saveAsMarkdown"), onPick: onTakeOut },
+  ];
+  const toggled = (box: DOMRect) => setOut(out ? null : { x: box.right - 230, y: box.bottom + 4 });
+
+  return (
+    <>
+      <div className="mt-2.5 flex items-stretch gap-1.5">
+        <fieldset
+          aria-label={t("leafIs")}
+          title={t("leafIs")}
+          className="m-0 flex h-7 min-w-0 flex-1 gap-0.5 rounded-md border border-line p-0.5"
+        >
+          {LEAVES.map((one) => (
+            <button
+              key={one}
+              type="button"
+              aria-pressed={leaf === one}
+              onClick={() => onLeaf(one)}
+              className={`flex-1 rounded-md text-[11.5px] ${
+                leaf === one ? "bg-active text-ink" : "text-faint hover:text-soft"
+              }`}
+            >
+              {t(leafWord(one))}
+            </button>
+          ))}
+        </fieldset>
+        {onSheets && (
+          <button
+            type="button"
+            role="switch"
+            aria-checked={sheets}
+            aria-label={t("sheetsShown")}
+            title={t("sheetsShown")}
+            onClick={() => onSheets(!sheets)}
+            className={`${control} w-7 justify-center ${
+              sheets ? "border-accent/40 bg-active text-ink" : "hover:bg-hover"
+            }`}
+          >
+            <Glyph name="pages" className={`h-3.5 w-3.5 ${sheets ? "text-accent" : ""}`} />
+          </button>
+        )}
+        <button
+          type="button"
+          aria-haspopup="menu"
+          aria-expanded={out !== null}
+          aria-busy={making}
+          aria-label={t("exportIt")}
+          title={making ? t("makingPdf") : t("exportIt")}
+          // The menu closes on any mousedown outside it, this button included, so a mouse
+          // toggles here and only a keyboard's click — detail 0 — reaches onClick.
+          onMouseDown={(e) => toggled(e.currentTarget.getBoundingClientRect())}
+          onClick={(e) => {
+            if (e.detail === 0) toggled(e.currentTarget.getBoundingClientRect());
+          }}
+          className={`${control} gap-0.5 px-2 hover:bg-hover`}
+        >
+          <Glyph name="download" className="h-3.5 w-3.5" />
+          <Glyph name="chevron" className="h-2.5 w-2.5" />
+        </button>
+      </div>
+      {sheets && onLandscape && (
+        <div className="mt-1.5 flex justify-end gap-3 text-[11.5px] text-faint">
+          {[false, true].map((turned) => (
+            <button
+              key={String(turned)}
+              type="button"
+              aria-pressed={landscape === turned}
+              onClick={() => onLandscape(turned)}
+              className={landscape === turned ? "text-ink" : "hover:text-soft"}
+            >
+              {t(turned ? "sheetsAcross" : "sheetsUpright")}
+            </button>
+          ))}
+        </div>
+      )}
+      {out && <Menu at={out} choices={ways} label={t("exportIt")} onClose={() => setOut(null)} />}
+    </>
+  );
+}
+
+function Outline({
+  heads,
+  pages,
+  paper,
+  up,
+  onPage,
+}: Readonly<Pick<Props, "heads" | "pages" | "paper" | "up" | "onPage">>) {
   const outline = heads.filter((one) => one.level > 0);
-  const short = outline.length + pages.length <= SHORT_OUTLINE;
+  return (
+    <nav
+      aria-label={t("outline")}
+      className="scroller flex min-h-0 flex-1 flex-col gap-px border-t border-hair px-2.5 pt-2.5 pb-3"
+    >
+      <h3 className={`${label} shrink-0 px-1.5 pb-1`}>{t("outline")}</h3>
+      {outline.length === 0 && pages.length === 0 && !up && (
+        <p className="px-1.5 text-[12.5px] text-faint">{t("outlineNone")}</p>
+      )}
+      {outline.map((one) => (
+        <button
+          key={one.key}
+          type="button"
+          onClick={one.go}
+          className={`${row} block truncate ${one.level > 1 ? "pl-5 text-faint" : "text-soft"}`}
+        >
+          {one.text}
+        </button>
+      ))}
+      {up && (
+        <>
+          <h4 className={`${label} mt-2.5 shrink-0 px-1.5`}>{t("besidePageOf")}</h4>
+          <button type="button" onClick={() => onPage?.(up)} className={`${row} text-soft`}>
+            <Glyph name="chevron" className="h-[13px] w-[13px] shrink-0 rotate-90" />
+            <span className="min-w-0 flex-1 truncate">{up.title || t("untitledDoc")}</span>
+          </button>
+        </>
+      )}
+      {pages.length > 0 && (
+        <h4 className={`${label} mt-2.5 shrink-0 px-1.5`}>{held(pages.length)}</h4>
+      )}
+      {pages.map((one) => (
+        <button
+          key={one.id}
+          type="button"
+          onClick={() => onPage?.(one)}
+          aria-label={
+            one.away
+              ? `${one.title || t("untitledDoc")} — ${t("isArchived")}`
+              : one.flagged
+                ? `${one.title || t("untitledDoc")} — ${t("docFlagged")}`
+                : undefined
+          }
+          aria-current={one.file === paper ? "true" : undefined}
+          className={`${row} ${one.file === paper ? "bg-accent-soft text-accent" : ""} ${
+            one.away ? "text-faint" : "text-soft"
+          }`}
+        >
+          <Glyph
+            name={one.archived ? "archive" : "alignleft"}
+            className="h-[13px] w-[13px] shrink-0"
+          />
+          <span className="min-w-0 flex-1 truncate">{one.title || t("untitledDoc")}</span>
+          {one.flagged && !one.away && (
+            <span aria-hidden="true" className="shrink-0 text-[9px] text-hue-teal">
+              ◆
+            </span>
+          )}
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+function Tags({ tags, body }: Readonly<{ tags: string[]; body: string }>) {
+  const times = useMemo(() => often(body), [body]);
+  if (tags.length === 0) return null;
+  return (
+    <section className="flex flex-col gap-2">
+      <h3 className={label}>{t("tags")}</h3>
+      <div className="flex flex-wrap gap-1">
+        {tags.map((one) => {
+          const many = times.get(one) ?? 0;
+          return (
+            <span
+              key={one}
+              title={many > 0 ? fill("tagTimes", String(many)) : undefined}
+              className="inline-flex items-baseline gap-1 rounded-full bg-mark-tag px-2 py-0.5 text-[11.5px] text-ink"
+            >
+              #{one}
+              {many > 0 && <span className="tabular-nums text-faint">{many}</span>}
+            </span>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+export default function Beside(props: Props) {
+  const { title, paper, body, kept, heads, pages, onShut, onApart, trail = [], onFolder } = props;
+  const short = heads.filter((one) => one.level > 0).length + pages.length <= SHORT_OUTLINE;
   const [facts, setFacts] = useState<DocFacts | null>(null);
   const [open, setOpen] = useState<Part | null>(short ? "details" : null);
-  const [out, setOut] = useState<{ x: number; y: number } | null>(null);
-  const exporting = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     let gone = false;
@@ -150,47 +323,28 @@ export default function Beside({
   }, [paper, kept]);
 
   // The outline arrives after the page is drawn, so the choice waits for it until the person makes one.
-  const chosen = useRef<string | null>(null);
+  const chosen = useRef(false);
+  const showing = useRef(paper);
   useEffect(() => {
-    if (chosen.current !== paper) setOpen(short ? "details" : null);
+    if (showing.current !== paper) {
+      showing.current = paper;
+      chosen.current = false;
+    }
+    if (!chosen.current) setOpen(short ? "details" : null);
   }, [paper, short]);
 
-  const times = useMemo(() => often(body), [body]);
   const words = useMemo(() => worded(body), [body]);
   const gist = [
     words ? fill("paperWords", String(words)) : t("paperEmpty"),
     facts ? weigh(facts.bytes) : "",
-    facts?.pages
-      ? facts.pages === 1
-        ? t("pageHeld")
-        : fill("pagesHeld", String(facts.pages))
-      : "",
+    facts?.pages ? held(facts.pages) : "",
   ]
     .filter(Boolean)
     .join(" · ");
   const toggle = (part: Part) => {
-    chosen.current = paper;
+    chosen.current = true;
     setOpen((now) => (now === part ? null : part));
   };
-
-  const ways: Choice[] = [
-    { key: "see", icon: "▤", label: t("previewPdf"), off: making, onPick: onSee },
-    { key: "pdf", icon: "⇩", label: t("toPdf"), off: making, onPick: onPdf },
-    {
-      key: "html",
-      icon: "⇩",
-      label: t("toHtml"),
-      onPick: () => window.dispatchEvent(new CustomEvent("tisty:to-html")),
-    },
-    {
-      key: "word",
-      icon: "⇩",
-      label: t("toWord"),
-      onPick: () => window.dispatchEvent(new CustomEvent("tisty:to-word")),
-    },
-    { key: "copy", icon: "⧉", label: t("copyPlain"), apart: true, onPick: onCopy },
-    { key: "save", icon: "⇩", label: t("saveAsMarkdown"), onPick: onTakeOut },
-  ];
 
   return (
     <aside
@@ -244,145 +398,13 @@ export default function Beside({
               </span>
             ))}
           </p>
-
-          <div className="mt-2.5 flex items-stretch gap-1.5">
-            <fieldset
-              aria-label={t("leafIs")}
-              title={t("leafIs")}
-              className="m-0 flex h-7 min-w-0 flex-1 gap-0.5 rounded-md border border-line p-0.5"
-            >
-              {LEAVES.map((one) => (
-                <button
-                  key={one}
-                  type="button"
-                  aria-pressed={leaf === one}
-                  onClick={() => onLeaf(one)}
-                  className={`flex-1 rounded-md text-[11.5px] ${
-                    leaf === one ? "bg-active text-ink" : "text-faint hover:text-soft"
-                  }`}
-                >
-                  {t(leafWord(one))}
-                </button>
-              ))}
-            </fieldset>
-            {onSheets && (
-              <button
-                type="button"
-                role="switch"
-                aria-checked={sheets}
-                aria-label={t("sheetsShown")}
-                title={t("sheetsShown")}
-                onClick={() => onSheets(!sheets)}
-                className={`${control} w-7 justify-center ${
-                  sheets ? "border-accent/40 bg-active text-ink" : "hover:bg-hover"
-                }`}
-              >
-                <Glyph name="pages" className={`h-3.5 w-3.5 ${sheets ? "text-accent" : ""}`} />
-              </button>
-            )}
-            <button
-              ref={exporting}
-              type="button"
-              aria-haspopup="menu"
-              aria-expanded={out !== null}
-              aria-busy={making}
-              aria-label={t("exportIt")}
-              title={making ? t("makingPdf") : t("exportIt")}
-              onClick={() => {
-                const box = exporting.current?.getBoundingClientRect();
-                if (box) setOut(out ? null : { x: box.right - 230, y: box.bottom + 4 });
-              }}
-              className={`${control} gap-0.5 px-2 hover:bg-hover`}
-            >
-              <Glyph name="download" className="h-3.5 w-3.5" />
-              <Glyph name="chevron" className="h-2.5 w-2.5" />
-            </button>
-          </div>
-          {sheets && onLandscape && (
-            <div className="mt-1.5 flex justify-end gap-3 text-[11.5px] text-faint">
-              {[false, true].map((turned) => (
-                <button
-                  key={String(turned)}
-                  type="button"
-                  aria-pressed={landscape === turned}
-                  onClick={() => onLandscape(turned)}
-                  className={landscape === turned ? "text-ink" : "hover:text-soft"}
-                >
-                  {t(turned ? "sheetsAcross" : "sheetsUpright")}
-                </button>
-              ))}
-            </div>
-          )}
+          <Controls
+            {...props}
+            sheets={props.sheets ?? false}
+            landscape={props.landscape ?? false}
+          />
         </div>
-
-        <nav
-          aria-label={t("outline")}
-          className="scroller flex min-h-0 flex-1 flex-col gap-px border-t border-hair px-2.5 pt-2.5 pb-3"
-        >
-          <h3 className={`${label} shrink-0 px-1.5 pb-1`}>{t("outline")}</h3>
-          {outline.length === 0 && pages.length === 0 && (
-            <p className="px-1.5 text-[12.5px] text-faint">{t("outlineNone")}</p>
-          )}
-          {outline.map((one) => (
-            <button
-              key={one.key}
-              type="button"
-              onClick={one.go}
-              className={`shrink-0 truncate rounded-md px-1.5 py-1 text-left text-[12.5px] hover:bg-hover hover:text-ink ${
-                one.level > 1 ? "pl-5 text-faint" : "text-soft"
-              }`}
-            >
-              {one.text}
-            </button>
-          ))}
-          {up && (
-            <>
-              <h4 className={`${label} mt-2.5 shrink-0 px-1.5`}>{t("besidePageOf")}</h4>
-              <button
-                type="button"
-                onClick={() => onPage?.(up)}
-                className="flex shrink-0 items-center gap-2 rounded-md px-1.5 py-1 text-left text-[12.5px] text-soft hover:bg-hover hover:text-ink"
-              >
-                <Glyph name="chevron" className="h-[13px] w-[13px] shrink-0 rotate-90" />
-                <span className="min-w-0 flex-1 truncate">{up.title || t("untitledDoc")}</span>
-              </button>
-            </>
-          )}
-          {pages.length > 0 && (
-            <h4 className={`${label} mt-2.5 shrink-0 px-1.5`}>
-              {pages.length === 1 ? t("pageHeld") : fill("pagesHeld", String(pages.length))}
-            </h4>
-          )}
-          {pages.map((one) => (
-            <button
-              key={one.id}
-              type="button"
-              onClick={() => onPage?.(one)}
-              aria-label={
-                one.away
-                  ? `${one.title || t("untitledDoc")} — ${t("isArchived")}`
-                  : one.flagged
-                    ? `${one.title || t("untitledDoc")} — ${t("docFlagged")}`
-                    : undefined
-              }
-              aria-current={one.file === paper ? "true" : undefined}
-              className={`flex shrink-0 items-center gap-2 rounded-md px-1.5 py-1 text-left text-[12.5px] hover:bg-hover hover:text-ink ${
-                one.file === paper ? "bg-accent-soft text-accent" : ""
-              } ${one.away ? "text-faint" : "text-soft"}`}
-            >
-              <Glyph
-                name={one.archived ? "archive" : "alignleft"}
-                className="h-[13px] w-[13px] shrink-0"
-              />
-              <span className="min-w-0 flex-1 truncate">{one.title || t("untitledDoc")}</span>
-              {one.flagged && !one.away && (
-                <span aria-hidden="true" className="shrink-0 text-[9px] text-hue-teal">
-                  ◆
-                </span>
-              )}
-            </button>
-          ))}
-        </nav>
+        <Outline {...props} />
       </div>
 
       <div className={card}>
@@ -398,26 +420,7 @@ export default function Beside({
             onEdit={heads.find((one) => one.level === 0)?.go}
             skip={["title", "tags", "tag"]}
           />
-          {tags.length > 0 && (
-            <section className="flex flex-col gap-2">
-              <h3 className={label}>{t("tags")}</h3>
-              <div className="flex flex-wrap gap-1">
-                {tags.map((one) => {
-                  const many = times.get(one) ?? 0;
-                  return (
-                    <span
-                      key={one}
-                      title={many > 0 ? fill("tagTimes", String(many)) : undefined}
-                      className="inline-flex items-baseline gap-1 rounded-full bg-mark-tag px-2 py-0.5 text-[11.5px] text-ink"
-                    >
-                      #{one}
-                      {many > 0 && <span className="tabular-nums text-faint">{many}</span>}
-                    </span>
-                  );
-                })}
-              </div>
-            </section>
-          )}
+          <Tags tags={props.tags} body={body} />
         </Fold>
         <Fold
           title={t("besideShared")}
@@ -428,8 +431,6 @@ export default function Beside({
           <p className="text-[12.5px] leading-relaxed text-soft">{t("sharedWill")}</p>
         </Fold>
       </div>
-
-      {out && <Menu at={out} choices={ways} label={t("exportIt")} onClose={() => setOut(null)} />}
     </aside>
   );
 }

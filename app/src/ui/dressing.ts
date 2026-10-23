@@ -298,7 +298,10 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
   }
   if (asked.kind === "attachment") reach.onOpen?.(asked.reference);
   if (asked.kind === "tag") reach.onTag?.(asked.name);
-  if (asked.kind === "picture") reach.onPicture?.(shotsOf(page), asked.nth);
+  if (asked.kind === "picture") {
+    reach.onAway?.();
+    reach.onPicture?.(shotsOf(page), asked.nth);
+  }
   if (asked.kind === "tick")
     reach.onTick?.([charsAt(reach.body, asked.at[0]), charsAt(reach.body, asked.at[1])]);
   if (asked.kind === "block") {

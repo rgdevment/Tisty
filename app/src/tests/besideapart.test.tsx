@@ -21,8 +21,6 @@ describe("a document opened in a window of its own", () => {
         leaf="a4"
         onLeaf={() => {}}
         making={false}
-        onPdf={() => {}}
-        onSee={() => {}}
         onCopy={() => {}}
         onTakeOut={() => {}}
         onShut={() => {}}
