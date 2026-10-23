@@ -48,8 +48,6 @@ ignore = [
   # Unmaintained, not unsafe: it only reads the fonts installed on the machine, to measure labels
   # while a diagram is laid out, never anything a document carries. Revisit once fontdb moves to skrifa.
   { id = "RUSTSEC-2026-0192", reason = "ttf-parser only measures the system fonts for diagram layout" },
-  # Every zip before 9.0.3 was yanked with no advisory, and no release of the updater moved past zip 4 yet.
-  { crate = "zip@4.6.1", reason = "only tauri-plugin-updater needs it; drop once a release moves to zip 9" },
   # The updater unzips only on Windows, only an update whose signature it has already checked against our key.
   { id = "RUSTSEC-2026-0367", reason = "zip 4 via tauri-plugin-updater: SUID bits do not exist on Windows" },
   { id = "RUSTSEC-2026-0368", reason = "zip 4 via tauri-plugin-updater: only our own signed update is ever extracted" },
