@@ -36,4 +36,14 @@ else
   echo "!  app/node_modules is not here, so biome did not look at the window"
 fi
 
+# The rules job refuses a lockfile the notices do not follow; written here, the fix is one `git add` away.
+if git diff --cached --name-only | grep -qE '(^|/)(Cargo\.lock|package-lock\.json)$'; then
+  if [ -d app/node_modules ]; then
+    quietly "node scripts/third-party.mjs > /dev/null && git diff --quiet -- THIRD-PARTY-BUNDLED.md THIRD-PARTY-LICENSES.md" \
+      "the notices were behind the lockfiles; npm run notices just wrote them, so stage them"
+  else
+    echo "!  app/node_modules is not here, so the notices were not checked against the lockfiles"
+  fi
+fi
+
 exit $status
