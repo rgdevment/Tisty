@@ -1061,7 +1061,8 @@ follows the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Licence
 
-[AGPL-3.0](LICENSE).
+[AGPL-3.0](LICENSE). Using Tisty is covered by short [terms of use](TERMS.md)
+that take nothing away from it.
 
 ### Other terms
 
