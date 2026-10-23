@@ -1,6 +1,8 @@
 import { common, createLowlight } from "lowlight";
+import { t } from "../locales";
 import { DOC, TASK } from "../markdown";
 import bar from "./bar.css?raw";
+import type { Choice } from "./Menu";
 import sheet from "./page.css?raw";
 import task from "./taskpage.css?raw";
 
@@ -82,7 +84,51 @@ export type Went =
   | { kind: "hint"; at: [number, number]; seed: string; from: "hint" | "add-step" | "add-section" }
   | { kind: "section"; at: [number, number] }
   | { kind: "cut"; at: [number, number] }
+  | { kind: "picture"; nth: number }
   | null;
+
+// A picture or a diagram, as the viewer shows it; only a kept file can be saved or opened.
+export type Shot = { readonly src: string; readonly kept: string | null; readonly alt: string };
+
+// What a click leaves alone, and so no picture inside it is one to look at.
+const UNTOUCHED = "summary, figure.widget, .media, .col-grip, .picture-away";
+
+const shotsIn = (page: Document): HTMLImageElement[] =>
+  Array.from(page.querySelectorAll<HTMLImageElement>(".page img[src]")).filter(
+    (one) => !one.closest(`.doc-card, details:not([open]), ${UNTOUCHED}`),
+  );
+
+export const shotAt = (page: Document, target: Element | null): number | null => {
+  const shot = target?.closest<HTMLImageElement>(".page img[src]");
+  const nth = shot ? shotsIn(page).indexOf(shot) : -1;
+  return nth >= 0 ? nth : null;
+};
+
+export type PictureWays = {
+  readonly look: (nth: number) => void;
+  readonly save: (kept: string) => void;
+  readonly open: (kept: string) => void;
+};
+
+// What a picture's own menu offers above writing it: a kept file can also leave or open.
+export const pictureChoices = (shots: Shot[], nth: number | null, ways: PictureWays): Choice[] => {
+  const kept = nth === null ? null : (shots[nth]?.kept ?? null);
+  if (nth === null || !shots[nth]) return [];
+  const look: Choice = { key: "look", label: t("pictureLook"), onPick: () => ways.look(nth) };
+  if (!kept) return [look];
+  return [
+    look,
+    { key: "save", label: t("pictureSave"), onPick: () => ways.save(kept) },
+    { key: "open", label: t("pictureOpen"), onPick: () => ways.open(kept) },
+  ];
+};
+
+export const shotsOf = (page: Document): Shot[] =>
+  shotsIn(page).map((one) => ({
+    src: one.currentSrc || one.src,
+    kept: one.dataset.kept ?? null,
+    alt: one.alt,
+  }));
 
 // What a label holds runs to the next label, so writing under it starts past the last of it.
 const sectionEnd = (label: Element): [number, number] | null => {
@@ -152,8 +198,10 @@ export const went = (target: Element, selecting: boolean): Went => {
   if (ref?.dataset.ref) return null;
   const tag = target.closest<HTMLElement>(".tag")?.dataset.tag;
   if (tag) return { kind: "tag", name: tag };
-  if (selecting || target.closest("summary, figure.widget, .media, .col-grip, .picture-away"))
-    return null;
+  if (selecting || target.closest(UNTOUCHED)) return null;
+  // A picture or a diagram is looked at; it is written only from the block's own menu.
+  const shot = shotAt(target.ownerDocument, target);
+  if (shot !== null) return { kind: "picture", nth: shot };
   // A stage's box ticks where it is read; the words beside it still open the block.
   const box = target.closest(".check")?.closest<HTMLElement>("li.task[data-at]");
   const ticked = spanned(box?.dataset.at ?? null);

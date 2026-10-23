@@ -29,8 +29,6 @@ const panel = (sheets: boolean, onSheets = vi.fn(), onLandscape = vi.fn()) =>
       onSheets={onSheets}
       onLandscape={onLandscape}
       making={false}
-      onPdf={() => {}}
-      onSee={() => {}}
       onCopy={() => {}}
       onTakeOut={() => {}}
       onShut={() => {}}
