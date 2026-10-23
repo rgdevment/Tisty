@@ -131,7 +131,7 @@ jobs:
   tests:
     name: tests
     if: always()
-    needs: [changes, test]
+    needs: [changes, test, wasm]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -140,10 +140,13 @@ jobs:
           LOOKED: ${{ needs.changes.result }}
           RUST: ${{ needs.changes.outputs.rust }}
           RESULT: ${{ needs.test.result }}
+          WASM: ${{ needs.wasm.result }}
         run: |
           [ "$LOOKED" = "success" ] || { echo "::error::what the branch touched could not be read ($LOOKED)"; exit 1; }
           [ "$RESULT" = "success" ] || { [ "$RUST" = "false" ] && [ "$RESULT" = "skipped" ]; } \
             || { echo "::error::the tests ended as $RESULT"; exit 1; }
+          [ "$WASM" = "success" ] || { [ "$RUST" = "false" ] && [ "$WASM" = "skipped" ]; } \
+            || { echo "::error::the share protocol on wasm ended as $WASM"; exit 1; }
 
   lint:
     name: fmt

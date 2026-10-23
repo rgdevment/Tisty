@@ -95,15 +95,13 @@ impl Person {
         encoded(self.0.as_bytes())
     }
 
-    /// About 66 bits, in four groups of five digits that two people can read to each other.
+    /// 66 bits, in four groups of five digits that two people can read to each other.
     pub fn fingerprint(&self) -> String {
         let digest = hashed(FINGERPRINT, self.0.as_bytes());
         let mut wide = [0u8; 16];
         wide[7..].copy_from_slice(&digest[..9]);
-        let digits = format!(
-            "{:020}",
-            u128::from_be_bytes(wide) % 100_000_000_000_000_000_000
-        );
+        // 2^66 stays under 10^20, so every code is as likely as any other.
+        let digits = format!("{:020}", u128::from_be_bytes(wide) >> 6);
         digits
             .as_bytes()
             .chunks(5)
@@ -245,7 +243,7 @@ fn message(about: &str, vouched: &Vouched, said: &[u8]) -> Vec<u8> {
     let mut out = SIGNED.to_vec();
     out.extend_from_slice(vouched.person.0.as_bytes());
     out.extend_from_slice(vouched.share.as_bytes());
-    out.extend_from_slice(&u64::try_from(about.len()).unwrap_or(u64::MAX).to_be_bytes());
+    out.extend_from_slice(&(about.len() as u64).to_be_bytes());
     out.extend_from_slice(about.as_bytes());
     out.extend_from_slice(said);
     out

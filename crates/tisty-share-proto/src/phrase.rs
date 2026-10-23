@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::OnceLock;
 
 use bip39::{Language, Mnemonic};
@@ -26,18 +27,17 @@ pub enum Unread {
 }
 
 /// The whole seed, written as words: whoever holds them is that person.
-pub fn phrase(seed: &Seed, words: Words) -> Zeroizing<String> {
+pub fn phrase(seed: &Seed, words: Words) -> Option<Zeroizing<String>> {
     let seed = seed.to_bytes();
+    let mnemonic = Mnemonic::from_entropy_in(language(words), seed.as_ref()).ok()?;
     let mut joined = Zeroizing::new(String::with_capacity(WORDS * 16));
-    if let Ok(mnemonic) = Mnemonic::from_entropy_in(language(words), seed.as_ref()) {
-        for (at, word) in mnemonic.words().enumerate() {
-            if at > 0 {
-                joined.push(' ');
-            }
-            joined.push_str(word);
+    for (at, word) in mnemonic.words().enumerate() {
+        if at > 0 {
+            joined.push(' ');
         }
+        joined.push_str(word);
     }
-    joined
+    Some(joined)
 }
 
 /// Either language, in any case, with or without its accents: people copy words by hand.
@@ -51,20 +51,23 @@ pub fn seed_from(phrase: &str) -> Result<Seed, Unread> {
     }
     let mut furthest = 0;
     let mut unread = Unread::Word(1);
-    for language in [Language::Spanish, Language::English] {
-        match listed(language, &said) {
-            Ok(canonical) => match Mnemonic::parse_in(language, canonical.as_str()) {
-                Ok(mnemonic) => return seeded(&mnemonic),
-                Err(_) => {
-                    furthest = WORDS;
-                    unread = Unread::Checksum;
+    // Spelled as the list spells them first: twelve English words are Spanish ones without accents.
+    for loose in [false, true] {
+        for language in [Language::Spanish, Language::English] {
+            match listed(language, &said, loose) {
+                Ok(canonical) => match Mnemonic::parse_in(language, canonical.as_str()) {
+                    Ok(mnemonic) => return seeded(&mnemonic),
+                    Err(_) => {
+                        furthest = WORDS;
+                        unread = Unread::Checksum;
+                    }
+                },
+                Err(at) if at > furthest => {
+                    furthest = at;
+                    unread = Unread::Word(at + 1);
                 }
-            },
-            Err(at) if at > furthest => {
-                furthest = at;
-                unread = Unread::Word(at + 1);
+                Err(_) => {}
             }
-            Err(_) => {}
         }
     }
     Err(unread)
@@ -78,42 +81,44 @@ fn language(words: Words) -> Language {
 }
 
 /// The list's own spelling of every word said, or where the first unknown one sits.
-fn listed(language: Language, said: &[Zeroizing<String>]) -> Result<Zeroizing<String>, usize> {
+fn listed(
+    language: Language,
+    said: &[Zeroizing<String>],
+    loose: bool,
+) -> Result<Zeroizing<String>, usize> {
     let list = language.word_list();
-    let (exact, bare) = spellings(language);
     // Sized once, so growing never leaves a freed copy of the phrase behind.
     let mut canonical = Zeroizing::new(String::with_capacity(WORDS * 16));
     for (at, word) in said.iter().enumerate() {
-        let plain = Zeroizing::new(unmarked(word));
-        let found = exact
-            .iter()
-            .position(|one| one == word.as_str())
-            .or_else(|| bare.iter().position(|one| *one == *plain))
-            .ok_or(at)?;
+        let found = match language.find_word(word) {
+            Some(found) => Some(found),
+            None if loose => unaccented(language)
+                .get(Zeroizing::new(unmarked(word)).as_str())
+                .copied(),
+            None => None,
+        };
+        let found = found.ok_or(at)?;
         if at > 0 {
             canonical.push(' ');
         }
-        canonical.push_str(list[found]);
+        canonical.push_str(list[usize::from(found)]);
     }
     Ok(canonical)
 }
 
-/// The list as people type it, lowered and without accents; worked out once per language.
-fn spellings(language: Language) -> &'static (Vec<String>, Vec<String>) {
-    static SPANISH: OnceLock<(Vec<String>, Vec<String>)> = OnceLock::new();
-    static ENGLISH: OnceLock<(Vec<String>, Vec<String>)> = OnceLock::new();
+/// Where each word sits once its accents are gone; worked out once per language.
+fn unaccented(language: Language) -> &'static HashMap<String, u16> {
+    static SPANISH: OnceLock<HashMap<String, u16>> = OnceLock::new();
+    static ENGLISH: OnceLock<HashMap<String, u16>> = OnceLock::new();
     let kept = match language {
         Language::Spanish => &SPANISH,
         _ => &ENGLISH,
     };
     kept.get_or_init(|| {
-        let exact: Vec<String> = language
-            .word_list()
-            .iter()
-            .map(|one| lowered(one))
-            .collect();
-        let bare = exact.iter().map(|one| unmarked(one)).collect();
-        (exact, bare)
+        (0u16..)
+            .zip(language.word_list())
+            .map(|(at, one)| (unmarked(one), at))
+            .collect()
     })
 }
 
@@ -131,10 +136,11 @@ fn seeded(mnemonic: &Mnemonic) -> Result<Seed, Unread> {
     Ok(Seed::from_bytes(&seed))
 }
 
-/// Sized up front, so a word typed from the phrase is never left behind in a buffer that grew.
+/// Measured first, so a word typed from the phrase is never left behind in a buffer that grew.
 fn lowered(word: &str) -> String {
-    let mut out = String::with_capacity(word.len() * 4);
-    out.extend(word.nfkd().flat_map(char::to_lowercase));
+    let wide = || word.nfkd().flat_map(char::to_lowercase);
+    let mut out = String::with_capacity(wide().map(char::len_utf8).sum());
+    out.extend(wide());
     out
 }
 
