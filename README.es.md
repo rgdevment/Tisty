@@ -738,6 +738,13 @@ Pero si ya usas un asistente, es probable que le cuentes cosas que vale la pena
 guardar — el grupo del colegio pide cartulina para el lunes, la cuenta vence el
 30. Así que Tisty deja una puerta, y tú decides si la usas.
 
+**El trabajo de tus agentes, a la vista.** Con Tisty, un agente planifica en
+documentos y trabaja en tareas: escribe en Markdown el plan, lo que encontró y lo
+que decidió, divide el trabajo en tareas con pasos y los va marcando a medida
+que avanza. Nada queda enterrado en un chat: cada etapa queda en Tisty, en tu
+equipo, donde puedes seguirla mientras ocurre y auditarla después. Cuando dice
+que una tarea está lista, eres tú quien la cierra.
+
 Configuración › Asistentes enumera los asistentes que ya tienes instalados en
 este equipo y conecta el que elijas: escribe una sola línea en la configuración
 de ese asistente, deja el resto de ese archivo donde estaba y guarda al lado una
