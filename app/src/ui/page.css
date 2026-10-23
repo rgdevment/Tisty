@@ -413,9 +413,9 @@ figure.diagram img {
   background: none;
   border: 0;
 }
-html:not(.dark) figure.diagram img.dark,
-html.dark figure.diagram img.light {
-  display: none;
+/* One drawing, made for a light sheet; turning its lightness and its hue back keeps it in the dark theme. */
+html.dark figure.diagram img {
+  filter: invert(0.9) hue-rotate(180deg);
 }
 figure.widget iframe {
   display: block;
