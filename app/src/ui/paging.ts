@@ -90,9 +90,12 @@ export type Went =
 // A picture or a diagram, as the viewer shows it; only a kept file can be saved or opened.
 export type Shot = { readonly src: string; readonly kept: string | null; readonly alt: string };
 
+// What a click leaves alone, and so no picture inside it is one to look at.
+const UNTOUCHED = "summary, figure.widget, .media, .col-grip, .picture-away";
+
 const shotsIn = (page: Document): HTMLImageElement[] =>
   Array.from(page.querySelectorAll<HTMLImageElement>(".page img[src]")).filter(
-    (one) => !one.closest(".doc-card, details:not([open]), summary, figure.widget, .media"),
+    (one) => !one.closest(`.doc-card, details:not([open]), ${UNTOUCHED}`),
   );
 
 export const shotAt = (page: Document, target: Element | null): number | null => {
@@ -195,8 +198,7 @@ export const went = (target: Element, selecting: boolean): Went => {
   if (ref?.dataset.ref) return null;
   const tag = target.closest<HTMLElement>(".tag")?.dataset.tag;
   if (tag) return { kind: "tag", name: tag };
-  if (selecting || target.closest("summary, figure.widget, .media, .col-grip, .picture-away"))
-    return null;
+  if (selecting || target.closest(UNTOUCHED)) return null;
   // A picture or a diagram is looked at; it is written only from the block's own menu.
   const shot = shotAt(target.ownerDocument, target);
   if (shot !== null) return { kind: "picture", nth: shot };

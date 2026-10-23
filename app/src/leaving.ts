@@ -3,14 +3,14 @@ import type { Choice } from "./ui/Menu";
 
 const asked = (name: string) => () => window.dispatchEvent(new CustomEvent(name));
 
-// One list of the ways a document leaves, for its menu and its column alike; Docs answers each.
+// One list of the ways a document leaves, for its menu and its column alike; a PDF on its way hides the PDF ones.
 export const waysOut = (off: boolean, making = false): Choice[] => [
   {
     key: "seePdf",
     icon: "▤",
-    label: making ? t("makingPdf") : t("previewPdf"),
-    off,
-    onPick: making ? undefined : asked("tisty:see-pdf"),
+    label: t("previewPdf"),
+    off: off || making,
+    onPick: asked("tisty:see-pdf"),
   },
   {
     key: "asPdf",

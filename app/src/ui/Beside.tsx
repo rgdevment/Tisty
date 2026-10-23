@@ -217,13 +217,12 @@ function Controls({
 }
 
 function Outline({
-  heads,
+  outline,
   pages,
   paper,
   up,
   onPage,
-}: Readonly<Pick<Props, "heads" | "pages" | "paper" | "up" | "onPage">>) {
-  const outline = heads.filter((one) => one.level > 0);
+}: Readonly<{ outline: Head[] } & Pick<Props, "pages" | "paper" | "up" | "onPage">>) {
   return (
     <nav
       aria-label={t("outline")}
@@ -309,7 +308,8 @@ function Tags({ tags, body }: Readonly<{ tags: string[]; body: string }>) {
 
 export default function Beside(props: Props) {
   const { title, paper, body, kept, heads, pages, onShut, onApart, trail = [], onFolder } = props;
-  const short = heads.filter((one) => one.level > 0).length + pages.length <= SHORT_OUTLINE;
+  const outline = useMemo(() => heads.filter((one) => one.level > 0), [heads]);
+  const short = outline.length + pages.length <= SHORT_OUTLINE;
   const [facts, setFacts] = useState<DocFacts | null>(null);
   const [open, setOpen] = useState<Part | null>(short ? "details" : null);
 
@@ -407,7 +407,13 @@ export default function Beside(props: Props) {
             landscape={props.landscape ?? false}
           />
         </div>
-        <Outline {...props} />
+        <Outline
+          outline={outline}
+          pages={pages}
+          paper={paper}
+          up={props.up}
+          onPage={props.onPage}
+        />
       </div>
 
       <div className={card}>

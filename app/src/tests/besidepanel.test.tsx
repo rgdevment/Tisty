@@ -125,8 +125,10 @@ describe("the export button", () => {
       />,
     );
     await userEvent.click(screen.getByRole("button", { name: t("exportIt") }));
-    expect(screen.getByRole("menuitem", { name: new RegExp(t("makingPdf")) })).toBeTruthy();
+    expect(screen.queryByRole("menuitem", { name: new RegExp(t("previewPdf")) })).toBeNull();
     expect(screen.queryByRole("menuitem", { name: new RegExp(t("toPdf")) })).toBeNull();
+    expect(screen.getByRole("menuitem", { name: new RegExp(t("toHtml")) })).toBeTruthy();
+    expect(screen.getByRole("button", { name: t("exportIt") }).title).toBe(t("makingPdf"));
   });
 });
 

@@ -138,7 +138,10 @@ describe("handling a picture in the viewer", () => {
   it("zooms with the wheel and the keys, and a double click goes back and forth", () => {
     render(<PictureViewer shots={shots} start={0} onClose={() => {}} />);
     fireEvent.wheel(picture(), { deltaY: -100 });
-    expect(screen.getByRole("button", { name: "115%" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "116%" })).toBeTruthy();
+    fireEvent.wheel(picture(), { deltaY: 100 });
+    expect(screen.getByRole("button", { name: "100%" })).toBeTruthy();
+    expect(picture().className).toContain("cursor-zoom-in");
     fireEvent.keyDown(picture(), { key: "0" });
     expect(screen.getByRole("button", { name: "100%" })).toBeTruthy();
     fireEvent.keyDown(picture(), { key: "+" });
@@ -223,5 +226,38 @@ describe("what counts as a picture to look at", () => {
       />,
     );
     expect(screen.getByText(fill("pictureCount", "1", "2"))).toBeTruthy();
+  });
+});
+
+describe("the focus in the picture viewer", () => {
+  it("wraps Shift+Tab from the viewer itself back to its last button", () => {
+    render(
+      <PictureViewer
+        shots={[{ src: "asset://a.png", alt: "a", kept: null }]}
+        start={0}
+        onClose={() => {}}
+      />,
+    );
+    const dialog = screen.getByRole("dialog");
+    dialog.focus();
+    fireEvent.keyDown(dialog, { key: "Tab", shiftKey: true });
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: t("pictureClose") }));
+  });
+
+  it("keeps a moved picture in proportion as it zooms out", () => {
+    render(
+      <PictureViewer
+        shots={[{ src: "asset://a.png", alt: "a", kept: null }]}
+        start={0}
+        onClose={() => {}}
+      />,
+    );
+    const shown = within(screen.getByRole("dialog")).getByRole("img", { name: "a" });
+    fireEvent.doubleClick(shown);
+    fireEvent.mouseDown(shown, { clientX: 0, clientY: 0 });
+    fireEvent.mouseMove(shown, { clientX: 100, clientY: 40 });
+    fireEvent.mouseUp(shown);
+    fireEvent.click(screen.getByRole("button", { name: t("pictureLess") }));
+    expect(shown.style.transform).toContain("translate(80px, 32px)");
   });
 });

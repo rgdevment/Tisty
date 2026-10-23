@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { fill, t } from "../locales";
-import { REACHABLE } from "./Modal";
+import { useHeldFocus } from "./heldFocus";
 import type { Shot } from "./paging";
 
 const MOST = 6;
@@ -26,12 +26,7 @@ export default function PictureViewer({ shots, start, onClose, onSave, onOpen }:
   const box = useRef<HTMLDialogElement>(null);
   const shot = shots[nth];
 
-  // As a modal does: the focus comes in, stays in, and goes back to where it was.
-  useEffect(() => {
-    const came = document.activeElement as HTMLElement | null;
-    box.current?.querySelector<HTMLElement>(REACHABLE)?.focus();
-    return () => came?.focus?.();
-  }, []);
+  const { wrapped, held } = useHeldFocus(box);
 
   const reset = () => {
     setZoom(1);
@@ -42,26 +37,23 @@ export default function PictureViewer({ shots, start, onClose, onSave, onOpen }:
     setNth((now) => (now + step + shots.length) % shots.length);
     reset();
   };
-  const zoomed = (by: number) =>
-    setZoom((now) => {
-      const next = Math.min(MOST, Math.max(LEAST, now * by));
-      if (next === LEAST) setShift({ x: 0, y: 0 });
-      return next;
-    });
+  // The picture keeps the spot it was moved to in proportion, and settles exactly at its own size.
+  const zoomed = (by: number) => {
+    const next = Math.min(MOST, Math.max(LEAST, zoom * by));
+    const settled = Math.abs(next - LEAST) < 0.02 ? LEAST : next;
+    setZoom(settled);
+    setShift((now) =>
+      settled === LEAST
+        ? { x: 0, y: 0 }
+        : { x: (now.x * settled) / zoom, y: (now.y * settled) / zoom },
+    );
+  };
 
   // Keys are answered here and go no further: nothing behind the picture hears them.
   const keyed = (event: React.KeyboardEvent) => {
     event.stopPropagation();
     if (event.ctrlKey || event.metaKey || event.altKey) return;
-    if (event.key === "Tab") {
-      const inside = Array.from(box.current?.querySelectorAll<HTMLElement>(REACHABLE) ?? []);
-      const edge = event.shiftKey ? inside[0] : inside[inside.length - 1];
-      if (inside.length > 0 && document.activeElement === edge) {
-        event.preventDefault();
-        (event.shiftKey ? inside[inside.length - 1] : inside[0]).focus();
-      }
-      return;
-    }
+    if (event.key === "Tab") return wrapped(event);
     if (event.key === "Escape") onClose();
     else if (event.key === "ArrowRight") go(1);
     else if (event.key === "ArrowLeft") go(-1);
@@ -82,13 +74,7 @@ export default function PictureViewer({ shots, start, onClose, onSave, onOpen }:
       aria-label={shot.alt || t("pictureLook")}
       tabIndex={-1}
       onKeyDown={keyed}
-      onBlur={(event) => {
-        // A click on the picture would leave the focus nowhere, and the keys with it.
-        if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
-        requestAnimationFrame(() => {
-          if (document.activeElement === document.body) box.current?.focus();
-        });
-      }}
+      onBlur={held}
       className="fixed inset-0 z-[70] m-0 flex h-full max-h-none w-full max-w-none flex-col border-0 bg-black/70 p-0 backdrop-blur-sm"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
@@ -143,7 +129,7 @@ export default function PictureViewer({ shots, start, onClose, onSave, onOpen }:
         onMouseDown={(event) => {
           if (event.target === event.currentTarget) onClose();
         }}
-        onWheel={(event) => zoomed(event.deltaY < 0 ? 1.15 : 0.87)}
+        onWheel={(event) => zoomed(Math.exp(-event.deltaY * 0.0015))}
       >
         {shots.length > 1 && (
           <button
@@ -176,7 +162,7 @@ export default function PictureViewer({ shots, start, onClose, onSave, onOpen }:
             dragging.current = null;
           }}
           style={{ transform: `translate(${shift.x}px, ${shift.y}px) scale(${zoom})` }}
-          className={`max-h-[88vh] max-w-[92vw] rounded-md bg-white object-contain transition-transform duration-100 motion-reduce:transition-none ${
+          className={`max-h-[88vh] max-w-[92vw] rounded-md bg-white object-contain ${
             zoom > 1 ? "cursor-grab active:cursor-grabbing" : "cursor-zoom-in"
           }`}
         />
