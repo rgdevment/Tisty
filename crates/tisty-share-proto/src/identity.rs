@@ -23,11 +23,6 @@ impl Root {
         Zeroizing::new(self.0.to_bytes())
     }
 
-    #[cfg(feature = "mint")]
-    pub fn minted() -> Option<Self> {
-        minted().map(|seed| Self::from_bytes(&seed))
-    }
-
     pub fn person(&self) -> Person {
         Person(self.0.verifying_key())
     }
@@ -298,7 +293,7 @@ fn decoded<const N: usize>(said: &str) -> Option<[u8; N]> {
 }
 
 #[cfg(feature = "mint")]
-fn minted() -> Option<Zeroizing<[u8; 32]>> {
+pub(crate) fn minted() -> Option<Zeroizing<[u8; 32]>> {
     let mut fresh = Zeroizing::new([0u8; 32]);
     rand_core::TryRngCore::try_fill_bytes(&mut rand_core::OsRng, fresh.as_mut()).ok()?;
     Some(fresh)

@@ -2,7 +2,7 @@ use bip39::{Language, Mnemonic};
 use unicode_normalization::UnicodeNormalization;
 use zeroize::Zeroizing;
 
-use crate::identity::Root;
+use crate::seed::Seed;
 
 pub const WORDS: usize = 24;
 
@@ -23,9 +23,9 @@ pub enum Unread {
     Checksum,
 }
 
-/// The root's whole secret, written as words: whoever holds them is that person.
-pub fn phrase(root: &Root, words: Words) -> Zeroizing<String> {
-    let seed = root.to_bytes();
+/// The whole seed, written as words: whoever holds them is that person.
+pub fn phrase(seed: &Seed, words: Words) -> Zeroizing<String> {
+    let seed = seed.to_bytes();
     let joined = Mnemonic::from_entropy_in(language(words), seed.as_ref())
         .map(|mnemonic| mnemonic.words().collect::<Vec<_>>().join(" "))
         .unwrap_or_default();
@@ -33,7 +33,7 @@ pub fn phrase(root: &Root, words: Words) -> Zeroizing<String> {
 }
 
 /// Either language, in any case, with or without its accents: people copy words by hand.
-pub fn root_from(phrase: &str) -> Result<Root, Unread> {
+pub fn seed_from(phrase: &str) -> Result<Seed, Unread> {
     let said: Vec<String> = phrase.split_whitespace().map(lowered).collect();
     if said.len() != WORDS {
         return Err(Unread::Count(said.len()));
@@ -86,7 +86,7 @@ fn listed(language: Language, said: &[String]) -> Result<Zeroizing<String>, usiz
     Ok(canonical)
 }
 
-fn seeded(mnemonic: &Mnemonic) -> Result<Root, Unread> {
+fn seeded(mnemonic: &Mnemonic) -> Result<Seed, Unread> {
     let (entropy, length) = mnemonic.to_entropy_array();
     let entropy = Zeroizing::new(entropy);
     let seed: Zeroizing<[u8; 32]> = Zeroizing::new(
@@ -95,7 +95,7 @@ fn seeded(mnemonic: &Mnemonic) -> Result<Root, Unread> {
             .and_then(|bytes| <[u8; 32]>::try_from(bytes).ok())
             .ok_or(Unread::Count(mnemonic.word_count()))?,
     );
-    Ok(Root::from_bytes(&seed))
+    Ok(Seed::from_bytes(&seed))
 }
 
 fn lowered(word: &str) -> String {

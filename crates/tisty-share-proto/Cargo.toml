@@ -18,6 +18,7 @@ mint = ["dep:rand_core"]
 base64.workspace = true
 bip39.workspace = true
 ed25519-dalek.workspace = true
+hkdf.workspace = true
 jiff.workspace = true
 rand_core = { workspace = true, optional = true }
 serde.workspace = true

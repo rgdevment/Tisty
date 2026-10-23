@@ -207,10 +207,6 @@ fn a_key_comes_back_from_its_bytes() {
 
 #[test]
 fn minted_keys_differ() {
-    let one = Root::minted().unwrap();
-    let two = Root::minted().unwrap();
-
-    assert_ne!(one.person(), two.person());
     assert_ne!(
         ShareKey::minted().unwrap().public(),
         ShareKey::minted().unwrap().public()

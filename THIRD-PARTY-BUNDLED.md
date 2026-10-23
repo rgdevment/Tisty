@@ -160,7 +160,7 @@ written once with the crates that carry it.
 | `uuid` | 14.0.3 | MIT |
 | `w3c-keyname` | 2.2.8 | MIT |
 
-## In the core (364 crates)
+## In the core (365 crates)
 
 | Crate | Version | Licence |
 | --- | --- | --- |
@@ -265,6 +265,7 @@ written once with the crates that carry it.
 | `hashlink` | 0.12.2 | MIT OR Apache-2.0 |
 | `heck` | 0.5.0 | MIT OR Apache-2.0 |
 | `hex-conservative` | 0.2.3 | CC0-1.0 |
+| `hkdf` | 0.13.0 | MIT OR Apache-2.0 |
 | `hmac` | 0.13.0 | MIT OR Apache-2.0 |
 | `htmd` | 0.5.6 | Apache-2.0 |
 | `html5ever` | 0.38.0 | MIT OR Apache-2.0 |

@@ -5938,6 +5938,7 @@ dependencies = [
  "base64 0.22.1",
  "bip39",
  "ed25519-dalek",
+ "hkdf",
  "jiff",
  "rand_core 0.9.5",
  "serde",
