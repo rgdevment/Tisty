@@ -43,7 +43,7 @@ pub fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
         .items
         .iter()
         .filter_map(|one| {
-            report::came_of(&arrived, &one.at, &session.state.named, &mine)
+            report::came_of(&arrived, &one.at, &report::Known::of(&session.state), &mine)
                 .map(|came| (one.at.clone(), came))
         })
         .collect();
@@ -82,13 +82,7 @@ pub fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
         machines: report::machines(
             &told,
             session.config.device_id.0.as_str(),
-            &report::Known {
-                gone: &session.state.dropped,
-                assistants: &session.state.assistants,
-                keys: &session.state.keys,
-                named: &session.state.named,
-                hosts: &session.state.hosts,
-            },
+            &report::Known::of(&session.state),
             &session.paths,
             session.histories().as_deref(),
         ),
@@ -116,7 +110,6 @@ pub struct Reviewed {
     loose: usize,
     loose_bytes: u64,
     astray: Vec<tisty_core::attach::Astray>,
-    /// How each of them came, for those the log says something about.
     came: std::collections::BTreeMap<String, report::Came>,
     unread: Option<String>,
     stranded: Vec<tisty_core::docs::Stray>,

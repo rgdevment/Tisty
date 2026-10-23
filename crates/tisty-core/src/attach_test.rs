@@ -1689,7 +1689,7 @@ fn where_a_file_came_from_is_the_first_word_that_says_how() {
     let held = |came: Option<&str>| crate::Op::AttachKept {
         d: crate::event::Held {
             came: came.map(str::to_string),
-            ..crate::event::Held::of("attachments/plano-12345678.png".into(), "ab".into(), 3)
+            ..crate::event::Held::of("attachments/plano-12345678.png".into(), vouching(), 3)
         },
     };
     let events = [
@@ -1707,7 +1707,7 @@ fn where_a_file_came_from_is_the_first_word_that_says_how() {
         "a word on how beats an older silence"
     );
     assert_eq!(first.by, one);
-    assert_eq!(first.at, at(20), "and the first of those who said how");
+    assert_eq!(first.when, at(20), "and the first of those who said how");
 }
 
 #[test]
@@ -1717,7 +1717,7 @@ fn a_file_kept_before_anyone_said_how_still_tells_who_and_when() {
         one.clone(),
         jiff::Timestamp::from_second(5).unwrap(),
         crate::Op::AttachKept {
-            d: crate::event::Held::of("attachments/viejo-12345678.png".into(), "ab".into(), 3),
+            d: crate::event::Held::of("attachments/viejo-12345678.png".into(), vouching(), 3),
         },
     )];
 
@@ -1726,4 +1726,24 @@ fn a_file_kept_before_anyone_said_how_still_tells_who_and_when() {
     let old = &arrived["attachments/viejo-12345678.png"];
     assert_eq!(old.came, None);
     assert_eq!(old.by, one);
+}
+
+fn vouching() -> String {
+    format!("ab12345678{}", "0".repeat(54))
+}
+
+#[test]
+fn a_kept_line_whose_digest_does_not_match_its_name_says_nothing_of_where_it_came_from() {
+    let events = [crate::Event::new(
+        crate::event::DeviceId("dev_one".into()),
+        jiff::Timestamp::from_second(5).unwrap(),
+        crate::Op::AttachKept {
+            d: crate::event::Held {
+                came: Some("window".into()),
+                ..crate::event::Held::of("attachments/plano-12345678.png".into(), "ab".into(), 3)
+            },
+        },
+    )];
+
+    assert!(arrivals(&events).is_empty());
 }

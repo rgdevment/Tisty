@@ -47,35 +47,32 @@ impl Retired {
     }
 }
 
-/// Where an attachment first came from, as the log tells it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Arrival {
-    /// How it came; one kept before 1.33 never said.
     pub came: Option<String>,
     pub by: crate::event::DeviceId,
-    pub at: jiff::Timestamp,
+    pub when: jiff::Timestamp,
 }
 
-/// The first word of how each attachment came: a copy that only says it holds one never overrules it.
+// A copy that only says it holds a file never overrules the first that said how it came.
 pub fn arrivals(events: &[crate::event::Event]) -> std::collections::BTreeMap<String, Arrival> {
+    let rank = |one: &Arrival| (one.came.is_none(), one.when);
     let mut first: std::collections::BTreeMap<String, Arrival> = Default::default();
     for event in events {
         let crate::Op::AttachKept { d } = &event.op else {
             continue;
         };
-        let Some(at) = canonical(&d.at) else {
+        // What the projection does not trust about a file says nothing about it here either.
+        let Some(at) = canonical(&d.at).filter(|_| crate::state::vouches_for_its_name(d)) else {
             continue;
         };
         let told = Arrival {
             came: d.came.clone(),
             by: event.device.clone(),
-            at: event.timestamp,
+            when: event.timestamp,
         };
-        match first.get(&at) {
-            Some(was) if (was.came.is_some(), told.at) >= (told.came.is_some(), was.at) => {}
-            _ => {
-                first.insert(at, told);
-            }
+        if first.get(&at).is_none_or(|was| rank(&told) < rank(was)) {
+            first.insert(at, told);
         }
     }
     first

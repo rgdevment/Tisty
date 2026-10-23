@@ -187,9 +187,9 @@ export default function FreeUp({
                       </span>
                       <span className="flex shrink-0 items-baseline gap-2.5 tabular-nums">
                         <span className="text-faint">
-                          {`${weigh(one.bytes)} · ${dated(one.when)}${
-                            one.shared ? ` · ${t("looseShared")}` : ""
-                          }`}
+                          {`${weigh(one.bytes)}${
+                            audit.came?.[one.at] ? "" : ` · ${dated(one.when)}`
+                          }${one.shared ? ` · ${t("looseShared")}` : ""}`}
                         </span>
                         <button
                           type="button"

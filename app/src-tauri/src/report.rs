@@ -161,6 +161,18 @@ pub struct Known<'a> {
     pub hosts: &'a std::collections::BTreeMap<tisty_core::DeviceId, tisty_core::DeviceId>,
 }
 
+impl<'a> Known<'a> {
+    pub fn of(state: &'a tisty_core::State) -> Self {
+        Self {
+            gone: &state.dropped,
+            assistants: &state.assistants,
+            keys: &state.keys,
+            named: &state.named,
+            hosts: &state.hosts,
+        }
+    }
+}
+
 pub fn machines(
     told: &[tisty_core::event::Event],
     mine: &str,
@@ -206,10 +218,7 @@ pub fn machines(
         let host = said
             .host
             .or_else(|| known.hosts.get(who).cloned())
-            .map(|of| match known.named.get(&of) {
-                Some(one) => one.name.clone(),
-                None => tisty_core::config::nicknamed(&of.0),
-            });
+            .map(|of| called(&of, known.named));
         Machine {
             id: who.0.clone(),
             called: tisty_core::config::nicknamed(&who.0),
@@ -322,11 +331,7 @@ fn after(plist: &str, key: &str) -> Option<String> {
 #[cfg(not(any(windows, target_os = "macos")))]
 compile_error!("Tisty builds for macOS and Windows only");
 
-#[cfg(test)]
-#[path = "report_test.rs"]
-mod tests;
-
-/// How an attachment came, said for a person: the machine by the name it gave itself.
+// The computer a person knows: an assistant writes as a device of its own, so it is named by where it runs.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Came {
@@ -339,17 +344,29 @@ pub struct Came {
 pub fn came_of(
     arrived: &std::collections::BTreeMap<String, tisty_core::attach::Arrival>,
     at: &str,
-    named: &std::collections::BTreeMap<tisty_core::DeviceId, tisty_core::Named>,
+    known: &Known,
     mine: &str,
 ) -> Option<Came> {
     let one = arrived.get(at)?;
+    let host = known.hosts.get(&one.by).unwrap_or(&one.by);
     Some(Came {
         how: one.came.clone(),
-        machine: named.get(&one.by).map_or_else(
-            || tisty_core::config::nicknamed(&one.by.0),
-            |who| who.name.clone(),
-        ),
-        mine: one.by.0 == mine,
-        when: one.at.as_second(),
+        machine: called(host, known.named),
+        mine: host.0 == mine,
+        when: one.when.as_second(),
     })
 }
+
+fn called(
+    who: &tisty_core::DeviceId,
+    named: &std::collections::BTreeMap<tisty_core::DeviceId, tisty_core::Named>,
+) -> String {
+    match named.get(who) {
+        Some(one) => one.name.clone(),
+        None => tisty_core::config::nicknamed(&who.0),
+    }
+}
+
+#[cfg(test)]
+#[path = "report_test.rs"]
+mod tests;
