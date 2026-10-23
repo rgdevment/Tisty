@@ -394,7 +394,10 @@ fn joined(
     // One at a time, so a copy that cannot be set aside is told rather than failing the rest.
     let (went, left): (Vec<String>, Vec<String>) = go.into_iter().partition(|one| {
         session
-            .retire(std::slice::from_ref(one), crate::session::Retired::Joined)
+            .retire(
+                std::slice::from_ref(one),
+                tisty_core::attach::Retired::Joined,
+            )
             .is_ok()
     });
     tisty_core::attach::joined_in_ledger(session.paths.data(), &keep, &went, &sha256, each)

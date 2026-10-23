@@ -1160,7 +1160,7 @@ stateDiagram-v2
   (`via`: `window`, `assistant`, `imported` or `parcel`), both optional so an
   older build reads it as before; `attach.let_go` says it released its copy;
   `attach.retire` retires the name for every machine, with `why` (`unused` or
-  `joined`). Keeping the same bytes under a retired name brings the name back.
+  `joined`).
 - **The ledger stays.** `attachments.jsonl` is the local index that finds a
   copy of the same bytes at once; the log could answer the same, but every
   caller of `attach` would then need the projected state, not only the folder.

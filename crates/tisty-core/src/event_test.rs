@@ -406,3 +406,18 @@ fn provenance_is_written_only_when_there_is_some() {
     let line = serde_json::to_string(&retired).unwrap();
     assert!(line.contains(r#""why":"joined""#), "{line}");
 }
+
+#[test]
+fn a_file_name_from_a_mac_is_written_composed_like_every_other_name() {
+    let decomposed = "cancio\u{301}n.png".to_string();
+    let Op::AttachKept { d } = Op::AttachKept {
+        d: Held {
+            named: Some(decomposed),
+            ..Default::default()
+        },
+    }
+    .composed() else {
+        panic!("not a kept attachment");
+    };
+    assert_eq!(d.named.as_deref(), Some("canci\u{f3}n.png"));
+}

@@ -1260,7 +1260,7 @@ pub fn retire_attachment(
     reference: String,
 ) -> Answer<()> {
     held(&session)
-        .retire(&[reference], crate::session::Retired::Unused)
+        .retire(&[reference], tisty_core::attach::Retired::Unused)
         .map(|_| ())
 }
 
@@ -1269,7 +1269,7 @@ pub fn retire_attachments(
     session: tauri::State<'_, Mutex<Session>>,
     references: Vec<String>,
 ) -> Answer<usize> {
-    held(&session).retire(&references, crate::session::Retired::Unused)
+    held(&session).retire(&references, tisty_core::attach::Retired::Unused)
 }
 
 #[tauri::command]

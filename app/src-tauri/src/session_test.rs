@@ -128,7 +128,7 @@ fn letting_go_while_a_document_cannot_be_read_names_the_document_not_its_id() {
     let refused = session
         .retire(
             &["attachments/foto-91f2ab00.png".to_string()],
-            crate::session::Retired::Unused,
+            tisty_core::attach::Retired::Unused,
         )
         .unwrap_err();
 

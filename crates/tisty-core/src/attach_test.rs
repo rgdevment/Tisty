@@ -1462,7 +1462,7 @@ fn every_way_an_attachment_is_born_says_what_it_holds() {
             continue;
         }
         keeps += kept;
-        if said.matches(".told()").count() < kept {
+        if said.matches(".told_via(").count() < kept {
             forgot.push(named);
         }
     }

@@ -496,6 +496,10 @@ impl Op {
                 d.email = maybe(d.email);
                 Op::Signed { d }
             }
+            Op::AttachKept { mut d } => {
+                d.named = maybe(d.named);
+                Op::AttachKept { d }
+            }
             plain => plain,
         }
     }

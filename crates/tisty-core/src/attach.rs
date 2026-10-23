@@ -31,6 +31,22 @@ pub enum Via {
     Parcel,
 }
 
+/// Why a name was retired, written with the retirement so the log can answer for it later.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Retired {
+    Unused,
+    Joined,
+}
+
+impl Retired {
+    pub fn said(self) -> &'static str {
+        match self {
+            Retired::Unused => "unused",
+            Retired::Joined => "joined",
+        }
+    }
+}
+
 impl Via {
     pub fn said(self) -> &'static str {
         match self {

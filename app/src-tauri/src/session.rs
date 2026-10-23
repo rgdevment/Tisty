@@ -445,7 +445,11 @@ impl Session {
         found
     }
 
-    pub fn retire(&mut self, references: &[String], why: Retired) -> Answer<usize> {
+    pub fn retire(
+        &mut self,
+        references: &[String],
+        why: tisty_core::attach::Retired,
+    ) -> Answer<usize> {
         if references.is_empty() {
             return Ok(0);
         }
@@ -977,19 +981,3 @@ impl log::Log for Relayed {
 #[cfg(test)]
 #[path = "session_test.rs"]
 mod tests;
-
-/// Why an attachment left, written with its retirement so the log can answer for it later.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Retired {
-    Unused,
-    Joined,
-}
-
-impl Retired {
-    fn said(self) -> &'static str {
-        match self {
-            Retired::Unused => "unused",
-            Retired::Joined => "joined",
-        }
-    }
-}
