@@ -114,6 +114,9 @@ pub fn hands(
 pub fn agent(session: tauri::State<'_, Mutex<Session>>) -> Answer<Agent> {
     let mut session = held(&session);
     session.reload()?;
+    // Read here so a voice turned in the other copy reaches the PATH too, not only a turn in this one.
+    let paths = session.paths.clone();
+    std::thread::spawn(move || crate::pathing::keep(paths));
     let who = session.config.agent_id.clone();
     Ok(Agent {
         on: who.is_some(),

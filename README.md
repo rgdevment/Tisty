@@ -744,6 +744,12 @@ The assistant appears in Settings › Assistants as a device you have to let in,
 it stays a device you can throw out; until you do let it in, everything it
 tries is refused.
 
+While assistants have a voice, a stable Tisty also answers to the name `tisty`
+on your PATH — the Store and Homebrew put it there, and the installer's copy
+adds its own folder — so a plugin can start it by name. Taking the voice away
+takes that folder off the PATH again. Restart an assistant that was already
+open so it sees the change.
+
 What it may do is deliberately small: file a task with its steps and its date,
 set an hour for it to ring at, move the day of a task it filed itself, say that
 a task it filed is done — which marks it for you to confirm and closes nothing —

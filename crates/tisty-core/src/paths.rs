@@ -145,7 +145,7 @@ impl Paths {
     }
 }
 
-const STORE_PACKAGE: &str = "rgdevment.Tisty_kdjgfdc2rb3gc";
+pub const STORE_PACKAGE: &str = "rgdevment.Tisty_kdjgfdc2rb3gc";
 const STORE_PACKAGE_PREFIX: &str = "rgdevment.Tisty_";
 
 fn defaults(dirs: &directories::ProjectDirs) -> (PathBuf, PathBuf, PathBuf) {
