@@ -89,7 +89,7 @@ export default function PictureViewer({ shots, start, onClose, onSave, onOpen }:
           if (document.activeElement === document.body) box.current?.focus();
         });
       }}
-      className="fixed inset-0 z-50 m-0 flex h-full max-h-none w-full max-w-none flex-col border-0 bg-black/70 p-0 backdrop-blur-sm"
+      className="fixed inset-0 z-[70] m-0 flex h-full max-h-none w-full max-w-none flex-col border-0 bg-black/70 p-0 backdrop-blur-sm"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -137,6 +137,7 @@ export default function PictureViewer({ shots, start, onClose, onSave, onOpen }:
         </button>
       </div>
 
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: the space around the picture closes it and the wheel zooms; the keys do both */}
       <div
         className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden"
         onMouseDown={(event) => {
@@ -154,7 +155,6 @@ export default function PictureViewer({ shots, start, onClose, onSave, onOpen }:
             ‹
           </button>
         )}
-        {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: dragging moves a zoomed picture; the keys do the rest */}
         <img
           src={shot.src}
           alt={shot.alt}
