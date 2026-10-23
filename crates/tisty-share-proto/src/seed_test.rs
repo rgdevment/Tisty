@@ -27,6 +27,7 @@ fn two_seeds_give_two_people() {
     assert_ne!(*one.cloud(), *two.cloud());
 }
 
+#[cfg(feature = "mint")]
 #[test]
 fn minted_seeds_differ() {
     let one = Seed::minted().unwrap();

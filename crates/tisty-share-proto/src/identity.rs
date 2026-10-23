@@ -64,7 +64,7 @@ impl ShareKey {
 
     #[cfg(feature = "mint")]
     pub fn minted() -> Option<Self> {
-        minted().map(|seed| Self::from_bytes(&seed))
+        crate::minted().map(|seed| Self::from_bytes(&seed))
     }
 
     pub fn public(&self) -> VerifyingKey {
@@ -151,6 +151,9 @@ pub enum Fault {
 impl Certificate {
     pub fn vouches(&self) -> Result<Vouched, Fault> {
         let (root, share, sig) = parts(&self.root, &self.share, &self.sig)?;
+        if self.since.subsec_nanosecond() != 0 {
+            return Err(Fault::Refused);
+        }
         root.verify_strict(&between(CERTIFIED, &root, &share, self.since), &sig)
             .map_err(|_| Fault::Refused)?;
         Ok(Vouched {
@@ -171,13 +174,14 @@ pub struct Revocation {
 }
 
 impl Revocation {
-    /// Only the root that vouched for a key can take it back.
+    /// Only the root that vouched can take a key back, and for good: a machine found again gets a new key.
     pub fn takes_back(&self, vouched: &Vouched) -> bool {
         let Ok((root, share, sig)) = parts(&self.root, &self.share, &self.sig) else {
             return false;
         };
         root == vouched.person.0
             && share == vouched.share
+            && self.at.subsec_nanosecond() == 0
             && root
                 .verify_strict(&between(REVOKED, &root, &share, self.at), &sig)
                 .is_ok()
@@ -206,12 +210,20 @@ pub enum Verdict {
     Unreadable,
 }
 
+impl From<Fault> for Verdict {
+    fn from(fault: Fault) -> Self {
+        match fault {
+            Fault::Unreadable => Verdict::Unreadable,
+            Fault::Refused => Verdict::Refused,
+        }
+    }
+}
+
 /// `about` names what was signed, so a signature over one kind of thing never answers for another.
 pub fn check(signed: &Signed, about: &str, said: &[u8], revoked: &[Revocation]) -> Verdict {
     let vouched = match signed.certificate.vouches() {
         Ok(vouched) => vouched,
-        Err(Fault::Unreadable) => return Verdict::Unreadable,
-        Err(Fault::Refused) => return Verdict::Refused,
+        Err(fault) => return fault.into(),
     };
     let Some(sig) = signature(&signed.sig) else {
         return Verdict::Unreadable;
@@ -290,13 +302,6 @@ fn encoded(bytes: &[u8]) -> String {
 
 fn decoded<const N: usize>(said: &str) -> Option<[u8; N]> {
     <[u8; N]>::try_from(URL_SAFE_NO_PAD.decode(said).ok()?.as_slice()).ok()
-}
-
-#[cfg(feature = "mint")]
-pub(crate) fn minted() -> Option<Zeroizing<[u8; 32]>> {
-    let mut fresh = Zeroizing::new([0u8; 32]);
-    rand_core::TryRngCore::try_fill_bytes(&mut rand_core::OsRng, fresh.as_mut()).ok()?;
-    Some(fresh)
 }
 
 #[cfg(test)]

@@ -8,8 +8,7 @@ const SALT: &[u8] = b"tisty.seed.v1";
 const ROOT: &[u8] = b"tisty.root.v1";
 const CLOUD: &[u8] = b"tisty.cloud.v1";
 
-/// What the 24 words hold. Every key a person has comes out of it under its own label, so a new
-/// use never needs a new phrase and one use's key never opens another's.
+/// Every key comes out under its own label, so a new use never needs a new phrase.
 pub struct Seed(Zeroizing<[u8; 32]>);
 
 impl Seed {
@@ -23,7 +22,7 @@ impl Seed {
 
     #[cfg(feature = "mint")]
     pub fn minted() -> Option<Self> {
-        crate::identity::minted().map(Self)
+        crate::minted().map(Self)
     }
 
     pub fn root(&self) -> Root {

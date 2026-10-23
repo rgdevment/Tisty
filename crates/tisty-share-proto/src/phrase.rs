@@ -1,6 +1,6 @@
 use bip39::{Language, Mnemonic};
 use unicode_normalization::UnicodeNormalization;
-use zeroize::Zeroizing;
+use zeroize::{Zeroize, Zeroizing};
 
 use crate::seed::Seed;
 
@@ -34,7 +34,10 @@ pub fn phrase(seed: &Seed, words: Words) -> Zeroizing<String> {
 
 /// Either language, in any case, with or without its accents: people copy words by hand.
 pub fn seed_from(phrase: &str) -> Result<Seed, Unread> {
-    let said: Vec<String> = phrase.split_whitespace().map(lowered).collect();
+    let said: Vec<Zeroizing<String>> = phrase
+        .split_whitespace()
+        .map(|one| Zeroizing::new(lowered(one)))
+        .collect();
     if said.len() != WORDS {
         return Err(Unread::Count(said.len()));
     }
@@ -67,16 +70,18 @@ fn language(words: Words) -> Language {
 }
 
 /// The list's own spelling of every word said, or where the first unknown one sits.
-fn listed(language: Language, said: &[String]) -> Result<Zeroizing<String>, usize> {
+fn listed(language: Language, said: &[Zeroizing<String>]) -> Result<Zeroizing<String>, usize> {
     let list = language.word_list();
     let exact: Vec<String> = list.iter().map(|one| lowered(one)).collect();
     let bare: Vec<String> = exact.iter().map(|one| unmarked(one)).collect();
-    let mut canonical = Zeroizing::new(String::new());
+    // Sized once, so growing never leaves a freed copy of the phrase behind.
+    let mut canonical = Zeroizing::new(String::with_capacity(WORDS * 16));
     for (at, word) in said.iter().enumerate() {
+        let plain = Zeroizing::new(unmarked(word));
         let found = exact
             .iter()
-            .position(|one| one == word)
-            .or_else(|| bare.iter().position(|one| *one == unmarked(word)))
+            .position(|one| one == word.as_str())
+            .or_else(|| bare.iter().position(|one| *one == *plain))
             .ok_or(at)?;
         if at > 0 {
             canonical.push(' ');
@@ -87,14 +92,16 @@ fn listed(language: Language, said: &[String]) -> Result<Zeroizing<String>, usiz
 }
 
 fn seeded(mnemonic: &Mnemonic) -> Result<Seed, Unread> {
-    let (entropy, length) = mnemonic.to_entropy_array();
-    let entropy = Zeroizing::new(entropy);
-    let seed: Zeroizing<[u8; 32]> = Zeroizing::new(
-        entropy
-            .get(..length)
-            .and_then(|bytes| <[u8; 32]>::try_from(bytes).ok())
-            .ok_or(Unread::Count(mnemonic.word_count()))?,
-    );
+    let (mut entropy, length) = mnemonic.to_entropy_array();
+    let mut seed = Zeroizing::new([0u8; 32]);
+    let whole = length == seed.len();
+    if let Some(bytes) = entropy.get(..seed.len()).filter(|_| whole) {
+        seed.copy_from_slice(bytes);
+    }
+    entropy.zeroize();
+    if !whole {
+        return Err(Unread::Checksum);
+    }
     Ok(Seed::from_bytes(&seed))
 }
 

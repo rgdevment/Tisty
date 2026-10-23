@@ -205,10 +205,40 @@ fn a_key_comes_back_from_its_bytes() {
     );
 }
 
+#[cfg(feature = "mint")]
 #[test]
 fn minted_keys_differ() {
     assert_ne!(
         ShareKey::minted().unwrap().public(),
         ShareKey::minted().unwrap().public()
     );
+}
+
+#[test]
+fn a_fraction_of_a_second_added_to_a_record_is_refused() {
+    let mut certificate = root(1).certify(&share(2).public(), at(1_000));
+    certificate.since = Timestamp::from_millisecond(1_000_999).unwrap();
+    assert_eq!(certificate.vouches(), Err(Fault::Refused));
+
+    let signed = signed_by(&root(1), &share(2), b"hello");
+    let mut revoked = root(1).revoke(&share(2).public(), at(2_000));
+    revoked.at = Timestamp::from_millisecond(2_000_500).unwrap();
+    assert!(matches!(
+        check(&signed, "doc", b"hello", &[revoked]),
+        Verdict::Holds { .. }
+    ));
+}
+
+#[test]
+fn a_key_taken_back_stays_taken_back_even_if_certified_again() {
+    let person = root(1);
+    let key = share(2);
+    let revoked = person.revoke(&key.public(), at(2_000));
+    let again = person.certify(&key.public(), at(3_000));
+    let signed = key.sign(&again, "doc", b"hello").unwrap();
+
+    assert!(matches!(
+        check(&signed, "doc", b"hello", &[revoked]),
+        Verdict::Revoked { .. }
+    ));
 }
