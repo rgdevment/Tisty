@@ -250,9 +250,8 @@ fn drawn(tongue: Option<&str>, said: &str, at: &str, out: &mut String) -> bool {
             Some(drawn) => {
                 let _ = write!(
                     out,
-                    "<figure class=\"diagram\" {at}><img class=\"light\" alt=\"\" src=\"{}\"><img class=\"dark\" alt=\"\" src=\"{}\"></figure>",
-                    svg_url(&drawn.light),
-                    svg_url(&drawn.dark)
+                    "<figure class=\"diagram\" {at}><img alt=\"\" src=\"{}\"></figure>",
+                    svg_url(&drawn)
                 );
                 true
             }
@@ -265,8 +264,17 @@ fn drawn(tongue: Option<&str>, said: &str, at: &str, out: &mut String) -> bool {
 #[cfg(feature = "mermaid")]
 fn svg_url(svg: &str) -> String {
     let mut url = String::from("data:image/svg+xml,");
+    let mut gap = false;
     for byte in svg.bytes() {
-        if byte.is_ascii_alphanumeric() || b"-_.~/:=;'()".contains(&byte) {
+        // A run of spaces between attributes says nothing; one is kept so the words in a label stay apart.
+        if byte.is_ascii_whitespace() {
+            gap = true;
+            continue;
+        }
+        if std::mem::take(&mut gap) {
+            url.push_str("%20");
+        }
+        if byte.is_ascii_alphanumeric() || b"-_.~/:=;'(),!*+?@$".contains(&byte) {
             url.push(char::from(byte));
         } else {
             let _ = write!(url, "%{byte:02X}");
