@@ -118,8 +118,11 @@ fn a_diagram_is_one_drawing_that_stays_inside_its_attribute() {
         .and_then(|src| src.split('"').next())
         .unwrap_or_default();
     assert!(url.starts_with("data:image/svg+xml,"), "{url}");
-    assert!(url.ends_with("</svg>"), "the drawing was cut short: {url}");
-    for amiss in [' ', '\n', '#', '&'] {
+    assert!(
+        url.ends_with("%3C/svg%3E"),
+        "the drawing was cut short: {url}"
+    );
+    for amiss in [' ', '\n', '#', '&', '<', '>'] {
         assert!(!url.contains(amiss), "{amiss:?} in {url}");
     }
 }

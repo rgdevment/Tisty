@@ -274,7 +274,7 @@ fn svg_url(svg: &str) -> String {
         if std::mem::take(&mut gap) {
             url.push_str("%20");
         }
-        if byte.is_ascii_alphanumeric() || b"-_.~/:=;'(),<>!*+?@[]{}|^`$".contains(&byte) {
+        if byte.is_ascii_alphanumeric() || b"-_.~/:=;'(),!*+?@$".contains(&byte) {
             url.push(char::from(byte));
         } else {
             let _ = write!(url, "%{byte:02X}");

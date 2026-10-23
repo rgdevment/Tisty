@@ -24,6 +24,20 @@ pub fn drawn(source: &str) -> Option<String> {
             return None;
         }
         let laid = compute_layout(&parsed.graph, &options.theme, &options.layout);
-        Some(render_svg(&laid, &options.theme, &options.layout))
+        Some(unbacked(render_svg(&laid, &options.theme, &options.layout)))
     })
+}
+
+// The sheet is already behind it; a filled backdrop would turn darker than a dark sheet.
+fn unbacked(svg: String) -> String {
+    let Some(open) = svg.find('>').map(|at| at + 1) else {
+        return svg;
+    };
+    if !svg[open..].starts_with("<rect ") {
+        return svg;
+    }
+    match svg[open..].find("/>") {
+        Some(end) => format!("{}{}", &svg[..open], &svg[open + end + 2..]),
+        None => svg,
+    }
 }

@@ -29,6 +29,11 @@ fn a_diagram_from_the_guide_is_drawn_once() {
     let drawn = diagram::drawn("flowchart TD\n  A[Rina] --> B{Out?}\n  B -- No --> C[Walk]")
         .expect("a diagram");
     assert_eq!(drawn.matches("<svg").count(), 1);
+    let first = drawn.split('>').nth(1).unwrap_or_default();
+    assert!(
+        !first.starts_with("<rect"),
+        "a backdrop of its own would show as a box on a dark sheet: {first}"
+    );
 }
 
 #[test]
