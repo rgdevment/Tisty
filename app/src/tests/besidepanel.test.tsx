@@ -89,3 +89,43 @@ describe("the document's column", () => {
     expect(onCopy).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("a page's column", () => {
+  it("takes the person back to the document the page belongs to", async () => {
+    const onPage = vi.fn();
+    const up = {
+      id: "dev_a-0001",
+      file: "dev_a-0001",
+      title: "Guía",
+      folder: null,
+      archived: false,
+      away: false,
+    };
+    render(
+      <Beside
+        title="La Rina"
+        paper="dev_a-0002"
+        body="# La Rina"
+        tags={[]}
+        kept={0}
+        heads={[]}
+        pages={[]}
+        up={up}
+        onPage={onPage}
+        leaf="a4"
+        onLeaf={() => {}}
+        making={false}
+        onPdf={() => {}}
+        onSee={() => {}}
+        onCopy={() => {}}
+        onTakeOut={() => {}}
+        onShut={() => {}}
+        onApart={() => {}}
+      />,
+    );
+
+    expect(screen.getByText(t("besidePageOf"))).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Guía" }));
+    expect(onPage).toHaveBeenCalledWith(up);
+  });
+});

@@ -45,6 +45,8 @@ interface Props {
   kept: number;
   heads: Head[];
   pages: Filed[];
+  /** The document a page belongs to, so its column can take the person back. */
+  up?: Filed;
   onPage?: (doc: Filed) => void;
   leaf: Paper;
   onLeaf: (leaf: Paper) => void;
@@ -110,6 +112,7 @@ export default function Beside({
   kept,
   heads,
   pages,
+  up,
   onPage,
   leaf,
   onLeaf,
@@ -332,6 +335,19 @@ export default function Beside({
               {one.text}
             </button>
           ))}
+          {up && (
+            <>
+              <h4 className={`${label} mt-2.5 shrink-0 px-1.5`}>{t("besidePageOf")}</h4>
+              <button
+                type="button"
+                onClick={() => onPage?.(up)}
+                className="flex shrink-0 items-center gap-2 rounded-md px-1.5 py-1 text-left text-[12.5px] text-soft hover:bg-hover hover:text-ink"
+              >
+                <Glyph name="chevron" className="h-[13px] w-[13px] shrink-0 rotate-90" />
+                <span className="min-w-0 flex-1 truncate">{up.title || t("untitledDoc")}</span>
+              </button>
+            </>
+          )}
           {pages.length > 0 && (
             <h4 className={`${label} mt-2.5 shrink-0 px-1.5`}>
               {pages.length === 1 ? t("pageHeld") : fill("pagesHeld", String(pages.length))}

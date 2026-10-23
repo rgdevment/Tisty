@@ -528,6 +528,7 @@ const en = {
   beside: "About the document",
   besideShut: "Close this column",
   besideDetails: "Details",
+  besidePageOf: "A page of",
   besideShared: "Shared",
   sharedSoon: "Coming soon",
   sharedWill:
@@ -2806,6 +2807,7 @@ const es: Catalog = {
   beside: "Sobre el documento",
   besideShut: "Cerrar esta columna",
   besideDetails: "Detalles",
+  besidePageOf: "Es página de",
   besideShared: "Compartido",
   sharedSoon: "Pronto",
   sharedWill:

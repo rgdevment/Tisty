@@ -39,7 +39,6 @@ flowchart TD
   K --> C
   S -->|No| C[Complétala]
   C --> R[El archivo:<br/>la búsqueda te dice cómo lo resolviste]
-  P -.->|Aprendiste algo que<br/>vas a necesitar de nuevo| D
   D --> G[Léelo, corrígelo y amplíalo<br/>durante años]
 ```
 
