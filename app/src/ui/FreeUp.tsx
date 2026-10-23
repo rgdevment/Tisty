@@ -20,6 +20,7 @@ import { weigh } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { sure } from "../sure";
+import { cameWords } from "./arrived";
 import { type Run, type Which, type Word, working } from "./Card";
 import FreeSpace from "./FreeSpace";
 import { hushed } from "./Keys";
@@ -174,8 +175,15 @@ export default function FreeUp({
                 <ul className="scroller mt-2 flex max-h-[22rem] flex-col gap-1 overflow-y-auto text-[12.5px]">
                   {audit.astray.map((one) => (
                     <li key={one.at} className="flex items-baseline justify-between gap-4">
-                      <span className="font-mono text-[11.5px] break-all text-soft">
-                        {one.at.split("/").pop()}
+                      <span className="flex min-w-0 flex-col">
+                        <span className="font-mono text-[11.5px] break-all text-soft">
+                          {one.at.split("/").pop()}
+                        </span>
+                        {audit.came?.[one.at] && (
+                          <span className="text-[11.5px] text-faint">
+                            {cameWords(audit.came[one.at])}
+                          </span>
+                        )}
                       </span>
                       <span className="flex shrink-0 items-baseline gap-2.5 tabular-nums">
                         <span className="text-faint">

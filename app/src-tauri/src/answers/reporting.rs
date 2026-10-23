@@ -37,6 +37,16 @@ pub fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
 
     let kept = report::attachments(session.paths.data());
     let told = tisty_core::store::read_all(session.paths.store()).unwrap_or_default();
+    let arrived = tisty_core::attach::arrivals(&told);
+    let mine = session.config.device_id.0.clone();
+    let came = adrift
+        .items
+        .iter()
+        .filter_map(|one| {
+            report::came_of(&arrived, &one.at, &session.state.named, &mine)
+                .map(|came| (one.at.clone(), came))
+        })
+        .collect();
     let alive: Vec<String> = session
         .state
         .docs
@@ -51,6 +61,7 @@ pub fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
         loose: adrift.files(),
         loose_bytes: adrift.bytes,
         astray: adrift.items,
+        came,
         unread,
         stranded: tisty_core::docs::strayed(&session.paths.docs(), &alive),
         missing: tisty_core::docs::missing(&session.paths.docs(), &alive)
@@ -105,6 +116,8 @@ pub struct Reviewed {
     loose: usize,
     loose_bytes: u64,
     astray: Vec<tisty_core::attach::Astray>,
+    /// How each of them came, for those the log says something about.
+    came: std::collections::BTreeMap<String, report::Came>,
     unread: Option<String>,
     stranded: Vec<tisty_core::docs::Stray>,
     missing: Vec<Gone>,

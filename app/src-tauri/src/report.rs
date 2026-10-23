@@ -325,3 +325,31 @@ compile_error!("Tisty builds for macOS and Windows only");
 #[cfg(test)]
 #[path = "report_test.rs"]
 mod tests;
+
+/// How an attachment came, said for a person: the machine by the name it gave itself.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Came {
+    how: Option<String>,
+    machine: String,
+    mine: bool,
+    when: i64,
+}
+
+pub fn came_of(
+    arrived: &std::collections::BTreeMap<String, tisty_core::attach::Arrival>,
+    at: &str,
+    named: &std::collections::BTreeMap<tisty_core::DeviceId, tisty_core::Named>,
+    mine: &str,
+) -> Option<Came> {
+    let one = arrived.get(at)?;
+    Some(Came {
+        how: one.came.clone(),
+        machine: named.get(&one.by).map_or_else(
+            || tisty_core::config::nicknamed(&one.by.0),
+            |who| who.name.clone(),
+        ),
+        mine: one.by.0 == mine,
+        when: one.at.as_second(),
+    })
+}

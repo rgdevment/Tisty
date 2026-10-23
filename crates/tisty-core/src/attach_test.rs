@@ -1680,3 +1680,50 @@ fn a_kept_file_tells_how_it_came_and_nothing_beyond_the_name_it_is_kept_under() 
         "the log never forgets, so nothing else of the file goes in it"
     );
 }
+
+#[test]
+fn where_a_file_came_from_is_the_first_word_that_says_how() {
+    let one = crate::event::DeviceId("dev_one".into());
+    let two = crate::event::DeviceId("dev_two".into());
+    let at = |seconds: i64| jiff::Timestamp::from_second(seconds).unwrap();
+    let held = |came: Option<&str>| crate::Op::AttachKept {
+        d: crate::event::Held {
+            came: came.map(str::to_string),
+            ..crate::event::Held::of("attachments/plano-12345678.png".into(), "ab".into(), 3)
+        },
+    };
+    let events = [
+        crate::Event::new(two.clone(), at(10), held(None)),
+        crate::Event::new(one.clone(), at(20), held(Some("assistant"))),
+        crate::Event::new(two.clone(), at(30), held(Some("window"))),
+    ];
+
+    let arrived = arrivals(&events);
+
+    let first = &arrived["attachments/plano-12345678.png"];
+    assert_eq!(
+        first.came.as_deref(),
+        Some("assistant"),
+        "a word on how beats an older silence"
+    );
+    assert_eq!(first.by, one);
+    assert_eq!(first.at, at(20), "and the first of those who said how");
+}
+
+#[test]
+fn a_file_kept_before_anyone_said_how_still_tells_who_and_when() {
+    let one = crate::event::DeviceId("dev_one".into());
+    let events = [crate::Event::new(
+        one.clone(),
+        jiff::Timestamp::from_second(5).unwrap(),
+        crate::Op::AttachKept {
+            d: crate::event::Held::of("attachments/viejo-12345678.png".into(), "ab".into(), 3),
+        },
+    )];
+
+    let arrived = arrivals(&events);
+
+    let old = &arrived["attachments/viejo-12345678.png"];
+    assert_eq!(old.came, None);
+    assert_eq!(old.by, one);
+}
