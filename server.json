@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.rgdevment/tisty",
   "title": "Tisty",
-  "description": "Notes, documents and tasks as plain Markdown on your own disk. No account, no server.",
+  "description": "Agents plan in Markdown and work in tasks with steps, where you can follow and audit every stage.",
   "websiteUrl": "https://www.tisty.app/",
   "icons": [
     {

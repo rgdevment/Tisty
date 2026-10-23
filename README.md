@@ -726,6 +726,13 @@ But if you already use an assistant, you are probably telling it things worth
 keeping — the school group says card stock on Monday, the invoice is due on the
 30th. So Tisty leaves a door, and you decide whether to use it.
 
+**Your agents' work, in the open.** Through Tisty, an agent plans in
+documents and works in tasks: it writes the plan, what it found and what it
+decided as Markdown, breaks the work into tasks with steps and ticks them off as
+it goes. Nothing stays buried in a chat: every stage lands in Tisty, on your
+computer, where you can follow it as it happens and audit it later. When it says
+a task is done, you are the one who closes it.
+
 Settings › Assistants lists the assistants already installed on this computer and
 connects the one you pick: it writes a single line into that assistant's own
 settings, leaves the rest of that file where it was, and keeps a copy of it as
