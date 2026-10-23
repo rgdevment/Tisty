@@ -1723,7 +1723,7 @@ fn a_document_read_as_markdown_comes_in_standard_words_and_says_what_stays_behin
     let served = Served::new();
     let other = served.wrote("# Rina's record\n\nshots", None);
     let doc = served.wrote(
-        "# Walks\n\n:::note\nShe pulls on the lead.\n:::\n\nSee [[Rina's record]].\n\n\
+        "# Walks\n\nShe ==pulls== on the lead.\n\nSee [[Rina's record]].\n\n\
          ```mermaid\ngraph TD; A-->B\n```\n",
         None,
     );
@@ -1737,8 +1737,8 @@ fn a_document_read_as_markdown_comes_in_standard_words_and_says_what_stays_behin
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
     let told = &said["result"]["structuredContent"];
     let body = told["body"].as_str().unwrap();
-    assert!(body.contains("> [!NOTE]"), "{body}");
-    assert!(!body.contains(":::"), "{body}");
+    assert!(body.contains("<mark>pulls</mark>"), "{body}");
+    assert!(!body.contains("=="), "{body}");
     assert!(!body.contains("[["), "{body}");
     assert!(body.contains("```mermaid"), "{body}");
     assert_eq!(told["as"], "markdown");
