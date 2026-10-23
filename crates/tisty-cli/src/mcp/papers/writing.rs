@@ -872,7 +872,7 @@ pub(super) fn beside_the_file(
             reach: &mut reach,
             outside: ", or bring the file in on its own afterwards with `attach`",
             notes: true,
-            came: tisty_core::attach::Via::Assistant,
+            came: tisty_core::attach::Via::Imported,
         },
     )
 }
