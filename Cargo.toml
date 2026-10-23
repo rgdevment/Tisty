@@ -20,6 +20,7 @@ tisty-webdav = { path = "crates/tisty-webdav" }
 tisty-core = { path = "crates/tisty-core" }
 tisty-markdown = { path = "crates/tisty-markdown", default-features = false }
 tisty-nl = { path = "crates/tisty-nl" }
+tisty-share-proto = { path = "crates/tisty-share-proto", default-features = false }
 tisty-sync = { path = "crates/tisty-sync" }
 # `macos-private-api` pairs with `macOSPrivateApi` in tauri.conf.json, and the
 # build script refuses to run without both: the quick window asks to be
@@ -60,12 +61,15 @@ url = "2"
 percent-encoding = "2"
 base64 = "0.22"
 zeroize = "1"
-hmac = "0.13"
+hmac = { version = "0.13", features = ["zeroize"] }
+hkdf = "0.13"
 # Each keychain store by name: `keyring` would pull every store onto every system.
 keyring-core = "1"
 apple-native-keyring-store = { version = "1", features = ["keychain"] }
 zbus-secret-service-keyring-store = { version = "1", features = ["crypto-rust"] }
 ed25519-dalek = "3"
+# The 24 words that bring a person's identity back: BIP39, so the words are a list people already trust.
+bip39 = { version = "3", default-features = false, features = ["std", "spanish", "zeroize"] }
 zip = { version = "9", default-features = false, features = ["deflate"] }
 anyhow = "1"
 sys-locale = "0.3"

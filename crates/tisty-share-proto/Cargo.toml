@@ -1,0 +1,32 @@
+[package]
+name = "tisty-share-proto"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+default = ["mint"]
+# The server only checks keys and never makes one, and the system's randomness does not build for wasm.
+mint = ["dep:rand_core"]
+
+[dependencies]
+base64.workspace = true
+bip39.workspace = true
+ed25519-dalek.workspace = true
+hmac.workspace = true
+jiff.workspace = true
+rand_core = { workspace = true, optional = true }
+serde.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+unicode-normalization.workspace = true
+zeroize.workspace = true
+
+[dev-dependencies]
+hkdf.workspace = true
+serde_json.workspace = true
