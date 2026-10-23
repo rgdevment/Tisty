@@ -73,7 +73,12 @@ visible instead of making it for you.
   wrote. A tag is a word you typed with a hash against it, so nothing is
   recorded that you did not write in the document itself, and taking the file
   elsewhere takes its tags with it.
-- **Attachments** — the files themselves, unmodified.
+- **Attachments** — the files themselves, unmodified. The log keeps a note of
+  each one: the name it is kept under (a lowercased form of the file's name
+  with a short fingerprint), its size and fingerprint, how it came in (dropped
+  in the window, attached by an assistant, imported beside a document, from a
+  parcel or the guide) and, when it is retired, whether it went unused or was
+  joined with a copy of itself. Never the folder it came from.
 - **Local configuration** — including the device identifier. The *file* never
   leaves this machine on its own: it lives outside the roaming `%APPDATA%`, and
   should a roaming profile or a copied home carry it to another computer, Tisty
