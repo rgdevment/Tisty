@@ -1719,6 +1719,122 @@ fn a_picture_beside_the_file_comes_in_with_it() {
 }
 
 #[test]
+fn a_document_read_as_markdown_comes_in_standard_words_and_says_what_stays_behind() {
+    let served = Served::new();
+    let other = served.wrote("# Rina's record\n\nshots", None);
+    let doc = served.wrote(
+        "# Walks\n\n:::note\nShe pulls on the lead.\n:::\n\nSee [[Rina's record]].\n\n\
+         ```mermaid\ngraph TD; A-->B\n```\n",
+        None,
+    );
+    assert!(!other.is_empty());
+
+    let said = served.call(
+        "read_doc",
+        serde_json::json!({ "doc": doc, "as": "markdown" }),
+    );
+
+    assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    let told = &said["result"]["structuredContent"];
+    let body = told["body"].as_str().unwrap();
+    assert!(body.contains("> [!NOTE]"), "{body}");
+    assert!(!body.contains(":::"), "{body}");
+    assert!(!body.contains("[["), "{body}");
+    assert!(body.contains("```mermaid"), "{body}");
+    assert_eq!(told["as"], "markdown");
+    assert_eq!(told["left_out"]["diagrams"], 1, "{told}");
+    assert_eq!(told["left_out"]["named"], 1, "{told}");
+    let words = said["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        words.contains("Confluence and Jira show them as code"),
+        "{words}"
+    );
+    assert!(words.contains("became plain words"), "{words}");
+}
+
+#[test]
+fn a_picture_read_as_markdown_is_named_and_the_way_to_carry_it_is_said() {
+    let served = Served::new();
+    let dir = tempfile::Builder::new()
+        .tempdir_in(std::env::temp_dir())
+        .unwrap();
+    beside(dir.path(), "Plan/shot.png", A_PNG);
+    let at = dir.path().join("Plan.md");
+    std::fs::write(&at, "# Plan\n\n![shot](Plan/shot.png)\n").unwrap();
+    let doc = served.call(
+        "import_doc",
+        serde_json::json!({ "path": at.to_str().unwrap() }),
+    )["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let said = served.call(
+        "read_doc",
+        serde_json::json!({ "doc": doc, "as": "markdown" }),
+    );
+
+    let files = &said["result"]["structuredContent"]["left_out"]["files"];
+    assert_eq!(files.as_array().map(Vec::len), Some(1), "{said}");
+    assert!(
+        files[0]
+            .as_str()
+            .unwrap_or_default()
+            .starts_with("attachments/"),
+        "named by its place in Tisty, never by a path on this disk: {said}"
+    );
+    let words = said["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        words.contains("`export_doc` writes the document out"),
+        "{words}"
+    );
+}
+
+#[test]
+fn a_document_with_nothing_to_lose_says_nothing_about_losing() {
+    let served = Served::new();
+    let doc = served.wrote("# Plain\n\nJust words.", None);
+
+    let said = served.call("read_doc", serde_json::json!({ "doc": doc, "as": "html" }));
+
+    let told = &said["result"]["structuredContent"];
+    assert!(
+        told["body"].as_str().unwrap().contains("Just words."),
+        "{said}"
+    );
+    assert!(told.get("left_out").is_none(), "{told}");
+}
+
+#[test]
+fn a_diagram_read_as_html_warns_that_many_editors_drop_it() {
+    let served = Served::new();
+    let doc = served.wrote("# Map\n\n```mermaid\ngraph TD; A-->B\n```\n", None);
+
+    let said = served.call("read_doc", serde_json::json!({ "doc": doc, "as": "html" }));
+
+    let body = said["result"]["structuredContent"]["body"]
+        .as_str()
+        .unwrap();
+    assert!(body.contains("<figure class=\"diagram\""), "{body}");
+    let words = said["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(words.contains("many editors"), "{words}");
+}
+
+#[test]
+fn reading_as_another_shape_takes_the_whole_document_and_only_shapes_it_knows() {
+    let served = Served::new();
+    let doc = served.wrote("# Short\n\nwords", None);
+
+    let part = served.refused(
+        "read_doc",
+        serde_json::json!({ "doc": doc, "as": "markdown", "section": 0 }),
+    );
+    assert!(part.contains("takes no `section`"), "{part}");
+    let odd = served.refused("read_doc", serde_json::json!({ "doc": doc, "as": "pdf" }));
+    assert!(odd.contains("\"markdown\" or \"html\""), "{odd}");
+}
+
+#[test]
 fn a_page_that_leaves_for_another_document_says_the_old_line_is_still_there() {
     let served = Served::new();
     let one = served.wrote("# Libro uno\n\nintro", None);

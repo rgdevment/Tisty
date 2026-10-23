@@ -462,6 +462,10 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
         );
     }
 
+    if let Some(shape) = super::outward::asked(args)? {
+        return super::outward::carried(&body, shape, pages.len(), kept_of);
+    }
+
     match part_asked(&body, args)? {
         Part::Outline => {
             kept_of.insert("whole".into(), json!(false));

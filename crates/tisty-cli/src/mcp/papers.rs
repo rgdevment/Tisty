@@ -4,6 +4,7 @@ pub(super) mod editing;
 pub(super) mod filing;
 pub(super) mod flagging;
 pub(super) mod importing;
+pub(super) mod outward;
 pub(super) mod paging;
 pub(super) mod reading;
 pub(super) mod writing;

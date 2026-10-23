@@ -1047,7 +1047,12 @@ pub(super) fn tools() -> Value {
                     "from": { "type": "integer", "description": "First line, counting from 1" },
                     "to": { "type": "integer", "description": "Last line. Left out, it reads to the end" },
                     "chars": { "type": "integer", "description": "About how many characters to bring. The answer says `next` when there is more" },
-                    "cursor": { "type": "integer", "description": "The `next` a previous answer gave, to carry on from there. It goes with `chars`; on its own it is ignored and the reading starts again from the top" }
+                    "cursor": { "type": "integer", "description": "The `next` a previous answer gave, to carry on from there. It goes with `chars`; on its own it is ignored and the reading starts again from the top" },
+                    "as": {
+                        "type": "string",
+                        "enum": ["markdown", "html"],
+                        "description": "Bring the whole document turned for another place, to hand to another tool — Confluence, Jira, Notion, Linear, GitHub. `markdown` is standard GitHub Markdown and suits almost all of them, their own tools turning it into their format; `html` only where a place asks for HTML. Not everything travels, and the answer says what this document loses in `left_out`, which you tell the person before publishing: attached files stay in Tisty — `export_doc` writes them into a folder, from where the other place's tool uploads them; diagrams stay mermaid fences, drawn by GitHub, GitLab and Notion but shown as code by Confluence and Jira, and in `html` they are data: images many editors drop; links to other documents and tasks become plain words. Pages come apart, each read with `as`. It takes no part of the document: no `section`, lines or `chars`"
+                    }
                 },
                 "required": ["doc"]
             }))
