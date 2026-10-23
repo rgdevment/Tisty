@@ -1273,15 +1273,15 @@ Una nota[^1] y [un enlace](https://example.com).
     assert!(!read.contains("<span") && !read.contains("<b>"), "{read}");
     assert!(tisty_core::docs::speaks(&read).is_ok(), "{read}");
     for kept in [
-        "Cuidado con esto.",
-        "resaltado",
-        "rojo",
+        "> [!WARNING]\n> Cuidado con esto.",
+        "==resaltado==",
+        "rojo==",
         "**fuerte**",
         "- [ ] por hacer",
         "- [x] hecho",
         "| 1 | 2 |",
-        "graph TD; A-->B",
-        "x^2",
+        "```mermaid\ngraph TD; A-->B\n```",
+        "$$\nx^2\n$$",
         "[^1]: al pie",
         "[un enlace](https://example.com)",
     ] {
@@ -1302,12 +1302,55 @@ Una nota[^1] y [un enlace](https://example.com).
         "writing back what was read changed it"
     );
 
-    let copy = served.wrote(&read, None);
+    let copy = served.call(
+        "write_doc",
+        serde_json::json!({ "body": read, "anyway": true }),
+    );
+    assert_ne!(copy["result"]["isError"].as_bool(), Some(true), "{copy}");
+    let copy = copy["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
     assert_eq!(
         served.body_of(&copy),
         read,
         "a new document of the same words reads differently"
     );
+}
+
+#[test]
+fn an_edit_that_takes_a_fence_away_and_leaves_html_bare_is_refused() {
+    let served = Served::new();
+    let doc = served.wrote("# Fichas\n\n```\n<div>x</div>\n```\n", None);
+
+    let why = served.refused(
+        "edit_doc",
+        serde_json::json!({ "doc": &doc, "old": "```\n<div>", "new": "texto\n<div>" }),
+    );
+    assert!(why.contains("HTML"), "{why}");
+
+    let print = served.print_of(&doc);
+    let why = served.refused(
+        "edit_doc",
+        serde_json::json!({ "doc": &doc, "from": 3, "to": 3, "new": "texto", "print": print }),
+    );
+    assert!(why.contains("HTML"), "{why}");
+    let kept = served.body_of(&doc);
+    assert!(kept.contains("```\n<div>x</div>\n```"), "{kept}");
+}
+
+#[test]
+fn a_fence_added_under_a_heading_that_leaves_html_bare_below_it_is_refused() {
+    let served = Served::new();
+    let doc = served.wrote(
+        "# Fichas\n\n## A\n\nuno\n\n## B\n\n```\n<div>x</div>\n```\n",
+        None,
+    );
+    let why = served.refused(
+        "append_doc",
+        serde_json::json!({ "doc": &doc, "under": "A", "body": "```" }),
+    );
+    assert!(why.contains("HTML"), "{why}");
 }
 
 #[test]

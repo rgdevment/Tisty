@@ -340,6 +340,15 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
             None => tisty_core::docs::append(&paths.docs(), &which, &body),
             Some(under) => tisty_core::docs::amend(&paths.docs(), paths.data(), &which, |was| {
                 match under_a_heading(was, under, &body) {
+                    Ok(whole) if tisty_core::docs::speaks(was).is_ok() => {
+                        match tisty_core::docs::speaks(&whole) {
+                            Ok(()) => Some(whole),
+                            Err(unsaid) => {
+                                why = Some(not_spoken(unsaid));
+                                None
+                            }
+                        }
+                    }
                     Ok(whole) => Some(whole),
                     Err(said) => {
                         why = Some(said);
@@ -802,6 +811,7 @@ pub(super) fn in_its_place(
     let whole = format!("{head}{tail}{rest}");
 
     tisty_core::docs::speaks(&tail).map_err(|unsaid| Refused::Tool(not_spoken(unsaid)))?;
+    still_speaks(&body, &whole)?;
 
     match tisty_core::docs::rewrite(&paths.docs(), paths.data(), which, &whole, &print)
         .map_err(hitch)?
@@ -923,6 +933,16 @@ fn said_outline(body: &str) -> String {
         })
         .collect::<Vec<_>>()
         .join("\n")
+}
+
+/// A fragment that speaks can still open or close a fence and leave the rest of the page unsaid.
+pub(super) fn still_speaks(before: &str, after: &str) -> Result<(), Refused> {
+    match tisty_core::docs::speaks(before) {
+        Ok(()) => {
+            tisty_core::docs::speaks(after).map_err(|unsaid| Refused::Tool(not_spoken(unsaid)))
+        }
+        Err(_) => Ok(()),
+    }
 }
 
 pub(super) fn not_spoken(unsaid: &str) -> String {
