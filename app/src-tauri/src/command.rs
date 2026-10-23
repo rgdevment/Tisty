@@ -192,6 +192,7 @@ pub fn out_of_reach() -> std::io::Result<bool> {
     ) {
         Some(next) => {
             set_user_path(&next).inspect_err(unwritten)?;
+            crate::pathing::announce();
             Ok(true)
         }
         None => Ok(false),

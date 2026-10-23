@@ -10,71 +10,45 @@ fn plain(one: &str) -> String {
 
 #[test]
 fn a_copy_whose_version_cannot_be_read_leaves_the_path() {
-    assert_eq!(due(true, true, None, None), Due::Out);
+    assert_eq!(due(true, None, None), Due::Out);
 }
 
 #[test]
-fn a_developer_build_never_joins_the_path() {
-    assert_eq!(due(false, true, Some(&v("0.1.0")), None), Due::Untouched);
-}
-
-#[test]
-fn even_a_developer_build_leaves_when_the_door_shuts() {
-    assert_eq!(due(false, false, Some(&v("0.1.0")), None), Due::Out);
+fn a_test_build_is_a_developer_s_and_never_touches_the_path() {
+    assert!(developer());
 }
 
 #[test]
 fn with_the_door_shut_the_folder_leaves() {
-    assert_eq!(due(true, false, Some(&v("1.32.0")), None), Due::Out);
+    assert_eq!(due(false, Some(&v("1.32.0")), None), Due::Out);
 }
 
 #[test]
 fn a_candidate_installed_by_hand_is_never_the_one_called() {
-    assert_eq!(due(true, true, Some(&v("1.33.0-rc.1")), None), Due::Out);
-    assert_eq!(due(false, true, Some(&v("1.33.0-rc.1")), None), Due::Out);
+    assert_eq!(due(true, Some(&v("1.33.0-rc.1")), None), Due::Out);
 }
 
 #[test]
-fn a_newer_store_copy_wins_and_the_older_one_leaves() {
-    assert_eq!(
-        due(true, true, Some(&v("1.32.0")), Some(&v("1.33.0"))),
-        Due::Out
-    );
+fn a_newer_copy_elsewhere_wins_and_the_older_one_leaves() {
+    assert_eq!(due(true, Some(&v("1.32.0")), Some(&v("1.33.0"))), Due::Out);
 }
 
 #[test]
-fn a_newer_copy_installed_by_hand_answers_before_the_store() {
-    assert_eq!(
-        due(true, true, Some(&v("1.33.0")), Some(&v("1.32.0"))),
-        Due::In {
-            ahead_of_the_store: true
-        }
-    );
+fn the_newest_copy_joins_the_path() {
+    assert_eq!(due(true, Some(&v("1.33.0")), Some(&v("1.32.0"))), Due::In);
+    assert_eq!(due(true, Some(&v("1.32.0")), Some(&v("1.32.0"))), Due::In);
+    assert_eq!(due(true, Some(&v("1.32.0")), None), Due::In);
 }
 
 #[test]
-fn the_same_version_twice_keeps_the_person_s_order() {
-    assert_eq!(
-        due(true, true, Some(&v("1.32.0")), Some(&v("1.32.0"))),
-        Due::In {
-            ahead_of_the_store: false
-        }
-    );
-}
-
-#[test]
-fn alone_on_the_machine_it_joins_the_path() {
-    assert_eq!(
-        due(true, true, Some(&v("1.32.0")), None),
-        Due::In {
-            ahead_of_the_store: false
-        }
-    );
-}
-
-#[test]
-fn a_test_build_is_never_steady() {
-    assert!(!steady());
+fn it_comes_before_the_first_older_copy_and_after_an_equal_one() {
+    let others = vec![
+        (r"C:\Same".to_string(), v("1.33.0")),
+        (r"C:\Old".to_string(), v("1.31.0")),
+        (r"C:\Older".to_string(), v("1.30.0")),
+    ];
+    assert_eq!(first_older(&others, &v("1.33.0")), Some(r"C:\Old"));
+    assert_eq!(first_older(&others[..1], &v("1.33.0")), None);
 }
 
 #[test]

@@ -11,37 +11,32 @@ const SEPARATOR: char = ';';
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Due {
-    Untouched,
     Out,
-    In { ahead_of_the_store: bool },
+    In,
 }
 
-/// Leaving the PATH is always safe; only a steady copy, newer than the Store's, with a voice joins it.
-pub fn due(
-    steady: bool,
-    voice: bool,
-    standalone: Option<&Version>,
-    store: Option<&Version>,
-) -> Due {
+/// Leaving the PATH is always safe; only a stable copy with a voice, newer than any other, joins it.
+pub fn due(voice: bool, standalone: Option<&Version>, newest_other: Option<&Version>) -> Due {
     let Some(standalone) = standalone.filter(|it| it.pre.is_empty()) else {
         return Due::Out;
     };
-    if !voice || store.is_some_and(|store| store > standalone) {
+    if !voice || newest_other.is_some_and(|other| other > standalone) {
         return Due::Out;
     }
-    if !steady {
-        return Due::Untouched;
-    }
-    Due::In {
-        ahead_of_the_store: store.is_some_and(|store| standalone > store),
-    }
+    Due::In
 }
 
-/// A developer's build or a release candidate never makes `tisty` answer with itself.
-pub fn steady() -> bool {
-    !cfg!(debug_assertions)
-        && HERE != UNSTAMPED
-        && Version::parse(HERE).is_ok_and(|here| here.pre.is_empty())
+/// The first entry holding an older copy, which this one has to come before; an equal one keeps its place.
+pub fn first_older<'a>(others: &'a [(String, Version)], here: &Version) -> Option<&'a str> {
+    others
+        .iter()
+        .find(|(_, other)| other < here)
+        .map(|(entry, _)| entry.as_str())
+}
+
+/// A developer's build never touches the PATH, not even to take a folder of the developer's own off it.
+pub fn developer() -> bool {
+    cfg!(debug_assertions) || HERE == UNSTAMPED
 }
 
 /// `%NAME%` as Windows would expand it, so an entry written either way is recognised.
@@ -134,13 +129,18 @@ pub fn keep(paths: tisty_core::Paths) {
 pub fn keep(_paths: tisty_core::Paths) {}
 
 #[cfg(windows)]
+pub use windows_side::announce;
+
+#[cfg(windows)]
 mod windows_side {
     use std::sync::Mutex;
 
     use semver::Version;
     use tisty_core::witness::{self, Fact, channel};
 
-    use super::{Due, HERE, due, expanded, left, steady, within, without};
+    use super::{
+        Due, HERE, SEPARATOR, alike, developer, due, expanded, first_older, left, within, without,
+    };
 
     // A start and a quick turn of the voice would otherwise race, and the older choice could write last.
     static ONE_AT_A_TIME: Mutex<()> = Mutex::new(());
@@ -151,6 +151,7 @@ mod windows_side {
             .unwrap_or_else(|held| held.into_inner());
         // A sandbox profile, or the Store copy whose registry writes Windows keeps in its own container.
         if left()
+            || developer()
             || tisty_core::paths::profile().is_some()
             || windows::ApplicationModel::Package::Current().is_ok()
         {
@@ -164,41 +165,35 @@ mod windows_side {
             .ok()
             .flatten()
             .is_some_and(|config| config.agent_id.is_some());
-        let steady = steady();
-        let store = (voice && steady).then(store).flatten();
         // An unreadable PATH is left alone rather than taken for an empty one.
         let Some(path) = crate::command::user_path() else {
             return;
         };
         let dir = folder.display().to_string();
-        let changed = match due(
-            steady,
-            voice,
-            Version::parse(HERE).ok().as_ref(),
-            store.as_ref(),
-        ) {
-            Due::Untouched => None,
-            Due::Out => without(&path, &dir, &expanded),
-            Due::In { ahead_of_the_store } => {
-                let alias = ahead_of_the_store
-                    .then(crate::command::aliases)
-                    .flatten()
-                    .map(|at| at.display().to_string());
-                within(&path, &dir, alias.as_deref(), &expanded)
+        let here = Version::parse(HERE).ok();
+        let store = voice.then(store).flatten();
+        let others = match voice {
+            true => copies_on(&path, &dir, store.as_ref()),
+            false => Vec::new(),
+        };
+        let newest_other = others.iter().map(|(_, it)| it).chain(&store).max();
+        let changed = match due(voice, here.as_ref(), newest_other) {
+            Due::Out => without(&path, &dir, &expanded)
+                .map(|next| (next, "the PATH no longer reaches this copy")),
+            Due::In => {
+                let ahead = here.as_ref().and_then(|here| first_older(&others, here));
+                within(&path, &dir, ahead, &expanded)
+                    .map(|next| (next, "the PATH now reaches the copy assistants should call"))
             }
         };
-        let Some(next) = changed else { return };
+        let Some((next, said)) = changed else { return };
         match crate::command::set_user_path(&next) {
             Ok(()) if left() => {
                 let _ = crate::command::out_of_reach();
             }
             Ok(()) => {
                 announce();
-                witness::note(
-                    channel::TERMINAL,
-                    "the PATH now reaches the copy assistants should call",
-                    &[("at", Fact::Path(folder))],
-                );
+                witness::note(channel::TERMINAL, said, &[("at", Fact::Path(folder))]);
             }
             Err(why) => witness::warn(
                 channel::TERMINAL,
@@ -223,9 +218,68 @@ mod windows_side {
             .max()
     }
 
+    /// The other copies on the PATH, in its order: the Store's alias folder and every installed copy.
+    fn copies_on(path: &str, dir: &str, store: Option<&Version>) -> Vec<(String, Version)> {
+        let alias = crate::command::aliases().map(|at| at.display().to_string());
+        path.split(SEPARATOR)
+            .filter(|one| !one.trim().is_empty() && !alike(one, dir, &expanded))
+            .filter_map(|one| {
+                let found = match alias.as_deref() {
+                    Some(alias) if alike(one, alias, &expanded) => store.cloned(),
+                    _ => installed_copy(std::path::Path::new(&expanded(one.trim()))),
+                };
+                found.map(|version| (one.to_string(), version))
+            })
+            .collect()
+    }
+
+    // The window beside the command is what marks a folder as a Tisty install and carries its version.
+    fn installed_copy(folder: &std::path::Path) -> Option<Version> {
+        if !folder.join(crate::command::CLI).is_file() {
+            return None;
+        }
+        version_of(&folder.join("tisty-gui.exe"))
+    }
+
+    #[allow(unsafe_code)]
+    fn version_of(exe: &std::path::Path) -> Option<Version> {
+        use windows::Win32::Storage::FileSystem::{
+            GetFileVersionInfoSizeW, GetFileVersionInfoW, VS_FIXEDFILEINFO, VerQueryValueW,
+        };
+        let name = windows::core::HSTRING::from(exe.as_os_str());
+        let mut fixed: *mut core::ffi::c_void = std::ptr::null_mut();
+        let mut length = 0u32;
+        unsafe {
+            let size = GetFileVersionInfoSizeW(&name, None);
+            if size == 0 {
+                return None;
+            }
+            let mut block = vec![0u8; size as usize];
+            GetFileVersionInfoW(&name, None, size, block.as_mut_ptr().cast()).ok()?;
+            let found = VerQueryValueW(
+                block.as_ptr().cast(),
+                windows::core::w!("\\"),
+                &mut fixed,
+                &mut length,
+            );
+            if !found.as_bool()
+                || fixed.is_null()
+                || (length as usize) < size_of::<VS_FIXEDFILEINFO>()
+            {
+                return None;
+            }
+            let fixed = std::ptr::read_unaligned(fixed as *const VS_FIXEDFILEINFO);
+            Some(Version::new(
+                (fixed.dwFileVersionMS >> 16).into(),
+                (fixed.dwFileVersionMS & 0xffff).into(),
+                (fixed.dwFileVersionLS >> 16).into(),
+            ))
+        }
+    }
+
     /// Without this only programs started after the next sign-in would see the change.
     #[allow(unsafe_code)]
-    fn announce() {
+    pub fn announce() {
         use windows::Win32::Foundation::{LPARAM, WPARAM};
         use windows::Win32::UI::WindowsAndMessaging::{
             HWND_BROADCAST, SMTO_ABORTIFHUNG, SendMessageTimeoutW, WM_SETTINGCHANGE,
