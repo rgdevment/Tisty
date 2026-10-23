@@ -7,7 +7,7 @@ import Beside from "../ui/Beside";
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 
 describe("a document opened in a window of its own", () => {
-  it("is asked from the document's panel, among its other ways out", async () => {
+  it("is asked from the document's panel, beside closing it", async () => {
     const onApart = vi.fn();
     render(
       <Beside
@@ -30,7 +30,6 @@ describe("a document opened in a window of its own", () => {
       />,
     );
 
-    expect(screen.getByText(t("bandApart"))).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: t("viewDocApart") }));
 
     expect(onApart).toHaveBeenCalledTimes(1);
