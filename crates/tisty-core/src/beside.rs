@@ -285,7 +285,7 @@ fn brought_in(
         Err(why) => cannot(why.to_string()),
         Ok(one) => {
             done.kept += 1;
-            done.told.push(one.told());
+            done.told.push(one.told_via(crate::attach::Via::Imported));
             if plain.to_lowercase().ends_with(".md") || plain.to_lowercase().ends_with(".markdown")
             {
                 done.papers.push(plain);

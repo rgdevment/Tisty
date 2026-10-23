@@ -565,6 +565,7 @@ fn what_cannot_be_walked_past_without_losing_something_is_not_optional() {
                 at: "attachments/ab/one.pdf".into(),
                 sha256: "ab".repeat(32),
                 bytes: 4,
+                ..Default::default()
             },
         },
         tisty_core::Op::AttachLetGo {

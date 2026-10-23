@@ -357,3 +357,52 @@ fn an_event_that_arrived_from_another_machine_is_written_untouched() {
 
     assert_eq!(read, theirs);
 }
+
+#[test]
+fn an_attachment_written_before_its_provenance_existed_still_reads() {
+    let old =
+        r#"{"op":"attach.kept","d":{"at":"attachments/a-12345678.png","sha256":"ab","bytes":3}}"#;
+    let Op::AttachKept { d } = serde_json::from_str::<Op>(old).unwrap() else {
+        panic!("not a kept attachment");
+    };
+    assert_eq!((d.named, d.via), (None, None));
+
+    let old = r#"{"op":"attach.retire","d":"attachments/a-12345678.png"}"#;
+    let Op::AttachRetire { why, .. } = serde_json::from_str::<Op>(old).unwrap() else {
+        panic!("not a retirement");
+    };
+    assert_eq!(why, None);
+}
+
+#[test]
+fn provenance_is_written_only_when_there_is_some() {
+    let bare = Op::AttachKept {
+        d: Held {
+            at: "attachments/a-12345678.png".into(),
+            sha256: "ab".into(),
+            bytes: 3,
+            ..Default::default()
+        },
+    };
+    let line = serde_json::to_string(&bare).unwrap();
+    assert!(!line.contains("named") && !line.contains("via"), "{line}");
+
+    let told = Op::AttachKept {
+        d: Held {
+            at: "attachments/a-12345678.png".into(),
+            sha256: "ab".into(),
+            bytes: 3,
+            named: Some("Plano final.png".into()),
+            via: Some("window".into()),
+        },
+    };
+    let line = serde_json::to_string(&told).unwrap();
+    assert_eq!(serde_json::from_str::<Op>(&line).unwrap(), told);
+
+    let retired = Op::AttachRetire {
+        d: "attachments/a-12345678.png".into(),
+        why: Some("joined".into()),
+    };
+    let line = serde_json::to_string(&retired).unwrap();
+    assert!(line.contains(r#""why":"joined""#), "{line}");
+}

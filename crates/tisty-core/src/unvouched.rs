@@ -59,6 +59,7 @@ pub fn vouch(at: &str, places: &[&Path]) -> crate::Result<Vouch> {
             at: at.to_string(),
             sha256,
             bytes,
+            ..Default::default()
         },
         here: first == 0,
     })

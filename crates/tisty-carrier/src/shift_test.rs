@@ -360,7 +360,10 @@ fn an_attachment_retired_and_written_down_again_but_named_by_nothing_is_owed_now
         let kept = one.attached(PHOTO);
         one.round(Way::Both);
         one.store()
-            .append(Op::AttachRetire { d: kept.at.clone() })
+            .append(Op::AttachRetire {
+                d: kept.at.clone(),
+                why: None,
+            })
             .unwrap();
         one.store().append(kept.told()).unwrap();
         let_go_here(&one, &kept.at);

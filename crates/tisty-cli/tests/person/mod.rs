@@ -365,6 +365,7 @@ impl Person {
                         at: at.clone(),
                         sha256: sha256.clone(),
                         bytes: *bytes,
+                        ..Default::default()
                     },
                 }),
         );

@@ -365,6 +365,7 @@ fn what_an_attachment_holds_comes_back_from_the_cache_and_not_only_from_the_log(
                 at: reference.clone(),
                 sha256: sha256.clone(),
                 bytes: body.len() as u64,
+                ..Default::default()
             },
         })
         .unwrap();
@@ -408,6 +409,7 @@ fn a_digest_the_name_does_not_avow_is_not_taken_in() {
                     at: reference.clone(),
                     sha256: said,
                     bytes: 10,
+                    ..Default::default()
                 },
             })
             .unwrap();
@@ -434,12 +436,14 @@ fn retiring_an_attachment_forgets_what_it_held() {
                 at: reference.clone(),
                 sha256,
                 bytes: body.len() as u64,
+                ..Default::default()
             },
         })
         .unwrap();
     store
         .append(Op::AttachRetire {
             d: reference.clone(),
+            why: None,
         })
         .unwrap();
 
@@ -470,6 +474,7 @@ fn a_later_word_on_the_same_attachment_stands_and_the_case_is_not_kept() {
                     at: reference.clone(),
                     sha256: said,
                     bytes,
+                    ..Default::default()
                 },
             })
             .unwrap();
@@ -501,6 +506,7 @@ fn who_holds_a_body_survives_the_cache_and_letting_go_takes_it_off_the_list() {
                     at: reference.clone(),
                     sha256: sha256.clone(),
                     bytes: body.len() as u64,
+                    ..Default::default()
                 },
             })
             .unwrap();
@@ -561,6 +567,7 @@ fn a_machine_taken_off_the_store_stops_counting_as_one_that_has_it() {
                 at: reference.clone(),
                 sha256,
                 bytes: body.len() as u64,
+                ..Default::default()
             },
         })
         .unwrap();
@@ -604,6 +611,7 @@ fn an_attachment_avowed_after_the_cache_was_built_is_not_lost_by_the_tail() {
                     at: reference.clone(),
                     sha256: sha256.clone(),
                     bytes: body.len() as u64,
+                    ..Default::default()
                 },
             },
             Op::TaskAdd {

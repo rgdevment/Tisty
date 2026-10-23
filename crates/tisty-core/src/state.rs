@@ -414,6 +414,8 @@ impl State {
                 if let Some(at) =
                     crate::attach::canonical(&d.at).filter(|_| vouches_for_its_name(d))
                 {
+                    // The same bytes kept again under a name once retired bring that name back to life.
+                    self.retired.remove(&at);
                     self.kept
                         .insert(at.clone(), (d.sha256.to_ascii_lowercase(), d.bytes));
                     self.holders
@@ -431,7 +433,7 @@ impl State {
                     }
                 }
             }
-            Op::AttachRetire { d } => {
+            Op::AttachRetire { d, .. } => {
                 if let Some(at) = crate::attach::canonical(d) {
                     self.retired.insert(at.clone());
                     self.kept.remove(&at);

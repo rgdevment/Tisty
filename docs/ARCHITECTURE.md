@@ -1155,9 +1155,15 @@ stateDiagram-v2
   copying when the line would not fit or the document already names 150 files.
   Nothing larger than `HELD_UP_TO` = 750 MB is taken in from another machine
   or the cloud.
-- **Events.** `attach.kept { at, sha256, bytes }` says a machine holds a copy;
-  `attach.let_go` says it released its copy; `attach.retire` retires the name
-  for every machine.
+- **Events.** `attach.kept { at, sha256, bytes }` says a machine holds a copy,
+  and since 1.33 also what the file was called (`named`) and how it came
+  (`via`: `window`, `assistant`, `imported` or `parcel`), both optional so an
+  older build reads it as before; `attach.let_go` says it released its copy;
+  `attach.retire` retires the name for every machine, with `why` (`unused` or
+  `joined`). Keeping the same bytes under a retired name brings the name back.
+- **The ledger stays.** `attachments.jsonl` is the local index that finds a
+  copy of the same bytes at once; the log could answer the same, but every
+  caller of `attach` would then need the projected state, not only the folder.
 - **Holds** (`config::Holds`) decides where files above 25 MB
   (`COPIED_UP_TO`) live once there is a shared folder. `Everywhere`: every
   machine keeps every file. `Mine`: large files are not brought here, and this

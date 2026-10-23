@@ -46,6 +46,7 @@ impl Here {
                         at: "attachments/captura-ab12.png".into(),
                         sha256: "ab12".into(),
                         bytes: 10,
+                        ..Default::default()
                     },
                 },
                 Op::FolderAdd {
@@ -354,6 +355,7 @@ fn an_attachment_kept_outside_the_guide_makes_it_the_persons() {
                 at: "attachments/foto-cd34.png".into(),
                 sha256: "cd34".into(),
                 bytes: 10,
+                ..Default::default()
             },
         })
         .unwrap();

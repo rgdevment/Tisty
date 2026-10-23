@@ -308,6 +308,7 @@ fn everything_that_is_kept_comes_in_as_a_card() {
         at: at.into(),
         sha256: "ab".into(),
         bytes: 2,
+        named: None,
     };
 
     assert_eq!(
@@ -344,6 +345,7 @@ fn a_name_that_would_break_the_link_is_flattened() {
         at: "attachments/cd-a3f9bb01.png".into(),
         sha256: "ab".into(),
         bytes: 2,
+        named: None,
     };
     assert_eq!(
         one.written("shot](javascript:alert(1))["),
@@ -1635,4 +1637,22 @@ fn after_a_join_the_same_bytes_land_on_the_copy_that_stayed_even_with_neither_he
     let again = keep(&source, root.path(), u64::MAX).unwrap();
 
     assert_eq!(again.at, stays);
+}
+
+#[test]
+fn a_kept_file_tells_what_it_was_called_and_how_it_came() {
+    let (_dir, file) = dropped("Plano final.png", b"un plano");
+    let root = tempfile::tempdir().unwrap();
+    let kept = keep(&file, root.path(), COPIED_UP_TO).unwrap();
+
+    let crate::Op::AttachKept { d } = kept.told_via(Via::Window) else {
+        panic!("what it tells is not what an attachment holds");
+    };
+    assert_eq!(d.named.as_deref(), Some("Plano final.png"));
+    assert_eq!(d.via.as_deref(), Some("window"));
+
+    let crate::Op::AttachKept { d } = kept.told() else {
+        panic!("what it tells is not what an attachment holds");
+    };
+    assert_eq!(d.via, None, "only a caller that knows how it came says so");
 }

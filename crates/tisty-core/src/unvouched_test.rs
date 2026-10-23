@@ -27,6 +27,7 @@ fn kept(state: &mut State, at: &str, body: &[u8]) {
                 at: at.into(),
                 sha256: print_of(body),
                 bytes: body.len() as u64,
+                ..Default::default()
             },
         },
     ));

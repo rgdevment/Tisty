@@ -201,7 +201,7 @@ fn kept_at(
 }
 
 fn noted(session: &tauri::State<'_, Mutex<Session>>, kept: &tisty_core::attach::Kept) {
-    if let Err(e) = held(session).commit(kept.told()) {
+    if let Err(e) = held(session).commit(kept.told_via(tisty_core::attach::Via::Window)) {
         witness::warn(
             channel::ATTACH,
             "what an attachment holds could not be written down",

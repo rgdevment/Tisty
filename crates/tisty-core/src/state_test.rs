@@ -4427,10 +4427,17 @@ fn an_assistant_cannot_retire_an_attachment() {
     joined(&mut state, "dev_agent", crate::event::DeviceKind::Agent);
     let at = "attachments/ab/a-12345678.png".to_string();
 
-    state.apply(&ev(3, "dev_agent", Op::AttachRetire { d: at.clone() }));
+    state.apply(&ev(
+        3,
+        "dev_agent",
+        Op::AttachRetire {
+            d: at.clone(),
+            why: None,
+        },
+    ));
     assert!(state.retired.is_empty());
 
-    state.apply(&ev(4, "dev_laptop", Op::AttachRetire { d: at }));
+    state.apply(&ev(4, "dev_laptop", Op::AttachRetire { d: at, why: None }));
     assert_eq!(state.retired.len(), 1);
 }
 
@@ -4966,4 +4973,35 @@ fn a_compacted_document_says_by_whom_and_when_until_the_person_settles_it() {
 
     state.apply(&ev(6, "dev_laptop", Op::DocUncompacted { id: one }));
     assert!(state.docs[&one].compacted.is_none(), "kept or taken back");
+}
+
+#[test]
+fn an_attachment_kept_again_after_it_was_retired_is_no_longer_retired() {
+    let mut state = State::default();
+    let at = "attachments/a-12345678.png".to_string();
+    let held = crate::event::Held {
+        at: at.clone(),
+        sha256: format!("ff12345678{}", "0".repeat(54)),
+        bytes: 3,
+        ..Default::default()
+    };
+
+    state.apply(&ev(1, "dev_laptop", Op::AttachKept { d: held.clone() }));
+    state.apply(&ev(
+        2,
+        "dev_laptop",
+        Op::AttachRetire {
+            d: at.clone(),
+            why: Some("unused".into()),
+        },
+    ));
+    assert!(state.retired.contains(&at));
+    assert!(!state.kept.contains_key(&at));
+
+    state.apply(&ev(3, "dev_laptop", Op::AttachKept { d: held }));
+    assert!(
+        !state.retired.contains(&at),
+        "kept again, it is alive again"
+    );
+    assert!(state.kept.contains_key(&at));
 }

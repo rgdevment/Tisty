@@ -211,7 +211,7 @@ pub fn guide(
         };
         let kept = tisty_core::attach::keep(&at, &data, tisty_core::attach::COPIED_IN_DOC)
             .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
-        told_of.push(kept.told());
+        told_of.push(kept.told_via(tisty_core::attach::Via::Imported));
         // A title after the path, as in `](walks.html "file")`, keeps the attachment drawn as a file.
         let leaf = tisty_core::attach::leaf_of(&kept.at).unwrap_or(&kept.at);
         for (was, named) in [

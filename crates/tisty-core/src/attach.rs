@@ -19,15 +19,46 @@ pub struct Kept {
     pub at: String,
     pub sha256: String,
     pub bytes: u64,
+    pub named: Option<String>,
+}
+
+/// How a file came to be kept, written down with it so a later question has an answer.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Via {
+    Window,
+    Assistant,
+    Imported,
+    Parcel,
+}
+
+impl Via {
+    pub fn said(self) -> &'static str {
+        match self {
+            Via::Window => "window",
+            Via::Assistant => "assistant",
+            Via::Imported => "imported",
+            Via::Parcel => "parcel",
+        }
+    }
 }
 
 impl Kept {
     pub fn told(&self) -> crate::Op {
+        self.held(None)
+    }
+
+    pub fn told_via(&self, via: Via) -> crate::Op {
+        self.held(Some(via))
+    }
+
+    fn held(&self, via: Option<Via>) -> crate::Op {
         crate::Op::AttachKept {
             d: crate::event::Held {
                 at: self.at.clone(),
                 sha256: self.sha256.clone(),
                 bytes: self.bytes,
+                named: self.named.clone(),
+                via: via.map(|one| one.said().to_string()),
             },
         }
     }
@@ -157,6 +188,9 @@ fn through(
     limit: u64,
 ) -> Result<Kept> {
     let (sha256, bytes) = poured(file, part, limit)?;
+    let came_as = source
+        .file_name()
+        .map(|one| one.to_string_lossy().into_owned());
 
     let ext = source
         .extension()
@@ -173,7 +207,12 @@ fn through(
     if let Some(at) = listed(root, &sha256) {
         match resolve(&at, root) {
             Ok(held) if holds(&held, part, bytes) => {
-                return Ok(Kept { at, sha256, bytes });
+                return Ok(Kept {
+                    at,
+                    sha256,
+                    bytes,
+                    named: came_as,
+                });
             }
             // Space freed here leaves the ledger line, so the same bytes go back under their name.
             Ok(held) if !held.exists() && named_for(&at, &sha256) => {
@@ -182,7 +221,12 @@ fn through(
                 }
                 std::fs::rename(part, &held)?;
                 let _ = crate::paths::ours_alone(&held);
-                return Ok(Kept { at, sha256, bytes });
+                return Ok(Kept {
+                    at,
+                    sha256,
+                    bytes,
+                    named: came_as,
+                });
             }
             Ok(held) => witness::warn(
                 channel::ATTACH,
@@ -217,6 +261,7 @@ fn through(
         at: format!("{SHED}/{name}"),
         sha256,
         bytes,
+        named: came_as,
     };
     note(root, &kept);
     Ok(kept)
@@ -351,6 +396,7 @@ pub fn noted(root: &Path, reference: &str, sha256: &str, bytes: u64) {
             at: reference.to_string(),
             sha256: sha256.to_string(),
             bytes,
+            named: None,
         },
     );
 }
@@ -437,6 +483,7 @@ pub fn joined_in_ledger(
                 at: keep,
                 sha256: sha256.to_string(),
                 bytes,
+                named: None,
             },
         );
     }
