@@ -2726,7 +2726,7 @@ DEALINGS IN THE SOFTWARE.
 
 ## Text 36
 
-Written out for `clipboard-win` 5.4.1, from the licence the manifest declares: the crate ships no licence file.
+Written out for `clipboard-win` 5.4.3, from the licence the manifest declares: the crate ships no licence file.
 
 ```text
 Boost Software License - Version 1.0 - August 17th, 2003
