@@ -455,5 +455,64 @@
         "said": "a very long quote, paragraph or list of links opens and shows in a moment, instead of keeping the window waiting."
       }
     ]
+  },
+  {
+    "version": "1.33.0",
+    "headline": {
+      "es": "Tus agentes llevan tus documentos a donde trabajas",
+      "en": "Your agents take your documents where you work"
+    },
+    "es": [
+      {
+        "title": "Llévalo a Confluence, Jira o Notion",
+        "said": "si tu asistente también llega a Confluence, Jira, Notion, Linear o GitHub, ahora puede leer un documento de Tisty en Markdown estándar y publicarlo allá. Antes te dice qué no hace el viaje: los archivos adjuntos, los diagramas que esa herramienta no dibuja o los enlaces a otros documentos, para que decidas antes de publicar."
+      },
+      {
+        "title": "De dónde vino cada adjunto",
+        "said": "en Mantenimiento, cada adjunto que nada usa y cada copia de un archivo guardado dos veces dicen cómo llegaron (agregado en la ventana, traído por un asistente, con un documento importado o en un paquete), en qué equipo y cuándo. Así sabes qué estás soltando. Los adjuntos guardados antes de esta versión dicen solo el equipo y el día."
+      },
+      {
+        "title": "La columna del documento, ordenada",
+        "said": "el índice tiene su propia tarjeta y todo el alto que necesita, y desde una página vuelves a su documento con un clic. Papel, hojas y un solo botón para exportar quedan juntos arriba: PDF, página web, Word o Markdown. Los detalles se pliegan abajo y se abren solos cuando el índice es corto."
+      },
+      {
+        "title": "Imágenes en grande",
+        "said": "un clic sobre una imagen o un diagrama lo abre en grande para acercarlo, moverlo y pasar a la siguiente. Si es un adjunto, puedes guardarlo donde quieras o abrirlo con su aplicación. Para editarlo, usa el menú del bloque."
+      },
+      {
+        "title": "Diagramas más livianos",
+        "said": "cada diagrama se dibuja una sola vez y el modo oscuro lo adapta, así que un documento con muchos diagramas pesa la mitad y la página que exportas también."
+      },
+      {
+        "title": "Exportar sin restos",
+        "said": "al exportar un documento desde un asistente, los nombres entre corchetes dobles pasan a texto normal y los diagramas escritos como mmd quedan como mermaid, que es lo que GitHub sabe dibujar."
+      }
+    ],
+    "en": [
+      {
+        "title": "Take it to Confluence, Jira or Notion",
+        "said": "if your assistant also reaches Confluence, Jira, Notion, Linear or GitHub, it can now read a Tisty document in standard Markdown and publish it there. Before that it tells you what does not make the journey — attached files, diagrams that tool does not draw, links to other documents — so you decide before it publishes."
+      },
+      {
+        "title": "Where each attachment came from",
+        "said": "in Maintenance, each attachment nothing uses and each copy of a file saved twice says how it came (added in the window, brought by an assistant, with an imported document or in a parcel), on which computer and when, so you know what you are letting go of. Attachments kept before this version say only the computer and the day."
+      },
+      {
+        "title": "The document's column, in order",
+        "said": "the outline has a card of its own and all the height it needs, and a page takes you back to its document in one click. Paper, sheets and a single export button sit together at the top: PDF, web page, Word or Markdown. The details fold away below and open by themselves when the outline is short."
+      },
+      {
+        "title": "Pictures, large",
+        "said": "a click on a picture or a diagram opens it large, to zoom in, move it around and go to the next one. If it is an attachment, you can save it wherever you like or open it with its app. To edit it, use the block's menu."
+      },
+      {
+        "title": "Lighter diagrams",
+        "said": "each diagram is drawn once and dark mode adapts it, so a document full of diagrams weighs half as much, and so does the page you export."
+      },
+      {
+        "title": "Exports without leftovers",
+        "said": "when an assistant exports a document, names in double brackets become plain words and diagrams written as mmd go out as mermaid, which is what GitHub knows how to draw."
+      }
+    ]
   }
 ]
