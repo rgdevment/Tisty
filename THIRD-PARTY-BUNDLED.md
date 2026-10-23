@@ -192,7 +192,7 @@ written once with the crates that carry it.
 | `chacha20` | 0.10.2 | MIT OR Apache-2.0 |
 | `chacha20poly1305` | 0.11.0 | Apache-2.0 OR MIT |
 | `cipher` | 0.5.2 | MIT OR Apache-2.0 |
-| `clipboard-win` | 5.4.1 | BSL-1.0 |
+| `clipboard-win` | 5.4.3 | BSL-1.0 |
 | `cmov` | 0.5.4 | Apache-2.0 OR MIT |
 | `const-oid` | 0.10.2 | Apache-2.0 OR MIT |
 | `cookie` | 0.18.2 | MIT OR Apache-2.0 |
