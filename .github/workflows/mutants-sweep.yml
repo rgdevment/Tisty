@@ -57,6 +57,47 @@ jobs:
           path: mutants.out/
           retention-days: 14
 
+  tisty-share-proto:
+    name: tisty-share-proto / every mutant
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/toolchain
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        with:
+          shared-key: workspace
+          save-if: false
+      - uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2.87.22
+        with:
+          tool: nextest
+      - uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2.87.22
+        with:
+          tool: cargo-mutants
+
+      - name: Every mutant the signing and the phrase carry
+        id: run
+        run: |
+          set +e
+          cargo mutants -p tisty-share-proto -j 2
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+
+      - name: What survived
+        if: always()
+        env:
+          CODE: ${{ steps.run.outputs.code }}
+          TITLE: tisty-share-proto
+        run: bash scripts/mutants-report.sh
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: mutants-tisty-share-proto
+          path: mutants.out/
+          retention-days: 14
+
   tisty-sync:
     name: tisty-sync / every mutant
     runs-on: ubuntu-24.04
@@ -287,7 +328,7 @@ jobs:
   score:
     name: what the whole sweep came to
     if: always() && !cancelled()
-    needs: [tisty-nl, tisty-sync, tisty-carrier, tisty-cli, tisty-core, window]
+    needs: [tisty-nl, tisty-share-proto, tisty-sync, tisty-carrier, tisty-cli, tisty-core, window]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -310,7 +351,7 @@ jobs:
       - name: Every shard of the window told as one report
         env:
           WANT_WINDOW: 24
-          WANT_CRATES: 23
+          WANT_CRATES: 24
         run: bash scripts/mutants-score.sh
 
       - name: The report where a survivor can be read one by one
