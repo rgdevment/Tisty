@@ -420,5 +420,40 @@
         "said": "wherever assistants look for tools to connect, Tisty now shows its icon, screenshots and a full description, with links to the documentation, the guide to writing in Tisty and the wiki."
       }
     ]
+  },
+  {
+    "version": "1.32.1",
+    "headline": {
+      "es": "Tu asistente llama a Tisty por su nombre",
+      "en": "Your assistant calls Tisty by name"
+    },
+    "es": [
+      {
+        "title": "Tisty responde a «tisty»",
+        "said": "mientras tus asistentes tengan voz, Tisty responde al nombre tisty desde cualquier terminal, así un plugin puede arrancarlo sin saber dónde lo instalaste. En Windows lo hace la copia del instalador y en Mac la de Homebrew. Si les quitas la voz, deja de responder. Reinicia un asistente que ya estaba abierto para que lo note."
+      },
+      {
+        "title": "Siempre el más nuevo",
+        "said": "si tienes Tisty de la Store y del instalador a la vez, responde el más nuevo. Tu lista de rutas queda como estaba: Tisty solo agrega o quita su propia carpeta."
+      },
+      {
+        "title": "Documentos largos al instante",
+        "said": "una cita, un párrafo o una lista de enlaces muy largos se abren y se muestran en un momento, en vez de dejar la ventana esperando."
+      }
+    ],
+    "en": [
+      {
+        "title": "Tisty answers to «tisty»",
+        "said": "while your assistants have a voice, Tisty answers to the name tisty from any terminal, so a plugin can start it without knowing where you installed it. On Windows the installer's copy does it, and on Mac the Homebrew one. Take their voice away and it stops answering. Restart an assistant that was already open so it notices."
+      },
+      {
+        "title": "Always the newest",
+        "said": "if you have Tisty from the Store and from the installer at once, the newest one answers. Your list of paths stays as it was: Tisty only adds or removes its own folder."
+      },
+      {
+        "title": "Long documents at once",
+        "said": "a very long quote, paragraph or list of links opens and shows in a moment, instead of keeping the window waiting."
+      }
+    ]
   }
 ]
