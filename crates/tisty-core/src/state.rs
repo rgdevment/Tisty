@@ -39,6 +39,7 @@ pub struct State {
     pub retired: BTreeSet<String>,
     pub shed: BTreeSet<String>,
     pub forebears: BTreeSet<String>,
+    pub persons: crate::person::Persons,
     pub(crate) fill: Fill,
     pub(crate) tombstones: BTreeSet<Ulid>,
 }
@@ -438,9 +439,9 @@ impl State {
                     self.holders.remove(&at);
                 }
             }
-            Op::StoresJoined { d } => {
-                self.forebears.insert(d.absorbed.clone());
-                self.forebears.insert(d.survivor.clone());
+            Op::StoresJoined { d } => self.stores_joined(d),
+            Op::ShareKey { .. } | Op::ShareCertified { .. } | Op::ShareRevoked { .. } => {
+                self.persons.took(event);
             }
             Op::ListLook { id, d } => {
                 if let Some(list) = self.lists.get_mut(id) {

@@ -356,6 +356,9 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
         | Op::AttachLetGo { .. }
         | Op::AttachRetire { .. }
         | Op::StoresJoined { .. }
+        | Op::ShareKey { .. }
+        | Op::ShareCertified { .. }
+        | Op::ShareRevoked { .. }
         | Op::TaskPaged { .. } => None,
     }
 }

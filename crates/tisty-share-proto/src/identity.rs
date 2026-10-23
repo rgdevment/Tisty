@@ -69,6 +69,10 @@ impl ShareKey {
         self.0.verifying_key()
     }
 
+    pub fn shown(&self) -> String {
+        encoded(self.0.verifying_key().as_bytes())
+    }
+
     /// None unless the certificate holds and vouches for this very key: a signature nobody could check.
     pub fn sign(&self, certificate: &Certificate, about: &str, said: &[u8]) -> Option<Signed> {
         let vouched = certificate.vouches().ok()?;
@@ -290,6 +294,11 @@ fn between(kind: &[u8], root: &VerifyingKey, share: &VerifyingKey, when: Timesta
     out.extend_from_slice(share.as_bytes());
     out.extend_from_slice(&when.as_second().to_be_bytes());
     out
+}
+
+/// A share key as a machine publishes it, read back.
+pub fn share_key(said: &str) -> Option<VerifyingKey> {
+    key(said)
 }
 
 fn key(said: &str) -> Option<VerifyingKey> {

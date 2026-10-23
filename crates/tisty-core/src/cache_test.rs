@@ -1245,3 +1245,30 @@ fn a_write_another_process_finishes_meanwhile_does_not_cost_the_cache_its_rows()
     let cache = cache.unwrap();
     assert_eq!(cache.meta("fingerprint"), Some(print));
 }
+
+#[test]
+fn who_the_person_is_comes_back_from_the_cache() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut cache = Cache::open(dir.path()).unwrap().expect("a cache opens");
+    let seed = tisty_share_proto::seed::Seed::from_bytes(&[7; 32]);
+    let key = tisty_share_proto::identity::ShareKey::from_bytes(&[8; 32]);
+    let now = jiff::Timestamp::from_second(100).unwrap();
+    let mut state = State::default();
+    state
+        .persons
+        .keys
+        .insert(crate::DeviceId("dev_a".into()), key.shown());
+    state
+        .persons
+        .certificates
+        .push(seed.root().certify(&key.public(), now));
+    state
+        .persons
+        .revocations
+        .push(seed.root().revoke(&key.public(), now));
+
+    cache.store(&state, "print").unwrap();
+    let back = cache.load("print", true).expect("the cache had it");
+
+    assert_eq!(back.persons, state.persons, "who the person is was lost");
+}
