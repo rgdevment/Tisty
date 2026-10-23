@@ -1945,23 +1945,23 @@ fn two_sides_that_differ_with_nothing_behind_them_are_not_guessed() {
 }
 
 #[test]
-fn an_attachment_written_the_way_attach_writes_it_survives() {
+fn an_attachment_written_the_way_attach_writes_it_speaks() {
     let kept = "Lo hablado.
 
 ![el plano](plano-a1b2c3d4.pdf)
 ";
-    assert!(survives(kept).is_ok(), "attach writes exactly this");
+    assert!(speaks(kept).is_ok(), "attach writes exactly this");
 
     let spaced = "![x](<attachments/ab/Primer_Piso_(medidas aprox)-a1b2c3d4.pdf>)";
     assert!(
-        survives(spaced).is_ok(),
+        speaks(spaced).is_ok(),
         "the angles are there for names like this one"
     );
 
-    assert_eq!(survives("<div>algo</div>"), Err("HTML"));
-    assert_eq!(survives("texto <b>fuerte</b>"), Err("HTML"));
+    assert_eq!(speaks("<div>algo</div>"), Err("HTML"));
+    assert_eq!(speaks("texto <b>fuerte</b>"), Err("HTML"));
     assert_eq!(
-        survives("![x](<a<b>)"),
+        speaks("![x](<a<b>)"),
         Err("HTML"),
         "an angle inside the target is not a target"
     );

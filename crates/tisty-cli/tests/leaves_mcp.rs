@@ -1219,6 +1219,142 @@ fn a_file_from_another_app_comes_in_tidied_and_says_what_changed() {
 }
 
 #[test]
+fn a_document_from_another_app_reads_back_and_writes_back_without_losing_a_thing() {
+    let served = Served::new();
+    let (_dir, at) = on_disk(
+        "de-afuera.md",
+        "# De afuera
+
+> [!WARNING]
+> Cuidado con esto.
+
+Un ==resaltado== y un <span style=\"color:#d33\">rojo</span> y <b>fuerte</b>.
+
+- [ ] por hacer
+- [x] hecho
+
+| a | b |
+| --- | --- |
+| 1 | 2 |
+
+```mermaid
+graph TD; A-->B
+```
+
+$$
+x^2
+$$
+
+Una nota[^1] y [un enlace](https://example.com).
+
+[^1]: al pie
+",
+    );
+    let said = served.call(
+        "import_doc",
+        serde_json::json!({ "path": at.to_str().unwrap() }),
+    );
+    assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
+    let opened = served.call("read_doc", serde_json::json!({ "doc": doc }));
+    assert_ne!(
+        opened["result"]["isError"].as_bool(),
+        Some(true),
+        "{opened}"
+    );
+    let read = opened["result"]["structuredContent"]["body"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let print = opened["result"]["structuredContent"]["print"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert!(!read.contains("<span") && !read.contains("<b>"), "{read}");
+    assert!(tisty_core::docs::speaks(&read).is_ok(), "{read}");
+    for kept in [
+        "> [!WARNING]\n> Cuidado con esto.",
+        "==resaltado==",
+        "rojo==",
+        "**fuerte**",
+        "- [ ] por hacer",
+        "- [x] hecho",
+        "| 1 | 2 |",
+        "```mermaid\ngraph TD; A-->B\n```",
+        "$$\nx^2\n$$",
+        "[^1]: al pie",
+        "[un enlace](",
+        "https://example.com",
+    ] {
+        assert!(
+            read.contains(kept),
+            "{kept:?} was lost on the way in: {read}"
+        );
+    }
+
+    let again = served.call(
+        "write_doc",
+        serde_json::json!({ "doc": doc, "print": print, "body": read }),
+    );
+    assert_ne!(again["result"]["isError"].as_bool(), Some(true), "{again}");
+    assert_eq!(
+        served.body_of(doc),
+        read,
+        "writing back what was read changed it"
+    );
+
+    let copy = served.call(
+        "write_doc",
+        serde_json::json!({ "body": read, "anyway": true }),
+    );
+    assert_ne!(copy["result"]["isError"].as_bool(), Some(true), "{copy}");
+    let copy = copy["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert_eq!(
+        served.body_of(&copy),
+        read,
+        "a new document of the same words reads differently"
+    );
+}
+
+#[test]
+fn an_edit_that_takes_a_fence_away_and_leaves_html_bare_is_refused() {
+    let served = Served::new();
+    let doc = served.wrote("# Fichas\n\n```\n<div>x</div>\n```\n", None);
+
+    let why = served.refused(
+        "edit_doc",
+        serde_json::json!({ "doc": &doc, "old": "```\n<div>", "new": "texto\n<div>" }),
+    );
+    assert!(why.contains("HTML"), "{why}");
+
+    let print = served.print_of(&doc);
+    let why = served.refused(
+        "edit_doc",
+        serde_json::json!({ "doc": &doc, "from": 3, "to": 3, "new": "texto", "print": print }),
+    );
+    assert!(why.contains("HTML"), "{why}");
+    let kept = served.body_of(&doc);
+    assert!(kept.contains("```\n<div>x</div>\n```"), "{kept}");
+}
+
+#[test]
+fn a_fence_added_under_a_heading_that_leaves_html_bare_below_it_is_refused() {
+    let served = Served::new();
+    let doc = served.wrote(
+        "# Fichas\n\n## A\n\nuno\n\n## B\n\n```\n<div>x</div>\n```\n",
+        None,
+    );
+    let why = served.refused(
+        "append_doc",
+        serde_json::json!({ "doc": &doc, "under": "A", "body": "```" }),
+    );
+    assert!(why.contains("HTML"), "{why}");
+}
+
+#[test]
 fn a_title_in_front_matter_names_the_note_and_takes_the_one_asked_for() {
     let served = Served::new();
     let (_dir, at) = on_disk("nota.md", "---\ntitle: Plan\n---\n\nlo dicho\n");
@@ -3304,7 +3440,7 @@ fn told_of(said: &serde_json::Value) -> String {
 
 /// ITEM 2 — `open_at_end` says a document ends inside a fence when it does not.
 /// The outer fence is four backticks, so the three-backtick line inside it is content,
-/// not a close. `docs::survives` (the workspace's real fence tracker) gets this right.
+/// not a close. `docs::speaks` (the workspace's real fence tracker) gets this right.
 #[test]
 fn verify_item2_a_closed_fence_of_four_backticks_still_refuses_the_line() {
     let served = Served::new();

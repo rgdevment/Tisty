@@ -1,7 +1,5 @@
-// Every case here was put through the real editor first: what it refuses is what came back
-// damaged, and what it accepts is what came back byte for byte.
 #[test]
-fn what_the_editor_would_eat_is_refused_before_it_is_written() {
+fn raw_html_is_refused_before_it_is_written() {
     for (body, why) in [
         ("---\ntitle: notes\n---\n\n<div>x</div>", "HTML"),
         ("<div class=\"warn\">careful</div>", "HTML"),
@@ -12,12 +10,12 @@ fn what_the_editor_would_eat_is_refused_before_it_is_written() {
         ("> ```\n> code\n\n<div>real</div>", "HTML"),
         ("```text\n> ```\n```\n\n<div>real</div>", "HTML"),
     ] {
-        assert_eq!(super::survives(body), Err(why), "{body:?}");
+        assert_eq!(super::speaks(body), Err(why), "{body:?}");
     }
 }
 
 #[test]
-fn what_comes_back_untouched_goes_through() {
+fn markdown_in_tisty_words_goes_through() {
     for body in [
         "# Cartulinas\n\nRosa y palos de paleta.",
         "- one\n- two\n\n**bold** and `code`",
@@ -46,15 +44,15 @@ fn what_comes_back_untouched_goes_through() {
         "# t\n\n```\ncode\n~~~\naun es codigo <div>x</div>\n```\n",
         "",
     ] {
-        assert_eq!(super::survives(body), Ok(()), "{body:?}");
+        assert_eq!(super::speaks(body), Ok(()), "{body:?}");
     }
 }
 #[test]
 fn the_corpus_is_read_the_way_it_says() {
     let raw = std::fs::read_to_string(
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/frail.json"),
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/speaks.json"),
     )
-    .expect("the corpus of what survives a save");
+    .expect("the corpus of what Tisty speaks");
     let corpus: Vec<serde_json::Value> = serde_json::from_str(&raw).expect("a list of cases");
 
     for one in corpus {
@@ -65,7 +63,7 @@ fn the_corpus_is_read_the_way_it_says() {
             .iter()
             .filter_map(|it| it.as_str())
             .collect();
-        let said = super::survives(text).err().map(|it| match it {
+        let said = super::speaks(text).err().map(|it| match it {
             "HTML" => "html",
             other => other,
         });
@@ -92,7 +90,7 @@ fn a_colour_or_an_icon_the_language_has_not_got_is_refused() {
         ("<mark data-pen=\"rojo\">x</mark>", "HTML"),
         ("<span data-ico=\"nope\"></span>", "HTML"),
     ] {
-        assert_eq!(super::survives(body), Err(why), "{body:?}");
+        assert_eq!(super::speaks(body), Err(why), "{body:?}");
     }
 }
 
@@ -105,6 +103,6 @@ fn colours_and_icons_the_language_has_go_through_and_so_do_double_colons_in_word
         "`::nope::` in code",
         "<mark data-pen=\"green\">x</mark>",
     ] {
-        assert_eq!(super::survives(body), Ok(()), "{body:?}");
+        assert_eq!(super::speaks(body), Ok(()), "{body:?}");
     }
 }

@@ -1261,9 +1261,9 @@ fn the_guide_carries_pages_of_its_own_to_show_what_a_page_is() {
                 "a {tongue} page has no title: {marker}"
             );
             assert!(
-                tisty_core::docs::survives(leaf).is_ok(),
+                tisty_core::docs::speaks(leaf).is_ok(),
                 "the {tongue} page {marker} would open read-only: {:?}",
-                tisty_core::docs::survives(leaf)
+                tisty_core::docs::speaks(leaf)
             );
         }
         assert!(

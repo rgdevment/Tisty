@@ -244,7 +244,7 @@ ls
         let made = tisty_core::arriving::tidied(raw);
 
         assert!(
-            tisty_core::docs::survives(&made.body).is_ok(),
+            tisty_core::docs::speaks(&made.body).is_ok(),
             "lo que salio del arreglo ya no se puede abrir: {}",
             made.body
         );
@@ -534,25 +534,25 @@ fn every_mark_the_window_offers_is_one_the_core_accepts() {
 fn a_mark_written_into_the_text_is_something_the_editor_can_keep() {
     let good = "Lanzamiento <span data-ico=\"\u{1F680}\">\u{1F680}</span> del jueves";
     assert!(
-        tisty_core::docs::survives(good).is_ok(),
+        tisty_core::docs::speaks(good).is_ok(),
         "no lo deja guardar: {good}"
     );
 
     let hued = "Cara <span data-ico=\"\u{1F600}\" data-hue=\"blue\">\u{1F600}</span> aqui";
     assert!(
-        tisty_core::docs::survives(hued).is_ok(),
+        tisty_core::docs::speaks(hued).is_ok(),
         "con color tampoco: {hued}"
     );
 
     let drawn = "Plan <span data-ico=\"star\">:star:</span> de marzo";
     assert!(
-        tisty_core::docs::survives(drawn).is_ok(),
+        tisty_core::docs::speaks(drawn).is_ok(),
         "perdio los de siempre: {drawn}"
     );
 
     let bad = "Roto <span data-ico=\"hola mundo\">x</span>";
     assert!(
-        tisty_core::docs::survives(bad).is_err(),
+        tisty_core::docs::speaks(bad).is_err(),
         "acepto cualquier cosa: {bad}"
     );
 }
