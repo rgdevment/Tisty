@@ -79,7 +79,7 @@ pub fn tidied_among(body: &str, titles: &Titles) -> Tidied {
         opened.push("what an older Tisty wrote, in its own words now");
     }
     let plain = obsidian::obsidian(&plain, &mut opened, titles);
-    if crate::docs::survives(&plain).is_ok() {
+    if crate::docs::speaks(&plain).is_ok() {
         return Tidied {
             body: plain,
             changed: opened,

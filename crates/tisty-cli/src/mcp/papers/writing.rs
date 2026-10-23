@@ -31,7 +31,7 @@ pub(super) fn written_doc(
     let body = tisty_core::speaking::turned(&body);
     let (state, mut store) = opened(paths)?;
 
-    tisty_core::docs::survives(&body).map_err(|eats| Refused::Tool(not_spoken(eats)))?;
+    tisty_core::docs::speaks(&body).map_err(|stray| Refused::Tool(not_spoken(stray)))?;
 
     let body = match warned(paths, &body).and_then(|notice| warned_into("", &body, &notice)) {
         Some(made) => made,
@@ -284,7 +284,7 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
     let body = tisty_core::speaking::turned(&body);
     let (state, mut store) = opened(paths)?;
     if let Some(task) = super::super::task_notes::task_named(&state, &which) {
-        tisty_core::docs::survives(&body).map_err(|eats| Refused::Tool(not_spoken(eats)))?;
+        tisty_core::docs::speaks(&body).map_err(|stray| Refused::Tool(not_spoken(stray)))?;
         let under = text(args, "under");
         let replace = args
             .get("replace")
@@ -325,7 +325,7 @@ pub(in crate::mcp) fn append_doc(paths: &Paths, args: &Value) -> Result<Value, R
              window, not you. Ask them to unlock it if it truly has to change."
         )));
     }
-    tisty_core::docs::survives(&body).map_err(|eats| Refused::Tool(not_spoken(eats)))?;
+    tisty_core::docs::speaks(&body).map_err(|stray| Refused::Tool(not_spoken(stray)))?;
 
     let before = tisty_core::docs::read(&paths.docs(), &which).unwrap_or_default();
     let body = match warned(paths, &body).and_then(|notice| warned_into(&before, &body, &notice)) {
@@ -593,7 +593,7 @@ fn warned_into(before: &str, body: &str, notice: &str) -> Option<String> {
         true => made,
         false => put_in(body, body.len(), notice),
     };
-    tisty_core::docs::survives(&made).is_ok().then_some(made)
+    tisty_core::docs::speaks(&made).is_ok().then_some(made)
 }
 
 /// Every reason a new document is turned away, worked out before anything is written or copied:
@@ -801,7 +801,7 @@ pub(super) fn in_its_place(
     }
     let whole = format!("{head}{tail}{rest}");
 
-    tisty_core::docs::survives(&tail).map_err(|eats| Refused::Tool(not_spoken(eats)))?;
+    tisty_core::docs::speaks(&tail).map_err(|stray| Refused::Tool(not_spoken(stray)))?;
 
     match tisty_core::docs::rewrite(&paths.docs(), paths.data(), which, &whole, &print)
         .map_err(hitch)?
@@ -925,8 +925,8 @@ fn said_outline(body: &str) -> String {
         .join("\n")
 }
 
-pub(super) fn not_spoken(eats: &str) -> String {
+pub(super) fn not_spoken(stray: &str) -> String {
     format!(
-        "Tisty does not keep {eats} in its own words, so nothing was written. Send Tisty markdown: headings, lists, emphasis, links inline or by reference, footnotes, tables (aligned columns and all), fenced code with its language, and GitHub alerts written as a quote that opens with [!NOTE], [!TIP], [!IMPORTANT], [!WARNING] or [!CAUTION]. Underline is ++words++; a pen is ==words==, or ==words=={{green}} for another colour of the palette (red, orange, amber, green, teal, blue, indigo, purple, pink, brown, gray); an icon is ::name:: or ::name hue::, named as `language` lists them; an attachment is named by its stamped name. An older Tisty's <u>, <mark> and icon span are turned into these on their way in; any other tag is refused. Maths goes between $ or $$, or in a fence saying `math`. A fence carries its language and, if you want, a name: ```rust title=\"src/walk.rs\", and the same for `mermaid`, `math` and `widget`, which the window draws with that name above them. A `widget` holds plain HTML, CSS and script, drawn in a sealed frame with no network and the window's colours; its classes `grid`, `stat`, `card`, `head`, `badge`, `list`, `box` and `primary` buttons already look like Tisty, and a link in it can only open a `tisty:doc/` document or a web page. A page too large to write inline can be attached instead: `attach` an `.html` file to the document and it is drawn the same way."
+        "Tisty does not keep {stray} in its own words, so nothing was written. Send Tisty markdown: headings, lists, emphasis, links inline or by reference, footnotes, tables (aligned columns and all), fenced code with its language, and GitHub alerts written as a quote that opens with [!NOTE], [!TIP], [!IMPORTANT], [!WARNING] or [!CAUTION]. Underline is ++words++; a pen is ==words==, or ==words=={{green}} for another colour of the palette (red, orange, amber, green, teal, blue, indigo, purple, pink, brown, gray); an icon is ::name:: or ::name hue::, named as `language` lists them; an attachment is named by its stamped name. An older Tisty's <u>, <mark> and icon span are turned into these on their way in; any other tag is refused. Maths goes between $ or $$, or in a fence saying `math`. A fence carries its language and, if you want, a name: ```rust title=\"src/walk.rs\", and the same for `mermaid`, `math` and `widget`, which the window draws with that name above them. A `widget` holds plain HTML, CSS and script, drawn in a sealed frame with no network and the window's colours; its classes `grid`, `stat`, `card`, `head`, `badge`, `list`, `box` and `primary` buttons already look like Tisty, and a link in it can only open a `tisty:doc/` document or a web page. A page too large to write inline can be attached instead: `attach` an `.html` file to the document and it is drawn the same way."
     )
 }

@@ -1103,11 +1103,11 @@ the log and is capped at `BODY_AT_MOST` = 500 KiB.
   it, and the window shows it in the panel beside the page), footnotes,
   reference links, `$` and `$$` maths, what a fence says after its language,
   HTML comments and entities. What has no word in the language (raw HTML, a
-  colour outside the palette, an unknown icon) is what `docs::survives` finds,
+  colour outside the palette, an unknown icon) is what `docs::speaks` finds,
   and Maintenance lists it through `docs_brittle`. An assistant may send
   Markdown from anywhere: `arriving::tidied` turns it into the language and the
-  answer says what changed, and `docs::survives` refuses only what still has no
-  way in. Its cases are in `fixtures/frail.json`.
+  answer says what changed, and `docs::speaks` refuses only what still has no
+  way in. Its cases are in `fixtures/speaks.json`.
 
 ### Ways out
 
