@@ -110,6 +110,12 @@ jobs:
         run: |
           echo "SCCACHE_GHA_ENABLED=true" >> "$GITHUB_ENV"
           echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
+          # A cache that cannot answer costs time, never the job: rustc then compiles on its own.
+          echo "SCCACHE_IGNORE_SERVER_IO_ERROR=1" >> "$GITHUB_ENV"
+          # Started once here, so the first rustc calls do not race to start it (os error 10048 on Windows).
+          export SCCACHE_GHA_ENABLED=true
+          sccache --stop-server > /dev/null 2>&1 || true
+          sccache --start-server || echo "::warning::sccache did not start; this job compiles without it"
       - uses: ./.github/actions/sidecar
       - uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2.87.22
         with:
