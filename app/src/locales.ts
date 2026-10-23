@@ -4316,7 +4316,7 @@ const es: Catalog = {
   cameImported: "Llegó con un documento importado",
   cameParcel: "Llegó en un paquete",
   cameGuide: "Es parte de la guía",
-  cameHere: "este computador",
+  cameHere: "este equipo",
   twinsOpen: "Abrir",
   twinsJoin: "Unir",
   twinsLater: "Ahora no",

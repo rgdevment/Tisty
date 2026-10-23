@@ -1682,7 +1682,7 @@ fn a_kept_file_tells_how_it_came_and_nothing_beyond_the_name_it_is_kept_under() 
 }
 
 #[test]
-fn where_a_file_came_from_is_its_first_arrival_whatever_order_the_log_is_read_in() {
+fn where_a_file_came_from_is_its_first_arrival() {
     let one = crate::event::DeviceId("dev_one".into());
     let two = crate::event::DeviceId("dev_two".into());
     let at = |seconds: i64| jiff::Timestamp::from_second(seconds).unwrap();
@@ -1693,15 +1693,15 @@ fn where_a_file_came_from_is_its_first_arrival_whatever_order_the_log_is_read_in
         },
     };
     let events = [
-        crate::Event::new(one.clone(), at(20), held(Some("assistant"))),
         crate::Event::new(two.clone(), at(10), held(None)),
+        crate::Event::new(one.clone(), at(20), held(Some("assistant"))),
         crate::Event::new(two.clone(), at(30), held(Some("window"))),
     ];
 
     let arrived = arrivals(&events);
 
     let first = &arrived["attachments/plano-12345678.png"];
-    assert_eq!(first.by, two, "the first to keep it, though read last");
+    assert_eq!(first.by, two, "the first to keep it");
     assert_eq!(first.when, at(10));
     assert_eq!(
         first.came, None,

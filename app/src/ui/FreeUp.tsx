@@ -29,7 +29,7 @@ import { Band, dated, Line, mild, risky } from "./Rows";
 import Twins from "./Twins";
 
 // A file whose arrival is known shows that day; its date on this disk only when nothing else says.
-function Stray({
+function LooseRow({
   one,
   came,
   held,
@@ -204,7 +204,7 @@ export default function FreeUp({
                 )}
                 <ul className="scroller mt-2 flex max-h-[22rem] flex-col gap-1 overflow-y-auto text-[12.5px]">
                   {audit.astray.map((one) => (
-                    <Stray
+                    <LooseRow
                       key={one.at}
                       one={one}
                       came={audit.came?.[one.at]}

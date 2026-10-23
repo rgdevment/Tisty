@@ -47,6 +47,18 @@ impl Retired {
     }
 }
 
+impl Via {
+    pub fn said(self) -> &'static str {
+        match self {
+            Via::Window => "window",
+            Via::Assistant => "assistant",
+            Via::Imported => "imported",
+            Via::Parcel => "parcel",
+            Via::Guide => "guide",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Arrival {
     pub came: Option<String>,
@@ -54,12 +66,10 @@ pub struct Arrival {
     pub when: jiff::Timestamp,
 }
 
-// The log is read machine by machine, so it is put in time first; a retired name starts over.
+// Events come in time from `store::read_all`, so the first seen is the first arrival; a retired name starts over.
 pub fn arrivals(events: &[crate::event::Event]) -> std::collections::BTreeMap<String, Arrival> {
-    let mut timed: Vec<&crate::event::Event> = events.iter().collect();
-    timed.sort_by_key(|one| one.timestamp);
     let mut first: std::collections::BTreeMap<String, Arrival> = Default::default();
-    for event in timed {
+    for event in events {
         match &event.op {
             crate::Op::AttachKept { d } => {
                 // What the projection does not trust about a file says nothing about it here either.
@@ -82,18 +92,6 @@ pub fn arrivals(events: &[crate::event::Event]) -> std::collections::BTreeMap<St
         }
     }
     first
-}
-
-impl Via {
-    pub fn said(self) -> &'static str {
-        match self {
-            Via::Window => "window",
-            Via::Assistant => "assistant",
-            Via::Imported => "imported",
-            Via::Parcel => "parcel",
-            Via::Guide => "guide",
-        }
-    }
 }
 
 impl Kept {
