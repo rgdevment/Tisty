@@ -13,6 +13,7 @@ mod leaving;
 mod linking;
 mod moving;
 mod news;
+mod pathing;
 mod pdf;
 mod quick_keys;
 mod reaching;
@@ -903,6 +904,8 @@ pub(crate) fn opened(
     }
 
     answers::agents::opened_by_default(&mut session);
+    let paths = session.paths.clone();
+    std::thread::spawn(move || pathing::keep(paths));
     news::raise(
         app,
         session.paths.config(),

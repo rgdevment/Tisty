@@ -756,6 +756,12 @@ aparece en Configuración › Asistentes como un dispositivo al que tienes que d
 entrada, y sigue siendo un dispositivo que puedes echar; mientras no le des
 entrada, todo lo que intente se le niega.
 
+Mientras los asistentes tengan voz, un Tisty estable también responde al nombre
+`tisty` en tu PATH —la Store y Homebrew lo dejan ahí, y la copia del instalador
+agrega su propia carpeta—, así un plugin puede arrancarlo por su nombre.
+Quitarles la voz saca esa carpeta del PATH otra vez. Reinicia un asistente que
+ya estaba abierto para que vea el cambio.
+
 Lo que puede hacer es deliberadamente poco: anotar una tarea con sus pasos y su
 fecha, ponerle una hora a la que sonar, mover el día de una tarea que anotó él
 mismo, dar por hecha una tarea que anotó él —que la marca para que la confirmes

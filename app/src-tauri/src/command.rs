@@ -5,38 +5,10 @@ use tisty_core::witness::{self, Fact, channel};
 fn unwritten(why: &std::io::Error) {
     witness::error(
         channel::TERMINAL,
-        "the retired tisty command could not be taken off PATH",
+        "the tisty command could not be taken off PATH",
         &[("why", Fact::Why(why.to_string()))],
     );
 }
-
-#[cfg(windows)]
-fn same(a: &str, b: &str) -> bool {
-    let tidy = |one: &str| {
-        let one = one.trim().trim_end_matches(['\\', '/']).to_string();
-        if cfg!(windows) {
-            one.to_lowercase()
-        } else {
-            one
-        }
-    };
-    !a.trim().is_empty() && tidy(a) == tidy(b)
-}
-
-#[cfg(windows)]
-pub fn without(path: &str, dir: &str) -> Option<String> {
-    if !path.split(SEPARATOR).any(|one| same(one, dir)) {
-        return None;
-    }
-    let kept: Vec<&str> = path
-        .split(SEPARATOR)
-        .filter(|one| !same(one, dir))
-        .collect();
-    Some(kept.join(&SEPARATOR.to_string()))
-}
-
-#[cfg(windows)]
-const SEPARATOR: char = ';';
 
 pub const CLI: &str = if cfg!(windows) { "tisty.exe" } else { "tisty" };
 
@@ -74,12 +46,13 @@ fn called(folder: Option<&Path>) -> String {
 
 // The alias's own path does not move with the Store's updates and needs no PATH to be found.
 fn aliased() -> Option<PathBuf> {
-    let local = std::env::var_os("LOCALAPPDATA")?;
-    let at = Path::new(&local)
-        .join("Microsoft")
-        .join("WindowsApps")
-        .join(CLI);
+    let at = aliases()?.join(CLI);
     (cfg!(windows) && at.exists()).then_some(at)
+}
+
+pub fn aliases() -> Option<PathBuf> {
+    let local = std::env::var_os("LOCALAPPDATA")?;
+    Some(Path::new(&local).join("Microsoft").join("WindowsApps"))
 }
 
 // Opened from the disk image or moved aside by macOS, the path is gone once the app is quit.
@@ -109,7 +82,7 @@ pub fn reach() -> Reach {
 const WHERE: &str = "Environment";
 
 #[cfg(windows)]
-fn read() -> Option<String> {
+pub(crate) fn user_path() -> Option<String> {
     read_from(WHERE)
 }
 
@@ -123,7 +96,7 @@ fn read_from(at: &str) -> Option<String> {
 }
 
 #[cfg(windows)]
-fn write(value: &str) -> std::io::Result<()> {
+pub(crate) fn set_user_path(value: &str) -> std::io::Result<()> {
     write_to(WHERE, value)
 }
 
@@ -207,13 +180,19 @@ pub fn ours_on_the_shelf(at: &Path, home: &Path) -> bool {
 
 #[cfg(windows)]
 pub fn out_of_reach() -> std::io::Result<bool> {
+    crate::pathing::leaving();
     let Some(folder) = beside() else {
         return Ok(false);
     };
-    let path = read().unwrap_or_default();
-    match without(&path, &folder.display().to_string()) {
+    let path = user_path().unwrap_or_default();
+    match crate::pathing::without(
+        &path,
+        &folder.display().to_string(),
+        &crate::pathing::expanded,
+    ) {
         Some(next) => {
-            write(&next).inspect_err(unwritten)?;
+            set_user_path(&next).inspect_err(unwritten)?;
+            crate::pathing::announce();
             Ok(true)
         }
         None => Ok(false),
@@ -311,50 +290,6 @@ mod tests {
 mod tests {
     use super::*;
 
-    fn joined(parts: &[&str]) -> String {
-        parts.join(&SEPARATOR.to_string())
-    }
-
-    #[test]
-    fn a_long_path_survives_the_round_trip() {
-        let many: Vec<String> = (0..22)
-            .map(|i| format!("C:\\Users\\Someone\\A rather long program directory number {i}"))
-            .collect();
-        let path = many.join(&SEPARATOR.to_string());
-        assert!(path.len() > 1024, "the case only bites past 1024");
-
-        let added = format!("{path}{SEPARATOR}C:\\Programs\\Tisty");
-        assert_eq!(added.split(SEPARATOR).count(), 23);
-
-        let back = without(&added, "C:\\Programs\\Tisty").unwrap();
-        assert_eq!(back, path, "the other entries did not come back");
-    }
-
-    #[test]
-    fn removing_what_was_never_there_changes_nothing() {
-        let path = joined(&["C:\\one", "C:\\two"]);
-        assert!(without(&path, "C:\\Tisty").is_none());
-    }
-
-    #[test]
-    fn an_empty_path_is_not_a_missing_one() {
-        assert!(without("", "C:\\Tisty").is_none());
-    }
-
-    #[test]
-    fn a_trailing_slash_is_the_same_directory() {
-        let path = joined(&["C:\\one", "C:\\Tisty\\"]);
-        assert_eq!(without(&path, "C:\\Tisty").unwrap(), "C:\\one");
-    }
-
-    #[cfg(windows)]
-    #[test]
-    fn windows_does_not_mind_the_case() {
-        let path = joined(&["C:\\one", "c:\\programs\\TISTY"]);
-        assert_eq!(without(&path, "C:\\Programs\\Tisty").unwrap(), "C:\\one");
-    }
-
-    #[cfg(windows)]
     #[test]
     fn the_registry_keeps_a_value_longer_than_nsis_could_read() {
         use winreg::enums::{HKEY_CURRENT_USER, KEY_WRITE};
@@ -375,18 +310,5 @@ mod tests {
 
         let _ = winreg::RegKey::predef(HKEY_CURRENT_USER).delete_subkey_all(at);
         let _ = winreg::RegKey::predef(HKEY_CURRENT_USER).delete_subkey(r"Software\Tisty");
-    }
-
-    #[test]
-    fn the_rest_keeps_its_order_and_its_spelling() {
-        let path = joined(&[
-            "%USERPROFILE%\\bin",
-            "C:\\Tisty",
-            "C:\\Program Files\\Git\\cmd",
-        ]);
-        assert_eq!(
-            without(&path, "C:\\Tisty").unwrap(),
-            joined(&["%USERPROFILE%\\bin", "C:\\Program Files\\Git\\cmd"])
-        );
     }
 }

@@ -1829,9 +1829,12 @@ jobs:
           if [[ "$VERSION" == *-* ]]; then
             CASK="tisty-beta"; CASK_OTHER="tisty"
             SUFFIX=" (beta)"
+            # A beta never takes the name a plugin calls: only the stable cask links `tisty`.
+            BINARY=""
           else
             CASK="tisty";      CASK_OTHER="tisty-beta"
             SUFFIX=""
+            BINARY='binary "#{appdir}/Tisty.app/Contents/MacOS/tisty"'
           fi
 
           fetch() {
@@ -1888,6 +1891,7 @@ jobs:
           	  TEXT
 
           	  app "Tisty.app"
+          	  ${BINARY}
 
           	  # The command line travels inside the app, as the assistant's door.
           	  zap trash: [
