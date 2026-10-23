@@ -1464,7 +1464,7 @@ fn every_way_an_attachment_is_born_says_what_it_holds() {
             .match_indices(".told(")
             .filter(|(at, _)| {
                 let said_of = said[at + 6..].split(')').next().unwrap_or_default();
-                said_of.contains("Via::") || said_of.contains("came")
+                said_of.contains("Via::") || said_of == "way.came"
             })
             .count();
         if told < kept {
@@ -1655,7 +1655,17 @@ fn a_kept_file_tells_how_it_came_and_nothing_beyond_the_name_it_is_kept_under() 
         panic!("what it tells is not what an attachment holds");
     };
     assert_eq!(d.came.as_deref(), Some("guide"));
-    assert_eq!(d.at, kept.at);
+    assert!(
+        d.at.starts_with("attachments/plano-final-"),
+        "kept under its tidied stem, nothing more of the name: {}",
+        d.at
+    );
+    assert!(
+        !serde_json::to_string(&told)
+            .unwrap()
+            .contains("Plano final"),
+        "the name as it was written never reaches the log"
+    );
     let line: serde_json::Value = serde_json::to_value(&told).unwrap();
     let mut fields: Vec<&str> = line["d"]
         .as_object()

@@ -1156,8 +1156,11 @@ stateDiagram-v2
   Nothing larger than `HELD_UP_TO` = 750 MB is taken in from another machine
   or the cloud.
 - **Events.** `attach.kept { at, sha256, bytes }` says a machine holds a copy,
-  and since 1.33 also how it came (`came`: `window`, `assistant`, `imported`,
-  `parcel` or `guide`), optional so an older build reads it as before, and
+  and since 1.33 also how it came (`came`: `window` dropped or pasted in the
+  app, `assistant` through the assistant's `attach`, `imported` beside a
+  document brought in by the app or by `import_doc`, `parcel` from a parcel,
+  `guide` for the guide's pictures), optional so an older build reads it as
+  before, and
   absent where a machine only says it holds a copy that came another way. Of
   the file's name it carries only `at`, the tidied stem it is kept under: the
   log is shared and never forgets.
