@@ -1793,9 +1793,17 @@ fn a_picture_read_as_markdown_is_named_and_the_way_to_carry_it_is_said() {
 #[test]
 fn a_document_with_nothing_to_lose_says_nothing_about_losing() {
     let served = Served::new();
-    let doc = served.wrote("# Plain\n\nJust words.", None);
+    let doc = served.wrote(
+        "# Plain
 
-    let said = served.call("read_doc", serde_json::json!({ "doc": doc, "as": "html" }));
+Just words.",
+        None,
+    );
+
+    let said = served.call(
+        "read_doc",
+        serde_json::json!({ "doc": doc, "as": "markdown" }),
+    );
 
     let told = &said["result"]["structuredContent"];
     assert!(
@@ -1806,18 +1814,52 @@ fn a_document_with_nothing_to_lose_says_nothing_about_losing() {
 }
 
 #[test]
-fn a_diagram_read_as_html_warns_that_many_editors_drop_it() {
+fn a_picture_shown_inside_code_is_not_taken_for_one_that_stays_behind() {
     let served = Served::new();
-    let doc = served.wrote("# Map\n\n```mermaid\ngraph TD; A-->B\n```\n", None);
+    let doc = served.wrote(
+        "# How to
 
-    let said = served.call("read_doc", serde_json::json!({ "doc": doc, "as": "html" }));
+```markdown
+![x](attachments/ab/x-12345678.png)
+```
+",
+        None,
+    );
 
-    let body = said["result"]["structuredContent"]["body"]
-        .as_str()
-        .unwrap();
-    assert!(body.contains("<figure class=\"diagram\""), "{body}");
+    let said = served.call(
+        "read_doc",
+        serde_json::json!({ "doc": doc, "as": "markdown" }),
+    );
+
+    let told = &said["result"]["structuredContent"];
+    assert!(told.get("left_out").is_none(), "{told}");
+}
+
+#[test]
+fn a_document_marked_as_having_had_its_day_says_so_before_it_is_carried_out() {
+    let served = Served::new();
+    let doc = served.wrote(
+        "# Old plan
+
+what we meant to do",
+        None,
+    );
+    served.call(
+        "flag_doc",
+        serde_json::json!({ "doc": &doc, "body": "it has had its day" }),
+    );
+
+    let said = served.call(
+        "read_doc",
+        serde_json::json!({ "doc": doc, "as": "markdown" }),
+    );
+
     let words = said["result"]["content"][0]["text"].as_str().unwrap();
-    assert!(words.contains("many editors"), "{words}");
+    assert!(words.contains("has had its day"), "{words}");
+    assert!(
+        words.contains("Ask the person before carrying it anywhere"),
+        "{words}"
+    );
 }
 
 #[test]
@@ -1830,8 +1872,14 @@ fn reading_as_another_shape_takes_the_whole_document_and_only_shapes_it_knows() 
         serde_json::json!({ "doc": doc, "as": "markdown", "section": 0 }),
     );
     assert!(part.contains("takes no `section`"), "{part}");
-    let odd = served.refused("read_doc", serde_json::json!({ "doc": doc, "as": "pdf" }));
-    assert!(odd.contains("\"markdown\" or \"html\""), "{odd}");
+    for odd in [
+        serde_json::json!("html"),
+        serde_json::json!(""),
+        serde_json::json!(["markdown"]),
+    ] {
+        let said = served.refused("read_doc", serde_json::json!({ "doc": doc, "as": odd }));
+        assert!(said.contains("`as` takes \"markdown\""), "{said}");
+    }
 }
 
 #[test]

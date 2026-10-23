@@ -95,3 +95,13 @@ fn a_task_s_card_goes_out_as_its_words() {
         "Antes:\n\nEmpacar los libros"
     );
 }
+
+#[test]
+fn a_diagram_fenced_as_mmd_goes_out_as_mermaid_for_the_places_that_draw_it() {
+    assert_eq!(
+        alone("```mmd\ngraph TD; A-->B\n```\n"),
+        "```mermaid\ngraph TD; A-->B\n```\n"
+    );
+    let named = "```mermaid\ngraph TD; A-->B\n```\n";
+    assert_eq!(alone(named), named);
+}
