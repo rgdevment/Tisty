@@ -386,7 +386,6 @@ jobs:
       - uses: ./.github/actions/package
         with:
           version: ${{ needs.version.outputs.version }}
-          name: macos-universal
           target: ${{ env.TARGET }}
 
   build-windows:
@@ -466,7 +465,6 @@ jobs:
       - uses: ./.github/actions/package
         with:
           version: ${{ needs.version.outputs.version }}
-          name: windows-x86_64
           target: ${{ env.TARGET }}
 
   bundle-windows:
@@ -1009,40 +1007,6 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
-  bundle-mcpb:
-    name: tisty-mcp-bundle
-    needs: [version, build-macos, build-windows]
-    if: >-
-      !cancelled()
-      && (needs.version.outputs.prerelease == 'false' || github.event_name == 'workflow_dispatch')
-      && needs.build-macos.result == 'success' && needs.build-windows.result == 'success'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          pattern: server-*
-          path: staged
-
-      - name: Bundle it for the assistants
-        env:
-          VERSION: ${{ needs.version.outputs.version }}
-          STAGED: staged
-          DIST: dist
-          REPO: ${{ github.repository }}
-        run: python3 scripts/mcpb.py
-
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: bundle-mcpb
-          path: dist/*.mcpb
-          if-no-files-found: error
-          retention-days: 5
-
   # The only job that holds the updater key: it builds nothing and runs nobody else's scripts.
   sign-updater:
     name: Signed for the updater
@@ -1136,7 +1100,6 @@ jobs:
         version,
         build-macos,
         build-windows,
-        bundle-mcpb,
         bundle-windows,
         bundle-macos,
         bundle-msix,
@@ -1148,7 +1111,6 @@ jobs:
       && needs.version.result == 'success'
       && (needs.build-macos.result == 'success' || needs.build-macos.result == 'skipped')
       && (needs.build-windows.result == 'success' || needs.build-windows.result == 'skipped')
-      && (needs.bundle-mcpb.result == 'success' || needs.bundle-mcpb.result == 'skipped')
       && needs.bundle-windows.result == 'success'
       && (needs.bundle-macos.result == 'success' || needs.bundle-macos.result == 'skipped')
       && (needs.bundle-msix.result == 'success' || needs.bundle-msix.result == 'skipped')
@@ -1199,9 +1161,6 @@ jobs:
             want="$want tisty-$v-windows-x86_64.msix"
           fi
           if [ "${BUILD_MACOS}" = "true" ]; then
-            if [ "${{ needs.version.outputs.prerelease }}" = "false" ]; then
-              want="$want tisty-mcp-$v.mcpb"
-            fi
             for arch in aarch64 x86_64; do want="$want tisty-installer-$v-macos-$arch.dmg"; done
           fi
           # A missing signature is a release nobody can install. It has to be loud here.
@@ -1771,17 +1730,11 @@ jobs:
             echo "go=yes" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Point the listing at what this tag published
+      - name: Point the listing at this tag and the launcher npm has
         if: steps.listed.outputs.go == 'yes'
         env:
           VERSION: ${{ needs.version.outputs.version }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release download "v$VERSION" --pattern "tisty-mcp-$VERSION.mcpb" --pattern SHA256SUMS
-          # A wrong hash publishes without complaint and leaves that version uninstallable
-          # for ever, because the registry never revisits a version it already took.
-          sha256sum --check --strict --ignore-missing SHA256SUMS
-          BUNDLE="tisty-mcp-$VERSION.mcpb" REPO="$GITHUB_REPOSITORY" python3 scripts/listing.py
+        run: REPO="$GITHUB_REPOSITORY" python3 scripts/listing.py
 
       - name: Install mcp-publisher
         if: steps.listed.outputs.go == 'yes'

@@ -18,9 +18,10 @@
   "version": "0.0.0",
   "packages": [
     {
-      "registryType": "mcpb",
-      "identifier": "https://github.com/rgdevment/Tisty/releases/download/v0.0.0/tisty-mcp-0.0.0.mcpb",
-      "fileSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "tisty-mcp",
+      "version": "0.0.0",
       "transport": { "type": "stdio" }
     }
   ]

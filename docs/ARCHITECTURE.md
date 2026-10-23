@@ -1309,8 +1309,11 @@ line that was here is gone, and with it the only general undo: `undo.rs` in
 `tisty-core` still computes an inverse per event, but the window offers none,
 only putting a document's body back.
 
-The window bundles the binary as a sidecar, and the `.mcpb` bundle carries it
-for Claude Desktop, because it is how assistants reach Tisty.
+The window bundles the binary as a sidecar, because it is how assistants reach
+Tisty. Plugins and the `tisty-mcp` launcher on npm, from
+[mcp-plugins](https://github.com/rgdevment/mcp-plugins), find the installed
+copy and run it, so the server always matches the app and its data; the MCP
+Registry lists that npm package.
 
 Its tests in `crates/tisty-cli/tests` spawn the binary for the assistant's side
 and do the person's side through `tisty-core` (`tests/person`), so the door is

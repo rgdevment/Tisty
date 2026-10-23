@@ -1,12 +1,9 @@
 name: Package the binary
-description: Runs the built binary and hands it to the bundle for assistants.
+description: Runs the built binary and checks it reports the version being released.
 
 inputs:
   version:
     description: Version the binary must report.
-    required: true
-  name:
-    description: Platform slug, as it appears in the artifact name.
     required: true
   target:
     description: Rust target the binary was built for.
@@ -26,10 +23,3 @@ runs:
           bin="$bin.exe"
         fi
         test "$("$bin" --version)" = "tisty $VERSION"
-
-    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-      with:
-        name: server-${{ inputs.name }}
-        path: target/${{ inputs.target }}/release/tisty${{ runner.os == 'Windows' && '.exe' || '' }}
-        if-no-files-found: error
-        retention-days: 5
