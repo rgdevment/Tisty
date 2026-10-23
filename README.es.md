@@ -1073,7 +1073,8 @@ Quien participe —en issues, pull requests, discusiones o la wiki— sigue el
 
 ## Licencia
 
-[AGPL-3.0](LICENSE).
+[AGPL-3.0](LICENSE). El uso de Tisty se rige por unos
+[términos de uso](TERMS.md) breves, en inglés, que no le quitan nada.
 
 ### Otros términos
 
