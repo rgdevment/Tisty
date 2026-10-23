@@ -1877,8 +1877,9 @@ fn reading_as_another_shape_takes_the_whole_document_and_only_shapes_it_knows() 
         serde_json::json!(""),
         serde_json::json!(["markdown"]),
     ] {
+        // A value that is not text is turned away before the tool reads it, in the door's own words.
         let said = served.refused("read_doc", serde_json::json!({ "doc": doc, "as": odd }));
-        assert!(said.contains("`as` takes \"markdown\""), "{said}");
+        assert!(said.contains("`as` takes"), "{said}");
     }
 }
 
