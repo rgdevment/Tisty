@@ -210,7 +210,7 @@ written once with the crates that carry it.
 | `crypto-common` | 0.2.2 | MIT OR Apache-2.0 |
 | `cssparser` | 0.38.0 | MPL-2.0 |
 | `ctor` | 1.0.13 | Apache-2.0 OR MIT |
-| `ctutils` | 0.4.3 | Apache-2.0 OR MIT |
+| `ctutils` | 0.4.5 | Apache-2.0 OR MIT |
 | `curve25519-dalek` | 5.0.0 | BSD-3-Clause |
 | `deranged` | 0.5.9 | MIT OR Apache-2.0 |
 | `digest` | 0.11.3 | MIT OR Apache-2.0 |
