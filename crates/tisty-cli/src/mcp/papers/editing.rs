@@ -59,14 +59,18 @@ pub(in crate::mcp) fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
     }
     let new = tisty_core::speaking::turned(new);
     let new = new.as_str();
-    tisty_core::docs::survives(new)
-        .map_err(|eats| Refused::Tool(super::writing::not_spoken(eats)))?;
+    tisty_core::docs::speaks(new)
+        .map_err(|unsaid| Refused::Tool(super::writing::not_spoken(unsaid)))?;
 
     if by_place {
         return in_its_place(paths, &state, &mut store, &which, args, new);
     }
 
     let (old, new) = (&old.replace('\r', ""), &new.replace('\r', ""));
+    let before = tisty_core::docs::read(&paths.docs(), &which).unwrap_or_default();
+    if before.matches(old.as_str()).count() == 1 {
+        super::writing::still_speaks(&before, &before.replacen(old.as_str(), new, 1))?;
+    }
     let made = tisty_core::docs::edit(&paths.docs(), paths.data(), &which, old, new).map_err(
         |e| match e {
             tisty_core::Error::DocumentTooBig { limit, .. } => Refused::Tool(format!(

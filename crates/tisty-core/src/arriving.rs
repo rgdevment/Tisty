@@ -79,7 +79,7 @@ pub fn tidied_among(body: &str, titles: &Titles) -> Tidied {
         opened.push("what an older Tisty wrote, in its own words now");
     }
     let plain = obsidian::obsidian(&plain, &mut opened, titles);
-    if crate::docs::survives(&plain).is_ok() {
+    if crate::docs::speaks(&plain).is_ok() {
         return Tidied {
             body: plain,
             changed: opened,
@@ -259,6 +259,11 @@ fn bared(
         }
         out = found;
     }
+    let (painted, changed) = unpainted(&out);
+    if changed {
+        out = painted;
+        note("a colour turned into the nearest pen", said);
+    }
     if tagged(&out) {
         out = tagless(&out);
         note("HTML with nothing markdown can say", said);
@@ -268,6 +273,52 @@ fn bared(
         note("a run of code left open", said);
     }
     out
+}
+
+// A `<span>` or `<font>` is taken off whole, both ends of it, so neither half is left behind alone.
+fn unpainted(line: &str) -> (String, bool) {
+    let mut out = String::with_capacity(line.len());
+    let mut rest = line;
+    let mut changed = false;
+    while let Some((at, tag)) = ["<span", "<font"]
+        .iter()
+        .filter_map(|tag| rest.find(tag).map(|at| (at, &tag[1..])))
+        .min_by_key(|(at, _)| *at)
+    {
+        let after = &rest[at + 1 + tag.len()..];
+        let shut = format!("</{tag}>");
+        let (Some(head), true) = (after.find('>'), after.starts_with([' ', '>'])) else {
+            out.push_str(&rest[..at + 1]);
+            rest = &rest[at + 1..];
+            continue;
+        };
+        let inside = &after[..head];
+        let Some(end) = after[head + 1..].find(&shut) else {
+            out.push_str(&rest[..at + 1]);
+            rest = &rest[at + 1..];
+            continue;
+        };
+        if crate::docs::kept(&format!("{tag}{inside}")) {
+            out.push_str(&rest[..at + 1]);
+            rest = &rest[at + 1..];
+            continue;
+        }
+        let words = &after[head + 1..head + 1 + end];
+        let quoted = |name: &str| {
+            let from = inside.find(&format!("{name}=\""))? + name.len() + 2;
+            inside[from..].find('"').map(|to| &inside[from..from + to])
+        };
+        out.push_str(&rest[..at]);
+        match html::written_hue(quoted("style").unwrap_or_default(), quoted("color")) {
+            Some(hue) if hue == "yellow" => out.push_str(&format!("=={words}==")),
+            Some(hue) => out.push_str(&format!("=={words}=={{{hue}}}")),
+            None => out.push_str(words),
+        }
+        rest = &after[head + 1 + end + shut.len()..];
+        changed = true;
+    }
+    out.push_str(rest);
+    (out, changed)
 }
 
 fn opens(line: &str) -> Option<String> {

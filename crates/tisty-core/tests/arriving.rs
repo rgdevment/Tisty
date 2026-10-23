@@ -1,14 +1,14 @@
 use tisty_core::arriving::tidied;
-use tisty_core::docs::survives;
+use tisty_core::docs::speaks;
 
 fn plain(said: &str) -> String {
     let out = tidied(said);
     assert!(
-        survives(&out.body).is_ok(),
+        speaks(&out.body).is_ok(),
         "what came out is still refused: {:?} -> {:?} ({:?})",
         said,
         out.body,
-        survives(&out.body)
+        speaks(&out.body)
     );
     out.body
 }
@@ -39,7 +39,7 @@ fn html_that_markdown_cannot_say_is_dropped_rather_than_left_to_be_destroyed() {
     let out = tidied("<div class=\"callout\">Aviso</div>\n");
 
     assert_eq!(out.body, "Aviso\n");
-    assert!(survives(&out.body).is_ok());
+    assert!(speaks(&out.body).is_ok());
     assert!(out.changed.contains(&"HTML with nothing markdown can say"));
 }
 
@@ -71,7 +71,7 @@ fn the_standard_forms_the_language_adopts_come_in_as_they_were_written() {
         "esto es &amp;amp; y listo\n",
         "Antes\n\n  ```sh\ngit cherry-pick <uno> <dos>\n```\n\nDespues\n",
     ] {
-        assert!(survives(said).is_ok(), "{said:?} is the premise");
+        assert!(speaks(said).is_ok(), "{said:?} is the premise");
         let out = tidied(said);
         assert_eq!(out.body, said, "nothing to fix is nothing to touch");
         assert!(out.changed.is_empty(), "{:?}", out.changed);
@@ -113,10 +113,10 @@ fn everything_it_hands_back_is_something_tisty_will_take() {
     ] {
         let out = tidied(said);
         assert!(
-            survives(&out.body).is_ok(),
+            speaks(&out.body).is_ok(),
             "{said:?} came out as {:?}, still refused for {:?}",
             out.body,
-            survives(&out.body)
+            speaks(&out.body)
         );
     }
 }
@@ -155,7 +155,7 @@ fn a_run_of_code_left_open_is_shut_rather_than_read_as_html() {
         "El comienzo es `<?php`
 "
     );
-    assert!(survives(&out.body).is_ok());
+    assert!(speaks(&out.body).is_ok());
     assert!(out.changed.contains(&"a run of code left open"));
 }
 
@@ -207,7 +207,7 @@ fn what_is_written_between_backticks_is_not_tidied() {
             "{said:?} lost {kept:?}: {:?}",
             out.body
         );
-        assert!(survives(&out.body).is_ok());
+        assert!(speaks(&out.body).is_ok());
     }
 }
 
@@ -271,7 +271,7 @@ muchas lineas en blanco
         "- uno
 - dos",
     ] {
-        assert!(survives(said).is_ok(), "{said:?} is the premise");
+        assert!(speaks(said).is_ok(), "{said:?} is the premise");
         let out = tidied(said);
         assert_eq!(out.body, said, "nothing to fix is nothing to touch");
         assert!(out.changed.is_empty());
@@ -324,7 +324,7 @@ fn a_colour_or_an_icon_tisty_has_not_got_comes_in_as_what_it_can_say() {
         made.changed
             .contains(&"a colour or an icon Tisty does not have")
     );
-    assert!(tisty_core::docs::survives(&made.body).is_ok());
+    assert!(tisty_core::docs::speaks(&made.body).is_ok());
 }
 
 #[test]
@@ -345,7 +345,7 @@ fn obsidian_forms_come_in_as_the_language_says_them() {
     ] {
         assert!(out.changed.contains(&what), "{what}: {:?}", out.changed);
     }
-    assert!(survives(&out.body).is_ok(), "{:?}", out.body);
+    assert!(speaks(&out.body).is_ok(), "{:?}", out.body);
 }
 
 #[test]
@@ -400,7 +400,7 @@ fn a_page_of_html_comes_in_as_the_tisty_language() {
         !said.contains("=={black}") && !said.contains("==negro"),
         "{said}"
     );
-    assert!(survives(&said).is_ok(), "{:?}", survives(&said));
+    assert!(speaks(&said).is_ok(), "{:?}", speaks(&said));
 }
 
 #[test]
@@ -413,7 +413,7 @@ fn a_table_drawn_in_a_terminal_comes_in_as_a_table() {
         out,
         "Esta semana\n\n| Tarea | Para |\n| --- | --- |\n| Pagar la luz | Lunes |\n| Comprar | Mié |\n\nfin"
     );
-    assert!(survives(&out).is_ok());
+    assert!(speaks(&out).is_ok());
 }
 
 #[test]
@@ -618,4 +618,33 @@ fn a_page_ended_by_a_style_in_html_comes_in_as_a_rule() {
         nested.find("Tres").unwrap() < rule && rule < nested.find("Cuatro").unwrap(),
         "{nested:?}"
     );
+}
+
+#[test]
+fn a_coloured_span_becomes_the_nearest_pen_and_leaves_no_half_behind() {
+    let out = tidied(
+        "un <span style=\"color:#d33\">rojo</span>, un <span style=\"background-color: #fff3a0\">fondo</span>, un <font color=\"#2a6\">verde</font> y <span class=\"x\">nada</span>.",
+    );
+    assert!(out.body.contains("==rojo=={red}"), "{}", out.body);
+    assert!(out.body.contains("==fondo=="), "{}", out.body);
+    assert!(out.body.contains("==verde=={green}"), "{}", out.body);
+    assert!(out.body.contains(" y nada."), "{}", out.body);
+    assert!(
+        !out.body.contains("span") && !out.body.contains("font"),
+        "{}",
+        out.body
+    );
+    assert!(
+        out.changed
+            .contains(&"a colour turned into the nearest pen"),
+        "{:?}",
+        out.changed
+    );
+    assert!(speaks(&out.body).is_ok());
+}
+
+#[test]
+fn an_older_tistys_icon_span_is_not_taken_for_a_colour() {
+    let said = plain("la <span data-ico=\"star\"></span> brilla");
+    assert!(said.contains("::star::"), "{said}");
 }

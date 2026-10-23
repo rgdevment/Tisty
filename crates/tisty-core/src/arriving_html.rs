@@ -271,7 +271,21 @@ fn folded(handlers: &dyn Handlers, element: Element) -> Option<HandlerResult> {
 }
 
 fn styled(element: &Element, names: &[&str]) -> Option<(u8, u8, u8)> {
-    let style = attr(element, "style")?;
+    style_colour(&attr(element, "style")?, names)
+}
+
+/// The pen a tag written inside Markdown asks for, by its `style` or an old `color`, as a pasted page's would be.
+pub(super) fn written_hue(style: &str, color: Option<&str>) -> Option<String> {
+    style_colour(style, &["background-color", "background"])
+        .and_then(|one| nearest(one, true))
+        .or_else(|| {
+            style_colour(style, &["color"])
+                .or_else(|| color.and_then(rgb))
+                .and_then(|one| nearest(one, false))
+        })
+}
+
+fn style_colour(style: &str, names: &[&str]) -> Option<(u8, u8, u8)> {
     style.split(';').find_map(|one| {
         let (name, value) = one.split_once(':')?;
         names
