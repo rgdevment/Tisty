@@ -150,7 +150,7 @@ jobs:
           for turn in $(seq 1 20); do
             rm -f target/nextest/determinism/junit.xml
             cargo nextest run -p tisty-core -p tisty-nl -p tisty-sync -p tisty-carrier -p tisty-google \
-              -p tisty-onedrive -p tisty-webdav \
+              -p tisty-onedrive -p tisty-webdav -p tisty-share-proto \
               --profile determinism --no-tests=pass || true
             cp target/nextest/determinism/junit.xml "turns/$turn.xml"
           done

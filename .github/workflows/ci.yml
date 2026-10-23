@@ -158,6 +158,22 @@ jobs:
           components: rustfmt
       - run: cargo fmt --all --check
 
+  wasm:
+    name: share protocol on wasm
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/toolchain
+        with:
+          targets: wasm32-unknown-unknown
+      # The Worker builds the same protocol the app does; a dependency that cannot reach wasm has to fail here.
+      - run: cargo check -p tisty-share-proto --no-default-features --target wasm32-unknown-unknown
+
   window:
     name: frontend
     runs-on: ubuntu-24.04
@@ -277,12 +293,12 @@ jobs:
         if: needs.changes.outputs.rust != 'true'
         run: touch lcov-rust.info
 
-      - name: The eight crates the window does not need to build
+      - name: The nine crates the window does not need to build
         if: needs.changes.outputs.rust == 'true'
         run: |
           cargo llvm-cov nextest \
             -p tisty-core -p tisty-nl -p tisty-sync -p tisty-carrier -p tisty-google -p tisty-onedrive -p tisty-webdav \
-            -p tisty-cli \
+            -p tisty-cli -p tisty-share-proto \
             --lcov --output-path lcov-rust.info
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0

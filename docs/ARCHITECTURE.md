@@ -83,6 +83,7 @@ flowchart TB
 | `tisty-carrier` | The `Carrier` contract and its two implementations, `Folder` (hands every call to `tisty-sync`) and `Cloud` (the same round over a local mirror of a `Remote`); `Remote`, `Hitch`, `Tokens` | `tisty-core`, `tisty-sync` |
 | `tisty-cli` | The `tisty` binary: the MCP server and nothing else; any other command is refused and sends the person to the window | `tisty-core`, `tisty-carrier`, `tisty-markdown` |
 | `tisty-gui` | Tauri commands (`answers/`), the `Session`, tray, reminders, updater, wiring settings of assistants | `tisty-core`, `tisty-carrier`, `tisty-nl` |
+| `tisty-share-proto` | What the app and the Tisty Share server agree on: a person's root, the share key of each machine, certificates and revocations, signing and checking, the fingerprint, and the 24-word phrase that brings the root back. It builds for wasm without its `mint` feature, which the CI checks. Nothing depends on it yet | external crates only |
 | `app/src` | The React UI: `App.tsx` shell, `ui/` components, `core.ts` typed `invoke` wrappers, `locales.ts` | none; talks to `tisty-gui` over IPC |
 
 Only `tisty-carrier` depends on `tisty-sync`. A rule in `scripts/rules.sh` keeps
