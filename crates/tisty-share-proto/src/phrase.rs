@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::sync::OnceLock;
 
 use bip39::{Language, Mnemonic};
 use unicode_normalization::UnicodeNormalization;
@@ -87,15 +86,16 @@ fn listed(
     loose: bool,
 ) -> Result<Zeroizing<String>, usize> {
     let list = language.word_list();
+    let bare = loose.then(|| unaccented(language));
     // Sized once, so growing never leaves a freed copy of the phrase behind.
     let mut canonical = Zeroizing::new(String::with_capacity(WORDS * 16));
     for (at, word) in said.iter().enumerate() {
         let found = match language.find_word(word) {
             Some(found) => Some(found),
-            None if loose => unaccented(language)
-                .get(Zeroizing::new(unmarked(word)).as_str())
+            None => bare
+                .as_ref()
+                .and_then(|bare| bare.get(Zeroizing::new(unmarked(word)).as_str()))
                 .copied(),
-            None => None,
         };
         let found = found.ok_or(at)?;
         if at > 0 {
@@ -106,20 +106,12 @@ fn listed(
     Ok(canonical)
 }
 
-/// Where each word sits once its accents are gone; worked out once per language.
-fn unaccented(language: Language) -> &'static HashMap<String, u16> {
-    static SPANISH: OnceLock<HashMap<String, u16>> = OnceLock::new();
-    static ENGLISH: OnceLock<HashMap<String, u16>> = OnceLock::new();
-    let kept = match language {
-        Language::Spanish => &SPANISH,
-        _ => &ENGLISH,
-    };
-    kept.get_or_init(|| {
-        (0u16..)
-            .zip(language.word_list())
-            .map(|(at, one)| (unmarked(one), at))
-            .collect()
-    })
+/// Where each word sits once its accents are gone; built only when the words as spelled did not do.
+fn unaccented(language: Language) -> HashMap<String, u16> {
+    (0u16..)
+        .zip(language.word_list())
+        .map(|(at, one)| (unmarked(one), at))
+        .collect()
 }
 
 fn seeded(mnemonic: &Mnemonic) -> Result<Seed, Unread> {

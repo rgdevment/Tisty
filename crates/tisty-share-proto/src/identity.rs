@@ -82,7 +82,6 @@ impl ShareKey {
     }
 }
 
-/// A person, known by the public half of their root.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Person(VerifyingKey);
 
@@ -122,7 +121,6 @@ impl Person {
     }
 }
 
-/// A root saying that a share key is the person's, from a given second on.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Certificate {
     pub root: String,
@@ -173,7 +171,6 @@ impl Revocation {
     }
 }
 
-/// What a share key signed, carried with the certificate that says whose key it is.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Signed {
     pub certificate: Certificate,

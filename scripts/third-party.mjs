@@ -231,7 +231,6 @@ const chosenFrom = (pkg, choice) => {
   const parts = offered(choice);
   if (parts.includes("APACHE-2.0")) return canonical("Apache-2.0");
   if (parts.includes("BSL-1.0")) return canonical("BSL-1.0");
-  if (parts.includes("CC0-1.0")) return canonical("CC0-1.0");
   if (parts.includes("MIT")) return MIT(holderOf(pkg));
   if (parts.includes("BSD-3-CLAUSE")) return BSD3(holderOf(pkg));
   if (parts.includes("ISC")) return ISC(holderOf(pkg));

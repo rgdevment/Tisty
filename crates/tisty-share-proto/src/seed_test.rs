@@ -40,7 +40,7 @@ fn minted_seeds_differ() {
 fn the_keys_are_what_hkdf_gives() {
     let seed = Seed::from_bytes(&[7; 32]);
     let mut cloud = [0u8; 32];
-    hkdf::Hkdf::<Sha256>::new(Some(SALT), &[7; 32])
+    hkdf::Hkdf::<Sha256>::new(Some(&SALT[..]), &[7; 32])
         .expand(CLOUD, &mut cloud)
         .unwrap();
 

@@ -4,7 +4,7 @@ use zeroize::{Zeroize, Zeroizing};
 
 use crate::identity::Root;
 
-const SALT: &[u8] = b"tisty.seed.v1";
+const SALT: [u8; 13] = *b"tisty.seed.v1";
 const ROOT: &[u8] = b"tisty.root.v1";
 const CLOUD: &[u8] = b"tisty.cloud.v1";
 
@@ -36,20 +36,23 @@ impl Seed {
 
     /// HKDF-SHA256 for one block, written out because the `hkdf` crate cannot wipe what it holds.
     fn derived(&self, label: &[u8]) -> Zeroizing<[u8; 32]> {
-        let extracted = mac(SALT, &[self.0.as_ref()]);
-        mac(extracted.as_ref(), &[label, &[1]])
+        let extracted = mac(&SALT, &[self.0.as_ref()]);
+        mac(&extracted, &[label, &[1]])
     }
 }
 
-fn mac(key: &[u8], parts: &[&[u8]]) -> Zeroizing<[u8; 32]> {
+/// HMAC pads a key shorter than its block with zeros, so padding it here builds one that cannot fail.
+fn mac<const N: usize>(key: &[u8; N], parts: &[&[u8]]) -> Zeroizing<[u8; 32]> {
+    const { assert!(N <= 64) };
+    let mut block = hmac::digest::Key::<Hmac<Sha256>>::default();
+    block[..N].copy_from_slice(key);
+    let mut over = <Hmac<Sha256> as KeyInit>::new(&block);
+    block.as_mut_slice().zeroize();
+    parts.iter().for_each(|part| over.update(part));
+    let mut said = over.finalize().into_bytes();
     let mut out = Zeroizing::new([0u8; 32]);
-    // HMAC takes a key of any length, so this never refuses.
-    if let Ok(mut over) = <Hmac<Sha256> as KeyInit>::new_from_slice(key) {
-        parts.iter().for_each(|part| over.update(part));
-        let mut said = over.finalize().into_bytes();
-        out.copy_from_slice(&said);
-        said.zeroize();
-    }
+    out.copy_from_slice(&said);
+    said.zeroize();
     out
 }
 
