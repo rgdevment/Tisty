@@ -178,6 +178,7 @@ pub(crate) fn arrived(
             reach: &mut reach,
             outside: "",
             notes: false,
+            came: tisty_core::attach::Via::Imported,
         },
     );
     drop(room);

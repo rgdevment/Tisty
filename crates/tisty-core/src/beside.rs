@@ -173,6 +173,7 @@ pub struct Way<'a> {
     pub reach: &'a mut dyn FnMut(&std::path::Path) -> Result<std::path::PathBuf, String>,
     pub outside: &'a str,
     pub notes: bool,
+    pub came: crate::attach::Via,
 }
 
 pub fn brought(
@@ -285,7 +286,7 @@ fn brought_in(
         Err(why) => cannot(why.to_string()),
         Ok(one) => {
             done.kept += 1;
-            done.told.push(one.told_via(crate::attach::Via::Imported));
+            done.told.push(one.told(way.came));
             if plain.to_lowercase().ends_with(".md") || plain.to_lowercase().ends_with(".markdown")
             {
                 done.papers.push(plain);

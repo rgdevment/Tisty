@@ -266,15 +266,13 @@ pub enum Op {
     StoresJoined { d: Stitch },
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Held {
     pub at: String,
     pub sha256: String,
     pub bytes: u64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub named: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub via: Option<String>,
+    pub came: Option<String>,
 }
 
 impl Held {
@@ -283,7 +281,7 @@ impl Held {
             at,
             sha256,
             bytes,
-            ..Default::default()
+            came: None,
         }
     }
 }
@@ -495,10 +493,6 @@ impl Op {
                 d.name = maybe(d.name);
                 d.email = maybe(d.email);
                 Op::Signed { d }
-            }
-            Op::AttachKept { mut d } => {
-                d.named = maybe(d.named);
-                Op::AttachKept { d }
             }
             plain => plain,
         }

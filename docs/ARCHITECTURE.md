@@ -1156,9 +1156,9 @@ stateDiagram-v2
   Nothing larger than `HELD_UP_TO` = 750 MB is taken in from another machine
   or the cloud.
 - **Events.** `attach.kept { at, sha256, bytes }` says a machine holds a copy,
-  and since 1.33 also what the file was called (`named`) and how it came
-  (`via`: `window`, `assistant`, `imported` or `parcel`), both optional so an
-  older build reads it as before; `attach.let_go` says it released its copy;
+  and since 1.33 also how it came (`came`: `window`, `assistant`, `imported`,
+  `parcel` or `guide`), optional so an older build reads it as before. It never
+  says what the file was called: the log is shared and never forgets; `attach.let_go` says it released its copy;
   `attach.retire` retires the name for every machine, with `why` (`unused` or
   `joined`).
 - **The ledger stays.** `attachments.jsonl` is the local index that finds a

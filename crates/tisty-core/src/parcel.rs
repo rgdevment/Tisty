@@ -1311,14 +1311,12 @@ fn brought(
                 landed.missed += 1;
                 continue;
             }
-            let Ok(mut kept) = crate::attach::keep(&from, data, crate::attach::HELD_UP_TO) else {
+            let Ok(kept) = crate::attach::keep(&from, data, crate::attach::HELD_UP_TO) else {
                 landed.missed += 1;
                 continue;
             };
-            // A parcel carries the stamped name, not what the file was called where it was made.
-            kept.named = None;
             landed.files += 1;
-            ops.push(kept.told_via(crate::attach::Via::Parcel));
+            ops.push(kept.told(crate::attach::Via::Parcel));
             let leaf = crate::attach::leaf_of(&kept.at).unwrap_or(&kept.at);
             let anchor = one.find(['?', '#']).map_or("", |at| &one[at..]);
             carried.insert(

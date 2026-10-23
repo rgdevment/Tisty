@@ -365,7 +365,7 @@ fn an_attachment_written_before_its_provenance_existed_still_reads() {
     let Op::AttachKept { d } = serde_json::from_str::<Op>(old).unwrap() else {
         panic!("not a kept attachment");
     };
-    assert_eq!((d.named, d.via), (None, None));
+    assert_eq!(d.came, None);
 
     let old = r#"{"op":"attach.retire","d":"attachments/a-12345678.png"}"#;
     let Op::AttachRetire { why, .. } = serde_json::from_str::<Op>(old).unwrap() else {
@@ -377,23 +377,15 @@ fn an_attachment_written_before_its_provenance_existed_still_reads() {
 #[test]
 fn provenance_is_written_only_when_there_is_some() {
     let bare = Op::AttachKept {
-        d: Held {
-            at: "attachments/a-12345678.png".into(),
-            sha256: "ab".into(),
-            bytes: 3,
-            ..Default::default()
-        },
+        d: Held::of("attachments/a-12345678.png".into(), "ab".into(), 3),
     };
     let line = serde_json::to_string(&bare).unwrap();
-    assert!(!line.contains("named") && !line.contains("via"), "{line}");
+    assert!(!line.contains("came"), "{line}");
 
     let told = Op::AttachKept {
         d: Held {
-            at: "attachments/a-12345678.png".into(),
-            sha256: "ab".into(),
-            bytes: 3,
-            named: Some("Plano final.png".into()),
-            via: Some("window".into()),
+            came: Some("window".into()),
+            ..Held::of("attachments/a-12345678.png".into(), "ab".into(), 3)
         },
     };
     let line = serde_json::to_string(&told).unwrap();
@@ -405,19 +397,4 @@ fn provenance_is_written_only_when_there_is_some() {
     };
     let line = serde_json::to_string(&retired).unwrap();
     assert!(line.contains(r#""why":"joined""#), "{line}");
-}
-
-#[test]
-fn a_file_name_from_a_mac_is_written_composed_like_every_other_name() {
-    let decomposed = "cancio\u{301}n.png".to_string();
-    let Op::AttachKept { d } = Op::AttachKept {
-        d: Held {
-            named: Some(decomposed),
-            ..Default::default()
-        },
-    }
-    .composed() else {
-        panic!("not a kept attachment");
-    };
-    assert_eq!(d.named.as_deref(), Some("canci\u{f3}n.png"));
 }

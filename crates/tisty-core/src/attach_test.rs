@@ -308,7 +308,6 @@ fn everything_that_is_kept_comes_in_as_a_card() {
         at: at.into(),
         sha256: "ab".into(),
         bytes: 2,
-        named: None,
     };
 
     assert_eq!(
@@ -345,7 +344,6 @@ fn a_name_that_would_break_the_link_is_flattened() {
         at: "attachments/cd-a3f9bb01.png".into(),
         sha256: "ab".into(),
         bytes: 2,
-        named: None,
     };
     assert_eq!(
         one.written("shot](javascript:alert(1))["),
@@ -1462,7 +1460,7 @@ fn every_way_an_attachment_is_born_says_what_it_holds() {
             continue;
         }
         keeps += kept;
-        if said.matches(".told_via(").count() < kept {
+        if said.matches(".told(").count() < kept {
             forgot.push(named);
         }
     }
@@ -1492,7 +1490,7 @@ fn what_was_kept_says_its_name_its_digest_and_its_weight() {
         body.len() as u64,
         "it did not report its weight"
     );
-    let crate::Op::AttachKept { d } = kept.told() else {
+    let crate::Op::AttachKept { d } = kept.told(Via::Window) else {
         panic!("what it tells is not what an attachment holds");
     };
     assert_eq!(d.at, kept.at);
@@ -1640,19 +1638,19 @@ fn after_a_join_the_same_bytes_land_on_the_copy_that_stayed_even_with_neither_he
 }
 
 #[test]
-fn a_kept_file_tells_what_it_was_called_and_how_it_came() {
+fn a_kept_file_tells_how_it_came_and_never_its_name() {
     let (_dir, file) = dropped("Plano final.png", b"un plano");
     let root = tempfile::tempdir().unwrap();
     let kept = keep(&file, root.path(), COPIED_UP_TO).unwrap();
 
-    let crate::Op::AttachKept { d } = kept.told_via(Via::Window) else {
+    let told = kept.told(Via::Guide);
+    let crate::Op::AttachKept { d } = &told else {
         panic!("what it tells is not what an attachment holds");
     };
-    assert_eq!(d.named.as_deref(), Some("Plano final.png"));
-    assert_eq!(d.via.as_deref(), Some("window"));
-
-    let crate::Op::AttachKept { d } = kept.told() else {
-        panic!("what it tells is not what an attachment holds");
-    };
-    assert_eq!(d.via, None, "only a caller that knows how it came says so");
+    assert_eq!(d.came.as_deref(), Some("guide"));
+    let line = serde_json::to_string(&told).unwrap();
+    assert!(
+        !line.contains("Plano"),
+        "the log never forgets, so it never holds the name: {line}"
+    );
 }

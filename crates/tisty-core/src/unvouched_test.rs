@@ -23,12 +23,7 @@ fn kept(state: &mut State, at: &str, body: &[u8]) {
         DeviceId("dev_a".into()),
         jiff::Timestamp::from_millisecond(1).unwrap(),
         Op::AttachKept {
-            d: Held {
-                at: at.into(),
-                sha256: print_of(body),
-                bytes: body.len() as u64,
-                ..Default::default()
-            },
+            d: Held::of(at.into(), print_of(body), body.len() as u64),
         },
     ));
 }
