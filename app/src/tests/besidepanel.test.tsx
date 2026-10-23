@@ -98,7 +98,14 @@ describe("the export button", () => {
     expect(screen.queryByRole("menu")).toBeNull();
   });
 
-  it("keeps the PDF in its menu while one is being made, saying so", async () => {
+  it("opens from the keyboard too", async () => {
+    panel(headed(2));
+    screen.getByRole("button", { name: t("exportIt") }).focus();
+    await userEvent.keyboard("{Enter}");
+    expect(screen.queryByRole("menu")).toBeTruthy();
+  });
+
+  it("says the PDF is being made instead of offering a second one", async () => {
     render(
       <Beside
         title="Notas"
@@ -119,7 +126,7 @@ describe("the export button", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: t("exportIt") }));
     expect(screen.getByRole("menuitem", { name: new RegExp(t("makingPdf")) })).toBeTruthy();
-    expect(screen.getByRole("menuitem", { name: new RegExp(t("toPdf")) })).toBeTruthy();
+    expect(screen.queryByRole("menuitem", { name: new RegExp(t("toPdf")) })).toBeNull();
   });
 });
 

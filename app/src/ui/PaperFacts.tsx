@@ -11,6 +11,9 @@ export const worded = (body: string): number =>
     .split(/\s+/)
     .filter(Boolean).length;
 
+export const held = (pages: number): string =>
+  pages === 1 ? t("pageHeld") : fill("pagesHeld", String(pages));
+
 export const counted = (body: string, needle: string): number => body.split(needle).length - 1;
 
 const dated = (when: number | null): string =>
@@ -63,11 +66,7 @@ export default function PaperFacts({ facts, body }: { facts: DocFacts | null; bo
           <dt className="shrink-0 whitespace-nowrap text-faint">{t("paperHolds")}</dt>
           <dd className="flex flex-wrap justify-end gap-1">
             {[
-              facts?.pages
-                ? facts.pages === 1
-                  ? t("pageHeld")
-                  : fill("pagesHeld", String(facts.pages))
-                : "",
+              facts?.pages ? held(facts.pages) : "",
               papers > 0 ? fill("paperDocs", String(papers)) : "",
               files > 0 ? fill("paperFiles", String(files)) : "",
             ]

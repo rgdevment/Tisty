@@ -3,10 +3,10 @@ import { copied, type DocFacts, type Paper } from "../../core";
 import { laidIn } from "../../front";
 import { fill, t } from "../../locales";
 import PaperFacts from "../PaperFacts";
-import PictureViewer from "../PictureViewer";
 import Properties from "../Properties";
-import type { Head, Shot } from "../paging";
+import type { Head } from "../paging";
 import { acrossOf, LEAVES, leafWord, PAPER, sheetFor, TALL } from "../sheets";
+import { usePictures } from "../usePictures";
 import { button, Segments } from "./Glyphs";
 
 const Page = lazy(() => import("../Page"));
@@ -96,7 +96,7 @@ function Finder({ onClose, within }: { onClose: () => void; within: () => Window
 export default function Reader(props: Readonly<Props>) {
   const { body, title, stranger, side, raw, zoom, leaf, finding } = props;
   const [heads, setHeads] = useState<Head[]>([]);
-  const [looking, setLooking] = useState<{ shots: Shot[]; nth: number } | null>(null);
+  const pictures = usePictures({ open: props.onOpen });
   const shown = useRef<Window | null>(null);
   const laid = useMemo(() => laidIn(body), [body]);
   const wide = laid.sheets ? acrossOf(leaf, laid.landscape) : PAPER[leaf] + 40;
@@ -182,7 +182,7 @@ export default function Reader(props: Readonly<Props>) {
               onOutline={outlined}
               onDoc={props.onDoc}
               onOpen={props.onOpen}
-              onPicture={(shots, nth) => setLooking({ shots, nth })}
+              onPicture={pictures.view}
               onShown={(at) => {
                 shown.current = at;
                 props.onPage?.(at);
@@ -190,14 +190,7 @@ export default function Reader(props: Readonly<Props>) {
             />
           </Suspense>
         )}
-        {looking && (
-          <PictureViewer
-            shots={looking.shots}
-            start={looking.nth}
-            onOpen={props.onOpen}
-            onClose={() => setLooking(null)}
-          />
-        )}
+        {pictures.viewer}
       </div>
     </div>
   );

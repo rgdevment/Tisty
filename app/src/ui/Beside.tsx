@@ -6,7 +6,7 @@ import { waysOut } from "../leaving";
 import { fill, t } from "../locales";
 import Glyph from "./Glyph";
 import Menu, { type Choice } from "./Menu";
-import PaperFacts, { worded } from "./PaperFacts";
+import PaperFacts, { held, worded } from "./PaperFacts";
 import Properties from "./Properties";
 import type { Head } from "./paging";
 import { LEAVES, leafWord } from "./sheets";
@@ -38,7 +38,13 @@ const label = "text-[10.5px] tracking-[0.07em] text-faint uppercase";
 const row =
   "flex shrink-0 items-center gap-2 rounded-md px-1.5 py-1 text-left text-[12.5px] hover:bg-hover hover:text-ink";
 
-const held = (pages: number) => (pages === 1 ? t("pageHeld") : fill("pagesHeld", String(pages)));
+// A page put away or marked for deletion says so to a screen reader, where the eye sees its glyph.
+const marked = (one: Filed): string | undefined => {
+  const named = one.title || t("untitledDoc");
+  if (one.away) return `${named} — ${t("isArchived")}`;
+  if (one.flagged) return `${named} — ${t("docFlagged")}`;
+  return undefined;
+};
 
 type Part = "details" | "shared";
 
@@ -175,9 +181,12 @@ function Controls({
           aria-busy={making}
           aria-label={t("exportIt")}
           title={making ? t("makingPdf") : t("exportIt")}
-          // The menu closes on any mousedown outside it, this button included, so a mouse
-          // toggles here and only a keyboard's click — detail 0 — reaches onClick.
-          onMouseDown={(e) => toggled(e.currentTarget.getBoundingClientRect())}
+          // The menu shuts on any mousedown outside it, so the mouse toggles here and onClick serves the keyboard.
+          onMouseDown={(e) => {
+            if (e.button !== 0) return;
+            e.preventDefault();
+            toggled(e.currentTarget.getBoundingClientRect());
+          }}
           onClick={(e) => {
             if (e.detail === 0) toggled(e.currentTarget.getBoundingClientRect());
           }}
@@ -251,13 +260,7 @@ function Outline({
           key={one.id}
           type="button"
           onClick={() => onPage?.(one)}
-          aria-label={
-            one.away
-              ? `${one.title || t("untitledDoc")} — ${t("isArchived")}`
-              : one.flagged
-                ? `${one.title || t("untitledDoc")} — ${t("docFlagged")}`
-                : undefined
-          }
+          aria-label={marked(one)}
           aria-current={one.file === paper ? "true" : undefined}
           className={`${row} ${one.file === paper ? "bg-accent-soft text-accent" : ""} ${
             one.away ? "text-faint" : "text-soft"

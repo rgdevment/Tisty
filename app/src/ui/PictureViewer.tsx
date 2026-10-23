@@ -23,7 +23,7 @@ export default function PictureViewer({ shots, start, onClose, onSave, onOpen }:
   const [zoom, setZoom] = useState(1);
   const [shift, setShift] = useState({ x: 0, y: 0 });
   const dragging = useRef<{ x: number; y: number } | null>(null);
-  const box = useRef<HTMLDivElement>(null);
+  const box = useRef<HTMLDialogElement>(null);
   const shot = shots[nth];
 
   // As a modal does: the focus comes in, stays in, and goes back to where it was.
@@ -52,10 +52,7 @@ export default function PictureViewer({ shots, start, onClose, onSave, onOpen }:
   // Keys are answered here and go no further: nothing behind the picture hears them.
   const keyed = (event: React.KeyboardEvent) => {
     event.stopPropagation();
-    if (event.ctrlKey || event.metaKey || event.altKey) {
-      event.preventDefault();
-      return;
-    }
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
     if (event.key === "Tab") {
       const inside = Array.from(box.current?.querySelectorAll<HTMLElement>(REACHABLE) ?? []);
       const edge = event.shiftKey ? inside[0] : inside[inside.length - 1];
@@ -78,21 +75,33 @@ export default function PictureViewer({ shots, start, onClose, onSave, onOpen }:
   if (!shot) return null;
 
   return createPortal(
-    <div
+    <dialog
+      open
       ref={box}
-      role="dialog"
       aria-modal="true"
       aria-label={shot.alt || t("pictureLook")}
+      tabIndex={-1}
       onKeyDown={keyed}
-      className="fixed inset-0 z-50 flex flex-col bg-black/70 backdrop-blur-sm"
+      onBlur={(event) => {
+        // A click on the picture would leave the focus nowhere, and the keys with it.
+        if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+        requestAnimationFrame(() => {
+          if (document.activeElement === document.body) box.current?.focus();
+        });
+      }}
+      className="fixed inset-0 z-50 m-0 flex h-full max-h-none w-full max-w-none flex-col border-0 bg-black/70 p-0 backdrop-blur-sm"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
       <div className="flex items-center gap-1 px-3 py-2">
         <span className="min-w-0 flex-1 truncate px-2 text-[12.5px] text-white/70">
-          {shot.alt}
-          {shots.length > 1 && ` · ${fill("pictureCount", String(nth + 1), String(shots.length))}`}
+          {[
+            shot.alt,
+            shots.length > 1 ? fill("pictureCount", String(nth + 1), String(shots.length)) : "",
+          ]
+            .filter(Boolean)
+            .join(" · ")}
         </span>
         <button
           type="button"
@@ -182,7 +191,7 @@ export default function PictureViewer({ shots, start, onClose, onSave, onOpen }:
           </button>
         )}
       </div>
-    </div>,
+    </dialog>,
     document.body,
   );
 }

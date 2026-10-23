@@ -25,8 +25,7 @@ import { MARKED_FOR, markLately } from "./lately";
 import Menu, { type Choice } from "./Menu";
 import { mended as mendedText } from "./mending";
 import Page from "./Page";
-import PictureViewer from "./PictureViewer";
-import { charsAt, type Head, type Shot, shotsOf, spanned, type Went } from "./paging";
+import { charsAt, type Head, spanned, type Went } from "./paging";
 import type { PartCarded } from "./partcarding";
 import { closed, laid, parting } from "./parting";
 import type { Chosen, Formatting, Menued } from "./quickly";
@@ -37,6 +36,7 @@ import type { Sheet as SheetSize } from "./sheeting";
 import { type Asking, pressed, putBlock, stagesIn } from "./slashing";
 import { stepLine, steppedTitle } from "./staging";
 import { widened } from "./tabling";
+import { usePictures } from "./usePictures";
 
 type Props = {
   readonly file?: string;
@@ -120,7 +120,6 @@ export default function Sheet(props: Readonly<Props>) {
   turnedNow.current = turned;
   const kept = useKeptHeight<HTMLDivElement>(file ?? label);
   const [more, setMore] = useState<Extract<Went, { kind: "more" }> | null>(null);
-  const [viewing, setViewing] = useState<{ shots: Shot[]; nth: number } | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; choices: Choice[] } | null>(null);
   const askedOn = useRef("");
   const [stuck, setStuck] = useState(false);
@@ -507,21 +506,7 @@ export default function Sheet(props: Readonly<Props>) {
     if (asked.writing) return editing && setMenu({ ...at, choices: writingChoices(editing) });
     const { picked, block: under, picture } = asked;
     const choices: Choice[] = [];
-    const page = shown.current?.document;
-    const shots = picture !== null && page ? shotsOf(page) : [];
-    const shot = picture !== null ? shots[picture] : undefined;
-    if (shot && picture !== null) {
-      choices.push({
-        key: "look",
-        label: t("pictureLook"),
-        onPick: () => setViewing({ shots, nth: picture }),
-      });
-      const kept = shot.kept;
-      if (kept) {
-        choices.push({ key: "save", label: t("pictureSave"), onPick: () => void keepCopy(kept) });
-        choices.push({ key: "open", label: t("pictureOpen"), onPick: () => void openKept(kept) });
-      }
-    }
+    choices.push(...pictures.offered(shown.current?.document, picture));
     if (picked)
       choices.push({
         key: "copy",
@@ -677,6 +662,10 @@ export default function Sheet(props: Readonly<Props>) {
 
   const openKept = (reference: string) =>
     opened(reference).catch((error_) => said.current.onFail?.(error_));
+  const pictures = usePictures({
+    save: (kept) => void keepCopy(kept),
+    open: (kept) => void openKept(kept),
+  });
 
   const offered = (one: Extract<Went, { kind: "more" }>): Choice[] => {
     const file = one.target.startsWith(DOC) ? one.target.slice(DOC.length) : null;
@@ -883,7 +872,7 @@ export default function Sheet(props: Readonly<Props>) {
           onMend={reading || fixed ? undefined : mended}
           onMenu={fixed ? undefined : menued}
           onMore={reading || fixed ? undefined : asked}
-          onPicture={(shots, nth) => setViewing({ shots, nth })}
+          onPicture={pictures.view}
           onAway={left}
           card={props.card}
           part={props.part}
@@ -919,15 +908,7 @@ export default function Sheet(props: Readonly<Props>) {
           onClose={() => setMenu(null)}
         />
       )}
-      {viewing && (
-        <PictureViewer
-          shots={viewing.shots}
-          start={viewing.nth}
-          onSave={(kept) => void keepCopy(kept)}
-          onOpen={(kept) => void openKept(kept)}
-          onClose={() => setViewing(null)}
-        />
-      )}
+      {pictures.viewer}
       {more && (
         <Menu
           at={{ x: more.x, y: more.y }}
