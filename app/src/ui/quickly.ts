@@ -1,6 +1,6 @@
 import { t } from "../locales";
 import { formatButtons } from "./barring";
-import { spanned } from "./paging";
+import { shotAt, spanned } from "./paging";
 
 export type Formatting = {
   readonly at: [number, number];
@@ -17,6 +17,7 @@ export type Menued = {
   readonly writing: boolean;
   readonly picked: Omit<Formatting, "open" | "close"> | null;
   readonly block: { readonly at: [number, number]; readonly element: HTMLElement } | null;
+  readonly picture: number | null;
 };
 
 // What a key pressed over chosen words does to them once the block opens: null keeps them chosen.
@@ -133,6 +134,7 @@ export const quickly = (page: Document, reach: () => Quick) => {
       writing,
       picked: writing || !under ? null : picked(page),
       block: element && at ? { at, element } : null,
+      picture: writing ? null : shotAt(page, target),
     });
   });
 };

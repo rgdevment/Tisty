@@ -11,6 +11,9 @@ export const worded = (body: string): number =>
     .split(/\s+/)
     .filter(Boolean).length;
 
+export const held = (pages: number): string =>
+  pages === 1 ? t("pageHeld") : fill("pagesHeld", String(pages));
+
 export const counted = (body: string, needle: string): number => body.split(needle).length - 1;
 
 const dated = (when: number | null): string =>
@@ -24,55 +27,58 @@ export default function PaperFacts({ facts, body }: { facts: DocFacts | null; bo
     <dl className="flex flex-col gap-1.5 text-[12.5px]">
       {facts?.author && (
         <div className="flex items-baseline justify-between gap-2.5">
-          <dt className="text-faint">{t("paperAuthor")}</dt>
+          <dt className="shrink-0 whitespace-nowrap text-faint">{t("paperAuthor")}</dt>
           <dd className="truncate text-ink">{facts.author}</dd>
         </div>
       )}
       {facts?.born && (
         <div className="flex items-baseline justify-between gap-2.5">
-          <dt className="text-faint">{t("paperBorn")}</dt>
+          <dt className="shrink-0 whitespace-nowrap text-faint">{t("paperBorn")}</dt>
           <dd className="truncate text-soft">{facts.born}</dd>
         </div>
       )}
       {facts?.editor && (
         <div className="flex items-baseline justify-between gap-2.5">
-          <dt className="text-faint">{t("paperEditor")}</dt>
+          <dt className="shrink-0 whitespace-nowrap text-faint">{t("paperEditor")}</dt>
           <dd className="truncate text-ink">{facts.editor}</dd>
         </div>
       )}
       <div className="flex items-baseline justify-between gap-2.5">
-        <dt className="text-faint">{t("paperMade")}</dt>
+        <dt className="shrink-0 whitespace-nowrap text-faint">{t("paperMade")}</dt>
         <dd className="tabular-nums text-soft">{dated(facts?.made ?? null)}</dd>
       </div>
       <div className="flex items-baseline justify-between gap-2.5">
-        <dt className="text-faint">{t("paperWrote")}</dt>
+        <dt className="shrink-0 whitespace-nowrap text-faint">{t("paperWrote")}</dt>
         <dd className="tabular-nums text-soft">{dated(facts?.wrote ?? null)}</dd>
       </div>
       <div className="flex items-baseline justify-between gap-2.5">
-        <dt className="text-faint">{t("paperLong")}</dt>
+        <dt className="shrink-0 whitespace-nowrap text-faint">{t("paperLong")}</dt>
         <dd className="tabular-nums text-soft">
           {words ? fill("paperWords", String(words)) : t("paperEmpty")}
         </dd>
       </div>
       <div className="flex items-baseline justify-between gap-2.5">
-        <dt className="text-faint">{t("paperWeighs")}</dt>
+        <dt className="shrink-0 whitespace-nowrap text-faint">{t("paperWeighs")}</dt>
         <dd className="tabular-nums text-soft">{facts ? weigh(facts.bytes) : "—"}</dd>
       </div>
       {(papers > 0 || files > 0 || (facts?.pages ?? 0) > 0) && (
         <div className="flex items-baseline justify-between gap-2.5">
-          <dt className="text-faint">{t("paperHolds")}</dt>
-          <dd className="text-right tabular-nums text-soft">
+          <dt className="shrink-0 whitespace-nowrap text-faint">{t("paperHolds")}</dt>
+          <dd className="flex flex-wrap justify-end gap-1">
             {[
-              facts?.pages
-                ? facts.pages === 1
-                  ? t("pageHeld")
-                  : fill("pagesHeld", String(facts.pages))
-                : "",
+              facts?.pages ? held(facts.pages) : "",
               papers > 0 ? fill("paperDocs", String(papers)) : "",
               files > 0 ? fill("paperFiles", String(files)) : "",
             ]
               .filter(Boolean)
-              .join(" · ")}
+              .map((one) => (
+                <span
+                  key={one}
+                  className="rounded-full border border-hair px-1.5 text-[11.5px] whitespace-nowrap tabular-nums text-soft"
+                >
+                  {one}
+                </span>
+              ))}
           </dd>
         </div>
       )}

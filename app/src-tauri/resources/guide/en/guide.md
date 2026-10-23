@@ -39,7 +39,6 @@ flowchart TD
   K --> C
   S -->|No| C[Complete it]
   C --> R[The archive:<br/>search finds how you solved it]
-  P -.->|You learned something<br/>you will need again| D
   D --> G[Read, correct and add to it<br/>for years]
 ```
 

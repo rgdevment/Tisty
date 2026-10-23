@@ -15,6 +15,7 @@ import {
   type Papers,
 } from "./core";
 import { deep, destinations } from "./folders";
+import { waysOut } from "./leaving";
 import { fill, t } from "./locales";
 import type { Choice } from "./ui/Menu";
 
@@ -244,34 +245,7 @@ export const docChoices = (doc: Filed, h: Hands): Choice[] => [
     label: t("packIt"),
     onPick: () => h.parcels.packUp([doc.file], doc.title || doc.file),
   },
-  {
-    key: "seePdf",
-    icon: "▤",
-    label: t("seePdf"),
-    off: h.showing !== doc.file,
-    onPick: () => window.dispatchEvent(new CustomEvent("tisty:see-pdf")),
-  },
-  {
-    key: "asPdf",
-    icon: "⇩",
-    label: t("toPdf"),
-    off: h.showing !== doc.file,
-    onPick: () => window.dispatchEvent(new CustomEvent("tisty:to-pdf")),
-  },
-  {
-    key: "asHtml",
-    icon: "⇩",
-    label: t("toHtml"),
-    off: h.showing !== doc.file,
-    onPick: () => window.dispatchEvent(new CustomEvent("tisty:to-html")),
-  },
-  {
-    key: "asWord",
-    icon: "⇩",
-    label: t("toWord"),
-    off: h.showing !== doc.file,
-    onPick: () => window.dispatchEvent(new CustomEvent("tisty:to-word")),
-  },
+  ...waysOut(h.showing !== doc.file),
   {
     key: "copy",
     icon: "⧉",

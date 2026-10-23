@@ -349,18 +349,31 @@ describe("what the column offers for the document", () => {
     URL.revokeObjectURL = () => {};
   });
 
-  const named = () =>
-    screen
-      .getAllByRole("button")
-      .map((one) => one.textContent?.trim())
-      .filter((one) => ["Preview", "Export", "Copy", "Save a copy"].includes(one ?? ""));
+  const ways = [
+    "Preview the PDF",
+    "Export to PDF…",
+    "Export as HTML…",
+    "Export as Word…",
+    "Copy as Markdown",
+    "Save a copy as Markdown…",
+  ];
 
-  it("puts them in the order they are reached for", async () => {
+  const pick = async (way: string) => {
+    await userEvent.click(await screen.findByRole("button", { name: /^export$/i }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: new RegExp(way) }));
+  };
+
+  it("gathers every way out under one button, in the order they are reached for", async () => {
     widen(1500);
     show();
     await screen.findByRole("complementary", { name: "About this document" });
 
-    expect(named()).toEqual(["Preview", "Export", "Copy", "Save a copy"]);
+    await userEvent.click(screen.getByRole("button", { name: /^export$/i }));
+
+    const said = screen.getAllByRole("menuitem").map((one) => one.textContent ?? "");
+    expect(ways.map((way) => said.findIndex((one) => one.includes(way)))).toEqual([
+      0, 1, 2, 3, 4, 5,
+    ]);
   });
 
   it("asks before a PDF leaves whether it carries the credit, unticked unless the person ticks it", async () => {
@@ -369,7 +382,7 @@ describe("what the column offers for the document", () => {
     show();
     await screen.findByRole("complementary", { name: "About this document" });
 
-    await userEvent.click(screen.getByRole("button", { name: /^export$/i }));
+    await pick("Export to PDF");
 
     const box = await screen.findByText("A quiet “Made with Tisty” at the end");
     const tick = within(box.closest("label") as HTMLElement).getByRole("checkbox");
@@ -382,19 +395,21 @@ describe("what the column offers for the document", () => {
     expect(store.stamped[store.stamped.length - 1]).toBe(true);
   });
 
-  it("keeps the two trades apart, so no verb has to mean two things", async () => {
+  it("names each way by what it makes, so no verb has to mean two things", async () => {
     widen(1500);
     show();
     await screen.findByRole("complementary", { name: "About this document" });
 
-    expect(screen.getByText("PDF")).toBeTruthy();
-    expect(screen.getByText("Markdown")).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: /^export$/i }));
+
+    expect(screen.getByRole("menuitem", { name: /Export to PDF/ })).toBeTruthy();
+    expect(screen.getByRole("menuitem", { name: /Save a copy as Markdown/ })).toBeTruthy();
   });
 
   it("says it goes back to the document, never a Close beside the window's own", async () => {
     widen(1500);
     show();
-    await userEvent.click(await screen.findByRole("button", { name: "Preview" }));
+    await pick("Preview the PDF");
 
     expect(await screen.findByRole("button", { name: "← Back to the document" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
@@ -404,7 +419,7 @@ describe("what the column offers for the document", () => {
     store.stamped = [];
     widen(1500);
     show();
-    await userEvent.click(await screen.findByRole("button", { name: "Preview" }));
+    await pick("Preview the PDF");
     const credit = await screen.findByRole("checkbox", {
       name: "A quiet “Made with Tisty” at the end",
     });
@@ -423,7 +438,7 @@ describe("what the column offers for the document", () => {
     };
     widen(1500);
     const view = show();
-    await userEvent.click(await screen.findByRole("button", { name: "Preview" }));
+    await pick("Preview the PDF");
     expect(await screen.findByRole("button", { name: "← Back to the document" })).toBeTruthy();
 
     view.unmount();
@@ -434,7 +449,7 @@ describe("what the column offers for the document", () => {
   it("shuts the preview when told to", async () => {
     widen(1500);
     show();
-    await userEvent.click(await screen.findByRole("button", { name: "Preview" }));
+    await pick("Preview the PDF");
     await userEvent.click(await screen.findByRole("button", { name: "← Back to the document" }));
 
     expect(screen.queryByRole("button", { name: "← Back to the document" })).toBeNull();

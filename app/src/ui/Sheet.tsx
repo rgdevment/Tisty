@@ -8,7 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { copied, copyAttached, type Mend, viewWidget } from "../core";
+import { copied, copyAttached, type Mend, opened, viewWidget } from "../core";
 import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
 import { DOC, partCard } from "../markdown";
@@ -36,6 +36,7 @@ import type { Sheet as SheetSize } from "./sheeting";
 import { type Asking, pressed, putBlock, stagesIn } from "./slashing";
 import { stepLine, steppedTitle } from "./staging";
 import { widened } from "./tabling";
+import { usePictures } from "./usePictures";
 
 type Props = {
   readonly file?: string;
@@ -503,17 +504,24 @@ export default function Sheet(props: Readonly<Props>) {
     const at = { x: (frame?.left ?? 0) + asked.x, y: (frame?.top ?? 0) + asked.y };
     const editing = open.current?.view;
     if (asked.writing) return editing && setMenu({ ...at, choices: writingChoices(editing) });
-    const { picked, block: under } = asked;
+    const { picked, block: under, picture } = asked;
     const choices: Choice[] = [];
+    choices.push(...pictures.offered(shown.current?.document, picture));
     if (picked)
-      choices.push({ key: "copy", label: t("copyIt"), onPick: () => void copied(picked.said) });
+      choices.push({
+        key: "copy",
+        label: t("copyIt"),
+        apart: choices.length > 0,
+        onPick: () => void copied(picked.said),
+      });
     const free = !reading && !editing;
     if (free && picked) {
+      const before = choices.length;
       for (const [said, , mark, close] of FORMATS) {
         choices.push({
           key: `format-${said}`,
           label: t(said),
-          apart: choices.length === 1,
+          apart: choices.length === before && before > 0,
           onPick: () => format({ ...picked, open: mark, close }),
         });
       }
@@ -651,6 +659,13 @@ export default function Sheet(props: Readonly<Props>) {
     intoFile({ defaultPath: named(reference) })
       .then((where) => (where ? copyAttached(reference, where) : undefined))
       .catch((error_) => said.current.onFail?.(error_));
+
+  const openKept = (reference: string) =>
+    opened(reference).catch((error_) => said.current.onFail?.(error_));
+  const pictures = usePictures({
+    save: (kept) => void keepCopy(kept),
+    open: (kept) => void openKept(kept),
+  });
 
   const offered = (one: Extract<Went, { kind: "more" }>): Choice[] => {
     const file = one.target.startsWith(DOC) ? one.target.slice(DOC.length) : null;
@@ -857,6 +872,7 @@ export default function Sheet(props: Readonly<Props>) {
           onMend={reading || fixed ? undefined : mended}
           onMenu={fixed ? undefined : menued}
           onMore={reading || fixed ? undefined : asked}
+          onPicture={pictures.view}
           onAway={left}
           card={props.card}
           part={props.part}
@@ -892,6 +908,7 @@ export default function Sheet(props: Readonly<Props>) {
           onClose={() => setMenu(null)}
         />
       )}
+      {pictures.viewer}
       {more && (
         <Menu
           at={{ x: more.x, y: more.y }}

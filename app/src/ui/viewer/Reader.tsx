@@ -6,6 +6,7 @@ import PaperFacts from "../PaperFacts";
 import Properties from "../Properties";
 import type { Head } from "../paging";
 import { acrossOf, LEAVES, leafWord, PAPER, sheetFor, TALL } from "../sheets";
+import { usePictures } from "../usePictures";
 import { button, Segments } from "./Glyphs";
 
 const Page = lazy(() => import("../Page"));
@@ -95,6 +96,7 @@ function Finder({ onClose, within }: { onClose: () => void; within: () => Window
 export default function Reader(props: Readonly<Props>) {
   const { body, title, stranger, side, raw, zoom, leaf, finding } = props;
   const [heads, setHeads] = useState<Head[]>([]);
+  const pictures = usePictures({ open: props.onOpen });
   const shown = useRef<Window | null>(null);
   const laid = useMemo(() => laidIn(body), [body]);
   const wide = laid.sheets ? acrossOf(leaf, laid.landscape) : PAPER[leaf] + 40;
@@ -180,6 +182,7 @@ export default function Reader(props: Readonly<Props>) {
               onOutline={outlined}
               onDoc={props.onDoc}
               onOpen={props.onOpen}
+              onPicture={pictures.view}
               onShown={(at) => {
                 shown.current = at;
                 props.onPage?.(at);
@@ -187,6 +190,7 @@ export default function Reader(props: Readonly<Props>) {
             />
           </Suspense>
         )}
+        {pictures.viewer}
       </div>
     </div>
   );

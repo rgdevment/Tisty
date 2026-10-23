@@ -7,7 +7,18 @@ import { pictured } from "../previews";
 import { plainly } from "../refusal";
 import { type Attaching, attachedAs, lents, pressed } from "./attached";
 import { type Carding, carded } from "./carding";
-import { charsAt, colored, HUES, saidKinds, spanned, type Went, went, widgetsIn } from "./paging";
+import {
+  charsAt,
+  colored,
+  HUES,
+  type Shot,
+  saidKinds,
+  shotsOf,
+  spanned,
+  type Went,
+  went,
+  widgetsIn,
+} from "./paging";
 import { type PartCarded, partCarded } from "./partcarding";
 import { type Chosen, type Formatting, type Menued, quickly } from "./quickly";
 import { offeredAsParts, staged } from "./staging";
@@ -30,6 +41,7 @@ export type Reaching = Carding & {
   ) => void;
   readonly onApart?: (lent: Lent) => void;
   readonly onMore?: (asked: Extract<Went, { kind: "more" }>) => void;
+  readonly onPicture?: (shots: Shot[], nth: number) => void;
   readonly onHere?: (id: string) => void;
   readonly onAway?: () => void;
   readonly onTick?: (at: [number, number]) => void;
@@ -91,6 +103,7 @@ export const pictures = (
       if (drawnLive) lent.push(drawnLive);
       continue;
     }
+    img.dataset.kept = at;
     img.removeAttribute("src");
     held.push(showing(at));
     fetched(img, at, live);
@@ -285,6 +298,10 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
   }
   if (asked.kind === "attachment") reach.onOpen?.(asked.reference);
   if (asked.kind === "tag") reach.onTag?.(asked.name);
+  if (asked.kind === "picture") {
+    reach.onAway?.();
+    reach.onPicture?.(shotsOf(page), asked.nth);
+  }
   if (asked.kind === "tick")
     reach.onTick?.([charsAt(reach.body, asked.at[0]), charsAt(reach.body, asked.at[1])]);
   if (asked.kind === "block") {

@@ -1101,6 +1101,7 @@ export default function Docs({
           kept={saved}
           heads={heads}
           pages={above ? sisters : pages}
+          up={above}
           onPage={(one) => onDoc?.(one.file)}
           leaf={leaf}
           onLeaf={resize}
@@ -1115,8 +1116,6 @@ export default function Docs({
             bolted ? undefined : (turned) => reshape((now) => withLandscape(now, turned))
           }
           making={making}
-          onPdf={toPdf}
-          onSee={preview}
           trail={trailed(folders, known.find((one) => one.file === open.file)?.folder ?? null)}
           onFolder={onFolder}
           onCopy={() => {
