@@ -361,11 +361,7 @@ fn what_an_attachment_holds_comes_back_from_the_cache_and_not_only_from_the_log(
     let (reference, sha256) = an_attachment_that_answers_for_itself(body);
     store
         .append(Op::AttachKept {
-            d: crate::event::Held {
-                at: reference.clone(),
-                sha256: sha256.clone(),
-                bytes: body.len() as u64,
-            },
+            d: crate::event::Held::of(reference.clone(), sha256.clone(), body.len() as u64),
         })
         .unwrap();
 
@@ -404,11 +400,7 @@ fn a_digest_the_name_does_not_avow_is_not_taken_in() {
     for said in [other, "not a digest".into(), String::new()] {
         store
             .append(Op::AttachKept {
-                d: crate::event::Held {
-                    at: reference.clone(),
-                    sha256: said,
-                    bytes: 10,
-                },
+                d: crate::event::Held::of(reference.clone(), said, 10),
             })
             .unwrap();
     }
@@ -430,16 +422,13 @@ fn retiring_an_attachment_forgets_what_it_held() {
     let (reference, sha256) = an_attachment_that_answers_for_itself(body);
     store
         .append(Op::AttachKept {
-            d: crate::event::Held {
-                at: reference.clone(),
-                sha256,
-                bytes: body.len() as u64,
-            },
+            d: crate::event::Held::of(reference.clone(), sha256, body.len() as u64),
         })
         .unwrap();
     store
         .append(Op::AttachRetire {
             d: reference.clone(),
+            why: None,
         })
         .unwrap();
 
@@ -466,11 +455,7 @@ fn a_later_word_on_the_same_attachment_stands_and_the_case_is_not_kept() {
     ] {
         store
             .append(Op::AttachKept {
-                d: crate::event::Held {
-                    at: reference.clone(),
-                    sha256: said,
-                    bytes,
-                },
+                d: crate::event::Held::of(reference.clone(), said, bytes),
             })
             .unwrap();
     }
@@ -497,11 +482,7 @@ fn who_holds_a_body_survives_the_cache_and_letting_go_takes_it_off_the_list() {
         let mut store = Store::open(&store_root, DeviceId(named.into())).unwrap();
         store
             .append(Op::AttachKept {
-                d: crate::event::Held {
-                    at: reference.clone(),
-                    sha256: sha256.clone(),
-                    bytes: body.len() as u64,
-                },
+                d: crate::event::Held::of(reference.clone(), sha256.clone(), body.len() as u64),
             })
             .unwrap();
     }
@@ -557,11 +538,7 @@ fn a_machine_taken_off_the_store_stops_counting_as_one_that_has_it() {
     let mut store = Store::open(&store_root, DeviceId("dev_b".into())).unwrap();
     store
         .append(Op::AttachKept {
-            d: crate::event::Held {
-                at: reference.clone(),
-                sha256,
-                bytes: body.len() as u64,
-            },
+            d: crate::event::Held::of(reference.clone(), sha256, body.len() as u64),
         })
         .unwrap();
     store
@@ -600,11 +577,7 @@ fn an_attachment_avowed_after_the_cache_was_built_is_not_lost_by_the_tail() {
     store
         .append_batch(vec![
             Op::AttachKept {
-                d: crate::event::Held {
-                    at: reference.clone(),
-                    sha256: sha256.clone(),
-                    bytes: body.len() as u64,
-                },
+                d: crate::event::Held::of(reference.clone(), sha256.clone(), body.len() as u64),
             },
             Op::TaskAdd {
                 id: task,

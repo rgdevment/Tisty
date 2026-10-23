@@ -107,7 +107,9 @@ fn an_attachment_up_there_with_other_bytes_is_told_and_sent_over_it_next_round()
         let remote = counting(&setting);
         let (one, _) = pair(&setting);
         let kept = one.kept("foto", PHOTO);
-        one.store().append(kept.told()).unwrap();
+        one.store()
+            .append(kept.told(tisty_core::attach::Via::Window))
+            .unwrap();
         one.wrote("con foto");
         let wrong = setting.room.path().join("wrong");
         std::fs::write(&wrong, b"bytes que no son los de la foto").unwrap();
@@ -139,7 +141,9 @@ fn a_full_cloud_while_an_attachment_is_owed_still_lets_the_documents_through_and
         two.filed(DOC, "# Plan\n\nlo de dos\n");
         two.round(Way::Both);
         let kept = one.kept("foto", PHOTO);
-        one.store().append(kept.told()).unwrap();
+        one.store()
+            .append(kept.told(tisty_core::attach::Via::Window))
+            .unwrap();
         one.wrote("con foto");
         fake.refusing("attachments/", Hitch::Full);
 
@@ -164,7 +168,9 @@ fn bringing_home_takes_everything_but_writes_down_only_what_the_log_answers_for(
         let who = &setting.name;
         let (one, two) = pair(&setting);
         let named = one.kept("foto", PHOTO);
-        one.store().append(named.told()).unwrap();
+        one.store()
+            .append(named.told(tisty_core::attach::Via::Window))
+            .unwrap();
         let stray = one.kept("suelta", b"nadie la nombra");
         one.wrote("con foto");
         one.round(Way::Both);

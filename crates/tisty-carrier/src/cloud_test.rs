@@ -341,7 +341,9 @@ fn an_attachment_goes_up_and_a_cloud_brings_it_down_only_once_it_is_opened() {
         let who = &setting.name;
         let (one, two) = pair(&setting);
         let kept = one.kept("foto", b"los bytes de una foto");
-        one.store().append(kept.told()).unwrap();
+        one.store()
+            .append(kept.told(tisty_core::attach::Via::Window))
+            .unwrap();
         one.wrote("con foto");
         one.round(Way::Both);
 
@@ -1434,7 +1436,9 @@ fn an_attachment_only_the_shared_place_holds_is_brought_when_it_is_asked_for() {
         let who = &setting.name;
         let (one, two) = pair(&setting);
         let kept = one.kept("foto", b"los bytes de una foto");
-        one.store().append(kept.told()).unwrap();
+        one.store()
+            .append(kept.told(tisty_core::attach::Via::Window))
+            .unwrap();
         one.wrote("con foto");
         one.round(Way::Both);
         if let Place::Cloud(_) = setting.place {
@@ -1476,7 +1480,9 @@ fn an_attachment_only_the_shared_place_holds_is_brought_when_it_is_asked_for() {
             two.carrier.brought(&two.here, &kept.at).unwrap();
             assert_eq!(remote.counts().fetches, 0, "{who}: brought down twice");
             let other = one.kept("otra", b"otra foto que aun no baja");
-            one.store().append(other.told()).unwrap();
+            one.store()
+                .append(other.told(tisty_core::attach::Via::Window))
+                .unwrap();
             one.round(Way::Both);
             two.round(Way::Pull);
             remote.fail_next(Hitch::Unreachable(
@@ -1499,7 +1505,9 @@ fn an_attachment_whose_bytes_changed_up_there_is_never_brought() {
         let remote = counting(&setting);
         let (one, two) = pair(&setting);
         let kept = one.kept("foto", b"los bytes de una foto");
-        one.store().append(kept.told()).unwrap();
+        one.store()
+            .append(kept.told(tisty_core::attach::Via::Window))
+            .unwrap();
         one.wrote("con foto");
         one.round(Way::Both);
         let swapped = setting.room.path().join("swapped");
@@ -1618,7 +1626,9 @@ fn what_the_person_asks_for_comes_down_past_a_spent_day_and_is_counted() {
         let who = &setting.name;
         let (one, two) = pair(&setting);
         let kept = one.kept("foto", b"los bytes de una foto");
-        one.store().append(kept.told()).unwrap();
+        one.store()
+            .append(kept.told(tisty_core::attach::Via::Window))
+            .unwrap();
         one.wrote("con foto");
         one.round(Way::Both);
         two.round(Way::Pull);
@@ -2191,7 +2201,9 @@ fn an_attachment_asked_for_by_the_leaf_a_body_names_is_brought_all_the_same() {
         let who = &setting.name;
         let (one, two) = pair(&setting);
         let kept = one.kept("captura", b"los bytes de una captura");
-        one.store().append(kept.told()).unwrap();
+        one.store()
+            .append(kept.told(tisty_core::attach::Via::Window))
+            .unwrap();
         one.wrote("con captura");
         one.round(Way::Both);
         if let Place::Cloud(_) = setting.place {

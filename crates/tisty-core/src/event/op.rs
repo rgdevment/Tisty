@@ -256,7 +256,11 @@ pub enum Op {
     #[serde(rename = "attach.let_go")]
     AttachLetGo { d: String },
     #[serde(rename = "attach.retire")]
-    AttachRetire { d: String },
+    AttachRetire {
+        d: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        why: Option<String>,
+    },
 
     #[serde(rename = "stores.joined")]
     StoresJoined { d: Stitch },
@@ -267,6 +271,19 @@ pub struct Held {
     pub at: String,
     pub sha256: String,
     pub bytes: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub came: Option<String>,
+}
+
+impl Held {
+    pub fn of(at: String, sha256: String, bytes: u64) -> Self {
+        Self {
+            at,
+            sha256,
+            bytes,
+            came: None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

@@ -258,6 +258,7 @@ pub fn task_page_import(
             reach: &mut reach,
             outside: "",
             notes: false,
+            came: tisty_core::attach::Via::Imported,
         },
     );
     let file = tisty_core::task_front::read(&body, &tz)

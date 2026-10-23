@@ -42,11 +42,7 @@ impl Here {
         self.store
             .append_batch(vec![
                 Op::AttachKept {
-                    d: Held {
-                        at: "attachments/captura-ab12.png".into(),
-                        sha256: "ab12".into(),
-                        bytes: 10,
-                    },
+                    d: Held::of("attachments/captura-ab12.png".into(), "ab12".into(), 10),
                 },
                 Op::FolderAdd {
                     id: folder,
@@ -350,11 +346,7 @@ fn an_attachment_kept_outside_the_guide_makes_it_the_persons() {
     let mut here = here();
     here.store
         .append(Op::AttachKept {
-            d: Held {
-                at: "attachments/foto-cd34.png".into(),
-                sha256: "cd34".into(),
-                bytes: 10,
-            },
+            d: Held::of("attachments/foto-cd34.png".into(), "cd34".into(), 10),
         })
         .unwrap();
 

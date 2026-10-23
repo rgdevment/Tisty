@@ -1623,7 +1623,13 @@ fn leaning_on_the_cache_still_sees_what_was_retired_a_moment_ago() {
     .unwrap();
     std::fs::remove_file(shared.path().join(&kept)).unwrap();
 
-    says(&one, Op::AttachRetire { d: kept.clone() });
+    says(
+        &one,
+        Op::AttachRetire {
+            d: kept.clone(),
+            why: None,
+        },
+    );
     carry_leaning_on(
         &one.data,
         Some(&at),
@@ -3679,7 +3685,13 @@ fn a_segment_put_right_without_changing_its_length_still_reaches_the_folder() {
 fn an_attachment_put_aside_and_then_named_again_travels_like_any_other() {
     let one = machine("uno");
     let kept = planted(&one.data, "contrato.pdf", b"lo que se adjunto");
-    says(&one, Op::AttachRetire { d: kept.clone() });
+    says(
+        &one,
+        Op::AttachRetire {
+            d: kept.clone(),
+            why: None,
+        },
+    );
     let shared = tempfile::tempdir().unwrap();
     carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();
     assert!(
@@ -4649,7 +4661,13 @@ fn a_retired_attachment_does_not_come_back_from_the_folder_once_it_is_swept() {
     let shared = tempfile::tempdir().unwrap();
     carry(&one.data, &one.device, shared.path(), Way::Push, &[]).unwrap();
 
-    says(&one, Op::AttachRetire { d: kept.clone() });
+    says(
+        &one,
+        Op::AttachRetire {
+            d: kept.clone(),
+            why: None,
+        },
+    );
     let retired: std::collections::BTreeSet<String> = [kept.clone()].into();
     tisty_core::attach::sweep(&one.data, &retired, &Default::default());
     assert!(!one.data.join(&kept).exists(), "sweep did not remove it");
@@ -7323,7 +7341,7 @@ fn quiet_opens(retiring: bool) -> u64 {
     }
     if retiring {
         let kept = planted(&one.data, "foto.png", b"una fotografia retirada");
-        says(&one, Op::AttachRetire { d: kept });
+        says(&one, Op::AttachRetire { d: kept, why: None });
     }
     let shared = tempfile::tempdir().unwrap();
     carry(&one.data, &one.device, shared.path(), Way::Both, &[]).unwrap();

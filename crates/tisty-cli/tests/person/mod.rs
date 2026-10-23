@@ -312,7 +312,7 @@ impl Person {
         let named = tisty_core::attach::called(from, None);
         let body = tisty_core::attach::journalled(&kept, &named, from, "kept from {path}");
         self.wrote(vec![
-            kept.told(),
+            kept.told(tisty_core::attach::Via::Window),
             Op::TaskLog {
                 id,
                 d: LogAdd::new(Ulid::generate(), body),
@@ -361,11 +361,7 @@ impl Person {
                 .took_in
                 .iter()
                 .map(|(at, sha256, bytes)| Op::AttachKept {
-                    d: tisty_core::event::Held {
-                        at: at.clone(),
-                        sha256: sha256.clone(),
-                        bytes: *bytes,
-                    },
+                    d: tisty_core::event::Held::of(at.clone(), sha256.clone(), *bytes),
                 }),
         );
         self.wrote(ops);

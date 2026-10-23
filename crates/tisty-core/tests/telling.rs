@@ -561,11 +561,7 @@ fn a_mark_written_into_the_text_is_something_the_editor_can_keep() {
 fn what_cannot_be_walked_past_without_losing_something_is_not_optional() {
     let costly = [
         tisty_core::Op::AttachKept {
-            d: tisty_core::event::Held {
-                at: "attachments/ab/one.pdf".into(),
-                sha256: "ab".repeat(32),
-                bytes: 4,
-            },
+            d: tisty_core::event::Held::of("attachments/ab/one.pdf".into(), "ab".repeat(32), 4),
         },
         tisty_core::Op::AttachLetGo {
             d: "attachments/ab/one.pdf".into(),

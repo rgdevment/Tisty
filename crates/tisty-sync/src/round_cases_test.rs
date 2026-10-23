@@ -274,7 +274,7 @@ fn a_retired_attachment_is_never_pushed_back_up_to_the_folder(shared: &Shared) {
     let one = machine("uno");
     let kept = planted(&one.data, "foto.png", b"una fotografia retirada");
 
-    says(&one, Op::AttachRetire { d: kept.clone() });
+    says(&one, Op::AttachRetire { d: kept.clone(), why: None });
     shared.carry(&one, Way::Both, &[]).unwrap();
 
     assert!(
