@@ -59,6 +59,41 @@ impl Via {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Arrival {
+    pub came: Option<String>,
+    pub by: crate::event::DeviceId,
+    pub when: jiff::Timestamp,
+}
+
+// Events come in time from `store::read_all`, so the first seen is the first arrival; a retired name starts over.
+pub fn arrivals(events: &[crate::event::Event]) -> std::collections::BTreeMap<String, Arrival> {
+    let mut first: std::collections::BTreeMap<String, Arrival> = Default::default();
+    for event in events {
+        match &event.op {
+            crate::Op::AttachKept { d } => {
+                // What the projection does not trust about a file says nothing about it here either.
+                let Some(at) = canonical(&d.at).filter(|_| crate::state::vouches_for_its_name(d))
+                else {
+                    continue;
+                };
+                first.entry(at).or_insert_with(|| Arrival {
+                    came: d.came.clone(),
+                    by: event.device.clone(),
+                    when: event.timestamp,
+                });
+            }
+            crate::Op::AttachRetire { d, .. } => {
+                if let Some(at) = canonical(d) {
+                    first.remove(&at);
+                }
+            }
+            _ => {}
+        }
+    }
+    first
+}
+
 impl Kept {
     pub fn told(&self, came: Via) -> crate::Op {
         crate::Op::AttachKept {

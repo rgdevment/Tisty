@@ -1680,3 +1680,98 @@ fn a_kept_file_tells_how_it_came_and_nothing_beyond_the_name_it_is_kept_under() 
         "the log never forgets, so nothing else of the file goes in it"
     );
 }
+
+#[test]
+fn where_a_file_came_from_is_its_first_arrival() {
+    let one = crate::event::DeviceId("dev_one".into());
+    let two = crate::event::DeviceId("dev_two".into());
+    let at = |seconds: i64| jiff::Timestamp::from_second(seconds).unwrap();
+    let held = |came: Option<&str>| crate::Op::AttachKept {
+        d: crate::event::Held {
+            came: came.map(str::to_string),
+            ..crate::event::Held::of("attachments/plano-12345678.png".into(), vouching(), 3)
+        },
+    };
+    let events = [
+        crate::Event::new(two.clone(), at(10), held(None)),
+        crate::Event::new(one.clone(), at(20), held(Some("assistant"))),
+        crate::Event::new(two.clone(), at(30), held(Some("window"))),
+    ];
+
+    let arrived = arrivals(&events);
+
+    let first = &arrived["attachments/plano-12345678.png"];
+    assert_eq!(first.by, two, "the first to keep it");
+    assert_eq!(first.when, at(10));
+    assert_eq!(
+        first.came, None,
+        "it never said how, and a later word does not speak for it"
+    );
+}
+
+#[test]
+fn a_name_retired_and_kept_again_tells_its_new_arrival() {
+    let one = crate::event::DeviceId("dev_one".into());
+    let at = |seconds: i64| jiff::Timestamp::from_second(seconds).unwrap();
+    let held = |came: &str| crate::Op::AttachKept {
+        d: crate::event::Held {
+            came: Some(came.to_string()),
+            ..crate::event::Held::of("attachments/plano-12345678.png".into(), vouching(), 3)
+        },
+    };
+    let events = [
+        crate::Event::new(one.clone(), at(10), held("assistant")),
+        crate::Event::new(
+            one.clone(),
+            at(20),
+            crate::Op::AttachRetire {
+                d: "attachments/plano-12345678.png".into(),
+                why: Some("unused".into()),
+            },
+        ),
+        crate::Event::new(one.clone(), at(30), held("imported")),
+    ];
+
+    let first = &arrivals(&events)["attachments/plano-12345678.png"];
+
+    assert_eq!(first.came.as_deref(), Some("imported"));
+    assert_eq!(first.when, at(30));
+}
+
+#[test]
+fn a_file_kept_before_anyone_said_how_still_tells_who_and_when() {
+    let one = crate::event::DeviceId("dev_one".into());
+    let events = [crate::Event::new(
+        one.clone(),
+        jiff::Timestamp::from_second(5).unwrap(),
+        crate::Op::AttachKept {
+            d: crate::event::Held::of("attachments/viejo-12345678.png".into(), vouching(), 3),
+        },
+    )];
+
+    let arrived = arrivals(&events);
+
+    let old = &arrived["attachments/viejo-12345678.png"];
+    assert_eq!(old.came, None);
+    assert_eq!(old.by, one);
+}
+
+fn vouching() -> String {
+    format!("ab12345678{}", "0".repeat(54))
+}
+
+#[test]
+fn a_kept_line_whose_digest_does_not_match_its_name_says_nothing_of_where_it_came_from() {
+    let events = [crate::Event::new(
+        crate::event::DeviceId("dev_one".into()),
+        jiff::Timestamp::from_second(5).unwrap(),
+        crate::Op::AttachKept {
+            d: crate::event::Held {
+                came: Some("window".into()),
+                ..crate::event::Held::of("attachments/plano-12345678.png".into(), "ab".into(), 3)
+            },
+        },
+    )];
+
+    assert!(arrivals(&events).is_empty());
+}

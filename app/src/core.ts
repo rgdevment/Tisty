@@ -578,10 +578,18 @@ export interface Linked {
   title: string;
 }
 
+export interface Came {
+  how?: string | null;
+  machine: string;
+  mine: boolean;
+  when: number;
+}
+
 export interface Twin {
   at: string;
   links: Linked[];
   locked?: string | null;
+  came?: Came | null;
 }
 
 export interface Pair {
@@ -659,6 +667,7 @@ export interface Reviewed {
   loose: number;
   looseBytes: number;
   astray: Astray[];
+  came?: Record<string, Came>;
   unread: string | null;
   stranded: Stray[];
   missing: Gone[];
