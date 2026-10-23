@@ -2740,7 +2740,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ## Text 37
 
-Carried by `cmov` 0.5.4, `ctutils` 0.4.3, `embed_plist` 1.2.2, `emojis` 0.9.1, `encoding_rs` 0.8.42, `htmd` 0.5.6, `ntapi` 0.4.3, `rustls-platform-verifier` 0.7.1, `serialize-to-javascript` 0.1.2, `siphasher` 1.0.4, `static_assertions` 1.1.0, `sys-locale` 0.3.2, `tinyvec` 1.13.3, `utf8_iter` 1.0.4, `zeroize` 1.9.1, `zune-core` 0.5.3, `zune-jpeg` 0.5.15.
+Carried by `cmov` 0.5.4, `ctutils` 0.4.5, `embed_plist` 1.2.2, `emojis` 0.9.1, `encoding_rs` 0.8.42, `htmd` 0.5.6, `ntapi` 0.4.3, `rustls-platform-verifier` 0.7.1, `serialize-to-javascript` 0.1.2, `siphasher` 1.0.4, `static_assertions` 1.1.0, `sys-locale` 0.3.2, `tinyvec` 1.13.3, `utf8_iter` 1.0.4, `zeroize` 1.9.1, `zune-core` 0.5.3, `zune-jpeg` 0.5.15.
 
 ```text
 Apache License
@@ -4432,7 +4432,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ## Text 51
 
-Carried by `ctutils` 0.4.3.
+Carried by `ctutils` 0.4.5.
 
 ```text
 Copyright (c) 2025-2026 The RustCrypto Project Developers
