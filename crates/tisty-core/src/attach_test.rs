@@ -1460,7 +1460,14 @@ fn every_way_an_attachment_is_born_says_what_it_holds() {
             continue;
         }
         keeps += kept;
-        if said.matches(".told(").count() < kept {
+        let told = said
+            .match_indices(".told(")
+            .filter(|(at, _)| {
+                let said_of = said[at + 6..].split(')').next().unwrap_or_default();
+                said_of.contains("Via::") || said_of == "way.came"
+            })
+            .count();
+        if told < kept {
             forgot.push(named);
         }
     }
@@ -1638,7 +1645,7 @@ fn after_a_join_the_same_bytes_land_on_the_copy_that_stayed_even_with_neither_he
 }
 
 #[test]
-fn a_kept_file_tells_how_it_came_and_never_its_name() {
+fn a_kept_file_tells_how_it_came_and_nothing_beyond_the_name_it_is_kept_under() {
     let (_dir, file) = dropped("Plano final.png", b"un plano");
     let root = tempfile::tempdir().unwrap();
     let kept = keep(&file, root.path(), COPIED_UP_TO).unwrap();
@@ -1648,9 +1655,28 @@ fn a_kept_file_tells_how_it_came_and_never_its_name() {
         panic!("what it tells is not what an attachment holds");
     };
     assert_eq!(d.came.as_deref(), Some("guide"));
-    let line = serde_json::to_string(&told).unwrap();
     assert!(
-        !line.contains("Plano"),
-        "the log never forgets, so it never holds the name: {line}"
+        d.at.starts_with("attachments/plano-final-"),
+        "kept under its tidied stem, nothing more of the name: {}",
+        d.at
+    );
+    assert!(
+        !serde_json::to_string(&told)
+            .unwrap()
+            .contains("Plano final"),
+        "the name as it was written never reaches the log"
+    );
+    let line: serde_json::Value = serde_json::to_value(&told).unwrap();
+    let mut fields: Vec<&str> = line["d"]
+        .as_object()
+        .unwrap()
+        .keys()
+        .map(String::as_str)
+        .collect();
+    fields.sort_unstable();
+    assert_eq!(
+        fields,
+        ["at", "bytes", "came", "sha256"],
+        "the log never forgets, so nothing else of the file goes in it"
     );
 }

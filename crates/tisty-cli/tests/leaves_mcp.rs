@@ -1703,6 +1703,19 @@ fn a_picture_beside_the_file_comes_in_with_it() {
         said["result"]["structuredContent"]["files"].as_u64(),
         Some(1)
     );
+    let came: Vec<Option<String>> = tisty_core::store::read_all(served.data().join("store"))
+        .unwrap()
+        .into_iter()
+        .filter_map(|one| match one.op {
+            tisty_core::Op::AttachKept { d } => Some(d.came),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        came,
+        [Some("imported".to_string())],
+        "a file brought in beside a document came by an import, whoever asked for it"
+    );
 }
 
 #[test]
