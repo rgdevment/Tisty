@@ -1682,7 +1682,7 @@ fn a_kept_file_tells_how_it_came_and_nothing_beyond_the_name_it_is_kept_under() 
 }
 
 #[test]
-fn where_a_file_came_from_is_the_first_word_that_says_how() {
+fn where_a_file_came_from_is_its_first_arrival_whatever_order_the_log_is_read_in() {
     let one = crate::event::DeviceId("dev_one".into());
     let two = crate::event::DeviceId("dev_two".into());
     let at = |seconds: i64| jiff::Timestamp::from_second(seconds).unwrap();
@@ -1693,21 +1693,49 @@ fn where_a_file_came_from_is_the_first_word_that_says_how() {
         },
     };
     let events = [
-        crate::Event::new(two.clone(), at(10), held(None)),
         crate::Event::new(one.clone(), at(20), held(Some("assistant"))),
+        crate::Event::new(two.clone(), at(10), held(None)),
         crate::Event::new(two.clone(), at(30), held(Some("window"))),
     ];
 
     let arrived = arrivals(&events);
 
     let first = &arrived["attachments/plano-12345678.png"];
+    assert_eq!(first.by, two, "the first to keep it, though read last");
+    assert_eq!(first.when, at(10));
     assert_eq!(
-        first.came.as_deref(),
-        Some("assistant"),
-        "a word on how beats an older silence"
+        first.came, None,
+        "it never said how, and a later word does not speak for it"
     );
-    assert_eq!(first.by, one);
-    assert_eq!(first.when, at(20), "and the first of those who said how");
+}
+
+#[test]
+fn a_name_retired_and_kept_again_tells_its_new_arrival() {
+    let one = crate::event::DeviceId("dev_one".into());
+    let at = |seconds: i64| jiff::Timestamp::from_second(seconds).unwrap();
+    let held = |came: &str| crate::Op::AttachKept {
+        d: crate::event::Held {
+            came: Some(came.to_string()),
+            ..crate::event::Held::of("attachments/plano-12345678.png".into(), vouching(), 3)
+        },
+    };
+    let events = [
+        crate::Event::new(one.clone(), at(10), held("assistant")),
+        crate::Event::new(
+            one.clone(),
+            at(20),
+            crate::Op::AttachRetire {
+                d: "attachments/plano-12345678.png".into(),
+                why: Some("unused".into()),
+            },
+        ),
+        crate::Event::new(one.clone(), at(30), held("imported")),
+    ];
+
+    let first = &arrivals(&events)["attachments/plano-12345678.png"];
+
+    assert_eq!(first.came.as_deref(), Some("imported"));
+    assert_eq!(first.when, at(30));
 }
 
 #[test]

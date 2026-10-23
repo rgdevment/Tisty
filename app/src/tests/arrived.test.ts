@@ -30,6 +30,12 @@ describe("how an attachment came, said beside it in Maintenance", () => {
     );
   });
 
+  it("takes a word that only names something of every object for an unknown way", () => {
+    expect(cameWords({ how: "constructor", machine: "Portátil", mine: false, when: WHEN })).toBe(
+      `Portátil · ${dated(WHEN)}`,
+    );
+  });
+
   it("says nothing when the log says nothing", () => {
     expect(cameWords(null)).toBeNull();
   });

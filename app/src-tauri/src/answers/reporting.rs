@@ -38,13 +38,13 @@ pub fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
     let kept = report::attachments(session.paths.data());
     let told = tisty_core::store::read_all(session.paths.store()).unwrap_or_default();
     let arrived = tisty_core::attach::arrivals(&told);
+    let known = report::Known::of(&session.state);
     let mine = session.config.device_id.0.clone();
     let came = adrift
         .items
         .iter()
         .filter_map(|one| {
-            report::came_of(&arrived, &one.at, &report::Known::of(&session.state), &mine)
-                .map(|came| (one.at.clone(), came))
+            report::came_of(&arrived, &one.at, &known, &mine).map(|came| (one.at.clone(), came))
         })
         .collect();
     let alive: Vec<String> = session
@@ -82,7 +82,7 @@ pub fn checked(session: tauri::State<'_, Mutex<Session>>) -> Answer<Reviewed> {
         machines: report::machines(
             &told,
             session.config.device_id.0.as_str(),
-            &report::Known::of(&session.state),
+            &known,
             &session.paths,
             session.histories().as_deref(),
         ),

@@ -54,25 +54,31 @@ pub struct Arrival {
     pub when: jiff::Timestamp,
 }
 
-// A copy that only says it holds a file never overrules the first that said how it came.
+// The log is read machine by machine, so it is put in time first; a retired name starts over.
 pub fn arrivals(events: &[crate::event::Event]) -> std::collections::BTreeMap<String, Arrival> {
-    let rank = |one: &Arrival| (one.came.is_none(), one.when);
+    let mut timed: Vec<&crate::event::Event> = events.iter().collect();
+    timed.sort_by_key(|one| one.timestamp);
     let mut first: std::collections::BTreeMap<String, Arrival> = Default::default();
-    for event in events {
-        let crate::Op::AttachKept { d } = &event.op else {
-            continue;
-        };
-        // What the projection does not trust about a file says nothing about it here either.
-        let Some(at) = canonical(&d.at).filter(|_| crate::state::vouches_for_its_name(d)) else {
-            continue;
-        };
-        let told = Arrival {
-            came: d.came.clone(),
-            by: event.device.clone(),
-            when: event.timestamp,
-        };
-        if first.get(&at).is_none_or(|was| rank(&told) < rank(was)) {
-            first.insert(at, told);
+    for event in timed {
+        match &event.op {
+            crate::Op::AttachKept { d } => {
+                // What the projection does not trust about a file says nothing about it here either.
+                let Some(at) = canonical(&d.at).filter(|_| crate::state::vouches_for_its_name(d))
+                else {
+                    continue;
+                };
+                first.entry(at).or_insert_with(|| Arrival {
+                    came: d.came.clone(),
+                    by: event.device.clone(),
+                    when: event.timestamp,
+                });
+            }
+            crate::Op::AttachRetire { d, .. } => {
+                if let Some(at) = canonical(d) {
+                    first.remove(&at);
+                }
+            }
+            _ => {}
         }
     }
     first

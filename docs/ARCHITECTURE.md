@@ -1163,9 +1163,10 @@ stateDiagram-v2
   before, and
   absent where a machine only says it holds a copy that came another way. Of
   the file's name it carries only `at`, the tidied stem it is kept under: the
-  log is shared and never forgets. `attach::arrivals` reads the first word on
-  how each one came, with the machine and the day, when Maintenance lists loose
-  and twice-kept attachments; it is read from the log then, not projected.
+  log is shared and never forgets. `attach::arrivals` reads each one's first
+  arrival since it was last retired — how it came, the machine and the day —
+  when Maintenance lists loose and twice-kept attachments; it is read from the
+  log then, not projected.
   `attach.let_go` says it released its copy; `attach.retire` retires the name
   for every machine, with `why` (`unused` or `joined`).
 - **The ledger stays.** `attachments.jsonl` is the local index that finds a

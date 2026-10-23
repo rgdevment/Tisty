@@ -3,6 +3,7 @@ import { freesSpace } from "../clouds";
 import {
   type About,
   type Astray,
+  type Came,
   type Carrying,
   checked,
   type Freeing,
@@ -26,6 +27,35 @@ import FreeSpace from "./FreeSpace";
 import { hushed } from "./Keys";
 import { Band, dated, Line, mild, risky } from "./Rows";
 import Twins from "./Twins";
+
+// A file whose arrival is known shows that day; its date on this disk only when nothing else says.
+function Stray({
+  one,
+  came,
+  held,
+  onDrop,
+}: Readonly<{ one: Astray; came?: Came; held: boolean; onDrop: () => void }>) {
+  return (
+    <li className="flex items-baseline justify-between gap-4">
+      <span className="flex min-w-0 flex-col">
+        <span className="font-mono text-[11.5px] break-all text-soft">
+          {one.at.split("/").pop()}
+        </span>
+        {came && <span className="text-[11.5px] text-faint">{cameWords(came)}</span>}
+      </span>
+      <span className="flex shrink-0 items-baseline gap-2.5 tabular-nums">
+        <span className="text-faint">
+          {`${weigh(one.bytes)}${came ? "" : ` · ${dated(one.when)}`}${
+            one.shared ? ` · ${t("looseShared")}` : ""
+          }`}
+        </span>
+        <button type="button" disabled={held} onClick={onDrop} className={risky}>
+          {t("looseDrop")}
+        </button>
+      </span>
+    </li>
+  );
+}
 
 interface Props {
   audit: Reviewed | null;
@@ -174,33 +204,13 @@ export default function FreeUp({
                 )}
                 <ul className="scroller mt-2 flex max-h-[22rem] flex-col gap-1 overflow-y-auto text-[12.5px]">
                   {audit.astray.map((one) => (
-                    <li key={one.at} className="flex items-baseline justify-between gap-4">
-                      <span className="flex min-w-0 flex-col">
-                        <span className="font-mono text-[11.5px] break-all text-soft">
-                          {one.at.split("/").pop()}
-                        </span>
-                        {audit.came?.[one.at] && (
-                          <span className="text-[11.5px] text-faint">
-                            {cameWords(audit.came[one.at])}
-                          </span>
-                        )}
-                      </span>
-                      <span className="flex shrink-0 items-baseline gap-2.5 tabular-nums">
-                        <span className="text-faint">
-                          {`${weigh(one.bytes)}${
-                            audit.came?.[one.at] ? "" : ` · ${dated(one.when)}`
-                          }${one.shared ? ` · ${t("looseShared")}` : ""}`}
-                        </span>
-                        <button
-                          type="button"
-                          disabled={held}
-                          onClick={() => letGo(one)}
-                          className={risky}
-                        >
-                          {t("looseDrop")}
-                        </button>
-                      </span>
-                    </li>
+                    <Stray
+                      key={one.at}
+                      one={one}
+                      came={audit.came?.[one.at]}
+                      held={held}
+                      onDrop={() => letGo(one)}
+                    />
                   ))}
                 </ul>
                 <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
