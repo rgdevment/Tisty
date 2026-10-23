@@ -1719,6 +1719,171 @@ fn a_picture_beside_the_file_comes_in_with_it() {
 }
 
 #[test]
+fn a_document_read_as_markdown_comes_in_standard_words_and_says_what_stays_behind() {
+    let served = Served::new();
+    let other = served.wrote("# Rina's record\n\nshots", None);
+    let doc = served.wrote(
+        "# Walks\n\nShe ==pulls== on the lead.\n\nSee [[Rina's record]].\n\n\
+         ```mermaid\ngraph TD; A-->B\n```\n",
+        None,
+    );
+    assert!(!other.is_empty());
+
+    let said = served.call(
+        "read_doc",
+        serde_json::json!({ "doc": doc, "as": "markdown" }),
+    );
+
+    assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
+    let told = &said["result"]["structuredContent"];
+    let body = told["body"].as_str().unwrap();
+    assert!(body.contains("<mark>pulls</mark>"), "{body}");
+    assert!(!body.contains("=="), "{body}");
+    assert!(!body.contains("[["), "{body}");
+    assert!(body.contains("```mermaid"), "{body}");
+    assert_eq!(told["as"], "markdown");
+    assert_eq!(told["left_out"]["diagrams"], 1, "{told}");
+    assert_eq!(told["left_out"]["named"], 1, "{told}");
+    let words = said["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        words.contains("Confluence and Jira show them as code"),
+        "{words}"
+    );
+    assert!(words.contains("became plain words"), "{words}");
+}
+
+#[test]
+fn a_picture_read_as_markdown_is_named_and_the_way_to_carry_it_is_said() {
+    let served = Served::new();
+    let dir = tempfile::Builder::new()
+        .tempdir_in(std::env::temp_dir())
+        .unwrap();
+    beside(dir.path(), "Plan/shot.png", A_PNG);
+    let at = dir.path().join("Plan.md");
+    std::fs::write(&at, "# Plan\n\n![shot](Plan/shot.png)\n").unwrap();
+    let doc = served.call(
+        "import_doc",
+        serde_json::json!({ "path": at.to_str().unwrap() }),
+    )["result"]["structuredContent"]["doc"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let said = served.call(
+        "read_doc",
+        serde_json::json!({ "doc": doc, "as": "markdown" }),
+    );
+
+    let files = &said["result"]["structuredContent"]["left_out"]["files"];
+    assert_eq!(files.as_array().map(Vec::len), Some(1), "{said}");
+    assert!(
+        files[0]
+            .as_str()
+            .unwrap_or_default()
+            .starts_with("attachments/"),
+        "named by its place in Tisty, never by a path on this disk: {said}"
+    );
+    let words = said["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(
+        words.contains("`export_doc` writes the document out"),
+        "{words}"
+    );
+}
+
+#[test]
+fn a_document_with_nothing_to_lose_says_nothing_about_losing() {
+    let served = Served::new();
+    let doc = served.wrote(
+        "# Plain
+
+Just words.",
+        None,
+    );
+
+    let said = served.call(
+        "read_doc",
+        serde_json::json!({ "doc": doc, "as": "markdown" }),
+    );
+
+    let told = &said["result"]["structuredContent"];
+    assert!(
+        told["body"].as_str().unwrap().contains("Just words."),
+        "{said}"
+    );
+    assert!(told.get("left_out").is_none(), "{told}");
+}
+
+#[test]
+fn a_picture_shown_inside_code_is_not_taken_for_one_that_stays_behind() {
+    let served = Served::new();
+    let doc = served.wrote(
+        "# How to
+
+```markdown
+![x](attachments/ab/x-12345678.png)
+```
+",
+        None,
+    );
+
+    let said = served.call(
+        "read_doc",
+        serde_json::json!({ "doc": doc, "as": "markdown" }),
+    );
+
+    let told = &said["result"]["structuredContent"];
+    assert!(told.get("left_out").is_none(), "{told}");
+}
+
+#[test]
+fn a_document_marked_as_having_had_its_day_says_so_before_it_is_carried_out() {
+    let served = Served::new();
+    let doc = served.wrote(
+        "# Old plan
+
+what we meant to do",
+        None,
+    );
+    served.call(
+        "flag_doc",
+        serde_json::json!({ "doc": &doc, "body": "it has had its day" }),
+    );
+
+    let said = served.call(
+        "read_doc",
+        serde_json::json!({ "doc": doc, "as": "markdown" }),
+    );
+
+    let words = said["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(words.contains("has had its day"), "{words}");
+    assert!(
+        words.contains("Ask the person before carrying it anywhere"),
+        "{words}"
+    );
+}
+
+#[test]
+fn reading_as_another_shape_takes_the_whole_document_and_only_shapes_it_knows() {
+    let served = Served::new();
+    let doc = served.wrote("# Short\n\nwords", None);
+
+    let part = served.refused(
+        "read_doc",
+        serde_json::json!({ "doc": doc, "as": "markdown", "section": 0 }),
+    );
+    assert!(part.contains("takes no `section`"), "{part}");
+    for odd in [
+        serde_json::json!("html"),
+        serde_json::json!(""),
+        serde_json::json!(["markdown"]),
+    ] {
+        // A value that is not text is turned away before the tool reads it, in the door's own words.
+        let said = served.refused("read_doc", serde_json::json!({ "doc": doc, "as": odd }));
+        assert!(said.contains("`as` takes"), "{said}");
+    }
+}
+
+#[test]
 fn a_page_that_leaves_for_another_document_says_the_old_line_is_still_there() {
     let served = Served::new();
     let one = served.wrote("# Libro uno\n\nintro", None);

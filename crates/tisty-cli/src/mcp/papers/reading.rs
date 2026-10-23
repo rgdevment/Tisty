@@ -462,6 +462,19 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
         );
     }
 
+    let standing = match (away, kept.flagged.as_ref()) {
+        (true, _) => Some(away_words(&state, kept)),
+        (false, Some(mark)) => Some(format!(
+            "An assistant marked this as one that has had its day on {}: {}",
+            when(mark.at),
+            mark.body
+        )),
+        (false, None) => None,
+    };
+    if super::outward::asked(args)? {
+        return super::outward::carried(&body, standing, &pages, kept_of);
+    }
+
     match part_asked(&body, args)? {
         Part::Outline => {
             kept_of.insert("whole".into(), json!(false));
@@ -492,14 +505,9 @@ pub(in crate::mcp) fn read_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
                 kept_of.insert("next".into(), json!(next));
                 kept_of.insert("whole".into(), json!(false));
             }
-            let said = match (away, kept.flagged.as_ref()) {
-                (true, _) => format!("({})\n\n{part}", away_words(&state, kept)),
-                (false, Some(mark)) => format!(
-                    "(An assistant marked this as one that has had its day on {}: {})\n\n{part}",
-                    when(mark.at),
-                    mark.body
-                ),
-                (false, None) => part,
+            let said = match standing {
+                Some(standing) => format!("({standing})\n\n{part}"),
+                None => part,
             };
             Ok(told(said, Value::Object(kept_of)))
         }
