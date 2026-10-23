@@ -109,14 +109,18 @@ fn a_formula_keeps_every_symbol_between_its_dollars() {
 
 #[cfg(feature = "mermaid")]
 #[test]
-fn a_diagram_comes_light_and_dark_for_the_reader_to_pick() {
-    let drawn = page("```mermaid\ngraph TD; A-->B\n```\n");
-    assert!(drawn.contains("<img class=\"light\""));
-    assert!(drawn.contains("<img class=\"dark\""));
-    for src in drawn.split("src=\"").skip(1) {
-        let url = src.split('"').next().unwrap_or_default();
-        assert!(url.starts_with("data:image/svg+xml,"));
-        assert!(!url.contains(' '));
+fn a_diagram_is_one_drawing_that_stays_inside_its_attribute() {
+    let drawn = page("```mermaid\ngraph TD; A[\"Rina & Walk #1\"]-->B\n```\n");
+    assert_eq!(drawn.matches("<img").count(), 1, "{drawn}");
+    let url = drawn
+        .split("src=\"")
+        .nth(1)
+        .and_then(|src| src.split('"').next())
+        .unwrap_or_default();
+    assert!(url.starts_with("data:image/svg+xml,"), "{url}");
+    assert!(url.ends_with("</svg>"), "the drawing was cut short: {url}");
+    for amiss in [' ', '\n', '#', '&'] {
+        assert!(!url.contains(amiss), "{amiss:?} in {url}");
     }
 }
 
