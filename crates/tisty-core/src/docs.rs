@@ -1129,7 +1129,6 @@ mod naming;
 #[path = "docs_test.rs"]
 mod tests;
 
-/// Whether a body is said in Tisty's own words: no raw HTML, and no pen or icon the language has not got.
 pub fn speaks(body: &str) -> std::result::Result<(), &'static str> {
     let body = body.trim_start_matches('\u{feff}');
     let body = &body[tisty_markdown::front::span(body).map_or(0, |at| at.end)..];

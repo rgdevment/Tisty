@@ -60,7 +60,7 @@ pub(in crate::mcp) fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
     let new = tisty_core::speaking::turned(new);
     let new = new.as_str();
     tisty_core::docs::speaks(new)
-        .map_err(|stray| Refused::Tool(super::writing::not_spoken(stray)))?;
+        .map_err(|unsaid| Refused::Tool(super::writing::not_spoken(unsaid)))?;
 
     if by_place {
         return in_its_place(paths, &state, &mut store, &which, args, new);

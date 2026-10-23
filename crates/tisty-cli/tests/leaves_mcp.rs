@@ -1256,11 +1256,41 @@ Una nota[^1] y [un enlace](https://example.com).
     );
     assert_ne!(said["result"]["isError"].as_bool(), Some(true), "{said}");
     let doc = said["result"]["structuredContent"]["doc"].as_str().unwrap();
-    let read = served.body_of(doc);
+    let opened = served.call("read_doc", serde_json::json!({ "doc": doc }));
+    assert_ne!(
+        opened["result"]["isError"].as_bool(),
+        Some(true),
+        "{opened}"
+    );
+    let read = opened["result"]["structuredContent"]["body"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let print = opened["result"]["structuredContent"]["print"]
+        .as_str()
+        .unwrap()
+        .to_string();
     assert!(!read.contains("<span") && !read.contains("<b>"), "{read}");
     assert!(tisty_core::docs::speaks(&read).is_ok(), "{read}");
+    for kept in [
+        "Cuidado con esto.",
+        "resaltado",
+        "rojo",
+        "**fuerte**",
+        "- [ ] por hacer",
+        "- [x] hecho",
+        "| 1 | 2 |",
+        "graph TD; A-->B",
+        "x^2",
+        "[^1]: al pie",
+        "[un enlace](https://example.com)",
+    ] {
+        assert!(
+            read.contains(kept),
+            "{kept:?} was lost on the way in: {read}"
+        );
+    }
 
-    let print = served.print_of(doc);
     let again = served.call(
         "write_doc",
         serde_json::json!({ "doc": doc, "print": print, "body": read }),
@@ -1272,14 +1302,9 @@ Una nota[^1] y [un enlace](https://example.com).
         "writing back what was read changed it"
     );
 
-    let copy = served.call(
-        "write_doc",
-        serde_json::json!({ "body": read, "anyway": true }),
-    );
-    assert_ne!(copy["result"]["isError"].as_bool(), Some(true), "{copy}");
-    let copy = copy["result"]["structuredContent"]["doc"].as_str().unwrap();
+    let copy = served.wrote(&read, None);
     assert_eq!(
-        served.body_of(copy),
+        served.body_of(&copy),
         read,
         "a new document of the same words reads differently"
     );
