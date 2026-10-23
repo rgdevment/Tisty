@@ -431,7 +431,7 @@ impl State {
                     }
                 }
             }
-            Op::AttachRetire { d } => {
+            Op::AttachRetire { d, .. } => {
                 if let Some(at) = crate::attach::canonical(d) {
                     self.retired.insert(at.clone());
                     self.kept.remove(&at);

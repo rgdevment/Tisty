@@ -21,13 +21,50 @@ pub struct Kept {
     pub bytes: u64,
 }
 
+/// How a file came to be kept, written down with it so a later question has an answer.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Via {
+    Window,
+    Assistant,
+    Imported,
+    Parcel,
+    Guide,
+}
+
+/// Why a name was retired, written with the retirement so the log can answer for it later.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Retired {
+    Unused,
+    Joined,
+}
+
+impl Retired {
+    pub fn said(self) -> &'static str {
+        match self {
+            Retired::Unused => "unused",
+            Retired::Joined => "joined",
+        }
+    }
+}
+
+impl Via {
+    pub fn said(self) -> &'static str {
+        match self {
+            Via::Window => "window",
+            Via::Assistant => "assistant",
+            Via::Imported => "imported",
+            Via::Parcel => "parcel",
+            Via::Guide => "guide",
+        }
+    }
+}
+
 impl Kept {
-    pub fn told(&self) -> crate::Op {
+    pub fn told(&self, came: Via) -> crate::Op {
         crate::Op::AttachKept {
             d: crate::event::Held {
-                at: self.at.clone(),
-                sha256: self.sha256.clone(),
-                bytes: self.bytes,
+                came: Some(came.said().to_string()),
+                ..crate::event::Held::of(self.at.clone(), self.sha256.clone(), self.bytes)
             },
         }
     }

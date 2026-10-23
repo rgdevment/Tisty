@@ -126,7 +126,10 @@ fn letting_go_while_a_document_cannot_be_read_names_the_document_not_its_id() {
     std::fs::write(at, b"# Plan\n\n\xff\xfe").unwrap();
 
     let refused = session
-        .retire(&["attachments/foto-91f2ab00.png".to_string()])
+        .retire(
+            &["attachments/foto-91f2ab00.png".to_string()],
+            tisty_core::attach::Retired::Unused,
+        )
         .unwrap_err();
 
     assert_eq!(refused.code, "retireUnread");

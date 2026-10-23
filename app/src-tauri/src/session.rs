@@ -445,7 +445,11 @@ impl Session {
         found
     }
 
-    pub fn retire(&mut self, references: &[String]) -> Answer<usize> {
+    pub fn retire(
+        &mut self,
+        references: &[String],
+        why: tisty_core::attach::Retired,
+    ) -> Answer<usize> {
         if references.is_empty() {
             return Ok(0);
         }
@@ -482,6 +486,7 @@ impl Session {
             }
             told.push(Op::AttachRetire {
                 d: reference.clone(),
+                why: Some(why.said().to_string()),
             });
         }
         if told.is_empty() {
@@ -490,7 +495,7 @@ impl Session {
         let gone: std::collections::BTreeSet<String> = told
             .iter()
             .filter_map(|op| match op {
-                Op::AttachRetire { d } => Some(d.clone()),
+                Op::AttachRetire { d, .. } => Some(d.clone()),
                 _ => None,
             })
             .collect();

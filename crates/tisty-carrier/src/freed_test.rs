@@ -11,7 +11,9 @@ fn later() -> SystemTime {
 
 fn sent(desk: &Desk) -> tisty_core::attach::Kept {
     let kept = desk.kept("foto", PHOTO);
-    desk.store().append(kept.told()).unwrap();
+    desk.store()
+        .append(kept.told(tisty_core::attach::Via::Window))
+        .unwrap();
     desk.wrote("con foto");
     desk.round(Way::Both);
     kept
@@ -258,8 +260,12 @@ fn an_attachment_opened_while_space_is_freed_stays() {
         let (one, _) = pair(&setting);
         let first = one.kept("foto", PHOTO);
         let second = one.kept("otra", b"los bytes de otra foto");
-        one.store().append(first.told()).unwrap();
-        one.store().append(second.told()).unwrap();
+        one.store()
+            .append(first.told(tisty_core::attach::Via::Window))
+            .unwrap();
+        one.store()
+            .append(second.told(tisty_core::attach::Via::Window))
+            .unwrap();
         one.wrote("con fotos");
         one.round(Way::Both);
         let used = one.here.data.join(tisty_core::lately::USED);

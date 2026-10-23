@@ -4427,10 +4427,17 @@ fn an_assistant_cannot_retire_an_attachment() {
     joined(&mut state, "dev_agent", crate::event::DeviceKind::Agent);
     let at = "attachments/ab/a-12345678.png".to_string();
 
-    state.apply(&ev(3, "dev_agent", Op::AttachRetire { d: at.clone() }));
+    state.apply(&ev(
+        3,
+        "dev_agent",
+        Op::AttachRetire {
+            d: at.clone(),
+            why: None,
+        },
+    ));
     assert!(state.retired.is_empty());
 
-    state.apply(&ev(4, "dev_laptop", Op::AttachRetire { d: at }));
+    state.apply(&ev(4, "dev_laptop", Op::AttachRetire { d: at, why: None }));
     assert_eq!(state.retired.len(), 1);
 }
 

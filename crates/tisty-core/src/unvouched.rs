@@ -55,11 +55,7 @@ pub fn vouch(at: &str, places: &[&Path]) -> crate::Result<Vouch> {
         return Ok(Vouch::Unlike);
     }
     Ok(Vouch::Held {
-        held: Held {
-            at: at.to_string(),
-            sha256,
-            bytes,
-        },
+        held: Held::of(at.to_string(), sha256, bytes),
         here: first == 0,
     })
 }

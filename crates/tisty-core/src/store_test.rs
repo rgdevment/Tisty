@@ -1348,11 +1348,11 @@ fn what_an_attachment_holds_is_written_down_where_an_older_reader_cannot_step_ov
     let sha256 = crate::attach::printed(body);
     store
         .append(Op::AttachKept {
-            d: crate::event::Held {
-                at: format!("attachments/charla-{}.mp4", &sha256[2..10]),
+            d: crate::event::Held::of(
+                format!("attachments/charla-{}.mp4", &sha256[2..10]),
                 sha256,
-                bytes: body.len() as u64,
-            },
+                body.len() as u64,
+            ),
         })
         .unwrap();
 

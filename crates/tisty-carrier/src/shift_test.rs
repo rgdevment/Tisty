@@ -11,7 +11,9 @@ fn step(desk: &Desk, from: Option<&dyn Carrier>, to: Option<&dyn Carrier>) -> Sh
 impl Desk {
     fn attached(&self, body: &[u8]) -> tisty_core::attach::Kept {
         let kept = self.kept("foto", body);
-        self.store().append(kept.told()).unwrap();
+        self.store()
+            .append(kept.told(tisty_core::attach::Via::Window))
+            .unwrap();
         self.wrote("con foto");
         kept
     }
@@ -360,9 +362,14 @@ fn an_attachment_retired_and_written_down_again_but_named_by_nothing_is_owed_now
         let kept = one.attached(PHOTO);
         one.round(Way::Both);
         one.store()
-            .append(Op::AttachRetire { d: kept.at.clone() })
+            .append(Op::AttachRetire {
+                d: kept.at.clone(),
+                why: None,
+            })
             .unwrap();
-        one.store().append(kept.told()).unwrap();
+        one.store()
+            .append(kept.told(tisty_core::attach::Via::Window))
+            .unwrap();
         let_go_here(&one, &kept.at);
 
         assert!(crate::homing(&*one.carrier, &one.here).nothing(), "{who}");
@@ -693,7 +700,9 @@ fn a_move_into_the_cloud_tells_one_upload_of_history_documents_and_attachments_t
             let bytes = format!("foto {at}");
             photos += bytes.len() as u64;
             let kept = one.kept(&format!("foto{at}"), bytes.as_bytes());
-            one.store().append(kept.told()).unwrap();
+            one.store()
+                .append(kept.told(tisty_core::attach::Via::Window))
+                .unwrap();
         }
         one.wrote("con fotos");
 
@@ -768,7 +777,9 @@ fn a_move_into_the_cloud_cut_by_a_pause_keeps_what_landed_as_it_went_and_sends_o
                     &format!("foto{at}"),
                     format!("los bytes de la foto {at}").as_bytes(),
                 );
-                one.store().append(kept.told()).unwrap();
+                one.store()
+                    .append(kept.told(tisty_core::attach::Via::Window))
+                    .unwrap();
                 kept.at
             })
             .collect();
@@ -855,7 +866,9 @@ fn a_cloud_left_for_a_folder_and_chosen_again_is_the_same_store_and_takes_up_onl
         one.carrier.leave_word("se fue a una carpeta").unwrap();
         one.wrote("en la carpeta");
         let after = one.kept("nueva", b"una foto tomada en la carpeta");
-        one.store().append(after.told()).unwrap();
+        one.store()
+            .append(after.told(tisty_core::attach::Via::Window))
+            .unwrap();
         folder
             .carry(
                 &one.here,
@@ -1136,7 +1149,9 @@ fn a_move_into_the_cloud_taken_up_again_counts_only_the_attachments_still_owed()
             .map(|at| {
                 let body = format!("los bytes de la foto {at}");
                 let kept = one.kept(&format!("foto{at}"), body.as_bytes());
-                one.store().append(kept.told()).unwrap();
+                one.store()
+                    .append(kept.told(tisty_core::attach::Via::Window))
+                    .unwrap();
                 (kept.at, body.len() as u64)
             })
             .collect();

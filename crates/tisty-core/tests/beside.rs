@@ -16,6 +16,7 @@ fn carried(paths: &Paths, note: &std::path::Path, body: &str, notes: bool) -> (S
             reach: &mut reach,
             outside: "",
             notes,
+            came: tisty_core::attach::Via::Imported,
         },
     )
 }

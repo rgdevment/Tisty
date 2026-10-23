@@ -16,11 +16,7 @@ fn said_now_held(session: &tauri::State<'_, Mutex<Session>>, took_in: &[(String,
     let said_so = took_in
         .iter()
         .map(|(at, sha256, bytes)| tisty_core::Op::AttachKept {
-            d: tisty_core::event::Held {
-                at: at.clone(),
-                sha256: sha256.clone(),
-                bytes: *bytes,
-            },
+            d: tisty_core::event::Held::of(at.clone(), sha256.clone(), *bytes),
         })
         .collect();
     if let Err(e) = held(session).commit_all(said_so) {
@@ -1263,7 +1259,9 @@ pub fn retire_attachment(
     session: tauri::State<'_, Mutex<Session>>,
     reference: String,
 ) -> Answer<()> {
-    held(&session).retire(&[reference]).map(|_| ())
+    held(&session)
+        .retire(&[reference], tisty_core::attach::Retired::Unused)
+        .map(|_| ())
 }
 
 #[tauri::command(async)]
@@ -1271,7 +1269,7 @@ pub fn retire_attachments(
     session: tauri::State<'_, Mutex<Session>>,
     references: Vec<String>,
 ) -> Answer<usize> {
-    held(&session).retire(&references)
+    held(&session).retire(&references, tisty_core::attach::Retired::Unused)
 }
 
 #[tauri::command]

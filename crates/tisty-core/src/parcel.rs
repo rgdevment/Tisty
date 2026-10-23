@@ -1316,7 +1316,7 @@ fn brought(
                 continue;
             };
             landed.files += 1;
-            ops.push(kept.told());
+            ops.push(kept.told(crate::attach::Via::Parcel));
             let leaf = crate::attach::leaf_of(&kept.at).unwrap_or(&kept.at);
             let anchor = one.find(['?', '#']).map_or("", |at| &one[at..]);
             carried.insert(

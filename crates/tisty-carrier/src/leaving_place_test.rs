@@ -210,7 +210,9 @@ fn a_round_sends_the_history_before_the_attachments() {
         one.wrote("con foto");
         one.filed(DOC, "el acta");
         let kept = one.kept("foto", b"los bytes de una foto");
-        one.store().append(kept.told()).unwrap();
+        one.store()
+            .append(kept.told(tisty_core::attach::Via::Window))
+            .unwrap();
         let remote = counting(&setting);
         remote.forget_counts();
 
@@ -235,7 +237,9 @@ fn an_attachment_gone_from_this_machine_never_holds_back_the_round() {
         let who = &setting.name;
         let (one, two) = pair(&setting);
         let kept = one.kept("foto", b"los bytes de una foto");
-        one.store().append(kept.told()).unwrap();
+        one.store()
+            .append(kept.told(tisty_core::attach::Via::Window))
+            .unwrap();
         one.wrote("con foto perdida");
         let at = tisty_core::attach::resolve(&kept.at, &one.here.data).unwrap();
         std::fs::remove_file(at).unwrap();
@@ -254,7 +258,9 @@ fn a_machine_receives_tasks_and_documents_before_an_attachment_has_come_down() {
         let who = &setting.name;
         let (one, two) = pair(&setting);
         let kept = one.kept("foto", b"los bytes de una foto");
-        one.store().append(kept.told()).unwrap();
+        one.store()
+            .append(kept.told(tisty_core::attach::Via::Window))
+            .unwrap();
         one.wrote("con foto");
         one.filed(
             DOC,
@@ -311,7 +317,9 @@ fn the_tasks_sent_ahead_spend_the_history_budget_not_the_attachments_one() {
         let who = &setting.name;
         let one = desk(&setting, "dev_a");
         let kept = one.kept("foto", b"los bytes de una foto");
-        one.store().append(kept.told()).unwrap();
+        one.store()
+            .append(kept.told(tisty_core::attach::Via::Window))
+            .unwrap();
         one.wrote("con foto");
         let home = home_of(&setting, "dev_a");
         std::fs::create_dir_all(&home).unwrap();
