@@ -15,27 +15,28 @@ const headed = (many: number): Head[] =>
     go: () => {},
   }));
 
-const panel = (heads: Head[], more: { onCopy?: () => void } = {}) =>
-  render(
-    <Beside
-      title="Notas"
-      paper="dev_a-0001"
-      body="# Notas"
-      tags={[]}
-      kept={0}
-      heads={heads}
-      pages={[]}
-      leaf="a4"
-      onLeaf={() => {}}
-      making={false}
-      onPdf={() => {}}
-      onSee={() => {}}
-      onCopy={more.onCopy ?? (() => {})}
-      onTakeOut={() => {}}
-      onShut={() => {}}
-      onApart={() => {}}
-    />,
-  );
+const beside = (heads: Head[], more: { onCopy?: () => void } = {}) => (
+  <Beside
+    title="Notas"
+    paper="dev_a-0001"
+    body="# Notas"
+    tags={[]}
+    kept={0}
+    heads={heads}
+    pages={[]}
+    leaf="a4"
+    onLeaf={() => {}}
+    making={false}
+    onPdf={() => {}}
+    onSee={() => {}}
+    onCopy={more.onCopy ?? (() => {})}
+    onTakeOut={() => {}}
+    onShut={() => {}}
+    onApart={() => {}}
+  />
+);
+
+const panel = (heads: Head[], more: { onCopy?: () => void } = {}) => render(beside(heads, more));
 
 describe("the document's column", () => {
   it("opens the details with a document whose outline is short", () => {
@@ -49,6 +50,22 @@ describe("the document's column", () => {
     panel(headed(12));
     const details = screen.getByRole("button", { name: new RegExp(t("besideDetails")) });
     expect(details.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("folds the details once a long outline arrives after the page is drawn", () => {
+    const view = panel([]);
+    view.rerender(beside(headed(12)));
+    const details = screen.getByRole("button", { name: new RegExp(t("besideDetails")) });
+    expect(details.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("leaves what the person opened alone when the outline grows", async () => {
+    const view = panel(headed(12));
+    await userEvent.click(screen.getByRole("button", { name: new RegExp(t("besideDetails")) }));
+    view.rerender(beside(headed(14)));
+    expect(
+      screen.getByRole("button", { name: t("besideDetails") }).getAttribute("aria-expanded"),
+    ).toBe("true");
   });
 
   it("opens one part at a time", async () => {

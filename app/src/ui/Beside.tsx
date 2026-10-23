@@ -89,7 +89,7 @@ function Fold({
         <Glyph
           name="chevron"
           className={`ml-auto h-3 w-3 shrink-0 text-faint transition-transform motion-reduce:transition-none ${
-            open ? "rotate-90" : ""
+            open ? "" : "-rotate-90"
           }`}
         />
       </button>
@@ -146,11 +146,11 @@ export default function Beside({
     };
   }, [paper, kept]);
 
-  // Each document decides afresh; within one, what the person opened stays open.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: only a new document asks again
+  // The outline arrives after the page is drawn, so the choice waits for it until the person makes one.
+  const chosen = useRef<string | null>(null);
   useEffect(() => {
-    setOpen(short ? "details" : null);
-  }, [paper]);
+    if (chosen.current !== paper) setOpen(short ? "details" : null);
+  }, [paper, short]);
 
   const times = useMemo(() => often(body), [body]);
   const words = useMemo(() => worded(body), [body]);
@@ -165,7 +165,10 @@ export default function Beside({
   ]
     .filter(Boolean)
     .join(" · ");
-  const toggle = (part: Part) => setOpen((now) => (now === part ? null : part));
+  const toggle = (part: Part) => {
+    chosen.current = paper;
+    setOpen((now) => (now === part ? null : part));
+  };
 
   const ways: Choice[] = [
     { key: "see", icon: "▤", label: t("previewPdf"), off: making, onPick: onSee },
@@ -205,7 +208,7 @@ export default function Beside({
               aria-label={t("viewDocApart")}
               className={tool}
             >
-              <Glyph name="launch" className="h-3.5 w-3.5" />
+              <Glyph name="window" className="h-3.5 w-3.5" />
             </button>
             <button
               type="button"
@@ -265,13 +268,13 @@ export default function Beside({
                 role="switch"
                 aria-checked={sheets}
                 aria-label={t("sheetsShown")}
+                title={t("sheetsShown")}
                 onClick={() => onSheets(!sheets)}
-                className={`${control} gap-1.5 px-2.5 ${
+                className={`${control} w-7 justify-center ${
                   sheets ? "border-accent/40 bg-active text-ink" : "hover:bg-hover"
                 }`}
               >
                 <Glyph name="pages" className={`h-3.5 w-3.5 ${sheets ? "text-accent" : ""}`} />
-                {t("sheetsShown")}
               </button>
             )}
             <button
@@ -289,7 +292,7 @@ export default function Beside({
               className={`${control} gap-0.5 px-2 hover:bg-hover`}
             >
               <Glyph name="download" className="h-3.5 w-3.5" />
-              <Glyph name="chevron" className="h-2.5 w-2.5 rotate-90" />
+              <Glyph name="chevron" className="h-2.5 w-2.5" />
             </button>
           </div>
           {sheets && onLandscape && (
@@ -313,7 +316,7 @@ export default function Beside({
           aria-label={t("outline")}
           className="scroller flex min-h-0 flex-1 flex-col gap-px border-t border-hair px-2.5 pt-2.5 pb-3"
         >
-          <h3 className={`${label} px-1.5 pb-1`}>{t("outline")}</h3>
+          <h3 className={`${label} shrink-0 px-1.5 pb-1`}>{t("outline")}</h3>
           {outline.length === 0 && pages.length === 0 && (
             <p className="px-1.5 text-[12.5px] text-faint">{t("outlineNone")}</p>
           )}
@@ -322,7 +325,7 @@ export default function Beside({
               key={one.key}
               type="button"
               onClick={one.go}
-              className={`truncate rounded-md px-1.5 py-1 text-left text-[12.5px] hover:bg-hover hover:text-ink ${
+              className={`shrink-0 truncate rounded-md px-1.5 py-1 text-left text-[12.5px] hover:bg-hover hover:text-ink ${
                 one.level > 1 ? "pl-5 text-faint" : "text-soft"
               }`}
             >
@@ -330,7 +333,7 @@ export default function Beside({
             </button>
           ))}
           {pages.length > 0 && (
-            <h4 className={`${label} mt-2.5 px-1.5`}>
+            <h4 className={`${label} mt-2.5 shrink-0 px-1.5`}>
               {pages.length === 1 ? t("pageHeld") : fill("pagesHeld", String(pages.length))}
             </h4>
           )}
@@ -347,7 +350,7 @@ export default function Beside({
                     : undefined
               }
               aria-current={one.file === paper ? "true" : undefined}
-              className={`flex items-center gap-2 rounded-md px-1.5 py-1 text-left text-[12.5px] hover:bg-hover hover:text-ink ${
+              className={`flex shrink-0 items-center gap-2 rounded-md px-1.5 py-1 text-left text-[12.5px] hover:bg-hover hover:text-ink ${
                 one.file === paper ? "bg-accent-soft text-accent" : ""
               } ${one.away ? "text-faint" : "text-soft"}`}
             >
