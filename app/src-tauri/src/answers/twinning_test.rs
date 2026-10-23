@@ -48,6 +48,9 @@ fn the_copy_with_a_readable_name_and_no_old_shelf_is_proposed_to_stay() {
         tisty_core::attach::twins(session.paths.data()),
         &docs,
         unread,
+        &tisty_core::attach::arrivals(
+            &tisty_core::store::read_all(session.paths.store()).unwrap_or_default(),
+        ),
     );
 
     assert_eq!(pairs.len(), 1);

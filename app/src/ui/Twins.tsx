@@ -5,6 +5,7 @@ import { weigh } from "../format";
 import { serve } from "../inUse";
 import { fill, t } from "../locales";
 import { pictured, previewOf } from "../previews";
+import { cameWords } from "./arrived";
 import { mild, strong } from "./Rows";
 
 function Seen({ at }: Readonly<{ at: string }>) {
@@ -62,6 +63,7 @@ function Copy({
       <span className="font-mono text-[11.5px] break-all text-soft">
         {one.at.replace("attachments/", "")}
       </span>
+      {one.came && <span className="text-[11.5px] text-faint">{cameWords(one.came)}</span>}
       <Seen at={one.at} />
       <span className="text-[11.5px] text-faint">
         {one.links.length === 0 ? t("twinsNowhere") : `${t("twinsLinked")} `}

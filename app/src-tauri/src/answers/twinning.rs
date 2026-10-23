@@ -22,6 +22,7 @@ pub struct Twin {
     at: String,
     links: Vec<Linked>,
     locked: Option<String>,
+    came: Option<crate::report::Came>,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -135,7 +136,16 @@ pub fn twinned(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<Pair>> {
         return Ok(Vec::new());
     }
     let (docs, unread) = read_all(&paths.docs());
-    Ok(seen(&held(&session), groups, &docs, unread))
+    let told = tisty_core::store::read_all(paths.store()).unwrap_or_else(|e| {
+        tisty_core::witness::warn(
+            channel::ATTACH,
+            "the log could not be read, so the copies say nothing of how they came",
+            &[("why", tisty_core::witness::Fact::Why(e.to_string()))],
+        );
+        Vec::new()
+    });
+    let arrived = tisty_core::attach::arrivals(&told);
+    Ok(seen(&held(&session), groups, &docs, unread, &arrived))
 }
 
 fn seen(
@@ -143,8 +153,11 @@ fn seen(
     groups: Vec<tisty_core::attach::Twins>,
     docs: &[Read],
     unread: Option<String>,
+    arrived: &BTreeMap<String, tisty_core::attach::Arrival>,
 ) -> Vec<Pair> {
     let named = namings(session, docs);
+    let mine = session.config.device_id.0.as_str();
+    let known = crate::report::Known::of(&session.state);
     let data = session.paths.data();
     groups
         .into_iter()
@@ -172,6 +185,7 @@ fn seen(
                             .map(|one| one.links.clone())
                             .unwrap_or_default(),
                         locked: named.get(at).and_then(|one| one.locked.clone()),
+                        came: crate::report::came_of(arrived, at, &known, mine),
                     })
                     .collect(),
                 unread: unread.clone(),

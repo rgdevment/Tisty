@@ -1124,7 +1124,7 @@ impl State {
     }
 }
 
-fn vouches_for_its_name(said: &crate::event::Held) -> bool {
+pub(crate) fn vouches_for_its_name(said: &crate::event::Held) -> bool {
     if !crate::attach::names_an_attachment(&said.at) {
         return false;
     }
