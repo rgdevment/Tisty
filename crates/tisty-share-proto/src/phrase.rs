@@ -1,3 +1,5 @@
+use std::sync::OnceLock;
+
 use bip39::{Language, Mnemonic};
 use unicode_normalization::UnicodeNormalization;
 use zeroize::{Zeroize, Zeroizing};
@@ -26,10 +28,16 @@ pub enum Unread {
 /// The whole seed, written as words: whoever holds them is that person.
 pub fn phrase(seed: &Seed, words: Words) -> Zeroizing<String> {
     let seed = seed.to_bytes();
-    let joined = Mnemonic::from_entropy_in(language(words), seed.as_ref())
-        .map(|mnemonic| mnemonic.words().collect::<Vec<_>>().join(" "))
-        .unwrap_or_default();
-    Zeroizing::new(joined)
+    let mut joined = Zeroizing::new(String::with_capacity(WORDS * 16));
+    if let Ok(mnemonic) = Mnemonic::from_entropy_in(language(words), seed.as_ref()) {
+        for (at, word) in mnemonic.words().enumerate() {
+            if at > 0 {
+                joined.push(' ');
+            }
+            joined.push_str(word);
+        }
+    }
+    joined
 }
 
 /// Either language, in any case, with or without its accents: people copy words by hand.
@@ -72,8 +80,7 @@ fn language(words: Words) -> Language {
 /// The list's own spelling of every word said, or where the first unknown one sits.
 fn listed(language: Language, said: &[Zeroizing<String>]) -> Result<Zeroizing<String>, usize> {
     let list = language.word_list();
-    let exact: Vec<String> = list.iter().map(|one| lowered(one)).collect();
-    let bare: Vec<String> = exact.iter().map(|one| unmarked(one)).collect();
+    let (exact, bare) = spellings(language);
     // Sized once, so growing never leaves a freed copy of the phrase behind.
     let mut canonical = Zeroizing::new(String::with_capacity(WORDS * 16));
     for (at, word) in said.iter().enumerate() {
@@ -91,6 +98,25 @@ fn listed(language: Language, said: &[Zeroizing<String>]) -> Result<Zeroizing<St
     Ok(canonical)
 }
 
+/// The list as people type it, lowered and without accents; worked out once per language.
+fn spellings(language: Language) -> &'static (Vec<String>, Vec<String>) {
+    static SPANISH: OnceLock<(Vec<String>, Vec<String>)> = OnceLock::new();
+    static ENGLISH: OnceLock<(Vec<String>, Vec<String>)> = OnceLock::new();
+    let kept = match language {
+        Language::Spanish => &SPANISH,
+        _ => &ENGLISH,
+    };
+    kept.get_or_init(|| {
+        let exact: Vec<String> = language
+            .word_list()
+            .iter()
+            .map(|one| lowered(one))
+            .collect();
+        let bare = exact.iter().map(|one| unmarked(one)).collect();
+        (exact, bare)
+    })
+}
+
 fn seeded(mnemonic: &Mnemonic) -> Result<Seed, Unread> {
     let (mut entropy, length) = mnemonic.to_entropy_array();
     let mut seed = Zeroizing::new([0u8; 32]);
@@ -105,14 +131,20 @@ fn seeded(mnemonic: &Mnemonic) -> Result<Seed, Unread> {
     Ok(Seed::from_bytes(&seed))
 }
 
+/// Sized up front, so a word typed from the phrase is never left behind in a buffer that grew.
 fn lowered(word: &str) -> String {
-    word.nfkd().flat_map(char::to_lowercase).collect()
+    let mut out = String::with_capacity(word.len() * 4);
+    out.extend(word.nfkd().flat_map(char::to_lowercase));
+    out
 }
 
 fn unmarked(word: &str) -> String {
-    word.chars()
-        .filter(|one| !unicode_normalization::char::is_combining_mark(*one))
-        .collect()
+    let mut out = String::with_capacity(word.len());
+    out.extend(
+        word.chars()
+            .filter(|one| !unicode_normalization::char::is_combining_mark(*one)),
+    );
+    out
 }
 
 #[cfg(test)]

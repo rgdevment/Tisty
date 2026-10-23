@@ -242,3 +242,37 @@ fn a_key_taken_back_stays_taken_back_even_if_certified_again() {
         Verdict::Revoked { .. }
     ));
 }
+
+#[test]
+fn another_root_certifying_the_same_key_cannot_claim_what_it_signed() {
+    let mut signed = signed_by(&root(1), &share(2), b"hello");
+    signed.certificate = root(9).certify(&share(2).public(), at(1_000));
+
+    assert_eq!(check(&signed, "doc", b"hello", &[]), Verdict::Refused);
+}
+
+#[test]
+fn a_key_will_not_sign_under_a_certificate_that_does_not_hold() {
+    let mut certificate = root(1).certify(&share(2).public(), at(1_000));
+    certificate.since = at(5);
+
+    assert!(share(2).sign(&certificate, "doc", b"hello").is_none());
+}
+
+#[test]
+fn the_earliest_revocation_is_the_one_told_whatever_the_order() {
+    let person = root(1);
+    let signed = signed_by(&person, &share(2), b"hello");
+    let late = person.revoke(&share(2).public(), at(2_000));
+    let early = person.revoke(&share(2).public(), at(1_500));
+
+    for revoked in [[late.clone(), early.clone()], [early.clone(), late.clone()]] {
+        assert_eq!(
+            check(&signed, "doc", b"hello", &revoked),
+            Verdict::Revoked {
+                person: person.person(),
+                at: at(1_500)
+            }
+        );
+    }
+}

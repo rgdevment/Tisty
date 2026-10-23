@@ -61,7 +61,7 @@ url = "2"
 percent-encoding = "2"
 base64 = "0.22"
 zeroize = "1"
-hmac = "0.13"
+hmac = { version = "0.13", features = ["zeroize"] }
 hkdf = "0.13"
 # Each keychain store by name: `keyring` would pull every store onto every system.
 keyring-core = "1"

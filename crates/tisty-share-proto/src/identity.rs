@@ -28,24 +28,22 @@ impl Root {
     }
 
     pub fn certify(&self, share: &VerifyingKey, since: Timestamp) -> Certificate {
-        let since = whole_second(since);
-        let said = between(CERTIFIED, &self.0.verifying_key(), share, since);
+        let (root, share, since, sig) = attest(&self.0, CERTIFIED, share, since);
         Certificate {
-            root: encoded(self.0.verifying_key().as_bytes()),
-            share: encoded(share.as_bytes()),
+            root,
+            share,
             since,
-            sig: encoded(&self.0.sign(&said).to_bytes()),
+            sig,
         }
     }
 
     pub fn revoke(&self, share: &VerifyingKey, at: Timestamp) -> Revocation {
-        let at = whole_second(at);
-        let said = between(REVOKED, &self.0.verifying_key(), share, at);
+        let (root, share, at, sig) = attest(&self.0, REVOKED, share, at);
         Revocation {
-            root: encoded(self.0.verifying_key().as_bytes()),
-            share: encoded(share.as_bytes()),
+            root,
+            share,
             at,
-            sig: encoded(&self.0.sign(&said).to_bytes()),
+            sig,
         }
     }
 }
@@ -71,14 +69,15 @@ impl ShareKey {
         self.0.verifying_key()
     }
 
-    /// None when the certificate vouches for some other key: a signature it could never answer for.
+    /// None unless the certificate holds and vouches for this very key: a signature nobody could check.
     pub fn sign(&self, certificate: &Certificate, about: &str, said: &[u8]) -> Option<Signed> {
-        if decoded::<32>(&certificate.share)? != *self.0.verifying_key().as_bytes() {
+        let vouched = certificate.vouches().ok()?;
+        if vouched.share != self.public() {
             return None;
         }
         Some(Signed {
             certificate: certificate.clone(),
-            sig: encoded(&self.0.sign(&message(about, said)).to_bytes()),
+            sig: encoded(&self.0.sign(&message(about, &vouched, said)).to_bytes()),
         })
     }
 }
@@ -150,12 +149,7 @@ pub enum Fault {
 
 impl Certificate {
     pub fn vouches(&self) -> Result<Vouched, Fault> {
-        let (root, share, sig) = parts(&self.root, &self.share, &self.sig)?;
-        if self.since.subsec_nanosecond() != 0 {
-            return Err(Fault::Refused);
-        }
-        root.verify_strict(&between(CERTIFIED, &root, &share, self.since), &sig)
-            .map_err(|_| Fault::Refused)?;
+        let (root, share) = attested(CERTIFIED, &self.root, &self.share, self.since, &self.sig)?;
         Ok(Vouched {
             person: Person(root),
             share,
@@ -176,15 +170,8 @@ pub struct Revocation {
 impl Revocation {
     /// Only the root that vouched can take a key back, and for good: a machine found again gets a new key.
     pub fn takes_back(&self, vouched: &Vouched) -> bool {
-        let Ok((root, share, sig)) = parts(&self.root, &self.share, &self.sig) else {
-            return false;
-        };
-        root == vouched.person.0
-            && share == vouched.share
-            && self.at.subsec_nanosecond() == 0
-            && root
-                .verify_strict(&between(REVOKED, &root, &share, self.at), &sig)
-                .is_ok()
+        attested(REVOKED, &self.root, &self.share, self.at, &self.sig)
+            .is_ok_and(|(root, share)| root == vouched.person.0 && share == vouched.share)
     }
 }
 
@@ -201,7 +188,7 @@ pub enum Verdict {
         person: Person,
         since: Timestamp,
     },
-    /// The signature answers, but the person has since taken that key back.
+    /// The key was taken back; nothing signed says when, so earlier work and a thief's look alike.
     Revoked {
         person: Person,
         at: Timestamp,
@@ -230,15 +217,21 @@ pub fn check(signed: &Signed, about: &str, said: &[u8], revoked: &[Revocation]) 
     };
     if vouched
         .share
-        .verify_strict(&message(about, said), &sig)
+        .verify_strict(&message(about, &vouched, said), &sig)
         .is_err()
     {
         return Verdict::Refused;
     }
-    match revoked.iter().find(|one| one.takes_back(&vouched)) {
-        Some(one) => Verdict::Revoked {
+    // The earliest, so every machine reads the same date whatever order the list came in.
+    let taken_back = revoked
+        .iter()
+        .filter(|one| one.takes_back(&vouched))
+        .map(|one| one.at)
+        .min();
+    match taken_back {
+        Some(at) => Verdict::Revoked {
             person: vouched.person,
-            at: one.at,
+            at,
         },
         None => Verdict::Holds {
             person: vouched.person,
@@ -247,13 +240,53 @@ pub fn check(signed: &Signed, about: &str, said: &[u8], revoked: &[Revocation]) 
     }
 }
 
-/// The length goes first, or «ab» over «c» and «a» over «bc» would read as the same signature.
-fn message(about: &str, said: &[u8]) -> Vec<u8> {
+/// The root is signed too, or another root could certify this key and claim what it signed.
+fn message(about: &str, vouched: &Vouched, said: &[u8]) -> Vec<u8> {
     let mut out = SIGNED.to_vec();
+    out.extend_from_slice(vouched.person.0.as_bytes());
+    out.extend_from_slice(vouched.share.as_bytes());
     out.extend_from_slice(&u64::try_from(about.len()).unwrap_or(u64::MAX).to_be_bytes());
     out.extend_from_slice(about.as_bytes());
     out.extend_from_slice(said);
     out
+}
+
+/// What a certificate and a revocation share: a root, a share key and a second, signed by the root.
+fn attest(
+    root: &SigningKey,
+    kind: &[u8],
+    share: &VerifyingKey,
+    when: Timestamp,
+) -> (String, String, Timestamp, String) {
+    let when = Timestamp::from_second(when.as_second()).unwrap_or(when);
+    let said = between(kind, &root.verifying_key(), share, when);
+    (
+        encoded(root.verifying_key().as_bytes()),
+        encoded(share.as_bytes()),
+        when,
+        encoded(&root.sign(&said).to_bytes()),
+    )
+}
+
+/// Only whole seconds are signed, so a fraction added later is a change nobody signed.
+fn attested(
+    kind: &[u8],
+    root: &str,
+    share: &str,
+    when: Timestamp,
+    sig: &str,
+) -> Result<(VerifyingKey, VerifyingKey), Fault> {
+    let (Some(root), Some(share), Some(sig)) = (key(root), key(share), signature(sig)) else {
+        return Err(Fault::Unreadable);
+    };
+    if when.subsec_nanosecond() != 0
+        || root
+            .verify_strict(&between(kind, &root, &share, when), &sig)
+            .is_err()
+    {
+        return Err(Fault::Refused);
+    }
+    Ok((root, share))
 }
 
 fn between(kind: &[u8], root: &VerifyingKey, share: &VerifyingKey, when: Timestamp) -> Vec<u8> {
@@ -262,22 +295,6 @@ fn between(kind: &[u8], root: &VerifyingKey, share: &VerifyingKey, when: Timesta
     out.extend_from_slice(share.as_bytes());
     out.extend_from_slice(&when.as_second().to_be_bytes());
     out
-}
-
-/// Only whole seconds are signed, so what is kept must not claim more than that.
-fn whole_second(when: Timestamp) -> Timestamp {
-    Timestamp::from_second(when.as_second()).unwrap_or(when)
-}
-
-fn parts(
-    root: &str,
-    share: &str,
-    sig: &str,
-) -> Result<(VerifyingKey, VerifyingKey, Signature), Fault> {
-    match (key(root), key(share), signature(sig)) {
-        (Some(root), Some(share), Some(sig)) => Ok((root, share, sig)),
-        _ => Err(Fault::Unreadable),
-    }
 }
 
 fn key(said: &str) -> Option<VerifyingKey> {

@@ -1,6 +1,6 @@
-use hkdf::Hkdf;
+use hmac::{Hmac, KeyInit, Mac};
 use sha2::Sha256;
-use zeroize::Zeroizing;
+use zeroize::{Zeroize, Zeroizing};
 
 use crate::identity::Root;
 
@@ -34,12 +34,23 @@ impl Seed {
         self.derived(CLOUD)
     }
 
+    /// HKDF-SHA256 for one block, written out because the `hkdf` crate cannot wipe what it holds.
     fn derived(&self, label: &[u8]) -> Zeroizing<[u8; 32]> {
-        let mut out = Zeroizing::new([0u8; 32]);
-        // 32 bytes is far below what HKDF-SHA256 can expand to, so this cannot fail.
-        let _ = Hkdf::<Sha256>::new(Some(SALT), self.0.as_ref()).expand(label, out.as_mut());
-        out
+        let extracted = mac(SALT, &[self.0.as_ref()]);
+        mac(extracted.as_ref(), &[label, &[1]])
     }
+}
+
+fn mac(key: &[u8], parts: &[&[u8]]) -> Zeroizing<[u8; 32]> {
+    let mut out = Zeroizing::new([0u8; 32]);
+    // HMAC takes a key of any length, so this never refuses.
+    if let Ok(mut over) = <Hmac<Sha256> as KeyInit>::new_from_slice(key) {
+        parts.iter().for_each(|part| over.update(part));
+        let mut said = over.finalize().into_bytes();
+        out.copy_from_slice(&said);
+        said.zeroize();
+    }
+    out
 }
 
 #[cfg(test)]
