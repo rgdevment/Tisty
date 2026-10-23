@@ -1283,7 +1283,8 @@ Una nota[^1] y [un enlace](https://example.com).
         "```mermaid\ngraph TD; A-->B\n```",
         "$$\nx^2\n$$",
         "[^1]: al pie",
-        "[un enlace](https://example.com)",
+        "[un enlace](",
+        "https://example.com",
     ] {
         assert!(
             read.contains(kept),

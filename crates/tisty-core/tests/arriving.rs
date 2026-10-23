@@ -619,3 +619,32 @@ fn a_page_ended_by_a_style_in_html_comes_in_as_a_rule() {
         "{nested:?}"
     );
 }
+
+#[test]
+fn a_coloured_span_becomes_the_nearest_pen_and_leaves_no_half_behind() {
+    let out = tidied(
+        "un <span style=\"color:#d33\">rojo</span>, un <span style=\"background-color: #fff3a0\">fondo</span>, un <font color=\"#2a6\">verde</font> y <span class=\"x\">nada</span>.",
+    );
+    assert!(out.body.contains("==rojo=={red}"), "{}", out.body);
+    assert!(out.body.contains("==fondo=="), "{}", out.body);
+    assert!(out.body.contains("==verde=={green}"), "{}", out.body);
+    assert!(out.body.contains(" y nada."), "{}", out.body);
+    assert!(
+        !out.body.contains("span") && !out.body.contains("font"),
+        "{}",
+        out.body
+    );
+    assert!(
+        out.changed
+            .contains(&"a colour turned into the nearest pen"),
+        "{:?}",
+        out.changed
+    );
+    assert!(speaks(&out.body).is_ok());
+}
+
+#[test]
+fn an_older_tistys_icon_span_is_not_taken_for_a_colour() {
+    let said = plain("la <span data-ico=\"star\"></span> brilla");
+    assert!(said.contains("::star::"), "{said}");
+}
