@@ -84,6 +84,14 @@ impl State {
         self.named.insert(d.clone(), Named { name, os });
     }
 
+    pub(crate) fn device_runs(&mut self, event: &Event, v: &str) {
+        let v = crate::called::cleaned(v);
+        if v.is_empty() || !self.devices.contains(&event.device) {
+            return;
+        }
+        self.runs.insert(event.device.clone(), v);
+    }
+
     pub(crate) fn stores_joined(&mut self, d: &crate::event::Stitch) {
         self.forebears.insert(d.absorbed.clone());
         self.forebears.insert(d.survivor.clone());
@@ -94,6 +102,7 @@ impl State {
         self.agents.remove(d);
         self.hosts.remove(d);
         self.named.remove(d);
+        self.runs.remove(d);
         self.dropped.insert(d.clone());
         self.holders.retain(|_, who| {
             who.remove(d);

@@ -88,6 +88,7 @@ pub const KNOWN_OPS: &[&str] = &[
     "attach.let_go",
     "attach.retire",
     "stores.joined",
+    "device.runs",
     "share.key",
     "share.certified",
     "share.revoked",
@@ -268,6 +269,10 @@ pub enum Op {
     #[serde(rename = "stores.joined")]
     StoresJoined { d: Stitch },
 
+    /// The version a machine runs, said by that machine alone.
+    #[serde(rename = "device.runs")]
+    DeviceRuns { v: String },
+
     /// A machine's own word for the key it signs shared documents with; nobody else's counts.
     #[serde(rename = "share.key")]
     ShareKey { p: String },
@@ -348,6 +353,7 @@ impl Op {
                 | Op::DeviceKey { .. }
                 | Op::DeviceRotate { .. }
                 | Op::DeviceNamed { .. }
+                | Op::DeviceRuns { .. }
                 | Op::ShareKey { .. }
                 | Op::ShareCertified { .. }
                 | Op::ShareRevoked { .. }
@@ -371,6 +377,7 @@ impl Op {
                 | Op::ShareRevoked { .. }
                 | Op::DeviceHost { .. }
                 | Op::DeviceNamed { .. }
+                | Op::DeviceRuns { .. }
                 | Op::DocFlag { .. }
                 | Op::DocUnflag { .. }
                 | Op::DocCompacted { .. }
@@ -437,6 +444,7 @@ impl Op {
             | Op::DeviceKey { .. }
             | Op::DeviceRotate { .. }
             | Op::DeviceNamed { .. }
+            | Op::DeviceRuns { .. }
             | Op::Signed { .. }
             | Op::DeviceRemove { .. }
             | Op::AttachKept { .. }
@@ -581,6 +589,7 @@ impl Op {
             | Op::DeviceKey { .. }
             | Op::DeviceRotate { .. }
             | Op::DeviceNamed { .. }
+            | Op::DeviceRuns { .. }
             | Op::Signed { .. }
             | Op::DeviceRemove { .. }
             | Op::AttachKept { .. }
