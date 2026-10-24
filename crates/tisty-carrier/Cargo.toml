@@ -18,6 +18,7 @@ net = ["dep:reqwest"]
 [dependencies]
 tisty-core.workspace = true
 tisty-sync.workspace = true
+tisty-share-proto = { workspace = true, features = ["mint"] }
 serde.workspace = true
 serde_json.workspace = true
 minisign-verify.workspace = true
