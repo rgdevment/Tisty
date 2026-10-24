@@ -143,16 +143,29 @@ fn still_barred(
     tree: &Path,
     index: &Index,
 ) -> Result<Option<tisty_sync::Trouble>, Hitch> {
-    let Some(trouble) = tisty_sync::later(tree) else {
-        return Ok(None);
-    };
-    let Some(kept) = index.tree.get(NAMED) else {
-        return Ok(None);
-    };
-    let unchanged = remote
-        .about(NAMED)?
-        .is_some_and(|seen| seen.revision == kept.seen.revision);
-    Ok(unchanged.then_some(trouble))
+    match tisty_sync::later(tree) {
+        Some(trouble) if !word_moved(remote, index)? => Ok(Some(trouble)),
+        _ => Ok(None),
+    }
+}
+
+pub fn word_moved(remote: &dyn Remote, index: &Index) -> Result<bool, Hitch> {
+    let kept = index
+        .tree
+        .get(NAMED)
+        .map(|kept| kept.seen.revision.as_str());
+    let up_there = remote.about(NAMED)?.map(|seen| seen.revision);
+    Ok(up_there.as_deref() != kept)
+}
+
+fn word_listed(told: &Changes) -> Option<&[Seen]> {
+    let named = |seen: &[Seen]| seen.iter().any(|one| one.name == NAMED);
+    match told {
+        Changes::Whole { seen, .. } => named(seen).then_some(seen.as_slice()),
+        Changes::Since { changed, gone, .. } => {
+            (named(changed) || !gone.iter().any(|name| name == NAMED)).then_some(changed.as_slice())
+        }
+    }
 }
 
 fn heeded(
@@ -162,23 +175,14 @@ fn heeded(
     data: Option<&Path>,
     told: &Changes,
 ) -> Result<(), Hitch> {
-    let listed = match told {
-        Changes::Whole { seen, .. } if !seen.iter().any(|one| one.name == NAMED) => return Ok(()),
-        Changes::Since { changed, gone, .. }
-            if gone.iter().any(|name| name == NAMED)
-                && !changed.iter().any(|one| one.name == NAMED) =>
-        {
-            return Ok(());
-        }
-        Changes::Whole { seen, .. } => seen,
-        Changes::Since { changed, .. } => changed,
+    let Some(listed) = word_listed(told) else {
+        return Ok(());
     };
-    let damaged = tisty_sync::later(tree).is_none()
-        && matches!(
-            tisty_sync::refuses(tree),
-            Err(tisty_sync::Trouble::Unshaped(_))
-        );
-    if damaged {
+    let spoiled = matches!(
+        tisty_sync::refuses(tree),
+        Err(tisty_sync::Trouble::Unshaped(_))
+    );
+    if spoiled {
         index.tree.remove(NAMED);
     }
     let word = match listed
@@ -187,10 +191,10 @@ fn heeded(
         .or_else(|| index.owed.get(NAMED))
         .cloned()
     {
-        None if damaged => {
+        None if spoiled => {
             let up_there = remote.about(NAMED)?;
             if up_there.is_none() {
-                std::fs::remove_file(tree.join(NAMED))?;
+                let _ = std::fs::remove_file(tree.join(NAMED));
             }
             up_there
         }
@@ -201,17 +205,19 @@ fn heeded(
             Ok(false) => {
                 index.owed.remove(NAMED);
             }
-            brought => {
+            Ok(true) => {
                 index.owed.insert(NAMED.to_string(), word);
-                return Err(brought
-                    .err()
-                    .unwrap_or_else(|| Hitch::Troubled(format!("{NAMED} could not be brought"))));
+                return Err(Hitch::Troubled(format!("{NAMED} could not be brought")));
+            }
+            Err(hitch) => {
+                index.owed.insert(NAMED.to_string(), word);
+                return Err(hitch);
             }
         }
     }
-    match tisty_sync::refuses(tree) {
-        Err(tisty_sync::Trouble::NotThere(at)) => Err(Hitch::Troubled(at)),
-        refused => refused.map_err(Hitch::Barred),
+    match tisty_sync::later(tree) {
+        Some(trouble) => Err(Hitch::Barred(trouble)),
+        None => Ok(()),
     }
 }
 

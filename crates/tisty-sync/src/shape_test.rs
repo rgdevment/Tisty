@@ -390,3 +390,63 @@ fn a_word_that_cannot_be_read_and_asks_nothing_later_is_unshaped_not_later() {
     assert_eq!(later(&dest), None);
     assert!(matches!(refuses(&dest), Err(Trouble::Unshaped(_))));
 }
+
+#[test]
+fn a_needs_a_later_build_wrote_is_never_lowered_when_the_place_is_raised() {
+    let (_room, data, dest) = a_place();
+    std::fs::write(dest.join(NAMED), "shape = 2\nneeds = \"999.0.0\"\n").unwrap();
+
+    assert!(raise_first(&data, &dest));
+
+    let said = std::fs::read_to_string(dest.join(NAMED)).unwrap();
+    assert!(said.contains("needs = \"999.0.0\""), "{said}");
+    assert!(said.contains(&format!("shape = {OURS}")), "{said}");
+}
+
+#[test]
+fn only_an_older_needs_is_raised() {
+    assert!(needs_earlier("1.30.0"));
+    assert!(!needs_earlier(NEEDS));
+    assert!(!needs_earlier("999.0.0"));
+    assert!(!needs_earlier("not a release"));
+}
+
+#[test]
+fn a_word_1_33_read_that_this_parser_does_not_is_still_read_as_it_was() {
+    let (_room, data, dest) = a_place();
+    std::fs::write(dest.join(NAMED), "shape = 03\nneeds = \"1.31.0\"\n").unwrap();
+    assert_eq!(refuses(&dest), Ok(()));
+    assert_eq!(before_reading(&data, &dest), Ok(()));
+
+    std::fs::write(dest.join(NAMED), "shape = 2\nneeds = 1.30.0\n").unwrap();
+    assert!(raise_first(&data, &dest));
+    assert!(matches!(
+        told(&dest),
+        Told::Shape {
+            shape: OURS,
+            said: Some(_),
+            ..
+        }
+    ));
+}
+
+#[test]
+fn what_writes_outside_a_round_stops_at_a_place_a_later_build_raised() {
+    let (_room, data, dest) = a_place();
+    std::fs::create_dir_all(dest.join(PAPERS)).unwrap();
+    let said = format!("shape = {OURS}\nneeds = \"999.0.0\"\n");
+    std::fs::write(dest.join(NAMED), &said).unwrap();
+    let needs = Some(Trouble::Needs("999.0.0".to_string()));
+
+    assert_eq!(crate::stitch(&data, "dev_a", &dest, None).err(), needs);
+    assert_eq!(crate::both_papers(&data, &dest, "dev_a-0001").err(), needs);
+    assert_eq!(
+        crate::settle(&data, &dest, "dev_a-0001", crate::Keep::Both, None).err(),
+        needs
+    );
+    assert_eq!(
+        crate::let_go_telling(&data, &dest, 0, &|_| false, &mut |_| true).err(),
+        needs
+    );
+    assert_eq!(std::fs::read_to_string(dest.join(NAMED)).unwrap(), said);
+}

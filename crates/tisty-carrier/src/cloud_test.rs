@@ -2232,3 +2232,46 @@ fn an_attachment_asked_for_by_the_leaf_a_body_names_is_brought_all_the_same() {
         }
     }
 }
+
+fn raised_by_a_later_build(setting: &Setting) {
+    let said = setting.room.path().join("later.toml");
+    std::fs::write(&said, "shape = 3\nneeds = \"999.0.0\"\n").unwrap();
+    match &setting.place {
+        Place::Folder(shared) => {
+            std::fs::copy(&said, shared.join(tisty_sync::NAMED)).unwrap();
+        }
+        Place::Cloud(remote) => {
+            let expect = match remote.about(tisty_sync::NAMED).unwrap() {
+                Some(seen) => Expect::Revision(seen.revision),
+                None => Expect::Absent,
+            };
+            remote.put(tisty_sync::NAMED, &said, expect).unwrap();
+        }
+    }
+}
+
+#[test]
+fn a_place_a_later_build_raised_is_neither_left_nor_wiped_from_here() {
+    for setting in settings() {
+        let who = &setting.name;
+        let (one, two) = pair(&setting);
+        one.wrote("lo de uno");
+        one.round(Way::Both);
+        two.round(Way::Both);
+        raised_by_a_later_build(&setting);
+        let needs = Some(Trouble::Needs("999.0.0".to_string()));
+
+        assert_eq!(two.carrier.leave_word("se fue").err(), needs, "{who}");
+        assert_eq!(two.carrier.forget_word().err(), needs, "{who}");
+        assert_eq!(two.carrier.later(), needs, "{who}");
+        if let Place::Cloud(remote) = &setting.place {
+            let deletes = remote.counts().deletes;
+            assert_eq!(two.carrier.wipe().err(), needs, "{who}");
+            assert_eq!(
+                remote.counts().deletes,
+                deletes,
+                "{who}: a barred cloud was wiped"
+            );
+        }
+    }
+}

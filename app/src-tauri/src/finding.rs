@@ -133,6 +133,9 @@ fn brought(
     here: &tisty_carrier::Here,
     reference: &str,
 ) -> Answer<std::path::PathBuf> {
+    if let Some(later) = carrier.later() {
+        return Err(crate::said(later));
+    }
     match carrier.brought(here, reference).map_err(crate::said)? {
         tisty_carrier::Brought::At(found) | tisty_carrier::Brought::Unvouched { at: found, .. } => {
             Ok(found)

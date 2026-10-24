@@ -444,28 +444,20 @@ impl Cloud {
         let every = Duration::from_millis(stir.every_ms);
         let index = Index::load(&self.home);
         let metered = Metered::over(&*self.remote, &self.home, Class::History);
-        let asked = match tisty_sync::later(&self.tree()).is_some() {
-            true => metered.about(tisty_sync::NAMED).map(|seen| {
-                let kept = index.tree.get(tisty_sync::NAMED);
-                let moved = match (seen, kept) {
-                    (Some(seen), Some(kept)) => seen.revision != kept.seen.revision,
-                    (None, Some(_)) => true,
-                    _ => false,
-                };
-                if moved {
+        let asked = if tisty_sync::later(&self.tree()).is_some() {
+            mirror::word_moved(&metered, &index).inspect(|moved| {
+                if *moved {
                     stir.mark = stir.mark.wrapping_add(1);
                 }
-                moved
-            }),
-            false => metered.changes(index.cursor.as_deref()).map(|changes| {
-                match news(&index, &changes) {
-                    true => {
-                        stir.mark = marked(&changes);
-                        true
-                    }
-                    false => false,
+            })
+        } else {
+            metered.changes(index.cursor.as_deref()).map(|changes| {
+                let news = news(&index, &changes);
+                if news {
+                    stir.mark = marked(&changes);
                 }
-            }),
+                news
+            })
         };
         let next = match asked {
             Ok(true) => poll,
