@@ -827,7 +827,7 @@ fn reached(
                 | crate::Op::DeviceKey { .. }
                 | crate::Op::DeviceRotate { .. }
                 | crate::Op::DeviceNamed { .. }
-                | crate::Op::DeviceRuns { .. }
+                | crate::Op::DeviceRelease { .. }
                 | crate::Op::CloudSealed { .. }
                 | crate::Op::DeviceRemove { .. }
                 | crate::Op::AttachKept { .. }

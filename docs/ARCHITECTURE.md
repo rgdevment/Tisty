@@ -201,7 +201,7 @@ Each machine appends events to its own log, one JSON object per line.
 | Person | `person.signed` (the alias documents are signed with) |
 | Share | `share.key` (a machine's own word for the key it signs shared documents with), `share.certified` and `share.revoked` (the person's root vouching for that key, or taking it back) |
 | Cloud | `cloud.sealed` (a machine says a store is sealed, with the id of its key; with no key, that it is plain again) |
-| Device | `device.join`, `.remove`, `.host`, `.key`, `.rotate`, `.named`, `.runs` (the version a machine runs, said by that machine alone) |
+| Device | `device.join`, `.remove`, `.host`, `.key`, `.rotate`, `.named`, `.release` (the version a machine runs, said by that machine alone, as `r`: 1.34.0 wrote it as `device.runs` with a `v` that repeats the line's own schema, and a reader skips that one line) |
 | Attachment | `attach.kept`, `attach.let_go`, `attach.retire` |
 | Store | `stores.joined` |
 
@@ -315,7 +315,7 @@ recognised from that version.
 | Window or MCP server meets the refusal | The window tells the person to update (`storeNewer`, and a dialog at start that links to where this copy is updated from); `tisty mcp` prints `store-newer` |
 
 `opt` is set by `Store::minted` from `Op::is_optional`: `person.signed`,
-`device.host`, `device.named`, `device.runs`, `cloud.sealed`, `doc.flag`,
+`device.host`, `device.named`, `device.release`, `cloud.sealed`, `doc.flag`,
 `doc.unflag`, `share.*`. Mark only an operation that adds something to look
 at. A reader that skips a line that changes what exists diverges in silence.
 The mark is honoured only when the operation name is unknown, so it reaches
@@ -332,7 +332,12 @@ version guard.
 - a closed segment is missing from the sequence, or is empty;
 - a closed segment does not end in the seal that closes it, or holds a
   different number of events from the count that seal declares;
-- a line does not parse, or declares a newer schema.
+- a line does not parse, or declares a newer schema. The one exception is the
+  line 1.34.0 wrote for its version (`device.runs` with a `v` that repeats the
+  schema), which is skipped and still counted.
+
+A line is parsed back before it is written, so a build never appends one that
+no reader takes.
 
 An event whose `by` differs from the directory that holds it is dropped with a
 warning, because every rule keyed on the device would otherwise take a forged
