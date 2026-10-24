@@ -37,8 +37,13 @@ fn written_sealed(tail: &[u8]) -> bool {
     tail.split(|one| *one == b'\n')
         .rev()
         .find(|line| !line.iter().all(u8::is_ascii_whitespace))
-        .and_then(|line| serde_json::from_slice::<super::Stamped>(line).ok())
-        .is_some_and(|said| said.v >= crate::event::SEALED_FROM)
+        .and_then(|line| {
+            serde_json::from_slice::<super::Stamped>(line)
+                .ok()
+                .map(|said| said.v)
+                .or_else(|| super::written_twice_by_1_34_0(line).then_some(super::WRITTEN_TWICE_AT))
+        })
+        .is_some_and(|v| v >= crate::event::SEALED_FROM)
 }
 
 fn sealed_at(one: &Path, device: &DeviceId, by: &VerifyingKey) -> Option<(u64, [u8; 32])> {

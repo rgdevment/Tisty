@@ -2083,3 +2083,63 @@ fn a_store_reopened_right_after_a_rotation_still_knows_its_newest_stamp() {
         "a clock set back would stamp before the segment just closed"
     );
 }
+
+#[test]
+fn the_version_line_1_34_0_wrote_with_its_schema_named_twice_is_skipped_and_the_rest_is_read() {
+    let tmp = tempfile::tempdir().unwrap();
+    let dir = tmp.path().join("dev_a");
+    std::fs::create_dir_all(&dir).unwrap();
+    let known = format!(
+        r#"{{"v":{SCHEMA_VERSION},"ts":"2026-08-28T10:00:00Z","by":"dev_a","op":"task.add","id":"01M14RFT9ECC2B6E4CX4P59XPH","d":{{"title":"still here","order":"V"}}}}"#
+    );
+    let twice = r#"{"v":18,"ts":"2026-10-24T21:08:29.188906Z","by":"dev_a","opt":true,"tz":"America/Santiago","op":"device.runs","v":"1.34.0"}"#;
+    let after = known
+        .replace("01M14RFT9ECC2B6E4CX4P59XPH", "01M14RFT9ECC2B6E4CX4P59XPJ")
+        .replace("2026-08-28T10:00:00Z", "2026-10-24T22:00:00Z");
+    std::fs::write(dir.join(ACTIVE), format!("{known}\n{twice}\n{after}\n")).unwrap();
+
+    let read = read_all(tmp.path()).unwrap();
+
+    assert_eq!(
+        read.len(),
+        2,
+        "what stands beside the line 1.34.0 wrote is read"
+    );
+    assert!(written_twice_by_1_34_0(twice.as_bytes()));
+}
+
+#[test]
+fn a_line_that_is_broken_in_any_other_way_still_stops_the_read() {
+    for broken in [
+        r#"{"v":18,"ts":"2026-10-24T21:08:29Z","by":"dev_a","op":"task.add","v":"1.34.0","id":"01M14RFT9ECC2B6E4CX4P59XPH","d":{"title":"x","order":"V"}}"#,
+        r#"{"v":18,"ts":"2026-10-24T21:08:29Z","by":"dev_a","op":"device.runs","v":"1.34.0"}"#,
+        r#"{"v":18,"ts":"2026-10-24T21:08:29Z","by":"dev_a","opt":true,"op":"task.delete","id":"01M14RFT9ECC2B6E4CX4P59XPH","op":"device.runs","v":18}"#,
+    ] {
+        let tmp = tempfile::tempdir().unwrap();
+        let dir = tmp.path().join("dev_a");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join(ACTIVE), format!("{broken}\n")).unwrap();
+
+        assert!(
+            matches!(read_all(tmp.path()), Err(Error::MalformedEvent { .. })),
+            "{broken}"
+        );
+    }
+}
+
+#[test]
+fn the_line_1_34_0_wrote_still_counts_towards_a_closed_segment() {
+    let tmp = tempfile::tempdir().unwrap();
+    let dir = tmp.path().join("dev_a");
+    std::fs::create_dir_all(&dir).unwrap();
+    let known = format!(
+        r#"{{"v":{SCHEMA_VERSION},"ts":"2026-08-28T10:00:00Z","by":"dev_a","op":"task.add","id":"01M14RFT9ECC2B6E4CX4P59XPH","d":{{"title":"sealed away","order":"V"}}}}"#
+    );
+    let twice = r#"{"v":18,"ts":"2026-10-24T21:08:29.188906Z","by":"dev_a","opt":true,"op":"device.runs","v":"1.34.0"}"#;
+    std::fs::write(dir.join("000001.tisty"), format!("{known}\n{twice}\n")).unwrap();
+    std::fs::write(dir.join("000001.count"), "2").unwrap();
+
+    let read = read_all(tmp.path()).unwrap();
+
+    assert_eq!(read.len(), 1, "the closed segment was taken for a cut one");
+}

@@ -374,6 +374,9 @@ impl Store {
                 device: self.device.0.clone(),
             });
         }
+        for event in &events[*written..] {
+            serde_json::from_str::<Event>(&serde_json::to_string(event)?)?;
+        }
         self.finish_a_cut_rotation()?;
         while *written < events.len() {
             let room = self.room(events.len() - *written)?;
@@ -793,6 +796,9 @@ pub fn newest_schema(device_dir: &Path) -> Result<u32> {
         if let Ok(one) = serde_json::from_str::<Stamped>(&line) {
             return Ok(one.v);
         }
+        if written_twice_by_1_34_0(line.as_bytes()) {
+            return Ok(WRITTEN_TWICE_AT);
+        }
     }
     Ok(0)
 }
@@ -809,7 +815,12 @@ pub fn written_since(device_dir: &Path, schema: u32) -> Result<bool> {
         let file = File::open(segment)?;
         crate::counting::opened();
         for line in std::io::BufReader::new(file).split(b'\n') {
-            if serde_json::from_slice::<Written>(&line?).is_ok_and(|one| one.v >= schema) {
+            let line = line?;
+            let v = serde_json::from_slice::<Written>(&line)
+                .ok()
+                .map(|one| one.v)
+                .or_else(|| written_twice_by_1_34_0(&line).then_some(WRITTEN_TWICE_AT));
+            if v.is_some_and(|v| v >= schema) {
                 return Ok(true);
             }
         }
@@ -971,7 +982,23 @@ fn read_segment_from(path: &Path, from: u64, out: &mut Vec<Event>) -> Result<Lin
             line: i + 1,
             source,
         };
-        let stamp: Stamped = serde_json::from_str(&line).map_err(malformed)?;
+        let stamp: Stamped = match serde_json::from_str(&line) {
+            Ok(stamp) => stamp,
+            Err(_) if written_twice_by_1_34_0(line.as_bytes()) => {
+                lines.events += 1;
+                lines.closing = None;
+                witness::trace(
+                    channel::STORE,
+                    "a version 1.34.0 said in a line no reader takes was skipped",
+                    &[
+                        ("at", Fact::Path(path.to_path_buf())),
+                        ("line", Fact::Count(i + 1)),
+                    ],
+                );
+                continue;
+            }
+            Err(source) => return Err(malformed(source)),
+        };
 
         let skipped = |why: String| {
             witness::warn(
@@ -1029,6 +1056,16 @@ fn read_segment_from(path: &Path, from: u64, out: &mut Vec<Event>) -> Result<Lin
         }
     }
     Ok(lines)
+}
+
+pub(crate) const WRITTEN_TWICE_AT: u32 = 18;
+
+// 1.34.0 said its version as `v`, the name the line's own schema already takes, so no reader parses it.
+pub(crate) fn written_twice_by_1_34_0(line: &[u8]) -> bool {
+    line.starts_with(br#"{"v":18,"#)
+        && serde_json::from_slice::<serde_json::Value>(line).is_ok_and(|said| {
+            said["op"] == "device.runs" && said["opt"] == true && said["v"] == "1.34.0"
+        })
 }
 
 /// A device writes only into its own directory and sync copies directories whole, so the name
@@ -1333,6 +1370,17 @@ fn tail_of(path: &Path) -> Result<Tail> {
                 tail.seq = event.seq;
             }
             Ok(_) => {}
+            Err(_) if written_twice_by_1_34_0(line.as_bytes()) => {
+                let said = serde_json::from_str::<serde_json::Value>(&line).ok();
+                let at = said
+                    .as_ref()
+                    .and_then(|said| said["ts"].as_str())
+                    .and_then(|ts| ts.parse::<jiff::Timestamp>().ok());
+                if let Some(at) = at.filter(|at| (*at, 0) > (tail.head, tail.seq)) {
+                    tail.head = at;
+                    tail.seq = 0;
+                }
+            }
             Err(_) => witness::warn(
                 channel::STORE,
                 "segment line unreadable",

@@ -88,7 +88,7 @@ pub const KNOWN_OPS: &[&str] = &[
     "attach.let_go",
     "attach.retire",
     "stores.joined",
-    "device.runs",
+    "device.release",
     "cloud.sealed",
     "share.key",
     "share.certified",
@@ -270,8 +270,8 @@ pub enum Op {
     #[serde(rename = "stores.joined")]
     StoresJoined { d: Stitch },
 
-    #[serde(rename = "device.runs")]
-    DeviceRuns { v: String },
+    #[serde(rename = "device.release")]
+    DeviceRelease { r: String },
 
     #[serde(rename = "cloud.sealed")]
     CloudSealed {
@@ -360,7 +360,7 @@ impl Op {
                 | Op::DeviceKey { .. }
                 | Op::DeviceRotate { .. }
                 | Op::DeviceNamed { .. }
-                | Op::DeviceRuns { .. }
+                | Op::DeviceRelease { .. }
                 | Op::CloudSealed { .. }
                 | Op::ShareKey { .. }
                 | Op::ShareCertified { .. }
@@ -385,7 +385,7 @@ impl Op {
                 | Op::ShareRevoked { .. }
                 | Op::DeviceHost { .. }
                 | Op::DeviceNamed { .. }
-                | Op::DeviceRuns { .. }
+                | Op::DeviceRelease { .. }
                 | Op::CloudSealed { .. }
                 | Op::DocFlag { .. }
                 | Op::DocUnflag { .. }
@@ -453,7 +453,7 @@ impl Op {
             | Op::DeviceKey { .. }
             | Op::DeviceRotate { .. }
             | Op::DeviceNamed { .. }
-            | Op::DeviceRuns { .. }
+            | Op::DeviceRelease { .. }
             | Op::CloudSealed { .. }
             | Op::Signed { .. }
             | Op::DeviceRemove { .. }
@@ -599,7 +599,7 @@ impl Op {
             | Op::DeviceKey { .. }
             | Op::DeviceRotate { .. }
             | Op::DeviceNamed { .. }
-            | Op::DeviceRuns { .. }
+            | Op::DeviceRelease { .. }
             | Op::CloudSealed { .. }
             | Op::Signed { .. }
             | Op::DeviceRemove { .. }
