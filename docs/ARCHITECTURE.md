@@ -332,7 +332,12 @@ version guard.
 - a closed segment is missing from the sequence, or is empty;
 - a closed segment does not end in the seal that closes it, or holds a
   different number of events from the count that seal declares;
-- a line does not parse, or declares a newer schema.
+- a line does not parse, or declares a newer schema. The one exception is the
+  line 1.34.0 wrote for its version (`device.runs` with a `v` that repeats the
+  schema), which is skipped and still counted.
+
+A line is parsed back before it is written, so a build never appends one that
+no reader takes.
 
 An event whose `by` differs from the directory that holds it is dropped with a
 warning, because every rule keyed on the device would otherwise take a forged

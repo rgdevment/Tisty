@@ -75,7 +75,7 @@ impl Store {
         mend(&dir);
         let mut tail = tail_of(&dir.join(ACTIVE))?;
         // A clock set back after a rotation would otherwise stamp new events before the ones just closed.
-        if tail.events == 0
+        if (tail.events == 0 || tail.head == jiff::Timestamp::UNIX_EPOCH)
             && let Some(closed) = segments_in(&dir)?.into_iter().rfind(|at| closed_at(at))
             && let Some(stamp) = last_stamp(&closed)
         {
@@ -381,7 +381,9 @@ impl Store {
 
             let mut said = String::new();
             for event in lot {
-                said.push_str(&serde_json::to_string(event)?);
+                let line = serde_json::to_string(event)?;
+                serde_json::from_str::<Event>(&line)?;
+                said.push_str(&line);
                 said.push('\n');
             }
             let n = self.active_events + lot.len();
@@ -976,7 +978,7 @@ fn read_segment_from(path: &Path, from: u64, out: &mut Vec<Event>) -> Result<Lin
             Err(_) if written_twice_by_1_34_0(&line) => {
                 lines.events += 1;
                 lines.closing = None;
-                witness::warn(
+                witness::trace(
                     channel::STORE,
                     "a version 1.34.0 said in a line no reader takes was skipped",
                     &[
@@ -1049,8 +1051,10 @@ fn read_segment_from(path: &Path, from: u64, out: &mut Vec<Event>) -> Result<Lin
 
 // 1.34.0 said its version as `v`, the name the line's own schema already takes, so no reader parses it.
 fn written_twice_by_1_34_0(line: &str) -> bool {
-    serde_json::from_str::<serde_json::Value>(line)
-        .is_ok_and(|said| said["op"] == "device.runs" && said["opt"] == true)
+    leading_version(line.as_bytes()).is_some()
+        && serde_json::from_str::<serde_json::Value>(line).is_ok_and(|said| {
+            said["op"] == "device.runs" && said["opt"] == true && said["v"].is_string()
+        })
 }
 
 pub(crate) fn leading_version(line: &[u8]) -> Option<u32> {

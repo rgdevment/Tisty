@@ -558,14 +558,14 @@
     },
     "es": [
       {
-        "title": "Arreglado: «Lo que llegó no se puede leer»",
-        "said": "la 1.34.0 escribía en tus datos una línea que luego no podía leer, y el equipo que se actualizaba dejaba de mostrar y sincronizar tus tareas y documentos. Esta versión la lee sin problema. No se perdió nada: todo vuelve a aparecer al abrir Tisty."
+        "title": "Arreglado: tus datos no se podían leer",
+        "said": "la 1.34.0 escribía en tus datos una línea que luego no podía leer, y el equipo que se actualizaba y sincronizaba dejaba de mostrar y sincronizar tus tareas y documentos. Esta versión la lee sin problema. No se perdió nada: todo vuelve a aparecer al abrir Tisty."
       }
     ],
     "en": [
       {
-        "title": "Fixed: «What arrived cannot be read»",
-        "said": "1.34.0 wrote a line into your data that it could not read back, so the computer that updated stopped showing and syncing your tasks and documents. This version reads it without trouble. Nothing was lost: everything is back when you open Tisty."
+        "title": "Fixed: your data could not be read",
+        "said": "1.34.0 wrote a line into your data that it could not read back, so the computer that updated and synced stopped showing and syncing your tasks and documents. This version reads it without trouble. Nothing was lost: everything is back when you open Tisty."
       }
     ]
   }
