@@ -147,7 +147,14 @@ fn assistants_never_get_a_key_nor_speak_for_the_person() {
 
     let state = two.state();
     assert!(!state.persons.keys.contains_key(&device("dev_bot")));
-    assert_eq!(state.persons.revocations.len(), 0);
+    assert!(
+        state.persons.taken.is_empty(),
+        "an assistant took a machine back"
+    );
+    assert_eq!(
+        state.persons.person(&device("dev_a")),
+        Some(seed().root().person())
+    );
     assert_eq!(state.persons.person(&device("dev_bot")), None);
     assert_eq!(
         two.vouch(150),
@@ -244,10 +251,17 @@ fn another_root_vouching_later_does_not_stop_the_person_taking_a_machine_back() 
 
 #[test]
 fn only_the_person_who_vouched_can_take_a_machine_back() {
-    let two = Two::new();
+    let mut two = Two::new();
     let stranger = Seed::from_bytes(&[9; 32]);
+    let ops = revoked(&stranger, &two.state().persons, &device("dev_a"), at(200));
+    two.wrote("dev_b", ops, 200);
 
-    assert!(revoked(&stranger, &two.state().persons, &device("dev_a"), at(200)).is_empty());
+    let persons = two.state().persons;
+    assert_eq!(
+        persons.person(&device("dev_a")),
+        Some(seed().root().person())
+    );
+    assert!(!persons.taken_back_by(&device("dev_a"), &seed().root().person()));
 }
 
 #[test]
