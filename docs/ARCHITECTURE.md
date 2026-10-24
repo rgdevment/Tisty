@@ -316,10 +316,10 @@ recognised from that version.
 
 `opt` is set by `Store::minted` from `Op::is_optional`: `person.signed`,
 `device.host`, `device.named`, `device.runs`, `cloud.sealed`, `doc.flag`,
-`doc.unflag`, `share.*`. Mark only an operation that adds something to look at. A reader that
-skips a line that changes what exists diverges in silence. The mark is honoured
-only when the operation name is unknown, so it reaches only builds that have
-never heard of the name.
+`doc.unflag`, `share.*`. Mark only an operation that adds something to look
+at. A reader that skips a line that changes what exists diverges in silence.
+The mark is honoured only when the operation name is unknown, so it reaches
+only builds that have never heard of the name.
 
 The read cache is tied to the schema (`SCHEMA = SCHEMA_VERSION + 20` in
 `cache.rs`), so a build with another schema misses the cache and meets the
