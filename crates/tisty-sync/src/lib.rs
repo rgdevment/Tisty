@@ -22,7 +22,7 @@ use segments::{
     Alike, Grew, Toward, hand_on_leaving, one_grew_from_the_other, ours_went_missing, sweep,
 };
 pub use shape::{
-    NAMED, NEEDS, OURS as SHAPE, needs_later, raise_place, raised, raised_told, refuses,
+    NAMED, NEEDS, OURS as SHAPE, later, needs_later, raise_place, raised, raised_told, refuses,
     unseen as forget_shape,
 };
 use std::path::Path;

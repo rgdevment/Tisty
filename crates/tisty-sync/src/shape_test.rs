@@ -366,3 +366,27 @@ fn a_needs_this_build_cannot_read_is_taken_for_a_later_one() {
 
     assert!(matches!(refuses(&dest), Err(Trouble::Needs(_))));
 }
+
+#[test]
+fn a_later_word_this_parser_cannot_read_still_says_what_it_needs() {
+    let (_room, data, dest) = a_place();
+    std::fs::write(
+        dest.join(NAMED),
+        "shape = 3\nneeds = \"999.0.0\"\nseal = { a = 1,\n b = 2 }\n",
+    )
+    .unwrap();
+    let needs = Some(Trouble::Needs("999.0.0".to_string()));
+
+    assert_eq!(later(&dest), needs);
+    assert_eq!(refuses(&dest).err(), needs);
+    assert_eq!(before_reading(&data, &dest).err(), needs);
+}
+
+#[test]
+fn a_word_that_cannot_be_read_and_asks_nothing_later_is_unshaped_not_later() {
+    let (_room, _data, dest) = a_place();
+    std::fs::write(dest.join(NAMED), "shape = = 3\n").unwrap();
+
+    assert_eq!(later(&dest), None);
+    assert!(matches!(refuses(&dest), Err(Trouble::Unshaped(_))));
+}

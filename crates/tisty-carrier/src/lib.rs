@@ -154,8 +154,8 @@ pub trait Carrier: Send + std::marker::Sync {
         self.place()
             .is_some_and(|dest| tisty_core::store::inhabited(dest.join(STORE)))
     }
-    fn refuses(&self) -> Result<(), Trouble> {
-        self.place().map_or(Ok(()), tisty_sync::refuses)
+    fn later(&self) -> Option<Trouble> {
+        self.place().and_then(tisty_sync::later)
     }
     /// Never overridden: a carrier that empties itself does so in `wipe_along`.
     fn wipe(&self) -> Result<usize, Trouble> {

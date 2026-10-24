@@ -143,18 +143,12 @@ fn still_barred(
     tree: &Path,
     index: &Index,
 ) -> Result<Option<tisty_sync::Trouble>, Hitch> {
-    let Err(trouble) = tisty_sync::refuses(tree) else {
+    let Some(trouble) = tisty_sync::later(tree) else {
         return Ok(None);
     };
     let Some(kept) = index.tree.get(NAMED) else {
         return Ok(None);
     };
-    if !matches!(
-        trouble,
-        tisty_sync::Trouble::Needs(_) | tisty_sync::Trouble::Shape(_)
-    ) {
-        return Ok(None);
-    }
     let unchanged = remote
         .about(NAMED)?
         .is_some_and(|seen| seen.revision == kept.seen.revision);
@@ -179,10 +173,11 @@ fn heeded(
         Changes::Whole { seen, .. } => seen,
         Changes::Since { changed, .. } => changed,
     };
-    let damaged = matches!(
-        tisty_sync::refuses(tree),
-        Err(tisty_sync::Trouble::Unshaped(_))
-    );
+    let damaged = tisty_sync::later(tree).is_none()
+        && matches!(
+            tisty_sync::refuses(tree),
+            Err(tisty_sync::Trouble::Unshaped(_))
+        );
     if damaged {
         index.tree.remove(NAMED);
     }
@@ -192,7 +187,13 @@ fn heeded(
         .or_else(|| index.owed.get(NAMED))
         .cloned()
     {
-        None if damaged => remote.about(NAMED)?,
+        None if damaged => {
+            let up_there = remote.about(NAMED)?;
+            if up_there.is_none() {
+                std::fs::remove_file(tree.join(NAMED))?;
+            }
+            up_there
+        }
         word => word,
     };
     if let Some(word) = word {

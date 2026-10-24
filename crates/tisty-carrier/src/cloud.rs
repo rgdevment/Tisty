@@ -444,18 +444,14 @@ impl Cloud {
         let every = Duration::from_millis(stir.every_ms);
         let index = Index::load(&self.home);
         let metered = Metered::over(&*self.remote, &self.home, Class::History);
-        let later = matches!(
-            tisty_sync::refuses(&self.tree()),
-            Err(Trouble::Needs(_) | Trouble::Shape(_))
-        );
-        let asked = match later {
+        let asked = match tisty_sync::later(&self.tree()).is_some() {
             true => metered.about(tisty_sync::NAMED).map(|seen| {
-                let moved = seen.is_some_and(|seen| {
-                    index
-                        .tree
-                        .get(tisty_sync::NAMED)
-                        .is_none_or(|kept| kept.seen.revision != seen.revision)
-                });
+                let kept = index.tree.get(tisty_sync::NAMED);
+                let moved = match (seen, kept) {
+                    (Some(seen), Some(kept)) => seen.revision != kept.seen.revision,
+                    (None, Some(_)) => true,
+                    _ => false,
+                };
                 if moved {
                     stir.mark = stir.mark.wrapping_add(1);
                 }
@@ -695,8 +691,8 @@ impl Carrier for Cloud {
         tisty_sync::theirs(&self.fresh())
     }
 
-    fn refuses(&self) -> Result<(), Trouble> {
-        tisty_sync::refuses(&self.tree())
+    fn later(&self) -> Option<Trouble> {
+        tisty_sync::later(&self.tree())
     }
 
     fn been_here(&self, here: &Here) -> bool {

@@ -265,3 +265,21 @@ fn a_word_spoiled_here_is_brought_again_rather_than_barring_for_good() {
     assert_eq!(pulled, Ok(0));
     assert_eq!(tisty_sync::refuses(&tree), Ok(()));
 }
+
+#[test]
+fn a_word_spoiled_here_and_gone_up_there_is_let_go_rather_than_barring_for_good() {
+    let room = tempfile::tempdir().unwrap();
+    let tree = room.path().join("tree");
+    std::fs::create_dir_all(&tree).unwrap();
+    let fake = Fake::drive();
+    word_up_there(&fake, room.path(), "1.0.0");
+    let mut index = Index::default();
+    pull(&fake, &tree, &mut index, None, false, &mut |_| {}).unwrap();
+
+    fake.delete(NAMED, None).unwrap();
+    std::fs::write(tree.join(NAMED), b"\xff\xfe").unwrap();
+    let pulled = pull(&fake, &tree, &mut index, None, true, &mut |_| {});
+
+    assert!(!matches!(pulled, Err(Hitch::Barred(_))), "{pulled:?}");
+    assert!(!tree.join(NAMED).exists());
+}

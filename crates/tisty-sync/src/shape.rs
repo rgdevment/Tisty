@@ -26,7 +26,9 @@ enum Told {
         said: Box<toml_edit::DocumentMut>,
     },
     Nothing,
-    Unreadable,
+    Unreadable {
+        needs: Option<String>,
+    },
     Unreached,
 }
 
@@ -36,11 +38,12 @@ fn told(dest: &Path) -> Told {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Told::Nothing,
         Err(_) => return Told::Unreached,
     };
-    let Some(said) = String::from_utf8(bytes)
+    let parsed = std::str::from_utf8(&bytes)
         .ok()
-        .and_then(|said| said.parse::<toml_edit::DocumentMut>().ok())
-    else {
-        return Told::Unreadable;
+        .and_then(|said| said.parse::<toml_edit::DocumentMut>().ok());
+    let Some(said) = parsed else {
+        let needs = String::from_utf8_lossy(&bytes).lines().find_map(needs_in);
+        return Told::Unreadable { needs };
     };
     let shape = said
         .get("shape")
@@ -56,8 +59,13 @@ fn told(dest: &Path) -> Told {
             needs,
             said: Box::new(said),
         },
-        None => Told::Unreadable,
+        None => Told::Unreadable { needs },
     }
+}
+
+fn needs_in(line: &str) -> Option<String> {
+    let (name, said) = line.split_once('=')?;
+    (name.trim() == "needs").then(|| said.trim().trim_matches('"').to_string())
 }
 
 fn release(said: &str) -> Option<(u64, u64, u64)> {
@@ -81,8 +89,8 @@ pub fn needs_later(needs: &str) -> bool {
 pub(crate) fn before_reading(data: &Path, dest: &Path) -> Result<(), Trouble> {
     match told(dest) {
         Told::Shape { shape, needs, .. } => {
-            if let Err(trouble) = barred(dest, shape, needs) {
-                warned(dest, shape, &trouble);
+            if let Err(trouble) = barred(dest, Some(shape), needs) {
+                warned(dest, Some(shape), &trouble);
                 return Err(trouble);
             }
             remember(data, dest, shape);
@@ -91,13 +99,17 @@ pub(crate) fn before_reading(data: &Path, dest: &Path) -> Result<(), Trouble> {
             }
             Ok(())
         }
-        Told::Unreadable | Told::Unreached => {
-            witness::warn(
-                channel::SYNC,
-                "the meeting place says what shape it is in and it cannot be read, so nothing was carried either way",
-                &[("at", Fact::Path(dest.join(NAMED)))],
-            );
-            Err(Trouble::Unshaped(dest.display().to_string()))
+        Told::Unreadable { needs } => {
+            let trouble = barred(dest, None, needs)
+                .err()
+                .unwrap_or_else(|| Trouble::Unshaped(dest.display().to_string()));
+            warned(dest, None, &trouble);
+            Err(trouble)
+        }
+        Told::Unreached => {
+            let trouble = Trouble::Unshaped(dest.display().to_string());
+            warned(dest, None, &trouble);
+            Err(trouble)
         }
         Told::Nothing if seen(data, dest).is_some() => {
             witness::warn(
@@ -115,39 +127,64 @@ pub(crate) fn before_reading(data: &Path, dest: &Path) -> Result<(), Trouble> {
 }
 
 pub fn refuses(dest: &Path) -> Result<(), Trouble> {
+    let (shape, refused) = match told(dest) {
+        Told::Shape { shape, needs, .. } => (Some(shape), barred(dest, Some(shape), needs)),
+        Told::Unreadable { needs } => (
+            None,
+            barred(dest, None, needs).and(Err(Trouble::Unshaped(dest.display().to_string()))),
+        ),
+        Told::Unreached => (None, Err(Trouble::NotThere(dest.display().to_string()))),
+        Told::Nothing => (None, Ok(())),
+    };
+    if let Err(trouble) = &refused {
+        warned(dest, shape, trouble);
+    }
+    refused
+}
+
+pub fn later(dest: &Path) -> Option<Trouble> {
     match told(dest) {
-        Told::Shape { shape, needs, .. } => barred(dest, shape, needs),
-        Told::Unreadable => Err(Trouble::Unshaped(dest.display().to_string())),
-        Told::Unreached => Err(Trouble::NotThere(dest.display().to_string())),
-        Told::Nothing => Ok(()),
+        Told::Shape { shape, needs, .. } => barred(dest, Some(shape), needs).err(),
+        Told::Unreadable { needs } => barred(dest, None, needs).err(),
+        Told::Nothing | Told::Unreached => None,
     }
 }
 
-fn barred(dest: &Path, shape: u32, needs: Option<String>) -> Result<(), Trouble> {
+fn barred(dest: &Path, shape: Option<u32>, needs: Option<String>) -> Result<(), Trouble> {
     match needs.filter(|needs| needs_later(needs)) {
         Some(needs) => Err(Trouble::Needs(needs)),
-        None if shape > OURS => Err(Trouble::Shape(dest.display().to_string())),
+        None if shape.is_some_and(|shape| shape > OURS) => {
+            Err(Trouble::Shape(dest.display().to_string()))
+        }
         None => Ok(()),
     }
 }
 
-fn warned(dest: &Path, shape: u32, trouble: &Trouble) {
+fn warned(dest: &Path, shape: Option<u32>, trouble: &Trouble) {
+    let at = ("at", Fact::Path(dest.to_path_buf()));
     match trouble {
         Trouble::Needs(needs) => witness::warn(
             channel::SYNC,
             "the meeting place asks for a later Tisty than this one, so nothing was carried either way",
-            &[
-                ("at", Fact::Path(dest.to_path_buf())),
-                ("needs", Fact::Id(needs.clone())),
-            ],
+            &[at, ("needs", Fact::Id(needs.clone()))],
         ),
-        _ => witness::warn(
+        Trouble::Shape(_) => witness::warn(
             channel::SYNC,
             "the meeting place is in a shape this build does not know, so nothing was carried either way",
             &[
-                ("at", Fact::Path(dest.to_path_buf())),
-                ("shape", Fact::Count(shape as usize)),
+                at,
+                ("shape", Fact::Count(shape.unwrap_or_default() as usize)),
             ],
+        ),
+        Trouble::NotThere(_) => witness::warn(
+            channel::SYNC,
+            "the meeting place's word on its shape could not be opened just now, so nothing was done there",
+            &[at],
+        ),
+        _ => witness::warn(
+            channel::SYNC,
+            "the meeting place says what shape it is in and it cannot be read, so nothing was carried either way",
+            &[("at", Fact::Path(dest.join(NAMED)))],
         ),
     }
 }
@@ -178,7 +215,7 @@ pub(crate) fn stamp(data: &Path, dest: &Path) -> bool {
             false
         }
         Told::Shape { shape, .. } if shape > OURS => false,
-        Told::Unreadable | Told::Unreached => false,
+        Told::Unreadable { .. } | Told::Unreached => false,
         Told::Shape { said, .. } => tell(data, dest, Some(*said)),
         Told::Nothing => {
             tell(data, dest, None);
