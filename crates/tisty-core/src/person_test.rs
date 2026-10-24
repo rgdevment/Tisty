@@ -561,3 +561,67 @@ fn a_machine_the_log_never_seated_is_not_heard() {
             .contains_key(&device("dev_x"))
     );
 }
+
+#[test]
+fn typing_the_phrase_on_a_machine_with_a_new_key_retires_the_old_one() {
+    let mut two = Two::new();
+    let old = mine(&two.second, &device("dev_b")).unwrap().public();
+    std::fs::remove_file(kept_at(&two.second, &device("dev_b")).unwrap()).unwrap();
+
+    let ops = begun(
+        &two.second,
+        &device("dev_b"),
+        &seed(),
+        &two.state().persons,
+        at(300),
+    )
+    .unwrap();
+    two.wrote("dev_b", ops, 300);
+
+    let persons = two.state().persons;
+    assert!(persons.key_taken_back_by(&old, &seed().root().person()));
+    assert_eq!(
+        persons.person(&device("dev_b")),
+        Some(seed().root().person())
+    );
+}
+
+#[test]
+fn an_old_key_brought_back_from_a_backup_is_never_said_again() {
+    let mut two = Two::new();
+    let at_b = kept_at(&two.second, &device("dev_b")).unwrap();
+    let backup = std::fs::read(&at_b).unwrap();
+    std::fs::remove_file(&at_b).unwrap();
+    let op = introduced(&two.second, &device("dev_b"), &two.state().persons).unwrap();
+    two.wrote("dev_b", vec![op], 130);
+    two.vouch(140);
+
+    std::fs::write(&at_b, backup).unwrap();
+    let op = introduced(&two.second, &device("dev_b"), &two.state().persons).unwrap();
+    two.wrote("dev_b", vec![op], 150);
+
+    let state = two.state();
+    let current = state.persons.keys[&device("dev_b")].last().cloned();
+    assert_eq!(
+        current,
+        mine(&two.second, &device("dev_b")).map(|key| key.shown())
+    );
+    assert_eq!(state.persons.keys[&device("dev_b")].len(), 3);
+}
+
+#[test]
+fn a_revocation_carried_by_a_machine_removed_since_still_holds() {
+    let mut two = Two::new();
+    let ops = revoked(&seed(), &two.state().persons, &device("dev_b"), at(200));
+    let mut events = two.events.clone();
+    events.push(said("dev_a", Op::DeviceRemove { d: device("dev_a") }, 190));
+    events.extend(ops.into_iter().map(|op| said("dev_a", op, 200)));
+    two.events = events;
+
+    assert_eq!(two.state().persons.person(&device("dev_b")), None);
+    assert!(
+        two.state()
+            .persons
+            .taken_back_by(&device("dev_b"), &seed().root().person())
+    );
+}
