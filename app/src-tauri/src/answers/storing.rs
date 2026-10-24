@@ -1,7 +1,6 @@
 use std::sync::Mutex;
 
 use tauri::{Emitter, Manager};
-use tisty_core::Op;
 use tisty_core::witness::{self, Fact, channel};
 
 use crate::{
@@ -1037,6 +1036,7 @@ async fn carried_round(
             &[("why", Fact::Why(e.to_string()))],
         );
     }
+    crate::identity::after_a_round(&mut session);
     let unsettled = done.undecided.len()
         + done.unreadable.len()
         + done.disowned.len()
@@ -1280,8 +1280,9 @@ pub fn remove_machine(session: tauri::State<'_, Mutex<Session>>, id: String) -> 
         return Err(Refusal::of("notThisMachine"));
     }
 
+    let ops = crate::identity::removing(&session, who);
     session
-        .commit(Op::DeviceRemove { d: who })
+        .commit_all(ops)
         .map_err(|e| blamed(channel::STORE, "the machine could not be removed", e))?;
     session.reproject().map_err(|e| {
         blamed(

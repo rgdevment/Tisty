@@ -169,22 +169,26 @@ fn scope_of(at: &CloudAt) -> String {
     }
 }
 
-#[cfg(all(windows, not(test)))]
 pub fn secrets_for(at: &CloudAt) -> Result<Arc<dyn Secrets>, Hitch> {
+    secrets_in(&scope_of(at))
+}
+
+#[cfg(all(windows, not(test)))]
+pub fn secrets_in(scope: &str) -> Result<Arc<dyn Secrets>, Hitch> {
     let home = crate::sealed::home()
         .ok_or_else(|| Hitch::Broke("Windows named no local folder for this person".into()))?;
-    Ok(Arc::new(crate::sealed::Sealed::under(&home, &scope_of(at))))
+    Ok(Arc::new(crate::sealed::Sealed::under(&home, scope)))
 }
 
 #[cfg(all(not(windows), not(test)))]
-pub fn secrets_for(at: &CloudAt) -> Result<Arc<dyn Secrets>, Hitch> {
-    Ok(Arc::new(tisty_carrier::Keychain::native(&scope_of(at))?))
+pub fn secrets_in(scope: &str) -> Result<Arc<dyn Secrets>, Hitch> {
+    Ok(Arc::new(tisty_carrier::Keychain::native(scope)?))
 }
 
 // Tests keep tokens in memory, so none ever reaches the keychain of whoever runs them.
 #[cfg(test)]
-pub fn secrets_for(at: &CloudAt) -> Result<Arc<dyn Secrets>, Hitch> {
-    Ok(Arc::new(InMemory(scope_of(at))))
+pub fn secrets_in(scope: &str) -> Result<Arc<dyn Secrets>, Hitch> {
+    Ok(Arc::new(InMemory(scope.to_string())))
 }
 
 #[cfg(test)]

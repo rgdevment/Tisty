@@ -9,6 +9,7 @@ mod finding;
 mod glimpse;
 mod hearing;
 mod herald;
+mod identity;
 mod leaving;
 mod linking;
 mod moving;
@@ -1219,6 +1220,10 @@ pub fn run() {
             answers::joining::place_peek,
             answers::joining::folder_astir,
             answers::storing::remove_machine,
+            identity::identity_shown,
+            identity::identity_begin,
+            identity::identity_phrase,
+            identity::identity_recover,
             answers::storing::confirm_machine_key,
             answers::knocking::waiting_machines,
             answers::knocking::this_machine,
