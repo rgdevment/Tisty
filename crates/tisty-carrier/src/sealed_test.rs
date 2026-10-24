@@ -163,11 +163,14 @@ fn about_and_changes_speak_of_the_name_and_size_the_file_has_in_the_clear() {
 }
 
 #[test]
-fn a_sealed_file_is_not_fetched_from_the_middle_and_is_never_lent() {
+fn a_sealed_file_can_be_fetched_from_the_middle_and_is_never_lent() {
     let sealed = over_drive();
     put(&sealed, "docs/a.md", b"hola");
 
-    assert!(sealed.fetch("docs/a.md", 2, &mut Vec::new()).is_err());
+    let mut tail = Vec::new();
+    sealed.fetch("docs/a.md", 2, &mut tail).unwrap();
+
+    assert_eq!(tail, b"la");
     assert_eq!(sealed.lends("docs/a.md").unwrap(), None);
 }
 
@@ -235,4 +238,27 @@ fn a_file_that_is_not_validly_sealed_keeps_the_size_it_has_up_there() {
     let seen = sealed.about("docs/a.md").unwrap().unwrap();
 
     assert_eq!(seen.bytes, 5);
+}
+
+#[test]
+fn the_phrase_mark_is_neither_told_about_nor_fetched_as_a_file() {
+    let sealed = over_drive();
+    put(&sealed.inner, "sealed/sealed.mark", b"mark");
+
+    assert!(sealed.about("sealed.mark").unwrap().is_none());
+    assert!(matches!(
+        fetched(&sealed, "sealed.mark"),
+        Err(Hitch::Missing(_))
+    ));
+}
+
+#[test]
+fn a_provider_that_folds_case_cannot_be_made_to_overwrite_the_mark() {
+    let sealed = Sealed::new(Fake::onedrive(), key(7), "store_one");
+    let dir = tempfile::tempdir().unwrap();
+    let at = dir.path().join("body");
+    std::fs::write(&at, b"x").unwrap();
+
+    assert!(sealed.put("Sealed.Mark", &at, Expect::Any).is_err());
+    assert!(sealed.delete("SEALED.MARK", None).is_err());
 }

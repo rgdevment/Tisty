@@ -63,13 +63,6 @@ fn placed(name: &str) -> String {
     }
 }
 
-fn reserved(name: &str) -> Result<(), Hitch> {
-    match name == MARK {
-        true => Err(broke("that name is the mark of a sealed cloud")),
-        false => Ok(()),
-    }
-}
-
 fn named_back(hitch: Hitch, inner: &str, name: &str) -> Hitch {
     match hitch {
         Hitch::Missing(one) if one == inner => Hitch::Missing(name.to_string()),
@@ -106,34 +99,37 @@ impl<R: Remote> Sealed<R> {
         self.inner.limits().folds_case
     }
 
-    fn is_clear(&self, name: &str) -> bool {
+    fn same(&self, one: &str, other: &str) -> bool {
         match self.folds() {
-            true => [NAMED, tisty_core::moved::NAMED]
-                .into_iter()
-                .map(String::from)
-                .chain([format!("{STORE}/{MARKER}")])
-                .any(|one| one.eq_ignore_ascii_case(name)),
-            false => clear(name),
+            true => one.eq_ignore_ascii_case(other),
+            false => one == other,
+        }
+    }
+
+    fn is_clear(&self, name: &str) -> bool {
+        [
+            NAMED,
+            tisty_core::moved::NAMED,
+            &format!("{STORE}/{MARKER}"),
+        ]
+        .into_iter()
+        .any(|one| self.same(one, name))
+    }
+
+    fn reserved(&self, name: &str) -> Result<(), Hitch> {
+        match self.same(name, MARK) {
+            true => Err(broke("that name is the mark of a sealed cloud")),
+            false => Ok(()),
         }
     }
 
     fn shown(&self, name: &str) -> Option<String> {
         if self.is_clear(name) {
-            return Some(match self.folds() {
-                true => name.to_ascii_lowercase(),
-                false => name.to_string(),
-            });
+            return Some(name.to_ascii_lowercase());
         }
         let (top, inside) = name.split_once('/')?;
-        let top_is_ours = match self.folds() {
-            true => top.eq_ignore_ascii_case(INSIDE),
-            false => top == INSIDE,
-        };
-        let marked = match self.folds() {
-            true => inside.eq_ignore_ascii_case(MARK),
-            false => inside == MARK,
-        };
-        (top_is_ours && !inside.is_empty() && !marked).then(|| inside.to_string())
+        (self.same(top, INSIDE) && !inside.is_empty() && !self.same(inside, MARK))
+            .then(|| inside.to_string())
     }
 
     fn seen(&self, one: Seen, name: &str, hash: String) -> Seen {
@@ -195,9 +191,8 @@ impl<R: Remote> Remote for Sealed<R> {
         if clear(name) {
             return self.inner.fetch(name, from, into);
         }
-        if from > 0 {
-            return Err(broke("a sealed file is never fetched from the middle"));
-        }
+        self.reserved(name)
+            .map_err(|_| Hitch::Missing(name.to_string()))?;
         let inner = placed(name);
         let (cipher, plain) = (Temp::new(), Temp::new());
         let mut to = cipher.create().map_err(broke)?;
@@ -217,6 +212,7 @@ impl<R: Remote> Remote for Sealed<R> {
         drop(to_plain);
         let hash = self.inner.hash_of(&plain.0).map_err(broke)?;
         let mut read = std::fs::File::open(&plain.0).map_err(broke)?;
+        std::io::Seek::seek(&mut read, std::io::SeekFrom::Start(from)).map_err(broke)?;
         std::io::copy(&mut read, into).map_err(broke)?;
         Ok(self.seen(got, name, hash))
     }
@@ -225,10 +221,11 @@ impl<R: Remote> Remote for Sealed<R> {
         if clear(name) {
             return self.inner.put(name, from, expect);
         }
-        reserved(name)?;
+        self.reserved(name)?;
         let inner = placed(name);
-        let cipher = Temp::new();
-        let mut plain = std::fs::File::open(from).map_err(broke)?;
+        let (cipher, snapshot) = (Temp::new(), Temp::new());
+        std::fs::copy(from, &snapshot.0).map_err(broke)?;
+        let mut plain = std::fs::File::open(&snapshot.0).map_err(broke)?;
         let mut to = cipher.create().map_err(broke)?;
         seal(&self.key, &self.cloud, name, &mut plain, &mut to).map_err(broke)?;
         drop(to);
@@ -241,14 +238,12 @@ impl<R: Remote> Remote for Sealed<R> {
                 "{name} did not reach the provider as sealed"
             )));
         }
-        let hash = self.inner.hash_of(from).map_err(broke)?;
+        let hash = self.inner.hash_of(&snapshot.0).map_err(broke)?;
         Ok(self.seen(there, name, hash))
     }
 
     fn delete(&self, name: &str, expect: Option<&str>) -> Result<(), Hitch> {
-        if !clear(name) {
-            reserved(name)?;
-        }
+        self.reserved(name)?;
         let inner = placed(name);
         self.inner
             .delete(&inner, expect)
@@ -260,6 +255,9 @@ impl<R: Remote> Remote for Sealed<R> {
     }
 
     fn about(&self, name: &str) -> Result<Option<Seen>, Hitch> {
+        if self.reserved(name).is_err() {
+            return Ok(None);
+        }
         let inner = placed(name);
         Ok(self
             .inner
