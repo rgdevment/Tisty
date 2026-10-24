@@ -34,8 +34,12 @@ impl Persons {
                 said.retain(|one| one != p);
                 said.push(p.clone());
             }
-            Op::ShareCertified { c } if c.vouches().is_ok() => self.certificates.push(c.clone()),
-            Op::ShareRevoked { r } if r.holds().is_ok() => self.revocations.push(r.clone()),
+            Op::ShareCertified { c } if c.vouches().is_ok() && !self.certificates.contains(c) => {
+                self.certificates.push(c.clone());
+            }
+            Op::ShareRevoked { r } if r.holds().is_ok() && !self.revocations.contains(r) => {
+                self.revocations.push(r.clone());
+            }
             _ => {}
         }
     }
@@ -77,17 +81,42 @@ impl Persons {
             .max_by_key(|one| one.since)
     }
 
-    /// A machine this root took back stays out until the person brings it in by hand.
-    fn taken_back_by(&self, device: &DeviceId, root: &Person) -> bool {
-        let Some(keys) = self.keys.get(device) else {
-            return false;
-        };
+    fn named_by(&self, device: &DeviceId) -> Vec<VerifyingKey> {
+        self.keys
+            .get(device)
+            .map(|keys| keys.iter().filter_map(|one| share_key(one)).collect())
+            .unwrap_or_default()
+    }
+
+    fn key_taken_back_by(&self, key: &VerifyingKey, root: &Person) -> bool {
         self.revocations
             .iter()
             .filter_map(|one| one.holds().ok())
-            .any(|(person, key)| {
-                person == *root && keys.iter().any(|one| share_key(one) == Some(key))
+            .any(|(person, share)| person == *root && share == *key)
+    }
+
+    /// The root's last word on a machine counts: taken back, it stays out until the phrase is typed there.
+    fn taken_back_by(&self, device: &DeviceId, root: &Person) -> bool {
+        let keys = self.named_by(device);
+        let vouched = self
+            .vouches()
+            .filter(|one| one.person == *root && keys.contains(&one.share))
+            .map(|one| one.since)
+            .max();
+        let taken = self
+            .revocations
+            .iter()
+            .filter(|one| {
+                one.holds()
+                    .is_ok_and(|(person, share)| person == *root && keys.contains(&share))
             })
+            .map(|one| one.at)
+            .max();
+        match (vouched, taken) {
+            (_, None) => false,
+            (None, Some(_)) => true,
+            (Some(vouched), Some(taken)) => taken >= vouched,
+        }
     }
 
     pub fn waiting(&self, root: &Person, machines: &BTreeSet<DeviceId>) -> Vec<VerifyingKey> {
@@ -126,7 +155,7 @@ pub fn begun(
 ) -> Option<Vec<Op>> {
     let root = seed.root();
     let mut key = mine(paths, device)?;
-    if persons.taken_back_by(device, &root.person()) {
+    if persons.key_taken_back_by(&key.public(), &root.person()) {
         key = replaced(paths, device, &key)?;
     }
     let mut ops = Vec::new();
@@ -150,7 +179,16 @@ pub fn introduced(paths: &crate::Paths, device: &DeviceId, persons: &Persons) ->
         return None;
     }
     let key = mine(paths, device)?;
-    (persons.current(device) != Some(key.public())).then(|| Op::ShareKey { p: key.shown() })
+    let shown = key.shown();
+    if persons.named_by_another(device, &shown) {
+        crate::witness::warn(
+            crate::witness::channel::STORE,
+            "another machine named this machine's share key first, so it is not said again",
+            &[("by", crate::witness::Fact::Id(device.0.clone()))],
+        );
+        return None;
+    }
+    (persons.current(device) != Some(key.public())).then_some(Op::ShareKey { p: shown })
 }
 
 pub fn certified(
@@ -169,12 +207,32 @@ pub fn certified(
         .collect()
 }
 
-pub fn revoked(seed: &Seed, persons: &Persons, device: &DeviceId, now: Timestamp) -> Option<Op> {
+/// Every key the machine ever had that this root vouched for, so an old copy of one signs nothing.
+pub fn revoked(seed: &Seed, persons: &Persons, device: &DeviceId, now: Timestamp) -> Vec<Op> {
     let root = seed.root();
-    let vouched = persons.vouched_by(device, &root.person())?;
-    Some(Op::ShareRevoked {
-        r: root.revoke(&vouched.share, now),
-    })
+    let person = root.person();
+    persons
+        .named_by(device)
+        .into_iter()
+        .filter(|key| {
+            persons
+                .vouches()
+                .any(|one| one.person == person && one.share == *key)
+        })
+        .filter(|key| !persons.key_taken_back_by(key, &person))
+        .map(|key| Op::ShareRevoked {
+            r: root.revoke(&key, now),
+        })
+        .collect()
+}
+
+/// A machine removed from the store answers for nobody, whatever its certificate still says.
+pub fn person_of(state: &State, device: &DeviceId) -> Option<Person> {
+    state
+        .devices
+        .contains(device)
+        .then(|| state.persons.person(device))
+        .flatten()
 }
 
 pub fn kept_at(paths: &crate::Paths, device: &DeviceId) -> Option<PathBuf> {

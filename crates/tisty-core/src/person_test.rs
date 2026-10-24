@@ -156,9 +156,8 @@ fn assistants_never_get_a_key_nor_speak_for_the_person() {
 #[test]
 fn a_machine_taken_back_is_never_vouched_for_again_on_its_own() {
     let mut two = Two::new();
-    let state = two.state();
-    let op = revoked(&seed(), &state.persons, &device("dev_b"), at(200)).unwrap();
-    two.wrote("dev_a", vec![op], 200);
+    let ops = revoked(&seed(), &two.state().persons, &device("dev_b"), at(200));
+    two.wrote("dev_a", ops, 200);
     assert_eq!(two.state().persons.person(&device("dev_b")), None);
     assert_eq!(
         two.state().persons.person(&device("dev_a")),
@@ -182,8 +181,8 @@ fn a_machine_taken_back_is_never_vouched_for_again_on_its_own() {
 fn typing_the_phrase_on_a_machine_taken_back_brings_it_in_with_a_new_key() {
     let mut two = Two::new();
     let old = mine(&two.second, &device("dev_b")).unwrap().public();
-    let op = revoked(&seed(), &two.state().persons, &device("dev_b"), at(200)).unwrap();
-    two.wrote("dev_a", vec![op], 200);
+    let ops = revoked(&seed(), &two.state().persons, &device("dev_b"), at(200));
+    two.wrote("dev_a", ops, 200);
 
     let ops = begun(
         &two.second,
@@ -232,10 +231,10 @@ fn another_root_vouching_later_does_not_stop_the_person_taking_a_machine_back() 
         500,
     );
 
-    let op = revoked(&seed(), &two.state().persons, &device("dev_b"), at(600));
+    let ops = revoked(&seed(), &two.state().persons, &device("dev_b"), at(600));
 
     assert!(
-        op.is_some(),
+        !ops.is_empty(),
         "the person could not take their own machine back"
     );
 }
@@ -245,7 +244,7 @@ fn only_the_person_who_vouched_can_take_a_machine_back() {
     let two = Two::new();
     let stranger = Seed::from_bytes(&[9; 32]);
 
-    assert!(revoked(&stranger, &two.state().persons, &device("dev_a"), at(200)).is_none());
+    assert!(revoked(&stranger, &two.state().persons, &device("dev_a"), at(200)).is_empty());
 }
 
 #[test]
@@ -317,4 +316,102 @@ fn the_new_ops_are_optional_and_settle() {
         assert!(op.settles(), "{op:?}");
         assert!(!op.destroys(), "{op:?}");
     }
+}
+
+#[test]
+fn typing_the_phrase_again_on_a_machine_brought_back_keeps_its_key() {
+    let mut two = Two::new();
+    let ops = revoked(&seed(), &two.state().persons, &device("dev_b"), at(200));
+    two.wrote("dev_a", ops, 200);
+    let ops = begun(
+        &two.second,
+        &device("dev_b"),
+        &seed(),
+        &two.state().persons,
+        at(210),
+    )
+    .unwrap();
+    two.wrote("dev_b", ops, 210);
+    let brought = mine(&two.second, &device("dev_b")).unwrap().public();
+
+    let again = begun(
+        &two.second,
+        &device("dev_b"),
+        &seed(),
+        &two.state().persons,
+        at(220),
+    )
+    .unwrap();
+
+    assert!(again.is_empty(), "{again:?}");
+    assert_eq!(
+        mine(&two.second, &device("dev_b")).unwrap().public(),
+        brought
+    );
+}
+
+#[test]
+fn a_machine_brought_back_that_loses_its_key_is_vouched_for_again_on_its_own() {
+    let mut two = Two::new();
+    let ops = revoked(&seed(), &two.state().persons, &device("dev_b"), at(200));
+    two.wrote("dev_a", ops, 200);
+    let ops = begun(
+        &two.second,
+        &device("dev_b"),
+        &seed(),
+        &two.state().persons,
+        at(210),
+    )
+    .unwrap();
+    two.wrote("dev_b", ops, 210);
+
+    std::fs::remove_file(kept_at(&two.second, &device("dev_b")).unwrap()).unwrap();
+    let op = introduced(&two.second, &device("dev_b"), &two.state().persons).unwrap();
+    two.wrote("dev_b", vec![op], 220);
+
+    assert_eq!(two.vouch(230), 1);
+    assert_eq!(
+        two.state().persons.person(&device("dev_b")),
+        Some(seed().root().person())
+    );
+}
+
+#[test]
+fn taking_a_machine_back_takes_back_every_key_it_ever_had() {
+    let mut two = Two::new();
+    let old = mine(&two.second, &device("dev_b")).unwrap().public();
+    std::fs::remove_file(kept_at(&two.second, &device("dev_b")).unwrap()).unwrap();
+    let op = introduced(&two.second, &device("dev_b"), &two.state().persons).unwrap();
+    two.wrote("dev_b", vec![op], 130);
+    assert_eq!(two.vouch(140), 1);
+
+    let ops = revoked(&seed(), &two.state().persons, &device("dev_b"), at(200));
+    assert_eq!(ops.len(), 2, "an older key was left signing");
+    two.wrote("dev_a", ops, 200);
+
+    let persons = two.state().persons;
+    assert!(persons.key_taken_back_by(&old, &seed().root().person()));
+    assert!(revoked(&seed(), &persons, &device("dev_b"), at(300)).is_empty());
+}
+
+#[test]
+fn a_machine_removed_from_the_store_answers_for_nobody() {
+    let mut two = Two::new();
+    two.wrote("dev_a", vec![Op::DeviceRemove { d: device("dev_b") }], 300);
+
+    let state = two.state();
+    assert_eq!(person_of(&state, &device("dev_b")), None);
+    assert_eq!(
+        person_of(&state, &device("dev_a")),
+        Some(seed().root().person())
+    );
+}
+
+#[test]
+fn the_same_certificate_said_twice_is_kept_once() {
+    let mut two = Two::new();
+    let again = two.state().persons.certificates[0].clone();
+    two.wrote("dev_b", vec![Op::ShareCertified { c: again }], 300);
+
+    assert_eq!(two.state().persons.certificates.len(), 2);
 }
