@@ -437,23 +437,43 @@ impl Cloud {
         if stir.asked_ms > 0 && now >= stir.asked_ms && now - stir.asked_ms < stir.every_ms {
             return stir.mark;
         }
-        let later = matches!(
-            tisty_sync::refuses(&self.tree()),
-            Err(Trouble::Needs(_) | Trouble::Shape(_))
-        );
-        if resting::left(&self.home).is_some() || later {
+        if resting::left(&self.home).is_some() {
             return stir.mark;
         }
         stir.asked_ms = now;
         let every = Duration::from_millis(stir.every_ms);
         let index = Index::load(&self.home);
         let metered = Metered::over(&*self.remote, &self.home, Class::History);
-        let next = match metered.changes(index.cursor.as_deref()) {
-            Ok(changes) if news(&index, &changes) => {
-                stir.mark = marked(&changes);
-                poll
-            }
-            Ok(_) => (every * 2).clamp(poll, poll * QUIET_STRETCH),
+        let later = matches!(
+            tisty_sync::refuses(&self.tree()),
+            Err(Trouble::Needs(_) | Trouble::Shape(_))
+        );
+        let asked = match later {
+            true => metered.about(tisty_sync::NAMED).map(|seen| {
+                let moved = seen.is_some_and(|seen| {
+                    index
+                        .tree
+                        .get(tisty_sync::NAMED)
+                        .is_none_or(|kept| kept.seen.revision != seen.revision)
+                });
+                if moved {
+                    stir.mark = stir.mark.wrapping_add(1);
+                }
+                moved
+            }),
+            false => metered.changes(index.cursor.as_deref()).map(|changes| {
+                match news(&index, &changes) {
+                    true => {
+                        stir.mark = marked(&changes);
+                        true
+                    }
+                    false => false,
+                }
+            }),
+        };
+        let next = match asked {
+            Ok(true) => poll,
+            Ok(false) => (every * 2).clamp(poll, poll * QUIET_STRETCH),
             Err(crate::Hitch::Limited { wait }) => {
                 resting::rest(&self.home, wait);
                 wait.max(poll)
@@ -676,7 +696,7 @@ impl Carrier for Cloud {
     }
 
     fn refuses(&self) -> Result<(), Trouble> {
-        tisty_sync::refuses(&self.fresh())
+        tisty_sync::refuses(&self.tree())
     }
 
     fn been_here(&self, here: &Here) -> bool {

@@ -177,7 +177,11 @@ pub fn joining(session: tauri::State<'_, Mutex<Session>>) -> Answer<Joining> {
     let (carrier, here) = carrier_and_here(&session)?;
     let signed = carrier.signed();
     let kin = kinned(carrier.kin(&here));
-    carrier.refuses().map_err(said)?;
+    if let Err(later @ (tisty_carrier::Trouble::Needs(_) | tisty_carrier::Trouble::Shape(_))) =
+        carrier.refuses()
+    {
+        return Err(said(later));
+    }
     let store = here.data.join(tisty_carrier::STORE);
     Ok(Joining {
         kin,

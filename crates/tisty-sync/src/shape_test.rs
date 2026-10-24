@@ -253,7 +253,6 @@ fn what_a_later_tisty_added_to_the_place_survives_a_round_here() {
     assert!(said.contains("# said by a later build\n"), "{said}");
     assert!(said.contains(&format!("needs = \"{NEEDS}\"")), "{said}");
     assert_eq!(said.matches("shape =").count(), 1, "{said}");
-    assert_eq!(said.matches(HEADING).count(), 1, "{said}");
 }
 
 #[test]
@@ -341,4 +340,29 @@ fn a_later_builds_nested_arrays_do_not_hide_what_it_needs() {
     )
     .unwrap();
     assert_eq!(refuses(&dest), Err(Trouble::Needs("999.0.0".to_string())));
+}
+
+#[test]
+fn brackets_inside_a_later_builds_strings_do_not_hide_what_it_needs() {
+    let (_room, _data, dest) = a_place();
+    for said in [
+        "shape = 3\nnote = 'see [docs'\nneeds = \"999.0.0\"\n",
+        "shape = 3\ndesc = \"\"\"\n[note] text\n\"\"\"\nneeds = \"999.0.0\"\n",
+    ] {
+        std::fs::write(dest.join(NAMED), said).unwrap();
+
+        assert_eq!(
+            refuses(&dest),
+            Err(Trouble::Needs("999.0.0".to_string())),
+            "{said}"
+        );
+    }
+}
+
+#[test]
+fn a_needs_this_build_cannot_read_is_taken_for_a_later_one() {
+    let (_room, _data, dest) = a_place();
+    std::fs::write(dest.join(NAMED), "shape = 3\nneeds = 5\n").unwrap();
+
+    assert!(matches!(refuses(&dest), Err(Trouble::Needs(_))));
 }

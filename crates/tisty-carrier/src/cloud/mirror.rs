@@ -149,7 +149,10 @@ fn still_barred(
     let Some(kept) = index.tree.get(NAMED) else {
         return Ok(None);
     };
-    if matches!(trouble, tisty_sync::Trouble::NotThere(_)) {
+    if !matches!(
+        trouble,
+        tisty_sync::Trouble::Needs(_) | tisty_sync::Trouble::Shape(_)
+    ) {
         return Ok(None);
     }
     let unchanged = remote
@@ -176,11 +179,22 @@ fn heeded(
         Changes::Whole { seen, .. } => seen,
         Changes::Since { changed, .. } => changed,
     };
-    let word = listed
+    let damaged = matches!(
+        tisty_sync::refuses(tree),
+        Err(tisty_sync::Trouble::Unshaped(_))
+    );
+    if damaged {
+        index.tree.remove(NAMED);
+    }
+    let word = match listed
         .iter()
         .find(|one| one.name == NAMED)
         .or_else(|| index.owed.get(NAMED))
-        .cloned();
+        .cloned()
+    {
+        None if damaged => remote.about(NAMED)?,
+        word => word,
+    };
     if let Some(word) = word {
         match learn(remote, tree, index, data, word.clone()) {
             Ok(false) => {

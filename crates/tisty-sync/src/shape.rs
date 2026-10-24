@@ -10,7 +10,6 @@ const KEPT_FOR: usize = 8;
 const RAISED: &str = ".shape-raised";
 const HEADING: &str =
     "# What this folder is, and the shape it is in. Tisty reads this before anything else here.";
-const OWN: [&str; 3] = ["shape", "needs", "folders"];
 
 /// What this build knows the meeting place to look like. A folder that says a higher number was
 /// arranged by a build that knows something this one does not, and guessing at it writes over it.
@@ -24,7 +23,7 @@ enum Told {
     Shape {
         shape: u32,
         needs: Option<String>,
-        others: String,
+        said: Box<toml_edit::DocumentMut>,
     },
     Nothing,
     Unreadable,
@@ -37,81 +36,28 @@ fn told(dest: &Path) -> Told {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Told::Nothing,
         Err(_) => return Told::Unreached,
     };
-    let Ok(said) = String::from_utf8(bytes) else {
+    let Some(said) = String::from_utf8(bytes)
+        .ok()
+        .and_then(|said| said.parse::<toml_edit::DocumentMut>().ok())
+    else {
         return Told::Unreadable;
     };
-    let (top, tables) = entries(&said);
-    match top.iter().find_map(|entry| shape_in(entry)) {
+    let shape = said
+        .get("shape")
+        .and_then(toml_edit::Item::as_integer)
+        .and_then(|shape| u32::try_from(shape).ok());
+    let needs = said.get("needs").map(|needs| match needs.as_str() {
+        Some(release) => release.to_string(),
+        None => needs.to_string().trim().to_string(),
+    });
+    match shape {
         Some(shape) => Told::Shape {
             shape,
-            needs: top.iter().find_map(|entry| needs_in(entry)),
-            others: said_by_others(&top, tables),
+            needs,
+            said: Box::new(said),
         },
         None => Told::Unreadable,
     }
-}
-
-fn entries(said: &str) -> (Vec<String>, &str) {
-    let mut top: Vec<String> = Vec::new();
-    let (mut depth, mut at) = (0, 0);
-    for line in said.split_inclusive('\n') {
-        match top.last_mut() {
-            Some(entry) if depth > 0 => entry.push_str(line),
-            _ if line.trim_start().starts_with('[') => return (top, &said[at..]),
-            _ => top.push(line.to_string()),
-        }
-        depth = (depth + opened(line)).max(0);
-        at += line.len();
-    }
-    (top, "")
-}
-
-fn opened(line: &str) -> i32 {
-    let (mut depth, mut quoted, mut escaped) = (0, false, false);
-    for one in line.chars() {
-        match one {
-            _ if escaped => escaped = false,
-            '\\' if quoted => escaped = true,
-            '"' => quoted = !quoted,
-            '#' if !quoted => break,
-            '[' if !quoted => depth += 1,
-            ']' if !quoted => depth -= 1,
-            _ => {}
-        }
-    }
-    depth
-}
-
-fn said_by_others(top: &[String], tables: &str) -> String {
-    let mut kept = String::new();
-    for entry in top {
-        let ours = entry
-            .split_once('=')
-            .is_some_and(|(name, _)| OWN.contains(&name.trim()));
-        if ours || entry.trim().is_empty() || entry.trim_end() == HEADING {
-            continue;
-        }
-        kept.push_str(entry.trim_end_matches('\n'));
-        kept.push('\n');
-    }
-    kept.push_str(tables);
-    if !kept.is_empty() && !kept.ends_with('\n') {
-        kept.push('\n');
-    }
-    kept
-}
-
-fn shape_in(line: &str) -> Option<u32> {
-    let (name, said) = line.split_once('=')?;
-    match name.trim() == "shape" {
-        true => said.trim().parse().ok(),
-        false => None,
-    }
-}
-
-fn needs_in(line: &str) -> Option<String> {
-    let (name, said) = line.split_once('=')?;
-    (name.trim() == "needs").then(|| said.trim().trim_matches('"').to_string())
 }
 
 fn release(said: &str) -> Option<(u64, u64, u64)> {
@@ -222,14 +168,10 @@ fn flat(dest: &Path) {
 /// Says whether it raised, and wrote, a place older builds had arranged.
 pub(crate) fn stamp(data: &Path, dest: &Path) -> bool {
     match told(dest) {
-        Told::Shape {
-            shape,
-            needs,
-            others,
-        } if shape == OURS => {
+        Told::Shape { shape, needs, said } if shape == OURS => {
             match needs.is_some_and(|needs| needs != NEEDS && !needs_later(&needs)) {
                 true => {
-                    tell(data, dest, &others);
+                    tell(data, dest, Some(*said));
                 }
                 false => remember(data, dest, OURS),
             }
@@ -237,9 +179,9 @@ pub(crate) fn stamp(data: &Path, dest: &Path) -> bool {
         }
         Told::Shape { shape, .. } if shape > OURS => false,
         Told::Unreadable | Told::Unreached => false,
-        Told::Shape { others, .. } => tell(data, dest, &others),
+        Told::Shape { said, .. } => tell(data, dest, Some(*said)),
         Told::Nothing => {
-            tell(data, dest, "");
+            tell(data, dest, None);
             false
         }
     }
@@ -249,17 +191,14 @@ pub(crate) fn stamp(data: &Path, dest: &Path) -> bool {
 /// Only a place that already says its shape is raised this early: a new one is still named last.
 pub(crate) fn raise_first(data: &Path, dest: &Path) -> bool {
     match told(dest) {
-        Told::Shape {
-            shape,
-            needs,
-            others,
-        } if shape < OURS
-            || (shape == OURS
-                && needs
-                    .as_deref()
-                    .is_some_and(|needs| needs != NEEDS && !needs_later(needs))) =>
+        Told::Shape { shape, needs, said }
+            if shape < OURS
+                || (shape == OURS
+                    && needs
+                        .as_deref()
+                        .is_some_and(|needs| needs != NEEDS && !needs_later(needs))) =>
         {
-            tell(data, dest, &others)
+            tell(data, dest, Some(*said))
         }
         _ => false,
     }
@@ -268,11 +207,11 @@ pub(crate) fn raise_first(data: &Path, dest: &Path) -> bool {
 /// Raised by a machine as it leaves, so the builds before this one stop there even without a round of its own.
 pub fn raise_place(dest: &Path) {
     match told(dest) {
-        Told::Shape { shape, others, .. } if shape < OURS => {
-            written(dest, &others);
+        Told::Shape { shape, said, .. } if shape < OURS => {
+            written(dest, Some(*said));
         }
         Told::Nothing if dest.join(STORE).is_dir() => {
-            written(dest, "");
+            written(dest, None);
         }
         _ => {}
     }
@@ -291,18 +230,26 @@ pub(crate) fn mark_raised(data: &Path) {
     let _ = tisty_core::store::write_atomic(&data.join(RAISED), b"");
 }
 
-fn tell(data: &Path, dest: &Path, others: &str) -> bool {
-    let done = written(dest, others);
+fn tell(data: &Path, dest: &Path, said: Option<toml_edit::DocumentMut>) -> bool {
+    let done = written(dest, said);
     if done {
         remember(data, dest, OURS);
     }
     done
 }
 
-fn written(dest: &Path, others: &str) -> bool {
-    let said = format!(
-        "{HEADING}\nshape = {OURS}\nneeds = \"{NEEDS}\"\nfolders = [\"{STORE}\", \"{HELD}\", \"{PAPERS}\"]\n{others}"
-    );
+fn written(dest: &Path, before: Option<toml_edit::DocumentMut>) -> bool {
+    let said = match before {
+        Some(mut said) => {
+            said["shape"] = toml_edit::value(i64::from(OURS));
+            said["needs"] = toml_edit::value(NEEDS);
+            said["folders"] = toml_edit::value(toml_edit::Array::from_iter([STORE, HELD, PAPERS]));
+            said.to_string()
+        }
+        None => format!(
+            "{HEADING}\nshape = {OURS}\nneeds = \"{NEEDS}\"\nfolders = [\"{STORE}\", \"{HELD}\", \"{PAPERS}\"]\n"
+        ),
+    };
     if let Err(e) = tisty_core::store::write_atomic(&dest.join(NAMED), said.as_bytes()) {
         witness::warn(
             channel::SYNC,

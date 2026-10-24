@@ -248,3 +248,20 @@ fn what_a_later_tisty_took_away_is_not_taken_away_here_while_barred() {
     assert!(tree.join(&doc).is_file(), "a deletion came through the bar");
     assert!(index.tree.contains_key(&doc));
 }
+
+#[test]
+fn a_word_spoiled_here_is_brought_again_rather_than_barring_for_good() {
+    let room = tempfile::tempdir().unwrap();
+    let tree = room.path().join("tree");
+    std::fs::create_dir_all(&tree).unwrap();
+    let fake = Fake::drive();
+    word_up_there(&fake, room.path(), "1.0.0");
+    let mut index = Index::default();
+    pull(&fake, &tree, &mut index, None, false, &mut |_| {}).unwrap();
+
+    std::fs::write(tree.join(NAMED), b"\xff\xfe").unwrap();
+    let pulled = pull(&fake, &tree, &mut index, None, false, &mut |_| {});
+
+    assert_eq!(pulled, Ok(0));
+    assert_eq!(tisty_sync::refuses(&tree), Ok(()));
+}

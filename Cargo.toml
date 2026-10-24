@@ -45,6 +45,7 @@ ulid = { version = "3", features = ["serde"] }
 jiff = { version = "0.2", features = ["serde"] }
 directories = "6"
 toml = "1.1"
+toml_edit = { version = "0.25", default-features = false, features = ["parse", "display"] }
 rusqlite = { version = "0.40", features = ["bundled"] }
 fs4 = "1.1"
 same-file = "1"
