@@ -200,10 +200,8 @@ impl Cache {
             .meta("named")
             .and_then(|said| serde_json::from_str(&said).ok())
             .unwrap_or_default();
-        state.persons = self
-            .meta("persons")
-            .and_then(|said| serde_json::from_str(&said).ok())
-            .unwrap_or_default();
+        // Read back whole or not at all: an empty person here would quietly unsay every certificate.
+        state.persons = serde_json::from_str(&self.meta("persons")?).ok()?;
         state.fill = if bodies {
             crate::state::Fill::Whole
         } else {

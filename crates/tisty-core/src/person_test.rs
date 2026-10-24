@@ -137,7 +137,10 @@ fn assistants_never_get_a_key_nor_speak_for_the_person() {
             Op::ShareCertified {
                 c: seed().root().certify(&key.public(), at(140)),
             },
-            Op::ShareRevoked { r: taken },
+            Op::ShareRevoked {
+                r: taken,
+                machine: true,
+            },
         ],
         140,
     );
@@ -278,7 +281,14 @@ fn what_does_not_hold_is_not_kept() {
             100,
         ),
         said("dev_a", Op::ShareCertified { c: certificate }, 100),
-        said("dev_a", Op::ShareRevoked { r: revocation }, 100),
+        said(
+            "dev_a",
+            Op::ShareRevoked {
+                r: revocation,
+                machine: true,
+            },
+            100,
+        ),
     ]);
 
     assert_eq!(state.persons, Persons::default());
@@ -434,7 +444,11 @@ fn taking_a_machine_back_takes_back_every_key_it_ever_had() {
     std::fs::remove_file(kept_at(&two.second, &device("dev_b")).unwrap()).unwrap();
     let op = introduced(&two.second, &device("dev_b"), &two.state().persons).unwrap();
     two.wrote("dev_b", vec![op], 130);
-    assert_eq!(two.vouch(140), 1);
+    assert_eq!(
+        two.vouch(140),
+        2,
+        "the new key was vouched for and the old one retired"
+    );
 
     let ops = revoked(&seed(), &two.state().persons, &device("dev_b"), at(200));
     assert_eq!(ops.len(), 2, "an older key was left signing");
@@ -465,4 +479,85 @@ fn the_same_certificate_said_twice_is_kept_once() {
     two.wrote("dev_b", vec![Op::ShareCertified { c: again }], 300);
 
     assert_eq!(two.state().persons.certificates.len(), 2);
+}
+
+#[test]
+fn a_machine_taken_back_before_the_root_vouched_for_it_stays_out() {
+    let mut two = Two::new();
+    two.events.push(joined("dev_c", DeviceKind::Machine));
+    let (_room, third) = room();
+    let op = introduced(&third, &device("dev_c"), &two.state().persons).unwrap();
+    two.wrote("dev_c", vec![op], 300);
+
+    let ops = revoked(&seed(), &two.state().persons, &device("dev_c"), at(310));
+    assert_eq!(ops.len(), 1);
+    two.wrote("dev_a", ops, 310);
+
+    assert_eq!(two.vouch(320), 0);
+    assert_eq!(two.state().persons.person(&device("dev_c")), None);
+}
+
+#[test]
+fn a_machine_that_only_changed_its_key_keeps_coming_back_on_its_own() {
+    let mut two = Two::new();
+    for (second, retired) in [(130, 2), (150, 2)] {
+        std::fs::remove_file(kept_at(&two.second, &device("dev_b")).unwrap()).unwrap();
+        let op = introduced(&two.second, &device("dev_b"), &two.state().persons).unwrap();
+        two.wrote("dev_b", vec![op], second);
+        assert_eq!(two.vouch(second + 5), retired);
+    }
+
+    assert_eq!(
+        two.state().persons.person(&device("dev_b")),
+        Some(seed().root().person())
+    );
+}
+
+#[test]
+fn typing_the_phrase_where_the_key_was_named_by_another_makes_a_new_one() {
+    let mut two = Two::new();
+    two.events.push(joined("dev_c", DeviceKind::Machine));
+    let (_room, third) = room();
+    let borrowed = mine(&two.second, &device("dev_b")).unwrap();
+    std::fs::create_dir_all(third.private()).unwrap();
+    std::fs::write(
+        kept_at(&third, &device("dev_c")).unwrap(),
+        *borrowed.to_bytes(),
+    )
+    .unwrap();
+
+    let ops = begun(
+        &third,
+        &device("dev_c"),
+        &seed(),
+        &two.state().persons,
+        at(300),
+    )
+    .unwrap();
+    two.wrote("dev_c", ops, 300);
+
+    assert_ne!(
+        mine(&third, &device("dev_c")).unwrap().public(),
+        borrowed.public()
+    );
+    assert_eq!(
+        two.state().persons.person(&device("dev_c")),
+        Some(seed().root().person())
+    );
+}
+
+#[test]
+fn a_machine_the_log_never_seated_is_not_heard() {
+    let two = Two::new();
+    let mut events = two.events.clone();
+    let (_room, stray) = room();
+    let key = mine(&stray, &device("dev_x")).unwrap();
+    events.push(said("dev_x", Op::ShareKey { p: key.shown() }, 300));
+
+    assert!(
+        !State::replay(&events)
+            .persons
+            .keys
+            .contains_key(&device("dev_x"))
+    );
 }

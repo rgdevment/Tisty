@@ -278,6 +278,9 @@ pub enum Op {
     #[serde(rename = "share.revoked")]
     ShareRevoked {
         r: tisty_share_proto::identity::Revocation,
+        /// The person taking a machine back, not a key it stopped using: only this keeps it out.
+        #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+        machine: bool,
     },
 }
 
