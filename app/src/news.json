@@ -524,29 +524,29 @@
     "es": [
       {
         "title": "Una versión antigua ya no escribe sobre la tuya",
-        "said": "desde esta versión, si una computadora con una Tisty anterior (1.31 a 1.33) llega a tu nube o a tu carpeta de sincronización, se detiene y te pide actualizar en vez de seguir escribiendo. Así ninguna versión vieja puede estropear lo que una más nueva dejó en orden."
+        "said": "desde esta versión, si un equipo con una Tisty anterior (1.30 a 1.33) llega a tu nube o a tu carpeta de sincronización, se detiene y te pide actualizar en vez de seguir escribiendo. Así ninguna versión vieja puede estropear lo que una más nueva dejó en orden."
       },
       {
-        "title": "Actualiza todas tus computadoras",
-        "said": "abre Tisty en cada una y actualízala. Hasta que lo hagas, esa computadora no sincronizará. No pierdes nada: tus tareas y documentos siguen donde estaban y todo se pone al día al actualizar."
+        "title": "Actualiza todos tus equipos",
+        "said": "actualiza Tisty en cada uno, con el actualizador de la aplicación o por donde la instalaste (tienda o instalador). Hasta que lo hagas, ese equipo no sincronizará, pero no pierdes nada: tus tareas y documentos siguen donde estaban y todo se pone al día al actualizar. Si instalas desde una tienda, la nueva versión puede tardar un poco en llegar."
       },
       {
         "title": "Preparada para protecciones nuevas",
-        "said": "Tisty sabe ahora qué versión usa cada una de tus computadoras y conserva lo que otra versión escribió en tu lugar de sincronización, para poder traerte nuevas protecciones sin dejar a nadie atrás."
+        "said": "Tisty anota ahora qué versión usa cada uno de tus equipos y conserva lo que otra versión escribió en tu lugar de sincronización, para poder traerte nuevas protecciones sin dejar a nadie atrás."
       }
     ],
     "en": [
       {
         "title": "An old version no longer writes over yours",
-        "said": "from this version on, if a computer with an earlier Tisty (1.31 to 1.33) reaches your cloud or your sync folder, it stops and asks you to update instead of carrying on writing. That way no old version can spoil what a newer one left in order."
+        "said": "from this version on, if a computer with an earlier Tisty (1.30 to 1.33) reaches your cloud or your sync folder, it stops and asks you to update instead of carrying on writing. That way no old version can spoil what a newer one left in order."
       },
       {
         "title": "Update all your computers",
-        "said": "open Tisty on each one and update it. Until you do, that computer will not sync. You lose nothing: your tasks and documents stay where they were and everything catches up once it is updated."
+        "said": "update Tisty on each one, with the app's updater or wherever you installed it from (a store or the installer). Until you do, that computer will not sync, but you lose nothing: your tasks and documents stay where they were and everything catches up once it is updated. If you install from a store, the new version may take a little while to arrive."
       },
       {
         "title": "Ready for new protections",
-        "said": "Tisty now knows which version each of your computers runs and keeps what another version wrote in your sync place, so it can bring you new protections without leaving anyone behind."
+        "said": "Tisty now notes which version each of your computers runs and keeps what another version wrote in your sync place, so it can bring you new protections without leaving anyone behind."
       }
     ]
   }
