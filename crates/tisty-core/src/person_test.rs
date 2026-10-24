@@ -791,3 +791,54 @@ fn a_version_the_log_would_clean_is_not_said_again_every_round() {
             .is_none()
     );
 }
+
+fn sealed(store: &str, key: Option<&str>) -> Op {
+    Op::CloudSealed {
+        s: store.into(),
+        k: key.map(Into::into),
+    }
+}
+
+#[test]
+fn a_machine_on_the_list_says_a_store_is_sealed_and_the_last_word_stands() {
+    let mut events = vec![
+        joined("dev_a", DeviceKind::Machine),
+        said("dev_a", sealed("store_one", Some("key_a")), 100),
+        said("dev_a", sealed("store_two", Some("key_b")), 110),
+    ];
+
+    let state = State::replay(&events);
+    assert_eq!(state.sealed.get("store_one").unwrap(), "key_a");
+    assert_eq!(state.sealed.len(), 2);
+
+    events.push(said("dev_a", sealed("store_one", None), 200));
+    let state = State::replay(&events);
+    assert!(!state.sealed.contains_key("store_one"));
+    assert_eq!(state.sealed.get("store_two").unwrap(), "key_b");
+}
+
+#[test]
+fn only_a_machine_on_the_list_can_say_a_store_is_sealed() {
+    let events = vec![
+        joined("dev_a", DeviceKind::Machine),
+        joined("dev_bot", DeviceKind::Agent),
+        said("dev_stranger", sealed("store_one", Some("key_x")), 100),
+        said("dev_bot", sealed("store_one", Some("key_y")), 110),
+        said("dev_a", sealed("", Some("key_z")), 120),
+    ];
+
+    assert!(State::replay(&events).sealed.is_empty());
+}
+
+#[test]
+fn the_sealed_op_is_optional_and_settles() {
+    let op = sealed("store_one", Some("key_a"));
+
+    assert!(op.is_optional());
+    assert!(op.settles());
+    assert!(!op.destroys());
+    assert_eq!(
+        serde_json::to_value(sealed("store_one", None)).unwrap(),
+        serde_json::json!({"op": "cloud.sealed", "s": "store_one"})
+    );
+}

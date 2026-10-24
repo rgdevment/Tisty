@@ -264,3 +264,45 @@ fn a_provider_that_folds_case_cannot_be_made_to_overwrite_the_mark() {
     assert!(sealed.put("Sealed.Mark", &at, Expect::Any).is_err());
     assert!(sealed.delete("SEALED.MARK", None).is_err());
 }
+
+#[test]
+fn a_cloud_with_no_mark_says_none_and_a_mark_once_written_holds_for_its_phrase() {
+    let sealed = over_drive();
+    assert_eq!(sealed.marked().unwrap(), None);
+
+    sealed.mark_it().unwrap();
+
+    assert_eq!(sealed.marked().unwrap(), Some(Mark::Holds));
+    assert!(sealed.list("").unwrap().is_empty());
+}
+
+#[test]
+fn another_phrase_is_told_from_this_one_by_the_mark() {
+    let sealed = over_drive();
+    sealed.mark_it().unwrap();
+    let other = Sealed::new(sealed.inner, key(8), "store_one");
+
+    assert_eq!(other.marked().unwrap(), Some(Mark::OtherPhrase));
+}
+
+#[test]
+fn marking_twice_with_one_phrase_is_the_same_as_once_and_another_phrase_cannot_mark_over_it() {
+    let sealed = over_drive();
+    sealed.mark_it().unwrap();
+
+    sealed.mark_it().unwrap();
+    assert_eq!(sealed.marked().unwrap(), Some(Mark::Holds));
+    let other = Sealed::new(sealed.inner, key(8), "store_one");
+
+    assert!(other.mark_it().is_err());
+    assert_eq!(other.marked().unwrap(), Some(Mark::OtherPhrase));
+}
+
+#[test]
+fn the_root_names_the_cloud_so_two_sealed_clouds_never_share_a_mirror() {
+    let one = Sealed::new(Fake::drive(), key(7), "store_one");
+    let two = Sealed::new(Fake::drive(), key(7), "store_two");
+
+    assert_ne!(one.root(), two.root());
+    assert!(!one.root().is_empty());
+}

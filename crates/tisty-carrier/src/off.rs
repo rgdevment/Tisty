@@ -90,6 +90,10 @@ impl<R: Remote> Remote for OffRuntime<R> {
         self.0.moved_on();
     }
 
+    fn root(&self) -> &str {
+        self.0.root()
+    }
+
     fn hash_of(&self, local: &Path) -> std::io::Result<String> {
         self.0.hash_of(local)
     }

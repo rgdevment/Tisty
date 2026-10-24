@@ -2,12 +2,12 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use tisty_share_proto::cloud::{CloudKey, Unsealed, open, seal};
+use tisty_share_proto::cloud::{CloudKey, Mark, Unsealed, mark, mark_says, open, seal};
 use tisty_sync::{MARKER, NAMED, STORE};
 
 use crate::{Changes, Expect, Hitch, Limits, Remote, Seen, Watch};
 
-const INSIDE: &str = "sealed";
+pub(crate) const INSIDE: &str = "sealed";
 const HEADER: u64 = 24;
 const TAG: u64 = 16;
 const BLOCK: u64 = 64 * 1024;
@@ -18,6 +18,7 @@ pub struct Sealed<R> {
     inner: R,
     key: CloudKey,
     cloud: String,
+    root: String,
 }
 
 struct Temp(PathBuf);
@@ -51,6 +52,7 @@ fn broke(e: impl ToString) -> Hitch {
 }
 
 const MARK: &str = "sealed.mark";
+const MARK_AT_MOST: u64 = 512;
 
 fn named_back(hitch: Hitch, inner: &str, name: &str) -> Hitch {
     match hitch {
@@ -78,10 +80,52 @@ pub(crate) fn plain_len(sealed: u64) -> Option<u64> {
 
 impl<R: Remote> Sealed<R> {
     pub fn new(inner: R, key: CloudKey, cloud: impl Into<String>) -> Self {
+        let cloud = cloud.into();
         Self {
             inner,
             key,
-            cloud: cloud.into(),
+            root: format!("{INSIDE}:{cloud}"),
+            cloud,
+        }
+    }
+
+    pub fn marked(&self) -> Result<Option<Mark>, Hitch> {
+        let at = format!("{INSIDE}/{MARK}");
+        match self.inner.about(&at)? {
+            None => return Ok(None),
+            Some(there) if there.bytes > MARK_AT_MOST => return Ok(Some(Mark::Damaged)),
+            Some(_) => {}
+        }
+        let mut said = Vec::new();
+        match self.inner.fetch(&at, 0, &mut said) {
+            Ok(_) => Ok(Some(mark_says(&self.key, &self.cloud, &said))),
+            Err(Hitch::Missing(_)) => Ok(None),
+            Err(other) => Err(other),
+        }
+    }
+
+    pub fn mark_it(&self) -> Result<(), Hitch> {
+        match self.marked()? {
+            Some(Mark::Holds) => return Ok(()),
+            Some(Mark::OtherPhrase) => {
+                return Err(broke("this cloud was marked with another phrase"));
+            }
+            Some(_) => return Err(broke("the mark of this cloud cannot be read")),
+            None => {}
+        }
+        let said = mark(&self.key, &self.cloud).ok_or_else(|| broke("no way to mark the cloud"))?;
+        let held = Temp::new();
+        let mut file = held.create().map_err(broke)?;
+        file.write_all(&said).map_err(broke)?;
+        drop(file);
+        self.inner
+            .put(&format!("{INSIDE}/{MARK}"), &held.0, Expect::Absent)?;
+        match self.marked()? {
+            Some(Mark::Holds) => Ok(()),
+            Some(Mark::OtherPhrase) => Err(broke(
+                "another machine marked this cloud with another phrase",
+            )),
+            _ => Err(broke("the mark could not be read back")),
         }
     }
 
@@ -310,6 +354,10 @@ impl<R: Remote> Remote for Sealed<R> {
 
     fn moved_on(&self) {
         self.inner.moved_on();
+    }
+
+    fn root(&self) -> &str {
+        &self.root
     }
 }
 
