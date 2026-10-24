@@ -7,8 +7,7 @@ use crate::event::DeviceId;
 pub const KEEP: &str = ".device-key";
 
 pub fn kept_at(paths: &crate::Paths, device: &DeviceId) -> Option<PathBuf> {
-    crate::store::is_device_name(&device.0)
-        .then(|| paths.private().join(format!("{}{KEEP}", device.0)))
+    crate::store::identity::device_file(paths, device, KEEP)
 }
 
 pub fn shown(key: &SigningKey) -> String {
@@ -63,18 +62,12 @@ pub fn shown_kept(paths: &crate::Paths, device: &DeviceId) -> Option<String> {
 }
 
 pub fn mine(paths: &crate::Paths, device: &DeviceId) -> Option<SigningKey> {
-    use crate::store::identity::{Kept, kept, minted};
-
     let at = kept_at(paths, device)?;
-    let one = match kept(
+    let one = crate::store::identity::kept_or_minted(
         paths,
         &at,
         "what was kept as this machine's signing key is not one",
-    ) {
-        Kept::Good(one) => Some(one),
-        Kept::Gone => minted(paths, &at),
-        Kept::Blocked => None,
-    }?;
+    )?;
     Some(SigningKey::from_bytes(&one))
 }
 

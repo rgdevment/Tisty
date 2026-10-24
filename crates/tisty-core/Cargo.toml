@@ -29,6 +29,7 @@ ed25519-dalek.workspace = true
 zip.workspace = true
 unicode-normalization.workspace = true
 tisty-markdown = { workspace = true, features = ["pens", "icons"] }
+tisty-share-proto = { workspace = true, features = ["mint"] }
 sys-locale.workspace = true
 machine-uid.workspace = true
 htmd.workspace = true

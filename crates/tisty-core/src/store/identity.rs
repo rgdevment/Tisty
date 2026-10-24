@@ -102,6 +102,22 @@ pub(crate) fn kept(paths: &crate::Paths, at: &Path, why: &str) -> Kept {
     }
 }
 
+pub(crate) fn device_file(
+    paths: &crate::Paths,
+    device: &crate::DeviceId,
+    keep: &str,
+) -> Option<PathBuf> {
+    super::is_device_name(&device.0).then(|| paths.private().join(format!("{}{keep}", device.0)))
+}
+
+pub(crate) fn kept_or_minted(paths: &crate::Paths, at: &Path, why: &str) -> Option<[u8; 32]> {
+    match kept(paths, at, why) {
+        Kept::Good(one) => Some(one),
+        Kept::Gone => minted(paths, at),
+        Kept::Blocked => None,
+    }
+}
+
 pub(crate) fn minted(paths: &crate::Paths, at: &Path) -> Option<[u8; 32]> {
     let mut fresh = [0u8; 32];
     rand_core::TryRngCore::try_fill_bytes(&mut rand_core::OsRng, &mut fresh).ok()?;

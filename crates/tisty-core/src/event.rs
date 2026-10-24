@@ -141,7 +141,10 @@ impl Event {
             | Op::AttachKept { .. }
             | Op::AttachLetGo { .. }
             | Op::AttachRetire { .. }
-            | Op::StoresJoined { .. } => None,
+            | Op::StoresJoined { .. }
+            | Op::ShareKey { .. }
+            | Op::ShareCertified { .. }
+            | Op::ShareRevoked { .. } => None,
         }
     }
 }

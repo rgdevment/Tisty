@@ -84,6 +84,11 @@ impl State {
         self.named.insert(d.clone(), Named { name, os });
     }
 
+    pub(crate) fn stores_joined(&mut self, d: &crate::event::Stitch) {
+        self.forebears.insert(d.absorbed.clone());
+        self.forebears.insert(d.survivor.clone());
+    }
+
     pub(crate) fn device_removed(&mut self, d: &DeviceId) {
         self.devices.remove(d);
         self.agents.remove(d);

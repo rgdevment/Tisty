@@ -77,13 +77,13 @@ flowchart TB
 
 | Crate | Role | Depends on |
 |---|---|---|
-| `tisty-core` | The model and everything that touches the person's data: `event`, `store`, `state`, `cache`, `docs`, `attach`, `parcel`, `backup`, `seal` and `signing`, `paths`, `config`, `merge`, `herald`, `witness` (the local log) | external crates only |
+| `tisty-core` | The model and everything that touches the person's data: `event`, `store`, `state`, `cache`, `docs`, `attach`, `parcel`, `backup`, `seal` and `signing`, `person` (who the person is for Tisty Share, and each machine's share key), `paths`, `config`, `merge`, `herald`, `witness` (the local log) | `tisty-markdown`, `tisty-share-proto` |
 | `tisty-nl` | `parse` turns a sentence typed in the capture bar into a title plus date, deadline, priority, tags, list and repeat, in English and Spanish (`vocab.rs`) | `tisty-core` |
 | `tisty-sync` | One sync round over a folder (`carry_through`): histories, document bodies, attachments; lineage (`kinship`, `stitch`); settling a document by hand | `tisty-core` |
 | `tisty-carrier` | The `Carrier` contract and its two implementations, `Folder` (hands every call to `tisty-sync`) and `Cloud` (the same round over a local mirror of a `Remote`); `Remote`, `Hitch`, `Tokens` | `tisty-core`, `tisty-sync` |
 | `tisty-cli` | The `tisty` binary: the MCP server and nothing else; any other command is refused and sends the person to the window | `tisty-core`, `tisty-carrier`, `tisty-markdown` |
 | `tisty-gui` | Tauri commands (`answers/`), the `Session`, tray, reminders, updater, wiring settings of assistants | `tisty-core`, `tisty-carrier`, `tisty-nl` |
-| `tisty-share-proto` | What the app and the Tisty Share server agree on: the seed a 24-word phrase holds, from which every key a person has comes under its own label (the root of their identity, the key of an encrypted cloud), the share key of each machine, certificates and revocations, signing and checking, and the fingerprint. It builds for wasm without its `mint` feature, which the CI checks. Nothing depends on it yet | external crates only |
+| `tisty-share-proto` | What the app and the Tisty Share server agree on: the seed a 24-word phrase holds, from which every key a person has comes under its own label (the root of their identity, the key of an encrypted cloud), the share key of each machine, certificates and revocations, signing and checking, and the fingerprint. It builds for wasm without its `mint` feature, which the CI checks | external crates only |
 | `app/src` | The React UI: `App.tsx` shell, `ui/` components, `core.ts` typed `invoke` wrappers, `locales.ts` | none; talks to `tisty-gui` over IPC |
 
 Only `tisty-carrier` depends on `tisty-sync`. A rule in `scripts/rules.sh` keeps
@@ -199,6 +199,7 @@ Each machine appends events to its own log, one JSON object per line.
 | Folder | `folder.add`, `.rename`, `.look`, `.move`, `.archive`, `.unarchive`, `.delete` |
 | Document | `doc.add`, `.move`, `.said`, `.delete`, `.archive`, `.unarchive`, `.flag`, `.unflag`, `.lock`, `.unlock`, `.signed` |
 | Person | `person.signed` (the alias documents are signed with) |
+| Share | `share.key` (a machine's own word for the key it signs shared documents with), `share.certified` and `share.revoked` (the person's root vouching for that key, or taking it back) |
 | Device | `device.join`, `.remove`, `.host`, `.key`, `.rotate`, `.named` |
 | Attachment | `attach.kept`, `attach.let_go`, `attach.retire` |
 | Store | `stores.joined` |
@@ -313,12 +314,13 @@ recognised from that version.
 | Window or MCP server meets the refusal | The window tells the person to update (`storeNewer`, and a dialog at start that links to where this copy is updated from); `tisty mcp` prints `store-newer` |
 
 `opt` is set by `Store::minted` from `Op::is_optional`: `person.signed`,
-`device.host`, `device.named`, `doc.flag`, `doc.unflag`. Mark only an operation
-that adds something to look at. A reader that skips a line that changes what
-exists diverges in silence. The mark is honoured only when the operation name is
-unknown, so it reaches only builds that have never heard of the name.
+`device.host`, `device.named`, `doc.flag`, `doc.unflag`, `share.*`. Mark only
+an operation that adds something to look at. A reader that skips a line that
+changes what exists diverges in silence. The mark is honoured only when the
+operation name is unknown, so it reaches only builds that have never heard of
+the name.
 
-The read cache is tied to the schema (`SCHEMA = SCHEMA_VERSION + 13` in
+The read cache is tied to the schema (`SCHEMA = SCHEMA_VERSION + 18` in
 `cache.rs`), so a build with another schema misses the cache and meets the
 version guard.
 
@@ -349,7 +351,7 @@ name at its word.
 - After a write the cache is updated one entity at a time (`advance`). Events
   that reach beyond their own entity (deleting a list, folder or document,
   archiving, locking, moving a page between documents, any `device.*`,
-  `attach.*`, `person.signed`) invalidate it instead.
+  `attach.*`, `person.signed`, `share.*`) invalidate it instead.
 - Any failure opening or reading it falls back to the log. It is never
   synced and never backed up.
 

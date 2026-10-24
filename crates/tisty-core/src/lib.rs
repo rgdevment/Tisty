@@ -39,6 +39,7 @@ pub mod parcel;
 pub mod parting;
 mod parts;
 pub mod paths;
+pub mod person;
 pub mod refs;
 mod repeating;
 pub mod round;
