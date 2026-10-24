@@ -1275,11 +1275,11 @@ pub fn retire_attachments(
 
 #[tauri::command(async)]
 pub fn remove_machine(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
-    let (seed, mut session) = (crate::identity::for_removing(&session), held(&session));
     let who = tisty_core::event::DeviceId(id.clone());
-    if who == session.config.device_id {
+    if who == held(&session).config.device_id {
         return Err(Refusal::of("notThisMachine"));
     }
+    let (seed, mut session) = (crate::identity::for_removing(&session), held(&session));
 
     let ops = crate::identity::removing(&session, who, seed.as_ref());
     session

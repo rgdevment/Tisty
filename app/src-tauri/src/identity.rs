@@ -12,35 +12,33 @@ use zeroize::Zeroizing;
 
 use crate::{Answer, Refusal, Session, blamed, elsewhere, held};
 
-/// Leaving Tisty keeps what starts with this, since a seed nobody wrote down cannot be signed back in.
-pub const KEPT_ON_LEAVING: &str = "identity-";
+/// No cloud account's name starts with a dash, so leaving never mistakes a token for the seed.
+pub const KEPT_ON_LEAVING: &str = "-identity-";
 const SEED: &str = "seed";
 
-/// One seed per store, so a sandbox beside the real install never reads or writes the real one.
-fn scope(paths: &Paths) -> String {
-    let store = paths.store();
-    let named = store.to_string_lossy();
-    format!(
-        "{KEPT_ON_LEAVING}{}",
-        tisty_core::attach::printed(named.as_bytes())
-    )
+/// Named after the store and not its folder, so moving it keeps the seed and a sandbox never meets it.
+fn scope(paths: &Paths) -> Result<String, String> {
+    tisty_core::store::peek_identity(paths.store())
+        .map(|store| format!("{KEPT_ON_LEAVING}{store}"))
+        .ok_or_else(|| "this store has no name yet".to_string())
 }
 
-/// A keychain that cannot answer is not one that holds nothing: only the second may make a seed.
+/// A keychain that cannot answer is not one that holds nothing; junk where the seed was is nothing.
 pub fn kept(paths: &Paths) -> Result<Option<Seed>, String> {
-    let secrets = crate::reaching::secrets_in(&scope(paths)).map_err(|e| format!("{e:?}"))?;
+    let secrets = crate::reaching::secrets_in(&scope(paths)?).map_err(|e| format!("{e:?}"))?;
     let Some(said) = secrets.read(SEED).map_err(|e| format!("{e:?}"))? else {
         return Ok(None);
     };
     let said = Zeroizing::new(said);
-    let bytes = Zeroizing::new(
-        URL_SAFE_NO_PAD
-            .decode(said.as_bytes())
-            .map_err(|_| "the seed kept here does not read".to_string())?,
-    );
+    let bytes = Zeroizing::new(URL_SAFE_NO_PAD.decode(said.as_bytes()).unwrap_or_default());
     let mut seed = Zeroizing::new([0u8; 32]);
     if bytes.len() != seed.len() {
-        return Err("the seed kept here is not one".into());
+        witness::warn(
+            channel::STORE,
+            "what was kept as the identity's seed is not one, so it counts as none",
+            &[],
+        );
+        return Ok(None);
     }
     seed.copy_from_slice(&bytes);
     Ok(Some(Seed::from_bytes(&seed)))
@@ -55,8 +53,8 @@ fn keep(paths: &Paths, seed: &Seed) -> Answer<()> {
         );
         Refusal::of("identityNotKept")
     };
-    let secrets =
-        crate::reaching::secrets_in(&scope(paths)).map_err(|e| refused(format!("{e:?}")))?;
+    let scope = scope(paths).map_err(refused)?;
+    let secrets = crate::reaching::secrets_in(&scope).map_err(|e| refused(format!("{e:?}")))?;
     let said = Zeroizing::new(URL_SAFE_NO_PAD.encode(seed.to_bytes().as_ref()));
     secrets
         .write(SEED, &said)
@@ -77,9 +75,16 @@ fn ours(seed: &Seed, state: &State) -> bool {
     state.persons.names(&seed.root().person())
 }
 
-/// Read off the session lock and only once the log names a person; nobody else meets a keychain.
+/// Read off the session lock and only when the seed has work to do; nobody else meets a keychain.
 pub async fn for_a_round(session: &tauri::State<'_, Mutex<Session>>) -> Option<Seed> {
-    let (paths, wanted) = looked(session);
+    let (paths, wanted) = {
+        let session = held(session);
+        let machines = person::machines(&session.state);
+        (
+            session.paths.clone(),
+            session.state.persons.awaits_the_seed(&machines),
+        )
+    };
     if !wanted {
         return None;
     }
@@ -95,8 +100,8 @@ pub async fn for_a_round(session: &tauri::State<'_, Mutex<Session>>) -> Option<S
 
 /// Read off the session lock, for a machine about to be taken off the list.
 pub fn for_removing(session: &tauri::State<'_, Mutex<Session>>) -> Option<Seed> {
-    let (paths, wanted) = looked(session);
-    wanted
+    let (paths, named) = looked(session);
+    named
         .then(|| kept(&paths).map_err(unread).ok().flatten())
         .flatten()
 }
@@ -135,8 +140,7 @@ fn said_nothing(e: &tisty_core::Error) {
     );
 }
 
-/// With the seed here, the keys go with the machine at once; without it, the round of the
-/// machine that has it takes them back.
+/// Without the seed here, the round of the machine that has it takes the keys back instead.
 pub fn removing(session: &Session, device: DeviceId, seed: Option<&Seed>) -> Vec<Op> {
     let mut ops = match seed.filter(|seed| ours(seed, &session.state)) {
         Some(seed) => person::revoked(
@@ -176,41 +180,46 @@ fn looked(session: &tauri::State<'_, Mutex<Session>>) -> (Paths, bool) {
     )
 }
 
+/// The seed kept here that belongs to the person now: an old one counts as none.
+fn current(session: &Session) -> Answer<Option<Seed>> {
+    let seed = kept(&session.paths).map_err(unread)?;
+    let named = session.state.persons.names_a_person();
+    Ok(seed.filter(|seed| !named || ours(seed, &session.state)))
+}
+
 #[tauri::command(async)]
 pub fn identity_shown(session: tauri::State<'_, Mutex<Session>>) -> Answer<Shown> {
-    let (paths, named) = looked(&session);
+    let (paths, _) = looked(&session);
     let seed = kept(&paths).map_err(unread)?;
     let session = held(&session);
     let person = person::person_of(&session.state, &session.config.device_id);
     let held = seed.as_ref().is_some_and(|seed| ours(seed, &session.state));
     Ok(Shown {
         held,
-        elsewhere: named && !held,
+        elsewhere: session.state.persons.names_a_person() && !held,
         fingerprint: person.map(|one| one.fingerprint()),
         suffix: person.map(|one| one.suffix()),
     })
 }
 
-/// Made only when the person asks for what needs it, and never a second time: a seed kept here
-/// that never reached the log is finished, not replaced.
+// Held whole under the session lock: two quick asks, or a round in between, must never make two roots.
 #[tauri::command(async)]
 pub fn identity_begin(session: tauri::State<'_, Mutex<Session>>) -> Answer<String> {
-    let (paths, named) = looked(&session);
-    if named {
-        return Err(Refusal::of(match kept(&paths) {
-            Ok(Some(_)) => "identityExists",
-            _ => "identityElsewhere",
+    let mut session = held(&session);
+    if session.state.persons.names_a_person() {
+        return Err(Refusal::of(match current(&session)? {
+            Some(_) => "identityExists",
+            None => "identityElsewhere",
         }));
     }
-    let seed = match kept(&paths).map_err(unread)? {
-        Some(seed) => seed,
+    let seed = match current(&session)? {
+        Some(unfinished) => unfinished,
         None => {
             let fresh = Seed::minted().ok_or_else(|| Refusal::of("identityNotKept"))?;
-            keep(&paths, &fresh)?;
+            keep(&session.paths, &fresh)?;
             fresh
         }
     };
-    let mut session = held(&session);
     let shown =
         phrase::phrase(&seed, words(&session)).ok_or_else(|| Refusal::of("identityNotKept"))?;
     begun(&mut session, &seed)?;
@@ -219,17 +228,14 @@ pub fn identity_begin(session: tauri::State<'_, Mutex<Session>>) -> Answer<Strin
 
 #[tauri::command(async)]
 pub fn identity_phrase(session: tauri::State<'_, Mutex<Session>>) -> Answer<String> {
-    let (paths, _) = looked(&session);
-    let seed = kept(&paths)
-        .map_err(unread)?
-        .ok_or_else(|| Refusal::of("identityNone"))?;
     let session = held(&session);
+    let seed = current(&session)?.ok_or_else(|| Refusal::of("identityNone"))?;
     phrase::phrase(&seed, words(&session))
         .map(|said| said.to_string())
         .ok_or_else(|| Refusal::of("identityNone"))
 }
 
-/// The phrase must be the person the log names, and never takes the place of another seed kept here.
+// The phrase must be the person the log names; it replaces only a seed that is no longer anyone's.
 #[tauri::command(async)]
 pub fn identity_recover(session: tauri::State<'_, Mutex<Session>>, said: String) -> Answer<()> {
     let said = Zeroizing::new(said);
@@ -238,18 +244,18 @@ pub fn identity_recover(session: tauri::State<'_, Mutex<Session>>, said: String)
         phrase::Unread::Word(at) => Refusal::about("phraseWord", at.to_string()),
         phrase::Unread::Checksum => Refusal::of("phraseChecksum"),
     })?;
-    let (paths, named) = looked(&session);
-    if named && !held(&session).state.persons.names(&seed.root().person()) {
+    let mut session = held(&session);
+    if session.state.persons.names_a_person() && !ours(&seed, &session.state) {
         return Err(Refusal::of("phraseOtherPerson"));
     }
-    match kept(&paths).map_err(unread)? {
+    match current(&session)? {
         Some(here) if *here.to_bytes() != *seed.to_bytes() => {
             return Err(Refusal::of("identityExists"));
         }
         Some(_) => {}
-        None => keep(&paths, &seed)?,
+        None => keep(&session.paths, &seed)?,
     }
-    begun(&mut held(&session), &seed)
+    begun(&mut session, &seed)
 }
 
 fn begun(session: &mut Session, seed: &Seed) -> Answer<()> {

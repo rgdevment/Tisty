@@ -665,3 +665,29 @@ fn the_log_names_the_person_and_no_other() {
     assert!(!persons.names(&Seed::from_bytes(&[9; 32]).root().person()));
     assert!(!Persons::default().names_a_person());
 }
+
+#[test]
+fn the_seed_is_only_wanted_when_there_is_something_to_do() {
+    let mut two = Two::new();
+    let state = two.state();
+    assert!(!state.persons.awaits_the_seed(&machines(&state)));
+
+    std::fs::remove_file(kept_at(&two.second, &device("dev_b")).unwrap()).unwrap();
+    let op = introduced(&two.second, &device("dev_b"), &state.persons).unwrap();
+    two.wrote("dev_b", vec![op], 130);
+    let state = two.state();
+    assert!(
+        state.persons.awaits_the_seed(&machines(&state)),
+        "a new key waits"
+    );
+    two.vouch(140);
+    let state = two.state();
+    assert!(!state.persons.awaits_the_seed(&machines(&state)));
+
+    two.wrote("dev_b", vec![Op::DeviceRemove { d: device("dev_b") }], 150);
+    let state = two.state();
+    assert!(
+        state.persons.awaits_the_seed(&machines(&state)),
+        "a machine gone waits"
+    );
+}
