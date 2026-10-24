@@ -22,8 +22,8 @@ use segments::{
     Alike, Grew, Toward, hand_on_leaving, one_grew_from_the_other, ours_went_missing, sweep,
 };
 pub use shape::{
-    NAMED, NEEDS, OURS as SHAPE, needs_later, raise_place, raised, raised_told,
-    unseen as forget_shape,
+    NAMED, NEEDS, OURS as SHAPE, later, needs_later, raise_place, raised, raised_told, refuses,
+    spoiled, unseen as forget_shape,
 };
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -811,6 +811,7 @@ pub fn stitch(
     if !dest.is_dir() {
         return Err(Trouble::NotThere(dest.display().to_string()));
     }
+    refuses(dest)?;
     for folder in [STORE, HELD, PAPERS] {
         straight(&dest.join(folder), dest)?;
     }
@@ -913,6 +914,7 @@ pub fn forget_paper(dest: &Path, id: &str) {
 }
 
 pub fn both_papers(data: &Path, dest: &Path, id: &str) -> Result<(String, String), Trouble> {
+    refuses(dest)?;
     straight(&dest.join(PAPERS), dest)?;
     let mine = tisty_core::docs::resolve(&data.join(PAPERS), id)
         .map_err(|_| Trouble::Refused(id.to_string()))?;
@@ -938,6 +940,7 @@ pub fn settle(
 ) -> Result<Option<String>, Trouble> {
     use tisty_core::docs::{Carried, print_of};
 
+    refuses(dest)?;
     straight(&dest.join(PAPERS), dest)?;
     let mine = tisty_core::docs::resolve(&data.join(PAPERS), id)
         .map_err(|_| Trouble::Refused(id.to_string()))?;

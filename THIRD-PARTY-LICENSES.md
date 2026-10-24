@@ -2,7 +2,7 @@
 
 <!-- Written by `npm run notices`. Do not edit by hand. -->
 
-The licence texts of the 364 crates named in
+The licence texts of the 365 crates named in
 [THIRD-PARTY-BUNDLED.md](https://github.com/rgdevment/Tisty/blob/main/THIRD-PARTY-BUNDLED.md), each written once with
 the crates that carry it: 250 texts. A text is read in full from the
 crate as it is published, from its licence, copying and notice files and its
@@ -8670,7 +8670,7 @@ THE SOFTWARE.
 
 ## Text 122
 
-Carried by `kstring` 2.0.5, `serde_spanned` 1.1.2, `toml` 1.1.8+spec-1.1.0, `toml_datetime` 1.1.2+spec-1.1.0, `toml_parser` 1.1.5+spec-1.1.0, `toml_writer` 1.1.3+spec-1.1.0.
+Carried by `kstring` 2.0.5, `serde_spanned` 1.1.2, `toml` 1.1.8+spec-1.1.0, `toml_datetime` 1.1.2+spec-1.1.0, `toml_edit` 0.25.17+spec-1.1.0, `toml_parser` 1.1.5+spec-1.1.0, `toml_writer` 1.1.3+spec-1.1.0.
 
 ```text
 Copyright (c) Individual contributors
@@ -12960,7 +12960,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ## Text 186
 
-Carried by `serde_spanned` 1.1.2, `toml` 1.1.8+spec-1.1.0, `toml_datetime` 1.1.2+spec-1.1.0, `toml_parser` 1.1.5+spec-1.1.0, `toml_writer` 1.1.3+spec-1.1.0.
+Carried by `serde_spanned` 1.1.2, `toml` 1.1.8+spec-1.1.0, `toml_datetime` 1.1.2+spec-1.1.0, `toml_edit` 0.25.17+spec-1.1.0, `toml_parser` 1.1.5+spec-1.1.0, `toml_writer` 1.1.3+spec-1.1.0.
 
 ```text
 Apache License

@@ -9,7 +9,7 @@ use tisty_core::signing::SigningKey;
 pub use tisty_core::turned;
 pub use tisty_sync::{
     Cause, Deferred, Holding, Keep, Kin, LetGo, Moved, NEEDS, Reached, Reason, SHAPE, STORE,
-    Signed, Stage, Stitched, Trouble, Undecided, Way, raised, raised_told,
+    Signed, Stage, Stitched, Trouble, Undecided, Way, raised, raised_told, refuses,
 };
 
 mod cloud;
@@ -153,6 +153,9 @@ pub trait Carrier: Send + std::marker::Sync {
     fn holds_a_store(&self) -> bool {
         self.place()
             .is_some_and(|dest| tisty_core::store::inhabited(dest.join(STORE)))
+    }
+    fn later(&self) -> Option<Trouble> {
+        self.place().and_then(tisty_sync::later)
     }
     /// Never overridden: a carrier that empties itself does so in `wipe_along`.
     fn wipe(&self) -> Result<usize, Trouble> {

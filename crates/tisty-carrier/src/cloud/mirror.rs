@@ -41,6 +41,9 @@ pub fn pull(
     along: &mut dyn FnMut(crate::Reached),
 ) -> Result<usize, Hitch> {
     heal(tree, index);
+    if let Some(trouble) = still_barred(remote, tree, index)? {
+        return Err(Hitch::Barred(trouble));
+    }
     let first = index.cursor.is_none();
     let told = match remote.changes(index.cursor.as_deref()) {
         Err(Hitch::Broke(_) | Hitch::Missing(_) | Hitch::Changed(_)) if index.cursor.is_some() => {
@@ -54,6 +57,7 @@ pub fn pull(
         }
         told => told?,
     };
+    heeded(remote, tree, index, data, &told)?;
     let emptied = |listed_nothing: bool, gone: &BTreeSet<&str>| {
         index.tree.contains_key(tisty_sync::NAMED)
             && (listed_nothing || index.tree.keys().all(|name| gone.contains(name.as_str())))
@@ -131,6 +135,86 @@ pub fn pull(
     match emptied {
         true => Err(Hitch::Emptied),
         false => Ok(index.owed.len()),
+    }
+}
+
+fn still_barred(
+    remote: &dyn Remote,
+    tree: &Path,
+    index: &Index,
+) -> Result<Option<tisty_sync::Trouble>, Hitch> {
+    match tisty_sync::later(tree) {
+        Some(trouble) if !word_moved(remote, index)? => Ok(Some(trouble)),
+        _ => Ok(None),
+    }
+}
+
+pub fn word_moved(remote: &dyn Remote, index: &Index) -> Result<bool, Hitch> {
+    let kept = index
+        .tree
+        .get(NAMED)
+        .map(|kept| kept.seen.revision.as_str());
+    let up_there = remote.about(NAMED)?.map(|seen| seen.revision);
+    Ok(up_there.as_deref() != kept)
+}
+
+fn word_listed(told: &Changes) -> Option<&[Seen]> {
+    let named = |seen: &[Seen]| seen.iter().any(|one| one.name == NAMED);
+    match told {
+        Changes::Whole { seen, .. } => named(seen).then_some(seen.as_slice()),
+        Changes::Since { changed, gone, .. } => {
+            (named(changed) || !gone.iter().any(|name| name == NAMED)).then_some(changed.as_slice())
+        }
+    }
+}
+
+fn heeded(
+    remote: &dyn Remote,
+    tree: &Path,
+    index: &mut Index,
+    data: Option<&Path>,
+    told: &Changes,
+) -> Result<(), Hitch> {
+    let Some(listed) = word_listed(told) else {
+        return Ok(());
+    };
+    let spoiled = tisty_sync::spoiled(tree);
+    if spoiled {
+        index.tree.remove(NAMED);
+    }
+    let word = match listed
+        .iter()
+        .find(|one| one.name == NAMED)
+        .or_else(|| index.owed.get(NAMED))
+        .cloned()
+    {
+        None if spoiled => {
+            let up_there = remote.about(NAMED)?;
+            if up_there.is_none() {
+                let _ = std::fs::remove_file(tree.join(NAMED));
+            }
+            up_there
+        }
+        word => word,
+    };
+    if let Some(word) = word {
+        match learn(remote, tree, index, data, word.clone()) {
+            Ok(false) => {
+                index.owed.remove(NAMED);
+            }
+            Ok(true) => {
+                index.owed.insert(NAMED.to_string(), word);
+                return Err(Hitch::Troubled(format!("{NAMED} could not be brought")));
+            }
+            Err(hitch) => {
+                index.owed.insert(NAMED.to_string(), word);
+                return Err(hitch);
+            }
+        }
+    }
+    match tisty_sync::later(tree) {
+        Some(trouble) => Err(Hitch::Barred(trouble)),
+        None => Ok(()),
     }
 }
 
