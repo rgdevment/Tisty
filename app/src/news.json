@@ -549,5 +549,24 @@
         "said": "Tisty now notes which version each of your computers runs and keeps what another version wrote in your sync place, so it can bring you new protections without leaving anyone behind."
       }
     ]
+  },
+  {
+    "version": "1.34.1",
+    "headline": {
+      "es": "Tisty vuelve a abrir tus datos",
+      "en": "Tisty opens your data again"
+    },
+    "es": [
+      {
+        "title": "Arreglado: «Lo que llegó no se puede leer»",
+        "said": "la 1.34.0 escribía en tus datos una línea que luego no podía leer, y el equipo que se actualizaba dejaba de mostrar y sincronizar tus tareas y documentos. Esta versión la lee sin problema. No se perdió nada: todo vuelve a aparecer al abrir Tisty."
+      }
+    ],
+    "en": [
+      {
+        "title": "Fixed: «What arrived cannot be read»",
+        "said": "1.34.0 wrote a line into your data that it could not read back, so the computer that updated stopped showing and syncing your tasks and documents. This version reads it without trouble. Nothing was lost: everything is back when you open Tisty."
+      }
+    ]
   }
 ]

@@ -707,7 +707,7 @@ fn a_machine_gone_with_an_older_key_still_standing_waits_for_the_seed() {
 }
 
 fn runs(version: &str) -> Op {
-    Op::DeviceRuns { v: version.into() }
+    Op::DeviceRuns { r: version.into() }
 }
 
 #[test]
@@ -779,11 +779,11 @@ fn a_machine_says_its_version_only_when_it_is_on_the_list_and_it_changed() {
 fn a_version_the_log_would_clean_is_not_said_again_every_round() {
     let long = format!("1.34.0-{}", "x".repeat(100));
     let mut events = vec![joined("dev_a", DeviceKind::Machine)];
-    let Some(Op::DeviceRuns { v }) = State::replay(&events).runs_to_say(&device("dev_a"), &long)
+    let Some(Op::DeviceRuns { r }) = State::replay(&events).runs_to_say(&device("dev_a"), &long)
     else {
         panic!("a machine on the list says its version");
     };
-    events.push(said("dev_a", Op::DeviceRuns { v }, 100));
+    events.push(said("dev_a", Op::DeviceRuns { r }, 100));
 
     assert!(
         State::replay(&events)

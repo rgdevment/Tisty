@@ -88,7 +88,7 @@ pub const KNOWN_OPS: &[&str] = &[
     "attach.let_go",
     "attach.retire",
     "stores.joined",
-    "device.runs",
+    "device.release",
     "cloud.sealed",
     "share.key",
     "share.certified",
@@ -270,8 +270,8 @@ pub enum Op {
     #[serde(rename = "stores.joined")]
     StoresJoined { d: Stitch },
 
-    #[serde(rename = "device.runs")]
-    DeviceRuns { v: String },
+    #[serde(rename = "device.release")]
+    DeviceRuns { r: String },
 
     #[serde(rename = "cloud.sealed")]
     CloudSealed {

@@ -398,3 +398,40 @@ fn provenance_is_written_only_when_there_is_some() {
     let line = serde_json::to_string(&retired).unwrap();
     assert!(line.contains(r#""why":"joined""#), "{line}");
 }
+
+#[test]
+fn the_operations_of_the_cloud_and_of_sharing_come_back_whole_through_the_line() {
+    let key = tisty_share_proto::identity::ShareKey::from_bytes(&[8; 32]);
+    let seed = tisty_share_proto::seed::Seed::from_bytes(&[7; 32]);
+    let ops = [
+        Op::DeviceRuns { r: "1.34.1".into() },
+        Op::CloudSealed {
+            s: "store_one".into(),
+            k: Some("key_a".into()),
+        },
+        Op::CloudSealed {
+            s: "store_one".into(),
+            k: None,
+        },
+        Op::ShareKey { p: key.shown() },
+        Op::ShareCertified {
+            c: seed.root().certify(&key.public(), at(100)),
+        },
+        Op::ShareRevoked {
+            r: seed.root().revoke(&key.public(), at(100)),
+            machine: true,
+        },
+    ];
+    for op in ops {
+        let mut event = add_event();
+        event.op = op;
+        event.optional = event.op.is_optional();
+        let line = serde_json::to_string(&event).unwrap();
+
+        assert_eq!(
+            serde_json::from_str::<Event>(&line).ok().as_ref(),
+            Some(&event),
+            "{line}"
+        );
+    }
+}

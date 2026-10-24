@@ -971,7 +971,23 @@ fn read_segment_from(path: &Path, from: u64, out: &mut Vec<Event>) -> Result<Lin
             line: i + 1,
             source,
         };
-        let stamp: Stamped = serde_json::from_str(&line).map_err(malformed)?;
+        let stamp: Stamped = match serde_json::from_str(&line) {
+            Ok(stamp) => stamp,
+            Err(_) if written_twice_by_1_34_0(&line) => {
+                lines.events += 1;
+                lines.closing = None;
+                witness::warn(
+                    channel::STORE,
+                    "a version 1.34.0 said in a line no reader takes was skipped",
+                    &[
+                        ("at", Fact::Path(path.to_path_buf())),
+                        ("line", Fact::Count(i + 1)),
+                    ],
+                );
+                continue;
+            }
+            Err(source) => return Err(malformed(source)),
+        };
 
         let skipped = |why: String| {
             witness::warn(
@@ -1029,6 +1045,18 @@ fn read_segment_from(path: &Path, from: u64, out: &mut Vec<Event>) -> Result<Lin
         }
     }
     Ok(lines)
+}
+
+// 1.34.0 said its version as `v`, the name the line's own schema already takes, so no reader parses it.
+fn written_twice_by_1_34_0(line: &str) -> bool {
+    serde_json::from_str::<serde_json::Value>(line)
+        .is_ok_and(|said| said["op"] == "device.runs" && said["opt"] == true)
+}
+
+pub(crate) fn leading_version(line: &[u8]) -> Option<u32> {
+    let rest = line.strip_prefix(b"{\"v\":")?;
+    let digits = rest.iter().take_while(|one| one.is_ascii_digit()).count();
+    std::str::from_utf8(&rest[..digits]).ok()?.parse().ok()
 }
 
 /// A device writes only into its own directory and sync copies directories whole, so the name
