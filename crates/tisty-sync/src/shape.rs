@@ -17,7 +17,7 @@ const HEADING: &str =
 pub const OURS: u32 = 3;
 
 /// The oldest release that may write in a place this build arranges; a later change to the place raises it.
-pub const NEEDS: &str = "1.34.0";
+pub const NEEDS: &str = "1.34.1";
 
 enum Told {
     Shape {
