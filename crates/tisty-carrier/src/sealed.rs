@@ -14,7 +14,6 @@ const BLOCK: u64 = 64 * 1024;
 
 static TEMPS: AtomicU64 = AtomicU64::new(0);
 
-/// A provider that holds only sealed files, under `sealed/`, beside the three that must stay readable by every build.
 pub struct Sealed<R> {
     inner: R,
     key: CloudKey,
@@ -26,7 +25,18 @@ struct Temp(PathBuf);
 impl Temp {
     fn new() -> Self {
         let n = TEMPS.fetch_add(1, Ordering::Relaxed);
-        Self(std::env::temp_dir().join(format!("tisty-sealed-{}-{n}", std::process::id())))
+        let at = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |since| since.as_nanos());
+        Self(std::env::temp_dir().join(format!("tisty-sealed-{}-{n}-{at:x}", std::process::id())))
+    }
+
+    fn create(&self) -> std::io::Result<std::fs::File> {
+        let mut options = std::fs::OpenOptions::new();
+        options.write(true).create_new(true);
+        #[cfg(unix)]
+        std::os::unix::fs::OpenOptionsExt::mode(&mut options, 0o600);
+        options.open(&self.0)
     }
 }
 
@@ -40,6 +50,8 @@ fn broke(e: impl ToString) -> Hitch {
     Hitch::Broke(e.to_string())
 }
 
+const MARK: &str = "sealed.mark";
+
 fn clear(name: &str) -> bool {
     name == NAMED || name == tisty_core::moved::NAMED || name == format!("{STORE}/{MARKER}")
 }
@@ -51,12 +63,19 @@ fn placed(name: &str) -> String {
     }
 }
 
-fn shown(name: &str) -> Option<String> {
-    if clear(name) {
-        return Some(name.to_string());
+fn reserved(name: &str) -> Result<(), Hitch> {
+    match name == MARK {
+        true => Err(broke("that name is the mark of a sealed cloud")),
+        false => Ok(()),
     }
-    let inside = name.strip_prefix(INSIDE)?.strip_prefix('/')?;
-    (!inside.is_empty() && inside != "sealed.mark").then(|| inside.to_string())
+}
+
+fn named_back(hitch: Hitch, inner: &str, name: &str) -> Hitch {
+    match hitch {
+        Hitch::Missing(one) if one == inner => Hitch::Missing(name.to_string()),
+        Hitch::Changed(one) if one == inner => Hitch::Changed(name.to_string()),
+        other => other,
+    }
 }
 
 fn overhead(plain: u64) -> u64 {
@@ -83,12 +102,49 @@ impl<R: Remote> Sealed<R> {
         }
     }
 
+    fn folds(&self) -> bool {
+        self.inner.limits().folds_case
+    }
+
+    fn is_clear(&self, name: &str) -> bool {
+        match self.folds() {
+            true => [NAMED, tisty_core::moved::NAMED]
+                .into_iter()
+                .map(String::from)
+                .chain([format!("{STORE}/{MARKER}")])
+                .any(|one| one.eq_ignore_ascii_case(name)),
+            false => clear(name),
+        }
+    }
+
+    fn shown(&self, name: &str) -> Option<String> {
+        if self.is_clear(name) {
+            return Some(match self.folds() {
+                true => name.to_ascii_lowercase(),
+                false => name.to_string(),
+            });
+        }
+        let (top, inside) = name.split_once('/')?;
+        let top_is_ours = match self.folds() {
+            true => top.eq_ignore_ascii_case(INSIDE),
+            false => top == INSIDE,
+        };
+        let marked = match self.folds() {
+            true => inside.eq_ignore_ascii_case(MARK),
+            false => inside == MARK,
+        };
+        (top_is_ours && !inside.is_empty() && !marked).then(|| inside.to_string())
+    }
+
     fn seen(&self, one: Seen, name: &str, hash: String) -> Seen {
         match clear(name) {
-            true => one,
+            true => Seen {
+                name: name.to_string(),
+                ..one
+            },
             false => Seen {
                 name: name.to_string(),
-                bytes: plain_len(one.bytes).unwrap_or(0),
+                bytes: plain_len(one.bytes).unwrap_or(one.bytes),
                 hash,
                 revision: one.revision,
             },
@@ -98,21 +154,25 @@ impl<R: Remote> Sealed<R> {
     fn listed(&self, many: Vec<Seen>) -> Vec<Seen> {
         many.into_iter()
             .filter_map(|one| {
-                let name = shown(&one.name)?;
+                let name = self.shown(&one.name)?;
                 Some(self.seen(one, &name, String::new()))
             })
             .collect()
     }
 
     fn within(&self, under: &str) -> Result<Vec<Seen>, Hitch> {
-        let top = match under.is_empty() {
-            true => INSIDE.to_string(),
-            false => format!("{INSIDE}/{under}"),
-        };
-        let mut seen = self.listed(self.inner.list(&top)?);
-        if under.is_empty() || under == STORE {
-            let beside = self.inner.list(under)?;
-            seen.extend(beside.into_iter().filter(|one| clear(&one.name)));
+        let under = under.trim_matches('/');
+        if under.is_empty() {
+            return Ok(self.listed(self.inner.list("")?));
+        }
+        let mut seen = self.listed(self.inner.list(&format!("{INSIDE}/{under}"))?);
+        if under == STORE {
+            let id = format!("{STORE}/{MARKER}");
+            seen.extend(
+                self.inner
+                    .about(&id)?
+                    .map(|one| self.seen(one, &id, String::new())),
+            );
         }
         Ok(seen)
     }
@@ -138,13 +198,14 @@ impl<R: Remote> Remote for Sealed<R> {
         if from > 0 {
             return Err(broke("a sealed file is never fetched from the middle"));
         }
+        let inner = placed(name);
         let (cipher, plain) = (Temp::new(), Temp::new());
-        let mut to = std::fs::File::create(&cipher.0).map_err(broke)?;
-        let got = self.inner.fetch(&placed(name), 0, &mut to);
+        let mut to = cipher.create().map_err(broke)?;
+        let got = self.inner.fetch(&inner, 0, &mut to);
         drop(to);
-        let got = got?;
+        let got = got.map_err(|e| named_back(e, &inner, name))?;
         let mut from_cipher = std::fs::File::open(&cipher.0).map_err(broke)?;
-        let mut to_plain = std::fs::File::create(&plain.0).map_err(broke)?;
+        let mut to_plain = plain.create().map_err(broke)?;
         open(
             &self.key,
             &self.cloud,
@@ -164,12 +225,17 @@ impl<R: Remote> Remote for Sealed<R> {
         if clear(name) {
             return self.inner.put(name, from, expect);
         }
+        reserved(name)?;
+        let inner = placed(name);
         let cipher = Temp::new();
         let mut plain = std::fs::File::open(from).map_err(broke)?;
-        let mut to = std::fs::File::create(&cipher.0).map_err(broke)?;
+        let mut to = cipher.create().map_err(broke)?;
         seal(&self.key, &self.cloud, name, &mut plain, &mut to).map_err(broke)?;
         drop(to);
-        let there = self.inner.put(&placed(name), &cipher.0, expect)?;
+        let there = self
+            .inner
+            .put(&inner, &cipher.0, expect)
+            .map_err(|e| named_back(e, &inner, name))?;
         if !there.hash.is_empty() && self.inner.hash_of(&cipher.0).map_err(broke)? != there.hash {
             return Err(broke(format!(
                 "{name} did not reach the provider as sealed"
@@ -180,7 +246,13 @@ impl<R: Remote> Remote for Sealed<R> {
     }
 
     fn delete(&self, name: &str, expect: Option<&str>) -> Result<(), Hitch> {
-        self.inner.delete(&placed(name), expect)
+        if !clear(name) {
+            reserved(name)?;
+        }
+        let inner = placed(name);
+        self.inner
+            .delete(&inner, expect)
+            .map_err(|e| named_back(e, &inner, name))
     }
 
     fn hash_of(&self, local: &Path) -> std::io::Result<String> {
@@ -188,9 +260,11 @@ impl<R: Remote> Remote for Sealed<R> {
     }
 
     fn about(&self, name: &str) -> Result<Option<Seen>, Hitch> {
+        let inner = placed(name);
         Ok(self
             .inner
-            .about(&placed(name))?
+            .about(&inner)
+            .map_err(|e| named_back(e, &inner, name))?
             .map(|one| self.seen(one, name, String::new())))
     }
 
@@ -206,7 +280,7 @@ impl<R: Remote> Remote for Sealed<R> {
                 cursor,
             } => Changes::Since {
                 changed: self.listed(changed),
-                gone: gone.iter().filter_map(|name| shown(name)).collect(),
+                gone: gone.iter().filter_map(|name| self.shown(name)).collect(),
                 cursor,
             },
         })

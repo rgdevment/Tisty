@@ -203,3 +203,36 @@ fn the_size_in_the_clear_is_read_back_from_the_sealed_size() {
     assert_eq!(plain_len(23), None);
     assert_eq!(plain_len(HEADER + 5), None);
 }
+
+#[test]
+fn the_name_of_the_phrase_mark_cannot_be_written_or_deleted_as_a_file() {
+    let sealed = over_drive();
+    put(&sealed.inner, "sealed/sealed.mark", b"mark");
+    let dir = tempfile::tempdir().unwrap();
+    let at = dir.path().join("body");
+    std::fs::write(&at, b"x").unwrap();
+
+    assert!(sealed.put("sealed.mark", &at, Expect::Any).is_err());
+    assert!(sealed.delete("sealed.mark", None).is_err());
+    assert!(sealed.inner.about("sealed/sealed.mark").unwrap().is_some());
+}
+
+#[test]
+fn a_missing_file_is_named_as_it_was_asked_for() {
+    let sealed = over_drive();
+
+    assert_eq!(
+        fetched(&sealed, "docs/zz.md").unwrap_err(),
+        Hitch::Missing("docs/zz.md".into())
+    );
+}
+
+#[test]
+fn a_file_that_is_not_validly_sealed_keeps_the_size_it_has_up_there() {
+    let sealed = over_drive();
+    put(&sealed.inner, "sealed/docs/a.md", b"plain");
+
+    let seen = sealed.about("docs/a.md").unwrap().unwrap();
+
+    assert_eq!(seen.bytes, 5);
+}
