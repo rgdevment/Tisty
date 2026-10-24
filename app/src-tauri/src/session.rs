@@ -854,6 +854,14 @@ impl Session {
         }
     }
 
+    pub fn say_its_version(&mut self) -> tisty_core::Result<()> {
+        let who = self.config.device_id.clone();
+        match self.state.runs_to_say(&who, tisty_core::VERSION) {
+            Some(op) => self.commit(op),
+            None => Ok(()),
+        }
+    }
+
     pub fn take_a_seat(&mut self) -> tisty_core::Result<()> {
         let who = self.config.device_id.clone();
         let shown = tisty_core::signing::mine(&self.paths, &who)

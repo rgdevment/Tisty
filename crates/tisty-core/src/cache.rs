@@ -10,7 +10,7 @@ use crate::{
 };
 
 /// Tied to the event schema: an older build then misses the cache and meets the version guard.
-const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 18;
+const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 19;
 
 pub struct Cache {
     db: Connection,
@@ -200,6 +200,10 @@ impl Cache {
             .meta("named")
             .and_then(|said| serde_json::from_str(&said).ok())
             .unwrap_or_default();
+        state.runs = self
+            .meta("runs")
+            .and_then(|said| serde_json::from_str(&said).ok())
+            .unwrap_or_default();
         // Read back whole or not at all: an empty person here would quietly unsay every certificate.
         state.persons = serde_json::from_str(&self.meta("persons")?).ok()?;
         state.fill = if bodies {
@@ -366,7 +370,7 @@ impl Cache {
                 }
             }
             tx.execute(
-                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('signed', ?), ('signed_before', ?), ('devices', ?), ('keys', ?), ('dropped', ?), ('retired', ?), ('shed', ?), ('agents', ?), ('assistants', ?), ('forebears', ?), ('hosts', ?), ('named', ?), ('persons', ?)",
+                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('signed', ?), ('signed_before', ?), ('devices', ?), ('keys', ?), ('dropped', ?), ('retired', ?), ('shed', ?), ('agents', ?), ('assistants', ?), ('forebears', ?), ('hosts', ?), ('named', ?), ('runs', ?), ('persons', ?)",
                 rusqlite::params![
                     SCHEMA.to_string(),
                     fingerprint,
@@ -382,6 +386,7 @@ impl Cache {
                     serde_json::to_string(&state.forebears).unwrap_or_default(),
                     serde_json::to_string(&state.hosts).unwrap_or_default(),
                     serde_json::to_string(&state.named).unwrap_or_default(),
+                    serde_json::to_string(&state.runs).unwrap_or_default(),
                     serde_json::to_string(&state.persons).unwrap_or_default(),
                 ],
             )?;
@@ -820,6 +825,7 @@ fn reached(
                 | crate::Op::DeviceKey { .. }
                 | crate::Op::DeviceRotate { .. }
                 | crate::Op::DeviceNamed { .. }
+                | crate::Op::DeviceRuns { .. }
                 | crate::Op::DeviceRemove { .. }
                 | crate::Op::AttachKept { .. }
                 | crate::Op::AttachLetGo { .. }

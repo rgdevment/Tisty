@@ -1037,6 +1037,13 @@ async fn carried_round(
             &[("why", Fact::Why(e.to_string()))],
         );
     }
+    if let Err(e) = session.say_its_version() {
+        witness::warn(
+            channel::SYNC,
+            "this machine could not say which version it runs",
+            &[("why", Fact::Why(e.to_string()))],
+        );
+    }
     crate::identity::after_a_round(&mut session, seed.as_ref());
     let unsettled = done.undecided.len()
         + done.unreadable.len()
