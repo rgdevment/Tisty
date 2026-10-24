@@ -197,11 +197,13 @@ fn the_size_in_the_clear_is_read_back_from_the_sealed_size() {
             Some(plain as u64),
             "{plain}"
         );
+        let plain = plain as u64;
         assert_eq!(
             sealed.len() as u64,
-            plain as u64 + overhead(plain as u64),
+            HEADER + plain + TAG * plain.div_ceil(BLOCK).max(1),
             "{plain}"
         );
+        assert_eq!(plain_room(sealed.len() as u64), plain, "{plain}");
     }
     assert_eq!(plain_len(23), None);
     assert_eq!(plain_len(HEADER + 5), None);
