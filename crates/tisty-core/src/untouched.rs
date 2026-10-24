@@ -143,7 +143,7 @@ impl Sown {
             | Op::DeviceRotate { .. }
             | Op::DeviceHost { .. }
             | Op::DeviceNamed { .. }
-            | Op::DeviceRuns { .. }
+            | Op::DeviceRelease { .. }
             // The seed writes these again by itself; a machine taken back is the person's word.
             | Op::ShareKey { .. }
             | Op::ShareCertified { .. }

@@ -41,7 +41,7 @@ fn written_sealed(tail: &[u8]) -> bool {
             serde_json::from_slice::<super::Stamped>(line)
                 .ok()
                 .map(|said| said.v)
-                .or_else(|| super::leading_version(line))
+                .or_else(|| super::written_twice_by_1_34_0(line).then_some(super::WRITTEN_TWICE_AT))
         })
         .is_some_and(|v| v >= crate::event::SEALED_FROM)
 }

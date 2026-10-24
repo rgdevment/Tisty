@@ -2105,7 +2105,7 @@ fn the_version_line_1_34_0_wrote_with_its_schema_named_twice_is_skipped_and_the_
         2,
         "what stands beside the line 1.34.0 wrote is read"
     );
-    assert_eq!(leading_version(twice.as_bytes()), Some(18));
+    assert!(written_twice_by_1_34_0(twice.as_bytes()));
 }
 
 #[test]

@@ -350,7 +350,7 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
         | Op::DeviceKey { .. }
         | Op::DeviceRotate { .. }
         | Op::DeviceNamed { .. }
-        | Op::DeviceRuns { .. }
+        | Op::DeviceRelease { .. }
         | Op::CloudSealed { .. }
         | Op::DeviceRemove { .. }
         | Op::Signed { .. }

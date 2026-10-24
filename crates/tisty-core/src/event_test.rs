@@ -404,7 +404,7 @@ fn the_operations_of_the_cloud_and_of_sharing_come_back_whole_through_the_line()
     let key = tisty_share_proto::identity::ShareKey::from_bytes(&[8; 32]);
     let seed = tisty_share_proto::seed::Seed::from_bytes(&[7; 32]);
     let ops = [
-        Op::DeviceRuns { r: "1.34.1".into() },
+        Op::DeviceRelease { r: "1.34.1".into() },
         Op::CloudSealed {
             s: "store_one".into(),
             k: Some("key_a".into()),

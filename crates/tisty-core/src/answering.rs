@@ -483,7 +483,9 @@ fn written_at(line: &[u8]) -> Option<u32> {
     serde_json::from_slice::<Written>(line)
         .ok()
         .map(|one| one.v)
-        .or_else(|| crate::store::leading_version(line))
+        .or_else(|| {
+            crate::store::written_twice_by_1_34_0(line).then_some(crate::store::WRITTEN_TWICE_AT)
+        })
 }
 
 fn numbered(named: &str) -> Option<u32> {

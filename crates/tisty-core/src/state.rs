@@ -401,7 +401,7 @@ impl State {
                 crate::signing::rotated(&mut self.keys, &event.device, d, p);
             }
             Op::DeviceNamed { d, name, os } => self.device_named(event, d, name, os.as_deref()),
-            Op::DeviceRuns { .. } | Op::CloudSealed { .. } => self.said_by_a_machine(event),
+            Op::DeviceRelease { .. } | Op::CloudSealed { .. } => self.said_by_a_machine(event),
             // Self-declared like `k`, or declared by the machine that hosts it: nobody else's word.
             Op::DeviceHost { d, of, .. } => {
                 if (event.device == *d || event.device == *of)

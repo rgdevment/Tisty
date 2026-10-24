@@ -94,7 +94,7 @@ impl State {
 
     pub(crate) fn said_by_a_machine(&mut self, event: &Event) {
         match &event.op {
-            crate::Op::DeviceRuns { r } => self.device_runs(event, r),
+            crate::Op::DeviceRelease { r } => self.device_runs(event, r),
             crate::Op::CloudSealed { s, k } => self.cloud_sealed(event, s, k.as_deref()),
             _ => {}
         }
@@ -121,7 +121,7 @@ impl State {
         let v = crate::called::cleaned(version);
         let unchanged = self.runs.get(who) == Some(&v);
         (self.devices.contains(who) && !v.is_empty() && !unchanged)
-            .then_some(crate::Op::DeviceRuns { r: v })
+            .then_some(crate::Op::DeviceRelease { r: v })
     }
 
     pub(crate) fn stores_joined(&mut self, d: &crate::event::Stitch) {
