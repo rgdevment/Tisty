@@ -276,3 +276,17 @@ fn the_earliest_revocation_is_the_one_told_whatever_the_order() {
         );
     }
 }
+
+#[test]
+fn unchecked_reads_what_a_record_claims_and_vouches_still_checks_it() {
+    let certificate = root(1).certify(&share(2).public(), at(1_000));
+    assert_eq!(certificate.unchecked(), certificate.vouches().ok());
+
+    let mut forged = certificate.clone();
+    forged.since = at(5);
+    assert!(forged.unchecked().is_some());
+    assert_eq!(forged.vouches(), Err(Fault::Refused));
+
+    let revocation = root(1).revoke(&share(2).public(), at(2_000));
+    assert_eq!(revocation.unchecked(), revocation.holds().ok());
+}

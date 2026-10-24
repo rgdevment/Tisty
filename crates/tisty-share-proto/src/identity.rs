@@ -91,7 +91,7 @@ pub struct Person(VerifyingKey);
 
 impl Person {
     pub fn read(said: &str) -> Option<Self> {
-        key(said).map(Self)
+        public_key(said).map(Self)
     }
 
     pub fn shown(&self) -> String {
@@ -148,6 +148,15 @@ pub enum Fault {
 }
 
 impl Certificate {
+    /// What it claims, without checking the root signed it: only for records already checked once.
+    pub fn unchecked(&self) -> Option<Vouched> {
+        Some(Vouched {
+            person: Person(public_key(&self.root)?),
+            share: public_key(&self.share)?,
+            since: self.since,
+        })
+    }
+
     pub fn vouches(&self) -> Result<Vouched, Fault> {
         let (root, share) = attested(CERTIFIED, &self.root, &self.share, self.since, &self.sig)?;
         Ok(Vouched {
@@ -174,7 +183,11 @@ impl Revocation {
             .is_ok_and(|(person, share)| person == vouched.person && share == vouched.share)
     }
 
-    /// Who took which key back, when the root's own signature says so.
+    /// What it claims, without checking the root signed it: only for records already checked once.
+    pub fn unchecked(&self) -> Option<(Person, VerifyingKey)> {
+        Some((Person(public_key(&self.root)?), public_key(&self.share)?))
+    }
+
     pub fn holds(&self) -> Result<(Person, VerifyingKey), Fault> {
         attested(REVOKED, &self.root, &self.share, self.at, &self.sig)
             .map(|(root, share)| (Person(root), share))
@@ -281,7 +294,9 @@ fn attested(
     when: Timestamp,
     sig: &str,
 ) -> Result<(VerifyingKey, VerifyingKey), Fault> {
-    let (Some(root), Some(share), Some(sig)) = (key(root), key(share), signature(sig)) else {
+    let (Some(root), Some(share), Some(sig)) =
+        (public_key(root), public_key(share), signature(sig))
+    else {
         return Err(Fault::Unreadable);
     };
     if when.subsec_nanosecond() != 0
@@ -302,11 +317,7 @@ fn between(kind: &[u8], root: &VerifyingKey, share: &VerifyingKey, when: Timesta
     out
 }
 
-pub fn share_key(said: &str) -> Option<VerifyingKey> {
-    key(said)
-}
-
-fn key(said: &str) -> Option<VerifyingKey> {
+pub fn public_key(said: &str) -> Option<VerifyingKey> {
     VerifyingKey::from_bytes(&decoded::<32>(said)?).ok()
 }
 

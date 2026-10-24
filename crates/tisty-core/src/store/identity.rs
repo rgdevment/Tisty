@@ -102,7 +102,6 @@ pub(crate) fn kept(paths: &crate::Paths, at: &Path, why: &str) -> Kept {
     }
 }
 
-/// A machine's own secret beside its name, as the device key and the share key are kept.
 pub(crate) fn device_file(
     paths: &crate::Paths,
     device: &crate::DeviceId,

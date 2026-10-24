@@ -351,7 +351,7 @@ fn typing_the_phrase_again_on_a_machine_brought_back_keeps_its_key() {
 }
 
 #[test]
-fn a_machine_brought_back_that_loses_its_key_is_vouched_for_again_on_its_own() {
+fn a_machine_brought_back_that_loses_its_key_needs_the_phrase_again() {
     let mut two = Two::new();
     let ops = revoked(&seed(), &two.state().persons, &device("dev_b"), at(200));
     two.wrote("dev_a", ops, 200);
@@ -369,10 +369,61 @@ fn a_machine_brought_back_that_loses_its_key_is_vouched_for_again_on_its_own() {
     let op = introduced(&two.second, &device("dev_b"), &two.state().persons).unwrap();
     two.wrote("dev_b", vec![op], 220);
 
-    assert_eq!(two.vouch(230), 1);
+    assert_eq!(
+        two.vouch(230),
+        0,
+        "a machine once taken back came in without the phrase"
+    );
+    let ops = begun(
+        &two.second,
+        &device("dev_b"),
+        &seed(),
+        &two.state().persons,
+        at(240),
+    )
+    .unwrap();
+    two.wrote("dev_b", ops, 240);
     assert_eq!(
         two.state().persons.person(&device("dev_b")),
         Some(seed().root().person())
+    );
+}
+
+#[test]
+fn a_clock_ahead_on_another_machine_does_not_let_a_machine_taken_back_in() {
+    let mut two = Two::new();
+    let key = mine(&two.second, &device("dev_b")).unwrap().public();
+    let ops = revoked(&seed(), &two.state().persons, &device("dev_b"), at(200));
+    two.wrote("dev_a", ops, 200);
+    two.wrote(
+        "dev_a",
+        vec![Op::ShareCertified {
+            c: seed().root().certify(&key, at(900)),
+        }],
+        900,
+    );
+    std::fs::remove_file(kept_at(&two.second, &device("dev_b")).unwrap()).unwrap();
+    let op = introduced(&two.second, &device("dev_b"), &two.state().persons).unwrap();
+    two.wrote("dev_b", vec![op], 910);
+
+    assert_eq!(two.vouch(920), 0);
+    assert_eq!(two.state().persons.person(&device("dev_b")), None);
+}
+
+#[test]
+fn a_key_said_again_does_not_come_back_ahead_of_a_newer_one() {
+    let mut two = Two::new();
+    let old = mine(&two.second, &device("dev_b")).unwrap().shown();
+    std::fs::remove_file(kept_at(&two.second, &device("dev_b")).unwrap()).unwrap();
+    let op = introduced(&two.second, &device("dev_b"), &two.state().persons).unwrap();
+    two.wrote("dev_b", vec![op], 130);
+    let newer = mine(&two.second, &device("dev_b")).unwrap().shown();
+
+    two.wrote("dev_b", vec![Op::ShareKey { p: old }], 140);
+
+    assert_eq!(
+        two.state().persons.keys[&device("dev_b")].last(),
+        Some(&newer)
     );
 }
 
