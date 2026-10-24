@@ -1,0 +1,205 @@
+use super::*;
+use crate::fakes::Fake;
+use tisty_share_proto::seed::Seed;
+
+fn key(byte: u8) -> CloudKey {
+    CloudKey::of(&Seed::from_bytes(&[byte; 32]))
+}
+
+fn over_drive() -> Sealed<Fake> {
+    Sealed::new(Fake::drive(), key(7), "store_one")
+}
+
+fn put(remote: &dyn Remote, name: &str, body: &[u8]) -> Seen {
+    let dir = tempfile::tempdir().unwrap();
+    let at = dir.path().join("body");
+    std::fs::write(&at, body).unwrap();
+    remote.put(name, &at, Expect::Any).unwrap()
+}
+
+fn fetched(remote: &dyn Remote, name: &str) -> Result<Vec<u8>, Hitch> {
+    let mut got = Vec::new();
+    remote.fetch(name, 0, &mut got)?;
+    Ok(got)
+}
+
+fn names(many: Vec<Seen>) -> Vec<String> {
+    let mut names: Vec<String> = many.into_iter().map(|one| one.name).collect();
+    names.sort();
+    names
+}
+
+#[test]
+fn a_file_comes_back_as_it_went_and_the_provider_holds_only_sealed_bytes() {
+    let sealed = over_drive();
+
+    let sent = put(&sealed, "docs/a.md", b"hola");
+
+    assert_eq!(sent.name, "docs/a.md");
+    assert_eq!(sent.bytes, 4);
+    let plain = tempfile::NamedTempFile::new().unwrap();
+    std::fs::write(plain.path(), b"hola").unwrap();
+    assert_eq!(sent.hash, sealed.hash_of(plain.path()).unwrap());
+    let up_there = fetched(&sealed.inner, "sealed/docs/a.md").unwrap();
+    assert!(up_there.starts_with(b"\xffTCS"));
+    assert!(!up_there.windows(4).any(|part| part == b"hola"));
+    assert_eq!(fetched(&sealed, "docs/a.md").unwrap(), b"hola");
+}
+
+#[test]
+fn the_three_files_every_build_must_read_stay_plain_and_in_place() {
+    let sealed = over_drive();
+    for (name, body) in [
+        (NAMED, b"shape = 3\n".as_slice()),
+        (tisty_core::moved::NAMED, b"{}".as_slice()),
+        ("store/.store-id", b"store_one".as_slice()),
+    ] {
+        put(&sealed, name, body);
+
+        assert_eq!(fetched(&sealed.inner, name).unwrap(), body, "{name}");
+        assert_eq!(fetched(&sealed, name).unwrap(), body, "{name}");
+    }
+}
+
+#[test]
+fn only_what_is_sealed_and_the_plain_three_are_seen() {
+    let sealed = over_drive();
+    put(&sealed.inner, "docs/old.md", b"in the clear");
+    put(&sealed.inner, "sealed/sealed.mark", b"mark");
+    put(&sealed, "docs/a.md", b"hola");
+    put(&sealed, "store/dev_a/1.tisty", b"segment");
+    put(&sealed, NAMED, b"shape = 3\n");
+    put(&sealed, "store/.store-id", b"store_one");
+
+    let seen = sealed.list("").unwrap();
+
+    assert_eq!(
+        names(seen.clone()),
+        ["docs/a.md", "store/.store-id", "store/dev_a/1.tisty", NAMED]
+    );
+    let held = seen.iter().find(|one| one.name == "docs/a.md").unwrap();
+    assert_eq!(held.bytes, 4);
+    assert!(held.hash.is_empty());
+    assert_eq!(names(sealed.list("docs").unwrap()), ["docs/a.md"]);
+    assert_eq!(
+        names(sealed.list("store").unwrap()),
+        ["store/.store-id", "store/dev_a/1.tisty"]
+    );
+}
+
+#[test]
+fn another_phrase_does_not_open_it() {
+    let sealed = over_drive();
+    put(&sealed, "docs/a.md", b"hola");
+    let other = Sealed::new(sealed.inner, key(8), "store_one");
+
+    assert!(matches!(fetched(&other, "docs/a.md"), Err(Hitch::Broke(_))));
+}
+
+#[test]
+fn a_sealed_file_copied_under_another_name_does_not_open() {
+    let sealed = over_drive();
+    put(&sealed, "docs/a.md", b"hola");
+    let bytes = fetched(&sealed.inner, "sealed/docs/a.md").unwrap();
+    put(&sealed.inner, "sealed/docs/b.md", &bytes);
+
+    assert!(matches!(
+        fetched(&sealed, "docs/b.md"),
+        Err(Hitch::Broke(_))
+    ));
+    assert_eq!(fetched(&sealed, "docs/a.md").unwrap(), b"hola");
+}
+
+#[test]
+fn a_file_that_was_never_sealed_inside_the_folder_does_not_pass_as_plain_text() {
+    let sealed = over_drive();
+    put(&sealed.inner, "sealed/docs/a.md", b"plain text");
+
+    assert!(matches!(
+        fetched(&sealed, "docs/a.md"),
+        Err(Hitch::Broke(_))
+    ));
+}
+
+#[test]
+fn a_move_seals_the_file_again_under_its_new_name() {
+    let sealed = over_drive();
+    put(&sealed, "docs/a.md", b"hola");
+
+    sealed.renamed("docs/a.md", "docs/b.md").unwrap();
+
+    assert_eq!(fetched(&sealed, "docs/b.md").unwrap(), b"hola");
+    assert!(sealed.about("docs/a.md").unwrap().is_none());
+    assert_eq!(names(sealed.list("").unwrap()), ["docs/b.md"]);
+}
+
+#[test]
+fn a_delete_reaches_the_sealed_copy() {
+    let sealed = over_drive();
+    put(&sealed, "docs/a.md", b"hola");
+
+    sealed.delete("docs/a.md", None).unwrap();
+
+    assert!(sealed.about("docs/a.md").unwrap().is_none());
+    assert!(sealed.list("").unwrap().is_empty());
+}
+
+#[test]
+fn about_and_changes_speak_of_the_name_and_size_the_file_has_in_the_clear() {
+    let sealed = over_drive();
+    put(&sealed, "docs/a.md", b"hola");
+
+    let seen = sealed.about("docs/a.md").unwrap().unwrap();
+    assert_eq!((seen.name.as_str(), seen.bytes), ("docs/a.md", 4));
+    let Changes::Whole { seen, cursor } = sealed.changes(None).unwrap() else {
+        panic!("the first look is the whole listing");
+    };
+    assert_eq!(names(seen), ["docs/a.md"]);
+    put(&sealed, "docs/b.md", b"adios");
+    let Changes::Since { changed, .. } = sealed.changes(Some(&cursor)).unwrap() else {
+        panic!("asking from a cursor brings only what moved");
+    };
+    assert_eq!(names(changed), ["docs/b.md"]);
+}
+
+#[test]
+fn a_sealed_file_is_not_fetched_from_the_middle_and_is_never_lent() {
+    let sealed = over_drive();
+    put(&sealed, "docs/a.md", b"hola");
+
+    assert!(sealed.fetch("docs/a.md", 2, &mut Vec::new()).is_err());
+    assert_eq!(sealed.lends("docs/a.md").unwrap(), None);
+}
+
+#[test]
+fn a_provider_ceiling_leaves_room_for_the_seal() {
+    let sealed = over_drive();
+
+    let (inner, ours) = (sealed.inner.limits(), sealed.limits());
+
+    assert!(ours.most_per_file < inner.most_per_file);
+    assert_eq!(ours.chunk, inner.chunk);
+}
+
+#[test]
+fn the_size_in_the_clear_is_read_back_from_the_sealed_size() {
+    let key = key(7);
+    for plain in [0usize, 1, 100, 65_535, 65_536, 65_537, 131_072, 200_000] {
+        let body = vec![5u8; plain];
+        let sealed =
+            tisty_share_proto::cloud::sealed(&key, "store_one", "docs/a.md", &body).unwrap();
+
+        assert_eq!(
+            plain_len(sealed.len() as u64),
+            Some(plain as u64),
+            "{plain}"
+        );
+        assert_eq!(
+            sealed.len() as u64,
+            plain as u64 + overhead(plain as u64),
+            "{plain}"
+        );
+    }
+    assert_eq!(plain_len(23), None);
+    assert_eq!(plain_len(HEADER + 5), None);
+}
