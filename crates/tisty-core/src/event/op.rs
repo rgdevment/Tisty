@@ -88,6 +88,9 @@ pub const KNOWN_OPS: &[&str] = &[
     "attach.let_go",
     "attach.retire",
     "stores.joined",
+    "share.key",
+    "share.certified",
+    "share.revoked",
 ];
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -264,6 +267,21 @@ pub enum Op {
 
     #[serde(rename = "stores.joined")]
     StoresJoined { d: Stitch },
+
+    /// A machine's own word for the key it signs shared documents with; nobody else's counts.
+    #[serde(rename = "share.key")]
+    ShareKey { p: String },
+    #[serde(rename = "share.certified")]
+    ShareCertified {
+        c: tisty_share_proto::identity::Certificate,
+    },
+    #[serde(rename = "share.revoked")]
+    ShareRevoked {
+        r: tisty_share_proto::identity::Revocation,
+        /// The person taking a machine back, not a key it stopped using: only this keeps it out.
+        #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+        machine: bool,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -330,6 +348,9 @@ impl Op {
                 | Op::DeviceKey { .. }
                 | Op::DeviceRotate { .. }
                 | Op::DeviceNamed { .. }
+                | Op::ShareKey { .. }
+                | Op::ShareCertified { .. }
+                | Op::ShareRevoked { .. }
                 | Op::DocMove {
                     d: Filed {
                         folder: None,
@@ -345,6 +366,9 @@ impl Op {
         matches!(
             self,
             Op::Signed { .. }
+                | Op::ShareKey { .. }
+                | Op::ShareCertified { .. }
+                | Op::ShareRevoked { .. }
                 | Op::DeviceHost { .. }
                 | Op::DeviceNamed { .. }
                 | Op::DocFlag { .. }
@@ -418,7 +442,10 @@ impl Op {
             | Op::AttachKept { .. }
             | Op::AttachLetGo { .. }
             | Op::AttachRetire { .. }
-            | Op::StoresJoined { .. } => self,
+            | Op::StoresJoined { .. }
+            | Op::ShareKey { .. }
+            | Op::ShareCertified { .. }
+            | Op::ShareRevoked { .. } => self,
         }
     }
 
@@ -559,7 +586,10 @@ impl Op {
             | Op::AttachKept { .. }
             | Op::AttachLetGo { .. }
             | Op::AttachRetire { .. }
-            | Op::StoresJoined { .. } => None,
+            | Op::StoresJoined { .. }
+            | Op::ShareKey { .. }
+            | Op::ShareCertified { .. }
+            | Op::ShareRevoked { .. } => None,
         }
     }
 }

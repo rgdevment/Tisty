@@ -2,6 +2,8 @@ pub mod identity;
 pub mod phrase;
 pub mod seed;
 
+pub use ed25519_dalek::VerifyingKey;
+
 #[cfg(feature = "mint")]
 fn minted() -> Option<zeroize::Zeroizing<[u8; 32]>> {
     let mut fresh = zeroize::Zeroizing::new([0u8; 32]);

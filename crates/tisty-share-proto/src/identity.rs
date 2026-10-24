@@ -69,6 +69,10 @@ impl ShareKey {
         self.0.verifying_key()
     }
 
+    pub fn shown(&self) -> String {
+        encoded(self.0.verifying_key().as_bytes())
+    }
+
     /// None unless the certificate holds and vouches for this very key: a signature nobody could check.
     pub fn sign(&self, certificate: &Certificate, about: &str, said: &[u8]) -> Option<Signed> {
         let vouched = certificate.vouches().ok()?;
@@ -87,7 +91,7 @@ pub struct Person(VerifyingKey);
 
 impl Person {
     pub fn read(said: &str) -> Option<Self> {
-        key(said).map(Self)
+        public_key(said).map(Self)
     }
 
     pub fn shown(&self) -> String {
@@ -144,6 +148,15 @@ pub enum Fault {
 }
 
 impl Certificate {
+    /// What it claims, without checking the root signed it: only for records already checked once.
+    pub fn unchecked(&self) -> Option<Vouched> {
+        Some(Vouched {
+            person: Person(public_key(&self.root)?),
+            share: public_key(&self.share)?,
+            since: self.since,
+        })
+    }
+
     pub fn vouches(&self) -> Result<Vouched, Fault> {
         let (root, share) = attested(CERTIFIED, &self.root, &self.share, self.since, &self.sig)?;
         Ok(Vouched {
@@ -166,8 +179,18 @@ pub struct Revocation {
 impl Revocation {
     /// Only the root that vouched can take a key back, and for good: a machine found again gets a new key.
     pub fn takes_back(&self, vouched: &Vouched) -> bool {
+        self.holds()
+            .is_ok_and(|(person, share)| person == vouched.person && share == vouched.share)
+    }
+
+    /// What it claims, without checking the root signed it: only for records already checked once.
+    pub fn unchecked(&self) -> Option<(Person, VerifyingKey)> {
+        Some((Person(public_key(&self.root)?), public_key(&self.share)?))
+    }
+
+    pub fn holds(&self) -> Result<(Person, VerifyingKey), Fault> {
         attested(REVOKED, &self.root, &self.share, self.at, &self.sig)
-            .is_ok_and(|(root, share)| root == vouched.person.0 && share == vouched.share)
+            .map(|(root, share)| (Person(root), share))
     }
 }
 
@@ -271,7 +294,9 @@ fn attested(
     when: Timestamp,
     sig: &str,
 ) -> Result<(VerifyingKey, VerifyingKey), Fault> {
-    let (Some(root), Some(share), Some(sig)) = (key(root), key(share), signature(sig)) else {
+    let (Some(root), Some(share), Some(sig)) =
+        (public_key(root), public_key(share), signature(sig))
+    else {
         return Err(Fault::Unreadable);
     };
     if when.subsec_nanosecond() != 0
@@ -292,7 +317,7 @@ fn between(kind: &[u8], root: &VerifyingKey, share: &VerifyingKey, when: Timesta
     out
 }
 
-fn key(said: &str) -> Option<VerifyingKey> {
+pub fn public_key(said: &str) -> Option<VerifyingKey> {
     VerifyingKey::from_bytes(&decoded::<32>(said)?).ok()
 }
 

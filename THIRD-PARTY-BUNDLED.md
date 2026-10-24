@@ -160,7 +160,7 @@ written once with the crates that carry it.
 | `uuid` | 14.0.3 | MIT |
 | `w3c-keyname` | 2.2.8 | MIT |
 
-## In the core (360 crates)
+## In the core (364 crates)
 
 | Crate | Version | Licence |
 | --- | --- | --- |
@@ -173,11 +173,14 @@ written once with the crates that carry it.
 | `anyhow` | 1.0.104 | MIT OR Apache-2.0 |
 | `apple-native-keyring-store` | 1.0.2 | MIT OR Apache-2.0 |
 | `arboard` | 3.7.0 | MIT OR Apache-2.0 |
+| `arrayvec` | 0.7.8 | MIT OR Apache-2.0 |
 | `atomic-waker` | 1.1.2 | Apache-2.0 OR MIT |
 | `aws-lc-rs` | 1.18.2 | ISC AND (Apache-2.0 OR ISC) |
 | `aws-lc-sys` | 0.46.0 | ISC AND (Apache-2.0 OR ISC) AND Apache-2.0 AND MIT AND BSD-3-Clause AND (Apache-2.0 OR ISC OR MIT) AND (Apache-2.0 OR ISC OR MIT-0) |
 | `base64` | 0.22.1 | MIT OR Apache-2.0 |
 | `base64` | 0.23.1 | MIT OR Apache-2.0 |
+| `bip39` | 3.0.0 | CC0-1.0 |
+| `bitcoin_hashes` | 0.14.101 | CC0-1.0 |
 | `bitflags` | 2.13.2 | MIT OR Apache-2.0 |
 | `block-buffer` | 0.12.1 | MIT OR Apache-2.0 |
 | `block2` | 0.6.2 | MIT |
@@ -261,6 +264,7 @@ written once with the crates that carry it.
 | `hashbrown` | 0.17.1 | MIT OR Apache-2.0 |
 | `hashlink` | 0.12.2 | MIT OR Apache-2.0 |
 | `heck` | 0.5.0 | MIT OR Apache-2.0 |
+| `hex-conservative` | 0.2.3 | CC0-1.0 |
 | `hmac` | 0.13.0 | MIT OR Apache-2.0 |
 | `htmd` | 0.5.6 | Apache-2.0 |
 | `html5ever` | 0.38.0 | MIT OR Apache-2.0 |
