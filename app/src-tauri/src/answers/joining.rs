@@ -175,11 +175,12 @@ pub struct Joining {
 #[tauri::command(async)]
 pub fn joining(session: tauri::State<'_, Mutex<Session>>) -> Answer<Joining> {
     let (carrier, here) = carrier_and_here(&session)?;
-    carrier.refuses().map_err(said)?;
     let signed = carrier.signed();
+    let kin = kinned(carrier.kin(&here));
+    carrier.refuses().map_err(said)?;
     let store = here.data.join(tisty_carrier::STORE);
     Ok(Joining {
-        kin: kinned(carrier.kin(&here)),
+        kin,
         fresh: !tisty_core::store::inhabited(&store),
         holds: carrier.holds_a_store(),
         alias: signed.alias,

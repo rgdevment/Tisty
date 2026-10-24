@@ -167,7 +167,12 @@ fn heeded(
 ) -> Result<(), Hitch> {
     let listed = match told {
         Changes::Whole { seen, .. } if !seen.iter().any(|one| one.name == NAMED) => return Ok(()),
-        Changes::Since { gone, .. } if gone.iter().any(|name| name == NAMED) => return Ok(()),
+        Changes::Since { changed, gone, .. }
+            if gone.iter().any(|name| name == NAMED)
+                && !changed.iter().any(|one| one.name == NAMED) =>
+        {
+            return Ok(());
+        }
         Changes::Whole { seen, .. } => seen,
         Changes::Since { changed, .. } => changed,
     };
@@ -189,7 +194,10 @@ fn heeded(
             }
         }
     }
-    tisty_sync::refuses(tree).map_err(Hitch::Barred)
+    match tisty_sync::refuses(tree) {
+        Err(tisty_sync::Trouble::NotThere(at)) => Err(Hitch::Troubled(at)),
+        refused => refused.map_err(Hitch::Barred),
+    }
 }
 
 fn heal(tree: &Path, index: &mut Index) {

@@ -437,7 +437,11 @@ impl Cloud {
         if stir.asked_ms > 0 && now >= stir.asked_ms && now - stir.asked_ms < stir.every_ms {
             return stir.mark;
         }
-        if resting::left(&self.home).is_some() || tisty_sync::refuses(&self.tree()).is_err() {
+        let later = matches!(
+            tisty_sync::refuses(&self.tree()),
+            Err(Trouble::Needs(_) | Trouble::Shape(_))
+        );
+        if resting::left(&self.home).is_some() || later {
             return stir.mark;
         }
         stir.asked_ms = now;

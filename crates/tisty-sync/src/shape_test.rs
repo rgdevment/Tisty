@@ -297,7 +297,7 @@ fn a_later_builds_tables_and_spread_arrays_survive_a_round_here() {
     assert!(!said.contains("  \"store\",\n"), "{said}");
     assert_eq!(said.matches("folders =").count(), 1, "{said}");
     assert!(
-        matches!(told(&dest), Told::Shape { shape: OURS, needs: Some(needs) } if needs == NEEDS)
+        matches!(told(&dest), Told::Shape { shape: OURS, needs: Some(needs), .. } if needs == NEEDS)
     );
 }
 
@@ -307,4 +307,38 @@ fn a_place_whose_word_cannot_be_opened_just_now_is_not_there_rather_than_unshape
     std::fs::create_dir_all(dest.join(NAMED)).unwrap();
 
     assert!(matches!(refuses(&dest), Err(Trouble::NotThere(_))));
+}
+
+#[test]
+fn a_word_that_is_not_text_is_unshaped_rather_than_not_there() {
+    let (_room, _data, dest) = a_place();
+    std::fs::write(dest.join(NAMED), b"shape = 3\n\xff\xfe\n").unwrap();
+
+    assert!(matches!(refuses(&dest), Err(Trouble::Unshaped(_))));
+}
+
+#[test]
+fn a_later_builds_nested_arrays_do_not_hide_what_it_needs() {
+    let (_room, data, dest) = a_place();
+    std::fs::write(
+        dest.join(NAMED),
+        "shape = 2\nmachines = [\n  [\"x\", 1],\n  [\"y\", 2],\n]\nneeds = \"1.30.0\"\n",
+    )
+    .unwrap();
+
+    assert!(raise_first(&data, &dest));
+
+    let said = std::fs::read_to_string(dest.join(NAMED)).unwrap();
+    assert!(
+        said.contains("machines = [\n  [\"x\", 1],\n  [\"y\", 2],\n]\n"),
+        "{said}"
+    );
+    assert_eq!(said.matches("needs =").count(), 1, "{said}");
+
+    std::fs::write(
+        dest.join(NAMED),
+        "shape = 3\nmachines = [\n  [\"x\", 1],\n]\nneeds = \"999.0.0\"\n",
+    )
+    .unwrap();
+    assert_eq!(refuses(&dest), Err(Trouble::Needs("999.0.0".to_string())));
 }
