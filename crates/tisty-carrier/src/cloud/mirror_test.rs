@@ -168,3 +168,25 @@ fn a_cloud_asking_for_a_later_tisty_brings_nothing_else_down() {
     assert!(index.owed.contains_key(&format!("{PAPERS}/dev_b-0001.md")));
     assert!(index.cursor.is_none(), "the listing was taken as read");
 }
+
+#[test]
+fn a_place_whose_word_cannot_come_down_brings_nothing_else_either() {
+    let room = tempfile::tempdir().unwrap();
+    let tree = room.path().join("tree");
+    std::fs::create_dir_all(&tree).unwrap();
+    let fake = Fake::drive();
+    let said = room.path().join("said");
+    std::fs::write(&said, "shape = 3\nneeds = \"999.0.0\"\n").unwrap();
+    fake.put(NAMED, &said, Expect::Absent).unwrap();
+    fake.put(&format!("{PAPERS}/dev_b-0001.md"), &said, Expect::Absent)
+        .unwrap();
+    fake.truncate_next(1);
+    let mut index = Index::default();
+
+    let pulled = pull(&fake, &tree, &mut index, None, false, &mut |_| {});
+
+    assert!(matches!(pulled, Err(Hitch::Troubled(_))), "{pulled:?}");
+    assert!(!tree.join(PAPERS).join("dev_b-0001.md").exists());
+    assert_eq!(index.owed.len(), 2);
+    assert!(index.cursor.is_none(), "the listing was taken as read");
+}

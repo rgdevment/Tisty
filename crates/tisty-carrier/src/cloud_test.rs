@@ -1197,6 +1197,8 @@ fn a_file_that_cannot_come_down_owes_itself_without_holding_the_cursor_back() {
         let who = &setting.name;
         let (one, two) = pair(&setting);
         one.filed(DOC, "# Plan\n\nlo escrito\n");
+        one.round(Way::Both);
+        two.round(Way::Pull);
         one.wrote("lo de uno");
         one.round(Way::Both);
         fake.truncate_next(usize::MAX);
