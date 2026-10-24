@@ -204,10 +204,7 @@ impl Cache {
             .meta("runs")
             .and_then(|said| serde_json::from_str(&said).ok())
             .unwrap_or_default();
-        state.sealed = self
-            .meta("sealed")
-            .and_then(|said| serde_json::from_str(&said).ok())
-            .unwrap_or_default();
+        state.sealed = serde_json::from_str(&self.meta("sealed")?).ok()?;
         // Read back whole or not at all: an empty person here would quietly unsay every certificate.
         state.persons = serde_json::from_str(&self.meta("persons")?).ok()?;
         state.fill = if bodies {

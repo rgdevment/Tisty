@@ -520,10 +520,13 @@ fn a_cloud_read_from_another_root_starts_the_mirror_over_and_a_plain_index_says_
     assert!(plain.get("root").is_none(), "{plain}");
     let stale = home.join("tree").join("stale.md");
     std::fs::write(&stale, "de la raíz vieja").unwrap();
-    let space = Arc::new(Fake::drive());
+    let key = tisty_share_proto::cloud::CloudKey::of(&tisty_share_proto::seed::Seed::from_bytes(
+        &[7; 32],
+    ));
+    let space = Arc::new(crate::Sealed::new(Fake::drive(), key, "store_one"));
     let sealed = Desk {
         here: one.here.clone(),
-        carrier: Arc::new(Cloud::sealed_over(space.clone(), home.clone())),
+        carrier: Arc::new(Cloud::over(space.clone(), home.clone())),
     };
 
     let done = sealed.round(Way::Both);

@@ -101,15 +101,19 @@ impl State {
     }
 
     fn cloud_sealed(&mut self, event: &Event, store: &str, key: Option<&str>) {
+        let store = crate::called::cleaned(store);
         if store.is_empty()
             || !self.devices.contains(&event.device)
             || self.agents.contains(&event.device)
         {
             return;
         }
-        match key.filter(|one| !one.is_empty()) {
-            Some(key) => self.sealed.insert(store.to_string(), key.to_string()),
-            None => self.sealed.remove(store),
+        match key
+            .map(crate::called::cleaned)
+            .filter(|one| !one.is_empty())
+        {
+            Some(key) => self.sealed.insert(store, key),
+            None => self.sealed.remove(&store),
         };
     }
 

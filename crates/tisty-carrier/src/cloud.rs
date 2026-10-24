@@ -105,17 +105,21 @@ impl Cloud {
 
     pub fn over(remote: Arc<dyn Remote>, home: impl Into<PathBuf>) -> Self {
         Self {
+            root: remote.root().to_string(),
             remote,
             home: home.into(),
             tried: AtomicBool::new(false),
-            root: String::new(),
         }
     }
 
-    pub fn sealed_over(remote: Arc<dyn Remote>, home: impl Into<PathBuf>) -> Self {
-        Self {
-            root: crate::sealed::INSIDE.to_string(),
-            ..Self::over(remote, home)
+    fn index(&self) -> Index {
+        let index = Index::load(&self.home);
+        match index.root == self.root {
+            true => index,
+            false => Index {
+                root: self.root.clone(),
+                ..Index::default()
+            },
         }
     }
 
@@ -196,8 +200,7 @@ impl Cloud {
         mirror::sweep(&tree);
         let metered = Metered::over(&*self.remote, &self.home, Class::History);
         let remote: &dyn Remote = &metered;
-        let mut index = Index::load(&self.home);
-        index.root.clone_from(&self.root);
+        let mut index = self.index();
         let data = here.map(|here| here.data.as_path());
         let pulled = mirror::pull(remote, &tree, &mut index, data, turn.homes, along);
         // A store deleted whole leaves nothing to bring home, so a move away goes on, while a round here still says it is gone.
@@ -335,6 +338,7 @@ impl Cloud {
         )?;
         let read = Index {
             cursor: index.cursor.take(),
+            root: std::mem::take(&mut index.root),
             vanished: std::mem::take(&mut index.vanished),
             ..Index::default()
         };
@@ -454,7 +458,7 @@ impl Cloud {
         }
         stir.asked_ms = now;
         let every = Duration::from_millis(stir.every_ms);
-        let index = Index::load(&self.home);
+        let index = self.index();
         let metered = Metered::over(&*self.remote, &self.home, Class::History);
         let asked = if tisty_sync::later(&self.tree()).is_some() {
             mirror::word_moved(&metered, &index).map(|moved| {
@@ -491,7 +495,7 @@ impl Cloud {
     }
 
     fn fresh(&self) -> PathBuf {
-        if !Index::load(&self.home).pulled() && !self.tried.swap(true, Ordering::Relaxed) {
+        if !self.index().pulled() && !self.tried.swap(true, Ordering::Relaxed) {
             let _ = self.with_mirror(None, PASSING, |_, _, _| Ok(((), None)));
         }
         self.tree()
@@ -649,12 +653,12 @@ impl Carrier for Cloud {
             return Ok(Brought::Absent);
         }
         let logged = state.kept.get(reference).map(|(sha256, _)| sha256.as_str());
-        let mut index = Index::load(&self.home);
+        let mut index = self.index();
         let home = tisty_core::attach::resolve(reference, &here.data).is_ok_and(|at| at.is_file());
         // Read again before saying it is gone, as a machine may have put it back since.
         if !home && index.vanished.contains(reference) {
             self.looked_again();
-            index = Index::load(&self.home);
+            index = self.index();
         }
         if !home && index.spoiled(reference) {
             return Err(Trouble::Broke(format!(
@@ -678,7 +682,7 @@ impl Carrier for Cloud {
     }
 
     fn shelf(&self) -> Option<std::collections::BTreeMap<String, u64>> {
-        let index = Index::load(&self.home);
+        let index = self.index();
         index.pulled().then(|| {
             index
                 .shelf
@@ -739,7 +743,7 @@ impl Carrier for Cloud {
     }
 
     fn hears(&self) -> Option<Box<dyn Watch>> {
-        let index = Index::load(&self.home);
+        let index = self.index();
         let pushed = index.cursor.as_deref().and_then(|cursor| {
             Metered::over(&*self.remote, &self.home, Class::History).hears(cursor)
         });
@@ -773,7 +777,7 @@ impl Carrier for Cloud {
             told: &mut |_| true,
             only_counting: true,
         };
-        shelf::let_go(&*self.remote, &Index::load(&self.home), &here.data, letting)
+        shelf::let_go(&*self.remote, &self.index(), &here.data, letting)
     }
 
     fn set_free(

@@ -51,7 +51,6 @@ pub fn outdated(home: &Path) -> bool {
         .is_some_and(|index| index.layout < LAYOUT)
 }
 
-/// Revisions, cursor and what is owed belong to the root they were read from, so another root reads none of them.
 pub fn rooted_elsewhere(home: &Path, root: &str) -> bool {
     std::fs::read(home.join(FILE))
         .ok()

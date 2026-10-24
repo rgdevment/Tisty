@@ -51,7 +51,7 @@ fn broke(e: impl ToString) -> Hitch {
 }
 
 const MARK: &str = "sealed.mark";
-const MARK_AT: &str = "sealed/sealed.mark";
+const MARK_AT_MOST: u64 = 512;
 
 fn named_back(hitch: Hitch, inner: &str, name: &str) -> Hitch {
     match hitch {
@@ -87,8 +87,14 @@ impl<R: Remote> Sealed<R> {
     }
 
     pub fn marked(&self) -> Result<Option<Mark>, Hitch> {
+        let at = format!("{INSIDE}/{MARK}");
+        match self.inner.about(&at)? {
+            None => return Ok(None),
+            Some(there) if there.bytes > MARK_AT_MOST => return Ok(Some(Mark::Damaged)),
+            Some(_) => {}
+        }
         let mut said = Vec::new();
-        match self.inner.fetch(MARK_AT, 0, &mut said) {
+        match self.inner.fetch(&at, 0, &mut said) {
             Ok(_) => Ok(Some(mark_says(&self.key, &self.cloud, &said))),
             Err(Hitch::Missing(_)) => Ok(None),
             Err(other) => Err(other),
@@ -101,7 +107,12 @@ impl<R: Remote> Sealed<R> {
         let mut file = held.create().map_err(broke)?;
         file.write_all(&said).map_err(broke)?;
         drop(file);
-        self.inner.put(MARK_AT, &held.0, Expect::Absent).map(|_| ())
+        self.inner
+            .put(&format!("{INSIDE}/{MARK}"), &held.0, Expect::Absent)?;
+        match self.marked()? {
+            Some(Mark::Holds) => Ok(()),
+            _ => Err(broke("another machine marked this cloud first")),
+        }
     }
 
     fn folds(&self) -> bool {
@@ -329,6 +340,10 @@ impl<R: Remote> Remote for Sealed<R> {
 
     fn moved_on(&self) {
         self.inner.moved_on();
+    }
+
+    fn root(&self) -> &str {
+        INSIDE
     }
 }
 
