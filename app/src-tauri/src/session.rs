@@ -856,18 +856,10 @@ impl Session {
 
     pub fn say_its_version(&mut self) -> tisty_core::Result<()> {
         let who = self.config.device_id.clone();
-        if !self.state.devices.contains(&who)
-            || self
-                .state
-                .runs
-                .get(&who)
-                .is_some_and(|v| v == tisty_core::VERSION)
-        {
-            return Ok(());
+        match self.state.runs_to_say(&who, tisty_core::VERSION) {
+            Some(op) => self.commit(op),
+            None => Ok(()),
         }
-        self.commit(Op::DeviceRuns {
-            v: tisty_core::VERSION.to_string(),
-        })
     }
 
     pub fn take_a_seat(&mut self) -> tisty_core::Result<()> {

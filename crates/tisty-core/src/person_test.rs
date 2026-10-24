@@ -754,3 +754,40 @@ fn the_version_op_is_optional_and_settles() {
     assert!(op.settles());
     assert!(!op.destroys());
 }
+
+#[test]
+fn a_machine_says_its_version_only_when_it_is_on_the_list_and_it_changed() {
+    let mut events = vec![joined("dev_a", DeviceKind::Machine)];
+
+    let state = State::replay(&events);
+    assert!(state.runs_to_say(&device("dev_x"), "1.34.0").is_none());
+    assert_eq!(
+        state.runs_to_say(&device("dev_a"), "1.34.0"),
+        Some(runs("1.34.0"))
+    );
+
+    events.push(said("dev_a", runs("1.34.0"), 100));
+    let state = State::replay(&events);
+    assert!(state.runs_to_say(&device("dev_a"), "1.34.0").is_none());
+    assert_eq!(
+        state.runs_to_say(&device("dev_a"), "1.35.0"),
+        Some(runs("1.35.0"))
+    );
+}
+
+#[test]
+fn a_version_the_log_would_clean_is_not_said_again_every_round() {
+    let long = format!("1.34.0-{}", "x".repeat(100));
+    let mut events = vec![joined("dev_a", DeviceKind::Machine)];
+    let Some(Op::DeviceRuns { v }) = State::replay(&events).runs_to_say(&device("dev_a"), &long)
+    else {
+        panic!("a machine on the list says its version");
+    };
+    events.push(said("dev_a", Op::DeviceRuns { v }, 100));
+
+    assert!(
+        State::replay(&events)
+            .runs_to_say(&device("dev_a"), &long)
+            .is_none()
+    );
+}

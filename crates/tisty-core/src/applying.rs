@@ -92,6 +92,13 @@ impl State {
         self.runs.insert(event.device.clone(), v);
     }
 
+    pub fn runs_to_say(&self, who: &DeviceId, version: &str) -> Option<crate::Op> {
+        let v = crate::called::cleaned(version);
+        let unchanged = self.runs.get(who) == Some(&v);
+        (self.devices.contains(who) && !v.is_empty() && !unchanged)
+            .then_some(crate::Op::DeviceRuns { v })
+    }
+
     pub(crate) fn stores_joined(&mut self, d: &crate::event::Stitch) {
         self.forebears.insert(d.absorbed.clone());
         self.forebears.insert(d.survivor.clone());
