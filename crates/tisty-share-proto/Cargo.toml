@@ -17,6 +17,7 @@ mint = ["dep:rand_core"]
 [dependencies]
 base64.workspace = true
 bip39.workspace = true
+chacha20poly1305.workspace = true
 ed25519-dalek.workspace = true
 hmac.workspace = true
 jiff.workspace = true
