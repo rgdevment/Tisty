@@ -1,7 +1,6 @@
 use std::sync::Mutex;
 
 use tauri::{Emitter, Manager};
-use tisty_core::Op;
 use tisty_core::witness::{self, Fact, channel};
 
 use crate::{
@@ -1027,6 +1026,7 @@ async fn carried_round(
     let at = paths.clone();
     let read = elsewhere(move || tisty_core::tidy::bodies_of(&at, &books)).await?;
 
+    let seed = crate::identity::for_a_round(session).await;
     let mut session = held(session);
     session.settle_what_came(&read, since);
     session.swept(&was_swept, walked);
@@ -1037,6 +1037,7 @@ async fn carried_round(
             &[("why", Fact::Why(e.to_string()))],
         );
     }
+    crate::identity::after_a_round(&mut session, seed.as_ref());
     let unsettled = done.undecided.len()
         + done.unreadable.len()
         + done.disowned.len()
@@ -1270,76 +1271,6 @@ pub fn retire_attachments(
     references: Vec<String>,
 ) -> Answer<usize> {
     held(&session).retire(&references, tisty_core::attach::Retired::Unused)
-}
-
-#[tauri::command]
-pub fn remove_machine(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
-    let mut session = held(&session);
-    let who = tisty_core::event::DeviceId(id.clone());
-    if who == session.config.device_id {
-        return Err(Refusal::of("notThisMachine"));
-    }
-
-    session
-        .commit(Op::DeviceRemove { d: who })
-        .map_err(|e| blamed(channel::STORE, "the machine could not be removed", e))?;
-    session.reproject().map_err(|e| {
-        blamed(
-            channel::CACHE,
-            "the store would not project after removing",
-            e,
-        )
-    })?;
-
-    witness::note(
-        channel::SYNC,
-        "a machine was removed and what it wrote was left where everyone can still read it",
-        &[("at", Fact::Id(id))],
-    );
-    Ok(())
-}
-
-/// The key travels back from the window so a claim that changed between the reading and the
-/// answering is refused instead of confirmed.
-#[tauri::command(async)]
-pub fn confirm_machine_key(
-    session: tauri::State<'_, Mutex<Session>>,
-    id: String,
-    key: String,
-) -> Answer<()> {
-    if !tisty_core::store::is_device_name(&id) {
-        return Err(Refusal::of("keyNotConfirmed"));
-    }
-    let who = tisty_core::event::DeviceId(id.clone());
-    // Read out under the lock and let go of it: a waiting history may be long.
-    let (known, histories, paths) = {
-        let session = held(&session);
-        (
-            session.state.keys.get(&who).cloned(),
-            session.histories(),
-            session.paths.clone(),
-        )
-    };
-    let says = known.or_else(|| {
-        tisty_core::store::key_said_in(&histories?.join(tisty_carrier::STORE).join(&id), &who)
-    });
-    if says.as_deref() != Some(key.as_str()) {
-        return Err(Refusal::of("keyMoved"));
-    }
-    // Written under the lock again, so two confirms or a round never rewrite the waiting list at once.
-    let _held = held(&session);
-    if !tisty_core::vouched::confirm(paths.data(), &who, &key) {
-        return Err(Refusal::of("keyNotConfirmed"));
-    }
-
-    tisty_carrier::turned::let_through(paths.data(), &id);
-
-    witness::note(
-        channel::SYNC,
-        "somebody answered for the key a machine signs with",
-        &[("at", Fact::Id(id))],
-    );
-    Ok(())
 }
 
 #[tauri::command]

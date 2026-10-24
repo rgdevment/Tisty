@@ -169,22 +169,40 @@ fn scope_of(at: &CloudAt) -> String {
     }
 }
 
-#[cfg(all(windows, not(test)))]
 pub fn secrets_for(at: &CloudAt) -> Result<Arc<dyn Secrets>, Hitch> {
-    let home = crate::sealed::home()
-        .ok_or_else(|| Hitch::Broke("Windows named no local folder for this person".into()))?;
-    Ok(Arc::new(crate::sealed::Sealed::under(&home, &scope_of(at))))
+    secrets_in(Shelf::Tokens, &scope_of(at))
+}
+
+pub fn seed_secrets(scope: &str) -> Result<Arc<dyn Secrets>, Hitch> {
+    secrets_in(Shelf::Seed, scope)
+}
+
+/// On Windows the seed sits apart from the tokens, so leaving takes every token and no seed nobody wrote down.
+#[derive(Clone, Copy)]
+pub enum Shelf {
+    Tokens,
+    Seed,
+}
+
+#[cfg(all(windows, not(test)))]
+fn secrets_in(shelf: Shelf, scope: &str) -> Result<Arc<dyn Secrets>, Hitch> {
+    let home = match shelf {
+        Shelf::Tokens => crate::sealed::home(),
+        Shelf::Seed => crate::sealed::seed_home(),
+    }
+    .ok_or_else(|| Hitch::Broke("Windows named no local folder for this person".into()))?;
+    Ok(Arc::new(crate::sealed::Sealed::under(&home, scope)))
 }
 
 #[cfg(all(not(windows), not(test)))]
-pub fn secrets_for(at: &CloudAt) -> Result<Arc<dyn Secrets>, Hitch> {
-    Ok(Arc::new(tisty_carrier::Keychain::native(&scope_of(at))?))
+fn secrets_in(_: Shelf, scope: &str) -> Result<Arc<dyn Secrets>, Hitch> {
+    Ok(Arc::new(tisty_carrier::Keychain::native(scope)?))
 }
 
 // Tests keep tokens in memory, so none ever reaches the keychain of whoever runs them.
 #[cfg(test)]
-pub fn secrets_for(at: &CloudAt) -> Result<Arc<dyn Secrets>, Hitch> {
-    Ok(Arc::new(InMemory(scope_of(at))))
+fn secrets_in(_: Shelf, scope: &str) -> Result<Arc<dyn Secrets>, Hitch> {
+    Ok(Arc::new(InMemory(scope.to_string())))
 }
 
 #[cfg(test)]
