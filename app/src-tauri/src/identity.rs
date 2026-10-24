@@ -23,7 +23,6 @@ fn scope(paths: &Paths) -> Result<String, String> {
         .ok_or_else(|| "this store has no name yet".to_string())
 }
 
-/// A keychain that cannot answer is not one that holds nothing; junk where the seed was is nothing.
 pub fn kept(paths: &Paths) -> Result<Option<Seed>, String> {
     let secrets = crate::reaching::secrets_in(&scope(paths)?).map_err(|e| format!("{e:?}"))?;
     let Some(said) = secrets.read(SEED).map_err(|e| format!("{e:?}"))? else {
@@ -70,12 +69,10 @@ fn unread(why: String) -> Refusal {
     Refusal::of("identityUnread")
 }
 
-/// A seed for a root the log does not name is an old one, and never speaks for the person.
 fn ours(seed: &Seed, state: &State) -> bool {
     state.persons.names(&seed.root().person())
 }
 
-/// Read off the session lock and only when the seed has work to do; nobody else meets a keychain.
 pub async fn for_a_round(session: &tauri::State<'_, Mutex<Session>>) -> Option<Seed> {
     let (paths, wanted) = {
         let session = held(session);
@@ -98,7 +95,6 @@ pub async fn for_a_round(session: &tauri::State<'_, Mutex<Session>>) -> Option<S
     }
 }
 
-/// Read off the session lock, for a machine about to be taken off the list.
 pub fn for_removing(session: &tauri::State<'_, Mutex<Session>>) -> Option<Seed> {
     let (paths, named) = looked(session);
     named
@@ -140,7 +136,6 @@ fn said_nothing(e: &tisty_core::Error) {
     );
 }
 
-/// Without the seed here, the round of the machine that has it takes the keys back instead.
 pub fn removing(session: &Session, device: DeviceId, seed: Option<&Seed>) -> Vec<Op> {
     let mut ops = match seed.filter(|seed| ours(seed, &session.state)) {
         Some(seed) => person::revoked(
@@ -157,9 +152,7 @@ pub fn removing(session: &Session, device: DeviceId, seed: Option<&Seed>) -> Vec
 
 #[derive(Serialize)]
 pub struct Shown {
-    /// This machine keeps the seed, so its phrase can be shown again.
     pub held: bool,
-    /// The log names a person whose seed is not here: the phrase or another machine brings it.
     pub elsewhere: bool,
     pub fingerprint: Option<String>,
     pub suffix: Option<String>,
@@ -180,7 +173,6 @@ fn looked(session: &tauri::State<'_, Mutex<Session>>) -> (Paths, bool) {
     )
 }
 
-/// The seed kept here that belongs to the person now: an old one counts as none.
 fn current(session: &Session) -> Answer<Option<Seed>> {
     let seed = kept(&session.paths).map_err(unread)?;
     let named = session.state.persons.names_a_person();
@@ -235,7 +227,6 @@ pub fn identity_phrase(session: tauri::State<'_, Mutex<Session>>) -> Answer<Stri
         .ok_or_else(|| Refusal::of("identityNone"))
 }
 
-// The phrase must be the person the log names; it replaces only a seed that is no longer anyone's.
 #[tauri::command(async)]
 pub fn identity_recover(session: tauri::State<'_, Mutex<Session>>, said: String) -> Answer<()> {
     let said = Zeroizing::new(said);
