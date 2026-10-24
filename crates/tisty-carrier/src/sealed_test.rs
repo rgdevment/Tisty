@@ -286,10 +286,23 @@ fn another_phrase_is_told_from_this_one_by_the_mark() {
 }
 
 #[test]
-fn the_mark_is_written_only_once_so_two_machines_cannot_seal_at_the_same_time() {
+fn marking_twice_with_one_phrase_is_the_same_as_once_and_another_phrase_cannot_mark_over_it() {
     let sealed = over_drive();
     sealed.mark_it().unwrap();
 
-    assert!(sealed.mark_it().is_err());
+    sealed.mark_it().unwrap();
     assert_eq!(sealed.marked().unwrap(), Some(Mark::Holds));
+    let other = Sealed::new(sealed.inner, key(8), "store_one");
+
+    assert!(other.mark_it().is_err());
+    assert_eq!(other.marked().unwrap(), Some(Mark::OtherPhrase));
+}
+
+#[test]
+fn the_root_names_the_cloud_so_two_sealed_clouds_never_share_a_mirror() {
+    let one = Sealed::new(Fake::drive(), key(7), "store_one");
+    let two = Sealed::new(Fake::drive(), key(7), "store_two");
+
+    assert_ne!(one.root(), two.root());
+    assert!(!one.root().is_empty());
 }

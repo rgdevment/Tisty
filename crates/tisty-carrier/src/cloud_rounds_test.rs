@@ -539,5 +539,5 @@ fn a_cloud_read_from_another_root_starts_the_mirror_over_and_a_plain_index_says_
     );
     let now: serde_json::Value =
         serde_json::from_slice(&std::fs::read(home.join("index.json")).unwrap()).unwrap();
-    assert_eq!(now["root"], serde_json::json!("sealed"));
+    assert_eq!(now["root"], serde_json::json!("sealed:store_one"));
 }

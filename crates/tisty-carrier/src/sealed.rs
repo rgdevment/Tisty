@@ -18,6 +18,7 @@ pub struct Sealed<R> {
     inner: R,
     key: CloudKey,
     cloud: String,
+    root: String,
 }
 
 struct Temp(PathBuf);
@@ -79,10 +80,12 @@ pub(crate) fn plain_len(sealed: u64) -> Option<u64> {
 
 impl<R: Remote> Sealed<R> {
     pub fn new(inner: R, key: CloudKey, cloud: impl Into<String>) -> Self {
+        let cloud = cloud.into();
         Self {
             inner,
             key,
-            cloud: cloud.into(),
+            root: format!("{INSIDE}:{cloud}"),
+            cloud,
         }
     }
 
@@ -102,6 +105,14 @@ impl<R: Remote> Sealed<R> {
     }
 
     pub fn mark_it(&self) -> Result<(), Hitch> {
+        match self.marked()? {
+            Some(Mark::Holds) => return Ok(()),
+            Some(Mark::OtherPhrase) => {
+                return Err(broke("this cloud was marked with another phrase"));
+            }
+            Some(_) => return Err(broke("the mark of this cloud cannot be read")),
+            None => {}
+        }
         let said = mark(&self.key, &self.cloud).ok_or_else(|| broke("no way to mark the cloud"))?;
         let held = Temp::new();
         let mut file = held.create().map_err(broke)?;
@@ -111,7 +122,10 @@ impl<R: Remote> Sealed<R> {
             .put(&format!("{INSIDE}/{MARK}"), &held.0, Expect::Absent)?;
         match self.marked()? {
             Some(Mark::Holds) => Ok(()),
-            _ => Err(broke("another machine marked this cloud first")),
+            Some(Mark::OtherPhrase) => Err(broke(
+                "another machine marked this cloud with another phrase",
+            )),
+            _ => Err(broke("the mark could not be read back")),
         }
     }
 
@@ -343,7 +357,7 @@ impl<R: Remote> Remote for Sealed<R> {
     }
 
     fn root(&self) -> &str {
-        INSIDE
+        &self.root
     }
 }
 

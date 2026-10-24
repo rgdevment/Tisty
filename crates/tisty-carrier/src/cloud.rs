@@ -185,12 +185,8 @@ impl Cloud {
             Err(why) => return Err(Trouble::Broke(why.to_string())),
         };
         let emptied = self.home.join(EMPTIED);
-        if index::outdated(&self.home) {
-            self.started_over(
-                "the cloud's index was of an older layout, so the mirror starts over",
-            )?;
-        } else if index::rooted_elsewhere(&self.home, &self.root) {
-            self.started_over("the cloud is read from another root, so the mirror starts over")?;
+        if let Some(why) = index::stale(&self.home, &self.root) {
+            self.started_over(why)?;
         } else if again && emptied.exists() {
             self.started_over("everything is sent again to a store deleted up there")?;
         }
