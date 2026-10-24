@@ -1272,3 +1272,18 @@ fn who_the_person_is_comes_back_from_the_cache() {
 
     assert_eq!(back.persons, state.persons, "who the person is was lost");
 }
+
+#[test]
+fn the_version_each_machine_runs_comes_back_from_the_cache() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut cache = Cache::open(dir.path()).unwrap().expect("a cache opens");
+    let mut state = State::default();
+    state
+        .runs
+        .insert(crate::DeviceId("dev_a".into()), "1.34.0".into());
+
+    cache.store(&state, "print").unwrap();
+    let back = cache.load("print", true).expect("the cache had it");
+
+    assert_eq!(back.runs, state.runs, "the versions were lost");
+}

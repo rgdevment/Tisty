@@ -705,3 +705,89 @@ fn a_machine_gone_with_an_older_key_still_standing_waits_for_the_seed() {
     let ops = left(&seed(), &state.persons, &state.devices, at(150));
     assert!(!ops.is_empty(), "the older key was left standing");
 }
+
+fn runs(version: &str) -> Op {
+    Op::DeviceRuns { v: version.into() }
+}
+
+#[test]
+fn a_machine_says_the_version_it_runs_and_the_last_word_stands() {
+    let events = vec![
+        joined("dev_a", DeviceKind::Machine),
+        joined("dev_b", DeviceKind::Machine),
+        said("dev_a", runs("1.33.0"), 100),
+        said("dev_b", runs("1.34.0"), 100),
+        said("dev_a", runs("1.34.0"), 200),
+    ];
+
+    let state = State::replay(&events);
+
+    assert_eq!(state.runs.get(&device("dev_a")).unwrap(), "1.34.0");
+    assert_eq!(state.runs.get(&device("dev_b")).unwrap(), "1.34.0");
+}
+
+#[test]
+fn a_version_is_only_taken_from_a_machine_on_the_list_and_goes_when_it_does() {
+    let mut events = vec![
+        joined("dev_a", DeviceKind::Machine),
+        said("dev_stranger", runs("9.9.9"), 100),
+        said("dev_a", runs("   "), 100),
+        said("dev_a", runs("1.34.0"), 110),
+    ];
+
+    assert!(
+        !State::replay(&events)
+            .runs
+            .contains_key(&device("dev_stranger"))
+    );
+    assert_eq!(State::replay(&events).runs.len(), 1);
+
+    events.push(said("dev_a", Op::DeviceRemove { d: device("dev_a") }, 120));
+    assert!(State::replay(&events).runs.is_empty());
+}
+
+#[test]
+fn the_version_op_is_optional_and_settles() {
+    let op = runs("1.34.0");
+
+    assert!(op.is_optional());
+    assert!(op.settles());
+    assert!(!op.destroys());
+}
+
+#[test]
+fn a_machine_says_its_version_only_when_it_is_on_the_list_and_it_changed() {
+    let mut events = vec![joined("dev_a", DeviceKind::Machine)];
+
+    let state = State::replay(&events);
+    assert!(state.runs_to_say(&device("dev_x"), "1.34.0").is_none());
+    assert_eq!(
+        state.runs_to_say(&device("dev_a"), "1.34.0"),
+        Some(runs("1.34.0"))
+    );
+
+    events.push(said("dev_a", runs("1.34.0"), 100));
+    let state = State::replay(&events);
+    assert!(state.runs_to_say(&device("dev_a"), "1.34.0").is_none());
+    assert_eq!(
+        state.runs_to_say(&device("dev_a"), "1.35.0"),
+        Some(runs("1.35.0"))
+    );
+}
+
+#[test]
+fn a_version_the_log_would_clean_is_not_said_again_every_round() {
+    let long = format!("1.34.0-{}", "x".repeat(100));
+    let mut events = vec![joined("dev_a", DeviceKind::Machine)];
+    let Some(Op::DeviceRuns { v }) = State::replay(&events).runs_to_say(&device("dev_a"), &long)
+    else {
+        panic!("a machine on the list says its version");
+    };
+    events.push(said("dev_a", Op::DeviceRuns { v }, 100));
+
+    assert!(
+        State::replay(&events)
+            .runs_to_say(&device("dev_a"), &long)
+            .is_none()
+    );
+}

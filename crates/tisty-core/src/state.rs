@@ -31,6 +31,7 @@ pub struct State {
     pub assistants: BTreeSet<DeviceId>,
     pub hosts: BTreeMap<DeviceId, DeviceId>,
     pub named: BTreeMap<DeviceId, crate::applying::Named>,
+    pub runs: BTreeMap<DeviceId, String>,
     pub sourced: BTreeMap<String, TaskId>,
     pub dropped: BTreeSet<DeviceId>,
     pub kept: BTreeMap<String, (String, u64)>,
@@ -399,6 +400,7 @@ impl State {
                 crate::signing::rotated(&mut self.keys, &event.device, d, p);
             }
             Op::DeviceNamed { d, name, os } => self.device_named(event, d, name, os.as_deref()),
+            Op::DeviceRuns { v } => self.device_runs(event, v),
             // Self-declared like `k`, or declared by the machine that hosts it: nobody else's word.
             Op::DeviceHost { d, of, .. } => {
                 if (event.device == *d || event.device == *of)
