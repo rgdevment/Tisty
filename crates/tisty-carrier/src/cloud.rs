@@ -86,6 +86,7 @@ pub struct Cloud {
     remote: Arc<dyn Remote>,
     home: PathBuf,
     tried: AtomicBool,
+    root: String,
 }
 
 #[derive(Default, serde::Serialize, serde::Deserialize)]
@@ -107,6 +108,14 @@ impl Cloud {
             remote,
             home: home.into(),
             tried: AtomicBool::new(false),
+            root: String::new(),
+        }
+    }
+
+    pub fn sealed_over(remote: Arc<dyn Remote>, home: impl Into<PathBuf>) -> Self {
+        Self {
+            root: crate::sealed::INSIDE.to_string(),
+            ..Self::over(remote, home)
         }
     }
 
@@ -176,6 +185,8 @@ impl Cloud {
             self.started_over(
                 "the cloud's index was of an older layout, so the mirror starts over",
             )?;
+        } else if index::rooted_elsewhere(&self.home, &self.root) {
+            self.started_over("the cloud is read from another root, so the mirror starts over")?;
         } else if again && emptied.exists() {
             self.started_over("everything is sent again to a store deleted up there")?;
         }
@@ -186,6 +197,7 @@ impl Cloud {
         let metered = Metered::over(&*self.remote, &self.home, Class::History);
         let remote: &dyn Remote = &metered;
         let mut index = Index::load(&self.home);
+        index.root.clone_from(&self.root);
         let data = here.map(|here| here.data.as_path());
         let pulled = mirror::pull(remote, &tree, &mut index, data, turn.homes, along);
         // A store deleted whole leaves nothing to bring home, so a move away goes on, while a round here still says it is gone.

@@ -264,3 +264,32 @@ fn a_provider_that_folds_case_cannot_be_made_to_overwrite_the_mark() {
     assert!(sealed.put("Sealed.Mark", &at, Expect::Any).is_err());
     assert!(sealed.delete("SEALED.MARK", None).is_err());
 }
+
+#[test]
+fn a_cloud_with_no_mark_says_none_and_a_mark_once_written_holds_for_its_phrase() {
+    let sealed = over_drive();
+    assert_eq!(sealed.marked().unwrap(), None);
+
+    sealed.mark_it().unwrap();
+
+    assert_eq!(sealed.marked().unwrap(), Some(Mark::Holds));
+    assert!(sealed.list("").unwrap().is_empty());
+}
+
+#[test]
+fn another_phrase_is_told_from_this_one_by_the_mark() {
+    let sealed = over_drive();
+    sealed.mark_it().unwrap();
+    let other = Sealed::new(sealed.inner, key(8), "store_one");
+
+    assert_eq!(other.marked().unwrap(), Some(Mark::OtherPhrase));
+}
+
+#[test]
+fn the_mark_is_written_only_once_so_two_machines_cannot_seal_at_the_same_time() {
+    let sealed = over_drive();
+    sealed.mark_it().unwrap();
+
+    assert!(sealed.mark_it().is_err());
+    assert_eq!(sealed.marked().unwrap(), Some(Mark::Holds));
+}

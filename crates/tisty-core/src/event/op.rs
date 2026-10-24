@@ -89,6 +89,7 @@ pub const KNOWN_OPS: &[&str] = &[
     "attach.retire",
     "stores.joined",
     "device.runs",
+    "cloud.sealed",
     "share.key",
     "share.certified",
     "share.revoked",
@@ -272,6 +273,13 @@ pub enum Op {
     #[serde(rename = "device.runs")]
     DeviceRuns { v: String },
 
+    #[serde(rename = "cloud.sealed")]
+    CloudSealed {
+        s: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        k: Option<String>,
+    },
+
     /// A machine's own word for the key it signs shared documents with; nobody else's counts.
     #[serde(rename = "share.key")]
     ShareKey { p: String },
@@ -353,6 +361,7 @@ impl Op {
                 | Op::DeviceRotate { .. }
                 | Op::DeviceNamed { .. }
                 | Op::DeviceRuns { .. }
+                | Op::CloudSealed { .. }
                 | Op::ShareKey { .. }
                 | Op::ShareCertified { .. }
                 | Op::ShareRevoked { .. }
@@ -377,6 +386,7 @@ impl Op {
                 | Op::DeviceHost { .. }
                 | Op::DeviceNamed { .. }
                 | Op::DeviceRuns { .. }
+                | Op::CloudSealed { .. }
                 | Op::DocFlag { .. }
                 | Op::DocUnflag { .. }
                 | Op::DocCompacted { .. }
@@ -444,6 +454,7 @@ impl Op {
             | Op::DeviceRotate { .. }
             | Op::DeviceNamed { .. }
             | Op::DeviceRuns { .. }
+            | Op::CloudSealed { .. }
             | Op::Signed { .. }
             | Op::DeviceRemove { .. }
             | Op::AttachKept { .. }
@@ -589,6 +600,7 @@ impl Op {
             | Op::DeviceRotate { .. }
             | Op::DeviceNamed { .. }
             | Op::DeviceRuns { .. }
+            | Op::CloudSealed { .. }
             | Op::Signed { .. }
             | Op::DeviceRemove { .. }
             | Op::AttachKept { .. }

@@ -2,12 +2,12 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use tisty_share_proto::cloud::{CloudKey, Unsealed, open, seal};
+use tisty_share_proto::cloud::{CloudKey, Mark, Unsealed, mark, mark_says, open, seal};
 use tisty_sync::{MARKER, NAMED, STORE};
 
 use crate::{Changes, Expect, Hitch, Limits, Remote, Seen, Watch};
 
-const INSIDE: &str = "sealed";
+pub(crate) const INSIDE: &str = "sealed";
 const HEADER: u64 = 24;
 const TAG: u64 = 16;
 const BLOCK: u64 = 64 * 1024;
@@ -51,6 +51,7 @@ fn broke(e: impl ToString) -> Hitch {
 }
 
 const MARK: &str = "sealed.mark";
+const MARK_AT: &str = "sealed/sealed.mark";
 
 fn named_back(hitch: Hitch, inner: &str, name: &str) -> Hitch {
     match hitch {
@@ -83,6 +84,24 @@ impl<R: Remote> Sealed<R> {
             key,
             cloud: cloud.into(),
         }
+    }
+
+    pub fn marked(&self) -> Result<Option<Mark>, Hitch> {
+        let mut said = Vec::new();
+        match self.inner.fetch(MARK_AT, 0, &mut said) {
+            Ok(_) => Ok(Some(mark_says(&self.key, &self.cloud, &said))),
+            Err(Hitch::Missing(_)) => Ok(None),
+            Err(other) => Err(other),
+        }
+    }
+
+    pub fn mark_it(&self) -> Result<(), Hitch> {
+        let said = mark(&self.key, &self.cloud).ok_or_else(|| broke("no way to mark the cloud"))?;
+        let held = Temp::new();
+        let mut file = held.create().map_err(broke)?;
+        file.write_all(&said).map_err(broke)?;
+        drop(file);
+        self.inner.put(MARK_AT, &held.0, Expect::Absent).map(|_| ())
     }
 
     fn folds(&self) -> bool {

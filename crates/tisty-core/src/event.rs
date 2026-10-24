@@ -137,6 +137,7 @@ impl Event {
             | Op::DeviceRotate { .. }
             | Op::DeviceNamed { .. }
             | Op::DeviceRuns { .. }
+            | Op::CloudSealed { .. }
             | Op::Signed { .. }
             | Op::DeviceRemove { .. }
             | Op::AttachKept { .. }

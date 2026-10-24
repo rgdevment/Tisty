@@ -200,6 +200,7 @@ Each machine appends events to its own log, one JSON object per line.
 | Document | `doc.add`, `.move`, `.said`, `.delete`, `.archive`, `.unarchive`, `.flag`, `.unflag`, `.lock`, `.unlock`, `.signed` |
 | Person | `person.signed` (the alias documents are signed with) |
 | Share | `share.key` (a machine's own word for the key it signs shared documents with), `share.certified` and `share.revoked` (the person's root vouching for that key, or taking it back) |
+| Cloud | `cloud.sealed` (a machine says a store is sealed, with the id of its key; with no key, that it is plain again) |
 | Device | `device.join`, `.remove`, `.host`, `.key`, `.rotate`, `.named`, `.runs` (the version a machine runs, said by that machine alone) |
 | Attachment | `attach.kept`, `attach.let_go`, `attach.retire` |
 | Store | `stores.joined` |
@@ -314,13 +315,13 @@ recognised from that version.
 | Window or MCP server meets the refusal | The window tells the person to update (`storeNewer`, and a dialog at start that links to where this copy is updated from); `tisty mcp` prints `store-newer` |
 
 `opt` is set by `Store::minted` from `Op::is_optional`: `person.signed`,
-`device.host`, `device.named`, `device.runs`, `doc.flag`, `doc.unflag`,
-`share.*`. Mark only an operation that adds something to look at. A reader that
+`device.host`, `device.named`, `device.runs`, `cloud.sealed`, `doc.flag`,
+`doc.unflag`, `share.*`. Mark only an operation that adds something to look at. A reader that
 skips a line that changes what exists diverges in silence. The mark is honoured
 only when the operation name is unknown, so it reaches only builds that have
 never heard of the name.
 
-The read cache is tied to the schema (`SCHEMA = SCHEMA_VERSION + 19` in
+The read cache is tied to the schema (`SCHEMA = SCHEMA_VERSION + 20` in
 `cache.rs`), so a build with another schema misses the cache and meets the
 version guard.
 
@@ -608,7 +609,8 @@ sequenceDiagram
 | Stamp | `tisty.toml` is written last, only if it is missing or says less than this build knows; finding it is finding a round that finished | `shape::stamp` |
 | Outside a round | `stitch`, `settle`, `both_papers`, `let_go_telling` and leaving or taking back the word first ask `shape::refuses`; tidying and a retirement leave a raised folder's files alone, and the joining screen and opening an attachment from the cloud first ask `shape::later`. A later `needs` or a shape above ours stops them, an unreadable `tisty.toml` is `Unshaped`, one that cannot be opened just now is `NotThere`. Deleting a document's own file is never held back | `shape.rs` |
 | Word | `tisty.toml` is read as TOML (`toml_edit`), and one this parser cannot read is read line by line as 1.30–1.33 did, so no place they accept is refused. A `needs` is compared with the later of `NEEDS` and this build's own release, so a later build is never barred by an older constant, and a `needs` that is not a release is taken for a later one. Raising changes only `shape`, `folders` and a `needs` older than `NEEDS`: every other key, table and comment, and a later `needs`, stay as they were. A build that changes the place dangerously must keep the name `tisty.toml`, keep `shape` and `needs` as top-level keys with `needs` a plain release, and raise `needs` and send the word before its first such write | `shape.rs` |
-| Sealed | `Sealed<R: Remote>` wraps a provider so it holds only sealed files, under `sealed/`, beside three that stay plain and in place: `tisty.toml`, `store/.store-id` and `moved.json`. Names are bound to the seal as Tisty writes them, a listing shows the size and name a file has in the clear, and what stands outside `sealed/` (and `sealed/sealed.mark`) is not seen. `put` and `fetch` go through temporary files outside the mirror and hand back the hash of the clear text; a listing leaves it empty. A move seals the file again under its new name, a sealed file is never fetched from the middle nor lent, and the ceiling per file leaves room for the seal. Nothing builds it yet | `sealed.rs` |
+| Sealed | `Sealed<R: Remote>` wraps a provider so it holds only sealed files, under `sealed/`, beside three that stay plain and in place: `tisty.toml`, `store/.store-id` and `moved.json`. Names are bound to the seal as Tisty writes them, a listing shows the size and name a file has in the clear, and what stands outside `sealed/` (and `sealed/sealed.mark`) is not seen. `put` and `fetch` go through temporary files outside the mirror and hand back the hash of the clear text; a listing leaves it empty. A move seals the file again under its new name, a sealed file is never lent, and the ceiling per file leaves room for the seal. `marked` reads the mark that says whether a phrase is this cloud's and `mark_it` writes it, only once. Nothing builds it yet | `sealed.rs` |
+| Root | The index says which root the mirror was read from (`Cloud::sealed_over` reads `sealed/`; a plain cloud says none). An index of another root starts the mirror over, as one of an older layout does, because its revisions, cursor and what is owed belong to the root they came from | `cloud.rs`, `cloud/index.rs` |
 
 Files already identical are skipped. Identical means the same length and then
 the same bytes, 16 KiB at a time (`segments::same`), never the same date.

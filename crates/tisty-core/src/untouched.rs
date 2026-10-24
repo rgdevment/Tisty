@@ -144,6 +144,7 @@ impl Sown {
             | Op::DeviceHost { .. }
             | Op::DeviceNamed { .. }
             | Op::DeviceRuns { .. }
+            | Op::CloudSealed { .. }
             // The seed writes these again by itself; a machine taken back is the person's word.
             | Op::ShareKey { .. }
             | Op::ShareCertified { .. }

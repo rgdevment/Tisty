@@ -25,6 +25,8 @@ pub struct Index {
     pub cursor: Option<String>,
     #[serde(default)]
     pub confirmed: bool,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub root: String,
     pub tree: BTreeMap<String, Mirrored>,
     pub shelf: BTreeMap<String, Seen>,
     #[serde(default)]
@@ -47,6 +49,14 @@ pub fn outdated(home: &Path) -> bool {
         .ok()
         .and_then(|bytes| serde_json::from_slice::<Index>(&bytes).ok())
         .is_some_and(|index| index.layout < LAYOUT)
+}
+
+/// Revisions, cursor and what is owed belong to the root they were read from, so another root reads none of them.
+pub fn rooted_elsewhere(home: &Path, root: &str) -> bool {
+    std::fs::read(home.join(FILE))
+        .ok()
+        .and_then(|bytes| serde_json::from_slice::<Index>(&bytes).ok())
+        .is_some_and(|index| index.root != root)
 }
 
 pub fn forget(home: &Path) -> std::io::Result<()> {
