@@ -5855,6 +5855,7 @@ dependencies = [
 name = "tisty-gui"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "jiff",
  "log",
  "objc2",
@@ -5883,6 +5884,7 @@ dependencies = [
  "tisty-markdown",
  "tisty-nl",
  "tisty-onedrive",
+ "tisty-share-proto",
  "tisty-webdav",
  "toml 1.1.8+spec-1.1.0",
  "ulid",
@@ -5891,6 +5893,7 @@ dependencies = [
  "windows",
  "windows-future",
  "winreg",
+ "zeroize",
  "zip 9.0.5",
 ]
 

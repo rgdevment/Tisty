@@ -7,6 +7,12 @@ pub fn home() -> Option<PathBuf> {
     std::env::var_os("LOCALAPPDATA").map(|local| PathBuf::from(local).join("Tisty").join("secrets"))
 }
 
+#[cfg(not(test))]
+pub fn seed_home() -> Option<PathBuf> {
+    std::env::var_os("LOCALAPPDATA")
+        .map(|local| PathBuf::from(local).join("Tisty").join("identity"))
+}
+
 pub struct Sealed {
     at: PathBuf,
 }

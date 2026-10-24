@@ -639,3 +639,69 @@ fn a_revocation_carried_by_a_machine_removed_since_still_holds() {
             .taken_back_by(&device("dev_b"), &seed().root().person())
     );
 }
+
+#[test]
+fn a_machine_removed_without_the_seed_is_taken_back_by_the_one_that_has_it() {
+    let mut two = Two::new();
+    two.wrote("dev_b", vec![Op::DeviceRemove { d: device("dev_b") }], 300);
+    let state = two.state();
+
+    let ops = left(&seed(), &state.persons, &state.devices, at(310));
+    assert_eq!(ops.len(), 1);
+    two.wrote("dev_a", ops, 310);
+
+    let state = two.state();
+    assert_eq!(state.persons.person(&device("dev_b")), None);
+    assert!(left(&seed(), &state.persons, &state.devices, at(320)).is_empty());
+}
+
+#[test]
+fn the_log_names_the_person_and_no_other() {
+    let two = Two::new();
+    let persons = two.state().persons;
+
+    assert!(persons.names_a_person());
+    assert!(persons.names(&seed().root().person()));
+    assert!(!persons.names(&Seed::from_bytes(&[9; 32]).root().person()));
+    assert!(!Persons::default().names_a_person());
+}
+
+#[test]
+fn the_seed_is_only_wanted_when_there_is_something_to_do() {
+    let mut two = Two::new();
+    let state = two.state();
+    assert!(!state.persons.awaits_the_seed(&state.devices));
+
+    std::fs::remove_file(kept_at(&two.second, &device("dev_b")).unwrap()).unwrap();
+    let op = introduced(&two.second, &device("dev_b"), &state.persons).unwrap();
+    two.wrote("dev_b", vec![op], 130);
+    let state = two.state();
+    assert!(
+        state.persons.awaits_the_seed(&state.devices),
+        "a new key waits"
+    );
+    two.vouch(140);
+    let state = two.state();
+    assert!(!state.persons.awaits_the_seed(&state.devices));
+
+    two.wrote("dev_b", vec![Op::DeviceRemove { d: device("dev_b") }], 150);
+    let state = two.state();
+    assert!(
+        state.persons.awaits_the_seed(&state.devices),
+        "a machine gone waits"
+    );
+}
+
+#[test]
+fn a_machine_gone_with_an_older_key_still_standing_waits_for_the_seed() {
+    let mut two = Two::new();
+    std::fs::remove_file(kept_at(&two.second, &device("dev_b")).unwrap()).unwrap();
+    let op = introduced(&two.second, &device("dev_b"), &two.state().persons).unwrap();
+    two.wrote("dev_b", vec![op], 130);
+    two.wrote("dev_b", vec![Op::DeviceRemove { d: device("dev_b") }], 140);
+
+    let state = two.state();
+    assert!(state.persons.awaits_the_seed(&state.devices));
+    let ops = left(&seed(), &state.persons, &state.devices, at(150));
+    assert!(!ops.is_empty(), "the older key was left standing");
+}

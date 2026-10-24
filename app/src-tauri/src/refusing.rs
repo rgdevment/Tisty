@@ -49,7 +49,11 @@ pub fn speaks_spanish() -> bool {
         .ok()
         .and_then(|paths| tisty_core::config::Config::load_or_init(&paths).ok())
         .and_then(|config| config.locale);
-    tisty_core::model::spoken(chosen.as_deref())
+    spanish(chosen.as_deref())
+}
+
+pub fn spanish(locale: Option<&str>) -> bool {
+    tisty_core::model::spoken(locale)
         .to_lowercase()
         .starts_with("es")
 }
