@@ -7,7 +7,9 @@ use zeroize::Zeroizing;
 
 use crate::seed::Seed;
 
-const MAGIC: &[u8; 3] = b"TCS";
+/// A leading byte no text starts with, so a note that begins «TCS» is never taken for a sealed file.
+const FILE: &[u8; 4] = b"\xffTCS";
+const MARK: &[u8; 4] = b"\xffTCM";
 const VERSION: u8 = 1;
 pub const HEAD: usize = 19;
 const BLOCK: usize = 64 * 1024;
@@ -22,8 +24,8 @@ impl CloudKey {
         Self(seed.cloud())
     }
 
-    fn cipher(&self) -> Option<XChaCha20Poly1305> {
-        XChaCha20Poly1305::new_from_slice(self.0.as_ref()).ok()
+    fn cipher(&self) -> XChaCha20Poly1305 {
+        XChaCha20Poly1305::new((&*self.0).into())
     }
 
     /// Says which key sealed a mark without saying anything of the key itself.
@@ -57,6 +59,7 @@ pub enum Mark {
     OtherPhrase,
     /// The mark itself is damaged, which says nothing about the phrase.
     Damaged,
+    Newer,
 }
 
 /// The block's place and whether it is the last live in the nonce, so no block can be dropped, cut or moved.
@@ -68,9 +71,12 @@ pub fn nonced(head: &[u8; HEAD], at: u32, last: bool) -> [u8; 24] {
     nonce
 }
 
-/// Names reach here spelled by Windows, macOS or a provider, so one name is one spelling.
+/// Windows, macOS and providers spell one name several ways; the seal must see only one.
 fn bound(kind: &str, cloud: &str, name: &str) -> Vec<u8> {
-    let name: String = name.nfc().collect();
+    let name: String = name
+        .nfc()
+        .map(|one| if one == '\\' { '/' } else { one })
+        .collect();
     let mut said = b"tisty.cloud.v1\0".to_vec();
     for part in [kind, cloud, name.as_str()] {
         said.extend_from_slice(part.as_bytes());
@@ -80,7 +86,7 @@ fn bound(kind: &str, cloud: &str, name: &str) -> Vec<u8> {
 }
 
 pub fn is_sealed(bytes: &[u8]) -> bool {
-    bytes.starts_with(MAGIC)
+    bytes.starts_with(FILE)
 }
 
 fn read_full(from: &mut dyn Read, into: &mut [u8]) -> std::io::Result<usize> {
@@ -105,6 +111,13 @@ fn fresh_head() -> std::io::Result<[u8; HEAD]> {
     Ok(head)
 }
 
+fn buffer(len: usize) -> Zeroizing<Vec<u8>> {
+    // Room for the tag from the start, so sealing in place never leaves a freed copy behind.
+    let mut held = Zeroizing::new(Vec::with_capacity(BLOCK + TAG));
+    held.resize(len, 0);
+    held
+}
+
 /// `cloud` and `name` say where the bytes go, so a sealed file never passes for another nor travels.
 #[cfg(feature = "mint")]
 pub fn seal(
@@ -115,21 +128,23 @@ pub fn seal(
     into: &mut dyn Write,
 ) -> std::io::Result<()> {
     let refused = || std::io::Error::other("the cloud key could not seal");
-    let cipher = key.cipher().ok_or_else(refused)?;
+    let cipher = key.cipher();
     let head = fresh_head()?;
     let aad = bound("file", cloud, name);
-    into.write_all(MAGIC)?;
+    into.write_all(FILE)?;
     into.write_all(&[VERSION])?;
     into.write_all(&head)?;
 
-    let mut block = Zeroizing::new(Vec::with_capacity(BLOCK + TAG));
-    block.resize(BLOCK, 0);
+    let mut block = buffer(BLOCK);
     let mut filled = read_full(from, &mut block)?;
-    let mut ahead = Zeroizing::new(vec![0u8; BLOCK]);
+    let mut ahead = buffer(BLOCK);
     let mut at = 0u32;
     loop {
         let next = match filled {
-            BLOCK => read_full(from, &mut ahead)?,
+            BLOCK => {
+                ahead.resize(BLOCK, 0);
+                read_full(from, &mut ahead)?
+            }
             _ => 0,
         };
         let last = next == 0;
@@ -141,8 +156,7 @@ pub fn seal(
         if last {
             return Ok(());
         }
-        block.clear();
-        block.extend_from_slice(&ahead[..next]);
+        std::mem::swap(&mut block, &mut ahead);
         filled = next;
         at = at.checked_add(1).ok_or_else(refused)?;
     }
@@ -157,31 +171,33 @@ pub fn open(
     into: &mut dyn Write,
 ) -> Result<(), Unsealed> {
     let io = |e: std::io::Error| Unsealed::Io(e.to_string());
-    let mut magic = [0u8; 4];
-    if read_full(from, &mut magic).map_err(io)? < magic.len() || !magic.starts_with(MAGIC) {
+    let mut magic = [0u8; 5];
+    if read_full(from, &mut magic).map_err(io)? < magic.len() || !magic.starts_with(FILE) {
         return Err(Unsealed::Foreign);
     }
-    match magic[3] {
+    match magic[4] {
         VERSION => {}
-        newer if newer > VERSION => return Err(Unsealed::Newer),
-        _ => return Err(Unsealed::Foreign),
+        _ => return Err(Unsealed::Newer),
     }
     let mut head = [0u8; HEAD];
     if read_full(from, &mut head).map_err(io)? < HEAD {
         return Err(Unsealed::Refused);
     }
-    let cipher = key.cipher().ok_or(Unsealed::Refused)?;
+    let cipher = key.cipher();
     let aad = bound("file", cloud, name);
-    let mut block = Zeroizing::new(vec![0u8; BLOCK + TAG]);
+    let mut block = buffer(BLOCK + TAG);
     let mut filled = read_full(from, &mut block).map_err(io)?;
     if filled < TAG {
         return Err(Unsealed::Refused);
     }
-    let mut ahead = Zeroizing::new(vec![0u8; BLOCK + TAG]);
+    let mut ahead = buffer(BLOCK + TAG);
     let mut at = 0u32;
     loop {
         let next = match filled {
-            full if full == BLOCK + TAG => read_full(from, &mut ahead).map_err(io)?,
+            full if full == BLOCK + TAG => {
+                ahead.resize(BLOCK + TAG, 0);
+                read_full(from, &mut ahead).map_err(io)?
+            }
             _ => 0,
         };
         let last = next == 0;
@@ -193,9 +209,7 @@ pub fn open(
         if last {
             return Ok(());
         }
-        block.clear();
-        block.extend_from_slice(&ahead[..next]);
-        block.resize(BLOCK + TAG, 0);
+        std::mem::swap(&mut block, &mut ahead);
         filled = next;
         at = at.checked_add(1).ok_or(Unsealed::Refused)?;
     }
@@ -223,41 +237,49 @@ pub fn opened(
 /// Kept beside a sealed cloud, so a phrase is told apart before anything comes down.
 #[cfg(feature = "mint")]
 pub fn mark(key: &CloudKey, cloud: &str) -> Option<Vec<u8>> {
-    let cipher = key.cipher()?;
     let head = fresh_head().ok()?;
     let mut said = MARK_SAID.to_vec();
-    cipher
+    key.cipher()
         .encrypt_in_place(
             &nonced(&head, 0, true).into(),
             &bound("mark", cloud, ""),
             &mut said,
         )
         .ok()?;
-    let mut out = key.id().to_vec();
+    let mut out = MARK.to_vec();
+    out.push(VERSION);
+    out.extend_from_slice(&key.id());
     out.extend_from_slice(&head);
     out.extend_from_slice(&said);
     Some(out)
 }
 
+/// The seal is tried before the key's id, so a damaged id never makes the right phrase look wrong.
 pub fn mark_says(key: &CloudKey, cloud: &str, mark: &[u8]) -> Mark {
-    let Some((id, rest)) = mark.split_first_chunk::<KEY_ID>() else {
+    let Some(rest) = mark.strip_prefix(MARK) else {
         return Mark::Damaged;
     };
-    if *id != key.id() {
-        return Mark::OtherPhrase;
+    let Some((&version, rest)) = rest.split_first() else {
+        return Mark::Damaged;
+    };
+    if version != VERSION {
+        return Mark::Newer;
     }
-    let (Some((head, sealed)), Some(cipher)) = (rest.split_first_chunk::<HEAD>(), key.cipher())
-    else {
+    let Some((id, rest)) = rest.split_first_chunk::<KEY_ID>() else {
+        return Mark::Damaged;
+    };
+    let Some((head, sealed)) = rest.split_first_chunk::<HEAD>() else {
         return Mark::Damaged;
     };
     let mut said = Zeroizing::new(sealed.to_vec());
-    let held = cipher.decrypt_in_place(
+    let held = key.cipher().decrypt_in_place(
         &nonced(head, 0, true).into(),
         &bound("mark", cloud, ""),
         &mut *said,
     );
     match held {
         Ok(()) if said.as_slice() == MARK_SAID => Mark::Holds,
+        _ if *id != key.id() => Mark::OtherPhrase,
         _ => Mark::Damaged,
     }
 }

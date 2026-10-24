@@ -51,8 +51,7 @@ same-file = "1"
 winapi-util = "0.1"
 thiserror = "2"
 sha2 = "0.11"
-# A parcel meant for another machine of your own, and a person's sealed cloud, are locked with
-# these. Its default randomness does not build for wasm, and its key must be wiped when dropped.
+# Its default randomness does not build for wasm, and a key it held must be wiped when dropped.
 chacha20poly1305 = { version = "0.11", default-features = false, features = ["alloc", "zeroize"] }
 scrypt = { version = "0.12", default-features = false }
 rand_core = { version = "0.9", features = ["os_rng"] }

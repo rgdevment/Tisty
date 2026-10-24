@@ -98,7 +98,7 @@ fn a_changed_byte_is_refused() {
 fn a_block_dropped_cut_or_moved_is_refused() {
     let said = vec![7u8; 3 * BLOCK];
     let sealed = sealed_here(&said);
-    let start = MAGIC.len() + 1 + HEAD;
+    let start = FILE.len() + 1 + HEAD;
     let one = BLOCK + TAG;
 
     let dropped_last = sealed[..start + 2 * one].to_vec();
@@ -120,12 +120,14 @@ fn bytes_tisty_never_sealed_and_newer_ones_are_told_apart() {
     assert!(!is_sealed(b"{\"v\":18}"));
     assert_eq!(refused(b"{\"v\":18}"), Some(Unsealed::Foreign));
     assert_eq!(refused(b"TCS"), Some(Unsealed::Foreign));
+    assert!(!is_sealed(b"TCS report for the week"));
+    assert_eq!(refused(b"TCS report for the week"), Some(Unsealed::Foreign));
 
     let mut newer = sealed_here(b"hello");
-    newer[3] = VERSION + 1;
+    newer[4] = VERSION + 1;
     assert_eq!(refused(&newer), Some(Unsealed::Newer));
 
-    let header_only = sealed_here(b"hello")[..MAGIC.len() + 1 + HEAD].to_vec();
+    let header_only = sealed_here(b"hello")[..FILE.len() + 1 + HEAD].to_vec();
     assert_eq!(refused(&header_only), Some(Unsealed::Refused));
 }
 
@@ -147,10 +149,37 @@ fn the_mark_tells_the_right_phrase_another_and_a_damaged_mark_apart() {
 #[test]
 fn a_mark_never_opens_as_a_file_nor_a_file_as_a_mark() {
     let mark = mark(&key(1), CLOUD).unwrap();
-    let as_file = [&MAGIC[..], &[VERSION], &mark[KEY_ID..]].concat();
+    let as_file = [&FILE[..], &[VERSION], &mark[MARK.len() + 1 + KEY_ID..]].concat();
 
     assert_eq!(
         opened(&key(1), CLOUD, "", &as_file).err(),
         Some(Unsealed::Refused)
     );
+}
+
+#[test]
+fn a_name_with_either_slash_is_one_name() {
+    let sealed = sealed(&key(1), CLOUD, r"store\dev_a\active.tisty", b"hello").unwrap();
+
+    assert_eq!(
+        opened(&key(1), CLOUD, NAME, &sealed).unwrap().as_slice(),
+        b"hello"
+    );
+}
+
+#[test]
+fn a_damaged_key_id_never_makes_the_right_phrase_look_wrong() {
+    let mut mark = mark(&key(1), CLOUD).unwrap();
+    mark[MARK.len() + 1] ^= 1;
+
+    assert_eq!(mark_says(&key(1), CLOUD, &mark), Mark::Holds);
+    assert_eq!(mark_says(&key(2), CLOUD, &mark), Mark::Damaged);
+}
+
+#[test]
+fn a_mark_from_a_newer_tisty_says_so() {
+    let mut mark = mark(&key(1), CLOUD).unwrap();
+    mark[MARK.len()] = VERSION + 1;
+
+    assert_eq!(mark_says(&key(1), CLOUD, &mark), Mark::Newer);
 }
