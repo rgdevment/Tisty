@@ -1,3 +1,4 @@
+pub mod cloud;
 pub mod identity;
 pub mod phrase;
 pub mod seed;

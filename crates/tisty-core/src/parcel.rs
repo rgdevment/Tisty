@@ -3,6 +3,7 @@ use std::io::{Read, Seek};
 use std::path::{Component, Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
+use tisty_share_proto::cloud::nonced;
 use ulid::Ulid;
 
 use crate::{
@@ -256,17 +257,6 @@ fn keyed(number: &str, salt: &[u8], work: u8) -> Result<zeroize::Zeroizing<[u8; 
     let said = crate::text::composed(number);
     scrypt::scrypt(said.as_bytes(), salt, &how, key.as_mut()).map_err(|_| Error::WrongNumber)?;
     Ok(key)
-}
-
-/// Each block is sealed under its own nonce: bytes of its own, then the block's number, then a
-/// byte that is only set on the last one. That byte lives in the nonce and not in the file, so a
-/// parcel cut short has a surviving tail that no longer authenticates as an ending.
-fn nonced(head: &[u8; 19], at: u32, last: bool) -> [u8; 24] {
-    let mut nonce = [0u8; 24];
-    nonce[..19].copy_from_slice(head);
-    nonce[19..23].copy_from_slice(&at.to_be_bytes());
-    nonce[23] = u8::from(last);
-    nonce
 }
 
 fn shut(from: &Path, into: &Path, number: &str, along: &Along) -> Result<()> {
