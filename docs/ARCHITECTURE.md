@@ -314,13 +314,13 @@ recognised from that version.
 | Window or MCP server meets the refusal | The window tells the person to update (`storeNewer`, and a dialog at start that links to where this copy is updated from); `tisty mcp` prints `store-newer` |
 
 `opt` is set by `Store::minted` from `Op::is_optional`: `person.signed`,
-`device.host`, `device.named`, `device.runs`, `doc.flag`, `doc.unflag`, `share.*`. Mark only
-an operation that adds something to look at. A reader that skips a line that
-changes what exists diverges in silence. The mark is honoured only when the
-operation name is unknown, so it reaches only builds that have never heard of
-the name.
+`device.host`, `device.named`, `device.runs`, `doc.flag`, `doc.unflag`,
+`share.*`. Mark only an operation that adds something to look at. A reader that
+skips a line that changes what exists diverges in silence. The mark is honoured
+only when the operation name is unknown, so it reaches only builds that have
+never heard of the name.
 
-The read cache is tied to the schema (`SCHEMA = SCHEMA_VERSION + 18` in
+The read cache is tied to the schema (`SCHEMA = SCHEMA_VERSION + 19` in
 `cache.rs`), so a build with another schema misses the cache and meets the
 version guard.
 
