@@ -28,10 +28,11 @@ impl CloudKey {
         XChaCha20Poly1305::new((&*self.0).into())
     }
 
-    /// Says which key sealed a mark without saying anything of the key itself.
-    fn id(&self) -> [u8; KEY_ID] {
+    /// Tied to the cloud too, so the marks of two clouds never show they share a person.
+    fn id(&self, cloud: &str) -> [u8; KEY_ID] {
         use sha2::{Digest, Sha256};
         let mut over = Sha256::new();
+        over.update(cloud.nfc().collect::<String>().as_bytes());
         over.update(b"tisty.cloud.id.v1\0");
         over.update(self.0.as_ref());
         let digest: [u8; 32] = over.finalize().into();
@@ -73,14 +74,21 @@ pub fn nonced(head: &[u8; HEAD], at: u32, last: bool) -> [u8; 24] {
 
 /// Windows, macOS and providers spell one name several ways; the seal must see only one.
 fn bound(kind: &str, cloud: &str, name: &str) -> Vec<u8> {
+    let cloud: String = cloud.nfc().collect();
     let name: String = name
         .nfc()
         .map(|one| if one == '\\' { '/' } else { one })
         .collect();
+    let name = name
+        .split('/')
+        .filter(|part| !part.is_empty() && *part != ".")
+        .collect::<Vec<_>>()
+        .join("/");
     let mut said = b"tisty.cloud.v1\0".to_vec();
-    for part in [kind, cloud, name.as_str()] {
+    // Each part says its length, so no two pairs of names ever read as the same bytes.
+    for part in [kind, cloud.as_str(), name.as_str()] {
+        said.extend_from_slice(&(part.len() as u64).to_be_bytes());
         said.extend_from_slice(part.as_bytes());
-        said.push(0);
     }
     said
 }
@@ -172,12 +180,23 @@ pub fn open(
 ) -> Result<(), Unsealed> {
     let io = |e: std::io::Error| Unsealed::Io(e.to_string());
     let mut magic = [0u8; 5];
-    if read_full(from, &mut magic).map_err(io)? < magic.len() || !magic.starts_with(FILE) {
+    let read = read_full(from, &mut magic).map_err(io)?;
+    // A header cut short is a sealed file torn on the way, never plain text to pass through.
+    if read < magic.len() {
+        let torn = read > 0 && FILE.starts_with(&magic[..read.min(FILE.len())]);
+        return Err(if torn {
+            Unsealed::Refused
+        } else {
+            Unsealed::Foreign
+        });
+    }
+    if !magic.starts_with(FILE) {
         return Err(Unsealed::Foreign);
     }
     match magic[4] {
         VERSION => {}
-        _ => return Err(Unsealed::Newer),
+        newer if newer > VERSION => return Err(Unsealed::Newer),
+        _ => return Err(Unsealed::Refused),
     }
     let mut head = [0u8; HEAD];
     if read_full(from, &mut head).map_err(io)? < HEAD {
@@ -248,7 +267,7 @@ pub fn mark(key: &CloudKey, cloud: &str) -> Option<Vec<u8>> {
         .ok()?;
     let mut out = MARK.to_vec();
     out.push(VERSION);
-    out.extend_from_slice(&key.id());
+    out.extend_from_slice(&key.id(cloud));
     out.extend_from_slice(&head);
     out.extend_from_slice(&said);
     Some(out)
@@ -262,8 +281,10 @@ pub fn mark_says(key: &CloudKey, cloud: &str, mark: &[u8]) -> Mark {
     let Some((&version, rest)) = rest.split_first() else {
         return Mark::Damaged;
     };
-    if version != VERSION {
-        return Mark::Newer;
+    match version {
+        VERSION => {}
+        newer if newer > VERSION => return Mark::Newer,
+        _ => return Mark::Damaged,
     }
     let Some((id, rest)) = rest.split_first_chunk::<KEY_ID>() else {
         return Mark::Damaged;
@@ -279,7 +300,7 @@ pub fn mark_says(key: &CloudKey, cloud: &str, mark: &[u8]) -> Mark {
     );
     match held {
         Ok(()) if said.as_slice() == MARK_SAID => Mark::Holds,
-        _ if *id != key.id() => Mark::OtherPhrase,
+        _ if *id != key.id(cloud) => Mark::OtherPhrase,
         _ => Mark::Damaged,
     }
 }

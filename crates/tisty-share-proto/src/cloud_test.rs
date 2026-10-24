@@ -143,7 +143,7 @@ fn the_mark_tells_the_right_phrase_another_and_a_damaged_mark_apart() {
     damaged[last] ^= 1;
     assert_eq!(mark_says(&key(1), CLOUD, &damaged), Mark::Damaged);
     assert_eq!(mark_says(&key(1), CLOUD, &mark[..10]), Mark::Damaged);
-    assert_eq!(mark_says(&key(1), "01JOTHER", &mark), Mark::Damaged);
+    assert_eq!(mark_says(&key(1), "01JOTHER", &mark), Mark::OtherPhrase);
 }
 
 #[test]
@@ -173,7 +173,7 @@ fn a_damaged_key_id_never_makes_the_right_phrase_look_wrong() {
     mark[MARK.len() + 1] ^= 1;
 
     assert_eq!(mark_says(&key(1), CLOUD, &mark), Mark::Holds);
-    assert_eq!(mark_says(&key(2), CLOUD, &mark), Mark::Damaged);
+    assert_eq!(mark_says(&key(2), CLOUD, &mark), Mark::OtherPhrase);
 }
 
 #[test]
@@ -182,4 +182,35 @@ fn a_mark_from_a_newer_tisty_says_so() {
     mark[MARK.len()] = VERSION + 1;
 
     assert_eq!(mark_says(&key(1), CLOUD, &mark), Mark::Newer);
+}
+
+#[test]
+fn a_name_with_a_leading_or_doubled_slash_is_one_name() {
+    let sealed = sealed_here(b"hello");
+
+    for spelled in ["/store/dev_a/active.tisty", "store//dev_a/./active.tisty"] {
+        assert_eq!(
+            opened(&key(1), CLOUD, spelled, &sealed).unwrap().as_slice(),
+            b"hello"
+        );
+    }
+}
+
+#[test]
+fn a_header_cut_short_or_an_unknown_old_version_is_damage_not_plain_text() {
+    let sealed = sealed_here(b"hello");
+
+    assert_eq!(refused(&sealed[..3]), Some(Unsealed::Refused));
+    let mut older = sealed.clone();
+    older[4] = 0;
+    assert_eq!(refused(&older), Some(Unsealed::Refused));
+}
+
+#[test]
+fn the_marks_of_two_clouds_do_not_show_one_person() {
+    let one = mark(&key(1), CLOUD).unwrap();
+    let two = mark(&key(1), "01JOTHER").unwrap();
+    let id = MARK.len() + 1..MARK.len() + 1 + KEY_ID;
+
+    assert_ne!(one[id.clone()], two[id]);
 }
