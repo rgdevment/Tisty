@@ -41,7 +41,6 @@ pub enum Hitch {
     Troubled(String),
     /// Everything the store held up there is gone at once, deleted outside Tisty, and is never read as each file deleted.
     Emptied,
-    /// The place asks for a later Tisty, so nothing else came down.
     Barred(tisty_sync::Trouble),
     Broke(String),
 }

@@ -437,7 +437,7 @@ impl Cloud {
         if stir.asked_ms > 0 && now >= stir.asked_ms && now - stir.asked_ms < stir.every_ms {
             return stir.mark;
         }
-        if resting::left(&self.home).is_some() {
+        if resting::left(&self.home).is_some() || tisty_sync::refuses(&self.tree()).is_err() {
             return stir.mark;
         }
         stir.asked_ms = now;
@@ -669,6 +669,10 @@ impl Carrier for Cloud {
 
     fn theirs(&self) -> Option<String> {
         tisty_sync::theirs(&self.fresh())
+    }
+
+    fn refuses(&self) -> Result<(), Trouble> {
+        tisty_sync::refuses(&self.fresh())
     }
 
     fn been_here(&self, here: &Here) -> bool {

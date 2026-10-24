@@ -896,9 +896,6 @@ pub fn held_there(dest: &Path, id: &str) -> Option<String> {
 }
 
 pub fn forget_paper(dest: &Path, id: &str) {
-    if refuses(dest).is_err() {
-        return;
-    }
     let Ok(theirs) = tisty_core::docs::resolve(&dest.join(PAPERS), id) else {
         return;
     };

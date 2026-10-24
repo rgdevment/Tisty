@@ -24,20 +24,28 @@ enum Told {
     Shape { shape: u32, needs: Option<String> },
     Nothing,
     Unreadable,
+    Unreached,
 }
 
 fn told(dest: &Path) -> Told {
     match std::fs::read_to_string(dest.join(NAMED)) {
-        Ok(said) => match said.lines().find_map(shape_in) {
-            Some(shape) => Told::Shape {
-                shape,
-                needs: said.lines().find_map(needs_in),
-            },
-            None => Told::Unreadable,
-        },
+        Ok(said) => {
+            let top: Vec<&str> = said.lines().take_while(|line| !table(line)).collect();
+            match top.iter().find_map(|line| shape_in(line)) {
+                Some(shape) => Told::Shape {
+                    shape,
+                    needs: top.iter().find_map(|line| needs_in(line)),
+                },
+                None => Told::Unreadable,
+            }
+        }
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Told::Nothing,
-        Err(_) => Told::Unreadable,
+        Err(_) => Told::Unreached,
     }
+}
+
+fn table(line: &str) -> bool {
+    line.trim_start().starts_with('[')
 }
 
 fn shape_in(line: &str) -> Option<u32> {
@@ -74,14 +82,24 @@ pub fn needs_later(needs: &str) -> bool {
 pub(crate) fn before_reading(data: &Path, dest: &Path) -> Result<(), Trouble> {
     match told(dest) {
         Told::Shape { shape, needs } => {
-            barred(dest, shape, needs)?;
+            if let Err(trouble) = barred(dest, shape, needs) {
+                warned(dest, &trouble);
+                return Err(trouble);
+            }
             remember(data, dest, shape);
             if shape < OURS {
                 flat(dest);
             }
             Ok(())
         }
-        Told::Unreadable => Err(unreadable(dest)),
+        Told::Unreadable | Told::Unreached => {
+            witness::warn(
+                channel::SYNC,
+                "the meeting place says what shape it is in and it cannot be read, so nothing was carried either way",
+                &[("at", Fact::Path(dest.join(NAMED)))],
+            );
+            Err(Trouble::Unshaped(dest.display().to_string()))
+        }
         Told::Nothing if seen(data, dest).is_some() => {
             witness::warn(
                 channel::SYNC,
@@ -97,48 +115,40 @@ pub(crate) fn before_reading(data: &Path, dest: &Path) -> Result<(), Trouble> {
     }
 }
 
-/// Asked before anything outside a round reads or writes there, so a place a later Tisty raised is never touched.
 pub fn refuses(dest: &Path) -> Result<(), Trouble> {
     match told(dest) {
         Told::Shape { shape, needs } => barred(dest, shape, needs),
-        Told::Unreadable => Err(unreadable(dest)),
+        Told::Unreadable => Err(Trouble::Unshaped(dest.display().to_string())),
+        Told::Unreached => Err(Trouble::NotThere(dest.display().to_string())),
         Told::Nothing => Ok(()),
     }
 }
 
 fn barred(dest: &Path, shape: u32, needs: Option<String>) -> Result<(), Trouble> {
-    if let Some(needs) = needs.filter(|needs| needs_later(needs)) {
-        witness::warn(
-            channel::SYNC,
-            "the meeting place asks for a later Tisty than this one, so nothing was carried either way",
-            &[
-                ("at", Fact::Path(dest.to_path_buf())),
-                ("needs", Fact::Id(needs.clone())),
-            ],
-        );
-        return Err(Trouble::Needs(needs));
+    match needs.filter(|needs| needs_later(needs)) {
+        Some(needs) => Err(Trouble::Needs(needs)),
+        None if shape > OURS => Err(Trouble::Shape(dest.display().to_string())),
+        None => Ok(()),
     }
-    if shape > OURS {
-        witness::warn(
-            channel::SYNC,
-            "the meeting place is in a shape this build does not know, so nothing was carried either way",
-            &[
-                ("at", Fact::Path(dest.to_path_buf())),
-                ("shape", Fact::Count(shape as usize)),
-            ],
-        );
-        return Err(Trouble::Shape(dest.display().to_string()));
-    }
-    Ok(())
 }
 
-fn unreadable(dest: &Path) -> Trouble {
+fn warned(dest: &Path, trouble: &Trouble) {
+    let said = match trouble {
+        Trouble::Needs(_) => {
+            "the meeting place asks for a later Tisty than this one, so nothing was carried either way"
+        }
+        _ => {
+            "the meeting place is in a shape this build does not know, so nothing was carried either way"
+        }
+    };
     witness::warn(
         channel::SYNC,
-        "the meeting place says what shape it is in and it cannot be read, so nothing was carried either way",
-        &[("at", Fact::Path(dest.join(NAMED)))],
+        said,
+        &[
+            ("at", Fact::Path(dest.to_path_buf())),
+            ("code", Fact::Code(trouble.code())),
+        ],
     );
-    Trouble::Unshaped(dest.display().to_string())
 }
 
 // Before this round reads it, so the files an older build left on shelves are where it looks.
@@ -167,7 +177,7 @@ pub(crate) fn stamp(data: &Path, dest: &Path) -> bool {
             false
         }
         Told::Shape { shape, .. } if shape > OURS => false,
-        Told::Unreadable => false,
+        Told::Unreadable | Told::Unreached => false,
         Told::Shape { .. } => tell(data, dest),
         Told::Nothing => {
             tell(data, dest);
@@ -185,7 +195,7 @@ pub(crate) fn raise_first(data: &Path, dest: &Path) -> bool {
                 || (shape == OURS
                     && needs.is_some_and(|needs| needs != NEEDS && !needs_later(&needs)))
         }
-        Told::Nothing | Told::Unreadable => false,
+        Told::Nothing | Told::Unreadable | Told::Unreached => false,
     };
     older && tell(data, dest)
 }
@@ -195,7 +205,7 @@ pub fn raise_place(dest: &Path) {
     let older = match told(dest) {
         Told::Shape { shape, .. } => shape < OURS,
         Told::Nothing => dest.join(STORE).is_dir(),
-        Told::Unreadable => false,
+        Told::Unreadable | Told::Unreached => false,
     };
     if older {
         written(dest);
@@ -225,11 +235,7 @@ fn tell(data: &Path, dest: &Path) -> bool {
 
 fn written(dest: &Path) -> bool {
     let said = format!(
-        "{HEADING}
-shape = {OURS}
-needs = \"{NEEDS}\"
-folders = [\"{STORE}\", \"{HELD}\", \"{PAPERS}\"]
-{}",
+        "{HEADING}\nshape = {OURS}\nneeds = \"{NEEDS}\"\nfolders = [\"{STORE}\", \"{HELD}\", \"{PAPERS}\"]\n{}",
         said_by_others(dest)
     );
     if let Err(e) = tisty_core::store::write_atomic(&dest.join(NAMED), said.as_bytes()) {
@@ -246,25 +252,31 @@ folders = [\"{STORE}\", \"{HELD}\", \"{PAPERS}\"]
     true
 }
 
-/// What a later Tisty added is kept, so a round here never takes back what it asked of every machine.
 fn said_by_others(dest: &Path) -> String {
     let Ok(said) = std::fs::read_to_string(dest.join(NAMED)) else {
         return String::new();
     };
-    said.lines()
-        .filter(|line| {
-            let ours = line
-                .split_once('=')
-                .is_some_and(|(name, _)| OWN.contains(&name.trim()));
-            !line.trim().is_empty() && *line != HEADING && !ours
-        })
-        .map(|line| {
-            format!(
-                "{line}
-"
-            )
-        })
-        .collect()
+    let mut kept = String::new();
+    let (mut tables, mut spread) = (false, false);
+    for line in said.lines() {
+        if spread {
+            spread = !line.contains(']');
+            continue;
+        }
+        tables |= table(line);
+        let ours = line
+            .split_once('=')
+            .filter(|(name, _)| !tables && OWN.contains(&name.trim()));
+        if let Some((_, value)) = ours {
+            spread = value.contains('[') && !value.contains(']');
+            continue;
+        }
+        if tables || !(line.trim().is_empty() || line == HEADING) {
+            kept.push_str(line);
+            kept.push('\n');
+        }
+    }
+    kept
 }
 
 /// Left by the round that raised a place older builds had arranged, until the window has said so once.

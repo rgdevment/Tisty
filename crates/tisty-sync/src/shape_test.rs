@@ -277,3 +277,34 @@ fn a_place_that_says_nothing_or_our_shape_is_not_refused() {
 
     assert_eq!(refuses(&dest), Ok(()));
 }
+
+#[test]
+fn a_later_builds_tables_and_spread_arrays_survive_a_round_here() {
+    let (_room, data, dest) = a_place();
+    std::fs::write(
+        dest.join(NAMED),
+        "shape = 2\nfolders = [\n  \"store\",\n  \"attachments\",\n]\n[seal]\nneeds = \"1.40.0\"\nshape = 1\n",
+    )
+    .unwrap();
+
+    assert!(raise_first(&data, &dest));
+
+    let said = std::fs::read_to_string(dest.join(NAMED)).unwrap();
+    assert!(
+        said.ends_with("[seal]\nneeds = \"1.40.0\"\nshape = 1\n"),
+        "{said}"
+    );
+    assert!(!said.contains("  \"store\",\n"), "{said}");
+    assert_eq!(said.matches("folders =").count(), 1, "{said}");
+    assert!(
+        matches!(told(&dest), Told::Shape { shape: OURS, needs: Some(needs) } if needs == NEEDS)
+    );
+}
+
+#[test]
+fn a_place_whose_word_cannot_be_opened_just_now_is_not_there_rather_than_unshaped() {
+    let (_room, _data, dest) = a_place();
+    std::fs::create_dir_all(dest.join(NAMED)).unwrap();
+
+    assert!(matches!(refuses(&dest), Err(Trouble::NotThere(_))));
+}

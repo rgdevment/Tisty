@@ -175,6 +175,7 @@ pub struct Joining {
 #[tauri::command(async)]
 pub fn joining(session: tauri::State<'_, Mutex<Session>>) -> Answer<Joining> {
     let (carrier, here) = carrier_and_here(&session)?;
+    carrier.refuses().map_err(said)?;
     let signed = carrier.signed();
     let store = here.data.join(tisty_carrier::STORE);
     Ok(Joining {

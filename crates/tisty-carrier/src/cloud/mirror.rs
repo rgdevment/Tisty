@@ -41,6 +41,9 @@ pub fn pull(
     along: &mut dyn FnMut(crate::Reached),
 ) -> Result<usize, Hitch> {
     heal(tree, index);
+    if let Some(trouble) = still_barred(remote, tree, index)? {
+        return Err(Hitch::Barred(trouble));
+    }
     let first = index.cursor.is_none();
     let told = match remote.changes(index.cursor.as_deref()) {
         Err(Hitch::Broke(_) | Hitch::Missing(_) | Hitch::Changed(_)) if index.cursor.is_some() => {
@@ -54,6 +57,7 @@ pub fn pull(
         }
         told => told?,
     };
+    heeded(remote, tree, index, data, &told)?;
     let emptied = |listed_nothing: bool, gone: &BTreeSet<&str>| {
         index.tree.contains_key(tisty_sync::NAMED)
             && (listed_nothing || index.tree.keys().all(|name| gone.contains(name.as_str())))
@@ -98,21 +102,6 @@ pub fn pull(
     for seen in changed {
         due.insert(seen.name.clone(), seen);
     }
-    // The place's word comes down first and is heeded, so nothing a later Tisty wrote reaches this machine.
-    if let Some(named) = due.remove(NAMED) {
-        let brought = learn(remote, tree, index, data, named.clone());
-        if !matches!(brought, Ok(false)) {
-            index.owed.insert(named.name.clone(), named);
-            index.owed.append(&mut due);
-            return Err(brought
-                .err()
-                .unwrap_or_else(|| Hitch::Troubled(format!("{NAMED} could not be brought"))));
-        }
-    }
-    if let Err(trouble) = tisty_sync::refuses(tree) {
-        index.owed.append(&mut due);
-        return Err(Hitch::Barred(trouble));
-    }
     let whole = due.len();
     let mut due = due.into_values().enumerate();
     // Only a first read is long enough to need counting: a later one brings a handful.
@@ -147,6 +136,60 @@ pub fn pull(
         true => Err(Hitch::Emptied),
         false => Ok(index.owed.len()),
     }
+}
+
+fn still_barred(
+    remote: &dyn Remote,
+    tree: &Path,
+    index: &Index,
+) -> Result<Option<tisty_sync::Trouble>, Hitch> {
+    let Err(trouble) = tisty_sync::refuses(tree) else {
+        return Ok(None);
+    };
+    let Some(kept) = index.tree.get(NAMED) else {
+        return Ok(None);
+    };
+    if matches!(trouble, tisty_sync::Trouble::NotThere(_)) {
+        return Ok(None);
+    }
+    let unchanged = remote
+        .about(NAMED)?
+        .is_some_and(|seen| seen.revision == kept.seen.revision);
+    Ok(unchanged.then_some(trouble))
+}
+
+fn heeded(
+    remote: &dyn Remote,
+    tree: &Path,
+    index: &mut Index,
+    data: Option<&Path>,
+    told: &Changes,
+) -> Result<(), Hitch> {
+    let listed = match told {
+        Changes::Whole { seen, .. } if !seen.iter().any(|one| one.name == NAMED) => return Ok(()),
+        Changes::Since { gone, .. } if gone.iter().any(|name| name == NAMED) => return Ok(()),
+        Changes::Whole { seen, .. } => seen,
+        Changes::Since { changed, .. } => changed,
+    };
+    let word = listed
+        .iter()
+        .find(|one| one.name == NAMED)
+        .or_else(|| index.owed.get(NAMED))
+        .cloned();
+    if let Some(word) = word {
+        match learn(remote, tree, index, data, word.clone()) {
+            Ok(false) => {
+                index.owed.remove(NAMED);
+            }
+            brought => {
+                index.owed.insert(NAMED.to_string(), word);
+                return Err(brought
+                    .err()
+                    .unwrap_or_else(|| Hitch::Troubled(format!("{NAMED} could not be brought"))));
+            }
+        }
+    }
+    tisty_sync::refuses(tree).map_err(Hitch::Barred)
 }
 
 fn heal(tree: &Path, index: &mut Index) {
