@@ -269,7 +269,6 @@ pub enum Op {
     #[serde(rename = "stores.joined")]
     StoresJoined { d: Stitch },
 
-    /// The version a machine runs, said by that machine alone.
     #[serde(rename = "device.runs")]
     DeviceRuns { v: String },
 
