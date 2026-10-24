@@ -140,13 +140,15 @@ impl Persons {
 
     /// Whether a machine holding the seed has anything to do: a key nobody vouched for, or a machine gone.
     pub fn awaits_the_seed(&self, machines: &BTreeSet<DeviceId>) -> bool {
+        let standing = |key: &VerifyingKey| {
+            self.vouches()
+                .any(|one| one.share == *key && !self.key_taken_back_by(key, &one.person))
+        };
         self.keys
             .keys()
             .any(|device| match machines.contains(device) {
-                true => self
-                    .current(device)
-                    .is_some_and(|key| !self.vouches().any(|one| one.share == key)),
-                false => self.person(device).is_some(),
+                true => self.current(device).is_some_and(|key| !standing(&key)),
+                false => self.named_by(device).iter().any(standing),
             })
     }
 

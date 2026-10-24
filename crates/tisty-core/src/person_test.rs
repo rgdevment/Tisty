@@ -691,3 +691,17 @@ fn the_seed_is_only_wanted_when_there_is_something_to_do() {
         "a machine gone waits"
     );
 }
+
+#[test]
+fn a_machine_gone_with_an_older_key_still_standing_waits_for_the_seed() {
+    let mut two = Two::new();
+    std::fs::remove_file(kept_at(&two.second, &device("dev_b")).unwrap()).unwrap();
+    let op = introduced(&two.second, &device("dev_b"), &two.state().persons).unwrap();
+    two.wrote("dev_b", vec![op], 130);
+    two.wrote("dev_b", vec![Op::DeviceRemove { d: device("dev_b") }], 140);
+
+    let state = two.state();
+    assert!(state.persons.awaits_the_seed(&machines(&state)));
+    let ops = left(&seed(), &state.persons, &machines(&state), at(150));
+    assert!(!ops.is_empty(), "the older key was left standing");
+}

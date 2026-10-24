@@ -12,19 +12,17 @@ use zeroize::Zeroizing;
 
 use crate::{Answer, Refusal, Session, blamed, elsewhere, held};
 
-/// No cloud account's name starts with a dash, so leaving never mistakes a token for the seed.
-pub const KEPT_ON_LEAVING: &str = "-identity-";
 const SEED: &str = "seed";
 
 /// Named after the store and not its folder, so moving it keeps the seed and a sandbox never meets it.
 fn scope(paths: &Paths) -> Result<String, String> {
     tisty_core::store::peek_identity(paths.store())
-        .map(|store| format!("{KEPT_ON_LEAVING}{store}"))
+        .map(|store| format!("identity-{store}"))
         .ok_or_else(|| "this store has no name yet".to_string())
 }
 
 pub fn kept(paths: &Paths) -> Result<Option<Seed>, String> {
-    let secrets = crate::reaching::secrets_in(&scope(paths)?).map_err(|e| format!("{e:?}"))?;
+    let secrets = crate::reaching::seed_secrets(&scope(paths)?).map_err(|e| format!("{e:?}"))?;
     let Some(said) = secrets.read(SEED).map_err(|e| format!("{e:?}"))? else {
         return Ok(None);
     };
@@ -53,7 +51,7 @@ fn keep(paths: &Paths, seed: &Seed) -> Answer<()> {
         Refusal::of("identityNotKept")
     };
     let scope = scope(paths).map_err(refused)?;
-    let secrets = crate::reaching::secrets_in(&scope).map_err(|e| refused(format!("{e:?}")))?;
+    let secrets = crate::reaching::seed_secrets(&scope).map_err(|e| refused(format!("{e:?}")))?;
     let said = Zeroizing::new(URL_SAFE_NO_PAD.encode(seed.to_bytes().as_ref()));
     secrets
         .write(SEED, &said)
@@ -73,14 +71,14 @@ fn ours(seed: &Seed, state: &State) -> bool {
     state.persons.names(&seed.root().person())
 }
 
-pub async fn for_a_round(session: &tauri::State<'_, Mutex<Session>>) -> Option<Seed> {
+/// Read off the session lock, and only when the gate says the seed has something to do.
+async fn off_the_lock(
+    session: &tauri::State<'_, Mutex<Session>>,
+    gate: impl FnOnce(&Session) -> bool,
+) -> Option<Seed> {
     let (paths, wanted) = {
         let session = held(session);
-        let machines = person::machines(&session.state);
-        (
-            session.paths.clone(),
-            session.state.persons.awaits_the_seed(&machines),
-        )
+        (session.paths.clone(), gate(&session))
     };
     if !wanted {
         return None;
@@ -95,11 +93,18 @@ pub async fn for_a_round(session: &tauri::State<'_, Mutex<Session>>) -> Option<S
     }
 }
 
-pub fn for_removing(session: &tauri::State<'_, Mutex<Session>>) -> Option<Seed> {
-    let (paths, named) = looked(session);
-    named
-        .then(|| kept(&paths).map_err(unread).ok().flatten())
-        .flatten()
+pub async fn for_a_round(session: &tauri::State<'_, Mutex<Session>>) -> Option<Seed> {
+    off_the_lock(session, |session| {
+        let persons = &session.state.persons;
+        persons.names_a_person()
+            && (persons.awaits_the_seed(&person::machines(&session.state))
+                || persons.person(&session.config.device_id).is_none())
+    })
+    .await
+}
+
+pub async fn for_removing(session: &tauri::State<'_, Mutex<Session>>) -> Option<Seed> {
+    off_the_lock(session, |session| session.state.persons.names_a_person()).await
 }
 
 pub fn after_a_round(session: &mut Session, seed: Option<&Seed>) {
@@ -159,18 +164,10 @@ pub struct Shown {
 }
 
 fn words(session: &Session) -> Words {
-    match tisty_core::model::spoken(session.locale.as_deref()).starts_with("es") {
+    match crate::refusing::spanish(session.locale.as_deref()) {
         true => Words::Spanish,
         false => Words::English,
     }
-}
-
-fn looked(session: &tauri::State<'_, Mutex<Session>>) -> (Paths, bool) {
-    let session = held(session);
-    (
-        session.paths.clone(),
-        session.state.persons.names_a_person(),
-    )
 }
 
 fn current(session: &Session) -> Answer<Option<Seed>> {
@@ -181,7 +178,7 @@ fn current(session: &Session) -> Answer<Option<Seed>> {
 
 #[tauri::command(async)]
 pub fn identity_shown(session: tauri::State<'_, Mutex<Session>>) -> Answer<Shown> {
-    let (paths, _) = looked(&session);
+    let paths = held(&session).paths.clone();
     let seed = kept(&paths).map_err(unread)?;
     let session = held(&session);
     let person = person::person_of(&session.state, &session.config.device_id);
@@ -220,8 +217,13 @@ pub fn identity_begin(session: tauri::State<'_, Mutex<Session>>) -> Answer<Strin
 
 #[tauri::command(async)]
 pub fn identity_phrase(session: tauri::State<'_, Mutex<Session>>) -> Answer<String> {
+    let paths = held(&session).paths.clone();
+    let seed = kept(&paths).map_err(unread)?;
     let session = held(&session);
-    let seed = current(&session)?.ok_or_else(|| Refusal::of("identityNone"))?;
+    let named = session.state.persons.names_a_person();
+    let seed = seed
+        .filter(|seed| !named || ours(seed, &session.state))
+        .ok_or_else(|| Refusal::of("identityNone"))?;
     phrase::phrase(&seed, words(&session))
         .map(|said| said.to_string())
         .ok_or_else(|| Refusal::of("identityNone"))
@@ -239,12 +241,11 @@ pub fn identity_recover(session: tauri::State<'_, Mutex<Session>>, said: String)
     if session.state.persons.names_a_person() && !ours(&seed, &session.state) {
         return Err(Refusal::of("phraseOtherPerson"));
     }
-    match current(&session)? {
-        Some(here) if *here.to_bytes() != *seed.to_bytes() => {
-            return Err(Refusal::of("identityExists"));
-        }
-        Some(_) => {}
-        None => keep(&session.paths, &seed)?,
+    let here = kept(&session.paths).map_err(unread)?;
+    match here {
+        Some(here) if *here.to_bytes() == *seed.to_bytes() => {}
+        Some(here) if ours(&here, &session.state) => return Err(Refusal::of("identityExists")),
+        _ => keep(&session.paths, &seed)?,
     }
     begun(&mut session, &seed)
 }
