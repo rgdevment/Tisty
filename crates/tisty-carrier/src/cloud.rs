@@ -445,10 +445,12 @@ impl Cloud {
         let index = Index::load(&self.home);
         let metered = Metered::over(&*self.remote, &self.home, Class::History);
         let asked = if tisty_sync::later(&self.tree()).is_some() {
-            mirror::word_moved(&metered, &index).inspect(|moved| {
-                if *moved {
+            mirror::word_moved(&metered, &index).map(|moved| {
+                let moved = moved && !index.owed.contains_key(tisty_sync::NAMED);
+                if moved {
                     stir.mark = stir.mark.wrapping_add(1);
                 }
+                moved
             })
         } else {
             metered.changes(index.cursor.as_deref()).map(|changes| {

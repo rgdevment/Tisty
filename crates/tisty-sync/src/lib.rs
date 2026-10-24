@@ -23,7 +23,7 @@ use segments::{
 };
 pub use shape::{
     NAMED, NEEDS, OURS as SHAPE, later, needs_later, raise_place, raised, raised_told, refuses,
-    unseen as forget_shape,
+    spoiled, unseen as forget_shape,
 };
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};

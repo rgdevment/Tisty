@@ -819,8 +819,7 @@ impl Session {
     }
 
     fn swept_place(&self) -> Option<std::path::PathBuf> {
-        self.place()
-            .filter(|at| tisty_carrier::considering(at.clone()).later().is_none())
+        self.place().filter(|at| tisty_carrier::refuses(at).is_ok())
     }
 
     pub fn tidy_up(&mut self, bin: bool) {

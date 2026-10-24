@@ -178,10 +178,7 @@ fn heeded(
     let Some(listed) = word_listed(told) else {
         return Ok(());
     };
-    let spoiled = matches!(
-        tisty_sync::refuses(tree),
-        Err(tisty_sync::Trouble::Unshaped(_))
-    );
+    let spoiled = tisty_sync::spoiled(tree);
     if spoiled {
         index.tree.remove(NAMED);
     }

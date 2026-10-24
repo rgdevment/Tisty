@@ -81,10 +81,15 @@ fn needs_in(line: &str) -> Option<String> {
     (name.trim() == "needs").then(|| said.trim().trim_matches('"').to_string())
 }
 
-fn release(said: &str) -> Option<(u64, u64, u64)> {
-    let mut parts = said.split(['-', '+']).next()?.split('.');
+fn release(said: &str) -> Option<(u64, u64, u64, bool)> {
+    let said = said.split('+').next()?;
+    let (core, finished) = match said.split_once('-') {
+        Some((core, _)) => (core, false),
+        None => (said, true),
+    };
+    let mut parts = core.split('.');
     let mut next = || parts.next()?.parse().ok();
-    Some((next()?, next()?, next()?))
+    Some((next()?, next()?, next()?, finished))
 }
 
 /// A release this build cannot read is taken for a later one: guessing it older would write where it must not.
@@ -144,6 +149,10 @@ pub fn refuses(dest: &Path) -> Result<(), Trouble> {
         warned(dest, &told, trouble);
     }
     judged
+}
+
+pub fn spoiled(dest: &Path) -> bool {
+    matches!(verdict(dest, &told(dest)), Err(Trouble::Unshaped(_)))
 }
 
 pub fn later(dest: &Path) -> Option<Trouble> {
