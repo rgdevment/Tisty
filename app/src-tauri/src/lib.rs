@@ -786,8 +786,16 @@ fn unreach_system() -> std::io::Result<bool> {
     }
     // Revoking would cut every other machine off too, so leaving takes only this machine's copy.
     #[cfg(windows)]
-    if let Some(sealed) = sealed::home() {
-        let _ = std::fs::remove_dir_all(sealed);
+    if let Some(sealed) = sealed::home().and_then(|home| std::fs::read_dir(home).ok()) {
+        for one in sealed.flatten() {
+            if !one
+                .file_name()
+                .to_string_lossy()
+                .starts_with(identity::KEPT_ON_LEAVING)
+            {
+                let _ = std::fs::remove_dir_all(one.path());
+            }
+        }
     }
     reached
 }

@@ -639,3 +639,29 @@ fn a_revocation_carried_by_a_machine_removed_since_still_holds() {
             .taken_back_by(&device("dev_b"), &seed().root().person())
     );
 }
+
+#[test]
+fn a_machine_removed_without_the_seed_is_taken_back_by_the_one_that_has_it() {
+    let mut two = Two::new();
+    two.wrote("dev_b", vec![Op::DeviceRemove { d: device("dev_b") }], 300);
+    let state = two.state();
+
+    let ops = left(&seed(), &state.persons, &machines(&state), at(310));
+    assert_eq!(ops.len(), 1);
+    two.wrote("dev_a", ops, 310);
+
+    let state = two.state();
+    assert_eq!(state.persons.person(&device("dev_b")), None);
+    assert!(left(&seed(), &state.persons, &machines(&state), at(320)).is_empty());
+}
+
+#[test]
+fn the_log_names_the_person_and_no_other() {
+    let two = Two::new();
+    let persons = two.state().persons;
+
+    assert!(persons.names_a_person());
+    assert!(persons.names(&seed().root().person()));
+    assert!(!persons.names(&Seed::from_bytes(&[9; 32]).root().person()));
+    assert!(!Persons::default().names_a_person());
+}

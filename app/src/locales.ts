@@ -258,6 +258,12 @@ const en = {
   phraseCount: "The phrase has {name} words, and it takes 24.",
   phraseWord: "Word {name} is not one of the list. Check how it is written.",
   phraseChecksum: "Every word is on the list, but one of them is wrong or out of place.",
+  identityElsewhere:
+    "You already have an identity on another computer. Type its phrase here, or let that computer confirm this one.",
+  identityUnread:
+    "This computer could not read your identity just now. Nothing was changed; try again in a moment.",
+  identityNone: "This computer does not keep your identity's phrase.",
+  phraseOtherPerson: "That phrase belongs to another identity, not the one your computers share.",
   keyMoved: "That machine publishes another key now. Look again.",
   keyNotConfirmed: "That key could not be kept.",
   stillReferenced: "Something references that attachment now. Look again.",
@@ -2551,6 +2557,12 @@ const es: Catalog = {
   phraseCount: "La frase tiene {name} palabras, y deben ser 24.",
   phraseWord: "La palabra {name} no está en la lista. Revisa cómo está escrita.",
   phraseChecksum: "Todas las palabras están en la lista, pero una está mal o fuera de lugar.",
+  identityElsewhere:
+    "Ya tienes una identidad en otro equipo. Escribe aquí su frase, o deja que ese equipo confirme este.",
+  identityUnread:
+    "Este equipo no pudo leer tu identidad en este momento. No se cambió nada; inténtalo de nuevo en un rato.",
+  identityNone: "Este equipo no guarda la frase de tu identidad.",
+  phraseOtherPerson: "Esa frase es de otra identidad, no de la que comparten tus equipos.",
   keyMoved: "Esa máquina publica otra clave ahora. Míralo de nuevo.",
   keyNotConfirmed: "Esa clave no se pudo guardar.",
   stillReferenced: "Algo referencia ese adjunto ahora. Vuelve a mirar.",

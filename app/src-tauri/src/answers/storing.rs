@@ -1026,6 +1026,7 @@ async fn carried_round(
     let at = paths.clone();
     let read = elsewhere(move || tisty_core::tidy::bodies_of(&at, &books)).await?;
 
+    let seed = crate::identity::for_a_round(session).await;
     let mut session = held(session);
     session.settle_what_came(&read, since);
     session.swept(&was_swept, walked);
@@ -1036,7 +1037,7 @@ async fn carried_round(
             &[("why", Fact::Why(e.to_string()))],
         );
     }
-    crate::identity::after_a_round(&mut session);
+    crate::identity::after_a_round(&mut session, seed.as_ref());
     let unsettled = done.undecided.len()
         + done.unreadable.len()
         + done.disowned.len()
@@ -1272,15 +1273,15 @@ pub fn retire_attachments(
     held(&session).retire(&references, tisty_core::attach::Retired::Unused)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn remove_machine(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
-    let mut session = held(&session);
+    let (seed, mut session) = (crate::identity::for_removing(&session), held(&session));
     let who = tisty_core::event::DeviceId(id.clone());
     if who == session.config.device_id {
         return Err(Refusal::of("notThisMachine"));
     }
 
-    let ops = crate::identity::removing(&session, who);
+    let ops = crate::identity::removing(&session, who, seed.as_ref());
     session
         .commit_all(ops)
         .map_err(|e| blamed(channel::STORE, "the machine could not be removed", e))?;

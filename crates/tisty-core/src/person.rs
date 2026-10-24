@@ -133,9 +133,15 @@ impl Persons {
     }
 
     /// The log names a person once a certificate holds that nobody took back.
-    fn names_a_person(&self) -> bool {
+    pub fn names_a_person(&self) -> bool {
         self.vouches()
             .any(|one| !self.key_taken_back_by(&one.share, &one.person))
+    }
+
+    /// Whether this root is a person the log names, so a seed for another one never speaks here.
+    pub fn names(&self, root: &Person) -> bool {
+        self.vouches()
+            .any(|one| one.person == *root && !self.key_taken_back_by(&one.share, &one.person))
     }
 
     pub fn waiting(
@@ -271,6 +277,28 @@ pub fn certified(
         ops.extend(retired(seed, persons, &device, &key, now));
     }
     ops
+}
+
+/// Machines removed from the list from a machine without the seed are taken back by the one that has it.
+pub fn left(
+    seed: &Seed,
+    persons: &Persons,
+    machines: &BTreeSet<DeviceId>,
+    now: Timestamp,
+) -> Vec<Op> {
+    let person = seed.root().person();
+    persons
+        .keys
+        .keys()
+        .filter(|device| !machines.contains(*device))
+        .filter(|device| {
+            persons
+                .named_by(device)
+                .iter()
+                .any(|key| persons.vouched_for(key, &person))
+        })
+        .flat_map(|device| revoked(seed, persons, device, now))
+        .collect()
 }
 
 /// Every key the machine ever named, vouched for yet or not, so it cannot slip in before the root speaks.
