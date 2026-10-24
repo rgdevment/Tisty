@@ -606,6 +606,7 @@ sequenceDiagram
 | Documents | One decision per live document (next section) | `papers.rs` |
 | Attachments down | Files in the folder shaped like an attachment, not retired, not above the 25 MB line unless `Holds::Everywhere`, and, when the folder holds files no log claims, only those a task or document names. Bytes are checked against the name and digest before the rename | `held.rs` |
 | Stamp | `tisty.toml` is written last, only if it is missing or says less than this build knows; finding it is finding a round that finished | `shape::stamp` |
+| Outside a round | Whatever reads or writes the folder outside a round (`stitch`, `settle`, `both_papers`, `let_go`, `forget_paper`, leaving word) first asks `shape::refuses`: a later `needs`, a shape above ours or an unreadable `tisty.toml` stops it. Rewriting `tisty.toml` keeps every line this build does not write, so what a later build asked of every machine survives | `shape.rs` |
 
 Files already identical are skipped. Identical means the same length and then
 the same bytes, 16 KiB at a time (`segments::same`), never the same date.
@@ -850,7 +851,7 @@ settings name a cloud.
 |---|---|
 | Mirror | `<home>/tree/` mirrors `tisty.toml`, `store/` and `docs/` only. A name the round does not read is neither fetched nor deleted. Files above 64 MiB are not mirrored |
 | Index | `index.json`: the change cursor, whether `tisty.toml` was seen or put (`confirmed`), per mirrored name the revision, length, time and digest of the copy, and per attachment up there what the provider reported (`Seen`) |
-| Round | `with_mirror`: take `round.lock`, pull (apply `Remote::changes` since the cursor, download what changed into a `.part` and rename), run `carry_through` over the mirror, then push |
+| Round | `with_mirror`: take `round.lock`, pull (apply `Remote::changes` since the cursor, download what changed into a `.part` and rename), run `carry_through` over the mirror, then push. The pull brings `tisty.toml` first and asks `shape::refuses` before anything else comes down; a place a later Tisty raised stops it as `Hitch::Barred` with the cursor unmoved, so no round, read or word left touches what that build wrote |
 | Push order | History first, then documents, `tisty.toml` last. A document file missing from the mirror while `docs/` stands is read as a deletion and deleted up there against the revision last seen; anything else missing from the mirror is fetched again |
 | Attachments | Not mirrored: `Shelf` implements `Attachments` and talks to the `Remote` directly, putting with `Expect::Absent` and checking the landed size and hash. A round sends attachments up and never brings one down nor lets go of a copy here, whatever `holds` says: the cloud is where other machines fetch from, not where a copy lives instead of here. Only `bring_home` brings them all down |
 | Verification | Downloads are checked against the provider's hash and length before they count; the round then installs exactly what it checked |

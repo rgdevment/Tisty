@@ -98,6 +98,21 @@ pub fn pull(
     for seen in changed {
         due.insert(seen.name.clone(), seen);
     }
+    // The place's word comes down first and is heeded, so nothing a later Tisty wrote reaches this machine.
+    if let Some(named) = due.remove(NAMED) {
+        let brought = learn(remote, tree, index, data, named.clone());
+        if !matches!(brought, Ok(false)) {
+            index.owed.insert(named.name.clone(), named);
+            index.owed.append(&mut due);
+            return Err(brought
+                .err()
+                .unwrap_or_else(|| Hitch::Troubled(format!("{NAMED} could not be brought"))));
+        }
+    }
+    if let Err(trouble) = tisty_sync::refuses(tree) {
+        index.owed.append(&mut due);
+        return Err(Hitch::Barred(trouble));
+    }
     let whole = due.len();
     let mut due = due.into_values().enumerate();
     // Only a first read is long enough to need counting: a later one brings a handful.

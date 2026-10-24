@@ -236,3 +236,44 @@ fn a_place_is_raised_first_only_when_it_already_says_an_older_shape() {
         "a place already raised was raised again"
     );
 }
+
+#[test]
+fn what_a_later_tisty_added_to_the_place_survives_a_round_here() {
+    let (_room, data, dest) = a_place();
+    std::fs::write(
+        dest.join(NAMED),
+        "shape = 2\nneeds = \"1.30.0\"\nsealed = true\n# said by a later build\n",
+    )
+    .unwrap();
+
+    assert!(raise_first(&data, &dest));
+
+    let said = std::fs::read_to_string(dest.join(NAMED)).unwrap();
+    assert!(said.contains("sealed = true\n"), "{said}");
+    assert!(said.contains("# said by a later build\n"), "{said}");
+    assert!(said.contains(&format!("needs = \"{NEEDS}\"")), "{said}");
+    assert_eq!(said.matches("shape =").count(), 1, "{said}");
+    assert_eq!(said.matches(HEADING).count(), 1, "{said}");
+}
+
+#[test]
+fn a_place_asking_for_a_later_tisty_is_refused_outside_a_round_too() {
+    let (_room, _data, dest) = a_place();
+    std::fs::write(
+        dest.join(NAMED),
+        format!("shape = {OURS}\nneeds = \"999.0.0\"\n"),
+    )
+    .unwrap();
+
+    assert_eq!(refuses(&dest), Err(Trouble::Needs("999.0.0".to_string())));
+}
+
+#[test]
+fn a_place_that_says_nothing_or_our_shape_is_not_refused() {
+    let (_room, data, dest) = a_place();
+    assert_eq!(refuses(&dest), Ok(()));
+
+    stamp(&data, &dest);
+
+    assert_eq!(refuses(&dest), Ok(()));
+}

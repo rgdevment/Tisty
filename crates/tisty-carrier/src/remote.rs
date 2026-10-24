@@ -41,6 +41,8 @@ pub enum Hitch {
     Troubled(String),
     /// Everything the store held up there is gone at once, deleted outside Tisty, and is never read as each file deleted.
     Emptied,
+    /// The place asks for a later Tisty, so nothing else came down.
+    Barred(tisty_sync::Trouble),
     Broke(String),
 }
 
@@ -59,6 +61,7 @@ impl Hitch {
             Hitch::Unreachable(..) => "unreachable",
             Hitch::Troubled(_) => "troubled",
             Hitch::Emptied => "emptied",
+            Hitch::Barred(_) => "barred",
             Hitch::Broke(_) => "broke",
         }
     }
@@ -79,6 +82,7 @@ impl std::fmt::Debug for Hitch {
                 .field(why)
                 .finish(),
             Hitch::Troubled(why) => f.debug_tuple("Troubled").field(why).finish(),
+            Hitch::Barred(trouble) => f.debug_tuple("Barred").field(&trouble.code()).finish(),
             Hitch::Broke(why) => f.debug_tuple("Broke").field(why).finish(),
             Hitch::Spent => f.write_str("Spent"),
             Hitch::Paused => f.write_str("Paused"),

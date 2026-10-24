@@ -74,6 +74,7 @@ pub fn let_go_telling(
     elsewhere: &dyn Fn(&str) -> bool,
     told: &mut dyn FnMut(&LetGo) -> bool,
 ) -> Result<LetGo, Trouble> {
+    crate::refuses(dest)?;
     let mut done = LetGo::default();
     let Ok(files) = std::fs::read_dir(data.join(HELD)) else {
         return Ok(done);
