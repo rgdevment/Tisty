@@ -134,28 +134,32 @@ impl Persons {
 
     /// The log names a person once a certificate holds that nobody took back.
     pub fn names_a_person(&self) -> bool {
-        self.vouches()
-            .any(|one| !self.key_taken_back_by(&one.share, &one.person))
+        self.vouches().any(|one| self.stands(&one))
     }
 
-    /// Whether a machine holding the seed has anything to do: a key nobody vouched for, or a machine gone.
-    pub fn awaits_the_seed(&self, machines: &BTreeSet<DeviceId>) -> bool {
-        let standing = |key: &VerifyingKey| {
-            self.vouches()
-                .any(|one| one.share == *key && !self.key_taken_back_by(key, &one.person))
-        };
+    fn stands(&self, vouched: &Vouched) -> bool {
+        !self.key_taken_back_by(&vouched.share, &vouched.person)
+    }
+
+    /// A key taken back is never vouched for again, so it alone must not keep the keychain read each round.
+    pub fn awaits_the_seed(&self, seated: &BTreeSet<DeviceId>) -> bool {
         self.keys
             .keys()
-            .any(|device| match machines.contains(device) {
-                true => self.current(device).is_some_and(|key| !standing(&key)),
-                false => self.named_by(device).iter().any(standing),
+            .any(|device| match seated.contains(device) {
+                true => self
+                    .current(device)
+                    .is_some_and(|key| !self.vouches().any(|one| one.share == key)),
+                false => self.named_by(device).iter().any(|key| {
+                    self.vouches()
+                        .any(|one| one.share == *key && self.stands(&one))
+                }),
             })
     }
 
     /// Whether this root is a person the log names, so a seed for another one never speaks here.
     pub fn names(&self, root: &Person) -> bool {
         self.vouches()
-            .any(|one| one.person == *root && !self.key_taken_back_by(&one.share, &one.person))
+            .any(|one| one.person == *root && self.stands(&one))
     }
 
     pub fn waiting(
@@ -297,14 +301,14 @@ pub fn certified(
 pub fn left(
     seed: &Seed,
     persons: &Persons,
-    machines: &BTreeSet<DeviceId>,
+    seated: &BTreeSet<DeviceId>,
     now: Timestamp,
 ) -> Vec<Op> {
     let person = seed.root().person();
     persons
         .keys
         .keys()
-        .filter(|device| !machines.contains(*device))
+        .filter(|device| !seated.contains(*device))
         .filter(|device| {
             persons
                 .named_by(device)

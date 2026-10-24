@@ -177,7 +177,7 @@ pub fn seed_secrets(scope: &str) -> Result<Arc<dyn Secrets>, Hitch> {
     secrets_in(Shelf::Seed, scope)
 }
 
-/// The seed sits apart from the tokens, so leaving can take every token and no seed nobody wrote down.
+/// On Windows the seed sits apart from the tokens, so leaving takes every token and no seed nobody wrote down.
 #[derive(Clone, Copy)]
 pub enum Shelf {
     Tokens,

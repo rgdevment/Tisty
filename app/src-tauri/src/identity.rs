@@ -22,7 +22,10 @@ fn scope(paths: &Paths) -> Result<String, String> {
 }
 
 pub fn kept(paths: &Paths) -> Result<Option<Seed>, String> {
-    let secrets = crate::reaching::seed_secrets(&scope(paths)?).map_err(|e| format!("{e:?}"))?;
+    let Ok(scope) = scope(paths) else {
+        return Ok(None);
+    };
+    let secrets = crate::reaching::seed_secrets(&scope).map_err(|e| format!("{e:?}"))?;
     let Some(said) = secrets.read(SEED).map_err(|e| format!("{e:?}"))? else {
         return Ok(None);
     };
@@ -71,7 +74,6 @@ fn ours(seed: &Seed, state: &State) -> bool {
     state.persons.names(&seed.root().person())
 }
 
-/// Read off the session lock, and only when the gate says the seed has something to do.
 async fn off_the_lock(
     session: &tauri::State<'_, Mutex<Session>>,
     gate: impl FnOnce(&Session) -> bool,
@@ -95,10 +97,10 @@ async fn off_the_lock(
 
 pub async fn for_a_round(session: &tauri::State<'_, Mutex<Session>>) -> Option<Seed> {
     off_the_lock(session, |session| {
-        let persons = &session.state.persons;
-        persons.names_a_person()
-            && (persons.awaits_the_seed(&person::machines(&session.state))
-                || persons.person(&session.config.device_id).is_none())
+        let state = &session.state;
+        state.persons.names_a_person()
+            && state.devices.contains(&session.config.device_id)
+            && state.persons.awaits_the_seed(&state.devices)
     })
     .await
 }
@@ -125,7 +127,12 @@ pub fn after_a_round(session: &mut Session, seed: Option<&Seed>) {
     let machines = person::machines(&session.state);
     let now = jiff::Timestamp::now();
     let mut ops = person::certified(seed, &session.state.persons, &machines, now);
-    ops.extend(person::left(seed, &session.state.persons, &machines, now));
+    ops.extend(person::left(
+        seed,
+        &session.state.persons,
+        &session.state.devices,
+        now,
+    ));
     if !ops.is_empty()
         && let Err(e) = session.commit_all(ops)
     {
@@ -171,9 +178,16 @@ fn words(session: &Session) -> Words {
 }
 
 fn current(session: &Session) -> Answer<Option<Seed>> {
-    let seed = kept(&session.paths).map_err(unread)?;
-    let named = session.state.persons.names_a_person();
-    Ok(seed.filter(|seed| !named || ours(seed, &session.state)))
+    Ok(counted(
+        kept(&session.paths).map_err(unread)?,
+        &session.state,
+    ))
+}
+
+/// While the log names nobody, a seed kept here is one that began and never reached it.
+fn counted(seed: Option<Seed>, state: &State) -> Option<Seed> {
+    let named = state.persons.names_a_person();
+    seed.filter(|seed| !named || ours(seed, state))
 }
 
 #[tauri::command(async)]
@@ -220,10 +234,7 @@ pub fn identity_phrase(session: tauri::State<'_, Mutex<Session>>) -> Answer<Stri
     let paths = held(&session).paths.clone();
     let seed = kept(&paths).map_err(unread)?;
     let session = held(&session);
-    let named = session.state.persons.names_a_person();
-    let seed = seed
-        .filter(|seed| !named || ours(seed, &session.state))
-        .ok_or_else(|| Refusal::of("identityNone"))?;
+    let seed = counted(seed, &session.state).ok_or_else(|| Refusal::of("identityNone"))?;
     phrase::phrase(&seed, words(&session))
         .map(|said| said.to_string())
         .ok_or_else(|| Refusal::of("identityNone"))
