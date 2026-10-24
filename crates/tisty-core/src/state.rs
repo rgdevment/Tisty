@@ -441,7 +441,7 @@ impl State {
             }
             Op::StoresJoined { d } => self.stores_joined(d),
             Op::ShareKey { .. } | Op::ShareCertified { .. } | Op::ShareRevoked { .. } => {
-                self.persons.took(event);
+                self.persons.took(event, &self.assistants);
             }
             Op::ListLook { id, d } => {
                 if let Some(list) = self.lists.get_mut(id) {

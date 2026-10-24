@@ -1257,7 +1257,7 @@ fn who_the_person_is_comes_back_from_the_cache() {
     state
         .persons
         .keys
-        .insert(crate::DeviceId("dev_a".into()), key.shown());
+        .insert(crate::DeviceId("dev_a".into()), vec![key.shown()]);
     state
         .persons
         .certificates

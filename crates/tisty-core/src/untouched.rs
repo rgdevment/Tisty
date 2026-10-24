@@ -144,8 +144,6 @@ impl Sown {
             | Op::DeviceHost { .. }
             | Op::DeviceNamed { .. }
             | Op::ShareKey { .. }
-            | Op::ShareCertified { .. }
-            | Op::ShareRevoked { .. }
             | Op::Signed { .. } => true,
             _ if self.agents.contains(&event.device.0) => false,
             Op::ListAdd { id, d } => a_first_list(d) && self.lists.insert(*id),

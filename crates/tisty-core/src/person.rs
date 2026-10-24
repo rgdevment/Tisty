@@ -11,25 +11,44 @@ use crate::state::State;
 
 pub const KEEP: &str = ".share-key";
 
-/// What the log says of the person: each machine's share key and what the root said about it.
+/// Only what holds is kept, so a forged line never reaches the cache nor any answer.
 #[derive(Debug, Default, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Persons {
-    pub keys: BTreeMap<DeviceId, String>,
+    /// Every key a machine named, the one it signs with now last.
+    pub keys: BTreeMap<DeviceId, Vec<String>>,
     pub certificates: Vec<Certificate>,
     pub revocations: Vec<Revocation>,
 }
 
 impl Persons {
-    pub(crate) fn took(&mut self, event: &Event) {
+    /// Assistants never speak for the person here, whatever they sign.
+    pub(crate) fn took(&mut self, event: &Event, assistants: &BTreeSet<DeviceId>) {
+        if assistants.contains(&event.device) {
+            return;
+        }
         match &event.op {
-            // The newest key a machine names stands: only that machine writes its history.
-            Op::ShareKey { p } if share_key(p).is_some() => {
-                self.keys.insert(event.device.clone(), p.clone());
+            Op::ShareKey { p }
+                if share_key(p).is_some() && !self.named_by_another(&event.device, p) =>
+            {
+                let said = self.keys.entry(event.device.clone()).or_default();
+                said.retain(|one| one != p);
+                said.push(p.clone());
             }
-            Op::ShareCertified { c } => self.certificates.push(c.clone()),
-            Op::ShareRevoked { r } => self.revocations.push(r.clone()),
+            Op::ShareCertified { c } if c.vouches().is_ok() => self.certificates.push(c.clone()),
+            Op::ShareRevoked { r } if r.holds().is_ok() => self.revocations.push(r.clone()),
             _ => {}
         }
+    }
+
+    // One key answers for one machine, or taking one back would take back the other.
+    fn named_by_another(&self, device: &DeviceId, said: &str) -> bool {
+        self.keys
+            .iter()
+            .any(|(one, keys)| one != device && keys.iter().any(|key| key == said))
+    }
+
+    fn current(&self, device: &DeviceId) -> Option<VerifyingKey> {
+        share_key(self.keys.get(device)?.last()?)
     }
 
     fn vouches(&self) -> impl Iterator<Item = Vouched> + '_ {
@@ -42,79 +61,96 @@ impl Persons {
         self.revocations.iter().any(|one| one.takes_back(vouched))
     }
 
-    /// The certificate that holds for a machine's key now; the newest when the root said it twice.
-    pub fn vouched(&self, device: &DeviceId) -> Option<Vouched> {
-        let key = share_key(self.keys.get(device)?)?;
+    /// The person whose word holds for a machine's key now; the newest when two roots vouched.
+    pub fn person(&self, device: &DeviceId) -> Option<Person> {
+        let key = self.current(device)?;
         self.vouches()
             .filter(|one| one.share == key && !self.taken_back(one))
             .max_by_key(|one| one.since)
+            .map(|one| one.person)
     }
 
-    pub fn person(&self, device: &DeviceId) -> Option<Person> {
-        self.vouched(device).map(|one| one.person)
-    }
-
-    /// Machines whose key this person never vouched for. A key taken back is not waiting: it stays out.
-    pub fn waiting(
-        &self,
-        root: &Person,
-        machines: &BTreeSet<DeviceId>,
-    ) -> Vec<(DeviceId, VerifyingKey)> {
-        machines
-            .iter()
-            .filter_map(|device| {
-                let key = share_key(self.keys.get(device)?)?;
-                let known = self
-                    .vouches()
-                    .any(|one| one.person == *root && one.share == key);
-                (!known).then(|| (device.clone(), key))
-            })
-            .collect()
-    }
-
-    fn key_taken_back(&self, key: &VerifyingKey) -> bool {
+    pub fn vouched_by(&self, device: &DeviceId, root: &Person) -> Option<Vouched> {
+        let key = self.current(device)?;
         self.vouches()
-            .any(|one| one.share == *key && self.taken_back(&one))
+            .filter(|one| one.share == key && one.person == *root && !self.taken_back(one))
+            .max_by_key(|one| one.since)
+    }
+
+    /// A machine this root took back stays out until the person brings it in by hand.
+    fn taken_back_by(&self, device: &DeviceId, root: &Person) -> bool {
+        let Some(keys) = self.keys.get(device) else {
+            return false;
+        };
+        self.revocations
+            .iter()
+            .filter_map(|one| one.holds().ok())
+            .any(|(person, key)| {
+                person == *root && keys.iter().any(|one| share_key(one) == Some(key))
+            })
+    }
+
+    pub fn waiting(&self, root: &Person, machines: &BTreeSet<DeviceId>) -> Vec<VerifyingKey> {
+        let mut waiting: Vec<VerifyingKey> = machines
+            .iter()
+            .filter(|device| !self.taken_back_by(device, root))
+            .filter_map(|device| self.current(device))
+            .filter(|key| {
+                !self
+                    .vouches()
+                    .any(|one| one.person == *root && one.share == *key)
+            })
+            .collect();
+        waiting.sort_by_key(|key| *key.as_bytes());
+        waiting.dedup();
+        waiting
     }
 }
 
-/// The machines of the log, the ones a person sits at: assistants never get a key of their own.
 pub fn machines(state: &State) -> BTreeSet<DeviceId> {
     state
         .devices
         .iter()
-        .filter(|one| !state.agents.contains(*one) && !state.assistants.contains(*one))
+        .filter(|one| !state.assistants.contains(*one))
         .cloned()
         .collect()
 }
 
-/// The first steps of a person on the machine where the seed was born: its key, vouched for.
+/// Typing the phrase on a machine is the person's own word for it, even one they took back before.
 pub fn begun(
     paths: &crate::Paths,
     device: &DeviceId,
     seed: &Seed,
+    persons: &Persons,
     now: Timestamp,
 ) -> Option<Vec<Op>> {
-    let key = mine(paths, device)?;
-    let certificate = seed.root().certify(&key.public(), now);
-    Some(vec![
-        Op::ShareKey { p: key.shown() },
-        Op::ShareCertified { c: certificate },
-    ])
+    let root = seed.root();
+    let mut key = mine(paths, device)?;
+    if persons.taken_back_by(device, &root.person()) {
+        key = replaced(paths, device, &key)?;
+    }
+    let mut ops = Vec::new();
+    if persons.current(device) != Some(key.public()) {
+        ops.push(Op::ShareKey { p: key.shown() });
+    }
+    let vouched = persons
+        .vouched_by(device, &root.person())
+        .is_some_and(|one| one.share == key.public());
+    if !vouched {
+        ops.push(Op::ShareCertified {
+            c: root.certify(&key.public(), now),
+        });
+    }
+    Some(ops)
 }
 
-/// Once the log names a person, a machine says the key it would sign with, for the root to vouch for.
-/// A key taken back is never used again: the machine makes another.
+/// A machine says its key only once the log names a person, so nobody else ever makes one.
 pub fn introduced(paths: &crate::Paths, device: &DeviceId, persons: &Persons) -> Option<Op> {
     if persons.certificates.is_empty() {
         return None;
     }
-    let published = persons.keys.get(device).and_then(|said| share_key(said));
-    let key = match published {
-        Some(key) if persons.key_taken_back(&key) => fresh(paths, device)?,
-        _ => mine(paths, device)?,
-    };
-    (published != Some(key.public())).then(|| Op::ShareKey { p: key.shown() })
+    let key = mine(paths, device)?;
+    (persons.current(device) != Some(key.public())).then(|| Op::ShareKey { p: key.shown() })
 }
 
 pub fn certified(
@@ -127,50 +163,47 @@ pub fn certified(
     persons
         .waiting(&root.person(), machines)
         .into_iter()
-        .map(|(_, key)| Op::ShareCertified {
+        .map(|key| Op::ShareCertified {
             c: root.certify(&key, now),
         })
         .collect()
 }
 
-/// None when that machine has no key this person vouched for.
 pub fn revoked(seed: &Seed, persons: &Persons, device: &DeviceId, now: Timestamp) -> Option<Op> {
     let root = seed.root();
-    let vouched = persons
-        .vouched(device)
-        .filter(|one| one.person == root.person())?;
+    let vouched = persons.vouched_by(device, &root.person())?;
     Some(Op::ShareRevoked {
         r: root.revoke(&vouched.share, now),
     })
 }
 
 pub fn kept_at(paths: &crate::Paths, device: &DeviceId) -> Option<PathBuf> {
-    crate::store::is_device_name(&device.0)
-        .then(|| paths.private().join(format!("{}{KEEP}", device.0)))
+    crate::store::identity::device_file(paths, device, KEEP)
 }
 
 pub fn mine(paths: &crate::Paths, device: &DeviceId) -> Option<ShareKey> {
-    use crate::store::identity::{Kept, kept, minted};
-
     let at = kept_at(paths, device)?;
-    let one = match kept(
+    let one = crate::store::identity::kept_or_minted(
         paths,
         &at,
         "what was kept as this machine's share key is not one",
-    ) {
-        Kept::Good(one) => Some(one),
-        Kept::Gone => minted(paths, &at),
-        Kept::Blocked => None,
-    }?;
+    )?;
     Some(ShareKey::from_bytes(&one))
 }
 
-fn fresh(paths: &crate::Paths, device: &DeviceId) -> Option<ShareKey> {
+/// Only the key that was taken back is thrown away, never one minted after it.
+fn replaced(paths: &crate::Paths, device: &DeviceId, old: &ShareKey) -> Option<ShareKey> {
     let at = kept_at(paths, device)?;
-    match std::fs::remove_file(&at) {
-        Ok(()) => {}
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-        Err(_) => return None,
+    if mine(paths, device)?.public() == old.public()
+        && let Err(e) = std::fs::remove_file(&at)
+        && e.kind() != std::io::ErrorKind::NotFound
+    {
+        crate::witness::warn(
+            crate::witness::channel::STORE,
+            "the share key taken back could not be thrown away, so no new one was made",
+            &[("why", crate::witness::Fact::Why(e.to_string()))],
+        );
+        return None;
     }
     mine(paths, device)
 }

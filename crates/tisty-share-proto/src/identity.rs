@@ -170,8 +170,14 @@ pub struct Revocation {
 impl Revocation {
     /// Only the root that vouched can take a key back, and for good: a machine found again gets a new key.
     pub fn takes_back(&self, vouched: &Vouched) -> bool {
+        self.holds()
+            .is_ok_and(|(person, share)| person == vouched.person && share == vouched.share)
+    }
+
+    /// Who took which key back, when the root's own signature says so.
+    pub fn holds(&self) -> Result<(Person, VerifyingKey), Fault> {
         attested(REVOKED, &self.root, &self.share, self.at, &self.sig)
-            .is_ok_and(|(root, share)| root == vouched.person.0 && share == vouched.share)
+            .map(|(root, share)| (Person(root), share))
     }
 }
 
@@ -296,7 +302,6 @@ fn between(kind: &[u8], root: &VerifyingKey, share: &VerifyingKey, when: Timesta
     out
 }
 
-/// A share key as a machine publishes it, read back.
 pub fn share_key(said: &str) -> Option<VerifyingKey> {
     key(said)
 }
