@@ -1,6 +1,6 @@
 use super::*;
 use crate::cloud::budget::{Class, Metered};
-use crate::fakes::Fake;
+use crate::fakes::{Counting, Fake};
 
 fn refused_up_there(tree: &Path, fake: &Fake, docs: usize) {
     let local = tree.with_extension("theirs");
@@ -140,4 +140,146 @@ fn a_stamp_already_up_there_goes_up_before_the_rest_when_the_place_is_raised() {
         there, b"shape = 3\n",
         "older builds could take what was sent before learning the place was raised"
     );
+}
+
+#[test]
+fn a_cloud_asking_for_a_later_tisty_brings_nothing_else_down() {
+    let room = tempfile::tempdir().unwrap();
+    let tree = room.path().join("tree");
+    std::fs::create_dir_all(&tree).unwrap();
+    let fake = Fake::drive();
+    let said = room.path().join("said");
+    std::fs::write(&said, "shape = 3\nneeds = \"999.0.0\"\n").unwrap();
+    fake.put(NAMED, &said, Expect::Absent).unwrap();
+    std::fs::write(&said, b"\xffTCS sealed by a later build").unwrap();
+    fake.put(&format!("{PAPERS}/dev_b-0001.md"), &said, Expect::Absent)
+        .unwrap();
+    let mut index = Index::default();
+
+    let pulled = pull(&fake, &tree, &mut index, None, false, &mut |_| {});
+
+    assert_eq!(
+        pulled,
+        Err(Hitch::Barred(tisty_sync::Trouble::Needs(
+            "999.0.0".to_string()
+        )))
+    );
+    assert!(!tree.join(PAPERS).join("dev_b-0001.md").exists());
+    assert!(index.owed.is_empty(), "{:?}", index.owed.keys());
+    assert!(index.cursor.is_none(), "the listing was taken as read");
+}
+
+#[test]
+fn a_place_whose_word_cannot_come_down_brings_nothing_else_either() {
+    let room = tempfile::tempdir().unwrap();
+    let tree = room.path().join("tree");
+    std::fs::create_dir_all(&tree).unwrap();
+    let fake = Fake::drive();
+    let said = room.path().join("said");
+    std::fs::write(&said, "shape = 3\nneeds = \"999.0.0\"\n").unwrap();
+    fake.put(NAMED, &said, Expect::Absent).unwrap();
+    fake.put(&format!("{PAPERS}/dev_b-0001.md"), &said, Expect::Absent)
+        .unwrap();
+    fake.truncate_next(1);
+    let mut index = Index::default();
+
+    let pulled = pull(&fake, &tree, &mut index, None, false, &mut |_| {});
+
+    assert!(matches!(pulled, Err(Hitch::Troubled(_))), "{pulled:?}");
+    assert!(!tree.join(PAPERS).join("dev_b-0001.md").exists());
+    assert_eq!(index.owed.keys().collect::<Vec<_>>(), [NAMED]);
+    assert!(index.cursor.is_none(), "the listing was taken as read");
+}
+
+fn word_up_there(fake: &Fake, room: &Path, needs: &str) {
+    let said = room.join("said");
+    std::fs::write(&said, format!("shape = 3\nneeds = \"{needs}\"\n")).unwrap();
+    let expect = match fake.about(NAMED).unwrap() {
+        Some(seen) => Expect::Revision(seen.revision),
+        None => Expect::Absent,
+    };
+    fake.put(NAMED, &said, expect).unwrap();
+}
+
+#[test]
+fn a_cloud_found_barred_is_asked_only_for_its_word_until_it_changes() {
+    let room = tempfile::tempdir().unwrap();
+    let tree = room.path().join("tree");
+    std::fs::create_dir_all(&tree).unwrap();
+    let fake = Fake::drive();
+    word_up_there(&fake, room.path(), "999.0.0");
+    let mut index = Index::default();
+    let barred = pull(&fake, &tree, &mut index, None, false, &mut |_| {});
+    assert!(matches!(barred, Err(Hitch::Barred(_))), "{barred:?}");
+    let listed = fake.counts().lists;
+
+    let again = pull(&fake, &tree, &mut index, None, false, &mut |_| {});
+
+    assert!(matches!(again, Err(Hitch::Barred(_))), "{again:?}");
+    assert_eq!(fake.counts().lists, listed, "the cloud was listed again");
+
+    word_up_there(&fake, room.path(), "1.0.0");
+    let freed = pull(&fake, &tree, &mut index, None, false, &mut |_| {});
+
+    assert_eq!(freed, Ok(0));
+    assert!(index.cursor.is_some());
+}
+
+#[test]
+fn what_a_later_tisty_took_away_is_not_taken_away_here_while_barred() {
+    let room = tempfile::tempdir().unwrap();
+    let tree = room.path().join("tree");
+    std::fs::create_dir_all(&tree).unwrap();
+    let fake = Fake::drive();
+    word_up_there(&fake, room.path(), "1.0.0");
+    let doc = format!("{PAPERS}/dev_b-0001.md");
+    std::fs::write(room.path().join("doc"), b"lo escrito").unwrap();
+    fake.put(&doc, &room.path().join("doc"), Expect::Absent)
+        .unwrap();
+    let mut index = Index::default();
+    pull(&fake, &tree, &mut index, None, false, &mut |_| {}).unwrap();
+    assert!(tree.join(&doc).is_file());
+
+    word_up_there(&fake, room.path(), "999.0.0");
+    fake.delete(&doc, None).unwrap();
+    let barred = pull(&fake, &tree, &mut index, None, false, &mut |_| {});
+
+    assert!(matches!(barred, Err(Hitch::Barred(_))), "{barred:?}");
+    assert!(tree.join(&doc).is_file(), "a deletion came through the bar");
+    assert!(index.tree.contains_key(&doc));
+}
+
+#[test]
+fn a_word_spoiled_here_is_brought_again_rather_than_barring_for_good() {
+    let room = tempfile::tempdir().unwrap();
+    let tree = room.path().join("tree");
+    std::fs::create_dir_all(&tree).unwrap();
+    let fake = Fake::drive();
+    word_up_there(&fake, room.path(), "1.0.0");
+    let mut index = Index::default();
+    pull(&fake, &tree, &mut index, None, false, &mut |_| {}).unwrap();
+
+    std::fs::write(tree.join(NAMED), b"\xff\xfe").unwrap();
+    let pulled = pull(&fake, &tree, &mut index, None, false, &mut |_| {});
+
+    assert_eq!(pulled, Ok(0));
+    assert_eq!(tisty_sync::refuses(&tree), Ok(()));
+}
+
+#[test]
+fn a_word_spoiled_here_and_gone_up_there_is_let_go_rather_than_barring_for_good() {
+    let room = tempfile::tempdir().unwrap();
+    let tree = room.path().join("tree");
+    std::fs::create_dir_all(&tree).unwrap();
+    let fake = Fake::drive();
+    word_up_there(&fake, room.path(), "1.0.0");
+    let mut index = Index::default();
+    pull(&fake, &tree, &mut index, None, false, &mut |_| {}).unwrap();
+
+    fake.delete(NAMED, None).unwrap();
+    std::fs::write(tree.join(NAMED), b"\xff\xfe").unwrap();
+    let pulled = pull(&fake, &tree, &mut index, None, true, &mut |_| {});
+
+    assert!(!matches!(pulled, Err(Hitch::Barred(_))), "{pulled:?}");
+    assert!(!tree.join(NAMED).exists());
 }

@@ -11,6 +11,7 @@ workspace = true
 
 [dependencies]
 tisty-core.workspace = true
+toml_edit.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true

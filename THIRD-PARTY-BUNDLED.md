@@ -160,7 +160,7 @@ written once with the crates that carry it.
 | `uuid` | 14.0.3 | MIT |
 | `w3c-keyname` | 2.2.8 | MIT |
 
-## In the core (364 crates)
+## In the core (365 crates)
 
 | Crate | Version | Licence |
 | --- | --- | --- |
@@ -455,6 +455,7 @@ written once with the crates that carry it.
 | `tokio-util` | 0.7.20 | MIT |
 | `toml` | 1.1.8+spec-1.1.0 | MIT OR Apache-2.0 |
 | `toml_datetime` | 1.1.2+spec-1.1.0 | MIT OR Apache-2.0 |
+| `toml_edit` | 0.25.17+spec-1.1.0 | MIT OR Apache-2.0 |
 | `toml_parser` | 1.1.5+spec-1.1.0 | MIT OR Apache-2.0 |
 | `toml_writer` | 1.1.3+spec-1.1.0 | MIT OR Apache-2.0 |
 | `tower` | 0.5.3 | MIT |

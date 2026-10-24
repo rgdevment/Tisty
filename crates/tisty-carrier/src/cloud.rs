@@ -444,12 +444,26 @@ impl Cloud {
         let every = Duration::from_millis(stir.every_ms);
         let index = Index::load(&self.home);
         let metered = Metered::over(&*self.remote, &self.home, Class::History);
-        let next = match metered.changes(index.cursor.as_deref()) {
-            Ok(changes) if news(&index, &changes) => {
-                stir.mark = marked(&changes);
-                poll
-            }
-            Ok(_) => (every * 2).clamp(poll, poll * QUIET_STRETCH),
+        let asked = if tisty_sync::later(&self.tree()).is_some() {
+            mirror::word_moved(&metered, &index).map(|moved| {
+                let moved = moved && !index.owed.contains_key(tisty_sync::NAMED);
+                if moved {
+                    stir.mark = stir.mark.wrapping_add(1);
+                }
+                moved
+            })
+        } else {
+            metered.changes(index.cursor.as_deref()).map(|changes| {
+                let news = news(&index, &changes);
+                if news {
+                    stir.mark = marked(&changes);
+                }
+                news
+            })
+        };
+        let next = match asked {
+            Ok(true) => poll,
+            Ok(false) => (every * 2).clamp(poll, poll * QUIET_STRETCH),
             Err(crate::Hitch::Limited { wait }) => {
                 resting::rest(&self.home, wait);
                 wait.max(poll)
@@ -669,6 +683,10 @@ impl Carrier for Cloud {
 
     fn theirs(&self) -> Option<String> {
         tisty_sync::theirs(&self.fresh())
+    }
+
+    fn later(&self) -> Option<Trouble> {
+        tisty_sync::later(&self.tree())
     }
 
     fn been_here(&self, here: &Here) -> bool {

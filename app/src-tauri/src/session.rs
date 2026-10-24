@@ -503,7 +503,7 @@ impl Session {
         self.commit_all(told)
             .map_err(|e| blamed(channel::ATTACH, "the retirement could not be written", e))?;
         // Asked for by name, so the shared folder's copy goes now; the cloud keeps it in its own bin.
-        if let Some(dest) = self.dest() {
+        if let Some(dest) = self.swept_place() {
             tisty_core::attach::sweep(&dest, &gone, &std::collections::BTreeSet::new());
         }
         self.tidy_up(false);
@@ -818,10 +818,14 @@ impl Session {
         self.place()
     }
 
+    fn swept_place(&self) -> Option<std::path::PathBuf> {
+        self.place().filter(|at| tisty_carrier::refuses(at).is_ok())
+    }
+
     pub fn tidy_up(&mut self, bin: bool) {
         tisty_core::parcel::swept(self.paths.data());
         tisty_core::attach::swept(self.paths.data());
-        let dest = self.dest();
+        let dest = self.swept_place();
         tisty_core::tidy::all_of_it(
             &self.paths,
             &self.state,
@@ -836,7 +840,7 @@ impl Session {
             &self.paths,
             &self.state,
             self.cache.as_ref(),
-            self.dest().as_deref(),
+            self.swept_place().as_deref(),
             bin,
         )
     }

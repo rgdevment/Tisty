@@ -236,3 +236,225 @@ fn a_place_is_raised_first_only_when_it_already_says_an_older_shape() {
         "a place already raised was raised again"
     );
 }
+
+#[test]
+fn what_a_later_tisty_added_to_the_place_survives_a_round_here() {
+    let (_room, data, dest) = a_place();
+    std::fs::write(
+        dest.join(NAMED),
+        "shape = 2\nneeds = \"1.30.0\"\nsealed = true\n# said by a later build\n",
+    )
+    .unwrap();
+
+    assert!(raise_first(&data, &dest));
+
+    let said = std::fs::read_to_string(dest.join(NAMED)).unwrap();
+    assert!(said.contains("sealed = true\n"), "{said}");
+    assert!(said.contains("# said by a later build\n"), "{said}");
+    assert!(said.contains(&format!("needs = \"{NEEDS}\"")), "{said}");
+    assert_eq!(said.matches("shape =").count(), 1, "{said}");
+}
+
+#[test]
+fn a_place_asking_for_a_later_tisty_is_refused_outside_a_round_too() {
+    let (_room, _data, dest) = a_place();
+    std::fs::write(
+        dest.join(NAMED),
+        format!("shape = {OURS}\nneeds = \"999.0.0\"\n"),
+    )
+    .unwrap();
+
+    assert_eq!(refuses(&dest), Err(Trouble::Needs("999.0.0".to_string())));
+}
+
+#[test]
+fn a_place_that_says_nothing_or_our_shape_is_not_refused() {
+    let (_room, data, dest) = a_place();
+    assert_eq!(refuses(&dest), Ok(()));
+
+    stamp(&data, &dest);
+
+    assert_eq!(refuses(&dest), Ok(()));
+}
+
+#[test]
+fn a_later_builds_tables_and_spread_arrays_survive_a_round_here() {
+    let (_room, data, dest) = a_place();
+    std::fs::write(
+        dest.join(NAMED),
+        "shape = 2\nfolders = [\n  \"store\",\n  \"attachments\",\n]\n[seal]\nneeds = \"1.40.0\"\nshape = 1\n",
+    )
+    .unwrap();
+
+    assert!(raise_first(&data, &dest));
+
+    let said = std::fs::read_to_string(dest.join(NAMED)).unwrap();
+    assert!(
+        said.ends_with("[seal]\nneeds = \"1.40.0\"\nshape = 1\n"),
+        "{said}"
+    );
+    assert!(!said.contains("  \"store\",\n"), "{said}");
+    assert_eq!(said.matches("folders =").count(), 1, "{said}");
+    assert!(
+        matches!(told(&dest), Told::Shape { shape: OURS, needs: Some(needs), .. } if needs == NEEDS)
+    );
+}
+
+#[test]
+fn a_place_whose_word_cannot_be_opened_just_now_is_not_there_rather_than_unshaped() {
+    let (_room, _data, dest) = a_place();
+    std::fs::create_dir_all(dest.join(NAMED)).unwrap();
+
+    assert!(matches!(refuses(&dest), Err(Trouble::NotThere(_))));
+}
+
+#[test]
+fn a_word_that_is_not_text_is_unshaped_rather_than_not_there() {
+    let (_room, _data, dest) = a_place();
+    std::fs::write(dest.join(NAMED), b"shape = 3\n\xff\xfe\n").unwrap();
+
+    assert!(matches!(refuses(&dest), Err(Trouble::Unshaped(_))));
+}
+
+#[test]
+fn a_later_builds_nested_arrays_do_not_hide_what_it_needs() {
+    let (_room, data, dest) = a_place();
+    std::fs::write(
+        dest.join(NAMED),
+        "shape = 2\nmachines = [\n  [\"x\", 1],\n  [\"y\", 2],\n]\nneeds = \"1.30.0\"\n",
+    )
+    .unwrap();
+
+    assert!(raise_first(&data, &dest));
+
+    let said = std::fs::read_to_string(dest.join(NAMED)).unwrap();
+    assert!(
+        said.contains("machines = [\n  [\"x\", 1],\n  [\"y\", 2],\n]\n"),
+        "{said}"
+    );
+    assert_eq!(said.matches("needs =").count(), 1, "{said}");
+
+    std::fs::write(
+        dest.join(NAMED),
+        "shape = 3\nmachines = [\n  [\"x\", 1],\n]\nneeds = \"999.0.0\"\n",
+    )
+    .unwrap();
+    assert_eq!(refuses(&dest), Err(Trouble::Needs("999.0.0".to_string())));
+}
+
+#[test]
+fn brackets_inside_a_later_builds_strings_do_not_hide_what_it_needs() {
+    let (_room, _data, dest) = a_place();
+    for said in [
+        "shape = 3\nnote = 'see [docs'\nneeds = \"999.0.0\"\n",
+        "shape = 3\ndesc = \"\"\"\n[note] text\n\"\"\"\nneeds = \"999.0.0\"\n",
+    ] {
+        std::fs::write(dest.join(NAMED), said).unwrap();
+
+        assert_eq!(
+            refuses(&dest),
+            Err(Trouble::Needs("999.0.0".to_string())),
+            "{said}"
+        );
+    }
+}
+
+#[test]
+fn a_needs_this_build_cannot_read_is_taken_for_a_later_one() {
+    let (_room, _data, dest) = a_place();
+    std::fs::write(dest.join(NAMED), "shape = 3\nneeds = 5\n").unwrap();
+
+    assert!(matches!(refuses(&dest), Err(Trouble::Needs(_))));
+}
+
+#[test]
+fn a_later_word_this_parser_cannot_read_still_says_what_it_needs() {
+    let (_room, data, dest) = a_place();
+    std::fs::write(
+        dest.join(NAMED),
+        "shape = 3\nneeds = \"999.0.0\"\nseal = { a = 1,\n b = 2 }\n",
+    )
+    .unwrap();
+    let needs = Some(Trouble::Needs("999.0.0".to_string()));
+
+    assert_eq!(later(&dest), needs);
+    assert_eq!(refuses(&dest).err(), needs);
+    assert_eq!(before_reading(&data, &dest).err(), needs);
+}
+
+#[test]
+fn a_word_that_cannot_be_read_and_asks_nothing_later_is_unshaped_not_later() {
+    let (_room, _data, dest) = a_place();
+    std::fs::write(dest.join(NAMED), "shape = = 3\n").unwrap();
+
+    assert_eq!(later(&dest), None);
+    assert!(matches!(refuses(&dest), Err(Trouble::Unshaped(_))));
+}
+
+#[test]
+fn a_needs_a_later_build_wrote_is_never_lowered_when_the_place_is_raised() {
+    let (_room, data, dest) = a_place();
+    std::fs::write(dest.join(NAMED), "shape = 2\nneeds = \"999.0.0\"\n").unwrap();
+
+    assert!(raise_first(&data, &dest));
+
+    let said = std::fs::read_to_string(dest.join(NAMED)).unwrap();
+    assert!(said.contains("needs = \"999.0.0\""), "{said}");
+    assert!(said.contains(&format!("shape = {OURS}")), "{said}");
+}
+
+#[test]
+fn only_an_older_needs_is_raised() {
+    assert!(needs_earlier("1.30.0"));
+    assert!(!needs_earlier(NEEDS));
+    assert!(!needs_earlier("999.0.0"));
+    assert!(!needs_earlier("not a release"));
+}
+
+#[test]
+fn a_word_1_33_read_that_this_parser_does_not_is_still_read_as_it_was() {
+    let (_room, data, dest) = a_place();
+    std::fs::write(dest.join(NAMED), "shape = 03\nneeds = \"1.31.0\"\n").unwrap();
+    assert_eq!(refuses(&dest), Ok(()));
+    assert_eq!(before_reading(&data, &dest), Ok(()));
+
+    std::fs::write(dest.join(NAMED), "shape = 2\nneeds = 1.30.0\n").unwrap();
+    assert!(raise_first(&data, &dest));
+    assert!(matches!(
+        told(&dest),
+        Told::Shape {
+            shape: OURS,
+            said: Some(_),
+            ..
+        }
+    ));
+}
+
+#[test]
+fn what_writes_outside_a_round_stops_at_a_place_a_later_build_raised() {
+    let (_room, data, dest) = a_place();
+    std::fs::create_dir_all(dest.join(PAPERS)).unwrap();
+    let said = format!("shape = {OURS}\nneeds = \"999.0.0\"\n");
+    std::fs::write(dest.join(NAMED), &said).unwrap();
+    let needs = Some(Trouble::Needs("999.0.0".to_string()));
+
+    assert_eq!(crate::stitch(&data, "dev_a", &dest, None).err(), needs);
+    assert_eq!(crate::both_papers(&data, &dest, "dev_a-0001").err(), needs);
+    assert_eq!(
+        crate::settle(&data, &dest, "dev_a-0001", crate::Keep::Both, None).err(),
+        needs
+    );
+    assert_eq!(
+        crate::let_go_telling(&data, &dest, 0, &|_| false, &mut |_| true).err(),
+        needs
+    );
+    assert_eq!(std::fs::read_to_string(dest.join(NAMED)).unwrap(), said);
+}
+
+#[test]
+fn a_beta_comes_before_its_release_and_build_marks_change_nothing() {
+    assert!(release("1.35.0-beta.1") < release("1.35.0"));
+    assert_eq!(release("1.35.0-rc.2"), release("1.35.0-rc.1"));
+    assert!(release("1.34.9") < release("1.35.0-beta.1"));
+    assert_eq!(release("1.35.0+abc"), release("1.35.0"));
+}
