@@ -507,3 +507,37 @@ fn a_store_written_back_up_there_by_another_machine_keeps_a_later_send_again_fro
         );
     }
 }
+
+#[test]
+fn a_cloud_read_from_another_root_starts_the_mirror_over_and_a_plain_index_says_no_root() {
+    let (setting, _) = each_kind(|fake| fake).remove(0);
+    let one = desk(&setting, "dev_a");
+    one.filed(DOC, "# Plan\n\nantes\n");
+    one.round(Way::Both);
+    let home = home_of(&setting, "dev_a");
+    let plain: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(home.join("index.json")).unwrap()).unwrap();
+    assert!(plain.get("root").is_none(), "{plain}");
+    let stale = home.join("tree").join("stale.md");
+    std::fs::write(&stale, "de la raíz vieja").unwrap();
+    let key = tisty_share_proto::cloud::CloudKey::of(&tisty_share_proto::seed::Seed::from_bytes(
+        &[7; 32],
+    ));
+    let space = Arc::new(crate::Sealed::new(Fake::drive(), key, "store_one"));
+    let sealed = Desk {
+        here: one.here.clone(),
+        carrier: Arc::new(Cloud::over(space.clone(), home.clone())),
+    };
+
+    let done = sealed.round(Way::Both);
+
+    assert!(done.refused.is_none(), "{done:?}");
+    assert!(!stale.exists(), "the mirror of the old root was kept");
+    assert!(
+        space.about(&doc_name()).unwrap().is_some(),
+        "the other root was taken for already in step"
+    );
+    let now: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(home.join("index.json")).unwrap()).unwrap();
+    assert_eq!(now["root"], serde_json::json!("sealed:store_one"));
+}

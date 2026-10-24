@@ -394,6 +394,10 @@ impl Remote for Metered<'_> {
             *idle = Idle::default();
         }
     }
+
+    fn root(&self) -> &str {
+        self.remote.root()
+    }
 }
 
 #[cfg(test)]

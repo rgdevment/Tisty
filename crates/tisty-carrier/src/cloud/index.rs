@@ -25,6 +25,8 @@ pub struct Index {
     pub cursor: Option<String>,
     #[serde(default)]
     pub confirmed: bool,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub root: String,
     pub tree: BTreeMap<String, Mirrored>,
     pub shelf: BTreeMap<String, Seen>,
     #[serde(default)]
@@ -42,11 +44,14 @@ fn laid_out_now<S: serde::Serializer>(_: &u32, to: S) -> Result<S::Ok, S::Error>
 }
 
 /// Only an index that was written and read is judged: none at all is a first round anyway.
-pub fn outdated(home: &Path) -> bool {
-    std::fs::read(home.join(FILE))
+pub fn stale(home: &Path, root: &str) -> Option<&'static str> {
+    let index = std::fs::read(home.join(FILE))
         .ok()
-        .and_then(|bytes| serde_json::from_slice::<Index>(&bytes).ok())
-        .is_some_and(|index| index.layout < LAYOUT)
+        .and_then(|bytes| serde_json::from_slice::<Index>(&bytes).ok())?;
+    if index.layout < LAYOUT {
+        return Some("the cloud's index was of an older layout, so the mirror starts over");
+    }
+    (index.root != root).then_some("the cloud is read from another root, so the mirror starts over")
 }
 
 pub fn forget(home: &Path) -> std::io::Result<()> {

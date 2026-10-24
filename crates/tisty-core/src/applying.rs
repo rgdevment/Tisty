@@ -84,12 +84,37 @@ impl State {
         self.named.insert(d.clone(), Named { name, os });
     }
 
-    pub(crate) fn device_runs(&mut self, event: &Event, v: &str) {
+    fn device_runs(&mut self, event: &Event, v: &str) {
         let v = crate::called::cleaned(v);
         if v.is_empty() || !self.devices.contains(&event.device) {
             return;
         }
         self.runs.insert(event.device.clone(), v);
+    }
+
+    pub(crate) fn said_by_a_machine(&mut self, event: &Event) {
+        match &event.op {
+            crate::Op::DeviceRuns { v } => self.device_runs(event, v),
+            crate::Op::CloudSealed { s, k } => self.cloud_sealed(event, s, k.as_deref()),
+            _ => {}
+        }
+    }
+
+    fn cloud_sealed(&mut self, event: &Event, store: &str, key: Option<&str>) {
+        let store = crate::called::cleaned(store);
+        if store.is_empty()
+            || !self.devices.contains(&event.device)
+            || self.agents.contains(&event.device)
+        {
+            return;
+        }
+        match key
+            .map(crate::called::cleaned)
+            .filter(|one| !one.is_empty())
+        {
+            Some(key) => self.sealed.insert(store, key),
+            None => self.sealed.remove(&store),
+        };
     }
 
     pub fn runs_to_say(&self, who: &DeviceId, version: &str) -> Option<crate::Op> {

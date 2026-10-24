@@ -238,4 +238,8 @@ pub trait Remote: Send + Sync {
 
     /// Something landed or was found already there, so a meter of asks that came to nothing starts again.
     fn moved_on(&self) {}
+
+    fn root(&self) -> &str {
+        ""
+    }
 }
