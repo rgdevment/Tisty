@@ -31,6 +31,7 @@ import Identity from "./Identity";
 import Modal from "./Modal";
 import Relocating from "./Relocating";
 import { strong } from "./Rows";
+import Sealing from "./Sealing";
 import { SECTIONS } from "./SettingsNav";
 import { useSigning } from "./Signing";
 import Sync from "./Sync";
@@ -273,6 +274,16 @@ export default function Keeping({
               tell={setSaid}
               fail={setTrouble}
               onSync={() => onTab("sync")}
+            />
+          )}
+          {tab === "security" && (
+            <Sealing
+              busy={busy}
+              said={said}
+              trouble={trouble}
+              tell={setSaid}
+              fail={setTrouble}
+              onChanged={onChanged}
             />
           )}
 
