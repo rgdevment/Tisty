@@ -826,13 +826,13 @@ impl Counting for Bare {
     }
 }
 
-impl Counting for crate::Sealed<Fake> {
+impl<R: Counting> Counting for crate::Sealed<R> {
     fn who(&self) -> &'static str {
-        match self.inner().kind {
-            Kind::Drive => "sealed-drive",
-            Kind::OneDrive => "sealed-onedrive",
-            Kind::Dropbox => "sealed-dropbox",
-            Kind::WebDav => "sealed-webdav",
+        match self.inner().who() {
+            "drive" => "sealed-drive",
+            "onedrive" => "sealed-onedrive",
+            "dropbox" => "sealed-dropbox",
+            _ => "sealed-folder",
         }
     }
 
@@ -877,10 +877,10 @@ impl Counting for crate::Sealed<Fake> {
     }
 }
 
-pub fn sealed_over(fake: Fake) -> crate::Sealed<Fake> {
+pub fn sealed_over<R: Remote>(inner: R) -> crate::Sealed<R> {
     let seed = tisty_share_proto::seed::Seed::from_bytes(&[7; 32]);
     crate::Sealed::new(
-        fake,
+        inner,
         tisty_share_proto::cloud::CloudKey::of(&seed),
         "store_one",
     )
