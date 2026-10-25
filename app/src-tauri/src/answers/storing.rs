@@ -206,6 +206,7 @@ pub async fn settle_in(
     let here = env!("CARGO_PKG_VERSION");
     let speaking = held(&session).paths.clone();
     super::spoken::spoken(&session, &speaking).await?;
+    crate::identity::seal_the_cloud(&session).await;
     let (was, mut keeping, paths, home, store, alive, holds, owing, place) = {
         let session = held(&session);
         let was = session.config.opened_by.clone();

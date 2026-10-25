@@ -24,11 +24,12 @@ pub struct Reaching {
     built: Mutex<Option<Built>>,
     why_not: Mutex<Option<String>>,
     sealing: Mutex<Option<Sealing>>,
-    tried: Mutex<Option<(String, String)>>,
+    tried: Mutex<Option<(String, String, usize)>>,
 }
 
 #[derive(Clone)]
 pub struct Sealing {
+    pub at: CloudAt,
     pub cloud: String,
     pub named: String,
     pub key: tisty_share_proto::cloud::CloudKey,
@@ -58,11 +59,11 @@ impl Reaching {
         }
     }
 
-    pub fn tried(&self) -> Option<(String, String)> {
+    pub fn tried(&self) -> Option<(String, String, usize)> {
         self.tried.lock().ok()?.clone()
     }
 
-    pub fn tried_for(&self, cloud: Option<(String, String)>) {
+    pub fn tried_for(&self, cloud: Option<(String, String, usize)>) {
         if let Ok(mut held) = self.tried.lock() {
             *held = cloud;
         }
@@ -105,7 +106,7 @@ impl Reaching {
 
 impl Reach for Reaching {
     fn cloud(&self, at: &CloudAt) -> Option<Shared> {
-        let sealing = self.sealing();
+        let sealing = self.sealing().filter(|one| one.at == *at);
         let sealed = sealing.as_ref().map(Sealing::said);
         let mut built = self.built.lock().ok()?;
         if let Some(was) = built.as_ref()

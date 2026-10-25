@@ -32,15 +32,20 @@ pub fn kept(
     let Ok(here) = scope(paths) else {
         return Ok(None);
     };
-    if let Some(seed) = kept_at(&here)? {
-        return Ok(Some(seed));
+    let own = kept_at(&here)?;
+    if own.as_ref().is_some_and(fits) {
+        return Ok(own);
     }
     for was in forebears
         .iter()
         .map(|store| format!("identity-{store}"))
         .filter(|was| *was != here)
     {
-        if let Some(seed) = kept_at(&was)?.filter(|seed| fits(seed)) {
+        let found = kept_at(&was).unwrap_or_else(|why| {
+            unread(why);
+            None
+        });
+        if let Some(seed) = found.filter(|seed| fits(seed)) {
             if let Err(why) = keep_at(&here, &seed) {
                 witness::warn(
                     channel::STORE,
@@ -51,7 +56,11 @@ pub fn kept(
             return Ok(Some(seed));
         }
     }
-    Ok(None)
+    Ok(own)
+}
+
+fn fitting(persons: tisty_core::person::Persons) -> impl Fn(&Seed) -> bool {
+    move |seed| fits_person(&persons, seed)
 }
 
 fn kept_at(scope: &str) -> Result<Option<Seed>, String> {
@@ -122,7 +131,7 @@ async fn off_the_lock(
     if !wanted {
         return None;
     }
-    let fits = move |seed: &Seed| persons.names(&seed.root().person());
+    let fits = fitting(persons);
     match elsewhere(move || kept(&paths, &forebears, &fits)).await {
         Ok(Ok(seed)) => seed,
         Ok(Err(why)) => {
@@ -145,14 +154,21 @@ pub async fn for_a_round(session: &tauri::State<'_, Mutex<Session>>) -> Option<S
 
 /// Read only when the sealed cloud this place names is not the one this machine already reads, so the keychain is seldom asked.
 pub async fn seal_the_cloud(session: &tauri::State<'_, Mutex<Session>>) {
+    let (at, tree) = {
+        let session = held(session);
+        let Some(at) = tisty_carrier::cloud_of(session.config.sync.as_ref()).cloned() else {
+            session.reach.seal_with(None);
+            return;
+        };
+        let tree = tisty_carrier::mirrored_at(&session.reach.home_of(&at));
+        (at, tree)
+    };
+    let said = match tisty_carrier::sealing_of(&tree) {
+        tisty_carrier::Sealing::Sealed(cloud) => Some(cloud),
+        _ => None,
+    };
     let (paths, forebears, cloud, named) = {
         let session = held(session);
-        let said = tisty_carrier::cloud_of(session.config.sync.as_ref())
-            .map(|at| tisty_carrier::mirrored_at(&session.reach.home_of(at)))
-            .and_then(|tree| match tisty_carrier::sealing_of(&tree) {
-                tisty_carrier::Sealing::Sealed(cloud) => Some(cloud),
-                _ => None,
-            });
         let wanted = match said {
             Some(cloud) => session
                 .state
@@ -164,7 +180,10 @@ pub async fn seal_the_cloud(session: &tauri::State<'_, Mutex<Session>>) {
                 .sealed_cloud()
                 .map(|(cloud, named)| (cloud.to_string(), named.to_string())),
         };
-        if wanted == session.reach.sealed() || (wanted.is_some() && wanted == session.reach.tried())
+        let looked = wanted
+            .clone()
+            .map(|(cloud, named)| (cloud, named, session.state.forebears.len()));
+        if wanted == session.reach.sealed() || (looked.is_some() && looked == session.reach.tried())
         {
             return;
         }
@@ -182,6 +201,7 @@ pub async fn seal_the_cloud(session: &tauri::State<'_, Mutex<Session>>) {
     };
     let (looking, wanted) = (cloud.clone(), named.clone());
     let opens = move |seed: &Seed| CloudKey::of(seed).named_for(&looking) == wanted;
+    let known = forebears.len();
     let seed = match elsewhere(move || kept(&paths, &forebears, &opens)).await {
         Ok(Ok(seed)) => seed,
         Ok(Err(why)) => {
@@ -197,9 +217,12 @@ pub async fn seal_the_cloud(session: &tauri::State<'_, Mutex<Session>>) {
     match key {
         Some(key) => {
             session.reach.tried_for(None);
-            session
-                .reach
-                .seal_with(Some(crate::reaching::Sealing { cloud, named, key }));
+            session.reach.seal_with(Some(crate::reaching::Sealing {
+                at,
+                cloud,
+                named,
+                key,
+            }));
         }
         None => {
             witness::note(
@@ -207,7 +230,7 @@ pub async fn seal_the_cloud(session: &tauri::State<'_, Mutex<Session>>) {
                 "the cloud is sealed with a phrase this machine does not hold, so it is read as it stands",
                 &[],
             );
-            session.reach.tried_for(Some((cloud, named)));
+            session.reach.tried_for(Some((cloud, named, known)));
             session.reach.seal_with(None);
         }
     }
@@ -301,7 +324,11 @@ fn counted(seed: Option<Seed>, state: &State) -> Option<Seed> {
 }
 
 fn fits(seed: &Seed, state: &State) -> bool {
-    !state.persons.names_a_person() || ours(seed, state)
+    fits_person(&state.persons, seed)
+}
+
+fn fits_person(persons: &tisty_core::person::Persons, seed: &Seed) -> bool {
+    !persons.names_a_person() || persons.names(&seed.root().person())
 }
 
 #[tauri::command(async)]
@@ -314,11 +341,8 @@ pub fn identity_shown(session: tauri::State<'_, Mutex<Session>>) -> Answer<Shown
             session.state.persons.clone(),
         )
     };
-    let named = state.names_a_person();
-    let seed = kept(&paths, &forebears, &|seed| {
-        !named || state.names(&seed.root().person())
-    })
-    .map_err(unread)?;
+    let fits = fitting(state);
+    let seed = kept(&paths, &forebears, &fits).map_err(unread)?;
     let session = held(&session);
     let person = person::person_of(&session.state, &session.config.device_id);
     let held = seed.as_ref().is_some_and(|seed| ours(seed, &session.state));
@@ -365,11 +389,8 @@ pub fn identity_phrase(session: tauri::State<'_, Mutex<Session>>) -> Answer<Stri
             session.state.persons.clone(),
         )
     };
-    let named = state.names_a_person();
-    let seed = kept(&paths, &forebears, &|seed| {
-        !named || state.names(&seed.root().person())
-    })
-    .map_err(unread)?;
+    let fits = fitting(state);
+    let seed = kept(&paths, &forebears, &fits).map_err(unread)?;
     let session = held(&session);
     let seed = counted(seed, &session.state).ok_or_else(|| Refusal::of("identityNone"))?;
     phrase::phrase(&seed, words(&session))
