@@ -232,3 +232,22 @@ describe("the trail of a settled task", () => {
     expect(screen.getByText("An entry is taken out")).toBeTruthy();
   });
 });
+
+describe("the trail asked again", () => {
+  it("stays on screen while the story is read again after the task moved", async () => {
+    ipc.told = {
+      id: "01A",
+      pages: pages({ at: "2026-08-19T21:14:00Z", by: "dev_a", chapter: "closed" }),
+    };
+    const lists = [{ id: "01L", name: "Work", order: "a0" }];
+    const { rerender } = render(<Trail task="01A" moved="1" lists={lists} />);
+    await screen.findByRole("list");
+    let answer: (told: Story) => void = () => {};
+    ipc.told = new Promise<Story>((done) => {
+      answer = done;
+    }) as unknown as Story;
+    rerender(<Trail task="01A" moved="2" lists={lists} />);
+    expect(screen.getByRole("list")).toBeTruthy();
+    answer({ id: "01A", pages: [] });
+  });
+});

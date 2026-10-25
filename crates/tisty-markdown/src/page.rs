@@ -4,13 +4,37 @@ use std::fmt::Write as _;
 use crate::inline::{escaped, inline};
 use crate::{Block, Callout, Column, Doc, Kind, Lean};
 
+struct Drawing<'a> {
+    anchors: HashMap<usize, String>,
+    #[cfg_attr(not(feature = "mermaid"), allow(dead_code))]
+    diagram: &'a dyn Fn(&str) -> Option<String>,
+}
+
 pub fn html(doc: &Doc) -> String {
-    let anchors = anchors(doc);
+    html_with(doc, &unkept)
+}
+
+/// A diagram costs far more than the page around it, so a caller that keeps them hands its own drawer.
+pub fn html_with(doc: &Doc, diagram: &dyn Fn(&str) -> Option<String>) -> String {
+    let drawing = Drawing {
+        anchors: anchors(doc),
+        diagram,
+    };
     let mut out = String::new();
     for block in doc.blocks() {
-        draw(block, doc.text(), &anchors, &mut out);
+        draw(block, doc.text(), &drawing, &mut out);
     }
     out
+}
+
+#[cfg(feature = "mermaid")]
+fn unkept(source: &str) -> Option<String> {
+    crate::diagram::drawn(source)
+}
+
+#[cfg(not(feature = "mermaid"))]
+fn unkept(_: &str) -> Option<String> {
+    None
 }
 
 fn anchors(doc: &Doc) -> HashMap<usize, String> {
@@ -61,11 +85,12 @@ fn front(said: &str, at: &str, out: &mut String) {
     out.push_str("</dl>");
 }
 
-fn draw(block: &Block, text: &str, anchors: &HashMap<usize, String>, out: &mut String) {
+fn draw(block: &Block, text: &str, drawing: &Drawing, out: &mut String) {
     let at = format!("data-at=\"{}-{}\"", block.at.start, block.at.end);
     match &block.kind {
         Kind::Heading(level) => {
-            let id = anchors
+            let id = drawing
+                .anchors
                 .get(&block.at.start)
                 .map(|id| format!(" id=\"{}\"", escaped(id)));
             let _ = write!(out, "<h{level}{} {at}>", id.unwrap_or_default());
@@ -82,10 +107,10 @@ fn draw(block: &Block, text: &str, anchors: &HashMap<usize, String>, out: &mut S
             "</blockquote>",
             block,
             text,
-            anchors,
+            drawing,
             out,
         ),
-        Kind::Callout(kind) => called(*kind, &at, block, text, anchors, out),
+        Kind::Callout(kind) => called(*kind, &at, block, text, drawing, out),
         Kind::List { start } => {
             let open = match start {
                 None => format!("<ul {at}>"),
@@ -93,12 +118,18 @@ fn draw(block: &Block, text: &str, anchors: &HashMap<usize, String>, out: &mut S
                 Some(first) => format!("<ol start=\"{first}\" {at}>"),
             };
             let shut = if start.is_some() { "</ol>" } else { "</ul>" };
-            wrapped(&open, shut, block, text, anchors, out);
+            wrapped(&open, shut, block, text, drawing, out);
         }
-        Kind::Item { done } => item(*done, &at, block, text, anchors, out),
-        Kind::Code { tongue, title } => {
-            code(tongue.as_deref(), title.as_deref(), &at, block, text, out)
-        }
+        Kind::Item { done } => item(*done, &at, block, text, drawing, out),
+        Kind::Code { tongue, title } => code(
+            tongue.as_deref(),
+            title.as_deref(),
+            &at,
+            block,
+            text,
+            drawing,
+            out,
+        ),
         Kind::Table { columns } => table(columns, &at, block, text, out),
         Kind::Html => {
             let _ = write!(
@@ -125,7 +156,7 @@ fn draw(block: &Block, text: &str, anchors: &HashMap<usize, String>, out: &mut S
                 "<details{open} {at}><summary>{}</summary>",
                 escaped(summary)
             );
-            wrapped(&head, "</details>", block, text, anchors, out);
+            wrapped(&head, "</details>", block, text, drawing, out);
         }
         Kind::Note { label } => {
             let head = format!(
@@ -133,35 +164,21 @@ fn draw(block: &Block, text: &str, anchors: &HashMap<usize, String>, out: &mut S
                 escaped(&label.to_lowercase()),
                 escaped(label)
             );
-            wrapped(&head, "</div>", block, text, anchors, out);
+            wrapped(&head, "</div>", block, text, drawing, out);
         }
         Kind::Row { .. } | Kind::Cell => {}
     }
 }
 
-fn wrapped(
-    open: &str,
-    shut: &str,
-    block: &Block,
-    text: &str,
-    anchors: &HashMap<usize, String>,
-    out: &mut String,
-) {
+fn wrapped(open: &str, shut: &str, block: &Block, text: &str, drawing: &Drawing, out: &mut String) {
     out.push_str(open);
     for inner in &block.inner {
-        draw(inner, text, anchors, out);
+        draw(inner, text, drawing, out);
     }
     out.push_str(shut);
 }
 
-fn called(
-    kind: Callout,
-    at: &str,
-    block: &Block,
-    text: &str,
-    anchors: &HashMap<usize, String>,
-    out: &mut String,
-) {
+fn called(kind: Callout, at: &str, block: &Block, text: &str, drawing: &Drawing, out: &mut String) {
     let name = match kind {
         Callout::Note => "note",
         Callout::Tip => "tip",
@@ -170,7 +187,7 @@ fn called(
         Callout::Caution => "caution",
     };
     let open = format!("<blockquote class=\"callout\" data-callout=\"{name}\" {at}>");
-    wrapped(&open, "</blockquote>", block, text, anchors, out);
+    wrapped(&open, "</blockquote>", block, text, drawing, out);
 }
 
 fn item(
@@ -178,7 +195,7 @@ fn item(
     at: &str,
     block: &Block,
     text: &str,
-    anchors: &HashMap<usize, String>,
+    drawing: &Drawing,
     out: &mut String,
 ) {
     match done {
@@ -194,7 +211,7 @@ fn item(
     }
     inline(&block.spans, text, out);
     for inner in &block.inner {
-        draw(inner, text, anchors, out);
+        draw(inner, text, drawing, out);
     }
     out.push_str("</li>");
 }
@@ -205,6 +222,7 @@ fn code(
     at: &str,
     block: &Block,
     text: &str,
+    drawing: &Drawing,
     out: &mut String,
 ) {
     let said: String = block
@@ -212,7 +230,7 @@ fn code(
         .iter()
         .map(|one| &text[one.at.clone()])
         .collect();
-    if drawn(tongue, &said, at, out) {
+    if drawn(tongue, &said, at, drawing, out) {
         return;
     }
     let _ = write!(out, "<figure class=\"code\" {at}>");
@@ -230,12 +248,12 @@ fn code(
 }
 
 #[cfg(not(any(feature = "math", feature = "mermaid")))]
-fn drawn(_: Option<&str>, _: &str, _: &str, _: &mut String) -> bool {
+fn drawn(_: Option<&str>, _: &str, _: &str, _: &Drawing, _: &mut String) -> bool {
     false
 }
 
 #[cfg(any(feature = "math", feature = "mermaid"))]
-fn drawn(tongue: Option<&str>, said: &str, at: &str, out: &mut String) -> bool {
+fn drawn(tongue: Option<&str>, said: &str, at: &str, drawing: &Drawing, out: &mut String) -> bool {
     match tongue {
         #[cfg(feature = "math")]
         Some("math") => match crate::math::mathml(said, true) {
@@ -246,7 +264,7 @@ fn drawn(tongue: Option<&str>, said: &str, at: &str, out: &mut String) -> bool {
             None => false,
         },
         #[cfg(feature = "mermaid")]
-        Some("mermaid" | "mmd") => match crate::diagram::drawn(said) {
+        Some("mermaid" | "mmd") => match (drawing.diagram)(said) {
             Some(drawn) => {
                 let _ = write!(
                     out,

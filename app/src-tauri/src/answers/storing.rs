@@ -491,7 +491,7 @@ pub struct Strays {
     unreadable: bool,
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn glimpse_kept(
     session: tauri::State<'_, Mutex<Session>>,
     at: String,

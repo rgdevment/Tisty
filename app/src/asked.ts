@@ -5,6 +5,7 @@ export function useAsked<T>(
   ask: () => Promise<T>,
   on: unknown[],
   onError?: (problem: unknown) => void,
+  keep = false,
 ): T | null {
   const [held, setHeld] = useState<T | null>(null);
   const warn = useRef(onError);
@@ -14,7 +15,7 @@ export function useAsked<T>(
 
   useEffect(() => {
     let alive = true;
-    setHeld(null);
+    if (!keep) setHeld(null);
     asking
       .current()
       .then((answer) => {

@@ -1112,6 +1112,7 @@ pub fn run() {
         .manage(answers::attaching::Keeping::default())
         .manage(answers::clouding::Consenting::default())
         .manage(widgets::Lent::default())
+        .manage(answers::paging::Diagrams::default())
         .manage(viewing::Views::default())
         .manage(Packing::default())
         .manage(Erasing::default())

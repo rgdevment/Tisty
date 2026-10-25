@@ -370,7 +370,7 @@ fn edited_on_paper(state: &State, kept: &tisty_core::model::Kept, hand: &str) ->
     }
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn doc_facts(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Facts> {
     let session = held(&session);
     let root = session.paths.docs();
