@@ -113,6 +113,18 @@ impl<R: Remote> Sealed<R> {
         }
     }
 
+    /// Taken away last when a cloud goes back to plain, and only the revision read here.
+    pub fn unmark(&self) -> Result<(), Hitch> {
+        let at = format!("{INSIDE}/{MARK}");
+        let Some(there) = self.inner.about(&at)? else {
+            return Ok(());
+        };
+        match self.inner.delete(&at, Some(&there.revision)) {
+            Ok(()) | Err(Hitch::Missing(_)) => Ok(()),
+            Err(other) => Err(other),
+        }
+    }
+
     // A put that lost the race to another machine reads back whichever mark won.
     pub fn mark_it(&self) -> Result<(), Hitch> {
         match self.read_mark()? {

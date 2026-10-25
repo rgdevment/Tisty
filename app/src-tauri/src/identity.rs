@@ -173,14 +173,15 @@ pub async fn seal_the_cloud(session: &Mutex<Session>) {
         tisty_carrier::Sealing::Sealed(cloud) => Some(cloud),
         _ => None,
     };
-    let (paths, forebears, locked) = {
+    let (paths, forebears, persons, locked) = {
         let session = held(session);
         let wanted = match said {
-            Some(cloud) => session
-                .state
-                .sealed
-                .get(&cloud)
-                .map(|named| (cloud.clone(), named.clone())),
+            // A machine that never read `cloud.sealed` tries its own phrase, and the mark says whether it is this cloud's.
+            Some(cloud) => match session.state.sealed.get(&cloud) {
+                Some(named) => Some((cloud, named.clone())),
+                None if session.state.persons.names_a_person() => Some((cloud, String::new())),
+                None => None,
+            },
             None => session
                 .state
                 .sealed_cloud()
@@ -194,7 +195,16 @@ pub async fn seal_the_cloud(session: &Mutex<Session>) {
         let looked = wanted
             .clone()
             .map(|locked| (locked, session.state.forebears.len()));
-        if wanted == session.reach.sealed() || (looked.is_some() && looked == session.reach.tried())
+        let keyed_already = session.reach.sealed().is_some_and(|now| {
+            wanted.as_ref().is_some_and(|wanted| {
+                wanted.named.is_empty()
+                    && now.at.same_account(&wanted.at)
+                    && now.cloud == wanted.cloud
+            })
+        });
+        if wanted == session.reach.sealed()
+            || keyed_already
+            || (looked.is_some() && looked == session.reach.tried())
         {
             return;
         }
@@ -206,11 +216,15 @@ pub async fn seal_the_cloud(session: &Mutex<Session>) {
         (
             session.paths.clone(),
             session.state.forebears.clone(),
+            session.state.persons.clone(),
             locked,
         )
     };
     let (looking, wanted) = (locked.cloud.clone(), locked.named.clone());
-    let opens = move |seed: &Seed| CloudKey::of(seed).named_for(&looking) == wanted;
+    let opens = move |seed: &Seed| match wanted.is_empty() {
+        true => persons.names(&seed.root().person()),
+        false => CloudKey::of(seed).named_for(&looking) == wanted,
+    };
     let known = forebears.len();
     let seed = match elsewhere(move || kept(&paths, &forebears, &opens)).await {
         Ok(Ok(seed)) => seed,
@@ -222,12 +236,16 @@ pub async fn seal_the_cloud(session: &Mutex<Session>) {
     };
     let key = seed
         .map(|seed| CloudKey::of(&seed))
-        .filter(|key| key.named_for(&locked.cloud) == locked.named);
+        .filter(|key| locked.named.is_empty() || key.named_for(&locked.cloud) == locked.named);
     let session = held(session);
     match key {
         Some(key) => {
+            let named = key.named_for(&locked.cloud);
             session.reach.tried_for(None);
-            session.reach.seal_with(Some(Keyed { locked, key }));
+            session.reach.seal_with(Some(Keyed {
+                locked: Locked { named, ..locked },
+                key,
+            }));
         }
         None => {
             witness::note(
