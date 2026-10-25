@@ -1059,9 +1059,9 @@ pantalla Acerca de muestra los dos.
 
 ## Contribuir
 
-Cómo funcionan de verdad el almacén, la fusión y el transporte está escrito en
-[ARCHITECTURE.md](docs/ARCHITECTURE.md) — una referencia del comportamiento,
-no un paseo por el código. Está en inglés, como el resto de `docs/`.
+[ARCHITECTURE.md](docs/ARCHITECTURE.md) es un mapa de las crates, de dónde
+vive cada cosa y de las reglas que nada puede romper; el código y sus pruebas
+dicen el resto. Está en inglés, como el resto de `docs/`.
 
 Lee [CONTRIBUTING.md](CONTRIBUTING.md). Abre un issue antes de escribir código
 para cualquier cosa que no sea un arreglo: Tisty es deliberadamente mínimo, y una
