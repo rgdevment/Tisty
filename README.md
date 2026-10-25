@@ -1047,9 +1047,9 @@ About screen shows both.
 
 ## Contributing
 
-How the store, the merge and the sync actually work is written down in
-[ARCHITECTURE.md](docs/ARCHITECTURE.md) — a reference for the behaviour,
-not a tour of the code.
+[ARCHITECTURE.md](docs/ARCHITECTURE.md) is a map of the crates, where
+things live and the rules nothing may break; the code and its tests say the
+rest.
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md). Open an issue before writing code for
 anything beyond a fix: Tisty is deliberately minimal, and a well-written feature
