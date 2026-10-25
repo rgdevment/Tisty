@@ -439,7 +439,9 @@ pub fn identity_confirm(
         .collect();
     let seed = seed_here(&session)?;
     let mut session = held(&session);
-    let seed = counted(seed, &session.state).ok_or_else(|| Refusal::of("identityNone"))?;
+    let seed = seed
+        .filter(|seed| ours(seed, &session.state))
+        .ok_or_else(|| Refusal::of("identityNone"))?;
     let spoken = [Words::Spanish, Words::English]
         .into_iter()
         .map(|words| phrase::phrase(&seed, words))
@@ -497,7 +499,13 @@ pub fn identity_recover(session: tauri::State<'_, Mutex<Session>>, said: String)
     session.reach.tried_for(None);
     begun(&mut session, &seed)?;
     let fingerprint = seed.root().person().fingerprint();
-    let _ = session.keep(|config| config.phrase_confirmed = Some(fingerprint));
+    if let Err(why) = session.keep(|config| config.phrase_confirmed = Some(fingerprint)) {
+        witness::warn(
+            channel::CONFIG,
+            "the phrase was typed whole and could not be kept as confirmed",
+            &[("why", Fact::Why(format!("{why:?}")))],
+        );
+    }
     Ok(())
 }
 

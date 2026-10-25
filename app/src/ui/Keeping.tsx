@@ -216,9 +216,10 @@ export default function Keeping({
             {t(SECTIONS.find((one) => one.key === tab)?.label ?? "keeping")}
           </h2>
 
-          {busy !== null && (tab === "general" || tab === "sync" || tab === "data") && (
-            <p className="text-[11.5px] text-faint">{fill("waitFor", t(NAMED[busy]))}</p>
-          )}
+          {busy !== null &&
+            (tab === "general" || tab === "sync" || tab === "security" || tab === "data") && (
+              <p className="text-[11.5px] text-faint">{fill("waitFor", t(NAMED[busy]))}</p>
+            )}
 
           {tab === "general" && (
             <General

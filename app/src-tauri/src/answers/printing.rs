@@ -1,5 +1,7 @@
 use crate::{Answer, Refusal};
 
+const PAGES: &str = "tisty-pdf";
+
 // The page goes through a window nobody sees, whose engine lays it on paper the way it draws it.
 #[tauri::command]
 pub async fn page_pdf(
@@ -9,7 +11,9 @@ pub async fn page_pdf(
     secret: Option<bool>,
 ) -> Answer<Vec<u8>> {
     let room = super::carrying::Room(
-        std::env::temp_dir().join(format!("tisty-pdf-{}", ulid::Ulid::generate())),
+        std::env::temp_dir()
+            .join(PAGES)
+            .join(ulid::Ulid::generate().to_string()),
     );
     let page = room.0.join("page.html");
     let to = room.0.join("page.pdf");
@@ -68,18 +72,16 @@ pub async fn page_pdf(
 
 // A sheet may carry the identity's phrase, so what a crash left behind is not left for the system to clear.
 pub(crate) fn swept(temp: &std::path::Path) {
+    let temp = temp.join(PAGES);
     let Some(old) =
         std::time::SystemTime::now().checked_sub(std::time::Duration::from_secs(5 * 60))
     else {
         return;
     };
-    let Ok(all) = std::fs::read_dir(temp) else {
+    let Ok(all) = std::fs::read_dir(&temp) else {
         return;
     };
     for one in all.flatten() {
-        if !one.file_name().to_string_lossy().starts_with("tisty-pdf-") {
-            continue;
-        }
         let stale = one
             .metadata()
             .and_then(|meta| meta.modified())

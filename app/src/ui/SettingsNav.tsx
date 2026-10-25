@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { t } from "../locales";
 import type { Tab } from "../views";
 import Glyph from "./Glyph";
+import { typing } from "./typing";
 
 export const SECTIONS: { key: Tab; label: Parameters<typeof t>[0]; icon: string }[] = [
   { key: "general", label: "tabGeneral", icon: "settings" },
@@ -18,10 +19,6 @@ interface Props {
   onTab: (tab: Tab) => void;
   onBack: () => void;
 }
-
-const typing = (at: EventTarget | null) =>
-  at instanceof HTMLElement &&
-  (at.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(at.tagName));
 
 export default function SettingsNav({ tab, waiting, onTab, onBack }: Props) {
   const back = useRef(onBack);
