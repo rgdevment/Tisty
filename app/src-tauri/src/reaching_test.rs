@@ -33,7 +33,7 @@ fn a_provider_this_build_does_not_know_is_never_built() {
         ..ana()
     };
 
-    assert!(cloud_of(home.path(), &at).is_err());
+    assert!(cloud_of(home.path(), &at, None).is_err());
 }
 
 #[test]
@@ -186,6 +186,15 @@ fn a_webdav_cloud_is_built_from_its_account_and_one_that_is_no_address_is_not() 
         ..dav.clone()
     };
 
-    assert!(cloud_of(home.path(), &dav).is_ok());
-    assert!(cloud_of(home.path(), &broken).is_err());
+    assert!(cloud_of(home.path(), &dav, None).is_ok());
+    let sealing = Sealing {
+        at: dav.clone(),
+        cloud: "store_one".into(),
+        named: "key_a".into(),
+        key: tisty_share_proto::cloud::CloudKey::of(&tisty_share_proto::seed::Seed::from_bytes(
+            &[7; 32],
+        )),
+    };
+    assert!(cloud_of(home.path(), &dav, Some(&sealing)).is_ok());
+    assert!(cloud_of(home.path(), &broken, None).is_err());
 }

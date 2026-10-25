@@ -17,11 +17,19 @@ const TAG: usize = 16;
 const KEY_ID: usize = 16;
 const MARK_SAID: &[u8] = b"this is the person's cloud";
 
+#[derive(Clone)]
 pub struct CloudKey(Zeroizing<[u8; 32]>);
 
 impl CloudKey {
     pub fn of(seed: &Seed) -> Self {
         Self(seed.cloud())
+    }
+
+    pub fn named_for(&self, cloud: &str) -> String {
+        self.id(cloud)
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect()
     }
 
     fn cipher(&self) -> XChaCha20Poly1305 {

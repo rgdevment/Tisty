@@ -214,3 +214,17 @@ fn the_marks_of_two_clouds_do_not_show_one_person() {
 
     assert_ne!(one[id.clone()], two[id]);
 }
+
+#[test]
+fn the_name_of_a_key_holds_for_its_cloud_and_tells_clouds_and_phrases_apart() {
+    let one = CloudKey::of(&Seed::from_bytes(&[1; 32]));
+    let other = CloudKey::of(&Seed::from_bytes(&[2; 32]));
+
+    assert_eq!(
+        one.named_for("store_one"),
+        one.clone().named_for("store_one")
+    );
+    assert_eq!(one.named_for("store_one").len(), 32);
+    assert_ne!(one.named_for("store_one"), one.named_for("store_two"));
+    assert_ne!(one.named_for("store_one"), other.named_for("store_one"));
+}

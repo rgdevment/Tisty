@@ -5,6 +5,17 @@ use crate::{
     state::{here, same_name},
 };
 
+fn released(said: &str) -> Option<(u64, u64, u64, bool)> {
+    let said = said.split('+').next()?;
+    let (core, finished) = match said.split_once('-') {
+        Some((core, _)) => (core, false),
+        None => (said, true),
+    };
+    let mut parts = core.split('.');
+    let mut next = || parts.next()?.parse().ok();
+    Some((next()?, next()?, next()?, finished))
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Named {
     pub name: String,
@@ -115,6 +126,30 @@ impl State {
             Some(key) => self.sealed.insert(store, key),
             None => self.sealed.remove(&store),
         };
+    }
+
+    pub fn sealed_cloud(&self) -> Option<(&str, &str)> {
+        let mut sealed = self.sealed.iter();
+        match (sealed.next(), sealed.next()) {
+            (Some((cloud, key)), None) => Some((cloud.as_str(), key.as_str())),
+            _ => None,
+        }
+    }
+
+    pub fn behind(&self, release: &str) -> Vec<DeviceId> {
+        let wanted = released(release);
+        self.devices
+            .iter()
+            .filter(|device| !self.assistants.contains(*device))
+            .filter(|device| {
+                self.runs
+                    .get(*device)
+                    .and_then(|runs| released(runs))
+                    .zip(wanted)
+                    .is_none_or(|(runs, wanted)| runs < wanted)
+            })
+            .cloned()
+            .collect()
     }
 
     pub fn runs_to_say(&self, who: &DeviceId, version: &str) -> Option<crate::Op> {
