@@ -81,9 +81,8 @@ machine-uid = "0.6"
 sysinfo = { version = "0.39", default-features = false, features = ["system"] }
 unicode-normalization = "0.1"
 pulldown-cmark = { version = "0.13", default-features = false }
-# Formulas and diagrams drawn here, so the window shows them without running any script.
+# Formulas drawn here, so the window shows them without running any script.
 math-core = "0.9"
-mermaid-rs-renderer = { version = "0.3", default-features = false }
 emojis = "0.9"
 # What a document carries as html reaches the reader cleaned of anything that could run.
 ammonia = "4"

@@ -405,17 +405,21 @@ figure.diagram,
 figure.widget {
   text-align: center;
 }
-figure.diagram img {
-  max-width: 100%;
-  max-height: none;
-  height: auto;
-  padding: 0;
-  background: none;
-  border: 0;
+figure.diagram:not(.drawn) {
+  border: 1px solid var(--tisty-hair);
+  border-radius: 10px;
+  background: var(--tisty-hover);
+  text-align: left;
 }
-/* One drawing, made for a light sheet; turning its lightness and its hue back keeps it in the dark theme. */
-html.dark figure.diagram img {
-  filter: invert(0.9) hue-rotate(180deg);
+figure.diagram:not(.drawn, .unreadable) pre {
+  opacity: 0.5;
+}
+figure.diagram svg {
+  display: block;
+  margin: 0 auto;
+  width: 100%;
+  height: auto;
+  cursor: zoom-in;
 }
 figure.widget iframe {
   display: block;

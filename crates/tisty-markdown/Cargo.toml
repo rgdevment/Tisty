@@ -21,7 +21,7 @@ refs = []
 tables = []
 tags = []
 math = ["dep:math-core"]
-mermaid = ["dep:mermaid-rs-renderer"]
+mermaid = []
 
 [dependencies]
 pulldown-cmark.workspace = true
@@ -29,7 +29,6 @@ serde.workspace = true
 serde_json.workspace = true
 unicode-normalization.workspace = true
 math-core = { workspace = true, optional = true }
-mermaid-rs-renderer = { workspace = true, optional = true }
 emojis = { workspace = true, optional = true }
 ammonia = { workspace = true, optional = true }
 

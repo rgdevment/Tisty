@@ -54,7 +54,7 @@ const told = (said) => escaped(said).replace(/"/g, "&quot;");
 const address = (language, page) =>
   `${SITE}${language.dir}${page.slug === "index" ? "" : page.slug}`;
 
-// The one script the guide carries: it only remembers light or dark, and every page reads whole without it.
+// It only remembers light or dark; every page reads without it, and only a page with a diagram needs another.
 export const THEME = `<script>(()=>{const r=document.documentElement;r.classList.add("js");let s=null;try{s=localStorage.getItem("tisty-guide-theme")}catch{}r.classList.toggle("dark",s==="dark")})()</script>`;
 const SWITCH = `(()=>{const d=document.documentElement.classList.toggle('dark');try{localStorage.setItem('tisty-guide-theme',d?'dark':'light')}catch{}})()`;
 const MOON = `<svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>`;
@@ -145,7 +145,7 @@ ${AHEAD}
 <div class="wrap">
 <nav class="topics" aria-label="${language.topics}"><ol>${listed}</ol></nav>
 <main>${page.html}<nav class="near" aria-label="${language.near}">${near}</nav></main>
-</div>${page.html.includes('class="widget"') ? HOSTS : ""}
+</div>${page.html.includes('class="widget"') ? HOSTS : ""}${page.html.includes('class="diagram"') ? `<script type="module" src="${up}diagrams/diagrams.js"></script>` : ""}
 </body>
 </html>
 `;

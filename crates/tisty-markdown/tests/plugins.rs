@@ -443,15 +443,6 @@ fn a_heading_keeps_its_formula_and_one_inside_a_quote_reads_clean() {
     assert_eq!(said, vec!["Energy E=mc^2", "Title"]);
 }
 
-#[cfg(feature = "mermaid")]
-#[test]
-fn a_diagram_with_too_many_parts_is_shown_as_code() {
-    let links: String = (0..600)
-        .map(|n| format!("  N{n} --> N{}\n", n + 1))
-        .collect();
-    assert!(tisty_markdown::diagram::drawn(&format!("graph TD\n{links}")).is_none());
-}
-
 #[cfg(feature = "tags")]
 #[test]
 fn a_tag_is_marked_where_the_core_reads_it_and_never_inside_code() {
