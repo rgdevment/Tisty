@@ -81,8 +81,12 @@ fn shape_in(line: &str) -> Option<u32> {
 }
 
 fn needs_in(line: &str) -> Option<String> {
+    said_in(line, "needs")
+}
+
+fn said_in(line: &str, key: &str) -> Option<String> {
     let (name, said) = line.split_once('=')?;
-    (name.trim() == "needs").then(|| said.trim().trim_matches('"').to_string())
+    (name.trim() == key).then(|| said.trim().trim_matches('"').to_string())
 }
 
 fn release(said: &str) -> Option<(u64, u64, u64, bool)> {
@@ -169,16 +173,16 @@ pub enum Sealing {
 }
 
 pub fn sealing_of(dest: &Path) -> Sealing {
-    let Some(said) = std::fs::read_to_string(dest.join(NAMED))
-        .ok()
-        .and_then(|text| text.parse::<toml_edit::DocumentMut>().ok())
-    else {
+    let Ok(text) = std::fs::read_to_string(dest.join(NAMED)) else {
         return Sealing::Unsaid;
     };
-    let word = |key: &str| {
-        said.get(key)
+    let said = text.parse::<toml_edit::DocumentMut>().ok();
+    let word = |key: &str| match &said {
+        Some(said) => said
+            .get(key)
             .and_then(toml_edit::Item::as_str)
-            .map(str::to_string)
+            .map(str::to_string),
+        None => text.lines().find_map(|line| said_in(line, key)),
     };
     match (word(SEALING), word(SEALED)) {
         (Some(phase), _) if phase.starts_with("closed:") => Sealing::Closed,
@@ -199,15 +203,16 @@ pub fn sealed_against(dest: &Path, reading: Option<&str>) -> Option<Trouble> {
     }
 }
 
-// Only a word that already says its shape is sealed, and builds before the sealed one stop there.
 pub fn seal_word(dest: &Path, cloud: &str) -> std::io::Result<()> {
-    let Told::Shape {
-        said: Some(said), ..
-    } = told(dest)
-    else {
-        return Ok(());
+    let mut said = match told(dest) {
+        Told::Shape {
+            said: Some(said), ..
+        } => *said,
+        Told::Shape { said: None, .. } => template()
+            .parse::<toml_edit::DocumentMut>()
+            .map_err(std::io::Error::other)?,
+        _ => return Ok(()),
     };
-    let mut said = *said;
     if said.contains_key(SEALED) || said.contains_key(SEALING) {
         return Ok(());
     }
@@ -355,6 +360,12 @@ fn tell(data: &Path, dest: &Path, said: Option<toml_edit::DocumentMut>) -> bool 
     done
 }
 
+fn template() -> String {
+    format!(
+        "{HEADING}\nshape = {OURS}\nneeds = \"{NEEDS}\"\nfolders = [\"{STORE}\", \"{HELD}\", \"{PAPERS}\"]\n"
+    )
+}
+
 fn written(dest: &Path, before: Option<toml_edit::DocumentMut>) -> bool {
     let said = match before {
         Some(mut said) => {
@@ -368,9 +379,7 @@ fn written(dest: &Path, before: Option<toml_edit::DocumentMut>) -> bool {
             said["folders"] = toml_edit::value(toml_edit::Array::from_iter([STORE, HELD, PAPERS]));
             said.to_string()
         }
-        None => format!(
-            "{HEADING}\nshape = {OURS}\nneeds = \"{NEEDS}\"\nfolders = [\"{STORE}\", \"{HELD}\", \"{PAPERS}\"]\n"
-        ),
+        None => template(),
     };
     if let Err(e) = tisty_core::store::write_atomic(&dest.join(NAMED), said.as_bytes()) {
         witness::warn(

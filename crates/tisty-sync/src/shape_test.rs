@@ -473,6 +473,10 @@ fn a_place_says_whether_it_is_plain_being_sealed_closed_or_sealed() {
     };
 
     assert_eq!(says(""), Sealing::Plain);
+    assert_eq!(
+        says("sealed = \"store_one\"\nbroken = = =\n"),
+        Sealing::Sealed("store_one".into())
+    );
     assert_eq!(says("sealing = \"copying:dev_a:n1\"\n"), Sealing::Copying);
     assert_eq!(says("sealing = \"closed:dev_a:n1\"\n"), Sealing::Closed);
     assert_eq!(
@@ -524,11 +528,15 @@ fn a_word_written_for_a_sealed_place_says_so_once_raises_needs_and_keeps_the_res
     );
     std::fs::write(dest.join(NAMED), "shape = 03\nneeds = 1.30.0\n").unwrap();
     seal_word(&dest, "store_one").unwrap();
-    assert_eq!(
-        std::fs::read_to_string(dest.join(NAMED)).unwrap(),
-        "shape = 03\nneeds = 1.30.0\n",
-        "a word only read line by line was written over"
-    );
+    assert_eq!(sealing_of(&dest), Sealing::Sealed("store_one".into()));
+    assert!(matches!(
+        told(&dest),
+        Told::Shape {
+            shape: OURS,
+            said: Some(_),
+            ..
+        }
+    ));
     std::fs::write(
         dest.join(NAMED),
         "shape = 3\nneeds = \"1.34.0\"\nkept = 1\n",

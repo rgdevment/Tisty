@@ -102,12 +102,8 @@ impl<R: Remote> Sealed<R> {
 
     pub fn mark_it(&self) -> Result<(), Hitch> {
         match self.marked()? {
-            Some(Mark::Holds) => return Ok(()),
-            Some(Mark::OtherPhrase) => {
-                return Err(broke("this cloud was marked with another phrase"));
-            }
-            Some(_) => return Err(broke("the mark of this cloud cannot be read")),
             None => {}
+            said => return self.mark_holds(said),
         }
         let said = mark(&self.key, &self.cloud).ok_or_else(|| broke("no way to mark the cloud"))?;
         let held = crate::temp::Temp::new();
@@ -117,11 +113,18 @@ impl<R: Remote> Sealed<R> {
         self.inner
             .put(&format!("{INSIDE}/{MARK}"), &held.0, Expect::Absent)?;
         match self.marked()? {
+            None => Err(broke("the mark could not be read back")),
+            said => self.mark_holds(said),
+        }
+    }
+
+    fn mark_holds(&self, said: Option<Mark>) -> Result<(), Hitch> {
+        let at = || self.root.clone();
+        match said {
             Some(Mark::Holds) => Ok(()),
-            Some(Mark::OtherPhrase) => Err(broke(
-                "another machine marked this cloud with another phrase",
-            )),
-            _ => Err(broke("the mark could not be read back")),
+            Some(Mark::OtherPhrase) => Err(Hitch::Barred(tisty_sync::Trouble::OtherPhrase(at()))),
+            Some(Mark::Newer) => Err(Hitch::Barred(tisty_sync::Trouble::Shape(at()))),
+            _ => Err(broke("the phrase mark of this cloud is damaged")),
         }
     }
 
@@ -373,24 +376,10 @@ impl<R: Remote> Remote for Sealed<R> {
     // Asked once for each carrier, so a machine with another phrase never sends into this cloud.
     fn mark_up(&self) -> Result<(), Hitch> {
         use std::sync::atomic::Ordering;
-        if self.marked.load(Ordering::Relaxed) {
-            return Ok(());
+        if !self.marked.load(Ordering::Relaxed) {
+            self.mark_it()?;
+            self.marked.store(true, Ordering::Relaxed);
         }
-        let theirs = || Hitch::Barred(tisty_sync::Trouble::Sealed(self.root.clone()));
-        match self.marked()? {
-            Some(Mark::Holds) => {}
-            None => {
-                if let Err(hitch) = self.mark_it() {
-                    return match self.marked()? {
-                        Some(Mark::OtherPhrase) => Err(theirs()),
-                        _ => Err(hitch),
-                    };
-                }
-            }
-            Some(Mark::OtherPhrase) => return Err(theirs()),
-            Some(_) => return Err(broke("the phrase mark of this cloud is damaged")),
-        }
-        self.marked.store(true, Ordering::Relaxed);
         Ok(())
     }
 }

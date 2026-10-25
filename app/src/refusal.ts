@@ -124,6 +124,7 @@ const KNOWN = [
   "cloudSealed",
   "cloudSealing",
   "cloudUnsealed",
+  "cloudOtherPhrase",
   "storeNewer",
   "cannotWrite",
   "attachmentTooBig",

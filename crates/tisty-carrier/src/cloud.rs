@@ -128,12 +128,8 @@ impl Cloud {
     }
 
     // Unconfirmed again, the next round forgets the shape and the marks it left here and runs as a first one.
-    fn started_over(&self, why: &'static str) -> Result<(), Trouble> {
-        self.started_from_nothing(why, false)
-    }
-
     // A new root asks for the mirror again, but this machine has still carried to this cloud and is no newcomer.
-    fn started_from_nothing(&self, why: &'static str, carried_stays: bool) -> Result<(), Trouble> {
+    fn started_over(&self, why: &'static str, carried_stays: bool) -> Result<(), Trouble> {
         tisty_core::witness::note(tisty_core::witness::channel::CLOUD, why, &[]);
         let broke = |e: std::io::Error| Trouble::Broke(e.to_string());
         index::forget(&self.home).map_err(broke)?;
@@ -155,13 +151,19 @@ impl Cloud {
         Ok(())
     }
 
-    // Sending into a sealed root, the place says so and holds its mark before the first sealed byte goes up.
     fn announced(&self, remote: &dyn Remote, tree: &Path) -> Result<(), crate::Hitch> {
         let Some(cloud) = crate::sealed::reading(&self.root) else {
             return Ok(());
         };
+        remote.mark_up()?;
         tisty_sync::seal_word(tree, cloud).map_err(|e| crate::Hitch::Broke(e.to_string()))?;
-        remote.mark_up()
+        match tisty_sync::sealing_of(tree) {
+            tisty_sync::Sealing::Sealed(said) if said == cloud => Ok(()),
+            tisty_sync::Sealing::Copying | tisty_sync::Sealing::Closed => Ok(()),
+            _ => Err(crate::Hitch::Broke(
+                "the place does not say it is sealed, so nothing sealed is sent".into(),
+            )),
+        }
     }
 
     fn with_mirror<T>(
@@ -206,14 +208,18 @@ impl Cloud {
             match stale {
                 index::Stale::Layout => self.started_over(
                     "the cloud's index was of an older layout, so the mirror starts over",
+                    false,
                 )?,
-                index::Stale::Root => self.started_from_nothing(
+                index::Stale::Root => self.started_over(
                     "the cloud is read from another root, so the mirror starts over",
                     true,
                 )?,
             }
         } else if again && emptied.exists() {
-            self.started_over("everything is sent again to a store deleted up there")?;
+            self.started_over(
+                "everything is sent again to a store deleted up there",
+                false,
+            )?;
         }
         let tree = self.tree();
         std::fs::create_dir_all(&tree).map_err(|e| Trouble::Broke(e.to_string()))?;
@@ -359,6 +365,7 @@ impl Cloud {
     fn left_emptied(&self, index: &mut Index) -> Result<(), Trouble> {
         self.started_over(
             "a store deleted up there is left, so coming back starts the mirror over",
+            false,
         )?;
         let read = Index {
             cursor: index.cursor.take(),
@@ -484,7 +491,7 @@ impl Cloud {
         let every = Duration::from_millis(stir.every_ms);
         let index = self.index();
         let metered = Metered::over(&*self.remote, &self.home, Class::History);
-        let asked = if mirror::barred(&metered, &self.tree()).is_some() {
+        let asked = if mirror::barred(&metered, &self.tree(), &index).is_some() {
             mirror::word_moved(&metered, &index).map(|moved| {
                 let moved = moved && !index.owed.contains_key(tisty_sync::NAMED);
                 if moved {
@@ -726,7 +733,7 @@ impl Carrier for Cloud {
     }
 
     fn later(&self) -> Option<Trouble> {
-        mirror::barred(&*self.remote, &self.tree())
+        mirror::barred(&*self.remote, &self.tree(), &self.index())
     }
 
     fn been_here(&self, here: &Here) -> bool {

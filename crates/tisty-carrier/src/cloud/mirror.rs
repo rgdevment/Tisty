@@ -147,9 +147,19 @@ pub fn pull(
     }
 }
 
-pub(crate) fn barred(remote: &dyn Remote, tree: &Path) -> Option<tisty_sync::Trouble> {
-    tisty_sync::later(tree)
-        .or_else(|| tisty_sync::sealed_against(tree, crate::sealed::reading(remote.root())))
+// Only a word that came from up there is judged for sealing: one written here and not yet sent says nothing yet.
+pub(crate) fn barred(
+    remote: &dyn Remote,
+    tree: &Path,
+    index: &Index,
+) -> Option<tisty_sync::Trouble> {
+    tisty_sync::later(tree).or_else(|| {
+        index
+            .tree
+            .contains_key(NAMED)
+            .then(|| tisty_sync::sealed_against(tree, crate::sealed::reading(remote.root())))
+            .flatten()
+    })
 }
 
 fn still_barred(
@@ -157,7 +167,7 @@ fn still_barred(
     tree: &Path,
     index: &Index,
 ) -> Result<Option<tisty_sync::Trouble>, Hitch> {
-    match barred(remote, tree) {
+    match barred(remote, tree, index) {
         Some(trouble) if !word_moved(remote, index)? => Ok(Some(trouble)),
         _ => Ok(None),
     }
@@ -226,7 +236,7 @@ fn heeded(
             }
         }
     }
-    match barred(remote, tree) {
+    match barred(remote, tree, index) {
         Some(trouble) => Err(Hitch::Barred(trouble)),
         None => Ok(()),
     }

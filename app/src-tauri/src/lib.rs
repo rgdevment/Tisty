@@ -447,6 +447,7 @@ fn refused_for(trouble: tisty_carrier::Trouble) -> Refusal {
         tisty_carrier::Trouble::Sealed(_) => Refusal::of("cloudSealed"),
         tisty_carrier::Trouble::Sealing(_) => Refusal::of("cloudSealing"),
         tisty_carrier::Trouble::Unsealed(_) => Refusal::of("cloudUnsealed"),
+        tisty_carrier::Trouble::OtherPhrase(_) => Refusal::of("cloudOtherPhrase"),
     }
 }
 
