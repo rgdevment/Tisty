@@ -27,6 +27,33 @@ const picked = (words: number): number[] => {
   return Array.from(drawn, (one, at) => 1 + at * third + (one % third));
 };
 
+const LETTER = [
+  "US",
+  "CA",
+  "MX",
+  "CL",
+  "CO",
+  "VE",
+  "PH",
+  "PR",
+  "GT",
+  "SV",
+  "HN",
+  "NI",
+  "CR",
+  "PA",
+  "DO",
+];
+
+const paper = (): string => {
+  try {
+    const region = new Intl.Locale(navigator.language).maximize().region ?? "";
+    return LETTER.includes(region) ? "letter" : "a4";
+  } catch {
+    return "a4";
+  }
+};
+
 const today = (): string =>
   new Date().toLocaleDateString(locale(), { day: "numeric", month: "long", year: "numeric" });
 
@@ -57,7 +84,7 @@ export default function Phrasing({ words, fingerprint, onClose, onConfirmed }: P
         filters: [{ name: "PDF", extensions: ["pdf"] }],
       });
       if (!where) return;
-      await keepFile(where, await pagePdf(sheetPage(words, fingerprint, when), "a4"));
+      await keepFile(where, await pagePdf(sheetPage(words, fingerprint, when), paper(), true));
       setStep("words");
       setTold({ text: t("sheetSaved") });
     } catch (e) {

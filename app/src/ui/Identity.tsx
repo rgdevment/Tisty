@@ -7,6 +7,7 @@ import Phrasing from "./Phrasing";
 import { mild, strong } from "./Rows";
 
 interface Props {
+  round?: string | null;
   busy: Which | null;
   said?: Word;
   trouble?: Word;
@@ -15,7 +16,7 @@ interface Props {
   onSync: () => void;
 }
 
-export default function Identity({ busy, said, trouble, tell, fail, onSync }: Props) {
+export default function Identity({ round, busy, said, trouble, tell, fail, onSync }: Props) {
   const held = busy !== null;
   const [shown, setShown] = useState<Shown | null>(null);
   const [words, setWords] = useState<string[] | null>(null);
@@ -25,7 +26,8 @@ export default function Identity({ busy, said, trouble, tell, fail, onSync }: Pr
       .then(setShown)
       .catch((e) => fail({ card: "identity", text: saidPlainly(e) }));
   }, [fail]);
-  useEffect(look, [look]);
+  // A finished round may have certified a computer, so the panel looks again.
+  useEffect(look, [look, round]);
 
   const see = () => {
     identityPhrase()

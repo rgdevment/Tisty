@@ -2,7 +2,12 @@ use crate::{Answer, Refusal};
 
 // The page goes through a window nobody sees, whose engine lays it on paper the way it draws it.
 #[tauri::command]
-pub async fn page_pdf(app: tauri::AppHandle, html: String, paper: String) -> Answer<Vec<u8>> {
+pub async fn page_pdf(
+    app: tauri::AppHandle,
+    html: String,
+    paper: String,
+    secret: Option<bool>,
+) -> Answer<Vec<u8>> {
     let room = super::carrying::Room(
         std::env::temp_dir().join(format!("tisty-pdf-{}", ulid::Ulid::generate())),
     );
@@ -11,9 +16,10 @@ pub async fn page_pdf(app: tauri::AppHandle, html: String, paper: String) -> Ans
     let cannot = || Refusal::about("cannotWrite", to.display().to_string());
     let (folder, written) = (room.0.clone(), page.clone());
     let laid = tauri::async_runtime::spawn_blocking(move || {
-        swept(&std::env::temp_dir());
         std::fs::create_dir_all(&folder)?;
-        let _ = tisty_core::paths::key_alone(&folder);
+        if secret == Some(true) {
+            tisty_core::paths::key_alone(&folder)?;
+        }
         std::fs::write(&written, html)
     })
     .await;
@@ -61,7 +67,7 @@ pub async fn page_pdf(app: tauri::AppHandle, html: String, paper: String) -> Ans
 }
 
 // A sheet may carry the identity's phrase, so what a crash left behind is not left for the system to clear.
-fn swept(temp: &std::path::Path) {
+pub(crate) fn swept(temp: &std::path::Path) {
     let Some(old) =
         std::time::SystemTime::now().checked_sub(std::time::Duration::from_secs(5 * 60))
     else {

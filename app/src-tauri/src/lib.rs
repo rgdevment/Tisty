@@ -843,6 +843,7 @@ pub(crate) fn as_asked_for(at: &std::path::Path) -> std::path::PathBuf {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 fn settled(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    std::thread::spawn(|| answers::printing::swept(&std::env::temp_dir()));
     let argv = waking::said();
     let here = std::env::current_dir().ok();
     let mut wanted = viewing::wanted(&argv, here.as_deref());

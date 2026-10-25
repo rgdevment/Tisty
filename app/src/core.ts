@@ -1303,8 +1303,8 @@ export const folderFile = (id: string, parent?: string, before?: string): Promis
 
 export const keepFile = (at: string, bytes: number[]): Promise<void> =>
   invoke("keep_file", { at, bytes });
-export const pagePdf = (html: string, paper: string): Promise<number[]> =>
-  invoke("page_pdf", { html, paper });
+export const pagePdf = (html: string, paper: string, secret?: boolean): Promise<number[]> =>
+  invoke("page_pdf", { html, paper, secret });
 
 export interface Identity {
   held: boolean;

@@ -125,7 +125,14 @@ export default function Keeping({
   };
   useEffect(() => afterMove(() => landed.current()), []);
 
-  if (tab === "about" && about) return about;
+  if (tab === "about" && about) {
+    return (
+      <>
+        {carrying.shown}
+        {about}
+      </>
+    );
+  }
 
   if (!state) {
     return (
@@ -258,6 +265,7 @@ export default function Keeping({
 
           {tab === "security" && (
             <Identity
+              round={state.last}
               busy={busy}
               said={said}
               trouble={trouble}

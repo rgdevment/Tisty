@@ -163,6 +163,7 @@ describe("the phrase", () => {
     expect(page).toContain("word1");
     expect(page).toContain("word24");
     expect(page).toContain("48210 93755 12880 63349");
+    expect(sent("page_pdf")[0].args.secret).toBe(true);
     expect(sent("keep_file")[0].args.at).toBe("/tmp/phrase.pdf");
   });
 

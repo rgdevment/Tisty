@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { t } from "../locales";
 import type { Tab } from "../views";
 import Glyph from "./Glyph";
@@ -24,15 +24,17 @@ const typing = (at: EventTarget | null) =>
   (at.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(at.tagName));
 
 export default function SettingsNav({ tab, waiting, onTab, onBack }: Props) {
+  const back = useRef(onBack);
+  back.current = onBack;
   useEffect(() => {
     const leave = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || event.defaultPrevented || typing(event.target)) return;
       if (document.querySelector("[role=dialog]")) return;
-      onBack();
+      back.current();
     };
     window.addEventListener("keydown", leave);
     return () => window.removeEventListener("keydown", leave);
-  }, [onBack]);
+  }, []);
 
   return (
     <>
