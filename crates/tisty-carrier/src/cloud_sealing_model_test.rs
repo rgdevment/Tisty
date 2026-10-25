@@ -63,12 +63,15 @@ impl World {
         self.fake.clone()
     }
 
+    // The test reads the word past any cut it planted, so a cut only ever lands on the machines.
     fn word(&self) -> Sealing {
-        let mut said = Vec::new();
-        match self.fake.fetch(tisty_sync::NAMED, 0, &mut said) {
-            Ok(_) => tisty_sync::sealing_in(&String::from_utf8_lossy(&said)),
-            Err(_) => Sealing::Unsaid,
+        for _ in 0..8 {
+            let mut said = Vec::new();
+            if self.fake.fetch(tisty_sync::NAMED, 0, &mut said).is_ok() {
+                return tisty_sync::sealing_in(&String::from_utf8_lossy(&said));
+            }
         }
+        Sealing::Unsaid
     }
 
     // A machine reads the cloud the way its word says, as the app's `seal_the_cloud` does.

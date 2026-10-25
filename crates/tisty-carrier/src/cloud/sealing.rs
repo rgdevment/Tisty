@@ -4,11 +4,12 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use tisty_share_proto::cloud::CloudKey;
+use tisty_share_proto::cloud::{CloudKey, Mark};
 use tisty_sync::{NAMED, Sealing, Trouble, Turn};
 
 use super::budget::{Class, Metered};
 use super::lock::{Held, SEALING};
+use super::policy::now;
 use crate::{Expect, Hitch, Remote, Seen};
 
 const JOURNAL: &str = "sealing.json";
@@ -36,7 +37,6 @@ struct Journal {
     nonce: String,
     on: bool,
     phase: Phase,
-    started: u64,
     moved: u64,
     #[serde(default)]
     refused: BTreeMap<String, u64>,
@@ -54,22 +54,16 @@ pub enum Stepped {
     Claimed,
     Copying { done: usize, left: usize },
     Closed,
-    Settling { changed: usize },
+    Settling { left: usize },
     Done,
 }
 
-/// A cloud turning sealed, one bounded step at a time, every step kept in a journal beside the mirror.
 pub struct Turning {
     plain: Arc<dyn Remote>,
     home: PathBuf,
     key: CloudKey,
     journal: Journal,
-}
-
-fn now() -> u64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map_or(0, |at| at.as_secs())
+    pending: Option<Owed>,
 }
 
 fn broke(e: impl ToString) -> Hitch {
@@ -117,6 +111,13 @@ fn ours_to_turn(name: &str, folds: bool) -> bool {
     (super::mirror::mirrored(name) || super::index::on_shelf(name))
         && !crate::sealed::stays_plain(name, folds)
         && !name.starts_with(&format!("{}/", crate::sealed::INSIDE))
+}
+
+fn deleted(remote: &dyn Remote, name: &str) -> Result<(), Hitch> {
+    match remote.delete(name, None) {
+        Ok(()) | Err(Hitch::Missing(_)) => Ok(()),
+        Err(other) => Err(other),
+    }
 }
 
 impl Journal {
@@ -173,8 +174,21 @@ struct Owed {
     done: usize,
 }
 
+impl Owed {
+    fn left(&self) -> usize {
+        self.copy.len() + self.gone.len()
+    }
+}
+
+fn mark_holds(said: Option<Mark>, cloud: &str) -> Result<(), Hitch> {
+    match said {
+        Some(Mark::Holds) => Ok(()),
+        Some(Mark::OtherPhrase) => Err(Hitch::Barred(Trouble::OtherPhrase(cloud.to_string()))),
+        _ => Err(Hitch::Barred(Trouble::MarkDamaged(cloud.to_string()))),
+    }
+}
+
 impl Turning {
-    /// Claims the cloud for a turn: the word says so first, and turning on puts the mark up under `sealed/`.
     pub fn begin(
         plain: Arc<dyn Remote>,
         home: &Path,
@@ -194,7 +208,10 @@ impl Turning {
             let (text, _) = word(&metered)?;
             match (turn, tisty_sync::sealing_in(&text)) {
                 (Turn::On, Sealing::Plain | Sealing::Unsaid) => {}
-                (Turn::Off, Sealing::Sealed(said)) if said == cloud => {}
+                (Turn::Off, Sealing::Sealed(said)) if said == cloud => {
+                    let sealed = sealed_over(&*plain, home, key.clone(), cloud);
+                    mark_holds(sealed.marked()?, cloud)?;
+                }
                 (_, Sealing::Copying(_) | Sealing::Closed) => return Err(turned_away(cloud)),
                 (Turn::On, _) => return Err(Hitch::Barred(Trouble::Sealed(cloud.to_string()))),
                 (Turn::Off, _) => return Err(Hitch::Barred(Trouble::Unsealed(cloud.to_string()))),
@@ -212,7 +229,6 @@ impl Turning {
             nonce,
             on: turn == Turn::On,
             phase: Phase::Claiming,
-            started: now(),
             moved: now(),
             refused: BTreeMap::new(),
         };
@@ -223,12 +239,12 @@ impl Turning {
             home: home.to_path_buf(),
             key,
             journal,
+            pending: None,
         };
         turning.step()?;
         Ok(turning)
     }
 
-    /// A turning a cut left half way, taken up again from its journal.
     pub fn resume(plain: Arc<dyn Remote>, home: &Path, key: CloudKey) -> Option<Self> {
         let journal = Journal::load(home)?;
         (key.named_for(&journal.cloud) == journal.named).then(|| Self {
@@ -236,10 +252,10 @@ impl Turning {
             home: home.to_path_buf(),
             key,
             journal,
+            pending: None,
         })
     }
 
-    /// The cloud and the key id the signed `cloud.sealed` must name, written by the app once the claim stands.
     pub fn said(&self) -> (&str, &str) {
         (&self.journal.cloud, &self.journal.named)
     }
@@ -251,12 +267,10 @@ impl Turning {
         }
     }
 
-    /// What does not fit on the other side, by name and size: never copied, never wiped.
     pub fn refused(&self) -> &BTreeMap<String, u64> {
         &self.journal.refused
     }
 
-    /// When the last step moved, so a claim nobody carries on can be told apart.
     pub fn moved(&self) -> u64 {
         self.journal.moved
     }
@@ -281,7 +295,7 @@ impl Turning {
         let claim = self.journal.claim();
         let (on, cloud) = (self.journal.on, self.journal.cloud.clone());
         let way = self.turn();
-        let ours = |text: &str| text.contains(&claim);
+        let ours = tisty_sync::claimed_by(&text, &claim);
         match (self.journal.phase, tisty_sync::sealing_in(&text)) {
             (_, Sealing::Sealed(said)) if on && said == cloud => {
                 forget(&self.home);
@@ -298,12 +312,11 @@ impl Turning {
             (Phase::Claiming, Sealing::Sealed(said)) if !on && said == cloud => {
                 return self.claimed(&metered, &text, &revision);
             }
-            (Phase::Claiming, Sealing::Copying(went)) if went == way && ours(&text) => {
+            (Phase::Claiming, Sealing::Copying(went)) if went == way && ours => {
                 return self.held_claim(&metered);
             }
-            (Phase::Claimed | Phase::Copied, Sealing::Copying(went))
-                if went == way && ours(&text) => {}
-            (Phase::Closed | Phase::Settled, Sealing::Closed) if ours(&text) => {}
+            (Phase::Claimed | Phase::Copied, Sealing::Copying(went)) if went == way && ours => {}
+            (Phase::Closed | Phase::Settled, Sealing::Closed) if ours => {}
             _ => return Err(turned_away(&cloud)),
         }
         let sealed = sealed_over(&*plain, &home, self.key.clone(), &cloud);
@@ -312,49 +325,40 @@ impl Turning {
             false => (&sealed, &metered),
         };
         match self.journal.phase {
-            Phase::Claiming | Phase::GivingUp => Err(turned_away(&cloud)),
-            Phase::Claimed => {
-                let owed = self.owed(from, to)?;
-                self.journal.refused = owed.refused.clone();
-                if owed.copy.is_empty() && owed.gone.is_empty() {
+            Phase::Claimed => match self.batch(from, to)? {
+                0 => {
                     self.journal.phase = Phase::Copied;
                     self.journal.save(&self.home)?;
-                    return Ok(Stepped::Copying {
-                        done: owed.done,
+                    Ok(Stepped::Copying {
+                        done: self.done(),
                         left: 0,
-                    });
+                    })
                 }
-                let left = owed.copy.len() + owed.gone.len();
-                let moved = self.copied(from, to, owed)?;
-                self.journal.save(&self.home)?;
-                Ok(Stepped::Copying {
-                    done: moved,
-                    left: left.saturating_sub(moved),
-                })
-            }
+                left => Ok(Stepped::Copying {
+                    done: self.done(),
+                    left,
+                }),
+            },
             Phase::Copied => {
                 let closed = tisty_sync::closed(&text, &claim, tisty_sync::TURNS)
                     .ok_or_else(|| turned_away(&cloud))?;
                 rewrite(&metered, &closed, &revision)?;
+                self.pending = None;
                 self.journal.phase = Phase::Closed;
                 self.journal.save(&self.home)?;
                 Ok(Stepped::Closed)
             }
-            Phase::Closed => {
-                let owed = self.owed(from, to)?;
-                self.journal.refused = owed.refused.clone();
-                if owed.copy.is_empty() && owed.gone.is_empty() {
+            Phase::Closed => match self.batch(from, to)? {
+                0 => {
                     if on {
                         self.opens_one(&sealed)?;
                     }
                     self.journal.phase = Phase::Settled;
                     self.journal.save(&self.home)?;
-                    return Ok(Stepped::Settling { changed: 0 });
+                    Ok(Stepped::Settling { left: 0 })
                 }
-                let changed = self.copied(from, to, owed)?;
-                self.journal.save(&self.home)?;
-                Ok(Stepped::Settling { changed })
-            }
+                left => Ok(Stepped::Settling { left }),
+            },
             Phase::Settled => {
                 let to_be = on.then_some(cloud.as_str());
                 let switched = tisty_sync::switched(&text, &claim, to_be)
@@ -366,7 +370,30 @@ impl Turning {
                 forget(&self.home);
                 Ok(Stepped::Done)
             }
+            Phase::Claiming | Phase::GivingUp => Err(turned_away(&cloud)),
         }
+    }
+
+    fn done(&self) -> usize {
+        self.pending.as_ref().map_or(0, |owed| owed.done)
+    }
+
+    // Listed again only once a batch runs dry, so a large cloud is not read whole for every batch.
+    fn batch(&mut self, from: &dyn Remote, to: &dyn Remote) -> Result<usize, Hitch> {
+        let mut owed = match self.pending.take() {
+            Some(owed) if owed.left() > 0 => owed,
+            _ => self.owed(from, to)?,
+        };
+        self.journal.refused = owed.refused.clone();
+        if owed.left() == 0 {
+            self.pending = Some(owed);
+            return Ok(0);
+        }
+        self.copied(from, to, &mut owed)?;
+        self.journal.save(&self.home)?;
+        let left = owed.left();
+        self.pending = Some(owed);
+        Ok(left.max(1))
     }
 
     fn claimed(
@@ -388,18 +415,15 @@ impl Turning {
     // Read back before the mark: on Drive a claim can be checked, then overwritten by another's.
     fn held_claim(&mut self, metered: &dyn Remote) -> Result<Stepped, Hitch> {
         let (back, _) = word(metered)?;
-        if !back.contains(&self.journal.claim()) {
+        if !tisty_sync::claimed_by(&back, &self.journal.claim()) {
             return Err(turned_away(&self.journal.cloud));
         }
-        if self.journal.on {
-            self.sealed().mark_it()?;
-        }
+        self.sealed().mark_it()?;
         self.journal.phase = Phase::Claimed;
         self.journal.save(&self.home)?;
         Ok(Stepped::Claimed)
     }
 
-    /// Before the switch the side read from was never touched, so giving up takes back the claim and what was copied.
     pub fn abort(mut self) -> Result<(), Hitch> {
         {
             let _held = locked(&self.home)?;
@@ -428,18 +452,26 @@ impl Turning {
         if let Some(back) = tisty_sync::dropped(&text, &self.journal.claim()) {
             rewrite(&metered, &back, &revision)?;
         }
-        if self.journal.on {
+        let (now, _) = word(&metered)?;
+        // What another machine claimed or switched to since is theirs, and nothing of it is undone here.
+        let left_as_it_was = match (self.journal.on, tisty_sync::sealing_in(&now)) {
+            (true, Sealing::Plain | Sealing::Unsaid) => true,
+            (false, Sealing::Sealed(cloud)) => cloud == self.journal.cloud,
+            _ => false,
+        };
+        if left_as_it_was && self.journal.on {
             let sealed = self.sealed();
             for one in metered.list(crate::sealed::INSIDE)? {
-                if sealed.is_mark(&one.name) {
-                    continue;
-                }
-                match metered.delete(&one.name, None) {
-                    Ok(()) | Err(Hitch::Missing(_)) => {}
-                    Err(other) => return Err(other),
+                if !sealed.is_mark(&one.name) {
+                    deleted(&metered, &one.name)?;
                 }
             }
             sealed.unmark()?;
+        }
+        if left_as_it_was && !self.journal.on {
+            for name in twins(&self.home).into_keys() {
+                deleted(&metered, &name)?;
+            }
         }
         forget(&self.home);
         Ok(Stepped::Done)
@@ -447,26 +479,24 @@ impl Turning {
 
     fn owed(&self, from: &dyn Remote, to: &dyn Remote) -> Result<Owed, Hitch> {
         let folds = from.limits().folds_case;
-        let room = to.limits().most_per_file;
-        let sources: BTreeMap<String, Seen> = from
-            .list("")?
-            .into_iter()
-            .filter(|one| ours_to_turn(&one.name, folds))
-            .map(|one| (one.name.clone(), one))
-            .collect();
-        let there: BTreeMap<String, Seen> = to
-            .list("")?
-            .into_iter()
-            .filter(|one| ours_to_turn(&one.name, folds))
-            .map(|one| (one.name.clone(), one))
-            .collect();
+        let (room, held) = (to.limits().most_per_file, from.limits().most_per_file);
+        let listed = |side: &dyn Remote| -> Result<BTreeMap<String, Seen>, Hitch> {
+            Ok(side
+                .list("")?
+                .into_iter()
+                .filter(|one| ours_to_turn(&one.name, folds))
+                .map(|one| (one.name.clone(), one))
+                .collect())
+        };
+        let (sources, there) = (listed(from)?, listed(to)?);
         let twins = twins(&self.home);
         let mut owed = Owed {
             copy: Vec::new(),
+            // One too big for the side read from was never there to copy, so it is never taken for gone.
             gone: there
-                .keys()
-                .filter(|name| !sources.contains_key(*name))
-                .cloned()
+                .iter()
+                .filter(|(name, one)| !sources.contains_key(*name) && one.bytes <= held)
+                .map(|(name, _)| name.clone())
                 .collect(),
             refused: BTreeMap::new(),
             done: 0,
@@ -490,15 +520,13 @@ impl Turning {
         Ok(owed)
     }
 
-    fn copied(&self, from: &dyn Remote, to: &dyn Remote, owed: Owed) -> Result<usize, Hitch> {
-        let mut moved = 0;
-        for name in owed.gone.iter().take(BATCH) {
-            match to.delete(name, None) {
-                Ok(()) | Err(Hitch::Missing(_)) => moved += 1,
-                Err(other) => return Err(other),
-            }
+    fn copied(&self, from: &dyn Remote, to: &dyn Remote, owed: &mut Owed) -> Result<(), Hitch> {
+        let gone = owed.gone.len().min(BATCH);
+        for name in owed.gone.drain(..gone).collect::<Vec<_>>() {
+            deleted(to, &name)?;
         }
-        for source in owed.copy.iter().take(BATCH.saturating_sub(moved)) {
+        let copy = owed.copy.len().min(BATCH - gone);
+        for source in owed.copy.drain(..copy).collect::<Vec<_>>() {
             let held = crate::temp::Temp::new();
             let mut file = held.create().map_err(broke)?;
             let got = match from.fetch(&source.name, 0, &mut file) {
@@ -516,9 +544,9 @@ impl Turning {
                     bytes: got.bytes,
                 },
             )?;
-            moved += 1;
+            owed.done += 1;
         }
-        Ok(moved)
+        Ok(())
     }
 
     fn opens_one(&self, sealed: &dyn Remote) -> Result<(), Hitch> {
@@ -535,8 +563,7 @@ impl Turning {
     }
 }
 
-/// What the turn left behind, once the place says it is over: the plain copy a sealed cloud no longer reads,
-/// or the sealed copy a plain one no longer reads. Only a name whose twin stands on the other side goes.
+// Only a name whose twin stands with the same size goes, and the word is read again every batch in case a turn began.
 pub fn wipe_behind(
     plain: Arc<dyn Remote>,
     home: &Path,
@@ -545,7 +572,7 @@ pub fn wipe_behind(
 ) -> Result<usize, Hitch> {
     let _held = locked(home)?;
     let metered = Metered::over(&*plain, home, Class::Sealing);
-    let (text, _) = word(&metered)?;
+    let (text, revision) = word(&metered)?;
     let sealed = sealed_over(&*plain, home, key, cloud);
     let (behind, kept): (&dyn Remote, &dyn Remote) = match tisty_sync::sealing_in(&text) {
         Sealing::Sealed(said) if said == cloud => (&metered, &sealed),
@@ -564,10 +591,11 @@ pub fn wipe_behind(
         if !ours_to_turn(&one.name, folds) || standing.get(&one.name) != Some(&one.bytes) {
             continue;
         }
-        match behind.delete(&one.name, None) {
-            Ok(()) | Err(Hitch::Missing(_)) => gone += 1,
-            Err(other) => return Err(other),
+        if gone % BATCH == BATCH - 1 && word(&metered)?.1 != revision {
+            return Err(turned_away(cloud));
         }
+        deleted(behind, &one.name)?;
+        gone += 1;
     }
     Ok(gone)
 }

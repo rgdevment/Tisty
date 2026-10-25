@@ -269,13 +269,19 @@ fn ours(said: &toml_edit::DocumentMut, claim: &str) -> bool {
         .is_some_and(|held| held == claim)
 }
 
-/// The word with this turn claimed, or nothing when another is under way or the word cannot be read.
+pub fn claimed_by(text: &str, claim: &str) -> bool {
+    text.parse::<toml_edit::DocumentMut>()
+        .is_ok_and(|said| ours(&said, claim))
+}
+
+// `needs` rises with the claim, so a build that knows no way of turning stops before the copy starts.
 pub fn claimed(text: &str, phase: &str) -> Option<String> {
     let mut said = text.parse::<toml_edit::DocumentMut>().ok()?;
     if phase_of(&said).is_some() || claim_of(phase).is_none() {
         return None;
     }
     said[SEALING] = toml_edit::value(phase);
+    raise_needs(&mut said, TURNS);
     Some(said.to_string())
 }
 

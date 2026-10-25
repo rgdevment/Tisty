@@ -22,7 +22,7 @@ use segments::{
     Alike, Grew, Toward, hand_on_leaving, one_grew_from_the_other, ours_went_missing, sweep,
 };
 pub use shape::{
-    NAMED, NEEDS, OURS as SHAPE, Sealing, TURNS, Turn, claimed, closed, dropped, later,
+    NAMED, NEEDS, OURS as SHAPE, Sealing, TURNS, Turn, claimed, claimed_by, closed, dropped, later,
     needs_later, phase, raise_place, raised, raised_told, refuses, seal_word, sealed_against,
     sealing_in, sealing_of, spoiled, switched, unseen as forget_shape,
 };

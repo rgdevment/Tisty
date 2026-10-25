@@ -668,6 +668,9 @@ fn a_claim_is_dropped_only_by_its_own_machine_and_leaves_the_rest_of_the_word() 
     let back = dropped(&claimed_word, "dev_a:n1").unwrap();
 
     assert_eq!(sealing_in(&back), Sealing::Plain);
-    assert!(back.contains("needs = \"1.34.0\""));
+    assert!(
+        back.contains("needs = \"1.36.0\""),
+        "needs never comes back down"
+    );
     assert!(claimed("not = = toml", &phase(Turn::On, "dev_a", "n1")).is_none());
 }

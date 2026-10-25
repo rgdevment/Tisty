@@ -96,7 +96,11 @@ fn a_turning_given_up_before_the_switch_leaves_the_cloud_as_it_was() {
 
     turning.abort().unwrap();
 
-    assert_eq!(word(&fake), before);
+    assert_eq!(
+        tisty_sync::sealing_in(&word(&fake)),
+        tisty_sync::sealing_in(&before)
+    );
+    assert!(!word(&fake).contains("sealing"));
     assert!(fake.list("sealed").unwrap().is_empty());
     one.wrote("después");
     assert!(one.carry(Way::Both, Holds::Everywhere).is_ok());
@@ -292,7 +296,11 @@ fn giving_up_cut_half_way_is_undone_the_rest_of_the_way_from_the_journal() {
     let mut left = Turning::resume(plain, &home_of(&setting, "dev_a"), key()).unwrap();
 
     assert_eq!(left.step().unwrap(), Stepped::Done);
-    assert_eq!(word(&fake), before);
+    assert_eq!(
+        tisty_sync::sealing_in(&word(&fake)),
+        tisty_sync::sealing_in(&before)
+    );
+    assert!(!word(&fake).contains("sealing"));
     assert!(fake.list("sealed").unwrap().is_empty());
 }
 
@@ -332,4 +340,105 @@ fn a_file_too_big_to_seal_is_said_never_copied_and_never_wiped() {
         "{} was wiped with no twin",
         big.sha256
     );
+}
+
+#[test]
+fn giving_up_taken_up_again_never_undoes_a_cloud_another_machine_sealed_since() {
+    let (setting, fake) = drive();
+    let one = written(&setting);
+    let mine = turned(&fake, &setting).unwrap();
+    fake.fail_after(3, Hitch::Unreachable(None, "cut".into()));
+    assert!(mine.abort().is_err());
+    let plain: Arc<dyn Remote> = fake.clone();
+    let mut theirs = Turning::begin(
+        plain.clone(),
+        &home_of(&setting, "dev_b"),
+        key(),
+        CLOUD,
+        "dev_b",
+        Turn::On,
+    )
+    .unwrap();
+    to_the_end(&mut theirs);
+
+    let mut left = Turning::resume(plain, &home_of(&setting, "dev_a"), key()).unwrap();
+    assert_eq!(left.step().unwrap(), Stepped::Done);
+
+    let two = reading_sealed(&setting, &fake, "dev_c", &one);
+    two.round(Way::Both);
+    assert_eq!(two.titles(), vec!["antes de cifrar".to_string()]);
+}
+
+#[test]
+fn turning_off_never_takes_a_file_that_was_too_big_to_seal_for_gone() {
+    let most = 64 * 1024;
+    let (setting, fake) = each_kind(|fake| fake.with_most_per_file(most)).remove(0);
+    let one = written(&setting);
+    let big = one.kept("grande.bin", &vec![7u8; (most - 10) as usize]);
+    one.store()
+        .append(big.told(tisty_core::attach::Via::Window))
+        .unwrap();
+    one.round(Way::Both);
+    to_the_end(&mut turned(&fake, &setting).unwrap());
+    let held_name = fake
+        .list("")
+        .unwrap()
+        .into_iter()
+        .map(|seen| seen.name)
+        .find(|name| name.starts_with(&format!("{}/", tisty_sync::HELD)))
+        .unwrap();
+
+    to_the_end(&mut turning_off(&fake, &setting).unwrap());
+
+    assert!(fake.about(&held_name).unwrap().is_some());
+}
+
+#[test]
+fn giving_up_a_turn_off_takes_away_the_plain_copies_it_wrote() {
+    let (setting, fake) = drive();
+    sealed_on(&setting, &fake);
+    let plain: Arc<dyn Remote> = fake.clone();
+    crate::wipe_behind(plain, &home_of(&setting, "dev_a"), key(), CLOUD).unwrap();
+    let mut turning = turning_off(&fake, &setting).unwrap();
+    turning.step().unwrap();
+
+    turning.abort().unwrap();
+
+    let left: Vec<String> = fake
+        .list("")
+        .unwrap()
+        .into_iter()
+        .map(|one| one.name)
+        .filter(|name| !name.starts_with("sealed/"))
+        .filter(|name| !crate::sealed::stays_plain(name, false))
+        .collect();
+    assert!(left.is_empty(), "plain copies stayed: {left:?}");
+}
+
+#[test]
+fn turning_off_with_another_phrase_is_refused_before_anything_is_claimed() {
+    let (setting, fake) = drive();
+    sealed_on(&setting, &fake);
+    let plain: Arc<dyn Remote> = fake.clone();
+    let before = word(&fake);
+    let other = CloudKey::of(&Seed::from_bytes(&[8; 32]));
+
+    let refused = Turning::begin(
+        plain,
+        &home_of(&setting, "dev_a"),
+        other,
+        CLOUD,
+        "dev_a",
+        Turn::Off,
+    );
+
+    assert!(matches!(
+        refused,
+        Err(Hitch::Barred(Trouble::OtherPhrase(_)))
+    ));
+    assert_eq!(
+        tisty_sync::sealing_in(&word(&fake)),
+        tisty_sync::sealing_in(&before)
+    );
+    assert!(!word(&fake).contains("sealing"));
 }
