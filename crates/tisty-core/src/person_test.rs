@@ -842,3 +842,22 @@ fn the_sealed_op_is_optional_and_settles() {
         serde_json::json!({"op": "cloud.sealed", "s": "store_one"})
     );
 }
+
+#[test]
+fn an_assistant_that_later_calls_itself_a_machine_cannot_unseal_a_store() {
+    let events = vec![
+        joined("dev_a", DeviceKind::Machine),
+        said("dev_a", sealed("store_one", Some("key_a")), 100),
+        joined("dev_bot", DeviceKind::Agent),
+        joined("dev_bot", DeviceKind::Machine),
+        said("dev_bot", sealed("store_one", None), 200),
+    ];
+
+    assert_eq!(
+        State::replay(&events)
+            .sealed
+            .get("store_one")
+            .map(String::as_str),
+        Some("key_a")
+    );
+}

@@ -62,6 +62,11 @@ fn named_back(hitch: Hitch, inner: &str, name: &str) -> Hitch {
     }
 }
 
+#[cfg(test)]
+pub(crate) fn sealed_len(plain: u64) -> u64 {
+    HEADER + plain + TAG * plain.div_ceil(BLOCK).max(1)
+}
+
 fn plain_room(sealed: u64) -> u64 {
     let body = sealed.saturating_sub(HEADER);
     (body / (BLOCK + TAG)) * BLOCK + (body % (BLOCK + TAG)).saturating_sub(TAG)
@@ -87,6 +92,11 @@ impl<R: Remote> Sealed<R> {
             root: format!("{INSIDE}:{cloud}"),
             cloud,
         }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn inner(&self) -> &R {
+        &self.inner
     }
 
     pub fn marked(&self) -> Result<Option<Mark>, Hitch> {
@@ -176,11 +186,15 @@ impl<R: Remote> Sealed<R> {
             return Some(name.to_ascii_lowercase());
         }
         let (top, inside) = name.split_once('/')?;
-        (self.same(top, INSIDE) && !inside.is_empty() && !self.same(inside, MARK))
-            .then(|| inside.to_string())
+        (self.same(top, INSIDE)
+            && !inside.is_empty()
+            && !self.same(inside, MARK)
+            && !self.is_clear(inside))
+        .then(|| inside.to_string())
     }
 
     fn seen(&self, one: Seen, name: &str, hash: String) -> Seen {
+        let name = &self.shown(&one.name).unwrap_or_else(|| name.to_string());
         match self.is_clear(name) {
             true => Seen {
                 name: name.to_string(),
@@ -250,7 +264,7 @@ impl<R: Remote> Remote for Sealed<R> {
         open(
             &self.key,
             &self.cloud,
-            name,
+            &self.bound(name),
             &mut from_cipher,
             &mut to_plain,
         )
@@ -258,6 +272,9 @@ impl<R: Remote> Remote for Sealed<R> {
         drop(to_plain);
         let hash = self.inner.hash_of(&plain.0).map_err(broke)?;
         let mut read = std::fs::File::open(&plain.0).map_err(broke)?;
+        if from > read.metadata().map_err(broke)?.len() {
+            return Err(broke(format!("{name} was asked for past its end")));
+        }
         std::io::Seek::seek(&mut read, std::io::SeekFrom::Start(from)).map_err(broke)?;
         std::io::copy(&mut read, into).map_err(broke)?;
         Ok(self.seen(got, name, hash))
@@ -308,6 +325,18 @@ impl<R: Remote> Remote for Sealed<R> {
 
     fn hash_of(&self, local: &Path) -> std::io::Result<String> {
         self.inner.hash_of(local)
+    }
+
+    fn renamed(&self, from: &str, to: &str) -> Result<(), Hitch> {
+        crate::named_well(from)?;
+        crate::named_well(to)?;
+        let held = Temp::new();
+        let mut into = held.create().map_err(broke)?;
+        let took = self.fetch(from, 0, &mut into);
+        drop(into);
+        took?;
+        self.put(to, &held.0, Expect::Any)?;
+        self.delete(from, None)
     }
 
     fn about(&self, name: &str) -> Result<Option<Seen>, Hitch> {

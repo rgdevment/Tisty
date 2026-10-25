@@ -45,6 +45,10 @@ pub trait Counting: Remote {
     fn hears_pushed(&self) -> bool;
     fn lends_links(&self) -> bool;
     fn reports_hashes(&self) -> bool;
+
+    fn seals(&self) -> bool {
+        false
+    }
 }
 
 struct Entry {
@@ -822,6 +826,66 @@ impl Counting for Bare {
     }
 }
 
+impl Counting for crate::Sealed<Fake> {
+    fn who(&self) -> &'static str {
+        match self.inner().kind {
+            Kind::Drive => "sealed-drive",
+            Kind::OneDrive => "sealed-onedrive",
+            Kind::Dropbox => "sealed-dropbox",
+            Kind::WebDav => "sealed-webdav",
+        }
+    }
+
+    fn counts(&self) -> Counts {
+        self.inner().counts()
+    }
+
+    fn forget_counts(&self) {
+        self.inner().forget_counts();
+    }
+
+    fn uploaded(&self) -> Vec<String> {
+        self.inner().uploaded()
+    }
+
+    fn fail_after(&self, passing: usize, hitch: Hitch) {
+        self.inner().fail_after(passing, hitch);
+    }
+
+    fn forget_feed(&self) {
+        self.inner().forget_feed();
+    }
+
+    fn native_changes(&self) -> bool {
+        self.inner().native_changes()
+    }
+
+    fn hears_pushed(&self) -> bool {
+        self.inner().hears_pushed()
+    }
+
+    fn lends_links(&self) -> bool {
+        false
+    }
+
+    fn reports_hashes(&self) -> bool {
+        false
+    }
+
+    fn seals(&self) -> bool {
+        true
+    }
+}
+
+pub fn sealed_over(fake: Fake) -> crate::Sealed<Fake> {
+    let seed = tisty_share_proto::seed::Seed::from_bytes(&[7; 32]);
+    crate::Sealed::new(
+        fake,
+        tisty_share_proto::cloud::CloudKey::of(&seed),
+        "store_one",
+    )
+}
+
 pub fn every() -> Vec<Box<dyn Counting>> {
     every_with(|fake| fake)
 }
@@ -834,5 +898,8 @@ pub fn every_with(shape: impl Fn(Fake) -> Fake) -> Vec<Box<dyn Counting>> {
         Box::new(Bare::over(shape(Fake::drive()))),
         Box::new(Bare::over(shape(Fake::dropbox()))),
         Box::new(Bare::over(shape(Fake::webdav()))),
+        Box::new(sealed_over(shape(Fake::drive()))),
+        Box::new(sealed_over(shape(Fake::onedrive()))),
+        Box::new(sealed_over(shape(Fake::dropbox()))),
     ]
 }

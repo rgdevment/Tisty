@@ -104,7 +104,7 @@ impl State {
         let store = crate::called::cleaned(store);
         if store.is_empty()
             || !self.devices.contains(&event.device)
-            || self.agents.contains(&event.device)
+            || self.assistants.contains(&event.device)
         {
             return;
         }
