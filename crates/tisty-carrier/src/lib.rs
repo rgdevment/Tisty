@@ -24,6 +24,7 @@ mod remote;
 pub mod said;
 mod sealed;
 mod shift;
+mod temp;
 #[cfg(feature = "testing")]
 pub mod testing;
 mod tokens;

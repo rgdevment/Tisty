@@ -159,19 +159,24 @@ pub trait Watch: Send {
 pub fn renamed_by_copy<R: Remote + ?Sized>(remote: &R, from: &str, to: &str) -> Result<(), Hitch> {
     named_well(from)?;
     named_well(to)?;
-    let held = std::env::temp_dir().join(format!(
-        "tisty-renamed-{}-{}",
-        std::process::id(),
-        to.replace('/', "-")
-    ));
-    let mut into = std::fs::File::create(&held).map_err(|e| Hitch::Broke(e.to_string()))?;
+    if from == to {
+        return remote
+            .about(from)?
+            .map(|_| ())
+            .ok_or_else(|| Hitch::Missing(from.to_string()));
+    }
+    if remote.limits().folds_case && from.to_lowercase() == to.to_lowercase() {
+        return Err(Hitch::Broke(format!(
+            "{from} cannot be renamed by copy to {to} where the provider folds case"
+        )));
+    }
+    let held = crate::temp::Temp::new();
+    let mut into = held.create().map_err(|e| Hitch::Broke(e.to_string()))?;
     let took = remote.fetch(from, 0, &mut into);
     drop(into);
-    let done = took
-        .and_then(|_| remote.put(to, &held, Expect::Any))
-        .and_then(|_| remote.delete(from, None));
-    let _ = std::fs::remove_file(&held);
-    done
+    took?;
+    remote.put(to, &held.0, Expect::Any)?;
+    remote.delete(from, None)
 }
 
 pub fn named_well(name: &str) -> Result<(), Hitch> {

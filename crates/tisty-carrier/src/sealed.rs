@@ -1,6 +1,5 @@
 use std::io::Write;
-use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::path::Path;
 
 use tisty_share_proto::cloud::{CloudKey, Mark, Unsealed, mark, mark_says, open, seal};
 use tisty_sync::{MARKER, NAMED, STORE};
@@ -12,39 +11,11 @@ const HEADER: u64 = 24;
 const TAG: u64 = 16;
 const BLOCK: u64 = 64 * 1024;
 
-static TEMPS: AtomicU64 = AtomicU64::new(0);
-
 pub struct Sealed<R> {
     inner: R,
     key: CloudKey,
     cloud: String,
     root: String,
-}
-
-struct Temp(PathBuf);
-
-impl Temp {
-    fn new() -> Self {
-        let n = TEMPS.fetch_add(1, Ordering::Relaxed);
-        let at = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map_or(0, |since| since.as_nanos());
-        Self(std::env::temp_dir().join(format!("tisty-sealed-{}-{n}-{at:x}", std::process::id())))
-    }
-
-    fn create(&self) -> std::io::Result<std::fs::File> {
-        let mut options = std::fs::OpenOptions::new();
-        options.write(true).create_new(true);
-        #[cfg(unix)]
-        std::os::unix::fs::OpenOptionsExt::mode(&mut options, 0o600);
-        options.open(&self.0)
-    }
-}
-
-impl Drop for Temp {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_file(&self.0);
-    }
 }
 
 fn broke(e: impl ToString) -> Hitch {
@@ -60,6 +31,11 @@ fn named_back(hitch: Hitch, inner: &str, name: &str) -> Hitch {
         Hitch::Changed(one) if one == inner => Hitch::Changed(name.to_string()),
         other => other,
     }
+}
+
+#[cfg(test)]
+pub(crate) fn sealed_len(plain: u64) -> u64 {
+    HEADER + plain + TAG * plain.div_ceil(BLOCK).max(1)
 }
 
 fn plain_room(sealed: u64) -> u64 {
@@ -89,6 +65,11 @@ impl<R: Remote> Sealed<R> {
         }
     }
 
+    #[cfg(test)]
+    pub(crate) fn inner(&self) -> &R {
+        &self.inner
+    }
+
     pub fn marked(&self) -> Result<Option<Mark>, Hitch> {
         let at = format!("{INSIDE}/{MARK}");
         match self.inner.about(&at)? {
@@ -114,7 +95,7 @@ impl<R: Remote> Sealed<R> {
             None => {}
         }
         let said = mark(&self.key, &self.cloud).ok_or_else(|| broke("no way to mark the cloud"))?;
-        let held = Temp::new();
+        let held = crate::temp::Temp::new();
         let mut file = held.create().map_err(broke)?;
         file.write_all(&said).map_err(broke)?;
         drop(file);
@@ -135,7 +116,7 @@ impl<R: Remote> Sealed<R> {
 
     fn same(&self, one: &str, other: &str) -> bool {
         match self.folds() {
-            true => one.eq_ignore_ascii_case(other),
+            true => one.to_lowercase() == other.to_lowercase(),
             false => one == other,
         }
     }
@@ -176,8 +157,15 @@ impl<R: Remote> Sealed<R> {
             return Some(name.to_ascii_lowercase());
         }
         let (top, inside) = name.split_once('/')?;
-        (self.same(top, INSIDE) && !inside.is_empty() && !self.same(inside, MARK))
-            .then(|| inside.to_string())
+        (self.same(top, INSIDE)
+            && !inside.is_empty()
+            && !self.same(inside, MARK)
+            && !self.is_clear(inside))
+        .then(|| inside.to_string())
+    }
+
+    fn held_as(&self, one: &Seen, asked: &str) -> String {
+        self.shown(&one.name).unwrap_or_else(|| asked.to_string())
     }
 
     fn seen(&self, one: Seen, name: &str, hash: String) -> Seen {
@@ -212,11 +200,10 @@ impl<R: Remote> Sealed<R> {
         let mut seen = self.listed(self.inner.list(&format!("{INSIDE}/{under}"))?);
         if under == STORE {
             let id = format!("{STORE}/{MARKER}");
-            seen.extend(
-                self.inner
-                    .about(&id)?
-                    .map(|one| self.seen(one, &id, String::new())),
-            );
+            seen.extend(self.inner.about(&id)?.map(|one| {
+                let name = self.held_as(&one, &id);
+                self.seen(one, &name, String::new())
+            }));
         }
         Ok(seen)
     }
@@ -240,17 +227,20 @@ impl<R: Remote> Remote for Sealed<R> {
         self.reserved(name)
             .map_err(|_| Hitch::Missing(name.to_string()))?;
         let inner = self.placed(name);
-        let (cipher, plain) = (Temp::new(), Temp::new());
+        let (cipher, plain) = (crate::temp::Temp::new(), crate::temp::Temp::new());
         let mut to = cipher.create().map_err(broke)?;
         let got = self.inner.fetch(&inner, 0, &mut to);
         drop(to);
         let got = got.map_err(|e| named_back(e, &inner, name))?;
+        if plain_len(got.bytes).is_some_and(|len| from > len) {
+            return Err(broke(format!("{name} was asked for past its end")));
+        }
         let mut from_cipher = std::fs::File::open(&cipher.0).map_err(broke)?;
         let mut to_plain = plain.create().map_err(broke)?;
         open(
             &self.key,
             &self.cloud,
-            name,
+            &self.bound(name),
             &mut from_cipher,
             &mut to_plain,
         )
@@ -260,7 +250,8 @@ impl<R: Remote> Remote for Sealed<R> {
         let mut read = std::fs::File::open(&plain.0).map_err(broke)?;
         std::io::Seek::seek(&mut read, std::io::SeekFrom::Start(from)).map_err(broke)?;
         std::io::copy(&mut read, into).map_err(broke)?;
-        Ok(self.seen(got, name, hash))
+        let there = self.held_as(&got, name);
+        Ok(self.seen(got, &there, hash))
     }
 
     fn put(&self, name: &str, from: &Path, expect: Expect) -> Result<Seen, Hitch> {
@@ -269,7 +260,7 @@ impl<R: Remote> Remote for Sealed<R> {
         }
         self.reserved(name)?;
         let inner = self.placed(name);
-        let (cipher, snapshot) = (Temp::new(), Temp::new());
+        let (cipher, snapshot) = (crate::temp::Temp::new(), crate::temp::Temp::new());
         let mut source = std::fs::File::open(from).map_err(broke)?;
         let mut copy = snapshot.create().map_err(broke)?;
         std::io::copy(&mut source, &mut copy).map_err(broke)?;
@@ -295,7 +286,8 @@ impl<R: Remote> Remote for Sealed<R> {
             )));
         }
         let hash = self.inner.hash_of(&snapshot.0).map_err(broke)?;
-        Ok(self.seen(there, name, hash))
+        let held = self.held_as(&there, name);
+        Ok(self.seen(there, &held, hash))
     }
 
     fn delete(&self, name: &str, expect: Option<&str>) -> Result<(), Hitch> {
@@ -319,7 +311,10 @@ impl<R: Remote> Remote for Sealed<R> {
             .inner
             .about(&inner)
             .map_err(|e| named_back(e, &inner, name))?
-            .map(|one| self.seen(one, name, String::new())))
+            .map(|one| {
+                let held = self.held_as(&one, name);
+                self.seen(one, &held, String::new())
+            }))
     }
 
     fn changes(&self, since: Option<&str>) -> Result<Changes, Hitch> {

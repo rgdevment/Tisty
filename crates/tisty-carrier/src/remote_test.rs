@@ -212,6 +212,13 @@ fn an_empty_file_is_a_file() {
     });
 }
 
+fn moved(remote: &dyn Counting, plain: u64) -> u64 {
+    match remote.seals() {
+        true => crate::sealed::sealed_len(plain),
+        false => plain,
+    }
+}
+
 #[test]
 fn fetching_gives_the_whole_or_the_tail_and_says_what_it_fetched() {
     on_each(|remote, room| {
@@ -354,13 +361,17 @@ fn the_hash_follows_the_content_and_is_the_one_the_provider_reports() {
 
         assert_eq!(hashed, remote.hash_of(&same).unwrap(), "{who}");
         // A provider that keeps no fingerprint says so the same way everywhere, and size and revision stand in.
-        match remote.reports_hashes() {
+        match remote.hashes_locally() {
             true => assert_ne!(hashed, remote.hash_of(&other).unwrap(), "{who}"),
             false => assert!(hashed.is_empty(), "{who}"),
         }
         let landed = remote.put("x", &one, Expect::Absent).unwrap();
         assert_eq!(landed.hash, hashed, "{who}: a landing is checked unread");
-        assert_eq!(listing(remote)["x"].hash, landed.hash, "{who}");
+        let listed = match remote.seals() {
+            true => String::new(),
+            false => landed.hash.clone(),
+        };
+        assert_eq!(listing(remote)["x"].hash, listed, "{who}");
         assert!(remote.hash_of(&room.join("no-such-file")).is_err(), "{who}");
     });
 }
@@ -577,7 +588,7 @@ fn a_read_costs_what_the_limits_say_and_moves_the_bytes_it_moves() {
         let fetched = spent();
         assert_eq!(
             (fetched.units, fetched.received),
-            (costs.fetch, 4),
+            (costs.fetch, moved(remote, 4)),
             "{who}: fetch"
         );
         remote.about("x").unwrap();
@@ -623,7 +634,11 @@ fn a_write_costs_what_the_limits_say_and_a_refused_one_sends_nothing() {
             let spent = remote.counts();
             assert_eq!(refused, Err(Hitch::Changed("big".into())), "{who}");
             assert_eq!(spent.requests, 1 + 4 + 1, "{who}");
-            assert_eq!(spent.sent, 3000, "{who}");
+            assert_eq!(
+                spent.sent,
+                moved(remote, 500) + moved(remote, 2500),
+                "{who}"
+            );
             assert_eq!(spent.units, 6 * put_cost, "{who}");
             remote.forget_counts();
             remote.delete("big", None).unwrap();

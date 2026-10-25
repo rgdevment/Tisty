@@ -29,8 +29,13 @@ fn provider(kind: usize, lag: u64, room: &tempfile::TempDir) -> Arc<dyn Counting
         1 => Arc::new(Fake::onedrive().lagging(lag)),
         2 => Arc::new(Fake::dropbox().lagging(lag)),
         3 => Arc::new(crate::fakes::Bare::over(Fake::webdav().lagging(lag))),
-        _ => Arc::new(crate::folder_backed::FolderBacked::at(
+        4 => Arc::new(crate::folder_backed::FolderBacked::at(
             room.path().join("provider"),
+        )),
+        5 => Arc::new(crate::fakes::sealed_over(Fake::drive().lagging(lag))),
+        6 => Arc::new(crate::fakes::sealed_over(Fake::onedrive().lagging(lag))),
+        _ => Arc::new(crate::fakes::sealed_over(
+            crate::folder_backed::FolderBacked::at(room.path().join("provider")),
         )),
     }
 }
@@ -114,7 +119,7 @@ proptest! {
 
     #[test]
     fn two_or_three_machines_end_up_with_every_task_and_nothing_else(
-        kind in 0usize..5,
+        kind in 0usize..8,
         lag in 0u64..3,
         (machines, steps) in (2usize..=3).prop_flat_map(|machines| (Just(machines), steps(machines))),
     ) {
