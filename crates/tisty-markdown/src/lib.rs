@@ -1,8 +1,6 @@
 mod bare;
 #[cfg(feature = "details")]
 mod details;
-#[cfg(feature = "mermaid")]
-pub mod diagram;
 #[cfg(feature = "emoji")]
 mod emoji;
 pub mod fences;
@@ -35,7 +33,7 @@ mod writing;
 
 #[cfg(feature = "outline")]
 pub use outline::{Head, outline};
-pub use page::{html, html_with};
+pub use page::html;
 pub use printed::printed;
 pub use reading::read;
 #[doc(hidden)]
@@ -196,7 +194,7 @@ impl Doc {
 }
 
 // What another crate draws must never take the window down with it.
-#[cfg(any(feature = "math", feature = "mermaid"))]
+#[cfg(feature = "math")]
 fn guarded<T>(draw: impl FnOnce() -> Option<T>) -> Option<T> {
     std::panic::catch_unwind(std::panic::AssertUnwindSafe(draw))
         .ok()

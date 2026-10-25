@@ -1,6 +1,7 @@
 import { attached, docDrawn, type Paper } from "../core";
 import { t } from "../locales";
 import { named, pictured } from "../previews";
+import { diagrams } from "./diagrams";
 import { iconed } from "./dressing";
 import { coloredAll, escaped, saidKinds, shell } from "./paging";
 import type { Stamp } from "./printing";
@@ -108,7 +109,7 @@ const asSeen = (drawn: string, { turns = [], opened = [] }: PaperSheet): string 
 const papered = (page: Document, { leaf, landscape, stamp }: PaperSheet) => {
   page.head.insertAdjacentHTML(
     "beforeend",
-    `<style>@page{size:${sizeOf(leaf, landscape)};${PRINTED}}html:not(.tall),html:not(.tall) body{background:#fff;padding:0}html:not(.tall) .page{max-width:none;margin:0;padding:0;border-radius:0;box-shadow:none;background:none}.page>*{content-visibility:visible}.page>hr{break-after:page;height:0;margin:0;background:none}.page>hr::before,.page>hr::after{display:none}.page>:is(h1,h2,h3,h4,h5,h6){break-after:avoid;page-break-after:avoid}.page>:not(hr){break-inside:avoid;page-break-inside:avoid}.page>.turned{break-before:page;page-break-before:always}.page>hr+*,.page>.turned{margin-top:0}</style>`,
+    `<style>@page{size:${sizeOf(leaf, landscape)};${PRINTED}}html:not(.tall),html:not(.tall) body{background:#fff;padding:0}html:not(.tall) .page{max-width:none;margin:0;padding:0;border-radius:0;box-shadow:none;background:none}.page>*{content-visibility:visible}.page>hr{break-after:page;height:0;margin:0;background:none}.page>hr::before,.page>hr::after{display:none}.page>:is(h1,h2,h3,h4,h5,h6){break-after:avoid;page-break-after:avoid}.page>:not(hr){break-inside:avoid;page-break-inside:avoid}.page>.turned{break-before:page;page-break-before:always}figure.diagram .diagram-sheet{overflow:visible}figure.diagram svg{min-width:0}.page>hr+*,.page>.turned{margin-top:0}</style>`,
   );
   coverOn(page, stamp?.card);
   if (stamp?.credited) creditOn(page);
@@ -133,6 +134,7 @@ export const webPage = async (
   saidKinds(page, (kind) => t(`said${kind}` as Parameters<typeof t>[0]));
   iconed(page);
   coloredAll(page);
+  await diagrams(page, false, () => true);
   unlinked(page);
   if (sheet) papered(page, sheet);
   await carried(page);

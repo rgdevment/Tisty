@@ -6,6 +6,7 @@ import { serve, showing } from "../inUse";
 import { t } from "../locales";
 import { docOf, INSIDE } from "../markdown";
 import { ending, named, pictured } from "../previews";
+import { diagrams } from "./diagrams";
 import { iconed } from "./dressing";
 import { saidKinds } from "./paging";
 
@@ -73,6 +74,9 @@ export default function Composed({
     });
 
     measure();
+    void diagrams(holder, document.documentElement.dataset.theme === "dark", () => live).then(
+      measure,
+    );
     return () => {
       live = false;
       for (const gone of shown) gone();

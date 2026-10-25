@@ -145,7 +145,7 @@ ${AHEAD}
 <div class="wrap">
 <nav class="topics" aria-label="${language.topics}"><ol>${listed}</ol></nav>
 <main>${page.html}<nav class="near" aria-label="${language.near}">${near}</nav></main>
-</div>${page.html.includes('class="widget"') ? HOSTS : ""}
+</div>${page.html.includes('class="widget"') ? HOSTS : ""}${page.html.includes('class="diagram"') ? `<script type="module" src="${up}diagrams/diagrams.js"></script>` : ""}
 </body>
 </html>
 `;

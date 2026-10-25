@@ -3,7 +3,7 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { JSDOM } from "jsdom";
-import { createServer } from "vite";
+import { build as bundled, createServer } from "vite";
 import { createHash } from "node:crypto";
 import {
   escaped,
@@ -251,6 +251,17 @@ for (const language of LANGUAGES) {
   writeFileSync(join(into, "tisty.svg"), logo);
   writeFileSync(join(into, "llms-full.txt"), reference(language));
 }
+// Mermaid draws only in a browser, so a page with a diagram brings the window's own drawer.
+await bundled({
+  root: app,
+  configFile: false,
+  logLevel: "error",
+  build: {
+    outDir: join(out, "diagrams"),
+    emptyOutDir: true,
+    lib: { entry: join(app, "src", "guide", "diagramming.ts"), formats: ["es"], fileName: () => "diagrams.js" },
+  },
+});
 writeFileSync(join(out, "404.html"), missing(look));
 writeFileSync(join(out, "_headers"), headers(logoName));
 writeFileSync(join(out, "sitemap.xml"), mapped(built));
