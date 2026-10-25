@@ -397,6 +397,44 @@ describe("the steps of a block being left", () => {
   });
 });
 
+describe("writing a task's steps", () => {
+  const steps = () => {
+    document.documentElement.classList.add("untitled");
+    const page = document.createElement("article");
+    page.className = "page";
+    const list = document.createElement("ul");
+    const one = document.createElement("li");
+    one.className = "task";
+    list.append(one);
+    page.append(list);
+    document.body.append(page);
+    return { page, list };
+  };
+
+  it("shows no bar over the steps and ends on Enter in an empty step", () => {
+    const { page, list } = steps();
+    const left: string[] = [];
+    const editing = edited(
+      list,
+      "- [ ] Lavaloza",
+      () => {},
+      (text) => left.push(text),
+    );
+    expect(document.querySelector<HTMLElement>(".cm-bar")?.style.display).toBe("none");
+    editing.view.dispatch({ selection: { anchor: editing.view.state.doc.length } });
+    const enter = () =>
+      editing.view.contentDOM.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }),
+      );
+    enter();
+    expect(left).toEqual([]);
+    enter();
+    expect(left).toEqual(["- [ ] Lavaloza"]);
+    page.remove();
+    document.documentElement.classList.remove("untitled");
+  });
+});
+
 describe("the caret a click leaves in a block", () => {
   it("sits after the words read before the click, past the marks the page does not show", () => {
     expect(caretAt("Leche y **pan** fresco", "Leche y pan")).toBe(13);

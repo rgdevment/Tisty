@@ -292,6 +292,11 @@ export const edited = (
     host.classList.add("titled");
   }
   if (block.matches(".page > .front:first-child")) host.classList.add("fronted");
+  // A task's steps are a plain list: no bar over them, and an empty step ends the writing.
+  const stepping = block.matches(
+    "html.untitled .page > :is(.add-step, .step-hint, :is(ul, ol):has(> li.task))",
+  );
+  if (stepping) host.classList.add("stepping");
   block.replaceWith(host);
   let gone = false;
   let follow = (_: EditorView) => {};
@@ -335,9 +340,13 @@ export const edited = (
             // A template's label or hint is one line, so Enter ends it instead of starting words below.
             {
               key: "Enter",
-              run: () => {
-                if (oneLine) leave();
-                return oneLine;
+              run: (one) => {
+                const { main } = one.state.selection;
+                const line = one.state.doc.lineAt(main.head);
+                const ends =
+                  stepping && main.empty && main.head === line.to && EMPTY_STEP.test(line.text);
+                if (oneLine || ends) leave();
+                return oneLine || ends;
               },
             },
             // A block already chosen whole is chosen past, so the next Ctrl+A takes the whole document.
@@ -394,6 +403,7 @@ export const edited = (
     }),
   });
   const bar = barred(view, whole, onWhole && (() => onWhole(false)));
+  if (stepping) bar.bar.style.display = "none";
   follow = bar.follow;
   const dock = docked(
     bar.bar,
