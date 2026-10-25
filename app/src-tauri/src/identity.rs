@@ -12,6 +12,7 @@ use tisty_share_proto::phrase::{self, Words};
 use tisty_share_proto::seed::Seed;
 use zeroize::Zeroizing;
 
+use crate::reaching::{Keyed, Locked};
 use crate::{Answer, Refusal, Session, blamed, elsewhere, held};
 
 const SEED: &str = "seed";
@@ -169,7 +170,7 @@ pub async fn seal_the_cloud(session: &tauri::State<'_, Mutex<Session>>) {
         tisty_carrier::Sealing::Sealed(cloud) => Some(cloud),
         _ => None,
     };
-    let (paths, forebears, cloud, named) = {
+    let (paths, forebears, locked) = {
         let session = held(session);
         let wanted = match said {
             Some(cloud) => session
@@ -181,15 +182,20 @@ pub async fn seal_the_cloud(session: &tauri::State<'_, Mutex<Session>>) {
                 .state
                 .sealed_cloud()
                 .map(|(cloud, named)| (cloud.to_string(), named.to_string())),
-        };
+        }
+        .map(|(cloud, named)| Locked {
+            at: at.clone(),
+            cloud,
+            named,
+        });
         let looked = wanted
             .clone()
-            .map(|(cloud, named)| (cloud, named, session.state.forebears.len()));
+            .map(|locked| (locked, session.state.forebears.len()));
         if wanted == session.reach.sealed() || (looked.is_some() && looked == session.reach.tried())
         {
             return;
         }
-        let Some((cloud, named)) = wanted else {
+        let Some(locked) = wanted else {
             session.reach.tried_for(None);
             session.reach.seal_with(None);
             return;
@@ -197,11 +203,10 @@ pub async fn seal_the_cloud(session: &tauri::State<'_, Mutex<Session>>) {
         (
             session.paths.clone(),
             session.state.forebears.clone(),
-            cloud,
-            named,
+            locked,
         )
     };
-    let (looking, wanted) = (cloud.clone(), named.clone());
+    let (looking, wanted) = (locked.cloud.clone(), locked.named.clone());
     let opens = move |seed: &Seed| CloudKey::of(seed).named_for(&looking) == wanted;
     let known = forebears.len();
     let seed = match elsewhere(move || kept(&paths, &forebears, &opens)).await {
@@ -214,17 +219,12 @@ pub async fn seal_the_cloud(session: &tauri::State<'_, Mutex<Session>>) {
     };
     let key = seed
         .map(|seed| CloudKey::of(&seed))
-        .filter(|key| key.named_for(&cloud) == named);
+        .filter(|key| key.named_for(&locked.cloud) == locked.named);
     let session = held(session);
     match key {
         Some(key) => {
             session.reach.tried_for(None);
-            session.reach.seal_with(Some(crate::reaching::Sealing {
-                at,
-                cloud,
-                named,
-                key,
-            }));
+            session.reach.seal_with(Some(Keyed { locked, key }));
         }
         None => {
             witness::note(
@@ -232,7 +232,7 @@ pub async fn seal_the_cloud(session: &tauri::State<'_, Mutex<Session>>) {
                 "the cloud is sealed with a phrase this machine does not hold, so it is read as it stands",
                 &[],
             );
-            session.reach.tried_for(Some((cloud, named, known)));
+            session.reach.tried_for(Some((locked, known)));
             session.reach.seal_with(None);
         }
     }

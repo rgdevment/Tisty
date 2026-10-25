@@ -83,6 +83,18 @@ pub use undo::inverse;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
+/// A release as major, minor and patch, and whether it is finished rather than a candidate.
+pub fn released(said: &str) -> Option<(u64, u64, u64, bool)> {
+    let said = said.split('+').next()?;
+    let (core, finished) = match said.split_once('-') {
+        Some((core, _)) => (core, false),
+        None => (said, true),
+    };
+    let mut parts = core.split('.');
+    let mut next = || parts.next()?.parse().ok();
+    Some((next()?, next()?, next()?, finished))
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("i/o error: {0}")]

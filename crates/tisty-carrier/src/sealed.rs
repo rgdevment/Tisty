@@ -13,10 +13,7 @@ pub(crate) fn reading(root: &str) -> Option<&str> {
 }
 
 pub(crate) fn stays_plain(name: &str, folds: bool) -> bool {
-    let same = |one: &str| match folds {
-        true => one.to_lowercase() == name.to_lowercase(),
-        false => one == name,
-    };
+    let same = |one: &str| crate::remote::same_name(folds, one, name);
     [
         NAMED,
         tisty_core::moved::NAMED,
@@ -184,10 +181,7 @@ impl<R: Remote> Sealed<R> {
     }
 
     fn same(&self, one: &str, other: &str) -> bool {
-        match self.folds() {
-            true => one.to_lowercase() == other.to_lowercase(),
-            false => one == other,
-        }
+        crate::remote::same_name(self.folds(), one, other)
     }
 
     fn is_clear(&self, name: &str) -> bool {

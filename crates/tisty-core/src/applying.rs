@@ -5,17 +5,6 @@ use crate::{
     state::{here, same_name},
 };
 
-fn released(said: &str) -> Option<(u64, u64, u64, bool)> {
-    let said = said.split('+').next()?;
-    let (core, finished) = match said.split_once('-') {
-        Some((core, _)) => (core, false),
-        None => (said, true),
-    };
-    let mut parts = core.split('.');
-    let mut next = || parts.next()?.parse().ok();
-    Some((next()?, next()?, next()?, finished))
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Named {
     pub name: String,
@@ -136,15 +125,15 @@ impl State {
         }
     }
 
-    pub fn behind(&self, release: &str) -> Vec<DeviceId> {
-        let wanted = released(release);
+    pub fn not_yet_on(&self, release: &str) -> Vec<DeviceId> {
+        let wanted = crate::released(release);
         self.devices
             .iter()
             .filter(|device| !self.assistants.contains(*device))
             .filter(|device| {
                 self.runs
                     .get(*device)
-                    .and_then(|runs| released(runs))
+                    .and_then(|runs| crate::released(runs))
                     .zip(wanted)
                     .is_none_or(|(runs, wanted)| runs < wanted)
             })

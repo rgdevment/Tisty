@@ -89,31 +89,20 @@ fn said_in(line: &str, key: &str) -> Option<String> {
     (name.trim() == key).then(|| said.trim().trim_matches('"').to_string())
 }
 
-fn release(said: &str) -> Option<(u64, u64, u64, bool)> {
-    let said = said.split('+').next()?;
-    let (core, finished) = match said.split_once('-') {
-        Some((core, _)) => (core, false),
-        None => (said, true),
-    };
-    let mut parts = core.split('.');
-    let mut next = || parts.next()?.parse().ok();
-    Some((next()?, next()?, next()?, finished))
-}
-
 /// A release this build cannot read is taken for a later one: guessing it older would write where it must not.
 pub fn needs_later(needs: &str) -> bool {
     let ours = [NEEDS, SEALS, tisty_core::VERSION]
         .into_iter()
-        .filter_map(release)
+        .filter_map(tisty_core::released)
         .max();
-    match (release(needs), ours) {
+    match (tisty_core::released(needs), ours) {
         (Some(needs), Some(ours)) => needs > ours,
         _ => true,
     }
 }
 
 fn needs_earlier(needs: &str) -> bool {
-    matches!((release(needs), release(NEEDS)), (Some(needs), Some(ours)) if needs < ours)
+    matches!((tisty_core::released(needs), tisty_core::released(NEEDS)), (Some(needs), Some(ours)) if needs < ours)
 }
 
 /// Read before anything else in the folder is. A folder that says nothing may be one from before
@@ -232,7 +221,7 @@ pub fn seal_word(dest: &Path, cloud: &str) -> std::io::Result<()> {
     let held = said
         .get("needs")
         .and_then(toml_edit::Item::as_str)
-        .is_some_and(|needs| !matches!((release(needs), release(SEALS)), (Some(needs), Some(seals)) if needs < seals));
+        .is_some_and(|needs| !matches!((tisty_core::released(needs), tisty_core::released(SEALS)), (Some(needs), Some(seals)) if needs < seals));
     if !held {
         said["needs"] = toml_edit::value(SEALS);
     }
