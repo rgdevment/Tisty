@@ -201,7 +201,9 @@ pub async fn page_pdf(app: tauri::AppHandle, html: String, paper: String) -> Ans
     let cannot = || Refusal::about("cannotWrite", to.display().to_string());
     let (folder, written) = (room.0.clone(), page.clone());
     let laid = tauri::async_runtime::spawn_blocking(move || {
-        std::fs::create_dir_all(&folder).and_then(|()| std::fs::write(&written, html))
+        std::fs::create_dir_all(&folder)
+            .and_then(|()| tisty_core::paths::ours_alone(&folder))
+            .and_then(|()| std::fs::write(&written, html))
     })
     .await;
     if !matches!(laid, Ok(Ok(()))) {

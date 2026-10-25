@@ -34,7 +34,8 @@ export type Which =
   | "twins"
   | "keys"
   | "loose"
-  | "index";
+  | "index"
+  | "identity";
 /** `busy` marks a round turned away by another, whatever its words say. */
 export type Word = { card: Which; text: string; busy?: boolean };
 
@@ -74,6 +75,7 @@ export const NAMED: Record<Which, Parameters<typeof t>[0]> = {
   keys: "keysTitle",
   loose: "looseAre",
   index: "quickIndex",
+  identity: "tabIdentity",
 };
 
 const TAKING_LONG = 60;

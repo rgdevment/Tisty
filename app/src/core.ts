@@ -1305,6 +1305,21 @@ export const keepFile = (at: string, bytes: number[]): Promise<void> =>
   invoke("keep_file", { at, bytes });
 export const pagePdf = (html: string, paper: string): Promise<number[]> =>
   invoke("page_pdf", { html, paper });
+
+export interface Identity {
+  held: boolean;
+  elsewhere: boolean;
+  fingerprint: string | null;
+  suffix: string | null;
+  confirmed: boolean;
+  alias: string | null;
+  ours: string[];
+}
+
+export const identityShown = (): Promise<Identity> => invoke("identity_shown");
+export const identityPhrase = (): Promise<string> => invoke("identity_phrase");
+export const identityConfirm = (said: [number, string][]): Promise<number[]> =>
+  invoke("identity_confirm", { said });
 export const docWord = (bodies: string[], at: string): Promise<void> =>
   invoke("doc_word", { bodies, at });
 

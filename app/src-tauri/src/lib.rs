@@ -1228,6 +1228,7 @@ pub fn run() {
             identity::identity_begin,
             identity::identity_phrase,
             identity::identity_recover,
+            identity::identity_confirm,
             answers::machines::confirm_machine_key,
             answers::knocking::waiting_machines,
             answers::knocking::this_machine,

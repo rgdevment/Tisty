@@ -112,3 +112,11 @@ fn a_word_with_a_long_decomposition_is_measured_before_it_is_written() {
     assert!(wide.len() > 4 * "\u{FDFA}".len());
     assert_eq!(wide.capacity(), wide.len());
 }
+
+#[test]
+fn a_word_copied_by_hand_is_the_same_word_whatever_its_case_or_accents() {
+    assert!(same_word(" ACIDO ", "ácido"));
+    assert!(same_word("Ábaco", "ábaco"));
+    assert!(!same_word("abuso", "abusso"));
+    assert!(!same_word("", "ábaco"));
+}

@@ -15,6 +15,7 @@ use zeroize::Zeroizing;
 use crate::{Answer, Refusal, Session, blamed, elsewhere, held};
 
 const SEED: &str = "seed";
+const CHECKED: usize = 3;
 
 /// Named after the store and not its folder, so moving it keeps the seed and a sandbox never meets it.
 fn scope(paths: &Paths) -> Result<String, String> {
@@ -299,6 +300,9 @@ pub struct Shown {
     pub elsewhere: bool,
     pub fingerprint: Option<String>,
     pub suffix: Option<String>,
+    pub confirmed: bool,
+    pub alias: Option<String>,
+    pub ours: Vec<String>,
 }
 
 fn words(session: &Session) -> Words {
@@ -331,26 +335,41 @@ fn fits_person(persons: &tisty_core::person::Persons, seed: &Seed) -> bool {
     !persons.names_a_person() || persons.names(&seed.root().person())
 }
 
-#[tauri::command(async)]
-pub fn identity_shown(session: tauri::State<'_, Mutex<Session>>) -> Answer<Shown> {
-    let (paths, forebears, state) = {
-        let session = held(&session);
+/// Read off the lock, so the keychain never holds up a round.
+fn seed_here(session: &tauri::State<'_, Mutex<Session>>) -> Answer<Option<Seed>> {
+    let (paths, forebears, persons) = {
+        let session = held(session);
         (
             session.paths.clone(),
             session.state.forebears.clone(),
             session.state.persons.clone(),
         )
     };
-    let fits = fitting(state);
-    let seed = kept(&paths, &forebears, &fits).map_err(unread)?;
+    kept(&paths, &forebears, &fitting(persons)).map_err(unread)
+}
+
+#[tauri::command(async)]
+pub fn identity_shown(session: tauri::State<'_, Mutex<Session>>) -> Answer<Shown> {
+    let seed = seed_here(&session)?;
     let session = held(&session);
     let person = person::person_of(&session.state, &session.config.device_id);
     let held = seed.as_ref().is_some_and(|seed| ours(seed, &session.state));
+    let fingerprint = person.map(|one| one.fingerprint());
+    let signed = &session.state.signed;
     Ok(Shown {
         held,
         elsewhere: session.state.persons.names_a_person() && !held,
-        fingerprint: person.map(|one| one.fingerprint()),
+        confirmed: held && fingerprint.is_some() && session.config.phrase_confirmed == fingerprint,
+        fingerprint,
         suffix: person.map(|one| one.suffix()),
+        alias: signed.alias.clone().or_else(|| signed.name.clone()),
+        ours: person::machines(&session.state)
+            .into_iter()
+            .filter(|device| {
+                person.is_some() && person::person_of(&session.state, device) == person
+            })
+            .map(|device| device.0)
+            .collect(),
     })
 }
 
@@ -381,21 +400,52 @@ pub fn identity_begin(session: tauri::State<'_, Mutex<Session>>) -> Answer<Strin
 
 #[tauri::command(async)]
 pub fn identity_phrase(session: tauri::State<'_, Mutex<Session>>) -> Answer<String> {
-    let (paths, forebears, state) = {
-        let session = held(&session);
-        (
-            session.paths.clone(),
-            session.state.forebears.clone(),
-            session.state.persons.clone(),
-        )
-    };
-    let fits = fitting(state);
-    let seed = kept(&paths, &forebears, &fits).map_err(unread)?;
+    let seed = seed_here(&session)?;
     let session = held(&session);
     let seed = counted(seed, &session.state).ok_or_else(|| Refusal::of("identityNone"))?;
     phrase::phrase(&seed, words(&session))
         .map(|said| said.to_string())
         .ok_or_else(|| Refusal::of("identityNone"))
+}
+
+/// The places whose word was not the phrase's; none at all marks the phrase as written down.
+#[tauri::command(async)]
+pub fn identity_confirm(
+    session: tauri::State<'_, Mutex<Session>>,
+    said: Vec<(usize, String)>,
+) -> Answer<Vec<usize>> {
+    let said: Vec<(usize, Zeroizing<String>)> = said
+        .into_iter()
+        .map(|(at, word)| (at, Zeroizing::new(word)))
+        .collect();
+    let seed = seed_here(&session)?;
+    let mut session = held(&session);
+    let seed = counted(seed, &session.state).ok_or_else(|| Refusal::of("identityNone"))?;
+    let shown =
+        phrase::phrase(&seed, words(&session)).ok_or_else(|| Refusal::of("identityNone"))?;
+    let words: Vec<&str> = shown.split(' ').collect();
+    let wrong: Vec<usize> = said
+        .iter()
+        .filter(|(at, typed)| {
+            !at.checked_sub(1)
+                .and_then(|at| words.get(at))
+                .is_some_and(|word| phrase::same_word(typed, word))
+        })
+        .map(|(at, _)| *at)
+        .collect();
+    let places: BTreeSet<usize> = said.iter().map(|(at, _)| *at).collect();
+    if places.len() < CHECKED || !wrong.is_empty() {
+        return Ok(wrong);
+    }
+    session.config.phrase_confirmed = Some(seed.root().person().fingerprint());
+    session.config.save(&session.paths).map_err(|e| {
+        blamed(
+            channel::CONFIG,
+            "the phrase was confirmed and could not be kept",
+            e,
+        )
+    })?;
+    Ok(wrong)
 }
 
 #[tauri::command(async)]

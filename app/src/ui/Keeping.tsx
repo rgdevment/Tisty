@@ -27,6 +27,7 @@ import Agents, { useAgents } from "./Agents";
 import { NAMED, type Which } from "./Card";
 import Choosing from "./Choosing";
 import General from "./General";
+import Identity from "./Identity";
 import Modal from "./Modal";
 import Relocating from "./Relocating";
 import { strong } from "./Rows";
@@ -40,6 +41,7 @@ import Yours from "./Yours";
 const TABS: { key: Tab; label: Parameters<typeof t>[0] }[] = [
   { key: "general", label: "tabGeneral" },
   { key: "sync", label: "tabSync" },
+  { key: "identity", label: "tabIdentity" },
   { key: "data", label: "tabData" },
   { key: "agents", label: "tabAgents" },
   { key: "upkeep", label: "tabUpkeep" },
@@ -259,6 +261,19 @@ export default function Keeping({
               pickFolder={pickFolder}
               onMove={(resume) => setMoving({ resume })}
               remember={remember}
+            />
+          )}
+
+          {tab === "identity" && (
+            <Identity
+              audit={audit}
+              setAudit={setAudit}
+              busy={busy}
+              said={said}
+              trouble={trouble}
+              tell={setSaid}
+              fail={setTrouble}
+              onSync={() => setTab("sync")}
             />
           )}
 
