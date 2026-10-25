@@ -109,22 +109,21 @@ fn a_formula_keeps_every_symbol_between_its_dollars() {
 
 #[cfg(feature = "mermaid")]
 #[test]
-fn a_diagram_is_one_drawing_that_stays_inside_its_attribute() {
-    let drawn = page("```mermaid\ngraph TD; A[\"Rina & Walk #1\"]-->B\n```\n");
-    assert_eq!(drawn.matches("<img").count(), 1, "{drawn}");
-    let url = drawn
-        .split("src=\"")
-        .nth(1)
-        .and_then(|src| src.split('"').next())
-        .unwrap_or_default();
-    assert!(url.starts_with("data:image/svg+xml,"), "{url}");
+fn a_diagram_carries_what_it_is_drawn_from_and_nothing_that_runs() {
+    let drawn = page("```mermaid\ngraph TD; A[\"<script>Rina & Walk</script>\"]-->B\n```\n");
     assert!(
-        url.ends_with("%3C/svg%3E"),
-        "the drawing was cut short: {url}"
+        drawn.starts_with("<figure class=\"diagram\" data-at=\"0-"),
+        "{drawn}"
     );
-    for amiss in [' ', '\n', '#', '&', '<', '>'] {
-        assert!(!url.contains(amiss), "{amiss:?} in {url}");
-    }
+    assert!(drawn.contains("<code class=\"language-mermaid\">graph TD; A[&quot;&lt;script&gt;Rina &amp; Walk&lt;/script&gt;&quot;]--&gt;B"), "{drawn}");
+    assert!(!drawn.contains("<script"), "{drawn}");
+    assert!(!drawn.contains("<img"), "{drawn}");
+}
+
+#[cfg(feature = "mermaid")]
+#[test]
+fn a_diagram_written_as_mmd_is_a_diagram_too() {
+    assert!(page("```mmd\ngraph TD; A-->B\n```\n").contains("<figure class=\"diagram\""));
 }
 
 #[test]

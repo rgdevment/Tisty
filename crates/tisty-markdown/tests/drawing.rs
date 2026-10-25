@@ -1,6 +1,6 @@
-#![cfg(all(feature = "math", feature = "mermaid"))]
+#![cfg(feature = "math")]
 
-use tisty_markdown::{diagram, math};
+use tisty_markdown::math;
 
 #[test]
 fn a_formula_from_the_guide_becomes_mathml_the_system_draws() {
@@ -22,45 +22,4 @@ fn a_formula_that_cannot_be_read_draws_nothing() {
 fn words_inside_a_formula_never_become_markup() {
     let said = math::mathml(r"\text{<script>alert(1)</script>}", true).expect("a formula");
     assert!(!said.contains("<script"));
-}
-
-#[test]
-fn a_diagram_from_the_guide_is_drawn_once() {
-    let drawn = diagram::drawn("flowchart TD\n  A[Rina] --> B{Out?}\n  B -- No --> C[Walk]")
-        .expect("a diagram");
-    assert_eq!(drawn.matches("<svg").count(), 1);
-    let first = drawn.split('>').nth(1).unwrap_or_default();
-    assert!(
-        !first.starts_with("<rect"),
-        "a backdrop of its own would show as a box on a dark sheet: {first}"
-    );
-}
-
-#[test]
-fn a_pie_shows_the_same_hues_in_its_slices_and_its_legend() {
-    let svg =
-        diagram::drawn("pie title Walks\n  \"Morning\" : 7\n  \"Evening\" : 5").expect("a pie");
-    assert!(svg.contains("fill=\"#58aef0\""), "{svg}");
-    assert!(svg.contains("fill=\"#ff9d4d\""), "{svg}");
-    assert!(!svg.contains("opacity=\"0.700\""), "{svg}");
-}
-
-#[test]
-fn a_diagram_that_cannot_be_read_draws_nothing() {
-    assert_eq!(diagram::drawn("flowchart TD\n  A --> "), None);
-    assert_eq!(diagram::drawn(""), None);
-    assert_eq!(
-        diagram::drawn(&format!("graph TD\n{}", "  A --> B\n".repeat(4000))),
-        None
-    );
-}
-
-#[test]
-fn labels_inside_a_diagram_never_become_markup() {
-    let svg = diagram::drawn(
-        "flowchart LR\n  A[\"<script>alert(2)</script>\"] --> B[\"<img src=x onerror=alert(1)>\"]",
-    )
-    .expect("a diagram");
-    assert!(!svg.contains("<script"));
-    assert!(!svg.contains("<img"));
 }

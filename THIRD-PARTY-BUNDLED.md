@@ -160,7 +160,7 @@ written once with the crates that carry it.
 | `uuid` | 14.0.3 | MIT |
 | `w3c-keyname` | 2.2.8 | MIT |
 
-## In the core (365 crates)
+## In the core (356 crates)
 
 | Crate | Version | Licence |
 | --- | --- | --- |
@@ -200,7 +200,6 @@ written once with the crates that carry it.
 | `const-oid` | 0.10.2 | Apache-2.0 OR MIT |
 | `cookie` | 0.18.2 | MIT OR Apache-2.0 |
 | `core_detect` | 1.0.0 | MIT/Apache-2.0 |
-| `core_maths` | 0.1.1 | MIT |
 | `core-foundation` | 0.9.4 | MIT OR Apache-2.0 |
 | `core-foundation` | 0.10.1 | MIT OR Apache-2.0 |
 | `core-foundation-sys` | 0.8.7 | MIT OR Apache-2.0 |
@@ -243,7 +242,6 @@ written once with the crates that carry it.
 | `flate2` | 1.1.10 | MIT OR Apache-2.0 |
 | `fnv` | 1.0.7 | Apache-2.0 / MIT |
 | `foldhash` | 0.2.0 | Zlib |
-| `fontdb` | 0.23.0 | MIT |
 | `foreign-types` | 0.5.0 | MIT/Apache-2.0 |
 | `foreign-types-shared` | 0.3.1 | MIT/Apache-2.0 |
 | `form_urlencoded` | 1.2.2 | MIT OR Apache-2.0 |
@@ -298,14 +296,12 @@ written once with the crates that carry it.
 | `jiff-tzdb` | 0.1.9 | Unlicense OR MIT |
 | `jiff-tzdb-platform` | 0.1.3 | Unlicense OR MIT |
 | `json-patch` | 4.2.0 | MIT/Apache-2.0 |
-| `json5` | 1.3.2 | MIT |
 | `jsonptr` | 0.7.1 | MIT OR Apache-2.0 |
 | `keyboard-types` | 0.7.0 | MIT OR Apache-2.0 |
 | `keyboard-types` | 0.8.3 | MIT OR Apache-2.0 |
 | `keyring-core` | 1.0.1 | MIT OR Apache-2.0 |
 | `kstring` | 2.0.5 | MIT OR Apache-2.0 |
 | `libc` | 0.2.191 | MIT OR Apache-2.0 |
-| `libm` | 0.2.16 | MIT |
 | `libsqlite3-sys` | 0.38.2 | MIT |
 | `litemap` | 0.8.3 | Unicode-3.0 |
 | `lock_api` | 0.4.14 | MIT OR Apache-2.0 |
@@ -319,8 +315,6 @@ written once with the crates that carry it.
 | `math-core` | 0.9.0 | MIT |
 | `math-core-renderer-internal` | 0.9.0 | MIT |
 | `memchr` | 2.8.3 | Unlicense OR MIT |
-| `memmap2` | 0.9.11 | MIT OR Apache-2.0 |
-| `mermaid-rs-renderer` | 0.3.1 | MIT |
 | `mime` | 0.3.17 | MIT OR Apache-2.0 |
 | `minisign-verify` | 0.2.5 | MIT |
 | `minisign-verify` | 0.3.0 | MIT |
@@ -411,7 +405,6 @@ written once with the crates that carry it.
 | `simdutf8` | 0.1.5 | MIT OR Apache-2.0 |
 | `siphasher` | 1.0.4 | MIT OR Apache-2.0 |
 | `slab` | 0.4.12 | MIT |
-| `slotmap` | 1.1.1 | Zlib |
 | `smallvec` | 1.16.3 | MIT OR Apache-2.0 |
 | `socket2` | 0.6.5 | MIT OR Apache-2.0 |
 | `softbuffer` | 0.4.8 | MIT OR Apache-2.0 |
@@ -466,11 +459,9 @@ written once with the crates that carry it.
 | `tracing-core` | 0.1.36 | MIT |
 | `tray-icon` | 0.25.1 | MIT OR Apache-2.0 |
 | `try-lock` | 0.2.5 | MIT |
-| `ttf-parser` | 0.25.1 | MIT OR Apache-2.0 |
 | `typed-path` | 0.12.3 | MIT OR Apache-2.0 |
 | `typeid` | 1.0.3 | MIT OR Apache-2.0 |
 | `typenum` | 1.20.1 | MIT OR Apache-2.0 |
-| `ucd-trie` | 0.1.7 | MIT OR Apache-2.0 |
 | `ulid` | 3.0.0 | MIT |
 | `unicase` | 2.10.0 | MIT OR Apache-2.0 |
 | `unicode-normalization` | 0.1.26 | (MIT OR Apache-2.0) AND Unicode-3.0 |

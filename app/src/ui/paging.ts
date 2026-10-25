@@ -2,6 +2,7 @@ import { common, createLowlight } from "lowlight";
 import { t } from "../locales";
 import { DOC, TASK } from "../markdown";
 import bar from "./bar.css?raw";
+import { diagramShot } from "./diagrams";
 import type { Choice } from "./Menu";
 import sheet from "./page.css?raw";
 import task from "./taskpage.css?raw";
@@ -93,13 +94,15 @@ export type Shot = { readonly src: string; readonly kept: string | null; readonl
 // What a click leaves alone, and so no picture inside it is one to look at.
 const UNTOUCHED = "summary, figure.widget, .media, .col-grip, .picture-away";
 
-const shotsIn = (page: Document): HTMLImageElement[] =>
-  Array.from(page.querySelectorAll<HTMLImageElement>(".page img[src]")).filter(
+const SHOTS = ".page img[src], .page figure.diagram.drawn";
+
+const shotsIn = (page: Document): Element[] =>
+  Array.from(page.querySelectorAll(SHOTS)).filter(
     (one) => !one.closest(`.doc-card, details:not([open]), ${UNTOUCHED}`),
   );
 
 export const shotAt = (page: Document, target: Element | null): number | null => {
-  const shot = target?.closest<HTMLImageElement>(".page img[src]");
+  const shot = target?.closest(SHOTS);
   const nth = shot ? shotsIn(page).indexOf(shot) : -1;
   return nth >= 0 ? nth : null;
 };
@@ -124,11 +127,11 @@ export const pictureChoices = (shots: Shot[], nth: number | null, ways: PictureW
 };
 
 export const shotsOf = (page: Document): Shot[] =>
-  shotsIn(page).map((one) => ({
-    src: one.currentSrc || one.src,
-    kept: one.dataset.kept ?? null,
-    alt: one.alt,
-  }));
+  shotsIn(page).map((one) => {
+    if (one.tagName !== "IMG") return { src: diagramShot(one) ?? "", kept: null, alt: "" };
+    const img = one as HTMLImageElement;
+    return { src: img.currentSrc || img.src, kept: img.dataset.kept ?? null, alt: img.alt };
+  });
 
 // What a label holds runs to the next label, so writing under it starts past the last of it.
 const sectionEnd = (label: Element): [number, number] | null => {

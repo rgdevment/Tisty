@@ -7,61 +7,16 @@ use crate::{Session, held};
 
 const DRAWN_BY: &str = env!("CARGO_PKG_VERSION");
 const KEPT_AT_MOST: usize = 256;
-const DIAGRAMS_AT_MOST: usize = 64;
-
-/// A page is drawn again on every edit, and its diagrams, which cost the most, rarely change with it.
-#[derive(Default)]
-pub struct Diagrams(Mutex<Kept>);
-
-#[derive(Default)]
-struct Kept {
-    drawn: std::collections::HashMap<String, String>,
-    order: std::collections::VecDeque<String>,
-}
-
-impl Diagrams {
-    // A fence half written while it is edited draws nothing, and keeping those would push out the ones in use.
-    fn drawn(&self, source: &str) -> Option<String> {
-        let key = tisty_core::attach::printed(source.as_bytes());
-        if let Ok(mut kept) = self.0.lock()
-            && let Some(drawn) = kept.drawn.get(&key).cloned()
-        {
-            kept.order.retain(|one| one != &key);
-            kept.order.push_back(key);
-            return Some(drawn);
-        }
-        let drawn = tisty_markdown::diagram::drawn(source)?;
-        if let Ok(mut kept) = self.0.lock()
-            && kept.drawn.insert(key.clone(), drawn.clone()).is_none()
-        {
-            kept.order.push_back(key);
-            while kept.order.len() > DIAGRAMS_AT_MOST {
-                if let Some(oldest) = kept.order.pop_front() {
-                    kept.drawn.remove(&oldest);
-                }
-            }
-        }
-        Some(drawn)
-    }
-}
-
 #[tauri::command(async)]
-pub fn doc_drawn(
-    session: tauri::State<'_, Mutex<Session>>,
-    diagrams: tauri::State<'_, Diagrams>,
-    body: String,
-) -> tauri::ipc::Response {
+pub fn doc_drawn(session: tauri::State<'_, Mutex<Session>>, body: String) -> tauri::ipc::Response {
     let shelf = held(&session).paths.cache().join("pages");
-    tauri::ipc::Response::new(paged(&shelf, &body, &diagrams).into_bytes())
+    tauri::ipc::Response::new(paged(&shelf, &body).into_bytes())
 }
 
 // A journal is never rewritten, so what it said before Tisty had its own words is turned as drawn.
 #[tauri::command(async)]
-pub fn note_drawn(diagrams: tauri::State<'_, Diagrams>, body: String) -> String {
-    tisty_markdown::html_with(
-        &tisty_markdown::read(&tisty_markdown::to_tisty(&body)),
-        &|one| diagrams.drawn(one),
-    )
+pub fn note_drawn(body: String) -> String {
+    tisty_markdown::html(&tisty_markdown::read(&tisty_markdown::to_tisty(&body)))
 }
 
 #[tauri::command(async)]
@@ -125,9 +80,8 @@ pub fn doc_plain(body: String) -> String {
     tisty_markdown::to_standard(&body, &|_| None)
 }
 
-pub fn paged(shelf: &Path, body: &str, diagrams: &Diagrams) -> String {
-    let drawn =
-        || tisty_markdown::html_with(&tisty_markdown::read(body), &|one| diagrams.drawn(one));
+pub fn paged(shelf: &Path, body: &str) -> String {
+    let drawn = || tisty_markdown::html(&tisty_markdown::read(body));
     // A build under work keeps one version number while the drawing changes under it.
     if cfg!(debug_assertions) && !cfg!(test) {
         return drawn();

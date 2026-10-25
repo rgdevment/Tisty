@@ -8,7 +8,7 @@ import { pictureChoices, shotsOf, went } from "../ui/paging";
 const page = () => {
   document.body.innerHTML = `<article class="page">
     <p data-at="0-30"><img src="asset://rina.jpg" alt="La Rina" data-kept="attachments/rina-ce960510.jpg"></p>
-    <figure class="diagram" data-at="31-60"><img src="data:image/svg+xml,x" alt=""></figure>
+    <figure class="diagram drawn" data-at="31-60"><div class="diagram-sheet"><svg xmlns="http://www.w3.org/2000/svg"><text>Rina</text></svg></div></figure>
     <p data-at="61-70">Palabras</p>
   </article>`;
   return document;
@@ -18,7 +18,7 @@ describe("a picture in a document", () => {
   it("is looked at with a click, not opened for writing", () => {
     const at = page();
     expect(went(at.querySelector("p img") as Element, false)).toEqual({ kind: "picture", nth: 0 });
-    expect(went(at.querySelector("figure img") as Element, false)).toEqual({
+    expect(went(at.querySelector("figure text") as Element, false)).toEqual({
       kind: "picture",
       nth: 1,
     });
@@ -31,6 +31,7 @@ describe("a picture in a document", () => {
   it("says which one is a kept file, so only that one is offered to save", () => {
     const shots = shotsOf(page());
     expect(shots.map((one) => one.kept)).toEqual(["attachments/rina-ce960510.jpg", null]);
+    expect(decodeURIComponent(shots[1].src)).toContain("<text>Rina</text>");
   });
 });
 

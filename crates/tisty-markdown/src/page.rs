@@ -4,37 +4,19 @@ use std::fmt::Write as _;
 use crate::inline::{escaped, inline};
 use crate::{Block, Callout, Column, Doc, Kind, Lean};
 
-struct Drawing<'a> {
+struct Drawing {
     anchors: HashMap<usize, String>,
-    #[cfg_attr(not(feature = "mermaid"), allow(dead_code))]
-    diagram: &'a dyn Fn(&str) -> Option<String>,
 }
 
 pub fn html(doc: &Doc) -> String {
-    html_with(doc, &unkept)
-}
-
-/// A diagram costs far more than the page around it, so a caller that keeps them hands its own drawer.
-pub fn html_with(doc: &Doc, diagram: &dyn Fn(&str) -> Option<String>) -> String {
     let drawing = Drawing {
         anchors: anchors(doc),
-        diagram,
     };
     let mut out = String::new();
     for block in doc.blocks() {
         draw(block, doc.text(), &drawing, &mut out);
     }
     out
-}
-
-#[cfg(feature = "mermaid")]
-fn unkept(source: &str) -> Option<String> {
-    crate::diagram::drawn(source)
-}
-
-#[cfg(not(feature = "mermaid"))]
-fn unkept(_: &str) -> Option<String> {
-    None
 }
 
 fn anchors(doc: &Doc) -> HashMap<usize, String> {
@@ -121,15 +103,9 @@ fn draw(block: &Block, text: &str, drawing: &Drawing, out: &mut String) {
             wrapped(&open, shut, block, text, drawing, out);
         }
         Kind::Item { done } => item(*done, &at, block, text, drawing, out),
-        Kind::Code { tongue, title } => code(
-            tongue.as_deref(),
-            title.as_deref(),
-            &at,
-            block,
-            text,
-            drawing,
-            out,
-        ),
+        Kind::Code { tongue, title } => {
+            code(tongue.as_deref(), title.as_deref(), &at, block, text, out)
+        }
         Kind::Table { columns } => table(columns, &at, block, text, out),
         Kind::Html => {
             let _ = write!(
@@ -222,7 +198,6 @@ fn code(
     at: &str,
     block: &Block,
     text: &str,
-    drawing: &Drawing,
     out: &mut String,
 ) {
     let said: String = block
@@ -230,7 +205,7 @@ fn code(
         .iter()
         .map(|one| &text[one.at.clone()])
         .collect();
-    if drawn(tongue, &said, at, drawing, out) {
+    if drawn(tongue, &said, at, out) {
         return;
     }
     let _ = write!(out, "<figure class=\"code\" {at}>");
@@ -248,12 +223,12 @@ fn code(
 }
 
 #[cfg(not(any(feature = "math", feature = "mermaid")))]
-fn drawn(_: Option<&str>, _: &str, _: &str, _: &Drawing, _: &mut String) -> bool {
+fn drawn(_: Option<&str>, _: &str, _: &str, _: &mut String) -> bool {
     false
 }
 
 #[cfg(any(feature = "math", feature = "mermaid"))]
-fn drawn(tongue: Option<&str>, said: &str, at: &str, drawing: &Drawing, out: &mut String) -> bool {
+fn drawn(tongue: Option<&str>, said: &str, at: &str, out: &mut String) -> bool {
     match tongue {
         #[cfg(feature = "math")]
         Some("math") => match crate::math::mathml(said, true) {
@@ -263,42 +238,18 @@ fn drawn(tongue: Option<&str>, said: &str, at: &str, drawing: &Drawing, out: &mu
             }
             None => false,
         },
+        // The window draws it; the page carries what it is drawn from, readable until then.
         #[cfg(feature = "mermaid")]
-        Some("mermaid" | "mmd") => match (drawing.diagram)(said) {
-            Some(drawn) => {
-                let _ = write!(
-                    out,
-                    "<figure class=\"diagram\" {at}><img alt=\"\" src=\"{}\"></figure>",
-                    svg_url(&drawn)
-                );
-                true
-            }
-            None => false,
-        },
+        Some(tongue @ ("mermaid" | "mmd")) => {
+            let _ = write!(
+                out,
+                "<figure class=\"diagram\" {at}><pre><code class=\"language-{tongue}\">{}</code></pre></figure>",
+                escaped(said)
+            );
+            true
+        }
         _ => false,
     }
-}
-
-#[cfg(feature = "mermaid")]
-fn svg_url(svg: &str) -> String {
-    let mut url = String::from("data:image/svg+xml,");
-    let mut gap = false;
-    for byte in svg.bytes() {
-        // A run of spaces between attributes says nothing; one is kept so the words in a label stay apart.
-        if byte.is_ascii_whitespace() {
-            gap = true;
-            continue;
-        }
-        if std::mem::take(&mut gap) {
-            url.push_str("%20");
-        }
-        if byte.is_ascii_alphanumeric() || b"-_.~/:=;'(),!*+?@$".contains(&byte) {
-            url.push(char::from(byte));
-        } else {
-            let _ = write!(url, "%{byte:02X}");
-        }
-    }
-    url
 }
 
 fn table(columns: &[Column], at: &str, block: &Block, text: &str, out: &mut String) {

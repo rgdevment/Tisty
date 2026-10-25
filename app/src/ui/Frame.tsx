@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
+import { diagrams } from "./diagrams";
 import { fitted, type Reaching, type Worn, wired, worn } from "./dressing";
 import { dressed, shell } from "./paging";
 import { type Sheet, sheeting } from "./sheeting";
@@ -83,7 +84,15 @@ export default function Frame(props: Readonly<Props>) {
       dressedUp = worn(page, stranger, () => live && drawing === mine, said.current.reach());
     };
     const retheme = () => {
-      if (held.contentDocument) dressed(held.contentDocument);
+      const page = held.contentDocument;
+      if (!page) return;
+      dressed(page);
+      const mine = drawing;
+      void diagrams(
+        page,
+        page.documentElement.classList.contains("dark"),
+        () => live && drawing === mine,
+      );
     };
     // A frame moved in the page loads its first words again, so whatever is newer is put back.
     const loaded = () => {

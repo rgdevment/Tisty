@@ -7,6 +7,7 @@ import { pictured } from "../previews";
 import { plainly } from "../refusal";
 import { type Attaching, attachedAs, lents, pressed } from "./attached";
 import { type Carding, carded } from "./carding";
+import { diagrams } from "./diagrams";
 import {
   charsAt,
   colored,
@@ -280,6 +281,7 @@ export const worn = (
     partCarded(page, reach.part);
     webCarded(page, live);
   }
+  void diagrams(page, page.documentElement.classList.contains("dark"), live);
   colored(page, live);
   return { lent, kept };
 };

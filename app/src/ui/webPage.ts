@@ -1,6 +1,7 @@
 import { attached, docDrawn, type Paper } from "../core";
 import { t } from "../locales";
 import { named, pictured } from "../previews";
+import { diagrams } from "./diagrams";
 import { iconed } from "./dressing";
 import { coloredAll, escaped, saidKinds, shell } from "./paging";
 import type { Stamp } from "./printing";
@@ -133,6 +134,7 @@ export const webPage = async (
   saidKinds(page, (kind) => t(`said${kind}` as Parameters<typeof t>[0]));
   iconed(page);
   coloredAll(page);
+  await diagrams(page, false, () => true);
   unlinked(page);
   if (sheet) papered(page, sheet);
   await carried(page);
