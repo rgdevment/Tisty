@@ -6,6 +6,7 @@ const ROUND: &str = "round.lock";
 pub const RENEWING: &str = "renewing.lock";
 pub const BUDGETING: &str = "budget.lock";
 pub const FORGETTING: &str = "forgotten.lock";
+pub const SEALING: &str = "sealing.lock";
 const EVERY: Duration = Duration::from_millis(50);
 
 pub struct Held(std::fs::File);

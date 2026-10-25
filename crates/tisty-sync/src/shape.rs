@@ -23,6 +23,12 @@ pub const NEEDS: &str = "1.34.0";
 
 pub const SEALS: &str = "1.35.0";
 
+pub const TURNS: &str = "1.36.0";
+
+const COPYING_ON: &str = "copying:seal:";
+const COPYING_OFF: &str = "copying:unseal:";
+const CLOSED: &str = "closed:";
+
 enum Told {
     Shape {
         shape: u32,
@@ -91,7 +97,7 @@ fn said_in(line: &str, key: &str) -> Option<String> {
 
 /// A release this build cannot read is taken for a later one: guessing it older would write where it must not.
 pub fn needs_later(needs: &str) -> bool {
-    let ours = [NEEDS, SEALS, tisty_core::VERSION]
+    let ours = [NEEDS, SEALS, TURNS, tisty_core::VERSION]
         .into_iter()
         .filter_map(tisty_core::released)
         .max();
@@ -152,19 +158,30 @@ pub fn spoiled(dest: &Path) -> bool {
     matches!(verdict(dest, &told(dest)), Err(Trouble::Unshaped(_)))
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Turn {
+    On,
+    Off,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Sealing {
     Unsaid,
     Plain,
-    Copying,
+    Copying(Turn),
     Closed,
     Sealed(String),
 }
 
 pub fn sealing_of(dest: &Path) -> Sealing {
-    let Ok(text) = std::fs::read_to_string(dest.join(NAMED)) else {
-        return Sealing::Unsaid;
-    };
+    match std::fs::read_to_string(dest.join(NAMED)) {
+        Ok(text) => sealing_in(&text),
+        Err(_) => Sealing::Unsaid,
+    }
+}
+
+// A copy whose way this build cannot tell stops everyone, as a closed place does.
+pub fn sealing_in(text: &str) -> Sealing {
     let said = text.parse::<toml_edit::DocumentMut>().ok();
     let word = |key: &str| match &said {
         Some(said) => said
@@ -174,8 +191,8 @@ pub fn sealing_of(dest: &Path) -> Sealing {
         None => text.lines().find_map(|line| said_in(line, key)),
     };
     match (word(SEALING), word(SEALED)) {
-        (Some(phase), _) if phase.starts_with("closed:") => Sealing::Closed,
-        (Some(phase), _) if phase.starts_with("copying:") => Sealing::Copying,
+        (Some(phase), _) if phase.starts_with(COPYING_ON) => Sealing::Copying(Turn::On),
+        (Some(phase), _) if phase.starts_with(COPYING_OFF) => Sealing::Copying(Turn::Off),
         (Some(_), _) => Sealing::Closed,
         (None, Some(cloud)) => Sealing::Sealed(cloud),
         (None, None) => Sealing::Plain,
@@ -186,7 +203,10 @@ pub fn sealed_against(dest: &Path, reading: Option<&str>) -> Option<Trouble> {
     let at = || dest.display().to_string();
     match (sealing_of(dest), reading) {
         (Sealing::Closed, _) => Some(Trouble::Sealing(at())),
-        (Sealing::Unsaid | Sealing::Copying, _) | (Sealing::Plain, None) => None,
+        (Sealing::Copying(Turn::On), Some(_)) | (Sealing::Copying(Turn::Off), None) => {
+            Some(Trouble::Sealing(at()))
+        }
+        (Sealing::Unsaid | Sealing::Copying(_), _) | (Sealing::Plain, None) => None,
         (Sealing::Sealed(cloud), Some(ours)) if cloud == ours => None,
         (Sealing::Sealed(_), _) => Some(Trouble::Sealed(at())),
         (Sealing::Plain, Some(_)) => Some(Trouble::Unsealed(at())),
@@ -218,15 +238,92 @@ pub fn seal_word(dest: &Path, cloud: &str) -> std::io::Result<()> {
         return Ok(());
     }
     said[SEALED] = toml_edit::value(cloud);
+    raise_needs(&mut said, SEALS);
+    tisty_core::store::write_atomic(&dest.join(NAMED), said.to_string().as_bytes())
+        .map_err(std::io::Error::other)
+}
+
+pub fn phase(turn: Turn, device: &str, nonce: &str) -> String {
+    let way = match turn {
+        Turn::On => COPYING_ON,
+        Turn::Off => COPYING_OFF,
+    };
+    format!("{way}{device}:{nonce}")
+}
+
+fn phase_of(said: &toml_edit::DocumentMut) -> Option<&str> {
+    said.get(SEALING).and_then(toml_edit::Item::as_str)
+}
+
+fn claim_of(phase: &str) -> Option<&str> {
+    [COPYING_ON, COPYING_OFF, CLOSED]
+        .into_iter()
+        .find_map(|way| phase.strip_prefix(way))
+}
+
+fn ours(said: &toml_edit::DocumentMut, claim: &str) -> bool {
+    phase_of(said)
+        .and_then(claim_of)
+        .is_some_and(|held| held == claim)
+}
+
+pub fn claimed_by(text: &str, claim: &str) -> bool {
+    text.parse::<toml_edit::DocumentMut>()
+        .is_ok_and(|said| ours(&said, claim))
+}
+
+// `needs` rises with the claim, so a build that knows no way of turning stops before the copy starts.
+pub fn claimed(text: &str, phase: &str) -> Option<String> {
+    let mut said = text.parse::<toml_edit::DocumentMut>().ok()?;
+    if phase_of(&said).is_some() || claim_of(phase).is_none() {
+        return None;
+    }
+    said[SEALING] = toml_edit::value(phase);
+    raise_needs(&mut said, TURNS);
+    Some(said.to_string())
+}
+
+pub fn closed(text: &str, claim: &str) -> Option<String> {
+    let mut said = text.parse::<toml_edit::DocumentMut>().ok()?;
+    if !ours(&said, claim) {
+        return None;
+    }
+    said[SEALING] = toml_edit::value(format!("{CLOSED}{claim}"));
+    Some(said.to_string())
+}
+
+pub fn switched(text: &str, claim: &str, sealed: Option<&str>) -> Option<String> {
+    let mut said = text.parse::<toml_edit::DocumentMut>().ok()?;
+    if !ours(&said, claim) || !phase_of(&said).is_some_and(|phase| phase.starts_with(CLOSED)) {
+        return None;
+    }
+    said.remove(SEALING);
+    match sealed {
+        Some(cloud) => said[SEALED] = toml_edit::value(cloud),
+        None => {
+            said.remove(SEALED);
+        }
+    }
+    Some(said.to_string())
+}
+
+pub fn dropped(text: &str, claim: &str) -> Option<String> {
+    let mut said = text.parse::<toml_edit::DocumentMut>().ok()?;
+    if !ours(&said, claim) {
+        return None;
+    }
+    said.remove(SEALING);
+    Some(said.to_string())
+}
+
+fn raise_needs(said: &mut toml_edit::DocumentMut, to: &str) {
     let held = said
         .get("needs")
         .and_then(toml_edit::Item::as_str)
-        .is_some_and(|needs| !matches!((tisty_core::released(needs), tisty_core::released(SEALS)), (Some(needs), Some(seals)) if needs < seals));
+        .is_some_and(|needs| !matches!((tisty_core::released(needs), tisty_core::released(to)), (Some(needs), Some(to)) if needs < to));
     if !held {
-        said["needs"] = toml_edit::value(SEALS);
+        said["needs"] = toml_edit::value(to);
     }
-    tisty_core::store::write_atomic(&dest.join(NAMED), said.to_string().as_bytes())
-        .map_err(std::io::Error::other)
 }
 
 pub fn later(dest: &Path) -> Option<Trouble> {

@@ -434,3 +434,14 @@ fn only_the_key_the_log_names_opens_a_sealed_cloud() {
     assert!(Sealed::opened(Fake::drive(), key(8), "store_one", &named).is_none());
     assert!(Sealed::opened(Fake::drive(), key(7), "store_two", &named).is_none());
 }
+
+#[test]
+fn a_mark_taken_away_is_gone_and_taking_it_twice_is_the_same_as_once() {
+    let sealed = over_drive();
+    sealed.mark_it().unwrap();
+
+    sealed.unmark().unwrap();
+    sealed.unmark().unwrap();
+
+    assert_eq!(sealed.marked().unwrap(), None);
+}

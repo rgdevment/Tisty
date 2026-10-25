@@ -19,6 +19,7 @@ const STALLED_ASKS: u64 = 200;
 pub enum Class {
     History,
     Attachments,
+    Sealing,
     Asked,
 }
 
@@ -200,6 +201,11 @@ fn allowed_at(home: &Path, limits: &Limits, class: Class) -> Result<(), Hitch> {
         Class::Attachments => (
             limits.units_a_day - limits.units_a_day / 100 * RESERVED_PERCENT,
             limits.bytes_a_day - limits.bytes_a_day / 100 * RESERVED_PERCENT,
+        ),
+        // Below what attachments may spend, so a long sealing never leaves the history without room.
+        Class::Sealing => (
+            limits.units_a_day - limits.units_a_day / 100 * (2 * RESERVED_PERCENT),
+            limits.bytes_a_day - limits.bytes_a_day / 100 * (2 * RESERVED_PERCENT),
         ),
     };
     let spent = Spent::load(home);
