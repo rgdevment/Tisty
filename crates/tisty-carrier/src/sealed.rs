@@ -21,10 +21,10 @@ pub struct Sealed<R> {
     root: String,
 }
 
-struct Temp(PathBuf);
+pub(crate) struct Temp(pub(crate) PathBuf);
 
 impl Temp {
-    fn new() -> Self {
+    pub(crate) fn new() -> Self {
         let n = TEMPS.fetch_add(1, Ordering::Relaxed);
         let at = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -32,7 +32,7 @@ impl Temp {
         Self(std::env::temp_dir().join(format!("tisty-sealed-{}-{n}-{at:x}", std::process::id())))
     }
 
-    fn create(&self) -> std::io::Result<std::fs::File> {
+    pub(crate) fn create(&self) -> std::io::Result<std::fs::File> {
         let mut options = std::fs::OpenOptions::new();
         options.write(true).create_new(true);
         #[cfg(unix)]
@@ -259,6 +259,9 @@ impl<R: Remote> Remote for Sealed<R> {
         let got = self.inner.fetch(&inner, 0, &mut to);
         drop(to);
         let got = got.map_err(|e| named_back(e, &inner, name))?;
+        if plain_len(got.bytes).is_some_and(|len| from > len) {
+            return Err(broke(format!("{name} was asked for past its end")));
+        }
         let mut from_cipher = std::fs::File::open(&cipher.0).map_err(broke)?;
         let mut to_plain = plain.create().map_err(broke)?;
         open(
@@ -325,18 +328,6 @@ impl<R: Remote> Remote for Sealed<R> {
 
     fn hash_of(&self, local: &Path) -> std::io::Result<String> {
         self.inner.hash_of(local)
-    }
-
-    fn renamed(&self, from: &str, to: &str) -> Result<(), Hitch> {
-        crate::named_well(from)?;
-        crate::named_well(to)?;
-        let held = Temp::new();
-        let mut into = held.create().map_err(broke)?;
-        let took = self.fetch(from, 0, &mut into);
-        drop(into);
-        took?;
-        self.put(to, &held.0, Expect::Any)?;
-        self.delete(from, None)
     }
 
     fn about(&self, name: &str) -> Result<Option<Seen>, Hitch> {

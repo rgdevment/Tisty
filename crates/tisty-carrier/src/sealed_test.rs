@@ -325,3 +325,13 @@ fn a_plain_name_planted_inside_the_sealed_folder_is_not_seen_twice() {
 
     assert_eq!(names(sealed.list("").unwrap()), [NAMED]);
 }
+
+#[test]
+fn renaming_only_the_capitals_on_a_provider_that_folds_case_keeps_the_file() {
+    let sealed = Sealed::new(Fake::onedrive(), key(7), "store_one");
+    put(&sealed, "docs/Plan.md", b"hola");
+
+    sealed.renamed("docs/Plan.md", "docs/plan.md").unwrap();
+
+    assert_eq!(fetched(&sealed, "docs/plan.md").unwrap(), b"hola");
+}

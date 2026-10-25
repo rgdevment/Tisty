@@ -832,7 +832,8 @@ impl<R: Counting> Counting for crate::Sealed<R> {
             "drive" => "sealed-drive",
             "onedrive" => "sealed-onedrive",
             "dropbox" => "sealed-dropbox",
-            _ => "sealed-folder",
+            "folder-backed" => "sealed-folder-backed",
+            _ => "sealed-other",
         }
     }
 
