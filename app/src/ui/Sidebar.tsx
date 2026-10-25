@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { Filed, Folded, List, Papers } from "../core";
 import { useKnocking } from "../knocking";
 import { t } from "../locales";
@@ -8,6 +8,7 @@ import Glyph from "./Glyph";
 import Knocking, { KnockDot } from "./Knocking";
 import Mode from "./Mode";
 import MoveNotice from "./MoveNotice";
+import SettingsNav from "./SettingsNav";
 import SyncFoot from "./SyncFoot";
 import Tree from "./Tree";
 
@@ -68,72 +69,88 @@ export default function Sidebar({
   const [openDocs, setOpenDocs] = useState(true);
   const knocked = useKnocking().waiting.length > 0;
   const told = knocked ? t("knockDot") : tried ? t("doorKnockedUnnamed") : undefined;
+  const keeping = chosen.named === "keeping";
+  const away = useRef<Chosen>({ named: "tasks" });
+  if (!keeping) away.current = chosen;
 
   return (
     <aside className="flex flex-col overflow-hidden">
       <div data-tauri-drag-region className="h-9 shrink-0" />
-      <div className="px-2.5 pb-1.5">
-        <nav className="flex flex-col gap-px">
-          {NAMED.map(({ key, icon }) => (
-            <Entry
-              key={key}
-              icon={icon}
-              label={t(key)}
-              count={key === "lists" ? lists.length || undefined : counts[key]}
-              on={!chosen.list && !chosen.tags?.length && chosen.named === key}
-              onClick={() => onChoose({ named: key })}
-            />
-          ))}
-        </nav>
-      </div>
-
-      <div className="scroller flex-1 px-2.5 pb-4">
-        <div className="mx-1 mt-3 mb-1 h-px bg-hair" />
-        <div className="pinned-head sticky top-0 z-20 flex h-[var(--tisty-docs-head)] items-center bg-rail shadow-[0_1px_0_var(--tisty-hair)]">
-          <button
-            type="button"
-            onClick={() => setOpenDocs((open) => !open)}
-            aria-expanded={openDocs}
-            aria-label={t("docs")}
-            className="flex flex-1 items-center gap-1.5 px-2.5 text-[11.5px] font-semibold tracking-[0.06em] text-faint uppercase"
-          >
-            {!openDocs && <Glyph name="chevron" className="h-3 w-3 shrink-0 -rotate-90" />}
-            {t("docs")}
-            <span className="ml-auto text-[11.5px] font-normal">
-              {papers.docs.filter((one) => !one.pageOf).length || ""}
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              const box = e.currentTarget.getBoundingClientRect();
-              onDocsMenu({ x: box.right - 8, y: box.bottom + 4 });
-            }}
-            aria-label={t("docsActions")}
-            aria-haspopup="menu"
-            className="mr-1 grid h-5 w-5 place-items-center rounded-md text-[13px] text-faint hover:bg-hover hover:text-ink"
-          >
-            +
-          </button>
-        </div>
-
-        {openDocs && (
-          <Tree
-            papers={papers}
-            open={chosen.doc}
-            here={here}
-            acting={acting}
-            onHere={onHere}
-            onMove={onMove}
-            onOpen={(doc) => onChoose({ named: "docs", doc: doc.file })}
-            onFile={onFile}
-            onPage={onPage}
-            onFolderMenu={onFolderMenu}
-            onHereMenu={onHereMenu}
-            onDocMenu={onDocMenu}
+      {keeping ? (
+        <div className="scroller flex-1 px-2.5 pb-4">
+          <SettingsNav
+            tab={chosen.tab ?? "general"}
+            waiting={waiting}
+            onTab={(tab) => onChoose({ named: "keeping", tab })}
+            onBack={() => onChoose(away.current)}
           />
-        )}
-      </div>
+        </div>
+      ) : (
+        <>
+          <div className="px-2.5 pb-1.5">
+            <nav className="flex flex-col gap-px">
+              {NAMED.map(({ key, icon }) => (
+                <Entry
+                  key={key}
+                  icon={icon}
+                  label={t(key)}
+                  count={key === "lists" ? lists.length || undefined : counts[key]}
+                  on={!chosen.list && !chosen.tags?.length && chosen.named === key}
+                  onClick={() => onChoose({ named: key })}
+                />
+              ))}
+            </nav>
+          </div>
+
+          <div className="scroller flex-1 px-2.5 pb-4">
+            <div className="mx-1 mt-3 mb-1 h-px bg-hair" />
+            <div className="pinned-head sticky top-0 z-20 flex h-[var(--tisty-docs-head)] items-center bg-rail shadow-[0_1px_0_var(--tisty-hair)]">
+              <button
+                type="button"
+                onClick={() => setOpenDocs((open) => !open)}
+                aria-expanded={openDocs}
+                aria-label={t("docs")}
+                className="flex flex-1 items-center gap-1.5 px-2.5 text-[11.5px] font-semibold tracking-[0.06em] text-faint uppercase"
+              >
+                {!openDocs && <Glyph name="chevron" className="h-3 w-3 shrink-0 -rotate-90" />}
+                {t("docs")}
+                <span className="ml-auto text-[11.5px] font-normal">
+                  {papers.docs.filter((one) => !one.pageOf).length || ""}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  const box = e.currentTarget.getBoundingClientRect();
+                  onDocsMenu({ x: box.right - 8, y: box.bottom + 4 });
+                }}
+                aria-label={t("docsActions")}
+                aria-haspopup="menu"
+                className="mr-1 grid h-5 w-5 place-items-center rounded-md text-[13px] text-faint hover:bg-hover hover:text-ink"
+              >
+                +
+              </button>
+            </div>
+
+            {openDocs && (
+              <Tree
+                papers={papers}
+                open={chosen.doc}
+                here={here}
+                acting={acting}
+                onHere={onHere}
+                onMove={onMove}
+                onOpen={(doc) => onChoose({ named: "docs", doc: doc.file })}
+                onFile={onFile}
+                onPage={onPage}
+                onFolderMenu={onFolderMenu}
+                onHereMenu={onHereMenu}
+                onDocMenu={onDocMenu}
+              />
+            )}
+          </div>
+        </>
+      )}
 
       <Knocking />
       <MoveNotice
@@ -195,30 +212,15 @@ export default function Sidebar({
             <path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01" />
           </Drawn>
         </button>
-        {waiting ? (
+        {waiting && (
           <button
             type="button"
             aria-label={`${t("aboutScreen")} · ${t("updateWaiting")}`}
-            onClick={() => onChoose({ named: "aboutScreen" })}
+            onClick={() => onChoose({ named: "keeping", tab: "about" })}
             className="flex items-center gap-1.5 rounded-[10px] bg-accent-soft px-2 py-1 text-[11.5px] font-medium text-accent hover:bg-hover"
           >
             <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
             Tisty {waiting}
-          </button>
-        ) : (
-          <button
-            type="button"
-            aria-label={t("aboutScreen")}
-            title={t("aboutScreen")}
-            onClick={() => onChoose({ named: "aboutScreen" })}
-            className={`grid size-7 place-items-center rounded-[10px] hover:bg-hover ${
-              chosen.named === "aboutScreen" ? "bg-active text-accent" : "text-soft"
-            }`}
-          >
-            <Drawn>
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 16v-4M12 8h.01" />
-            </Drawn>
           </button>
         )}
       </div>

@@ -1,11 +1,14 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { heard, toldAside } from "../coming";
 import { adopt, fill, t } from "../locales";
 import Coming from "../ui/Coming";
-import Keeping from "../ui/Keeping";
+import Settings from "../ui/Keeping";
+import SettingsNav from "../ui/SettingsNav";
 import Welcome from "../ui/Welcome";
+import type { Tab } from "../views";
 
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
@@ -399,6 +402,19 @@ beforeEach(() => {
 });
 
 const sent = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd);
+
+type Shown = Omit<Parameters<typeof Settings>[0], "tab" | "onTab"> & { start?: Tab };
+
+// The sections are listed in the window's own sidebar, so the settings are tried with that list beside them.
+function Keeping({ start, ...props }: Shown) {
+  const [tab, setTab] = useState<Tab>(start ?? "general");
+  return (
+    <>
+      <SettingsNav tab={tab} onTab={setTab} onBack={() => {}} />
+      <Settings {...props} tab={tab} onTab={setTab} />
+    </>
+  );
+}
 
 const ready = () => screen.findByRole("tab", { name: /general/i });
 

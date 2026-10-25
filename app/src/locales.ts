@@ -1826,6 +1826,8 @@ const en = {
   tabUpkeep: "Maintenance",
   tabAgents: "Assistants",
   tabIdentity: "Your identity",
+  tabSecurity: "Security",
+  settingsBack: "Back to Tisty",
   identityWhat:
     "With it you encrypt your cloud and sign what you share with Tisty Share. It is born with your 24-word phrase.",
   identityUnborn:
@@ -4178,6 +4180,8 @@ const es: Catalog = {
   tabUpkeep: "Mantenimiento",
   tabAgents: "Asistentes",
   tabIdentity: "Tu identidad",
+  tabSecurity: "Seguridad",
+  settingsBack: "Volver a Tisty",
   identityWhat:
     "Con ella cifras tu nube y firmas lo que compartes con Tisty Share. Nace con tu frase de 24 palabras.",
   identityUnborn:

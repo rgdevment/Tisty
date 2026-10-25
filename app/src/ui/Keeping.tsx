@@ -31,21 +31,13 @@ import Identity from "./Identity";
 import Modal from "./Modal";
 import Relocating from "./Relocating";
 import { strong } from "./Rows";
+import { SECTIONS } from "./SettingsNav";
 import { useSigning } from "./Signing";
 import Sync from "./Sync";
 import Upkeep, { type Seen } from "./Upkeep";
 import { useCards } from "./useCards";
 import { useCarry } from "./useCarry";
 import Yours from "./Yours";
-
-const TABS: { key: Tab; label: Parameters<typeof t>[0] }[] = [
-  { key: "general", label: "tabGeneral" },
-  { key: "sync", label: "tabSync" },
-  { key: "identity", label: "tabIdentity" },
-  { key: "data", label: "tabData" },
-  { key: "agents", label: "tabAgents" },
-  { key: "upkeep", label: "tabUpkeep" },
-];
 
 interface Props {
   onPack: () => void;
@@ -54,7 +46,8 @@ interface Props {
   onGreet: () => void;
   onDoc: (paper: string) => void;
   greeted?: number;
-  start?: Tab;
+  tab: Tab;
+  onTab: (tab: Tab) => void;
   move?: Heading;
   movedAt?: number;
 }
@@ -66,11 +59,11 @@ export default function Keeping({
   onGreet,
   onDoc,
   greeted,
-  start,
+  tab,
+  onTab,
   move,
   movedAt,
 }: Props) {
-  const [tab, setTab] = useState<Tab>(start ?? "general");
   const shared = useSyncSeen();
   const [read, setRead] = useState(false);
   // What another view read before this one opened may be old, so the settings wait for their own look.
@@ -107,12 +100,7 @@ export default function Keeping({
   const [moving, setMoving] = useState<{ heading?: Heading; resume?: Toward } | null>(null);
 
   useEffect(() => {
-    if (start) setTab(start);
-  }, [start, movedAt]);
-
-  useEffect(() => {
     if (!move) return;
-    setTab("sync");
     setMoving({ heading: move });
   }, [move, movedAt]);
   const [was, setWas] = useState<string>();
@@ -213,9 +201,9 @@ export default function Keeping({
       {/* The whole width scrolls, so the wheel moves the page wherever the pointer is. */}
       <div className="scroller min-h-0 flex-1">
         <div className="mx-auto w-full max-w-[560px] px-6 pb-12">
-          <h2 className="mb-3.5 text-[21px] font-semibold">{t("keeping")}</h2>
-
-          <Tabs tab={tab} setTab={setTab} />
+          <h2 className="mb-3.5 text-[21px] font-semibold">
+            {t(SECTIONS.find((one) => one.key === tab)?.label ?? "keeping")}
+          </h2>
 
           {busy !== null && (tab === "general" || tab === "sync" || tab === "data") && (
             <p className="text-[11.5px] text-faint">{fill("waitFor", t(NAMED[busy]))}</p>
@@ -264,7 +252,7 @@ export default function Keeping({
             />
           )}
 
-          {tab === "identity" && (
+          {tab === "security" && (
             <Identity
               audit={audit}
               setAudit={setAudit}
@@ -273,7 +261,7 @@ export default function Keeping({
               trouble={trouble}
               tell={setSaid}
               fail={setTrouble}
-              onSync={() => setTab("sync")}
+              onSync={() => onTab("sync")}
             />
           )}
 
@@ -324,7 +312,7 @@ export default function Keeping({
               quietly={quietly}
               tell={setSaid}
               fail={setTrouble}
-              onSync={() => setTab("sync")}
+              onSync={() => onTab("sync")}
               onDoc={onDoc}
               seen={seen}
               setSeen={setSeen}
@@ -333,27 +321,6 @@ export default function Keeping({
         </div>
       </div>
     </main>
-  );
-}
-
-function Tabs({ tab, setTab }: { tab: Tab; setTab: (tab: Tab) => void }) {
-  return (
-    <div role="tablist" className="mb-4 flex flex-wrap gap-1">
-      {TABS.map((one) => (
-        <button
-          key={one.key}
-          type="button"
-          role="tab"
-          aria-selected={tab === one.key}
-          onClick={() => setTab(one.key)}
-          className={`rounded-full border px-2.5 py-0.5 text-[11.5px] ${
-            tab === one.key ? "border-ink bg-ink text-bg" : "border-line text-faint hover:text-soft"
-          }`}
-        >
-          {t(one.label)}
-        </button>
-      ))}
-    </div>
   );
 }
 

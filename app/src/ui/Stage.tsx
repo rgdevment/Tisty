@@ -74,7 +74,7 @@ export default function Stage() {
   useEffect(() => afterMove(() => fresh.current()), []);
   return chosen.named === "help" ? (
     <Help topic={chosen.topic} />
-  ) : chosen.named === "aboutScreen" ? (
+  ) : chosen.named === "keeping" && chosen.tab === "about" ? (
     <About
       ready={ready}
       step={underway}
@@ -173,7 +173,8 @@ export default function Stage() {
   ) : chosen.named === "keeping" ? (
     <Keeping
       greeted={greeted}
-      start={chosen.tab}
+      tab={chosen.tab ?? "general"}
+      onTab={(tab) => setChosen({ named: "keeping", tab })}
       move={chosen.move}
       movedAt={chosen.movedAt}
       onPack={() => parcels.packUp([], "tisty")}

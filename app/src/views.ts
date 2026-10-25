@@ -13,10 +13,9 @@ export type Named =
   | "tags"
   | "archive"
   | "keeping"
-  | "aboutScreen"
   | "help";
 
-export type Tab = "general" | "sync" | "identity" | "data" | "agents" | "upkeep";
+export type Tab = "general" | "sync" | "security" | "data" | "agents" | "upkeep" | "about";
 
 export type Heading = "pick" | "cloud" | "folder";
 
