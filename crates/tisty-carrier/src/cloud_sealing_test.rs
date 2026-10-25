@@ -2,6 +2,7 @@ use super::*;
 use crate::{Stepped, Turning};
 use tisty_share_proto::cloud::CloudKey;
 use tisty_share_proto::seed::Seed;
+use tisty_sync::Turn;
 
 const CLOUD: &str = "store_one";
 
@@ -23,7 +24,14 @@ fn written(setting: &Setting) -> Desk {
 
 fn turned(fake: &Arc<Fake>, setting: &Setting) -> Result<Turning, Hitch> {
     let plain: Arc<dyn Remote> = fake.clone();
-    Turning::begin(plain, &home_of(setting, "dev_a"), key(), CLOUD, "dev_a")
+    Turning::begin(
+        plain,
+        &home_of(setting, "dev_a"),
+        key(),
+        CLOUD,
+        "dev_a",
+        Turn::On,
+    )
 }
 
 fn to_the_end(turning: &mut Turning) {
@@ -101,7 +109,14 @@ fn a_second_machine_cannot_claim_a_cloud_another_is_turning() {
     let _first = turned(&fake, &setting).unwrap();
     let plain: Arc<dyn Remote> = fake.clone();
 
-    let second = Turning::begin(plain, &home_of(&setting, "dev_b"), key(), CLOUD, "dev_b");
+    let second = Turning::begin(
+        plain,
+        &home_of(&setting, "dev_b"),
+        key(),
+        CLOUD,
+        "dev_b",
+        Turn::On,
+    );
 
     assert!(matches!(second, Err(Hitch::Barred(Trouble::Sealing(_)))));
 }
@@ -167,4 +182,97 @@ fn a_cut_at_any_call_is_taken_up_again_and_loses_nothing() {
             "cut {cut}"
         );
     }
+}
+
+fn turning_off(fake: &Arc<Fake>, setting: &Setting) -> Result<Turning, Hitch> {
+    let plain: Arc<dyn Remote> = fake.clone();
+    Turning::begin(
+        plain,
+        &home_of(setting, "dev_a"),
+        key(),
+        CLOUD,
+        "dev_a",
+        Turn::Off,
+    )
+}
+
+fn sealed_on(setting: &Setting, fake: &Arc<Fake>) -> Desk {
+    let one = written(setting);
+    to_the_end(&mut turned(fake, setting).unwrap());
+    one
+}
+
+#[test]
+fn a_cloud_turned_off_is_plain_again_with_what_was_written_while_it_was_sealed() {
+    let (setting, fake) = drive();
+    let one = sealed_on(&setting, &fake);
+    let two = reading_sealed(&setting, &fake, "dev_b", &one);
+    two.round(Way::Both);
+    two.wrote("mientras estaba cifrada");
+    two.round(Way::Both);
+
+    to_the_end(&mut turning_off(&fake, &setting).unwrap());
+
+    assert_eq!(
+        tisty_sync::sealing_in(&word(&fake)),
+        tisty_sync::Sealing::Plain
+    );
+    assert_eq!(
+        crate::Sealed::new(fake.clone(), key(), CLOUD)
+            .marked()
+            .unwrap(),
+        None
+    );
+    let plain = desk(&setting, "dev_c");
+    plain.vouches_for(&one);
+    plain.vouches_for(&two);
+    plain.round(Way::Both);
+    assert_eq!(
+        plain.titles(),
+        vec![
+            "antes de cifrar".to_string(),
+            "mientras estaba cifrada".to_string()
+        ]
+    );
+}
+
+#[test]
+fn turning_off_given_up_leaves_the_cloud_sealed() {
+    let (setting, fake) = drive();
+    sealed_on(&setting, &fake);
+    let turning = turning_off(&fake, &setting).unwrap();
+
+    turning.abort().unwrap();
+
+    assert_eq!(
+        tisty_sync::sealing_in(&word(&fake)),
+        tisty_sync::Sealing::Sealed(CLOUD.into())
+    );
+}
+
+#[test]
+fn what_a_turn_leaves_behind_goes_only_where_its_twin_stands() {
+    let (setting, fake) = drive();
+    sealed_on(&setting, &fake);
+    let plain: Arc<dyn Remote> = fake.clone();
+    let home = home_of(&setting, "dev_a");
+
+    let gone = crate::wipe_behind(plain.clone(), &home, key(), CLOUD).unwrap();
+
+    assert!(gone > 0);
+    let left: Vec<String> = fake
+        .list("")
+        .unwrap()
+        .into_iter()
+        .map(|one| one.name)
+        .filter(|name| !name.starts_with("sealed/"))
+        .collect();
+    assert!(
+        left.iter()
+            .all(|name| crate::sealed::stays_plain(name, false)),
+        "{left:?}"
+    );
+    to_the_end(&mut turning_off(&fake, &setting).unwrap());
+    crate::wipe_behind(plain, &home, key(), CLOUD).unwrap();
+    assert!(fake.list("sealed").unwrap().is_empty());
 }
