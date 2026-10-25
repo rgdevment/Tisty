@@ -184,4 +184,60 @@ describe("a drawn page in the viewer", () => {
     await waitFor(() => expect(ipc.dropped).toBe(dropped + 1));
     expect(ipc.released).toBe(released + 1);
   });
+
+  it("dresses a drawing again and says it is shown, even when its words come back the same", async () => {
+    const { frame, view, heard } = await drawn({ again: "a" });
+    await loaded(frame);
+    const [shown, dropped] = [heard.shown.length, ipc.dropped];
+    view.rerender(
+      <Page
+        body={BODY}
+        label="Notas"
+        stranger={false}
+        onDoc={() => {}}
+        onShown={(at) => heard.shown.push(at)}
+        again="b"
+      />,
+    );
+    await waitFor(() => expect(heard.shown.length).toBe(shown + 1));
+    expect(ipc.dropped).toBe(dropped + 1);
+  });
+
+  it("leaves nothing the last words set on the sheet itself", async () => {
+    const { frame, view } = await drawn();
+    const page = await loaded(frame);
+    const sheet = page.querySelector(".page") as HTMLElement;
+    sheet.dataset.empty = "Vacía";
+    sheet.classList.add("whole");
+    ipc.drawn = '<p data-at="0-5">Nuevo</p>';
+    view.rerender(<Page body="Nuevo" label="Notas" stranger={false} onDoc={() => {}} />);
+    await waitFor(() => expect(sheet.textContent).toContain("Nuevo"));
+    expect(sheet.hasAttribute("data-empty")).toBe(false);
+    expect(sheet.className).toBe("page");
+  });
+
+  it("puts the latest words back when the frame loads its first ones again", async () => {
+    const blocks: [number, number][] = [];
+    const { frame, view } = await drawn({ onBlock: (at) => blocks.push(at) });
+    await loaded(frame);
+    ipc.drawn = '<p data-at="0-5">Nuevo</p>';
+    view.rerender(
+      <Page
+        body="Nuevo"
+        label="Notas"
+        stranger={false}
+        onDoc={() => {}}
+        onBlock={(at) => blocks.push(at)}
+      />,
+    );
+    await waitFor(() =>
+      expect(frame.contentDocument?.querySelector(".page")?.textContent).toContain("Nuevo"),
+    );
+    const again = await loaded(frame);
+    expect(again.querySelector(".page")?.textContent).toBe("Nuevo");
+    again
+      .querySelector('p[data-at="0-5"]')
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(blocks).toContainEqual([0, 5]);
+  });
 });

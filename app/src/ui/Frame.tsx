@@ -5,6 +5,7 @@ import { type Sheet, sheeting } from "./sheeting";
 
 type Props = {
   readonly html: string;
+  readonly turn: number;
   readonly label: string;
   readonly stranger: boolean;
   readonly tall: boolean;
@@ -16,6 +17,13 @@ type Props = {
   readonly sheet?: Sheet;
   readonly reach: () => Reaching;
   readonly onReady: (frame: HTMLIFrameElement) => void;
+};
+
+// The words change in place, and what the last ones left on the sheet itself goes with them.
+const freshen = (sheet: Element, html: string) => {
+  for (const name of sheet.getAttributeNames()) if (name !== "class") sheet.removeAttribute(name);
+  sheet.className = "page";
+  sheet.innerHTML = html;
 };
 
 const grows = (held: HTMLIFrameElement, page: Document): (() => void) => {
@@ -36,6 +44,7 @@ const grows = (held: HTMLIFrameElement, page: Document): (() => void) => {
 export default function Frame(props: Readonly<Props>) {
   const {
     html,
+    turn,
     label,
     stranger,
     tall,
@@ -62,7 +71,7 @@ export default function Frame(props: Readonly<Props>) {
     let stopSheeting = () => {};
     let live = true;
     let drawing = 0;
-    let put = said.current.html;
+    const first = said.current.html;
     let loadedYet = false;
     const undressed = () => {
       for (const one of dressedUp.lent) one.drop();
@@ -77,17 +86,18 @@ export default function Frame(props: Readonly<Props>) {
     const retheme = () => {
       if (held.contentDocument) dressed(held.contentDocument);
     };
+    // A frame moved in the page loads its first words again, so whatever is newer is put back.
     const loaded = () => {
       const page = held.contentDocument;
       const sheet = page?.querySelector(".page");
       // A document already wired keeps its listeners, and wiring it twice would answer every click twice.
       if (!page || !sheet || page.documentElement.hasAttribute("data-wired")) return;
       page.documentElement.setAttribute("data-wired", "");
+      undressed();
+      stopGrowing();
+      stopSheeting();
       loadedYet = true;
-      if (put !== said.current.html) {
-        put = said.current.html;
-        sheet.innerHTML = put;
-      }
+      if (said.current.html !== first) freshen(sheet, said.current.html);
       wired(page, () => said.current.reach());
       sheet.removeAttribute("inert");
       page.documentElement.classList.toggle("tall", tall);
@@ -105,10 +115,9 @@ export default function Frame(props: Readonly<Props>) {
     swap.current = (next) => {
       const page = held.contentDocument;
       const sheet = page?.querySelector(".page");
-      if (!loadedYet || !page || !sheet || next === put) return;
+      if (!loadedYet || !page || !sheet) return;
       undressed();
-      put = next;
-      sheet.innerHTML = next;
+      freshen(sheet, next);
       dress(page);
       laid.current();
       said.current.onReady(held);
@@ -119,7 +128,7 @@ export default function Frame(props: Readonly<Props>) {
       attributeFilter: ["data-theme"],
     });
     held.addEventListener("load", loaded);
-    held.srcdoc = shell(put);
+    held.srcdoc = shell(first);
     return () => {
       live = false;
       swap.current = () => {};
@@ -132,8 +141,8 @@ export default function Frame(props: Readonly<Props>) {
     };
   }, [stranger, tall, untitled]);
 
-  // Before the page is painted, so no click lands on words that are no longer there.
-  useLayoutEffect(() => swap.current(html), [html]);
+  // Every drawing is dressed anew before it is painted, even one drawn the same: what it leans on may have changed.
+  useLayoutEffect(() => swap.current(html), [html, turn]);
 
   useEffect(() => {
     frame.current?.contentDocument?.documentElement.classList.toggle("shaping", shaping);

@@ -97,17 +97,17 @@ export default function Page(props: Readonly<Props>) {
     reach.current.onShown?.(frame.contentWindow);
   };
 
-  const now = drawing;
   const current = <K extends keyof Reaching>(asked: K): Reaching[K] | undefined =>
-    now && now.turn === turns.current ? reach.current[asked] : undefined;
+    drawing && drawing.turn === turns.current ? reach.current[asked] : undefined;
   return (
     // Hidden until the first drawing is ready, then shown at once: a fade on every task opened is a wait.
     <div
       className={`${tall ? "relative" : "relative flex min-h-0 flex-1 flex-col"} ${seen ? "opacity-100" : "opacity-0"}`}
     >
-      {now && (
+      {drawing && (
         <Frame
-          html={now.html}
+          html={drawing.html}
+          turn={drawing.turn}
           label={label}
           stranger={stranger}
           tall={tall}
@@ -119,7 +119,7 @@ export default function Page(props: Readonly<Props>) {
           zoom={zoom}
           reach={() => ({
             ...reach.current,
-            body: now.body,
+            body: drawing.body,
             // A page with a newer drawing on its way names bytes nobody is writing any more.
             onBlock: current("onBlock"),
             onTick: current("onTick"),
@@ -131,7 +131,7 @@ export default function Page(props: Readonly<Props>) {
             onMenu: current("onMenu"),
             onMore: current("onMore"),
           })}
-          onReady={(frame) => ready(now, frame)}
+          onReady={(frame) => ready(drawing, frame)}
         />
       )}
     </div>
