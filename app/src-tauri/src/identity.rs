@@ -429,14 +429,11 @@ pub(crate) fn phrase_key(session: &Mutex<Session>) -> Answer<Option<CloudKey>> {
     Ok(seed_here(session)?.map(|seed| CloudKey::of(&seed)))
 }
 
-pub(crate) fn cloud_key(session: &Mutex<Session>) -> Answer<Option<CloudKey>> {
-    if let Some(key) = phrase_key(session)? {
-        return Ok(Some(key));
+pub(crate) fn cloud_key(session: &Mutex<Session>, cloud: &str) -> Answer<Option<CloudKey>> {
+    if held(session).config.key_handed.as_deref() != Some(cloud) {
+        return phrase_key(session);
     }
-    let Some(cloud) = held(session).config.key_handed.clone() else {
-        return Ok(None);
-    };
-    crate::handed::kept(&cloud).map_err(|why| {
+    crate::handed::kept(cloud).map_err(|why| {
         crate::handed::unread(why);
         Refusal::of("identityUnread")
     })

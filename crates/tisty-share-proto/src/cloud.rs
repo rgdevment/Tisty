@@ -33,6 +33,22 @@ impl CloudKey {
         self.0.clone()
     }
 
+    pub fn to_text(&self) -> Zeroizing<String> {
+        use base64::Engine;
+        Zeroizing::new(base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(self.0.as_ref()))
+    }
+
+    pub fn from_text(said: &str) -> Option<Self> {
+        use base64::Engine;
+        let bytes = Zeroizing::new(
+            base64::engine::general_purpose::URL_SAFE_NO_PAD
+                .decode(said)
+                .ok()?,
+        );
+        let key = Zeroizing::new(<[u8; 32]>::try_from(bytes.as_slice()).ok()?);
+        Some(Self::from_bytes(&key))
+    }
+
     pub fn named_for(&self, cloud: &str) -> String {
         self.id(cloud)
             .iter()

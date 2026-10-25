@@ -287,3 +287,62 @@ fn an_answer_that_does_not_open_is_taken_away_so_another_can_come() {
 
     assert!(asking(&two.asker, &knocking, &two.asking).unwrap());
 }
+
+fn signed_at(two: &Two, at: i64, one_use: &OneUse) -> Ask {
+    let signer = tisty_core::signing::mine(&two.asking.paths, &two.asking.device).unwrap();
+    Ask::signed(&two.asking.device.0, "PC", &signer, one_use, &two.cloud, at)
+}
+
+#[test]
+fn an_ask_left_unanswered_for_an_hour_is_made_again() {
+    let two = two();
+    let knocking = Knocking::default();
+    let one_use = OneUse::minted().unwrap();
+    *knocking.asked.lock().unwrap() =
+        Some((signed_at(&two, now() - ASKED_AGAIN - 60, &one_use), one_use));
+
+    asking(&two.asker, &knocking, &two.asking).unwrap();
+
+    let up_there = tisty_carrier::knock::knocks(&*two.plain, &two.asking.home).unwrap();
+    assert_eq!(up_there.len(), 1);
+    assert!(now() - up_there[0].ask.at < 60);
+}
+
+#[test]
+fn an_ask_from_a_clock_running_ahead_is_answered_and_one_from_far_ahead_is_taken_away() {
+    let two = two();
+    sealed_with(&two, &key(7));
+    knows(&two.giver, &two.asking);
+    let one_use = OneUse::minted().unwrap();
+    let ahead = signed_at(&two, now() + 10 * 60, &one_use);
+    tisty_carrier::knock::knocked(&*two.plain, &two.asking.home, &ahead).unwrap();
+
+    answering(&two.giver, &two.giving, &key(7)).unwrap();
+    assert!(
+        tisty_carrier::knock::answered(&*two.plain, &two.asking.home, &two.asking.device.0)
+            .unwrap()
+            .is_some()
+    );
+
+    let far = signed_at(&two, now() + JOINED_FOR + 60, &OneUse::minted().unwrap());
+    tisty_carrier::knock::knocked(&*two.plain, &two.asking.home, &far).unwrap();
+    answering(&two.giver, &two.giving, &key(7)).unwrap();
+    assert!(
+        tisty_carrier::knock::knocks(&*two.plain, &two.asking.home)
+            .unwrap()
+            .is_empty()
+    );
+}
+
+#[test]
+fn the_flag_is_let_go_of_even_when_the_work_under_it_falls_over() {
+    let busy = AtomicBool::new(true);
+
+    let fell = std::panic::catch_unwind(|| {
+        let _free = Free(&busy);
+        panic!("the work fell over");
+    });
+
+    assert!(fell.is_err());
+    assert!(!busy.load(Ordering::Acquire));
+}

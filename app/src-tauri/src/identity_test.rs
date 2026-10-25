@@ -364,7 +364,7 @@ fn a_key_another_machine_handed_here_opens_a_sealed_cloud_without_the_phrase() {
         Some(key.named_for(&cloud))
     );
     assert_eq!(
-        cloud_key(&session)
+        cloud_key(&session, &cloud)
             .unwrap()
             .map(|one| one.named_for(&cloud)),
         Some(key.named_for(&cloud))
@@ -382,7 +382,7 @@ fn a_key_kept_but_never_said_handed_is_not_read() {
     tauri::async_runtime::block_on(seal_the_cloud(&session));
 
     assert_eq!(sealed_now(&session), None);
-    assert!(cloud_key(&session).unwrap().is_none());
+    assert!(cloud_key(&session, &cloud).unwrap().is_none());
 }
 
 #[test]

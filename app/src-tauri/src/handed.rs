@@ -2,8 +2,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use base64::Engine;
-use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use tauri::{AppHandle, Emitter, Manager};
 use tisty_carrier::{Remote, Sealing, knock};
 use tisty_core::Paths;
@@ -11,16 +9,16 @@ use tisty_core::event::DeviceId;
 use tisty_core::witness::{self, Fact, channel};
 use tisty_share_proto::cloud::CloudKey;
 use tisty_share_proto::handing::{Ask, OneUse, SigningKey, handed};
-use zeroize::Zeroizing;
 
 use crate::{Session, held};
 
 const KEY: &str = "key";
 const JOINED_FOR: i64 = 7 * 24 * 60 * 60;
 const NEW_FOR: i64 = 60 * 60;
-const AHEAD_AT_MOST: i64 = 5 * 60;
+// Asked again within the hour, so an ask lost or taken away up there never leaves this machine waiting a week.
+const ASKED_AGAIN: i64 = 60 * 60;
 const ANSWERED_EVERY: Duration = Duration::from_secs(5 * 60);
-const ASKED_EVERY: Duration = Duration::from_secs(60);
+const ASKED_EVERY: Duration = Duration::from_secs(2 * 60);
 
 /// The one-use key lives only here, so a restart asks again rather than leaving a secret on disk.
 #[derive(Default)]
@@ -38,14 +36,22 @@ struct Here {
     home: std::path::PathBuf,
 }
 
+struct Free<'a>(&'a AtomicBool);
+
+impl Drop for Free<'_> {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::Release);
+    }
+}
+
 pub fn tend(app: AppHandle) {
+    if app.state::<Knocking>().busy.swap(true, Ordering::AcqRel) {
+        return;
+    }
     std::thread::spawn(move || {
         let knocking = app.state::<Knocking>();
-        if knocking.busy.swap(true, Ordering::AcqRel) {
-            return;
-        }
+        let _free = Free(&knocking.busy);
         tended(&app, &knocking);
-        knocking.busy.store(false, Ordering::Release);
     });
 }
 
@@ -101,7 +107,8 @@ fn tended(app: &AppHandle, knocking: &Knocking) {
         plain,
         home,
     };
-    let done = match keyed {
+    // A key only guessed from a phrase may not be this cloud's, and handing it out would hand out nothing.
+    let done = match keyed.filter(|keyed| opens(&here, &keyed.key)) {
         Some(keyed) => answering(&session, &here, &keyed.key),
         None => asking(&session, knocking, &here).map(|took| {
             if took {
@@ -149,7 +156,7 @@ fn asking(session: &Mutex<Session>, knocking: &Knocking, here: &Here) -> Result<
     let mut asked = knocking.asked.lock().map_err(|e| e.to_string())?;
     let stale = asked
         .as_ref()
-        .is_none_or(|(ask, _)| ask.cloud != here.cloud || now() - ask.at > JOINED_FOR);
+        .is_none_or(|(ask, _)| ask.cloud != here.cloud || now() - ask.at > ASKED_AGAIN);
     if stale {
         if !seated {
             return Ok(false);
@@ -191,13 +198,18 @@ fn opens(here: &Here, key: &CloudKey) -> bool {
 
 fn took(session: &Mutex<Session>, here: &Here, key: &CloudKey) -> Result<(), String> {
     keep(&here.cloud, key)?;
-    {
+    let was = {
         let mut session = held(session);
+        let was = session.config.key_handed.clone();
         let cloud = here.cloud.clone();
         session
             .keep(|config| config.key_handed = Some(cloud))
             .map_err(|refusal| refusal.code.to_string())?;
         session.reach.tried_for(None);
+        was
+    };
+    if let Some(was) = was.filter(|was| *was != here.cloud) {
+        forget(&was);
     }
     if let Err(why) = knock::withdrawn(&*here.plain, &here.home, &here.device.0) {
         witness::note(
@@ -231,10 +243,12 @@ fn answered(
 ) -> Result<(), String> {
     let (seated, known) = seat_of(session, &one.ask);
     let age = now() - one.ask.at;
-    if age > if seated { JOINED_FOR } else { NEW_FOR } {
+    let lasts = if seated { JOINED_FOR } else { NEW_FOR };
+    // The time only tidies the box; an old ask replayed opens for nobody without its one-use key.
+    if age > lasts || age < -JOINED_FOR {
         return knock::withdrawn(&*here.plain, &here.home, &one.ask.device).map_err(hitched);
     }
-    if one.answered || !known || !fits(&one.ask, here, age) {
+    if one.answered || !known || !fits(&one.ask, here) {
         return Ok(());
     }
     let answer = handed(&one.ask, key, &here.device.0, signer)
@@ -242,8 +256,8 @@ fn answered(
     knock::answer(&*here.plain, &here.home, &one.ask.device, &answer).map_err(hitched)
 }
 
-fn fits(ask: &Ask, here: &Here, age: i64) -> bool {
-    ask.holds() && ask.cloud == here.cloud && ask.device != here.device.0 && age >= -AHEAD_AT_MOST
+fn fits(ask: &Ask, here: &Here) -> bool {
+    ask.holds() && ask.cloud == here.cloud && ask.device != here.device.0
 }
 
 fn seat_of(session: &Mutex<Session>, ask: &Ask) -> (bool, bool) {
@@ -268,25 +282,35 @@ pub fn kept(cloud: &str) -> Result<Option<CloudKey>, String> {
     let Some(said) = secrets.read(KEY).map_err(|e| format!("{e:?}"))? else {
         return Ok(None);
     };
-    let said = Zeroizing::new(said);
-    let bytes = Zeroizing::new(URL_SAFE_NO_PAD.decode(said.as_bytes()).unwrap_or_default());
-    match <[u8; 32]>::try_from(bytes.as_slice()) {
-        Ok(key) => Ok(Some(CloudKey::from_bytes(&Zeroizing::new(key)))),
-        Err(_) => {
-            witness::warn(
-                channel::STORE,
-                "what was kept as the cloud's key is not one, so it counts as none",
-                &[],
-            );
-            Ok(None)
-        }
+    let said = zeroize::Zeroizing::new(said);
+    let key = CloudKey::from_text(&said);
+    if key.is_none() {
+        witness::warn(
+            channel::STORE,
+            "what was kept as the cloud's key is not one, so it counts as none",
+            &[],
+        );
     }
+    Ok(key)
 }
 
 pub fn keep(cloud: &str, key: &CloudKey) -> Result<(), String> {
     let secrets = crate::reaching::seed_secrets(&scope(cloud)).map_err(|e| format!("{e:?}"))?;
-    let said = Zeroizing::new(URL_SAFE_NO_PAD.encode(key.to_bytes().as_ref()));
-    secrets.write(KEY, &said).map_err(|e| format!("{e:?}"))
+    secrets
+        .write(KEY, &key.to_text())
+        .map_err(|e| format!("{e:?}"))
+}
+
+// A handed key is handed again by any other machine, so one for a cloud left behind is not kept.
+fn forget(cloud: &str) {
+    let gone = crate::reaching::seed_secrets(&scope(cloud)).and_then(|secrets| secrets.forget(KEY));
+    if let Err(why) = gone {
+        witness::note(
+            channel::STORE,
+            "the key of a cloud this computer no longer reads could not be let go of",
+            &[("why", Fact::Why(format!("{why:?}")))],
+        );
+    }
 }
 
 pub fn unread(why: String) {

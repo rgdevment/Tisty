@@ -36,14 +36,20 @@ fn named(device: &str, end: &str) -> Result<String, Hitch> {
     }
 }
 
-struct Bounded<'a>(&'a mut Vec<u8>);
+// Past the cap the bytes are dropped rather than refused, so a file too large reads as unreadable, not as a failed fetch.
+#[derive(Default)]
+struct Bounded {
+    said: Vec<u8>,
+    over: bool,
+}
 
-impl Write for Bounded<'_> {
+impl Write for Bounded {
     fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
-        if self.0.len() as u64 + bytes.len() as u64 > AT_MOST {
-            return Err(std::io::Error::other("too large to be a knock"));
+        match self.said.len() as u64 + bytes.len() as u64 > AT_MOST {
+            true => self.over = true,
+            false => self.said.extend_from_slice(bytes),
         }
-        self.0.write(bytes)
+        Ok(bytes.len())
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
@@ -51,11 +57,18 @@ impl Write for Bounded<'_> {
     }
 }
 
-fn read<T: DeserializeOwned>(remote: &dyn Remote, name: &str) -> Result<Option<T>, Hitch> {
-    let mut said = Vec::new();
-    match remote.fetch(name, 0, &mut Bounded(&mut said)) {
-        Ok(_) => Ok(serde_json::from_slice(&said).ok()),
-        Err(Hitch::Missing(_)) => Ok(None),
+enum Found<T> {
+    Missing,
+    Unread,
+    Read(T),
+}
+
+fn read<T: DeserializeOwned>(remote: &dyn Remote, name: &str) -> Result<Found<T>, Hitch> {
+    let mut bounded = Bounded::default();
+    match remote.fetch(name, 0, &mut bounded) {
+        Ok(_) if bounded.over => Ok(Found::Unread),
+        Ok(_) => Ok(serde_json::from_slice(&bounded.said).map_or(Found::Unread, Found::Read)),
+        Err(Hitch::Missing(_)) => Ok(Found::Missing),
         Err(other) => Err(other),
     }
 }
@@ -113,7 +126,10 @@ pub fn knocks(plain: &dyn Remote, home: &Path) -> Result<Vec<Knock>, Hitch> {
         if one.bytes > AT_MOST || !plain_name(device) {
             continue;
         }
-        if let Some(ask) = read::<Ask>(&metered, &one.name)?.filter(|ask| ask.device == device) {
+        // One ask that cannot be read now is passed over this time, never the rest with it.
+        if let Ok(Found::Read(ask)) = read::<Ask>(&metered, &one.name)
+            && ask.device == device
+        {
             found.push(Knock {
                 answered: answered(device),
                 ask,
@@ -132,9 +148,15 @@ pub fn answer(plain: &dyn Remote, home: &Path, device: &str, handed: &Handed) ->
     }
 }
 
+/// An answer that cannot be read goes at once, since every machine with the key takes it for answered.
 pub fn answered(plain: &dyn Remote, home: &Path, device: &str) -> Result<Option<Handed>, Hitch> {
     let metered = Metered::over(plain, home, Class::Sealing);
-    read(&metered, &named(device, KEY)?)
+    let name = named(device, KEY)?;
+    match read(&metered, &name)? {
+        Found::Read(handed) => Ok(Some(handed)),
+        Found::Unread => gone(&metered, &name).map(|()| None),
+        Found::Missing => Ok(None),
+    }
 }
 
 pub fn unanswered(plain: &dyn Remote, home: &Path, device: &str) -> Result<(), Hitch> {

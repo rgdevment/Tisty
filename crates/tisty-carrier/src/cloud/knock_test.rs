@@ -130,3 +130,16 @@ fn a_key_brought_by_a_knock_is_taken_only_if_it_opens_the_cloud_s_mark() {
     assert!(!opens(&*fake, home.path(), &forged, CLOUD));
     assert!(!opens(&*fake, home.path(), &got, "store_two"));
 }
+
+#[test]
+fn an_answer_that_cannot_be_read_is_taken_away_and_one_ask_unread_never_hides_the_others() {
+    let (fake, home) = (Fake::drive(), tempfile::tempdir().unwrap());
+    let ask = asked("dev_b", &OneUse::minted().unwrap());
+    knocked(&fake, home.path(), &ask).unwrap();
+    put(&fake, "knock/dev_b.key", b"{ not an answer");
+    put(&fake, "knock/dev_c.ask", &vec![b' '; 5000]);
+
+    assert_eq!(answered(&fake, home.path(), "dev_b").unwrap(), None);
+    assert!(!knocks(&fake, home.path()).unwrap()[0].answered);
+    assert_eq!(knocks(&fake, home.path()).unwrap().len(), 1);
+}
