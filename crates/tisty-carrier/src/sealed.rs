@@ -1,6 +1,5 @@
 use std::io::Write;
-use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::path::Path;
 
 use tisty_share_proto::cloud::{CloudKey, Mark, Unsealed, mark, mark_says, open, seal};
 use tisty_sync::{MARKER, NAMED, STORE};
@@ -12,39 +11,11 @@ const HEADER: u64 = 24;
 const TAG: u64 = 16;
 const BLOCK: u64 = 64 * 1024;
 
-static TEMPS: AtomicU64 = AtomicU64::new(0);
-
 pub struct Sealed<R> {
     inner: R,
     key: CloudKey,
     cloud: String,
     root: String,
-}
-
-pub(crate) struct Temp(pub(crate) PathBuf);
-
-impl Temp {
-    pub(crate) fn new() -> Self {
-        let n = TEMPS.fetch_add(1, Ordering::Relaxed);
-        let at = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map_or(0, |since| since.as_nanos());
-        Self(std::env::temp_dir().join(format!("tisty-sealed-{}-{n}-{at:x}", std::process::id())))
-    }
-
-    pub(crate) fn create(&self) -> std::io::Result<std::fs::File> {
-        let mut options = std::fs::OpenOptions::new();
-        options.write(true).create_new(true);
-        #[cfg(unix)]
-        std::os::unix::fs::OpenOptionsExt::mode(&mut options, 0o600);
-        options.open(&self.0)
-    }
-}
-
-impl Drop for Temp {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_file(&self.0);
-    }
 }
 
 fn broke(e: impl ToString) -> Hitch {
@@ -124,7 +95,7 @@ impl<R: Remote> Sealed<R> {
             None => {}
         }
         let said = mark(&self.key, &self.cloud).ok_or_else(|| broke("no way to mark the cloud"))?;
-        let held = Temp::new();
+        let held = crate::temp::Temp::new();
         let mut file = held.create().map_err(broke)?;
         file.write_all(&said).map_err(broke)?;
         drop(file);
@@ -254,7 +225,7 @@ impl<R: Remote> Remote for Sealed<R> {
         self.reserved(name)
             .map_err(|_| Hitch::Missing(name.to_string()))?;
         let inner = self.placed(name);
-        let (cipher, plain) = (Temp::new(), Temp::new());
+        let (cipher, plain) = (crate::temp::Temp::new(), crate::temp::Temp::new());
         let mut to = cipher.create().map_err(broke)?;
         let got = self.inner.fetch(&inner, 0, &mut to);
         drop(to);
@@ -275,9 +246,6 @@ impl<R: Remote> Remote for Sealed<R> {
         drop(to_plain);
         let hash = self.inner.hash_of(&plain.0).map_err(broke)?;
         let mut read = std::fs::File::open(&plain.0).map_err(broke)?;
-        if from > read.metadata().map_err(broke)?.len() {
-            return Err(broke(format!("{name} was asked for past its end")));
-        }
         std::io::Seek::seek(&mut read, std::io::SeekFrom::Start(from)).map_err(broke)?;
         std::io::copy(&mut read, into).map_err(broke)?;
         Ok(self.seen(got, name, hash))
@@ -289,7 +257,7 @@ impl<R: Remote> Remote for Sealed<R> {
         }
         self.reserved(name)?;
         let inner = self.placed(name);
-        let (cipher, snapshot) = (Temp::new(), Temp::new());
+        let (cipher, snapshot) = (crate::temp::Temp::new(), crate::temp::Temp::new());
         let mut source = std::fs::File::open(from).map_err(broke)?;
         let mut copy = snapshot.create().map_err(broke)?;
         std::io::copy(&mut source, &mut copy).map_err(broke)?;

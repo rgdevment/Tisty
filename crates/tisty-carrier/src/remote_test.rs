@@ -361,13 +361,12 @@ fn the_hash_follows_the_content_and_is_the_one_the_provider_reports() {
 
         assert_eq!(hashed, remote.hash_of(&same).unwrap(), "{who}");
         // A provider that keeps no fingerprint says so the same way everywhere, and size and revision stand in.
-        match remote.reports_hashes() || remote.seals() {
+        match remote.hashes_locally() {
             true => assert_ne!(hashed, remote.hash_of(&other).unwrap(), "{who}"),
             false => assert!(hashed.is_empty(), "{who}"),
         }
         let landed = remote.put("x", &one, Expect::Absent).unwrap();
         assert_eq!(landed.hash, hashed, "{who}: a landing is checked unread");
-        // A sealed listing sees only the sealed bytes, so it cannot say their hash in the clear.
         let listed = match remote.seals() {
             true => String::new(),
             false => landed.hash.clone(),

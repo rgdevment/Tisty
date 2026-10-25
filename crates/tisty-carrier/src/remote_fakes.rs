@@ -49,6 +49,10 @@ pub trait Counting: Remote {
     fn seals(&self) -> bool {
         false
     }
+
+    fn hashes_locally(&self) -> bool {
+        self.reports_hashes()
+    }
 }
 
 struct Entry {
@@ -833,6 +837,7 @@ impl<R: Counting> Counting for crate::Sealed<R> {
             "onedrive" => "sealed-onedrive",
             "dropbox" => "sealed-dropbox",
             "folder-backed" => "sealed-folder-backed",
+            "bare-webdav" => "sealed-bare-webdav",
             _ => "sealed-other",
         }
     }
@@ -876,6 +881,10 @@ impl<R: Counting> Counting for crate::Sealed<R> {
     fn seals(&self) -> bool {
         true
     }
+
+    fn hashes_locally(&self) -> bool {
+        self.inner().reports_hashes()
+    }
 }
 
 pub fn sealed_over<R: Remote>(inner: R) -> crate::Sealed<R> {
@@ -902,5 +911,6 @@ pub fn every_with(shape: impl Fn(Fake) -> Fake) -> Vec<Box<dyn Counting>> {
         Box::new(sealed_over(shape(Fake::drive()))),
         Box::new(sealed_over(shape(Fake::onedrive()))),
         Box::new(sealed_over(shape(Fake::dropbox()))),
+        Box::new(sealed_over(Bare::over(shape(Fake::webdav())))),
     ]
 }

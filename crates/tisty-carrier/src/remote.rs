@@ -159,16 +159,21 @@ pub trait Watch: Send {
 pub fn renamed_by_copy<R: Remote + ?Sized>(remote: &R, from: &str, to: &str) -> Result<(), Hitch> {
     named_well(from)?;
     named_well(to)?;
-    if remote.limits().folds_case && from.eq_ignore_ascii_case(to) {
+    if from == to {
         return Ok(());
     }
-    let held = crate::sealed::Temp::new();
+    if remote.limits().folds_case && from.to_lowercase() == to.to_lowercase() {
+        return Err(Hitch::Broke(format!(
+            "{from} cannot be renamed by copy to {to} where the provider folds case"
+        )));
+    }
+    let held = crate::temp::Temp::new();
     let mut into = held.create().map_err(|e| Hitch::Broke(e.to_string()))?;
     let took = remote.fetch(from, 0, &mut into);
     drop(into);
-    let took = took?;
+    took?;
     remote.put(to, &held.0, Expect::Any)?;
-    remote.delete(from, Some(&took.revision))
+    remote.delete(from, None)
 }
 
 pub fn named_well(name: &str) -> Result<(), Hitch> {
