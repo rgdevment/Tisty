@@ -169,11 +169,11 @@ pub async fn seal_the_cloud(session: &Mutex<Session>) {
         let tree = tisty_carrier::mirrored_at(&session.reach.home_of(&at));
         (at, tree)
     };
-    // The log only lends the key: the place's word alone says when to read sealed, so a turn still copying reads plain.
+    // Only a copy still being sealed is read plain on the log's word; a place that says plain never is.
     let said = match tisty_carrier::sealing_of(&tree) {
         tisty_carrier::Sealing::Sealed(cloud) => Some(Some(cloud)),
-        tisty_carrier::Sealing::Copying(tisty_carrier::Turn::Off) => Some(None),
-        _ => None,
+        tisty_carrier::Sealing::Copying(tisty_carrier::Turn::On) => None,
+        _ => Some(None),
     };
     let (paths, forebears, persons, locked) = {
         let session = held(session);
@@ -399,7 +399,6 @@ pub(crate) fn phrase_key(session: &Mutex<Session>) -> Answer<Option<CloudKey>> {
     Ok(seed_here(session)?.map(|seed| CloudKey::of(&seed)))
 }
 
-/// Whether this machine keeps the person's phrase, and whether it was typed back here.
 pub(crate) fn standing(session: &Mutex<Session>) -> Answer<(bool, bool)> {
     let kept = seed_person(session)?;
     let session = held(session);

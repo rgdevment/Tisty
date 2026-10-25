@@ -122,7 +122,6 @@ impl Reaching {
             .map(|(carrier, _)| carrier)
     }
 
-    // The provider as it is, for a turn that reads and writes both sides of the cloud.
     pub fn plain(&self, at: &CloudAt) -> Result<Arc<dyn tisty_carrier::Remote>, String> {
         let home = self.home_of(at);
         tisty_carrier::off::away(|| remote_of(&home, at)).map(|(remote, _)| remote)

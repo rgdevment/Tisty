@@ -1152,11 +1152,14 @@ fn patiently(mut once: impl FnMut() -> Result<(), crate::Hitch>) -> Result<(), c
     }
 }
 
-/// What a provider answered, told apart: a wait that passes by itself, or the trouble that stops.
-pub fn stops(hitch: crate::Hitch, provider: &str) -> Option<Trouble> {
+// A wait the provider named is kept, and one that only the next day or the person ends is not asked about every minute.
+pub fn pause_for(hitch: crate::Hitch, provider: &str) -> Result<Duration, Trouble> {
     match judge(hitch, provider) {
-        Judged::Pause(..) => None,
-        Judged::Stop(trouble) => Some(trouble),
+        Judged::Pause(_, Some(wait), _) => Ok(wait),
+        Judged::Pause(crate::Reason::Budget, None, _) => Ok(Duration::from_secs(30 * 60)),
+        Judged::Pause(crate::Reason::Paused, None, _) => Ok(Duration::from_secs(5 * 60)),
+        Judged::Pause(..) => Ok(Duration::from_secs(60)),
+        Judged::Stop(trouble) => Err(trouble),
     }
 }
 

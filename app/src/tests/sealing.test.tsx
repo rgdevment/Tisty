@@ -174,6 +174,8 @@ describe("a turn under way", () => {
     expect(screen.getByText(/2 files are too big to encrypt/)).toBeTruthy();
     await heard({ ...copying, step: "stopped", why: "cloudOtherPhrase" });
     expect(screen.getByRole("alert").textContent).toMatch(/different 24-word phrase/);
+    await userEvent.click(screen.getByRole("button", { name: "Try again" }));
+    await waitFor(() => expect(sent("sealing_resume")).toHaveLength(1));
 
     await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
     await waitFor(() => expect(sent("sealing_cancel")).toHaveLength(1));

@@ -66,6 +66,7 @@ pub enum Stepped {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Left {
     pub on: bool,
+    pub cloud: String,
     pub moved: u64,
 }
 
@@ -270,10 +271,10 @@ impl Turning {
         })
     }
 
-    /// A turn of this machine's own left half way, without asking the key for it.
     pub fn left(home: &Path) -> Option<Left> {
         Journal::load(home).map(|journal| Left {
             on: journal.on,
+            cloud: journal.cloud,
             moved: journal.moved,
         })
     }
@@ -692,7 +693,6 @@ pub fn wipe_behind(
     Ok(gone)
 }
 
-/// What turning would copy, so the room it asks for can be said before it begins.
 pub fn turn_size(plain: &dyn Remote) -> Result<u64, Hitch> {
     let folds = plain.limits().folds_case;
     Ok(plain

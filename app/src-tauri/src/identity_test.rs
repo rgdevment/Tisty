@@ -113,7 +113,6 @@ fn another_account_is_worked_out_again_rather_than_read_with_the_last_one_key() 
     tauri::async_runtime::block_on(seal_the_cloud(&session));
 
     on(&session, account("otra"));
-    sealed_up_there(&session, "cloud_one");
     tauri::async_runtime::block_on(seal_the_cloud(&session));
 
     assert_eq!(
@@ -285,4 +284,42 @@ fn without_an_identity_a_sealed_cloud_never_asks_the_keychain_for_a_phrase() {
 
     assert_eq!(sealed_now(&session), None);
     assert_eq!(crate::reaching::reads_of(&asked), before);
+}
+
+fn word_here(session: &Mutex<Session>, word: &str) {
+    let tree = {
+        let session = held(session);
+        tisty_carrier::mirrored_at(&session.reach.home_of(&account("mario")))
+    };
+    std::fs::create_dir_all(&tree).unwrap();
+    std::fs::write(tree.join("tisty.toml"), word).unwrap();
+}
+
+#[test]
+fn a_place_that_says_plain_while_the_log_names_it_sealed_is_still_read_sealed() {
+    let kept = tempfile::tempdir().unwrap();
+    let session = opened(&kept);
+    keep(&held(&session).paths, &seed(7)).unwrap();
+    said_sealed(&session, "cloud_one", &seed(7));
+    word_here(&session, "shape = 3\n");
+
+    tauri::async_runtime::block_on(seal_the_cloud(&session));
+
+    assert_eq!(
+        sealed_now(&session).map(|one| one.cloud),
+        Some("cloud_one".into())
+    );
+}
+
+#[test]
+fn a_cloud_still_being_sealed_is_read_plain_even_once_the_log_names_its_key() {
+    let kept = tempfile::tempdir().unwrap();
+    let session = opened(&kept);
+    keep(&held(&session).paths, &seed(7)).unwrap();
+    said_sealed(&session, "cloud_one", &seed(7));
+    word_here(&session, "shape = 3\nsealing = \"copying:seal:dev_a:1\"\n");
+
+    tauri::async_runtime::block_on(seal_the_cloud(&session));
+
+    assert_eq!(sealed_now(&session), None);
 }

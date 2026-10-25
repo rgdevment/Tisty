@@ -9,6 +9,7 @@ import {
   type SealTold,
   sealingBegin,
   sealingCancel,
+  sealingResume,
   sealingRoom,
   sealingShown,
   sealingWipe,
@@ -124,6 +125,7 @@ export default function Sealing({ busy, said, trouble, tell, fail, onChanged }: 
       {shown.state === "turning" && shown.turning && (
         <Progress
           told={shown.turning}
+          onAgain={() => sealingResume().catch(failed)}
           onCancel={() =>
             sure(t("sealCancelSure"))
               .then((yes) => (yes ? sealingCancel().then(look) : undefined))
@@ -286,7 +288,15 @@ function Before({
 
 const STEPS = ["copying", "settling", "done"] as const;
 
-function Progress({ told, onCancel }: { told: SealTold; onCancel: () => void }) {
+function Progress({
+  told,
+  onCancel,
+  onAgain,
+}: {
+  told: SealTold;
+  onCancel: () => void;
+  onAgain: () => void;
+}) {
   const at =
     told.step === "claimed"
       ? 0
@@ -331,10 +341,15 @@ function Progress({ told, onCancel }: { told: SealTold; onCancel: () => void }) 
         </p>
       )}
       <p className="mt-3 text-[11.5px] text-faint">{t("sealIntact")}</p>
-      <div className="mt-3 flex justify-end">
+      <div className="mt-3 flex flex-wrap justify-end gap-2">
         <button type="button" className={mild} onClick={onCancel}>
           {t("cancel")}
         </button>
+        {told.step === "stopped" && (
+          <button type="button" className={strong} onClick={onAgain}>
+            {t("tryAgain")}
+          </button>
+        )}
       </div>
     </>
   );

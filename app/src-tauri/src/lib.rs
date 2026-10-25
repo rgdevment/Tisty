@@ -1224,6 +1224,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         sealing::sealing_begin,
         sealing::sealing_cancel,
         sealing::sealing_wipe,
+        sealing::sealing_resume,
         answers::machines::confirm_machine_key,
         answers::knocking::waiting_machines,
         answers::knocking::this_machine,

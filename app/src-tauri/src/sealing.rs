@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -13,9 +13,11 @@ use tisty_core::witness::{self, Fact, channel};
 use crate::{Answer, Refusal, Session, elsewhere, held};
 
 const ORPHANED_AFTER: u64 = 7 * 24 * 60 * 60;
-const PAUSED_FOR: Duration = Duration::from_secs(30);
+const SETTLING_FOR: Duration = Duration::from_secs(30);
+const LOOKING_EVERY: Duration = Duration::from_secs(5);
 
-static DRIVING: AtomicBool = AtomicBool::new(false);
+// Every drive or cancel moves this on, so a thread left from before sees it is no longer the one carrying the turn.
+static DRIVEN: AtomicU64 = AtomicU64::new(0);
 static LAST: Mutex<Option<Told>> = Mutex::new(None);
 
 #[derive(Debug, Clone, Serialize)]
@@ -157,10 +159,22 @@ fn plain_of(session: &Mutex<Session>) -> Answer<(Arc<dyn Remote>, PathBuf, Cloud
 }
 
 fn refused_by(hitch: tisty_carrier::Hitch, provider: &str) -> Refusal {
-    match tisty_carrier::stops(hitch, provider) {
-        Some(trouble) => crate::said(trouble),
-        None => Refusal::of("cloudNotNow"),
+    match tisty_carrier::pause_for(hitch, provider) {
+        Err(trouble) => crate::said(trouble),
+        Ok(_) => Refusal::of("cloudNotNow"),
     }
+}
+
+fn unsealed(session: &Mutex<Session>, cloud: String) -> Answer<()> {
+    held(session)
+        .commit(Op::CloudSealed { s: cloud, k: None })
+        .map_err(|e| {
+            crate::blamed(
+                channel::STORE,
+                "the turn of the cloud could not be written",
+                e,
+            )
+        })
 }
 
 #[tauri::command(async)]
@@ -207,12 +221,12 @@ pub async fn sealing_begin(
     elsewhere(move || Turning::begin(plain, &home, key, &said, &device, turn).map(|_| ()))
         .await?
         .map_err(|hitch| refused_by(hitch, &at.provider))?;
-    {
-        let mut session = held_session(&session);
-        session
+    // Turning on names the key now, while every machine still reads plain; turning off waits until the place is plain.
+    if on {
+        held_session(&session)
             .commit(Op::CloudSealed {
                 s: cloud,
-                k: on.then_some(named),
+                k: Some(named),
             })
             .map_err(|e| {
                 crate::blamed(
@@ -227,16 +241,32 @@ pub async fn sealing_begin(
 }
 
 #[tauri::command(async)]
+pub fn sealing_resume(app: AppHandle) {
+    drive(app);
+}
+
+#[tauri::command(async)]
 pub async fn sealing_cancel(
     app: AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
 ) -> Answer<()> {
+    DRIVEN.fetch_add(1, Ordering::AcqRel);
     let key = crate::identity::phrase_key(&session)?.ok_or_else(|| Refusal::of("sealingPhrase"))?;
     let (plain, home, at) = plain_of(&session)?;
-    let cloud = {
+    let store = {
         let session = held_session(&session);
         tisty_core::store::peek_identity(session.paths.store())
             .ok_or_else(|| Refusal::of("sealingNoCloud"))?
+    };
+    let word = word_here(&home);
+    let (on, cloud) = match Turning::left(&home) {
+        Some(left) => (left.on, left.cloud),
+        None => (
+            !word
+                .lines()
+                .any(|line| line.trim_start().starts_with("sealed")),
+            store,
+        ),
     };
     let (sealed, ours) = (cloud.clone(), Turning::left(&home).is_some());
     elsewhere(move || match ours {
@@ -248,6 +278,10 @@ pub async fn sealing_cancel(
     })
     .await?
     .map_err(|hitch| refused_by(hitch, &at.provider))?;
+    // A sealing given up leaves the place plain, so the key the claim named must be taken back too.
+    if on {
+        unsealed(&session, cloud)?;
+    }
     told(&app, None);
     Ok(())
 }
@@ -298,40 +332,71 @@ fn told_of(turning: &Turning, stepped: &Stepped) -> Told {
     }
 }
 
-/// Carries on a turn of this machine's own until it is done or stops, waiting out what passes by itself.
 pub fn drive(app: AppHandle) {
-    if DRIVING.swap(true, Ordering::AcqRel) {
-        return;
-    }
-    std::thread::spawn(move || {
-        driven(&app);
-        DRIVING.store(false, Ordering::Release);
-    });
+    let ours = DRIVEN.fetch_add(1, Ordering::AcqRel) + 1;
+    std::thread::spawn(move || driven(&app, ours));
 }
 
-fn driven(app: &AppHandle) {
+fn still(ours: u64) -> bool {
+    DRIVEN.load(Ordering::Acquire) == ours
+}
+
+fn rested(ours: u64, wait: Duration) -> bool {
+    let mut left = wait;
+    while !left.is_zero() {
+        if !still(ours) {
+            return false;
+        }
+        let nap = left.min(LOOKING_EVERY);
+        std::thread::sleep(nap);
+        left -= nap;
+    }
+    still(ours)
+}
+
+fn driven(app: &AppHandle, ours: u64) {
     let session = app.state::<Mutex<Session>>();
+    let home = {
+        let session = held(&session);
+        match turned_at(&session) {
+            Some((_, home)) => home,
+            None => return,
+        }
+    };
+    if Turning::left(&home).is_none() {
+        return;
+    }
     let Ok(Some(key)) = crate::identity::phrase_key(&session) else {
         return;
     };
     let Ok((plain, home, at)) = plain_of(&session) else {
         return;
     };
-    let Some(mut turning) = Turning::resume(plain, &home, key) else {
+    let Some(mut turning) = Turning::resume(plain.clone(), &home, key.clone()) else {
         return;
     };
-    loop {
+    while still(ours) {
         match turning.step() {
             Ok(Stepped::Done) => {
                 told(app, Some(told_of(&turning, &Stepped::Done)));
-                tauri::async_runtime::block_on(crate::identity::seal_the_cloud(&session));
+                ended(&session, &turning, plain, &home, key, at);
                 let _ = app.emit("told", ());
                 return;
             }
+            Ok(Stepped::Settling { left: 0 }) => {
+                told(app, Some(told_of(&turning, &Stepped::Settling { left: 0 })));
+                if !rested(ours, SETTLING_FOR) {
+                    return;
+                }
+            }
             Ok(stepped) => told(app, Some(told_of(&turning, &stepped))),
-            Err(hitch) => match tisty_carrier::stops(hitch, &at.provider) {
-                None => std::thread::sleep(PAUSED_FOR),
-                Some(trouble) => {
+            Err(hitch) => match tisty_carrier::pause_for(hitch, &at.provider) {
+                Ok(wait) => {
+                    if !rested(ours, wait) {
+                        return;
+                    }
+                }
+                Err(trouble) => {
                     let refusal = crate::said(trouble);
                     let mut said = told_of(&turning, &Stepped::Claimed);
                     said.step = "stopped";
@@ -341,6 +406,49 @@ fn driven(app: &AppHandle) {
                 }
             },
         }
+    }
+}
+
+// The carrier is built anew from the turn itself, since the mirror only learns the new word at its next pull.
+fn ended(
+    session: &Mutex<Session>,
+    turning: &Turning,
+    plain: Arc<dyn Remote>,
+    home: &std::path::Path,
+    key: tisty_share_proto::cloud::CloudKey,
+    at: CloudAt,
+) {
+    let (cloud, named) = {
+        let (cloud, named) = turning.said();
+        (cloud.to_string(), named.to_string())
+    };
+    if turning.turn() == Turn::On {
+        let session = held(session);
+        session.reach.tried_for(None);
+        session.reach.seal_with(Some(crate::reaching::Keyed {
+            locked: crate::reaching::Locked { at, cloud, named },
+            key,
+        }));
+        return;
+    }
+    if let Err(why) = unsealed(session, cloud.clone()) {
+        witness::warn(
+            channel::CLOUD,
+            "the cloud went back to plain and the log could not say so",
+            &[("why", Fact::Why(why.code.to_string()))],
+        );
+    }
+    let session_reach = held(session);
+    session_reach.reach.tried_for(None);
+    session_reach.reach.seal_with(None);
+    drop(session_reach);
+    // The sealed copy holds nothing a plain cloud reads, so it goes at once rather than doubling the room.
+    if let Err(why) = tisty_carrier::wipe_behind(plain, home, key, &cloud) {
+        witness::warn(
+            channel::CLOUD,
+            "the sealed copy a plain cloud left behind could not be wiped yet",
+            &[("why", Fact::Why(why.code().to_string()))],
+        );
     }
 }
 

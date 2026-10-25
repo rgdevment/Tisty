@@ -1351,6 +1351,7 @@ export const sealingRoom = (): Promise<SealRoom> => invoke("sealing_room");
 export const sealingBegin = (on: boolean): Promise<void> => invoke("sealing_begin", { on });
 export const sealingCancel = (): Promise<void> => invoke("sealing_cancel");
 export const sealingWipe = (): Promise<number> => invoke("sealing_wipe");
+export const sealingResume = (): Promise<void> => invoke("sealing_resume");
 export const docWord = (bodies: string[], at: string): Promise<void> =>
   invoke("doc_word", { bodies, at });
 

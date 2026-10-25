@@ -36,7 +36,7 @@ pub use cloud::standing::{
     LastRound, OWED_BACK, Standing, cloud_joined, kin_mirrored, mirrored_at, round_forgotten,
     round_noted, standing,
 };
-pub use cloud::{Cloud, forgotten_later, only_up_there, policy, stops};
+pub use cloud::{Cloud, forgotten_later, only_up_there, pause_for, policy};
 pub use folder::Folder;
 #[cfg(not(windows))]
 pub use keychain::Keychain;
