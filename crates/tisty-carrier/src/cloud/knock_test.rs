@@ -1,7 +1,7 @@
 use super::*;
 use crate::fakes::Fake;
 use tisty_share_proto::cloud::CloudKey;
-use tisty_share_proto::handing::{OneUse, SigningKey, handed};
+use tisty_share_proto::handing::{Giver, OneUse, SigningKey, handed};
 use tisty_share_proto::seed::Seed;
 
 const CLOUD: &str = "store_one";
@@ -41,6 +41,7 @@ fn an_ask_is_found_answered_once_and_taken_away_whole() {
         vec![Knock {
             device: "dev_b".into(),
             ask: Some(ask.clone()),
+            offered: false,
         }]
     );
     let first = handed(&ask, &key, "dev_a", &machine(1)).unwrap();
@@ -142,4 +143,27 @@ fn an_answer_that_cannot_be_read_is_taken_away_and_one_ask_unread_never_hides_th
     assert_eq!(answered(&fake, home.path(), "dev_b").unwrap(), None);
     assert!(knocks(&fake, home.path()).unwrap()[0].ask.is_some());
     assert_eq!(knocks(&fake, home.path()).unwrap().len(), 1);
+}
+
+#[test]
+fn the_first_machine_to_take_an_ask_stands_and_asking_again_takes_it_away() {
+    let (fake, home) = (Fake::drive(), tempfile::tempdir().unwrap());
+    let ask = asked("dev_b", &OneUse::minted().unwrap());
+    knocked(&fake, home.path(), &ask).unwrap();
+    let mine = Giver::of("dev_a", "Mac", &machine(1).verifying_key());
+    let theirs = Giver::of("dev_c", "PC", &machine(3).verifying_key());
+
+    assert!(offered(&fake, home.path(), "dev_b", &mine).unwrap());
+    assert!(!offered(&fake, home.path(), "dev_b", &theirs).unwrap());
+    assert_eq!(giver_of(&fake, home.path(), "dev_b").unwrap(), Some(mine));
+    assert!(knocks(&fake, home.path()).unwrap()[0].offered);
+    assert_eq!(ask_of(&fake, home.path(), "dev_b").unwrap(), Some(ask));
+
+    knocked(
+        &fake,
+        home.path(),
+        &asked("dev_b", &OneUse::minted().unwrap()),
+    )
+    .unwrap();
+    assert_eq!(giver_of(&fake, home.path(), "dev_b").unwrap(), None);
 }

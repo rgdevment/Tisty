@@ -4,7 +4,7 @@ use std::path::Path;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use tisty_share_proto::cloud::{CloudKey, Mark};
-use tisty_share_proto::handing::{Ask, Handed};
+use tisty_share_proto::handing::{Ask, Giver, Handed};
 
 use super::budget::{Class, Metered};
 use crate::{Expect, Hitch, Remote};
@@ -12,6 +12,7 @@ use crate::{Expect, Hitch, Remote};
 pub const KNOCK: &str = "knock";
 const ASK: &str = ".ask";
 const KEY: &str = ".key";
+const GIVER: &str = ".giver";
 const AT_MOST: u64 = 4 * 1024;
 
 fn broke(e: impl ToString) -> Hitch {
@@ -105,6 +106,7 @@ fn boxed<'a>(plain: &'a dyn Remote, home: &Path) -> Metered<'a> {
 pub fn knocked(plain: &dyn Remote, home: &Path, ask: &Ask) -> Result<(), Hitch> {
     let metered = boxed(plain, home);
     gone(&metered, &named(&ask.device, KEY)?)?;
+    gone(&metered, &named(&ask.device, GIVER)?)?;
     written(&metered, &named(&ask.device, ASK)?, ask, Expect::Any)
 }
 
@@ -113,15 +115,16 @@ pub fn knocked(plain: &dyn Remote, home: &Path, ask: &Ask) -> Result<(), Hitch> 
 pub struct Knock {
     pub device: String,
     pub ask: Option<Ask>,
+    pub offered: bool,
 }
 
 pub fn knocks(plain: &dyn Remote, home: &Path) -> Result<Vec<Knock>, Hitch> {
     let metered = boxed(plain, home);
     let listed = metered.list(KNOCK)?;
-    let answered = |device: &str| {
+    let there = |device: &str, end: &str| {
         listed
             .iter()
-            .any(|one| named(device, KEY).is_ok_and(|name| name == one.name))
+            .any(|one| named(device, end).is_ok_and(|name| name == one.name))
     };
     let mut found = Vec::new();
     for one in &listed {
@@ -135,10 +138,12 @@ pub fn knocks(plain: &dyn Remote, home: &Path) -> Result<Vec<Knock>, Hitch> {
         if one.bytes > AT_MOST || !plain_name(device) {
             continue;
         }
-        if answered(device) {
+        let offered = there(device, GIVER);
+        if there(device, KEY) {
             found.push(Knock {
                 device: device.to_string(),
                 ask: None,
+                offered,
             });
             continue;
         }
@@ -149,6 +154,7 @@ pub fn knocks(plain: &dyn Remote, home: &Path) -> Result<Vec<Knock>, Hitch> {
             found.push(Knock {
                 device: device.to_string(),
                 ask: Some(ask),
+                offered,
             });
         }
     }
@@ -175,12 +181,46 @@ pub fn answered(plain: &dyn Remote, home: &Path, device: &str) -> Result<Option<
     }
 }
 
+pub fn ask_of(plain: &dyn Remote, home: &Path, device: &str) -> Result<Option<Ask>, Hitch> {
+    match read(&boxed(plain, home), &named(device, ASK)?)? {
+        Found::Read(ask) => Ok(Some(ask).filter(|ask: &Ask| ask.device == device)),
+        Found::Unread | Found::Missing => Ok(None),
+    }
+}
+
+/// The first machine to take an ask stands; false says another took it first.
+pub fn offered(
+    plain: &dyn Remote,
+    home: &Path,
+    device: &str,
+    giver: &Giver,
+) -> Result<bool, Hitch> {
+    match written(
+        &boxed(plain, home),
+        &named(device, GIVER)?,
+        giver,
+        Expect::Absent,
+    ) {
+        Ok(()) => Ok(true),
+        Err(Hitch::Changed(_)) => Ok(false),
+        Err(other) => Err(other),
+    }
+}
+
+pub fn giver_of(plain: &dyn Remote, home: &Path, device: &str) -> Result<Option<Giver>, Hitch> {
+    match read(&boxed(plain, home), &named(device, GIVER)?)? {
+        Found::Read(giver) => Ok(Some(giver)),
+        Found::Unread | Found::Missing => Ok(None),
+    }
+}
+
 pub fn unanswered(plain: &dyn Remote, home: &Path, device: &str) -> Result<(), Hitch> {
     gone(&boxed(plain, home), &named(device, KEY)?)
 }
 
 pub fn withdrawn(plain: &dyn Remote, home: &Path, device: &str) -> Result<(), Hitch> {
     gone(&boxed(plain, home), &named(device, ASK)?)?;
+    gone(&boxed(plain, home), &named(device, GIVER)?)?;
     unanswered(plain, home, device)
 }
 

@@ -49,6 +49,7 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
 const plain: SealShown = {
   cloud: "onedrive",
   state: "plain",
+  joined: true,
   held: true,
   confirmed: true,
   phraseElsewhere: false,
@@ -242,5 +243,33 @@ describe("what stands in the way", () => {
     expect(screen.getByRole("button", { name: "Encrypt my cloud" }).hasAttribute("disabled")).toBe(
       true,
     );
+  });
+});
+
+describe("a cloud this computer cannot open yet", () => {
+  it("says the others hand the key over and lets it in from another computer", async () => {
+    ipc.shown = { ...plain, state: "locked" };
+    render(<Shell />);
+
+    expect(await screen.findByText(/hand it over on their own/)).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Let in from another computer" }));
+
+    await waitFor(() => expect(sent("admitting_ask")).toHaveLength(1));
+  });
+
+  it("tells a computer new to the place to be let in from another one", async () => {
+    ipc.shown = { ...plain, state: "locked", joined: false };
+    render(<Shell />);
+
+    expect(await screen.findByText(/let this computer in from another/)).toBeTruthy();
+  });
+
+  it("offers to let a new computer in once the cloud is encrypted", async () => {
+    ipc.shown = { ...plain, state: "sealed" };
+    render(<Shell />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Let a new computer in" }));
+
+    await waitFor(() => expect(sent("admitting_look")).toHaveLength(1));
   });
 });

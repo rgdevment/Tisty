@@ -8,7 +8,7 @@ use tisty_share_proto::seed::Seed;
 use super::*;
 
 #[derive(Default)]
-struct Shelf(Mutex<BTreeMap<String, Vec<u8>>>);
+pub(crate) struct Shelf(Mutex<BTreeMap<String, Vec<u8>>>);
 
 fn seen(name: &str, bytes: &[u8]) -> Seen {
     Seen {
@@ -80,7 +80,7 @@ impl Remote for Shelf {
     }
 }
 
-fn key(n: u8) -> CloudKey {
+pub(crate) fn key(n: u8) -> CloudKey {
     CloudKey::of(&Seed::from_bytes(&[n; 32]))
 }
 
@@ -114,7 +114,7 @@ fn here_of(
     }
 }
 
-fn knows(giver: &Mutex<Session>, asker: &Here) {
+pub(crate) fn knows(giver: &Mutex<Session>, asker: &Here) {
     let key = tisty_core::signing::mine(&asker.paths, &asker.device).unwrap();
     let mut giver = held(giver);
     giver.state.devices.insert(asker.device.clone());
@@ -124,7 +124,7 @@ fn knows(giver: &Mutex<Session>, asker: &Here) {
     );
 }
 
-fn sealed_with(two: &Two, key: &CloudKey) {
+pub(crate) fn sealed_with(two: &Two, key: &CloudKey) {
     let cloud = two.cloud.as_str();
     tisty_carrier::Sealed::opened(two.plain.clone(), key.clone(), cloud, &key.named_for(cloud))
         .unwrap()
@@ -132,17 +132,17 @@ fn sealed_with(two: &Two, key: &CloudKey) {
         .unwrap();
 }
 
-struct Two {
-    cloud: String,
-    plain: Arc<Shelf>,
-    asker: Mutex<Session>,
-    giver: Mutex<Session>,
-    asking: Here,
-    giving: Here,
-    _kept: [tempfile::TempDir; 4],
+pub(crate) struct Two {
+    pub(crate) cloud: String,
+    pub(crate) plain: Arc<Shelf>,
+    pub(crate) asker: Mutex<Session>,
+    pub(crate) giver: Mutex<Session>,
+    pub(crate) asking: Here,
+    pub(crate) giving: Here,
+    pub(crate) _kept: [tempfile::TempDir; 4],
 }
 
-fn two() -> Two {
+pub(crate) fn two() -> Two {
     let kept = std::array::from_fn(|_| tempfile::tempdir().unwrap());
     let plain = Arc::new(Shelf::default());
     // The keychain of the tests is one for the whole run, so each test seals a cloud of its own.
