@@ -251,6 +251,11 @@ impl Turning {
         }
     }
 
+    /// What does not fit on the other side, by name and size: never copied, never wiped.
+    pub fn refused(&self) -> &BTreeMap<String, u64> {
+        &self.journal.refused
+    }
+
     /// When the last step moved, so a claim nobody carries on can be told apart.
     pub fn moved(&self) -> u64 {
         self.journal.moved

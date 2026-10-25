@@ -295,3 +295,41 @@ fn giving_up_cut_half_way_is_undone_the_rest_of_the_way_from_the_journal() {
     assert_eq!(word(&fake), before);
     assert!(fake.list("sealed").unwrap().is_empty());
 }
+
+#[test]
+fn a_file_too_big_to_seal_is_said_never_copied_and_never_wiped() {
+    let most = 64 * 1024;
+    let (setting, fake) = each_kind(|fake| fake.with_most_per_file(most)).remove(0);
+    let one = written(&setting);
+    let big = one.kept("grande.bin", &vec![7u8; (most - 10) as usize]);
+    one.store()
+        .append(big.told(tisty_core::attach::Via::Window))
+        .unwrap();
+    one.round(Way::Both);
+    let held = fake
+        .list("")
+        .unwrap()
+        .into_iter()
+        .map(|seen| seen.name)
+        .find(|name| name.starts_with(&format!("{}/", tisty_sync::HELD)))
+        .expect("the attachment went up plain");
+
+    let mut turning = turned(&fake, &setting).unwrap();
+    while turning.refused().is_empty() {
+        turning.step().unwrap();
+    }
+    assert!(
+        turning.refused().contains_key(&held),
+        "{:?}",
+        turning.refused()
+    );
+    to_the_end(&mut turning);
+    let plain: Arc<dyn Remote> = fake.clone();
+    crate::wipe_behind(plain, &home_of(&setting, "dev_a"), key(), CLOUD).unwrap();
+
+    assert!(
+        fake.about(&held).unwrap().is_some(),
+        "{} was wiped with no twin",
+        big.sha256
+    );
+}

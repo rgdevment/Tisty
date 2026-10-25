@@ -83,6 +83,7 @@ pub struct Fake {
     kind: Kind,
     page: Option<usize>,
     chunk: Option<u64>,
+    most: Option<u64>,
     hashless: bool,
     lag: u64,
     expires_cursors: bool,
@@ -101,6 +102,7 @@ impl Fake {
             kind,
             page: None,
             chunk: None,
+            most: None,
             hashless: false,
             lag: 0,
             expires_cursors: false,
@@ -134,6 +136,11 @@ impl Fake {
 
     pub fn without_hashes(mut self) -> Self {
         self.hashless = true;
+        self
+    }
+
+    pub fn with_most_per_file(mut self, most: u64) -> Self {
+        self.most = Some(most);
         self
     }
 
@@ -461,7 +468,7 @@ impl Remote for Fake {
             poll_every: self.poll.unwrap_or(Duration::from_secs(poll_every)),
             chunk: self.chunk.unwrap_or(chunk),
             page: self.page.unwrap_or(page),
-            most_per_file,
+            most_per_file: self.most.unwrap_or(most_per_file),
             folds_case: self.kind != Kind::Drive,
             costs,
         }
