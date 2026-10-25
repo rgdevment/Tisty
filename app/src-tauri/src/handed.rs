@@ -1,5 +1,5 @@
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, PoisonError};
 use std::time::{Duration, Instant};
 
 use tauri::{AppHandle, Emitter, Manager};
@@ -26,6 +26,7 @@ pub struct Knocking {
     busy: AtomicBool,
     asked: Mutex<Option<(Ask, OneUse)>>,
     looked: Mutex<Option<Instant>>,
+    opened: Mutex<Option<String>>,
 }
 
 struct Here {
@@ -57,9 +58,10 @@ pub fn tend(app: AppHandle) {
 
 // Looked at before the provider is reached, so a round with nothing due costs no keychain read and no client.
 fn due(knocking: &Knocking, every: Duration) -> bool {
-    let Ok(mut looked) = knocking.looked.lock() else {
-        return false;
-    };
+    let mut looked = knocking
+        .looked
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner);
     if looked.is_some_and(|at| at.elapsed() < every) {
         return false;
     }
@@ -108,7 +110,7 @@ fn tended(app: &AppHandle, knocking: &Knocking) {
         home,
     };
     // A key only guessed from a phrase may not be this cloud's, and handing it out would hand out nothing.
-    let done = match keyed.filter(|keyed| opens(&here, &keyed.key)) {
+    let done = match keyed.filter(|keyed| opened(knocking, &here, &keyed.key)) {
         Some(keyed) => answering(&session, &here, &keyed.key),
         None => asking(&session, knocking, &here).map(|took| {
             if took {
@@ -182,7 +184,10 @@ fn asking(session: &Mutex<Session>, knocking: &Knocking, here: &Here) -> Result<
     else {
         return Ok(false);
     };
-    let Some(key) = answer.opened(ask, one_use).filter(|key| opens(here, key)) else {
+    let opened = answer
+        .opened(ask, one_use)
+        .filter(|key| from_ours(session, &answer) && opens(here, key));
+    let Some(key) = opened else {
         // An answer that does not open, stale or forged, would keep every machine from answering again.
         knock::unanswered(&*here.plain, &here.home, &here.device.0).map_err(hitched)?;
         return Ok(false);
@@ -196,6 +201,32 @@ fn opens(here: &Here, key: &CloudKey) -> bool {
     knock::opens(&*here.plain, &here.home, key, &here.cloud)
 }
 
+// The mark is fetched once a key, not every time the box is looked at.
+fn opened(knocking: &Knocking, here: &Here, key: &CloudKey) -> bool {
+    let named = key.named_for(&here.cloud);
+    let mut known = knocking
+        .opened
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner);
+    if known.as_deref() == Some(named.as_str()) {
+        return true;
+    }
+    let opens = opens(here, key);
+    if opens {
+        *known = Some(named);
+    }
+    opens
+}
+
+// The mark sits with the provider, who could seal a mark of its own, so only a machine the log knows may hand a key.
+fn from_ours(session: &Mutex<Session>, answer: &tisty_share_proto::handing::Handed) -> bool {
+    seated(session, &answer.by)
+        && answer.giver().is_some_and(|key| {
+            held(session).state.keys.get(&DeviceId(answer.by.clone()))
+                == Some(&tisty_core::signing::shown_of(&key))
+        })
+}
+
 fn took(session: &Mutex<Session>, here: &Here, key: &CloudKey) -> Result<(), String> {
     keep(&here.cloud, key)?;
     let was = {
@@ -206,6 +237,7 @@ fn took(session: &Mutex<Session>, here: &Here, key: &CloudKey) -> Result<(), Str
             .keep(|config| config.key_handed = Some(cloud))
             .map_err(|refusal| refusal.code.to_string())?;
         session.reach.tried_for(None);
+        session.reach.seal_with(None);
         was
     };
     if let Some(was) = was.filter(|was| *was != here.cloud) {
@@ -241,35 +273,44 @@ fn answered(
     signer: &SigningKey,
     one: &knock::Knock,
 ) -> Result<(), String> {
-    let (seated, known) = seat_of(session, &one.ask);
-    let age = now() - one.ask.at;
+    let seated = seated(session, &one.device);
+    let Some(ask) = &one.ask else {
+        // An answer waits for its machine; one no longer on the list never comes for it.
+        return match seated {
+            true => Ok(()),
+            false => knock::withdrawn(&*here.plain, &here.home, &one.device).map_err(hitched),
+        };
+    };
+    let age = now() - ask.at;
     let lasts = if seated { JOINED_FOR } else { NEW_FOR };
     // The time only tidies the box; an old ask replayed opens for nobody without its one-use key.
     if age > lasts || age < -JOINED_FOR {
-        return knock::withdrawn(&*here.plain, &here.home, &one.ask.device).map_err(hitched);
+        return knock::withdrawn(&*here.plain, &here.home, &one.device).map_err(hitched);
     }
-    if one.answered || !known || !fits(&one.ask, here) {
+    if !seated || !signs_as_known(session, ask) || !fits(ask, here) {
         return Ok(());
     }
-    let answer = handed(&one.ask, key, &here.device.0, signer)
+    let answer = handed(ask, key, &here.device.0, signer)
         .ok_or("the cloud's key could not be sealed for the machine that asked")?;
-    knock::answer(&*here.plain, &here.home, &one.ask.device, &answer).map_err(hitched)
+    knock::answer(&*here.plain, &here.home, &one.device, &answer).map_err(hitched)
 }
 
 fn fits(ask: &Ask, here: &Here) -> bool {
     ask.holds() && ask.cloud == here.cloud && ask.device != here.device.0
 }
 
-fn seat_of(session: &Mutex<Session>, ask: &Ask) -> (bool, bool) {
+fn seated(session: &Mutex<Session>, device: &str) -> bool {
     let session = held(session);
-    let device = DeviceId(ask.device.clone());
-    let seated =
-        session.state.devices.contains(&device) && !session.state.assistants.contains(&device);
-    let known = seated
-        && ask.key().is_some_and(|key| {
-            session.state.keys.get(&device) == Some(&tisty_core::signing::shown_of(&key))
-        });
-    (seated, known)
+    let device = DeviceId(device.to_string());
+    session.state.devices.contains(&device) && !session.state.assistants.contains(&device)
+}
+
+fn signs_as_known(session: &Mutex<Session>, ask: &Ask) -> bool {
+    let session = held(session);
+    ask.key().is_some_and(|key| {
+        session.state.keys.get(&DeviceId(ask.device.clone()))
+            == Some(&tisty_core::signing::shown_of(&key))
+    })
 }
 
 // Under the cloud's id, which joining stores never changes, and beside the seed: a handed key is no identity.

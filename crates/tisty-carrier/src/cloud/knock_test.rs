@@ -39,8 +39,8 @@ fn an_ask_is_found_answered_once_and_taken_away_whole() {
     assert_eq!(
         knocks(&fake, home.path()).unwrap(),
         vec![Knock {
-            ask: ask.clone(),
-            answered: false
+            device: "dev_b".into(),
+            ask: Some(ask.clone()),
         }]
     );
     let first = handed(&ask, &key, "dev_a", &machine(1)).unwrap();
@@ -49,7 +49,7 @@ fn an_ask_is_found_answered_once_and_taken_away_whole() {
     answer(&fake, home.path(), "dev_b", &second).unwrap();
 
     assert_eq!(answered(&fake, home.path(), "dev_b").unwrap(), Some(first));
-    assert!(knocks(&fake, home.path()).unwrap()[0].answered);
+    assert_eq!(knocks(&fake, home.path()).unwrap()[0].ask, None);
     withdrawn(&fake, home.path(), "dev_b").unwrap();
     assert!(knocks(&fake, home.path()).unwrap().is_empty());
     assert_eq!(answered(&fake, home.path(), "dev_b").unwrap(), None);
@@ -140,6 +140,6 @@ fn an_answer_that_cannot_be_read_is_taken_away_and_one_ask_unread_never_hides_th
     put(&fake, "knock/dev_c.ask", &vec![b' '; 5000]);
 
     assert_eq!(answered(&fake, home.path(), "dev_b").unwrap(), None);
-    assert!(!knocks(&fake, home.path()).unwrap()[0].answered);
+    assert!(knocks(&fake, home.path()).unwrap()[0].ask.is_some());
     assert_eq!(knocks(&fake, home.path()).unwrap().len(), 1);
 }

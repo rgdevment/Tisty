@@ -400,3 +400,40 @@ fn a_key_handed_for_another_cloud_never_opens_this_one() {
 
     assert_eq!(sealed_now(&session), None);
 }
+
+#[test]
+fn a_key_handed_here_wins_over_a_phrase_only_guessed_for_the_cloud() {
+    let kept = tempfile::tempdir().unwrap();
+    let session = opened(&kept);
+    let cloud = store_of(&session);
+    keep(&held(&session).paths, &seed(3)).unwrap();
+    begun(&mut held(&session), &seed(3)).unwrap();
+    let key = CloudKey::of(&seed(7));
+    crate::handed::keep(&cloud, &key).unwrap();
+    held(&session).config.key_handed = Some(cloud.clone());
+    sealed_up_there(&session, &cloud);
+
+    tauri::async_runtime::block_on(seal_the_cloud(&session));
+
+    assert_eq!(
+        sealed_now(&session).map(|one| one.named),
+        Some(key.named_for(&cloud))
+    );
+}
+
+#[test]
+fn a_handed_key_gone_from_the_keychain_falls_back_to_the_phrase() {
+    let kept = tempfile::tempdir().unwrap();
+    let session = opened(&kept);
+    let cloud = store_of(&session);
+    keep(&held(&session).paths, &seed(7)).unwrap();
+    begun(&mut held(&session), &seed(7)).unwrap();
+    held(&session).config.key_handed = Some(cloud.clone());
+
+    assert_eq!(
+        cloud_key(&session, &cloud)
+            .unwrap()
+            .map(|one| one.named_for(&cloud)),
+        Some(CloudKey::of(&seed(7)).named_for(&cloud))
+    );
+}

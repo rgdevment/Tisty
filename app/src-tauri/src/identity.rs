@@ -243,8 +243,15 @@ pub async fn seal_the_cloud(session: &Mutex<Session>) {
         true => BTreeSet::new(),
         false => forebears,
     };
+    let fits =
+        |key: &CloudKey| locked.named.is_empty() || key.named_for(&locked.cloud) == locked.named;
+    // A handed key opened this cloud's mark when it came, while a phrase is only a guess until the log names its key.
+    let from_handed = match handed.as_deref() == Some(locked.cloud.as_str()) {
+        true => handed_key(locked.cloud.clone()).await.filter(fits),
+        false => None,
+    };
     // Only where the log names a person or this cloud's key, so a machine only handed the key never reads a seed.
-    let seed = match asks_the_seed {
+    let seed = match asks_the_seed && from_handed.is_none() {
         false => None,
         true => match elsewhere(move || kept(&paths, &forebears, &opens)).await {
             Ok(Ok(seed)) => seed,
@@ -255,15 +262,7 @@ pub async fn seal_the_cloud(session: &Mutex<Session>) {
             Err(_) => None,
         },
     };
-    let fits =
-        |key: &CloudKey| locked.named.is_empty() || key.named_for(&locked.cloud) == locked.named;
-    let key = match seed.map(|seed| CloudKey::of(&seed)).filter(fits) {
-        Some(key) => Some(key),
-        None if handed.as_deref() == Some(locked.cloud.as_str()) => {
-            handed_key(locked.cloud.clone()).await.filter(fits)
-        }
-        None => None,
-    };
+    let key = from_handed.or_else(|| seed.map(|seed| CloudKey::of(&seed)).filter(fits));
     let session = held(session);
     match key {
         Some(key) => {
@@ -430,13 +429,14 @@ pub(crate) fn phrase_key(session: &Mutex<Session>) -> Answer<Option<CloudKey>> {
 }
 
 pub(crate) fn cloud_key(session: &Mutex<Session>, cloud: &str) -> Answer<Option<CloudKey>> {
-    if held(session).config.key_handed.as_deref() != Some(cloud) {
-        return phrase_key(session);
+    if held(session).config.key_handed.as_deref() == Some(cloud) {
+        match crate::handed::kept(cloud) {
+            Ok(Some(key)) => return Ok(Some(key)),
+            Ok(None) => {}
+            Err(why) => crate::handed::unread(why),
+        }
     }
-    crate::handed::kept(cloud).map_err(|why| {
-        crate::handed::unread(why);
-        Refusal::of("identityUnread")
-    })
+    phrase_key(session)
 }
 
 pub(crate) fn confirmed_key(session: &Mutex<Session>) -> Answer<Option<CloudKey>> {

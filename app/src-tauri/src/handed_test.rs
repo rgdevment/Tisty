@@ -171,6 +171,7 @@ fn a_machine_on_the_list_asks_and_takes_the_key_another_hands_it() {
     let two = two();
     sealed_with(&two, &key(7));
     knows(&two.giver, &two.asking);
+    knows(&two.asker, &two.giving);
     let knocking = Knocking::default();
 
     assert!(!asking(&two.asker, &knocking, &two.asking).unwrap());
@@ -278,6 +279,7 @@ fn an_answer_that_does_not_open_is_taken_away_so_another_can_come() {
     let two = two();
     sealed_with(&two, &key(7));
     knows(&two.giver, &two.asking);
+    knows(&two.asker, &two.giving);
     let knocking = Knocking::default();
     asking(&two.asker, &knocking, &two.asking).unwrap();
     answering(&two.giver, &two.giving, &key(4)).unwrap();
@@ -305,7 +307,7 @@ fn an_ask_left_unanswered_for_an_hour_is_made_again() {
 
     let up_there = tisty_carrier::knock::knocks(&*two.plain, &two.asking.home).unwrap();
     assert_eq!(up_there.len(), 1);
-    assert!(now() - up_there[0].ask.at < 60);
+    assert!(now() - up_there[0].ask.as_ref().unwrap().at < 60);
 }
 
 #[test]
@@ -345,4 +347,23 @@ fn the_flag_is_let_go_of_even_when_the_work_under_it_falls_over() {
 
     assert!(fell.is_err());
     assert!(!busy.load(Ordering::Acquire));
+}
+
+#[test]
+fn a_key_from_a_machine_this_one_does_not_know_is_never_taken() {
+    let two = two();
+    sealed_with(&two, &key(7));
+    knows(&two.giver, &two.asking);
+    let knocking = Knocking::default();
+    asking(&two.asker, &knocking, &two.asking).unwrap();
+
+    answering(&two.giver, &two.giving, &key(7)).unwrap();
+
+    assert!(!asking(&two.asker, &knocking, &two.asking).unwrap());
+    assert!(kept(&two.cloud).unwrap().is_none());
+    assert_eq!(
+        tisty_carrier::knock::answered(&*two.plain, &two.asking.home, &two.asking.device.0)
+            .unwrap(),
+        None
+    );
 }
