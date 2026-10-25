@@ -101,28 +101,30 @@ html.untitled .page > .front:first-child + :is(h1, h2, h3, h4, h5, h6) {
 html.untitled .page > ul:has(> li.task) {
   margin: 4px 0 0;
   padding: 0;
-  border: 1px solid var(--tisty-hair);
-  border-radius: 8px;
-  overflow: hidden;
 }
 html.untitled .page > ul:has(> li.task)::before {
   content: "";
   display: block;
   width: var(--done, 0%);
-  height: 3px;
+  height: 2px;
+  margin-bottom: 2px;
+  border-radius: 1px;
   background: var(--tisty-accent);
   transition: width 0.2s;
 }
 html.untitled .page > ul > li.task {
-  padding: 6px 12px 6px 36px;
+  padding: 5px 0 5px 25px;
   border-top: 1px solid var(--tisty-hair);
 }
 html.untitled .page > ul > li.task:first-of-type {
   border-top: 0;
 }
 html.untitled .page > ul > li.task > .check {
-  left: 12px;
-  top: calc(6px + (1lh - 15px) / 2);
+  left: 0;
+  top: calc(5px + (1lh - 15px) / 2);
+}
+html.untitled .page > .editing.stepping .cm-check {
+  margin-right: 10px;
 }
 html.untitled .page > .add-step,
 html.untitled .page > .hint.step-hint {
@@ -142,6 +144,7 @@ html.untitled .page > .hint.step-hint {
   cursor: text;
 }
 html.untitled .page > .add-step {
+  padding: 5px 0 5px 3px;
   border: 0;
   border-radius: 0;
 }
