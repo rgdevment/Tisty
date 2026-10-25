@@ -13,10 +13,7 @@ pub(crate) fn reading(root: &str) -> Option<&str> {
 }
 
 pub(crate) fn stays_plain(name: &str, folds: bool) -> bool {
-    let same = |one: &str| match folds {
-        true => one.to_lowercase() == name.to_lowercase(),
-        false => one == name,
-    };
+    let same = |one: &str| crate::remote::same_name(folds, one, name);
     [
         NAMED,
         tisty_core::moved::NAMED,
@@ -34,7 +31,6 @@ pub struct Sealed<R> {
     key: CloudKey,
     cloud: String,
     root: String,
-    marked: std::sync::atomic::AtomicBool,
 }
 
 fn broke(e: impl ToString) -> Hitch {
@@ -43,7 +39,6 @@ fn broke(e: impl ToString) -> Hitch {
 
 const MARK: &str = "sealed.mark";
 const MARK_AT_MOST: u64 = 512;
-
 fn named_back(hitch: Hitch, inner: &str, name: &str) -> Hitch {
     match hitch {
         Hitch::Missing(one) if one == inner => Hitch::Missing(name.to_string()),
@@ -74,14 +69,18 @@ pub(crate) fn plain_len(sealed: u64) -> Option<u64> {
 }
 
 impl<R: Remote> Sealed<R> {
-    pub fn new(inner: R, key: CloudKey, cloud: impl Into<String>) -> Self {
+    /// Only with the key the signed log names for this cloud, so a phrase the log never chose cannot read or mark it.
+    pub fn opened(inner: R, key: CloudKey, cloud: &str, named: &str) -> Option<Self> {
+        (key.named_for(cloud) == named).then(|| Self::new(inner, key, cloud))
+    }
+
+    pub(crate) fn new(inner: R, key: CloudKey, cloud: impl Into<String>) -> Self {
         let cloud = cloud.into();
         Self {
             inner,
             key,
             root: format!("{INSIDE}:{cloud}"),
             cloud,
-            marked: std::sync::atomic::AtomicBool::new(false),
         }
     }
 
@@ -91,36 +90,75 @@ impl<R: Remote> Sealed<R> {
     }
 
     pub fn marked(&self) -> Result<Option<Mark>, Hitch> {
+        Ok(self.read_mark()?.map(|(said, _)| said))
+    }
+
+    fn read_mark(&self) -> Result<Option<(Mark, String)>, Hitch> {
         let at = format!("{INSIDE}/{MARK}");
-        match self.inner.about(&at)? {
+        let there = match self.inner.about(&at)? {
             None => return Ok(None),
-            Some(there) if there.bytes > MARK_AT_MOST => return Ok(Some(Mark::Damaged)),
-            Some(_) => {}
-        }
+            Some(there) if there.bytes > MARK_AT_MOST => {
+                return Ok(Some((Mark::Damaged, there.revision)));
+            }
+            Some(there) => there,
+        };
         let mut said = Vec::new();
         match self.inner.fetch(&at, 0, &mut said) {
-            Ok(_) => Ok(Some(mark_says(&self.key, &self.cloud, &said))),
+            Ok(_) => Ok(Some((
+                mark_says(&self.key, &self.cloud, &said),
+                there.revision,
+            ))),
             Err(Hitch::Missing(_)) => Ok(None),
             Err(other) => Err(other),
         }
     }
 
+    // A put that lost the race to another machine reads back whichever mark won.
     pub fn mark_it(&self) -> Result<(), Hitch> {
-        match self.marked()? {
+        match self.read_mark()? {
             None => {}
-            said => return self.mark_holds(said),
+            Some((Mark::Damaged, revision)) => return self.mended(revision),
+            Some((said, _)) => return self.mark_holds(Some(said)),
         }
+        match self.written(Expect::Absent) {
+            Ok(()) | Err(Hitch::Changed(_)) => {}
+            Err(other) => return Err(other),
+        }
+        match self.marked()? {
+            None => Err(broke("the mark could not be read back")),
+            said => self.mark_holds(said),
+        }
+    }
+
+    fn written(&self, expect: Expect) -> Result<(), Hitch> {
         let said = mark(&self.key, &self.cloud).ok_or_else(|| broke("no way to mark the cloud"))?;
         let held = crate::temp::Temp::new();
         let mut file = held.create().map_err(broke)?;
         file.write_all(&said).map_err(broke)?;
         drop(file);
         self.inner
-            .put(&format!("{INSIDE}/{MARK}"), &held.0, Expect::Absent)?;
+            .put(&format!("{INSIDE}/{MARK}"), &held.0, expect)
+            .map(|_| ())
+    }
+
+    // The app builds this only with the key the signed log names for this cloud, so a mark that says nothing is written again.
+    fn mended(&self, revision: String) -> Result<(), Hitch> {
+        let expect = match revision.is_empty() {
+            true => Expect::Any,
+            false => Expect::Revision(revision),
+        };
+        match self.written(expect) {
+            Ok(()) | Err(Hitch::Changed(_)) => {}
+            Err(other) => return Err(other),
+        }
         match self.marked()? {
-            None => Err(broke("the mark could not be read back")),
+            Some(Mark::Damaged) | None => Err(self.damaged()),
             said => self.mark_holds(said),
         }
+    }
+
+    fn damaged(&self) -> Hitch {
+        Hitch::Barred(tisty_sync::Trouble::MarkDamaged(self.root.clone()))
     }
 
     fn mark_holds(&self, said: Option<Mark>) -> Result<(), Hitch> {
@@ -129,7 +167,7 @@ impl<R: Remote> Sealed<R> {
             Some(Mark::Holds) => Ok(()),
             Some(Mark::OtherPhrase) => Err(Hitch::Barred(tisty_sync::Trouble::OtherPhrase(at()))),
             Some(Mark::Newer) => Err(Hitch::Barred(tisty_sync::Trouble::Shape(at()))),
-            _ => Err(broke("the phrase mark of this cloud is damaged")),
+            _ => Err(self.damaged()),
         }
     }
 
@@ -138,10 +176,7 @@ impl<R: Remote> Sealed<R> {
     }
 
     fn same(&self, one: &str, other: &str) -> bool {
-        match self.folds() {
-            true => one.to_lowercase() == other.to_lowercase(),
-            false => one == other,
-        }
+        crate::remote::same_name(self.folds(), one, other)
     }
 
     fn is_clear(&self, name: &str) -> bool {
@@ -163,15 +198,12 @@ impl<R: Remote> Sealed<R> {
     }
 
     fn bound(&self, name: &str) -> String {
-        match self.folds() {
-            true => name.to_lowercase(),
-            false => name.to_string(),
-        }
+        crate::remote::keyed(self.folds(), name)
     }
 
     fn shown(&self, name: &str) -> Option<String> {
         if self.is_clear(name) {
-            return Some(name.to_ascii_lowercase());
+            return Some(crate::remote::folded(name));
         }
         let (top, inside) = name.split_once('/')?;
         (self.same(top, INSIDE)
@@ -372,19 +404,8 @@ impl<R: Remote> Remote for Sealed<R> {
         &self.root
     }
 
-    // Asked once for each carrier, so a machine with another phrase never sends into this cloud.
-    fn mark_forgotten(&self) {
-        self.marked
-            .store(false, std::sync::atomic::Ordering::Relaxed);
-    }
-
     fn mark_up(&self) -> Result<(), Hitch> {
-        use std::sync::atomic::Ordering;
-        if !self.marked.load(Ordering::Relaxed) {
-            self.mark_it()?;
-            self.marked.store(true, Ordering::Relaxed);
-        }
-        Ok(())
+        self.mark_it()
     }
 }
 

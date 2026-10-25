@@ -78,7 +78,7 @@ describe("the sync foot", () => {
   });
 
   it("waits, without offering a sync, when the cloud asks to", () => {
-    for (const code of ["cloudNotNow", "deferred-limit"]) {
+    for (const code of ["cloudNotNow", "deferred-limit", "cloudSealing"]) {
       const foot = footing(seen({ status: cloud({ last: round(code) }) }));
       expect(foot).toEqual({ kind: "wait", troubled: false });
       expect(foot && offered(foot)).toBe(false);
@@ -149,5 +149,14 @@ describe("the sync foot", () => {
       kind: "look",
       putOff: false,
     });
+  });
+
+  it("asks the person to look when an encrypted cloud will not open here", () => {
+    for (const code of ["cloudSealed", "cloudOtherPhrase", "cloudUnsealed", "cloudMarkDamaged"]) {
+      expect(footing(seen({ status: cloud({ last: round(code) }) })), code).toEqual({
+        kind: "look",
+        putOff: false,
+      });
+    }
   });
 });

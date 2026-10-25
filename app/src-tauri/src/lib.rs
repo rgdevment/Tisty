@@ -91,7 +91,7 @@ impl From<tisty_core::Error> for Refusal {
 
 type Answer<T> = std::result::Result<T, Refusal>;
 
-fn held<'a>(session: &'a tauri::State<'_, Mutex<Session>>) -> std::sync::MutexGuard<'a, Session> {
+fn held(session: &Mutex<Session>) -> std::sync::MutexGuard<'_, Session> {
     session
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner())
@@ -448,6 +448,7 @@ fn refused_for(trouble: tisty_carrier::Trouble) -> Refusal {
         tisty_carrier::Trouble::Sealing(_) => Refusal::of("cloudSealing"),
         tisty_carrier::Trouble::Unsealed(_) => Refusal::of("cloudUnsealed"),
         tisty_carrier::Trouble::OtherPhrase(_) => Refusal::of("cloudOtherPhrase"),
+        tisty_carrier::Trouble::MarkDamaged(_) => Refusal::of("cloudMarkDamaged"),
     }
 }
 
@@ -457,7 +458,7 @@ fn told_in_the_log(code: &'static str, provider: Option<String>, why: Option<Str
     facts.extend(provider.map(|one| ("provider", Fact::Id(one))));
     facts.extend(why.map(|one| ("why", Fact::Why(one))));
     match code {
-        "cloudNotNow" | "movedUnderfoot" => {
+        "cloudNotNow" | "movedUnderfoot" | "cloudSealing" => {
             witness::standing(channel::SYNC, "a sync could not be finished", &facts)
         }
         _ => witness::warn(channel::SYNC, "a sync could not be finished", &facts),
