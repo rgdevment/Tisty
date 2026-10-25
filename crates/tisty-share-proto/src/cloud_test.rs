@@ -228,3 +228,15 @@ fn the_name_of_a_key_holds_for_its_cloud_and_tells_clouds_and_phrases_apart() {
     assert_ne!(one.named_for("store_one"), one.named_for("store_two"));
     assert_ne!(one.named_for("store_one"), other.named_for("store_one"));
 }
+
+#[test]
+fn a_key_written_as_text_reads_back_the_same_and_anything_else_reads_as_none() {
+    let said = key(1).to_text();
+
+    assert_eq!(
+        CloudKey::from_text(&said).map(|back| back.named_for(CLOUD)),
+        Some(key(1).named_for(CLOUD))
+    );
+    assert!(CloudKey::from_text("not a key").is_none());
+    assert!(CloudKey::from_text(&said[..said.len() - 2]).is_none());
+}
