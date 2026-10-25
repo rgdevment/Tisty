@@ -172,7 +172,7 @@ impl Cloud {
         tisty_sync::seal_word(tree, cloud).map_err(|e| crate::Hitch::Broke(e.to_string()))?;
         match tisty_sync::sealing_of(tree) {
             tisty_sync::Sealing::Sealed(said) if said == cloud => Ok(()),
-            tisty_sync::Sealing::Copying | tisty_sync::Sealing::Closed => Ok(()),
+            tisty_sync::Sealing::Copying(_) | tisty_sync::Sealing::Closed => Ok(()),
             tisty_sync::Sealing::Sealed(_) => Err(crate::Hitch::Barred(Trouble::Sealed(
                 tree.display().to_string(),
             ))),
