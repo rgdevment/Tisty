@@ -22,8 +22,8 @@ use segments::{
     Alike, Grew, Toward, hand_on_leaving, one_grew_from_the_other, ours_went_missing, sweep,
 };
 pub use shape::{
-    NAMED, NEEDS, OURS as SHAPE, later, needs_later, raise_place, raised, raised_told, refuses,
-    spoiled, unseen as forget_shape,
+    NAMED, NEEDS, OURS as SHAPE, Sealing, later, needs_later, raise_place, raised, raised_told,
+    refuses, seal_word, sealed_against, sealing_of, spoiled, unseen as forget_shape,
 };
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -84,6 +84,10 @@ pub enum Trouble {
     NotNow(String),
     /// The document here changed or is being written since the person was asked about it.
     Moved(String),
+    Sealed(String),
+    Sealing(String),
+    Unsealed(String),
+    OtherPhrase(String),
 }
 
 impl Trouble {
@@ -110,6 +114,10 @@ impl Trouble {
             Trouble::StuckOn { .. } => "stuck-on",
             Trouble::NotNow(_) => "not-now",
             Trouble::Moved(_) => "moved",
+            Trouble::Sealed(_) => "sealed",
+            Trouble::Sealing(_) => "sealing",
+            Trouble::Unsealed(_) => "unsealed",
+            Trouble::OtherPhrase(_) => "other-phrase",
         }
     }
 }

@@ -144,9 +144,10 @@ fn a_folder_that_was_not_told_but_already_says_its_shape_is_still_remembered() {
 #[test]
 fn a_release_is_later_only_when_its_numbers_say_so_and_one_unread_is_taken_for_later() {
     assert!(!needs_later(NEEDS));
-    assert!(!needs_later("1.33.9"));
-    assert!(!needs_later("1.34.0-rc.1"));
-    assert!(needs_later("1.34.1"));
+    assert!(!needs_later("1.34.1"));
+    assert!(!needs_later("1.35.0-rc.1"));
+    assert!(!needs_later(SEALS));
+    assert!(needs_later("1.35.1"));
     assert!(needs_later("1.100.0"));
     assert!(needs_later("2.0.0"));
     assert!(needs_later("pronto"));
@@ -457,4 +458,123 @@ fn a_beta_comes_before_its_release_and_build_marks_change_nothing() {
     assert_eq!(release("1.35.0-rc.2"), release("1.35.0-rc.1"));
     assert!(release("1.34.9") < release("1.35.0-beta.1"));
     assert_eq!(release("1.35.0+abc"), release("1.35.0"));
+}
+
+#[test]
+fn a_place_says_whether_it_is_plain_being_sealed_closed_or_sealed() {
+    let (_room, _data, dest) = a_place();
+    let says = |word: &str| {
+        std::fs::write(
+            dest.join(NAMED),
+            format!("shape = 3\nneeds = \"1.34.0\"\n{word}"),
+        )
+        .unwrap();
+        sealing_of(&dest)
+    };
+
+    assert_eq!(says(""), Sealing::Plain);
+    assert_eq!(
+        says("sealed = \"store_one\"\nbroken = = =\n"),
+        Sealing::Sealed("store_one".into())
+    );
+    assert_eq!(says("sealing = \"copying:dev_a:n1\"\n"), Sealing::Copying);
+    assert_eq!(says("sealing = \"closed:dev_a:n1\"\n"), Sealing::Closed);
+    assert_eq!(
+        says("sealed = \"store_one\"\n"),
+        Sealing::Sealed("store_one".into())
+    );
+    assert_eq!(
+        says("sealed = \"store_one\"\nsealing = \"closed:dev_a:n2\"\n"),
+        Sealing::Closed
+    );
+}
+
+#[test]
+fn a_reader_stops_where_the_place_is_sealed_another_way_and_never_writes_in_the_clear_on_its_word()
+{
+    let (_room, _data, dest) = a_place();
+    let against = |word: &str, reading: Option<&str>| {
+        std::fs::write(dest.join(NAMED), format!("shape = 3\n{word}")).unwrap();
+        sealed_against(&dest, reading).map(|trouble| trouble.code())
+    };
+
+    assert_eq!(sealed_against(&dest, Some("store_one")), None);
+    assert_eq!(against("", None), None);
+    assert_eq!(against("", Some("store_one")), Some("unsealed"));
+    assert_eq!(against("sealed = \"store_one\"\n", None), Some("sealed"));
+    assert_eq!(against("sealed = \"store_one\"\n", Some("store_one")), None);
+    assert_eq!(
+        against("sealed = \"store_one\"\n", Some("store_two")),
+        Some("sealed")
+    );
+    assert_eq!(against("sealing = \"copying:dev_a:n1\"\n", None), None);
+    assert_eq!(
+        against("sealing = \"closed:dev_a:n1\"\n", None),
+        Some("sealing")
+    );
+    assert_eq!(
+        against("sealing = \"closed:dev_a:n1\"\n", Some("store_one")),
+        Some("sealing")
+    );
+}
+
+#[test]
+fn a_word_written_for_a_sealed_place_says_so_once_raises_needs_and_keeps_the_rest() {
+    let (_room, _data, dest) = a_place();
+    seal_word(&dest, "store_one").unwrap();
+    assert!(
+        !dest.join(NAMED).exists(),
+        "a word was made up where none was said"
+    );
+    std::fs::write(dest.join(NAMED), "shape = 03\nneeds = 1.30.0\n").unwrap();
+    seal_word(&dest, "store_one").unwrap();
+    assert_eq!(sealing_of(&dest), Sealing::Sealed("store_one".into()));
+    assert!(matches!(
+        told(&dest),
+        Told::Shape {
+            shape: OURS,
+            said: Some(_),
+            ..
+        }
+    ));
+    std::fs::write(
+        dest.join(NAMED),
+        "shape = 3\nneeds = \"1.34.0\"\nkept = 1\n",
+    )
+    .unwrap();
+
+    seal_word(&dest, "store_one").unwrap();
+    seal_word(&dest, "store_two").unwrap();
+
+    let said = std::fs::read_to_string(dest.join(NAMED)).unwrap();
+    assert!(said.contains("kept = 1"), "{said}");
+    assert!(said.contains(&format!("needs = \"{SEALS}\"")), "{said}");
+    assert_eq!(sealing_of(&dest), Sealing::Sealed("store_one".into()));
+}
+
+#[test]
+fn a_sealing_phase_this_build_cannot_name_stops_everyone_rather_than_no_one() {
+    let (_room, _data, dest) = a_place();
+    std::fs::write(
+        dest.join(NAMED),
+        "shape = 3\nsealed = \"store_one\"\nsealing = \"\"\n",
+    )
+    .unwrap();
+
+    assert_eq!(sealing_of(&dest), Sealing::Closed);
+    assert_eq!(
+        sealed_against(&dest, None).map(|one| one.code()),
+        Some("sealing")
+    );
+}
+
+#[test]
+fn a_word_read_only_line_by_line_that_already_seals_is_left_as_it_is() {
+    let (_room, _data, dest) = a_place();
+    let said = "shape = 3\nsealing = \"copying:dev_b:n1\"\nbroken = = =\n";
+    std::fs::write(dest.join(NAMED), said).unwrap();
+
+    seal_word(&dest, "store_one").unwrap();
+
+    assert_eq!(std::fs::read_to_string(dest.join(NAMED)).unwrap(), said);
 }
