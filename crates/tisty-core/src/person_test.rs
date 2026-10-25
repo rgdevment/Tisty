@@ -861,3 +861,39 @@ fn an_assistant_that_later_calls_itself_a_machine_cannot_unseal_a_store() {
         Some("key_a")
     );
 }
+
+#[test]
+fn a_single_sealed_cloud_is_named_and_two_are_not_guessed_between() {
+    let mut events = vec![
+        joined("dev_a", DeviceKind::Machine),
+        said("dev_a", sealed("store_one", Some("key_a")), 100),
+    ];
+    assert_eq!(
+        State::replay(&events).sealed_cloud(),
+        Some(("store_one", "key_a"))
+    );
+
+    events.push(said("dev_a", sealed("store_two", Some("key_b")), 110));
+    assert_eq!(State::replay(&events).sealed_cloud(), None);
+}
+
+#[test]
+fn the_machines_behind_a_release_are_those_never_seen_running_it_and_never_an_assistant() {
+    let events = vec![
+        joined("dev_a", DeviceKind::Machine),
+        joined("dev_b", DeviceKind::Machine),
+        joined("dev_c", DeviceKind::Machine),
+        joined("dev_bot", DeviceKind::Agent),
+        said("dev_a", runs("1.35.0"), 100),
+        said("dev_b", runs("1.34.1"), 100),
+    ];
+
+    let state = State::replay(&events);
+
+    assert_eq!(
+        state.behind("1.35.0"),
+        vec![device("dev_b"), device("dev_c")]
+    );
+    assert!(state.behind("1.34.0").contains(&device("dev_c")));
+    assert!(!state.behind("1.34.0").contains(&device("dev_b")));
+}
