@@ -1,11 +1,11 @@
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Duration;
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
-use tisty_carrier::{Remote, Sealing, Stepped, Turn, Turning};
+use tisty_carrier::{Hitch, Remote, Sealing, Stepped, Turn, Turning};
 use tisty_core::Op;
 use tisty_core::config::CloudAt;
 use tisty_core::witness::{self, Fact, channel};
@@ -18,10 +18,12 @@ const SETTLING_FOR: Duration = Duration::from_secs(30);
 const LOOKING_EVERY: Duration = Duration::from_secs(5);
 
 /// Every drive or cancel moves `driven` on, so a thread left from before sees it no longer carries the turn.
+/// `keying` keeps the key named at a claim from landing after a cancel has taken it back.
 #[derive(Default)]
 pub struct Turns {
     driven: AtomicU64,
     last: Mutex<Option<Told>>,
+    keying: Mutex<()>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -32,6 +34,7 @@ pub struct Told {
     pub done: usize,
     pub left: usize,
     pub refused: usize,
+    pub stopped: bool,
     pub why: Option<String>,
 }
 
@@ -84,8 +87,13 @@ fn behind(session: &Session) -> Vec<String> {
         .collect()
 }
 
-fn told_last(turns: &Turns) -> Option<Told> {
-    turns.last.lock().ok().and_then(|last| last.clone())
+fn told_last(turns: &Turns, on: bool) -> Option<Told> {
+    turns
+        .last
+        .lock()
+        .ok()
+        .and_then(|last| last.clone())
+        .filter(|told| told.on == on)
 }
 
 #[tauri::command(async)]
@@ -117,19 +125,18 @@ pub fn sealing_shown(
         (Sealing::Plain | Sealing::Unsaid, None) => "plain",
     };
     let turning = ours.map(|left| {
-        told_last(&turns)
-            .filter(|told| told.on == left.on)
-            .unwrap_or(Told {
-                on: left.on,
-                step: "stopped",
-                done: 0,
-                left: 0,
-                refused: 0,
-                why: None,
-            })
+        told_last(&turns, left.on).unwrap_or(Told {
+            on: left.on,
+            step: if left.closed { "closed" } else { "copying" },
+            done: 0,
+            left: 0,
+            refused: 0,
+            stopped: true,
+            why: None,
+        })
     });
     let orphan = state == "elsewhere"
-        && tisty_carrier::claim_age(&word).is_some_and(|age| age >= ORPHANED_AFTER);
+        && tisty_carrier::idle_for(&word).is_some_and(|idle| idle >= ORPHANED_AFTER);
     Ok(Shown {
         cloud: Some(at.provider),
         state,
@@ -143,20 +150,23 @@ pub fn sealing_shown(
 }
 
 // Built off the session's lock, since reaching the provider reads its secrets and may wait on the keychain.
-fn plain_of(session: &Mutex<Session>) -> Answer<(Arc<dyn Remote>, PathBuf, CloudAt)> {
-    let (at, home) = turned_at(&held(session)).ok_or_else(|| Refusal::of("sealingNoCloud"))?;
-    let plain = crate::reaching::plain_at(&home, &at).map_err(|why| {
+fn reached(home: &Path, at: &CloudAt) -> Answer<Arc<dyn Remote>> {
+    crate::reaching::plain_at(home, at).map_err(|why| {
         witness::warn(
             channel::CLOUD,
             "the cloud could not be reached to turn it",
             &[("why", Fact::Why(why))],
         );
         Refusal::of("cloudNotNow")
-    })?;
-    Ok((plain, home, at))
+    })
 }
 
-fn refused_by(hitch: tisty_carrier::Hitch, provider: &str) -> Refusal {
+fn plain_of(session: &Mutex<Session>) -> Answer<(Arc<dyn Remote>, PathBuf, CloudAt)> {
+    let (at, home) = turned_at(&held(session)).ok_or_else(|| Refusal::of("sealingNoCloud"))?;
+    Ok((reached(&home, &at)?, home, at))
+}
+
+fn refused_by(hitch: Hitch, provider: &str) -> Refusal {
     match tisty_carrier::pause_for(hitch, provider) {
         Err(trouble) => crate::said(trouble),
         Ok(_) => Refusal::of("cloudNotNow"),
@@ -173,6 +183,14 @@ fn said_sealed(session: &Mutex<Session>, cloud: String, named: Option<String>) -
                 e,
             )
         })
+}
+
+fn keyed(session: &Mutex<Session>, cloud: &str, named: &str) -> Answer<()> {
+    let known = held(session).state.sealed.get(cloud).cloned();
+    match known.as_deref() == Some(named) {
+        true => Ok(()),
+        false => said_sealed(session, cloud.to_string(), Some(named.to_string())),
+    }
 }
 
 fn key_of(session: &Mutex<Session>) -> Answer<CloudKey> {
@@ -204,6 +222,22 @@ fn chosen_cloud(session: &Session, on: bool) -> Answer<String> {
     .ok_or_else(|| Refusal::of("sealingNoCloud"))
 }
 
+// Turning on names the key once the claim stands, while every machine still reads plain; a cancel since keeps it unsaid.
+fn claim_keyed(app: &AppHandle, home: &Path, cloud: &str, named: &str) {
+    let turns = app.state::<Turns>();
+    let _keying = turns.keying.lock().unwrap_or_else(PoisonError::into_inner);
+    if !Turning::left(home).is_some_and(|left| left.on && !left.giving_up) {
+        return;
+    }
+    if let Err(why) = keyed(&app.state::<Mutex<Session>>(), cloud, named) {
+        witness::warn(
+            channel::CLOUD,
+            "the key of a cloud being sealed could not be named yet",
+            &[("why", Fact::Why(why.code.to_string()))],
+        );
+    }
+}
+
 #[tauri::command(async)]
 pub async fn sealing_begin(
     app: AppHandle,
@@ -211,10 +245,6 @@ pub async fn sealing_begin(
     turns: tauri::State<'_, Turns>,
     on: bool,
 ) -> Answer<()> {
-    let (kept, confirmed) = crate::identity::standing(&session)?;
-    if !kept || !confirmed {
-        return Err(Refusal::of("sealingPhrase"));
-    }
     let (cloud, device) = {
         let session = held(&session);
         (
@@ -222,14 +252,15 @@ pub async fn sealing_begin(
             session.config.device_id.0.clone(),
         )
     };
-    let key = key_of(&session)?;
+    let key =
+        crate::identity::confirmed_key(&session)?.ok_or_else(|| Refusal::of("sealingPhrase"))?;
     let (plain, home, at) = plain_of(&session)?;
     let named = key.named_for(&cloud);
     if let Ok(mut last) = turns.last.lock() {
         *last = None;
     }
     let turn = if on { Turn::On } else { Turn::Off };
-    let (said, there, giving) = (cloud.clone(), home.clone(), plain.clone());
+    let (said, there) = (cloud.clone(), home.clone());
     let begun = elsewhere(move || Turning::begin(plain, &there, key, &said, &device, turn)).await?;
     if let Err(hitch) = begun {
         if Turning::left(&home).is_some() {
@@ -237,11 +268,9 @@ pub async fn sealing_begin(
         }
         return Err(refused_by(hitch, &at.provider));
     }
-    // Turning on names the key now, while every machine still reads plain; turning off waits until the place is plain.
-    if on && let Err(refusal) = said_sealed(&session, cloud, Some(named)) {
-        let key = key_of(&session)?;
-        let _ = elsewhere(move || Turning::resume(giving, &home, key).map(Turning::abort)).await;
-        return Err(refusal);
+    if on {
+        let keying = app.clone();
+        elsewhere(move || claim_keyed(&keying, &home, &cloud, &named)).await?;
     }
     drive(app);
     Ok(())
@@ -252,6 +281,45 @@ pub fn sealing_resume(app: AppHandle) {
     drive(app);
 }
 
+// The key is taken back under the turn's lock and before anything is undone, so a plain place is never left with it named.
+fn given_up(
+    app: &AppHandle,
+    plain: Arc<dyn Remote>,
+    home: &Path,
+    key: CloudKey,
+    store: &str,
+    provider: &str,
+) -> Answer<bool> {
+    let session = app.state::<Mutex<Session>>();
+    let turns = app.state::<Turns>();
+    let _keying = turns.keying.lock().unwrap_or_else(PoisonError::into_inner);
+    let mut refused = None;
+    let mut unkeyed = |on: bool, cloud: &str| -> Result<(), Hitch> {
+        if !on {
+            return Ok(());
+        }
+        said_sealed(&session, cloud.to_string(), None).map_err(|refusal| {
+            refused = Some(refusal);
+            Hitch::Broke("the key could not be taken back".into())
+        })
+    };
+    let done = match Turning::left(home) {
+        Some(left) => match Turning::resume(plain, home, key) {
+            Some(turning) => turning.abort(|| unkeyed(left.on, &left.cloud)),
+            None => return Err(Refusal::of("sealingPhrase")),
+        },
+        None => Turning::orphaned(plain, home, key, store, ORPHANED_AFTER, |turn| {
+            unkeyed(turn == Turn::On, store)
+        })
+        .map(|turn| turn.is_some()),
+    };
+    done.map_err(|hitch| {
+        refused
+            .take()
+            .unwrap_or_else(|| refused_by(hitch, provider))
+    })
+}
+
 #[tauri::command(async)]
 pub async fn sealing_cancel(
     app: AppHandle,
@@ -259,35 +327,24 @@ pub async fn sealing_cancel(
     turns: tauri::State<'_, Turns>,
 ) -> Answer<()> {
     turns.driven.fetch_add(1, Ordering::AcqRel);
-    let key = key_of(&session)?;
-    let (plain, home, at) = plain_of(&session)?;
-    let store = tisty_core::store::peek_identity(held(&session).paths.store())
-        .ok_or_else(|| Refusal::of("sealingNoCloud"))?;
-    let given_up = match Turning::left(&home) {
-        Some(left) => {
-            let turning =
-                Turning::resume(plain, &home, key).ok_or_else(|| Refusal::of("sealingPhrase"))?;
-            elsewhere(move || turning.abort())
-                .await?
-                .map_err(|hitch| refused_by(hitch, &at.provider))?;
-            left.on.then_some(left.cloud)
-        }
-        None => {
-            let on = tisty_carrier::turn_of(&word_here(&home)) == Some(Turn::On);
-            let cloud = store.clone();
-            let dropped =
-                elsewhere(move || Turning::orphaned(plain, &home, key, &cloud, ORPHANED_AFTER))
-                    .await?
-                    .map_err(|hitch| refused_by(hitch, &at.provider))?;
-            (dropped && on).then_some(store)
-        }
-    };
-    // A sealing given up leaves the place plain, so the key its claim named is taken back too.
-    if let Some(cloud) = given_up {
-        said_sealed(&session, cloud, None)?;
+    let cancelled = cancelled(&app, &session).await;
+    // Whatever stopped short of giving the turn up leaves it to be carried on, so it is driven again.
+    if !matches!(cancelled, Ok(true)) {
+        drive(app.clone());
     }
-    told(&app, &turns, None);
+    if cancelled? {
+        told(&app, &turns, None);
+    }
     Ok(())
+}
+
+async fn cancelled(app: &AppHandle, session: &Mutex<Session>) -> Answer<bool> {
+    let key = key_of(session)?;
+    let (plain, home, at) = plain_of(session)?;
+    let store = tisty_core::store::peek_identity(held(session).paths.store())
+        .ok_or_else(|| Refusal::of("sealingNoCloud"))?;
+    let app = app.clone();
+    elsewhere(move || given_up(&app, plain, &home, key, &store, &at.provider)).await?
 }
 
 #[tauri::command(async)]
@@ -324,6 +381,7 @@ fn told_of(turning: &Turning, stepped: &Stepped) -> Told {
         done,
         left,
         refused: turning.refused().len(),
+        stopped: false,
         why: None,
     }
 }
@@ -353,16 +411,13 @@ fn rested(turns: &Turns, ours: u64, wait: Duration) -> bool {
 fn driven(app: &AppHandle, ours: u64) {
     let session = app.state::<Mutex<Session>>();
     let turns = app.state::<Turns>();
-    let Some((_, home)) = turned_at(&held(&session)) else {
+    let Some((at, home)) = turned_at(&held(&session)) else {
         return;
     };
     if Turning::left(&home).is_none() {
         return;
     }
-    let Ok(key) = key_of(&session) else {
-        return;
-    };
-    let Ok((plain, home, at)) = plain_of(&session) else {
+    let (Ok(key), Ok(plain)) = (key_of(&session), reached(&home, &at)) else {
         return;
     };
     let Some(mut turning) = Turning::resume(plain.clone(), &home, key.clone()) else {
@@ -377,18 +432,11 @@ fn driven(app: &AppHandle, ours: u64) {
                 return;
             }
             Ok(Stepped::GaveUp) => {
-                if turning.turn() == Turn::On {
-                    let _ = said_sealed(&session, turning.said().0.to_string(), None);
-                }
                 told(app, &turns, None);
                 return;
             }
-            Ok(Stepped::Settling { left: 0 }) => {
-                told(
-                    app,
-                    &turns,
-                    Some(told_of(&turning, &Stepped::Settling { left: 0 })),
-                );
+            Ok(stepped @ Stepped::Settling { left: 0 }) => {
+                told(app, &turns, Some(told_of(&turning, &stepped)));
                 if !rested(&turns, ours, SETTLING_FOR) {
                     return;
                 }
@@ -401,10 +449,11 @@ fn driven(app: &AppHandle, ours: u64) {
                     }
                 }
                 Err(trouble) => {
-                    let refusal = crate::said(trouble);
-                    let mut said = told_of(&turning, &Stepped::Claimed);
-                    said.step = "stopped";
-                    said.why = Some(refusal.code.to_string());
+                    let on = turning.turn() == Turn::On;
+                    let mut said = told_last(&turns, on)
+                        .unwrap_or_else(|| told_of(&turning, &Stepped::Claimed));
+                    said.stopped = true;
+                    said.why = Some(crate::said(trouble).code.to_string());
                     told(app, &turns, Some(said));
                     return;
                 }
@@ -427,6 +476,14 @@ fn ended(
         (cloud.to_string(), named.to_string())
     };
     if turning.turn() == Turn::On {
+        // A claim whose key could not be named then is named now, since the place is sealed whatever happens next.
+        if let Err(why) = keyed(session, &cloud, &named) {
+            witness::warn(
+                channel::CLOUD,
+                "the cloud was sealed and the log could not name its key",
+                &[("why", Fact::Why(why.code.to_string()))],
+            );
+        }
         let session = held(session);
         session.reach.tried_for(None);
         session.reach.seal_with(Some(crate::reaching::Keyed {

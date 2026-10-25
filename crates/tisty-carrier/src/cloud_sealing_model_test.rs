@@ -132,7 +132,7 @@ impl World {
             .take()
             .or_else(|| Turning::resume(self.plain(), &self.home(), key()));
         if let Some(turning) = turning {
-            let _ = turning.abort();
+            let _ = turning.abort(|| Ok(()));
         }
     }
 

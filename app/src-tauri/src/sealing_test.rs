@@ -7,11 +7,17 @@ fn claimed_at(secs_ago: u64) -> String {
 }
 
 #[test]
-fn a_claim_tells_its_age_from_its_nonce() {
-    let age = |word: &str| tisty_carrier::claim_age(word);
-    assert!(age(&claimed_at(60)).is_some_and(|age| age < ORPHANED_AFTER));
-    assert!(age(&claimed_at(ORPHANED_AFTER + 60)).is_some_and(|age| age >= ORPHANED_AFTER));
-    assert_eq!(age("shape = 3\n"), None);
+fn a_claim_stands_still_from_its_nonce_or_from_its_last_stir() {
+    let idle = |word: &str| tisty_carrier::idle_for(word);
+    let old = claimed_at(ORPHANED_AFTER + 60);
+    assert!(idle(&claimed_at(60)).is_some_and(|idle| idle < ORPHANED_AFTER));
+    assert!(idle(&old).is_some_and(|idle| idle >= ORPHANED_AFTER));
+    let stirred = format!(
+        "{old}sealing_stirred = {}\n",
+        tisty_carrier::policy::now() - 60
+    );
+    assert!(idle(&stirred).is_some_and(|idle| idle < ORPHANED_AFTER));
+    assert_eq!(idle("shape = 3\n"), None);
 }
 
 #[test]

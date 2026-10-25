@@ -1324,10 +1324,11 @@ export const identityBegin = (): Promise<string> => invoke("identity_begin");
 
 export interface SealTold {
   on: boolean;
-  step: "claimed" | "copying" | "closed" | "settling" | "done" | "stopped";
+  step: "claimed" | "copying" | "closed" | "settling" | "done";
   done: number;
   left: number;
   refused: number;
+  stopped: boolean;
   why: string | null;
 }
 

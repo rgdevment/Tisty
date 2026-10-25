@@ -94,7 +94,7 @@ fn a_turning_given_up_before_the_switch_leaves_the_cloud_as_it_was() {
     let mut turning = turned(&fake, &setting).unwrap();
     turning.step().unwrap();
 
-    turning.abort().unwrap();
+    turning.abort(|| Ok(())).unwrap();
 
     assert_eq!(
         tisty_sync::sealing_in(&word(&fake)),
@@ -246,7 +246,7 @@ fn turning_off_given_up_leaves_the_cloud_sealed() {
     sealed_on(&setting, &fake);
     let turning = turning_off(&fake, &setting).unwrap();
 
-    turning.abort().unwrap();
+    turning.abort(|| Ok(())).unwrap();
 
     assert_eq!(
         tisty_sync::sealing_in(&word(&fake)),
@@ -290,7 +290,7 @@ fn giving_up_cut_half_way_is_undone_the_rest_of_the_way_from_the_journal() {
     };
     let turning = turned(&fake, &setting).unwrap();
     fake.fail_after(2, Hitch::Unreachable(None, "cut".into()));
-    assert!(turning.abort().is_err());
+    assert!(turning.abort(|| Ok(())).is_err());
 
     let plain: Arc<dyn Remote> = fake.clone();
     let mut left = Turning::resume(plain, &home_of(&setting, "dev_a"), key()).unwrap();
@@ -348,7 +348,7 @@ fn giving_up_taken_up_again_never_undoes_a_cloud_another_machine_sealed_since() 
     let one = written(&setting);
     let mine = turned(&fake, &setting).unwrap();
     fake.fail_after(3, Hitch::Unreachable(None, "cut".into()));
-    assert!(mine.abort().is_err());
+    assert!(mine.abort(|| Ok(())).is_err());
     let plain: Arc<dyn Remote> = fake.clone();
     let mut theirs = Turning::begin(
         plain.clone(),
@@ -402,7 +402,7 @@ fn giving_up_a_turn_off_takes_away_the_plain_copies_it_wrote() {
     let mut turning = turning_off(&fake, &setting).unwrap();
     turning.step().unwrap();
 
-    turning.abort().unwrap();
+    turning.abort(|| Ok(())).unwrap();
 
     let left: Vec<String> = fake
         .list("")
@@ -498,10 +498,12 @@ fn another_machine_s_claim_is_given_up_only_once_it_is_old_enough() {
     let home = home_of(&setting, "dev_b");
     let week = 7 * 24 * 60 * 60;
 
-    assert!(!Turning::orphaned(plain.clone(), &home, key(), CLOUD, week).unwrap());
+    let given = |idle: u64| Turning::orphaned(plain.clone(), &home, key(), CLOUD, idle, |_| Ok(()));
+    assert_eq!(given(week).unwrap(), None);
     assert!(tisty_sync::sealing_in(&word(&fake)) != tisty_sync::Sealing::Plain);
 
-    assert!(Turning::orphaned(plain, &home, key(), CLOUD, 0).unwrap());
+    assert_eq!(given(0).unwrap(), Some(Turn::On));
+    assert_eq!(Turning::left(&home), None);
     assert_eq!(
         tisty_sync::sealing_in(&word(&fake)),
         tisty_sync::Sealing::Plain
@@ -520,4 +522,81 @@ fn a_turn_left_half_way_says_which_way_without_the_key_and_the_size_it_turns() {
     let _turning = turned(&fake, &setting).unwrap();
 
     assert!(Turning::left(&home).is_some_and(|left| left.on));
+}
+
+#[test]
+fn another_machine_s_turn_off_given_up_takes_away_the_plain_copies_it_wrote() {
+    let (setting, fake) = drive();
+    sealed_on(&setting, &fake);
+    let plain: Arc<dyn Remote> = fake.clone();
+    crate::wipe_behind(plain.clone(), &home_of(&setting, "dev_a"), key(), CLOUD).unwrap();
+    let mut theirs = turning_off(&fake, &setting).unwrap();
+    theirs.step().unwrap();
+    let mut told = None;
+
+    let given = Turning::orphaned(
+        plain,
+        &home_of(&setting, "dev_b"),
+        key(),
+        CLOUD,
+        0,
+        |turn| {
+            told = Some(turn);
+            Ok(())
+        },
+    );
+
+    assert_eq!(given.unwrap(), Some(Turn::Off));
+    assert_eq!(told, Some(Turn::Off));
+    assert_eq!(
+        tisty_sync::sealing_in(&word(&fake)),
+        tisty_sync::Sealing::Sealed(CLOUD.into())
+    );
+    let left: Vec<String> = fake
+        .list("")
+        .unwrap()
+        .into_iter()
+        .map(|one| one.name)
+        .filter(|name| !name.starts_with("sealed/"))
+        .filter(|name| !crate::sealed::stays_plain(name, false))
+        .collect();
+    assert!(left.is_empty(), "plain copies stayed: {left:?}");
+}
+
+#[test]
+fn giving_up_refused_before_it_starts_leaves_the_turn_going() {
+    let (setting, fake) = drive();
+    written(&setting);
+    let mut turning = turned(&fake, &setting).unwrap();
+    turning.step().unwrap();
+    let plain: Arc<dyn Remote> = fake.clone();
+    let home = home_of(&setting, "dev_a");
+
+    let refused = Turning::resume(plain.clone(), &home, key())
+        .unwrap()
+        .abort(|| Err(Hitch::Broke("the log could not be written".into())));
+
+    assert!(refused.is_err());
+    to_the_end(&mut Turning::resume(plain, &home, key()).unwrap());
+    assert_eq!(
+        tisty_sync::sealing_in(&word(&fake)),
+        tisty_sync::Sealing::Sealed(CLOUD.into())
+    );
+}
+
+#[test]
+fn giving_up_a_turn_that_already_switched_says_so_and_undoes_nothing() {
+    let (setting, fake) = drive();
+    written(&setting);
+    let plain: Arc<dyn Remote> = fake.clone();
+    let home = home_of(&setting, "dev_a");
+    let mut turning = turned(&fake, &setting).unwrap();
+    let late = Turning::resume(plain, &home, key()).unwrap();
+    to_the_end(&mut turning);
+
+    assert!(!late.abort(|| panic!("nothing is undone")).unwrap());
+    assert_eq!(
+        tisty_sync::sealing_in(&word(&fake)),
+        tisty_sync::Sealing::Sealed(CLOUD.into())
+    );
 }

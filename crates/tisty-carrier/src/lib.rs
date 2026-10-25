@@ -31,7 +31,7 @@ pub mod testing;
 mod tokens;
 pub mod uploads;
 
-pub use cloud::sealing::{Left, Stepped, Turning, claim_age, turn_of, turn_size, wipe_behind};
+pub use cloud::sealing::{Left, Stepped, Turning, idle_for, turn_of, turn_size, wipe_behind};
 pub use cloud::standing::{
     LastRound, OWED_BACK, Standing, cloud_joined, kin_mirrored, mirrored_at, round_forgotten,
     round_noted, standing,

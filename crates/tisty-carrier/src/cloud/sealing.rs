@@ -19,6 +19,7 @@ const SAID: u32 = 1;
 // A round that read the word before the close may still be sending, so the place stays closed this long first.
 const SETTLE: u64 = if cfg!(test) { 0 } else { 10 * 60 };
 const WIPED_BETWEEN_LOOKS: usize = 16;
+const STIRRED_EVERY: u64 = 60 * 60;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -45,6 +46,8 @@ struct Journal {
     closed: u64,
     #[serde(default)]
     refused: BTreeMap<String, u64>,
+    #[serde(default)]
+    orphan: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -70,6 +73,8 @@ pub struct Left {
     pub on: bool,
     pub cloud: String,
     pub moved: u64,
+    pub closed: bool,
+    pub giving_up: bool,
 }
 
 pub struct Turning {
@@ -249,6 +254,7 @@ impl Turning {
             moved: now(),
             closed: 0,
             refused: BTreeMap::new(),
+            orphan: false,
         };
         journal.save(home)?;
         let mut turning = Self {
@@ -276,33 +282,41 @@ impl Turning {
     pub fn left(home: &Path) -> Option<Left> {
         Journal::load(home).map(|journal| Left {
             on: journal.on,
+            closed: matches!(journal.phase, Phase::Closed | Phase::Settled),
+            giving_up: journal.phase == Phase::GivingUp,
             cloud: journal.cloud,
             moved: journal.moved,
         })
     }
 
-    // The nonce is when the claim was made, so another machine's claim tells its own age.
+    // `before` is told the way the word says the turn went, under the lock, before anything is undone.
     pub fn orphaned(
         plain: Arc<dyn Remote>,
         home: &Path,
         key: CloudKey,
         cloud: &str,
-        older_than: u64,
-    ) -> Result<bool, Hitch> {
+        idle_after: u64,
+        before: impl FnOnce(Turn) -> Result<(), Hitch>,
+    ) -> Result<Option<Turn>, Hitch> {
         let _held = locked(home)?;
+        if Journal::load(home).is_some() {
+            return Err(turned_away(cloud));
+        }
         let metered = Metered::over(&*plain, home, Class::Sealing);
         let (text, _) = word(&metered)?;
+        drop(metered);
         let Some(claim) = tisty_sync::claim_in(&text) else {
-            return Ok(false);
+            return Ok(None);
         };
-        let Some((device, nonce)) = claim.split_once(':') else {
-            return Ok(false);
+        let (Some((device, nonce)), Some(turn)) = (claim.split_once(':'), turn_of(&text)) else {
+            return Ok(None);
         };
-        if claim_age(&text).is_none_or(|age| age < older_than) {
-            return Ok(false);
+        if idle_for(&text).is_none_or(|idle| idle < idle_after) {
+            return Ok(None);
         }
-        let turning = Self {
-            plain: plain.clone(),
+        before(turn)?;
+        let mut turning = Self {
+            plain,
             home: home.to_path_buf(),
             journal: Journal {
                 v: SAID,
@@ -310,17 +324,18 @@ impl Turning {
                 named: key.named_for(cloud),
                 device: device.to_string(),
                 nonce: nonce.to_string(),
-                on: turn_of(&text) != Some(Turn::Off),
+                on: turn == Turn::On,
                 phase: Phase::GivingUp,
                 moved: now(),
                 closed: 0,
                 refused: BTreeMap::new(),
+                orphan: true,
             },
             key,
             pending: None,
         };
-        drop(metered);
-        turning.given_up().map(|_| true)
+        turning.journal.save(home)?;
+        turning.given_up().map(|_| Some(turn))
     }
 
     pub fn said(&self) -> (&str, &str) {
@@ -385,6 +400,13 @@ impl Turning {
             (Phase::Claimed | Phase::Copied, Sealing::Copying(went)) if went == way && ours => {}
             (Phase::Closed | Phase::Settled, Sealing::Closed) if ours => {}
             _ => return Err(turned_away(&cloud)),
+        }
+        if matches!(self.journal.phase, Phase::Claimed | Phase::Closed)
+            && idle_for(&text).is_some_and(|idle| idle >= STIRRED_EVERY)
+        {
+            let stirred =
+                tisty_sync::stirred(&text, &claim, now()).ok_or_else(|| turned_away(&cloud))?;
+            rewrite(&metered, &stirred, &revision)?;
         }
         let sealed = sealed_over(&*plain, &home, self.key.clone(), &cloud);
         let (from, to): (&dyn Remote, &dyn Remote) = match on {
@@ -496,14 +518,14 @@ impl Turning {
         Ok(Stepped::Claimed)
     }
 
-    // Waits out the batch a driver may be in the middle of, so giving up is never refused for being busy.
-    pub fn abort(mut self) -> Result<(), Hitch> {
-        {
-            let _held = Held::wait_for(&self.home, SEALING, std::time::Duration::from_secs(120))
-                .map_err(broke)?
-                .ok_or(Hitch::Busy {
-                    wait: std::time::Duration::from_secs(5),
-                })?;
+    // Waits out the batch a driver may be in the middle of, and false says the turn had already switched.
+    pub fn abort(mut self, before: impl FnOnce() -> Result<(), Hitch>) -> Result<bool, Hitch> {
+        let _held = Held::wait_for(&self.home, SEALING, std::time::Duration::from_secs(120))
+            .map_err(broke)?
+            .ok_or(Hitch::Busy {
+                wait: std::time::Duration::from_secs(5),
+            })?;
+        if self.journal.phase != Phase::GivingUp {
             let metered = Metered::over(&*self.plain, &self.home, Class::Sealing);
             let (text, _) = word(&metered)?;
             let switched = match tisty_sync::sealing_in(&text) {
@@ -513,13 +535,14 @@ impl Turning {
                 }
                 _ => false,
             };
-            if switched {
-                return Err(turned_away(&self.journal.cloud));
+            if switched || Journal::load(&self.home).is_none() {
+                return Ok(false);
             }
+            before()?;
             self.journal.phase = Phase::GivingUp;
             self.journal.save(&self.home)?;
         }
-        self.step().map(|_| ())
+        self.given_up().map(|_| true)
     }
 
     // Kept in the journal before anything is undone, so a cut half way is undone the rest of the way next time.
@@ -560,11 +583,16 @@ impl Turning {
             }
         }
         if left_as_it_was && !self.journal.on {
-            for (done, name) in twins(&self.home).into_keys().enumerate() {
+            // Another machine's copies are not listed here, so every plain one its sealed twin still stands for goes.
+            let copies: Vec<String> = match self.journal.orphan {
+                true => standing_twins(&metered, &self.sealed())?,
+                false => twins(&self.home).into_keys().collect(),
+            };
+            for (done, name) in copies.iter().enumerate() {
                 if !still(done)? {
                     break;
                 }
-                deleted(&metered, &name)?;
+                deleted(&metered, name)?;
             }
         }
         forget(&self.home);
@@ -676,25 +704,31 @@ pub fn wipe_behind(
         Sealing::Plain | Sealing::Unsaid => (&sealed, &metered),
         _ => return Err(turned_away(cloud)),
     };
-    let folds = metered.limits().folds_case;
+    let mut gone: usize = 0;
+    for name in standing_twins(behind, kept)? {
+        if gone.is_multiple_of(WIPED_BETWEEN_LOOKS) && word(&metered)?.1 != revision {
+            return Err(turned_away(cloud));
+        }
+        deleted(behind, &name)?;
+        gone += 1;
+    }
+    Ok(gone)
+}
+
+fn standing_twins(behind: &dyn Remote, kept: &dyn Remote) -> Result<Vec<String>, Hitch> {
+    let folds = behind.limits().folds_case;
     let standing: BTreeMap<String, u64> = kept
         .list("")?
         .into_iter()
         .filter(|one| ours_to_turn(&one.name, folds))
         .map(|one| (one.name, one.bytes))
         .collect();
-    let mut gone: usize = 0;
-    for one in behind.list("")? {
-        if !ours_to_turn(&one.name, folds) || standing.get(&one.name) != Some(&one.bytes) {
-            continue;
-        }
-        if gone.is_multiple_of(WIPED_BETWEEN_LOOKS) && word(&metered)?.1 != revision {
-            return Err(turned_away(cloud));
-        }
-        deleted(behind, &one.name)?;
-        gone += 1;
-    }
-    Ok(gone)
+    Ok(behind
+        .list("")?
+        .into_iter()
+        .filter(|one| ours_to_turn(&one.name, folds) && standing.get(&one.name) == Some(&one.bytes))
+        .map(|one| one.name)
+        .collect())
 }
 
 pub fn turn_size(plain: &dyn Remote) -> Result<u64, Hitch> {
@@ -707,12 +741,13 @@ pub fn turn_size(plain: &dyn Remote) -> Result<u64, Hitch> {
         .sum())
 }
 
-// The nonce of a claim is the time it was made, so the word itself says how long a turn has stood.
-pub fn claim_age(text: &str) -> Option<u64> {
+// The nonce says when a claim was made and the turn stirs the word as it works, so the word tells how long it stood still.
+pub fn idle_for(text: &str) -> Option<u64> {
     let claim = tisty_sync::claim_in(text)?;
     let (_, nonce) = claim.split_once(':')?;
-    let made = nonce.parse::<u128>().ok()? / 1_000_000_000;
-    Some(now().saturating_sub(u64::try_from(made).unwrap_or(u64::MAX)))
+    let made = u64::try_from(nonce.parse::<u128>().ok()? / 1_000_000_000).unwrap_or(u64::MAX);
+    let last = tisty_sync::stirred_in(text).map_or(made, |stirred| stirred.max(made));
+    Some(now().saturating_sub(last))
 }
 
 pub fn turn_of(text: &str) -> Option<Turn> {

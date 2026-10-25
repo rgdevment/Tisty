@@ -305,12 +305,7 @@ function Progress({
   onCancel: () => void;
   onAgain: () => void;
 }) {
-  const at =
-    told.step === "claimed"
-      ? 0
-      : told.step === "closed"
-        ? 1
-        : STEPS.indexOf(told.step as (typeof STEPS)[number]);
+  const at = told.step === "claimed" ? 0 : told.step === "closed" ? 1 : STEPS.indexOf(told.step);
   const step = (index: number, label: string, detail?: string) => (
     <li className="flex gap-2">
       <span
@@ -333,7 +328,7 @@ function Progress({
         {step(
           0,
           t("sealStepCopy"),
-          told.step === "copying"
+          told.step === "copying" && told.done + told.left > 0
             ? fill("sealStepCopied", String(told.done), String(told.left))
             : undefined,
         )}
@@ -343,7 +338,7 @@ function Progress({
       {told.refused > 0 && (
         <p className="mt-2 text-[12.5px] text-soft">{fill("sealRefused", String(told.refused))}</p>
       )}
-      {told.step === "stopped" && told.why && (
+      {told.stopped && told.why && (
         <p role="alert" className="mt-2 text-[12.5px] text-urgent">
           {plainly({ code: told.why })}
         </p>
@@ -353,7 +348,7 @@ function Progress({
         <button type="button" className={mild} onClick={onCancel}>
           {t("cancel")}
         </button>
-        {told.step === "stopped" && (
+        {told.stopped && (
           <button type="button" className={strong} onClick={onAgain}>
             {t("tryAgain")}
           </button>

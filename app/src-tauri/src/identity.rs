@@ -401,6 +401,20 @@ pub(crate) fn phrase_key(session: &Mutex<Session>) -> Answer<Option<CloudKey>> {
     Ok(seed_here(session)?.map(|seed| CloudKey::of(&seed)))
 }
 
+pub(crate) fn confirmed_key(session: &Mutex<Session>) -> Answer<Option<CloudKey>> {
+    let Some(seed) = seed_here(session)? else {
+        return Ok(None);
+    };
+    let person = seed.root().person();
+    let session = held(session);
+    session
+        .reach
+        .seed_is(Some((Some(person), session.state.forebears.len())));
+    let confirmed = session.state.persons.names(&person)
+        && Some(person.fingerprint()) == session.config.phrase_confirmed;
+    Ok(confirmed.then(|| CloudKey::of(&seed)))
+}
+
 pub(crate) fn standing(session: &Mutex<Session>) -> Answer<(bool, bool)> {
     let kept = seed_person(session)?;
     let session = held(session);

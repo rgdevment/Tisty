@@ -63,6 +63,7 @@ const copying: SealTold = {
   done: 40,
   left: 60,
   refused: 0,
+  stopped: false,
   why: null,
 };
 
@@ -173,8 +174,9 @@ describe("a turn under way", () => {
     expect(screen.getByText("40 files copied, 60 left")).toBeTruthy();
     await heard({ ...copying, step: "settling", refused: 2 });
     expect(screen.getByText(/2 files are too big to encrypt/)).toBeTruthy();
-    await heard({ ...copying, step: "stopped", why: "cloudOtherPhrase" });
+    await heard({ ...copying, stopped: true, why: "cloudOtherPhrase" });
     expect(screen.getByRole("alert").textContent).toMatch(/different 24-word phrase/);
+    expect(screen.getByText("40 files copied, 60 left")).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: "Try again" }));
     await waitFor(() => expect(sent("sealing_resume")).toHaveLength(1));
 
