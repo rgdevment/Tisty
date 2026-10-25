@@ -353,6 +353,88 @@ describe("writing a block in place", () => {
   });
 });
 
+describe("the steps of a block being left", () => {
+  const leaving = (said: string, keys: string[]) => {
+    const { page, one } = block();
+    const changes: string[] = [];
+    const left: string[] = [];
+    const editing = edited(
+      one,
+      said,
+      (text) => changes.push(text),
+      (text) => left.push(text),
+    );
+    editing.view.dispatch({ selection: { anchor: editing.view.state.doc.length } });
+    for (const key of keys) {
+      editing.view.contentDOM.dispatchEvent(
+        new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }),
+      );
+    }
+    editing.leave();
+    page.remove();
+    return { changes, left };
+  };
+
+  it("drops the empty step an Enter leaves behind, and hands the tidy words back to be kept", () => {
+    const { changes, left } = leaving("- [ ] Lavaloza", ["Enter", "Escape"]);
+    expect(left).toEqual(["- [ ] Lavaloza"]);
+    expect(changes[changes.length - 1]).toBe("- [ ] Lavaloza");
+  });
+
+  it("keeps no blank line after the last step, so the next one joins the same list", () => {
+    expect(leaving("- [ ] Lavaloza", ["Enter", "Enter"]).left).toEqual(["- [ ] Lavaloza"]);
+  });
+
+  it("closes the gaps between steps but leaves a paragraph and code as written", () => {
+    const said = "- [ ] Uno\n- [ ] \n\n- [x] Dos\n\nUn párrafo\n\n```\n- [ ] \n\n```";
+    expect(leaving(said, []).left).toEqual([
+      "- [ ] Uno\n- [x] Dos\n\nUn párrafo\n\n```\n- [ ] \n\n```",
+    ]);
+  });
+
+  it("leaves nothing when the only step was never written", () => {
+    expect(leaving("- [ ] ", ["Enter"]).left).toEqual([""]);
+  });
+});
+
+describe("writing a task's steps", () => {
+  const steps = () => {
+    document.documentElement.classList.add("untitled");
+    const page = document.createElement("article");
+    page.className = "page";
+    const list = document.createElement("ul");
+    const one = document.createElement("li");
+    one.className = "task";
+    list.append(one);
+    page.append(list);
+    document.body.append(page);
+    return { page, list };
+  };
+
+  it("shows no bar over the steps and ends on Enter in an empty step", () => {
+    const { page, list } = steps();
+    const left: string[] = [];
+    const editing = edited(
+      list,
+      "- [ ] Lavaloza",
+      () => {},
+      (text) => left.push(text),
+    );
+    expect(document.querySelector<HTMLElement>(".cm-bar")?.style.display).toBe("none");
+    editing.view.dispatch({ selection: { anchor: editing.view.state.doc.length } });
+    const enter = () =>
+      editing.view.contentDOM.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }),
+      );
+    enter();
+    expect(left).toEqual([]);
+    enter();
+    expect(left).toEqual(["- [ ] Lavaloza"]);
+    page.remove();
+    document.documentElement.classList.remove("untitled");
+  });
+});
+
 describe("the caret a click leaves in a block", () => {
   it("sits after the words read before the click, past the marks the page does not show", () => {
     expect(caretAt("Leche y **pan** fresco", "Leche y pan")).toBe(13);
