@@ -144,16 +144,21 @@ impl<R: Remote> Sealed<R> {
     // A damaged mark says nothing about the phrase, so it is written again only once this key opens what is up there.
     fn mended(&self, revision: String) -> Result<(), Hitch> {
         let unproven = || self.unproven.lock().ok();
-        if unproven().is_some_and(|held| held.as_deref() == Some(revision.as_str())) {
+        let known = !revision.is_empty();
+        if known && unproven().is_some_and(|held| held.as_deref() == Some(revision.as_str())) {
             return Err(self.damaged());
         }
         if !self.proven()? {
-            if let Some(mut held) = unproven() {
+            if let Some(mut held) = unproven().filter(|_| known) {
                 *held = Some(revision);
             }
             return Err(self.damaged());
         }
-        match self.written(Expect::Revision(revision)) {
+        let expect = match known {
+            true => Expect::Revision(revision),
+            false => Expect::Any,
+        };
+        match self.written(expect) {
             Ok(()) | Err(Hitch::Changed(_)) => {}
             Err(other) => return Err(other),
         }
@@ -165,18 +170,24 @@ impl<R: Remote> Sealed<R> {
 
     // One torn file must not keep the right phrase out, and a cloud with nothing sealed has nothing a mark could guard.
     fn proven(&self) -> Result<bool, Hitch> {
-        let mut held: Vec<Seen> = self
-            .within(crate::STORE)?
-            .into_iter()
-            .filter(|one| one.bytes > 0 && !self.is_clear(&one.name))
-            .collect();
+        let sealed = |under: &str| -> Result<Vec<Seen>, Hitch> {
+            Ok(self
+                .within(under)?
+                .into_iter()
+                .filter(|one| one.bytes > 0 && !self.is_clear(&one.name))
+                .collect())
+        };
+        let mut held = sealed(crate::STORE)?;
+        if held.is_empty() {
+            held = sealed("")?;
+        }
         if held.is_empty() {
             return Ok(true);
         }
         held.sort_by_key(|one| one.bytes);
         let mut spent = 0;
         for one in held.iter().take(TRIES) {
-            if spent > PROOF_BYTES {
+            if spent > 0 && spent + one.bytes > PROOF_BYTES {
                 break;
             }
             spent += one.bytes;

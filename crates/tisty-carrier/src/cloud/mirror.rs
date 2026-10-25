@@ -39,6 +39,7 @@ pub fn pull(
     data: Option<&Path>,
     homing: bool,
     along: &mut dyn FnMut(crate::Reached),
+    marked: &dyn Fn() -> Result<(), Hitch>,
 ) -> Result<usize, Hitch> {
     if let Some(trouble) = still_barred(remote, tree, index)? {
         return Err(Hitch::Barred(trouble));
@@ -57,6 +58,7 @@ pub fn pull(
         told => told?,
     };
     heeded(remote, tree, index, data, &told)?;
+    marked()?;
     // Under a sealed root the three plain files stay up there, so only what is sealed tells an emptied store.
     let sealed = crate::sealed::reading(remote.root()).is_some();
     let folds = remote.limits().folds_case;

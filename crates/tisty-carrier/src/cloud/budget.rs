@@ -400,7 +400,10 @@ impl Remote for Metered<'_> {
     }
 
     fn mark_up(&self) -> Result<(), Hitch> {
-        self.remote.mark_up()
+        self.allowed()?;
+        let marked = self.remote.mark_up();
+        self.charge(2, self.limits.costs.about, 0);
+        marked
     }
 }
 

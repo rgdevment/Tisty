@@ -65,7 +65,16 @@ fn echoed_while_owed(fake: Fake) {
     let id = "dev_a-0001";
     let name = format!("{PAPERS}/{id}.md");
     let mut index = Index::default();
-    pull(&fake, &tree, &mut index, Some(&data), false, &mut |_| {}).unwrap();
+    pull(
+        &fake,
+        &tree,
+        &mut index,
+        Some(&data),
+        false,
+        &mut |_| {},
+        &|| Ok(()),
+    )
+    .unwrap();
     std::fs::create_dir_all(tree.join(PAPERS)).unwrap();
     std::fs::write(tree.join(&name), b"lo primero\n").unwrap();
     let (pushed, _) = push(&fake, &tree, &mut index, &mut Pace::new(None, &mut |_| {}));
@@ -83,7 +92,16 @@ fn echoed_while_owed(fake: Fake) {
     said.save(&data).unwrap();
     tisty_core::docs::keep_carried(&data, id, ours).unwrap();
 
-    pull(&fake, &tree, &mut index, Some(&data), false, &mut |_| {}).unwrap();
+    pull(
+        &fake,
+        &tree,
+        &mut index,
+        Some(&data),
+        false,
+        &mut |_| {},
+        &|| Ok(()),
+    )
+    .unwrap();
 
     assert_eq!(
         tisty_core::docs::Carried::read(&data).of(id),
@@ -156,7 +174,9 @@ fn a_cloud_asking_for_a_later_tisty_brings_nothing_else_down() {
         .unwrap();
     let mut index = Index::default();
 
-    let pulled = pull(&fake, &tree, &mut index, None, false, &mut |_| {});
+    let pulled = pull(&fake, &tree, &mut index, None, false, &mut |_| {}, &|| {
+        Ok(())
+    });
 
     assert_eq!(
         pulled,
@@ -183,7 +203,9 @@ fn a_place_whose_word_cannot_come_down_brings_nothing_else_either() {
     fake.truncate_next(1);
     let mut index = Index::default();
 
-    let pulled = pull(&fake, &tree, &mut index, None, false, &mut |_| {});
+    let pulled = pull(&fake, &tree, &mut index, None, false, &mut |_| {}, &|| {
+        Ok(())
+    });
 
     assert!(matches!(pulled, Err(Hitch::Troubled(_))), "{pulled:?}");
     assert!(!tree.join(PAPERS).join("dev_b-0001.md").exists());
@@ -209,17 +231,23 @@ fn a_cloud_found_barred_is_asked_only_for_its_word_until_it_changes() {
     let fake = Fake::drive();
     word_up_there(&fake, room.path(), "999.0.0");
     let mut index = Index::default();
-    let barred = pull(&fake, &tree, &mut index, None, false, &mut |_| {});
+    let barred = pull(&fake, &tree, &mut index, None, false, &mut |_| {}, &|| {
+        Ok(())
+    });
     assert!(matches!(barred, Err(Hitch::Barred(_))), "{barred:?}");
     let listed = fake.counts().lists;
 
-    let again = pull(&fake, &tree, &mut index, None, false, &mut |_| {});
+    let again = pull(&fake, &tree, &mut index, None, false, &mut |_| {}, &|| {
+        Ok(())
+    });
 
     assert!(matches!(again, Err(Hitch::Barred(_))), "{again:?}");
     assert_eq!(fake.counts().lists, listed, "the cloud was listed again");
 
     word_up_there(&fake, room.path(), "1.0.0");
-    let freed = pull(&fake, &tree, &mut index, None, false, &mut |_| {});
+    let freed = pull(&fake, &tree, &mut index, None, false, &mut |_| {}, &|| {
+        Ok(())
+    });
 
     assert_eq!(freed, Ok(0));
     assert!(index.cursor.is_some());
@@ -237,12 +265,17 @@ fn what_a_later_tisty_took_away_is_not_taken_away_here_while_barred() {
     fake.put(&doc, &room.path().join("doc"), Expect::Absent)
         .unwrap();
     let mut index = Index::default();
-    pull(&fake, &tree, &mut index, None, false, &mut |_| {}).unwrap();
+    pull(&fake, &tree, &mut index, None, false, &mut |_| {}, &|| {
+        Ok(())
+    })
+    .unwrap();
     assert!(tree.join(&doc).is_file());
 
     word_up_there(&fake, room.path(), "999.0.0");
     fake.delete(&doc, None).unwrap();
-    let barred = pull(&fake, &tree, &mut index, None, false, &mut |_| {});
+    let barred = pull(&fake, &tree, &mut index, None, false, &mut |_| {}, &|| {
+        Ok(())
+    });
 
     assert!(matches!(barred, Err(Hitch::Barred(_))), "{barred:?}");
     assert!(tree.join(&doc).is_file(), "a deletion came through the bar");
@@ -257,10 +290,15 @@ fn a_word_spoiled_here_is_brought_again_rather_than_barring_for_good() {
     let fake = Fake::drive();
     word_up_there(&fake, room.path(), "1.0.0");
     let mut index = Index::default();
-    pull(&fake, &tree, &mut index, None, false, &mut |_| {}).unwrap();
+    pull(&fake, &tree, &mut index, None, false, &mut |_| {}, &|| {
+        Ok(())
+    })
+    .unwrap();
 
     std::fs::write(tree.join(NAMED), b"\xff\xfe").unwrap();
-    let pulled = pull(&fake, &tree, &mut index, None, false, &mut |_| {});
+    let pulled = pull(&fake, &tree, &mut index, None, false, &mut |_| {}, &|| {
+        Ok(())
+    });
 
     assert_eq!(pulled, Ok(0));
     assert_eq!(tisty_sync::refuses(&tree), Ok(()));
@@ -274,11 +312,22 @@ fn a_word_spoiled_here_and_gone_up_there_is_let_go_rather_than_barring_for_good(
     let fake = Fake::drive();
     word_up_there(&fake, room.path(), "1.0.0");
     let mut index = Index::default();
-    pull(&fake, &tree, &mut index, None, false, &mut |_| {}).unwrap();
+    pull(&fake, &tree, &mut index, None, false, &mut |_| {}, &|| {
+        Ok(())
+    })
+    .unwrap();
 
     fake.delete(NAMED, None).unwrap();
     std::fs::write(tree.join(NAMED), b"\xff\xfe").unwrap();
-    let pulled = pull(&fake, &tree, &mut index, None, true, &mut |_| {});
+    let pulled = pull(
+        &fake,
+        &tree,
+        &mut index,
+        None,
+        true,
+        &mut |_| {},
+        &|| Ok(()),
+    );
 
     assert!(!matches!(pulled, Err(Hitch::Barred(_))), "{pulled:?}");
     assert!(!tree.join(NAMED).exists());
@@ -369,7 +418,9 @@ fn a_plain_reader_that_brings_down_a_sealed_word_brings_nothing_else_and_writes_
     .unwrap();
     let mut index = Index::default();
 
-    let pulled = pull(&fake, &tree, &mut index, None, false, &mut |_| {});
+    let pulled = pull(&fake, &tree, &mut index, None, false, &mut |_| {}, &|| {
+        Ok(())
+    });
 
     assert!(
         matches!(pulled, Err(Hitch::Barred(tisty_sync::Trouble::Sealed(_)))),

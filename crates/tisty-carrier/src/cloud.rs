@@ -246,9 +246,9 @@ impl Cloud {
         let mut index = self.index();
         let data = here.map(|here| here.data.as_path());
         mirror::heal(&tree, &mut index);
-        let pulled = self
-            .marked_up(remote)
-            .and_then(|()| mirror::pull(remote, &tree, &mut index, data, turn.homes, along));
+        let pulled = mirror::pull(remote, &tree, &mut index, data, turn.homes, along, &|| {
+            self.marked_up(remote)
+        });
         // A store deleted whole leaves nothing to bring home, so a move away goes on, while a round here still says it is gone.
         if self.still_emptied(&pulled, &index) && (turn.homes || here.is_some()) {
             return match turn.homes {

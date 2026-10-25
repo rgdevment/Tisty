@@ -606,3 +606,33 @@ fn a_sealed_cloud_whose_sealed_folder_was_deleted_whole_is_said_to_be_emptied() 
         "{stopped:?}"
     );
 }
+
+#[test]
+fn a_round_into_a_closed_place_stops_before_it_puts_up_any_mark() {
+    let (setting, _) = each_kind(|fake| fake).remove(0);
+    let (one, space) = sealed_desk(&setting, "dev_a");
+    one.filed(DOC, "# Plan\n\nsellado\n");
+    let dir = tempfile::tempdir().unwrap();
+    let word = dir.path().join("word");
+    std::fs::write(
+        &word,
+        "shape = 3\nneeds = \"1.35.0\"\nsealing = \"closed:dev_b:abc\"\n",
+    )
+    .unwrap();
+    space
+        .inner()
+        .put(tisty_sync::NAMED, &word, crate::Expect::Any)
+        .unwrap();
+
+    let stopped = match one.carry(Way::Both, Holds::Everywhere) {
+        Ok(moved) => moved.refused,
+        Err(trouble) => Some(trouble),
+    };
+
+    assert!(matches!(stopped, Some(Trouble::Sealing(_))), "{stopped:?}");
+    assert_eq!(
+        space.marked().unwrap(),
+        None,
+        "a mark was put up in a closed place"
+    );
+}

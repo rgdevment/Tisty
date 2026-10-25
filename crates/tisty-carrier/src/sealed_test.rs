@@ -491,3 +491,14 @@ fn a_damaged_mark_this_phrase_could_not_prove_is_not_tried_again_until_it_change
         "the proof was tried again"
     );
 }
+
+#[test]
+fn a_damaged_mark_over_documents_sealed_with_another_phrase_is_never_taken_over() {
+    let theirs = Sealed::new(Fake::drive(), key(8), "store_one");
+    put(&theirs, "docs/plan.md", b"# Plan\n");
+    let sealed = Sealed::new(theirs.inner, key(7), "store_one");
+    damaged(&sealed);
+
+    assert_eq!(barred(sealed.mark_it()), Some("mark-damaged"));
+    assert_eq!(sealed.marked().unwrap(), Some(Mark::Damaged));
+}
