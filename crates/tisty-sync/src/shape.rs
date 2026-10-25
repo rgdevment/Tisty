@@ -267,6 +267,11 @@ fn ours(said: &toml_edit::DocumentMut, claim: &str) -> bool {
         .is_some_and(|held| held == claim)
 }
 
+pub fn claim_in(text: &str) -> Option<String> {
+    let said = text.parse::<toml_edit::DocumentMut>().ok()?;
+    phase_of(&said).and_then(claim_of).map(str::to_string)
+}
+
 pub fn claimed_by(text: &str, claim: &str) -> bool {
     text.parse::<toml_edit::DocumentMut>()
         .is_ok_and(|said| ours(&said, claim))

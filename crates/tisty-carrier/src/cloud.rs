@@ -1152,6 +1152,14 @@ fn patiently(mut once: impl FnMut() -> Result<(), crate::Hitch>) -> Result<(), c
     }
 }
 
+/// What a provider answered, told apart: a wait that passes by itself, or the trouble that stops.
+pub fn stops(hitch: crate::Hitch, provider: &str) -> Option<Trouble> {
+    match judge(hitch, provider) {
+        Judged::Pause(..) => None,
+        Judged::Stop(trouble) => Some(trouble),
+    }
+}
+
 #[cfg(test)]
 #[path = "cloud_test.rs"]
 mod tests;

@@ -122,6 +122,12 @@ impl Reaching {
             .map(|(carrier, _)| carrier)
     }
 
+    // The provider as it is, for a turn that reads and writes both sides of the cloud.
+    pub fn plain(&self, at: &CloudAt) -> Result<Arc<dyn tisty_carrier::Remote>, String> {
+        let home = self.home_of(at);
+        tisty_carrier::off::away(|| remote_of(&home, at)).map(|(remote, _)| remote)
+    }
+
     // Handed out rather than let go here, so the caller can do it without holding the session.
     pub fn taken(&self) -> Option<Arc<Tokens>> {
         self.built.lock().ok()?.take().map(|was| was.tokens)
@@ -176,25 +182,14 @@ pub fn offers(provider: &str) -> bool {
     }
 }
 
+type Reached = (Arc<dyn tisty_carrier::Remote>, Arc<Tokens>);
+
 fn cloud_of(
     home: &Path,
     at: &CloudAt,
     keyed: Option<&Keyed>,
 ) -> Result<(Shared, Arc<Tokens>), String> {
-    match at.provider.as_str() {
-        GOOGLE => google_of(home, at, keyed),
-        ONEDRIVE => onedrive_of(home, at, keyed),
-        WEBDAV => webdav_of(home, at, keyed),
-        other => Err(format!("this build does not know the cloud {other}")),
-    }
-}
-
-fn over<R: tisty_carrier::Remote + 'static>(
-    inner: R,
-    home: &Path,
-    keyed: Option<&Keyed>,
-) -> Result<Shared, String> {
-    let inner = tisty_carrier::off::OffRuntime(inner);
+    let (inner, tokens) = remote_of(home, at)?;
     let remote: Arc<dyn tisty_carrier::Remote> = match keyed {
         Some(keyed) => match tisty_carrier::Sealed::opened(
             inner,
@@ -205,16 +200,25 @@ fn over<R: tisty_carrier::Remote + 'static>(
             Some(sealed) => Arc::new(sealed),
             None => return Err("the key does not open the cloud the log names".to_string()),
         },
-        None => Arc::new(inner),
+        None => inner,
     };
-    Ok(Arc::new(Cloud::over(remote, home)))
+    Ok((Arc::new(Cloud::over(remote, home)), tokens))
 }
 
-fn onedrive_of(
-    home: &Path,
-    at: &CloudAt,
-    keyed: Option<&Keyed>,
-) -> Result<(Shared, Arc<Tokens>), String> {
+fn remote_of(home: &Path, at: &CloudAt) -> Result<Reached, String> {
+    match at.provider.as_str() {
+        GOOGLE => google_of(home, at),
+        ONEDRIVE => onedrive_of(home, at),
+        WEBDAV => webdav_of(home, at),
+        other => Err(format!("this build does not know the cloud {other}")),
+    }
+}
+
+fn off_runtime<R: tisty_carrier::Remote + 'static>(inner: R) -> Arc<dyn tisty_carrier::Remote> {
+    Arc::new(tisty_carrier::off::OffRuntime(inner))
+}
+
+fn onedrive_of(home: &Path, at: &CloudAt) -> Result<Reached, String> {
     let client = tisty_onedrive::client().ok_or("this build has no access to OneDrive")?;
     let secrets = secrets_for(at).map_err(|e| format!("{e:?}"))?;
     let renew = tisty_onedrive::MicrosoftRenew::new(client, tisty_onedrive::Endpoints::microsoft())
@@ -224,14 +228,10 @@ fn onedrive_of(
         .map_err(|e| format!("{e:?}"))?
         .for_account(&at.account)
         .keeping_at(home);
-    Ok((over(drive, home, keyed)?, tokens))
+    Ok((off_runtime(drive), tokens))
 }
 
-fn webdav_of(
-    home: &Path,
-    at: &CloudAt,
-    keyed: Option<&Keyed>,
-) -> Result<(Shared, Arc<Tokens>), String> {
+fn webdav_of(home: &Path, at: &CloudAt) -> Result<Reached, String> {
     let dav = tisty_webdav::DavAt::of_account(&at.account).map_err(|e| format!("{e:?}"))?;
     let secrets = secrets_for(at).map_err(|e| format!("{e:?}"))?;
     let tokens = Arc::new(Tokens::new(
@@ -241,14 +241,10 @@ fn webdav_of(
         home,
     ));
     let server = tisty_webdav::WebDav::new(tokens.clone(), dav).map_err(|e| format!("{e:?}"))?;
-    Ok((over(server, home, keyed)?, tokens))
+    Ok((off_runtime(server), tokens))
 }
 
-fn google_of(
-    home: &Path,
-    at: &CloudAt,
-    keyed: Option<&Keyed>,
-) -> Result<(Shared, Arc<Tokens>), String> {
+fn google_of(home: &Path, at: &CloudAt) -> Result<Reached, String> {
     let client = tisty_google::client().ok_or("this build has no access to Google Drive")?;
     let secrets = secrets_for(at).map_err(|e| format!("{e:?}"))?;
     let renew = tisty_google::GoogleRenew::new(client, tisty_google::Endpoints::google())
@@ -258,7 +254,7 @@ fn google_of(
         .map_err(|e| format!("{e:?}"))?
         .for_account(&at.account)
         .owing_at(home);
-    Ok((over(drive, home, keyed)?, tokens))
+    Ok((off_runtime(drive), tokens))
 }
 
 // Google's tokens stay where 1.30 kept them, under the account alone; every later provider is named first.

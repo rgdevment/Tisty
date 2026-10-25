@@ -1243,6 +1243,10 @@ const en = {
     "Nothing was synced, in either direction. Your cloud is encrypted with a different 24-word phrase from the one on this computer, so Tisty does not touch it. Check that this computer uses the phrase you chose for this cloud.",
   cloudMarkDamaged:
     "Nothing was synced, in either direction. The mark that tells which phrase opens your encrypted cloud is damaged, and this computer could not prove its phrase opens what is up there, so Tisty does not touch it. Sync from a computer whose phrase opens your cloud, and it mends the mark. What you write here stays here meanwhile.",
+  sealingNoCloud: "Your notes do not sync with a cloud, so there is nothing to encrypt there.",
+  sealingPhrase: "Your 24-word phrase has to be written down and confirmed first.",
+  sealingBehind:
+    "Some of your computers still run an older Tisty. Update them, or remove the ones you no longer use.",
   cloudSealing:
     "Nothing was synced just now: another of your computers is encrypting or decrypting your cloud. Syncing goes on by itself once it is done. What you write here stays here meanwhile.",
   cloudUnsealed:
@@ -3614,6 +3618,10 @@ const es: Catalog = {
     "No se sincronizó nada, en ningún sentido. Tu nube está cifrada con una frase de 24 palabras distinta de la que tiene este equipo, así que Tisty no la toca. Revisa que este equipo use la frase que elegiste para esta nube.",
   cloudMarkDamaged:
     "No se sincronizó nada, en ningún sentido. La marca que dice qué frase abre tu nube cifrada está dañada, y este equipo no pudo comprobar que su frase abre lo que hay arriba, así que Tisty no la toca. Sincroniza desde un equipo cuya frase abra tu nube y la marca se repara. Mientras tanto, lo que escribas aquí se queda aquí.",
+  sealingNoCloud: "Tus notas no se sincronizan con una nube, así que ahí no hay nada que cifrar.",
+  sealingPhrase: "Primero tienes que anotar y confirmar tu frase de 24 palabras.",
+  sealingBehind:
+    "Algunos de tus equipos todavía usan un Tisty anterior. Actualízalos o quita los que ya no usas.",
   cloudSealing:
     "No se sincronizó nada por ahora: otro de tus equipos está cifrando o descifrando tu nube. La sincronización sigue sola cuando termine. Mientras tanto, lo que escribas aquí se queda aquí.",
   cloudUnsealed:

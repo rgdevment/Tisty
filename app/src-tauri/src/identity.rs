@@ -169,23 +169,26 @@ pub async fn seal_the_cloud(session: &Mutex<Session>) {
         let tree = tisty_carrier::mirrored_at(&session.reach.home_of(&at));
         (at, tree)
     };
+    // The log only lends the key: the place's word alone says when to read sealed, so a turn still copying reads plain.
     let said = match tisty_carrier::sealing_of(&tree) {
-        tisty_carrier::Sealing::Sealed(cloud) => Some(cloud),
+        tisty_carrier::Sealing::Sealed(cloud) => Some(Some(cloud)),
+        tisty_carrier::Sealing::Copying(tisty_carrier::Turn::Off) => Some(None),
         _ => None,
     };
     let (paths, forebears, persons, locked) = {
         let session = held(session);
         let wanted = match said {
             // A machine that never read `cloud.sealed` tries its own phrase, and the mark says whether it is this cloud's.
-            Some(cloud) => match session.state.sealed.get(&cloud) {
+            Some(Some(cloud)) => match session.state.sealed.get(&cloud) {
                 Some(named) => Some((cloud, named.clone())),
                 None if session.state.persons.names_a_person() => Some((cloud, String::new())),
                 None => None,
             },
-            None => session
+            Some(None) => session
                 .state
                 .sealed_cloud()
                 .map(|(cloud, named)| (cloud.to_string(), named.to_string())),
+            None => None,
         }
         .map(|(cloud, named)| Locked {
             at: at.clone(),
@@ -390,6 +393,20 @@ fn seed_person(session: &Mutex<Session>) -> Answer<Option<tisty_share_proto::ide
         session.reach.seed_is(Some((person, forebears)));
     }
     Ok(person)
+}
+
+pub(crate) fn phrase_key(session: &Mutex<Session>) -> Answer<Option<CloudKey>> {
+    Ok(seed_here(session)?.map(|seed| CloudKey::of(&seed)))
+}
+
+/// Whether this machine keeps the person's phrase, and whether it was typed back here.
+pub(crate) fn standing(session: &Mutex<Session>) -> Answer<(bool, bool)> {
+    let kept = seed_person(session)?;
+    let session = held(session);
+    let held = kept.is_some_and(|person| session.state.persons.names(&person));
+    let confirmed =
+        held && kept.map(|person| person.fingerprint()) == session.config.phrase_confirmed;
+    Ok((held, confirmed))
 }
 
 #[tauri::command(async)]

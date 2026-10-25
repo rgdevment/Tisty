@@ -113,6 +113,7 @@ fn another_account_is_worked_out_again_rather_than_read_with_the_last_one_key() 
     tauri::async_runtime::block_on(seal_the_cloud(&session));
 
     on(&session, account("otra"));
+    sealed_up_there(&session, "cloud_one");
     tauri::async_runtime::block_on(seal_the_cloud(&session));
 
     assert_eq!(

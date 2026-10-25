@@ -63,6 +63,12 @@ pub enum Stepped {
     Done,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Left {
+    pub on: bool,
+    pub moved: u64,
+}
+
 pub struct Turning {
     plain: Arc<dyn Remote>,
     home: PathBuf,
@@ -262,6 +268,59 @@ impl Turning {
             journal,
             pending: None,
         })
+    }
+
+    /// A turn of this machine's own left half way, without asking the key for it.
+    pub fn left(home: &Path) -> Option<Left> {
+        Journal::load(home).map(|journal| Left {
+            on: journal.on,
+            moved: journal.moved,
+        })
+    }
+
+    // The nonce is when the claim was made, so another machine's claim tells its own age.
+    pub fn orphaned(
+        plain: Arc<dyn Remote>,
+        home: &Path,
+        key: CloudKey,
+        cloud: &str,
+        older_than: u64,
+    ) -> Result<bool, Hitch> {
+        let _held = locked(home)?;
+        let metered = Metered::over(&*plain, home, Class::Sealing);
+        let (text, _) = word(&metered)?;
+        let Some(claim) = tisty_sync::claim_in(&text) else {
+            return Ok(false);
+        };
+        let Some((device, nonce)) = claim.split_once(':') else {
+            return Ok(false);
+        };
+        let claimed_at = nonce
+            .parse::<u128>()
+            .map_or(u64::MAX, |nanos| (nanos / 1_000_000_000) as u64);
+        if now().saturating_sub(claimed_at) < older_than {
+            return Ok(false);
+        }
+        let turning = Self {
+            plain: plain.clone(),
+            home: home.to_path_buf(),
+            journal: Journal {
+                v: SAID,
+                cloud: cloud.to_string(),
+                named: key.named_for(cloud),
+                device: device.to_string(),
+                nonce: nonce.to_string(),
+                on: !matches!(tisty_sync::sealing_in(&text), Sealing::Copying(Turn::Off)),
+                phase: Phase::GivingUp,
+                moved: now(),
+                closed: 0,
+                refused: BTreeMap::new(),
+            },
+            key,
+            pending: None,
+        };
+        drop(metered);
+        turning.given_up().map(|_| true)
     }
 
     pub fn said(&self) -> (&str, &str) {
@@ -631,4 +690,15 @@ pub fn wipe_behind(
         gone += 1;
     }
     Ok(gone)
+}
+
+/// What turning would copy, so the room it asks for can be said before it begins.
+pub fn turn_size(plain: &dyn Remote) -> Result<u64, Hitch> {
+    let folds = plain.limits().folds_case;
+    Ok(plain
+        .list("")?
+        .into_iter()
+        .filter(|one| ours_to_turn(&one.name, folds))
+        .map(|one| one.bytes)
+        .sum())
 }

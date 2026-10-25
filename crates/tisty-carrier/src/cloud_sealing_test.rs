@@ -487,3 +487,37 @@ fn a_stale_copy_of_a_file_now_too_big_for_the_other_side_is_taken_away() {
         "the stale sealed copy stayed"
     );
 }
+
+#[test]
+fn another_machine_s_claim_is_given_up_only_once_it_is_old_enough() {
+    let (setting, fake) = drive();
+    written(&setting);
+    let mut theirs = turned(&fake, &setting).unwrap();
+    theirs.step().unwrap();
+    let plain: Arc<dyn Remote> = fake.clone();
+    let home = home_of(&setting, "dev_b");
+    let week = 7 * 24 * 60 * 60;
+
+    assert!(!Turning::orphaned(plain.clone(), &home, key(), CLOUD, week).unwrap());
+    assert!(tisty_sync::sealing_in(&word(&fake)) != tisty_sync::Sealing::Plain);
+
+    assert!(Turning::orphaned(plain, &home, key(), CLOUD, 0).unwrap());
+    assert_eq!(
+        tisty_sync::sealing_in(&word(&fake)),
+        tisty_sync::Sealing::Plain
+    );
+    assert!(fake.list("sealed").unwrap().is_empty());
+}
+
+#[test]
+fn a_turn_left_half_way_says_which_way_without_the_key_and_the_size_it_turns() {
+    let (setting, fake) = drive();
+    written(&setting);
+    let home = home_of(&setting, "dev_a");
+    assert_eq!(Turning::left(&home), None);
+    assert!(crate::turn_size(&*fake).unwrap() > 0);
+
+    let _turning = turned(&fake, &setting).unwrap();
+
+    assert!(Turning::left(&home).is_some_and(|left| left.on));
+}
