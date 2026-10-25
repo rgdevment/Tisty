@@ -128,6 +128,11 @@ fn seeded(mnemonic: &Mnemonic) -> Result<Seed, Unread> {
     Ok(Seed::from_bytes(&seed))
 }
 
+pub fn same_word(said: &str, word: &str) -> bool {
+    let bare = |one: &str| Zeroizing::new(unmarked(&Zeroizing::new(lowered(one.trim()))));
+    *bare(said) == *bare(word)
+}
+
 /// Measured first, so a word typed from the phrase is never left behind in a buffer that grew.
 fn lowered(word: &str) -> String {
     let wide = || word.nfkd().flat_map(char::to_lowercase);

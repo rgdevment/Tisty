@@ -27,7 +27,7 @@ vi.mock("@tauri-apps/api/core", () => ({
   },
 }));
 
-const chosen = { named: "aboutScreen" } as Parameters<typeof Sidebar>[0]["chosen"];
+const chosen = { named: "tasks" } as Parameters<typeof Sidebar>[0]["chosen"];
 
 function bar(waiting?: string) {
   render(
@@ -60,7 +60,7 @@ describe("the update dot", () => {
     bar();
 
     expect(screen.queryByLabelText(/a newer version exists/)).toBeNull();
-    expect(screen.getByLabelText("About")).toBeTruthy();
+    expect(screen.queryByLabelText("About")).toBeNull();
   });
 });
 

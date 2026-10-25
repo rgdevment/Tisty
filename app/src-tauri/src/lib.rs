@@ -843,6 +843,7 @@ pub(crate) fn as_asked_for(at: &std::path::Path) -> std::path::PathBuf {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 fn settled(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    std::thread::spawn(|| answers::printing::swept(&std::env::temp_dir()));
     let argv = waking::said();
     let here = std::env::current_dir().ok();
     let mut wanted = viewing::wanted(&argv, here.as_deref());
@@ -1228,6 +1229,7 @@ pub fn run() {
             identity::identity_begin,
             identity::identity_phrase,
             identity::identity_recover,
+            identity::identity_confirm,
             answers::machines::confirm_machine_key,
             answers::knocking::waiting_machines,
             answers::knocking::this_machine,
@@ -1296,7 +1298,7 @@ pub fn run() {
             answers::papers::doc_facts,
             answers::papers::keep_file,
             answers::papers::doc_word,
-            answers::papers::page_pdf,
+            answers::printing::page_pdf,
             answers::papers::doc_back,
             answers::papers::doc_backable,
             answers::papers::doc_write,

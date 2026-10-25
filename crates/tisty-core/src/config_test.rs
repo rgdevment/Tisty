@@ -224,6 +224,7 @@ fn a_table_valued_field_does_not_swallow_what_follows_it() {
         quick_keys: Some("Ctrl+Shift+T".into()),
         tags_read: Some(true),
         took_quietly: Some("a1b2".into()),
+        phrase_confirmed: Some("4821 0937 5512 8806 3349".into()),
         homes: std::collections::BTreeMap::new(),
         rest: toml::Table::new(),
     };
@@ -289,6 +290,7 @@ fn bare() -> Config {
         quick_keys: None,
         tags_read: None,
         took_quietly: None,
+        phrase_confirmed: None,
         homes: std::collections::BTreeMap::new(),
         rest: toml::Table::new(),
     }

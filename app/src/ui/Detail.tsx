@@ -26,6 +26,7 @@ import Section from "./Section";
 import { saidBy } from "./Spoke";
 import TaskWords from "./TaskWords";
 import Trail from "./Trail";
+import { typing } from "./typing";
 
 interface Props {
   task: Task;
@@ -143,8 +144,7 @@ export default function Detail({
 
   const leave = (event: React.KeyboardEvent) => {
     if (event.key !== "Escape") return;
-    const at = event.target as HTMLElement;
-    if (at.isContentEditable || at.closest("input, textarea, select")) return;
+    if (typing(event.target)) return;
     event.preventDefault();
     onClose();
   };
