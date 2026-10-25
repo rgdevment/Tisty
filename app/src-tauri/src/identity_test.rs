@@ -342,3 +342,60 @@ fn the_machine_sealing_the_cloud_reads_it_plain_while_its_journal_stands() {
 
     assert_eq!(sealed_now(&session), None);
 }
+
+fn store_of(session: &Mutex<Session>) -> String {
+    tisty_core::store::peek_identity(held(session).paths.store()).unwrap()
+}
+
+#[test]
+fn a_key_another_machine_handed_here_opens_a_sealed_cloud_without_the_phrase() {
+    let kept = tempfile::tempdir().unwrap();
+    let session = opened(&kept);
+    let cloud = store_of(&session);
+    let key = CloudKey::of(&seed(7));
+    crate::handed::keep(&held(&session).paths, &key).unwrap();
+    held(&session).config.key_handed = Some(key.named_for(&cloud));
+    sealed_up_there(&session, &cloud);
+
+    tauri::async_runtime::block_on(seal_the_cloud(&session));
+
+    assert_eq!(
+        sealed_now(&session).map(|one| one.named),
+        Some(key.named_for(&cloud))
+    );
+    assert_eq!(
+        cloud_key(&session)
+            .unwrap()
+            .map(|one| one.named_for(&cloud)),
+        Some(key.named_for(&cloud))
+    );
+}
+
+#[test]
+fn a_key_kept_but_never_said_handed_is_not_read() {
+    let kept = tempfile::tempdir().unwrap();
+    let session = opened(&kept);
+    let cloud = store_of(&session);
+    crate::handed::keep(&held(&session).paths, &CloudKey::of(&seed(7))).unwrap();
+    sealed_up_there(&session, &cloud);
+
+    tauri::async_runtime::block_on(seal_the_cloud(&session));
+
+    assert_eq!(sealed_now(&session), None);
+    assert!(cloud_key(&session).unwrap().is_none());
+}
+
+#[test]
+fn a_key_handed_for_another_cloud_never_opens_this_one() {
+    let kept = tempfile::tempdir().unwrap();
+    let session = opened(&kept);
+    let cloud = store_of(&session);
+    let key = CloudKey::of(&seed(7));
+    crate::handed::keep(&held(&session).paths, &key).unwrap();
+    held(&session).config.key_handed = Some(key.named_for("cloud_other"));
+    sealed_up_there(&session, &cloud);
+
+    tauri::async_runtime::block_on(seal_the_cloud(&session));
+
+    assert!(cloud_key(&session).unwrap().is_none());
+}

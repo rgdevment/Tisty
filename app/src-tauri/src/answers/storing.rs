@@ -936,6 +936,7 @@ async fn carried_round(
     way: Option<String>,
 ) -> Answer<Settled> {
     crate::identity::seal_the_cloud(session).await;
+    crate::handed::tend(app.clone());
     let (carrier, paths, home, store, alive, holds, owing, place) = {
         let session = held(session);
         let carrier = session.carrying()?;

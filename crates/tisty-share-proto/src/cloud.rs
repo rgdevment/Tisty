@@ -25,6 +25,14 @@ impl CloudKey {
         Self(seed.cloud())
     }
 
+    pub fn from_bytes(key: &[u8; 32]) -> Self {
+        Self(Zeroizing::new(*key))
+    }
+
+    pub fn to_bytes(&self) -> Zeroizing<[u8; 32]> {
+        self.0.clone()
+    }
+
     pub fn named_for(&self, cloud: &str) -> String {
         self.id(cloud)
             .iter()

@@ -421,6 +421,9 @@ pub struct Config {
     /// The fingerprint whose phrase was typed back here, so a phrase changed since is asked for again.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub phrase_confirmed: Option<String>,
+    /// The id of the cloud key another machine handed this one, so the keychain is asked only for a key that is there.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub key_handed: Option<String>,
     #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
     pub homes: std::collections::BTreeMap<String, crate::machine::Home>,
     /// What a later build wrote and this one has no name for. Serde drops what it cannot name
@@ -479,6 +482,7 @@ impl Config {
             tags_read: None,
             took_quietly: None,
             phrase_confirmed: None,
+            key_handed: None,
             homes: std::collections::BTreeMap::new(),
             rest: toml::Table::new(),
         };

@@ -194,7 +194,7 @@ fn keyed(session: &Mutex<Session>, cloud: &str, named: &str) -> Answer<()> {
 }
 
 fn key_of(session: &Mutex<Session>) -> Answer<CloudKey> {
-    crate::identity::phrase_key(session)?.ok_or_else(|| Refusal::of("sealingPhrase"))
+    crate::identity::cloud_key(session)?.ok_or_else(|| Refusal::of("sealingPhrase"))
 }
 
 #[tauri::command(async)]
