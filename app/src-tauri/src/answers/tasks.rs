@@ -25,9 +25,7 @@ pub fn task_left(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answe
     let frees = session
         .carrier()
         .is_some_and(|carrier| carrier.frees_space());
-    let on_disk = tisty_core::docs::all(&session.paths.docs());
-    let named: std::collections::BTreeMap<&str, &tisty_core::docs::Doc> =
-        on_disk.iter().map(|one| (one.id.as_str(), one)).collect();
+    let docs = session.paths.docs();
 
     let left = task
         .references()
@@ -42,11 +40,11 @@ pub fn task_left(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answe
                         .and_then(|id| session.state.docs.get(&id))
                         .or_else(|| session.state.docs.values().find(|doc| doc.file == raw))
                 });
-                let on_paper = held.and_then(|doc| named.get(doc.file.as_str()));
+                let on_paper = held.and_then(|doc| tisty_core::docs::title_of(&docs, &doc.file));
                 Left {
                     kind: "doc",
                     label: on_paper
-                        .map(|doc| doc.title.clone())
+                        .clone()
                         .filter(|title| !title.is_empty())
                         .or_else(|| one.label.clone()),
                     away: held.is_some_and(|doc| session.state.held_away(doc)),
