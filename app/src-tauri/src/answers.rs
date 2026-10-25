@@ -11,6 +11,7 @@ pub mod merging;
 pub mod paging;
 pub mod papers;
 pub mod parts;
+pub mod printing;
 pub mod relocating;
 pub mod reporting;
 pub mod rifts;

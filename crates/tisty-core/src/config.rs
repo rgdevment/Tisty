@@ -413,6 +413,9 @@ pub struct Config {
     /// The place's history this machine took without asking, so it never takes that one again on its own.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub took_quietly: Option<String>,
+    /// The fingerprint whose phrase was typed back here, so a phrase changed since is asked for again.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub phrase_confirmed: Option<String>,
     #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
     pub homes: std::collections::BTreeMap<String, crate::machine::Home>,
     /// What a later build wrote and this one has no name for. Serde drops what it cannot name
@@ -470,6 +473,7 @@ impl Config {
             quick_keys: None,
             tags_read: None,
             took_quietly: None,
+            phrase_confirmed: None,
             homes: std::collections::BTreeMap::new(),
             rest: toml::Table::new(),
         };

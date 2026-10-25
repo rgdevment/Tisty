@@ -17,8 +17,11 @@ export function useSnapshot({ seen, reach, acted, setError }: Hands) {
   const [settling, setSettling] = useState(true);
   const [stuck, setStuck] = useState(false);
 
+  // Moving between settings sections reads no tasks, so it never reads them again.
+  const asked = seen.named === "keeping" ? "keeping" : seen;
+
   const load = useCallback(() => {
-    snapshot(asView(seen, reach))
+    snapshot(asView(typeof asked === "string" ? { named: asked } : asked, reach))
       .then((fresh) => {
         adopt(fresh.locale);
         knowAgents(fresh.agents, {
@@ -32,7 +35,7 @@ export function useSnapshot({ seen, reach, acted, setError }: Hands) {
         acted.current = null;
       })
       .catch((e) => setError(saidPlainly(e)));
-  }, [seen, reach, setError, acted]);
+  }, [asked, reach, setError, acted]);
 
   const latest = useRef(load);
   latest.current = load;
