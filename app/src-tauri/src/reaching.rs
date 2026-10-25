@@ -97,7 +97,7 @@ impl Reaching {
         self.keyed().map(|one| one.locked)
     }
 
-    fn keyed(&self) -> Option<Keyed> {
+    pub fn keyed(&self) -> Option<Keyed> {
         self.keyed.lock().ok()?.clone()
     }
 

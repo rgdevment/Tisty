@@ -193,8 +193,8 @@ fn keyed(session: &Mutex<Session>, cloud: &str, named: &str) -> Answer<()> {
     }
 }
 
-fn key_of(session: &Mutex<Session>) -> Answer<CloudKey> {
-    crate::identity::phrase_key(session)?.ok_or_else(|| Refusal::of("sealingPhrase"))
+fn key_of(session: &Mutex<Session>, cloud: &str) -> Answer<CloudKey> {
+    crate::identity::cloud_key(session, cloud)?.ok_or_else(|| Refusal::of("sealingPhrase"))
 }
 
 #[tauri::command(async)]
@@ -339,22 +339,23 @@ pub async fn sealing_cancel(
 }
 
 async fn cancelled(app: &AppHandle, session: &Mutex<Session>) -> Answer<bool> {
-    let key = key_of(session)?;
     let (plain, home, at) = plain_of(session)?;
     let store = tisty_core::store::peek_identity(held(session).paths.store())
         .ok_or_else(|| Refusal::of("sealingNoCloud"))?;
+    let cloud = Turning::left(&home).map_or_else(|| store.clone(), |left| left.cloud);
+    let key = key_of(session, &cloud)?;
     let app = app.clone();
     elsewhere(move || given_up(&app, plain, &home, key, &store, &at.provider)).await?
 }
 
 #[tauri::command(async)]
 pub async fn sealing_wipe(session: tauri::State<'_, Mutex<Session>>) -> Answer<usize> {
-    let key = key_of(&session)?;
     let (plain, home, at) = plain_of(&session)?;
     let cloud = match tisty_carrier::sealing_in(&word_here(&home)) {
         Sealing::Sealed(cloud) => cloud,
         _ => return Err(Refusal::of("sealingNoCloud")),
     };
+    let key = key_of(&session, &cloud)?;
     elsewhere(move || tisty_carrier::wipe_behind(plain, &home, key, &cloud))
         .await?
         .map_err(|hitch| refused_by(hitch, &at.provider))
@@ -414,10 +415,10 @@ fn driven(app: &AppHandle, ours: u64) {
     let Some((at, home)) = turned_at(&held(&session)) else {
         return;
     };
-    if Turning::left(&home).is_none() {
+    let Some(left) = Turning::left(&home) else {
         return;
-    }
-    let (Ok(key), Ok(plain)) = (key_of(&session), reached(&home, &at)) else {
+    };
+    let (Ok(key), Ok(plain)) = (key_of(&session, &left.cloud), reached(&home, &at)) else {
         return;
     };
     let Some(mut turning) = Turning::resume(plain.clone(), &home, key.clone()) else {

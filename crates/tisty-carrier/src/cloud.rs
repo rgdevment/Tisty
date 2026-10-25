@@ -17,6 +17,7 @@ mod asking;
 mod budget;
 mod index;
 mod judge;
+pub mod knock;
 pub(crate) mod lock;
 mod mirror;
 mod pace;
