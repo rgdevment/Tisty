@@ -13,7 +13,12 @@ pub(crate) fn reading(root: &str) -> Option<&str> {
 }
 
 pub(crate) fn stays_plain(name: &str) -> bool {
-    name == NAMED || name == tisty_core::moved::NAMED || name == format!("{STORE}/{MARKER}")
+    name == NAMED
+        || name == tisty_core::moved::NAMED
+        || name
+            .strip_prefix(STORE)
+            .and_then(|rest| rest.strip_prefix('/'))
+            == Some(MARKER)
 }
 const HEADER: u64 = 24;
 const TAG: u64 = 16;
@@ -24,6 +29,7 @@ pub struct Sealed<R> {
     key: CloudKey,
     cloud: String,
     root: String,
+    marked: std::sync::atomic::AtomicBool,
 }
 
 fn broke(e: impl ToString) -> Hitch {
@@ -70,6 +76,7 @@ impl<R: Remote> Sealed<R> {
             key,
             root: format!("{INSIDE}:{cloud}"),
             cloud,
+            marked: std::sync::atomic::AtomicBool::new(false),
         }
     }
 
@@ -363,14 +370,28 @@ impl<R: Remote> Remote for Sealed<R> {
         &self.root
     }
 
+    // Asked once for each carrier, so a machine with another phrase never sends into this cloud.
     fn mark_up(&self) -> Result<(), Hitch> {
-        match self.marked()? {
-            None => self.mark_it(),
-            Some(Mark::Holds) => Ok(()),
-            Some(_) => Err(Hitch::Barred(tisty_sync::Trouble::Sealed(
-                self.root.clone(),
-            ))),
+        use std::sync::atomic::Ordering;
+        if self.marked.load(Ordering::Relaxed) {
+            return Ok(());
         }
+        let theirs = || Hitch::Barred(tisty_sync::Trouble::Sealed(self.root.clone()));
+        match self.marked()? {
+            Some(Mark::Holds) => {}
+            None => {
+                if let Err(hitch) = self.mark_it() {
+                    return match self.marked()? {
+                        Some(Mark::OtherPhrase) => Err(theirs()),
+                        _ => Err(hitch),
+                    };
+                }
+            }
+            Some(Mark::OtherPhrase) => return Err(theirs()),
+            Some(_) => return Err(broke("the phrase mark of this cloud is damaged")),
+        }
+        self.marked.store(true, Ordering::Relaxed);
+        Ok(())
     }
 }
 

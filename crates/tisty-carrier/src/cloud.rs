@@ -156,20 +156,12 @@ impl Cloud {
     }
 
     // Sending into a sealed root, the place says so and holds its mark before the first sealed byte goes up.
-    fn announced(
-        &self,
-        remote: &dyn Remote,
-        tree: &Path,
-        index: &Index,
-    ) -> Result<(), crate::Hitch> {
+    fn announced(&self, remote: &dyn Remote, tree: &Path) -> Result<(), crate::Hitch> {
         let Some(cloud) = crate::sealed::reading(&self.root) else {
             return Ok(());
         };
-        tisty_sync::seal_word(tree, cloud);
-        match index.confirmed {
-            true => Ok(()),
-            false => remote.mark_up(),
-        }
+        tisty_sync::seal_word(tree, cloud).map_err(|e| crate::Hitch::Broke(e.to_string()))?;
+        remote.mark_up()
     }
 
     fn with_mirror<T>(
@@ -289,7 +281,7 @@ impl Cloud {
                 .is_some_and(|one| matches!(one.reason, Reason::Limit | Reason::Busy));
         let (pushed, hitch) = match quiet {
             true => (mirror::Pushed::default(), None),
-            false => match self.announced(remote, &tree, &index) {
+            false => match self.announced(remote, &tree) {
                 Ok(()) => mirror::push(remote, &tree, &mut index, &mut pace),
                 Err(hitch) => (mirror::Pushed::default(), Some(hitch)),
             },

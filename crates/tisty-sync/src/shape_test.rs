@@ -144,9 +144,10 @@ fn a_folder_that_was_not_told_but_already_says_its_shape_is_still_remembered() {
 #[test]
 fn a_release_is_later_only_when_its_numbers_say_so_and_one_unread_is_taken_for_later() {
     assert!(!needs_later(NEEDS));
-    assert!(!needs_later("1.33.9"));
-    assert!(!needs_later("1.34.0-rc.1"));
-    assert!(needs_later("1.34.1"));
+    assert!(!needs_later("1.34.1"));
+    assert!(!needs_later("1.35.0-rc.1"));
+    assert!(!needs_later(SEALS));
+    assert!(needs_later("1.35.1"));
     assert!(needs_later("1.100.0"));
     assert!(needs_later("2.0.0"));
     assert!(needs_later("pronto"));
@@ -514,19 +515,31 @@ fn a_reader_stops_where_the_place_is_sealed_another_way_and_never_writes_in_the_
 }
 
 #[test]
-fn a_word_written_for_a_sealed_place_says_so_once_and_keeps_the_rest() {
+fn a_word_written_for_a_sealed_place_says_so_once_raises_needs_and_keeps_the_rest() {
     let (_room, _data, dest) = a_place();
+    seal_word(&dest, "store_one").unwrap();
+    assert!(
+        !dest.join(NAMED).exists(),
+        "a word was made up where none was said"
+    );
+    std::fs::write(dest.join(NAMED), "shape = 03\nneeds = 1.30.0\n").unwrap();
+    seal_word(&dest, "store_one").unwrap();
+    assert_eq!(
+        std::fs::read_to_string(dest.join(NAMED)).unwrap(),
+        "shape = 03\nneeds = 1.30.0\n",
+        "a word only read line by line was written over"
+    );
     std::fs::write(
         dest.join(NAMED),
         "shape = 3\nneeds = \"1.34.0\"\nkept = 1\n",
     )
     .unwrap();
 
-    assert!(seal_word(&dest, "store_one"));
-    assert!(!seal_word(&dest, "store_one"));
-    assert!(!seal_word(&dest, "store_two"));
+    seal_word(&dest, "store_one").unwrap();
+    seal_word(&dest, "store_two").unwrap();
 
     let said = std::fs::read_to_string(dest.join(NAMED)).unwrap();
     assert!(said.contains("kept = 1"), "{said}");
+    assert!(said.contains(&format!("needs = \"{SEALS}\"")), "{said}");
     assert_eq!(sealing_of(&dest), Sealing::Sealed("store_one".into()));
 }

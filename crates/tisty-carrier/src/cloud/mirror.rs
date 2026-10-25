@@ -72,8 +72,9 @@ pub fn pull(
         && match &told {
             Changes::Whole { seen, .. } => !seen.iter().any(|one| content(&one.name)),
             Changes::Since { changed, gone, .. } => {
+                let gone: BTreeSet<&str> = gone.iter().map(String::as_str).collect();
                 !changed.iter().any(|one| content(&one.name))
-                    && had.iter().all(|name| gone.iter().any(|one| one == name))
+                    && had.iter().all(|name| gone.contains(name))
             }
         };
     // Moving home reads an emptied store through, so the move learns nothing is left up there and goes on.

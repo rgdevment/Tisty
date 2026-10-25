@@ -21,6 +21,8 @@ pub const OURS: u32 = 3;
 /// The oldest release that may write in a place this build arranges; a later change to the place raises it.
 pub const NEEDS: &str = "1.34.0";
 
+pub const SEALS: &str = "1.35.0";
+
 enum Told {
     Shape {
         shape: u32,
@@ -96,7 +98,7 @@ fn release(said: &str) -> Option<(u64, u64, u64, bool)> {
 
 /// A release this build cannot read is taken for a later one: guessing it older would write where it must not.
 pub fn needs_later(needs: &str) -> bool {
-    let ours = [NEEDS, tisty_core::VERSION]
+    let ours = [NEEDS, SEALS, tisty_core::VERSION]
         .into_iter()
         .filter_map(release)
         .max();
@@ -186,7 +188,6 @@ pub fn sealing_of(dest: &Path) -> Sealing {
     }
 }
 
-/// `reading` is the cloud a sealed reader opens, or none for a plain one.
 pub fn sealed_against(dest: &Path, reading: Option<&str>) -> Option<Trouble> {
     let at = || dest.display().to_string();
     match (sealing_of(dest), reading) {
@@ -198,17 +199,28 @@ pub fn sealed_against(dest: &Path, reading: Option<&str>) -> Option<Trouble> {
     }
 }
 
-/// A word written afresh for a sealed place says so, or a plain reader would take the place for empty.
-pub fn seal_word(dest: &Path, cloud: &str) -> bool {
-    let mut said = std::fs::read_to_string(dest.join(NAMED))
-        .ok()
-        .and_then(|text| text.parse::<toml_edit::DocumentMut>().ok())
-        .unwrap_or_default();
+// Only a word that already says its shape is sealed, and builds before the sealed one stop there.
+pub fn seal_word(dest: &Path, cloud: &str) -> std::io::Result<()> {
+    let Told::Shape {
+        said: Some(said), ..
+    } = told(dest)
+    else {
+        return Ok(());
+    };
+    let mut said = *said;
     if said.contains_key(SEALED) || said.contains_key(SEALING) {
-        return false;
+        return Ok(());
     }
     said[SEALED] = toml_edit::value(cloud);
-    tisty_core::store::write_atomic(&dest.join(NAMED), said.to_string().as_bytes()).is_ok()
+    let held = said
+        .get("needs")
+        .and_then(toml_edit::Item::as_str)
+        .is_some_and(|needs| !matches!((release(needs), release(SEALS)), (Some(needs), Some(seals)) if needs < seals));
+    if !held {
+        said["needs"] = toml_edit::value(SEALS);
+    }
+    tisty_core::store::write_atomic(&dest.join(NAMED), said.to_string().as_bytes())
+        .map_err(std::io::Error::other)
 }
 
 pub fn later(dest: &Path) -> Option<Trouble> {

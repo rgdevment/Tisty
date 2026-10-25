@@ -84,11 +84,8 @@ pub enum Trouble {
     NotNow(String),
     /// The document here changed or is being written since the person was asked about it.
     Moved(String),
-    /// The place is sealed with a phrase, and this reader is not reading it sealed with that one.
     Sealed(String),
-    /// Another machine is sealing or unsealing the place right now, so nobody writes until it is done.
     Sealing(String),
-    /// A sealed reader finds the place says it is plain, and never writes there in the clear on that word alone.
     Unsealed(String),
 }
 

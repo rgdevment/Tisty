@@ -43,12 +43,12 @@ fn laid_out_now<S: serde::Serializer>(_: &u32, to: S) -> Result<S::Ok, S::Error>
     to.serialize_u32(LAYOUT)
 }
 
-/// Only an index that was written and read is judged: none at all is a first round anyway.
 pub enum Stale {
     Layout,
     Root,
 }
 
+/// Only an index that was written and read is judged: none at all is a first round anyway.
 pub fn stale(home: &Path, root: &str) -> Option<Stale> {
     let index = std::fs::read(home.join(FILE))
         .ok()
