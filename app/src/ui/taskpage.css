@@ -1,3 +1,7 @@
+html.untitled body {
+  font-size: 13.5px;
+  line-height: 1.55;
+}
 .page > .hint {
   min-height: 1.6em;
   cursor: text;
@@ -110,7 +114,7 @@ html.untitled .page > ul:has(> li.task)::before {
   transition: width 0.2s;
 }
 html.untitled .page > ul > li.task {
-  padding: 7px 12px 7px 38px;
+  padding: 6px 12px 6px 36px;
   border-top: 1px solid var(--tisty-hair);
 }
 html.untitled .page > ul > li.task:first-of-type {
@@ -118,7 +122,7 @@ html.untitled .page > ul > li.task:first-of-type {
 }
 html.untitled .page > ul > li.task > .check {
   left: 12px;
-  top: calc(7px + 0.32em);
+  top: calc(6px + (1lh - 15px) / 2);
 }
 html.untitled .page > .add-step,
 html.untitled .page > .hint.step-hint {
@@ -128,7 +132,7 @@ html.untitled .page > .hint.step-hint {
   box-sizing: border-box;
   width: 100%;
   margin: 0;
-  padding: 7px 12px;
+  padding: 6px 12px;
   border: 1px dashed var(--tisty-hair);
   border-radius: 8px;
   background: none;
