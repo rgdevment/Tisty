@@ -13,7 +13,7 @@ pub async fn page_pdf(app: tauri::AppHandle, html: String, paper: String) -> Ans
     let laid = tauri::async_runtime::spawn_blocking(move || {
         swept(&std::env::temp_dir());
         std::fs::create_dir_all(&folder)?;
-        let _ = tisty_core::paths::ours_alone(&folder);
+        let _ = tisty_core::paths::key_alone(&folder);
         std::fs::write(&written, html)
     })
     .await;
@@ -71,12 +71,14 @@ fn swept(temp: &std::path::Path) {
         return;
     };
     for one in all.flatten() {
-        let ours = one.file_name().to_string_lossy().starts_with("tisty-pdf-");
+        if !one.file_name().to_string_lossy().starts_with("tisty-pdf-") {
+            continue;
+        }
         let stale = one
             .metadata()
             .and_then(|meta| meta.modified())
             .is_ok_and(|at| at < old);
-        if ours && stale {
+        if stale {
             let _ = std::fs::remove_dir_all(one.path());
         }
     }

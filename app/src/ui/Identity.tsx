@@ -1,21 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  checked,
-  identityPhrase,
-  identityShown,
-  type Reviewed,
-  type Identity as Shown,
-} from "../core";
-import { fill, t } from "../locales";
+import { useCallback, useEffect, useState } from "react";
+import { identityPhrase, identityShown, type Identity as Shown } from "../core";
+import { t } from "../locales";
 import { saidPlainly } from "../refusal";
 import Card, { type Which, type Word } from "./Card";
-import { named } from "./Keys";
 import Phrasing from "./Phrasing";
-import { dated, mild, strong } from "./Rows";
+import { mild, strong } from "./Rows";
 
 interface Props {
-  audit: Reviewed | null;
-  setAudit: (audit: Reviewed) => void;
   busy: Which | null;
   said?: Word;
   trouble?: Word;
@@ -24,16 +15,7 @@ interface Props {
   onSync: () => void;
 }
 
-export default function Identity({
-  audit,
-  setAudit,
-  busy,
-  said,
-  trouble,
-  tell,
-  fail,
-  onSync,
-}: Props) {
+export default function Identity({ busy, said, trouble, tell, fail, onSync }: Props) {
   const held = busy !== null;
   const [shown, setShown] = useState<Shown | null>(null);
   const [words, setWords] = useState<string[] | null>(null);
@@ -44,15 +26,6 @@ export default function Identity({
       .catch((e) => fail({ card: "identity", text: saidPlainly(e) }));
   }, [fail]);
   useEffect(look, [look]);
-
-  const asked = useRef(audit !== null);
-  useEffect(() => {
-    if (held || asked.current) return;
-    asked.current = true;
-    checked()
-      .then(setAudit)
-      .catch((e) => fail({ card: "identity", text: saidPlainly(e) }));
-  }, [held, setAudit, fail]);
 
   const see = () => {
     identityPhrase()
@@ -80,9 +53,7 @@ export default function Identity({
         {shown && !born && (
           <p className="text-[12.5px] leading-relaxed text-soft">{t("identityUnborn")}</p>
         )}
-        {shown && born && (
-          <Born shown={shown} audit={audit} held={held} onSee={see} onSync={onSync} />
-        )}
+        {shown && born && <Born shown={shown} held={held} onSee={see} onSync={onSync} />}
       </Card>
     </>
   );
@@ -90,18 +61,16 @@ export default function Identity({
 
 function Born({
   shown,
-  audit,
   held,
   onSee,
   onSync,
 }: {
   shown: Shown;
-  audit: Reviewed | null;
   held: boolean;
   onSee: () => void;
   onSync: () => void;
 }) {
-  const machines = audit?.machines.filter((one) => !one.host) ?? [];
+  const machines = shown.machines;
   const called = [shown.alias, shown.suffix].filter(Boolean).join(" · ");
   return (
     <>
@@ -147,20 +116,14 @@ function Born({
               <li
                 key={one.id}
                 className={`flex items-center justify-between gap-3 rounded-[10px] px-2.5 py-2 ${
-                  one.mine ? "bg-accent-soft" : ""
+                  one.here ? "bg-accent-soft" : ""
                 }`}
               >
                 <span className="min-w-0">
-                  <span className="block text-[13px] font-semibold">{named(one)}</span>
-                  <span className="block text-soft">
-                    {one.mine
-                      ? fill("identityHere", one.when === 0 ? t("machineNever") : dated(one.when))
-                      : one.when === 0
-                        ? t("machineNever")
-                        : dated(one.when)}
-                  </span>
+                  <span className="block text-[13px] font-semibold">{one.name}</span>
+                  {one.here && <span className="block text-soft">{t("identityHere")}</span>}
                 </span>
-                {shown.ours.includes(one.id) && (
+                {one.ours && (
                   <span className="rounded-full border border-accent px-1.5 py-px text-[10.5px] font-semibold tracking-wide text-accent uppercase">
                     {t("identityOurs")}
                   </span>

@@ -18,12 +18,13 @@ interface Props {
 
 type Told = { text: string; amiss?: boolean };
 
-const THIRD = 8;
+const CHECKED = 3;
 
 // One word from each third, so the check reaches across the whole phrase.
-const picked = (): number[] => {
-  const drawn = crypto.getRandomValues(new Uint32Array(3));
-  return Array.from(drawn, (one, at) => 1 + at * THIRD + (one % THIRD));
+const picked = (words: number): number[] => {
+  const third = Math.floor(words / CHECKED);
+  const drawn = crypto.getRandomValues(new Uint32Array(CHECKED));
+  return Array.from(drawn, (one, at) => 1 + at * third + (one % third));
 };
 
 const today = (): string =>
@@ -123,6 +124,7 @@ export default function Phrasing({ words, fingerprint, onClose, onConfirmed }: P
       )}
       {step === "confirm" && (
         <Confirming
+          words={words.length}
           onBack={() => go("words")}
           onConfirmed={onConfirmed}
           onError={(text) => setTold({ text, amiss: true })}
@@ -156,15 +158,17 @@ function Words({ words }: { words: string[] }) {
 }
 
 function Confirming({
+  words,
   onBack,
   onConfirmed,
   onError,
 }: {
+  words: number;
   onBack: () => void;
   onConfirmed: () => void;
   onError: (text: string) => void;
 }) {
-  const [places] = useState(picked);
+  const [places] = useState(() => picked(words));
   const [typed, setTyped] = useState<Record<number, string>>({});
   const [amiss, setAmiss] = useState<number[] | null>(null);
   const [asking, setAsking] = useState(false);

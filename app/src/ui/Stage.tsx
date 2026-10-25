@@ -74,13 +74,6 @@ export default function Stage() {
   useEffect(() => afterMove(() => fresh.current()), []);
   return chosen.named === "help" ? (
     <Help topic={chosen.topic} />
-  ) : chosen.named === "keeping" && chosen.tab === "about" ? (
-    <About
-      ready={ready}
-      step={underway}
-      onGaveUp={() => setUnderway(null)}
-      onError={(e) => setError(saidPlainly(e))}
-    />
   ) : chosen.named === "docs" && !chosen.doc && here !== undefined ? (
     <Folder
       folder={standing ?? null}
@@ -175,6 +168,14 @@ export default function Stage() {
       greeted={greeted}
       tab={chosen.tab ?? "general"}
       onTab={(tab) => setChosen({ named: "keeping", tab })}
+      about={
+        <About
+          ready={ready}
+          step={underway}
+          onGaveUp={() => setUnderway(null)}
+          onError={(e) => setError(saidPlainly(e))}
+        />
+      }
       move={chosen.move}
       movedAt={chosen.movedAt}
       onPack={() => parcels.packUp([], "tisty")}

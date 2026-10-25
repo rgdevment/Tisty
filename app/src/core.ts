@@ -1313,7 +1313,7 @@ export interface Identity {
   suffix: string | null;
   confirmed: boolean;
   alias: string | null;
-  ours: string[];
+  machines: { id: string; name: string; here: boolean; ours: boolean }[];
 }
 
 export const identityShown = (): Promise<Identity> => invoke("identity_shown");

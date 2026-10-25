@@ -303,7 +303,15 @@ pub struct Shown {
     pub suffix: Option<String>,
     pub confirmed: bool,
     pub alias: Option<String>,
-    pub ours: Vec<String>,
+    pub machines: Vec<Machine>,
+}
+
+#[derive(Serialize)]
+pub struct Machine {
+    pub id: String,
+    pub name: String,
+    pub here: bool,
+    pub ours: bool,
 }
 
 fn words(session: &Session) -> Words {
@@ -367,10 +375,20 @@ pub fn identity_shown(session: tauri::State<'_, Mutex<Session>>) -> Answer<Shown
         fingerprint,
         suffix: person.map(|one| one.suffix()),
         alias: signed.alias.clone().or_else(|| signed.name.clone()),
-        ours: person::machines(&session.state)
+        machines: person::machines(&session.state)
             .into_iter()
-            .filter(|device| person.is_some() && session.state.persons.person(device) == person)
-            .map(|device| device.0)
+            .filter(|device| !session.state.dropped.contains(device))
+            .map(|device| Machine {
+                name: session
+                    .state
+                    .named
+                    .get(&device)
+                    .map(|one| one.name.clone())
+                    .unwrap_or_else(|| tisty_core::config::nicknamed(&device.0)),
+                here: device == session.config.device_id,
+                ours: person.is_some() && session.state.persons.person(&device) == person,
+                id: device.0,
+            })
             .collect(),
     })
 }

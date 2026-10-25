@@ -1,5 +1,5 @@
 import { listen } from "@tauri-apps/api/event";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import {
   type About,
   about,
@@ -50,6 +50,7 @@ interface Props {
   onTab: (tab: Tab) => void;
   move?: Heading;
   movedAt?: number;
+  about?: ReactNode;
 }
 
 export default function Keeping({
@@ -63,6 +64,7 @@ export default function Keeping({
   onTab,
   move,
   movedAt,
+  about,
 }: Props) {
   const shared = useSyncSeen();
   const [read, setRead] = useState(false);
@@ -122,6 +124,8 @@ export default function Keeping({
     void carryNow();
   };
   useEffect(() => afterMove(() => landed.current()), []);
+
+  if (tab === "about" && about) return about;
 
   if (!state) {
     return (
@@ -254,8 +258,6 @@ export default function Keeping({
 
           {tab === "security" && (
             <Identity
-              audit={audit}
-              setAudit={setAudit}
               busy={busy}
               said={said}
               trouble={trouble}

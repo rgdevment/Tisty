@@ -166,7 +166,7 @@ export default function Sidebar({
           type="button"
           aria-label={told ? `${t("keeping")} · ${told}` : t("keeping")}
           title={t("keeping")}
-          onClick={() => onChoose({ named: "keeping" })}
+          onClick={() => onChoose(keeping ? chosen : { named: "keeping" })}
           className={`relative grid size-7 place-items-center rounded-[10px] hover:bg-hover ${
             chosen.named === "keeping" ? "bg-active text-accent" : "text-soft"
           }`}
