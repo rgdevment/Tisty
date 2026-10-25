@@ -1,0 +1,170 @@
+use super::*;
+use crate::{Stepped, Turning};
+use tisty_share_proto::cloud::CloudKey;
+use tisty_share_proto::seed::Seed;
+
+const CLOUD: &str = "store_one";
+
+fn key() -> CloudKey {
+    CloudKey::of(&Seed::from_bytes(&[7; 32]))
+}
+
+fn drive() -> (Setting, Arc<Fake>) {
+    each_kind(|fake| fake).remove(0)
+}
+
+fn written(setting: &Setting) -> Desk {
+    let one = desk(setting, "dev_a");
+    one.wrote("antes de cifrar");
+    one.filed(DOC, "# Plan\n\nantes de cifrar\n");
+    one.round(Way::Both);
+    one
+}
+
+fn turned(fake: &Arc<Fake>, setting: &Setting) -> Result<Turning, Hitch> {
+    let plain: Arc<dyn Remote> = fake.clone();
+    Turning::begin(plain, &home_of(setting, "dev_a"), key(), CLOUD, "dev_a")
+}
+
+fn to_the_end(turning: &mut Turning) {
+    for _ in 0..200 {
+        if turning.step().unwrap() == Stepped::Done {
+            return;
+        }
+    }
+    panic!("the turning never ended");
+}
+
+fn word(fake: &Fake) -> String {
+    let mut said = Vec::new();
+    fake.fetch(tisty_sync::NAMED, 0, &mut said).unwrap();
+    String::from_utf8(said).unwrap()
+}
+
+fn reading_sealed(setting: &Setting, fake: &Arc<Fake>, device: &str, from: &Desk) -> Desk {
+    let base = desk(setting, device);
+    let sealed: Arc<dyn Remote> = Arc::new(crate::Sealed::new(fake.clone(), key(), CLOUD));
+    let reader = Desk {
+        here: base.here,
+        carrier: Arc::new(Cloud::over(sealed, home_of(setting, device))),
+    };
+    reader.vouches_for(from);
+    from.vouches_for(&reader);
+    reader
+}
+
+#[test]
+fn a_cloud_turned_on_holds_everything_sealed_and_says_so() {
+    let (setting, fake) = drive();
+    let one = written(&setting);
+
+    let mut turning = turned(&fake, &setting).unwrap();
+    to_the_end(&mut turning);
+
+    assert_eq!(
+        tisty_sync::sealing_in(&word(&fake)),
+        tisty_sync::Sealing::Sealed(CLOUD.into())
+    );
+    assert!(
+        !fake.list("store").unwrap().is_empty(),
+        "the plain copy is left until it is wiped"
+    );
+    let two = reading_sealed(&setting, &fake, "dev_b", &one);
+    two.round(Way::Both);
+    assert_eq!(two.titles(), vec!["antes de cifrar".to_string()]);
+    assert_eq!(two.doc(DOC).as_deref(), Some("# Plan\n\nantes de cifrar\n"));
+    let plain = desk(&setting, "dev_c");
+    let stopped = plain.carry(Way::Both, Holds::Everywhere).err();
+    assert!(matches!(stopped, Some(Trouble::Sealed(_))), "{stopped:?}");
+}
+
+#[test]
+fn a_turning_given_up_before_the_switch_leaves_the_cloud_as_it_was() {
+    let (setting, fake) = drive();
+    let one = written(&setting);
+    let before = word(&fake);
+    let mut turning = turned(&fake, &setting).unwrap();
+    turning.step().unwrap();
+
+    turning.abort().unwrap();
+
+    assert_eq!(word(&fake), before);
+    assert!(fake.list("sealed").unwrap().is_empty());
+    one.wrote("después");
+    assert!(one.carry(Way::Both, Holds::Everywhere).is_ok());
+}
+
+#[test]
+fn a_second_machine_cannot_claim_a_cloud_another_is_turning() {
+    let (setting, fake) = drive();
+    written(&setting);
+    let _first = turned(&fake, &setting).unwrap();
+    let plain: Arc<dyn Remote> = fake.clone();
+
+    let second = Turning::begin(plain, &home_of(&setting, "dev_b"), key(), CLOUD, "dev_b");
+
+    assert!(matches!(second, Err(Hitch::Barred(Trouble::Sealing(_)))));
+}
+
+#[test]
+fn a_place_that_was_left_is_never_turned() {
+    let (setting, fake) = drive();
+    written(&setting);
+    let dir = tempfile::tempdir().unwrap();
+    let moved = dir.path().join("moved");
+    std::fs::write(&moved, "{}").unwrap();
+    fake.put(tisty_core::moved::NAMED, &moved, Expect::Any)
+        .unwrap();
+
+    assert!(matches!(
+        turned(&fake, &setting),
+        Err(Hitch::Barred(Trouble::Refused(_)))
+    ));
+}
+
+#[test]
+fn a_cut_at_any_call_is_taken_up_again_and_loses_nothing() {
+    let calls = {
+        let (setting, fake) = drive();
+        written(&setting);
+        let before = fake.counts().requests;
+        to_the_end(&mut turned(&fake, &setting).unwrap());
+        fake.counts().requests - before
+    };
+    assert!(calls > 0);
+    for cut in 0..calls as usize {
+        let (setting, fake) = drive();
+        let one = written(&setting);
+        fake.fail_after(cut, Hitch::Unreachable(None, "cut".into()));
+        let plain: Arc<dyn Remote> = fake.clone();
+        let home = home_of(&setting, "dev_a");
+        let mut turning = turned(&fake, &setting).ok();
+        let mut done = false;
+        for _ in 0..200 {
+            let resumed = || Turning::resume(plain.clone(), &home, key());
+            let Some(mut now) = turning
+                .take()
+                .or_else(resumed)
+                .or_else(|| turned(&fake, &setting).ok())
+            else {
+                continue;
+            };
+            match now.step() {
+                Ok(Stepped::Done) => {
+                    done = true;
+                    break;
+                }
+                Ok(_) => turning = Some(now),
+                Err(_) => {}
+            }
+        }
+        assert!(done, "cut {cut}: never ended");
+        let two = reading_sealed(&setting, &fake, "dev_b", &one);
+        two.round(Way::Both);
+        assert_eq!(
+            two.titles(),
+            vec!["antes de cifrar".to_string()],
+            "cut {cut}"
+        );
+    }
+}

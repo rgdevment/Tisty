@@ -98,7 +98,7 @@ fn said_in(line: &str, key: &str) -> Option<String> {
 
 /// A release this build cannot read is taken for a later one: guessing it older would write where it must not.
 pub fn needs_later(needs: &str) -> bool {
-    let ours = [NEEDS, SEALS, tisty_core::VERSION]
+    let ours = [NEEDS, SEALS, TURNS, tisty_core::VERSION]
         .into_iter()
         .filter_map(tisty_core::released)
         .max();

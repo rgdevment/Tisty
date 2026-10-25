@@ -126,6 +126,57 @@ pub struct Limits {
     pub costs: Costs,
 }
 
+impl<T: Remote + ?Sized> Remote for std::sync::Arc<T> {
+    fn limits(&self) -> Limits {
+        (**self).limits()
+    }
+    fn list(&self, under: &str) -> Result<Vec<Seen>, Hitch> {
+        (**self).list(under)
+    }
+    fn fetch(&self, name: &str, from: u64, into: &mut dyn Write) -> Result<Seen, Hitch> {
+        (**self).fetch(name, from, into)
+    }
+    fn put(&self, name: &str, from: &Path, expect: Expect) -> Result<Seen, Hitch> {
+        (**self).put(name, from, expect)
+    }
+    fn delete(&self, name: &str, expect: Option<&str>) -> Result<(), Hitch> {
+        (**self).delete(name, expect)
+    }
+    fn hash_of(&self, local: &Path) -> std::io::Result<String> {
+        (**self).hash_of(local)
+    }
+    fn renamed(&self, from: &str, to: &str) -> Result<(), Hitch> {
+        (**self).renamed(from, to)
+    }
+    fn about(&self, name: &str) -> Result<Option<Seen>, Hitch> {
+        (**self).about(name)
+    }
+    fn changes(&self, since: Option<&str>) -> Result<Changes, Hitch> {
+        (**self).changes(since)
+    }
+    fn hears(&self, since: &str) -> Option<Box<dyn Watch>> {
+        (**self).hears(since)
+    }
+    fn lends(&self, name: &str) -> Result<Option<String>, Hitch> {
+        (**self).lends(name)
+    }
+    fn room(&self) -> Result<Option<u64>, Hitch> {
+        (**self).room()
+    }
+    fn spent_beyond(&self) -> u64 {
+        (**self).spent_beyond()
+    }
+    fn moved_on(&self) {
+        (**self).moved_on();
+    }
+    fn root(&self) -> &str {
+        (**self).root()
+    }
+    fn mark_up(&self) -> Result<(), Hitch> {
+        (**self).mark_up()
+    }
+}
+
 pub(crate) fn folded(name: &str) -> String {
     name.to_lowercase()
 }

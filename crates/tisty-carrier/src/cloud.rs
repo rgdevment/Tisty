@@ -22,6 +22,7 @@ mod mirror;
 mod pace;
 pub mod policy;
 mod resting;
+pub mod sealing;
 mod shelf;
 pub mod standing;
 mod wiping;

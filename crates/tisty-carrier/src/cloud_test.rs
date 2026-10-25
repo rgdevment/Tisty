@@ -1961,6 +1961,9 @@ fn a_word_left_in_the_place_reaches_the_other_machine_and_forgetting_it_takes_it
 #[path = "cloud_rounds_test.rs"]
 mod rounds;
 
+#[path = "cloud_sealing_test.rs"]
+mod sealing;
+
 #[test]
 fn a_wipe_waits_out_a_slow_answer_or_a_short_pause_and_gives_up_on_anything_else() {
     let mut asked = 0;

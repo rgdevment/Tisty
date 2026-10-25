@@ -147,7 +147,8 @@ fn a_release_is_later_only_when_its_numbers_say_so_and_one_unread_is_taken_for_l
     assert!(!needs_later("1.34.1"));
     assert!(!needs_later("1.35.0-rc.1"));
     assert!(!needs_later(SEALS));
-    assert!(needs_later("1.35.1"));
+    assert!(!needs_later(TURNS));
+    assert!(needs_later("1.36.1"));
     assert!(needs_later("1.100.0"));
     assert!(needs_later("2.0.0"));
     assert!(needs_later("pronto"));

@@ -183,6 +183,10 @@ impl<R: Remote> Sealed<R> {
         }
     }
 
+    pub(crate) fn is_mark(&self, name: &str) -> bool {
+        self.same(name, &format!("{INSIDE}/{MARK}"))
+    }
+
     fn folds(&self) -> bool {
         self.inner.limits().folds_case
     }
