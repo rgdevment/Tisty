@@ -63,7 +63,7 @@ pub fn kept(
 }
 
 fn fitting(persons: tisty_core::person::Persons) -> impl Fn(&Seed) -> bool {
-    move |seed| fits_person(&persons, seed)
+    move |seed| persons.names(&seed.root().person())
 }
 
 fn kept_at(scope: &str) -> Result<Option<Seed>, String> {
@@ -118,22 +118,25 @@ fn ours(seed: &Seed, state: &State) -> bool {
     state.persons.names(&seed.root().person())
 }
 
-async fn off_the_lock(
-    session: &tauri::State<'_, Mutex<Session>>,
-    gate: impl FnOnce(&Session) -> bool,
-) -> Option<Seed> {
-    let (paths, forebears, persons, wanted) = {
-        let session = held(session);
+type Asked = (Paths, BTreeSet<String>, tisty_core::person::Persons);
+
+// The one rule for asking the keychain: only what the gate allows, read off the lock so it never holds up a round.
+fn gated(session: &Mutex<Session>, gate: impl FnOnce(&Session) -> bool) -> Option<Asked> {
+    let session = held(session);
+    gate(&session).then(|| {
         (
             session.paths.clone(),
             session.state.forebears.clone(),
             session.state.persons.clone(),
-            gate(&session),
         )
-    };
-    if !wanted {
-        return None;
-    }
+    })
+}
+
+async fn off_the_lock(
+    session: &Mutex<Session>,
+    gate: impl FnOnce(&Session) -> bool,
+) -> Option<Seed> {
+    let (paths, forebears, persons) = gated(session, gate)?;
     let fits = fitting(persons);
     match elsewhere(move || kept(&paths, &forebears, &fits)).await {
         Ok(Ok(seed)) => seed,
@@ -337,36 +340,42 @@ fn counted(seed: Option<Seed>, state: &State) -> Option<Seed> {
 }
 
 fn fits(seed: &Seed, state: &State) -> bool {
-    fits_person(&state.persons, seed)
+    !state.persons.names_a_person() || ours(seed, state)
 }
 
-fn fits_person(persons: &tisty_core::person::Persons, seed: &Seed) -> bool {
-    !persons.names_a_person() || persons.names(&seed.root().person())
-}
-
-// Read off the lock so the keychain never holds up a round, and never before an identity exists: there is nothing to find.
 fn seed_here(session: &Mutex<Session>) -> Answer<Option<Seed>> {
-    let (paths, forebears, persons) = {
-        let session = held(session);
-        (
-            session.paths.clone(),
-            session.state.forebears.clone(),
-            session.state.persons.clone(),
-        )
-    };
-    if !persons.names_a_person() {
+    let Some((paths, forebears, persons)) =
+        gated(session, |session| session.state.persons.names_a_person())
+    else {
         return Ok(None);
-    }
+    };
     kept(&paths, &forebears, &fitting(persons)).map_err(unread)
+}
+
+fn seed_person(session: &Mutex<Session>) -> Answer<Option<tisty_share_proto::identity::Person>> {
+    let (known, forebears) = {
+        let session = held(session);
+        let forebears = session.state.forebears.len();
+        (session.reach.seed_of(forebears), forebears)
+    };
+    if let Some(known) = known {
+        return Ok(known);
+    }
+    let person = seed_here(session)?.map(|seed| seed.root().person());
+    let session = held(session);
+    if session.state.persons.names_a_person() {
+        session.reach.seed_is(Some((person, forebears)));
+    }
+    Ok(person)
 }
 
 #[tauri::command(async)]
 pub fn identity_shown(session: tauri::State<'_, Mutex<Session>>) -> Answer<Shown> {
-    let seed = seed_here(&session)?;
+    let kept = seed_person(&session)?;
     let session = held(&session);
-    let held = seed.as_ref().is_some_and(|seed| ours(seed, &session.state));
-    let person = match seed.filter(|_| held) {
-        Some(seed) => Some(seed.root().person()),
+    let held = kept.is_some_and(|person| session.state.persons.names(&person));
+    let person = match kept.filter(|_| held) {
+        Some(person) => Some(person),
         None => person::person_of(&session.state, &session.config.device_id),
     };
     let fingerprint = person.map(|one| one.fingerprint());
@@ -417,6 +426,7 @@ pub fn identity_begin(session: tauri::State<'_, Mutex<Session>>) -> Answer<Strin
     let shown =
         phrase::phrase(&seed, words(&session)).ok_or_else(|| Refusal::of("identityNotKept"))?;
     session.reach.tried_for(None);
+    session.reach.seed_is(None);
     begun(&mut session, &seed)?;
     Ok(shown.to_string())
 }
@@ -500,6 +510,7 @@ pub fn identity_recover(session: tauri::State<'_, Mutex<Session>>, said: String)
         _ => keep(&session.paths, &seed)?,
     }
     session.reach.tried_for(None);
+    session.reach.seed_is(None);
     begun(&mut session, &seed)?;
     let fingerprint = seed.root().person().fingerprint();
     if let Err(why) = session.keep(|config| config.phrase_confirmed = Some(fingerprint)) {

@@ -226,6 +226,31 @@ fn the_keychain_is_never_read_before_an_identity_exists() {
     let kept = tempfile::tempdir().unwrap();
     let session = opened(&kept);
     keep(&held(&session).paths, &seed(7)).unwrap();
+    let asked = scope(&held(&session).paths).unwrap();
+    let before = crate::reaching::reads_of(&asked);
 
     assert!(seed_here(&session).unwrap().is_none());
+    assert!(seed_person(&session).unwrap().is_none());
+
+    assert_eq!(crate::reaching::reads_of(&asked), before);
+}
+
+#[test]
+fn once_an_identity_exists_its_seed_is_read_once_until_it_is_begun_or_typed_again() {
+    let kept = tempfile::tempdir().unwrap();
+    let session = opened(&kept);
+    keep(&held(&session).paths, &seed(7)).unwrap();
+    begun(&mut held(&session), &seed(7)).unwrap();
+    let asked = scope(&held(&session).paths).unwrap();
+    let before = crate::reaching::reads_of(&asked);
+
+    let first = seed_person(&session).unwrap();
+    let again = seed_person(&session).unwrap();
+
+    assert_eq!(first, Some(seed(7).root().person()));
+    assert_eq!(again, first);
+    assert_eq!(crate::reaching::reads_of(&asked) - before, 1);
+    held(&session).reach.seed_is(None);
+    seed_person(&session).unwrap();
+    assert_eq!(crate::reaching::reads_of(&asked) - before, 2);
 }
