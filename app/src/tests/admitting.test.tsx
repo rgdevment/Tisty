@@ -40,17 +40,18 @@ describe("a new computer asking to come in", () => {
     expect(sent("admitting_ask")).toHaveLength(1);
 
     ipc.shown = { step: "compare", code: CODE, by: "Mac de la oficina" } satisfies Admitted;
-    await act(() => new Promise((done) => setTimeout(done, 2100)));
+    await act(() => new Promise((done) => setTimeout(done, 3100)));
     expect(screen.getByText(CODE)).toBeTruthy();
     expect(screen.getByText(/Mac de la oficina/)).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: "Yes, it is the same" }));
     expect(sent("admitting_trust")[0]?.args.code).toBe(CODE);
 
     ipc.shown = { step: "done", code: null, by: null } satisfies Admitted;
-    await act(() => new Promise((done) => setTimeout(done, 2100)));
+    await act(() => new Promise((done) => setTimeout(done, 3100)));
     expect(screen.getByText(/now reads your encrypted cloud/)).toBeTruthy();
-    expect(onIn).toHaveBeenCalled();
-  }, 10_000);
+    await act(() => new Promise((done) => setTimeout(done, 3100)));
+    expect(onIn).toHaveBeenCalledTimes(1);
+  }, 15_000);
 
   it("hands nothing over when the digits differ, and gives the ask up when closed", async () => {
     ipc.shown = { step: "compare", code: CODE, by: "Mac" } satisfies Admitted;
@@ -78,7 +79,7 @@ describe("letting a new computer in from one that reads the cloud", () => {
     await userEvent.click(screen.getByRole("button", { name: "Yes, it is the same" }));
 
     expect(await screen.findByText(/gets the key once you say yes on it too/)).toBeTruthy();
-    expect(sent("admitting_grant")[0]?.args.device).toBe("dev_b");
+    expect(sent("admitting_grant")[0]?.args).toEqual({ device: "dev_b", code: CODE });
   });
 
   it("takes the ask away when the digits differ", async () => {

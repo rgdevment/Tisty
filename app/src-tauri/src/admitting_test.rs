@@ -28,7 +28,14 @@ fn a_new_computer_is_let_in_once_the_same_code_is_said_yes_to_on_both() {
         (compared.step, compared.code.as_deref()),
         ("compare", Some(code.as_str()))
     );
-    granted(&two.giver, &two.giving, Some(key(7)), &two.asking.device.0).unwrap();
+    granted(
+        &two.giver,
+        &two.giving,
+        Some(key(7)),
+        &two.asking.device.0,
+        &code,
+    )
+    .unwrap();
     assert_eq!(
         step(&two, &knocking).step,
         "compare",
@@ -106,7 +113,16 @@ fn only_the_first_computer_to_take_an_ask_lets_it_in() {
     knock::offered(&*two.plain, &two.asking.home, &two.asking.device.0, &other).unwrap();
 
     assert!(offer(&two.giver, &two.giving, Some(key(7)), &two.asking.device.0).is_err());
-    assert!(granted(&two.giver, &two.giving, Some(key(7)), &two.asking.device.0).is_err());
+    assert!(
+        granted(
+            &two.giver,
+            &two.giving,
+            Some(key(7)),
+            &two.asking.device.0,
+            ""
+        )
+        .is_err()
+    );
     assert!(looked(&two.giver, &two.giving, Some(key(7))).unwrap()[0].taken);
 }
 
@@ -116,7 +132,9 @@ fn a_computer_already_on_the_list_is_no_newcomer_and_one_without_the_key_lets_no
     sealed_with(&two, &key(7));
     knows(&two.giver, &two.asking);
     let knocking = Knocking::default();
-    ask(&two.asker, &knocking, &two.asking, None).unwrap();
+    assert!(ask(&two.asker, &knocking, &two.asking, None).is_err());
+    let mut asked = None;
+    crate::handed::ask_now(&two.asker, &mut asked, &two.asking).unwrap();
 
     assert!(
         looked(&two.giver, &two.giving, Some(key(7)))
@@ -141,4 +159,67 @@ fn cancelling_takes_the_ask_and_its_giver_away() {
             .unwrap()
             .is_empty()
     );
+}
+
+#[test]
+fn an_ask_swapped_after_its_code_was_shown_gets_nothing_on_the_yes() {
+    let two = two();
+    let knocking = knocking_of(&two);
+    let code = offer(&two.giver, &two.giving, Some(key(7)), &two.asking.device.0).unwrap();
+    let mut swapped = None;
+    crate::handed::ask_now(&two.asker, &mut swapped, &two.asking).unwrap();
+    offer(&two.giver, &two.giving, Some(key(7)), &two.asking.device.0).unwrap();
+
+    assert!(
+        granted(
+            &two.giver,
+            &two.giving,
+            Some(key(7)),
+            &two.asking.device.0,
+            &code
+        )
+        .is_err()
+    );
+    assert_eq!(
+        knock::answered(&*two.plain, &two.asking.home, &two.asking.device.0).unwrap(),
+        None
+    );
+    drop(knocking);
+}
+
+#[test]
+fn an_answer_already_standing_from_another_is_put_aside_for_this_one() {
+    let two = two();
+    let knocking = knocking_of(&two);
+    let code = offer(&two.giver, &two.giving, Some(key(7)), &two.asking.device.0).unwrap();
+    let ask = asked_now(&knocking, &two.asking).unwrap().unwrap();
+    let forged = handed(
+        &ask,
+        &key(4),
+        "dev_zz",
+        &tisty_share_proto::handing::SigningKey::from_bytes(&[5; 32]),
+    )
+    .unwrap();
+    knock::answer(&*two.plain, &two.asking.home, &two.asking.device.0, &forged).unwrap();
+
+    granted(
+        &two.giver,
+        &two.giving,
+        Some(key(7)),
+        &two.asking.device.0,
+        &code,
+    )
+    .unwrap();
+    trusted(&knocking, &two.asking, &code).unwrap();
+
+    assert_eq!(step(&two, &knocking).step, "done");
+}
+
+#[test]
+fn the_computer_that_took_an_ask_still_sees_it_as_its_own() {
+    let two = two();
+    let _knocking = knocking_of(&two);
+    offer(&two.giver, &two.giving, Some(key(7)), &two.asking.device.0).unwrap();
+
+    assert!(!looked(&two.giver, &two.giving, Some(key(7))).unwrap()[0].taken);
 }

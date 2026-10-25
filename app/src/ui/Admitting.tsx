@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   type Admitted,
   admittingAsk,
@@ -16,7 +16,7 @@ import { saidPlainly } from "../refusal";
 import Modal from "./Modal";
 import { mild, strong } from "./Rows";
 
-const LOOKED_EVERY = 2000;
+const LOOKED_EVERY = 3000;
 
 function Code({ code }: { code: string }) {
   return (
@@ -56,8 +56,12 @@ export function LetMeIn({ onClose, onIn }: { onClose: () => void; onIn: () => vo
     };
   }, []);
 
+  // Told once: the card around it looks again on being told, and would tell it again.
+  const told = useRef(false);
   useEffect(() => {
-    if (now?.step === "done") onIn();
+    if (now?.step !== "done" || told.current) return;
+    told.current = true;
+    onIn();
   }, [now?.step, onIn]);
 
   const close = () => {
@@ -165,7 +169,7 @@ export function LetThemIn({ onClose }: { onClose: () => void }) {
               type="button"
               className={strong}
               onClick={() =>
-                admittingGrant(letting.one.device)
+                admittingGrant(letting.one.device, letting.code)
                   .then(() => setLetting({ ...letting, step: "granted" }))
                   .catch(failed)
               }

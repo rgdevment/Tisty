@@ -225,9 +225,10 @@ pub fn withdrawn(plain: &dyn Remote, home: &Path, device: &str) -> Result<(), Hi
 }
 
 /// Says only that the key is this cloud's; who handed it is the caller's to check, since the mark sits with the provider.
-pub fn opens(plain: &dyn Remote, home: &Path, key: &CloudKey, cloud: &str) -> bool {
+// A mark that could not be read says nothing, so a key is never judged wrong on a failed fetch.
+pub fn opens(plain: &dyn Remote, home: &Path, key: &CloudKey, cloud: &str) -> Result<bool, Hitch> {
     let sealed = crate::Sealed::new(boxed(plain, home), key.clone(), cloud);
-    matches!(sealed.marked(), Ok(Some(Mark::Holds)))
+    Ok(matches!(sealed.marked()?, Some(Mark::Holds)))
 }
 
 #[cfg(test)]

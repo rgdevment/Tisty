@@ -1376,8 +1376,8 @@ export const admittingCancel = (): Promise<void> => invoke("admitting_cancel");
 export const admittingLook = (): Promise<Newcomer[]> => invoke("admitting_look");
 export const admittingOffer = (device: string): Promise<string> =>
   invoke("admitting_offer", { device });
-export const admittingGrant = (device: string): Promise<void> =>
-  invoke("admitting_grant", { device });
+export const admittingGrant = (device: string, code: string): Promise<void> =>
+  invoke("admitting_grant", { device, code });
 export const admittingRefuse = (device: string): Promise<void> =>
   invoke("admitting_refuse", { device });
 export const docWord = (bodies: string[], at: string): Promise<void> =>

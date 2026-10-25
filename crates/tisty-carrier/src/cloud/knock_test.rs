@@ -1,5 +1,5 @@
 use super::*;
-use crate::fakes::Fake;
+use crate::fakes::{Counting, Fake};
 use tisty_share_proto::cloud::CloudKey;
 use tisty_share_proto::handing::{Giver, OneUse, SigningKey, handed};
 use tisty_share_proto::seed::Seed;
@@ -127,9 +127,11 @@ fn a_key_brought_by_a_knock_is_taken_only_if_it_opens_the_cloud_s_mark() {
         .unwrap()
         .and_then(|answer| answer.opened(&ask, &one_use))
         .unwrap();
-    assert!(opens(&*fake, home.path(), &got, CLOUD));
-    assert!(!opens(&*fake, home.path(), &forged, CLOUD));
-    assert!(!opens(&*fake, home.path(), &got, "store_two"));
+    assert!(opens(&*fake, home.path(), &got, CLOUD).unwrap());
+    assert!(!opens(&*fake, home.path(), &forged, CLOUD).unwrap());
+    assert!(!opens(&*fake, home.path(), &got, "store_two").unwrap());
+    fake.fail_after(0, Hitch::Unreachable(None, "cut".into()));
+    assert!(opens(&*fake, home.path(), &got, CLOUD).is_err());
 }
 
 #[test]

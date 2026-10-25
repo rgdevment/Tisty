@@ -247,21 +247,22 @@ describe("what stands in the way", () => {
 });
 
 describe("a cloud this computer cannot open yet", () => {
-  it("says the others hand the key over and lets it in from another computer", async () => {
+  it("says a computer on the list is handed the key on its own, with nothing to ask", async () => {
     ipc.shown = { ...plain, state: "locked" };
     render(<Shell />);
 
     expect(await screen.findByText(/hand it over on their own/)).toBeTruthy();
-    await userEvent.click(screen.getByRole("button", { name: "Let in from another computer" }));
-
-    await waitFor(() => expect(sent("admitting_ask")).toHaveLength(1));
+    expect(screen.queryByRole("button", { name: "Let in from another computer" })).toBeNull();
   });
 
-  it("tells a computer new to the place to be let in from another one", async () => {
+  it("lets a computer new to the place in from another one", async () => {
     ipc.shown = { ...plain, state: "locked", joined: false };
     render(<Shell />);
 
     expect(await screen.findByText(/let this computer in from another/)).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Let in from another computer" }));
+
+    await waitFor(() => expect(sent("admitting_ask")).toHaveLength(1));
   });
 
   it("offers to let a new computer in once the cloud is encrypted", async () => {

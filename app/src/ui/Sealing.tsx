@@ -122,16 +122,18 @@ export default function Sealing({ busy, said, trouble, tell, fail, onChanged }: 
           <p className="mt-0.5 text-[12.5px] leading-relaxed text-soft">
             {t(shown.joined ? "sealLockedJoined" : "sealLockedNew")}
           </p>
-          <div className="mt-3 flex justify-end">
-            <button
-              type="button"
-              className={strong}
-              disabled={held}
-              onClick={() => setLetting("me")}
-            >
-              {t("admitAskButton")}
-            </button>
-          </div>
+          {!shown.joined && (
+            <div className="mt-3 flex justify-end">
+              <button
+                type="button"
+                className={strong}
+                disabled={held}
+                onClick={() => setLetting("me")}
+              >
+                {t("admitAskButton")}
+              </button>
+            </div>
+          )}
         </>
       )}
       {shown.state === "none" && (

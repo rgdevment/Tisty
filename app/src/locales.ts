@@ -1890,8 +1890,7 @@ const en = {
   sealSealed: "Your cloud is encrypted",
   sealOldCopy: "The old unencrypted copy stays in {name} until you delete it.",
   sealLocked: "Your cloud is encrypted, and this computer does not hold its key yet",
-  sealLockedJoined:
-    "Your other computers hand it over on their own as soon as one of them is on. You can also let it in from another computer now.",
+  sealLockedJoined: "Your other computers hand it over on their own as soon as one of them is on.",
   sealLockedNew:
     "To open it here, let this computer in from another of your computers that already reads the encrypted cloud.",
   admitAskButton: "Let in from another computer",
@@ -4340,8 +4339,7 @@ const es: Catalog = {
   sealSealed: "Tu nube está cifrada",
   sealOldCopy: "La copia antigua sin cifrar sigue en {name} hasta que la borres.",
   sealLocked: "Tu nube está cifrada y este equipo todavía no tiene su llave",
-  sealLockedJoined:
-    "Tus otros equipos se la entregan solos apenas uno de ellos esté encendido. También puedes autorizarlo ahora desde otro equipo.",
+  sealLockedJoined: "Tus otros equipos se la entregan solos apenas uno de ellos esté encendido.",
   sealLockedNew:
     "Para abrirla aquí, autoriza este equipo desde otro de tus equipos que ya lea la nube cifrada.",
   admitAskButton: "Autorizar desde otro equipo",

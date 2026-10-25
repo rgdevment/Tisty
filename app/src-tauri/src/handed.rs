@@ -28,6 +28,8 @@ pub struct Knocking {
     looked: Mutex<Option<Instant>>,
     opened: Mutex<Option<String>>,
     pub(crate) trusted: Mutex<Option<String>>,
+    pub(crate) coded: Mutex<Option<(String, String, String)>>,
+    reached: Mutex<Option<(std::path::PathBuf, Arc<dyn Remote>)>>,
 }
 
 pub(crate) struct Here {
@@ -61,7 +63,7 @@ pub(crate) fn here_now(
     else {
         return Err("the cloud is not sealed".into());
     };
-    let plain = crate::reaching::plain_at(&home, &at)?;
+    let plain = reached(knocking, &home, &at)?;
     let here = Here {
         paths,
         device,
@@ -153,6 +155,26 @@ fn noted(why: String) {
     );
 }
 
+// Kept while the place stays the same, so a window asking every few seconds never reads the keychain each time.
+fn reached(
+    knocking: &Knocking,
+    home: &std::path::Path,
+    at: &tisty_core::config::CloudAt,
+) -> Result<Arc<dyn Remote>, String> {
+    let mut kept = knocking
+        .reached
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner);
+    if let Some((was, plain)) = kept.as_ref()
+        && was == home
+    {
+        return Ok(plain.clone());
+    }
+    let plain = crate::reaching::plain_at(home, at)?;
+    *kept = Some((home.to_path_buf(), plain.clone()));
+    Ok(plain)
+}
+
 pub(crate) fn now() -> i64 {
     jiff::Timestamp::now().as_second()
 }
@@ -229,9 +251,11 @@ pub(crate) fn asking(
     if !vouched && !seated && trusted.is_none() {
         return Ok(false);
     }
-    let opened = answer
-        .opened(ask, one_use)
-        .filter(|key| vouched && opens(here, key));
+    let opened = answer.opened(ask, one_use).filter(|_| vouched);
+    let opened = match opened {
+        Some(key) => opens(here, &key)?.then_some(key),
+        None => None,
+    };
     let Some(key) = opened else {
         // An answer that does not open, stale or forged, would keep every machine from answering again.
         knock::unanswered(&*here.plain, &here.home, &here.device.0).map_err(hitched)?;
@@ -246,8 +270,8 @@ pub(crate) fn asking(
     Ok(true)
 }
 
-fn opens(here: &Here, key: &CloudKey) -> bool {
-    knock::opens(&*here.plain, &here.home, key, &here.cloud)
+fn opens(here: &Here, key: &CloudKey) -> Result<bool, String> {
+    knock::opens(&*here.plain, &here.home, key, &here.cloud).map_err(hitched)
 }
 
 // The mark is fetched once a key, not every time the box is looked at.
@@ -260,7 +284,7 @@ fn opened(knocking: &Knocking, here: &Here, key: &CloudKey) -> bool {
     if known.as_deref() == Some(named.as_str()) {
         return true;
     }
-    let opens = opens(here, key);
+    let opens = opens(here, key).unwrap_or(false);
     if opens {
         *known = Some(named);
     }
@@ -330,7 +354,7 @@ fn answered(
         // An answer waits for its machine; a new one has its hour, after which nobody comes for it.
         let fresh = knock::ask_of(&*here.plain, &here.home, &one.device)
             .map_err(hitched)?
-            .is_some_and(|ask| now() - ask.at <= NEW_FOR);
+            .is_some_and(|ask| (-NEW_FOR..=NEW_FOR).contains(&(now() - ask.at)));
         return match fresh {
             true => Ok(()),
             false => knock::withdrawn(&*here.plain, &here.home, &one.device).map_err(hitched),
