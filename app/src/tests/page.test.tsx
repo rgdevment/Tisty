@@ -240,4 +240,15 @@ describe("a drawn page in the viewer", () => {
       ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(blocks).toContainEqual([0, 5]);
   });
+
+  it("takes the window's language when its words change, though the document was built before", async () => {
+    const { frame, view } = await drawn();
+    const page = await loaded(frame);
+    const was = document.documentElement.lang;
+    document.documentElement.lang = "en";
+    ipc.drawn = '<p data-at="0-5">Nuevo</p>';
+    view.rerender(<Page body="Nuevo" label="Notas" stranger={false} onDoc={() => {}} />);
+    await waitFor(() => expect(page.documentElement.lang).toBe("en"));
+    document.documentElement.lang = was;
+  });
 });

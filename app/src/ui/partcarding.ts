@@ -54,6 +54,9 @@ export const recarded = (page: Document, part: ((id: string) => PartCarded) | un
   if (!part) return;
   for (const box of page.querySelectorAll<HTMLElement>(".page > p > .is-part[data-task]")) {
     const id = box.dataset.task ?? "";
-    box.replaceWith(carded(page, id, box.dataset.written ?? "", part(id)));
+    const fresh = carded(page, id, box.dataset.written ?? "", part(id));
+    const focused = page.activeElement === box;
+    box.replaceWith(fresh);
+    if (focused) fresh.focus();
   }
 };

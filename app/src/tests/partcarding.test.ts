@@ -24,4 +24,17 @@ describe("a part's card", () => {
     recarded(page, (): PartCarded => ({ kind: "loose" }));
     expect(page.querySelector(".is-part .card-name")?.textContent).toBe("Comprar pan");
   });
+
+  it("keeps the keys on a card that is filled in place", () => {
+    document.body.innerHTML = paged().body.innerHTML;
+    partCarded(document, (): PartCarded => ({ kind: "waiting" }));
+    document.querySelector<HTMLElement>(".is-part")?.focus();
+    expect(document.activeElement?.classList.contains("is-waiting")).toBe(true);
+    recarded(
+      document,
+      (): PartCarded => ({ kind: "open", title: "Pan integral", done: 0, steps: 0 }),
+    );
+    expect(document.activeElement?.classList.contains("is-open")).toBe(true);
+    document.body.innerHTML = "";
+  });
 });

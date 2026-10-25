@@ -72,7 +72,6 @@ export default function Frame(props: Readonly<Props>) {
     let live = true;
     let drawing = 0;
     const first = said.current.html;
-    let loadedYet = false;
     const undressed = () => {
       for (const one of dressedUp.lent) one.drop();
       for (const one of dressedUp.kept) one();
@@ -96,7 +95,6 @@ export default function Frame(props: Readonly<Props>) {
       undressed();
       stopGrowing();
       stopSheeting();
-      loadedYet = true;
       if (said.current.html !== first) freshen(sheet, said.current.html);
       wired(page, () => said.current.reach());
       sheet.removeAttribute("inert");
@@ -115,8 +113,11 @@ export default function Frame(props: Readonly<Props>) {
     swap.current = (next) => {
       const page = held.contentDocument;
       const sheet = page?.querySelector(".page");
-      if (!loadedYet || !page || !sheet) return;
+      if (!page?.documentElement.hasAttribute("data-wired") || !sheet) return;
       undressed();
+      // The document is built once, so the language and look it was built with are brought up to date.
+      page.documentElement.lang = document.documentElement.lang;
+      dressed(page);
       freshen(sheet, next);
       dress(page);
       laid.current();
