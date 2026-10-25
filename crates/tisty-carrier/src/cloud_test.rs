@@ -1964,6 +1964,9 @@ mod rounds;
 #[path = "cloud_sealing_test.rs"]
 mod sealing;
 
+#[path = "cloud_sealing_model_test.rs"]
+mod sealing_model;
+
 #[test]
 fn a_wipe_waits_out_a_slow_answer_or_a_short_pause_and_gives_up_on_anything_else() {
     let mut asked = 0;

@@ -276,3 +276,22 @@ fn what_a_turn_leaves_behind_goes_only_where_its_twin_stands() {
     crate::wipe_behind(plain, &home, key(), CLOUD).unwrap();
     assert!(fake.list("sealed").unwrap().is_empty());
 }
+
+#[test]
+fn giving_up_cut_half_way_is_undone_the_rest_of_the_way_from_the_journal() {
+    let (setting, fake) = drive();
+    let before = {
+        written(&setting);
+        word(&fake)
+    };
+    let turning = turned(&fake, &setting).unwrap();
+    fake.fail_after(2, Hitch::Unreachable(None, "cut".into()));
+    assert!(turning.abort().is_err());
+
+    let plain: Arc<dyn Remote> = fake.clone();
+    let mut left = Turning::resume(plain, &home_of(&setting, "dev_a"), key()).unwrap();
+
+    assert_eq!(left.step().unwrap(), Stepped::Done);
+    assert_eq!(word(&fake), before);
+    assert!(fake.list("sealed").unwrap().is_empty());
+}

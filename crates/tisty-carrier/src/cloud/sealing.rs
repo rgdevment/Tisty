@@ -19,6 +19,7 @@ const SAID: u32 = 1;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 enum Phase {
+    GivingUp,
     Claiming,
     Claimed,
     Copied,
@@ -267,6 +268,9 @@ impl Turning {
     pub fn step(&mut self) -> Result<Stepped, Hitch> {
         let (plain, home) = (self.plain.clone(), self.home.clone());
         let _held = locked(&home)?;
+        if self.journal.phase == Phase::GivingUp {
+            return self.given_up();
+        }
         let metered = Metered::over(&*plain, &home, Class::Sealing);
         let (text, revision) = word(&metered)?;
         let claim = self.journal.claim();
@@ -303,7 +307,7 @@ impl Turning {
             false => (&sealed, &metered),
         };
         match self.journal.phase {
-            Phase::Claiming => Err(turned_away(&cloud)),
+            Phase::Claiming | Phase::GivingUp => Err(turned_away(&cloud)),
             Phase::Claimed => {
                 let owed = self.owed(from, to)?;
                 self.journal.refused = owed.refused.clone();
@@ -391,20 +395,31 @@ impl Turning {
     }
 
     /// Before the switch the side read from was never touched, so giving up takes back the claim and what was copied.
-    pub fn abort(self) -> Result<(), Hitch> {
-        let _held = locked(&self.home)?;
+    pub fn abort(mut self) -> Result<(), Hitch> {
+        {
+            let _held = locked(&self.home)?;
+            let metered = Metered::over(&*self.plain, &self.home, Class::Sealing);
+            let (text, _) = word(&metered)?;
+            let switched = match tisty_sync::sealing_in(&text) {
+                Sealing::Sealed(cloud) => self.journal.on && cloud == self.journal.cloud,
+                Sealing::Plain | Sealing::Unsaid => {
+                    !self.journal.on && self.journal.phase == Phase::Settled
+                }
+                _ => false,
+            };
+            if switched {
+                return Err(turned_away(&self.journal.cloud));
+            }
+            self.journal.phase = Phase::GivingUp;
+            self.journal.save(&self.home)?;
+        }
+        self.step().map(|_| ())
+    }
+
+    // Kept in the journal before anything is undone, so a cut half way is undone the rest of the way next time.
+    fn given_up(&self) -> Result<Stepped, Hitch> {
         let metered = Metered::over(&*self.plain, &self.home, Class::Sealing);
         let (text, revision) = word(&metered)?;
-        let switched = match tisty_sync::sealing_in(&text) {
-            Sealing::Sealed(cloud) => self.journal.on && cloud == self.journal.cloud,
-            Sealing::Plain | Sealing::Unsaid => {
-                !self.journal.on && self.journal.phase == Phase::Settled
-            }
-            _ => false,
-        };
-        if switched {
-            return Err(turned_away(&self.journal.cloud));
-        }
         if let Some(back) = tisty_sync::dropped(&text, &self.journal.claim()) {
             rewrite(&metered, &back, &revision)?;
         }
@@ -422,7 +437,7 @@ impl Turning {
             sealed.unmark()?;
         }
         forget(&self.home);
-        Ok(())
+        Ok(Stepped::Done)
     }
 
     fn owed(&self, from: &dyn Remote, to: &dyn Remote) -> Result<Owed, Hitch> {
