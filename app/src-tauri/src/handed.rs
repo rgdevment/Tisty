@@ -14,7 +14,7 @@ use crate::{Session, held};
 
 const KEY: &str = "key";
 const JOINED_FOR: i64 = 7 * 24 * 60 * 60;
-const NEW_FOR: i64 = 60 * 60;
+pub(crate) const NEW_FOR: i64 = 60 * 60;
 // Asked again within the hour, so an ask lost or taken away up there never leaves this machine waiting a week.
 const ASKED_AGAIN: i64 = 60 * 60;
 const ANSWERED_EVERY: Duration = Duration::from_secs(5 * 60);
@@ -24,17 +24,58 @@ const ASKED_EVERY: Duration = Duration::from_secs(2 * 60);
 #[derive(Default)]
 pub struct Knocking {
     busy: AtomicBool,
-    asked: Mutex<Option<(Ask, OneUse)>>,
+    pub(crate) asked: Mutex<Option<(Ask, OneUse)>>,
     looked: Mutex<Option<Instant>>,
     opened: Mutex<Option<String>>,
+    pub(crate) trusted: Mutex<Option<String>>,
+    pub(crate) coded: Mutex<Option<(String, String, String)>>,
+    reached: Mutex<Option<(std::path::PathBuf, Arc<dyn Remote>)>>,
 }
 
-struct Here {
-    paths: Paths,
-    device: DeviceId,
-    cloud: String,
-    plain: Arc<dyn Remote>,
-    home: std::path::PathBuf,
+pub(crate) struct Here {
+    pub(crate) paths: Paths,
+    pub(crate) device: DeviceId,
+    pub(crate) cloud: String,
+    pub(crate) plain: Arc<dyn Remote>,
+    pub(crate) home: std::path::PathBuf,
+}
+
+pub(crate) fn here_now(
+    session: &Mutex<Session>,
+    knocking: &Knocking,
+) -> Result<(Here, Option<CloudKey>), String> {
+    let (at, home, device, paths, keyed) = {
+        let session = held(session);
+        let at = tisty_carrier::cloud_of(session.config.sync.as_ref())
+            .cloned()
+            .ok_or("this computer syncs with no cloud")?;
+        let home = session.reach.home_of(&at);
+        let device = session.config.device_id.clone();
+        (
+            at,
+            home,
+            device,
+            session.paths.clone(),
+            session.reach.keyed(),
+        )
+    };
+    let Sealing::Sealed(cloud) = tisty_carrier::sealing_of(&tisty_carrier::mirrored_at(&home))
+    else {
+        return Err("the cloud is not sealed".into());
+    };
+    let plain = reached(knocking, &home, &at)?;
+    let here = Here {
+        paths,
+        device,
+        cloud,
+        plain,
+        home,
+    };
+    let key = keyed
+        .filter(|keyed| keyed.locked.cloud == here.cloud)
+        .map(|keyed| keyed.key)
+        .filter(|key| opened(knocking, &here, key));
+    Ok((here, key))
 }
 
 struct Free<'a>(&'a AtomicBool);
@@ -71,47 +112,30 @@ fn due(knocking: &Knocking, every: Duration) -> bool {
 
 fn tended(app: &AppHandle, knocking: &Knocking) {
     let session = app.state::<Mutex<Session>>();
-    let (at, home, device, paths, keyed) = {
+    let (home, keyed) = {
         let session = held(&session);
-        let Some(at) = tisty_carrier::cloud_of(session.config.sync.as_ref()).cloned() else {
+        let Some(at) = tisty_carrier::cloud_of(session.config.sync.as_ref()) else {
             return;
         };
-        let home = session.reach.home_of(&at);
-        let device = session.config.device_id.clone();
-        (
-            at,
-            home,
-            device,
-            session.paths.clone(),
-            session.reach.keyed(),
-        )
+        (session.reach.home_of(at), session.reach.keyed())
     };
     let Sealing::Sealed(cloud) = tisty_carrier::sealing_of(&tisty_carrier::mirrored_at(&home))
     else {
         return;
     };
-    let keyed = keyed.filter(|keyed| keyed.locked.cloud == cloud);
-    let every = if keyed.is_some() {
-        ANSWERED_EVERY
-    } else {
-        ASKED_EVERY
+    let every = match keyed.is_some_and(|keyed| keyed.locked.cloud == cloud) {
+        true => ANSWERED_EVERY,
+        false => ASKED_EVERY,
     };
     if !due(knocking, every) {
         return;
     }
-    let Ok(plain) = crate::reaching::plain_at(&home, &at) else {
+    let Ok((here, key)) = here_now(&session, knocking) else {
         return;
     };
-    let here = Here {
-        paths,
-        device,
-        cloud,
-        plain,
-        home,
-    };
     // A key only guessed from a phrase may not be this cloud's, and handing it out would hand out nothing.
-    let done = match keyed.filter(|keyed| opened(knocking, &here, &keyed.key)) {
-        Some(keyed) => answering(&session, &here, &keyed.key),
+    let done = match key {
+        Some(key) => answering(&session, &here, &key),
         None => asking(&session, knocking, &here).map(|took| {
             if took {
                 let _ = app.emit("stirred", ());
@@ -131,49 +155,82 @@ fn noted(why: String) {
     );
 }
 
-fn now() -> i64 {
+// Kept while the place stays the same, so a window asking every few seconds never reads the keychain each time.
+fn reached(
+    knocking: &Knocking,
+    home: &std::path::Path,
+    at: &tisty_core::config::CloudAt,
+) -> Result<Arc<dyn Remote>, String> {
+    let mut kept = knocking
+        .reached
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner);
+    if let Some((was, plain)) = kept.as_ref()
+        && was == home
+    {
+        return Ok(plain.clone());
+    }
+    let plain = crate::reaching::plain_at(home, at)?;
+    *kept = Some((home.to_path_buf(), plain.clone()));
+    Ok(plain)
+}
+
+pub(crate) fn now() -> i64 {
     jiff::Timestamp::now().as_second()
 }
 
-fn signer(here: &Here) -> Result<SigningKey, String> {
+pub(crate) fn signer(here: &Here) -> Result<SigningKey, String> {
     tisty_core::signing::mine(&here.paths, &here.device)
         .ok_or_else(|| "this machine has no signing key".to_string())
 }
 
-fn hitched(hitch: tisty_carrier::Hitch) -> String {
+pub(crate) fn hitched(hitch: tisty_carrier::Hitch) -> String {
     hitch.code().to_string()
 }
 
-fn asking(session: &Mutex<Session>, knocking: &Knocking, here: &Here) -> Result<bool, String> {
-    let (seated, name) = {
-        let session = held(session);
-        let name = session
-            .state
-            .named
-            .get(&here.device)
-            .map(|one| one.name.clone())
-            .unwrap_or_else(|| tisty_core::config::nicknamed(&here.device.0));
-        (session.state.devices.contains(&here.device), name)
-    };
+pub(crate) fn name_here(session: &Mutex<Session>, device: &DeviceId) -> String {
+    let session = held(session);
+    session
+        .state
+        .named
+        .get(device)
+        .map(|one| one.name.clone())
+        .unwrap_or_else(|| tisty_core::config::nicknamed(&device.0))
+}
+
+pub(crate) fn ask_now(
+    session: &Mutex<Session>,
+    asked: &mut Option<(Ask, OneUse)>,
+    here: &Here,
+) -> Result<(), String> {
+    let one_use = OneUse::minted().ok_or("no randomness for a one-use key")?;
+    let ask = Ask::signed(
+        &here.device.0,
+        &name_here(session, &here.device),
+        &signer(here)?,
+        &one_use,
+        &here.cloud,
+        now(),
+    );
+    knock::knocked(&*here.plain, &here.home, &ask).map_err(hitched)?;
+    *asked = Some((ask, one_use));
+    Ok(())
+}
+
+pub(crate) fn asking(
+    session: &Mutex<Session>,
+    knocking: &Knocking,
+    here: &Here,
+) -> Result<bool, String> {
+    let seated = held(session).state.devices.contains(&here.device);
     let mut asked = knocking.asked.lock().map_err(|e| e.to_string())?;
     let stale = asked
         .as_ref()
         .is_none_or(|(ask, _)| ask.cloud != here.cloud || now() - ask.at > ASKED_AGAIN);
     if stale {
-        if !seated {
-            return Ok(false);
+        if seated {
+            ask_now(session, &mut asked, here)?;
         }
-        let one_use = OneUse::minted().ok_or("no randomness for a one-use key")?;
-        let ask = Ask::signed(
-            &here.device.0,
-            &name,
-            &signer(here)?,
-            &one_use,
-            &here.cloud,
-            now(),
-        );
-        knock::knocked(&*here.plain, &here.home, &ask).map_err(hitched)?;
-        *asked = Some((ask, one_use));
         return Ok(false);
     }
     let Some((ask, one_use)) = asked.as_ref() else {
@@ -184,9 +241,21 @@ fn asking(session: &Mutex<Session>, knocking: &Knocking, here: &Here) -> Result<
     else {
         return Ok(false);
     };
-    let opened = answer
-        .opened(ask, one_use)
-        .filter(|key| from_ours(session, &answer) && opens(here, key));
+    let trusted = knocking
+        .trusted
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .clone();
+    let vouched = from_ours(session, &answer) || trusted.as_deref() == Some(answer.key.as_str());
+    // A machine no log names waits for the person to say the digits match before it judges any answer.
+    if !vouched && !seated && trusted.is_none() {
+        return Ok(false);
+    }
+    let opened = answer.opened(ask, one_use).filter(|_| vouched);
+    let opened = match opened {
+        Some(key) => opens(here, &key)?.then_some(key),
+        None => None,
+    };
     let Some(key) = opened else {
         // An answer that does not open, stale or forged, would keep every machine from answering again.
         knock::unanswered(&*here.plain, &here.home, &here.device.0).map_err(hitched)?;
@@ -194,11 +263,15 @@ fn asking(session: &Mutex<Session>, knocking: &Knocking, here: &Here) -> Result<
     };
     took(session, here, &key)?;
     *asked = None;
+    *knocking
+        .trusted
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner) = None;
     Ok(true)
 }
 
-fn opens(here: &Here, key: &CloudKey) -> bool {
-    knock::opens(&*here.plain, &here.home, key, &here.cloud)
+fn opens(here: &Here, key: &CloudKey) -> Result<bool, String> {
+    knock::opens(&*here.plain, &here.home, key, &here.cloud).map_err(hitched)
 }
 
 // The mark is fetched once a key, not every time the box is looked at.
@@ -211,7 +284,7 @@ fn opened(knocking: &Knocking, here: &Here, key: &CloudKey) -> bool {
     if known.as_deref() == Some(named.as_str()) {
         return true;
     }
-    let opens = opens(here, key);
+    let opens = opens(here, key).unwrap_or(false);
     if opens {
         *known = Some(named);
     }
@@ -275,8 +348,14 @@ fn answered(
 ) -> Result<(), String> {
     let seated = seated(session, &one.device);
     let Some(ask) = &one.ask else {
-        // An answer waits for its machine; one no longer on the list never comes for it.
-        return match seated {
+        if seated {
+            return Ok(());
+        }
+        // An answer waits for its machine; a new one has its hour, after which nobody comes for it.
+        let fresh = knock::ask_of(&*here.plain, &here.home, &one.device)
+            .map_err(hitched)?
+            .is_some_and(|ask| (-NEW_FOR..=NEW_FOR).contains(&(now() - ask.at)));
+        return match fresh {
             true => Ok(()),
             false => knock::withdrawn(&*here.plain, &here.home, &one.device).map_err(hitched),
         };
@@ -295,11 +374,11 @@ fn answered(
     knock::answer(&*here.plain, &here.home, &one.device, &answer).map_err(hitched)
 }
 
-fn fits(ask: &Ask, here: &Here) -> bool {
+pub(crate) fn fits(ask: &Ask, here: &Here) -> bool {
     ask.holds() && ask.cloud == here.cloud && ask.device != here.device.0
 }
 
-fn seated(session: &Mutex<Session>, device: &str) -> bool {
+pub(crate) fn seated(session: &Mutex<Session>, device: &str) -> bool {
     let session = held(session);
     let device = DeviceId(device.to_string());
     session.state.devices.contains(&device) && !session.state.assistants.contains(&device)
@@ -364,4 +443,4 @@ pub fn unread(why: String) {
 
 #[cfg(test)]
 #[path = "handed_test.rs"]
-mod tests;
+pub(crate) mod tests;

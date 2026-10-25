@@ -5867,6 +5867,7 @@ dependencies = [
  "hmac",
  "jiff",
  "rand_core 0.9.5",
+ "scrypt",
  "serde",
  "serde_json",
  "sha2 0.11.1",
