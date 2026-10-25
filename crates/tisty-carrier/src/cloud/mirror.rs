@@ -40,7 +40,6 @@ pub fn pull(
     homing: bool,
     along: &mut dyn FnMut(crate::Reached),
 ) -> Result<usize, Hitch> {
-    heal(tree, index);
     if let Some(trouble) = still_barred(remote, tree, index)? {
         return Err(Hitch::Barred(trouble));
     }

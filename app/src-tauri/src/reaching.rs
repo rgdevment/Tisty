@@ -34,13 +34,9 @@ pub struct Locked {
     pub named: String,
 }
 
-// The account's own id outlives a change of address, so a new email never asks the keychain again.
 impl PartialEq for Locked {
     fn eq(&self, other: &Self) -> bool {
-        self.at.provider == other.at.provider
-            && self.at.account == other.at.account
-            && self.cloud == other.cloud
-            && self.named == other.named
+        self.at.same_account(&other.at) && self.cloud == other.cloud && self.named == other.named
     }
 }
 
@@ -117,7 +113,7 @@ impl Reaching {
 
 impl Reach for Reaching {
     fn cloud(&self, at: &CloudAt) -> Option<Shared> {
-        let keyed = self.keyed().filter(|one| one.locked.at == *at);
+        let keyed = self.keyed().filter(|one| one.locked.at.same_account(at));
         let sealed = keyed.as_ref().map(|one| one.locked.clone());
         let mut built = self.built.lock().ok()?;
         if let Some(was) = built.as_ref()

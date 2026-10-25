@@ -1,5 +1,5 @@
 use super::*;
-use crate::fakes::Fake;
+use crate::fakes::{Counting, Fake};
 use tisty_share_proto::seed::Seed;
 
 fn key(byte: u8) -> CloudKey {
@@ -450,4 +450,44 @@ fn a_damaged_mark_over_another_phrase_is_never_mended_by_this_one() {
 
     assert_eq!(barred(sealed.mark_it()), Some("mark-damaged"));
     assert_eq!(sealed.marked().unwrap(), Some(Mark::Damaged));
+}
+
+#[test]
+fn torn_files_ahead_of_a_whole_one_do_not_keep_the_right_phrase_from_mending_the_mark() {
+    let sealed = over_drive();
+    put(
+        &sealed,
+        "store/dev_one/0009.jsonl",
+        b"{\"op\":\"a longer line\"}\n",
+    );
+    for torn in ["0001", "0002", "0003", "0004"] {
+        put(
+            &sealed.inner,
+            &format!("{INSIDE}/store/dev_one/{torn}.jsonl"),
+            b"\xffTCS torn",
+        );
+    }
+    damaged(&sealed);
+
+    sealed.mark_it().unwrap();
+
+    assert_eq!(sealed.marked().unwrap(), Some(Mark::Holds));
+}
+
+#[test]
+fn a_damaged_mark_this_phrase_could_not_prove_is_not_tried_again_until_it_changes() {
+    let theirs = Sealed::new(Fake::drive(), key(8), "store_one");
+    put(&theirs, "store/dev_one/0001.jsonl", b"{}\n");
+    let sealed = Sealed::new(theirs.inner, key(7), "store_one");
+    damaged(&sealed);
+    assert_eq!(barred(sealed.mark_it()), Some("mark-damaged"));
+    let before = sealed.inner.counts().fetches;
+
+    assert_eq!(barred(sealed.mark_it()), Some("mark-damaged"));
+
+    assert_eq!(
+        sealed.inner.counts().fetches - before,
+        1,
+        "the proof was tried again"
+    );
 }

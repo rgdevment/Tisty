@@ -31,6 +31,7 @@ pub struct Sealed<R> {
     key: CloudKey,
     cloud: String,
     root: String,
+    unproven: std::sync::Mutex<Option<String>>,
 }
 
 fn broke(e: impl ToString) -> Hitch {
@@ -39,7 +40,8 @@ fn broke(e: impl ToString) -> Hitch {
 
 const MARK: &str = "sealed.mark";
 const MARK_AT_MOST: u64 = 512;
-const TRIES: usize = 3;
+const TRIES: usize = 12;
+const PROOF_BYTES: u64 = 4 * 1024 * 1024;
 
 fn named_back(hitch: Hitch, inner: &str, name: &str) -> Hitch {
     match hitch {
@@ -78,6 +80,7 @@ impl<R: Remote> Sealed<R> {
             key,
             root: format!("{INSIDE}:{cloud}"),
             cloud,
+            unproven: std::sync::Mutex::new(None),
         }
     }
 
@@ -140,7 +143,14 @@ impl<R: Remote> Sealed<R> {
 
     // A damaged mark says nothing about the phrase, so it is written again only once this key opens what is up there.
     fn mended(&self, revision: String) -> Result<(), Hitch> {
+        let unproven = || self.unproven.lock().ok();
+        if unproven().is_some_and(|held| held.as_deref() == Some(revision.as_str())) {
+            return Err(self.damaged());
+        }
         if !self.proven()? {
+            if let Some(mut held) = unproven() {
+                *held = Some(revision);
+            }
             return Err(self.damaged());
         }
         match self.written(Expect::Revision(revision)) {
@@ -164,9 +174,16 @@ impl<R: Remote> Sealed<R> {
             return Ok(true);
         }
         held.sort_by_key(|one| one.bytes);
+        let mut spent = 0;
         for one in held.iter().take(TRIES) {
-            if self.opens(&one.name)? {
-                return Ok(true);
+            if spent > PROOF_BYTES {
+                break;
+            }
+            spent += one.bytes;
+            match self.opens(&one.name) {
+                Ok(true) => return Ok(true),
+                Ok(false) | Err(Hitch::Missing(_)) => {}
+                Err(other) => return Err(other),
             }
         }
         Ok(false)
@@ -232,10 +249,7 @@ impl<R: Remote> Sealed<R> {
     }
 
     fn bound(&self, name: &str) -> String {
-        match self.folds() {
-            true => crate::remote::folded(name),
-            false => name.to_string(),
-        }
+        crate::remote::keyed(self.folds(), name)
     }
 
     fn shown(&self, name: &str) -> Option<String> {

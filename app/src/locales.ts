@@ -1238,7 +1238,7 @@ const en = {
   syncUnshaped:
     "Nothing was synced, in either direction. The shared folder no longer says what shape it is in, or says it in a way that cannot be read — which is what a round that did not finish looks like. If a cloud client is still bringing the folder down, wait for it; otherwise sync from the computer that last wrote there.",
   cloudSealed:
-    "Nothing was synced, in either direction. Your cloud is encrypted with your 24-word phrase, and this computer cannot open it yet. Update Tisty on this computer to enter your phrase there. What you write here stays here meanwhile.",
+    "Nothing was synced, in either direction. Your cloud is encrypted with your 24-word phrase, and this computer does not hold it, so it cannot open it. What you write here stays here meanwhile.",
   cloudOtherPhrase:
     "Nothing was synced, in either direction. Your cloud is encrypted with a different 24-word phrase from the one on this computer, so Tisty does not touch it. Check that this computer uses the phrase you chose for this cloud.",
   cloudMarkDamaged:
@@ -1522,8 +1522,8 @@ const en = {
   stateEmptiedDo: "Send it all again",
   stateSealed: "Your cloud is encrypted",
   stateSealedWhy:
-    "This computer cannot open it yet. Update Tisty on this computer to enter your phrase there; meanwhile what you write stays here.",
-  stateSealing: "Another computer is encrypting your cloud",
+    "This computer does not hold your phrase, so it cannot open it. Meanwhile, what you write stays here.",
+  stateSealing: "Another computer is encrypting or decrypting your cloud",
   stateSealingWhy: "Syncing goes on by itself once it is done.",
   stateOtherPhrase: "Your cloud uses another phrase",
   stateOtherPhraseWhy:
@@ -3609,7 +3609,7 @@ const es: Catalog = {
   syncUnshaped:
     "No se sincronizó nada, en ningún sentido. La carpeta compartida ya no dice en qué forma está, o lo dice de una manera que no se puede leer, que es lo que se ve cuando una ronda no llegó al final. Si un cliente de nube todavía la está bajando, espera; si no, sincroniza desde el equipo que escribió ahí por última vez.",
   cloudSealed:
-    "No se sincronizó nada, en ningún sentido. Tu nube está cifrada con tu frase de 24 palabras y este equipo todavía no puede abrirla. Actualiza Tisty en este equipo para escribir ahí tu frase. Mientras tanto, lo que escribas aquí se queda aquí.",
+    "No se sincronizó nada, en ningún sentido. Tu nube está cifrada con tu frase de 24 palabras y este equipo no la tiene, así que no puede abrirla. Mientras tanto, lo que escribas aquí se queda aquí.",
   cloudOtherPhrase:
     "No se sincronizó nada, en ningún sentido. Tu nube está cifrada con una frase de 24 palabras distinta de la que tiene este equipo, así que Tisty no la toca. Revisa que este equipo use la frase que elegiste para esta nube.",
   cloudMarkDamaged:
@@ -3893,8 +3893,8 @@ const es: Catalog = {
   stateEmptiedDo: "Subirlo todo de nuevo",
   stateSealed: "Tu nube está cifrada",
   stateSealedWhy:
-    "Este equipo todavía no puede abrirla. Actualiza Tisty en este equipo para escribir ahí tu frase; mientras tanto, lo que escribas queda aquí.",
-  stateSealing: "Otro equipo está cifrando tu nube",
+    "Este equipo no tiene tu frase, así que no puede abrirla. Mientras tanto, lo que escribas queda aquí.",
+  stateSealing: "Otro equipo está cifrando o descifrando tu nube",
   stateSealingWhy: "La sincronización sigue sola cuando termine.",
   stateOtherPhrase: "Tu nube usa otra frase",
   stateOtherPhraseWhy:

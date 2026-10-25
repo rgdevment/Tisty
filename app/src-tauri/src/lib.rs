@@ -458,7 +458,7 @@ fn told_in_the_log(code: &'static str, provider: Option<String>, why: Option<Str
     facts.extend(provider.map(|one| ("provider", Fact::Id(one))));
     facts.extend(why.map(|one| ("why", Fact::Why(one))));
     match code {
-        "cloudNotNow" | "movedUnderfoot" => {
+        "cloudNotNow" | "movedUnderfoot" | "cloudSealing" => {
             witness::standing(channel::SYNC, "a sync could not be finished", &facts)
         }
         _ => witness::warn(channel::SYNC, "a sync could not be finished", &facts),

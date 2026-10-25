@@ -200,3 +200,37 @@ fn a_webdav_cloud_is_built_from_its_account_and_one_that_is_no_address_is_not() 
     assert!(cloud_of(home.path(), &dav, Some(&keyed)).is_ok());
     assert!(cloud_of(home.path(), &broken, None).is_err());
 }
+
+#[test]
+fn a_new_address_on_the_account_keeps_the_key_its_sealed_cloud_was_built_with() {
+    let kept = tempfile::tempdir().unwrap();
+    let paths = tisty_core::Paths::new(kept.path().join("data"), kept.path().join("config"));
+    let reaching = Reaching::of(&paths);
+    let dav = CloudAt {
+        provider: WEBDAV.into(),
+        account: "https://mario@cloud.example.com/dav/Tisty/".into(),
+        email: "mario@cloud.example.com".into(),
+    };
+    reaching.seal_with(Some(Keyed {
+        locked: Locked {
+            at: dav.clone(),
+            cloud: "store_one".into(),
+            named: "key_a".into(),
+        },
+        key: tisty_share_proto::cloud::CloudKey::of(&tisty_share_proto::seed::Seed::from_bytes(
+            &[7; 32],
+        )),
+    }));
+    let moved = CloudAt {
+        email: "otro@cloud.example.com".into(),
+        ..dav
+    };
+
+    assert!(reaching.cloud(&moved).is_some());
+
+    let built = reaching.built.lock().unwrap();
+    assert!(
+        built.as_ref().unwrap().sealed.is_some(),
+        "built plain over a sealed cloud"
+    );
+}

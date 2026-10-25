@@ -130,6 +130,13 @@ pub(crate) fn folded(name: &str) -> String {
     name.to_lowercase()
 }
 
+pub(crate) fn keyed(folds: bool, name: &str) -> String {
+    match folds {
+        true => folded(name),
+        false => name.to_string(),
+    }
+}
+
 pub(crate) fn same_name(folds: bool, one: &str, other: &str) -> bool {
     match folds {
         true => folded(one) == folded(other),
