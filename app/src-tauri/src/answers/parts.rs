@@ -171,14 +171,14 @@ pub(crate) fn task_id(raw: &str) -> Result<TaskId, Refusal> {
     raw.parse().map_err(|_| Refusal::of("notATaskId"))
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn task_of(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Task> {
     let id = task_id(&id)?;
     let session = held(&session);
     answered(&session, id)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn parts_of(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Vec<Task>> {
     let id = task_id(&id)?;
     let session = held(&session);
@@ -219,7 +219,7 @@ pub fn hang(
     answered(&session, id)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn wholes_offered(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,

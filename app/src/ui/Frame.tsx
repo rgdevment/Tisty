@@ -1,10 +1,11 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { fitted, type Reaching, type Worn, wired, worn } from "./dressing";
-import { dressed } from "./paging";
+import { dressed, shell } from "./paging";
 import { type Sheet, sheeting } from "./sheeting";
 
 type Props = {
   readonly html: string;
+  readonly turn: number;
   readonly label: string;
   readonly stranger: boolean;
   readonly tall: boolean;
@@ -16,6 +17,13 @@ type Props = {
   readonly sheet?: Sheet;
   readonly reach: () => Reaching;
   readonly onReady: (frame: HTMLIFrameElement) => void;
+};
+
+// The words change in place, and what the last ones left on the sheet itself goes with them.
+const freshen = (sheet: Element, html: string) => {
+  for (const name of sheet.getAttributeNames()) if (name !== "class") sheet.removeAttribute(name);
+  sheet.className = "page";
+  sheet.innerHTML = html;
 };
 
 const grows = (held: HTMLIFrameElement, page: Document): (() => void) => {
@@ -36,6 +44,7 @@ const grows = (held: HTMLIFrameElement, page: Document): (() => void) => {
 export default function Frame(props: Readonly<Props>) {
   const {
     html,
+    turn,
     label,
     stranger,
     tall,
@@ -52,6 +61,8 @@ export default function Frame(props: Readonly<Props>) {
   said.current = props;
   const laid = useRef(() => {});
 
+  const swap = useRef((_: string) => {});
+
   useEffect(() => {
     const held = frame.current;
     if (!held) return;
@@ -59,25 +70,57 @@ export default function Frame(props: Readonly<Props>) {
     let stopGrowing = () => {};
     let stopSheeting = () => {};
     let live = true;
-    const alive = () => live;
+    let drawing = 0;
+    const first = said.current.html;
+    const undressed = () => {
+      for (const one of dressedUp.lent) one.drop();
+      for (const one of dressedUp.kept) one();
+      dressedUp = { lent: [], kept: [] };
+    };
+    const dress = (page: Document) => {
+      drawing += 1;
+      const mine = drawing;
+      dressedUp = worn(page, stranger, () => live && drawing === mine, said.current.reach());
+    };
     const retheme = () => {
       if (held.contentDocument) dressed(held.contentDocument);
     };
+    // A frame moved in the page loads its first words again, so whatever is newer is put back.
     const loaded = () => {
       const page = held.contentDocument;
-      if (!page?.querySelector(".page")) return;
-      wired(page, said.current.reach);
-      page.querySelector(".page")?.removeAttribute("inert");
+      const sheet = page?.querySelector(".page");
+      // A document already wired keeps its listeners, and wiring it twice would answer every click twice.
+      if (!page || !sheet || page.documentElement.hasAttribute("data-wired")) return;
+      page.documentElement.setAttribute("data-wired", "");
+      undressed();
+      stopGrowing();
+      stopSheeting();
+      if (said.current.html !== first) freshen(sheet, said.current.html);
+      wired(page, () => said.current.reach());
+      sheet.removeAttribute("inert");
       page.documentElement.classList.toggle("tall", tall);
       page.documentElement.classList.toggle("untitled", untitled);
       page.documentElement.classList.toggle("shaping", shaped.current);
       dressed(page);
       fitted(page, said.current.wide, said.current.zoom);
-      dressedUp = worn(page, stranger, alive, said.current.reach());
+      dress(page);
       if (tall) stopGrowing = grows(held, page);
       const sheets = sheeting(page, () => said.current.sheet);
       stopSheeting = sheets.stop;
       laid.current = sheets.lay;
+      said.current.onReady(held);
+    };
+    swap.current = (next) => {
+      const page = held.contentDocument;
+      const sheet = page?.querySelector(".page");
+      if (!page?.documentElement.hasAttribute("data-wired") || !sheet) return;
+      undressed();
+      // The document is built once, so the language and look it was built with are brought up to date.
+      page.documentElement.lang = document.documentElement.lang;
+      dressed(page);
+      freshen(sheet, next);
+      dress(page);
+      laid.current();
       said.current.onReady(held);
     };
     const watching = new MutationObserver(retheme);
@@ -86,18 +129,21 @@ export default function Frame(props: Readonly<Props>) {
       attributeFilter: ["data-theme"],
     });
     held.addEventListener("load", loaded);
-    held.srcdoc = html;
+    held.srcdoc = shell(first);
     return () => {
       live = false;
+      swap.current = () => {};
       stopGrowing();
       stopSheeting();
       laid.current = () => {};
       watching.disconnect();
       held.removeEventListener("load", loaded);
-      for (const one of dressedUp.lent) one.drop();
-      for (const one of dressedUp.kept) one();
+      undressed();
     };
-  }, [html, stranger, tall, untitled]);
+  }, [stranger, tall, untitled]);
+
+  // Every drawing is dressed anew before it is painted, even one drawn the same: what it leans on may have changed.
+  useLayoutEffect(() => swap.current(html), [html, turn]);
 
   useEffect(() => {
     frame.current?.contentDocument?.documentElement.classList.toggle("shaping", shaping);

@@ -138,29 +138,88 @@ describe("a drawn page in the viewer", () => {
     await waitFor(() => expect(frame.srcdoc).toContain("<pre>&lt;b&gt;raw&lt;/b&gt;</pre>"));
   });
 
-  it("draws the new words unseen, and shows them only once they are ready", async () => {
+  it("changes the words in the same page once they are drawn, keeping the old ones till then", async () => {
     const { frame, view } = await drawn();
-    await loaded(frame);
+    const page = await loaded(frame);
+    const before = frame.srcdoc;
     ipc.drawn = '<p data-at="0-5">Nuevo</p>';
     view.rerender(<Page body="Nuevo" label="Notas" stranger={false} onDoc={() => {}} />);
-    const next = await waitFor(() => {
-      const found = Array.from(view.container.querySelectorAll("iframe")).find((one) =>
-        one.srcdoc.includes("Nuevo"),
-      );
-      expect(found).toBeTruthy();
-      return found as HTMLIFrameElement;
-    });
-    expect(next.classList.contains("invisible")).toBe(true);
+    expect(page.querySelector(".page")?.textContent).toContain("Árbol");
+    await waitFor(() => expect(page.querySelector(".page")?.textContent).toContain("Nuevo"));
+    expect(Array.from(view.container.querySelectorAll("iframe"))).toEqual([frame]);
+    expect(frame.srcdoc).toBe(before);
     expect(frame.classList.contains("invisible")).toBe(false);
-    await loaded(next);
-    await waitFor(() => expect(view.container.querySelectorAll("iframe")).toHaveLength(1));
-    expect(next.classList.contains("invisible")).toBe(false);
   });
 
-  it("opens no block on a page whose newer drawing is still on its way", async () => {
+  it("opens no block on words a newer drawing has replaced, and opens the new ones by their own bytes", async () => {
     const blocks: [number, number][] = [];
     const { frame, view } = await drawn({ onBlock: (at) => blocks.push(at) });
     const page = await loaded(frame);
+    const old = page.querySelector('p[data-at="11-19"]');
+    ipc.drawn = '<p data-at="0-5">Nuevo</p>';
+    view.rerender(
+      <Page
+        body="Nuevo"
+        label="Notas"
+        stranger={false}
+        onDoc={() => {}}
+        onBlock={(at) => blocks.push(at)}
+      />,
+    );
+    await waitFor(() => expect(page.querySelector('p[data-at="0-5"]')).not.toBeNull());
+    old?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(blocks).toEqual([]);
+    page
+      .querySelector('p[data-at="0-5"]')
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    expect(blocks).toEqual([[0, 5]]);
+  });
+
+  it("lets go of the widgets and pictures of the words it replaces", async () => {
+    const { frame, view } = await drawn();
+    await loaded(frame);
+    const [dropped, released] = [ipc.dropped, ipc.released];
+    ipc.drawn = '<p data-at="0-5">Nuevo</p>';
+    view.rerender(<Page body="Nuevo" label="Notas" stranger={false} onDoc={() => {}} />);
+    await waitFor(() => expect(ipc.dropped).toBe(dropped + 1));
+    expect(ipc.released).toBe(released + 1);
+  });
+
+  it("dresses a drawing again and says it is shown, even when its words come back the same", async () => {
+    const { frame, view, heard } = await drawn({ again: "a" });
+    await loaded(frame);
+    const [shown, dropped] = [heard.shown.length, ipc.dropped];
+    view.rerender(
+      <Page
+        body={BODY}
+        label="Notas"
+        stranger={false}
+        onDoc={() => {}}
+        onShown={(at) => heard.shown.push(at)}
+        again="b"
+      />,
+    );
+    await waitFor(() => expect(heard.shown.length).toBe(shown + 1));
+    expect(ipc.dropped).toBe(dropped + 1);
+  });
+
+  it("leaves nothing the last words set on the sheet itself", async () => {
+    const { frame, view } = await drawn();
+    const page = await loaded(frame);
+    const sheet = page.querySelector(".page") as HTMLElement;
+    sheet.dataset.empty = "Vacía";
+    sheet.classList.add("whole");
+    ipc.drawn = '<p data-at="0-5">Nuevo</p>';
+    view.rerender(<Page body="Nuevo" label="Notas" stranger={false} onDoc={() => {}} />);
+    await waitFor(() => expect(sheet.textContent).toContain("Nuevo"));
+    expect(sheet.hasAttribute("data-empty")).toBe(false);
+    expect(sheet.className).toBe("page");
+  });
+
+  it("puts the latest words back when the frame loads its first ones again", async () => {
+    const blocks: [number, number][] = [];
+    const { frame, view } = await drawn({ onBlock: (at) => blocks.push(at) });
+    await loaded(frame);
     ipc.drawn = '<p data-at="0-5">Nuevo</p>';
     view.rerender(
       <Page
@@ -172,15 +231,24 @@ describe("a drawn page in the viewer", () => {
       />,
     );
     await waitFor(() =>
-      expect(
-        Array.from(view.container.querySelectorAll("iframe")).some((one) =>
-          one.srcdoc.includes("Nuevo"),
-        ),
-      ).toBe(true),
+      expect(frame.contentDocument?.querySelector(".page")?.textContent).toContain("Nuevo"),
     );
-    page
-      .querySelector('p[data-at="11-19"]')
+    const again = await loaded(frame);
+    expect(again.querySelector(".page")?.textContent).toBe("Nuevo");
+    again
+      .querySelector('p[data-at="0-5"]')
       ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    expect(blocks).toEqual([]);
+    expect(blocks).toContainEqual([0, 5]);
+  });
+
+  it("takes the window's language when its words change, though the document was built before", async () => {
+    const { frame, view } = await drawn();
+    const page = await loaded(frame);
+    const was = document.documentElement.lang;
+    document.documentElement.lang = "en";
+    ipc.drawn = '<p data-at="0-5">Nuevo</p>';
+    view.rerender(<Page body="Nuevo" label="Notas" stranger={false} onDoc={() => {}} />);
+    await waitFor(() => expect(page.documentElement.lang).toBe("en"));
+    document.documentElement.lang = was;
   });
 });

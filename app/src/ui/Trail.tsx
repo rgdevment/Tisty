@@ -21,7 +21,7 @@ interface Props {
 }
 
 export default function Trail({ task, moved, lists, onError, heading, before, summed }: Props) {
-  const told = useAsked(() => taskStory(task), [task, moved], onError);
+  const told = useAsked(() => taskStory(task), [task, moved], onError, true);
 
   if (!told) return null;
   if (!told.pages.length) {

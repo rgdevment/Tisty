@@ -11,7 +11,7 @@ use crate::{
     today, weighed, wiring, zone,
 };
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn task_left(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Vec<Left>> {
     let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
     let mut session = held(&session);
@@ -25,9 +25,7 @@ pub fn task_left(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answe
     let frees = session
         .carrier()
         .is_some_and(|carrier| carrier.frees_space());
-    let on_disk = tisty_core::docs::all(&session.paths.docs());
-    let named: std::collections::BTreeMap<&str, &tisty_core::docs::Doc> =
-        on_disk.iter().map(|one| (one.id.as_str(), one)).collect();
+    let docs = session.paths.docs();
 
     let left = task
         .references()
@@ -42,12 +40,13 @@ pub fn task_left(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answe
                         .and_then(|id| session.state.docs.get(&id))
                         .or_else(|| session.state.docs.values().find(|doc| doc.file == raw))
                 });
-                let on_paper = held.and_then(|doc| named.get(doc.file.as_str()));
+                let on_paper = held.and_then(|doc| tisty_core::docs::title_of(&docs, &doc.file));
                 Left {
                     kind: "doc",
                     label: on_paper
-                        .map(|doc| doc.title.clone())
+                        .as_ref()
                         .filter(|title| !title.is_empty())
+                        .cloned()
                         .or_else(|| one.label.clone()),
                     away: held.is_some_and(|doc| session.state.held_away(doc)),
                     gone: held.is_none() || on_paper.is_none(),
@@ -97,19 +96,35 @@ pub fn task_left(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answe
     Ok(left)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn task_story(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
 ) -> Answer<tisty_core::story::Story> {
     let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
-    let mut session = held(&session);
-    session.reload()?;
-    let told = tisty_core::story::story(&session.log()?, id);
-    Ok(told)
+    let (log, ()) = unheld_log(&session, |_| ())?;
+    Ok(tisty_core::story::story(&log, id))
 }
 
-#[tauri::command]
+// The whole log takes tens of milliseconds to read, and the page being opened waits on the lock meanwhile.
+fn unheld_log<T>(
+    session: &Mutex<Session>,
+    take: impl FnOnce(&Session) -> T,
+) -> Answer<(Vec<tisty_core::Event>, T)> {
+    let (store, taken) = {
+        let mut session = held(session);
+        session.reload()?;
+        (session.paths.store(), take(&session))
+    };
+    // A segment this window closes mid-read fails the read, so the second one waits for its writes to end.
+    let log = match tisty_core::store::read_all(&store) {
+        Ok(log) => log,
+        Err(_) => held(session).log()?,
+    };
+    Ok((log, taken))
+}
+
+#[tauri::command(async)]
 pub fn task_series(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
@@ -824,16 +839,12 @@ impl Edits {
     }
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn task_step_dates(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
 ) -> Answer<Vec<tisty_core::dated::Dated>> {
     let id = super::parts::task_id(&id)?;
-    let mut session = held(&session);
-    session.reload()?;
-    let Some(task) = session.state.tasks.get(&id).cloned() else {
-        return Ok(Vec::new());
-    };
-    Ok(tisty_core::dated::dated(&session.log()?, &task))
+    let (log, task) = unheld_log(&session, |session| session.state.tasks.get(&id).cloned())?;
+    Ok(task.map_or_else(Vec::new, |task| tisty_core::dated::dated(&log, &task)))
 }

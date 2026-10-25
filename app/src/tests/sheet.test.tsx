@@ -125,7 +125,10 @@ const loaded = async (frame: HTMLIFrameElement) => {
 const shown = async (container: HTMLElement, said?: string) =>
   waitFor(() => {
     const found = Array.from(container.querySelectorAll("iframe")).find(
-      (one) => !said || one.srcdoc.includes(said),
+      (one) =>
+        !said ||
+        one.srcdoc.includes(said) ||
+        (one.contentDocument?.querySelector(".page")?.innerHTML.includes(said) ?? false),
     );
     expect(found).toBeTruthy();
     return found as HTMLIFrameElement;
@@ -642,21 +645,18 @@ describe("the sheet in the main window", () => {
     );
   });
 
-  it("keeps the last document's page in view until the next one is drawn", async () => {
+  it("keeps the last document's page in view until the next one is drawn in its place", async () => {
     const view = render(<Sheet file="a3f1-0001" value={BODY} label="Compras" onWrite={() => {}} />);
-    const first = await shown(view.container);
-    await loaded(first);
+    const frame = await shown(view.container);
+    const page = await loaded(frame);
     const room = view.container.querySelector<HTMLElement>(".scroller") as HTMLElement;
     room.scrollTop = 500;
     ipc.drawn = '<p data-at="0-6">Otra</p>';
     view.rerender(<Sheet file="a3f1-0002" value="Otra.\n" label="Otra" onWrite={() => {}} />);
-    const next = await shown(view.container, "Otra");
-    expect(next.classList.contains("invisible")).toBe(true);
-    expect(first.classList.contains("invisible")).toBe(false);
-    expect(view.container.contains(first)).toBe(true);
-    await loaded(next);
-    await waitFor(() => expect(view.container.querySelectorAll("iframe")).toHaveLength(1));
-    expect(next.classList.contains("invisible")).toBe(false);
+    expect(page.querySelector(".page")?.textContent).toContain("Compras");
+    await waitFor(() => expect(page.querySelector(".page")?.textContent).toContain("Otra"));
+    expect(Array.from(view.container.querySelectorAll("iframe"))).toEqual([frame]);
+    expect(frame.classList.contains("invisible")).toBe(false);
     expect(room.scrollTop).toBe(0);
   });
 
