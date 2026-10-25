@@ -444,6 +444,9 @@ fn refused_for(trouble: tisty_carrier::Trouble) -> Refusal {
         },
         tisty_carrier::Trouble::NotNow(_) => Refusal::of("cloudNotNow"),
         tisty_carrier::Trouble::Moved(_) => Refusal::of("movedUnderfoot"),
+        tisty_carrier::Trouble::Sealed(_) => Refusal::of("cloudSealed"),
+        tisty_carrier::Trouble::Sealing(_) => Refusal::of("cloudSealing"),
+        tisty_carrier::Trouble::Unsealed(_) => Refusal::of("cloudUnsealed"),
     }
 }
 

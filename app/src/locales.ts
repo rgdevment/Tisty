@@ -1237,6 +1237,12 @@ const en = {
     "Nothing was synced, in either direction. The shared folder is arranged in a way this Tisty does not know, so a newer one has been there. Update this computer and try once more — writing into it now could undo what it left.",
   syncUnshaped:
     "Nothing was synced, in either direction. The shared folder no longer says what shape it is in, or says it in a way that cannot be read — which is what a round that did not finish looks like. If a cloud client is still bringing the folder down, wait for it; otherwise sync from the computer that last wrote there.",
+  cloudSealed:
+    "Nothing was synced, in either direction. Your cloud is encrypted with your 24-word phrase, and this computer cannot open it yet. Enter the phrase here, or approve this computer from another one, to keep syncing. What you write here stays here meanwhile.",
+  cloudSealing:
+    "Nothing was synced just now: another of your computers is encrypting or decrypting your cloud. Syncing goes on by itself once it is done. What you write here stays here meanwhile.",
+  cloudUnsealed:
+    "Nothing was synced, in either direction. Your cloud no longer says it is encrypted, and none of your computers said it turned encryption off, so Tisty does not write there unencrypted. Check that nobody else changed your cloud account.",
   syncNeeds:
     "Nothing was synced, in either direction. Another of your computers uses Tisty {name}: update this one to keep syncing. What you write here stays here meanwhile.",
   syncNewer:
@@ -3544,6 +3550,12 @@ const es: Catalog = {
     "No se sincronizó nada, en ningún sentido. La carpeta compartida está dispuesta de una forma que este Tisty no conoce, así que ha pasado por ahí uno más nuevo. Actualiza este equipo y vuelve a intentarlo: escribir ahí ahora podría deshacer lo que dejó.",
   syncUnshaped:
     "No se sincronizó nada, en ningún sentido. La carpeta compartida ya no dice en qué forma está, o lo dice de una manera que no se puede leer, que es lo que se ve cuando una ronda no llegó al final. Si un cliente de nube todavía la está bajando, espera; si no, sincroniza desde el equipo que escribió ahí por última vez.",
+  cloudSealed:
+    "No se sincronizó nada, en ningún sentido. Tu nube está cifrada con tu frase de 24 palabras y este equipo todavía no puede abrirla. Escribe la frase aquí, o autoriza este equipo desde otro, para seguir sincronizando. Mientras tanto, lo que escribas aquí se queda aquí.",
+  cloudSealing:
+    "No se sincronizó nada por ahora: otro de tus equipos está cifrando o descifrando tu nube. La sincronización sigue sola cuando termine. Mientras tanto, lo que escribas aquí se queda aquí.",
+  cloudUnsealed:
+    "No se sincronizó nada, en ningún sentido. Tu nube ya no dice que está cifrada y ninguno de tus equipos dijo que apagó el cifrado, así que Tisty no escribe ahí sin cifrar. Revisa que nadie más haya cambiado tu cuenta de la nube.",
   syncNeeds:
     "No se sincronizó nada, en ningún sentido. Otro de tus equipos usa Tisty {name}: actualiza este para seguir sincronizando. Mientras tanto, lo que escribas aquí se queda aquí.",
   syncNewer:

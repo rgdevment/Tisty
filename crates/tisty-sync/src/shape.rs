@@ -8,6 +8,8 @@ pub const NAMED: &str = "tisty.toml";
 const SEEN: &str = ".shape-seen";
 const KEPT_FOR: usize = 8;
 const RAISED: &str = ".shape-raised";
+const SEALED: &str = "sealed";
+const SEALING: &str = "sealing";
 const HEADING: &str =
     "# What this folder is, and the shape it is in. Tisty reads this before anything else here.";
 
@@ -153,6 +155,60 @@ pub fn refuses(dest: &Path) -> Result<(), Trouble> {
 
 pub fn spoiled(dest: &Path) -> bool {
     matches!(verdict(dest, &told(dest)), Err(Trouble::Unshaped(_)))
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Sealing {
+    Unsaid,
+    Plain,
+    Copying,
+    Closed,
+    Sealed(String),
+}
+
+pub fn sealing_of(dest: &Path) -> Sealing {
+    let Some(said) = std::fs::read_to_string(dest.join(NAMED))
+        .ok()
+        .and_then(|text| text.parse::<toml_edit::DocumentMut>().ok())
+    else {
+        return Sealing::Unsaid;
+    };
+    let word = |key: &str| {
+        said.get(key)
+            .and_then(toml_edit::Item::as_str)
+            .map(str::to_string)
+    };
+    match (word(SEALING), word(SEALED)) {
+        (Some(phase), _) if phase.starts_with("closed:") => Sealing::Closed,
+        (Some(_), _) => Sealing::Copying,
+        (None, Some(cloud)) => Sealing::Sealed(cloud),
+        (None, None) => Sealing::Plain,
+    }
+}
+
+/// `reading` is the cloud a sealed reader opens, or none for a plain one.
+pub fn sealed_against(dest: &Path, reading: Option<&str>) -> Option<Trouble> {
+    let at = || dest.display().to_string();
+    match (sealing_of(dest), reading) {
+        (Sealing::Closed, _) => Some(Trouble::Sealing(at())),
+        (Sealing::Unsaid | Sealing::Copying, _) | (Sealing::Plain, None) => None,
+        (Sealing::Sealed(cloud), Some(ours)) if cloud == ours => None,
+        (Sealing::Sealed(_), _) => Some(Trouble::Sealed(at())),
+        (Sealing::Plain, Some(_)) => Some(Trouble::Unsealed(at())),
+    }
+}
+
+/// A word written afresh for a sealed place says so, or a plain reader would take the place for empty.
+pub fn seal_word(dest: &Path, cloud: &str) -> bool {
+    let mut said = std::fs::read_to_string(dest.join(NAMED))
+        .ok()
+        .and_then(|text| text.parse::<toml_edit::DocumentMut>().ok())
+        .unwrap_or_default();
+    if said.contains_key(SEALED) || said.contains_key(SEALING) {
+        return false;
+    }
+    said[SEALED] = toml_edit::value(cloud);
+    tisty_core::store::write_atomic(&dest.join(NAMED), said.to_string().as_bytes()).is_ok()
 }
 
 pub fn later(dest: &Path) -> Option<Trouble> {

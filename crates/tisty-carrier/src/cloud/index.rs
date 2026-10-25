@@ -44,14 +44,19 @@ fn laid_out_now<S: serde::Serializer>(_: &u32, to: S) -> Result<S::Ok, S::Error>
 }
 
 /// Only an index that was written and read is judged: none at all is a first round anyway.
-pub fn stale(home: &Path, root: &str) -> Option<&'static str> {
+pub enum Stale {
+    Layout,
+    Root,
+}
+
+pub fn stale(home: &Path, root: &str) -> Option<Stale> {
     let index = std::fs::read(home.join(FILE))
         .ok()
         .and_then(|bytes| serde_json::from_slice::<Index>(&bytes).ok())?;
     if index.layout < LAYOUT {
-        return Some("the cloud's index was of an older layout, so the mirror starts over");
+        return Some(Stale::Layout);
     }
-    (index.root != root).then_some("the cloud is read from another root, so the mirror starts over")
+    (index.root != root).then_some(Stale::Root)
 }
 
 pub fn forget(home: &Path) -> std::io::Result<()> {
@@ -79,8 +84,17 @@ impl Index {
         self.cursor.is_some()
     }
 
-    pub fn shelved(&mut self, name: &str, seen: Seen) {
+    // A sealed listing cannot say the hash in the clear that this machine's own upload of the same revision did.
+    pub fn shelved(&mut self, name: &str, mut seen: Seen) {
         self.vanished.remove(name);
+        if seen.hash.is_empty()
+            && let Some(was) = self
+                .shelf
+                .get(name)
+                .filter(|was| was.revision == seen.revision)
+        {
+            seen.hash.clone_from(&was.hash);
+        }
         self.shelf.insert(name.to_string(), seen);
     }
 

@@ -7,6 +7,14 @@ use tisty_sync::{MARKER, NAMED, STORE};
 use crate::{Changes, Expect, Hitch, Limits, Remote, Seen, Watch};
 
 pub(crate) const INSIDE: &str = "sealed";
+
+pub(crate) fn reading(root: &str) -> Option<&str> {
+    root.strip_prefix(INSIDE)?.strip_prefix(':')
+}
+
+pub(crate) fn stays_plain(name: &str) -> bool {
+    name == NAMED || name == tisty_core::moved::NAMED || name == format!("{STORE}/{MARKER}")
+}
 const HEADER: u64 = 24;
 const TAG: u64 = 16;
 const BLOCK: u64 = 64 * 1024;
@@ -353,6 +361,16 @@ impl<R: Remote> Remote for Sealed<R> {
 
     fn root(&self) -> &str {
         &self.root
+    }
+
+    fn mark_up(&self) -> Result<(), Hitch> {
+        match self.marked()? {
+            None => self.mark_it(),
+            Some(Mark::Holds) => Ok(()),
+            Some(_) => Err(Hitch::Barred(tisty_sync::Trouble::Sealed(
+                self.root.clone(),
+            ))),
+        }
     }
 }
 

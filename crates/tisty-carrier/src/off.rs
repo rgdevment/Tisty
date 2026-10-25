@@ -94,6 +94,10 @@ impl<R: Remote> Remote for OffRuntime<R> {
         self.0.root()
     }
 
+    fn mark_up(&self) -> Result<(), Hitch> {
+        away(|| self.0.mark_up())
+    }
+
     fn hash_of(&self, local: &Path) -> std::io::Result<String> {
         self.0.hash_of(local)
     }

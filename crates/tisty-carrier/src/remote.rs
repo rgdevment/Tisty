@@ -247,4 +247,9 @@ pub trait Remote: Send + Sync {
     fn root(&self) -> &str {
         ""
     }
+
+    /// A sealed cloud makes sure its phrase mark is up there before anything sealed is sent.
+    fn mark_up(&self) -> Result<(), Hitch> {
+        Ok(())
+    }
 }

@@ -58,16 +58,24 @@ pub fn pull(
         told => told?,
     };
     heeded(remote, tree, index, data, &told)?;
-    let emptied = |listed_nothing: bool, gone: &BTreeSet<&str>| {
-        index.tree.contains_key(tisty_sync::NAMED)
-            && (listed_nothing || index.tree.keys().all(|name| gone.contains(name.as_str())))
-    };
-    let emptied = match &told {
-        Changes::Whole { seen, .. } => emptied(seen.is_empty(), &BTreeSet::new()),
-        Changes::Since { changed, gone, .. } => {
-            changed.is_empty() && emptied(false, &gone.iter().map(String::as_str).collect())
-        }
-    };
+    // Under a sealed root the three plain files stay up there, so only what is sealed tells an emptied store.
+    let sealed = crate::sealed::reading(remote.root()).is_some();
+    let content = |name: &str| !sealed || !crate::sealed::stays_plain(name);
+    let had: Vec<&str> = index
+        .tree
+        .keys()
+        .map(String::as_str)
+        .filter(|name| content(name))
+        .collect();
+    let emptied = index.tree.contains_key(tisty_sync::NAMED)
+        && !had.is_empty()
+        && match &told {
+            Changes::Whole { seen, .. } => !seen.iter().any(|one| content(&one.name)),
+            Changes::Since { changed, gone, .. } => {
+                !changed.iter().any(|one| content(&one.name))
+                    && had.iter().all(|name| gone.iter().any(|one| one == name))
+            }
+        };
     // Moving home reads an emptied store through, so the move learns nothing is left up there and goes on.
     if emptied && !homing {
         return Err(Hitch::Emptied);
@@ -138,12 +146,17 @@ pub fn pull(
     }
 }
 
+pub(crate) fn barred(remote: &dyn Remote, tree: &Path) -> Option<tisty_sync::Trouble> {
+    tisty_sync::later(tree)
+        .or_else(|| tisty_sync::sealed_against(tree, crate::sealed::reading(remote.root())))
+}
+
 fn still_barred(
     remote: &dyn Remote,
     tree: &Path,
     index: &Index,
 ) -> Result<Option<tisty_sync::Trouble>, Hitch> {
-    match tisty_sync::later(tree) {
+    match barred(remote, tree) {
         Some(trouble) if !word_moved(remote, index)? => Ok(Some(trouble)),
         _ => Ok(None),
     }
@@ -212,7 +225,7 @@ fn heeded(
             }
         }
     }
-    match tisty_sync::later(tree) {
+    match barred(remote, tree) {
         Some(trouble) => Err(Hitch::Barred(trouble)),
         None => Ok(()),
     }

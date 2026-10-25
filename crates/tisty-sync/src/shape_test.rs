@@ -458,3 +458,75 @@ fn a_beta_comes_before_its_release_and_build_marks_change_nothing() {
     assert!(release("1.34.9") < release("1.35.0-beta.1"));
     assert_eq!(release("1.35.0+abc"), release("1.35.0"));
 }
+
+#[test]
+fn a_place_says_whether_it_is_plain_being_sealed_closed_or_sealed() {
+    let (_room, _data, dest) = a_place();
+    let says = |word: &str| {
+        std::fs::write(
+            dest.join(NAMED),
+            format!("shape = 3\nneeds = \"1.34.0\"\n{word}"),
+        )
+        .unwrap();
+        sealing_of(&dest)
+    };
+
+    assert_eq!(says(""), Sealing::Plain);
+    assert_eq!(says("sealing = \"copying:dev_a:n1\"\n"), Sealing::Copying);
+    assert_eq!(says("sealing = \"closed:dev_a:n1\"\n"), Sealing::Closed);
+    assert_eq!(
+        says("sealed = \"store_one\"\n"),
+        Sealing::Sealed("store_one".into())
+    );
+    assert_eq!(
+        says("sealed = \"store_one\"\nsealing = \"closed:dev_a:n2\"\n"),
+        Sealing::Closed
+    );
+}
+
+#[test]
+fn a_reader_stops_where_the_place_is_sealed_another_way_and_never_writes_in_the_clear_on_its_word()
+{
+    let (_room, _data, dest) = a_place();
+    let against = |word: &str, reading: Option<&str>| {
+        std::fs::write(dest.join(NAMED), format!("shape = 3\n{word}")).unwrap();
+        sealed_against(&dest, reading).map(|trouble| trouble.code())
+    };
+
+    assert_eq!(sealed_against(&dest, Some("store_one")), None);
+    assert_eq!(against("", None), None);
+    assert_eq!(against("", Some("store_one")), Some("unsealed"));
+    assert_eq!(against("sealed = \"store_one\"\n", None), Some("sealed"));
+    assert_eq!(against("sealed = \"store_one\"\n", Some("store_one")), None);
+    assert_eq!(
+        against("sealed = \"store_one\"\n", Some("store_two")),
+        Some("sealed")
+    );
+    assert_eq!(against("sealing = \"copying:dev_a:n1\"\n", None), None);
+    assert_eq!(
+        against("sealing = \"closed:dev_a:n1\"\n", None),
+        Some("sealing")
+    );
+    assert_eq!(
+        against("sealing = \"closed:dev_a:n1\"\n", Some("store_one")),
+        Some("sealing")
+    );
+}
+
+#[test]
+fn a_word_written_for_a_sealed_place_says_so_once_and_keeps_the_rest() {
+    let (_room, _data, dest) = a_place();
+    std::fs::write(
+        dest.join(NAMED),
+        "shape = 3\nneeds = \"1.34.0\"\nkept = 1\n",
+    )
+    .unwrap();
+
+    assert!(seal_word(&dest, "store_one"));
+    assert!(!seal_word(&dest, "store_one"));
+    assert!(!seal_word(&dest, "store_two"));
+
+    let said = std::fs::read_to_string(dest.join(NAMED)).unwrap();
+    assert!(said.contains("kept = 1"), "{said}");
+    assert_eq!(sealing_of(&dest), Sealing::Sealed("store_one".into()));
+}
