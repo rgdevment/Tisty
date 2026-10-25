@@ -88,6 +88,7 @@ pub enum Trouble {
     Sealing(String),
     Unsealed(String),
     OtherPhrase(String),
+    MarkDamaged(String),
 }
 
 impl Trouble {
@@ -118,6 +119,7 @@ impl Trouble {
             Trouble::Sealing(_) => "sealing",
             Trouble::Unsealed(_) => "unsealed",
             Trouble::OtherPhrase(_) => "other-phrase",
+            Trouble::MarkDamaged(_) => "mark-damaged",
         }
     }
 }

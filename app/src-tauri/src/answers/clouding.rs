@@ -591,10 +591,6 @@ fn whose(
     }
 }
 
-fn same_account(one: &CloudAt, other: &CloudAt) -> bool {
-    one.provider == other.provider && one.account == other.account
-}
-
 // Taken only once the stored token is gone, so whatever builds the cloud anew finds nothing to renew.
 fn let_go_held(app: &tauri::AppHandle, at: &CloudAt) {
     let Some(session) = app.try_state::<Mutex<Session>>() else {
@@ -603,7 +599,7 @@ fn let_go_held(app: &tauri::AppHandle, at: &CloudAt) {
     let (tokens, home) = {
         let session = held(&session);
         let chosen = tisty_carrier::cloud_of(session.config.sync.as_ref())
-            .filter(|now| same_account(now, at))
+            .filter(|now| now.same_account(at))
             .map(|now| session.reach.home_of(now));
         let tokens = chosen.as_ref().and_then(|_| session.reach.taken());
         (tokens, chosen)

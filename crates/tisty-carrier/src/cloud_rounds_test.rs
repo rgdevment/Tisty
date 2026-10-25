@@ -518,6 +518,8 @@ fn a_cloud_read_from_another_root_starts_the_mirror_over_and_a_plain_index_says_
     let plain: serde_json::Value =
         serde_json::from_slice(&std::fs::read(home.join("index.json")).unwrap()).unwrap();
     assert!(plain.get("root").is_none(), "{plain}");
+    let carried = home.join(crate::cloud::standing::CARRIED);
+    std::fs::write(&carried, "1").unwrap();
     let stale = home.join("tree").join("stale.md");
     std::fs::write(&stale, "de la raíz vieja").unwrap();
     let key = tisty_share_proto::cloud::CloudKey::of(&tisty_share_proto::seed::Seed::from_bytes(
@@ -533,6 +535,10 @@ fn a_cloud_read_from_another_root_starts_the_mirror_over_and_a_plain_index_says_
 
     assert!(done.refused.is_none(), "{done:?}");
     assert!(!stale.exists(), "the mirror of the old root was kept");
+    assert!(
+        carried.exists(),
+        "a new root took this machine for a newcomer"
+    );
     assert!(
         space.about(&doc_name()).unwrap().is_some(),
         "the other root was taken for already in step"
@@ -598,5 +604,35 @@ fn a_sealed_cloud_whose_sealed_folder_was_deleted_whole_is_said_to_be_emptied() 
     assert!(
         matches!(stopped, Some(Trouble::CloudEmptied { .. })),
         "{stopped:?}"
+    );
+}
+
+#[test]
+fn a_round_into_a_closed_place_stops_before_it_puts_up_any_mark() {
+    let (setting, _) = each_kind(|fake| fake).remove(0);
+    let (one, space) = sealed_desk(&setting, "dev_a");
+    one.filed(DOC, "# Plan\n\nsellado\n");
+    let dir = tempfile::tempdir().unwrap();
+    let word = dir.path().join("word");
+    std::fs::write(
+        &word,
+        "shape = 3\nneeds = \"1.35.0\"\nsealing = \"closed:dev_b:abc\"\n",
+    )
+    .unwrap();
+    space
+        .inner()
+        .put(tisty_sync::NAMED, &word, crate::Expect::Any)
+        .unwrap();
+
+    let stopped = match one.carry(Way::Both, Holds::Everywhere) {
+        Ok(moved) => moved.refused,
+        Err(trouble) => Some(trouble),
+    };
+
+    assert!(matches!(stopped, Some(Trouble::Sealing(_))), "{stopped:?}");
+    assert_eq!(
+        space.marked().unwrap(),
+        None,
+        "a mark was put up in a closed place"
     );
 }

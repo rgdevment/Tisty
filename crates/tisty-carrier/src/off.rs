@@ -98,10 +98,6 @@ impl<R: Remote> Remote for OffRuntime<R> {
         away(|| self.0.mark_up())
     }
 
-    fn mark_forgotten(&self) {
-        self.0.mark_forgotten();
-    }
-
     fn hash_of(&self, local: &Path) -> std::io::Result<String> {
         self.0.hash_of(local)
     }

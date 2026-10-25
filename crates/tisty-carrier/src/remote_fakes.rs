@@ -248,10 +248,7 @@ impl Fake {
     }
 
     fn key(&self, name: &str) -> String {
-        match self.limits().folds_case {
-            true => name.to_lowercase(),
-            false => name.to_string(),
-        }
+        crate::remote::keyed(self.limits().folds_case, name)
     }
 
     fn within(&self, name: &str, under: &str) -> bool {

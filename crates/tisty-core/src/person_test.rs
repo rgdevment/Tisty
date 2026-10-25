@@ -891,9 +891,9 @@ fn the_machines_behind_a_release_are_those_never_seen_running_it_and_never_an_as
     let state = State::replay(&events);
 
     assert_eq!(
-        state.behind("1.35.0"),
+        state.not_yet_on("1.35.0"),
         vec![device("dev_b"), device("dev_c")]
     );
-    assert!(state.behind("1.34.0").contains(&device("dev_c")));
-    assert!(!state.behind("1.34.0").contains(&device("dev_b")));
+    assert!(state.not_yet_on("1.34.0").contains(&device("dev_c")));
+    assert!(!state.not_yet_on("1.34.0").contains(&device("dev_b")));
 }

@@ -126,6 +126,24 @@ pub struct Limits {
     pub costs: Costs,
 }
 
+pub(crate) fn folded(name: &str) -> String {
+    name.to_lowercase()
+}
+
+pub(crate) fn keyed(folds: bool, name: &str) -> String {
+    match folds {
+        true => folded(name),
+        false => name.to_string(),
+    }
+}
+
+pub(crate) fn same_name(folds: bool, one: &str, other: &str) -> bool {
+    match folds {
+        true => folded(one) == folded(other),
+        false => one == other,
+    }
+}
+
 impl Limits {
     pub fn requests_to_list(&self, entries: usize) -> u64 {
         entries.div_ceil(self.page.max(1)).max(1) as u64
@@ -165,7 +183,7 @@ pub fn renamed_by_copy<R: Remote + ?Sized>(remote: &R, from: &str, to: &str) -> 
             .map(|_| ())
             .ok_or_else(|| Hitch::Missing(from.to_string()));
     }
-    if remote.limits().folds_case && from.to_lowercase() == to.to_lowercase() {
+    if same_name(remote.limits().folds_case, from, to) {
         return Err(Hitch::Broke(format!(
             "{from} cannot be renamed by copy to {to} where the provider folds case"
         )));
@@ -209,11 +227,11 @@ pub trait Remote: Send + Sync {
     fn about(&self, name: &str) -> Result<Option<Seen>, Hitch> {
         named_well(name)?;
         let under = name.rsplit_once('/').map_or("", |(parent, _)| parent);
-        let same = |one: &str| match self.limits().folds_case {
-            true => one.to_lowercase() == name.to_lowercase(),
-            false => one == name,
-        };
-        Ok(self.list(under)?.into_iter().find(|one| same(&one.name)))
+        let folds = self.limits().folds_case;
+        Ok(self
+            .list(under)?
+            .into_iter()
+            .find(|one| same_name(folds, &one.name, name)))
     }
 
     fn changes(&self, _since: Option<&str>) -> Result<Changes, Hitch> {
@@ -251,6 +269,4 @@ pub trait Remote: Send + Sync {
     fn mark_up(&self) -> Result<(), Hitch> {
         Ok(())
     }
-
-    fn mark_forgotten(&self) {}
 }

@@ -1238,9 +1238,11 @@ const en = {
   syncUnshaped:
     "Nothing was synced, in either direction. The shared folder no longer says what shape it is in, or says it in a way that cannot be read — which is what a round that did not finish looks like. If a cloud client is still bringing the folder down, wait for it; otherwise sync from the computer that last wrote there.",
   cloudSealed:
-    "Nothing was synced, in either direction. Your cloud is encrypted with your 24-word phrase, and this computer cannot open it yet. Update Tisty on this computer to enter your phrase there. What you write here stays here meanwhile.",
+    "Nothing was synced, in either direction. Your cloud is encrypted with your 24-word phrase, and this computer does not hold it, so it cannot open it. What you write here stays here meanwhile.",
   cloudOtherPhrase:
     "Nothing was synced, in either direction. Your cloud is encrypted with a different 24-word phrase from the one on this computer, so Tisty does not touch it. Check that this computer uses the phrase you chose for this cloud.",
+  cloudMarkDamaged:
+    "Nothing was synced, in either direction. The mark that tells which phrase opens your encrypted cloud is damaged, and this computer could not prove its phrase opens what is up there, so Tisty does not touch it. Sync from a computer whose phrase opens your cloud, and it mends the mark. What you write here stays here meanwhile.",
   cloudSealing:
     "Nothing was synced just now: another of your computers is encrypting or decrypting your cloud. Syncing goes on by itself once it is done. What you write here stays here meanwhile.",
   cloudUnsealed:
@@ -1518,6 +1520,19 @@ const en = {
   stateEmptiedWhy:
     "They were deleted outside Tisty, perhaps with «Delete hidden app data» in {cloud} › Manage apps. Nothing here changed. Send everything again from this computer, or move to another place.",
   stateEmptiedDo: "Send it all again",
+  stateSealed: "Your cloud is encrypted",
+  stateSealedWhy:
+    "This computer does not hold your phrase, so it cannot open it. Meanwhile, what you write stays here.",
+  stateSealing: "Another computer is encrypting or decrypting your cloud",
+  stateSealingWhy: "Syncing goes on by itself once it is done.",
+  stateOtherPhrase: "Your cloud uses another phrase",
+  stateOtherPhraseWhy:
+    "This computer's phrase is not the one of this cloud. Check that it is the one you chose.",
+  stateUnsealed: "Your cloud no longer says it is encrypted",
+  stateUnsealedWhy:
+    "None of your computers turned encryption off. Check that nobody else changed your account.",
+  stateMarkDamaged: "The mark of your encrypted cloud is damaged",
+  stateMarkDamagedWhy: "Sync from a computer whose phrase opens your cloud, and it mends the mark.",
   stateEmptiedSure:
     "Everything on this computer goes up to {cloud} again. Your other computers will pick it up from there. Go ahead?",
   stateBudget: "Your cloud reached today's limit",
@@ -3594,9 +3609,11 @@ const es: Catalog = {
   syncUnshaped:
     "No se sincronizó nada, en ningún sentido. La carpeta compartida ya no dice en qué forma está, o lo dice de una manera que no se puede leer, que es lo que se ve cuando una ronda no llegó al final. Si un cliente de nube todavía la está bajando, espera; si no, sincroniza desde el equipo que escribió ahí por última vez.",
   cloudSealed:
-    "No se sincronizó nada, en ningún sentido. Tu nube está cifrada con tu frase de 24 palabras y este equipo todavía no puede abrirla. Actualiza Tisty en este equipo para escribir ahí tu frase. Mientras tanto, lo que escribas aquí se queda aquí.",
+    "No se sincronizó nada, en ningún sentido. Tu nube está cifrada con tu frase de 24 palabras y este equipo no la tiene, así que no puede abrirla. Mientras tanto, lo que escribas aquí se queda aquí.",
   cloudOtherPhrase:
     "No se sincronizó nada, en ningún sentido. Tu nube está cifrada con una frase de 24 palabras distinta de la que tiene este equipo, así que Tisty no la toca. Revisa que este equipo use la frase que elegiste para esta nube.",
+  cloudMarkDamaged:
+    "No se sincronizó nada, en ningún sentido. La marca que dice qué frase abre tu nube cifrada está dañada, y este equipo no pudo comprobar que su frase abre lo que hay arriba, así que Tisty no la toca. Sincroniza desde un equipo cuya frase abra tu nube y la marca se repara. Mientras tanto, lo que escribas aquí se queda aquí.",
   cloudSealing:
     "No se sincronizó nada por ahora: otro de tus equipos está cifrando o descifrando tu nube. La sincronización sigue sola cuando termine. Mientras tanto, lo que escribas aquí se queda aquí.",
   cloudUnsealed:
@@ -3874,6 +3891,19 @@ const es: Catalog = {
   stateEmptiedWhy:
     "Se borraron fuera de Tisty, quizás con «Eliminar datos ocultos de la app» en {cloud} › Administrar apps. Aquí no cambió nada. Vuelve a subirlo todo desde este equipo, o múdate a otro lugar.",
   stateEmptiedDo: "Subirlo todo de nuevo",
+  stateSealed: "Tu nube está cifrada",
+  stateSealedWhy:
+    "Este equipo no tiene tu frase, así que no puede abrirla. Mientras tanto, lo que escribas queda aquí.",
+  stateSealing: "Otro equipo está cifrando o descifrando tu nube",
+  stateSealingWhy: "La sincronización sigue sola cuando termine.",
+  stateOtherPhrase: "Tu nube usa otra frase",
+  stateOtherPhraseWhy:
+    "La frase de este equipo no es la de esta nube. Revisa que sea la que elegiste.",
+  stateUnsealed: "Tu nube ya no dice que está cifrada",
+  stateUnsealedWhy:
+    "Ninguno de tus equipos apagó el cifrado. Revisa que nadie más haya cambiado tu cuenta.",
+  stateMarkDamaged: "La marca de tu nube cifrada está dañada",
+  stateMarkDamagedWhy: "Sincroniza desde un equipo cuya frase abra tu nube y la marca se repara.",
   stateEmptiedSure:
     "Todo lo que hay en este equipo vuelve a subir a {cloud}. Tus otros equipos lo tomarán desde ahí. ¿Sigo?",
   stateBudget: "Tu nube llegó a su límite de hoy",

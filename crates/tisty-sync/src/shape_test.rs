@@ -454,10 +454,16 @@ fn what_writes_outside_a_round_stops_at_a_place_a_later_build_raised() {
 
 #[test]
 fn a_beta_comes_before_its_release_and_build_marks_change_nothing() {
-    assert!(release("1.35.0-beta.1") < release("1.35.0"));
-    assert_eq!(release("1.35.0-rc.2"), release("1.35.0-rc.1"));
-    assert!(release("1.34.9") < release("1.35.0-beta.1"));
-    assert_eq!(release("1.35.0+abc"), release("1.35.0"));
+    assert!(tisty_core::released("1.35.0-beta.1") < tisty_core::released("1.35.0"));
+    assert_eq!(
+        tisty_core::released("1.35.0-rc.2"),
+        tisty_core::released("1.35.0-rc.1")
+    );
+    assert!(tisty_core::released("1.34.9") < tisty_core::released("1.35.0-beta.1"));
+    assert_eq!(
+        tisty_core::released("1.35.0+abc"),
+        tisty_core::released("1.35.0")
+    );
 }
 
 #[test]

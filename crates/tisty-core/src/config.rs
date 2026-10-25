@@ -87,6 +87,11 @@ fn addressed(email: &str) -> bool {
 }
 
 impl CloudAt {
+    // The provider's id for the account outlives a change of address, so the email never decides.
+    pub fn same_account(&self, other: &CloudAt) -> bool {
+        self.provider == other.provider && self.account == other.account
+    }
+
     pub fn shown(&self) -> &str {
         shown_of(&self.provider)
     }
