@@ -24,7 +24,7 @@ use segments::{
 pub use shape::{
     NAMED, NEEDS, OURS as SHAPE, Sealing, TURNS, Turn, claim_in, claimed, claimed_by, closed,
     dropped, later, needs_later, phase, raise_place, raised, raised_told, refuses, seal_word,
-    sealed_against, sealing_in, sealing_of, spoiled, switched, unseen as forget_shape,
+    sealed_against, sealed_in, sealing_in, sealing_of, spoiled, switched, unseen as forget_shape,
 };
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};

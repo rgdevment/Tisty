@@ -51,6 +51,7 @@ const plain: SealShown = {
   state: "plain",
   held: true,
   confirmed: true,
+  phraseElsewhere: false,
   behind: [],
   turning: null,
   orphan: false,
@@ -217,5 +218,27 @@ describe("an encrypted cloud", () => {
     render(<Shell />);
     await userEvent.click(await screen.findByRole("button", { name: "Cancel it from here" }));
     await waitFor(() => expect(sent("sealing_cancel")).toHaveLength(1));
+  });
+});
+
+describe("what stands in the way", () => {
+  it("never offers to make a phrase that lives on another computer", async () => {
+    ipc.shown = { ...plain, held: false, confirmed: false, phraseElsewhere: true };
+    render(<Shell />);
+    await userEvent.click(await screen.findByRole("button", { name: "Encrypt my cloud…" }));
+
+    expect(await screen.findByText(/Your phrase is on another of your computers/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Create my phrase" })).toBeNull();
+  });
+
+  it("says the room could not be looked at rather than calling it enough", async () => {
+    ipc.refuse = "sealing_room";
+    render(<Shell />);
+    await userEvent.click(await screen.findByRole("button", { name: "Encrypt my cloud…" }));
+
+    expect(await screen.findByText(/could not look at the room in OneDrive/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Encrypt my cloud" }).hasAttribute("disabled")).toBe(
+      true,
+    );
   });
 });

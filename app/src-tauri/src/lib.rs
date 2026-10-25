@@ -1353,6 +1353,7 @@ pub fn run() {
         .manage(Updating::default())
         .manage(desktop::Leaving::default())
         .manage(desktop::Departed::default())
+        .manage(sealing::Turns::default())
         .invoke_handler(commands())
         .build(tauri::generate_context!())
         .expect("error while running tauri application")

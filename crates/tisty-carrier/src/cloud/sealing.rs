@@ -60,7 +60,9 @@ pub enum Stepped {
     Copying { done: usize, left: usize },
     Closed,
     Settling { left: usize },
+    Settled,
     Done,
+    GaveUp,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -296,10 +298,7 @@ impl Turning {
         let Some((device, nonce)) = claim.split_once(':') else {
             return Ok(false);
         };
-        let claimed_at = nonce
-            .parse::<u128>()
-            .map_or(u64::MAX, |nanos| (nanos / 1_000_000_000) as u64);
-        if now().saturating_sub(claimed_at) < older_than {
+        if claim_age(&text).is_none_or(|age| age < older_than) {
             return Ok(false);
         }
         let turning = Self {
@@ -311,7 +310,7 @@ impl Turning {
                 named: key.named_for(cloud),
                 device: device.to_string(),
                 nonce: nonce.to_string(),
-                on: !matches!(tisty_sync::sealing_in(&text), Sealing::Copying(Turn::Off)),
+                on: turn_of(&text) != Some(Turn::Off),
                 phase: Phase::GivingUp,
                 moved: now(),
                 closed: 0,
@@ -428,7 +427,7 @@ impl Turning {
                     }
                     self.journal.phase = Phase::Settled;
                     self.journal.save(&self.home)?;
-                    Ok(Stepped::Settling { left: 0 })
+                    Ok(Stepped::Settled)
                 }
                 left => Ok(Stepped::Settling { left }),
             },
@@ -497,9 +496,14 @@ impl Turning {
         Ok(Stepped::Claimed)
     }
 
+    // Waits out the batch a driver may be in the middle of, so giving up is never refused for being busy.
     pub fn abort(mut self) -> Result<(), Hitch> {
         {
-            let _held = locked(&self.home)?;
+            let _held = Held::wait_for(&self.home, SEALING, std::time::Duration::from_secs(120))
+                .map_err(broke)?
+                .ok_or(Hitch::Busy {
+                    wait: std::time::Duration::from_secs(5),
+                })?;
             let metered = Metered::over(&*self.plain, &self.home, Class::Sealing);
             let (text, _) = word(&metered)?;
             let switched = match tisty_sync::sealing_in(&text) {
@@ -547,7 +551,7 @@ impl Turning {
             for (done, name) in names.iter().enumerate() {
                 if !still(done)? {
                     forget(&self.home);
-                    return Ok(Stepped::Done);
+                    return Ok(Stepped::GaveUp);
                 }
                 deleted(&metered, name)?;
             }
@@ -564,7 +568,7 @@ impl Turning {
             }
         }
         forget(&self.home);
-        Ok(Stepped::Done)
+        Ok(Stepped::GaveUp)
     }
 
     fn owed(&self, from: &dyn Remote, to: &dyn Remote) -> Result<Owed, Hitch> {
@@ -701,4 +705,23 @@ pub fn turn_size(plain: &dyn Remote) -> Result<u64, Hitch> {
         .filter(|one| ours_to_turn(&one.name, folds))
         .map(|one| one.bytes)
         .sum())
+}
+
+// The nonce of a claim is the time it was made, so the word itself says how long a turn has stood.
+pub fn claim_age(text: &str) -> Option<u64> {
+    let claim = tisty_sync::claim_in(text)?;
+    let (_, nonce) = claim.split_once(':')?;
+    let made = nonce.parse::<u128>().ok()? / 1_000_000_000;
+    Some(now().saturating_sub(u64::try_from(made).unwrap_or(u64::MAX)))
+}
+
+pub fn turn_of(text: &str) -> Option<Turn> {
+    match tisty_sync::sealing_in(text) {
+        Sealing::Copying(turn) => Some(turn),
+        Sealing::Closed => Some(match tisty_sync::sealed_in(text) {
+            Some(_) => Turn::Off,
+            None => Turn::On,
+        }),
+        _ => None,
+    }
 }

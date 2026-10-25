@@ -121,7 +121,7 @@ impl World {
             },
         };
         match turning.step() {
-            Ok(Stepped::Done) => {}
+            Ok(Stepped::Done | Stepped::GaveUp) => {}
             _ => self.turning = Some(turning),
         }
     }

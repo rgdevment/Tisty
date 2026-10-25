@@ -1856,6 +1856,9 @@ const en = {
   sealPhraseCreate: "Create my phrase",
   sealPhraseUnconfirmed: "Your phrase is not confirmed yet",
   sealPhraseConfirm: "Confirm it",
+  sealPhraseAway:
+    "Your phrase is on another of your computers. Encrypt from there, or type it here once this one can take it.",
+  sealRoomUnread: "Tisty could not look at the room in {name}. Try again in a moment.",
   sealRoomOk: "There is room in {name}",
   sealRoomShort: "There is not enough room in {name}",
   sealRoomWhy: "You need {name} free while it encrypts; you have {other}.",
@@ -4277,6 +4280,9 @@ const es: Catalog = {
   sealPhraseCreate: "Crear mi frase",
   sealPhraseUnconfirmed: "Tu frase todavía no está confirmada",
   sealPhraseConfirm: "Confirmarla",
+  sealPhraseAway:
+    "Tu frase está en otro de tus equipos. Cifra desde allá, o escríbela aquí cuando este equipo pueda recibirla.",
+  sealRoomUnread: "Tisty no pudo revisar el espacio en {name}. Inténtalo de nuevo en un momento.",
   sealRoomOk: "Hay espacio en {name}",
   sealRoomShort: "No hay espacio suficiente en {name}",
   sealRoomWhy: "Necesitas {name} libres mientras se cifra; tienes {other}.",

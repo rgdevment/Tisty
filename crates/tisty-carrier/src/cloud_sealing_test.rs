@@ -36,7 +36,7 @@ fn turned(fake: &Arc<Fake>, setting: &Setting) -> Result<Turning, Hitch> {
 
 fn to_the_end(turning: &mut Turning) {
     for _ in 0..200 {
-        if turning.step().unwrap() == Stepped::Done {
+        if matches!(turning.step().unwrap(), Stepped::Done | Stepped::GaveUp) {
             return;
         }
     }
@@ -169,7 +169,7 @@ fn a_cut_at_any_call_is_taken_up_again_and_loses_nothing() {
                 continue;
             };
             match now.step() {
-                Ok(Stepped::Done) => {
+                Ok(Stepped::Done | Stepped::GaveUp) => {
                     done = true;
                     break;
                 }
@@ -295,7 +295,7 @@ fn giving_up_cut_half_way_is_undone_the_rest_of_the_way_from_the_journal() {
     let plain: Arc<dyn Remote> = fake.clone();
     let mut left = Turning::resume(plain, &home_of(&setting, "dev_a"), key()).unwrap();
 
-    assert_eq!(left.step().unwrap(), Stepped::Done);
+    assert_eq!(left.step().unwrap(), Stepped::GaveUp);
     assert_eq!(
         tisty_sync::sealing_in(&word(&fake)),
         tisty_sync::sealing_in(&before)
@@ -362,7 +362,7 @@ fn giving_up_taken_up_again_never_undoes_a_cloud_another_machine_sealed_since() 
     to_the_end(&mut theirs);
 
     let mut left = Turning::resume(plain, &home_of(&setting, "dev_a"), key()).unwrap();
-    assert_eq!(left.step().unwrap(), Stepped::Done);
+    assert_eq!(left.step().unwrap(), Stepped::GaveUp);
 
     let two = reading_sealed(&setting, &fake, "dev_c", &one);
     two.round(Way::Both);

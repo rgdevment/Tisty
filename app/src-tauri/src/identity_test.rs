@@ -323,3 +323,22 @@ fn a_cloud_still_being_sealed_is_read_plain_even_once_the_log_names_its_key() {
 
     assert_eq!(sealed_now(&session), None);
 }
+
+#[test]
+fn the_machine_sealing_the_cloud_reads_it_plain_while_its_journal_stands() {
+    let kept = tempfile::tempdir().unwrap();
+    let session = opened(&kept);
+    keep(&held(&session).paths, &seed(7)).unwrap();
+    said_sealed(&session, "cloud_one", &seed(7));
+    word_here(&session, "shape = 3\n");
+    let home = held(&session).reach.home_of(&account("mario"));
+    std::fs::write(
+        home.join("sealing.json"),
+        r#"{"v":1,"cloud":"cloud_one","named":"x","device":"dev_a","nonce":"1","on":true,"phase":"claimed","moved":0}"#,
+    )
+    .unwrap();
+
+    tauri::async_runtime::block_on(seal_the_cloud(&session));
+
+    assert_eq!(sealed_now(&session), None);
+}

@@ -1336,6 +1336,7 @@ export interface SealShown {
   state: "none" | "plain" | "sealed" | "turning" | "elsewhere";
   held: boolean;
   confirmed: boolean;
+  phraseElsewhere: boolean;
   behind: string[];
   turning: SealTold | null;
   orphan: boolean;

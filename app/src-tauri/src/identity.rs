@@ -160,17 +160,19 @@ pub async fn for_a_round(session: &tauri::State<'_, Mutex<Session>>) -> Option<S
 
 /// Read only when the sealed cloud this place names is not the one this machine already reads, so the keychain is seldom asked.
 pub async fn seal_the_cloud(session: &Mutex<Session>) {
-    let (at, tree) = {
+    let (at, home) = {
         let session = held(session);
         let Some(at) = tisty_carrier::cloud_of(session.config.sync.as_ref()).cloned() else {
             session.reach.seal_with(None);
             return;
         };
-        let tree = tisty_carrier::mirrored_at(&session.reach.home_of(&at));
-        (at, tree)
+        let home = session.reach.home_of(&at);
+        (at, home)
     };
-    // Only a copy still being sealed is read plain on the log's word; a place that says plain never is.
-    let said = match tisty_carrier::sealing_of(&tree) {
+    let sealing_here = tisty_carrier::Turning::left(&home).is_some_and(|left| left.on);
+    // Only a copy still being sealed, here or up there, is read plain on the log's word; a place that says plain never is.
+    let said = match tisty_carrier::sealing_of(&tisty_carrier::mirrored_at(&home)) {
+        _ if sealing_here => None,
         tisty_carrier::Sealing::Sealed(cloud) => Some(Some(cloud)),
         tisty_carrier::Sealing::Copying(tisty_carrier::Turn::On) => None,
         _ => Some(None),

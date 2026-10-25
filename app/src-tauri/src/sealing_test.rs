@@ -7,11 +7,11 @@ fn claimed_at(secs_ago: u64) -> String {
 }
 
 #[test]
-fn another_machine_s_claim_is_orphaned_only_after_a_week() {
-    assert!(!orphan(&claimed_at(60)));
-    assert!(!orphan(&claimed_at(ORPHANED_AFTER - 60)));
-    assert!(orphan(&claimed_at(ORPHANED_AFTER + 60)));
-    assert!(!orphan("shape = 3\n"));
+fn a_claim_tells_its_age_from_its_nonce() {
+    let age = |word: &str| tisty_carrier::claim_age(word);
+    assert!(age(&claimed_at(60)).is_some_and(|age| age < ORPHANED_AFTER));
+    assert!(age(&claimed_at(ORPHANED_AFTER + 60)).is_some_and(|age| age >= ORPHANED_AFTER));
+    assert_eq!(age("shape = 3\n"), None);
 }
 
 #[test]

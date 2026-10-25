@@ -206,13 +206,14 @@ function Before({
   onClose: () => void;
   onGo: () => void;
 }) {
-  const [room, setRoom] = useState<SealRoom | null>(null);
+  const [room, setRoom] = useState<SealRoom | "unread" | null>(null);
   useEffect(() => {
     sealingRoom()
       .then(setRoom)
-      .catch(() => setRoom({ free: null, needed: 0 }));
+      .catch(() => setRoom("unread"));
   }, []);
-  const roomy = room !== null && (room.free === null || room.free >= room.needed);
+  const roomy =
+    room !== null && room !== "unread" && (room.free === null || room.free >= room.needed);
   const phraseOk = shown.held && shown.confirmed;
   const ready = phraseOk && shown.behind.length === 0 && roomy;
 
@@ -226,9 +227,11 @@ function Before({
           <span className="min-w-0 flex-1">
             {phraseOk
               ? t("sealPhraseOk")
-              : t(shown.held ? "sealPhraseUnconfirmed" : "sealPhraseMissing")}
+              : shown.phraseElsewhere
+                ? t("sealPhraseAway")
+                : t(shown.held ? "sealPhraseUnconfirmed" : "sealPhraseMissing")}
           </span>
-          {!phraseOk && (
+          {!phraseOk && !shown.phraseElsewhere && (
             <button type="button" className={mild} onClick={shown.held ? onConfirm : onCreate}>
               {t(shown.held ? "sealPhraseConfirm" : "sealPhraseCreate")}
             </button>
@@ -237,6 +240,11 @@ function Before({
         <li className="flex gap-2">
           {room === null ? (
             <span className="text-faint">{fill("sealRoomLooking", provider)}</span>
+          ) : room === "unread" ? (
+            <>
+              <Mark ok={false} />
+              <span className="min-w-0 flex-1">{fill("sealRoomUnread", provider)}</span>
+            </>
           ) : (
             <>
               <Mark ok={roomy} />

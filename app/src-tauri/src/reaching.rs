@@ -122,11 +122,6 @@ impl Reaching {
             .map(|(carrier, _)| carrier)
     }
 
-    pub fn plain(&self, at: &CloudAt) -> Result<Arc<dyn tisty_carrier::Remote>, String> {
-        let home = self.home_of(at);
-        tisty_carrier::off::away(|| remote_of(&home, at)).map(|(remote, _)| remote)
-    }
-
     // Handed out rather than let go here, so the caller can do it without holding the session.
     pub fn taken(&self) -> Option<Arc<Tokens>> {
         self.built.lock().ok()?.take().map(|was| was.tokens)
@@ -182,6 +177,10 @@ pub fn offers(provider: &str) -> bool {
 }
 
 type Reached = (Arc<dyn tisty_carrier::Remote>, Arc<Tokens>);
+
+pub fn plain_at(home: &Path, at: &CloudAt) -> Result<Arc<dyn tisty_carrier::Remote>, String> {
+    tisty_carrier::off::away(|| remote_of(home, at)).map(|(remote, _)| remote)
+}
 
 fn cloud_of(
     home: &Path,
