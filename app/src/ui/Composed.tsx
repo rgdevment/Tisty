@@ -74,11 +74,17 @@ export default function Composed({
     });
 
     measure();
-    void diagrams(holder, document.documentElement.dataset.theme === "dark", () => live).then(
-      measure,
-    );
+    const drawn = () =>
+      diagrams(holder, document.documentElement.dataset.theme === "dark", () => live).then(measure);
+    void drawn();
+    const looking = new MutationObserver(() => void drawn());
+    looking.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
     return () => {
       live = false;
+      looking.disconnect();
       for (const gone of shown) gone();
     };
   }, [html, cut]);

@@ -57,14 +57,14 @@ describe("a diagram on a page", () => {
     expect(drawn.themes).toEqual(["default"]);
   });
 
-  it("is drawn again in the dark look, and keeps a light one for the viewer", async () => {
+  it("is drawn again when the look turns dark", async () => {
     const page = sheet("graph LR; Day-->Night");
     await diagrams(page, false, () => true);
     const figure = page.querySelector("figure.diagram") as Element;
     await diagrams(page, true, () => true);
     expect(figure.getAttribute("data-theme")).toBe("dark");
     expect(drawn.themes).toEqual(["default", "dark"]);
-    expect(decodeURIComponent(diagramShot(figure) ?? "")).toContain("Day-->Night");
+    expect(decodeURIComponent(diagramShot(figure) ?? "")).toContain("Day--&gt;Night");
   });
 
   it("stays as the words it is made of when it cannot be drawn", async () => {
@@ -94,6 +94,35 @@ describe("a diagram on a page", () => {
   it("is not drawn when it is empty or too long to lay out", async () => {
     expect(await drawing("   ", false)).toBeNull();
     expect(await drawing(`graph TD\n${"A-->B\n".repeat(8000)}`, false)).toBeNull();
+    expect(await drawing(`graph TD\n${"A-->B;".repeat(1200)}`, false)).toBeNull();
     expect(drawn.sources).toEqual([]);
+  });
+
+  it("keeps the look last asked for when an older drawing lands late", async () => {
+    const page = sheet("graph TD; Late-->Look");
+    await diagrams(page, false, () => true);
+    const figure = page.querySelector("figure.diagram") as Element;
+    const dark = diagrams(page, true, () => true);
+    await diagrams(page, false, () => true);
+    await dark;
+    expect(figure.getAttribute("data-theme")).toBe("light");
+  });
+
+  it("skips a drawing nobody waits for any more", async () => {
+    const page = sheet("graph TD; Typed-->Once");
+    const first = diagrams(page, false, () => true);
+    sheet("graph TD; Typed-->Twice");
+    await first;
+    expect(drawn.sources).toEqual([]);
+  });
+
+  it("shows a dark drawing in the viewer on the dark sheet it was drawn for", async () => {
+    const page = sheet("graph TD; Night-->Owl");
+    await diagrams(page, true, () => true);
+    const shot = decodeURIComponent(
+      diagramShot(page.querySelector("figure.diagram") as Element) ?? "",
+    );
+    expect(shot).toContain("<rect");
+    expect(shot).toContain("Night--&gt;Owl");
   });
 });

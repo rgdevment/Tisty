@@ -3,29 +3,47 @@ import type { MermaidConfig } from "mermaid";
 type Mermaid = typeof import("mermaid")["default"];
 
 const AT_MOST = 32 * 1024;
+// Laying out runs on the window's own thread, and a short fence can still name thousands of links.
+const MOST_PARTS = 1_000;
 const KEPT_AT_MOST = 64;
 const PENDING = "figure.diagram > pre > code";
 
 let loading: Promise<Mermaid> | null = null;
 let turns: Promise<unknown> = Promise.resolve();
 let made = 0;
-const drawings = new Map<string, string | null>();
+const drawings = new Map<string, string>();
+// A fence half written while it is edited draws nothing, and keeping those beside the drawings would push them out.
+const refused = new Set<string>();
 const sources = new WeakMap<Element, string>();
+const wanted = new WeakMap<Element, boolean>();
 
 const keyOf = (source: string, dark: boolean) => `${dark ? "dark" : "light"}\n${source}`;
 
 const kept = (key: string): string | null | undefined => {
-  if (!drawings.has(key)) return undefined;
-  const drawn = drawings.get(key) ?? null;
+  if (refused.has(key)) return null;
+  const drawn = drawings.get(key);
+  if (drawn === undefined) return undefined;
   drawings.delete(key);
   drawings.set(key, drawn);
   return drawn;
 };
 
-const keep = (key: string, drawn: string | null) => {
-  drawings.set(key, drawn);
-  if (drawings.size > KEPT_AT_MOST) drawings.delete(drawings.keys().next().value as string);
+const capped = (held: Map<string, string> | Set<string>) => {
+  if (held.size > KEPT_AT_MOST) held.delete(held.keys().next().value as string);
 };
+
+const keep = (key: string, drawn: string | null) => {
+  if (drawn === null) {
+    refused.add(key);
+    capped(refused);
+    return;
+  }
+  drawings.set(key, drawn);
+  capped(drawings);
+};
+
+const parts = (source: string) =>
+  source.split("\n").length + (source.match(/--|==|-\.|->/g)?.length ?? 0);
 
 const settings = (dark: boolean): MermaidConfig => ({
   startOnLoad: false,
@@ -39,17 +57,33 @@ const settings = (dark: boolean): MermaidConfig => ({
   flowchart: { htmlLabels: false },
 });
 
+const mermaidNow = (): Promise<Mermaid> => {
+  loading ??= import("mermaid")
+    .then((one) => one.default)
+    .catch((error: unknown) => {
+      loading = null;
+      throw error;
+    });
+  return loading;
+};
+
 // Mermaid keeps one configuration for the whole window, so drawings take turns.
-export const drawing = (source: string, dark: boolean): Promise<string | null> => {
+export const drawing = (
+  source: string,
+  dark: boolean,
+  still: () => boolean = () => true,
+): Promise<string | null> => {
   const key = keyOf(source, dark);
   const ready = kept(key);
   if (ready !== undefined) return Promise.resolve(ready);
-  if (!source.trim() || source.length > AT_MOST) return Promise.resolve(null);
+  if (!source.trim() || source.length > AT_MOST || parts(source) > MOST_PARTS)
+    return Promise.resolve(null);
   const turn = turns.then(async () => {
     const again = kept(key);
     if (again !== undefined) return again;
-    loading ??= import("mermaid").then((one) => one.default);
-    const mermaid = await loading;
+    if (!still()) return null;
+    const mermaid = await mermaidNow().catch(() => null);
+    if (!mermaid) return null;
     mermaid.initialize(settings(dark));
     made += 1;
     const drawn = await mermaid
@@ -60,12 +94,11 @@ export const drawing = (source: string, dark: boolean): Promise<string | null> =
     return drawn;
   });
   turns = turn.catch(() => null);
-  return turn;
+  return turn.catch(() => null);
 };
 
 const placed = (figure: Element, svg: string, dark: boolean) => {
-  const page = figure.ownerDocument;
-  const sheet = page.createElement("div");
+  const sheet = figure.ownerDocument.createElement("div");
   sheet.className = "diagram-sheet";
   sheet.innerHTML = svg;
   figure.replaceChildren(sheet);
@@ -74,44 +107,48 @@ const placed = (figure: Element, svg: string, dark: boolean) => {
   figure.setAttribute("data-theme", dark ? "dark" : "light");
 };
 
-// Each diagram is drawn for the sheet it sits on; one that cannot be drawn stays as the words it is made of.
 export const diagrams = (within: ParentNode, dark: boolean, live: () => boolean): Promise<void> => {
   const waiting: Promise<void>[] = [];
   const asked = new Set<Element>();
   for (const code of within.querySelectorAll(PENDING)) {
     const figure = code.closest("figure.diagram");
-    if (figure) {
-      sources.set(figure, code.textContent ?? "");
-      asked.add(figure);
-    }
+    if (!figure) continue;
+    sources.set(figure, code.textContent ?? "");
+    asked.add(figure);
   }
   for (const figure of within.querySelectorAll("figure.diagram.drawn")) asked.add(figure);
   for (const figure of asked) {
     const source = sources.get(figure);
-    if (source === undefined || figure.getAttribute("data-theme") === (dark ? "dark" : "light"))
-      continue;
+    if (source === undefined) continue;
+    wanted.set(figure, dark);
+    if (figure.getAttribute("data-theme") === (dark ? "dark" : "light")) continue;
     const ready = kept(keyOf(source, dark));
     if (typeof ready === "string") {
       placed(figure, ready, dark);
       continue;
     }
+    // Only the look last asked for lands, so a slow drawing never paints over a newer one.
+    const still = () => live() && figure.isConnected && wanted.get(figure) === dark;
     waiting.push(
-      drawing(source, dark).then((svg) => {
-        if (!live() || !figure.isConnected) return;
+      drawing(source, dark, still).then((svg) => {
+        if (!still()) return;
         if (svg === null) figure.classList.add("unreadable");
         else placed(figure, svg, dark);
-        // The viewer always shows a diagram on white, so a dark page has its light drawing ready too.
-        if (svg !== null && dark) void drawing(source, false);
       }),
     );
   }
   return Promise.all(waiting).then(() => {});
 };
 
-// A diagram is looked at on white, as the light drawing it was made from.
+// The viewer lays a picture on white, so a dark drawing brings the dark sheet it was drawn for.
 export const diagramShot = (figure: Element): string | null => {
-  const source = sources.get(figure);
-  const light = source === undefined ? undefined : kept(keyOf(source, false));
-  const svg = typeof light === "string" ? light : figure.querySelector("svg")?.outerHTML;
-  return svg ? `data:image/svg+xml,${encodeURIComponent(svg)}` : null;
+  const svg = figure.querySelector("svg");
+  if (!svg) return null;
+  if (figure.getAttribute("data-theme") !== "dark")
+    return `data:image/svg+xml,${encodeURIComponent(svg.outerHTML)}`;
+  const box = svg.viewBox?.baseVal;
+  const [wide, tall] = box?.width ? [box.width, box.height] : [800, 600];
+  const ground = getComputedStyle(figure).getPropertyValue("--tisty-sheet").trim() || "#232326";
+  const framed = `<svg xmlns="http://www.w3.org/2000/svg" width="${wide}" height="${tall}" viewBox="0 0 ${wide} ${tall}"><rect width="100%" height="100%" fill="${ground}"/>${svg.outerHTML}</svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(framed)}`;
 };

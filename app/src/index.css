@@ -367,7 +367,7 @@ body {
   width: 100%;
   height: auto;
 }
-.prose figure.diagram:not(.drawn) pre {
+.prose figure.diagram:not(.drawn, .unreadable) pre {
   opacity: 0.5;
 }
 .prose img {

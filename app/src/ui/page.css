@@ -405,7 +405,6 @@ figure.diagram,
 figure.widget {
   text-align: center;
 }
-/* Until it is drawn, or when it cannot be, a diagram reads as the words it is made of. */
 figure.diagram:not(.drawn) {
   border: 1px solid var(--tisty-hair);
   border-radius: 10px;
@@ -415,7 +414,6 @@ figure.diagram:not(.drawn) {
 figure.diagram:not(.drawn, .unreadable) pre {
   opacity: 0.5;
 }
-/* A drawing always fits the sheet; a click opens it whole, to look closer. */
 figure.diagram svg {
   display: block;
   margin: 0 auto;
