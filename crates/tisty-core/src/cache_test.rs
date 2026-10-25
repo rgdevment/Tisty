@@ -1300,3 +1300,18 @@ fn the_stores_said_to_be_sealed_come_back_from_the_cache() {
 
     assert_eq!(back.sealed, state.sealed, "the sealed stores were lost");
 }
+
+#[test]
+fn when_each_machine_last_wrote_comes_back_from_the_cache() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut cache = Cache::open(dir.path()).unwrap().expect("a cache opens");
+    let mut state = State::default();
+    state
+        .heard
+        .insert(crate::DeviceId("dev_a".into()), 1_761_400_000);
+
+    cache.store(&state, "print").unwrap();
+    let back = cache.load("print", true).expect("the cache had it");
+
+    assert_eq!(back.heard, state.heard, "when the machines wrote was lost");
+}

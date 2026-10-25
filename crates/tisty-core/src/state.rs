@@ -32,6 +32,8 @@ pub struct State {
     pub hosts: BTreeMap<DeviceId, DeviceId>,
     pub named: BTreeMap<DeviceId, crate::applying::Named>,
     pub runs: BTreeMap<DeviceId, String>,
+    /// When each machine last wrote, in seconds, so a person can tell which of their computers is still about.
+    pub heard: BTreeMap<DeviceId, i64>,
     pub sealed: BTreeMap<String, String>,
     pub sourced: BTreeMap<String, TaskId>,
     pub dropped: BTreeSet<DeviceId>,
@@ -213,6 +215,15 @@ impl State {
     }
 
     pub fn apply(&mut self, event: &Event) {
+        let at = event.timestamp.as_second();
+        self.heard
+            .entry(event.device.clone())
+            .and_modify(|was| *was = (*was).max(at))
+            .or_insert(at);
+        self.applied(event);
+    }
+
+    fn applied(&mut self, event: &Event) {
         if let Some(id) = event.entity_id().filter(|id| self.tombstones.contains(id)) {
             crate::witness::trace(
                 crate::witness::channel::STORE,

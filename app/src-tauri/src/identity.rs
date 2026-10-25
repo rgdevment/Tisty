@@ -587,11 +587,7 @@ pub fn identity_confirm(
 #[tauri::command(async)]
 pub fn identity_recover(session: tauri::State<'_, Mutex<Session>>, said: String) -> Answer<()> {
     let said = Zeroizing::new(said);
-    let seed = phrase::seed_from(&said).map_err(|unread| match unread {
-        phrase::Unread::Count(count) => Refusal::about("phraseCount", count.to_string()),
-        phrase::Unread::Word(at) => Refusal::about("phraseWord", at.to_string()),
-        phrase::Unread::Checksum => Refusal::of("phraseChecksum"),
-    })?;
+    let seed = seed_said(&said)?;
     let mut session = held(&session);
     if session.state.persons.names_a_person() && !ours(&seed, &session.state) {
         return Err(Refusal::of("phraseOtherPerson"));
@@ -616,7 +612,15 @@ pub fn identity_recover(session: tauri::State<'_, Mutex<Session>>, said: String)
     Ok(())
 }
 
-fn begun(session: &mut Session, seed: &Seed) -> Answer<()> {
+pub(crate) fn seed_said(said: &str) -> Answer<Seed> {
+    phrase::seed_from(said).map_err(|unread| match unread {
+        phrase::Unread::Count(count) => Refusal::about("phraseCount", count.to_string()),
+        phrase::Unread::Word(at) => Refusal::about("phraseWord", at.to_string()),
+        phrase::Unread::Checksum => Refusal::of("phraseChecksum"),
+    })
+}
+
+pub(crate) fn begun(session: &mut Session, seed: &Seed) -> Answer<()> {
     let ops = person::begun(
         &session.paths,
         &session.config.device_id,
