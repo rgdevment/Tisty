@@ -1,5 +1,5 @@
 use super::*;
-use crate::fakes::{Counting, Fake};
+use crate::fakes::Fake;
 use tisty_share_proto::seed::Seed;
 
 fn key(byte: u8) -> CloudKey {
@@ -400,7 +400,7 @@ fn damaged(sealed: &Sealed<Fake>) {
 }
 
 #[test]
-fn a_damaged_mark_is_mended_once_this_phrase_opens_what_the_cloud_holds() {
+fn a_damaged_mark_is_written_again_and_then_holds() {
     let sealed = over_drive();
     put(&sealed, "store/dev_one/0001.jsonl", b"{}\n");
     damaged(&sealed);
@@ -411,94 +411,26 @@ fn a_damaged_mark_is_mended_once_this_phrase_opens_what_the_cloud_holds() {
 }
 
 #[test]
-fn a_damaged_mark_over_a_cloud_with_nothing_sealed_is_written_again() {
-    let sealed = over_drive();
-    damaged(&sealed);
-
-    sealed.mark_it().unwrap();
-
-    assert_eq!(sealed.marked().unwrap(), Some(Mark::Holds));
-}
-
-#[test]
-fn one_torn_file_does_not_keep_the_right_phrase_from_mending_the_mark() {
-    let sealed = over_drive();
-    put(&sealed, "store/dev_one/0002.jsonl", b"{\"op\":\"x\"}\n");
+fn a_machine_that_loses_the_race_to_mend_a_damaged_mark_reads_the_mark_that_won() {
+    let raced = Raced {
+        inner: Fake::drive(),
+        theirs: mark(&key(8), "store_one").unwrap(),
+    };
     put(
-        &sealed.inner,
-        &format!("{INSIDE}/store/dev_one/0001.jsonl"),
-        b"\xffTCS torn",
+        &raced.inner,
+        &format!("{INSIDE}/{MARK}"),
+        b"not a mark at all",
     );
-    put(
-        &sealed.inner,
-        &format!("{INSIDE}/store/dev_one/0000.jsonl"),
-        b"",
-    );
-    damaged(&sealed);
+    let sealed = Sealed::new(raced, key(7), "store_one");
 
-    sealed.mark_it().unwrap();
-
-    assert_eq!(sealed.marked().unwrap(), Some(Mark::Holds));
+    assert_eq!(barred(sealed.mark_it()), Some("other-phrase"));
 }
 
 #[test]
-fn a_damaged_mark_over_another_phrase_is_never_mended_by_this_one() {
-    let theirs = Sealed::new(Fake::drive(), key(8), "store_one");
-    put(&theirs, "store/dev_one/0001.jsonl", b"{}\n");
-    let sealed = Sealed::new(theirs.inner, key(7), "store_one");
-    damaged(&sealed);
+fn only_the_key_the_log_names_opens_a_sealed_cloud() {
+    let named = key(7).named_for("store_one");
 
-    assert_eq!(barred(sealed.mark_it()), Some("mark-damaged"));
-    assert_eq!(sealed.marked().unwrap(), Some(Mark::Damaged));
-}
-
-#[test]
-fn torn_files_ahead_of_a_whole_one_do_not_keep_the_right_phrase_from_mending_the_mark() {
-    let sealed = over_drive();
-    put(
-        &sealed,
-        "store/dev_one/0009.jsonl",
-        b"{\"op\":\"a longer line\"}\n",
-    );
-    for torn in ["0001", "0002", "0003", "0004"] {
-        put(
-            &sealed.inner,
-            &format!("{INSIDE}/store/dev_one/{torn}.jsonl"),
-            b"\xffTCS torn",
-        );
-    }
-    damaged(&sealed);
-
-    sealed.mark_it().unwrap();
-
-    assert_eq!(sealed.marked().unwrap(), Some(Mark::Holds));
-}
-
-#[test]
-fn a_damaged_mark_this_phrase_could_not_prove_is_not_tried_again_until_it_changes() {
-    let theirs = Sealed::new(Fake::drive(), key(8), "store_one");
-    put(&theirs, "store/dev_one/0001.jsonl", b"{}\n");
-    let sealed = Sealed::new(theirs.inner, key(7), "store_one");
-    damaged(&sealed);
-    assert_eq!(barred(sealed.mark_it()), Some("mark-damaged"));
-    let before = sealed.inner.counts().fetches;
-
-    assert_eq!(barred(sealed.mark_it()), Some("mark-damaged"));
-
-    assert_eq!(
-        sealed.inner.counts().fetches - before,
-        1,
-        "the proof was tried again"
-    );
-}
-
-#[test]
-fn a_damaged_mark_over_documents_sealed_with_another_phrase_is_never_taken_over() {
-    let theirs = Sealed::new(Fake::drive(), key(8), "store_one");
-    put(&theirs, "docs/plan.md", b"# Plan\n");
-    let sealed = Sealed::new(theirs.inner, key(7), "store_one");
-    damaged(&sealed);
-
-    assert_eq!(barred(sealed.mark_it()), Some("mark-damaged"));
-    assert_eq!(sealed.marked().unwrap(), Some(Mark::Damaged));
+    assert!(Sealed::opened(Fake::drive(), key(7), "store_one", &named).is_some());
+    assert!(Sealed::opened(Fake::drive(), key(8), "store_one", &named).is_none());
+    assert!(Sealed::opened(Fake::drive(), key(7), "store_two", &named).is_none());
 }

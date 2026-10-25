@@ -176,17 +176,21 @@ fn over<R: tisty_carrier::Remote + 'static>(
     inner: R,
     home: &Path,
     keyed: Option<&Keyed>,
-) -> Shared {
+) -> Result<Shared, String> {
     let inner = tisty_carrier::off::OffRuntime(inner);
     let remote: Arc<dyn tisty_carrier::Remote> = match keyed {
-        Some(keyed) => Arc::new(tisty_carrier::Sealed::new(
+        Some(keyed) => match tisty_carrier::Sealed::opened(
             inner,
             keyed.key.clone(),
-            keyed.locked.cloud.clone(),
-        )),
+            &keyed.locked.cloud,
+            &keyed.locked.named,
+        ) {
+            Some(sealed) => Arc::new(sealed),
+            None => return Err("the key does not open the cloud the log names".to_string()),
+        },
         None => Arc::new(inner),
     };
-    Arc::new(Cloud::over(remote, home))
+    Ok(Arc::new(Cloud::over(remote, home)))
 }
 
 fn onedrive_of(
@@ -203,7 +207,7 @@ fn onedrive_of(
         .map_err(|e| format!("{e:?}"))?
         .for_account(&at.account)
         .keeping_at(home);
-    Ok((over(drive, home, keyed), tokens))
+    Ok((over(drive, home, keyed)?, tokens))
 }
 
 fn webdav_of(
@@ -220,7 +224,7 @@ fn webdav_of(
         home,
     ));
     let server = tisty_webdav::WebDav::new(tokens.clone(), dav).map_err(|e| format!("{e:?}"))?;
-    Ok((over(server, home, keyed), tokens))
+    Ok((over(server, home, keyed)?, tokens))
 }
 
 fn google_of(
@@ -237,7 +241,7 @@ fn google_of(
         .map_err(|e| format!("{e:?}"))?
         .for_account(&at.account)
         .owing_at(home);
-    Ok((over(drive, home, keyed), tokens))
+    Ok((over(drive, home, keyed)?, tokens))
 }
 
 // Google's tokens stay where 1.30 kept them, under the account alone; every later provider is named first.

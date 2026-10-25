@@ -31,7 +31,6 @@ pub struct Sealed<R> {
     key: CloudKey,
     cloud: String,
     root: String,
-    unproven: std::sync::Mutex<Option<String>>,
 }
 
 fn broke(e: impl ToString) -> Hitch {
@@ -40,16 +39,6 @@ fn broke(e: impl ToString) -> Hitch {
 
 const MARK: &str = "sealed.mark";
 const MARK_AT_MOST: u64 = 512;
-const TRIES: usize = 12;
-const PROOF_BYTES: u64 = 4 * 1024 * 1024;
-
-// Only a key the file turned away is remembered: a file gone or from a later build says nothing of the phrase.
-enum Proof {
-    Opens,
-    Refused,
-    Unsure,
-}
-
 fn named_back(hitch: Hitch, inner: &str, name: &str) -> Hitch {
     match hitch {
         Hitch::Missing(one) if one == inner => Hitch::Missing(name.to_string()),
@@ -80,14 +69,18 @@ pub(crate) fn plain_len(sealed: u64) -> Option<u64> {
 }
 
 impl<R: Remote> Sealed<R> {
-    pub fn new(inner: R, key: CloudKey, cloud: impl Into<String>) -> Self {
+    /// Only with the key the signed log names for this cloud, so a phrase the log never chose cannot read or mark it.
+    pub fn opened(inner: R, key: CloudKey, cloud: &str, named: &str) -> Option<Self> {
+        (key.named_for(cloud) == named).then(|| Self::new(inner, key, cloud))
+    }
+
+    pub(crate) fn new(inner: R, key: CloudKey, cloud: impl Into<String>) -> Self {
         let cloud = cloud.into();
         Self {
             inner,
             key,
             root: format!("{INSIDE}:{cloud}"),
             cloud,
-            unproven: std::sync::Mutex::new(None),
         }
     }
 
@@ -148,26 +141,11 @@ impl<R: Remote> Sealed<R> {
             .map(|_| ())
     }
 
-    // A damaged mark says nothing about the phrase, so it is written again only once this key opens what is up there.
+    // The app builds this only with the key the signed log names for this cloud, so a mark that says nothing is written again.
     fn mended(&self, revision: String) -> Result<(), Hitch> {
-        let unproven = || self.unproven.lock().ok();
-        let known = !revision.is_empty();
-        if known && unproven().is_some_and(|held| held.as_deref() == Some(revision.as_str())) {
-            return Err(self.damaged());
-        }
-        match self.proven()? {
-            Proof::Opens => {}
-            Proof::Refused => {
-                if let Some(mut held) = unproven().filter(|_| known) {
-                    *held = Some(revision);
-                }
-                return Err(self.damaged());
-            }
-            Proof::Unsure => return Err(self.damaged()),
-        }
-        let expect = match known {
-            true => Expect::Revision(revision),
-            false => Expect::Any,
+        let expect = match revision.is_empty() {
+            true => Expect::Any,
+            false => Expect::Revision(revision),
         };
         match self.written(expect) {
             Ok(()) | Err(Hitch::Changed(_)) => {}
@@ -176,63 +154,6 @@ impl<R: Remote> Sealed<R> {
         match self.marked()? {
             Some(Mark::Damaged) | None => Err(self.damaged()),
             said => self.mark_holds(said),
-        }
-    }
-
-    // One torn file must not keep the right phrase out, and a cloud with nothing sealed has nothing a mark could guard.
-    fn proven(&self) -> Result<Proof, Hitch> {
-        let sealed = |under: &str| -> Result<Vec<Seen>, Hitch> {
-            Ok(self
-                .within(under)?
-                .into_iter()
-                .filter(|one| one.bytes > 0 && !self.is_clear(&one.name))
-                .collect())
-        };
-        let mut held = sealed(crate::STORE)?;
-        if held.is_empty() {
-            held = sealed("")?;
-        }
-        if held.is_empty() {
-            return Ok(Proof::Opens);
-        }
-        held.retain(|one| one.bytes <= PROOF_BYTES);
-        held.sort_by_key(|one| one.bytes);
-        let (mut spent, mut refused) = (0, false);
-        for one in held.iter().take(TRIES) {
-            if spent + one.bytes > PROOF_BYTES {
-                break;
-            }
-            spent += one.bytes;
-            match self.opens(&one.name) {
-                Ok(Proof::Opens) => return Ok(Proof::Opens),
-                Ok(Proof::Refused) => refused = true,
-                Ok(Proof::Unsure) | Err(Hitch::Missing(_)) => {}
-                Err(other) => return Err(other),
-            }
-        }
-        Ok(match refused {
-            true => Proof::Refused,
-            false => Proof::Unsure,
-        })
-    }
-
-    fn opens(&self, name: &str) -> Result<Proof, Hitch> {
-        let cipher = crate::temp::Temp::new();
-        let mut to = cipher.create().map_err(broke)?;
-        self.inner.fetch(&self.placed(name), 0, &mut to)?;
-        drop(to);
-        let mut from = std::fs::File::open(&cipher.0).map_err(broke)?;
-        match open(
-            &self.key,
-            &self.cloud,
-            &self.bound(name),
-            &mut from,
-            &mut std::io::sink(),
-        ) {
-            Ok(()) => Ok(Proof::Opens),
-            Err(Unsealed::Refused) => Ok(Proof::Refused),
-            Err(Unsealed::Io(why)) => Err(broke(why)),
-            Err(_) => Ok(Proof::Unsure),
         }
     }
 

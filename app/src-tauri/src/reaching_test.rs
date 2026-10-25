@@ -191,7 +191,10 @@ fn a_webdav_cloud_is_built_from_its_account_and_one_that_is_no_address_is_not() 
         locked: Locked {
             at: dav.clone(),
             cloud: "store_one".into(),
-            named: "key_a".into(),
+            named: tisty_share_proto::cloud::CloudKey::of(
+                &tisty_share_proto::seed::Seed::from_bytes(&[7; 32]),
+            )
+            .named_for("store_one"),
         },
         key: tisty_share_proto::cloud::CloudKey::of(&tisty_share_proto::seed::Seed::from_bytes(
             &[7; 32],
@@ -215,7 +218,10 @@ fn a_new_address_on_the_account_keeps_the_key_its_sealed_cloud_was_built_with() 
         locked: Locked {
             at: dav.clone(),
             cloud: "store_one".into(),
-            named: "key_a".into(),
+            named: tisty_share_proto::cloud::CloudKey::of(
+                &tisty_share_proto::seed::Seed::from_bytes(&[7; 32]),
+            )
+            .named_for("store_one"),
         },
         key: tisty_share_proto::cloud::CloudKey::of(&tisty_share_proto::seed::Seed::from_bytes(
             &[7; 32],
