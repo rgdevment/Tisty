@@ -25,6 +25,7 @@ pub struct Reaching {
     why_not: Mutex<Option<String>>,
     keyed: Mutex<Option<Keyed>>,
     tried: Mutex<Option<(Locked, usize)>>,
+    seed_of: Mutex<Option<(Option<tisty_share_proto::identity::Person>, usize)>>,
 }
 
 #[derive(Debug, Clone)]
@@ -63,11 +64,27 @@ impl Reaching {
             why_not: Mutex::new(None),
             keyed: Mutex::new(None),
             tried: Mutex::new(None),
+            seed_of: Mutex::new(None),
         }
     }
 
     pub fn tried(&self) -> Option<(Locked, usize)> {
         self.tried.lock().ok()?.clone()
+    }
+
+    /// Whose seed this machine keeps, as last read with so many stores taken in; asked again once that changes.
+    pub fn seed_of(&self, forebears: usize) -> Option<Option<tisty_share_proto::identity::Person>> {
+        self.seed_of
+            .lock()
+            .ok()?
+            .filter(|(_, known)| *known == forebears)
+            .map(|(person, _)| person)
+    }
+
+    pub fn seed_is(&self, person: Option<(Option<tisty_share_proto::identity::Person>, usize)>) {
+        if let Ok(mut held) = self.seed_of.lock() {
+            *held = person;
+        }
     }
 
     pub fn tried_for(&self, locked: Option<(Locked, usize)>) {
@@ -310,8 +327,27 @@ impl InMemory {
 }
 
 #[cfg(test)]
+static READS: Mutex<std::collections::BTreeMap<String, usize>> =
+    Mutex::new(std::collections::BTreeMap::new());
+
+#[cfg(test)]
+pub(crate) fn reads_of(scope: &str) -> usize {
+    READS
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .get(scope)
+        .copied()
+        .unwrap_or(0)
+}
+
+#[cfg(test)]
 impl Secrets for InMemory {
     fn read(&self, key: &str) -> Result<Option<String>, Hitch> {
+        *READS
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .entry(self.0.clone())
+            .or_default() += 1;
         Ok(Self::kept().get(&format!("{}/{key}", self.0)).cloned())
     }
     fn write(&self, key: &str, value: &str) -> Result<(), Hitch> {
