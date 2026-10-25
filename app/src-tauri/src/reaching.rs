@@ -23,10 +23,19 @@ pub struct Reaching {
     paths: Paths,
     built: Mutex<Option<Built>>,
     why_not: Mutex<Option<String>>,
+    sealing: Mutex<Option<Sealing>>,
+    tried: Mutex<Option<String>>,
+}
+
+#[derive(Clone)]
+pub struct Sealing {
+    pub cloud: String,
+    pub key: tisty_share_proto::cloud::CloudKey,
 }
 
 struct Built {
     at: CloudAt,
+    sealed: Option<String>,
     carrier: Shared,
     tokens: Arc<Tokens>,
 }
@@ -37,6 +46,44 @@ impl Reaching {
             paths: paths.clone(),
             built: Mutex::new(None),
             why_not: Mutex::new(None),
+            sealing: Mutex::new(None),
+            tried: Mutex::new(None),
+        }
+    }
+
+    /// A sealed cloud this machine looked for a key to and found none, so the keychain is not asked every round.
+    pub fn tried(&self) -> Option<String> {
+        self.tried.lock().ok()?.clone()
+    }
+
+    pub fn tried_for(&self, cloud: Option<String>) {
+        if let Ok(mut held) = self.tried.lock() {
+            *held = cloud;
+        }
+    }
+
+    pub fn sealed(&self) -> Option<String> {
+        self.sealing
+            .lock()
+            .ok()?
+            .as_ref()
+            .map(|one| one.cloud.clone())
+    }
+
+    fn sealing(&self) -> Option<Sealing> {
+        self.sealing.lock().ok()?.clone()
+    }
+
+    // The carrier built for the other way of reading is let go, so the next one reads the cloud as it now stands.
+    pub fn seal_with(&self, sealing: Option<Sealing>) {
+        let cloud = sealing.as_ref().map(|one| one.cloud.clone());
+        if let Ok(mut held) = self.sealing.lock() {
+            *held = sealing;
+        }
+        if let Ok(mut built) = self.built.lock()
+            && built.as_ref().is_some_and(|was| was.sealed != cloud)
+        {
+            *built = None;
         }
     }
 
@@ -50,7 +97,8 @@ impl Reaching {
 
     pub fn apart(&self, at: &CloudAt) -> Option<Shared> {
         let home = self.home_of(at);
-        tisty_carrier::off::away(|| cloud_of(&home, at))
+        let sealing = self.sealing();
+        tisty_carrier::off::away(|| cloud_of(&home, at, sealing.as_ref()))
             .ok()
             .map(|(carrier, _)| carrier)
     }
@@ -63,20 +111,24 @@ impl Reaching {
 
 impl Reach for Reaching {
     fn cloud(&self, at: &CloudAt) -> Option<Shared> {
+        let sealing = self.sealing();
+        let sealed = sealing.as_ref().map(|one| one.cloud.clone());
         let mut built = self.built.lock().ok()?;
         if let Some(was) = built.as_ref()
             && was.at == *at
+            && was.sealed == sealed
         {
             return Some(was.carrier.clone());
         }
         let home = self.home_of(at);
-        let made = tisty_carrier::off::away(|| cloud_of(&home, at));
+        let made = tisty_carrier::off::away(|| cloud_of(&home, at, sealing.as_ref()));
         if let Ok(mut why) = self.why_not.lock() {
             *why = made.as_ref().err().cloned();
         }
         let (carrier, tokens) = made.ok()?;
         *built = Some(Built {
             at: at.clone(),
+            sealed,
             carrier: carrier.clone(),
             tokens,
         });
@@ -105,16 +157,41 @@ pub fn offers(provider: &str) -> bool {
     }
 }
 
-fn cloud_of(home: &Path, at: &CloudAt) -> Result<(Shared, Arc<Tokens>), String> {
+fn cloud_of(
+    home: &Path,
+    at: &CloudAt,
+    sealing: Option<&Sealing>,
+) -> Result<(Shared, Arc<Tokens>), String> {
     match at.provider.as_str() {
-        GOOGLE => google_of(home, at),
-        ONEDRIVE => onedrive_of(home, at),
-        WEBDAV => webdav_of(home, at),
+        GOOGLE => google_of(home, at, sealing),
+        ONEDRIVE => onedrive_of(home, at, sealing),
+        WEBDAV => webdav_of(home, at, sealing),
         other => Err(format!("this build does not know the cloud {other}")),
     }
 }
 
-fn onedrive_of(home: &Path, at: &CloudAt) -> Result<(Shared, Arc<Tokens>), String> {
+fn over<R: tisty_carrier::Remote + 'static>(
+    inner: R,
+    home: &Path,
+    sealing: Option<&Sealing>,
+) -> Shared {
+    let inner = tisty_carrier::off::OffRuntime(inner);
+    let remote: Arc<dyn tisty_carrier::Remote> = match sealing {
+        Some(sealing) => Arc::new(tisty_carrier::Sealed::new(
+            inner,
+            sealing.key.clone(),
+            sealing.cloud.clone(),
+        )),
+        None => Arc::new(inner),
+    };
+    Arc::new(Cloud::over(remote, home))
+}
+
+fn onedrive_of(
+    home: &Path,
+    at: &CloudAt,
+    sealing: Option<&Sealing>,
+) -> Result<(Shared, Arc<Tokens>), String> {
     let client = tisty_onedrive::client().ok_or("this build has no access to OneDrive")?;
     let secrets = secrets_for(at).map_err(|e| format!("{e:?}"))?;
     let renew = tisty_onedrive::MicrosoftRenew::new(client, tisty_onedrive::Endpoints::microsoft())
@@ -124,11 +201,14 @@ fn onedrive_of(home: &Path, at: &CloudAt) -> Result<(Shared, Arc<Tokens>), Strin
         .map_err(|e| format!("{e:?}"))?
         .for_account(&at.account)
         .keeping_at(home);
-    let remote = Arc::new(tisty_carrier::off::OffRuntime(drive));
-    Ok((Arc::new(Cloud::over(remote, home)), tokens))
+    Ok((over(drive, home, sealing), tokens))
 }
 
-fn webdav_of(home: &Path, at: &CloudAt) -> Result<(Shared, Arc<Tokens>), String> {
+fn webdav_of(
+    home: &Path,
+    at: &CloudAt,
+    sealing: Option<&Sealing>,
+) -> Result<(Shared, Arc<Tokens>), String> {
     let dav = tisty_webdav::DavAt::of_account(&at.account).map_err(|e| format!("{e:?}"))?;
     let secrets = secrets_for(at).map_err(|e| format!("{e:?}"))?;
     let tokens = Arc::new(Tokens::new(
@@ -138,11 +218,14 @@ fn webdav_of(home: &Path, at: &CloudAt) -> Result<(Shared, Arc<Tokens>), String>
         home,
     ));
     let server = tisty_webdav::WebDav::new(tokens.clone(), dav).map_err(|e| format!("{e:?}"))?;
-    let remote = Arc::new(tisty_carrier::off::OffRuntime(server));
-    Ok((Arc::new(Cloud::over(remote, home)), tokens))
+    Ok((over(server, home, sealing), tokens))
 }
 
-fn google_of(home: &Path, at: &CloudAt) -> Result<(Shared, Arc<Tokens>), String> {
+fn google_of(
+    home: &Path,
+    at: &CloudAt,
+    sealing: Option<&Sealing>,
+) -> Result<(Shared, Arc<Tokens>), String> {
     let client = tisty_google::client().ok_or("this build has no access to Google Drive")?;
     let secrets = secrets_for(at).map_err(|e| format!("{e:?}"))?;
     let renew = tisty_google::GoogleRenew::new(client, tisty_google::Endpoints::google())
@@ -152,8 +235,7 @@ fn google_of(home: &Path, at: &CloudAt) -> Result<(Shared, Arc<Tokens>), String>
         .map_err(|e| format!("{e:?}"))?
         .for_account(&at.account)
         .owing_at(home);
-    let remote = Arc::new(tisty_carrier::off::OffRuntime(drive));
-    Ok((Arc::new(Cloud::over(remote, home)), tokens))
+    Ok((over(drive, home, sealing), tokens))
 }
 
 // Google's tokens stay where 1.30 kept them, under the account alone; every later provider is named first.

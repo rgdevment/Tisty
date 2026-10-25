@@ -933,6 +933,7 @@ async fn carried_round(
     session: &tauri::State<'_, Mutex<Session>>,
     way: Option<String>,
 ) -> Answer<Settled> {
+    crate::identity::seal_the_cloud(session).await;
     let (carrier, paths, home, store, alive, holds, owing, place) = {
         let session = held(session);
         let carrier = session.carrying()?;
