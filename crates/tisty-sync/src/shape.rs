@@ -10,6 +10,7 @@ const KEPT_FOR: usize = 8;
 const RAISED: &str = ".shape-raised";
 const SEALED: &str = "sealed";
 const SEALING: &str = "sealing";
+const STIRRED: &str = "sealing_stirred";
 const HEADING: &str =
     "# What this folder is, and the shape it is in. Tisty reads this before anything else here.";
 
@@ -267,6 +268,35 @@ fn ours(said: &toml_edit::DocumentMut, claim: &str) -> bool {
         .is_some_and(|held| held == claim)
 }
 
+pub fn sealed_in(text: &str) -> Option<String> {
+    let said = text.parse::<toml_edit::DocumentMut>().ok()?;
+    said.get(SEALED)
+        .and_then(toml_edit::Item::as_str)
+        .map(str::to_string)
+}
+
+pub fn claim_in(text: &str) -> Option<String> {
+    let said = text.parse::<toml_edit::DocumentMut>().ok()?;
+    phase_of(&said).and_then(claim_of).map(str::to_string)
+}
+
+pub fn stirred_in(text: &str) -> Option<u64> {
+    let said = text.parse::<toml_edit::DocumentMut>().ok()?;
+    said.get(STIRRED)
+        .and_then(toml_edit::Item::as_integer)
+        .and_then(|at| u64::try_from(at).ok())
+}
+
+// A turn still at work says so now and then, so a slow one is never taken for one left behind.
+pub fn stirred(text: &str, claim: &str, at: u64) -> Option<String> {
+    let mut said = text.parse::<toml_edit::DocumentMut>().ok()?;
+    if !ours(&said, claim) {
+        return None;
+    }
+    said[STIRRED] = toml_edit::value(i64::try_from(at).ok()?);
+    Some(said.to_string())
+}
+
 pub fn claimed_by(text: &str, claim: &str) -> bool {
     text.parse::<toml_edit::DocumentMut>()
         .is_ok_and(|said| ours(&said, claim))
@@ -279,6 +309,7 @@ pub fn claimed(text: &str, phase: &str) -> Option<String> {
         return None;
     }
     said[SEALING] = toml_edit::value(phase);
+    said.remove(STIRRED);
     raise_needs(&mut said, TURNS);
     Some(said.to_string())
 }
@@ -298,6 +329,7 @@ pub fn switched(text: &str, claim: &str, sealed: Option<&str>) -> Option<String>
         return None;
     }
     said.remove(SEALING);
+    said.remove(STIRRED);
     match sealed {
         Some(cloud) => said[SEALED] = toml_edit::value(cloud),
         None => {
@@ -313,6 +345,7 @@ pub fn dropped(text: &str, claim: &str) -> Option<String> {
         return None;
     }
     said.remove(SEALING);
+    said.remove(STIRRED);
     Some(said.to_string())
 }
 

@@ -285,3 +285,60 @@ fn without_an_identity_a_sealed_cloud_never_asks_the_keychain_for_a_phrase() {
     assert_eq!(sealed_now(&session), None);
     assert_eq!(crate::reaching::reads_of(&asked), before);
 }
+
+fn word_here(session: &Mutex<Session>, word: &str) {
+    let tree = {
+        let session = held(session);
+        tisty_carrier::mirrored_at(&session.reach.home_of(&account("mario")))
+    };
+    std::fs::create_dir_all(&tree).unwrap();
+    std::fs::write(tree.join("tisty.toml"), word).unwrap();
+}
+
+#[test]
+fn a_place_that_says_plain_while_the_log_names_it_sealed_is_still_read_sealed() {
+    let kept = tempfile::tempdir().unwrap();
+    let session = opened(&kept);
+    keep(&held(&session).paths, &seed(7)).unwrap();
+    said_sealed(&session, "cloud_one", &seed(7));
+    word_here(&session, "shape = 3\n");
+
+    tauri::async_runtime::block_on(seal_the_cloud(&session));
+
+    assert_eq!(
+        sealed_now(&session).map(|one| one.cloud),
+        Some("cloud_one".into())
+    );
+}
+
+#[test]
+fn a_cloud_still_being_sealed_is_read_plain_even_once_the_log_names_its_key() {
+    let kept = tempfile::tempdir().unwrap();
+    let session = opened(&kept);
+    keep(&held(&session).paths, &seed(7)).unwrap();
+    said_sealed(&session, "cloud_one", &seed(7));
+    word_here(&session, "shape = 3\nsealing = \"copying:seal:dev_a:1\"\n");
+
+    tauri::async_runtime::block_on(seal_the_cloud(&session));
+
+    assert_eq!(sealed_now(&session), None);
+}
+
+#[test]
+fn the_machine_sealing_the_cloud_reads_it_plain_while_its_journal_stands() {
+    let kept = tempfile::tempdir().unwrap();
+    let session = opened(&kept);
+    keep(&held(&session).paths, &seed(7)).unwrap();
+    said_sealed(&session, "cloud_one", &seed(7));
+    word_here(&session, "shape = 3\n");
+    let home = held(&session).reach.home_of(&account("mario"));
+    std::fs::write(
+        home.join("sealing.json"),
+        r#"{"v":1,"cloud":"cloud_one","named":"x","device":"dev_a","nonce":"1","on":true,"phase":"claimed","moved":0}"#,
+    )
+    .unwrap();
+
+    tauri::async_runtime::block_on(seal_the_cloud(&session));
+
+    assert_eq!(sealed_now(&session), None);
+}

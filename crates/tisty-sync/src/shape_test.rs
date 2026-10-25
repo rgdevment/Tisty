@@ -674,3 +674,19 @@ fn a_claim_is_dropped_only_by_its_own_machine_and_leaves_the_rest_of_the_word() 
     );
     assert!(claimed("not = = toml", &phase(Turn::On, "dev_a", "n1")).is_none());
 }
+
+#[test]
+fn a_turn_stirs_only_its_own_claim_and_the_stir_goes_with_it() {
+    let claimed_word = claimed("shape = 3\n", &phase(Turn::On, "dev_a", "n1")).unwrap();
+
+    assert!(stirred(&claimed_word, "dev_b:n1", 40).is_none());
+    let stirred_word = stirred(&claimed_word, "dev_a:n1", 40).unwrap();
+    assert_eq!(stirred_in(&stirred_word), Some(40));
+    assert_eq!(sealing_in(&stirred_word), Sealing::Copying(Turn::On));
+
+    let back = dropped(&stirred_word, "dev_a:n1").unwrap();
+    assert_eq!(stirred_in(&back), None);
+    let closed_word = closed(&stirred_word, "dev_a:n1").unwrap();
+    let sealed_word = switched(&closed_word, "dev_a:n1", Some("store_one")).unwrap();
+    assert_eq!(stirred_in(&sealed_word), None);
+}
