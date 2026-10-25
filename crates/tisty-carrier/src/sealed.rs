@@ -43,6 +43,13 @@ const MARK_AT_MOST: u64 = 512;
 const TRIES: usize = 12;
 const PROOF_BYTES: u64 = 4 * 1024 * 1024;
 
+// Only a key the file turned away is remembered: a file gone or from a later build says nothing of the phrase.
+enum Proof {
+    Opens,
+    Refused,
+    Unsure,
+}
+
 fn named_back(hitch: Hitch, inner: &str, name: &str) -> Hitch {
     match hitch {
         Hitch::Missing(one) if one == inner => Hitch::Missing(name.to_string()),
@@ -148,11 +155,15 @@ impl<R: Remote> Sealed<R> {
         if known && unproven().is_some_and(|held| held.as_deref() == Some(revision.as_str())) {
             return Err(self.damaged());
         }
-        if !self.proven()? {
-            if let Some(mut held) = unproven().filter(|_| known) {
-                *held = Some(revision);
+        match self.proven()? {
+            Proof::Opens => {}
+            Proof::Refused => {
+                if let Some(mut held) = unproven().filter(|_| known) {
+                    *held = Some(revision);
+                }
+                return Err(self.damaged());
             }
-            return Err(self.damaged());
+            Proof::Unsure => return Err(self.damaged()),
         }
         let expect = match known {
             true => Expect::Revision(revision),
@@ -169,7 +180,7 @@ impl<R: Remote> Sealed<R> {
     }
 
     // One torn file must not keep the right phrase out, and a cloud with nothing sealed has nothing a mark could guard.
-    fn proven(&self) -> Result<bool, Hitch> {
+    fn proven(&self) -> Result<Proof, Hitch> {
         let sealed = |under: &str| -> Result<Vec<Seen>, Hitch> {
             Ok(self
                 .within(under)?
@@ -182,25 +193,30 @@ impl<R: Remote> Sealed<R> {
             held = sealed("")?;
         }
         if held.is_empty() {
-            return Ok(true);
+            return Ok(Proof::Opens);
         }
+        held.retain(|one| one.bytes <= PROOF_BYTES);
         held.sort_by_key(|one| one.bytes);
-        let mut spent = 0;
+        let (mut spent, mut refused) = (0, false);
         for one in held.iter().take(TRIES) {
-            if spent > 0 && spent + one.bytes > PROOF_BYTES {
+            if spent + one.bytes > PROOF_BYTES {
                 break;
             }
             spent += one.bytes;
             match self.opens(&one.name) {
-                Ok(true) => return Ok(true),
-                Ok(false) | Err(Hitch::Missing(_)) => {}
+                Ok(Proof::Opens) => return Ok(Proof::Opens),
+                Ok(Proof::Refused) => refused = true,
+                Ok(Proof::Unsure) | Err(Hitch::Missing(_)) => {}
                 Err(other) => return Err(other),
             }
         }
-        Ok(false)
+        Ok(match refused {
+            true => Proof::Refused,
+            false => Proof::Unsure,
+        })
     }
 
-    fn opens(&self, name: &str) -> Result<bool, Hitch> {
+    fn opens(&self, name: &str) -> Result<Proof, Hitch> {
         let cipher = crate::temp::Temp::new();
         let mut to = cipher.create().map_err(broke)?;
         self.inner.fetch(&self.placed(name), 0, &mut to)?;
@@ -213,9 +229,10 @@ impl<R: Remote> Sealed<R> {
             &mut from,
             &mut std::io::sink(),
         ) {
-            Ok(()) => Ok(true),
+            Ok(()) => Ok(Proof::Opens),
+            Err(Unsealed::Refused) => Ok(Proof::Refused),
             Err(Unsealed::Io(why)) => Err(broke(why)),
-            Err(_) => Ok(false),
+            Err(_) => Ok(Proof::Unsure),
         }
     }
 

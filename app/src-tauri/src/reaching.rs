@@ -117,7 +117,7 @@ impl Reach for Reaching {
         let sealed = keyed.as_ref().map(|one| one.locked.clone());
         let mut built = self.built.lock().ok()?;
         if let Some(was) = built.as_ref()
-            && was.at == *at
+            && was.at.same_account(at)
             && was.sealed == sealed
         {
             return Some(was.carrier.clone());
