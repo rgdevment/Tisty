@@ -442,3 +442,48 @@ fn turning_off_with_another_phrase_is_refused_before_anything_is_claimed() {
     );
     assert!(!word(&fake).contains("sealing"));
 }
+
+#[test]
+fn a_turn_is_never_begun_over_one_left_unfinished() {
+    let (setting, fake) = drive();
+    written(&setting);
+    let _left = turned(&fake, &setting).unwrap();
+
+    let again = turned(&fake, &setting);
+
+    assert!(matches!(again, Err(Hitch::Barred(Trouble::Sealing(_)))));
+}
+
+#[test]
+fn a_stale_copy_of_a_file_now_too_big_for_the_other_side_is_taken_away() {
+    let most = 64 * 1024;
+    let (setting, fake) = each_kind(|fake| fake.with_most_per_file(most)).remove(0);
+    let one = written(&setting);
+    let small = one.kept("crece.bin", &vec![7u8; 1000]);
+    one.store()
+        .append(small.told(tisty_core::attach::Via::Window))
+        .unwrap();
+    one.round(Way::Both);
+    let held_name = fake
+        .list("")
+        .unwrap()
+        .into_iter()
+        .map(|seen| seen.name)
+        .find(|name| name.starts_with(&format!("{}/", tisty_sync::HELD)))
+        .unwrap();
+    let sealed = crate::Sealed::new(fake.clone(), key(), CLOUD);
+    let dir = tempfile::tempdir().unwrap();
+    let stale = dir.path().join("stale");
+    std::fs::write(&stale, b"old").unwrap();
+    sealed.put(&held_name, &stale, Expect::Any).unwrap();
+    let big = dir.path().join("big");
+    std::fs::write(&big, vec![9u8; (most - 10) as usize]).unwrap();
+    fake.put(&held_name, &big, Expect::Any).unwrap();
+
+    to_the_end(&mut turned(&fake, &setting).unwrap());
+
+    assert!(
+        sealed.about(&held_name).unwrap().is_none(),
+        "the stale sealed copy stayed"
+    );
+}

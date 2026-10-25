@@ -626,9 +626,9 @@ fn a_turn_is_claimed_closed_and_switched_only_by_the_machine_that_claimed_it() {
     let claimed_word = claimed(word, &ours).unwrap();
     assert_eq!(sealing_in(&claimed_word), Sealing::Copying(Turn::On));
     assert!(claimed(&claimed_word, &phase(Turn::On, "dev_b", "n2")).is_none());
-    assert!(closed(&claimed_word, "dev_b:n2", TURNS).is_none());
+    assert!(closed(&claimed_word, "dev_b:n2").is_none());
 
-    let closed_word = closed(&claimed_word, "dev_a:n1", TURNS).unwrap();
+    let closed_word = closed(&claimed_word, "dev_a:n1").unwrap();
     assert_eq!(sealing_in(&closed_word), Sealing::Closed);
     assert!(closed_word.contains("needs = \"1.36.0\""));
 
@@ -651,7 +651,7 @@ fn turning_off_takes_the_sealed_line_away_and_never_lowers_needs() {
 
     let claimed_word = claimed(word, &ours).unwrap();
     assert_eq!(sealing_in(&claimed_word), Sealing::Copying(Turn::Off));
-    let closed_word = closed(&claimed_word, "dev_a:n1", "1.35.0").unwrap();
+    let closed_word = closed(&claimed_word, "dev_a:n1").unwrap();
     assert!(closed_word.contains("needs = \"1.36.0\""));
     let plain = switched(&closed_word, "dev_a:n1", None).unwrap();
 

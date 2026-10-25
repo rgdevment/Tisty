@@ -23,7 +23,6 @@ pub const NEEDS: &str = "1.34.0";
 
 pub const SEALS: &str = "1.35.0";
 
-/// The release that knows which way a copy runs; every machine must have reached it before a cloud turns.
 pub const TURNS: &str = "1.36.0";
 
 const COPYING_ON: &str = "copying:seal:";
@@ -244,7 +243,6 @@ pub fn seal_word(dest: &Path, cloud: &str) -> std::io::Result<()> {
         .map_err(std::io::Error::other)
 }
 
-/// Who claimed a turn: its machine and the nonce that tells two claims of one machine apart.
 pub fn phase(turn: Turn, device: &str, nonce: &str) -> String {
     let way = match turn {
         Turn::On => COPYING_ON,
@@ -285,18 +283,15 @@ pub fn claimed(text: &str, phase: &str) -> Option<String> {
     Some(said.to_string())
 }
 
-/// Our copy closed to everyone, with `needs` raised so a build that knows no turn stops too.
-pub fn closed(text: &str, claim: &str, needs: &str) -> Option<String> {
+pub fn closed(text: &str, claim: &str) -> Option<String> {
     let mut said = text.parse::<toml_edit::DocumentMut>().ok()?;
     if !ours(&said, claim) {
         return None;
     }
     said[SEALING] = toml_edit::value(format!("{CLOSED}{claim}"));
-    raise_needs(&mut said, needs);
     Some(said.to_string())
 }
 
-/// Our closed turn ended: the place now says the cloud it is sealed for, or nothing when it went back to plain.
 pub fn switched(text: &str, claim: &str, sealed: Option<&str>) -> Option<String> {
     let mut said = text.parse::<toml_edit::DocumentMut>().ok()?;
     if !ours(&said, claim) || !phase_of(&said).is_some_and(|phase| phase.starts_with(CLOSED)) {
@@ -312,7 +307,6 @@ pub fn switched(text: &str, claim: &str, sealed: Option<&str>) -> Option<String>
     Some(said.to_string())
 }
 
-/// Our claim dropped and nothing else; another machine's word stays as it is.
 pub fn dropped(text: &str, claim: &str) -> Option<String> {
     let mut said = text.parse::<toml_edit::DocumentMut>().ok()?;
     if !ours(&said, claim) {

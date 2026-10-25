@@ -226,6 +226,11 @@ pub async fn seal_the_cloud(session: &Mutex<Session>) {
         false => CloudKey::of(seed).named_for(&looking) == wanted,
     };
     let known = forebears.len();
+    // A phrase guessed rather than named comes only from this store, never one it took in.
+    let forebears = match locked.named.is_empty() {
+        true => BTreeSet::new(),
+        false => forebears,
+    };
     let seed = match elsewhere(move || kept(&paths, &forebears, &opens)).await {
         Ok(Ok(seed)) => seed,
         Ok(Err(why)) => {

@@ -113,7 +113,6 @@ impl<R: Remote> Sealed<R> {
         }
     }
 
-    /// Taken away last when a cloud goes back to plain, and only the revision read here.
     pub fn unmark(&self) -> Result<(), Hitch> {
         let at = format!("{INSIDE}/{MARK}");
         let Some(there) = self.inner.about(&at)? else {

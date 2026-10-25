@@ -16,6 +16,9 @@ const JOURNAL: &str = "sealing.json";
 const TWINS: &str = "sealing.twins";
 const BATCH: usize = 64;
 const SAID: u32 = 1;
+// A round that read the word before the close may still be sending, so the place stays closed this long first.
+const SETTLE: u64 = if cfg!(test) { 0 } else { 10 * 60 };
+const WIPED_BETWEEN_LOOKS: usize = 16;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -38,6 +41,8 @@ struct Journal {
     on: bool,
     phase: Phase,
     moved: u64,
+    #[serde(default)]
+    closed: u64,
     #[serde(default)]
     refused: BTreeMap<String, u64>,
 }
@@ -199,6 +204,9 @@ impl Turning {
     ) -> Result<Self, Hitch> {
         {
             let _held = locked(home)?;
+            if Journal::load(home).is_some() {
+                return Err(turned_away(cloud));
+            }
             let metered = Metered::over(&*plain, home, Class::Sealing);
             if turn == Turn::On && metered.about(tisty_core::moved::NAMED)?.is_some() {
                 return Err(Hitch::Barred(Trouble::Refused(
@@ -230,9 +238,9 @@ impl Turning {
             on: turn == Turn::On,
             phase: Phase::Claiming,
             moved: now(),
+            closed: 0,
             refused: BTreeMap::new(),
         };
-        forget(home);
         journal.save(home)?;
         let mut turning = Self {
             plain,
@@ -340,15 +348,20 @@ impl Turning {
                 }),
             },
             Phase::Copied => {
-                let closed = tisty_sync::closed(&text, &claim, tisty_sync::TURNS)
-                    .ok_or_else(|| turned_away(&cloud))?;
+                let closed =
+                    tisty_sync::closed(&text, &claim).ok_or_else(|| turned_away(&cloud))?;
                 rewrite(&metered, &closed, &revision)?;
                 self.pending = None;
                 self.journal.phase = Phase::Closed;
+                self.journal.closed = now();
                 self.journal.save(&self.home)?;
                 Ok(Stepped::Closed)
             }
             Phase::Closed => match self.batch(from, to)? {
+                0 if now() < self.journal.closed + SETTLE => {
+                    self.pending = None;
+                    Ok(Stepped::Settling { left: 0 })
+                }
                 0 => {
                     if on {
                         self.opens_one(&sealed)?;
@@ -459,17 +472,34 @@ impl Turning {
             (false, Sealing::Sealed(cloud)) => cloud == self.journal.cloud,
             _ => false,
         };
+        let (_, read) = word(&metered)?;
+        let still = |done: usize| -> Result<bool, Hitch> {
+            Ok(!done.is_multiple_of(WIPED_BETWEEN_LOOKS) || word(&metered)?.1 == read)
+        };
         if left_as_it_was && self.journal.on {
             let sealed = self.sealed();
-            for one in metered.list(crate::sealed::INSIDE)? {
-                if !sealed.is_mark(&one.name) {
-                    deleted(&metered, &one.name)?;
+            let names: Vec<String> = metered
+                .list(crate::sealed::INSIDE)?
+                .into_iter()
+                .map(|one| one.name)
+                .filter(|name| !sealed.is_mark(name))
+                .collect();
+            for (done, name) in names.iter().enumerate() {
+                if !still(done)? {
+                    forget(&self.home);
+                    return Ok(Stepped::Done);
                 }
+                deleted(&metered, name)?;
             }
-            sealed.unmark()?;
+            if word(&metered)?.1 == read {
+                sealed.unmark()?;
+            }
         }
         if left_as_it_was && !self.journal.on {
-            for name in twins(&self.home).into_keys() {
+            for (done, name) in twins(&self.home).into_keys().enumerate() {
+                if !still(done)? {
+                    break;
+                }
                 deleted(&metered, &name)?;
             }
         }
@@ -503,6 +533,9 @@ impl Turning {
         };
         for (name, source) in sources {
             if source.bytes > room {
+                if there.contains_key(&name) {
+                    owed.gone.push(name.clone());
+                }
                 owed.refused.insert(name, source.bytes);
                 continue;
             }
@@ -586,12 +619,12 @@ pub fn wipe_behind(
         .filter(|one| ours_to_turn(&one.name, folds))
         .map(|one| (one.name, one.bytes))
         .collect();
-    let mut gone = 0;
+    let mut gone: usize = 0;
     for one in behind.list("")? {
         if !ours_to_turn(&one.name, folds) || standing.get(&one.name) != Some(&one.bytes) {
             continue;
         }
-        if gone % BATCH == BATCH - 1 && word(&metered)?.1 != revision {
+        if gone.is_multiple_of(WIPED_BETWEEN_LOOKS) && word(&metered)?.1 != revision {
             return Err(turned_away(cloud));
         }
         deleted(behind, &one.name)?;
