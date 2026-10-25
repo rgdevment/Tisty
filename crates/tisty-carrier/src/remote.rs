@@ -247,4 +247,10 @@ pub trait Remote: Send + Sync {
     fn root(&self) -> &str {
         ""
     }
+
+    fn mark_up(&self) -> Result<(), Hitch> {
+        Ok(())
+    }
+
+    fn mark_forgotten(&self) {}
 }

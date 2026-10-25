@@ -283,3 +283,66 @@ fn a_word_spoiled_here_and_gone_up_there_is_let_go_rather_than_barring_for_good(
     assert!(!matches!(pulled, Err(Hitch::Barred(_))), "{pulled:?}");
     assert!(!tree.join(NAMED).exists());
 }
+
+#[test]
+fn a_plain_reader_stops_at_a_sealed_place_and_a_sealed_one_at_a_plain_one() {
+    let tree = tempfile::tempdir().unwrap();
+    let plain = Fake::drive();
+    let sealed = crate::fakes::sealed_over(Fake::drive());
+    let mut heard = Index::default();
+    heard.tree.insert(
+        NAMED.to_string(),
+        Mirrored {
+            seen: Seen {
+                name: NAMED.into(),
+                bytes: 1,
+                hash: String::new(),
+                revision: "r1".into(),
+            },
+            len: 1,
+            stamp: 0,
+            digest: String::new(),
+        },
+    );
+    let word = |said: &str| {
+        std::fs::write(
+            tree.path().join(NAMED),
+            format!("shape = 3\nneeds = \"1.34.0\"\n{said}"),
+        )
+        .unwrap();
+    };
+    let code = |remote: &dyn Remote, index: &Index| {
+        barred(remote, tree.path(), index).map(|one| one.code())
+    };
+
+    word("");
+    assert_eq!(
+        code(&sealed, &Index::default()),
+        None,
+        "a word written here and never sent was judged"
+    );
+    assert_eq!(code(&plain, &heard), None);
+    assert_eq!(code(&sealed, &heard), Some("unsealed"));
+    word("sealed = \"store_one\"\n");
+    assert_eq!(code(&plain, &heard), Some("sealed"));
+    assert_eq!(code(&sealed, &heard), None);
+    word("sealed = \"store_one\"\nsealing = \"closed:dev_a:n1\"\n");
+    assert_eq!(code(&sealed, &heard), Some("sealing"));
+}
+
+#[test]
+fn a_listing_that_keeps_no_hash_keeps_the_one_this_machine_sent_for_the_same_revision() {
+    let mut index = Index::default();
+    let seen = |hash: &str, revision: &str| Seen {
+        name: "attachments/x-1a2b.pdf".into(),
+        bytes: 4,
+        hash: hash.into(),
+        revision: revision.into(),
+    };
+
+    index.shelved("attachments/x-1a2b.pdf", seen("abcd", "r1"));
+    index.shelved("attachments/x-1a2b.pdf", seen("", "r1"));
+    assert_eq!(index.shelf["attachments/x-1a2b.pdf"].hash, "abcd");
+    index.shelved("attachments/x-1a2b.pdf", seen("", "r2"));
+    assert_eq!(index.shelf["attachments/x-1a2b.pdf"].hash, "");
+}

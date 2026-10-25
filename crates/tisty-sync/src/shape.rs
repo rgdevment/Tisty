@@ -8,6 +8,8 @@ pub const NAMED: &str = "tisty.toml";
 const SEEN: &str = ".shape-seen";
 const KEPT_FOR: usize = 8;
 const RAISED: &str = ".shape-raised";
+const SEALED: &str = "sealed";
+const SEALING: &str = "sealing";
 const HEADING: &str =
     "# What this folder is, and the shape it is in. Tisty reads this before anything else here.";
 
@@ -18,6 +20,8 @@ pub const OURS: u32 = 3;
 
 /// The oldest release that may write in a place this build arranges; a later change to the place raises it.
 pub const NEEDS: &str = "1.34.0";
+
+pub const SEALS: &str = "1.35.0";
 
 enum Told {
     Shape {
@@ -77,8 +81,12 @@ fn shape_in(line: &str) -> Option<u32> {
 }
 
 fn needs_in(line: &str) -> Option<String> {
+    said_in(line, "needs")
+}
+
+fn said_in(line: &str, key: &str) -> Option<String> {
     let (name, said) = line.split_once('=')?;
-    (name.trim() == "needs").then(|| said.trim().trim_matches('"').to_string())
+    (name.trim() == key).then(|| said.trim().trim_matches('"').to_string())
 }
 
 fn release(said: &str) -> Option<(u64, u64, u64, bool)> {
@@ -94,7 +102,7 @@ fn release(said: &str) -> Option<(u64, u64, u64, bool)> {
 
 /// A release this build cannot read is taken for a later one: guessing it older would write where it must not.
 pub fn needs_later(needs: &str) -> bool {
-    let ours = [NEEDS, tisty_core::VERSION]
+    let ours = [NEEDS, SEALS, tisty_core::VERSION]
         .into_iter()
         .filter_map(release)
         .max();
@@ -153,6 +161,83 @@ pub fn refuses(dest: &Path) -> Result<(), Trouble> {
 
 pub fn spoiled(dest: &Path) -> bool {
     matches!(verdict(dest, &told(dest)), Err(Trouble::Unshaped(_)))
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Sealing {
+    Unsaid,
+    Plain,
+    Copying,
+    Closed,
+    Sealed(String),
+}
+
+pub fn sealing_of(dest: &Path) -> Sealing {
+    let Ok(text) = std::fs::read_to_string(dest.join(NAMED)) else {
+        return Sealing::Unsaid;
+    };
+    let said = text.parse::<toml_edit::DocumentMut>().ok();
+    let word = |key: &str| match &said {
+        Some(said) => said
+            .get(key)
+            .and_then(toml_edit::Item::as_str)
+            .map(str::to_string),
+        None => text.lines().find_map(|line| said_in(line, key)),
+    };
+    match (word(SEALING), word(SEALED)) {
+        (Some(phase), _) if phase.starts_with("closed:") => Sealing::Closed,
+        (Some(phase), _) if phase.starts_with("copying:") => Sealing::Copying,
+        (Some(_), _) => Sealing::Closed,
+        (None, Some(cloud)) => Sealing::Sealed(cloud),
+        (None, None) => Sealing::Plain,
+    }
+}
+
+pub fn sealed_against(dest: &Path, reading: Option<&str>) -> Option<Trouble> {
+    let at = || dest.display().to_string();
+    match (sealing_of(dest), reading) {
+        (Sealing::Closed, _) => Some(Trouble::Sealing(at())),
+        (Sealing::Unsaid | Sealing::Copying, _) | (Sealing::Plain, None) => None,
+        (Sealing::Sealed(cloud), Some(ours)) if cloud == ours => None,
+        (Sealing::Sealed(_), _) => Some(Trouble::Sealed(at())),
+        (Sealing::Plain, Some(_)) => Some(Trouble::Unsealed(at())),
+    }
+}
+
+pub fn seal_word(dest: &Path, cloud: &str) -> std::io::Result<()> {
+    let mut said = match told(dest) {
+        Told::Shape {
+            said: Some(said), ..
+        } => *said,
+        Told::Shape {
+            said: None, needs, ..
+        } => {
+            if sealing_of(dest) != Sealing::Plain {
+                return Ok(());
+            }
+            let mut said = template()
+                .parse::<toml_edit::DocumentMut>()
+                .map_err(std::io::Error::other)?;
+            if let Some(needs) = needs {
+                said["needs"] = toml_edit::value(needs);
+            }
+            said
+        }
+        _ => return Ok(()),
+    };
+    if said.contains_key(SEALED) || said.contains_key(SEALING) {
+        return Ok(());
+    }
+    said[SEALED] = toml_edit::value(cloud);
+    let held = said
+        .get("needs")
+        .and_then(toml_edit::Item::as_str)
+        .is_some_and(|needs| !matches!((release(needs), release(SEALS)), (Some(needs), Some(seals)) if needs < seals));
+    if !held {
+        said["needs"] = toml_edit::value(SEALS);
+    }
+    tisty_core::store::write_atomic(&dest.join(NAMED), said.to_string().as_bytes())
+        .map_err(std::io::Error::other)
 }
 
 pub fn later(dest: &Path) -> Option<Trouble> {
@@ -287,6 +372,12 @@ fn tell(data: &Path, dest: &Path, said: Option<toml_edit::DocumentMut>) -> bool 
     done
 }
 
+fn template() -> String {
+    format!(
+        "{HEADING}\nshape = {OURS}\nneeds = \"{NEEDS}\"\nfolders = [\"{STORE}\", \"{HELD}\", \"{PAPERS}\"]\n"
+    )
+}
+
 fn written(dest: &Path, before: Option<toml_edit::DocumentMut>) -> bool {
     let said = match before {
         Some(mut said) => {
@@ -300,9 +391,7 @@ fn written(dest: &Path, before: Option<toml_edit::DocumentMut>) -> bool {
             said["folders"] = toml_edit::value(toml_edit::Array::from_iter([STORE, HELD, PAPERS]));
             said.to_string()
         }
-        None => format!(
-            "{HEADING}\nshape = {OURS}\nneeds = \"{NEEDS}\"\nfolders = [\"{STORE}\", \"{HELD}\", \"{PAPERS}\"]\n"
-        ),
+        None => template(),
     };
     if let Err(e) = tisty_core::store::write_atomic(&dest.join(NAMED), said.as_bytes()) {
         witness::warn(

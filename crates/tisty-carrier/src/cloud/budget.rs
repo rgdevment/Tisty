@@ -398,6 +398,14 @@ impl Remote for Metered<'_> {
     fn root(&self) -> &str {
         self.remote.root()
     }
+
+    fn mark_up(&self) -> Result<(), Hitch> {
+        self.remote.mark_up()
+    }
+
+    fn mark_forgotten(&self) {
+        self.remote.mark_forgotten();
+    }
 }
 
 #[cfg(test)]

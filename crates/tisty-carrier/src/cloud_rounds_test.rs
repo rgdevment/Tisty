@@ -541,3 +541,62 @@ fn a_cloud_read_from_another_root_starts_the_mirror_over_and_a_plain_index_says_
         serde_json::from_slice(&std::fs::read(home.join("index.json")).unwrap()).unwrap();
     assert_eq!(now["root"], serde_json::json!("sealed:store_one"));
 }
+
+fn sealed_desk(setting: &Setting, device: &str) -> (Desk, Arc<crate::Sealed<Fake>>) {
+    let one = desk(setting, device);
+    let space = Arc::new(crate::fakes::sealed_over(Fake::drive()));
+    let home = home_of(setting, device);
+    let sealed = Desk {
+        here: one.here.clone(),
+        carrier: Arc::new(Cloud::over(space.clone(), home)),
+    };
+    (sealed, space)
+}
+
+#[test]
+fn a_round_into_a_sealed_cloud_leaves_its_mark_and_says_the_place_is_sealed() {
+    let (setting, _) = each_kind(|fake| fake).remove(0);
+    let (one, space) = sealed_desk(&setting, "dev_a");
+    one.filed(DOC, "# Plan\n\nsellado\n");
+
+    let done = one.round(Way::Both);
+
+    assert!(done.refused.is_none(), "{done:?}");
+    assert_eq!(
+        space.marked().unwrap(),
+        Some(tisty_share_proto::cloud::Mark::Holds)
+    );
+    let mut word = Vec::new();
+    space
+        .inner()
+        .fetch(tisty_sync::NAMED, 0, &mut word)
+        .unwrap();
+    assert!(
+        String::from_utf8(word)
+            .unwrap()
+            .contains("sealed = \"store_one\""),
+        "the place does not say it is sealed"
+    );
+}
+
+#[test]
+fn a_sealed_cloud_whose_sealed_folder_was_deleted_whole_is_said_to_be_emptied() {
+    let (setting, _) = each_kind(|fake| fake).remove(0);
+    let (one, space) = sealed_desk(&setting, "dev_a");
+    one.filed(DOC, "# Plan\n\nsellado\n");
+    one.wrote("lo de uno");
+    one.round(Way::Both);
+    for gone in space.inner().list("sealed").unwrap() {
+        space.inner().delete(&gone.name, None).unwrap();
+    }
+
+    let stopped = match one.carry(Way::Both, Holds::Everywhere) {
+        Ok(moved) => moved.refused,
+        Err(trouble) => Some(trouble),
+    };
+
+    assert!(
+        matches!(stopped, Some(Trouble::CloudEmptied { .. })),
+        "{stopped:?}"
+    );
+}

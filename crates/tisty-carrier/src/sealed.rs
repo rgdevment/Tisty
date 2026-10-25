@@ -7,6 +7,24 @@ use tisty_sync::{MARKER, NAMED, STORE};
 use crate::{Changes, Expect, Hitch, Limits, Remote, Seen, Watch};
 
 pub(crate) const INSIDE: &str = "sealed";
+
+pub(crate) fn reading(root: &str) -> Option<&str> {
+    root.strip_prefix(INSIDE)?.strip_prefix(':')
+}
+
+pub(crate) fn stays_plain(name: &str, folds: bool) -> bool {
+    let same = |one: &str| match folds {
+        true => one.to_lowercase() == name.to_lowercase(),
+        false => one == name,
+    };
+    [
+        NAMED,
+        tisty_core::moved::NAMED,
+        &format!("{STORE}/{MARKER}"),
+    ]
+    .into_iter()
+    .any(same)
+}
 const HEADER: u64 = 24;
 const TAG: u64 = 16;
 const BLOCK: u64 = 64 * 1024;
@@ -16,6 +34,7 @@ pub struct Sealed<R> {
     key: CloudKey,
     cloud: String,
     root: String,
+    marked: std::sync::atomic::AtomicBool,
 }
 
 fn broke(e: impl ToString) -> Hitch {
@@ -62,6 +81,7 @@ impl<R: Remote> Sealed<R> {
             key,
             root: format!("{INSIDE}:{cloud}"),
             cloud,
+            marked: std::sync::atomic::AtomicBool::new(false),
         }
     }
 
@@ -87,12 +107,8 @@ impl<R: Remote> Sealed<R> {
 
     pub fn mark_it(&self) -> Result<(), Hitch> {
         match self.marked()? {
-            Some(Mark::Holds) => return Ok(()),
-            Some(Mark::OtherPhrase) => {
-                return Err(broke("this cloud was marked with another phrase"));
-            }
-            Some(_) => return Err(broke("the mark of this cloud cannot be read")),
             None => {}
+            said => return self.mark_holds(said),
         }
         let said = mark(&self.key, &self.cloud).ok_or_else(|| broke("no way to mark the cloud"))?;
         let held = crate::temp::Temp::new();
@@ -102,11 +118,18 @@ impl<R: Remote> Sealed<R> {
         self.inner
             .put(&format!("{INSIDE}/{MARK}"), &held.0, Expect::Absent)?;
         match self.marked()? {
+            None => Err(broke("the mark could not be read back")),
+            said => self.mark_holds(said),
+        }
+    }
+
+    fn mark_holds(&self, said: Option<Mark>) -> Result<(), Hitch> {
+        let at = || self.root.clone();
+        match said {
             Some(Mark::Holds) => Ok(()),
-            Some(Mark::OtherPhrase) => Err(broke(
-                "another machine marked this cloud with another phrase",
-            )),
-            _ => Err(broke("the mark could not be read back")),
+            Some(Mark::OtherPhrase) => Err(Hitch::Barred(tisty_sync::Trouble::OtherPhrase(at()))),
+            Some(Mark::Newer) => Err(Hitch::Barred(tisty_sync::Trouble::Shape(at()))),
+            _ => Err(broke("the phrase mark of this cloud is damaged")),
         }
     }
 
@@ -122,13 +145,7 @@ impl<R: Remote> Sealed<R> {
     }
 
     fn is_clear(&self, name: &str) -> bool {
-        [
-            NAMED,
-            tisty_core::moved::NAMED,
-            &format!("{STORE}/{MARKER}"),
-        ]
-        .into_iter()
-        .any(|one| self.same(one, name))
+        stays_plain(name, self.folds())
     }
 
     fn reserved(&self, name: &str) -> Result<(), Hitch> {
@@ -353,6 +370,21 @@ impl<R: Remote> Remote for Sealed<R> {
 
     fn root(&self) -> &str {
         &self.root
+    }
+
+    // Asked once for each carrier, so a machine with another phrase never sends into this cloud.
+    fn mark_forgotten(&self) {
+        self.marked
+            .store(false, std::sync::atomic::Ordering::Relaxed);
+    }
+
+    fn mark_up(&self) -> Result<(), Hitch> {
+        use std::sync::atomic::Ordering;
+        if !self.marked.load(Ordering::Relaxed) {
+            self.mark_it()?;
+            self.marked.store(true, Ordering::Relaxed);
+        }
+        Ok(())
     }
 }
 
