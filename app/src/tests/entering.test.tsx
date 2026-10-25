@@ -67,4 +67,12 @@ describe("typing the phrase on a computer that cannot open the cloud", () => {
 
     expect(screen.queryByText(/This is when each was last heard/)).toBeNull();
   });
+
+  it("takes nothing said back about the other computers as none", async () => {
+    ipc.heard = null;
+    render(<Entering onClose={() => {}} onIn={() => {}} />);
+    await waitFor(() => expect(sent("sealing_heard")).toHaveLength(1));
+
+    expect(screen.getByRole("button", { name: "Open my cloud" })).toBeTruthy();
+  });
 });

@@ -14,7 +14,7 @@ export default function Entering({ onClose, onIn }: { onClose: () => void; onIn:
 
   useEffect(() => {
     sealingHeard()
-      .then(setHeard)
+      .then((said) => setHeard(said ?? []))
       .catch(() => setHeard([]));
   }, []);
 
