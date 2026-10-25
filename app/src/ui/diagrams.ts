@@ -4,8 +4,6 @@ type Mermaid = typeof import("mermaid")["default"];
 
 const AT_MOST = 32 * 1024;
 const KEPT_AT_MOST = 64;
-// Narrower than this the words stop reading, so a wide drawing scrolls instead of shrinking further.
-const LEAST = 0.6;
 const PENDING = "figure.diagram > pre > code";
 
 let loading: Promise<Mermaid> | null = null;
@@ -70,9 +68,6 @@ const placed = (figure: Element, svg: string, dark: boolean) => {
   const sheet = page.createElement("div");
   sheet.className = "diagram-sheet";
   sheet.innerHTML = svg;
-  const drawn = sheet.querySelector("svg");
-  const wide = drawn?.viewBox?.baseVal?.width;
-  if (drawn && wide) drawn.style.setProperty("--wide", `${Math.round(wide * LEAST)}px`);
   figure.replaceChildren(sheet);
   figure.classList.add("drawn");
   figure.classList.remove("unreadable");

@@ -415,17 +415,12 @@ figure.diagram:not(.drawn) {
 figure.diagram:not(.drawn, .unreadable) pre {
   opacity: 0.5;
 }
-figure.diagram .diagram-sheet {
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-}
-/* A wide drawing shrinks to the sheet only while its words still read, and scrolls past that. */
+/* A drawing always fits the sheet; a click opens it whole, to look closer. */
 figure.diagram svg {
   display: block;
   margin: 0 auto;
   width: 100%;
   height: auto;
-  min-width: var(--wide, 0);
   cursor: zoom-in;
 }
 figure.widget iframe {
