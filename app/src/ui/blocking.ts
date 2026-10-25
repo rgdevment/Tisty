@@ -4,6 +4,7 @@ import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import {
   EditorState,
+  type Line,
   MapMode,
   Prec,
   type RangeSet,
@@ -245,6 +246,30 @@ const labelled = EditorState.transactionFilter.of((tr) => {
   return now > LABEL && now > named(tr.startState.doc) ? [] : tr;
 });
 
+const EMPTY_STEP = /^[\s>]*(?:[-*+]|\d+[.)])\s+\[[ xX]\]\s*$/;
+
+// A step with no words is no step, and a blank line between steps splits them into two lists.
+export const tightened = (state: EditorState): string => {
+  const { doc } = state;
+  const lines: Line[] = [];
+  for (let at = 1; at <= doc.lines; at++) {
+    const line = doc.line(at);
+    if (coded(state, line.from) || !EMPTY_STEP.test(line.text)) lines.push(line);
+  }
+  const blank = (line: Line) => !line.text.trim() && !coded(state, line.from);
+  const kept = lines.filter((line, at) => {
+    if (!blank(line)) return true;
+    const back = lines
+      .slice(0, at)
+      .reverse()
+      .find((one) => !blank(one));
+    const ahead = lines.slice(at + 1).find((one) => !blank(one));
+    if (!ahead) return false;
+    return !(back && BOX.test(back.text) && BOX.test(ahead.text));
+  });
+  return kept.map((line) => line.text).join(state.lineBreak);
+};
+
 export const edited = (
   block: HTMLElement,
   said: string,
@@ -277,6 +302,10 @@ export const edited = (
     gone = true;
     if (oneLine) held(view, said);
     settle(view);
+    const tight = tightened(view.state);
+    if (tight !== view.state.sliceDoc()) {
+      view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: tight } });
+    }
     const text = view.state.sliceDoc();
     const renamed = renamedIn(view.state);
     view.destroy();
