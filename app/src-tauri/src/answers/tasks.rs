@@ -103,10 +103,18 @@ pub fn task_story(
     id: String,
 ) -> Answer<tisty_core::story::Story> {
     let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
-    let mut session = held(&session);
+    let store = unheld_store(&session)?;
+    Ok(tisty_core::story::story(
+        &tisty_core::store::read_all(store)?,
+        id,
+    ))
+}
+
+// The whole log takes tens of milliseconds to read, and the page being opened waits on the lock meanwhile.
+fn unheld_store(session: &Mutex<Session>) -> Answer<std::path::PathBuf> {
+    let mut session = held(session);
     session.reload()?;
-    let told = tisty_core::story::story(&session.log()?, id);
-    Ok(told)
+    Ok(session.paths.store())
 }
 
 #[tauri::command(async)]
@@ -830,10 +838,16 @@ pub fn task_step_dates(
     id: String,
 ) -> Answer<Vec<tisty_core::dated::Dated>> {
     let id = super::parts::task_id(&id)?;
-    let mut session = held(&session);
-    session.reload()?;
-    let Some(task) = session.state.tasks.get(&id).cloned() else {
+    let (store, task) = {
+        let mut session = held(&session);
+        session.reload()?;
+        (session.paths.store(), session.state.tasks.get(&id).cloned())
+    };
+    let Some(task) = task else {
         return Ok(Vec::new());
     };
-    Ok(tisty_core::dated::dated(&session.log()?, &task))
+    Ok(tisty_core::dated::dated(
+        &tisty_core::store::read_all(store)?,
+        &task,
+    ))
 }
