@@ -12,6 +12,7 @@ use crate::{Answer, Refusal, Session, elsewhere, held};
 #[derive(Debug, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct Heard {
+    pub device: String,
     pub name: String,
     pub os: Option<String>,
     pub at: i64,
@@ -19,19 +20,21 @@ pub struct Heard {
 
 fn heard(session: &Session) -> Vec<Heard> {
     let state = &session.state;
-    let mut heard: Vec<Heard> = state
-        .devices
-        .iter()
-        .filter(|device| **device != session.config.device_id && !state.assistants.contains(device))
+    // A clock once ahead would pin a machine in the future for good, so nothing reads later than now.
+    let now = jiff::Timestamp::now().as_second();
+    let mut heard: Vec<Heard> = tisty_core::person::machines(state)
+        .into_iter()
+        .filter(|device| *device != session.config.device_id)
         .filter_map(|device| {
-            let named = state.named.get(device);
+            let named = state.named.get(&device);
             Some(Heard {
                 name: named.map_or_else(
                     || tisty_core::config::nicknamed(&device.0),
                     |one| one.name.clone(),
                 ),
                 os: named.and_then(|one| one.os.clone()),
-                at: *state.heard.get(device)?,
+                at: (*state.heard.get(&device)?).min(now),
+                device: device.0,
             })
         })
         .collect();
@@ -39,33 +42,37 @@ fn heard(session: &Session) -> Vec<Heard> {
     heard
 }
 
-/// Which of the person's other computers this one has heard from, and when, to tell whether one is at hand.
 #[tauri::command(async)]
 pub fn sealing_heard(session: tauri::State<'_, Mutex<Session>>) -> Vec<Heard> {
     heard(&held(&session))
 }
 
-// Only the cloud's key is kept, never the seed: the root signs for this computer once and is let go (decision 12).
-fn entered(session: &Mutex<Session>, here: &Here, seed: &Seed) -> Answer<()> {
-    {
-        let session = held(session);
-        let persons = &session.state.persons;
-        if persons.names_a_person() && !persons.names(&seed.root().person()) {
-            return Err(Refusal::of("phraseOtherPerson"));
-        }
-    }
-    let key = CloudKey::of(seed);
-    match opens(here, &key) {
-        Ok(true) => {}
-        Ok(false) => return Err(Refusal::of("phraseNotThisCloud")),
+fn checked(here: &Here, key: &CloudKey) -> Answer<()> {
+    match opens(here, key) {
+        Ok(true) => Ok(()),
+        Ok(false) => Err(Refusal::of("phraseNotThisCloud")),
         Err(why) => {
             tisty_core::witness::note(
                 tisty_core::witness::channel::CLOUD,
                 "the cloud's mark could not be read to check a phrase",
                 &[("why", tisty_core::witness::Fact::Why(why))],
             );
-            return Err(Refusal::of("cloudNotNow"));
+            Err(Refusal::of("cloudNotNow"))
         }
+    }
+}
+
+// Only the cloud's key is kept, never the seed: the root signs for this computer once and is let go.
+fn entered(session: &Mutex<Session>, knocking: &Knocking, here: &Here, seed: &Seed) -> Answer<()> {
+    let key = CloudKey::of(seed);
+    checked(here, &key)?;
+    {
+        // Checked and signed under one hold, so a round in between never meets a second person.
+        let mut session = held(session);
+        if !crate::identity::fits(seed, &session.state) {
+            return Err(Refusal::of("phraseOtherPerson"));
+        }
+        crate::identity::begun(&mut session, seed)?;
     }
     kept_for(session, &here.cloud, &key).map_err(|why| {
         tisty_core::witness::warn(
@@ -75,7 +82,21 @@ fn entered(session: &Mutex<Session>, here: &Here, seed: &Seed) -> Answer<()> {
         );
         Refusal::of("identityNotKept")
     })?;
-    crate::identity::begun(&mut held(session), seed)
+    if let Ok(mut asked) = knocking.asked.lock() {
+        *asked = None;
+    }
+    // An ask left up would be answered with a copy of the key nobody comes for.
+    if let Err(why) = tisty_carrier::knock::withdrawn(&*here.plain, &here.home, &here.device.0) {
+        tisty_core::witness::note(
+            tisty_core::witness::channel::CLOUD,
+            "the cloud was opened with the phrase, and this computer's ask stays up there for now",
+            &[(
+                "why",
+                tisty_core::witness::Fact::Why(why.code().to_string()),
+            )],
+        );
+    }
+    Ok(())
 }
 
 #[tauri::command(async)]
@@ -96,7 +117,7 @@ pub async fn sealing_phrase(app: AppHandle, said: String) -> Answer<()> {
             );
             Refusal::of("cloudNotNow")
         })?;
-        entered(&session, &here, &seed)
+        entered(&session, &knocking, &here, &seed)
     })
     .await??;
     crate::identity::seal_the_cloud(&app.state::<Mutex<Session>>()).await;

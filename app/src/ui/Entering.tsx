@@ -32,14 +32,14 @@ export default function Entering({ onClose, onIn }: { onClose: () => void; onIn:
   };
 
   return (
-    <Modal title={t("enterTitle")} wide onClose={onClose}>
+    <Modal title={t("enterTitle")} wide onClose={() => !busy && onClose()}>
       <p className="text-[12.5px] leading-relaxed text-soft">{t("enterWhat")}</p>
       {heard.length > 0 && (
         <>
           <p className="mt-3 text-[12.5px] leading-relaxed">{t("enterOthers")}</p>
           <ul className="mt-1.5 flex flex-col gap-1 text-[12.5px]">
             {heard.map((one) => (
-              <li key={`${one.name}-${one.at}`} className="flex gap-2">
+              <li key={one.device} className="flex gap-2">
                 <span className="min-w-0 flex-1 truncate">
                   {[one.name, one.os].filter(Boolean).join(" · ")}
                 </span>
@@ -66,7 +66,7 @@ export default function Entering({ onClose, onIn }: { onClose: () => void; onIn:
         </p>
       )}
       <div className="mt-4 flex flex-wrap justify-end gap-2">
-        <button type="button" className={mild} onClick={onClose}>
+        <button type="button" className={mild} disabled={busy} onClick={onClose}>
           {t("cancel")}
         </button>
         <button

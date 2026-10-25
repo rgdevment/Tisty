@@ -29,13 +29,13 @@ beforeEach(() => {
 
 describe("typing the phrase on a computer that cannot open the cloud", () => {
   it("names the other computers heard from and opens the cloud with the words typed", async () => {
-    ipc.heard = [{ name: "Mac de la oficina", os: "macOS", at: 1_761_400_000 }];
+    ipc.heard = [{ device: "dev_a", name: "Mac de la oficina", os: "macOS", at: 1_761_400_000 }];
     const onIn = vi.fn();
     const onClose = vi.fn();
     render(<Entering onClose={onClose} onIn={onIn} />);
 
     expect(await screen.findByText(/Mac de la oficina · macOS/)).toBeTruthy();
-    expect(screen.getByText(/last seen/)).toBeTruthy();
+    expect(screen.getByText(/^last heard /)).toBeTruthy();
     const go = screen.getByRole("button", { name: "Open my cloud" });
     expect(go.hasAttribute("disabled")).toBe(true);
     await userEvent.type(screen.getByRole("textbox"), "  abandon ability able  ");
@@ -65,6 +65,6 @@ describe("typing the phrase on a computer that cannot open the cloud", () => {
     render(<Entering onClose={() => {}} onIn={() => {}} />);
     await waitFor(() => expect(sent("sealing_heard")).toHaveLength(1));
 
-    expect(screen.queryByText(/If one of these computers is at hand/)).toBeNull();
+    expect(screen.queryByText(/This is when each was last heard/)).toBeNull();
   });
 });

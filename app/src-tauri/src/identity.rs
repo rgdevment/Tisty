@@ -394,7 +394,7 @@ fn counted(seed: Option<Seed>, state: &State) -> Option<Seed> {
     seed.filter(|seed| fits(seed, state))
 }
 
-fn fits(seed: &Seed, state: &State) -> bool {
+pub(crate) fn fits(seed: &Seed, state: &State) -> bool {
     !state.persons.names_a_person() || ours(seed, state)
 }
 

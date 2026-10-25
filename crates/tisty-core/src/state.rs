@@ -32,7 +32,6 @@ pub struct State {
     pub hosts: BTreeMap<DeviceId, DeviceId>,
     pub named: BTreeMap<DeviceId, crate::applying::Named>,
     pub runs: BTreeMap<DeviceId, String>,
-    /// When each machine last wrote, in seconds, so a person can tell which of their computers is still about.
     pub heard: BTreeMap<DeviceId, i64>,
     pub sealed: BTreeMap<String, String>,
     pub sourced: BTreeMap<String, TaskId>,
@@ -216,10 +215,12 @@ impl State {
 
     pub fn apply(&mut self, event: &Event) {
         let at = event.timestamp.as_second();
-        self.heard
-            .entry(event.device.clone())
-            .and_modify(|was| *was = (*was).max(at))
-            .or_insert(at);
+        match self.heard.get_mut(&event.device) {
+            Some(was) => *was = (*was).max(at),
+            None => {
+                self.heard.insert(event.device.clone(), at);
+            }
+        }
         self.applied(event);
     }
 

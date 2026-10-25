@@ -11,7 +11,7 @@ fn the_phrase_of_this_cloud_keeps_its_key_and_signs_for_this_computer_without_ke
     let two = two();
     sealed_with(&two, &key(7));
 
-    entered(&two.asker, &two.asking, &seed(7)).unwrap();
+    entered(&two.asker, &Knocking::default(), &two.asking, &seed(7)).unwrap();
 
     assert_eq!(held(&two.asker).config.key_handed, Some(two.cloud.clone()));
     assert_eq!(
@@ -34,7 +34,7 @@ fn a_phrase_that_does_not_open_this_cloud_keeps_nothing() {
     let two = two();
     sealed_with(&two, &key(7));
 
-    let refused = entered(&two.asker, &two.asking, &seed(4)).unwrap_err();
+    let refused = entered(&two.asker, &Knocking::default(), &two.asking, &seed(4)).unwrap_err();
 
     assert_eq!(refused.code, "phraseNotThisCloud");
     assert_eq!(held(&two.asker).config.key_handed, None);
@@ -47,7 +47,7 @@ fn a_phrase_of_another_person_than_the_one_the_log_names_is_refused() {
     sealed_with(&two, &key(7));
     crate::identity::begun(&mut held(&two.asker), &seed(3)).unwrap();
 
-    let refused = entered(&two.asker, &two.asking, &seed(7)).unwrap_err();
+    let refused = entered(&two.asker, &Knocking::default(), &two.asking, &seed(7)).unwrap_err();
 
     assert_eq!(refused.code, "phraseOtherPerson");
 }
@@ -79,4 +79,33 @@ fn the_other_computers_heard_from_come_latest_first_and_never_this_one() {
             tisty_core::config::nicknamed("dev_old"),
         ]
     );
+}
+
+#[test]
+fn opening_with_the_phrase_takes_this_computer_s_ask_away() {
+    let two = two();
+    sealed_with(&two, &key(7));
+    let knocking = Knocking::default();
+    crate::handed::ask_now(&two.asker, &mut knocking.asked.lock().unwrap(), &two.asking).unwrap();
+
+    entered(&two.asker, &knocking, &two.asking, &seed(7)).unwrap();
+
+    assert!(knocking.asked.lock().unwrap().is_none());
+    assert!(
+        tisty_carrier::knock::knocks(&*two.plain, &two.asking.home)
+            .unwrap()
+            .is_empty()
+    );
+}
+
+#[test]
+fn a_phrase_refused_for_another_person_keeps_no_key() {
+    let two = two();
+    sealed_with(&two, &key(7));
+    crate::identity::begun(&mut held(&two.asker), &seed(3)).unwrap();
+
+    assert!(entered(&two.asker, &Knocking::default(), &two.asking, &seed(7)).is_err());
+
+    assert!(crate::handed::kept(&two.cloud).unwrap().is_none());
+    assert_eq!(held(&two.asker).config.key_handed, None);
 }

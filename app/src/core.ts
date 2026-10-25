@@ -1382,6 +1382,7 @@ export const admittingRefuse = (device: string): Promise<void> =>
   invoke("admitting_refuse", { device });
 
 export interface Heard {
+  device: string;
   name: string;
   os: string | null;
   at: number;

@@ -1315,3 +1315,29 @@ fn when_each_machine_last_wrote_comes_back_from_the_cache() {
 
     assert_eq!(back.heard, state.heard, "when the machines wrote was lost");
 }
+
+#[test]
+fn a_cache_carried_forward_one_event_at_a_time_still_agrees_on_when_each_machine_wrote() {
+    let f = loaded();
+    let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
+    let mut state = project(&f.store_root, &f.cache_dir).unwrap();
+    let mut cache = Cache::open(&f.cache_dir).unwrap();
+    std::thread::sleep(std::time::Duration::from_millis(1100));
+    let later = store
+        .append(Op::TaskAdd {
+            id: Ulid::generate(),
+            d: TaskAdd::new("call the bank", "a1"),
+        })
+        .unwrap();
+    state.apply(&later);
+
+    advance(cache.as_mut(), &state, &[later], &f.store_root, false);
+
+    assert!(
+        matches!(
+            crate::cache::audit(&f.store_root, &f.cache_dir).unwrap(),
+            crate::cache::Audit::Agrees { .. }
+        ),
+        "the cache diverged from the log"
+    );
+}

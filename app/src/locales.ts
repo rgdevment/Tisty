@@ -1918,8 +1918,9 @@ const en = {
   enterTitle: "Type my phrase",
   enterWhat:
     "Type your 24 words in order, separated by spaces. Only the key of your cloud stays on this computer; the phrase itself is not kept.",
-  enterOthers: "If one of these computers is at hand, you can let this one in from there instead:",
-  enterSeen: "last seen {name}",
+  enterOthers:
+    "Your other computers hand this one the key on their own once one of them is on. This is when each was last heard:",
+  enterSeen: "last heard {name}",
   enterGo: "Open my cloud",
   sealWipe: "Delete the unencrypted copy",
   sealWipeSure:
@@ -4376,8 +4377,9 @@ const es: Catalog = {
   enterTitle: "Escribir mi frase",
   enterWhat:
     "Escribe tus 24 palabras en orden, separadas por espacios. En este equipo solo queda la llave de tu nube; la frase misma no se guarda.",
-  enterOthers: "Si tienes a mano alguno de estos equipos, también puedes autorizar este desde ahí:",
-  enterSeen: "visto por última vez {name}",
+  enterOthers:
+    "Tus otros equipos le entregan la llave a este solos apenas uno de ellos esté encendido. Esta es la última vez que se supo de cada uno:",
+  enterSeen: "última vez {name}",
   enterGo: "Abrir mi nube",
   sealWipe: "Borrar la copia sin cifrar",
   sealWipeSure:

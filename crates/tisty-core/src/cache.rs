@@ -409,6 +409,13 @@ impl Cache {
         Ok(())
     }
 
+    fn heard_up(&self, state: &State) -> rusqlite::Result<usize> {
+        self.db.execute(
+            "INSERT OR REPLACE INTO meta VALUES ('heard', ?)",
+            [serde_json::to_string(&state.heard).unwrap_or_default()],
+        )
+    }
+
     pub fn touch(&mut self, state: &State, entity: ulid::Ulid, fingerprint: &str) -> Result<()> {
         if !state.has_bodies() {
             self.invalidate();
@@ -857,10 +864,12 @@ fn reached(
     // One write transaction taken up front: cut halfway the cache would call itself current, and a read first would lock out other writers.
     let _ = cache.db.execute_batch("BEGIN IMMEDIATE");
     // A row left behind under a fingerprint that calls the whole cache current would be served stale.
+    // Every event moves when its machine was heard, whatever entity it touched, so that row is kept with them.
     let carried = events
         .iter()
         .filter_map(|event| event.entity_id())
-        .all(|id| cache.touch(state, id, &print).is_ok());
+        .all(|id| cache.touch(state, id, &print).is_ok())
+        && cache.heard_up(state).is_ok();
     if !carried || cache.db.execute_batch("COMMIT").is_err() {
         let _ = cache.db.execute_batch("ROLLBACK");
         cache.invalidate();

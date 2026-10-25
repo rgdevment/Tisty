@@ -5010,3 +5010,37 @@ fn each_machine_is_heard_at_its_latest_word_whatever_order_they_come_in() {
         Some(&b.as_second())
     );
 }
+
+#[test]
+fn a_machine_taken_off_the_list_is_heard_no_more() {
+    let mut state = State::default();
+    for (by, op) in [
+        ("dev_b", seam("01OLD", "01NEW")),
+        (
+            "dev_a",
+            crate::Op::DeviceRemove {
+                d: crate::event::DeviceId("dev_b".into()),
+            },
+        ),
+    ] {
+        state.apply(&crate::event::Event {
+            version: crate::event::SCHEMA_VERSION,
+            timestamp: "2026-08-15T10:00:00Z".parse().unwrap(),
+            device: crate::event::DeviceId(by.into()),
+            batch: None,
+            undo: false,
+            redo: false,
+            seq: 0,
+            op,
+            optional: false,
+            zone: None,
+            via: None,
+        });
+    }
+
+    assert!(
+        !state
+            .heard
+            .contains_key(&crate::event::DeviceId("dev_b".into()))
+    );
+}
