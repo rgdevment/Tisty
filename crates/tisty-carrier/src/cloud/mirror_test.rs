@@ -346,3 +346,35 @@ fn a_listing_that_keeps_no_hash_keeps_the_one_this_machine_sent_for_the_same_rev
     index.shelved("attachments/x-1a2b.pdf", seen("", "r2"));
     assert_eq!(index.shelf["attachments/x-1a2b.pdf"].hash, "");
 }
+
+#[test]
+fn a_plain_reader_that_brings_down_a_sealed_word_brings_nothing_else_and_writes_nothing() {
+    let room = tempfile::tempdir().unwrap();
+    let tree = room.path().join("tree");
+    std::fs::create_dir_all(&tree).unwrap();
+    let fake = Fake::drive();
+    let said = room.path().join("said");
+    std::fs::write(
+        &said,
+        "shape = 3\nneeds = \"1.35.0\"\nsealed = \"store_one\"\n",
+    )
+    .unwrap();
+    fake.put(NAMED, &said, Expect::Absent).unwrap();
+    std::fs::write(&said, b"\xffTCS sealed").unwrap();
+    fake.put(
+        &format!("sealed/{PAPERS}/dev_b-0001.md"),
+        &said,
+        Expect::Absent,
+    )
+    .unwrap();
+    let mut index = Index::default();
+
+    let pulled = pull(&fake, &tree, &mut index, None, false, &mut |_| {});
+
+    assert!(
+        matches!(pulled, Err(Hitch::Barred(tisty_sync::Trouble::Sealed(_)))),
+        "{pulled:?}"
+    );
+    assert!(!tree.join("sealed").exists(), "something sealed came down");
+    assert!(index.cursor.is_none(), "the listing was taken as read");
+}
