@@ -11,20 +11,35 @@ const DIAGRAMS_AT_MOST: usize = 64;
 
 /// A page is drawn again on every edit, and its diagrams, which cost the most, rarely change with it.
 #[derive(Default)]
-pub struct Diagrams(Mutex<std::collections::HashMap<String, Option<String>>>);
+pub struct Diagrams(Mutex<Kept>);
+
+#[derive(Default)]
+struct Kept {
+    drawn: std::collections::HashMap<String, Option<String>>,
+    order: std::collections::VecDeque<String>,
+}
 
 impl Diagrams {
     fn drawn(&self, source: &str) -> Option<String> {
         let key = tisty_core::attach::printed(source.as_bytes());
-        if let Some(kept) = self.0.lock().ok().and_then(|kept| kept.get(&key).cloned()) {
+        if let Some(kept) = self
+            .0
+            .lock()
+            .ok()
+            .and_then(|kept| kept.drawn.get(&key).cloned())
+        {
             return kept;
         }
         let drawn = tisty_markdown::diagram::drawn(source);
-        if let Ok(mut kept) = self.0.lock() {
-            if kept.len() >= DIAGRAMS_AT_MOST {
-                kept.clear();
+        if let Ok(mut kept) = self.0.lock()
+            && kept.drawn.insert(key.clone(), drawn.clone()).is_none()
+        {
+            kept.order.push_back(key);
+            while kept.order.len() > DIAGRAMS_AT_MOST {
+                if let Some(oldest) = kept.order.pop_front() {
+                    kept.drawn.remove(&oldest);
+                }
             }
-            kept.insert(key, drawn.clone());
         }
         drawn
     }

@@ -24,7 +24,7 @@ fn a_diagram_is_drawn_once_while_the_words_around_it_change() {
     let shelf = tmp.path().join("pages");
     let fence = "graph TD\n  A --> B\n";
     let diagrams = Diagrams::default();
-    diagrams.0.lock().unwrap().insert(
+    diagrams.0.lock().unwrap().drawn.insert(
         tisty_core::attach::printed(fence.as_bytes()),
         Some("<svg>kept</svg>".into()),
     );
@@ -36,7 +36,25 @@ fn a_diagram_is_drawn_once_while_the_words_around_it_change() {
         );
         assert!(page.contains("kept"), "{page}");
     }
-    assert_eq!(diagrams.0.lock().unwrap().len(), 1);
+    assert_eq!(diagrams.0.lock().unwrap().drawn.len(), 1);
+}
+
+#[test]
+fn the_diagrams_kept_are_the_latest_so_many() {
+    let diagrams = Diagrams::default();
+    for n in 0..super::DIAGRAMS_AT_MOST + 2 {
+        diagrams.drawn(&format!("graph TD\n  A{n} --> B\n"));
+    }
+    let kept = diagrams.0.lock().unwrap();
+    assert_eq!(kept.drawn.len(), super::DIAGRAMS_AT_MOST);
+    assert_eq!(kept.order.len(), super::DIAGRAMS_AT_MOST);
+    let latest = format!("graph TD\n  A{} --> B\n", super::DIAGRAMS_AT_MOST + 1);
+    assert!(
+        kept.drawn
+            .contains_key(&tisty_core::attach::printed(latest.as_bytes()))
+    );
+    let first = tisty_core::attach::printed("graph TD\n  A0 --> B\n".as_bytes());
+    assert!(!kept.drawn.contains_key(&first));
 }
 
 #[test]
