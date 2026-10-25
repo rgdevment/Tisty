@@ -196,3 +196,27 @@ fn kept_seed(paths: &Paths, forebear: &str, fits: &dyn Fn(&Seed) -> bool) -> Opt
     let forebears = BTreeSet::from([forebear.to_string()]);
     kept(paths, &forebears, fits).unwrap()
 }
+
+#[test]
+fn a_new_address_on_the_same_account_is_the_same_sealed_cloud() {
+    let locked = |email: &str| Locked {
+        at: CloudAt {
+            email: email.into(),
+            ..account("mario")
+        },
+        cloud: "cloud_one".into(),
+        named: "key_a".into(),
+    };
+
+    assert_eq!(
+        locked("mario@cloud.example.com"),
+        locked("otro@cloud.example.com")
+    );
+    assert_ne!(
+        locked("mario@cloud.example.com"),
+        Locked {
+            at: account("otra"),
+            ..locked("mario@cloud.example.com")
+        }
+    );
+}

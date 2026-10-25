@@ -39,6 +39,7 @@ fn broke(e: impl ToString) -> Hitch {
 
 const MARK: &str = "sealed.mark";
 const MARK_AT_MOST: u64 = 512;
+const TRIES: usize = 3;
 
 fn named_back(hitch: Hitch, inner: &str, name: &str) -> Hitch {
     match hitch {
@@ -86,15 +87,24 @@ impl<R: Remote> Sealed<R> {
     }
 
     pub fn marked(&self) -> Result<Option<Mark>, Hitch> {
+        Ok(self.read_mark()?.map(|(said, _)| said))
+    }
+
+    fn read_mark(&self) -> Result<Option<(Mark, String)>, Hitch> {
         let at = format!("{INSIDE}/{MARK}");
-        match self.inner.about(&at)? {
+        let there = match self.inner.about(&at)? {
             None => return Ok(None),
-            Some(there) if there.bytes > MARK_AT_MOST => return Ok(Some(Mark::Damaged)),
-            Some(_) => {}
-        }
+            Some(there) if there.bytes > MARK_AT_MOST => {
+                return Ok(Some((Mark::Damaged, there.revision)));
+            }
+            Some(there) => there,
+        };
         let mut said = Vec::new();
         match self.inner.fetch(&at, 0, &mut said) {
-            Ok(_) => Ok(Some(mark_says(&self.key, &self.cloud, &said))),
+            Ok(_) => Ok(Some((
+                mark_says(&self.key, &self.cloud, &said),
+                there.revision,
+            ))),
             Err(Hitch::Missing(_)) => Ok(None),
             Err(other) => Err(other),
         }
@@ -102,10 +112,10 @@ impl<R: Remote> Sealed<R> {
 
     // A put that lost the race to another machine reads back whichever mark won.
     pub fn mark_it(&self) -> Result<(), Hitch> {
-        match self.marked()? {
+        match self.read_mark()? {
             None => {}
-            Some(Mark::Damaged) => return self.mended(),
-            said => return self.mark_holds(said),
+            Some((Mark::Damaged, revision)) => return self.mended(revision),
+            Some((said, _)) => return self.mark_holds(Some(said)),
         }
         match self.written(Expect::Absent) {
             Ok(()) | Err(Hitch::Changed(_)) => {}
@@ -129,14 +139,11 @@ impl<R: Remote> Sealed<R> {
     }
 
     // A damaged mark says nothing about the phrase, so it is written again only once this key opens what is up there.
-    fn mended(&self) -> Result<(), Hitch> {
-        let Some(there) = self.inner.about(&format!("{INSIDE}/{MARK}"))? else {
-            return self.mark_it();
-        };
-        if !self.opens_any()? {
+    fn mended(&self, revision: String) -> Result<(), Hitch> {
+        if !self.proven()? {
             return Err(self.damaged());
         }
-        match self.written(Expect::Revision(there.revision)) {
+        match self.written(Expect::Revision(revision)) {
             Ok(()) | Err(Hitch::Changed(_)) => {}
             Err(other) => return Err(other),
         }
@@ -146,19 +153,41 @@ impl<R: Remote> Sealed<R> {
         }
     }
 
-    fn opens_any(&self) -> Result<bool, Hitch> {
-        let smallest = self
+    // One torn file must not keep the right phrase out, and a cloud with nothing sealed has nothing a mark could guard.
+    fn proven(&self) -> Result<bool, Hitch> {
+        let mut held: Vec<Seen> = self
             .within(crate::STORE)?
             .into_iter()
-            .filter(|one| !self.is_clear(&one.name))
-            .min_by_key(|one| one.bytes);
-        let Some(one) = smallest else {
-            return Ok(false);
-        };
-        match self.fetch(&one.name, 0, &mut std::io::sink()) {
-            Ok(_) => Ok(true),
-            Err(Hitch::Broke(_)) => Ok(false),
-            Err(other) => Err(other),
+            .filter(|one| one.bytes > 0 && !self.is_clear(&one.name))
+            .collect();
+        if held.is_empty() {
+            return Ok(true);
+        }
+        held.sort_by_key(|one| one.bytes);
+        for one in held.iter().take(TRIES) {
+            if self.opens(&one.name)? {
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+
+    fn opens(&self, name: &str) -> Result<bool, Hitch> {
+        let cipher = crate::temp::Temp::new();
+        let mut to = cipher.create().map_err(broke)?;
+        self.inner.fetch(&self.placed(name), 0, &mut to)?;
+        drop(to);
+        let mut from = std::fs::File::open(&cipher.0).map_err(broke)?;
+        match open(
+            &self.key,
+            &self.cloud,
+            &self.bound(name),
+            &mut from,
+            &mut std::io::sink(),
+        ) {
+            Ok(()) => Ok(true),
+            Err(Unsealed::Io(why)) => Err(broke(why)),
+            Err(_) => Ok(false),
         }
     }
 
@@ -204,14 +233,14 @@ impl<R: Remote> Sealed<R> {
 
     fn bound(&self, name: &str) -> String {
         match self.folds() {
-            true => name.to_lowercase(),
+            true => crate::remote::folded(name),
             false => name.to_string(),
         }
     }
 
     fn shown(&self, name: &str) -> Option<String> {
         if self.is_clear(name) {
-            return Some(name.to_ascii_lowercase());
+            return Some(crate::remote::folded(name));
         }
         let (top, inside) = name.split_once('/')?;
         (self.same(top, INSIDE)

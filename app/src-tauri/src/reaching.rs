@@ -27,13 +27,24 @@ pub struct Reaching {
     tried: Mutex<Option<(Locked, usize)>>,
 }
 
-/// A sealed cloud on one account, and the key `cloud.sealed` says opens it.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct Locked {
     pub at: CloudAt,
     pub cloud: String,
     pub named: String,
 }
+
+// The account's own id outlives a change of address, so a new email never asks the keychain again.
+impl PartialEq for Locked {
+    fn eq(&self, other: &Self) -> bool {
+        self.at.provider == other.at.provider
+            && self.at.account == other.at.account
+            && self.cloud == other.cloud
+            && self.named == other.named
+    }
+}
+
+impl Eq for Locked {}
 
 #[derive(Clone)]
 pub struct Keyed {

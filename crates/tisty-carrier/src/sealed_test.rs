@@ -411,12 +411,34 @@ fn a_damaged_mark_is_mended_once_this_phrase_opens_what_the_cloud_holds() {
 }
 
 #[test]
-fn a_damaged_mark_over_nothing_to_open_stops_and_stays_as_it_is() {
+fn a_damaged_mark_over_a_cloud_with_nothing_sealed_is_written_again() {
     let sealed = over_drive();
     damaged(&sealed);
 
-    assert_eq!(barred(sealed.mark_it()), Some("mark-damaged"));
-    assert_eq!(sealed.marked().unwrap(), Some(Mark::Damaged));
+    sealed.mark_it().unwrap();
+
+    assert_eq!(sealed.marked().unwrap(), Some(Mark::Holds));
+}
+
+#[test]
+fn one_torn_file_does_not_keep_the_right_phrase_from_mending_the_mark() {
+    let sealed = over_drive();
+    put(&sealed, "store/dev_one/0002.jsonl", b"{\"op\":\"x\"}\n");
+    put(
+        &sealed.inner,
+        &format!("{INSIDE}/store/dev_one/0001.jsonl"),
+        b"\xffTCS torn",
+    );
+    put(
+        &sealed.inner,
+        &format!("{INSIDE}/store/dev_one/0000.jsonl"),
+        b"",
+    );
+    damaged(&sealed);
+
+    sealed.mark_it().unwrap();
+
+    assert_eq!(sealed.marked().unwrap(), Some(Mark::Holds));
 }
 
 #[test]

@@ -126,10 +126,13 @@ pub struct Limits {
     pub costs: Costs,
 }
 
-/// The one rule for two names: a provider that folds case takes them as one whatever their capitals.
+pub(crate) fn folded(name: &str) -> String {
+    name.to_lowercase()
+}
+
 pub(crate) fn same_name(folds: bool, one: &str, other: &str) -> bool {
     match folds {
-        true => one.to_lowercase() == other.to_lowercase(),
+        true => folded(one) == folded(other),
         false => one == other,
     }
 }
@@ -173,7 +176,7 @@ pub fn renamed_by_copy<R: Remote + ?Sized>(remote: &R, from: &str, to: &str) -> 
             .map(|_| ())
             .ok_or_else(|| Hitch::Missing(from.to_string()));
     }
-    if remote.limits().folds_case && same_name(true, from, to) {
+    if same_name(remote.limits().folds_case, from, to) {
         return Err(Hitch::Broke(format!(
             "{from} cannot be renamed by copy to {to} where the provider folds case"
         )));

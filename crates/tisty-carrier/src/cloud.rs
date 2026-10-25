@@ -154,7 +154,7 @@ impl Cloud {
         Ok(())
     }
 
-    // Asked once for each carrier, so a machine with another phrase never sends into this cloud.
+    // Asked again whenever the mirror starts over, so a machine with another phrase never sends into this cloud.
     fn marked_up(&self, remote: &dyn Remote) -> Result<(), crate::Hitch> {
         if crate::sealed::reading(&self.root).is_none() || self.marked.load(Ordering::Relaxed) {
             return Ok(());
@@ -245,6 +245,7 @@ impl Cloud {
         let remote: &dyn Remote = &metered;
         let mut index = self.index();
         let data = here.map(|here| here.data.as_path());
+        mirror::heal(&tree, &mut index);
         let pulled = self
             .marked_up(remote)
             .and_then(|()| mirror::pull(remote, &tree, &mut index, data, turn.homes, along));

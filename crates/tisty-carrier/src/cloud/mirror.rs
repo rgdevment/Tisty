@@ -243,7 +243,7 @@ fn heeded(
     }
 }
 
-fn heal(tree: &Path, index: &mut Index) {
+pub(super) fn heal(tree: &Path, index: &mut Index) {
     let docs_stand = tree.join(PAPERS).is_dir();
     let missing: Vec<String> = index
         .tree

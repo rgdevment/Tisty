@@ -105,7 +105,7 @@ describe("what the cloud's state says", () => {
 
   it("names each way an encrypted cloud stops, in red only where something is wrong", () => {
     const of = (code: string) => cloudStanding(status({ last: round(code) }));
-    expect(of("cloudSealed")?.said).toBe("stateSealed");
+    expect(of("cloudSealed")).toMatchObject({ said: "stateSealed", urgent: true });
     expect(of("cloudSealing")).toMatchObject({ said: "stateSealing", why: "stateSealingWhy" });
     expect(of("cloudSealing")?.urgent).toBeUndefined();
     expect(of("cloudOtherPhrase")).toMatchObject({ said: "stateOtherPhrase", urgent: true });

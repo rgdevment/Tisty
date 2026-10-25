@@ -1522,7 +1522,7 @@ const en = {
   stateEmptiedDo: "Send it all again",
   stateSealed: "Your cloud is encrypted",
   stateSealedWhy:
-    "This computer cannot open it yet. Nothing syncs, and what you write stays on this computer.",
+    "This computer cannot open it yet. Update Tisty on this computer to enter your phrase there; meanwhile what you write stays here.",
   stateSealing: "Another computer is encrypting your cloud",
   stateSealingWhy: "Syncing goes on by itself once it is done.",
   stateOtherPhrase: "Your cloud uses another phrase",
@@ -3893,7 +3893,7 @@ const es: Catalog = {
   stateEmptiedDo: "Subirlo todo de nuevo",
   stateSealed: "Tu nube está cifrada",
   stateSealedWhy:
-    "Este equipo todavía no puede abrirla. No se sincroniza nada y lo que escribas queda en este equipo.",
+    "Este equipo todavía no puede abrirla. Actualiza Tisty en este equipo para escribir ahí tu frase; mientras tanto, lo que escribas queda aquí.",
   stateSealing: "Otro equipo está cifrando tu nube",
   stateSealingWhy: "La sincronización sigue sola cuando termine.",
   stateOtherPhrase: "Tu nube usa otra frase",
