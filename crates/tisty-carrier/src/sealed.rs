@@ -116,7 +116,7 @@ impl<R: Remote> Sealed<R> {
 
     fn same(&self, one: &str, other: &str) -> bool {
         match self.folds() {
-            true => one.eq_ignore_ascii_case(other),
+            true => one.to_lowercase() == other.to_lowercase(),
             false => one == other,
         }
     }
@@ -164,8 +164,11 @@ impl<R: Remote> Sealed<R> {
         .then(|| inside.to_string())
     }
 
+    fn held_as(&self, one: &Seen, asked: &str) -> String {
+        self.shown(&one.name).unwrap_or_else(|| asked.to_string())
+    }
+
     fn seen(&self, one: Seen, name: &str, hash: String) -> Seen {
-        let name = &self.shown(&one.name).unwrap_or_else(|| name.to_string());
         match self.is_clear(name) {
             true => Seen {
                 name: name.to_string(),
@@ -197,11 +200,10 @@ impl<R: Remote> Sealed<R> {
         let mut seen = self.listed(self.inner.list(&format!("{INSIDE}/{under}"))?);
         if under == STORE {
             let id = format!("{STORE}/{MARKER}");
-            seen.extend(
-                self.inner
-                    .about(&id)?
-                    .map(|one| self.seen(one, &id, String::new())),
-            );
+            seen.extend(self.inner.about(&id)?.map(|one| {
+                let name = self.held_as(&one, &id);
+                self.seen(one, &name, String::new())
+            }));
         }
         Ok(seen)
     }
@@ -248,7 +250,8 @@ impl<R: Remote> Remote for Sealed<R> {
         let mut read = std::fs::File::open(&plain.0).map_err(broke)?;
         std::io::Seek::seek(&mut read, std::io::SeekFrom::Start(from)).map_err(broke)?;
         std::io::copy(&mut read, into).map_err(broke)?;
-        Ok(self.seen(got, name, hash))
+        let there = self.held_as(&got, name);
+        Ok(self.seen(got, &there, hash))
     }
 
     fn put(&self, name: &str, from: &Path, expect: Expect) -> Result<Seen, Hitch> {
@@ -283,7 +286,8 @@ impl<R: Remote> Remote for Sealed<R> {
             )));
         }
         let hash = self.inner.hash_of(&snapshot.0).map_err(broke)?;
-        Ok(self.seen(there, name, hash))
+        let held = self.held_as(&there, name);
+        Ok(self.seen(there, &held, hash))
     }
 
     fn delete(&self, name: &str, expect: Option<&str>) -> Result<(), Hitch> {
@@ -307,7 +311,10 @@ impl<R: Remote> Remote for Sealed<R> {
             .inner
             .about(&inner)
             .map_err(|e| named_back(e, &inner, name))?
-            .map(|one| self.seen(one, name, String::new())))
+            .map(|one| {
+                let held = self.held_as(&one, name);
+                self.seen(one, &held, String::new())
+            }))
     }
 
     fn changes(&self, since: Option<&str>) -> Result<Changes, Hitch> {

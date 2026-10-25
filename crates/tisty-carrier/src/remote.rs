@@ -160,7 +160,10 @@ pub fn renamed_by_copy<R: Remote + ?Sized>(remote: &R, from: &str, to: &str) -> 
     named_well(from)?;
     named_well(to)?;
     if from == to {
-        return Ok(());
+        return remote
+            .about(from)?
+            .map(|_| ())
+            .ok_or_else(|| Hitch::Missing(from.to_string()));
     }
     if remote.limits().folds_case && from.to_lowercase() == to.to_lowercase() {
         return Err(Hitch::Broke(format!(
