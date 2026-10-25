@@ -361,7 +361,7 @@ fn the_hash_follows_the_content_and_is_the_one_the_provider_reports() {
 
         assert_eq!(hashed, remote.hash_of(&same).unwrap(), "{who}");
         // A provider that keeps no fingerprint says so the same way everywhere, and size and revision stand in.
-        match remote.reports_hashes() {
+        match remote.reports_hashes() || remote.seals() {
             true => assert_ne!(hashed, remote.hash_of(&other).unwrap(), "{who}"),
             false => assert!(hashed.is_empty(), "{who}"),
         }
