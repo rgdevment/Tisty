@@ -128,7 +128,6 @@ fn seeded(mnemonic: &Mnemonic) -> Result<Seed, Unread> {
     Ok(Seed::from_bytes(&seed))
 }
 
-/// One word copied by hand against the phrase's own, in any case and with or without its accents.
 pub fn same_word(said: &str, word: &str) -> bool {
     let bare = |one: &str| Zeroizing::new(unmarked(&Zeroizing::new(lowered(one.trim()))));
     *bare(said) == *bare(word)

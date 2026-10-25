@@ -1297,7 +1297,7 @@ pub fn run() {
             answers::papers::doc_facts,
             answers::papers::keep_file,
             answers::papers::doc_word,
-            answers::papers::page_pdf,
+            answers::printing::page_pdf,
             answers::papers::doc_back,
             answers::papers::doc_backable,
             answers::papers::doc_write,

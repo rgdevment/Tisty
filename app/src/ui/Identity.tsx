@@ -51,8 +51,8 @@ export default function Identity({
     asked.current = true;
     checked()
       .then(setAudit)
-      .catch(() => {});
-  }, [held, setAudit]);
+      .catch((e) => fail({ card: "identity", text: saidPlainly(e) }));
+  }, [held, setAudit, fail]);
 
   const see = () => {
     identityPhrase()
@@ -69,13 +69,11 @@ export default function Identity({
           words={words}
           fingerprint={shown.fingerprint}
           onClose={() => setWords(null)}
-          onSaved={() => tell({ card: "identity", text: t("sheetSaved") })}
           onConfirmed={() => {
             setWords(null);
             look();
             tell({ card: "identity", text: t("phraseConfirmed") });
           }}
-          onError={(text) => fail({ card: "identity", text })}
         />
       )}
       <Card title={t("tabIdentity")} which="identity" busy={busy} said={said} trouble={trouble}>
@@ -156,7 +154,7 @@ function Born({
                   <span className="block text-[13px] font-semibold">{named(one)}</span>
                   <span className="block text-soft">
                     {one.mine
-                      ? fill("identityHere", dated(one.when))
+                      ? fill("identityHere", one.when === 0 ? t("machineNever") : dated(one.when))
                       : one.when === 0
                         ? t("machineNever")
                         : dated(one.when)}

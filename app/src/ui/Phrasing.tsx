@@ -13,10 +13,10 @@ interface Props {
   words: string[];
   fingerprint: string;
   onClose: () => void;
-  onSaved: () => void;
   onConfirmed: () => void;
-  onError: (text: string) => void;
 }
+
+type Told = { text: string; amiss?: boolean };
 
 const THIRD = 8;
 
@@ -37,16 +37,14 @@ const sheetPage = (words: string[], fingerprint: string, when: string): string =
     .map((word, at) => `<li><span>${at + 1}</span>${escaped(word)}</li>`)
     .join("")}</ol><p class="warn">${escaped(t("sheetWarn"))}</p></body></html>`;
 
-export default function Phrasing({
-  words,
-  fingerprint,
-  onClose,
-  onSaved,
-  onConfirmed,
-  onError,
-}: Props) {
+export default function Phrasing({ words, fingerprint, onClose, onConfirmed }: Props) {
   const [step, setStep] = useState<Step>("words");
   const [making, setMaking] = useState(false);
+  const [told, setTold] = useState<Told | null>(null);
+  const go = (next: Step) => {
+    setTold(null);
+    setStep(next);
+  };
   const when = today();
 
   const keep = async () => {
@@ -59,10 +57,10 @@ export default function Phrasing({
       });
       if (!where) return;
       await keepFile(where, await pagePdf(sheetPage(words, fingerprint, when), "a4"));
-      onSaved();
       setStep("words");
+      setTold({ text: t("sheetSaved") });
     } catch (e) {
-      onError(saidPlainly(e));
+      setTold({ text: saidPlainly(e), amiss: true });
     } finally {
       setMaking(false);
     }
@@ -94,10 +92,13 @@ export default function Phrasing({
             </p>
           </div>
           <div className="mt-4 flex flex-wrap justify-end gap-2">
-            <button type="button" className={mild} onClick={() => setStep("sheet")}>
+            <button type="button" className={`mr-auto ${mild}`} onClick={onClose}>
+              {t("close")}
+            </button>
+            <button type="button" className={mild} onClick={() => go("sheet")}>
               {t("phrasePdf")}
             </button>
-            <button type="button" className={strong} onClick={() => setStep("confirm")}>
+            <button type="button" className={strong} onClick={() => go("confirm")}>
               {t("phraseKept")}
             </button>
           </div>
@@ -111,12 +112,7 @@ export default function Phrasing({
             {t("sheetWarn")}
           </p>
           <div className="mt-4 flex flex-wrap justify-end gap-2">
-            <button
-              type="button"
-              className={mild}
-              disabled={making}
-              onClick={() => setStep("words")}
-            >
+            <button type="button" className={mild} disabled={making} onClick={() => go("words")}>
               {t("cancel")}
             </button>
             <button type="button" className={strong} disabled={making} onClick={() => void keep()}>
@@ -126,7 +122,19 @@ export default function Phrasing({
         </>
       )}
       {step === "confirm" && (
-        <Confirming onBack={() => setStep("words")} onConfirmed={onConfirmed} onError={onError} />
+        <Confirming
+          onBack={() => go("words")}
+          onConfirmed={onConfirmed}
+          onError={(text) => setTold({ text, amiss: true })}
+        />
+      )}
+      {told && (
+        <p
+          role={told.amiss ? "alert" : "status"}
+          className={`mt-3 text-[11.5px] ${told.amiss ? "text-urgent" : "text-faint"}`}
+        >
+          {told.text}
+        </p>
       )}
     </Modal>
   );
