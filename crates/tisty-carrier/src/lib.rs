@@ -9,8 +9,8 @@ use tisty_core::signing::SigningKey;
 pub use tisty_core::turned;
 pub use tisty_sync::{
     Cause, Deferred, Holding, Keep, Kin, LetGo, Moved, NEEDS, Reached, Reason, SHAPE, STORE,
-    Sealing, Signed, Stage, Stitched, Trouble, Undecided, Way, raised, raised_told, refuses,
-    sealing_of,
+    Sealing, Signed, Stage, Stitched, TURNS, Trouble, Turn, Undecided, Way, claim_in, raised,
+    raised_told, refuses, sealing_in, sealing_of,
 };
 
 mod cloud;
@@ -31,12 +31,12 @@ pub mod testing;
 mod tokens;
 pub mod uploads;
 
-pub use cloud::sealing::{Stepped, Turning, wipe_behind};
+pub use cloud::sealing::{Left, Stepped, Turning, idle_for, turn_of, turn_size, wipe_behind};
 pub use cloud::standing::{
     LastRound, OWED_BACK, Standing, cloud_joined, kin_mirrored, mirrored_at, round_forgotten,
     round_noted, standing,
 };
-pub use cloud::{Cloud, forgotten_later, only_up_there, policy};
+pub use cloud::{Cloud, forgotten_later, only_up_there, pause_for, policy};
 pub use folder::Folder;
 #[cfg(not(windows))]
 pub use keychain::Keychain;

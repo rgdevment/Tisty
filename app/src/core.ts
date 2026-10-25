@@ -1320,6 +1320,40 @@ export const identityShown = (): Promise<Identity> => invoke("identity_shown");
 export const identityPhrase = (): Promise<string> => invoke("identity_phrase");
 export const identityConfirm = (said: [number, string][]): Promise<number[]> =>
   invoke("identity_confirm", { said });
+export const identityBegin = (): Promise<string> => invoke("identity_begin");
+
+export interface SealTold {
+  on: boolean;
+  step: "claimed" | "copying" | "closed" | "settling" | "done";
+  done: number;
+  left: number;
+  refused: number;
+  stopped: boolean;
+  why: string | null;
+}
+
+export interface SealShown {
+  cloud: string | null;
+  state: "none" | "plain" | "sealed" | "turning" | "elsewhere";
+  held: boolean;
+  confirmed: boolean;
+  phraseElsewhere: boolean;
+  behind: string[];
+  turning: SealTold | null;
+  orphan: boolean;
+}
+
+export interface SealRoom {
+  free: number | null;
+  needed: number;
+}
+
+export const sealingShown = (): Promise<SealShown> => invoke("sealing_shown");
+export const sealingRoom = (): Promise<SealRoom> => invoke("sealing_room");
+export const sealingBegin = (on: boolean): Promise<void> => invoke("sealing_begin", { on });
+export const sealingCancel = (): Promise<void> => invoke("sealing_cancel");
+export const sealingWipe = (): Promise<number> => invoke("sealing_wipe");
+export const sealingResume = (): Promise<void> => invoke("sealing_resume");
 export const docWord = (bodies: string[], at: string): Promise<void> =>
   invoke("doc_word", { bodies, at });
 

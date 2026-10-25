@@ -207,6 +207,7 @@ pub async fn settle_in(
     let speaking = held(&session).paths.clone();
     super::spoken::spoken(&session, &speaking).await?;
     crate::identity::seal_the_cloud(&session).await;
+    crate::sealing::drive(app.clone());
     let (was, mut keeping, paths, home, store, alive, holds, owing, place) = {
         let session = held(&session);
         let was = session.config.opened_by.clone();
