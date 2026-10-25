@@ -15,7 +15,7 @@ export default function Rounds({ task, onError, onDoc }: Props) {
   const routine = Boolean(task.repeat || task.after);
   const told = useAsked(
     () => (routine ? taskSeries(task.id) : Promise.resolve(null)),
-    [task, routine],
+    [task.id, task.status, routine],
     onError,
   );
   const past = (told?.turns ?? []).filter((turn) => turn.status !== "open").reverse();
