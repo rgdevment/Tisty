@@ -5,6 +5,7 @@ import Frame from "./Frame";
 import { mendable } from "./mending";
 import type { Head } from "./paging";
 import { escaped, heads, shell } from "./paging";
+import { recarded } from "./partcarding";
 import type { Sheet } from "./sheeting";
 
 type Props = Reaching & {
@@ -19,6 +20,7 @@ type Props = Reaching & {
   readonly onShown?: (page: Window | null) => void;
   readonly sheet?: Sheet;
   readonly again?: string;
+  readonly cards?: string;
   readonly draw?: (body: string) => Promise<string>;
   readonly onMend?: (one: Mend, body: string) => void;
 };
@@ -51,6 +53,11 @@ export default function Page(props: Readonly<Props>) {
     const page = held.current.get(showing.current)?.contentDocument;
     if (page) datedSteps(page, dates);
   }, [dates]);
+  const { cards } = props;
+  useEffect(() => {
+    const page = held.current.get(showing.current)?.contentDocument;
+    if (page && !stranger) recarded(page, reach.current.part);
+  }, [cards, stranger]);
   const mending = Boolean(props.onMend);
   useEffect(lay, [mending]);
 

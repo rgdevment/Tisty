@@ -62,6 +62,7 @@ type Props = {
   readonly onPart?: (title: string) => Promise<string | null>;
   readonly blurb?: (file: string) => Promise<string>;
   readonly again?: string;
+  readonly cards?: string;
   readonly onInsert?: (put: ((file: string, title: string) => boolean) | null) => void;
   readonly onOrder?: (move: ((file: string, before: string | null) => Moved) | null) => void;
   readonly asking?: Asking;
@@ -879,6 +880,7 @@ export default function Sheet(props: Readonly<Props>) {
           onTask={(id) => said.current.onTask?.(id)}
           blurb={props.blurb}
           again={props.again}
+          cards={props.cards}
           onApart={(lent) => {
             const named = said.current.file;
             // A task page not written yet has no file the widget could lead back to.
