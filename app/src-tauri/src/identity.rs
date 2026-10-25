@@ -344,8 +344,8 @@ fn fits_person(persons: &tisty_core::person::Persons, seed: &Seed) -> bool {
     !persons.names_a_person() || persons.names(&seed.root().person())
 }
 
-/// Read off the lock, so the keychain never holds up a round.
-fn seed_here(session: &tauri::State<'_, Mutex<Session>>) -> Answer<Option<Seed>> {
+// Read off the lock so the keychain never holds up a round, and never before an identity exists: there is nothing to find.
+fn seed_here(session: &Mutex<Session>) -> Answer<Option<Seed>> {
     let (paths, forebears, persons) = {
         let session = held(session);
         (
@@ -354,6 +354,9 @@ fn seed_here(session: &tauri::State<'_, Mutex<Session>>) -> Answer<Option<Seed>>
             session.state.persons.clone(),
         )
     };
+    if !persons.names_a_person() {
+        return Ok(None);
+    }
     kept(&paths, &forebears, &fitting(persons)).map_err(unread)
 }
 

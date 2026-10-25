@@ -220,3 +220,12 @@ fn a_new_address_on_the_same_account_is_the_same_sealed_cloud() {
         }
     );
 }
+
+#[test]
+fn the_keychain_is_never_read_before_an_identity_exists() {
+    let kept = tempfile::tempdir().unwrap();
+    let session = opened(&kept);
+    keep(&held(&session).paths, &seed(7)).unwrap();
+
+    assert!(seed_here(&session).unwrap().is_none());
+}
