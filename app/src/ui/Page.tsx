@@ -4,7 +4,7 @@ import { datedSteps, type Reaching } from "./dressing";
 import Frame from "./Frame";
 import { mendable } from "./mending";
 import type { Head } from "./paging";
-import { escaped, heads, shell } from "./paging";
+import { escaped, heads } from "./paging";
 import { recarded } from "./partcarding";
 import type { Sheet } from "./sheeting";
 
@@ -27,22 +27,21 @@ type Props = Reaching & {
 
 type Drawn = { html: string; turn: number; body: string; mends: Promise<readonly Mend[]> };
 
-// A new drawing waits unseen until it is ready, so a redraw never blinks or jumps.
+// One page is kept and its words change in place, so a redraw never blinks, jumps or builds a new document.
 export default function Page(props: Readonly<Props>) {
   const { body, label, stranger, wide, zoom, tall = false, again } = props;
   const reach = useRef(props);
   reach.current = props;
-  const [frames, setFrames] = useState<Drawn[]>([]);
-  const [shown, setShown] = useState(0);
+  const [drawing, setDrawing] = useState<Drawn | null>(null);
   const [seen, setSeen] = useState(false);
   const showing = useRef(0);
-  const held = useRef(new Map<number, HTMLIFrameElement>());
+  const held = useRef<HTMLIFrameElement | null>(null);
   const turns = useRef(0);
   const found = useRef<{ turn: number; said: string; mends: readonly Mend[] } | null>(null);
 
   // Read when it is laid, so a page that turns read-only drops its fixes without being drawn again.
   const lay = () => {
-    const page = held.current.get(showing.current)?.contentDocument;
+    const page = held.current?.contentDocument;
     if (!page) return;
     const now = found.current?.turn === showing.current ? found.current : null;
     const mends = reach.current.onMend && now ? now.mends : [];
@@ -50,12 +49,12 @@ export default function Page(props: Readonly<Props>) {
   };
   const dates = props.stepDates;
   useEffect(() => {
-    const page = held.current.get(showing.current)?.contentDocument;
+    const page = held.current?.contentDocument;
     if (page) datedSteps(page, dates);
   }, [dates]);
   const { cards } = props;
   useEffect(() => {
-    const page = held.current.get(showing.current)?.contentDocument;
+    const page = held.current?.contentDocument;
     if (page && !stranger) recarded(page, reach.current.part);
   }, [cards, stranger]);
   const mending = Boolean(props.onMend);
@@ -66,11 +65,7 @@ export default function Page(props: Readonly<Props>) {
     const drawn = (html: string) => {
       if (!live) return;
       turns.current += 1;
-      const turn = turns.current;
-      setFrames((were) => [
-        ...were.filter((one) => one.turn === showing.current),
-        { html: shell(html), turn, body, mends },
-      ]);
+      setDrawing({ html, turn: turns.current, body, mends });
     };
     const mends: Promise<readonly Mend[]> = reach.current.onMend
       ? mendsIn(body)
@@ -88,61 +83,57 @@ export default function Page(props: Readonly<Props>) {
   useEffect(() => () => reach.current.onShown?.(null), []);
 
   const ready = ({ turn, body: said, mends }: Drawn, frame: HTMLIFrameElement) => {
-    held.current.set(turn, frame);
-    const was = held.current.get(showing.current);
-    if (!tall && was && was !== frame)
-      frame.contentWindow?.scrollTo(0, was.contentWindow?.scrollY ?? 0);
-    for (const one of held.current.keys()) if (one < turn) held.current.delete(one);
+    held.current = frame;
     showing.current = turn;
-    setShown(turn);
     setSeen(true);
-    setFrames((were) => were.filter((one) => one.turn >= turn));
     const page = frame.contentDocument;
     if (page) reach.current.onOutline?.(heads(page));
     mends
       .then((all) => {
         found.current = { turn, said, mends: all };
-        lay();
+        if (showing.current === turn) lay();
       })
       .catch(() => {});
     reach.current.onShown?.(frame.contentWindow);
   };
 
+  const now = drawing;
+  const current = <K extends keyof Reaching>(asked: K): Reaching[K] | undefined =>
+    now && now.turn === turns.current ? reach.current[asked] : undefined;
   return (
     // Hidden until the first drawing is ready, then shown at once: a fade on every task opened is a wait.
     <div
       className={`${tall ? "relative" : "relative flex min-h-0 flex-1 flex-col"} ${seen ? "opacity-100" : "opacity-0"}`}
     >
-      {frames.map((one) => (
+      {now && (
         <Frame
-          key={one.turn}
-          html={one.html}
+          html={now.html}
           label={label}
           stranger={stranger}
           tall={tall}
           untitled={props.untitled}
           shaping={props.shaping}
-          hidden={one.turn !== shown}
+          hidden={!seen}
           wide={wide}
           sheet={props.sheet}
           zoom={zoom}
           reach={() => ({
             ...reach.current,
-            body: one.body,
+            body: now.body,
             // A page with a newer drawing on its way names bytes nobody is writing any more.
-            onBlock: one.turn === turns.current ? reach.current.onBlock : undefined,
-            onTick: one.turn === turns.current ? reach.current.onTick : undefined,
-            onPart: one.turn === turns.current ? reach.current.onPart : undefined,
-            onCut: one.turn === turns.current ? reach.current.onCut : undefined,
-            onWiden: one.turn === turns.current ? reach.current.onWiden : undefined,
-            onFormat: one.turn === turns.current ? reach.current.onFormat : undefined,
-            onChoose: one.turn === turns.current ? reach.current.onChoose : undefined,
-            onMenu: one.turn === turns.current ? reach.current.onMenu : undefined,
-            onMore: one.turn === turns.current ? reach.current.onMore : undefined,
+            onBlock: current("onBlock"),
+            onTick: current("onTick"),
+            onPart: current("onPart"),
+            onCut: current("onCut"),
+            onWiden: current("onWiden"),
+            onFormat: current("onFormat"),
+            onChoose: current("onChoose"),
+            onMenu: current("onMenu"),
+            onMore: current("onMore"),
           })}
-          onReady={(frame) => ready(one, frame)}
+          onReady={(frame) => ready(now, frame)}
         />
-      ))}
+      )}
     </div>
   );
 }

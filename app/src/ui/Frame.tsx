@@ -1,6 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { fitted, type Reaching, type Worn, wired, worn } from "./dressing";
-import { dressed } from "./paging";
+import { dressed, shell } from "./paging";
 import { type Sheet, sheeting } from "./sheeting";
 
 type Props = {
@@ -52,6 +52,8 @@ export default function Frame(props: Readonly<Props>) {
   said.current = props;
   const laid = useRef(() => {});
 
+  const swap = useRef((_: string) => {});
+
   useEffect(() => {
     const held = frame.current;
     if (!held) return;
@@ -59,25 +61,56 @@ export default function Frame(props: Readonly<Props>) {
     let stopGrowing = () => {};
     let stopSheeting = () => {};
     let live = true;
-    const alive = () => live;
+    let drawing = 0;
+    let put = said.current.html;
+    let loadedYet = false;
+    const undressed = () => {
+      for (const one of dressedUp.lent) one.drop();
+      for (const one of dressedUp.kept) one();
+      dressedUp = { lent: [], kept: [] };
+    };
+    const dress = (page: Document) => {
+      drawing += 1;
+      const mine = drawing;
+      dressedUp = worn(page, stranger, () => live && drawing === mine, said.current.reach());
+    };
     const retheme = () => {
       if (held.contentDocument) dressed(held.contentDocument);
     };
     const loaded = () => {
       const page = held.contentDocument;
-      if (!page?.querySelector(".page")) return;
-      wired(page, said.current.reach);
-      page.querySelector(".page")?.removeAttribute("inert");
+      const sheet = page?.querySelector(".page");
+      // A document already wired keeps its listeners, and wiring it twice would answer every click twice.
+      if (!page || !sheet || page.documentElement.hasAttribute("data-wired")) return;
+      page.documentElement.setAttribute("data-wired", "");
+      loadedYet = true;
+      if (put !== said.current.html) {
+        put = said.current.html;
+        sheet.innerHTML = put;
+      }
+      wired(page, () => said.current.reach());
+      sheet.removeAttribute("inert");
       page.documentElement.classList.toggle("tall", tall);
       page.documentElement.classList.toggle("untitled", untitled);
       page.documentElement.classList.toggle("shaping", shaped.current);
       dressed(page);
       fitted(page, said.current.wide, said.current.zoom);
-      dressedUp = worn(page, stranger, alive, said.current.reach());
+      dress(page);
       if (tall) stopGrowing = grows(held, page);
       const sheets = sheeting(page, () => said.current.sheet);
       stopSheeting = sheets.stop;
       laid.current = sheets.lay;
+      said.current.onReady(held);
+    };
+    swap.current = (next) => {
+      const page = held.contentDocument;
+      const sheet = page?.querySelector(".page");
+      if (!loadedYet || !page || !sheet || next === put) return;
+      undressed();
+      put = next;
+      sheet.innerHTML = next;
+      dress(page);
+      laid.current();
       said.current.onReady(held);
     };
     const watching = new MutationObserver(retheme);
@@ -86,18 +119,21 @@ export default function Frame(props: Readonly<Props>) {
       attributeFilter: ["data-theme"],
     });
     held.addEventListener("load", loaded);
-    held.srcdoc = html;
+    held.srcdoc = shell(put);
     return () => {
       live = false;
+      swap.current = () => {};
       stopGrowing();
       stopSheeting();
       laid.current = () => {};
       watching.disconnect();
       held.removeEventListener("load", loaded);
-      for (const one of dressedUp.lent) one.drop();
-      for (const one of dressedUp.kept) one();
+      undressed();
     };
-  }, [html, stranger, tall, untitled]);
+  }, [stranger, tall, untitled]);
+
+  // Before the page is painted, so no click lands on words that are no longer there.
+  useLayoutEffect(() => swap.current(html), [html]);
 
   useEffect(() => {
     frame.current?.contentDocument?.documentElement.classList.toggle("shaping", shaping);
