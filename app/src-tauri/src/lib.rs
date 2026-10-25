@@ -7,6 +7,7 @@ mod desktop;
 mod drawn;
 mod finding;
 mod glimpse;
+mod handed;
 mod hearing;
 mod herald;
 mod identity;
@@ -1354,6 +1355,7 @@ pub fn run() {
         .manage(desktop::Leaving::default())
         .manage(desktop::Departed::default())
         .manage(sealing::Turns::default())
+        .manage(handed::Knocking::default())
         .invoke_handler(commands())
         .build(tauri::generate_context!())
         .expect("error while running tauri application")

@@ -78,10 +78,10 @@ flowchart TB
 |---|---|---|
 | `tisty-core` | The model and everything that touches the person's data: events, the log, replay, the read cache, documents, task pages, attachments, backup, signing | `event.rs`, `store.rs`, `state.rs` |
 | `tisty-markdown` | The Tisty language: reading by blocks, drawing to HTML, the translator at the edges | `lib.rs`, `fixtures/markdown.json` |
-| `tisty-share-proto` | The seed behind the 24-word phrase, the keys that come from it, certificates, and the sealing of an encrypted cloud | `lib.rs` |
+| `tisty-share-proto` | The seed behind the 24-word phrase, the keys that come from it, certificates, the sealing of an encrypted cloud, and the envelope that hands its key to another machine | `lib.rs` |
 | `tisty-nl` | Turns a typed sentence into a task with dates, priority, tags, list and repeat | `parse` |
 | `tisty-sync` | One sync round over a folder, the word a place leaves in `tisty.toml`, and the `Trouble` a round refuses with | `carry_through`, `shape.rs` |
-| `tisty-carrier` | The `Carrier` contract and its two carriers, `Folder` and `Cloud`; the `Remote` contract a provider speaks; sealing a cloud; tokens | `lib.rs`, `cloud.rs`, `remote.rs` |
+| `tisty-carrier` | The `Carrier` contract and its two carriers, `Folder` and `Cloud`; the `Remote` contract a provider speaks; sealing a cloud; the plain `knock/` box a machine asks for the cloud's key through; tokens | `lib.rs`, `cloud.rs`, `remote.rs` |
 | `tisty-google`, `tisty-onedrive`, `tisty-webdav` | One `Remote` each. Only the window depends on them | `lib.rs` |
 | `tisty-cli` | The `tisty` binary: the MCP server and nothing else | `mcp.rs`, `mcp/catalogue.rs` |
 | `tisty-gui` | Tauri commands (`answers/`), the `Session`, tray, reminders, updater, wiring assistants | `lib.rs`, `session.rs` |

@@ -42,7 +42,7 @@ impl Seed {
 }
 
 /// HMAC pads a key shorter than its block with zeros, so padding it here builds one that cannot fail.
-fn mac<const N: usize>(key: &[u8; N], parts: &[&[u8]]) -> Zeroizing<[u8; 32]> {
+pub(crate) fn mac<const N: usize>(key: &[u8; N], parts: &[&[u8]]) -> Zeroizing<[u8; 32]> {
     const { assert!(N <= 64) };
     let mut block = hmac::digest::Key::<Hmac<Sha256>>::default();
     block[..N].copy_from_slice(key);

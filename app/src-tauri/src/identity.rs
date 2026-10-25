@@ -177,13 +177,18 @@ pub async fn seal_the_cloud(session: &Mutex<Session>) {
         tisty_carrier::Sealing::Copying(tisty_carrier::Turn::On) => None,
         _ => Some(None),
     };
-    let (paths, forebears, persons, locked) = {
+    let (paths, forebears, persons, handed, locked) = {
         let session = held(session);
+        let handed = session.config.key_handed.clone();
         let wanted = match said {
             // A machine that never read `cloud.sealed` tries its own phrase, and the mark says whether it is this cloud's.
             Some(Some(cloud)) => match session.state.sealed.get(&cloud) {
                 Some(named) => Some((cloud, named.clone())),
-                None if session.state.persons.names_a_person() => Some((cloud, String::new())),
+                None if handed.as_deref() == Some(cloud.as_str())
+                    || session.state.persons.names_a_person() =>
+                {
+                    Some((cloud, String::new()))
+                }
                 None => None,
             },
             Some(None) => session
@@ -222,10 +227,12 @@ pub async fn seal_the_cloud(session: &Mutex<Session>) {
             session.paths.clone(),
             session.state.forebears.clone(),
             session.state.persons.clone(),
+            handed,
             locked,
         )
     };
     let (looking, wanted) = (locked.cloud.clone(), locked.named.clone());
+    let asks_the_seed = persons.names_a_person() || !locked.named.is_empty();
     let opens = move |seed: &Seed| match wanted.is_empty() {
         true => persons.names(&seed.root().person()),
         false => CloudKey::of(seed).named_for(&looking) == wanted,
@@ -236,17 +243,26 @@ pub async fn seal_the_cloud(session: &Mutex<Session>) {
         true => BTreeSet::new(),
         false => forebears,
     };
-    let seed = match elsewhere(move || kept(&paths, &forebears, &opens)).await {
-        Ok(Ok(seed)) => seed,
-        Ok(Err(why)) => {
-            unread(why);
-            None
-        }
-        Err(_) => None,
+    let fits =
+        |key: &CloudKey| locked.named.is_empty() || key.named_for(&locked.cloud) == locked.named;
+    // A handed key opened this cloud's mark when it came, while a phrase is only a guess until the log names its key.
+    let from_handed = match handed.as_deref() == Some(locked.cloud.as_str()) {
+        true => handed_key(locked.cloud.clone()).await.filter(fits),
+        false => None,
     };
-    let key = seed
-        .map(|seed| CloudKey::of(&seed))
-        .filter(|key| locked.named.is_empty() || key.named_for(&locked.cloud) == locked.named);
+    // Only where the log names a person or this cloud's key, so a machine only handed the key never reads a seed.
+    let seed = match asks_the_seed && from_handed.is_none() {
+        false => None,
+        true => match elsewhere(move || kept(&paths, &forebears, &opens)).await {
+            Ok(Ok(seed)) => seed,
+            Ok(Err(why)) => {
+                unread(why);
+                None
+            }
+            Err(_) => None,
+        },
+    };
+    let key = from_handed.or_else(|| seed.map(|seed| CloudKey::of(&seed)).filter(fits));
     let session = held(session);
     match key {
         Some(key) => {
@@ -266,6 +282,17 @@ pub async fn seal_the_cloud(session: &Mutex<Session>) {
             session.reach.tried_for(Some((locked, known)));
             session.reach.seal_with(None);
         }
+    }
+}
+
+async fn handed_key(cloud: String) -> Option<CloudKey> {
+    match elsewhere(move || crate::handed::kept(&cloud)).await {
+        Ok(Ok(key)) => key,
+        Ok(Err(why)) => {
+            crate::handed::unread(why);
+            None
+        }
+        Err(_) => None,
     }
 }
 
@@ -399,6 +426,17 @@ fn seed_person(session: &Mutex<Session>) -> Answer<Option<tisty_share_proto::ide
 
 pub(crate) fn phrase_key(session: &Mutex<Session>) -> Answer<Option<CloudKey>> {
     Ok(seed_here(session)?.map(|seed| CloudKey::of(&seed)))
+}
+
+pub(crate) fn cloud_key(session: &Mutex<Session>, cloud: &str) -> Answer<Option<CloudKey>> {
+    if held(session).config.key_handed.as_deref() == Some(cloud) {
+        match crate::handed::kept(cloud) {
+            Ok(Some(key)) => return Ok(Some(key)),
+            Ok(None) => {}
+            Err(why) => crate::handed::unread(why),
+        }
+    }
+    phrase_key(session)
 }
 
 pub(crate) fn confirmed_key(session: &Mutex<Session>) -> Answer<Option<CloudKey>> {

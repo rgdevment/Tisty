@@ -68,6 +68,8 @@ keyring-core = "1"
 apple-native-keyring-store = { version = "1", features = ["keychain"] }
 zbus-secret-service-keyring-store = { version = "1", features = ["crypto-rust"] }
 ed25519-dalek = "3"
+# The one-use key a machine asks for the cloud's key with: the curve ed25519-dalek already brings.
+curve25519-dalek = { version = "5", default-features = false, features = ["alloc", "precomputed-tables", "zeroize"] }
 # The 24 words that bring a person's identity back: BIP39, so the words are a list people already trust.
 bip39 = { version = "3", default-features = false, features = ["std", "spanish", "zeroize"] }
 zip = { version = "9", default-features = false, features = ["deflate"] }
