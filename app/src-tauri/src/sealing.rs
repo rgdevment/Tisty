@@ -43,6 +43,7 @@ pub struct Told {
 pub struct Shown {
     pub cloud: Option<String>,
     pub state: &'static str,
+    pub joined: bool,
     pub held: bool,
     pub confirmed: bool,
     pub phrase_elsewhere: bool,
@@ -108,6 +109,7 @@ pub fn sealing_shown(
         return Ok(Shown {
             cloud: None,
             state: "none",
+            joined: false,
             held: kept,
             confirmed,
             phrase_elsewhere,
@@ -120,6 +122,14 @@ pub fn sealing_shown(
     let ours = Turning::left(&home);
     let state = match (tisty_carrier::sealing_in(&word), &ours) {
         (_, Some(_)) => "turning",
+        (Sealing::Sealed(cloud), None)
+            if session
+                .reach
+                .keyed()
+                .is_none_or(|keyed| keyed.locked.cloud != *cloud) =>
+        {
+            "locked"
+        }
         (Sealing::Sealed(_), None) => "sealed",
         (Sealing::Copying(_) | Sealing::Closed, None) => "elsewhere",
         (Sealing::Plain | Sealing::Unsaid, None) => "plain",
@@ -140,6 +150,7 @@ pub fn sealing_shown(
     Ok(Shown {
         cloud: Some(at.provider),
         state,
+        joined: session.state.devices.contains(&session.config.device_id),
         held: kept,
         confirmed,
         phrase_elsewhere,

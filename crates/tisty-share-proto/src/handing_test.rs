@@ -102,3 +102,26 @@ fn a_one_use_key_of_low_order_is_refused_rather_than_answered() {
 
     assert!(handed(&ask, &cloud_key(), "dev_a", &machine(1)).is_none());
 }
+
+#[test]
+fn both_machines_read_one_code_and_another_ask_or_another_giver_reads_another() {
+    let ask = asked(&OneUse::minted().unwrap());
+    let carried: Ask = serde_json::from_str(&serde_json::to_string(&ask).unwrap()).unwrap();
+    let giver = machine(1).verifying_key();
+
+    let code = ask.code(&giver).unwrap();
+
+    assert_eq!(carried.code(&giver).as_deref(), Some(code.as_str()));
+    assert_eq!(code.len(), 23);
+    assert!(code.split(' ').all(|five| five.len() == 5));
+    assert_ne!(ask.code(&machine(3).verifying_key()), Some(code.clone()));
+    assert_ne!(asked(&OneUse::minted().unwrap()).code(&giver), Some(code));
+}
+
+#[test]
+fn a_giver_carries_the_key_it_names() {
+    let giver = Giver::of("dev_a", "Mac", &machine(1).verifying_key());
+    let carried: Giver = serde_json::from_str(&serde_json::to_string(&giver).unwrap()).unwrap();
+
+    assert_eq!(carried.key(), Some(machine(1).verifying_key()));
+}

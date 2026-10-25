@@ -1245,6 +1245,8 @@ const en = {
     "Nothing was synced, in either direction. The mark that tells which phrase opens your encrypted cloud is damaged, and this computer could not prove its phrase opens what is up there, so Tisty does not touch it. Sync from a computer whose phrase opens your cloud, and it mends the mark. What you write here stays here meanwhile.",
   sealingNoCloud: "Your notes do not sync with a cloud, so there is nothing to encrypt there.",
   sealingPhrase: "Your 24-word phrase has to be written down and confirmed first.",
+  admitNotNow:
+    "That could not be done now. Check that both computers are on and connected, and try again.",
   sealingBehind:
     "Some of your computers still run an older Tisty. Update them, or remove the ones you no longer use.",
   cloudSealing:
@@ -1887,6 +1889,29 @@ const en = {
   sealRefused: "{name} files are too big to encrypt and stay as they are.",
   sealSealed: "Your cloud is encrypted",
   sealOldCopy: "The old unencrypted copy stays in {name} until you delete it.",
+  sealLocked: "Your cloud is encrypted, and this computer does not hold its key yet",
+  sealLockedJoined: "Your other computers hand it over on their own as soon as one of them is on.",
+  sealLockedNew:
+    "To open it here, let this computer in from another of your computers that already reads the encrypted cloud.",
+  admitAskButton: "Let in from another computer",
+  admitLetInButton: "Let a new computer in",
+  admitAsk: "Let this computer in",
+  admitLetIn: "Let a new computer in",
+  admitWaiting:
+    "Open Tisty on another of your computers that reads the encrypted cloud and go to Settings › Security › «Let a new computer in». This computer waits here meanwhile.",
+  admitCompare:
+    "Check that «{name}» shows these same twenty digits. Say yes on both computers only if all of them match.",
+  admitTrusted: "Waiting for «{name}» to hand over the key…",
+  admitIn: "Done. This computer now reads your encrypted cloud.",
+  admitGranted: "Done. «{name}» gets the key once you say yes on it too.",
+  admitMismatch:
+    "The digits do not match, so nothing was handed over. Someone may be standing between the two computers: close this and start again from the new computer.",
+  admitLooking: "Looking for new computers…",
+  admitNobody:
+    "No new computer is asking to come in. On the new computer, choose «Let in from another computer».",
+  admitLookAgain: "Look again",
+  admitTaken: "Another computer is letting it in",
+  admitShowCode: "Show the code",
   sealWipe: "Delete the unencrypted copy",
   sealWipeSure:
     "Delete the old copy from {name}? Only files whose new copy is already there are deleted.",
@@ -3671,6 +3696,8 @@ const es: Catalog = {
     "No se sincronizó nada, en ningún sentido. La marca que dice qué frase abre tu nube cifrada está dañada, y este equipo no pudo comprobar que su frase abre lo que hay arriba, así que Tisty no la toca. Sincroniza desde un equipo cuya frase abra tu nube y la marca se repara. Mientras tanto, lo que escribas aquí se queda aquí.",
   sealingNoCloud: "Tus notas no se sincronizan con una nube, así que ahí no hay nada que cifrar.",
   sealingPhrase: "Primero tienes que anotar y confirmar tu frase de 24 palabras.",
+  admitNotNow:
+    "No se pudo hacer ahora. Revisa que los dos equipos estén encendidos y conectados, y vuelve a intentarlo.",
   sealingBehind:
     "Algunos de tus equipos todavía usan un Tisty anterior. Actualízalos o quita los que ya no usas.",
   cloudSealing:
@@ -4311,6 +4338,29 @@ const es: Catalog = {
   sealRefused: "{name} archivos son demasiado grandes para cifrar y se quedan como están.",
   sealSealed: "Tu nube está cifrada",
   sealOldCopy: "La copia antigua sin cifrar sigue en {name} hasta que la borres.",
+  sealLocked: "Tu nube está cifrada y este equipo todavía no tiene su llave",
+  sealLockedJoined: "Tus otros equipos se la entregan solos apenas uno de ellos esté encendido.",
+  sealLockedNew:
+    "Para abrirla aquí, autoriza este equipo desde otro de tus equipos que ya lea la nube cifrada.",
+  admitAskButton: "Autorizar desde otro equipo",
+  admitLetInButton: "Autorizar un equipo nuevo",
+  admitAsk: "Autorizar este equipo",
+  admitLetIn: "Autorizar un equipo nuevo",
+  admitWaiting:
+    "Abre Tisty en otro de tus equipos que lea la nube cifrada y ve a Configuración › Seguridad › «Autorizar un equipo nuevo». Mientras tanto, este equipo espera aquí.",
+  admitCompare:
+    "Revisa que «{name}» muestre estos mismos veinte dígitos. Di que sí en los dos equipos solo si coinciden todos.",
+  admitTrusted: "Esperando a que «{name}» entregue la llave…",
+  admitIn: "Listo. Este equipo ya lee tu nube cifrada.",
+  admitGranted: "Listo. «{name}» recibe la llave en cuanto digas que sí también ahí.",
+  admitMismatch:
+    "Los dígitos no coinciden, así que no se entregó nada. Puede que alguien esté entre los dos equipos: cierra esto y empieza de nuevo desde el equipo nuevo.",
+  admitLooking: "Buscando equipos nuevos…",
+  admitNobody:
+    "Ningún equipo nuevo está pidiendo entrar. En el equipo nuevo, elige «Autorizar desde otro equipo».",
+  admitLookAgain: "Buscar de nuevo",
+  admitTaken: "Otro equipo lo está autorizando",
+  admitShowCode: "Ver el código",
   sealWipe: "Borrar la copia sin cifrar",
   sealWipeSure:
     "¿Borrar la copia antigua de {name}? Solo se borran los archivos cuya copia nueva ya está ahí.",

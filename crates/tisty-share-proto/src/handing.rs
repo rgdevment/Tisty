@@ -15,6 +15,9 @@ pub const SAID: u32 = 1;
 const ASKED: &[u8] = b"tisty.ask.v1\0";
 const HANDED: &[u8] = b"tisty.handed.v1\0";
 const SALT: [u8; 15] = *b"tisty.handed.v1";
+const CODE: &[u8] = b"tisty.ask.code.v1\0";
+// As slow as a locked parcel, so a provider cannot mint, while an ask stands, another key that reads the same digits.
+const WORK: u8 = 16;
 
 pub struct OneUse(Zeroizing<[u8; 32]>);
 
@@ -39,6 +42,30 @@ pub struct Ask {
     pub cloud: String,
     pub at: i64,
     pub sig: String,
+}
+
+/// The machine that takes an ask from a machine no log names, put up before it answers so both can show one code.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Giver {
+    pub v: u32,
+    pub by: String,
+    pub name: String,
+    pub key: String,
+}
+
+impl Giver {
+    pub fn of(by: &str, name: &str, key: &VerifyingKey) -> Self {
+        Self {
+            v: SAID,
+            by: by.to_string(),
+            name: name.to_string(),
+            key: coded(key.as_bytes()),
+        }
+    }
+
+    pub fn key(&self) -> Option<VerifyingKey> {
+        key_of(&self.key)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -132,6 +159,27 @@ impl Ask {
         over.update(self.said());
         over.update(self.sig.as_bytes());
         over.finalize().into()
+    }
+
+    /// About 66 bits of the ask and of the key of whoever takes it, so one comparison proves both ways.
+    pub fn code(&self, giver: &VerifyingKey) -> Option<String> {
+        let how = scrypt::Params::new(WORK, 8, 1).ok()?;
+        let mut ground = Zeroizing::new([0u8; 16]);
+        let salt = framed(CODE, &[self.cloud.as_bytes()]);
+        let said = framed(CODE, &[&self.digest(), giver.as_bytes()]);
+        scrypt::scrypt(&said, &salt, &how, &mut ground[7..]).ok()?;
+        let digits = format!(
+            "{:020}",
+            u128::from_be_bytes(*ground) % 100_000_000_000_000_000_000
+        );
+        Some(
+            digits
+                .as_bytes()
+                .chunks(5)
+                .filter_map(|five| std::str::from_utf8(five).ok())
+                .collect::<Vec<_>>()
+                .join(" "),
+        )
     }
 }
 

@@ -1,5 +1,6 @@
 use std::sync::Mutex;
 
+mod admitting;
 mod answers;
 mod asked;
 mod command;
@@ -1226,6 +1227,14 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         sealing::sealing_cancel,
         sealing::sealing_wipe,
         sealing::sealing_resume,
+        admitting::admitting_ask,
+        admitting::admitting_shown,
+        admitting::admitting_trust,
+        admitting::admitting_cancel,
+        admitting::admitting_look,
+        admitting::admitting_offer,
+        admitting::admitting_grant,
+        admitting::admitting_refuse,
         answers::machines::confirm_machine_key,
         answers::knocking::waiting_machines,
         answers::knocking::this_machine,

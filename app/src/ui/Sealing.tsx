@@ -18,6 +18,7 @@ import { weigh } from "../format";
 import { cloudNamed, fill, t } from "../locales";
 import { plainly, saidPlainly } from "../refusal";
 import { sure } from "../sure";
+import { LetMeIn, LetThemIn } from "./Admitting";
 import Card, { type Which, type Word } from "./Card";
 import Modal from "./Modal";
 import Phrasing from "./Phrasing";
@@ -40,6 +41,7 @@ export default function Sealing({ busy, said, trouble, tell, fail, onChanged }: 
   const [shown, setShown] = useState<SealShown | null>(null);
   const [asking, setAsking] = useState(false);
   const [phrase, setPhrase] = useState<Phrase | null>(null);
+  const [letting, setLetting] = useState<"me" | "them" | null>(null);
   const failed = useCallback((e: unknown) => fail({ card, text: saidPlainly(e) }), [fail]);
 
   const look = useCallback(() => {
@@ -104,6 +106,36 @@ export default function Sealing({ busy, said, trouble, tell, fail, onChanged }: 
           onGo={() => begin(true)}
         />
       )}
+      {letting === "me" && (
+        <LetMeIn
+          onClose={() => setLetting(null)}
+          onIn={() => {
+            look();
+            onChanged();
+          }}
+        />
+      )}
+      {letting === "them" && <LetThemIn onClose={() => setLetting(null)} />}
+      {shown.state === "locked" && (
+        <>
+          <p className="text-[13px] font-semibold">{t("sealLocked")}</p>
+          <p className="mt-0.5 text-[12.5px] leading-relaxed text-soft">
+            {t(shown.joined ? "sealLockedJoined" : "sealLockedNew")}
+          </p>
+          {!shown.joined && (
+            <div className="mt-3 flex justify-end">
+              <button
+                type="button"
+                className={strong}
+                disabled={held}
+                onClick={() => setLetting("me")}
+              >
+                {t("admitAskButton")}
+              </button>
+            </div>
+          )}
+        </>
+      )}
       {shown.state === "none" && (
         <p className="text-[12.5px] leading-relaxed text-soft">{t("sealNoCloud")}</p>
       )}
@@ -148,6 +180,7 @@ export default function Sealing({ busy, said, trouble, tell, fail, onChanged }: 
               )
               .catch(failed)
           }
+          onLetIn={() => setLetting("them")}
           onOff={() =>
             sure(fill("sealOffSure", provider))
               .then((yes) => (yes ? begin(false) : undefined))
@@ -362,11 +395,13 @@ function Sealed({
   provider,
   held,
   onWipe,
+  onLetIn,
   onOff,
 }: {
   provider: string;
   held: boolean;
   onWipe: () => void;
+  onLetIn: () => void;
   onOff: () => void;
 }) {
   return (
@@ -378,6 +413,9 @@ function Sealed({
       <div className="mt-3 flex flex-wrap justify-end gap-2">
         <button type="button" className={mild} disabled={held} onClick={onOff}>
           {t("sealOff")}
+        </button>
+        <button type="button" className={mild} disabled={held} onClick={onLetIn}>
+          {t("admitLetInButton")}
         </button>
         <button type="button" className={strong} disabled={held} onClick={onWipe}>
           {t("sealWipe")}
