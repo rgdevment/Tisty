@@ -25,7 +25,6 @@ impl CloudKey {
         Self(seed.cloud())
     }
 
-    /// What `cloud.sealed` says of the key, so a machine knows whether the phrase it holds is that cloud's.
     pub fn named_for(&self, cloud: &str) -> String {
         self.id(cloud)
             .iter()

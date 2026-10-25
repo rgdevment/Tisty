@@ -24,18 +24,25 @@ pub struct Reaching {
     built: Mutex<Option<Built>>,
     why_not: Mutex<Option<String>>,
     sealing: Mutex<Option<Sealing>>,
-    tried: Mutex<Option<String>>,
+    tried: Mutex<Option<(String, String)>>,
 }
 
 #[derive(Clone)]
 pub struct Sealing {
     pub cloud: String,
+    pub named: String,
     pub key: tisty_share_proto::cloud::CloudKey,
+}
+
+impl Sealing {
+    fn said(&self) -> (String, String) {
+        (self.cloud.clone(), self.named.clone())
+    }
 }
 
 struct Built {
     at: CloudAt,
-    sealed: Option<String>,
+    sealed: Option<(String, String)>,
     carrier: Shared,
     tokens: Arc<Tokens>,
 }
@@ -51,39 +58,27 @@ impl Reaching {
         }
     }
 
-    /// A sealed cloud this machine looked for a key to and found none, so the keychain is not asked every round.
-    pub fn tried(&self) -> Option<String> {
+    pub fn tried(&self) -> Option<(String, String)> {
         self.tried.lock().ok()?.clone()
     }
 
-    pub fn tried_for(&self, cloud: Option<String>) {
+    pub fn tried_for(&self, cloud: Option<(String, String)>) {
         if let Ok(mut held) = self.tried.lock() {
             *held = cloud;
         }
     }
 
-    pub fn sealed(&self) -> Option<String> {
-        self.sealing
-            .lock()
-            .ok()?
-            .as_ref()
-            .map(|one| one.cloud.clone())
+    pub fn sealed(&self) -> Option<(String, String)> {
+        self.sealing.lock().ok()?.as_ref().map(Sealing::said)
     }
 
     fn sealing(&self) -> Option<Sealing> {
         self.sealing.lock().ok()?.clone()
     }
 
-    // The carrier built for the other way of reading is let go, so the next one reads the cloud as it now stands.
     pub fn seal_with(&self, sealing: Option<Sealing>) {
-        let cloud = sealing.as_ref().map(|one| one.cloud.clone());
         if let Ok(mut held) = self.sealing.lock() {
             *held = sealing;
-        }
-        if let Ok(mut built) = self.built.lock()
-            && built.as_ref().is_some_and(|was| was.sealed != cloud)
-        {
-            *built = None;
         }
     }
 
@@ -97,8 +92,7 @@ impl Reaching {
 
     pub fn apart(&self, at: &CloudAt) -> Option<Shared> {
         let home = self.home_of(at);
-        let sealing = self.sealing();
-        tisty_carrier::off::away(|| cloud_of(&home, at, sealing.as_ref()))
+        tisty_carrier::off::away(|| cloud_of(&home, at, None))
             .ok()
             .map(|(carrier, _)| carrier)
     }
@@ -112,7 +106,7 @@ impl Reaching {
 impl Reach for Reaching {
     fn cloud(&self, at: &CloudAt) -> Option<Shared> {
         let sealing = self.sealing();
-        let sealed = sealing.as_ref().map(|one| one.cloud.clone());
+        let sealed = sealing.as_ref().map(Sealing::said);
         let mut built = self.built.lock().ok()?;
         if let Some(was) = built.as_ref()
             && was.at == *at

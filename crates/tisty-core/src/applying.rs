@@ -136,7 +136,6 @@ impl State {
         }
     }
 
-    /// Machines that have not been seen running `release` or later; assistants never say theirs.
     pub fn behind(&self, release: &str) -> Vec<DeviceId> {
         let wanted = released(release);
         self.devices
