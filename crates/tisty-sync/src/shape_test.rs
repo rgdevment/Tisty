@@ -551,3 +551,30 @@ fn a_word_written_for_a_sealed_place_says_so_once_raises_needs_and_keeps_the_res
     assert!(said.contains(&format!("needs = \"{SEALS}\"")), "{said}");
     assert_eq!(sealing_of(&dest), Sealing::Sealed("store_one".into()));
 }
+
+#[test]
+fn a_sealing_phase_this_build_cannot_name_stops_everyone_rather_than_no_one() {
+    let (_room, _data, dest) = a_place();
+    std::fs::write(
+        dest.join(NAMED),
+        "shape = 3\nsealed = \"store_one\"\nsealing = \"\"\n",
+    )
+    .unwrap();
+
+    assert_eq!(sealing_of(&dest), Sealing::Closed);
+    assert_eq!(
+        sealed_against(&dest, None).map(|one| one.code()),
+        Some("sealing")
+    );
+}
+
+#[test]
+fn a_word_read_only_line_by_line_that_already_seals_is_left_as_it_is() {
+    let (_room, _data, dest) = a_place();
+    let said = "shape = 3\nsealing = \"copying:dev_b:n1\"\nbroken = = =\n";
+    std::fs::write(dest.join(NAMED), said).unwrap();
+
+    seal_word(&dest, "store_one").unwrap();
+
+    assert_eq!(std::fs::read_to_string(dest.join(NAMED)).unwrap(), said);
+}

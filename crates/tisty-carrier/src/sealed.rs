@@ -12,13 +12,18 @@ pub(crate) fn reading(root: &str) -> Option<&str> {
     root.strip_prefix(INSIDE)?.strip_prefix(':')
 }
 
-pub(crate) fn stays_plain(name: &str) -> bool {
-    name == NAMED
-        || name == tisty_core::moved::NAMED
-        || name
-            .strip_prefix(STORE)
-            .and_then(|rest| rest.strip_prefix('/'))
-            == Some(MARKER)
+pub(crate) fn stays_plain(name: &str, folds: bool) -> bool {
+    let same = |one: &str| match folds {
+        true => one.to_lowercase() == name.to_lowercase(),
+        false => one == name,
+    };
+    [
+        NAMED,
+        tisty_core::moved::NAMED,
+        &format!("{STORE}/{MARKER}"),
+    ]
+    .into_iter()
+    .any(same)
 }
 const HEADER: u64 = 24;
 const TAG: u64 = 16;
@@ -140,13 +145,7 @@ impl<R: Remote> Sealed<R> {
     }
 
     fn is_clear(&self, name: &str) -> bool {
-        [
-            NAMED,
-            tisty_core::moved::NAMED,
-            &format!("{STORE}/{MARKER}"),
-        ]
-        .into_iter()
-        .any(|one| self.same(one, name))
+        stays_plain(name, self.folds())
     }
 
     fn reserved(&self, name: &str) -> Result<(), Hitch> {
@@ -374,6 +373,11 @@ impl<R: Remote> Remote for Sealed<R> {
     }
 
     // Asked once for each carrier, so a machine with another phrase never sends into this cloud.
+    fn mark_forgotten(&self) {
+        self.marked
+            .store(false, std::sync::atomic::Ordering::Relaxed);
+    }
+
     fn mark_up(&self) -> Result<(), Hitch> {
         use std::sync::atomic::Ordering;
         if !self.marked.load(Ordering::Relaxed) {

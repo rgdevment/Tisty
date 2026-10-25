@@ -186,7 +186,8 @@ pub fn sealing_of(dest: &Path) -> Sealing {
     };
     match (word(SEALING), word(SEALED)) {
         (Some(phase), _) if phase.starts_with("closed:") => Sealing::Closed,
-        (Some(_), _) => Sealing::Copying,
+        (Some(phase), _) if phase.starts_with("copying:") => Sealing::Copying,
+        (Some(_), _) => Sealing::Closed,
         (None, Some(cloud)) => Sealing::Sealed(cloud),
         (None, None) => Sealing::Plain,
     }
@@ -208,9 +209,20 @@ pub fn seal_word(dest: &Path, cloud: &str) -> std::io::Result<()> {
         Told::Shape {
             said: Some(said), ..
         } => *said,
-        Told::Shape { said: None, .. } => template()
-            .parse::<toml_edit::DocumentMut>()
-            .map_err(std::io::Error::other)?,
+        Told::Shape {
+            said: None, needs, ..
+        } => {
+            if sealing_of(dest) != Sealing::Plain {
+                return Ok(());
+            }
+            let mut said = template()
+                .parse::<toml_edit::DocumentMut>()
+                .map_err(std::io::Error::other)?;
+            if let Some(needs) = needs {
+                said["needs"] = toml_edit::value(needs);
+            }
+            said
+        }
         _ => return Ok(()),
     };
     if said.contains_key(SEALED) || said.contains_key(SEALING) {

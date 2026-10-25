@@ -130,6 +130,7 @@ impl Cloud {
     // Unconfirmed again, the next round forgets the shape and the marks it left here and runs as a first one.
     // A new root asks for the mirror again, but this machine has still carried to this cloud and is no newcomer.
     fn started_over(&self, why: &'static str, carried_stays: bool) -> Result<(), Trouble> {
+        self.remote.mark_forgotten();
         tisty_core::witness::note(tisty_core::witness::channel::CLOUD, why, &[]);
         let broke = |e: std::io::Error| Trouble::Broke(e.to_string());
         index::forget(&self.home).map_err(broke)?;
@@ -160,8 +161,11 @@ impl Cloud {
         match tisty_sync::sealing_of(tree) {
             tisty_sync::Sealing::Sealed(said) if said == cloud => Ok(()),
             tisty_sync::Sealing::Copying | tisty_sync::Sealing::Closed => Ok(()),
-            _ => Err(crate::Hitch::Broke(
-                "the place does not say it is sealed, so nothing sealed is sent".into(),
+            tisty_sync::Sealing::Sealed(_) => Err(crate::Hitch::Barred(Trouble::Sealed(
+                tree.display().to_string(),
+            ))),
+            tisty_sync::Sealing::Plain | tisty_sync::Sealing::Unsaid => Err(crate::Hitch::Barred(
+                Trouble::Unsealed(tree.display().to_string()),
             )),
         }
     }
