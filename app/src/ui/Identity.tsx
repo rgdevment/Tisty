@@ -108,7 +108,7 @@ function Born({
       <p className="text-[12.5px] leading-relaxed text-soft">{t("identityWhat")}</p>
       {shown.fingerprint && (
         <div className="mt-3 rounded-[10px] border border-hair px-3 py-2.5">
-          <p className="font-mono text-[17px] tracking-wider">{shown.fingerprint}</p>
+          <p className="font-mono text-[21px] tracking-wider">{shown.fingerprint}</p>
           <p className="mt-0.5 text-[11.5px] text-faint">{t("identityPrint")}</p>
         </div>
       )}

@@ -1,4 +1,4 @@
-import { type MutableRefObject, useCallback, useEffect, useRef, useState } from "react";
+import { type MutableRefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type Snapshot, settleIn, snapshot } from "./core";
 import { adopt, t } from "./locales";
 import { saidPlainly } from "./refusal";
@@ -17,8 +17,12 @@ export function useSnapshot({ seen, reach, acted, setError }: Hands) {
   const [settling, setSettling] = useState(true);
   const [stuck, setStuck] = useState(false);
 
+  // Keyed on what is asked for, so moving between sections that read the same tasks never reads them again.
+  const asked = JSON.stringify(asView(seen, reach));
+  const view = useMemo(() => JSON.parse(asked), [asked]);
+
   const load = useCallback(() => {
-    snapshot(asView(seen, reach))
+    snapshot(view)
       .then((fresh) => {
         adopt(fresh.locale);
         knowAgents(fresh.agents, {
@@ -32,7 +36,7 @@ export function useSnapshot({ seen, reach, acted, setError }: Hands) {
         acted.current = null;
       })
       .catch((e) => setError(saidPlainly(e)));
-  }, [seen, reach, setError, acted]);
+  }, [view, setError, acted]);
 
   const latest = useRef(load);
   latest.current = load;

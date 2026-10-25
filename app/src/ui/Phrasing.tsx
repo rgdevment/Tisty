@@ -147,7 +147,7 @@ function Words({ words }: { words: string[] }) {
         .map((word, at) => ({ word, place: at + 1 }))
         .map(({ word, place }) => (
           <li key={place} className="flex gap-2 border-b border-hair py-0.5">
-            <span className="w-5 text-right text-[11px] text-faint tabular-nums">{place}</span>
+            <span className="w-5 text-right text-[10.5px] text-faint tabular-nums">{place}</span>
             <span className="font-medium">{word}</span>
           </li>
         ))}
