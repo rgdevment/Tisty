@@ -1,10 +1,10 @@
-use super::{DRAWN_BY, KEPT_AT_MOST, paged};
+use super::{DRAWN_BY, Diagrams, KEPT_AT_MOST, paged};
 
 #[test]
 fn a_page_is_drawn_once_and_then_read_from_the_shelf() {
     let tmp = tempfile::tempdir().unwrap();
     let shelf = tmp.path().join("pages");
-    let first = paged(&shelf, "# Title\n\nWords.\n");
+    let first = paged(&shelf, "# Title\n\nWords.\n", &Diagrams::default());
     assert!(first.contains("Title</h1>"));
     let kept: Vec<_> = std::fs::read_dir(shelf.join(DRAWN_BY))
         .unwrap()
@@ -12,7 +12,31 @@ fn a_page_is_drawn_once_and_then_read_from_the_shelf() {
         .collect();
     assert_eq!(kept.len(), 1);
     std::fs::write(kept[0].path(), "kept").unwrap();
-    assert_eq!(paged(&shelf, "# Title\n\nWords.\n"), "kept");
+    assert_eq!(
+        paged(&shelf, "# Title\n\nWords.\n", &Diagrams::default()),
+        "kept"
+    );
+}
+
+#[test]
+fn a_diagram_is_drawn_once_while_the_words_around_it_change() {
+    let tmp = tempfile::tempdir().unwrap();
+    let shelf = tmp.path().join("pages");
+    let fence = "graph TD\n  A --> B\n";
+    let diagrams = Diagrams::default();
+    diagrams.0.lock().unwrap().insert(
+        tisty_core::attach::printed(fence.as_bytes()),
+        Some("<svg>kept</svg>".into()),
+    );
+    for words in ["Before.", "After."] {
+        let page = paged(
+            &shelf,
+            &format!("{words}\n\n```mermaid\n{fence}```\n"),
+            &diagrams,
+        );
+        assert!(page.contains("kept"), "{page}");
+    }
+    assert_eq!(diagrams.0.lock().unwrap().len(), 1);
 }
 
 #[test]
@@ -20,7 +44,7 @@ fn pages_drawn_by_another_version_are_put_away() {
     let tmp = tempfile::tempdir().unwrap();
     let shelf = tmp.path().join("pages");
     std::fs::create_dir_all(shelf.join("0.0.1")).unwrap();
-    paged(&shelf, "Words.\n");
+    paged(&shelf, "Words.\n", &Diagrams::default());
     assert!(!shelf.join("0.0.1").exists());
     assert!(shelf.join(DRAWN_BY).exists());
 }
@@ -30,7 +54,7 @@ fn the_shelf_keeps_only_so_many_pages() {
     let tmp = tempfile::tempdir().unwrap();
     let shelf = tmp.path().join("pages");
     for n in 0..KEPT_AT_MOST + 3 {
-        paged(&shelf, &format!("Page {n}.\n"));
+        paged(&shelf, &format!("Page {n}.\n"), &Diagrams::default());
     }
     let kept = std::fs::read_dir(shelf.join(DRAWN_BY)).unwrap().count();
     assert!(kept <= KEPT_AT_MOST);

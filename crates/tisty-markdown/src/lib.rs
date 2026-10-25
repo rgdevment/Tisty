@@ -35,7 +35,7 @@ mod writing;
 
 #[cfg(feature = "outline")]
 pub use outline::{Head, outline};
-pub use page::html;
+pub use page::{html, html_with};
 pub use printed::printed;
 pub use reading::read;
 #[doc(hidden)]
