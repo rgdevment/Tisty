@@ -44,8 +44,9 @@ pub fn task_left(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answe
                 Left {
                     kind: "doc",
                     label: on_paper
-                        .clone()
+                        .as_ref()
                         .filter(|title| !title.is_empty())
+                        .cloned()
                         .or_else(|| one.label.clone()),
                     away: held.is_some_and(|doc| session.state.held_away(doc)),
                     gone: held.is_none() || on_paper.is_none(),
@@ -115,9 +116,11 @@ fn unheld_log<T>(
         session.reload()?;
         (session.paths.store(), take(&session))
     };
-    // Read outside the lock, a segment can be closed between being listed and opened; the next read finds it.
-    let log =
-        tisty_core::store::read_all(&store).or_else(|_| tisty_core::store::read_all(&store))?;
+    // A segment this window closes mid-read fails the read, so the second one waits for its writes to end.
+    let log = match tisty_core::store::read_all(&store) {
+        Ok(log) => log,
+        Err(_) => held(session).log()?,
+    };
     Ok((log, taken))
 }
 

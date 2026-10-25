@@ -26,7 +26,7 @@ fn a_diagram_is_drawn_once_while_the_words_around_it_change() {
     let diagrams = Diagrams::default();
     diagrams.0.lock().unwrap().drawn.insert(
         tisty_core::attach::printed(fence.as_bytes()),
-        Some("<svg>kept</svg>".into()),
+        "<svg>kept</svg>".into(),
     );
     for words in ["Before.", "After."] {
         let page = paged(
@@ -55,6 +55,30 @@ fn the_diagrams_kept_are_the_latest_so_many() {
     );
     let first = tisty_core::attach::printed("graph TD\n  A0 --> B\n".as_bytes());
     assert!(!kept.drawn.contains_key(&first));
+}
+
+#[test]
+fn a_diagram_in_use_outlives_newer_ones_and_a_broken_one_is_not_kept() {
+    let diagrams = Diagrams::default();
+    let used = "graph TD\n  Used --> B\n";
+    diagrams.drawn(used);
+    for n in 0..super::DIAGRAMS_AT_MOST {
+        diagrams.drawn(used);
+        diagrams.drawn(&format!("graph TD\n  A{n} --> B\n"));
+    }
+    let broken = "graph TD\n  A -->";
+    assert_eq!(diagrams.drawn(broken), None);
+    let kept = diagrams.0.lock().unwrap();
+    assert!(
+        kept.drawn
+            .contains_key(&tisty_core::attach::printed(used.as_bytes()))
+    );
+    assert!(
+        !kept
+            .drawn
+            .contains_key(&tisty_core::attach::printed(broken.as_bytes()))
+    );
+    assert_eq!(kept.drawn.len(), super::DIAGRAMS_AT_MOST);
 }
 
 #[test]

@@ -15,22 +15,22 @@ pub struct Diagrams(Mutex<Kept>);
 
 #[derive(Default)]
 struct Kept {
-    drawn: std::collections::HashMap<String, Option<String>>,
+    drawn: std::collections::HashMap<String, String>,
     order: std::collections::VecDeque<String>,
 }
 
 impl Diagrams {
+    // A fence half written while it is edited draws nothing, and keeping those would push out the ones in use.
     fn drawn(&self, source: &str) -> Option<String> {
         let key = tisty_core::attach::printed(source.as_bytes());
-        if let Some(kept) = self
-            .0
-            .lock()
-            .ok()
-            .and_then(|kept| kept.drawn.get(&key).cloned())
+        if let Ok(mut kept) = self.0.lock()
+            && let Some(drawn) = kept.drawn.get(&key).cloned()
         {
-            return kept;
+            kept.order.retain(|one| one != &key);
+            kept.order.push_back(key);
+            return Some(drawn);
         }
-        let drawn = tisty_markdown::diagram::drawn(source);
+        let drawn = tisty_markdown::diagram::drawn(source)?;
         if let Ok(mut kept) = self.0.lock()
             && kept.drawn.insert(key.clone(), drawn.clone()).is_none()
         {
@@ -41,7 +41,7 @@ impl Diagrams {
                 }
             }
         }
-        drawn
+        Some(drawn)
     }
 }
 
@@ -57,8 +57,11 @@ pub fn doc_drawn(
 
 // A journal is never rewritten, so what it said before Tisty had its own words is turned as drawn.
 #[tauri::command(async)]
-pub fn note_drawn(body: String) -> String {
-    tisty_markdown::html(&tisty_markdown::read(&tisty_markdown::to_tisty(&body)))
+pub fn note_drawn(diagrams: tauri::State<'_, Diagrams>, body: String) -> String {
+    tisty_markdown::html_with(
+        &tisty_markdown::read(&tisty_markdown::to_tisty(&body)),
+        &|one| diagrams.drawn(one),
+    )
 }
 
 #[tauri::command(async)]
