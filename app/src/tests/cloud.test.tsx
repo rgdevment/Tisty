@@ -103,6 +103,16 @@ describe("what the cloud's state says", () => {
     expect(cloudStanding(status({ ...lost, haltedUntil: 50 }), 100)?.said).toBe("stateReconnect");
   });
 
+  it("names each way an encrypted cloud stops, in red only where something is wrong", () => {
+    const of = (code: string) => cloudStanding(status({ last: round(code) }));
+    expect(of("cloudSealed")?.said).toBe("stateSealed");
+    expect(of("cloudSealing")).toMatchObject({ said: "stateSealing", why: "stateSealingWhy" });
+    expect(of("cloudSealing")?.urgent).toBeUndefined();
+    expect(of("cloudOtherPhrase")).toMatchObject({ said: "stateOtherPhrase", urgent: true });
+    expect(of("cloudUnsealed")).toMatchObject({ said: "stateUnsealed", urgent: true });
+    expect(of("cloudMarkDamaged")).toMatchObject({ said: "stateMarkDamaged", urgent: true });
+  });
+
   it("gives every round that went wrong its words and its way out", () => {
     const of = (code: string) => cloudStanding(status({ last: round(code) }));
     expect(of("cloudLost")?.exit).toBe("reconnect");

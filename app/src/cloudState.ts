@@ -55,6 +55,11 @@ const BY_CODE: Record<string, Standing> = {
   "deferred-troubled": { said: "stateTroubled", why: "stateTroubledWhy" },
   "deferred-unsent": { said: "stateUnsent", why: "stateUnsentWhy" },
   cloudNotNow: { said: "stateWait", why: "stateWaitWhy" },
+  cloudSealed: { said: "stateSealed", why: "stateSealedWhy" },
+  cloudSealing: { said: "stateSealing", why: "stateSealingWhy" },
+  cloudOtherPhrase: { said: "stateOtherPhrase", why: "stateOtherPhraseWhy", urgent: true },
+  cloudUnsealed: { said: "stateUnsealed", why: "stateUnsealedWhy", urgent: true },
+  cloudMarkDamaged: { said: "stateMarkDamaged", why: "stateMarkDamagedWhy", urgent: true },
 };
 
 const APART: Standing = {

@@ -1520,6 +1520,19 @@ const en = {
   stateEmptiedWhy:
     "They were deleted outside Tisty, perhaps with «Delete hidden app data» in {cloud} › Manage apps. Nothing here changed. Send everything again from this computer, or move to another place.",
   stateEmptiedDo: "Send it all again",
+  stateSealed: "Your cloud is encrypted",
+  stateSealedWhy:
+    "This computer cannot open it yet. Nothing syncs, and what you write stays on this computer.",
+  stateSealing: "Another computer is encrypting your cloud",
+  stateSealingWhy: "Syncing goes on by itself once it is done.",
+  stateOtherPhrase: "Your cloud uses another phrase",
+  stateOtherPhraseWhy:
+    "This computer's phrase is not the one of this cloud. Check that it is the one you chose.",
+  stateUnsealed: "Your cloud no longer says it is encrypted",
+  stateUnsealedWhy:
+    "None of your computers turned encryption off. Check that nobody else changed your account.",
+  stateMarkDamaged: "The mark of your encrypted cloud is damaged",
+  stateMarkDamagedWhy: "Sync from a computer whose phrase opens your cloud, and it mends the mark.",
   stateEmptiedSure:
     "Everything on this computer goes up to {cloud} again. Your other computers will pick it up from there. Go ahead?",
   stateBudget: "Your cloud reached today's limit",
@@ -3878,6 +3891,19 @@ const es: Catalog = {
   stateEmptiedWhy:
     "Se borraron fuera de Tisty, quizás con «Eliminar datos ocultos de la app» en {cloud} › Administrar apps. Aquí no cambió nada. Vuelve a subirlo todo desde este equipo, o múdate a otro lugar.",
   stateEmptiedDo: "Subirlo todo de nuevo",
+  stateSealed: "Tu nube está cifrada",
+  stateSealedWhy:
+    "Este equipo todavía no puede abrirla. No se sincroniza nada y lo que escribas queda en este equipo.",
+  stateSealing: "Otro equipo está cifrando tu nube",
+  stateSealingWhy: "La sincronización sigue sola cuando termine.",
+  stateOtherPhrase: "Tu nube usa otra frase",
+  stateOtherPhraseWhy:
+    "La frase de este equipo no es la de esta nube. Revisa que sea la que elegiste.",
+  stateUnsealed: "Tu nube ya no dice que está cifrada",
+  stateUnsealedWhy:
+    "Ninguno de tus equipos apagó el cifrado. Revisa que nadie más haya cambiado tu cuenta.",
+  stateMarkDamaged: "La marca de tu nube cifrada está dañada",
+  stateMarkDamagedWhy: "Sincroniza desde un equipo cuya frase abra tu nube y la marca se repara.",
   stateEmptiedSure:
     "Todo lo que hay en este equipo vuelve a subir a {cloud}. Tus otros equipos lo tomarán desde ahí. ¿Sigo?",
   stateBudget: "Tu nube llegó a su límite de hoy",
