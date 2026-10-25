@@ -147,7 +147,8 @@ fn a_release_is_later_only_when_its_numbers_say_so_and_one_unread_is_taken_for_l
     assert!(!needs_later("1.34.1"));
     assert!(!needs_later("1.35.0-rc.1"));
     assert!(!needs_later(SEALS));
-    assert!(needs_later("1.35.1"));
+    assert!(!needs_later(TURNS));
+    assert!(needs_later("1.36.1"));
     assert!(needs_later("1.100.0"));
     assert!(needs_later("2.0.0"));
     assert!(needs_later("pronto"));
@@ -483,7 +484,19 @@ fn a_place_says_whether_it_is_plain_being_sealed_closed_or_sealed() {
         says("sealed = \"store_one\"\nbroken = = =\n"),
         Sealing::Sealed("store_one".into())
     );
-    assert_eq!(says("sealing = \"copying:dev_a:n1\"\n"), Sealing::Copying);
+    assert_eq!(
+        says("sealing = \"copying:seal:dev_a:n1\"\n"),
+        Sealing::Copying(Turn::On)
+    );
+    assert_eq!(
+        says("sealed = \"store_one\"\nsealing = \"copying:unseal:dev_a:n1\"\n"),
+        Sealing::Copying(Turn::Off)
+    );
+    assert_eq!(
+        says("sealing = \"copying:dev_a:n1\"\n"),
+        Sealing::Closed,
+        "a copy whose way is not said stops everyone"
+    );
     assert_eq!(says("sealing = \"closed:dev_a:n1\"\n"), Sealing::Closed);
     assert_eq!(
         says("sealed = \"store_one\"\n"),
@@ -513,7 +526,27 @@ fn a_reader_stops_where_the_place_is_sealed_another_way_and_never_writes_in_the_
         against("sealed = \"store_one\"\n", Some("store_two")),
         Some("sealed")
     );
-    assert_eq!(against("sealing = \"copying:dev_a:n1\"\n", None), None);
+    assert_eq!(against("sealing = \"copying:seal:dev_a:n1\"\n", None), None);
+    assert_eq!(
+        against("sealing = \"copying:seal:dev_a:n1\"\n", Some("store_one")),
+        Some("sealing"),
+        "a sealed reader never writes into a copy still being filled"
+    );
+    assert_eq!(
+        against(
+            "sealed = \"store_one\"\nsealing = \"copying:unseal:dev_a:n1\"\n",
+            Some("store_one")
+        ),
+        None
+    );
+    assert_eq!(
+        against(
+            "sealed = \"store_one\"\nsealing = \"copying:unseal:dev_a:n1\"\n",
+            None
+        ),
+        Some("sealing"),
+        "a plain reader never writes into the plain copy being filled"
+    );
     assert_eq!(
         against("sealing = \"closed:dev_a:n1\"\n", None),
         Some("sealing")
@@ -583,4 +616,61 @@ fn a_word_read_only_line_by_line_that_already_seals_is_left_as_it_is() {
     seal_word(&dest, "store_one").unwrap();
 
     assert_eq!(std::fs::read_to_string(dest.join(NAMED)).unwrap(), said);
+}
+
+#[test]
+fn a_turn_is_claimed_closed_and_switched_only_by_the_machine_that_claimed_it() {
+    let word = "shape = 3\nneeds = \"1.34.0\"\nunknown = \"kept\"\n";
+    let ours = phase(Turn::On, "dev_a", "n1");
+
+    let claimed_word = claimed(word, &ours).unwrap();
+    assert_eq!(sealing_in(&claimed_word), Sealing::Copying(Turn::On));
+    assert!(claimed(&claimed_word, &phase(Turn::On, "dev_b", "n2")).is_none());
+    assert!(closed(&claimed_word, "dev_b:n2").is_none());
+
+    let closed_word = closed(&claimed_word, "dev_a:n1").unwrap();
+    assert_eq!(sealing_in(&closed_word), Sealing::Closed);
+    assert!(closed_word.contains("needs = \"1.36.0\""));
+
+    let sealed_word = switched(&closed_word, "dev_a:n1", Some("store_one")).unwrap();
+    assert_eq!(
+        sealing_in(&sealed_word),
+        Sealing::Sealed("store_one".into())
+    );
+    assert!(sealed_word.contains("unknown = \"kept\""));
+    assert!(
+        switched(&claimed_word, "dev_a:n1", Some("store_one")).is_none(),
+        "switched before it closed"
+    );
+}
+
+#[test]
+fn turning_off_takes_the_sealed_line_away_and_never_lowers_needs() {
+    let word = "shape = 3\nneeds = \"1.36.0\"\nsealed = \"store_one\"\n";
+    let ours = phase(Turn::Off, "dev_a", "n1");
+
+    let claimed_word = claimed(word, &ours).unwrap();
+    assert_eq!(sealing_in(&claimed_word), Sealing::Copying(Turn::Off));
+    let closed_word = closed(&claimed_word, "dev_a:n1").unwrap();
+    assert!(closed_word.contains("needs = \"1.36.0\""));
+    let plain = switched(&closed_word, "dev_a:n1", None).unwrap();
+
+    assert_eq!(sealing_in(&plain), Sealing::Plain);
+}
+
+#[test]
+fn a_claim_is_dropped_only_by_its_own_machine_and_leaves_the_rest_of_the_word() {
+    let word = "shape = 3\nneeds = \"1.34.0\"\n";
+    let claimed_word = claimed(word, &phase(Turn::On, "dev_a", "n1")).unwrap();
+
+    assert!(dropped(&claimed_word, "dev_b:n1").is_none());
+    assert!(dropped(&claimed_word, "dev_a:n2").is_none());
+    let back = dropped(&claimed_word, "dev_a:n1").unwrap();
+
+    assert_eq!(sealing_in(&back), Sealing::Plain);
+    assert!(
+        back.contains("needs = \"1.36.0\""),
+        "needs never comes back down"
+    );
+    assert!(claimed("not = = toml", &phase(Turn::On, "dev_a", "n1")).is_none());
 }

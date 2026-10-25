@@ -31,6 +31,7 @@ pub mod testing;
 mod tokens;
 pub mod uploads;
 
+pub use cloud::sealing::{Stepped, Turning, wipe_behind};
 pub use cloud::standing::{
     LastRound, OWED_BACK, Standing, cloud_joined, kin_mirrored, mirrored_at, round_forgotten,
     round_noted, standing,

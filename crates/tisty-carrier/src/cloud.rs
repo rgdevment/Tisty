@@ -22,6 +22,7 @@ mod mirror;
 mod pace;
 pub mod policy;
 mod resting;
+pub mod sealing;
 mod shelf;
 pub mod standing;
 mod wiping;
@@ -172,7 +173,12 @@ impl Cloud {
         tisty_sync::seal_word(tree, cloud).map_err(|e| crate::Hitch::Broke(e.to_string()))?;
         match tisty_sync::sealing_of(tree) {
             tisty_sync::Sealing::Sealed(said) if said == cloud => Ok(()),
-            tisty_sync::Sealing::Copying | tisty_sync::Sealing::Closed => Ok(()),
+            tisty_sync::Sealing::Copying(tisty_sync::Turn::Off) => Ok(()),
+            tisty_sync::Sealing::Copying(tisty_sync::Turn::On) | tisty_sync::Sealing::Closed => {
+                Err(crate::Hitch::Barred(Trouble::Sealing(
+                    tree.display().to_string(),
+                )))
+            }
             tisty_sync::Sealing::Sealed(_) => Err(crate::Hitch::Barred(Trouble::Sealed(
                 tree.display().to_string(),
             ))),

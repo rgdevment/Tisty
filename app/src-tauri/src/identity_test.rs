@@ -254,3 +254,34 @@ fn once_an_identity_exists_its_seed_is_read_once_until_it_is_begun_or_typed_agai
     seed_person(&session).unwrap();
     assert_eq!(crate::reaching::reads_of(&asked) - before, 2);
 }
+
+#[test]
+fn a_machine_that_never_read_the_event_keys_the_cloud_with_its_own_phrase() {
+    let kept = tempfile::tempdir().unwrap();
+    let session = opened(&kept);
+    keep(&held(&session).paths, &seed(7)).unwrap();
+    begun(&mut held(&session), &seed(7)).unwrap();
+    sealed_up_there(&session, "cloud_one");
+
+    tauri::async_runtime::block_on(seal_the_cloud(&session));
+
+    assert_eq!(
+        sealed_now(&session).map(|one| one.named),
+        Some(CloudKey::of(&seed(7)).named_for("cloud_one"))
+    );
+}
+
+#[test]
+fn without_an_identity_a_sealed_cloud_never_asks_the_keychain_for_a_phrase() {
+    let kept = tempfile::tempdir().unwrap();
+    let session = opened(&kept);
+    keep(&held(&session).paths, &seed(7)).unwrap();
+    sealed_up_there(&session, "cloud_one");
+    let asked = scope(&held(&session).paths).unwrap();
+    let before = crate::reaching::reads_of(&asked);
+
+    tauri::async_runtime::block_on(seal_the_cloud(&session));
+
+    assert_eq!(sealed_now(&session), None);
+    assert_eq!(crate::reaching::reads_of(&asked), before);
+}
