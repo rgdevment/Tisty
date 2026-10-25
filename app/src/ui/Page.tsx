@@ -109,9 +109,9 @@ export default function Page(props: Readonly<Props>) {
   };
 
   return (
-    // Only the first drawing fades in: later ones replace the page in place, unseen.
+    // Hidden until the first drawing is ready, then shown at once: a fade on every task opened is a wait.
     <div
-      className={`${tall ? "relative" : "relative flex min-h-0 flex-1 flex-col"} transition-opacity duration-150 ${seen ? "opacity-100" : "opacity-0"}`}
+      className={`${tall ? "relative" : "relative flex min-h-0 flex-1 flex-col"} ${seen ? "opacity-100" : "opacity-0"}`}
     >
       {frames.map((one) => (
         <Frame
