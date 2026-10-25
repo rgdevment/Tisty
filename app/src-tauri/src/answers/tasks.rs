@@ -11,7 +11,7 @@ use crate::{
     today, weighed, wiring, zone,
 };
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn task_left(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<Vec<Left>> {
     let id: tisty_core::TaskId = id.parse().map_err(|_| Refusal::of("notATaskId"))?;
     let mut session = held(&session);
@@ -97,7 +97,7 @@ pub fn task_left(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answe
     Ok(left)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn task_story(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
@@ -109,7 +109,7 @@ pub fn task_story(
     Ok(told)
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn task_series(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
@@ -824,7 +824,7 @@ impl Edits {
     }
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn task_step_dates(
     session: tauri::State<'_, Mutex<Session>>,
     id: String,
