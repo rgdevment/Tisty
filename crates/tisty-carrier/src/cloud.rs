@@ -86,6 +86,7 @@ pub struct Cloud {
     remote: Arc<dyn Remote>,
     home: PathBuf,
     tried: AtomicBool,
+    marked: AtomicBool,
     root: String,
 }
 
@@ -109,6 +110,7 @@ impl Cloud {
             remote,
             home: home.into(),
             tried: AtomicBool::new(false),
+            marked: AtomicBool::new(false),
         }
     }
 
@@ -130,7 +132,7 @@ impl Cloud {
     // Unconfirmed again, the next round forgets the shape and the marks it left here and runs as a first one.
     // A new root asks for the mirror again, but this machine has still carried to this cloud and is no newcomer.
     fn started_over(&self, why: &'static str, carried_stays: bool) -> Result<(), Trouble> {
-        self.remote.mark_forgotten();
+        self.marked.store(false, Ordering::Relaxed);
         tisty_core::witness::note(tisty_core::witness::channel::CLOUD, why, &[]);
         let broke = |e: std::io::Error| Trouble::Broke(e.to_string());
         index::forget(&self.home).map_err(broke)?;
@@ -152,11 +154,21 @@ impl Cloud {
         Ok(())
     }
 
+    // Asked once for each carrier, so a machine with another phrase never sends into this cloud.
+    fn marked_up(&self, remote: &dyn Remote) -> Result<(), crate::Hitch> {
+        if crate::sealed::reading(&self.root).is_none() || self.marked.load(Ordering::Relaxed) {
+            return Ok(());
+        }
+        remote.mark_up()?;
+        self.marked.store(true, Ordering::Relaxed);
+        Ok(())
+    }
+
     fn announced(&self, remote: &dyn Remote, tree: &Path) -> Result<(), crate::Hitch> {
         let Some(cloud) = crate::sealed::reading(&self.root) else {
             return Ok(());
         };
-        remote.mark_up()?;
+        self.marked_up(remote)?;
         tisty_sync::seal_word(tree, cloud).map_err(|e| crate::Hitch::Broke(e.to_string()))?;
         match tisty_sync::sealing_of(tree) {
             tisty_sync::Sealing::Sealed(said) if said == cloud => Ok(()),
@@ -233,7 +245,9 @@ impl Cloud {
         let remote: &dyn Remote = &metered;
         let mut index = self.index();
         let data = here.map(|here| here.data.as_path());
-        let pulled = mirror::pull(remote, &tree, &mut index, data, turn.homes, along);
+        let pulled = self
+            .marked_up(remote)
+            .and_then(|()| mirror::pull(remote, &tree, &mut index, data, turn.homes, along));
         // A store deleted whole leaves nothing to bring home, so a move away goes on, while a round here still says it is gone.
         if self.still_emptied(&pulled, &index) && (turn.homes || here.is_some()) {
             return match turn.homes {

@@ -1241,6 +1241,8 @@ const en = {
     "Nothing was synced, in either direction. Your cloud is encrypted with your 24-word phrase, and this computer cannot open it yet. Update Tisty on this computer to enter your phrase there. What you write here stays here meanwhile.",
   cloudOtherPhrase:
     "Nothing was synced, in either direction. Your cloud is encrypted with a different 24-word phrase from the one on this computer, so Tisty does not touch it. Check that this computer uses the phrase you chose for this cloud.",
+  cloudMarkDamaged:
+    "Nothing was synced, in either direction. The mark that tells which phrase opens your encrypted cloud is damaged, and this computer could not prove its phrase opens what is up there, so Tisty does not touch it. Sync from a computer whose phrase opens your cloud, and it mends the mark. What you write here stays here meanwhile.",
   cloudSealing:
     "Nothing was synced just now: another of your computers is encrypting or decrypting your cloud. Syncing goes on by itself once it is done. What you write here stays here meanwhile.",
   cloudUnsealed:
@@ -3597,6 +3599,8 @@ const es: Catalog = {
     "No se sincronizó nada, en ningún sentido. Tu nube está cifrada con tu frase de 24 palabras y este equipo todavía no puede abrirla. Actualiza Tisty en este equipo para escribir ahí tu frase. Mientras tanto, lo que escribas aquí se queda aquí.",
   cloudOtherPhrase:
     "No se sincronizó nada, en ningún sentido. Tu nube está cifrada con una frase de 24 palabras distinta de la que tiene este equipo, así que Tisty no la toca. Revisa que este equipo use la frase que elegiste para esta nube.",
+  cloudMarkDamaged:
+    "No se sincronizó nada, en ningún sentido. La marca que dice qué frase abre tu nube cifrada está dañada, y este equipo no pudo comprobar que su frase abre lo que hay arriba, así que Tisty no la toca. Sincroniza desde un equipo cuya frase abra tu nube y la marca se repara. Mientras tanto, lo que escribas aquí se queda aquí.",
   cloudSealing:
     "No se sincronizó nada por ahora: otro de tus equipos está cifrando o descifrando tu nube. La sincronización sigue sola cuando termine. Mientras tanto, lo que escribas aquí se queda aquí.",
   cloudUnsealed:

@@ -335,3 +335,97 @@ fn renaming_only_the_capitals_on_a_provider_that_folds_case_is_refused_and_keeps
     assert!(sealed.renamed("docs/Plan.md", "docs/Plan.md").is_ok());
     assert_eq!(fetched(&sealed, "docs/Plan.md").unwrap(), b"hola");
 }
+
+struct Raced {
+    inner: Fake,
+    theirs: Vec<u8>,
+}
+
+impl Remote for Raced {
+    fn limits(&self) -> crate::Limits {
+        self.inner.limits()
+    }
+
+    fn list(&self, under: &str) -> Result<Vec<Seen>, Hitch> {
+        self.inner.list(under)
+    }
+
+    fn fetch(&self, name: &str, from: u64, into: &mut dyn Write) -> Result<Seen, Hitch> {
+        self.inner.fetch(name, from, into)
+    }
+
+    fn put(&self, name: &str, from: &std::path::Path, expect: Expect) -> Result<Seen, Hitch> {
+        if !name.ends_with(MARK) {
+            return self.inner.put(name, from, expect);
+        }
+        put(&self.inner, name, &self.theirs);
+        Err(Hitch::Changed(name.to_string()))
+    }
+
+    fn delete(&self, name: &str, expect: Option<&str>) -> Result<(), Hitch> {
+        self.inner.delete(name, expect)
+    }
+
+    fn hash_of(&self, local: &std::path::Path) -> std::io::Result<String> {
+        self.inner.hash_of(local)
+    }
+}
+
+fn barred(said: Result<(), Hitch>) -> Option<&'static str> {
+    match said {
+        Err(Hitch::Barred(trouble)) => Some(trouble.code()),
+        _ => None,
+    }
+}
+
+#[test]
+fn a_machine_that_loses_the_race_to_mark_reads_the_mark_that_won() {
+    let theirs = mark(&key(8), "store_one").unwrap();
+    let raced = Raced {
+        inner: Fake::drive(),
+        theirs,
+    };
+    let sealed = Sealed::new(raced, key(7), "store_one");
+
+    assert_eq!(barred(sealed.mark_it()), Some("other-phrase"));
+}
+
+fn damaged(sealed: &Sealed<Fake>) {
+    put(
+        &sealed.inner,
+        &format!("{INSIDE}/{MARK}"),
+        b"not a mark at all",
+    );
+    assert_eq!(sealed.marked().unwrap(), Some(Mark::Damaged));
+}
+
+#[test]
+fn a_damaged_mark_is_mended_once_this_phrase_opens_what_the_cloud_holds() {
+    let sealed = over_drive();
+    put(&sealed, "store/dev_one/0001.jsonl", b"{}\n");
+    damaged(&sealed);
+
+    sealed.mark_it().unwrap();
+
+    assert_eq!(sealed.marked().unwrap(), Some(Mark::Holds));
+}
+
+#[test]
+fn a_damaged_mark_over_nothing_to_open_stops_and_stays_as_it_is() {
+    let sealed = over_drive();
+    damaged(&sealed);
+
+    assert_eq!(barred(sealed.mark_it()), Some("mark-damaged"));
+    assert_eq!(sealed.marked().unwrap(), Some(Mark::Damaged));
+}
+
+#[test]
+fn a_damaged_mark_over_another_phrase_is_never_mended_by_this_one() {
+    let theirs = Sealed::new(Fake::drive(), key(8), "store_one");
+    put(&theirs, "store/dev_one/0001.jsonl", b"{}\n");
+    let sealed = Sealed::new(theirs.inner, key(7), "store_one");
+    damaged(&sealed);
+
+    assert_eq!(barred(sealed.mark_it()), Some("mark-damaged"));
+    assert_eq!(sealed.marked().unwrap(), Some(Mark::Damaged));
+}

@@ -34,7 +34,6 @@ pub struct Sealed<R> {
     key: CloudKey,
     cloud: String,
     root: String,
-    marked: std::sync::atomic::AtomicBool,
 }
 
 fn broke(e: impl ToString) -> Hitch {
@@ -81,7 +80,6 @@ impl<R: Remote> Sealed<R> {
             key,
             root: format!("{INSIDE}:{cloud}"),
             cloud,
-            marked: std::sync::atomic::AtomicBool::new(false),
         }
     }
 
@@ -105,22 +103,70 @@ impl<R: Remote> Sealed<R> {
         }
     }
 
+    // A put that lost the race to another machine reads back whichever mark won.
     pub fn mark_it(&self) -> Result<(), Hitch> {
         match self.marked()? {
             None => {}
+            Some(Mark::Damaged) => return self.mended(),
             said => return self.mark_holds(said),
         }
+        match self.written(Expect::Absent) {
+            Ok(()) | Err(Hitch::Changed(_)) => {}
+            Err(other) => return Err(other),
+        }
+        match self.marked()? {
+            None => Err(broke("the mark could not be read back")),
+            said => self.mark_holds(said),
+        }
+    }
+
+    fn written(&self, expect: Expect) -> Result<(), Hitch> {
         let said = mark(&self.key, &self.cloud).ok_or_else(|| broke("no way to mark the cloud"))?;
         let held = crate::temp::Temp::new();
         let mut file = held.create().map_err(broke)?;
         file.write_all(&said).map_err(broke)?;
         drop(file);
         self.inner
-            .put(&format!("{INSIDE}/{MARK}"), &held.0, Expect::Absent)?;
+            .put(&format!("{INSIDE}/{MARK}"), &held.0, expect)
+            .map(|_| ())
+    }
+
+    // A damaged mark says nothing about the phrase, so it is written again only once this key opens what is up there.
+    fn mended(&self) -> Result<(), Hitch> {
+        let Some(there) = self.inner.about(&format!("{INSIDE}/{MARK}"))? else {
+            return self.mark_it();
+        };
+        if !self.opens_any()? {
+            return Err(self.damaged());
+        }
+        match self.written(Expect::Revision(there.revision)) {
+            Ok(()) | Err(Hitch::Changed(_)) => {}
+            Err(other) => return Err(other),
+        }
         match self.marked()? {
-            None => Err(broke("the mark could not be read back")),
+            Some(Mark::Damaged) | None => Err(self.damaged()),
             said => self.mark_holds(said),
         }
+    }
+
+    fn opens_any(&self) -> Result<bool, Hitch> {
+        let smallest = self
+            .within(crate::STORE)?
+            .into_iter()
+            .filter(|one| !self.is_clear(&one.name))
+            .min_by_key(|one| one.bytes);
+        let Some(one) = smallest else {
+            return Ok(false);
+        };
+        match self.fetch(&one.name, 0, &mut std::io::sink()) {
+            Ok(_) => Ok(true),
+            Err(Hitch::Broke(_)) => Ok(false),
+            Err(other) => Err(other),
+        }
+    }
+
+    fn damaged(&self) -> Hitch {
+        Hitch::Barred(tisty_sync::Trouble::MarkDamaged(self.root.clone()))
     }
 
     fn mark_holds(&self, said: Option<Mark>) -> Result<(), Hitch> {
@@ -129,7 +175,7 @@ impl<R: Remote> Sealed<R> {
             Some(Mark::Holds) => Ok(()),
             Some(Mark::OtherPhrase) => Err(Hitch::Barred(tisty_sync::Trouble::OtherPhrase(at()))),
             Some(Mark::Newer) => Err(Hitch::Barred(tisty_sync::Trouble::Shape(at()))),
-            _ => Err(broke("the phrase mark of this cloud is damaged")),
+            _ => Err(self.damaged()),
         }
     }
 
@@ -372,19 +418,8 @@ impl<R: Remote> Remote for Sealed<R> {
         &self.root
     }
 
-    // Asked once for each carrier, so a machine with another phrase never sends into this cloud.
-    fn mark_forgotten(&self) {
-        self.marked
-            .store(false, std::sync::atomic::Ordering::Relaxed);
-    }
-
     fn mark_up(&self) -> Result<(), Hitch> {
-        use std::sync::atomic::Ordering;
-        if !self.marked.load(Ordering::Relaxed) {
-            self.mark_it()?;
-            self.marked.store(true, Ordering::Relaxed);
-        }
-        Ok(())
+        self.mark_it()
     }
 }
 

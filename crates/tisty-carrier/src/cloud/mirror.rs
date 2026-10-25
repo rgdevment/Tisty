@@ -41,9 +41,6 @@ pub fn pull(
     along: &mut dyn FnMut(crate::Reached),
 ) -> Result<usize, Hitch> {
     heal(tree, index);
-    if crate::sealed::reading(remote.root()).is_some() {
-        remote.mark_up()?;
-    }
     if let Some(trouble) = still_barred(remote, tree, index)? {
         return Err(Hitch::Barred(trouble));
     }

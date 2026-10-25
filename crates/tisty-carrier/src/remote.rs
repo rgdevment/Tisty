@@ -251,6 +251,4 @@ pub trait Remote: Send + Sync {
     fn mark_up(&self) -> Result<(), Hitch> {
         Ok(())
     }
-
-    fn mark_forgotten(&self) {}
 }
