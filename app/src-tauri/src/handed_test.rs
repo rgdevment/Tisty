@@ -7,8 +7,6 @@ use tisty_share_proto::seed::Seed;
 
 use super::*;
 
-const CLOUD: &str = "store_one";
-
 #[derive(Default)]
 struct Shelf(Mutex<BTreeMap<String, Vec<u8>>>);
 
@@ -100,18 +98,22 @@ fn machine(kept: &tempfile::TempDir) -> Mutex<Session> {
     Mutex::new(session)
 }
 
-fn here_of(session: &Mutex<Session>, plain: &Arc<Shelf>, home: &tempfile::TempDir) -> Here {
+fn here_of(
+    session: &Mutex<Session>,
+    plain: &Arc<Shelf>,
+    home: &tempfile::TempDir,
+    cloud: &str,
+) -> Here {
     let session = held(session);
     Here {
         paths: session.paths.clone(),
         device: session.config.device_id.clone(),
-        cloud: CLOUD.into(),
+        cloud: cloud.into(),
         plain: plain.clone(),
         home: home.path().to_path_buf(),
     }
 }
 
-// The giver's log knows the asker as a seated machine with the key it signs with.
 fn knows(giver: &Mutex<Session>, asker: &Here) {
     let key = tisty_core::signing::mine(&asker.paths, &asker.device).unwrap();
     let mut giver = held(giver);
@@ -122,14 +124,16 @@ fn knows(giver: &Mutex<Session>, asker: &Here) {
     );
 }
 
-fn sealed_with(plain: &Arc<Shelf>, key: &CloudKey) {
-    tisty_carrier::Sealed::opened(plain.clone(), key.clone(), CLOUD, &key.named_for(CLOUD))
+fn sealed_with(two: &Two, key: &CloudKey) {
+    let cloud = two.cloud.as_str();
+    tisty_carrier::Sealed::opened(two.plain.clone(), key.clone(), cloud, &key.named_for(cloud))
         .unwrap()
         .mark_it()
         .unwrap();
 }
 
 struct Two {
+    cloud: String,
     plain: Arc<Shelf>,
     asker: Mutex<Session>,
     giver: Mutex<Session>,
@@ -141,12 +145,18 @@ struct Two {
 fn two() -> Two {
     let kept = std::array::from_fn(|_| tempfile::tempdir().unwrap());
     let plain = Arc::new(Shelf::default());
+    // The keychain of the tests is one for the whole run, so each test seals a cloud of its own.
+    let cloud = format!(
+        "store_{}",
+        ulid::Ulid::generate().to_string().to_lowercase()
+    );
     let (asker, giver) = (machine(&kept[0]), machine(&kept[1]));
     let (asking, giving) = (
-        here_of(&asker, &plain, &kept[2]),
-        here_of(&giver, &plain, &kept[3]),
+        here_of(&asker, &plain, &kept[2], &cloud),
+        here_of(&giver, &plain, &kept[3], &cloud),
     );
     Two {
+        cloud,
         plain,
         asker,
         giver,
@@ -159,23 +169,20 @@ fn two() -> Two {
 #[test]
 fn a_machine_on_the_list_asks_and_takes_the_key_another_hands_it() {
     let two = two();
-    sealed_with(&two.plain, &key(7));
+    sealed_with(&two, &key(7));
     knows(&two.giver, &two.asking);
     let knocking = Knocking::default();
 
     assert!(!asking(&two.asker, &knocking, &two.asking).unwrap());
-    answering(&two.giver, &Knocking::default(), &two.giving, &key(7)).unwrap();
+    answering(&two.giver, &two.giving, &key(7)).unwrap();
     assert!(asking(&two.asker, &knocking, &two.asking).unwrap());
 
+    assert_eq!(held(&two.asker).config.key_handed, Some(two.cloud.clone()));
     assert_eq!(
-        held(&two.asker).config.key_handed,
-        Some(key(7).named_for(CLOUD))
-    );
-    assert_eq!(
-        kept(&two.asking.paths)
+        kept(&two.cloud)
             .unwrap()
-            .map(|one| one.named_for(CLOUD)),
-        Some(key(7).named_for(CLOUD))
+            .map(|one| one.named_for(&two.cloud)),
+        Some(key(7).named_for(&two.cloud))
     );
     assert!(
         tisty_carrier::knock::knocks(&*two.plain, &two.asking.home)
@@ -187,22 +194,22 @@ fn a_machine_on_the_list_asks_and_takes_the_key_another_hands_it() {
 #[test]
 fn a_key_that_does_not_open_the_cloud_s_mark_is_never_taken() {
     let two = two();
-    sealed_with(&two.plain, &key(7));
+    sealed_with(&two, &key(7));
     knows(&two.giver, &two.asking);
     let knocking = Knocking::default();
     asking(&two.asker, &knocking, &two.asking).unwrap();
 
-    answering(&two.giver, &Knocking::default(), &two.giving, &key(4)).unwrap();
+    answering(&two.giver, &two.giving, &key(4)).unwrap();
 
     assert!(!asking(&two.asker, &knocking, &two.asking).unwrap());
     assert_eq!(held(&two.asker).config.key_handed, None);
-    assert!(kept(&two.asking.paths).unwrap().is_none());
+    assert!(kept(&two.cloud).unwrap().is_none());
 }
 
 #[test]
 fn only_a_seated_machine_asking_with_its_own_key_is_answered_on_its_own() {
     let two = two();
-    sealed_with(&two.plain, &key(7));
+    sealed_with(&two, &key(7));
     let knocking = Knocking::default();
     held(&two.asker).state.devices.clear();
     assert!(!asking(&two.asker, &knocking, &two.asking).unwrap());
@@ -218,12 +225,12 @@ fn only_a_seated_machine_asking_with_its_own_key_is_answered_on_its_own() {
         "Impostor",
         &SigningKey::from_bytes(&[3; 32]),
         &OneUse::minted().unwrap(),
-        CLOUD,
+        &two.cloud,
         now(),
     );
     knows(&two.giver, &two.asking);
     tisty_carrier::knock::knocked(&*two.plain, &two.asking.home, &forged).unwrap();
-    answering(&two.giver, &Knocking::default(), &two.giving, &key(7)).unwrap();
+    answering(&two.giver, &two.giving, &key(7)).unwrap();
 
     assert_eq!(
         tisty_carrier::knock::answered(&*two.plain, &two.asking.home, &two.asking.device.0)
@@ -235,7 +242,7 @@ fn only_a_seated_machine_asking_with_its_own_key_is_answered_on_its_own() {
 #[test]
 fn an_ask_past_its_time_is_taken_away_rather_than_answered() {
     let two = two();
-    sealed_with(&two.plain, &key(7));
+    sealed_with(&two, &key(7));
     knows(&two.giver, &two.asking);
     let signer = tisty_core::signing::mine(&two.asking.paths, &two.asking.device).unwrap();
     let old = Ask::signed(
@@ -243,12 +250,12 @@ fn an_ask_past_its_time_is_taken_away_rather_than_answered() {
         "PC",
         &signer,
         &OneUse::minted().unwrap(),
-        CLOUD,
+        &two.cloud,
         now() - JOINED_FOR - 60,
     );
     tisty_carrier::knock::knocked(&*two.plain, &two.asking.home, &old).unwrap();
 
-    answering(&two.giver, &Knocking::default(), &two.giving, &key(7)).unwrap();
+    answering(&two.giver, &two.giving, &key(7)).unwrap();
 
     assert!(
         tisty_carrier::knock::knocks(&*two.plain, &two.asking.home)
@@ -258,19 +265,25 @@ fn an_ask_past_its_time_is_taken_away_rather_than_answered() {
 }
 
 #[test]
-fn a_machine_with_the_key_looks_at_the_box_at_most_every_five_minutes() {
+fn the_box_is_looked_at_only_once_its_time_came_again() {
+    let knocking = Knocking::default();
+
+    assert!(due(&knocking, ANSWERED_EVERY));
+    assert!(!due(&knocking, ANSWERED_EVERY));
+    assert!(due(&knocking, Duration::ZERO));
+}
+
+#[test]
+fn an_answer_that_does_not_open_is_taken_away_so_another_can_come() {
     let two = two();
-    sealed_with(&two.plain, &key(7));
+    sealed_with(&two, &key(7));
     knows(&two.giver, &two.asking);
-    let looking = Knocking::default();
-    answering(&two.giver, &looking, &two.giving, &key(7)).unwrap();
-    asking(&two.asker, &Knocking::default(), &two.asking).unwrap();
+    let knocking = Knocking::default();
+    asking(&two.asker, &knocking, &two.asking).unwrap();
+    answering(&two.giver, &two.giving, &key(4)).unwrap();
+    asking(&two.asker, &knocking, &two.asking).unwrap();
 
-    answering(&two.giver, &looking, &two.giving, &key(7)).unwrap();
+    answering(&two.giver, &two.giving, &key(7)).unwrap();
 
-    assert_eq!(
-        tisty_carrier::knock::answered(&*two.plain, &two.asking.home, &two.asking.device.0)
-            .unwrap(),
-        None
-    );
+    assert!(asking(&two.asker, &knocking, &two.asking).unwrap());
 }

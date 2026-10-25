@@ -19,7 +19,8 @@ const KEY: &str = "key";
 const JOINED_FOR: i64 = 7 * 24 * 60 * 60;
 const NEW_FOR: i64 = 60 * 60;
 const AHEAD_AT_MOST: i64 = 5 * 60;
-const LOOKED_EVERY: Duration = Duration::from_secs(5 * 60);
+const ANSWERED_EVERY: Duration = Duration::from_secs(5 * 60);
+const ASKED_EVERY: Duration = Duration::from_secs(60);
 
 /// The one-use key lives only here, so a restart asks again rather than leaving a secret on disk.
 #[derive(Default)]
@@ -37,7 +38,6 @@ struct Here {
     home: std::path::PathBuf,
 }
 
-/// Run beside each round and never in its way: a machine without the key asks, one with it answers.
 pub fn tend(app: AppHandle) {
     std::thread::spawn(move || {
         let knocking = app.state::<Knocking>();
@@ -47,6 +47,18 @@ pub fn tend(app: AppHandle) {
         tended(&app, &knocking);
         knocking.busy.store(false, Ordering::Release);
     });
+}
+
+// Looked at before the provider is reached, so a round with nothing due costs no keychain read and no client.
+fn due(knocking: &Knocking, every: Duration) -> bool {
+    let Ok(mut looked) = knocking.looked.lock() else {
+        return false;
+    };
+    if looked.is_some_and(|at| at.elapsed() < every) {
+        return false;
+    }
+    *looked = Some(Instant::now());
+    true
 }
 
 fn tended(app: &AppHandle, knocking: &Knocking) {
@@ -70,6 +82,15 @@ fn tended(app: &AppHandle, knocking: &Knocking) {
     else {
         return;
     };
+    let keyed = keyed.filter(|keyed| keyed.locked.cloud == cloud);
+    let every = if keyed.is_some() {
+        ANSWERED_EVERY
+    } else {
+        ASKED_EVERY
+    };
+    if !due(knocking, every) {
+        return;
+    }
     let Ok(plain) = crate::reaching::plain_at(&home, &at) else {
         return;
     };
@@ -80,8 +101,8 @@ fn tended(app: &AppHandle, knocking: &Knocking) {
         plain,
         home,
     };
-    let done = match keyed.filter(|keyed| keyed.locked.cloud == here.cloud) {
-        Some(keyed) => answering(&session, knocking, &here, &keyed.key),
+    let done = match keyed {
+        Some(keyed) => answering(&session, &here, &keyed.key),
         None => asking(&session, knocking, &here).map(|took| {
             if took {
                 let _ = app.emit("stirred", ());
@@ -89,12 +110,16 @@ fn tended(app: &AppHandle, knocking: &Knocking) {
         }),
     };
     if let Err(why) = done {
-        witness::note(
-            channel::CLOUD,
-            "the cloud's key could not be asked for or handed this round",
-            &[("why", Fact::Why(why))],
-        );
+        noted(why);
     }
+}
+
+fn noted(why: String) {
+    witness::note(
+        channel::CLOUD,
+        "the cloud's key could not be asked for or handed this round",
+        &[("why", Fact::Why(why))],
+    );
 }
 
 fn now() -> i64 {
@@ -110,7 +135,6 @@ fn hitched(hitch: tisty_carrier::Hitch) -> String {
     hitch.code().to_string()
 }
 
-/// Only a machine already on the list asks on its own; a new one asks once the person says so.
 fn asking(session: &Mutex<Session>, knocking: &Knocking, here: &Here) -> Result<bool, String> {
     let (seated, name) = {
         let session = held(session);
@@ -152,6 +176,8 @@ fn asking(session: &Mutex<Session>, knocking: &Knocking, here: &Here) -> Result<
         return Ok(false);
     };
     let Some(key) = answer.opened(ask, one_use).filter(|key| opens(here, key)) else {
+        // An answer that does not open, stale or forged, would keep every machine from answering again.
+        knock::unanswered(&*here.plain, &here.home, &here.device.0).map_err(hitched)?;
         return Ok(false);
     };
     took(session, here, &key)?;
@@ -164,12 +190,12 @@ fn opens(here: &Here, key: &CloudKey) -> bool {
 }
 
 fn took(session: &Mutex<Session>, here: &Here, key: &CloudKey) -> Result<(), String> {
-    keep(&here.paths, key)?;
-    let named = key.named_for(&here.cloud);
+    keep(&here.cloud, key)?;
     {
         let mut session = held(session);
+        let cloud = here.cloud.clone();
         session
-            .keep(|config| config.key_handed = Some(named))
+            .keep(|config| config.key_handed = Some(cloud))
             .map_err(|refusal| refusal.code.to_string())?;
         session.reach.tried_for(None);
     }
@@ -184,42 +210,42 @@ fn took(session: &Mutex<Session>, here: &Here, key: &CloudKey) -> Result<(), Str
     Ok(())
 }
 
-fn answering(
-    session: &Mutex<Session>,
-    knocking: &Knocking,
-    here: &Here,
-    key: &CloudKey,
-) -> Result<(), String> {
-    {
-        let mut looked = knocking.looked.lock().map_err(|e| e.to_string())?;
-        if looked.is_some_and(|at| at.elapsed() < LOOKED_EVERY) {
-            return Ok(());
-        }
-        *looked = Some(Instant::now());
-    }
+// One ask that cannot be answered or taken away never holds up the others.
+fn answering(session: &Mutex<Session>, here: &Here, key: &CloudKey) -> Result<(), String> {
     let knocks = knock::knocks(&*here.plain, &here.home).map_err(hitched)?;
+    let signer = signer(here)?;
     for one in knocks {
-        let (seated, known) = seat_of(session, &one.ask);
-        let age = now() - one.ask.at;
-        if age > if seated { JOINED_FOR } else { NEW_FOR } {
-            knock::withdrawn(&*here.plain, &here.home, &one.ask.device).map_err(hitched)?;
-            continue;
+        if let Err(why) = answered(session, here, key, &signer, &one) {
+            noted(why);
         }
-        if one.answered || !known || !fits(&one.ask, here, age) {
-            continue;
-        }
-        let answer = handed(&one.ask, key, &here.device.0, &signer(here)?)
-            .ok_or("the cloud's key could not be sealed for the machine that asked")?;
-        knock::answer(&*here.plain, &here.home, &one.ask.device, &answer).map_err(hitched)?;
     }
     Ok(())
+}
+
+fn answered(
+    session: &Mutex<Session>,
+    here: &Here,
+    key: &CloudKey,
+    signer: &SigningKey,
+    one: &knock::Knock,
+) -> Result<(), String> {
+    let (seated, known) = seat_of(session, &one.ask);
+    let age = now() - one.ask.at;
+    if age > if seated { JOINED_FOR } else { NEW_FOR } {
+        return knock::withdrawn(&*here.plain, &here.home, &one.ask.device).map_err(hitched);
+    }
+    if one.answered || !known || !fits(&one.ask, here, age) {
+        return Ok(());
+    }
+    let answer = handed(&one.ask, key, &here.device.0, signer)
+        .ok_or("the cloud's key could not be sealed for the machine that asked")?;
+    knock::answer(&*here.plain, &here.home, &one.ask.device, &answer).map_err(hitched)
 }
 
 fn fits(ask: &Ask, here: &Here, age: i64) -> bool {
     ask.holds() && ask.cloud == here.cloud && ask.device != here.device.0 && age >= -AHEAD_AT_MOST
 }
 
-/// Seated, and asking with the very key the log knows it signs with.
 fn seat_of(session: &Mutex<Session>, ask: &Ask) -> (bool, bool) {
     let session = held(session);
     let device = DeviceId(ask.device.clone());
@@ -232,15 +258,13 @@ fn seat_of(session: &Mutex<Session>, ask: &Ask) -> (bool, bool) {
     (seated, known)
 }
 
-/// Beside the seed and never in its place: a machine handed the cloud's key holds no identity.
-fn scope(paths: &Paths) -> Result<String, String> {
-    tisty_core::store::peek_identity(paths.store())
-        .map(|store| format!("cloud-{store}"))
-        .ok_or_else(|| "this store has no name yet".to_string())
+// Under the cloud's id, which joining stores never changes, and beside the seed: a handed key is no identity.
+fn scope(cloud: &str) -> String {
+    format!("cloud-{cloud}")
 }
 
-pub fn kept(paths: &Paths) -> Result<Option<CloudKey>, String> {
-    let secrets = crate::reaching::seed_secrets(&scope(paths)?).map_err(|e| format!("{e:?}"))?;
+pub fn kept(cloud: &str) -> Result<Option<CloudKey>, String> {
+    let secrets = crate::reaching::seed_secrets(&scope(cloud)).map_err(|e| format!("{e:?}"))?;
     let Some(said) = secrets.read(KEY).map_err(|e| format!("{e:?}"))? else {
         return Ok(None);
     };
@@ -259,8 +283,8 @@ pub fn kept(paths: &Paths) -> Result<Option<CloudKey>, String> {
     }
 }
 
-pub fn keep(paths: &Paths, key: &CloudKey) -> Result<(), String> {
-    let secrets = crate::reaching::seed_secrets(&scope(paths)?).map_err(|e| format!("{e:?}"))?;
+pub fn keep(cloud: &str, key: &CloudKey) -> Result<(), String> {
+    let secrets = crate::reaching::seed_secrets(&scope(cloud)).map_err(|e| format!("{e:?}"))?;
     let said = Zeroizing::new(URL_SAFE_NO_PAD.encode(key.to_bytes().as_ref()));
     secrets.write(KEY, &said).map_err(|e| format!("{e:?}"))
 }

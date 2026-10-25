@@ -15,22 +15,10 @@ pub const SAID: u32 = 1;
 const ASKED: &[u8] = b"tisty.ask.v1\0";
 const HANDED: &[u8] = b"tisty.handed.v1\0";
 const SALT: [u8; 15] = *b"tisty.handed.v1";
-const CODE: &[u8] = b"tisty.ask.code.v1\0";
-/// As slow as a locked parcel, so a provider cannot mint another key that reads the same digits while the ask stands.
-const WORK: u8 = 16;
 
-/// Kept only by the machine that asks, and dropped once a key came or the ask ran out.
 pub struct OneUse(Zeroizing<[u8; 32]>);
 
 impl OneUse {
-    pub fn from_bytes(secret: &[u8; 32]) -> Self {
-        Self(Zeroizing::new(*secret))
-    }
-
-    pub fn to_bytes(&self) -> Zeroizing<[u8; 32]> {
-        self.0.clone()
-    }
-
     #[cfg(feature = "mint")]
     pub fn minted() -> Option<Self> {
         crate::minted().map(Self)
@@ -145,27 +133,6 @@ impl Ask {
         over.update(self.sig.as_bytes());
         over.finalize().into()
     }
-
-    /// About 66 bits of both keys the ask carries, shown on the two machines for the person to compare.
-    pub fn code(&self) -> Option<String> {
-        let (key, one_use) = (decoded::<32>(&self.key)?, decoded::<32>(&self.one_use)?);
-        let how = scrypt::Params::new(WORK, 8, 1).ok()?;
-        let mut ground = Zeroizing::new([0u8; 16]);
-        let salt = framed(CODE, &[self.cloud.as_bytes()]);
-        scrypt::scrypt(&[key, one_use].concat(), &salt, &how, &mut ground[7..]).ok()?;
-        let digits = format!(
-            "{:020}",
-            u128::from_be_bytes(*ground) % 100_000_000_000_000_000_000
-        );
-        Some(
-            digits
-                .as_bytes()
-                .chunks(5)
-                .filter_map(|five| std::str::from_utf8(five).ok())
-                .collect::<Vec<_>>()
-                .join(" "),
-        )
-    }
 }
 
 /// A shared point of all zeros means the other side gave a key of low order, and nothing secret came of it.
@@ -202,7 +169,6 @@ impl Handed {
         key_of(&self.key)
     }
 
-    /// The key it brings, once its signature and its seal both hold for this very ask.
     pub fn opened(&self, ask: &Ask, one_use: &OneUse) -> Option<CloudKey> {
         let digest = ask.digest();
         let (giver, sig) = (self.giver()?, signature(&self.sig)?);

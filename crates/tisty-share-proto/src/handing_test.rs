@@ -102,17 +102,3 @@ fn a_one_use_key_of_low_order_is_refused_rather_than_answered() {
 
     assert!(handed(&ask, &cloud_key(), "dev_a", &machine(1)).is_none());
 }
-
-#[test]
-fn both_machines_read_the_same_twenty_digits_and_another_one_use_key_reads_others() {
-    let one_use = OneUse::minted().unwrap();
-    let ask = asked(&one_use);
-    let carried: Ask = serde_json::from_str(&serde_json::to_string(&ask).unwrap()).unwrap();
-
-    let code = ask.code().unwrap();
-
-    assert_eq!(carried.code().as_deref(), Some(code.as_str()));
-    assert_eq!(code.len(), 23);
-    assert!(code.split(' ').all(|five| five.len() == 5));
-    assert_ne!(asked(&OneUse::minted().unwrap()).code(), Some(code));
-}

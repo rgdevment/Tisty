@@ -421,7 +421,7 @@ pub struct Config {
     /// The fingerprint whose phrase was typed back here, so a phrase changed since is asked for again.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub phrase_confirmed: Option<String>,
-    /// The id of the cloud key another machine handed this one, so the keychain is asked only for a key that is there.
+    /// The cloud whose key another machine handed this one, so the keychain is asked only for a key that is there.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub key_handed: Option<String>,
     #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]

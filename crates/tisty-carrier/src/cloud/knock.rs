@@ -81,7 +81,6 @@ fn gone(remote: &dyn Remote, name: &str) -> Result<(), Hitch> {
     }
 }
 
-/// A new ask stands in for an old one, and the answer to the old one goes with it.
 pub fn knocked(plain: &dyn Remote, home: &Path, ask: &Ask) -> Result<(), Hitch> {
     let metered = Metered::over(plain, home, Class::Sealing);
     gone(&metered, &named(&ask.device, KEY)?)?;
@@ -94,7 +93,6 @@ pub struct Knock {
     pub answered: bool,
 }
 
-/// Only asks that read whole and name the machine their file is named for; the rest is noise to the reader.
 pub fn knocks(plain: &dyn Remote, home: &Path) -> Result<Vec<Knock>, Hitch> {
     let metered = Metered::over(plain, home, Class::Sealing);
     let listed = metered.list(KNOCK)?;
@@ -137,6 +135,11 @@ pub fn answer(plain: &dyn Remote, home: &Path, device: &str, handed: &Handed) ->
 pub fn answered(plain: &dyn Remote, home: &Path, device: &str) -> Result<Option<Handed>, Hitch> {
     let metered = Metered::over(plain, home, Class::Sealing);
     read(&metered, &named(device, KEY)?)
+}
+
+pub fn unanswered(plain: &dyn Remote, home: &Path, device: &str) -> Result<(), Hitch> {
+    let metered = Metered::over(plain, home, Class::Sealing);
+    gone(&metered, &named(device, KEY)?)
 }
 
 pub fn withdrawn(plain: &dyn Remote, home: &Path, device: &str) -> Result<(), Hitch> {

@@ -353,8 +353,8 @@ fn a_key_another_machine_handed_here_opens_a_sealed_cloud_without_the_phrase() {
     let session = opened(&kept);
     let cloud = store_of(&session);
     let key = CloudKey::of(&seed(7));
-    crate::handed::keep(&held(&session).paths, &key).unwrap();
-    held(&session).config.key_handed = Some(key.named_for(&cloud));
+    crate::handed::keep(&cloud, &key).unwrap();
+    held(&session).config.key_handed = Some(cloud.clone());
     sealed_up_there(&session, &cloud);
 
     tauri::async_runtime::block_on(seal_the_cloud(&session));
@@ -376,7 +376,7 @@ fn a_key_kept_but_never_said_handed_is_not_read() {
     let kept = tempfile::tempdir().unwrap();
     let session = opened(&kept);
     let cloud = store_of(&session);
-    crate::handed::keep(&held(&session).paths, &CloudKey::of(&seed(7))).unwrap();
+    crate::handed::keep(&cloud, &CloudKey::of(&seed(7))).unwrap();
     sealed_up_there(&session, &cloud);
 
     tauri::async_runtime::block_on(seal_the_cloud(&session));
@@ -391,11 +391,12 @@ fn a_key_handed_for_another_cloud_never_opens_this_one() {
     let session = opened(&kept);
     let cloud = store_of(&session);
     let key = CloudKey::of(&seed(7));
-    crate::handed::keep(&held(&session).paths, &key).unwrap();
-    held(&session).config.key_handed = Some(key.named_for("cloud_other"));
+    let other = format!("{cloud}_other");
+    crate::handed::keep(&other, &key).unwrap();
+    held(&session).config.key_handed = Some(other);
     sealed_up_there(&session, &cloud);
 
     tauri::async_runtime::block_on(seal_the_cloud(&session));
 
-    assert!(cloud_key(&session).unwrap().is_none());
+    assert_eq!(sealed_now(&session), None);
 }
