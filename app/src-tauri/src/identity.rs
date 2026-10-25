@@ -156,7 +156,7 @@ pub async fn for_a_round(session: &tauri::State<'_, Mutex<Session>>) -> Option<S
 }
 
 /// Read only when the sealed cloud this place names is not the one this machine already reads, so the keychain is seldom asked.
-pub async fn seal_the_cloud(session: &tauri::State<'_, Mutex<Session>>) {
+pub async fn seal_the_cloud(session: &Mutex<Session>) {
     let (at, tree) = {
         let session = held(session);
         let Some(at) = tisty_carrier::cloud_of(session.config.sync.as_ref()).cloned() else {
@@ -525,3 +525,7 @@ fn begun(session: &mut Session, seed: &Seed) -> Answer<()> {
         .commit_all(ops)
         .map_err(|e| blamed(channel::STORE, "the identity could not be written", e))
 }
+
+#[cfg(test)]
+#[path = "identity_test.rs"]
+mod tests;

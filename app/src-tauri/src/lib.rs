@@ -91,7 +91,7 @@ impl From<tisty_core::Error> for Refusal {
 
 type Answer<T> = std::result::Result<T, Refusal>;
 
-fn held<'a>(session: &'a tauri::State<'_, Mutex<Session>>) -> std::sync::MutexGuard<'a, Session> {
+fn held(session: &Mutex<Session>) -> std::sync::MutexGuard<'_, Session> {
     session
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner())

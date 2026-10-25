@@ -28,7 +28,7 @@ pub struct Reaching {
 }
 
 /// A sealed cloud on one account, and the key `cloud.sealed` says opens it.
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Locked {
     pub at: CloudAt,
     pub cloud: String,

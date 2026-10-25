@@ -518,6 +518,8 @@ fn a_cloud_read_from_another_root_starts_the_mirror_over_and_a_plain_index_says_
     let plain: serde_json::Value =
         serde_json::from_slice(&std::fs::read(home.join("index.json")).unwrap()).unwrap();
     assert!(plain.get("root").is_none(), "{plain}");
+    let carried = home.join(crate::cloud::standing::CARRIED);
+    std::fs::write(&carried, "1").unwrap();
     let stale = home.join("tree").join("stale.md");
     std::fs::write(&stale, "de la raíz vieja").unwrap();
     let key = tisty_share_proto::cloud::CloudKey::of(&tisty_share_proto::seed::Seed::from_bytes(
@@ -533,6 +535,10 @@ fn a_cloud_read_from_another_root_starts_the_mirror_over_and_a_plain_index_says_
 
     assert!(done.refused.is_none(), "{done:?}");
     assert!(!stale.exists(), "the mirror of the old root was kept");
+    assert!(
+        carried.exists(),
+        "a new root took this machine for a newcomer"
+    );
     assert!(
         space.about(&doc_name()).unwrap().is_some(),
         "the other root was taken for already in step"
