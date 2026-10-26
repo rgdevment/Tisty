@@ -45,6 +45,19 @@ pub(crate) fn here_now(
     session: &Mutex<Session>,
     knocking: &Knocking,
 ) -> Result<(Here, Option<CloudKey>), String> {
+    let (here, keyed) = place_now(session, knocking)?;
+    let key = match keyed.filter(|keyed| keyed.locked.cloud == here.cloud) {
+        Some(keyed) => opened(knocking, &here, &keyed.key)?.then_some(keyed.key),
+        None => None,
+    };
+    Ok((here, key))
+}
+
+// Only the place: taking an ask away needs no key, so it never waits on the mark.
+pub(crate) fn place_now(
+    session: &Mutex<Session>,
+    knocking: &Knocking,
+) -> Result<(Here, Option<crate::reaching::Keyed>), String> {
     let (at, home, device, paths, keyed) = {
         let session = held(session);
         let at = tisty_carrier::cloud_of(session.config.sync.as_ref())
@@ -72,11 +85,7 @@ pub(crate) fn here_now(
         plain,
         home,
     };
-    let key = match keyed.filter(|keyed| keyed.locked.cloud == here.cloud) {
-        Some(keyed) => opened(knocking, &here, &keyed.key)?.then_some(keyed.key),
-        None => None,
-    };
-    Ok((here, key))
+    Ok((here, keyed))
 }
 
 struct Free<'a>(&'a AtomicBool);
@@ -292,8 +301,7 @@ pub(crate) fn opens(here: &Here, key: &CloudKey) -> Result<bool, String> {
     knock::opens(&*here.plain, &here.home, key, &here.cloud).map_err(hitched)
 }
 
-// The mark is fetched once a key, not every time the box is looked at.
-// A mark that could not be fetched is a hitch, never a wrong key.
+// Fetched once a key, and a mark that could not be fetched is a hitch, never a wrong key.
 fn opened(knocking: &Knocking, here: &Here, key: &CloudKey) -> Result<bool, String> {
     let named = key.named_for(&here.cloud);
     let mut known = knocking
@@ -359,9 +367,9 @@ fn took(session: &Mutex<Session>, here: &Here, key: &CloudKey) -> Result<(), Str
 fn answering(session: &Mutex<Session>, here: &Here, key: &CloudKey) -> Result<(), String> {
     let knocks = knock::knocks(&*here.plain, &here.home).map_err(hitched)?;
     let signer = signer(here)?;
-    let voucher = voucher(session, here);
+    let voucher = std::cell::OnceCell::new();
     for one in knocks {
-        if let Err(why) = answered(session, here, key, &signer, voucher.as_ref(), &one) {
+        if let Err(why) = answered(session, here, key, &signer, &voucher, &one) {
             noted(why);
         }
     }
@@ -373,7 +381,7 @@ fn answered(
     here: &Here,
     key: &CloudKey,
     signer: &SigningKey,
-    voucher: Option<&Voucher>,
+    voucher: &std::cell::OnceCell<Option<Voucher>>,
     one: &knock::Knock,
 ) -> Result<(), String> {
     let seated = seated(session, &one.device);
@@ -399,7 +407,8 @@ fn answered(
     if !seated || !signs_as_known(session, ask) || !fits(ask, here) {
         return Ok(());
     }
-    let answer = sealed_for(here, ask, key, signer, voucher)?;
+    let voucher = voucher.get_or_init(|| self::voucher(session, here));
+    let answer = sealed_for(here, ask, key, signer, voucher.as_ref())?;
     knock::answer(&*here.plain, &here.home, &one.device, &answer).map_err(hitched)
 }
 
@@ -507,6 +516,8 @@ pub(crate) fn let_go(session: &Mutex<Session>, knocking: &Knocking) {
     knocking.reset();
     let cloud = {
         let mut session = held(session);
+        session.reach.tried_for(None);
+        session.reach.seal_with(None);
         let cloud = session.config.key_handed.clone();
         if cloud.is_some()
             && let Err(why) = session.keep(|config| config.key_handed = None)

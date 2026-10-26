@@ -58,8 +58,8 @@ export function LetMeIn({ onClose, onIn }: { onClose: () => void; onIn: () => vo
           next = setTimeout(look, Date.now() - began < BRISK_FOR ? LOOKED_FIRST : LOOKED_LATER);
         });
     admittingAsk()
-      .then(look)
-      .catch((e) => setTrouble(saidPlainly(e)));
+      .catch((e) => live && setTrouble(saidPlainly(e)))
+      .finally(() => live && look());
     return () => {
       live = false;
       clearTimeout(next);
@@ -171,7 +171,7 @@ export function LetThemIn({ onClose }: { onClose: () => void }) {
     if (letting?.step === "granted")
       return <p className="text-[12.5px] text-soft">{fill("admitGranted", letting.one.name)}</p>;
     if (letting?.step === "refused")
-      return <p className="text-[12.5px] leading-relaxed">{t("admitMismatch")}</p>;
+      return <p className="text-[12.5px] leading-relaxed">{t("admitRefused")}</p>;
     if (letting)
       return (
         <>

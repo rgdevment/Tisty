@@ -1905,7 +1905,8 @@ const en = {
     "Type these twenty digits on «{name}». Say yes here only once that computer has taken them.",
   admitTrusted: "Waiting for «{name}» to hand over the key…",
   admitIn: "Done. This computer now reads your encrypted cloud.",
-  admitGranted: "Done. Say yes on «{name}» too, and it gets the key.",
+  admitGranted: "Done. Press «It took them» on «{name}» and it gets the key.",
+  admitRefused: "Nothing was handed over, and the ask was taken away.",
   admitMismatch:
     "The digits do not match, so nothing was handed over. Someone may be standing between the two computers: close this and start again from the new computer.",
   admitLooking: "Looking for new computers…",
@@ -4379,7 +4380,8 @@ const es: Catalog = {
     "Escribe estos veinte dígitos en «{name}». Di que sí aquí solo cuando ese equipo los haya aceptado.",
   admitTrusted: "Esperando a que «{name}» entregue la llave…",
   admitIn: "Listo. Este equipo ya lee tu nube cifrada.",
-  admitGranted: "Listo. Di que sí también en «{name}» y recibirá la llave.",
+  admitGranted: "Listo. Pulsa «Ya los aceptó» en «{name}» y recibirá la llave.",
+  admitRefused: "No se entregó nada, y el pedido se quitó.",
   admitMismatch:
     "Los dígitos no coinciden, así que no se entregó nada. Puede que alguien esté entre los dos equipos: cierra esto y empieza de nuevo desde el equipo nuevo.",
   admitLooking: "Buscando equipos nuevos…",

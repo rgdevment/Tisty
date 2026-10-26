@@ -294,3 +294,30 @@ fn the_computer_that_took_an_ask_still_sees_it_as_its_own() {
 
     assert!(!looked(&two.giver, &two.giving, Some(key(7))).unwrap()[0].taken);
 }
+
+#[test]
+fn an_ask_past_its_hour_that_a_computer_took_is_not_made_again() {
+    let two = two();
+    let knocking = knocking_of(&two);
+    let one_use = OneUse::minted().unwrap();
+    let mine = tisty_core::signing::mine(&two.asking.paths, &two.asking.device).unwrap();
+    let old = Ask::signed(
+        newcomer(&two),
+        "PC",
+        &mine,
+        &one_use,
+        &two.cloud,
+        now() - NEW_FOR - 60,
+    );
+    knock::knocked(&*two.plain, &two.asking.home, &old).unwrap();
+    *knocking.asked.lock().unwrap() = Some((old.clone(), one_use));
+    let giver = Giver::of("dev_zz", "Mac", &impostor().verifying_key());
+    knock::offered(&*two.plain, &two.asking.home, newcomer(&two), &giver).unwrap();
+
+    assert_eq!(step(&two, &knocking).step, "compare");
+
+    assert_eq!(
+        knock::ask_of(&*two.plain, &two.asking.home, newcomer(&two)).unwrap(),
+        Some(old)
+    );
+}

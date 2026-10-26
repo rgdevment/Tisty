@@ -55,6 +55,19 @@ async fn off_the_lock<T: Send + 'static>(
     .await?
 }
 
+async fn place_off_the_lock<T: Send + 'static>(
+    app: &AppHandle,
+    work: impl FnOnce(&Knocking, &Here) -> Worked<T> + Send + 'static,
+) -> Answer<T> {
+    let app = app.clone();
+    elsewhere(move || {
+        let (session, knocking) = (app.state::<Mutex<Session>>(), app.state::<Knocking>());
+        let (here, _) = crate::handed::place_now(&session, &knocking).map_err(trouble)?;
+        work(&knocking, &here)
+    })
+    .await?
+}
+
 fn trusted_now(knocking: &Knocking) -> Option<String> {
     knocking
         .trusted
@@ -123,12 +136,12 @@ fn shown(
     let Some((ask, reveal)) = asked_now(knocking, here) else {
         return Ok(said("idle", None, None));
     };
-    // Past its hour no computer takes it any more, so a new ask goes up, unless the person already trusted one that may have answered.
-    if now() - ask.at > NEW_FOR && trusted_now(knocking).is_none() {
-        ask_again(session, knocking, here)?;
-        return Ok(said("waiting", None, None));
-    }
-    let Some(giver) = knock::giver_of(&*here.plain, &here.home, &here.device.0).map_err(up)? else {
+    let giver = knock::giver_of(&*here.plain, &here.home, &here.device.0).map_err(up)?;
+    // Past its hour, an ask no computer took goes up again; one taken may already carry its answer.
+    let Some(giver) = giver else {
+        if now() - ask.at > NEW_FOR {
+            ask_again(session, knocking, here)?;
+        }
         return Ok(said("waiting", None, None));
     };
     reveal_once(knocking, here, &ask, &reveal)?;
@@ -292,11 +305,11 @@ fn granted(
     }
     vouch_for(session, &ask)?;
     // An answer this machine already signed for this very ask stands; any other, forged or stale, goes.
-    let ours = |one: &tisty_share_proto::handing::Handed| {
+    let signed_by_me = |one: &tisty_share_proto::handing::Handed| {
         one.giver().as_ref() == Some(&mine) && one.signed_for(&ask)
     };
     match knock::answered(&*here.plain, &here.home, device).map_err(up)? {
-        Some(one) if ours(&one) => return Ok(()),
+        Some(one) if signed_by_me(&one) => return Ok(()),
         Some(_) => knock::unanswered(&*here.plain, &here.home, device).map_err(up)?,
         None => {}
     }
@@ -305,7 +318,7 @@ fn granted(
         crate::handed::sealed_for(here, &ask, &key, &signer, voucher.as_ref()).map_err(trouble)?;
     knock::answer(&*here.plain, &here.home, device, &answer).map_err(up)?;
     match knock::answered(&*here.plain, &here.home, device).map_err(up)? {
-        Some(one) if ours(&one) => Ok(()),
+        Some(one) if signed_by_me(&one) => Ok(()),
         _ => Err(trouble("another answer stands where this one was put")),
     }
 }
@@ -331,7 +344,7 @@ pub async fn admitting_trust(app: AppHandle, code: String) -> Answer<()> {
 
 #[tauri::command(async)]
 pub async fn admitting_cancel(app: AppHandle) -> Answer<()> {
-    off_the_lock(&app, |_, knocking, here, _| cancelled(knocking, here)).await
+    place_off_the_lock(&app, cancelled).await
 }
 
 #[tauri::command(async)]
@@ -357,7 +370,7 @@ pub async fn admitting_grant(app: AppHandle, device: String, code: String) -> An
 
 #[tauri::command(async)]
 pub async fn admitting_refuse(app: AppHandle, device: String) -> Answer<()> {
-    off_the_lock(&app, move |_, _, here, _| {
+    place_off_the_lock(&app, move |_, here| {
         knock::withdrawn(&*here.plain, &here.home, &device).map_err(up)
     })
     .await

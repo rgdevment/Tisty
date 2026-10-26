@@ -467,3 +467,22 @@ fn a_place_the_log_never_named_sealed_is_still_carried_plain() {
         Some("cloudSealed")
     );
 }
+
+#[test]
+fn leaving_the_cloud_for_another_way_of_syncing_lets_its_rounds_go_again() {
+    let kept = tempfile::tempdir().unwrap();
+    let session = opened(&kept);
+    said_sealed(&session, "cloud_one", &seed(7));
+    word_here(&session, "shape = 3\n");
+    tauri::async_runtime::block_on(seal_the_cloud(&session));
+    assert!(held(&session).reach.tried().is_some());
+
+    held(&session).config.sync = None;
+    tauri::async_runtime::block_on(seal_the_cloud(&session));
+
+    assert!(held(&session).reach.tried().is_none());
+    assert_ne!(
+        held(&session).carrying().err().map(|refusal| refusal.code),
+        Some("cloudSealed")
+    );
+}

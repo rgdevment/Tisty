@@ -163,6 +163,7 @@ pub async fn seal_the_cloud(session: &Mutex<Session>) {
     let (at, home) = {
         let session = held(session);
         let Some(at) = tisty_carrier::cloud_of(session.config.sync.as_ref()).cloned() else {
+            session.reach.tried_for(None);
             session.reach.seal_with(None);
             return;
         };

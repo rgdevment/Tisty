@@ -90,7 +90,7 @@ describe("letting a new computer in from one that reads the cloud", () => {
     await userEvent.type(field, " 12880 63349");
     await userEvent.click(letItIn());
 
-    expect(await screen.findByText(/Say yes on «MacBook» too/)).toBeTruthy();
+    expect(await screen.findByText(/Press «It took them» on «MacBook»/)).toBeTruthy();
     expect(sent("admitting_grant")[0]?.args).toEqual({ device: "dev_b", code: CODE });
   });
 
@@ -125,7 +125,7 @@ describe("letting a new computer in from one that reads the cloud", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Let it in" }));
     await userEvent.click(await screen.findByRole("button", { name: "There is no such computer" }));
 
-    expect(await screen.findByText(/nothing was handed over/)).toBeTruthy();
+    expect(await screen.findByText(/the ask was taken away/)).toBeTruthy();
     expect(sent("admitting_refuse")[0]?.args.device).toBe("dev_b");
     expect(sent("admitting_grant")).toHaveLength(0);
   });
