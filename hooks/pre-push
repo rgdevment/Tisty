@@ -20,6 +20,7 @@ while read -r ref mine _ theirs; do
   case ${ref:-} in
     refs/tags/v*)
       bash scripts/news.sh "${ref#refs/tags/v}" || status=1
+      bash scripts/docs.sh "${ref#refs/tags/v}" || status=1
       continue
       ;;
   esac
