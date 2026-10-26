@@ -520,6 +520,7 @@ fn ended(
             &[("why", Fact::Why(why.code.to_string()))],
         );
     }
+    crate::unsealing::say(session, &*plain, home, &cloud, &named);
     {
         let session = held(session);
         session.reach.tried_for(None);

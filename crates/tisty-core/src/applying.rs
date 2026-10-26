@@ -112,9 +112,16 @@ impl State {
             .map(crate::called::cleaned)
             .filter(|one| !one.is_empty())
         {
-            Some(key) => self.sealed.insert(store, key),
-            None => self.sealed.remove(&store),
-        };
+            Some(key) => {
+                self.sealed_at
+                    .insert(store.clone(), event.timestamp.as_second());
+                self.sealed.insert(store, key);
+            }
+            None => {
+                self.sealed_at.remove(&store);
+                self.sealed.remove(&store);
+            }
+        }
     }
 
     pub fn sealed_cloud(&self) -> Option<(&str, &str)> {

@@ -181,6 +181,11 @@ pub async fn seal_the_cloud(session: &Mutex<Session>) {
     let (paths, forebears, persons, handed, locked) = {
         let session = held(session);
         let handed = session.config.key_handed.clone();
+        let unsealed = crate::unsealing::believed_now(&session);
+        let said = match said {
+            Some(Some(cloud)) if unsealed.as_deref() == Some(cloud.as_str()) => Some(None),
+            other => other,
+        };
         let wanted = match said {
             // A machine that never read `cloud.sealed` tries its own phrase, and the mark says whether it is this cloud's.
             Some(Some(cloud)) => match session.state.sealed.get(&cloud) {
@@ -195,6 +200,7 @@ pub async fn seal_the_cloud(session: &Mutex<Session>) {
             Some(None) => session
                 .state
                 .sealed_cloud()
+                .filter(|(cloud, _)| unsealed.as_deref() != Some(*cloud))
                 .map(|(cloud, named)| (cloud.to_string(), named.to_string())),
             None => None,
         }

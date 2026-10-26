@@ -194,3 +194,20 @@ fn a_reveal_is_read_back_and_goes_with_the_ask() {
     withdrawn(&fake, home.path(), "dev_b").unwrap();
     assert_eq!(reveal_of(&fake, home.path(), "dev_b").unwrap(), None);
 }
+
+#[test]
+fn a_notice_of_a_cloud_turned_back_to_plain_reads_back_and_never_counts_as_a_knock() {
+    let (fake, home) = (Fake::drive(), tempfile::tempdir().unwrap());
+    let notice = tisty_share_proto::notice::Unsealed::signed(
+        CLOUD,
+        "named",
+        "dev_a",
+        &machine(1),
+        1_761_400_000,
+    );
+
+    said_unsealed(&fake, home.path(), &notice).unwrap();
+
+    assert_eq!(unsealed_of(&fake, home.path()).unwrap(), Some(notice));
+    assert!(knocks(&fake, home.path()).unwrap().is_empty());
+}
