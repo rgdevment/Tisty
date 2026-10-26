@@ -41,3 +41,16 @@ fn this_machine_is_never_waited_for_and_one_on_an_old_release_is() {
 
     assert_eq!(waited, vec![tisty_core::config::nicknamed(&other.0)]);
 }
+
+#[test]
+fn a_wait_says_whether_the_way_is_cut_blocked_or_the_cloud_asked_for_it() {
+    let cut = Hitch::Unreachable(None, "no route".into());
+    let filtered = Hitch::Unreachable(Some(tisty_carrier::Cause::Filtered), "tls".into());
+    let asked = Hitch::Limited {
+        wait: Duration::from_secs(3),
+    };
+
+    assert_eq!(waiting_on(&cut), "offline");
+    assert_eq!(waiting_on(&filtered), "filtered");
+    assert_eq!(waiting_on(&asked), "cloud");
+}

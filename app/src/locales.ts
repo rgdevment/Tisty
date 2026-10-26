@@ -1884,6 +1884,11 @@ const en = {
   sealStepCounting: "Starting to copy…",
   sealStarting: "Getting your cloud ready. It can take a few minutes, and the progress shows here.",
   sealStopped: "It stopped. Trying again carries on from where it was.",
+  sealWaitOffline:
+    "{name} cannot be reached right now. Tisty carries on by itself when the connection is back.",
+  sealWaitCloud: "{name} asked to wait or had trouble on its side. Tisty tries again by itself.",
+  sealWaitLocal:
+    "A file could not be written on this computer; an antivirus may be holding it. Tisty tries again in a moment.",
   sealStepClose: "Bring over the last changes",
   sealStepCloseWhy: "Your other computers wait a moment.",
   sealStepSwitchOn: "Switch to the encrypted cloud",
@@ -4361,6 +4366,11 @@ const es: Catalog = {
   sealStepCounting: "Empezando a copiar…",
   sealStarting: "Preparando tu nube. Puede tardar unos minutos, y aquí verás el avance.",
   sealStopped: "Se detuvo. Al reintentar, sigue desde donde quedó.",
+  sealWaitOffline: "No se puede llegar a {name} ahora. Tisty sigue solo cuando vuelva la conexión.",
+  sealWaitCloud:
+    "{name} pidió esperar o tuvo un problema de su lado. Tisty lo vuelve a intentar solo.",
+  sealWaitLocal:
+    "No se pudo escribir un archivo en este equipo; puede que un antivirus lo esté reteniendo. Tisty lo vuelve a intentar en un momento.",
   sealStepClose: "Pasar los últimos cambios",
   sealStepCloseWhy: "Tus otros equipos esperan un momento.",
   sealStepSwitchOn: "Pasar a la nube cifrada",

@@ -211,6 +211,22 @@ describe("a turn under way", () => {
     expect(screen.queryByRole("button", { name: "Encrypt my cloud…" })).toBeNull();
   });
 
+  it("says why it waits, and that it goes on by itself, without offering to try again", async () => {
+    ipc.shown = { ...plain, state: "turning", turning: copying };
+    render(<Shell />);
+    await screen.findByText("Copy");
+
+    await heard({ ...copying, waiting: "offline" });
+    expect(screen.getByRole("status").textContent).toMatch(/connection is back/);
+    expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+
+    await heard({ ...copying, waiting: "local" });
+    expect(screen.getByRole("status").textContent).toMatch(/antivirus/);
+
+    await heard({ ...copying, waiting: null });
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
   it("says the copy is starting before the first numbers, and says a stop with no reason", async () => {
     ipc.shown = { ...plain, state: "turning", turning: { ...copying, done: 0, left: 0 } };
     render(<Shell />);

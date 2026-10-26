@@ -1331,6 +1331,7 @@ export interface SealTold {
   refused: number;
   stopped: boolean;
   why: string | null;
+  waiting?: Cause | "offline" | "cloud" | "local" | null;
 }
 
 export interface SealShown {

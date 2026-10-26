@@ -16,6 +16,9 @@ use crate::{Answer, Refusal, Session, elsewhere, held};
 const ORPHANED_AFTER: u64 = 7 * 24 * 60 * 60;
 const SETTLING_FOR: Duration = Duration::from_secs(30);
 const LOOKING_EVERY: Duration = Duration::from_secs(5);
+// An antivirus may hold a file it is scanning for a moment, so a write here fails a few times before the turn stops.
+const BROKE_TRIES: u32 = 3;
+const BROKE_AGAIN: Duration = Duration::from_secs(20);
 
 /// Every drive or cancel moves `driven` on, so a thread left from before sees it no longer carries the turn.
 /// `keying` keeps the key named at a claim from landing after a cancel has taken it back.
@@ -36,6 +39,7 @@ pub struct Told {
     pub refused: usize,
     pub stopped: bool,
     pub why: Option<String>,
+    pub waiting: Option<&'static str>,
 }
 
 #[derive(Serialize)]
@@ -143,6 +147,7 @@ pub fn sealing_shown(
             refused: 0,
             stopped: true,
             why: None,
+            waiting: None,
         })
     });
     let orphan = state == "elsewhere"
@@ -379,6 +384,27 @@ fn told(app: &AppHandle, turns: &Turns, said: Option<Told>) {
     let _ = app.emit("sealing", said);
 }
 
+fn last_or_claimed(turns: &Turns, turning: &Turning) -> Told {
+    told_last(turns, turning.turn() == Turn::On)
+        .unwrap_or_else(|| told_of(turning, &Stepped::Claimed))
+}
+
+fn waiting_on(hitch: &Hitch) -> &'static str {
+    match hitch {
+        Hitch::Unreachable(Some(cause), _) => cause.code(),
+        Hitch::Unreachable(None, _) => "offline",
+        _ => "cloud",
+    }
+}
+
+fn waited(app: &AppHandle, turns: &Turns, turning: &Turning, on: &'static str) {
+    let mut said = last_or_claimed(turns, turning);
+    said.stopped = false;
+    said.why = None;
+    said.waiting = Some(on);
+    told(app, turns, Some(said));
+}
+
 fn told_of(turning: &Turning, stepped: &Stepped) -> Told {
     let (step, done, left) = match stepped {
         Stepped::Claimed => ("claimed", 0, 0),
@@ -395,6 +421,7 @@ fn told_of(turning: &Turning, stepped: &Stepped) -> Told {
         refused: turning.refused().len(),
         stopped: false,
         why: None,
+        waiting: None,
     }
 }
 
@@ -444,9 +471,15 @@ fn driven(app: &AppHandle, ours: u64) {
     let mut going = told_last(&turns, left.on).unwrap_or_else(|| told_of(&turning, &begun));
     going.stopped = false;
     going.why = None;
+    going.waiting = None;
     told(app, &turns, Some(going));
+    let mut broken = 0;
     while still(&turns, ours) {
-        match turning.step() {
+        let stepped = turning.step();
+        if stepped.is_ok() {
+            broken = 0;
+        }
+        match stepped {
             Ok(Stepped::Done) => {
                 told(app, &turns, Some(told_of(&turning, &Stepped::Done)));
                 ended(
@@ -472,22 +505,37 @@ fn driven(app: &AppHandle, ours: u64) {
                 }
             }
             Ok(stepped) => told(app, &turns, Some(told_of(&turning, &stepped))),
-            Err(hitch) => match tisty_carrier::pause_for(hitch, &at.provider) {
-                Ok(wait) => {
-                    if !rested(&turns, ours, wait) {
+            Err(Hitch::Broke(why)) if broken < BROKE_TRIES => {
+                broken += 1;
+                witness::note(
+                    channel::CLOUD,
+                    "a turn could not write on this machine and tries again",
+                    &[("why", Fact::Why(why))],
+                );
+                waited(app, &turns, &turning, "local");
+                if !rested(&turns, ours, BROKE_AGAIN * broken) {
+                    return;
+                }
+            }
+            Err(hitch) => {
+                let on_what = waiting_on(&hitch);
+                match tisty_carrier::pause_for(hitch, &at.provider) {
+                    Ok(wait) => {
+                        waited(app, &turns, &turning, on_what);
+                        if !rested(&turns, ours, wait) {
+                            return;
+                        }
+                    }
+                    Err(trouble) => {
+                        let mut said = last_or_claimed(&turns, &turning);
+                        said.stopped = true;
+                        said.why = Some(crate::said(trouble).code.to_string());
+                        said.waiting = None;
+                        told(app, &turns, Some(said));
                         return;
                     }
                 }
-                Err(trouble) => {
-                    let on = turning.turn() == Turn::On;
-                    let mut said = told_last(&turns, on)
-                        .unwrap_or_else(|| told_of(&turning, &Stepped::Claimed));
-                    said.stopped = true;
-                    said.why = Some(crate::said(trouble).code.to_string());
-                    told(app, &turns, Some(said));
-                    return;
-                }
-            },
+            }
         }
     }
 }

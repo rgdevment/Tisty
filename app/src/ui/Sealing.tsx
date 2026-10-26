@@ -18,6 +18,7 @@ import { weigh } from "../format";
 import { cloudNamed, fill, t } from "../locales";
 import { plainly, saidPlainly } from "../refusal";
 import { sure } from "../sure";
+import { causeSaid } from "../syncSaid";
 import { LetMeIn, LetThemIn } from "./Admitting";
 import Card, { type Which, type Word } from "./Card";
 import Entering from "./Entering";
@@ -202,6 +203,7 @@ export default function Sealing({
       {shown.state === "turning" && shown.turning && (
         <Progress
           told={shown.turning}
+          provider={provider}
           onAgain={() => sealingResume().catch(failed)}
           onCancel={() =>
             sure(t("sealCancelSure"))
@@ -374,12 +376,21 @@ function Before({
 
 const STEPS = ["copying", "settling", "done"] as const;
 
+const waitingSaid = (on: NonNullable<SealTold["waiting"]>, provider: string): string => {
+  if (on === "local") return t("sealWaitLocal");
+  if (on === "cloud") return fill("sealWaitCloud", provider);
+  if (on === "offline") return fill("sealWaitOffline", provider);
+  return causeSaid(on, provider) ?? fill("sealWaitOffline", provider);
+};
+
 function Progress({
   told,
+  provider,
   onCancel,
   onAgain,
 }: {
   told: SealTold;
+  provider: string;
   onCancel: () => void;
   onAgain: () => void;
 }) {
@@ -417,6 +428,11 @@ function Progress({
       </ul>
       {told.refused > 0 && (
         <p className="mt-2 text-[12.5px] text-soft">{fill("sealRefused", String(told.refused))}</p>
+      )}
+      {told.waiting && !told.stopped && (
+        <p role="status" className="mt-2 text-[12.5px] text-soft">
+          {waitingSaid(told.waiting, provider)}
+        </p>
       )}
       {told.stopped && (
         <p role="alert" className="mt-2 text-[12.5px] text-urgent">
