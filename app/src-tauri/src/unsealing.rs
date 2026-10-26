@@ -21,6 +21,10 @@ fn hears(session: &Session) -> bool {
         return false;
     }
     let home = session.reach.home_of(at);
+    // A turn of this machine reads its own side, and its journal says which.
+    if tisty_carrier::Turning::left(&home).is_some() {
+        return false;
+    }
     let said_plain = matches!(
         tisty_carrier::sealing_of(&tisty_carrier::mirrored_at(&home)),
         Sealing::Plain | Sealing::Unsaid
@@ -29,19 +33,21 @@ fn hears(session: &Session) -> bool {
 }
 
 fn due(app: &AppHandle) -> bool {
-    let hearing = app.state::<Hearing>();
-    let mut last = hearing
+    app.state::<Hearing>()
         .0
         .lock()
-        .unwrap_or_else(std::sync::PoisonError::into_inner);
-    if last.is_some_and(|at| at.elapsed() < HEARD_EVERY) {
-        return false;
-    }
-    *last = Some(Instant::now());
-    true
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .is_none_or(|at| at.elapsed() >= HEARD_EVERY)
 }
 
-/// True once the log no longer names the cloud sealed, so the round can be worked out again.
+// Stamped once a hearing ran, so one that found the round busy or the provider resting is tried again next round.
+fn heard_now(app: &AppHandle) {
+    *app.state::<Hearing>()
+        .0
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(Instant::now());
+}
+
 pub async fn heard(app: &AppHandle, session: &tauri::State<'_, Mutex<Session>>) -> bool {
     let (carrier, here, alive, holds, paths) = {
         let session = held(session);
@@ -51,7 +57,7 @@ pub async fn heard(app: &AppHandle, session: &tauri::State<'_, Mutex<Session>>) 
         let Some(at) = tisty_carrier::cloud_of(session.config.sync.as_ref()).cloned() else {
             return false;
         };
-        let Some(carrier) = session.reach.apart(&at) else {
+        let Some(carrier) = session.reach.hearing(&at) else {
             return false;
         };
         (
@@ -77,12 +83,29 @@ pub async fn heard(app: &AppHandle, session: &tauri::State<'_, Mutex<Session>>) 
         )
     })
     .await;
-    if let Ok(Err(trouble)) = &heard {
-        witness::note(
+    let waited = matches!(
+        &heard,
+        Ok(Ok(moved)) if moved.deferred.as_ref().is_some_and(|one| matches!(
+            one.reason,
+            tisty_carrier::Reason::Busy | tisty_carrier::Reason::Limit | tisty_carrier::Reason::Offline
+        ))
+    );
+    if !waited {
+        heard_now(app);
+    }
+    match &heard {
+        // Still said sealed is what a machine without the key expects to hear, not a trouble.
+        Ok(Err(tisty_carrier::Trouble::Sealed(_))) | Ok(Ok(_)) => {}
+        Ok(Err(trouble)) => witness::note(
             channel::SYNC,
             "the plain side of a cloud the log still names sealed could not be heard",
             &[("why", Fact::Why(format!("{trouble:?}")))],
-        );
+        ),
+        Err(_) => witness::warn(
+            channel::SYNC,
+            "hearing the plain side of a sealed cloud fell over",
+            &[],
+        ),
     }
     if tisty_core::cache::fingerprint(&store) != before
         && crate::answers::storing::catching_up(

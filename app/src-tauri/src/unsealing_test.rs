@@ -81,3 +81,21 @@ fn a_place_the_log_never_sealed_or_a_sync_that_is_no_cloud_is_never_heard_first(
 
     assert!(!hears(&session));
 }
+
+#[test]
+fn a_machine_turning_the_cloud_itself_is_never_heard_first() {
+    let kept = tempfile::tempdir().unwrap();
+    let mut session = opened(&kept);
+    sealed_in_the_log(&mut session);
+    word_here(&session, "shape = 3\n");
+    let home = session.reach.home_of(&account());
+    std::fs::create_dir_all(&home).unwrap();
+    std::fs::write(
+        home.join("sealing.json"),
+        r#"{"v":1,"cloud":"cloud_one","named":"named","device":"dev_a","nonce":"1","on":true,"phase":"claimed","moved":0}"#,
+    )
+    .unwrap();
+    assert!(tisty_carrier::Turning::left(&home).is_some());
+
+    assert!(!hears(&session));
+}

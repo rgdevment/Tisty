@@ -443,13 +443,8 @@ impl Cloud {
         self.tree()
     }
 
-    fn rounded(
-        &self,
-        here: &Here,
-        round: Round,
-        turn: Turn,
-        fetching: bool,
-    ) -> Result<Moved, Trouble> {
+    fn rounded(&self, here: &Here, round: Round, turn: Turn) -> Result<Moved, Trouble> {
+        let fetching = turn.homes;
         let Round {
             way,
             alive,
@@ -464,7 +459,9 @@ impl Cloud {
             saying,
             |tree, index, remote, saying| {
                 shelf::sweep(&here.data);
-                shelf::flattened(remote, index);
+                if turn.sends {
+                    shelf::flattened(remote, index);
+                }
                 let history = Metered::over(&*self.remote, &self.home, Class::History);
                 let shelf = match fetching {
                     true => Shelf::fetching_all(remote, index),
@@ -819,7 +816,7 @@ impl Carrier for Cloud {
     }
 
     fn carry(&self, here: &Here, round: Round) -> Result<Moved, Trouble> {
-        self.rounded(here, round, PASSING, false)
+        self.rounded(here, round, PASSING)
     }
 
     fn hear(&self, here: &Here, round: Round) -> Result<Moved, Trouble> {
@@ -827,7 +824,7 @@ impl Carrier for Cloud {
             way: crate::Way::Pull,
             ..round
         };
-        self.rounded(here, round, HEARING, false)
+        self.rounded(here, round, HEARING)
     }
 
     fn bring_home(&self, here: &Here, round: Round) -> Result<Moved, Trouble> {
@@ -836,7 +833,7 @@ impl Carrier for Cloud {
             holds: tisty_core::config::Holds::Everywhere,
             ..round
         };
-        self.rounded(here, round, HOMING, true)
+        self.rounded(here, round, HOMING)
     }
 
     fn could_free(&self, here: &Here, unused_since: SystemTime) -> LetGo {
