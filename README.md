@@ -925,9 +925,9 @@ with whatever app you like — but the window, the spread and the archive are th
 desktop's.
 
 **Does it run on Linux?**
-There is no Linux build today. The core is Rust and the window is Tauri, so
-nothing in the design stands in the way; what is missing is the packaging and
-somebody to keep it working on the distributions people actually run.
+No. Tisty is a desktop program for Windows and macOS. An assistant that runs
+on Linux inside Windows, under WSL, reaches it all the same: Settings ›
+Assistants connects it.
 
 **Is my data encrypted?**
 On your disk, no, and that is a decision rather than an oversight: your
