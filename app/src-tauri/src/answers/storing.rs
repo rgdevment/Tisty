@@ -966,7 +966,11 @@ async fn carried_round(
         _ => tisty_carrier::Way::Both,
     };
 
-    let ours = tisty_carrier::Turning::left(&home).is_some();
+    let ours = {
+        let session = held(session);
+        tisty_carrier::cloud_of(session.config.sync.as_ref())
+            .is_some_and(|at| tisty_carrier::Turning::left(&session.reach.home_of(at)).is_some())
+    };
     let joining = !carrier.been_here(&home);
     let mut telling = Telling::new(app.clone(), joining);
     let pushing = (home.clone(), carrier.clone(), alive.clone());

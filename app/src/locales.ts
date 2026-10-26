@@ -1651,6 +1651,7 @@ const en = {
   moveWipedOne: "1 copy was deleted from your {cloud}.",
   movePending: "A move to {name} is halfway.",
   moveDrop: "Drop it",
+  moveDropping: "Dropping…",
   moveSamePlace: "This copy already syncs there, so there is nothing to move.",
   moveFromUnused:
     "This computer never synced with this cloud, so there is nothing to bring from it: stop using it from its card instead.",
@@ -4144,6 +4145,7 @@ const es: Catalog = {
   moveWipedOne: "Se borró 1 copia de tu {cloud}.",
   movePending: "Hay una mudanza a medias hacia {name}.",
   moveDrop: "Dejarla",
+  moveDropping: "Descartando…",
   moveSamePlace: "Esta copia ya sincroniza ahí, así que no hay nada que mover.",
   moveFromUnused:
     "Este equipo nunca sincronizó con esta nube, así que no hay nada que traer de ahí: deja de usarla desde su tarjeta.",
