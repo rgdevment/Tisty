@@ -219,17 +219,18 @@ pub async fn seal_the_cloud(session: &Mutex<Session>) {
                     && now.cloud == wanted.cloud
             })
         });
+        // Nothing wanted is settled before anything is compared, so a try left from a sealed log never outlives it.
+        let Some(locked) = wanted.clone() else {
+            session.reach.tried_for(None);
+            session.reach.seal_with(None);
+            return;
+        };
         if wanted == session.reach.sealed()
             || keyed_already
             || (looked.is_some() && looked == session.reach.tried())
         {
             return;
         }
-        let Some(locked) = wanted else {
-            session.reach.tried_for(None);
-            session.reach.seal_with(None);
-            return;
-        };
         (
             session.paths.clone(),
             session.state.forebears.clone(),

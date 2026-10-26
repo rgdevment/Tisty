@@ -897,3 +897,17 @@ fn the_machines_behind_a_release_are_those_never_seen_running_it_and_never_an_as
     assert!(state.not_yet_on("1.34.0").contains(&device("dev_c")));
     assert!(!state.not_yet_on("1.34.0").contains(&device("dev_b")));
 }
+
+#[test]
+fn a_candidate_of_a_release_is_never_behind_it_and_one_of_an_earlier_release_is() {
+    let events = vec![
+        joined("dev_a", DeviceKind::Machine),
+        joined("dev_b", DeviceKind::Machine),
+        said("dev_a", runs("1.36.0-rc.1"), 100),
+        said("dev_b", runs("1.35.9-rc.2"), 100),
+    ];
+
+    let state = State::replay(&events);
+
+    assert_eq!(state.not_yet_on("1.36.0"), vec![device("dev_b")]);
+}
