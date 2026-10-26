@@ -142,6 +142,8 @@ pub(crate) struct Two {
     pub(crate) _kept: [tempfile::TempDir; 4],
 }
 
+pub(crate) const CARRIED_HERE: &str = "carried-here";
+
 pub(crate) fn two() -> Two {
     let kept = std::array::from_fn(|_| tempfile::tempdir().unwrap());
     let plain = Arc::new(Shelf::default());
@@ -155,6 +157,7 @@ pub(crate) fn two() -> Two {
         here_of(&asker, &plain, &kept[2], &cloud),
         here_of(&giver, &plain, &kept[3], &cloud),
     );
+    std::fs::write(kept[2].path().join(CARRIED_HERE), "0").unwrap();
     Two {
         cloud,
         plain,
