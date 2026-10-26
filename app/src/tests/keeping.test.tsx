@@ -2385,6 +2385,19 @@ describe("the first-run assistant", () => {
     ).toEqual(["sync_now", "sow_lists", "guide"]);
   });
 
+  it("asks for the folders it knows once, even when the asking fails", async () => {
+    const answered = ipc.answer;
+    ipc.answer = (cmd, args) =>
+      cmd === "keepers" ? Promise.reject({ code: "cannotRead" }) : answered(cmd, args);
+    render(<Welcome onDone={vi.fn()} />);
+    await spoken();
+
+    await waitFor(() => expect(sent("keepers")).toHaveLength(1));
+    await new Promise((settle) => setTimeout(settle, 50));
+
+    expect(sent("keepers")).toHaveLength(1);
+  });
+
   it("asks about the meeting place itself, not a folder below it", async () => {
     const answered = ipc.answer;
     ipc.answer = (cmd, args) =>
