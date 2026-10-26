@@ -25,6 +25,9 @@ quietly() {
 
 if command -v cargo > /dev/null; then
   quietly "cd \"$staged\" && cargo fmt --all --check" "cargo fmt --all would change files"
+  # The fuzz targets are a workspace of their own, which cargo fmt --all never reaches.
+  quietly "cd \"$staged\" && rustfmt --check --edition 2021 fuzz/fuzz_targets/*.rs" \
+    "rustfmt would change the fuzz targets"
 else
   echo "!  cargo is not here, so the formatting was not looked at"
 fi

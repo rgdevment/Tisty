@@ -1,0 +1,81 @@
+[package]
+name = "tisty-fuzz"
+version = "0.0.0"
+edition = "2021"
+license = "AGPL-3.0-only"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+arbitrary = { version = "1", features = ["derive"] }
+jiff = "0.2"
+libfuzzer-sys = "0.4"
+serde = "1"
+serde_json = "1"
+tisty-share-proto = { path = "../crates/tisty-share-proto" }
+tisty-sync = { path = "../crates/tisty-sync" }
+
+# A workspace of its own: it builds only on nightly, which the main workspace never asks for.
+[workspace]
+members = ["."]
+
+[profile.release]
+debug = 1
+
+[[bin]]
+name = "cloud_open"
+path = "fuzz_targets/cloud_open.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "cloud_tamper"
+path = "fuzz_targets/cloud_tamper.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "cloud_mark"
+path = "fuzz_targets/cloud_mark.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "handing"
+path = "fuzz_targets/handing.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "handing_tamper"
+path = "fuzz_targets/handing_tamper.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "notice"
+path = "fuzz_targets/notice.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "phrase"
+path = "fuzz_targets/phrase.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "shape"
+path = "fuzz_targets/shape.rs"
+test = false
+doc = false
+bench = false
