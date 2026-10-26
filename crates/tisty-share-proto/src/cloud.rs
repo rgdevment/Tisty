@@ -11,10 +11,12 @@ use crate::seed::Seed;
 const FILE: &[u8; 4] = b"\xffTCS";
 const MARK: &[u8; 4] = b"\xffTCM";
 const VERSION: u8 = 1;
+pub const LEAD: usize = FILE.len() + 1;
+const _: () = assert!(MARK.len() == FILE.len());
 pub const HEAD: usize = 19;
-const BLOCK: usize = 64 * 1024;
-const TAG: usize = 16;
-const KEY_ID: usize = 16;
+pub const BLOCK: usize = 64 * 1024;
+pub const TAG: usize = 16;
+pub const KEY_ID: usize = 16;
 const MARK_SAID: &[u8] = b"this is the person's cloud";
 
 #[derive(Clone)]
@@ -211,7 +213,7 @@ pub fn open(
     into: &mut dyn Write,
 ) -> Result<(), Unsealed> {
     let io = |e: std::io::Error| Unsealed::Io(e.to_string());
-    let mut magic = [0u8; 5];
+    let mut magic = [0u8; LEAD];
     let read = read_full(from, &mut magic).map_err(io)?;
     // A header cut short is a sealed file torn on the way, never plain text to pass through.
     if read < magic.len() {
