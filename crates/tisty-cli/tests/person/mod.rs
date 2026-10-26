@@ -301,6 +301,27 @@ impl Person {
         tisty_core::docs::write(&self.paths.docs(), file, body).unwrap();
     }
 
+    pub fn names_who_signs_and_seals(&self) {
+        let root = tisty_share_proto::identity::Root::from_bytes(&[3; 32]);
+        let key = tisty_share_proto::identity::ShareKey::from_bytes(&[4; 32]);
+        let left = tisty_share_proto::identity::ShareKey::from_bytes(&[5; 32]);
+        let now = jiff::Timestamp::now();
+        self.wrote(vec![
+            Op::ShareKey { p: key.shown() },
+            Op::ShareCertified {
+                c: root.certify(&key.public(), now),
+            },
+            Op::ShareRevoked {
+                r: root.revoke(&left.public(), now),
+                machine: false,
+            },
+            Op::CloudSealed {
+                s: tisty_core::moved::store_of(self.paths.data()),
+                k: None,
+            },
+        ]);
+    }
+
     fn patches(&self, id: TaskId, d: TaskPatch) {
         self.wrote(vec![Op::TaskUpdate { id, d }]);
     }
