@@ -628,7 +628,7 @@ se oculta.
 
 ## Tus datos y tu privacidad
 
-![Tuyo, y nada más: Tisto, el castor de Tisty, junto a lo que Tisty nunca te pide — sin cuenta, sin suscripción, sin telemetría, y tus archivos se quedan en tu computador](assets/store/es-08-gratis.png)
+![Tuyo, y nada más: Tisto, el castor de Tisty, junto a lo que Tisty nunca te pide — sin cuenta, sin suscripción, sin telemetría, y tus archivos se quedan en tu equipo](assets/store/es-08-gratis.png)
 
 Todo vive en una carpeta de tu disco: un registro de lo que pasó al que solo se
 le agrega, tus documentos como archivos `.md`, y tus adjuntos tal como son. Nada
@@ -944,9 +944,9 @@ los edita con la aplicación que prefieras, pero la ventana, el reparto y el
 archivo son del escritorio.
 
 **¿Funciona en Linux?**
-Hoy no hay compilación para Linux. El núcleo es Rust y la ventana es Tauri, así
-que nada en el diseño lo impide; lo que falta es el empaquetado y alguien que lo
-mantenga funcionando en las distribuciones que la gente usa de verdad.
+No. Tisty es un programa de escritorio para Windows y macOS. Un asistente que
+corre en Linux dentro de Windows, con WSL, llega a él igual: Configuración ›
+Asistentes lo conecta.
 
 **¿Mis datos están cifrados?**
 En tu disco no, y es una decisión, no un descuido: los permisos de tu sistema

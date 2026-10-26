@@ -3800,9 +3800,9 @@ const es: Catalog = {
   ownLogUnreadable:
     "No se pudo leer el registro de esta máquina, así que no viajó nada ni en un sentido ni en el otro. Suele ser que lo escribió un Tisty más nuevo, o que un archivo del registro quedó a medio escribir. No se perdió nada: todo sigue donde estaba.",
   someoneUnconfirmedHolds:
-    "Un computador que aún no confirmas como tuyo cambió documentos, y esperan con él, sin tocarse. Confírmalo aquí mismo o desde la barra lateral solo si lo reconoces, y se asientan en la próxima sincronización. Si no, quítalo en Configuración → Sincronizar y te preguntaremos por ellos.",
+    "Un equipo que aún no confirmas como tuyo cambió documentos, y esperan con él, sin tocarse. Confírmalo aquí mismo o desde la barra lateral solo si lo reconoces, y se asientan en la próxima sincronización. Si no, quítalo en Configuración → Sincronizar y te preguntaremos por ellos.",
   someoneUnconfirmed:
-    "Un computador espera que confirmes que es tuyo, así que todavía no entra nada de lo que escribe. Confírmalo aquí mismo o desde el aviso de la barra lateral — lo que escribió sigue donde está mientras tanto y llega entero.",
+    "Un equipo espera que confirmes que es tuyo, así que todavía no entra nada de lo que escribe. Confírmalo aquí mismo o desde el aviso de la barra lateral — lo que escribió sigue donde está mientras tanto y llega entero.",
   someoneUnreadable:
     "El historial de una máquina en la carpeta compartida no se pudo leer, así que se dejó fuera y lo demás pasó igual. Suele ser un archivo que todavía está llegando; si persiste, esa máquina tiene que volver a sincronizar.",
   someoneDisowned:
@@ -4138,9 +4138,9 @@ const es: Catalog = {
   moveOffline: "Sin conexión a internet",
   moveTroubled: "{maker} no respondió bien hace un momento",
   moveOfflineWhy:
-    "Este computador no tiene conexión a internet. Tus copias están a salvo aquí, y lo que falta sube cuando vuelva.",
+    "Este equipo no tiene conexión a internet. Tus copias están a salvo aquí, y lo que falta sube cuando vuelva.",
   moveTroubledWhy:
-    "{maker} no respondió bien varias veces seguidas. Tus copias están a salvo en este computador.",
+    "{maker} no respondió bien varias veces seguidas. Tus copias están a salvo en este equipo.",
   moveLater: "Después",
   moveDone: "Listo, tus copias ya están en {name}",
   moveDoneAlone: "Listo, tus copias ya están solo en este equipo",
@@ -4912,25 +4912,25 @@ const es: Catalog = {
   confirmAgent:
     "Es el asistente (Claude, Codex…) de «{name}». Antes de dejar entrar lo que escribe, comprueba que es tuyo: el mismo código tiene que verse en los dos.",
   confirmAgentStep:
-    "En ese computador, abre Tisty → Configuración → Asistentes: su código aparece junto al nombre con que firma.",
+    "En ese equipo, abre Tisty → Configuración → Asistentes: su código aparece junto al nombre con que firma.",
   confirmLater: "Confirmado. Lo que escribió llega en la próxima sincronización.",
   confirmElsewhere: "Si tienes otro equipo, también te lo preguntará ahí.",
   confirmCount: "{name} de {other}",
   confirmSince: "empezó a escribir {name}",
   confirmWhat:
-    "Así se llama ese computador. Antes de dejar entrar lo que escribe, comprueba que es tuyo: el mismo código tiene que verse en los dos.",
+    "Así se llama ese equipo. Antes de dejar entrar lo que escribe, comprueba que es tuyo: el mismo código tiene que verse en los dos.",
   confirmStep:
-    "En ese computador, abre Tisty → Configuración → Sincronizar. En «Tus equipos» aparece su nombre y su código.",
+    "En ese equipo, abre Tisty → Configuración → Sincronizar. En «Tus equipos» aparece su nombre y su código.",
   confirmCodeOf: "Código de «{name}»",
-  confirmAsk: "¿Es el mismo que muestra ese computador?",
+  confirmAsk: "¿Es el mismo que muestra ese equipo?",
   confirmYes: "Sí, es el mismo",
   confirmNo: "No coincide",
   confirmWhyAsk: "¿Por qué tengo que hacer esto?",
   confirmWhyIs:
-    "Cada computador firma lo que escribe con una marca que solo él puede poner, y el código resume esa marca. Si coincide en los dos, lo que llega viene de verdad de ese computador y no de alguien que puso archivos en tu carpeta. Se hace una vez en cada uno de tus otros equipos.",
+    "Cada equipo firma lo que escribe con una marca que solo él puede poner, y el código resume esa marca. Si coincide en los dos, lo que llega viene de verdad de ese equipo y no de alguien que puso archivos en tu carpeta. Se hace una vez en cada uno de tus otros equipos.",
   confirmHere:
-    "Si ese computador también te pide confirmar este, el código de aquí («{name}») es {other}",
-  confirmNoCode: "Todavía no dice su código. Sincroniza en ese computador y vuelve.",
+    "Si ese equipo también te pide confirmar este, el código de aquí («{name}») es {other}",
+  confirmNoCode: "Todavía no dice su código. Sincroniza en ese equipo y vuelve.",
   confirmDone: "Listo. «{name}» ya sincroniza con este equipo.",
   confirmBringing: "Trayendo lo que escribió…",
   confirmBrought: "Llegó todo lo que escribió.",
@@ -4938,9 +4938,9 @@ const es: Catalog = {
   confirmClose: "Cerrar",
   confirmMismatch: "No es el mismo código",
   confirmMismatchWhat:
-    "Si el código no es el mismo, lo que escribe no viene del computador que crees. Aquí no cambió nada: lo que escribió sigue en la carpeta, sin entrar.",
+    "Si el código no es el mismo, lo que escribe no viene del equipo que crees. Aquí no cambió nada: lo que escribió sigue en la carpeta, sin entrar.",
   confirmMismatchDo:
-    "¿Reinstalaste o cambiaste ese computador hace poco? Entonces vuelve como uno nuevo: búscalo en la lista y confirma ese. Si no, revisa quién tiene acceso a tu carpeta compartida.",
+    "¿Reinstalaste o cambiaste ese equipo hace poco? Entonces vuelve como uno nuevo: búscalo en la lista y confirma ese. Si no, revisa quién tiene acceso a tu carpeta compartida.",
   machineCode: "código",
   machineSince: "escribe desde {name}",
   machineCarried: "aceptado al actualizar",
@@ -4962,9 +4962,9 @@ const es: Catalog = {
   keepersUnreadable: "No se pudo leer el historial de esta carpeta",
   keepersUnreadableWhy:
     "Puede que todavía esté llegando, o que este equipo no tenga permiso para leerlo. Elegirla ahora se vería como una carpeta vacía y empezaría un historial propio al lado del que ya está.",
-  keepersStrays: "{name} documentos que otro computador dejó en esta carpeta",
+  keepersStrays: "{name} documentos que otro equipo dejó en esta carpeta",
   keepersStraysWhy:
-    "Ese computador los escribió aquí, pero lo que hizo todavía no llega a esta carpeta. No se pierde nada tuyo: se quedan en la carpeta sin tocar, y aparecen cuando ese computador sincronice aquí.",
+    "Ese equipo los escribió aquí, pero lo que hizo todavía no llega a esta carpeta. No se pierde nada tuyo: se quedan en la carpeta sin tocar, y aparecen cuando ese equipo sincronice aquí.",
   tabSync: "Sincronizar",
   whereItSyncs: "Dónde se sincroniza",
   moreOptions: "Más opciones",
