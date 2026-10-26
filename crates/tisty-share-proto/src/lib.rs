@@ -1,6 +1,7 @@
 pub mod cloud;
 pub mod handing;
 pub mod identity;
+pub mod notice;
 pub mod phrase;
 pub mod seed;
 

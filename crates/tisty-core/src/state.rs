@@ -34,6 +34,8 @@ pub struct State {
     pub runs: BTreeMap<DeviceId, String>,
     pub heard: BTreeMap<DeviceId, i64>,
     pub sealed: BTreeMap<String, String>,
+    // When each cloud was said sealed, so a notice of it turned back to plain from before then is never believed.
+    pub sealed_at: BTreeMap<String, i64>,
     pub sourced: BTreeMap<String, TaskId>,
     pub dropped: BTreeSet<DeviceId>,
     pub kept: BTreeMap<String, (String, u64)>,

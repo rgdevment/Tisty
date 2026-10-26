@@ -14,6 +14,7 @@ const ASK: &str = ".ask";
 const KEY: &str = ".key";
 const GIVER: &str = ".giver";
 const OPEN: &str = ".open";
+const UNSEALED: &str = "knock/unsealed.json";
 
 #[derive(serde::Serialize, serde::Deserialize)]
 struct Open {
@@ -237,6 +238,24 @@ pub fn revealed(plain: &dyn Remote, home: &Path, device: &str, reveal: &str) -> 
 pub fn reveal_of(plain: &dyn Remote, home: &Path, device: &str) -> Result<Option<String>, Hitch> {
     match read::<Open>(&boxed(plain, home), &named(device, OPEN)?)? {
         Found::Read(open) => Ok(Some(open.reveal)),
+        Found::Unread | Found::Missing => Ok(None),
+    }
+}
+
+pub fn said_unsealed(
+    plain: &dyn Remote,
+    home: &Path,
+    notice: &tisty_share_proto::notice::Unsealed,
+) -> Result<(), Hitch> {
+    written(&boxed(plain, home), UNSEALED, notice, Expect::Any)
+}
+
+pub fn unsealed_of(
+    plain: &dyn Remote,
+    home: &Path,
+) -> Result<Option<tisty_share_proto::notice::Unsealed>, Hitch> {
+    match read(&boxed(plain, home), UNSEALED)? {
+        Found::Read(notice) => Ok(Some(notice)),
         Found::Unread | Found::Missing => Ok(None),
     }
 }

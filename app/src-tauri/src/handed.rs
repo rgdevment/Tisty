@@ -18,7 +18,7 @@ pub(crate) const NEW_FOR: i64 = 60 * 60;
 // Asked again within the hour, so an ask lost or taken away up there never leaves this machine waiting a week.
 const ASKED_AGAIN: i64 = 60 * 60;
 const ANSWERED_EVERY: Duration = Duration::from_secs(5 * 60);
-const ASKED_EVERY: Duration = Duration::from_secs(2 * 60);
+pub(crate) const ASKED_EVERY: Duration = Duration::from_secs(2 * 60);
 
 /// The one-use key lives only here, so a restart asks again rather than leaving a secret on disk.
 #[derive(Default)]
@@ -108,7 +108,7 @@ pub fn tend(app: AppHandle) {
 }
 
 // Looked at before the provider is reached, so a round with nothing due costs no keychain read and no client.
-fn due(knocking: &Knocking, every: Duration) -> bool {
+pub(crate) fn due(knocking: &Knocking, every: Duration) -> bool {
     let mut looked = knocking
         .looked
         .lock()
@@ -122,6 +122,9 @@ fn due(knocking: &Knocking, every: Duration) -> bool {
 
 fn tended(app: &AppHandle, knocking: &Knocking) {
     let session = app.state::<Mutex<Session>>();
+    if crate::unsealing::looked_for(app, &session, knocking) {
+        return;
+    }
     let (home, keyed, named) = {
         let session = held(&session);
         let Some(at) = tisty_carrier::cloud_of(session.config.sync.as_ref()) else {
@@ -179,7 +182,7 @@ fn noted(why: String) {
 }
 
 // Kept while the place stays the same, so a window asking every few seconds never reads the keychain each time.
-fn reached(
+pub(crate) fn reached(
     knocking: &Knocking,
     home: &std::path::Path,
     at: &tisty_core::config::CloudAt,
