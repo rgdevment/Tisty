@@ -159,6 +159,7 @@ impl State {
         self.hosts.remove(d);
         self.named.remove(d);
         self.runs.remove(d);
+        self.heard.remove(d);
         self.dropped.insert(d.clone());
         self.holders.retain(|_, who| {
             who.remove(d);

@@ -1247,6 +1247,8 @@ const en = {
   sealingPhrase: "Your 24-word phrase has to be written down and confirmed first.",
   admitNotNow:
     "That could not be done now. Check that both computers are on and connected, and try again.",
+  phraseNotThisCloud:
+    "That phrase is a valid one, but it is not the one your cloud is encrypted with. Check it word by word.",
   sealingBehind:
     "Some of your computers still run an older Tisty. Update them, or remove the ones you no longer use.",
   cloudSealing:
@@ -1912,6 +1914,14 @@ const en = {
   admitLookAgain: "Look again",
   admitTaken: "Another computer is letting it in",
   admitShowCode: "Show the code",
+  enterButton: "Type my phrase",
+  enterTitle: "Type my phrase",
+  enterWhat:
+    "Type your 24 words in order, separated by spaces. Only the key of your cloud stays on this computer; the phrase itself is not kept.",
+  enterOthers:
+    "Your other computers hand this one the key on their own once one of them is on. This is when each was last heard:",
+  enterSeen: "last heard {name}",
+  enterGo: "Open my cloud",
   sealWipe: "Delete the unencrypted copy",
   sealWipeSure:
     "Delete the old copy from {name}? Only files whose new copy is already there are deleted.",
@@ -3698,6 +3708,8 @@ const es: Catalog = {
   sealingPhrase: "Primero tienes que anotar y confirmar tu frase de 24 palabras.",
   admitNotNow:
     "No se pudo hacer ahora. Revisa que los dos equipos estén encendidos y conectados, y vuelve a intentarlo.",
+  phraseNotThisCloud:
+    "Esa frase es válida, pero no es la que cifra tu nube. Revísala palabra por palabra.",
   sealingBehind:
     "Algunos de tus equipos todavía usan un Tisty anterior. Actualízalos o quita los que ya no usas.",
   cloudSealing:
@@ -4361,6 +4373,14 @@ const es: Catalog = {
   admitLookAgain: "Buscar de nuevo",
   admitTaken: "Otro equipo lo está autorizando",
   admitShowCode: "Ver el código",
+  enterButton: "Escribir mi frase",
+  enterTitle: "Escribir mi frase",
+  enterWhat:
+    "Escribe tus 24 palabras en orden, separadas por espacios. En este equipo solo queda la llave de tu nube; la frase misma no se guarda.",
+  enterOthers:
+    "Tus otros equipos le entregan la llave a este solos apenas uno de ellos esté encendido. Esta es la última vez que se supo de cada uno:",
+  enterSeen: "última vez {name}",
+  enterGo: "Abrir mi nube",
   sealWipe: "Borrar la copia sin cifrar",
   sealWipeSure:
     "¿Borrar la copia antigua de {name}? Solo se borran los archivos cuya copia nueva ya está ahí.",

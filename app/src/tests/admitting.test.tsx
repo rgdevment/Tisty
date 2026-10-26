@@ -16,6 +16,8 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: Record<string, unknown>) => {
     ipc.calls.push({ cmd, args: args ?? {} });
     if (cmd === "admitting_shown") return Promise.resolve(ipc.shown);
+    if (cmd === "admitting_look" && ipc.newcomers === "refused")
+      return Promise.reject({ code: "admitNotNow" });
     if (cmd === "admitting_look") return Promise.resolve(ipc.newcomers);
     if (cmd === "admitting_offer") return Promise.resolve(CODE);
     return Promise.resolve(null);
@@ -100,5 +102,12 @@ describe("letting a new computer in from one that reads the cloud", () => {
     await userEvent.click(screen.getByRole("button", { name: "Look again" }));
 
     await waitFor(() => expect(sent("admitting_look")).toHaveLength(2));
+  });
+
+  it("says in plain words why the computers could not be looked at", async () => {
+    ipc.newcomers = "refused";
+    render(<LetThemIn onClose={() => {}} />);
+
+    expect((await screen.findByRole("alert")).textContent).toMatch(/both computers are on/);
   });
 });

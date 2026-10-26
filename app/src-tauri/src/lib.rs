@@ -6,6 +6,7 @@ mod asked;
 mod command;
 mod desktop;
 mod drawn;
+mod entering;
 mod finding;
 mod glimpse;
 mod handed;
@@ -1235,6 +1236,8 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         admitting::admitting_offer,
         admitting::admitting_grant,
         admitting::admitting_refuse,
+        entering::sealing_heard,
+        entering::sealing_phrase,
         answers::machines::confirm_machine_key,
         answers::knocking::waiting_machines,
         answers::knocking::this_machine,

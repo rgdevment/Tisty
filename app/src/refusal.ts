@@ -129,6 +129,8 @@ const KNOWN = [
   "sealingNoCloud",
   "sealingPhrase",
   "sealingBehind",
+  "admitNotNow",
+  "phraseNotThisCloud",
   "storeNewer",
   "cannotWrite",
   "attachmentTooBig",

@@ -20,6 +20,7 @@ import { plainly, saidPlainly } from "../refusal";
 import { sure } from "../sure";
 import { LetMeIn, LetThemIn } from "./Admitting";
 import Card, { type Which, type Word } from "./Card";
+import Entering from "./Entering";
 import Modal from "./Modal";
 import Phrasing from "./Phrasing";
 import { mild, risky, strong } from "./Rows";
@@ -41,7 +42,7 @@ export default function Sealing({ busy, said, trouble, tell, fail, onChanged }: 
   const [shown, setShown] = useState<SealShown | null>(null);
   const [asking, setAsking] = useState(false);
   const [phrase, setPhrase] = useState<Phrase | null>(null);
-  const [letting, setLetting] = useState<"me" | "them" | null>(null);
+  const [letting, setLetting] = useState<"me" | "them" | "phrase" | null>(null);
   const failed = useCallback((e: unknown) => fail({ card, text: saidPlainly(e) }), [fail]);
 
   const look = useCallback(() => {
@@ -116,14 +117,31 @@ export default function Sealing({ busy, said, trouble, tell, fail, onChanged }: 
         />
       )}
       {letting === "them" && <LetThemIn onClose={() => setLetting(null)} />}
+      {letting === "phrase" && (
+        <Entering
+          onClose={() => setLetting(null)}
+          onIn={() => {
+            look();
+            onChanged();
+          }}
+        />
+      )}
       {shown.state === "locked" && (
         <>
           <p className="text-[13px] font-semibold">{t("sealLocked")}</p>
           <p className="mt-0.5 text-[12.5px] leading-relaxed text-soft">
             {t(shown.joined ? "sealLockedJoined" : "sealLockedNew")}
           </p>
-          {!shown.joined && (
-            <div className="mt-3 flex justify-end">
+          <div className="mt-3 flex flex-wrap justify-end gap-2">
+            <button
+              type="button"
+              className={mild}
+              disabled={held}
+              onClick={() => setLetting("phrase")}
+            >
+              {t("enterButton")}
+            </button>
+            {!shown.joined && (
               <button
                 type="button"
                 className={strong}
@@ -132,8 +150,8 @@ export default function Sealing({ busy, said, trouble, tell, fail, onChanged }: 
               >
                 {t("admitAskButton")}
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </>
       )}
       {shown.state === "none" && (

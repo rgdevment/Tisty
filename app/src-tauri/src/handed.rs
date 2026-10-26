@@ -270,7 +270,7 @@ pub(crate) fn asking(
     Ok(true)
 }
 
-fn opens(here: &Here, key: &CloudKey) -> Result<bool, String> {
+pub(crate) fn opens(here: &Here, key: &CloudKey) -> Result<bool, String> {
     knock::opens(&*here.plain, &here.home, key, &here.cloud).map_err(hitched)
 }
 
@@ -300,22 +300,31 @@ fn from_ours(session: &Mutex<Session>, answer: &tisty_share_proto::handing::Hand
         })
 }
 
-fn took(session: &Mutex<Session>, here: &Here, key: &CloudKey) -> Result<(), String> {
-    keep(&here.cloud, key)?;
+pub(crate) fn kept_for(
+    session: &Mutex<Session>,
+    cloud: &str,
+    key: &CloudKey,
+) -> Result<(), String> {
+    keep(cloud, key)?;
     let was = {
         let mut session = held(session);
         let was = session.config.key_handed.clone();
-        let cloud = here.cloud.clone();
+        let named = cloud.to_string();
         session
-            .keep(|config| config.key_handed = Some(cloud))
+            .keep(|config| config.key_handed = Some(named))
             .map_err(|refusal| refusal.code.to_string())?;
         session.reach.tried_for(None);
         session.reach.seal_with(None);
         was
     };
-    if let Some(was) = was.filter(|was| *was != here.cloud) {
+    if let Some(was) = was.filter(|was| was != cloud) {
         forget(&was);
     }
+    Ok(())
+}
+
+fn took(session: &Mutex<Session>, here: &Here, key: &CloudKey) -> Result<(), String> {
+    kept_for(session, &here.cloud, key)?;
     if let Err(why) = knock::withdrawn(&*here.plain, &here.home, &here.device.0) {
         witness::note(
             channel::CLOUD,

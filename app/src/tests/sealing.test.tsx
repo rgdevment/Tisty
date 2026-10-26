@@ -27,6 +27,7 @@ vi.mock("@tauri-apps/api/core", () => ({
     if (cmd === "sealing_shown") return Promise.resolve(ipc.shown);
     if (cmd === "sealing_room") return Promise.resolve(ipc.room);
     if (cmd === "sealing_wipe") return Promise.resolve(12);
+    if (cmd === "sealing_heard") return Promise.resolve([]);
     if (cmd === "identity_begin" || cmd === "identity_phrase") return Promise.resolve(WORDS);
     if (cmd === "identity_shown")
       return Promise.resolve({ fingerprint: "11111 22222 33333 44444", machines: [] });
@@ -253,6 +254,8 @@ describe("a cloud this computer cannot open yet", () => {
 
     expect(await screen.findByText(/hand it over on their own/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Let in from another computer" })).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Type my phrase" }));
+    await waitFor(() => expect(sent("sealing_heard")).toHaveLength(1));
   });
 
   it("lets a computer new to the place in from another one", async () => {

@@ -10,7 +10,7 @@ use crate::{
 };
 
 /// Tied to the event schema: an older build then misses the cache and meets the version guard.
-const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 20;
+const SCHEMA: i64 = crate::event::SCHEMA_VERSION as i64 + 21;
 
 pub struct Cache {
     db: Connection,
@@ -204,6 +204,10 @@ impl Cache {
             .meta("runs")
             .and_then(|said| serde_json::from_str(&said).ok())
             .unwrap_or_default();
+        state.heard = self
+            .meta("heard")
+            .and_then(|said| serde_json::from_str(&said).ok())
+            .unwrap_or_default();
         state.sealed = serde_json::from_str(&self.meta("sealed")?).ok()?;
         // Read back whole or not at all: an empty person here would quietly unsay every certificate.
         state.persons = serde_json::from_str(&self.meta("persons")?).ok()?;
@@ -371,7 +375,7 @@ impl Cache {
                 }
             }
             tx.execute(
-                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('signed', ?), ('signed_before', ?), ('devices', ?), ('keys', ?), ('dropped', ?), ('retired', ?), ('shed', ?), ('agents', ?), ('assistants', ?), ('forebears', ?), ('hosts', ?), ('named', ?), ('runs', ?), ('sealed', ?), ('persons', ?)",
+                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('signed', ?), ('signed_before', ?), ('devices', ?), ('keys', ?), ('dropped', ?), ('retired', ?), ('shed', ?), ('agents', ?), ('assistants', ?), ('forebears', ?), ('hosts', ?), ('named', ?), ('runs', ?), ('heard', ?), ('sealed', ?), ('persons', ?)",
                 rusqlite::params![
                     SCHEMA.to_string(),
                     fingerprint,
@@ -388,6 +392,7 @@ impl Cache {
                     serde_json::to_string(&state.hosts).unwrap_or_default(),
                     serde_json::to_string(&state.named).unwrap_or_default(),
                     serde_json::to_string(&state.runs).unwrap_or_default(),
+                    serde_json::to_string(&state.heard).unwrap_or_default(),
                     serde_json::to_string(&state.sealed).unwrap_or_default(),
                     serde_json::to_string(&state.persons).unwrap_or_default(),
                 ],
@@ -402,6 +407,13 @@ impl Cache {
             );
         }
         Ok(())
+    }
+
+    fn heard_up(&self, state: &State) -> rusqlite::Result<usize> {
+        self.db.execute(
+            "INSERT OR REPLACE INTO meta VALUES ('heard', ?)",
+            [serde_json::to_string(&state.heard).unwrap_or_default()],
+        )
     }
 
     pub fn touch(&mut self, state: &State, entity: ulid::Ulid, fingerprint: &str) -> Result<()> {
@@ -852,10 +864,12 @@ fn reached(
     // One write transaction taken up front: cut halfway the cache would call itself current, and a read first would lock out other writers.
     let _ = cache.db.execute_batch("BEGIN IMMEDIATE");
     // A row left behind under a fingerprint that calls the whole cache current would be served stale.
+    // Every event moves when its machine was heard, whatever entity it touched, so that row is kept with them.
     let carried = events
         .iter()
         .filter_map(|event| event.entity_id())
-        .all(|id| cache.touch(state, id, &print).is_ok());
+        .all(|id| cache.touch(state, id, &print).is_ok())
+        && cache.heard_up(state).is_ok();
     if !carried || cache.db.execute_batch("COMMIT").is_err() {
         let _ = cache.db.execute_batch("ROLLBACK");
         cache.invalidate();
