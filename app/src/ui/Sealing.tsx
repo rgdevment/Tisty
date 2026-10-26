@@ -63,7 +63,6 @@ export default function Sealing({
   const look = useCallback(() => {
     sealingShown().then(setShown).catch(failed);
   }, [failed]);
-  // A round may bring another computer's newer version, and the identity card may have confirmed the phrase.
   useEffect(look, [look, round, phrased]);
   useEffect(() => {
     const off = listen<SealTold | null>("sealing", (told) => {

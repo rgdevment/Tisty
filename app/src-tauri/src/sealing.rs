@@ -16,7 +16,6 @@ use crate::{Answer, Refusal, Session, elsewhere, held};
 const ORPHANED_AFTER: u64 = 7 * 24 * 60 * 60;
 const SETTLING_FOR: Duration = Duration::from_secs(30);
 const LOOKING_EVERY: Duration = Duration::from_secs(5);
-// An antivirus may hold a file it is scanning for a moment, so a write here fails a few times before the turn stops.
 const BROKE_TRIES: u32 = 3;
 const BROKE_AGAIN: Duration = Duration::from_secs(20);
 
@@ -462,7 +461,6 @@ fn driven(app: &AppHandle, ours: u64) {
     let Some(mut turning) = Turning::resume(plain.clone(), &home, key.clone()) else {
         return;
     };
-    // A first step can copy for minutes, and until it is told the card would read the turn as stopped.
     let begun = if left.closed {
         Stepped::Closed
     } else {

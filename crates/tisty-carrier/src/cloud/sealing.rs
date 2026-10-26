@@ -15,7 +15,6 @@ use crate::{Expect, Hitch, Remote, Seen};
 const JOURNAL: &str = "sealing.json";
 const TWINS: &str = "sealing.twins";
 const BATCH: usize = 64;
-// A step is when the window hears how far the copy went, so one full of videos ends early instead of going quiet.
 const BATCH_BYTES: u64 = if cfg!(test) {
     64 * 1024
 } else {
