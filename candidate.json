@@ -1,0 +1,18 @@
+{
+  "version": "1.36.0-rc.2",
+  "notes": "https://github.com/rgdevment/Tisty/releases/tag/v1.36.0-rc.2",
+  "platforms": {
+    "windows-x86_64": {
+      "url": "https://github.com/rgdevment/Tisty/releases/download/v1.36.0-rc.2/tisty-installer-1.36.0-rc.2-windows-x86_64.exe",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUQ3FzSkppRG5qTW12a2NzTzhaMmRWMEljWHF4d0hYNmNLeUJMeXZOMUgrY2Y4VE5vdVdMVnc0N1RJeC9oQ1FLVzk1SGoyb1Y0MFlNandBdUw3ZFJjSiswYVUzRWI3VndVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzMDI2NDExCWZpbGU6dGlzdHktaW5zdGFsbGVyLTEuMzYuMC1yYy4yLXdpbmRvd3MteDg2XzY0LmV4ZQl2ZXJzaW9uOjEuMzYuMC1yYy4yCjE5Nys4STdiK1d6RnBwYUE5Y3NLak5pVUtlcnJHWWxxS3VXSjMxYzY1dTY4dnhqblVsN2Y0Zzdndk9mM2s4VWRFNUJ6cXF6NTkvNGtISnUrMmNvbEJRPT0K"
+    },
+    "darwin-aarch64": {
+      "url": "https://github.com/rgdevment/Tisty/releases/download/v1.36.0-rc.2/tisty-1.36.0-rc.2-macos-aarch64.app.tar.gz",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUQ3FzSkppRG5qTWhUbGNjQWwwSGtIUzRycUUwWldWK09saXN5Y21tWENtQmlNSExQYWU1UFNCWEZrNWVpdm1IbEYwRlNOdTlZc1ZaQkdoOGlOQ2FvRUd3UlkwY3JmeXdJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzMDI2NDExCWZpbGU6dGlzdHktMS4zNi4wLXJjLjItbWFjb3MtYWFyY2g2NC5hcHAudGFyLmd6CXZlcnNpb246MS4zNi4wLXJjLjIKZUdVY0F0ZDJFUXZpbHpoWHpNR3Jac0R6VERCelI4QmNwSXRTWTJsbXQvakVsbzg5ditFQlZQUDJNdkx6WFhyQzJBTWVucWRnNTZ6N2oveG5DeG0vQmc9PQo="
+    },
+    "darwin-x86_64": {
+      "url": "https://github.com/rgdevment/Tisty/releases/download/v1.36.0-rc.2/tisty-1.36.0-rc.2-macos-x86_64.app.tar.gz",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVUQ3FzSkppRG5qTW9HZ29nMklmbThCTitpMTRJSjZHaEd5ZVh2ejAxbFVpS0xRQXJxQ0F4VDJxL094aVRsYmhKb0xhU2RIM29CaURsSDIxc0t5Ny8wK1pvVTUrMTlTOUE0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzMDI2NDExCWZpbGU6dGlzdHktMS4zNi4wLXJjLjItbWFjb3MteDg2XzY0LmFwcC50YXIuZ3oJdmVyc2lvbjoxLjM2LjAtcmMuMgpFMitORzFvbktpRDBrbVpLaHhjQ2VCb1dFQkg2NUY5M1NxZkFReTZmMnBnSWM5WGFvSlBVWGRJQnQwSmZOUzZObWxSVmhNTzZDWHluclJGVTFTRkJCdz09Cg=="
+    }
+  }
+}
