@@ -36,7 +36,7 @@ export default function CloudHealth({ name, provider }: { name: string; provider
   if (health === "reachable") return null;
   if (health === "checking")
     return (
-      <p aria-live="polite" className="text-[11.5px] text-faint">
+      <p aria-live="polite" className="text-[11.5px] text-faint motion-safe:animate-pulse">
         {fill("healthChecking", name)}
       </p>
     );

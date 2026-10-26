@@ -301,10 +301,20 @@ const card = (over: Partial<CloudStatus> = {}) => {
 };
 
 describe("the cloud in Settings", () => {
+  it("never calls the cloud connected before it knows, and looks again when asked", async () => {
+    ipc.answers.cloud_status = () => Promise.reject({ code: "cloudNotNow" });
+    card();
+
+    await userEvent.click(await screen.findByRole("button", { name: t("tryAgain") }));
+
+    await waitFor(() => expect(sent("cloud_status").length).toBeGreaterThan(1));
+    expect(screen.queryByText(t("cloudConnectedTag"))).toBeNull();
+  });
+
   it("shows the account it syncs with and syncs on demand", async () => {
     const { carry } = card();
     expect(await screen.findByText(ANA.email)).toBeTruthy();
-    expect(screen.getByText(t("cloudConnectedTag"))).toBeTruthy();
+    expect(await screen.findByText(t("cloudConnectedTag"))).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: t("syncNow") }));
     expect(carry).toHaveBeenCalled();
   });

@@ -11,6 +11,7 @@ import {
   cloudAbandon,
   cloudChoose,
   cloudConnect,
+  cloudConnectCancel,
   cloudForget,
   cloudPause,
   cloudRevoke,
@@ -58,14 +59,18 @@ export default function Clouded({
   const [which, setWhich] = useState(false);
   const [signedAt, setSignedAt] = useState<number>();
   const [askingPassword, setAskingPassword] = useState(false);
+  const [unread, setUnread] = useState(false);
+  const [signing, setSigning] = useState(false);
+  const [counting, setCounting] = useState(false);
   const held = busy !== null;
   const waiting = useAwaitsChoice();
   const running = useSince(busy === "sync", busySince);
 
   const look = useCallback(() => {
+    setUnread(false);
     cloudStatus()
       .then(setStatus)
-      .catch(() => undefined);
+      .catch(() => setUnread(true));
   }, []);
 
   useEffect(look, [look, state.last, busy]);
@@ -109,7 +114,14 @@ export default function Clouded({
 
   const reconnect = () => {
     if (typed(provider)) return setAskingPassword(true);
-    run("sync", cloudConnect(provider).then(reconnected), () => carry());
+    setSigning(true);
+    run(
+      "sync",
+      cloudConnect(provider)
+        .then(reconnected)
+        .finally(() => setSigning(false)),
+      () => carry(),
+    );
   };
 
   const passwordGiven = (account: Connected) => {
@@ -146,11 +158,14 @@ export default function Clouded({
 
   // Google will never let this copy in again, so it is left as it is, saying first what stays only in Drive.
   const abandon = async () => {
-    if (held) return;
-    const left = await cloudStranded().catch((e) => {
-      fail({ card: "sync", text: saidPlainly(e) });
-      return null;
-    });
+    if (held || counting) return;
+    setCounting(true);
+    const left = await cloudStranded()
+      .catch((e) => {
+        fail({ card: "sync", text: saidPlainly(e) });
+        return null;
+      })
+      .finally(() => setCounting(false));
     if (!left) return;
     const asked =
       left.files === 0
@@ -177,7 +192,24 @@ export default function Clouded({
             {status?.email ?? state.cloud}
           </span>
         </span>
-        {!standing && (
+        {!status && !unread && (
+          <span
+            role="status"
+            className="flex-none text-[10.5px] text-faint motion-safe:animate-pulse"
+          >
+            {t("lookingNow")}
+          </span>
+        )}
+        {!status && unread && (
+          <button
+            type="button"
+            onClick={look}
+            className="flex-none text-[10.5px] text-accent hover:underline"
+          >
+            {t("tryAgain")}
+          </button>
+        )}
+        {status && !standing && (
           <span className="flex-none rounded-md bg-hue-green/10 px-1.5 py-0.5 text-[10.5px] text-hue-green">
             {t("cloudConnectedTag")}
           </span>
@@ -229,7 +261,7 @@ export default function Clouded({
 
       <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
         <button type="button" disabled={held || paused} onClick={() => carry()} className={strong}>
-          {busy === "sync" ? syncingSaid(running) : t("syncNow")}
+          {busy === "sync" && !signing ? syncingSaid(running) : t("syncNow")}
         </button>
         {standing?.exit !== "turnOn" && (
           <button type="button" disabled={held} onClick={() => switched(paused)} className={mild}>
@@ -242,6 +274,23 @@ export default function Clouded({
             : fill("syncLast", state.last ? stamped(state.last) : t("syncNever"))}
         </span>
       </div>
+
+      {signing && (
+        <p
+          role="status"
+          aria-live="polite"
+          className="mt-2 text-[11.5px] text-faint motion-safe:animate-pulse"
+        >
+          {t("cloudWaiting")}{" "}
+          <button
+            type="button"
+            onClick={() => void cloudConnectCancel().catch(() => undefined)}
+            className="text-accent hover:underline"
+          >
+            {t("cancel")}
+          </button>
+        </p>
+      )}
 
       {left > 0 && (
         <p className="mt-2 text-[12.5px] text-soft">
@@ -286,8 +335,8 @@ export default function Clouded({
             {t("cloudForgetHere")}
           </button>
           {status?.lost && (
-            <button type="button" disabled={held} onClick={abandon} className={risky}>
-              {t("cloudAbandon")}
+            <button type="button" disabled={held || counting} onClick={abandon} className={risky}>
+              {counting ? t("lookingNow") : t("cloudAbandon")}
             </button>
           )}
         </div>

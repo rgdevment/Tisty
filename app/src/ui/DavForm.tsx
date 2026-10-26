@@ -99,7 +99,11 @@ export default function DavForm({
         <span className="text-faint">{t("davKeyWhy")}</span>
       </label>
       {checking && (
-        <p role="status" aria-live="polite" className="text-[11.5px] text-faint">
+        <p
+          role="status"
+          aria-live="polite"
+          className="text-[11.5px] text-faint motion-safe:animate-pulse"
+        >
           {t("davChecking")}
         </p>
       )}
