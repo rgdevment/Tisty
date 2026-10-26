@@ -164,7 +164,19 @@ fn reveal_once(knocking: &Knocking, here: &Here, ask: &Ask, reveal: &str) -> Wor
     if revealed.as_deref() == Some(ask.sig.as_str()) {
         return Ok(());
     }
-    knock::revealed(&*here.plain, &here.home, &here.device.0, reveal).map_err(up)?;
+    if let Err(hitch) = knock::revealed(&*here.plain, &here.home, &here.device.0, reveal) {
+        tisty_core::witness::warn(
+            tisty_core::witness::channel::CLOUD,
+            "this computer could not put up its reveal for the computer letting it in",
+            &[("why", tisty_core::witness::Fact::Code(hitch.code()))],
+        );
+        return Err(up(hitch));
+    }
+    tisty_core::witness::note(
+        tisty_core::witness::channel::CLOUD,
+        "this computer put up its reveal for the computer letting it in",
+        &[],
+    );
     *revealed = Some(ask.sig.clone());
     Ok(())
 }
