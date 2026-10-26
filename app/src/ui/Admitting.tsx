@@ -216,7 +216,12 @@ export function LetThemIn({ onClose }: { onClose: () => void }) {
           </div>
         </>
       );
-    if (newcomers === null) return <p className="text-[12.5px] text-faint">{t("admitLooking")}</p>;
+    if (newcomers === null)
+      return (
+        <p role="status" className="text-[12.5px] text-faint motion-safe:animate-pulse">
+          {t("admitLooking")}
+        </p>
+      );
     if (newcomers.length === 0)
       return (
         <>

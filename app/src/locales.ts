@@ -1868,6 +1868,8 @@ const en = {
   sealRoomUnknown:
     "{name} does not say how much room is left. You need {other} free while it encrypts.",
   sealRoomLooking: "Looking at the room in {name}…",
+  sealLooking: "Looking at your cloud…",
+  identityLooking: "Looking at your identity…",
   sealUpToDate: "Your computers are up to date",
   sealBehindOne: "{name} runs an older Tisty",
   sealBehindWhy: "Update it, or remove it from your computers if you no longer use it.",
@@ -1891,6 +1893,8 @@ const en = {
     "A file could not be written on this computer; an antivirus may be holding it. Tisty tries again in a moment.",
   sealStepClose: "Bring over the last changes",
   sealStepCloseWhy: "Your other computers wait a moment.",
+  sealStepSettling:
+    "Waiting a few minutes for your other computers to finish what they were sending. Nothing to do here.",
   sealStepSwitchOn: "Switch to the encrypted cloud",
   sealStepSwitchOff: "Switch back to the unencrypted cloud",
   sealIntact: "Until the last step, what was there stays as it was: cancelling loses nothing.",
@@ -4350,6 +4354,8 @@ const es: Catalog = {
   sealRoomUnknown:
     "{name} no dice cuánto espacio queda. Necesitas {other} libres mientras se cifra.",
   sealRoomLooking: "Revisando el espacio en {name}…",
+  sealLooking: "Revisando tu nube…",
+  identityLooking: "Revisando tu identidad…",
   sealUpToDate: "Tus equipos están al día",
   sealBehindOne: "{name} tiene un Tisty anterior",
   sealBehindWhy: "Actualízalo o, si ya no lo usas, quítalo de tus equipos.",
@@ -4373,6 +4379,8 @@ const es: Catalog = {
     "No se pudo escribir un archivo en este equipo; puede que un antivirus lo esté reteniendo. Tisty lo vuelve a intentar en un momento.",
   sealStepClose: "Pasar los últimos cambios",
   sealStepCloseWhy: "Tus otros equipos esperan un momento.",
+  sealStepSettling:
+    "Esperando unos minutos a que tus otros equipos terminen lo que estaban enviando. No tienes que hacer nada.",
   sealStepSwitchOn: "Pasar a la nube cifrada",
   sealStepSwitchOff: "Volver a la nube sin cifrar",
   sealIntact: "Hasta el último paso, lo de antes queda intacto: cancelar no pierde nada.",

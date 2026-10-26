@@ -103,7 +103,14 @@ export default function Sealing({
       .finally(() => setStarting(false));
   };
 
-  if (!shown) return null;
+  if (!shown)
+    return (
+      <Card title={t("sealTitle")} which={card} busy={busy} said={said} trouble={trouble}>
+        <p role="status" className="text-[12.5px] text-faint motion-safe:animate-pulse">
+          {t("sealLooking")}
+        </p>
+      </Card>
+    );
   const provider = cloudNamed(shown.cloud);
   const held = busy !== null;
 
@@ -319,7 +326,9 @@ function Before({
         </li>
         <li className="flex gap-2">
           {room === null ? (
-            <span className="text-faint">{fill("sealRoomLooking", provider)}</span>
+            <span role="status" className="text-faint motion-safe:animate-pulse">
+              {fill("sealRoomLooking", provider)}
+            </span>
           ) : room === "unread" ? (
             <>
               <Mark ok={false} />
@@ -423,7 +432,11 @@ function Progress({
               ? t("sealStepCounting")
               : undefined,
         )}
-        {step(1, t("sealStepClose"), t("sealStepCloseWhy"))}
+        {step(
+          1,
+          t("sealStepClose"),
+          t(at === 1 && !told.stopped ? "sealStepSettling" : "sealStepCloseWhy"),
+        )}
         {step(2, t(told.on ? "sealStepSwitchOn" : "sealStepSwitchOff"))}
       </ul>
       {told.refused > 0 && (

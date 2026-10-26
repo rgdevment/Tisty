@@ -65,6 +65,11 @@ export default function Identity({
         />
       )}
       <Card title={t("tabIdentity")} which="identity" busy={busy} said={said} trouble={trouble}>
+        {!shown && (
+          <p role="status" className="text-[12.5px] text-faint motion-safe:animate-pulse">
+            {t("identityLooking")}
+          </p>
+        )}
         {shown && !born && (
           <p className="text-[12.5px] leading-relaxed text-soft">{t("identityUnborn")}</p>
         )}

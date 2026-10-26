@@ -106,6 +106,13 @@ beforeEach(() => {
 });
 
 describe("encrypting the cloud", () => {
+  it("says it is looking at the cloud until it knows, instead of showing nothing", async () => {
+    ipc.shown = new Promise(() => {});
+    render(<Shell />);
+
+    expect((await screen.findByRole("status")).textContent).toBe("Looking at your cloud…");
+  });
+
   it("only says to connect a cloud while there is none", async () => {
     ipc.shown = { ...plain, cloud: null, state: "none" };
     render(<Shell />);
