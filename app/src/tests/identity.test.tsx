@@ -49,11 +49,12 @@ const held: Shown = {
 
 const sent = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd);
 
-function Shell({ onSync = () => {} }: { onSync?: () => void }) {
+function Shell({ onSync = () => {}, phrased }: { onSync?: () => void; phrased?: number }) {
   const [said, setSaid] = useState<Word>();
   const [trouble, setTrouble] = useState<Word>();
   return (
     <Identity
+      phrased={phrased}
       busy={null}
       said={said}
       trouble={trouble}
@@ -104,6 +105,16 @@ describe("your identity", () => {
   it("says when the phrase was confirmed", async () => {
     ipc.shown = { ...held, confirmed: true };
     render(<Shell />);
+
+    expect(await screen.findByText("confirmed")).toBeTruthy();
+  });
+
+  it("looks again once the phrase was confirmed from the encryption card", async () => {
+    const { rerender } = render(<Shell phrased={0} />);
+    expect(await screen.findByText("not confirmed")).toBeTruthy();
+
+    ipc.shown = { ...held, confirmed: true };
+    rerender(<Shell phrased={1} />);
 
     expect(await screen.findByText("confirmed")).toBeTruthy();
   });

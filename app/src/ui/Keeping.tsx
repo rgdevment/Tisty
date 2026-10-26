@@ -76,6 +76,8 @@ export default function Keeping({
   const [freeing, setFreeing] = useFreeing();
   const [freeDays, setFreeDays] = useState(90);
   const [seen, setSeen] = useState<Seen | null>(null);
+  const [phrased, setPhrased] = useState(0);
+  const phrasedAgain = useCallback(() => setPhrased((was) => was + 1), []);
   const { busy, busySince, setBusy, said, setSaid, trouble, setTrouble, run, quietly } = useCards(
     () => {
       look();
@@ -273,11 +275,16 @@ export default function Keeping({
               trouble={trouble}
               tell={setSaid}
               fail={setTrouble}
+              phrased={phrased}
+              onPhrased={phrasedAgain}
               onSync={() => onTab("sync")}
             />
           )}
           {tab === "security" && (
             <Sealing
+              round={state.last}
+              phrased={phrased}
+              onPhrased={phrasedAgain}
               busy={busy}
               said={said}
               trouble={trouble}

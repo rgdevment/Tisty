@@ -954,6 +954,7 @@ export interface Settled {
   deferred?: Waiting | null;
   refused?: { code: string; name?: string | null } | null;
   adopted?: boolean;
+  owed?: boolean;
 }
 
 export type Waiting = {

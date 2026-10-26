@@ -71,11 +71,13 @@ const copying: SealTold = {
 
 const sent = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd);
 
-function Shell() {
+function Shell({ round, onPhrased }: { round?: string; onPhrased?: () => void }) {
   const [said, setSaid] = useState<Word>();
   const [trouble, setTrouble] = useState<Word>();
   return (
     <Sealing
+      round={round}
+      onPhrased={onPhrased}
       busy={null}
       said={said}
       trouble={trouble}
@@ -153,6 +155,32 @@ describe("encrypting the cloud", () => {
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     await userEvent.click(screen.getByRole("button", { name: "Not now" }));
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("shows the phrase over the list it was asked from, and tells the identity card once it shuts", async () => {
+    ipc.shown = { ...plain, held: false, confirmed: false };
+    const phrased = vi.fn();
+    render(<Shell onPhrased={phrased} />);
+    await userEvent.click(await screen.findByRole("button", { name: "Encrypt my cloud…" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Create my phrase" }));
+
+    expect(await screen.findByText("word24")).toBeTruthy();
+    const dialogs = screen.getAllByRole("dialog");
+    expect(dialogs[dialogs.length - 1].textContent).toContain("word24");
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(phrased).toHaveBeenCalledTimes(1);
+  });
+
+  it("looks again after a round, so a computer that updated stops being waited for", async () => {
+    ipc.shown = { ...plain, behind: ["MacBook Pro"] };
+    const { rerender } = render(<Shell round="12:30" />);
+    await userEvent.click(await screen.findByRole("button", { name: "Encrypt my cloud…" }));
+    expect(await screen.findByText("MacBook Pro runs an older Tisty")).toBeTruthy();
+
+    ipc.shown = plain;
+    rerender(<Shell round="12:31" />);
+
+    expect(await screen.findByText("Your computers are up to date")).toBeTruthy();
   });
 
   it("says why it could not begin", async () => {

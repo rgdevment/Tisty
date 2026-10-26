@@ -77,6 +77,8 @@ export function carrying(
           owed = owing(owed, way);
           stalled = true;
         }
+        // A push never chases its own writes, so one that comes back every round cannot spin.
+        if (!busy && answer.owed && !answer.deferred && way !== "push") owed = owing(owed, "push");
         if (!busy && !answer.deferred) toldAside(null);
         if (mine !== round) return busy ? "busy" : answer.carried;
         if (answer.undecided.length) atOdds(answer.undecided);
