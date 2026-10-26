@@ -92,9 +92,26 @@ fn earlier_shape() -> u32 {
         .expect("a shape number")
 }
 
-fn earlier_stops() -> bool {
+fn earlier_accepts() -> Option<(u64, u64, u64, bool)> {
+    let said = std::env::var("TISTY_PREVIOUS_ACCEPTS")
+        .ok()
+        .filter(|said| !said.is_empty())?;
+    Some(tisty_core::released(&said).expect("TISTY_PREVIOUS_ACCEPTS is a release, as 1.35.0"))
+}
+
+fn earlier_stops_at(needs: &str) -> bool {
     SCHEMA_VERSION > earlier_schema()
         || (earlier_shape() > 0 && tisty_carrier::SHAPE > earlier_shape())
+        || earlier_accepts()
+            .is_some_and(|accepts| tisty_core::released(needs).expect("a release") > accepts)
+}
+
+fn earlier_stops() -> bool {
+    earlier_stops_at(tisty_carrier::NEEDS)
+}
+
+fn told_to_update(err: &str) -> bool {
+    err.contains("newer")
 }
 
 fn snapshot(dir: &Path) -> BTreeMap<PathBuf, Vec<u8>> {
@@ -158,7 +175,7 @@ fn an_earlier_release_and_this_build_share_a_folder_as_far_as_their_schemas_allo
             "it carried on beside a newer build: {}",
             run.out
         );
-        assert!(run.err.contains("newer"), "{}", run.err);
+        assert!(told_to_update(&run.err), "{}", run.err);
         assert_eq!(
             snapshot(shared.path()),
             before,
@@ -201,7 +218,7 @@ fn an_earlier_release_stops_at_a_place_this_build_arranged_and_leaves_it_as_it_w
     let run = earlier.run(&["sync"]);
 
     assert_ne!(run.code, 0, "it synced beside this build: {}", run.out);
-    assert!(run.err.contains("newer"), "{}", run.err);
+    assert!(told_to_update(&run.err), "{}", run.err);
     assert_eq!(
         snapshot(shared.path()),
         before,
@@ -249,7 +266,7 @@ fn an_earlier_release_stops_at_a_place_a_machine_left_with_a_word_and_leaves_it_
         "it synced beside a word it cannot read: {}",
         run.out
     );
-    assert!(run.err.contains("newer"), "{}", run.err);
+    assert!(told_to_update(&run.err), "{}", run.err);
     assert_eq!(
         snapshot(shared.path()),
         before,
@@ -257,4 +274,95 @@ fn an_earlier_release_stops_at_a_place_a_machine_left_with_a_word_and_leaves_it_
     );
     let kept = earlier.ok(&["ls", "all"]);
     assert!(kept.contains("written by the earlier release"), "{kept}");
+}
+
+#[test]
+#[ignore = "needs an earlier release: .github/workflows/versions.yml provides one"]
+fn an_earlier_release_opens_a_history_this_build_wrote_who_signs_and_what_is_sealed_into() {
+    let earlier = Cli::earlier();
+    earlier.ok(&["written by the earlier release"]);
+    let person = person::Person::at(earlier.home.path());
+    person.captures("written by this build");
+    person.names_who_signs_and_seals();
+    let store = earlier.home.path().join("data").join("store");
+    let before = snapshot(&store);
+
+    let run = earlier.run(&["ls", "all"]);
+
+    if SCHEMA_VERSION > earlier_schema() {
+        assert_ne!(run.code, 0, "it read a newer history: {}", run.out);
+        assert!(told_to_update(&run.err), "{}", run.err);
+        assert_eq!(
+            snapshot(&store),
+            before,
+            "an earlier release changed a history it could not read"
+        );
+        return;
+    }
+    assert_eq!(run.code, 0, "{}", run.err);
+    assert!(
+        run.out.contains("written by the earlier release"),
+        "{}",
+        run.out
+    );
+    assert!(run.out.contains("written by this build"), "{}", run.out);
+    earlier.ok(&["still writing here"]);
+    let kept = earlier.ok(&["ls", "all"]);
+    assert!(kept.contains("still writing here"), "{kept}");
+    let after = snapshot(&store);
+    for (name, was) in &before {
+        assert!(
+            after.get(name).is_some_and(|now| now.starts_with(was)),
+            "an earlier release rewrote {name:?}, where this build said who signs and what is sealed"
+        );
+    }
+}
+
+fn sealed_in_turn(word: &str, needs: &str, said_by_this_build: impl FnOnce(&Path)) {
+    // A folder is never sealed for real: a release that takes this needs meets the word only in a cloud.
+    if !earlier_stops_at(needs) {
+        return;
+    }
+    let shared = tempfile::tempdir().unwrap();
+    let (earlier, current) = written_in_turn(shared.path());
+    current.person().captures("written by this build");
+    current.person().syncs().unwrap();
+    said_by_this_build(shared.path());
+    assert_ne!(
+        tisty_carrier::sealing_of(shared.path()),
+        tisty_carrier::Sealing::Plain,
+        "{word}"
+    );
+    let before = snapshot(shared.path());
+
+    let run = earlier.run(&["sync"]);
+
+    assert_ne!(run.code, 0, "it synced in a sealed place: {}", run.out);
+    assert!(told_to_update(&run.err), "{}", run.err);
+    assert_eq!(
+        snapshot(shared.path()),
+        before,
+        "an earlier release changed a place sealed for {word}"
+    );
+    let kept = earlier.ok(&["ls", "all"]);
+    assert!(kept.contains("written by the earlier release"), "{kept}");
+}
+
+#[test]
+#[ignore = "needs an earlier release: .github/workflows/versions.yml provides one"]
+fn an_earlier_release_stops_at_a_place_sealed_to_a_cloud_and_leaves_it_as_it_was() {
+    sealed_in_turn("sealed", tisty_carrier::SEALS, |shared| {
+        tisty_carrier::seal_word(shared, "store_one").unwrap();
+    });
+}
+
+#[test]
+#[ignore = "needs an earlier release: .github/workflows/versions.yml provides one"]
+fn an_earlier_release_stops_at_a_place_being_sealed_and_leaves_it_as_it_was() {
+    sealed_in_turn("sealing", tisty_carrier::TURNS, |shared| {
+        let named = shared.join(tisty_carrier::NAMED);
+        let said = std::fs::read_to_string(&named).unwrap();
+        let phase = tisty_carrier::phase(tisty_carrier::Turn::On, "dev_a", "n1");
+        std::fs::write(&named, tisty_carrier::claimed(&said, &phase).unwrap()).unwrap();
+    });
 }
