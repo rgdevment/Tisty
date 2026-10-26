@@ -72,6 +72,12 @@ export default function Sealing({
       });
   }, [failed]);
   useEffect(look, [look, round, phrased]);
+  const keyAwaited = shown?.state === "locked" && shown.joined;
+  useEffect(() => {
+    if (!keyAwaited) return;
+    const again = setInterval(look, 15_000);
+    return () => clearInterval(again);
+  }, [keyAwaited, look]);
   useEffect(() => {
     if (!shown?.wiping || wiping) return;
     const again = setInterval(look, 5_000);
@@ -188,6 +194,11 @@ export default function Sealing({
           <p className="mt-0.5 text-[12.5px] leading-relaxed text-soft">
             {t(shown.joined ? "sealLockedJoined" : "sealLockedNew")}
           </p>
+          {shown.joined && (
+            <p role="status" className="mt-2 text-[12.5px] text-faint motion-safe:animate-pulse">
+              {t("sealAskingKey")}
+            </p>
+          )}
           <div className="mt-3 flex flex-wrap justify-end gap-2">
             <button
               type="button"

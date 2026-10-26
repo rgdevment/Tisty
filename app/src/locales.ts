@@ -1920,6 +1920,8 @@ const en = {
   sealOldCopy: "The old unencrypted copy stays in {name} until you delete it.",
   sealLocked: "Your cloud is encrypted, and this computer does not hold its key yet",
   sealLockedJoined: "Your other computers hand it over on their own as soon as one of them is on.",
+  sealAskingKey:
+    "Asking your other computers for the key… It can take a few minutes, and one of them needs Tisty open. You can also write your phrase.",
   sealLockedNew:
     "To open it here, let this computer in from another of your computers that already reads the encrypted cloud.",
   admitAskButton: "Let in from another computer",
@@ -4423,6 +4425,8 @@ const es: Catalog = {
   sealOldCopy: "La copia antigua sin cifrar sigue en {name} hasta que la borres.",
   sealLocked: "Tu nube está cifrada y este equipo todavía no tiene su llave",
   sealLockedJoined: "Tus otros equipos se la entregan solos apenas uno de ellos esté encendido.",
+  sealAskingKey:
+    "Pidiendo la llave a tus otros equipos… Puede tardar unos minutos, y uno de ellos tiene que tener Tisty abierto. También puedes escribir tu frase.",
   sealLockedNew:
     "Para abrirla aquí, autoriza este equipo desde otro de tus equipos que ya lea la nube cifrada.",
   admitAskButton: "Autorizar desde otro equipo",

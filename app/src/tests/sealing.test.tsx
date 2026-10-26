@@ -358,6 +358,7 @@ describe("a cloud this computer cannot open yet", () => {
     render(<Shell />);
 
     expect(await screen.findByText(/hand it over on their own/)).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toMatch(/Asking your other computers/);
     expect(screen.queryByRole("button", { name: "Let in from another computer" })).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Type my phrase" }));
     await waitFor(() => expect(sent("sealing_heard")).toHaveLength(1));
