@@ -146,7 +146,7 @@ pub fn sealing_shown(
     Ok(Shown {
         cloud: Some(at.provider),
         state,
-        joined: session.state.devices.contains(&session.config.device_id),
+        joined: crate::handed::joined_here(&session),
         held: kept,
         confirmed,
         phrase_elsewhere,

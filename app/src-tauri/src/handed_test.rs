@@ -155,6 +155,7 @@ pub(crate) fn two() -> Two {
         here_of(&asker, &plain, &kept[2], &cloud),
         here_of(&giver, &plain, &kept[3], &cloud),
     );
+    std::fs::write(kept[2].path().join(tisty_carrier::CARRIED), "0").unwrap();
     Two {
         cloud,
         plain,

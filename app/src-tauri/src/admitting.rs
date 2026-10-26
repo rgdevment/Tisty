@@ -113,7 +113,7 @@ fn ask(
         return Err(Refusal::of("admitAlreadyIn"));
     }
     // One on the list is handed the key on its own, and asking again would take away an answer on its way.
-    if seated(session, &here.device.0) {
+    if crate::handed::joined_here(&held(session)) {
         return Err(Refusal::of("admitOnList"));
     }
     ask_again(session, knocking, here)
@@ -164,7 +164,19 @@ fn reveal_once(knocking: &Knocking, here: &Here, ask: &Ask, reveal: &str) -> Wor
     if revealed.as_deref() == Some(ask.sig.as_str()) {
         return Ok(());
     }
-    knock::revealed(&*here.plain, &here.home, &here.device.0, reveal).map_err(up)?;
+    if let Err(hitch) = knock::revealed(&*here.plain, &here.home, &here.device.0, reveal) {
+        tisty_core::witness::warn(
+            tisty_core::witness::channel::CLOUD,
+            "this computer could not put up its reveal for the computer letting it in",
+            &[("why", tisty_core::witness::Fact::Code(hitch.code()))],
+        );
+        return Err(up(hitch));
+    }
+    tisty_core::witness::note(
+        tisty_core::witness::channel::CLOUD,
+        "this computer put up its reveal for the computer letting it in",
+        &[],
+    );
     *revealed = Some(ask.sig.clone());
     Ok(())
 }
@@ -296,9 +308,14 @@ fn granted(
     if !ours(here, device, &mine)? {
         return Err(Refusal::of("admitTaken"));
     }
-    let reveal = knock::reveal_of(&*here.plain, &here.home, device)
-        .map_err(up)?
-        .ok_or_else(|| Refusal::of("admitNotYet"))?;
+    let Some(reveal) = knock::reveal_of(&*here.plain, &here.home, device).map_err(up)? else {
+        tisty_core::witness::note(
+            tisty_core::witness::channel::CLOUD,
+            "a code was typed before the new computer's reveal could be read",
+            &[("at", tisty_core::witness::Fact::Id(device.to_string()))],
+        );
+        return Err(Refusal::of("admitNotYet"));
+    };
     let expected = ask.code(&mine, &reveal).map(|code| digits(&code));
     if expected.is_none_or(|code| code != digits(typed)) {
         return Err(Refusal::of("admitWrongCode"));
