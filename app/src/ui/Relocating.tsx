@@ -38,6 +38,8 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
   const [plan, setPlan] = useState<MovePlan>();
   const [agreed, setAgreed] = useState(false);
   const [trouble, setTrouble] = useState<string>();
+  const [planned, setPlanned] = useState(0);
+  const [planFailed, setPlanFailed] = useState(false);
   const anyErasing = useErasing();
   const [deciding, setDeciding] = useState(false);
   const settled = useRef(false);
@@ -65,10 +67,14 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
   useEffect(() => {
     if (step !== "plan" || !toward) return;
     setPlan(undefined);
+    setPlanFailed(false);
     movePlan(toward)
       .then(setPlan)
-      .catch((e) => setTrouble(saidPlainly(e)));
-  }, [step, toward]);
+      .catch((e) => {
+        setTrouble(saidPlainly(e));
+        setPlanFailed(true);
+      });
+  }, [step, toward, planned]);
 
   const chose = (next: Toward) => {
     setTrouble(undefined);
@@ -206,6 +212,7 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
           state={state}
           toward={toward}
           plan={plan}
+          failed={planFailed}
           agreed={agreed}
           busy={busy}
           onAgree={setAgreed}
@@ -248,6 +255,18 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
         <p role="alert" className="mt-3 text-[11.5px] text-urgent">
           {trouble}
         </p>
+      )}
+      {planFailed && step === "plan" && !plan && (
+        <button
+          type="button"
+          onClick={() => {
+            setTrouble(undefined);
+            setPlanned((was) => was + 1);
+          }}
+          className="mt-2 text-[11.5px] text-accent hover:underline"
+        >
+          {t("tryAgain")}
+        </button>
       )}
     </Modal>
   );

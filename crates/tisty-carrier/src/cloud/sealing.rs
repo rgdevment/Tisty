@@ -15,6 +15,11 @@ use crate::{Expect, Hitch, Remote, Seen};
 const JOURNAL: &str = "sealing.json";
 const TWINS: &str = "sealing.twins";
 const BATCH: usize = 64;
+const BATCH_BYTES: u64 = if cfg!(test) {
+    64 * 1024
+} else {
+    32 * 1024 * 1024
+};
 const SAID: u32 = 1;
 // A round that read the word before the close may still be sending, so the place stays closed this long first.
 const SETTLE: u64 = if cfg!(test) { 0 } else { 10 * 60 };
@@ -650,7 +655,17 @@ impl Turning {
         for name in owed.gone.drain(..gone).collect::<Vec<_>>() {
             deleted(to, &name)?;
         }
-        let copy = owed.copy.len().min(BATCH - gone);
+        let mut carried = 0;
+        let copy = owed
+            .copy
+            .iter()
+            .take(BATCH - gone)
+            .take_while(|one| {
+                let room = carried < BATCH_BYTES;
+                carried += one.bytes;
+                room
+            })
+            .count();
         for source in owed.copy.drain(..copy).collect::<Vec<_>>() {
             let held = crate::temp::Temp::new();
             let mut file = held.create().map_err(broke)?;

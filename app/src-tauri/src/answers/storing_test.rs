@@ -442,3 +442,21 @@ fn a_step_that_sends_nothing_carries_no_upload_at_all() {
 
     assert!(value.get("up").is_none(), "{value}");
 }
+
+#[test]
+fn a_cloud_closed_by_this_computer_is_told_apart_from_one_closed_by_another() {
+    let closed = || Refusal::of("cloudSealing");
+
+    assert_eq!(sealing_here(closed(), None).code, "cloudSealing");
+    assert_eq!(sealing_here(closed(), Some(false)).code, "cloudSealingHere");
+    assert_eq!(
+        sealing_here(closed(), Some(true)).code,
+        "cloudSealingStopped"
+    );
+    assert_eq!(
+        sealing_here(Refusal::of("cloudFull"), Some(false)).code,
+        "cloudFull"
+    );
+    let here = Refusal::of("cloudSealingHere");
+    assert!(stuck_after(Some(&here), &folder("G:/shared"), &folder("G:/shared")).is_none());
+}

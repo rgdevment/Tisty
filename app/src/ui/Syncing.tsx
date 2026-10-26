@@ -37,6 +37,8 @@ interface Props {
 
 function Pending({ state, onMove }: { state: Carrying; onMove: (resume?: Toward) => void }) {
   const [pending, setPending] = useState<Toward | null>(null);
+  const [dropping, setDropping] = useState(false);
+  const [refused, setRefused] = useState<string>();
   const running = useMove();
 
   useEffect(() => {
@@ -61,19 +63,24 @@ function Pending({ state, onMove }: { state: Carrying; onMove: (resume?: Toward)
       <span className="min-w-0 flex-1 text-[12.5px] text-ink">{fill("movePending", where)}</span>
       <button
         type="button"
+        disabled={dropping}
         onClick={() => {
           endMove();
+          setDropping(true);
+          setRefused(undefined);
           void moveDropped()
             .then(() => setPending(null))
-            .catch(() => undefined);
+            .catch((e) => setRefused(saidPlainly(e)))
+            .finally(() => setDropping(false));
         }}
         className={mild}
       >
-        {t("moveDrop")}
+        {dropping ? t("moveDropping") : t("moveDrop")}
       </button>
-      <button type="button" onClick={() => onMove(pending)} className={strong}>
+      <button type="button" disabled={dropping} onClick={() => onMove(pending)} className={strong}>
         {t("moveAgain")}
       </button>
+      {refused && <span className="w-full text-[12.5px] text-urgent">{refused}</span>}
     </div>
   );
 }

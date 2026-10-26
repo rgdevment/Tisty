@@ -923,7 +923,10 @@ fn stuck_after(
     now: &Option<tisty_core::config::Sync>,
 ) -> Option<Stuck> {
     why.filter(|one| {
-        !matches!(one.code, "noRemote" | "syncLater" | "cloudNotOffered") && was == now
+        !matches!(
+            one.code,
+            "noRemote" | "syncLater" | "cloudNotOffered" | "cloudSealingHere"
+        ) && was == now
     })
     .map(|why| Stuck {
         code: why.code,
@@ -974,6 +977,9 @@ async fn carried_round(
         tisty_carrier::cloud_of(session.config.sync.as_ref())
             .map(|at| (session.reach.home_of(at), at.provider.clone()))
     };
+    let ours = heeding
+        .as_ref()
+        .and_then(|(cloud, _)| crate::sealing::stopped_here(app, cloud));
     // A slow or unreachable GitHub must not hold back the round it rides along with.
     if let Some((cloud, provider)) = heeding {
         std::thread::spawn(move || crate::reaching::heed(&cloud, &provider));
@@ -995,7 +1001,7 @@ async fn carried_round(
     .await;
     let done = done
         .map_err(|_| Refusal::of("internal"))?
-        .map_err(|trouble| said_carrying(&paths, trouble))?;
+        .map_err(|trouble| sealing_here(said_carrying(&paths, trouble), ours))?;
     answering(session, &done.to_answer(), pushing, holds).await;
 
     let moved = tisty_core::cache::fingerprint(&store) != before;
@@ -1121,7 +1127,7 @@ async fn carried_round(
         });
     }
     let refused = done.refused.clone().map(|trouble| {
-        let refusal = said_carrying(&paths, trouble);
+        let refusal = sealing_here(said_carrying(&paths, trouble), ours);
         Stuck {
             code: refusal.code,
             name: refusal.name,
@@ -1164,6 +1170,15 @@ async fn carried_round(
         adopted: false,
         owed,
     })
+}
+
+fn sealing_here(refusal: Refusal, ours: Option<bool>) -> Refusal {
+    let code = match (refusal.code, ours) {
+        ("cloudSealing", Some(false)) => "cloudSealingHere",
+        ("cloudSealing", Some(true)) => "cloudSealingStopped",
+        _ => return refusal,
+    };
+    Refusal { code, ..refusal }
 }
 
 // A round left for later or stopped that moved nothing did not sync, so the window does not say it just did.

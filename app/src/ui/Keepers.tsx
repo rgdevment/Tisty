@@ -40,18 +40,21 @@ const row =
 const badge = "flex-none rounded-md px-1.5 py-0.5 text-[10.5px] tracking-wide";
 
 export default function Keepers({ busy, onTrouble, onDeciding, onDone, pickOnly }: Props) {
-  const [offers, setOffers] = useState<Offering[]>([]);
+  const [offers, setOffers] = useState<Offering[] | null>(null);
   const [standing, setStanding] = useState<Standing>();
   const [held, setHeld] = useState(false);
   const [strays, setStrays] = useState<Strays>();
+  const [peeked, setPeeked] = useState(false);
 
   useEffect(() => {
     setStrays(undefined);
+    setPeeked(false);
     if (!standing) return;
     let mounted = true;
     straysAt(standing.at)
       .then((found) => mounted && setStrays(found))
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => mounted && setPeeked(true));
     return () => {
       mounted = false;
     };
@@ -60,7 +63,10 @@ export default function Keepers({ busy, onTrouble, onDeciding, onDone, pickOnly 
   useEffect(() => {
     keepers()
       .then((found) => setOffers(found ?? []))
-      .catch((e) => onTrouble(saidPlainly(e)));
+      .catch((e) => {
+        setOffers([]);
+        onTrouble(saidPlainly(e));
+      });
   }, [onTrouble]);
 
   useEffect(() => {
@@ -149,6 +155,11 @@ export default function Keepers({ busy, onTrouble, onDeciding, onDone, pickOnly 
           </div>
         )}
 
+        {(held || !peeked) && (
+          <p aria-live="polite" className="text-[11.5px] text-faint motion-safe:animate-pulse">
+            {t(held ? "movingStarting" : "checkingNow")}
+          </p>
+        )}
         <div className="flex items-center gap-4 text-[11.5px]">
           <button
             type="button"
@@ -173,7 +184,12 @@ export default function Keepers({ busy, onTrouble, onDeciding, onDone, pickOnly 
 
   return (
     <div className="flex flex-col gap-2">
-      {offers.map((one) => (
+      {offers === null && (
+        <p role="status" className="text-[11.5px] text-faint motion-safe:animate-pulse">
+          {t("lookingNow")}
+        </p>
+      )}
+      {offers?.map((one) => (
         <button
           key={one.key}
           type="button"

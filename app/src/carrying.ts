@@ -77,7 +77,6 @@ export function carrying(
           owed = owing(owed, way);
           stalled = true;
         }
-        // A push never chases its own writes, so one that comes back every round cannot spin.
         if (!busy && answer.owed && !answer.deferred && way !== "push") owed = owing(owed, "push");
         if (!busy && !answer.deferred) toldAside(null);
         if (mine !== round) return busy ? "busy" : answer.carried;
@@ -100,7 +99,9 @@ export function carrying(
         return busy ? "busy" : answer.carried;
       })
       .catch((problem) => {
-        if (!gone && mine === round) awry({ why: "broke", said: saidPlainly(problem) });
+        const ours = (problem as { code?: string } | null)?.code === "cloudSealingHere";
+        if (!gone && mine === round)
+          awry(ours ? null : { why: "broke", said: saidPlainly(problem) });
         return undefined;
       })
       .finally(() => {

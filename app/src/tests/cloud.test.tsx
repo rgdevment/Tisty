@@ -280,8 +280,11 @@ describe("choosing where the copies go", () => {
   });
 });
 
-const card = (over: Partial<CloudStatus> = {}) => {
-  ipc.answers.cloud_status = () => Promise.resolve(status(over));
+const card = (
+  over: Partial<CloudStatus> = {},
+  answer: () => Promise<unknown> = () => Promise.resolve(status(over)),
+) => {
+  ipc.answers.cloud_status = answer;
   const carry = vi.fn();
   const failed: unknown[] = [];
   const run = vi.fn((_card: string, work: Promise<unknown>, then: (answer: unknown) => void) => {
@@ -301,10 +304,20 @@ const card = (over: Partial<CloudStatus> = {}) => {
 };
 
 describe("the cloud in Settings", () => {
+  it("never calls the cloud connected before it knows, and looks again when asked", async () => {
+    card({}, () => Promise.reject({ code: "cloudNotNow" }));
+
+    expect((await screen.findByRole("alert")).textContent).toContain(t("cloudNotNow"));
+    await userEvent.click(screen.getByRole("button", { name: t("tryAgain") }));
+
+    await waitFor(() => expect(sent("cloud_status").length).toBeGreaterThan(1));
+    expect(screen.queryByText(t("cloudConnectedTag"))).toBeNull();
+  });
+
   it("shows the account it syncs with and syncs on demand", async () => {
     const { carry } = card();
     expect(await screen.findByText(ANA.email)).toBeTruthy();
-    expect(screen.getByText(t("cloudConnectedTag"))).toBeTruthy();
+    expect(await screen.findByText(t("cloudConnectedTag"))).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: t("syncNow") }));
     expect(carry).toHaveBeenCalled();
   });

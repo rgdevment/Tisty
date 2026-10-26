@@ -305,6 +305,31 @@ fn giving_up_cut_half_way_is_undone_the_rest_of_the_way_from_the_journal() {
 }
 
 #[test]
+fn a_copy_of_big_files_tells_how_far_it_went_between_them() {
+    let (setting, fake) = drive();
+    let one = written(&setting);
+    for name in ["uno.mov", "dos.mov"] {
+        let big = one.kept(name, &vec![7u8; 70 * 1024]);
+        one.store()
+            .append(big.told(tisty_core::attach::Via::Window))
+            .unwrap();
+    }
+    one.round(Way::Both);
+
+    let mut turning = turned(&fake, &setting).unwrap();
+    let mut told = 0;
+    for _ in 0..200 {
+        match turning.step().unwrap() {
+            Stepped::Copying { left, .. } if left > 0 => told += 1,
+            Stepped::Done | Stepped::GaveUp => break,
+            _ => {}
+        }
+    }
+
+    assert!(told >= 2, "both files went in one step, told {told} times");
+}
+
+#[test]
 fn a_file_too_big_to_seal_is_said_never_copied_and_never_wiped() {
     let most = 64 * 1024;
     let (setting, fake) = each_kind(|fake| fake.with_most_per_file(most)).remove(0);

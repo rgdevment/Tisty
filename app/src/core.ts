@@ -1331,6 +1331,7 @@ export interface SealTold {
   refused: number;
   stopped: boolean;
   why: string | null;
+  waiting?: Cause | "offline" | "cloud" | "local" | "busy" | "budget" | "paused" | null;
 }
 
 export interface SealShown {
@@ -1342,6 +1343,7 @@ export interface SealShown {
   phraseElsewhere: boolean;
   behind: string[];
   turning: SealTold | null;
+  wiping?: boolean;
   orphan: boolean;
 }
 

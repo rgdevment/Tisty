@@ -222,6 +222,23 @@ describe("carrying on its own", () => {
     seen.mockRestore();
   });
 
+  it("says nothing is wrong when the round met this computer's own encrypting", async () => {
+    ipc.answer = (cmd) =>
+      cmd === "sync_state"
+        ? Promise.resolve({ ...state })
+        : Promise.reject({ code: "cloudSealingHere" });
+    const awry: unknown[] = [];
+
+    carried = carrying(
+      () => {},
+      () => {},
+      (why) => awry.push(why),
+    );
+    await settle();
+
+    expect(awry).toEqual([null]);
+  });
+
   it("says out loud that a round broke instead of swallowing it", async () => {
     ipc.answer = (cmd) =>
       cmd === "sync_state"

@@ -131,6 +131,11 @@ export default function Choosing({
         busy={stuck}
         onPick={() => setWay("folder")}
       />
+      {held && (
+        <p role="status" className="text-[11.5px] text-faint motion-safe:animate-pulse">
+          {t("movingStarting")}
+        </p>
+      )}
       <p className="mt-1 text-[11.5px] leading-relaxed text-faint">{t("chooseOneAtATime")}</p>
     </div>
   );

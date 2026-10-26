@@ -1,11 +1,11 @@
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Duration;
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
-use tisty_carrier::{Hitch, Remote, Sealing, Stepped, Turn, Turning};
+use tisty_carrier::{Hitch, Left, Remote, Sealing, Stepped, Turn, Turning};
 use tisty_core::Op;
 use tisty_core::config::CloudAt;
 use tisty_core::witness::{self, Fact, channel};
@@ -16,6 +16,8 @@ use crate::{Answer, Refusal, Session, elsewhere, held};
 const ORPHANED_AFTER: u64 = 7 * 24 * 60 * 60;
 const SETTLING_FOR: Duration = Duration::from_secs(30);
 const LOOKING_EVERY: Duration = Duration::from_secs(5);
+const BROKE_TRIES: u32 = 3;
+const BROKE_AGAIN: Duration = Duration::from_secs(20);
 
 /// Every drive or cancel moves `driven` on, so a thread left from before sees it no longer carries the turn.
 /// `keying` keeps the key named at a claim from landing after a cancel has taken it back.
@@ -24,6 +26,7 @@ pub struct Turns {
     driven: AtomicU64,
     last: Mutex<Option<Told>>,
     keying: Mutex<()>,
+    wiping: AtomicBool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -36,6 +39,7 @@ pub struct Told {
     pub refused: usize,
     pub stopped: bool,
     pub why: Option<String>,
+    pub waiting: Option<&'static str>,
 }
 
 #[derive(Serialize)]
@@ -50,6 +54,7 @@ pub struct Shown {
     pub behind: Vec<String>,
     pub turning: Option<Told>,
     pub orphan: bool,
+    pub wiping: bool,
 }
 
 #[derive(Serialize)]
@@ -116,6 +121,7 @@ pub fn sealing_shown(
             behind: Vec::new(),
             turning: None,
             orphan: false,
+            wiping: false,
         });
     };
     let word = word_here(&home);
@@ -134,17 +140,7 @@ pub fn sealing_shown(
         (Sealing::Copying(_) | Sealing::Closed, None) => "elsewhere",
         (Sealing::Plain | Sealing::Unsaid, None) => "plain",
     };
-    let turning = ours.map(|left| {
-        told_last(&turns, left.on).unwrap_or(Told {
-            on: left.on,
-            step: if left.closed { "closed" } else { "copying" },
-            done: 0,
-            left: 0,
-            refused: 0,
-            stopped: true,
-            why: None,
-        })
-    });
+    let turning = ours.map(|left| told_last(&turns, left.on).unwrap_or_else(|| standing_of(&left)));
     let orphan = state == "elsewhere"
         && tisty_carrier::idle_for(&word).is_some_and(|idle| idle >= ORPHANED_AFTER);
     Ok(Shown {
@@ -157,6 +153,7 @@ pub fn sealing_shown(
         behind: behind(&session),
         turning,
         orphan,
+        wiping: turns.wiping.load(Ordering::Acquire),
     })
 }
 
@@ -178,6 +175,9 @@ fn plain_of(session: &Mutex<Session>) -> Answer<(Arc<dyn Remote>, PathBuf, Cloud
 }
 
 fn refused_by(hitch: Hitch, provider: &str) -> Refusal {
+    if matches!(hitch, Hitch::Busy { .. }) {
+        return Refusal::of("sealingBusy");
+    }
     match tisty_carrier::pause_for(hitch, provider) {
         Err(trouble) => crate::said(trouble),
         Ok(_) => Refusal::of("cloudNotNow"),
@@ -267,9 +267,6 @@ pub async fn sealing_begin(
         crate::identity::confirmed_key(&session)?.ok_or_else(|| Refusal::of("sealingPhrase"))?;
     let (plain, home, at) = plain_of(&session)?;
     let named = key.named_for(&cloud);
-    if let Ok(mut last) = turns.last.lock() {
-        *last = None;
-    }
     let turn = if on { Turn::On } else { Turn::Off };
     let (said, there) = (cloud.clone(), home.clone());
     let begun = elsewhere(move || Turning::begin(plain, &there, key, &said, &device, turn)).await?;
@@ -278,6 +275,9 @@ pub async fn sealing_begin(
             drive(app);
         }
         return Err(refused_by(hitch, &at.provider));
+    }
+    if let (Some(left), Ok(mut last)) = (Turning::left(&home), turns.last.lock()) {
+        *last = Some(going_from(&left));
     }
     if on {
         let keying = app.clone();
@@ -360,13 +360,42 @@ async fn cancelled(app: &AppHandle, session: &Mutex<Session>) -> Answer<bool> {
 }
 
 #[tauri::command(async)]
-pub async fn sealing_wipe(session: tauri::State<'_, Mutex<Session>>) -> Answer<usize> {
-    let (plain, home, at) = plain_of(&session)?;
+pub async fn sealing_wipe(
+    session: tauri::State<'_, Mutex<Session>>,
+    turns: tauri::State<'_, Turns>,
+) -> Answer<usize> {
+    if turns.wiping.swap(true, Ordering::AcqRel) {
+        return Err(Refusal::of("sealingWiping"));
+    }
+    witness::note(
+        channel::CLOUD,
+        "deleting the old unencrypted copy began",
+        &[],
+    );
+    let wiped = wiped_behind(&session).await;
+    turns.wiping.store(false, Ordering::Release);
+    match &wiped {
+        Ok(gone) => witness::note(
+            channel::CLOUD,
+            "the old unencrypted copy was deleted",
+            &[("gone", Fact::Count(*gone))],
+        ),
+        Err(refusal) => witness::warn(
+            channel::CLOUD,
+            "the old unencrypted copy could not be deleted",
+            &[("why", Fact::Code(refusal.code))],
+        ),
+    }
+    wiped
+}
+
+async fn wiped_behind(session: &Mutex<Session>) -> Answer<usize> {
+    let (plain, home, at) = plain_of(session)?;
     let cloud = match tisty_carrier::sealing_in(&word_here(&home)) {
         Sealing::Sealed(cloud) => cloud,
         _ => return Err(Refusal::of("sealingNoCloud")),
     };
-    let key = key_of(&session, &cloud)?;
+    let key = key_of(session, &cloud)?;
     elsewhere(move || tisty_carrier::wipe_behind(plain, &home, key, &cloud))
         .await?
         .map_err(|hitch| refused_by(hitch, &at.provider))
@@ -377,6 +406,66 @@ fn told(app: &AppHandle, turns: &Turns, said: Option<Told>) {
         last.clone_from(&said);
     }
     let _ = app.emit("sealing", said);
+}
+
+fn standing_of(left: &Left) -> Told {
+    Told {
+        on: left.on,
+        step: if left.closed { "closed" } else { "copying" },
+        done: 0,
+        left: 0,
+        refused: 0,
+        stopped: true,
+        why: None,
+        waiting: None,
+    }
+}
+
+fn going_from(left: &Left) -> Told {
+    Told {
+        stopped: false,
+        ..standing_of(left)
+    }
+}
+
+fn retold(
+    app: &AppHandle,
+    turns: &Turns,
+    on: bool,
+    stopped: bool,
+    why: Option<String>,
+    waiting: Option<&'static str>,
+) {
+    let mut said = told_last(turns, on).unwrap_or(Told {
+        on,
+        step: "copying",
+        done: 0,
+        left: 0,
+        refused: 0,
+        stopped,
+        why: None,
+        waiting: None,
+    });
+    said.stopped = stopped;
+    said.why = why;
+    said.waiting = waiting;
+    told(app, turns, Some(said));
+}
+
+pub fn stopped_here(app: &AppHandle, home: &Path) -> Option<bool> {
+    let left = Turning::left(home)?;
+    Some(told_last(&app.state::<Turns>(), left.on).is_none_or(|said| said.stopped))
+}
+
+fn waiting_on(hitch: &Hitch) -> &'static str {
+    match hitch {
+        Hitch::Unreachable(Some(cause), _) => cause.code(),
+        Hitch::Unreachable(None, _) => "offline",
+        Hitch::Busy { .. } => "busy",
+        Hitch::Spent => "budget",
+        Hitch::Paused => "paused",
+        _ => "cloud",
+    }
 }
 
 fn told_of(turning: &Turning, stepped: &Stepped) -> Told {
@@ -395,6 +484,7 @@ fn told_of(turning: &Turning, stepped: &Stepped) -> Told {
         refused: turning.refused().len(),
         stopped: false,
         why: None,
+        waiting: None,
     }
 }
 
@@ -429,14 +519,29 @@ fn driven(app: &AppHandle, ours: u64) {
     let Some(left) = Turning::left(&home) else {
         return;
     };
-    let (Ok(key), Ok(plain)) = (key_of(&session, &left.cloud), reached(&home, &at)) else {
-        return;
+    match told_last(&turns, left.on) {
+        None => told(app, &turns, Some(going_from(&left))),
+        Some(_) => retold(app, &turns, left.on, false, None, None),
+    }
+    let halted = |why: &str| retold(app, &turns, left.on, true, Some(why.to_string()), None);
+    let key = match key_of(&session, &left.cloud) {
+        Ok(key) => key,
+        Err(refusal) => return halted(refusal.code),
+    };
+    let plain = match reached(&home, &at) {
+        Ok(plain) => plain,
+        Err(refusal) => return halted(refusal.code),
     };
     let Some(mut turning) = Turning::resume(plain.clone(), &home, key.clone()) else {
-        return;
+        return halted("cloudOtherPhrase");
     };
+    let mut broken = 0;
     while still(&turns, ours) {
-        match turning.step() {
+        let stepped = turning.step();
+        if stepped.is_ok() {
+            broken = 0;
+        }
+        match stepped {
             Ok(Stepped::Done) => {
                 told(app, &turns, Some(told_of(&turning, &Stepped::Done)));
                 ended(
@@ -462,22 +567,32 @@ fn driven(app: &AppHandle, ours: u64) {
                 }
             }
             Ok(stepped) => told(app, &turns, Some(told_of(&turning, &stepped))),
-            Err(hitch) => match tisty_carrier::pause_for(hitch, &at.provider) {
-                Ok(wait) => {
-                    if !rested(&turns, ours, wait) {
-                        return;
-                    }
-                }
-                Err(trouble) => {
-                    let on = turning.turn() == Turn::On;
-                    let mut said = told_last(&turns, on)
-                        .unwrap_or_else(|| told_of(&turning, &Stepped::Claimed));
-                    said.stopped = true;
-                    said.why = Some(crate::said(trouble).code.to_string());
-                    told(app, &turns, Some(said));
+            Err(Hitch::Broke(why)) if broken < BROKE_TRIES => {
+                broken += 1;
+                witness::note(
+                    channel::CLOUD,
+                    "a step of the turn failed and is tried again",
+                    &[("why", Fact::Why(why))],
+                );
+                retold(app, &turns, left.on, false, None, Some("local"));
+                if !rested(&turns, ours, BROKE_AGAIN * broken) {
                     return;
                 }
-            },
+            }
+            Err(hitch) => {
+                let on_what = waiting_on(&hitch);
+                match tisty_carrier::pause_for(hitch, &at.provider) {
+                    Ok(wait) => {
+                        retold(app, &turns, left.on, false, None, Some(on_what));
+                        if !rested(&turns, ours, wait) {
+                            return;
+                        }
+                    }
+                    Err(trouble) => {
+                        return halted(crate::said(trouble).code);
+                    }
+                }
+            }
         }
     }
 }

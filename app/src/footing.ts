@@ -40,7 +40,14 @@ const SAID: Record<string, Said> = {
 };
 
 // Busy is another round of this computer's holding the cloud, which passes by itself.
-const QUIET = new Set(["", "ok", "deferred-changed", "deferred-paused", "deferred-busy"]);
+const QUIET = new Set([
+  "",
+  "ok",
+  "deferred-changed",
+  "deferred-paused",
+  "deferred-busy",
+  "cloudSealingHere",
+]);
 
 const DAY = 86_400;
 
