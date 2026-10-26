@@ -132,7 +132,7 @@ jobs:
             grep -q "^version = \"$RELEASE\"\$" earlier/source/Cargo.toml \
               || { echo "::error::could not stamp $RELEASE into its tree"; exit 1; }
             # A newer compiler's warnings in a release's own tree are not this build's to fix.
-            RUSTFLAGS="" cargo build --manifest-path earlier/source/Cargo.toml -p tisty-cli \
+            env -u GH_TOKEN RUSTFLAGS="" cargo build --manifest-path earlier/source/Cargo.toml -p tisty-cli \
               --example earlier --target-dir earlier/target
             bin=$(find earlier/target/debug/examples -maxdepth 1 -type f \( -name earlier -o -name earlier.exe \) | sed -n '1p')
             [ -n "$bin" ] || { echo "::error::v$RELEASE built no earlier"; exit 1; }

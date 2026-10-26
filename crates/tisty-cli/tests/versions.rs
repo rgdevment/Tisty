@@ -351,18 +351,18 @@ fn sealed_in_turn(word: &str, needs: &str, said_by_this_build: impl FnOnce(&Path
 #[test]
 #[ignore = "needs an earlier release: .github/workflows/versions.yml provides one"]
 fn an_earlier_release_stops_at_a_place_sealed_to_a_cloud_and_leaves_it_as_it_was() {
-    sealed_in_turn("sealed", tisty_sync::SEALS, |shared| {
-        tisty_sync::seal_word(shared, "store_one").unwrap();
+    sealed_in_turn("sealed", tisty_carrier::SEALS, |shared| {
+        tisty_carrier::seal_word(shared, "store_one").unwrap();
     });
 }
 
 #[test]
 #[ignore = "needs an earlier release: .github/workflows/versions.yml provides one"]
 fn an_earlier_release_stops_at_a_place_being_sealed_and_leaves_it_as_it_was() {
-    sealed_in_turn("sealing", tisty_sync::TURNS, |shared| {
-        let named = shared.join(tisty_sync::NAMED);
+    sealed_in_turn("sealing", tisty_carrier::TURNS, |shared| {
+        let named = shared.join(tisty_carrier::NAMED);
         let said = std::fs::read_to_string(&named).unwrap();
-        let phase = tisty_sync::phase(tisty_sync::Turn::On, "dev_a", "n1");
-        std::fs::write(&named, tisty_sync::claimed(&said, &phase).unwrap()).unwrap();
+        let phase = tisty_carrier::phase(tisty_carrier::Turn::On, "dev_a", "n1");
+        std::fs::write(&named, tisty_carrier::claimed(&said, &phase).unwrap()).unwrap();
     });
 }

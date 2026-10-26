@@ -8,9 +8,9 @@ use tisty_core::signing::SigningKey;
 
 pub use tisty_core::turned;
 pub use tisty_sync::{
-    Cause, Deferred, Holding, Keep, Kin, LetGo, Moved, NEEDS, Reached, Reason, SHAPE, STORE,
-    Sealing, Signed, Stage, Stitched, TURNS, Trouble, Turn, Undecided, Way, claim_in, raised,
-    raised_told, refuses, sealing_in, sealing_of,
+    Cause, Deferred, Holding, Keep, Kin, LetGo, Moved, NAMED, NEEDS, Reached, Reason, SEALS, SHAPE,
+    STORE, Sealing, Signed, Stage, Stitched, TURNS, Trouble, Turn, Undecided, Way, claim_in,
+    claimed, phase, raised, raised_told, refuses, seal_word, sealing_in, sealing_of,
 };
 
 mod cloud;
