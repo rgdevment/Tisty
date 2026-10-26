@@ -30,7 +30,6 @@ mod session;
 mod shop;
 mod summing;
 mod tray;
-mod unsealing;
 mod update;
 mod viewing;
 mod vouching;
@@ -1368,7 +1367,6 @@ pub fn run() {
         .manage(desktop::Departed::default())
         .manage(sealing::Turns::default())
         .manage(handed::Knocking::default())
-        .manage(unsealing::Hearing::default())
         .invoke_handler(commands())
         .build(tauri::generate_context!())
         .expect("error while running tauri application")

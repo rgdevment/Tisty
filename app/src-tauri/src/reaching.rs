@@ -12,7 +12,6 @@ use tisty_core::witness::{self, Fact, channel};
 pub const KEPT_AS: &str = "refresh";
 
 const POLICY: &str = "https://raw.githubusercontent.com/rgdevment/Tisty/manifest/cloud.json";
-const HEARD: &str = "heard";
 const POLICY_SIGNED: &str =
     "https://raw.githubusercontent.com/rgdevment/Tisty/manifest/cloud.json.sig";
 const POLICY_ASKED: &str = "cloud-policy-asked";
@@ -114,13 +113,6 @@ impl Reaching {
 
     pub fn why_not(&self) -> Option<String> {
         self.why_not.lock().ok().and_then(|held| held.clone())
-    }
-
-    // A mirror of its own, so hearing the plain root never makes the sealed mirror start over; the tokens stay with the account's home.
-    pub fn hearing(&self, at: &CloudAt) -> Option<Shared> {
-        let home = self.home_of(at);
-        let (inner, _) = tisty_carrier::off::away(|| remote_of(&home, at)).ok()?;
-        Some(Arc::new(Cloud::over(inner, home.join(HEARD))))
     }
 
     pub fn apart(&self, at: &CloudAt) -> Option<Shared> {

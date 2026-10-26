@@ -181,19 +181,6 @@ impl Desk {
         )
     }
 
-    fn hear(&self) -> Result<Moved, Trouble> {
-        let mut saying = |_| {};
-        self.carrier.hear(
-            &self.here,
-            Round {
-                way: Way::Both,
-                alive: &[],
-                holds: Holds::Everywhere,
-                saying: &mut saying,
-            },
-        )
-    }
-
     fn round(&self, way: Way) -> Moved {
         self.carry(way, Holds::Everywhere).unwrap()
     }
@@ -2292,40 +2279,5 @@ fn a_place_a_later_build_raised_is_neither_left_nor_wiped_from_here() {
                 "{who}: a barred cloud was wiped"
             );
         }
-    }
-}
-
-#[test]
-fn hearing_takes_what_others_wrote_and_never_writes_up_there_not_even_what_was_owed() {
-    for setting in clouds() {
-        let (one, two) = pair(&setting);
-        one.wrote("before");
-        one.round(Way::Both);
-        two.round(Way::Both);
-        counting(&setting).forget_counts();
-        two.hear().unwrap();
-        let pulling = counting(&setting).counts().requests as usize;
-        two.wrote("only here");
-        counting(&setting).fail_after(pulling, Hitch::Unreachable(None, "cut".into()));
-        let _ = two.carry(Way::Both, Holds::Everywhere);
-        waited_out(&setting, "dev_b");
-        one.wrote("written over there");
-        one.round(Way::Both);
-        counting(&setting).forget_counts();
-
-        two.hear().unwrap();
-
-        assert!(
-            two.titles().contains(&"written over there".to_string()),
-            "{}: nothing came down",
-            setting.name
-        );
-        let counts = counting(&setting).counts();
-        assert_eq!(
-            (counts.puts, counts.deletes),
-            (0, 0),
-            "{}: hearing wrote up there",
-            setting.name
-        );
     }
 }

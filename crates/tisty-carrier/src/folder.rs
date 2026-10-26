@@ -108,11 +108,6 @@ impl Carrier for Folder {
         )
     }
 
-    // A folder is never sealed, so there is nothing a hearing could learn there.
-    fn hear(&self, _: &Here, _: Round) -> Result<Moved, Trouble> {
-        Ok(Moved::default())
-    }
-
     fn bring_home(&self, here: &Here, round: Round) -> Result<Moved, Trouble> {
         self.carry(
             here,
