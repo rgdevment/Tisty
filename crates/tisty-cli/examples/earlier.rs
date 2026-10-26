@@ -14,6 +14,12 @@ fn main() {
     let asked: Vec<&str> = asked.iter().map(String::as_str).collect();
     match asked.as_slice() {
         ["config", "set", "remote", at] => person.shares_through(Path::new(at)),
+        ["sync", "--confirm", whose, ..] => {
+            if !confirms(home, &person, whose) {
+                eprintln!("{whose} could not be confirmed");
+                std::process::exit(1);
+            }
+        }
         ["sync", ..] => {
             if let Err(trouble) = person.syncs() {
                 eprintln!("nothing was synced: {trouble}");
@@ -29,4 +35,28 @@ fn main() {
             std::process::exit(2);
         }
     }
+}
+
+// As the old sync --confirm did: confirm the key the shared place holds, then let it through.
+fn confirms(home: &Path, person: &person::Person, whose: &str) -> bool {
+    let paths = tisty_core::Paths::new(home.join("data"), home.join("config"));
+    let config = tisty_core::Config::load_or_init(&paths).expect("a config");
+    let Some(shared) = config.sync.as_ref().and_then(|way| way.place()) else {
+        return false;
+    };
+    let who = tisty_core::DeviceId(whose.to_string());
+    let says = person
+        .state()
+        .keys
+        .get(&who)
+        .cloned()
+        .or_else(|| tisty_core::store::key_said_in(&shared.join("store").join(whose), &who));
+    let Some(says) = says else {
+        return false;
+    };
+    if !tisty_core::vouched::confirm(paths.data(), &who, &says) {
+        return false;
+    }
+    tisty_core::turned::let_through(paths.data(), whose);
+    true
 }
