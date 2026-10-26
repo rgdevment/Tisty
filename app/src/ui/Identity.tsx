@@ -65,7 +65,12 @@ export default function Identity({
         />
       )}
       <Card title={t("tabIdentity")} which="identity" busy={busy} said={said} trouble={trouble}>
-        {!shown && (
+        {!shown && trouble?.card === "identity" && (
+          <button type="button" onClick={look} className={mild}>
+            {t("tryAgain")}
+          </button>
+        )}
+        {!shown && trouble?.card !== "identity" && (
           <p role="status" className="text-[12.5px] text-faint motion-safe:animate-pulse">
             {t("identityLooking")}
           </p>

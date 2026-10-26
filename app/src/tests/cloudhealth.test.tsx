@@ -76,8 +76,9 @@ describe("the way to Google Drive, looked at before connecting", () => {
     ipc.health = ["slow"];
     opened();
 
-    const said = await screen.findByRole("status");
-    expect(said.textContent).toContain(fill("healthSlow", GOOGLE));
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toContain(fill("healthSlow", GOOGLE)),
+    );
     expect(screen.queryByText(fill("healthBlocked", GOOGLE))).toBeNull();
     expect(screen.queryByRole("alert")).toBeNull();
   });
@@ -119,8 +120,10 @@ describe("the way to Google Drive, looked at before connecting", () => {
     ipc.health = ["slow"];
     opened();
 
-    expect((await screen.findByRole("status")).textContent).toContain(
-      "Google Drive tardó en responder; puede ser una red lenta o un filtro. Puedes intentar conectarte igual.",
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toContain(
+        "Google Drive tardó en responder; puede ser una red lenta o un filtro. Puedes intentar conectarte igual.",
+      ),
     );
   });
 });

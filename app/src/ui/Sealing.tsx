@@ -18,7 +18,7 @@ import { weigh } from "../format";
 import { cloudNamed, fill, t } from "../locales";
 import { plainly, saidPlainly } from "../refusal";
 import { sure } from "../sure";
-import { causeSaid } from "../syncSaid";
+import { causeSaid, waitSaid } from "../syncSaid";
 import { LetMeIn, LetThemIn } from "./Admitting";
 import Card, { type Which, type Word } from "./Card";
 import Entering from "./Entering";
@@ -97,7 +97,8 @@ export default function Sealing({
     setAsking(false);
     setStarting(true);
     sealingBegin(on)
-      .then(look)
+      .then(() => sealingShown())
+      .then(setShown)
       .catch(failed)
       .finally(() => setStarting(false));
   };
@@ -105,9 +106,15 @@ export default function Sealing({
   if (!shown)
     return (
       <Card title={t("sealTitle")} which={card} busy={busy} said={said} trouble={trouble}>
-        <p role="status" className="text-[12.5px] text-faint motion-safe:animate-pulse">
-          {t("sealLooking")}
-        </p>
+        {trouble?.card === card ? (
+          <button type="button" onClick={look} className={mild}>
+            {t("tryAgain")}
+          </button>
+        ) : (
+          <p role="status" className="text-[12.5px] text-faint motion-safe:animate-pulse">
+            {t("checkingNow")}
+          </p>
+        )}
       </Card>
     );
   const provider = cloudNamed(shown.cloud);
@@ -386,6 +393,9 @@ const STEPS = ["copying", "settling", "done"] as const;
 
 const waitingSaid = (on: NonNullable<SealTold["waiting"]>, provider: string): string => {
   if (on === "local") return t("sealWaitLocal");
+  if (on === "busy") return t("deferredBusy");
+  if (on === "budget") return waitSaid("deferredBudget");
+  if (on === "paused") return t("deferredPaused");
   if (on === "cloud") return fill("sealWaitCloud", provider);
   if (on === "offline") return fill("sealWaitOffline", provider);
   return causeSaid(on, provider) ?? fill("sealWaitOffline", provider);
@@ -417,6 +427,7 @@ function Progress({
       </span>
     </li>
   );
+  const going = !told.stopped && !told.waiting;
   return (
     <>
       <p className="text-[13px] font-semibold">{t(told.on ? "sealTurningOn" : "sealTurningOff")}</p>
@@ -427,14 +438,16 @@ function Progress({
           t("sealStepCopy"),
           told.step === "copying" && told.done + told.left > 0
             ? fill("sealStepCopied", String(told.done), String(told.left))
-            : at === 0 && !told.stopped
+            : at === 0 && going
               ? t("sealStepCounting")
               : undefined,
         )}
         {step(
           1,
           t("sealStepClose"),
-          t(at === 1 && !told.stopped ? "sealStepSettling" : "sealStepCloseWhy"),
+          told.step === "settling" && told.left > 0
+            ? fill("sealStepSettlingLeft", String(told.left))
+            : t(at === 1 && going ? "sealStepSettling" : "sealStepCloseWhy"),
         )}
         {step(2, t(told.on ? "sealStepSwitchOn" : "sealStepSwitchOff"))}
       </ul>

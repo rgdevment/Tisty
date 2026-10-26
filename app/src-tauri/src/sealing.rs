@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
-use tisty_carrier::{Hitch, Remote, Sealing, Stepped, Turn, Turning};
+use tisty_carrier::{Hitch, Left, Remote, Sealing, Stepped, Turn, Turning};
 use tisty_core::Op;
 use tisty_core::config::CloudAt;
 use tisty_core::witness::{self, Fact, channel};
@@ -137,18 +137,7 @@ pub fn sealing_shown(
         (Sealing::Copying(_) | Sealing::Closed, None) => "elsewhere",
         (Sealing::Plain | Sealing::Unsaid, None) => "plain",
     };
-    let turning = ours.map(|left| {
-        told_last(&turns, left.on).unwrap_or(Told {
-            on: left.on,
-            step: if left.closed { "closed" } else { "copying" },
-            done: 0,
-            left: 0,
-            refused: 0,
-            stopped: true,
-            why: None,
-            waiting: None,
-        })
-    });
+    let turning = ours.map(|left| told_last(&turns, left.on).unwrap_or_else(|| standing_of(&left)));
     let orphan = state == "elsewhere"
         && tisty_carrier::idle_for(&word).is_some_and(|idle| idle >= ORPHANED_AFTER);
     Ok(Shown {
@@ -383,6 +372,27 @@ fn told(app: &AppHandle, turns: &Turns, said: Option<Told>) {
     let _ = app.emit("sealing", said);
 }
 
+fn standing_of(left: &Left) -> Told {
+    Told {
+        on: left.on,
+        step: if left.closed { "closed" } else { "copying" },
+        done: 0,
+        left: 0,
+        refused: 0,
+        stopped: true,
+        why: None,
+        waiting: None,
+    }
+}
+
+fn halted(app: &AppHandle, turns: &Turns, left: &Left, why: &str) {
+    let mut said = told_last(turns, left.on).unwrap_or_else(|| standing_of(left));
+    said.stopped = true;
+    said.why = Some(why.to_string());
+    said.waiting = None;
+    told(app, turns, Some(said));
+}
+
 fn last_or_claimed(turns: &Turns, turning: &Turning) -> Told {
     told_last(turns, turning.turn() == Turn::On)
         .unwrap_or_else(|| told_of(turning, &Stepped::Claimed))
@@ -392,6 +402,9 @@ fn waiting_on(hitch: &Hitch) -> &'static str {
     match hitch {
         Hitch::Unreachable(Some(cause), _) => cause.code(),
         Hitch::Unreachable(None, _) => "offline",
+        Hitch::Busy { .. } => "busy",
+        Hitch::Spent => "budget",
+        Hitch::Paused => "paused",
         _ => "cloud",
     }
 }
@@ -455,22 +468,22 @@ fn driven(app: &AppHandle, ours: u64) {
     let Some(left) = Turning::left(&home) else {
         return;
     };
-    let (Ok(key), Ok(plain)) = (key_of(&session, &left.cloud), reached(&home, &at)) else {
-        return;
-    };
-    let Some(mut turning) = Turning::resume(plain.clone(), &home, key.clone()) else {
-        return;
-    };
-    let begun = if left.closed {
-        Stepped::Closed
-    } else {
-        Stepped::Claimed
-    };
-    let mut going = told_last(&turns, left.on).unwrap_or_else(|| told_of(&turning, &begun));
+    let mut going = told_last(&turns, left.on).unwrap_or_else(|| standing_of(&left));
     going.stopped = false;
     going.why = None;
     going.waiting = None;
     told(app, &turns, Some(going));
+    let key = match key_of(&session, &left.cloud) {
+        Ok(key) => key,
+        Err(refusal) => return halted(app, &turns, &left, refusal.code),
+    };
+    let plain = match reached(&home, &at) {
+        Ok(plain) => plain,
+        Err(refusal) => return halted(app, &turns, &left, refusal.code),
+    };
+    let Some(mut turning) = Turning::resume(plain.clone(), &home, key.clone()) else {
+        return halted(app, &turns, &left, "syncFailed");
+    };
     let mut broken = 0;
     while still(&turns, ours) {
         let stepped = turning.step();

@@ -110,7 +110,7 @@ describe("encrypting the cloud", () => {
     ipc.shown = new Promise(() => {});
     render(<Shell />);
 
-    expect((await screen.findByRole("status")).textContent).toBe("Looking at your cloud…");
+    expect((await screen.findByRole("status")).textContent).toBe("Checking…");
   });
 
   it("only says to connect a cloud while there is none", async () => {
@@ -230,8 +230,23 @@ describe("a turn under way", () => {
     await heard({ ...copying, waiting: "local" });
     expect(screen.getByRole("status").textContent).toMatch(/antivirus/);
 
+    await heard({ ...copying, waiting: "busy" });
+    expect(screen.getByRole("status").textContent).toMatch(/already talking to your cloud/);
+
     await heard({ ...copying, waiting: null });
     expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("says how many changes are left to bring over, and not that others are waiting", async () => {
+    ipc.shown = {
+      ...plain,
+      state: "turning",
+      turning: { ...copying, step: "settling", done: 0, left: 3 },
+    };
+    render(<Shell />);
+
+    expect(await screen.findByText("3 changes left to bring over")).toBeTruthy();
+    expect(screen.queryByText(/Waiting a few minutes/)).toBeNull();
   });
 
   it("says the copy is starting before the first numbers, and says a stop with no reason", async () => {

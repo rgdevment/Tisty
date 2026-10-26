@@ -39,6 +39,7 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
   const [agreed, setAgreed] = useState(false);
   const [trouble, setTrouble] = useState<string>();
   const [planned, setPlanned] = useState(0);
+  const [planFailed, setPlanFailed] = useState(false);
   const anyErasing = useErasing();
   const [deciding, setDeciding] = useState(false);
   const settled = useRef(false);
@@ -66,9 +67,13 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
   useEffect(() => {
     if (step !== "plan" || !toward) return;
     setPlan(undefined);
+    setPlanFailed(false);
     movePlan(toward)
       .then(setPlan)
-      .catch((e) => setTrouble(saidPlainly(e)));
+      .catch((e) => {
+        setTrouble(saidPlainly(e));
+        setPlanFailed(true);
+      });
   }, [step, toward, planned]);
 
   const chose = (next: Toward) => {
@@ -207,7 +212,7 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
           state={state}
           toward={toward}
           plan={plan}
-          failed={trouble !== undefined}
+          failed={planFailed}
           agreed={agreed}
           busy={busy}
           onAgree={setAgreed}
@@ -251,7 +256,7 @@ export default function Relocating({ state, heading, resume, onClose }: Props) {
           {trouble}
         </p>
       )}
-      {trouble && step === "plan" && !plan && (
+      {planFailed && step === "plan" && !plan && (
         <button
           type="button"
           onClick={() => {

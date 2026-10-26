@@ -159,7 +159,7 @@ export default function Clouding({ clouds, busy, onTrouble, onBack, onDone, onCo
   };
 
   const start = () => {
-    if (stuck || peeking || !connected) return;
+    if (stuck || !connected) return;
     if (onConnected) {
       unused.current = undefined;
       return onConnected(connected);
@@ -213,14 +213,14 @@ export default function Clouding({ clouds, busy, onTrouble, onBack, onDone, onCo
         </div>
         {(peeking || held) && (
           <p role="status" className="text-[11.5px] text-faint motion-safe:animate-pulse">
-            {t(held ? "movingStarting" : "lookingNow")}
+            {t(held ? "movingStarting" : "checkingNow")}
           </p>
         )}
         <div className="flex items-center gap-4 text-[11.5px]">
           <button type="button" disabled={busy || held} onClick={leave} className={back}>
             {t("welcomeBack")}
           </button>
-          <button type="button" disabled={stuck || peeking} onClick={start} className={go}>
+          <button type="button" disabled={stuck} onClick={start} className={go}>
             {onConnected ? t("welcomeNext") : holds ? t("cloudBring") : t("cloudStart")}
           </button>
         </div>

@@ -59,7 +59,7 @@ export default function Clouded({
   const [which, setWhich] = useState(false);
   const [signedAt, setSignedAt] = useState<number>();
   const [askingPassword, setAskingPassword] = useState(false);
-  const [unread, setUnread] = useState(false);
+  const [unread, setUnread] = useState<string>();
   const [signing, setSigning] = useState(false);
   const [counting, setCounting] = useState(false);
   const held = busy !== null;
@@ -67,10 +67,10 @@ export default function Clouded({
   const running = useSince(busy === "sync", busySince);
 
   const look = useCallback(() => {
-    setUnread(false);
+    setUnread(undefined);
     cloudStatus()
       .then(setStatus)
-      .catch(() => setUnread(true));
+      .catch((e) => setUnread(saidPlainly(e)));
   }, []);
 
   useEffect(look, [look, state.last, busy]);
@@ -119,8 +119,15 @@ export default function Clouded({
       "sync",
       cloudConnect(provider)
         .then(reconnected)
+        .then(
+          () => true,
+          (e) => {
+            if (e?.code === "cloudDropped") return false;
+            throw e;
+          },
+        )
         .finally(() => setSigning(false)),
-      () => carry(),
+      (went) => went && carry(),
     );
   };
 
@@ -197,7 +204,7 @@ export default function Clouded({
             role="status"
             className="flex-none text-[10.5px] text-faint motion-safe:animate-pulse"
           >
-            {t("lookingNow")}
+            {t("checkingNow")}
           </span>
         )}
         {!status && unread && (
@@ -216,6 +223,11 @@ export default function Clouded({
         )}
       </div>
 
+      {!status && unread && (
+        <p role="alert" className="mt-2 text-[11.5px] text-urgent">
+          {unread}
+        </p>
+      )}
       <p className="mt-2 text-[11.5px] leading-relaxed text-faint">{t("cloudWhere")}</p>
 
       {standing && (
@@ -336,7 +348,7 @@ export default function Clouded({
           </button>
           {status?.lost && (
             <button type="button" disabled={held || counting} onClick={abandon} className={risky}>
-              {counting ? t("lookingNow") : t("cloudAbandon")}
+              {counting ? t("checkingNow") : t("cloudAbandon")}
             </button>
           )}
         </div>

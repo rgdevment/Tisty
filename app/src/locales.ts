@@ -1253,6 +1253,8 @@ const en = {
     "Some of your computers still run an older Tisty. Update them, or remove the ones you no longer use.",
   cloudSealing:
     "Nothing was synced just now: another of your computers is encrypting or decrypting your cloud. Syncing goes on by itself once it is done. What you write here stays here meanwhile.",
+  cloudSealingHere:
+    "This computer is encrypting or decrypting your cloud. Syncing goes on by itself once it is done, and what you write here is kept.",
   cloudUnsealed:
     "Nothing was synced, in either direction. Your cloud no longer says it is encrypted, and none of your computers said it turned encryption off, so Tisty does not write there unencrypted. Check that nobody else changed your cloud account.",
   syncNeeds:
@@ -1533,6 +1535,9 @@ const en = {
     "This computer does not hold its key yet. If it was already one of your computers, your others hand it over on their own as soon as one of them is on. Meanwhile, what you write stays here.",
   stateSealing: "Another computer is encrypting or decrypting your cloud",
   stateSealingWhy: "Syncing goes on by itself once it is done.",
+  stateSealingHere: "This computer is encrypting or decrypting your cloud",
+  stateSealingHereWhy:
+    "Syncing pauses while the last changes are brought over and goes on by itself once it is done. You can follow it in Settings › Security.",
   stateOtherPhrase: "Your cloud uses another phrase",
   stateOtherPhraseWhy:
     "This computer's phrase is not the one for this cloud. Check that it is the one you chose.",
@@ -1868,7 +1873,7 @@ const en = {
   sealRoomUnknown:
     "{name} does not say how much room is left. You need {other} free while it encrypts.",
   sealRoomLooking: "Looking at the room in {name}…",
-  sealLooking: "Looking at your cloud…",
+  checkingNow: "Checking…",
   identityLooking: "Looking at your identity…",
   sealUpToDate: "Your computers are up to date",
   sealBehindOne: "{name} runs an older Tisty",
@@ -1890,9 +1895,10 @@ const en = {
     "{name} cannot be reached right now. Tisty carries on by itself when the connection is back.",
   sealWaitCloud: "{name} asked to wait or had trouble on its side. Tisty tries again by itself.",
   sealWaitLocal:
-    "A file could not be written on this computer; an antivirus may be holding it. Tisty tries again in a moment.",
+    "A step could not be finished; it may be a brief cut or an antivirus holding a file. Tisty tries again in a moment.",
   sealStepClose: "Bring over the last changes",
   sealStepCloseWhy: "Your other computers wait a moment.",
+  sealStepSettlingLeft: "{name} changes left to bring over",
   sealStepSettling:
     "Waiting a few minutes for your other computers to finish what they were sending. Nothing to do here.",
   sealStepSwitchOn: "Switch to the encrypted cloud",
@@ -3741,6 +3747,8 @@ const es: Catalog = {
     "Algunos de tus equipos todavía usan un Tisty anterior. Actualízalos o quita los que ya no usas.",
   cloudSealing:
     "No se sincronizó nada por ahora: otro de tus equipos está cifrando o descifrando tu nube. La sincronización sigue sola cuando termine. Mientras tanto, lo que escribas aquí se queda aquí.",
+  cloudSealingHere:
+    "Este equipo está cifrando o descifrando tu nube. La sincronización sigue sola cuando termine, y lo que escribas aquí se guarda.",
   cloudUnsealed:
     "No se sincronizó nada, en ningún sentido. Tu nube ya no dice que está cifrada y ninguno de tus equipos dijo que apagó el cifrado, así que Tisty no escribe ahí sin cifrar. Revisa que nadie más haya cambiado tu cuenta de la nube.",
   syncNeeds:
@@ -4021,6 +4029,9 @@ const es: Catalog = {
     "Este equipo todavía no tiene su llave. Si ya era uno de tus equipos, los otros se la entregan solos apenas uno de ellos esté encendido. Mientras tanto, lo que escribas queda aquí.",
   stateSealing: "Otro equipo está cifrando o descifrando tu nube",
   stateSealingWhy: "La sincronización sigue sola cuando termine.",
+  stateSealingHere: "Este equipo está cifrando o descifrando tu nube",
+  stateSealingHereWhy:
+    "La sincronización se pausa mientras se pasan los últimos cambios y sigue sola cuando termine. Puedes seguir el avance en Configuración › Seguridad.",
   stateOtherPhrase: "Tu nube usa otra frase",
   stateOtherPhraseWhy:
     "La frase de este equipo no es la de esta nube. Revisa que sea la que elegiste.",
@@ -4354,7 +4365,7 @@ const es: Catalog = {
   sealRoomUnknown:
     "{name} no dice cuánto espacio queda. Necesitas {other} libres mientras se cifra.",
   sealRoomLooking: "Revisando el espacio en {name}…",
-  sealLooking: "Revisando tu nube…",
+  checkingNow: "Revisando…",
   identityLooking: "Revisando tu identidad…",
   sealUpToDate: "Tus equipos están al día",
   sealBehindOne: "{name} tiene un Tisty anterior",
@@ -4376,9 +4387,10 @@ const es: Catalog = {
   sealWaitCloud:
     "{name} pidió esperar o tuvo un problema de su lado. Tisty lo vuelve a intentar solo.",
   sealWaitLocal:
-    "No se pudo escribir un archivo en este equipo; puede que un antivirus lo esté reteniendo. Tisty lo vuelve a intentar en un momento.",
+    "No se pudo completar un paso; puede ser un corte breve o un antivirus reteniendo un archivo. Tisty lo vuelve a intentar en un momento.",
   sealStepClose: "Pasar los últimos cambios",
   sealStepCloseWhy: "Tus otros equipos esperan un momento.",
+  sealStepSettlingLeft: "Faltan {name} cambios por pasar",
   sealStepSettling:
     "Esperando unos minutos a que tus otros equipos terminen lo que estaban enviando. No tienes que hacer nada.",
   sealStepSwitchOn: "Pasar a la nube cifrada",

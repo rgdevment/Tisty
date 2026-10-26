@@ -966,6 +966,7 @@ async fn carried_round(
         _ => tisty_carrier::Way::Both,
     };
 
+    let ours = tisty_carrier::Turning::left(&home).is_some();
     let joining = !carrier.been_here(&home);
     let mut telling = Telling::new(app.clone(), joining);
     let pushing = (home.clone(), carrier.clone(), alive.clone());
@@ -995,7 +996,7 @@ async fn carried_round(
     .await;
     let done = done
         .map_err(|_| Refusal::of("internal"))?
-        .map_err(|trouble| said_carrying(&paths, trouble))?;
+        .map_err(|trouble| sealing_here(said_carrying(&paths, trouble), ours))?;
     answering(session, &done.to_answer(), pushing, holds).await;
 
     let moved = tisty_core::cache::fingerprint(&store) != before;
@@ -1121,7 +1122,7 @@ async fn carried_round(
         });
     }
     let refused = done.refused.clone().map(|trouble| {
-        let refusal = said_carrying(&paths, trouble);
+        let refusal = sealing_here(said_carrying(&paths, trouble), ours);
         Stuck {
             code: refusal.code,
             name: refusal.name,
@@ -1164,6 +1165,16 @@ async fn carried_round(
         adopted: false,
         owed,
     })
+}
+
+fn sealing_here(refusal: Refusal, ours: bool) -> Refusal {
+    match refusal.code {
+        "cloudSealing" if ours => Refusal {
+            code: "cloudSealingHere",
+            ..refusal
+        },
+        _ => refusal,
+    }
 }
 
 // A round left for later or stopped that moved nothing did not sync, so the window does not say it just did.

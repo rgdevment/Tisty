@@ -99,7 +99,9 @@ export function carrying(
         return busy ? "busy" : answer.carried;
       })
       .catch((problem) => {
-        if (!gone && mine === round) awry({ why: "broke", said: saidPlainly(problem) });
+        const ours = (problem as { code?: string } | null)?.code === "cloudSealingHere";
+        if (!gone && mine === round)
+          awry(ours ? null : { why: "broke", said: saidPlainly(problem) });
         return undefined;
       })
       .finally(() => {

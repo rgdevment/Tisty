@@ -75,7 +75,7 @@ function Pending({ state, onMove }: { state: Carrying; onMove: (resume?: Toward)
         }}
         className={mild}
       >
-        {dropping ? t("lookingNow") : t("moveDrop")}
+        {dropping ? t("moveDropping") : t("moveDrop")}
       </button>
       <button type="button" disabled={dropping} onClick={() => onMove(pending)} className={strong}>
         {t("moveAgain")}

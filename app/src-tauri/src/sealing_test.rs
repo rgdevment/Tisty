@@ -53,4 +53,11 @@ fn a_wait_says_whether_the_way_is_cut_blocked_or_the_cloud_asked_for_it() {
     assert_eq!(waiting_on(&cut), "offline");
     assert_eq!(waiting_on(&filtered), "filtered");
     assert_eq!(waiting_on(&asked), "cloud");
+    assert_eq!(
+        waiting_on(&Hitch::Busy {
+            wait: Duration::from_secs(5)
+        }),
+        "busy"
+    );
+    assert_eq!(waiting_on(&Hitch::Spent), "budget");
 }

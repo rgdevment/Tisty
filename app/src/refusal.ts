@@ -123,6 +123,7 @@ const KNOWN = [
   "syncUnshaped",
   "cloudSealed",
   "cloudSealing",
+  "cloudSealingHere",
   "cloudUnsealed",
   "cloudOtherPhrase",
   "cloudMarkDamaged",

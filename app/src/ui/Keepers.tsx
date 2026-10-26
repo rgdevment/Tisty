@@ -156,8 +156,8 @@ export default function Keepers({ busy, onTrouble, onDeciding, onDone, pickOnly 
         )}
 
         {(held || !peeked) && (
-          <p role="status" className="text-[11.5px] text-faint motion-safe:animate-pulse">
-            {t(held ? "movingStarting" : "lookingNow")}
+          <p aria-live="polite" className="text-[11.5px] text-faint motion-safe:animate-pulse">
+            {t(held ? "movingStarting" : "checkingNow")}
           </p>
         )}
         <div className="flex items-center gap-4 text-[11.5px]">
