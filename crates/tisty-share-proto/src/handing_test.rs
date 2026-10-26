@@ -104,18 +104,45 @@ fn a_one_use_key_of_low_order_is_refused_rather_than_answered() {
 }
 
 #[test]
-fn both_machines_read_one_code_and_another_ask_or_another_giver_reads_another() {
-    let ask = asked(&OneUse::minted().unwrap());
+fn both_machines_read_one_code_and_another_ask_giver_or_reveal_reads_another() {
+    let one_use = OneUse::minted().unwrap();
+    let ask = asked(&one_use);
     let carried: Ask = serde_json::from_str(&serde_json::to_string(&ask).unwrap()).unwrap();
     let giver = machine(1).verifying_key();
+    let reveal = one_use.revealed();
 
-    let code = ask.code(&giver).unwrap();
+    let code = ask.code(&giver, &reveal).unwrap();
 
-    assert_eq!(carried.code(&giver).as_deref(), Some(code.as_str()));
+    assert_eq!(
+        carried.code(&giver, &reveal).as_deref(),
+        Some(code.as_str())
+    );
     assert_eq!(code.len(), 23);
     assert!(code.split(' ').all(|five| five.len() == 5));
-    assert_ne!(ask.code(&machine(3).verifying_key()), Some(code.clone()));
-    assert_ne!(asked(&OneUse::minted().unwrap()).code(&giver), Some(code));
+    assert_ne!(
+        ask.code(&machine(3).verifying_key(), &reveal),
+        Some(code.clone())
+    );
+    let other = OneUse::minted().unwrap();
+    assert_ne!(asked(&other).code(&giver, &other.revealed()), Some(code));
+}
+
+#[test]
+fn a_reveal_the_ask_did_not_commit_to_reads_no_code_at_all() {
+    let one_use = OneUse::minted().unwrap();
+    let ask = asked(&one_use);
+    let giver = machine(1).verifying_key();
+
+    assert_eq!(
+        ask.code(&giver, &OneUse::minted().unwrap().revealed()),
+        None
+    );
+    assert_eq!(ask.code(&giver, "not a reveal"), None);
+    let recommitted = Ask {
+        commit: OneUse::minted().unwrap().commit(),
+        ..ask.clone()
+    };
+    assert!(!recommitted.holds());
 }
 
 #[test]

@@ -1902,10 +1902,10 @@ const en = {
   admitWaiting:
     "Open Tisty on another of your computers that reads the encrypted cloud and go to Settings › Security › «Let a new computer in». This computer waits here meanwhile.",
   admitCompare:
-    "Check that «{name}» shows these same twenty digits. Say yes on both computers only if all of them match.",
+    "Type these twenty digits on «{name}». Say yes here only once that computer has taken them.",
   admitTrusted: "Waiting for «{name}» to hand over the key…",
   admitIn: "Done. This computer now reads your encrypted cloud.",
-  admitGranted: "Done. «{name}» gets the key once you say yes on it too.",
+  admitGranted: "Done. Say yes on «{name}» too, and it gets the key.",
   admitMismatch:
     "The digits do not match, so nothing was handed over. Someone may be standing between the two computers: close this and start again from the new computer.",
   admitLooking: "Looking for new computers…",
@@ -1913,7 +1913,22 @@ const en = {
     "No new computer is asking to come in. On the new computer, choose «Let in from another computer».",
   admitLookAgain: "Look again",
   admitTaken: "Another computer is letting it in",
-  admitShowCode: "Show the code",
+  admitTake: "Let it in",
+  admitTypeWhat:
+    "Type the twenty digits «{name}» shows. If that computer is not in front of you, type nothing: someone else may be asking in its name.",
+  admitTypeLabel: "The code the new computer shows",
+  admitTypeGo: "Let it in",
+  admitNoComputer: "There is no such computer",
+  admitAccepted: "It took them",
+  admitRejected: "It did not take them",
+  admitGone: "That computer no longer asks. Start again from it.",
+  admitChanged: "The computer letting this one in changed. Close this and start again.",
+  admitWrongCode:
+    "Those digits are not the ones expected. Check them on the new computer, one group at a time.",
+  admitNotYet: "The new computer has not shown its code yet. Wait a few seconds and try again.",
+  admitAlreadyIn: "This computer already reads your encrypted cloud.",
+  admitOnList: "This computer is already one of yours: the others hand it the key on their own.",
+  admitNoKey: "This computer cannot open the encrypted cloud, so it cannot let another one in.",
   enterButton: "Type my phrase",
   enterTitle: "Type my phrase",
   enterWhat:
@@ -4361,10 +4376,10 @@ const es: Catalog = {
   admitWaiting:
     "Abre Tisty en otro de tus equipos que lea la nube cifrada y ve a Configuración › Seguridad › «Autorizar un equipo nuevo». Mientras tanto, este equipo espera aquí.",
   admitCompare:
-    "Revisa que «{name}» muestre estos mismos veinte dígitos. Di que sí en los dos equipos solo si coinciden todos.",
+    "Escribe estos veinte dígitos en «{name}». Di que sí aquí solo cuando ese equipo los haya aceptado.",
   admitTrusted: "Esperando a que «{name}» entregue la llave…",
   admitIn: "Listo. Este equipo ya lee tu nube cifrada.",
-  admitGranted: "Listo. «{name}» recibe la llave en cuanto digas que sí también ahí.",
+  admitGranted: "Listo. Di que sí también en «{name}» y recibirá la llave.",
   admitMismatch:
     "Los dígitos no coinciden, así que no se entregó nada. Puede que alguien esté entre los dos equipos: cierra esto y empieza de nuevo desde el equipo nuevo.",
   admitLooking: "Buscando equipos nuevos…",
@@ -4372,7 +4387,22 @@ const es: Catalog = {
     "Ningún equipo nuevo está pidiendo entrar. En el equipo nuevo, elige «Autorizar desde otro equipo».",
   admitLookAgain: "Buscar de nuevo",
   admitTaken: "Otro equipo lo está autorizando",
-  admitShowCode: "Ver el código",
+  admitTake: "Autorizar",
+  admitTypeWhat:
+    "Escribe los veinte dígitos que muestra «{name}». Si ese equipo no está frente a ti, no escribas nada: puede que otro esté pidiendo en su nombre.",
+  admitTypeLabel: "El código que muestra el equipo nuevo",
+  admitTypeGo: "Autorizar",
+  admitNoComputer: "No existe ese equipo",
+  admitAccepted: "Ya los aceptó",
+  admitRejected: "No los aceptó",
+  admitGone: "Ese equipo ya no está pidiendo entrar. Empieza de nuevo desde él.",
+  admitChanged: "Cambió el equipo que autoriza a este. Cierra esto y empieza de nuevo.",
+  admitWrongCode: "Esos dígitos no son los esperados. Revísalos en el equipo nuevo, de a un grupo.",
+  admitNotYet:
+    "El equipo nuevo todavía no muestra su código. Espera unos segundos y vuelve a intentarlo.",
+  admitAlreadyIn: "Este equipo ya lee tu nube cifrada.",
+  admitOnList: "Este equipo ya es uno de los tuyos: los otros le entregan la llave solos.",
+  admitNoKey: "Este equipo no puede abrir la nube cifrada, así que no puede autorizar a otro.",
   enterButton: "Escribir mi frase",
   enterTitle: "Escribir mi frase",
   enterWhat:

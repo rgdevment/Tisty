@@ -385,3 +385,29 @@ fn a_machine_whose_log_is_behind_takes_the_key_from_one_its_person_certified() {
     assert!(asking(&two.asker, &knocking, &two.asking).unwrap());
     assert_eq!(held(&two.asker).config.key_handed, Some(two.cloud.clone()));
 }
+
+#[test]
+fn letting_go_forgets_the_handed_key_and_what_was_asked() {
+    let two = two();
+    sealed_with(&two, &key(7));
+    kept_for(&two.asker, &two.cloud, &key(7)).unwrap();
+    let knocking = Knocking::default();
+    ask_now(&two.asker, &mut knocking.asked.lock().unwrap(), &two.asking).unwrap();
+
+    let_go(&two.asker, &knocking);
+
+    assert!(kept(&two.cloud).unwrap().is_none());
+    assert_eq!(held(&two.asker).config.key_handed, None);
+    assert!(knocking.asked.lock().unwrap().is_none());
+}
+
+#[test]
+fn a_key_handed_for_a_new_cloud_lets_the_old_one_go() {
+    let two = two();
+    kept_for(&two.asker, "store_old_cloud", &key(4)).unwrap();
+
+    kept_for(&two.asker, &two.cloud, &key(7)).unwrap();
+
+    assert!(kept("store_old_cloud").unwrap().is_none());
+    assert_eq!(held(&two.asker).config.key_handed, Some(two.cloud.clone()));
+}

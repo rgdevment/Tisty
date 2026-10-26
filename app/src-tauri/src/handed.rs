@@ -112,18 +112,25 @@ fn due(knocking: &Knocking, every: Duration) -> bool {
 
 fn tended(app: &AppHandle, knocking: &Knocking) {
     let session = app.state::<Mutex<Session>>();
-    let (home, keyed) = {
+    let (home, keyed, named) = {
         let session = held(&session);
         let Some(at) = tisty_carrier::cloud_of(session.config.sync.as_ref()) else {
             return;
         };
-        (session.reach.home_of(at), session.reach.keyed())
+        (
+            session.reach.home_of(at),
+            session.reach.keyed(),
+            session.state.sealed.clone(),
+        )
     };
     let Sealing::Sealed(cloud) = tisty_carrier::sealing_of(&tisty_carrier::mirrored_at(&home))
     else {
         return;
     };
-    let every = match keyed.is_some_and(|keyed| keyed.locked.cloud == cloud) {
+    let every = match keyed
+        .as_ref()
+        .is_some_and(|keyed| keyed.locked.cloud == cloud)
+    {
         true => ANSWERED_EVERY,
         false => ASKED_EVERY,
     };
@@ -133,10 +140,16 @@ fn tended(app: &AppHandle, knocking: &Knocking) {
     let Ok((here, key)) = here_now(&session, knocking) else {
         return;
     };
+    // A key the signed log names for this cloud is this cloud's even when the mark up there will not open: that mark was spoiled.
+    let logged = keyed
+        .is_some_and(|keyed| named.get(&here.cloud) == Some(&keyed.key.named_for(&here.cloud)));
     // A key only guessed from a phrase may not be this cloud's, and handing it out would hand out nothing.
-    let done = match key {
-        Some(key) => answering(&session, &here, &key),
-        None => asking(&session, knocking, &here).map(|took| {
+    let done = match (key, logged) {
+        (Some(key), _) => answering(&session, &here, &key),
+        (None, true) => {
+            Err("the cloud's mark does not open with the key the log names for it".into())
+        }
+        (None, false) => asking(&session, knocking, &here).map(|took| {
             if took {
                 let _ = app.emit("stirred", ());
             }
@@ -223,7 +236,10 @@ pub(crate) fn asking(
     here: &Here,
 ) -> Result<bool, String> {
     let seated = held(session).state.devices.contains(&here.device);
-    let mut asked = knocking.asked.lock().map_err(|e| e.to_string())?;
+    let mut asked = knocking
+        .asked
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner);
     let stale = asked
         .as_ref()
         .is_none_or(|(ask, _)| ask.cloud != here.cloud || now() - ask.at > ASKED_AGAIN);
@@ -472,6 +488,38 @@ pub fn keep(cloud: &str, key: &CloudKey) -> Result<(), String> {
 }
 
 // A handed key is handed again by any other machine, so one for a cloud left behind is not kept.
+// Any other machine hands the key again, so a cloud left or turned back to plain keeps none of it here.
+pub(crate) fn let_go(session: &Mutex<Session>, knocking: &Knocking) {
+    knocking.reset();
+    let cloud = {
+        let mut session = held(session);
+        let cloud = session.config.key_handed.clone();
+        if cloud.is_some()
+            && let Err(why) = session.keep(|config| config.key_handed = None)
+        {
+            witness::warn(
+                channel::CONFIG,
+                "the cloud this computer was handed the key of could not be let go of",
+                &[("why", Fact::Why(why.code.to_string()))],
+            );
+        }
+        cloud
+    };
+    if let Some(cloud) = cloud {
+        forget(&cloud);
+    }
+}
+
+impl Knocking {
+    fn reset(&self) {
+        *self.asked.lock().unwrap_or_else(PoisonError::into_inner) = None;
+        *self.trusted.lock().unwrap_or_else(PoisonError::into_inner) = None;
+        *self.coded.lock().unwrap_or_else(PoisonError::into_inner) = None;
+        *self.reached.lock().unwrap_or_else(PoisonError::into_inner) = None;
+        *self.opened.lock().unwrap_or_else(PoisonError::into_inner) = None;
+    }
+}
+
 fn forget(cloud: &str) {
     let gone = crate::reaching::seed_secrets(&scope(cloud)).and_then(|secrets| secrets.forget(KEY));
     if let Err(why) = gone {

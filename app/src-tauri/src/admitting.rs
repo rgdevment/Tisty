@@ -10,6 +10,9 @@ use tisty_share_proto::handing::{Ask, Giver};
 use crate::handed::{Here, Knocking, NEW_FOR, fits, here_now, hitched, now, seated, signer};
 use crate::{Answer, Refusal, Session, elsewhere, held};
 
+// A fresh ask is kept rather than made again while this much of its hour is left, so reopening the window never voids a code.
+const KEPT_FOR: i64 = NEW_FOR - 10 * 60;
+
 #[derive(Debug, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct Admitted {
@@ -27,15 +30,19 @@ pub struct Newcomer {
     pub taken: bool,
 }
 
-type Worked<T> = Result<T, String>;
+type Worked<T> = Result<T, Refusal>;
 
-fn refused(why: String) -> Refusal {
+fn trouble(why: impl ToString) -> Refusal {
     tisty_core::witness::note(
         tisty_core::witness::channel::CLOUD,
         "a new computer could not be let into the sealed cloud",
-        &[("why", tisty_core::witness::Fact::Why(why))],
+        &[("why", tisty_core::witness::Fact::Why(why.to_string()))],
     );
     Refusal::of("admitNotNow")
+}
+
+fn up(hitch: tisty_carrier::Hitch) -> Refusal {
+    trouble(hitched(hitch))
 }
 
 async fn off_the_lock<T: Send + 'static>(
@@ -45,11 +52,10 @@ async fn off_the_lock<T: Send + 'static>(
     let app = app.clone();
     elsewhere(move || {
         let (session, knocking) = (app.state::<Mutex<Session>>(), app.state::<Knocking>());
-        let (here, key) = here_now(&session, &knocking)?;
+        let (here, key) = here_now(&session, &knocking).map_err(trouble)?;
         work(&session, &knocking, &here, key)
     })
     .await?
-    .map_err(refused)
 }
 
 fn trusted_now(knocking: &Knocking) -> Option<String> {
@@ -67,12 +73,24 @@ fn trust(knocking: &Knocking, giver: Option<String>) {
         .unwrap_or_else(PoisonError::into_inner) = giver;
 }
 
-fn asked_now(knocking: &Knocking, here: &Here) -> Worked<Option<Ask>> {
-    let asked = knocking.asked.lock().map_err(|e| e.to_string())?;
-    Ok(asked
+fn asked_now(knocking: &Knocking, here: &Here) -> Option<(Ask, String)> {
+    let asked = knocking
+        .asked
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner);
+    asked
         .as_ref()
-        .map(|(ask, _)| ask.clone())
-        .filter(|ask| ask.cloud == here.cloud))
+        .filter(|(ask, _)| ask.cloud == here.cloud)
+        .map(|(ask, one_use)| (ask.clone(), one_use.revealed()))
+}
+
+fn ask_again(session: &Mutex<Session>, knocking: &Knocking, here: &Here) -> Worked<()> {
+    trust(knocking, None);
+    let mut asked = knocking
+        .asked
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner);
+    crate::handed::ask_now(session, &mut asked, here).map_err(trouble)
 }
 
 fn ask(
@@ -82,15 +100,20 @@ fn ask(
     key: Option<CloudKey>,
 ) -> Worked<()> {
     if key.is_some() {
-        return Err("this computer already reads the sealed cloud".into());
+        return Err(Refusal::of("admitAlreadyIn"));
     }
     // One on the list is handed the key on its own, and asking again would take away an answer on its way.
     if seated(session, &here.device.0) {
-        return Err("this computer is on the list and is handed the key on its own".into());
+        return Err(Refusal::of("admitOnList"));
     }
-    trust(knocking, None);
-    let mut asked = knocking.asked.lock().map_err(|e| e.to_string())?;
-    crate::handed::ask_now(session, &mut asked, here)
+    let standing = asked_now(knocking, here).filter(|(ask, _)| now() - ask.at < KEPT_FOR);
+    if let Some((ask, _)) = standing {
+        let up_there = knock::ask_of(&*here.plain, &here.home, &here.device.0).map_err(up)?;
+        if up_there.as_ref() == Some(&ask) {
+            return Ok(());
+        }
+    }
+    ask_again(session, knocking, here)
 }
 
 fn shown(
@@ -107,25 +130,34 @@ fn shown(
     if key.is_some() {
         return Ok(said("done", None, None));
     }
-    let Some(ask) = asked_now(knocking, here)? else {
+    let Some((ask, reveal)) = asked_now(knocking, here) else {
         return Ok(said("idle", None, None));
     };
-    let Some(giver) = knock::giver_of(&*here.plain, &here.home, &here.device.0).map_err(hitched)?
-    else {
+    // Past its hour no computer answers it any more, so a new ask goes up in its place.
+    if now() - ask.at > NEW_FOR {
+        ask_again(session, knocking, here)?;
+        return Ok(said("waiting", None, None));
+    }
+    let Some(giver) = knock::giver_of(&*here.plain, &here.home, &here.device.0).map_err(up)? else {
         return Ok(said("waiting", None, None));
     };
+    if knock::reveal_of(&*here.plain, &here.home, &here.device.0).map_err(up)?
+        != Some(reveal.clone())
+    {
+        knock::revealed(&*here.plain, &here.home, &here.device.0, &reveal).map_err(up)?;
+    }
     if trusted_now(knocking).as_deref() != Some(giver.key.as_str()) {
-        let code = code_of(knocking, &ask, &giver);
+        let code = code_of(knocking, &ask, &giver, &reveal);
         return Ok(said("compare", Some(&giver), code));
     }
-    match crate::handed::asking(session, knocking, here)? {
+    match crate::handed::asking(session, knocking, here).map_err(trouble)? {
         true => Ok(said("done", Some(&giver), None)),
         false => Ok(said("trusted", Some(&giver), None)),
     }
 }
 
 // Ground once an ask and giver, since the window asks every few seconds and scrypt takes its time and memory.
-fn code_of(knocking: &Knocking, ask: &Ask, giver: &Giver) -> Option<String> {
+fn code_of(knocking: &Knocking, ask: &Ask, giver: &Giver, reveal: &str) -> Option<String> {
     let mut coded = knocking
         .coded
         .lock()
@@ -136,28 +168,31 @@ fn code_of(knocking: &Knocking, ask: &Ask, giver: &Giver) -> Option<String> {
     {
         return Some(code.clone());
     }
-    let code = ask.code(&giver.key()?)?;
+    let code = ask.code(&giver.key()?, reveal)?;
     *coded = Some((ask.sig.clone(), giver.key.clone(), code.clone()));
     Some(code)
 }
 
 // The code travels back from the window, so a giver that changed since it was shown is never trusted.
 fn trusted(knocking: &Knocking, here: &Here, code: &str) -> Worked<()> {
-    let ask = asked_now(knocking, here)?.ok_or("this computer asked for nothing")?;
+    let (ask, reveal) = asked_now(knocking, here).ok_or_else(|| Refusal::of("admitGone"))?;
     let giver = knock::giver_of(&*here.plain, &here.home, &here.device.0)
-        .map_err(hitched)?
-        .ok_or("no computer took the ask")?;
-    if code_of(knocking, &ask, &giver).as_deref() != Some(code) {
-        return Err("the code changed since it was shown".into());
+        .map_err(up)?
+        .ok_or_else(|| Refusal::of("admitGone"))?;
+    if code_of(knocking, &ask, &giver, &reveal).as_deref() != Some(code) {
+        return Err(Refusal::of("admitChanged"));
     }
     trust(knocking, Some(giver.key));
     Ok(())
 }
 
 fn cancelled(knocking: &Knocking, here: &Here) -> Worked<()> {
-    *knocking.asked.lock().map_err(|e| e.to_string())? = None;
+    *knocking
+        .asked
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner) = None;
     trust(knocking, None);
-    knock::withdrawn(&*here.plain, &here.home, &here.device.0).map_err(hitched)
+    knock::withdrawn(&*here.plain, &here.home, &here.device.0).map_err(up)
 }
 
 fn fresh(session: &Mutex<Session>, ask: &Ask, here: &Here) -> bool {
@@ -167,10 +202,10 @@ fn fresh(session: &Mutex<Session>, ask: &Ask, here: &Here) -> bool {
 }
 
 fn looked(session: &Mutex<Session>, here: &Here, key: Option<CloudKey>) -> Worked<Vec<Newcomer>> {
-    key.ok_or("this computer cannot open the sealed cloud")?;
-    let mine = signer(here)?.verifying_key();
+    key.ok_or_else(|| Refusal::of("admitNoKey"))?;
+    let mine = signer(here).map_err(trouble)?.verifying_key();
     let mut found = Vec::new();
-    for one in knock::knocks(&*here.plain, &here.home).map_err(hitched)? {
+    for one in knock::knocks(&*here.plain, &here.home).map_err(up)? {
         let Some(ask) = one.ask.filter(|ask| fresh(session, ask, here)) else {
             continue;
         };
@@ -187,81 +222,84 @@ fn looked(session: &Mutex<Session>, here: &Here, key: Option<CloudKey>) -> Worke
 
 fn standing_ask(session: &Mutex<Session>, here: &Here, device: &str) -> Worked<Ask> {
     knock::ask_of(&*here.plain, &here.home, device)
-        .map_err(hitched)?
+        .map_err(up)?
         .filter(|ask| fresh(session, ask, here) && ask.holds())
-        .ok_or_else(|| "that computer no longer asks".into())
+        .ok_or_else(|| Refusal::of("admitGone"))
 }
 
 fn ours(here: &Here, device: &str, mine: &tisty_share_proto::VerifyingKey) -> Worked<bool> {
     Ok(knock::giver_of(&*here.plain, &here.home, device)
-        .map_err(hitched)?
+        .map_err(up)?
         .is_some_and(|one| one.key().as_ref() == Some(mine)))
 }
 
-fn offer(
-    session: &Mutex<Session>,
-    here: &Here,
-    key: Option<CloudKey>,
-    device: &str,
-) -> Worked<String> {
-    key.ok_or("this computer cannot open the sealed cloud")?;
-    let ask = standing_ask(session, here, device)?;
-    let mine = signer(here)?.verifying_key();
+// Read back after the put: on Drive the first writer is not sure to stand, so only the copy read tells who took it.
+fn offer(session: &Mutex<Session>, here: &Here, key: Option<CloudKey>, device: &str) -> Worked<()> {
+    key.ok_or_else(|| Refusal::of("admitNoKey"))?;
+    standing_ask(session, here, device)?;
+    let mine = signer(here).map_err(trouble)?.verifying_key();
     let giver = Giver::of(
         &here.device.0,
         &crate::handed::name_here(session, &here.device),
         &mine,
     );
-    let taken = knock::offered(&*here.plain, &here.home, device, &giver).map_err(hitched)?;
-    if !taken && !ours(here, device, &mine)? {
-        return Err("another computer is letting it in".into());
+    knock::offered(&*here.plain, &here.home, device, &giver).map_err(up)?;
+    match ours(here, device, &mine)? {
+        true => Ok(()),
+        false => Err(Refusal::of("admitTaken")),
     }
-    ask.code(&mine)
-        .ok_or_else(|| "no code could be made".into())
 }
 
 // Its signing key came with an ask the person checked, so its history is let through without a second code.
 fn vouch_for(session: &Mutex<Session>, ask: &Ask) -> Worked<()> {
-    let key = ask.key().ok_or("the ask names no key")?;
+    let key = ask.key().ok_or_else(|| Refusal::of("admitGone"))?;
     let who = DeviceId(ask.device.clone());
     // Under the lock, as when a machine is confirmed by hand, so a round never rewrites the waiting list meanwhile.
     let session = held(session);
     let data = session.paths.data();
     if !tisty_core::vouched::confirm(data, &who, &tisty_core::signing::shown_of(&key)) {
-        return Err("the new computer's key could not be confirmed".into());
+        return Err(trouble("the new computer's key could not be confirmed"));
     }
     tisty_carrier::turned::let_through(data, &ask.device);
     Ok(())
 }
 
-// The code travels back too: an ask swapped between the showing and the yes reads other digits and gets nothing.
+fn digits(said: &str) -> String {
+    said.chars().filter(char::is_ascii_digit).collect()
+}
+
+// The person types what the new computer shows: an ask made up up there leaves nothing to type, and gets nothing.
 fn granted(
     session: &Mutex<Session>,
     here: &Here,
     key: Option<CloudKey>,
     device: &str,
-    code: &str,
+    typed: &str,
 ) -> Worked<()> {
-    let key = key.ok_or("this computer cannot open the sealed cloud")?;
+    let key = key.ok_or_else(|| Refusal::of("admitNoKey"))?;
     let ask = standing_ask(session, here, device)?;
-    let signer = signer(here)?;
+    let signer = signer(here).map_err(trouble)?;
     let mine = signer.verifying_key();
     if !ours(here, device, &mine)? {
-        return Err("this computer is not the one letting it in".into());
+        return Err(Refusal::of("admitTaken"));
     }
-    if ask.code(&mine).as_deref() != Some(code) {
-        return Err("the ask changed since its code was shown".into());
+    let reveal = knock::reveal_of(&*here.plain, &here.home, device)
+        .map_err(up)?
+        .ok_or_else(|| Refusal::of("admitNotYet"))?;
+    let expected = ask.code(&mine, &reveal).map(|code| digits(&code));
+    if expected.is_none_or(|code| code != digits(typed)) {
+        return Err(Refusal::of("admitWrongCode"));
     }
     vouch_for(session, &ask)?;
-    let answer = crate::handed::sealed_for(session, here, &ask, &key, &signer)?;
-    let standing = knock::answered(&*here.plain, &here.home, device).map_err(hitched)?;
-    if standing.is_some_and(|one| one.key != answer.key) {
-        knock::unanswered(&*here.plain, &here.home, device).map_err(hitched)?;
+    let answer = crate::handed::sealed_for(session, here, &ask, &key, &signer).map_err(trouble)?;
+    let standing = knock::answered(&*here.plain, &here.home, device).map_err(up)?;
+    if standing.is_some_and(|one| one != answer) {
+        knock::unanswered(&*here.plain, &here.home, device).map_err(up)?;
     }
-    knock::answer(&*here.plain, &here.home, device, &answer).map_err(hitched)?;
-    match knock::answered(&*here.plain, &here.home, device).map_err(hitched)? {
-        Some(one) if one.key == answer.key => Ok(()),
-        _ => Err("another answer stands where this one was put".into()),
+    knock::answer(&*here.plain, &here.home, device, &answer).map_err(up)?;
+    match knock::answered(&*here.plain, &here.home, device).map_err(up)? {
+        Some(one) if one == answer => Ok(()),
+        _ => Err(trouble("another answer stands where this one was put")),
     }
 }
 
@@ -295,7 +333,7 @@ pub async fn admitting_look(app: AppHandle) -> Answer<Vec<Newcomer>> {
 }
 
 #[tauri::command(async)]
-pub async fn admitting_offer(app: AppHandle, device: String) -> Answer<String> {
+pub async fn admitting_offer(app: AppHandle, device: String) -> Answer<()> {
     off_the_lock(&app, move |session, _, here, key| {
         offer(session, here, key, &device)
     })
@@ -313,7 +351,7 @@ pub async fn admitting_grant(app: AppHandle, device: String, code: String) -> An
 #[tauri::command(async)]
 pub async fn admitting_refuse(app: AppHandle, device: String) -> Answer<()> {
     off_the_lock(&app, move |_, _, here, _| {
-        knock::withdrawn(&*here.plain, &here.home, &device).map_err(hitched)
+        knock::withdrawn(&*here.plain, &here.home, &device).map_err(up)
     })
     .await
 }

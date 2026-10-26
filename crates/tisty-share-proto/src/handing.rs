@@ -17,20 +17,43 @@ const ASKED: &[u8] = b"tisty.ask.v1\0";
 const HANDED: &[u8] = b"tisty.handed.v1\0";
 const SALT: [u8; 15] = *b"tisty.handed.v1";
 const CODE: &[u8] = b"tisty.ask.code.v1\0";
+const COMMIT: &[u8] = b"tisty.ask.commit.v1\0";
 // As slow as a locked parcel, so a provider cannot mint, while an ask stands, another key that reads the same digits.
 const WORK: u8 = 16;
 
-pub struct OneUse(Zeroizing<[u8; 32]>);
+// The reveal stays here until a machine has taken the ask, so whoever put that machine up could not pick it knowing the code.
+pub struct OneUse {
+    secret: Zeroizing<[u8; 32]>,
+    reveal: Zeroizing<[u8; 32]>,
+}
 
 impl OneUse {
     #[cfg(feature = "mint")]
     pub fn minted() -> Option<Self> {
-        crate::minted().map(Self)
+        Some(Self {
+            secret: crate::minted()?,
+            reveal: crate::minted()?,
+        })
     }
 
     pub fn public(&self) -> [u8; 32] {
-        MontgomeryPoint::mul_base_clamped(*self.0).to_bytes()
+        MontgomeryPoint::mul_base_clamped(*self.secret).to_bytes()
     }
+
+    pub fn revealed(&self) -> String {
+        coded(self.reveal.as_ref())
+    }
+
+    fn commit(&self) -> String {
+        coded(&committed(self.reveal.as_ref()))
+    }
+}
+
+fn committed(reveal: &[u8]) -> [u8; 32] {
+    let mut over = Sha256::new();
+    over.update(COMMIT);
+    over.update(reveal);
+    over.finalize().into()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -40,6 +63,7 @@ pub struct Ask {
     pub name: String,
     pub key: String,
     pub one_use: String,
+    pub commit: String,
     pub cloud: String,
     pub at: i64,
     pub sig: String,
@@ -125,6 +149,7 @@ impl Ask {
             name: name.to_string(),
             key: coded(signer.verifying_key().as_bytes()),
             one_use: coded(&one_use.public()),
+            commit: one_use.commit(),
             cloud: cloud.to_string(),
             at,
             sig: String::new(),
@@ -142,6 +167,7 @@ impl Ask {
                 self.name.as_bytes(),
                 self.key.as_bytes(),
                 self.one_use.as_bytes(),
+                self.commit.as_bytes(),
                 self.cloud.as_bytes(),
                 &self.at.to_be_bytes(),
             ],
@@ -167,12 +193,16 @@ impl Ask {
         over.finalize().into()
     }
 
-    /// About 66 bits of the ask and of the key of whoever takes it, so one comparison proves both ways.
-    pub fn code(&self, giver: &VerifyingKey) -> Option<String> {
+    /// About 66 bits of the ask, the key of whoever took it and the reveal the ask committed to, so one comparison proves both ways.
+    pub fn code(&self, giver: &VerifyingKey, reveal: &str) -> Option<String> {
+        let reveal = decoded::<32>(reveal)?;
+        if coded(&committed(&reveal)) != self.commit {
+            return None;
+        }
         let how = scrypt::Params::new(WORK, 8, 1).ok()?;
         let mut ground = Zeroizing::new([0u8; 16]);
         let salt = framed(CODE, &[self.cloud.as_bytes()]);
-        let said = framed(CODE, &[&self.digest(), giver.as_bytes()]);
+        let said = framed(CODE, &[&self.digest(), giver.as_bytes(), &reveal]);
         scrypt::scrypt(&said, &salt, &how, &mut ground[7..]).ok()?;
         let digits = format!(
             "{:020}",
@@ -245,7 +275,7 @@ impl Handed {
             return None;
         }
         let from = decoded::<32>(&self.from)?;
-        let point = shared(&one_use.0, from)?;
+        let point = shared(&one_use.secret, from)?;
         let mut key = Zeroizing::new(URL_SAFE_NO_PAD.decode(&self.sealed).ok()?);
         cipher(&point, &digest, &from)
             .decrypt_in_place(&NONCE.into(), &digest, &mut *key)
@@ -260,7 +290,7 @@ pub fn handed(ask: &Ask, key: &CloudKey, by: &str, signer: &SigningKey) -> Optio
     let asked = decoded::<32>(&ask.one_use)?;
     let mine = OneUse::minted()?;
     let from = mine.public();
-    let point = shared(&mine.0, asked)?;
+    let point = shared(&mine.secret, asked)?;
     let digest = ask.digest();
     let mut sealed = Zeroizing::new(Vec::with_capacity(48));
     sealed.extend_from_slice(key.to_bytes().as_ref());
