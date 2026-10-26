@@ -110,6 +110,8 @@ pub trait Carrier: Send + std::marker::Sync {
     fn unclaimed(&self) -> Holding;
     fn carry(&self, here: &Here, round: Round) -> Result<Moved, Trouble>;
     fn bring_home(&self, here: &Here, round: Round) -> Result<Moved, Trouble>;
+    /// Only takes, and never writes anything up there, not even what a round left owed.
+    fn hear(&self, here: &Here, round: Round) -> Result<Moved, Trouble>;
     fn could_free(&self, here: &Here, unused_since: SystemTime) -> LetGo;
     fn set_free(&self, here: &Here, unused_since: SystemTime, told: Told)
     -> Result<LetGo, Trouble>;

@@ -108,6 +108,16 @@ impl Carrier for Folder {
         )
     }
 
+    fn hear(&self, here: &Here, round: Round) -> Result<Moved, Trouble> {
+        self.carry(
+            here,
+            Round {
+                way: crate::Way::Pull,
+                ..round
+            },
+        )
+    }
+
     fn bring_home(&self, here: &Here, round: Round) -> Result<Moved, Trouble> {
         self.carry(
             here,

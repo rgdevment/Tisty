@@ -71,6 +71,11 @@ const HOMING: Turn = Turn {
     sends: false,
     homes: true,
 };
+const HEARING: Turn = Turn {
+    waits: false,
+    sends: false,
+    homes: false,
+};
 const BINNING: Turn = Turn {
     waits: true,
     sends: false,
@@ -438,11 +443,13 @@ impl Cloud {
         self.tree()
     }
 
-    fn rounded(&self, here: &Here, round: Round, fetching: bool) -> Result<Moved, Trouble> {
-        let turn = match fetching {
-            true => HOMING,
-            false => PASSING,
-        };
+    fn rounded(
+        &self,
+        here: &Here,
+        round: Round,
+        turn: Turn,
+        fetching: bool,
+    ) -> Result<Moved, Trouble> {
         let Round {
             way,
             alive,
@@ -812,7 +819,15 @@ impl Carrier for Cloud {
     }
 
     fn carry(&self, here: &Here, round: Round) -> Result<Moved, Trouble> {
-        self.rounded(here, round, false)
+        self.rounded(here, round, PASSING, false)
+    }
+
+    fn hear(&self, here: &Here, round: Round) -> Result<Moved, Trouble> {
+        let round = Round {
+            way: crate::Way::Pull,
+            ..round
+        };
+        self.rounded(here, round, HEARING, false)
     }
 
     fn bring_home(&self, here: &Here, round: Round) -> Result<Moved, Trouble> {
@@ -821,7 +836,7 @@ impl Carrier for Cloud {
             holds: tisty_core::config::Holds::Everywhere,
             ..round
         };
-        self.rounded(here, round, true)
+        self.rounded(here, round, HOMING, true)
     }
 
     fn could_free(&self, here: &Here, unused_since: SystemTime) -> LetGo {
