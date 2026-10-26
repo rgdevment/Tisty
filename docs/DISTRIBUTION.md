@@ -91,8 +91,9 @@ Little, and all of it reversible.
 
 Nothing. Tisty stores your tasks on your own machine and speaks to no server of
 ours — there is none. Synchronisation, when you turn it on, copies files into a
-folder **you choose**, and what happens there is between you and whoever keeps
-that folder in step. See [PRIVACY.md](../PRIVACY.md).
+place **you choose** — your own Google Drive, OneDrive or WebDAV server, or a
+folder something else keeps in step — and what happens there is between you and
+whoever runs it. See [PRIVACY.md](../PRIVACY.md).
 
 Stores report their own aggregate figures — downloads, crashes, versions — to
 the developer account. That comes from the store, not from the program, and it
@@ -141,8 +142,9 @@ to the code:
 
 A fork or a build compiled without the first two offers no Google Drive, and
 one without the third offers no OneDrive: the choice does not appear and no
-request to that provider is ever made. Folder sync, and
-everything else, works the same. Without the policy key, the cloud works with the
+request to that provider is ever made. WebDAV needs nothing compiled in, since
+the person brings the server and the password; it, folder sync and everything
+else work the same. Without the policy key, the cloud works with the
 limits the program ships with and never asks for `cloud.json`. Without the
 feed key, the build reads the update feed without checking its signature. To
 offer the cloud in a build of your own, register your own Google and Microsoft

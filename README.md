@@ -256,7 +256,8 @@ and tasks, with no account, no subscription and no AI**, this is what Tisty is:
 | Any `.md` file | opens to read in a window of its own, without coming into your store |
 | Attachments | kept with the task, as themselves |
 | Finished work | an **archive that keeps what each task taught you** |
-| Two machines | through a folder you already sync. No server of ours |
+| Two machines | your Google Drive, OneDrive or WebDAV server, reached directly, or a folder you already sync. No server of ours |
+| Your cloud, encrypted | if you want it, with a 24-word phrase only you know |
 | Natural language | dates, deadlines and repeats, parsed on your machine |
 | When to do it | a spread of days you deal work onto, and a month for looking |
 | Reminders | an hour you choose, that rings on this machine and nowhere else |
@@ -289,9 +290,11 @@ assistant you already use can file work into it — with its steps, its date and
 the list it belongs in, on this machine, with no account and nothing over the
 network. You open that door, and you can close it.
 
-**Two machines, no middleman.** If you already sync a folder, Tisty travels
-through it. There is no server of ours in between, nothing to sign up for, and
-nothing that stops working the day a company changes its mind.
+**Two machines, no middleman.** Tisty talks straight to your own Google Drive,
+OneDrive or WebDAV server, or travels through a folder you already sync. There
+is no server of ours in between, nothing to sign up for, and nothing that stops
+working the day a company changes its mind. And what it keeps in that cloud can
+be encrypted with a phrase only you know.
 
 **Free is not a tier here.** There is no upgrade, no seat count, no feature held
 back for later. The reason is not generosity: a program that keeps your work on
@@ -308,8 +311,8 @@ Tisty it holds a good deal more than text:
   year by year: one document holding its pages, in the order the text names
   them, with an index at the end and arrows from one to the next.
 - **Diagrams from a few lines.** A block that says `mermaid` draws flowcharts,
-  sequences, pies, timelines, mind maps, Gantt charts and more, light or dark
-  with the window.
+  sequences, pies, timelines, mind maps, Gantt charts and more with the official
+  Mermaid, light or dark with the window and legible at any width.
 - **Formulas** set from a `math` block, **code** coloured by its language and
   named after its file, and **tables** that keep how their columns lean and how
   wide you drew them.
@@ -318,7 +321,8 @@ Tisty it holds a good deal more than text:
 - **Callouts, highlights and icons** — the callouts GitHub reads, pens in
   several colours, an icon looked up by what it draws — and boxes you tick.
 - **Attachments that travel with it**: pictures, PDFs, sound and film, kept
-  inside Tisty rather than linked to a folder that moves.
+  inside Tisty rather than linked to a folder that moves. A click on a picture
+  or a diagram opens it large, to zoom in and go to the next one.
 - **A PDF of its own**, A4, Letter or Tabloid, with its pictures inside,
   shown to you before you export it.
 
@@ -494,13 +498,15 @@ and waits out of the way, because those were questions with an obvious answer.
 The guide is a document in your own store, in a folder of its own: yours to
 read, edit, or throw away like anything else you wrote.
 
-**Settings answers four questions rather than wearing five labels.** *General*
-is how Tisty behaves towards you — language, start-up, the quick capture,
-notices, updates, and the one thing that happens outside the window: the
-welcome. *Your data* is everything that touches your files, with
-syncing as a block of its own because it has a state, a warning that depends on
-who keeps your folder, and four actions. *Assistants* and *Maintenance* are what
-they say.
+**Settings takes over the sidebar with its sections.** *General* is how Tisty
+behaves towards you — language, light or dark, start-up, the quick capture,
+notices, and the one thing that happens outside the window: the welcome. *Sync*
+is where your copies go, which computers are yours and where the big
+attachments live. *Security* holds your 24-word phrase and the encrypted cloud.
+*Your data* is your folder, backups, what you take out or bring in, and a guide
+that leaves a computer clean if you want Tisty off it. *Assistants* and
+*Maintenance* are what they say, and *About* comes last: the notice of an update
+shows only when there is one, and takes you straight there.
 
 **Three columns at most:** what you are looking at, the list, and the task you
 opened. Nothing else on screen.
@@ -611,11 +617,13 @@ Everything lives in one folder on your disk: an append-only log of what
 happened, your documents as `.md` files, and your attachments as themselves.
 Nothing is obfuscated and nothing is in a format only Tisty can read.
 
-**Nothing is encrypted at rest**, and that is a decision rather than an
-oversight — your operating system's permissions are the protection, and the
-files stay readable with tools you already have. It is written out in
-[PRIVACY.md](PRIVACY.md) and [SECURITY.md](SECURITY.md), including the parts
-that are not reassuring.
+**Nothing on your disk is encrypted at rest**, and that is a decision rather
+than an oversight — your operating system's permissions are the protection, and
+the files stay readable with tools you already have. What Tisty keeps in a cloud
+it reaches directly is another matter: that you can encrypt with a phrase only
+you know, as [the section below](#two-machines-if-you-have-two) tells. Both are
+written out in [PRIVACY.md](PRIVACY.md) and [SECURITY.md](SECURITY.md),
+including the parts that are not reassuring.
 
 Tisty makes **one** network request unasked — when it opens, and once a day
 after that: it checks whether a newer version exists. It sends nothing. If one
@@ -625,8 +633,9 @@ not signed with a key compiled into the copy you already have.
 
 ## Two Machines, If You Have Two
 
-Tell Tisty where to leave the copies, in Settings › *Syncing*. There are two
-ways, and the rest it does on its own.
+Tell Tisty where to leave the copies, in Settings › *Sync*. There are two
+ways — a cloud Tisty talks to directly, or a folder something else keeps in
+step — and the rest it does on its own.
 
 **Your Google Drive, directly.** Choose *Your cloud service* and **Connect**:
 your browser opens, you sign in to Google, and Google asks whether Tisty may
@@ -640,7 +649,7 @@ time, everything you already have goes up — or, if your Drive already holds
 your Tisty, it comes down instead; after that only
 what is new travels, and a dropped connection carries on where it left off.
 Attachments stay on the computer they were added on and come down on another
-one when you open them there; *Free space* lets go of the ones you have not
+one when you open them there; *Free up space* lets go of the ones you have not
 opened in a while. Each computer has a daily allowance, so no single copy can
 spend the quota Google grants the project: when it runs out, what you write
 stays safe here and syncing carries on the next day. Connecting happens only in
@@ -649,10 +658,18 @@ the window.
 **Your OneDrive, directly.** The same, with Microsoft: you sign in on
 Microsoft's page and Tisty keeps its copies in *Apps › Tisty* in your OneDrive.
 That folder is one you can see there; leave it to Tisty, since what you change
-by hand reads as a change from another computer. Dropbox may come later;
-nothing is promised.
+by hand reads as a change from another computer.
 
-Before you sign in, and before a move to the cloud, Tisty checks that the
+**Your own server, over WebDAV.** Nextcloud, ownCloud, Synology and others:
+you type the server's address, your user and a password in Settings, and Tisty
+checks the server before connecting — no browser opens. The password stays on
+this computer, kept by the system; an app password from your server is better
+than your main one, since you can remove it there whenever you like. Tisty keeps
+its copies in a *Tisty* folder on the server and touches nothing beside it;
+leave that folder to Tisty too. Your server sets the limit and the pace, and
+attachments always stay on this computer as well.
+
+Before you connect, and before a move to the cloud, Tisty checks that the
 provider answers, with one request that carries nothing of yours. If a proxy, a
 filter at work or an antivirus stands in the way, it says so in plain words —
 there, and on the card once syncing keeps failing: a second round in a row, or
@@ -663,10 +680,11 @@ how long, so it never looks frozen.
 
 **A folder.** Google Drive, OneDrive, iCloud and Dropbox's own folders —
 whichever it finds installed, folder already worked out — or any other folder
-both computers reach, a NAS, a drive you plug in on Fridays.
+both computers reach, a NAS, a drive you plug in on Fridays. Dropbox travels
+this way, through its own program.
 
 There is nothing of mine in the middle: no account, no server, no daemon. Who
-runs that folder or that Drive is your business, not Tisty's. If you sync
+runs that folder or that cloud is your business, not Tisty's. If you sync
 nothing, it never opens a connection for it at all. Changing your mind later is
 a move, not a switch: *Move to another place…* takes your copies between this
 machine, a folder and your cloud in two steps — first it brings home what
@@ -682,18 +700,59 @@ offers **Sync** instead of a first upload. It brings it with a moving bar and
 counts as things arrive, and **Keep working while it arrives** lets you into
 the app while the round goes on; the foot of the sidebar keeps counting and
 says if it could not finish. One that does hold your work asks first, naming
-the place: merge the two, keep this machine, or take what the place has.
+the place: merge the two, keep this machine, or take what the place has. If
+your cloud is encrypted, a new computer is let in first, as told below.
 
 Two machines can genuinely write the same document at once, and there Tisty
 merges them **block by block** — you edit the introduction on one, someone edits
 the closing paragraph on the other, and both land with nothing to answer. Only a
 real overlap becomes a question.
 
+**An older Tisty does not write over a newer one.** A computer still on Tisty
+1.30 to 1.33 that reaches your cloud or your folder stops and asks you to update
+it instead of carrying on. Until you do, that computer does not sync, but
+nothing is lost: what it holds stays where it was and catches up once it is
+updated.
+
 **Each machine signs what it writes**, and one nobody here has answered for
-waits at the door: its card in Settings › *Maintenance* shows the key it signs
-with, you compare it with the one that machine shows on its own card, and
-confirm it. Until then nothing it writes comes in; from then on, whatever does
-not answer to that key is turned away, and Tisty says so.
+waits at the door: its card in Settings › *Sync*, under *Your computers*, shows
+the code it signs with, you compare it with the one that machine shows for
+itself, and confirm it. Until then nothing it writes comes in; from then on,
+whatever does not answer to that key is turned away, and Tisty says so.
+
+**Your cloud, encrypted, if you want it.** In Settings › *Security*, **Encrypt
+my cloud…** encrypts what Tisty keeps in your Google Drive, your OneDrive or
+your WebDAV server with a key that comes from a 24-word phrase only you know.
+Whoever sees those files, your provider included, can no longer read your tasks
+or documents, and what is on your computers does not change. It is for a cloud
+Tisty reaches directly; a folder kept in step by another program stays as it
+is.
+
+Before it starts it checks three things: that your phrase is written down —
+**Save as PDF** gives you a sheet to keep, and three of its words confirm you did
+— that the cloud has room, since it takes twice as much until the old copy goes,
+and that every one of your computers runs a Tisty that knows an encrypted cloud.
+Then it shows the progress. You can keep working, close Tisty and have it carry
+on where it was, or cancel: until the last step, what was there stays as it was.
+Once it is done the old unencrypted copy stays in the cloud until you press
+**Delete the unencrypted copy**, and **Decrypt my cloud**, in the same place,
+turns it back to plain; your other computers notice and keep syncing without
+you doing anything on each one.
+
+**Your computers get the key on their own.** One that already synced with you
+waits a moment and takes the key from another of yours that has Tisty open, and
+meanwhile it writes nothing unencrypted. A new computer is let in from one that
+already reads the encrypted cloud: on the new one, **Let in from another
+computer** shows twenty digits, and you type them on the other under Settings ›
+*Security* › **Let a new computer in**; then **It took them** on the new one
+says you did. Or type your 24 words on the new one
+with **Type my phrase**: only the cloud's key stays there, never the phrase.
+
+**What it does not hide.** Your provider keeps earlier unencrypted versions for
+a while, in its history and its bin, and the names and sizes of the files and
+how many computers you have stay visible. The phrase never passes through
+anybody's hands, so nobody can give it back to you: without it or one of your
+computers, nobody can open your cloud, not even us.
 
 **And back up by hand, shared folder or not.** One zip with your whole history,
 kept wherever you like, and restored from the same place in *Your data*.
@@ -836,7 +895,7 @@ same.
 **Where is my data kept?**
 In one folder on your own disk: an append-only log of what happened, your
 documents as `.md` files, and your attachments as themselves. Settings › *Your
-data* prints the path and *Show the store* opens it. Nothing is obfuscated and
+data* prints the path and *Show folder* opens it. Nothing is obfuscated and
 nothing is in a format only Tisty can read.
 
 **What happens to my notes if Tisty disappears?**
@@ -852,11 +911,11 @@ If you already use an assistant of your own, Tisty leaves an
 again, and until you do everything it tries is refused.
 
 **Can I use it on two computers?**
-Yes, two ways. Connect your own Google Drive or OneDrive in the window, and
-Tisty talks to it directly, keeping its copies in a space of its own there and
-seeing nothing else. Or use a folder you
-already sync: Google Drive, OneDrive, iCloud, Dropbox, a NAS, a drive you plug
-in on Fridays. Either way there is no server of mine in between, no account of
+Yes, two ways. Connect your own Google Drive, OneDrive or WebDAV server in the
+window, and Tisty talks to it directly, keeping its copies in a place of its own
+there and seeing nothing else — encrypted with a phrase only you know, if you
+want. Or use a folder you already sync: Google Drive, OneDrive, iCloud, Dropbox,
+a NAS, a drive you plug in on Fridays. Either way there is no server of mine in between, no account of
 mine, and you can move from one to the other whenever you like.
 
 **Is there a mobile app?**
@@ -871,10 +930,12 @@ nothing in the design stands in the way; what is missing is the packaging and
 somebody to keep it working on the distributions people actually run.
 
 **Is my data encrypted?**
-No, and that is a decision rather than an oversight: your operating system's
-permissions are the protection, and the files stay readable with tools you
-already have. [PRIVACY.md](PRIVACY.md) writes it out, including the parts that
-are not reassuring.
+On your disk, no, and that is a decision rather than an oversight: your
+operating system's permissions are the protection, and the files stay readable
+with tools you already have. In a cloud Tisty reaches directly, it can be:
+Settings › *Security* encrypts it with a 24-word phrase only you know.
+[PRIVACY.md](PRIVACY.md) and [SECURITY.md](SECURITY.md) write it out, including
+the parts that are not reassuring.
 
 **Can I use it with my team?**
 No. Tisty is for one person by design — no assignees, no permissions, no

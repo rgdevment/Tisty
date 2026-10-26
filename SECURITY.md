@@ -34,22 +34,29 @@ report will never be dismissed for being inconvenient.
   Microsoft Store makes neither request: it asks Windows what the Store has for
   it. It is written out in full in [PRIVACY.md](PRIVACY.md), down to the
   headers.
-- **A cloud account is reached only if you choose it.** Since 1.30, Tisty can
-  sync straight with your own Google Drive; OneDrive or Dropbox may come later,
-  and none is promised. It talks only to Google, asks only for `drive.appdata` —
-  so it sees its own hidden space and nothing else in your Drive — and gives back
-  any access granted wider than that. It keeps the access it was given in the
-  system keychain on macOS and Linux and, on Windows, in a file sealed for your
-  user with DPAPI under your profile that uninstalling removes, and masks tokens
-  and signed addresses in its own log. Only the window holds it and only the
-  window connects an account; assistants never reach the network. Nothing goes
-  to a server of ours. A daily allowance per computer keeps one copy from
-  spending the project's shared quota, and the one remote switch
-  that can lower it or pause syncing, `cloud.json`, is refused unless it is
-  signed with minisign against a key fixed in the build, is no larger than
-  16 KiB and is newer than the last one heard. You can withdraw Tisty's access
-  from the window or from your Google account at any time. What it asks and
-  sends is in [PRIVACY.md](PRIVACY.md).
+- **A cloud account is reached only if you choose it.** Tisty can sync straight
+  with your own Google Drive since 1.30, your own OneDrive since 1.31 and a
+  WebDAV server of your own since 1.32; Dropbox is reached only through a folder
+  its desktop program keeps in step. With Google it asks only for
+  `drive.appdata` — so it sees its own hidden space and nothing else in your
+  Drive — and gives back any access granted wider than that; with Microsoft it
+  asks only for its own *Apps › Tisty* folder and refuses a sign-in that grants
+  more. A WebDAV server is reached only over `https`, except on this very
+  computer, never through a redirect, and only inside a `Tisty` folder of its
+  own; it is not connected unless it proves, before anything is kept, that it
+  refuses to write over a copy it was not told about. Tisty keeps the access it
+  was given, or the WebDAV password, in the system keychain on macOS and, on
+  Windows, in a file sealed for your user with DPAPI under your profile that
+  uninstalling removes, and masks tokens, passwords and signed addresses in its
+  own log. Only the window holds it and only the window connects an account;
+  assistants never reach the network. Nothing goes to a server of ours. A daily
+  allowance per computer keeps one copy from spending the project's shared
+  quota, and the one remote switch that can lower it or pause syncing,
+  `cloud.json`, is refused unless it is signed with minisign against a key
+  fixed in the build, is no larger than 16 KiB and is newer than the last one
+  heard. You can withdraw Tisty's access from the window, from your Google or
+  Microsoft account, or by removing the password on your server, at any time.
+  What it asks and sends is in [PRIVACY.md](PRIVACY.md).
 - **An update is verified before it is installed.** What the button fetches is
   checked against a public key compiled into the copy already on your machine.
   A build signed with any other key is refused, so a release that is not the
@@ -75,15 +82,30 @@ report will never be dismissed for being inconvenient.
   pictures.
 - **Synchronisation is yours.** Tisty copies files into a folder you name, and
   whatever already keeps that folder in step between your machines is what moves
-  them. There is no Tisty-operated backend at any tier, and no transport of ours
-  to attack: the code that syncs reads and writes local paths.
+  them — or into a cloud of your own that it reaches itself. There is no
+  Tisty-operated backend at any tier, and no transport of ours to attack: with a
+  folder, the code that syncs reads and writes local paths, and with a cloud it
+  speaks only to that provider or that server.
+- **A cloud can be encrypted so that its provider cannot read it.** Since 1.36,
+  what Tisty keeps in Google Drive, OneDrive or a WebDAV server can be sealed
+  with a key that comes from a 24-word phrase only you hold. Neither the
+  provider nor this project holds that key. It is described in its own section
+  below.
+- **An older Tisty stops instead of writing over a newer one.** Since 1.34,
+  every place Tisty syncs through says in its `tisty.toml` the oldest release
+  that may write there (`needs`), and every release since 1.30 reads it: one
+  older than that stops and asks to be updated, and neither reads nor writes.
+  An encrypted cloud raises it, so a release that does not know encryption never
+  writes plain files beside the sealed ones. Each machine also writes into the
+  log the release it runs, so Tisty can say which computer is behind.
 - **No plugin system.** Nothing loads third-party code into the process.
 - **`unsafe` is forbidden** at the workspace level, not merely discouraged. The
   window's crate is the one exception, and a narrow one: it denies `unsafe`
   too, and lets it in only where the operating system offers no other door — the
-  macOS webview and `sysctl`, the Windows shell and the Store's dialog — each
-  function marked one by one, in two files, and a test fails if a mark appears
-  in any other.
+  webview on both systems, `sysctl` on macOS, and on Windows the shell, the
+  imaging component, a program's version information, the notice that the
+  path changed, DPAPI and the Store's dialog — each function marked one by one,
+  in six files, and a test fails if a mark appears in any other.
 - **A release is held to what CI already proved.** A tag on a commit that did
   not pass CI on `main` is not released. The updater's signature is checked
   against the key the build ships before anything is published, and every file
@@ -116,11 +138,15 @@ report will never be dismissed for being inconvenient.
 
 Being explicit here matters more than sounding reassuring.
 
-- **Data is stored in plain text.** Tasks, notes and documents sit readable on
-  disk, protected only by your operating system's file permissions. At-rest
-  encryption was evaluated and rejected: it would put every reader of your data
-  behind a key Tisty would then have to manage, and the promise here is that
-  your files stay readable with tools you already have.
+- **Data is stored in plain text on your computer.** Tasks, notes and documents
+  sit readable on disk, protected only by your operating system's file
+  permissions. At-rest encryption on disk was evaluated and rejected: it would
+  put every reader of your data behind a key Tisty would then have to manage,
+  and the promise here is that your files stay readable with tools you already
+  have. Encrypting your cloud does not change this: it seals only the copy the
+  provider holds, and each of your computers decrypts what it brings down and
+  keeps it plain on its own disk. A folder kept in step by a desktop client is
+  never encrypted.
 - **An append-only log does not forget.** If a credential ends up in a task,
   deleting the task removes it from the current state but not from the history
   underneath — and if it already travelled to the shared folder, it is on the
@@ -151,7 +177,8 @@ Being explicit here matters more than sounding reassuring.
 - **Whoever holds the shared folder holds your data.** Syncing through a
   provider's folder means that provider stores your tasks, under their terms.
   That is the trade you make when you turn it on, and Tisty states it rather
-  than hiding it.
+  than hiding it. An encrypted cloud narrows it to what the encryption cannot
+  hide, listed in its section below.
 - **Anyone with access to your user account has access to your data.** Tisty
   adds no second authentication layer on top of your operating system's. On
   Unix it does narrow the permissions it controls — its directories to `0700`
@@ -179,7 +206,9 @@ Being explicit here matters more than sounding reassuring.
   a history written at the signed schema or later that arrives with none is not
   taken in at all. A machine whose key nobody here has confirmed is not trusted
   on the folder's word: what it writes waits until you confirm its key, in the
-  window. Those confirmations are kept on this machine only, and a key once
+  window, or until you let that computer into an encrypted cloud with the
+  twenty digits it shows, which confirms its key in the same step. Those
+  confirmations are kept on this machine only, and a key once
   confirmed is replaced only on its own word: a change of key that the
   confirmed key itself signed is followed, and a new key nobody vouched for
   still waits for you. Nothing in this version
@@ -200,15 +229,18 @@ Being explicit here matters more than sounding reassuring.
   it either way. An attachment is held to the full digest the log records for
   it, by the sync round and by the window alike; one the log has no digest for
   is held only to the prefix its name carries. And `tisty.toml`, which names
-  the store, is not signed. Someone who can write to the folder can also delete
-  from it, and no signature brings back what was removed.
+  the store, is not signed: what it says of encryption is held to the signed
+  log, as the encrypted cloud's section below explains. Someone who can write to
+  the folder can also delete from it, and no signature brings back what was
+  removed.
 
   What it does check besides is narrower and worth stating: it never writes
   through a symbolic link, into the folder or into any directory inside it; an
   attachment must hold the bytes its own name vouches for; one that was retired
   is not carried back in; a document body past the reader's ceiling is refused
   rather than swapped in for one that opens; a store carrying a different name
-  stops everything until you decide; and a machine that was removed is refused
+  stops everything until you decide; a place that asks for a later release than
+  this one is neither read nor written; and a machine that was removed is refused
   outright — that removal is absorbing, so a removed identifier is never valid
   again and a machine that returns comes back as a new one.
 
@@ -273,6 +305,94 @@ Being explicit here matters more than sounding reassuring.
   it was packed stays theirs at the other end. Lose the number and the parcel is
   gone: nothing here can open it for you. A short number is a short number, and
   scrypt only makes each guess expensive rather than impossible.
+
+## An encrypted cloud, if you turn it on
+
+Since 1.36, what Tisty keeps in your Google Drive, your OneDrive or your WebDAV
+server can be encrypted from Settings › Security. It is never offered for a
+folder kept in step by a desktop client. What follows is what holds it, and
+what it leaves in view.
+
+**One phrase, and keys that come from it.** The phrase is 24 words from the
+BIP-39 lists, in English or in Spanish, and it is the whole of a 32-byte seed
+made from the system's randomness on your computer. From that seed, by
+HKDF-SHA256 under labels of their own, come the key of your cloud and the
+Ed25519 root of your identity; the log carries only the root's public half, as
+your fingerprint, and the certificates it signs for each computer. The seed is
+kept on the computer where it was made, in the system keychain on macOS and, on
+Windows, in a DPAPI-sealed folder apart from the cloud tokens, so the
+installer's uninstaller takes the tokens and leaves the phrase. It is never synced, backed up or
+put in a parcel. Encrypting asks that the phrase be confirmed first, by three of
+its words.
+
+**What seals the files.** Each file is sealed with XChaCha20-Poly1305 over
+64 KiB blocks, under a nonce that carries a random head for the file, the
+block's place and whether it is the last, so no block can be dropped, cut short
+or moved. The seal is bound to the cloud and to the file's name, so one sealed
+file cannot pass for another, and a file that does not open is refused rather
+than kept in part. A small mark, `sealed/sealed.mark`, sealed the same way,
+tells whether a phrase is this cloud's before anything comes down; the
+identifier it carries is tied to the cloud too, so two clouds' marks never show
+that they belong to one person.
+
+**What it does not hide.** The names of the files, their sizes, when they
+change and how many computers you have stay in view; documents are named by an
+identifier, but an attachment's name is a lowercased form of its file's own.
+`tisty.toml`, `moved.json`, the store's identifier and the `knock/` folder stay
+plain. Whatever the provider kept before you encrypted — its version history,
+its bin, the unencrypted copy until you delete it — is still there. A file too
+big for the provider to take encrypted is left out and stays as it was.
+
+**The provider cannot turn it off for you.** The log, which every machine
+signs, says that the cloud is sealed and with which key, and only that key —
+or, on a computer whose log has not heard yet, the one that comes from the
+phrase the log names as yours — is used to read or to mark it. If `tisty.toml`
+stops saying the cloud is encrypted and none of your computers left a signed
+notice that it turned encryption off, Tisty writes nothing there unencrypted
+and tells you. That notice, `knock/unsealed.json`, is believed only from a
+machine the log seats, signed with the key the log knows for it, naming the key
+the log names, and later than the log's word that the cloud was sealed.
+
+**How the key reaches your other computers.** It travels only inside the
+cloud, in the plain `knock/` folder, and never as itself. A computer that needs
+it puts up an ask signed with its own Ed25519 key, carrying a one-use X25519
+key that lives only in its memory. A computer that holds the cloud's key
+answers with that key sealed for the one-use key alone: XChaCha20-Poly1305
+under a key drawn by HKDF-SHA256 from the X25519 exchange and bound to the ask.
+A replayed ask opens for nobody, since its one-use key is gone. Each file there
+is read to 4 KiB at most.
+
+**A computer already in your log gets it on its own.** Its ask is answered only
+if it is signed with the key the log knows for that computer, and its answer is
+taken only from a computer the log seats with the key it knows, or one whose
+key your identity's root has certified. The mark sits with the provider, who
+could seal a mark of its own, so a mark that opens is never enough on its own.
+
+**A new computer is let in by comparing twenty digits.** It shows a code drawn
+with scrypt from its ask, from the key of the computer that took the ask, and
+from a secret it committed to in the ask and reveals only after that computer
+took it — about 66 bits, so a provider standing in the middle can neither pick
+nor grind out a code that matches. You type the twenty digits on the computer
+letting it in, and that is what confirms the new computer's signing key there;
+then you say on the new computer that the other took them, and only then does
+it accept the answer. If you type nothing, nothing is handed over. An ask from a
+new computer lasts an hour.
+
+**Typing the phrase keeps only the cloud's key.** On a computer that holds
+neither, you can type your 24 words instead. The mark is checked first, the
+identity signs for that computer once, and only the cloud's key is kept, in
+the keychain or the sealed folder; the phrase is not.
+
+**Nobody else can open it.** There is no copy of the key outside your
+computers and the phrase. If you lose the phrase and every computer that holds
+the key, the encrypted cloud cannot be opened by you, by the provider or by
+this project.
+
+**Going back.** *Decrypt my cloud* copies everything back unencrypted, leaves
+the signed notice so your other computers follow, lets go of a key it was
+handed, and deletes the encrypted copy. While a turn either way is under way,
+`tisty.toml` says so, and for its last steps the other computers wait rather
+than write; until the very last, cancelling loses nothing.
 
 ## An assistant, if you admit one
 

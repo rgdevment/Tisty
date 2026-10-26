@@ -262,7 +262,8 @@ artificial**, esto es Tisty:
 | Cualquier archivo `.md` | se abre para leer en una ventana propia, sin entrar a tu almacén |
 | Adjuntos | se guardan con la tarea, tal como son |
 | Lo terminado | un **archivo que conserva lo que cada tarea te enseñó** |
-| Dos equipos | por una carpeta que ya sincronizas. Sin servidor nuestro |
+| Dos equipos | tu Google Drive, OneDrive o servidor WebDAV, directo, o una carpeta que ya sincronizas. Sin servidor nuestro |
+| Tu nube, cifrada | si quieres, con una frase de 24 palabras que solo tú conoces |
 | Lenguaje natural | fechas, límites y repeticiones, interpretados en tu equipo |
 | Cuándo hacerlo | un reparto de días donde repartes el trabajo, y un mes para mirar |
 | Recordatorios | una hora que eliges, que suena en este equipo y en ningún otro |
@@ -296,9 +297,11 @@ así que un asistente que ya uses puede anotar trabajo aquí — con sus pasos, 
 fecha y la lista que le toca, en este equipo, sin cuenta y sin nada por la red.
 Esa puerta la abres tú, y puedes cerrarla.
 
-**Dos equipos, sin intermediario.** Si ya sincronizas una carpeta, Tisty viaja
-por ella. No hay servidor nuestro en medio, no hay que registrarse, y no hay nada
-que deje de funcionar el día que una empresa cambie de idea.
+**Dos equipos, sin intermediario.** Tisty habla directo con tu propio Google
+Drive, OneDrive o servidor WebDAV, o viaja por una carpeta que ya sincronizas.
+No hay servidor nuestro en medio, no hay que registrarse, y no hay nada que deje
+de funcionar el día que una empresa cambie de idea. Y lo que guarda en esa nube
+se puede cifrar con una frase que solo tú conoces.
 
 **Gratis no es un plan aquí.** No hay mejora de pago, ni cuenta de puestos, ni
 función guardada para más adelante. La razón no es generosidad: un programa que
@@ -316,7 +319,8 @@ editor— y en Tisty lleva bastante más que texto:
   el texto las nombra, con un índice al final y flechas de una a la siguiente.
 - **Diagramas con unas pocas líneas.** Un bloque que dice `mermaid` dibuja
   flujos, secuencias, tortas, líneas de tiempo, mapas mentales, cartas Gantt y
-  más, claros u oscuros según la ventana.
+  más con el Mermaid oficial, claros u oscuros según la ventana y legibles a
+  cualquier ancho.
 - **Fórmulas** compuestas desde un bloque `math`, **código** coloreado por su
   lenguaje y con el nombre de su archivo, y **tablas** que conservan hacia dónde
   se inclinan sus columnas y con qué ancho las dibujaste.
@@ -326,7 +330,8 @@ editor— y en Tisty lleva bastante más que texto:
   varios colores, un ícono que se busca por lo que dibuja— y casillas que se
   marcan.
 - **Adjuntos que viajan con él**: fotos, PDF, sonido y video, guardados dentro
-  de Tisty en vez de enlazados a una carpeta que se mueve.
+  de Tisty en vez de enlazados a una carpeta que se mueve. Un clic en una foto
+  o un diagrama lo abre en grande, para acercarte y pasar al siguiente.
 - **Un PDF propio**, A4, Carta o Tabloide, con sus imágenes dentro, que te
   enseña antes de exportarlo.
 
@@ -507,13 +512,15 @@ apartado, porque eran preguntas con una respuesta evidente. La guía es un
 documento en tu propio almacén, en una carpeta suya: tuya para leerla, editarla
 o tirarla como cualquier otra cosa que escribas.
 
-**La configuración responde cuatro preguntas en vez de llevar cinco etiquetas.**
-*General* es cómo se porta Tisty contigo: idioma, arranque, captura rápida,
-avisos, actualizaciones, y lo único que ocurre fuera de la ventana: la
-bienvenida. *Tus datos* es todo lo que toca tus
-archivos, con la sincronización como bloque propio porque tiene estado, un aviso
-que depende de quién guarde tu carpeta y cuatro acciones. *Asistentes* y
-*Mantenimiento* son lo que dicen.
+**La configuración ocupa la barra lateral con sus secciones.** *General* es
+cómo se porta Tisty contigo: idioma, claro u oscuro, arranque, captura rápida,
+avisos, y lo único que ocurre fuera de la ventana: la bienvenida.
+*Sincronizar* es dónde van tus copias, qué equipos son tuyos y dónde se quedan
+los adjuntos grandes. *Seguridad* guarda tu frase de 24 palabras y la nube
+cifrada. *Tus datos* es tu carpeta, los respaldos, lo que sacas o traes, y una
+guía que deja limpio un equipo si quieres sacar Tisty de él. *Asistentes* y
+*Mantenimiento* son lo que dicen, y *Acerca de* va al final: el aviso de una
+actualización aparece solo cuando hay una, y te lleva directo ahí.
 
 **Tres columnas como máximo:** qué estás mirando, la lista, y la tarea que
 abriste. Nada más en pantalla.
@@ -627,11 +634,13 @@ Todo vive en una carpeta de tu disco: un registro de lo que pasó al que solo se
 le agrega, tus documentos como archivos `.md`, y tus adjuntos tal como son. Nada
 está ofuscado ni en un formato que solo Tisty pueda leer.
 
-**Nada está cifrado en reposo**, y es una decisión, no un descuido: la protección
-son los permisos de tu sistema operativo, y así los archivos siguen siendo
-legibles con las herramientas que ya tienes. Está explicado en
-[PRIVACY.md](PRIVACY.md) y [SECURITY.md](SECURITY.md), incluidas las partes que
-no son tranquilizadoras.
+**Nada de tu disco está cifrado en reposo**, y es una decisión, no un descuido:
+la protección son los permisos de tu sistema operativo, y así los archivos
+siguen siendo legibles con las herramientas que ya tienes. Lo que Tisty guarda
+en una nube con la que habla directo es otra cosa: eso lo puedes cifrar con una
+frase que solo tú conoces, como cuenta [la sección siguiente](#dos-equipos-si-tienes-dos).
+Las dos cosas están explicadas en [PRIVACY.md](PRIVACY.md) y
+[SECURITY.md](SECURITY.md), incluidas las partes que no son tranquilizadoras.
 
 Tisty hace **una** petición de red sin que se la pidas —al abrirse, y una vez
 al día mientras siga en marcha—: mira si existe una versión más nueva. No envía
@@ -642,7 +651,8 @@ que no esté firmado con una clave compilada dentro de la copia que ya tienes.
 ## Dos equipos, si tienes dos
 
 Dile a Tisty dónde dejar las copias, en Configuración › *Sincronizar*. Hay dos
-formas, y el resto lo hace solo.
+formas —una nube con la que Tisty habla directo, o una carpeta que otro programa
+mantiene al día— y el resto lo hace solo.
 
 **Tu Google Drive, directo.** Elige *Tu servicio de nube* y **Conectar**: se
 abre tu navegador, entras a Google y Google te pregunta si Tisty puede guardar
@@ -659,11 +669,24 @@ se agregaron y bajan en otro cuando los abres ahí; *Liberar espacio* suelta los
 que no abres hace tiempo. Cada equipo tiene un cupo diario, para que ninguna
 copia gaste la cuota que Google le da al proyecto: si se acaba, lo que escribas
 queda a salvo aquí y la sincronización sigue al día siguiente. Conectar se hace
-solo desde la ventana. OneDrive y Dropbox podrían llegar más adelante; no hay
-nada prometido.
+solo desde la ventana.
 
-Antes de que entres a tu cuenta, y antes de una mudanza a Drive, Tisty revisa
-que Google responda, con una sola petición que no lleva nada tuyo. Si un proxy,
+**Tu OneDrive, directo.** Lo mismo, con Microsoft: entras en la página de
+Microsoft y Tisty guarda sus copias en *Aplicaciones › Tisty* de tu OneDrive.
+Esa carpeta sí la ves ahí; déjasela a Tisty, porque lo que cambies a mano se lee
+como un cambio de otro equipo.
+
+**Tu propio servidor, por WebDAV.** Nextcloud, ownCloud, Synology y otros:
+escribes la dirección del servidor, tu usuario y una contraseña en
+Configuración, y Tisty revisa el servidor antes de conectarse; no se abre ningún
+navegador. La contraseña queda en este equipo, guardada por el sistema; mejor
+una contraseña de aplicación de tu servidor que la principal, porque ahí la
+puedes quitar cuando quieras. Tisty guarda sus copias en una carpeta *Tisty* del
+servidor y no toca nada fuera de ella; déjasela a Tisty también. Tu servidor
+pone el límite y el ritmo, y los adjuntos también quedan siempre en este equipo.
+
+Antes de que te conectes, y antes de una mudanza a la nube, Tisty revisa que el
+proveedor responda, con una sola petición que no lleva nada tuyo. Si un proxy,
 un filtro de tu trabajo o un antivirus se interpone, te lo dice con palabras
 simples —ahí, y en la tarjeta cuando la sincronización sigue fallando: una
 segunda ronda seguida, o dos minutos después de la primera—. Una ronda fallida
@@ -674,37 +697,81 @@ congelada.
 
 **Una carpeta.** Las carpetas de Google Drive, OneDrive, iCloud y Dropbox —las
 que encuentre instaladas, ya resueltas— o cualquier otra que tus dos
-computadores alcancen: un NAS, un disco que enchufas los viernes.
+equipos alcancen: un NAS, un disco que enchufas los viernes. Dropbox viaja por
+aquí, con su propio programa.
 
 No hay nada mío en el medio: ni cuenta, ni servidor, ni proceso residente. Quién
-mantenga esa carpeta o ese Drive es asunto tuyo, no de Tisty. Si no sincronizas
+mantenga esa carpeta o esa nube es asunto tuyo, no de Tisty. Si no sincronizas
 nada, no abre una conexión para eso en su vida. Cambiar de idea después es una
 mudanza, no un interruptor: *Mudarme a otro lugar…* lleva tus copias entre este
-equipo, una carpeta y Google Drive en dos pasos —primero trae a casa lo que
+equipo, una carpeta y tu nube en dos pasos —primero trae a casa lo que
 vivía solo en el lugar que dejas, después lleva todo al nuevo—, cuenta los
-archivos que faltan, te dice cuándo Google pide una pausa, te deja ocultarla y
+archivos que faltan, te dice cuándo el proveedor pide una pausa, te deja ocultarla y
 seguir trabajando, y les avisa a tus otros equipos adónde te fuiste para que
 cada uno te siga.
 
-**Un computador nuevo se une solo.** Si todavía no guarda nada tuyo, toma lo que
+**Un equipo nuevo se une solo.** Si todavía no guarda nada tuyo, toma lo que
 ya guarda la carpeta o tu Drive, después de dejar un respaldo; al conectar Drive
 ahí, dice *Tu Google Drive ya tiene tu Tisty* y ofrece **Sincronizar** en vez de
 una primera subida. Lo trae con una barra en movimiento y los conteos a medida
 que llega, y **Seguir trabajando mientras llega** te deja entrar a la app
 mientras la ronda sigue; el pie de la barra lateral sigue contando y avisa si no
 pudo terminar. Uno que sí guarda tu trabajo pregunta antes, nombrando el lugar:
-fusionar las dos, conservar esta máquina o quedarte con lo del lugar.
+fusionar las dos, conservar esta máquina o quedarte con lo del lugar. Si tu
+nube está cifrada, antes hay que autorizar al equipo nuevo, como se cuenta más
+abajo.
 
 Dos equipos sí pueden escribir el mismo documento a la vez, y ahí Tisty los junta
 **bloque a bloque**: editas la introducción en uno, alguien edita el cierre en el
 otro, y las dos cosas llegan sin que tengas que responder nada. Solo cuando los
 cambios se pisan de verdad hay una pregunta.
 
+**Un Tisty anterior no escribe encima de uno más nuevo.** Un equipo que sigue
+con Tisty 1.30 a 1.33 y llega a tu nube o a tu carpeta se detiene y te pide
+actualizarlo en vez de seguir escribiendo. Mientras no lo hagas, ese equipo no
+sincroniza, pero no pierdes nada: lo que tiene se queda donde estaba y se pone
+al día en cuanto lo actualices.
+
 **Cada equipo firma lo que escribe**, y uno por el que aquí nadie ha respondido
-espera en la puerta: su ficha en Configuración › *Mantenimiento* muestra la
-clave con la que firma, la comparas con la que ese equipo muestra en su propia
-ficha, y la confirmas. Hasta entonces no entra nada de lo que escribe; desde
-ese momento, lo que no responda a esa clave se rechaza, y Tisty te lo dice.
+espera en la puerta: su ficha en Configuración › *Sincronizar*, en *Tus
+equipos*, muestra el código con el que firma, lo comparas con el que ese equipo
+muestra de sí mismo, y lo confirmas. Hasta entonces no entra nada de lo que
+escribe; desde ese momento, lo que no responda a esa clave se rechaza, y Tisty
+te lo dice.
+
+**Tu nube, cifrada, si quieres.** En Configuración › *Seguridad*, **Cifrar mi
+nube…** cifra lo que Tisty guarda en tu Google Drive, tu OneDrive o tu servidor
+WebDAV con una llave que sale de una frase de 24 palabras que solo tú conoces.
+Quien vea esos archivos, tu proveedor incluido, ya no puede leer tus tareas ni
+tus documentos, y lo que tienes en tus equipos no cambia. Es para una nube con
+la que Tisty habla directo; una carpeta que otro programa mantiene al día se
+queda como está.
+
+Antes de empezar revisa tres cosas: que tu frase esté anotada —**Guardar como
+PDF** te da una hoja para guardarla, y tres de sus palabras confirman que la
+anotaste—, que haya espacio en la nube, porque ocupa el doble hasta que se va la
+copia antigua, y que cada uno de tus equipos tenga un Tisty que conozca la nube
+cifrada. Después te muestra el avance. Puedes seguir trabajando, cerrar Tisty y
+que siga donde quedó, o cancelar: hasta el último paso, lo de antes queda
+intacto. Al terminar, la copia antigua sin cifrar sigue en la nube hasta que
+pulses **Borrar la copia sin cifrar**, y **Descifrar mi nube**, en el mismo
+lugar, la deja otra vez sin cifrar; tus otros equipos se dan cuenta y siguen
+sincronizando sin que hagas nada en cada uno.
+
+**Tus equipos reciben la llave solos.** Uno que ya sincronizaba contigo espera
+un momento y la toma de otro de los tuyos que tenga Tisty abierto, y mientras
+tanto no escribe nada sin cifrar. Un equipo nuevo se autoriza desde uno que ya
+lee la nube cifrada: en el nuevo, **Autorizar desde otro equipo** muestra veinte
+dígitos, y los escribes en el otro, en Configuración › *Seguridad* ›
+**Autorizar un equipo nuevo**; luego **Ya los aceptó** en el nuevo confirma
+que lo hiciste. O escribe tus 24 palabras en el nuevo con
+**Escribir mi frase**: ahí solo queda la llave de la nube, nunca la frase.
+
+**Lo que no oculta.** Tu proveedor guarda un tiempo versiones anteriores sin
+cifrar, en su historial y su papelera, y los nombres y tamaños de los archivos y
+cuántos equipos tienes siguen a la vista. La frase nunca pasa por las manos de
+nadie, así que nadie te la puede devolver: sin ella o sin uno de tus equipos,
+nadie puede abrir tu nube, ni siquiera nosotros.
 
 **Y respalda a mano, con carpeta compartida o sin ella.** Un zip con todo tu
 historial, guardado donde quieras, y restaurado desde el mismo sitio en *Tus
@@ -728,7 +795,7 @@ aviso de Google Drive, de *Reconectar* a un Drive lleno o
 
 ## Un asistente, si usas uno
 
-![Trae a tus agentes favoritos, ellos ordenan la casa: Ajustes › Asistentes muestra los que hay en este computador y conecta cada uno por MCP, sin IA dentro de Tisty](assets/store/es-07-mcp.png)
+![Trae a tus agentes favoritos, ellos ordenan la casa: Configuración › Asistentes muestra los que hay en este equipo y conecta cada uno por MCP, sin IA dentro de Tisty](assets/store/es-07-mcp.png)
 
 **Tisty no es inteligencia artificial ni la lleva dentro.** El lenguaje natural
 que convierte "llamar al banco a las 3" en una tarea es un puñado de reglas
@@ -847,7 +914,7 @@ preguntarlo. Desconecta el equipo de la red y todo lo demás sigue igual.
 **¿Dónde quedan mis datos?**
 En una carpeta de tu propio disco: un registro que solo crece con lo que pasó,
 tus documentos como archivos `.md` y tus adjuntos tal cual son. Configuración ›
-*Tus datos* escribe la ruta y *Ver el almacén* la abre. Nada está ofuscado y
+*Tus datos* escribe la ruta y *Mostrar carpeta* la abre. Nada está ofuscado y
 nada queda en un formato que solo Tisty sepa leer.
 
 **¿Qué pasa con mis notas si Tisty desaparece?**
@@ -863,10 +930,10 @@ sin nube. Si ya usas un asistente tuyo, Tisty deja una puerta
 y hasta que la abras todo lo que intente se rechaza.
 
 **¿Puedo usarlo en dos equipos?**
-Sí, de dos formas. Conecta tu propio Google Drive en la ventana y Tisty habla
-con él directo, guardando sus copias en un espacio oculto de tu Drive y sin
-ver nada más ahí. O usa una carpeta que ya
-sincronizas: Google Drive, OneDrive, iCloud, Dropbox, un NAS, un disco que
+Sí, de dos formas. Conecta tu propio Google Drive, OneDrive o servidor WebDAV
+en la ventana y Tisty habla con él directo, guardando sus copias en un lugar
+propio ahí y sin ver nada más; cifradas con una frase que solo tú conoces, si
+quieres. O usa una carpeta que ya sincronizas: Google Drive, OneDrive, iCloud, Dropbox, un NAS, un disco que
 enchufas los viernes. En los dos casos no hay ningún servidor mío en medio, ni
 cuenta mía, y puedes mudarte de una a otra cuando quieras.
 
@@ -882,10 +949,12 @@ que nada en el diseño lo impide; lo que falta es el empaquetado y alguien que l
 mantenga funcionando en las distribuciones que la gente usa de verdad.
 
 **¿Mis datos están cifrados?**
-No, y es una decisión, no un descuido: los permisos de tu sistema operativo son
-la protección, y los archivos siguen legibles con herramientas que ya tienes.
-[PRIVACY.md](PRIVACY.md) lo deja escrito, incluidas las partes que no
-tranquilizan.
+En tu disco no, y es una decisión, no un descuido: los permisos de tu sistema
+operativo son la protección, y los archivos siguen legibles con herramientas que
+ya tienes. En una nube con la que Tisty habla directo, sí pueden estarlo:
+Configuración › *Seguridad* los cifra con una frase de 24 palabras que solo tú
+conoces. [PRIVACY.md](PRIVACY.md) y [SECURITY.md](SECURITY.md) lo dejan escrito,
+incluidas las partes que no tranquilizan.
 
 **¿Sirve para mi equipo de trabajo?**
 No. Tisty es para una persona por diseño —sin responsables, sin permisos, sin

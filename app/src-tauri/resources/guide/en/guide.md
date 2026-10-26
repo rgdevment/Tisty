@@ -251,7 +251,7 @@ The width rides in how long the rule under the header is drawn, so every other M
 
 #### Diagrams
 
-A code block whose language is `mermaid` stops being code and gets drawn. Good for a shape:
+A code block whose language is `mermaid` stops being code and is drawn by the official Mermaid: it fits any width, reads well in dark mode, and a click opens it large. Good for a shape:
 
 ```mermaid
 graph TD
@@ -310,7 +310,7 @@ If the widget grows large, attach it instead: an `.html` file attached to a docu
 
 #### Files, sound and film
 
-An attached file is drawn as what it is: a picture as itself, a sound or a film with its player, an `.html` page live, and anything else as a card with its kind and size. Every card has a **⋯**: save a copy, show the page as a file or live again, turn the card into a plain link, or take it off the page. A film still in your cloud comes down only when you press play, and says why if it cannot.
+An attached file is drawn as what it is: a picture as itself, opened large with a click, a sound or a film with its player, an `.html` page live, and anything else as a card with its kind and size. Every card has a **⋯**: save a copy, show the page as a file or live again, turn the card into a plain link, or take it off the page. A film still in your cloud comes down only when you press play, and says why if it cannot.
 
 #### Code, with a name and a colour
 
@@ -385,13 +385,15 @@ To rewrite a whole document it is handed a print of the exact text it read, and 
 
 ### 12. Your copies
 
-Tisty always works on this computer. To reach it from another one, tell it where to leave the copies: it offers Google Drive, OneDrive, iCloud and Dropbox — whichever it finds installed, folder already worked out — or any other folder both computers reach, a NAS or an external disk. Your Google Drive or OneDrive can also be connected directly, from Settings, with no program of Google's or Microsoft's installed.
+Tisty always works on this computer. To reach it from another one, tell it where to leave the copies. Your Google Drive, your OneDrive or your own WebDAV server — Nextcloud, ownCloud, Synology and others — connect directly from Settings → Sync, with no other program installed. Or pick a folder: it offers Google Drive, OneDrive, iCloud and Dropbox — whichever it finds installed, folder already worked out — or any other folder both computers reach, a NAS or an external disk.
 
-Whoever takes that folder up and down is your provider's program, not Tisty. If it is not running, the tasks wait there until it is.
+A cloud connected directly can also be encrypted from Settings → Security, with a 24-word phrase only you know, and then not even your provider can read Rina's record. Your other computers get the key on their own, a new one is let in with a code you type on one of yours, and a folder is not encrypted.
+
+If you pick a folder, whoever takes it up and down is your provider's program, not Tisty. If it is not running, the tasks wait there until it is.
 
 > There is no server of ours in between. Syncing gives you redundancy, not time travel: if you delete a task, the deletion travels too.
 
-Every machine signs what it writes. One you already knew is recognised on its own when it updates. A new one — just installed or reinstalled — waits until you confirm it is yours: a notice in the sidebar names that computer, and **Confirm…** shows its twenty-digit code. Open it on that machine, in Settings → Your data → **Syncing**, where **Show large** makes it easy to read from across the desk: if the code is the same, **Yes, it is the same** lets it through and brings in what it wrote; if not, **It doesn't match** keeps it out. You do it once on each of your other machines. If what waits is another computer's assistant, its code is on that computer, in Settings → Assistants.
+Every machine signs what it writes. One you already knew is recognised on its own when it updates. A new one — just installed or reinstalled — waits until you confirm it is yours: a notice in the sidebar names that computer, and **Confirm…** shows its twenty-digit code. Open it on that machine, in Settings → **Sync**, where **Show large** makes it easy to read from across the desk: if the code is the same, **Yes, it is the same** lets it through and brings in what it wrote; if not, **It doesn't match** keeps it out. You do it once on each of your other machines. If what waits is another computer's assistant, its code is on that computer, in Settings → Assistants.
 
 Right there, **Rename** chooses how your other machines will show this one; left empty, it goes back to the system's name. And every **Sync now** says when it ran and whether something came back or was written to the folder.
 
@@ -415,7 +417,7 @@ The Archive reads in three layers: the **stories**, which left something written
 
 Files you had attached do not go with it, because another document might still be using them. They stay behind as loose files, and Settings → Maintenance lists them for you to let go of when you want.
 
-Right there, under **The store**, is **Review**: it counts what is spare, what is missing and what you can get back, and changes nothing on its own. Attachments nothing names any more go to the bin with thirty days to change your mind. Documents on disk the log does not name are set apart to look at first, because they may be the only copy of something that lost its event: taking one in can never be wrong. [The archive](https://www.tisty.app/docs/archive/), in the docs, tells each layer in full.
+Each time you open Maintenance it looks over your history, documents and attachments, and **Check again** does it once more: it counts what is spare, what is missing and what you can get back, and changes nothing on its own. Attachments nothing names any more go to the bin with thirty days to change your mind. Documents on disk the log does not name are set apart to look at first, because they may be the only copy of something that lost its event: taking one in can never be wrong. [The archive](https://www.tisty.app/docs/archive/), in the docs, tells each layer in full.
 
 ### 14. Shortcuts
 
