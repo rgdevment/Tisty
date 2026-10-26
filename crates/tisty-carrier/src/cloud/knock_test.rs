@@ -211,3 +211,13 @@ fn a_notice_of_a_cloud_turned_back_to_plain_reads_back_and_never_counts_as_a_kno
     assert_eq!(unsealed_of(&fake, home.path()).unwrap(), Some(notice));
     assert!(knocks(&fake, home.path()).unwrap().is_empty());
 }
+
+#[test]
+fn a_reveal_that_cannot_be_read_counts_as_none() {
+    let (fake, home) = (Fake::drive(), tempfile::tempdir().unwrap());
+    let ask = asked("dev_b", &OneUse::minted().unwrap());
+    knocked(&fake, home.path(), &ask).unwrap();
+    put(&fake, "knock/dev_b.open", b"{ not a reveal");
+
+    assert_eq!(reveal_of(&fake, home.path(), "dev_b").unwrap(), None);
+}
