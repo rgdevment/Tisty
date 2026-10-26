@@ -185,7 +185,7 @@ export function LetThemIn({ onClose }: { onClose: () => void }) {
             autoComplete="off"
             spellCheck={false}
             onChange={(event) => setTyped(event.target.value)}
-            className="mt-3 w-full rounded-[10px] border border-line bg-bg px-3 py-2 text-center font-mono text-[18px] tracking-[0.06em] tabular-nums"
+            className="mt-3 w-full rounded-[10px] border border-line bg-bg px-3 py-2 text-center font-mono text-[21px] tracking-[0.06em] tabular-nums"
           />
           <div className="mt-4 flex flex-wrap justify-end gap-2">
             <button
