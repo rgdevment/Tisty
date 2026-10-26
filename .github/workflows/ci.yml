@@ -39,7 +39,7 @@ jobs:
             echo "rust=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          aside='^(app/src/|app/(\.gitignore|biome\.json|index\.html|package(-lock)?\.json|public/|stryker\.config\.json|tsconfig(\.node)?\.json|vite\.config\.ts)$|assets/|docs/|hooks/|(CLA|CODE_OF_CONDUCT|CONTRIBUTING|PRIVACY|README|README\.es|SECURITY|THIRD-PARTY)\.md$|package(-lock)?\.json$|\.markdownlint-cli2\.jsonc$|\.editorconfig$|\.github/(FUNDING|dependabot)\.yml$|\.github/workflows/(caches|cla|commits|feed|mutants|mutants-sweep|release|rules|versions)\.yml$)'
+          aside='^(app/src/|app/(\.gitignore|biome\.json|index\.html|package(-lock)?\.json|public/|stryker\.config\.json|tsconfig(\.node)?\.json|vite\.config\.ts)$|assets/|docs/|fuzz/|hooks/|(CLA|CODE_OF_CONDUCT|CONTRIBUTING|PRIVACY|README|README\.es|SECURITY|THIRD-PARTY)\.md$|package(-lock)?\.json$|\.markdownlint-cli2\.jsonc$|\.editorconfig$|\.github/(FUNDING|dependabot)\.yml$|\.github/workflows/(caches|cla|commits|feed|fuzz|mutants|mutants-sweep|release|rules|versions)\.yml$)'
           from=$(git merge-base "$BASE" HEAD)
           changed=$(git diff --name-only "$from" HEAD)
           first=$( { echo "$changed" | grep -x 'app/src/news.json'; echo "$changed" | grep -vE "$aside"; } \
@@ -160,6 +160,7 @@ jobs:
         with:
           components: rustfmt
       - run: cargo fmt --all --check
+      - run: rustfmt --check --edition 2021 fuzz/fuzz_targets/*.rs
 
   wasm:
     name: share protocol on wasm
