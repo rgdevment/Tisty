@@ -5716,6 +5716,7 @@ dependencies = [
  "tisty-core",
  "tisty-markdown",
  "tisty-nl",
+ "tisty-share-proto",
  "toml 1.1.8+spec-1.1.0",
  "ulid",
 ]

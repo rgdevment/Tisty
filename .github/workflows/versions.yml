@@ -8,6 +8,7 @@ on:
       - "crates/tisty-carrier/**"
       - "crates/tisty-cli/**"
       - "crates/tisty-nl/**"
+      - "crates/tisty-share-proto/**"
       - "fixtures/stores/**"
       - "Cargo.toml"
       - "Cargo.lock"
@@ -21,6 +22,7 @@ on:
       - "crates/tisty-carrier/**"
       - "crates/tisty-cli/**"
       - "crates/tisty-nl/**"
+      - "crates/tisty-share-proto/**"
       - "fixtures/stores/**"
       - "Cargo.toml"
       - "Cargo.lock"
@@ -50,10 +52,10 @@ jobs:
       attestations: read
     strategy:
       fail-fast: false
-      # The releases carry a command line for Windows and macOS only, and none from 1.31 on.
+      # Releases up to 1.30 carry a command line for Windows and macOS only; later ones are built from their tag.
       matrix:
         os: [windows-latest, macos-latest]
-        release: ["1.23.1", "1.24.4", "1.25.0", "1.25.1", "1.30.0"]
+        release: ["1.23.1", "1.24.4", "1.25.0", "1.25.1", "1.30.0", "1.30.5", "1.33.0", "1.34.1", "1.35.0"]
         include:
           - release: "1.23.1"
             schema: 15
@@ -70,9 +72,35 @@ jobs:
           - release: "1.30.0"
             schema: 17
             shape: 2
+            accepts: "1.30.0"
+          - release: "1.30.5"
+            schema: 17
+            shape: 2
+            accepts: "1.30.0"
+          - release: "1.33.0"
+            schema: 18
+            shape: 3
+            accepts: "1.31.0"
+            built: true
+          - release: "1.34.1"
+            schema: 18
+            shape: 3
+            accepts: "1.34.1"
+            built: true
+          - release: "1.35.0"
+            schema: 18
+            shape: 3
+            accepts: "1.35.0"
+            built: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: matrix.built
+        with:
+          ref: v${{ matrix.release }}
+          path: earlier/source
           persist-credentials: false
       - uses: ./.github/actions/toolchain
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
@@ -85,23 +113,38 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE: ${{ matrix.release }}
+          BUILT: ${{ matrix.built }}
         run: |
           set -euo pipefail
-          case "$RUNNER_OS" in
-            Windows) file="tisty-cli-$RELEASE-windows-x86_64.zip" ;;
-            macOS) file="tisty-cli-$RELEASE-macos-universal.tar.gz" ;;
-            *) echo "::error::no command line is released for $RUNNER_OS"; exit 1 ;;
-          esac
-          mkdir -p earlier/unpacked
-          gh release download "v$RELEASE" --repo "$GITHUB_REPOSITORY" --pattern "$file" --dir earlier
-          gh attestation verify "earlier/$file" --repo "$GITHUB_REPOSITORY" \
-            --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml"
-          case "$file" in
-            *.zip) unzip -q "earlier/$file" -d earlier/unpacked ;;
-            *) tar xzf "earlier/$file" -C earlier/unpacked ;;
-          esac
-          bin=$(find earlier/unpacked -type f \( -name tisty -o -name tisty.exe \) | sed -n '1p')
-          [ -n "$bin" ] || { echo "::error::$file holds no tisty"; exit 1; }
+          if [ "$BUILT" = "true" ]; then
+            mkdir -p earlier/source/crates/tisty-cli/examples
+            cp crates/tisty-cli/examples/earlier.rs earlier/source/crates/tisty-cli/examples/earlier.rs
+            sed -i.bak -e "s/^version = .*/version = \"$RELEASE\"/" earlier/source/Cargo.toml
+            rm -f earlier/source/Cargo.toml.bak
+            grep -q "^version = \"$RELEASE\"\$" earlier/source/Cargo.toml \
+              || { echo "::error::could not stamp $RELEASE into its tree"; exit 1; }
+            # A newer compiler's warnings in a release's own tree are not this build's to fix.
+            RUSTFLAGS="" cargo build --manifest-path earlier/source/Cargo.toml -p tisty-cli \
+              --example earlier --target-dir earlier/target
+            bin=$(find earlier/target/debug/examples -maxdepth 1 -type f \( -name earlier -o -name earlier.exe \) | sed -n '1p')
+            [ -n "$bin" ] || { echo "::error::v$RELEASE built no earlier"; exit 1; }
+          else
+            case "$RUNNER_OS" in
+              Windows) file="tisty-cli-$RELEASE-windows-x86_64.zip" ;;
+              macOS) file="tisty-cli-$RELEASE-macos-universal.tar.gz" ;;
+              *) echo "::error::no command line is released for $RUNNER_OS"; exit 1 ;;
+            esac
+            mkdir -p earlier/unpacked
+            gh release download "v$RELEASE" --repo "$GITHUB_REPOSITORY" --pattern "$file" --dir earlier
+            gh attestation verify "earlier/$file" --repo "$GITHUB_REPOSITORY" \
+              --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml"
+            case "$file" in
+              *.zip) unzip -q "earlier/$file" -d earlier/unpacked ;;
+              *) tar xzf "earlier/$file" -C earlier/unpacked ;;
+            esac
+            bin=$(find earlier/unpacked -type f \( -name tisty -o -name tisty.exe \) | sed -n '1p')
+            [ -n "$bin" ] || { echo "::error::$file holds no tisty"; exit 1; }
+          fi
           bin="$PWD/$bin"
           if command -v cygpath > /dev/null; then bin=$(cygpath -w "$bin"); fi
           echo "bin=$bin" >> "$GITHUB_OUTPUT"
@@ -110,4 +153,5 @@ jobs:
           TISTY_PREVIOUS: ${{ steps.earlier.outputs.bin }}
           TISTY_PREVIOUS_SCHEMA: ${{ matrix.schema }}
           TISTY_PREVIOUS_SHAPE: ${{ matrix.shape }}
+          TISTY_PREVIOUS_ACCEPTS: ${{ matrix.accepts }}
         run: cargo test -p tisty-cli --test versions -- --ignored
