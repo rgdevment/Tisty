@@ -142,7 +142,10 @@ impl State {
                     .get(*device)
                     .and_then(|runs| crate::released(runs))
                     .zip(wanted)
-                    .is_none_or(|(runs, wanted)| runs < wanted)
+                    // A candidate of a release already carries what that release brings, so only its numbers count.
+                    .is_none_or(|(runs, wanted)| {
+                        (runs.0, runs.1, runs.2) < (wanted.0, wanted.1, wanted.2)
+                    })
             })
             .cloned()
             .collect()
