@@ -1380,6 +1380,16 @@ export const admittingGrant = (device: string, code: string): Promise<void> =>
   invoke("admitting_grant", { device, code });
 export const admittingRefuse = (device: string): Promise<void> =>
   invoke("admitting_refuse", { device });
+
+export interface Heard {
+  device: string;
+  name: string;
+  os: string | null;
+  at: number;
+}
+
+export const sealingHeard = (): Promise<Heard[]> => invoke("sealing_heard");
+export const sealingPhrase = (said: string): Promise<void> => invoke("sealing_phrase", { said });
 export const docWord = (bodies: string[], at: string): Promise<void> =>
   invoke("doc_word", { bodies, at });
 

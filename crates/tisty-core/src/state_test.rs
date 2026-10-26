@@ -4974,3 +4974,73 @@ fn a_compacted_document_says_by_whom_and_when_until_the_person_settles_it() {
     state.apply(&ev(6, "dev_laptop", Op::DocUncompacted { id: one }));
     assert!(state.docs[&one].compacted.is_none(), "kept or taken back");
 }
+
+#[test]
+fn each_machine_is_heard_at_its_latest_word_whatever_order_they_come_in() {
+    let at = |when: &str, by: &str, n: u64| crate::event::Event {
+        version: crate::event::SCHEMA_VERSION,
+        timestamp: when.parse().unwrap(),
+        device: crate::event::DeviceId(by.into()),
+        batch: None,
+        undo: false,
+        redo: false,
+        seq: n,
+        op: seam("01OLD", "01NEW"),
+        optional: false,
+        zone: None,
+        via: None,
+    };
+    let mut state = State::default();
+    for event in [
+        at("2026-08-15T10:00:00Z", "dev_a", 0),
+        at("2026-08-15T09:00:00Z", "dev_a", 1),
+        at("2026-08-14T00:00:00Z", "dev_b", 0),
+    ] {
+        state.apply(&event);
+    }
+
+    let a: jiff::Timestamp = "2026-08-15T10:00:00Z".parse().unwrap();
+    let b: jiff::Timestamp = "2026-08-14T00:00:00Z".parse().unwrap();
+    assert_eq!(
+        state.heard.get(&crate::event::DeviceId("dev_a".into())),
+        Some(&a.as_second())
+    );
+    assert_eq!(
+        state.heard.get(&crate::event::DeviceId("dev_b".into())),
+        Some(&b.as_second())
+    );
+}
+
+#[test]
+fn a_machine_taken_off_the_list_is_heard_no_more() {
+    let mut state = State::default();
+    for (by, op) in [
+        ("dev_b", seam("01OLD", "01NEW")),
+        (
+            "dev_a",
+            crate::Op::DeviceRemove {
+                d: crate::event::DeviceId("dev_b".into()),
+            },
+        ),
+    ] {
+        state.apply(&crate::event::Event {
+            version: crate::event::SCHEMA_VERSION,
+            timestamp: "2026-08-15T10:00:00Z".parse().unwrap(),
+            device: crate::event::DeviceId(by.into()),
+            batch: None,
+            undo: false,
+            redo: false,
+            seq: 0,
+            op,
+            optional: false,
+            zone: None,
+            via: None,
+        });
+    }
+
+    assert!(
+        !state
+            .heard
+            .contains_key(&crate::event::DeviceId("dev_b".into()))
+    );
+}

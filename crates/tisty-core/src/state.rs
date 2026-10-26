@@ -32,6 +32,7 @@ pub struct State {
     pub hosts: BTreeMap<DeviceId, DeviceId>,
     pub named: BTreeMap<DeviceId, crate::applying::Named>,
     pub runs: BTreeMap<DeviceId, String>,
+    pub heard: BTreeMap<DeviceId, i64>,
     pub sealed: BTreeMap<String, String>,
     pub sourced: BTreeMap<String, TaskId>,
     pub dropped: BTreeSet<DeviceId>,
@@ -213,6 +214,17 @@ impl State {
     }
 
     pub fn apply(&mut self, event: &Event) {
+        let at = event.timestamp.as_second();
+        match self.heard.get_mut(&event.device) {
+            Some(was) => *was = (*was).max(at),
+            None => {
+                self.heard.insert(event.device.clone(), at);
+            }
+        }
+        self.applied(event);
+    }
+
+    fn applied(&mut self, event: &Event) {
         if let Some(id) = event.entity_id().filter(|id| self.tombstones.contains(id)) {
             crate::witness::trace(
                 crate::witness::channel::STORE,
