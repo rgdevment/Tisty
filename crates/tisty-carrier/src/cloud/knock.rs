@@ -238,7 +238,15 @@ pub fn revealed(plain: &dyn Remote, home: &Path, device: &str, reveal: &str) -> 
 pub fn reveal_of(plain: &dyn Remote, home: &Path, device: &str) -> Result<Option<String>, Hitch> {
     match read::<Open>(&boxed(plain, home), &named(device, OPEN)?)? {
         Found::Read(open) => Ok(Some(open.reveal)),
-        Found::Unread | Found::Missing => Ok(None),
+        Found::Unread => {
+            tisty_core::witness::warn(
+                tisty_core::witness::channel::CLOUD,
+                "a new computer's reveal is up there and could not be read",
+                &[],
+            );
+            Ok(None)
+        }
+        Found::Missing => Ok(None),
     }
 }
 

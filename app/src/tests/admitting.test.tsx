@@ -94,6 +94,18 @@ describe("letting a new computer in from one that reads the cloud", () => {
     expect(sent("admitting_grant")[0]?.args).toEqual({ device: "dev_b", code: CODE });
   });
 
+  it("keeps only the twenty digits, grouped as the new computer shows them", async () => {
+    ipc.newcomers = [mac];
+    render(<LetThemIn onClose={() => {}} />);
+    await userEvent.click(await screen.findByRole("button", { name: "Let it in" }));
+    const field = await screen.findByRole("textbox", { name: "The code the new computer shows" });
+
+    await userEvent.type(field, "48a2-10937551288063349999");
+
+    expect((field as HTMLInputElement).value).toBe(CODE);
+    expect(screen.getByText("20 of 20 digits")).toBeTruthy();
+  });
+
   it("says the digits are not the ones expected and stays on the form", async () => {
     ipc.newcomers = [mac];
     ipc.refuse = { cmd: "admitting_grant", code: "admitWrongCode" };

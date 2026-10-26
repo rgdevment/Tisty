@@ -296,9 +296,14 @@ fn granted(
     if !ours(here, device, &mine)? {
         return Err(Refusal::of("admitTaken"));
     }
-    let reveal = knock::reveal_of(&*here.plain, &here.home, device)
-        .map_err(up)?
-        .ok_or_else(|| Refusal::of("admitNotYet"))?;
+    let Some(reveal) = knock::reveal_of(&*here.plain, &here.home, device).map_err(up)? else {
+        tisty_core::witness::note(
+            tisty_core::witness::channel::CLOUD,
+            "a code was typed before the new computer's reveal could be read",
+            &[("at", tisty_core::witness::Fact::Id(device.to_string()))],
+        );
+        return Err(Refusal::of("admitNotYet"));
+    };
     let expected = ask.code(&mine, &reveal).map(|code| digits(&code));
     if expected.is_none_or(|code| code != digits(typed)) {
         return Err(Refusal::of("admitWrongCode"));

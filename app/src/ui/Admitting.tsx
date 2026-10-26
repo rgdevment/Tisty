@@ -21,6 +21,12 @@ const LOOKED_FIRST = 3000;
 const LOOKED_LATER = 15000;
 const BRISK_FOR = 60000;
 const DIGITS = 20;
+
+const grouped = (said: string): string =>
+  said
+    .replace(/\D/g, "")
+    .slice(0, DIGITS)
+    .replace(/(\d{5})(?=\d)/g, "$1 ");
 const GONE = ["admitGone", "admitTaken"];
 
 function Code({ code }: { code: string }) {
@@ -196,9 +202,13 @@ export function LetThemIn({ onClose }: { onClose: () => void }) {
             inputMode="numeric"
             autoComplete="off"
             spellCheck={false}
-            onChange={(event) => setTyped(event.target.value)}
+            maxLength={DIGITS + 3}
+            onChange={(event) => setTyped(grouped(event.target.value))}
             className="mt-3 w-full rounded-[10px] border border-line bg-bg px-3 py-2 text-center font-mono text-[21px] tracking-[0.06em] tabular-nums"
           />
+          <p className="mt-1 text-right text-[11.5px] text-faint tabular-nums">
+            {fill("admitTypedCount", String(count))}
+          </p>
           <div className="mt-4 flex flex-wrap justify-end gap-2">
             <button
               type="button"
