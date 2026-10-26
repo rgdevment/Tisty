@@ -26,6 +26,9 @@ import Phrasing from "./Phrasing";
 import { mild, risky, strong } from "./Rows";
 
 interface Props {
+  round?: string | null;
+  phrased?: number;
+  onPhrased?: () => void;
   busy: Which | null;
   said?: Word;
   trouble?: Word;
@@ -38,7 +41,17 @@ type Phrase = { words: string[]; fingerprint: string };
 
 const card = "sealing" as const;
 
-export default function Sealing({ busy, said, trouble, tell, fail, onChanged }: Props) {
+export default function Sealing({
+  round,
+  phrased,
+  onPhrased,
+  busy,
+  said,
+  trouble,
+  tell,
+  fail,
+  onChanged,
+}: Props) {
   const [shown, setShown] = useState<SealShown | null>(null);
   const [asking, setAsking] = useState(false);
   const [phrase, setPhrase] = useState<Phrase | null>(null);
@@ -48,7 +61,8 @@ export default function Sealing({ busy, said, trouble, tell, fail, onChanged }: 
   const look = useCallback(() => {
     sealingShown().then(setShown).catch(failed);
   }, [failed]);
-  useEffect(look, [look]);
+  // A round may bring another computer's newer version, and the identity card may have confirmed the phrase.
+  useEffect(look, [look, round, phrased]);
   useEffect(() => {
     const off = listen<SealTold | null>("sealing", (told) => {
       setShown((was) => (was ? { ...was, turning: told.payload } : was));
@@ -83,20 +97,6 @@ export default function Sealing({ busy, said, trouble, tell, fail, onChanged }: 
 
   return (
     <Card title={t("sealTitle")} which={card} busy={busy} said={said} trouble={trouble}>
-      {phrase && (
-        <Phrasing
-          words={phrase.words}
-          fingerprint={phrase.fingerprint}
-          onClose={() => {
-            setPhrase(null);
-            look();
-          }}
-          onConfirmed={() => {
-            setPhrase(null);
-            look();
-          }}
-        />
-      )}
       {asking && (
         <Before
           shown={shown}
@@ -105,6 +105,22 @@ export default function Sealing({ busy, said, trouble, tell, fail, onChanged }: 
           onConfirm={() => phraseFor(identityPhrase())}
           onClose={() => setAsking(false)}
           onGo={() => begin(true)}
+        />
+      )}
+      {phrase && (
+        <Phrasing
+          words={phrase.words}
+          fingerprint={phrase.fingerprint}
+          onClose={() => {
+            setPhrase(null);
+            look();
+            onPhrased?.();
+          }}
+          onConfirmed={() => {
+            setPhrase(null);
+            look();
+            onPhrased?.();
+          }}
         />
       )}
       {letting === "me" && (

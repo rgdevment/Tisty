@@ -76,6 +76,8 @@ export function carrying(
         if (busy) {
           owed = owing(owed, way);
           stalled = true;
+        } else if (answer.owed) {
+          owed = owing(owed, "push");
         }
         if (!busy && !answer.deferred) toldAside(null);
         if (mine !== round) return busy ? "busy" : answer.carried;

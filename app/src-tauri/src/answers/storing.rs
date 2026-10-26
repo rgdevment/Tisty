@@ -778,6 +778,7 @@ pub async fn sync_now(
             deferred: None,
             refused: None,
             adopted: false,
+            owed: false,
         });
     };
     let began = jiff::Timestamp::now().as_second().unsigned_abs();
@@ -1034,6 +1035,7 @@ async fn carried_round(
     let mut session = held(session);
     session.settle_what_came(&read, since);
     session.swept(&was_swept, walked);
+    let wrote = session.writes();
     if let Err(e) = session.take_a_seat() {
         witness::warn(
             channel::SYNC,
@@ -1049,6 +1051,7 @@ async fn carried_round(
         );
     }
     crate::identity::after_a_round(&mut session, seed.as_ref());
+    let owed = session.writes() != wrote;
     let unsettled = done.undecided.len()
         + done.unreadable.len()
         + done.disowned.len()
@@ -1160,6 +1163,7 @@ async fn carried_round(
         }),
         refused,
         adopted: false,
+        owed,
     })
 }
 
@@ -1196,6 +1200,9 @@ pub struct Settled {
     /// This machine held only what it starts with and took the place's history without asking.
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     adopted: bool,
+    /// This machine wrote after the round had carried, so what it wrote waits for the next push.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    owed: bool,
 }
 
 #[derive(serde::Serialize)]

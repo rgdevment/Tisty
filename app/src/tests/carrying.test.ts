@@ -451,6 +451,19 @@ describe("carrying on its own", () => {
     expect(sent("sync_now")[1].args.way).toBe("pull");
   });
 
+  it("pushes at once what this computer wrote after its round had carried", async () => {
+    let rounds = 0;
+    ipc.answer = (cmd) =>
+      cmd === "sync_state"
+        ? Promise.resolve({ ...state })
+        : Promise.resolve({ carried: "same", undecided: [], owed: ++rounds === 1 });
+
+    carried = carrying(() => {});
+    await settle();
+
+    expect(sent("sync_now").map((one) => one.args.way)).toEqual(["pull", "push"]);
+  });
+
   it("brings the folder in the moment it is switched for another", async () => {
     carried = carrying(() => {});
     await settle();
