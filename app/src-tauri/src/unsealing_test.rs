@@ -70,11 +70,9 @@ fn word_here(here: &Here, word: &str) {
 #[test]
 fn a_notice_from_a_seated_machine_retiring_the_logged_key_after_the_seal_is_believed() {
     let here = sealed_here();
+    let said = notice(&here, "named", here.sealed_at + 60);
 
-    assert!(believed(
-        &held(&here.session),
-        &notice(&here, "named", here.sealed_at + 60)
-    ));
+    assert!(believed(&held(&here.session), &said));
 }
 
 #[test]
