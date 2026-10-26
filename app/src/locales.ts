@@ -253,13 +253,13 @@ const en = {
   allEmpty: "Nothing open. What you close lives in the archive.",
   sandboxCannotJoin: "A sandbox never joins another store: it is a test one.",
   notThisMachine: "A machine cannot remove itself.",
-  identityExists: "This person already has an identity; its phrase is in Settings.",
+  identityExists: "You already have an identity; its phrase is in Settings › Security.",
   identityNotKept: "The identity could not be kept on this computer. Try again in a moment.",
   phraseCount: "The phrase has {name} words, and it takes 24.",
-  phraseWord: "Word {name} is not one of the list. Check how it is written.",
+  phraseWord: "Word {name} is not on the list. Check how it is written.",
   phraseChecksum: "Every word is on the list, but one of them is wrong or out of place.",
   identityElsewhere:
-    "You already have an identity on another computer. Type its phrase here, or let that computer confirm this one.",
+    "You already have an identity; its phrase is on another of your computers, in Settings › Security.",
   identityUnread:
     "This computer could not read your identity just now. Nothing was changed; try again in a moment.",
   identityNone: "This computer does not keep your identity's phrase.",
@@ -1183,7 +1183,7 @@ const en = {
     "{name} no longer lets Tisty in: the access was withdrawn or ran out. Connect {name} again; until then everything you write stays safe on this computer.",
   cloudElsewhere:
     "The cloud now answers as another account ({name}). Tisty stops rather than mix two accounts: connect the one you used before.",
-  cloudNotNow: "Your cloud could not be asked first, so nothing was done. Try again in a while",
+  cloudNotNow: "Your cloud could not be asked first, so nothing was done. Try again in a while.",
   cloudToLeave:
     "Leaving the cloud goes through a move that first brings everything to this computer, so nothing stays behind there. Nothing was changed.",
   cloudNeedsMove:
@@ -1242,8 +1242,8 @@ const en = {
   cloudOtherPhrase:
     "Nothing was synced, in either direction. Your cloud is encrypted with a different 24-word phrase from the one on this computer, so Tisty does not touch it. Check that this computer uses the phrase you chose for this cloud.",
   cloudMarkDamaged:
-    "Nothing was synced, in either direction. The mark that tells which phrase opens your encrypted cloud is damaged, and this computer could not prove its phrase opens what is up there, so Tisty does not touch it. Sync from a computer whose phrase opens your cloud, and it mends the mark. What you write here stays here meanwhile.",
-  sealingNoCloud: "Your notes do not sync with a cloud, so there is nothing to encrypt there.",
+    "Nothing was synced, in either direction. The mark that tells which phrase opens your encrypted cloud is damaged, and this computer could not prove its phrase opens what is in the cloud, so Tisty does not touch it. Sync from a computer whose phrase opens your cloud, and it mends the mark. What you write here stays here meanwhile.",
+  sealingNoCloud: "Tisty does not sync with a cloud here, so there is nothing to encrypt.",
   sealingPhrase: "Your 24-word phrase has to be written down and confirmed first.",
   admitNotNow:
     "That could not be done now. Check that both computers are on and connected, and try again.",
@@ -1535,7 +1535,7 @@ const en = {
   stateSealingWhy: "Syncing goes on by itself once it is done.",
   stateOtherPhrase: "Your cloud uses another phrase",
   stateOtherPhraseWhy:
-    "This computer's phrase is not the one of this cloud. Check that it is the one you chose.",
+    "This computer's phrase is not the one for this cloud. Check that it is the one you chose.",
   stateUnsealed: "Your cloud no longer says it is encrypted",
   stateUnsealedWhy:
     "None of your computers turned encryption off. Check that nobody else changed your account.",
@@ -1860,8 +1860,7 @@ const en = {
   sealPhraseCreate: "Create my phrase",
   sealPhraseUnconfirmed: "Your phrase is not confirmed yet",
   sealPhraseConfirm: "Confirm it",
-  sealPhraseAway:
-    "Your phrase is on another of your computers. Encrypt from there, or type it here once this one can take it.",
+  sealPhraseAway: "Your phrase is on another of your computers. Encrypt from that computer.",
   sealRoomUnread: "Tisty could not look at the room in {name}. Try again in a moment.",
   sealRoomOk: "There is room in {name}",
   sealRoomShort: "There is not enough room in {name}",
@@ -1902,13 +1901,13 @@ const en = {
   admitWaiting:
     "Open Tisty on another of your computers that reads the encrypted cloud and go to Settings › Security › «Let a new computer in». This computer waits here meanwhile.",
   admitCompare:
-    "Type these twenty digits on «{name}». Say yes here only once that computer has taken them.",
+    "Type these twenty digits on «{name}». Once that computer has taken them, press «It took them» here.",
   admitTrusted: "Waiting for «{name}» to hand over the key…",
   admitIn: "Done. This computer now reads your encrypted cloud.",
   admitGranted: "Done. Press «It took them» on «{name}» and it gets the key.",
-  admitRefused: "Nothing was handed over, and the ask was taken away.",
+  admitRefused: "Nothing was handed over, and the request was taken away.",
   admitMismatch:
-    "The digits do not match, so nothing was handed over. Someone may be standing between the two computers: close this and start again from the new computer.",
+    "The digits do not match, so nothing was handed over. Someone may be standing between the two computers: close this and start again from this computer.",
   admitLooking: "Looking for new computers…",
   admitNobody:
     "No new computer is asking to come in. On the new computer, choose «Let in from another computer».",
@@ -1922,7 +1921,7 @@ const en = {
   admitNoComputer: "There is no such computer",
   admitAccepted: "It took them",
   admitRejected: "It did not take them",
-  admitGone: "That computer no longer asks. Start again from it.",
+  admitGone: "That computer is no longer asking to come in. Start again from it.",
   admitChanged: "The computer letting this one in changed. Close this and start again.",
   admitWrongCode:
     "Those digits are not the ones expected. Check them on the new computer, one group at a time.",
@@ -2721,14 +2720,14 @@ const es: Catalog = {
   allEmpty: "No hay nada abierto. Lo que cierras vive en el archivo.",
   sandboxCannotJoin: "Un sandbox no se une nunca a otro almacén: es de prueba.",
   notThisMachine: "Una máquina no puede removerse a sí misma.",
-  identityExists: "Ya tienes una identidad; su frase está en Ajustes.",
+  identityExists: "Ya tienes una identidad; su frase está en Configuración › Seguridad.",
   identityNotKept:
     "La identidad no se pudo guardar en este equipo. Inténtalo de nuevo en un momento.",
   phraseCount: "La frase tiene {name} palabras, y deben ser 24.",
   phraseWord: "La palabra {name} no está en la lista. Revisa cómo está escrita.",
   phraseChecksum: "Todas las palabras están en la lista, pero una está mal o fuera de lugar.",
   identityElsewhere:
-    "Ya tienes una identidad en otro equipo. Escribe aquí su frase, o deja que ese equipo confirme este.",
+    "Ya tienes una identidad; su frase está en otro de tus equipos, en Configuración › Seguridad.",
   identityUnread:
     "Este equipo no pudo leer tu identidad en este momento. No se cambió nada; inténtalo de nuevo en un rato.",
   identityNone: "Este equipo no guarda la frase de tu identidad.",
@@ -3660,7 +3659,7 @@ const es: Catalog = {
   cloudElsewhere:
     "La nube ahora responde como otra cuenta ({name}). Tisty se detiene para no mezclar dos cuentas: conecta la que usabas antes.",
   cloudNotNow:
-    "No se pudo consultar primero tu nube, así que no se hizo nada. Inténtalo en un rato",
+    "No se pudo consultar primero tu nube, así que no se hizo nada. Inténtalo en un rato.",
   cloudToLeave:
     "Salir de la nube se hace con una mudanza que primero trae todo a este equipo, para que nada quede allá. No se cambió nada.",
   cloudNeedsMove:
@@ -3719,8 +3718,8 @@ const es: Catalog = {
   cloudOtherPhrase:
     "No se sincronizó nada, en ningún sentido. Tu nube está cifrada con una frase de 24 palabras distinta de la que tiene este equipo, así que Tisty no la toca. Revisa que este equipo use la frase que elegiste para esta nube.",
   cloudMarkDamaged:
-    "No se sincronizó nada, en ningún sentido. La marca que dice qué frase abre tu nube cifrada está dañada, y este equipo no pudo comprobar que su frase abre lo que hay arriba, así que Tisty no la toca. Sincroniza desde un equipo cuya frase abra tu nube y la marca se repara. Mientras tanto, lo que escribas aquí se queda aquí.",
-  sealingNoCloud: "Tus notas no se sincronizan con una nube, así que ahí no hay nada que cifrar.",
+    "No se sincronizó nada, en ningún sentido. La marca que dice qué frase abre tu nube cifrada está dañada, y este equipo no pudo comprobar que su frase abre lo que hay en la nube, así que Tisty no la toca. Sincroniza desde un equipo cuya frase abra tu nube y la marca se repara. Mientras tanto, lo que escribas aquí se queda aquí.",
+  sealingNoCloud: "Aquí Tisty no se sincroniza con una nube, así que no hay nada que cifrar.",
   sealingPhrase: "Primero tienes que anotar y confirmar tu frase de 24 palabras.",
   admitNotNow:
     "No se pudo hacer ahora. Revisa que los dos equipos estén encendidos y conectados, y vuelve a intentarlo.",
@@ -4335,8 +4334,7 @@ const es: Catalog = {
   sealPhraseCreate: "Crear mi frase",
   sealPhraseUnconfirmed: "Tu frase todavía no está confirmada",
   sealPhraseConfirm: "Confirmarla",
-  sealPhraseAway:
-    "Tu frase está en otro de tus equipos. Cifra desde allá, o escríbela aquí cuando este equipo pueda recibirla.",
+  sealPhraseAway: "Tu frase está en otro de tus equipos. Cifra desde ese equipo.",
   sealRoomUnread: "Tisty no pudo revisar el espacio en {name}. Inténtalo de nuevo en un momento.",
   sealRoomOk: "Hay espacio en {name}",
   sealRoomShort: "No hay espacio suficiente en {name}",
@@ -4349,7 +4347,7 @@ const es: Catalog = {
   sealBehindWhy: "Actualízalo o, si ya no lo usas, quítalo de tus equipos.",
   sealKnow: "Lo que conviene saber",
   sealKnowWhat:
-    "{name} guarda un tiempo versiones anteriores sin cifrar, en su historial y su papelera. Los nombres y tamaños de los archivos y cuántos equipos tienes siguen a la vista. Mientras se cifra, tu nube ocupa el doble, hasta que borres lo antiguo.",
+    "{name} guarda un tiempo versiones anteriores sin cifrar, en su historial y su papelera. Los nombres y tamaños de los archivos y cuántos equipos tienes siguen a la vista. Mientras se cifra, tu nube ocupa el doble, hasta que borres la copia antigua.",
   sealNotNow: "Ahora no",
   sealGo: "Cifrar mi nube",
   sealTurningOn: "Cifrando tu nube",
@@ -4377,13 +4375,13 @@ const es: Catalog = {
   admitWaiting:
     "Abre Tisty en otro de tus equipos que lea la nube cifrada y ve a Configuración › Seguridad › «Autorizar un equipo nuevo». Mientras tanto, este equipo espera aquí.",
   admitCompare:
-    "Escribe estos veinte dígitos en «{name}». Di que sí aquí solo cuando ese equipo los haya aceptado.",
+    "Escribe estos veinte dígitos en «{name}». Cuando ese equipo los haya aceptado, pulsa «Ya los aceptó» aquí.",
   admitTrusted: "Esperando a que «{name}» entregue la llave…",
   admitIn: "Listo. Este equipo ya lee tu nube cifrada.",
   admitGranted: "Listo. Pulsa «Ya los aceptó» en «{name}» y recibirá la llave.",
-  admitRefused: "No se entregó nada, y el pedido se quitó.",
+  admitRefused: "No se entregó nada y se quitó la solicitud.",
   admitMismatch:
-    "Los dígitos no coinciden, así que no se entregó nada. Puede que alguien esté entre los dos equipos: cierra esto y empieza de nuevo desde el equipo nuevo.",
+    "Los dígitos no coinciden, así que no se entregó nada. Puede que alguien esté entre los dos equipos: cierra esto y empieza de nuevo desde este equipo.",
   admitLooking: "Buscando equipos nuevos…",
   admitNobody:
     "Ningún equipo nuevo está pidiendo entrar. En el equipo nuevo, elige «Autorizar desde otro equipo».",
@@ -4391,7 +4389,7 @@ const es: Catalog = {
   admitTaken: "Otro equipo lo está autorizando",
   admitTake: "Autorizar",
   admitTypeWhat:
-    "Escribe los veinte dígitos que muestra «{name}». Si ese equipo no está frente a ti, no escribas nada: puede que otro esté pidiendo en su nombre.",
+    "Escribe los veinte dígitos que muestra «{name}». Si ese equipo no está frente a ti, no escribas nada: puede que alguien más esté pidiendo entrar en su nombre.",
   admitTypeLabel: "El código que muestra el equipo nuevo",
   admitTypeGo: "Autorizar",
   admitNoComputer: "No existe ese equipo",
@@ -4399,7 +4397,8 @@ const es: Catalog = {
   admitRejected: "No los aceptó",
   admitGone: "Ese equipo ya no está pidiendo entrar. Empieza de nuevo desde él.",
   admitChanged: "Cambió el equipo que autoriza a este. Cierra esto y empieza de nuevo.",
-  admitWrongCode: "Esos dígitos no son los esperados. Revísalos en el equipo nuevo, de a un grupo.",
+  admitWrongCode:
+    "Esos dígitos no son los esperados. Revísalos en el equipo nuevo, un grupo a la vez.",
   admitNotYet:
     "El equipo nuevo todavía no muestra su código. Espera unos segundos y vuelve a intentarlo.",
   admitAlreadyIn: "Este equipo ya lee tu nube cifrada.",
