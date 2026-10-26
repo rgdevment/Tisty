@@ -296,8 +296,8 @@ describe("an encrypted cloud", () => {
     ipc.shown = { ...plain, state: "sealed", wiping: true };
     render(<Shell />);
 
-    expect((await screen.findByRole("status")).textContent).toMatch(
-      /Deleting the old unencrypted copy/,
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toMatch(/Deleting the old unencrypted copy/),
     );
     expect(
       screen.getByRole("button", { name: "Delete the unencrypted copy" }).hasAttribute("disabled"),
