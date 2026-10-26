@@ -92,25 +92,26 @@ fn earlier_shape() -> u32 {
         .expect("a shape number")
 }
 
-fn earlier_accepts() -> Option<String> {
-    std::env::var("TISTY_PREVIOUS_ACCEPTS")
+fn earlier_accepts() -> Option<(u64, u64, u64, bool)> {
+    let said = std::env::var("TISTY_PREVIOUS_ACCEPTS")
         .ok()
-        .filter(|said| !said.is_empty())
+        .filter(|said| !said.is_empty())?;
+    Some(tisty_core::released(&said).expect("TISTY_PREVIOUS_ACCEPTS is a release, as 1.35.0"))
+}
+
+fn earlier_stops_at(needs: &str) -> bool {
+    SCHEMA_VERSION > earlier_schema()
+        || (earlier_shape() > 0 && tisty_carrier::SHAPE > earlier_shape())
+        || earlier_accepts()
+            .is_some_and(|accepts| tisty_core::released(needs).expect("a release") > accepts)
 }
 
 fn earlier_stops() -> bool {
-    SCHEMA_VERSION > earlier_schema()
-        || (earlier_shape() > 0 && tisty_carrier::SHAPE > earlier_shape())
-        || earlier_accepts().is_some_and(|accepts| {
-            tisty_core::released(tisty_carrier::NEEDS) > tisty_core::released(&accepts)
-        })
+    earlier_stops_at(tisty_carrier::NEEDS)
 }
 
-// The command lines said it in words, a release met through its core says which trouble stopped it.
 fn told_to_update(err: &str) -> bool {
-    ["newer", "Newer(", "Needs(", "Shape(", "UnsupportedVersion"]
-        .iter()
-        .any(|said| err.contains(said))
+    err.contains("newer")
 }
 
 fn snapshot(dir: &Path) -> BTreeMap<PathBuf, Vec<u8>> {
@@ -308,24 +309,25 @@ fn an_earlier_release_opens_a_history_this_build_wrote_who_signs_and_what_is_sea
     earlier.ok(&["still writing here"]);
     let kept = earlier.ok(&["ls", "all"]);
     assert!(kept.contains("still writing here"), "{kept}");
+    let after = snapshot(&store);
+    for (name, was) in &before {
+        assert!(
+            after.get(name).is_some_and(|now| now.starts_with(was)),
+            "an earlier release rewrote {name:?}, where this build said who signs and what is sealed"
+        );
+    }
 }
 
-fn sealed_in_turn(word: &str) {
+fn sealed_in_turn(word: &str, needs: &str, said_by_this_build: impl FnOnce(&Path)) {
+    // A folder is never sealed for real: a release that takes this needs meets the word only in a cloud.
+    if !earlier_stops_at(needs) {
+        return;
+    }
     let shared = tempfile::tempdir().unwrap();
     let (earlier, current) = written_in_turn(shared.path());
     current.person().captures("written by this build");
     current.person().syncs().unwrap();
-    let named = shared.path().join("tisty.toml");
-    let said = std::fs::read_to_string(&named).unwrap();
-    let kept: Vec<&str> = said
-        .lines()
-        .filter(|line| !line.trim_start().starts_with("needs"))
-        .collect();
-    std::fs::write(
-        &named,
-        format!("{}\nneeds = \"1.36.0\"\n{word}\n", kept.join("\n")),
-    )
-    .unwrap();
+    said_by_this_build(shared.path());
     assert_ne!(
         tisty_carrier::sealing_of(shared.path()),
         tisty_carrier::Sealing::Plain,
@@ -349,11 +351,18 @@ fn sealed_in_turn(word: &str) {
 #[test]
 #[ignore = "needs an earlier release: .github/workflows/versions.yml provides one"]
 fn an_earlier_release_stops_at_a_place_sealed_to_a_cloud_and_leaves_it_as_it_was() {
-    sealed_in_turn("sealed = \"store_one\"");
+    sealed_in_turn("sealed", tisty_sync::SEALS, |shared| {
+        tisty_sync::seal_word(shared, "store_one").unwrap();
+    });
 }
 
 #[test]
 #[ignore = "needs an earlier release: .github/workflows/versions.yml provides one"]
 fn an_earlier_release_stops_at_a_place_being_sealed_and_leaves_it_as_it_was() {
-    sealed_in_turn("sealing = \"copying:seal:dev_a:n1\"");
+    sealed_in_turn("sealing", tisty_sync::TURNS, |shared| {
+        let named = shared.join(tisty_sync::NAMED);
+        let said = std::fs::read_to_string(&named).unwrap();
+        let phase = tisty_sync::phase(tisty_sync::Turn::On, "dev_a", "n1");
+        std::fs::write(&named, tisty_sync::claimed(&said, &phase).unwrap()).unwrap();
+    });
 }

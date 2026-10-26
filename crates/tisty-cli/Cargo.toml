@@ -31,6 +31,7 @@ sys-locale.workspace = true
 [dev-dependencies]
 tisty-nl.workspace = true
 tisty-share-proto.workspace = true
+tisty-sync.workspace = true
 proptest.workspace = true
 tempfile.workspace = true
 insta.workspace = true

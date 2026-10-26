@@ -4,6 +4,9 @@ mod person;
 
 use std::path::Path;
 
+// What the command lines said in words, a core says as the trouble that stopped it.
+const ASKS_TO_UPDATE: [&str; 4] = ["Newer(", "Needs(", "Shape(", "UnsupportedVersion"];
+
 fn main() {
     let data = std::env::var_os("TISTY_DATA").expect("TISTY_DATA names where the history is kept");
     let home = Path::new(&data)
@@ -22,7 +25,11 @@ fn main() {
         }
         ["sync", ..] => {
             if let Err(trouble) = person.syncs() {
-                eprintln!("nothing was synced: {trouble}");
+                if ASKS_TO_UPDATE.iter().any(|said| trouble.contains(said)) {
+                    eprintln!("a newer Tisty wrote here, so nothing was synced: {trouble}");
+                } else {
+                    eprintln!("nothing was synced: {trouble}");
+                }
                 std::process::exit(1);
             }
         }
@@ -37,7 +44,6 @@ fn main() {
     }
 }
 
-// As the old sync --confirm did: confirm the key the shared place holds, then let it through.
 fn confirms(home: &Path, person: &person::Person, whose: &str) -> bool {
     let paths = tisty_core::Paths::new(home.join("data"), home.join("config"));
     let config = tisty_core::Config::load_or_init(&paths).expect("a config");
@@ -45,12 +51,9 @@ fn confirms(home: &Path, person: &person::Person, whose: &str) -> bool {
         return false;
     };
     let who = tisty_core::DeviceId(whose.to_string());
-    let says = person
-        .state()
-        .keys
-        .get(&who)
-        .cloned()
-        .or_else(|| tisty_core::store::key_said_in(&shared.join("store").join(whose), &who));
+    let says = person.state().keys.get(&who).cloned().or_else(|| {
+        tisty_core::store::key_said_in(&shared.join(tisty_carrier::STORE).join(whose), &who)
+    });
     let Some(says) = says else {
         return false;
     };
