@@ -165,7 +165,10 @@ fn a_computer_that_only_knows_itself_and_never_carried_here_asks_as_a_newcomer()
     ask(&two.asker, &knocking, &two.asking, None).unwrap();
 
     assert!(held(&two.asker).state.devices.contains(&two.asking.device));
-    assert!(!crate::handed::joined_here(&held(&two.asker)));
+    assert!(!crate::handed::joined_here(
+        &held(&two.asker),
+        &two.asking.home
+    ));
 }
 
 #[test]
