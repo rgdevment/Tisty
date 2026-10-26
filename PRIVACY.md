@@ -1,6 +1,6 @@
 # Privacy policy
 
-**Last updated:** October 18, 2026
+**Last updated:** October 26, 2026
 
 ## The short version
 
@@ -16,10 +16,16 @@ installed from the Microsoft Store makes no update request: it asks Windows
 what the Store has, and the Store does the rest. All of them are described in
 full below.
 
-Since version 1.30, Tisty can also sync through your own Google Drive, and
-since 1.31 through your own OneDrive, talking to it directly. It runs only if
-you choose it and connect your account in the Tisty window, it reaches nothing
-but that provider, and what it sends and receives is described in full below.
+Since version 1.30, Tisty can also sync through your own Google Drive, since
+1.31 through your own OneDrive, and since 1.32 through a WebDAV server of your
+own, talking to it directly. It runs only if you choose it and connect your
+account in the Tisty window, it reaches nothing but that provider or that
+server, and what it sends and receives is described in full below.
+
+Since 1.36, what Tisty keeps in any of those three can be encrypted with a
+24-word phrase only you hold, so the provider stores files it cannot read. That
+too runs only if you turn it on, and what it hides and what it does not is
+described below.
 
 That is not a policy promise you have to take on trust — it is a property of
 the code, which is [public and auditable](https://github.com/rgdevment/Tisty).
@@ -37,6 +43,10 @@ Here is the accurate statement:
 > synchronisation, your data goes exactly where you told it to go, and whoever
 > runs that destination can technically read it.**
 
+There is one exception, and you choose it: a cloud Tisty reaches directly can be
+encrypted with your phrase. Its provider then holds your files but cannot read
+what is in them.
+
 What you can choose, and what each implies:
 
 | You choose | Who else can reach your data |
@@ -45,6 +55,8 @@ What you can choose, and what each implies:
 | **A folder your cloud client keeps in step** (Google Drive, OneDrive, iCloud, Dropbox, pCloud…) | That provider, under their terms and their jurisdiction |
 | **Your own Google Drive, reached by Tisty directly** (since 1.30) | Google, under its terms and its jurisdiction. Nobody else: there is no server of ours in between |
 | **Your own OneDrive, reached by Tisty directly** (since 1.31) | Microsoft, under its terms and its jurisdiction. Nobody else: there is no server of ours in between |
+| **Your own WebDAV server, reached by Tisty directly** (since 1.32) | Whoever runs that server — you, or the company that hosts it for you. Nobody else: there is no server of ours in between |
+| **Any of those three clouds, encrypted with your phrase** (since 1.36) | Nobody can read what is in your files without your phrase or one of your computers. The provider still holds them, sees their names, sizes and how many computers you have, and may keep earlier unencrypted versions for a while |
 | **A folder on hardware you own** (a NAS, an external drive) | Whoever can reach that hardware |
 | **A backup zip you keep somewhere** | Wherever you put it |
 | **A `.tistyx` parcel of documents you hand to somebody** | Them, and whoever they hand it to. You decide what goes in it and when. It carries the documents, where they sat, what the archive held and what an assistant marked — never your device identifier |
@@ -54,8 +66,9 @@ With a folder, Tisty only ever reads and writes local paths. It has no network
 code for it, no credentials, and no idea which provider — if any — is behind the
 folder you named. Whatever keeps that folder in step between your machines is
 software you already installed and already trust. Reaching your cloud account
-directly is the one way that changes this, and it is described in its own
-section below.
+directly is the one way that changes this, and each provider is described in
+its own section below. Encrypting is offered only for those clouds, never for a
+folder.
 
 There is no option where Tisty hosts anything. There is no paid tier that
 changes this. **We never operate a server that holds your data**, so there is
@@ -99,6 +112,20 @@ visible instead of making it for you.
   that says anything about you rather than about your work, and none of them
   leaves this machine: the file is not synced, not backed up, and not put in a
   parcel.
+- **The version each computer runs** — since 1.34, each machine writes into the
+  log the Tisty release it runs, once each time it changes. It travels with the
+  log like everything else, and it is what lets Tisty tell you which of your
+  computers needs an update before your cloud can be encrypted.
+- **Your identity and its phrase, if you create one** — the 24-word phrase is
+  made on your computer the first time you ask for it in Settings › Security,
+  and it never leaves that computer through Tisty: it is kept in the system
+  keychain on macOS and, on Windows, in a file sealed with DPAPI for your user,
+  apart from the cloud tokens. It is never written into the log, a backup or a
+  parcel. What the log does carry is its public half, which Settings › Security
+  shows as your fingerprint, and for each of your computers a key that half
+  vouches for. Whether you confirmed the phrase, and the key of an encrypted
+  cloud that another of your computers handed to this one, stay on this
+  computer.
 - **An alias, if you write one** — it exists so that a document you share still
   says who wrote it. It is optional, it lives in the log like everything else,
   and so it reaches your other machines through the folder you sync and travels
@@ -121,12 +148,17 @@ visible instead of making it for you.
   your documents in the language you picked. Nothing is fetched to do it, and
   once it is there it is an ordinary document: edit it, or delete it.
 
-**Nothing is encrypted at rest.** Your operating system's file permissions are
-the only protection. This was a deliberate decision, not an oversight:
-encryption breaks the three-way merge of documents, which is precisely where
-synchronisation needs it most — two machines editing the same document are
-reconciled block by block, and that cannot be done on bytes nobody can read. The
-reasoning is in [SECURITY.md](SECURITY.md).
+**Nothing is encrypted at rest on your computer.** Your operating system's file
+permissions are the only protection for what sits on your disk. This was a
+deliberate decision, not an oversight: encryption breaks the three-way merge of
+documents, which is precisely where synchronisation needs it most — two machines
+editing the same document are reconciled block by block, and that cannot be done
+on bytes nobody can read. The reasoning is in [SECURITY.md](SECURITY.md).
+
+**The copy in your cloud can be.** Encrypting your cloud changes only what the
+provider holds: each of your computers decrypts what it brings down and
+reconciles it on its own disk, in plain text, exactly as before. A folder kept in
+step by a desktop client is never encrypted.
 
 **Nothing is obfuscated.** If Tisty disappeared tomorrow, your data would
 still be readable with tools you already have. That is the point.
@@ -154,7 +186,8 @@ defence, because the remedy barely exists.
   open" below: what it carries is its doing and your choice, never Tisty's.
 - Does not upload crash reports.
 - Does not make background network calls, except the update check below and,
-  only if you connect Google Drive or OneDrive, the requests that sync with it.
+  only if you connect Google Drive, OneDrive or a WebDAV server, the requests
+  that sync with it.
 
 An earlier version of this file promised that if Tisty ever needed a network
 request it would be read-only, documented here before it shipped, and visible
@@ -290,26 +323,27 @@ sits there.
 
 Since version 1.30, Tisty can keep your machines in step through your own
 Google Drive account, without Google's desktop program installed. OneDrive
-has its own section below; Dropbox may follow, and nothing is promised. A copy
-built without this project's Google credentials offers no Google Drive and
-makes none of these requests.
+and WebDAV have their own sections below; Dropbox is not reached directly, only
+through a folder its desktop program keeps in step. A copy built without this
+project's Google credentials offers no Google Drive and makes none of these
+requests.
 
 | | |
 | :--- | :--- |
 | **Why** | To keep your machines in step through your Google Drive, without its desktop program installed |
 | **Who it talks to** | Google only: `accounts.google.com` and `oauth2.googleapis.com` to sign in, and `www.googleapis.com` for Drive. Never a server of ours, because there is none |
 | **What Google lets Tisty see** | The permission asked for is `drive.appdata`: Tisty sees and changes only its own hidden space in your Drive, which no other app and no Drive window shows. The rest of your Drive — your documents, your photos, what others share with you — stays out of its reach. If Google grants anything wider, Tisty gives the access back and stops. It also reads the address of the account you connected, to show you which one it is and to refuse to mix two accounts |
-| **What it sends** | The files of your store — the history, the documents and `tisty.toml` — into that hidden space of your Drive, as they are on your disk. They count against your Drive storage, and *Manage apps* in Drive's settings shows how much. Tisty does not encrypt them, just as it does not encrypt a folder you sync. Attachments go up too, but stay on the computer they were added on; on your other computers each one comes down only when you open it. When a machine stops syncing with a place, it leaves there a short signed note (`moved.json`) saying where it went — a folder's name or the cloud account's address — so your other machines stop instead of going on alone |
+| **What it sends** | The files of your store — the history, the documents and `tisty.toml` — into that hidden space of your Drive, as they are on your disk unless you encrypt your cloud (described below). They count against your Drive storage, and *Manage apps* in Drive's settings shows how much. Attachments go up too, but stay on the computer they were added on; on your other computers each one comes down only when you open it. When a machine stops syncing with a place, it leaves there a short signed note (`moved.json`) saying where it went — a folder's name or the cloud account's address — so your other machines stop instead of going on alone |
 | **What Google sees** | What any provider of a synced folder sees: the files above, their names and sizes, when they change, and the address and time of each request. Google already holds your account; Tisty adds nothing about you |
 | **What it receives** | The same files, written by your other machines, and Drive's list of what changed |
-| **How you allow it** | Only from the Tisty window: assistants never connect an account and never touch the network. You sign in on Google's own page in your browser. Tisty never sees your password; it receives an access you can withdraw at any time. On macOS and Linux it keeps that access in the system keychain. On Windows it keeps it in a file sealed with Windows' own protection for your user (DPAPI, the same lock Credential Manager uses), inside Tisty's folder under your profile, so uninstalling Tisty removes it. Only the window touches it; it never reaches the log, a backup or a parcel |
-| **Letting go** | *Disconnect this computer* forgets the access on that machine only. *Remove Tisty's access on every computer* asks Google to withdraw it, which Google does for every machine at once. You can also withdraw it yourself from your Google account, under *Security* › *Third-party apps and services* (<https://myaccount.google.com/connections>). Uninstalling withdraws nothing. On Windows it also removes this machine's copy. macOS and Linux run nothing when an app is removed, so there the copy stays in the system keychain until you disconnect first or delete it there; Google drops an access unused for six months |
+| **How you allow it** | Only from the Tisty window: assistants never connect an account and never touch the network. You sign in on Google's own page in your browser. Tisty never sees your password; it receives an access you can withdraw at any time. On macOS it keeps that access in the system keychain. On Windows it keeps it in a file sealed with Windows' own protection for your user (DPAPI, the same lock Credential Manager uses), inside Tisty's folder under your profile, so uninstalling Tisty removes it. Only the window touches it; it never reaches the log, a backup or a parcel |
+| **Letting go** | *Disconnect this computer* forgets the access on that machine only. *Remove Tisty's access on every computer* asks Google to withdraw it, which Google does for every machine at once. You can also withdraw it yourself from your Google account, under *Security* › *Third-party apps and services* (<https://myaccount.google.com/connections>). Uninstalling withdraws nothing. On Windows it also removes this machine's copy. macOS runs nothing when an app is removed, so there the copy stays in the system keychain until you disconnect first or delete it there; Google drops an access unused for six months |
 | **Checking the way first** | Only while you are choosing Google Drive — connecting it, or moving to it — Tisty first checks that Google's API host answers: a single request to `https://www.googleapis.com/drive/v3/about`, with no account, no token and nothing of yours in it, which Google answers at once by turning a stranger away. It waits at most 5 seconds to reach it and 10 seconds in all, and goes through whatever proxy your system names, never around it. From how it ends, Tisty only tells you whether something on the way — a proxy, a filter at work, an antivirus — blocks Google or inspects secure connections, whether Google was only slow to answer, or whether Google itself is having trouble. It never runs on a round of syncing, and what it learns stays on your screen and in Tisty's own log on this computer. When a round of syncing cannot reach Google, Tisty reads how it failed the same way, sending nothing more, and keeps on this computer only that word — blocked, filtered or slow — with how many rounds in a row failed and since when, to warn you once it lasts: a second failed round in a row, or two minutes after the first. A connection cut halfway through a transfer keeps no word at all |
 | **How often** | Only while Tisty is running, including when it sits in the tray or started on its own at login; never once it is closed. It asks whether anything changed at most every few minutes, and less often while nothing does. There is no background service |
-| **Limits** | A daily allowance per computer — not per person — of 2,000,000 request units and 50 GB downloaded, so one copy cannot spend the shared quota Google grants this project. Attachments are capped at 25 MB per task and 650 MB inside a document, and nothing over 750 MB is taken in from the cloud. *Free space* lets go of attachments you have not opened in a while; opening one again brings it back down and counts against the same allowance |
+| **Limits** | A daily allowance per computer — not per person — of 2,000,000 request units and 50 GB downloaded, so one copy cannot spend the shared quota Google grants this project. Attachments are capped at 25 MB per task and 650 MB inside a document, and nothing over 750 MB is taken in from the cloud. *Free up space* lets go of attachments you have not opened in a while; opening one again brings it back down and counts against the same allowance |
 | **The remote switch** | A small file, `cloud.json`, published beside the version manifest at `https://raw.githubusercontent.com/rgdevment/Tisty/manifest/cloud.json`, can lower those limits or pause syncing for a while on every copy, should the project's quota be at risk. It is signed with minisign against a key fixed in the program when it is built, read only up to 16 KiB, and an older one never replaces a newer one. It is fetched at most once an hour while you sync with Google Drive, sends nothing but the request itself, and carries numbers and nothing of yours |
 | **What it never does** | Send your data to us or to anyone but Google, read a file in your Drive outside its own space, or write tokens and signed addresses into its own log |
-| **Leaving** | Choose *Only on this machine* or a folder through *Move to another place*. Tisty brings home what lives only in your Drive before it lets go of it, and leaves the copies there; disconnecting keeps them too. *Delete my copies* deletes them for good, since that space has no bin. In Drive's settings, under *Manage apps*, *Disconnect from Drive* only withdraws Tisty's access; *Delete hidden app data* deletes the copies as well. When a machine leaves a folder, it writes a short note in it, `README - Tisty.txt`, saying where its copies went and how to come back; it takes the note away when it chooses that folder again |
+| **Leaving** | Choose *Only on this machine* or a folder through *Move to another place*. Tisty brings home what lives only in your Drive before it lets go of it, and leaves the copies there; disconnecting keeps them too. *Delete my copies in Google Drive for good* deletes them, since that space has no bin. In Drive's settings, under *Manage apps*, *Disconnect from Drive* only withdraws Tisty's access; *Delete hidden app data* deletes the copies as well. When a machine leaves a folder, it writes a short note in it, `README - Tisty.txt`, saying where its copies went and how to come back; it takes the note away when it chooses that folder again |
 
 ### Google API Services
 
@@ -333,12 +367,53 @@ these requests.
 | :--- | :--- |
 | **Who it talks to** | Microsoft only: `login.microsoftonline.com` to sign in, and `graph.microsoft.com` for OneDrive. Never a server of ours, because there is none |
 | **What Microsoft lets Tisty see** | The permissions asked for are `Files.ReadWrite.AppFolder`, `User.Read` and `offline_access`: Tisty sees and changes only its own folder, *Apps › Tisty* in your OneDrive, reads the address of the account to show you which one it is and to refuse to mix two accounts, and keeps the access between sessions. The rest of your OneDrive stays out of its reach. If Microsoft grants anything wider, Tisty refuses the sign-in |
-| **Where the copies are** | Unlike Google's hidden space, *Apps › Tisty* is a folder you can see in OneDrive. Leave it to Tisty: what you change there by hand is read as a change from another computer. Deleting it sends the copies to OneDrive's recycle bin, and *Delete my copies* does the same |
+| **Where the copies are** | Unlike Google's hidden space, *Apps › Tisty* is a folder you can see in OneDrive. Leave it to Tisty: what you change there by hand is read as a change from another computer. Deleting it sends the copies to OneDrive's recycle bin, and *Delete my copies in OneDrive for good* does the same |
 | **How you allow it** | Only from the Tisty window. You sign in on Microsoft's own page in your browser; Tisty never sees your password. Tisty is a public client with no secret of its own. The access is kept exactly as Google's is, in the system keychain or, on Windows, sealed with DPAPI |
 | **Letting go** | *Disconnect this computer* forgets the access on that machine only. Microsoft offers no way for an app to withdraw a personal account's access by itself, so *Remove Tisty's access on every computer* forgets it here and opens your Microsoft account at <https://account.live.com/consent/Manage>, where you remove Tisty for every machine at once |
 | **Checking the way first** | Only while you are choosing OneDrive, Tisty checks that Microsoft's API host answers with a single request to `https://graph.microsoft.com/v1.0/me`, with no account, no token and nothing of yours in it, read the same way as Google's |
 | **The remote switch** | `cloud.json` speaks to OneDrive only under its own entry in the `providers` field, so a pause or a limit meant for Google never stops or slows OneDrive, nor the other way round |
 | **What it never does** | Send your data to us or to anyone but Microsoft, read a file in your OneDrive outside its own folder, or write tokens into its own log |
+
+## Syncing with your own WebDAV server
+
+Since version 1.32, Tisty can keep your machines in step through a WebDAV
+server of your own — Nextcloud, ownCloud, Synology and others — with no desktop
+program in the way and no browser sign-in. It is the same engine as Google Drive
+and OneDrive, so what the Google Drive section says of the files and how they
+travel holds here too; what changes is below.
+
+| | |
+| :--- | :--- |
+| **Who it talks to** | The server at the address you type, and nothing else. Never a server of ours, because there is none |
+| **Where the copies are** | In a folder named `Tisty` that Tisty makes inside the folder your address points at. Nothing outside it is listed or touched. You can see it on your server; leave it to Tisty, since what you change there by hand is read as a change from another computer |
+| **What it sends** | The same files as to Google Drive, into that folder, and with every request your user and password, as HTTP Basic authentication. Attachments always stay on every computer as well, so *Free up space* is not offered |
+| **How the line is guarded** | Only `https://` is accepted, because the password travels with every request. Plain `http://` is refused, except to this very computer (`localhost` or a loopback address). The server's certificate is checked by the system as for any other secure connection, and Tisty never follows a redirect, which would carry the password to wherever it points. An address that carries a user or a password of its own is refused |
+| **How you allow it** | Only from the Tisty window: in Settings › Sync you type the *Server address*, the *User* and the *Password*. Before anything is kept, Tisty checks the server: it signs in with what you typed, looks at its own folder and, if the folder is empty, writes a small file called `tisty-probe` twice to see that the server refuses to write over a copy it was not told about, then deletes it. A server that would let two computers write over each other is refused, and nothing is connected |
+| **How the password is kept** | Only once the check passes. On macOS it goes into the system keychain. On Windows it goes into a file sealed with DPAPI for your user, inside Tisty's folder under your profile, beside the cloud tokens, so uninstalling Tisty removes it. Tisty holds it in memory for at most twelve hours before reading it again, and it never reaches the log, a backup or a parcel. An app password from your server is better than your main one: you can remove it there |
+| **How often** | It looks for changes every two minutes while Tisty runs, since no WebDAV server says what changed. If the server asks to slow down, Tisty waits. The same daily allowance per computer applies, and the remote switch speaks to WebDAV only under its own entry |
+| **Letting go** | *Disconnect this computer* forgets the password on that machine only and keeps your copies, here and on the server. There is no button to withdraw access on every computer: remove the app password, or change the password, on your server. *Delete my copies in WebDAV for good* deletes them from the server, which sends them to its bin if it keeps one |
+| **What it never does** | Send your data to us or to anyone but that server, touch a file outside its own folder, send the password over plain `http` to another machine, or write the password into its own log |
+
+## Encrypting your cloud
+
+Since version 1.36, what Tisty keeps in your Google Drive, your OneDrive or
+your WebDAV server can be encrypted, from Settings › Security, with
+*Encrypt my cloud*. It is offered only for those three, which Tisty reaches
+itself; a folder kept in step by a desktop client is never encrypted. It changes
+nothing on your computers: what sits on your disk stays plain, as described
+above.
+
+| | |
+| :--- | :--- |
+| **What it needs** | A 24-word phrase, made on your computer and confirmed by typing three of its words, and every one of your computers on 1.36 or later. Tisty names any computer that is behind |
+| **What it encrypts** | Every file of your store in that cloud: the history, the documents and the attachments. Each one goes into a `sealed/` folder beside the old copy, under the same name, sealed with XChaCha20-Poly1305 under a key that comes from your phrase. Each seal is bound to the cloud and to the file's name, so a file cannot be passed off as another or moved |
+| **What the provider still sees** | As Tisty itself warns before you start: the provider keeps earlier unencrypted versions for a while, in its history and its bin; the names and sizes of the files and how many computers you have stay visible; and while it encrypts, your cloud takes twice the room, until you delete the old copy. Documents are named by an identifier rather than their title, but an attachment's name is a lowercased form of the file's own name. The provider still sees when files change and the address and time of each request |
+| **What stays unencrypted** | `tisty.toml`, which says what the folder is and now also that it is encrypted and with which store; `moved.json`, the signed note left when a computer moves elsewhere; the store's identifier in `store/`; a small mark, `sealed/sealed.mark`, which lets a phrase be checked before anything comes down; and the `knock/` folder, where your computers ask each other for the key. An ask in `knock/` carries the name you gave that computer in Tisty |
+| **The old copy** | It stays as it was until you press *Delete the unencrypted copy*, which deletes only the files whose encrypted copy is already there. Until the last step, cancelling loses nothing. A file too big for the provider to take encrypted is left out and stays as it is |
+| **Where the phrase lives** | On the computer where you made it, in the system keychain on macOS or, on Windows, in a DPAPI-sealed file apart from the cloud tokens, which the installer's uninstaller leaves in place. It is never synced, backed up or put in a parcel. You can show it again in Settings › Security or save it as a PDF; keep that outside Tisty. It never passes through our hands, so nobody can give it back to you |
+| **Your other computers** | A computer that already syncs with you asks for the key on its own, and another of yours that holds it answers, as soon as one of them has Tisty open. A new computer chooses *Let in from another computer* and shows twenty digits, which you type on one of your computers that already reads the encrypted cloud. Or you can type your 24 words on it with *Type my phrase*: only the key of your cloud stays on that computer, never the phrase. Either way the key travels only inside the cloud, sealed for that one computer, and is kept in its keychain or, on Windows, in the same sealed folder as the phrase |
+| **Who can open it** | Only someone with your phrase or one of your computers. Not the provider, and not us: there is no copy of the key anywhere else, so if you lose the phrase and all your computers, the encrypted data is lost |
+| **Going back** | *Decrypt my cloud* copies everything back unencrypted and deletes the encrypted copy. It leaves a signed note, `knock/unsealed.json`, so your other computers follow without you doing anything on each one. Your phrase stays yours |
 
 ## The door you can open for an assistant
 
@@ -351,7 +426,7 @@ happens on its own:
   reaches it through that process's own input and output — on this machine,
   with no port, no account and no token. It is not a server and nothing can
   reach it from the network.
-- **You let it in.** The assistant shows up in Settings › Agents as a device
+- **You let it in.** The assistant shows up in Settings › Assistants as a device
   you have to admit, and everything it tries before that is refused. Admitting
   it is an event written into your log rather than a line in a settings file,
   so you can see when it happened and throw it out whenever you want.

@@ -251,7 +251,7 @@ El ancho viaja en lo larga que se dibuja la raya de debajo del encabezado, así 
 
 #### Diagramas
 
-Un bloque de código cuyo lenguaje es `mermaid` deja de ser código y se dibuja. Sirve para un esquema:
+Un bloque de código cuyo lenguaje es `mermaid` deja de ser código y lo dibuja el Mermaid oficial: cabe en cualquier ancho, se lee bien en modo oscuro y un clic lo abre en grande. Sirve para un esquema:
 
 ```mermaid
 graph TD
@@ -310,7 +310,7 @@ Si el widget crece mucho, adjúntalo: un archivo `.html` adjunto a un documento 
 
 #### Archivos, sonido y video
 
-Un archivo adjunto se dibuja como lo que es: una imagen tal cual, un sonido o un video con su reproductor, una página `.html` en vivo, y cualquier otro como una tarjeta con su tipo y su tamaño. Cada tarjeta tiene un **⋯**: guardar una copia, mostrar la página como archivo o de nuevo en vivo, convertir la tarjeta en un enlace simple o quitarla de la página. Un video que todavía está en tu nube se descarga solo cuando le das play, y si no puede llegar te dice por qué.
+Un archivo adjunto se dibuja como lo que es: una imagen tal cual, que un clic abre en grande, un sonido o un video con su reproductor, una página `.html` en vivo, y cualquier otro como una tarjeta con su tipo y su tamaño. Cada tarjeta tiene un **⋯**: guardar una copia, mostrar la página como archivo o de nuevo en vivo, convertir la tarjeta en un enlace simple o quitarla de la página. Un video que todavía está en tu nube se descarga solo cuando le das play, y si no puede llegar te dice por qué.
 
 #### Código, con nombre y con color
 
@@ -385,13 +385,15 @@ Para reescribir un documento entero se le entrega una huella del texto exacto qu
 
 ### 12. Tus copias
 
-Tisty trabaja siempre en este equipo. Si quieres alcanzarlo desde otro, dile dónde dejar las copias: te ofrece Google Drive, OneDrive, iCloud y Dropbox —los que encuentre instalados, con su carpeta ya resuelta— o cualquier otra que los dos equipos alcancen, un NAS o un disco externo. Tu Google Drive o tu OneDrive también se pueden conectar directamente, desde Configuración, sin tener instalado ningún programa de Google ni de Microsoft.
+Tisty trabaja siempre en este equipo. Si quieres alcanzarlo desde otro, dile dónde dejar las copias. Tu Google Drive, tu OneDrive o tu propio servidor WebDAV —Nextcloud, ownCloud, Synology y otros— se conectan directamente desde Configuración → Sincronizar, sin instalar ningún otro programa. O elige una carpeta: te ofrece Google Drive, OneDrive, iCloud y Dropbox —los que encuentre instalados, con su carpeta ya resuelta— o cualquier otra que los dos equipos alcancen, un NAS o un disco externo.
 
-Quien sube y baja esa carpeta es el programa de tu proveedor, no Tisty. Si no está en marcha, las tareas esperan ahí hasta que lo esté.
+Una nube conectada directamente también se puede cifrar desde Configuración → Seguridad, con una frase de 24 palabras que solo tú conoces, y entonces ni tu proveedor puede leer la ficha de Rina. Tus otros equipos reciben la llave solos, un equipo nuevo entra con un código que escribes en uno de los tuyos, y una carpeta no se cifra.
+
+Si eliges una carpeta, quien la sube y la baja es el programa de tu proveedor, no Tisty. Si no está en marcha, las tareas esperan ahí hasta que lo esté.
 
 > No hay servidor nuestro por medio. Sincronizar te da redundancia, no vuelta atrás en el tiempo: si borras una tarea, el borrado también viaja.
 
-Cada equipo firma lo que escribe. Uno que ya conocías se reconoce solo cuando se actualiza. Uno nuevo —recién instalado o reinstalado— espera a que confirmes que es tuyo: aparece un aviso en la barra lateral con el nombre de ese computador, y **Confirmar…** te muestra su código de veinte números. Ábrelo en ese equipo, en Configuración → Tus datos → **Sincronizar**, donde **Mostrar en grande** lo deja fácil de leer desde lejos: si el código es el mismo, **Sí, es el mismo** lo deja pasar y trae lo que escribió; si no, **No coincide** lo deja fuera. Se hace una vez en cada uno de tus otros equipos. Si quien espera es el asistente de otro computador, su código está en ese computador, en Configuración → Asistentes.
+Cada equipo firma lo que escribe. Uno que ya conocías se reconoce solo cuando se actualiza. Uno nuevo —recién instalado o reinstalado— espera a que confirmes que es tuyo: aparece un aviso en la barra lateral con el nombre de ese computador, y **Confirmar…** te muestra su código de veinte números. Ábrelo en ese equipo, en Configuración → **Sincronizar**, donde **Mostrar en grande** lo deja fácil de leer desde lejos: si el código es el mismo, **Sí, es el mismo** lo deja pasar y trae lo que escribió; si no, **No coincide** lo deja fuera. Se hace una vez en cada uno de tus otros equipos. Si quien espera es el asistente de otro computador, su código está en ese computador, en Configuración → Asistentes.
 
 Ahí mismo, **Cambiar nombre** elige cómo verán este equipo los demás; vacío, vuelve al nombre del sistema. Y cada **Sincronizar ahora** dice a qué hora fue y si llegó algo o quedó escrito en la carpeta.
 
@@ -415,7 +417,7 @@ El Archivo se lee en tres capas: las **historias**, que dejaron algo escrito; la
 
 Los archivos que hubieras adjuntado no se van con ella, porque podrían estar en uso en otro documento. Quedan sueltos, y Configuración → Mantenimiento te los lista para soltarlos cuando quieras.
 
-Ahí mismo, en **El almacén**, está **Revisión**: cuenta lo que sobra, lo que falta y lo que puedes recuperar, y no cambia nada por su cuenta. Los adjuntos que ya no nombra nadie se van a la papelera con treinta días para arrepentirte. Los documentos que están en el disco pero el registro no nombra se apartan para mirarlos primero, porque pueden ser la única copia de algo que perdió su evento: recogerlos nunca puede estar mal. [El archivo](https://www.tisty.app/es/ayuda/el-archivo/), en la ayuda, cuenta cada capa completa.
+Cada vez que abres Mantenimiento, revisa tu historial, tus documentos y tus adjuntos, y **Revisar de nuevo** lo repite: cuenta lo que sobra, lo que falta y lo que puedes recuperar, y no cambia nada por su cuenta. Los adjuntos que ya no nombra nadie se van a la papelera con treinta días para arrepentirte. Los documentos que están en el disco pero el registro no nombra se apartan para mirarlos primero, porque pueden ser la única copia de algo que perdió su evento: recogerlos nunca puede estar mal. [El archivo](https://www.tisty.app/es/ayuda/el-archivo/), en la ayuda, cuenta cada capa completa.
 
 ### 14. Atajos
 

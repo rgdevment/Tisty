@@ -3252,7 +3252,7 @@ const es: Catalog = {
   toPdfDo: "Exportar PDF",
   pdfSign: "Portada con autor, versión y fechas",
   pdfSignAsk:
-    "Una primera página propia con el título y una pequeña tabla: autor, versión y cuándo se creó y se escribió por última vez. Las páginas siguientes son las hojas que ves.\n\nAutor: la línea author: del documento; si no está, el nombre con que firmas en Ajustes y, si no hay, tu alias.\nVersión y fecha: las líneas version: y date: del documento, si las tiene.",
+    "Una primera página propia con el título y una pequeña tabla: autor, versión y cuándo se creó y se escribió por última vez. Las páginas siguientes son las hojas que ves.\n\nAutor: la línea author: del documento; si no está, el nombre con que firmas en Configuración y, si no hay, tu alias.\nVersión y fecha: las líneas version: y date: del documento, si las tiene.",
   pdfCreditTick: "Pie discreto «Generado con Tisty»",
   pdfCreditAsk:
     "Una línea pequeña y gris al final del PDF, con enlace a la web de Tisty. Nada más cambia.",
@@ -3715,9 +3715,9 @@ const es: Catalog = {
   changeUnbacked:
     "Tisty no pudo guardar una copia de tus tareas y documentos antes de cambiar cómo se sincronizan, así que no se cambió nada.",
   movedAway:
-    "Tus otros equipos se mudaron a {name} y dejaron de sincronizar aquí. Esta copia también se detuvo, para que nada siga por su cuenta; elige {name} en Ajustes para seguirlos.",
+    "Tus otros equipos se mudaron a {name} y dejaron de sincronizar aquí. Esta copia también se detuvo, para que nada siga por su cuenta; elige {name} en Configuración para seguirlos.",
   movedAlone:
-    "Tus otros equipos dejaron de sincronizar aquí. Esta copia también se detuvo, para que nada siga por su cuenta; vuelve a elegir cómo sincroniza en Ajustes.",
+    "Tus otros equipos dejaron de sincronizar aquí. Esta copia también se detuvo, para que nada siga por su cuenta; vuelve a elegir cómo sincroniza en Configuración.",
   deferredBudget:
     "Tu nube llegó a su límite de hoy. Lo que escribas queda guardado en este equipo y la sincronización sigue {name}.",
   budgetResetsToday: "hoy a las {name}",
@@ -3939,7 +3939,7 @@ const es: Catalog = {
   chooseFolderWhy:
     "Un NAS, un disco o la carpeta del programa de tu nube. Tú decides dónde y cómo.",
   chooseOneAtATime:
-    "Es una sola a la vez. Puedes cambiarla después desde Ajustes: es una mudanza, y antes de tocar nada te contamos qué va a pasar.",
+    "Es una sola a la vez. Puedes cambiarla después desde Configuración: es una mudanza, y antes de tocar nada te contamos qué va a pasar.",
   cloudConnectWhy:
     "Se abre tu navegador, entras en tu cuenta y {maker} te pregunta si Tisty puede guardar ahí sus copias.",
   cloudChosen: "{cloud}",
@@ -4084,7 +4084,7 @@ const es: Catalog = {
   movedFollowCloud: "Ir a la nube",
   movedFollowFolder: "Elegir la carpeta",
   movedToCloud:
-    "Tus otros equipos se mudaron a {name} y dejaron de sincronizar aquí. Esta copia también se detuvo, para que nada siga por su cuenta; síguelos desde Ajustes.",
+    "Tus otros equipos se mudaron a {name} y dejaron de sincronizar aquí. Esta copia también se detuvo, para que nada siga por su cuenta; síguelos desde Configuración.",
   moveOpen: "Mudarme a otro lugar…",
   moveTitle: "Vas a cambiar de lugar",
   moveWhy:

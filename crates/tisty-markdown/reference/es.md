@@ -421,7 +421,7 @@ Tres lenguajes se dibujan en vez de mostrarse como código: `mermaid` para diagr
 
 ### Diagramas
 
-Un bloque `mermaid` (o `mmd`) dibuja un diagrama: flujos, secuencias, estados, tortas y cronogramas.
+Un bloque `mermaid` (o `mmd`) dibuja un diagrama: flujos, secuencias, clases, estados, diagramas de Gantt, tortas, cronogramas y los demás tipos que dibuja Mermaid.
 
 ````markdown
 ```mermaid
@@ -458,6 +458,8 @@ gantt
 ```
 ````
 
+- Tisty lo dibuja con el Mermaid oficial, ajustado al ancho de la página y oscuro cuando Tisty está en modo oscuro; en Tisty, un clic lo abre en grande.
+- Cuando el documento sale de Tisty como Markdown llano, un bloque `mmd` se escribe `mermaid`, la única palabra que GitHub dibuja.
 - Uno demasiado grande para acomodarlo (más de 32 KiB, o mil cajas y flechas) o que no se entiende, se muestra como código.
 
 ### Fórmulas
@@ -569,7 +571,7 @@ Refuerzo en marzo. <!-- preguntar por la pastilla de garrapatas -->
 
 Lo que llega de afuera se convierte en estas palabras al entrar: una página web pegada o importada, un documento de Word, una nota de Obsidian, el Markdown que manda un asistente. Sus títulos, listas, enlaces, tablas, colores e imágenes pasan a las formas de esta página; un color fuera de la paleta pasa al rotulador más cercano, y lo que no tiene ninguna palabra queda como texto. El archivo de donde vino no se toca.
 
-Solo el HTML que alguien escribe a mano en un documento queda tal como está escrito. El documento se sigue abriendo, editando y guardando entero, sin que se corte nada; la página dibuja esa parte como buenamente puede, y **Configuración › Mantenimiento** te lista los documentos que lo llevan.
+Solo el HTML que alguien escribe a mano en un documento queda tal como está escrito. El documento se sigue abriendo, editando y guardando entero, sin que se corte nada; la página dibuja esa parte como buenamente puede.
 
 ### Palabras de un Tisty anterior
 
