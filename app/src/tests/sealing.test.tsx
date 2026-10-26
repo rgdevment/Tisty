@@ -211,11 +211,11 @@ describe("a turn under way", () => {
     expect(screen.queryByRole("button", { name: "Encrypt my cloud…" })).toBeNull();
   });
 
-  it("counts before the first numbers come, and says a stop that gave no reason", async () => {
+  it("says the copy is starting before the first numbers, and says a stop with no reason", async () => {
     ipc.shown = { ...plain, state: "turning", turning: { ...copying, done: 0, left: 0 } };
     render(<Shell />);
 
-    expect(await screen.findByText("Counting what there is to copy…")).toBeTruthy();
+    expect(await screen.findByText("Starting to copy…")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
 
     await heard({ ...copying, done: 0, left: 0, stopped: true, why: null });
