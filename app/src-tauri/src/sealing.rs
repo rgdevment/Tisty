@@ -435,6 +435,16 @@ fn driven(app: &AppHandle, ours: u64) {
     let Some(mut turning) = Turning::resume(plain.clone(), &home, key.clone()) else {
         return;
     };
+    // A first step can copy for minutes, and until it is told the card would read the turn as stopped.
+    let begun = if left.closed {
+        Stepped::Closed
+    } else {
+        Stepped::Claimed
+    };
+    let mut going = told_last(&turns, left.on).unwrap_or_else(|| told_of(&turning, &begun));
+    going.stopped = false;
+    going.why = None;
+    told(app, &turns, Some(going));
     while still(&turns, ours) {
         match turning.step() {
             Ok(Stepped::Done) => {

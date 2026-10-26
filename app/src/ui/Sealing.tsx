@@ -54,6 +54,7 @@ export default function Sealing({
 }: Props) {
   const [shown, setShown] = useState<SealShown | null>(null);
   const [asking, setAsking] = useState(false);
+  const [starting, setStarting] = useState(false);
   const [phrase, setPhrase] = useState<Phrase | null>(null);
   const [letting, setLetting] = useState<"me" | "them" | "phrase" | null>(null);
   const failed = useCallback((e: unknown) => fail({ card, text: saidPlainly(e) }), [fail]);
@@ -94,7 +95,11 @@ export default function Sealing({
 
   const begin = (on: boolean) => {
     setAsking(false);
-    sealingBegin(on).then(look).catch(failed);
+    setStarting(true);
+    sealingBegin(on)
+      .then(look)
+      .catch(failed)
+      .finally(() => setStarting(false));
   };
 
   if (!shown) return null;
@@ -171,7 +176,15 @@ export default function Sealing({
       {shown.state === "none" && (
         <p className="text-[12.5px] leading-relaxed text-soft">{t("sealNoCloud")}</p>
       )}
-      {shown.state === "plain" && (
+      {starting && shown.state !== "turning" && (
+        <p
+          role="status"
+          className="text-[12.5px] leading-relaxed text-soft motion-safe:animate-pulse"
+        >
+          {t("sealStarting")}
+        </p>
+      )}
+      {shown.state === "plain" && !starting && (
         <>
           <p className="text-[12.5px] leading-relaxed text-soft">{fill("sealWhat", provider)}</p>
           <div className="mt-3 flex justify-end">
@@ -197,7 +210,7 @@ export default function Sealing({
           }
         />
       )}
-      {shown.state === "sealed" && (
+      {shown.state === "sealed" && !starting && (
         <Sealed
           provider={provider}
           held={held}
@@ -375,7 +388,7 @@ function Progress({
     <li className="flex gap-2">
       <span
         aria-hidden="true"
-        className={`w-4 shrink-0 ${index < at ? "text-hue-teal" : "text-faint"}`}
+        className={`w-4 shrink-0 ${index < at ? "text-hue-teal" : "text-faint"} ${index === at && !told.stopped ? "motion-safe:animate-pulse" : ""}`}
       >
         {index < at ? "✓" : index === at ? "…" : "·"}
       </span>
@@ -395,7 +408,9 @@ function Progress({
           t("sealStepCopy"),
           told.step === "copying" && told.done + told.left > 0
             ? fill("sealStepCopied", String(told.done), String(told.left))
-            : undefined,
+            : at === 0 && !told.stopped
+              ? t("sealStepCounting")
+              : undefined,
         )}
         {step(1, t("sealStepClose"), t("sealStepCloseWhy"))}
         {step(2, t(told.on ? "sealStepSwitchOn" : "sealStepSwitchOff"))}
@@ -403,9 +418,9 @@ function Progress({
       {told.refused > 0 && (
         <p className="mt-2 text-[12.5px] text-soft">{fill("sealRefused", String(told.refused))}</p>
       )}
-      {told.stopped && told.why && (
+      {told.stopped && (
         <p role="alert" className="mt-2 text-[12.5px] text-urgent">
-          {plainly({ code: told.why })}
+          {told.why ? plainly({ code: told.why }) : t("sealStopped")}
         </p>
       )}
       <p className="mt-3 text-[11.5px] text-faint">{t("sealIntact")}</p>

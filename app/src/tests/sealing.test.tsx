@@ -14,6 +14,7 @@ const ipc = vi.hoisted(() => ({
   shown: null as unknown,
   room: { free: 10_000_000_000, needed: 2_000_000 } as unknown,
   refuse: null as string | null,
+  slow: false,
 }));
 
 const bus = vi.hoisted(() => ({
@@ -24,6 +25,7 @@ vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args?: Record<string, unknown>) => {
     ipc.calls.push({ cmd, args: args ?? {} });
     if (cmd === ipc.refuse) return Promise.reject({ code: "sealingBehind" });
+    if (cmd === "sealing_begin" && ipc.slow) return new Promise(() => {});
     if (cmd === "sealing_shown") return Promise.resolve(ipc.shown);
     if (cmd === "sealing_room") return Promise.resolve(ipc.room);
     if (cmd === "sealing_wipe") return Promise.resolve(12);
@@ -98,6 +100,7 @@ beforeEach(() => {
   ipc.shown = plain;
   ipc.room = { free: 10_000_000_000, needed: 2_000_000 };
   ipc.refuse = null;
+  ipc.slow = false;
   bus.heard.clear();
   asksSure(() => Promise.resolve(true));
 });
@@ -196,6 +199,30 @@ describe("encrypting the cloud", () => {
 });
 
 describe("a turn under way", () => {
+  it("says the cloud is being made ready from the moment it is asked to begin", async () => {
+    ipc.slow = true;
+    render(<Shell />);
+    await userEvent.click(await screen.findByRole("button", { name: "Encrypt my cloud…" }));
+    await screen.findByText("There is room in OneDrive");
+
+    await userEvent.click(screen.getByRole("button", { name: "Encrypt my cloud" }));
+
+    expect((await screen.findByRole("status")).textContent).toMatch(/Getting your cloud ready/);
+    expect(screen.queryByRole("button", { name: "Encrypt my cloud…" })).toBeNull();
+  });
+
+  it("counts before the first numbers come, and says a stop that gave no reason", async () => {
+    ipc.shown = { ...plain, state: "turning", turning: { ...copying, done: 0, left: 0 } };
+    render(<Shell />);
+
+    expect(await screen.findByText("Counting what there is to copy…")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+
+    await heard({ ...copying, done: 0, left: 0, stopped: true, why: null });
+    expect(screen.getByRole("alert").textContent).toMatch(/It stopped/);
+    expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
+  });
+
   it("shows how far the copy went, follows what the turn says and can be cancelled", async () => {
     ipc.shown = { ...plain, state: "turning", turning: copying };
     render(<Shell />);
