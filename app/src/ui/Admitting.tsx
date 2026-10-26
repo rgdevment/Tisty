@@ -130,6 +130,8 @@ export function LetMeIn({ onClose, onIn }: { onClose: () => void; onIn: () => vo
 
 type Letting = { one: Newcomer; step: "typing" | "granted" | "refused" };
 
+const LOOKED_EVERY = 15_000;
+
 export function LetThemIn({ onClose }: { onClose: () => void }) {
   const [newcomers, setNewcomers] = useState<Newcomer[] | null>(null);
   const [letting, setLetting] = useState<Letting | null>(null);
@@ -139,11 +141,21 @@ export function LetThemIn({ onClose }: { onClose: () => void }) {
 
   const look = useCallback(() => {
     setTrouble(null);
+    setNewcomers(null);
     admittingLook()
       .then(setNewcomers)
       .catch((e) => setTrouble(saidPlainly(e)));
   }, []);
   useEffect(look, [look]);
+  useEffect(() => {
+    if (letting) return;
+    const again = setInterval(() => {
+      admittingLook()
+        .then(setNewcomers)
+        .catch(() => undefined);
+    }, LOOKED_EVERY);
+    return () => clearInterval(again);
+  }, [letting]);
 
   // An ask gone or taken by another is shown as it now stands, rather than left on a form that can no longer work.
   const failed = (e: unknown) => {
@@ -226,6 +238,9 @@ export function LetThemIn({ onClose }: { onClose: () => void }) {
       return (
         <>
           <p className="text-[12.5px] leading-relaxed text-soft">{t("admitNobody")}</p>
+          <p role="status" className="mt-2 text-[11.5px] text-faint motion-safe:animate-pulse">
+            {t("admitStillLooking")}
+          </p>
           <div className="mt-3 flex justify-end">
             <button type="button" className={mild} onClick={look}>
               {t("admitLookAgain")}

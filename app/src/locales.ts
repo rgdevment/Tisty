@@ -1939,6 +1939,7 @@ const en = {
   admitLooking: "Looking for new computers…",
   admitNobody:
     "No new computer is asking to come in. On the new computer, choose «Let in from another computer».",
+  admitStillLooking: "Still looking every few seconds…",
   admitLookAgain: "Look again",
   admitTaken: "Another computer is letting it in",
   admitTake: "Let it in",
@@ -4442,6 +4443,7 @@ const es: Catalog = {
   admitNobody:
     "Ningún equipo nuevo está pidiendo entrar. En el equipo nuevo, elige «Autorizar desde otro equipo».",
   admitLookAgain: "Buscar de nuevo",
+  admitStillLooking: "Sigue buscando cada pocos segundos…",
   admitTaken: "Otro equipo lo está autorizando",
   admitTake: "Autorizar",
   admitTypeWhat:
