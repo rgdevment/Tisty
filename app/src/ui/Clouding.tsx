@@ -61,7 +61,9 @@ export default function Clouding({ clouds, busy, onTrouble, onBack, onDone, onCo
   const [holds, setHolds] = useState(false);
   const [offered, setOffered] = useState<string[]>();
   const [picked, setPicked] = useState<string>();
+  const [peeking, setPeeking] = useState(false);
   const gone = useRef(false);
+  const peeks = useRef(0);
   const unused = useRef<Connected | undefined>(undefined);
 
   useEffect(() => {
@@ -102,6 +104,9 @@ export default function Clouding({ clouds, busy, onTrouble, onBack, onDone, onCo
       .then((state) => !gone.current && setWeight(state.weight))
       .catch(() => undefined);
     if (onConnected) return;
+    const mine = ++peeks.current;
+    const still = () => !gone.current && mine === peeks.current;
+    setPeeking(true);
     placePeek({
       kind: "cloud",
       account: connected.account,
@@ -109,8 +114,9 @@ export default function Clouding({ clouds, busy, onTrouble, onBack, onDone, onCo
       provider: connected.provider,
     })
       // A computer with a history of its own goes through how the two come together, never «bring it».
-      .then((peeked) => !gone.current && setHolds(peeked.fresh && peeked.holds === true))
-      .catch(() => undefined);
+      .then((peeked) => still() && setHolds(peeked.fresh && peeked.holds === true))
+      .catch(() => undefined)
+      .finally(() => still() && setPeeking(false));
   }, [connected, onConnected]);
 
   const stuck = busy || held || waiting || checking || !picked;
@@ -208,6 +214,11 @@ export default function Clouding({ clouds, busy, onTrouble, onBack, onDone, onCo
           <span className={heading}>{of("cloudGooglePace")}</span>
           {of("cloudGooglePaceWhy")}
         </div>
+        {(peeking || held) && (
+          <p role="status" className="text-[11.5px] text-faint motion-safe:animate-pulse">
+            {t(held ? "movingStarting" : "checkingNow")}
+          </p>
+        )}
         <div className="flex items-center gap-4 text-[11.5px]">
           <button type="button" disabled={busy || held} onClick={leave} className={back}>
             {t("welcomeBack")}
@@ -224,34 +235,40 @@ export default function Clouding({ clouds, busy, onTrouble, onBack, onDone, onCo
   return (
     <div className="flex flex-col gap-3">
       <p className="text-[12.5px] leading-relaxed text-soft">{of("cloudConnectWhy")}</p>
-      {CLOUDS.map((one) =>
-        offered?.includes(one.id) ? (
-          <button
-            key={one.id}
-            type="button"
-            disabled={stuck}
-            onClick={() => connect(one.id)}
-            className={`${row} ${one.id === picked ? "border-accent" : "border-line"} hover:bg-hover disabled:opacity-60`}
-          >
-            <CloudMark provider={one.id} />
-            <span className="min-w-0 flex-1">
-              <span className="block text-[13px] font-medium">{t(one.name)}</span>
-              <span className="block text-[11.5px] text-faint">{t(one.why)}</span>
-            </span>
-            {!(typed(one.id) && one.id === picked) && (
-              <span className="flex-none text-[11.5px] text-accent">{t("cloudConnectDo")}</span>
-            )}
-          </button>
-        ) : (
-          <div key={one.id} aria-disabled="true" className={`${row} border-hair opacity-70`}>
-            <CloudMark provider={one.id} muted />
-            <span className="min-w-0 flex-1">
-              <span className="block text-[13px] font-medium">{t(one.name)}</span>
-              <span className="block text-[11.5px] text-faint">{t("cloudComing")}</span>
-            </span>
-          </div>
-        ),
+      {offered === undefined && (
+        <p role="status" className="text-[11.5px] text-faint motion-safe:animate-pulse">
+          {t("checkingNow")}
+        </p>
       )}
+      {offered !== undefined &&
+        CLOUDS.map((one) =>
+          offered.includes(one.id) ? (
+            <button
+              key={one.id}
+              type="button"
+              disabled={stuck}
+              onClick={() => connect(one.id)}
+              className={`${row} ${one.id === picked ? "border-accent" : "border-line"} hover:bg-hover disabled:opacity-60`}
+            >
+              <CloudMark provider={one.id} />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[13px] font-medium">{t(one.name)}</span>
+                <span className="block text-[11.5px] text-faint">{t(one.why)}</span>
+              </span>
+              {!(typed(one.id) && one.id === picked) && (
+                <span className="flex-none text-[11.5px] text-accent">{t("cloudConnectDo")}</span>
+              )}
+            </button>
+          ) : (
+            <div key={one.id} aria-disabled="true" className={`${row} border-hair opacity-70`}>
+              <CloudMark provider={one.id} muted />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[13px] font-medium">{t(one.name)}</span>
+                <span className="block text-[11.5px] text-faint">{t("cloudComing")}</span>
+              </span>
+            </div>
+          ),
+        )}
       {picked && typed(picked) && (
         <DavForm
           busy={busy || held}
@@ -267,7 +284,11 @@ export default function Clouding({ clouds, busy, onTrouble, onBack, onDone, onCo
         points={[of("cloudLimitIsGoogleWhy"), t("cloudCaps")]}
       />
       {waiting && (
-        <p role="status" aria-live="polite" className="text-[11.5px] text-faint">
+        <p
+          role="status"
+          aria-live="polite"
+          className="text-[11.5px] text-faint motion-safe:animate-pulse"
+        >
           {t("cloudWaiting")}{" "}
           <button type="button" onClick={stopWaiting} className="text-accent hover:underline">
             {t("cancel")}

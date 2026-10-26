@@ -231,6 +231,7 @@ export function Plan({
   state,
   toward,
   plan,
+  failed,
   agreed,
   busy,
   onAgree,
@@ -240,6 +241,7 @@ export function Plan({
   state: Carrying;
   toward: Toward;
   plan?: MovePlan;
+  failed?: boolean;
   agreed: boolean;
   busy: boolean;
   onAgree: (agreed: boolean) => void;
@@ -263,6 +265,11 @@ export function Plan({
           <span className="block truncate text-[13px] font-medium">{towardOf(toward)}</span>
         </div>
       </div>
+      {!plan && !failed && (
+        <p role="status" className="text-[11.5px] text-faint motion-safe:animate-pulse">
+          {t("moveChecking")}
+        </p>
+      )}
       {plan && (
         <ul className={`${box} list-disc pl-7`}>
           {bringing && plan.fromCloud && <li>{fill("moveDown", weigh(plan.down.bytes))}</li>}
@@ -320,7 +327,15 @@ export function Underway({ run, onHide }: { run: Run; onHide: () => void }) {
       <p className="text-[13px] font-semibold">{t("moveMoving")}</p>
       <p className="text-[12.5px] leading-relaxed text-soft">{t("moveMovingWhy")}</p>
       {fetching && <p className="text-[12.5px] leading-relaxed text-ink">{t("moveFetching")}</p>}
-      {along && <p className="text-[11.5px] text-faint tabular-nums">{along}</p>}
+      {along ? (
+        <p className="text-[11.5px] text-faint tabular-nums">{along}</p>
+      ) : (
+        !paused && (
+          <p className="text-[11.5px] text-faint motion-safe:animate-pulse">
+            {t("movingStarting")}
+          </p>
+        )
+      )}
       {paused && <p className="text-[11.5px] text-faint tabular-nums">{paused}</p>}
       <span aria-hidden="true" className="block h-1 overflow-hidden rounded-full bg-line">
         <span

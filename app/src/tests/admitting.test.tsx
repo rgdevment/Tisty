@@ -133,6 +133,7 @@ describe("letting a new computer in from one that reads the cloud", () => {
   it("says where to start when nobody asks, and looks again", async () => {
     render(<LetThemIn onClose={() => {}} />);
     expect(await screen.findByText(/No new computer is asking to come in/)).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toBe("Still looking every few seconds…");
 
     await userEvent.click(screen.getByRole("button", { name: "Look again" }));
 

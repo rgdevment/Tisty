@@ -18,6 +18,7 @@ import { weigh } from "../format";
 import { cloudNamed, fill, t } from "../locales";
 import { plainly, saidPlainly } from "../refusal";
 import { sure } from "../sure";
+import { causeSaid, waitSaid } from "../syncSaid";
 import { LetMeIn, LetThemIn } from "./Admitting";
 import Card, { type Which, type Word } from "./Card";
 import Entering from "./Entering";
@@ -54,15 +55,34 @@ export default function Sealing({
 }: Props) {
   const [shown, setShown] = useState<SealShown | null>(null);
   const [asking, setAsking] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [wiping, setWiping] = useState(false);
   const [phrase, setPhrase] = useState<Phrase | null>(null);
   const [letting, setLetting] = useState<"me" | "them" | "phrase" | null>(null);
   const failed = useCallback((e: unknown) => fail({ card, text: saidPlainly(e) }), [fail]);
 
+  const [unread, setUnread] = useState(false);
   const look = useCallback(() => {
-    sealingShown().then(setShown).catch(failed);
+    setUnread(false);
+    sealingShown()
+      .then(setShown)
+      .catch((e) => {
+        setUnread(true);
+        failed(e);
+      });
   }, [failed]);
-  // A round may bring another computer's newer version, and the identity card may have confirmed the phrase.
   useEffect(look, [look, round, phrased]);
+  const keyAwaited = shown?.state === "locked" && shown.joined;
+  useEffect(() => {
+    if (!keyAwaited) return;
+    const again = setInterval(look, 15_000);
+    return () => clearInterval(again);
+  }, [keyAwaited, look]);
+  useEffect(() => {
+    if (!shown?.wiping || wiping) return;
+    const again = setInterval(look, 5_000);
+    return () => clearInterval(again);
+  }, [shown?.wiping, wiping, look]);
   useEffect(() => {
     const off = listen<SealTold | null>("sealing", (told) => {
       setShown((was) => (was ? { ...was, turning: told.payload } : was));
@@ -94,10 +114,38 @@ export default function Sealing({
 
   const begin = (on: boolean) => {
     setAsking(false);
-    sealingBegin(on).then(look).catch(failed);
+    setStarting(true);
+    sealingBegin(on)
+      .then(() => sealingShown())
+      .then(setShown)
+      .catch((e) => {
+        failed(e);
+        look();
+      })
+      .finally(() => setStarting(false));
   };
 
-  if (!shown) return null;
+  if (!shown)
+    return (
+      <Card title={t("sealTitle")} which={card} busy={busy} said={said} trouble={trouble}>
+        {unread ? (
+          <button
+            type="button"
+            onClick={() => {
+              if (trouble?.card === card) fail(undefined);
+              look();
+            }}
+            className={mild}
+          >
+            {t("tryAgain")}
+          </button>
+        ) : (
+          <p role="status" className="text-[12.5px] text-faint motion-safe:animate-pulse">
+            {t("checkingNow")}
+          </p>
+        )}
+      </Card>
+    );
   const provider = cloudNamed(shown.cloud);
   const held = busy !== null;
 
@@ -146,6 +194,11 @@ export default function Sealing({
           <p className="mt-0.5 text-[12.5px] leading-relaxed text-soft">
             {t(shown.joined ? "sealLockedJoined" : "sealLockedNew")}
           </p>
+          {shown.joined && (
+            <p role="status" className="mt-2 text-[12.5px] text-faint motion-safe:animate-pulse">
+              {t("sealAskingKey")}
+            </p>
+          )}
           <div className="mt-3 flex flex-wrap justify-end gap-2">
             <button
               type="button"
@@ -171,7 +224,15 @@ export default function Sealing({
       {shown.state === "none" && (
         <p className="text-[12.5px] leading-relaxed text-soft">{t("sealNoCloud")}</p>
       )}
-      {shown.state === "plain" && (
+      {starting && shown.state !== "turning" && (
+        <p
+          role="status"
+          className="text-[12.5px] leading-relaxed text-soft motion-safe:animate-pulse"
+        >
+          {t("sealStarting")}
+        </p>
+      )}
+      {shown.state === "plain" && !starting && (
         <>
           <p className="text-[12.5px] leading-relaxed text-soft">{fill("sealWhat", provider)}</p>
           <div className="mt-3 flex justify-end">
@@ -189,6 +250,7 @@ export default function Sealing({
       {shown.state === "turning" && shown.turning && (
         <Progress
           told={shown.turning}
+          provider={provider}
           onAgain={() => sealingResume().catch(failed)}
           onCancel={() =>
             sure(t("sealCancelSure"))
@@ -197,19 +259,23 @@ export default function Sealing({
           }
         />
       )}
-      {shown.state === "sealed" && (
+      {shown.state === "sealed" && !starting && (
         <Sealed
           provider={provider}
           held={held}
+          wiping={wiping || Boolean(shown.wiping)}
           onWipe={() =>
             sure(fill("sealWipeSure", provider))
-              .then((yes) =>
-                yes
-                  ? sealingWipe().then((gone) =>
-                      tell({ card, text: fill("sealWiped", String(gone)) }),
-                    )
-                  : undefined,
-              )
+              .then((yes) => {
+                if (!yes) return;
+                setWiping(true);
+                return sealingWipe()
+                  .then((gone) => tell({ card, text: fill("sealWiped", String(gone)) }))
+                  .finally(() => {
+                    setWiping(false);
+                    look();
+                  });
+              })
               .catch(failed)
           }
           onLetIn={() => setLetting("them")}
@@ -304,7 +370,9 @@ function Before({
         </li>
         <li className="flex gap-2">
           {room === null ? (
-            <span className="text-faint">{fill("sealRoomLooking", provider)}</span>
+            <span role="status" className="text-faint motion-safe:animate-pulse">
+              {fill("sealRoomLooking", provider)}
+            </span>
           ) : room === "unread" ? (
             <>
               <Mark ok={false} />
@@ -361,12 +429,24 @@ function Before({
 
 const STEPS = ["copying", "settling", "done"] as const;
 
+const waitingSaid = (on: NonNullable<SealTold["waiting"]>, provider: string): string => {
+  if (on === "local") return t("sealWaitLocal");
+  if (on === "busy") return t("deferredBusy");
+  if (on === "budget") return waitSaid("deferredBudget");
+  if (on === "paused") return t("deferredPaused");
+  if (on === "cloud") return fill("sealWaitCloud", provider);
+  if (on === "offline") return fill("sealWaitOffline", provider);
+  return causeSaid(on, provider) ?? fill("sealWaitOffline", provider);
+};
+
 function Progress({
   told,
+  provider,
   onCancel,
   onAgain,
 }: {
   told: SealTold;
+  provider: string;
   onCancel: () => void;
   onAgain: () => void;
 }) {
@@ -375,7 +455,7 @@ function Progress({
     <li className="flex gap-2">
       <span
         aria-hidden="true"
-        className={`w-4 shrink-0 ${index < at ? "text-hue-teal" : "text-faint"}`}
+        className={`w-4 shrink-0 ${index < at ? "text-hue-teal" : "text-faint"} ${index === at && !told.stopped ? "motion-safe:animate-pulse" : ""}`}
       >
         {index < at ? "✓" : index === at ? "…" : "·"}
       </span>
@@ -385,6 +465,7 @@ function Progress({
       </span>
     </li>
   );
+  const going = !told.stopped && !told.waiting;
   return (
     <>
       <p className="text-[13px] font-semibold">{t(told.on ? "sealTurningOn" : "sealTurningOff")}</p>
@@ -395,17 +476,30 @@ function Progress({
           t("sealStepCopy"),
           told.step === "copying" && told.done + told.left > 0
             ? fill("sealStepCopied", String(told.done), String(told.left))
-            : undefined,
+            : at === 0 && going
+              ? t("sealStepCounting")
+              : undefined,
         )}
-        {step(1, t("sealStepClose"), t("sealStepCloseWhy"))}
+        {step(
+          1,
+          t("sealStepClose"),
+          told.step === "settling" && told.left > 0
+            ? fill("sealStepSettlingLeft", String(told.left))
+            : t(at === 1 && going ? "sealStepSettling" : "sealStepCloseWhy"),
+        )}
         {step(2, t(told.on ? "sealStepSwitchOn" : "sealStepSwitchOff"))}
       </ul>
       {told.refused > 0 && (
         <p className="mt-2 text-[12.5px] text-soft">{fill("sealRefused", String(told.refused))}</p>
       )}
-      {told.stopped && told.why && (
+      {told.waiting && !told.stopped && (
+        <p role="status" className="mt-2 text-[12.5px] text-soft">
+          {waitingSaid(told.waiting, provider)}
+        </p>
+      )}
+      {told.stopped && (
         <p role="alert" className="mt-2 text-[12.5px] text-urgent">
-          {plainly({ code: told.why })}
+          {told.why ? plainly({ code: told.why }) : t("sealStopped")}
         </p>
       )}
       <p className="mt-3 text-[11.5px] text-faint">{t("sealIntact")}</p>
@@ -426,12 +520,14 @@ function Progress({
 function Sealed({
   provider,
   held,
+  wiping,
   onWipe,
   onLetIn,
   onOff,
 }: {
   provider: string;
   held: boolean;
+  wiping: boolean;
   onWipe: () => void;
   onLetIn: () => void;
   onOff: () => void;
@@ -442,14 +538,19 @@ function Sealed({
       <p className="mt-0.5 text-[12.5px] leading-relaxed text-soft">
         {fill("sealOldCopy", provider)}
       </p>
+      {wiping && (
+        <p role="status" className="mt-2 text-[12.5px] text-soft motion-safe:animate-pulse">
+          {fill("sealWiping", provider)}
+        </p>
+      )}
       <div className="mt-3 flex flex-wrap justify-end gap-2">
-        <button type="button" className={mild} disabled={held} onClick={onOff}>
+        <button type="button" className={mild} disabled={held || wiping} onClick={onOff}>
           {t("sealOff")}
         </button>
-        <button type="button" className={mild} disabled={held} onClick={onLetIn}>
+        <button type="button" className={mild} disabled={held || wiping} onClick={onLetIn}>
           {t("admitLetInButton")}
         </button>
-        <button type="button" className={strong} disabled={held} onClick={onWipe}>
+        <button type="button" className={strong} disabled={held || wiping} onClick={onWipe}>
           {t("sealWipe")}
         </button>
       </div>
