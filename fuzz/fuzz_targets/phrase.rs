@@ -27,7 +27,8 @@ fuzz_target!(|input: Input| {
             let read = phrase::seed_from(&written).expect("read back");
             assert_eq!(*read.to_bytes(), *seed.to_bytes());
             let written = phrase::phrase(&seed, Words::English).expect("written");
-            assert!(phrase::seed_from(&written).is_ok());
+            let read = phrase::seed_from(&written).expect("read back");
+            assert_eq!(*read.to_bytes(), *seed.to_bytes());
         }
         Err(Unread::Count(count)) => assert_ne!(count, WORDS),
         Err(Unread::Word(at)) => assert!((1..=WORDS).contains(&at)),

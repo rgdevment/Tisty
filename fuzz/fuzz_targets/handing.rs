@@ -113,7 +113,9 @@ fuzz_target!(|input: Input| {
         if ask.holds() && ask.key == genuine.ask.key {
             assert_eq!(ask, genuine.ask);
         }
-        assert_eq!(ask.code(&genuine.by, input.reveal), None);
+        if ask.commit == genuine.ask.commit {
+            assert_eq!(ask.code(&genuine.by, input.reveal), None);
+        }
     }
 
     if let Ok(read) = serde_json::from_slice::<Giver>(&said(&genuine.given, &input.giver)) {

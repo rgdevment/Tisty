@@ -12,6 +12,7 @@ const FILE: &[u8; 4] = b"\xffTCS";
 const MARK: &[u8; 4] = b"\xffTCM";
 const VERSION: u8 = 1;
 pub const LEAD: usize = FILE.len() + 1;
+const _: () = assert!(MARK.len() == FILE.len());
 pub const HEAD: usize = 19;
 pub const BLOCK: usize = 64 * 1024;
 pub const TAG: usize = 16;
