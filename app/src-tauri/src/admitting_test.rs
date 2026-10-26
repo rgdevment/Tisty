@@ -1,5 +1,6 @@
 use super::*;
 use crate::handed::tests::{Two, key, knows, sealed_with, two};
+use tisty_share_proto::handing::handed;
 
 fn knocking_of(two: &Two) -> Knocking {
     held(&two.asker).state.devices.clear();

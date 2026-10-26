@@ -367,3 +367,21 @@ fn a_key_from_a_machine_this_one_does_not_know_is_never_taken() {
         None
     );
 }
+
+#[test]
+fn a_machine_whose_log_is_behind_takes_the_key_from_one_its_person_certified() {
+    let two = two();
+    sealed_with(&two, &key(7));
+    knows(&two.giver, &two.asking);
+    let seed = tisty_share_proto::seed::Seed::from_bytes(&[7; 32]);
+    crate::identity::begun(&mut held(&two.giver), &seed).unwrap();
+    let persons = held(&two.giver).state.persons.clone();
+    held(&two.asker).state.persons = persons;
+    let knocking = Knocking::default();
+    asking(&two.asker, &knocking, &two.asking).unwrap();
+
+    answering(&two.giver, &two.giving, &key(7)).unwrap();
+
+    assert!(asking(&two.asker, &knocking, &two.asking).unwrap());
+    assert_eq!(held(&two.asker).config.key_handed, Some(two.cloud.clone()));
+}

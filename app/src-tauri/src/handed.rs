@@ -8,7 +8,7 @@ use tisty_core::Paths;
 use tisty_core::event::DeviceId;
 use tisty_core::witness::{self, Fact, channel};
 use tisty_share_proto::cloud::CloudKey;
-use tisty_share_proto::handing::{Ask, OneUse, SigningKey, handed};
+use tisty_share_proto::handing::{Ask, Handed, OneUse, SigningKey, handed};
 
 use crate::{Session, held};
 
@@ -246,7 +246,9 @@ pub(crate) fn asking(
         .lock()
         .unwrap_or_else(PoisonError::into_inner)
         .clone();
-    let vouched = from_ours(session, &answer) || trusted.as_deref() == Some(answer.key.as_str());
+    let vouched = from_ours(session, &answer)
+        || trusted.as_deref() == Some(answer.key.as_str())
+        || ours_vouched(session, &answer, ask);
     // A machine no log names waits for the person to say the digits match before it judges any answer.
     if !vouched && !seated && trusted.is_none() {
         return Ok(false);
@@ -292,7 +294,7 @@ fn opened(knocking: &Knocking, here: &Here, key: &CloudKey) -> bool {
 }
 
 // The mark sits with the provider, who could seal a mark of its own, so only a machine the log knows may hand a key.
-fn from_ours(session: &Mutex<Session>, answer: &tisty_share_proto::handing::Handed) -> bool {
+fn from_ours(session: &Mutex<Session>, answer: &Handed) -> bool {
     seated(session, &answer.by)
         && answer.giver().is_some_and(|key| {
             held(session).state.keys.get(&DeviceId(answer.by.clone()))
@@ -378,9 +380,48 @@ fn answered(
     if !seated || !signs_as_known(session, ask) || !fits(ask, here) {
         return Ok(());
     }
-    let answer = handed(ask, key, &here.device.0, signer)
-        .ok_or("the cloud's key could not be sealed for the machine that asked")?;
+    let answer = sealed_for(session, here, ask, key, signer)?;
     knock::answer(&*here.plain, &here.home, &one.device, &answer).map_err(hitched)
+}
+
+// Signed again with the share key the person's root certified, so an asker whose log is behind still knows it is theirs.
+pub(crate) fn sealed_for(
+    session: &Mutex<Session>,
+    here: &Here,
+    ask: &Ask,
+    key: &CloudKey,
+    signer: &SigningKey,
+) -> Result<Handed, String> {
+    let mut answer = handed(ask, key, &here.device.0, signer)
+        .ok_or("the cloud's key could not be sealed for the machine that asked")?;
+    let Some(share) = tisty_core::person::mine(&here.paths, &here.device) else {
+        return Ok(answer);
+    };
+    let certificate = {
+        let session = held(session);
+        let persons = &session.state.persons;
+        persons
+            .certificates
+            .iter()
+            .find(|one| {
+                one.vouches()
+                    .is_ok_and(|said| said.share == share.public() && persons.names(&said.person))
+            })
+            .cloned()
+    };
+    if let Some(certificate) = certificate {
+        answer.vouch(ask, &share, &certificate);
+    }
+    Ok(answer)
+}
+
+fn ours_vouched(session: &Mutex<Session>, answer: &Handed, ask: &Ask) -> bool {
+    let session = held(session);
+    let persons = &session.state.persons;
+    matches!(
+        answer.vouched_for(ask, &persons.revocations),
+        tisty_share_proto::identity::Verdict::Holds { person, .. } if persons.names(&person)
+    )
 }
 
 pub(crate) fn fits(ask: &Ask, here: &Here) -> bool {

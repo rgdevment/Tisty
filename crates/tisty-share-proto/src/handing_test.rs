@@ -125,3 +125,44 @@ fn a_giver_carries_the_key_it_names() {
 
     assert_eq!(carried.key(), Some(machine(1).verifying_key()));
 }
+
+#[test]
+fn an_answer_vouched_by_a_certified_share_key_names_its_person_and_only_for_its_ask() {
+    let seed = Seed::from_bytes(&[8; 32]);
+    let share = crate::identity::ShareKey::from_bytes(&[6; 32]);
+    let when = jiff::Timestamp::from_second(1_761_400_000).unwrap();
+    let certificate = seed.root().certify(&share.public(), when);
+    let one_use = OneUse::minted().unwrap();
+    let ask = asked(&one_use);
+    let mut answer = handed(&ask, &cloud_key(), "dev_a", &machine(1)).unwrap();
+
+    assert!(answer.vouch(&ask, &share, &certificate));
+
+    assert!(matches!(
+        answer.vouched_for(&ask, &[]),
+        Verdict::Holds { person, .. } if person == seed.root().person()
+    ));
+    let other = asked(&OneUse::minted().unwrap());
+    assert!(!matches!(
+        answer.vouched_for(&other, &[]),
+        Verdict::Holds { .. }
+    ));
+    let tampered = Handed {
+        sealed: answer.from.clone(),
+        ..answer.clone()
+    };
+    assert!(!matches!(
+        tampered.vouched_for(&ask, &[]),
+        Verdict::Holds { .. }
+    ));
+    let revoked = seed.root().revoke(&share.public(), when);
+    assert!(matches!(
+        answer.vouched_for(&ask, &[revoked]),
+        Verdict::Revoked { .. }
+    ));
+    assert!(!answer.vouch(
+        &ask,
+        &crate::identity::ShareKey::from_bytes(&[2; 32]),
+        &certificate
+    ));
+}

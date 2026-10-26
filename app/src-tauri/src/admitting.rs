@@ -5,7 +5,7 @@ use tauri::{AppHandle, Manager};
 use tisty_carrier::knock;
 use tisty_core::event::DeviceId;
 use tisty_share_proto::cloud::CloudKey;
-use tisty_share_proto::handing::{Ask, Giver, handed};
+use tisty_share_proto::handing::{Ask, Giver};
 
 use crate::handed::{Here, Knocking, NEW_FOR, fits, here_now, hitched, now, seated, signer};
 use crate::{Answer, Refusal, Session, elsewhere, held};
@@ -253,8 +253,7 @@ fn granted(
         return Err("the ask changed since its code was shown".into());
     }
     vouch_for(session, &ask)?;
-    let answer = handed(&ask, &key, &here.device.0, &signer)
-        .ok_or("the cloud's key could not be sealed for the new computer")?;
+    let answer = crate::handed::sealed_for(session, here, &ask, &key, &signer)?;
     let standing = knock::answered(&*here.plain, &here.home, device).map_err(hitched)?;
     if standing.is_some_and(|one| one.key != answer.key) {
         knock::unanswered(&*here.plain, &here.home, device).map_err(hitched)?;

@@ -10,6 +10,7 @@ use sha2::{Digest, Sha256};
 use zeroize::Zeroizing;
 
 use crate::cloud::CloudKey;
+use crate::identity::{Certificate, Revocation, ShareKey, Signed, Verdict};
 
 pub const SAID: u32 = 1;
 const ASKED: &[u8] = b"tisty.ask.v1\0";
@@ -76,7 +77,12 @@ pub struct Handed {
     pub from: String,
     pub sealed: String,
     pub sig: String,
+    /// The same answer signed with a share key the person's root certified, for an asker whose log never met this giver.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub vouched: Option<Signed>,
 }
+
+const VOUCHED: &str = "tisty.handed.vouched";
 
 fn coded(bytes: &[u8]) -> String {
     URL_SAFE_NO_PAD.encode(bytes)
@@ -213,6 +219,21 @@ impl Handed {
         )
     }
 
+    pub fn vouch(&mut self, ask: &Ask, share: &ShareKey, certificate: &Certificate) -> bool {
+        let said = self.said(&ask.digest());
+        self.vouched = share.sign(certificate, VOUCHED, &said);
+        self.vouched.is_some()
+    }
+
+    pub fn vouched_for(&self, ask: &Ask, revoked: &[Revocation]) -> Verdict {
+        match &self.vouched {
+            Some(signed) => {
+                crate::identity::check(signed, VOUCHED, &self.said(&ask.digest()), revoked)
+            }
+            None => Verdict::Refused,
+        }
+    }
+
     pub fn giver(&self) -> Option<VerifyingKey> {
         key_of(&self.key)
     }
@@ -253,6 +274,7 @@ pub fn handed(ask: &Ask, key: &CloudKey, by: &str, signer: &SigningKey) -> Optio
         from: coded(&from),
         sealed: coded(&sealed),
         sig: String::new(),
+        vouched: None,
     };
     handed.sig = coded(&signer.sign(&handed.said(&digest)).to_bytes());
     Some(handed)
