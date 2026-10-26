@@ -2,9 +2,7 @@
 
 use arbitrary::Arbitrary;
 use libfuzzer_sys::fuzz_target;
-use tisty_share_proto::cloud::{self, CloudKey, Mark};
-
-const KEY_ID: std::ops::Range<usize> = 5..21;
+use tisty_share_proto::cloud::{self, CloudKey, KEY_ID, LEAD, Mark};
 
 #[derive(Arbitrary, Debug)]
 struct Input<'a> {
@@ -33,7 +31,7 @@ fuzz_target!(|input: Input| {
     let at = input.at % changed.len();
     changed[at] ^= input.flip.max(1);
     // The key's id is not sealed: a change there is what tells a damaged mark from another phrase.
-    if !KEY_ID.contains(&at) {
+    if !(LEAD..LEAD + KEY_ID).contains(&at) {
         assert_ne!(cloud::mark_says(&ours, input.cloud, &changed), Mark::Holds);
     }
 

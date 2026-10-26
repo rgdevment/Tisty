@@ -2,11 +2,10 @@
 
 use arbitrary::Arbitrary;
 use libfuzzer_sys::fuzz_target;
-use tisty_share_proto::cloud::{self, CloudKey};
+use tisty_share_proto::cloud::{self, BLOCK, CloudKey};
 
 const CLOUD: &str = "Tisty";
 const NAME: &str = "store/device/events.jsonl";
-const BLOCK: usize = 64 * 1024;
 
 #[derive(Arbitrary, Debug)]
 struct Input {

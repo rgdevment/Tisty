@@ -3,31 +3,92 @@
 use std::sync::LazyLock;
 
 use arbitrary::Arbitrary;
+use jiff::Timestamp;
 use libfuzzer_sys::fuzz_target;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-use tisty_share_proto::handing::{Ask, Giver, Handed, OneUse, SigningKey};
-use tisty_share_proto::identity::Revocation;
+use tisty_share_proto::VerifyingKey;
+use tisty_share_proto::cloud::CloudKey;
+use tisty_share_proto::handing::{self, Ask, Giver, Handed, OneUse, SigningKey};
+use tisty_share_proto::identity::{Revocation, Root, ShareKey, Verdict};
 
-struct Asked {
+const KEY: [u8; 32] = [5; 32];
+
+struct Genuine {
     one_use: OneUse,
+    by: VerifyingKey,
     ask: Ask,
+    handed: Handed,
+    asked: Vec<u8>,
+    given: Vec<u8>,
+    answered: Vec<u8>,
 }
 
-static ASKED: LazyLock<Asked> = LazyLock::new(|| {
+static GENUINE: LazyLock<Genuine> = LazyLock::new(|| {
     let one_use = OneUse::minted().expect("minted");
     let machine = SigningKey::from_bytes(&[1; 32]);
+    let signer = SigningKey::from_bytes(&[2; 32]);
+    let share = ShareKey::from_bytes(&[3; 32]);
+    let root = Root::from_bytes(&[4; 32]);
+    let certificate = root.certify(&share.public(), Timestamp::UNIX_EPOCH);
     let ask = Ask::signed("device", "machine", &machine, &one_use, "Tisty", 0);
-    Asked { one_use, ask }
+    let giver = Giver::of("giver", "desk", &signer.verifying_key());
+    let mut handed =
+        handing::handed(&ask, &CloudKey::from_bytes(&KEY), "giver", &signer).expect("handed");
+    assert!(handed.vouch(&ask, &share, &certificate));
+    Genuine {
+        asked: serde_json::to_vec(&ask).expect("written"),
+        given: serde_json::to_vec(&giver).expect("written"),
+        answered: serde_json::to_vec(&handed).expect("written"),
+        by: signer.verifying_key(),
+        one_use,
+        ask,
+        handed,
+    }
 });
 
 #[derive(Arbitrary, Debug)]
+enum Edit {
+    Flip { at: usize, by: u8 },
+    Put { at: usize, byte: u8 },
+    Drop { at: usize },
+}
+
+#[derive(Arbitrary, Debug)]
+enum Said<'a> {
+    Edited(Vec<Edit>),
+    Anything(&'a [u8]),
+}
+
+#[derive(Arbitrary, Debug)]
 struct Input<'a> {
-    ask: &'a [u8],
-    giver: &'a [u8],
-    handed: &'a [u8],
+    ask: Said<'a>,
+    giver: Said<'a>,
+    handed: Said<'a>,
     revoked: &'a [u8],
     reveal: &'a str,
+}
+
+fn said(genuine: &[u8], said: &Said) -> Vec<u8> {
+    let edits = match said {
+        Said::Anything(bytes) => return bytes.to_vec(),
+        Said::Edited(edits) => edits,
+    };
+    let mut out = genuine.to_vec();
+    for edit in edits {
+        match *edit {
+            Edit::Flip { at, by } if !out.is_empty() => {
+                let at = at % out.len();
+                out[at] ^= by.max(1);
+            }
+            Edit::Put { at, byte } => out.insert(at % (out.len() + 1), byte),
+            Edit::Drop { at } if !out.is_empty() => {
+                out.remove(at % out.len());
+            }
+            _ => {}
+        }
+    }
+    out
 }
 
 fn again<T: Serialize + DeserializeOwned>(value: &T) -> T {
@@ -35,42 +96,47 @@ fn again<T: Serialize + DeserializeOwned>(value: &T) -> T {
     serde_json::from_slice(&written).expect("read back")
 }
 
-fuzz_target!(|input: Input| {
-    let asked = &*ASKED;
-    let giver = SigningKey::from_bytes(&[2; 32]).verifying_key();
+fn says_alike(one: &Handed, other: &Handed) -> bool {
+    (&one.v, &one.by, &one.key, &one.from, &one.sealed)
+        == (&other.v, &other.by, &other.key, &other.from, &other.sealed)
+}
 
-    if let Ok(ask) = serde_json::from_slice::<Ask>(input.ask) {
-        assert_eq!(again(&ask).holds(), ask.holds());
-        if let Some(code) = ask.code(&giver, input.reveal) {
-            let groups: Vec<&str> = code.split(' ').collect();
-            assert_eq!(groups.len(), 4);
-            assert!(
-                groups
-                    .iter()
-                    .all(|five| five.len() == 5 && five.bytes().all(|d| d.is_ascii_digit()))
-            );
+fn holds(verdict: Verdict) -> bool {
+    matches!(verdict, Verdict::Holds { .. })
+}
+
+fuzz_target!(|input: Input| {
+    let genuine = &*GENUINE;
+
+    if let Ok(ask) = serde_json::from_slice::<Ask>(&said(&genuine.asked, &input.ask)) {
+        assert_eq!(again(&ask), ask);
+        if ask.holds() && ask.key == genuine.ask.key {
+            assert_eq!(ask, genuine.ask);
         }
+        assert_eq!(ask.code(&genuine.by, input.reveal), None);
     }
 
-    if let Ok(read) = serde_json::from_slice::<Giver>(input.giver) {
-        assert_eq!(again(&read).key(), read.key());
+    if let Ok(read) = serde_json::from_slice::<Giver>(&said(&genuine.given, &input.giver)) {
+        assert_eq!(again(&read), read);
+        assert_eq!(read.key(), again(&read).key());
     }
 
     let revoked = serde_json::from_slice::<Vec<Revocation>>(input.revoked).unwrap_or_default();
-    if let Ok(handed) = serde_json::from_slice::<Handed>(input.handed) {
-        let signed = handed.signed_for(&asked.ask);
+    if let Ok(handed) = serde_json::from_slice::<Handed>(&said(&genuine.answered, &input.handed)) {
+        assert_eq!(again(&handed), handed);
+        let signed = handed.signed_for(&genuine.ask);
         let opened = handed
-            .opened(&asked.ask, &asked.one_use)
+            .opened(&genuine.ask, &genuine.one_use)
             .map(|key| *key.to_bytes());
-        let vouched = handed.vouched_for(&asked.ask, &revoked);
         assert!(opened.is_none() || signed);
-        let read = again(&handed);
-        assert_eq!(read.signed_for(&asked.ask), signed);
-        assert_eq!(
-            read.opened(&asked.ask, &asked.one_use)
-                .map(|key| *key.to_bytes()),
-            opened
-        );
-        assert_eq!(read.vouched_for(&asked.ask, &revoked), vouched);
+        if handed.key == genuine.handed.key {
+            let alike = says_alike(&handed, &genuine.handed) && handed.sig == genuine.handed.sig;
+            assert_eq!(signed, alike);
+            assert_eq!(opened, alike.then_some(KEY));
+        }
+        let vouched = holds(handed.vouched_for(&genuine.ask, &revoked));
+        if vouched && handed.vouched == genuine.handed.vouched {
+            assert!(says_alike(&handed, &genuine.handed));
+        }
     }
 });
