@@ -38,7 +38,7 @@ export default function Identity({
       .then(setShown)
       .catch((e) => fail({ card: "identity", text: saidPlainly(e) }));
   }, [fail]);
-  // A finished round may have certified a computer, so the panel looks again.
+  // A finished round may certify a computer, and the encryption card may confirm the phrase.
   useEffect(look, [look, round, phrased]);
 
   const see = () => {

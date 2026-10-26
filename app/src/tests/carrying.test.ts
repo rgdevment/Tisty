@@ -451,17 +451,34 @@ describe("carrying on its own", () => {
     expect(sent("sync_now")[1].args.way).toBe("pull");
   });
 
-  it("pushes at once what this computer wrote after its round had carried", async () => {
-    let rounds = 0;
+  it("pushes once, at once, what this computer wrote after its round had carried", async () => {
     ipc.answer = (cmd) =>
       cmd === "sync_state"
         ? Promise.resolve({ ...state })
-        : Promise.resolve({ carried: "same", undecided: [], owed: ++rounds === 1 });
+        : Promise.resolve({ carried: "same", undecided: [], owed: true });
+
+    carried = carrying(() => {});
+    await settle();
+    await vi.advanceTimersByTimeAsync(10_000);
+
+    expect(sent("sync_now").map((one) => one.args.way)).toEqual(["pull", "push"]);
+  });
+
+  it("does not chase its own writes into a place it could not reach", async () => {
+    ipc.answer = (cmd) =>
+      cmd === "sync_state"
+        ? Promise.resolve({ ...state })
+        : Promise.resolve({
+            carried: "same",
+            undecided: [],
+            owed: true,
+            deferred: { reason: "offline", left: 0, names: [] },
+          });
 
     carried = carrying(() => {});
     await settle();
 
-    expect(sent("sync_now").map((one) => one.args.way)).toEqual(["pull", "push"]);
+    expect(sent("sync_now")).toHaveLength(1);
   });
 
   it("brings the folder in the moment it is switched for another", async () => {

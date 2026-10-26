@@ -86,6 +86,12 @@ export default function Sealing({
       .catch(failed);
   };
 
+  const phrasedHere = () => {
+    setPhrase(null);
+    look();
+    onPhrased?.();
+  };
+
   const begin = (on: boolean) => {
     setAsking(false);
     sealingBegin(on).then(look).catch(failed);
@@ -111,16 +117,8 @@ export default function Sealing({
         <Phrasing
           words={phrase.words}
           fingerprint={phrase.fingerprint}
-          onClose={() => {
-            setPhrase(null);
-            look();
-            onPhrased?.();
-          }}
-          onConfirmed={() => {
-            setPhrase(null);
-            look();
-            onPhrased?.();
-          }}
+          onClose={phrasedHere}
+          onConfirmed={phrasedHere}
         />
       )}
       {letting === "me" && (
