@@ -605,11 +605,11 @@
     "es": [
       {
         "title": "Cifra tu nube",
-        "said": "desde Ajustes › Seguridad cifras lo que Tisty guarda en tu Google Drive, tu OneDrive o tu servidor WebDAV. Quien vea esos archivos, incluido tu proveedor, ya no puede leer tus tareas ni tus documentos. Tisty revisa antes que todos tus equipos estén listos, te muestra el avance y, al terminar, te deja borrar la copia sin cifrar cuando quieras."
+        "said": "desde Configuración › Seguridad cifras lo que Tisty guarda en tu Google Drive, tu OneDrive o tu servidor WebDAV. Quien vea esos archivos, incluido tu proveedor, ya no puede leer tus tareas ni tus documentos. Tisty revisa antes que todos tus equipos estén listos, te muestra el avance y, al terminar, te deja borrar la copia sin cifrar cuando quieras."
       },
       {
         "title": "Tu identidad y su frase de 24 palabras",
-        "said": "la llave de tu nube nace de una frase de 24 palabras que solo tú conoces. La ves en Ajustes › Seguridad, puedes guardarla como una hoja en PDF y tres de sus palabras confirman que la anotaste. Guárdala bien: sin ella y sin uno de tus equipos, nadie puede abrir tu nube, ni siquiera nosotros."
+        "said": "la llave de tu nube nace de una frase de 24 palabras que solo tú conoces. La ves en Configuración › Seguridad, puedes guardarla como una hoja en PDF y tres de sus palabras confirman que la anotaste. Guárdala bien: sin ella y sin uno de tus equipos, nadie puede abrir tu nube, ni siquiera nosotros."
       },
       {
         "title": "Tus otros equipos reciben la llave solos",
@@ -624,8 +624,8 @@
         "said": "desde el mismo lugar puedes quitar el cifrado. Tus otros equipos lo notan y siguen sincronizando sin que tengas que hacer nada en cada uno."
       },
       {
-        "title": "Ajustes más ordenados",
-        "said": "Ajustes ocupa la barra lateral con sus secciones: General, Sincronizar, Seguridad, Tus datos, Asistentes, Mantenimiento y, al final, Acerca de. El aviso de actualización aparece solo cuando hay una y te lleva directo a Acerca de."
+        "title": "Configuración más ordenada",
+        "said": "Configuración ocupa la barra lateral con sus secciones: General, Sincronizar, Seguridad, Tus datos, Asistentes, Mantenimiento y, al final, Acerca de. El aviso de actualización aparece solo cuando hay una y te lleva directo a Acerca de."
       },
       {
         "title": "Diagramas más claros y páginas más ágiles",
