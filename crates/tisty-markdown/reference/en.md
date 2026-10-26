@@ -421,7 +421,7 @@ Three languages are drawn instead of shown as code: `mermaid` for diagrams, `mat
 
 ### Diagrams
 
-A `mermaid` (or `mmd`) block draws a diagram: flows, sequences, states, pies and timelines.
+A `mermaid` (or `mmd`) block draws a diagram: flows, sequences, classes, states, Gantt charts, pies, timelines and the other kinds Mermaid draws.
 
 ````markdown
 ```mermaid
@@ -458,6 +458,8 @@ gantt
 ```
 ````
 
+- Tisty draws it with the official Mermaid, fitted to the width of the page and in the dark look when Tisty is dark; in Tisty, a click opens it large.
+- When the document leaves Tisty as plain Markdown, an `mmd` block is written `mermaid`, the one word GitHub draws.
 - One too large to lay out — past 32 KiB, or a thousand boxes and arrows — or one that does not parse, is shown as code.
 
 ### Formulas
@@ -569,7 +571,7 @@ Booster due in March. <!-- ask about the tick tablet -->
 
 Whatever arrives from elsewhere is turned into these words on the way in: a web page pasted or imported, a Word document, a note from Obsidian, Markdown sent by an assistant. Its headings, lists, links, tables, colours and pictures become the forms on this page; a colour outside the palette becomes the nearest pen, and what has no word at all is kept as plain text. The file it came from is never touched.
 
-Only HTML written into a document by hand stays as it is written. The document still opens, edits and saves whole, with nothing cut out; the page draws that part as best it can, and **Settings › Maintenance** lists the documents that hold some.
+Only HTML written into a document by hand stays as it is written. The document still opens, edits and saves whole, with nothing cut out; the page draws that part as best it can.
 
 ### Words from an older Tisty
 
