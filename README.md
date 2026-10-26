@@ -910,13 +910,13 @@ If you already use an assistant of your own, Tisty leaves an
 [MCP](https://modelcontextprotocol.io) door — you open it, you can close it
 again, and until you do everything it tries is refused.
 
-**Can I use it on two computers?**
-Yes, two ways. Connect your own Google Drive, OneDrive or WebDAV server in the
-window, and Tisty talks to it directly, keeping its copies in a place of its own
-there and seeing nothing else — encrypted with a phrase only you know, if you
-want. Or use a folder you already sync: Google Drive, OneDrive, iCloud, Dropbox,
-a NAS, a drive you plug in on Fridays. Either way there is no server of mine in between, no account of
-mine, and you can move from one to the other whenever you like.
+**Can I use it on two computers?** Yes, two ways. Connect your own Google Drive,
+OneDrive or WebDAV server in the window, and Tisty talks to it directly, keeping
+its copies in a place of its own there and seeing nothing else — encrypted with
+a phrase only you know, if you want. Or use a folder you already sync: Google
+Drive, OneDrive, iCloud, Dropbox, a NAS, a drive you plug in on Fridays. Either
+way there is no server of mine in between, no account of mine, and you can move
+from one to the other whenever you like.
 
 **Is there a mobile app?**
 No. Tisty is a desktop program for Windows and macOS. Your documents are

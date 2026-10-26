@@ -321,9 +321,9 @@ Ed25519 root of your identity; the log carries only the root's public half, as
 your fingerprint, and the certificates it signs for each computer. The seed is
 kept on the computer where it was made, in the system keychain on macOS and, on
 Windows, in a DPAPI-sealed folder apart from the cloud tokens, so the
-installer's uninstaller takes the tokens and leaves the phrase. It is never synced, backed up or
-put in a parcel. Encrypting asks that the phrase be confirmed first, by three of
-its words.
+installer's uninstaller takes the tokens and leaves the phrase. It is never
+synced, backed up or put in a parcel. Encrypting asks that the phrase be
+confirmed first, by three of its words.
 
 **What seals the files.** Each file is sealed with XChaCha20-Poly1305 over
 64 KiB blocks, under a nonce that carries a random head for the file, the

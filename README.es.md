@@ -704,9 +704,9 @@ No hay nada mío en el medio: ni cuenta, ni servidor, ni proceso residente. Qui�
 mantenga esa carpeta o esa nube es asunto tuyo, no de Tisty. Si no sincronizas
 nada, no abre una conexión para eso en su vida. Cambiar de idea después es una
 mudanza, no un interruptor: *Mudarme a otro lugar…* lleva tus copias entre este
-equipo, una carpeta y tu nube en dos pasos —primero trae a casa lo que
-vivía solo en el lugar que dejas, después lleva todo al nuevo—, cuenta los
-archivos que faltan, te dice cuándo el proveedor pide una pausa, te deja ocultarla y
+equipo, una carpeta y tu nube en dos pasos —primero trae a casa lo que vivía
+solo en el lugar que dejas, después lleva todo al nuevo—, cuenta los archivos
+que faltan, te dice cuándo el proveedor pide una pausa, te deja ocultarla y
 seguir trabajando, y les avisa a tus otros equipos adónde te fuiste para que
 cada uno te siga.
 
@@ -929,13 +929,13 @@ sin nube. Si ya usas un asistente tuyo, Tisty deja una puerta
 [MCP](https://modelcontextprotocol.io): tú la abres, puedes volver a cerrarla,
 y hasta que la abras todo lo que intente se rechaza.
 
-**¿Puedo usarlo en dos equipos?**
-Sí, de dos formas. Conecta tu propio Google Drive, OneDrive o servidor WebDAV
-en la ventana y Tisty habla con él directo, guardando sus copias en un lugar
-propio ahí y sin ver nada más; cifradas con una frase que solo tú conoces, si
-quieres. O usa una carpeta que ya sincronizas: Google Drive, OneDrive, iCloud, Dropbox, un NAS, un disco que
-enchufas los viernes. En los dos casos no hay ningún servidor mío en medio, ni
-cuenta mía, y puedes mudarte de una a otra cuando quieras.
+**¿Puedo usarlo en dos equipos?** Sí, de dos formas. Conecta tu propio Google
+Drive, OneDrive o servidor WebDAV en la ventana y Tisty habla con él directo,
+guardando sus copias en un lugar propio ahí y sin ver nada más; cifradas con una
+frase que solo tú conoces, si quieres. O usa una carpeta que ya sincronizas:
+Google Drive, OneDrive, iCloud, Dropbox, un NAS, un disco que enchufas los
+viernes. En los dos casos no hay ningún servidor mío en medio, ni cuenta mía, y
+puedes mudarte de una a otra cuando quieras.
 
 **¿Hay aplicación para el teléfono?**
 No. Tisty es un programa de escritorio para Windows y macOS. Tus documentos son
