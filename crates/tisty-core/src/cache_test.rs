@@ -1341,3 +1341,19 @@ fn a_cache_carried_forward_one_event_at_a_time_still_agrees_on_when_each_machine
         "the cache diverged from the log"
     );
 }
+
+#[test]
+fn when_each_cloud_was_said_sealed_comes_back_from_the_cache() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut cache = Cache::open(dir.path()).unwrap().expect("a cache opens");
+    let mut state = State::default();
+    state.sealed_at.insert("store_one".into(), 1_761_400_000);
+
+    cache.store(&state, "print").unwrap();
+    let back = cache.load("print", true).expect("the cache had it");
+
+    assert_eq!(
+        back.sealed_at, state.sealed_at,
+        "when the cloud was sealed was lost"
+    );
+}

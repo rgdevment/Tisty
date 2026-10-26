@@ -30,6 +30,7 @@ mod session;
 mod shop;
 mod summing;
 mod tray;
+mod unsealing;
 mod update;
 mod viewing;
 mod vouching;

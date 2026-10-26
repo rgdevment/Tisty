@@ -25,6 +25,7 @@ pub struct Reaching {
     why_not: Mutex<Option<String>>,
     keyed: Mutex<Option<Keyed>>,
     tried: Mutex<Option<(Locked, usize)>>,
+    unsealed: Mutex<Option<(String, i64)>>,
     seed_of: Mutex<Option<(Option<tisty_share_proto::identity::Person>, usize)>>,
 }
 
@@ -64,6 +65,7 @@ impl Reaching {
             why_not: Mutex::new(None),
             keyed: Mutex::new(None),
             tried: Mutex::new(None),
+            unsealed: Mutex::new(None),
             seed_of: Mutex::new(None),
         }
     }
@@ -84,6 +86,16 @@ impl Reaching {
     pub fn seed_is(&self, person: Option<(Option<tisty_share_proto::identity::Person>, usize)>) {
         if let Ok(mut held) = self.seed_of.lock() {
             *held = person;
+        }
+    }
+
+    pub fn unsealed(&self) -> Option<(String, i64)> {
+        self.unsealed.lock().ok()?.clone()
+    }
+
+    pub fn unsealed_is(&self, said: Option<(String, i64)>) {
+        if let Ok(mut held) = self.unsealed.lock() {
+            *held = said;
         }
     }
 
