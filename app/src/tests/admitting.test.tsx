@@ -116,7 +116,7 @@ describe("letting a new computer in from one that reads the cloud", () => {
     await userEvent.click(letItIn());
 
     expect(await screen.findByText(/No new computer is asking to come in/)).toBeTruthy();
-    expect(screen.getByRole("alert").textContent).toMatch(/no longer asks/);
+    expect(screen.getByRole("alert").textContent).toMatch(/no longer asking to come in/);
   });
 
   it("takes the ask away when there is no such computer", async () => {
@@ -125,7 +125,7 @@ describe("letting a new computer in from one that reads the cloud", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Let it in" }));
     await userEvent.click(await screen.findByRole("button", { name: "There is no such computer" }));
 
-    expect(await screen.findByText(/the ask was taken away/)).toBeTruthy();
+    expect(await screen.findByText(/the request was taken away/)).toBeTruthy();
     expect(sent("admitting_refuse")[0]?.args.device).toBe("dev_b");
     expect(sent("admitting_grant")).toHaveLength(0);
   });
