@@ -595,5 +595,72 @@
         "said": "to encrypt your cloud, every one of your computers needs this version or a newer one. Tisty will tell you which one is missing when the time comes."
       }
     ]
+  },
+  {
+    "version": "1.36.0",
+    "headline": {
+      "es": "Tu nube, cifrada con una frase que solo tú conoces",
+      "en": "Your cloud, encrypted with a phrase only you know"
+    },
+    "es": [
+      {
+        "title": "Cifra tu nube",
+        "said": "desde Configuración › Seguridad cifras lo que Tisty guarda en tu Google Drive, tu OneDrive o tu servidor WebDAV. Quien vea esos archivos, incluido tu proveedor, ya no puede leer tus tareas ni tus documentos. Tisty revisa antes que todos tus equipos estén listos, te muestra el avance y, al terminar, te deja borrar la copia sin cifrar cuando quieras."
+      },
+      {
+        "title": "Tu identidad y su frase de 24 palabras",
+        "said": "la llave de tu nube nace de una frase de 24 palabras que solo tú conoces. La ves en Configuración › Seguridad, puedes guardarla como una hoja en PDF y tres de sus palabras confirman que la anotaste. Guárdala bien: sin ella y sin uno de tus equipos, nadie puede abrir tu nube, ni siquiera nosotros."
+      },
+      {
+        "title": "Tus otros equipos reciben la llave solos",
+        "said": "los equipos que ya sincronizaban contigo esperan un momento y reciben la llave de otro de tus equipos sin que hagas nada. Mientras tanto no escriben nada sin cifrar."
+      },
+      {
+        "title": "Un equipo nuevo entra con un código",
+        "said": "en el equipo nuevo eliges «Autorizar desde otro equipo» y te muestra un código. Lo escribes en uno de tus equipos que ya tiene la llave, y listo. Si prefieres, también puedes escribir tu frase de 24 palabras en el equipo nuevo; Tisty guarda solo la llave de la nube, nunca la frase."
+      },
+      {
+        "title": "Vuelve a una nube sin cifrar cuando quieras",
+        "said": "desde el mismo lugar puedes quitar el cifrado. Tus otros equipos lo notan y siguen sincronizando sin que tengas que hacer nada en cada uno."
+      },
+      {
+        "title": "Configuración más ordenada",
+        "said": "Configuración ocupa la barra lateral con sus secciones: General, Sincronizar, Seguridad, Tus datos, Asistentes, Mantenimiento y, al final, Acerca de. El aviso de actualización aparece solo cuando hay una y te lleva directo a Acerca de."
+      },
+      {
+        "title": "Diagramas más claros y páginas más ágiles",
+        "said": "los diagramas se dibujan con Mermaid oficial y se leen bien en cualquier ancho y en modo oscuro. Las tareas y los documentos largos se abren y se redibujan sin trabar la ventana."
+      }
+    ],
+    "en": [
+      {
+        "title": "Encrypt your cloud",
+        "said": "from Settings › Security you encrypt what Tisty keeps in your Google Drive, your OneDrive or your WebDAV server. Whoever sees those files, your provider included, can no longer read your tasks or documents. Tisty first checks that all your computers are ready, shows you the progress and, once done, lets you wipe the unencrypted copy whenever you like."
+      },
+      {
+        "title": "Your identity and its 24-word phrase",
+        "said": "your cloud's key comes from a 24-word phrase only you know. You see it in Settings › Security, can keep it as a PDF sheet, and three of its words confirm you wrote it down. Keep it safe: without it or one of your computers, nobody can open your cloud, not even us."
+      },
+      {
+        "title": "Your other computers get the key on their own",
+        "said": "the computers that already synced with you wait a moment and get the key from another of your computers without you doing anything. Meanwhile they write nothing unencrypted."
+      },
+      {
+        "title": "A new computer joins with a code",
+        "said": "on the new computer you choose «Let in from another computer» and it shows you a code. You type it on one of your computers that already has the key, and that is it. If you prefer, you can also type your 24-word phrase on the new computer; Tisty keeps only the cloud's key, never the phrase."
+      },
+      {
+        "title": "Go back to an unencrypted cloud whenever you like",
+        "said": "from the same place you can turn the encryption off. Your other computers notice and keep syncing without you doing anything on each one."
+      },
+      {
+        "title": "Tidier Settings",
+        "said": "Settings takes over the sidebar with its sections: General, Sync, Security, Your data, Assistants, Maintenance and, at the end, About. The update notice shows only when there is one and takes you straight to About."
+      },
+      {
+        "title": "Clearer diagrams and quicker pages",
+        "said": "diagrams are drawn by the official Mermaid and read well at any width and in dark mode. Long tasks and documents open and redraw without stalling the window."
+      }
+    ]
   }
 ]
