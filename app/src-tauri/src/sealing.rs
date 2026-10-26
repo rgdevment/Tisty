@@ -175,6 +175,9 @@ fn plain_of(session: &Mutex<Session>) -> Answer<(Arc<dyn Remote>, PathBuf, Cloud
 }
 
 fn refused_by(hitch: Hitch, provider: &str) -> Refusal {
+    if matches!(hitch, Hitch::Busy { .. }) {
+        return Refusal::of("sealingBusy");
+    }
     match tisty_carrier::pause_for(hitch, provider) {
         Err(trouble) => crate::said(trouble),
         Ok(_) => Refusal::of("cloudNotNow"),
