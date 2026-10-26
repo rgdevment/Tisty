@@ -17,6 +17,7 @@ env:
   CARGO_TERM_COLOR: always
   # The prebuilt cargo-fuzz defaults to musl, where the address sanitizer cannot link.
   FUZZ_TRIPLE: x86_64-unknown-linux-gnu
+  NIGHTLY: nightly-2026-10-15
 
 jobs:
   # `paths` on the trigger leaves a required check unreported for good; a skipped job counts as met.
@@ -41,7 +42,7 @@ jobs:
             echo "read=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          watched='^(crates/tisty-share-proto/|crates/tisty-sync/|fuzz/|Cargo\.lock$|\.github/workflows/fuzz\.yml$)'
+          watched='^(crates/tisty-share-proto/|crates/tisty-sync/|crates/tisty-core/|fuzz/|Cargo\.(toml|lock)$|rust-toolchain\.toml$|\.github/workflows/fuzz\.yml$)'
           from=$(git merge-base "$BASE" HEAD)
           if git diff --name-only --diff-filter=d "$from" HEAD | grep -qE "$watched"; then
             echo "read=true" >> "$GITHUB_OUTPUT"
@@ -62,7 +63,7 @@ jobs:
 
       # The sanitizer libFuzzer builds with is only on nightly.
       - name: The nightly toolchain
-        run: rustup toolchain install nightly --profile minimal --no-self-update
+        run: rustup toolchain install "$NIGHTLY" --profile minimal --no-self-update
       - uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2.87.22
         with:
           tool: cargo-fuzz
@@ -71,17 +72,35 @@ jobs:
       - name: Every target, built once
         run: |
           cp Cargo.lock fuzz/Cargo.lock
-          cargo +nightly fuzz build --target "$FUZZ_TRIPLE"
+          cargo "+$NIGHTLY" fuzz build --target "$FUZZ_TRIPLE"
+
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: fuzz/corpus
+          key: fuzz-corpus-${{ github.run_id }}
+          restore-keys: fuzz-corpus-
 
       - name: Each target for a minute on a pull request, ten on the weekly run
         env:
           EACH: ${{ github.event_name == 'pull_request' && 60 || 600 }}
         run: |
-          for target in $(cargo +nightly fuzz list); do
+          crashed=""
+          for target in $(cargo "+$NIGHTLY" fuzz list); do
             echo "::group::$target"
-            cargo +nightly fuzz run --target "$FUZZ_TRIPLE" "$target" -- -max_total_time="$EACH"
+            cargo "+$NIGHTLY" fuzz run --target "$FUZZ_TRIPLE" "$target" -- -max_total_time="$EACH" \
+              || crashed="$crashed $target"
             echo "::endgroup::"
           done
+          if [ -n "$crashed" ]; then
+            echo "::error::Crashed:$crashed"
+            exit 1
+          fi
+
+      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: always() && github.event_name != 'pull_request'
+        with:
+          path: fuzz/corpus
+          key: fuzz-corpus-${{ github.run_id }}
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: failure()
