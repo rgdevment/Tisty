@@ -267,9 +267,6 @@ pub async fn sealing_begin(
         crate::identity::confirmed_key(&session)?.ok_or_else(|| Refusal::of("sealingPhrase"))?;
     let (plain, home, at) = plain_of(&session)?;
     let named = key.named_for(&cloud);
-    if let Ok(mut last) = turns.last.lock() {
-        *last = None;
-    }
     let turn = if on { Turn::On } else { Turn::Off };
     let (said, there) = (cloud.clone(), home.clone());
     let begun = elsewhere(move || Turning::begin(plain, &there, key, &said, &device, turn)).await?;
@@ -278,6 +275,9 @@ pub async fn sealing_begin(
             drive(app);
         }
         return Err(refused_by(hitch, &at.provider));
+    }
+    if let (Some(left), Ok(mut last)) = (Turning::left(&home), turns.last.lock()) {
+        *last = Some(going_from(&left));
     }
     if on {
         let keying = app.clone();
@@ -421,17 +421,40 @@ fn standing_of(left: &Left) -> Told {
     }
 }
 
-fn halted(app: &AppHandle, turns: &Turns, left: &Left, why: &str) {
-    let mut said = told_last(turns, left.on).unwrap_or_else(|| standing_of(left));
-    said.stopped = true;
-    said.why = Some(why.to_string());
-    said.waiting = None;
+fn going_from(left: &Left) -> Told {
+    Told {
+        stopped: false,
+        ..standing_of(left)
+    }
+}
+
+fn retold(
+    app: &AppHandle,
+    turns: &Turns,
+    on: bool,
+    stopped: bool,
+    why: Option<String>,
+    waiting: Option<&'static str>,
+) {
+    let mut said = told_last(turns, on).unwrap_or(Told {
+        on,
+        step: "copying",
+        done: 0,
+        left: 0,
+        refused: 0,
+        stopped,
+        why: None,
+        waiting: None,
+    });
+    said.stopped = stopped;
+    said.why = why;
+    said.waiting = waiting;
     told(app, turns, Some(said));
 }
 
-fn last_or_claimed(turns: &Turns, turning: &Turning) -> Told {
-    told_last(turns, turning.turn() == Turn::On)
-        .unwrap_or_else(|| told_of(turning, &Stepped::Claimed))
+pub fn stopped_here(app: &AppHandle, home: &Path) -> Option<bool> {
+    let left = Turning::left(home)?;
+    Some(told_last(&app.state::<Turns>(), left.on).is_none_or(|said| said.stopped))
 }
 
 fn waiting_on(hitch: &Hitch) -> &'static str {
@@ -443,14 +466,6 @@ fn waiting_on(hitch: &Hitch) -> &'static str {
         Hitch::Paused => "paused",
         _ => "cloud",
     }
-}
-
-fn waited(app: &AppHandle, turns: &Turns, turning: &Turning, on: &'static str) {
-    let mut said = last_or_claimed(turns, turning);
-    said.stopped = false;
-    said.why = None;
-    said.waiting = Some(on);
-    told(app, turns, Some(said));
 }
 
 fn told_of(turning: &Turning, stepped: &Stepped) -> Told {
@@ -504,21 +519,21 @@ fn driven(app: &AppHandle, ours: u64) {
     let Some(left) = Turning::left(&home) else {
         return;
     };
-    let mut going = told_last(&turns, left.on).unwrap_or_else(|| standing_of(&left));
-    going.stopped = false;
-    going.why = None;
-    going.waiting = None;
-    told(app, &turns, Some(going));
+    match told_last(&turns, left.on) {
+        None => told(app, &turns, Some(going_from(&left))),
+        Some(_) => retold(app, &turns, left.on, false, None, None),
+    }
+    let halted = |why: &str| retold(app, &turns, left.on, true, Some(why.to_string()), None);
     let key = match key_of(&session, &left.cloud) {
         Ok(key) => key,
-        Err(refusal) => return halted(app, &turns, &left, refusal.code),
+        Err(refusal) => return halted(refusal.code),
     };
     let plain = match reached(&home, &at) {
         Ok(plain) => plain,
-        Err(refusal) => return halted(app, &turns, &left, refusal.code),
+        Err(refusal) => return halted(refusal.code),
     };
     let Some(mut turning) = Turning::resume(plain.clone(), &home, key.clone()) else {
-        return halted(app, &turns, &left, "syncFailed");
+        return halted("cloudOtherPhrase");
     };
     let mut broken = 0;
     while still(&turns, ours) {
@@ -556,10 +571,10 @@ fn driven(app: &AppHandle, ours: u64) {
                 broken += 1;
                 witness::note(
                     channel::CLOUD,
-                    "a turn could not write on this machine and tries again",
+                    "a step of the turn failed and is tried again",
                     &[("why", Fact::Why(why))],
                 );
-                waited(app, &turns, &turning, "local");
+                retold(app, &turns, left.on, false, None, Some("local"));
                 if !rested(&turns, ours, BROKE_AGAIN * broken) {
                     return;
                 }
@@ -568,18 +583,13 @@ fn driven(app: &AppHandle, ours: u64) {
                 let on_what = waiting_on(&hitch);
                 match tisty_carrier::pause_for(hitch, &at.provider) {
                     Ok(wait) => {
-                        waited(app, &turns, &turning, on_what);
+                        retold(app, &turns, left.on, false, None, Some(on_what));
                         if !rested(&turns, ours, wait) {
                             return;
                         }
                     }
                     Err(trouble) => {
-                        let mut said = last_or_claimed(&turns, &turning);
-                        said.stopped = true;
-                        said.why = Some(crate::said(trouble).code.to_string());
-                        said.waiting = None;
-                        told(app, &turns, Some(said));
-                        return;
+                        return halted(crate::said(trouble).code);
                     }
                 }
             }

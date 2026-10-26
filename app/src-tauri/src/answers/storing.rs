@@ -923,7 +923,10 @@ fn stuck_after(
     now: &Option<tisty_core::config::Sync>,
 ) -> Option<Stuck> {
     why.filter(|one| {
-        !matches!(one.code, "noRemote" | "syncLater" | "cloudNotOffered") && was == now
+        !matches!(
+            one.code,
+            "noRemote" | "syncLater" | "cloudNotOffered" | "cloudSealingHere"
+        ) && was == now
     })
     .map(|why| Stuck {
         code: why.code,
@@ -966,11 +969,6 @@ async fn carried_round(
         _ => tisty_carrier::Way::Both,
     };
 
-    let ours = {
-        let session = held(session);
-        tisty_carrier::cloud_of(session.config.sync.as_ref())
-            .is_some_and(|at| tisty_carrier::Turning::left(&session.reach.home_of(at)).is_some())
-    };
     let joining = !carrier.been_here(&home);
     let mut telling = Telling::new(app.clone(), joining);
     let pushing = (home.clone(), carrier.clone(), alive.clone());
@@ -979,6 +977,9 @@ async fn carried_round(
         tisty_carrier::cloud_of(session.config.sync.as_ref())
             .map(|at| (session.reach.home_of(at), at.provider.clone()))
     };
+    let ours = heeding
+        .as_ref()
+        .and_then(|(cloud, _)| crate::sealing::stopped_here(app, cloud));
     // A slow or unreachable GitHub must not hold back the round it rides along with.
     if let Some((cloud, provider)) = heeding {
         std::thread::spawn(move || crate::reaching::heed(&cloud, &provider));
@@ -1171,14 +1172,13 @@ async fn carried_round(
     })
 }
 
-fn sealing_here(refusal: Refusal, ours: bool) -> Refusal {
-    match refusal.code {
-        "cloudSealing" if ours => Refusal {
-            code: "cloudSealingHere",
-            ..refusal
-        },
-        _ => refusal,
-    }
+fn sealing_here(refusal: Refusal, ours: Option<bool>) -> Refusal {
+    let code = match (refusal.code, ours) {
+        ("cloudSealing", Some(false)) => "cloudSealingHere",
+        ("cloudSealing", Some(true)) => "cloudSealingStopped",
+        _ => return refusal,
+    };
+    Refusal { code, ..refusal }
 }
 
 // A round left for later or stopped that moved nothing did not sync, so the window does not say it just did.

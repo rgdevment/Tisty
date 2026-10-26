@@ -61,8 +61,15 @@ export default function Sealing({
   const [letting, setLetting] = useState<"me" | "them" | "phrase" | null>(null);
   const failed = useCallback((e: unknown) => fail({ card, text: saidPlainly(e) }), [fail]);
 
+  const [unread, setUnread] = useState(false);
   const look = useCallback(() => {
-    sealingShown().then(setShown).catch(failed);
+    setUnread(false);
+    sealingShown()
+      .then(setShown)
+      .catch((e) => {
+        setUnread(true);
+        failed(e);
+      });
   }, [failed]);
   useEffect(look, [look, round, phrased]);
   useEffect(() => {
@@ -105,15 +112,25 @@ export default function Sealing({
     sealingBegin(on)
       .then(() => sealingShown())
       .then(setShown)
-      .catch(failed)
+      .catch((e) => {
+        failed(e);
+        look();
+      })
       .finally(() => setStarting(false));
   };
 
   if (!shown)
     return (
       <Card title={t("sealTitle")} which={card} busy={busy} said={said} trouble={trouble}>
-        {trouble?.card === card ? (
-          <button type="button" onClick={look} className={mild}>
+        {unread ? (
+          <button
+            type="button"
+            onClick={() => {
+              if (trouble?.card === card) fail(undefined);
+              look();
+            }}
+            className={mild}
+          >
             {t("tryAgain")}
           </button>
         ) : (

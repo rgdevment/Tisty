@@ -33,10 +33,15 @@ export default function Identity({
   const [shown, setShown] = useState<Shown | null>(null);
   const [words, setWords] = useState<string[] | null>(null);
 
+  const [unread, setUnread] = useState(false);
   const look = useCallback(() => {
+    setUnread(false);
     identityShown()
       .then(setShown)
-      .catch((e) => fail({ card: "identity", text: saidPlainly(e) }));
+      .catch((e) => {
+        setUnread(true);
+        fail({ card: "identity", text: saidPlainly(e) });
+      });
   }, [fail]);
   // A finished round may certify a computer, and the encryption card may confirm the phrase.
   useEffect(look, [look, round, phrased]);
@@ -65,12 +70,19 @@ export default function Identity({
         />
       )}
       <Card title={t("tabIdentity")} which="identity" busy={busy} said={said} trouble={trouble}>
-        {!shown && trouble?.card === "identity" && (
-          <button type="button" onClick={look} className={mild}>
+        {!shown && unread && (
+          <button
+            type="button"
+            onClick={() => {
+              if (trouble?.card === "identity") fail(undefined);
+              look();
+            }}
+            className={mild}
+          >
             {t("tryAgain")}
           </button>
         )}
-        {!shown && trouble?.card !== "identity" && (
+        {!shown && !unread && (
           <p role="status" className="text-[12.5px] text-faint motion-safe:animate-pulse">
             {t("identityLooking")}
           </p>

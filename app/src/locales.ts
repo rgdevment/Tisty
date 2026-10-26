@@ -1255,6 +1255,8 @@ const en = {
     "Nothing was synced just now: another of your computers is encrypting or decrypting your cloud. Syncing goes on by itself once it is done. What you write here stays here meanwhile.",
   cloudSealingHere:
     "This computer is encrypting or decrypting your cloud. Syncing goes on by itself once it is done, and what you write here is kept.",
+  cloudSealingStopped:
+    "Nothing was synced: encrypting or decrypting stopped halfway on this computer and your cloud stays closed. Open Settings › Security to try again or cancel it.",
   cloudUnsealed:
     "Nothing was synced, in either direction. Your cloud no longer says it is encrypted, and none of your computers said it turned encryption off, so Tisty does not write there unencrypted. Check that nobody else changed your cloud account.",
   syncNeeds:
@@ -1536,6 +1538,9 @@ const en = {
   stateSealing: "Another computer is encrypting or decrypting your cloud",
   stateSealingWhy: "Syncing goes on by itself once it is done.",
   stateSealingHere: "This computer is encrypting or decrypting your cloud",
+  stateSealingStopped: "Encrypting or decrypting stopped halfway on this computer",
+  stateSealingStoppedWhy:
+    "Your cloud stays closed until it goes on. Open Settings › Security to try again or cancel it.",
   stateSealingHereWhy:
     "Syncing pauses while the last changes are brought over and goes on by itself once it is done. You can follow it in Settings › Security.",
   stateOtherPhrase: "Your cloud uses another phrase",
@@ -3754,6 +3759,8 @@ const es: Catalog = {
     "No se sincronizó nada por ahora: otro de tus equipos está cifrando o descifrando tu nube. La sincronización sigue sola cuando termine. Mientras tanto, lo que escribas aquí se queda aquí.",
   cloudSealingHere:
     "Este equipo está cifrando o descifrando tu nube. La sincronización sigue sola cuando termine, y lo que escribas aquí se guarda.",
+  cloudSealingStopped:
+    "No se sincronizó nada: el cifrado o descifrado quedó a medias en este equipo y tu nube sigue cerrada. Abre Configuración › Seguridad para reintentarlo o cancelarlo.",
   cloudUnsealed:
     "No se sincronizó nada, en ningún sentido. Tu nube ya no dice que está cifrada y ninguno de tus equipos dijo que apagó el cifrado, así que Tisty no escribe ahí sin cifrar. Revisa que nadie más haya cambiado tu cuenta de la nube.",
   syncNeeds:
@@ -4035,6 +4042,9 @@ const es: Catalog = {
   stateSealing: "Otro equipo está cifrando o descifrando tu nube",
   stateSealingWhy: "La sincronización sigue sola cuando termine.",
   stateSealingHere: "Este equipo está cifrando o descifrando tu nube",
+  stateSealingStopped: "El cifrado o descifrado quedó a medias en este equipo",
+  stateSealingStoppedWhy:
+    "Tu nube queda cerrada hasta que siga. Abre Configuración › Seguridad para reintentarlo o cancelarlo.",
   stateSealingHereWhy:
     "La sincronización se pausa mientras se pasan los últimos cambios y sigue sola cuando termine. Puedes seguir el avance en Configuración › Seguridad.",
   stateOtherPhrase: "Tu nube usa otra frase",

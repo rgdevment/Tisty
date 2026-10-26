@@ -58,6 +58,7 @@ const BY_CODE: Record<string, Standing> = {
   cloudSealed: { said: "stateSealed", why: "stateSealedWhy", urgent: true },
   cloudSealing: { said: "stateSealing", why: "stateSealingWhy" },
   cloudSealingHere: { said: "stateSealingHere", why: "stateSealingHereWhy" },
+  cloudSealingStopped: { said: "stateSealingStopped", why: "stateSealingStoppedWhy", urgent: true },
   cloudOtherPhrase: { said: "stateOtherPhrase", why: "stateOtherPhraseWhy", urgent: true },
   cloudUnsealed: { said: "stateUnsealed", why: "stateUnsealedWhy", urgent: true },
   cloudMarkDamaged: { said: "stateMarkDamaged", why: "stateMarkDamagedWhy", urgent: true },

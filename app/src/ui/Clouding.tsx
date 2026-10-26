@@ -63,6 +63,7 @@ export default function Clouding({ clouds, busy, onTrouble, onBack, onDone, onCo
   const [picked, setPicked] = useState<string>();
   const [peeking, setPeeking] = useState(false);
   const gone = useRef(false);
+  const peeks = useRef(0);
   const unused = useRef<Connected | undefined>(undefined);
 
   useEffect(() => {
@@ -103,6 +104,8 @@ export default function Clouding({ clouds, busy, onTrouble, onBack, onDone, onCo
       .then((state) => !gone.current && setWeight(state.weight))
       .catch(() => undefined);
     if (onConnected) return;
+    const mine = ++peeks.current;
+    const still = () => !gone.current && mine === peeks.current;
     setPeeking(true);
     placePeek({
       kind: "cloud",
@@ -111,9 +114,9 @@ export default function Clouding({ clouds, busy, onTrouble, onBack, onDone, onCo
       provider: connected.provider,
     })
       // A computer with a history of its own goes through how the two come together, never «bring it».
-      .then((peeked) => !gone.current && setHolds(peeked.fresh && peeked.holds === true))
+      .then((peeked) => still() && setHolds(peeked.fresh && peeked.holds === true))
       .catch(() => undefined)
-      .finally(() => !gone.current && setPeeking(false));
+      .finally(() => still() && setPeeking(false));
   }, [connected, onConnected]);
 
   const stuck = busy || held || waiting || checking || !picked;
@@ -234,7 +237,7 @@ export default function Clouding({ clouds, busy, onTrouble, onBack, onDone, onCo
       <p className="text-[12.5px] leading-relaxed text-soft">{of("cloudConnectWhy")}</p>
       {offered === undefined && (
         <p role="status" className="text-[11.5px] text-faint motion-safe:animate-pulse">
-          {t("lookingNow")}
+          {t("checkingNow")}
         </p>
       )}
       {offered !== undefined &&
