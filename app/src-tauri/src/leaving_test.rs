@@ -446,6 +446,16 @@ impl tisty_carrier::Carrier for Refusing {
             ..Default::default()
         })
     }
+    fn hear(
+        &self,
+        _: &tisty_carrier::Here,
+        _: tisty_carrier::Round,
+    ) -> Result<tisty_carrier::Moved, tisty_carrier::Trouble> {
+        Ok(tisty_carrier::Moved {
+            brought: self.brought,
+            ..Default::default()
+        })
+    }
     fn could_free(
         &self,
         _: &tisty_carrier::Here,

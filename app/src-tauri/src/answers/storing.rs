@@ -207,6 +207,9 @@ pub async fn settle_in(
     let speaking = held(&session).paths.clone();
     super::spoken::spoken(&session, &speaking).await?;
     crate::identity::seal_the_cloud(&session).await;
+    if crate::unsealing::heard(&app, &session).await {
+        crate::identity::seal_the_cloud(&session).await;
+    }
     crate::sealing::drive(app.clone());
     let (was, mut keeping, paths, home, store, alive, holds, owing, place) = {
         let session = held(&session);
@@ -936,6 +939,9 @@ async fn carried_round(
     way: Option<String>,
 ) -> Answer<Settled> {
     crate::identity::seal_the_cloud(session).await;
+    if crate::unsealing::heard(app, session).await {
+        crate::identity::seal_the_cloud(session).await;
+    }
     crate::handed::tend(app.clone());
     let (carrier, paths, home, store, alive, holds, owing, place) = {
         let session = held(session);

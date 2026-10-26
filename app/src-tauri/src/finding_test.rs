@@ -55,6 +55,9 @@ impl Carrier for Opening {
     fn bring_home(&self, _: &Here, _: Round) -> Result<Moved, Trouble> {
         unreachable!()
     }
+    fn hear(&self, _: &Here, _: Round) -> Result<Moved, Trouble> {
+        unreachable!()
+    }
     fn could_free(&self, _: &Here, _: SystemTime) -> LetGo {
         unreachable!()
     }
