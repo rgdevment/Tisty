@@ -1,5 +1,5 @@
 import { open } from "@tauri-apps/plugin-dialog";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   chooseSync,
   type Keeper,
@@ -60,14 +60,16 @@ export default function Keepers({ busy, onTrouble, onDeciding, onDone, pickOnly 
     };
   }, [standing]);
 
+  const troubled = useRef(onTrouble);
+  troubled.current = onTrouble;
   useEffect(() => {
     keepers()
       .then((found) => setOffers(found ?? []))
       .catch((e) => {
         setOffers([]);
-        onTrouble(saidPlainly(e));
+        troubled.current(saidPlainly(e));
       });
-  }, [onTrouble]);
+  }, []);
 
   useEffect(() => {
     onDeciding?.(Boolean(standing));
