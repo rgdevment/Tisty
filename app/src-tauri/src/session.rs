@@ -313,6 +313,10 @@ impl Session {
 
     /// The way of carrying this machine chose, or the refusal every command that needs one gives.
     pub fn carrying(&self) -> Result<tisty_carrier::Shared, Refusal> {
+        // The signed log said sealed and no key here opens it: what the plain word says now never makes it plain.
+        if self.reach.tried().is_some() {
+            return Err(Refusal::of("cloudSealed"));
+        }
         let keeping = self.keeping();
         keeping.carrier.ok_or_else(|| match keeping.chosen {
             tisty_carrier::Chosen::Later => Refusal::of("syncLater"),
