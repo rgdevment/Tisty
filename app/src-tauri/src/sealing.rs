@@ -439,7 +439,15 @@ fn driven(app: &AppHandle, ours: u64) {
         match turning.step() {
             Ok(Stepped::Done) => {
                 told(app, &turns, Some(told_of(&turning, &Stepped::Done)));
-                ended(&session, &turning, plain, &home, key, at);
+                ended(
+                    &session,
+                    &app.state::<crate::handed::Knocking>(),
+                    &turning,
+                    plain,
+                    &home,
+                    key,
+                    at,
+                );
                 let _ = app.emit("told", ());
                 return;
             }
@@ -477,6 +485,7 @@ fn driven(app: &AppHandle, ours: u64) {
 // The carrier is built from the turn itself, since the mirror only learns the new word at its next pull.
 fn ended(
     session: &Mutex<Session>,
+    knocking: &crate::handed::Knocking,
     turning: &Turning,
     plain: Arc<dyn Remote>,
     home: &Path,
@@ -516,6 +525,7 @@ fn ended(
         session.reach.tried_for(None);
         session.reach.seal_with(None);
     }
+    crate::handed::let_go(session, knocking);
     // The sealed copy holds nothing a plain cloud reads, so it goes at once rather than doubling the room.
     if let Err(why) = tisty_carrier::wipe_behind(plain, home, key, &cloud) {
         witness::warn(

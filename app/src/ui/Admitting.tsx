@@ -16,7 +16,12 @@ import { saidPlainly } from "../refusal";
 import Modal from "./Modal";
 import { mild, strong } from "./Rows";
 
-const LOOKED_EVERY = 3000;
+// Brisk while the person stands by both computers, then sparing, since every look is charged to the cloud's day.
+const LOOKED_FIRST = 3000;
+const LOOKED_LATER = 15000;
+const BRISK_FOR = 60000;
+const DIGITS = 20;
+const GONE = ["admitGone", "admitTaken"];
 
 function Code({ code }: { code: string }) {
   return (
@@ -42,17 +47,22 @@ export function LetMeIn({ onClose, onIn }: { onClose: () => void; onIn: () => vo
 
   useEffect(() => {
     let live = true;
+    let next: ReturnType<typeof setTimeout> | undefined;
+    const began = Date.now();
     const look = () =>
       admittingShown()
         .then((said) => live && setNow(said))
-        .catch((e) => live && setTrouble(saidPlainly(e)));
+        .catch((e) => live && setTrouble(saidPlainly(e)))
+        .finally(() => {
+          if (!live) return;
+          next = setTimeout(look, Date.now() - began < BRISK_FOR ? LOOKED_FIRST : LOOKED_LATER);
+        });
     admittingAsk()
-      .then(look)
-      .catch((e) => setTrouble(saidPlainly(e)));
-    const every = setInterval(look, LOOKED_EVERY);
+      .catch((e) => live && setTrouble(saidPlainly(e)))
+      .finally(() => live && look());
     return () => {
       live = false;
-      clearInterval(every);
+      clearTimeout(next);
     };
   }, []);
 
@@ -81,7 +91,7 @@ export function LetMeIn({ onClose, onIn }: { onClose: () => void; onIn: () => vo
             {now.code && <Code code={now.code} />}
             <div className="mt-4 flex flex-wrap justify-end gap-2">
               <button type="button" className={mild} onClick={() => setMismatch(true)}>
-                {t("confirmNo")}
+                {t("admitRejected")}
               </button>
               <button
                 type="button"
@@ -91,7 +101,7 @@ export function LetMeIn({ onClose, onIn }: { onClose: () => void; onIn: () => vo
                   now.code && admittingTrust(now.code).catch((e) => setTrouble(saidPlainly(e)))
                 }
               >
-                {t("confirmYes")}
+                {t("admitAccepted")}
               </button>
             </div>
           </>
@@ -118,13 +128,14 @@ export function LetMeIn({ onClose, onIn }: { onClose: () => void; onIn: () => vo
   );
 }
 
-type Letting = { one: Newcomer; code: string; step: "compare" | "granted" | "refused" };
+type Letting = { one: Newcomer; step: "typing" | "granted" | "refused" };
 
 export function LetThemIn({ onClose }: { onClose: () => void }) {
   const [newcomers, setNewcomers] = useState<Newcomer[] | null>(null);
   const [letting, setLetting] = useState<Letting | null>(null);
+  const [typed, setTyped] = useState("");
+  const [granting, setGranting] = useState(false);
   const [trouble, setTrouble] = useState<string | null>(null);
-  const failed = (e: unknown) => setTrouble(saidPlainly(e));
 
   const look = useCallback(() => {
     setTrouble(null);
@@ -134,25 +145,48 @@ export function LetThemIn({ onClose }: { onClose: () => void }) {
   }, []);
   useEffect(look, [look]);
 
+  // An ask gone or taken by another is shown as it now stands, rather than left on a form that can no longer work.
+  const failed = (e: unknown) => {
+    setTrouble(saidPlainly(e));
+    const code = (e as { code?: string } | undefined)?.code;
+    if (code && GONE.includes(code)) {
+      setLetting(null);
+      admittingLook()
+        .then(setNewcomers)
+        .catch(() => undefined);
+    }
+  };
+
   const take = (one: Newcomer) => {
     setTrouble(null);
+    setTyped("");
     admittingOffer(one.device)
-      .then((code) => setLetting({ one, code, step: "compare" }))
+      .then(() => setLetting({ one, step: "typing" }))
       .catch(failed);
   };
+
+  const count = typed.replace(/\D/g, "").length;
 
   const body = () => {
     if (letting?.step === "granted")
       return <p className="text-[12.5px] text-soft">{fill("admitGranted", letting.one.name)}</p>;
     if (letting?.step === "refused")
-      return <p className="text-[12.5px] leading-relaxed">{t("admitMismatch")}</p>;
+      return <p className="text-[12.5px] leading-relaxed">{t("admitRefused")}</p>;
     if (letting)
       return (
         <>
           <p className="text-[12.5px] leading-relaxed text-soft">
-            {fill("admitCompare", letting.one.name)}
+            {fill("admitTypeWhat", letting.one.name)}
           </p>
-          <Code code={letting.code} />
+          <input
+            aria-label={t("admitTypeLabel")}
+            value={typed}
+            inputMode="numeric"
+            autoComplete="off"
+            spellCheck={false}
+            onChange={(event) => setTyped(event.target.value)}
+            className="mt-3 w-full rounded-[10px] border border-line bg-bg px-3 py-2 text-center font-mono text-[21px] tracking-[0.06em] tabular-nums"
+          />
           <div className="mt-4 flex flex-wrap justify-end gap-2">
             <button
               type="button"
@@ -163,18 +197,21 @@ export function LetThemIn({ onClose }: { onClose: () => void }) {
                   .catch(failed)
               }
             >
-              {t("confirmNo")}
+              {t("admitNoComputer")}
             </button>
             <button
               type="button"
               className={strong}
-              onClick={() =>
-                admittingGrant(letting.one.device, letting.code)
+              disabled={granting || count !== DIGITS}
+              onClick={() => {
+                setGranting(true);
+                admittingGrant(letting.one.device, typed)
                   .then(() => setLetting({ ...letting, step: "granted" }))
                   .catch(failed)
-              }
+                  .finally(() => setGranting(false));
+              }}
             >
-              {t("confirmYes")}
+              {t("admitTypeGo")}
             </button>
           </div>
         </>
@@ -200,7 +237,7 @@ export function LetThemIn({ onClose }: { onClose: () => void }) {
               <span className="text-faint">{t("admitTaken")}</span>
             ) : (
               <button type="button" className={strong} onClick={() => take(one)}>
-                {t("admitShowCode")}
+                {t("admitTake")}
               </button>
             )}
           </li>

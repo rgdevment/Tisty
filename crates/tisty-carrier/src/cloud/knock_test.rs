@@ -169,3 +169,28 @@ fn the_first_machine_to_take_an_ask_stands_and_asking_again_takes_it_away() {
     .unwrap();
     assert_eq!(giver_of(&fake, home.path(), "dev_b").unwrap(), None);
 }
+
+#[test]
+fn a_reveal_is_read_back_and_goes_with_the_ask() {
+    let (fake, home) = (Fake::drive(), tempfile::tempdir().unwrap());
+    let one_use = OneUse::minted().unwrap();
+    let ask = asked("dev_b", &one_use);
+    knocked(&fake, home.path(), &ask).unwrap();
+
+    revealed(&fake, home.path(), "dev_b", &one_use.revealed()).unwrap();
+
+    assert_eq!(
+        reveal_of(&fake, home.path(), "dev_b").unwrap(),
+        Some(one_use.revealed())
+    );
+    knocked(
+        &fake,
+        home.path(),
+        &asked("dev_b", &OneUse::minted().unwrap()),
+    )
+    .unwrap();
+    assert_eq!(reveal_of(&fake, home.path(), "dev_b").unwrap(), None);
+    revealed(&fake, home.path(), "dev_b", "x").unwrap();
+    withdrawn(&fake, home.path(), "dev_b").unwrap();
+    assert_eq!(reveal_of(&fake, home.path(), "dev_b").unwrap(), None);
+}

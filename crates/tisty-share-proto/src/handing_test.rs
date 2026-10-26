@@ -104,18 +104,45 @@ fn a_one_use_key_of_low_order_is_refused_rather_than_answered() {
 }
 
 #[test]
-fn both_machines_read_one_code_and_another_ask_or_another_giver_reads_another() {
-    let ask = asked(&OneUse::minted().unwrap());
+fn both_machines_read_one_code_and_another_ask_giver_or_reveal_reads_another() {
+    let one_use = OneUse::minted().unwrap();
+    let ask = asked(&one_use);
     let carried: Ask = serde_json::from_str(&serde_json::to_string(&ask).unwrap()).unwrap();
     let giver = machine(1).verifying_key();
+    let reveal = one_use.revealed();
 
-    let code = ask.code(&giver).unwrap();
+    let code = ask.code(&giver, &reveal).unwrap();
 
-    assert_eq!(carried.code(&giver).as_deref(), Some(code.as_str()));
+    assert_eq!(
+        carried.code(&giver, &reveal).as_deref(),
+        Some(code.as_str())
+    );
     assert_eq!(code.len(), 23);
     assert!(code.split(' ').all(|five| five.len() == 5));
-    assert_ne!(ask.code(&machine(3).verifying_key()), Some(code.clone()));
-    assert_ne!(asked(&OneUse::minted().unwrap()).code(&giver), Some(code));
+    assert_ne!(
+        ask.code(&machine(3).verifying_key(), &reveal),
+        Some(code.clone())
+    );
+    let other = OneUse::minted().unwrap();
+    assert_ne!(asked(&other).code(&giver, &other.revealed()), Some(code));
+}
+
+#[test]
+fn a_reveal_the_ask_did_not_commit_to_reads_no_code_at_all() {
+    let one_use = OneUse::minted().unwrap();
+    let ask = asked(&one_use);
+    let giver = machine(1).verifying_key();
+
+    assert_eq!(
+        ask.code(&giver, &OneUse::minted().unwrap().revealed()),
+        None
+    );
+    assert_eq!(ask.code(&giver, "not a reveal"), None);
+    let recommitted = Ask {
+        commit: OneUse::minted().unwrap().commit(),
+        ..ask.clone()
+    };
+    assert!(!recommitted.holds());
 }
 
 #[test]
@@ -124,4 +151,45 @@ fn a_giver_carries_the_key_it_names() {
     let carried: Giver = serde_json::from_str(&serde_json::to_string(&giver).unwrap()).unwrap();
 
     assert_eq!(carried.key(), Some(machine(1).verifying_key()));
+}
+
+#[test]
+fn an_answer_vouched_by_a_certified_share_key_names_its_person_and_only_for_its_ask() {
+    let seed = Seed::from_bytes(&[8; 32]);
+    let share = crate::identity::ShareKey::from_bytes(&[6; 32]);
+    let when = jiff::Timestamp::from_second(1_761_400_000).unwrap();
+    let certificate = seed.root().certify(&share.public(), when);
+    let one_use = OneUse::minted().unwrap();
+    let ask = asked(&one_use);
+    let mut answer = handed(&ask, &cloud_key(), "dev_a", &machine(1)).unwrap();
+
+    assert!(answer.vouch(&ask, &share, &certificate));
+
+    assert!(matches!(
+        answer.vouched_for(&ask, &[]),
+        Verdict::Holds { person, .. } if person == seed.root().person()
+    ));
+    let other = asked(&OneUse::minted().unwrap());
+    assert!(!matches!(
+        answer.vouched_for(&other, &[]),
+        Verdict::Holds { .. }
+    ));
+    let tampered = Handed {
+        sealed: answer.from.clone(),
+        ..answer.clone()
+    };
+    assert!(!matches!(
+        tampered.vouched_for(&ask, &[]),
+        Verdict::Holds { .. }
+    ));
+    let revoked = seed.root().revoke(&share.public(), when);
+    assert!(matches!(
+        answer.vouched_for(&ask, &[revoked]),
+        Verdict::Revoked { .. }
+    ));
+    assert!(!answer.vouch(
+        &ask,
+        &crate::identity::ShareKey::from_bytes(&[2; 32]),
+        &certificate
+    ));
 }
