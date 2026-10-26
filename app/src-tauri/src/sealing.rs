@@ -364,8 +364,25 @@ pub async fn sealing_wipe(
     if turns.wiping.swap(true, Ordering::AcqRel) {
         return Err(Refusal::of("sealingWiping"));
     }
+    witness::note(
+        channel::CLOUD,
+        "deleting the old unencrypted copy began",
+        &[],
+    );
     let wiped = wiped_behind(&session).await;
     turns.wiping.store(false, Ordering::Release);
+    match &wiped {
+        Ok(gone) => witness::note(
+            channel::CLOUD,
+            "the old unencrypted copy was deleted",
+            &[("gone", Fact::Count(*gone))],
+        ),
+        Err(refusal) => witness::warn(
+            channel::CLOUD,
+            "the old unencrypted copy could not be deleted",
+            &[("why", Fact::Code(refusal.code))],
+        ),
+    }
     wiped
 }
 
