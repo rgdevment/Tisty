@@ -124,6 +124,7 @@ const KNOWN = [
   "cloudSealed",
   "cloudSealing",
   "cloudSealingHere",
+  "sealingWiping",
   "cloudUnsealed",
   "cloudOtherPhrase",
   "cloudMarkDamaged",

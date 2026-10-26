@@ -1890,6 +1890,9 @@ const en = {
   sealStepCopy: "Copy",
   sealStepCopied: "{name} files copied, {other} left",
   sealStepCounting: "Starting to copy…",
+  sealWiping:
+    "Deleting the old unencrypted copy from {name}… It can take a few minutes, and you can keep working.",
+  sealingWiping: "The old copy is already being deleted.",
   sealStarting: "Getting your cloud ready. It can take a few minutes, and the progress shows here.",
   sealStopped: "It stopped. Trying again carries on from where it was.",
   sealWaitOffline:
@@ -4383,6 +4386,9 @@ const es: Catalog = {
   sealStepCopy: "Copiar",
   sealStepCopied: "{name} archivos copiados, faltan {other}",
   sealStepCounting: "Empezando a copiar…",
+  sealWiping:
+    "Borrando la copia antigua sin cifrar de {name}… Puede tardar unos minutos, y puedes seguir trabajando.",
+  sealingWiping: "La copia antigua ya se está borrando.",
   sealStarting: "Preparando tu nube. Puede tardar unos minutos, y aquí verás el avance.",
   sealStopped: "Se detuvo. Al reintentar, sigue desde donde quedó.",
   sealWaitOffline: "No se puede llegar a {name} ahora. Tisty sigue solo cuando vuelva la conexión.",

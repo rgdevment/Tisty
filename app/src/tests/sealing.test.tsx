@@ -292,6 +292,18 @@ describe("a turn under way", () => {
 });
 
 describe("an encrypted cloud", () => {
+  it("says it is deleting the old copy and holds every button meanwhile", async () => {
+    ipc.shown = { ...plain, state: "sealed", wiping: true };
+    render(<Shell />);
+
+    expect((await screen.findByRole("status")).textContent).toMatch(
+      /Deleting the old unencrypted copy/,
+    );
+    expect(
+      screen.getByRole("button", { name: "Delete the unencrypted copy" }).hasAttribute("disabled"),
+    ).toBe(true);
+  });
+
   it("deletes the old copy and can be decrypted", async () => {
     ipc.shown = { ...plain, state: "sealed" };
     render(<Shell />);

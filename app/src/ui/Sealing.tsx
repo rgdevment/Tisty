@@ -56,6 +56,7 @@ export default function Sealing({
   const [shown, setShown] = useState<SealShown | null>(null);
   const [asking, setAsking] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [wiping, setWiping] = useState(false);
   const [phrase, setPhrase] = useState<Phrase | null>(null);
   const [letting, setLetting] = useState<"me" | "them" | "phrase" | null>(null);
   const failed = useCallback((e: unknown) => fail({ card, text: saidPlainly(e) }), [fail]);
@@ -64,6 +65,11 @@ export default function Sealing({
     sealingShown().then(setShown).catch(failed);
   }, [failed]);
   useEffect(look, [look, round, phrased]);
+  useEffect(() => {
+    if (!shown?.wiping || wiping) return;
+    const again = setInterval(look, 5_000);
+    return () => clearInterval(again);
+  }, [shown?.wiping, wiping, look]);
   useEffect(() => {
     const off = listen<SealTold | null>("sealing", (told) => {
       setShown((was) => (was ? { ...was, turning: told.payload } : was));
@@ -229,15 +235,19 @@ export default function Sealing({
         <Sealed
           provider={provider}
           held={held}
+          wiping={wiping || Boolean(shown.wiping)}
           onWipe={() =>
             sure(fill("sealWipeSure", provider))
-              .then((yes) =>
-                yes
-                  ? sealingWipe().then((gone) =>
-                      tell({ card, text: fill("sealWiped", String(gone)) }),
-                    )
-                  : undefined,
-              )
+              .then((yes) => {
+                if (!yes) return;
+                setWiping(true);
+                return sealingWipe()
+                  .then((gone) => tell({ card, text: fill("sealWiped", String(gone)) }))
+                  .finally(() => {
+                    setWiping(false);
+                    look();
+                  });
+              })
               .catch(failed)
           }
           onLetIn={() => setLetting("them")}
@@ -482,12 +492,14 @@ function Progress({
 function Sealed({
   provider,
   held,
+  wiping,
   onWipe,
   onLetIn,
   onOff,
 }: {
   provider: string;
   held: boolean;
+  wiping: boolean;
   onWipe: () => void;
   onLetIn: () => void;
   onOff: () => void;
@@ -498,14 +510,19 @@ function Sealed({
       <p className="mt-0.5 text-[12.5px] leading-relaxed text-soft">
         {fill("sealOldCopy", provider)}
       </p>
+      {wiping && (
+        <p role="status" className="mt-2 text-[12.5px] text-soft motion-safe:animate-pulse">
+          {fill("sealWiping", provider)}
+        </p>
+      )}
       <div className="mt-3 flex flex-wrap justify-end gap-2">
-        <button type="button" className={mild} disabled={held} onClick={onOff}>
+        <button type="button" className={mild} disabled={held || wiping} onClick={onOff}>
           {t("sealOff")}
         </button>
-        <button type="button" className={mild} disabled={held} onClick={onLetIn}>
+        <button type="button" className={mild} disabled={held || wiping} onClick={onLetIn}>
           {t("admitLetInButton")}
         </button>
-        <button type="button" className={strong} disabled={held} onClick={onWipe}>
+        <button type="button" className={strong} disabled={held || wiping} onClick={onWipe}>
           {t("sealWipe")}
         </button>
       </div>

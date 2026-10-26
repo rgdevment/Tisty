@@ -1,5 +1,5 @@
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Duration;
 
@@ -26,6 +26,7 @@ pub struct Turns {
     driven: AtomicU64,
     last: Mutex<Option<Told>>,
     keying: Mutex<()>,
+    wiping: AtomicBool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -53,6 +54,7 @@ pub struct Shown {
     pub behind: Vec<String>,
     pub turning: Option<Told>,
     pub orphan: bool,
+    pub wiping: bool,
 }
 
 #[derive(Serialize)]
@@ -119,6 +121,7 @@ pub fn sealing_shown(
             behind: Vec::new(),
             turning: None,
             orphan: false,
+            wiping: false,
         });
     };
     let word = word_here(&home);
@@ -150,6 +153,7 @@ pub fn sealing_shown(
         behind: behind(&session),
         turning,
         orphan,
+        wiping: turns.wiping.load(Ordering::Acquire),
     })
 }
 
@@ -353,13 +357,25 @@ async fn cancelled(app: &AppHandle, session: &Mutex<Session>) -> Answer<bool> {
 }
 
 #[tauri::command(async)]
-pub async fn sealing_wipe(session: tauri::State<'_, Mutex<Session>>) -> Answer<usize> {
-    let (plain, home, at) = plain_of(&session)?;
+pub async fn sealing_wipe(
+    session: tauri::State<'_, Mutex<Session>>,
+    turns: tauri::State<'_, Turns>,
+) -> Answer<usize> {
+    if turns.wiping.swap(true, Ordering::AcqRel) {
+        return Err(Refusal::of("sealingWiping"));
+    }
+    let wiped = wiped_behind(&session).await;
+    turns.wiping.store(false, Ordering::Release);
+    wiped
+}
+
+async fn wiped_behind(session: &Mutex<Session>) -> Answer<usize> {
+    let (plain, home, at) = plain_of(session)?;
     let cloud = match tisty_carrier::sealing_in(&word_here(&home)) {
         Sealing::Sealed(cloud) => cloud,
         _ => return Err(Refusal::of("sealingNoCloud")),
     };
-    let key = key_of(&session, &cloud)?;
+    let key = key_of(session, &cloud)?;
     elsewhere(move || tisty_carrier::wipe_behind(plain, &home, key, &cloud))
         .await?
         .map_err(|hitch| refused_by(hitch, &at.provider))

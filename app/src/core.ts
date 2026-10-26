@@ -1343,6 +1343,7 @@ export interface SealShown {
   phraseElsewhere: boolean;
   behind: string[];
   turning: SealTold | null;
+  wiping?: boolean;
   orphan: boolean;
 }
 
