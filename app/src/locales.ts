@@ -1948,6 +1948,7 @@ const en = {
   admitTypeWhat:
     "Type the twenty digits «{name}» shows. If that computer is not in front of you, type nothing: someone else may be asking in its name.",
   admitTypeLabel: "The code the new computer shows",
+  admitTypedCount: "{name} of {other} digits",
   admitTypeGo: "Let it in",
   admitNoComputer: "There is no such computer",
   admitAccepted: "It took them",
@@ -4453,6 +4454,7 @@ const es: Catalog = {
   admitTypeWhat:
     "Escribe los veinte dígitos que muestra «{name}». Si ese equipo no está frente a ti, no escribas nada: puede que alguien más esté pidiendo entrar en su nombre.",
   admitTypeLabel: "El código que muestra el equipo nuevo",
+  admitTypedCount: "{name} de {other} dígitos",
   admitTypeGo: "Autorizar",
   admitNoComputer: "No existe ese equipo",
   admitAccepted: "Ya los aceptó",

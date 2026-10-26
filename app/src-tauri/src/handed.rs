@@ -248,7 +248,7 @@ pub(crate) fn asking(
     knocking: &Knocking,
     here: &Here,
 ) -> Result<bool, String> {
-    let seated = held(session).state.devices.contains(&here.device);
+    let seated = joined_here(&held(session));
     let mut asked = knocking
         .asked
         .lock()
@@ -469,6 +469,13 @@ fn ours_vouched(session: &Mutex<Session>, answer: &Handed, ask: &Ask) -> bool {
 
 pub(crate) fn fits(ask: &Ask, here: &Here) -> bool {
     ask.holds() && ask.cloud == here.cloud && ask.device != here.device.0
+}
+
+pub(crate) fn joined_here(session: &Session) -> bool {
+    let here = &session.config.device_id;
+    session.state.devices.contains(here)
+        && !session.state.assistants.contains(here)
+        && crate::answers::storing::cloud_joined(session)
 }
 
 pub(crate) fn seated(session: &Mutex<Session>, device: &str) -> bool {
