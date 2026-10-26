@@ -259,6 +259,11 @@ jobs:
           VERSION: ${{ steps.resolve.outputs.version }}
         run: bash scripts/news.sh "$VERSION"
 
+      - name: What a person reads was read against this version
+        env:
+          VERSION: ${{ steps.resolve.outputs.version }}
+        run: bash scripts/docs.sh "$VERSION"
+
   build-macos:
     name: tisty-macos-mcp
     needs: version
