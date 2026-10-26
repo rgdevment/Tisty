@@ -531,9 +531,10 @@ async fn forget_here(
         }
         forgotten(&at)?;
         let_go_held(&app, &at);
-        crate::handed::let_go(
+        crate::handed::let_go_of(
             &app.state::<Mutex<Session>>(),
             &app.state::<crate::handed::Knocking>(),
+            &at,
         );
         Ok(())
     })
@@ -570,9 +571,10 @@ pub async fn cloud_revoke(
         }
         forgotten(&at)?;
         let_go_held(&app, &at);
-        crate::handed::let_go(
+        crate::handed::let_go_of(
             &app.state::<Mutex<Session>>(),
             &app.state::<crate::handed::Knocking>(),
+            &at,
         );
         Ok(())
     })

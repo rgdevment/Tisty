@@ -201,15 +201,48 @@ fn cancelling_takes_the_ask_its_giver_and_its_reveal_away() {
 }
 
 #[test]
-fn opening_the_window_again_keeps_the_ask_up_there_and_so_the_code() {
+fn letting_it_in_twice_keeps_the_answer_already_put_up() {
     let two = two();
     let knocking = knocking_of(&two);
-    let (first, _) = asked_now(&knocking, &two.asking).unwrap();
+    offer(&two.giver, &two.giving, Some(key(7)), newcomer(&two)).unwrap();
+    let code = code_shown(&two, &knocking);
+    granted(&two.giver, &two.giving, Some(key(7)), newcomer(&two), &code).unwrap();
+    let first = knock::answered(&*two.plain, &two.asking.home, newcomer(&two)).unwrap();
 
-    ask(&two.asker, &knocking, &two.asking, None).unwrap();
+    granted(&two.giver, &two.giving, Some(key(7)), newcomer(&two), &code).unwrap();
 
-    let (again, _) = asked_now(&knocking, &two.asking).unwrap();
-    assert_eq!(again, first);
+    assert_eq!(
+        knock::answered(&*two.plain, &two.asking.home, newcomer(&two)).unwrap(),
+        first
+    );
+}
+
+#[test]
+fn an_answer_already_trusted_is_taken_even_past_the_ask_s_hour() {
+    let two = two();
+    let knocking = knocking_of(&two);
+    let one_use = OneUse::minted().unwrap();
+    let mine = tisty_core::signing::mine(&two.asking.paths, &two.asking.device).unwrap();
+    let old = Ask::signed(
+        newcomer(&two),
+        "PC",
+        &mine,
+        &one_use,
+        &two.cloud,
+        now() - NEW_FOR - 60,
+    );
+    knock::knocked(&*two.plain, &two.asking.home, &old).unwrap();
+    let reveal = one_use.revealed();
+    *knocking.asked.lock().unwrap() = Some((old.clone(), one_use));
+    let giving = tisty_core::signing::mine(&two.giving.paths, &two.giving.device).unwrap();
+    let giver = Giver::of(&two.giving.device.0, "Mac", &giving.verifying_key());
+    knock::offered(&*two.plain, &two.asking.home, newcomer(&two), &giver).unwrap();
+    let code = old.code(&giving.verifying_key(), &reveal).unwrap();
+    trusted(&knocking, &two.asking, &code).unwrap();
+    let answer = handed(&old, &key(7), &two.giving.device.0, &giving).unwrap();
+    knock::answer(&*two.plain, &two.asking.home, newcomer(&two), &answer).unwrap();
+
+    assert_eq!(step(&two, &knocking).step, "done");
 }
 
 #[test]

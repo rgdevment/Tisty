@@ -264,6 +264,15 @@ impl Handed {
         }
     }
 
+    pub fn signed_for(&self, ask: &Ask) -> bool {
+        match (self.giver(), signature(&self.sig)) {
+            (Some(giver), Some(sig)) => {
+                self.v == SAID && giver.verify(&self.said(&ask.digest()), &sig).is_ok()
+            }
+            _ => false,
+        }
+    }
+
     pub fn giver(&self) -> Option<VerifyingKey> {
         key_of(&self.key)
     }

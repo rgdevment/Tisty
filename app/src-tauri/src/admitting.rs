@@ -10,9 +10,6 @@ use tisty_share_proto::handing::{Ask, Giver};
 use crate::handed::{Here, Knocking, NEW_FOR, fits, here_now, hitched, now, seated, signer};
 use crate::{Answer, Refusal, Session, elsewhere, held};
 
-// A fresh ask is kept rather than made again while this much of its hour is left, so reopening the window never voids a code.
-const KEPT_FOR: i64 = NEW_FOR - 10 * 60;
-
 #[derive(Debug, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct Admitted {
@@ -106,13 +103,6 @@ fn ask(
     if seated(session, &here.device.0) {
         return Err(Refusal::of("admitOnList"));
     }
-    let standing = asked_now(knocking, here).filter(|(ask, _)| now() - ask.at < KEPT_FOR);
-    if let Some((ask, _)) = standing {
-        let up_there = knock::ask_of(&*here.plain, &here.home, &here.device.0).map_err(up)?;
-        if up_there.as_ref() == Some(&ask) {
-            return Ok(());
-        }
-    }
     ask_again(session, knocking, here)
 }
 
@@ -133,19 +123,15 @@ fn shown(
     let Some((ask, reveal)) = asked_now(knocking, here) else {
         return Ok(said("idle", None, None));
     };
-    // Past its hour no computer answers it any more, so a new ask goes up in its place.
-    if now() - ask.at > NEW_FOR {
+    // Past its hour no computer takes it any more, so a new ask goes up, unless the person already trusted one that may have answered.
+    if now() - ask.at > NEW_FOR && trusted_now(knocking).is_none() {
         ask_again(session, knocking, here)?;
         return Ok(said("waiting", None, None));
     }
     let Some(giver) = knock::giver_of(&*here.plain, &here.home, &here.device.0).map_err(up)? else {
         return Ok(said("waiting", None, None));
     };
-    if knock::reveal_of(&*here.plain, &here.home, &here.device.0).map_err(up)?
-        != Some(reveal.clone())
-    {
-        knock::revealed(&*here.plain, &here.home, &here.device.0, &reveal).map_err(up)?;
-    }
+    reveal_once(knocking, here, &ask, &reveal)?;
     if trusted_now(knocking).as_deref() != Some(giver.key.as_str()) {
         let code = code_of(knocking, &ask, &giver, &reveal);
         return Ok(said("compare", Some(&giver), code));
@@ -154,6 +140,20 @@ fn shown(
         true => Ok(said("done", Some(&giver), None)),
         false => Ok(said("trusted", Some(&giver), None)),
     }
+}
+
+// Put up once an ask, so a window looking every few seconds does not fetch it each time.
+fn reveal_once(knocking: &Knocking, here: &Here, ask: &Ask, reveal: &str) -> Worked<()> {
+    let mut revealed = knocking
+        .revealed
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner);
+    if revealed.as_deref() == Some(ask.sig.as_str()) {
+        return Ok(());
+    }
+    knock::revealed(&*here.plain, &here.home, &here.device.0, reveal).map_err(up)?;
+    *revealed = Some(ask.sig.clone());
+    Ok(())
 }
 
 // Ground once an ask and giver, since the window asks every few seconds and scrypt takes its time and memory.
@@ -291,14 +291,21 @@ fn granted(
         return Err(Refusal::of("admitWrongCode"));
     }
     vouch_for(session, &ask)?;
-    let answer = crate::handed::sealed_for(session, here, &ask, &key, &signer).map_err(trouble)?;
-    let standing = knock::answered(&*here.plain, &here.home, device).map_err(up)?;
-    if standing.is_some_and(|one| one != answer) {
-        knock::unanswered(&*here.plain, &here.home, device).map_err(up)?;
+    // An answer this machine already signed for this very ask stands; any other, forged or stale, goes.
+    let ours = |one: &tisty_share_proto::handing::Handed| {
+        one.giver().as_ref() == Some(&mine) && one.signed_for(&ask)
+    };
+    match knock::answered(&*here.plain, &here.home, device).map_err(up)? {
+        Some(one) if ours(&one) => return Ok(()),
+        Some(_) => knock::unanswered(&*here.plain, &here.home, device).map_err(up)?,
+        None => {}
     }
+    let voucher = crate::handed::voucher(session, here);
+    let answer =
+        crate::handed::sealed_for(here, &ask, &key, &signer, voucher.as_ref()).map_err(trouble)?;
     knock::answer(&*here.plain, &here.home, device, &answer).map_err(up)?;
     match knock::answered(&*here.plain, &here.home, device).map_err(up)? {
-        Some(one) if one == answer => Ok(()),
+        Some(one) if ours(&one) => Ok(()),
         _ => Err(trouble("another answer stands where this one was put")),
     }
 }

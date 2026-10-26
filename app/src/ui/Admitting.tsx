@@ -134,6 +134,7 @@ export function LetThemIn({ onClose }: { onClose: () => void }) {
   const [newcomers, setNewcomers] = useState<Newcomer[] | null>(null);
   const [letting, setLetting] = useState<Letting | null>(null);
   const [typed, setTyped] = useState("");
+  const [granting, setGranting] = useState(false);
   const [trouble, setTrouble] = useState<string | null>(null);
 
   const look = useCallback(() => {
@@ -201,12 +202,14 @@ export function LetThemIn({ onClose }: { onClose: () => void }) {
             <button
               type="button"
               className={strong}
-              disabled={count !== DIGITS}
-              onClick={() =>
+              disabled={granting || count !== DIGITS}
+              onClick={() => {
+                setGranting(true);
                 admittingGrant(letting.one.device, typed)
                   .then(() => setLetting({ ...letting, step: "granted" }))
                   .catch(failed)
-              }
+                  .finally(() => setGranting(false));
+              }}
             >
               {t("admitTypeGo")}
             </button>

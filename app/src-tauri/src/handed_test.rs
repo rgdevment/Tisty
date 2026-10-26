@@ -411,3 +411,22 @@ fn a_key_handed_for_a_new_cloud_lets_the_old_one_go() {
     assert!(kept("store_old_cloud").unwrap().is_none());
     assert_eq!(held(&two.asker).config.key_handed, Some(two.cloud.clone()));
 }
+
+#[test]
+fn forgetting_another_account_keeps_the_key_of_the_cloud_this_machine_syncs_with() {
+    let two = two();
+    let at = |name: &str| tisty_core::config::CloudAt {
+        provider: tisty_core::config::WEBDAV.into(),
+        account: format!("https://{name}@cloud.example.com/dav/Tisty/"),
+        email: format!("{name}@cloud.example.com"),
+    };
+    kept_for(&two.asker, &two.cloud, &key(7)).unwrap();
+    held(&two.asker).config.sync = Some(tisty_core::config::Sync::Cloud(at("mario")));
+    let knocking = Knocking::default();
+
+    let_go_of(&two.asker, &knocking, &at("otra"));
+    assert!(kept(&two.cloud).unwrap().is_some());
+
+    let_go_of(&two.asker, &knocking, &at("mario"));
+    assert!(kept(&two.cloud).unwrap().is_none());
+}

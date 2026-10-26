@@ -29,6 +29,7 @@ pub struct Knocking {
     opened: Mutex<Option<String>>,
     pub(crate) trusted: Mutex<Option<String>>,
     pub(crate) coded: Mutex<Option<(String, String, String)>>,
+    pub(crate) revealed: Mutex<Option<String>>,
     reached: Mutex<Option<(std::path::PathBuf, Arc<dyn Remote>)>>,
 }
 
@@ -71,10 +72,10 @@ pub(crate) fn here_now(
         plain,
         home,
     };
-    let key = keyed
-        .filter(|keyed| keyed.locked.cloud == here.cloud)
-        .map(|keyed| keyed.key)
-        .filter(|key| opened(knocking, &here, key));
+    let key = match keyed.filter(|keyed| keyed.locked.cloud == here.cloud) {
+        Some(keyed) => opened(knocking, &here, &keyed.key)?.then_some(keyed.key),
+        None => None,
+    };
     Ok((here, key))
 }
 
@@ -243,10 +244,9 @@ pub(crate) fn asking(
     let stale = asked
         .as_ref()
         .is_none_or(|(ask, _)| ask.cloud != here.cloud || now() - ask.at > ASKED_AGAIN);
-    if stale {
-        if seated {
-            ask_now(session, &mut asked, here)?;
-        }
+    // A machine off the list asks again only from its window, which also knows whether the person trusted a giver.
+    if stale && seated {
+        ask_now(session, &mut asked, here)?;
         return Ok(false);
     }
     let Some((ask, one_use)) = asked.as_ref() else {
@@ -293,20 +293,21 @@ pub(crate) fn opens(here: &Here, key: &CloudKey) -> Result<bool, String> {
 }
 
 // The mark is fetched once a key, not every time the box is looked at.
-fn opened(knocking: &Knocking, here: &Here, key: &CloudKey) -> bool {
+// A mark that could not be fetched is a hitch, never a wrong key.
+fn opened(knocking: &Knocking, here: &Here, key: &CloudKey) -> Result<bool, String> {
     let named = key.named_for(&here.cloud);
     let mut known = knocking
         .opened
         .lock()
         .unwrap_or_else(PoisonError::into_inner);
     if known.as_deref() == Some(named.as_str()) {
-        return true;
+        return Ok(true);
     }
-    let opens = opens(here, key).unwrap_or(false);
+    let opens = opens(here, key)?;
     if opens {
         *known = Some(named);
     }
-    opens
+    Ok(opens)
 }
 
 // The mark sits with the provider, who could seal a mark of its own, so only a machine the log knows may hand a key.
@@ -358,8 +359,9 @@ fn took(session: &Mutex<Session>, here: &Here, key: &CloudKey) -> Result<(), Str
 fn answering(session: &Mutex<Session>, here: &Here, key: &CloudKey) -> Result<(), String> {
     let knocks = knock::knocks(&*here.plain, &here.home).map_err(hitched)?;
     let signer = signer(here)?;
+    let voucher = voucher(session, here);
     for one in knocks {
-        if let Err(why) = answered(session, here, key, &signer, &one) {
+        if let Err(why) = answered(session, here, key, &signer, voucher.as_ref(), &one) {
             noted(why);
         }
     }
@@ -371,6 +373,7 @@ fn answered(
     here: &Here,
     key: &CloudKey,
     signer: &SigningKey,
+    voucher: Option<&Voucher>,
     one: &knock::Knock,
 ) -> Result<(), String> {
     let seated = seated(session, &one.device);
@@ -396,37 +399,49 @@ fn answered(
     if !seated || !signs_as_known(session, ask) || !fits(ask, here) {
         return Ok(());
     }
-    let answer = sealed_for(session, here, ask, key, signer)?;
+    let answer = sealed_for(here, ask, key, signer, voucher)?;
     knock::answer(&*here.plain, &here.home, &one.device, &answer).map_err(hitched)
+}
+
+pub(crate) type Voucher = (
+    tisty_share_proto::identity::ShareKey,
+    tisty_share_proto::identity::Certificate,
+);
+
+// Read once a round and never minted here: a key no root certified vouches for nothing.
+pub(crate) fn voucher(session: &Mutex<Session>, here: &Here) -> Option<Voucher> {
+    let at = tisty_core::person::kept_at(&here.paths, &here.device)?;
+    let bytes = zeroize::Zeroizing::new(std::fs::read(at).ok()?);
+    let share = tisty_share_proto::identity::ShareKey::from_bytes(
+        &<[u8; 32]>::try_from(bytes.as_slice()).ok()?,
+    );
+    let session = held(session);
+    let persons = &session.state.persons;
+    let person = persons.person(&here.device)?;
+    let vouched = persons.vouched_by(&here.device, &person)?;
+    if vouched.share != share.public() {
+        return None;
+    }
+    let certificate = persons
+        .certificates
+        .iter()
+        .find(|one| one.unchecked() == Some(vouched))?
+        .clone();
+    Some((share, certificate))
 }
 
 // Signed again with the share key the person's root certified, so an asker whose log is behind still knows it is theirs.
 pub(crate) fn sealed_for(
-    session: &Mutex<Session>,
     here: &Here,
     ask: &Ask,
     key: &CloudKey,
     signer: &SigningKey,
+    voucher: Option<&Voucher>,
 ) -> Result<Handed, String> {
     let mut answer = handed(ask, key, &here.device.0, signer)
         .ok_or("the cloud's key could not be sealed for the machine that asked")?;
-    let Some(share) = tisty_core::person::mine(&here.paths, &here.device) else {
-        return Ok(answer);
-    };
-    let certificate = {
-        let session = held(session);
-        let persons = &session.state.persons;
-        persons
-            .certificates
-            .iter()
-            .find(|one| {
-                one.vouches()
-                    .is_ok_and(|said| said.share == share.public() && persons.names(&said.person))
-            })
-            .cloned()
-    };
-    if let Some(certificate) = certificate {
-        answer.vouch(ask, &share, &certificate);
+    if let Some((share, certificate)) = voucher {
+        answer.vouch(ask, share, certificate);
     }
     Ok(answer)
 }
@@ -487,7 +502,6 @@ pub fn keep(cloud: &str, key: &CloudKey) -> Result<(), String> {
         .map_err(|e| format!("{e:?}"))
 }
 
-// A handed key is handed again by any other machine, so one for a cloud left behind is not kept.
 // Any other machine hands the key again, so a cloud left or turned back to plain keeps none of it here.
 pub(crate) fn let_go(session: &Mutex<Session>, knocking: &Knocking) {
     knocking.reset();
@@ -515,8 +529,22 @@ impl Knocking {
         *self.asked.lock().unwrap_or_else(PoisonError::into_inner) = None;
         *self.trusted.lock().unwrap_or_else(PoisonError::into_inner) = None;
         *self.coded.lock().unwrap_or_else(PoisonError::into_inner) = None;
+        *self.revealed.lock().unwrap_or_else(PoisonError::into_inner) = None;
         *self.reached.lock().unwrap_or_else(PoisonError::into_inner) = None;
         *self.opened.lock().unwrap_or_else(PoisonError::into_inner) = None;
+    }
+}
+
+// Only the account this machine syncs with holds the cloud that key opens.
+pub(crate) fn let_go_of(
+    session: &Mutex<Session>,
+    knocking: &Knocking,
+    at: &tisty_core::config::CloudAt,
+) {
+    let ours = tisty_carrier::cloud_of(held(session).config.sync.as_ref())
+        .is_some_and(|now| now.same_account(at));
+    if ours {
+        let_go(session, knocking);
     }
 }
 
