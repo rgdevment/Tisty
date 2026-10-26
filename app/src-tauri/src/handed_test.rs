@@ -367,3 +367,66 @@ fn a_key_from_a_machine_this_one_does_not_know_is_never_taken() {
         None
     );
 }
+
+#[test]
+fn a_machine_whose_log_is_behind_takes_the_key_from_one_its_person_certified() {
+    let two = two();
+    sealed_with(&two, &key(7));
+    knows(&two.giver, &two.asking);
+    let seed = tisty_share_proto::seed::Seed::from_bytes(&[7; 32]);
+    crate::identity::begun(&mut held(&two.giver), &seed).unwrap();
+    let persons = held(&two.giver).state.persons.clone();
+    held(&two.asker).state.persons = persons;
+    let knocking = Knocking::default();
+    asking(&two.asker, &knocking, &two.asking).unwrap();
+
+    answering(&two.giver, &two.giving, &key(7)).unwrap();
+
+    assert!(asking(&two.asker, &knocking, &two.asking).unwrap());
+    assert_eq!(held(&two.asker).config.key_handed, Some(two.cloud.clone()));
+}
+
+#[test]
+fn letting_go_forgets_the_handed_key_and_what_was_asked() {
+    let two = two();
+    sealed_with(&two, &key(7));
+    kept_for(&two.asker, &two.cloud, &key(7)).unwrap();
+    let knocking = Knocking::default();
+    ask_now(&two.asker, &mut knocking.asked.lock().unwrap(), &two.asking).unwrap();
+
+    let_go(&two.asker, &knocking);
+
+    assert!(kept(&two.cloud).unwrap().is_none());
+    assert_eq!(held(&two.asker).config.key_handed, None);
+    assert!(knocking.asked.lock().unwrap().is_none());
+}
+
+#[test]
+fn a_key_handed_for_a_new_cloud_lets_the_old_one_go() {
+    let two = two();
+    kept_for(&two.asker, "store_old_cloud", &key(4)).unwrap();
+
+    kept_for(&two.asker, &two.cloud, &key(7)).unwrap();
+
+    assert!(kept("store_old_cloud").unwrap().is_none());
+    assert_eq!(held(&two.asker).config.key_handed, Some(two.cloud.clone()));
+}
+
+#[test]
+fn forgetting_another_account_keeps_the_key_of_the_cloud_this_machine_syncs_with() {
+    let two = two();
+    let at = |name: &str| tisty_core::config::CloudAt {
+        provider: tisty_core::config::WEBDAV.into(),
+        account: format!("https://{name}@cloud.example.com/dav/Tisty/"),
+        email: format!("{name}@cloud.example.com"),
+    };
+    kept_for(&two.asker, &two.cloud, &key(7)).unwrap();
+    held(&two.asker).config.sync = Some(tisty_core::config::Sync::Cloud(at("mario")));
+    let knocking = Knocking::default();
+
+    let_go_of(&two.asker, &knocking, &at("otra"));
+    assert!(kept(&two.cloud).unwrap().is_some());
+
+    let_go_of(&two.asker, &knocking, &at("mario"));
+    assert!(kept(&two.cloud).unwrap().is_none());
+}

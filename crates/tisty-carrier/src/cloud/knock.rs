@@ -13,6 +13,12 @@ pub const KNOCK: &str = "knock";
 const ASK: &str = ".ask";
 const KEY: &str = ".key";
 const GIVER: &str = ".giver";
+const OPEN: &str = ".open";
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct Open {
+    reveal: String,
+}
 const AT_MOST: u64 = 4 * 1024;
 
 fn broke(e: impl ToString) -> Hitch {
@@ -107,6 +113,7 @@ pub fn knocked(plain: &dyn Remote, home: &Path, ask: &Ask) -> Result<(), Hitch> 
     let metered = boxed(plain, home);
     gone(&metered, &named(&ask.device, KEY)?)?;
     gone(&metered, &named(&ask.device, GIVER)?)?;
+    gone(&metered, &named(&ask.device, OPEN)?)?;
     written(&metered, &named(&ask.device, ASK)?, ask, Expect::Any)
 }
 
@@ -214,6 +221,26 @@ pub fn giver_of(plain: &dyn Remote, home: &Path, device: &str) -> Result<Option<
     }
 }
 
+// Put up only once a machine took the ask, so the reveal comes after the giver and never before it.
+pub fn revealed(plain: &dyn Remote, home: &Path, device: &str, reveal: &str) -> Result<(), Hitch> {
+    let open = Open {
+        reveal: reveal.to_string(),
+    };
+    written(
+        &boxed(plain, home),
+        &named(device, OPEN)?,
+        &open,
+        Expect::Any,
+    )
+}
+
+pub fn reveal_of(plain: &dyn Remote, home: &Path, device: &str) -> Result<Option<String>, Hitch> {
+    match read::<Open>(&boxed(plain, home), &named(device, OPEN)?)? {
+        Found::Read(open) => Ok(Some(open.reveal)),
+        Found::Unread | Found::Missing => Ok(None),
+    }
+}
+
 pub fn unanswered(plain: &dyn Remote, home: &Path, device: &str) -> Result<(), Hitch> {
     gone(&boxed(plain, home), &named(device, KEY)?)
 }
@@ -221,6 +248,7 @@ pub fn unanswered(plain: &dyn Remote, home: &Path, device: &str) -> Result<(), H
 pub fn withdrawn(plain: &dyn Remote, home: &Path, device: &str) -> Result<(), Hitch> {
     gone(&boxed(plain, home), &named(device, ASK)?)?;
     gone(&boxed(plain, home), &named(device, GIVER)?)?;
+    gone(&boxed(plain, home), &named(device, OPEN)?)?;
     unanswered(plain, home, device)
 }
 
