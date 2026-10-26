@@ -159,16 +159,13 @@ fn only_the_first_computer_to_take_an_ask_lets_it_in() {
 fn a_computer_that_only_knows_itself_and_never_carried_here_asks_as_a_newcomer() {
     let two = two();
     sealed_with(&two, &key(7));
-    std::fs::remove_file(two.asking.home.join(crate::handed::tests::CARRIED_HERE)).unwrap();
+    std::fs::remove_file(two.asking.home.join(tisty_carrier::CARRIED)).unwrap();
     let knocking = Knocking::default();
 
     ask(&two.asker, &knocking, &two.asking, None).unwrap();
 
     assert!(held(&two.asker).state.devices.contains(&two.asking.device));
-    assert!(!crate::handed::joined_here(
-        &held(&two.asker),
-        &two.asking.home
-    ));
+    assert!(!crate::handed::joined_here(&held(&two.asker)));
 }
 
 #[test]

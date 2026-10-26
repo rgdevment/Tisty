@@ -242,7 +242,7 @@ pub fn reveal_of(plain: &dyn Remote, home: &Path, device: &str) -> Result<Option
             tisty_core::witness::warn(
                 tisty_core::witness::channel::CLOUD,
                 "a new computer's reveal is up there and could not be read",
-                &[],
+                &[("at", tisty_core::witness::Fact::Id(device.to_string()))],
             );
             Ok(None)
         }

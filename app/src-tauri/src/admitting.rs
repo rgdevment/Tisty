@@ -113,7 +113,7 @@ fn ask(
         return Err(Refusal::of("admitAlreadyIn"));
     }
     // One on the list is handed the key on its own, and asking again would take away an answer on its way.
-    if crate::handed::joined_here(&held(session), &here.home) {
+    if crate::handed::joined_here(&held(session)) {
         return Err(Refusal::of("admitOnList"));
     }
     ask_again(session, knocking, here)

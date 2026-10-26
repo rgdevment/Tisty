@@ -202,12 +202,16 @@ export function LetThemIn({ onClose }: { onClose: () => void }) {
             inputMode="numeric"
             autoComplete="off"
             spellCheck={false}
-            maxLength={DIGITS + 3}
-            onChange={(event) => setTyped(grouped(event.target.value))}
+            onChange={(event) => {
+              const now = event.target.value;
+              const digits = now.replace(/\D/g, "");
+              const spaceGone = now.length < typed.length && digits === typed.replace(/\D/g, "");
+              setTyped(grouped(spaceGone ? digits.slice(0, -1) : digits));
+            }}
             className="mt-3 w-full rounded-[10px] border border-line bg-bg px-3 py-2 text-center font-mono text-[21px] tracking-[0.06em] tabular-nums"
           />
           <p className="mt-1 text-right text-[11.5px] text-faint tabular-nums">
-            {fill("admitTypedCount", String(count))}
+            {fill("admitTypedCount", String(count), String(DIGITS))}
           </p>
           <div className="mt-4 flex flex-wrap justify-end gap-2">
             <button
