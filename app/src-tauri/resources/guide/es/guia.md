@@ -12,7 +12,7 @@ Y si trabajas con un asistente, tiene una puerta por MCP para leer tus documento
 
 Esta guía te tomará un par de minutos y podrás conocer un poco más de qué puedes hacer en Tisty. Puedes volver a ella cuando quieras desde Configuración.
 
-Cuando necesites ayuda en el camino, pulsa `F1` o el `?` al pie de la barra lateral: abre la [guía de Markdown de Tisty](https://markdown.tisty.app/es/) aquí mismo, en lo que estás escribiendo, y funciona sin conexión. Las tareas, los asistentes y todo lo demás se explican en [www.tisty.app/es/ayuda](https://www.tisty.app/es/ayuda/).
+Cuando necesites ayuda en el camino, pulsa el `?` al pie de la barra lateral: la ayuda completa se abre aquí mismo, con tareas, documentos, sincronizar, asistentes y la [guía de Markdown de Tisty](https://markdown.tisty.app/es/), y funciona sin conexión. `F1` mientras escribes la abre en lo que estás escribiendo. La misma ayuda está en [www.tisty.app/es/ayuda](https://www.tisty.app/es/ayuda/).
 
 ## ¿Tarea o documento?
 
