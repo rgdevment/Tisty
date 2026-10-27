@@ -7,7 +7,7 @@ use ulid::Ulid;
 
 use super::asked::{strings, text};
 use super::jsonrpc::told;
-use super::unpathing::unpathed;
+use super::unpathing::{fenced_in, unpathed_body};
 use super::{
     Refused, alike, already, doc_named, hitch, named, named_doc, opened, said, scoped, trail, when,
 };
@@ -107,14 +107,20 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .collect();
     let all = hits.len();
     let hits: Vec<&Task> = hits.into_iter().skip(past).take(most).collect();
+    let mut hid = false;
     let wheres: Vec<Option<(&str, String)>> = hits
         .iter()
-        .map(|task| match lined.get(&task.id) {
-            Some(line) => Some(("document", kept_here(line))),
-            None => query
-                .as_deref()
-                .and_then(|query| tisty_core::view::mentioned_where(task, query))
-                .map(|(kind, line)| (kind, kept_here(&line))),
+        .map(|task| {
+            let (kind, line, kept) = match lined.get(&task.id) {
+                Some(line) => ("document", line.clone(), kept_here(line)),
+                None => {
+                    let (kind, line) = tisty_core::view::mentioned_where(task, query.as_deref()?)?;
+                    let kept = kept_where(task, kind, &line);
+                    (kind, line, kept)
+                }
+            };
+            hid |= kept != line;
+            Some((kind, kept))
         })
         .collect();
     let found: Vec<Value> = hits
@@ -177,6 +183,18 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         )
     }));
     let asked = query.clone().unwrap_or_else(|| sifted.said());
+    if hid {
+        lines.push(UNPATHED.to_string());
+    }
+    let mut whole = json!({
+        "matches": found,
+        "total": all,
+        "docs": papers,
+        "docsTotal": papers_all,
+    });
+    if hid {
+        whole["unpathed"] = json!(UNPATHED);
+    }
     Ok(told(
         format!(
             "{all} task(s) and {papers_all} document(s) match {asked:?}; showing {} and {}.
@@ -188,12 +206,7 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
 "
             )
         ),
-        json!({
-            "matches": found,
-            "total": all,
-            "docs": papers,
-            "docsTotal": papers_all,
-        }),
+        whole,
     ))
 }
 
@@ -408,12 +421,21 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 .collect::<Vec<_>>()
         );
     }
-    if wants("journal") && task.journal().next().is_some() {
+    let notes: Vec<(&tisty_core::model::LogEntry, String)> = task
+        .journal()
+        .map(|one| (one, kept_here(&one.body)))
+        .collect();
+    let hid = notes.iter().any(|(one, kept)| *kept != one.body);
+    if wants("journal") && !notes.is_empty() {
         whole["journal"] = json!(
-            task.journal()
-                .map(|one| json!({ "id": one.id.to_string(), "at": one.at.to_string(), "body": kept_here(&one.body) }))
+            notes
+                .iter()
+                .map(|(one, kept)| json!({ "id": one.id.to_string(), "at": one.at.to_string(), "body": kept }))
                 .collect::<Vec<_>>()
         );
+        if hid {
+            whole["unpathed"] = json!(UNPATHED);
+        }
     }
     if wants("kept") && !task.references().is_empty() {
         whole["kept"] = json!(
@@ -466,13 +488,11 @@ part [{}] {} — {}",
         }
     }
     if wants("journal") {
-        for one in task.journal() {
-            plainly.push_str(&format!(
-                "\n\n({}, note {}) {}",
-                one.at,
-                one.id,
-                kept_here(&one.body)
-            ));
+        for (one, kept) in &notes {
+            plainly.push_str(&format!("\n\n({}, note {}) {kept}", one.at, one.id));
+        }
+        if hid {
+            plainly.push_str(&format!("\n\n{UNPATHED}"));
         }
     }
     Ok(told(plainly, whole))
@@ -839,10 +859,27 @@ fn what_it_touched(event: &tisty_core::event::Event) -> Option<(String, String)>
 /// Attaching records where a file came from, and those paths are the person's disk. The agent
 /// needs the card, not the shape of their home directory.
 fn kept_here(body: &str) -> String {
-    body.lines().map(unpathed).collect::<Vec<_>>().join(
-        "
-",
-    )
+    unpathed_body(body)
+}
+
+const UNPATHED: &str =
+    "A path on this machine reads as [path] here; the person sees it whole in the window.";
+
+/// A line `find` quotes is read as it sits where it came from: inside a fence it is an example.
+fn kept_where(task: &Task, kind: &str, line: &str) -> String {
+    let fenced = match kind {
+        "journal" => task.journal().any(|one| fenced_in(&one.body, line)),
+        "description" => task
+            .description
+            .as_deref()
+            .is_some_and(|body| fenced_in(body, line)),
+        _ => false,
+    };
+    if fenced {
+        line.to_string()
+    } else {
+        kept_here(line)
+    }
 }
 
 /// Documents are searched by the same engine the window uses; a document the agent cannot find

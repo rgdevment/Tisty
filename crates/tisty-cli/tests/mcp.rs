@@ -656,6 +656,49 @@ fn what_it_attaches_says_where_it_came_from() {
 }
 
 #[test]
+fn where_an_attachment_came_from_is_the_persons_to_read_and_hidden_whole_from_the_agent() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let filed = served.call("propose", serde_json::json!({ "title": "el contrato" }));
+    let id = filed["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let folder = served
+        .home
+        .path()
+        .join("OneDrive - Una Empresa Muy Larga S.A (x86)")
+        .join("Contratos del año pasado");
+    std::fs::create_dir_all(&folder).unwrap();
+    let loose = folder.join("mi contrato final.txt");
+    std::fs::write(&loose, "lo firmado").unwrap();
+    let said = served.call(
+        "attach",
+        serde_json::json!({ "task": &id, "path": loose.to_string_lossy() }),
+    );
+    assert!(said["result"]["isError"].is_null(), "{said}");
+
+    let card = served.person().card(person::task(&id));
+    assert!(
+        card.contains("Una Empresa Muy Larga"),
+        "the person reads where their own file came from: {card}"
+    );
+
+    let back = served.call("read", serde_json::json!({ "task": &id }));
+    let kept = back["result"]["structuredContent"]["journal"][0]["body"]
+        .as_str()
+        .unwrap_or_default();
+    assert!(
+        kept.ends_with("[path]"),
+        "the line that names the source ends where the path began: {kept}"
+    );
+    for disk in ["Empresa", "S.A", "x86", "Contratos del"] {
+        assert!(!kept.contains(disk), "{disk} is the person's disk: {kept}");
+    }
+}
+
+#[test]
 fn a_file_kept_in_a_document_is_added_at_its_end() {
     let served = Served::new();
     served.person().lets_the_agent_in();
@@ -992,7 +1035,8 @@ fn a_note_that_names_a_path_is_read_whole_but_the_path() {
         .to_string();
 
     let wrote = "Starting at **2 GB / 90 DAYS_KEPT**. An old store sits in \
-                 `C:/Users/someone/OneDrive/Tisty` and STAYS_SAID after it.";
+                 C:/Users/someone/OneDrive/Tisty and STAYS_SAID after it, \
+                 the way `C:/Users/example/Tisty` shows.";
     served.call("note", serde_json::json!({ "task": &id, "body": wrote }));
 
     let back = served.call("read", serde_json::json!({ "task": &id }));
@@ -1009,6 +1053,94 @@ fn a_note_that_names_a_path_is_read_whole_but_the_path() {
     assert!(
         !kept.contains("Users/someone"),
         "the shape of a disk is not the agent's business: {kept}"
+    );
+    assert!(
+        kept.contains("`C:/Users/example/Tisty`"),
+        "a path between backticks is an example and reaches the agent as written: {kept}"
+    );
+}
+
+#[test]
+fn a_migrated_note_reads_back_whole_save_the_paths_on_this_disk() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+
+    let filed = served.call("propose", serde_json::json!({ "title": "a migrated note" }));
+    let id = filed["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let wrote = [
+        "Corrí /code-review tres veces y encontró FIRST_KEPT, sin tocar old/new.",
+        r"Instalado en C:\Program Files (x86)\Tisty\tisty.exe y SECOND_KEPT después.",
+        r"Guardado en C:\Users\someone\OneDrive - Falabella S.A\contrato.pdf y THIRD_KEPT.",
+        r#"Lanzado como "C:\Users\someone\My Old Work Files\x.exe" y FOURTH_KEPT."#,
+        "```sh",
+        "git -C /d/code/github/Tisty push origin main",
+        "```",
+    ]
+    .join("\n");
+    served.call("note", serde_json::json!({ "task": &id, "body": wrote }));
+
+    let back = served.call("read", serde_json::json!({ "task": &id }));
+    let kept = back["result"]["structuredContent"]["journal"][0]["body"]
+        .as_str()
+        .unwrap_or_default();
+    for word in [
+        "FIRST_KEPT",
+        "old/new",
+        "SECOND_KEPT",
+        "THIRD_KEPT",
+        "FOURTH_KEPT",
+        "git -C /d/code/github/Tisty push origin main",
+    ] {
+        assert!(
+            kept.contains(word),
+            "{word} never reached the agent: {kept}"
+        );
+    }
+    for disk in [
+        "Program Files",
+        "Falabella",
+        "someone",
+        "Old Work",
+        "tisty.exe",
+    ] {
+        assert!(!kept.contains(disk), "{disk} is the person's disk: {kept}");
+    }
+
+    let found = served.call("find", serde_json::json!({ "query": "SECOND_KEPT" }));
+    let line = found["result"]["structuredContent"]["matches"][0]["line"]
+        .as_str()
+        .unwrap_or_default();
+    assert!(
+        line.contains("SECOND_KEPT"),
+        "find lost the sentence: {line}"
+    );
+    assert!(
+        !line.contains("Program Files"),
+        "find showed the disk: {line}"
+    );
+    assert!(
+        found["result"]["structuredContent"]["unpathed"].is_string(),
+        "find says when it hid a path: {found}"
+    );
+    assert!(
+        back["result"]["structuredContent"]["unpathed"].is_string(),
+        "read says when it hid a path: {back}"
+    );
+
+    let fenced = served.call("find", serde_json::json!({ "query": "origin main" }));
+    let said = &fenced["result"]["structuredContent"];
+    assert_eq!(
+        said["matches"][0]["line"],
+        serde_json::json!("git -C /d/code/github/Tisty push origin main"),
+        "a line from a fence is an example and is quoted as written: {fenced}"
+    );
+    assert!(
+        said["unpathed"].is_null(),
+        "nothing was hidden, so nothing is said: {fenced}"
     );
 }
 
