@@ -313,6 +313,30 @@ fn a_machine_let_in_under_its_name_keeps_it_and_its_key_through_a_reset() {
 }
 
 #[test]
+fn the_assistant_this_machine_runs_stays_its_own_only_when_the_name_is_kept() {
+    for renamed in [false, true] {
+        let (_src, data) = filled("comprar pan");
+        let dir = tempfile::tempdir().unwrap();
+        let paths = Paths::new(data.clone(), dir.path().join("config"));
+        let was = Config::load_or_init(&paths).unwrap().device_id;
+        let agent = crate::agent::register(&paths).unwrap();
+        let out = tempfile::tempdir().unwrap();
+
+        reset_as(
+            &paths,
+            &out.path().join("before.zip"),
+            tmp().path(),
+            None,
+            renamed,
+        )
+        .unwrap();
+
+        let host = crate::vouched::confirmed(&data, &agent).unwrap().host;
+        assert_eq!(host, (!renamed).then_some(was));
+    }
+}
+
+#[test]
 fn a_reset_cannot_happen_without_the_backup_landing_first() {
     let dir = tempfile::tempdir().unwrap();
     let paths = quarters(&dir);

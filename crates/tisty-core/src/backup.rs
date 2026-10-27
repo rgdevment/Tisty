@@ -487,6 +487,9 @@ pub fn set_aside_as(paths: &Paths, renamed: bool) -> Result<()> {
     config.synced_at = None;
     config.heard_at = None;
     config.save(paths)?;
+    if let (false, Some(agent)) = (renamed, &config.agent_id) {
+        crate::vouched::hosted_here(data, agent, &config.device_id);
+    }
 
     store::kept_before_the_store_goes(paths);
 

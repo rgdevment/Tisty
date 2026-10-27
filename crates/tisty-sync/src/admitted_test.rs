@@ -229,3 +229,47 @@ fn a_name_the_encrypted_cloud_already_knows_is_never_kept() {
     ));
     assert!(keeps_its_name(shared.path(), Some(CLOUD), "dev_new"));
 }
+
+#[test]
+fn a_computer_with_its_assistant_let_into_the_encrypted_cloud_asks_nothing_of_the_ones_there() {
+    let shared = tempfile::tempdir().unwrap();
+    let (giver, _third) = two_already(shared.path());
+    sealed(shared.path());
+    let newcomer = Computer::new();
+    newcomer.writes("lo mío");
+    tisty_core::agent::register(&newcomer.paths).unwrap();
+    giver.confirms(&newcomer);
+
+    newcomer.takes_the_cloud_s(shared.path(), Some(CLOUD));
+
+    for _ in 0..2 {
+        assert!(
+            newcomer.waits_on(shared.path()).is_empty(),
+            "the assistant this computer runs held it back from the ones already there"
+        );
+    }
+    assert!(giver.waits_on(shared.path()).is_empty());
+    let titles: Vec<String> = tisty_core::State::replay(&newcomer.store().read_all().unwrap())
+        .tasks
+        .into_values()
+        .map(|task| task.title)
+        .collect();
+    assert!(titles.contains(&"lo del primero".to_string()));
+}
+
+#[test]
+fn a_computer_with_its_assistant_in_a_plain_cloud_still_answers_for_the_ones_there() {
+    let shared = tempfile::tempdir().unwrap();
+    let (giver, third) = two_already(shared.path());
+    let newcomer = Computer::new();
+    newcomer.writes("lo mío");
+    tisty_core::agent::register(&newcomer.paths).unwrap();
+
+    newcomer.takes_the_cloud_s(shared.path(), Some(CLOUD));
+
+    let mut asked = newcomer.waits_on(shared.path());
+    asked.sort();
+    let mut there = vec![giver.id().0, third.id().0];
+    there.sort();
+    assert_eq!(asked, there);
+}

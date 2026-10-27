@@ -238,3 +238,37 @@ fn machines_confirmed_from_two_places_at_once_are_both_kept() {
         "a confirmation was written over"
     );
 }
+
+#[test]
+fn an_agent_minted_here_is_marked_as_this_machine_s_own_and_keeps_its_key() {
+    let (_room, data, paths) = a_place();
+    let agent = DeviceId("dev_agent".into());
+    let me = DeviceId("dev_me".into());
+    let other = DeviceId("dev_other".into());
+    let said = a_key(&paths, &agent);
+    assert!(confirm(&data, &agent, &said));
+    assert!(confirm(&data, &other, &a_key(&paths, &other)));
+
+    assert!(hosted_here(&data, &agent, &me));
+    assert!(hosted_here(&data, &agent, &me));
+
+    let stood = confirmed(&data, &agent).unwrap();
+    assert_eq!(stood.key, said);
+    assert_eq!(stood.host, Some(me.clone()));
+    assert_eq!(confirmed(&data, &other).unwrap().host, None);
+    assert_eq!(all_confirmed(&data).len(), 2);
+}
+
+#[test]
+fn only_a_plain_confirmation_is_marked_as_this_machine_s_own() {
+    let (_room, data, paths) = a_place();
+    let me = DeviceId("dev_me".into());
+    let theirs = DeviceId("dev_theirs".into());
+    let host = DeviceId("dev_host".into());
+    assert!(through(&data, &theirs, &a_key(&paths, &theirs), &host));
+
+    assert!(!hosted_here(&data, &theirs, &me));
+    assert!(!hosted_here(&data, &DeviceId("dev_nobody".into()), &me));
+    assert!(!hosted_here(&data, &theirs, &DeviceId("no name".into())));
+    assert_eq!(confirmed(&data, &theirs).unwrap().host, Some(host));
+}

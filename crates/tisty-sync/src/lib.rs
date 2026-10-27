@@ -367,8 +367,14 @@ pub fn carry_through(
         let mut adopting = still_adopting(aside, dest, holds_ours);
         if !been_here
             && tisty_core::vouched::all_confirmed(data)
-                .keys()
-                .all(|who| who.0.eq_ignore_ascii_case(device))
+                .iter()
+                .all(|(who, one)| {
+                    who.0.eq_ignore_ascii_case(device)
+                        || one
+                            .host
+                            .as_ref()
+                            .is_some_and(|host| host.0.eq_ignore_ascii_case(device))
+                })
         {
             adopting.extend(names_in(dest));
         }

@@ -71,6 +71,33 @@ pub fn through(data: &Path, who: &DeviceId, said: &str, host: &DeviceId) -> bool
     crate::store::is_device_name(&host.0) && kept(data, who, said, &format!("\thost:{}", host.0))
 }
 
+pub fn hosted_here(data: &Path, who: &DeviceId, host: &DeviceId) -> bool {
+    if !crate::store::is_device_name(&host.0) {
+        return false;
+    }
+    let Some(_turn) = turn(data) else {
+        return false;
+    };
+    let mut all = lines(data);
+    let Some(at) = all
+        .iter()
+        .position(|line| read_line(line).is_some_and(|(whose, _)| &whose == who))
+    else {
+        return false;
+    };
+    let Some((_, one)) = read_line(&all[at]) else {
+        return false;
+    };
+    if one.host.as_ref() == Some(host) {
+        return true;
+    }
+    if one.host.is_some() || one.carried || one.was.is_some() {
+        return false;
+    }
+    all[at] = format!("{}\t{}\t{}\thost:{}", who.0, one.key, one.when, host.0);
+    crate::store::write_atomic(&data.join(KEPT), all.join("\n").as_bytes()).is_ok()
+}
+
 fn kept(data: &Path, who: &DeviceId, said: &str, how: &str) -> bool {
     if crate::signing::read(said).is_none() || !crate::store::is_device_name(&who.0) {
         return false;
