@@ -4819,3 +4819,83 @@ fn documents_found_by_their_title_come_first_and_a_folder_narrows_them() {
     assert_eq!(narrowed["docsTotal"], 1, "{narrowed}");
     assert_eq!(narrowed["docs"][0]["title"], "Notas sueltas", "{narrowed}");
 }
+
+const DRAWN: &str = "# Cómo funciona\n\n```mermaid\nflowchart LR\n  A[Inicio:<br/>uno] --> B[Fin]\n  B --> C[Archivo:<br/>la búsqueda]\n```\n\nTexto suelto.";
+
+#[test]
+fn a_passage_edited_inside_a_fence_goes_in_as_sent() {
+    let served = Served::new();
+    let doc = served.wrote(DRAWN, None);
+
+    let said = served.call(
+        "edit_doc",
+        serde_json::json!({
+            "doc": doc,
+            "old": "  A[Inicio:<br/>uno] --> B[Fin]\n  B --> C[Archivo:<br/>la búsqueda]",
+            "new": "  A[Inicio:<br/>dos] --> B[Fin:<br/>tres]\n  B --> C[Archivo:<br/>la búsqueda]",
+        }),
+    );
+
+    assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
+    assert!(
+        said["result"]["structuredContent"]["turned"].is_null(),
+        "code is not prose, so nothing was turned: {said}"
+    );
+    let body = served.body_of(&doc);
+    assert!(
+        body.contains("  A[Inicio:<br/>dos] --> B[Fin:<br/>tres]"),
+        "a line break inside a diagram stays where it was written: {body}"
+    );
+}
+
+#[test]
+fn lines_named_inside_a_fence_go_in_as_sent() {
+    let served = Served::new();
+    let doc = served.wrote(DRAWN, None);
+    let body = served.body_of(&doc);
+    let at = body
+        .lines()
+        .position(|one| one.contains("A[Inicio"))
+        .expect("the diagram is there")
+        + 1;
+
+    let said = served.call(
+        "edit_doc",
+        serde_json::json!({
+            "doc": doc,
+            "from": at,
+            "to": at,
+            "print": served.print_of(&doc),
+            "new": "  A[Inicio:<br/>cuatro] --> B[Fin]",
+        }),
+    );
+
+    assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
+    let body = served.body_of(&doc);
+    assert!(
+        body.contains("  A[Inicio:<br/>cuatro] --> B[Fin]"),
+        "{body}"
+    );
+}
+
+#[test]
+fn a_passage_outside_a_fence_is_still_tidied_as_prose() {
+    let served = Served::new();
+    let doc = served.wrote(DRAWN, None);
+
+    let said = served.call(
+        "edit_doc",
+        serde_json::json!({ "doc": doc, "old": "Texto suelto.", "new": "Uno<br/>dos." }),
+    );
+
+    assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
+    let body = served.body_of(&doc);
+    assert!(
+        !body.contains("Uno<br/>dos."),
+        "prose is still written in Tisty's own words: {body}"
+    );
+    assert!(
+        body.contains("A[Inicio:<br/>uno]"),
+        "the diagram it did not touch keeps its line breaks: {body}"
+    );
+}

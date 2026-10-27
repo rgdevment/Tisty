@@ -6,12 +6,54 @@ use tisty_core::Paths;
 
 use super::super::asked::text;
 use super::super::jsonrpc::told;
+use super::super::spoken::spoken;
 use super::super::{
     Refused, UNSETTLED, by_how_much, doc_named, for_the_person, grew, hitch, left_loose,
     loose_words, named_twice, nearest, opened, raw, retold, twice_words, with_echo, wrapped,
 };
 
+/// A passage inside a fence is code: `new` goes in as sent, never read as prose.
 pub(in crate::mcp) fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
+    if lands_in_a_fence(paths, args) {
+        return edited(paths, args, true);
+    }
+    spoken(args, "new", |args| edited(paths, args, false))
+}
+
+fn lands_in_a_fence(paths: &Paths, args: &Value) -> bool {
+    let Some(which) = text(args, "doc") else {
+        return false;
+    };
+    let Ok(body) = tisty_core::docs::read(&paths.docs(), &which) else {
+        return false;
+    };
+    let line = |key| {
+        args.get(key)
+            .and_then(Value::as_u64)
+            .map(|one| one as usize)
+    };
+    let (from, to) = match (raw(args, "old"), line("from"), line("to")) {
+        (Some(old), None, None) => {
+            let old = old.replace('\r', "");
+            let Some(start) = body.find(old.as_str()) else {
+                return false;
+            };
+            if old.is_empty() || body.matches(old.as_str()).count() != 1 {
+                return false;
+            }
+            let from = body[..start].matches('\n').count() + 1;
+            (
+                from,
+                from + old.trim_end_matches('\n').matches('\n').count(),
+            )
+        }
+        (None, Some(from), Some(to)) => (from, to),
+        _ => return false,
+    };
+    tisty_core::docs::fenced_between(&body, from, to)
+}
+
+fn edited(paths: &Paths, args: &Value, as_sent: bool) -> Result<Value, Refused> {
     let Some(which) = text(args, "doc") else {
         return Err(Refused::Tool("editing needs the `doc` name.".into()));
     };
@@ -57,13 +99,18 @@ pub(in crate::mcp) fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
              window, not you. Ask them to unlock it if it truly has to change."
         )));
     }
-    let new = tisty_core::speaking::turned(new);
+    let new = match as_sent {
+        true => new.to_string(),
+        false => tisty_core::speaking::turned(new),
+    };
     let new = new.as_str();
-    tisty_core::docs::speaks(new)
-        .map_err(|unsaid| Refused::Tool(super::writing::not_spoken(unsaid)))?;
+    if !as_sent {
+        tisty_core::docs::speaks(new)
+            .map_err(|unsaid| Refused::Tool(super::writing::not_spoken(unsaid)))?;
+    }
 
     if by_place {
-        return in_its_place(paths, &state, &mut store, &which, args, new);
+        return in_its_place(paths, &state, &mut store, &which, args, new, as_sent);
     }
 
     let (old, new) = (&old.replace('\r', ""), &new.replace('\r', ""));

@@ -4,6 +4,20 @@ pub use tisty_markdown::fences::{ends_fenced, fencing};
 // How much of a title is kept anywhere, so a mark added to one is never cut off.
 const TITLE_ROOM: usize = 120;
 
+/// Whether lines `from` to `to`, counted from 1, are all code inside one fence, its marks aside.
+pub fn fenced_between(body: &str, from: usize, to: usize) -> bool {
+    let mut fence = Fencing::default();
+    let code: Vec<bool> = body
+        .lines()
+        .map(|line| {
+            let was = fence.open.is_some();
+            fence.inside(line);
+            was && fence.open.is_some()
+        })
+        .collect();
+    from >= 1 && from <= to && to <= code.len() && code[from - 1..to].iter().all(|&one| one)
+}
+
 pub fn titled(body: &str) -> String {
     let body = body.trim_start_matches('\u{feff}');
     if let Some(named) = tisty_markdown::front::title(body) {
