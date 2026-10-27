@@ -1963,3 +1963,26 @@ jobs:
           echo "$KOMAC_SHA256  $tarball" | sha256sum -c -
           tar xzf "$tarball" komac
           ./komac update rgdevment.Tisty --version "$VERSION" --submit             --urls "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/tisty-installer-$VERSION-windows-x86_64.exe"
+
+  site:
+    name: www.tisty.app
+    needs: [version, publish, verify]
+    if: >-
+      !cancelled() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+      && needs.version.result == 'success' && needs.publish.result == 'success'
+      && needs.verify.result == 'success'
+      && needs.version.outputs.prerelease == 'false'
+    runs-on: ubuntu-24.04
+    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'release' || '' }}
+    timeout-minutes: 5
+    steps:
+      - name: Ask the site to rebuild with this release
+        env:
+          GH_TOKEN: ${{ secrets.LANDING_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::notice::LANDING_TOKEN is empty, so tisty.app shows this release on its next scheduled build"
+            exit 0
+          fi
+          gh workflow run deploy.yml --repo rgdevment/rgdevment-landing --ref main
