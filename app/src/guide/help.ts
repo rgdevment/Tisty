@@ -63,10 +63,20 @@ const SUGGESTED: Record<string, Twice[]> = {
 };
 
 export const cameFrom = (chosen: Chosen): string =>
-  chosen.named === "keeping" ? `keeping:${chosen.tab ?? "general"}` : (chosen.named ?? "tasks");
+  chosen.named === "help"
+    ? (chosen.from ?? "tasks")
+    : chosen.named === "keeping"
+      ? `keeping:${chosen.tab ?? "general"}`
+      : (chosen.named ?? "tasks");
 
 export const suggestedFor = (from: string | undefined, spanish: boolean): Suggested[] =>
   (SUGGESTED[from ?? ""] ?? SUGGESTED.tasks).map((one) => (spanish ? one.es : one.en));
+
+export const outlined = <T extends { level: number }>(heads: T[]): T[] => {
+  const rest = heads.filter((one) => one.level > 0).slice(1);
+  const top = Math.min(...rest.map((one) => one.level));
+  return rest.filter((one) => one.level === top);
+};
 
 export const sectionsOf = (entries: HelpEntry[]): [string, HelpEntry[]][] =>
   entries

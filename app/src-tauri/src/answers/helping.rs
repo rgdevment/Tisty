@@ -79,15 +79,8 @@ fn standing(folder: &Path, spanish: bool) -> Pictures {
     said
 }
 
-fn brought(url: &str, to: &Path) -> Result<(), String> {
-    let asked = reqwest::blocking::Client::builder()
-        .timeout(PATIENCE)
-        .user_agent(concat!("tisty/", env!("CARGO_PKG_VERSION")))
-        .build()
-        .map_err(|why| why.to_string())?
-        .get(url)
-        .send()
-        .map_err(|why| why.to_string())?;
+fn brought(client: &reqwest::blocking::Client, url: &str, to: &Path) -> Result<(), String> {
+    let asked = client.get(url).send().map_err(|why| why.to_string())?;
     if !asked.status().is_success() {
         return Err(asked.status().to_string());
     }
@@ -97,10 +90,18 @@ fn brought(url: &str, to: &Path) -> Result<(), String> {
 
 fn bring_all(folder: &Path, spanish: bool) -> (Pictures, usize) {
     let _ = std::fs::create_dir_all(folder);
+    let wanted = tisty_help::pictures(spanish);
+    let Ok(client) = reqwest::blocking::Client::builder()
+        .timeout(PATIENCE)
+        .user_agent(concat!("tisty/", env!("CARGO_PKG_VERSION")))
+        .build()
+    else {
+        return (standing(folder, spanish), wanted.len());
+    };
     let mut failed = 0;
-    for url in tisty_help::pictures(spanish) {
+    for url in wanted {
         let at = kept_at(folder, &url);
-        if !at.is_file() && brought(&url, &at).is_err() {
+        if !at.is_file() && brought(&client, &url, &at).is_err() {
             failed += 1;
         }
     }

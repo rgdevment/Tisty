@@ -5,6 +5,7 @@ import { aimedAt, dressed, linkedHere } from "../guide/help";
 import { fill } from "../locales";
 import type { Carded } from "./carding";
 import Page from "./Page";
+import type { Head } from "./paging";
 
 interface Props {
   readonly entry: HelpEntry;
@@ -13,6 +14,7 @@ interface Props {
   readonly heading?: string;
   readonly anchor: string | null;
   readonly onOpen: (slug: string, heading?: string, anchor?: string | null) => void;
+  readonly onOutline: (heads: Head[]) => void;
 }
 
 const card = (): Carded => ({ kind: "doc", title: "" });
@@ -20,7 +22,15 @@ const card = (): Carded => ({ kind: "doc", title: "" });
 const headed = (page: Document, words: string): Element | undefined =>
   [...page.querySelectorAll("h1, h2, h3, h4")].find((one) => one.textContent?.trim() === words);
 
-export default function HelpArticle({ entry, body, pictures, heading, anchor, onOpen }: Props) {
+export default function HelpArticle({
+  entry,
+  body,
+  pictures,
+  heading,
+  anchor,
+  onOpen,
+  onOutline,
+}: Props) {
   const draw = useCallback(
     (text: string) =>
       helpDrawn(linkedHere(text)).then((html) =>
@@ -39,6 +49,7 @@ export default function HelpArticle({ entry, body, pictures, heading, anchor, on
       stranger={false}
       card={card}
       onDoc={() => undefined}
+      onOutline={onOutline}
       onHere={(id) => {
         const aimed = aimedAt(id);
         if (aimed) onOpen(aimed.slug, undefined, aimed.anchor);

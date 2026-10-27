@@ -161,6 +161,7 @@ pub fn guide(
     let [english, castilian] = tisty_core::untouched::GUIDE_FOLDERS;
     let called = if tongue == "es" { castilian } else { english };
     let told = if tongue == "es" { GUIDE_ES } else { GUIDE_EN };
+    let other = if tongue == "es" { GUIDE_EN } else { GUIDE_ES };
     let leaves = if tongue == "es" {
         GUIDE_PAGES_ES
     } else {
@@ -183,7 +184,7 @@ pub fn guide(
         if standing
             && let Ok(body) = tisty_core::docs::read(&root, &kept)
             && (own != Some(true)
-                || tisty_core::docs::titled(&body) == tisty_core::docs::titled(told))
+                || tisty_core::docs::titled(&body) != tisty_core::docs::titled(other))
         {
             return Ok(tisty_core::docs::Doc {
                 id: kept,

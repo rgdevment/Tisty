@@ -16,8 +16,8 @@ path = "src/main.rs"
 [dependencies]
 tisty-core.workspace = true
 tisty-carrier.workspace = true
-# Without these, a document read `as` markdown would carry `[[names]]` and `:::details` no other tool reads.
 tisty-help = { workspace = true }
+# Without these, a document read `as` markdown would carry `[[names]]` and `:::details` no other tool reads.
 tisty-markdown = { workspace = true, features = ["refs", "details"] }
 anyhow.workspace = true
 serde.workspace = true

@@ -49,7 +49,8 @@ fn every_link_between_pages_lands_on_one() {
     for spanish in [false, true] {
         for one in pages(spanish) {
             let read = one.readable(spanish);
-            assert!(!read.contains("[["), "{} keeps a wiki link", one.page);
+            let prose: String = read.split('`').step_by(2).collect();
+            assert!(!prose.contains("[["), "{} keeps a wiki link", one.page);
             for link in read.split(SCHEME).skip(1) {
                 let slug = link.split([')', '#']).next().unwrap_or_default();
                 assert!(
@@ -77,4 +78,19 @@ fn a_picture_is_kept_as_one_the_window_can_show_or_stand_in_for() {
         .filter(|url| weight(url).is_none_or(|bytes| bytes == 0))
         .collect();
     assert!(weightless.is_empty(), "no weight for {weightless:?}");
+}
+
+#[test]
+fn a_name_written_as_code_stays_as_written() {
+    for spanish in [false, true] {
+        let read: String = pages(spanish)
+            .iter()
+            .map(|one| readable(one.body, spanish))
+            .collect();
+        assert!(read.contains("`[[Plan|"), "{spanish}");
+        assert!(
+            read.contains("`![[file]]`") || read.contains("`![[archivo]]`"),
+            "{spanish}"
+        );
+    }
 }

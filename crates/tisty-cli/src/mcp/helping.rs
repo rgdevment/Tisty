@@ -3,13 +3,20 @@ use serde_json::{Value, json};
 use super::jsonrpc::told;
 
 pub(super) fn topics() -> Vec<String> {
-    tisty_help::pages(false)
+    let mut all: Vec<String> = Vec::new();
+    for one in tisty_help::pages(false)
         .iter()
-        .map(|one| match one.slug() {
+        .chain(tisty_help::pages(true))
+    {
+        let slug = match one.slug() {
             slug if slug.is_empty() => "index".to_string(),
             slug => slug,
-        })
-        .collect()
+        };
+        if !all.contains(&slug) {
+            all.push(slug);
+        }
+    }
+    all
 }
 
 fn page_of(spanish: bool, topic: &str) -> Option<&'static tisty_help::Page> {

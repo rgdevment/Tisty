@@ -298,6 +298,7 @@ const en = {
   helpPicturesLater: "Not now",
   helpPictureAway: "Picture: {name}",
   helpPicturesAway: "The pictures could not be downloaded. Check the connection and try again.",
+  helpPicturesSome: "Some pictures could not be downloaded. Try again to bring the rest.",
   aboutBuild: "This build",
   insertLabel: "What to add",
   barFold: "Hide the format bar",
@@ -2831,6 +2832,8 @@ const es: Catalog = {
   helpPictureAway: "Imagen: {name}",
   helpPicturesAway:
     "No se pudieron descargar las imágenes. Revisa la conexión e inténtalo de nuevo.",
+  helpPicturesSome:
+    "Algunas imágenes no se pudieron descargar. Vuelve a intentarlo para traer el resto.",
   aboutBuild: "Esta versión",
   insertLabel: "Qué añadir",
   barFold: "Ocultar la barra de formato",

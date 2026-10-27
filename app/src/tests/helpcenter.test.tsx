@@ -28,9 +28,12 @@ const BODIES: Record<string, string> = {
   "sync-and-backup": "## Encrypting your cloud\n\nYour phrase opens the cloud on another computer.",
 };
 
+const GUIDE = "# Guide\n\n## At a glance\n\nShort.\n\n## Pens\n\nA highlighter pen.";
+
 const ipc = vi.hoisted(() => ({
   pictures: { weighs: 2_100_000, missing: 2_100_000, kept: {} } as HelpPictures,
   fetched: 0,
+  left: 0,
 }));
 
 vi.mock("../core", async (original) => ({
@@ -45,11 +48,10 @@ vi.mock("../guide/calls", async (original) => ({
   helpPictures: () => Promise.resolve(ipc.pictures),
   helpPicturesFetch: () => {
     ipc.fetched += 1;
-    return Promise.resolve({ ...ipc.pictures, missing: 0 });
+    return Promise.resolve({ ...ipc.pictures, missing: ipc.left });
   },
-  helpReference: () => Promise.resolve("# Guide\n\nIntro.\n\n## Pens\n\nA pen."),
-  helpReferenceHere: () =>
-    Promise.resolve("# Guide\n\n## At a glance\n\nShort.\n\n## Pens\n\nA highlighter pen."),
+  helpReference: () => Promise.resolve(GUIDE),
+  helpReferenceHere: () => Promise.resolve(GUIDE),
   helpDrawn: (body: string) => Promise.resolve(`<p>${body.length}</p>`),
   helpAnchors: () => Promise.resolve([["guide"], ["pens"]]),
 }));
@@ -82,6 +84,7 @@ describe("what the help offers for where you were", () => {
     expect(cameFrom({ named: "keeping" })).toBe("keeping:general");
     expect(cameFrom({ named: "docs" })).toBe("docs");
     expect(cameFrom({})).toBe("tasks");
+    expect(cameFrom({ named: "help", from: "keeping:security" })).toBe("keeping:security");
   });
 
   it("points only at pages and sections the help really has, in both languages", () => {
@@ -199,6 +202,15 @@ describe("the help inside the window", () => {
     expect(screen.queryByText(/of pictures/)).toBeNull();
   });
 
+  it("says so when only some pictures came, and keeps offering the rest", async () => {
+    ipc.left = 400_000;
+    render(<Help />);
+    await userEvent.click(await screen.findByRole("button", { name: "Download" }));
+    expect(await screen.findByText(/Some pictures could not be downloaded/)).toBeTruthy();
+    expect(screen.getByText(/of pictures/)).toBeTruthy();
+    ipc.left = 0;
+  });
+
   it("finds the Markdown reference's topics too and opens one inside its guide", async () => {
     render(<Help />);
     await userEvent.type(
@@ -207,14 +219,21 @@ describe("the help inside the window", () => {
     );
     const results = screen.getByRole("region", { name: "Search the whole help, offline too" });
     await userEvent.click(await within(results).findByRole("button", { name: /^Pens/ }));
-    expect(await screen.findByRole("button", { name: "‹ Help" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Pens" })).toBeTruthy();
+    const nav = screen.getByRole("navigation", { name: "Topics" });
+    expect(within(nav).getByRole("button", { current: "page" }).textContent).toBe("Pens");
   });
 
-  it("keeps Tisty's Markdown a click away and comes back from it", async () => {
+  it("reads Tisty's Markdown in the same help, walking on to the next page", async () => {
     render(<Help />);
-    await userEvent.click((await screen.findAllByRole("button", { name: "Tisty's Markdown" }))[0]);
-    expect(await screen.findByRole("navigation", { name: /topics/i })).toBeTruthy();
-    await userEvent.click(screen.getByRole("button", { name: "‹ Help" }));
+    await userEvent.click((await screen.findAllByRole("button", { name: /Tisty's Markdown/ }))[0]);
+    expect(await screen.findByRole("heading", { name: "Tisty's Markdown" })).toBeTruthy();
+    const nav = screen.getByRole("navigation", { name: "Topics" });
+    expect(within(nav).getByRole("button", { name: "Tasks" })).toBeTruthy();
+    const steps = screen.getByRole("navigation", { name: "Previous · Next" });
+    await userEvent.click(within(steps).getByRole("button", { name: "Pens" }));
+    expect(await screen.findByRole("heading", { name: "Pens" })).toBeTruthy();
+    await userEvent.click(within(nav).getByRole("button", { name: "Start" }));
     expect(
       await screen.findByRole("heading", { name: "What would you like to know?" }),
     ).toBeTruthy();

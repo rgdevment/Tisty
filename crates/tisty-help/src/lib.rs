@@ -159,9 +159,36 @@ fn unbannered(body: &str) -> &str {
     }
 }
 
+fn outside_code(body: &str, change: impl Fn(&str) -> String) -> String {
+    let mut out = String::new();
+    let mut fenced = false;
+    for line in body.split_inclusive('\n') {
+        let fence = ["```", "~~~"]
+            .iter()
+            .any(|one| line.trim_start().starts_with(one));
+        fenced ^= fence;
+        if fenced || fence {
+            out.push_str(line);
+            continue;
+        }
+        for (at, piece) in line.split('`').enumerate() {
+            if at > 0 {
+                out.push('`');
+            }
+            if at % 2 == 0 {
+                out.push_str(&change(piece));
+            } else {
+                out.push_str(piece);
+            }
+        }
+    }
+    out
+}
+
 pub fn readable(body: &str, spanish: bool) -> String {
-    let body = unbannered(body);
-    page_links(&wiki_links(&html_pictures(body), spanish), spanish)
+    outside_code(unbannered(body), |piece| {
+        page_links(&wiki_links(&html_pictures(piece), spanish), spanish)
+    })
 }
 
 fn pictured(url: &str) -> bool {

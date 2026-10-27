@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { openLink } from "../core";
 import { weigh } from "../format";
 import {
@@ -8,42 +8,43 @@ import {
   helpPages,
   helpPictures,
   helpPicturesFetch,
+  helpReference,
   helpReferenceHere,
 } from "../guide/calls";
-import { forTheWindow, MARKS, marksOf, sectionsOf } from "../guide/help";
-import { topicsOf } from "../guide/reference";
+import { forTheWindow, MARKS, marksOf, outlined, sectionsOf } from "../guide/help";
+import { type Topic, topicsOf } from "../guide/reference";
 import { fill, locale, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import HelpArticle from "./HelpArticle";
 import HelpHome from "./HelpHome";
-import MarkdownGuide from "./MarkdownGuide";
+import HelpNav from "./HelpNav";
+import HelpSteps from "./HelpSteps";
+import MarkdownArticle from "./MarkdownArticle";
+import type { Head } from "./paging";
 
 type View =
   | { kind: "home" }
-  | { kind: "page"; slug: string; heading?: string; anchor?: string | null }
-  | { kind: "markdown"; topic?: string };
+  | { kind: "page"; slug: string; heading?: string; anchor?: string | null };
 
-const item = (here: boolean) =>
-  `w-full rounded-md px-2.5 py-1.5 text-left text-[13px] leading-snug ${
-    here ? "bg-accent-soft font-semibold text-accent" : "text-ink hover:bg-hover"
-  }`;
-
-const heading =
-  "mx-2.5 mt-3 border-t border-hair pt-3 pb-1 text-[10.5px] font-semibold tracking-[0.08em] text-faint uppercase";
+const viewOf = (topic?: string): View =>
+  topic ? { kind: "page", slug: `${MARKS}${topic}` } : { kind: "home" };
 
 export default function Help({ topic, from }: { readonly topic?: string; readonly from?: string }) {
   const spanish = locale().toLowerCase().startsWith("es");
-  const [view, setView] = useState<View>(topic ? { kind: "markdown", topic } : { kind: "home" });
+  const [view, setView] = useState<View>(viewOf(topic));
   const [entries, setEntries] = useState<HelpEntry[]>([]);
   const [bodies, setBodies] = useState<Record<string, string>>({});
-  const [marks, setMarks] = useState<HelpEntry[]>([]);
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [heads, setHeads] = useState<Head[]>([]);
   const [pictures, setPictures] = useState<HelpPictures | null>(null);
   const [later, setLater] = useState(false);
   const [bringing, setBringing] = useState(false);
   const [trouble, setTrouble] = useState<string | null>(null);
+  const [gone, setGone] = useState(false);
+  const fresh = useRef(false);
 
   useEffect(() => {
-    if (topic) setView({ kind: "markdown", topic });
+    if (topic) setView(viewOf(topic));
   }, [topic]);
 
   useEffect(() => {
@@ -55,96 +56,89 @@ export default function Help({ topic, from }: { readonly topic?: string; readonl
         const read = await Promise.all(
           found.map((one) => helpPage(spanish, one.slug).then((body) => [one.slug, body ?? ""])),
         );
-        if (live) setBodies((was) => ({ ...was, ...Object.fromEntries(read) }));
+        if (live) setBodies(Object.fromEntries(read));
       })
       .catch(() => undefined);
     helpPictures(spanish)
       .then((said) => live && setPictures(said))
       .catch(() => undefined);
     helpReferenceHere(spanish)
-      .then((text) => {
-        if (!live) return;
-        const topics = topicsOf(text);
-        const found = marksOf(topics, t("helpMarkdown"));
-        setMarks(found);
-        setBodies((was) => ({
-          ...was,
-          ...Object.fromEntries(found.map((one, at) => [one.slug, topics[at]?.body ?? ""])),
-        }));
-      })
-      .catch(() => undefined);
+      .then((text) => live && setTopics((was) => (was.length > 0 ? was : topicsOf(text))))
+      .catch(() => live && setGone(true));
     return () => {
       live = false;
     };
   }, [spanish]);
 
-  if (view.kind === "markdown")
-    return <MarkdownGuide topic={view.topic} onBack={() => setView({ kind: "home" })} />;
+  const reading = view.kind === "page" && view.slug.startsWith(MARKS);
+  useEffect(() => {
+    if (!reading || fresh.current) return;
+    fresh.current = true;
+    helpReference(spanish)
+      .then((text) => setTopics(topicsOf(text)))
+      .catch(() => undefined);
+  }, [reading, spanish]);
+
+  const marks = useMemo(() => marksOf(topics, t("helpMarkdown")), [topics]);
+  const sections = sectionsOf(entries);
+  const searchable = useMemo(
+    () => ({
+      ...bodies,
+      ...Object.fromEntries(marks.map((one, at) => [one.slug, topics[at]?.body ?? ""])),
+    }),
+    [bodies, marks, topics],
+  );
 
   const open = (slug: string, heading?: string, anchor?: string | null) => {
-    if (slug.startsWith(MARKS))
-      return setView({ kind: "markdown", topic: slug.slice(MARKS.length) });
-    if (entries.some((one) => one.slug === slug)) setView({ kind: "page", slug, heading, anchor });
-    else openLink(`${t("helpMoreAt")}${slug}/`).catch(() => undefined);
+    if (slug.startsWith(MARKS) || entries.some((one) => one.slug === slug)) {
+      setHeads([]);
+      setView({ kind: "page", slug, heading, anchor });
+    } else
+      openLink(`${t("helpMoreAt")}${slug}/${anchor ? `#${anchor}` : ""}`).catch(() => undefined);
   };
-  const markdown = () => setView({ kind: "markdown" });
+  const home = () => {
+    setHeads([]);
+    setView({ kind: "home" });
+  };
   const bring = () => {
     setBringing(true);
     setTrouble(null);
     helpPicturesFetch(spanish)
-      .then(setPictures)
+      .then((said) => {
+        setPictures(said);
+        if (said.missing > 0) setTrouble(t("helpPicturesSome"));
+      })
       .catch((problem) => setTrouble(saidPlainly(problem)))
       .finally(() => setBringing(false));
   };
-  const shown = view.kind === "page" ? entries.find((one) => one.slug === view.slug) : undefined;
+
+  const at = reading
+    ? Math.max(
+        0,
+        marks.findIndex((one) => view.kind === "page" && one.slug === view.slug),
+      )
+    : -1;
+  const shown =
+    view.kind !== "page"
+      ? undefined
+      : reading
+        ? marks[at]
+        : entries.find((one) => one.slug === view.slug);
+  const walked = [...sections.flatMap(([, pages]) => pages), ...marks];
+  const step = shown ? walked.findIndex((one) => one.slug === shown.slug) : -1;
 
   return (
     <main className="flex min-h-0 flex-col overflow-hidden">
       <div data-tauri-drag-region className="h-9 shrink-0" />
       <div className="flex min-h-0 flex-1">
-        <nav
-          aria-label={t("helpTopics")}
-          className="scroller flex w-[230px] shrink-0 flex-col overflow-y-auto px-3 pb-6"
-        >
-          <button
-            type="button"
-            aria-current={view.kind === "home" ? "page" : undefined}
-            onClick={() => setView({ kind: "home" })}
-            className={item(view.kind === "home")}
-          >
-            {t("helpStart")}
-          </button>
-          {sectionsOf(entries).map(([section, pages]) => (
-            <div key={section}>
-              <p className={heading}>{section}</p>
-              <ol className="flex flex-col gap-px">
-                {pages.map((one) => (
-                  <li key={one.slug}>
-                    <button
-                      type="button"
-                      aria-current={shown?.slug === one.slug ? "page" : undefined}
-                      onClick={() => open(one.slug)}
-                      className={item(shown?.slug === one.slug)}
-                    >
-                      {one.title}
-                    </button>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          ))}
-          <p className={heading}>Markdown</p>
-          <button type="button" onClick={markdown} className={item(false)}>
-            {t("helpMarkdown")}
-          </button>
-          <button
-            type="button"
-            onClick={() => openLink(t("helpMoreAt")).catch(() => undefined)}
-            className="mt-6 px-2.5 text-left text-[11.5px] text-faint hover:text-soft hover:underline"
-          >
-            {t("helpMore")} ↗
-          </button>
-        </nav>
+        <HelpNav
+          sections={sections}
+          marks={marks}
+          here={shown?.slug ?? null}
+          subs={outlined(heads)}
+          onHome={home}
+          onOpen={(slug) => open(slug)}
+        />
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {pictures && pictures.missing > 0 && !later && (
             <div
@@ -180,14 +174,14 @@ export default function Help({ topic, from }: { readonly topic?: string; readonl
             <HelpHome
               entries={entries}
               more={marks}
-              bodies={bodies}
+              bodies={searchable}
               from={from}
               spanish={spanish}
               onOpen={open}
-              onMarkdown={markdown}
+              onMarkdown={() => open(`${MARKS}index`)}
             />
           )}
-          {shown && view.kind === "page" && (
+          {shown && view.kind === "page" && !reading && (
             <HelpArticle
               entry={shown}
               body={bodies[shown.slug] ?? ""}
@@ -195,6 +189,26 @@ export default function Help({ topic, from }: { readonly topic?: string; readonl
               heading={view.heading}
               anchor={view.anchor ?? null}
               onOpen={open}
+              onOutline={setHeads}
+            />
+          )}
+          {reading && !shown && gone && (
+            <p className="px-6 pt-6 text-[12.5px] text-urgent">{t("helpGone")}</p>
+          )}
+          {shown && view.kind === "page" && reading && topics[at] && (
+            <MarkdownArticle
+              topic={topics[at]}
+              topics={topics}
+              anchor={view.anchor ?? null}
+              onOpen={(slug, anchor) => open(`${MARKS}${slug}`, undefined, anchor)}
+              onOutline={setHeads}
+            />
+          )}
+          {shown && (
+            <HelpSteps
+              before={walked[step - 1]}
+              after={step >= 0 ? walked[step + 1] : undefined}
+              onOpen={(slug) => open(slug)}
             />
           )}
         </div>
