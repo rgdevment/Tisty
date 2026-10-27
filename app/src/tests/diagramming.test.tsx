@@ -78,6 +78,9 @@ const shown: Showing = {
   source: "mindmap\n  root((Share))\n",
 };
 
+// A kind the window draws with Mermaid, not with its own canvas.
+const flow: Showing = { ...shown, source: "graph TD\n  A-->B\n" };
+
 const asked = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd);
 const lastOf = (cmd: string) => asked(cmd)[asked(cmd).length - 1];
 const written = async () => (await screen.findByLabelText(t("diagramText"))) as HTMLTextAreaElement;
@@ -115,14 +118,15 @@ describe("the diagram window", () => {
   });
 
   it("draws what the text says, live, and keeps the last drawing while it cannot", async () => {
+    ipc.shown = flow;
     const { container } = render(<Viewing />);
     const text = await written();
 
     await waitFor(() => expect(container.querySelector(".diagram-drawn svg")).toBeTruthy());
-    fireEvent.change(text, { target: { value: "mindmap broken" } });
+    fireEvent.change(text, { target: { value: "graph broken" } });
 
     expect(await screen.findByText(t("diagramUnreadable"))).toBeTruthy();
-    expect(container.querySelector(".diagram-drawn svg")?.textContent).toBe("mindmap");
+    expect(container.querySelector(".diagram-drawn svg")?.textContent).toBe("graph TD");
   });
 
   it("saves the text it holds into the document, by the button or by Ctrl+S", async () => {
@@ -176,6 +180,7 @@ describe("the diagram window", () => {
   });
 
   it("zooms with its buttons and fits the drawing back", async () => {
+    ipc.shown = flow;
     vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(800);
     vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(600);
     const { container } = render(<Viewing />);
@@ -192,6 +197,7 @@ describe("the diagram window", () => {
   });
 
   it("moves the drawing by dragging or scrolling, and zooms under the pointer with Ctrl", async () => {
+    ipc.shown = flow;
     vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(800);
     vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(600);
     const { container } = render(<Viewing />);
