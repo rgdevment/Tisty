@@ -1994,7 +1994,8 @@ const en = {
   sealElsewhere: "Another of your computers is encrypting or decrypting your cloud.",
   sealOrphan: "It has not moved in more than a week.",
   sealOrphanCancel: "Cancel it from here",
-  settingsBack: "Back to Tisty",
+  settingsBack: "Back",
+  settingsBackTo: "Back to Tisty",
   identityWhat:
     "With it you encrypt your cloud and sign what you share with Tisty Share. It is born with your 24-word phrase.",
   identityUnborn:
@@ -4516,7 +4517,8 @@ const es: Catalog = {
   sealElsewhere: "Otro de tus equipos está cifrando o descifrando tu nube.",
   sealOrphan: "Lleva más de una semana sin avanzar.",
   sealOrphanCancel: "Cancelarlo desde aquí",
-  settingsBack: "Volver a Tisty",
+  settingsBack: "Volver",
+  settingsBackTo: "Volver a Tisty",
   identityWhat:
     "Con ella cifras tu nube y firmas lo que compartes con Tisty Share. Nace con tu frase de 24 palabras.",
   identityUnborn:

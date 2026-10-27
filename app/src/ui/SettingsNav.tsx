@@ -38,10 +38,15 @@ export default function SettingsNav({ tab, waiting, onTab, onBack }: Props) {
       <button
         type="button"
         onClick={onBack}
-        className="mb-2 flex items-center gap-1.5 rounded-[10px] px-2.5 py-1.5 text-[13px] text-soft hover:bg-hover"
+        aria-label={t("settingsBackTo")}
+        title={t("settingsBackTo")}
+        className="mb-3 flex w-full items-center gap-1.5 rounded-[10px] border border-line px-2.5 py-1.5 text-[13px] text-ink hover:bg-hover"
       >
         <Glyph name="chevron" className="size-3.5 rotate-90" />
-        {t("settingsBack")}
+        <span className="flex-1 text-left">{t("settingsBack")}</span>
+        <kbd className="rounded-md border border-line px-1.5 font-sans text-[10.5px] text-faint">
+          Esc
+        </kbd>
       </button>
       <p className="px-2.5 pb-1 text-[11.5px] font-semibold tracking-[0.06em] text-faint uppercase">
         {t("keeping")}
