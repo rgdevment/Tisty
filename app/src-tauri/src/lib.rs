@@ -74,6 +74,7 @@ struct Snapshot {
     machine_here: String,
     clients: std::collections::BTreeMap<String, String>,
     wholes: std::collections::BTreeMap<String, answers::parts::Whole>,
+    standings: std::collections::BTreeMap<String, tisty_core::standing::Standing>,
 }
 
 impl From<tisty_core::capture::Rejected> for Refusal {

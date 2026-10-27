@@ -21,7 +21,7 @@ describe("the words the window says about dates", () => {
     expect(bands).toMatchInlineSnapshot(`
       [
         "Someday",
-        "Overdue",
+        "Tue, Jun 9",
         "Today",
         "Tomorrow",
         "Thu, Jul 2",

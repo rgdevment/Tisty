@@ -1,6 +1,6 @@
-import type { List, Task } from "./core";
+import type { List, Standing, Task } from "./core";
 import { bandOf, daysFrom, monthOf } from "./format";
-import { locale, t } from "./locales";
+import { locale, t, type Word } from "./locales";
 import { said } from "./quadrants";
 
 export type Axis = "time" | "list" | "tag" | "quadrant";
@@ -79,18 +79,36 @@ export function regrouped(tasks: Task[], axis: Axis, lists: List[], now = new Da
   ];
 }
 
-export function banded(tasks: Task[], now = new Date()): Row[] {
+// What claims today, most urgent first; anything else keeps its day and the core's order.
+const URGENT: Partial<Record<Standing, { rank: number; band: Word }>> = {
+  overdue: { rank: 0, band: "overdue" },
+  due_soon: { rank: 1, band: "dueSoonBand" },
+  late: { rank: 2, band: "lateBand" },
+  today: { rank: 3, band: "todayBand" },
+  underway: { rank: 4, band: "underwayBand" },
+};
+
+export function banded(
+  tasks: Task[],
+  standings: Record<string, Standing> = {},
+  now = new Date(),
+): Row[] {
   const waiting: Row[] = [];
-  const rest: Row[] = [];
+  const rest: (Row & { rank: number })[] = [];
   for (const task of tasks) {
-    const owedToday = task.date ? daysFrom(task.date.at, now) <= 0 : false;
-    const spoken = Boolean(task.resolved) && task.status === "open" && !owedToday;
-    (spoken ? waiting : rest).push({
+    const urgent = URGENT[standings[task.id] ?? "ahead"];
+    const spoken = Boolean(task.resolved) && task.status === "open" && !urgent;
+    const row = {
       kind: "one" as const,
       key: task.id,
       task,
-      band: spoken ? t("agentBand") : bandOf(task.date, now),
-    });
+      band: spoken ? t("agentBand") : urgent ? t(urgent.band) : bandOf(task.date, now),
+    };
+    if (spoken) waiting.push(row);
+    else rest.push({ ...row, rank: urgent?.rank ?? Object.keys(URGENT).length });
   }
-  return [...rest, ...waiting];
+  return [
+    ...rest.sort((one, two) => one.rank - two.rank).map(({ rank, ...row }) => row),
+    ...waiting,
+  ];
 }
