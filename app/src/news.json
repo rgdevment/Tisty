@@ -662,5 +662,56 @@
         "said": "diagrams are drawn by the official Mermaid and read well at any width and in dark mode. Long tasks and documents open and redraw without stalling the window."
       }
     ]
+  },
+  {
+    "version": "1.36.1",
+    "headline": {
+      "es": "Tisty te dice qué está pasando con tu nube",
+      "en": "Tisty tells you what is going on with your cloud"
+    },
+    "es": [
+      {
+        "title": "Siempre sabes qué hace tu nube",
+        "said": "mientras sincroniza, la barra de abajo dice «Sincronizando…» aunque tarde. Un equipo que todavía no termina su primera sincronización ya no dice «Al día», y si otro de tus equipos está cifrando tu nube, Tisty te lo dice y te cuenta qué viene después."
+      },
+      {
+        "title": "Hoja Oficio",
+        "said": "ves, imprimes y guardas en PDF tus documentos en tamaño Oficio, en vertical u horizontal, junto a A4 y Carta. Los documentos que ya usaban Tabloide se siguen abriendo igual."
+      },
+      {
+        "title": "Volver desde Configuración",
+        "said": "salir de Configuración es un botón claro, «Volver», y la tecla Esc hace lo mismo."
+      },
+      {
+        "title": "Borra todo rastro, si lo necesitas",
+        "said": "cada versión trae, junto a los instaladores, un programa de limpieza para Windows y macOS que desinstala Tisty y quita todo lo que dejó en el equipo. Antes guarda una copia de tus datos en el escritorio y te pregunta antes de borrar tu frase."
+      },
+      {
+        "title": "Desinstalar en Mac con Homebrew",
+        "said": "Homebrew cierra Tisty antes de quitarlo, y la desinstalación completa ahora sí borra todo lo que Tisty guarda en tu Mac. El aviso sobre la versión de macOS solo aparece en un Mac que lo necesita."
+      }
+    ],
+    "en": [
+      {
+        "title": "Always know what your cloud is doing",
+        "said": "while it syncs, the bottom bar says «Syncing…» even when it takes a while. A computer that has not finished its first sync no longer says «Up to date», and if another of your computers is encrypting your cloud, Tisty tells you and what comes next."
+      },
+      {
+        "title": "Folio sheets",
+        "said": "view, print and save your documents as PDF on Folio paper, upright or across, beside A4 and Letter. Documents that already used Tabloid still open as before."
+      },
+      {
+        "title": "Back from Settings",
+        "said": "leaving Settings is a plain «Back» button, and the Esc key does the same."
+      },
+      {
+        "title": "Remove every trace, if you need to",
+        "said": "each release carries, beside the installers, a clean-up program for Windows and macOS that uninstalls Tisty and removes everything it left on the computer. It first saves a copy of your data to the desktop and asks before removing your phrase."
+      },
+      {
+        "title": "Uninstalling on a Mac with Homebrew",
+        "said": "Homebrew closes Tisty before removing it, and a full uninstall now really removes everything Tisty keeps on your Mac. The note about your macOS version only shows on a Mac that needs it."
+      }
+    ]
   }
 ]
