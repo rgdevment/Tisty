@@ -1273,11 +1273,6 @@ export const docRead = (id: string): Promise<string> => invoke("doc_read", { id 
 export const docDrawn = (body: string): Promise<string> =>
   invoke<ArrayBuffer>("doc_drawn", { body }).then((bytes) => new TextDecoder().decode(bytes));
 export const docPlain = (body: string): Promise<string> => invoke("doc_plain", { body });
-export const helpReference = (spanish: boolean): Promise<string> =>
-  invoke("help_reference", { spanish });
-export const helpDrawn = (body: string): Promise<string> => invoke("help_drawn", { body });
-export const helpAnchors = (bodies: string[]): Promise<string[][]> =>
-  invoke("help_anchors", { bodies });
 export const noteDrawn = (body: string): Promise<string> => invoke("note_drawn", { body });
 
 export type Piece = { readonly said: string; readonly fixed: string };

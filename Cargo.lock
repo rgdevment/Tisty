@@ -5801,6 +5801,7 @@ dependencies = [
  "tisty-carrier",
  "tisty-core",
  "tisty-google",
+ "tisty-help",
  "tisty-markdown",
  "tisty-nl",
  "tisty-onedrive",

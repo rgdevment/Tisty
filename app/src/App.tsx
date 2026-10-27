@@ -1,6 +1,7 @@
 import { docFile, folderFile } from "./core";
 import { DeskProvider, deskOf } from "./desk";
 import { hereChoices } from "./docMenus";
+import { cameFrom } from "./guide/help";
 import { t } from "./locales";
 import { saidPlainly } from "./refusal";
 import { WEEK } from "./ui/Ahead";
@@ -68,7 +69,7 @@ export default function App() {
         <Layers parcels={desk.parcels.shown} />
         <News />
         <Calendars />
-        <HelpKey onHelp={(topic) => choose({ named: "help", topic })} />
+        <HelpKey onHelp={(topic) => choose({ named: "help", topic, from: cameFrom(chosen) })} />
 
         <Sidebar
           lists={data.lists}

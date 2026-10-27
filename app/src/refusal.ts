@@ -116,6 +116,7 @@ const KNOWN = [
   "notAllowed",
   "remoteInsideStore",
   "otherStore",
+  "helpPicturesAway",
   "restoredApart",
   "syncNewer",
   "syncShape",

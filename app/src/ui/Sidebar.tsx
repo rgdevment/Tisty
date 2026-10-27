@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import type { Filed, Folded, List, Papers } from "../core";
+import { cameFrom } from "../guide/help";
 import { useKnocking } from "../knocking";
 import { t } from "../locales";
 import type { Chosen, Named } from "../views";
@@ -202,7 +203,7 @@ export default function Sidebar({
           type="button"
           aria-label={t("help")}
           title={`${t("help")} · F1`}
-          onClick={() => onChoose({ named: "help" })}
+          onClick={() => onChoose({ named: "help", from: cameFrom(chosen) })}
           className={`ml-auto grid size-7 place-items-center rounded-[10px] hover:bg-hover ${
             chosen.named === "help" ? "bg-active text-accent" : "text-soft"
           }`}

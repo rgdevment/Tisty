@@ -1,97 +1,82 @@
-import { useEffect, useRef, useState } from "react";
-import rina from "../../src-tauri/resources/guide/en/rina.jpg";
-import { helpAnchors, helpDrawn, helpReference, openLink } from "../core";
-import { examplesIn, shownBeside, type Topic, topicsOf } from "../guide/reference";
-import { locale, t } from "../locales";
-import { pictured } from "../previews";
-import type { Carded } from "./carding";
-import Page from "./Page";
-import type { Head } from "./paging";
+import { useEffect, useState } from "react";
+import { openLink } from "../core";
+import { weigh } from "../format";
+import {
+  type HelpEntry,
+  type HelpPictures,
+  helpPage,
+  helpPages,
+  helpPictures,
+  helpPicturesFetch,
+} from "../guide/calls";
+import { sectionsOf } from "../guide/help";
+import { fill, locale, t } from "../locales";
+import { saidPlainly } from "../refusal";
+import HelpArticle from "./HelpArticle";
+import HelpHome from "./HelpHome";
+import MarkdownGuide from "./MarkdownGuide";
 
-const titles = new Map<string, string>();
-const drawings = new Map<string, Promise<string>>();
+type View =
+  | { kind: "home" }
+  | { kind: "page"; slug: string; heading?: string; anchor?: string | null }
+  | { kind: "markdown"; topic?: string };
 
-// The examples name files only a store holds, so a picture shows the guide's own photo.
-const drawn = async (body: string): Promise<string> => {
-  const page = new DOMParser().parseFromString(
-    `<article>${await helpDrawn(body)}</article>`,
-    "text/html",
-  );
-  const examples = examplesIn(page);
-  const looks = await Promise.all(examples.map((code) => helpDrawn(code.textContent ?? "")));
-  const words = { written: t("helpWritten"), drawn: t("helpDrawn") };
-  examples.forEach((code, at) => {
-    shownBeside(code, looks[at], words);
-  });
-  const photo = new URL(rina, location.href).href;
-  for (const img of page.querySelectorAll("img[src]")) {
-    const at = img.getAttribute("src") ?? "";
-    if (!/^[a-z][a-z0-9+.-]*:/i.test(at) && pictured(at)) img.setAttribute("src", photo);
-  }
-  for (const card of page.querySelectorAll<HTMLElement>("a.card[data-doc]"))
-    titles.set(card.dataset.doc ?? "", card.textContent ?? "");
-  return page.querySelector("article")?.innerHTML ?? "";
-};
+const item = (here: boolean) =>
+  `w-full rounded-md px-2.5 py-1.5 text-left text-[13px] leading-snug ${
+    here ? "bg-accent-soft font-semibold text-accent" : "text-soft hover:bg-hover hover:text-ink"
+  }`;
 
-const drawGuide = (body: string): Promise<string> => {
-  const known = drawings.get(body);
-  if (known) return known;
-  const made = drawn(body);
-  drawings.set(body, made);
-  made.catch(() => drawings.delete(body));
-  return made;
-};
+const heading = "px-2.5 pt-4 pb-1.5 text-[11.5px] font-semibold tracking-wide text-faint uppercase";
 
-const card = (file: string): Carded => ({ kind: "doc", title: titles.get(file) ?? "" });
-
-const pill =
-  "inline-flex max-w-[48%] items-center gap-2 rounded-full border border-line bg-sheet px-4 py-2 text-[13px] font-medium text-ink hover:border-accent hover:text-accent";
-
-export default function Help({ topic }: { readonly topic?: string }) {
-  const [topics, setTopics] = useState<Topic[] | null>(null);
-  const [anchors, setAnchors] = useState<string[][]>([]);
-  const [failed, setFailed] = useState(false);
-  const [slug, setSlug] = useState(topic ?? "index");
-  const [heads, setHeads] = useState<Head[]>([]);
-  const aimed = useRef<string | null>(null);
-  const view = useRef<Window | null>(null);
+export default function Help({ topic, from }: { readonly topic?: string; readonly from?: string }) {
+  const spanish = locale().toLowerCase().startsWith("es");
+  const [view, setView] = useState<View>(topic ? { kind: "markdown", topic } : { kind: "home" });
+  const [entries, setEntries] = useState<HelpEntry[]>([]);
+  const [bodies, setBodies] = useState<Record<string, string>>({});
+  const [pictures, setPictures] = useState<HelpPictures | null>(null);
+  const [later, setLater] = useState(false);
+  const [bringing, setBringing] = useState(false);
+  const [trouble, setTrouble] = useState<string | null>(null);
 
   useEffect(() => {
-    helpReference(locale().toLowerCase().startsWith("es"))
-      .then((text) => {
-        const found = topicsOf(text);
-        setTopics(found);
-        return helpAnchors(found.map((one) => one.body)).then(setAnchors);
-      })
-      .catch(() => setFailed(true));
-  }, []);
-
-  useEffect(() => {
-    if (topic) setSlug(topic);
+    if (topic) setView({ kind: "markdown", topic });
   }, [topic]);
 
-  const at = Math.max(0, topics?.findIndex((one) => one.slug === slug) ?? 0);
-  const shown = topics?.[at];
-  const named = (one: Topic) => one.heading ?? t("helpStart");
-  const open = (next: string, anchor: string | null = null) => {
-    aimed.current = anchor;
-    setHeads([]);
-    setSlug(next);
-  };
+  useEffect(() => {
+    let live = true;
+    helpPages(spanish)
+      .then(async (found) => {
+        if (!live) return;
+        setEntries(found);
+        const read = await Promise.all(
+          found.map((one) => helpPage(spanish, one.slug).then((body) => [one.slug, body ?? ""])),
+        );
+        if (live) setBodies(Object.fromEntries(read));
+      })
+      .catch(() => undefined);
+    helpPictures(spanish)
+      .then((said) => live && setPictures(said))
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [spanish]);
 
-  const onHere = (id: string) => {
-    const owner = topics?.findIndex((_, one) => anchors[one]?.includes(id)) ?? -1;
-    if (owner < 0 || !topics) return;
-    if (owner === at) {
-      view.current?.document.getElementById(id)?.scrollIntoView({ block: "start" });
-      return;
-    }
-    open(topics[owner].slug, anchors[owner][0] === id ? null : id);
-  };
+  if (view.kind === "markdown")
+    return <MarkdownGuide topic={view.topic} onBack={() => setView({ kind: "home" })} />;
 
-  const before = topics?.[at - 1];
-  const after = topics?.[at + 1];
-  const subs = heads.filter((one) => one.level === 3);
+  const open = (slug: string, heading?: string, anchor?: string | null) =>
+    setView({ kind: "page", slug, heading, anchor });
+  const markdown = () => setView({ kind: "markdown" });
+  const bring = () => {
+    setBringing(true);
+    setTrouble(null);
+    helpPicturesFetch(spanish)
+      .then(setPictures)
+      .catch((problem) => setTrouble(saidPlainly(problem)))
+      .finally(() => setBringing(false));
+  };
+  const shown = view.kind === "page" ? entries.find((one) => one.slug === view.slug) : undefined;
 
   return (
     <main className="flex min-h-0 flex-col overflow-hidden">
@@ -101,45 +86,37 @@ export default function Help({ topic }: { readonly topic?: string }) {
           aria-label={t("helpTopics")}
           className="scroller flex w-[230px] shrink-0 flex-col overflow-y-auto px-3 pb-6"
         >
-          <p className="px-2.5 pb-2 text-[11.5px] font-semibold tracking-wide text-faint uppercase">
-            {t("help")}
-          </p>
-          <ol className="flex flex-col gap-px">
-            {topics?.map((one) => {
-              const here = one.slug === shown?.slug;
-              return (
-                <li key={one.slug}>
-                  <button
-                    type="button"
-                    aria-current={here ? "page" : undefined}
-                    onClick={() => open(one.slug)}
-                    className={`w-full rounded-md px-2.5 py-1.5 text-left text-[13px] leading-snug ${
-                      here
-                        ? "bg-accent-soft font-semibold text-accent"
-                        : "text-soft hover:bg-hover hover:text-ink"
-                    }`}
-                  >
-                    {named(one)}
-                  </button>
-                  {here && subs.length > 0 && (
-                    <ol className="my-0.5 ml-3 border-l border-hair pl-2">
-                      {subs.map((sub) => (
-                        <li key={sub.key}>
-                          <button
-                            type="button"
-                            onClick={sub.go}
-                            className="w-full rounded-md px-2 py-1 text-left text-[12.5px] text-faint hover:bg-hover hover:text-ink"
-                          >
-                            {sub.text}
-                          </button>
-                        </li>
-                      ))}
-                    </ol>
-                  )}
-                </li>
-              );
-            })}
-          </ol>
+          <button
+            type="button"
+            aria-current={view.kind === "home" ? "page" : undefined}
+            onClick={() => setView({ kind: "home" })}
+            className={item(view.kind === "home")}
+          >
+            {t("helpStart")}
+          </button>
+          {sectionsOf(entries).map(([section, pages]) => (
+            <div key={section}>
+              <p className={heading}>{section}</p>
+              <ol className="flex flex-col gap-px">
+                {pages.map((one) => (
+                  <li key={one.slug}>
+                    <button
+                      type="button"
+                      aria-current={shown?.slug === one.slug ? "page" : undefined}
+                      onClick={() => open(one.slug)}
+                      className={item(shown?.slug === one.slug)}
+                    >
+                      {one.title}
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ))}
+          <p className={heading}>Markdown</p>
+          <button type="button" onClick={markdown} className={item(false)}>
+            {t("helpMarkdown")}
+          </button>
           <button
             type="button"
             onClick={() => openLink(t("helpMoreAt")).catch(() => undefined)}
@@ -149,58 +126,55 @@ export default function Help({ topic }: { readonly topic?: string }) {
           </button>
         </nav>
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-          {failed && <p className="px-6 pt-6 text-[12.5px] text-urgent">{t("helpGone")}</p>}
-          {shown && (
-            <Page
-              key={shown.slug}
-              body={shown.body}
-              draw={drawGuide}
-              label={named(shown)}
-              stranger={false}
-              card={card}
-              onDoc={() => undefined}
-              onHere={onHere}
-              onOutline={setHeads}
-              onShown={(seen) => {
-                view.current = seen;
-                if (!seen || !aimed.current) return;
-                seen.document.getElementById(aimed.current)?.scrollIntoView({ block: "start" });
-                aimed.current = null;
-              }}
+          {pictures && pictures.missing > 0 && !later && (
+            <div
+              role="status"
+              className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-hair px-6 py-2 text-[12.5px] text-soft"
+            >
+              <span className="min-w-0 flex-1">
+                {fill("helpPictures", weigh(pictures.missing))}
+              </span>
+              <button
+                type="button"
+                disabled={bringing}
+                onClick={bring}
+                className={`rounded-md border border-line px-2.5 py-1 text-ink hover:bg-hover ${
+                  bringing ? "motion-safe:animate-pulse" : ""
+                }`}
+              >
+                {t(bringing ? "helpPicturesBringing" : "helpPicturesDo")}
+              </button>
+              {!bringing && (
+                <button
+                  type="button"
+                  onClick={() => setLater(true)}
+                  className="rounded-md px-2 py-1 text-faint hover:text-ink"
+                >
+                  {t("helpPicturesLater")}
+                </button>
+              )}
+              {trouble && <span className="basis-full text-urgent">{trouble}</span>}
+            </div>
+          )}
+          {view.kind === "home" && (
+            <HelpHome
+              entries={entries}
+              bodies={bodies}
+              from={from}
+              spanish={spanish}
+              onOpen={open}
+              onMarkdown={markdown}
             />
           )}
-          {shown && (
-            <nav
-              aria-label={`${t("helpBefore")} · ${t("helpAfter")}`}
-              className="flex shrink-0 gap-3 border-t border-hair px-6 py-3"
-            >
-              {before && (
-                <button
-                  type="button"
-                  title={t("helpBefore")}
-                  className={pill}
-                  onClick={() => open(before.slug)}
-                >
-                  <span aria-hidden="true" className="text-faint">
-                    ←
-                  </span>
-                  <span className="truncate">{named(before)}</span>
-                </button>
-              )}
-              {after && (
-                <button
-                  type="button"
-                  title={t("helpAfter")}
-                  className={`${pill} ml-auto`}
-                  onClick={() => open(after.slug)}
-                >
-                  <span className="truncate">{named(after)}</span>
-                  <span aria-hidden="true" className="text-faint">
-                    →
-                  </span>
-                </button>
-              )}
-            </nav>
+          {shown && view.kind === "page" && (
+            <HelpArticle
+              entry={shown}
+              body={bodies[shown.slug] ?? ""}
+              pictures={pictures}
+              heading={view.heading}
+              anchor={view.anchor ?? null}
+              onOpen={open}
+            />
           )}
         </div>
       </div>

@@ -11,13 +11,17 @@ const reference = (lang: string) =>
 
 vi.mock("../core", async (original) => ({
   ...(await original<typeof import("../core")>()),
+  openLink: () => Promise.resolve(),
+}));
+
+vi.mock("../guide/calls", async (original) => ({
+  ...(await original<typeof import("../guide/calls")>()),
   helpReference: () =>
     Promise.resolve(
       "# Guide\n\nIntro.\n\n## Glance\n\n| a |\n\n## Pens\n\nA pen.\n\n### Colours\n\nSome.\n\n## Tables\n\nA table.",
     ),
   helpDrawn: (body: string) => Promise.resolve(`<p>${body.length}</p>`),
   helpAnchors: () => Promise.resolve([["guide", "glance"], ["pens", "colours"], ["tables"]]),
-  openLink: () => Promise.resolve(),
 }));
 
 vi.mock("../ui/Page", () => ({

@@ -48,7 +48,7 @@ Nothing is obfuscated, and nothing is in a format only Tisty can read.
 
 - **Update** in *About* downloads the release file and the installer, and Tisty refuses anything not signed with the key built into your copy.
 - **Bring the preview** on a [link card](https://markdown.tisty.app/links) asks that page once for its title and picture.
-- **Opening the guide** inside Tisty (`F1`, or the `?` at the foot of the sidebar) reads it from [markdown.tisty.app](https://markdown.tisty.app), so it is always the latest; offline, it shows the copy that came with your version.
+- **The help** inside Tisty (the `?` at the foot of the sidebar) comes with your version and asks nothing. Its **Tisty's Markdown** guide (also `F1` while you write) reads it from [markdown.tisty.app](https://markdown.tisty.app), so it is always the latest; offline, it shows the copy that came with your version. Its pictures are downloaded from GitHub only when you press **Download** above the help.
 - **Clicking a link** opens your browser.
 - **Google Drive**, **OneDrive** or **your WebDAV server**, once you connect it from the window, is where Tisty sends and fetches your copies. Assistants never touch the network.
 - **Checking a WebDAV server** — only when you connect it: Tisty signs in with what you typed and looks at its own folder there, and nothing else. Only `https://` is accepted, except to this very computer, and the password never travels to any other address.
