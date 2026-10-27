@@ -3,6 +3,7 @@ use tisty_core::Paths;
 
 use tisty_core::State;
 use tisty_core::model::{Priority, Tag, Task, TaskId};
+use tisty_core::standing::Standing;
 use ulid::Ulid;
 
 use super::asked::{strings, text};
@@ -552,16 +553,18 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             ),
         );
     }
-    kept.insert(
-        "counts".into(),
-        json!({
-            "open": state.tasks.values().filter(|one| one.is_open() && !one.folded()).count(),
-            "docs": state
-                .papers()
-                .filter(|one| !state.held_away(one))
-                .count(),
-        }),
-    );
+    let pressing = pressing(&state, jiff::Zoned::now().date());
+    let mut counts = json!({
+        "open": state.tasks.values().filter(|one| one.is_open() && !one.folded()).count(),
+        "docs": state
+            .papers()
+            .filter(|one| !state.held_away(one))
+            .count(),
+    });
+    for (how, many) in &pressing {
+        counts[how] = json!(many);
+    }
+    kept.insert("counts".into(), counts);
     if let Some(head) = &head {
         kept.insert("cursor".into(), json!(head));
     }
@@ -581,7 +584,7 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 kept.insert("newest".into(), json!(newest));
             }
             format!(
-                "{} list(s), {} folder(s), {} tag(s), {} open task(s), {} document(s) not put \
+                "{} list(s), {} folder(s), {} tag(s), {} open task(s){}, {} document(s) not put \
                  away, pages included. Send the `cursor` back next time and what moved since \
                  comes with it as well.",
                 named.len(),
@@ -592,6 +595,7 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                     .values()
                     .filter(|one| one.is_open() && !one.folded())
                     .count(),
+                pressed(&pressing),
                 state.papers().filter(|one| !state.held_away(one)).count()
             )
         }
@@ -980,6 +984,10 @@ pub(super) fn brief(task: &Task, state: &State) -> Value {
         json!(task.deadline.as_ref().map(|d| d.date().to_string())),
     );
     put(
+        "standing",
+        json!(standing_of(task, jiff::Zoned::now().date())),
+    );
+    put(
         "reminders",
         json!(
             task.reminders
@@ -1217,9 +1225,50 @@ impl Sifted {
     }
 }
 
+/// Where the dates leave an open task, as the window groups it; nothing for one without dates.
+pub(super) fn standing_of(task: &Task, today: jiff::civil::Date) -> Option<Standing> {
+    let how = tisty_core::standing::standing(task, today);
+    (task.is_open() && how != Standing::Undated).then_some(how)
+}
+
+/// How many open tasks ask for attention today, by how they stand, leaving out what none do.
+pub(super) fn pressing(state: &State, today: jiff::civil::Date) -> Vec<(&'static str, usize)> {
+    [
+        ("overdue", Standing::Overdue),
+        ("due_soon", Standing::DueSoon),
+        ("late", Standing::Late),
+    ]
+    .into_iter()
+    .map(|(said, how)| {
+        let many = state
+            .tasks
+            .values()
+            .filter(|one| !one.folded() && standing_of(one, today) == Some(how))
+            .count();
+        (said, many)
+    })
+    .filter(|(_, many)| *many > 0)
+    .collect()
+}
+
+fn pressed(pressing: &[(&str, usize)]) -> String {
+    if pressing.is_empty() {
+        return String::new();
+    }
+    let told: Vec<String> = pressing
+        .iter()
+        .map(|(how, many)| format!("{many} {}", how.replace('_', " ")))
+        .collect();
+    format!(" ({})", told.join(", "))
+}
+
 fn placed(state: &State, task: &Task) -> String {
     task.list.and_then(|at| state.lists.get(&at)).map_or_else(
         || "in the inbox".to_string(),
         |one| format!("in {}", one.name),
     )
 }
+
+#[cfg(test)]
+#[path = "looking_test.rs"]
+mod tests;

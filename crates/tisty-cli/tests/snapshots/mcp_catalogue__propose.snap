@@ -12,11 +12,11 @@ expression: tool
         "type": "boolean"
       },
       "date": {
-        "description": "The day it is meant to be done (2026-08-31)",
+        "description": "The day it is meant to be done, or with a deadline the day the work starts (2026-08-31)",
         "type": "string"
       },
       "deadline": {
-        "description": "The day it actually runs out (2026-08-31)",
+        "description": "The day it actually runs out (2026-08-31): only once it passes is the task overdue",
         "type": "string"
       },
       "description": {
