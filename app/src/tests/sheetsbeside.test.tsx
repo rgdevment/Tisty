@@ -9,7 +9,7 @@ import { t } from "../locales";
 import Beside from "../ui/Beside";
 import { blockKeys } from "../ui/barring";
 import { sheeting } from "../ui/sheeting";
-import { sizeOf } from "../ui/sheets";
+import { acrossOf, KNOWN, sheetFor, sizeOf, TALL } from "../ui/sheets";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 
@@ -74,6 +74,17 @@ describe("the sheets a document is read on", () => {
     expect(sizeOf("tabloid", true)).toBe("17in 11in");
     expect(sizeOf("folio")).toBe("8.5in 13in");
     expect(sizeOf("folio", true)).toBe("13in 8.5in");
+  });
+
+  it("keeps the measures of every sheet it reads, offered or not", () => {
+    for (const one of KNOWN) {
+      expect(acrossOf(one, false)).toBeGreaterThan(0);
+      expect(acrossOf(one, true)).toBeGreaterThan(acrossOf(one, false));
+      expect(TALL[one]).toBeGreaterThan(1);
+    }
+    expect(acrossOf("tabloid", false)).toBe(1056);
+    expect(acrossOf("folio", false)).toBe(816);
+    expect(sheetFor("folio", true, "").wide).toBe(1248);
   });
 
   it("offers A4, Letter and Folio, and still shows Tabloid on a document that has it", () => {

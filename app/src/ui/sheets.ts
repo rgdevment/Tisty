@@ -9,13 +9,15 @@ const MILLIMETRES: Record<Paper, [number, number]> = {
   tabloid: [279.4, 431.8],
 };
 
+export const KNOWN = Object.keys(MILLIMETRES) as Paper[];
+
 export const MARGIN_MM = { x: 20, y: 22 };
 
 // A sheet on screen measures what it measures on paper, at 96 pixels to the inch.
 const pixels = (mm: number) => Math.round((mm * 96) / 25.4);
 
 const each = (side: 0 | 1) =>
-  Object.fromEntries(LEAVES.map((one) => [one, pixels(MILLIMETRES[one][side])])) as Record<
+  Object.fromEntries(KNOWN.map((one) => [one, pixels(MILLIMETRES[one][side])])) as Record<
     Paper,
     number
   >;
@@ -52,7 +54,7 @@ const ACROSS: Record<Paper, string> = {
 };
 
 export const TALL = Object.fromEntries(
-  LEAVES.map((one) => [one, MILLIMETRES[one][1] / MILLIMETRES[one][0]]),
+  KNOWN.map((one) => [one, MILLIMETRES[one][1] / MILLIMETRES[one][0]]),
 ) as Record<Paper, number>;
 
 const WORDS = {
@@ -64,7 +66,6 @@ const WORDS = {
 
 export const leafWord = (one: Paper) => WORDS[one];
 
-// A sheet no longer offered still shows on the document that already has it.
 export const offered = (leaf: Paper) => (LEAVES.includes(leaf) ? LEAVES : [...LEAVES, leaf]);
 
 export const sizeOf = (leaf: Paper, landscape = false) => (landscape ? ACROSS : PAGE)[leaf];
