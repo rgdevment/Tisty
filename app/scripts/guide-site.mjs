@@ -145,9 +145,9 @@ ${AHEAD}
 <button class="theme" type="button" aria-label="${language.dark}" title="${language.dark}" onclick="${SWITCH}">${MOON}${SUN}</button>
 </header>
 <div class="wrap">
-<nav class="topics" aria-label="${language.topics}"><ol>${listed}</ol></nav>
-<main>${page.html}<nav class="near" aria-label="${language.near}">${near}</nav></main>
-</div>${page.html.includes('class="widget"') ? HOSTS : ""}${page.html.includes('class="diagram"') ? `<script type="module" src="${up}diagrams/diagrams.js"></script>` : ""}
+<nav class="topics" aria-label="${language.topics}"><div class="search" data-search hidden></div><ol>${listed}</ol></nav>
+<main data-pagefind-body>${page.html}<nav class="near" aria-label="${language.near}" data-pagefind-ignore>${near}</nav></main>
+</div>${SEARCH}${page.html.includes('class="widget"') ? HOSTS : ""}${page.html.includes('class="diagram"') ? `<script type="module" src="${up}diagrams/diagrams.js"></script>` : ""}
 </body>
 </html>
 `;
@@ -188,6 +188,8 @@ ${urls.join("\n")}
 
 // Only where a widget lives: it hears how tall each one is and tells them light or dark.
 const HOSTS = `<script>(()=>{const r=document.documentElement;const frames=()=>document.querySelectorAll("iframe.widget");const tell=(w)=>w&&w.postMessage({tisty:"theme",dark:r.classList.contains("dark")},"*");addEventListener("message",(e)=>{if(!e.data||e.data.tisty!=="height")return;for(const f of frames())if(f.contentWindow===e.source){f.style.height=Math.min(Math.max(e.data.h,40),2000)+"px";tell(e.source)}});new MutationObserver(()=>{for(const f of frames())tell(f.contentWindow)}).observe(r,{attributes:true,attributeFilter:["class"]})})()</script>`;
+
+const SEARCH = `<script>(()=>{const box=document.querySelector("[data-search]");if(!box)return;const sheet=document.createElement("link");sheet.rel="stylesheet";sheet.href="/pagefind/pagefind-ui.css";const code=document.createElement("script");code.src="/pagefind/pagefind-ui.js";code.onload=()=>{new PagefindUI({element:box,showSubResults:true,showImages:false,resetStyles:false});box.hidden=false};document.head.append(sheet,code)})()</script>`;
 
 // Declarative, not a script: the browser readies a page while the pointer rests on its link.
 const AHEAD = `<script type="speculationrules">{"prerender":[{"where":{"selector_matches":".topics a, .near a, .page a[href]:not([href^='http'])"},"eagerness":"moderate"}]}</script>`;

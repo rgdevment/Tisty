@@ -170,6 +170,22 @@ html.dark .top .theme .sun {
   display: block;
 }
 
+.search {
+  margin: 0 0 18px;
+  --pagefind-ui-scale: 0.72;
+  --pagefind-ui-primary: var(--tisty-ink);
+  --pagefind-ui-text: var(--tisty-soft);
+  --pagefind-ui-background: var(--tisty-sheet);
+  --pagefind-ui-border: var(--tisty-line);
+  --pagefind-ui-tag: var(--tisty-rail);
+  --pagefind-ui-border-width: 1px;
+  --pagefind-ui-border-radius: 12px;
+  --pagefind-ui-font: inherit;
+}
+.search[hidden] {
+  display: none;
+}
+
 .wrap {
   display: grid;
   grid-template-columns: 236px minmax(0, 1fr);
