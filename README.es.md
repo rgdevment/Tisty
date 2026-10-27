@@ -1143,7 +1143,7 @@ para cualquier cosa que no sea un arreglo: Tisty es deliberadamente mínimo, y u
 función bien escrita se puede rechazar igual — normalmente porque convertiría la
 herramienta en otra cosa.
 
-Quien participe —en issues, pull requests, discusiones o la wiki— sigue el
+Quien participe —en issues, pull requests o discusiones— sigue el
 [código de conducta](CODE_OF_CONDUCT.md), que está en inglés.
 
 ## Licencia

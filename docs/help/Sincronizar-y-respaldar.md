@@ -156,6 +156,8 @@ Cuando dice **«Tu nube está cifrada»**, la copia antigua sin cifrar sigue en 
 
 Si no escribes nada, no se entrega nada. O, en el equipo nuevo, **Escribir mi frase** recibe tus 24 palabras: ahí solo queda la llave de la nube, nunca la frase.
 
+Si luego el equipo nuevo se queda con el historial de tu nube, no te pregunta por tus otros equipos, y el que recibió sus dígitos no vuelve a pedirlos; cada uno de tus otros equipos te pide confirmar su código una vez, como con cualquier equipo nuevo. Elígelo dentro de la semana en que escribiste los dígitos: pasado ese plazo, el que los recibió te lo pregunta una vez más.
+
 ### Lo que no oculta
 
 Tu proveedor guarda un tiempo versiones anteriores sin cifrar, en su historial y su papelera. Los nombres y tamaños de los archivos, cuándo cambian y cuántos equipos tienes siguen a la vista.

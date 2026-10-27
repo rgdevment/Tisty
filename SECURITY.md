@@ -207,7 +207,12 @@ Being explicit here matters more than sounding reassuring.
   taken in at all. A machine whose key nobody here has confirmed is not trusted
   on the folder's word: what it writes waits until you confirm its key, in the
   window, or until you let that computer into an encrypted cloud with the
-  twenty digits it shows, which confirms its key in the same step. Those
+  twenty digits it shows, which confirms its key in the same step. If that
+  computer then takes up the cloud's history, it does so under a new name that
+  signs with the same key, and the computer that took its digits answers for
+  that name once: within a week of the digits, only while the first name never
+  wrote in the cloud, and never once you removed either name. Your other
+  computers confirm it as any new one. Those
   confirmations are kept on this machine only, and a key once
   confirmed is replaced only on its own word: a change of key that the
   confirmed key itself signed is followed, and a new key nobody vouched for
@@ -217,8 +222,10 @@ Being explicit here matters more than sounding reassuring.
   sign a change too: that machine is removed and confirmed again by looking. The
   one moment the folder is taken on its
   word is the first time this machine reaches a folder, before it has confirmed
-  any other: the keys of the machines already writing there are adopted as
-  found, so the folder you join should be one you trust.
+  any other — its own earlier name and its assistants do not count, which is
+  where a computer let into an encrypted cloud stands once it takes up the
+  cloud's history: the keys of the machines already writing there are adopted
+  as found, so the folder you join should be one you trust.
 
   The signatures answer for the log, and not for everything beside it. A
   document body that matches none of the prints the log holds for it is never
