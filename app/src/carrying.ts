@@ -1,5 +1,5 @@
 import { listen } from "@tauri-apps/api/event";
-import { toldAside } from "./coming";
+import { choiceWaits, toldAside } from "./coming";
 import {
   type Carried,
   type Carrying,
@@ -44,6 +44,7 @@ export function carrying(
   let folder: string | undefined;
   let gone = false;
   let running = false;
+  let choosing = false;
   let owed: Way | null = null;
   let round = 0;
   let soon: ReturnType<typeof setTimeout> | undefined;
@@ -70,6 +71,7 @@ export function carrying(
     return syncNow(way)
       .then((answer) => {
         if (gone) return undefined;
+        choosing = false;
         if (answer.carried === "came" || answer.carried === "both") brought();
         // A round that did nothing, here or in the cloud another round held, still owes what was asked.
         const busy = answer.carried === "busy" || answer.deferred?.reason === "busy";
@@ -99,6 +101,7 @@ export function carrying(
         return busy ? "busy" : answer.carried;
       })
       .catch((problem) => {
+        choosing = choiceWaits(problem);
         const ours = (problem as { code?: string } | null)?.code === "cloudSealingHere";
         if (!gone && mine === round)
           awry(ours ? null : { why: "broke", said: saidPlainly(problem) });
@@ -152,7 +155,8 @@ export function carrying(
         // The mark only moves on once a round actually took it: a busy or broken one would
         // otherwise swallow what stirred and wait for the next thing to move.
         return pull().then((how) => {
-          if (!how || how === "busy") return;
+          // Asked again, a round that waits on the person's choice only asks the same.
+          if (how === "busy" || (!how && !choosing)) return;
           // Read again once the round is done, so our own push is absorbed and the next stir is still heard.
           return folderAstir()
             .then((after) => {

@@ -704,12 +704,18 @@ impl Turning {
 }
 
 // Only a name whose twin stands with the same size goes, and the word is read again every batch in case a turn began.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Wiped {
+    pub gone: usize,
+    pub left: usize,
+}
+
 pub fn wipe_behind(
     plain: Arc<dyn Remote>,
     home: &Path,
     key: CloudKey,
     cloud: &str,
-) -> Result<usize, Hitch> {
+) -> Result<Wiped, Hitch> {
     let _held = locked(home)?;
     let metered = Metered::over(&*plain, home, Class::Sealing);
     let (text, revision) = word(&metered)?;
@@ -720,17 +726,22 @@ pub fn wipe_behind(
         _ => return Err(turned_away(cloud)),
     };
     let mut gone: usize = 0;
-    for name in standing_twins(behind, kept)? {
+    let (twins, left) = twins_and_rest(behind, kept)?;
+    for name in twins {
         if gone.is_multiple_of(WIPED_BETWEEN_LOOKS) && word(&metered)?.1 != revision {
             return Err(turned_away(cloud));
         }
         deleted(behind, &name)?;
         gone += 1;
     }
-    Ok(gone)
+    Ok(Wiped { gone, left })
 }
 
 fn standing_twins(behind: &dyn Remote, kept: &dyn Remote) -> Result<Vec<String>, Hitch> {
+    Ok(twins_and_rest(behind, kept)?.0)
+}
+
+fn twins_and_rest(behind: &dyn Remote, kept: &dyn Remote) -> Result<(Vec<String>, usize), Hitch> {
     let folds = behind.limits().folds_case;
     let standing: BTreeMap<String, u64> = kept
         .list("")?
@@ -738,12 +749,12 @@ fn standing_twins(behind: &dyn Remote, kept: &dyn Remote) -> Result<Vec<String>,
         .filter(|one| ours_to_turn(&one.name, folds))
         .map(|one| (one.name, one.bytes))
         .collect();
-    Ok(behind
+    let (twins, rest): (Vec<_>, Vec<_>) = behind
         .list("")?
         .into_iter()
-        .filter(|one| ours_to_turn(&one.name, folds) && standing.get(&one.name) == Some(&one.bytes))
-        .map(|one| one.name)
-        .collect())
+        .filter(|one| ours_to_turn(&one.name, folds))
+        .partition(|one| standing.get(&one.name) == Some(&one.bytes));
+    Ok((twins.into_iter().map(|one| one.name).collect(), rest.len()))
 }
 
 pub fn turn_size(plain: &dyn Remote) -> Result<u64, Hitch> {

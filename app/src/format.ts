@@ -52,6 +52,8 @@ export function stamped(iso: string, now = new Date()): string {
 }
 
 // On paper a date is read later and elsewhere, so it says the whole day, never «today».
+export const numbered = (many: number): string => new Intl.NumberFormat(locale()).format(many);
+
 export const wholeStamp = (at: Date): string => formats().whole.format(at);
 
 export const dayOf = (iso: string): string => formats().day.format(new Date(iso));

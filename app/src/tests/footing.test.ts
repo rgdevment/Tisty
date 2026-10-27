@@ -154,6 +154,8 @@ describe("the sync foot", () => {
   it("says a round is running even when it tells no progress", () => {
     const foot = footing(seen({ status: cloud({ joined: false, running: true }) }));
     expect(foot).toEqual({ kind: "syncing", done: 0, whole: 0 });
+    const read = cloud({ running: true, reading: { done: 30, whole: 120, at: NOW } });
+    expect(footing(seen({ status: read }))).toEqual({ kind: "syncing", done: 30, whole: 120 });
   });
 
   it("never says up to date before this computer finished a round with the cloud", () => {

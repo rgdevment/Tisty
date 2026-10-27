@@ -1948,7 +1948,8 @@ const en = {
   admitCompare:
     "Type these twenty digits on «{name}». Once that computer has taken them, press «It took them» here.",
   admitTrusted: "Waiting for «{name}» to hand over the key…",
-  admitIn: "Done. This computer now reads your encrypted cloud.",
+  admitIn:
+    "Done, this computer has the key. It now brings your encrypted cloud here: you can watch it move along below.",
   admitGranted: "Done. Press «It took them» on «{name}» and it gets the key.",
   admitRefused: "Nothing was handed over, and the request was taken away.",
   admitMismatch:
@@ -1985,6 +1986,7 @@ const en = {
   enterSeen: "last heard {name}",
   enterGo: "Open my cloud",
   sealWipe: "Delete the unencrypted copy",
+  sealBringing: "Bringing your encrypted cloud to this computer: {name} of {other}",
   sealWipeSure:
     "Delete the old copy from {name}? Only files whose new copy is already there are deleted.",
   sealWiped: "{name} old files deleted.",
@@ -4470,7 +4472,8 @@ const es: Catalog = {
   admitCompare:
     "Escribe estos veinte dígitos en «{name}». Cuando ese equipo los haya aceptado, pulsa «Ya los aceptó» aquí.",
   admitTrusted: "Esperando a que «{name}» entregue la llave…",
-  admitIn: "Listo. Este equipo ya lee tu nube cifrada.",
+  admitIn:
+    "Listo, este equipo ya tiene la llave. Ahora trae tu nube cifrada: puedes verla avanzar abajo.",
   admitGranted: "Listo. Pulsa «Ya los aceptó» en «{name}» y recibirá la llave.",
   admitRefused: "No se entregó nada y se quitó la solicitud.",
   admitMismatch:
@@ -4508,6 +4511,7 @@ const es: Catalog = {
   enterSeen: "última vez {name}",
   enterGo: "Abrir mi nube",
   sealWipe: "Borrar la copia sin cifrar",
+  sealBringing: "Trayendo tu nube cifrada a este equipo: {name} de {other}",
   sealWipeSure:
     "¿Borrar la copia antigua de {name}? Solo se borran los archivos cuya copia nueva ya está ahí.",
   sealWiped: "Se borraron {name} archivos antiguos.",

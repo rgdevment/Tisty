@@ -115,6 +115,35 @@ describe("carrying on its own", () => {
     expect(bus.heard.has("told")).toBe(false);
   });
 
+  it("does not ask again and again while a round waits on the person's choice, and still retries what broke", async () => {
+    for (const [code, again] of [
+      ["otherStore", false],
+      ["cloudNotNow", true],
+    ] as const) {
+      let mark = "one";
+      ipc.calls = [];
+      ipc.answer = (cmd) => {
+        if (cmd === "sync_state") return Promise.resolve({ ...state });
+        if (cmd === "folder_astir") return Promise.resolve(mark);
+        return Promise.reject({ code });
+      };
+      carried = carrying(() => {});
+      await settle();
+      await vi.advanceTimersByTimeAsync(30_000);
+      mark = "two";
+      await vi.advanceTimersByTimeAsync(30_000);
+      await settle();
+      const asked = sent("sync_now").length;
+
+      await vi.advanceTimersByTimeAsync(30_000);
+      await vi.advanceTimersByTimeAsync(30_000);
+      await settle();
+
+      expect(sent("sync_now").length > asked, code).toBe(again);
+      carried.stop();
+    }
+  });
+
   it("glances at the folder and brings it home only when something stirred", async () => {
     let mark = "one";
     ipc.answer = (cmd) => {

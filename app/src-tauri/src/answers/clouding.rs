@@ -699,6 +699,7 @@ pub struct CloudStatus {
     adopts: bool,
     running: bool,
     sealing_elsewhere: Option<&'static str>,
+    reading: Option<tisty_carrier::Reading>,
 }
 
 /// What Settings and Maintenance say of the chosen cloud, read off this disk with no request.
@@ -736,7 +737,8 @@ pub async fn cloud_status(
                     took.as_deref(),
                 )
         });
-        status.running = running;
+        status.reading = tisty_carrier::reading(&home);
+        status.running = running || status.reading.is_some();
         status.sealing_elsewhere = turned_elsewhere(&home);
         Some(status)
     })
@@ -773,6 +775,7 @@ pub(crate) fn status_of(at: &CloudAt, home: &std::path::Path, joined: bool) -> C
         adopts: false,
         running: false,
         sealing_elsewhere: None,
+        reading: None,
     }
 }
 

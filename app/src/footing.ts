@@ -72,7 +72,11 @@ export const footing = (seen: Seen): Footing | null => {
   if (!synced(state)) return null;
   const now = seen.now ?? Date.now() / 1000;
   if (seen.coming || seen.mine || status?.running)
-    return { kind: "syncing", done: seen.coming?.done ?? 0, whole: seen.coming?.whole ?? 0 };
+    return {
+      kind: "syncing",
+      done: seen.coming?.done ?? status?.reading?.done ?? 0,
+      whole: seen.coming?.whole ?? status?.reading?.whole ?? 0,
+    };
   const said = new Set<Said | null>([
     status?.last ? saidOf(status.last.code, status.last.at, now) : null,
     saidOf(codeOf(seen.stuck), now, now),
