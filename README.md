@@ -148,7 +148,7 @@ productivity tool** that lives on your machine and nowhere else.
 - [Your Data and Privacy](#your-data-and-privacy)
 - [Two Machines, If You Have Two](#two-machines-if-you-have-two)
 - [An Assistant, If You Use One](#an-assistant-if-you-use-one)
-- [What It Will Never Do](#what-it-will-never-do)
+- [What It Does Not Do](#what-it-does-not-do)
 - [FAQ](#faq)
 - [Alternatives](#alternatives)
 - [Localization](#localization)
@@ -872,9 +872,9 @@ Whatever it reads travels wherever that assistant travels. That is between you
 and it — which is precisely why this is a door you open, and not one that was
 already open.
 
-## What It Will Never Do
+## What It Does Not Do
 
-As important as the list above. Permanently out of scope: real-time
+As important as the list above. Out of scope for now: real-time
 collaboration, kanban boards, Gantt charts, time tracking, productivity metrics,
 databases with typed properties and formulas, and AI anywhere in the critical
 path.

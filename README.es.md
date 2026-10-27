@@ -152,7 +152,7 @@ que nadie usa. Sin anuncios, sin telemetría, sin cuentas, sin suscripciones: un
 - [Tus datos y tu privacidad](#tus-datos-y-tu-privacidad)
 - [Dos equipos, si tienes dos](#dos-equipos-si-tienes-dos)
 - [Un asistente, si usas uno](#un-asistente-si-usas-uno)
-- [Qué nunca va a hacer](#qué-nunca-va-a-hacer)
+- [Qué no hace](#qué-no-hace)
 - [Preguntas frecuentes](#preguntas-frecuentes)
 - [Alternativas](#alternativas)
 - [Idiomas](#idiomas)
@@ -893,9 +893,9 @@ Lo que lea viaja adonde viaje ese asistente. Eso queda entre él y tú — que e
 justamente por lo que esta es una puerta que abres, y no una que ya estaba
 abierta.
 
-## Qué nunca va a hacer
+## Qué no hace
 
-Tan importante como la lista de arriba. Fuera de alcance para siempre: trabajo
+Tan importante como la lista de arriba. Fuera de alcance por ahora: trabajo
 colaborativo en tiempo real, tableros kanban, diagramas de Gantt, control de
 horas, métricas de productividad, bases de datos con propiedades tipadas y
 fórmulas, e inteligencia artificial en cualquier punto del camino crítico.
