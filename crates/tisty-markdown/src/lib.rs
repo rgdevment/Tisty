@@ -28,6 +28,9 @@ mod standard;
 mod tables;
 pub mod tags;
 mod transform;
+#[cfg(feature = "tables")]
+mod typed;
+mod values;
 pub mod vocab;
 mod writing;
 
@@ -138,10 +141,103 @@ pub enum Kind {
     },
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Column {
     pub lean: Option<Lean>,
     pub wide: Option<u32>,
+    pub holds: Holds,
+    pub total: Option<Total>,
+    /// Where ` {type}` sits at the end of the head, which only Tisty reads.
+    pub typed: Option<Range<usize>>,
+}
+
+/// What a column holds, said as `{type}` at the end of its head; without one, words.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub enum Holds {
+    #[default]
+    Text,
+    Number,
+    Money {
+        currency: Option<String>,
+    },
+    Percent,
+    Date,
+    Duration,
+    Check,
+    Select,
+    Tags,
+    Rating,
+    Link,
+    Url,
+    Email,
+    Phone,
+}
+
+impl Holds {
+    /// The word the type is written with in a column's head.
+    pub fn word(&self) -> &'static str {
+        match self {
+            Self::Text => "text",
+            Self::Number => "number",
+            Self::Money { .. } => "money",
+            Self::Percent => "percent",
+            Self::Date => "date",
+            Self::Duration => "duration",
+            Self::Check => "check",
+            Self::Select => "select",
+            Self::Tags => "tags",
+            Self::Rating => "rating",
+            Self::Link => "link",
+            Self::Url => "url",
+            Self::Email => "email",
+            Self::Phone => "phone",
+        }
+    }
+
+    /// A value of this type reads on one line: a date or an amount split in two is misread.
+    pub fn whole(&self) -> bool {
+        matches!(
+            self,
+            Self::Number
+                | Self::Money { .. }
+                | Self::Percent
+                | Self::Date
+                | Self::Duration
+                | Self::Rating
+                | Self::Phone
+        )
+    }
+
+    /// Where its values lean when the rule under the head does not say.
+    pub fn lean(&self) -> Option<Lean> {
+        match self {
+            Self::Number | Self::Money { .. } | Self::Percent | Self::Duration => Some(Lean::Right),
+            Self::Check => Some(Lean::Center),
+            _ => None,
+        }
+    }
+}
+
+/// What a column adds up at its foot.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Total {
+    Sum,
+    Avg,
+    Min,
+    Max,
+    Count,
+}
+
+impl Total {
+    pub fn word(self) -> &'static str {
+        match self {
+            Self::Sum => "sum",
+            Self::Avg => "avg",
+            Self::Min => "min",
+            Self::Max => "max",
+            Self::Count => "count",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

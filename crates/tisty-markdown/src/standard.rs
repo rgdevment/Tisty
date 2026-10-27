@@ -1,7 +1,7 @@
 use std::cmp::Reverse;
 use std::ops::Range;
 
-use crate::{Block, Callout, Kind, Mark, refs};
+use crate::{Block, Callout, Column, Kind, Mark, refs, values};
 
 /// Where a link to another document lands outside Tisty; nothing found leaves the words alone.
 pub enum Toward<'a> {
@@ -68,6 +68,7 @@ fn outward(
                 edits.push((start + at..start + at + 3, "mermaid".to_string()));
             }
         }
+        Kind::Table { columns } => typed_out(block, columns, said, text, edits),
         _ => {}
     }
     for span in &block.spans {
@@ -190,6 +191,38 @@ fn headed(said: &str, start: usize, edits: &mut Edits) {
     }
     let gap = rest.len() - words.len();
     edits.push((start + shut..start + shut + gap, "\n> ".into()));
+}
+
+// Outside Tisty a column's type is words nobody reads, so it goes, and its values read as Tisty shows them.
+fn typed_out(block: &Block, columns: &[Column], said: &str, text: &str, edits: &mut Edits) {
+    if columns.iter().all(|one| one.typed.is_none()) {
+        return;
+    }
+    for at in columns.iter().filter_map(|one| one.typed.clone()) {
+        edits.push((at, String::new()));
+    }
+    for row in block.inner.iter().skip(1) {
+        for (cell, column) in row.inner.iter().zip(columns) {
+            let start = cell.spans.iter().map(|one| one.at.start).min();
+            let end = cell.spans.iter().map(|one| one.at.end).max();
+            let (Some(start), Some(end), Some(_)) = (start, end, &column.typed) else {
+                continue;
+            };
+            if let Some(shown) = values::seen(&column.holds, values::said(cell, text)).shown {
+                edits.push((start..end, shown.replace('|', r"\|")));
+            }
+        }
+    }
+    if let Some(foot) = values::footed(columns, block, text) {
+        let end = block.at.start + said.len();
+        let last = &said[said.rfind('\n').map_or(0, |at| at + 1)..];
+        let quote = &last[..last.len() - last.trim_start_matches(['>', ' ']).len()];
+        let row: String = foot
+            .iter()
+            .map(|one| format!(" {} |", one.replace('|', r"\|")))
+            .collect();
+        edits.push((end..end, format!("\n{quote}|{row}")));
+    }
 }
 
 fn escaped(text: &str) -> String {
