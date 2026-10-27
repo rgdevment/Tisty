@@ -413,11 +413,23 @@ figure.diagram {
   top: 6px;
   right: 6px;
   opacity: 0;
+  pointer-events: none;
+  user-select: none;
   transition: opacity 0.12s;
 }
 figure.diagram:hover .diagram-bar,
 .diagram-bar:focus-within {
   opacity: 1;
+  pointer-events: auto;
+}
+@media (hover: none) {
+  .diagram-bar {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+.diagram-bar button::after {
+  content: attr(aria-label);
 }
 .diagram-bar button {
   border: 1px solid var(--tisty-hair);

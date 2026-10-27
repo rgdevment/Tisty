@@ -21,6 +21,7 @@ pub fn view_diagram(
     views: tauri::State<'_, Views>,
     paper: Paper,
     at: usize,
+    nth: usize,
 ) -> Answer<()> {
     // Two windows on one diagram would refuse each other's saves.
     let open = viewing::showing(
@@ -34,21 +35,11 @@ pub fn view_diagram(
     // Opened only where it can be saved, so no work is done that a lock would then refuse.
     writable(&held(&session).state, &paper.file)?;
     let body = viewing::doc_body(&app, &paper.file)?;
-    let Some((nth, found)) = diagrams::diagrams(&body)
-        .into_iter()
-        .enumerate()
-        .find(|(_, one)| one.at.start == at)
-    else {
+    // Words typed above it and not yet saved shift its place on the page, never its order.
+    let Some((place, was)) = diagrams::at_place(&body, Place { at, nth }) else {
         return Err(Refusal::about("diagramMoved", paper.title));
     };
-    viewing::open(
-        &app,
-        Shown::Diagram(Drawn {
-            paper,
-            place: Place { at, nth },
-            was: found.source,
-        }),
-    );
+    viewing::open(&app, Shown::Diagram(Drawn { paper, place, was }));
     Ok(())
 }
 

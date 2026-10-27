@@ -78,6 +78,8 @@ type Props = {
   readonly looking?: number;
   // Only a document is written whole; a task's page keeps the sections of its template.
   readonly wholeable?: boolean;
+  // The folder the document sits in, for the windows it opens.
+  readonly place?: string;
   // Each new count opens the whole document, or leaves it when it is open.
   readonly wholeAsked?: number;
   // Each new count chooses every word: the block being written, or the page as read.
@@ -90,13 +92,17 @@ export default function Sheet(props: Readonly<Props>) {
   const room = useRef<HTMLDivElement>(null);
   const said = useRef(props);
   said.current = props;
-  const diagram = (at: number) => {
+  const diagram = (at: number, nth: number) => {
     const named = said.current.file;
     // A page not written yet has no file the diagram could be saved back into.
     if (!named || named.startsWith("unwritten:")) return;
-    viewDiagram({ id: "", file: named, title: said.current.label, place: "" }, at).catch((e) =>
-      said.current.onFail?.(e),
-    );
+    const paper = {
+      id: "",
+      file: named,
+      title: said.current.label,
+      place: said.current.place ?? "",
+    };
+    viewDiagram(paper, at, nth).catch((e) => said.current.onFail?.(e));
   };
   const [drawn, setDrawn] = useState(value);
   const open = useRef<Editing | null>(null);

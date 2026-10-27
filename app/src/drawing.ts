@@ -1,8 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { Viewed } from "./core";
 
-export const viewDiagram = (paper: Viewed, at: number): Promise<void> =>
-  invoke("view_diagram", { paper, at });
+export const viewDiagram = (paper: Viewed, at: number, nth: number): Promise<void> =>
+  invoke("view_diagram", { paper, at, nth });
 export const diagramSave = (now: string): Promise<void> => invoke("diagram_save", { now });
 export const diagramAgain = (): Promise<string> => invoke("diagram_again");
 export const diagramUnsaved = (unsaved: boolean): Promise<void> =>

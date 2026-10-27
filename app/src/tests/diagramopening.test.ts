@@ -16,12 +16,12 @@ vi.mock("mermaid", () => ({
 const page = (html: string): Document => new DOMParser().parseFromString(shell(html), "text/html");
 
 const reaching = (opens = true) => {
-  const heard = { diagrams: [] as number[], pictures: [] as number[] };
+  const heard = { diagrams: [] as [number, number][], pictures: [] as number[] };
   const reach: Reaching = {
     body: "",
     onDoc: () => {},
     onPicture: (_, nth) => heard.pictures.push(nth),
-    onDiagram: opens ? (at) => heard.diagrams.push(at) : undefined,
+    onDiagram: opens ? (at, nth) => heard.diagrams.push([at, nth]) : undefined,
   };
   return { heard, reach };
 };
@@ -33,13 +33,20 @@ const BODY =
 
 const drawnPage = () =>
   page(
-    '<figure class="diagram drawn" data-at="0-30"><div class="diagram-sheet"><svg viewBox="0 0 10 10"></svg></div></figure>',
+    '<figure class="diagram drawn" data-at="0-30"><div class="diagram-sheet"><svg viewBox="0 0 10 10"><text>Cifrado</text></svg></div></figure>' +
+      '<p data-at="32-40"><a class="card" data-doc="ab12-0001">Otro</a></p>',
   );
 
-const press = (on: Element | null | undefined, detail: number) =>
-  on?.dispatchEvent(
-    new MouseEvent("click", { bubbles: true, cancelable: true, button: 0, detail }),
-  );
+const press = (on: Element | null | undefined, detail: number, kind = "click") =>
+  on?.dispatchEvent(new MouseEvent(kind, { bubbles: true, cancelable: true, button: 0, detail }));
+
+// A double press on a label selects its word before the second click arrives.
+const selectWord = (own: Document, word: Element | null) => {
+  const range = own.createRange();
+  if (word) range.selectNodeContents(word);
+  own.getSelection()?.removeAllRanges();
+  own.getSelection()?.addRange(range);
+};
 
 describe("opening a diagram of the page in its own window", () => {
   afterEach(() => {
@@ -52,10 +59,11 @@ describe("opening a diagram of the page in its own window", () => {
     const buttons = own.querySelectorAll(
       'figure.diagram > .diagram-bar > button[data-asked="diagram"]',
     );
-    expect(Array.from(buttons, (one) => one.textContent)).toEqual([
+    expect(Array.from(buttons, (one) => one.getAttribute("aria-label"))).toEqual([
       t("diagramOpen"),
       t("diagramOpen"),
     ]);
+    expect(own.body.textContent).not.toContain(t("diagramOpen"));
 
     const stranger = page(BODY);
     worn(stranger, true, () => true, reaching().reach);
@@ -75,7 +83,10 @@ describe("opening a diagram of the page in its own window", () => {
     for (const button of own.querySelectorAll(".diagram-bar button")) press(button, 1);
 
     expect(own.querySelectorAll(".diagram-bar")).toHaveLength(2);
-    expect(heard.diagrams).toEqual([0, 34]);
+    expect(heard.diagrams).toEqual([
+      [0, 0],
+      [34, 1],
+    ]);
     expect(went(own.querySelectorAll(".diagram-bar button")[1], false)).toEqual({
       kind: "diagram",
       at: [34, 78],
@@ -97,7 +108,25 @@ describe("opening a diagram of the page in its own window", () => {
     }
   });
 
-  it("opens the window on a double press, and only looks at the picture after a single one", () => {
+  it("opens the window on a double press on a label, word selected or not, and never the picture", () => {
+    vi.useFakeTimers();
+    const own = drawnPage();
+    const { heard, reach } = reaching();
+    wired(own, () => reach);
+    const label = own.querySelector("text");
+
+    press(label, 1);
+    selectWord(own, label);
+    press(label, 2);
+    press(label, 2, "dblclick");
+    vi.advanceTimersByTime(DOUBLE_MS);
+
+    expect(heard.diagrams).toEqual([[0, 0]]);
+    expect(heard.pictures).toEqual([]);
+    expect(own.getSelection()?.isCollapsed ?? true).toBe(true);
+  });
+
+  it("looks at the picture after a single press, unless something else was pressed meanwhile", () => {
     vi.useFakeTimers();
     const own = drawnPage();
     const { heard, reach } = reaching();
@@ -105,13 +134,17 @@ describe("opening a diagram of the page in its own window", () => {
     const svg = own.querySelector("svg");
 
     press(svg, 1);
-    press(svg, 2);
-    vi.advanceTimersByTime(DOUBLE_MS);
-    expect(heard.diagrams).toEqual([0]);
     expect(heard.pictures).toEqual([]);
+    vi.advanceTimersByTime(DOUBLE_MS);
+    expect(heard.pictures).toEqual([0]);
 
     press(svg, 1);
-    expect(heard.pictures).toEqual([]);
+    press(own.querySelector("a.card"), 1);
+    vi.advanceTimersByTime(DOUBLE_MS);
+    expect(heard.pictures).toEqual([0]);
+
+    press(svg, 1);
+    own.querySelector("figure")?.remove();
     vi.advanceTimersByTime(DOUBLE_MS);
     expect(heard.pictures).toEqual([0]);
   });
