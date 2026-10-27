@@ -2,6 +2,7 @@ mod amounts;
 mod bare;
 #[cfg(feature = "details")]
 mod details;
+pub mod diagrams;
 #[cfg(feature = "emoji")]
 mod emoji;
 pub mod fences;
