@@ -91,6 +91,29 @@ Little, and all of it reversible.
   everything: your tasks, documents and attachments, settings, cache and the
   start at login. The keychain keeps a cloud access until you disconnect
   first, as [PRIVACY.md](../PRIVACY.md) explains.
+- **Some things stay on purpose.** An assistant you connected keeps its entry
+  for Tisty, because uninstalling never edits another program's settings and
+  an update must not cut an assistant off. To take it out, use *Remove* under
+  Settings › Assistants before uninstalling; if you install Tisty again
+  instead, that list shows the entry pointing at a Tisty that is no longer
+  there and offers to repair it. On Windows the window's view preferences stay
+  in `%LOCALAPPDATA%\dev.rgdevment.tisty` unless you tick the box to delete the
+  application data. The Microsoft Store runs nothing of an app's own when it
+  removes it, so there `%USERPROFILE%\.tisty` stays whole, cache included.
+- **To take every trace off a computer**, each release carries a clean-up
+  script beside the installers, checked like them by `SHA256SUMS` and the
+  attestation. It uninstalls Tisty whichever way it came, through Homebrew,
+  the installer, winget or the Store, and then removes what is left, the
+  `tisty` command your assistants start included. It backs your store up to
+  the desktop first and stops if it cannot, and it asks before it removes this
+  computer's copy of your recovery phrase. It never touches an assistant's
+  own settings, however its entry for Tisty got there. `--dry-run` on macOS
+  and `-DryRun` on Windows list what it would remove and touch nothing.
+
+  ```console
+  $ bash ~/Downloads/tisty-clean-<version>-macos.sh
+  > powershell -ExecutionPolicy Bypass -File .\tisty-clean-<version>-windows.ps1
+  ```
 
 ## What it does with your data
 
