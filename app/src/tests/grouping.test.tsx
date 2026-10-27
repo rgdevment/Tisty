@@ -115,7 +115,7 @@ describe("grouping the open tasks", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /should not be done/ }));
 
-    expect(select).toHaveBeenCalledWith("5");
+    expect(select).toHaveBeenCalledWith("5", expect.objectContaining({ id: "5" }));
     expect(complete).not.toHaveBeenCalled();
   });
 });
