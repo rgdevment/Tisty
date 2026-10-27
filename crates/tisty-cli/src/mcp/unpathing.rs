@@ -10,25 +10,42 @@ const HELD_SPACES: usize = 4;
 
 /// What sits in a fence or between backticks is an example someone wrote, not their disk.
 pub(super) fn unpathed_body(body: &str) -> String {
-    let mut fenced: Option<(char, usize)> = None;
-    body.lines()
-        .map(|line| {
-            let fence = fence_of(line);
-            match (fenced, fence) {
-                (Some((mark, open)), Some((this, run))) if this == mark && run >= open => {
-                    fenced = None;
-                    line.to_string()
-                }
-                (Some(_), _) => line.to_string(),
-                (None, Some(opened)) => {
-                    fenced = Some(opened);
-                    line.to_string()
-                }
-                (None, None) => unpathed(line),
+    fenced_lines(body)
+        .map(|(line, fenced)| {
+            if fenced {
+                line.to_string()
+            } else {
+                unpathed(line)
             }
         })
         .collect::<Vec<_>>()
         .join("\n")
+}
+
+/// Whether a line quoted out of `body`, clipped or trimmed, sits inside one of its fences.
+pub(super) fn fenced_in(body: &str, line: &str) -> bool {
+    let quoted = line.trim_end_matches('…').trim();
+    !quoted.is_empty()
+        && fenced_lines(body).any(|(one, fenced)| fenced && one.trim().starts_with(quoted))
+}
+
+/// Each line with whether it belongs to a fence, the fence lines themselves included.
+fn fenced_lines(body: &str) -> impl Iterator<Item = (&str, bool)> {
+    let mut open: Option<(char, usize)> = None;
+    body.lines().map(move |line| {
+        let fence = fence_of(line);
+        match (open, fence) {
+            (Some((mark, opened)), Some((this, run, bare)))
+                if this == mark && run >= opened && bare =>
+            {
+                open = None;
+            }
+            (Some(_), _) => {}
+            (None, Some((mark, run, _))) => open = Some((mark, run)),
+            (None, None) => return (line, false),
+        }
+        (line, true)
+    })
 }
 
 pub(super) fn unpathed(line: &str) -> String {
@@ -75,14 +92,16 @@ fn unpathed_prose(line: &str) -> String {
     out
 }
 
-fn fence_of(line: &str) -> Option<(char, usize)> {
+/// The fence's mark, its length, and whether nothing follows it, which only a closing one needs.
+fn fence_of(line: &str) -> Option<(char, usize, bool)> {
     let lead = line.len() - line.trim_start_matches(' ').len();
     let mark = line[lead..]
         .chars()
         .next()
         .filter(|c| matches!(c, '`' | '~'))?;
     let run = line[lead..].chars().take_while(|&c| c == mark).count();
-    (lead <= 3 && run >= 3).then_some((mark, run))
+    let bare = line[lead + run..].trim().is_empty();
+    (lead <= 3 && run >= 3).then_some((mark, run, bare))
 }
 
 /// An unmatched run of backticks is a plain character, as in Markdown.
@@ -195,8 +214,10 @@ pub(super) fn absolute(line: &str) -> Option<usize> {
             && (bytes[at + 2] == b'/' || bytes[at + 2] == b'\\');
         // A second slash in the same word: `/code-review` or `RMDir /r` are words, not folders.
         let rooted = bytes[at] == b'/'
-            && at > 0
-            && bytes[at - 1] == b' '
+            && line[..at]
+                .chars()
+                .next_back()
+                .is_some_and(|before| matches!(before, ' ' | '"' | '\'' | '(' | '«'))
             && bytes
                 .get(at + 1)
                 .is_some_and(|next| !next.is_ascii_whitespace())

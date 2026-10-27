@@ -1122,6 +1122,26 @@ fn a_migrated_note_reads_back_whole_save_the_paths_on_this_disk() {
         !line.contains("Program Files"),
         "find showed the disk: {line}"
     );
+    assert!(
+        found["result"]["structuredContent"]["unpathed"].is_string(),
+        "find says when it hid a path: {found}"
+    );
+    assert!(
+        back["result"]["structuredContent"]["unpathed"].is_string(),
+        "read says when it hid a path: {back}"
+    );
+
+    let fenced = served.call("find", serde_json::json!({ "query": "origin main" }));
+    let said = &fenced["result"]["structuredContent"];
+    assert_eq!(
+        said["matches"][0]["line"],
+        serde_json::json!("git -C /d/code/github/Tisty push origin main"),
+        "a line from a fence is an example and is quoted as written: {fenced}"
+    );
+    assert!(
+        said["unpathed"].is_null(),
+        "nothing was hidden, so nothing is said: {fenced}"
+    );
 }
 
 #[test]

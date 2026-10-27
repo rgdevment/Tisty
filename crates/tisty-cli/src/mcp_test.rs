@@ -1,4 +1,4 @@
-use super::unpathing::{absolute, unpathed, unpathed_body};
+use super::unpathing::{absolute, fenced_in, unpathed, unpathed_body};
 use super::*;
 
 fn four_ids() -> Vec<String> {
@@ -465,6 +465,13 @@ const PATHS_A_PERSON_KEEPS: &[(&str, &str)] = &[
     ),
     ("en /home/mario/tisty, sin más", "en [path], sin más"),
     (
+        "visto en \"/Users/mario/Documents/contrato.pdf\" ayer",
+        "visto en \"[path]\" ayer",
+    ),
+    ("(/home/mario/notas) y luego", "([path]) y luego"),
+    ("en «/Users/mario/Mis cosas» quedó", "en «[path]» quedó"),
+    ("en '/home/mario/x' hoy", "en '[path]' hoy"),
+    (
         "desde /Volumes/Disco Externo/Fotos 2026/x.jpg al NAS",
         "desde [path] al NAS",
     ),
@@ -568,6 +575,24 @@ fn hiding_twice_changes_nothing_more() {
         let once = unpathed(wrote);
         assert_eq!(unpathed(&once), once, "from: {wrote}");
     }
+}
+
+#[test]
+fn a_fence_closes_only_on_a_bare_run_of_its_own_mark() {
+    let body = ["```", "```sh", "C:/a/b", "```", "C:/c/d.txt"].join("\n");
+    assert_eq!(
+        unpathed_body(&body),
+        ["```", "```sh", "C:/a/b", "```", "[path]"].join("\n")
+    );
+}
+
+#[test]
+fn a_quoted_line_knows_whether_it_came_from_inside_a_fence() {
+    let body = "fuera C:/a/b\n```sh\ngit -C /d/code/x push origin main\n```";
+    assert!(fenced_in(body, "git -C /d/code/x push origin main"));
+    assert!(fenced_in(body, "git -C /d/code/x push…"));
+    assert!(!fenced_in(body, "fuera C:/a/b"));
+    assert!(!fenced_in(body, "…"));
 }
 
 #[test]
