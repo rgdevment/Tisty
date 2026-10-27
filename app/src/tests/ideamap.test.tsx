@@ -139,6 +139,71 @@ describe("a mind map in the diagram window", () => {
     expect(text()).toBe("mindmap\n  root((Share))\n    Cifrado\n    Servidor\n      Frase\n");
   });
 
+  it("keeps its keys to the ideas: Enter on a zoom button zooms, it adds nothing", () => {
+    opened();
+
+    key(screen.getByRole("button", { name: t("diagramZoomIn") }), "Enter");
+    key(screen.getByRole("button", { name: t("diagramFit") }), "Delete");
+
+    expect(text()).toBe(MAP);
+  });
+
+  it("gives the focus back to the chosen idea, so keys go on working idea after idea", () => {
+    opened();
+    fireEvent.click(idea("Servidor"));
+
+    key(idea("Servidor"), "Delete");
+
+    expect(document.activeElement?.textContent).toBe("Cifrado");
+    expect(chosenWords()).toBe("Cifrado");
+  });
+
+  it("names a new idea over its placeholder, which comes chosen", () => {
+    opened();
+
+    key(idea("Share"), "Tab");
+    const box = document.querySelector(".diagram-drawn input") as HTMLInputElement;
+
+    expect(document.activeElement).toBe(box);
+    expect([box.selectionStart, box.selectionEnd]).toEqual([0, box.value.length]);
+  });
+
+  it("lets the panel's field be emptied without writing an idea with no words", () => {
+    opened();
+    fireEvent.click(idea("Servidor"));
+    const field = screen.getByLabelText(t("diagramIdea")) as HTMLInputElement;
+
+    fireEvent.change(field, { target: { value: "" } });
+    expect(field.value).toBe("");
+    expect(text()).toBe(MAP);
+    fireEvent.change(field, { target: { value: "Worker" } });
+    expect(text()).toBe("mindmap\n  root((Share))\n    Cifrado\n      Frase\n    Worker\n");
+  });
+
+  it("keeps the idea it moved chosen, not the place it was dragged from", () => {
+    opened();
+    const from = idea("Frase");
+    document.elementFromPoint = () => idea("Servidor");
+
+    fireEvent.pointerDown(from, { clientX: 0, clientY: 0, pointerId: 1 });
+    fireEvent.pointerMove(from, { clientX: 30, clientY: 30, pointerId: 1, buttons: 1 });
+    fireEvent.pointerUp(from, { clientX: 30, clientY: 30, pointerId: 1 });
+    fireEvent.click(from);
+
+    expect(chosenWords()).toBe("Frase");
+  });
+
+  it("follows the chosen idea by its words when the text is changed by hand", () => {
+    opened();
+    fireEvent.click(idea("Servidor"));
+
+    fireEvent.change(screen.getByLabelText(t("diagramText")), {
+      target: { value: "mindmap\n  root((Share))\n    Nueva\n    Cifrado\n    Servidor\n" },
+    });
+
+    expect(chosenWords()).toBe("Servidor");
+  });
+
   it("follows the text typed by hand, and leaves as Mermaid draws it a map it cannot keep", () => {
     const { container } = opened();
     const typed = screen.getByLabelText(t("diagramText"));

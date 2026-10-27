@@ -1,4 +1,11 @@
-import { type CSSProperties, type KeyboardEvent, useMemo, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  type KeyboardEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { t } from "../../locales";
 import Board from "./Board";
 import {
@@ -68,6 +75,17 @@ export default function IdeaMap({
   const [renaming, setRenaming] = useState<Path | null>(null);
   const [over, setOver] = useState<Path | null>(null);
   const pressed = useRef<{ path: Path; x: number; y: number; dragging: boolean } | null>(null);
+  // The browser ends a drag with a click on the idea it started from, whose place has just changed.
+  const dropped = useRef(false);
+  const here = useRef<HTMLDivElement>(null);
+
+  // Keys keep working idea after idea: the chosen one takes the focus back unless the person is typing elsewhere.
+  useEffect(() => {
+    if (renaming) return;
+    const active = document.activeElement;
+    if (active && active !== document.body && !here.current?.contains(active)) return;
+    here.current?.querySelector<HTMLElement>(`[data-idea="${named(chosen)}"]`)?.focus();
+  }, [chosen, renaming]);
 
   // A new idea is named right away, as in any map editor.
   const added = (made: Changed) => {
@@ -76,7 +94,7 @@ export default function IdeaMap({
   };
 
   const keyed = (e: KeyboardEvent) => {
-    if (renaming || (e.target as Element).closest("input")) return;
+    if (renaming || !(e.target as Element).closest("[data-idea]")) return;
     const acts: Record<string, () => void> = {
       Enter: () => added(withSibling(mind, chosen, fresh)),
       Tab: () => added(withChild(mind, chosen, fresh)),
@@ -102,7 +120,7 @@ export default function IdeaMap({
 
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: the keys belong to the chosen idea, whose button holds the focus.
-    <div className="relative flex min-w-0 flex-1" onKeyDown={keyed}>
+    <div ref={here} className="relative flex min-w-0 flex-1" onKeyDown={keyed}>
       <Board
         size={laid.size}
         notice={
@@ -143,10 +161,14 @@ export default function IdeaMap({
                 one.depth > 1 ? "bg-desk text-soft" : ""
               }`}
               style={lookOf(one, isChosen, over !== null && named(over) === name)}
-              onClick={() => onChoose(one.path)}
+              onClick={() => {
+                if (dropped.current) dropped.current = false;
+                else onChoose(one.path);
+              }}
               onDoubleClick={() => setRenaming(one.path)}
               onPointerDown={(e) => {
                 pressed.current = { path: one.path, x: e.clientX, y: e.clientY, dragging: false };
+                dropped.current = false;
                 e.currentTarget.setPointerCapture?.(e.pointerId);
               }}
               onPointerMove={(e) => {
@@ -162,6 +184,7 @@ export default function IdeaMap({
                 pressed.current = null;
                 setOver(null);
                 if (!held?.dragging) return;
+                dropped.current = true;
                 const into = underPointer(e.clientX, e.clientY);
                 const made = into ? moved(mind, held.path, into) : null;
                 if (made) onChange(made);
@@ -180,6 +203,7 @@ export default function IdeaMap({
             autoFocus
             aria-label={t("diagramIdea")}
             defaultValue={editing.idea.text}
+            onFocus={(e) => e.currentTarget.select()}
             className="absolute box-border rounded-md border border-accent bg-panel px-2 text-center text-[13px] text-ink outline-none"
             style={{
               left: editing.x - 20,

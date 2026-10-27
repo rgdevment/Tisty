@@ -8,6 +8,19 @@ export interface Changed {
   readonly chosen: Path;
 }
 
+/** The first idea, reading from the top, that says these words. */
+export const pathOfWords = (mind: Mind, text: string): Path | null => {
+  const search = (idea: Idea, path: Path): Path | null => {
+    if (idea.text === text) return path;
+    for (const [at, child] of idea.children.entries()) {
+      const found = search(child, [...path, at]);
+      if (found) return found;
+    }
+    return null;
+  };
+  return search(mind.root, []);
+};
+
 export const ideaAt = (mind: Mind, path: Path): Idea | null => {
   let idea: Idea | undefined = mind.root;
   for (const step of path) idea = idea?.children[step];
@@ -44,8 +57,9 @@ const changing = (mind: Mind, path: Path, change: Partial<Idea>, same: (idea: Id
   return { mind: within(mind, path, (one) => touched(one, change)), chosen: path };
 };
 
+// An idea with no words would write a line Mermaid cannot read, so emptying one changes nothing.
 export const renamed = (mind: Mind, path: Path, text: string): Changed =>
-  changing(mind, path, { text }, (idea) => idea.text === text);
+  changing(mind, path, { text }, (idea) => idea.text === text || !text.trim());
 
 export const reshaped = (mind: Mind, path: Path, shape: Shape): Changed =>
   changing(mind, path, { shape }, (idea) => idea.shape === shape);

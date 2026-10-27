@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { t, type Word } from "../../locales";
 import { button } from "../viewer/Glyphs";
 import { type Idea, SHAPES, type Shape } from "./mindmap";
@@ -30,6 +31,9 @@ export default function IdeaPanel({
   onSibling: () => void;
   onRemove: () => void;
 }>) {
+  // The field may be empty while the person retypes it; the map keeps its last words meanwhile.
+  const [draft, setDraft] = useState(idea.text);
+  useEffect(() => setDraft((was) => (was.trim() ? idea.text : was)), [idea.text]);
   return (
     <div className="flex flex-col gap-2.5 border-b border-hair pb-4">
       <label htmlFor="diagram-idea" className="text-[12px] font-semibold text-soft">
@@ -37,8 +41,11 @@ export default function IdeaPanel({
       </label>
       <input
         id="diagram-idea"
-        value={idea.text}
-        onChange={(e) => onRename(e.target.value)}
+        value={draft}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          if (e.target.value.trim()) onRename(e.target.value);
+        }}
         className="rounded-md border border-line bg-desk px-2.5 py-2 text-[13px] text-ink outline-none focus:border-accent"
       />
       <div className="flex gap-1.5">

@@ -40,17 +40,28 @@ const FORMS: Record<Exclude<Shape, "plain">, readonly [string, string]> = {
   square: ["[", "]"],
 };
 
-// Longest openings first, so `((` is never read as `(`.
-const OPENINGS = (Object.entries(FORMS) as [Shape, readonly [string, string]][]).sort(
-  ([, a], [, b]) => b[0].length - a[0].length,
-);
+// Mermaid also reads `(-cloud-)`; longest openings first, so `((` is never read as `(`.
+const OPENINGS = [
+  ...(Object.entries(FORMS) as [Shape, readonly [string, string]][]),
+  ["cloud", ["(-", "-)"]] as [Shape, readonly [string, string]],
+].sort(([, a], [, b]) => b[0].length - a[0].length);
 
 const UNSAFE = /[()[\]{}]/;
 
+const NAMED: Record<string, string> = { quot: '"', amp: "&", lt: "<", gt: ">" };
+
+// Mermaid's own escapes, `#quot;` or `#35;`, read as the character they stand for.
+const unescaped = (said: string): string =>
+  said.replace(/#(\w+);/g, (whole, name: string) => {
+    if (/^\d+$/.test(name)) return String.fromCodePoint(Number(name));
+    return NAMED[name] ?? whole;
+  });
+
 const unquoted = (inner: string): string => {
   if (inner.startsWith('"`') && inner.endsWith('`"')) return inner.slice(2, -2);
-  if (inner.length > 1 && inner.startsWith('"') && inner.endsWith('"')) return inner.slice(1, -1);
-  return inner;
+  if (inner.length > 1 && inner.startsWith('"') && inner.endsWith('"'))
+    return unescaped(inner.slice(1, -1));
+  return unescaped(inner);
 };
 
 const shaped = (said: string): Pick<Idea, "text" | "shape" | "id"> | null => {
@@ -62,12 +73,15 @@ const shaped = (said: string): Pick<Idea, "text" | "shape" | "id"> | null => {
     const text = unquoted(said.slice(at + open.length, said.length - close.length));
     return id ? { text, shape, id } : { text, shape };
   }
-  return UNSAFE.test(said) ? null : { text: said, shape: "plain" };
+  return UNSAFE.test(said) ? null : { text: unescaped(said), shape: "plain" };
 };
+
+// Lines Mermaid reads as a comment or a decoration of the idea above, never as an idea.
+const DECORATION = /^(%%|::icon\(|:::)/;
 
 const kept = (line: string) => {
   const said = line.trim();
-  return !said || said.startsWith("%%") || said.startsWith("::icon(") || said.startsWith(":::");
+  return !said || DECORATION.test(said);
 };
 
 type Reading = Omit<Idea, "children" | "after"> & { children: Reading[]; after: string[] };
@@ -108,7 +122,7 @@ export const readMind = (source: string): Mind | null => {
 // Mermaid has no way to put brackets in an idea without a border, so such an idea gets a rounded one.
 export const formed = (idea: Pick<Idea, "text" | "shape" | "id">): string => {
   const text = idea.text.replace(/"/g, "#quot;").replace(/\s*\n\s*/g, " ");
-  const bare = text && text.trim() === text && !UNSAFE.test(text);
+  const bare = text && text.trim() === text && !UNSAFE.test(text) && !DECORATION.test(text);
   if (idea.shape === "plain" && bare) return text;
   const [open, close] = FORMS[idea.shape === "plain" ? "rounded" : idea.shape];
   return `${idea.id ?? ""}${open}${bare ? text : `"${text}"`}${close}`;
@@ -128,6 +142,6 @@ export const writeMind = (mind: Mind): string => {
     const below = childIndent(idea, indent);
     for (const child of idea.children) emit(child, below);
   };
-  emit(mind.root, mind.root.indent || STEP);
+  emit(mind.root, mind.root.indent ?? STEP);
   return [...out, ...mind.tail].join("\n");
 };

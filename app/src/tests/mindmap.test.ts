@@ -26,6 +26,8 @@ mindmap⏎  root((Ideas))⏎    a[Cuadrada]⏎    b(Redondeada)⏎    c))Explosi
 mindmap⏎    Raíz⏎        Uno⏎            Dos⏎        Tres⏎
 ---⏎title: Con propiedades⏎---⏎%%{init: {"theme": "forest"}}%%⏎mindmap⏎  root⏎    %% una nota⏎    A⏎    ::icon(fa fa-book)⏎    B⏎    :::urgente grande⏎⏎    C
 mindmap⏎⇥Raíz⏎⇥⇥Hija⏎⇥⇥⇥Nieta
+mindmap⏎Raíz sin sangría⏎  Uno⏎  Dos
+mindmap⏎  root⏎    n(-Nube con guiones-)
 mindmap⏎  root["Con (paréntesis)"]⏎    x("Comillas #quot;dentro#quot;")⏎    y["\`**negrita**\`"]
 `;
 
@@ -81,7 +83,25 @@ Dice "hola" → square → [Dice #quot;hola#quot;]
 Corte → bang → ))Corte((
 Nube → cloud → )Nube(
 Seis → hexagon → {{Seis}}
+%% nota → plain → ("%% nota")
+:::clase → plain → (":::clase")
+::icon(x) → plain → ("::icon(x)")
 `;
+
+describe("reading what Mermaid escapes", () => {
+  it("reads its escapes and its other cloud as what they stand for", () => {
+    const mind = readMind(
+      'mindmap\n  root\n    a["Dice #quot;hola#quot; #35;1 #lt;3"]\n    b(-Nube-)\n    c#amp;d',
+    ) as Mind;
+    const said = mind.root.children.map((one) => [one.shape, one.text]);
+
+    expect(said).toEqual([
+      ["square", 'Dice "hola" #1 <3'],
+      ["cloud", "Nube"],
+      ["plain", "c&d"],
+    ]);
+  });
+});
 
 describe("writing an idea", () => {
   it("writes each shape so Mermaid reads it, quoting what would break it", async () => {
@@ -178,6 +198,7 @@ describe("changing a mind map", () => {
     expect(withChild(mind, [7], "x").mind).toBe(mind);
     expect(ideaAt(mind, [1, 1])?.text).toBe("D1");
     expect(renamed(mind, [0], "Cifrado").mind.root).toBe(mind.root);
+    expect(renamed(mind, [0], "   ").mind.root).toBe(mind.root);
   });
 });
 
