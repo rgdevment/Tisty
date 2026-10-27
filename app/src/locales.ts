@@ -1537,6 +1537,17 @@ const en = {
   stateSealedWhy:
     "This computer does not hold its key yet. If it was already one of your computers, your others hand it over on their own as soon as one of them is on. Meanwhile, what you write stays here.",
   stateSealing: "Another computer is encrypting or decrypting your cloud",
+  stateSealingOn: "Another of your computers is encrypting your cloud",
+  stateSealingOnWhy:
+    "This computer keeps syncing meanwhile. Once it is done, Tisty asks here for your identity's phrase, or for that computer to let this one in.",
+  stateSealingOff: "Another of your computers is decrypting your cloud",
+  stateSealingOffWhy:
+    "This computer keeps syncing meanwhile. Once it is done, your cloud is no longer encrypted.",
+  stateFirst: "This computer has not synced with your cloud yet",
+  stateFirstWhy: "Sync now to bring in what your other computers wrote.",
+  stateFirstRunning: "Bringing your cloud to this computer",
+  stateFirstRunningWhy:
+    "A first round reads everything up there, so it takes a while. You can keep working meanwhile.",
   stateSealingWhy: "Syncing goes on by itself once it is done.",
   stateSealingHere: "This computer is encrypting or decrypting your cloud",
   stateSealingStopped: "Encrypting or decrypting stopped halfway on this computer",
@@ -1732,6 +1743,9 @@ const en = {
   footPausedWhy:
     "Syncing is off on this computer. Resume it to bring in what your other computers wrote.",
   footLook: "Something to look at",
+  footFirst: "Not synced yet",
+  footSealingOn: "Another computer is encrypting it",
+  footSealingOff: "Another computer is decrypting it",
   footLookWhy: "A computer waiting to be confirmed, or something sync needs you to decide.",
   footLookDocs: "A document was written on two computers. Choose which one stays.",
   revealFolder: "Open the folder",
@@ -4046,6 +4060,17 @@ const es: Catalog = {
   stateSealedWhy:
     "Este equipo todavía no tiene su llave. Si ya era uno de tus equipos, los otros se la entregan solos apenas uno de ellos esté encendido. Mientras tanto, lo que escribas queda aquí.",
   stateSealing: "Otro equipo está cifrando o descifrando tu nube",
+  stateSealingOn: "Otro de tus equipos está cifrando tu nube",
+  stateSealingOnWhy:
+    "Este equipo sigue sincronizando mientras tanto. Cuando termine, Tisty te pedirá aquí la frase de tu identidad, o que ese equipo deje entrar a este.",
+  stateSealingOff: "Otro de tus equipos está descifrando tu nube",
+  stateSealingOffWhy:
+    "Este equipo sigue sincronizando mientras tanto. Cuando termine, tu nube queda sin cifrar.",
+  stateFirst: "Este equipo aún no se sincroniza con tu nube",
+  stateFirstWhy: "Sincroniza ahora para traer lo que escribieron tus otros equipos.",
+  stateFirstRunning: "Trayendo tu nube a este equipo",
+  stateFirstRunningWhy:
+    "Una primera ronda lee todo lo que hay ahí, así que tarda un rato. Puedes seguir trabajando mientras tanto.",
   stateSealingWhy: "La sincronización sigue sola cuando termine.",
   stateSealingHere: "Este equipo está cifrando o descifrando tu nube",
   stateSealingStopped: "El cifrado o descifrado quedó a medias en este equipo",
@@ -4240,6 +4265,9 @@ const es: Catalog = {
   footPausedWhy:
     "La sincronización está apagada en este equipo. Reanúdala para traer lo que escribieron tus otros equipos.",
   footLook: "Hay algo que revisar",
+  footFirst: "Todavía sin sincronizar",
+  footSealingOn: "Otro equipo la está cifrando",
+  footSealingOff: "Otro equipo la está descifrando",
   footLookWhy: "Un equipo espera que lo confirmes, o la sincronización necesita que decidas algo.",
   footLookDocs: "Un documento se escribió en dos equipos. Elige cuál se queda.",
   revealFolder: "Abrir la carpeta",

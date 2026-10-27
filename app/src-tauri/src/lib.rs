@@ -740,6 +740,10 @@ impl OneAtATime {
         }
     }
 
+    fn in_round(&self) -> bool {
+        self.round_began.load(std::sync::atomic::Ordering::Acquire) != 0
+    }
+
     fn taken(&self) -> Answer<Releasing<'_>> {
         self.claim().ok_or_else(|| Refusal::of("stillCarrying"))
     }
