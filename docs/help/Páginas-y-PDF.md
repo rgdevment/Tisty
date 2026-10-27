@@ -27,7 +27,7 @@ Una página se archiva sola con el botón derecho, y no deja su documento: se qu
 
 ## Salto de página
 
-Cada documento elige su papel (**A4**, **Carta** o **Tabloide**) en **Papel**, en su panel. Enciende **Hojas** ahí para leerlo en esas hojas, en **Vertical** u **Horizontal**: una hoja que se llena pasa sola a la siguiente, en pantalla igual que en papel. Las hojas vienen apagadas hasta que las enciendes, y lo que eliges viaja con el archivo en sus [propiedades](https://markdown.tisty.app/es/propiedades).
+Cada documento elige su papel (**A4**, **Carta** u **Oficio**, de 216 × 330 mm) en **Papel**, en su panel; un documento que ya pedía **Tabloide** lo conserva. Enciende **Hojas** ahí para leerlo en esas hojas, en **Vertical** u **Horizontal**: una hoja que se llena pasa sola a la siguiente, en pantalla igual que en papel. Las hojas vienen apagadas hasta que las enciendes, y lo que eliges viaja con el archivo en sus [propiedades](https://markdown.tisty.app/es/propiedades).
 
 Una raya sola en su línea (`---`) corta siempre la hoja, con hojas o sin ellas, y `Ctrl`/`⌘` + `Enter` la escribe mientras escribes. Con hojas encendidas, se marca como **Salto de página**. Un `\newpage` o `\pagebreak` de LaTeX, y un salto de página de una página web o de un Word, entran como una raya.
 
@@ -35,7 +35,7 @@ Una raya sola en su línea (`---`) corta siempre la hoja, con hojas o sin ellas,
 
 Tisty hace su propio PDF y te lo muestra antes de exportarlo:
 
-- Papel **A4**, **Carta** o **Tabloide**.
+- Papel **A4**, **Carta** u **Oficio**, en vertical u horizontal.
 - Sus propios márgenes.
 - Sus imágenes van dentro; cualquier otro adjunto queda nombrado donde está.
 - Si quieres, **quién lo escribió y cuándo**: un PDF sale de Tisty para siempre, así que lo que va dentro lo decides tú.

@@ -25,7 +25,7 @@ Muestra **«Trayendo tu Tisty desde …»**, con el nombre de la carpeta o de Go
 
 Una ronda fallida suelta tampoco te detiene: entras y las rondas siguientes lo siguen intentando. Solo cuando sigue fallando se detiene a decir qué se interpone, con **Entrar de todos modos**.
 
-Si guarda algo que hiciste tú —una tarea, un documento, una lista tuya, un cambio en la guía—, Tisty te pregunta, nombrando el lugar: **Fusionar las dos**, **Conservar esta máquina** o **Quedarme con lo de la carpeta** (**Quedarme con lo de Google Drive**). Elijas lo que elijas, antes se escribe un respaldo.
+Si guarda algo que hiciste tú —una tarea, un documento, una lista tuya, un cambio en la guía—, Tisty te pregunta, nombrando el lugar: **Fusionar las dos**, **Conservar esta máquina** o **Quedarme con lo de la carpeta** (**Quedarme con lo de Google Drive**). Elijas lo que elijas, antes se escribe un respaldo, y si hay una sincronización en curso tu elección espera a que termine.
 
 Si tu nube está cifrada, antes hay que autorizar al equipo nuevo: mira [Tus otros equipos](#tus-otros-equipos).
 
@@ -152,7 +152,7 @@ Cuando dice **«Tu nube está cifrada»**, la copia antigua sin cifrar sigue en 
 
 1. En el equipo nuevo, elige **Autorizar desde otro equipo**. Te muestra veinte dígitos.
 2. En el otro, abre **Configuración › Seguridad › Autorizar un equipo nuevo** y escríbelos.
-3. De vuelta en el equipo nuevo, pulsa **Ya los aceptó**.
+3. De vuelta en el equipo nuevo, pulsa **Ya los aceptó**. Mientras la llave va en camino lo ves en curso; cuando llega, el equipo nuevo trae tu nube cifrada, y la barra de abajo y Configuración › Seguridad dicen cuánto lleva.
 
 Si no escribes nada, no se entrega nada. O, en el equipo nuevo, **Escribir mi frase** recibe tus 24 palabras: ahí solo queda la llave de la nube, nunca la frase.
 

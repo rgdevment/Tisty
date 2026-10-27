@@ -8,10 +8,11 @@ Tisty funciona en **Windows** y **macOS**. Hoy no hay versión para Linux ni app
 
 ## macOS
 
-**Homebrew**: el tap se añade una vez. Después Tisty se actualiza solo:
+**Homebrew**: el tap se añade y se marca como confiable una vez; Homebrew carga un tap que no es suyo solo cuando confías en él. Después Tisty se actualiza solo:
 
 ```console
 $ brew tap rgdevment/tap
+$ brew trust rgdevment/tap
 $ brew install --cask tisty
 ```
 

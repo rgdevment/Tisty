@@ -25,7 +25,7 @@ It shows **«Bringing your Tisty from …»**, naming the folder or Google Drive
 
 A single failed round does not hold you back either: you go in and later rounds keep trying. Only when it keeps failing does it stop to say what stands in the way, with **Go in anyway**.
 
-If it holds anything you made — a task, a document, a list of your own, a change to the guide — Tisty asks instead, naming the place: **Merge the two**, **Keep this machine**, or **Take what the folder has** (**Take what Google Drive has**). Whatever you pick, a backup is written first.
+If it holds anything you made — a task, a document, a list of your own, a change to the guide — Tisty asks instead, naming the place: **Merge the two**, **Keep this machine**, or **Take what the folder has** (**Take what Google Drive has**). Whatever you pick, a backup is written first, and if a sync is under way your choice waits for it to finish.
 
 If your cloud is encrypted, a new computer is let in first: see [Your other computers](#your-other-computers).
 
@@ -152,7 +152,7 @@ Once it says **«Your cloud is encrypted»**, the old unencrypted copy stays in 
 
 1. On the new computer, choose **Let in from another computer**. It shows twenty digits.
 2. On the other, open **Settings › Security › Let a new computer in** and type them.
-3. Back on the new computer, press **It took them**.
+3. Back on the new computer, press **It took them**. While the key is on its way you see it under way; once it arrives, the new computer brings your encrypted cloud, and the bottom bar and Settings › Security say how far it came.
 
 If you type nothing, nothing is handed over. Or, on the new computer, **Type my phrase** takes your 24 words: only the cloud's key stays there, never the phrase.
 

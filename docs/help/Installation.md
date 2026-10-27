@@ -8,10 +8,11 @@ Tisty runs on **Windows** and **macOS**. There is no Linux build today and no mo
 
 ## macOS
 
-**Homebrew** — the tap is added once. After that Tisty keeps itself up to date:
+**Homebrew** — the tap is added and trusted once; Homebrew loads a tap that is not its own only once you trust it. After that Tisty keeps itself up to date:
 
 ```console
 $ brew tap rgdevment/tap
+$ brew trust rgdevment/tap
 $ brew install --cask tisty
 ```
 
