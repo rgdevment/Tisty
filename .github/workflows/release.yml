@@ -1825,7 +1825,7 @@ jobs:
           mkdir -p Casks Formula
 
           if [ -n "$ARM_SHA" ] && [ -n "$INTEL_SHA" ]; then
-            cat > "Casks/${CASK}.rb" <<-CASK
+            sed -e 's/[[:space:]]*$//' <<-CASK | cat -s > "Casks/${CASK}.rb"
           	cask "${CASK}" do
           	  arch arm: "aarch64", intel: "x86_64"
 
@@ -1833,29 +1833,42 @@ jobs:
           	  sha256 arm:   "${ARM_SHA}",
           	         intel: "${INTEL_SHA}"
 
-          	  url "${BASE}/tisty-installer-${VERSION}-macos-#{arch}.dmg"
+          	  url "https://github.com/${{ github.repository }}/releases/download/v#{version}/tisty-installer-#{version}-macos-#{arch}.dmg"
           	  name "Tisty"
           	  desc "Notes, documents and tasks, all local, no subscription, no telemetry${SUFFIX}"
           	  homepage "https://www.tisty.app/"
 
           	  auto_updates true
-
           	  conflicts_with cask: "${CASK_OTHER}"
           	  depends_on macos: :ventura
-
-          	  caveats <<~TEXT
-          	    Tisty needs macOS 13.3 or newer. Homebrew can only check for 13,
-          	    so on 13.0 to 13.2 it installs and then will not open.
-          	  TEXT
 
           	  app "Tisty.app"
           	  ${BINARY}
 
+          	  uninstall quit:   "dev.rgdevment.tisty",
+          	            signal: ["TERM", "dev.rgdevment.tisty"]
+
           	  # The command line travels inside the app, as the assistant's door.
-          	  zap trash: [
-          	    "~/Library/Application Support/dev.rgdevment.tisty",
-          	    "~/Library/Caches/dev.rgdevment.tisty",
-          	  ]
+          	  # Upgrades run uninstall too, so only zap takes the login item back.
+          	  zap launchctl: "dev.rgdevment.tisty",
+          	      trash:     [
+          	        "~/Library/Application Support/tisty",
+          	        "~/Library/Caches/dev.rgdevment.tisty",
+          	        "~/Library/Caches/tisty",
+          	        "~/Library/HTTPStorages/dev.rgdevment.tisty",
+          	        "~/Library/Preferences/dev.rgdevment.tisty.plist",
+          	        "~/Library/Saved Application State/dev.rgdevment.tisty.savedState",
+          	        "~/Library/WebKit/dev.rgdevment.tisty",
+          	      ]
+
+          	  caveats do
+          	    next if MacOS.full_version >= "13.3"
+
+          	    <<~TEXT
+          	      Tisty needs macOS 13.3 or newer, and this Mac has #{MacOS.full_version}.
+          	      Update macOS from System Settings before opening Tisty.
+          	    TEXT
+          	  end
           	end
           CASK
           fi
