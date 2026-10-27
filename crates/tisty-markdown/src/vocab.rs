@@ -198,3 +198,12 @@ pub fn hue(name: &str) -> bool {
 pub fn icon(name: &str) -> bool {
     ICONS.contains(&name)
 }
+
+/// What a table column may hold, written in braces at the end of its head: `| Price {money CLP sum} |`.
+pub const HOLDS: &[&str] = &[
+    "text", "number", "money", "percent", "date", "duration", "check", "select", "tags", "rating",
+    "link", "url", "email", "phone",
+];
+
+/// What a column may add up at its foot, written after its type.
+pub const TOTALS: &[&str] = &["sum", "avg", "min", "max", "count"];

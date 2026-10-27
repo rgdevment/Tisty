@@ -32,10 +32,7 @@ fn a_document_reads_as_its_blocks_in_order() {
             Kind::Paragraph,
             Kind::Rule,
             Kind::Table {
-                columns: vec![Column {
-                    lean: None,
-                    wide: None
-                }]
+                columns: vec![Column::default()]
             }
         ]
     );

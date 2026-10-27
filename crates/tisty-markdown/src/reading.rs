@@ -110,6 +110,8 @@ const OLD: &[fn(&mut Vec<Span>, &str)] = &[
 const SHAPES: &[fn(&mut Block, &str)] = &[
     #[cfg(feature = "tables")]
     crate::tables::widen,
+    #[cfg(feature = "tables")]
+    crate::typed::typed,
 ];
 
 const GATHERS: &[fn(&mut Vec<Block>, &str)] = &[
@@ -335,7 +337,10 @@ fn column(aligned: &Alignment) -> Column {
         Alignment::Center => Some(Lean::Center),
         Alignment::Right => Some(Lean::Right),
     };
-    Column { lean, wide: None }
+    Column {
+        lean,
+        ..Column::default()
+    }
 }
 
 fn ends_block(end: TagEnd) -> bool {
