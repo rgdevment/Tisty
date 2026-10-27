@@ -2,5 +2,5 @@
 source: crates/tisty-markdown/tests/snapshots.rs
 expression: "page(\"| a | b |\\n| --- | :-: |\\n| 1 | 2 |\\n\\n```rust\\nfn main() {}\\n```\\n\\nText[^1].\\n\\n[^1]: The note.\\n\")"
 ---
-<table data-at="0-34"><colgroup><col><col></colgroup><thead><tr><th>a</th><th style="text-align:center">b</th></tr></thead><tbody><tr><td>1</td><td style="text-align:center">2</td></tr></tbody></table><figure class="code" data-at="35-59"><pre><code class="language-rust">fn main() {}
+<div class="table" data-at="0-34"><table><colgroup><col><col></colgroup><thead><tr><th>a</th><th style="text-align:center">b</th></tr></thead><tbody><tr><td>1</td><td style="text-align:center">2</td></tr></tbody></table></div><figure class="code" data-at="35-59"><pre><code class="language-rust">fn main() {}
 </code></pre></figure><p data-at="61-71">Text<sup class="fnref"><a href="#fn-1">1</a></sup>.</p><div class="footnote" id="fn-1" data-at="72-88"><span class="fn-label">1</span><p data-at="78-88">The note.</p></div>

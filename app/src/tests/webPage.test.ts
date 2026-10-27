@@ -73,6 +73,13 @@ describe("a document as a page on paper", () => {
     expect(made).toContain(".page>.turned{break-before:page");
   });
 
+  it("marks a table too wide for the paper, only in the first body, so it alone breaks its words", async () => {
+    const made = await webPage(["Plan", "Anexo"], "Plan", { leaf: "a4", wide: ["7-40"] });
+    const sheet = new DOMParser().parseFromString(made, "text/html").querySelector("article.page");
+
+    expect(sheet?.querySelectorAll(".wide")).toHaveLength(1);
+  });
+
   it("leaves the card and the credit out unless asked for", async () => {
     const made = await webPage(["Plan"], "Plan", { leaf: "a4", stamp: { credited: false } });
 

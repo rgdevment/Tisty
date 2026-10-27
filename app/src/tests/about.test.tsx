@@ -155,7 +155,7 @@ describe("the notice every bundled licence asks for", () => {
 
   it("draws the notice as prose, not as the markdown it is written in", async () => {
     const table =
-      '<h2 data-at="0-15">In the window</h2><table data-at="17-60"><thead><tr><th>Package</th><th>Licence</th></tr></thead><tbody><tr><td>jiff</td><td>MIT</td></tr></tbody></table>';
+      '<h2 data-at="0-15">In the window</h2><div class="table" data-at="17-60"><table><thead><tr><th>Package</th><th>Licence</th></tr></thead><tbody><tr><td>jiff</td><td>MIT</td></tr></tbody></table></div>';
     ipc.answer = (cmd) => {
       if (cmd === "note_drawn") return Promise.resolve(table);
       return cmd === "notices"
