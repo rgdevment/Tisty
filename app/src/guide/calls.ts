@@ -23,6 +23,8 @@ export const helpPictures = (spanish: boolean): Promise<HelpPictures> =>
 export const helpPicturesFetch = (spanish: boolean): Promise<HelpPictures> =>
   invoke("help_pictures_fetch", { spanish });
 
+export const helpReferenceHere = (spanish: boolean): Promise<string> =>
+  invoke("help_reference_here", { spanish });
 export const helpReference = (spanish: boolean): Promise<string> =>
   invoke("help_reference", { spanish });
 export const helpDrawn = (body: string): Promise<string> => invoke("help_drawn", { body });

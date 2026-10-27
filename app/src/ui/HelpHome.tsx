@@ -5,6 +5,7 @@ import { fill, t } from "../locales";
 
 interface Props {
   readonly entries: HelpEntry[];
+  readonly more: HelpEntry[];
   readonly bodies: Record<string, string>;
   readonly from?: string;
   readonly spanish: boolean;
@@ -17,9 +18,20 @@ const card =
 
 const title = "text-[11.5px] font-semibold tracking-wide text-faint uppercase";
 
-export default function HelpHome({ entries, bodies, from, spanish, onOpen, onMarkdown }: Props) {
+export default function HelpHome({
+  entries,
+  more,
+  bodies,
+  from,
+  spanish,
+  onOpen,
+  onMarkdown,
+}: Props) {
   const [asked, setAsked] = useState("");
-  const found = useMemo(() => searched(entries, bodies, asked), [entries, bodies, asked]);
+  const found = useMemo(
+    () => searched([...entries, ...more], bodies, asked),
+    [entries, more, bodies, asked],
+  );
   const named = (slug: string) => entries.find((one) => one.slug === slug)?.title;
   const here = suggestedFor(from, spanish).filter((one) => named(one.slug));
 

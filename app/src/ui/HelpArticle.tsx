@@ -1,7 +1,7 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useCallback } from "react";
 import { type HelpEntry, type HelpPictures, helpDrawn } from "../guide/calls";
-import { aimedAt, dressed } from "../guide/help";
+import { aimedAt, dressed, linkedHere } from "../guide/help";
 import { fill } from "../locales";
 import type { Carded } from "./carding";
 import Page from "./Page";
@@ -23,7 +23,7 @@ const headed = (page: Document, words: string): Element | undefined =>
 export default function HelpArticle({ entry, body, pictures, heading, anchor, onOpen }: Props) {
   const draw = useCallback(
     (text: string) =>
-      helpDrawn(text).then((html) =>
+      helpDrawn(linkedHere(text)).then((html) =>
         dressed(html, pictures, convertFileSrc, (alt) => fill("helpPictureAway", alt)),
       ),
     [pictures],

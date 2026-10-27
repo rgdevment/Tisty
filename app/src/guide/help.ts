@@ -1,7 +1,18 @@
 import type { Chosen } from "../views";
 import type { HelpEntry, HelpPictures } from "./calls";
+import type { Topic } from "./reference";
 
 export const LINKED = "help/";
+export const MARKS = "markdown:";
+
+export const marksOf = (topics: Topic[], section: string): HelpEntry[] =>
+  topics.map((one, at) => ({
+    slug: `${MARKS}${one.slug}`,
+    title: one.heading ?? section,
+    section,
+    order: 1000 + at,
+    twin: "",
+  }));
 
 export interface Suggested {
   slug: string;
@@ -36,7 +47,7 @@ const SUGGESTED: Record<string, Twice[]> = {
   ],
   "keeping:general": [
     twice("keyboard-shortcuts", "atajos-de-teclado"),
-    twice("installation", "instalacion"),
+    twice("faq", "preguntas-frecuentes"),
   ],
   docs: [
     twice("documents", "documentos"),
@@ -115,12 +126,22 @@ export const searched = (
     .map(({ entry, near }) => ({ entry, near }));
 };
 
-// A link to another page becomes an anchor on this one, so the page's own click reaches the help.
+export const linkedHere = (markdown: string): string =>
+  markdown.replace(
+    /\]\(help:([^)#\s]*)(?:#([^)\s]*))?\)/g,
+    (_, slug: string, anchor?: string) => `](#${LINKED}${slug}${anchor ? `/${anchor}` : ""})`,
+  );
+
 export const aimedAt = (id: string): { slug: string; anchor: string | null } | null => {
   if (!id.startsWith(LINKED)) return null;
-  const [slug, anchor] = id.slice(LINKED.length).split("#");
-  return { slug: slug ?? "", anchor: anchor || null };
+  const [slug, ...anchor] = id.slice(LINKED.length).split("/");
+  return { slug: slug ?? "", anchor: anchor.join("/") || null };
 };
+
+const ONLY_ONLINE = new Set(["installation", "instalacion"]);
+
+export const forTheWindow = (entries: HelpEntry[]): HelpEntry[] =>
+  entries.filter((one) => !ONLY_ONLINE.has(one.slug));
 
 export const dressed = (
   html: string,
@@ -129,10 +150,6 @@ export const dressed = (
   away: (alt: string) => string,
 ): string => {
   const page = new DOMParser().parseFromString(`<article>${html}</article>`, "text/html");
-  for (const link of page.querySelectorAll<HTMLAnchorElement>('a[href^="help:"]')) {
-    const href = link.getAttribute("href") ?? "";
-    link.setAttribute("href", `#${LINKED}${href.slice("help:".length)}`);
-  }
   for (const img of page.querySelectorAll<HTMLImageElement>('img[src^="https://"]')) {
     const src = img.getAttribute("src") ?? "";
     const kept = pictures?.kept[src];

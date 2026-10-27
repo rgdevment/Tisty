@@ -444,7 +444,6 @@ pub fn close_window(
     Ok(())
 }
 
-/// Asked for in the person's own language, a guide in the other one is left where it is and a new one is written.
 pub(crate) fn guide_here_as(session: &Session, title: &str) -> Option<(String, String)> {
     session
         .state

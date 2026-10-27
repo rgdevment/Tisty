@@ -159,7 +159,7 @@ export default function MarkdownGuide({
           <button
             type="button"
             onClick={() => openLink(t("helpMoreAt")).catch(() => undefined)}
-            className="mt-5 px-2.5 text-left text-[12.5px] text-accent hover:underline"
+            className="mt-6 px-2.5 text-left text-[11.5px] text-faint hover:text-soft hover:underline"
           >
             {t("helpMore")} ↗
           </button>

@@ -12,7 +12,6 @@ pub(super) fn topics() -> Vec<String> {
         .collect()
 }
 
-// Asked in either language, a topic names the same page: the person's words may not be English.
 fn page_of(spanish: bool, topic: &str) -> Option<&'static tisty_help::Page> {
     let slug = if topic == "index" { "" } else { topic };
     tisty_help::found(spanish, slug).or_else(|| {

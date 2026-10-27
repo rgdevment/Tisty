@@ -8,6 +8,8 @@ import {
   cameFrom,
   describedBy,
   dressed,
+  forTheWindow,
+  linkedHere,
   searched,
   sectionsOf,
   suggestedFor,
@@ -46,6 +48,8 @@ vi.mock("../guide/calls", async (original) => ({
     return Promise.resolve({ ...ipc.pictures, missing: 0 });
   },
   helpReference: () => Promise.resolve("# Guide\n\nIntro.\n\n## Pens\n\nA pen."),
+  helpReferenceHere: () =>
+    Promise.resolve("# Guide\n\n## At a glance\n\nShort.\n\n## Pens\n\nA highlighter pen."),
   helpDrawn: (body: string) => Promise.resolve(`<p>${body.length}</p>`),
   helpAnchors: () => Promise.resolve([["guide"], ["pens"]]),
 }));
@@ -125,23 +129,40 @@ describe("reading the help", () => {
     ).toHaveLength(1);
   });
 
-  it("turns links to other pages into its own and stands in for a picture not yet here", () => {
+  it("turns links to other pages into anchors here and stands in for a picture not yet here", () => {
+    expect(linkedHere("See [Tasks](help:tasks#closing) and [Sync](help:sync-and-backup).")).toBe(
+      "See [Tasks](#help/tasks/closing) and [Sync](#help/sync-and-backup).",
+    );
+    expect(aimedAt("help/tasks/closing")).toEqual({ slug: "tasks", anchor: "closing" });
+    expect(aimedAt("help/tasks")).toEqual({ slug: "tasks", anchor: null });
+    expect(aimedAt("colours")).toBeNull();
     const pictures: HelpPictures = {
       weighs: 2,
       missing: 1,
       kept: { "https://x.invalid/a.png": "/tmp/a.png" },
     };
     const html = dressed(
-      '<p><a href="help:tasks#closing">Tasks</a><img src="https://x.invalid/a.png" alt="A"><img src="https://x.invalid/b.png" alt="B"></p>',
+      '<p><img src="https://x.invalid/a.png" alt="A"><img src="https://x.invalid/b.png" alt="B"></p>',
       pictures,
       (path) => `asset://${path}`,
       (alt) => `Picture: ${alt}`,
     );
-    expect(html).toContain('href="#help/tasks#closing"');
     expect(html).toContain('src="asset:///tmp/a.png"');
     expect(html).toContain('<span class="picture-away">Picture: B</span>');
-    expect(aimedAt("help/tasks#closing")).toEqual({ slug: "tasks", anchor: "closing" });
-    expect(aimedAt("colours")).toBeNull();
+  });
+
+  it("leaves installing to tisty.app, since whoever opens it here has Tisty", () => {
+    const both = [
+      ...ENTRIES,
+      {
+        slug: "installation",
+        title: "Installation",
+        section: "Getting started",
+        order: 3,
+        twin: "instalacion",
+      },
+    ];
+    expect(forTheWindow(both).map((one) => one.slug)).not.toContain("installation");
   });
 
   it("describes a page by its first plain sentence", () => {
@@ -176,6 +197,17 @@ describe("the help inside the window", () => {
     await screen.findByText(/of pictures/);
     await userEvent.click(screen.getByRole("button", { name: "Not now" }));
     expect(screen.queryByText(/of pictures/)).toBeNull();
+  });
+
+  it("finds the Markdown reference's topics too and opens one inside its guide", async () => {
+    render(<Help />);
+    await userEvent.type(
+      await screen.findByLabelText("Search the whole help, offline too"),
+      "highlighter",
+    );
+    const results = screen.getByRole("region", { name: "Search the whole help, offline too" });
+    await userEvent.click(await within(results).findByRole("button", { name: /^Pens/ }));
+    expect(await screen.findByRole("button", { name: "‹ Help" })).toBeTruthy();
   });
 
   it("keeps Tisty's Markdown a click away and comes back from it", async () => {

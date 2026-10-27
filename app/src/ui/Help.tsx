@@ -8,8 +8,10 @@ import {
   helpPages,
   helpPictures,
   helpPicturesFetch,
+  helpReferenceHere,
 } from "../guide/calls";
-import { sectionsOf } from "../guide/help";
+import { forTheWindow, MARKS, marksOf, sectionsOf } from "../guide/help";
+import { topicsOf } from "../guide/reference";
 import { fill, locale, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import HelpArticle from "./HelpArticle";
@@ -23,16 +25,18 @@ type View =
 
 const item = (here: boolean) =>
   `w-full rounded-md px-2.5 py-1.5 text-left text-[13px] leading-snug ${
-    here ? "bg-accent-soft font-semibold text-accent" : "text-soft hover:bg-hover hover:text-ink"
+    here ? "bg-accent-soft font-semibold text-accent" : "text-ink hover:bg-hover"
   }`;
 
-const heading = "px-2.5 pt-4 pb-1.5 text-[11.5px] font-semibold tracking-wide text-faint uppercase";
+const heading =
+  "mx-2.5 mt-3 border-t border-hair pt-3 pb-1 text-[10.5px] font-semibold tracking-[0.08em] text-faint uppercase";
 
 export default function Help({ topic, from }: { readonly topic?: string; readonly from?: string }) {
   const spanish = locale().toLowerCase().startsWith("es");
   const [view, setView] = useState<View>(topic ? { kind: "markdown", topic } : { kind: "home" });
   const [entries, setEntries] = useState<HelpEntry[]>([]);
   const [bodies, setBodies] = useState<Record<string, string>>({});
+  const [marks, setMarks] = useState<HelpEntry[]>([]);
   const [pictures, setPictures] = useState<HelpPictures | null>(null);
   const [later, setLater] = useState(false);
   const [bringing, setBringing] = useState(false);
@@ -47,15 +51,27 @@ export default function Help({ topic, from }: { readonly topic?: string; readonl
     helpPages(spanish)
       .then(async (found) => {
         if (!live) return;
-        setEntries(found);
+        setEntries(forTheWindow(found));
         const read = await Promise.all(
           found.map((one) => helpPage(spanish, one.slug).then((body) => [one.slug, body ?? ""])),
         );
-        if (live) setBodies(Object.fromEntries(read));
+        if (live) setBodies((was) => ({ ...was, ...Object.fromEntries(read) }));
       })
       .catch(() => undefined);
     helpPictures(spanish)
       .then((said) => live && setPictures(said))
+      .catch(() => undefined);
+    helpReferenceHere(spanish)
+      .then((text) => {
+        if (!live) return;
+        const topics = topicsOf(text);
+        const found = marksOf(topics, t("helpMarkdown"));
+        setMarks(found);
+        setBodies((was) => ({
+          ...was,
+          ...Object.fromEntries(found.map((one, at) => [one.slug, topics[at]?.body ?? ""])),
+        }));
+      })
       .catch(() => undefined);
     return () => {
       live = false;
@@ -65,8 +81,12 @@ export default function Help({ topic, from }: { readonly topic?: string; readonl
   if (view.kind === "markdown")
     return <MarkdownGuide topic={view.topic} onBack={() => setView({ kind: "home" })} />;
 
-  const open = (slug: string, heading?: string, anchor?: string | null) =>
-    setView({ kind: "page", slug, heading, anchor });
+  const open = (slug: string, heading?: string, anchor?: string | null) => {
+    if (slug.startsWith(MARKS))
+      return setView({ kind: "markdown", topic: slug.slice(MARKS.length) });
+    if (entries.some((one) => one.slug === slug)) setView({ kind: "page", slug, heading, anchor });
+    else openLink(`${t("helpMoreAt")}${slug}/`).catch(() => undefined);
+  };
   const markdown = () => setView({ kind: "markdown" });
   const bring = () => {
     setBringing(true);
@@ -120,7 +140,7 @@ export default function Help({ topic, from }: { readonly topic?: string; readonl
           <button
             type="button"
             onClick={() => openLink(t("helpMoreAt")).catch(() => undefined)}
-            className="mt-5 px-2.5 text-left text-[12.5px] text-accent hover:underline"
+            className="mt-6 px-2.5 text-left text-[11.5px] text-faint hover:text-soft hover:underline"
           >
             {t("helpMore")} ↗
           </button>
@@ -159,6 +179,7 @@ export default function Help({ topic, from }: { readonly topic?: string; readonl
           {view.kind === "home" && (
             <HelpHome
               entries={entries}
+              more={marks}
               bodies={bodies}
               from={from}
               spanish={spanish}

@@ -43,7 +43,6 @@ impl Page {
     }
 }
 
-// The same slug tisty.app gives a page, so a link here and the page online agree.
 pub fn slugify(text: &str) -> String {
     let mut out = String::new();
     for one in text.chars().flat_map(char::to_lowercase) {
@@ -127,7 +126,6 @@ fn attribute<'a>(tag: &'a str, name: &str) -> Option<&'a str> {
     tag[at..].split('"').next()
 }
 
-// A picture written as HTML becomes a Markdown one, so the window decides how to show it, here or not.
 fn html_pictures(body: &str) -> String {
     let mut out = String::new();
     let mut rest = body;
@@ -147,7 +145,6 @@ fn html_pictures(body: &str) -> String {
     out
 }
 
-// A home page opens with an HTML banner down to its first rule, which the window draws its own way.
 fn unbannered(body: &str) -> &str {
     let body = body.trim_start_matches('\u{feff}');
     if let Some(rest) = body.strip_prefix("# ") {
