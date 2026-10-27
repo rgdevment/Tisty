@@ -261,111 +261,9 @@ fn a_path_is_found_by_its_drive_or_by_the_slash_that_opens_it() {
 }
 
 #[test]
-fn only_the_path_is_hidden_and_the_rest_of_the_line_is_read() {
-    assert_eq!(
-        unpathed(r"De paso: C:\Users\Mario\OneDrive\Tisty guarda otro almacén viejo."),
-        "De paso: [path] guarda otro almacén viejo."
-    );
-    assert_eq!(
-        unpathed("kept at C:/Users/someone/Downloads/x.csv and opened twice"),
-        "kept at [path] and opened twice"
-    );
-    assert_eq!(
-        unpathed(r"from G:\Mi unidad\Tisty to /home/one/tisty, both"),
-        "from [path] to [path], both"
-    );
-    assert_eq!(
-        unpathed("arrancando en **2 GB / 90 días**. Eso implica más"),
-        "arrancando en **2 GB / 90 días**. Eso implica más"
-    );
-    assert_eq!(unpathed("https://ejemplo.com/a"), "https://ejemplo.com/a");
-}
-
-#[test]
-fn a_file_name_closes_the_path_and_what_follows_is_read() {
-    assert_eq!(
-        unpathed("kept at C:/a/b.csv and moved to x/y later"),
-        "kept at [path] and moved to x/y later"
-    );
-    assert_eq!(
-        unpathed(r"from C:\temp\a.txt and/or the other"),
-        "from [path] and/or the other"
-    );
-}
-
-#[test]
-fn a_path_with_spaces_is_hidden_whole_without_quotes() {
-    assert_eq!(
-        unpathed(r"guardado desde C:\Users\Mario Hidalgo\OneDrive - Personal\contrato.pdf"),
-        "guardado desde [path]"
-    );
-    assert_eq!(
-        unpathed("kept from /Users/x/Library/Mobile Documents/com~apple/notes.pdf"),
-        "kept from [path]"
-    );
-    assert_eq!(
-        unpathed(r#"run "C:\Program Files\Tisty\tisty.exe" twice"#),
-        r#"run "[path]" twice"#
-    );
-    assert_eq!(
-        unpathed(r"seen in C:\temp\one dir\x.md, then **2 GB / 90 días** stayed"),
-        "seen in [path], then **2 GB / 90 días** stayed"
-    );
-    assert_eq!(
-        unpathed("kept at C:/a/b.csv and read at https://ejemplo.com/x later"),
-        "kept at [path] and read at https://ejemplo.com/x later"
-    );
-}
-
-#[test]
-fn a_word_with_one_slash_is_a_command_or_a_switch_and_the_prose_after_it_stays() {
+fn a_word_with_one_slash_is_a_command_or_a_switch() {
     assert_eq!(absolute("lee /code-review y sigue"), None);
     assert_eq!(absolute("con RMDir /r y /REBOOTOK"), None);
-    let note =
-        "Corrí /code-review tres veces: encontró huecos reales y los corrigió, sin tocar old/new";
-    assert_eq!(unpathed(note), note);
-    let switches = "RMDir /r, dos espacios, /REBOOTOK /r y guardar la ruta pasaban en verde";
-    assert_eq!(unpathed(switches), switches);
-}
-
-#[test]
-fn a_path_ends_where_its_word_ends_when_the_next_separator_is_a_sentence_away() {
-    assert_eq!(
-        unpathed(
-            "pasa /dev/null y así no recibe las refs; las firmas van en rgdevment/cla-signatures"
-        ),
-        "pasa [path] y así no recibe las refs; las firmas van en rgdevment/cla-signatures"
-    );
-    assert_eq!(
-        unpathed(r"en C:\temp pero mucho más tarde quedó otra\cosa"),
-        r"en [path] pero mucho más tarde quedó otra\cosa"
-    );
-    assert_eq!(
-        unpathed("git -C /d/code/github/Tisty push origin main y luego el tag"),
-        "git -C [path] push origin main y luego el tag"
-    );
-    assert_eq!(
-        unpathed("(desde C:/a/b, que es donde la persona guarda todo)"),
-        "(desde [path], que es donde la persona guarda todo)"
-    );
-}
-
-#[test]
-fn what_sits_between_backticks_is_an_example_and_is_read_as_written() {
-    let examples = [
-        r"El prefijo `\\?\` delante de `C:\Users\x` es lo que se explica aquí.",
-        "`pre-push` debe llamar a `rules.sh < /dev/null`; las firmas van en `rgdevment/cla-signatures`.",
-        r#"Emite `RMDir /r "$INSTDIR"` en el desinstalador, y `git -C /d/code/x push origin *` después."#,
-        "Dos tildes: ``C:/a/b `con una` dentro`` y nada más.",
-    ];
-    for line in examples {
-        assert_eq!(unpathed(line), line);
-    }
-    assert_eq!(
-        unpathed(r"`C:\ejemplo` aparte de C:\Users\x\a.txt"),
-        r"`C:\ejemplo` aparte de [path]"
-    );
-    assert_eq!(unpathed("un ` suelto y C:/a/b.md"), "un ` suelto y [path]");
 }
 
 #[test]
@@ -392,186 +290,106 @@ fn a_fenced_block_is_read_as_written_and_the_lines_around_it_are_not() {
     assert_eq!(read[10], "y [path]");
 }
 
-/// Where a person's own disk turns up in a note: each one is hidden whole and nothing else.
-const PATHS_A_PERSON_KEEPS: &[(&str, &str)] = &[
-    (r"C:\Users\Mario", "[path]"),
-    (
-        r"guardado desde C:\Users\Mario Hidalgo\OneDrive - Personal\contrato.pdf",
-        "guardado desde [path]",
-    ),
-    (
-        r"en C:\Users\Mario\OneDrive - Falabella S.A\contrato.pdf y nada más",
-        "en [path] y nada más",
-    ),
-    (
-        r"en C:\Users\Mario\OneDrive - Falabella S.A. Chile\x.pdf",
-        "en [path]",
-    ),
-    (
-        r"instalado en C:\Program Files (x86)\Tisty\tisty.exe y abierto",
-        "instalado en [path] y abierto",
-    ),
-    (
-        r"en C:\Program Files (x86)\Common Files\x.dll, dos veces",
-        "en [path], dos veces",
-    ),
-    (
-        r#"run "C:\Program Files (x86)\Common Files\x.exe" now"#,
-        r#"run "[path]" now"#,
-    ),
-    (
-        r#"run "C:\Users\Mario\My Old Work Files\x.exe" now"#,
-        r#"run "[path]" now"#,
-    ),
-    (
-        r#"vive en "C:\Users\Mario\Mis Documentos Viejos" desde marzo"#,
-        r#"vive en "[path]" desde marzo"#,
-    ),
-    (
-        r"vive en 'C:\Users\Mario\Mis Documentos' hace un año",
-        r"vive en '[path]' hace un año",
-    ),
-    (
-        r"en «C:\Users\Mario\Mi carpeta de fotos» quedó",
-        "en «[path]» quedó",
-    ),
-    (
-        r"(C:\Program Files (x86)\Tisty) y luego",
-        "([path]) y luego",
-    ),
-    (
-        r"guardado desde \\?\C:\Users\Mario\Downloads\tisty-historias\x.json",
-        "guardado desde [path]",
-    ),
-    (
-        r"guardado desde C:\Users\Mario\OneDrive - Una Empresa Muy Larga S.A (x86)\Contratos del año pasado\mi contrato",
-        "guardado desde [path]",
-    ),
-    (
-        "kept from /Users/mario/Library/Mobile Documents/com~apple~CloudDocs/Old Work, 2025 (final)/x",
-        "kept from [path]",
-    ),
-    (
-        r"kept from \\nas\fotos familia\vacaciones de verano en la playa",
-        "kept from [path]",
-    ),
-    (
-        "kept at C:/Users/someone/Downloads/x.csv and opened twice",
-        "kept at [path] and opened twice",
-    ),
-    (
-        "kept from /Users/x/Library/Mobile Documents/com~apple/notes.pdf",
-        "kept from [path]",
-    ),
-    ("en /home/mario/tisty, sin más", "en [path], sin más"),
-    (
-        "visto en \"/Users/mario/Documents/contrato.pdf\" ayer",
-        "visto en \"[path]\" ayer",
-    ),
-    ("(/home/mario/notas) y luego", "([path]) y luego"),
-    ("en «/Users/mario/Mis cosas» quedó", "en «[path]» quedó"),
-    ("en '/home/mario/x' hoy", "en '[path]' hoy"),
-    (
-        "desde /Volumes/Disco Externo/Fotos 2026/x.jpg al NAS",
-        "desde [path] al NAS",
-    ),
-    (
-        r"de D:\code\github\Tisty a E:\respaldo\Tisty",
-        "de [path] a [path]",
-    ),
-];
+/// Where a person's own disk turns up in a note, one case a line: each path is hidden whole and nothing else.
+const PATHS_A_PERSON_KEEPS: &str = r##"
+C:\Users\Mario ⇒ [path]
+De paso: C:\Users\Mario\OneDrive\Tisty guarda otro almacén viejo. ⇒ De paso: [path] guarda otro almacén viejo.
+from G:\Mi unidad\Tisty to /home/one/tisty, both ⇒ from [path] to [path], both
+guardado desde C:\Users\Mario Hidalgo\OneDrive - Personal\contrato.pdf ⇒ guardado desde [path]
+en C:\Users\Mario\OneDrive - Falabella S.A\contrato.pdf y nada más ⇒ en [path] y nada más
+en C:\Users\Mario\OneDrive - Falabella S.A. Chile\x.pdf ⇒ en [path]
+instalado en C:\Program Files (x86)\Tisty\tisty.exe y abierto ⇒ instalado en [path] y abierto
+en C:\Program Files (x86)\Common Files\x.dll, dos veces ⇒ en [path], dos veces
+run "C:\Program Files\Tisty\tisty.exe" twice ⇒ run "[path]" twice
+run "C:\Program Files (x86)\Common Files\x.exe" now ⇒ run "[path]" now
+run "C:\Users\Mario\My Old Work Files\x.exe" now ⇒ run "[path]" now
+vive en "C:\Users\Mario\Mis Documentos Viejos" desde marzo ⇒ vive en "[path]" desde marzo
+vive en 'C:\Users\Mario\Mis Documentos' hace un año ⇒ vive en '[path]' hace un año
+en «C:\Users\Mario\Mi carpeta de fotos» quedó ⇒ en «[path]» quedó
+(C:\Program Files (x86)\Tisty) y luego ⇒ ([path]) y luego
+guardado desde \\?\C:\Users\Mario\Downloads\tisty-historias\x.json ⇒ guardado desde [path]
+guardado desde C:\Users\Mario\OneDrive - Una Empresa Muy Larga S.A (x86)\Contratos del año pasado\mi contrato ⇒ guardado desde [path]
+kept from /Users/mario/Library/Mobile Documents/com~apple~CloudDocs/Old Work, 2025 (final)/x ⇒ kept from [path]
+kept from \\nas\fotos familia\vacaciones de verano en la playa ⇒ kept from [path]
+kept at C:/Users/someone/Downloads/x.csv and opened twice ⇒ kept at [path] and opened twice
+kept from /Users/x/Library/Mobile Documents/com~apple/notes.pdf ⇒ kept from [path]
+en /home/mario/tisty, sin más ⇒ en [path], sin más
+visto en "/Users/mario/Documents/contrato.pdf" ayer ⇒ visto en "[path]" ayer
+(/home/mario/notas) y luego ⇒ ([path]) y luego
+en «/Users/mario/Mis cosas» quedó ⇒ en «[path]» quedó
+en '/home/mario/x' hoy ⇒ en '[path]' hoy
+desde /Volumes/Disco Externo/Fotos 2026/x.jpg al NAS ⇒ desde [path] al NAS
+de D:\code\github\Tisty a E:\respaldo\Tisty ⇒ de [path] a [path]
+"##;
 
-/// What reads like a path but is a sentence, a command or an example: it reaches the agent whole.
-const PROSE_THAT_STAYS: &[&str] = &[
-    "Corrí /code-review tres veces: encontró huecos reales y los corrigió, sin tocar old/new",
-    "RMDir /r, dos espacios, /REBOOTOK /r y guardar la ruta pasaban en verde",
-    "arrancando en **2 GB / 90 días**. Eso implica más",
-    "uno / otro, y/o lo que sea",
-    "el 27/10/2026 a las 10, con 1/2 taza",
-    "https://ejemplo.com/a/b y http://localhost:1420/x",
-    "ver C: y luego D:",
-    "guardado desde ayer en la mañana, sin ruta",
-    "kept from the old notes, as agreed",
-    "`pre-push` debe llamar a `rules.sh < /dev/null`; las firmas van en `rgdevment/cla-signatures`.",
-    r"El prefijo `\\?\` delante de `C:\Users\x` es lo que se explica aquí.",
-    r#"Emite `RMDir /r "$INSTDIR"` en el desinstalador, y `git -C /d/code/x push origin *` después."#,
-    "Dos tildes: ``C:/a/b `con una` dentro`` y nada más.",
-];
+/// A path and the sentence around it, one case a line: only the path goes.
+const PATH_THEN_PROSE: &str = r##"
+pasa /dev/null y así no recibe las refs; las firmas van en rgdevment/cla-signatures ⇒ pasa [path] y así no recibe las refs; las firmas van en rgdevment/cla-signatures
+en C:\temp pero mucho más tarde quedó otra\cosa ⇒ en [path] pero mucho más tarde quedó otra\cosa
+en C:\temp y luego todo lo que vino\x.txt ⇒ en [path] y luego todo lo que vino\x.txt
+git -C /d/code/github/Tisty push origin main y luego el tag ⇒ git -C [path] push origin main y luego el tag
+(desde C:/a/b, que es donde la persona guarda todo) ⇒ (desde [path], que es donde la persona guarda todo)
+kept at C:/a/b.csv and moved to x/y later ⇒ kept at [path] and moved to x/y later
+from C:\temp\a.txt and/or the other ⇒ from [path] and/or the other
+seen in C:\temp\one dir\x.md, then **2 GB / 90 días** stayed ⇒ seen in [path], then **2 GB / 90 días** stayed
+kept at C:/a/b.csv and read at https://ejemplo.com/x later ⇒ kept at [path] and read at https://ejemplo.com/x later
+`C:\ejemplo` aparte de C:\Users\x\a.txt ⇒ `C:\ejemplo` aparte de [path]
+un ` suelto y C:/a/b.md ⇒ un ` suelto y [path]
+"##;
 
-/// A path and the sentence around it: only the path goes.
-const PATH_THEN_PROSE: &[(&str, &str)] = &[
-    (
-        "pasa /dev/null y así no recibe las refs; las firmas van en rgdevment/cla-signatures",
-        "pasa [path] y así no recibe las refs; las firmas van en rgdevment/cla-signatures",
-    ),
-    (
-        r"en C:\temp pero mucho más tarde quedó otra\cosa",
-        r"en [path] pero mucho más tarde quedó otra\cosa",
-    ),
-    (
-        r"en C:\temp y luego todo lo que vino\x.txt",
-        r"en [path] y luego todo lo que vino\x.txt",
-    ),
-    (
-        "git -C /d/code/github/Tisty push origin main y luego el tag",
-        "git -C [path] push origin main y luego el tag",
-    ),
-    (
-        "(desde C:/a/b, que es donde la persona guarda todo)",
-        "(desde [path], que es donde la persona guarda todo)",
-    ),
-    (
-        "kept at C:/a/b.csv and moved to x/y later",
-        "kept at [path] and moved to x/y later",
-    ),
-    (
-        r"from C:\temp\a.txt and/or the other",
-        "from [path] and/or the other",
-    ),
-    (
-        r"seen in C:\temp\one dir\x.md, then **2 GB / 90 días** stayed",
-        "seen in [path], then **2 GB / 90 días** stayed",
-    ),
-    (
-        "kept at C:/a/b.csv and read at https://ejemplo.com/x later",
-        "kept at [path] and read at https://ejemplo.com/x later",
-    ),
-    (
-        r"`C:\ejemplo` aparte de C:\Users\x\a.txt",
-        r"`C:\ejemplo` aparte de [path]",
-    ),
-    ("un ` suelto y C:/a/b.md", "un ` suelto y [path]"),
-];
+/// What reads like a path but is a sentence, a command or an example, one a line: it reaches the agent whole.
+const PROSE_THAT_STAYS: &str = r##"
+Corrí /code-review tres veces: encontró huecos reales y los corrigió, sin tocar old/new
+RMDir /r, dos espacios, /REBOOTOK /r y guardar la ruta pasaban en verde
+arrancando en **2 GB / 90 días**. Eso implica más
+uno / otro, y/o lo que sea
+el 27/10/2026 a las 10, con 1/2 taza
+https://ejemplo.com/a y https://ejemplo.com/a/b y http://localhost:1420/x
+ver C: y luego D:
+guardado desde ayer en la mañana, sin ruta
+kept from the old notes, as agreed
+`pre-push` debe llamar a `rules.sh < /dev/null`; las firmas van en `rgdevment/cla-signatures`.
+El prefijo `\\?\` delante de `C:\Users\x` es lo que se explica aquí.
+Emite `RMDir /r "$INSTDIR"` en el desinstalador, y `git -C /d/code/x push origin *` después.
+Dos tildes: ``C:/a/b `con una` dentro`` y nada más.
+"##;
+
+/// Each case of a table: what was written and, after the arrow, what the agent reads.
+fn cases(table: &str) -> Vec<(&str, &str)> {
+    table
+        .lines()
+        .filter(|line| !line.is_empty())
+        .map(|line| line.split_once(" ⇒ ").unwrap_or((line, line)))
+        .collect()
+}
 
 #[test]
 fn every_path_a_person_keeps_is_hidden_whole() {
-    for &(wrote, read) in PATHS_A_PERSON_KEEPS {
+    for (wrote, read) in cases(PATHS_A_PERSON_KEEPS) {
+        assert_ne!(wrote, read, "a case without its arrow: {wrote}");
+        assert_eq!(unpathed(wrote), read, "from: {wrote}");
+    }
+}
+
+#[test]
+fn a_path_inside_a_sentence_takes_only_itself() {
+    for (wrote, read) in cases(PATH_THEN_PROSE) {
+        assert_ne!(wrote, read, "a case without its arrow: {wrote}");
         assert_eq!(unpathed(wrote), read, "from: {wrote}");
     }
 }
 
 #[test]
 fn prose_commands_and_examples_reach_the_agent_as_written() {
-    for &line in PROSE_THAT_STAYS {
+    for (line, _) in cases(PROSE_THAT_STAYS) {
         assert_eq!(unpathed(line), line);
     }
 }
 
 #[test]
-fn a_path_inside_a_sentence_takes_only_itself() {
-    for &(wrote, read) in PATH_THEN_PROSE {
-        assert_eq!(unpathed(wrote), read, "from: {wrote}");
-    }
-}
-
-#[test]
 fn hiding_twice_changes_nothing_more() {
-    let all = PATHS_A_PERSON_KEEPS
-        .iter()
-        .chain(PATH_THEN_PROSE)
-        .map(|&(wrote, _)| wrote)
-        .chain(PROSE_THAT_STAYS.iter().copied());
-    for wrote in all {
+    let tables = [PATHS_A_PERSON_KEEPS, PATH_THEN_PROSE, PROSE_THAT_STAYS];
+    for (wrote, _) in tables.into_iter().flat_map(cases) {
         let once = unpathed(wrote);
         assert_eq!(unpathed(&once), once, "from: {wrote}");
     }
