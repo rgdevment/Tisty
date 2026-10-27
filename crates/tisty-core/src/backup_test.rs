@@ -287,6 +287,32 @@ fn a_machine_that_rejoins_comes_back_under_a_new_name() {
 }
 
 #[test]
+fn a_machine_let_in_under_its_name_keeps_it_and_its_key_through_a_reset() {
+    let (_src, data) = filled("comprar pan");
+    let dir = tempfile::tempdir().unwrap();
+    let paths = Paths::new(data.clone(), dir.path().join("config"));
+    let was = Config::load_or_init(&paths).unwrap().device_id;
+    let key = crate::signing::mine(&paths, &was).map(|one| crate::signing::shown(&one));
+    assert!(key.is_some());
+    let out = tempfile::tempdir().unwrap();
+
+    reset_as(
+        &paths,
+        &out.path().join("before.zip"),
+        tmp().path(),
+        None,
+        false,
+    )
+    .unwrap();
+
+    let now = Config::load_or_init(&paths).unwrap();
+    assert_eq!(now.device_id, was);
+    assert!(now.synced_at.is_none());
+    assert_eq!(crate::signing::shown_kept(&paths, &was), key);
+    assert!(!store::inhabited(paths.store()));
+}
+
+#[test]
 fn a_reset_cannot_happen_without_the_backup_landing_first() {
     let dir = tempfile::tempdir().unwrap();
     let paths = quarters(&dir);

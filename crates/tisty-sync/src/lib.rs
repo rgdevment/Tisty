@@ -17,7 +17,7 @@ pub use held::{left_behind, let_go_telling};
 pub use papers::{carry_papers, carry_papers_holding, unclaimed};
 use papers::{carry_papers_leaning_on, settled_body, unclaimed_leaning_on};
 use place::{carried_here, keep_adopting, names_in, note_carried, still_adopting};
-pub use place::{forget_carried_to, others_in};
+pub use place::{forget_carried_to, keeps_its_name, others_in};
 use segments::{
     Alike, Grew, Toward, hand_on_leaving, one_grew_from_the_other, ours_went_missing, sweep,
 };
@@ -1280,3 +1280,7 @@ fn io(e: std::io::Error) -> Trouble {
 #[cfg(test)]
 #[path = "lib_test.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "admitted_test.rs"]
+mod admitted_tests;

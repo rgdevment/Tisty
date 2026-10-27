@@ -15,14 +15,18 @@ pub async fn join_them(
     if tisty_core::paths::profile().is_some() {
         return Err(Refusal::of("sandboxCannotJoin"));
     }
-    let (paths, aside) = {
+    let (paths, aside, renamed) = {
         let session = held(&session);
-        (session.paths.clone(), session.paths.cache().to_path_buf())
+        (
+            session.paths.clone(),
+            session.paths.cache().to_path_buf(),
+            renaming(&session),
+        )
     };
 
     let at = std::path::PathBuf::from(&into);
     let made = tauri::async_runtime::spawn_blocking(move || {
-        tisty_core::backup::reset(&paths, &at, &aside, None)
+        tisty_core::backup::reset_as(&paths, &at, &aside, None, renamed())
     })
     .await
     .map_err(|_| Refusal::of("internal"))?
@@ -305,9 +309,24 @@ pub(crate) async fn will_adopt(
     .flatten()
 }
 
+pub(crate) fn renaming(session: &Session) -> impl FnOnce() -> bool + Send + 'static {
+    let tree = tisty_carrier::cloud_of(session.config.sync.as_ref())
+        .map(|at| session.reach.home_of(at))
+        .filter(|home| !tisty_carrier::cloud_joined(home, &session.here()))
+        .map(|home| tisty_carrier::mirrored_at(&home));
+    let handed = session.config.key_handed.clone();
+    let device = session.config.device_id.0.clone();
+    move || {
+        !tree.is_some_and(|tree| tisty_carrier::keeps_its_name(&tree, handed.as_deref(), &device))
+    }
+}
+
 /// A machine holding only what its first opening sowed takes the place's history without asking,
 /// once a backup of what it had has landed. Nothing happens to one that holds anything of the person's.
-pub(crate) fn quietly_joined(paths: &tisty_core::Paths) -> Option<std::path::PathBuf> {
+pub(crate) fn quietly_joined(
+    paths: &tisty_core::Paths,
+    renamed: bool,
+) -> Option<std::path::PathBuf> {
     if !new_here(paths) {
         return None;
     }
@@ -317,7 +336,7 @@ pub(crate) fn quietly_joined(paths: &tisty_core::Paths) -> Option<std::path::Pat
     if landed.is_ok() && !new_here(paths) {
         return None;
     }
-    match landed.and_then(|_| tisty_core::backup::set_aside(paths)) {
+    match landed.and_then(|_| tisty_core::backup::set_aside_as(paths, renamed)) {
         Ok(()) => {
             witness::note(
                 channel::SYNC,
@@ -345,7 +364,8 @@ pub(crate) async fn adopted_quietly(
     let joined = {
         let mut session = held(session);
         let _ = session.keep(|c| c.took_quietly = Some(theirs));
-        quietly_joined(&session.paths).is_some()
+        let renamed = renaming(&session)();
+        quietly_joined(&session.paths, renamed).is_some()
     };
     if !joined {
         return false;

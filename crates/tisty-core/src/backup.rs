@@ -458,16 +458,32 @@ fn undo(data: &Path, old: &Path, moved: &[&str]) {
 }
 
 pub fn reset(paths: &Paths, into: &Path, aside: &Path, also: Option<&Path>) -> Result<Made> {
+    reset_as(paths, into, aside, also, true)
+}
+
+pub fn reset_as(
+    paths: &Paths,
+    into: &Path,
+    aside: &Path,
+    also: Option<&Path>,
+    renamed: bool,
+) -> Result<Made> {
     let made = write(paths.data(), into, aside, also)?;
-    set_aside(paths)?;
+    set_aside_as(paths, renamed)?;
     Ok(made)
 }
 
 /// Moves this machine's history out of the way under a new name, for a backup already written.
 pub fn set_aside(paths: &Paths) -> Result<()> {
+    set_aside_as(paths, true)
+}
+
+pub fn set_aside_as(paths: &Paths, renamed: bool) -> Result<()> {
     let data = paths.data();
     let mut config = Config::load_or_init(paths)?;
-    config.device_id = crate::DeviceId(crate::config::new_device_id());
+    if renamed {
+        config.device_id = crate::DeviceId(crate::config::new_device_id());
+    }
     config.synced_at = None;
     config.heard_at = None;
     config.save(paths)?;

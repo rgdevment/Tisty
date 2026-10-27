@@ -61,6 +61,17 @@ pub(crate) fn names_in(dest: &Path) -> BTreeSet<String> {
         .collect()
 }
 
+pub fn keeps_its_name(dest: &Path, handed: Option<&str>, device: &str) -> bool {
+    let crate::Sealing::Sealed(cloud) = crate::sealing_of(dest) else {
+        return false;
+    };
+    let ours = |named: &str| named.eq_ignore_ascii_case(device);
+    handed == Some(cloud.as_str())
+        && !names_in(dest).iter().any(|named| ours(named))
+        && tisty_core::store::ledger(dest.join(STORE))
+            .is_ok_and(|told| !told.named.iter().any(|named| ours(&named.0)))
+}
+
 /// The other machines writing in a place: the ones a word left there is meant for.
 pub fn others_in(dest: &Path, device: &str) -> Vec<String> {
     names_in(dest)
