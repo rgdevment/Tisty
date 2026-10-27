@@ -75,7 +75,7 @@ const remembered = (held: Map<string, Read>, file: string, read: Read) => {
 const WIDE = 1440;
 
 const RAIL = 336;
-const RAIL_WIDE = 380;
+const RAIL_WIDE = 350;
 const GUTTER = 8;
 const SHEET = 820;
 

@@ -1,0 +1,66 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "description": "The pages of Tisty's own Help, the ones tisty.app shows: installing, tasks and how they are written, documents, pages and PDF, sync, encrypting the cloud and letting a computer in, assistants, keyboard shortcuts, privacy. Ask it when the person asks how Tisty does something, instead of guessing. Left alone it gives the index; a `topic` gives one page. `lang` picks English or Spanish.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "lang": {
+        "description": "en for English, es for Spanish. Left out, English",
+        "enum": [
+          "en",
+          "es"
+        ],
+        "type": "string"
+      },
+      "topic": {
+        "description": "One page, named as the index names it. Left out, the index",
+        "enum": [
+          "index",
+          "installation",
+          "keyboard-shortcuts",
+          "tasks",
+          "natural-language",
+          "spread-and-reminders",
+          "archive",
+          "assistants-and-mcp",
+          "mcp-permissions",
+          "mcp-tools",
+          "documents",
+          "markdown-editor",
+          "convert-to-and-from-markdown",
+          "pages-and-pdf",
+          "widgets",
+          "sync-and-backup",
+          "privacy",
+          "command-line",
+          "faq",
+          "instalacion",
+          "atajos-de-teclado",
+          "tareas",
+          "lenguaje-natural",
+          "reparto-y-recordatorios",
+          "el-archivo",
+          "asistentes-y-mcp",
+          "que-puede-hacer-un-asistente",
+          "herramientas-mcp",
+          "documentos",
+          "editor-markdown",
+          "convertir-a-y-desde-markdown",
+          "paginas-y-pdf",
+          "widgets-en-documentos",
+          "sincronizar-y-respaldar",
+          "privacidad",
+          "linea-de-comandos",
+          "preguntas-frecuentes"
+        ],
+        "type": "string"
+      }
+    },
+    "type": "object"
+  },
+  "name": "help",
+  "title": "How Tisty itself works"
+}

@@ -9,15 +9,22 @@ import { inTheRepo } from "./repo";
 const reference = (lang: string) =>
   readFileSync(inTheRepo("crates/tisty-markdown/reference", `${lang}.md`), "utf8");
 
+const late = vi.hoisted(() => ({ held: false }));
+
+const GUIDE =
+  "# Guide\n\nIntro.\n\n## Glance\n\n| a |\n\n## Pens\n\nA pen.\n\n### Colours\n\nSome.\n\n## Tables\n\nA table.";
+
 vi.mock("../core", async (original) => ({
   ...(await original<typeof import("../core")>()),
-  helpReference: () =>
-    Promise.resolve(
-      "# Guide\n\nIntro.\n\n## Glance\n\n| a |\n\n## Pens\n\nA pen.\n\n### Colours\n\nSome.\n\n## Tables\n\nA table.",
-    ),
+  openLink: () => Promise.resolve(),
+}));
+
+vi.mock("../guide/calls", async (original) => ({
+  ...(await original<typeof import("../guide/calls")>()),
+  helpReference: () => (late.held ? new Promise<string>(() => undefined) : Promise.resolve(GUIDE)),
+  helpReferenceHere: () => Promise.resolve(GUIDE),
   helpDrawn: (body: string) => Promise.resolve(`<p>${body.length}</p>`),
   helpAnchors: () => Promise.resolve([["guide", "glance"], ["pens", "colours"], ["tables"]]),
-  openLink: () => Promise.resolve(),
 }));
 
 vi.mock("../ui/Page", () => ({
@@ -88,6 +95,13 @@ describe("the guide inside the window", () => {
     expect(nav.textContent).toContain("Tables");
     await userEvent.click(within(nav).getByRole("button", { name: "Tables" }));
     expect(await screen.findByRole("heading", { name: "Tables" })).toBeTruthy();
+  });
+
+  it("shows the topic asked for from the copy it carries while the published one is on its way", async () => {
+    late.held = true;
+    render(<Help topic="tables" />);
+    expect(await screen.findByRole("heading", { name: "Tables" })).toBeTruthy();
+    late.held = false;
   });
 
   it("follows a link to a section of another topic", async () => {

@@ -946,6 +946,10 @@ pub(crate) fn opened(
     drawn::swept(session.paths.cache(), &attachments);
     app.asset_protocol_scope()
         .allow_directory(as_asked_for(&drawn_at), true)?;
+    let pictured_at = answers::helping::folder(session.paths.cache());
+    let _ = std::fs::create_dir_all(&pictured_at);
+    app.asset_protocol_scope()
+        .allow_directory(as_asked_for(&pictured_at), true)?;
     let words = tray::Words {
         show: worded(&session.locale, "show"),
         capture: worded(&session.locale, "capture"),
@@ -1303,8 +1307,13 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::paging::mends_in,
         answers::paging::doc_plain,
         answers::paging::help_reference,
+        answers::paging::help_reference_here,
         answers::paging::help_drawn,
         answers::paging::help_anchors,
+        answers::helping::help_pages,
+        answers::helping::help_page,
+        answers::helping::help_pictures,
+        answers::helping::help_pictures_fetch,
         answers::papers::doc_read,
         answers::papers::doc_opened,
         answers::papers::doc_merge,

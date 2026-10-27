@@ -15,6 +15,7 @@ insta = { version = "1.49.0", features = ["json"] }
 minisign-verify = "0.2"
 tisty-carrier = { path = "crates/tisty-carrier" }
 tisty-google = { path = "crates/tisty-google" }
+tisty-help = { path = "crates/tisty-help" }
 tisty-onedrive = { path = "crates/tisty-onedrive" }
 tisty-webdav = { path = "crates/tisty-webdav" }
 tisty-core = { path = "crates/tisty-core" }

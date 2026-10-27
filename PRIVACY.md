@@ -300,14 +300,25 @@ than in your documents, so nothing of the world ends up in the folder your
 machines share, and the whole store of them is capped by weight, so old cards go
 rather than pile up.
 
-Opening the guide inside Tisty — `F1`, the `?` at the foot of the sidebar, or
-the Help menu on a Mac — reads it where it is published, so what it says is
-always the latest: one request for `https://markdown.tisty.app/llms-full.txt`
-(`/es/llms-full.txt` in Spanish), over HTTPS, with the user agent
-`tisty/<version>`. It sends nothing else and nothing of yours; the site learns an
-address to answer to and the time of day, like any visit. It waits at most 4
-seconds, and without an answer it shows the copy of the guide that came with
-this version, so the guide works offline too.
+The help inside Tisty — the `?` at the foot of the sidebar, or the Help menu on
+a Mac — comes with this version and asks nothing of the network. Two parts of it
+reach out, and only when you open them.
+
+Tisty's Markdown guide — `F1` while you write, or **Tisty's Markdown** in the
+help — is read where it is published, so what it says is always the latest: one
+request for `https://markdown.tisty.app/llms-full.txt` (`/es/llms-full.txt` in
+Spanish), over HTTPS, with the user agent `tisty/<version>`. It sends nothing
+else and nothing of yours; the site learns an address to answer to and the time
+of day, like any visit. It waits at most 4 seconds, and without an answer it
+shows the copy of the guide that came with this version, so the guide works
+offline too.
+
+The help's pictures stay on GitHub until you press **Download** above the help:
+then one request per picture to
+`https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/`, a few
+megabytes in all, over HTTPS with the same user agent, and they are kept in
+Tisty's cache on this computer. Until then each picture is named where it would
+be, and nothing is asked for.
 
 **Nothing is downloaded or installed unless you ask for it.** What the daily
 check brings back is a line of text you can ignore. If a newer version exists, a

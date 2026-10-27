@@ -1,206 +1,215 @@
-import { useEffect, useRef, useState } from "react";
-import rina from "../../src-tauri/resources/guide/en/rina.jpg";
-import { helpAnchors, helpDrawn, helpReference, openLink } from "../core";
-import { examplesIn, shownBeside, type Topic, topicsOf } from "../guide/reference";
-import { locale, t } from "../locales";
-import { pictured } from "../previews";
-import type { Carded } from "./carding";
-import Page from "./Page";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { openLink } from "../core";
+import { weigh } from "../format";
+import {
+  type HelpEntry,
+  type HelpPictures,
+  helpPage,
+  helpPages,
+  helpPictures,
+  helpPicturesFetch,
+  helpReference,
+  helpReferenceHere,
+} from "../guide/calls";
+import { forTheWindow, MARKS, marksOf, outlined, sectionsOf } from "../guide/help";
+import { type Topic, topicsOf } from "../guide/reference";
+import { fill, locale, t } from "../locales";
+import { saidPlainly } from "../refusal";
+import HelpArticle from "./HelpArticle";
+import HelpHome from "./HelpHome";
+import HelpNav from "./HelpNav";
+import HelpSteps from "./HelpSteps";
+import MarkdownArticle from "./MarkdownArticle";
 import type { Head } from "./paging";
 
-const titles = new Map<string, string>();
-const drawings = new Map<string, Promise<string>>();
+type View =
+  | { kind: "home" }
+  | { kind: "page"; slug: string; heading?: string; anchor?: string | null };
 
-// The examples name files only a store holds, so a picture shows the guide's own photo.
-const drawn = async (body: string): Promise<string> => {
-  const page = new DOMParser().parseFromString(
-    `<article>${await helpDrawn(body)}</article>`,
-    "text/html",
-  );
-  const examples = examplesIn(page);
-  const looks = await Promise.all(examples.map((code) => helpDrawn(code.textContent ?? "")));
-  const words = { written: t("helpWritten"), drawn: t("helpDrawn") };
-  examples.forEach((code, at) => {
-    shownBeside(code, looks[at], words);
-  });
-  const photo = new URL(rina, location.href).href;
-  for (const img of page.querySelectorAll("img[src]")) {
-    const at = img.getAttribute("src") ?? "";
-    if (!/^[a-z][a-z0-9+.-]*:/i.test(at) && pictured(at)) img.setAttribute("src", photo);
-  }
-  for (const card of page.querySelectorAll<HTMLElement>("a.card[data-doc]"))
-    titles.set(card.dataset.doc ?? "", card.textContent ?? "");
-  return page.querySelector("article")?.innerHTML ?? "";
-};
+const viewOf = (topic?: string): View =>
+  topic ? { kind: "page", slug: `${MARKS}${topic}` } : { kind: "home" };
 
-const drawGuide = (body: string): Promise<string> => {
-  const known = drawings.get(body);
-  if (known) return known;
-  const made = drawn(body);
-  drawings.set(body, made);
-  made.catch(() => drawings.delete(body));
-  return made;
-};
-
-const card = (file: string): Carded => ({ kind: "doc", title: titles.get(file) ?? "" });
-
-const pill =
-  "inline-flex max-w-[48%] items-center gap-2 rounded-full border border-line bg-sheet px-4 py-2 text-[13px] font-medium text-ink hover:border-accent hover:text-accent";
-
-export default function Help({ topic }: { readonly topic?: string }) {
-  const [topics, setTopics] = useState<Topic[] | null>(null);
-  const [anchors, setAnchors] = useState<string[][]>([]);
-  const [failed, setFailed] = useState(false);
-  const [slug, setSlug] = useState(topic ?? "index");
+export default function Help({ topic, from }: { readonly topic?: string; readonly from?: string }) {
+  const spanish = locale().toLowerCase().startsWith("es");
+  const [view, setView] = useState<View>(viewOf(topic));
+  const [entries, setEntries] = useState<HelpEntry[]>([]);
+  const [bodies, setBodies] = useState<Record<string, string>>({});
+  const [topics, setTopics] = useState<Topic[]>([]);
   const [heads, setHeads] = useState<Head[]>([]);
-  const aimed = useRef<string | null>(null);
-  const view = useRef<Window | null>(null);
+  const [pictures, setPictures] = useState<HelpPictures | null>(null);
+  const [later, setLater] = useState(false);
+  const [bringing, setBringing] = useState(false);
+  const [trouble, setTrouble] = useState<string | null>(null);
+  const [gone, setGone] = useState(false);
+  const fresh = useRef(false);
 
   useEffect(() => {
-    helpReference(locale().toLowerCase().startsWith("es"))
-      .then((text) => {
-        const found = topicsOf(text);
-        setTopics(found);
-        return helpAnchors(found.map((one) => one.body)).then(setAnchors);
-      })
-      .catch(() => setFailed(true));
-  }, []);
-
-  useEffect(() => {
-    if (topic) setSlug(topic);
+    if (topic) setView(viewOf(topic));
   }, [topic]);
 
-  const at = Math.max(0, topics?.findIndex((one) => one.slug === slug) ?? 0);
-  const shown = topics?.[at];
-  const named = (one: Topic) => one.heading ?? t("helpStart");
-  const open = (next: string, anchor: string | null = null) => {
-    aimed.current = anchor;
+  useEffect(() => {
+    let live = true;
+    helpPages(spanish)
+      .then(async (found) => {
+        if (!live) return;
+        setEntries(forTheWindow(found));
+        const read = await Promise.all(
+          found.map((one) => helpPage(spanish, one.slug).then((body) => [one.slug, body ?? ""])),
+        );
+        if (live) setBodies(Object.fromEntries(read));
+      })
+      .catch(() => undefined);
+    helpPictures(spanish)
+      .then((said) => live && setPictures(said))
+      .catch(() => undefined);
+    helpReferenceHere(spanish)
+      .then((text) => live && setTopics((was) => (was.length > 0 ? was : topicsOf(text))))
+      .catch(() => live && setGone(true));
+    return () => {
+      live = false;
+    };
+  }, [spanish]);
+
+  const reading = view.kind === "page" && view.slug.startsWith(MARKS);
+  useEffect(() => {
+    if (!reading || fresh.current) return;
+    fresh.current = true;
+    helpReference(spanish)
+      .then((text) => setTopics(topicsOf(text)))
+      .catch(() => undefined);
+  }, [reading, spanish]);
+
+  const marks = useMemo(() => marksOf(topics, t("helpMarkdown")), [topics]);
+  const sections = sectionsOf(entries);
+  const searchable = useMemo(
+    () => ({
+      ...bodies,
+      ...Object.fromEntries(marks.map((one, at) => [one.slug, topics[at]?.body ?? ""])),
+    }),
+    [bodies, marks, topics],
+  );
+
+  const open = (slug: string, heading?: string, anchor?: string | null) => {
+    if (slug.startsWith(MARKS) || entries.some((one) => one.slug === slug)) {
+      setHeads([]);
+      setView({ kind: "page", slug, heading, anchor });
+    } else
+      openLink(`${t("helpMoreAt")}${slug}/${anchor ? `#${anchor}` : ""}`).catch(() => undefined);
+  };
+  const home = () => {
     setHeads([]);
-    setSlug(next);
+    setView({ kind: "home" });
+  };
+  const bring = () => {
+    setBringing(true);
+    setTrouble(null);
+    helpPicturesFetch(spanish)
+      .then((said) => {
+        setPictures(said);
+        if (said.missing > 0) setTrouble(t("helpPicturesSome"));
+      })
+      .catch((problem) => setTrouble(saidPlainly(problem)))
+      .finally(() => setBringing(false));
   };
 
-  const onHere = (id: string) => {
-    const owner = topics?.findIndex((_, one) => anchors[one]?.includes(id)) ?? -1;
-    if (owner < 0 || !topics) return;
-    if (owner === at) {
-      view.current?.document.getElementById(id)?.scrollIntoView({ block: "start" });
-      return;
-    }
-    open(topics[owner].slug, anchors[owner][0] === id ? null : id);
-  };
-
-  const before = topics?.[at - 1];
-  const after = topics?.[at + 1];
-  const subs = heads.filter((one) => one.level === 3);
+  const at = reading
+    ? Math.max(
+        0,
+        marks.findIndex((one) => view.kind === "page" && one.slug === view.slug),
+      )
+    : -1;
+  const shown =
+    view.kind !== "page"
+      ? undefined
+      : reading
+        ? marks[at]
+        : entries.find((one) => one.slug === view.slug);
+  const walked = [...sections.flatMap(([, pages]) => pages), ...marks];
+  const step = shown ? walked.findIndex((one) => one.slug === shown.slug) : -1;
 
   return (
     <main className="flex min-h-0 flex-col overflow-hidden">
       <div data-tauri-drag-region className="h-9 shrink-0" />
       <div className="flex min-h-0 flex-1">
-        <nav
-          aria-label={t("helpTopics")}
-          className="scroller flex w-[230px] shrink-0 flex-col overflow-y-auto px-3 pb-6"
-        >
-          <p className="px-2.5 pb-2 text-[11.5px] font-semibold tracking-wide text-faint uppercase">
-            {t("help")}
-          </p>
-          <ol className="flex flex-col gap-px">
-            {topics?.map((one) => {
-              const here = one.slug === shown?.slug;
-              return (
-                <li key={one.slug}>
-                  <button
-                    type="button"
-                    aria-current={here ? "page" : undefined}
-                    onClick={() => open(one.slug)}
-                    className={`w-full rounded-md px-2.5 py-1.5 text-left text-[13px] leading-snug ${
-                      here
-                        ? "bg-accent-soft font-semibold text-accent"
-                        : "text-soft hover:bg-hover hover:text-ink"
-                    }`}
-                  >
-                    {named(one)}
-                  </button>
-                  {here && subs.length > 0 && (
-                    <ol className="my-0.5 ml-3 border-l border-hair pl-2">
-                      {subs.map((sub) => (
-                        <li key={sub.key}>
-                          <button
-                            type="button"
-                            onClick={sub.go}
-                            className="w-full rounded-md px-2 py-1 text-left text-[12.5px] text-faint hover:bg-hover hover:text-ink"
-                          >
-                            {sub.text}
-                          </button>
-                        </li>
-                      ))}
-                    </ol>
-                  )}
-                </li>
-              );
-            })}
-          </ol>
-          <button
-            type="button"
-            onClick={() => openLink(t("helpMoreAt")).catch(() => undefined)}
-            className="mt-5 px-2.5 text-left text-[12.5px] text-accent hover:underline"
-          >
-            {t("helpMore")} ↗
-          </button>
-        </nav>
+        <HelpNav
+          sections={sections}
+          marks={marks}
+          here={shown?.slug ?? null}
+          subs={outlined(heads)}
+          onHome={home}
+          onOpen={(slug) => open(slug)}
+        />
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-          {failed && <p className="px-6 pt-6 text-[12.5px] text-urgent">{t("helpGone")}</p>}
-          {shown && (
-            <Page
-              key={shown.slug}
-              body={shown.body}
-              draw={drawGuide}
-              label={named(shown)}
-              stranger={false}
-              card={card}
-              onDoc={() => undefined}
-              onHere={onHere}
+          {pictures && pictures.missing > 0 && !later && (
+            <div
+              role="status"
+              className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-hair px-6 py-2 text-[12.5px] text-soft"
+            >
+              <span className="min-w-0 flex-1">
+                {fill("helpPictures", weigh(pictures.missing))}
+              </span>
+              <button
+                type="button"
+                disabled={bringing}
+                onClick={bring}
+                className={`rounded-md border border-line px-2.5 py-1 text-ink hover:bg-hover ${
+                  bringing ? "motion-safe:animate-pulse" : ""
+                }`}
+              >
+                {t(bringing ? "helpPicturesBringing" : "helpPicturesDo")}
+              </button>
+              {!bringing && (
+                <button
+                  type="button"
+                  onClick={() => setLater(true)}
+                  className="rounded-md px-2 py-1 text-faint hover:text-ink"
+                >
+                  {t("helpPicturesLater")}
+                </button>
+              )}
+              {trouble && <span className="basis-full text-urgent">{trouble}</span>}
+            </div>
+          )}
+          {view.kind === "home" && (
+            <HelpHome
+              entries={entries}
+              more={marks}
+              bodies={searchable}
+              from={from}
+              spanish={spanish}
+              onOpen={open}
+              onMarkdown={() => open(`${MARKS}index`)}
+            />
+          )}
+          {shown && view.kind === "page" && !reading && (
+            <HelpArticle
+              entry={shown}
+              body={bodies[shown.slug] ?? ""}
+              pictures={pictures}
+              heading={view.heading}
+              anchor={view.anchor ?? null}
+              onOpen={open}
               onOutline={setHeads}
-              onShown={(seen) => {
-                view.current = seen;
-                if (!seen || !aimed.current) return;
-                seen.document.getElementById(aimed.current)?.scrollIntoView({ block: "start" });
-                aimed.current = null;
-              }}
+            />
+          )}
+          {reading && !shown && gone && (
+            <p className="px-6 pt-6 text-[12.5px] text-urgent">{t("helpGone")}</p>
+          )}
+          {shown && view.kind === "page" && reading && topics[at] && (
+            <MarkdownArticle
+              topic={topics[at]}
+              topics={topics}
+              anchor={view.anchor ?? null}
+              onOpen={(slug, anchor) => open(`${MARKS}${slug}`, undefined, anchor)}
+              onOutline={setHeads}
             />
           )}
           {shown && (
-            <nav
-              aria-label={`${t("helpBefore")} · ${t("helpAfter")}`}
-              className="flex shrink-0 gap-3 border-t border-hair px-6 py-3"
-            >
-              {before && (
-                <button
-                  type="button"
-                  title={t("helpBefore")}
-                  className={pill}
-                  onClick={() => open(before.slug)}
-                >
-                  <span aria-hidden="true" className="text-faint">
-                    ←
-                  </span>
-                  <span className="truncate">{named(before)}</span>
-                </button>
-              )}
-              {after && (
-                <button
-                  type="button"
-                  title={t("helpAfter")}
-                  className={`${pill} ml-auto`}
-                  onClick={() => open(after.slug)}
-                >
-                  <span className="truncate">{named(after)}</span>
-                  <span aria-hidden="true" className="text-faint">
-                    →
-                  </span>
-                </button>
-              )}
-            </nav>
+            <HelpSteps
+              before={walked[step - 1]}
+              after={step >= 0 ? walked[step + 1] : undefined}
+              onOpen={(slug) => open(slug)}
+            />
           )}
         </div>
       </div>

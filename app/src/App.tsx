@@ -1,6 +1,7 @@
 import { docFile, folderFile } from "./core";
 import { DeskProvider, deskOf } from "./desk";
 import { hereChoices } from "./docMenus";
+import { cameFrom } from "./guide/help";
 import { t } from "./locales";
 import { saidPlainly } from "./refusal";
 import { WEEK } from "./ui/Ahead";
@@ -62,13 +63,13 @@ export default function App() {
 
   return (
     <DeskProvider value={desk}>
-      <div className="grid h-full bg-rail font-sans [grid-template-columns:336px_minmax(0,1fr)] min-[1440px]:[grid-template-columns:380px_minmax(0,1fr)]">
+      <div className="grid h-full bg-rail font-sans [grid-template-columns:336px_minmax(0,1fr)] min-[1440px]:[grid-template-columns:350px_minmax(0,1fr)]">
         <WindowChrome />
 
         <Layers parcels={desk.parcels.shown} />
         <News />
         <Calendars />
-        <HelpKey onHelp={(topic) => choose({ named: "help", topic })} />
+        <HelpKey onHelp={(topic) => choose({ named: "help", topic, from: cameFrom(chosen) })} />
 
         <Sidebar
           lists={data.lists}

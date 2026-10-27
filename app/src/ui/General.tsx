@@ -291,7 +291,7 @@ export default function General({
             type="button"
             disabled={held}
             onClick={() =>
-              run("greet", guide(), (paper) => {
+              run("greet", guide(true), (paper) => {
                 onChanged();
                 onDoc(paper.id);
               })
