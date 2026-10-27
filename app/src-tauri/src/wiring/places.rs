@@ -19,6 +19,7 @@ pub struct Place {
     pub bins: Vec<PathBuf>,
     pub command: String,
     pub open: bool,
+    pub packaged: bool,
     /// Where the distro mounts Windows drives, `/mnt/` by default; empty on this computer.
     pub mount: String,
 }
@@ -50,6 +51,7 @@ impl Place {
             bins,
             command,
             open: true,
+            packaged: tisty_core::paths::from_the_store(),
             mount: String::new(),
         })
     }
@@ -75,11 +77,8 @@ impl Place {
         } else {
             return None;
         };
-        let mut at = base?;
-        for step in rest.split('/') {
-            at.push(step);
-        }
-        Some(at)
+        let steps: Vec<&str> = rest.split('/').collect();
+        walked(base?, &steps)
     }
 
     // A bare name is looked up on the PATH when the assistant starts it, so there is no file to check.
@@ -106,6 +105,16 @@ impl Place {
             rest.split('/')
                 .fold(distro_root(distro), |at, step| at.join(step)),
         )
+    }
+
+    pub fn moved_aside(&self, at: &Path) -> bool {
+        self.packaged
+            && self.os == Os::Windows
+            && self.distro.is_none()
+            && [&self.appdata, &self.local]
+                .into_iter()
+                .flatten()
+                .any(|base| at.starts_with(base))
     }
 
     pub fn runs(&self, name: &str) -> bool {
@@ -162,17 +171,43 @@ fn var(named: &str) -> Option<PathBuf> {
 /// Installed from the Store an app never sees `%APPDATA%`: Windows hands it a private copy under
 /// its package, and the settings the person edits are the ones in there.
 fn store(local: &Path, named: &str) -> Option<PathBuf> {
-    let mut found: Vec<PathBuf> = std::fs::read_dir(local.join("Packages"))
-        .ok()?
+    let first = folders_in(&local.join("Packages"), named)
+        .into_iter()
+        .next()?;
+    Some(first.join("LocalCache").join("Roaming"))
+}
+
+fn walked(at: PathBuf, steps: &[&str]) -> Option<PathBuf> {
+    let Some((step, rest)) = steps.split_first() else {
+        return Some(at);
+    };
+    let Some(named) = step.strip_suffix('*') else {
+        return walked(at.join(step), rest);
+    };
+    let all = folders_in(&at, named);
+    all.iter()
+        .filter_map(|one| walked(one.clone(), rest))
+        .find(|it| it.exists())
+        .or_else(|| walked(all.into_iter().next()?, rest))
+}
+
+fn folders_in(folder: &Path, named: &str) -> Vec<PathBuf> {
+    let named = named.to_lowercase();
+    let mut found: Vec<PathBuf> = std::fs::read_dir(folder)
+        .into_iter()
         .flatten()
-        .map(|it| it.path())
-        .filter(|at| {
-            at.file_name()
-                .is_some_and(|it| it.to_string_lossy().starts_with(named))
+        .flatten()
+        .filter(|it| {
+            it.file_name()
+                .to_string_lossy()
+                .to_lowercase()
+                .starts_with(&named)
         })
+        .map(|it| it.path())
+        .filter(|at| at.is_dir())
         .collect();
     found.sort();
-    Some(found.into_iter().next()?.join("LocalCache").join("Roaming"))
+    found
 }
 
 /// The same Windows file as a WSL distro reaches it: `C:\a\b` under its mount root, `/mnt/c/a/b`.
@@ -304,6 +339,7 @@ pub fn distro(name: &str, uid: u32, windows_command: &str) -> Option<Place> {
         command: from_linux(windows_command, &mount)?,
         home,
         open,
+        packaged: false,
         mount,
     })
 }

@@ -1089,17 +1089,27 @@ pub fn write_atomic(path: &Path, contents: &[u8]) -> Result<()> {
     wrote
 }
 
+pub fn write_in_place(path: &Path, contents: &[u8]) -> Result<()> {
+    Ok(again(|| std::fs::write(path, contents), for_a_moment)?)
+}
+
 fn renamed(tmp: &Path, path: &Path) -> std::io::Result<()> {
+    again(|| std::fs::rename(tmp, path), for_a_moment)
+}
+
+fn again(
+    mut act: impl FnMut() -> std::io::Result<()>,
+    passing: fn(&std::io::Error) -> bool,
+) -> std::io::Result<()> {
     let mut wait = 10;
     for _ in 0..6 {
-        match std::fs::rename(tmp, path) {
-            Ok(()) => return Ok(()),
-            Err(e) if !for_a_moment(&e) => return Err(e),
-            Err(_) => std::thread::sleep(std::time::Duration::from_millis(wait)),
+        match act() {
+            Err(e) if passing(&e) => std::thread::sleep(std::time::Duration::from_millis(wait)),
+            done => return done,
         }
         wait *= 2;
     }
-    std::fs::rename(tmp, path)
+    act()
 }
 
 /// The two Windows raises for a file somebody else has open; every other refusal is final.

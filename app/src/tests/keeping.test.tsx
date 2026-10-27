@@ -3613,7 +3613,7 @@ describe("letting an assistant file work here", () => {
 
     await waitFor(() => expect(sent("wire").length).toBe(1));
     expect(sent("wire")[0].args.id).toBe("antigravity");
-    expect(await screen.findByText(/Close it and open it again/i)).toBeTruthy();
+    expect(await screen.findByText(/Quit it completely and open it again/i)).toBeTruthy();
   });
 
   it("one already connected is taken back out rather than written twice", async () => {
