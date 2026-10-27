@@ -6,12 +6,12 @@ export default function TitleBar({
   under,
   lead,
   children,
-}: {
+}: Readonly<{
   title: string;
   under: string;
   lead?: ReactNode;
   children?: ReactNode;
-}) {
+}>) {
   return (
     <header
       data-tauri-drag-region

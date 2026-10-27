@@ -12,7 +12,7 @@ interface Drawn {
   size: Size;
 }
 
-export default function Canvas({ source, dark }: { source: string; dark: boolean }) {
+export default function Canvas({ source, dark }: Readonly<{ source: string; dark: boolean }>) {
   const room = useRef<HTMLDivElement>(null);
   const [drawn, setDrawn] = useState<Drawn | null>(null);
   const [broken, setBroken] = useState(false);
@@ -50,8 +50,10 @@ export default function Canvas({ source, dark }: { source: string; dark: boolean
     if (first) fitAll();
   });
 
-  const zoom = (by: number, point = { x: roomSize().wide / 2, y: roomSize().tall / 2 }) =>
-    setView((was) => (was ? zoomedAt(was, by, point) : was));
+  const zoom = (by: number) => {
+    const middle = { x: roomSize().wide / 2, y: roomSize().tall / 2 };
+    setView((was) => (was ? zoomedAt(was, by, middle) : was));
+  };
 
   useEffect(() => {
     const here = room.current;
@@ -112,12 +114,9 @@ export default function Canvas({ source, dark }: { source: string; dark: boolean
         />
       )}
       {broken && (
-        <p
-          role="status"
-          className="absolute top-3 left-1/2 -translate-x-1/2 rounded-md bg-panel px-3 py-1.5 text-[12.5px] text-soft shadow"
-        >
+        <output className="absolute top-3 left-1/2 -translate-x-1/2 rounded-md bg-panel px-3 py-1.5 text-[12.5px] text-soft shadow">
           {t("diagramUnreadable")}
-        </p>
+        </output>
       )}
       <div className="absolute right-3 bottom-3 flex items-center gap-1.5 rounded-lg bg-panel p-1 shadow">
         <button

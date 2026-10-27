@@ -495,9 +495,6 @@ export const viewGo = (file: string): Promise<void> => invoke("view_go", { file 
 export const viewWidget = (lent: Lent, from?: Viewed): Promise<void> =>
   invoke("view_widget", { lent, from: from ?? null });
 export const viewDoc = (paper: Viewed): Promise<void> => invoke("view_doc", { paper });
-export const viewDiagram = (paper: Viewed, at: number): Promise<void> =>
-  invoke("view_diagram", { paper, at });
-export const diagramSave = (now: string): Promise<void> => invoke("diagram_save", { now });
 
 export const served = (reference: string): Promise<string> => invoke("served", { reference });
 export const drawsHeicHere = (): Promise<boolean> => invoke("draws_heic");

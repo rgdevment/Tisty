@@ -18,7 +18,11 @@ export const kindOf = (source: string): DiagramKind => {
       continue;
     }
     if (inFront || !line || line.startsWith("%%")) continue;
-    const word = line.split(/[\s;]/)[0].toLowerCase();
+    // A layout or version suffix (`flowchart-elk`, `stateDiagram-v2`) keeps the kind it names.
+    const word = line
+      .split(/[\s;]/)[0]
+      .toLowerCase()
+      .replace(/-(elk|v\d+)$/, "");
     return KINDS[word] ?? "other";
   }
   return "other";

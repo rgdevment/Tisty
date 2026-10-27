@@ -50,10 +50,39 @@ const troubleOf = (refusal: { code: string; name?: string }): Trouble =>
     ? { kind: "big", limit: refusal.name ?? "" }
     : { kind: "unreadable" };
 
+// A diagram's window is its own thing: none of the reader's state is set up for it.
 export default function Viewing() {
   useState(() => adopt(new URLSearchParams(window.location.search).get("locale") ?? undefined));
   const [shown, setShown] = useState<Showing | null>(null);
+  const [trouble, setTrouble] = useState<string | null>(null);
+  const look = useCallback(
+    () =>
+      void viewShown()
+        .then((one) => {
+          setShown(one);
+          setTrouble(null);
+        })
+        .catch((e) => setTrouble(saidPlainly(e))),
+    [],
+  );
+  useEffect(look, [look]);
+
+  if (shown?.kind === "diagram") return <Diagramming paper={shown.paper} source={shown.source} />;
+  return <Reading shown={shown} trouble={trouble} look={look} />;
+}
+
+function Reading({
+  shown,
+  trouble,
+  look,
+}: {
+  shown: Showing | null;
+  trouble: string | null;
+  look: () => void;
+}) {
   const [note, setNote] = useState<string | null>(null);
+  // Each answer from the window, good or bad, replaces what the last one said.
+  useEffect(() => setNote(trouble), [trouble, shown]);
   const [band, setBand] = useState<string | null>(null);
   const [kept, setKept] = useState(remembered);
   const { side } = kept;
@@ -68,18 +97,6 @@ export default function Viewing() {
   const [code, setCode] = useState(false);
   const [busy, setBusy] = useState(false);
   const [facts, setFacts] = useState<DocFacts | null>(null);
-
-  const look = useCallback(
-    () =>
-      void viewShown()
-        .then((one) => {
-          setShown(one);
-          setNote(null);
-        })
-        .catch((e) => setNote(saidPlainly(e))),
-    [],
-  );
-  useEffect(look, [look]);
 
   useEffect(() => {
     try {
@@ -195,7 +212,6 @@ export default function Viewing() {
   };
   useEffect(() => {
     const heard = (e: KeyboardEvent) => {
-      if (keys.current.shown?.kind === "diagram") return;
       if (e.key === "Escape") return escaping.current();
       if (!(e.ctrlKey || e.metaKey)) return;
       const act = keysFor(keys.current, e);
@@ -208,7 +224,6 @@ export default function Viewing() {
   }, []);
 
   const { title } = titled(shown);
-  if (shown?.kind === "diagram") return <Diagramming paper={shown.paper} source={shown.source} />;
 
   return (
     <main className="relative flex h-full flex-col bg-desk font-sans">

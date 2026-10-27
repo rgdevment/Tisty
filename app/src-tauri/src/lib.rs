@@ -1362,6 +1362,9 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         viewing::view_doc,
         diagramming::view_diagram,
         diagramming::diagram_save,
+        diagramming::diagram_again,
+        diagramming::diagram_unsaved,
+        diagramming::diagram_leave,
         viewing::view_go,
         answers::shelves::sow,
         answers::shelves::folder_file

@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager, Runtime};
 use tisty_markdown::diagrams::{self, Place};
 
 use crate::answers::papers::{unwritten, writable};
@@ -18,9 +18,19 @@ pub struct Drawn {
 pub fn view_diagram(
     app: AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
+    views: tauri::State<'_, Views>,
     paper: Paper,
     at: usize,
 ) -> Answer<()> {
+    // Two windows on one diagram would refuse each other's saves.
+    let open = viewing::showing(
+        &views,
+        |one| matches!(one, Shown::Diagram(drawn) if drawn.paper.file == paper.file && drawn.place.at == at),
+    );
+    if let Some(window) = open.and_then(|label| app.get_webview_window(&label)) {
+        brought(&window);
+        return Ok(());
+    }
     // Opened only where it can be saved, so no work is done that a lock would then refuse.
     writable(&held(&session).state, &paper.file)?;
     let body = viewing::doc_body(&app, &paper.file)?;
@@ -85,4 +95,67 @@ pub fn diagram_save(
     // The main window learns of it as of any writer from outside, and draws the page again.
     let _ = app.emit_to("main", "stirred", ());
     Ok(())
+}
+
+/// The diagram as the document says it now, held from here on as what this window opened.
+#[tauri::command(async)]
+pub fn diagram_again(
+    app: AppHandle,
+    window: tauri::WebviewWindow,
+    views: tauri::State<'_, Views>,
+) -> Answer<String> {
+    let Shown::Diagram(drawn) = viewing::shown_in(&views, window.label())? else {
+        return Err(Refusal::of("notAllowed"));
+    };
+    let body = viewing::doc_body(&app, &drawn.paper.file)?;
+    let Some((place, was)) = diagrams::at_place(&body, drawn.place) else {
+        return Err(Refusal::about("diagramGone", drawn.paper.title));
+    };
+    viewing::reshow(
+        &views,
+        window.label(),
+        Shown::Diagram(Drawn {
+            place,
+            was: was.clone(),
+            ..drawn
+        }),
+    );
+    Ok(was)
+}
+
+#[tauri::command]
+pub fn diagram_unsaved(
+    window: tauri::WebviewWindow,
+    views: tauri::State<'_, Views>,
+    unsaved: bool,
+) {
+    viewing::mark_unsaved(&views, window.label(), unsaved);
+}
+
+/// The person chose to leave without saving: the quit asked for goes on.
+#[tauri::command]
+pub fn diagram_leave(app: AppHandle, window: tauri::WebviewWindow, views: tauri::State<'_, Views>) {
+    viewing::mark_unsaved(&views, window.label(), false);
+    crate::desktop::parting(&app);
+}
+
+/// Quitting waits while a diagram window holds unsaved work, and that window asks first.
+pub(crate) fn holds_back<R: Runtime>(app: &tauri::AppHandle<R>) -> bool {
+    let Some(views) = app.try_state::<Views>() else {
+        return false;
+    };
+    let Some(window) =
+        viewing::first_unsaved(&views).and_then(|label| app.get_webview_window(&label))
+    else {
+        return false;
+    };
+    brought(&window);
+    let _ = window.emit_to(window.label(), "diagramLeaving", ());
+    true
+}
+
+fn brought<R: Runtime>(window: &tauri::WebviewWindow<R>) {
+    let _ = window.unminimize();
+    let _ = window.show();
+    let _ = window.set_focus();
 }

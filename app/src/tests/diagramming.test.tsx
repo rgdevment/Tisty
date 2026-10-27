@@ -11,7 +11,9 @@ const ipc = vi.hoisted(() => ({
   refusal: null as unknown,
   asked: [] as string[],
   closing: null as null | ((e: { preventDefault: () => void }) => Promise<void>),
-  leave: true,
+  leave: true as boolean | "fails",
+  quitting: null as null | (() => Promise<void>),
+  now: "mindmap\n  root((Otra))\n",
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -19,6 +21,7 @@ vi.mock("@tauri-apps/api/core", () => ({
     ipc.calls.push({ cmd, args: args ?? {} });
     if (cmd === "view_shown") return Promise.resolve(ipc.shown);
     if (cmd === "diagram_save" && ipc.refusal) return Promise.reject(ipc.refusal);
+    if (cmd === "diagram_again") return Promise.resolve(ipc.now);
     return Promise.resolve(null);
   },
   convertFileSrc: (path: string) => path,
@@ -33,7 +36,9 @@ vi.mock("@tauri-apps/api/event", () => ({
 vi.mock("@tauri-apps/plugin-dialog", () => ({
   ask: (said: string) => {
     ipc.asked.push(said);
-    return Promise.resolve(ipc.leave);
+    return ipc.leave === "fails"
+      ? Promise.reject(new Error("no dialog"))
+      : Promise.resolve(ipc.leave);
   },
   save: () => Promise.resolve(null),
   message: () => Promise.resolve(),
@@ -49,6 +54,10 @@ vi.mock("@tauri-apps/api/window", () => ({
     close: () => Promise.resolve(),
     onCloseRequested: (heard: typeof ipc.closing) => {
       ipc.closing = heard;
+      return Promise.resolve(() => {});
+    },
+    listen: (event: string, heard: () => Promise<void>) => {
+      if (event === "diagramLeaving") ipc.quitting = heard;
       return Promise.resolve(() => {});
     },
   }),
@@ -70,7 +79,8 @@ const shown: Showing = {
 };
 
 const asked = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd);
-const written = () => screen.findByLabelText(t("diagramText")) as Promise<HTMLTextAreaElement>;
+const lastOf = (cmd: string) => asked(cmd)[asked(cmd).length - 1];
+const written = async () => (await screen.findByLabelText(t("diagramText"))) as HTMLTextAreaElement;
 const saving = () => screen.getByRole("button", { name: fill("diagramSave", "Tisty Share") });
 
 beforeEach(() => {
@@ -80,6 +90,7 @@ beforeEach(() => {
   ipc.refusal = null;
   ipc.asked = [];
   ipc.closing = null;
+  ipc.quitting = null;
   ipc.leave = true;
 });
 
@@ -208,5 +219,59 @@ describe("the diagram window", () => {
     expect(drawn()).toBe("translate(300px, 200px) scale(1)");
     fireEvent.wheel(canvas, { deltaY: -1, ctrlKey: true, clientX: 0, clientY: 0 });
     expect(drawn()).toBe("translate(360px, 240px) scale(1.2)");
+  });
+
+  it("after a refusal, takes the document's diagram or saves its own over it", async () => {
+    ipc.refusal = { code: "diagramMoved", name: "Tisty Share" };
+    render(<Viewing />);
+    const text = await written();
+
+    fireEvent.change(text, { target: { value: "mindmap\n  root((Mía))" } });
+    await userEvent.click(saving());
+    await userEvent.click(await screen.findByRole("button", { name: t("diagramTakeTheirs") }));
+
+    await waitFor(() => expect(text.value).toBe(ipc.now));
+    expect(screen.getByText(t("diagramSaved"))).toBeTruthy();
+    expect(screen.queryByRole("alert")).toBeNull();
+
+    fireEvent.change(text, { target: { value: "mindmap\n  root((Mía))" } });
+    await userEvent.click(saving());
+    ipc.refusal = null;
+    await userEvent.click(await screen.findByRole("button", { name: t("diagramKeepMine") }));
+
+    await waitFor(() => expect(screen.getByText(t("diagramSaved"))).toBeTruthy());
+    expect(lastOf("diagram_save")?.args).toEqual({ now: "mindmap\n  root((Mía))" });
+    expect(asked("diagram_again")).toHaveLength(2);
+  });
+
+  it("tells the app what is unsaved, and asks before the app quits over it", async () => {
+    render(<Viewing />);
+    const text = await written();
+
+    fireEvent.change(text, { target: { value: "mindmap\n  root((Otra))" } });
+    await waitFor(() => expect(lastOf("diagram_unsaved")?.args).toEqual({ unsaved: true }));
+
+    ipc.leave = false;
+    await ipc.quitting?.();
+    expect(asked("diagram_leave")).toHaveLength(0);
+    ipc.leave = true;
+    await ipc.quitting?.();
+    expect(ipc.asked).toEqual([t("diagramLeaveApp"), t("diagramLeaveApp")]);
+    expect(asked("diagram_leave")).toHaveLength(1);
+  });
+
+  it("never traps the window when the dialog cannot open: it says so once, then lets go", async () => {
+    render(<Viewing />);
+    const text = await written();
+    const stopped = vi.fn();
+
+    fireEvent.change(text, { target: { value: "mindmap\n  root((Otra))" } });
+    ipc.leave = "fails";
+    await ipc.closing?.({ preventDefault: stopped });
+    expect(stopped).toHaveBeenCalledOnce();
+    expect(await screen.findByText(t("diagramUnasked"))).toBeTruthy();
+
+    await ipc.closing?.({ preventDefault: stopped });
+    expect(stopped).toHaveBeenCalledOnce();
   });
 });

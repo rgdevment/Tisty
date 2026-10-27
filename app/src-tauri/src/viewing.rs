@@ -79,6 +79,7 @@ pub struct Views {
     ready: std::sync::atomic::AtomicBool,
     early: Mutex<Vec<PathBuf>>,
     calendars: Mutex<Vec<PathBuf>>,
+    unsaved: Mutex<std::collections::HashSet<String>>,
 }
 
 impl Views {
@@ -307,9 +308,11 @@ pub(crate) fn open(app: &AppHandle, shown: Shown) {
                 if !matches!(event, tauri::WindowEvent::Destroyed) {
                     return;
                 }
-                if let Ok(mut held) = gone.state::<Views>().shown.lock() {
+                let views = gone.state::<Views>();
+                if let Ok(mut held) = views.shown.lock() {
                     held.remove(&named);
                 }
+                mark_unsaved(&views, &named, false);
                 gone.state::<widgets::Lent>().release(&named);
                 crate::tray::undock_unless_seen(&gone, &named);
             });
@@ -342,6 +345,27 @@ pub(crate) fn reshow(views: &Views, label: &str, shown: Shown) {
     {
         *was = shown;
     }
+}
+
+pub(crate) fn showing(views: &Views, wanted: impl Fn(&Shown) -> bool) -> Option<String> {
+    let held = views.shown.lock().ok()?;
+    held.iter()
+        .find(|(_, one)| wanted(one))
+        .map(|(label, _)| label.clone())
+}
+
+pub(crate) fn mark_unsaved(views: &Views, label: &str, unsaved: bool) {
+    if let Ok(mut held) = views.unsaved.lock() {
+        if unsaved {
+            held.insert(label.to_string());
+        } else {
+            held.remove(label);
+        }
+    }
+}
+
+pub(crate) fn first_unsaved(views: &Views) -> Option<String> {
+    views.unsaved.lock().ok()?.iter().next().cloned()
 }
 
 fn session_of(app: &AppHandle) -> Answer<tauri::State<'_, Mutex<Session>>> {

@@ -7,6 +7,8 @@ mindmap⏎  root((Tisty)) → mindmap
 erDiagram⏎  a ||--o{ b : has → erDiagram
 flowchart LR⏎  a --> b → flowchart
 graph TD;⏎  a --> b → flowchart
+flowchart-elk TD⏎  a --> b → flowchart
+stateDiagram-v2⏎  [*] --> a → other
 classDiagram⏎  class A → classDiagram
 sequenceDiagram⏎  a->>b: hi → other
 %% a note first⏎⏎mindmap⏎  root → mindmap

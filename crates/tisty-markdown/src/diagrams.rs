@@ -52,18 +52,36 @@ pub struct Place {
 pub fn redrawn(text: &str, place: Place, was: &str, now: &str) -> Option<(String, Place)> {
     let was = was.replace('\r', "");
     let found = diagrams(text);
+    let alike = found.iter().filter(|one| one.source == was).count();
     let nth = found
         .iter()
         .position(|one| one.at.start == place.at && one.source == was)
         .or_else(|| {
             found
                 .get(place.nth)
-                .filter(|one| one.source == was)
+                .filter(|one| alike == 1 && one.source == was)
                 .map(|_| place.nth)
         })?;
     let chosen = &found[nth];
     let at = chosen.at.start;
     Some((written_into(text, chosen, now), Place { at, nth }))
+}
+
+/// The diagram a window holds as the document says it now, whatever it says.
+pub fn at_place(text: &str, place: Place) -> Option<(Place, String)> {
+    let found = diagrams(text);
+    let nth = found
+        .iter()
+        .position(|one| one.at.start == place.at)
+        .or((place.nth < found.len()).then_some(place.nth))?;
+    let one = &found[nth];
+    Some((
+        Place {
+            at: one.at.start,
+            nth,
+        },
+        one.source.clone(),
+    ))
 }
 
 pub fn as_read(now: &str) -> String {

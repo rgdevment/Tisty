@@ -1,4 +1,4 @@
-use super::*;
+use super::{Place, as_read, at_place, diagrams, redrawn};
 
 // One case per line: body | the diagram sitting where the page put it (`-` when none does) | which one it was counting from the top | was | now | body after (`-` when refused).
 // `⏎` is a line break and `␍` a carriage return, so a whole document fits on its line.
@@ -18,6 +18,7 @@ intro⏎⏎```mermaid⏎a⏎```⏎ | - | 0 | a⏎ | b⏎ | intro⏎⏎```mermaid
 ```mermaid⏎a⏎```⏎⏎```mermaid⏎c⏎```⏎ | - | 1 | c⏎ | d⏎ | ```mermaid⏎a⏎```⏎⏎```mermaid⏎d⏎```⏎
 ```mermaid⏎x⏎```⏎⏎```mermaid⏎a⏎```⏎ | 0 | 0 | a⏎ | b⏎ | -
 ```mermaid⏎new⏎```⏎⏎```mermaid⏎a⏎```⏎ | - | 0 | a⏎ | b⏎ | -
+```mermaid⏎a⏎```⏎⏎```mermaid⏎a⏎```⏎ | - | 1 | a⏎ | b⏎ | -
 ```mermaid␍⏎graph TD␍⏎```␍⏎ | 0 | 0 | graph TD⏎ | graph LR⏎A⏎ | ```mermaid␍⏎graph LR␍⏎A␍⏎```␍⏎
 intro␍⏎⏎```mermaid⏎a⏎```⏎ | 0 | 0 | a⏎ | b⏎ | intro␍⏎⏎```mermaid⏎b⏎```⏎
 ```js⏎graph TD⏎```⏎ | - | 0 | graph TD⏎ | graph LR⏎ | -
@@ -108,4 +109,21 @@ fn what_is_written_reads_back_as_the_window_will_hold_it() {
 
         assert_eq!(back.map(|one| one.source), Some(as_read(now)), "{now:?}");
     }
+}
+
+#[test]
+fn a_window_finds_its_diagram_again_by_place_or_order_whatever_it_says_now() {
+    let body = "intro\n\n```mermaid\nchanged\n```\n";
+    let sitting = diagrams(body)[0].at.start;
+    let here = Place {
+        at: sitting,
+        nth: 0,
+    };
+
+    assert_eq!(at_place(body, here), Some((here, "changed\n".to_string())));
+    assert_eq!(
+        at_place(body, Place { at: 0, nth: 0 }),
+        Some((here, "changed\n".to_string()))
+    );
+    assert_eq!(at_place(body, Place { at: 0, nth: 1 }), None);
 }
