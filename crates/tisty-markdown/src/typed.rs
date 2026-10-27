@@ -55,10 +55,10 @@ fn braced(cell: &Block, text: &str) -> Option<(Range<usize>, Holds, Option<Total
 
 pub(crate) fn understood(words: &str) -> Option<(Holds, Option<Total>)> {
     let mut words = words.split_whitespace();
-    let mut holds = holds_of(words.next()?)?;
+    let mut holds = Holds::from_word(words.next()?)?;
     let mut total = None;
     for word in words {
-        match (&mut holds, total_of(word)) {
+        match (&mut holds, Total::from_word(word)) {
             (_, Some(one)) if total.is_none() => total = Some(one),
             (Holds::Money { currency }, None)
                 if currency.is_none() && total.is_none() && coded(word) =>
@@ -71,37 +71,6 @@ pub(crate) fn understood(words: &str) -> Option<(Holds, Option<Total>)> {
     total
         .is_none_or(|one| adds_up(&holds, one))
         .then_some((holds, total))
-}
-
-fn holds_of(word: &str) -> Option<Holds> {
-    Some(match word {
-        "text" => Holds::Text,
-        "number" => Holds::Number,
-        "money" => Holds::Money { currency: None },
-        "percent" => Holds::Percent,
-        "date" => Holds::Date,
-        "duration" => Holds::Duration,
-        "check" => Holds::Check,
-        "select" => Holds::Select,
-        "tags" => Holds::Tags,
-        "rating" => Holds::Rating,
-        "link" => Holds::Link,
-        "url" => Holds::Url,
-        "email" => Holds::Email,
-        "phone" => Holds::Phone,
-        _ => return None,
-    })
-}
-
-fn total_of(word: &str) -> Option<Total> {
-    Some(match word {
-        "sum" => Total::Sum,
-        "avg" => Total::Avg,
-        "min" => Total::Min,
-        "max" => Total::Max,
-        "count" => Total::Count,
-        _ => return None,
-    })
 }
 
 // An ISO 4217 code: three letters.

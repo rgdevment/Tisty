@@ -117,6 +117,7 @@ fn listed(block: &Block, start: Option<u64>, text: &str) -> Value {
 }
 
 fn tabled(block: &Block, columns: &[Column], text: &str) -> Value {
+    let read = values::read(columns, block, text);
     let mut rows: Vec<Value> = block
         .inner
         .iter()
@@ -127,13 +128,12 @@ fn tabled(block: &Block, columns: &[Column], text: &str) -> Value {
                 .iter()
                 .enumerate()
                 .map(|(at, cell)| {
-                    let column = columns
-                        .get(at)
-                        .filter(|one| row_at > 0 && one.typed.is_some());
-                    let shown = column
-                        .and_then(|one| values::seen(&one.holds, values::said(cell, text)).shown);
+                    let shown = row_at
+                        .checked_sub(1)
+                        .and_then(|one| read.at(one, at))
+                        .and_then(|one| one.shown.as_deref());
                     let content = match shown {
-                        Some(shown) => worded(&shown),
+                        Some(shown) => worded(shown),
                         None => runs(&cell.spans, text),
                     };
                     celled(columns.get(at), content)
@@ -142,7 +142,7 @@ fn tabled(block: &Block, columns: &[Column], text: &str) -> Value {
             json!({ "type": "tableRow", "content": cells })
         })
         .collect();
-    if let Some(foot) = values::footed(columns, block, text) {
+    if let Some(foot) = &read.foot {
         let cells: Vec<Value> = foot
             .iter()
             .enumerate()
@@ -154,13 +154,11 @@ fn tabled(block: &Block, columns: &[Column], text: &str) -> Value {
 }
 
 fn celled(column: Option<&Column>, content: Vec<Value>) -> Value {
-    let lean = column
-        .and_then(|one| one.lean.or_else(|| one.holds.lean()))
-        .map(|lean| match lean {
-            Lean::Left => "left",
-            Lean::Center => "center",
-            Lean::Right => "right",
-        });
+    let lean = column.and_then(Column::leaning).map(|lean| match lean {
+        Lean::Left => "left",
+        Lean::Center => "center",
+        Lean::Right => "right",
+    });
     json!({
         "type": "tableCell",
         "attrs": { "textAlign": lean },

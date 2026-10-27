@@ -562,7 +562,7 @@ Una palabra entre llaves al final del encabezado de una columna dice qué guarda
 | `{select}` | una opción | la opción; las opciones son los valores de la propia columna |
 | `{tags}` | `web, docs` | las etiquetas |
 | `{rating}` | de `0` a `5` | ★★★★☆ |
-| `{link}` | `[[Contrato de arriendo]]` | un enlace a ese documento |
+| `{link}` | `[[Contrato de arriendo]]` o un documento enlazado con `/` | un enlace a ese documento |
 | `{url}` | `https://…` | el enlace |
 | `{email}` | `ana@correo.cl` | la dirección |
 | `{phone}` | `+56 9 1234 5678` | el número |
@@ -572,7 +572,7 @@ Una palabra entre llaves al final del encabezado de una columna dice qué guarda
 - Los números se escriben con punto para los decimales y sin separador de miles: `6490`, `12.5`. Las fechas van siempre con año, mes y día: `2026-11-14`.
 - Un valor que no está escrito como pide su tipo, como `pronto` en una columna de fechas, se muestra tal cual con una línea ondulada debajo. Nada se rechaza: el archivo dice lo que dice.
 - Una palabra que Tisty no conoce, como `{importante}`, queda como parte del encabezado, con llaves y todo, igual que unas llaves pegadas a la palabra anterior, como en `Precio{money}`.
-- Una tabla de más de 2.000 filas se muestra como texto.
+- Una tabla de más de 2.000 filas, o de más de 256 KB, se muestra como texto, con llaves y todo.
 - GitHub y los demás lectores muestran las llaves tal cual. Al exportar a Markdown estándar o a Word se quitan, cada valor se escribe como lo muestra Tisty y el pie se agrega como última fila.
 
 ## Saltos de página

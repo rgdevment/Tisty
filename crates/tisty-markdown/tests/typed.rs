@@ -55,3 +55,10 @@ fn a_table_with_no_type_tisty_knows_leaves_unchanged_byte_for_byte() {
         assert_eq!(to_tisty(&table), table);
     }
 }
+
+#[test]
+fn a_foot_added_on_the_way_out_ends_its_lines_as_the_table_does() {
+    let crlf = standard("| Horas {duration sum} |\r\n| --- |\r\n| 1h |\r\n| 30m |\r\n");
+    assert!(crlf.contains("\r\n| 1 h 30 min |"));
+    assert!(!crlf.replace("\r\n", "").contains('\n'));
+}

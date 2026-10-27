@@ -104,6 +104,21 @@ fn a_table_past_its_size_is_read_as_words() {
 }
 
 #[test]
+fn a_table_past_its_bytes_is_read_as_words_however_few_its_rows() {
+    let mut text = String::from("| Precio {money} | Notas |\n| --- | --- |\n");
+    let long = "palabra ".repeat(60);
+    for _ in 0..600 {
+        text.push_str(&format!("| 1 | {long} |\n"));
+    }
+    assert!(text.len() > 256 * 1024);
+    let doc = read(&text);
+    let Kind::Table { columns } = &doc.blocks()[0].kind else {
+        panic!("not a table");
+    };
+    assert_eq!(columns[0].typed, None);
+}
+
+#[test]
 fn every_word_in_the_vocabulary_is_a_type_or_a_total_tisty_reads() {
     for word in vocab::HOLDS {
         let (holds, _) = super::understood(word).expect(word);

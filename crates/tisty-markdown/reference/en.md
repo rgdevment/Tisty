@@ -562,7 +562,7 @@ A word in braces at the end of a column's head says what the column holds, and T
 | `{select}` | one choice | the choice; the column's own values are its options |
 | `{tags}` | `web, docs` | the tags |
 | `{rating}` | `0` to `5` | ★★★★☆ |
-| `{link}` | `[[Lease contract]]` | a link to that document |
+| `{link}` | `[[Lease contract]]` or a document linked with `/` | a link to that document |
 | `{url}` | `https://…` | the link |
 | `{email}` | `ana@mail.com` | the address |
 | `{phone}` | `+56 9 1234 5678` | the number |
@@ -572,7 +572,7 @@ A word in braces at the end of a column's head says what the column holds, and T
 - Numbers are written with a point for decimals and no thousands mark: `6490`, `12.5`. Dates are always year, month and day: `2026-11-14`.
 - A value not written as its type asks, like `soon` in a date column, is shown as written with a wavy line under it. Nothing is refused: the file says what it says.
 - A word Tisty does not know, like `{important}`, stays part of the head, braces and all, and so do braces glued to the word before them, as in `Price{money}`.
-- A table of more than 2,000 rows is shown as plain words.
+- A table of more than 2,000 rows, or of more than 256 KB, is shown as plain words, braces and all.
 - GitHub and other readers show the braces as written. Exporting to standard Markdown or to Word takes them out, writes each value as Tisty shows it and adds the foot as a last row.
 
 ## Page breaks

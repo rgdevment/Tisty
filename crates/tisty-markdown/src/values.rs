@@ -1,6 +1,9 @@
-use std::cmp::Ordering;
+use std::ops::Range;
 
-use crate::{Block, Column, Holds, Total};
+use crate::amounts::{Amount, convention, money, rounded};
+use crate::inline::{atom, code_words, walls};
+use crate::ranges::{Nearby, outside};
+use crate::{Block, Column, Holds, Mark, Total};
 
 /// How a cell of a typed column reads: what it shows, the key it sorts by, and whether it fits its type.
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -10,16 +13,88 @@ pub struct Seen {
     pub key: Option<String>,
     /// Written, but not as its type is written: drawn as it is, with a mark, never refused.
     pub amiss: bool,
+    value: Option<Value>,
 }
 
-/// The words of a cell as written, from its first mark to its last.
-pub fn said<'a>(cell: &Block, text: &'a str) -> &'a str {
-    let start = cell.spans.iter().map(|one| one.at.start).min();
-    let end = cell.spans.iter().map(|one| one.at.end).max();
-    match (start, end) {
-        (Some(start), Some(end)) => text.get(start..end).unwrap_or_default().trim(),
-        _ => "",
+/// A table's typed cells, read once: each body row's cells, and the foot when a column adds up.
+#[derive(Debug, Default)]
+pub struct Read {
+    pub rows: Vec<Vec<Seen>>,
+    pub foot: Option<Vec<String>>,
+}
+
+impl Read {
+    pub fn at(&self, row: usize, column: usize) -> Option<&Seen> {
+        self.rows.get(row)?.get(column)
     }
+}
+
+pub fn read(columns: &[Column], block: &Block, text: &str) -> Read {
+    if columns.iter().all(|one| one.typed.is_none()) {
+        return Read::default();
+    }
+    let rows: Vec<Vec<Seen>> = block
+        .inner
+        .iter()
+        .skip(1)
+        .map(|row| {
+            row.inner
+                .iter()
+                .zip(columns)
+                .map(|(cell, column)| match column.typed {
+                    Some(_) => seen(&column.holds, &worded(&column.holds, cell, text)),
+                    None => Seen::default(),
+                })
+                .collect()
+        })
+        .collect();
+    let foot = footed(columns, &rows);
+    Read { rows, foot }
+}
+
+/// Where a cell's words sit in the text, from its first mark to its last.
+pub fn spread(cell: &Block) -> Option<Range<usize>> {
+    let start = cell.spans.iter().map(|one| one.at.start).min()?;
+    let end = cell.spans.iter().map(|one| one.at.end).max()?;
+    Some(start..end)
+}
+
+// A link is known by how it is written; any other value by the words a reader sees, marks aside.
+fn worded(holds: &Holds, cell: &Block, text: &str) -> String {
+    if *holds == Holds::Link {
+        return spread(cell)
+            .and_then(|at| text.get(at))
+            .unwrap_or_default()
+            .trim()
+            .to_string();
+    }
+    let mut silent: Vec<Range<usize>> = cell
+        .spans
+        .iter()
+        .filter(|one| atom(&one.mark))
+        .map(|one| one.at.clone())
+        .collect();
+    silent.extend(walls(&cell.spans, text));
+    let silent = Nearby::merged(silent);
+    let mut out = String::new();
+    for span in &cell.spans {
+        match &span.mark {
+            Mark::Text => {
+                for piece in outside(span.at.clone(), silent.near(&span.at)) {
+                    out.push_str(&text[piece]);
+                }
+            }
+            Mark::Code => out.push_str(&code_words(&text[span.at.clone()])),
+            Mark::Ref { name } => out.push_str(name),
+            Mark::Emoji { glyph } => out.push_str(glyph),
+            Mark::Tag { name } => {
+                out.push('#');
+                out.push_str(name);
+            }
+            _ => {}
+        }
+    }
+    out.trim().to_string()
 }
 
 pub fn seen(holds: &Holds, said: &str) -> Seen {
@@ -36,9 +111,11 @@ pub fn seen(holds: &Holds, said: &str) -> Seen {
         shown: shown(holds, &value),
         key: Some(keyed(&value)),
         amiss: false,
+        value: Some(value),
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum Value {
     Amount(Amount),
     Minutes(i128),
@@ -52,12 +129,16 @@ fn valued(holds: &Holds, said: &str) -> Option<Value> {
         Holds::Number | Holds::Percent => Value::Amount(Amount::read(said)?),
         Holds::Money { currency } => {
             let amount = Amount::read(said)?;
-            (amount.scale <= convention(currency.as_deref()).decimals).then_some(())?;
+            if amount.scale > convention(currency.as_deref()).decimals {
+                return None;
+            }
             Value::Amount(amount)
         }
         Holds::Rating => {
             let amount = Amount::read(said)?;
-            (amount.scale == 0 && (0..=STARS).contains(&amount.units)).then_some(())?;
+            if amount.scale > 0 || !(0..=STARS).contains(&amount.units) {
+                return None;
+            }
             Value::Amount(amount)
         }
         Holds::Duration => Value::Minutes(minutes(said)?),
@@ -93,8 +174,8 @@ fn keyed(value: &Value) -> String {
     }
 }
 
-/// The foot of a table some column adds up: one cell per column, «Total» in the first when it is free.
-pub fn footed(columns: &[Column], block: &Block, text: &str) -> Option<Vec<String>> {
+// One cell per column, «Total» in the first when it adds nothing up itself.
+fn footed(columns: &[Column], rows: &[Vec<Seen>]) -> Option<Vec<String>> {
     columns
         .iter()
         .any(|one| one.total.is_some())
@@ -106,12 +187,7 @@ pub fn footed(columns: &[Column], block: &Block, text: &str) -> Option<Vec<Strin
             let Some(total) = column.total else {
                 return String::new();
             };
-            let cells: Vec<&str> = block
-                .inner
-                .iter()
-                .skip(1)
-                .map(|row| row.inner.get(at).map_or("", |cell| said(cell, text)))
-                .collect();
+            let cells: Vec<&Seen> = rows.iter().filter_map(|row| row.get(at)).collect();
             totalled(&column.holds, total, &cells)
         })
         .collect();
@@ -121,12 +197,8 @@ pub fn footed(columns: &[Column], block: &Block, text: &str) -> Option<Vec<Strin
     Some(foot)
 }
 
-fn totalled(holds: &Holds, total: Total, cells: &[&str]) -> String {
-    let filled = cells.iter().filter(|one| !one.is_empty());
-    let values: Vec<Value> = filled
-        .clone()
-        .filter_map(|one| valued(holds, one))
-        .collect();
+fn totalled(holds: &Holds, total: Total, cells: &[&Seen]) -> String {
+    let values: Vec<&Value> = cells.iter().filter_map(|one| one.value.as_ref()).collect();
     if total == Total::Count {
         let counted = if *holds == Holds::Check {
             values
@@ -134,7 +206,10 @@ fn totalled(holds: &Holds, total: Total, cells: &[&str]) -> String {
                 .filter(|one| matches!(one, Value::Yes(true)))
                 .count()
         } else {
-            filled.count()
+            cells
+                .iter()
+                .filter(|one| one.amiss || one.value.is_some())
+                .count()
         };
         return counted.to_string();
     }
@@ -163,8 +238,8 @@ fn totalled(holds: &Holds, total: Total, cells: &[&str]) -> String {
             lasting(gathered(&all, total))
         }
         _ => {
-            let all: Vec<Amount> = values
-                .into_iter()
+            let all: Vec<&Amount> = values
+                .iter()
                 .filter_map(|one| match one {
                     Value::Amount(amount) => Some(amount),
                     _ => None,
@@ -185,11 +260,17 @@ fn gathered(all: &[i128], total: Total) -> i128 {
     }
 }
 
-fn amounted(holds: &Holds, total: Total, all: &[Amount]) -> String {
+fn amounted(holds: &Holds, total: Total, all: &[&Amount]) -> String {
     let sum = all.iter().fold(Amount::default(), |one, two| one.plus(two));
     let picked = match total {
-        Total::Min => all.iter().min_by(|one, two| one.against(two)).cloned(),
-        Total::Max => all.iter().max_by(|one, two| one.against(two)).cloned(),
+        Total::Min => all
+            .iter()
+            .min_by(|one, two| one.against(two))
+            .map(|one| (*one).clone()),
+        Total::Max => all
+            .iter()
+            .max_by(|one, two| one.against(two))
+            .map(|one| (*one).clone()),
         Total::Avg => {
             let scale = match holds {
                 Holds::Money { currency } => convention(currency.as_deref()).decimals,
@@ -209,200 +290,6 @@ fn amounted(holds: &Holds, total: Total, all: &[Amount]) -> String {
         Holds::Rating if matches!(total, Total::Min | Total::Max) => stars(amount.units),
         _ => amount.plain(),
     }
-}
-
-/// A decimal kept exact: `units` counted in tenths to the power of `scale`.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-struct Amount {
-    units: i128,
-    scale: u32,
-}
-
-impl Amount {
-    // The one way a number is written in a file: digits, a point for decimals, no thousands mark.
-    fn read(said: &str) -> Option<Self> {
-        let (sign, digits) = match said.strip_prefix('-') {
-            Some(rest) => (-1, rest),
-            None => (1, said),
-        };
-        let (whole, part) = digits.split_once('.').unwrap_or((digits, ""));
-        let fits = |one: &str| one.bytes().all(|byte| byte.is_ascii_digit());
-        if whole.is_empty()
-            || !fits(whole)
-            || !fits(part)
-            || (digits.contains('.') && part.is_empty())
-        {
-            return None;
-        }
-        if whole.len() + part.len() > 30 {
-            return None;
-        }
-        let units: i128 = format!("{whole}{part}").parse().ok()?;
-        Some(Self {
-            units: sign * units,
-            scale: u32::try_from(part.len()).ok()?,
-        })
-    }
-
-    fn at(&self, scale: u32) -> i128 {
-        self.units * 10_i128.pow(scale.saturating_sub(self.scale))
-    }
-
-    fn plus(&self, other: &Self) -> Self {
-        let scale = self.scale.max(other.scale);
-        Self {
-            units: self.at(scale) + other.at(scale),
-            scale,
-        }
-    }
-
-    fn against(&self, other: &Self) -> Ordering {
-        let scale = self.scale.max(other.scale);
-        self.at(scale).cmp(&other.at(scale))
-    }
-
-    // Shared out among `many`, kept to `scale` decimals.
-    fn shared(&self, many: i128, scale: u32) -> Self {
-        let units = if scale >= self.scale {
-            rounded(self.at(scale), many)
-        } else {
-            rounded(self.units, many * 10_i128.pow(self.scale - scale))
-        };
-        Self { units, scale }
-    }
-
-    // A plain number drops the zeros an average leaves at its end; money keeps its cents.
-    fn trimmed(mut self, holds: &Holds) -> Self {
-        if matches!(holds, Holds::Money { .. }) {
-            return self;
-        }
-        while self.scale > 0 && self.units % 10 == 0 {
-            self.units /= 10;
-            self.scale -= 1;
-        }
-        self
-    }
-
-    fn split(&self) -> (bool, String, String) {
-        let digits = self.units.unsigned_abs().to_string();
-        let scale = self.scale as usize;
-        let digits = format!("{digits:0>width$}", width = scale + 1);
-        let (whole, part) = digits.split_at(digits.len() - scale);
-        (self.units < 0, whole.to_string(), part.to_string())
-    }
-
-    fn plain(&self) -> String {
-        let (negative, whole, part) = self.split();
-        let sign = if negative { "-" } else { "" };
-        if part.is_empty() {
-            format!("{sign}{whole}")
-        } else {
-            format!("{sign}{whole}.{part}")
-        }
-    }
-}
-
-// Halves go away from zero, as on a till.
-fn rounded(units: i128, many: i128) -> i128 {
-    if many == 0 {
-        return 0;
-    }
-    let half = many / 2;
-    if units >= 0 {
-        (units + half) / many
-    } else {
-        (units - half) / many
-    }
-}
-
-struct Convention {
-    symbol: String,
-    decimals: u32,
-    group: &'static str,
-    point: &'static str,
-    after: bool,
-    spaced: bool,
-}
-
-// Each currency as it is written where it is spent, so an export reads the same in any language.
-#[rustfmt::skip]
-const CURRENCIES: &[(&str, &str, u32, &str, &str, bool, bool)] = &[
-    ("CLP", "$", 0, ".", ",", false, false),
-    ("ARS", "$", 2, ".", ",", false, false),
-    ("COP", "$", 2, ".", ",", false, false),
-    ("MXN", "MX$", 2, ",", ".", false, false),
-    ("PEN", "S/", 2, ",", ".", false, true),
-    ("BRL", "R$", 2, ".", ",", false, true),
-    ("UYU", "$U", 2, ".", ",", false, true),
-    ("USD", "US$", 2, ",", ".", false, false),
-    ("CAD", "CA$", 2, ",", ".", false, false),
-    ("AUD", "A$", 2, ",", ".", false, false),
-    ("EUR", "€", 2, ".", ",", true, true),
-    ("GBP", "£", 2, ",", ".", false, false),
-    ("CHF", "CHF", 2, "'", ".", false, true),
-    ("JPY", "¥", 0, ",", ".", false, false),
-    ("CNY", "CN¥", 2, ",", ".", false, false),
-];
-
-fn convention(currency: Option<&str>) -> Convention {
-    let Some(code) = currency else {
-        return Convention {
-            symbol: String::new(),
-            decimals: 2,
-            group: "",
-            point: ".",
-            after: false,
-            spaced: false,
-        };
-    };
-    let known = CURRENCIES.iter().find(|one| one.0 == code);
-    let (symbol, decimals, group, point, after, spaced) = known.map_or(
-        (code, 2, ",", ".", false, true),
-        |&(_, symbol, decimals, group, point, after, spaced)| {
-            (symbol, decimals, group, point, after, spaced)
-        },
-    );
-    Convention {
-        symbol: symbol.to_string(),
-        decimals,
-        group,
-        point,
-        after,
-        spaced,
-    }
-}
-
-fn money(amount: &Amount, currency: Option<&str>) -> String {
-    let way = convention(currency);
-    let fixed = Amount {
-        units: amount.at(way.decimals),
-        scale: way.decimals,
-    };
-    let (negative, whole, part) = fixed.split();
-    let mut number = grouped(&whole, way.group);
-    if !part.is_empty() {
-        number = format!("{number}{}{part}", way.point);
-    }
-    let sign = if negative { "-" } else { "" };
-    let gap = if way.spaced { " " } else { "" };
-    if way.symbol.is_empty() {
-        format!("{sign}{number}")
-    } else if way.after {
-        format!("{sign}{number}{gap}{}", way.symbol)
-    } else {
-        format!("{sign}{}{gap}{number}", way.symbol)
-    }
-}
-
-fn grouped(whole: &str, group: &str) -> String {
-    let mut out = String::new();
-    for (at, digit) in whole.chars().enumerate() {
-        if at > 0 && (whole.len() - at).is_multiple_of(3) {
-            out.push_str(group);
-        }
-        out.push(digit);
-    }
-    out
 }
 
 const STARS: i128 = 5;
@@ -500,10 +387,25 @@ fn dialled(said: &str) -> Option<String> {
     fits.then_some(digits)
 }
 
-// Another document, named the way a reference is: `[[Lease contract]]`.
+// Another document, named as a reference, `[[Lease]]`, or linked as the `/` menu writes it, `![Lease](tisty:doc/…)`.
 fn linked(said: &str) -> Option<String> {
-    let name = said.strip_prefix("[[")?.strip_suffix("]]")?;
-    (!name.trim().is_empty() && !name.contains("]]")).then(|| name.trim().to_lowercase())
+    let name = match said.strip_prefix("[[") {
+        Some(rest) => rest.strip_suffix("]]").filter(|one| !one.contains("]]"))?,
+        None => {
+            let (name, to) = said
+                .strip_prefix('!')
+                .unwrap_or(said)
+                .strip_prefix('[')?
+                .strip_suffix(')')?
+                .split_once("](")?;
+            let id = to.strip_prefix("tisty:doc/")?;
+            if id.is_empty() || id.contains(char::is_whitespace) {
+                return None;
+            }
+            name
+        }
+    };
+    (!name.trim().is_empty()).then(|| name.trim().to_lowercase())
 }
 
 #[cfg(all(test, feature = "tables"))]

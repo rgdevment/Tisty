@@ -201,19 +201,16 @@ fn typed_out(block: &Block, columns: &[Column], said: &str, text: &str, edits: &
     for at in columns.iter().filter_map(|one| one.typed.clone()) {
         edits.push((at, String::new()));
     }
-    for row in block.inner.iter().skip(1) {
-        for (cell, column) in row.inner.iter().zip(columns) {
-            let start = cell.spans.iter().map(|one| one.at.start).min();
-            let end = cell.spans.iter().map(|one| one.at.end).max();
-            let (Some(start), Some(end), Some(_)) = (start, end, &column.typed) else {
-                continue;
-            };
-            if let Some(shown) = values::seen(&column.holds, values::said(cell, text)).shown {
-                edits.push((start..end, shown.replace('|', r"\|")));
+    let read = values::read(columns, block, text);
+    for (row_at, row) in block.inner.iter().skip(1).enumerate() {
+        for (at, cell) in row.inner.iter().enumerate() {
+            let shown = read.at(row_at, at).and_then(|one| one.shown.as_ref());
+            if let (Some(shown), Some(spread)) = (shown, values::spread(cell)) {
+                edits.push((spread, shown.replace('|', r"\|")));
             }
         }
     }
-    if let Some(foot) = values::footed(columns, block, text) {
+    if let Some(foot) = &read.foot {
         let end = block.at.start + said.len();
         let last = &said[said.rfind('\n').map_or(0, |at| at + 1)..];
         let quote = &last[..last.len() - last.trim_start_matches(['>', ' ']).len()];
@@ -221,7 +218,8 @@ fn typed_out(block: &Block, columns: &[Column], said: &str, text: &str, edits: &
             .iter()
             .map(|one| format!(" {} |", one.replace('|', r"\|")))
             .collect();
-        edits.push((end..end, format!("\n{quote}|{row}")));
+        let broken = if said.contains("\r\n") { "\r\n" } else { "\n" };
+        edits.push((end..end, format!("{broken}{quote}|{row}")));
     }
 }
 

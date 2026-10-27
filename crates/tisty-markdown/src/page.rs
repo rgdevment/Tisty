@@ -264,8 +264,9 @@ fn table(columns: &[Column], at: &str, block: &Block, text: &str, out: &mut Stri
         }
     }
     out.push_str("</colgroup>");
+    let read = values::read(columns, block, text);
     let mut body = false;
-    for row in &block.inner {
+    for (row_at, row) in block.inner.iter().enumerate() {
         let head = matches!(row.kind, Kind::Row { head: true });
         if !head && !body {
             out.push_str("<tbody>");
@@ -279,7 +280,8 @@ fn table(columns: &[Column], at: &str, block: &Block, text: &str, out: &mut Stri
                 inline(&cell.spans, text, out);
                 out.push_str("</th>");
             } else {
-                celled(column, cell, text, out);
+                let seen = row_at.checked_sub(1).and_then(|one| read.at(one, index));
+                celled(column, seen, cell, text, out);
             }
         }
         out.push_str(if head { "</tr></thead>" } else { "</tr>" });
@@ -287,7 +289,7 @@ fn table(columns: &[Column], at: &str, block: &Block, text: &str, out: &mut Stri
     if body {
         out.push_str("</tbody>");
     }
-    if let Some(foot) = values::footed(columns, block, text) {
+    if let Some(foot) = &read.foot {
         out.push_str("<tfoot><tr>");
         for (index, said) in foot.iter().enumerate() {
             let _ = write!(
@@ -304,7 +306,7 @@ fn table(columns: &[Column], at: &str, block: &Block, text: &str, out: &mut Stri
 }
 
 fn leaned(column: Option<&Column>) -> &'static str {
-    match column.and_then(|one| one.lean.or_else(|| one.holds.lean())) {
+    match column.and_then(Column::leaning) {
         Some(Lean::Left) => " style=\"text-align:left\"",
         Some(Lean::Center) => " style=\"text-align:center\"",
         Some(Lean::Right) => " style=\"text-align:right\"",
@@ -337,18 +339,20 @@ fn whole(column: Option<&Column>) -> &'static str {
     }
 }
 
-fn celled(column: Option<&Column>, cell: &Block, text: &str, out: &mut String) {
+fn celled(
+    column: Option<&Column>,
+    seen: Option<&values::Seen>,
+    cell: &Block,
+    text: &str,
+    out: &mut String,
+) {
     let lean = leaned(column);
-    let Some(holds) = column
-        .filter(|one| one.typed.is_some())
-        .map(|one| &one.holds)
-    else {
+    let Some(seen) = seen.filter(|_| column.is_some_and(|one| one.typed.is_some())) else {
         let _ = write!(out, "<td{lean}>");
         inline(&cell.spans, text, out);
         out.push_str("</td>");
         return;
     };
-    let seen = values::seen(holds, values::said(cell, text));
     out.push_str("<td");
     if let Some(key) = &seen.key {
         let _ = write!(out, " data-key=\"{}\"", escaped(key));

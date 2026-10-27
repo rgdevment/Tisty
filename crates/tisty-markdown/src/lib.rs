@@ -1,3 +1,4 @@
+mod amounts;
 mod bare;
 #[cfg(feature = "details")]
 mod details;
@@ -173,25 +174,43 @@ pub enum Holds {
     Phone,
 }
 
+impl Column {
+    /// Where its values lean: as the rule under the head says, or else as its type does.
+    pub fn leaning(&self) -> Option<Lean> {
+        self.lean.or_else(|| self.holds.lean())
+    }
+}
+
 impl Holds {
+    /// The type a word in `vocab::HOLDS` names; a money column's currency is read after it.
+    pub fn from_word(word: &str) -> Option<Self> {
+        Some(match word {
+            "text" => Self::Text,
+            "number" => Self::Number,
+            "money" => Self::Money { currency: None },
+            "percent" => Self::Percent,
+            "date" => Self::Date,
+            "duration" => Self::Duration,
+            "check" => Self::Check,
+            "select" => Self::Select,
+            "tags" => Self::Tags,
+            "rating" => Self::Rating,
+            "link" => Self::Link,
+            "url" => Self::Url,
+            "email" => Self::Email,
+            "phone" => Self::Phone,
+            _ => return None,
+        })
+    }
+
     /// The word the type is written with in a column's head.
     pub fn word(&self) -> &'static str {
-        match self {
-            Self::Text => "text",
-            Self::Number => "number",
-            Self::Money { .. } => "money",
-            Self::Percent => "percent",
-            Self::Date => "date",
-            Self::Duration => "duration",
-            Self::Check => "check",
-            Self::Select => "select",
-            Self::Tags => "tags",
-            Self::Rating => "rating",
-            Self::Link => "link",
-            Self::Url => "url",
-            Self::Email => "email",
-            Self::Phone => "phone",
-        }
+        let same = |one: &Self| std::mem::discriminant(one) == std::mem::discriminant(self);
+        vocab::HOLDS
+            .iter()
+            .find(|word| Self::from_word(word).is_some_and(|one| same(&one)))
+            .copied()
+            .unwrap_or_default()
     }
 
     /// A value of this type reads on one line: a date or an amount split in two is misread.
@@ -229,14 +248,24 @@ pub enum Total {
 }
 
 impl Total {
+    /// The total a word in `vocab::TOTALS` names.
+    pub fn from_word(word: &str) -> Option<Self> {
+        Some(match word {
+            "sum" => Self::Sum,
+            "avg" => Self::Avg,
+            "min" => Self::Min,
+            "max" => Self::Max,
+            "count" => Self::Count,
+            _ => return None,
+        })
+    }
+
     pub fn word(self) -> &'static str {
-        match self {
-            Self::Sum => "sum",
-            Self::Avg => "avg",
-            Self::Min => "min",
-            Self::Max => "max",
-            Self::Count => "count",
-        }
+        vocab::TOTALS
+            .iter()
+            .find(|word| Self::from_word(word) == Some(self))
+            .copied()
+            .unwrap_or_default()
     }
 }
 

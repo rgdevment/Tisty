@@ -1,8 +1,7 @@
 use super::*;
 use crate::{Kind, read};
 
-// One cell per line: its column's type, what is written, then what the page shows (`-` for the words
-// as written, `""` for nothing) and its sort key, or `amiss`.
+// One cell per line, `-` for words drawn as written and `""` for nothing drawn, so a new case is a new line.
 const CELLS: &str = r#"
 number      | 6490                      => -              | 6490
 number      | 1.5                       => -              | 1.5
@@ -12,6 +11,8 @@ number      | 6,490                     => amiss
 number      | 1e3                       => amiss
 number      | .5                        => amiss
 number      | 5.                        => amiss
+number      | 1234567890123456789       => amiss
+number      | 0.1234567890              => amiss
 money CLP   | 6490                      => $6.490         | 6490
 money CLP   | 1234567                   => $1.234.567     | 1234567
 money CLP   | -1500                     => -$1.500        | -1500
@@ -60,6 +61,10 @@ phone       | +56 9 1234 5678           => -              | 56912345678
 phone       | llamar                    => amiss
 link        | [[Contrato de arriendo]]  => -              | contrato de arriendo
 link        | Contrato                  => amiss
+link        | ![Contrato](tisty:doc/01JC4M) => -       | contrato
+link        | [Contrato](tisty:doc/01JC4M)  => -       | contrato
+link        | [Contrato](https://x.cl)      => amiss
+link        | [Contrato](tisty:doc/)        => amiss
 select      | Música                    => -              | música
 tags        | web, docs                 => -              | web, docs
 text        | Hola                      => -              | hola
@@ -67,6 +72,10 @@ text        | Hola                      => -              | hola
 
 fn holds(words: &str) -> Holds {
     crate::typed::understood(words).expect(words).0
+}
+
+fn parts(seen: &Seen) -> (Option<&str>, Option<&str>, bool) {
+    (seen.shown.as_deref(), seen.key.as_deref(), seen.amiss)
 }
 
 #[test]
@@ -77,28 +86,16 @@ fn each_cell_reads_as_its_column_says_and_never_is_refused() {
         let seen = seen(&holds(words.trim()), said.trim());
         let outcome = outcome.trim();
         if outcome == "amiss" {
-            assert_eq!(
-                seen,
-                Seen {
-                    amiss: true,
-                    ..Seen::default()
-                },
-                "{line}"
-            );
+            assert_eq!(parts(&seen), (None, None, true), "{line}");
             continue;
         }
         let (shown, key) = outcome.split_once('|').expect(line);
         let shown = match shown.trim() {
             "-" => None,
-            r#""""# => Some(String::new()),
-            one => Some(one.to_string()),
+            r#""""# => Some(""),
+            one => Some(one),
         };
-        let expected = Seen {
-            shown,
-            key: Some(key.trim().to_string()),
-            amiss: false,
-        };
-        assert_eq!(seen, expected, "{line}");
+        assert_eq!(parts(&seen), (shown, Some(key.trim()), false), "{line}");
     }
 }
 
@@ -107,7 +104,16 @@ fn an_empty_cell_is_neither_a_value_nor_amiss() {
     assert_eq!(seen(&Holds::Number, ""), Seen::default());
 }
 
-// One column per line: its type and totals, its cells split by `;`, then what its foot says.
+fn table_of(text: &str) -> Read {
+    let doc = read(text);
+    let table = &doc.blocks()[0];
+    let Kind::Table { columns } = &table.kind else {
+        panic!("not a table: {text}");
+    };
+    super::read(columns, table, text)
+}
+
+// One column per line, its cells split by `;`, so a new case is a new line.
 const FEET: &str = "
 money CLP sum   | 6490; 9990; 7990         => $24.470
 money CLP avg   | 6490; 9990; 7990         => $8.157
@@ -132,6 +138,9 @@ rating avg      | 5; 4                     => 4.5
 rating max      | 3; 4                     => ★★★★☆
 rating sum      | 3; 4                     => 7
 text count      | a; ; b                   => 2
+number sum      | 999999999999999999.999999999; 999999999999999999.999999999 => 1999999999999999999.999999998
+number sum      | 999999999999999999; 0.000000001 => 999999999999999999.000000001
+number max      | 999999999999999999; 0.000000001 => 999999999999999999
 ";
 
 #[test]
@@ -139,19 +148,22 @@ fn a_column_adds_up_its_values_and_leaves_out_what_is_amiss() {
     for line in FEET.lines().filter(|one| !one.trim().is_empty()) {
         let (column, expected) = line.split_once("=>").expect(line);
         let (words, cells) = column.split_once('|').expect(line);
-        let mut text = format!("| Name | Value {{{}}} |\n| --- | --- |\n", words.trim());
+        let mut text = format!(
+            "| Name | Value {{{}}} |
+| --- | --- |
+",
+            words.trim()
+        );
         for cell in cells.split(';') {
-            text.push_str(&format!("| r | {} |\n", cell.trim()));
+            text.push_str(&format!(
+                "| r | {} |
+",
+                cell.trim()
+            ));
         }
-        let doc = read(&text);
-        let table = &doc.blocks()[0];
-        let Kind::Table { columns } = &table.kind else {
-            panic!("not a table: {line}");
-        };
-        let foot = footed(columns, table, &text).expect(line);
         assert_eq!(
-            foot,
-            vec!["Total".to_string(), expected.trim().to_string()],
+            table_of(&text).foot,
+            Some(vec!["Total".to_string(), expected.trim().to_string()]),
             "{line}"
         );
     }
@@ -159,20 +171,56 @@ fn a_column_adds_up_its_values_and_leaves_out_what_is_amiss() {
 
 #[test]
 fn a_table_that_adds_nothing_up_has_no_foot_and_a_first_column_that_does_keeps_its_own() {
-    let plain = "| a {number} |\n| --- |\n| 1 |\n";
-    let doc = read(plain);
-    let Kind::Table { columns } = &doc.blocks()[0].kind else {
-        panic!("not a table");
-    };
-    assert_eq!(footed(columns, &doc.blocks()[0], plain), None);
-
-    let summed = "| a {number sum} | b |\n| --- | --- |\n| 1 | x |\n| 2 | y |\n";
-    let doc = read(summed);
-    let Kind::Table { columns } = &doc.blocks()[0].kind else {
-        panic!("not a table");
-    };
     assert_eq!(
-        footed(columns, &doc.blocks()[0], summed),
+        table_of(
+            "| a {number} |
+| --- |
+| 1 |
+"
+        )
+        .foot,
+        None
+    );
+    assert_eq!(
+        table_of(
+            "| a {number sum} | b |
+| --- | --- |
+| 1 | x |
+| 2 | y |
+"
+        )
+        .foot,
         Some(vec!["3".to_string(), String::new()])
     );
+}
+
+#[test]
+fn a_value_is_read_as_a_reader_sees_it_whatever_marks_dress_it() {
+    let read = table_of(
+        "| Precio {money CLP sum} | Nombre {select} |
+| --- | --- |
+| **6490** | **Zeta** |
+| [10](https://x.cl) | [Alpha](https://a.cl) |
+| ==7== | `beta` |
+",
+    );
+    let keys: Vec<Option<&str>> = read
+        .rows
+        .iter()
+        .flatten()
+        .map(|one| one.key.as_deref())
+        .collect();
+    assert_eq!(
+        keys,
+        vec![
+            Some("6490"),
+            Some("zeta"),
+            Some("10"),
+            Some("alpha"),
+            Some("7"),
+            Some("beta")
+        ]
+    );
+    assert!(read.rows.iter().flatten().all(|one| !one.amiss));
+    assert_eq!(read.foot, Some(vec!["$6.507".to_string(), String::new()]));
 }
