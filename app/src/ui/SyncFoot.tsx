@@ -33,6 +33,8 @@ const DOT: Record<Footing["kind"], string> = {
   lost: "bg-urgent",
   paused: "bg-faint",
   look: "bg-hue-blue",
+  first: "bg-hue-blue",
+  sealing: "bg-accent",
 };
 
 const until = (secs: number): string => stamped(new Date(secs * 1000).toISOString());
@@ -62,6 +64,12 @@ function told(foot: Footing, state: Carrying, cloud: string): { line: string; wh
       return { line: t("footPaused"), why: t("footPausedWhy") };
     case "look":
       return { line: t("footLook"), why: t(foot.putOff ? "footLookDocs" : "footLookWhy") };
+    case "first":
+      return { line: t("footFirst"), why: t("stateFirstWhy") };
+    case "sealing":
+      return foot.turn === "on"
+        ? { line: t("footSealingOn"), why: t("stateSealingOnWhy") }
+        : { line: t("footSealingOff"), why: t("stateSealingOffWhy") };
     default:
       return {
         line: fill("footUpToDate", state.last ? stamped(state.last) : t("syncNever")),
@@ -83,7 +91,12 @@ export default function SyncFoot({ onSync, onOpen, onTrouble, fallback }: Props)
   const idle = coming === null;
   const foot = footing({ state, status, coming, mine, offline, knocked, putOff, stuck });
   // Google and Microsoft can ask to wait, and let go again, in the middle of one long round.
-  const often = !idle || foot?.kind === "wait";
+  const often =
+    !idle ||
+    foot?.kind === "wait" ||
+    foot?.kind === "syncing" ||
+    foot?.kind === "first" ||
+    foot?.kind === "sealing";
   // A round that ends, or a refusal that comes or goes, may have written what the foot shows.
   useEffect(() => {
     if (idle) void lookAgain();
@@ -145,7 +158,7 @@ export default function SyncFoot({ onSync, onOpen, onTrouble, fallback }: Props)
     // Just done, another press would only start the same round again.
     if (finished && foot.kind === "ok") return;
     if (!offered(foot)) return onOpen();
-    if (foot.kind === "ok") return syncNow();
+    if (foot.kind === "ok" || foot.kind === "first") return syncNow();
     if (foot.kind === "paused")
       return void cloudPause(false)
         .then(() => {
@@ -178,7 +191,7 @@ export default function SyncFoot({ onSync, onOpen, onTrouble, fallback }: Props)
         <span
           aria-hidden="true"
           className={`size-1.5 shrink-0 rounded-full ${DOT[foot.kind]} ${
-            foot.kind === "syncing" ? "motion-safe:animate-pulse" : ""
+            foot.kind === "syncing" || foot.kind === "sealing" ? "motion-safe:animate-pulse" : ""
           }`}
         />
         <span className="min-w-0 truncate">

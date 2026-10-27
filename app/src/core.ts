@@ -865,6 +865,8 @@ export interface CloudStatus {
   last?: LastRound | null;
   lost?: boolean;
   adopts?: boolean;
+  running?: boolean;
+  sealingElsewhere?: "on" | "off" | null;
 }
 
 export const cloudConnect = (provider: string): Promise<Connected> =>

@@ -19,6 +19,7 @@ export interface Standing {
   name?: string;
   /** Said in red: what keeps standing in the way, not a wait that ends by itself. */
   urgent?: boolean;
+  pending?: boolean;
 }
 
 export const followedTo = (stuck: unknown): string | undefined => {
@@ -71,6 +72,19 @@ const APART: Standing = {
   exitSaid: "stateApartDo",
 };
 
+const ELSEWHERE: Record<"on" | "off", Standing> = {
+  on: { said: "stateSealingOn", why: "stateSealingOnWhy", pending: true },
+  off: { said: "stateSealingOff", why: "stateSealingOffWhy", pending: true },
+};
+
+const unfinished = (status: CloudStatus): Standing | null => {
+  if (status.sealingElsewhere) return ELSEWHERE[status.sealingElsewhere];
+  if (status.joined) return null;
+  return status.running
+    ? { said: "stateFirstRunning", why: "stateFirstRunningWhy", pending: true }
+    : { said: "stateFirst", why: "stateFirstWhy" };
+};
+
 // Busy is another round of this computer's holding the cloud, not the cloud asking to wait.
 const QUIET = new Set(["ok", "deferred-changed", "deferred-paused", "deferred-busy"]);
 
@@ -83,7 +97,7 @@ export const cloudStanding = (status: CloudStatus, now = Date.now() / 1000): Sta
   if (status.haltedUntil && status.haltedUntil > now)
     return { said: "stateHalted", why: "stateHaltedWhy" };
   const last = status.last;
-  if (!last || QUIET.has(last.code)) return null;
+  if (!last || QUIET.has(last.code)) return unfinished(status);
   const spent = last.code === "deferred-budget" || last.code === "cloudSpent";
   if (spent && Math.floor(last.at / DAY) < Math.floor(now / DAY)) return null;
   if (spent)

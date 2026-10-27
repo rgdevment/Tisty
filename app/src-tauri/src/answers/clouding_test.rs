@@ -373,3 +373,25 @@ fn what_a_webdav_server_refuses_reads_as_what_the_window_can_say() {
     );
     assert_eq!(dav_refused(Hitch::Full).code, "cloudFull");
 }
+
+#[test]
+fn a_cloud_another_computer_is_turning_says_which_way() {
+    let home = tempfile::tempdir().unwrap();
+    let tree = tisty_carrier::mirrored_at(home.path());
+    std::fs::create_dir_all(&tree).unwrap();
+    let said = |word: &str| {
+        std::fs::write(tree.join("tisty.toml"), word).unwrap();
+        turned_elsewhere(home.path())
+    };
+
+    assert_eq!(said("shape = 3\n"), None);
+    assert_eq!(
+        said("shape = 3\nsealing = \"copying:seal:dev_hevp3wf9:1793065559443349200\"\n"),
+        Some("on")
+    );
+    assert_eq!(
+        said("shape = 3\nsealing = \"copying:unseal:dev_hevp3wf9:1793065559443349200\"\n"),
+        Some("off")
+    );
+    assert_eq!(said("shape = 3\nsealed = \"cloud-a\"\n"), None);
+}

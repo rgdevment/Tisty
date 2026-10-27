@@ -151,6 +151,39 @@ describe("the sync foot", () => {
     });
   });
 
+  it("says a round is running even when it tells no progress", () => {
+    const foot = footing(seen({ status: cloud({ joined: false, running: true }) }));
+    expect(foot).toEqual({ kind: "syncing", done: 0, whole: 0 });
+  });
+
+  it("never says up to date before this computer finished a round with the cloud", () => {
+    const foot = footing(seen({ status: cloud({ joined: false }) }));
+    expect(foot).toEqual({ kind: "first" });
+    expect(foot && offered(foot)).toBe(true);
+    expect(footing(seen({ status: cloud({ joined: false, last: round("otherStore") }) }))).toEqual({
+      kind: "look",
+      putOff: false,
+    });
+  });
+
+  it("says another computer is turning the cloud's encryption, and what needs the person comes first", () => {
+    expect(footing(seen({ status: cloud({ sealingElsewhere: "on" }) }))).toEqual({
+      kind: "sealing",
+      turn: "on",
+    });
+    expect(footing(seen({ status: cloud({ sealingElsewhere: "off", joined: false }) }))).toEqual({
+      kind: "sealing",
+      turn: "off",
+    });
+    expect(footing(seen({ status: cloud({ sealingElsewhere: "on" }), knocked: true }))).toEqual({
+      kind: "look",
+      putOff: false,
+    });
+    expect(footing(seen({ status: cloud({ sealingElsewhere: "on", running: true }) }))?.kind).toBe(
+      "syncing",
+    );
+  });
+
   it("asks the person to look when an encrypted cloud will not open here", () => {
     for (const code of ["cloudSealed", "cloudOtherPhrase", "cloudUnsealed", "cloudMarkDamaged"]) {
       expect(footing(seen({ status: cloud({ last: round(code) }) })), code).toEqual({
