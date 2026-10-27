@@ -54,7 +54,7 @@ fn a_table_read_and_written_untouched_is_the_same_bytes() {
     for table in WRITTEN.split("~\n") {
         let said = table.trim_end_matches('\n');
         let said = said.strip_suffix('\r').unwrap_or(said);
-        assert_eq!(Lines::read(said).written(), said, "{table}");
+        assert_eq!(Lines::read(said, false).written(), said, "{table}");
         let moved = edited(table, &Edit::RowMove { from: 0, to: 0 }).expect(table);
         assert_eq!(moved, table, "{table}");
     }
@@ -273,6 +273,10 @@ fn each_edit_changes_the_table_as_asked_and_nothing_else() {
         };
         let got = edited(&text, &asked).map_err(|why| why.word().to_string());
         assert_eq!(got, expected, "{case}");
+        // The same edit on a file written with Windows line ends keeps them, whichever row ends up last.
+        let crlf = |one: &str| one.replace('\n', "\r\n");
+        let got = edited(&crlf(&text), &asked).map_err(|why| why.word().to_string());
+        assert_eq!(got, expected.map(|one| crlf(&one)), "CRLF {case}");
     }
 }
 

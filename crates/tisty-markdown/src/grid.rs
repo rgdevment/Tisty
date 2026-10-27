@@ -5,8 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Block, Column, Kind, read, values};
 
-/// One change to a table, as the page, the editor and an assistant ask for it.
-/// `row` counts the rows under the head from 0; `column` counts from 0.
+/// One change to a table; `row` counts the rows under the head, and both count from 0.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(
     tag = "kind",
@@ -91,14 +90,18 @@ pub fn edit(text: &str, at: Range<usize>, asked: &Edit) -> Result<String, Refuse
         return Err(Refused::Moved);
     };
     let said = text[at.clone()].trim_end_matches(['\r', '\n']);
-    let mut lines = Lines::read(said);
+    let rest = &text[at.start + said.len()..];
+    // The last line's `\r` sits in what follows the table, so it travels with whichever line ends up last.
+    let carried = rest.starts_with("\r\n");
+    let mut lines = Lines::read(said, carried);
     lines.changed(asked, columns, block, text)?;
-    Ok(format!(
-        "{}{}{}",
-        &text[..at.start],
-        lines.written(),
-        &text[at.start + said.len()..]
-    ))
+    let written = lines.written();
+    let written = if carried {
+        written.strip_suffix('\r').unwrap_or(&written)
+    } else {
+        &written
+    };
+    Ok(format!("{}{written}{rest}", &text[..at.start]))
 }
 
 fn found<'a>(blocks: &'a [Block], at: &Range<usize>) -> Option<&'a Block> {
@@ -111,8 +114,7 @@ fn found<'a>(blocks: &'a [Block], at: &Range<usize>) -> Option<&'a Block> {
     })
 }
 
-/// A table's lines as written, cell by cell with their spaces and escapes, so what is not touched is
-/// written back byte for byte.
+/// A table line kept as written, spaces and escapes included, so an untouched one returns byte for byte.
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Line {
     prefix: String,
@@ -174,21 +176,31 @@ impl Line {
     }
 }
 
+// A backslash and the character after it are one piece, so what it escapes is never read on its own.
+fn pieces(said: &str) -> impl Iterator<Item = &str> {
+    let mut at = 0;
+    std::iter::from_fn(move || {
+        let mut chars = said[at..].chars();
+        let first = chars.next()?;
+        let wide = first.len_utf8()
+            + chars
+                .next()
+                .filter(|_| first == '\\')
+                .map_or(0, char::len_utf8);
+        let piece = &said[at..at + wide];
+        at += wide;
+        Some(piece)
+    })
+}
+
 // Cells split at each `|` a backslash does not escape; the pipe that would end the line stays a cell of its own.
 fn split(said: &str) -> Vec<String> {
     let mut cells = vec![String::new()];
-    let mut chars = said.chars();
-    while let Some(one) = chars.next() {
-        let last = cells.last_mut().expect("one cell at least");
-        match one {
-            '\\' => {
-                last.push(one);
-                if let Some(next) = chars.next() {
-                    last.push(next);
-                }
-            }
-            '|' => cells.push(String::new()),
-            _ => last.push(one),
+    for piece in pieces(said) {
+        if piece == "|" {
+            cells.push(String::new());
+        } else if let Some(last) = cells.last_mut() {
+            last.push_str(piece);
         }
     }
     cells
@@ -196,21 +208,13 @@ fn split(said: &str) -> Vec<String> {
 
 // Words put in a cell: on one line, its pipes escaped, its spaces kept as wide as the cell was.
 fn put(cell: &str, said: &str) -> String {
-    let mut words = String::new();
-    let mut chars = said.trim().chars();
-    while let Some(one) = chars.next() {
-        match one {
-            '\\' => {
-                words.push(one);
-                if let Some(next) = chars.next() {
-                    words.push(next);
-                }
-            }
-            '|' => words.push_str("\\|"),
-            '\r' | '\n' => words.push(' '),
-            _ => words.push(one),
-        }
-    }
+    let words: String = pieces(said.trim())
+        .map(|piece| match piece {
+            "|" => r"\|",
+            "\r" | "\n" => " ",
+            _ => piece,
+        })
+        .collect();
     let lead = &cell[..cell.len() - cell.trim_start().len()];
     let lead = if lead.is_empty() || cell.trim().is_empty() {
         " "
@@ -223,18 +227,16 @@ fn put(cell: &str, said: &str) -> String {
     format!("{made}{}", " ".repeat(short))
 }
 
-// A head's title and the type in braces after it, both as written.
-fn titled(cell: &str) -> (&str, Option<&str>) {
+// The type in braces is where reading the table found it, so a head is never read by a second rule.
+fn titled<'a>(cell: &'a str, column: &Column, text: &'a str) -> (&'a str, Option<&'a str>) {
     let said = cell.trim();
-    let braced = said.strip_suffix('}').and_then(|inner| {
-        let open = inner.rfind('{')?;
-        let before = &said[..open];
-        let glued = !before.is_empty() && before.trim_end().len() == before.len();
-        (!glued && crate::typed::understood(&inner[open + 1..]).is_some())
-            .then(|| (before.trim_end(), &said[open..]))
-    });
-    match braced {
-        Some((title, braces)) => (title, Some(braces)),
+    let braces = column
+        .typed
+        .as_ref()
+        .and_then(|at| text.get(at.clone()))
+        .map(str::trim);
+    match braces.and_then(|one| said.strip_suffix(one)) {
+        Some(title) => (title.trim_end(), braces),
         None => (said, None),
     }
 }
@@ -254,8 +256,12 @@ struct Lines {
 }
 
 impl Lines {
-    fn read(said: &str) -> Self {
-        let mut lines = said.split('\n').map(Line::read);
+    fn read(said: &str, carried: bool) -> Self {
+        let mut lines: Vec<Line> = said.split('\n').map(Line::read).collect();
+        if let Some(last) = lines.last_mut().filter(|_| carried) {
+            "\r".clone_into(&mut last.end);
+        }
+        let mut lines = lines.into_iter();
         let head = lines.next().unwrap_or_else(|| Line::read(""));
         let rule = lines.next().unwrap_or_else(|| head.emptied(0));
         Self {
@@ -303,7 +309,7 @@ impl Lines {
                 column_in(*column)?;
                 self.head.padded(many);
                 let cell = &self.head.cells[*column];
-                let (_, braces) = titled(cell);
+                let (_, braces) = titled(cell, &columns[*column], text);
                 self.head.cells[*column] = put(cell, &headed(said, braces));
             }
             Edit::Retype { column, words } => {
@@ -314,7 +320,7 @@ impl Lines {
                 }
                 self.head.padded(many);
                 let cell = &self.head.cells[*column];
-                let (title, _) = titled(cell);
+                let (title, _) = titled(cell, &columns[*column], text);
                 let braces = (!words.is_empty()).then(|| format!("{{{words}}}"));
                 self.head.cells[*column] = put(cell, &headed(title, braces.as_deref()));
             }

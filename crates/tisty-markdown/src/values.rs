@@ -119,8 +119,15 @@ pub fn sorted(columns: &[Column], block: &Block, text: &str, at: usize, down: bo
             })
         })
         .collect();
+    let ranks: Vec<Option<Value>> = seen
+        .iter()
+        .map(|one| match &one.value {
+            Some(Value::Words(words)) => Some(Value::Words(folded(words))),
+            value => value.clone(),
+        })
+        .collect();
     let mut order: Vec<usize> = (0..seen.len()).collect();
-    order.sort_by(|&one, &two| match (&seen[one].value, &seen[two].value) {
+    order.sort_by(|&one, &two| match (&ranks[one], &ranks[two]) {
         (Some(one), Some(two)) if down => ranked(two, one),
         (Some(one), Some(two)) => ranked(one, two),
         (Some(_), None) => Ordering::Less,
@@ -135,9 +142,10 @@ fn ranked(one: &Value, two: &Value) -> Ordering {
     match (one, two) {
         (Value::Amount(one), Value::Amount(two)) => one.against(two),
         (Value::Minutes(one), Value::Minutes(two)) => one.cmp(two),
-        (Value::Date(one), Value::Date(two)) => one.cmp(two),
+        (Value::Date(one), Value::Date(two)) | (Value::Words(one), Value::Words(two)) => {
+            one.cmp(two)
+        }
         (Value::Yes(one), Value::Yes(two)) => one.cmp(two),
-        (Value::Words(one), Value::Words(two)) => folded(one).cmp(&folded(two)),
         _ => Ordering::Equal,
     }
 }
