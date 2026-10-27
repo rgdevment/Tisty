@@ -238,3 +238,92 @@ fn machines_confirmed_from_two_places_at_once_are_both_kept() {
         "a confirmation was written over"
     );
 }
+
+#[test]
+fn a_machine_moving_home_takes_its_old_self_and_its_agent_and_keeps_their_keys() {
+    let (_room, data, paths) = a_place();
+    let was = DeviceId("dev_was".into());
+    let now = DeviceId("dev_now".into());
+    let agent = DeviceId("dev_agent".into());
+    let other = DeviceId("dev_other".into());
+    let mine = a_key(&paths, &was);
+    assert!(confirm(&data, &was, &mine));
+    assert!(through(&data, &agent, &a_key(&paths, &agent), &was));
+    assert!(confirm(&data, &other, &a_key(&paths, &other)));
+
+    assert!(moved_home(&data, &was, &now, std::slice::from_ref(&agent)));
+
+    let stood = confirmed(&data, &was).unwrap();
+    assert_eq!(stood.key, mine);
+    assert_eq!(stood.own, Some(now.clone()));
+    assert_eq!(confirmed(&data, &agent).unwrap().own, Some(now.clone()));
+    assert_eq!(confirmed(&data, &other).unwrap().own, None);
+    assert_eq!(all_confirmed(&data).len(), 3);
+
+    let later = DeviceId("dev_later".into());
+    assert!(moved_home(
+        &data,
+        &now,
+        &later,
+        std::slice::from_ref(&agent)
+    ));
+    assert_eq!(confirmed(&data, &was).unwrap().own, Some(later.clone()));
+    assert_eq!(confirmed(&data, &agent).unwrap().own, Some(later));
+}
+
+#[test]
+fn moving_home_leaves_what_others_answered_for_alone() {
+    let (_room, data, paths) = a_place();
+    let was = DeviceId("dev_was".into());
+    let now = DeviceId("dev_now".into());
+    let theirs = DeviceId("dev_theirs".into());
+    let host = DeviceId("dev_host".into());
+    assert!(through(&data, &theirs, &a_key(&paths, &theirs), &host));
+    assert!(asked(&data, &was, &a_key(&paths, &was)));
+
+    assert!(moved_home(&data, &was, &now, std::slice::from_ref(&theirs)));
+    assert!(!moved_home(&data, &was, &DeviceId("no name".into()), &[]));
+    assert_eq!(confirmed(&data, &theirs).unwrap().host, Some(host));
+    assert!(confirmed(&data, &was).unwrap().asked);
+}
+
+#[test]
+fn a_key_let_in_by_its_digits_says_so_and_a_name_it_passed_to_says_from_whom() {
+    let (_room, data, paths) = a_place();
+    let old = DeviceId("dev_old".into());
+    let new = DeviceId("dev_new".into());
+    let said = a_key(&paths, &old);
+
+    assert!(asked(&data, &old, &said));
+    assert!(passed_on(&data, &new, &said, &old));
+    assert!(!passed_on(
+        &data,
+        &DeviceId("dev_x".into()),
+        &said,
+        &DeviceId("no name".into())
+    ));
+
+    let first = confirmed(&data, &old).unwrap();
+    assert!(first.asked);
+    assert_eq!(first.from, None);
+    let second = confirmed(&data, &new).unwrap();
+    assert!(!second.asked);
+    assert_eq!(second.from, Some(old.clone()));
+}
+
+#[test]
+fn a_name_handed_on_is_still_known_once_its_key_moves_on() {
+    let (_room, data, paths) = a_place();
+    let was = DeviceId("dev_was".into());
+    let now = DeviceId("dev_now".into());
+    let said = a_key(&paths, &was);
+    assert!(asked(&data, &was, &said));
+    assert!(passed_on(&data, &now, &said, &was));
+    let next = a_key(&paths, &DeviceId("dev_next".into()));
+
+    assert!(rotated(&data, &now, &next, &said));
+
+    assert_eq!(confirmed(&data, &now).unwrap().from, None);
+    assert_eq!(handed_to(&data, &was), vec![now]);
+    assert!(handed_to(&data, &DeviceId("dev_other".into())).is_empty());
+}

@@ -17,7 +17,7 @@ pub use held::{left_behind, let_go_telling};
 pub use papers::{carry_papers, carry_papers_holding, unclaimed};
 use papers::{carry_papers_leaning_on, settled_body, unclaimed_leaning_on};
 use place::{carried_here, keep_adopting, names_in, note_carried, still_adopting};
-pub use place::{forget_carried_to, others_in};
+pub use place::{forget_carried_to, let_in, others_in};
 use segments::{
     Alike, Grew, Toward, hand_on_leaving, one_grew_from_the_other, ours_went_missing, sweep,
 };
@@ -367,8 +367,14 @@ pub fn carry_through(
         let mut adopting = still_adopting(aside, dest, holds_ours);
         if !been_here
             && tisty_core::vouched::all_confirmed(data)
-                .keys()
-                .all(|who| who.0.eq_ignore_ascii_case(device))
+                .iter()
+                .all(|(who, one)| {
+                    who.0.eq_ignore_ascii_case(device)
+                        || one
+                            .own
+                            .as_ref()
+                            .is_some_and(|own| own.0.eq_ignore_ascii_case(device))
+                })
         {
             adopting.extend(names_in(dest));
         }
@@ -1280,3 +1286,7 @@ fn io(e: std::io::Error) -> Trouble {
 #[cfg(test)]
 #[path = "lib_test.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "admitted_test.rs"]
+mod admitted_tests;

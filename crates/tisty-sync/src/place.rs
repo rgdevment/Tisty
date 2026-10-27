@@ -61,6 +61,10 @@ pub(crate) fn names_in(dest: &Path) -> BTreeSet<String> {
         .collect()
 }
 
+pub fn let_in(dest: &Path, handed: Option<&str>) -> bool {
+    matches!(crate::sealing_of(dest), crate::Sealing::Sealed(cloud) if handed == Some(cloud.as_str()))
+}
+
 /// The other machines writing in a place: the ones a word left there is meant for.
 pub fn others_in(dest: &Path, device: &str) -> Vec<String> {
     names_in(dest)
@@ -87,7 +91,8 @@ pub(crate) fn still_adopting(
 }
 
 /// Past a week, a key nobody said is a person's to confirm.
-const ADOPTING_FOR: std::time::Duration = std::time::Duration::from_secs(7 * 24 * 60 * 60);
+pub(crate) const ADOPTING_FOR: std::time::Duration =
+    std::time::Duration::from_secs(7 * 24 * 60 * 60);
 
 type Adopting = (BTreeSet<String>, String, std::time::SystemTime);
 

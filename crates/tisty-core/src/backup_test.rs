@@ -287,6 +287,41 @@ fn a_machine_that_rejoins_comes_back_under_a_new_name() {
 }
 
 #[test]
+fn a_machine_let_in_signs_on_under_a_new_name_with_the_key_it_was_let_in_by() {
+    for let_in in [true, false] {
+        let (_src, data) = filled("comprar pan");
+        let dir = tempfile::tempdir().unwrap();
+        let paths = Paths::new(data.clone(), dir.path().join("config"));
+        let was = Config::load_or_init(&paths).unwrap().device_id;
+        let key = crate::signing::mine(&paths, &was).map(|one| crate::signing::shown(&one));
+        crate::vouched::confirm(&data, &was, key.as_deref().unwrap());
+        let agent = crate::agent::register(&paths).unwrap();
+        let out = tempfile::tempdir().unwrap();
+
+        reset_as(
+            &paths,
+            &out.path().join("before.zip"),
+            tmp().path(),
+            None,
+            let_in,
+        )
+        .unwrap();
+
+        let now = Config::load_or_init(&paths).unwrap();
+        assert_ne!(now.device_id, was);
+        assert!(now.synced_at.is_none());
+        assert!(!store::inhabited(paths.store()));
+        let signs =
+            crate::signing::mine(&paths, &now.device_id).map(|one| crate::signing::shown(&one));
+        assert_eq!(signs == key, let_in);
+        for own in [&was, &agent] {
+            let mark = crate::vouched::confirmed(&data, own).unwrap().own;
+            assert_eq!(mark, let_in.then(|| now.device_id.clone()));
+        }
+    }
+}
+
+#[test]
 fn a_reset_cannot_happen_without_the_backup_landing_first() {
     let dir = tempfile::tempdir().unwrap();
     let paths = quarters(&dir);
