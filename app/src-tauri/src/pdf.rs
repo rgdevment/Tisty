@@ -12,6 +12,7 @@ pub fn leaf(paper: &str) -> (f64, f64) {
         .map_or((paper, false), |one| (one, true));
     let (wide, tall) = match named {
         "letter" => (8.5, 11.0),
+        "folio" => (8.5, 13.0),
         "tabloid" => (11.0, 17.0),
         _ => (210.0 / 25.4, 297.0 / 25.4),
     };
