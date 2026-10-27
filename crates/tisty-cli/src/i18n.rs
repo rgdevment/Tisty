@@ -56,6 +56,10 @@ impl Lang {
             .map(|(name, _)| Self(name))
     }
 
+    pub fn every() -> impl Iterator<Item = Self> {
+        LOCALES.iter().map(|(name, _)| Self(name))
+    }
+
     pub fn get(self, key: &str) -> &'static str {
         catalog(self.0)
             .and_then(|c| c.messages.get(key))

@@ -441,7 +441,19 @@ const PATHS_A_PERSON_KEEPS: &[(&str, &str)] = &[
     ),
     (
         r"guardado desde \\?\C:\Users\Mario\Downloads\tisty-historias\x.json",
-        r"guardado desde \\?\[path]",
+        "guardado desde [path]",
+    ),
+    (
+        r"guardado desde C:\Users\Mario\OneDrive - Una Empresa Muy Larga S.A (x86)\Contratos del año pasado\mi contrato",
+        "guardado desde [path]",
+    ),
+    (
+        "kept from /Users/mario/Library/Mobile Documents/com~apple~CloudDocs/Old Work, 2025 (final)/x",
+        "kept from [path]",
+    ),
+    (
+        r"kept from \\nas\fotos familia\vacaciones de verano en la playa",
+        "kept from [path]",
     ),
     (
         "kept at C:/Users/someone/Downloads/x.csv and opened twice",
@@ -471,6 +483,8 @@ const PROSE_THAT_STAYS: &[&str] = &[
     "el 27/10/2026 a las 10, con 1/2 taza",
     "https://ejemplo.com/a/b y http://localhost:1420/x",
     "ver C: y luego D:",
+    "guardado desde ayer en la mañana, sin ruta",
+    "kept from the old notes, as agreed",
     "`pre-push` debe llamar a `rules.sh < /dev/null`; las firmas van en `rgdevment/cla-signatures`.",
     r"El prefijo `\\?\` delante de `C:\Users\x` es lo que se explica aquí.",
     r#"Emite `RMDir /r "$INSTDIR"` en el desinstalador, y `git -C /d/code/x push origin *` después."#,

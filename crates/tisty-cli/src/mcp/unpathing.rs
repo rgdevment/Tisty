@@ -1,3 +1,5 @@
+use crate::i18n::Lang;
+
 const STOPS: &str = "`\"')]>,;»";
 
 /// Spaces a folder name may hold ("OneDrive - Personal") before it reads as prose.
@@ -30,6 +32,9 @@ pub(super) fn unpathed_body(body: &str) -> String {
 }
 
 pub(super) fn unpathed(line: &str) -> String {
+    if let Some(said) = provenance(line) {
+        return format!("{said}[path]");
+    }
     let mut out = String::with_capacity(line.len());
     let mut rest = line;
     while let Some((start, end)) = code_span(rest) {
@@ -39,6 +44,22 @@ pub(super) fn unpathed(line: &str) -> String {
     }
     out.push_str(&unpathed_prose(rest));
     out
+}
+
+/// The line attaching writes ends in the path it copied from, so all after its words goes.
+fn provenance(line: &str) -> Option<&'static str> {
+    Lang::every()
+        .filter_map(|lang| lang.get("attached-from").strip_suffix("{path}"))
+        .find(|said| line.strip_prefix(said).is_some_and(opens_a_path))
+}
+
+fn opens_a_path(rest: &str) -> bool {
+    let bytes = rest.as_bytes();
+    let drive = bytes.len() > 2
+        && bytes[0].is_ascii_alphabetic()
+        && bytes[1] == b':'
+        && matches!(bytes[2], b'/' | b'\\');
+    drive || rest.starts_with('/') || rest.starts_with(r"\\")
 }
 
 fn unpathed_prose(line: &str) -> String {

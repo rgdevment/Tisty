@@ -656,6 +656,49 @@ fn what_it_attaches_says_where_it_came_from() {
 }
 
 #[test]
+fn where_an_attachment_came_from_is_the_persons_to_read_and_hidden_whole_from_the_agent() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+    let filed = served.call("propose", serde_json::json!({ "title": "el contrato" }));
+    let id = filed["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let folder = served
+        .home
+        .path()
+        .join("OneDrive - Una Empresa Muy Larga S.A (x86)")
+        .join("Contratos del año pasado");
+    std::fs::create_dir_all(&folder).unwrap();
+    let loose = folder.join("mi contrato final.txt");
+    std::fs::write(&loose, "lo firmado").unwrap();
+    let said = served.call(
+        "attach",
+        serde_json::json!({ "task": &id, "path": loose.to_string_lossy() }),
+    );
+    assert!(said["result"]["isError"].is_null(), "{said}");
+
+    let card = served.person().card(person::task(&id));
+    assert!(
+        card.contains("Una Empresa Muy Larga"),
+        "the person reads where their own file came from: {card}"
+    );
+
+    let back = served.call("read", serde_json::json!({ "task": &id }));
+    let kept = back["result"]["structuredContent"]["journal"][0]["body"]
+        .as_str()
+        .unwrap_or_default();
+    assert!(
+        kept.ends_with("[path]"),
+        "the line that names the source ends where the path began: {kept}"
+    );
+    for disk in ["Empresa", "S.A", "x86", "Contratos del"] {
+        assert!(!kept.contains(disk), "{disk} is the person's disk: {kept}");
+    }
+}
+
+#[test]
 fn a_file_kept_in_a_document_is_added_at_its_end() {
     let served = Served::new();
     served.person().lets_the_agent_in();
