@@ -90,6 +90,7 @@ export type Went =
   | { kind: "section"; at: [number, number] }
   | { kind: "cut"; at: [number, number] }
   | { kind: "picture"; nth: number }
+  | { kind: "diagram"; at: [number, number] }
   | null;
 
 // A picture or a diagram, as the viewer shows it; only a kept file can be saved or opened.
@@ -174,6 +175,11 @@ export const widgetsIn = (block: Element | null): Element[] =>
     : Array.from(block?.querySelectorAll("figure.widget") ?? []);
 
 const pressedIn = (asked: HTMLElement): Went => {
+  // A diagram inside a quote or a list is named by its own place, not by the block around it.
+  if (asked.dataset.asked === "diagram") {
+    const at = spanned(asked.closest<HTMLElement>("figure.diagram[data-at]")?.dataset.at ?? null);
+    return at ? { kind: "diagram", at } : null;
+  }
   if (asked.dataset.asked === "part") {
     const step = spanned(asked.closest<HTMLElement>("li.task[data-at]")?.dataset.at ?? null);
     return step ? { kind: "part", at: step } : null;

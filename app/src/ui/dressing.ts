@@ -7,7 +7,7 @@ import { pictured } from "../previews";
 import { plainly } from "../refusal";
 import { type Attaching, attachedAs, lents, pressed } from "./attached";
 import { type Carding, carded } from "./carding";
-import { diagrams } from "./diagrams";
+import { diagrams, sourceOf } from "./diagrams";
 import {
   charsAt,
   colored,
@@ -42,6 +42,8 @@ export type Reaching = Carding & {
     read?: string,
   ) => void;
   readonly onApart?: (lent: Lent) => void;
+  // Bytes, as the window's own reader counts them, never converted; `nth` and what it says find it when the page is a save behind.
+  readonly onDiagram?: (at: number, nth: number, source: string) => void;
   readonly onMore?: (asked: Extract<Went, { kind: "more" }>) => void;
   readonly onPicture?: (shots: Shot[], nth: number) => void;
   readonly onHere?: (id: string) => void;
@@ -282,13 +284,34 @@ export const worn = (
     partCarded(page, reach.part);
     webCarded(page, live);
   }
+  if (reach?.onDiagram && !stranger) diagramBars(page);
   void diagrams(page, page.documentElement.classList.contains("dark"), live);
   colored(page, live);
   return { lent, kept };
 };
 
+export const diagramBars = (page: Document) => {
+  for (const figure of page.querySelectorAll<HTMLElement>("figure.diagram[data-at]")) {
+    if (figure.querySelector(":scope > .diagram-bar")) continue;
+    const bar = page.createElement("div");
+    bar.className = "diagram-bar";
+    // The words live in an attribute the stylesheet shows, so finding and copying never meet them.
+    const open = asking(page, "diagram", "");
+    open.setAttribute("aria-label", t("diagramOpen"));
+    open.title = t("diagramOpen");
+    bar.append(open);
+    figure.append(bar);
+  }
+};
+
 export const answered = (page: Document, asked: Went, reach: Reaching, read = "") => {
   if (!asked) return;
+  if (asked.kind === "diagram") {
+    const named = `${asked.at[0]}-${asked.at[1]}`;
+    const figures = Array.from(page.querySelectorAll<HTMLElement>("figure.diagram[data-at]"));
+    const nth = figures.findIndex((one) => one.dataset.at === named);
+    if (nth >= 0) reach.onDiagram?.(asked.at[0], nth, sourceOf(figures[nth]));
+  }
   if (asked.kind === "doc") reach.onDoc(asked.id);
   if (asked.kind === "task") reach.onTask?.(asked.id);
   if (asked.kind === "part")
@@ -382,8 +405,12 @@ const readTo = (page: Document, event: MouseEvent): string => {
   return range.toString();
 };
 
+// Long enough for a second press to arrive, short enough that looking at a diagram still feels at once.
+export const DOUBLE_MS = 300;
+
 export const wired = (page: Document, reach: () => Reaching) => {
   const refused = (event: Event) => event.preventDefault();
+  let looking: ReturnType<typeof setTimeout> | undefined;
   // A selection dragged out of the block being written still belongs to it, wherever it is let go.
   let pressedIn = false;
   page.addEventListener(
@@ -396,6 +423,7 @@ export const wired = (page: Document, reach: () => Reaching) => {
   page.addEventListener("click", (event) => {
     const target = event.target as Element | null;
     if (event.button !== 0 || typeof target?.closest !== "function") return;
+    clearTimeout(looking);
     if (pressedIn) {
       pressedIn = false;
       return;
@@ -417,8 +445,30 @@ export const wired = (page: Document, reach: () => Reaching) => {
     const shaping = page.documentElement.classList.contains("shaping");
     const asked =
       went(target, selecting) ?? (!shaping && below(page, target, event) ? { kind: "end" } : null);
-    if (!asked && !target.closest(".editing")) reach().onAway?.();
+    // The second press of a double one on a diagram is the window's, not a press away from the block being written.
+    const second = event.detail >= 2 && target.closest("figure.diagram") && reach().onDiagram;
+    if (!asked && !second && !target.closest(".editing")) reach().onAway?.();
+    const diagram = asked?.kind === "picture" && target.closest<HTMLElement>("figure.diagram");
+    const opening = diagram ? spanned(diagram.dataset.at ?? null) : null;
+    // A diagram that opens in its window on a double press waits a moment before it is looked at.
+    if (opening && diagram && reach().onDiagram) {
+      if (event.detail < 2)
+        looking = setTimeout(() => {
+          if (diagram.isConnected) answered(page, asked, reach());
+        }, DOUBLE_MS);
+      return;
+    }
     answered(page, asked, reach(), asked?.kind === "block" ? readTo(page, event) : "");
+  });
+  // Its own event, since a double press on a label selects a word and the click then reads as a selection.
+  page.addEventListener("dblclick", (event) => {
+    const target = event.target as Element | null;
+    const figure = target?.closest?.<HTMLElement>("figure.diagram.drawn[data-at]");
+    const at = spanned(figure?.dataset.at ?? null);
+    if (!at || !reach().onDiagram || target?.closest(".diagram-bar")) return;
+    clearTimeout(looking);
+    page.getSelection()?.removeAllRanges();
+    answered(page, { kind: "diagram", at }, reach());
   });
   widening(page, () => {
     const now = reach();

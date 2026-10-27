@@ -21,31 +21,32 @@ pub fn view_diagram(
     views: tauri::State<'_, Views>,
     paper: Paper,
     at: usize,
+    nth: usize,
+    source: String,
 ) -> Answer<()> {
+    // Opened only where it can be saved, so no work is done that a lock would then refuse.
+    writable(&held(&session).state, &paper.file)?;
+    let body = viewing::doc_body(&app, &paper.file)?;
+    // The page may be a save behind the disk, so the diagram is the one that says what the page drew.
+    let found = diagrams::still(&body, Place { at, nth }, &source);
+    let sitting = found.as_ref().map_or(at, |(place, _)| place.at);
     // Two windows on one diagram would refuse each other's saves.
     let open = viewing::showing(
         &views,
-        |one| matches!(one, Shown::Diagram(drawn) if drawn.paper.file == paper.file && drawn.place.at == at),
+        |one| matches!(one, Shown::Diagram(drawn) if drawn.paper.file == paper.file && drawn.place.at == sitting),
     );
     if let Some(window) = open.and_then(|label| app.get_webview_window(&label)) {
         brought(&window);
         return Ok(());
     }
-    // Opened only where it can be saved, so no work is done that a lock would then refuse.
-    writable(&held(&session).state, &paper.file)?;
-    let body = viewing::doc_body(&app, &paper.file)?;
-    let Some((nth, found)) = diagrams::diagrams(&body)
-        .into_iter()
-        .enumerate()
-        .find(|(_, one)| one.at.start == at)
-    else {
+    let Some((place, found)) = found else {
         return Err(Refusal::about("diagramMoved", paper.title));
     };
     viewing::open(
         &app,
         Shown::Diagram(Drawn {
             paper,
-            place: Place { at, nth },
+            place,
             was: found.source,
         }),
     );
