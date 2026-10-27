@@ -850,6 +850,12 @@ export interface LastRound {
 /** What stood between this computer and the cloud when a round could not reach it. */
 export type Cause = "blocked" | "filtered" | "slow";
 
+export interface ReadSoFar {
+  done: number;
+  whole: number;
+  at: number;
+}
+
 export interface CloudStatus {
   provider: string;
   account: string;
@@ -867,6 +873,7 @@ export interface CloudStatus {
   adopts?: boolean;
   running?: boolean;
   sealingElsewhere?: "on" | "off" | null;
+  reading?: ReadSoFar | null;
 }
 
 export const cloudConnect = (provider: string): Promise<Connected> =>
@@ -1347,6 +1354,8 @@ export interface SealShown {
   turning: SealTold | null;
   wiping?: boolean;
   orphan: boolean;
+  plainLeft?: boolean;
+  reading?: ReadSoFar | null;
 }
 
 export interface SealRoom {

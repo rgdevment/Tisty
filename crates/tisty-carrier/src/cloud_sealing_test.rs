@@ -261,7 +261,9 @@ fn what_a_turn_leaves_behind_goes_only_where_its_twin_stands() {
     let plain: Arc<dyn Remote> = fake.clone();
     let home = home_of(&setting, "dev_a");
 
-    let gone = crate::wipe_behind(plain.clone(), &home, key(), CLOUD).unwrap();
+    let gone = crate::wipe_behind(plain.clone(), &home, key(), CLOUD)
+        .unwrap()
+        .gone;
 
     assert!(gone > 0);
     let left: Vec<String> = fake
@@ -279,6 +281,25 @@ fn what_a_turn_leaves_behind_goes_only_where_its_twin_stands() {
     to_the_end(&mut turning_off(&fake, &setting).unwrap());
     crate::wipe_behind(plain, &home, key(), CLOUD).unwrap();
     assert!(fake.list("sealed").unwrap().is_empty());
+}
+
+#[test]
+fn a_wipe_says_how_much_it_left_without_a_twin_and_leaves_it_alone() {
+    let (setting, fake) = drive();
+    sealed_on(&setting, &fake);
+    let plain: Arc<dyn Remote> = fake.clone();
+    let home = home_of(&setting, "dev_a");
+    let dir = tempfile::tempdir().unwrap();
+    let stray = dir.path().join("stray");
+    std::fs::write(&stray, b"written after the copy").unwrap();
+    fake.put("docs/zzzzzzzz-0999.md", &stray, Expect::Any)
+        .unwrap();
+
+    let wiped = crate::wipe_behind(plain, &home, key(), CLOUD).unwrap();
+
+    assert!(wiped.gone > 0);
+    assert_eq!(wiped.left, 1);
+    assert!(fake.about("docs/zzzzzzzz-0999.md").unwrap().is_some());
 }
 
 #[test]

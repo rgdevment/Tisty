@@ -11,7 +11,7 @@ pub async fn join_them(
     alone: tauri::State<'_, OneAtATime>,
     into: String,
 ) -> Answer<u64> {
-    let _done = alone.inner().taken()?;
+    let _done = alone.inner().waited(crate::ROUND_WAITED_OUT).await?;
     if tisty_core::paths::profile().is_some() {
         return Err(Refusal::of("sandboxCannotJoin"));
     }
@@ -56,7 +56,7 @@ pub async fn take_over(
     alone: tauri::State<'_, OneAtATime>,
     into: String,
 ) -> Answer<u64> {
-    let _done = alone.inner().taken()?;
+    let _done = alone.inner().waited(crate::ROUND_WAITED_OUT).await?;
     if tisty_core::paths::profile().is_some() {
         return Err(Refusal::of("sandboxCannotJoin"));
     }
@@ -196,7 +196,7 @@ pub async fn merge_stores(
     alone: tauri::State<'_, OneAtATime>,
     into: String,
 ) -> Answer<bool> {
-    let _done = alone.inner().taken()?;
+    let _done = alone.inner().waited(crate::ROUND_WAITED_OUT).await?;
     if tisty_core::paths::profile().is_some() {
         return Err(Refusal::of("sandboxCannotJoin"));
     }

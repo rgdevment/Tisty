@@ -57,7 +57,9 @@ describe("a new computer asking to come in", () => {
 
     ipc.shown = { step: "done", code: null, by: null } satisfies Admitted;
     await later(3100);
-    expect(screen.getByText(/now reads your encrypted cloud/)).toBeTruthy();
+    expect(
+      screen.getByText(/this computer has the key. It now brings your encrypted cloud here/),
+    ).toBeTruthy();
     await later(3100);
     expect(onIn).toHaveBeenCalledTimes(1);
   }, 20_000);

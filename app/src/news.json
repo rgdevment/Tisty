@@ -713,5 +713,48 @@
         "said": "Homebrew closes Tisty before removing it, and a full uninstall now really removes everything Tisty keeps on your Mac. The note about your macOS version only shows on a Mac that needs it."
       }
     ]
+  },
+  {
+    "version": "1.36.2",
+    "headline": {
+      "es": "Tisty te muestra cada paso al traer tu nube",
+      "en": "Tisty shows every step while it brings your cloud"
+    },
+    "es": [
+      {
+        "title": "Ves cuánto lleva",
+        "said": "cada vez que Tisty trae tu nube, la barra de abajo, la barra lateral y Configuración › Seguridad dicen cuánto lleva, también justo después de que un equipo recibe la llave de tu nube cifrada."
+      },
+      {
+        "title": "Autorizar un equipo, sin quedar a oscuras",
+        "said": "mientras esperas la llave, lo ves en curso; cuando llega, Tisty te avisa que empieza a traer tu nube cifrada, y un aviso viejo en rojo ya no se queda pegado."
+      },
+      {
+        "title": "Elegir qué conservar ya no se rechaza",
+        "said": "al juntar el Tisty de un equipo nuevo con el de tu nube, tu elección espera a que termine la sincronización en curso en vez de decir que ya hay una, y Tisty deja de repetir la misma pregunta mientras decides."
+      },
+      {
+        "title": "La copia sin cifrar, solo si queda",
+        "said": "el botón para borrar la copia sin cifrar aparece solo mientras todavía queda una por borrar."
+      }
+    ],
+    "en": [
+      {
+        "title": "See how far it came",
+        "said": "whenever Tisty brings your cloud, the bottom bar, the sidebar and Settings › Security say how far it came, also right after a computer receives the key to your encrypted cloud."
+      },
+      {
+        "title": "Letting a computer in, never in the dark",
+        "said": "while you wait for the key, you see it under way; once it arrives, Tisty tells you it is bringing your encrypted cloud, and an old red notice no longer stays behind."
+      },
+      {
+        "title": "Choosing what to keep is no longer turned away",
+        "said": "when a new computer's Tisty meets the one in your cloud, your choice waits for the sync underway instead of saying one is already running, and Tisty stops asking the same thing while you decide."
+      },
+      {
+        "title": "The unencrypted copy, only while one is left",
+        "said": "the button to delete the unencrypted copy shows only while there is still one to delete."
+      }
+    ]
   }
 ]

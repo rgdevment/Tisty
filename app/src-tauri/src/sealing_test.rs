@@ -61,3 +61,12 @@ fn a_wait_says_whether_the_way_is_cut_blocked_or_the_cloud_asked_for_it() {
     );
     assert_eq!(waiting_on(&Hitch::Spent), "budget");
 }
+
+#[test]
+fn an_old_copy_is_left_until_this_computer_wiped_it_for_this_cloud() {
+    let home = tempfile::tempdir().unwrap();
+    assert!(plain_left(home.path(), "cloud-a"));
+    std::fs::write(home.path().join(PLAIN_WIPED), "cloud-a").unwrap();
+    assert!(!plain_left(home.path(), "cloud-a"));
+    assert!(plain_left(home.path(), "cloud-b"));
+}

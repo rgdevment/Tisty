@@ -22,6 +22,7 @@ pub(crate) mod lock;
 mod mirror;
 mod pace;
 pub mod policy;
+pub mod reading;
 mod resting;
 pub mod sealing;
 mod shelf;
@@ -225,6 +226,12 @@ impl Cloud {
             Ok(Some(round)) => round,
             Ok(None) => return Ok(Done::deferred(Reason::Busy, None, None)),
             Err(why) => return Err(Trouble::Broke(why.to_string())),
+        };
+        let mut noting = reading::Noting::new(&self.home);
+        let told = along;
+        let along = &mut |far: crate::Reached| {
+            noting.heard(&far);
+            told(far);
         };
         let emptied = self.home.join(EMPTIED);
         if let Some(stale) = index::stale(&self.home, &self.root) {

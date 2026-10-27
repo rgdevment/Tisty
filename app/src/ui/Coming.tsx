@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { apartWaits, type Stage, useAside, useCarded, useComing, useStuck } from "../coming";
-import { fill, locale, t, type Word } from "../locales";
+import { numbered } from "../format";
+import { fill, t, type Word } from "../locales";
 import { leftBehind, plainly } from "../refusal";
 import { underway, useMove } from "../relocation";
+import { useSyncSeen } from "../syncSeen";
 import type { Heading } from "../views";
 
 export const SHOWN_AFTER = 3_000;
@@ -14,8 +16,6 @@ const said: Record<Stage, Word> = {
   attachments: "comingAttachments",
   uploading: "comingUploading",
 };
-
-const counted = (many: number): string => new Intl.NumberFormat(locale()).format(many);
 
 const followed = (stuck: unknown): { heading: Heading; said: Word } => {
   const code = (stuck as { code?: string } | null)?.code;
@@ -29,7 +29,10 @@ export default function Coming({ onOpen }: { onOpen?: (heading: Heading) => void
   const told = useStuck();
   const aside = useAside();
   const carded = useCarded();
-  const stuck = (told as { code?: string } | null)?.code === carded && carded ? null : told;
+  const reading = useSyncSeen().status?.reading ?? null;
+  // A read under way makes the last round's trouble old news.
+  const stuck =
+    reading || ((told as { code?: string } | null)?.code === carded && carded) ? null : told;
   const move = useMove();
   const [, tick] = useState(0);
 
@@ -42,19 +45,21 @@ export default function Coming({ onOpen }: { onOpen?: (heading: Heading) => void
   const long = coming ? Date.now() - coming.since : 0;
   // A move tells its own steps beside this, so the round's raw stages would only say them twice.
   const moving = move !== null && underway(move);
-  const shown = coming !== null && long >= SHOWN_AFTER && !moving;
+  const step =
+    coming ?? (reading && { stage: "log" as Stage, done: reading.done, whole: reading.whole });
+  const shown = ((coming !== null && long >= SHOWN_AFTER) || (!coming && reading)) && !moving;
   if (!shown && !stuck && !aside) return null;
-  const far = coming?.whole ? Math.min(100, Math.round((coming.done / coming.whole) * 100)) : 0;
+  const far = step?.whole ? Math.min(100, Math.round((step.done / step.whole) * 100)) : 0;
 
   return (
     <div className="mx-2.5 mb-2 flex flex-col gap-1.5 px-2.5 py-2">
-      {shown && coming && (
+      {shown && step && (
         <div role="status" aria-live="polite" className="flex flex-col gap-1.5">
           <span className="flex items-baseline gap-1.5 text-[11.5px]">
-            <span className="flex-1 truncate text-ink">{t(said[coming.stage])}</span>
-            {coming.whole > 0 && (
+            <span className="flex-1 truncate text-ink">{t(said[step.stage])}</span>
+            {step.whole > 0 && (
               <span className="text-soft tabular-nums">
-                {fill("comingOf", counted(coming.done), counted(coming.whole))}
+                {fill("comingOf", numbered(step.done), numbered(step.whole))}
               </span>
             )}
           </span>
@@ -64,7 +69,7 @@ export default function Coming({ onOpen }: { onOpen?: (heading: Heading) => void
               style={{ width: `${far}%` }}
             />
           </span>
-          {long >= SLOW_AFTER && (
+          {coming && long >= SLOW_AFTER && (
             <span className="text-[11.5px] text-soft">
               {t(coming.stage === "uploading" ? "comingSlowUp" : "comingSlow")}
             </span>

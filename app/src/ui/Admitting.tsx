@@ -113,7 +113,11 @@ export function LetMeIn({ onClose, onIn }: { onClose: () => void; onIn: () => vo
           </>
         );
       case "trusted":
-        return <p className="text-[12.5px] text-soft">{fill("admitTrusted", now.by ?? "")}</p>;
+        return (
+          <p role="status" className="text-[12.5px] text-soft motion-safe:animate-pulse">
+            {fill("admitTrusted", now.by ?? "")}
+          </p>
+        );
       case "done":
         return <p className="text-[12.5px] text-soft">{t("admitIn")}</p>;
       default:
