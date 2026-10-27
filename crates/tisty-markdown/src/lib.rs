@@ -7,6 +7,8 @@ pub mod diagrams;
 mod emoji;
 pub mod fences;
 pub mod front;
+#[cfg(feature = "tables")]
+pub mod grid;
 mod html;
 mod inline;
 pub mod kept;

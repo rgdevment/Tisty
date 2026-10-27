@@ -1,4 +1,9 @@
+#[cfg(feature = "tables")]
+use std::cmp::Ordering;
 use std::ops::Range;
+
+#[cfg(feature = "tables")]
+use unicode_normalization::UnicodeNormalization;
 
 use crate::amounts::{Amount, convention, money, rounded};
 use crate::inline::{atom, code_words, walls};
@@ -95,6 +100,62 @@ fn worded(holds: &Holds, cell: &Block, text: &str) -> String {
         }
     }
     out.trim().to_string()
+}
+
+/// The body rows in the order a column sorts them: by value as its type reads, then the empty and the amiss, ties as written.
+#[cfg(feature = "tables")]
+pub fn sorted(columns: &[Column], block: &Block, text: &str, at: usize, down: bool) -> Vec<usize> {
+    let holds = columns
+        .get(at)
+        .map(|one| &one.holds)
+        .unwrap_or(&Holds::Text);
+    let seen: Vec<Seen> = block
+        .inner
+        .iter()
+        .skip(1)
+        .map(|row| {
+            row.inner.get(at).map_or_else(Seen::default, |cell| {
+                seen(holds, &worded(holds, cell, text))
+            })
+        })
+        .collect();
+    let ranks: Vec<Option<Value>> = seen
+        .iter()
+        .map(|one| match &one.value {
+            Some(Value::Words(words)) => Some(Value::Words(folded(words))),
+            value => value.clone(),
+        })
+        .collect();
+    let mut order: Vec<usize> = (0..seen.len()).collect();
+    order.sort_by(|&one, &two| match (&ranks[one], &ranks[two]) {
+        (Some(one), Some(two)) if down => ranked(two, one),
+        (Some(one), Some(two)) => ranked(one, two),
+        (Some(_), None) => Ordering::Less,
+        (None, Some(_)) => Ordering::Greater,
+        (None, None) => seen[two].amiss.cmp(&seen[one].amiss),
+    });
+    order
+}
+
+#[cfg(feature = "tables")]
+fn ranked(one: &Value, two: &Value) -> Ordering {
+    match (one, two) {
+        (Value::Amount(one), Value::Amount(two)) => one.against(two),
+        (Value::Minutes(one), Value::Minutes(two)) => one.cmp(two),
+        (Value::Date(one), Value::Date(two)) | (Value::Words(one), Value::Words(two)) => {
+            one.cmp(two)
+        }
+        (Value::Yes(one), Value::Yes(two)) => one.cmp(two),
+        _ => Ordering::Equal,
+    }
+}
+
+// Accents come off for sorting, so «Ávila» sits with the A's and not after the Z's.
+#[cfg(feature = "tables")]
+fn folded(said: &str) -> String {
+    said.nfd()
+        .filter(|one| !unicode_normalization::char::is_combining_mark(*one))
+        .collect()
 }
 
 pub fn seen(holds: &Holds, said: &str) -> Seen {

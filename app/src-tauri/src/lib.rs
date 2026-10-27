@@ -1118,6 +1118,8 @@ fn plugged() -> tauri::Builder<tauri::Wry> {
         })
 }
 
+// Every command the window calls sits in one list: Tauri takes one handler and two cannot be chained.
+#[allow(clippy::too_many_lines)]
 fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync + 'static {
     tauri::generate_handler![
         answers::tasks::snapshot,
@@ -1307,6 +1309,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::paging::note_drawn,
         answers::paging::mends_in,
         answers::paging::doc_plain,
+        answers::paging::table_edit,
         answers::paging::help_reference,
         answers::paging::help_reference_here,
         answers::paging::help_drawn,

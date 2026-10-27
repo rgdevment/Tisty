@@ -85,6 +85,16 @@ pub fn doc_plain(body: String) -> String {
     tisty_markdown::to_standard(&body, &|_| None)
 }
 
+// The body comes back changed only if the table still sits where the page drew it; the window saves it.
+#[tauri::command(async)]
+pub fn table_edit(
+    body: String,
+    at: (usize, usize),
+    edit: tisty_markdown::grid::Edit,
+) -> Result<String, String> {
+    tisty_markdown::grid::edit(&body, at.0..at.1, &edit).map_err(|why| why.word().to_string())
+}
+
 pub fn paged(shelf: &Path, body: &str) -> String {
     let drawn = || tisty_markdown::html(&tisty_markdown::read(body));
     // A build under work keeps one version number while the drawing changes under it.
