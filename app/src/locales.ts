@@ -2162,8 +2162,9 @@ const en = {
   wiringOn: "Connected",
   wiringJoin: "Connect",
   wiringOut: "Remove",
-  wiringFresh: "Written. Close it and open it again for it to see Tisty.",
-  wiringGone: "Taken out. Close it and open it again.",
+  wiringFresh:
+    "Written. Quit it completely and open it again for it to see Tisty: closing its window is not enough.",
+  wiringGone: "Taken out. Quit it completely and open it again.",
   wiringMute: "They still file nothing until you let an assistant file, above.",
   wiringBefore:
     "What each file first said is kept beside it, ending in .before-tisty, and the one just before each write in .before-tisty-last.",
@@ -4704,8 +4705,9 @@ const es: Catalog = {
   wiringOn: "Conectado",
   wiringJoin: "Conectar",
   wiringOut: "Quitar",
-  wiringFresh: "Escrito. Ciérralo y ábrelo otra vez para que vea Tisty.",
-  wiringGone: "Quitado. Ciérralo y ábrelo otra vez.",
+  wiringFresh:
+    "Escrito. Sal de él del todo y ábrelo otra vez para que vea Tisty: cerrar su ventana no basta.",
+  wiringGone: "Quitado. Sal de él del todo y ábrelo otra vez.",
   wiringMute: "Aun así no anotarán nada hasta que se lo permitas arriba.",
   wiringBefore:
     "Lo que tenía cada archivo la primera vez queda al lado, con el final .before-tisty, y lo de justo antes de cada escritura, con .before-tisty-last.",

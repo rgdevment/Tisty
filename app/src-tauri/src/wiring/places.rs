@@ -77,7 +77,10 @@ impl Place {
         };
         let mut at = base?;
         for step in rest.split('/') {
-            at.push(step);
+            at = match step.strip_suffix('*') {
+                Some(named) => first_in(&at, named)?,
+                None => at.join(step),
+            };
         }
         Some(at)
     }
@@ -162,17 +165,27 @@ fn var(named: &str) -> Option<PathBuf> {
 /// Installed from the Store an app never sees `%APPDATA%`: Windows hands it a private copy under
 /// its package, and the settings the person edits are the ones in there.
 fn store(local: &Path, named: &str) -> Option<PathBuf> {
-    let mut found: Vec<PathBuf> = std::fs::read_dir(local.join("Packages"))
+    Some(
+        first_in(&local.join("Packages"), named)?
+            .join("LocalCache")
+            .join("Roaming"),
+    )
+}
+
+fn first_in(folder: &Path, named: &str) -> Option<PathBuf> {
+    let mut found: Vec<PathBuf> = std::fs::read_dir(folder)
         .ok()?
         .flatten()
         .map(|it| it.path())
         .filter(|at| {
-            at.file_name()
-                .is_some_and(|it| it.to_string_lossy().starts_with(named))
+            at.is_dir()
+                && at
+                    .file_name()
+                    .is_some_and(|it| it.to_string_lossy().starts_with(named))
         })
         .collect();
     found.sort();
-    Some(found.into_iter().next()?.join("LocalCache").join("Roaming"))
+    found.into_iter().next()
 }
 
 /// The same Windows file as a WSL distro reaches it: `C:\a\b` under its mount root, `/mnt/c/a/b`.

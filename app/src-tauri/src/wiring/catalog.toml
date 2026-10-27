@@ -1,7 +1,8 @@
 # Where each assistant keeps its MCP servers and how it wants Tisty written.
 # Paths start with a root: ~ (home), appdata: and localappdata: (Windows), support: (macOS
 # Application Support), config: (~/.config, or $XDG_CONFIG_HOME), store:<prefix>: (a Windows Store
-# package's private roaming folder). Read with the docs of each assistant, October 2026.
+# package's private roaming folder). A step ending in * is the first folder whose name starts so.
+# Read with the docs of each assistant, October 2026.
 
 [[client]]
 id = "claude-code"
@@ -18,11 +19,11 @@ id = "claude-desktop"
 name = "Claude Desktop"
 shape = "plain"
 key = "mcpServers"
-windows = ["store:Claude_:Claude/claude_desktop_config.json", "appdata:Claude/claude_desktop_config.json"]
+windows = ["localappdata:Claude-Data/claude_*/claude_desktop_config.json", "store:Claude_:Claude/claude_desktop_config.json", "appdata:Claude/claude_desktop_config.json"]
 macos = ["support:Claude/claude_desktop_config.json"]
 linux = ["config:Claude/claude_desktop_config.json"]
 apps = ["localappdata:AnthropicClaude/claude.exe", "/Applications/Claude.app"]
-dirs = ["store:Claude_:Claude", "appdata:Claude", "support:Claude"]
+dirs = ["localappdata:Claude-Data/claude_*", "store:Claude_:Claude", "appdata:Claude", "support:Claude"]
 
 [[client]]
 id = "codex"

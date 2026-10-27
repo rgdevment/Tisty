@@ -791,6 +791,10 @@
       {
         "title": "Autorizar un equipo, una sola vez",
         "said": "en una nube cifrada, el equipo que autorizaste con tu frase o con los 20 dígitos ya no te lo vuelve a pedir una y otra vez. Tus otros equipos confirman su código una sola vez y listo."
+      },
+      {
+        "title": "Claude Desktop vuelve a encontrar Tisty",
+        "said": "en Windows, Claude Desktop de la Microsoft Store guarda ahora su configuración en otro lugar, y Tisty escribe ahí. Después de conectarlo, sal de Claude del todo y ábrelo otra vez: cerrar su ventana no basta."
       }
     ],
     "en": [
@@ -821,6 +825,10 @@
       {
         "title": "Letting a computer in, once",
         "said": "in an encrypted cloud, a computer you let in with your phrase or its 20 digits no longer asks for it again and again. Your other computers confirm its code once, and that is it."
+      },
+      {
+        "title": "Claude Desktop finds Tisty again",
+        "said": "on Windows, Claude Desktop from the Microsoft Store now keeps its settings somewhere else, and Tisty writes there. After connecting it, quit Claude completely and open it again: closing its window is not enough."
       }
     ]
   }

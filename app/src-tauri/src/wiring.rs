@@ -196,7 +196,7 @@ fn wire_at(client: &Client, place: &Place, at: &Path) -> Result<(), Stuck> {
     }
     .ok_or_else(|| Stuck::Puzzling(at.display().to_string()))?;
     kept(at, &was)?;
-    laid(at, &now)
+    laid(at, &now, tisty_core::paths::from_the_store())
 }
 
 pub fn unwire(id: &str) -> Result<Vec<Seen>, Stuck> {
@@ -214,7 +214,7 @@ fn unwire_at(client: &Client, at: &Path) -> Result<(), Stuck> {
     };
     if let Some(now) = now {
         kept(at, &was)?;
-        laid(at, &now)?;
+        laid(at, &now, tisty_core::paths::from_the_store())?;
     }
     Ok(())
 }
@@ -247,9 +247,13 @@ fn kept(at: &Path, was: &str) -> Result<(), Stuck> {
     std::fs::write(at.with_file_name(format!("{named}.{LAST}")), was).map_err(sour)
 }
 
-fn laid(at: &Path, text: &str) -> Result<(), Stuck> {
+fn laid(at: &Path, text: &str, packaged: bool) -> Result<(), Stuck> {
     if let Some(folder) = at.parent() {
         std::fs::create_dir_all(folder).map_err(sour)?;
+    }
+    // Windows moves a file a Store app creates in AppData into the app's own copy, but not an edit to one already there.
+    if packaged && at.is_file() {
+        return std::fs::write(at, text).map_err(sour);
     }
     tisty_core::store::write_atomic(at, text.as_bytes()).map_err(|e| Stuck::Cannot(e.to_string()))
 }
