@@ -120,10 +120,7 @@ opt-level = 3
 [profile.dev.package.universal-hash]
 opt-level = 3
 
-# Replaying the log and reading it as JSON is what a debug window waits on when it opens.
-[profile.dev.package.tisty-core]
-opt-level = 2
-
+# Reading the log as JSON is what a debug window waits on; tisty-core stays plain so coverage maps it.
 [profile.dev.package.serde_json]
 opt-level = 2
 
