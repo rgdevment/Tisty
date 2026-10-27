@@ -287,38 +287,14 @@ fn a_machine_that_rejoins_comes_back_under_a_new_name() {
 }
 
 #[test]
-fn a_machine_let_in_under_its_name_keeps_it_and_its_key_through_a_reset() {
-    let (_src, data) = filled("comprar pan");
-    let dir = tempfile::tempdir().unwrap();
-    let paths = Paths::new(data.clone(), dir.path().join("config"));
-    let was = Config::load_or_init(&paths).unwrap().device_id;
-    let key = crate::signing::mine(&paths, &was).map(|one| crate::signing::shown(&one));
-    assert!(key.is_some());
-    let out = tempfile::tempdir().unwrap();
-
-    reset_as(
-        &paths,
-        &out.path().join("before.zip"),
-        tmp().path(),
-        None,
-        false,
-    )
-    .unwrap();
-
-    let now = Config::load_or_init(&paths).unwrap();
-    assert_eq!(now.device_id, was);
-    assert!(now.synced_at.is_none());
-    assert_eq!(crate::signing::shown_kept(&paths, &was), key);
-    assert!(!store::inhabited(paths.store()));
-}
-
-#[test]
-fn the_assistant_this_machine_runs_stays_its_own_only_when_the_name_is_kept() {
-    for renamed in [false, true] {
+fn a_machine_let_in_signs_on_under_a_new_name_with_the_key_it_was_let_in_by() {
+    for let_in in [true, false] {
         let (_src, data) = filled("comprar pan");
         let dir = tempfile::tempdir().unwrap();
         let paths = Paths::new(data.clone(), dir.path().join("config"));
         let was = Config::load_or_init(&paths).unwrap().device_id;
+        let key = crate::signing::mine(&paths, &was).map(|one| crate::signing::shown(&one));
+        crate::vouched::confirm(&data, &was, key.as_deref().unwrap());
         let agent = crate::agent::register(&paths).unwrap();
         let out = tempfile::tempdir().unwrap();
 
@@ -327,12 +303,21 @@ fn the_assistant_this_machine_runs_stays_its_own_only_when_the_name_is_kept() {
             &out.path().join("before.zip"),
             tmp().path(),
             None,
-            renamed,
+            let_in,
         )
         .unwrap();
 
-        let host = crate::vouched::confirmed(&data, &agent).unwrap().host;
-        assert_eq!(host, (!renamed).then_some(was));
+        let now = Config::load_or_init(&paths).unwrap();
+        assert_ne!(now.device_id, was);
+        assert!(now.synced_at.is_none());
+        assert!(!store::inhabited(paths.store()));
+        let signs =
+            crate::signing::mine(&paths, &now.device_id).map(|one| crate::signing::shown(&one));
+        assert_eq!(signs == key, let_in);
+        for own in [&was, &agent] {
+            let host = crate::vouched::confirmed(&data, own).unwrap().host;
+            assert_eq!(host, let_in.then(|| now.device_id.clone()));
+        }
     }
 }
 

@@ -55,7 +55,7 @@ fn a_machine_that_only_opened_once_joins_without_asking_and_keeps_a_backup() {
     let (_room, paths, store) = opened_once();
     drop(store);
 
-    let backup = quietly_joined(&paths, true).expect("a new machine was asked anyway");
+    let backup = quietly_joined(&paths, false).expect("a new machine was asked anyway");
 
     assert!(backup.is_file());
     assert!(backup.starts_with(paths.private()));
@@ -74,7 +74,7 @@ fn a_machine_with_a_single_task_of_the_persons_is_left_exactly_as_it_was() {
     drop(store);
     let before = tisty_core::store::read_all(paths.store()).unwrap().len();
 
-    assert!(quietly_joined(&paths, true).is_none());
+    assert!(quietly_joined(&paths, false).is_none());
     assert_eq!(
         tisty_core::store::read_all(paths.store()).unwrap().len(),
         before
@@ -131,9 +131,9 @@ fn the_same_history_is_never_taken_twice_without_asking() {
 fn a_machine_already_set_aside_is_not_set_aside_again() {
     let (_room, paths, store) = opened_once();
     drop(store);
-    quietly_joined(&paths, true).expect("a new machine was asked anyway");
+    quietly_joined(&paths, false).expect("a new machine was asked anyway");
 
-    assert!(quietly_joined(&paths, true).is_none());
+    assert!(quietly_joined(&paths, false).is_none());
     let kept = std::fs::read_dir(paths.private().join("before-joining"))
         .unwrap()
         .count();
@@ -141,22 +141,22 @@ fn a_machine_already_set_aside_is_not_set_aside_again() {
 }
 
 #[test]
-fn a_machine_let_into_the_encrypted_cloud_joins_quietly_under_the_name_it_was_let_in_with() {
+fn a_machine_let_into_the_encrypted_cloud_joins_quietly_with_the_key_it_was_let_in_by() {
     let (_room, paths, store) = opened_once();
     drop(store);
     let was = tisty_core::Config::load_or_init(&paths).unwrap().device_id;
+    let key = tisty_core::signing::mine(&paths, &was).map(|one| tisty_core::signing::shown(&one));
 
-    quietly_joined(&paths, false).expect("a new machine was asked anyway");
+    quietly_joined(&paths, true).expect("a new machine was asked anyway");
 
     assert!(!tisty_core::store::inhabited(paths.store()));
-    assert_eq!(
-        tisty_core::Config::load_or_init(&paths).unwrap().device_id,
-        was
-    );
+    let now = tisty_core::Config::load_or_init(&paths).unwrap().device_id;
+    assert_ne!(now, was);
+    assert_eq!(tisty_core::signing::shown_kept(&paths, &now), key);
 }
 
 #[test]
-fn only_the_key_handed_for_the_encrypted_cloud_it_syncs_with_keeps_a_machine_s_name() {
+fn only_the_key_handed_for_the_encrypted_cloud_it_syncs_with_lets_a_machine_in() {
     let room = tempfile::tempdir().unwrap();
     let paths = Paths::new(room.path().join("data"), room.path().join("config"));
     let mut session = Session::at(paths).unwrap();
@@ -166,35 +166,19 @@ fn only_the_key_handed_for_the_encrypted_cloud_it_syncs_with_keeps_a_machine_s_n
         email: "mario@cloud.example.com".into(),
     };
     session.config.key_handed = Some("store_cloud".into());
-    assert!(renaming(&session)(), "a machine on no cloud kept its name");
+    assert!(!letting_in(&session), "a machine on no cloud was let in");
 
     session.config.sync = Some(tisty_core::config::Sync::Cloud(at.clone()));
     let tree = tisty_carrier::mirrored_at(&session.reach.home_of(&at));
     std::fs::create_dir_all(&tree).unwrap();
     std::fs::write(tree.join(tisty_carrier::NAMED), "shape = 3\n").unwrap();
-    assert!(renaming(&session)(), "a plain cloud kept its name");
+    assert!(!letting_in(&session), "a plain cloud let a machine in");
 
-    std::fs::write(
-        tree.join(tisty_carrier::NAMED),
-        "shape = 3\nneeds = \"1.35.0\"\nsealed = \"store_cloud\"\n",
-    )
-    .unwrap();
-    assert!(!renaming(&session)());
-
-    let home = session.reach.home_of(&at);
-    std::fs::write(home.join(tisty_carrier::CARRIED), "1").unwrap();
-    assert!(
-        renaming(&session)(),
-        "a machine that already synced with the cloud kept its name"
-    );
-    std::fs::remove_file(home.join(tisty_carrier::CARRIED)).unwrap();
-    assert!(!renaming(&session)());
+    tisty_carrier::seal_word(&tree, "store_cloud").unwrap();
+    assert!(letting_in(&session));
 
     session.config.key_handed = None;
-    assert!(
-        renaming(&session)(),
-        "a machine nobody let in kept its name"
-    );
+    assert!(!letting_in(&session), "a machine nobody let in was let in");
 }
 
 #[test]

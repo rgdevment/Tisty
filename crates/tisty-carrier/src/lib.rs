@@ -10,8 +10,7 @@ pub use tisty_core::turned;
 pub use tisty_sync::{
     Cause, Deferred, Holding, Keep, Kin, LetGo, Moved, NAMED, NEEDS, Reached, Reason, SEALS, SHAPE,
     STORE, Sealing, Signed, Stage, Stitched, TURNS, Trouble, Turn, Undecided, Way, claim_in,
-    claimed, keeps_its_name, phase, raised, raised_told, refuses, seal_word, sealing_in,
-    sealing_of,
+    claimed, let_in, phase, raised, raised_told, refuses, seal_word, sealing_in, sealing_of,
 };
 
 mod cloud;

@@ -80,6 +80,21 @@ fn hosted(
     trusted && tisty_core::vouched::through(data, who, says, &host)
 }
 
+fn handed_from(
+    data: &Path,
+    dest: &Path,
+    who: &tisty_core::DeviceId,
+    says: &str,
+) -> Option<tisty_core::DeviceId> {
+    let all = tisty_core::vouched::all_confirmed(data);
+    let (from, _) = all
+        .iter()
+        .find(|(from, one)| one.asked && one.key == says && *from != who)?;
+    let spent = all.values().any(|one| one.from.as_ref() == Some(from));
+    let wrote_here = dest.join(STORE).join(&from.0).exists();
+    (!spent && !wrote_here).then(|| from.clone())
+}
+
 fn owes_a_signature(
     mine: &Path,
     theirs: &Path,
@@ -124,6 +139,7 @@ fn answers_for_itself(
     let signed = anything_signed_in(theirs);
     let mut stood = tisty_core::vouched::confirmed(data, &who).map(|one| one.key);
     let mut carried = None;
+    let mut handed = None;
     if stood.is_none() && !ours && signed {
         let mut said_a_key = false;
         let says = match claimed(store, &who, knew) {
@@ -135,6 +151,9 @@ fn answers_for_itself(
             }
             Err(()) => return Answered::Unreadable,
         };
+        let passed = says
+            .as_deref()
+            .and_then(|says| handed_from(data, dest, &who, says));
         match says {
             Some(says) if adopting && tisty_core::vouched::confirm(data, &who, &says) => {
                 witness::note(
@@ -159,6 +178,10 @@ fn answers_for_itself(
                     "an agent was answered for by the host it runs on, already confirmed here",
                     &[("at", Fact::Id(named.to_string()))],
                 );
+                stood = Some(says);
+            }
+            Some(says) if passed.is_some() => {
+                handed = passed;
                 stood = Some(says);
             }
             Some(_) => {
@@ -234,6 +257,15 @@ fn answers_for_itself(
                     },
                 );
             }
+            if let (Some(from), Some(said)) = (&handed, &stood)
+                && tisty_core::vouched::passed_on(data, &who, said, from)
+            {
+                witness::note(
+                    channel::SYNC,
+                    "a computer let in by its digits came back under a new name with the key the person confirmed",
+                    &[("at", Fact::Id(named.to_string()))],
+                );
+            }
             if let Some(said) = carried
                 && tisty_core::vouched::carried(data, &who, &said)
             {
@@ -253,7 +285,7 @@ fn answers_for_itself(
             );
             Answered::Unreadable
         }
-        Err(Adrift::Disowned(_)) if carried.is_some() => {
+        Err(Adrift::Disowned(_)) if carried.is_some() || handed.is_some() => {
             witness::note(
                 channel::SYNC,
                 "a machine held from before it signed does not answer to the key it says, so a person decides",

@@ -71,6 +71,20 @@ pub fn mine(paths: &crate::Paths, device: &DeviceId) -> Option<SigningKey> {
     Some(SigningKey::from_bytes(&one))
 }
 
+pub fn handed_on(paths: &crate::Paths, from: &DeviceId, to: &DeviceId) -> bool {
+    let (Some(from), Some(to)) = (kept_at(paths, from), kept_at(paths, to)) else {
+        return false;
+    };
+    let crate::store::identity::Kept::Good(one) = crate::store::identity::kept(
+        paths,
+        &from,
+        "what was kept as this machine's signing key is not one",
+    ) else {
+        return false;
+    };
+    crate::store::identity::written(paths, &to, one) == Some(one)
+}
+
 pub const NOTHING_BEFORE: [u8; 32] = [0u8; 32];
 
 pub fn tip_of(before: [u8; 32], said: &[u8]) -> [u8; 32] {

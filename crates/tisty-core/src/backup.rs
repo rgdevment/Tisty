@@ -458,7 +458,7 @@ fn undo(data: &Path, old: &Path, moved: &[&str]) {
 }
 
 pub fn reset(paths: &Paths, into: &Path, aside: &Path, also: Option<&Path>) -> Result<Made> {
-    reset_as(paths, into, aside, also, true)
+    reset_as(paths, into, aside, also, false)
 }
 
 pub fn reset_as(
@@ -466,29 +466,28 @@ pub fn reset_as(
     into: &Path,
     aside: &Path,
     also: Option<&Path>,
-    renamed: bool,
+    let_in: bool,
 ) -> Result<Made> {
     let made = write(paths.data(), into, aside, also)?;
-    set_aside_as(paths, renamed)?;
+    set_aside(paths, let_in)?;
     Ok(made)
 }
 
 /// Moves this machine's history out of the way under a new name, for a backup already written.
-pub fn set_aside(paths: &Paths) -> Result<()> {
-    set_aside_as(paths, true)
-}
-
-pub fn set_aside_as(paths: &Paths, renamed: bool) -> Result<()> {
+pub fn set_aside(paths: &Paths, let_in: bool) -> Result<()> {
     let data = paths.data();
     let mut config = Config::load_or_init(paths)?;
-    if renamed {
-        config.device_id = crate::DeviceId(crate::config::new_device_id());
-    }
+    let was = config.device_id.clone();
+    let now = crate::DeviceId(crate::config::new_device_id());
+    let handed = let_in && crate::signing::handed_on(paths, &was, &now);
+    config.device_id = now.clone();
     config.synced_at = None;
     config.heard_at = None;
     config.save(paths)?;
-    if let (false, Some(agent)) = (renamed, &config.agent_id) {
-        crate::vouched::hosted_here(data, agent, &config.device_id);
+    if handed {
+        for own in std::iter::once(&was).chain(config.agent_id.as_ref()) {
+            crate::vouched::hosted_here(data, own, &now);
+        }
     }
 
     store::kept_before_the_store_goes(paths);

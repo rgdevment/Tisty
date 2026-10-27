@@ -43,6 +43,14 @@ impl Computer {
             .unwrap();
     }
 
+    fn titles(&self) -> Vec<String> {
+        tisty_core::State::replay(&self.store().read_all().unwrap())
+            .tasks
+            .into_values()
+            .map(|task| task.title)
+            .collect()
+    }
+
     fn round(&self, shared: &Path) -> Result<Moved, Trouble> {
         let moved = carry_telling(
             self.paths.data(),
@@ -78,6 +86,12 @@ impl Computer {
         self.store().append(op).unwrap();
     }
 
+    fn opened(&self) -> &Self {
+        self.seated();
+        tisty_core::agent::register(&self.paths).unwrap();
+        self
+    }
+
     fn confirms(&self, other: &Computer) {
         assert!(tisty_core::vouched::confirm(
             self.paths.data(),
@@ -87,29 +101,49 @@ impl Computer {
         turned::let_through(self.paths.data(), &other.id().0);
     }
 
-    fn waits_on(&self, shared: &Path) -> Vec<String> {
-        self.round(shared).unwrap().unconfirmed
+    fn lets_in(&self, other: &Computer) {
+        assert!(tisty_core::vouched::asked(
+            self.paths.data(),
+            &other.id(),
+            &other.shown()
+        ));
+        turned::let_through(self.paths.data(), &other.id().0);
     }
 
-    fn takes_the_cloud_s(&self, shared: &Path, handed: Option<&str>) {
+    fn waits_on(&self, shared: &Path) -> Vec<String> {
+        let mut waits = self.round(shared).unwrap().unconfirmed;
+        waits.sort();
+        waits
+    }
+
+    fn settles(&self, shared: &Path) {
+        for _ in 0..2 {
+            self.round(shared).unwrap();
+        }
+    }
+
+    fn takes_the_cloud_s(&self, shared: &Path, handed: Option<&str>) -> DeviceId {
         let asked = self.round(shared);
         assert!(
             matches!(asked, Err(Trouble::OtherStore { .. })),
             "the choice never came: {asked:?}"
         );
-        let renamed = !keeps_its_name(shared, handed, &self.id().0);
+        let was = self.id();
         let aside = self.paths.config().join("aside");
         let into = self.paths.config().join("before.zip");
-        tisty_core::backup::reset_as(&self.paths, &into, &aside, None, renamed).unwrap();
+        tisty_core::backup::reset_as(&self.paths, &into, &aside, None, let_in(shared, handed))
+            .unwrap();
+        assert_ne!(
+            self.id(),
+            was,
+            "it took the cloud's history under its old name"
+        );
+        was
     }
 }
 
 fn sealed(shared: &Path) {
-    std::fs::write(
-        shared.join(NAMED),
-        format!("shape = 3\nneeds = \"1.35.0\"\nsealed = \"{CLOUD}\"\n"),
-    )
-    .unwrap();
+    seal_word(shared, CLOUD).unwrap();
 }
 
 fn two_already(shared: &Path) -> (Computer, Computer) {
@@ -140,13 +174,13 @@ fn a_computer_let_in_by_its_digits_that_takes_the_cloud_s_history_is_not_asked_f
     let (giver, third) = two_already(shared.path());
     sealed(shared.path());
     let newcomer = Computer::new();
-    newcomer.writes("lo mío");
-    giver.confirms(&newcomer);
-    let let_in = newcomer.id();
+    newcomer.opened().writes("lo mío");
+    giver.lets_in(&newcomer);
 
     newcomer.takes_the_cloud_s(shared.path(), Some(CLOUD));
 
     quiet_twice(shared.path(), &[&newcomer]);
+    assert!(newcomer.titles().contains(&"lo del primero".to_string()));
     assert!(
         giver.waits_on(shared.path()).is_empty(),
         "the computer that took its digits asked for it again"
@@ -158,7 +192,6 @@ fn a_computer_let_in_by_its_digits_that_takes_the_cloud_s_history_is_not_asked_f
     );
     third.confirms(&newcomer);
     quiet_twice(shared.path(), &[&newcomer, &giver, &third]);
-    assert_eq!(newcomer.id(), let_in);
 }
 
 #[test]
@@ -167,109 +200,107 @@ fn a_computer_opened_with_the_phrase_that_takes_the_cloud_s_history_asks_nothing
     let (giver, third) = two_already(shared.path());
     sealed(shared.path());
     let newcomer = Computer::new();
-    newcomer.writes("lo mío");
-    let before = tempfile::tempdir().unwrap();
-    newcomer.round(before.path()).unwrap();
-    let typed = newcomer.id();
+    newcomer.opened().writes("lo mío");
 
     newcomer.takes_the_cloud_s(shared.path(), Some(CLOUD));
 
-    for _ in 0..2 {
-        assert!(
-            newcomer.waits_on(shared.path()).is_empty(),
-            "the computer that typed the phrase asked to confirm the ones already there"
-        );
-    }
+    quiet_twice(shared.path(), &[&newcomer]);
     for one in [&giver, &third] {
         assert_eq!(one.waits_on(shared.path()), vec![newcomer.id().0]);
         one.confirms(&newcomer);
     }
     quiet_twice(shared.path(), &[&newcomer, &giver, &third]);
-    assert_eq!(newcomer.id(), typed);
 }
 
 #[test]
-fn a_plain_cloud_still_meets_a_computer_that_takes_its_history_under_a_new_name() {
+fn a_computer_let_in_meets_the_place_it_synced_with_before_as_a_stranger() {
     let shared = tempfile::tempdir().unwrap();
-    let (giver, third) = two_already(shared.path());
+    let (giver, _third) = two_already(shared.path());
+    sealed(shared.path());
     let newcomer = Computer::new();
-    newcomer.writes("lo mío");
-    let was = newcomer.id();
+    newcomer.opened().writes("lo mío");
+    let before = tempfile::tempdir().unwrap();
+    newcomer.round(before.path()).unwrap();
+    giver.lets_in(&newcomer);
 
     newcomer.takes_the_cloud_s(shared.path(), Some(CLOUD));
+    newcomer.round(shared.path()).unwrap();
+    newcomer.writes("en la nube");
+    newcomer.round(shared.path()).unwrap();
 
-    let now = newcomer.id();
-    assert_ne!(now, was);
-    quiet_twice(shared.path(), &[&newcomer]);
-    for one in [&giver, &third] {
-        assert_eq!(one.waits_on(shared.path()), vec![now.0.clone()]);
-        one.confirms(&newcomer);
-    }
-    quiet_twice(shared.path(), &[&newcomer, &giver, &third]);
+    assert!(matches!(
+        kinship(&newcomer.paths.store(), before.path()),
+        Kin::Strangers
+    ));
 }
 
 #[test]
-fn a_name_the_encrypted_cloud_already_knows_is_never_kept() {
-    let shared = tempfile::tempdir().unwrap();
-    let (giver, _third) = two_already(shared.path());
-    sealed(shared.path());
-    let gone = giver.id().0;
-
-    assert!(!keeps_its_name(shared.path(), Some(CLOUD), &gone));
-    assert!(!keeps_its_name(
-        shared.path(),
-        Some(CLOUD),
-        &gone.to_uppercase()
-    ));
-    assert!(!keeps_its_name(shared.path(), None, "dev_new"));
-    assert!(!keeps_its_name(
-        shared.path(),
-        Some("store_other"),
-        "dev_new"
-    ));
-    assert!(keeps_its_name(shared.path(), Some(CLOUD), "dev_new"));
-}
-
-#[test]
-fn a_computer_with_its_assistant_let_into_the_encrypted_cloud_asks_nothing_of_the_ones_there() {
+fn the_digits_let_in_one_new_name_and_never_a_second() {
     let shared = tempfile::tempdir().unwrap();
     let (giver, _third) = two_already(shared.path());
     sealed(shared.path());
     let newcomer = Computer::new();
-    newcomer.writes("lo mío");
-    tisty_core::agent::register(&newcomer.paths).unwrap();
+    newcomer.opened().writes("lo mío");
+    giver.lets_in(&newcomer);
+    let was = newcomer.takes_the_cloud_s(shared.path(), Some(CLOUD));
+    newcomer.settles(shared.path());
+    assert!(giver.waits_on(shared.path()).is_empty());
+
+    let copy = Computer::new();
+    let key = tisty_core::signing::kept_at(&newcomer.paths, &was).unwrap();
+    let at = tisty_core::signing::kept_at(&copy.paths, &copy.id()).unwrap();
+    std::fs::create_dir_all(at.parent().unwrap()).unwrap();
+    std::fs::copy(key, &at).unwrap();
+    copy.settles(shared.path());
+
+    assert_eq!(giver.waits_on(shared.path()), vec![copy.id().0]);
+}
+
+#[test]
+fn a_key_confirmed_by_hand_is_no_pass_for_a_new_name() {
+    let shared = tempfile::tempdir().unwrap();
+    let (giver, _third) = two_already(shared.path());
+    sealed(shared.path());
+    let newcomer = Computer::new();
+    newcomer.opened().writes("lo mío");
     giver.confirms(&newcomer);
 
     newcomer.takes_the_cloud_s(shared.path(), Some(CLOUD));
+    newcomer.settles(shared.path());
 
-    for _ in 0..2 {
-        assert!(
-            newcomer.waits_on(shared.path()).is_empty(),
-            "the assistant this computer runs held it back from the ones already there"
-        );
-    }
-    assert!(giver.waits_on(shared.path()).is_empty());
-    let titles: Vec<String> = tisty_core::State::replay(&newcomer.store().read_all().unwrap())
-        .tasks
-        .into_values()
-        .map(|task| task.title)
-        .collect();
-    assert!(titles.contains(&"lo del primero".to_string()));
+    assert_eq!(giver.waits_on(shared.path()), vec![newcomer.id().0]);
 }
 
 #[test]
-fn a_computer_with_its_assistant_in_a_plain_cloud_still_answers_for_the_ones_there() {
+fn a_plain_cloud_still_meets_a_computer_that_takes_its_history_as_a_new_one() {
     let shared = tempfile::tempdir().unwrap();
     let (giver, third) = two_already(shared.path());
     let newcomer = Computer::new();
-    newcomer.writes("lo mío");
-    tisty_core::agent::register(&newcomer.paths).unwrap();
+    newcomer.opened().writes("lo mío");
+    giver.lets_in(&newcomer);
+    let was = newcomer.shown();
 
     newcomer.takes_the_cloud_s(shared.path(), Some(CLOUD));
 
-    let mut asked = newcomer.waits_on(shared.path());
-    asked.sort();
+    assert_ne!(newcomer.shown(), was);
     let mut there = vec![giver.id().0, third.id().0];
     there.sort();
-    assert_eq!(asked, there);
+    for _ in 0..2 {
+        assert_eq!(newcomer.waits_on(shared.path()), there);
+    }
+    for one in [&giver, &third] {
+        assert_eq!(one.waits_on(shared.path()), vec![newcomer.id().0]);
+    }
+}
+
+#[test]
+fn only_the_cloud_whose_key_was_handed_lets_a_computer_in() {
+    let shared = tempfile::tempdir().unwrap();
+    Computer::new().round(shared.path()).unwrap();
+    assert!(!let_in(shared.path(), Some(CLOUD)));
+    sealed(shared.path());
+
+    assert!(let_in(shared.path(), Some(CLOUD)));
+    assert!(!let_in(shared.path(), None));
+    assert!(!let_in(shared.path(), Some("store_other")));
 }

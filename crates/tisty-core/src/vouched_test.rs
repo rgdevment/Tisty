@@ -272,3 +272,29 @@ fn only_a_plain_confirmation_is_marked_as_this_machine_s_own() {
     assert!(!hosted_here(&data, &theirs, &DeviceId("no name".into())));
     assert_eq!(confirmed(&data, &theirs).unwrap().host, Some(host));
 }
+
+#[test]
+fn a_key_let_in_by_its_digits_says_so_and_a_name_it_passed_to_says_from_whom() {
+    let (_room, data, paths) = a_place();
+    let old = DeviceId("dev_old".into());
+    let new = DeviceId("dev_new".into());
+    let said = a_key(&paths, &old);
+
+    assert!(asked(&data, &old, &said));
+    assert!(passed_on(&data, &new, &said, &old));
+    assert!(!passed_on(
+        &data,
+        &DeviceId("dev_x".into()),
+        &said,
+        &DeviceId("no name".into())
+    ));
+
+    let first = confirmed(&data, &old).unwrap();
+    assert!(first.asked);
+    assert_eq!(first.from, None);
+    let second = confirmed(&data, &new).unwrap();
+    assert!(!second.asked);
+    assert_eq!(second.from, Some(old.clone()));
+    assert!(!hosted_here(&data, &old, &new));
+    assert!(confirmed(&data, &old).unwrap().asked);
+}
