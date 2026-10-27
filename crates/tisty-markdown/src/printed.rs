@@ -2,7 +2,7 @@ use serde_json::{Value, json};
 
 use crate::inline::{alt, atom, code_words, holds, paired, walls};
 use crate::ranges::{Nearby, outside};
-use crate::{Block, Callout, Column, Doc, Kind, Lean, Mark, Span};
+use crate::{Block, Callout, Column, Doc, Kind, Lean, Mark, Span, values};
 
 pub fn printed(doc: &Doc) -> Value {
     let content: Vec<Value> = doc
@@ -117,32 +117,60 @@ fn listed(block: &Block, start: Option<u64>, text: &str) -> Value {
 }
 
 fn tabled(block: &Block, columns: &[Column], text: &str) -> Value {
-    let rows: Vec<Value> =
-        block
-            .inner
-            .iter()
-            .map(|row| {
-                let cells: Vec<Value> = row
+    let read = values::read(columns, block, text);
+    let mut rows: Vec<Value> = block
+        .inner
+        .iter()
+        .enumerate()
+        .map(|(row_at, row)| {
+            let cells: Vec<Value> = row
                 .inner
                 .iter()
                 .enumerate()
                 .map(|(at, cell)| {
-                    let lean = columns.get(at).and_then(|one| one.lean).map(|lean| match lean {
-                        Lean::Left => "left",
-                        Lean::Center => "center",
-                        Lean::Right => "right",
-                    });
-                    json!({
-                        "type": "tableCell",
-                        "attrs": { "textAlign": lean },
-                        "content": [{ "type": "paragraph", "content": runs(&cell.spans, text) }],
-                    })
+                    let shown = row_at
+                        .checked_sub(1)
+                        .and_then(|one| read.at(one, at))
+                        .and_then(|one| one.shown.as_deref());
+                    let content = match shown {
+                        Some(shown) => worded(shown),
+                        None => runs(&cell.spans, text),
+                    };
+                    celled(columns.get(at), content)
                 })
                 .collect();
-                json!({ "type": "tableRow", "content": cells })
-            })
+            json!({ "type": "tableRow", "content": cells })
+        })
+        .collect();
+    if let Some(foot) = &read.foot {
+        let cells: Vec<Value> = foot
+            .iter()
+            .enumerate()
+            .map(|(at, said)| celled(columns.get(at), worded(said)))
             .collect();
+        rows.push(json!({ "type": "tableRow", "content": cells }));
+    }
     json!({ "type": "table", "content": rows })
+}
+
+fn celled(column: Option<&Column>, content: Vec<Value>) -> Value {
+    let lean = column.and_then(Column::leaning).map(|lean| match lean {
+        Lean::Left => "left",
+        Lean::Center => "center",
+        Lean::Right => "right",
+    });
+    json!({
+        "type": "tableCell",
+        "attrs": { "textAlign": lean },
+        "content": [{ "type": "paragraph", "content": content }],
+    })
+}
+
+fn worded(said: &str) -> Vec<Value> {
+    if said.is_empty() {
+        return Vec::new();
+    }
+    vec![json!({ "type": "text", "text": said })]
 }
 
 fn marked(mark: &Mark) -> Option<Value> {

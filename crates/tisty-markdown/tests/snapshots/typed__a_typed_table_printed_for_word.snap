@@ -1,0 +1,560 @@
+---
+source: crates/tisty-markdown/tests/typed.rs
+expression: printed(&read(SUBSCRIPTIONS))
+---
+{
+  "content": [
+    {
+      "content": [
+        {
+          "content": [
+            {
+              "attrs": {
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "content": [
+                    {
+                      "marks": [],
+                      "text": "Servicio",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            },
+            {
+              "attrs": {
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "content": [
+                    {
+                      "marks": [],
+                      "text": "Categoría",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            },
+            {
+              "attrs": {
+                "textAlign": "right"
+              },
+              "content": [
+                {
+                  "content": [
+                    {
+                      "marks": [],
+                      "text": "Precio",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            },
+            {
+              "attrs": {
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "content": [
+                    {
+                      "marks": [],
+                      "text": "Próximo cobro",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            },
+            {
+              "attrs": {
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "content": [
+                    {
+                      "marks": [],
+                      "text": "Valoración",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            },
+            {
+              "attrs": {
+                "textAlign": "center"
+              },
+              "content": [
+                {
+                  "content": [
+                    {
+                      "marks": [],
+                      "text": "Activa",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            }
+          ],
+          "type": "tableRow"
+        },
+        {
+          "content": [
+            {
+              "attrs": {
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "content": [
+                    {
+                      "marks": [],
+                      "text": "Spotify",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            },
+            {
+              "attrs": {
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "content": [
+                    {
+                      "marks": [],
+                      "text": "Música",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            },
+            {
+              "attrs": {
+                "textAlign": "right"
+              },
+              "content": [
+                {
+                  "content": [
+                    {
+                      "text": "$6.490",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            },
+            {
+              "attrs": {
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "content": [
+                    {
+                      "marks": [],
+                      "text": "2026-11-14",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            },
+            {
+              "attrs": {
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "content": [
+                    {
+                      "text": "★★★★★",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            },
+            {
+              "attrs": {
+                "textAlign": "center"
+              },
+              "content": [
+                {
+                  "content": [
+                    {
+                      "text": "✓",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            }
+          ],
+          "type": "tableRow"
+        },
+        {
+          "content": [
+            {
+              "attrs": {
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "content": [
+                    {
+                      "marks": [],
+                      "text": "Netflix ",
+                      "type": "text"
+                    },
+                    {
+                      "marks": [],
+                      "text": "| 4K",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            },
+            {
+              "attrs": {
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "content": [
+                    {
+                      "marks": [],
+                      "text": "Video",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            },
+            {
+              "attrs": {
+                "textAlign": "right"
+              },
+              "content": [
+                {
+                  "content": [
+                    {
+                      "text": "$9.990",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            },
+            {
+              "attrs": {
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "content": [
+                    {
+                      "marks": [],
+                      "text": "2026-11-03",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            },
+            {
+              "attrs": {
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "content": [
+                    {
+                      "text": "★★★☆☆",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            },
+            {
+              "attrs": {
+                "textAlign": "center"
+              },
+              "content": [
+                {
+                  "content": [
+                    {
+                      "text": "✓",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            }
+          ],
+          "type": "tableRow"
+        },
+        {
+          "content": [
+            {
+              "attrs": {
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "content": [
+                    {
+                      "marks": [],
+                      "text": "Duolingo",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            },
+            {
+              "attrs": {
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "content": [
+                    {
+                      "marks": [],
+                      "text": "Educación",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            },
+            {
+              "attrs": {
+                "textAlign": "right"
+              },
+              "content": [
+                {
+                  "content": [
+                    {
+                      "marks": [],
+                      "text": "7.990",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            },
+            {
+              "attrs": {
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "content": [
+                    {
+                      "marks": [],
+                      "text": "pronto",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            },
+            {
+              "attrs": {
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "content": [
+                    {
+                      "text": "★★☆☆☆",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            },
+            {
+              "attrs": {
+                "textAlign": "center"
+              },
+              "content": [
+                {
+                  "content": [],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            }
+          ],
+          "type": "tableRow"
+        },
+        {
+          "content": [
+            {
+              "attrs": {
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "content": [
+                    {
+                      "text": "Total",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            },
+            {
+              "attrs": {
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "content": [],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            },
+            {
+              "attrs": {
+                "textAlign": "right"
+              },
+              "content": [
+                {
+                  "content": [
+                    {
+                      "text": "$16.480",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            },
+            {
+              "attrs": {
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "content": [
+                    {
+                      "text": "2026-11-03",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            },
+            {
+              "attrs": {
+                "textAlign": null
+              },
+              "content": [
+                {
+                  "content": [
+                    {
+                      "text": "3.3",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            },
+            {
+              "attrs": {
+                "textAlign": "center"
+              },
+              "content": [
+                {
+                  "content": [
+                    {
+                      "text": "2",
+                      "type": "text"
+                    }
+                  ],
+                  "type": "paragraph"
+                }
+              ],
+              "type": "tableCell"
+            }
+          ],
+          "type": "tableRow"
+        }
+      ],
+      "type": "table"
+    }
+  ],
+  "type": "doc"
+}

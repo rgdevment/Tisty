@@ -30,6 +30,7 @@ Nada de esto hay que aprenderlo de memoria. El menú `/` y la barra del editor l
 | [Fórmulas](#diagramas-fórmulas-y-widgets) | ` ```math ` `$x$` `$$x$$` | sí | no |
 | [Widgets](#diagramas-fórmulas-y-widgets) | ` ```widget ` | como código | como código |
 | [Tablas](#tablas) | `\| a \| b \|` | sí | no |
+| [Tipos de columna](#tipos-de-columna) | `\| Precio {money CLP sum} \|` | como texto | no |
 | [Saltos de página](#saltos-de-página) | `---` | como raya | como raya |
 | [Comentarios y entidades](#comentarios-y-entidades) | `<!-- nota -->` `&copy;` | sí | sí |
 
@@ -537,6 +538,42 @@ GitHub dibuja las tres vallas salvo `widget`, y también `$…$` y `$$…$$`.
 - El ancho de una columna viaja en esa raya: cuatro guiones o más lo fijan, diez píxeles por guion; con tres lo decide la página. Los demás lectores ignoran cuántos guiones hay. Mira Tablas.
 - Un `|` dentro de una celda se escribe `\|`.
 - Una celda lleva una línea de palabras y marcas, no bloques.
+- Una columna puede decir qué guarda, como cuenta la sección que sigue.
+
+### Tipos de columna
+
+Una palabra entre llaves al final del encabezado de una columna dice qué guarda la columna, y Tisty muestra, ordena y suma sus celdas según eso. Una columna sin llaves guarda texto.
+
+```markdown
+| Servicio | Categoría {select} | Precio {money CLP sum} | Próximo cobro {date} | Valoración {rating} | Activa {check} |
+| -------- | ------------------ | ---------------------: | -------------------- | ------------------- | :------------: |
+| Spotify  | Música             |                   6490 | 2026-11-14           | 5                   | [x]            |
+| Duolingo | Educación          |                   7990 | 2026-12-01           | 2                   | [ ]            |
+```
+
+| Tipo | Una celda lleva | Tisty muestra |
+| :-- | :-- | :-- |
+| `{number}` | `3` `1.5` `-2` | el número, a la derecha |
+| `{money CLP}` | `6490` | `$6.490`, como se escribe esa moneda |
+| `{percent}` | `45` | `45%` |
+| `{date}` | `2026-11-14` | la fecha |
+| `{duration}` | `1h30m` `45m` | `1 h 30 min` |
+| `{check}` | `[x]` o `[ ]` | ✓ o nada |
+| `{select}` | una opción | la opción; las opciones son los valores de la propia columna |
+| `{tags}` | `web, docs` | las etiquetas |
+| `{rating}` | de `0` a `5` | ★★★★☆ |
+| `{link}` | `[[Contrato de arriendo]]` o un documento enlazado con `/` | un enlace a ese documento |
+| `{url}` | `https://…` | el enlace |
+| `{email}` | `ana@correo.cl` | la dirección |
+| `{phone}` | `+56 9 1234 5678` | el número |
+
+- Una palabra después del tipo suma la columna al pie de la tabla: `sum`, `avg`, `min` o `max` para números, dinero, porcentajes, duraciones y valoraciones; `min` y `max` también para fechas; `count` para cualquier columna, y en una columna `{check}` cuenta las marcadas. El pie se dibuja, nunca se escribe en el archivo.
+- `{money}` lleva el código de tres letras de la moneda: `{money EUR}`, `{money USD sum}`. Sin código muestra dos decimales y ningún símbolo.
+- Los números se escriben con punto para los decimales y sin separador de miles: `6490`, `12.5`. Las fechas van siempre con año, mes y día: `2026-11-14`.
+- Un valor que no está escrito como pide su tipo, como `pronto` en una columna de fechas, se muestra tal cual con una línea ondulada debajo. Nada se rechaza: el archivo dice lo que dice.
+- Una palabra que Tisty no conoce, como `{importante}`, queda como parte del encabezado, con llaves y todo, igual que unas llaves pegadas a la palabra anterior, como en `Precio{money}`.
+- Una tabla de más de 2.000 filas, o de más de 256 KB, se muestra como texto, con llaves y todo.
+- GitHub y los demás lectores muestran las llaves tal cual. Al exportar a Markdown estándar o a Word se quitan, cada valor se escribe como lo muestra Tisty y el pie se agrega como última fila.
 
 ## Saltos de página
 

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fmt::Write as _;
 
 use crate::inline::{escaped, inline};
-use crate::{Block, Callout, Column, Doc, Kind, Lean};
+use crate::{Block, Callout, Column, Doc, Holds, Kind, Lean, values};
 
 struct Drawing {
     anchors: HashMap<usize, String>,
@@ -264,8 +264,9 @@ fn table(columns: &[Column], at: &str, block: &Block, text: &str, out: &mut Stri
         }
     }
     out.push_str("</colgroup>");
+    let read = values::read(columns, block, text);
     let mut body = false;
-    for row in &block.inner {
+    for (row_at, row) in block.inner.iter().enumerate() {
         let head = matches!(row.kind, Kind::Row { head: true });
         if !head && !body {
             out.push_str("<tbody>");
@@ -273,25 +274,98 @@ fn table(columns: &[Column], at: &str, block: &Block, text: &str, out: &mut Stri
         }
         out.push_str(if head { "<thead><tr>" } else { "<tr>" });
         for (index, cell) in row.inner.iter().enumerate() {
-            let tag = if head { "th" } else { "td" };
-            let lean = columns
-                .get(index)
-                .and_then(|one| one.lean)
-                .map(|lean| match lean {
-                    Lean::Left => " style=\"text-align:left\"",
-                    Lean::Center => " style=\"text-align:center\"",
-                    Lean::Right => " style=\"text-align:right\"",
-                });
-            let _ = write!(out, "<{tag}{}>", lean.unwrap_or_default());
-            inline(&cell.spans, text, out);
-            let _ = write!(out, "</{tag}>");
+            let column = columns.get(index);
+            if head {
+                headed(column, out);
+                inline(&cell.spans, text, out);
+                out.push_str("</th>");
+            } else {
+                let seen = row_at.checked_sub(1).and_then(|one| read.at(one, index));
+                celled(column, seen, cell, text, out);
+            }
         }
         out.push_str(if head { "</tr></thead>" } else { "</tr>" });
     }
     if body {
         out.push_str("</tbody>");
     }
+    if let Some(foot) = &read.foot {
+        out.push_str("<tfoot><tr>");
+        for (index, said) in foot.iter().enumerate() {
+            let _ = write!(
+                out,
+                "<td{}{}>{}</td>",
+                whole(columns.get(index)),
+                leaned(columns.get(index)),
+                escaped(said)
+            );
+        }
+        out.push_str("</tr></tfoot>");
+    }
     out.push_str("</table></div>");
+}
+
+fn leaned(column: Option<&Column>) -> &'static str {
+    match column.and_then(Column::leaning) {
+        Some(Lean::Left) => " style=\"text-align:left\"",
+        Some(Lean::Center) => " style=\"text-align:center\"",
+        Some(Lean::Right) => " style=\"text-align:right\"",
+        None => "",
+    }
+}
+
+// The head says what its column holds, so the window can sort, add up and edit it as such.
+fn headed(column: Option<&Column>, out: &mut String) {
+    out.push_str("<th scope=\"col\"");
+    if let Some(column) = column.filter(|one| one.typed.is_some()) {
+        let _ = write!(out, " data-type=\"{}\"", column.holds.word());
+        if let Holds::Money {
+            currency: Some(currency),
+        } = &column.holds
+        {
+            let _ = write!(out, " data-currency=\"{}\"", escaped(currency));
+        }
+        if let Some(total) = column.total {
+            let _ = write!(out, " data-total=\"{}\"", total.word());
+        }
+    }
+    let _ = write!(out, "{}>", leaned(column));
+}
+
+fn whole(column: Option<&Column>) -> &'static str {
+    match column {
+        Some(one) if one.typed.is_some() && one.holds.whole() => " class=\"whole\"",
+        _ => "",
+    }
+}
+
+fn celled(
+    column: Option<&Column>,
+    seen: Option<&values::Seen>,
+    cell: &Block,
+    text: &str,
+    out: &mut String,
+) {
+    let lean = leaned(column);
+    let Some(seen) = seen.filter(|_| column.is_some_and(|one| one.typed.is_some())) else {
+        let _ = write!(out, "<td{lean}>");
+        inline(&cell.spans, text, out);
+        out.push_str("</td>");
+        return;
+    };
+    out.push_str("<td");
+    if let Some(key) = &seen.key {
+        let _ = write!(out, " data-key=\"{}\"", escaped(key));
+    }
+    if seen.amiss {
+        out.push_str(" data-amiss");
+    }
+    let _ = write!(out, "{}{lean}>", whole(column));
+    match &seen.shown {
+        Some(shown) => out.push_str(&escaped(shown)),
+        None => inline(&cell.spans, text, out),
+    }
+    out.push_str("</td>");
 }
 
 // Inside a quote the block still carries each line's marker, which is not part of its html.

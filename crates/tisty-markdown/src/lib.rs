@@ -1,3 +1,4 @@
+mod amounts;
 mod bare;
 #[cfg(feature = "details")]
 mod details;
@@ -29,6 +30,9 @@ mod standard;
 mod tables;
 pub mod tags;
 mod transform;
+#[cfg(feature = "tables")]
+mod typed;
+mod values;
 pub mod vocab;
 mod writing;
 
@@ -139,10 +143,131 @@ pub enum Kind {
     },
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Column {
     pub lean: Option<Lean>,
     pub wide: Option<u32>,
+    pub holds: Holds,
+    pub total: Option<Total>,
+    /// Where ` {type}` sits at the end of the head, which only Tisty reads.
+    pub typed: Option<Range<usize>>,
+}
+
+/// What a column holds, said as `{type}` at the end of its head; without one, words.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub enum Holds {
+    #[default]
+    Text,
+    Number,
+    Money {
+        currency: Option<String>,
+    },
+    Percent,
+    Date,
+    Duration,
+    Check,
+    Select,
+    Tags,
+    Rating,
+    Link,
+    Url,
+    Email,
+    Phone,
+}
+
+impl Column {
+    /// Where its values lean: as the rule under the head says, or else as its type does.
+    pub fn leaning(&self) -> Option<Lean> {
+        self.lean.or_else(|| self.holds.lean())
+    }
+}
+
+impl Holds {
+    /// The type a word in `vocab::HOLDS` names; a money column's currency is read after it.
+    pub fn from_word(word: &str) -> Option<Self> {
+        Some(match word {
+            "text" => Self::Text,
+            "number" => Self::Number,
+            "money" => Self::Money { currency: None },
+            "percent" => Self::Percent,
+            "date" => Self::Date,
+            "duration" => Self::Duration,
+            "check" => Self::Check,
+            "select" => Self::Select,
+            "tags" => Self::Tags,
+            "rating" => Self::Rating,
+            "link" => Self::Link,
+            "url" => Self::Url,
+            "email" => Self::Email,
+            "phone" => Self::Phone,
+            _ => return None,
+        })
+    }
+
+    /// The word the type is written with in a column's head.
+    pub fn word(&self) -> &'static str {
+        let same = |one: &Self| std::mem::discriminant(one) == std::mem::discriminant(self);
+        vocab::HOLDS
+            .iter()
+            .find(|word| Self::from_word(word).is_some_and(|one| same(&one)))
+            .copied()
+            .unwrap_or_default()
+    }
+
+    /// A value of this type reads on one line: a date or an amount split in two is misread.
+    pub fn whole(&self) -> bool {
+        matches!(
+            self,
+            Self::Number
+                | Self::Money { .. }
+                | Self::Percent
+                | Self::Date
+                | Self::Duration
+                | Self::Rating
+                | Self::Phone
+        )
+    }
+
+    /// Where its values lean when the rule under the head does not say.
+    pub fn lean(&self) -> Option<Lean> {
+        match self {
+            Self::Number | Self::Money { .. } | Self::Percent | Self::Duration => Some(Lean::Right),
+            Self::Check => Some(Lean::Center),
+            _ => None,
+        }
+    }
+}
+
+/// What a column adds up at its foot.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Total {
+    Sum,
+    Avg,
+    Min,
+    Max,
+    Count,
+}
+
+impl Total {
+    /// The total a word in `vocab::TOTALS` names.
+    pub fn from_word(word: &str) -> Option<Self> {
+        Some(match word {
+            "sum" => Self::Sum,
+            "avg" => Self::Avg,
+            "min" => Self::Min,
+            "max" => Self::Max,
+            "count" => Self::Count,
+            _ => return None,
+        })
+    }
+
+    pub fn word(self) -> &'static str {
+        vocab::TOTALS
+            .iter()
+            .find(|word| Self::from_word(word) == Some(self))
+            .copied()
+            .unwrap_or_default()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

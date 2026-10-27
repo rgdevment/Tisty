@@ -17,9 +17,21 @@ td {
   vertical-align: top;
   overflow-wrap: break-word;
 }
-th {
+th,
+tfoot td {
   background: var(--tisty-hover);
   font-weight: 600;
+}
+table:has(th[data-type]) td {
+  font-variant-numeric: tabular-nums;
+}
+td.whole {
+  white-space: nowrap;
+}
+/* The file wins: a value not written as its type asks is drawn as written, only marked. */
+td[data-amiss] {
+  text-decoration: underline wavy color-mix(in srgb, var(--tisty-hue-amber) 70%, transparent);
+  text-underline-offset: 3px;
 }
 div.table {
   margin: 14px 0;
