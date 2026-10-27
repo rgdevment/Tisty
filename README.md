@@ -474,11 +474,13 @@ itself up to date:
 > winget install rgdevment.Tisty
 ```
 
-**macOS** — with [Homebrew](https://brew.sh). The tap is added once and never
-again. After that Tisty keeps itself up to date, so Homebrew stands aside:
+**macOS** — with [Homebrew](https://brew.sh). The tap is added and trusted
+once and never again; Homebrew loads a tap that is not its own only once you
+trust it. After that Tisty keeps itself up to date, so Homebrew stands aside:
 
 ```console
 $ brew tap rgdevment/tap
+$ brew trust rgdevment/tap
 $ brew install --cask tisty
 ```
 
