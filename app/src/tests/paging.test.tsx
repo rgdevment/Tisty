@@ -83,7 +83,7 @@ describe("the smallest the window may be", () => {
     const needed = /@min-\[(\d+)px\]:pr-\[324px\]/.exec(layout)?.[1];
     expect(needed).toBeTruthy();
 
-    const rail = 380;
+    const rail = 350;
     const gutter = 8;
     expect(main.width - rail - gutter).toBeGreaterThanOrEqual(Number(needed));
   });

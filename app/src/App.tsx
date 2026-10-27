@@ -63,7 +63,7 @@ export default function App() {
 
   return (
     <DeskProvider value={desk}>
-      <div className="grid h-full bg-rail font-sans [grid-template-columns:336px_minmax(0,1fr)] min-[1440px]:[grid-template-columns:380px_minmax(0,1fr)]">
+      <div className="grid h-full bg-rail font-sans [grid-template-columns:336px_minmax(0,1fr)] min-[1440px]:[grid-template-columns:350px_minmax(0,1fr)]">
         <WindowChrome />
 
         <Layers parcels={desk.parcels.shown} />
