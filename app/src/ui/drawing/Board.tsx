@@ -4,7 +4,7 @@ import { button } from "../viewer/Glyphs";
 import { fitted, type Size, STEP, type View, zoomedAt } from "./framing";
 
 // What the board pans for is the empty room; a press on an idea or a control is theirs.
-const OWN = "button, input, [data-idea]";
+const OWN = "button, input, [data-idea], [data-grip]";
 
 /** A room that shows something of a given size, moved by dragging or the wheel and zoomed under the pointer. */
 export default function Board({
