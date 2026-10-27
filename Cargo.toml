@@ -120,6 +120,10 @@ opt-level = 3
 [profile.dev.package.universal-hash]
 opt-level = 3
 
+# Reading the log as JSON is what a debug window waits on; tisty-core stays plain so coverage maps it.
+[profile.dev.package.serde_json]
+opt-level = 2
+
 [profile.release]
 # Not a resident process: release build time matters more than the last few percent of size.
 lto = "thin"

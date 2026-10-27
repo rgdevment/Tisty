@@ -239,7 +239,7 @@ fn called(paths: &Paths, name: &str, args: Value) -> Result<Value, Refused> {
         "write_doc" => spoken(&args, "body", |args| write_doc(paths, args)),
         "append_doc" => spoken(&args, "body", |args| append_doc(paths, args)),
         "restore_doc" => restore_doc(paths, &args),
-        "edit_doc" => spoken(&args, "new", |args| edit_doc(paths, args)),
+        "edit_doc" => edit_doc(paths, &args),
         "catch_up" => catch_up(paths, &args),
         "sum_up" => sum_up(paths, &args),
         "reschedule" => reschedule(paths, &args),
