@@ -151,6 +151,7 @@ pub fn families() -> Vec<(&'static str, usize)> {
 pub fn guide(
     app: tauri::AppHandle,
     session: tauri::State<'_, Mutex<Session>>,
+    own: Option<bool>,
 ) -> Answer<tisty_core::docs::Doc> {
     let tongue = {
         let session = held(&session);
@@ -179,7 +180,11 @@ pub fn guide(
     if let Some(kept) = session.config.guide.clone() {
         let root = session.paths.docs();
         let standing = session.state.docs.values().any(|one| one.file == kept);
-        if standing && let Ok(body) = tisty_core::docs::read(&root, &kept) {
+        if standing
+            && let Ok(body) = tisty_core::docs::read(&root, &kept)
+            && (own != Some(true)
+                || tisty_core::docs::titled(&body) == tisty_core::docs::titled(told))
+        {
             return Ok(tisty_core::docs::Doc {
                 id: kept,
                 title: tisty_core::docs::titled(&body),
@@ -187,7 +192,11 @@ pub fn guide(
         }
     }
 
-    if let Some((file, title)) = guide_already_here(&session) {
+    let found = match own {
+        Some(true) => guide_here_as(&session, &tisty_core::docs::titled(told)),
+        _ => guide_already_here(&session),
+    };
+    if let Some((file, title)) = found {
         let taken = file.clone();
         session.keep(|config| config.guide = Some(taken))?;
         return Ok(tisty_core::docs::Doc { id: file, title });
@@ -433,6 +442,17 @@ pub fn close_window(
         tisty_core::config::Closing::Quit => desktop::parting(window.app_handle()),
     }
     Ok(())
+}
+
+/// Asked for in the person's own language, a guide in the other one is left where it is and a new one is written.
+pub(crate) fn guide_here_as(session: &Session, title: &str) -> Option<(String, String)> {
+    session
+        .state
+        .docs
+        .values()
+        .filter(|one| one.page_of.is_none())
+        .find(|one| one.title.as_deref() == Some(title))
+        .map(|one| (one.file.clone(), title.to_string()))
 }
 
 /// The guide another machine planted arrives through the shared folder like any other document,

@@ -1100,7 +1100,7 @@ export const keepLocale = (locale?: string): Promise<string | null> =>
 export const keepTheme = (theme?: Theme): Promise<Theme | null> => invoke("keep_theme", { theme });
 export const keepClosing = (how: "hide" | "quit" | "ask"): Promise<void> =>
   invoke("keep_closing", { how });
-export const guide = (): Promise<Doc> => invoke("guide");
+export const guide = (own?: boolean): Promise<Doc> => invoke("guide", { own });
 export type BackedUp = { bytes: number; leftOut: number; leftOutBytes: number };
 export const backUp = (into: string): Promise<BackedUp> => invoke("back_up", { into });
 export const retireAttachment = (reference: string): Promise<void> =>
