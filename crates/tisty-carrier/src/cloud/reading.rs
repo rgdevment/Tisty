@@ -5,7 +5,8 @@ use super::policy;
 
 const FILE: &str = "reading.json";
 const EVERY: Duration = Duration::from_millis(500);
-const FRESH_FOR: u64 = 120;
+// One large file on a slow link can go minutes without a word, and a read still under way must not look over.
+const FRESH_FOR: u64 = 10 * 60;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Reading {
@@ -14,7 +15,6 @@ pub struct Reading {
     pub at: u64,
 }
 
-/// How far a read of the cloud has come, while one holds the round: whoever started it, the window can say so.
 pub fn reading(home: &Path) -> Option<Reading> {
     let said: Reading = serde_json::from_slice(&std::fs::read(home.join(FILE)).ok()?).ok()?;
     (said.done < said.whole && policy::now().saturating_sub(said.at) <= FRESH_FOR).then_some(said)
@@ -34,7 +34,12 @@ impl Noting {
     }
 
     pub(super) fn heard(&mut self, far: &crate::Reached) {
-        let crate::Reached::Along { done, whole, .. } = *far else {
+        let crate::Reached::Along {
+            stage: crate::Stage::Log,
+            done,
+            whole,
+        } = *far
+        else {
             return;
         };
         if whole == 0

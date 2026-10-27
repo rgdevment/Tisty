@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { apartWaits, type Stage, useAside, useCarded, useComing, useStuck } from "../coming";
-import { fill, locale, t, type Word } from "../locales";
+import { numbered } from "../format";
+import { fill, t, type Word } from "../locales";
 import { leftBehind, plainly } from "../refusal";
 import { underway, useMove } from "../relocation";
 import { useSyncSeen } from "../syncSeen";
@@ -15,8 +16,6 @@ const said: Record<Stage, Word> = {
   attachments: "comingAttachments",
   uploading: "comingUploading",
 };
-
-const counted = (many: number): string => new Intl.NumberFormat(locale()).format(many);
 
 const followed = (stuck: unknown): { heading: Heading; said: Word } => {
   const code = (stuck as { code?: string } | null)?.code;
@@ -60,7 +59,7 @@ export default function Coming({ onOpen }: { onOpen?: (heading: Heading) => void
             <span className="flex-1 truncate text-ink">{t(said[step.stage])}</span>
             {step.whole > 0 && (
               <span className="text-soft tabular-nums">
-                {fill("comingOf", counted(step.done), counted(step.whole))}
+                {fill("comingOf", numbered(step.done), numbered(step.whole))}
               </span>
             )}
           </span>

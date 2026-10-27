@@ -286,6 +286,7 @@ pub async fn sealing_begin(
         }
         return Err(refused_by(hitch, &at.provider));
     }
+    let _ = std::fs::remove_file(home.join(PLAIN_WIPED));
     if let (Some(left), Ok(mut last)) = (Turning::left(&home), turns.last.lock()) {
         *last = Some(going_from(&left));
     }
@@ -407,11 +408,13 @@ async fn wiped_behind(session: &Mutex<Session>) -> Answer<usize> {
     };
     let key = key_of(session, &cloud)?;
     let marked = (home.join(PLAIN_WIPED), cloud.clone());
-    let gone = elsewhere(move || tisty_carrier::wipe_behind(plain, &home, key, &cloud))
+    let wiped = elsewhere(move || tisty_carrier::wipe_behind(plain, &home, key, &cloud))
         .await?
         .map_err(|hitch| refused_by(hitch, &at.provider))?;
-    let _ = std::fs::write(&marked.0, &marked.1);
-    Ok(gone)
+    if wiped.left == 0 {
+        let _ = std::fs::write(&marked.0, &marked.1);
+    }
+    Ok(wiped.gone)
 }
 
 // Asking the provider whether old files are left would list the whole cloud, so this computer remembers it wiped them.

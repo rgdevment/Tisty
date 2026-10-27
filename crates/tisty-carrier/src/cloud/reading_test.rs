@@ -28,6 +28,18 @@ fn a_read_under_way_says_how_far_it_came_and_says_nothing_once_it_let_go() {
 }
 
 #[test]
+fn attachments_brought_by_a_round_are_not_a_read_of_the_cloud() {
+    let home = tempfile::tempdir().unwrap();
+    let mut noting = Noting::new(home.path());
+    noting.heard(&crate::Reached::Along {
+        stage: crate::Stage::Attachments,
+        done: 0,
+        whole: 300,
+    });
+    assert_eq!(reading(home.path()), None);
+}
+
+#[test]
 fn a_read_that_finished_or_went_quiet_long_ago_is_not_under_way() {
     let home = tempfile::tempdir().unwrap();
     let write = |said: Reading| {

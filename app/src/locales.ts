@@ -1987,7 +1987,6 @@ const en = {
   enterGo: "Open my cloud",
   sealWipe: "Delete the unencrypted copy",
   sealBringing: "Bringing your encrypted cloud to this computer: {name} of {other}",
-  sealBringingSoon: "This computer has the key and brings your encrypted cloud in its next round.",
   sealWipeSure:
     "Delete the old copy from {name}? Only files whose new copy is already there are deleted.",
   sealWiped: "{name} old files deleted.",
@@ -4513,7 +4512,6 @@ const es: Catalog = {
   enterGo: "Abrir mi nube",
   sealWipe: "Borrar la copia sin cifrar",
   sealBringing: "Trayendo tu nube cifrada a este equipo: {name} de {other}",
-  sealBringingSoon: "Este equipo ya tiene la llave y trae tu nube cifrada en su próxima ronda.",
   sealWipeSure:
     "¿Borrar la copia antigua de {name}? Solo se borran los archivos cuya copia nueva ya está ahí.",
   sealWiped: "Se borraron {name} archivos antiguos.",

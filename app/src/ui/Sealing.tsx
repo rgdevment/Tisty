@@ -16,7 +16,7 @@ import {
   sealingShown,
   sealingWipe,
 } from "../core";
-import { weigh } from "../format";
+import { numbered, weigh } from "../format";
 import { cloudNamed, fill, t } from "../locales";
 import { plainly, saidPlainly } from "../refusal";
 import { sure } from "../sure";
@@ -75,7 +75,7 @@ export default function Sealing({
   }, [failed]);
   useEffect(look, [look, round, phrased]);
   const bringing = Boolean(shown?.reading);
-  const unsettled = shown?.state === "locked" || (shown?.state === "sealed" && !shown.joined);
+  const unsettled = shown?.state === "locked";
   useEffect(() => {
     if (!unsettled && !bringing) return;
     const again = setInterval(look, bringing ? 5_000 : 15_000);
@@ -270,7 +270,6 @@ export default function Sealing({
           held={held}
           wiping={wiping || Boolean(shown.wiping)}
           plainLeft={Boolean(shown.plainLeft)}
-          joined={shown.joined}
           reading={shown.reading ?? null}
           onWipe={() =>
             sure(fill("sealWipeSure", provider))
@@ -530,7 +529,6 @@ function Sealed({
   held,
   wiping,
   plainLeft,
-  joined,
   reading,
   onWipe,
   onLetIn,
@@ -540,7 +538,6 @@ function Sealed({
   held: boolean;
   wiping: boolean;
   plainLeft: boolean;
-  joined: boolean;
   reading: ReadSoFar | null;
   onWipe: () => void;
   onLetIn: () => void;
@@ -554,11 +551,9 @@ function Sealed({
           {fill("sealOldCopy", provider)}
         </p>
       )}
-      {(reading || !joined) && (
+      {reading && (
         <p role="status" className="mt-2 text-[12.5px] text-soft motion-safe:animate-pulse">
-          {reading
-            ? fill("sealBringing", String(reading.done), String(reading.whole))
-            : t("sealBringingSoon")}
+          {fill("sealBringing", numbered(reading.done), numbered(reading.whole))}
         </p>
       )}
       {wiping && (
