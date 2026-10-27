@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import { copied, copyAttached, type Mend, opened, viewWidget } from "../core";
+import { viewDiagram } from "../drawing";
 import { CATCHES, takesFiles } from "../dropped";
 import { t } from "../locales";
 import { DOC, partCard } from "../markdown";
@@ -89,6 +90,14 @@ export default function Sheet(props: Readonly<Props>) {
   const room = useRef<HTMLDivElement>(null);
   const said = useRef(props);
   said.current = props;
+  const diagram = (at: number) => {
+    const named = said.current.file;
+    // A page not written yet has no file the diagram could be saved back into.
+    if (!named || named.startsWith("unwritten:")) return;
+    viewDiagram({ id: "", file: named, title: said.current.label, place: "" }, at).catch((e) =>
+      said.current.onFail?.(e),
+    );
+  };
   const [drawn, setDrawn] = useState(value);
   const open = useRef<Editing | null>(null);
   // Follows the open block through words written around it from outside; false when they reach it.
@@ -881,6 +890,7 @@ export default function Sheet(props: Readonly<Props>) {
           blurb={props.blurb}
           again={props.again}
           cards={props.cards}
+          onDiagram={reading || fixed || !props.wholeable ? undefined : diagram}
           onApart={(lent) => {
             const named = said.current.file;
             // A task page not written yet has no file the widget could lead back to.

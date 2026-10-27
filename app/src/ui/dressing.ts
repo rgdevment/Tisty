@@ -42,6 +42,8 @@ export type Reaching = Carding & {
     read?: string,
   ) => void;
   readonly onApart?: (lent: Lent) => void;
+  // Bytes, as the window's own reader counts them, so the place is never converted.
+  readonly onDiagram?: (at: number) => void;
   readonly onMore?: (asked: Extract<Went, { kind: "more" }>) => void;
   readonly onPicture?: (shots: Shot[], nth: number) => void;
   readonly onHere?: (id: string) => void;
@@ -282,13 +284,25 @@ export const worn = (
     partCarded(page, reach.part);
     webCarded(page, live);
   }
+  if (reach?.onDiagram && !stranger) diagramBars(page);
   void diagrams(page, page.documentElement.classList.contains("dark"), live);
   colored(page, live);
   return { lent, kept };
 };
 
+export const diagramBars = (page: Document) => {
+  for (const figure of page.querySelectorAll<HTMLElement>("figure.diagram[data-at]")) {
+    if (figure.querySelector(":scope > .diagram-bar")) continue;
+    const bar = page.createElement("div");
+    bar.className = "diagram-bar";
+    bar.append(asking(page, "diagram", t("diagramOpen")));
+    figure.append(bar);
+  }
+};
+
 export const answered = (page: Document, asked: Went, reach: Reaching, read = "") => {
   if (!asked) return;
+  if (asked.kind === "diagram") reach.onDiagram?.(asked.at[0]);
   if (asked.kind === "doc") reach.onDoc(asked.id);
   if (asked.kind === "task") reach.onTask?.(asked.id);
   if (asked.kind === "part")
@@ -382,8 +396,12 @@ const readTo = (page: Document, event: MouseEvent): string => {
   return range.toString();
 };
 
+// Long enough for a second press to arrive, short enough that looking at a diagram still feels at once.
+export const DOUBLE_MS = 300;
+
 export const wired = (page: Document, reach: () => Reaching) => {
   const refused = (event: Event) => event.preventDefault();
+  let looking: ReturnType<typeof setTimeout> | undefined;
   // A selection dragged out of the block being written still belongs to it, wherever it is let go.
   let pressedIn = false;
   page.addEventListener(
@@ -418,6 +436,15 @@ export const wired = (page: Document, reach: () => Reaching) => {
     const asked =
       went(target, selecting) ?? (!shaping && below(page, target, event) ? { kind: "end" } : null);
     if (!asked && !target.closest(".editing")) reach().onAway?.();
+    const diagram = asked?.kind === "picture" && target.closest<HTMLElement>("figure.diagram");
+    const opening = diagram ? spanned(diagram.dataset.at ?? null) : null;
+    // A diagram that opens in its window on a double press waits a moment before it is looked at.
+    if (opening && reach().onDiagram) {
+      clearTimeout(looking);
+      if (event.detail >= 2) answered(page, { kind: "diagram", at: opening }, reach());
+      else looking = setTimeout(() => answered(page, asked, reach()), DOUBLE_MS);
+      return;
+    }
     answered(page, asked, reach(), asked?.kind === "block" ? readTo(page, event) : "");
   });
   widening(page, () => {

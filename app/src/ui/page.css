@@ -405,6 +405,39 @@ figure.diagram,
 figure.widget {
   text-align: center;
 }
+figure.diagram {
+  position: relative;
+}
+.diagram-bar {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+figure.diagram:hover .diagram-bar,
+.diagram-bar:focus-within {
+  opacity: 1;
+}
+.diagram-bar button {
+  border: 1px solid var(--tisty-hair);
+  border-radius: 6px;
+  padding: 2px 8px;
+  background: var(--tisty-sheet);
+  color: var(--tisty-soft);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.diagram-bar button:hover {
+  background: var(--tisty-hover);
+  color: var(--tisty-ink);
+}
+@media print {
+  .diagram-bar {
+    display: none;
+  }
+}
 figure.diagram:not(.drawn) {
   border: 1px solid var(--tisty-hair);
   border-radius: 10px;

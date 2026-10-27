@@ -101,7 +101,7 @@ const placed = (figure: Element, svg: string, dark: boolean) => {
   const sheet = figure.ownerDocument.createElement("div");
   sheet.className = "diagram-sheet";
   sheet.innerHTML = svg;
-  figure.replaceChildren(sheet);
+  figure.replaceChildren(sheet, ...figure.querySelectorAll(":scope > .diagram-bar"));
   figure.classList.add("drawn");
   figure.classList.remove("unreadable");
   figure.setAttribute("data-theme", dark ? "dark" : "light");

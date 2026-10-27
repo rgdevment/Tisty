@@ -127,3 +127,30 @@ fn a_window_finds_its_diagram_again_by_place_or_order_whatever_it_says_now() {
     );
     assert_eq!(at_place(body, Place { at: 0, nth: 1 }), None);
 }
+
+// One hand-written document per line (`⏎` is a line break): the page must name each diagram where the window finds it.
+const WRITTEN_BY_HAND: &str = "
+# Pagos⏎⏎```mermaid⏎erDiagram⏎  a ||--o{ b : has⏎```⏎
+> Nota⏎>⏎> ```mmd⏎> mindmap⏎>   root⏎> ```⏎
+- uno⏎⏎  ~~~mermaid⏎  graph TD⏎  ~~~⏎⏎- dos⏎
+---⏎title: Con propiedades⏎---⏎⏎```mermaid⏎classDiagram⏎```⏎⏎```mermaid⏎sequenceDiagram⏎```⏎
+";
+
+#[test]
+fn the_page_names_each_diagram_where_the_window_finds_it() {
+    for case in WRITTEN_BY_HAND
+        .lines()
+        .filter(|line| !line.trim().is_empty())
+    {
+        let body = unfolded(case);
+        let page = crate::html(&crate::read(&body));
+        let found = diagrams(&body);
+
+        assert!(!found.is_empty(), "{case}");
+        for one in found {
+            let named = format!("data-at=\"{}-{}\"", one.at.start, one.at.end);
+            let figure = page.contains(&format!("<figure class=\"diagram\" {named}"));
+            assert!(figure, "{case}: no figure {named} in {page}");
+        }
+    }
+}
