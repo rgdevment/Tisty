@@ -5714,6 +5714,7 @@ dependencies = [
  "tempfile",
  "tisty-carrier",
  "tisty-core",
+ "tisty-help",
  "tisty-markdown",
  "tisty-nl",
  "tisty-share-proto",

@@ -4,6 +4,7 @@ mod catalogue;
 mod chores;
 mod guide;
 mod handing;
+mod helping;
 mod jsonrpc;
 mod looking;
 mod mending;
@@ -32,6 +33,7 @@ use chores::{
     describe, note, plan, propose, remind, reschedule, say_done, say_not_doing, tick, untick,
 };
 use guide::language;
+use helping::help;
 use looking::{NEWEST_SHOWN, catch_up, find, gone, how_it_ended, lists, read, sum_up, tags};
 use mending::{rename, reword_note, reword_step, unplan};
 use spoken::spoken;
@@ -256,6 +258,7 @@ fn called(paths: &Paths, name: &str, args: Value) -> Result<Value, Refused> {
         "lists" => lists(paths),
         "tags" => tags(paths),
         "language" => Ok(language(&args)),
+        "help" => Ok(help(&args)),
         "rules" => Ok(catalogue::rules(&args)),
         "attach" => attach(paths, &args),
         "" => Err(Refused::Protocol(-32602, "a call needs a name".into())),
@@ -270,7 +273,7 @@ fn called(paths: &Paths, name: &str, args: Value) -> Result<Value, Refused> {
 }
 
 // A tool missing here only rings for nothing; the window's own round still catches what it wrote.
-const ONLY_READS: [&str; 12] = [
+const ONLY_READS: [&str; 13] = [
     "find",
     "sum_up",
     "read",
@@ -282,6 +285,7 @@ const ONLY_READS: [&str; 12] = [
     "lists",
     "tags",
     "language",
+    "help",
     "rules",
 ];
 

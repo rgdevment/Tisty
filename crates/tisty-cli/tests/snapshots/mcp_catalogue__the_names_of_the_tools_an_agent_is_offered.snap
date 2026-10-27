@@ -40,5 +40,6 @@ expression: names
   "lists",
   "rules",
   "language",
+  "help",
   "tags"
 ]
