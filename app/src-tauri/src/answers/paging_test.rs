@@ -1,4 +1,23 @@
-use super::{DRAWN_BY, KEPT_AT_MOST, paged};
+use super::{DRAWN_BY, KEPT_AT_MOST, paged, table_edit};
+use tisty_markdown::grid::Edit;
+
+#[test]
+fn a_table_is_edited_where_the_page_drew_it_and_nowhere_else() {
+    let body = "Antes.\n\n| a |\n| --- |\n| 1 |\n";
+    let asked = || Edit::Cell {
+        row: 0,
+        column: 0,
+        said: "2".to_string(),
+    };
+    assert_eq!(
+        table_edit(body.to_string(), (8, 28), asked()),
+        Ok("Antes.\n\n| a |\n| --- |\n| 2 |\n".to_string())
+    );
+    assert_eq!(
+        table_edit(body.to_string(), (0, 6), asked()),
+        Err("moved".to_string())
+    );
+}
 
 #[test]
 fn a_page_is_drawn_once_and_then_read_from_the_shelf() {
