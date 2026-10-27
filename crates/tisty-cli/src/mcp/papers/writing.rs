@@ -745,7 +745,6 @@ pub(super) fn in_its_place(
     which: &str,
     args: &Value,
     new: &str,
-    as_sent: bool,
 ) -> Result<Value, Refused> {
     let named = doc_named(state, which);
     let Some(print) = text(args, "print") else {
@@ -794,10 +793,8 @@ pub(super) fn in_its_place(
         )));
     }
 
-    let new = match as_sent {
-        true => new.replace('\r', ""),
-        false => tisty_core::speaking::turned(&new.replace('\r', "")),
-    };
+    // `edit_doc` already turned it into Tisty's words, or kept it as sent inside a fence.
+    let new = new.replace('\r', "");
     let tail = match new.is_empty() || new.ends_with('\n') {
         true => new,
         false => format!("{new}\n"),
@@ -814,9 +811,6 @@ pub(super) fn in_its_place(
     }
     let whole = format!("{head}{tail}{rest}");
 
-    if !as_sent {
-        tisty_core::docs::speaks(&tail).map_err(|unsaid| Refused::Tool(not_spoken(unsaid)))?;
-    }
     still_speaks(&body, &whole)?;
 
     match tisty_core::docs::rewrite(&paths.docs(), paths.data(), which, &whole, &print)

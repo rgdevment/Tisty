@@ -4899,3 +4899,46 @@ fn a_passage_outside_a_fence_is_still_tidied_as_prose() {
         "the diagram it did not touch keeps its line breaks: {body}"
     );
 }
+
+#[test]
+fn a_passage_that_brings_its_own_fence_mark_never_leaves_markup_in_prose() {
+    let served = Served::new();
+    let doc = served.wrote(DRAWN, None);
+
+    served.call(
+        "edit_doc",
+        serde_json::json!({
+            "doc": doc,
+            "old": "  B --> C[Archivo:<br/>la búsqueda]",
+            "new": "  B --> C[Archivo]\n```\n\nUno<br/>dos.\n\n```mermaid\n  C --> D",
+        }),
+    );
+
+    let body = served.body_of(&doc);
+    assert!(
+        !body.contains("Uno<br/>dos."),
+        "what a closing mark lets out of the fence is prose, and never keeps a tag: {body}"
+    );
+}
+
+#[test]
+fn a_passage_edited_inside_an_indented_block_keeps_its_line_breaks() {
+    let served = Served::new();
+    let doc = served.wrote(
+        "# Cómo funciona\n\nEl diagrama:\n\n    A[Inicio:<br/>uno] --> B[Fin]\n    B --> C\n\nTexto.",
+        None,
+    );
+
+    let said = served.call(
+        "edit_doc",
+        serde_json::json!({
+            "doc": doc,
+            "old": "    A[Inicio:<br/>uno] --> B[Fin]",
+            "new": "    A[Inicio:<br/>dos] --> B[Fin]",
+        }),
+    );
+
+    assert!(said["result"]["isError"].as_bool() != Some(true), "{said}");
+    let body = served.body_of(&doc);
+    assert!(body.contains("    A[Inicio:<br/>dos] --> B[Fin]"), "{body}");
+}
