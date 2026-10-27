@@ -4,7 +4,7 @@ const STEP = 10;
 const FEWEST = 4;
 
 export const gripped = (page: Document) => {
-  for (const head of page.querySelectorAll<HTMLElement>(".page > table[data-at] thead th")) {
+  for (const head of page.querySelectorAll<HTMLElement>(".page > .table[data-at] thead th")) {
     const grip = page.createElement("span");
     grip.className = "col-grip";
     grip.setAttribute("aria-hidden", "true");
@@ -20,7 +20,7 @@ export const widening = (
   page.addEventListener("pointerdown", (event) => {
     const grip = (event.target as Element | null)?.closest?.(".col-grip");
     const head = grip?.closest("th");
-    const table = head?.closest<HTMLElement>(".page > table[data-at]");
+    const table = head?.closest<HTMLElement>(".page > .table[data-at]");
     const at = spanned(table?.dataset.at ?? null);
     if (!grip || !head || !table || !at || event.button !== 0) return;
     event.preventDefault();

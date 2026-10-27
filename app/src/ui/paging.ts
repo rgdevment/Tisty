@@ -5,6 +5,7 @@ import bar from "./bar.css?raw";
 import { diagramShot } from "./diagrams";
 import type { Choice } from "./Menu";
 import sheet from "./page.css?raw";
+import tables from "./tables.css?raw";
 import task from "./taskpage.css?raw";
 
 export const HUES = [
@@ -54,8 +55,11 @@ const worn = (): string => {
 export const escaped = (said: string): string =>
   said.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+// Everything a drawn page needs to look like itself, wherever it is shown.
+export const PAGE_CSS = `${sheet}${tables}`;
+
 export const shell = (html: string): string =>
-  `<!doctype html><html lang="${document.documentElement.lang}" class="${darkNow() ? "dark" : ""}"><head><meta charset="utf-8"><style>:root{${worn()}}</style><style>${sheet}${bar}${task}</style></head><body><article class="page" inert>${html}</article></body></html>`;
+  `<!doctype html><html lang="${document.documentElement.lang}" class="${darkNow() ? "dark" : ""}"><head><meta charset="utf-8"><style>:root{${worn()}}</style><style>${PAGE_CSS}${bar}${task}</style></head><body><article class="page" inert>${html}</article></body></html>`;
 
 export const dressed = (page: Document) => {
   const theirs = getComputedStyle(document.documentElement);

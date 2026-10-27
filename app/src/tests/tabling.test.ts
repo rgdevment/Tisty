@@ -178,7 +178,7 @@ describe("a table written in the block", () => {
   it("drags a head's edge into a width said back in dashes, ten pixels each", () => {
     const page = document.implementation.createHTMLDocument("");
     page.body.innerHTML =
-      '<div class="page"><table data-at="7-80"><colgroup><col><col></colgroup><thead><tr><th>Name</th><th>Age</th></tr></thead></table></div>';
+      '<div class="page"><div class="table" data-at="7-80"><table><colgroup><col><col></colgroup><thead><tr><th>Name</th><th>Age</th></tr></thead></table></div></div>';
     gripped(page);
     const asked: [number, number, number][] = [];
     widening(page, () => (at, column, dashes) => asked.push([at[0], column, dashes]));
