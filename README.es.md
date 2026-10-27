@@ -487,12 +487,14 @@ al día sola:
 > winget install rgdevment.Tisty
 ```
 
-**macOS** — con [Homebrew](https://brew.sh). El tap se agrega una sola vez y no
-se vuelve a tocar. Desde ahí Tisty se mantiene al día sola, y Homebrew se
-aparta:
+**macOS** — con [Homebrew](https://brew.sh). El tap se agrega y se marca como
+confiable una sola vez y no se vuelve a tocar; Homebrew carga un tap que no es
+suyo solo cuando confías en él. Desde ahí Tisty se mantiene al día sola, y
+Homebrew se aparta:
 
 ```console
 $ brew tap rgdevment/tap
+$ brew trust rgdevment/tap
 $ brew install --cask tisty
 ```
 
