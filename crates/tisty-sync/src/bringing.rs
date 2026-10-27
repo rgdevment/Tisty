@@ -80,6 +80,18 @@ fn hosted(
     trusted && tisty_core::vouched::through(data, who, says, &host)
 }
 
+fn gone(
+    data: &Path,
+    store: &Path,
+    named: &str,
+    knew: &mut Option<tisty_core::store::Ledger>,
+) -> bool {
+    removed(store, named, knew)
+        || tisty_core::vouched::handed_to(data, &tisty_core::DeviceId(named.to_string()))
+            .iter()
+            .any(|next| removed(store, &next.0, knew))
+}
+
 fn handed_from(
     data: &Path,
     store: &Path,
@@ -88,13 +100,13 @@ fn handed_from(
     says: &str,
     knew: &mut Option<tisty_core::store::Ledger>,
 ) -> Option<tisty_core::DeviceId> {
-    let all = tisty_core::vouched::all_confirmed(data);
-    let (from, _) = all
-        .iter()
-        .find(|(from, one)| one.asked && one.key == says && *from != who)?;
-    let spent = all.values().any(|one| one.from.as_ref() == Some(from));
+    let fresh = tisty_core::lately::now().saturating_sub(crate::place::ADOPTING_FOR.as_secs());
+    let (from, _) = tisty_core::vouched::all_confirmed(data)
+        .into_iter()
+        .find(|(from, one)| one.asked && one.key == says && one.when >= fresh && from != who)?;
+    let spent = !tisty_core::vouched::handed_to(data, &from).is_empty();
     let wrote_here = dest.join(STORE).join(&from.0).exists();
-    (!spent && !wrote_here && !removed(store, &from.0, knew)).then(|| from.clone())
+    (!spent && !wrote_here && !gone(data, store, &from.0, knew)).then_some(from)
 }
 
 fn owes_a_signature(
@@ -136,6 +148,18 @@ fn answers_for_itself(
 ) -> Answered {
     let who = tisty_core::DeviceId(named.to_string());
     let ours = named.eq_ignore_ascii_case(device);
+    if !ours
+        && tisty_core::vouched::handed_to(data, &who)
+            .iter()
+            .any(|next| removed(store, &next.0, knew))
+    {
+        witness::standing(
+            channel::SYNC,
+            "a computer let in by its digits was taken away under its new name, so its old name is turned away too",
+            &[("at", Fact::Id(named.to_string()))],
+        );
+        return Answered::Unconfirmed;
+    }
     let mine = store.join(named);
     let from = verified::of(data, dest, named);
     let signed = anything_signed_in(theirs);
@@ -555,7 +579,7 @@ pub(crate) fn bring(
             false => match staging(alike, named, &entry.path(), &mine, &aside) {
                 Some(theirs) => theirs,
                 None => {
-                    if !removed(store, named, &mut knew) {
+                    if !gone(data, store, named, &mut knew) {
                         moved.unreadable.push(named.to_string());
                     }
                     continue;
@@ -574,7 +598,8 @@ pub(crate) fn bring(
             alike,
         );
         // Removed by the person, so nothing of it is theirs to hear about any more.
-        if !matches!(answered, Answered::Yes | Answered::Unsaid) && removed(store, named, &mut knew)
+        if !matches!(answered, Answered::Yes | Answered::Unsaid)
+            && gone(data, store, named, &mut knew)
         {
             continue;
         }

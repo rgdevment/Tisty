@@ -82,7 +82,16 @@ pub fn through(data: &Path, who: &DeviceId, said: &str, host: &DeviceId) -> bool
     crate::store::is_device_name(&host.0) && kept(data, who, said, &format!("\thost:{}", host.0))
 }
 
-pub fn moved_home(data: &Path, was: &DeviceId, now: &DeviceId, agent: Option<&DeviceId>) -> bool {
+pub fn handed_to(data: &Path, from: &DeviceId) -> Vec<DeviceId> {
+    lines(data)
+        .iter()
+        .filter_map(|line| read_line(line))
+        .filter(|(_, one)| one.from.as_ref() == Some(from))
+        .map(|(whose, _)| whose)
+        .collect()
+}
+
+pub fn moved_home(data: &Path, was: &DeviceId, now: &DeviceId, agents: &[DeviceId]) -> bool {
     if !crate::store::is_device_name(&now.0) {
         return false;
     }
@@ -96,7 +105,7 @@ pub fn moved_home(data: &Path, was: &DeviceId, now: &DeviceId, agent: Option<&De
             && one.from.is_none()
             && one.own.is_none()
             && one.host.as_ref().is_none_or(|host| host == was);
-        one.own.as_ref() == Some(was) || (plain && (whose == was || Some(whose) == agent))
+        one.own.as_ref() == Some(was) || (plain && (whose == was || agents.contains(whose)))
     };
     let mut all = lines(data);
     let mut moved = false;
@@ -109,7 +118,7 @@ pub fn moved_home(data: &Path, was: &DeviceId, now: &DeviceId, agent: Option<&De
             moved = true;
         }
     }
-    moved && crate::store::write_atomic(&data.join(KEPT), all.join("\n").as_bytes()).is_ok()
+    !moved || crate::store::write_atomic(&data.join(KEPT), all.join("\n").as_bytes()).is_ok()
 }
 
 fn kept(data: &Path, who: &DeviceId, said: &str, how: &str) -> bool {

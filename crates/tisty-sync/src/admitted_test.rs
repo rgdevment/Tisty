@@ -257,17 +257,22 @@ fn the_digits_let_in_one_new_name_and_never_a_second() {
 }
 
 #[test]
-fn a_computer_the_person_took_away_is_no_pass_for_a_new_name() {
+fn digits_typed_more_than_a_week_ago_are_no_pass_for_a_new_name() {
     let shared = tempfile::tempdir().unwrap();
     let (giver, _third) = two_already(shared.path());
     sealed(shared.path());
     let newcomer = Computer::new();
     newcomer.opened().writes("lo mío");
     giver.lets_in(&newcomer);
-    giver
-        .store()
-        .append(Op::DeviceRemove { d: newcomer.id() })
-        .unwrap();
+    let kept = giver.paths.data().join(".keys-confirmed");
+    let when = tisty_core::vouched::confirmed(giver.paths.data(), &newcomer.id())
+        .unwrap()
+        .when;
+    let old = when - 8 * 24 * 60 * 60;
+    let said = std::fs::read_to_string(&kept)
+        .unwrap()
+        .replace(&format!("\t{when}\tasked"), &format!("\t{old}\tasked"));
+    std::fs::write(&kept, said).unwrap();
 
     newcomer.takes_the_cloud_s(shared.path(), Some(CLOUD));
     newcomer.settles(shared.path());
@@ -322,4 +327,101 @@ fn only_the_cloud_whose_key_was_handed_lets_a_computer_in() {
     assert!(let_in(shared.path(), Some(CLOUD)));
     assert!(!let_in(shared.path(), None));
     assert!(!let_in(shared.path(), Some("store_other")));
+}
+
+#[test]
+fn the_digits_stay_spent_once_the_new_name_s_key_moves_on() {
+    let shared = tempfile::tempdir().unwrap();
+    let (giver, _third) = two_already(shared.path());
+    sealed(shared.path());
+    let newcomer = Computer::new();
+    newcomer.opened().writes("lo mío");
+    giver.lets_in(&newcomer);
+    let was = newcomer.takes_the_cloud_s(shared.path(), Some(CLOUD));
+    newcomer.settles(shared.path());
+    assert!(giver.waits_on(shared.path()).is_empty());
+    assert_eq!(
+        tisty_core::vouched::confirmed(giver.paths.data(), &newcomer.id())
+            .unwrap()
+            .from,
+        Some(was.clone())
+    );
+
+    let rotated_to =
+        tisty_core::signing::shown(&tisty_core::signing::SigningKey::from_bytes(&[7u8; 32]));
+    assert!(tisty_core::vouched::rotated(
+        giver.paths.data(),
+        &newcomer.id(),
+        &rotated_to,
+        &newcomer.shown()
+    ));
+
+    let copy = Computer::new();
+    let key = tisty_core::signing::kept_at(&newcomer.paths, &was).unwrap();
+    let at = tisty_core::signing::kept_at(&copy.paths, &copy.id()).unwrap();
+    std::fs::create_dir_all(at.parent().unwrap()).unwrap();
+    std::fs::copy(key, &at).unwrap();
+    copy.settles(shared.path());
+
+    assert_eq!(
+        giver.waits_on(shared.path()),
+        vec![copy.id().0],
+        "the old key opened the door a second time once the new name's record moved on"
+    );
+}
+
+#[test]
+fn an_assistant_retired_and_opened_again_does_not_hold_back_a_computer_let_in() {
+    let shared = tempfile::tempdir().unwrap();
+    let (giver, _third) = two_already(shared.path());
+    sealed(shared.path());
+    let newcomer = Computer::new();
+    newcomer.opened().writes("lo mío");
+    tisty_core::agent::retire(&newcomer.paths).unwrap();
+    tisty_core::agent::register(&newcomer.paths).unwrap();
+    giver.lets_in(&newcomer);
+
+    newcomer.takes_the_cloud_s(shared.path(), Some(CLOUD));
+
+    assert_eq!(
+        newcomer.waits_on(shared.path()),
+        Vec::<String>::new(),
+        "a computer let in asked to confirm the ones there"
+    );
+}
+
+#[test]
+fn taking_away_the_new_name_turns_away_the_old_one_too() {
+    let shared = tempfile::tempdir().unwrap();
+    let (giver, _third) = two_already(shared.path());
+    sealed(shared.path());
+    let newcomer = Computer::new();
+    newcomer.opened().writes("lo mío");
+    giver.lets_in(&newcomer);
+    let was = newcomer.takes_the_cloud_s(shared.path(), Some(CLOUD));
+    newcomer.settles(shared.path());
+    assert!(giver.waits_on(shared.path()).is_empty());
+    giver
+        .store()
+        .append(Op::DeviceRemove { d: newcomer.id() })
+        .unwrap();
+    giver.settles(shared.path());
+
+    let back = Computer::new();
+    let mut config = Config::load_or_init(&back.paths).unwrap();
+    config.device_id = was.clone();
+    config.save(&back.paths).unwrap();
+    let key = tisty_core::signing::kept_at(&newcomer.paths, &was).unwrap();
+    let at = tisty_core::signing::kept_at(&back.paths, &was).unwrap();
+    std::fs::create_dir_all(at.parent().unwrap()).unwrap();
+    std::fs::copy(key, &at).unwrap();
+    back.round(shared.path()).unwrap();
+    back.writes("de vuelta");
+    back.settles(shared.path());
+
+    let waits = giver.waits_on(shared.path());
+    assert!(
+        !giver.titles().contains(&"de vuelta".to_string()),
+        "a computer taken away wrote into the giver under its first name (waits: {waits:?})"
+    );
 }

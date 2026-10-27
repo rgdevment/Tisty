@@ -457,6 +457,39 @@ fn undo(data: &Path, old: &Path, moved: &[&str]) {
     }
 }
 
+fn handed_on(
+    paths: &Paths,
+    was: &crate::DeviceId,
+    now: &crate::DeviceId,
+    agent: Option<crate::DeviceId>,
+) {
+    if !crate::signing::handed_on(paths, was, now) {
+        witness::warn(
+            channel::BACKUP,
+            "the key this machine was let in by did not move to its new name, so the others will ask for it again",
+            &[("at", Fact::Id(now.0.clone()))],
+        );
+        return;
+    }
+    let mut agents: Vec<crate::DeviceId> = store::ledger(paths.store())
+        .map(|told| {
+            told.vouched
+                .into_iter()
+                .filter(|(_, (host, _))| host == was)
+                .map(|(agent, _)| agent)
+                .collect()
+        })
+        .unwrap_or_default();
+    agents.extend(agent);
+    if !crate::vouched::moved_home(paths.data(), was, now, &agents) {
+        witness::warn(
+            channel::BACKUP,
+            "what this machine answered for as its own did not move to its new name, so it will ask about the ones already there",
+            &[("at", Fact::Id(now.0.clone()))],
+        );
+    }
+}
+
 pub fn reset(paths: &Paths, into: &Path, aside: &Path, also: Option<&Path>) -> Result<Made> {
     reset_as(paths, into, aside, also, false)
 }
@@ -483,8 +516,8 @@ pub fn set_aside(paths: &Paths, let_in: bool) -> Result<()> {
     config.synced_at = None;
     config.heard_at = None;
     config.save(paths)?;
-    if let_in && crate::signing::handed_on(paths, &was, &now) {
-        crate::vouched::moved_home(data, &was, &now, config.agent_id.as_ref());
+    if let_in {
+        handed_on(paths, &was, &now, config.agent_id.clone());
     }
 
     store::kept_before_the_store_goes(paths);

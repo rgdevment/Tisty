@@ -91,7 +91,8 @@ pub(crate) fn still_adopting(
 }
 
 /// Past a week, a key nobody said is a person's to confirm.
-const ADOPTING_FOR: std::time::Duration = std::time::Duration::from_secs(7 * 24 * 60 * 60);
+pub(crate) const ADOPTING_FOR: std::time::Duration =
+    std::time::Duration::from_secs(7 * 24 * 60 * 60);
 
 type Adopting = (BTreeSet<String>, String, std::time::SystemTime);
 
