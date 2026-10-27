@@ -51,7 +51,7 @@ source: the vet's card
 - `title:` is the document's [title](#the-title).
 - `tags:` (or `tag:`) files the document under each one, the same as writing `#rina` in a sentence: one tag either way. A list in brackets, words split by commas, or one `- item` per line all work, with or without the `#`.
 - The block only counts at the very top: the first line is `---`, the line under it has words, and a `---` or `...` closes it. Anywhere else, `---` is a [page break](#page-breaks).
-- `paper:` is the sheet the document is printed on: `letter` or `tabloid`, and A4 when it is left out. `sheets: on` draws the page on those sheets, and `orientation: landscape` lays them across. **Paper** and **Sheets** in the panel write them, and taking them back leaves nothing written.
+- `paper:` is the sheet the document is printed on: `letter`, `folio` (8.5 × 13 in) or `tabloid`, and A4 when it is left out. `sheets: on` draws the page on those sheets, and `orientation: landscape` lays them across. **Paper** and **Sheets** in the panel write them, and taking them back leaves nothing written.
 - Besides those three, Tisty writes only `task:`, once, in a task's own document. A tag it adds goes in the text as `#tag`.
 - A block past 4 KiB, with more than 32 properties or a value past 500 characters is kept as written, but nothing in it is read. Only plain properties are read: `key: value`, a list in brackets, or `- item` lines.
 

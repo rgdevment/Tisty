@@ -37,7 +37,9 @@ const remembered = (): { side: boolean; leaf: Paper } => {
   const side = window.innerWidth >= SIDE_FROM;
   try {
     const said = JSON.parse(localStorage.getItem(KEPT) ?? "{}") as Record<string, unknown>;
-    const leaf = ["a4", "letter", "tabloid"].includes(String(said.leaf)) ? said.leaf : "a4";
+    const leaf = ["a4", "letter", "folio", "tabloid"].includes(String(said.leaf))
+      ? said.leaf
+      : "a4";
     return { side, leaf: leaf as Paper };
   } catch {
     return { side, leaf: "a4" };

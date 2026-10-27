@@ -1174,7 +1174,7 @@ export interface Folded {
   away: boolean;
 }
 
-export type Paper = "a4" | "letter" | "tabloid";
+export type Paper = "a4" | "letter" | "folio" | "tabloid";
 
 export interface Marked {
   at: string;

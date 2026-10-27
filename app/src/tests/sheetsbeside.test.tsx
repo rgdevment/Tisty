@@ -4,6 +4,7 @@ import { EditorView, keymap, runScopeHandlers } from "@codemirror/view";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import type { Paper } from "../core";
 import { t } from "../locales";
 import Beside from "../ui/Beside";
 import { blockKeys } from "../ui/barring";
@@ -12,7 +13,7 @@ import { sizeOf } from "../ui/sheets";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 
-const panel = (sheets: boolean, onSheets = vi.fn(), onLandscape = vi.fn()) =>
+const panel = (sheets: boolean, onSheets = vi.fn(), onLandscape = vi.fn(), leaf: Paper = "a4") =>
   render(
     <Beside
       title="Notas"
@@ -22,7 +23,7 @@ const panel = (sheets: boolean, onSheets = vi.fn(), onLandscape = vi.fn()) =>
       kept={0}
       heads={[]}
       pages={[]}
-      leaf="a4"
+      leaf={leaf}
       onLeaf={() => {}}
       sheets={sheets}
       landscape={false}
@@ -71,6 +72,20 @@ describe("the sheets a document is read on", () => {
     expect(sizeOf("a4")).toBe("A4");
     expect(sizeOf("letter", true)).toBe("Letter landscape");
     expect(sizeOf("tabloid", true)).toBe("17in 11in");
+    expect(sizeOf("folio")).toBe("8.5in 13in");
+    expect(sizeOf("folio", true)).toBe("13in 8.5in");
+  });
+
+  it("offers A4, Letter and Folio, and still shows Tabloid on a document that has it", () => {
+    const words = () => screen.getAllByRole("button").map((one) => one.textContent);
+    const offered = panel(false).unmount;
+    expect(words()).toEqual(expect.arrayContaining([t("leafA4"), t("leafLetter"), t("leafFolio")]));
+    expect(words()).not.toContain(t("leafTabloid"));
+    offered();
+    panel(false, vi.fn(), vi.fn(), "tabloid");
+    expect(
+      screen.getByRole("button", { name: t("leafTabloid") }).getAttribute("aria-pressed"),
+    ).toBe("true");
   });
 });
 

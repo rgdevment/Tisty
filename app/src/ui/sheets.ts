@@ -1,10 +1,11 @@
 import type { Paper } from "../core";
 
-export const LEAVES: Paper[] = ["a4", "letter", "tabloid"];
+export const LEAVES: Paper[] = ["a4", "letter", "folio"];
 
 const MILLIMETRES: Record<Paper, [number, number]> = {
   a4: [210, 297],
   letter: [215.9, 279.4],
+  folio: [215.9, 330.2],
   tabloid: [279.4, 431.8],
 };
 
@@ -36,19 +37,37 @@ export const sheetFor = (leaf: Paper, landscape: boolean, said: string) => ({
   said,
 });
 
-export const PAGE: Record<Paper, string> = { a4: "A4", letter: "Letter", tabloid: "11in 17in" };
+export const PAGE: Record<Paper, string> = {
+  a4: "A4",
+  letter: "Letter",
+  folio: "8.5in 13in",
+  tabloid: "11in 17in",
+};
+
+const ACROSS: Record<Paper, string> = {
+  a4: "A4 landscape",
+  letter: "Letter landscape",
+  folio: "13in 8.5in",
+  tabloid: "17in 11in",
+};
 
 export const TALL = Object.fromEntries(
   LEAVES.map((one) => [one, MILLIMETRES[one][1] / MILLIMETRES[one][0]]),
 ) as Record<Paper, number>;
 
-export const leafWord = (one: Paper) =>
-  one === "a4" ? "leafA4" : one === "letter" ? "leafLetter" : "leafTabloid";
+const WORDS = {
+  a4: "leafA4",
+  letter: "leafLetter",
+  folio: "leafFolio",
+  tabloid: "leafTabloid",
+} as const;
 
-export const sizeOf = (leaf: Paper, landscape = false) => {
-  if (!landscape) return PAGE[leaf];
-  return leaf === "tabloid" ? "17in 11in" : `${PAGE[leaf]} landscape`;
-};
+export const leafWord = (one: Paper) => WORDS[one];
+
+// A sheet no longer offered still shows on the document that already has it.
+export const offered = (leaf: Paper) => (LEAVES.includes(leaf) ? LEAVES : [...LEAVES, leaf]);
+
+export const sizeOf = (leaf: Paper, landscape = false) => (landscape ? ACROSS : PAGE)[leaf];
 
 export const pageFor = (leaf: Paper, landscape = false) => {
   const id = "tisty-page";

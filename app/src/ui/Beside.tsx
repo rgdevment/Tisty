@@ -9,7 +9,7 @@ import Menu, { type Choice } from "./Menu";
 import PaperFacts, { held, worded } from "./PaperFacts";
 import Properties from "./Properties";
 import type { Head } from "./paging";
-import { LEAVES, leafWord } from "./sheets";
+import { leafWord, offered } from "./sheets";
 import { often } from "./tagging";
 
 export const trailed = (folders: Folded[], at: string | null): Folded[] => {
@@ -145,7 +145,7 @@ function Controls({
           title={t("leafIs")}
           className="m-0 flex h-7 min-w-0 flex-1 gap-0.5 rounded-md border border-line p-0.5"
         >
-          {LEAVES.map((one) => (
+          {offered(leaf).map((one) => (
             <button
               key={one}
               type="button"
