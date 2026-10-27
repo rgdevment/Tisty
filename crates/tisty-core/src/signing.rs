@@ -5,6 +5,7 @@ pub use ed25519_dalek::{SigningKey, VerifyingKey};
 use crate::event::DeviceId;
 
 pub const KEEP: &str = ".device-key";
+const NOT_ONE: &str = "what was kept as this machine's signing key is not one";
 
 pub fn kept_at(paths: &crate::Paths, device: &DeviceId) -> Option<PathBuf> {
     crate::store::identity::device_file(paths, device, KEEP)
@@ -63,11 +64,7 @@ pub fn shown_kept(paths: &crate::Paths, device: &DeviceId) -> Option<String> {
 
 pub fn mine(paths: &crate::Paths, device: &DeviceId) -> Option<SigningKey> {
     let at = kept_at(paths, device)?;
-    let one = crate::store::identity::kept_or_minted(
-        paths,
-        &at,
-        "what was kept as this machine's signing key is not one",
-    )?;
+    let one = crate::store::identity::kept_or_minted(paths, &at, NOT_ONE)?;
     Some(SigningKey::from_bytes(&one))
 }
 
@@ -75,11 +72,9 @@ pub fn handed_on(paths: &crate::Paths, from: &DeviceId, to: &DeviceId) -> bool {
     let (Some(from), Some(to)) = (kept_at(paths, from), kept_at(paths, to)) else {
         return false;
     };
-    let crate::store::identity::Kept::Good(one) = crate::store::identity::kept(
-        paths,
-        &from,
-        "what was kept as this machine's signing key is not one",
-    ) else {
+    let crate::store::identity::Kept::Good(one) =
+        crate::store::identity::kept(paths, &from, NOT_ONE)
+    else {
         return false;
     };
     crate::store::identity::written(paths, &to, one) == Some(one)

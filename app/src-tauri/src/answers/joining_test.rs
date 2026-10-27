@@ -177,6 +177,16 @@ fn only_the_key_handed_for_the_encrypted_cloud_it_syncs_with_lets_a_machine_in()
     tisty_carrier::seal_word(&tree, "store_cloud").unwrap();
     assert!(letting_in(&session));
 
+    let mine = tree
+        .join(tisty_carrier::STORE)
+        .join(&session.config.device_id.0);
+    std::fs::create_dir_all(&mine).unwrap();
+    assert!(
+        !letting_in(&session),
+        "a name that already wrote in the cloud was let in again"
+    );
+    std::fs::remove_dir_all(&mine).unwrap();
+
     session.config.key_handed = None;
     assert!(!letting_in(&session), "a machine nobody let in was let in");
 }

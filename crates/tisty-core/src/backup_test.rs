@@ -315,8 +315,8 @@ fn a_machine_let_in_signs_on_under_a_new_name_with_the_key_it_was_let_in_by() {
             crate::signing::mine(&paths, &now.device_id).map(|one| crate::signing::shown(&one));
         assert_eq!(signs == key, let_in);
         for own in [&was, &agent] {
-            let host = crate::vouched::confirmed(&data, own).unwrap().host;
-            assert_eq!(host, let_in.then(|| now.device_id.clone()));
+            let mark = crate::vouched::confirmed(&data, own).unwrap().own;
+            assert_eq!(mark, let_in.then(|| now.device_id.clone()));
         }
     }
 }

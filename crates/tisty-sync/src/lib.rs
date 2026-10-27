@@ -371,9 +371,9 @@ pub fn carry_through(
                 .all(|(who, one)| {
                     who.0.eq_ignore_ascii_case(device)
                         || one
-                            .host
+                            .own
                             .as_ref()
-                            .is_some_and(|host| host.0.eq_ignore_ascii_case(device))
+                            .is_some_and(|own| own.0.eq_ignore_ascii_case(device))
                 })
         {
             adopting.extend(names_in(dest));

@@ -240,37 +240,46 @@ fn machines_confirmed_from_two_places_at_once_are_both_kept() {
 }
 
 #[test]
-fn an_agent_minted_here_is_marked_as_this_machine_s_own_and_keeps_its_key() {
+fn a_machine_moving_home_takes_its_old_self_and_its_agent_and_keeps_their_keys() {
     let (_room, data, paths) = a_place();
+    let was = DeviceId("dev_was".into());
+    let now = DeviceId("dev_now".into());
     let agent = DeviceId("dev_agent".into());
-    let me = DeviceId("dev_me".into());
     let other = DeviceId("dev_other".into());
-    let said = a_key(&paths, &agent);
-    assert!(confirm(&data, &agent, &said));
+    let mine = a_key(&paths, &was);
+    assert!(confirm(&data, &was, &mine));
+    assert!(through(&data, &agent, &a_key(&paths, &agent), &was));
     assert!(confirm(&data, &other, &a_key(&paths, &other)));
 
-    assert!(hosted_here(&data, &agent, &me));
-    assert!(hosted_here(&data, &agent, &me));
+    assert!(moved_home(&data, &was, &now, Some(&agent)));
 
-    let stood = confirmed(&data, &agent).unwrap();
-    assert_eq!(stood.key, said);
-    assert_eq!(stood.host, Some(me.clone()));
-    assert_eq!(confirmed(&data, &other).unwrap().host, None);
-    assert_eq!(all_confirmed(&data).len(), 2);
+    let stood = confirmed(&data, &was).unwrap();
+    assert_eq!(stood.key, mine);
+    assert_eq!(stood.own, Some(now.clone()));
+    assert_eq!(confirmed(&data, &agent).unwrap().own, Some(now.clone()));
+    assert_eq!(confirmed(&data, &other).unwrap().own, None);
+    assert_eq!(all_confirmed(&data).len(), 3);
+
+    let later = DeviceId("dev_later".into());
+    assert!(moved_home(&data, &now, &later, Some(&agent)));
+    assert_eq!(confirmed(&data, &was).unwrap().own, Some(later.clone()));
+    assert_eq!(confirmed(&data, &agent).unwrap().own, Some(later));
 }
 
 #[test]
-fn only_a_plain_confirmation_is_marked_as_this_machine_s_own() {
+fn moving_home_leaves_what_others_answered_for_alone() {
     let (_room, data, paths) = a_place();
-    let me = DeviceId("dev_me".into());
+    let was = DeviceId("dev_was".into());
+    let now = DeviceId("dev_now".into());
     let theirs = DeviceId("dev_theirs".into());
     let host = DeviceId("dev_host".into());
     assert!(through(&data, &theirs, &a_key(&paths, &theirs), &host));
+    assert!(asked(&data, &was, &a_key(&paths, &was)));
 
-    assert!(!hosted_here(&data, &theirs, &me));
-    assert!(!hosted_here(&data, &DeviceId("dev_nobody".into()), &me));
-    assert!(!hosted_here(&data, &theirs, &DeviceId("no name".into())));
+    assert!(!moved_home(&data, &was, &now, Some(&theirs)));
+    assert!(!moved_home(&data, &was, &DeviceId("no name".into()), None));
     assert_eq!(confirmed(&data, &theirs).unwrap().host, Some(host));
+    assert!(confirmed(&data, &was).unwrap().asked);
 }
 
 #[test]
@@ -295,6 +304,4 @@ fn a_key_let_in_by_its_digits_says_so_and_a_name_it_passed_to_says_from_whom() {
     let second = confirmed(&data, &new).unwrap();
     assert!(!second.asked);
     assert_eq!(second.from, Some(old.clone()));
-    assert!(!hosted_here(&data, &old, &new));
-    assert!(confirmed(&data, &old).unwrap().asked);
 }

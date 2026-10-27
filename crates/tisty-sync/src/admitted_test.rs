@@ -257,6 +257,25 @@ fn the_digits_let_in_one_new_name_and_never_a_second() {
 }
 
 #[test]
+fn a_computer_the_person_took_away_is_no_pass_for_a_new_name() {
+    let shared = tempfile::tempdir().unwrap();
+    let (giver, _third) = two_already(shared.path());
+    sealed(shared.path());
+    let newcomer = Computer::new();
+    newcomer.opened().writes("lo mío");
+    giver.lets_in(&newcomer);
+    giver
+        .store()
+        .append(Op::DeviceRemove { d: newcomer.id() })
+        .unwrap();
+
+    newcomer.takes_the_cloud_s(shared.path(), Some(CLOUD));
+    newcomer.settles(shared.path());
+
+    assert_eq!(giver.waits_on(shared.path()), vec![newcomer.id().0]);
+}
+
+#[test]
 fn a_key_confirmed_by_hand_is_no_pass_for_a_new_name() {
     let shared = tempfile::tempdir().unwrap();
     let (giver, _third) = two_already(shared.path());

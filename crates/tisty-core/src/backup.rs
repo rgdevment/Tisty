@@ -479,15 +479,12 @@ pub fn set_aside(paths: &Paths, let_in: bool) -> Result<()> {
     let mut config = Config::load_or_init(paths)?;
     let was = config.device_id.clone();
     let now = crate::DeviceId(crate::config::new_device_id());
-    let handed = let_in && crate::signing::handed_on(paths, &was, &now);
     config.device_id = now.clone();
     config.synced_at = None;
     config.heard_at = None;
     config.save(paths)?;
-    if handed {
-        for own in std::iter::once(&was).chain(config.agent_id.as_ref()) {
-            crate::vouched::hosted_here(data, own, &now);
-        }
+    if let_in && crate::signing::handed_on(paths, &was, &now) {
+        crate::vouched::moved_home(data, &was, &now, config.agent_id.as_ref());
     }
 
     store::kept_before_the_store_goes(paths);

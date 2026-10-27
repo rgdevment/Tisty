@@ -310,9 +310,13 @@ pub(crate) async fn will_adopt(
 }
 
 pub(crate) fn letting_in(session: &Session) -> bool {
+    let device = &session.config.device_id.0;
     tisty_carrier::cloud_of(session.config.sync.as_ref())
         .map(|at| tisty_carrier::mirrored_at(&session.reach.home_of(at)))
-        .is_some_and(|tree| tisty_carrier::let_in(&tree, session.config.key_handed.as_deref()))
+        .is_some_and(|tree| {
+            tisty_carrier::let_in(&tree, session.config.key_handed.as_deref())
+                && !tree.join(tisty_carrier::STORE).join(device).exists()
+        })
 }
 
 /// A machine holding only what its first opening sowed takes the place's history without asking,
