@@ -1,4 +1,4 @@
-use super::unpathing::{absolute, unpathed};
+use super::unpathing::{absolute, unpathed, unpathed_body};
 use super::*;
 
 fn four_ids() -> Vec<String> {
@@ -263,16 +263,16 @@ fn a_path_is_found_by_its_drive_or_by_the_slash_that_opens_it() {
 #[test]
 fn only_the_path_is_hidden_and_the_rest_of_the_line_is_read() {
     assert_eq!(
-        unpathed(r"De paso: `C:\Users\Mario\OneDrive\Tisty` guarda otro almacén viejo."),
-        "De paso: `[path]` guarda otro almacén viejo."
+        unpathed(r"De paso: C:\Users\Mario\OneDrive\Tisty guarda otro almacén viejo."),
+        "De paso: [path] guarda otro almacén viejo."
     );
     assert_eq!(
         unpathed("kept at C:/Users/someone/Downloads/x.csv and opened twice"),
         "kept at [path] and opened twice"
     );
     assert_eq!(
-        unpathed(r"from `G:\Mi unidad\Tisty` to /home/one/tisty, both"),
-        "from `[path]` to [path], both"
+        unpathed(r"from G:\Mi unidad\Tisty to /home/one/tisty, both"),
+        "from [path] to [path], both"
     );
     assert_eq!(
         unpathed("arrancando en **2 GB / 90 días**. Eso implica más"),
@@ -315,6 +315,81 @@ fn a_path_with_spaces_is_hidden_whole_without_quotes() {
         unpathed("kept at C:/a/b.csv and read at https://ejemplo.com/x later"),
         "kept at [path] and read at https://ejemplo.com/x later"
     );
+}
+
+#[test]
+fn a_word_with_one_slash_is_a_command_or_a_switch_and_the_prose_after_it_stays() {
+    assert_eq!(absolute("lee /code-review y sigue"), None);
+    assert_eq!(absolute("con RMDir /r y /REBOOTOK"), None);
+    let note =
+        "Corrí /code-review tres veces: encontró huecos reales y los corrigió, sin tocar old/new";
+    assert_eq!(unpathed(note), note);
+    let switches = "RMDir /r, dos espacios, /REBOOTOK /r y guardar la ruta pasaban en verde";
+    assert_eq!(unpathed(switches), switches);
+}
+
+#[test]
+fn a_path_ends_where_its_word_ends_when_the_next_separator_is_a_sentence_away() {
+    assert_eq!(
+        unpathed(
+            "pasa /dev/null y así no recibe las refs; las firmas van en rgdevment/cla-signatures"
+        ),
+        "pasa [path] y así no recibe las refs; las firmas van en rgdevment/cla-signatures"
+    );
+    assert_eq!(
+        unpathed(r"en C:\temp pero mucho más tarde quedó otra\cosa"),
+        r"en [path] pero mucho más tarde quedó otra\cosa"
+    );
+    assert_eq!(
+        unpathed("git -C /d/code/github/Tisty push origin main y luego el tag"),
+        "git -C [path] push origin main y luego el tag"
+    );
+    assert_eq!(
+        unpathed("(desde C:/a/b, que es donde la persona guarda todo)"),
+        "(desde [path], que es donde la persona guarda todo)"
+    );
+}
+
+#[test]
+fn what_sits_between_backticks_is_an_example_and_is_read_as_written() {
+    let examples = [
+        r"El prefijo `\\?\` delante de `C:\Users\x` es lo que se explica aquí.",
+        "`pre-push` debe llamar a `rules.sh < /dev/null`; las firmas van en `rgdevment/cla-signatures`.",
+        r#"Emite `RMDir /r "$INSTDIR"` en el desinstalador, y `git -C /d/code/x push origin *` después."#,
+        "Dos tildes: ``C:/a/b `con una` dentro`` y nada más.",
+    ];
+    for line in examples {
+        assert_eq!(unpathed(line), line);
+    }
+    assert_eq!(
+        unpathed(r"`C:\ejemplo` aparte de C:\Users\x\a.txt"),
+        r"`C:\ejemplo` aparte de [path]"
+    );
+    assert_eq!(unpathed("un ` suelto y C:/a/b.md"), "un ` suelto y [path]");
+}
+
+#[test]
+fn a_fenced_block_is_read_as_written_and_the_lines_around_it_are_not() {
+    let body = [
+        r"visto en C:\temp\x.md",
+        "```sh",
+        "git -C /d/code/github/Tisty push",
+        r"C:\Users\x",
+        "```",
+        "~~~~",
+        "C:/a/b",
+        "~~~",
+        "C:/a/b",
+        "~~~~",
+        "y C:/c/d.txt",
+    ]
+    .join("\n");
+    let kept: Vec<String> = body.lines().map(str::to_string).collect();
+    let read = unpathed_body(&body);
+    let read: Vec<&str> = read.lines().collect();
+    assert_eq!(read[0], "visto en [path]");
+    assert_eq!(read[1..10], kept[1..10]);
+    assert_eq!(read[10], "y [path]");
 }
 
 #[test]

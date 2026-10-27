@@ -1,4 +1,45 @@
+const STOPS: &str = "`\"')]>,;»";
+
+/// A folder name can hold a space or two ("Mario Hidalgo", "OneDrive - Personal"); more than
+/// that before the next separator is prose, and it stays.
+const MOST_SPACES: usize = 2;
+
+/// What sits in a fence or between backticks is an example someone wrote, not their disk.
+pub(super) fn unpathed_body(body: &str) -> String {
+    let mut fenced: Option<(char, usize)> = None;
+    body.lines()
+        .map(|line| {
+            let fence = fence_of(line);
+            match (fenced, fence) {
+                (Some((mark, open)), Some((this, run))) if this == mark && run >= open => {
+                    fenced = None;
+                    line.to_string()
+                }
+                (Some(_), _) => line.to_string(),
+                (None, Some(opened)) => {
+                    fenced = Some(opened);
+                    line.to_string()
+                }
+                (None, None) => unpathed(line),
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 pub(super) fn unpathed(line: &str) -> String {
+    let mut out = String::with_capacity(line.len());
+    let mut rest = line;
+    while let Some((start, end)) = code_span(rest) {
+        out.push_str(&unpathed_prose(&rest[..start]));
+        out.push_str(&rest[start..end]);
+        rest = &rest[end..];
+    }
+    out.push_str(&unpathed_prose(rest));
+    out
+}
+
+fn unpathed_prose(line: &str) -> String {
     let mut out = String::with_capacity(line.len());
     let mut rest = line;
     while let Some(at) = absolute(rest) {
@@ -11,15 +52,47 @@ pub(super) fn unpathed(line: &str) -> String {
     out
 }
 
+fn fence_of(line: &str) -> Option<(char, usize)> {
+    let lead = line.len() - line.trim_start_matches(' ').len();
+    let mark = line[lead..]
+        .chars()
+        .next()
+        .filter(|c| matches!(c, '`' | '~'))?;
+    let run = line[lead..].chars().take_while(|&c| c == mark).count();
+    (lead <= 3 && run >= 3).then_some((mark, run))
+}
+
+/// A run of backticks opens a span only where the same run closes it later on the line; an
+/// unmatched one is a plain character.
+fn code_span(line: &str) -> Option<(usize, usize)> {
+    let ticks_at = |at: usize| line[at..].bytes().take_while(|&b| b == b'`').count();
+    let mut from = 0;
+    while let Some(start) = line[from..].find('`').map(|at| from + at) {
+        let open = ticks_at(start);
+        let mut seek = start + open;
+        while let Some(at) = line[seek..].find('`').map(|at| seek + at) {
+            let run = ticks_at(at);
+            if run == open {
+                return Some((start, at + run));
+            }
+            seek = at + run;
+        }
+        from = start + open;
+    }
+    None
+}
+
 fn path_end(path: &str, opened: Option<char>) -> usize {
     let closer = match opened {
-        Some(quote @ ('`' | '"' | '\'')) => Some(quote),
+        Some(quote @ ('"' | '\'')) => Some(quote),
         Some('«') => Some('»'),
         Some('(') => Some(')'),
         _ => None,
     };
-    if let Some(closer) = closer {
-        return path.find(closer).unwrap_or(path.len());
+    if let Some(at) = closer.and_then(|closer| path.find(closer))
+        && spaces(&path[..at]) <= MOST_SPACES
+    {
+        return at;
     }
     let sep = match path.as_bytes().get(2) {
         Some(b'\\') => '\\',
@@ -30,17 +103,39 @@ fn path_end(path: &str, opened: Option<char>) -> usize {
         _ => path.len(),
     };
     let reach = named_file_end(&path[..reach]).unwrap_or(reach);
-    let marks: Vec<(usize, char)> = path[..reach].char_indices().collect();
-    let last = marks
-        .windows(3)
-        .rev()
-        .find(|w| w[1].1 == sep && !w[0].1.is_whitespace() && !w[2].1.is_whitespace())
-        .map_or(0, |w| w[1].0);
-    let tail = &path[last..];
-    last + tail
+    let text = &path[..reach];
+    let mut end = word_end(text, 0);
+    while let Some(next) = spaced_on(text, end, sep) {
+        end = word_end(text, next);
+    }
+    end
+}
+
+fn word_end(text: &str, from: usize) -> usize {
+    text[from..]
         .char_indices()
-        .find(|&(_, c)| c.is_whitespace() || "`\"')]>,;»".contains(c))
-        .map_or(tail.len(), |(end, _)| end)
+        .find(|&(_, c)| c.is_whitespace() || STOPS.contains(c))
+        .map_or(text.len(), |(at, _)| from + at)
+}
+
+/// Where the path carries on past a space: the next separator, if the words before it are few
+/// enough to be one folder's name and it is not itself the loose slash of a sentence.
+fn spaced_on(text: &str, from: usize, sep: char) -> Option<usize> {
+    let rest = &text[from..];
+    if !rest.starts_with(char::is_whitespace) {
+        return None;
+    }
+    let at = rest.find(|c: char| c == sep || STOPS.contains(c))?;
+    let stretch = &rest[..at];
+    let after = &rest[at..];
+    let joins = after.starts_with(sep)
+        && !stretch.ends_with(char::is_whitespace)
+        && after[sep.len_utf8()..].starts_with(|c: char| !c.is_whitespace());
+    (joins && spaces(stretch) <= MOST_SPACES).then_some(from + at)
+}
+
+fn spaces(text: &str) -> usize {
+    text.chars().filter(|c| c.is_whitespace()).count()
 }
 
 pub(super) fn absolute(line: &str) -> Option<usize> {
@@ -54,12 +149,17 @@ pub(super) fn absolute(line: &str) -> Option<usize> {
             && bytes[at].is_ascii_alphabetic()
             && bytes[at + 1] == b':'
             && (bytes[at + 2] == b'/' || bytes[at + 2] == b'\\');
+        // A second slash in the same word: `/code-review` or `RMDir /r` are words, not folders.
         let rooted = bytes[at] == b'/'
             && at > 0
             && bytes[at - 1] == b' '
             && bytes
                 .get(at + 1)
-                .is_some_and(|next| !next.is_ascii_whitespace());
+                .is_some_and(|next| !next.is_ascii_whitespace())
+            && line[at + 1..]
+                .split(char::is_whitespace)
+                .next()
+                .is_some_and(|word| word.contains('/'));
         drive || rooted
     })
 }
@@ -80,7 +180,7 @@ fn named_file_end(path: &str) -> Option<usize> {
         let end = at + 1 + ext;
         let closed = marks
             .get(end)
-            .is_none_or(|&(_, next)| next.is_whitespace() || "`\"')]>,;»".contains(next));
+            .is_none_or(|&(_, next)| next.is_whitespace() || STOPS.contains(next));
         if closed && path[..dot].contains(['/', '\\']) {
             return Some(marks.get(end).map_or(path.len(), |&(at, _)| at));
         }

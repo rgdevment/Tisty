@@ -992,7 +992,8 @@ fn a_note_that_names_a_path_is_read_whole_but_the_path() {
         .to_string();
 
     let wrote = "Starting at **2 GB / 90 DAYS_KEPT**. An old store sits in \
-                 `C:/Users/someone/OneDrive/Tisty` and STAYS_SAID after it.";
+                 C:/Users/someone/OneDrive/Tisty and STAYS_SAID after it, \
+                 the way `C:/Users/example/Tisty` shows.";
     served.call("note", serde_json::json!({ "task": &id, "body": wrote }));
 
     let back = served.call("read", serde_json::json!({ "task": &id }));
@@ -1009,6 +1010,10 @@ fn a_note_that_names_a_path_is_read_whole_but_the_path() {
     assert!(
         !kept.contains("Users/someone"),
         "the shape of a disk is not the agent's business: {kept}"
+    );
+    assert!(
+        kept.contains("`C:/Users/example/Tisty`"),
+        "a path between backticks is an example and reaches the agent as written: {kept}"
     );
 }
 
