@@ -86,6 +86,11 @@ Little, and all of it reversible.
   added one; your tasks, documents and attachments stay. Wanting the program
   gone is not the same as wanting your history gone. If you do want it gone,
   the folder is yours to delete.
+- On macOS, `brew uninstall --cask tisty` closes Tisty first and leaves your
+  data alone the same way. `brew uninstall --cask --zap tisty` takes
+  everything: your tasks, documents and attachments, settings, cache and the
+  start at login. The keychain keeps a cloud access until you disconnect
+  first, as [PRIVACY.md](../PRIVACY.md) explains.
 
 ## What it does with your data
 
