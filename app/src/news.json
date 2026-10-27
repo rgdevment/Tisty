@@ -831,5 +831,40 @@
         "said": "on Windows, Claude Desktop from the Microsoft Store now keeps its settings somewhere else, and Tisty writes there. After connecting it, quit Claude completely and open it again: closing its window is not enough."
       }
     ]
+  },
+  {
+    "version": "1.37.1",
+    "headline": {
+      "es": "Tu asistente lee y edita sin cortar nada",
+      "en": "Your assistant reads and edits without cutting anything"
+    },
+    "es": [
+      {
+        "title": "Tu asistente lee tus notas completas",
+        "said": "al leer tus notas, un asistente ya no pierde frases enteras que estaban junto a una ruta de tu equipo: solo se ocultan las rutas de tus carpetas, y los ejemplos de código le llegan tal como los escribiste. Cuando oculta una ruta, se lo avisa."
+      },
+      {
+        "title": "Diagramas intactos cuando un asistente los edita",
+        "said": "si un asistente cambia unas líneas dentro de un diagrama o de un bloque de código, quedan tal como las escribió, con sus saltos de línea."
+      },
+      {
+        "title": "Íconos parejos en tus carpetas",
+        "said": "un emoji que usas como ícono de una carpeta ocupa el mismo espacio que los demás íconos y ya no agranda su fila, sobre todo en Mac."
+      }
+    ],
+    "en": [
+      {
+        "title": "Your assistant reads your notes whole",
+        "said": "when it reads your notes, an assistant no longer loses whole sentences that sat beside a path on your computer: only the paths to your folders are hidden, and code examples reach it just as you wrote them. When it hides a path, it says so."
+      },
+      {
+        "title": "Diagrams stay intact when an assistant edits them",
+        "said": "if an assistant changes a few lines inside a diagram or a code block, they stay exactly as it wrote them, line breaks included."
+      },
+      {
+        "title": "Even icons in your folders",
+        "said": "an emoji you use as a folder's icon takes the same room as every other icon and no longer stretches its row, above all on a Mac."
+      }
+    ]
   }
 ]
