@@ -270,6 +270,9 @@ pub(crate) fn menued(
 pub(crate) fn parting<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     use tauri::{Emitter, Manager};
 
+    if crate::diagramming::holds_back(app) {
+        return;
+    }
     if app
         .state::<Leaving>()
         .0
