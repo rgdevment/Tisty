@@ -22,6 +22,7 @@ import {
 } from "./paging";
 import { type PartCarded, partCarded } from "./partcarding";
 import { type Chosen, type Formatting, type Menued, quickly } from "./quickly";
+import { sideways } from "./sideways";
 import { offeredAsParts, staged } from "./staging";
 import { webCarded } from "./webcarding";
 import { gripped, widening } from "./widening";
@@ -274,7 +275,7 @@ export const worn = (
     apart: Boolean(reach?.onApart),
     more: Boolean(reach?.onMore) && !stranger,
   });
-  const kept = shown.held;
+  const kept = [...shown.held, ...sideways(page)];
   const lent = widgets(page, stranger, reach).concat(shown.lent);
   if (reach && !stranger) {
     carded(page, reach, live);

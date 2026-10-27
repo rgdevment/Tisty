@@ -252,8 +252,9 @@ fn drawn(tongue: Option<&str>, said: &str, at: &str, out: &mut String) -> bool {
     }
 }
 
+// The block is a box of its own so a table wider than the sheet scrolls instead of squeezing its words.
 fn table(columns: &[Column], at: &str, block: &Block, text: &str, out: &mut String) {
-    let _ = write!(out, "<table {at}><colgroup>");
+    let _ = write!(out, "<div class=\"table\" {at}><table><colgroup>");
     for column in columns {
         match column.wide {
             Some(wide) => {
@@ -290,7 +291,7 @@ fn table(columns: &[Column], at: &str, block: &Block, text: &str, out: &mut Stri
     if body {
         out.push_str("</tbody>");
     }
-    out.push_str("</table>");
+    out.push_str("</table></div>");
 }
 
 // Inside a quote the block still carries each line's marker, which is not part of its html.

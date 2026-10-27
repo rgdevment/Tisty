@@ -35,8 +35,7 @@ const { coloredAll, saidKinds } = await vite.ssrLoadModule("/src/ui/paging.ts");
 const { adopt, t } = await vite.ssrLoadModule("/src/locales.ts");
 const { hosting, named, pictured } = await vite.ssrLoadModule("/src/previews.ts");
 const { carded, piece } = await vite.ssrLoadModule("/src/ui/carding.ts");
-const { HUES } = await vite.ssrLoadModule("/src/ui/paging.ts");
-const sheet = (await vite.ssrLoadModule("/src/ui/page.css?raw")).default;
+const { HUES, PAGE_CSS: sheet } = await vite.ssrLoadModule("/src/ui/paging.ts");
 const { examplesIn, shownBeside, topicsOf } = await vite.ssrLoadModule("/src/guide/reference.ts");
 await vite.close();
 

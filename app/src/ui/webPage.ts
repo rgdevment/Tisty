@@ -92,16 +92,18 @@ export type PaperSheet = {
   /** How the first body is seen on screen: where its sheets turn, which folds are open. */
   readonly turns?: readonly string[];
   readonly opened?: readonly string[];
+  readonly wide?: readonly string[];
 };
 
 // Paper turns where the screen's sheets turn and folds what the screen folds, so what is read there is what is printed.
-const asSeen = (drawn: string, { turns = [], opened = [] }: PaperSheet): string => {
-  if (!turns.length && !opened.length) return drawn;
+const asSeen = (drawn: string, { turns = [], opened = [], wide = [] }: PaperSheet): string => {
+  if (!turns.length && !opened.length && !wide.length) return drawn;
   const held = new DOMParser().parseFromString(`<body>${drawn}</body>`, "text/html").body;
   for (const one of held.children) {
     const at = (one as HTMLElement).dataset.at ?? "";
     if (turns.includes(at)) one.classList.add("turned");
     if (one.tagName === "DETAILS" && opened.includes(at)) one.setAttribute("open", "");
+    if (wide.includes(at)) one.classList.add("wide");
   }
   return held.innerHTML;
 };

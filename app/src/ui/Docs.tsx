@@ -46,7 +46,7 @@ import type { Head } from "./paging";
 import { usePreviewing } from "./previewing";
 import { pdfOf, STAMPING, type Stamp, type Stamping, seenIn, stampOf } from "./printing";
 import Ribbon, { Onward } from "./Ribbon";
-import { acrossOf, PAPER, pageFor, sheetFor } from "./sheets";
+import { acrossOf, PAPER, pageFor, sheetFor, writtenAcrossOf } from "./sheets";
 import type { Asking } from "./slashing";
 import { CompactBar, MarkBar } from "./Tidied";
 import { useLeaving } from "./useLeaving";
@@ -641,7 +641,7 @@ export default function Docs({
   const blobOf = async (stamp: Stamp): Promise<Blob | null> => {
     const read = await book();
     if (!read) return null;
-    const seen = seenIn(drawn.current?.document);
+    const seen = seenIn(drawn.current?.document, writtenAcrossOf(leaf, landscape));
     return pdfOf([body, ...read.written], { leaf, landscape, stamp, ...seen });
   };
 

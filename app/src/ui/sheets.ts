@@ -32,6 +32,9 @@ export const PRINTED = `margin:${MARGIN_MM.y}mm ${MARGIN_MM.x}mm`;
 
 export const acrossOf = (leaf: Paper, landscape: boolean) => (landscape ? SHEET_TALL : PAPER)[leaf];
 
+export const writtenAcrossOf = (leaf: Paper, landscape: boolean) =>
+  acrossOf(leaf, landscape) - 2 * MARGIN.x;
+
 export const sheetFor = (leaf: Paper, landscape: boolean, said: string) => ({
   wide: acrossOf(leaf, landscape),
   tall: (landscape ? PAPER : SHEET_TALL)[leaf],
