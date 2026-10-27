@@ -62,6 +62,8 @@ export interface Seen {
   readonly turns: string[];
   /** The folded blocks left open on screen, which print open where they are. */
   readonly opened: string[];
+  /** The tables that, with every word whole, are wider than the paper's text. */
+  readonly wide: string[];
 }
 
 const placed = (all: Iterable<Element | null>): string[] =>
@@ -70,12 +72,30 @@ const placed = (all: Iterable<Element | null>): string[] =>
     return at ? [at] : [];
   });
 
-// The page as it is drawn on screen: where its sheets turn and which folds are open.
-export const seenIn = (page: Document | null | undefined): Seen => ({
+// A table stretches to its box, so the width it needs is only seen with it pressed to its narrowest.
+const narrowest = (table: HTMLElement): number => {
+  const was = table.style.width;
+  table.style.width = "min-content";
+  const needs = table.offsetWidth;
+  table.style.width = was;
+  return needs;
+};
+
+// The page as it is drawn on screen: where its sheets turn, which folds are open, which tables outgrow the paper.
+export const seenIn = (
+  page: Document | null | undefined,
+  across = Number.POSITIVE_INFINITY,
+): Seen => ({
   turns: placed(
     Array.from(page?.querySelectorAll(".page > .sheet-turn") ?? []).map(
       (one) => one.nextElementSibling,
     ),
   ),
   opened: placed(page?.querySelectorAll(".page > details[open]") ?? []),
+  wide: placed(
+    Array.from(page?.querySelectorAll<HTMLElement>(".page > .table") ?? []).filter((one) => {
+      const table = one.querySelector<HTMLElement>(":scope > table");
+      return table !== null && narrowest(table) > across;
+    }),
+  ),
 });

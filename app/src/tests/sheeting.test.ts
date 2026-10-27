@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { landscapeIn, paperIn, sheetsIn, withLandscape, withPaper, withSheets } from "../front";
 import { seenIn } from "../ui/printing";
 import { sheeted } from "../ui/sheeting";
@@ -129,7 +129,21 @@ describe("the page as it is seen, handed to the PDF", () => {
     document.body.innerHTML =
       '<article class="page"><p data-at="0-5">uno</p><details open data-at="6-20"><summary>a</summary>x</details><details data-at="21-30"><summary>b</summary>y</details><div class="sheet-turn"></div><p data-at="31-40">dos</p></article>';
 
-    expect(seenIn(document)).toEqual({ turns: ["31-40"], opened: ["6-20"] });
-    expect(seenIn(null)).toEqual({ turns: [], opened: [] });
+    expect(seenIn(document)).toEqual({ turns: ["31-40"], opened: ["6-20"], wide: [] });
+    expect(seenIn(null)).toEqual({ turns: [], opened: [], wide: [] });
+  });
+
+  it("names the tables that, with every word whole, outgrow the paper's text", () => {
+    document.body.innerHTML =
+      '<article class="page"><div class="table" data-at="0-9"><table data-needs="900"></table></div><div class="table" data-at="10-19"><table data-needs="300"></table></div></article>';
+    const offset = vi.spyOn(HTMLElement.prototype, "offsetWidth", "get");
+    offset.mockImplementation(function (this: HTMLElement) {
+      return this.style.width === "min-content" ? Number(this.dataset.needs ?? 0) : 640;
+    });
+
+    expect(seenIn(document, 643).wide).toEqual(["0-9"]);
+    expect(seenIn(document).wide).toEqual([]);
+    expect(document.querySelector<HTMLElement>("table")?.style.width).toBe("");
+    offset.mockRestore();
   });
 });
