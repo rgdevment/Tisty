@@ -32,7 +32,7 @@ Since 1.32.1, while the door is open, Tisty also answers to plain `tisty` from a
 
 **Connect the ones found** connects every one waiting at once. Some files serve more than one assistant: GitHub Copilot CLI's is also read by VS Code, and Codex's by ChatGPT and Warp.
 
-An assistant reads its settings when it starts, so after connecting it, quit it completely and open it again. Closing its window is not enough: on Windows it keeps running by the clock until you quit it from there, and on a Mac until **⌘Q**.
+An assistant reads its settings when it starts, so after connecting it, quit it completely and open it again. If it has a window, closing it is not enough: on Windows it keeps running by the clock until you quit it from there, and on a Mac until **⌘Q**.
 
 Tisty only touches its own entry. Anything you added to it, like `env` or the tools you allowed, stays, and so does the rest of the file. The first version of each file is kept beside it as `.before-tisty`, and the one just before each write as `.before-tisty-last`.
 

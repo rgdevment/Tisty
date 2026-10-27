@@ -44,6 +44,7 @@ fn stuck(why: wiring::Stuck) -> Refusal {
         wiring::Stuck::NoSuch => Refusal::of("noSuchAgent"),
         wiring::Stuck::Shut => Refusal::of("wslShut"),
         wiring::Stuck::Puzzling(at) => Refusal::about("settingsPuzzling", at),
+        wiring::Stuck::Unborn(at) => Refusal::about("settingsUnborn", at),
         wiring::Stuck::Cannot(why) => Refusal::about("cannotWrite", why),
     }
 }

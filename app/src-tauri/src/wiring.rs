@@ -60,6 +60,7 @@ pub enum Stuck {
     NoSuch,
     Shut,
     Puzzling(String),
+    Unborn(String),
     Cannot(String),
 }
 
@@ -195,17 +196,21 @@ fn wire_at(client: &Client, place: &Place, at: &Path) -> Result<(), Stuck> {
         ),
     }
     .ok_or_else(|| Stuck::Puzzling(at.display().to_string()))?;
+    let aside = place.moved_aside(at);
+    if aside && !at.is_file() {
+        return Err(Stuck::Unborn(at.display().to_string()));
+    }
     kept(at, &was)?;
-    laid(at, &now, tisty_core::paths::from_the_store())
+    laid(at, &now, aside)
 }
 
 pub fn unwire(id: &str) -> Result<Vec<Seen>, Stuck> {
     let (client, place, at) = asked(id)?;
-    unwire_at(&client, &at)?;
+    unwire_at(&client, &place, &at)?;
     Ok(seen_in(&place))
 }
 
-fn unwire_at(client: &Client, at: &Path) -> Result<(), Stuck> {
+fn unwire_at(client: &Client, place: &Place, at: &Path) -> Result<(), Stuck> {
     let was = std::fs::read_to_string(at).unwrap_or_default();
     let now = match client.shape {
         Shape::Manual => None,
@@ -214,7 +219,7 @@ fn unwire_at(client: &Client, at: &Path) -> Result<(), Stuck> {
     };
     if let Some(now) = now {
         kept(at, &was)?;
-        laid(at, &now, tisty_core::paths::from_the_store())?;
+        laid(at, &now, place.moved_aside(at))?;
     }
     Ok(())
 }
@@ -247,14 +252,15 @@ fn kept(at: &Path, was: &str) -> Result<(), Stuck> {
     std::fs::write(at.with_file_name(format!("{named}.{LAST}")), was).map_err(sour)
 }
 
-fn laid(at: &Path, text: &str, packaged: bool) -> Result<(), Stuck> {
+fn laid(at: &Path, text: &str, aside: bool) -> Result<(), Stuck> {
     if let Some(folder) = at.parent() {
         std::fs::create_dir_all(folder).map_err(sour)?;
     }
-    if packaged && at.is_file() {
-        return std::fs::write(at, text).map_err(sour);
-    }
-    tisty_core::store::write_atomic(at, text.as_bytes()).map_err(|e| Stuck::Cannot(e.to_string()))
+    let wrote = match aside && at.is_file() {
+        true => tisty_core::store::write_in_place(at, text.as_bytes()),
+        false => tisty_core::store::write_atomic(at, text.as_bytes()),
+    };
+    wrote.map_err(|e| Stuck::Cannot(e.to_string()))
 }
 
 fn sour(why: std::io::Error) -> Stuck {

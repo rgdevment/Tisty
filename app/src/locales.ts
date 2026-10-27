@@ -2162,8 +2162,7 @@ const en = {
   wiringOn: "Connected",
   wiringJoin: "Connect",
   wiringOut: "Remove",
-  wiringFresh:
-    "Written. Quit it completely and open it again for it to see Tisty: closing its window is not enough.",
+  wiringFresh: "Written. Quit it completely and open it again for it to see Tisty.",
   wiringGone: "Taken out. Quit it completely and open it again.",
   wiringMute: "They still file nothing until you let an assistant file, above.",
   wiringBefore:
@@ -2199,6 +2198,8 @@ const en = {
   wslUnread: "{name} could not be read. Open it once in a terminal and look again.",
   settingsPuzzling:
     "{name} is written in a way Tisty would not know how to change without spoiling it. Add the lines below to it by hand instead.",
+  settingsUnborn:
+    "{name} is not there yet. Open the assistant once so it makes it, then connect it again.",
   backupSave: "Save a copy",
   backupNever: "none yet",
   backupAbout: "about {name}",
@@ -4705,8 +4706,7 @@ const es: Catalog = {
   wiringOn: "Conectado",
   wiringJoin: "Conectar",
   wiringOut: "Quitar",
-  wiringFresh:
-    "Escrito. Sal de él del todo y ábrelo otra vez para que vea Tisty: cerrar su ventana no basta.",
+  wiringFresh: "Escrito. Sal de él del todo y ábrelo otra vez para que vea Tisty.",
   wiringGone: "Quitado. Sal de él del todo y ábrelo otra vez.",
   wiringMute: "Aun así no anotarán nada hasta que se lo permitas arriba.",
   wiringBefore:
@@ -4743,6 +4743,8 @@ const es: Catalog = {
   wslUnread: "No se pudo leer {name}. Ábrela una vez en una terminal y vuelve a buscar.",
   settingsPuzzling:
     "{name} está escrito de una forma que Tisty no sabría cambiar sin estropearla. Añádele a mano las líneas de abajo.",
+  settingsUnborn:
+    "{name} todavía no existe. Abre el asistente una vez para que lo cree y vuelve a conectarlo.",
   backupSave: "Guardar una copia",
   backupNever: "ninguna todavía",
   backupAbout: "unos {name}",

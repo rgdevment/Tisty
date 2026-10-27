@@ -54,6 +54,7 @@ fn roots_resolve_only_where_they_exist() {
         bins: Vec::new(),
         command: "/mnt/c/tisty.exe".into(),
         open: true,
+        packaged: false,
         mount: "/mnt/".into(),
     };
     assert_eq!(
@@ -84,6 +85,7 @@ fn a_command_in_a_distro_is_reached_where_windows_keeps_it() {
         bins: Vec::new(),
         command: "/mnt/c/tisty.exe".into(),
         open: true,
+        packaged: false,
         mount: "/mnt/".into(),
     };
 

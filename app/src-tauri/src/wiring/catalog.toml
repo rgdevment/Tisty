@@ -1,8 +1,7 @@
 # Where each assistant keeps its MCP servers and how it wants Tisty written.
 # Paths start with a root: ~ (home), appdata: and localappdata: (Windows), support: (macOS
 # Application Support), config: (~/.config, or $XDG_CONFIG_HOME), store:<prefix>: (a Windows Store
-# package's private roaming folder). A step ending in * is the first folder whose name starts so.
-# Read with the docs of each assistant, October 2026.
+# package's private roaming folder). Read with the docs of each assistant, October 2026.
 
 [[client]]
 id = "claude-code"

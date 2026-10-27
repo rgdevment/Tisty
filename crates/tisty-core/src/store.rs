@@ -1089,6 +1089,19 @@ pub fn write_atomic(path: &Path, contents: &[u8]) -> Result<()> {
     wrote
 }
 
+pub fn write_in_place(path: &Path, contents: &[u8]) -> Result<()> {
+    let mut wait = 10;
+    for _ in 0..6 {
+        match std::fs::write(path, contents) {
+            Ok(()) => return Ok(()),
+            Err(e) if !for_a_moment(&e) => return Err(e.into()),
+            Err(_) => std::thread::sleep(std::time::Duration::from_millis(wait)),
+        }
+        wait *= 2;
+    }
+    Ok(std::fs::write(path, contents)?)
+}
+
 fn renamed(tmp: &Path, path: &Path) -> std::io::Result<()> {
     let mut wait = 10;
     for _ in 0..6 {

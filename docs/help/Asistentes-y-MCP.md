@@ -32,7 +32,7 @@ Desde la 1.32.1, mientras la puerta está abierta, Tisty también responde a `ti
 
 **Conectar los detectados** conecta de una vez todos los que esperan. Algunos archivos sirven a más de un asistente: el de GitHub Copilot CLI también lo lee VS Code, y el de Codex lo leen ChatGPT y Warp.
 
-Un asistente lee su configuración al abrirse, así que después de conectarlo sal de él del todo y ábrelo otra vez. Cerrar su ventana no basta: en Windows sigue abierto junto al reloj hasta que sales desde ahí, y en un Mac hasta **⌘Q**.
+Un asistente lee su configuración al abrirse, así que después de conectarlo sal de él del todo y ábrelo otra vez. Si tiene ventana, cerrarla no basta: en Windows sigue abierto junto al reloj hasta que sales desde ahí, y en un Mac hasta **⌘Q**.
 
 Tisty solo toca su propia entrada. Lo que le agregaste, como `env` o las herramientas que permitiste, se queda, igual que el resto del archivo. La primera versión de cada archivo queda al lado como `.before-tisty`, y la de justo antes de cada escritura como `.before-tisty-last`.
 

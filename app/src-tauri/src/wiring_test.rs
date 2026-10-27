@@ -15,6 +15,7 @@ fn place(home: &Path, command: &str) -> Place {
         bins: Vec::new(),
         command: command.to_string(),
         open: true,
+        packaged: false,
         mount: String::new(),
     }
 }
@@ -154,7 +155,7 @@ fn a_toml_table_keeps_what_the_person_put_in_it() {
     );
     assert_eq!(read["model"].as_str(), Some("gpt"));
 
-    unwire_at(&client("codex"), &at).unwrap();
+    unwire_at(&client("codex"), &place(tmp.path(), "/opt/tisty"), &at).unwrap();
     assert!(!std::fs::read_to_string(&at).unwrap().contains("tisty"));
 }
 
@@ -270,4 +271,76 @@ fn a_store_copy_edits_a_file_already_there_in_place() {
         assert_eq!(std::fs::read_to_string(&at).unwrap(), "now");
         assert_eq!(std::fs::read_to_string(&other).unwrap(), seen);
     }
+}
+
+#[test]
+fn only_a_store_copy_writing_under_appdata_writes_in_place() {
+    let room = tempfile::tempdir().unwrap();
+    let store = Place {
+        packaged: true,
+        ..windows(room.path())
+    };
+    let moved = room
+        .path()
+        .join("Local/Claude-Data/claude_a/claude_desktop_config.json");
+
+    assert!(store.moved_aside(&moved));
+    assert!(store.moved_aside(&room.path().join("Roaming/Code/User/mcp.json")));
+    assert!(!store.moved_aside(&room.path().join(".claude.json")));
+    assert!(!windows(room.path()).moved_aside(&moved));
+    let distro = Place {
+        distro: Some("Ubuntu".into()),
+        ..store.clone()
+    };
+    assert!(!distro.moved_aside(&moved));
+}
+
+#[test]
+fn a_store_copy_does_not_make_a_settings_file_the_assistant_never_made() {
+    let room = tempfile::tempdir().unwrap();
+    let place = Place {
+        packaged: true,
+        ..windows(room.path())
+    };
+    let claude = client("claude-desktop");
+    std::fs::create_dir_all(room.path().join("Local/Claude-Data/claude_pzs8sxrjxfjjc")).unwrap();
+    let at = claude.file(&place).unwrap();
+
+    assert!(matches!(
+        wire_at(&claude, &place, &at),
+        Err(Stuck::Unborn(_))
+    ));
+    assert!(!at.exists());
+
+    std::fs::write(&at, "{\"preferences\": {}}").unwrap();
+    wire_at(&claude, &place, &at).unwrap();
+    assert!(std::fs::read_to_string(&at).unwrap().contains("\"tisty\""));
+}
+
+#[test]
+fn of_several_folders_named_alike_the_one_holding_the_settings_is_taken() {
+    let room = tempfile::tempdir().unwrap();
+    let place = windows(room.path());
+    let data = room.path().join("Local/Claude-Data");
+    std::fs::create_dir_all(data.join("claude_a1beta")).unwrap();
+    std::fs::create_dir_all(data.join("claude_pzs8sxrjxfjjc")).unwrap();
+    let live = data
+        .join("claude_pzs8sxrjxfjjc")
+        .join("claude_desktop_config.json");
+    std::fs::write(&live, "{}").unwrap();
+
+    assert_eq!(client("claude-desktop").file(&place).unwrap(), live);
+}
+
+#[test]
+fn a_folder_is_named_alike_whatever_its_case() {
+    let room = tempfile::tempdir().unwrap();
+    let place = windows(room.path());
+    let data = room.path().join("Local/Claude-Data");
+    std::fs::create_dir_all(data.join("Claude_PZS")).unwrap();
+
+    assert_eq!(
+        place.resolve("localappdata:Claude-Data/claude_*/x.json"),
+        Some(data.join("Claude_PZS").join("x.json"))
+    );
 }
