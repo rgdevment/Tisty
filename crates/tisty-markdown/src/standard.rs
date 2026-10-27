@@ -1,7 +1,7 @@
 use std::cmp::Reverse;
 use std::ops::Range;
 
-use crate::{Block, Callout, Kind, Mark, refs};
+use crate::{Block, Callout, Column, Kind, Mark, refs, values};
 
 /// Where a link to another document lands outside Tisty; nothing found leaves the words alone.
 pub enum Toward<'a> {
@@ -68,6 +68,7 @@ fn outward(
                 edits.push((start + at..start + at + 3, "mermaid".to_string()));
             }
         }
+        Kind::Table { columns } => typed_out(block, columns, said, text, edits),
         _ => {}
     }
     for span in &block.spans {
@@ -190,6 +191,36 @@ fn headed(said: &str, start: usize, edits: &mut Edits) {
     }
     let gap = rest.len() - words.len();
     edits.push((start + shut..start + shut + gap, "\n> ".into()));
+}
+
+// Outside Tisty a column's type is words nobody reads, so it goes, and its values read as Tisty shows them.
+fn typed_out(block: &Block, columns: &[Column], said: &str, text: &str, edits: &mut Edits) {
+    if columns.iter().all(|one| one.typed.is_none()) {
+        return;
+    }
+    for at in columns.iter().filter_map(|one| one.typed.clone()) {
+        edits.push((at, String::new()));
+    }
+    let read = values::read(columns, block, text);
+    for (row_at, row) in block.inner.iter().skip(1).enumerate() {
+        for (at, cell) in row.inner.iter().enumerate() {
+            let shown = read.at(row_at, at).and_then(|one| one.shown.as_ref());
+            if let (Some(shown), Some(spread)) = (shown, values::spread(cell)) {
+                edits.push((spread, shown.replace('|', r"\|")));
+            }
+        }
+    }
+    if let Some(foot) = &read.foot {
+        let end = block.at.start + said.len();
+        let last = &said[said.rfind('\n').map_or(0, |at| at + 1)..];
+        let quote = &last[..last.len() - last.trim_start_matches(['>', ' ']).len()];
+        let row: String = foot
+            .iter()
+            .map(|one| format!(" {} |", one.replace('|', r"\|")))
+            .collect();
+        let broken = if said.contains("\r\n") { "\r\n" } else { "\n" };
+        edits.push((end..end, format!("{broken}{quote}|{row}")));
+    }
 }
 
 fn escaped(text: &str) -> String {

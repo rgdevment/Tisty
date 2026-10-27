@@ -1,0 +1,10 @@
+---
+source: crates/tisty-markdown/tests/typed.rs
+expression: standard(SUBSCRIPTIONS)
+---
+| Servicio | Categoría | Precio | Próximo cobro | Valoración | Activa |
+| -------- | ---------- | --------: | ---------- | ---------- | :----: |
+| Spotify | Música | $6.490 | 2026-11-14 | ★★★★★ | ✓ |
+| Netflix \| 4K | Video | $9.990 | 2026-11-03 | ★★★☆☆ | ✓ |
+| Duolingo | Educación | 7.990 | pronto | ★★☆☆☆ |  |
+| Total |  | $16.480 | 2026-11-03 | 3.3 | 2 |

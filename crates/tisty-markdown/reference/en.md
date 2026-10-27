@@ -30,6 +30,7 @@ Nothing on this page needs learning by heart. The `/` menu and the bar in the ed
 | [Formulas](#diagrams-formulas-and-widgets) | ` ```math ` `$x$` `$$x$$` | yes | no |
 | [Widgets](#diagrams-formulas-and-widgets) | ` ```widget ` | as code | as code |
 | [Tables](#tables) | `\| a \| b \|` | yes | no |
+| [Column types](#column-types) | `\| Price {money CLP sum} \|` | as words | no |
 | [Page breaks](#page-breaks) | `---` | as a rule | as a rule |
 | [Comments and entities](#comments-and-entities) | `<!-- note -->` `&copy;` | yes | yes |
 
@@ -537,6 +538,42 @@ GitHub draws every one of these fences but `widget`, and `$…$` and `$$…$$` t
 - A column's width rides in that rule: four dashes or more set it, ten pixels a dash; three leave it to the page. Other readers ignore how many dashes there are. See Tables.
 - A `|` inside a cell is written `\|`.
 - A cell holds a line of words and marks, not blocks.
+- A column can say what it holds, as the next section tells.
+
+### Column types
+
+A word in braces at the end of a column's head says what the column holds, and Tisty shows, sorts and adds up its cells as that. A column without braces holds words.
+
+```markdown
+| Service  | Category {select} | Price {money CLP sum} | Next charge {date} | Rating {rating} | Active {check} |
+| -------- | ----------------- | --------------------: | ------------------ | --------------- | :------------: |
+| Spotify  | Music             |                  6490 | 2026-11-14         | 5               | [x]            |
+| Duolingo | Education         |                  7990 | 2026-12-01         | 2               | [ ]            |
+```
+
+| Type | A cell holds | Tisty shows |
+| :-- | :-- | :-- |
+| `{number}` | `3` `1.5` `-2` | the number, to the right |
+| `{money CLP}` | `6490` | `$6.490`, as that currency is written |
+| `{percent}` | `45` | `45%` |
+| `{date}` | `2026-11-14` | the date |
+| `{duration}` | `1h30m` `45m` | `1 h 30 min` |
+| `{check}` | `[x]` or `[ ]` | ✓ or nothing |
+| `{select}` | one choice | the choice; the column's own values are its options |
+| `{tags}` | `web, docs` | the tags |
+| `{rating}` | `0` to `5` | ★★★★☆ |
+| `{link}` | `[[Lease contract]]` or a document linked with `/` | a link to that document |
+| `{url}` | `https://…` | the link |
+| `{email}` | `ana@mail.com` | the address |
+| `{phone}` | `+56 9 1234 5678` | the number |
+
+- A word after the type adds the column up at the foot of the table: `sum`, `avg`, `min` or `max` for numbers, money, percentages, durations and ratings; `min` and `max` for dates too; `count` for any column, which in a `{check}` column counts the ticked ones. The foot is drawn, never written in the file.
+- `{money}` takes the currency's three-letter code: `{money EUR}`, `{money USD sum}`. Without one it shows two decimals and no symbol.
+- Numbers are written with a point for decimals and no thousands mark: `6490`, `12.5`. Dates are always year, month and day: `2026-11-14`.
+- A value not written as its type asks, like `soon` in a date column, is shown as written with a wavy line under it. Nothing is refused: the file says what it says.
+- A word Tisty does not know, like `{important}`, stays part of the head, braces and all, and so do braces glued to the word before them, as in `Price{money}`.
+- A table of more than 2,000 rows, or of more than 256 KB, is shown as plain words, braces and all.
+- GitHub and other readers show the braces as written. Exporting to standard Markdown or to Word takes them out, writes each value as Tisty shows it and adds the foot as a last row.
 
 ## Page breaks
 

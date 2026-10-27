@@ -207,15 +207,14 @@ fn a_column_keeps_its_width_in_its_dashes_and_its_lean_in_its_colons() {
         vec![
             Column {
                 lean: Some(Lean::Left),
-                wide: Some(160)
+                wide: Some(160),
+                ..Column::default()
             },
-            Column {
-                lean: None,
-                wide: None
-            },
+            Column::default(),
             Column {
                 lean: Some(Lean::Right),
-                wide: Some(60)
+                wide: Some(60),
+                ..Column::default()
             },
         ]
     );
