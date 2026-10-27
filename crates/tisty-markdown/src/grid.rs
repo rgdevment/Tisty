@@ -84,24 +84,97 @@ impl fmt::Display for Refused {
 
 /// The text with one table changed; the table is the one that spans `at`, or nothing is.
 pub fn edit(text: &str, at: Range<usize>, asked: &Edit) -> Result<String, Refused> {
+    located(text, &at, |block, columns| {
+        let said = text[at.clone()].trim_end_matches(['\r', '\n']);
+        let rest = &text[at.start + said.len()..];
+        // The last line's `\r` sits in what follows the table, so it travels with whichever line ends up last.
+        let carried = rest.starts_with("\r\n");
+        let mut lines = Lines::read(said, carried);
+        lines.changed(asked, columns, block, text)?;
+        let written = lines.written();
+        let written = if carried {
+            written.strip_suffix('\r').unwrap_or(&written)
+        } else {
+            &written
+        };
+        Ok(format!("{}{written}{rest}", &text[..at.start]))
+    })
+}
+
+/// Edits one after another on the same table, as one change: a cell written and its row moved.
+pub fn edits(text: &str, at: Range<usize>, asked: &[Edit]) -> Result<String, Refused> {
+    let mut now = text.to_string();
+    let mut at = at;
+    for one in asked {
+        let next = edit(&now, at.clone(), one)?;
+        // Only the table changed, so it still starts where it did and ends as much later as the text grew.
+        let end = (at.end + next.len())
+            .checked_sub(now.len())
+            .ok_or(Refused::Moved)?;
+        at = at.start..end;
+        now = next;
+    }
+    Ok(now)
+}
+
+/// The rows under the head, by their place as written, in the order a column sorts them.
+pub fn order(
+    text: &str,
+    at: Range<usize>,
+    column: usize,
+    down: bool,
+) -> Result<Vec<usize>, Refused> {
+    located(text, &at, |block, columns| {
+        if column >= columns.len() {
+            return Err(Refused::Beyond);
+        }
+        Ok(values::sorted(columns, block, text, column, down))
+    })
+}
+
+/// A table's words as written, escapes kept, so a cell opens for writing just as it is in the file.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct Written {
+    /// Each head without its type, which the column's menu changes on its own.
+    pub heads: Vec<String>,
+    pub rows: Vec<Vec<String>>,
+}
+
+pub fn written(text: &str, at: Range<usize>) -> Result<Written, Refused> {
+    located(text, &at, |_, columns| {
+        let said = text[at.clone()].trim_end_matches(['\r', '\n']);
+        let lines = Lines::read(said, false);
+        let heads = (0..columns.len())
+            .map(|at| {
+                let cell = lines.head.cells.get(at).map_or("", String::as_str);
+                titled(cell, &columns[at], text).0.to_string()
+            })
+            .collect();
+        let rows = lines
+            .body
+            .iter()
+            .map(|line| {
+                line.cells
+                    .iter()
+                    .map(|one| one.trim().to_string())
+                    .collect()
+            })
+            .collect();
+        Ok(Written { heads, rows })
+    })
+}
+
+fn located<T>(
+    text: &str,
+    at: &Range<usize>,
+    then: impl FnOnce(&Block, &[Column]) -> Result<T, Refused>,
+) -> Result<T, Refused> {
     let doc = read(text);
-    let block = found(doc.blocks(), &at).ok_or(Refused::Moved)?;
+    let block = found(doc.blocks(), at).ok_or(Refused::Moved)?;
     let Kind::Table { columns } = &block.kind else {
         return Err(Refused::Moved);
     };
-    let said = text[at.clone()].trim_end_matches(['\r', '\n']);
-    let rest = &text[at.start + said.len()..];
-    // The last line's `\r` sits in what follows the table, so it travels with whichever line ends up last.
-    let carried = rest.starts_with("\r\n");
-    let mut lines = Lines::read(said, carried);
-    lines.changed(asked, columns, block, text)?;
-    let written = lines.written();
-    let written = if carried {
-        written.strip_suffix('\r').unwrap_or(&written)
-    } else {
-        &written
-    };
-    Ok(format!("{}{written}{rest}", &text[..at.start]))
+    then(block, columns)
 }
 
 fn found<'a>(blocks: &'a [Block], at: &Range<usize>) -> Option<&'a Block> {

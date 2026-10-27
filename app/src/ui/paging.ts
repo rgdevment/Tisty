@@ -5,6 +5,7 @@ import bar from "./bar.css?raw";
 import { diagramShot } from "./diagrams";
 import type { Choice } from "./Menu";
 import sheet from "./page.css?raw";
+import { type TableAct, tableClicked } from "./tabled";
 import tables from "./tables.css?raw";
 import task from "./taskpage.css?raw";
 
@@ -91,13 +92,26 @@ export type Went =
   | { kind: "cut"; at: [number, number] }
   | { kind: "picture"; nth: number }
   | { kind: "diagram"; at: [number, number] }
+  | TableWent
   | null;
+
+/** A table's own click: `at` in bytes as the page says it, `row` by its place in the file, `to` where a dragged row lands. */
+export type TableWent = {
+  kind: "table";
+  at: [number, number];
+  act: TableAct;
+  row: number;
+  column: number;
+  to?: number;
+  x: number;
+  y: number;
+};
 
 // A picture or a diagram, as the viewer shows it; only a kept file can be saved or opened.
 export type Shot = { readonly src: string; readonly kept: string | null; readonly alt: string };
 
 // What a click leaves alone, and so no picture inside it is one to look at.
-const UNTOUCHED = "summary, figure.widget, .media, .col-grip, .picture-away";
+const UNTOUCHED = "summary, figure.widget, .media, .col-grip, .picture-away, .table-input";
 
 const SHOTS = ".page img[src], .page figure.diagram.drawn";
 
@@ -175,6 +189,23 @@ export const widgetsIn = (block: Element | null): Element[] =>
     : Array.from(block?.querySelectorAll("figure.widget") ?? []);
 
 const pressedIn = (asked: HTMLElement): Went => {
+  if (asked.dataset.asked === "table") {
+    const at = spanned(asked.closest<HTMLElement>(".page > [data-at]")?.dataset.at ?? null);
+    const box = asked.getBoundingClientRect();
+    const act = asked.dataset.act as TableAct;
+    const place = (said?: string) => (said === undefined ? -1 : Number(said));
+    return at
+      ? {
+          kind: "table",
+          at,
+          act,
+          row: place(asked.dataset.row),
+          column: place(asked.dataset.column),
+          x: box.left,
+          y: box.bottom,
+        }
+      : null;
+  }
   // A diagram inside a quote or a list is named by its own place, not by the block around it.
   if (asked.dataset.asked === "diagram") {
     const at = spanned(asked.closest<HTMLElement>("figure.diagram[data-at]")?.dataset.at ?? null);
@@ -212,6 +243,12 @@ export const went = (target: Element, selecting: boolean): Went => {
   const tag = target.closest<HTMLElement>(".tag")?.dataset.tag;
   if (tag) return { kind: "tag", name: tag };
   if (selecting || target.closest(UNTOUCHED)) return null;
+  const tabled = tableClicked(target);
+  if (tabled) {
+    const at = spanned(target.closest<HTMLElement>(".page > [data-at]")?.dataset.at ?? null);
+    const box = target.closest("td, th")?.getBoundingClientRect();
+    return at ? { kind: "table", at, ...tabled, x: box?.left ?? 0, y: box?.bottom ?? 0 } : null;
+  }
   // A picture or a diagram is looked at; it is written only from the block's own menu.
   const shot = shotAt(target.ownerDocument, target);
   if (shot !== null) return { kind: "picture", nth: shot };
