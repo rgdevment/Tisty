@@ -62,6 +62,7 @@ export interface Chosen {
   layer?: Reading;
   axis?: Axis;
   topic?: string;
+  from?: string;
 }
 
 export const A_COLUMN = 200;

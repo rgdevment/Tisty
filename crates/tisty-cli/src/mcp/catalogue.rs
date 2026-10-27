@@ -1241,6 +1241,25 @@ pub(super) fn tools() -> Value {
             }))
         }),
         json!({
+            "name": "help",
+            "title": "How Tisty itself works",
+            "description": "The pages of Tisty's own Help, the ones tisty.app shows: installing, tasks and how they are written, documents, pages and PDF, sync, encrypting the cloud and letting a computer in, assistants, keyboard shortcuts, privacy. Ask it when the person asks how Tisty does something, instead of guessing. Left alone it gives the index; a `topic` gives one page. `lang` picks English or Spanish.",
+            "inputSchema": shaped(json!({
+                "properties": {
+                    "topic": {
+                        "type": "string",
+                        "enum": super::helping::topics(),
+                        "description": "One page, named as the index names it. Left out, the index"
+                    },
+                    "lang": {
+                        "type": "string",
+                        "enum": ["en", "es"],
+                        "description": "en for English, es for Spanish. Left out, English"
+                    }
+                }
+            }))
+        }),
+        json!({
             "name": "tags",
             "title": "The tags already in use",
             "description": "Every tag the person already writes, the most used first, with how many times each one appears, in the plain form they are filed under. Capitals and accents decide nothing: #Camión and #camion are one tag. Ask for it before you tag anything and reuse one when the subject really is the same; a second word for something already tagged splits it in two.",

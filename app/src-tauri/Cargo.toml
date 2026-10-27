@@ -47,6 +47,7 @@ tisty-onedrive.workspace = true
 tisty-webdav.workspace = true
 tisty-core.workspace = true
 tisty-share-proto = { workspace = true, features = ["mint"] }
+tisty-help.workspace = true
 tisty-markdown = { workspace = true, features = ["default"] }
 tisty-nl.workspace = true
 tauri.workspace = true

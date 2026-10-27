@@ -73,7 +73,7 @@ export default function Stage() {
   fresh.current = refreshed;
   useEffect(() => afterMove(() => fresh.current()), []);
   return chosen.named === "help" ? (
-    <Help topic={chosen.topic} />
+    <Help topic={chosen.topic} from={chosen.from} />
   ) : chosen.named === "docs" && !chosen.doc && here !== undefined ? (
     <Folder
       folder={standing ?? null}

@@ -1100,7 +1100,7 @@ export const keepLocale = (locale?: string): Promise<string | null> =>
 export const keepTheme = (theme?: Theme): Promise<Theme | null> => invoke("keep_theme", { theme });
 export const keepClosing = (how: "hide" | "quit" | "ask"): Promise<void> =>
   invoke("keep_closing", { how });
-export const guide = (): Promise<Doc> => invoke("guide");
+export const guide = (own?: boolean): Promise<Doc> => invoke("guide", { own });
 export type BackedUp = { bytes: number; leftOut: number; leftOutBytes: number };
 export const backUp = (into: string): Promise<BackedUp> => invoke("back_up", { into });
 export const retireAttachment = (reference: string): Promise<void> =>
@@ -1273,11 +1273,6 @@ export const docRead = (id: string): Promise<string> => invoke("doc_read", { id 
 export const docDrawn = (body: string): Promise<string> =>
   invoke<ArrayBuffer>("doc_drawn", { body }).then((bytes) => new TextDecoder().decode(bytes));
 export const docPlain = (body: string): Promise<string> => invoke("doc_plain", { body });
-export const helpReference = (spanish: boolean): Promise<string> =>
-  invoke("help_reference", { spanish });
-export const helpDrawn = (body: string): Promise<string> => invoke("help_drawn", { body });
-export const helpAnchors = (bodies: string[]): Promise<string[][]> =>
-  invoke("help_anchors", { bodies });
 export const noteDrawn = (body: string): Promise<string> => invoke("note_drawn", { body });
 
 export type Piece = { readonly said: string; readonly fixed: string };

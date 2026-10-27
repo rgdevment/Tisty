@@ -9,7 +9,8 @@
     "!mutants.out",
     "!THIRD-PARTY-BUNDLED.md",
     "!THIRD-PARTY-LICENSES.md",
-    "!crates/tisty-markdown/reference"
+    "!crates/tisty-markdown/reference",
+    "!docs/help"
   ],
   "config": {
     "default": true,

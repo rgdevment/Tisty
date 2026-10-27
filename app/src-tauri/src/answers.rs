@@ -4,6 +4,7 @@ pub mod calendar;
 pub mod carrying;
 pub mod clouding;
 pub mod freeing;
+pub mod helping;
 pub mod joining;
 pub mod knocking;
 pub mod machines;

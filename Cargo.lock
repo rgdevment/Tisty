@@ -5714,6 +5714,7 @@ dependencies = [
  "tempfile",
  "tisty-carrier",
  "tisty-core",
+ "tisty-help",
  "tisty-markdown",
  "tisty-nl",
  "tisty-share-proto",
@@ -5800,6 +5801,7 @@ dependencies = [
  "tisty-carrier",
  "tisty-core",
  "tisty-google",
+ "tisty-help",
  "tisty-markdown",
  "tisty-nl",
  "tisty-onedrive",
@@ -5815,6 +5817,10 @@ dependencies = [
  "zeroize",
  "zip 9.0.5",
 ]
+
+[[package]]
+name = "tisty-help"
+version = "0.1.0"
 
 [[package]]
 name = "tisty-markdown"

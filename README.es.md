@@ -421,7 +421,7 @@ al costado, qué es el archivo, el ancho de la página y el PDF que saldría, co
 original donde estaba. Un documento tuyo se abre igual desde su panel, *Abrir en
 una ventana aparte*, y su PDF ahí lleva firma salvo que desmarques **Con
 firma**. Un widget también se abre aparte, al ancho de un móvil, una tablet o
-un escritorio. Más en [la wiki](https://github.com/rgdevment/Tisty/wiki/Documentos#abrir-un-archivo-markdown-de-afuera).
+un escritorio. Más en [la ayuda](https://www.tisty.app/es/ayuda/documentos/#abrir-un-archivo-markdown-de-afuera).
 
 **Y salen enteros.** Un documento se copia como Markdown estándar, como lo
 leen GitHub y CommonMark, se escribe en una carpeta con sus páginas y sus
@@ -790,10 +790,10 @@ Tisty te lo dice con todas las letras cuando no. Una copia solo se suelta despu�
 de comprobar que la de la carpeta compartida tiene el mismo sha.
 
 Y como quien sube una carpeta es el programa de tu proveedor y no Tisty, si algún
-día cambias algo en un equipo y no aparece en el otro, [la wiki](https://github.com/rgdevment/Tisty/wiki/Sincronizar-y-respaldar#cambié-algo-en-un-equipo-y-no-aparece-en-el-otro)
+día cambias algo en un equipo y no aparece en el otro, [la ayuda](https://www.tisty.app/es/ayuda/sincronizar-y-respaldar/#cambié-algo-en-un-equipo-y-no-aparece-en-el-otro)
 enumera las causas en el orden en que conviene revisarlas, y qué significa cada
 aviso de Google Drive, de *Reconectar* a un Drive lleno o
-[algo que bloquea el camino](https://github.com/rgdevment/Tisty/wiki/Sincronizar-y-respaldar#cuando-algo-se-interpone-con-google).
+[algo que bloquea el camino](https://www.tisty.app/es/ayuda/sincronizar-y-respaldar/#cuando-algo-se-interpone-con-google).
 
 ## Un asistente, si usas uno
 

@@ -410,7 +410,7 @@ with **← Back to the document**. **Edit in Tisty** brings it in as a document
 and leaves the original where it was. A document of yours opens the same way
 from its panel, *Open in a window of its own*, and its PDF there is signed
 unless you untick **Signed**. A widget opens apart too, at phone, tablet or
-desktop width. More in [the wiki](https://github.com/rgdevment/Tisty/wiki/Documents#opening-a-markdown-file-from-outside).
+desktop width. More in [the help](https://www.tisty.app/docs/documents/#opening-a-markdown-file-from-outside).
 
 **And they leave whole.** A document copies as standard Markdown, the way
 GitHub and CommonMark read it, writes out into a folder with its pages and
@@ -770,10 +770,10 @@ the shared folder is found to hash the same.
 
 And because what uploads a folder is your provider's program and not Tisty, if
 you ever change something on one machine and it does not turn up on the other,
-[the wiki](https://github.com/rgdevment/Tisty/wiki/Sync-and-Backup#something-changed-on-one-machine-and-is-not-on-the-other)
+[the help](https://www.tisty.app/docs/sync-and-backup/#something-changed-on-one-machine-and-is-not-on-the-other)
 lists the causes worth checking, in order — and what each message about Google
 Drive means, from *Reconnect* to a full Drive or
-[something blocking the way](https://github.com/rgdevment/Tisty/wiki/Sync-and-Backup#when-something-stands-in-the-way-of-google).
+[something blocking the way](https://www.tisty.app/docs/sync-and-backup/#when-something-stands-in-the-way-of-google).
 
 ## An Assistant, If You Use One
 

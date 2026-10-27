@@ -312,16 +312,16 @@ describe("where the document rests", () => {
     expect(sheetOf()?.style.maxWidth).toBe("842px");
   });
 
-  it("reserves room right at 1552, the exact width the column needs to fit beside the page", async () => {
-    widen(1552);
+  it("reserves room right at 1522, the exact width the column needs to fit beside the page", async () => {
+    widen(1522);
     show();
     await screen.findByRole("complementary", { name: "About this document" });
 
     expect(roomOf()?.style.paddingRight).toBe("344px");
   });
 
-  it("reserves nothing a single pixel short of 1552", async () => {
-    widen(1551);
+  it("reserves nothing a single pixel short of 1522", async () => {
+    widen(1521);
     show();
     await screen.findByRole("complementary", { name: "About this document" });
 

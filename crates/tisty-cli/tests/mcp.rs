@@ -406,6 +406,7 @@ fn there_is_no_tool_for_closing_dropping_or_deleting() {
             "lists",
             "rules",
             "language",
+            "help",
             "tags"
         ]
     );

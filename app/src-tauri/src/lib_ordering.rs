@@ -134,7 +134,17 @@ fn a_guide_that_came_from_another_machine_is_taken_rather_than_planted_again() {
 
     assert_eq!(
         crate::answers::settings::guide_already_here(&session).map(|one| one.0),
+        Some(file.clone())
+    );
+    let spanish = tisty_core::docs::titled(crate::answers::settings::GUIDE_ES);
+    let english = tisty_core::docs::titled(crate::answers::settings::GUIDE_EN);
+    assert_eq!(
+        crate::answers::settings::guide_here_as(&session, &spanish).map(|one| one.0),
         Some(file)
+    );
+    assert_eq!(
+        crate::answers::settings::guide_here_as(&session, &english),
+        None
     );
 }
 

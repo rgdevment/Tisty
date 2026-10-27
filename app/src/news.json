@@ -756,5 +756,64 @@
         "said": "the button to delete the unencrypted copy shows only while there is still one to delete."
       }
     ]
+  },
+  {
+    "version": "1.37.0",
+    "headline": {
+      "es": "La ayuda de Tisty, completa y sin conexión",
+      "en": "Tisty's help, whole and offline"
+    },
+    "es": [
+      {
+        "title": "Toda la ayuda, dentro de Tisty",
+        "said": "el `?` al pie de la barra lateral abre la ayuda completa: tareas, documentos, sincronizar, cifrar tu nube, asistentes, atajos y privacidad. Viene con tu versión, así que funciona sin conexión y siempre describe lo que tienes instalado."
+      },
+      {
+        "title": "Busca lo que necesitas",
+        "said": "escribe una palabra y Tisty busca en todas las páginas, con o sin acentos. La guía de Markdown sigue ahí, a un clic, y `F1` mientras escribes te lleva directo a lo que estás escribiendo."
+      },
+      {
+        "title": "Ayuda para lo que estabas haciendo",
+        "said": "si abres la ayuda desde Configuración › Seguridad, te ofrece cifrar tu nube, autorizar un equipo y guardar tu frase; desde tus documentos, lo que cabe en ellos. Así llegas a la respuesta sin buscarla."
+      },
+      {
+        "title": "Las imágenes, cuando las pidas",
+        "said": "la ayuda se lee completa sin sus imágenes. Si las quieres, un aviso discreto te ofrece descargarlas una vez y quedan en tu equipo; hasta entonces, cada una dice qué muestra."
+      },
+      {
+        "title": "Tu asistente conoce Tisty",
+        "said": "un asistente conectado puede leer estas mismas páginas, así que te responde cómo funciona Tisty en vez de suponerlo."
+      },
+      {
+        "title": "La guía de bienvenida, en tu idioma",
+        "said": "si cambias el idioma y abres la guía desde Configuración › General, Tisty la escribe en tu idioma y deja la anterior donde estaba."
+      }
+    ],
+    "en": [
+      {
+        "title": "All of the help, inside Tisty",
+        "said": "the `?` at the foot of the sidebar opens the whole help: tasks, documents, sync, encrypting your cloud, assistants, shortcuts and privacy. It comes with your version, so it works offline and always describes what you have installed."
+      },
+      {
+        "title": "Search for what you need",
+        "said": "type a word and Tisty looks through every page, accents or not. The Markdown guide is still there, one click away, and `F1` while you write takes you straight to what you are writing."
+      },
+      {
+        "title": "Help for what you were doing",
+        "said": "open the help from Settings › Security and it offers encrypting your cloud, letting a computer in and keeping your phrase; from your documents, what fits in them. You get to the answer without looking for it."
+      },
+      {
+        "title": "The pictures, when you ask",
+        "said": "the help reads whole without its pictures. If you want them, a quiet notice offers to download them once and they stay on your computer; until then, each one says what it shows."
+      },
+      {
+        "title": "Your assistant knows Tisty",
+        "said": "a connected assistant can read these same pages, so it answers how Tisty works instead of guessing."
+      },
+      {
+        "title": "The welcome guide, in your language",
+        "said": "change the language and open the guide from Settings › General, and Tisty writes it in your language, leaving the earlier one where it was."
+      }
+    ]
   }
 ]

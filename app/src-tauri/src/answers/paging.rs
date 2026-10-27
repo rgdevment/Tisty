@@ -41,6 +41,11 @@ pub async fn help_reference(spanish: bool) -> String {
         .unwrap_or_else(|| tisty_markdown::reference(spanish).to_string())
 }
 
+#[tauri::command]
+pub fn help_reference_here(spanish: bool) -> String {
+    tisty_markdown::reference(spanish).to_string()
+}
+
 pub(crate) fn published(at: &str) -> Option<String> {
     let asked = reqwest::blocking::Client::builder()
         .timeout(PATIENCE)
