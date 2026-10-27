@@ -251,7 +251,6 @@ fn laid(at: &Path, text: &str, packaged: bool) -> Result<(), Stuck> {
     if let Some(folder) = at.parent() {
         std::fs::create_dir_all(folder).map_err(sour)?;
     }
-    // Windows moves a file a Store app creates in AppData into the app's own copy, but not an edit to one already there.
     if packaged && at.is_file() {
         return std::fs::write(at, text).map_err(sour);
     }
