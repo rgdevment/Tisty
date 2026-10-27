@@ -44,6 +44,8 @@ interface Props {
 
 const SIGNED = new Set(["cloudLost", "cloudElsewhere"]);
 
+const LOOK_AGAIN = 10_000;
+
 export default function Clouded({
   state,
   busy,
@@ -74,6 +76,15 @@ export default function Clouded({
   }, []);
 
   useEffect(look, [look, state.last, busy]);
+
+  const unsettled = Boolean(
+    status?.running || status?.sealingElsewhere || (status && !status.joined),
+  );
+  useEffect(() => {
+    if (!unsettled) return;
+    const ticking = setInterval(look, LOOK_AGAIN);
+    return () => clearInterval(ticking);
+  }, [unsettled, look]);
 
   const last = status?.last;
   // A sign-in that went through answers the round that found the door shut, before the next round ends.
@@ -236,7 +247,11 @@ export default function Clouded({
           className="mt-2.5 flex items-start gap-2.5 rounded-[10px] border border-hue-amber/40 px-3 py-2"
         >
           <span className="min-w-0 flex-1 text-[11.5px] leading-relaxed text-soft">
-            <span className="block text-[12.5px] font-semibold text-ink">
+            <span
+              className={`block text-[12.5px] font-semibold text-ink ${
+                standing.pending ? "motion-safe:animate-pulse" : ""
+              }`}
+            >
               {standing.name ? fill(standing.said, standing.name) : t(standing.said)}
             </span>
             {standing.why ? (

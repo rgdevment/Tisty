@@ -7,7 +7,7 @@ use tisty_carrier::{Hitch, Secrets, Tokens};
 use tisty_core::config::{CloudAt, GOOGLE_SHOWN, Leaving, ONEDRIVE_SHOWN, Sync, WEBDAV_SHOWN};
 
 use crate::reaching::{GOOGLE, KEPT_AS, ONEDRIVE, WEBDAV, secrets_for};
-use crate::{Answer, Refusal, Session, held};
+use crate::{Answer, OneAtATime, Refusal, Session, held};
 
 const CONSENT_WAITED: Duration = Duration::from_secs(5 * 60);
 // Microsoft has no way to revoke a personal account's grant from here, so the person is taken where they can.
@@ -697,13 +697,17 @@ pub struct CloudStatus {
     lost: bool,
     /// The place holds another history, and the next round takes it on its own instead of asking.
     adopts: bool,
+    running: bool,
+    sealing_elsewhere: Option<&'static str>,
 }
 
 /// What Settings and Maintenance say of the chosen cloud, read off this disk with no request.
 #[tauri::command(async)]
 pub async fn cloud_status(
     session: tauri::State<'_, Mutex<Session>>,
+    alone: tauri::State<'_, OneAtATime>,
 ) -> Answer<Option<CloudStatus>> {
+    let running = alone.inner().in_round();
     let (at, home, here, paths, took) = {
         let session = held(&session);
         let Some(at) = tisty_carrier::cloud_of(session.config.sync.as_ref()).cloned() else {
@@ -732,10 +736,22 @@ pub async fn cloud_status(
                     took.as_deref(),
                 )
         });
+        status.running = running;
+        status.sealing_elsewhere = turned_elsewhere(&home);
         Some(status)
     })
     .await
     .map_err(|_| Refusal::of("internal"))
+}
+
+fn turned_elsewhere(home: &std::path::Path) -> Option<&'static str> {
+    if tisty_carrier::Turning::left(home).is_some() {
+        return None;
+    }
+    match tisty_carrier::turn_of(&crate::sealing::word_here(home))? {
+        tisty_carrier::Turn::On => Some("on"),
+        tisty_carrier::Turn::Off => Some("off"),
+    }
 }
 
 pub(crate) fn status_of(at: &CloudAt, home: &std::path::Path, joined: bool) -> CloudStatus {
@@ -755,6 +771,8 @@ pub(crate) fn status_of(at: &CloudAt, home: &std::path::Path, joined: bool) -> C
         last: told.last,
         lost: false,
         adopts: false,
+        running: false,
+        sealing_elsewhere: None,
     }
 }
 

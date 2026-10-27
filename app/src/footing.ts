@@ -10,7 +10,9 @@ export type Footing =
   | { kind: "offline" }
   | { kind: "lost" }
   | { kind: "paused" }
-  | { kind: "look"; putOff: boolean };
+  | { kind: "look"; putOff: boolean }
+  | { kind: "first" }
+  | { kind: "sealing"; turn: "on" | "off" };
 
 export interface Seen {
   state: Carrying | null;
@@ -69,7 +71,7 @@ export const footing = (seen: Seen): Footing | null => {
   const { state, status } = seen;
   if (!synced(state)) return null;
   const now = seen.now ?? Date.now() / 1000;
-  if (seen.coming || seen.mine)
+  if (seen.coming || seen.mine || status?.running)
     return { kind: "syncing", done: seen.coming?.done ?? 0, whole: seen.coming?.whole ?? 0 };
   const said = new Set<Said | null>([
     status?.last ? saidOf(status.last.code, status.last.at, now) : null,
@@ -86,8 +88,14 @@ export const footing = (seen: Seen): Footing | null => {
   if (state?.mode === "cloud" && (seen.offline || said.has("offline"))) return { kind: "offline" };
   if (said.has("wait") || said.has("troubled"))
     return { kind: "wait", troubled: !said.has("wait") };
+  if (status?.sealingElsewhere) return { kind: "sealing", turn: status.sealingElsewhere };
+  if (state?.mode === "cloud" && status && !status.joined) return { kind: "first" };
   return { kind: "ok" };
 };
 
 export const offered = (foot: Footing): boolean =>
-  foot.kind === "ok" || foot.kind === "paused" || foot.kind === "lost" || foot.kind === "look";
+  foot.kind === "ok" ||
+  foot.kind === "first" ||
+  foot.kind === "paused" ||
+  foot.kind === "lost" ||
+  foot.kind === "look";

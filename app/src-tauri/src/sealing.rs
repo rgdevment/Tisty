@@ -70,7 +70,7 @@ fn turned_at(session: &Session) -> Option<(CloudAt, PathBuf)> {
     Some((at, home))
 }
 
-fn word_here(home: &Path) -> String {
+pub(crate) fn word_here(home: &Path) -> String {
     std::fs::read_to_string(tisty_carrier::mirrored_at(home).join("tisty.toml")).unwrap_or_default()
 }
 

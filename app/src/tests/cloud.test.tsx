@@ -131,6 +131,25 @@ describe("what the cloud's state says", () => {
     expect(of("deferred-paused")).toBeNull();
   });
 
+  it("says what a cloud still waits on when no round stands in the way", () => {
+    expect(cloudStanding(status({ sealingElsewhere: "on" }))).toMatchObject({
+      said: "stateSealingOn",
+      pending: true,
+    });
+    expect(cloudStanding(status({ sealingElsewhere: "off", last: round("ok") }))?.said).toBe(
+      "stateSealingOff",
+    );
+    expect(cloudStanding(status({ joined: false, running: true }))).toMatchObject({
+      said: "stateFirstRunning",
+      pending: true,
+    });
+    expect(cloudStanding(status({ joined: false }))?.said).toBe("stateFirst");
+    expect(
+      cloudStanding(status({ sealingElsewhere: "on", last: round("cloudSealed") }))?.said,
+    ).toBe("stateSealed");
+    expect(cloudStanding(status())).toBeNull();
+  });
+
   it("names the other account a copy belongs to", () => {
     const said = cloudStanding(
       status({ last: round("cloudElsewhere", { name: "otra@gmail.com" }) }),
