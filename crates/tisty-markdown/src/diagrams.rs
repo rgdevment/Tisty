@@ -1,0 +1,120 @@
+use std::ops::Range;
+
+use crate::{Block, Kind};
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Diagram {
+    pub at: Range<usize>,
+    pub source: String,
+    inside: Option<Range<usize>>,
+}
+
+pub fn diagrams(text: &str) -> Vec<Diagram> {
+    let doc = crate::read(text);
+    let mut found = Vec::new();
+    gather(doc.blocks(), text, &mut found);
+    found
+}
+
+fn gather(blocks: &[Block], text: &str, found: &mut Vec<Diagram>) {
+    for block in blocks {
+        match &block.kind {
+            Kind::Code {
+                tongue: Some(tongue),
+                ..
+            } if matches!(tongue.as_str(), "mermaid" | "mmd") => found.push(Diagram {
+                at: block.at.clone(),
+                source: block
+                    .spans
+                    .iter()
+                    .map(|one| &text[one.at.clone()])
+                    .collect::<String>()
+                    .replace('\r', ""),
+                inside: block
+                    .spans
+                    .first()
+                    .zip(block.spans.last())
+                    .map(|(first, last)| first.at.start..last.at.end),
+            }),
+            _ => gather(&block.inner, text, found),
+        }
+    }
+}
+
+/// Refused unless the diagram still says `was`, so nothing written meanwhile is lost.
+pub fn redrawn(text: &str, near: usize, was: &str, now: &str) -> Option<(String, usize)> {
+    let was = was.replace('\r', "");
+    let found = diagrams(text);
+    let same: Vec<&Diagram> = found.iter().filter(|one| one.source == was).collect();
+    let chosen = match same.iter().find(|one| one.at.start == near) {
+        Some(one) => one,
+        None if same.len() == 1 => same[0],
+        None => return None,
+    };
+    Some((written_into(text, chosen, now), chosen.at.start))
+}
+
+pub fn as_read(now: &str) -> String {
+    now.replace('\r', "")
+        .lines()
+        .map(|line| format!("{line}\n"))
+        .collect()
+}
+
+fn written_into(text: &str, diagram: &Diagram, now: &str) -> String {
+    let (room, lead) = match &diagram.inside {
+        Some(inside) => (inside.clone(), lead_before(text, inside.start)),
+        None => {
+            let after = line_end(text, diagram.at.start);
+            (after..after, opening_lead(text, diagram.at.start))
+        }
+    };
+    let ending = if text.contains("\r\n") { "\r\n" } else { "\n" };
+    let mut said = String::new();
+    for (index, line) in now.replace('\r', "").lines().enumerate() {
+        if index > 0 || diagram.inside.is_none() {
+            said.push_str(&lead);
+        }
+        said.push_str(line);
+        said.push_str(ending);
+    }
+    if said.is_empty() && diagram.inside.is_some() {
+        return format!("{}{}", &text[..room.start - lead.len()], &text[room.end..]);
+    }
+    format!("{}{said}{}", &text[..room.start], &text[room.end..])
+}
+
+fn line_start(text: &str, at: usize) -> usize {
+    text[..at].rfind('\n').map_or(0, |found| found + 1)
+}
+
+fn line_end(text: &str, at: usize) -> usize {
+    text[at..]
+        .find('\n')
+        .map_or(text.len(), |found| at + found + 1)
+}
+
+fn lead_before(text: &str, at: usize) -> String {
+    text[line_start(text, at)..at].to_string()
+}
+
+// A fence opened on a list bullet keeps its lines under the bullet's words, not under the bullet.
+fn opening_lead(text: &str, at: usize) -> String {
+    let start = line_start(text, at);
+    let line = &text[start..line_end(text, at)];
+    let mark = line.find(['`', '~']).unwrap_or(0);
+    line[..mark]
+        .chars()
+        .map(|one| {
+            if one == '>' || one.is_whitespace() {
+                one
+            } else {
+                ' '
+            }
+        })
+        .collect()
+}
+
+#[cfg(test)]
+#[path = "diagrams_test.rs"]
+mod tests;

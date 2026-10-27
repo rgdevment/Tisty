@@ -485,7 +485,8 @@ export type Showing =
       refusal: { code: string; name?: string };
     }
   | { kind: "doc"; paper: Viewed; body: string }
-  | { kind: "widget"; lent: Lent; from: Viewed | null };
+  | { kind: "widget"; lent: Lent; from: Viewed | null }
+  | { kind: "diagram"; paper: Viewed; source: string };
 export const viewShown = (): Promise<Showing> => invoke("view_shown");
 export const viewFacts = (): Promise<DocFacts> => invoke("view_facts");
 export const viewImport = (open: boolean): Promise<Viewed & Left> =>
@@ -494,6 +495,9 @@ export const viewGo = (file: string): Promise<void> => invoke("view_go", { file 
 export const viewWidget = (lent: Lent, from?: Viewed): Promise<void> =>
   invoke("view_widget", { lent, from: from ?? null });
 export const viewDoc = (paper: Viewed): Promise<void> => invoke("view_doc", { paper });
+export const viewDiagram = (paper: Viewed, at: number): Promise<void> =>
+  invoke("view_diagram", { paper, at });
+export const diagramSave = (now: string): Promise<void> => invoke("diagram_save", { now });
 
 export const served = (reference: string): Promise<string> => invoke("served", { reference });
 export const drawsHeicHere = (): Promise<boolean> => invoke("draws_heic");

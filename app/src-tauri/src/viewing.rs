@@ -32,6 +32,7 @@ pub enum Shown {
     File(PathBuf),
     Doc(Paper),
     Widget { lent: Lent, from: Option<Paper> },
+    Diagram(crate::diagramming::Drawn),
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -56,6 +57,10 @@ pub enum Showing {
     Widget {
         lent: Lent,
         from: Option<Paper>,
+    },
+    Diagram {
+        paper: Paper,
+        source: String,
     },
 }
 
@@ -267,12 +272,13 @@ fn scaled(height: f64) -> (f64, f64) {
     (WIDE, (height * 0.8).max(560.0))
 }
 
-pub fn open(app: &AppHandle, shown: Shown) {
+pub(crate) fn open(app: &AppHandle, shown: Shown) {
     let views = app.state::<Views>();
     let label = format!("view-{}", views.made.fetch_add(1, Ordering::Relaxed));
     let title = match &shown {
         Shown::File(at) => named(at),
         Shown::Doc(paper) => paper.title.clone(),
+        Shown::Diagram(drawn) => drawn.paper.title.clone(),
         Shown::Widget { .. } => "Tisty".into(),
     };
     if let Ok(mut held) = views.shown.lock() {
@@ -321,7 +327,7 @@ pub fn open(app: &AppHandle, shown: Shown) {
     }
 }
 
-fn shown_in(views: &Views, label: &str) -> Answer<Shown> {
+pub(crate) fn shown_in(views: &Views, label: &str) -> Answer<Shown> {
     views
         .shown
         .lock()
@@ -330,13 +336,21 @@ fn shown_in(views: &Views, label: &str) -> Answer<Shown> {
         .ok_or_else(|| Refusal::of("notAllowed"))
 }
 
+pub(crate) fn reshow(views: &Views, label: &str, shown: Shown) {
+    if let Ok(mut held) = views.shown.lock()
+        && let Some(was) = held.get_mut(label)
+    {
+        *was = shown;
+    }
+}
+
 fn session_of(app: &AppHandle) -> Answer<tauri::State<'_, Mutex<Session>>> {
     app.try_state::<Mutex<Session>>()
         .ok_or_else(|| Refusal::of("internal"))
 }
 
 // Read without being minded: the main window's guard against overwriting a changed file must stay its own.
-fn doc_body(app: &AppHandle, file: &str) -> Answer<String> {
+pub(crate) fn doc_body(app: &AppHandle, file: &str) -> Answer<String> {
     let root = held(&*session_of(app)?).paths.docs();
     tisty_core::docs::read(&root, file).map_err(|e| match e {
         tisty_core::Error::DocumentTooBig { limit, .. } => {
@@ -372,6 +386,10 @@ pub fn view_shown(
             paper,
         },
         Shown::Widget { lent, from } => Showing::Widget { lent, from },
+        Shown::Diagram(drawn) => Showing::Diagram {
+            paper: drawn.paper,
+            source: drawn.was,
+        },
     })
 }
 
@@ -384,6 +402,7 @@ pub fn view_facts(
     match shown_in(&views, window.label())? {
         Shown::File(at) => crate::answers::papers::outside_facts(&at),
         Shown::Doc(paper) => crate::answers::papers::doc_facts(session, paper.file),
+        Shown::Diagram(drawn) => crate::answers::papers::doc_facts(session, drawn.paper.file),
         Shown::Widget { .. } => Err(Refusal::of("notAllowed")),
     }
 }
@@ -410,7 +429,7 @@ pub fn view_import(
             }
             (paper, left)
         }
-        Shown::Widget { .. } => return Err(Refusal::of("notAllowed")),
+        Shown::Widget { .. } | Shown::Diagram(_) => return Err(Refusal::of("notAllowed")),
     };
     if open {
         bring(&app, &paper.file);

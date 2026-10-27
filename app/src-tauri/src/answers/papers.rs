@@ -1243,7 +1243,7 @@ fn named_anew(session: &mut Session, book: Option<String>, page: &str, title: &s
     }
 }
 
-fn unwritten(e: tisty_core::Error) -> Refusal {
+pub(crate) fn unwritten(e: tisty_core::Error) -> Refusal {
     match e {
         tisty_core::Error::DocumentTooBig { limit, .. } => {
             Refusal::about("documentTooLong", weighed(limit))

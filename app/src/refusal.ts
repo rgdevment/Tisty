@@ -211,6 +211,7 @@ const KNOWN = [
   "lockedStaysPut",
   "lockIsTheDocs",
   "documentMoved",
+  "diagramMoved",
   "taskPageBehind",
   "nothingKeptBeside",
   "comingDown",

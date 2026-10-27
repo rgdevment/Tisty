@@ -15,6 +15,7 @@ import { landscapeIn, paperIn } from "./front";
 import { leftBehind } from "./leftBehind";
 import { adopt, fill, t } from "./locales";
 import { saidPlainly } from "./refusal";
+import Diagramming from "./ui/drawing/Diagramming";
 import Menu from "./ui/Menu";
 import { seenIn } from "./ui/printing";
 import { KNOWN, pageFor } from "./ui/sheets";
@@ -194,6 +195,7 @@ export default function Viewing() {
   };
   useEffect(() => {
     const heard = (e: KeyboardEvent) => {
+      if (keys.current.shown?.kind === "diagram") return;
       if (e.key === "Escape") return escaping.current();
       if (!(e.ctrlKey || e.metaKey)) return;
       const act = keysFor(keys.current, e);
@@ -206,6 +208,7 @@ export default function Viewing() {
   }, []);
 
   const { title } = titled(shown);
+  if (shown?.kind === "diagram") return <Diagramming paper={shown.paper} source={shown.source} />;
 
   return (
     <main className="relative flex h-full flex-col bg-desk font-sans">
