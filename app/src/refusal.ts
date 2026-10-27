@@ -228,6 +228,7 @@ const KNOWN = [
   "noClipboard",
   "noSuchAgent",
   "settingsPuzzling",
+  "settingsUnborn",
   "wslShut",
   "wslUnread",
 ] as const;

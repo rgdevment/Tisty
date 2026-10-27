@@ -18,11 +18,11 @@ id = "claude-desktop"
 name = "Claude Desktop"
 shape = "plain"
 key = "mcpServers"
-windows = ["store:Claude_:Claude/claude_desktop_config.json", "appdata:Claude/claude_desktop_config.json"]
+windows = ["localappdata:Claude-Data/claude_*/claude_desktop_config.json", "store:Claude_:Claude/claude_desktop_config.json", "appdata:Claude/claude_desktop_config.json"]
 macos = ["support:Claude/claude_desktop_config.json"]
 linux = ["config:Claude/claude_desktop_config.json"]
 apps = ["localappdata:AnthropicClaude/claude.exe", "/Applications/Claude.app"]
-dirs = ["store:Claude_:Claude", "appdata:Claude", "support:Claude"]
+dirs = ["localappdata:Claude-Data/claude_*", "store:Claude_:Claude", "appdata:Claude", "support:Claude"]
 
 [[client]]
 id = "codex"

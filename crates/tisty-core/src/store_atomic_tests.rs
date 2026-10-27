@@ -259,3 +259,55 @@ fn a_newer_segment_with_no_folder_above_it_is_still_named() {
         "active.tisty"
     );
 }
+
+#[test]
+fn a_file_written_in_place_stays_the_same_file() {
+    let room = tempfile::tempdir().unwrap();
+    let at = room.path().join("settings.json");
+    std::fs::write(&at, "was").unwrap();
+    let beside = room.path().join("beside.json");
+    std::fs::hard_link(&at, &beside).unwrap();
+
+    write_in_place(&at, b"now").unwrap();
+
+    assert_eq!(std::fs::read_to_string(&at).unwrap(), "now");
+    assert_eq!(std::fs::read_to_string(&beside).unwrap(), "now");
+    assert!(write_in_place(&room.path().join("no/such/folder.json"), b"x").is_err());
+}
+
+#[test]
+fn a_moment_s_refusal_is_tried_again_and_a_lasting_one_is_not() {
+    let busy = || std::io::Error::other("held open");
+    let mut tries = 0;
+    let done = again(
+        || {
+            tries += 1;
+            if tries < 3 { Err(busy()) } else { Ok(()) }
+        },
+        |_| true,
+    );
+    assert!(done.is_ok());
+    assert_eq!(tries, 3);
+
+    let mut tries = 0;
+    let done = again(
+        || {
+            tries += 1;
+            Err(busy())
+        },
+        |_| false,
+    );
+    assert!(done.is_err());
+    assert_eq!(tries, 1);
+
+    let mut tries = 0;
+    let done = again(
+        || {
+            tries += 1;
+            Err(busy())
+        },
+        |_| true,
+    );
+    assert!(done.is_err());
+    assert_eq!(tries, 7);
+}
