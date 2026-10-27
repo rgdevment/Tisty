@@ -1018,6 +1018,70 @@ fn a_note_that_names_a_path_is_read_whole_but_the_path() {
 }
 
 #[test]
+fn a_migrated_note_reads_back_whole_save_the_paths_on_this_disk() {
+    let served = Served::new();
+    served.person().lets_the_agent_in();
+
+    let filed = served.call("propose", serde_json::json!({ "title": "a migrated note" }));
+    let id = filed["result"]["structuredContent"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let wrote = [
+        "Corrí /code-review tres veces y encontró FIRST_KEPT, sin tocar old/new.",
+        r"Instalado en C:\Program Files (x86)\Tisty\tisty.exe y SECOND_KEPT después.",
+        r"Guardado en C:\Users\someone\OneDrive - Falabella S.A\contrato.pdf y THIRD_KEPT.",
+        r#"Lanzado como "C:\Users\someone\My Old Work Files\x.exe" y FOURTH_KEPT."#,
+        "```sh",
+        "git -C /d/code/github/Tisty push origin main",
+        "```",
+    ]
+    .join("\n");
+    served.call("note", serde_json::json!({ "task": &id, "body": wrote }));
+
+    let back = served.call("read", serde_json::json!({ "task": &id }));
+    let kept = back["result"]["structuredContent"]["journal"][0]["body"]
+        .as_str()
+        .unwrap_or_default();
+    for word in [
+        "FIRST_KEPT",
+        "old/new",
+        "SECOND_KEPT",
+        "THIRD_KEPT",
+        "FOURTH_KEPT",
+        "git -C /d/code/github/Tisty push origin main",
+    ] {
+        assert!(
+            kept.contains(word),
+            "{word} never reached the agent: {kept}"
+        );
+    }
+    for disk in [
+        "Program Files",
+        "Falabella",
+        "someone",
+        "Old Work",
+        "tisty.exe",
+    ] {
+        assert!(!kept.contains(disk), "{disk} is the person's disk: {kept}");
+    }
+
+    let found = served.call("find", serde_json::json!({ "query": "SECOND_KEPT" }));
+    let line = found["result"]["structuredContent"]["matches"][0]["line"]
+        .as_str()
+        .unwrap_or_default();
+    assert!(
+        line.contains("SECOND_KEPT"),
+        "find lost the sentence: {line}"
+    );
+    assert!(
+        !line.contains("Program Files"),
+        "find showed the disk: {line}"
+    );
+}
+
+#[test]
 fn a_path_from_this_disk_is_still_elided() {
     let served = Served::new();
     served.person().lets_the_agent_in();
