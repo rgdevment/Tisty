@@ -768,6 +768,10 @@ dígitos, y los escribes en el otro, en Configuración › *Seguridad* ›
 **Autorizar un equipo nuevo**; luego **Ya los aceptó** en el nuevo confirma
 que lo hiciste. O escribe tus 24 palabras en el nuevo con
 **Escribir mi frase**: ahí solo queda la llave de la nube, nunca la frase.
+Te quedes luego con el historial que te quedes, el equipo que recibió los veinte
+dígitos no vuelve a pedirlo; cada uno de tus otros equipos te pide confirmar su
+código una vez, como con cualquier equipo nuevo, porque la llave sola no dice
+qué equipo es tuyo.
 
 **Lo que no oculta.** Tu proveedor guarda un tiempo versiones anteriores sin
 cifrar, en su historial y su papelera, y los nombres y tamaños de los archivos y

@@ -787,6 +787,10 @@
       {
         "title": "La guía de bienvenida, en tu idioma",
         "said": "si cambias el idioma y abres la guía desde Configuración › General, Tisty la escribe en tu idioma y deja la anterior donde estaba."
+      },
+      {
+        "title": "Autorizar un equipo, una sola vez",
+        "said": "en una nube cifrada, el equipo que autorizaste con tu frase o con los 20 dígitos ya no te lo vuelve a pedir una y otra vez. Tus otros equipos confirman su código una sola vez y listo."
       }
     ],
     "en": [
@@ -813,6 +817,10 @@
       {
         "title": "The welcome guide, in your language",
         "said": "change the language and open the guide from Settings › General, and Tisty writes it in your language, leaving the earlier one where it was."
+      },
+      {
+        "title": "Letting a computer in, once",
+        "said": "in an encrypted cloud, a computer you let in with your phrase or its 20 digits no longer asks for it again and again. Your other computers confirm its code once, and that is it."
       }
     ]
   }

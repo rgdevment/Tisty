@@ -749,6 +749,10 @@ computer** shows twenty digits, and you type them on the other under Settings â€
 *Security* â€º **Let a new computer in**; then **It took them** on the new one
 says you did. Or type your 24 words on the new one
 with **Type my phrase**: only the cloud's key stays there, never the phrase.
+Whichever history you then keep, the computer that took the twenty digits does
+not ask for it again; each of your other computers asks you to confirm its code
+once, as with any new computer, since the key alone does not say which computer
+is yours.
 
 **What it does not hide.** Your provider keeps earlier unencrypted versions for
 a while, in its history and its bin, and the names and sizes of the files and

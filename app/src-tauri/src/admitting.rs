@@ -282,7 +282,7 @@ fn vouch_for(session: &Mutex<Session>, ask: &Ask) -> Worked<()> {
     // Under the lock, as when a machine is confirmed by hand, so a round never rewrites the waiting list meanwhile.
     let session = held(session);
     let data = session.paths.data();
-    if !tisty_core::vouched::confirm(data, &who, &tisty_core::signing::shown_of(&key)) {
+    if !tisty_core::vouched::asked(data, &who, &tisty_core::signing::shown_of(&key)) {
         return Err(trouble("the new computer's key could not be confirmed"));
     }
     tisty_carrier::turned::let_through(data, &ask.device);

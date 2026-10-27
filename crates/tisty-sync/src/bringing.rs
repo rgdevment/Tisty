@@ -80,6 +80,35 @@ fn hosted(
     trusted && tisty_core::vouched::through(data, who, says, &host)
 }
 
+fn gone(
+    data: &Path,
+    store: &Path,
+    named: &str,
+    knew: &mut Option<tisty_core::store::Ledger>,
+) -> bool {
+    removed(store, named, knew)
+        || tisty_core::vouched::handed_to(data, &tisty_core::DeviceId(named.to_string()))
+            .iter()
+            .any(|next| removed(store, &next.0, knew))
+}
+
+fn handed_from(
+    data: &Path,
+    store: &Path,
+    dest: &Path,
+    who: &tisty_core::DeviceId,
+    says: &str,
+    knew: &mut Option<tisty_core::store::Ledger>,
+) -> Option<tisty_core::DeviceId> {
+    let fresh = tisty_core::lately::now().saturating_sub(crate::place::ADOPTING_FOR.as_secs());
+    let (from, _) = tisty_core::vouched::all_confirmed(data)
+        .into_iter()
+        .find(|(from, one)| one.asked && one.key == says && one.when >= fresh && from != who)?;
+    let spent = !tisty_core::vouched::handed_to(data, &from).is_empty();
+    let wrote_here = dest.join(STORE).join(&from.0).exists();
+    (!spent && !wrote_here && !gone(data, store, &from.0, knew)).then_some(from)
+}
+
 fn owes_a_signature(
     mine: &Path,
     theirs: &Path,
@@ -119,11 +148,24 @@ fn answers_for_itself(
 ) -> Answered {
     let who = tisty_core::DeviceId(named.to_string());
     let ours = named.eq_ignore_ascii_case(device);
+    if !ours
+        && tisty_core::vouched::handed_to(data, &who)
+            .iter()
+            .any(|next| removed(store, &next.0, knew))
+    {
+        witness::standing(
+            channel::SYNC,
+            "a computer let in by its digits was taken away under its new name, so its old name is turned away too",
+            &[("at", Fact::Id(named.to_string()))],
+        );
+        return Answered::Unconfirmed;
+    }
     let mine = store.join(named);
     let from = verified::of(data, dest, named);
     let signed = anything_signed_in(theirs);
     let mut stood = tisty_core::vouched::confirmed(data, &who).map(|one| one.key);
     let mut carried = None;
+    let mut handed = None;
     if stood.is_none() && !ours && signed {
         let mut said_a_key = false;
         let says = match claimed(store, &who, knew) {
@@ -159,6 +201,14 @@ fn answers_for_itself(
                     "an agent was answered for by the host it runs on, already confirmed here",
                     &[("at", Fact::Id(named.to_string()))],
                 );
+                stood = Some(says);
+            }
+            Some(says)
+                if {
+                    handed = handed_from(data, store, dest, &who, &says, knew);
+                    handed.is_some()
+                } =>
+            {
                 stood = Some(says);
             }
             Some(_) => {
@@ -218,6 +268,15 @@ fn answers_for_itself(
     });
     match answers {
         Ok(held) => {
+            if let (Some(from), Some(said)) = (&handed, &stood)
+                && tisty_core::vouched::passed_on(data, &who, said, from)
+            {
+                witness::note(
+                    channel::SYNC,
+                    "a computer let in by its digits came back under a new name with the key the person confirmed",
+                    &[("at", Fact::Id(named.to_string()))],
+                );
+            }
             let stands = match (held.moved, &stood) {
                 (Some(now), Some(stood)) => followed(data, &who, &now, stood),
                 _ => true,
@@ -252,6 +311,14 @@ fn answers_for_itself(
                 &[("at", Fact::Id(named.to_string())), ("why", Fact::Why(why))],
             );
             Answered::Unreadable
+        }
+        Err(Adrift::Disowned(_)) if handed.is_some() => {
+            witness::note(
+                channel::SYNC,
+                "a new name showing the key of a computer let in by its digits does not answer to it, so a person decides",
+                &[("at", Fact::Id(named.to_string()))],
+            );
+            Answered::Unconfirmed
         }
         Err(Adrift::Disowned(_)) if carried.is_some() => {
             witness::note(
@@ -512,7 +579,7 @@ pub(crate) fn bring(
             false => match staging(alike, named, &entry.path(), &mine, &aside) {
                 Some(theirs) => theirs,
                 None => {
-                    if !removed(store, named, &mut knew) {
+                    if !gone(data, store, named, &mut knew) {
                         moved.unreadable.push(named.to_string());
                     }
                     continue;
@@ -531,7 +598,8 @@ pub(crate) fn bring(
             alike,
         );
         // Removed by the person, so nothing of it is theirs to hear about any more.
-        if !matches!(answered, Answered::Yes | Answered::Unsaid) && removed(store, named, &mut knew)
+        if !matches!(answered, Answered::Yes | Answered::Unsaid)
+            && gone(data, store, named, &mut knew)
         {
             continue;
         }

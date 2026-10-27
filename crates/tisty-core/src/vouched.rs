@@ -17,6 +17,9 @@ pub struct Confirmed {
     pub host: Option<DeviceId>,
     /// The key this one was rotated from, so what the person compared stays told apart.
     pub was: Option<String>,
+    pub asked: bool,
+    pub from: Option<DeviceId>,
+    pub own: Option<DeviceId>,
 }
 
 /// What a machine published is a claim; this is what the person at this machine accepted. The
@@ -66,9 +69,56 @@ pub fn rotated(data: &Path, who: &DeviceId, now: &str, was: &str) -> bool {
     crate::store::write_atomic(&data.join(KEPT), kept.join("\n").as_bytes()).is_ok()
 }
 
+pub fn asked(data: &Path, who: &DeviceId, said: &str) -> bool {
+    kept(data, who, said, "\tasked")
+}
+
+pub fn passed_on(data: &Path, who: &DeviceId, said: &str, from: &DeviceId) -> bool {
+    crate::store::is_device_name(&from.0) && kept(data, who, said, &format!("\tfrom:{}", from.0))
+}
+
 /// An agent's key taken on its host's word, the host being confirmed here already.
 pub fn through(data: &Path, who: &DeviceId, said: &str, host: &DeviceId) -> bool {
     crate::store::is_device_name(&host.0) && kept(data, who, said, &format!("\thost:{}", host.0))
+}
+
+pub fn handed_to(data: &Path, from: &DeviceId) -> Vec<DeviceId> {
+    lines(data)
+        .iter()
+        .filter_map(|line| read_line(line))
+        .filter(|(_, one)| one.from.as_ref() == Some(from))
+        .map(|(whose, _)| whose)
+        .collect()
+}
+
+pub fn moved_home(data: &Path, was: &DeviceId, now: &DeviceId, agents: &[DeviceId]) -> bool {
+    if !crate::store::is_device_name(&now.0) {
+        return false;
+    }
+    let Some(_turn) = turn(data) else {
+        return false;
+    };
+    let ours = |whose: &DeviceId, one: &Confirmed| {
+        let plain = !one.carried
+            && !one.asked
+            && one.was.is_none()
+            && one.from.is_none()
+            && one.own.is_none()
+            && one.host.as_ref().is_none_or(|host| host == was);
+        one.own.as_ref() == Some(was) || (plain && (whose == was || agents.contains(whose)))
+    };
+    let mut all = lines(data);
+    let mut moved = false;
+    for line in all.iter_mut() {
+        let Some((whose, one)) = read_line(line) else {
+            continue;
+        };
+        if ours(&whose, &one) {
+            *line = format!("{}\t{}\t{}\town:{}", whose.0, one.key, one.when, now.0);
+            moved = true;
+        }
+    }
+    !moved || crate::store::write_atomic(&data.join(KEPT), all.join("\n").as_bytes()).is_ok()
 }
 
 fn kept(data: &Path, who: &DeviceId, said: &str, how: &str) -> bool {
@@ -127,6 +177,13 @@ fn read_line(line: &str) -> Option<(DeviceId, Confirmed)> {
         .strip_prefix("rotated:")
         .filter(|was| crate::signing::read(was).is_some())
         .map(str::to_string);
+    let named = |prefix: &str| {
+        how.strip_prefix(prefix)
+            .filter(|named| crate::store::is_device_name(named))
+            .map(|named| DeviceId(named.to_string()))
+    };
+    let from = named("from:");
+    let own = named("own:");
     (crate::store::is_device_name(whose) && crate::signing::read(key).is_some()).then(|| {
         (
             DeviceId(whose.to_string()),
@@ -136,6 +193,9 @@ fn read_line(line: &str) -> Option<(DeviceId, Confirmed)> {
                 carried,
                 host,
                 was,
+                asked: how == "asked",
+                from,
+                own,
             },
         )
     })

@@ -121,6 +121,10 @@ pub(crate) fn kept_or_minted(paths: &crate::Paths, at: &Path, why: &str) -> Opti
 pub(crate) fn minted(paths: &crate::Paths, at: &Path) -> Option<[u8; 32]> {
     let mut fresh = [0u8; 32];
     rand_core::TryRngCore::try_fill_bytes(&mut rand_core::OsRng, &mut fresh).ok()?;
+    written(paths, at, fresh)
+}
+
+pub(crate) fn written(paths: &crate::Paths, at: &Path, fresh: [u8; 32]) -> Option<[u8; 32]> {
     std::fs::create_dir_all(paths.private()).ok()?;
     let _ = crate::paths::ours_alone(&paths.private());
     match made(at) {
