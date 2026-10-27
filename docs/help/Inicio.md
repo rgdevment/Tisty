@@ -2,7 +2,7 @@
   <img src="https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/icons/tisty-256.png" width="110" height="110" alt="Tisty"/>
 </p>
 
-<h1 align="center">La wiki de Tisty</h1>
+<h1 align="center">La ayuda de Tisty</h1>
 
 <p align="center"><strong>Un historial de lo que aprendiste, un cuaderno Markdown avanzado y una lista de tareas, en tu propio disco.</strong><br/>Sin cuentas. Sin suscripciones. Sin telemetría. Sin servidor.</p>
 
@@ -64,4 +64,4 @@ Los documentos son un cuaderno Markdown junto a las tareas: avisos, tablas, diag
 
 ---
 
-Tisty es libre y de código abierto bajo la AGPL-3.0. El código, los reportes y las versiones están en el [repositorio principal](https://github.com/rgdevment/Tisty), y su sitio es [www.tisty.app/es](https://www.tisty.app/es/). Quien participe —en reportes, pull requests, discusiones o esta wiki— sigue el [código de conducta](https://github.com/rgdevment/Tisty/blob/main/CODE_OF_CONDUCT.md), que está en inglés.
+Tisty es libre y de código abierto bajo la AGPL-3.0. El código, los reportes y las versiones están en el [repositorio principal](https://github.com/rgdevment/Tisty), y su sitio es [www.tisty.app/es](https://www.tisty.app/es/). Quien participe —en reportes, pull requests o discusiones— sigue el [código de conducta](https://github.com/rgdevment/Tisty/blob/main/CODE_OF_CONDUCT.md), que está en inglés.

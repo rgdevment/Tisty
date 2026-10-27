@@ -17,7 +17,7 @@ import {
 import { inTheRepo } from "./repo";
 
 const ENTRIES: HelpEntry[] = [
-  { slug: "", title: "The Tisty wiki", section: "", order: 0, twin: "" },
+  { slug: "", title: "Tisty's help", section: "", order: 0, twin: "" },
   { slug: "tasks", title: "Tasks", section: "Tasks", order: 1, twin: "tareas" },
   { slug: "sync-and-backup", title: "Sync and backup", section: "Your data", order: 2, twin: "x" },
 ];

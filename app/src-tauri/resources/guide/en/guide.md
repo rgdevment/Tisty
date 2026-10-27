@@ -12,7 +12,7 @@ And if you work with an assistant, it has a door through MCP to read your docume
 
 This guide takes a couple of minutes, and you will come out of it knowing a little more about what you can do in Tisty. You can come back to it from Settings whenever you like.
 
-When you need help along the way, press `F1` or the `?` at the foot of the sidebar: it opens the [Tisty Markdown guide](https://markdown.tisty.app) right here, on what you are writing, and it works offline. Tasks, assistants and everything else are explained at [www.tisty.app/docs](https://www.tisty.app/docs/).
+When you need help along the way, press the `?` at the foot of the sidebar: the whole help opens right here, tasks, documents, sync, assistants and the [Tisty Markdown guide](https://markdown.tisty.app), and it works offline. `F1` while you write opens it on what you are writing. The same help is at [www.tisty.app/docs](https://www.tisty.app/docs/).
 
 ## A task or a document?
 

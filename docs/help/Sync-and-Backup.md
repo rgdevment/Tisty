@@ -156,6 +156,8 @@ Once it says **«Your cloud is encrypted»**, the old unencrypted copy stays in 
 
 If you type nothing, nothing is handed over. Or, on the new computer, **Type my phrase** takes your 24 words: only the cloud's key stays there, never the phrase.
 
+If the new computer then keeps your cloud's history, it does not ask you about your other computers, and the one that took its digits does not ask for it again; each of your other computers asks you to confirm its code once, as with any new computer. Choose it within a week of typing the digits: after that, the one that took them asks once more.
+
 ### What it does not hide
 
 Your provider keeps earlier unencrypted versions for a while, in its history and its bin. The names and sizes of the files, when they change and how many computers you have stay visible.
