@@ -5,7 +5,7 @@ cd "$(dirname "$0")/.." || exit 2
 
 version=${1:?a version is needed, without the leading v}
 mark=docs/read-against
-read_by_people="README.md, README.es.md, PRIVACY.md, SECURITY.md, the guide in app/src-tauri/resources/guide, the Markdown reference in crates/tisty-markdown/reference and the wiki"
+read_by_people="README.md, README.es.md, PRIVACY.md, SECURITY.md, the guide in app/src-tauri/resources/guide, the Markdown reference in crates/tisty-markdown/reference and the help in docs/help"
 
 amiss() {
   if [ -n "${GITHUB_ACTIONS:-}" ]; then
