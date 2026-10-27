@@ -6,11 +6,11 @@ taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md).
 ## Before you write code
 
 **Open an issue first for anything beyond a bug fix.** Tisty is deliberately
-minimal and has an explicit list of things it will never do — task
+minimal and has an explicit list of things it does not do for now — task
 collaboration, kanban boards, time tracking, databases with typed properties, AI
-in the critical path. A pull request that adds one of those will be declined no
-matter how well it is written, and that is a waste of your evening. Asking first
-costs nothing.
+in the critical path. A pull request that adds one of those without an issue
+agreed first will be declined no matter how well it is written, and that is a
+waste of your evening. Asking first costs nothing.
 
 ## The CLA
 
