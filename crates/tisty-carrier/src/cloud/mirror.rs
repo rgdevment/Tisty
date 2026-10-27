@@ -10,6 +10,7 @@ use super::index::{Index, Mirrored, digest_of, on_shelf, path_of, stamp_of};
 use super::pace::Pace;
 use crate::{Changes, Expect, Hitch, Remote, Seen};
 
+const COUNTED_FROM: usize = 20;
 const PAPERS: &str = "docs";
 const RACY_NANOS: u128 = 2_000_000_000;
 const MIRRORED_AT_MOST: u64 = 64 * 1024 * 1024;
@@ -115,9 +116,10 @@ pub fn pull(
     }
     let whole = due.len();
     let mut due = due.into_values().enumerate();
-    // Only a first read is long enough to need counting: a later one brings a handful.
+    // A first read is long, and so is one that inherits many files a cut-short round still owed.
+    let counted = first || whole >= COUNTED_FROM;
     let mut told = |done: usize| {
-        if first && whole > 0 {
+        if counted && whole > 0 {
             along(crate::Reached::Along {
                 stage: crate::Stage::Log,
                 done,

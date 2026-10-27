@@ -14,6 +14,7 @@ use tisty_share_proto::cloud::CloudKey;
 use crate::{Answer, Refusal, Session, elsewhere, held};
 
 const ORPHANED_AFTER: u64 = 7 * 24 * 60 * 60;
+const PLAIN_WIPED: &str = "plain-wiped";
 const SETTLING_FOR: Duration = Duration::from_secs(30);
 const LOOKING_EVERY: Duration = Duration::from_secs(5);
 const BROKE_TRIES: u32 = 3;
@@ -55,6 +56,8 @@ pub struct Shown {
     pub turning: Option<Told>,
     pub orphan: bool,
     pub wiping: bool,
+    pub plain_left: bool,
+    pub reading: Option<tisty_carrier::Reading>,
 }
 
 #[derive(Serialize)]
@@ -122,6 +125,8 @@ pub fn sealing_shown(
             turning: None,
             orphan: false,
             wiping: false,
+            plain_left: false,
+            reading: None,
         });
     };
     let word = word_here(&home);
@@ -154,6 +159,11 @@ pub fn sealing_shown(
         turning,
         orphan,
         wiping: turns.wiping.load(Ordering::Acquire),
+        plain_left: match tisty_carrier::sealing_in(&word) {
+            Sealing::Sealed(cloud) => plain_left(&home, &cloud),
+            _ => false,
+        },
+        reading: tisty_carrier::reading(&home),
     })
 }
 
@@ -396,9 +406,17 @@ async fn wiped_behind(session: &Mutex<Session>) -> Answer<usize> {
         _ => return Err(Refusal::of("sealingNoCloud")),
     };
     let key = key_of(session, &cloud)?;
-    elsewhere(move || tisty_carrier::wipe_behind(plain, &home, key, &cloud))
+    let marked = (home.join(PLAIN_WIPED), cloud.clone());
+    let gone = elsewhere(move || tisty_carrier::wipe_behind(plain, &home, key, &cloud))
         .await?
-        .map_err(|hitch| refused_by(hitch, &at.provider))
+        .map_err(|hitch| refused_by(hitch, &at.provider))?;
+    let _ = std::fs::write(&marked.0, &marked.1);
+    Ok(gone)
+}
+
+// Asking the provider whether old files are left would list the whole cloud, so this computer remembers it wiped them.
+fn plain_left(home: &Path, cloud: &str) -> bool {
+    std::fs::read_to_string(home.join(PLAIN_WIPED)).map_or(true, |said| said.trim() != cloud)
 }
 
 fn told(app: &AppHandle, turns: &Turns, said: Option<Told>) {

@@ -304,8 +304,28 @@ describe("an encrypted cloud", () => {
     ).toBe(true);
   });
 
-  it("deletes the old copy and can be decrypted", async () => {
+  it("offers to delete the old copy only while one is left, and says how far a cloud brought here came", async () => {
     ipc.shown = { ...plain, state: "sealed" };
+    const { unmount } = render(<Shell />);
+    expect(await screen.findByText("Decrypt my cloud")).toBeTruthy();
+    expect(screen.queryByText(/old unencrypted copy stays in OneDrive/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Delete the unencrypted copy" })).toBeNull();
+    unmount();
+
+    ipc.shown = {
+      ...plain,
+      state: "sealed",
+      joined: false,
+      reading: { done: 30, whole: 120, at: 1 },
+    };
+    render(<Shell />);
+    expect(
+      await screen.findByText("Bringing your encrypted cloud to this computer: 30 of 120"),
+    ).toBeTruthy();
+  });
+
+  it("deletes the old copy and can be decrypted", async () => {
+    ipc.shown = { ...plain, state: "sealed", plainLeft: true };
     render(<Shell />);
     expect(await screen.findByText(/old unencrypted copy stays in OneDrive/)).toBeTruthy();
 

@@ -1,9 +1,11 @@
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useState } from "react";
+import { unstuck } from "../coming";
 import {
   identityBegin,
   identityPhrase,
   identityShown,
+  type ReadSoFar,
   type SealRoom,
   type SealShown,
   type SealTold,
@@ -72,12 +74,13 @@ export default function Sealing({
       });
   }, [failed]);
   useEffect(look, [look, round, phrased]);
-  const keyAwaited = shown?.state === "locked" && shown.joined;
+  const bringing = Boolean(shown?.reading);
+  const unsettled = shown?.state === "locked" || (shown?.state === "sealed" && !shown.joined);
   useEffect(() => {
-    if (!keyAwaited) return;
-    const again = setInterval(look, 15_000);
+    if (!unsettled && !bringing) return;
+    const again = setInterval(look, bringing ? 5_000 : 15_000);
     return () => clearInterval(again);
-  }, [keyAwaited, look]);
+  }, [unsettled, bringing, look]);
   useEffect(() => {
     if (!shown?.wiping || wiping) return;
     const again = setInterval(look, 5_000);
@@ -173,6 +176,7 @@ export default function Sealing({
         <LetMeIn
           onClose={() => setLetting(null)}
           onIn={() => {
+            unstuck();
             look();
             onChanged();
           }}
@@ -183,6 +187,7 @@ export default function Sealing({
         <Entering
           onClose={() => setLetting(null)}
           onIn={() => {
+            unstuck();
             look();
             onChanged();
           }}
@@ -264,6 +269,9 @@ export default function Sealing({
           provider={provider}
           held={held}
           wiping={wiping || Boolean(shown.wiping)}
+          plainLeft={Boolean(shown.plainLeft)}
+          joined={shown.joined}
+          reading={shown.reading ?? null}
           onWipe={() =>
             sure(fill("sealWipeSure", provider))
               .then((yes) => {
@@ -521,6 +529,9 @@ function Sealed({
   provider,
   held,
   wiping,
+  plainLeft,
+  joined,
+  reading,
   onWipe,
   onLetIn,
   onOff,
@@ -528,6 +539,9 @@ function Sealed({
   provider: string;
   held: boolean;
   wiping: boolean;
+  plainLeft: boolean;
+  joined: boolean;
+  reading: ReadSoFar | null;
   onWipe: () => void;
   onLetIn: () => void;
   onOff: () => void;
@@ -535,9 +549,18 @@ function Sealed({
   return (
     <>
       <p className="text-[13px] font-semibold">{t("sealSealed")}</p>
-      <p className="mt-0.5 text-[12.5px] leading-relaxed text-soft">
-        {fill("sealOldCopy", provider)}
-      </p>
+      {plainLeft && (
+        <p className="mt-0.5 text-[12.5px] leading-relaxed text-soft">
+          {fill("sealOldCopy", provider)}
+        </p>
+      )}
+      {(reading || !joined) && (
+        <p role="status" className="mt-2 text-[12.5px] text-soft motion-safe:animate-pulse">
+          {reading
+            ? fill("sealBringing", String(reading.done), String(reading.whole))
+            : t("sealBringingSoon")}
+        </p>
+      )}
       {wiping && (
         <p role="status" className="mt-2 text-[12.5px] text-soft motion-safe:animate-pulse">
           {fill("sealWiping", provider)}
@@ -550,9 +573,11 @@ function Sealed({
         <button type="button" className={mild} disabled={held || wiping} onClick={onLetIn}>
           {t("admitLetInButton")}
         </button>
-        <button type="button" className={strong} disabled={held || wiping} onClick={onWipe}>
-          {t("sealWipe")}
-        </button>
+        {(plainLeft || wiping) && (
+          <button type="button" className={strong} disabled={held || wiping} onClick={onWipe}>
+            {t("sealWipe")}
+          </button>
+        )}
       </div>
     </>
   );
