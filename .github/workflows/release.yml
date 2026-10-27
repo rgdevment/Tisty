@@ -1154,6 +1154,12 @@ jobs:
             if [ -s "$f" ]; then echo "$f"; else echo "::warning::no installer at $f"; fi
           done
 
+      - name: The clean-up scripts
+        run: |
+          v="${{ needs.version.outputs.version }}"
+          cp scripts/clean/macos.sh "dist/tisty-clean-$v-macos.sh"
+          cp scripts/clean/windows.ps1 "dist/tisty-clean-$v-windows.ps1"
+
       - name: Checksums
         run: cd dist && sha256sum -- * > SHA256SUMS && cat SHA256SUMS
 
