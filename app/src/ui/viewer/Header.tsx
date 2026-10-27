@@ -1,9 +1,9 @@
 import { useRef } from "react";
 import type { Showing } from "../../core";
 import { fill, t } from "../../locales";
-import { clearOfChrome, onMac } from "../WindowChrome";
 import { button, Glyph, Segments, tinted, tool } from "./Glyphs";
 import { PRESETS, type Preset } from "./Stage";
+import TitleBar from "./TitleBar";
 
 interface Props {
   shown: Showing | null;
@@ -48,24 +48,18 @@ export default function Header(props: Props) {
   const kind = shown?.kind === "doc" ? "doc" : shown?.kind === "widget" ? "widget" : null;
 
   return (
-    <header
-      data-tauri-drag-region
-      className={`flex h-11 shrink-0 items-center gap-2 border-b border-hair bg-panel ${onMac ? "pl-20" : "pl-3.5"} ${clearOfChrome}`}
+    <TitleBar
+      title={title}
+      under={under}
+      lead={
+        <div
+          data-tauri-drag-region
+          className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-md bg-accent-soft text-[9px] font-bold text-accent"
+        >
+          {kind ? <Glyph name={kind} className="h-3.5 w-3.5" /> : "MD"}
+        </div>
+      }
     >
-      <div
-        data-tauri-drag-region
-        className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-md bg-accent-soft text-[9px] font-bold text-accent"
-      >
-        {kind ? <Glyph name={kind} className="h-3.5 w-3.5" /> : "MD"}
-      </div>
-      <div data-tauri-drag-region className="mr-1.5 flex min-w-0 flex-1 flex-col leading-tight">
-        <b data-tauri-drag-region className="truncate text-[13px] font-semibold">
-          {title}
-        </b>
-        <small data-tauri-drag-region className="mt-0.5 truncate text-[11.5px] text-faint">
-          {under}
-        </small>
-      </div>
       {reading && (
         <>
           <button
@@ -129,6 +123,6 @@ export default function Header(props: Props) {
           <Glyph name="more" />
         </button>
       )}
-    </header>
+    </TitleBar>
   );
 }

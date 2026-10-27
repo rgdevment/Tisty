@@ -32,6 +32,7 @@ pub enum Shown {
     File(PathBuf),
     Doc(Paper),
     Widget { lent: Lent, from: Option<Paper> },
+    Diagram(crate::diagramming::Drawn),
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -57,6 +58,10 @@ pub enum Showing {
         lent: Lent,
         from: Option<Paper>,
     },
+    Diagram {
+        paper: Paper,
+        source: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -74,6 +79,7 @@ pub struct Views {
     ready: std::sync::atomic::AtomicBool,
     early: Mutex<Vec<PathBuf>>,
     calendars: Mutex<Vec<PathBuf>>,
+    unsaved: Mutex<std::collections::HashSet<String>>,
 }
 
 impl Views {
@@ -267,12 +273,13 @@ fn scaled(height: f64) -> (f64, f64) {
     (WIDE, (height * 0.8).max(560.0))
 }
 
-pub fn open(app: &AppHandle, shown: Shown) {
+pub(crate) fn open(app: &AppHandle, shown: Shown) {
     let views = app.state::<Views>();
     let label = format!("view-{}", views.made.fetch_add(1, Ordering::Relaxed));
     let title = match &shown {
         Shown::File(at) => named(at),
         Shown::Doc(paper) => paper.title.clone(),
+        Shown::Diagram(drawn) => drawn.paper.title.clone(),
         Shown::Widget { .. } => "Tisty".into(),
     };
     if let Ok(mut held) = views.shown.lock() {
@@ -301,9 +308,11 @@ pub fn open(app: &AppHandle, shown: Shown) {
                 if !matches!(event, tauri::WindowEvent::Destroyed) {
                     return;
                 }
-                if let Ok(mut held) = gone.state::<Views>().shown.lock() {
+                let views = gone.state::<Views>();
+                if let Ok(mut held) = views.shown.lock() {
                     held.remove(&named);
                 }
+                mark_unsaved(&views, &named, false);
                 gone.state::<widgets::Lent>().release(&named);
                 crate::tray::undock_unless_seen(&gone, &named);
             });
@@ -321,7 +330,7 @@ pub fn open(app: &AppHandle, shown: Shown) {
     }
 }
 
-fn shown_in(views: &Views, label: &str) -> Answer<Shown> {
+pub(crate) fn shown_in(views: &Views, label: &str) -> Answer<Shown> {
     views
         .shown
         .lock()
@@ -330,13 +339,42 @@ fn shown_in(views: &Views, label: &str) -> Answer<Shown> {
         .ok_or_else(|| Refusal::of("notAllowed"))
 }
 
+pub(crate) fn reshow(views: &Views, label: &str, shown: Shown) {
+    if let Ok(mut held) = views.shown.lock()
+        && let Some(was) = held.get_mut(label)
+    {
+        *was = shown;
+    }
+}
+
+pub(crate) fn showing(views: &Views, wanted: impl Fn(&Shown) -> bool) -> Option<String> {
+    let held = views.shown.lock().ok()?;
+    held.iter()
+        .find(|(_, one)| wanted(one))
+        .map(|(label, _)| label.clone())
+}
+
+pub(crate) fn mark_unsaved(views: &Views, label: &str, unsaved: bool) {
+    if let Ok(mut held) = views.unsaved.lock() {
+        if unsaved {
+            held.insert(label.to_string());
+        } else {
+            held.remove(label);
+        }
+    }
+}
+
+pub(crate) fn first_unsaved(views: &Views) -> Option<String> {
+    views.unsaved.lock().ok()?.iter().next().cloned()
+}
+
 fn session_of(app: &AppHandle) -> Answer<tauri::State<'_, Mutex<Session>>> {
     app.try_state::<Mutex<Session>>()
         .ok_or_else(|| Refusal::of("internal"))
 }
 
 // Read without being minded: the main window's guard against overwriting a changed file must stay its own.
-fn doc_body(app: &AppHandle, file: &str) -> Answer<String> {
+pub(crate) fn doc_body(app: &AppHandle, file: &str) -> Answer<String> {
     let root = held(&*session_of(app)?).paths.docs();
     tisty_core::docs::read(&root, file).map_err(|e| match e {
         tisty_core::Error::DocumentTooBig { limit, .. } => {
@@ -372,6 +410,10 @@ pub fn view_shown(
             paper,
         },
         Shown::Widget { lent, from } => Showing::Widget { lent, from },
+        Shown::Diagram(drawn) => Showing::Diagram {
+            paper: drawn.paper,
+            source: drawn.was,
+        },
     })
 }
 
@@ -384,6 +426,7 @@ pub fn view_facts(
     match shown_in(&views, window.label())? {
         Shown::File(at) => crate::answers::papers::outside_facts(&at),
         Shown::Doc(paper) => crate::answers::papers::doc_facts(session, paper.file),
+        Shown::Diagram(drawn) => crate::answers::papers::doc_facts(session, drawn.paper.file),
         Shown::Widget { .. } => Err(Refusal::of("notAllowed")),
     }
 }
@@ -410,7 +453,7 @@ pub fn view_import(
             }
             (paper, left)
         }
-        Shown::Widget { .. } => return Err(Refusal::of("notAllowed")),
+        Shown::Widget { .. } | Shown::Diagram(_) => return Err(Refusal::of("notAllowed")),
     };
     if open {
         bring(&app, &paper.file);

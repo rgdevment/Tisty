@@ -5,6 +5,7 @@ mod answers;
 mod asked;
 mod command;
 mod desktop;
+mod diagramming;
 mod drawn;
 mod entering;
 mod finding;
@@ -1359,6 +1360,11 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         viewing::view_import,
         viewing::view_widget,
         viewing::view_doc,
+        diagramming::view_diagram,
+        diagramming::diagram_save,
+        diagramming::diagram_again,
+        diagramming::diagram_unsaved,
+        diagramming::diagram_leave,
         viewing::view_go,
         answers::shelves::sow,
         answers::shelves::folder_file
