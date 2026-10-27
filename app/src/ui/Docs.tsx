@@ -749,6 +749,11 @@ export default function Docs({
   };
   const spare = room - (wide ? RAIL_WIDE : RAIL) - GUTTER;
   const reserve = beside && spare - ASIDE >= SHEET ? ASIDE : 0;
+  const place = open
+    ? trailed(folders, open.folder ?? null)
+        .map((one) => one.name)
+        .join(" / ")
+    : "";
   return (
     <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-desk">
       <div data-tauri-drag-region className="h-9 shrink-0" />
@@ -781,6 +786,7 @@ export default function Docs({
                   drawn.current = page;
                 }}
                 file={open.file}
+                place={place}
                 wholeable
                 wholeAsked={wholeAsked}
                 allAsked={allAsked}
@@ -1146,9 +1152,7 @@ export default function Docs({
               id: open.id,
               file: open.file,
               title: called || t("untitledDoc"),
-              place: trailed(folders, open.folder ?? null)
-                .map((one) => one.name)
-                .join(" / "),
+              place,
             }).catch((e) => onError(saidPlainly(e)))
           }
         />

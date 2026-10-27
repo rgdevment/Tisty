@@ -698,6 +698,7 @@ const en = {
   diagramMoved:
     "This diagram changed in «{name}» since you opened it. Close this window and open it again from the document",
   diagramOf: "Diagram · {name}",
+  diagramOpen: "Open in the diagram window",
   diagramSave: "Save to «{name}»",
   diagramSaving: "Saving…",
   diagramSaved: "Saved",
@@ -3264,6 +3265,7 @@ const es: Catalog = {
   diagramMoved:
     "Este diagrama cambió en «{name}» desde que lo abriste. Cierra esta ventana y vuelve a abrirlo desde el documento",
   diagramOf: "Diagrama · {name}",
+  diagramOpen: "Abrir en la ventana de diagramas",
   diagramSave: "Guardar en «{name}»",
   diagramSaving: "Guardando…",
   diagramSaved: "Guardado",

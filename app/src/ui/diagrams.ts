@@ -17,6 +17,10 @@ const refused = new Set<string>();
 const sources = new WeakMap<Element, string>();
 const wanted = new WeakMap<Element, boolean>();
 
+// What a figure was drawn from; before its drawing lands, the code the page carries.
+export const sourceOf = (figure: Element): string =>
+  sources.get(figure) ?? figure.querySelector("pre > code")?.textContent ?? "";
+
 const keyOf = (source: string, dark: boolean) => `${dark ? "dark" : "light"}\n${source}`;
 
 const kept = (key: string): string | null | undefined => {
@@ -101,7 +105,7 @@ const placed = (figure: Element, svg: string, dark: boolean) => {
   const sheet = figure.ownerDocument.createElement("div");
   sheet.className = "diagram-sheet";
   sheet.innerHTML = svg;
-  figure.replaceChildren(sheet);
+  figure.replaceChildren(sheet, ...figure.querySelectorAll(":scope > .diagram-bar"));
   figure.classList.add("drawn");
   figure.classList.remove("unreadable");
   figure.setAttribute("data-theme", dark ? "dark" : "light");
