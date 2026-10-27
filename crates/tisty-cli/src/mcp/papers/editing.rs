@@ -6,12 +6,53 @@ use tisty_core::Paths;
 
 use super::super::asked::text;
 use super::super::jsonrpc::told;
+use super::super::spoken::spoken;
 use super::super::{
     Refused, UNSETTLED, by_how_much, doc_named, for_the_person, grew, hitch, left_loose,
     loose_words, named_twice, nearest, opened, raw, retold, twice_words, with_echo, wrapped,
 };
 
+/// A passage inside a fence is code: `new` goes in as sent, never read as prose.
 pub(in crate::mcp) fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
+    let body =
+        text(args, "doc").and_then(|which| tisty_core::docs::read(&paths.docs(), &which).ok());
+    if body.is_some_and(|body| in_a_fence(&body, args)) {
+        return edited(paths, args, true);
+    }
+    spoken(args, "new", |args| edited(paths, args, false))
+}
+
+/// The passage sits wholly in one fence's code, and `new` brings no fence mark that would shut it.
+fn in_a_fence(body: &str, args: &Value) -> bool {
+    let mut fence = tisty_core::docs::fencing();
+    if raw(args, "new").is_some_and(|new| new.lines().any(&mut fence)) {
+        return false;
+    }
+    let line = |key| {
+        args.get(key)
+            .and_then(Value::as_u64)
+            .map(|one| one as usize)
+    };
+    let (from, to) = match (raw(args, "old"), line("from"), line("to")) {
+        (Some(old), None, None) => {
+            let old = old.replace('\r', "");
+            let mut found = body.match_indices(old.as_str()).map(|(at, _)| at);
+            let (Some(start), None) = (found.next(), found.next()) else {
+                return false;
+            };
+            let from = body[..start].matches('\n').count() + 1;
+            (
+                from,
+                from + old.trim_end_matches('\n').matches('\n').count(),
+            )
+        }
+        (None, Some(from), Some(to)) => (from, to),
+        _ => return false,
+    };
+    tisty_core::docs::fenced_between(body, from, to)
+}
+
+fn edited(paths: &Paths, args: &Value, as_sent: bool) -> Result<Value, Refused> {
     let Some(which) = text(args, "doc") else {
         return Err(Refused::Tool("editing needs the `doc` name.".into()));
     };
@@ -57,10 +98,15 @@ pub(in crate::mcp) fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
              window, not you. Ask them to unlock it if it truly has to change."
         )));
     }
-    let new = tisty_core::speaking::turned(new);
+    let new = match as_sent {
+        true => new.to_string(),
+        false => tisty_core::speaking::turned(new),
+    };
     let new = new.as_str();
-    tisty_core::docs::speaks(new)
-        .map_err(|unsaid| Refused::Tool(super::writing::not_spoken(unsaid)))?;
+    if !as_sent {
+        tisty_core::docs::speaks(new)
+            .map_err(|unsaid| Refused::Tool(super::writing::not_spoken(unsaid)))?;
+    }
 
     if by_place {
         return in_its_place(paths, &state, &mut store, &which, args, new);
@@ -68,6 +114,13 @@ pub(in crate::mcp) fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Ref
 
     let (old, new) = (&old.replace('\r', ""), &new.replace('\r', ""));
     let before = tisty_core::docs::read(&paths.docs(), &which).unwrap_or_default();
+    // The window may have written between the look at the fence and this read.
+    if as_sent && !in_a_fence(&before, args) {
+        return Err(Refused::Tool(format!(
+            "{named} changed while this edit was on its way, so nothing was written. Read the \
+             passage again and send the edit anew."
+        )));
+    }
     if before.matches(old.as_str()).count() == 1 {
         super::writing::still_speaks(&before, &before.replacen(old.as_str(), new, 1))?;
     }

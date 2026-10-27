@@ -15,12 +15,22 @@ exports[`the markup of small parts of the window > draws a glyph from the table 
       d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
     />
   </svg>
-  <span
+  <svg
     aria-hidden="true"
-    class="glyph grid shrink-0 place-items-center h-6 w-6"
+    class="glyph shrink-0 h-6 w-6"
+    viewBox="0 0 24 24"
   >
-    🦫
-  </span>
+    <text
+      dominant-baseline="central"
+      font-size="18"
+      style="fill: currentcolor; stroke: none;"
+      text-anchor="middle"
+      x="12"
+      y="12"
+    >
+      🦫
+    </text>
+  </svg>
 </DocumentFragment>
 `;
 

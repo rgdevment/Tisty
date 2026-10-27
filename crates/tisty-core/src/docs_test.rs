@@ -3274,3 +3274,20 @@ fn a_body_rewritten_for_good_leaves_no_step_back() {
         "a print read before the write no longer matches"
     );
 }
+
+#[test]
+fn lines_are_fenced_only_when_every_one_is_code_inside_one_block() {
+    let body = "# Uno\n\n```mermaid\nA --> B\nB --> C\n```\n\ntexto\n\n> ```\n> citado\n> ```";
+    assert!(fenced_between(body, 4, 5), "the two lines of the diagram");
+    assert!(fenced_between(body, 4, 4));
+    assert!(!fenced_between(body, 3, 4), "the opening mark is not code");
+    assert!(!fenced_between(body, 5, 6), "nor is the closing one");
+    assert!(!fenced_between(body, 8, 8), "prose after the block");
+    assert!(
+        fenced_between(body, 11, 11),
+        "a fence inside a quote is a fence"
+    );
+    assert!(!fenced_between(body, 5, 4));
+    assert!(!fenced_between(body, 0, 1));
+    assert!(!fenced_between(body, 12, 99));
+}
