@@ -51,18 +51,34 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+body {
+  font-family: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+}
+.top .brand,
+.page :is(h1, h2, h3, h4):not(figure *) {
+  font-family: "Space Grotesk Variable", "Inter Variable", system-ui, sans-serif;
+  letter-spacing: -0.01em;
+}
+.page :is(code, pre, kbd):not(figure *) {
+  font-family: "JetBrains Mono Variable", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+figure.example,
+figure.widget {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+}
+
 .top {
   position: sticky;
   top: 0;
   z-index: 10;
   display: flex;
   align-items: center;
-  gap: 16px;
-  height: 56px;
-  padding: 0 max(20px, calc((100% - 1200px) / 2 + 20px));
-  border-bottom: 1px solid var(--tisty-hair);
-  background: color-mix(in srgb, var(--tisty-bg) 88%, transparent);
-  backdrop-filter: saturate(1.4) blur(12px);
+  gap: 4px;
+  height: 64px;
+  padding: 0 max(20px, calc((100% - 72rem) / 2 + 32px));
+  border-bottom: 1px solid color-mix(in srgb, var(--tisty-line) 70%, transparent);
+  background: color-mix(in srgb, var(--tisty-bg) 80%, transparent);
+  backdrop-filter: saturate(1.5) blur(24px);
 }
 .top a {
   text-decoration: none;
@@ -70,16 +86,16 @@ body {
 .top .brand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  font-size: 15.5px;
-  font-weight: 650;
-  letter-spacing: -0.01em;
+  gap: 12px;
+  margin-right: 20px;
+  font-size: 18px;
+  font-weight: 600;
   color: var(--tisty-ink);
 }
 .top .brand img {
   display: block;
-  width: 34px;
-  height: 32px;
+  width: 30px;
+  height: 28px;
   margin: 0;
   padding: 0;
   max-height: none;
@@ -87,62 +103,62 @@ body {
   border-radius: 0;
   background: none;
 }
+.top .docs,
+.top .out {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 15px;
+  color: var(--tisty-faint);
+  transition: color 0.15s;
+}
 .top .docs {
   margin-left: auto;
-  padding: 6px 8px;
-  border-radius: 8px;
-  font-size: 13.5px;
-  font-weight: 550;
-  color: var(--tisty-soft);
 }
-.top .docs:hover {
-  background: var(--tisty-hover);
-  color: var(--tisty-ink);
-}
-.top .out {
-  padding: 6px 14px;
-  border-radius: 999px;
-  background: var(--guide-flame);
-  font-size: 13.5px;
-  font-weight: 600;
-  color: #141210;
-}
+.top .docs:hover,
 .top .out:hover {
-  filter: brightness(1.08);
+  color: var(--tisty-ink);
 }
 .top .lang {
-  padding: 6px 8px;
-  border-radius: 8px;
-  font-size: 13.5px;
-  font-weight: 550;
-  color: var(--tisty-soft);
-}
-.top .lang:hover,
-.top .theme:hover {
-  background: var(--tisty-hover);
-  color: var(--tisty-ink);
+  margin-left: 8px;
+  padding: 4px 12px;
+  border: 1px solid var(--tisty-line);
+  border-radius: 999px;
+  font: 12px / 1.4 "JetBrains Mono Variable", ui-monospace, monospace;
+  color: var(--tisty-faint);
+  transition:
+    color 0.15s,
+    border-color 0.15s;
 }
 .top .theme {
   display: none;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
+  margin-left: 4px;
   padding: 0;
-  border: 0;
-  border-radius: 8px;
+  border: 1px solid var(--tisty-line);
+  border-radius: 999px;
   background: none;
-  color: var(--tisty-soft);
+  color: var(--tisty-faint);
   cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+.top .lang:hover,
+.top .theme:hover {
+  border-color: color-mix(in srgb, var(--tisty-ink) 30%, transparent);
+  color: var(--tisty-ink);
 }
 html.js .top .theme {
   display: inline-grid;
   place-items: center;
 }
 .top .theme svg {
-  width: 17px;
-  height: 17px;
+  width: 16px;
+  height: 16px;
   fill: none;
   stroke: currentColor;
-  stroke-width: 2;
+  stroke-width: 1.7;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -291,13 +307,10 @@ iframe.widget {
     border: 1px solid var(--tisty-hair);
     border-radius: 999px;
   }
-  .top .lang {
-    display: none;
-  }
 }
 @media (max-width: 480px) {
-  .top {
-    gap: 10px;
+  .top .brand {
+    margin-right: 8px;
   }
   .top .out {
     display: none;
