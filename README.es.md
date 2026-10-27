@@ -258,7 +258,7 @@ artificial**, esto es Tisty:
 | Un documento con páginas | un libro, con sus capítulos en el orden en que el texto los nombra y un índice |
 | Diagramas y fórmulas | dibujados con unas pocas líneas de texto, claros u oscuros según la ventana |
 | Widgets | pequeñas páginas HTML con los colores de Tisty, aisladas de la red |
-| PDF | propio: A4, Carta o Tabloide, con sus imágenes dentro |
+| PDF | propio: A4, Carta u Oficio, con sus imágenes dentro |
 | Cualquier archivo `.md` | se abre para leer en una ventana propia, sin entrar a tu almacén |
 | Adjuntos | se guardan con la tarea, tal como son |
 | Lo terminado | un **archivo que conserva lo que cada tarea te enseñó** |
@@ -332,7 +332,7 @@ editor— y en Tisty lleva bastante más que texto:
 - **Adjuntos que viajan con él**: fotos, PDF, sonido y video, guardados dentro
   de Tisty en vez de enlazados a una carpeta que se mueve. Un clic en una foto
   o un diagrama lo abre en grande, para acercarte y pasar al siguiente.
-- **Un PDF propio**, A4, Carta o Tabloide, con sus imágenes dentro, que te
+- **Un PDF propio**, A4, Carta u Oficio, con sus imágenes dentro, que te
   enseña antes de exportarlo.
 
 ![Notas en Markdown, archivos simples, cualquier editor: fórmulas y un widget dibujados dentro de un documento, con el formato y el PDF en la columna de al lado](assets/store/es-03-notas.png)
@@ -409,7 +409,7 @@ Se escribe sobre una hoja iluminada, y su primera línea con palabras es a la ve
 el nombre del documento y su título —pasando por encima de una valla o de la
 marca de un aviso para encontrarla—. Cuando la ventana da para ello, al lado se
 abre una columna con de qué va el documento, el formato que el menú `/`
-escondía y su índice. **Tisty genera su propio PDF** —A4, Carta o Tabloide,
+escondía y su índice. **Tisty genera su propio PDF** —A4, Carta u Oficio,
 con sus propios márgenes y sus imágenes dentro— y te lo enseña antes
 de exportarlo.
 

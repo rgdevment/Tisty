@@ -81,7 +81,7 @@ export const frontTags = (body: string): string[] =>
     .map((word) => word.replace(/^#+/, ""))
     .filter((word) => word !== "");
 
-const PAPERS: Paper[] = ["a4", "letter", "tabloid"];
+const PAPERS: Paper[] = ["a4", "letter", "folio", "tabloid"];
 
 export type Laid = {
   readonly paper: Paper | null;

@@ -17,7 +17,7 @@ import { adopt, fill, t } from "./locales";
 import { saidPlainly } from "./refusal";
 import Menu from "./ui/Menu";
 import { seenIn } from "./ui/printing";
-import { pageFor } from "./ui/sheets";
+import { KNOWN, pageFor } from "./ui/sheets";
 import { leaveAsHtml, leaveAsWord } from "./ui/useLeaving";
 import { type Acts, choicesFor, darkNow, keysFor, PLAIN, ZOOMS } from "./ui/viewer/acting";
 import { button } from "./ui/viewer/Glyphs";
@@ -37,7 +37,7 @@ const remembered = (): { side: boolean; leaf: Paper } => {
   const side = window.innerWidth >= SIDE_FROM;
   try {
     const said = JSON.parse(localStorage.getItem(KEPT) ?? "{}") as Record<string, unknown>;
-    const leaf = ["a4", "letter", "tabloid"].includes(String(said.leaf)) ? said.leaf : "a4";
+    const leaf = KNOWN.includes(said.leaf as Paper) ? said.leaf : "a4";
     return { side, leaf: leaf as Paper };
   } catch {
     return { side, leaf: "a4" };

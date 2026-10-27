@@ -252,7 +252,7 @@ and tasks, with no account, no subscription and no AI**, this is what Tisty is:
 | A document with pages | a book, with its chapters in the order the text names them and an index |
 | Diagrams and formulas | drawn from a few lines of text, light or dark with the window |
 | Widgets | small pages of HTML in Tisty's colours, sealed off from the network |
-| PDF | its own: A4, Letter or Tabloid, with its pictures inside |
+| PDF | its own: A4, Letter or Folio, with its pictures inside |
 | Any `.md` file | opens to read in a window of its own, without coming into your store |
 | Attachments | kept with the task, as themselves |
 | Finished work | an **archive that keeps what each task taught you** |
@@ -323,7 +323,7 @@ Tisty it holds a good deal more than text:
 - **Attachments that travel with it**: pictures, PDFs, sound and film, kept
   inside Tisty rather than linked to a folder that moves. A click on a picture
   or a diagram opens it large, to zoom in and go to the next one.
-- **A PDF of its own**, A4, Letter or Tabloid, with its pictures inside,
+- **A PDF of its own**, A4, Letter or Folio, with its pictures inside,
   shown to you before you export it.
 
 ![Markdown notes, plain files, any editor: formulas and a widget drawn inside a document, with the formatting and the PDF in the column beside it](assets/store/en-03-notes.png)
@@ -398,7 +398,7 @@ The writing sits on a lit page, and the first line with words in it is both the
 name of the document and its title — reading past a fence or an alert's marker to
 find it. When the window is wide enough a column opens beside it
 with what the document is, the formatting the `/` menu used to hide, and its
-outline. **Tisty makes its own PDF** — A4, Letter or Tabloid, with its
+outline. **Tisty makes its own PDF** — A4, Letter or Folio, with its
 own margins and its pictures carried inside — and shows it to you before you
 export it.
 

@@ -5,7 +5,7 @@ import { fill, t } from "../../locales";
 import PaperFacts from "../PaperFacts";
 import Properties from "../Properties";
 import type { Head } from "../paging";
-import { acrossOf, LEAVES, leafWord, PAPER, sheetFor, TALL } from "../sheets";
+import { acrossOf, leafWord, offered, PAPER, sheetFor, TALL } from "../sheets";
 import { usePictures } from "../usePictures";
 import { button, Segments } from "./Glyphs";
 
@@ -152,7 +152,7 @@ export default function Reader(props: Readonly<Props>) {
               <Segments
                 wide
                 value={leaf}
-                options={LEAVES.map((one) => ({ key: one, label: t(leafWord(one)) }))}
+                options={offered(leaf).map((one) => ({ key: one, label: t(leafWord(one)) }))}
                 onPick={props.onLeaf}
               />
             </div>

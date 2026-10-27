@@ -51,7 +51,7 @@ fuente: la libreta de la veterinaria
 - `title:` es el [título](#el-título) del documento.
 - `tags:` (o `tag:`) guarda el documento bajo cada una, igual que escribir `#rina` en una frase: es la misma etiqueta de las dos maneras. Sirve una lista entre corchetes, palabras separadas por comas o un `- elemento` por línea, con `#` o sin él.
 - El bloque solo cuenta al principio: la primera línea es `---`, la de abajo tiene palabras, y lo cierra un `---` o `...`. En cualquier otra parte, `---` es un [salto de página](#saltos-de-página).
-- `paper:` es la hoja en que se imprime el documento: `letter` (Carta) o `tabloid` (Tabloide), y A4 cuando no está. `sheets: on` dibuja la página en esas hojas, y `orientation: landscape` las pone en horizontal. **Papel** y **Hojas** en el panel las escriben, y al quitarlas no queda nada escrito.
+- `paper:` es la hoja en que se imprime el documento: `letter` (Carta), `folio` (Oficio, 216 × 330 mm) o `tabloid` (Tabloide), y A4 cuando no está. `sheets: on` dibuja la página en esas hojas, y `orientation: landscape` las pone en horizontal. **Papel** y **Hojas** en el panel las escriben, y al quitarlas no queda nada escrito.
 - Fuera de esas tres, Tisty solo escribe `task:`, una vez, en el documento de una tarea. Una etiqueta que agrega va en el texto como `#etiqueta`.
 - Un bloque de más de 4 KiB, con más de 32 propiedades o con un valor de más de 500 caracteres se guarda tal cual, pero no se lee nada de él. Solo se leen propiedades simples: `clave: valor`, una lista entre corchetes o líneas `- elemento`.
 

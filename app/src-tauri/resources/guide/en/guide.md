@@ -326,7 +326,7 @@ rsync -a ~/Tisty/ /Volumes/Backup/Tisty/
 
 #### Page break
 
-A rule on its own splits the sheet: what follows starts on the next one, and `Ctrl`/`⌘` + `Enter` writes one while you write. Turn on **Sheets** in the document's panel to read it on real sheets — A4, Letter or Tabloid, upright or across — where a sheet that fills up turns on its own, on screen as on paper. What you pick travels with the file, in its properties, and a break you wrote yourself is kept whether the sheets are on or not.
+A rule on its own splits the sheet: what follows starts on the next one, and `Ctrl`/`⌘` + `Enter` writes one while you write. Turn on **Sheets** in the document's panel to read it on real sheets — A4, Letter or Folio, upright or across — where a sheet that fills up turns on its own, on screen as on paper. What you pick travels with the file, in its properties, and a break you wrote yourself is kept whether the sheets are on or not.
 
 There is more to say about code, and it fits on a sheet of its own:
 

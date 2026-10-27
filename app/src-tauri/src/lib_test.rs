@@ -1807,6 +1807,8 @@ fn a_sheet_laid_landscape_is_as_wide_as_it_was_tall() {
     assert_eq!(crate::pdf::leaf("letter"), (8.5, 11.0));
     assert_eq!(crate::pdf::leaf("letter-landscape"), (11.0, 8.5));
     assert_eq!(crate::pdf::leaf("tabloid-landscape"), (17.0, 11.0));
+    assert_eq!(crate::pdf::leaf("folio"), (8.5, 13.0));
+    assert_eq!(crate::pdf::leaf("folio-landscape"), (13.0, 8.5));
     let (wide, tall) = crate::pdf::leaf("a4-landscape");
     assert!(wide > tall);
 }
