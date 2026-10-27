@@ -94,6 +94,15 @@ describe("the diagram window", () => {
     expect((saving() as HTMLButtonElement).disabled).toBe(true);
   });
 
+  it("opens a diagram whose last line has no break as saved, not as changed", async () => {
+    ipc.shown = { ...shown, source: "mindmap\n  root((Share))" };
+    render(<Viewing />);
+
+    expect((await written()).value).toBe("mindmap\n  root((Share))");
+    expect(screen.getByText(t("diagramSaved"))).toBeTruthy();
+    expect((saving() as HTMLButtonElement).disabled).toBe(true);
+  });
+
   it("draws what the text says, live, and keeps the last drawing while it cannot", async () => {
     const { container } = render(<Viewing />);
     const text = await written();
@@ -181,10 +190,19 @@ describe("the diagram window", () => {
 
     expect(drawn()).toBe("translate(300px, 250px) scale(1)");
     fireEvent.pointerDown(canvas, { clientX: 10, clientY: 10, pointerId: 1 });
-    fireEvent.pointerMove(canvas, { clientX: 40, clientY: 30, pointerId: 1 });
+    fireEvent.pointerMove(canvas, { clientX: 40, clientY: 30, pointerId: 1, buttons: 1 });
     fireEvent.pointerUp(canvas, { pointerId: 1 });
-    fireEvent.pointerMove(canvas, { clientX: 90, clientY: 90, pointerId: 1 });
+    fireEvent.pointerMove(canvas, { clientX: 90, clientY: 90, pointerId: 1, buttons: 1 });
     expect(drawn()).toBe("translate(330px, 270px) scale(1)");
+
+    // A drag the system cancels, or one released where the canvas never heard it, ends there.
+    for (const ending of ["cancel", "release unheard"]) {
+      fireEvent.pointerDown(canvas, { clientX: 0, clientY: 0, pointerId: 2 });
+      if (ending === "cancel") fireEvent.pointerCancel(canvas, { pointerId: 2 });
+      else fireEvent.pointerMove(canvas, { clientX: 5, clientY: 5, pointerId: 2, buttons: 0 });
+      fireEvent.pointerMove(canvas, { clientX: 50, clientY: 50, pointerId: 2, buttons: 1 });
+      expect(drawn(), ending).toBe("translate(330px, 270px) scale(1)");
+    }
 
     fireEvent.wheel(canvas, { deltaX: 30, deltaY: 70 });
     expect(drawn()).toBe("translate(300px, 200px) scale(1)");

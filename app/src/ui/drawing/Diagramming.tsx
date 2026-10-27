@@ -6,9 +6,10 @@ import { fill, t, type Word } from "../../locales";
 import { saidPlainly } from "../../refusal";
 import { darkNow } from "../viewer/acting";
 import { tinted } from "../viewer/Glyphs";
-import WindowChrome, { clearOfChrome, onMac } from "../WindowChrome";
+import TitleBar from "../viewer/TitleBar";
+import WindowChrome from "../WindowChrome";
+import Canvas from "./Canvas";
 import { asRead, type DiagramKind, kindOf } from "./framing";
-import Sheet from "./Sheet";
 
 const KIND_WORDS: Record<DiagramKind, Word> = {
   mindmap: "diagramMindmap",
@@ -33,7 +34,7 @@ const useDark = () => {
 
 export default function Diagramming({ paper, source }: { paper: Viewed; source: string }) {
   const [text, setText] = useState(source);
-  const [kept, setKept] = useState(source);
+  const [kept, setKept] = useState(() => asRead(source));
   const [saving, setSaving] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const dark = useDark();
@@ -79,33 +80,28 @@ export default function Diagramming({ paper, source }: { paper: Viewed; source: 
   return (
     <main className="relative flex h-full flex-col bg-desk font-sans">
       <WindowChrome flush />
-      <header
-        data-tauri-drag-region
-        className={`flex h-11 shrink-0 items-center gap-2.5 border-b border-hair bg-panel ${onMac ? "pl-20" : "pl-3.5"} ${clearOfChrome}`}
+      <TitleBar
+        title={fill("diagramOf", named)}
+        under={
+          paper.place
+            ? `${t(KIND_WORDS[kindOf(text)])} · ${paper.place}`
+            : t(KIND_WORDS[kindOf(text)])
+        }
       >
-        <div data-tauri-drag-region className="flex min-w-0 flex-1 flex-col leading-tight">
-          <b data-tauri-drag-region className="truncate text-[13px] font-semibold">
-            {fill("diagramOf", named)}
-          </b>
-          <small data-tauri-drag-region className="mt-0.5 truncate text-[11.5px] text-faint">
-            {t(KIND_WORDS[kindOf(text)])}
-            {paper.place ? ` · ${paper.place}` : ""}
-          </small>
-        </div>
         <span className="text-[12px] text-faint" role="status">
           {saving ? t("diagramSaving") : unsaved ? t("diagramUnsaved") : t("diagramSaved")}
         </span>
         <button type="button" className={tinted} disabled={!unsaved || saving} onClick={save}>
           {fill("diagramSave", named)}
         </button>
-      </header>
+      </TitleBar>
       {note && (
         <p className="shrink-0 px-4 py-1.5 text-[12.5px] text-urgent" role="alert">
           {note}
         </p>
       )}
       <div className="flex min-h-0 flex-1">
-        <Sheet source={text} dark={dark} />
+        <Canvas source={text} dark={dark} />
         <aside
           aria-label={t("diagramProperties")}
           className="flex w-[340px] shrink-0 flex-col gap-2 border-l border-hair bg-panel p-4"

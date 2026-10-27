@@ -41,17 +41,29 @@ fn gather(blocks: &[Block], text: &str, found: &mut Vec<Diagram>) {
     }
 }
 
-/// Refused unless the diagram still says `was`, so nothing written meanwhile is lost.
-pub fn redrawn(text: &str, near: usize, was: &str, now: &str) -> Option<(String, usize)> {
+/// Where the page put a diagram and which one it is counting from the top.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Place {
+    pub at: usize,
+    pub nth: usize,
+}
+
+// Another diagram that merely says the same is never taken for this one: a copy is not a move.
+pub fn redrawn(text: &str, place: Place, was: &str, now: &str) -> Option<(String, Place)> {
     let was = was.replace('\r', "");
     let found = diagrams(text);
-    let same: Vec<&Diagram> = found.iter().filter(|one| one.source == was).collect();
-    let chosen = match same.iter().find(|one| one.at.start == near) {
-        Some(one) => one,
-        None if same.len() == 1 => same[0],
-        None => return None,
-    };
-    Some((written_into(text, chosen, now), chosen.at.start))
+    let nth = found
+        .iter()
+        .position(|one| one.at.start == place.at && one.source == was)
+        .or_else(|| {
+            found
+                .get(place.nth)
+                .filter(|one| one.source == was)
+                .map(|_| place.nth)
+        })?;
+    let chosen = &found[nth];
+    let at = chosen.at.start;
+    Some((written_into(text, chosen, now), Place { at, nth }))
 }
 
 pub fn as_read(now: &str) -> String {
@@ -69,7 +81,12 @@ fn written_into(text: &str, diagram: &Diagram, now: &str) -> String {
             (after..after, opening_lead(text, diagram.at.start))
         }
     };
-    let ending = if text.contains("\r\n") { "\r\n" } else { "\n" };
+    let opening = &text[diagram.at.start..line_end(text, diagram.at.start)];
+    let ending = if opening.ends_with("\r\n") {
+        "\r\n"
+    } else {
+        "\n"
+    };
     let mut said = String::new();
     for (index, line) in now.replace('\r', "").lines().enumerate() {
         if index > 0 || diagram.inside.is_none() {

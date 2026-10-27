@@ -12,7 +12,7 @@ interface Drawn {
   size: Size;
 }
 
-export default function Sheet({ source, dark }: { source: string; dark: boolean }) {
+export default function Canvas({ source, dark }: { source: string; dark: boolean }) {
   const room = useRef<HTMLDivElement>(null);
   const [drawn, setDrawn] = useState<Drawn | null>(null);
   const [broken, setBroken] = useState(false);
@@ -59,15 +59,21 @@ export default function Sheet({ source, dark }: { source: string; dark: boolean 
     const wheel = (e: WheelEvent) => {
       e.preventDefault();
       const box = here.getBoundingClientRect();
-      if (e.ctrlKey || e.metaKey) {
-        zoom(e.deltaY < 0 ? STEP : 1 / STEP, { x: e.clientX - box.left, y: e.clientY - box.top });
-        return;
-      }
-      setView((was) => (was ? { ...was, x: was.x - e.deltaX, y: was.y - e.deltaY } : was));
+      const point = { x: e.clientX - box.left, y: e.clientY - box.top };
+      const by = e.deltaY < 0 ? STEP : 1 / STEP;
+      setView((was) => {
+        if (!was) return was;
+        if (e.ctrlKey || e.metaKey) return zoomedAt(was, by, point);
+        return { ...was, x: was.x - e.deltaX, y: was.y - e.deltaY };
+      });
     };
     here.addEventListener("wheel", wheel, { passive: false });
     return () => here.removeEventListener("wheel", wheel);
-  });
+  }, []);
+
+  const letGo = () => {
+    dragged.current = null;
+  };
 
   return (
     <section
@@ -82,14 +88,16 @@ export default function Sheet({ source, dark }: { source: string; dark: boolean 
       onPointerMove={(e) => {
         const from = dragged.current;
         if (!from) return;
+        // A release the canvas never heard, outside the window or mid alt-tab, still ends the drag.
+        if (e.buttons === 0) return letGo();
         dragged.current = { x: e.clientX, y: e.clientY };
         setView((was) =>
           was ? { ...was, x: was.x + e.clientX - from.x, y: was.y + e.clientY - from.y } : was,
         );
       }}
-      onPointerUp={() => {
-        dragged.current = null;
-      }}
+      onPointerUp={letGo}
+      onPointerCancel={letGo}
+      onLostPointerCapture={letGo}
     >
       {drawn && view && (
         <div

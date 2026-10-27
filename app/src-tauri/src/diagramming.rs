@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 
 use tauri::{AppHandle, Emitter};
-use tisty_markdown::diagrams;
+use tisty_markdown::diagrams::{self, Place};
 
 use crate::answers::papers::{unwritten, writable};
 use crate::viewing::{self, Paper, Shown, Views};
@@ -10,16 +10,24 @@ use crate::{Answer, Refusal, Session, held, signing};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Drawn {
     pub paper: Paper,
-    pub at: usize,
+    pub place: Place,
     pub was: String,
 }
 
 #[tauri::command(async)]
-pub fn view_diagram(app: AppHandle, paper: Paper, at: usize) -> Answer<()> {
+pub fn view_diagram(
+    app: AppHandle,
+    session: tauri::State<'_, Mutex<Session>>,
+    paper: Paper,
+    at: usize,
+) -> Answer<()> {
+    // Opened only where it can be saved, so no work is done that a lock would then refuse.
+    writable(&held(&session).state, &paper.file)?;
     let body = viewing::doc_body(&app, &paper.file)?;
-    let Some(found) = diagrams::diagrams(&body)
+    let Some((nth, found)) = diagrams::diagrams(&body)
         .into_iter()
-        .find(|one| one.at.start == at)
+        .enumerate()
+        .find(|(_, one)| one.at.start == at)
     else {
         return Err(Refusal::about("diagramMoved", paper.title));
     };
@@ -27,7 +35,7 @@ pub fn view_diagram(app: AppHandle, paper: Paper, at: usize) -> Answer<()> {
         &app,
         Shown::Diagram(Drawn {
             paper,
-            at,
+            place: Place { at, nth },
             was: found.source,
         }),
     );
@@ -52,13 +60,13 @@ pub fn diagram_save(
         let mut place = None;
         let body =
             tisty_core::docs::amend(&session.paths.docs(), session.paths.data(), &file, |was| {
-                diagrams::redrawn(was, drawn.at, &drawn.was, &now).map(|(body, at)| {
-                    place = Some(at);
+                diagrams::redrawn(was, drawn.place, &drawn.was, &now).map(|(body, now_at)| {
+                    place = Some(now_at);
                     body
                 })
             })
             .map_err(unwritten)?;
-        let (Some(body), Some(at)) = (body, place) else {
+        let (Some(body), Some(place)) = (body, place) else {
             return Err(Refusal::about("diagramMoved", drawn.paper.title));
         };
         session.corpus.forget(&file);
@@ -68,7 +76,7 @@ pub fn diagram_save(
             &views,
             window.label(),
             Shown::Diagram(Drawn {
-                at,
+                place,
                 was: diagrams::as_read(&now),
                 ..drawn
             }),
