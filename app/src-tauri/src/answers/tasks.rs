@@ -226,6 +226,7 @@ pub async fn snapshot(
         machine_here: session.config.device_id.0.clone(),
         clients: named_clients(&session.state),
         wholes: crate::answers::parts::wholes(&session.state),
+        standings: crate::summing::standings(&session.state, today()),
     })
 }
 

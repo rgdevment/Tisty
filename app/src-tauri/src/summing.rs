@@ -1,4 +1,5 @@
 use tisty_core::model::Reading;
+use tisty_core::standing::{Standing, standing};
 use tisty_core::{State, Task};
 
 use crate::{Filter, Scope, Window, today};
@@ -176,14 +177,21 @@ pub fn asked_about() -> Vec<(&'static str, Filter)> {
         (
             "overdue",
             Filter {
-                window: Some(Window::Overdue),
+                window: Some(Window::Stands(Standing::Overdue)),
+                ..Default::default()
+            },
+        ),
+        (
+            "late",
+            Filter {
+                window: Some(Window::Stands(Standing::Late)),
                 ..Default::default()
             },
         ),
         (
             "dueToday",
             Filter {
-                window: Some(Window::On(today())),
+                window: Some(Window::Stands(Standing::Today)),
                 ..Default::default()
             },
         ),
@@ -231,6 +239,20 @@ pub fn asked_about() -> Vec<(&'static str, Filter)> {
 
 /// The slices the task bar shows, also counted per list so a bar narrowed to some lists counts only them.
 pub const SLICED: [&str; 4] = ["tasks", "upcoming", "repeating", "all"];
+
+/// Sent with every snapshot so the window never reads the dates by a rule of its own.
+pub fn standings(
+    state: &State,
+    today: jiff::civil::Date,
+) -> std::collections::BTreeMap<String, Standing> {
+    state
+        .tasks
+        .values()
+        .filter(|task| task.is_open())
+        .map(|task| (task.id.to_string(), standing(task, today)))
+        .filter(|(_, how)| *how != Standing::Undated)
+        .collect()
+}
 
 pub fn tally(state: &State) -> std::collections::BTreeMap<String, usize> {
     let today = today();

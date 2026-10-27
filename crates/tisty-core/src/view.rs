@@ -9,9 +9,7 @@ pub enum Window {
     On(Date),
     Until(Date),
     After(Date),
-    Overdue,
-    Late,
-    Underway,
+    Stands(Standing),
     Undated,
 }
 
@@ -87,13 +85,15 @@ impl Filter {
         let on = task.date.as_ref().map(|d| d.date());
         match &self.window {
             None => true,
-            Some(Window::Today) => on.is_none_or(|d| d <= today),
+            // A deadline that is close or passed claims today, whatever day the work starts.
+            Some(Window::Today) => {
+                on.is_none_or(|d| d <= today)
+                    || matches!(standing(task, today), Standing::DueSoon | Standing::Overdue)
+            }
             Some(Window::On(day)) => on == Some(*day),
             Some(Window::Until(day)) => on.is_some_and(|d| d <= *day),
             Some(Window::After(day)) => on.is_some_and(|d| d > *day),
-            Some(Window::Overdue) => standing(task, today) == Standing::Overdue,
-            Some(Window::Late) => standing(task, today) == Standing::Late,
-            Some(Window::Underway) => standing(task, today) == Standing::Underway,
+            Some(Window::Stands(how)) => standing(task, today) == *how,
             Some(Window::Undated) => on.is_none(),
         }
     }

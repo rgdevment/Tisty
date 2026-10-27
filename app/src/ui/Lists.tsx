@@ -8,9 +8,10 @@ import {
   listLook,
   listRename,
   listUnarchive,
+  type Standing,
   type Task,
 } from "../core";
-import { isOverdue, isToday, whenLabel } from "../format";
+import { whenLabel } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import { sure } from "../sure";
@@ -21,10 +22,18 @@ import Pick from "./Pick";
 
 const whenOf = (task: Task) => task.date ?? task.deadline;
 
+const TONE: Partial<Record<Standing, string>> = {
+  overdue: "text-urgent",
+  due_soon: "text-hue-amber",
+  late: "text-hue-amber",
+  today: "text-accent",
+};
+
 interface Props {
   lists: List[];
   counts: Record<string, number>;
   soonest: Record<string, Task[]>;
+  standings?: Record<string, Standing>;
   onOpen: (id: string) => void;
   onChanged: () => void;
   onError: (problem: unknown) => void;
@@ -34,6 +43,7 @@ export default function Lists({
   lists: every,
   counts,
   soonest,
+  standings,
   onOpen,
   onChanged,
   onError,
@@ -210,13 +220,7 @@ export default function Lists({
                           <span className="min-w-0 truncate">{task.title}</span>
                           <span
                             className={`ml-auto shrink-0 text-[11.5px] tabular-nums ${
-                              when
-                                ? isOverdue(when)
-                                  ? "text-urgent"
-                                  : isToday(when)
-                                    ? "text-accent"
-                                    : "text-faint"
-                                : "text-faint"
+                              (when && TONE[standings?.[task.id] ?? "ahead"]) || "text-faint"
                             }`}
                           >
                             {when ? whenLabel(when) : "—"}
