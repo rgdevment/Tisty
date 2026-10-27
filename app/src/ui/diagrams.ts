@@ -17,6 +17,10 @@ const refused = new Set<string>();
 const sources = new WeakMap<Element, string>();
 const wanted = new WeakMap<Element, boolean>();
 
+// What a figure was drawn from; before its drawing lands, the code the page carries.
+export const sourceOf = (figure: Element): string =>
+  sources.get(figure) ?? figure.querySelector("pre > code")?.textContent ?? "";
+
 const keyOf = (source: string, dark: boolean) => `${dark ? "dark" : "light"}\n${source}`;
 
 const kept = (key: string): string | null | undefined => {

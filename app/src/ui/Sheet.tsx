@@ -92,7 +92,7 @@ export default function Sheet(props: Readonly<Props>) {
   const room = useRef<HTMLDivElement>(null);
   const said = useRef(props);
   said.current = props;
-  const diagram = (at: number, nth: number) => {
+  const diagram = (at: number, nth: number, source: string) => {
     const named = said.current.file;
     // A page not written yet has no file the diagram could be saved back into.
     if (!named || named.startsWith("unwritten:")) return;
@@ -102,7 +102,7 @@ export default function Sheet(props: Readonly<Props>) {
       title: said.current.label,
       place: said.current.place ?? "",
     };
-    viewDiagram(paper, at, nth).catch((e) => said.current.onFail?.(e));
+    viewDiagram(paper, at, nth, source).catch((e) => said.current.onFail?.(e));
   };
   const [drawn, setDrawn] = useState(value);
   const open = useRef<Editing | null>(null);

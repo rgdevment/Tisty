@@ -16,12 +16,15 @@ vi.mock("mermaid", () => ({
 const page = (html: string): Document => new DOMParser().parseFromString(shell(html), "text/html");
 
 const reaching = (opens = true) => {
-  const heard = { diagrams: [] as [number, number][], pictures: [] as number[] };
+  const heard = { diagrams: [] as [number, number, string][], pictures: [] as number[], away: 0 };
   const reach: Reaching = {
     body: "",
     onDoc: () => {},
     onPicture: (_, nth) => heard.pictures.push(nth),
-    onDiagram: opens ? (at, nth) => heard.diagrams.push([at, nth]) : undefined,
+    onAway: () => {
+      heard.away += 1;
+    },
+    onDiagram: opens ? (at, nth, source) => heard.diagrams.push([at, nth, source]) : undefined,
   };
   return { heard, reach };
 };
@@ -84,8 +87,8 @@ describe("opening a diagram of the page in its own window", () => {
 
     expect(own.querySelectorAll(".diagram-bar")).toHaveLength(2);
     expect(heard.diagrams).toEqual([
-      [0, 0],
-      [34, 1],
+      [0, 0, "graph TD"],
+      [34, 1, "mindmap"],
     ]);
     expect(went(own.querySelectorAll(".diagram-bar button")[1], false)).toEqual({
       kind: "diagram",
@@ -106,6 +109,10 @@ describe("opening a diagram of the page in its own window", () => {
       expect(figure.querySelector(":scope > .diagram-sheet svg")).not.toBeNull();
       expect(figure.querySelector(":scope > .diagram-bar button")).not.toBeNull();
     }
+    const { heard, reach } = reaching();
+    answered(own, { kind: "diagram", at: [34, 78] }, reach);
+    answered(own, { kind: "diagram", at: [1, 2] }, reach);
+    expect(heard.diagrams).toEqual([[34, 1, "mindmap"]]);
   });
 
   it("opens the window on a double press on a label, word selected or not, and never the picture", () => {
@@ -121,7 +128,8 @@ describe("opening a diagram of the page in its own window", () => {
     press(label, 2, "dblclick");
     vi.advanceTimersByTime(DOUBLE_MS);
 
-    expect(heard.diagrams).toEqual([[0, 0]]);
+    expect(heard.diagrams).toEqual([[0, 0, ""]]);
+    expect(heard.away).toBe(0);
     expect(heard.pictures).toEqual([]);
     expect(own.getSelection()?.isCollapsed ?? true).toBe(true);
   });

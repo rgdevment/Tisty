@@ -1,4 +1,4 @@
-use super::{Place, as_read, at_place, diagrams, redrawn};
+use super::{Place, as_read, at_place, diagrams, redrawn, still};
 
 // One case per line: body | the diagram sitting where the page put it (`-` when none does) | which one it was counting from the top | was | now | body after (`-` when refused).
 // `⏎` is a line break and `␍` a carriage return, so a whole document fits on its line.
@@ -152,5 +152,33 @@ fn the_page_names_each_diagram_where_the_window_finds_it() {
             let figure = page.contains(&format!("<figure class=\"diagram\" {named}"));
             assert!(figure, "{case}: no figure {named} in {page}");
         }
+    }
+}
+
+// One case per line: body | place the page sent | order the page sent | what the page drew | the order opened (`-` when refused).
+const OPENED: &str = "
+intro⏎⏎```mermaid⏎a⏎```⏎ | 0 | 0 | a⏎ | 0
+```mermaid⏎new⏎```⏎⏎```mermaid⏎a⏎```⏎ | 0 | 0 | a⏎ | -
+```mermaid⏎a⏎```⏎⏎```mermaid⏎b⏎```⏎ | 999 | 1 | b⏎ | 1
+```mermaid⏎a⏎```⏎⏎```mermaid⏎b⏎```⏎ | 999 | 1 | c⏎ | -
+```mermaid⏎a⏎```⏎⏎```mermaid⏎a⏎```⏎ | 999 | 0 | a⏎ | -
+";
+
+#[test]
+fn a_page_a_save_behind_still_opens_the_diagram_it_drew_and_never_a_neighbour() {
+    for case in OPENED.lines().filter(|line| !line.trim().is_empty()) {
+        let cells: Vec<&str> = case.split(" | ").collect();
+        let [body, at, nth, drew, opened] = cells[..] else {
+            panic!("a case has five cells: {case}");
+        };
+        let place = Place {
+            at: at.trim().parse().expect(case),
+            nth: nth.trim().parse().expect(case),
+        };
+        let wanted = opened.trim().parse::<usize>().ok();
+
+        let found = still(&unfolded(body), place, &unfolded(drew)).map(|(place, _)| place.nth);
+
+        assert_eq!(found, wanted, "{case}");
     }
 }

@@ -7,7 +7,7 @@ import { pictured } from "../previews";
 import { plainly } from "../refusal";
 import { type Attaching, attachedAs, lents, pressed } from "./attached";
 import { type Carding, carded } from "./carding";
-import { diagrams } from "./diagrams";
+import { diagrams, sourceOf } from "./diagrams";
 import {
   charsAt,
   colored,
@@ -42,8 +42,8 @@ export type Reaching = Carding & {
     read?: string,
   ) => void;
   readonly onApart?: (lent: Lent) => void;
-  // Bytes, as the window's own reader counts them, so the place is never converted; `nth` finds it when unsaved words moved it.
-  readonly onDiagram?: (at: number, nth: number) => void;
+  // Bytes, as the window's own reader counts them, never converted; `nth` and what it says find it when the page is a save behind.
+  readonly onDiagram?: (at: number, nth: number, source: string) => void;
   readonly onMore?: (asked: Extract<Went, { kind: "more" }>) => void;
   readonly onPicture?: (shots: Shot[], nth: number) => void;
   readonly onHere?: (id: string) => void;
@@ -308,10 +308,9 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
   if (!asked) return;
   if (asked.kind === "diagram") {
     const named = `${asked.at[0]}-${asked.at[1]}`;
-    const nth = Array.from(page.querySelectorAll<HTMLElement>("figure.diagram[data-at]")).findIndex(
-      (one) => one.dataset.at === named,
-    );
-    reach.onDiagram?.(asked.at[0], Math.max(nth, 0));
+    const figures = Array.from(page.querySelectorAll<HTMLElement>("figure.diagram[data-at]"));
+    const nth = figures.findIndex((one) => one.dataset.at === named);
+    if (nth >= 0) reach.onDiagram?.(asked.at[0], nth, sourceOf(figures[nth]));
   }
   if (asked.kind === "doc") reach.onDoc(asked.id);
   if (asked.kind === "task") reach.onTask?.(asked.id);
@@ -446,7 +445,9 @@ export const wired = (page: Document, reach: () => Reaching) => {
     const shaping = page.documentElement.classList.contains("shaping");
     const asked =
       went(target, selecting) ?? (!shaping && below(page, target, event) ? { kind: "end" } : null);
-    if (!asked && !target.closest(".editing")) reach().onAway?.();
+    // The second press of a double one on a diagram is the window's, not a press away from the block being written.
+    const second = event.detail >= 2 && target.closest("figure.diagram") && reach().onDiagram;
+    if (!asked && !second && !target.closest(".editing")) reach().onAway?.();
     const diagram = asked?.kind === "picture" && target.closest<HTMLElement>("figure.diagram");
     const opening = diagram ? spanned(diagram.dataset.at ?? null) : null;
     // A diagram that opens in its window on a double press waits a moment before it is looked at.

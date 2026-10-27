@@ -49,7 +49,7 @@ pub struct Place {
 }
 
 // Another diagram that merely says the same is never taken for this one: a copy is not a move.
-pub fn redrawn(text: &str, place: Place, was: &str, now: &str) -> Option<(String, Place)> {
+pub fn still(text: &str, place: Place, was: &str) -> Option<(Place, Diagram)> {
     let was = was.replace('\r', "");
     let found = diagrams(text);
     let alike = found.iter().filter(|one| one.source == was).count();
@@ -62,9 +62,19 @@ pub fn redrawn(text: &str, place: Place, was: &str, now: &str) -> Option<(String
                 .filter(|one| alike == 1 && one.source == was)
                 .map(|_| place.nth)
         })?;
-    let chosen = &found[nth];
-    let at = chosen.at.start;
-    Some((written_into(text, chosen, now), Place { at, nth }))
+    let chosen = found.into_iter().nth(nth)?;
+    Some((
+        Place {
+            at: chosen.at.start,
+            nth,
+        },
+        chosen,
+    ))
+}
+
+pub fn redrawn(text: &str, place: Place, was: &str, now: &str) -> Option<(String, Place)> {
+    let (place, chosen) = still(text, place, was)?;
+    Some((written_into(text, &chosen, now), place))
 }
 
 /// The diagram a window holds as the document says it now, whatever it says.
