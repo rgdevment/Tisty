@@ -10,11 +10,11 @@ fn a_table_is_edited_where_the_page_drew_it_and_nowhere_else() {
         said: "2".to_string(),
     };
     assert_eq!(
-        table_edit(body.to_string(), (8, 28), asked()),
+        table_edit(body.to_string(), (8, 28), vec![asked()]),
         Ok("Antes.\n\n| a |\n| --- |\n| 2 |\n".to_string())
     );
     assert_eq!(
-        table_edit(body.to_string(), (0, 6), asked()),
+        table_edit(body.to_string(), (0, 6), vec![asked()]),
         Err("moved".to_string())
     );
 }

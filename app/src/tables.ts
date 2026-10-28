@@ -14,6 +14,21 @@ export type TableEdit =
 
 export type TableRefused = "moved" | "beyond" | "unknownType" | "lastColumn";
 
-// `at` is the table's place in bytes, as the page's `data-at` says it.
-export const tableEdit = (body: string, at: [number, number], edit: TableEdit): Promise<string> =>
-  invoke("table_edit", { body, at, edit });
+// `at` is the table's place in bytes, as the page's `data-at` says it; the edits land one after another.
+export const tableEdit = (
+  body: string,
+  at: [number, number],
+  ...edits: TableEdit[]
+): Promise<string> => invoke("table_edit", { body, at, edits });
+
+export const tableOrder = (
+  body: string,
+  at: [number, number],
+  column: number,
+  down: boolean,
+): Promise<number[]> => invoke("table_order", { body, at, column, down });
+
+export type TableWritten = { readonly heads: string[]; readonly rows: string[][] };
+
+export const tableWritten = (body: string, at: [number, number]): Promise<TableWritten> =>
+  invoke("table_written", { body, at });

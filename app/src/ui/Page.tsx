@@ -131,6 +131,7 @@ export default function Page(props: Readonly<Props>) {
             onMenu: current("onMenu"),
             onMore: current("onMore"),
             onDiagram: current("onDiagram"),
+            onTable: current("onTable"),
           })}
           onReady={(frame) => ready(drawing, frame)}
         />

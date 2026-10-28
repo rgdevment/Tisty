@@ -36,6 +36,7 @@ import { ASIDE_MARGIN, settles } from "./seeking";
 import type { Sheet as SheetSize } from "./sheeting";
 import { type Asking, pressed, putBlock, stagesIn } from "./slashing";
 import { stepLine, steppedTitle } from "./staging";
+import { useTables } from "./tableSheet";
 import { widened } from "./tabling";
 import { usePictures } from "./usePictures";
 
@@ -647,6 +648,20 @@ export default function Sheet(props: Readonly<Props>) {
     whole(`${before}${before && after ? line + line : before ? line : ""}${after}`);
   };
 
+  const tables = useTables({
+    latest,
+    drawn: showing,
+    page: () => shown.current?.document ?? null,
+    frame: () => shown.current?.frameElement?.getBoundingClientRect(),
+    whole,
+    writing: () => Boolean(open.current),
+    leave: left,
+    markdown: (at, box) =>
+      block([charsAt(latest.current, at[0]), charsAt(latest.current, at[1])], box),
+    fail: (problem) => said.current.onFail?.(problem),
+    turned,
+  });
+
   const widen = (at: [number, number], column: number, dashes: number) => {
     if (open.current) return left();
     if (reading || showing.current !== latest.current) return;
@@ -883,6 +898,7 @@ export default function Sheet(props: Readonly<Props>) {
           onPart={reading || fixed || !props.onPart ? undefined : parted}
           onCut={reading || !fixed ? undefined : cut}
           onWiden={reading || fixed ? undefined : widen}
+          onTable={reading || fixed ? undefined : tables.onTable}
           onFormat={reading || fixed ? undefined : format}
           onChoose={reading || fixed ? undefined : chose}
           onMend={reading || fixed ? undefined : mended}
@@ -927,6 +943,7 @@ export default function Sheet(props: Readonly<Props>) {
         />
       )}
       {pictures.viewer}
+      {tables.menu}
       {more && (
         <Menu
           at={{ x: more.x, y: more.y }}

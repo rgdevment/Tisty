@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { tableEdit } from "../tables";
+import { tableEdit, tableOrder, tableWritten } from "../tables";
 
 const ipc = vi.hoisted(() => ({ calls: [] as { cmd: string; args: Record<string, unknown> }[] }));
 
@@ -19,8 +19,18 @@ describe("a change to a table", () => {
     expect(ipc.calls).toEqual([
       {
         cmd: "table_edit",
-        args: { body, at: [0, 20], edit: { kind: "cell", row: 0, column: 0, said: "2" } },
+        args: { body, at: [0, 20], edits: [{ kind: "cell", row: 0, column: 0, said: "2" }] },
       },
+    ]);
+  });
+
+  it("asks the core for a column's order and for the words of the cells as written", async () => {
+    ipc.calls.length = 0;
+    await tableOrder("body", [3, 9], 2, true);
+    await tableWritten("body", [3, 9]);
+    expect(ipc.calls).toEqual([
+      { cmd: "table_order", args: { body: "body", at: [3, 9], column: 2, down: true } },
+      { cmd: "table_written", args: { body: "body", at: [3, 9] } },
     ]);
   });
 });

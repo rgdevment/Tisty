@@ -69,6 +69,145 @@ html.widening * {
   cursor: col-resize;
   user-select: none;
 }
+/* The grips sit in the margin, inside the box that scrolls, so scrolling never cuts them off. */
+.page > .table.dressed {
+  margin-left: -26px;
+  padding-left: 26px;
+}
+.table.dressed :is(td, th) {
+  position: relative;
+}
+.table.dressed tbody td {
+  cursor: text;
+}
+.table.dressed th {
+  cursor: pointer;
+}
+.row-grip {
+  position: absolute;
+  top: 50%;
+  left: -24px;
+  width: 16px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background:
+    radial-gradient(circle, var(--tisty-faint) 1.2px, transparent 1.6px) 1px 2px / 7px 6px;
+  opacity: 0;
+  cursor: grab;
+  translate: 0 -50%;
+}
+.table.dressed tr:hover .row-grip,
+.row-grip:focus-visible {
+  opacity: 0.7;
+}
+.row-grip:hover {
+  opacity: 1;
+  background-color: var(--tisty-hover);
+}
+.row-moving,
+.row-moving * {
+  cursor: grabbing;
+  user-select: none;
+}
+.table.dressed th {
+  padding-right: 30px;
+}
+th > button[data-act="column"] {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--tisty-faint);
+  font: inherit;
+  line-height: 1.4;
+  cursor: pointer;
+  opacity: 0.5;
+}
+th:hover > button[data-act="column"],
+th > button[data-act="column"]:focus-visible {
+  opacity: 1;
+  background: var(--tisty-sheet);
+}
+th[aria-sort="ascending"]::before {
+  content: "↑ ";
+  color: var(--tisty-accent);
+}
+th[aria-sort="descending"]::before {
+  content: "↓ ";
+  color: var(--tisty-accent);
+}
+.row-add {
+  display: block;
+  margin-top: 4px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--tisty-faint);
+  font: inherit;
+  font-size: 0.9em;
+  cursor: pointer;
+}
+.row-add:hover {
+  background: var(--tisty-hover);
+  color: var(--tisty-ink);
+}
+.table-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: 0.85em;
+  color: var(--tisty-soft);
+}
+.table-bar[hidden] {
+  display: none;
+}
+.table-bar button {
+  padding: 2px 8px;
+  border: 1px solid var(--tisty-line);
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.table-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 2px 1px 10px;
+  border-radius: 999px;
+  background: var(--tisty-accent-soft);
+  color: var(--tisty-ink);
+}
+.table-bar .table-chip button {
+  padding: 0 6px;
+  border: 0;
+}
+.table-input {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 4px 8px;
+  border: 2px solid var(--tisty-accent);
+  border-radius: 3px;
+  background: var(--tisty-sheet);
+  color: var(--tisty-ink);
+  font: inherit;
+}
+.table-bar > .table-input {
+  position: static;
+  width: 16em;
+}
 /* Paper does not scroll: only a table wider than the paper's text breaks its words, at a syllable where it can. */
 @media print {
   div.table {
