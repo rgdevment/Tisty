@@ -72,6 +72,23 @@ pub fn still(text: &str, place: Place, was: &str) -> Option<(Place, Diagram)> {
     ))
 }
 
+// Blocks written above since a window opened move its diagram; the one alone in saying the same is still it.
+pub fn order_of(text: &str, place: Place, was: &str) -> usize {
+    let was = was.replace('\r', "");
+    let found = diagrams(text);
+    let alike: Vec<usize> = found
+        .iter()
+        .enumerate()
+        .filter(|(_, one)| one.source == was)
+        .map(|(nth, _)| nth)
+        .collect();
+    found
+        .iter()
+        .position(|one| one.at.start == place.at && one.source == was)
+        .or_else(|| (alike.len() == 1).then(|| alike[0]))
+        .unwrap_or(place.nth)
+}
+
 pub fn redrawn(text: &str, place: Place, was: &str, now: &str) -> Option<(String, Place)> {
     let (place, chosen) = still(text, place, was)?;
     Some((written_into(text, &chosen, now), place))

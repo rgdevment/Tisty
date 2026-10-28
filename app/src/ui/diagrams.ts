@@ -1,4 +1,5 @@
 import type { MermaidConfig } from "mermaid";
+import type { Size } from "./drawing/framing";
 
 type Mermaid = typeof import("mermaid")["default"];
 
@@ -144,6 +145,10 @@ export const diagrams = (within: ParentNode, dark: boolean, live: () => boolean)
   return Promise.all(waiting).then(() => {});
 };
 
+// Mermaid draws to the width of its place; a picture on its own needs a size, and a ground when asked.
+export const grounded = (svg: string, size: Size, ground: string | null): string =>
+  `<svg xmlns="http://www.w3.org/2000/svg" width="${size.wide}" height="${size.tall}" viewBox="0 0 ${size.wide} ${size.tall}">${ground ? `<rect width="100%" height="100%" fill="${ground}"/>` : ""}${svg}</svg>`;
+
 // The viewer lays a picture on white, so a dark drawing brings the dark sheet it was drawn for.
 export const diagramShot = (figure: Element): string | null => {
   const svg = figure.querySelector("svg");
@@ -151,8 +156,7 @@ export const diagramShot = (figure: Element): string | null => {
   if (figure.getAttribute("data-theme") !== "dark")
     return `data:image/svg+xml,${encodeURIComponent(svg.outerHTML)}`;
   const box = svg.viewBox?.baseVal;
-  const [wide, tall] = box?.width ? [box.width, box.height] : [800, 600];
+  const size = box?.width ? { wide: box.width, tall: box.height } : { wide: 800, tall: 600 };
   const ground = getComputedStyle(figure).getPropertyValue("--tisty-sheet").trim() || "#232326";
-  const framed = `<svg xmlns="http://www.w3.org/2000/svg" width="${wide}" height="${tall}" viewBox="0 0 ${wide} ${tall}"><rect width="100%" height="100%" fill="${ground}"/>${svg.outerHTML}</svg>`;
-  return `data:image/svg+xml,${encodeURIComponent(framed)}`;
+  return `data:image/svg+xml,${encodeURIComponent(grounded(svg.outerHTML, size, ground))}`;
 };

@@ -4,7 +4,7 @@ import { button } from "../viewer/Glyphs";
 import type { Shape } from "./flow";
 import { edgeRemoved, groupAdded, groupRemoved, linked, nodeAdded, nodeRemoved } from "./flowing";
 import GraphBoard from "./GraphBoard";
-import { around, layered } from "./graphlayout";
+import { CUTS, flowScene } from "./scenes";
 import type { Flowing } from "./useFlow";
 
 const LOOKS: Record<Shape, string> = {
@@ -24,53 +24,14 @@ const LOOKS: Record<Shape, string> = {
   flag: "",
 };
 
-// Shapes CSS has no border for are cut out of a filled box instead.
-const CUTS: Partial<Record<Shape, string>> = {
-  decision: "polygon(50% 0, 100% 50%, 50% 100%, 0 50%)",
-  hexagon: "polygon(12% 0, 88% 0, 100% 50%, 88% 100%, 12% 100%, 0 50%)",
-  lean: "polygon(12% 0, 100% 0, 88% 100%, 0 100%)",
-  leanLeft: "polygon(0 0, 88% 0, 100% 100%, 12% 100%)",
-  trapezoid: "polygon(12% 0, 88% 0, 100% 100%, 0 100%)",
-  trapezoidDown: "polygon(0 0, 100% 0, 88% 100%, 12% 100%)",
-  flag: "polygon(0 0, 100% 0, 100% 100%, 0 100%, 12% 50%)",
-};
-
-const sizeOf = (text: string, shape: Shape) => {
-  const wide = Math.max(90, Math.round(text.length * 7.5 + 36));
-  if (shape === "circle" || shape === "double")
-    return { wide: Math.max(wide, 72), tall: Math.max(wide, 72) };
-  if (shape === "decision") return { wide: wide + 40, tall: 64 };
-  return { wide, tall: 42 };
-};
-
 /** A flowchart drawn by Tisty: nodes in layers along its direction, groups framed, joined by dragging a dot. */
 export default function FlowView({ editing }: Readonly<{ editing: Flowing }>) {
   const { flow, picked, change, pick } = editing;
-  const sizes = new Map(
-    flow.nodes.map((one) => [one.id, sizeOf(one.text, one.shape ?? "process")]),
-  );
-  const laid = layered(
-    flow.nodes.map((one) => one.id),
-    flow.edges.map((one) => [one.from, one.to] as const),
-    sizes,
-    flow.direction,
-  );
-  const frames = flow.groups.flatMap((group) => {
-    const rects = flow.nodes
-      .filter((one) => one.group === group.id)
-      .flatMap((one) => laid.at.get(one.id) ?? []);
-    const rect = around(rects);
-    return rect
-      ? [
-          {
-            key: group.id,
-            rect,
-            title: group.title,
-            picked: picked?.kind === "group" && picked.id === group.id,
-          },
-        ]
-      : [];
-  });
+  const { laid, joints, groups } = flowScene(flow);
+  const frames = groups.map((one) => ({
+    ...one,
+    picked: picked?.kind === "group" && picked.id === one.key,
+  }));
   const remove = () => {
     if (picked?.kind === "node") change(nodeRemoved(flow, picked.id));
     if (picked?.kind === "edge") change(edgeRemoved(flow, picked.index));
@@ -98,14 +59,8 @@ export default function FlowView({ editing }: Readonly<{ editing: Flowing }>) {
           },
         ];
       })}
-      wires={flow.edges.map((one, index) => ({
-        key: String(index),
-        from: one.from,
-        to: one.to,
-        label: one.label,
-        dashed: one.arrow.includes("."),
-        thick: one.arrow.includes("="),
-        arrow: /[>ox]$/.test(one.arrow),
+      wires={joints.map((one, index) => ({
+        ...one,
         picked: picked?.kind === "edge" && picked.index === index,
       }))}
       frames={frames}

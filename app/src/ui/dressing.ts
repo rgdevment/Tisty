@@ -47,6 +47,8 @@ export type Reaching = Carding & {
   readonly onApart?: (lent: Lent) => void;
   // Bytes, as the window's own reader counts them, never converted; `nth` and what it says find it when the page is a save behind.
   readonly onDiagram?: (at: number, nth: number, source: string) => void;
+  // Where on the window's own screen its choices open, under the bar of the figure.
+  readonly onDiagramExport?: (nth: number, source: string, at: { x: number; y: number }) => void;
   readonly onMore?: (asked: Extract<Went, { kind: "more" }>) => void;
   readonly onPicture?: (shots: Shot[], nth: number) => void;
   readonly onHere?: (id: string) => void;
@@ -291,34 +293,56 @@ export const worn = (
     partCarded(page, reach.part);
     webCarded(page, live);
   }
-  if (reach?.onDiagram && !stranger) diagramBars(page);
+  if ((reach?.onDiagram || reach?.onDiagramExport) && !stranger)
+    diagramBars(page, { open: Boolean(reach.onDiagram), out: Boolean(reach.onDiagramExport) });
   void diagrams(page, page.documentElement.classList.contains("dark"), live);
   colored(page, live);
   return { lent, kept };
 };
 
-export const diagramBars = (page: Document) => {
+export const diagramBars = (page: Document, ways = { open: true, out: false }) => {
   for (const figure of page.querySelectorAll<HTMLElement>("figure.diagram[data-at]")) {
     if (figure.querySelector(":scope > .diagram-bar")) continue;
     const bar = page.createElement("div");
     bar.className = "diagram-bar";
     // The words live in an attribute the stylesheet shows, so finding and copying never meet them.
-    const open = asking(page, "diagram", "");
-    open.setAttribute("aria-label", t("diagramOpen"));
-    open.title = t("diagramOpen");
-    bar.append(open);
+    const button = (asked: string, said: string) => {
+      const one = asking(page, asked, "");
+      one.setAttribute("aria-label", said);
+      one.title = said;
+      bar.append(one);
+    };
+    if (ways.out) button("diagramExport", t("diagramExport"));
+    if (ways.open) button("diagram", t("diagramOpen"));
     figure.append(bar);
   }
+};
+
+const figureAt = (page: Document, at: [number, number]) => {
+  const named = `${at[0]}-${at[1]}`;
+  const figures = Array.from(page.querySelectorAll<HTMLElement>("figure.diagram[data-at]"));
+  const nth = figures.findIndex((one) => one.dataset.at === named);
+  return nth >= 0 ? { nth, figure: figures[nth] } : null;
+};
+
+// The page sits in a frame; a menu of the window opens where the bar shows on the window's screen.
+const underBar = (page: Document, figure: HTMLElement) => {
+  const box = (figure.querySelector(".diagram-bar") ?? figure).getBoundingClientRect();
+  const frame = page.defaultView?.frameElement?.getBoundingClientRect();
+  return { x: box.left + (frame?.left ?? 0), y: box.bottom + 4 + (frame?.top ?? 0) };
 };
 
 export const answered = (page: Document, asked: Went, reach: Reaching, read = "") => {
   if (!asked) return;
   if (asked.kind === "table") reach.onTable?.(asked);
   if (asked.kind === "diagram") {
-    const named = `${asked.at[0]}-${asked.at[1]}`;
-    const figures = Array.from(page.querySelectorAll<HTMLElement>("figure.diagram[data-at]"));
-    const nth = figures.findIndex((one) => one.dataset.at === named);
-    if (nth >= 0) reach.onDiagram?.(asked.at[0], nth, sourceOf(figures[nth]));
+    const found = figureAt(page, asked.at);
+    if (found) reach.onDiagram?.(asked.at[0], found.nth, sourceOf(found.figure));
+  }
+  if (asked.kind === "diagramExport") {
+    const found = figureAt(page, asked.at);
+    if (found)
+      reach.onDiagramExport?.(found.nth, sourceOf(found.figure), underBar(page, found.figure));
   }
   if (asked.kind === "doc") reach.onDoc(asked.id);
   if (asked.kind === "task") reach.onTask?.(asked.id);

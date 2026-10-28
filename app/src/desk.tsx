@@ -25,6 +25,7 @@ export function deskOf(state: State, data: Snapshot) {
     found,
     setFound,
     setMakingFolder,
+    setMakingDiagram,
     setRenaming,
     noted,
     afoot,
@@ -102,6 +103,7 @@ export function deskOf(state: State, data: Snapshot) {
     papers,
     showing,
     newDoc,
+    newDiagram: (folder) => setMakingDiagram({ into: folder }),
     bringIn,
     makeFolder: () => setMakingFolder(true),
     makeFolderIn: (folder) => {

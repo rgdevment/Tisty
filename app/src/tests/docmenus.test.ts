@@ -39,6 +39,7 @@ const hands = () => {
     papers,
     showing: doc.file,
     newDoc: vi.fn(),
+    newDiagram: vi.fn(),
     bringIn: vi.fn(),
     makeFolder: vi.fn(),
     makeFolderIn: vi.fn(),
@@ -80,8 +81,11 @@ describe("the menu of the documents themselves", () => {
     pick(choices, "unpack").onPick?.();
     pick(choices, "packAll").onPick?.();
     pick(choices, "takeOutAll").onPick?.();
+    pick(choices, "newDiagram").onPick?.();
+    pick(hereChoices(h), "newDiagram").onPick?.();
 
     expect(h.newDoc).toHaveBeenCalledWith("f1");
+    expect(h.newDiagram.mock.calls).toEqual([["f1"], [undefined]]);
     expect(h.bringIn).toHaveBeenCalledWith("f1");
     expect(h.makeFolder).toHaveBeenCalled();
     expect(h.parcels.takeParcel).toHaveBeenCalled();
@@ -104,9 +108,11 @@ describe("the menu of a folder", () => {
     pick(choices, "takeOutAll").onPick?.();
     pick(choices, "away").onPick?.();
     pick(choices, "drop").onPick?.();
+    pick(choices, "newDiagram").onPick?.();
     await flush();
 
     expect(h.newDoc).toHaveBeenCalledWith("f1");
+    expect(h.newDiagram).toHaveBeenCalledWith("f1");
     expect(h.makeFolderIn).toHaveBeenCalledWith("f1");
     expect(h.rename).toHaveBeenCalledWith(folder);
     expect(h.bringIn).toHaveBeenCalledWith("f1");

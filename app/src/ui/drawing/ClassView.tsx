@@ -1,39 +1,14 @@
 import { t } from "../../locales";
 import { button } from "../viewer/Glyphs";
-import type { ClassBox } from "./classes";
 import { classAdded, classesLinked, classRemoved, linkRemoved, memberRemoved } from "./classing";
 import GraphBoard from "./GraphBoard";
-import { layered } from "./graphlayout";
+import { classScene } from "./scenes";
 import type { Classing } from "./useClasses";
-
-const HEAD = 32;
-const LINE = 20;
-
-const sizeOf = (one: ClassBox) => ({
-  wide: Math.max(
-    150,
-    ...[one.name, ...one.members.map((m) => m.text)].map((said) => said.length * 7.2 + 36),
-  ),
-  tall: HEAD + Math.max(one.members.length, 1) * LINE + 10 + (one.note ? 14 : 0),
-});
-
-// The head is drawn at the end Mermaid puts it: `<|--` and `<--` on the left class.
-const headLeft = (arrow: string) => arrow.startsWith("<");
-// The parent or the whole goes above: it is on the right in `--|>`, `..|>`, `--*` and `--o`.
-const wholeRight = (arrow: string) => /(\|>|\*|o)$/.test(arrow);
 
 /** A class diagram drawn by Tisty: classes as cards with their members, in layers along its relations. */
 export default function ClassView({ editing }: Readonly<{ editing: Classing }>) {
   const { diagram, picked, change, pick } = editing;
-  const sizes = new Map(diagram.classes.map((one) => [one.name, sizeOf(one)]));
-  const laid = layered(
-    diagram.classes.map((one) => one.name),
-    diagram.links.map((one): readonly [string, string] =>
-      wholeRight(one.arrow) ? [one.right, one.left] : [one.left, one.right],
-    ),
-    sizes,
-    diagram.direction,
-  );
+  const { laid, joints } = classScene(diagram);
   const remove = () => {
     if (picked?.kind === "class") change(classRemoved(diagram, picked.name));
     if (picked?.kind === "member") change(memberRemoved(diagram, picked.name, picked.index));
@@ -75,14 +50,8 @@ export default function ClassView({ editing }: Readonly<{ editing: Classing }>) 
           },
         ];
       })}
-      wires={diagram.links.map((one, index) => ({
-        key: String(index),
-        from: headLeft(one.arrow) ? one.right : one.left,
-        to: headLeft(one.arrow) ? one.left : one.right,
-        label: [one.label, one.arrow].filter(Boolean).join(" "),
-        dashed: one.arrow.includes("."),
-        thick: false,
-        arrow: /[<>]/.test(one.arrow),
+      wires={joints.map((one, index) => ({
+        ...one,
         picked: picked?.kind === "link" && picked.index === index,
       }))}
       frames={[]}

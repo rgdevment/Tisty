@@ -124,6 +124,19 @@ pub fn diagram_again(
     Ok(was)
 }
 
+#[tauri::command(async)]
+pub fn diagram_order(
+    app: AppHandle,
+    window: tauri::WebviewWindow,
+    views: tauri::State<'_, Views>,
+) -> Answer<usize> {
+    let Shown::Diagram(drawn) = viewing::shown_in(&views, window.label())? else {
+        return Err(Refusal::of("notAllowed"));
+    };
+    let body = viewing::doc_body(&app, &drawn.paper.file)?;
+    Ok(diagrams::order_of(&body, drawn.place, &drawn.was))
+}
+
 #[tauri::command]
 pub fn diagram_unsaved(
     window: tauri::WebviewWindow,

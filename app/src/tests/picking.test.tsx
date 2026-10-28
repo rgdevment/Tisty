@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed } from "../core";
+import { nameOf, STARTS, startOf } from "../ui/drawing/starting";
 import Picking, { type Picked } from "../ui/Picking";
 
 const made = vi.hoisted(() => ({
@@ -147,5 +148,48 @@ describe("what the / menu asks the window for", () => {
       document.querySelector("[aria-hidden='true'][data-keeps-writing]") as Element,
     );
     expect(done).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("a new diagram asked for from the / menu", () => {
+  const drawn = (onDrawn?: (source: string, write: () => boolean) => void) => {
+    const put = vi.fn((_: string) => true);
+    render(
+      <Picking
+        picked={{ kind: "diagram", at: { x: 40, y: 40 }, put }}
+        own={book}
+        pages={[]}
+        others={[]}
+        onMade={vi.fn()}
+        onLost={vi.fn()}
+        onError={vi.fn()}
+        onDone={vi.fn()}
+        onDrawn={onDrawn}
+      />,
+    );
+    return put;
+  };
+
+  it("offers every kind and hands the window its example with the way to write it", async () => {
+    const heard: string[] = [];
+    const put = drawn((source, write) => {
+      heard.push(source);
+      write();
+    });
+
+    expect(screen.getAllByRole("menuitem").map((one) => one.textContent)).toEqual(
+      STARTS.map(nameOf),
+    );
+    await userEvent.click(screen.getByRole("menuitem", { name: nameOf("classDiagram") }));
+
+    expect(heard).toEqual([startOf("classDiagram")]);
+    expect(put).toHaveBeenCalledWith(`\`\`\`mermaid\n${startOf("classDiagram")}\`\`\``);
+  });
+
+  it("only writes the block where nothing opens the window", async () => {
+    const put = drawn();
+    await userEvent.click(screen.getByRole("menuitem", { name: nameOf("mindmap") }));
+
+    expect(put).toHaveBeenCalledWith(`\`\`\`mermaid\n${startOf("mindmap")}\`\`\``);
   });
 });

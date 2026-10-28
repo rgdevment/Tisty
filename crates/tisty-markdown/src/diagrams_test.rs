@@ -1,4 +1,4 @@
-use super::{Place, as_read, at_place, diagrams, redrawn, still};
+use super::{Place, as_read, at_place, diagrams, order_of, redrawn, still};
 
 // One case per line: body | the diagram sitting where the page put it (`-` when none does) | which one it was counting from the top | was | now | body after (`-` when refused).
 // `⏎` is a line break and `␍` a carriage return, so a whole document fits on its line.
@@ -180,5 +180,66 @@ fn a_page_a_save_behind_still_opens_the_diagram_it_drew_and_never_a_neighbour() 
         let found = still(&unfolded(body), place, &unfolded(drew)).map(|(place, _)| place.nth);
 
         assert_eq!(found, wanted, "{case}");
+    }
+}
+
+// One per line, the table `starting.test.ts` checks the app's own finder against: a body → where each diagram starts, in bytes, and what it says.
+const FOUND: &str = "
+# T⏎⏎```mermaid⏎a⏎``` → 5:a⏎
+# Ñu⏎```mmd⏎b⏎c⏎```⏎```mermaid⏎d⏎``` → 6:b⏎c⏎ | 21:d⏎
+~~~~ mermaid⏎x⏎~~~⏎y⏎~~~~ → 0:x⏎~~~⏎y⏎
+```js⏎```mermaid⏎``` →
+```Mermaid⏎a⏎``` →
+   ```mermaid⏎sin cerrar⏎ → 3:sin cerrar⏎
+# Compras⏎⏎leche⏎⏎```mermaid⏎a⏎``` → 18:a⏎
+> ```mermaid⏎> a⏎> ``` → 2:a⏎
+- item⏎⏎  ```mermaid⏎  b⏎  ``` → 10:b⏎
+> ```mermaid⏎> a⏎> ```⏎⏎```mermaid⏎c⏎``` → 2:a⏎ | 24:c⏎
+> - ```mermaid⏎>   d⏎>   ``` → 4:d⏎
+    ```mermaid⏎    x⏎    ``` →
+> ```mermaid⏎> a⏎⏎```mermaid⏎c⏎``` → 2:a⏎ | 18:c⏎
+- ```mermaid⏎  a⏎⏎```mermaid⏎c⏎``` → 2:a⏎⏎ | 18:c⏎
+";
+
+#[test]
+fn the_app_finds_each_diagram_where_the_core_does() {
+    for case in FOUND.lines().filter(|line| !line.trim().is_empty()) {
+        let (body, said) = case.split_once(" →").expect("a case has an arrow");
+        let found: Vec<String> = diagrams(&body.replace('⏎', "\n"))
+            .iter()
+            .map(|one| format!("{}:{}", one.at.start, one.source))
+            .collect();
+        let expected: Vec<String> = said
+            .split(" | ")
+            .map(|one| one.trim().replace('⏎', "\n"))
+            .filter(|one| !one.is_empty())
+            .collect();
+        assert_eq!(found, expected, "{case}");
+    }
+}
+
+// One per line: a body | where the window's diagram sat | which one it was | what it said | which one it is now.
+const ORDER: &str = "
+```mermaid⏎a⏎```⏎ | 0 | 0 | a⏎ | 0
+```mermaid⏎x⏎```⏎⏎```mermaid⏎a⏎```⏎ | 0 | 0 | a⏎ | 1
+```mermaid⏎a⏎```⏎⏎```mermaid⏎a⏎```⏎ | 18 | 1 | a⏎ | 1
+```mermaid⏎a⏎```⏎⏎```mermaid⏎a⏎```⏎ | 99 | 1 | a⏎ | 1
+```mermaid⏎a⏎```⏎⏎```mermaid⏎a⏎```⏎ | 99 | 0 | a⏎ | 0
+```mermaid⏎b⏎```⏎ | 0 | 3 | a⏎ | 3
+";
+
+#[test]
+fn a_window_knows_which_diagram_it_holds_after_blocks_are_written_above_it() {
+    for case in ORDER.lines().filter(|line| !line.trim().is_empty()) {
+        let cells: Vec<&str> = case.split(" | ").collect();
+        let [body, at, nth, was, now] = cells[..] else {
+            panic!("a case has five cells: {case}");
+        };
+        let place = Place {
+            at: at.parse().expect("a place"),
+            nth: nth.parse().expect("an order"),
+        };
+        let found = order_of(&unfolded(body), place, &unfolded(was));
+        assert_eq!(found, now.parse::<usize>().expect("an order"), "{case}");
     }
 }

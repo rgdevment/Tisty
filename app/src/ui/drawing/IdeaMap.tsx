@@ -17,11 +17,8 @@ import {
   without,
   withSibling,
 } from "./minding";
-import { curve, laidOut, type Placed } from "./mindlayout";
+import { curve, HEXAGON, HUES, laidOut, type Placed } from "./mindlayout";
 import type { Mind, Shape } from "./mindmap";
-
-// Mid tones that read on a light sheet and a dark one alike.
-const HUES = ["#3fae9a", "#e09a30", "#9a6fe0", "#e0648c", "#4a94e8"];
 
 // A press that moves less than this is a press, not a drag.
 const DRAG_FROM = 4;
@@ -52,7 +49,7 @@ const lookOf = (one: Placed, chosen: boolean, over: boolean): CSSProperties => (
   borderColor: one.depth === 1 || one.idea.shape !== "plain" ? hueOf(one) : undefined,
   ...(one.depth === 0 && { background: hueOf(one), color: "white" }),
   ...(one.idea.shape === "hexagon" && {
-    clipPath: "polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0 50%)",
+    clipPath: HEXAGON,
   }),
   boxShadow: chosen || over ? `0 0 0 2px var(--tisty-desk), 0 0 0 4px ${hueOf(one)}` : undefined,
 });

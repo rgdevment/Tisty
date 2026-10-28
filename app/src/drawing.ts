@@ -12,3 +12,4 @@ export const diagramAgain = (): Promise<string> => invoke("diagram_again");
 export const diagramUnsaved = (unsaved: boolean): Promise<void> =>
   invoke("diagram_unsaved", { unsaved });
 export const diagramLeave = (): Promise<void> => invoke("diagram_leave");
+export const diagramOrder = (): Promise<number> => invoke("diagram_order");
