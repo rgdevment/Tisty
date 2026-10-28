@@ -1,6 +1,6 @@
 import mermaid from "mermaid";
 import { beforeAll, describe, expect, it } from "vitest";
-import { type Classes, readClasses, writeClasses } from "../ui/drawing/classes";
+import { type Classes, readClasses, writeClasses } from "../src/classes";
 import {
   classAdded,
   classesLinked,
@@ -11,7 +11,7 @@ import {
   memberAdded,
   memberChanged,
   memberRemoved,
-} from "../ui/drawing/classing";
+} from "../src/classing";
 
 // `⏎` is a line break, so a whole diagram fits on its line.
 const unfolded = (said: string) => said.trim().replace(/⏎/g, "\n");

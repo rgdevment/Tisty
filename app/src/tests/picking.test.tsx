@@ -1,9 +1,9 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { nameOf, STARTS, startOf } from "tisty-diagrams/read";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed } from "../core";
 import { t } from "../locales";
-import { nameOf, STARTS, startOf } from "../ui/drawing/starting";
 import Picking, { type Picked } from "../ui/Picking";
 
 const made = vi.hoisted(() => ({
@@ -179,19 +179,19 @@ describe("a new diagram asked for from the / menu", () => {
     });
 
     expect(screen.getAllByRole("menuitem").map((one) => one.textContent)).toEqual([
-      ...STARTS.map(nameOf),
+      ...STARTS.map((one) => nameOf(one, "en")),
       t("diagramExisting"),
     ]);
-    await userEvent.click(screen.getByRole("menuitem", { name: nameOf("classDiagram") }));
+    await userEvent.click(screen.getByRole("menuitem", { name: nameOf("classDiagram", "en") }));
 
-    expect(heard).toEqual([startOf("classDiagram")]);
-    expect(put).toHaveBeenCalledWith(`\`\`\`mermaid\n${startOf("classDiagram")}\`\`\``);
+    expect(heard).toEqual([startOf("classDiagram", "en")]);
+    expect(put).toHaveBeenCalledWith(`\`\`\`mermaid\n${startOf("classDiagram", "en")}\`\`\``);
   });
 
   it("only writes the block where nothing opens the window", async () => {
     const put = drawn();
-    await userEvent.click(screen.getByRole("menuitem", { name: nameOf("mindmap") }));
+    await userEvent.click(screen.getByRole("menuitem", { name: nameOf("mindmap", "en") }));
 
-    expect(put).toHaveBeenCalledWith(`\`\`\`mermaid\n${startOf("mindmap")}\`\`\``);
+    expect(put).toHaveBeenCalledWith(`\`\`\`mermaid\n${startOf("mindmap", "en")}\`\`\``);
   });
 });

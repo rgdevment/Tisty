@@ -1,6 +1,7 @@
+import { Refused, sayIn } from "tisty-diagrams/read";
 import { noteTrouble } from "./core";
 import { budgetResets } from "./format";
-import { fill, t } from "./locales";
+import { fill, locale, t } from "./locales";
 
 export interface Refusal {
   code: string;
@@ -281,6 +282,7 @@ export function saidPlainly(problem: unknown): string {
 }
 
 export function plainly(problem: unknown): string {
+  if (problem instanceof Refused) return sayIn(locale())(problem.code);
   const refusal = problem as Refusal | undefined;
   if (!refusal || typeof refusal.code !== "string") {
     return technical(String(problem));

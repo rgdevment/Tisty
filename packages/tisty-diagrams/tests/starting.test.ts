@@ -1,11 +1,10 @@
 import mermaid from "mermaid";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { adopt } from "../locales";
-import { readClasses } from "../ui/drawing/classes";
-import { readFlow } from "../ui/drawing/flow";
-import { kindOf } from "../ui/drawing/framing";
-import { readMind } from "../ui/drawing/mindmap";
-import { readSchema } from "../ui/drawing/schema";
+import { beforeAll, describe, expect, it } from "vitest";
+import { readClasses } from "../src/classes";
+import { readFlow } from "../src/flow";
+import { kindOf } from "../src/framing";
+import { readMind } from "../src/mindmap";
+import { readSchema } from "../src/schema";
 import {
   fenced,
   fencesOf,
@@ -15,7 +14,7 @@ import {
   type Start,
   startOf,
   titleOf,
-} from "../ui/drawing/starting";
+} from "../src/starting";
 
 // `⏎` is a line break, so a whole document fits on its line.
 const unfolded = (said: string) => said.replace(/⏎/g, "\n");
@@ -35,14 +34,11 @@ beforeAll(() => {
   mermaid.initialize({ startOnLoad: false });
 });
 
-afterAll(() => adopt("en"));
-
 describe("the example a new diagram begins with", () => {
   it("is valid Mermaid of its kind in every language, and the window can edit it", async () => {
     for (const language of ["en", "es"]) {
-      adopt(language);
       for (const kind of STARTS) {
-        const source = startOf(kind);
+        const source = startOf(kind, language);
         const said = `${language} ${kind}`;
         expect(source.endsWith("\n"), said).toBe(true);
         expect(await valid(source), said).toBe(true);

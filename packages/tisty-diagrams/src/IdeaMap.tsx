@@ -6,8 +6,8 @@ import {
   useRef,
   useState,
 } from "react";
-import { t } from "../../locales";
 import Board from "./Board";
+import { useSay } from "./handing";
 import {
   type Changed,
   moved,
@@ -68,6 +68,7 @@ export default function IdeaMap({
   onChoose: (path: Path) => void;
   onChange: (made: Changed) => void;
 }>) {
+  const t = useSay();
   const laid = useMemo(() => laidOut(mind), [mind]);
   const [renaming, setRenaming] = useState<Path | null>(null);
   const [over, setOver] = useState<Path | null>(null);

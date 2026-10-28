@@ -1,12 +1,12 @@
 import { useRef, useState } from "react";
+import { fenced, nameOf, STARTS, startOf } from "tisty-diagrams/read";
 import type { Filed } from "../core";
 import { known } from "../glyphs";
-import { t } from "../locales";
+import { locale, t } from "../locales";
 import { spawned } from "../making";
 import { docCard } from "../markdown";
 import Asking from "./Asking";
 import DiagramFinder from "./DiagramFinder";
-import { fenced, nameOf, STARTS, startOf } from "./drawing/starting";
 import Glyphs from "./Glyphs";
 import Papers from "./Papers";
 import type { Asked } from "./slashing";
@@ -124,13 +124,13 @@ export default function Picking({
                 role="menuitem"
                 className="rounded-md px-2.5 py-1.5 text-left text-[13px] hover:bg-hover"
                 onClick={() => {
-                  const source = startOf(one);
+                  const source = startOf(one, locale());
                   const write = () => done(fenced(source));
                   if (onDrawn) onDrawn(source, write);
                   else write();
                 }}
               >
-                {nameOf(one)}
+                {nameOf(one, locale())}
               </button>
             ))}
             <button

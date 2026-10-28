@@ -1,5 +1,5 @@
-import { t, type Word } from "../../locales";
 import { type DiagramKind, headerAt } from "./framing";
+import { sayIn, type Word } from "./words";
 
 export type Start = "mindmap" | "erDiagram" | "flowchart" | "classDiagram" | "other";
 
@@ -19,10 +19,10 @@ const WORDS: Record<Start, { name: Word; source: Word }> = {
   other: { name: "diagramKindOther", source: "diagramStartOther" },
 };
 
-export const nameOf = (kind: Start): string => t(WORDS[kind].name);
+export const nameOf = (kind: Start, locale: string): string => sayIn(locale)(WORDS[kind].name);
 
 // An empty block would draw nothing to edit.
-export const startOf = (kind: Start): string => t(WORDS[kind].source);
+export const startOf = (kind: Start, locale: string): string => sayIn(locale)(WORDS[kind].source);
 
 // A copied diagram may hold backticks of its own, so its fence is longer than any run inside.
 export const fenced = (source: string): string => {
@@ -39,7 +39,8 @@ const KIND_WORDS: Record<DiagramKind, Word> = {
   other: "diagramOther",
 };
 
-export const kindName = (kind: DiagramKind): string => t(KIND_WORDS[kind]);
+export const kindName = (kind: DiagramKind, locale: string): string =>
+  sayIn(locale)(KIND_WORDS[kind]);
 
 // Its own title, from the front matter or the `title` line many kinds take, names it best in a list.
 export const titleOf = (source: string): string => {

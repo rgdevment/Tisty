@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { kindName } from "tisty-diagrams/read";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { t } from "../locales";
-import { kindName } from "../ui/drawing/starting";
 import Picking from "../ui/Picking";
 
 const found = vi.hoisted(() => ({
@@ -16,7 +16,8 @@ vi.mock("../drawing", () => ({
     found.fails ? Promise.reject(new Error("refused")) : Promise.resolve(found.all),
 }));
 
-vi.mock("../ui/drawing/exporting", () => ({
+vi.mock("tisty-diagrams/read", async (real) => ({
+  ...(await real<typeof import("tisty-diagrams/read")>()),
   svgFor: (source: string) => {
     found.drawn.push(source);
     return Promise.resolve({ svg: "<svg/>", size: { wide: 10, tall: 10 } });
@@ -60,9 +61,9 @@ describe("reusing a diagram another document holds", () => {
 
     const rows = await screen.findAllByRole("option");
     expect(rows.map((one) => one.textContent)).toEqual([
-      `Pagos › Cobro${kindName("flowchart")} · A[Inicio] --> B[Fin]`,
-      `Tienda${kindName("erDiagram")} · cliente {`,
-      `Tienda${kindName("other")} · Saludo`,
+      `Pagos › Cobro${kindName("flowchart", "en")} · A[Inicio] --> B[Fin]`,
+      `Tienda${kindName("erDiagram", "en")} · cliente {`,
+      `Tienda${kindName("other", "en")} · Saludo`,
     ]);
     await waitFor(() => expect(found.drawn).toEqual([PAGOS]));
 
@@ -83,7 +84,7 @@ describe("reusing a diagram another document holds", () => {
     const { put } = opened("diagramFrom");
     const field = await screen.findByLabelText(t("diagramFind"));
 
-    await userEvent.type(field, kindName("erDiagram").slice(0, 6));
+    await userEvent.type(field, kindName("erDiagram", "en").slice(0, 6));
     expect(screen.getAllByRole("option")).toHaveLength(1);
     await userEvent.clear(field);
     await userEvent.type(field, "cobro");

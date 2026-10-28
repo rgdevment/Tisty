@@ -1,7 +1,6 @@
 import { type KeyboardEvent, type PointerEvent, useMemo, useRef, useState } from "react";
-import { t } from "../../locales";
-import { button } from "../viewer/Glyphs";
 import Board from "./Board";
+import { useHands, useSay } from "./handing";
 import type { Schema } from "./schema";
 import { type Box, bend, drawnOf, HEAD, ROW, relationWords } from "./schemalayout";
 import {
@@ -68,6 +67,8 @@ export default function SchemaBoard({
   onPick: (picked: Picked) => void;
   onChange: (made: Altered) => void;
 }>) {
+  const t = useSay();
+  const { button } = useHands().looks;
   const drawn = useMemo(() => drawnOf(schema), [schema]);
   const [drag, setDrag] = useState<Drag | null>(null);
   // Only a table just added is brought into sight; one being dragged stays where the hand takes it.

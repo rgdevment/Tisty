@@ -51,7 +51,7 @@ nothing_past_what_a_person_holds() {
   if [ -n "$test_modules" ]; then
     skip="$skip|$test_modules"
   fi
-  find crates/*/src app/src app/src-tauri/src \( -name '*.rs' -o -name '*.ts' -o -name '*.tsx' \) \
+  find crates/*/src app/src app/src-tauri/src packages/*/src \( -name '*.rs' -o -name '*.ts' -o -name '*.tsx' \) \
     | grep -vE "$skip" \
     | sort | tr '\n' '\0' | xargs -0r wc -l \
     | awk '$2 != "total" { print $1, $2 }' > "$measured"
@@ -92,20 +92,20 @@ nothing_past_what_a_person_holds() {
 written_in_english() {
   local spanish='(tarea|fecha|limite|prioridad|filtro|titulo|etiqueta|nombre|usuario|archivo|carpeta|cuando|donde|hasta|desde|porque|aunque)'
   grep -rnE "\b(fn|let|const|struct|enum|type|mod|function|interface) +([A-Za-z_]*_)?$spanish(_|\b)" \
-    crates/*/src app/src app/src-tauri/src --include='*.rs' --include='*.ts' --include='*.tsx'
+    crates/*/src app/src app/src-tauri/src packages/*/src --include='*.rs' --include='*.ts' --include='*.tsx'
   looked_through \
     "an identifier is in Spanish; what a person reads lives in locales/" $? \
     "the source could not be looked through for Spanish identifiers" \
     || return
   grep -rnE "\b$spanish *:" \
-    crates/*/src app/src app/src-tauri/src --include='*.rs' --include='*.ts' --include='*.tsx' \
+    crates/*/src app/src app/src-tauri/src packages/*/src --include='*.rs' --include='*.ts' --include='*.tsx' \
     | grep -v '"'
   looked_through \
     "a field is named in Spanish; what a person reads lives in locales/" $? \
     "the source could not be looked through for Spanish field names" \
     || return
   grep -rnE '^\s*//.*\b(que|porque|pero|aunque|cuando|donde|seg[uú]n|tambi[eé]n|aqu[ií]|ah[ií]|entonces)\b' \
-    crates/*/src app/src app/src-tauri/src --include='*.rs' --include='*.ts' --include='*.tsx'
+    crates/*/src app/src app/src-tauri/src packages/*/src --include='*.rs' --include='*.ts' --include='*.tsx'
   looked_through \
     "a comment is in Spanish; code, comments and test names are English" $? \
     "the source could not be looked through for Spanish comments" \
@@ -264,14 +264,56 @@ the_rule_on_the_way_of_syncing_can_fail() {
   fi
 }
 
+# Each module a file names, after `from`, a bare `import` or `import(`, as: file line module.
+named_modules() {
+  grep -rnoE "(from|import)[[:space:]]*\(?[[:space:]]*['\"][^'\"]+['\"]" "$@" \
+    --include='*.ts' --include='*.tsx' \
+    | sed -E "s/^([^:]+):([0-9]+):.*['\"]([^'\"]+)['\"]$/\1 \2 \3/"
+}
+
+# The studio is meant for other apps too, so it reaches nothing of Tisty's and Tisty enters only by its doors.
+the_diagram_studio_keeps_to_itself() {
+  local studio=packages/tisty-diagrams/src named out
+  named=$(named_modules "$studio")
+  [ $? -lt 2 ] && [ -n "$named" ] \
+    || { amiss "the diagram studio could not be looked through for what it reaches"; return; }
+  # A relative path may climb only as far as the folders the file sits in below src/.
+  out=$(printf '%s\n' "$named" | awk -v root="$studio/" '
+    $3 ~ /^@tauri-apps\// { print; next }
+    $3 ~ /^\.\.\// {
+      folders = substr($1, length(root) + 1)
+      depth = gsub("/", "/", folders)
+      spec = $3
+      ups = 0
+      while (substr(spec, 1, 3) == "../") { ups++; spec = substr(spec, 4) }
+      if (ups > depth) print
+    }')
+  if [ -n "$out" ]; then
+    printf '%s\n' "$out"
+    amiss "the diagram studio reaches into the app; it takes what it needs through its props"
+    return
+  fi
+  named=$(named_modules app/src)
+  [ $? -lt 2 ] || { amiss "the app could not be looked through for how it enters the diagram studio"; return; }
+  out=$(printf '%s\n' "$named" \
+    | awk '$3 ~ /tisty-diagrams/ && $3 != "tisty-diagrams/read" && $3 != "tisty-diagrams/studio"')
+  if [ -n "$out" ]; then
+    printf '%s\n' "$out"
+    amiss "the app enters the diagram studio other than by tisty-diagrams/read or tisty-diagrams/studio"
+    return
+  fi
+  went_well "the diagram studio and the app meet only at its doors"
+}
+
 no_token_kept_in_the_tree() {
   local token='ya29\.[A-Za-z0-9_-]{20,}|1//0[A-Za-z0-9_-]{20,}|GOCSPX-[A-Za-z0-9_-]{20,}|sl\.[A-Za-z0-9_-]{40,}|eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}'
-  grep -rnIE "$token" crates app/src app/src-tauri/src scripts .github docs     --exclude='*.lock' --exclude='telling.rs' --exclude-dir=target --exclude-dir=node_modules
+  grep -rnIE "$token" crates app/src app/src-tauri/src packages scripts .github docs     --exclude='*.lock' --exclude='telling.rs' --exclude-dir=target --exclude-dir=node_modules
   looked_through     "a provider's token or secret is in the tree; fakes make their own, and real ones live in the keychain" $?     "the tree could not be looked through for tokens"     && went_well "no provider token or secret is kept in the tree"
 }
 
 cd "$(dirname "$0")/.." || exit 2
 no_prose_blocks
+the_diagram_studio_keeps_to_itself
 nothing_past_what_a_person_holds
 written_in_english
 nothing_the_window_cannot_translate

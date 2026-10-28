@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { t, type Word } from "../../locales";
-import { button } from "../viewer/Glyphs";
+import { useHands, useSay } from "./handing";
 import { type Idea, SHAPES, type Shape } from "./mindmap";
+import type { Word } from "./words";
 
 const SHAPE_WORDS: Record<Shape, Word> = {
   plain: "diagramShapePlain",
@@ -31,6 +31,8 @@ export default function IdeaPanel({
   onSibling: () => void;
   onRemove: () => void;
 }>) {
+  const t = useSay();
+  const { button } = useHands().looks;
   // The field may be empty while the person retypes it; the map keeps its last words meanwhile.
   const [draft, setDraft] = useState(idea.text);
   useEffect(() => setDraft((was) => (was.trim() ? idea.text : was)), [idea.text]);

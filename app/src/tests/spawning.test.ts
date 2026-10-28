@@ -27,10 +27,10 @@ vi.mock("../core", () => ({
   },
 }));
 
+import { startOf } from "tisty-diagrams/read";
 import type { Folded } from "../core";
 import { t } from "../locales";
 import { drafted, placeOf, spawned } from "../making";
-import { startOf } from "../ui/drawing/starting";
 
 beforeEach(() => {
   store.folders = [];
@@ -83,11 +83,11 @@ describe("making a document for a new diagram", () => {
 
     expect(store.folders).toEqual(["01H"]);
     expect(store.wrote[0].body).toBe(
-      `# Pagos ñandú\n\n\`\`\`mermaid\n${startOf("flowchart")}\`\`\`\n`,
+      `# Pagos ñandú\n\n\`\`\`mermaid\n${startOf("flowchart", "en")}\`\`\`\n`,
     );
     expect(made).toMatchObject({ id: "mac0-0001", title: "Pagos ñandú", folder: "01H", at: 17 });
     expect(store.listed).toBe(0);
-    expect(made.source).toBe(startOf("flowchart"));
+    expect(made.source).toBe(startOf("flowchart", "en"));
   });
 
   it("puts it in the diagrams' folder as the disk lists it now, made only when there is none at the top", async () => {

@@ -1,5 +1,3 @@
-import { t, type Word } from "../../locales";
-import { button } from "../viewer/Glyphs";
 import { SHAPES, type Shape } from "./flow";
 import {
   ARROWS,
@@ -15,8 +13,10 @@ import {
   nodeRemoved,
 } from "./flowing";
 import type { Direction } from "./graphlayout";
+import { useHands, useSay } from "./handing";
 import { Chosen, Said, Section } from "./panelbits";
 import type { Flowing } from "./useFlow";
+import type { Word } from "./words";
 
 const SHAPE_WORDS: Partial<Record<Shape, Word>> = {
   process: "flowShapeProcess",
@@ -50,6 +50,8 @@ const NONE = "";
 
 /** What is chosen in the flowchart, to rename and reshape, and which way the whole chart runs. */
 export default function FlowPanel({ editing }: Readonly<{ editing: Flowing }>) {
+  const t = useSay();
+  const { button } = useHands().looks;
   const { flow, picked, change, turn } = editing;
   const node = picked?.kind === "node" ? flow.nodes.find((one) => one.id === picked.id) : undefined;
   const edge = picked?.kind === "edge" ? flow.edges[picked.index] : undefined;

@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
-import { t } from "../../locales";
 import ClassPanel from "./ClassPanel";
 import ClassView from "./ClassView";
 import FlowPanel from "./FlowPanel";
 import FlowView from "./FlowView";
+import { useSay } from "./handing";
 import IdeaMap from "./IdeaMap";
 import IdeaPanel from "./IdeaPanel";
 import { renamed, reshaped, withChild, without, withSibling } from "./minding";
@@ -27,6 +27,7 @@ const scrolled = (panel: ReactNode) => (
 
 /** The canvas and panel for the kind the text is, while the window can keep it; `null` leaves Mermaid's drawing. */
 export const useEditor = (text: string, setText: (text: string) => void): Editor | null => {
+  const t = useSay();
   const map = useMind(text, setText);
   const scheme = useSchema(text, setText);
   const flow = useFlow(text, setText);

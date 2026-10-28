@@ -10,9 +10,9 @@ import {
   withChild,
   without,
   withSibling,
-} from "../ui/drawing/minding";
-import { laidOut } from "../ui/drawing/mindlayout";
-import { formed, type Mind, readMind, type Shape, writeMind } from "../ui/drawing/mindmap";
+} from "../src/minding";
+import { laidOut } from "../src/mindlayout";
+import { formed, type Mind, readMind, type Shape, writeMind } from "../src/mindmap";
 
 // `⏎` is a line break and `⇥` a tab, so a whole map fits on its line.
 const unfolded = (said: string) => said.trim().replace(/⏎/g, "\n").replace(/⇥/g, "\t");

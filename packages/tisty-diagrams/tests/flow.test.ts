@@ -1,6 +1,6 @@
 import mermaid from "mermaid";
 import { beforeAll, describe, expect, it } from "vitest";
-import { type Flow, formedNode, readFlow, type Shape, writeFlow } from "../ui/drawing/flow";
+import { type Flow, formedNode, readFlow, type Shape, writeFlow } from "../src/flow";
 import {
   directionChanged,
   edgeChanged,
@@ -13,7 +13,7 @@ import {
   nodeChanged,
   nodeMoved,
   nodeRemoved,
-} from "../ui/drawing/flowing";
+} from "../src/flowing";
 
 // `⏎` is a line break, so a whole flowchart fits on its line.
 const unfolded = (said: string) => said.trim().replace(/⏎/g, "\n");

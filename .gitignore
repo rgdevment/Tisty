@@ -26,6 +26,8 @@ THIRD-PARTY-BUNDLED.md
 mutants.out
 mutants.out.old
 app/.stryker-tmp
+packages/*/.stryker-tmp
+packages/*/reports
 app/reports
 app/stryker-setup-*.js
 mutants.json

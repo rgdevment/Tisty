@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import { t } from "../../locales";
-import { drawing } from "../diagrams";
 import Board from "./Board";
 import { type Size, sizeOf } from "./framing";
+import { useHands, useSay } from "./handing";
 
 // Drawing on every key would lay out a half-typed diagram many times a second.
 const SETTLE_MS = 250;
@@ -14,13 +13,15 @@ interface Drawn {
 
 /** What Mermaid draws from the text, for every kind the window cannot edit by hand yet. */
 export default function Canvas({ source, dark }: Readonly<{ source: string; dark: boolean }>) {
+  const t = useSay();
+  const { draw } = useHands();
   const [drawn, setDrawn] = useState<Drawn | null>(null);
   const [broken, setBroken] = useState(false);
 
   useEffect(() => {
     let live = true;
     const timer = setTimeout(() => {
-      void drawing(source, dark, () => live).then((svg) => {
+      void draw(source, dark, () => live).then((svg) => {
         if (!live) return;
         const size = svg === null ? null : sizeOf(svg);
         setBroken(size === null);
@@ -32,7 +33,7 @@ export default function Canvas({ source, dark }: Readonly<{ source: string; dark
       live = false;
       clearTimeout(timer);
     };
-  }, [source, dark]);
+  }, [source, dark, draw]);
 
   return (
     <Board

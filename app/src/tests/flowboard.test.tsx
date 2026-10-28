@@ -1,7 +1,10 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
+import { sayIn } from "tisty-diagrams/read";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { t } from "../locales";
 import Diagramming from "../ui/drawing/Diagramming";
+
+// The studio says its own words; these tests read them as it does, in English.
+const say = sayIn("en");
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: () => Promise.resolve(null),
@@ -30,7 +33,7 @@ const FLOW =
 
 const paper = { id: "D1", file: "f1", title: "Pagos", place: "" };
 const opened = (source = FLOW) => render(<Diagramming paper={paper} source={source} />);
-const text = () => (screen.getByLabelText(t("diagramText")) as HTMLTextAreaElement).value;
+const text = () => (screen.getByLabelText(say("diagramText")) as HTMLTextAreaElement).value;
 const node = (id: string) => document.querySelector(`[data-node="${id}"]`) as HTMLElement;
 const pickNode = (id: string) => fireEvent.click(within(node(id)).getByRole("button"));
 const leave = (label: string, value: string) => {
@@ -51,15 +54,15 @@ describe("a flowchart in the diagram window", () => {
 
     expect(document.querySelectorAll("[data-node]")).toHaveLength(5);
     expect(screen.getByRole("button", { name: "Caja" })).toBeTruthy();
-    expect(screen.getByText(t("flowPick"))).toBeTruthy();
+    expect(screen.getByText(say("flowPick"))).toBeTruthy();
   });
 
   it("renames and reshapes a node from the panel, where its words are written", () => {
     opened();
     pickNode("B");
 
-    leave(t("flowText"), "¿Pagó?");
-    choose(t("flowShape"), "hexagon");
+    leave(say("flowText"), "¿Pagó?");
+    choose(say("flowShape"), "hexagon");
 
     expect(text()).toBe(FLOW.replace("B{¿Pago?}", "B{{¿Pagó?}}"));
   });
@@ -67,8 +70,8 @@ describe("a flowchart in the diagram window", () => {
   it("adds a node and a group, and joins two nodes by dragging a dot", () => {
     opened();
 
-    fireEvent.click(screen.getByRole("button", { name: t("flowAddNode") }));
-    fireEvent.click(screen.getByRole("button", { name: t("flowAddGroup") }));
+    fireEvent.click(screen.getByRole("button", { name: say("flowAddNode") }));
+    fireEvent.click(screen.getByRole("button", { name: say("flowAddGroup") }));
     const grip = node("A").querySelector("[data-grip]") as HTMLElement;
     document.elementFromPoint = () => node("E");
     fireEvent.pointerDown(grip, { clientX: 0, clientY: 0, pointerId: 1 });
@@ -76,17 +79,17 @@ describe("a flowchart in the diagram window", () => {
     fireEvent.pointerUp(grip, { clientX: 40, clientY: 0, pointerId: 1 });
 
     expect(text()).toBe(
-      `${FLOW}  n1[${t("flowNewNode")}]\n  subgraph g2 [${t("flowNewGroup")}]\n  end\n  A --> E\n`,
+      `${FLOW}  n1[${say("flowNewNode")}]\n  subgraph g2 [${say("flowNewGroup")}]\n  end\n  A --> E\n`,
     );
-    expect(screen.getByText(`${t("flowEdge")} · A → E`)).toBeTruthy();
+    expect(screen.getByText(`${say("flowEdge")} · A → E`)).toBeTruthy();
   });
 
   it("labels an arrow and changes its kind, and takes out a lone one with Delete", () => {
     opened();
     fireEvent.click(screen.getByRole("button", { name: "A → B" }));
 
-    leave(t("flowLabel"), "empieza");
-    choose(t("flowArrow"), "-.->");
+    leave(say("flowLabel"), "empieza");
+    choose(say("flowArrow"), "-.->");
     expect(text()).toBe(FLOW.replace("A[Inicio] --> B", "A[Inicio] -.->|empieza| B"));
 
     fireEvent.keyDown(screen.getByRole("button", { name: "empieza" }), { key: "Delete" });
@@ -97,30 +100,30 @@ describe("a flowchart in the diagram window", () => {
     opened();
     fireEvent.click(screen.getByRole("button", { name: "C → D" }));
 
-    const remove = screen.getByRole("button", { name: t("flowRemoveEdge") }) as HTMLButtonElement;
+    const remove = screen.getByRole("button", { name: say("flowRemoveEdge") }) as HTMLButtonElement;
     expect(remove.disabled).toBe(true);
-    expect(remove.title).toBe(t("flowChained"));
+    expect(remove.title).toBe(say("flowChained"));
   });
 
   it("renames a group, moves a node into it, and takes the group apart", () => {
     opened();
     fireEvent.click(screen.getByRole("button", { name: "Caja" }));
-    leave(t("flowText"), "Caja fuerte");
+    leave(say("flowText"), "Caja fuerte");
     expect(text()).toBe(FLOW.replace("[Caja]", "[Caja fuerte]"));
 
     pickNode("A");
-    choose(t("flowGroup"), "g1");
+    choose(say("flowGroup"), "g1");
     expect(text()).toContain("    C\n    A\n  end");
 
     fireEvent.click(screen.getByRole("button", { name: "Caja fuerte" }));
-    fireEvent.click(screen.getByRole("button", { name: t("flowUngroup") }));
+    fireEvent.click(screen.getByRole("button", { name: say("flowUngroup") }));
     expect(text()).not.toContain("subgraph");
   });
 
   it("turns the chart another way from the panel", () => {
     opened();
 
-    choose(t("flowDirection"), "TB");
+    choose(say("flowDirection"), "TB");
 
     expect(text()).toBe(FLOW.replace("flowchart LR", "flowchart TB"));
   });
@@ -129,6 +132,6 @@ describe("a flowchart in the diagram window", () => {
     opened("flowchart LR\n  A --> B\n  subgraph g\n    A\n");
 
     expect(document.querySelector("[data-node]")).toBeNull();
-    expect(screen.queryByText(t("flowPick"))).toBeNull();
+    expect(screen.queryByText(say("flowPick"))).toBeNull();
   });
 });

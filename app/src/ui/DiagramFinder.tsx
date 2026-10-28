@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
+import { firstWords, kindName, kindOf, svgFor, titleOf } from "tisty-diagrams/read";
 import { useAttended } from "../attended";
 import { diagramsEverywhere, type FoundDiagram } from "../drawing";
 import { matched } from "../finding";
-import { t } from "../locales";
-import { svgFor } from "./drawing/exporting";
-import { kindOf } from "./drawing/framing";
-import { firstWords, kindName, titleOf } from "./drawing/starting";
+import { locale, t } from "../locales";
+import { drawing } from "./diagrams";
 import { darkNow } from "./viewer/acting";
 
 const titled = (one: FoundDiagram) => one.title.trim() || t("untitledDoc");
@@ -20,7 +19,7 @@ const usePreview = (source: string | undefined) => {
     if (source === undefined) return setShot(null);
     let live = true;
     const font = getComputedStyle(document.body).fontFamily || "sans-serif";
-    svgFor(source, darkNow(), false, font)
+    svgFor(source, darkNow(), false, font, drawing)
       .then((drawn) => {
         if (live) setShot(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(drawn.svg)}`);
       })
@@ -53,7 +52,10 @@ export default function DiagramFinder({
   }, [onError]);
 
   const shown = (found ?? []).filter((one) =>
-    matched(`${placed(one)} ${titleOf(one.source)} ${kindName(kindOf(one.source))}`, word),
+    matched(
+      `${placed(one)} ${titleOf(one.source)} ${kindName(kindOf(one.source), locale())}`,
+      word,
+    ),
   );
   const current = shown[Math.min(chosen, shown.length - 1)];
   const shot = usePreview(current?.source);
@@ -108,7 +110,7 @@ export default function DiagramFinder({
             >
               <span className="truncate text-ink">{placed(one)}</span>
               <span className="truncate text-[11.5px] text-faint">
-                {`${kindName(kindOf(one.source))} · ${named(one)}`}
+                {`${kindName(kindOf(one.source), locale())} · ${named(one)}`}
               </span>
             </button>
           ))}

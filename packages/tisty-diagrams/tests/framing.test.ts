@@ -1,14 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  asRead,
-  fitted,
-  kindOf,
-  LEAST,
-  MOST,
-  showing,
-  sizeOf,
-  zoomedAt,
-} from "../ui/drawing/framing";
+import { asRead, fitted, kindOf, LEAST, MOST, showing, sizeOf, zoomedAt } from "../src/framing";
 
 // One case per line: what the diagram says (`⏎` is a line break) → the kind the window names.
 const KINDS = `

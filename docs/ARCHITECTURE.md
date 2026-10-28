@@ -49,6 +49,7 @@ Drive, OneDrive, WebDAV), which can be encrypted with the person's phrase.
 ```mermaid
 flowchart TB
   react["app/src<br/>React + TypeScript"]
+  studio["packages/tisty-diagrams<br/>the diagram studio"]
   gui["tisty-gui<br/>app/src-tauri"]
   cli["tisty-cli<br/>tisty binary: MCP server"]
   providers["tisty-google, tisty-onedrive,<br/>tisty-webdav"]
@@ -59,6 +60,7 @@ flowchart TB
   md["tisty-markdown<br/>the Tisty language"]
   proto["tisty-share-proto<br/>keys and seals"]
   react -- "invoke and events" --> gui
+  react -- "read and studio doors" --> studio
   gui --> carrier
   gui --> providers
   gui --> nl
@@ -86,9 +88,11 @@ flowchart TB
 | `tisty-cli` | The `tisty` binary: the MCP server and nothing else | `mcp.rs`, `mcp/catalogue.rs` |
 | `tisty-gui` | Tauri commands (`answers/`), the `Session`, tray, reminders, updater, wiring assistants | `lib.rs`, `session.rs` |
 | `app/src` | The React UI; `core.ts` holds the typed `invoke` wrappers | `App.tsx` |
+| `packages/tisty-diagrams` | The diagram studio: Mermaid read and written back, laid out, drawn as SVG, and edited by hand. A private package, never published, that needs nothing of the app: the app hands it its words' language, Mermaid's drawing and the clipboard, and enters only by `tisty-diagrams/read` and `tisty-diagrams/studio`. The app's toolchain builds, tests and lints it | `read.ts`, `DiagramStudio.tsx` |
 
-Only `tisty-carrier` depends on `tisty-sync`. Only the window and the provider
-crates hold network code (`deny.toml`).
+`scripts/rules.sh` keeps the studio and the app apart. Only `tisty-carrier`
+depends on `tisty-sync`. Only the window and the provider crates hold network
+code (`deny.toml`).
 
 ## Processes and one store
 

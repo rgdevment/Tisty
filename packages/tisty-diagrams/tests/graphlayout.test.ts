@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { layered } from "../ui/drawing/graphlayout";
+import { layered } from "../src/graphlayout";
 
 const lines = (table: string) => table.split("\n").filter((line) => line.trim());
 

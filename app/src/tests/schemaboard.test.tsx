@@ -1,7 +1,10 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
+import { sayIn } from "tisty-diagrams/read";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fill, t } from "../locales";
 import Diagramming from "../ui/drawing/Diagramming";
+
+// The studio says its own words; these tests read them as it does, in English.
+const say = sayIn("en");
 
 const copied = vi.hoisted(() => ({ said: [] as string[] }));
 
@@ -39,7 +42,7 @@ const SCHEMA =
 
 const paper = { id: "D1", file: "f1", title: "Share", place: "" };
 const opened = (source = SCHEMA) => render(<Diagramming paper={paper} source={source} />);
-const text = () => (screen.getByLabelText(t("diagramText")) as HTMLTextAreaElement).value;
+const text = () => (screen.getByLabelText(say("diagramText")) as HTMLTextAreaElement).value;
 const card = (name: string) => document.querySelector(`[data-table="${name}"]`) as HTMLElement;
 const title = (name: string) => within(card(name)).getAllByRole("button")[0];
 const columnOf = (table: string, words: string) =>
@@ -61,14 +64,14 @@ describe("a database schema in the diagram window", () => {
 
     expect(document.querySelectorAll("[data-table]")).toHaveLength(2);
     expect(columnOf("compartidos", "persona_id")).toBeTruthy();
-    expect(screen.getByText(t("schemaPick"))).toBeTruthy();
+    expect(screen.getByText(say("schemaPick"))).toBeTruthy();
   });
 
   it("renames a table from the panel, in its relations too", () => {
     opened();
     fireEvent.click(title("personas"));
 
-    leave(t("schemaName"), "gente");
+    leave(say("schemaName"), "gente");
 
     expect(text()).toBe(SCHEMA.replace(/personas/g, "gente"));
   });
@@ -76,9 +79,9 @@ describe("a database schema in the diagram window", () => {
   it("adds a table with an id where there is room", () => {
     opened();
 
-    fireEvent.click(screen.getByRole("button", { name: t("schemaAddTable") }));
+    fireEvent.click(screen.getByRole("button", { name: say("schemaAddTable") }));
 
-    const name = t("schemaNewTable");
+    const name = say("schemaNewTable");
     expect(text()).toMatch(
       new RegExp(`  ${name} \\{\\n    int id PK\\n  \\}\\n  %% tisty: ${name} required id\\n$`),
     );
@@ -90,7 +93,7 @@ describe("a database schema in the diagram window", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "varchar(255)" }));
     fireEvent.click(screen.getByLabelText("UK"));
-    fireEvent.click(screen.getByLabelText(t("schemaRequired")));
+    fireEvent.click(screen.getByLabelText(say("schemaRequired")));
 
     expect(text()).toBe(
       `${SCHEMA.replace("uuid persona_id", "varchar(255) persona_id UK")}  %% tisty: compartidos required persona_id\n`,
@@ -121,14 +124,14 @@ describe("a database schema in the diagram window", () => {
     expect(text()).toBe(
       "erDiagram\n  personas {\n    uuid id PK\n  }\n  compartidos {\n    text id PK\n    uuid persona_id FK\n  }\n  personas ||--o{ compartidos : persona_id\n",
     );
-    expect(screen.getByText(t("schemaRelation"))).toBeTruthy();
+    expect(screen.getByText(say("schemaRelation"))).toBeTruthy();
   });
 
   it("changes a relation's ends from the panel", () => {
     opened();
     fireEvent.click(screen.getByRole("button", { name: /publica/ }));
 
-    fireEvent.change(screen.getByLabelText(fill("schemaSide", "compartidos")), {
+    fireEvent.change(screen.getByLabelText(say("schemaSide", "compartidos")), {
       target: { value: "one-many" },
     });
 
@@ -148,10 +151,10 @@ describe("a database schema in the diagram window", () => {
   it("copies the schema as SQL and as DBML", async () => {
     opened();
 
-    fireEvent.click(screen.getByRole("button", { name: t("schemaCopySql") }));
-    fireEvent.click(screen.getByRole("button", { name: t("schemaCopyDbml") }));
+    fireEvent.click(screen.getByRole("button", { name: say("schemaCopySql") }));
+    fireEvent.click(screen.getByRole("button", { name: say("schemaCopyDbml") }));
 
-    expect(await screen.findByText(fill("schemaCopied", "DBML"))).toBeTruthy();
+    expect(await screen.findByText(say("schemaCopied", "DBML"))).toBeTruthy();
     expect(copied.said[0]).toContain("CREATE TABLE personas (");
     expect(copied.said[1]).toContain("Table compartidos {");
   });
@@ -160,10 +163,10 @@ describe("a database schema in the diagram window", () => {
     opened();
     fireEvent.click(title("personas"));
 
-    fireEvent.click(screen.getByRole("button", { name: t("schemaAddColumn") }));
-    leave(t("schemaName"), "correo electrónico");
-    leave(t("schemaType"), "text");
-    leave(t("schemaNote"), "para avisos");
+    fireEvent.click(screen.getByRole("button", { name: say("schemaAddColumn") }));
+    leave(say("schemaName"), "correo electrónico");
+    leave(say("schemaType"), "text");
+    leave(say("schemaNote"), "para avisos");
     fireEvent.click(screen.getByLabelText("PK"));
     expect(text()).toBe(
       SCHEMA.replace(
@@ -173,25 +176,25 @@ describe("a database schema in the diagram window", () => {
     );
 
     fireEvent.click(screen.getByLabelText("PK"));
-    fireEvent.click(screen.getByRole("button", { name: t("schemaRemoveColumn") }));
+    fireEvent.click(screen.getByRole("button", { name: say("schemaRemoveColumn") }));
     expect(text()).toBe(SCHEMA);
 
-    fireEvent.click(screen.getByRole("button", { name: t("schemaRemoveTable") }));
+    fireEvent.click(screen.getByRole("button", { name: say("schemaRemoveTable") }));
     expect(text()).toBe("erDiagram\n  compartidos {\n    text id PK\n    uuid persona_id\n  }\n");
-    expect(screen.getByText(t("schemaPick"))).toBeTruthy();
+    expect(screen.getByText(say("schemaPick"))).toBeTruthy();
   });
 
   it("names a relation, makes it dashed and removes it from the panel", () => {
     opened();
     fireEvent.click(screen.getByRole("button", { name: /publica/ }));
 
-    leave(t("schemaLabel"), "lo publica");
-    fireEvent.click(screen.getByLabelText(t("schemaIdentifying")));
+    leave(say("schemaLabel"), "lo publica");
+    fireEvent.click(screen.getByLabelText(say("schemaIdentifying")));
     expect(text()).toBe(
       SCHEMA.replace("||--o{ compartidos : publica", '||..o{ compartidos : "lo publica"'),
     );
 
-    fireEvent.click(screen.getByRole("button", { name: t("schemaRemoveRelation") }));
+    fireEvent.click(screen.getByRole("button", { name: say("schemaRemoveRelation") }));
     expect(text()).toBe(SCHEMA.replace("  personas ||--o{ compartidos : publica\n", ""));
   });
 
@@ -199,7 +202,7 @@ describe("a database schema in the diagram window", () => {
     opened("erDiagram\n  A {\n    int id\n  }\n  A {\n    int otra\n  }\n");
 
     expect(document.querySelector("[data-table]")).toBeNull();
-    expect(screen.queryByText(t("schemaPick"))).toBeNull();
+    expect(screen.queryByText(say("schemaPick"))).toBeNull();
   });
 });
 
@@ -208,11 +211,11 @@ describe("choosing in a schema edited by hand", () => {
     opened();
     fireEvent.click(columnOf("compartidos", "persona_id"));
 
-    fireEvent.change(screen.getByLabelText(t("diagramText")), {
+    fireEvent.change(screen.getByLabelText(say("diagramText")), {
       target: { value: SCHEMA.replace("    text id PK\n", "    text id PK\n    date nueva\n") },
     });
 
-    expect((screen.getByLabelText(t("schemaName")) as HTMLInputElement).value).toBe("persona_id");
+    expect((screen.getByLabelText(say("schemaName")) as HTMLInputElement).value).toBe("persona_id");
     fireEvent.keyDown(columnOf("compartidos", "persona_id"), { key: "Delete" });
     expect(text()).toContain("    date nueva\n  }");
     expect(text()).not.toContain("persona_id");
@@ -225,7 +228,7 @@ describe("two relations alike in a schema edited by hand", () => {
     opened(twice);
     fireEvent.click(screen.getAllByRole("button", { name: /tiene/ })[1]);
 
-    fireEvent.change(screen.getByLabelText(t("diagramText")), {
+    fireEvent.change(screen.getByLabelText(say("diagramText")), {
       target: { value: twice.replace("erDiagram\n", "erDiagram\n  direction LR\n") },
     });
 

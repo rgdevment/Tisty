@@ -1,0 +1,14 @@
+{
+  "name": "tisty-diagrams",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Tisty's diagram studio: reads and writes Mermaid, draws it, and edits it by hand.",
+  "type": "module",
+  "exports": {
+    "./read": "./src/read.ts",
+    "./studio": "./src/studio.ts"
+  },
+  "peerDependencies": {
+    "react": "^19.3.0"
+  }
+}
