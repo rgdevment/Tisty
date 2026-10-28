@@ -126,10 +126,11 @@ answering «how was this solved?».
 A date alone is the day it is meant to be done on. With a deadline, the date is the day the work \
 starts and the deadline the day it truly runs out: a start goes in `date` only when there is a \
 deadline after it. Only a deadline that passed makes a task overdue; a planned day that passed \
-makes it late, never overdue. Every open task with a date comes with its `standing`, worked out \
+makes it late, never overdue. Every open task with a date or a deadline comes with its \
+`standing`, worked out \
 from both as the window shows it: `ahead` (its day or its start has not come, or its deadline is \
 far), `today`, `late` (its day passed and it has no deadline), `underway` (started and more than \
-three days before its deadline), `due_soon` (three days or less before its deadline) and \
+3 days before its deadline), `due_soon` (3 days or less before its deadline) and \
 `overdue` (its deadline passed). Read it rather than working it out again, and say it the same \
 way: a task started last week and due next month is underway, not overdue.
 
@@ -1090,8 +1091,8 @@ pub(super) fn tools() -> Value {
             "inputSchema": shaped(json!({
                 "properties": {
                     "task": { "type": "string", "description": "The task's id, as `find` or `propose` gave it" },
-                    "date": { "type": ["string", "null"], "description": "The day it is to be done (2026-08-31), or null to take it off" },
-                    "deadline": { "type": ["string", "null"], "description": "The day it is owed by, or null to take it off" }
+                    "date": { "type": ["string", "null"], "description": "The day it is to be done, or with a deadline the day the work starts (2026-08-31), or null to take it off" },
+                    "deadline": { "type": ["string", "null"], "description": "The day it is owed by, only once it passes is the task overdue, or null to take it off" }
                 },
                 "required": ["task"]
             }))
@@ -1325,3 +1326,7 @@ fn many_docs_field(what: &str) -> Value {
         )
     })
 }
+
+#[cfg(test)]
+#[path = "catalogue_test.rs"]
+mod tests;
