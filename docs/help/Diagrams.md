@@ -6,7 +6,7 @@ How each kind of diagram is written is in the Tisty Markdown guide: [diagrams, f
 
 ## A new diagram
 
-- **Outside a document:** in the Documents **+**, or in a folder's menu, choose **New diagram**. It asks for a name and the kind: mind map, database schema, flowchart, class diagram or other (Mermaid text). Tisty makes a plain document with a short example of that kind and opens the window. With no folder chosen, the document goes in the **Diagrams** folder, made when it is missing.
+- **Outside a document:** in the Documents **+**, or in a folder's menu, choose **New diagram**. It asks for a name and the kind: mind map, database schema, flowchart, class diagram or other (Mermaid text). Tisty makes a plain document with a short example of that kind and opens the window. The document is made in the folder you are in, or the one whose menu you used; outside every folder, in the **Diagrams** folder, made when it is missing.
 - **Inside a document:** type `/` and choose **New diagram**. The example is written where you are and the window opens on it. **Mermaid block as text** leaves an empty block, to write by hand.
 
 ## Opening one that exists
@@ -44,7 +44,7 @@ A diagram the window cannot keep without changing it, such as a mind map with tw
 - **SVG**, light and without a background.
 - **Copy as image**, on the background of the theme you are in, to paste into a chat or an email.
 
-Images come out at twice their size so they stay sharp, and the file is named after the document, with "-2", "-3"… from its second diagram on. Mind maps, schemas, flowcharts and class diagrams come out just as you see them in the window, with your tables where you left them; other kinds, as Mermaid draws them.
+Images come out at twice their size so they stay sharp (a very large one somewhat less, as far as the system can paint it), and the file is named after the document, with "-2", "-3"… from its second diagram on. Mind maps, schemas, flowcharts and class diagrams come out just as you see them in the window, with your tables where you left them; other kinds, as Mermaid draws them.
 
 ## With an assistant
 

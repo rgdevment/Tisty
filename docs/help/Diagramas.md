@@ -6,7 +6,7 @@ Cómo se escribe cada tipo de diagrama está en la guía de Markdown de Tisty: [
 
 ## Un diagrama nuevo
 
-- **Fuera de un documento:** en el **+** de Documentos, o en el menú de una carpeta, elige **Diagrama nuevo**. Pide un nombre y el tipo: mapa mental, esquema de base de datos, diagrama de flujo, diagrama de clases u otro (texto Mermaid). Tisty crea un documento normal con un ejemplo corto de ese tipo y abre la ventana. Sin una carpeta elegida, el documento queda en la carpeta **Diagramas**, que se crea si falta.
+- **Fuera de un documento:** en el **+** de Documentos, o en el menú de una carpeta, elige **Diagrama nuevo**. Pide un nombre y el tipo: mapa mental, esquema de base de datos, diagrama de flujo, diagrama de clases u otro (texto Mermaid). Tisty crea un documento normal con un ejemplo corto de ese tipo y abre la ventana. El documento nace en la carpeta donde estás, o en la que elegiste en su menú; fuera de toda carpeta, en la carpeta **Diagramas**, que se crea si falta.
 - **Dentro de un documento:** escribe `/` y elige **Diagrama nuevo**. El ejemplo se escribe donde estás y la ventana se abre sobre él. **Bloque Mermaid como texto** deja un bloque vacío, para escribirlo a mano.
 
 ## Abrir uno que ya existe
@@ -44,7 +44,7 @@ Un diagrama que la ventana no puede conservar sin cambiarlo, como un mapa mental
 - **SVG**, claro y sin fondo.
 - **Copiar como imagen**, con el fondo del tema que estés usando, para pegarlo en un chat o en un correo.
 
-Las imágenes salen al doble de su tamaño para que se vean nítidas, y el archivo se llama como el documento, con «-2», «-3»… desde su segundo diagrama. El mapa mental, el esquema, el flujo y las clases salen tal como los ves en la ventana, con tus tablas donde las dejaste; los demás tipos, como los dibuja Mermaid.
+Las imágenes salen al doble de su tamaño para que se vean nítidas (una muy grande, algo menos, hasta donde el sistema puede pintarla), y el archivo se llama como el documento, con «-2», «-3»… desde su segundo diagrama. El mapa mental, el esquema, el flujo y las clases salen tal como los ves en la ventana, con tus tablas donde las dejaste; los demás tipos, como los dibuja Mermaid.
 
 ## Con un asistente
 
