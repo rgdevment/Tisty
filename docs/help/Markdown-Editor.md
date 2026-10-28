@@ -8,7 +8,7 @@ A document in Tisty is text of yours, kept as a plain `.md` file, that you write
 
 There is one way of writing, and it happens on the page itself.
 
-- **Click a block and it opens right there**, with the caret where you clicked. The rest of the page stays as it reads. A click on a picture or a diagram opens it large instead, to zoom in, move it around and go to the next one; to edit it, use the block's menu.
+- **Click a block and it opens right there**, with the caret where you clicked. The rest of the page stays as it reads. A click on a picture or a diagram opens it large instead, to zoom in, move it around and go to the next one; to edit it, use the block's menu, and a double click on a diagram opens it in the [[diagram window|Diagrams]].
 - **The marks stay out of sight.** Bold looks bold and a heading looks like a heading; the `**` or the `#` only show where the caret touches that format, so you can see what you are changing.
 - **Headings, lists, stages, quotes and callouts are always drawn**, even while you write them: a bullet is a bullet, a box is a box you can tick, a callout wears its colour and its name.
 - **Esc, or a click outside, goes back to reading.** What you write is saved as you go, and the foot of the page says so.
@@ -38,7 +38,7 @@ Type `/` anywhere and the menu of what fits comes up. Keep typing to narrow it d
 - The five callouts: Note, Tip, Important, Warning and Caution.
 - Bold, italic, underline, strikethrough, code, link and the highlight pen, with their shortcuts beside them.
 - An icon, looked up by what it draws.
-- A diagram, a formula, a widget and a code block.
+- A new diagram, which opens the [[diagram window|Diagrams]], or a Mermaid block as text; a formula, a widget and a code block.
 - A table.
 - A **collapsible section**: a title that folds what is under it.
 - A page break.

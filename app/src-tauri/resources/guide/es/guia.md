@@ -251,7 +251,7 @@ El ancho viaja en lo larga que se dibuja la raya de debajo del encabezado, así 
 
 #### Diagramas
 
-Un bloque de código cuyo lenguaje es `mermaid` deja de ser código y lo dibuja el Mermaid oficial: cabe en cualquier ancho, se lee bien en modo oscuro y un clic lo abre en grande. Sirve para un esquema:
+Un bloque de código cuyo lenguaje es `mermaid` deja de ser código y lo dibuja el Mermaid oficial: cabe en cualquier ancho, se lee bien en modo oscuro y un clic lo abre en grande. Un doble clic lo abre en la ventana de diagramas, donde un mapa mental, un esquema, un flujo o un diagrama de clases también se dibujan a mano y desde donde se exporta como imagen. Sirve para un esquema:
 
 ```mermaid
 graph TD

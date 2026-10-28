@@ -251,7 +251,7 @@ The width rides in how long the rule under the header is drawn, so every other M
 
 #### Diagrams
 
-A code block whose language is `mermaid` stops being code and is drawn by the official Mermaid: it fits any width, reads well in dark mode, and a click opens it large. Good for a shape:
+A code block whose language is `mermaid` stops being code and is drawn by the official Mermaid: it fits any width, reads well in dark mode, and a click opens it large. A double click opens it in the diagram window, where a mind map, a schema, a flowchart or a class diagram is also drawn by hand, and from where it is exported as an image. Good for a shape:
 
 ```mermaid
 graph TD

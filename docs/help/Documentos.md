@@ -41,7 +41,7 @@ Cómo funcionan la página, los pasos y las partes de una tarea está en [[Tarea
 
 ## Crear uno
 
-Ve a Documentos y usa el **+** de arriba: **Documento nuevo**. El mismo botón dentro de una carpeta lo crea ahí. **Carpeta nueva** los agrupa, y una carpeta puede tener carpetas dentro.
+Ve a Documentos y usa el **+** de arriba: **Documento nuevo**. El mismo botón dentro de una carpeta lo crea ahí. **Diagrama nuevo** crea un documento con un diagrama y abre la [[ventana de diagramas|Diagramas]]. **Carpeta nueva** los agrupa, y una carpeta puede tener carpetas dentro.
 
 La primera línea del documento es su título: no hay que ponerle nombre.
 

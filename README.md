@@ -314,7 +314,10 @@ Tisty it holds a good deal more than text:
   them, with an index at the end and arrows from one to the next.
 - **Diagrams from a few lines.** A block that says `mermaid` draws flowcharts,
   sequences, pies, timelines, mind maps, Gantt charts and more with the official
-  Mermaid, light or dark with the window and legible at any width.
+  Mermaid, light or dark with the window and legible at any width. A double
+  click opens it in a window of its own, where a mind map, a database schema, a
+  flowchart or a class diagram is also drawn by hand, saved back as Mermaid and
+  exported as PNG, JPG or SVG.
 - **Formulas** set from a `math` block, **code** coloured by its language and
   named after its file, and **tables** that keep how their columns lean and how
   wide you drew them, whose columns can say what they hold — money, dates,

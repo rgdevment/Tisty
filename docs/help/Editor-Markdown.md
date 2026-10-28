@@ -8,7 +8,7 @@ Un documento en Tisty es texto tuyo, guardado como un archivo `.md` normal, que 
 
 Hay una sola forma de escribir, y ocurre en la misma página.
 
-- **Haz clic en un bloque y se abre ahí mismo**, con el cursor donde hiciste clic. El resto de la página sigue como se lee. Un clic sobre una imagen o un diagrama, en cambio, lo abre en grande para acercarlo, moverlo y pasar al siguiente; para editarlo, usa el menú del bloque.
+- **Haz clic en un bloque y se abre ahí mismo**, con el cursor donde hiciste clic. El resto de la página sigue como se lee. Un clic sobre una imagen o un diagrama, en cambio, lo abre en grande para acercarlo, moverlo y pasar al siguiente; para editarlo, usa el menú del bloque, y un doble clic sobre un diagrama lo abre en la [[ventana de diagramas|Diagramas]].
 - **Las marcas no se ven.** La negrita se ve en negrita y un título se ve como título; los `**` o el `#` solo aparecen donde el cursor toca ese formato, para que veas lo que estás cambiando.
 - **Los títulos, las listas, las etapas, las citas y los avisos siempre se dibujan**, también mientras los escribes: una viñeta es una viñeta, una casilla es una casilla que puedes marcar, un aviso lleva su color y su nombre.
 - **Esc, o un clic fuera, vuelve a la lectura.** Lo que escribes se guarda sobre la marcha, y el pie de la página te lo dice.
@@ -38,7 +38,7 @@ Escribe `/` en cualquier punto y sale el menú de lo que cabe. Sigue escribiendo
 - Los cinco avisos: Nota, Consejo, Importante, Aviso y Cuidado.
 - Negrita, cursiva, subrayado, tachado, código, enlace y el rotulador, con sus atajos al lado.
 - Un icono, buscado por lo que dibuja.
-- Un diagrama, una fórmula, un widget y un bloque de código.
+- Un diagrama nuevo, que abre la [[ventana de diagramas|Diagramas]], o un bloque Mermaid como texto; una fórmula, un widget y un bloque de código.
 - Una tabla.
 - Una **sección plegable**: un título que pliega lo que tiene debajo.
 - Un salto de página.

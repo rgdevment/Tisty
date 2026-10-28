@@ -41,7 +41,7 @@ How a task's page, steps and parts work is in [[Tasks]]; what a closed one keeps
 
 ## Making one
 
-Go to Documents and use the **+** at the top: **New document**. The same button inside a folder makes it there. **New folder** groups them, and a folder can hold folders of its own.
+Go to Documents and use the **+** at the top: **New document**. The same button inside a folder makes it there. **New diagram** makes a document holding a diagram and opens the [[diagram window|Diagrams]]. **New folder** groups them, and a folder can hold folders of its own.
 
 The first line of the document is its title — there is no name to fill in.
 
