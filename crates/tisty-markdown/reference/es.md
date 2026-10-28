@@ -213,7 +213,7 @@ Una lista de casillas que se marcan. No son tareas de Tisty: no se cierran, no t
 - [ ] Preguntar por la pastilla de las garrapatas
 ```
 
-`[ ]` está abierta, `[x]` (o `[X]`) está marcada. Un clic en la casilla la marca, en la página y mientras escribes.
+`[ ]` está abierta, `[x]` (o `[X]`) está marcada. Un clic en la casilla la marca, en la página y mientras escribes. En la página de una tarea, en cambio, cada casilla es un paso de esa tarea.
 
 ## Citas y avisos
 
@@ -247,6 +247,7 @@ Un aviso es una cita cuya primera línea nombra su tipo entre corchetes. Cinco t
 - Un tipo que Tisty no conoce, como `[!FOO]`, deja una cita normal.
 - Dentro de un aviso cabe casi todo (listas, código, rayas, una sección) siempre que cada línea lleve su `>`.
 - Los mismos cinco tipos también se pueden escribir como lo hacen otras herramientas, como un bloque entre `:::tip` y un `:::` solo; Tisty lo dibuja como el mismo aviso.
+- Al copiar como Markdown estándar, un aviso `:::tip` pasa a `> [!TIP]`, como lo escribe GitHub.
 
 ## Secciones plegables
 
@@ -268,6 +269,7 @@ Nació en 2023. Séxtuple y antirrábica cada marzo.
 - Las secciones se anidan. Cualquier línea `:::palabra` abre un contenedor que cierra el siguiente `:::` solo, así que una sección dentro de otra, o un bloque `:::tip` escrito por otra herramienta, nunca se roba la valla de cierre. `details` se pliega y los cinco tipos de aviso dibujan un aviso; cualquier otro bloque `:::palabra` muestra sus líneas tal como están escritas.
 - También funcionan dentro de un aviso.
 - GitHub muestra las dos vallas como texto y todo lo de en medio desplegado. Tisty también dibuja un bloque `<details>` escrito en HTML, como los escribe GitHub, pero eso es HTML, que queda [fuera del lenguaje](#lo-que-queda-fuera-del-lenguaje).
+- Al copiar como Markdown estándar, una sección `:::details` pasa a un bloque `<details>`.
 
 ## Etiquetas
 
@@ -283,6 +285,7 @@ Refuerzo en marzo #rina #veterinario
 - Un `#` pegado a lo que va antes no es etiqueta: `C#`, `bg-#fff`, `pagina.html#arriba` y el ancla en la dirección de un enlace no cuentan.
 - Nada dentro de código es etiqueta, ni tampoco el `#2` de una [referencia](#referencias) como `[[#2]]`.
 - Un documento guarda sus primeras 64 etiquetas.
+- Al copiar como Markdown estándar, todas las etiquetas del documento, las de `tags:` y las escritas con `#`, quedan en el front matter.
 - Mientras escribes, al teclear `#` se te ofrecen las etiquetas que ya usas, para que una etiqueta nunca se escriba de dos maneras.
 
 ## Iconos
@@ -319,6 +322,8 @@ Los [paseos de octubre](tisty:doc/01JC4M9F2W7DQ1E3S8RB6PKMHT) fueron mejor.
 
 - Con `!` delante y sola en su párrafo, es una **tarjeta**: el título actual del documento, sus primeras palabras y, si es una página, su lugar en el libro. Las palabras entre corchetes son solo lo que muestran otros lectores.
 - Lo mismo dentro de una frase es una palabra en la que puedes hacer clic.
+- Al copiar como Markdown estándar, un enlace a otro documento queda como su texto.
+- Las páginas de un documento van en el orden en que sus tarjetas las nombran: en el árbol, al exportar y al imprimir.
 - En una página, solo la tarjeta le da su lugar en el libro; un enlace en una frase la señala sin colocarla. Mira [Páginas y PDF](https://www.tisty.app/es/ayuda/paginas-y-pdf/).
 - Un `[`, `]` o `\` en un título se escribe con una barra invertida delante.
 - Una tarea se nombra igual, por su identificador después de `tisty:task/`. En la página de una tarea, una parte escrita como tarjeta muestra sus pasos hechos y su fecha, y abre la parte. Otros lectores reciben solo sus palabras.
@@ -569,6 +574,7 @@ Un bloque `widget` dibuja una pequeña página aislada, sin acceso a la red; su 
 ````
 
 - Puede llevar su propio `<script>`, que corre dentro del widget y nunca en el documento.
+- No alcanza la ventana que lo rodea ni los demás documentos, y un enlace dentro de él abre el navegador solo con un clic.
 
 GitHub dibuja las tres vallas salvo `widget`, y también `$…$` y `$$…$$`.
 

@@ -213,7 +213,7 @@ A list of boxes you tick. They are not Tisty tasks: they never close, have no da
 - [ ] Ask about the tick tablet
 ```
 
-`[ ]` is open, `[x]` (or `[X]`) is ticked. A click on the box ticks it, on the page and while you write.
+`[ ]` is open, `[x]` (or `[X]`) is ticked. A click on the box ticks it, on the page and while you write. On a task's page, though, each box is a step of that task.
 
 ## Quotes and callouts
 
@@ -247,6 +247,7 @@ A callout is a quote whose first line names its kind in brackets. Five kinds, ea
 - A kind Tisty does not know, like `[!FOO]`, leaves an ordinary quote.
 - Nearly anything fits inside a callout — lists, code, rules, a section — as long as every line carries its `>`.
 - The same five kinds can also be written the way other tools write them, as a block between `:::tip` and a lone `:::`; Tisty draws it as the same callout.
+- On copying as standard Markdown, a `:::tip` callout becomes `> [!TIP]`, the way GitHub writes it.
 
 ## Collapsible sections
 
@@ -268,6 +269,7 @@ Born in 2023. Six-in-one and rabies every March.
 - Sections nest. Any `:::word` line opens a container that the next lone `:::` closes, so a section inside another, or a `:::tip` block written by another tool, never steals its closing fence. `details` folds and the five callout kinds draw a callout; any other `:::word` block shows its lines as written.
 - They work inside a callout too.
 - GitHub shows both fence lines as text and everything between them unfolded. Tisty also draws a `<details>` block written in HTML, the way GitHub writes them, but that is HTML, which is [outside the language](#what-is-outside-the-language).
+- On copying as standard Markdown, a `:::details` section becomes a `<details>` block.
 
 ## Tags
 
@@ -283,6 +285,7 @@ Booster due in March #rina #vet
 - A `#` stuck to what comes before it is not a tag: `C#`, `bg-#fff`, `page.html#top` and the anchor in a link's address are all left alone.
 - Nothing inside code is a tag, and neither is the `#2` in a [reference](#references) like `[[#2]]`.
 - A document keeps its first 64 tags.
+- On copying as standard Markdown, all the document's tags, those in `tags:` and those written with `#`, go into the front matter.
 - While you write, typing `#` offers the tags you already use, so one tag is never spelled two ways.
 
 ## Icons
@@ -319,6 +322,8 @@ The [walks of October](tisty:doc/01JC4M9F2W7DQ1E3S8RB6PKMHT) went better.
 
 - With `!` in front and alone in its paragraph, it is a **card**: the document's current title, its first words, and — for a page — its place in the book. The words in brackets are only what other readers show.
 - The same thing inside a sentence is a word you can click.
+- On copying as standard Markdown, a link to another document stays as its words.
+- A document's pages come in the order their cards name them: in the tree, on export and in print.
 - For a page, only the card gives it its place in the book; a link in a sentence points at it without placing it. See [Pages and PDF](https://www.tisty.app/docs/pages-and-pdf/).
 - A `[`, `]` or `\` in a title is written with a backslash before it.
 - A task is named the same way, by its id after `tisty:task/`. On a task's page, a part written as a card shows its steps done and its date, and opens the part. Other readers get only its words.
@@ -569,6 +574,7 @@ A `widget` block draws a small page sealed off from the network; its name goes i
 ````
 
 - It may carry a `<script>` of its own, which runs inside the widget and never in the document.
+- It cannot reach the window around it or other documents, and a link inside it opens the browser only on a click.
 
 GitHub draws every one of these fences but `widget`, and `$…$` and `$$…$$` too.
 
