@@ -3,6 +3,12 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
+  "annotations": {
+    "destructiveHint": true,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
   "description": "Rewrite a step that is not ticked, on a task you filed or one the person opened to agents. A ticked step is refused: `untick` it first if the tick was yours by mistake.",
   "inputSchema": {
     "additionalProperties": false,

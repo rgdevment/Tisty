@@ -193,6 +193,44 @@ fn every_tool_says_what_it_takes_and_asks_only_for_what_it_declares() {
     }
 }
 
+#[test]
+fn every_tool_says_all_four_hints_and_one_that_only_reads_stirs_nothing() {
+    let all = tools();
+    let all = all.as_array().expect("the tools come back as a list");
+    for one in all {
+        let name = one["name"].as_str().expect("a tool has a name");
+        for hint in [
+            "readOnlyHint",
+            "destructiveHint",
+            "idempotentHint",
+            "openWorldHint",
+        ] {
+            assert!(
+                one["annotations"][hint].is_boolean(),
+                "{name} does not say `{hint}`, and OpenAI's directory turns away a tool without all four"
+            );
+        }
+        // These two leave the store alone yet write: a summary kept here only, a copy in a folder.
+        let writes_outside_the_store = ["sum_up", "export_doc"].contains(&name);
+        assert_eq!(
+            one["annotations"]["readOnlyHint"] == json!(true),
+            ONLY_READS.contains(&name) && !writes_outside_the_store,
+            "{name} says whether it only reads differently from ONLY_READS"
+        );
+    }
+    let mut listed: Vec<&str> = all.iter().filter_map(|one| one["name"].as_str()).collect();
+    let mut effects: Vec<&str> = super::catalogue::EFFECTS
+        .iter()
+        .map(|(name, _)| *name)
+        .collect();
+    listed.sort_unstable();
+    effects.sort_unstable();
+    assert_eq!(
+        listed, effects,
+        "EFFECTS names other tools than the catalogue"
+    );
+}
+
 fn names_a_key(shape: &Value, key: &str) -> bool {
     match shape {
         Value::Object(all) => all

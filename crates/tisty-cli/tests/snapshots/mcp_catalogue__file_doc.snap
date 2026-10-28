@@ -3,6 +3,12 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
   "description": "Move a document into a folder, or out of every folder by leaving `folder` out. Nothing is deleted and no text changes. Moving is not writing, so a document the archive holds by itself moves too and stays put away: that is how something already archived is filed where it belongs.",
   "inputSchema": {
     "additionalProperties": false,

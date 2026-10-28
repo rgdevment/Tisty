@@ -3,6 +3,12 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": true
+  },
   "description": "Search the tasks — open and archived alike — and the documents: by words with `query`, by what a task is with the sifting fields (alone or narrowing a query), or by `source` alone to see whether something was filed from it already. A task found by what its page, description, steps or notes say comes with `in` and the `line` that says it, so a past decision often reads without `read`. With `doc` it searches inside that one document instead and hands back the matching lines with their numbers and the section each sits in.",
   "inputSchema": {
     "additionalProperties": false,

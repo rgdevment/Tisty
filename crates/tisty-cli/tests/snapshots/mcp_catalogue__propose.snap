@@ -3,6 +3,12 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
   "description": "Propose a task — something to do; what will be read again is a document (`write_doc`). Give it a `title`. Several read from one thread go together in `tasks`, each judged on its own, so a bad one does not sink the rest. A step is one line of a checklist; work that is several tasks with one end — a move, a release, a plan — goes in `parts`, one level deep, rather than packed into steps. A ticket's progress, its reviews, pull requests and audits are this task's page and its parts, never documents. Tisty tags it #agent by itself.",
   "inputSchema": {
     "additionalProperties": false,

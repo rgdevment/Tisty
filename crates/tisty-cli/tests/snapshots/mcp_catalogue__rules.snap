@@ -3,6 +3,12 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": true
+  },
   "description": "The rules for working in Tisty, one short guide at a time. Left alone it gives the basics — task or document, whose words count, speaking in titles, updating before adding — and an index of the rest. Ask for the guide your next step needs: «tasks» before filing or working a task, «documents» before writing or changing a document, «tidying» before putting things back in order, consolidating or compacting. «all» gives every rule at once.",
   "inputSchema": {
     "additionalProperties": false,

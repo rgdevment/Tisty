@@ -3,6 +3,12 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
   "description": "Put a document away when the person asks for that, and bring it back with `archived` false. «Delete it» is `flag_doc` instead. Nothing is deleted and no text changes: `docs` and `find` reach the archive as well, unless their `scope` says otherwise. A single page can be put away on its own, and it stays where it lives — under its document, greyed and read-only — rather than moving to the archive. Putting the document away covers its pages too, and bringing it back wakes each page as it was: one that was already apart stays apart. Putting a document away is not the same as finishing a task — a task is the person's to close, and there is no tool here for that.",
   "inputSchema": {
     "additionalProperties": false,

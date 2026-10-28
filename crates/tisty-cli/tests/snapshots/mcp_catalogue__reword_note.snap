@@ -3,6 +3,12 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
+  "annotations": {
+    "destructiveHint": true,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
   "description": "Rewrite a note in the journal of a task you filed or one the person opened to agents, named by the id `read` shows beside it. The new body replaces the old one whole; a note cannot be emptied.",
   "inputSchema": {
     "additionalProperties": false,

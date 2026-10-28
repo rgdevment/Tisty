@@ -3,6 +3,12 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
+  "annotations": {
+    "destructiveHint": true,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
   "description": "Replace one passage of a document with another, named either by what it says with `old` or by where it sits with `section` or a line range — which let you change a part of a document you never read. What it said before is kept first, and if that cannot be done the edit is refused rather than made; `restore_doc` puts it back. The answer says how many characters the document `grew` by, which is worth reading: an edit should not change the size by much more than what you sent.",
   "inputSchema": {
     "additionalProperties": false,

@@ -3,6 +3,12 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
   "description": "Append to what a task has recorded. Only a task's: a note set apart inside a document is a callout, `> [!NOTE]`, written with `edit_doc`. Works on tasks the person wrote too. Use it when something new turns up about work that already exists, instead of filing a duplicate. A closed task is history and takes no note: if the work came back, propose it anew.",
   "inputSchema": {
     "additionalProperties": false,

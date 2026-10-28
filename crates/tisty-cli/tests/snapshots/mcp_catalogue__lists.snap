@@ -3,6 +3,12 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": true
+  },
   "description": "The names of the person's lists, so you can file a task into one. You cannot make a list; anything you propose without one lands in the inbox.",
   "inputSchema": {
     "additionalProperties": false,

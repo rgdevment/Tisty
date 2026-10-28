@@ -1,7 +1,7 @@
 use serde_json::Value;
 use tisty_core::model::{DateSpec, Priority};
 
-use super::{Refused, catalogue::tools};
+use super::{Refused, catalogue::tools_without_hints};
 
 const AT_MOST: &[(&str, usize)] = &[
     ("title", 500),
@@ -20,7 +20,7 @@ const EACH_AT_MOST: usize = 2_000;
 
 /// Some clients send `null` for every field they leave out; only a field that says it takes `null` keeps it.
 pub(super) fn without_nulls(name: &str, args: Value) -> Value {
-    let tools = tools();
+    let tools = tools_without_hints();
     let Some(taken) = tools
         .as_array()
         .and_then(|all| all.iter().find(|one| one["name"] == name))
@@ -71,7 +71,7 @@ pub(super) fn only_what_it_takes(name: &str, args: &Value) -> Result<(), Refused
     let Some(said) = args.as_object() else {
         return Ok(());
     };
-    let tools = tools();
+    let tools = tools_without_hints();
     let Some(taken) = tools
         .as_array()
         .and_then(|all| all.iter().find(|one| one["name"] == name))

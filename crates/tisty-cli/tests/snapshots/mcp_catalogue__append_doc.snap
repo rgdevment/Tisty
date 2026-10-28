@@ -3,6 +3,12 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
+  "annotations": {
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
   "description": "Add to a document that exists, at the end or under a heading you name. What is already written stays exactly as it is — you are adding, never rewriting, so nothing the person wrote can be lost and no `print` is needed. For what is chronological by nature — a log, minutes, the dated notes on a task's page. For a fact that changed, `edit_doc` the passage that says the old one: adding the new fact under the old leaves the document saying both. With `under` you can put a paragraph in the right part of a long document without reading any of it; `outline_doc` tells you which headings there are. The answer says how many characters it `grew` by; with `echo` it hands back the lines around what you added. A task's page takes it too, named by the task's id, on a task an agent filed or one the person opened to agents: what you add goes under the assistant's own notes, dated and signed, never among their words. On a task's page, `replace` writes the assistant's notes again whole instead of adding.",
   "inputSchema": {
     "additionalProperties": false,

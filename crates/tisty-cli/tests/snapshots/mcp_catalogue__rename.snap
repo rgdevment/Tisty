@@ -3,6 +3,12 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
+  "annotations": {
+    "destructiveHint": true,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
   "description": "Give a better title to a task an agent filed. A task the person wrote keeps its title, opened to agents or not.",
   "inputSchema": {
     "additionalProperties": false,

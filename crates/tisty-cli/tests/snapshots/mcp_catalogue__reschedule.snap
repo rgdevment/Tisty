@@ -3,6 +3,12 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
+  "annotations": {
+    "destructiveHint": true,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
   "description": "Change the `date` or the `deadline` of a task an agent proposed, when what you learnt since moves it: the meeting slipped a week, the document arrived early. It reaches only what an agent filed — a day the person set is theirs, and naming one of their tasks is refused. Send null to take a day off. Nothing else about the task changes, and closing it is still never yours.",
   "inputSchema": {
     "additionalProperties": false,

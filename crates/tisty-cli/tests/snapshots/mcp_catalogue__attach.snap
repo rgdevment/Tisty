@@ -3,6 +3,12 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
   "description": "Copy a file from this machine into Tisty and keep it in one of two places: name a `task` and it goes on that task's journal, with where it came from written down beside it; name a `doc` and it is added at the end of that document, shown there as a picture or a card. An `.html` or `.htm` page attached to a document is drawn there as a live widget, sealed like a ```widget block and with the same classes and colours, which suits a page too large to write inline; to show it as a plain card instead, give its reference the title `\"file\"`: `![name](page-1a2b3c4d.html \"file\")`. One or the other, never both. The file is copied, not linked. A task and a document both take files up to 650 MB — a recording, a video, a slide deck. Only attach what you were asked to.",
   "inputSchema": {
     "additionalProperties": false,
