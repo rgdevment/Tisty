@@ -69,6 +69,15 @@ export const useFlow = (text: string, setText: (text: string) => void): Flowing 
   if (!flow) return null;
   const last = steps.done[steps.done.length - 1];
   const next = steps.undone[steps.undone.length - 1];
+  // Whatever the window writes is a step that can be undone.
+  const stepped = (written: string) => {
+    if (written === text) return;
+    setSteps({
+      done: [...steps.done.slice(1 - KEPT_STEPS), { before: text, after: written }],
+      undone: [],
+    });
+    setText(written);
+  };
   const keep = (into: Flow, picked: FlowPicked) =>
     setChosen({ picked, sign: signOf(into, picked) });
   return {
@@ -77,17 +86,11 @@ export const useFlow = (text: string, setText: (text: string) => void): Flowing 
     change: (made) => {
       if (!made) return;
       const written = writeFlow({ ...flow, body: made.body, places: made.places ?? flow.places });
-      if (written !== text) {
-        setSteps({
-          done: [...steps.done.slice(1 - KEPT_STEPS), { before: text, after: written }],
-          undone: [],
-        });
-        setText(written);
-      }
+      stepped(written);
       keep(readFlow(written) ?? flow, made.picked);
     },
     pick: (picked) => keep(flow, picked),
-    turn: (head) => setText(writeFlow({ ...flow, head })),
+    turn: (head) => stepped(writeFlow({ ...flow, head })),
     undo:
       last?.after === text
         ? () => {

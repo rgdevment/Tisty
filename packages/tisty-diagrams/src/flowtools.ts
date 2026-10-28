@@ -65,7 +65,12 @@ export const nodeDuplicated = (
     "n",
     flow.nodes.map((one) => one.id),
   );
-  const body = inserted(flow, [formedNode(copy, node.text, node.shape, node.keys)], node.group);
+  // A `:::class` after the original goes with the copy.
+  const kind = node.def
+    ? (/:::[\w-]+$/.exec(flow.body[node.def.line].slice(node.def.start, node.def.end))?.[0] ?? "")
+    : "";
+  const formed = `${formedNode(copy, node.text, node.shape, node.keys)}${kind}`;
+  const body = inserted(flow, [formed], node.group);
   const places = at ? placed(flow, copy, { x: at.x + OFFSET, y: at.y + OFFSET }) : flow.places;
   let now = reread(flow, { body, places, picked: null });
   const look = looksOf(flow).get(id);

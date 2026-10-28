@@ -129,6 +129,7 @@ describe("a flowchart in the diagram window", () => {
     };
 
     carry(document.body);
+    carry(screen.getByRole("toolbar", { name: say("flowTools") }));
     expect(text()).toBe(FLOW);
 
     carry(canvas());
@@ -359,8 +360,25 @@ describe("a flowchart in the diagram window", () => {
     opened();
 
     choose(say("flowDirection"), "TB");
-
     expect(text()).toBe(FLOW.replace("flowchart LR", "flowchart TB"));
+
+    fireEvent.click(tool(say("flowUndo")));
+    expect(text()).toBe(FLOW);
+  });
+
+  it("closes the colours with Escape or a press elsewhere", () => {
+    opened();
+    pickNode("A");
+    const swatches = () => screen.queryByRole("group", { name: say("flowFill") });
+
+    fireEvent.click(tool(say("flowFill")));
+    fireEvent.keyDown(screen.getByRole("button", { name: say("colorBlue") }), { key: "Escape" });
+    expect(swatches()).toBeNull();
+
+    fireEvent.click(tool(say("flowFill")));
+    fireEvent.pointerDown(canvas());
+    expect(swatches()).toBeNull();
+    expect(text()).toBe(FLOW);
   });
 
   it("leaves as Mermaid draws it a flowchart it cannot keep", () => {

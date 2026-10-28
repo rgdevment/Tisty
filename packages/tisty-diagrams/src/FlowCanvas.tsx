@@ -77,7 +77,8 @@ function Drawing({ editing, dark }: Readonly<{ editing: Flowing; dark: boolean }
   const { button } = useHands().looks;
   const { flow, picked, change, pick, undo, redo } = editing;
   const { screenToFlowPosition } = useReactFlow();
-  const room = useRef<HTMLDivElement>(null);
+  // The drawing alone, without the toolbar over it, is where pieces land.
+  const pane = useRef<HTMLDivElement>(null);
   const [naming, setNaming] = useState<Naming>(null);
   const still = useMemo(() => flowLaid(flow), [flow]);
   const lanes = useMemo(() => new Map(lanesOf(flow).map((one) => [one.id, one])), [flow]);
@@ -115,19 +116,19 @@ function Drawing({ editing, dark }: Readonly<{ editing: Flowing; dark: boolean }
     const at = centered(piece, text, middle);
     joinedIn(base, nodeAdded(base, text, null, piece, at), { ...sizeOf(text, piece), ...at });
   };
-  const middleOfRoom = () => {
-    const box = room.current?.getBoundingClientRect();
+  const middleOfPane = () => {
+    const box = pane.current?.getBoundingClientRect();
     return screenToFlowPosition({
       x: (box?.left ?? 0) + (box?.width ?? 0) / 2,
       y: (box?.top ?? 0) + (box?.height ?? 0) / 2,
     });
   };
   const landed = (piece: Piece, at: Point) => {
-    if (!room.current?.contains(document.elementFromPoint(at.x, at.y))) return;
+    if (!pane.current?.contains(document.elementFromPoint(at.x, at.y))) return;
     put(piece, screenToFlowPosition(at));
   };
 
-  const removal = pickedRemoved(flow, picked);
+  const removal = useMemo(() => pickedRemoved(flow, picked), [flow, picked]);
   const duplicate =
     picked?.kind === "node"
       ? () => change(nodeDuplicated(pinned(flow, laid), picked.id, laid.get(picked.id)))
@@ -169,9 +170,9 @@ function Drawing({ editing, dark }: Readonly<{ editing: Flowing; dark: boolean }
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1">
-      <FlowPalette onAdd={(piece) => put(piece, middleOfRoom())} onDrop={landed} />
+      <FlowPalette onAdd={(piece) => put(piece, middleOfPane())} onDrop={landed} />
       {/* biome-ignore lint/a11y/noStaticElementInteractions: the keys belong to the canvas inside */}
-      <div ref={room} className="flex min-h-0 min-w-0 flex-1 flex-col" onKeyDown={keyed}>
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col" onKeyDown={keyed}>
         <FlowToolbar
           editing={editing}
           laid={laid}
@@ -179,7 +180,7 @@ function Drawing({ editing, dark }: Readonly<{ editing: Flowing; dark: boolean }
           removable={removal !== null}
           onDuplicate={duplicate}
         />
-        <div className="relative min-h-0 flex-1 bg-desk">
+        <div ref={pane} className="relative min-h-0 flex-1 bg-desk">
           <ReactFlow<ShapeNode | FrameNode | LaneNode, WireEdge>
             nodes={nodes}
             edges={edges}

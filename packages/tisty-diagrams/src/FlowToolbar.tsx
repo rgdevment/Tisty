@@ -1,5 +1,5 @@
 import { useReactFlow, useViewport } from "@xyflow/react";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { ARROWS, edgeChanged, nodesPlaced, pinned, reread } from "./flowing";
 import { FILLS, LINES, type Look, nodeStyled } from "./flowstyles";
 import { ALIGNMENTS, type Alignment, alignedMoves, relaid } from "./flowtools";
@@ -111,12 +111,29 @@ function Swatches({
 }>) {
   const t = useSay();
   const [open, setOpen] = useState(false);
+  const holder = useRef<HTMLDivElement>(null);
+  // A press anywhere else closes it; on a Mac a button takes no focus, so leaving focus is not enough.
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: PointerEvent) => {
+      if (!holder.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", away);
+    return () => document.removeEventListener("pointerdown", away);
+  }, [open]);
   const chosen = (key: string | null) => {
     setOpen(false);
     onChoose(key);
   };
   return (
-    <div className="relative">
+    // biome-ignore lint/a11y/noStaticElementInteractions: Escape closes the swatches inside
+    <div
+      ref={holder}
+      className="relative"
+      onKeyDown={(e) => {
+        if (e.key === "Escape") setOpen(false);
+      }}
+    >
       <button
         type="button"
         aria-label={label}

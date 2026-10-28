@@ -43,8 +43,12 @@ export const laneResized = (flow: Flow, id: string, box: Rect): FlowAltered => (
 const holds = (rect: Rect, x: number, y: number) =>
   x >= rect.x && x <= rect.x + rect.wide && y >= rect.y && y <= rect.y + rect.tall;
 
-/** Shapes let go in a lane join it, and let go outside every lane leave theirs; plain groups stay. */
-export const regrouped = (flow: Flow, at: ReadonlyMap<string, Rect>): Flow => {
+/** Shapes let go in a lane join it, outside every lane leave it; one its lane names in an arrow goes back. */
+export const regrouped = (
+  flow: Flow,
+  at: ReadonlyMap<string, Rect>,
+  was: ReadonlyMap<string, Rect> = new Map(),
+): Flow => {
   const lanes = lanesOf(flow);
   let now = flow;
   for (const [id, rect] of at) {
@@ -59,7 +63,10 @@ export const regrouped = (flow: Flow, at: ReadonlyMap<string, Rect>): Flow => {
         .sort((a, b) => a.rect.wide * a.rect.tall - b.rect.wide * b.rect.tall)[0]?.id ?? null;
     const inLane = lanes.some((one) => one.id === node.group);
     if (into === node.group || (into === null && !inLane)) continue;
-    now = reread(now, nodeMoved(now, id, into));
+    const made = nodeMoved(now, id, into);
+    const back = was.get(id);
+    if (made) now = reread(now, made);
+    else if (back) now = { ...now, places: placed(now, id, { x: back.x, y: back.y }) };
   }
   return now;
 };

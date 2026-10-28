@@ -36,30 +36,12 @@ const STYLE = /^(\s*)style\s+([\p{L}\p{N}_-]+)\s+(.+?)\s*;?\s*$/u;
 
 type Said = readonly (readonly [string, string])[];
 
+// A comma inside brackets, as in `rgb(255,0,0)`, is part of the value, not the end of it.
 const saidOf = (props: string): Said =>
-  props.split(",").flatMap((one) => {
+  props.split(/,(?![^(]*\))/).flatMap((one) => {
     const at = one.indexOf(":");
     return at > 0 ? [[one.slice(0, at).trim(), one.slice(at + 1).trim()] as const] : [];
   });
-
-const lineOf = (flow: Flow, id: string) =>
-  flow.body.findIndex((line) => STYLE.exec(line)?.[2] === id);
-
-/** The colours each node's `style` line gives it. */
-export const looksOf = (flow: Flow): ReadonlyMap<string, Look> =>
-  new Map(
-    flow.body.flatMap((line) => {
-      const found = STYLE.exec(line);
-      if (!found) return [];
-      const said = new Map(saidOf(found[3]));
-      return [
-        [
-          found[2],
-          { fill: said.get("fill"), stroke: said.get("stroke"), color: said.get("color") },
-        ],
-      ];
-    }),
-  );
 
 // A key already said is rewritten where it stands, a new one goes last, an empty one goes.
 const withSaid = (said: Said, key: string, value: string | null | undefined): Said => {
@@ -69,25 +51,61 @@ const withSaid = (said: Said, key: string, value: string | null | undefined): Sa
     : [...said, [key, value] as const];
 };
 
-/** A node's colours set or taken off in its own `style` line, the rest of the line kept as it was. */
+/** Every `style` line of the flowchart, by node, all its lines said as one as Mermaid reads them. */
+const styleLines = (flow: Flow) => {
+  const byNode = new Map<string, { lines: number[]; indent: string; said: Said }>();
+  flow.body.forEach((line, at) => {
+    const found = STYLE.exec(line);
+    if (!found) return;
+    const known = byNode.get(found[2]);
+    // A later line says a key again over an earlier one.
+    const said = saidOf(found[3]).reduce(
+      (all, [key, value]) => withSaid(all, key, value),
+      known?.said ?? [],
+    );
+    byNode.set(found[2], {
+      lines: [...(known?.lines ?? []), at],
+      indent: known?.indent ?? found[1],
+      said,
+    });
+  });
+  return byNode;
+};
+
+/** The colours each node's `style` lines give it. */
+export const looksOf = (flow: Flow): ReadonlyMap<string, Look> =>
+  new Map(
+    [...styleLines(flow)].map(([id, { said }]) => {
+      const props = new Map(said);
+      return [
+        id,
+        { fill: props.get("fill"), stroke: props.get("stroke"), color: props.get("color") },
+      ];
+    }),
+  );
+
+/** A node's colours set or taken off, its `style` lines made one where the first stood, the rest kept. */
 export const nodeStyled = (
   flow: Flow,
   id: string,
   change: { readonly [key in keyof Look]?: string | null },
 ): FlowAltered => {
-  const at = lineOf(flow, id);
-  const found = at >= 0 ? STYLE.exec(flow.body[at]) : null;
+  const known = styleLines(flow).get(id);
   const said = Object.entries(change).reduce<Said>(
     (all, [key, value]) => withSaid(all, key, value),
-    found ? saidOf(found[3]) : [],
+    known?.said ?? [],
   );
-  const indent = found?.[1] ?? (flow.body.find((one) => one.trim())?.match(/^\s*/)?.[0] || "  ");
+  const indent = known?.indent ?? (flow.body.find((one) => one.trim())?.match(/^\s*/)?.[0] || "  ");
   const written = said.length
-    ? [`${indent}style ${id} ${said.map(([key, value]) => `${key}:${value}`).join(",")}`]
-    : [];
-  const body =
-    at >= 0
-      ? [...flow.body.slice(0, at), ...written, ...flow.body.slice(at + 1)]
-      : [...flow.body, ...written];
-  return { body, picked: { kind: "node", id } };
+    ? `${indent}style ${id} ${said.map(([key, value]) => `${key}:${value}`).join(",")}`
+    : null;
+  const first = known?.lines[0] ?? -1;
+  const body = flow.body.flatMap((line, at) => {
+    if (at === first) return written === null ? [] : [written];
+    return known?.lines.includes(at) ? [] : [line];
+  });
+  return {
+    body: first < 0 && written !== null ? [...body, written] : body,
+    picked: { kind: "node", id },
+  };
 };

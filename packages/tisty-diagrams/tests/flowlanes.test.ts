@@ -101,6 +101,20 @@ describe("joining and leaving lanes", () => {
     }
   });
 
+  it("puts a shape back where it was when its lane names it in an arrow and it cannot leave", () => {
+    const flow = readFlow(
+      unfolded(
+        "flowchart LR⏎  subgraph cli [Cliente]⏎    A --> B⏎  end⏎  %% tisty: cli 0 0 260 480⏎  %% tisty: A 40 60⏎  %% tisty: B 40 200",
+      ),
+    ) as Flow;
+    const out = new Map([["A", { x: 900, y: 900, wide: 90, tall: 42 }]]);
+    const back = regrouped(flow, out, new Map([["A", { x: 40, y: 60, wide: 90, tall: 42 }]]));
+
+    expect(back.nodes.find((one) => one.id === "A")?.group).toBe("cli");
+    expect(back.places.find((one) => one.id === "A")).toMatchObject({ x: 40, y: 60 });
+    expect(regrouped(flow, out)).toBe(flow);
+  });
+
   it("leaves a plain group alone, as only a lane is left by dragging", () => {
     const flow = readFlow(unfolded("flowchart LR⏎  subgraph g [Grupo]⏎    A⏎  end")) as Flow;
 
@@ -115,13 +129,15 @@ style A fill:#f00,stroke-width:4px → fill=#dcfce7 → style A fill:#dcfce7,str
 style A fill:#f00,stroke:#000 → fill= → style A stroke:#000
 style A fill:#f00 → fill= → -
 - → stroke= → -
+style A fill:rgb(255,0,0) → stroke=#dc2626 → style A fill:rgb(255,0,0),stroke:#dc2626
+style A fill:#f00⏎  style A stroke:#000,fill:#0f0 → color=#111 → style A fill:#0f0,stroke:#000,color:#111
 `;
 
 describe("colouring a node", () => {
   it("sets or takes off a colour in the node's own style line, keeping the rest of it", async () => {
     for (const case_ of lines(STYLED)) {
       const [line, what, left] = case_.split(" → ").map((one) => one.trim());
-      const source = `flowchart LR\n  A[Uno] --> B${line === "-" ? "" : `\n  ${line}`}`;
+      const source = unfolded(`flowchart LR⏎  A[Uno] --> B${line === "-" ? "" : `⏎  ${line}`}`);
       const flow = readFlow(source) as Flow;
       const change = Object.fromEntries(
         what.split(" ").map((one) => {
@@ -130,10 +146,15 @@ describe("colouring a node", () => {
         }),
       );
       const text = written(flow, nodeStyled(flow, "A", change));
-      expect(text.split("\n").find((one) => one.includes("style")) ?? "-", case_).toBe(
-        left === "-" ? "-" : `  ${left}`,
-      );
-      expect(await valid(text), case_).toBe(true);
+      expect(
+        text
+          .split("\n")
+          .filter((one) => one.includes("style"))
+          .join("|") || "-",
+        case_,
+      ).toBe(left === "-" ? "-" : `  ${left}`);
+      // What Mermaid did not read before, such as unescaped commas, it still does not; the text is kept.
+      expect(await valid(text), case_).toBe(await valid(source));
     }
   });
 
@@ -144,6 +165,8 @@ describe("colouring a node", () => {
 
     expect(looksOf(flow).get("A")).toEqual({ fill: "#fff", stroke: "#000", color: "#111" });
     expect(looksOf(flow).get("B")).toEqual({});
+    const twice = readFlow("flowchart LR\n  A\n  style A fill:#f00\n  style A fill:#0f0") as Flow;
+    expect(looksOf(twice).get("A")).toEqual({ fill: "#0f0" });
   });
 });
 
@@ -172,6 +195,8 @@ describe("the toolbar's changes", () => {
     expect(text).toContain("  %% tisty: n1 24 24");
     expect(made?.picked).toEqual({ kind: "node", id: "n1" });
     expect(nodeDuplicated(tooled(), "Z", undefined)).toBeNull();
+    const classed = readFlow("flowchart LR\n  A[Uno]:::rojo\n  classDef rojo fill:#f00") as Flow;
+    expect(written(classed, nodeDuplicated(classed, "A", undefined))).toContain("  n1[Uno]:::rojo");
     expect(await valid(text)).toBe(true);
   });
 

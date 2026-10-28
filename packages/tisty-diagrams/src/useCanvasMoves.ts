@@ -74,7 +74,7 @@ export const useCanvasMoves = (
         const rect = laid.get(one.id);
         return rect ? [[one.id, { ...rect, x: one.x, y: one.y }] as const] : [];
       });
-      now = regrouped(now, new Map(rects));
+      now = regrouped(now, new Map(rects), still);
     }
     const first = [...spots.keys()][0];
     if (picked?.kind === "nodes") change(settledInto(now, picked));
@@ -82,13 +82,17 @@ export const useCanvasMoves = (
       change(settledInto(now, { kind: "group", id: first.slice(GROUP.length) }));
     else change(settledInto(now, { kind: "node", id: first }));
   };
-  // Several shapes chosen by a box or by Ctrl-click are chosen together; one is chosen by its click.
+  // One shape chosen alone, as when an unchosen one is dragged, leaves the rest so they stay put.
   const reselected = (changes: NodeChange[]) => {
     const now = new Set(chosenOf(picked));
-    for (const one of changes)
-      if (one.type === "select" && !one.id.startsWith(GROUP))
-        one.selected ? now.add(one.id) : now.delete(one.id);
+    const added: string[] = [];
+    for (const one of changes) {
+      if (one.type !== "select" || one.id.startsWith(GROUP)) continue;
+      if (one.selected) added.push(one.id);
+      one.selected ? now.add(one.id) : now.delete(one.id);
+    }
     if (now.size > 1) pick({ kind: "nodes", ids: [...now] });
+    else if (now.size === 1 && added.length) pick({ kind: "node", id: added[0] });
   };
   // A drag, a nudge with the arrow keys or a lane's new size is written once it ends.
   const moved = (changes: NodeChange[]) => {
