@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { kindOf } from "./framing";
 import { type Changed, ideaAt, type Path, pathOfWords } from "./minding";
 import { type Idea, type Mind, readMind, writeMind } from "./mindmap";
+import { useSteps } from "./useSteps";
 
 export interface Minding {
   readonly mind: Mind;
@@ -9,6 +10,8 @@ export interface Minding {
   readonly idea: Idea;
   readonly change: (made: Changed) => void;
   readonly choose: (path: Path) => void;
+  readonly undo: (() => void) | null;
+  readonly redo: (() => void) | null;
 }
 
 interface Chosen {
@@ -20,6 +23,7 @@ interface Chosen {
 export const useMind = (text: string, setText: (text: string) => void): Minding | null => {
   const mind = useMemo(() => (kindOf(text) === "mindmap" ? readMind(text) : null), [text]);
   const [chosen, setChosen] = useState<Chosen>({ path: [], words: "" });
+  const { stepped, undo, redo } = useSteps(text, setText);
   if (!mind) return null;
   // Text typed by hand can move the chosen idea; it is found again by its words, or the root stands in.
   const still = ideaAt(mind, chosen.path)?.text === chosen.words;
@@ -31,9 +35,11 @@ export const useMind = (text: string, setText: (text: string) => void): Minding 
     chosen: here,
     idea: ideaAt(mind, here) ?? mind.root,
     change: (made) => {
-      if (made.mind !== mind) setText(writeMind(made.mind));
+      if (made.mind !== mind) stepped(writeMind(made.mind));
       keep(made.mind, made.chosen);
     },
     choose: (path) => keep(mind, path),
+    undo,
+    redo,
   };
 };

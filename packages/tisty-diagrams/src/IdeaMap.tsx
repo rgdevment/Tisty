@@ -7,18 +7,24 @@ import {
   useState,
 } from "react";
 import Board from "./Board";
+import { outlineOf } from "./flowoutlines";
+import type { Shape as FlowShape } from "./flowshapes";
 import { useSay } from "./handing";
+import { SHAPE_WORDS } from "./IdeaPanel";
 import {
   type Changed,
   moved,
   type Path,
   renamed,
+  reshaped,
   withChild,
   without,
   withSibling,
 } from "./minding";
 import { curve, HEXAGON, HUES, laidOut, type Placed } from "./mindlayout";
-import type { Mind, Shape } from "./mindmap";
+import { type Mind, SHAPES, type Shape } from "./mindmap";
+import Palette, { Sketch } from "./Palette";
+import { Gap, RemoveTools, Tool, ToolBar, UndoTools, ZoomTools } from "./tools";
 
 // A press that moves less than this is a press, not a drag.
 const DRAG_FROM = 4;
@@ -33,6 +39,21 @@ const outline: Record<Shape, string> = {
   cloud: "rounded-full border border-dashed",
   bang: "rounded-sm border-2 border-dashed",
   hexagon: "rounded-md border",
+};
+
+// An idea's shape drawn as the flowchart's nearest one; a plain idea is only its words, over a line.
+const SKETCHED: Record<Exclude<Shape, "plain">, FlowShape> = {
+  square: "process",
+  rounded: "rounded",
+  circle: "circle",
+  cloud: "cloud",
+  bang: "bang",
+  hexagon: "hexagon",
+};
+const sketchOf = (shape: Shape) => {
+  if (shape === "plain") return <Sketch paths={["M8,9 H26 M8,14 H22 M4,19 H30"]} />;
+  const outline = outlineOf(SKETCHED[shape], 34, 22);
+  return <Sketch paths={[outline.body, ...outline.lines]} />;
 };
 
 const named = (path: Path) => path.join(".");
@@ -59,12 +80,16 @@ export default function IdeaMap({
   mind,
   chosen,
   fresh,
+  undo,
+  redo,
   onChoose,
   onChange,
 }: Readonly<{
   mind: Mind;
   chosen: Path;
   fresh: string;
+  undo: (() => void) | null;
+  redo: (() => void) | null;
   onChoose: (path: Path) => void;
   onChange: (made: Changed) => void;
 }>) {
@@ -91,8 +116,22 @@ export default function IdeaMap({
     setRenaming(made.chosen);
   };
 
+  // A new idea of the shape asked for, under the idea given, named at once.
+  const grown = (shape: Shape, under: Path) => {
+    const made = withChild(mind, under, fresh);
+    added(shape === "plain" ? made : reshaped(made.mind, made.chosen, shape));
+  };
+
   const keyed = (e: KeyboardEvent) => {
-    if (renaming || !(e.target as Element).closest("[data-idea]")) return;
+    if (renaming) return;
+    const mod = e.ctrlKey || e.metaKey;
+    const key = e.key.toLowerCase();
+    if (mod && (key === "z" || key === "y")) {
+      e.preventDefault();
+      (key === "y" || e.shiftKey ? redo : undo)?.();
+      return;
+    }
+    if (!(e.target as Element).closest("[data-idea]")) return;
     const acts: Record<string, () => void> = {
       Enter: () => added(withSibling(mind, chosen, fresh)),
       Tab: () => added(withChild(mind, chosen, fresh)),
@@ -118,14 +157,49 @@ export default function IdeaMap({
 
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: the keys belong to the chosen idea, whose button holds the focus.
-    <div ref={here} className="relative flex min-w-0 flex-1" onKeyDown={keyed}>
+    <div ref={here} className="relative flex min-h-0 min-w-0 flex-1" onKeyDown={keyed}>
+      <Palette<Shape>
+        groups={[
+          {
+            title: t("flowPalette"),
+            items: SHAPES.map((shape) => ({ key: shape, label: t(SHAPE_WORDS[shape]) })),
+          },
+        ]}
+        sketch={sketchOf}
+        onAdd={(shape) => grown(shape, chosen)}
+        onDrop={(shape, at) => {
+          // Let go over the palette or outside the window, the shape is put nowhere.
+          const under = document.elementFromPoint(at.x, at.y);
+          if (!under || !here.current?.contains(under) || under.closest("aside")) return;
+          grown(shape, underPointer(at.x, at.y) ?? chosen);
+        }}
+      />
       <Board
         size={laid.size}
-        notice={
-          <p className="absolute bottom-3 left-3 m-0 rounded-lg bg-panel px-3 py-2 text-[12px] text-faint shadow">
-            {t("diagramMindKeys")}
-          </p>
-        }
+        bar={(zooming) => (
+          <ToolBar>
+            <UndoTools undo={undo} redo={redo} />
+            <Gap />
+            <Tool
+              label={t("diagramAddChild")}
+              icon="child"
+              onClick={() => added(withChild(mind, chosen, fresh))}
+            />
+            <Tool
+              label={t("diagramAddSibling")}
+              icon="sibling"
+              onClick={() => added(withSibling(mind, chosen, fresh))}
+            />
+            <Gap />
+            <RemoveTools
+              removable={chosen.length > 0}
+              refused={undefined}
+              onRemove={() => onChange(without(mind, chosen))}
+              onDuplicate={null}
+            />
+            <ZoomTools {...zooming} />
+          </ToolBar>
+        )}
       >
         <svg
           aria-hidden="true"

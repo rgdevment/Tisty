@@ -38,6 +38,8 @@ const ICONS: Record<string, string> = {
   associates: "M3 12 H20 M15 7 L20 12 L15 17",
   depends: "M3 12 H5 M8 12 H10 M13 12 H15 M18 12 H20 M15 7 L20 12 L15 17",
   links: "M3 12 H21",
+  child: "M3 5 h8 v5 h-8 Z M13 14 h8 v5 h-8 Z M7 10 V16.5 H13",
+  sibling: "M3 4 h8 v5 h-8 Z M3 15 h8 v5 h-8 Z M7 9 V15 M15 12 H21 M18 9 V15",
 };
 
 const ALIGN_WORDS: Record<Alignment, Word> = {
@@ -355,13 +357,36 @@ export function ViewTools({
           }
         </Popover>
       )}
+      <ZoomTools
+        scale={zoom}
+        onOut={() => zoomOut()}
+        onIn={() => zoomIn()}
+        onFit={() => fitView()}
+      />
+    </>
+  );
+}
+
+/** How a canvas zooms, whatever draws it. */
+export interface Zooming {
+  readonly scale: number;
+  readonly onOut: () => void;
+  readonly onIn: () => void;
+  readonly onFit: () => void;
+}
+
+/** Zooming, pushed to the far end of the bar. */
+export function ZoomTools({ scale, onOut, onIn, onFit }: Readonly<Zooming>) {
+  const t = useSay();
+  return (
+    <>
       <span className="flex-1" />
-      <Tool label={t("flowZoomOut")} icon="zoomOut" onClick={() => zoomOut()} />
+      <Tool label={t("flowZoomOut")} icon="zoomOut" onClick={onOut} />
       <span className="w-12 text-center text-[12px] text-soft tabular-nums">
-        {Math.round(zoom * 100)} %
+        {Math.round(scale * 100)} %
       </span>
-      <Tool label={t("flowZoomIn")} icon="zoomIn" onClick={() => zoomIn()} />
-      <Tool label={t("flowFit")} icon="fit" onClick={() => fitView()} />
+      <Tool label={t("flowZoomIn")} icon="zoomIn" onClick={onIn} />
+      <Tool label={t("flowFit")} icon="fit" onClick={onFit} />
     </>
   );
 }

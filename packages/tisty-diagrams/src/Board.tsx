@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { fitted, type Size, STEP, showing, type View, zoomedAt } from "./framing";
 import { useHands, useSay } from "./handing";
+import type { Zooming } from "./tools";
 
 // What the board pans for is the empty room; a press on an idea or a control is theirs.
 const OWN = "button, input, [data-idea], [data-grip]";
@@ -10,12 +11,15 @@ export default function Board({
   size,
   notice,
   seen,
+  bar,
   children,
 }: Readonly<{
   size: Size | null;
   notice?: ReactNode;
   // A part to bring into sight when it changes, such as a table just added.
   seen?: { x: number; y: number; wide: number; tall: number } | null;
+  // A bar of tools above the room, given how to zoom it, in place of the room's own zoom.
+  bar?: (zooming: Zooming) => ReactNode;
   children: ReactNode;
 }>) {
   const t = useSay();
@@ -71,11 +75,11 @@ export default function Board({
     dragged.current = null;
   };
 
-  return (
+  const shown = (
     <section
       ref={room}
       aria-label={t("diagramCanvas")}
-      className="relative min-w-0 flex-1 cursor-grab overflow-hidden bg-desk active:cursor-grabbing"
+      className="relative min-h-0 min-w-0 flex-1 cursor-grab overflow-hidden bg-desk active:cursor-grabbing"
       onPointerDown={(e) => {
         if ((e.target as Element).closest(OWN)) return;
         dragged.current = { x: e.clientX, y: e.clientY };
@@ -108,30 +112,44 @@ export default function Board({
         </div>
       )}
       {notice}
-      <div className="absolute right-3 bottom-3 flex items-center gap-1.5 rounded-lg bg-panel p-1 shadow">
-        <button
-          type="button"
-          className={button}
-          aria-label={t("diagramZoomOut")}
-          onClick={() => zoom(1 / STEP)}
-        >
-          −
-        </button>
-        <span className="w-12 text-center text-[12px] text-soft tabular-nums">
-          {Math.round((view?.scale ?? 1) * 100)}%
-        </span>
-        <button
-          type="button"
-          className={button}
-          aria-label={t("diagramZoomIn")}
-          onClick={() => zoom(STEP)}
-        >
-          +
-        </button>
-        <button type="button" className={button} onClick={fitAll}>
-          {t("diagramFit")}
-        </button>
-      </div>
+      {!bar && (
+        <div className="absolute right-3 bottom-3 flex items-center gap-1.5 rounded-lg bg-panel p-1 shadow">
+          <button
+            type="button"
+            className={button}
+            aria-label={t("diagramZoomOut")}
+            onClick={() => zoom(1 / STEP)}
+          >
+            −
+          </button>
+          <span className="w-12 text-center text-[12px] text-soft tabular-nums">
+            {Math.round((view?.scale ?? 1) * 100)}%
+          </span>
+          <button
+            type="button"
+            className={button}
+            aria-label={t("diagramZoomIn")}
+            onClick={() => zoom(STEP)}
+          >
+            +
+          </button>
+          <button type="button" className={button} onClick={fitAll}>
+            {t("diagramFit")}
+          </button>
+        </div>
+      )}
     </section>
+  );
+  if (!bar) return shown;
+  return (
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      {bar({
+        scale: view?.scale ?? 1,
+        onOut: () => zoom(1 / STEP),
+        onIn: () => zoom(STEP),
+        onFit: fitAll,
+      })}
+      {shown}
+    </div>
   );
 }

@@ -3,7 +3,8 @@ import { useHands, useSay } from "./handing";
 import { type Idea, SHAPES, type Shape } from "./mindmap";
 import type { Word } from "./words";
 
-const SHAPE_WORDS: Record<Shape, Word> = {
+/** What each shape of an idea is called. */
+export const SHAPE_WORDS: Record<Shape, Word> = {
   plain: "diagramShapePlain",
   square: "diagramShapeSquare",
   rounded: "diagramShapeRounded",
