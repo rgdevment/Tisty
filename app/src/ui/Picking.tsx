@@ -5,6 +5,7 @@ import { t } from "../locales";
 import { spawned } from "../making";
 import { docCard } from "../markdown";
 import Asking from "./Asking";
+import { fenced, nameOf, STARTS, startOf } from "./drawing/starting";
 import Glyphs from "./Glyphs";
 import Papers from "./Papers";
 import type { Asked } from "./slashing";
@@ -28,6 +29,7 @@ export default function Picking({
   onLost,
   onError,
   onDone,
+  onDrawn,
 }: {
   picked: Picked;
   own?: Filed;
@@ -37,6 +39,7 @@ export default function Picking({
   onLost: (doc: { file: string; title: string }) => void;
   onError: (problem: unknown) => void;
   onDone: () => void;
+  onDrawn?: (source: string, write: () => boolean) => void;
 }) {
   const { kind, at, put } = picked;
   const { wide, tall } = kind === "icon" ? ROOM.icons : ROOM.narrow;
@@ -104,6 +107,26 @@ export default function Picking({
               if (!done(docCard(one.file, title))) onLost({ file: one.file, title });
             }}
           />
+        )}
+        {kind === "diagram" && (
+          <div role="menu" aria-label={t("newDiagram")} className="flex flex-col">
+            {STARTS.map((one) => (
+              <button
+                key={one}
+                type="button"
+                role="menuitem"
+                className="rounded-md px-2.5 py-1.5 text-left text-[13px] hover:bg-hover"
+                onClick={() => {
+                  const source = startOf(one);
+                  const write = () => done(fenced(source));
+                  if (onDrawn) onDrawn(source, write);
+                  else write();
+                }}
+              >
+                {nameOf(one)}
+              </button>
+            ))}
+          </div>
         )}
         {kind === "icon" && (
           <Glyphs

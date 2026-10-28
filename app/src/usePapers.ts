@@ -17,11 +17,14 @@ import {
   type Papers,
   taskPageImport,
 } from "./core";
+import { viewDiagram } from "./drawing";
 import { leftBehind } from "./leftBehind";
 import { fill, t } from "./locales";
+import { drafted } from "./making";
 import { saidPlainly } from "./refusal";
 import { sure } from "./sure";
 import { dropAllAsked, goingWith } from "./tidying";
+import type { Start } from "./ui/drawing/starting";
 import type { Chosen } from "./views";
 
 // An old copy of a task's page would take away what the task holds now, so the person says so first.
@@ -71,6 +74,17 @@ export function usePapers({
         papersChanged();
         setChosen({ named: "docs", doc: made.id });
         if (!pageOf) lookForAStar();
+      })
+      .catch((e) => setError(saidPlainly(e)));
+
+  const newDiagram = (name: string, kind: Start, into?: string) =>
+    drafted(name, kind, papers.folders, into)
+      .then((made) => {
+        papersChanged();
+        setChosen({ named: "docs", doc: made.id });
+        lookForAStar();
+        const paper = { id: "", file: made.id, title: made.title, place: made.place };
+        return viewDiagram(paper, made.at, 0, made.source);
       })
       .catch((e) => setError(saidPlainly(e)));
 
@@ -236,6 +250,7 @@ export function usePapers({
     lookPapers,
     papersChanged,
     newDoc,
+    newDiagram,
     bringIn,
     dropFolder,
     dropDoc,

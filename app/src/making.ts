@@ -1,5 +1,8 @@
-import { docNew, docWrite } from "./core";
+import { docNew, docWrite, type Folded, folderAdd } from "./core";
+import { trail } from "./folders";
+import { t } from "./locales";
 import { docCard } from "./markdown";
+import { fenced, type Start, startOf } from "./ui/drawing/starting";
 
 export interface Born {
   id: string;
@@ -12,4 +15,44 @@ export const spawned = (name: string, folder?: string, pageOf?: string): Promise
   return docNew(folder, pageOf)
     .then((made) => docWrite(made.id, `# ${said}\n\n`).then(() => made))
     .then((made) => ({ id: made.id, said: docCard(made.id, said) }));
+};
+
+export interface Drafted {
+  readonly id: string;
+  readonly title: string;
+  readonly place: string;
+  /** Where the diagram's block starts, in bytes, as the diagram window looks for it. */
+  readonly at: number;
+  readonly source: string;
+}
+
+// Diagrams made outside any folder gather in one, found by its name rather than a setting kept somewhere.
+const homeOf = async (folders: Folded[], into?: string): Promise<string> => {
+  if (into) return into;
+  const named = t("diagramsFolder");
+  const found = folders.find((one) => !one.away && !one.parent && one.name === named);
+  return found ? found.id : folderAdd(named);
+};
+
+/** A plain document whose only content is a new diagram's example, under the name given. */
+export const drafted = async (
+  name: string,
+  kind: Start,
+  folders: Folded[],
+  into?: string,
+): Promise<Drafted> => {
+  const said = name.trim();
+  if (!said) throw new Error("untitled");
+  const folder = await homeOf(folders, into);
+  const source = startOf(kind);
+  const head = `# ${said}\n\n`;
+  const made = await docNew(folder);
+  await docWrite(made.id, `${head}${fenced(source)}\n`);
+  return {
+    id: made.id,
+    title: said,
+    place: trail(folders, folder) || t("diagramsFolder"),
+    at: new TextEncoder().encode(head).length,
+    source,
+  };
 };

@@ -71,6 +71,8 @@ export function useWindow() {
   const [seen, byList] = useOnly(chosen);
 
   const [makingFolder, setMakingFolder] = useState(false);
+  // Where a diagram being named will be made: a folder, or none for the diagrams' own.
+  const [makingDiagram, setMakingDiagram] = useState<{ into?: string } | null>(null);
   const [renaming, setRenaming] = useState<Folded | null>(null);
   const { note, noted, said } = useNote();
   const [afoot, setAfoot] = useState<Afoot | null>(null);
@@ -84,6 +86,7 @@ export function useWindow() {
     lookPapers,
     papersChanged,
     newDoc,
+    newDiagram,
     bringIn,
     dropFolder,
     dropDoc,
@@ -217,6 +220,8 @@ export function useWindow() {
     byList,
     makingFolder,
     setMakingFolder,
+    makingDiagram,
+    setMakingDiagram,
     renaming,
     setRenaming,
     note,
@@ -236,6 +241,7 @@ export function useWindow() {
     lookPapers,
     papersChanged,
     newDoc,
+    newDiagram,
     bringIn,
     dropFolder,
     dropDoc,

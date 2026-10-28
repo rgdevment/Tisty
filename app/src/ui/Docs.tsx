@@ -25,6 +25,7 @@ import {
   type Task,
   viewDoc,
 } from "../core";
+import { viewDiagram } from "../drawing";
 import { laidIn, withLandscape, withPaper, withSheets } from "../front";
 import { keptAll, PASTED_UP_TO } from "../kept";
 import { fill, t } from "../locales";
@@ -38,6 +39,7 @@ import { changedIn } from "./anchoring";
 import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
 import { blurbing, cardsOf } from "./carding";
+import { freshFence } from "./drawing/starting";
 import { MARKED_FOR } from "./lately";
 import Modal from "./Modal";
 import PdfTicks from "./PdfTicks";
@@ -522,8 +524,8 @@ export default function Docs({
         ? undefined
         : {
             kinds: leafy
-              ? ["newPage", "page", "doc", "newDoc", "icon", "file"]
-              : ["doc", "newDoc", "icon", "file"],
+              ? ["newPage", "page", "doc", "newDoc", "icon", "file", "diagram"]
+              : ["doc", "newDoc", "icon", "file", "diagram"],
             tags,
             pasted: (files) =>
               keptAll(
@@ -551,7 +553,8 @@ export default function Docs({
                 return;
               }
               // A card as a document's first words would become its title, which the core refuses.
-              if (kind !== "icon" && first) return onError(t("leafNeedsTitle"));
+              if (kind !== "icon" && first)
+                return onError(t(kind === "diagram" ? "diagramNeedsTitle" : "leafNeedsTitle"));
               setPicked({ kind, at, put, file: open?.file });
             },
           },
@@ -754,6 +757,23 @@ export default function Docs({
         .map((one) => one.name)
         .join(" / ")
     : "";
+  // A diagram just written waits for its save, so the diagram window finds it on disk.
+  const drawNew = (source: string, write: () => boolean) => {
+    const file = open?.file;
+    if (!file) return;
+    const pending = held.current?.id === file ? held.current.body : undefined;
+    const before = pending ?? lastRead.current.get(file)?.text ?? "";
+    if (!write()) return;
+    flush();
+    (busy(file) ?? Promise.resolve())
+      .then(() => {
+        const fresh = freshFence(before, lastRead.current.get(file)?.text ?? "", source);
+        if (!fresh) return;
+        const paper = { id: "", file, title: called, place };
+        return viewDiagram(paper, fresh.fence.at, fresh.nth, source);
+      })
+      .catch((e) => onError(saidPlainly(e)));
+  };
   return (
     <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-desk">
       <div data-tauri-drag-region className="h-9 shrink-0" />
@@ -1095,6 +1115,7 @@ export default function Docs({
           }}
           onError={(problem) => onError(saidPlainly(problem))}
           onDone={() => setPicked(null)}
+          onDrawn={drawNew}
         />
       )}
 

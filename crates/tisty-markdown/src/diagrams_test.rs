@@ -182,3 +182,31 @@ fn a_page_a_save_behind_still_opens_the_diagram_it_drew_and_never_a_neighbour() 
         assert_eq!(found, wanted, "{case}");
     }
 }
+
+// One per line, the table `starting.test.ts` checks the app's own finder against: a body → where each diagram starts, in bytes, and what it says.
+const FOUND: &str = "
+# T⏎⏎```mermaid⏎a⏎``` → 5:a⏎
+# Ñu⏎```mmd⏎b⏎c⏎```⏎```mermaid⏎d⏎``` → 6:b⏎c⏎ | 21:d⏎
+~~~~ mermaid⏎x⏎~~~⏎y⏎~~~~ → 0:x⏎~~~⏎y⏎
+```js⏎```mermaid⏎``` →
+```Mermaid⏎a⏎``` →
+   ```mermaid⏎sin cerrar⏎ → 3:sin cerrar⏎
+# Compras⏎⏎leche⏎⏎```mermaid⏎a⏎``` → 18:a⏎
+";
+
+#[test]
+fn the_app_finds_each_diagram_where_the_core_does() {
+    for case in FOUND.lines().filter(|line| !line.trim().is_empty()) {
+        let (body, said) = case.split_once(" →").expect("a case has an arrow");
+        let found: Vec<String> = diagrams(&body.replace('⏎', "\n"))
+            .iter()
+            .map(|one| format!("{}:{}", one.at.start, one.source))
+            .collect();
+        let expected: Vec<String> = said
+            .split(" | ")
+            .map(|one| one.trim().replace('⏎', "\n"))
+            .filter(|one| !one.is_empty())
+            .collect();
+        assert_eq!(found, expected, "{case}");
+    }
+}
