@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
+import { ReactFlow } from "@xyflow/react";
 import { sayIn } from "tisty-diagrams/read";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import Diagramming from "../ui/drawing/Diagramming";
@@ -153,6 +154,20 @@ describe("a flowchart in the diagram window", () => {
     expect(text()).toMatch(/%% tisty: A -?\d+ -?\d+/);
     for (const id of ["B", "C", "D", "E"]) expect(text()).toMatch(`%% tisty: ${id} `);
     expect(warned.mock.calls.flat().join(" ")).not.toContain("not initialized");
+  });
+
+  it("would hear React Flow say a node is not initialized, so the checks above can fail", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    const warned = vi.spyOn(console, "warn");
+    render(
+      <ReactFlow nodes={[{ id: "bare", position: { x: 0, y: 0 }, data: {}, selected: true }]} />,
+    );
+
+    fireEvent.keyDown(document.querySelector(".react-flow__node") as HTMLElement, {
+      key: "ArrowRight",
+    });
+
+    expect(warned.mock.calls.flat().join(" ")).toContain("not initialized");
   });
 
   it("makes a joined shape where an arrow is let go on nothing, and joins one let go on a shape", () => {
