@@ -2,7 +2,7 @@ import mermaid from "mermaid";
 import { beforeAll, describe, expect, it } from "vitest";
 import { type Flow, readFlow, writeFlow } from "../src/flow";
 import { nodeAddedFrom, nodesPlaced, pinned } from "../src/flowing";
-import { outlineOf, sizeOf } from "../src/flowoutlines";
+import { linesOf, outlineOf, sizeOf } from "../src/flowoutlines";
 import { routeOf, sidesOf } from "../src/flowroutes";
 import { type Bracketed, NAMED, nameOfShape, type Shape, shapeNamed } from "../src/flowshapes";
 import { PALETTE, SHAPES, shapeName } from "../src/paletteshapes";
@@ -89,6 +89,26 @@ describe("drawing a shape", () => {
     expect(sizeOf("", "sm-circ")).toEqual({ wide: 28, tall: 28 });
     expect(sizeOf("Cliente", "person")).toEqual({ wide: 90, tall: 84 });
     expect(sizeOf("Proveedor", "cloud")).toEqual({ wide: 134, tall: 64 });
+  });
+
+  it("breaks long words into lines of at most 24 characters, and grows the shape to hold them", () => {
+    const cases: [string, string[]][] = [
+      ["", [""]],
+      ["Corto", ["Corto"]],
+      ["  dos   espacios ", ["dos espacios"]],
+      [
+        "la nube es mas una tormenta que una nubecita",
+        ["la nube es mas una", "tormenta que una", "nubecita"],
+      ],
+      ["supercalifragilisticoespialidoso", ["supercalifragilisticoesp", "ialidoso"]],
+      ["a supercalifragilisticoespialidoso b", ["a", "supercalifragilisticoesp", "ialidoso b"]],
+    ];
+    for (const [text, lines] of cases) expect(linesOf(text), text).toEqual(lines);
+    expect(sizeOf("la nube es mas una tormenta que una nubecita", "cloud")).toEqual({
+      wide: 201,
+      tall: 98,
+    });
+    expect(sizeOf("una decisión que no cabe en una línea", "decision").tall).toBe(98);
   });
 
   it("names every shape of the palette in both languages", () => {

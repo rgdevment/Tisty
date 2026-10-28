@@ -287,15 +287,47 @@ const TALL: Partial<Record<Shape, number>> = {
   console: 54,
 };
 
+// Past this many characters the words go on to the next line, so a long text never stretches a shape.
+const WRAP = 24;
+/** The height each further line of words adds. */
+export const LINE = 17;
+
+/** A shape's words split into lines of at most `WRAP` characters, at spaces when it can. */
+export const linesOf = (text: string): string[] => {
+  const lines: string[] = [];
+  let line = "";
+  for (const word of text.split(/\s+/).filter(Boolean)) {
+    let rest = word;
+    // A word longer than a whole line is cut, since nothing else would make it fit.
+    while (rest.length > WRAP) {
+      if (line) lines.push(line);
+      lines.push(rest.slice(0, WRAP));
+      rest = rest.slice(WRAP);
+      line = "";
+    }
+    if (!line) line = rest;
+    else if (line.length + 1 + rest.length <= WRAP) line = `${line} ${rest}`;
+    else {
+      lines.push(line);
+      line = rest;
+    }
+  }
+  return line || !lines.length ? [...lines, line] : lines;
+};
+
 /** The size a shape takes for its words, the same in the window and in the picture. */
 export const sizeOf = (text: string, shape: Shape): Size => {
-  const wide = Math.max(90, Math.round(text.length * 7.5 + 36));
+  const lines = linesOf(text);
+  const longest = Math.max(...lines.map((one) => one.length));
+  const wide = Math.max(90, Math.round(longest * 7.5 + 36));
+  const more = (lines.length - 1) * LINE;
   if (shape === "circle" || shape === "double" || shape === "fr-circ") {
-    const side = Math.max(wide, 72);
+    const side = Math.max(wide, 72 + more);
     return { wide: side, tall: side };
   }
   if (shape === "sm-circ" || shape === "f-circ") return { wide: 28, tall: 28 };
-  if (shape === "decision") return { wide: wide + 40, tall: 64 };
-  if (shape === "cloud") return { wide: wide + 30, tall: 64 };
-  return { wide, tall: TALL[shape] ?? 42 };
+  // A diamond holds its words only in its middle, so each line asks for more of it.
+  if (shape === "decision") return { wide: wide + 40, tall: 64 + more * 2 };
+  if (shape === "cloud") return { wide: wide + 30, tall: 64 + more };
+  return { wide, tall: (TALL[shape] ?? 42) + more };
 };

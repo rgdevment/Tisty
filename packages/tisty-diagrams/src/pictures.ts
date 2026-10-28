@@ -1,6 +1,6 @@
 import { type Classes, readClasses } from "./classes";
 import { type Flow, readFlow } from "./flow";
-import { outlineOf } from "./flowoutlines";
+import { LINE, linesOf, outlineOf } from "./flowoutlines";
 import { endWordAt, type Route, routeOf } from "./flowroutes";
 import { type Shape as FlowShape, pictured } from "./flowshapes";
 import { looksOf, type Look as Painted } from "./flowstyles";
@@ -206,13 +206,22 @@ const flowPicture = (flow: Flow): Picture => {
         palette,
         (id, rect) => {
           const one = byId.get(id);
-          const text = fitted(one?.text ?? id, rect.wide - 24, 7.5);
+          const lines = linesOf(one?.text ?? id);
           const shape = one?.shape ?? "process";
           const drop = outlineOf(shape, rect.wide, rect.tall).drop;
-          const middle = { x: rect.x + rect.wide / 2, y: rect.y + rect.tall / 2 + drop };
+          const top = rect.y + rect.tall / 2 + drop - ((lines.length - 1) * LINE) / 2;
           const look = looks.get(id);
           const ink = look?.color ?? palette.ink;
-          return `${node(shape, rect, palette, look)}${writing({ ...middle, text, size: 13, fill: ink })}`;
+          const words = lines.map((line, at) =>
+            writing({
+              x: rect.x + rect.wide / 2,
+              y: top + at * LINE,
+              text: fitted(line, rect.wide - 24, 7.5),
+              size: 13,
+              fill: ink,
+            }),
+          );
+          return `${node(shape, rect, palette, look)}${words.join("")}`;
         },
         routeOf,
       ),
