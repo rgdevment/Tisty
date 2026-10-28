@@ -38,10 +38,32 @@ export const signedBy = (
 ): string | undefined =>
   agentNamed(device) ? fill("agentWrote", clientNamed(via) || t("anAssistant")) : undefined;
 
-export const hostedOn = (device: string | undefined): string | undefined => {
+// The name is kept for the tooltip and the screen reader; at a glance it is only an agent.
+export const signedByAnAgent = (device: string | undefined): string | undefined =>
+  agentNamed(device) ? fill("agentWrote", t("anAgent")) : undefined;
+
+const placed = (device: string | undefined): { here: boolean; name: string } | undefined => {
   const machine = device ? hosts[device] : undefined;
-  if (!machine) return undefined;
-  return machine === here
-    ? t("fromThisMachine")
-    : fill("fromMachine", machines[machine] ?? machine);
+  return machine ? { here: machine === here, name: machines[machine] ?? machine } : undefined;
+};
+
+export const hostedOn = (device: string | undefined): string | undefined => {
+  const at = placed(device);
+  if (!at) return undefined;
+  return at.here ? t("fromThisMachine") : fill("fromMachine", at.name);
+};
+
+export const wroteWhere = (
+  device: string | undefined,
+  via: string | undefined | null,
+): string | undefined => {
+  if (!agentNamed(device)) return undefined;
+  const who = clientNamed(via) || t("anAssistant");
+  const at = placed(device);
+  const said = !at
+    ? fill("agentWroteIt", who)
+    : at.here
+      ? fill("agentWroteHere", who)
+      : fill("agentWroteOn", who, at.name);
+  return said.charAt(0).toUpperCase() + said.slice(1);
 };

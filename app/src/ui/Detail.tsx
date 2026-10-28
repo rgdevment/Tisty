@@ -13,7 +13,7 @@ import { WROTE } from "../detailing";
 import { cadence, daysFrom, stamped, whenLabel, wroteAt } from "../format";
 import { fill, t } from "../locales";
 import { placed, said } from "../quadrants";
-import { agentNamed, clientNamed, hostedOn, signedBy } from "../who";
+import { agentNamed, clientNamed, hostedOn, signedBy, signedByAnAgent, wroteWhere } from "../who";
 import Belongs from "./Belongs";
 import { useEdge } from "./edging";
 import Fields from "./Fields";
@@ -201,12 +201,18 @@ export default function Detail({
     </>
   );
 
+  const signed = signedBy(task.created_by, task.created_via);
   const body = (
     <>
       <Title task={task} onRename={(title) => onPatch({ title })} />
-      {task.status === "open" && signedBy(task.created_by, task.created_via) && (
-        <p className="-mt-1.5 mb-3 text-[11.5px] text-hue-teal" title={hostedOn(task.created_by)}>
-          {signedBy(task.created_by, task.created_via)}
+      {task.status === "open" && signed && (
+        <p
+          className="-mt-1.5 mb-3 text-[11.5px] text-hue-teal"
+          title={
+            expanded ? hostedOn(task.created_by) : wroteWhere(task.created_by, task.created_via)
+          }
+        >
+          {expanded ? signed : signedByAnAgent(task.created_by)}
         </p>
       )}
       {pace && (
