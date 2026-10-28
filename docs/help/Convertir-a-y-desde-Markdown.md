@@ -16,7 +16,7 @@ Copia desde Google Docs y pega en un documento. Entra como una página web: tít
 
 ## De texto enriquecido a Markdown
 
-El texto que copias con su formato (de una página web, un correo o un procesador de texto) conserva al pegarlo sus títulos, listas, negritas, enlaces, tablas y palabras de color. Un color pasa al rotulador más cercano de la paleta.
+El texto que copias con su formato (de una página web, un correo o un procesador de texto) conserva al pegarlo sus títulos, listas, negritas, enlaces, tablas y palabras de color. Un color pasa al rotulador más cercano de la paleta. Las filas copiadas de Excel, Numbers o Google Sheets, o un CSV, entran como tabla.
 
 ## De texto plano a Markdown
 

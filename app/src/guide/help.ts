@@ -53,6 +53,7 @@ const SUGGESTED: Record<string, Twice[]> = {
     twice("documents", "documentos"),
     twice("markdown-editor", "editor-markdown"),
     twice("pages-and-pdf", "paginas-y-pdf"),
+    twice("diagrams", "diagramas"),
   ],
   tasks: [
     twice("tasks", "tareas"),
