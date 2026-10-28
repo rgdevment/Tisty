@@ -17,7 +17,7 @@ export interface StudioProps {
 
 function Sides({ text, onText, dark }: Readonly<Pick<StudioProps, "text" | "onText" | "dark">>) {
   const t = useSay();
-  const editor = useEditor(text, onText);
+  const editor = useEditor(text, onText, dark);
   return (
     <div className="flex min-h-0 flex-1">
       {editor?.board ?? <Canvas source={text} dark={dark} />}

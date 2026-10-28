@@ -57,11 +57,18 @@ const placed = (flow: Flow, id: string, at: { x: number; y: number }): readonly 
   return known ? flow.places.map((one) => (one.id === id ? place : one)) : [...flow.places, place];
 };
 
-/** A node put where the window was told, without touching the lines that say what it is. */
-export const nodePlaced = (flow: Flow, id: string, at: { x: number; y: number }): FlowAltered => ({
+/** Nodes put where the window was told, without touching the lines that say what they are. */
+export const nodesPlaced = (
+  flow: Flow,
+  moves: readonly { id: string; x: number; y: number }[],
+  picked: FlowPicked,
+): FlowAltered => ({
   body: flow.body,
-  places: placed(flow, id, at),
-  picked: { kind: "node", id },
+  places: moves.reduce<readonly Place[]>(
+    (places, move) => placed({ ...flow, places }, move.id, move),
+    flow.places,
+  ),
+  picked,
 });
 
 const unique = (wanted: string, taken: readonly string[]) => {
@@ -102,6 +109,38 @@ export const nodeAdded = (
   return {
     body: inserted(flow, [formedNode(id, text, shape)], group),
     places: at ? placed(flow, id, at) : flow.places,
+    picked: { kind: "node", id },
+  };
+};
+
+/** The flowchart with every node it laid out itself written where it stands, so nothing jumps when one moves. */
+export const pinned = (
+  flow: Flow,
+  at: ReadonlyMap<string, { readonly x: number; readonly y: number }>,
+): Flow => {
+  const placedOnes = new Set(flow.places.map((one) => one.id));
+  const moves = flow.nodes.flatMap((one) => {
+    const point = at.get(one.id);
+    return point && !placedOnes.has(one.id) ? [{ id: one.id, x: point.x, y: point.y }] : [];
+  });
+  if (!moves.length) return flow;
+  return { ...flow, places: nodesPlaced(flow, moves, null).places ?? flow.places };
+};
+
+/** A new node joined from another, as when an arrow is let go where nothing is. */
+export const nodeAddedFrom = (
+  flow: Flow,
+  from: string,
+  text: string,
+  at: { x: number; y: number },
+): FlowAltered => {
+  const id = unique(
+    "n",
+    flow.nodes.map((one) => one.id),
+  );
+  return {
+    body: inserted(flow, [`${from} --> ${formedNode(id, text, "process")}`], null),
+    places: placed(flow, id, at),
     picked: { kind: "node", id },
   };
 };

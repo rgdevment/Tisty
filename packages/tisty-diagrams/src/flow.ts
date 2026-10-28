@@ -11,19 +11,6 @@ import {
 import { headerAt } from "./framing";
 import type { Direction } from "./graphlayout";
 
-export const SHAPES: readonly Shape[] = [
-  "process",
-  "rounded",
-  "stadium",
-  "circle",
-  "decision",
-  "hexagon",
-  "database",
-  "subroutine",
-  "lean",
-  "flag",
-];
-
 // Opening, the closings it may take with the shape each gives; longest openings first.
 const FORMS: readonly (readonly [string, readonly (readonly [string, Bracketed])[]])[] = [
   ["(((", [[")))", "double"]]],
