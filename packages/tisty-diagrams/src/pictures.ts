@@ -22,7 +22,7 @@ import {
 } from "./picture";
 import { CLASS_HEAD, CLASS_LINE, classScene, flowScene, type Scene } from "./scenes";
 import { readSchema, type Schema } from "./schema";
-import { bend, drawnOf, HEAD, ROW, relationWords } from "./schemalayout";
+import { HEAD, ROW, schemaScene } from "./schemalayout";
 
 const RADII: Record<MindShape, number> = {
   plain: 6,
@@ -67,80 +67,66 @@ const mindPicture = (mind: Mind): Picture => {
 };
 
 const schemaPicture = (schema: Schema): Picture => {
-  const drawn = drawnOf(schema);
+  const scene = schemaScene(schema);
+  const byName = new Map(schema.tables.map((one) => [one.name, one]));
   return {
-    size: drawn.size,
+    size: scene.laid.size,
     drawn: (palette) =>
-      [
-        ...drawn.links.map((one) =>
-          stroke(bend(one), palette.accent, 1.6, one.relation.identifying ? undefined : "6 4"),
-        ),
-        ...drawn.links.map((one) =>
-          pill(
-            (one.from.x + one.to.x) / 2,
-            (one.from.y + one.to.y) / 2,
-            relationWords(one.relation),
-            palette,
-            palette.accent,
-          ),
-        ),
-        ...drawn.boxes.map((box) => {
-          const head = { x: box.x, y: box.y, wide: box.wide, tall: HEAD };
-          const rows = box.table.columns.map((column, index) => {
-            const y = box.y + HEAD + index * ROW + ROW / 2;
-            const named = `${column.name}${column.required ? " *" : ""}`;
-            const room = box.wide - 56 - column.type.length * 7;
-            return [
-              writing({
-                x: box.x + 12,
-                y,
-                text: column.keys.join(","),
-                size: 10,
-                fill: palette.accent,
-                bold: true,
-                anchor: "start",
-              }),
-              writing({
-                x: box.x + 44,
-                y,
-                text: fitted(named, room, 7),
-                size: 12.5,
-                fill: palette.ink,
-                anchor: "start",
-              }),
-              writing({
-                x: box.x + box.wide - 12,
-                y,
-                text: column.type,
-                size: 11.5,
-                fill: palette.faint,
-                anchor: "end",
-                mono: true,
-              }),
-            ].join("");
-          });
+      graph(scene, palette, (name, box) => {
+        const rows = (byName.get(name)?.columns ?? []).map((column, index) => {
+          const y = box.y + HEAD + index * ROW + ROW / 2;
+          const named = `${column.name}${column.required ? " *" : ""}`;
+          const room = box.wide - 56 - column.type.length * 7;
           return [
-            boxed(box, { fill: palette.panel, radius: 8 }),
-            boxed(head, { fill: palette.hover }),
-            stroke(
-              straight({ x: box.x, y: box.y + HEAD }, { x: box.x + box.wide, y: box.y + HEAD }),
-              palette.line,
-              1,
-            ),
             writing({
               x: box.x + 12,
-              y: box.y + HEAD / 2,
-              text: fitted(box.table.name, box.wide - 24, 8),
-              size: 12.5,
-              fill: palette.ink,
+              y,
+              text: column.keys.join(","),
+              size: 10,
+              fill: palette.accent,
               bold: true,
               anchor: "start",
             }),
-            ...rows,
-            boxed(box, { fill: "none", stroke: palette.line, radius: 8 }),
+            writing({
+              x: box.x + 44,
+              y,
+              text: fitted(named, room, 7),
+              size: 12.5,
+              fill: palette.ink,
+              anchor: "start",
+            }),
+            writing({
+              x: box.x + box.wide - 12,
+              y,
+              text: column.type,
+              size: 11.5,
+              fill: palette.faint,
+              anchor: "end",
+              mono: true,
+            }),
           ].join("");
-        }),
-      ].join(""),
+        });
+        return [
+          boxed(box, { fill: palette.panel, radius: 8 }),
+          boxed({ ...box, tall: HEAD }, { fill: palette.hover }),
+          stroke(
+            straight({ x: box.x, y: box.y + HEAD }, { x: box.x + box.wide, y: box.y + HEAD }),
+            palette.line,
+            1,
+          ),
+          writing({
+            x: box.x + 12,
+            y: box.y + HEAD / 2,
+            text: fitted(name, box.wide - 24, 8),
+            size: 12.5,
+            fill: palette.ink,
+            bold: true,
+            anchor: "start",
+          }),
+          ...rows,
+          boxed(box, { fill: "none", stroke: palette.line, radius: 8 }),
+        ].join("");
+      }),
   };
 };
 

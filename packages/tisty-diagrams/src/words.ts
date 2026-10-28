@@ -161,7 +161,6 @@ const EN = {
   flowZoomIn: "Zoom in",
   flowZoomOut: "Zoom out",
   schemaAddColumn: "+ Column",
-  schemaAddTable: "+ Table",
   schemaColumn: "Column",
   schemaCopied: "{name} copied",
   schemaCopyDbml: "Copy as DBML",
@@ -171,7 +170,6 @@ const EN = {
   schemaEndZeroMany: "Zero or more",
   schemaEndZeroOne: "Zero or one",
   schemaIdentifying: "Identifying (solid line)",
-  schemaKeys: "Drag a table by its title · drag a column's dot onto another table to relate them",
   schemaLabel: "What it says",
   schemaLink: "Drag onto another table to relate them",
   schemaName: "Name",
@@ -185,6 +183,7 @@ const EN = {
   schemaRequired: "Required",
   schemaSide: "On the side of «{name}»",
   schemaTable: "Table",
+  schemaTables: "Tables",
   schemaType: "Type",
   table: "Table",
 };
@@ -354,7 +353,6 @@ const ES: Record<Word, string> = {
   flowZoomIn: "Acercar",
   flowZoomOut: "Alejar",
   schemaAddColumn: "+ Columna",
-  schemaAddTable: "+ Tabla",
   schemaColumn: "Columna",
   schemaCopied: "{name} copiado",
   schemaCopyDbml: "Copiar como DBML",
@@ -364,8 +362,6 @@ const ES: Record<Word, string> = {
   schemaEndZeroMany: "Cero o más",
   schemaEndZeroOne: "Cero o uno",
   schemaIdentifying: "Identificadora (línea continua)",
-  schemaKeys:
-    "Arrastra una tabla por su título · arrastra el punto de una columna a otra tabla para relacionarlas",
   schemaLabel: "Lo que dice",
   schemaLink: "Arrástralo a otra tabla para relacionarlas",
   schemaName: "Nombre",
@@ -379,6 +375,7 @@ const ES: Record<Word, string> = {
   schemaRequired: "Obligatoria",
   schemaSide: "Del lado de «{name}»",
   schemaTable: "Tabla",
+  schemaTables: "Tablas",
   schemaType: "Tipo",
   table: "Tabla",
 };

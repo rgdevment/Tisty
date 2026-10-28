@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { sayIn } from "tisty-diagrams/read";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import Diagramming from "../ui/drawing/Diagramming";
 
 // The studio says its own words; these tests read them as it does, in English.
@@ -37,6 +37,22 @@ vi.mock("../ui/diagrams", () => ({
   drawing: () => Promise.resolve('<svg viewBox="0 0 10 10"><text>mermaid</text></svg>'),
 }));
 
+// React Flow measures and moves with what a browser has and jsdom does not.
+class Watcher {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+class Matrix {
+  m22 = 1;
+  constructor(readonly transform = "") {}
+}
+
+beforeAll(() => {
+  vi.stubGlobal("ResizeObserver", Watcher);
+  vi.stubGlobal("DOMMatrixReadOnly", Matrix);
+});
+
 const SCHEMA =
   "erDiagram\n  personas ||--o{ compartidos : publica\n  personas {\n    uuid id PK\n  }\n  compartidos {\n    text id PK\n    uuid persona_id\n  }\n";
 
@@ -47,6 +63,25 @@ const card = (name: string) => document.querySelector(`[data-table="${name}"]`) 
 const title = (name: string) => within(card(name)).getAllByRole("button")[0];
 const columnOf = (table: string, words: string) =>
   within(card(table)).getByRole("button", { name: new RegExp(words) });
+const palette = () => within(screen.getByRole("complementary", { name: say("flowPalette") }));
+const tool = (name: string) =>
+  within(screen.getByRole("toolbar", { name: say("flowTools") })).getByRole("button", {
+    name,
+  }) as HTMLButtonElement;
+const typed = (field: HTMLElement, value: string) => {
+  fireEvent.change(field, { target: { value } });
+  fireEvent.keyDown(field, { key: "Enter" });
+};
+const nudge = (name: string) =>
+  fireEvent.keyDown(card(name).closest(".react-flow__node") as HTMLElement, { key: "ArrowRight" });
+// A column's dot dragged and let go over what `under` is.
+const pull = (table: string, column: number, under: HTMLElement | null) => {
+  document.elementFromPoint = () => under;
+  const dot = card(table).querySelector(`[data-handleid="column-${column}"]`) as HTMLElement;
+  fireEvent.mouseDown(dot, { clientX: 0, clientY: 0, button: 0 });
+  fireEvent.mouseMove(document, { clientX: 300, clientY: 300 });
+  fireEvent.mouseUp(document, { clientX: 300, clientY: 300 });
+};
 const leave = (label: string, value: string) => {
   const field = screen.getByLabelText(label) as HTMLInputElement;
   fireEvent.change(field, { target: { value } });
@@ -76,15 +111,20 @@ describe("a database schema in the diagram window", () => {
     expect(text()).toBe(SCHEMA.replace(/personas/g, "gente"));
   });
 
-  it("adds a table with an id where there is room", () => {
+  it("adds a table from the palette with an id, where it is put, named at once", () => {
     opened();
 
-    fireEvent.click(screen.getByRole("button", { name: say("schemaAddTable") }));
-
+    fireEvent.click(palette().getByRole("button", { name: say("schemaTable") }));
     const name = say("schemaNewTable");
     expect(text()).toMatch(
-      new RegExp(`  ${name} \\{\\n    int id PK\\n  \\}\\n  %% tisty: ${name} required id\\n$`),
+      new RegExp(
+        `  ${name} \\{\\n    int id PK\\n  \\}\\n  %% tisty: ${name} \\d+ \\d+ required id\\n$`,
+      ),
     );
+
+    typed(within(card(name)).getByRole("textbox"), "pagos");
+    expect(text()).toContain("  pagos {\n");
+    expect(text()).not.toContain("%% tisty: personas");
   });
 
   it("gives a column a type, a key and a word that it is required", () => {
@@ -100,31 +140,70 @@ describe("a database schema in the diagram window", () => {
     );
   });
 
-  it("moves a table by its title and writes only where it sits", () => {
+  it("moves a table and writes only where it sits, and undoes it", () => {
     opened();
-    const head = title("personas");
+    fireEvent.click(title("personas"));
 
-    fireEvent.pointerDown(head, { clientX: 0, clientY: 0, pointerId: 1 });
-    fireEvent.pointerMove(head, { clientX: 100, clientY: 50, pointerId: 1, buttons: 1 });
-    fireEvent.pointerUp(head, { clientX: 100, clientY: 50, pointerId: 1 });
+    nudge("personas");
+    expect(text()).toMatch(/^erDiagram[\s\S]*\n {2}%% tisty: personas \d+ \d+\n$/);
+    expect(text()).not.toContain("%% tisty: compartidos");
 
-    expect(text()).toBe(`${SCHEMA}  %% tisty: personas 140 90\n`);
+    fireEvent.click(tool(say("flowUndo")));
+    expect(text()).toBe(SCHEMA);
+  });
+
+  it("renames a table in place, in its relations too", () => {
+    opened();
+
+    fireEvent.doubleClick(title("personas"));
+    typed(within(card("personas")).getByRole("textbox"), "gente");
+
+    expect(text()).toBe(SCHEMA.replace(/personas/g, "gente"));
   });
 
   it("relates a column to another table by dragging its dot there", () => {
     opened(SCHEMA.replace("  personas ||--o{ compartidos : publica\n", ""));
-    const grip = card("compartidos").querySelector("[data-grip]:nth-of-type(1)") as HTMLElement;
-    const dots = card("compartidos").querySelectorAll("[data-grip]");
-    document.elementFromPoint = () => card("personas");
 
-    fireEvent.pointerDown(dots[1] ?? grip, { clientX: 0, clientY: 0, pointerId: 1 });
-    fireEvent.pointerMove(dots[1] ?? grip, { clientX: 50, clientY: 0, pointerId: 1, buttons: 1 });
-    fireEvent.pointerUp(dots[1] ?? grip, { clientX: 50, clientY: 0, pointerId: 1 });
+    pull("compartidos", 1, card("personas"));
 
     expect(text()).toBe(
       "erDiagram\n  personas {\n    uuid id PK\n  }\n  compartidos {\n    text id PK\n    uuid persona_id FK\n  }\n  personas ||--o{ compartidos : persona_id\n",
     );
     expect(screen.getByText(say("schemaRelation"))).toBeTruthy();
+  });
+
+  it("makes a related table where a column's dot is let go on nothing", () => {
+    opened(SCHEMA.replace("  personas ||--o{ compartidos : publica\n", ""));
+
+    pull("compartidos", 1, null);
+
+    const name = say("schemaNewTable");
+    expect(text()).toContain(`  ${name} ||--o{ compartidos : persona_id\n`);
+    expect(text()).toContain("    uuid persona_id FK\n");
+    expect(within(card(name)).getByRole("textbox")).toBeTruthy();
+  });
+
+  it("chooses several tables, lines them up and puts them back in the grid", () => {
+    opened(`${SCHEMA}  %% tisty: personas 40 40\n  %% tisty: compartidos 400 200\n`);
+    fireEvent.click(title("personas"));
+    fireEvent.keyDown(window, { key: "Control" });
+    fireEvent.click(title("compartidos"), { ctrlKey: true });
+    fireEvent.keyUp(window, { key: "Control" });
+
+    fireEvent.click(tool(say("flowAlignLeft")));
+    expect(text()).toContain("%% tisty: compartidos 40 200");
+
+    fireEvent.click(tool(say("flowRelaid")));
+    expect(text()).toBe(SCHEMA);
+
+    fireEvent.click(tool(say("flowUndo")));
+    fireEvent.click(tool(say("flowUndo")));
+    fireEvent.click(title("personas"));
+    fireEvent.keyDown(window, { key: "Control" });
+    fireEvent.click(title("compartidos"), { ctrlKey: true });
+    fireEvent.keyUp(window, { key: "Control" });
+    fireEvent.keyDown(title("personas"), { key: "Delete" });
+    expect(text()).toBe("erDiagram\n");
   });
 
   it("changes a relation's ends from the panel", () => {
@@ -232,7 +311,7 @@ describe("two relations alike in a schema edited by hand", () => {
       target: { value: twice.replace("erDiagram\n", "erDiagram\n  direction LR\n") },
     });
 
-    const pills = screen.getAllByRole("button", { name: /tiene/ });
-    expect(pills.map((one) => one.getAttribute("aria-pressed"))).toEqual(["false", "true"]);
+    const edges = document.querySelectorAll(".react-flow__edge");
+    expect(Array.from(edges, (one) => one.classList.contains("selected"))).toEqual([false, true]);
   });
 });
