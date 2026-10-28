@@ -28,6 +28,10 @@ table:has(th[data-type]) td {
 td.whole {
   white-space: nowrap;
 }
+/* A row of empty cells still stands a line tall, so a new table is as easy to click as a full one. */
+tr {
+  height: calc(1lh + 13px);
+}
 /* The file wins: a value not written as its type asks is drawn as written, only marked. */
 td[data-amiss] {
   text-decoration: underline wavy color-mix(in srgb, var(--tisty-hue-amber) 70%, transparent);
