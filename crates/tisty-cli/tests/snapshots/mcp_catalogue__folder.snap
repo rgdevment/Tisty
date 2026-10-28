@@ -3,6 +3,12 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
   "description": "Make a folder for documents, and give it an icon and a colour if they fit. If a folder by that name is already there it is used as it is — and without `inside`, one by that name is found however deep it sits, so a name you mean as a new top-level folder may hand you one inside another. An icon or colour you send changes how it looks; nothing is renamed, moved or deleted. Folders hold documents, not tasks; tasks go in lists.",
   "inputSchema": {
     "additionalProperties": false,

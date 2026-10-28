@@ -3,6 +3,12 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
+  "annotations": {
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
   "description": "Write something to keep and read again — a recipe, a procedure, a reference, a summary; work to do is a task (`propose`). In the Tisty language (`language` has it whole): Markdown from elsewhere is turned into it on the way in, the answer says what changed under `turned`, and only what has no way in is refused, naming it. Left alone it writes a new document; with `doc` and `print` it writes an existing one again, whole — pages the body does not name keep their lines, put back at the end — except, when compacting, the pages you marked, which leave the body. To change one passage, `edit_doc` does it without carrying the whole both ways. Before writing a new one, `find`: a subject that has a document gets `edit_doc`, or this with `doc` and `print`, not a second document; a title carrying a ticket, a date or «v2» is the sign you are writing one, and a title already taken is refused, naming it. With `compact` it writes a document back into the living shape the instructions give: needs `print`, keeps the old body for `restore_doc`, and the answer gives the `size` before and after and what was kept back. A document is tagged by writing #word in its own text, for what it is about: six is already a lot, past 64 the rest are dropped, and `tags` lists those in use.",
   "inputSchema": {
     "additionalProperties": false,

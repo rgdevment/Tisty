@@ -3,6 +3,12 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
   "description": "The tool for «delete this document», and the only one: you cannot delete, so you mark and the person deletes. Mark a document you found is no longer worth keeping — a copy of another, notes folded into a living document, a handover for a flow that was retired — with its `reason`, where what it said lives now in `instead`, and in `body` what makes it old and how you know. Several copies of one thing go in one call, marked alike, so the person settles the set with one click. The mark changes nothing: the document reads the same, stays where it is, and the person sees the mark when they open it. Deleting it and taking the mark off are theirs, from the window; `archive_doc` puts it away only when they ask for that. One mark at a time — a document already marked is refused until the person has looked, and in a set it is skipped and named.",
   "inputSchema": {
     "additionalProperties": false,

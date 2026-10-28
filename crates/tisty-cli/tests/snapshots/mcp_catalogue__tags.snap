@@ -3,6 +3,12 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": true
+  },
   "description": "Every tag the person already writes, the most used first, with how many times each one appears, in the plain form they are filed under. Capitals and accents decide nothing: #Camión and #camion are one tag. Ask for it before you tag anything and reuse one when the subject really is the same; a second word for something already tagged splits it in two.",
   "inputSchema": {
     "additionalProperties": false,

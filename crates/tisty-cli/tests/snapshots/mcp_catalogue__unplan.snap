@@ -3,6 +3,12 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
+  "annotations": {
+    "destructiveHint": true,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
   "description": "Take off steps that are not ticked, on a task you filed or one the person opened to agents: a step that no longer applies, or one written twice. With `to` they are not dropped but handed on, added after the steps of the task they belong on. One ticked step among them and nothing is taken off.",
   "inputSchema": {
     "additionalProperties": false,

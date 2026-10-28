@@ -3,6 +3,12 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
   "description": "Make a task that is already here ring at a given moment. Adds to whatever it rings at already and never takes one away, so a reminder the person set themselves is safe. `read` says what it carries before you add. Use it for the appointment that was filed without one, and leave alone what repeats — a routine already comes back on its own.",
   "inputSchema": {
     "additionalProperties": false,

@@ -3,6 +3,12 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
+  "annotations": {
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
   "description": "Undo a write to a document. Changing a passage and replacing a body keep what they replaced, and this puts it back; adding to the end keeps nothing, and neither do the person's own saves. Refused unless the document still reads as that write left it — going back would undo whatever came after — with `even_if_more` to go back over all of it once you have read the document and know that is what you want. What it puts back is kept in turn, so calling it twice leaves the document where it started, which makes it safe to try. Reach for it the moment a write comes back saying something you did not expect, instead of retyping the document from memory.",
   "inputSchema": {
     "additionalProperties": false,

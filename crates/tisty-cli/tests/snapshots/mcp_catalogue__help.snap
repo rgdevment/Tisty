@@ -3,6 +3,12 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": true
+  },
   "description": "The pages of Tisty's own Help, the ones tisty.app shows: installing, tasks and how they are written, documents, pages and PDF, sync, encrypting the cloud and letting a computer in, assistants, keyboard shortcuts, privacy. Ask it when the person asks how Tisty does something, instead of guessing. Left alone it gives the index; a `topic` gives one page. `lang` picks English or Spanish.",
   "inputSchema": {
     "additionalProperties": false,

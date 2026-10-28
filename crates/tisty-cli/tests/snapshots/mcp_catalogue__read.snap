@@ -3,12 +3,18 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": true
+  },
   "description": "Everything one task holds: its description, its steps, its journal — each note with the id `reword_note` takes — its parts, what it keeps, and its `document`: the page the person reads and writes, with its sections and their grey hints, its boxes ticked as the steps are and its properties written at the top. Ask for it before adding a note, so you do not write down something already written, and before mending anything, so you change what is there now. With `fields` it brings only the parts you name, which is how to check one thing about a task whose journal is long. A closed task comes with `closed` and a `notice`, and reads as it ended: it is history to consult, and nothing on it changes. `find` with `part_of` brings the parts of any task, closed or open.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
       "fields": {
-        "description": "Only these parts of it: any of title, status, closed, notice, date, deadline, reminders, tags, source, list, priority, by_agent, via, said_done, said_not_doing, open_to_agents, part_of, parts, description, steps, journal, kept, document. Left out, everything comes. The id always does",
+        "description": "Only these parts of it: any of title, status, closed, notice, date, deadline, standing, reminders, tags, source, list, priority, by_agent, via, said_done, said_not_doing, open_to_agents, part_of, parts, description, steps, journal, kept, document. Left out, everything comes. The id always does",
         "items": {
           "type": "string"
         },

@@ -1427,6 +1427,59 @@ fn counting_in_one_pass_says_what_counting_one_by_one_said() {
     assert_eq!(crate::summing::tally(&state), counted_one_by_one(&state));
 }
 
+#[test]
+fn the_pulse_counts_overdue_and_late_apart_and_a3_is_underway() {
+    let from = today();
+    let day = |n| tisty_core::model::DateSpec::all_day(away(from, n), "America/Santiago");
+    let mut state = State::default();
+    let mut a3 = held("A3 · Migración de Sodimac Uruguay");
+    a3.date = Some(day(-21));
+    a3.deadline = Some(day(38));
+    let mut late = held("meant for yesterday");
+    late.date = Some(day(-1));
+    let mut overdue = held("ran out yesterday");
+    overdue.deadline = Some(day(-1));
+    for task in [a3.clone(), late, overdue] {
+        kept(&mut state, task);
+    }
+
+    let counts = crate::summing::tally(&state);
+    let standings = crate::summing::standings(&state, from, [&a3]);
+
+    assert_eq!((counts["overdue"], counts["late"]), (1, 1));
+    assert_eq!(
+        standings[&a3.id.to_string()],
+        tisty_core::standing::Standing::Underway
+    );
+    assert_eq!(
+        standings.len(),
+        1,
+        "only what the window shows comes with it"
+    );
+}
+
+#[test]
+fn the_parts_of_a_shown_whole_come_with_their_standing() {
+    let from = today();
+    let mut state = State::default();
+    let whole = held("A3 · Migración de Sodimac Uruguay");
+    let mut part = held("inventario");
+    part.part_of = Some(whole.id);
+    part.date = Some(tisty_core::model::DateSpec::all_day(
+        away(from, 3),
+        "America/Santiago",
+    ));
+    kept(&mut state, whole.clone());
+    kept(&mut state, part.clone());
+
+    let standings = crate::summing::standings(&state, from, [&whole]);
+
+    assert_eq!(
+        standings.get(&part.id.to_string()),
+        Some(&tisty_core::standing::Standing::Ahead)
+    );
+}
+
 fn a_column_is_as_long_as_the_window_says() -> usize {
     let said = std::fs::read_to_string("../src/views.ts").expect("the window says how far it asks");
     let at = said

@@ -3,6 +3,12 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
   "description": "Say that a task will not be done — it no longer matters, something else made it moot — on any task, the person's too, since it is only your word. Unticked steps do not stop it. It drops nothing: the task stays open, marked, until the person drops it or takes the mark off. Say it once; what is new after that goes in `note`.",
   "inputSchema": {
     "additionalProperties": false,
