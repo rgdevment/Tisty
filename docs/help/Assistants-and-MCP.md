@@ -62,7 +62,7 @@ The first start downloads the launcher and can take a moment; later ones are imm
 
 Connect each assistant one way, the plugin or **Settings › Assistants**, not both: otherwise it runs Tisty's server twice and sees every tool twice. The plugin's source and its issues are in [mcp-plugins](https://github.com/rgdevment/mcp-plugins).
 
-Tisty is also listed where assistants look for servers: the [MCP Registry](https://registry.modelcontextprotocol.io/) as `io.github.rgdevment/tisty`, the [GitHub MCP Registry](https://github.com/mcp/rgdevment/tisty), [npm](https://www.npmjs.com/package/tisty-mcp), [Glama](https://glama.ai/mcp/servers/rgdevment/Tisty) and [MCP Market](https://mcpmarket.com/server/tisty).
+Tisty is also listed where assistants look for servers: the official MCP Registry as `io.github.rgdevment/tisty`, the [GitHub MCP Registry](https://github.com/mcp/rgdevment/tisty), [npm](https://www.npmjs.com/package/tisty-mcp), [Glama](https://glama.ai/mcp/servers/rgdevment/Tisty) and [MCP Market](https://mcpmarket.com/server/tisty).
 
 ### Assistants inside WSL
 
