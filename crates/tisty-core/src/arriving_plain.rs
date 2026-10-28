@@ -9,7 +9,14 @@ pub fn from_plain(text: &str) -> Option<String> {
     if text.lines().any(|one| ruler(one.trim())) {
         return boxed(&text);
     }
-    coded(&text).then(|| fenced(text.trim_matches('\n')))
+    if let Some(table) = super::separated::tabbed_table(&text) {
+        return Some(table);
+    }
+    // Lines of code often hold the same commas, and code is what they are.
+    if coded(&text) {
+        return Some(fenced(text.trim_matches('\n')));
+    }
+    super::separated::comma_table(&text)
 }
 
 fn boxed(text: &str) -> Option<String> {
