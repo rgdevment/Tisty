@@ -11,6 +11,13 @@ export const SIDES = [Position.Top, Position.Right, Position.Bottom, Position.Le
 const HANDLE = 10;
 
 // Where each side's dot sits, so arrows are drawn before the browser has measured anything.
+// React Flow takes a node's size from `measured`; a node rebuilt without it is dragged as if never drawn.
+export const measuredAs = (wide: number, tall: number) => ({
+  width: wide,
+  height: tall,
+  measured: { width: wide, height: tall },
+});
+
 export const handlesOf = (wide: number, tall: number) =>
   SIDES.map((side) => {
     const at = sideMiddle({ x: 0, y: 0, wide, tall }, side);

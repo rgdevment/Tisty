@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { sayIn } from "tisty-diagrams/read";
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import Diagramming from "../ui/drawing/Diagramming";
 
 // The studio says its own words; these tests read them as it does, in English.
@@ -74,6 +74,11 @@ beforeEach(() => {
   vi.restoreAllMocks();
 });
 
+// React Flow says what it dislikes only while developing; a test that listens turns that on.
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
 describe("a flowchart in the diagram window", () => {
   it("draws every node, arrow and group itself, beside the palette, and asks for a choice", () => {
     opened();
@@ -137,7 +142,9 @@ describe("a flowchart in the diagram window", () => {
     expect(text().match(/@\{/g)).toHaveLength(1);
   });
 
-  it("writes where a shape is nudged with the arrow keys", () => {
+  it("writes where a shape is nudged with the arrow keys, a shape React Flow knows the size of", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    const warned = vi.spyOn(console, "warn");
     opened();
     pickNode("A");
 
@@ -145,6 +152,7 @@ describe("a flowchart in the diagram window", () => {
 
     expect(text()).toMatch(/%% tisty: A -?\d+ -?\d+/);
     for (const id of ["B", "C", "D", "E"]) expect(text()).toMatch(`%% tisty: ${id} `);
+    expect(warned.mock.calls.flat().join(" ")).not.toContain("not initialized");
   });
 
   it("makes a joined shape where an arrow is let go on nothing, and joins one let go on a shape", () => {

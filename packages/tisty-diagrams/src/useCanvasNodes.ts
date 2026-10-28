@@ -7,7 +7,7 @@ import type { Rect } from "./graphlayout";
 import { useSay } from "./handing";
 import type { Spot } from "./places";
 import type { LaneNode, ShapeNode } from "./ShapeNodes";
-import { handlesOf } from "./ShapeNodes";
+import { handlesOf, measuredAs } from "./ShapeNodes";
 import type { Lane } from "./scenes";
 import { jointsOf } from "./scenes";
 import { chosenOf, GROUP } from "./useCanvasMoves";
@@ -60,8 +60,7 @@ export const useCanvasNodes = ({
             type: "shape",
             position: inside(one.id, rect),
             parentId: lane ? `${GROUP}${lane.id}` : undefined,
-            width: rect.wide,
-            height: rect.tall,
+            ...measuredAs(rect.wide, rect.tall),
             handles: handlesOf(rect.wide, rect.tall),
             selected: chosen.includes(one.id),
             data: {
@@ -96,8 +95,7 @@ export const useCanvasNodes = ({
       id: `${GROUP}${lane.id}`,
       type: "lane",
       position: { x: rect.x, y: rect.y },
-      width: rect.wide,
-      height: rect.tall,
+      ...measuredAs(rect.wide, rect.tall),
       zIndex: -1,
       selected: isPicked,
       data: {

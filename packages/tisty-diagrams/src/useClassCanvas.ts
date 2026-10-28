@@ -13,7 +13,7 @@ import type { WireEdge } from "./FlowWire";
 import { looksOf } from "./flowstyles";
 import { useSay } from "./handing";
 import { settledInto } from "./places";
-import { handlesOf, type LaneNode } from "./ShapeNodes";
+import { handlesOf, type LaneNode, measuredAs } from "./ShapeNodes";
 import { classJointsOf, classLaid, classSize } from "./scenes";
 import type { Classing } from "./useClasses";
 import { GROUP, useMoving } from "./useMoving";
@@ -102,8 +102,7 @@ export const useClassCanvas = (
             type: "class",
             position: inside(box.name, rect),
             parentId: lane ? `${GROUP}${lane.id}` : undefined,
-            width: size.wide,
-            height: size.tall,
+            ...measuredAs(size.wide, size.tall),
             handles: handlesOf(size.wide, size.tall),
             selected: chosen.includes(box.name),
             data: {
@@ -137,8 +136,7 @@ export const useClassCanvas = (
       id: `${GROUP}${lane.id}`,
       type: "lane",
       position: { x: rect.x, y: rect.y },
-      width: rect.wide,
-      height: rect.tall,
+      ...measuredAs(rect.wide, rect.tall),
       zIndex: -1,
       selected: isPicked(lane.id),
       data: {
