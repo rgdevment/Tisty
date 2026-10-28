@@ -31,6 +31,7 @@ import { coded, owning } from "./formatting";
 import { latelyMarked } from "./lately";
 import { HUES } from "./paging";
 import { pendingFormat, pendingKeys, settle } from "./pending";
+import { gridKeys } from "./regridding";
 import { visual } from "./seeing";
 import { type Asking, BOX, putBlock, slashing } from "./slashing";
 import { tableKeys } from "./tabling";
@@ -57,9 +58,16 @@ const landing = (view: EditorView, lost?: () => void): ((text: string, block: bo
   };
 };
 
-// Only a table opens on a top corner, and a few lines with code's punctuation are worth a look; the core decides.
-export const shaped = (plain: string): boolean =>
-  /^\s*[┌╔┏]/m.test(plain) || (plain.split("\n").length >= 3 && /[{};=(:]/.test(plain));
+// A table drawn with corners or copied from a spreadsheet, or a few lines with code's punctuation, are worth a look; the core decides.
+export const shaped = (plain: string): boolean => {
+  const lines = plain.trim().split("\n").length;
+  return (
+    /^\s*[┌╔┏]/m.test(plain) ||
+    (lines >= 2 && plain.includes("\t")) ||
+    (lines >= 3 && /^[^\n]*,[^\n]*,/.test(plain.trim())) ||
+    (lines >= 3 && /[{};=(:]/.test(plain))
+  );
+};
 
 const rich = (event: ClipboardEvent, { view, lost }: Landing): boolean => {
   if (coded(view.state, view.state.selection.main.head)) return false;
@@ -364,6 +372,7 @@ export const edited = (
             },
             ...pendingKeys,
             ...blockKeys,
+            ...gridKeys,
             ...tableKeys,
             { key: "Mod-Shift-z", run: redo },
           ]),
