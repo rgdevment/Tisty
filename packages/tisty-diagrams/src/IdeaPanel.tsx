@@ -1,17 +1,8 @@
 import { useEffect, useState } from "react";
 import { useHands, useSay } from "./handing";
+import { MindSketch } from "./MindSketch";
 import { type Idea, SHAPES, type Shape } from "./mindmap";
-import type { Word } from "./words";
-
-const SHAPE_WORDS: Record<Shape, Word> = {
-  plain: "diagramShapePlain",
-  square: "diagramShapeSquare",
-  rounded: "diagramShapeRounded",
-  circle: "diagramShapeCircle",
-  cloud: "diagramShapeCloud",
-  bang: "diagramShapeBang",
-  hexagon: "diagramShapeHexagon",
-};
+import { SHAPE_WORDS } from "./mindshapes";
 
 /** The chosen idea's words, shape and the ways to grow or prune the map from it. */
 export default function IdeaPanel({
@@ -73,10 +64,12 @@ export default function IdeaPanel({
             key={shape}
             type="button"
             aria-pressed={idea.shape === shape}
+            aria-label={t(SHAPE_WORDS[shape])}
+            title={t(SHAPE_WORDS[shape])}
             className={`${button} ${idea.shape === shape ? "border-accent text-accent" : ""}`}
             onClick={() => onShape(shape)}
           >
-            {t(SHAPE_WORDS[shape])}
+            <MindSketch shape={shape} />
           </button>
         ))}
       </div>

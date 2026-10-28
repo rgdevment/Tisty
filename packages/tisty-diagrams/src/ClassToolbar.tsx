@@ -48,7 +48,6 @@ export default function ClassToolbar({
         removable={removal !== null}
         refused={undefined}
         onRemove={() => removal && change(removal)}
-        onDuplicate={null}
       />
       <Gap />
       <PaintTools

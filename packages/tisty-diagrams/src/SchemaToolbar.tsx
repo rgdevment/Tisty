@@ -27,7 +27,6 @@ export default function SchemaToolbar({
         removable={removal !== null}
         refused={undefined}
         onRemove={() => removal && change(removal)}
-        onDuplicate={null}
       />
       <Gap />
       <AlignTools

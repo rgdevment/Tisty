@@ -1,21 +1,25 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
-import { fitted, type Size, STEP, showing, type View, zoomedAt } from "./framing";
+import { fitted, type Size, STEP, type View, zoomedAt } from "./framing";
 import { useHands, useSay } from "./handing";
+import type { Zooming } from "./tools";
 
 // What the board pans for is the empty room; a press on an idea or a control is theirs.
-const OWN = "button, input, [data-idea], [data-grip]";
+const OWN = "button, input, [data-idea]";
 
 /** A room that shows something of a given size, moved by dragging or the wheel and zoomed under the pointer. */
 export default function Board({
   size,
   notice,
-  seen,
+  bar,
+  room: given,
   children,
 }: Readonly<{
   size: Size | null;
   notice?: ReactNode;
-  // A part to bring into sight when it changes, such as a table just added.
-  seen?: { x: number; y: number; wide: number; tall: number } | null;
+  // A bar of tools above the room, given how to zoom it, in place of the room's own zoom.
+  bar?: (zooming: Zooming) => ReactNode;
+  // The room itself, for a caller that needs to know whether something was let go in it.
+  room?: { current: HTMLElement | null };
   children: ReactNode;
 }>) {
   const t = useSay();
@@ -37,12 +41,6 @@ export default function Board({
   useEffect(() => {
     if (first) fitAll();
   });
-
-  const sought = seen ? `${seen.x} ${seen.y} ${seen.wide} ${seen.tall}` : "";
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the part is looked for when it changes, not on every drawing.
-  useEffect(() => {
-    if (seen) setView((was) => (was ? showing(was, seen, roomSize()) : was));
-  }, [sought]);
 
   const zoom = (by: number) => {
     const middle = { x: roomSize().wide / 2, y: roomSize().tall / 2 };
@@ -71,11 +69,14 @@ export default function Board({
     dragged.current = null;
   };
 
-  return (
+  const shown = (
     <section
-      ref={room}
+      ref={(here) => {
+        room.current = here;
+        if (given) given.current = here;
+      }}
       aria-label={t("diagramCanvas")}
-      className="relative min-w-0 flex-1 cursor-grab overflow-hidden bg-desk active:cursor-grabbing"
+      className="relative min-h-0 min-w-0 flex-1 cursor-grab overflow-hidden bg-desk active:cursor-grabbing"
       onPointerDown={(e) => {
         if ((e.target as Element).closest(OWN)) return;
         dragged.current = { x: e.clientX, y: e.clientY };
@@ -108,30 +109,44 @@ export default function Board({
         </div>
       )}
       {notice}
-      <div className="absolute right-3 bottom-3 flex items-center gap-1.5 rounded-lg bg-panel p-1 shadow">
-        <button
-          type="button"
-          className={button}
-          aria-label={t("diagramZoomOut")}
-          onClick={() => zoom(1 / STEP)}
-        >
-          −
-        </button>
-        <span className="w-12 text-center text-[12px] text-soft tabular-nums">
-          {Math.round((view?.scale ?? 1) * 100)}%
-        </span>
-        <button
-          type="button"
-          className={button}
-          aria-label={t("diagramZoomIn")}
-          onClick={() => zoom(STEP)}
-        >
-          +
-        </button>
-        <button type="button" className={button} onClick={fitAll}>
-          {t("diagramFit")}
-        </button>
-      </div>
+      {!bar && (
+        <div className="absolute right-3 bottom-3 flex items-center gap-1.5 rounded-lg bg-panel p-1 shadow">
+          <button
+            type="button"
+            className={button}
+            aria-label={t("diagramZoomOut")}
+            onClick={() => zoom(1 / STEP)}
+          >
+            −
+          </button>
+          <span className="w-12 text-center text-[12px] text-soft tabular-nums">
+            {Math.round((view?.scale ?? 1) * 100)}%
+          </span>
+          <button
+            type="button"
+            className={button}
+            aria-label={t("diagramZoomIn")}
+            onClick={() => zoom(STEP)}
+          >
+            +
+          </button>
+          <button type="button" className={button} onClick={fitAll}>
+            {t("diagramFit")}
+          </button>
+        </div>
+      )}
     </section>
+  );
+  // The room keeps its place in the tree with or without a bar, so its wheel stays attached.
+  return (
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      {bar?.({
+        scale: view?.scale ?? 1,
+        onOut: () => zoom(1 / STEP),
+        onIn: () => zoom(STEP),
+        onFit: fitAll,
+      })}
+      {shown}
+    </div>
   );
 }

@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { sayIn } from "tisty-diagrams/read";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Diagramming from "../ui/drawing/Diagramming";
 
 // The studio says its own words; these tests read them as it does, in English.
@@ -36,9 +36,26 @@ const text = () => (screen.getByLabelText(say("diagramText")) as HTMLTextAreaEle
 const idea = (words: string) => screen.getByRole("button", { name: words });
 const chosenWords = () => (screen.getByLabelText(say("diagramIdea")) as HTMLInputElement).value;
 const key = (on: Element, which: string) => fireEvent.keyDown(on, { key: which });
+const palette = () => within(screen.getByRole("complementary", { name: say("flowPalette") }));
+const tool = (name: string) =>
+  within(screen.getByRole("toolbar", { name: say("flowTools") })).getByRole("button", {
+    name,
+  }) as HTMLButtonElement;
+const named = (words: string) => {
+  const box = document.querySelector(".diagram-drawn input") as HTMLInputElement;
+  fireEvent.change(box, { target: { value: words } });
+  key(box, "Enter");
+};
+
+// Tests stub where the pointer lands; each starts from the page's own answer.
+const pointed = document.elementFromPoint;
 
 beforeEach(() => {
   vi.restoreAllMocks();
+});
+
+afterEach(() => {
+  document.elementFromPoint = pointed;
 });
 
 describe("a mind map in the diagram window", () => {
@@ -48,7 +65,83 @@ describe("a mind map in the diagram window", () => {
     expect(container.querySelectorAll("[data-idea]")).toHaveLength(4);
     expect(idea("Frase")).toBeTruthy();
     expect(chosenWords()).toBe("Share");
-    expect(screen.getByText(say("diagramMindKeys"))).toBeTruthy();
+    expect(tool(say("flowUndo")).disabled).toBe(true);
+    expect(tool(say("flowDelete")).disabled).toBe(true);
+  });
+
+  it("puts an idea of the shape pressed in the palette under the chosen one, named at once", () => {
+    opened();
+    fireEvent.click(idea("Servidor"));
+
+    fireEvent.click(palette().getByRole("button", { name: say("diagramShapeCloud") }));
+    named("Nube");
+
+    expect(text()).toBe(
+      "mindmap\n  root((Share))\n    Cifrado\n      Frase\n    Servidor\n      )Nube(\n",
+    );
+  });
+
+  it("puts an idea dragged from the palette under the idea it is let go on", () => {
+    opened();
+    const shape = palette().getByRole("button", { name: say("diagramShapeSquare") });
+    document.elementFromPoint = () => idea("Frase");
+
+    fireEvent.pointerDown(shape, { clientX: 0, clientY: 0 });
+    fireEvent.pointerMove(window, { clientX: 300, clientY: 200 });
+    fireEvent.pointerUp(window, { clientX: 300, clientY: 200 });
+    named("Clave");
+
+    expect(text()).toBe(
+      "mindmap\n  root((Share))\n    Cifrado\n      Frase\n        [Clave]\n    Servidor\n",
+    );
+  });
+
+  it("grows, prunes and undoes from the toolbar and with Ctrl+Z", () => {
+    opened();
+    fireEvent.click(idea("Cifrado"));
+
+    fireEvent.click(tool(say("diagramAddChild")));
+    named("Hoja");
+    expect(text()).toContain("      Frase\n      Hoja\n");
+    fireEvent.click(tool(say("diagramAddSibling")));
+    named("Rama");
+    expect(text()).toContain("      Hoja\n      Rama\n");
+
+    fireEvent.click(tool(say("flowDelete")));
+    expect(text()).not.toContain("Rama");
+    fireEvent.click(tool(say("flowUndo")));
+    expect(text()).toContain("Rama");
+    fireEvent.keyDown(idea("Rama"), { key: "z", ctrlKey: true });
+    expect(text()).not.toContain("Rama");
+    expect(text()).not.toContain(say("diagramNewIdea"));
+    fireEvent.keyDown(idea("Hoja"), { key: "Z", ctrlKey: true, shiftKey: true });
+    expect(text()).toContain("Rama");
+    fireEvent.keyDown(idea("Hoja"), { key: "z", ctrlKey: true });
+    fireEvent.keyDown(idea("Hoja"), { key: "y", ctrlKey: true });
+    expect(text()).toContain("Rama");
+  });
+
+  it("leaves Ctrl+Z to the box while an idea is being named", () => {
+    opened();
+    fireEvent.click(palette().getByRole("button", { name: say("diagramShapeCloud") }));
+    const box = document.querySelector(".diagram-drawn input") as HTMLInputElement;
+
+    fireEvent.keyDown(box, { key: "z", ctrlKey: true });
+
+    expect(text()).toContain(`)${say("diagramNewIdea")}(`);
+  });
+
+  it("puts nothing where a shape is let go over the toolbar or the palette", () => {
+    opened();
+    const shape = palette().getByRole("button", { name: say("diagramShapeSquare") });
+    for (const under of [tool(say("flowZoomIn")), shape]) {
+      document.elementFromPoint = () => under;
+      fireEvent.pointerDown(shape, { clientX: 0, clientY: 0 });
+      fireEvent.pointerMove(window, { clientX: 300, clientY: 200 });
+      fireEvent.pointerUp(window, { clientX: 300, clientY: 200 });
+    }
+
+    expect(text()).toBe(MAP);
   });
 
   it("chooses an idea by pressing it and renames it from the panel, into the text", () => {
@@ -145,8 +238,8 @@ describe("a mind map in the diagram window", () => {
   it("keeps its keys to the ideas: Enter on a zoom button zooms, it adds nothing", () => {
     opened();
 
-    key(screen.getByRole("button", { name: say("diagramZoomIn") }), "Enter");
-    key(screen.getByRole("button", { name: say("diagramFit") }), "Delete");
+    key(tool(say("flowZoomIn")), "Enter");
+    key(tool(say("flowFit")), "Delete");
 
     expect(text()).toBe(MAP);
   });

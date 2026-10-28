@@ -2,13 +2,17 @@ import { useMemo, useState } from "react";
 import { kindOf } from "./framing";
 import { type Changed, ideaAt, type Path, pathOfWords } from "./minding";
 import { type Idea, type Mind, readMind, writeMind } from "./mindmap";
+import { useSteps } from "./useSteps";
 
 export interface Minding {
   readonly mind: Mind;
   readonly chosen: Path;
   readonly idea: Idea;
-  readonly change: (made: Changed) => void;
+  // `merged` folds the change into the last one, as naming an idea just added.
+  readonly change: (made: Changed, merged?: boolean) => void;
   readonly choose: (path: Path) => void;
+  readonly undo: (() => void) | null;
+  readonly redo: (() => void) | null;
 }
 
 interface Chosen {
@@ -20,6 +24,7 @@ interface Chosen {
 export const useMind = (text: string, setText: (text: string) => void): Minding | null => {
   const mind = useMemo(() => (kindOf(text) === "mindmap" ? readMind(text) : null), [text]);
   const [chosen, setChosen] = useState<Chosen>({ path: [], words: "" });
+  const { stepped, undo, redo } = useSteps(text, setText);
   if (!mind) return null;
   // Text typed by hand can move the chosen idea; it is found again by its words, or the root stands in.
   const still = ideaAt(mind, chosen.path)?.text === chosen.words;
@@ -30,10 +35,12 @@ export const useMind = (text: string, setText: (text: string) => void): Minding 
     mind,
     chosen: here,
     idea: ideaAt(mind, here) ?? mind.root,
-    change: (made) => {
-      if (made.mind !== mind) setText(writeMind(made.mind));
+    change: (made, merged) => {
+      if (made.mind !== mind) stepped(writeMind(made.mind), merged);
       keep(made.mind, made.chosen);
     },
     choose: (path) => keep(mind, path),
+    undo,
+    redo,
   };
 };
