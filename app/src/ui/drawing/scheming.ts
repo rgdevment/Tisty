@@ -1,3 +1,4 @@
+import { renamedLine } from "./naming";
 import type { Column, Piece, Relation, Schema, Table } from "./schema";
 
 /** What is chosen on the board: a table, one of its columns, or a relation by its place among them. */
@@ -52,25 +53,10 @@ export const tableAdded = (schema: Schema, wanted: string): Altered => {
   };
 };
 
-// A hyphen is plain outside a class; escaping it would break a `u` pattern.
-const escaped = (said: string) => said.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-// A name stands alone when nothing that could be part of a name touches it.
-const nameIn = (name: string) =>
-  new RegExp(`(?<![\\p{L}\\p{N}_*-])${escaped(name)}(?![\\p{L}\\p{N}_*-])`, "gu");
-
 const renamedIn = (piece: Piece, from: string, to: string): Piece => {
   if (piece.kind === "table") return piece.name === from ? { ...piece, name: to } : piece;
   // Lines the window keeps as written (`style`, `class`, relations in words) name tables too; comments do not count.
-  if (piece.kind === "raw") {
-    if (/^\s*(%%|accTitle|accDescr)/.test(piece.line)) return piece;
-    // Words in quotes are a label the person wrote, not the table's name.
-    const line = piece.line
-      .split(/("[^"]*")/)
-      .map((part) => (part.startsWith('"') ? part : part.replace(nameIn(from), to)))
-      .join("");
-    return { ...piece, line };
-  }
+  if (piece.kind === "raw") return { ...piece, line: renamedLine(piece.line, from, to) };
   const { relation } = piece;
   if (relation.from !== from && relation.to !== from) return piece;
   const { line: _line, ...rest } = relation;

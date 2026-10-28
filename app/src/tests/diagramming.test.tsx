@@ -79,7 +79,7 @@ const shown: Showing = {
 };
 
 // A kind the window draws with Mermaid, not with its own canvas.
-const flow: Showing = { ...shown, source: "graph TD\n  A-->B\n" };
+const flow: Showing = { ...shown, source: "sequenceDiagram\n  A->>B: hola\n" };
 
 const asked = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd);
 const lastOf = (cmd: string) => asked(cmd)[asked(cmd).length - 1];
@@ -123,10 +123,10 @@ describe("the diagram window", () => {
     const text = await written();
 
     await waitFor(() => expect(container.querySelector(".diagram-drawn svg")).toBeTruthy());
-    fireEvent.change(text, { target: { value: "graph broken" } });
+    fireEvent.change(text, { target: { value: "sequenceDiagram broken" } });
 
     expect(await screen.findByText(t("diagramUnreadable"))).toBeTruthy();
-    expect(container.querySelector(".diagram-drawn svg")?.textContent).toBe("graph TD");
+    expect(container.querySelector(".diagram-drawn svg")?.textContent).toBe("sequenceDiagram");
   });
 
   it("saves the text it holds into the document, by the button or by Ctrl+S", async () => {
