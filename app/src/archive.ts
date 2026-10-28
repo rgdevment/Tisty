@@ -1,6 +1,6 @@
-import type { List, Task } from "./core";
-import { bandOf, daysFrom, monthOf } from "./format";
-import { locale, t } from "./locales";
+import type { List, Standing, Task } from "./core";
+import { bandOf, monthOf } from "./format";
+import { locale, t, type Word } from "./locales";
 import { said } from "./quadrants";
 
 export type Axis = "time" | "list" | "tag" | "quadrant";
@@ -61,11 +61,13 @@ export function shelved(tasks: Task[], axis: Axis, lists: List[]): Row[] {
   });
 }
 
-export function regrouped(tasks: Task[], axis: Axis, lists: List[], now = new Date()): Row[] {
-  const spoken = (task: Task) =>
-    Boolean(task.resolved) &&
-    task.status === "open" &&
-    !(task.date && daysFrom(task.date.at, now) <= 0);
+export function regrouped(
+  tasks: Task[],
+  axis: Axis,
+  lists: List[],
+  standings: Record<string, Standing> = {},
+): Row[] {
+  const spoken = (task: Task) => waits(task, urgencyOf(task, standings));
   const waiting: Row[] = tasks
     .filter(spoken)
     .map((task) => ({ kind: "one" as const, key: task.id, task, band: t("agentBand") }));
@@ -79,18 +81,43 @@ export function regrouped(tasks: Task[], axis: Axis, lists: List[], now = new Da
   ];
 }
 
-export function banded(tasks: Task[], now = new Date()): Row[] {
+// Ranked so what ran out never sits below what was merely planned, whatever order the core gave.
+const URGENT: Partial<Record<Standing, { rank: number; band: Word }>> = {
+  overdue: { rank: 0, band: "overdue" },
+  due_soon: { rank: 1, band: "dueSoonBand" },
+  late: { rank: 2, band: "lateBand" },
+  today: { rank: 3, band: "todayBand" },
+  underway: { rank: 4, band: "underwayBand" },
+};
+
+export function banded(
+  tasks: Task[],
+  standings: Record<string, Standing> = {},
+  now = new Date(),
+): Row[] {
   const waiting: Row[] = [];
-  const rest: Row[] = [];
+  const rest: (Row & { rank: number })[] = [];
   for (const task of tasks) {
-    const owedToday = task.date ? daysFrom(task.date.at, now) <= 0 : false;
-    const spoken = Boolean(task.resolved) && task.status === "open" && !owedToday;
-    (spoken ? waiting : rest).push({
+    const urgent = urgencyOf(task, standings);
+    const spoken = waits(task, urgent);
+    const row = {
       kind: "one" as const,
       key: task.id,
       task,
-      band: spoken ? t("agentBand") : bandOf(task.date, now),
-    });
+      band: spoken ? t("agentBand") : urgent ? t(urgent.band) : bandOf(task.date, now),
+    };
+    if (spoken) waiting.push(row);
+    else rest.push({ ...row, rank: urgent?.rank ?? Object.keys(URGENT).length });
   }
-  return [...rest, ...waiting];
+  return [
+    ...rest.sort((one, two) => one.rank - two.rank).map(({ rank, ...row }) => row),
+    ...waiting,
+  ];
 }
+
+const urgencyOf = (task: Task, standings: Record<string, Standing>) =>
+  URGENT[standings[task.id] ?? "ahead"];
+
+// What claims today stays where the person looks for it, even once an agent has spoken for it.
+const waits = (task: Task, urgent: (typeof URGENT)[Standing]): boolean =>
+  Boolean(task.resolved) && task.status === "open" && !urgent;
