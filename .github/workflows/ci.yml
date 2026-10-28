@@ -39,7 +39,7 @@ jobs:
             echo "rust=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          aside='^(app/src/|app/(\.gitignore|biome\.json|index\.html|package(-lock)?\.json|public/|stryker\.config\.json|tsconfig(\.node)?\.json|vite\.config\.ts)$|assets/|docs/|fuzz/|hooks/|(CLA|CODE_OF_CONDUCT|CONTRIBUTING|PRIVACY|README|README\.es|SECURITY|THIRD-PARTY)\.md$|package(-lock)?\.json$|\.markdownlint-cli2\.jsonc$|\.editorconfig$|\.github/(FUNDING|dependabot)\.yml$|\.github/workflows/(caches|cla|commits|feed|fuzz|mutants|mutants-sweep|release|rules|versions)\.yml$)'
+          aside='^(app/src/|packages/|app/(\.gitignore|biome\.json|index\.html|package(-lock)?\.json|public/|stryker\.config\.json|tsconfig(\.node)?\.json|vite\.config\.ts)$|assets/|docs/|fuzz/|hooks/|(CLA|CODE_OF_CONDUCT|CONTRIBUTING|PRIVACY|README|README\.es|SECURITY|THIRD-PARTY)\.md$|package(-lock)?\.json$|\.markdownlint-cli2\.jsonc$|\.editorconfig$|\.github/(FUNDING|dependabot)\.yml$|\.github/workflows/(caches|cla|commits|feed|fuzz|mutants|mutants-sweep|release|rules|versions)\.yml$)'
           from=$(git merge-base "$BASE" HEAD)
           changed=$(git diff --name-only "$from" HEAD)
           first=$( { echo "$changed" | grep -x 'app/src/news.json'; echo "$changed" | grep -vE "$aside"; } \
@@ -320,7 +320,8 @@ jobs:
       - name: Every path is relative to the repository, which is what Sonar reads
         run: |
           sed -i "s|^SF:$PWD/|SF:|" lcov-rust.info
-          sed -i -e "s|^SF:$PWD/app/|SF:app/|" -e "s|^SF:src/|SF:app/src/|" \
+          sed -i -e "s|^SF:$PWD/app/|SF:app/|" -e "s|^SF:$PWD/packages/|SF:packages/|" \
+            -e "s|^SF:src/|SF:app/src/|" -e "s|^SF:\.\./packages/|SF:packages/|" \
             app/coverage/lcov.info
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -358,13 +359,13 @@ jobs:
           args: >
             -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
             -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
-            -Dsonar.sources=crates,app/src,app/src-tauri/src
-            -Dsonar.tests=crates,app/src
-            -Dsonar.test.inclusions=crates/*/tests/**,app/src/tests/**
-            -Dsonar.exclusions=crates/*/tests/**,app/src/tests/**,crates/*/locales/**
+            -Dsonar.sources=crates,app/src,app/src-tauri/src,packages/tisty-diagrams/src
+            -Dsonar.tests=crates,app/src,packages/tisty-diagrams/tests
+            -Dsonar.test.inclusions=crates/*/tests/**,app/src/tests/**,packages/*/tests/**
+            -Dsonar.exclusions=crates/*/tests/**,app/src/tests/**,packages/*/tests/**,crates/*/locales/**
             -Dsonar.rust.lcov.reportPaths=lcov-rust.info
             -Dsonar.javascript.lcov.reportPaths=app/coverage/lcov.info
-            -Dsonar.cpd.exclusions=app/src/locales.ts,app/src/glyphs.ts,app/src/marks.ts,crates/tisty-core/src/model/icon.rs,crates/tisty-markdown/src/vocab.rs,crates/tisty-core/src/model/mark.rs
+            -Dsonar.cpd.exclusions=app/src/locales.ts,packages/tisty-diagrams/src/words.ts,app/src/glyphs.ts,app/src/marks.ts,crates/tisty-core/src/model/icon.rs,crates/tisty-markdown/src/vocab.rs,crates/tisty-core/src/model/mark.rs
             -Dsonar.rust.clippy.enabled=false
             -Dsonar.jasmin.internal.js.ts.disabled=true
             -Dsonar.coverage.exclusions=app/src/main.tsx,app/src-tauri/src/**

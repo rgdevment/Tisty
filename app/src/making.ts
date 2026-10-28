@@ -1,8 +1,8 @@
+import { fenced, type Start, startOf } from "tisty-diagrams/read";
 import { docNew, docs, docWrite, type Folded, folderAdd } from "./core";
 import { trail } from "./folders";
-import { t } from "./locales";
+import { locale, t } from "./locales";
 import { docCard } from "./markdown";
-import { fenced, type Start, startOf } from "./ui/drawing/starting";
 
 export interface Born {
   id: string;
@@ -40,7 +40,7 @@ export const drafted = async (name: string, kind: Start, into?: string): Promise
   const said = name.trim();
   if (!said) throw new Error("untitled");
   const folder = await homeOf(into);
-  const source = startOf(kind);
+  const source = startOf(kind, locale());
   const head = `# ${said}\n\n`;
   const made = await docNew(folder);
   await docWrite(made.id, `${head}${fenced(source)}\n`);

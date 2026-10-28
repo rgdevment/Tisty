@@ -1,7 +1,10 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
+import { sayIn } from "tisty-diagrams/read";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { t } from "../locales";
 import Diagramming from "../ui/drawing/Diagramming";
+
+// The studio says its own words; these tests read them as it does, in English.
+const say = sayIn("en");
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: () => Promise.resolve(null),
@@ -29,9 +32,9 @@ const MAP = "mindmap\n  root((Share))\n    Cifrado\n      Frase\n    Servidor\n"
 const paper = { id: "D1", file: "f1", title: "Ideas", place: "" };
 
 const opened = (source = MAP) => render(<Diagramming paper={paper} source={source} />);
-const text = () => (screen.getByLabelText(t("diagramText")) as HTMLTextAreaElement).value;
+const text = () => (screen.getByLabelText(say("diagramText")) as HTMLTextAreaElement).value;
 const idea = (words: string) => screen.getByRole("button", { name: words });
-const chosenWords = () => (screen.getByLabelText(t("diagramIdea")) as HTMLInputElement).value;
+const chosenWords = () => (screen.getByLabelText(say("diagramIdea")) as HTMLInputElement).value;
 const key = (on: Element, which: string) => fireEvent.keyDown(on, { key: which });
 
 beforeEach(() => {
@@ -45,7 +48,7 @@ describe("a mind map in the diagram window", () => {
     expect(container.querySelectorAll("[data-idea]")).toHaveLength(4);
     expect(idea("Frase")).toBeTruthy();
     expect(chosenWords()).toBe("Share");
-    expect(screen.getByText(t("diagramMindKeys"))).toBeTruthy();
+    expect(screen.getByText(say("diagramMindKeys"))).toBeTruthy();
   });
 
   it("chooses an idea by pressing it and renames it from the panel, into the text", () => {
@@ -53,7 +56,7 @@ describe("a mind map in the diagram window", () => {
 
     fireEvent.click(idea("Cifrado"));
     expect(chosenWords()).toBe("Cifrado");
-    fireEvent.change(screen.getByLabelText(t("diagramIdea")), {
+    fireEvent.change(screen.getByLabelText(say("diagramIdea")), {
       target: { value: "Cifrado (24 palabras)" },
     });
 
@@ -68,7 +71,7 @@ describe("a mind map in the diagram window", () => {
 
     key(idea("Cifrado"), "Enter");
     const box = document.querySelector(".diagram-drawn input") as HTMLInputElement;
-    expect(box.value).toBe(t("diagramNewIdea"));
+    expect(box.value).toBe(say("diagramNewIdea"));
     fireEvent.change(box, { target: { value: "Visor" } });
     key(box, "Enter");
     expect(text()).toBe(
@@ -79,7 +82,7 @@ describe("a mind map in the diagram window", () => {
     const inner = document.querySelector(".diagram-drawn input") as HTMLInputElement;
     key(inner, "Escape");
     expect(text()).toBe(
-      `mindmap\n  root((Share))\n    Cifrado\n      Frase\n    Visor\n      ${t("diagramNewIdea")}\n    Servidor\n`,
+      `mindmap\n  root((Share))\n    Cifrado\n      Frase\n    Visor\n      ${say("diagramNewIdea")}\n    Servidor\n`,
     );
   });
 
@@ -115,13 +118,13 @@ describe("a mind map in the diagram window", () => {
     opened();
     fireEvent.click(idea("Servidor"));
 
-    const shapes = screen.getByText(t("diagramShape")).nextElementSibling as HTMLElement;
-    fireEvent.click(within(shapes).getByRole("button", { name: t("diagramShapeHexagon") }));
+    const shapes = screen.getByText(say("diagramShape")).nextElementSibling as HTMLElement;
+    fireEvent.click(within(shapes).getByRole("button", { name: say("diagramShapeHexagon") }));
 
     expect(text()).toBe("mindmap\n  root((Share))\n    Cifrado\n      Frase\n    {{Servidor}}\n");
     expect(
       within(shapes)
-        .getByRole("button", { name: t("diagramShapeHexagon") })
+        .getByRole("button", { name: say("diagramShapeHexagon") })
         .getAttribute("aria-pressed"),
     ).toBe("true");
   });
@@ -142,8 +145,8 @@ describe("a mind map in the diagram window", () => {
   it("keeps its keys to the ideas: Enter on a zoom button zooms, it adds nothing", () => {
     opened();
 
-    key(screen.getByRole("button", { name: t("diagramZoomIn") }), "Enter");
-    key(screen.getByRole("button", { name: t("diagramFit") }), "Delete");
+    key(screen.getByRole("button", { name: say("diagramZoomIn") }), "Enter");
+    key(screen.getByRole("button", { name: say("diagramFit") }), "Delete");
 
     expect(text()).toBe(MAP);
   });
@@ -171,7 +174,7 @@ describe("a mind map in the diagram window", () => {
   it("lets the panel's field be emptied without writing an idea with no words", () => {
     opened();
     fireEvent.click(idea("Servidor"));
-    const field = screen.getByLabelText(t("diagramIdea")) as HTMLInputElement;
+    const field = screen.getByLabelText(say("diagramIdea")) as HTMLInputElement;
 
     fireEvent.change(field, { target: { value: "" } });
     expect(field.value).toBe("");
@@ -197,7 +200,7 @@ describe("a mind map in the diagram window", () => {
     opened();
     fireEvent.click(idea("Servidor"));
 
-    fireEvent.change(screen.getByLabelText(t("diagramText")), {
+    fireEvent.change(screen.getByLabelText(say("diagramText")), {
       target: { value: "mindmap\n  root((Share))\n    Nueva\n    Cifrado\n    Servidor\n" },
     });
 
@@ -206,13 +209,13 @@ describe("a mind map in the diagram window", () => {
 
   it("follows the text typed by hand, and leaves as Mermaid draws it a map it cannot keep", () => {
     const { container } = opened();
-    const typed = screen.getByLabelText(t("diagramText"));
+    const typed = screen.getByLabelText(say("diagramText"));
 
     fireEvent.change(typed, { target: { value: "mindmap\n  root((Share))\n    Solo una" } });
     expect(idea("Solo una")).toBeTruthy();
 
     fireEvent.change(typed, { target: { value: "mindmap\n  Una\n Otra raíz" } });
     expect(container.querySelector("[data-idea]")).toBeNull();
-    expect(screen.queryByLabelText(t("diagramIdea"))).toBeNull();
+    expect(screen.queryByLabelText(say("diagramIdea"))).toBeNull();
   });
 });

@@ -1,5 +1,3 @@
-import { t, type Word } from "../../locales";
-import { button } from "../viewer/Glyphs";
 import { ARROWS } from "./classes";
 import {
   classRemoved,
@@ -10,8 +8,10 @@ import {
   memberChanged,
   memberRemoved,
 } from "./classing";
+import { useHands, useSay } from "./handing";
 import { Chosen, Said, Section } from "./panelbits";
 import type { Classing } from "./useClasses";
+import type { Word } from "./words";
 
 // The kinds a relation is named by; the arrow written the other way round is the same kind.
 const KINDS: readonly (readonly [string, Word])[] = [
@@ -27,6 +27,8 @@ const KINDS: readonly (readonly [string, Word])[] = [
 
 /** The chosen class with its members, or the chosen relation with its kind, ends and words. */
 export default function ClassPanel({ editing }: Readonly<{ editing: Classing }>) {
+  const t = useSay();
+  const { button } = useHands().looks;
   const { diagram, picked, change } = editing;
   const name = picked?.kind === "class" || picked?.kind === "member" ? picked.name : null;
   const chosen = name ? diagram.classes.find((one) => one.name === name) : undefined;

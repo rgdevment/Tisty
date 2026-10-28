@@ -1,8 +1,8 @@
 import mermaid from "mermaid";
 import { beforeAll, describe, expect, it } from "vitest";
-import { readSchema, type Schema, writeSchema } from "../ui/drawing/schema";
-import { boxesOf } from "../ui/drawing/schemalayout";
-import { toDbml, toSql } from "../ui/drawing/schemaout";
+import { readSchema, type Schema, writeSchema } from "../src/schema";
+import { boxesOf } from "../src/schemalayout";
+import { toDbml, toSql } from "../src/schemaout";
 import {
   type Altered,
   columnAdded,
@@ -16,7 +16,7 @@ import {
   tableMoved,
   tableRemoved,
   tableRenamed,
-} from "../ui/drawing/scheming";
+} from "../src/scheming";
 
 // `⏎` is a line break, so a whole schema fits on its line.
 const unfolded = (said: string) => said.trim().replace(/⏎/g, "\n");

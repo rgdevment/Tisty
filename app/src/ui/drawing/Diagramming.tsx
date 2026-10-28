@@ -1,6 +1,9 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { useEffect, useRef, useState } from "react";
+import { asRead, kindName, kindOf } from "tisty-diagrams/read";
+import { DiagramStudio } from "tisty-diagrams/studio";
 import type { Viewed } from "../../core";
 import {
   diagramAgain,
@@ -9,18 +12,15 @@ import {
   diagramSave,
   diagramUnsaved,
 } from "../../drawing";
-import { fill, t, type Word } from "../../locales";
+import { fill, locale, t, type Word } from "../../locales";
 import { saidPlainly } from "../../refusal";
+import { drawing } from "../diagrams";
 import Menu from "../Menu";
 import { darkNow } from "../viewer/acting";
 import { button, tinted } from "../viewer/Glyphs";
 import TitleBar from "../viewer/TitleBar";
 import WindowChrome from "../WindowChrome";
-import Canvas from "./Canvas";
 import { exportChoices, fileName } from "./exporting";
-import { asRead, kindOf } from "./framing";
-import { kindName } from "./starting";
-import { useEditor } from "./useEditor";
 
 const useDark = () => {
   const [dark, setDark] = useState(darkNow);
@@ -34,6 +34,9 @@ const useDark = () => {
   }, []);
   return dark;
 };
+
+// One object for the life of the window, so the studio's hands stay the same between renders.
+const LOOKS = { button };
 
 const stateOf = (saving: boolean, unsaved: boolean): Word => {
   if (saving) return "diagramSaving";
@@ -53,7 +56,6 @@ export default function Diagramming({
   const [told, setTold] = useState<{ said: string; of: string } | null>(null);
   const [exporting, setExporting] = useState<{ x: number; y: number } | null>(null);
   const dark = useDark();
-  const editor = useEditor(text, setText);
   const unsaved = asRead(text) !== kept;
   const named = paper.title || t("untitledDoc");
   const warned = useRef(false);
@@ -143,7 +145,11 @@ export default function Diagramming({
       <WindowChrome flush />
       <TitleBar
         title={fill("diagramOf", named)}
-        under={paper.place ? `${kindName(kindOf(text))} · ${paper.place}` : kindName(kindOf(text))}
+        under={
+          paper.place
+            ? `${kindName(kindOf(text), locale())} · ${paper.place}`
+            : kindName(kindOf(text), locale())
+        }
       >
         {told?.of === text && <span className="text-[12px] text-accent">{told.said}</span>}
         <output className="text-[12px] text-faint">{t(stateOf(saving, unsaved))}</output>
@@ -200,29 +206,15 @@ export default function Diagramming({
           )}
         </div>
       )}
-      <div className="flex min-h-0 flex-1">
-        {editor?.board ?? <Canvas source={text} dark={dark} />}
-        <aside
-          aria-label={t("diagramProperties")}
-          className="flex w-[340px] shrink-0 flex-col gap-2 border-l border-hair bg-panel p-4"
-        >
-          {editor?.panel}
-          <div className="flex items-center">
-            <label htmlFor="diagram-text" className="text-[12px] font-semibold text-soft">
-              {t("diagramText")}
-            </label>
-            <span className="ml-auto text-[11px] text-accent">{t("diagramLive")}</span>
-          </div>
-          <textarea
-            id="diagram-text"
-            spellCheck={false}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            className="scroller min-h-0 flex-1 resize-none rounded-md border border-line bg-desk p-3 font-mono text-[12.5px] leading-relaxed text-ink outline-none focus:border-accent"
-          />
-          <small className="text-[12px] leading-snug text-faint">{t("diagramKeptAsWritten")}</small>
-        </aside>
-      </div>
+      <DiagramStudio
+        text={text}
+        onText={setText}
+        dark={dark}
+        locale={locale()}
+        draw={drawing}
+        copy={writeText}
+        looks={LOOKS}
+      />
     </main>
   );
 }
