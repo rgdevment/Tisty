@@ -52,6 +52,7 @@
 .cm-bar button:hover {
   background: var(--tisty-hover);
 }
+.cm-bar[hidden],
 .cm-bar button[hidden] {
   display: none;
 }

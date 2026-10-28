@@ -29,6 +29,7 @@ export const useCanvasNodes = ({
   setNaming,
   sizing,
   sized,
+  measuredAs,
 }: {
   editing: Flowing;
   still: ReadonlyMap<string, Rect>;
@@ -40,6 +41,11 @@ export const useCanvasNodes = ({
   setNaming: (naming: Naming) => void;
   sizing: () => void;
   sized: (lane: string, box: Rect) => void;
+  measuredAs: (
+    id: string,
+    wide: number,
+    tall: number,
+  ) => { width: number; height: number; measured: { width: number; height: number } };
 }) => {
   const t = useSay();
   const { flow, picked, change, pick } = editing;
@@ -60,8 +66,7 @@ export const useCanvasNodes = ({
             type: "shape",
             position: inside(one.id, rect),
             parentId: lane ? `${GROUP}${lane.id}` : undefined,
-            width: rect.wide,
-            height: rect.tall,
+            ...measuredAs(one.id, rect.wide, rect.tall),
             handles: handlesOf(rect.wide, rect.tall),
             selected: chosen.includes(one.id),
             data: {
@@ -83,7 +88,7 @@ export const useCanvasNodes = ({
           },
         ];
       }),
-    [flow, still, lanes, looks, chosenKey, naming, t, pick, change, setNaming],
+    [flow, still, lanes, looks, chosenKey, naming, t, pick, change, setNaming, measuredAs],
   );
   const shapes = placedShapes.map((one) => {
     const spot = moving.get(one.id);
@@ -96,8 +101,7 @@ export const useCanvasNodes = ({
       id: `${GROUP}${lane.id}`,
       type: "lane",
       position: { x: rect.x, y: rect.y },
-      width: rect.wide,
-      height: rect.tall,
+      ...measuredAs(`${GROUP}${lane.id}`, rect.wide, rect.tall),
       zIndex: -1,
       selected: isPicked,
       data: {

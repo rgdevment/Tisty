@@ -43,8 +43,6 @@ export default function DiagramMaking({
           <label
             key={one}
             className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-[13px] hover:bg-hover"
-            // A press on the words would blur the name, and the dialog taking the focus back swallows the click.
-            onMouseDown={(e) => e.preventDefault()}
           >
             <input
               type="radio"

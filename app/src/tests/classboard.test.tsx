@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { sayIn } from "tisty-diagrams/read";
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import Diagramming from "../ui/drawing/Diagramming";
 
 // The studio says its own words; these tests read them as it does, in English.
@@ -76,6 +76,11 @@ const leave = (label: string, value: string) => {
 
 beforeEach(() => {
   vi.restoreAllMocks();
+});
+
+// React Flow says what it dislikes only while developing; a test that listens turns that on.
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 describe("a class diagram in the diagram window", () => {
@@ -250,7 +255,9 @@ describe("a class diagram in the diagram window", () => {
     expect(text()).toMatch(/%% tisty: Zoo -?\d+ -?\d+ \d+ \d+/);
   });
 
-  it("writes where a class is nudged with the arrow keys", () => {
+  it("writes where a class is nudged with the arrow keys, a class React Flow knows the size of", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    const warned = vi.spyOn(console, "warn");
     opened();
     pickClass("Duck");
 
@@ -260,6 +267,7 @@ describe("a class diagram in the diagram window", () => {
 
     expect(text()).toMatch(/%% tisty: Duck -?\d+ -?\d+/);
     expect(text()).toMatch(/%% tisty: Animal -?\d+ -?\d+/);
+    expect(warned.mock.calls.flat().join(" ")).not.toContain("not initialized");
   });
 
   it("leaves as Mermaid draws it a class diagram it cannot keep", () => {

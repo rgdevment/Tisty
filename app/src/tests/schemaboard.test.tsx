@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { sayIn } from "tisty-diagrams/read";
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import Diagramming from "../ui/drawing/Diagramming";
 
 // The studio says its own words; these tests read them as it does, in English.
@@ -93,6 +93,11 @@ beforeEach(() => {
   copied.said = [];
 });
 
+// React Flow says what it dislikes only while developing; a test that listens turns that on.
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
 describe("a database schema in the diagram window", () => {
   it("draws each table as a card with its columns and asks for a choice", () => {
     opened();
@@ -139,12 +144,15 @@ describe("a database schema in the diagram window", () => {
   });
 
   it("moves a table and writes only where it sits, and undoes it", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    const warned = vi.spyOn(console, "warn");
     opened();
     fireEvent.click(title("personas"));
 
     nudge("personas");
     expect(text()).toMatch(/^erDiagram[\s\S]*\n {2}%% tisty: personas \d+ \d+\n$/);
     expect(text()).not.toContain("%% tisty: compartidos");
+    expect(warned.mock.calls.flat().join(" ")).not.toContain("not initialized");
 
     fireEvent.click(tool(say("flowUndo")));
     expect(text()).toBe(SCHEMA);

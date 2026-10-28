@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { nameOf } from "tisty-diagrams/read";
@@ -28,7 +29,7 @@ describe("naming a new diagram", () => {
     expect(make).toHaveBeenCalledWith("Ventas", "mindmap");
   });
 
-  it("chooses a kind by its words too, the focus never left to the page", async () => {
+  it("chooses a kind by its words too", async () => {
     const { field } = opened();
     field.focus();
 
@@ -36,7 +37,13 @@ describe("naming a new diagram", () => {
 
     expect((screen.getByLabelText(nameOf("mindmap", "en")) as HTMLInputElement).checked).toBe(true);
     expect(field.value).toBe(nameOf("mindmap", "en"));
-    expect(document.activeElement).not.toBe(document.body);
+  });
+
+  it("keeps a label's words unselectable, since Chromium ignores a press on them while text is selected", () => {
+    const styles = readFileSync("src/index.css", "utf8");
+    expect(styles.replace(/\s+/g, " ")).toContain(
+      'label:has(input[type="radio"], input[type="checkbox"]), label[for] { user-select: none; }',
+    );
   });
 
   it("makes nothing without a name, and closes when asked", async () => {

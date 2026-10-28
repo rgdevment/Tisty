@@ -1,5 +1,5 @@
 import type { NodeChange } from "@xyflow/react";
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { choiceAfter } from "./choosing";
 import type { Rect } from "./graphlayout";
 import type { Spot } from "./places";
@@ -28,6 +28,8 @@ export const useMoving = (hands: MovingHands) => {
   // While a shape or a lane moves it is drawn from here; letting go writes it into the text.
   const [moving, setMoving] = useState<ReadonlyMap<string, Spot>>(new Map());
   const resizing = useRef(false);
+  // A node rebuilt without `measured` is new to React Flow, which then drags it as if never drawn.
+  const measured = useRef(new Map<string, { readonly width: number; readonly height: number }>());
   const laid = useMemo(() => {
     if (!moving.size) return still;
     const at = new Map(still);
@@ -56,6 +58,7 @@ export const useMoving = (hands: MovingHands) => {
     let touched = false;
     let ended = false;
     for (const one of changes) {
+      if (one.type === "dimensions" && one.dimensions) measured.current.set(one.id, one.dimensions);
       if (one.type === "position" && one.position) {
         const lane = one.id.startsWith(GROUP) ? undefined : laneOf(one.id);
         const at = lane ? { x: one.position.x + lane.x, y: one.position.y + lane.y } : one.position;
@@ -91,5 +94,15 @@ export const useMoving = (hands: MovingHands) => {
     hands.resize(lane, box, laid);
   };
 
-  return { moving, laid, inside, moved, sizing, sized };
+  // A node's size as drawn, with what React Flow last measured of it, or the drawn size until it has.
+  const measuredAs = useCallback(
+    (id: string, wide: number, tall: number) => ({
+      width: wide,
+      height: tall,
+      measured: measured.current.get(id) ?? { width: wide, height: tall },
+    }),
+    [],
+  );
+
+  return { moving, laid, inside, moved, sizing, sized, measuredAs };
 };

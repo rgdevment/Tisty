@@ -18,6 +18,29 @@ const view = (doc: string, from = 0, to = from) =>
   });
 
 describe("the bar over the block being written", () => {
+  it("steps aside inside a fenced block or a $$ formula, where formatting writes nothing", () => {
+    // The caret sits at the `|` of each text.
+    const cases: [string, boolean][] = [
+      ["```mermaid\nclassDiagram\n  class A|\n```", true],
+      ["|```mermaid\ngraph TD\n```", true],
+      ["```js\nlet a = 1|\n```", true],
+      ["$$\nx^2 + y|^2\n$$", true],
+      ["$$a + b|$$", true],
+      ["texto con $x|$ en línea", false],
+      ["un párrafo|", false],
+      ["```\ncódigo\n```\n\nfuera|", false],
+      ["$$\nx\n$$\n\ndespués|", false],
+    ];
+    for (const [written, hidden] of cases) {
+      const at = written.indexOf("|");
+      const editor = view(written.replace("|", ""), at);
+      const { bar, follow } = barred(editor);
+      follow(editor);
+      expect(bar.hidden, written).toBe(hidden);
+      editor.destroy();
+    }
+  });
+
   it("names the kind of the line the caret is on", () => {
     expect(kindOf("# Plan")).toBe("bigTitle");
     expect(kindOf("## Plan")).toBe("midTitle");
