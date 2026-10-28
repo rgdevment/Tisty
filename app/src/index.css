@@ -168,6 +168,11 @@ body {
   overflow: hidden;
 }
 
+/* Chromium drops a press on a label's words while any text is selected, so a choice's words are never selectable. */
+label:has(> input[type="radio"], > input[type="checkbox"]) {
+  user-select: none;
+}
+
 [class*="text-[9px]"],
 [class*="text-[10.5px]"],
 [class*="text-[11.5px]"] {
