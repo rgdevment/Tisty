@@ -20,13 +20,26 @@ const SQL_TYPES: Record<string, string> = {
 
 const sqlType = (type: string) => SQL_TYPES[type.toLowerCase()] ?? type.toUpperCase();
 
+// Words SQL keeps for itself; a table or column with one of these names needs quotes.
+const RESERVED = new Set(
+  "all and as asc by case check column create default delete desc distinct drop else end from grant group having in index insert is join key like limit not null offset on or order primary references select set table then to union unique update user using values when where with".split(
+    " ",
+  ),
+);
+
+export const quotedSql = (name: string): string =>
+  /^[A-Za-z_][A-Za-z0-9_]*$/.test(name) && !RESERVED.has(name.toLowerCase())
+    ? name
+    : `"${name.replace(/"/g, '""')}"`;
+
 const keyOf = (table: Table | undefined) =>
   table?.columns.find((one) => one.keys.includes("PK"))?.name ?? "id";
 
 // A foreign key points where the relation drawn from it goes: the one it names, or the only one it has.
 export const pointedAt = (schema: Schema, table: Table, column: Column): string | null => {
+  // A table may point at itself (a parent_id), so a relation with both ends on it counts.
   const near = relationsOf(schema).filter(
-    (one: Relation) => (one.from === table.name) !== (one.to === table.name),
+    (one: Relation) => one.from === table.name || one.to === table.name,
   );
   const named = near.filter((one) => one.label === column.name);
   const only = near.length === 1 ? near : [];
@@ -40,21 +53,23 @@ const tableSql = (schema: Schema, table: Table): string => {
   const lines = table.columns.map((one) => {
     const required = one.required || one.keys.includes("PK") ? " NOT NULL" : "";
     const unique = one.keys.includes("UK") ? " UNIQUE" : "";
-    return `  ${one.name} ${sqlType(one.type)}${required}${unique}`;
+    return `  ${quotedSql(one.name)} ${sqlType(one.type)}${required}${unique}`;
   });
-  const keys = table.columns.filter((one) => one.keys.includes("PK")).map((one) => one.name);
+  const keys = table.columns
+    .filter((one) => one.keys.includes("PK"))
+    .map((one) => quotedSql(one.name));
   if (keys.length) lines.push(`  PRIMARY KEY (${keys.join(", ")})`);
   for (const column of table.columns.filter((one) => one.keys.includes("FK"))) {
     const target = pointedAt(schema, table, column);
     if (target)
       lines.push(
-        `  FOREIGN KEY (${column.name}) REFERENCES ${target}(${keyOf(tables.get(target))})`,
+        `  FOREIGN KEY (${quotedSql(column.name)}) REFERENCES ${quotedSql(target)}(${quotedSql(keyOf(tables.get(target)))})`,
       );
   }
   const notes = table.columns
     .filter((one) => one.comment)
     .map((one) => `-- ${table.name}.${one.name}: ${one.comment}`);
-  return [...notes, `CREATE TABLE ${table.name} (`, lines.join(",\n"), ");"].join("\n");
+  return [...notes, `CREATE TABLE ${quotedSql(table.name)} (`, lines.join(",\n"), ");"].join("\n");
 };
 
 /** `CREATE TABLE` for every table that has columns, in the order the schema names them. */

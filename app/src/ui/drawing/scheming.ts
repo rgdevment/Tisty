@@ -35,11 +35,8 @@ const unique = (wanted: string, taken: readonly string[]) => {
   return name;
 };
 
-export const tableAdded = (
-  schema: Schema,
-  wanted: string,
-  at: { x: number; y: number },
-): Altered => {
+// A new table takes the next free place of the grid, so nothing already drawn moves.
+export const tableAdded = (schema: Schema, wanted: string): Altered => {
   const name = unique(
     wanted,
     schema.tables.map((one) => one.name),
@@ -49,15 +46,26 @@ export const tableAdded = (
     schema: {
       ...schema,
       pieces: [...schema.pieces, { kind: "table", name }],
-      tables: [...schema.tables, { name, columns: [id], at, extra: [] }],
+      tables: [...schema.tables, { name, columns: [id], extra: [] }],
     },
     picked: { kind: "table", name },
   };
 };
 
+// A hyphen is plain outside a class; escaping it would break a `u` pattern.
+const escaped = (said: string) => said.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+// A name stands alone when nothing that could be part of a name touches it.
+const nameIn = (name: string) =>
+  new RegExp(`(?<![\\p{L}\\p{N}_*-])${escaped(name)}(?![\\p{L}\\p{N}_*-])`, "gu");
+
 const renamedIn = (piece: Piece, from: string, to: string): Piece => {
   if (piece.kind === "table") return piece.name === from ? { ...piece, name: to } : piece;
-  if (piece.kind !== "relation") return piece;
+  // Lines the window keeps as written (`style`, `class`, relations in words) name tables too; comments do not count.
+  if (piece.kind === "raw")
+    return piece.line.trim().startsWith("%%")
+      ? piece
+      : { ...piece, line: piece.line.replace(nameIn(from), to) };
   const { relation } = piece;
   if (relation.from !== from && relation.to !== from) return piece;
   const { line: _line, ...rest } = relation;
@@ -129,6 +137,17 @@ export const columnAdded = (schema: Schema, table: string): Altered => {
   };
 };
 
+// A relation drawn from a column is named after it; it follows the column's new name.
+const relabeled = (schema: Schema, table: string, from: string, to: string): Schema => ({
+  ...schema,
+  pieces: schema.pieces.map((one) => {
+    if (one.kind !== "relation" || one.relation.label !== from) return one;
+    if (one.relation.from !== table && one.relation.to !== table) return one;
+    const { line: _line, ...rest } = one.relation;
+    return { kind: "relation", relation: { ...rest, label: to } };
+  }),
+});
+
 export const columnChanged = (
   schema: Schema,
   table: string,
@@ -138,8 +157,13 @@ export const columnChanged = (
   const name = change.name?.trim().replace(/\s+/g, "_");
   const said = name === undefined ? change : { ...change, name: name || "column" };
   const only = Object.keys(said).length === 1 && "required" in said;
+  const was = tableOf(schema, table)?.columns[index]?.name;
+  const named =
+    said.name !== undefined && was !== undefined && said.name !== was
+      ? relabeled(schema, table, was, said.name)
+      : schema;
   return {
-    schema: withTable(schema, table, (one) => {
+    schema: withTable(named, table, (one) => {
       const columns = one.columns.map((column, at) => {
         if (at !== index) return column;
         const { line: _line, ...rest } = column;
@@ -175,6 +199,11 @@ export const related = (
     identifying: true,
     label: column.name,
   };
+  // Dragging the same column onto the same table again finds the relation it already made.
+  const already = relationsOf(schema).findIndex(
+    (one) => one.from === to && one.to === from.table && one.label === column.name,
+  );
+  if (already >= 0) return { schema, picked: { kind: "relation", index: already } };
   const keyed = column.keys.includes("FK")
     ? { schema, picked: null }
     : columnChanged(schema, from.table, from.index, { keys: [...column.keys, "FK"] });

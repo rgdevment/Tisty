@@ -80,9 +80,7 @@ describe("a database schema in the diagram window", () => {
 
     const name = t("schemaNewTable");
     expect(text()).toMatch(
-      new RegExp(
-        `  ${name} \\{\\n    int id PK\\n  \\}\\n  %% tisty: ${name} \\d+ 40 required id\\n$`,
-      ),
+      new RegExp(`  ${name} \\{\\n    int id PK\\n  \\}\\n  %% tisty: ${name} required id\\n$`),
     );
   });
 
@@ -202,5 +200,21 @@ describe("a database schema in the diagram window", () => {
 
     expect(document.querySelector("[data-table]")).toBeNull();
     expect(screen.queryByText(t("schemaPick"))).toBeNull();
+  });
+});
+
+describe("choosing in a schema edited by hand", () => {
+  it("keeps choosing the same column when a line is added above it", () => {
+    opened();
+    fireEvent.click(columnOf("compartidos", "persona_id"));
+
+    fireEvent.change(screen.getByLabelText(t("diagramText")), {
+      target: { value: SCHEMA.replace("    text id PK\n", "    text id PK\n    date nueva\n") },
+    });
+
+    expect((screen.getByLabelText(t("schemaName")) as HTMLInputElement).value).toBe("persona_id");
+    fireEvent.keyDown(columnOf("compartidos", "persona_id"), { key: "Delete" });
+    expect(text()).toContain("    date nueva\n  }");
+    expect(text()).not.toContain("persona_id");
   });
 });

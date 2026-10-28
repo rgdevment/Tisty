@@ -48,7 +48,13 @@ const pointIn = (e: PointerEvent, inside: Element) => {
 const tableUnder = (x: number, y: number) =>
   document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-table]")?.dataset.table ?? null;
 
-const same = (picked: Picked, other: Picked) => JSON.stringify(picked) === JSON.stringify(other);
+const same = (picked: Picked, other: NonNullable<Picked>): boolean => {
+  if (picked?.kind !== other.kind) return false;
+  if (other.kind === "table") return picked.kind === "table" && picked.name === other.name;
+  if (other.kind === "column")
+    return picked.kind === "column" && picked.table === other.table && picked.index === other.index;
+  return picked.kind === "relation" && picked.index === other.index;
+};
 
 /** Tables as cards: a title to drag them by, columns to choose, and a dot to drag onto another table to relate them. */
 export default function SchemaBoard({
@@ -131,7 +137,7 @@ export default function SchemaBoard({
             <button
               type="button"
               className={`${button} bg-panel`}
-              onClick={() => onChange(tableAdded(schema, fresh, { x: drawn.size.wide, y: 40 }))}
+              onClick={() => onChange(tableAdded(schema, fresh))}
             >
               {t("schemaAddTable")}
             </button>

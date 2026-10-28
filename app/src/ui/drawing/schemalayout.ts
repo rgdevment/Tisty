@@ -41,31 +41,29 @@ const wideOf = (table: Table) =>
 
 const tallOf = (table: Table) => HEAD + Math.max(table.columns.length, 1) * ROW + 6;
 
-/** Each table where its `%% tisty:` line puts it; one without a line in a grid to the right of the others. */
+/** Each table where its `%% tisty:` line puts it; one without a line in its own cell of a grid. */
 export const boxesOf = (schema: Schema): Box[] => {
-  const kept = schema.tables.filter((one) => one.at);
-  const right = kept.reduce((most, one) => Math.max(most, (one.at?.x ?? 0) + wideOf(one)), 0);
-  let x = kept.length ? right + 80 : MARGIN;
-  const start = x;
-  let y = MARGIN;
-  let tallest = 0;
-  let inRow = 0;
-  return schema.tables.map((table) => {
+  // Every table keeps the cell its order gives it, placed or not, so placing one never moves another.
+  const rows: number[] = [];
+  schema.tables.forEach((table, at) => {
+    const row = Math.floor(at / PER_ROW);
+    rows[row] = Math.max(rows[row] ?? 0, tallOf(table));
+  });
+  const tops = rows.map((_, row) =>
+    rows.slice(0, row).reduce((sum, tall) => sum + tall + 60, MARGIN),
+  );
+  return schema.tables.map((table, at) => {
     const wide = wideOf(table);
     const tall = tallOf(table);
     if (table.at)
       return { table, x: Math.max(0, table.at.x), y: Math.max(0, table.at.y), wide, tall };
-    const box = { table, x, y, wide, tall };
-    tallest = Math.max(tallest, tall);
-    inRow += 1;
-    x += CELL;
-    if (inRow === PER_ROW) {
-      x = start;
-      y += tallest + 60;
-      tallest = 0;
-      inRow = 0;
-    }
-    return box;
+    return {
+      table,
+      x: MARGIN + (at % PER_ROW) * CELL,
+      y: tops[Math.floor(at / PER_ROW)],
+      wide,
+      tall,
+    };
   });
 };
 

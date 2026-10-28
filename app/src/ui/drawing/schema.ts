@@ -68,8 +68,9 @@ const RELATION = new RegExp(
   "u",
 );
 const OPENER = new RegExp(String.raw`^\s*(${NAME})\s*\{\s*$`, "u");
+// Mermaid reads keys in any case; the window holds them as `PK`, `FK`, `UK`.
 const COLUMN =
-  /^\s*(\S+)\s+(\S+?)(?:\s+((?:PK|FK|UK)(?:\s*,\s*(?:PK|FK|UK))*))?(?:\s+"([^"]*)")?\s*$/;
+  /^\s*(\S+)\s+(\S+?)(?:\s+((?:PK|FK|UK)(?:\s*,\s*(?:PK|FK|UK))*))?(?:\s+"([^"]*)")?\s*$/i;
 const TISTY = new RegExp(
   String.raw`^\s*%% tisty: (${NAME})(?: (-?\d+) (-?\d+))?(?: required((?: [^\s]+)+))?\s*$`,
   "u",
@@ -98,7 +99,7 @@ const columnOf = (line: string): Column | null => {
   if (!found || found[1].startsWith("%%")) return null;
   const keys = (found[3] ?? "")
     .split(",")
-    .map((one) => one.trim())
+    .map((one) => one.trim().toUpperCase())
     .filter(Boolean) as Key[];
   const comment = found[4];
   return {
@@ -121,25 +122,17 @@ type Building = Omit<Table, "columns" | "extra" | "block" | "opener"> & {
 // A table placed by hand says where; one only some of whose columns are required says just that.
 type Place = { at?: { x: number; y: number }; required: string[] };
 
-const placesOf = (lines: readonly string[]) => {
-  const places = new Map<string, Place>();
-  for (const line of lines) {
-    const found = TISTY.exec(line);
-    if (found)
-      places.set(found[1], {
-        ...(found[2] !== undefined && { at: { x: Number(found[2]), y: Number(found[3]) } }),
-        required: (found[4] ?? "").trim().split(" ").filter(Boolean),
-      });
-  }
-  return places;
-};
+const placeOf = (found: RegExpExecArray): Place => ({
+  ...(found[2] !== undefined && { at: { x: Number(found[2]), y: Number(found[3]) } }),
+  required: (found[4] ?? "").trim().split(" ").filter(Boolean),
+});
 
 /** The schema an `erDiagram` draws, or `null` when the window could not keep it as written. */
 export const readSchema = (source: string): Schema | null => {
   const lines = source.replace(/\r/g, "").split("\n");
   const opening = lines.findIndex((line) => /^\s*erDiagram\b/.test(line));
   if (opening < 0) return null;
-  const places = placesOf(lines);
+  const places = new Map<string, Place>();
   const tables = new Map<string, Building>();
   const pieces: Piece[] = [];
   const table = (name: string) => {
@@ -158,7 +151,12 @@ export const readSchema = (source: string): Schema | null => {
       }
       continue;
     }
-    if (TISTY.test(line)) continue;
+    // Only a place line outside every block is one; inside a block it is a comment kept as written.
+    const place = TISTY.exec(line);
+    if (place) {
+      places.set(place[1], placeOf(place));
+      continue;
+    }
     const opener = OPENER.exec(line);
     const relation = relationOf(line);
     if (opener) {

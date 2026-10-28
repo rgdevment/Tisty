@@ -1,6 +1,7 @@
 import mermaid from "mermaid";
 import { beforeAll, describe, expect, it } from "vitest";
 import { readSchema, type Schema, writeSchema } from "../ui/drawing/schema";
+import { boxesOf } from "../ui/drawing/schemalayout";
 import { toDbml, toSql } from "../ui/drawing/schemaout";
 import {
   type Altered,
@@ -94,9 +95,9 @@ const BASE = unfolded(
 // One per row: what is done → the text it leaves.
 const DONE: [string, (schema: Schema) => Altered | null, string][] = [
   [
-    "a new table comes with an id and a place of its own",
-    (schema) => tableAdded(schema, "versiones", { x: 300, y: 40 }),
-    "erDiagram⏎  personas ||--o{ compartidos : publica⏎  personas {⏎    uuid id PK⏎    text alias⏎  }⏎  compartidos {⏎    text id PK⏎    uuid persona_id⏎  }⏎  versiones {⏎    int id PK⏎  }⏎  %% tisty: versiones 300 40 required id",
+    "a new table comes with an id and takes the next free place of the grid",
+    (schema) => tableAdded(schema, "versiones"),
+    "erDiagram⏎  personas ||--o{ compartidos : publica⏎  personas {⏎    uuid id PK⏎    text alias⏎  }⏎  compartidos {⏎    text id PK⏎    uuid persona_id⏎  }⏎  versiones {⏎    int id PK⏎  }⏎  %% tisty: versiones required id",
   ],
   [
     "renaming a table renames it in its relations",
@@ -178,7 +179,7 @@ describe("changing a schema", () => {
     expect(tableRenamed(schema, "personas", "  ").schema).toBe(schema);
     expect(related(schema, { table: "compartidos", index: 1 }, "nadie")).toBeNull();
     expect(related(schema, { table: "compartidos", index: 1 }, "compartidos")).toBeNull();
-    expect(tableAdded(schema, "personas", { x: 0, y: 0 }).picked).toEqual({
+    expect(tableAdded(schema, "personas").picked).toEqual({
       kind: "table",
       name: "personas_2",
     });
@@ -230,5 +231,93 @@ describe("leaving a schema as SQL or DBML", () => {
         "",
       ].join("\n"),
     );
+  });
+});
+
+describe("what the review of the schema found", () => {
+  it("reads keys in any case, as Mermaid does, and gives the schema back as written", () => {
+    const source = "erDiagram\n  A {\n    int id pk\n    int b_id Fk\n  }";
+    const schema = readSchema(source) as Schema;
+
+    expect(schema.tables[0].columns.map((one) => one.keys)).toEqual([["PK"], ["FK"]]);
+    expect(writeSchema(schema)).toBe(source);
+  });
+
+  it("keeps a place line written inside a block as a comment, never as a second place", () => {
+    const source = "erDiagram\n  A {\n    int id PK\n    %% tisty: A 10 10\n  }";
+    const schema = readSchema(source) as Schema;
+    const written = writeSchema(columnAdded(schema, "A").schema);
+
+    expect(schema.tables[0].at).toBeUndefined();
+    expect(written.match(/%% tisty: A/g)).toHaveLength(1);
+  });
+
+  it("renames a table in the lines it keeps as written, but not in comments", () => {
+    const source =
+      "erDiagram\n  personas {\n    int id PK\n  }\n  style personas fill:#f9f\n  personas only one to zero or more pedidos : hace\n  %% personas vieja\n  personas_viejas ||--o{ pedidos : x";
+    const written = writeSchema(
+      tableRenamed(readSchema(source) as Schema, "personas", "gente").schema,
+    );
+
+    expect(written).toBe(
+      "erDiagram\n  gente {\n    int id PK\n  }\n  style gente fill:#f9f\n  gente only one to zero or more pedidos : hace\n  %% personas vieja\n  personas_viejas ||--o{ pedidos : x",
+    );
+  });
+
+  it("finds the relation a column already made instead of drawing it twice", () => {
+    const first = related(
+      readSchema(BASE) as Schema,
+      { table: "compartidos", index: 1 },
+      "personas",
+    ) as Altered;
+    const again = related(first.schema, { table: "compartidos", index: 1 }, "personas") as Altered;
+
+    expect(again.schema).toBe(first.schema);
+    expect(again.picked).toEqual(first.picked);
+  });
+
+  it("renames the relation drawn from a column along with the column", () => {
+    const linked = related(
+      readSchema(BASE) as Schema,
+      { table: "compartidos", index: 1 },
+      "personas",
+    ) as Altered;
+    const written = writeSchema(
+      columnChanged(linked.schema, "compartidos", 1, { name: "autor_id" }).schema,
+    );
+
+    expect(written).toContain("  personas ||--o{ compartidos : autor_id");
+    expect(written).toContain("  personas ||--o{ compartidos : publica");
+  });
+
+  it("quotes in SQL the names SQL keeps or cannot read, and points a table at itself", () => {
+    const schema = readSchema(
+      "erDiagram\n  categorias ||--o{ categorias : padre_id\n  categorias {\n    int id PK\n    int padre_id FK\n  }\n  user {\n    int order PK\n    text correo_electrónico\n  }",
+    ) as Schema;
+    const sql = toSql(schema);
+
+    expect(sql).toContain("FOREIGN KEY (padre_id) REFERENCES categorias(id)");
+    expect(sql).toContain('CREATE TABLE "user" (');
+    expect(sql).toContain('  "order" INTEGER NOT NULL,');
+    expect(sql).toContain('  "correo_electrónico" TEXT');
+    expect(sql).toContain('  PRIMARY KEY ("order")');
+    expect(toDbml(schema)).toContain("Ref: categorias.padre_id > categorias.id");
+  });
+});
+
+describe("laying out a schema", () => {
+  it("never moves the other tables when one is placed by hand or added", () => {
+    const schema = readSchema(
+      "erDiagram\n  a {\n    int id\n  }\n  b {\n    int id\n  }\n  c {\n    int id\n  }\n  d {\n    int id\n  }",
+    ) as Schema;
+    const before = boxesOf(schema).map((one) => [one.x, one.y]);
+    const placed = boxesOf(tableMoved(schema, "b", { x: 900, y: 500 }).schema).map((one) => [
+      one.x,
+      one.y,
+    ]);
+    const grown = boxesOf(tableAdded(schema, "e").schema).map((one) => [one.x, one.y]);
+
+    expect(placed).toEqual([before[0], [900, 500], before[2], before[3]]);
+    expect(grown.slice(0, 4)).toEqual(before);
   });
 });
