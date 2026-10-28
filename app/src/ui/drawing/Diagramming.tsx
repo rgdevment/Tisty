@@ -18,16 +18,9 @@ import TitleBar from "../viewer/TitleBar";
 import WindowChrome from "../WindowChrome";
 import Canvas from "./Canvas";
 import { exportChoices, fileName } from "./exporting";
-import { asRead, type DiagramKind, kindOf } from "./framing";
+import { asRead, kindOf } from "./framing";
+import { kindName } from "./starting";
 import { useEditor } from "./useEditor";
-
-const KIND_WORDS: Record<DiagramKind, Word> = {
-  mindmap: "diagramMindmap",
-  erDiagram: "diagramSchema",
-  flowchart: "diagramFlow",
-  classDiagram: "diagramClasses",
-  other: "diagramOther",
-};
 
 const useDark = () => {
   const [dark, setDark] = useState(darkNow);
@@ -150,11 +143,7 @@ export default function Diagramming({
       <WindowChrome flush />
       <TitleBar
         title={fill("diagramOf", named)}
-        under={
-          paper.place
-            ? `${t(KIND_WORDS[kindOf(text)])} · ${paper.place}`
-            : t(KIND_WORDS[kindOf(text)])
-        }
+        under={paper.place ? `${kindName(kindOf(text))} · ${paper.place}` : kindName(kindOf(text))}
       >
         {told?.of === text && <span className="text-[12px] text-accent">{told.said}</span>}
         <output className="text-[12px] text-faint">{t(stateOf(saving, unsaved))}</output>

@@ -13,3 +13,12 @@ export const diagramUnsaved = (unsaved: boolean): Promise<void> =>
   invoke("diagram_unsaved", { unsaved });
 export const diagramLeave = (): Promise<void> => invoke("diagram_leave");
 export const diagramOrder = (): Promise<number> => invoke("diagram_order");
+
+export interface FoundDiagram {
+  readonly file: string;
+  readonly title: string;
+  readonly section: string;
+  readonly nth: number;
+  readonly source: string;
+}
+export const diagramsEverywhere = (): Promise<FoundDiagram[]> => invoke("diagrams_everywhere");

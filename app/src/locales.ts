@@ -865,6 +865,10 @@ const en = {
   diagramKindAsk: "Kind",
   diagramKindOther: "Other (Mermaid text)",
   diagramAsText: "Mermaid block as text",
+  diagramExisting: "Existing diagram…",
+  diagramFind: "Look for a document or a kind",
+  diagramNoneYet: "No document holds a diagram yet",
+  diagramBar: "Diagram",
   diagramsFolder: "Diagrams",
   diagramNeedsTitle:
     "This document says nothing yet, so the diagram would have no title above it. Write the title first.",
@@ -3664,6 +3668,10 @@ const es: Catalog = {
   diagramKindAsk: "Tipo",
   diagramKindOther: "Otro (texto Mermaid)",
   diagramAsText: "Bloque Mermaid como texto",
+  diagramExisting: "Diagrama existente…",
+  diagramFind: "Busca un documento o un tipo",
+  diagramNoneYet: "Ningún documento tiene un diagrama todavía",
+  diagramBar: "Diagrama",
   diagramsFolder: "Diagramas",
   diagramNeedsTitle:
     "Este documento todavía no dice nada, así que el diagrama quedaría sin título encima. Escribe el título primero.",

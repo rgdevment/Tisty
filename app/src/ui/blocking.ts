@@ -420,8 +420,12 @@ export const edited = (
       ],
     }),
   });
-  const bar = barred(view, whole, onWhole && (() => onWhole(false)), () =>
-    putTable(view, asking?.()),
+  const bar = barred(
+    view,
+    whole,
+    onWhole && (() => onWhole(false)),
+    () => putTable(view, asking?.()),
+    asking,
   );
   if (stepping) bar.bar.style.display = "none";
   follow = bar.follow;

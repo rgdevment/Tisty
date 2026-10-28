@@ -25,6 +25,7 @@ While a block is open, a bar floats over it:
 - **Bold**, **italic**, **underline**, **strikethrough**, **code** and **link**.
 - **Four pens**: yellow, green, blue and pink.
 - **Table**, which puts a table where the caret is and opens it on the page. Inside a table it steps aside.
+- **Diagram**, in a document: a new diagram of each kind or an existing one, as in the `/` menu.
 - **/ More**, which opens the `/` menu.
 
 With words selected, a format wraps them; pressed on words that already have it, it takes it away. Formats never cross: one that reaches another of its kind joins it into one.
@@ -39,7 +40,7 @@ Type `/` anywhere and the menu of what fits comes up. Keep typing to narrow it d
 - The five callouts: Note, Tip, Important, Warning and Caution.
 - Bold, italic, underline, strikethrough, code, link and the highlight pen, with their shortcuts beside them.
 - An icon, looked up by what it draws.
-- A new diagram, which opens the [[diagram window|Diagrams]], or a Mermaid block as text; a formula, a widget and a code block.
+- A new diagram, which opens the [[diagram window|Diagrams]], a copy of an existing diagram, or a Mermaid block as text; a formula, a widget and a code block.
 - A table.
 - A **collapsible section**: a title that folds what is under it.
 - A page break.

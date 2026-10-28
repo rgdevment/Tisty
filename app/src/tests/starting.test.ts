@@ -6,7 +6,16 @@ import { readFlow } from "../ui/drawing/flow";
 import { kindOf } from "../ui/drawing/framing";
 import { readMind } from "../ui/drawing/mindmap";
 import { readSchema } from "../ui/drawing/schema";
-import { fencesOf, freshFence, STARTS, type Start, startOf } from "../ui/drawing/starting";
+import {
+  fenced,
+  fencesOf,
+  firstWords,
+  freshFence,
+  STARTS,
+  type Start,
+  startOf,
+  titleOf,
+} from "../ui/drawing/starting";
 
 // `⏎` is a line break, so a whole document fits on its line.
 const unfolded = (said: string) => said.replace(/⏎/g, "\n");
@@ -88,5 +97,41 @@ describe("telling which diagram was just written", () => {
       const [before, after, nth] = case_.split(" → ").map((one) => unfolded(one.trim()));
       expect(freshFence(before, after, "a\n")?.nth ?? -1, case_).toBe(Number(nth));
     }
+  });
+});
+
+// One per line: a diagram → the words that tell it apart in a list.
+const FIRST = `
+mindmap⏎  root((Idea)) → root((Idea))
+---⏎title: Pagos⏎---⏎%% nota⏎flowchart TD⏎%% otra⏎⏎  A --> B → A --> B
+erDiagram → 
+`;
+
+// One per line: a diagram → its own title, when Mermaid gives it one.
+const TITLED = `
+---⏎title: "Ventas del mes"⏎---⏎flowchart TD⏎  A --> B → Ventas del mes
+pie title Gastos⏎  "Casa" : 35 → Gastos
+gantt⏎  title Mudanza⏎  dateFormat YYYY-MM-DD → Mudanza
+flowchart TD⏎  A[title] --> B →
+`;
+
+describe("telling diagrams apart in a list", () => {
+  it("names a diagram by its own title, from its front matter or its title line", () => {
+    for (const case_ of lines(TITLED)) {
+      const [source, said = ""] = case_.split(" →");
+      expect(titleOf(unfolded(source)), case_).toBe(said.trim());
+    }
+  });
+
+  it("takes the first line after the header, past front matter and comments", () => {
+    for (const case_ of lines(FIRST)) {
+      const [source, said = ""] = case_.split(" →");
+      expect(firstWords(unfolded(source)), case_).toBe(said.trim());
+    }
+  });
+
+  it("fences a copy longer than any run of backticks it holds", () => {
+    expect(fenced("graph TD\n")).toBe("```mermaid\ngraph TD\n```");
+    expect(fenced("a\n  ````x\n")).toBe("`````mermaid\na\n  ````x\n`````");
   });
 });

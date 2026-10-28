@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { t } from "../locales";
 import { barred, flipped, kindOf, retyped } from "../ui/barring";
 import { marksShown, visual } from "../ui/seeing";
+import type { Asked, Asking } from "../ui/slashing";
 
 const view = (doc: string, from = 0, to = from) =>
   new EditorView({
@@ -249,6 +250,45 @@ describe("the bar over the block being written", () => {
     const pressed = new MouseEvent("mousedown", { bubbles: true, cancelable: true });
     bar.querySelector("button")?.dispatchEvent(pressed);
     expect(pressed.defaultPrevented).toBe(true);
+    editor.destroy();
+  });
+});
+
+describe("the diagram button of the bar", () => {
+  const asking = (kinds: Asked[]) => {
+    const heard: [Asked, boolean][] = [];
+    const told: Asking = {
+      kinds,
+      ask: (kind, _at, put, first) => {
+        heard.push([kind, first]);
+        put("```mermaid\nmindmap\n  raíz\n```");
+      },
+    };
+    return { heard, told };
+  };
+
+  it("asks for a diagram where the caret is, leaving a selection in place", () => {
+    const editor = view("# Plan\n\nleche y pan", 9, 14);
+    const { heard, told } = asking(["diagram", "diagramFrom"]);
+    const { bar } = barred(editor, false, undefined, undefined, () => told);
+
+    bar.querySelector<HTMLButtonElement>(".cm-bar-diagram")?.click();
+
+    expect(heard).toEqual([["diagram", false]]);
+    expect(editor.state.sliceDoc()).toBe(
+      "# Plan\n\nleche\n\n```mermaid\nmindmap\n  raíz\n```\n\ny pan",
+    );
+    editor.destroy();
+  });
+
+  it("is not there where diagrams cannot be asked for", () => {
+    const editor = view("leche");
+    const { told } = asking(["icon", "file"]);
+
+    expect(barred(editor).bar.querySelector(".cm-bar-diagram")).toBeNull();
+    expect(
+      barred(editor, false, undefined, undefined, () => told).bar.querySelector(".cm-bar-diagram"),
+    ).toBeNull();
     editor.destroy();
   });
 });

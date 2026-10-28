@@ -25,6 +25,7 @@ Mientras un bloque está abierto, flota sobre él una barra:
 - **Negrita**, **cursiva**, **subrayado**, **tachado**, **código** y **enlace**.
 - **Cuatro rotuladores**: amarillo, verde, azul y rosa.
 - **Tabla**, que pone una tabla donde está el cursor y la abre en la página. Dentro de una tabla no aparece.
+- **Diagrama**, en un documento: un diagrama nuevo de cada tipo o uno existente, como en el menú `/`.
 - **/ Más**, que abre el menú `/`.
 
 Con palabras seleccionadas, un formato las envuelve; pulsado sobre palabras que ya lo tienen, se lo quita. Los formatos nunca se cruzan: uno que alcanza a otro igual se junta con él en uno solo.
@@ -39,7 +40,7 @@ Escribe `/` en cualquier punto y sale el menú de lo que cabe. Sigue escribiendo
 - Los cinco avisos: Nota, Consejo, Importante, Aviso y Cuidado.
 - Negrita, cursiva, subrayado, tachado, código, enlace y el rotulador, con sus atajos al lado.
 - Un icono, buscado por lo que dibuja.
-- Un diagrama nuevo, que abre la [[ventana de diagramas|Diagramas]], o un bloque Mermaid como texto; una fórmula, un widget y un bloque de código.
+- Un diagrama nuevo, que abre la [[ventana de diagramas|Diagramas]], una copia de un diagrama existente o un bloque Mermaid como texto; una fórmula, un widget y un bloque de código.
 - Una tabla.
 - Una **sección plegable**: un título que pliega lo que tiene debajo.
 - Un salto de página.

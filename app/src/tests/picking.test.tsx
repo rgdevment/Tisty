@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed } from "../core";
+import { t } from "../locales";
 import { nameOf, STARTS, startOf } from "../ui/drawing/starting";
 import Picking, { type Picked } from "../ui/Picking";
 
@@ -177,9 +178,10 @@ describe("a new diagram asked for from the / menu", () => {
       write();
     });
 
-    expect(screen.getAllByRole("menuitem").map((one) => one.textContent)).toEqual(
-      STARTS.map(nameOf),
-    );
+    expect(screen.getAllByRole("menuitem").map((one) => one.textContent)).toEqual([
+      ...STARTS.map(nameOf),
+      t("diagramExisting"),
+    ]);
     await userEvent.click(screen.getByRole("menuitem", { name: nameOf("classDiagram") }));
 
     expect(heard).toEqual([startOf("classDiagram")]);
