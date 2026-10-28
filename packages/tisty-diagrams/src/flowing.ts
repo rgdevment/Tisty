@@ -1,4 +1,5 @@
-import { type Flow, type FlowEdge, formedNode, type Shape, type Span, statementsOf } from "./flow";
+import { type Flow, type FlowEdge, type Place, type Span, statementsOf } from "./flow";
+import { formedNode, type Shape } from "./flowshapes";
 import type { Direction } from "./graphlayout";
 import { names } from "./naming";
 
@@ -12,6 +13,8 @@ export type FlowPicked =
 /** A change is new text for the body of the flowchart, read again by whoever shows it. */
 export interface FlowAltered {
   readonly body: readonly string[];
+  // Left out when the places stay as they were.
+  readonly places?: readonly Place[];
   readonly picked: FlowPicked;
 }
 
@@ -22,6 +25,8 @@ const spliced = (body: readonly string[], span: Span, said: string) =>
 
 const indentOf = (line: string | undefined) =>
   line?.slice(0, line.length - line.trimStart().length) ?? "";
+
+const bodyIndent = (flow: Flow) => indentOf(flow.body.find((one) => one.trim())) || "  ";
 
 // New lines go at the end, or inside a group just before its `end`, indented like what is around them.
 const inserted = (
@@ -38,9 +43,26 @@ const inserted = (
       ...flow.body.slice(inside.close),
     ];
   }
-  const indent = indentOf(flow.body.find((one) => one.trim())) || "  ";
+  const indent = bodyIndent(flow);
   return [...flow.body, ...lines.map((one) => `${indent}${one}`)];
 };
+
+// A place keeps the indent of its own line, so moving a node rewrites only its numbers.
+const placed = (flow: Flow, id: string, at: { x: number; y: number }): readonly Place[] => {
+  const x = Math.round(at.x);
+  const y = Math.round(at.y);
+  const known = flow.places.find((one) => one.id === id);
+  const line = `${known ? indentOf(known.line) : bodyIndent(flow)}%% tisty: ${id} ${x} ${y}`;
+  const place = { id, x, y, line };
+  return known ? flow.places.map((one) => (one.id === id ? place : one)) : [...flow.places, place];
+};
+
+/** A node put where the window was told, without touching the lines that say what it is. */
+export const nodePlaced = (flow: Flow, id: string, at: { x: number; y: number }): FlowAltered => ({
+  body: flow.body,
+  places: placed(flow, id, at),
+  picked: { kind: "node", id },
+});
 
 const unique = (wanted: string, taken: readonly string[]) => {
   let n = 1;
@@ -56,23 +78,30 @@ export const nodeChanged = (
   const node = flow.nodes.find((one) => one.id === id);
   if (!node) return { body: flow.body, picked: null };
   const text = change.text?.trim() ? change.text.trim() : node.text;
-  const shape = change.shape ?? node.shape ?? "process";
+  const shape = change.shape ?? node.shape;
   const span = node.def ?? node.first;
   // A `:::class` after the shape stays as it was written.
   const kind = /:::[\w-]+$/.exec(flow.body[span.line].slice(span.start, span.end))?.[0] ?? "";
   return {
-    body: spliced(flow.body, span, `${formedNode(id, text, shape)}${kind}`),
+    body: spliced(flow.body, span, `${formedNode(id, text, shape, node.keys)}${kind}`),
     picked: { kind: "node", id },
   };
 };
 
-export const nodeAdded = (flow: Flow, text: string, group: string | null): FlowAltered => {
+export const nodeAdded = (
+  flow: Flow,
+  text: string,
+  group: string | null,
+  shape: Shape = "process",
+  at: { x: number; y: number } | null = null,
+): FlowAltered => {
   const id = unique(
     "n",
     flow.nodes.map((one) => one.id),
   );
   return {
-    body: inserted(flow, [formedNode(id, text, "process")], group),
+    body: inserted(flow, [formedNode(id, text, shape)], group),
+    places: at ? placed(flow, id, at) : flow.places,
     picked: { kind: "node", id },
   };
 };
@@ -112,18 +141,17 @@ const leftBehind = (
   at: number,
   ids: readonly string[],
   gone: ReadonlySet<number>,
-  placed: Set<string>,
+  kept: Set<string>,
 ) => {
   const indent = indentOf(flow.body[at]);
   return ids.flatMap((id) => {
     const node = flow.nodes.find((one) => one.id === id);
-    if (!node || placed.has(id)) return [];
+    if (!node || kept.has(id)) return [];
     const elsewhere = flow.body.some((line, other) => !gone.has(other) && names(line, id));
     if (node.def?.line !== at && elsewhere) return [];
-    placed.add(id);
+    kept.add(id);
     if (node.def?.line !== at) return [`${indent}${id}`];
-    const kind = /:::[\w-]+$/.exec(flow.body[at].slice(node.def.start, node.def.end))?.[0] ?? "";
-    return [`${indent}${formedNode(id, node.text, node.shape ?? "process")}${kind}`];
+    return [`${indent}${flow.body[at].slice(node.def.start, node.def.end)}`];
   });
 };
 
@@ -184,17 +212,21 @@ export const nodeRemoved = (flow: Flow, id: string): FlowAltered | null => {
   const going = flow.body.map((_, at) => goesWith(flow, at, id));
   if (going.includes(null)) return null;
   const gone = new Set(going.flatMap((goes, at) => (goes ? [at] : [])));
-  const placed = new Set([id]);
+  const kept = new Set([id]);
   const instead = new Map(
     [...gone].map((at) => {
       const others = flow.edges
         .filter((one) => one.link.line === at)
         .flatMap((one) => [one.from, one.to]);
-      return [at, leftBehind(flow, at, others, gone, placed)] as const;
+      return [at, leftBehind(flow, at, others, gone, kept)] as const;
     }),
   );
   const removed = flow.edges.flatMap((one, index) => (gone.has(one.link.line) ? [index] : []));
-  return { body: rewritten(flow, instead, removed), picked: null };
+  return {
+    body: rewritten(flow, instead, removed),
+    places: flow.places.filter((one) => one.id !== id),
+    picked: null,
+  };
 };
 
 export const groupAdded = (flow: Flow, title: string): FlowAltered => {
@@ -254,7 +286,7 @@ export const nodeMoved = (flow: Flow, id: string, group: string | null): FlowAlt
   const kept = { ...flow, body: flow.body.filter((_, at) => !own.includes(at)) };
   const said =
     node.def && own.includes(node.def.line)
-      ? formedNode(id, node.text, node.shape ?? "process")
+      ? flow.body[node.def.line].slice(node.def.start, node.def.end)
       : id;
   const reread = { ...kept, groups: kept.groups.map((one) => shifted(one, own)) };
   return { body: inserted(reread, [said], group), picked: { kind: "node", id } };
