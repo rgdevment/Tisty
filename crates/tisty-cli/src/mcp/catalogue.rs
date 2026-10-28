@@ -231,7 +231,8 @@ Read a long document by parts: `outline_doc` gives its headings, lines, sizes, p
 budget of `chars`, about 12,000 characters at a time: a document longer than that asked for \
 whole comes back as its outline, so ask for the parts. Change what is there before adding: `edit_doc` changes the passage that is \
 wrong, `write_doc` with the `print` you read at writes the body again when its shape no longer \
-serves, and `append_doc` adds only where the order of entries is the point. If anything was \
+serves, `edit_table` changes a table by its rows and columns without touching its Markdown, and \
+`append_doc` adds only where the order of entries is the point. If anything was \
 written in between, the print no longer matches and nothing is written — read again rather than \
 retrying. When a write comes back saying something you did not expect, `restore_doc` puts the \
 document back.
@@ -444,7 +445,7 @@ impl Effect {
     }
 }
 
-pub(super) const EFFECTS: [(&str, Effect); 39] = [
+pub(super) const EFFECTS: [(&str, Effect); 40] = [
     ("propose", Effect::Adds),
     ("remind", Effect::Sets),
     ("describe", Effect::Replaces),
@@ -462,6 +463,7 @@ pub(super) const EFFECTS: [(&str, Effect); 39] = [
     ("append_doc", Effect::Rewrites),
     ("restore_doc", Effect::Rewrites),
     ("edit_doc", Effect::Replaces),
+    ("edit_table", Effect::Rewrites),
     ("docs", Effect::Reads),
     ("import_doc", Effect::Adds),
     ("export_doc", Effect::Sets),
@@ -892,6 +894,44 @@ pub(super) fn tools_without_hints() -> Value {
                     "echo": { "type": "boolean", "description": "Hand back the lines around the change as well, instead of reading the document again to see it" }
                 },
                 "required": ["doc", "new"]
+            }))
+        },
+        {
+            "name": "edit_table",
+            "title": "Change a table in a document",
+            "description": "Read or change one table of a document by what its rows and columns are called, never by its Markdown: set a cell, add or remove a row, sort, rename a column, give it a type, add or remove a column. A row is named by the words of its first cell and a column by its title, as `show` hands them back. A value is written the way its column's type reads it — 1234.5 for a number, 2026-10-28 for a date, true for a checkbox — and one that does not fit is kept as sent and named in the answer. What the document said before is kept, as with `edit_doc`.",
+            "inputSchema": shaped(json!({
+                "properties": {
+                    "keep_compaction": { "type": "boolean", "description": "Only when the person told you in this conversation to keep a compaction of this document that waits for their word: it is kept, and this write goes ahead" },
+                    "doc": named_doc_field(),
+                    "table": {
+                        "anyOf": [{ "type": "integer" }, { "type": "string" }],
+                        "description": "Which table, by its number from 1 or by the heading over it. Left out when the document holds only one"
+                    },
+                    "do": {
+                        "type": "string",
+                        "enum": ["show", "set", "add", "remove", "sort", "type", "rename", "add_column", "remove_column"],
+                        "description": "What to do. Defaults to show, which changes nothing and hands back the columns with their types and the rows by their first cell"
+                    },
+                    "row": {
+                        "anyOf": [{ "type": "integer" }, { "type": "string" }],
+                        "description": "For set and remove: the row, by the words of its first cell or its number from 1"
+                    },
+                    "column": {
+                        "anyOf": [{ "type": "integer" }, { "type": "string" }],
+                        "description": "For set, sort, type, rename and remove_column: the column, by its title or its number from 1"
+                    },
+                    "value": { "type": "string", "description": "For set: what goes in the cell. Empty clears it" },
+                    "values": {
+                        "type": "object",
+                        "additionalProperties": { "type": ["string", "number", "boolean"] },
+                        "description": "For add: each column's title with what goes in it. Columns left out stay empty"
+                    },
+                    "title": { "type": "string", "description": "For rename and add_column: the column's title" },
+                    "type": { "type": "string", "description": "For type and add_column: the column's type as written between braces in its head, such as `number`, `money USD sum`, `date`, `check` or `select`; `language` with the topic `tables` lists them. Empty takes the type away" },
+                    "down": { "type": "boolean", "description": "For sort: from the largest down. Defaults to from the smallest up" }
+                },
+                "required": ["doc"]
             }))
         },
         {

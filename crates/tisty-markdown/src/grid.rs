@@ -137,6 +137,100 @@ pub fn order(
     })
 }
 
+/// A table as an assistant is told it: the heading over it, its columns with their types, its rows by their first cell.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct Shown {
+    #[serde(skip)]
+    pub at: Range<usize>,
+    pub heading: Option<String>,
+    pub columns: Vec<Head>,
+    pub rows: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct Head {
+    pub title: String,
+    /// The words in its braces, `money CLP sum`; none for a column of words.
+    #[serde(rename = "type")]
+    pub kind: String,
+}
+
+/// Every table of a text in reading order, each named by the heading it sits under.
+pub fn shown(text: &str) -> Vec<Shown> {
+    fn walk(blocks: &[Block], text: &str, heading: &mut Option<String>, out: &mut Vec<Shown>) {
+        for one in blocks {
+            match &one.kind {
+                Kind::Heading(_) => {
+                    let said = text[one.at.clone()].trim().trim_start_matches('#').trim();
+                    *heading = Some(said.to_string());
+                }
+                Kind::Table { columns } => out.push(listed(one, columns, text, heading.clone())),
+                _ => walk(&one.inner, text, heading, out),
+            }
+        }
+    }
+    let doc = read(text);
+    let mut out = Vec::new();
+    walk(doc.blocks(), text, &mut None, &mut out);
+    out
+}
+
+fn listed(block: &Block, columns: &[Column], text: &str, heading: Option<String>) -> Shown {
+    let said = text[block.at.clone()].trim_end_matches(['\r', '\n']);
+    let lines = Lines::read(said, false);
+    let columns = columns
+        .iter()
+        .enumerate()
+        .map(|(at, column)| {
+            let cell = lines.head.cells.get(at).map_or("", String::as_str);
+            let kind = column.typed.as_ref().and_then(|at| text.get(at.clone()));
+            let kind = kind.map_or("", |one| {
+                one.trim().trim_start_matches('{').trim_end_matches('}')
+            });
+            Head {
+                title: titled(cell, column, text).0.to_string(),
+                kind: kind.to_string(),
+            }
+        })
+        .collect();
+    let rows = block
+        .inner
+        .iter()
+        .skip(1)
+        .map(|row| {
+            row.inner
+                .first()
+                .map(|cell| values::visible(cell, text))
+                .unwrap_or_default()
+        })
+        .collect();
+    Shown {
+        at: block.at.clone(),
+        heading,
+        columns,
+        rows,
+    }
+}
+
+/// The cells of a table written not as their column's type asks, by row under the head and column.
+pub fn amiss(text: &str, at: Range<usize>) -> Result<Vec<(usize, usize)>, Refused> {
+    located(text, &at, |block, columns| {
+        let read = values::read(columns, block, text);
+        Ok(read
+            .rows
+            .iter()
+            .enumerate()
+            .flat_map(|(row, cells)| {
+                cells
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, one)| one.amiss)
+                    .map(move |(column, _)| (row, column))
+            })
+            .collect())
+    })
+}
+
 /// A table's words as written, escapes kept, so a cell opens for writing just as it is in the file.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Written {

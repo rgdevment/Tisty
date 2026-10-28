@@ -1,0 +1,13 @@
+---
+source: crates/tisty-cli/tests/mcp_tables.rs
+expression: served.body(&doc)
+---
+# Compras
+
+## Despensa
+
+| Producto | Precio {money CLP sum} | Llegó {date} | Listo {check} |
+| --- | --- | --- | --- |
+| Arroz | 1290 | 2026-10-01 | [x] |
+| Aceite | 4990 | 2026-10-03 | [ ] |
+| Café | 7990 | 2026-10-05 | [x] |

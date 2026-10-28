@@ -422,3 +422,25 @@ fn edits_near_a_byte_find_their_table_inside_a_quote_and_nothing_outside_it() {
         Err(Refused::Moved)
     );
 }
+
+#[test]
+fn a_text_tells_its_tables_by_the_heading_over_them_their_columns_and_first_cells() {
+    let text = "# Casa\n\n| Cosa | Precio {money CLP sum} |\n| --- | --: |\n| **Sofá** | 90000 |\n| Mesa | pronto |\n\n## Viajes\n\n> | Lugar | Cuándo {date} |\n> | --- | --- |\n> | Lima | 2026-11-14 |\n";
+    let all = shown(text);
+    assert_eq!(all.len(), 2);
+    assert_eq!(all[0].heading.as_deref(), Some("Casa"));
+    assert_eq!(
+        all[0]
+            .columns
+            .iter()
+            .map(|one| (one.title.as_str(), one.kind.as_str()))
+            .collect::<Vec<_>>(),
+        vec![("Cosa", ""), ("Precio", "money CLP sum")]
+    );
+    assert_eq!(all[0].rows, vec!["Sofá", "Mesa"]);
+    assert_eq!(all[1].heading.as_deref(), Some("Viajes"));
+    assert_eq!(all[1].rows, vec!["Lima"]);
+    assert_eq!(amiss(text, all[0].at.clone()), Ok(vec![(1, 1)]));
+    assert_eq!(amiss(text, all[1].at.clone()), Ok(vec![]));
+    assert!(shown("Sin tablas.\n").is_empty());
+}
