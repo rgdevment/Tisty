@@ -34,13 +34,11 @@ export function Sketch({ paths }: Readonly<{ paths: readonly string[] }>) {
 export default function Palette<Key extends string>({
   groups,
   sketch,
-  hint,
   onAdd,
   onDrop,
 }: Readonly<{
   groups: readonly PaletteGroup<Key>[];
   sketch: (key: Key) => ReactNode;
-  hint: string;
   onAdd: (key: Key) => void;
   onDrop: (key: Key, at: Point) => void;
 }>) {
@@ -97,7 +95,6 @@ export default function Palette<Key extends string>({
           </div>
         </section>
       ))}
-      <p className="m-0 mt-auto text-[11.5px] leading-snug text-faint">{hint}</p>
       {ghost && (
         <div
           aria-hidden="true"

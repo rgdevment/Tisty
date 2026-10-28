@@ -133,7 +133,8 @@ export const outlineOf = (shape: Shape, wide: number, tall: number): Outline => 
       return { ...plain(box(0, 0, wide, tall, 4), `M0,12 H${n(wide)}`), drop: 6 };
     case "console":
       return {
-        ...plain(box(0, 0, wide, tall, 4), `M0,12 H${n(wide)}`, `M8,${n(tall / 2)} l5,5 l-5,5`),
+        // A window's top bar, its prompt in it, so the words below have the body to themselves.
+        ...plain(box(0, 0, wide, tall, 4), `M0,12 H${n(wide)}`, "M6,3.5 l3,2.5 l-3,2.5 M11,8.5 h4"),
         drop: 6,
       };
     case "brace":

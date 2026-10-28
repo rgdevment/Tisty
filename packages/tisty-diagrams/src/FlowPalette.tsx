@@ -42,13 +42,5 @@ export default function FlowPalette({
       ],
     },
   ];
-  return (
-    <Palette<Piece>
-      groups={groups}
-      sketch={sketchOf}
-      hint={t("flowPaletteHint")}
-      onAdd={onAdd}
-      onDrop={onDrop}
-    />
-  );
+  return <Palette<Piece> groups={groups} sketch={sketchOf} onAdd={onAdd} onDrop={onDrop} />;
 }

@@ -30,7 +30,6 @@ const EN = {
   classNoVisibility: "No visibility",
   classPackage: "~ Package",
   classPalette: "Classes",
-  classPaletteHint: "Drag a class onto the canvas, or press it to put it in the middle.",
   classPick: "Choose a class or a relation.",
   classPlain: "Class",
   classPrivate: "- Private",
@@ -79,8 +78,7 @@ const EN = {
   diagramSibling: "+ Sibling",
   diagramStartClasses:
     "classDiagram\n  class Animal {\n    +String name\n    +eat()\n  }\n  class Dog\n  Animal <|-- Dog\n",
-  diagramStartFlow:
-    "flowchart TD\n  A[Start] --> B{Is it ready?}\n  B -->|yes| C[Finish]\n  B -->|no| A\n",
+  diagramStartFlow: "flowchart TD\n",
   diagramStartMindmap: "mindmap\n  root((Main idea))\n    First branch\n    Second branch\n",
   diagramStartOther: "sequenceDiagram\n  Ana->>Luis: Hello\n  Luis-->>Ana: Hi!\n",
   diagramStartSchema:
@@ -130,7 +128,6 @@ const EN = {
   flowPalette: "Shapes",
   flowPaletteBasic: "Basic",
   flowPaletteData: "Data",
-  flowPaletteHint: "Drag a shape onto the canvas, or press it to put it in the middle.",
   flowPaletteNotes: "Notes",
   flowPalettePeople: "People and systems",
   flowPick: "Choose a node, an arrow or a group.",
@@ -230,7 +227,6 @@ const ES: Record<Word, string> = {
   classNoVisibility: "Sin visibilidad",
   classPackage: "~ De paquete",
   classPalette: "Clases",
-  classPaletteHint: "Arrastra una clase al lienzo, o púlsala para ponerla en el medio.",
   classPick: "Elige una clase o una relación.",
   classPlain: "Clase",
   classPrivate: "- Privado",
@@ -279,8 +275,7 @@ const ES: Record<Word, string> = {
   diagramSibling: "+ Hermana",
   diagramStartClasses:
     "classDiagram\n  class Animal {\n    +String nombre\n    +comer()\n  }\n  class Perro\n  Animal <|-- Perro\n",
-  diagramStartFlow:
-    "flowchart TD\n  A[Inicio] --> B{¿Está listo?}\n  B -->|sí| C[Fin]\n  B -->|no| A\n",
+  diagramStartFlow: "flowchart TD\n",
   diagramStartMindmap: "mindmap\n  root((Idea central))\n    Primera rama\n    Segunda rama\n",
   diagramStartOther: "sequenceDiagram\n  Ana->>Luis: Hola\n  Luis-->>Ana: ¡Hola!\n",
   diagramStartSchema:
@@ -332,7 +327,6 @@ const ES: Record<Word, string> = {
   flowPalette: "Formas",
   flowPaletteBasic: "Básico",
   flowPaletteData: "Datos",
-  flowPaletteHint: "Arrastra una forma al lienzo, o púlsala para ponerla en el medio.",
   flowPaletteNotes: "Notas",
   flowPalettePeople: "Personas y sistemas",
   flowPick: "Elige un nodo, una flecha o un grupo.",

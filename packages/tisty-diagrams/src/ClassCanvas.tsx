@@ -32,6 +32,8 @@ import { GROUP } from "./useMoving";
 
 const NODE_TYPES = { class: ClassCard, lane: LaneBox };
 const EDGE_TYPES = { wire: Wire };
+// A small diagram is shown at its own size, not blown up to fill the window.
+const FITTED = { maxZoom: 1 };
 // A class put down before it has members is about this big, so it lands centred where it is let go.
 const NEW_CLASS = { wide: 150, tall: 62 };
 // A card with its name above a line, and a band above that for its kind when it has one.
@@ -156,7 +158,6 @@ function Drawing({ editing, dark }: Readonly<{ editing: Classing; dark: boolean 
           },
         ]}
         sketch={(sort) => <Sketch paths={[SKETCHES[sort] ?? KIND_SKETCH]} />}
-        hint={t("classPaletteHint")}
         onAdd={(sort) => added(sort, middleOfPane())}
         onDrop={landed}
       />
@@ -176,6 +177,7 @@ function Drawing({ editing, dark }: Readonly<{ editing: Classing; dark: boolean 
             zoomOnDoubleClick={false}
             minZoom={0.2}
             fitView
+            fitViewOptions={FITTED}
             proOptions={{ hideAttribution: true }}
             onNodesChange={moved}
             onNodeClick={(e, node) => {

@@ -46,6 +46,8 @@ import type { Flowing } from "./useFlow";
 
 const NODE_TYPES = { shape: ShapeBox, frame: FrameBox, lane: LaneBox };
 const EDGE_TYPES = { wire: Wire };
+// A small diagram is shown at its own size, not blown up to fill the window.
+const FITTED = { maxZoom: 1 };
 
 type Point = { readonly x: number; readonly y: number };
 
@@ -192,6 +194,7 @@ function Drawing({ editing, dark }: Readonly<{ editing: Flowing; dark: boolean }
             zoomOnDoubleClick={false}
             minZoom={0.2}
             fitView
+            fitViewOptions={FITTED}
             proOptions={{ hideAttribution: true }}
             onNodesChange={moved}
             onNodeClick={(e, node) => {
