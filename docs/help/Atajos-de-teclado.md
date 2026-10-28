@@ -11,7 +11,10 @@ Toda la ventana funciona con el teclado.
 | `F1` | Abrir la guía de Markdown de Tisty, sin conexión |
 | `Ctrl`/`⌘` + `S` (en la ventana de diagramas) | Guardar el diagrama en su documento |
 | `Enter` · `Tab` · `Supr` · `F2` (en un mapa mental) | Agregar una hermana, agregar una hija, borrar la idea, renombrarla |
-| `Supr` (en un esquema, un flujo o un diagrama de clases) | Borrar lo elegido |
+| `Supr` (en un esquema, un diagrama libre o un diagrama de clases) | Borrar lo elegido |
+| `Ctrl`/`⌘` + `Z` · `Ctrl`/`⌘` + `Mayús` + `Z` o `Ctrl`/`⌘` + `Y` (en la ventana de diagramas) | Deshacer y rehacer lo que cambió la ventana |
+| `Ctrl`/`⌘` + `D` (en un diagrama libre) | Duplicar la forma elegida |
+| `Ctrl`/`⌘` + clic · `Mayús` + arrastrar (en la ventana de diagramas) | Elegir varias formas, clases o tablas |
 | `Ctrl`/`⌘` + `X` · `V` | Mover un documento entre carpetas |
 | `Alt` + flecha (sobre la fila de una página) | Subir o bajar una página dentro de su documento |
 | `Alt` + flecha (en una tabla, escribiendo su texto) | Mover la fila o la columna donde está el cursor; `Ctrl` + `Alt` + ← → en un Mac |

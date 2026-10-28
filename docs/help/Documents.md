@@ -58,8 +58,7 @@ The first line of the document is its title — there is no name to fill in.
 A document takes tags the way a task does: write `#contract` in the middle of a sentence and the document is filed under it. The tag lives in the sentence, not a hidden header, so taking the file to another editor takes the tag with it. A note brought from elsewhere with `tags:` in its [properties](https://markdown.tisty.app/properties) is filed under those too.
 
 - The **Tags** screen shows the tasks under a tag and the documents beneath them. Pressing a tag inside a document opens exactly that.
-- Accents come off and case is folded: `#camion` and `#camión` are one tag.
-- A bare number is not a tag (`#1234` is a ticket), and neither is a single letter: two characters, one of them a letter.
+- How a tag is written, which letters it takes and what does not count as one, is in the [Markdown guide](https://markdown.tisty.app/tags).
 
 ## Attachments
 
@@ -102,10 +101,10 @@ A document of yours opens the same way: **Open in a window of its own**, under *
 
 A document leaves whole — every conversion is in [Convert to and from Markdown](Convert-to-and-from-Markdown):
 
-- **Copy as Markdown** — standard Markdown, the way GitHub and CommonMark read it, ready for any other editor. Tisty's own forms become the standard ones (`:::tip` becomes `> [!TIP]`, `:::details` becomes `<details>`, a single line break stays a break), a link to another document becomes its words, and every tag of the document — its `tags:` and its `#hashtags` — lands in the front matter.
+- **Copy as Markdown** — standard Markdown, ready for any other editor.
 - **Write it out to a folder**, as standard Markdown files with its pages and attachments beside it; a link to one of its pages points at that page's file.
-- **Markdown to HTML** — **Export as HTML…**, in the document's menu, makes one web page that travels alone: the document and its pages in order, with the look of the page and its pictures inside.
-- **Markdown to Word** — **Export as Word…** makes a `.docx` with its headings, lists, tables, links, pens and pictures inside, and its code in Consolas, so it comes back in as code if you import it again. Each page and each page break starts a new sheet.
+- **Markdown to HTML** — **Export as HTML…**, in the document's menu, makes one web page that travels alone.
+- **Markdown to Word** — **Export as Word…** makes a `.docx` with its headings, lists, tables and pictures.
 - **Export for Tisty** into a `.tistyx` file, which also carries what Markdown cannot say: folders with their order, icon and colour, which document each page hangs from, what is archived, and the alias it was signed with. It includes a `README.txt`, so whoever receives it can read the documents without Tisty.
 - **Markdown to PDF** — see [Pages and PDF](Pages-and-PDF#tistys-own-pdf).
 

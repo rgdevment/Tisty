@@ -323,8 +323,10 @@ editor— y en Tisty lleva bastante más que texto:
   flujos, secuencias, tortas, líneas de tiempo, mapas mentales, cartas Gantt y
   más con el Mermaid oficial, claros u oscuros según la ventana y legibles a
   cualquier ancho. Un doble clic lo abre en su propia ventana, donde un mapa
-  mental, un esquema de base de datos, un flujo o un diagrama de clases también
-  se dibujan a mano, se guardan como Mermaid y se exportan como PNG, JPG o SVG.
+  mental, un esquema de base de datos, un diagrama libre o un diagrama de clases
+  también se dibujan a mano, con una paleta de todas las formas de Mermaid, se
+  guardan como Mermaid, se ven en la página como en la ventana y se exportan como
+  PNG, JPG o SVG.
 - **Fórmulas** compuestas desde un bloque `math`, **código** coloreado por su
   lenguaje y con el nombre de su archivo, y **tablas** que conservan hacia dónde
   se inclinan sus columnas y con qué ancho las dibujaste, cuyas columnas pueden
@@ -1132,7 +1134,8 @@ que ordena por tiempo y no necesita coordinación.
 bloque, mientras [pulldown-cmark](https://github.com/pulldown-cmark/pulldown-cmark)
 lee el Markdown en el núcleo y [ammonia](https://github.com/rust-ammonia/ammonia)
 deja inofensivo el HTML que traiga; [Mermaid](https://mermaid.js.org) dibuja los
-diagramas que describe un bloque de código y [KaTeX](https://katex.org) compone
+diagramas que describe un bloque de código, [React Flow](https://reactflow.dev)
+es el lienzo donde se dibujan a mano y [KaTeX](https://katex.org) compone
 sus fórmulas; [lowlight](https://github.com/wooorm/lowlight) y
 [highlight.js](https://highlightjs.org) colorean el código;
 [webview2-com](https://github.com/wravery/webview2-rs) llega al motor que arma

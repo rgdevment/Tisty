@@ -8,7 +8,7 @@ A document in Tisty is text of yours, kept as a plain `.md` file, that you write
 
 There is one way of writing, and it happens on the page itself.
 
-- **Click a block and it opens right there**, with the caret where you clicked. The rest of the page stays as it reads. A click on a picture or a diagram opens it large instead, to zoom in, move it around and go to the next one; to edit it, use the block's menu, and a double click on a diagram opens it in the [[diagram window|Diagrams]].
+- **Click a block and it opens right there**, with the caret where you clicked. The rest of the page stays as it reads. A click on a picture or a diagram opens it large instead, to zoom in, move it around and go to the next one; to edit it, use the block's menu. A diagram brings its own bar when the pointer is over it: **Export**, **Edit as Markdown**, which opens its text right there, and **Open in the diagram window**; a double click also opens it in the [[diagram window|Diagrams]].
 - **The marks stay out of sight.** Bold looks bold and a heading looks like a heading; the `**` or the `#` only show where the caret touches that format, so you can see what you are changing.
 - **Headings, lists, stages, quotes and callouts are always drawn**, even while you write them: a bullet is a bullet, a box is a box you can tick, a callout wears its colour and its name.
 - **Esc, or a click outside, goes back to reading.** What you write is saved as you go, and the foot of the page says so.
@@ -19,7 +19,7 @@ A line at the foot of the page keeps the keys in sight: `/` to insert, `#` and a
 
 ## The bar
 
-While a block is open, a bar floats over it:
+While a block is open, a bar floats over it (not inside a code block or a `$$` formula, where it would write nothing):
 
 - **The kind of block**: Paragraph, Heading, Subheading, Small heading, Bulleted list, Numbered list, Stages or Quote. Every line you have selected changes at once. Inside a table it reads **Table** and offers a row above or below, a column on either side, the column's alignment, and removing a row or a column. The dashes under the header stay as you drew them, so the widths do too.
 - **Bold**, **italic**, **underline**, **strikethrough**, **code** and **link**.
@@ -78,7 +78,7 @@ The writing sits on a lit page. When the window is wide enough, a column opens b
 A table is written on the page itself, without opening its block:
 
 - **Click a cell** to write in it; Enter or a click outside keeps it, Esc leaves it as it was. Its title is written the same way. The cell shows its words without marks, and a bar over the table puts bold, italic, underline, strikethrough, code or a pen on the whole cell, or takes it off. A table made from the `/` menu opens this way at once, on its first title.
-- **A row's and a column's `⋯` menu** move it, duplicate or remove a row, insert a column on either side, rename it, and give it a **type**: number, money, percent, date, duration, yes or no, choice, tags, rating, document, web address, email or phone. Money takes its currency, and a column of numbers can add itself up at the foot: sum, average, minimum, maximum or count. **Edit as Markdown** opens the table as text.
+- **A row's and a column's `⋯` menu** move it, duplicate or remove a row, insert a column on either side, rename it, and give it a **type**: number, money, percent, date, duration, yes or no, choice, tags, rating, document, web address, email or phone. Money takes its currency, and a column can sum itself up at the foot: sum, average, minimum or maximum for numbers, minimum and maximum for dates, and count for any. **Edit as Markdown** opens the table as text.
 - **Drag a row or a column** by its handle to put it somewhere else, and **New row** under the table adds one at the end.
 - **A typed cell is written as its type asks**: a calendar for a date, where you can also type «next Friday»; the column's own options for a choice, each with its colour; stars for a rating; a click for yes or no; a finder for a document.
 - **Sort and filter from a column's head.** That order and those filters are on screen only and leave the file alone; **Save this order** writes the rows in that order.
@@ -86,7 +86,7 @@ A table is written on the page itself, without opening its block:
 - **In the text**, with the block open, `Alt` + ↑ ↓ moves the row the caret is on and `Alt` + ← → its column (`Ctrl` + `Alt` on a Mac), and the bar's **Table** menu sorts it and gives a column its type.
 - **Rows copied from Excel, Numbers or Google Sheets** — or a CSV — come in as a table when you paste them.
 
-A table wider than the page scrolls sideways, and its PDF and Word copies keep every column. How a type is written in the file is in the guide's [column types](https://markdown.tisty.app/tables).
+A table wider than the page scrolls sideways, and its PDF and Word copies keep every column. How a type is written in the file is in the guide's [column types](https://markdown.tisty.app/tables#column-types).
 
 ## What a document can hold
 

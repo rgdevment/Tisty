@@ -58,8 +58,7 @@ La primera línea del documento es su título: no hay que ponerle nombre.
 Un documento lleva etiquetas igual que una tarea: escribe `#contrato` en medio de una frase y el documento queda bajo esa etiqueta. La etiqueta vive en la frase, no en una cabecera escondida, así que si llevas el archivo a otro editor, la etiqueta va con él. Una nota traída de otra parte con `tags:` en sus [propiedades](https://markdown.tisty.app/es/propiedades) también queda bajo esas.
 
 - La pantalla de **Etiquetas** muestra las tareas bajo una etiqueta y, debajo, los documentos. Pulsar una etiqueta dentro de un documento abre justo eso.
-- Se quitan los acentos y se ignoran las mayúsculas: `#camion` y `#camión` son la misma etiqueta.
-- Un número solo no es etiqueta (`#1234` es un ticket), ni tampoco una sola letra: dos caracteres, al menos uno de ellos una letra.
+- Cómo se escribe una etiqueta, con qué letras y qué no cuenta como una, está en la [guía de Markdown](https://markdown.tisty.app/es/etiquetas).
 
 ## Adjuntos
 
@@ -102,10 +101,10 @@ Un documento tuyo se abre igual: **Abrir en una ventana aparte**, bajo **Ventana
 
 Un documento sale entero; cada conversión está en [Convertir a y desde Markdown](Convertir-a-y-desde-Markdown):
 
-- **Copiar como Markdown**: Markdown estándar, como lo leen GitHub y CommonMark, listo para cualquier otro editor. Las formas propias de Tisty pasan a las estándar (`:::tip` pasa a `> [!TIP]`, `:::details` a `<details>`, y un salto de línea simple sigue siendo salto), un enlace a otro documento queda como su texto, y todas las etiquetas del documento (las de `tags:` y los `#hashtags`) quedan en el front matter.
+- **Copiar como Markdown**: Markdown estándar, listo para cualquier otro editor.
 - **Escribirlo en una carpeta**, como archivos de Markdown estándar con sus páginas y adjuntos al lado; un enlace a una de sus páginas apunta al archivo de esa página.
-- **De Markdown a HTML**: **Exportar como HTML…**, en el menú del documento, hace una sola página web que viaja sola: el documento y sus páginas en orden, con el aspecto de la página y sus imágenes dentro.
-- **De Markdown a Word**: **Exportar como Word…** hace un `.docx` con sus títulos, listas, tablas, enlaces, rotuladores e imágenes dentro, y el código en Consolas, para que vuelva a entrar como código si lo importas de nuevo. Cada página y cada salto de página empieza una hoja nueva.
+- **De Markdown a HTML**: **Exportar como HTML…**, en el menú del documento, hace una sola página web que viaja sola.
+- **De Markdown a Word**: **Exportar como Word…** hace un `.docx` con sus títulos, listas, tablas e imágenes.
 - **Exportar para Tisty** en un archivo `.tistyx`, que además lleva lo que Markdown no sabe decir: las carpetas con su orden, icono y color, de qué documento cuelga cada página, qué está archivado y el alias con que se firmó. Incluye un `README.txt`, para que quien lo reciba pueda leer los documentos sin Tisty.
 - **De Markdown a PDF**: mira [Páginas y PDF](Páginas-y-PDF#el-pdf-propio-de-tisty).
 
