@@ -111,6 +111,16 @@ html.widening * {
   cursor: grabbing;
   user-select: none;
 }
+.row-dragged > td {
+  background: var(--tisty-accent-soft);
+  opacity: 0.6;
+}
+.row-landing-above > td {
+  box-shadow: inset 0 3px 0 var(--tisty-accent);
+}
+.row-landing-below > td {
+  box-shadow: inset 0 -3px 0 var(--tisty-accent);
+}
 .table.dressed th {
   padding-right: 30px;
 }
