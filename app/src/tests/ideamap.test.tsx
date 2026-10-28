@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { sayIn } from "tisty-diagrams/read";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Diagramming from "../ui/drawing/Diagramming";
 
 // The studio says its own words; these tests read them as it does, in English.
@@ -47,8 +47,15 @@ const named = (words: string) => {
   key(box, "Enter");
 };
 
+// Tests stub where the pointer lands; each starts from the page's own answer.
+const pointed = document.elementFromPoint;
+
 beforeEach(() => {
   vi.restoreAllMocks();
+});
+
+afterEach(() => {
+  document.elementFromPoint = pointed;
 });
 
 describe("a mind map in the diagram window", () => {
@@ -104,11 +111,37 @@ describe("a mind map in the diagram window", () => {
     expect(text()).not.toContain("Rama");
     fireEvent.click(tool(say("flowUndo")));
     expect(text()).toContain("Rama");
-    key(idea("Rama"), "z");
     fireEvent.keyDown(idea("Rama"), { key: "z", ctrlKey: true });
     expect(text()).not.toContain("Rama");
+    expect(text()).not.toContain(say("diagramNewIdea"));
+    fireEvent.keyDown(idea("Hoja"), { key: "Z", ctrlKey: true, shiftKey: true });
+    expect(text()).toContain("Rama");
+    fireEvent.keyDown(idea("Hoja"), { key: "z", ctrlKey: true });
     fireEvent.keyDown(idea("Hoja"), { key: "y", ctrlKey: true });
     expect(text()).toContain("Rama");
+  });
+
+  it("leaves Ctrl+Z to the box while an idea is being named", () => {
+    opened();
+    fireEvent.click(palette().getByRole("button", { name: say("diagramShapeCloud") }));
+    const box = document.querySelector(".diagram-drawn input") as HTMLInputElement;
+
+    fireEvent.keyDown(box, { key: "z", ctrlKey: true });
+
+    expect(text()).toContain(`)${say("diagramNewIdea")}(`);
+  });
+
+  it("puts nothing where a shape is let go over the toolbar or the palette", () => {
+    opened();
+    const shape = palette().getByRole("button", { name: say("diagramShapeSquare") });
+    for (const under of [tool(say("flowZoomIn")), shape]) {
+      document.elementFromPoint = () => under;
+      fireEvent.pointerDown(shape, { clientX: 0, clientY: 0 });
+      fireEvent.pointerMove(window, { clientX: 300, clientY: 200 });
+      fireEvent.pointerUp(window, { clientX: 300, clientY: 200 });
+    }
+
+    expect(text()).toBe(MAP);
   });
 
   it("chooses an idea by pressing it and renames it from the panel, into the text", () => {

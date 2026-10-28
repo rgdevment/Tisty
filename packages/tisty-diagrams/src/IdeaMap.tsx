@@ -10,7 +10,6 @@ import Board from "./Board";
 import { outlineOf } from "./flowoutlines";
 import type { Shape as FlowShape } from "./flowshapes";
 import { useSay } from "./handing";
-import { SHAPE_WORDS } from "./IdeaPanel";
 import {
   type Changed,
   moved,
@@ -23,6 +22,7 @@ import {
 } from "./minding";
 import { curve, HEXAGON, HUES, laidOut, type Placed } from "./mindlayout";
 import { type Mind, SHAPES, type Shape } from "./mindmap";
+import { SHAPE_WORDS } from "./mindshapes";
 import Palette, { Sketch } from "./Palette";
 import { Gap, RemoveTools, Tool, ToolBar, UndoTools, ZoomTools } from "./tools";
 
@@ -91,7 +91,7 @@ export default function IdeaMap({
   undo: (() => void) | null;
   redo: (() => void) | null;
   onChoose: (path: Path) => void;
-  onChange: (made: Changed) => void;
+  onChange: (made: Changed, merged?: boolean) => void;
 }>) {
   const t = useSay();
   const laid = useMemo(() => laidOut(mind), [mind]);
@@ -101,6 +101,9 @@ export default function IdeaMap({
   // The browser ends a drag with a click on the idea it started from, whose place has just changed.
   const dropped = useRef(false);
   const here = useRef<HTMLDivElement>(null);
+  const room = useRef<HTMLElement>(null);
+  // An idea just added is named as part of adding it, so one undo takes both away.
+  const justAdded = useRef(false);
 
   // Keys keep working idea after idea: the chosen one takes the focus back unless the person is typing elsewhere.
   useEffect(() => {
@@ -111,15 +114,20 @@ export default function IdeaMap({
   }, [chosen, renaming]);
 
   // A new idea is named right away, as in any map editor.
+  const renameOld = (path: Path | null) => {
+    justAdded.current = false;
+    setRenaming(path);
+  };
+
   const added = (made: Changed) => {
     onChange(made);
+    justAdded.current = true;
     setRenaming(made.chosen);
   };
 
-  // A new idea of the shape asked for, under the idea given, named at once.
   const grown = (shape: Shape, under: Path) => {
     const made = withChild(mind, under, fresh);
-    added(shape === "plain" ? made : reshaped(made.mind, made.chosen, shape));
+    added(reshaped(made.mind, made.chosen, shape));
   };
 
   const keyed = (e: KeyboardEvent) => {
@@ -137,7 +145,7 @@ export default function IdeaMap({
       Tab: () => added(withChild(mind, chosen, fresh)),
       Delete: () => onChange(without(mind, chosen)),
       Backspace: () => onChange(without(mind, chosen)),
-      F2: () => setRenaming(chosen),
+      F2: () => renameOld(chosen),
     };
     const act = acts[e.key];
     if (!act) return;
@@ -149,7 +157,8 @@ export default function IdeaMap({
     pathOf(document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-idea]")?.dataset.idea);
 
   const settle = (text: string) => {
-    if (renaming) onChange(renamed(mind, renaming, text.trim() || fresh));
+    if (renaming) onChange(renamed(mind, renaming, text.trim() || fresh), justAdded.current);
+    justAdded.current = false;
     setRenaming(null);
   };
 
@@ -168,25 +177,26 @@ export default function IdeaMap({
         sketch={sketchOf}
         onAdd={(shape) => grown(shape, chosen)}
         onDrop={(shape, at) => {
-          // Let go over the palette or outside the window, the shape is put nowhere.
-          const under = document.elementFromPoint(at.x, at.y);
-          if (!under || !here.current?.contains(under) || under.closest("aside")) return;
+          if (!room.current?.contains(document.elementFromPoint(at.x, at.y))) return;
           grown(shape, underPointer(at.x, at.y) ?? chosen);
         }}
       />
       <Board
         size={laid.size}
+        room={room}
         bar={(zooming) => (
           <ToolBar>
             <UndoTools undo={undo} redo={redo} />
             <Gap />
             <Tool
               label={t("diagramAddChild")}
+              hint={`${t("diagramAddChild")} (Tab)`}
               icon="child"
               onClick={() => added(withChild(mind, chosen, fresh))}
             />
             <Tool
               label={t("diagramAddSibling")}
+              hint={`${t("diagramAddSibling")} (Enter ↵)`}
               icon="sibling"
               onClick={() => added(withSibling(mind, chosen, fresh))}
             />
@@ -195,7 +205,6 @@ export default function IdeaMap({
               removable={chosen.length > 0}
               refused={undefined}
               onRemove={() => onChange(without(mind, chosen))}
-              onDuplicate={null}
             />
             <ZoomTools {...zooming} />
           </ToolBar>
@@ -226,6 +235,7 @@ export default function IdeaMap({
               key={name || "root"}
               type="button"
               data-idea={name}
+              title={t("diagramIdeaKeys")}
               aria-pressed={isChosen}
               className={`absolute box-border flex cursor-pointer items-center justify-center truncate px-2 text-[13px] whitespace-nowrap outline-none ${
                 one.depth === 0 ? "rounded-full text-[15px] font-bold" : outline[one.idea.shape]
@@ -237,7 +247,7 @@ export default function IdeaMap({
                 if (dropped.current) dropped.current = false;
                 else onChoose(one.path);
               }}
-              onDoubleClick={() => setRenaming(one.path)}
+              onDoubleClick={() => renameOld(one.path)}
               onPointerDown={(e) => {
                 pressed.current = { path: one.path, x: e.clientX, y: e.clientY, dragging: false };
                 dropped.current = false;
@@ -285,7 +295,7 @@ export default function IdeaMap({
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter") settle(e.currentTarget.value);
-              if (e.key === "Escape") setRenaming(null);
+              if (e.key === "Escape") renameOld(null);
               e.stopPropagation();
             }}
             onBlur={(e) => settle(e.currentTarget.value)}

@@ -1,18 +1,7 @@
 import { useEffect, useState } from "react";
 import { useHands, useSay } from "./handing";
 import { type Idea, SHAPES, type Shape } from "./mindmap";
-import type { Word } from "./words";
-
-/** What each shape of an idea is called. */
-export const SHAPE_WORDS: Record<Shape, Word> = {
-  plain: "diagramShapePlain",
-  square: "diagramShapeSquare",
-  rounded: "diagramShapeRounded",
-  circle: "diagramShapeCircle",
-  cloud: "diagramShapeCloud",
-  bang: "diagramShapeBang",
-  hexagon: "diagramShapeHexagon",
-};
+import { SHAPE_WORDS } from "./mindshapes";
 
 /** The chosen idea's words, shape and the ways to grow or prune the map from it. */
 export default function IdeaPanel({

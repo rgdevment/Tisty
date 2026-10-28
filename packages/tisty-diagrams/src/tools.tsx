@@ -244,7 +244,8 @@ export function RemoveTools({
   removable: boolean;
   refused: string | undefined;
   onRemove: () => void;
-  onDuplicate: (() => void) | null;
+  // Left out where nothing can be duplicated; null while what is chosen cannot be.
+  onDuplicate?: (() => void) | null;
 }>) {
   const t = useSay();
   return (
@@ -256,12 +257,14 @@ export function RemoveTools({
         hint={refused}
         onClick={onRemove}
       />
-      <Tool
-        label={t("flowDuplicate")}
-        icon="duplicate"
-        disabled={!onDuplicate}
-        onClick={() => onDuplicate?.()}
-      />
+      {onDuplicate !== undefined && (
+        <Tool
+          label={t("flowDuplicate")}
+          icon="duplicate"
+          disabled={!onDuplicate}
+          onClick={() => onDuplicate?.()}
+        />
+      )}
     </>
   );
 }

@@ -8,7 +8,8 @@ export interface Minding {
   readonly mind: Mind;
   readonly chosen: Path;
   readonly idea: Idea;
-  readonly change: (made: Changed) => void;
+  // `merged` folds the change into the last one, as naming an idea just added.
+  readonly change: (made: Changed, merged?: boolean) => void;
   readonly choose: (path: Path) => void;
   readonly undo: (() => void) | null;
   readonly redo: (() => void) | null;
@@ -34,8 +35,8 @@ export const useMind = (text: string, setText: (text: string) => void): Minding 
     mind,
     chosen: here,
     idea: ideaAt(mind, here) ?? mind.root,
-    change: (made) => {
-      if (made.mind !== mind) stepped(writeMind(made.mind));
+    change: (made, merged) => {
+      if (made.mind !== mind) stepped(writeMind(made.mind), merged);
       keep(made.mind, made.chosen);
     },
     choose: (path) => keep(mind, path),
