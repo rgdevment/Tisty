@@ -114,7 +114,7 @@ Las reglas completas están en [[Qué puede hacer un asistente|Qué-puede-hacer-
 
 ## Firmado con su nombre
 
-Lo que escribe un asistente va firmado con el nombre del programa por el que habló («por Claude Code», «por Codex») en la fila, el detalle y la bitácora. Configuración › Asistentes cuenta lo que escribió cada uno. Lo que se escribió antes de que los programas dijeran su nombre se lee «por un asistente».
+Lo que escribe un asistente va firmado con el nombre del programa por el que habló. En la fila y en el panel lateral dice «por un agente», y el nombre aparece al pasar el puntero; la tarea abierta a página completa y la bitácora nombran el programa («por Claude Code», «por Codex»). Configuración › Asistentes cuenta lo que escribió cada uno. Lo que se escribió antes de que los programas dijeran su nombre se lee «por un asistente».
 
 ## Lee con mesura
 

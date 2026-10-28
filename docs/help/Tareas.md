@@ -64,7 +64,7 @@ Presiona `Ctrl` + `Shift` + `Space` desde donde estés y se abre una ventanita p
 
 ## Las vistas
 
-- **Hoy**: lo que pide el día, lo más urgente primero: **Vencidas** (pasó su límite, en rojo), **Por vencer** (faltan tres días o menos para su límite), **Atrasadas** (pasó el día que planeaste, en ámbar), **Para hoy** y **En curso** (empezó y aún no llega a su límite), plegado para que un proyecto largo no llene la lista todos los días.
+- **Hoy**: lo que pide el día, lo más urgente primero: **Vencidas** (pasó su límite, en rojo), **Por vencer** (faltan tres días o menos para su límite), **Atrasadas** (pasó el día que planeaste, en ámbar), **Para hoy** y **En curso** (empezó y aún no llega a su límite), plegado para que un proyecto largo no llene la lista todos los días. Cada fila dice cuándo vence («vence en 3 días», «vence mañana») o, si está atrasada, desde cuándo.
 - **Próximo**: lo que viene.
 - **Se repiten**: lo que vuelve por su cuenta.
 - **Todas**: todo lo abierto, sin filtro.
@@ -113,7 +113,8 @@ Cada casilla que escribes en la página, `- [ ]`, es uno de sus pasos: se marca 
 
 Cuando un paso necesita más, pasa el mouse sobre su casilla abierta y aprieta **↗**: se vuelve una tarea propia, una **parte** de esta, y en su lugar queda su tarjeta con los pasos que lleva y su fecha. Un clic en la tarjeta la abre.
 
-- Una tarea con partes muestra **▣ 3/7** donde contaría sus pasos, y sus partes se pliegan debajo.
+- Una tarea con partes muestra **▣ 3/7** donde contaría sus pasos, y sus partes se pliegan debajo. Las despliega en cualquier vista; las que esa vista deja fuera esperan plegadas bajo «3 más fuera de esta vista» hasta que las pidas.
+- Una tarea con fecha, fecha límite y partes muestra una barra fina: cuánto de su plazo pasó, contra cuántas de sus partes están cerradas. Dice **Va al día**, **Va lenta** o **No llega**, y el tramo plegado **En curso** cuenta las que se están quedando atrás.
 - En otras vistas, cada parte nombra a su tarea con **⌂**.
 - Junto a la página, **Partes** recibe una nueva en su propia línea, y **Es parte de otra…** busca por nombre la tarea a la que pertenece. **Soltarla** la separa.
 - El trayecto de las dos cuenta cuándo se sumó una parte y cuándo se soltó.

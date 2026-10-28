@@ -10,7 +10,7 @@ Lo que un asistente puede hacer es pequeño a propósito. Terminar, descartar y 
 - **Decir que una tarea está hecha**, o que no debería hacerse: cualquier tarea, también las tuyas. La marca para que la confirmes y no cierra nada.
 - **Decir que un paso tuyo está listo**: el paso queda sin marcar hasta que tomes su palabra.
 - **Añadir a la bitácora** de una tarea.
-- **Escribir un documento**, añadir a uno que ya existe (al final o bajo un título), corregir un pasaje o reescribirlo entero.
+- **Escribir un documento**, añadir a uno que ya existe (al final o bajo un título), corregir un pasaje, cambiar una de sus tablas por sus filas y columnas o reescribirlo entero.
 - **Ordenar documentos en carpetas**, hacer de un documento una página de otro y fijar el orden en que se leen sus páginas.
 - **Marcar un documento que ya cumplió su vida**: una propuesta, no un borrado (más abajo).
 - **Guardar una copia de un archivo** que le indiques, en una tarea o dentro de un documento.
@@ -32,7 +32,7 @@ Para lo prohibido no hay herramienta: no es que esté escondida ni restringida, 
 
 Cuando un asistente termina una de las tareas que anotó, lo dice y deja en la bitácora la cuenta de lo que hizo: el comando que corrió y lo que respondió, el commit, lo que sostenga lo que afirma. **La tarea sigue abierta.**
 
-Esas tareas se reúnen bajo **Por confirmar** al pie de la lista, con un contador de cuántas te esperan, para que las revises de una pasada. Lo que vence hoy o ya está atrasado no se mueve: se queda en su tramo, marcado, porque algo con fecha tiene que estar donde lo buscas.
+Esas tareas se reúnen bajo **Por confirmar** al pie de la lista, con un contador de cuántas te esperan, para que las revises de una pasada. Lo vencido, por vencer, atrasado, para hoy o en curso no se mueve: se queda en su tramo, marcado, porque algo con fecha tiene que estar donde lo buscas.
 
 - **Márcala** y se cierra como cualquier otra, guardando las dos firmas en el archivo: quién la resolvió y quién la terminó.
 - **Sigue pendiente** la devuelve a su día. La marca se quita y la cuenta se queda, para que la próxima vez los dos vean lo que se afirmó.

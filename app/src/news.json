@@ -866,5 +866,112 @@
         "said": "an emoji you use as a folder's icon takes the same room as every other icon and no longer stretches its row, above all on a Mac."
       }
     ]
+  },
+  {
+    "version": "1.38.0",
+    "headline": {
+      "es": "Tareas más claras, tablas de verdad y diagramas que dibujas a mano",
+      "en": "Clearer tasks, real tables and diagrams you draw by hand"
+    },
+    "es": [
+      {
+        "title": "Vencida solo cuando pasa su límite",
+        "said": "una tarea vence solo cuando pasa su fecha límite. Si se te pasó el día que planeaste, queda atrasada, en ámbar; y si ya empezó y aún tiene plazo, está en curso. Tu lista ya no marca en rojo lo que todavía llega a tiempo."
+      },
+      {
+        "title": "Hoy, lo más urgente primero",
+        "said": "Hoy ordena lo que pide el día: Vencidas, Por vencer (tres días o menos), Atrasadas, Para hoy y En curso, plegada para que un proyecto largo no llene la lista todos los días. Cada fila dice cuándo vence, y la columna del día cuenta lo vencido y lo atrasado por separado."
+      },
+      {
+        "title": "¿Llegas a tiempo?",
+        "said": "una tarea con fecha, fecha límite y partes muestra una barra delgada que compara el plazo que ya pasó con las partes que cerraste: va al día, va lenta o no llega. En curso te avisa cuántas no llegan, aunque esté plegada."
+      },
+      {
+        "title": "Sabes qué escribió un agente",
+        "said": "la fila y el panel de una tarea dicen que la escribió un agente, y al pasar el puntero, cuál; la página completa lo nombra, junto con el equipo donde la escribió."
+      },
+      {
+        "title": "Las partes, en cualquier vista",
+        "said": "una tarea despliega sus partes en cualquier vista, y las que esa vista deja fuera esperan plegadas hasta que las pidas."
+      },
+      {
+        "title": "Tablas que se editan en la página",
+        "said": "haz clic en una celda y escribe. Mueve, duplica o quita filas y columnas desde su menú `⋯`, o arrástralas por su asa. Ordena y filtra desde el título de una columna sin tocar el archivo, y si te gusta ese orden, «Guardar este orden» lo deja escrito."
+      },
+      {
+        "title": "Columnas con tipo",
+        "said": "dale a una columna un tipo, como número, dinero, fecha, opción, valoración o documento, y cada celda se escribe como pide: un calendario que entiende «el próximo viernes», opciones con su color, estrellas, un interruptor o un buscador de documentos. Una columna de números se suma al pie, y un valor mal escrito se conserva con una línea ondulada debajo."
+      },
+      {
+        "title": "Pega desde tu hoja de cálculo",
+        "said": "las filas copiadas de Excel, Numbers o Google Sheets, o un CSV, entran como tabla. Una tabla más ancha que la página se desplaza hacia el lado sin cortar palabras, y en PDF y Word conserva todas sus columnas."
+      },
+      {
+        "title": "Una ventana para tus diagramas",
+        "said": "haz doble clic sobre un diagrama y se abre en su propia ventana, con el dibujo al lado de su texto, cambiando en vivo. `Ctrl`/`⌘` + `S` lo guarda en su documento, y si el documento cambió mientras tanto, la ventana te pregunta cuál quedarte."
+      },
+      {
+        "title": "Dibuja a mano, sin escribir código",
+        "said": "mapas mentales, esquemas de base de datos, diagramas de flujo y diagramas de clases se dibujan y se editan con el ratón. Un esquema se copia como SQL o DBML, y todo se guarda como el mismo texto Mermaid que leen GitHub, Notion u Obsidian."
+      },
+      {
+        "title": "Empieza, reutiliza y exporta",
+        "said": "«Diagrama nuevo», en Documentos, en el menú `/` o en la barra flotante, empieza con un ejemplo del tipo que elijas. «Diagrama existente…» copia uno de otro documento. Y cada diagrama se exporta como PNG, JPG o SVG, o se copia como imagen para pegarlo en un chat."
+      },
+      {
+        "title": "Tu asistente, también con tablas",
+        "said": "un asistente conectado cambia una tabla por sus filas y columnas, sin reescribir el documento. Además, cada herramienta le dice a su app si solo lee o si escribe, para que pueda preguntarte antes."
+      }
+    ],
+    "en": [
+      {
+        "title": "Overdue only once its deadline passes",
+        "said": "a task is overdue only once its deadline passes. If the day you planned slipped by, it is late, in amber; and if it has started and still has time, it is underway. Your list no longer turns red over what can still be done in time."
+      },
+      {
+        "title": "Today, most urgent first",
+        "said": "Today sorts what the day asks of you: Overdue, Due soon (three days or fewer), Late, For today and Underway, folded so a long project does not fill the list every day. Each row says when it is due, and the day's column counts overdue and late apart."
+      },
+      {
+        "title": "Will you make it?",
+        "said": "a task with a date, a deadline and parts shows a thin bar comparing the time gone with the parts you closed: on track, running slow or won't make it. Underway tells you how many won't make it, even while folded."
+      },
+      {
+        "title": "You know what an agent wrote",
+        "said": "a task's row and panel say an agent wrote it, and on hover, which one; the full page names it, along with the computer it wrote on."
+      },
+      {
+        "title": "Parts, in any view",
+        "said": "a task unfolds its parts in any view, and the ones that view leaves out wait folded until you ask for them."
+      },
+      {
+        "title": "Tables you edit on the page",
+        "said": "click a cell and type. Move, duplicate or remove rows and columns from their `⋯` menu, or drag them by their handle. Sort and filter from a column's title without touching the file, and if you like that order, «Save this order» writes it down."
+      },
+      {
+        "title": "Columns with a type",
+        "said": "give a column a type, such as number, money, date, option, rating or document, and each cell is written the way it asks: a calendar that understands «next Friday», options with their colour, stars, a switch or a document finder. A column of numbers adds up at its foot, and a value written wrong is kept with a wavy line under it."
+      },
+      {
+        "title": "Paste from your spreadsheet",
+        "said": "rows copied from Excel, Numbers or Google Sheets, or a CSV, come in as a table. A table wider than the page scrolls sideways without breaking words, and in PDF and Word it keeps all its columns."
+      },
+      {
+        "title": "A window for your diagrams",
+        "said": "double-click a diagram and it opens in its own window, the drawing beside its text, changing live. `Ctrl`/`⌘` + `S` saves it to its document, and if the document changed in the meantime, the window asks which one to keep."
+      },
+      {
+        "title": "Draw by hand, no code",
+        "said": "mind maps, database schemas, flowcharts and class diagrams are drawn and edited with the mouse. A schema copies as SQL or DBML, and everything is saved as the same Mermaid text that GitHub, Notion or Obsidian read."
+      },
+      {
+        "title": "Start, reuse and export",
+        "said": "«New diagram», in Documents, in the `/` menu or on the floating bar, starts from an example of the kind you pick. «Existing diagram…» copies one from another document. And every diagram exports as PNG, JPG or SVG, or copies as an image to paste in a chat."
+      },
+      {
+        "title": "Your assistant, with tables too",
+        "said": "a connected assistant changes a table by its rows and columns, without rewriting the document. And every tool tells its app whether it only reads or writes, so it can ask you first."
+      }
+    ]
   }
 ]

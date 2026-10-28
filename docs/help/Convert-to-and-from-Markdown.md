@@ -16,7 +16,7 @@ Copy from Google Docs and paste into a document. It comes in like a web page: he
 
 ## Rich text to Markdown
 
-Text copied with its formatting — from a web page, an email or a word processor — keeps its headings, lists, bold, links, tables and coloured words when you paste it. A colour becomes the nearest pen of the palette.
+Text copied with its formatting — from a web page, an email or a word processor — keeps its headings, lists, bold, links, tables and coloured words when you paste it. A colour becomes the nearest pen of the palette. Rows copied from Excel, Numbers or Google Sheets, or a CSV, come in as a table.
 
 ## Plain text to Markdown
 

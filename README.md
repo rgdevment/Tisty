@@ -526,10 +526,10 @@ opened. Nothing else on screen.
 **The list stands where it stands.** It does not drift to the middle of whatever
 room is left, so opening a task moves nothing. Where the window is wide enough,
 the space that opens up is not left blank: a column tells you the day — what is
-overdue, what is for today, what is ahead, the four quadrants with their counts,
-the lists holding something and the tags in use. All of it counts your whole
-store rather than the slice on screen, and every figure is a way in. Narrow the
-window and it steps aside; a task always wins the room over it.
+overdue, what is late, what is for today, what is ahead, the four quadrants with
+their counts, the lists holding something and the tags in use. All of it counts
+your whole store rather than the slice on screen, and every figure is a way in.
+Narrow the window and it steps aside; a task always wins the room over it.
 
 **It reads what you write.** You type a sentence and Tisty takes the date out of
 it, leaves the sentence readable, and shows you what it understood *before*
@@ -545,7 +545,7 @@ anything is saved — as chips you can correct with one click.
 
 A day, a time, or both. Names, distances, plain dates. What it cannot read it
 leaves alone rather than guess. A deadline is a different thing from a plan, and
-three words open one: **before**, **due**, **until**.
+four words open one: **before**, **by**, **due**, **until**.
 
 **A task opens beside the list**, not on top of it: dates, list, tags and
 priority above, and below them its own page, a Markdown document like any other,
@@ -858,9 +858,10 @@ description yet; plan its steps; and tick them off as it goes, which is the one
 thing it does without asking — taking back a tick it gave by mistake included,
 never one you gave. Its day, its title, its list and its closing stay yours all
 the same. «No agents» shuts the door again and keeps what was filled in. What an
-assistant writes is signed with the name of the program it spoke through — «by
-Claude Code», «by Codex» — in the row, the detail and the journal, and Settings
-› Assistants counts what each one wrote.
+assistant writes is signed with the name of the program it spoke through: a row
+and the side panel say «by an agent» and name it on hover, while the full page
+and the journal say «by Claude Code», «by Codex». Settings › Assistants counts
+what each one wrote.
 
 It also reads sparingly, which is your business as much as its own. Tisty keeps
 a small card for each document — its headings, how long it is, what it leans

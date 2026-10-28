@@ -85,12 +85,12 @@ If another program already holds that shortcut, Tisty takes another one and tell
 
 The task list is read in stretches:
 
-- **Today** — what is due, overdue included.
+- **Today** — what the day asks for, most urgent first: overdue (its deadline passed), due soon, late (the day you planned passed), for today, and underway, folded.
 - **Upcoming** — what is coming.
 - **Repeating** — what comes back on its own.
 - **All** — everything open, unfiltered.
 
-Anything overdue sits at the top, in red. There is no prize for emptying the list.
+What ran out sits at the top, in red; what is only late, in amber. A task with a date, a deadline and parts shows a thin bar that tells you whether it will make it. There is no prize for emptying the list.
 
 ### 4. Priorities are a map, not a ladder
 
@@ -239,7 +239,7 @@ A stage can be named from anywhere in the text by its place in the list: the one
 
 #### Tables
 
-A table can be worked on. Click it and `Tab` walks its cells — past the last one it starts a new row — and the bar's **Table** menu adds and removes rows and columns and leans a column left, centre or right. On the page, drag the edge of a heading to make its column wider.
+A table is written right on the page: click a cell and type, and the `⋯` menu of a row or a column moves, duplicates or removes it and gives a column a type — a date with its calendar, money, options with their colours, stars, a switch — that adds up at its foot. Sort and filter from a column's title without touching the file. Opened as text, `Tab` walks its cells — past the last one it starts a new row — and the bar's **Table** menu adds and removes rows and columns and leans a column left, centre or right. On the page, drag the edge of a heading to make its column wider.
 
 | Vaccine | Given | Due again |
 | :--- | :---: | ---: |
@@ -377,7 +377,7 @@ If you use an assistant, it can propose tasks and write documents of its own acc
 
 It can also tidy what grew messy. A document that grew session by session it can compact into one clean text: you will see «Compacted by…» above it, and **Undo** puts back what it said before with one click. When it marks a document it says why — a copy of another, moved, replaced, wrong, obsolete or a scratch — and names the one that takes its place, which you open from there; you delete it with one click, or every document of a set it marked together at once. It can make the tasks it filed parts of another, or set them loose again, and move open steps to the task they belong on. Even tidying, it never deletes.
 
-When it finishes one of the tasks it filed, it says so and leaves the account of what it did in the journal. The task stays open, gathered under **To confirm** with the hour it spoke — unless it is due today or overdue, which stays where you look for it. You finish it, or you send it back with **Still to do** and it returns to its day with the account kept.
+When it finishes one of the tasks it filed, it says so and leaves the account of what it did in the journal. The task stays open, gathered under **To confirm** with the hour it spoke — unless it is overdue, due soon, late, for today or underway, which stays where you look for it. You finish it, or you send it back with **Still to do** and it returns to its day with the account kept.
 
 A task of your own you can open to it: in the detail, **Allow agents**. From there an assistant may say it is done, or that it should not be done — for you to confirm — describe it, plan its steps and tick them off as it goes, which is the one thing it does without asking, and correct its open steps and its notes; a tick it gave by mistake it can take back, never one you gave. The day, the title, the list and the closing stay yours. **No agents** shuts the door and keeps what it managed to fill in. How to connect one, and what each door lets through, is in [assistants and MCP](https://www.tisty.app/docs/assistants-and-mcp/).
 
