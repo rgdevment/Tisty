@@ -4,6 +4,7 @@ import type { Task, Whole } from "../core";
 import { fill, t } from "../locales";
 import Detail from "../ui/Detail";
 import TaskList from "../ui/TaskList";
+import { knowAgents } from "../who";
 
 const parts: Task[] = [];
 const offered: { id: string; title: string }[] = [];
@@ -113,6 +114,25 @@ describe("the detail of a task with parts", () => {
     expect(screen.getByText(t("parts"))).not.toBeNull();
     expect(screen.getByText(fill("partsLeft", "1"))).not.toBeNull();
     expect(screen.getByRole("button", { name: new RegExp(t("closeLettingGo")) })).not.toBeNull();
+  });
+
+  it("shows its pace under the title, across the whole width", () => {
+    opened(task("W", "move house"), { whole, pace: { pace: "behind", time: 70, done: 20 } });
+
+    const bar = screen.getByRole("img", { name: new RegExp(`^${t("paceBehind")}`) });
+    expect(bar.className).toContain("w-full");
+    expect(bar.className).not.toContain("max-w");
+  });
+
+  it("keeps the pace below who filed it, so the bar never covers the name", () => {
+    knowAgents({ dev_agent: "Claude Code" });
+    const filed = task("W", "move house", { created_by: "dev_agent", created_via: "Claude Code" });
+    opened(filed, { whole, pace: { pace: "slow", time: 36, done: 0 } });
+
+    const signed = screen.getByText(fill("agentWrote", "Claude Code"));
+    const bar = screen.getByRole("img", { name: new RegExp(`^${t("paceSlow")}`) });
+    expect(signed.compareDocumentPosition(bar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    knowAgents({});
   });
 
   it("adds a part from the line beneath them", async () => {

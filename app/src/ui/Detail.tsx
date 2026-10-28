@@ -8,17 +8,19 @@ import {
   type Task,
   type Whole,
 } from "../core";
+import type { Paced } from "../deadlines";
 import { WROTE } from "../detailing";
 import { cadence, daysFrom, stamped, whenLabel, wroteAt } from "../format";
 import { fill, t } from "../locales";
 import { placed, said } from "../quadrants";
-import { agentNamed, clientNamed, hostedOn, signedBy } from "../who";
+import { agentNamed, clientNamed, hostedOn, signedBy, signedByAnAgent, wroteWhere } from "../who";
 import Belongs from "./Belongs";
 import { useEdge } from "./edging";
 import Fields from "./Fields";
 import History from "./History";
 import Left from "./Left";
 import Menu, { type Choice } from "./Menu";
+import PaceBar from "./PaceBar";
 import Panel from "./Panel";
 import Rounds from "./Rounds";
 import Routine from "./Routine";
@@ -52,6 +54,7 @@ interface Props {
   onDoc?: (id: string) => void;
   papers?: readonly Filed[];
   whole?: Whole;
+  pace?: Paced;
   partOf?: string;
   onAddPart?: (title: string) => void;
   onOpenPart?: (id: string) => void;
@@ -95,6 +98,7 @@ export default function Detail({
   onDoc,
   papers,
   whole,
+  pace,
   partOf,
   onAddPart,
   onOpenPart,
@@ -197,13 +201,24 @@ export default function Detail({
     </>
   );
 
+  const signed = signedBy(task.created_by, task.created_via);
   const body = (
     <>
       <Title task={task} onRename={(title) => onPatch({ title })} />
-      {task.status === "open" && signedBy(task.created_by, task.created_via) && (
-        <p className="-mt-1.5 mb-3 text-[11.5px] text-hue-teal" title={hostedOn(task.created_by)}>
-          {signedBy(task.created_by, task.created_via)}
+      {task.status === "open" && signed && (
+        <p
+          className="-mt-1.5 mb-3 text-[11.5px] text-hue-teal"
+          title={
+            expanded ? hostedOn(task.created_by) : wroteWhere(task.created_by, task.created_via)
+          }
+        >
+          {expanded ? signed : signedByAnAgent(task.created_by)}
         </p>
+      )}
+      {pace && (
+        <div className="-mt-1 mb-4">
+          <PaceBar paced={pace} wide />
+        </div>
       )}
       {task.resolved && (
         <p className="mt-3 mb-4 flex items-center gap-2 rounded-md border border-hue-teal/40 bg-hue-teal/10 px-2.5 py-1.5 text-[12.5px] font-medium text-hue-teal">
