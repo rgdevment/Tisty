@@ -12,6 +12,34 @@ use super::super::{
     loose_words, named_twice, nearest, opened, raw, retold, twice_words, with_echo, wrapped,
 };
 
+/// The document opened for an edit, refused when it is put away, waits on a compaction or is locked.
+pub(super) fn writable(
+    paths: &Paths,
+    args: &Value,
+    which: &str,
+) -> Result<(tisty_core::State, tisty_core::Store, String), Refused> {
+    let (state, mut store) = opened(paths)?;
+    let Some(kept) = state.docs.values().find(|one| one.file == which) else {
+        return Err(Refused::Tool(format!(
+            "no document here is called {which:?}. `docs` lists them all."
+        )));
+    };
+    let named = doc_named(&state, which);
+    if state.held_away(kept) {
+        return Err(Refused::Tool(format!(
+            "{named} is put away, so it is not edited any more."
+        )));
+    }
+    super::compacting::released(&state, kept, args, &mut store)?;
+    if state.shut(kept.id) {
+        return Err(Refused::Tool(format!(
+            "{named} is locked. The person shut it so nothing writes in it — not the \
+             window, not you. Ask them to unlock it if it truly has to change."
+        )));
+    }
+    Ok((state, store, named))
+}
+
 /// A passage inside a fence is code: `new` goes in as sent, never read as prose.
 pub(in crate::mcp) fn edit_doc(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let body =
@@ -79,25 +107,7 @@ fn edited(paths: &Paths, args: &Value, as_sent: bool) -> Result<Value, Refused> 
                 ));
             }
         };
-    let (state, mut store) = opened(paths)?;
-    let Some(kept) = state.docs.values().find(|one| one.file == which) else {
-        return Err(Refused::Tool(format!(
-            "no document here is called {which:?}. `docs` lists them all."
-        )));
-    };
-    let named = doc_named(&state, &which);
-    if state.held_away(kept) {
-        return Err(Refused::Tool(format!(
-            "{named} is put away, so it is not edited any more."
-        )));
-    }
-    super::compacting::released(&state, kept, args, &mut store)?;
-    if state.shut(kept.id) {
-        return Err(Refused::Tool(format!(
-            "{named} is locked. The person shut it so nothing writes in it — not the \
-             window, not you. Ask them to unlock it if it truly has to change."
-        )));
-    }
+    let (state, mut store, named) = writable(paths, args, &which)?;
     let new = match as_sent {
         true => new.to_string(),
         false => tisty_core::speaking::turned(new),

@@ -14,7 +14,11 @@ pub fn comma_table(text: &str) -> Option<String> {
     commas(&lines).map(|rows| drawn(&rows))
 }
 
+// Every line opening on a tab is indented code; a head alone may, over a spreadsheet's empty corner.
 fn tabbed(lines: &[&str]) -> Option<Vec<Vec<String>>> {
+    if lines.iter().all(|one| one.starts_with('\t')) {
+        return None;
+    }
     let tabs = lines.first()?.matches('\t').count();
     let even =
         lines.len() >= 2 && tabs > 0 && lines.iter().all(|one| one.matches('\t').count() == tabs);
@@ -30,9 +34,23 @@ fn commas(lines: &[&str]) -> Option<Vec<Vec<String>>> {
     if lines.len() < CSV_ROWS {
         return None;
     }
+    if lines.iter().any(|one| called(one)) {
+        return None;
+    }
     let rows: Vec<Vec<String>> = lines.iter().map(|one| fields(one)).collect::<Option<_>>()?;
     let wide = rows.first()?.len();
     (wide >= CSV_FIELDS && rows.iter().all(|one| one.len() == wide)).then_some(rows)
+}
+
+// A line that opens on a call, `foo(a, b)`, is code; a bracket in a heading, `Monto (USD)`, is not.
+fn called(line: &str) -> bool {
+    let line = line.trim();
+    line.find('(').is_some_and(|at| {
+        at > 0
+            && line[..at]
+                .chars()
+                .all(|one| one.is_alphanumeric() || "_.:".contains(one))
+    })
 }
 
 // A field in quotes may hold commas, and two quotes in a row are one; a quote left open is not a CSV line.
@@ -50,7 +68,14 @@ fn fields(line: &str) -> Option<Vec<String>> {
             '"' if quoted || field.trim().is_empty() => quoted = !quoted,
             ',' if !quoted => all.push(String::new()),
             // Code's punctuation outside quotes says these are lines of code that happen to hold commas.
-            '(' | ')' | '{' | '}' | ';' | '=' if !quoted => return None,
+            '{' | '}' | ';' if !quoted => return None,
+            // Code spaces its `=`; data glues it, as in `?id=4` or `abc==`.
+            '=' if !quoted
+                && (field.ends_with(char::is_whitespace)
+                    || chars.peek().is_some_and(|next| next.is_whitespace())) =>
+            {
+                return None;
+            }
             _ => field.push(one),
         }
     }

@@ -20,6 +20,12 @@ vi.mock("../tables", () => ({
   tableOrder: core.order,
   tableWritten: core.written,
   tableCanon: core.canon,
+  refused: (why: unknown) =>
+    new Error(
+      why === "moved"
+        ? "The table changed meanwhile; try again."
+        : "That change could not be made.",
+    ),
 }));
 
 const BODY =

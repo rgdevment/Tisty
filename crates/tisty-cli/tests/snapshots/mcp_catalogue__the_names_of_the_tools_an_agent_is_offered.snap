@@ -20,6 +20,7 @@ expression: names
   "append_doc",
   "restore_doc",
   "edit_doc",
+  "edit_table",
   "docs",
   "import_doc",
   "export_doc",

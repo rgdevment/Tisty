@@ -22,6 +22,7 @@ export type Asking = {
   readonly tags?: readonly string[];
   readonly pasted?: (files: readonly File[]) => Promise<string>;
   readonly lost?: () => void;
+  readonly failed?: (problem: unknown) => void;
   readonly steps?: () => readonly string[];
   readonly ask: (
     kind: Asked,

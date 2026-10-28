@@ -317,7 +317,9 @@ Tisty it holds a good deal more than text:
   Mermaid, light or dark with the window and legible at any width.
 - **Formulas** set from a `math` block, **code** coloured by its language and
   named after its file, and **tables** that keep how their columns lean and how
-  wide you drew them.
+  wide you drew them, whose columns can say what they hold — money, dates,
+  choices, ratings, yes or no — and add themselves up at the foot, written on
+  the page cell by cell.
 - **Widgets**: a small page of HTML, styles and a little script, drawn in
   Tisty's colours and sealed off from the network.
 - **Callouts, highlights and icons** — the callouts GitHub reads, pens in
@@ -365,10 +367,13 @@ single letter: two characters, one of them a letter.
 
 Text can be highlighted in a few colours and set apart as an aside — a plain
 quote, or a callout GitHub reads too, written as `> [!WARNING]`. Tables keep how
-their columns lean and how wide you drew them, and a code block says what
-language it is and is coloured for it, with its lines numbered beside the text
-rather than in it, so copying takes the code and nothing else. A block can carry
-a name; one whose language is `mermaid` draws the diagram it describes
+their columns lean and how wide you drew them, and a column can carry its type
+in braces at the end of its head, `Price {money USD sum}`: Tisty shows, sorts and
+adds up its cells as that, while the file stays a table any reader opens. A code
+block says what language it is and is coloured for it, with its lines numbered
+beside the text rather than in it, so copying takes the code and nothing else.
+A block can carry a name; one whose language is `mermaid` draws the diagram it
+describes
 underneath — redrawn when you turn the light on or off — and one that says
 `math` sets the formula it holds. One that says `widget` is drawn as a small
 page — HTML, styles and a little script if you like — sealed off from the
@@ -878,8 +883,9 @@ already open.
 
 As important as the list above. Out of scope for now: real-time
 collaboration, kanban boards, Gantt charts, time tracking, productivity metrics,
-databases with typed properties and formulas, and AI anywhere in the critical
-path.
+databases that relate tables across documents, formulas in cells, and AI
+anywhere in the critical path. A table's columns can say what they hold and add
+themselves up, but each table lives in its own document.
 
 The natural language stays deterministic and local, and **Tisty never sends
 anything to a model** — not a task, not a word. If you open the door in the

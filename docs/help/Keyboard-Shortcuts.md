@@ -11,6 +11,7 @@ The whole window works from the keyboard.
 | `F1` | Open the Tisty Markdown guide, without a connection |
 | `Ctrl`/`⌘` + `X` · `V` | Move a document between folders |
 | `Alt` + arrow (on a page's row) | Move a page up or down in its document |
+| `Alt` + arrow (in a table, writing its text) | Move the row or the column the caret is on; `Ctrl` + `Alt` + ← → on a Mac |
 | `Esc` | Close whatever is open |
 
 If another program already holds the capture shortcut, Tisty takes another one and tells you which in Settings.

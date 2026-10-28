@@ -11,6 +11,7 @@ Toda la ventana funciona con el teclado.
 | `F1` | Abrir la guía de Markdown de Tisty, sin conexión |
 | `Ctrl`/`⌘` + `X` · `V` | Mover un documento entre carpetas |
 | `Alt` + flecha (sobre la fila de una página) | Subir o bajar una página dentro de su documento |
+| `Alt` + flecha (en una tabla, escribiendo su texto) | Mover la fila o la columna donde está el cursor; `Ctrl` + `Alt` + ← → en un Mac |
 | `Esc` | Cerrar lo que esté abierto |
 
 Si otro programa ya usa el atajo de captura, Tisty toma otro y te dice cuál en Configuración.

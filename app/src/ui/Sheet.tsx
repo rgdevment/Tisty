@@ -327,6 +327,7 @@ export default function Sheet(props: Readonly<Props>) {
           tags: asking?.tags,
           pasted: asking?.pasted,
           lost: asking?.lost,
+          failed: (problem) => said.current.onFail?.(problem),
           ask: (kind, at, put, first) => asking?.ask(kind, at, put, first && before),
           steps: () => stagesIn(latest.current),
         };

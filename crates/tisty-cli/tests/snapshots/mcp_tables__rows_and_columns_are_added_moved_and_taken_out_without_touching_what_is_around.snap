@@ -1,0 +1,12 @@
+---
+source: crates/tisty-cli/tests/mcp_tables.rs
+expression: served.body(&doc)
+---
+# Compras
+
+## Despensa
+
+| Artículo | Precio {money CLP sum} | Listo {check} | Nota |
+| --- | --- | --- | --- |
+| Café | 7990 | [ ] |  |
+| Arroz | 1290 | [x] |  |
