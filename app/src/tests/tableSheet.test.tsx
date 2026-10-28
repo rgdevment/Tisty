@@ -262,3 +262,91 @@ describe("a table written in place", () => {
     expect(core.written).not.toHaveBeenCalled();
   });
 });
+
+describe("what a table shows, as the file changes under it", () => {
+  it("opens the cell clicked while the one left behind was still being saved", async () => {
+    const { page, ways, seen, turn } = made();
+    let saved: (body: string) => void = () => {};
+    core.edit.mockReturnValue(new Promise((done) => (saved = done)));
+    seen.onTable(asked("cell", 0, 0));
+    await settle();
+    const input = page.querySelector<HTMLInputElement>(".table-input") as HTMLInputElement;
+    input.value = "Tidal";
+    input.dispatchEvent(new FocusEvent("blur"));
+    seen.onTable(asked("cell", 1, 1));
+    await settle();
+    expect(core.written).toHaveBeenCalledTimes(1);
+
+    await act(async () => saved("next body"));
+    expect(ways.whole).toHaveBeenCalledWith("next body");
+    turn(2);
+    await settle();
+    expect(core.written).toHaveBeenCalledTimes(2);
+    expect(page.querySelectorAll("tbody tr")[1].querySelector(".table-input")).not.toBeNull();
+  });
+
+  it("drops a filter whose column is taken away, and every filter when a row is added", async () => {
+    const { page, seen, turn } = made();
+    seen.onTable(asked("column", -1, 1));
+    await settle();
+    fireEvent.click(screen.getByRole("menuitem", { name: /Delete column|Remove column/ }));
+    await settle();
+    expect(core.edit).toHaveBeenLastCalledWith(BODY, [0, 80], { kind: "columnRemove", column: 1 });
+
+    seen.onTable(asked("column", -1, 0));
+    await settle();
+    fireEvent.click(screen.getByRole("menuitem", { name: /Filter/ }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /Contains/ }));
+    await settle();
+    const field = page.querySelector<HTMLInputElement>(
+      ".table-bar .table-input",
+    ) as HTMLInputElement;
+    field.value = "net";
+    field.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    await settle();
+    expect(rowsShown(page, 0)).toEqual([1]);
+
+    seen.onTable(asked("rowAdd"));
+    await settle();
+    turn(2);
+    await settle();
+    expect(page.querySelector(".table-chip")).toBeNull();
+    expect(rowsShown(page, 0)).toEqual([0, 1]);
+  });
+
+  it("asks for the order once per sort and per drawing, not for each filter", async () => {
+    const { page, seen, turn } = made();
+    seen.onTable(asked("sort", -1, 1));
+    await settle();
+    seen.onTable(asked("column", -1, 0));
+    await settle();
+    fireEvent.click(screen.getByRole("menuitem", { name: /Filter/ }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /Contains/ }));
+    await settle();
+    const field = page.querySelector<HTMLInputElement>(
+      ".table-bar .table-input",
+    ) as HTMLInputElement;
+    field.value = "o";
+    field.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    await settle();
+    expect(core.order).toHaveBeenCalledTimes(1);
+
+    turn(2);
+    await settle();
+    expect(core.order).toHaveBeenCalledTimes(2);
+  });
+
+  it("starts over when a table is added or taken away elsewhere on the page", async () => {
+    const { page, seen, turn } = made();
+    seen.onTable(asked("sort", -1, 1));
+    await settle();
+    expect(rowsShown(page, 0)).toEqual([1, 0]);
+    page
+      .querySelector(".page")
+      ?.insertAdjacentHTML("afterbegin", HTML.replace(/<\/?article[^>]*>/g, ""));
+    tabled(page);
+    turn(2);
+    await settle();
+    expect(core.order).toHaveBeenCalledTimes(1);
+  });
+});

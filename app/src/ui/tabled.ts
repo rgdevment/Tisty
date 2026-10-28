@@ -53,6 +53,11 @@ const headsOf = (box: Element): HTMLTableCellElement[] =>
 const rowsOf = (box: Element): HTMLTableRowElement[] =>
   Array.from(box.querySelectorAll<HTMLTableRowElement>(":scope > table > tbody > tr"));
 
+export const rowsCount = (page: Document, nth: number): number => {
+  const box = tablesIn(page)[nth];
+  return box ? rowsOf(box).length : 0;
+};
+
 const headed = (head: Element): string => head.textContent?.replace("⋯", "").trim() ?? "";
 
 // The page arrives inert; the window adds what lets each table be written in place.
@@ -219,7 +224,9 @@ export const typing = (
     input.remove();
     done(input.value, how);
   };
+  // What is typed here is the cell's, never a shortcut of the page around it.
   input.addEventListener("keydown", (event) => {
+    event.stopPropagation();
     const ways: Record<string, Leaving | undefined> = {
       Enter: "enter",
       Escape: "cancel",
@@ -230,7 +237,6 @@ export const typing = (
     const how = ways[event.key];
     if (!how) return;
     event.preventDefault();
-    event.stopPropagation();
     end(how);
   });
   input.addEventListener("blur", () => end("blur"));

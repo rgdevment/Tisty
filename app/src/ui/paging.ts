@@ -243,15 +243,17 @@ export const went = (target: Element, selecting: boolean): Went => {
   const tag = target.closest<HTMLElement>(".tag")?.dataset.tag;
   if (tag) return { kind: "tag", name: tag };
   if (selecting || target.closest(UNTOUCHED)) return null;
+  // A picture or a diagram is looked at; it is written only from the block's own menu.
+  const shot = shotAt(target.ownerDocument, target);
+  if (shot !== null) return { kind: "picture", nth: shot };
   const tabled = tableClicked(target);
   if (tabled) {
     const at = spanned(target.closest<HTMLElement>(".page > [data-at]")?.dataset.at ?? null);
     const box = target.closest("td, th")?.getBoundingClientRect();
     return at ? { kind: "table", at, ...tabled, x: box?.left ?? 0, y: box?.bottom ?? 0 } : null;
   }
-  // A picture or a diagram is looked at; it is written only from the block's own menu.
-  const shot = shotAt(target.ownerDocument, target);
-  if (shot !== null) return { kind: "picture", nth: shot };
+  // A table written in place opens its Markdown only from its menu, never from a click around its cells.
+  if (target.closest(".page > .table.dressed")) return null;
   // A stage's box ticks where it is read; the words beside it still open the block.
   const box = target.closest(".check")?.closest<HTMLElement>("li.task[data-at]");
   const ticked = spanned(box?.dataset.at ?? null);

@@ -12,6 +12,7 @@ import {
   type Leaving,
   nthOf,
   placeOf,
+  rowsCount,
   rowsShown,
   tablesIn,
   typing,
@@ -64,13 +65,26 @@ const optionsIn = (page: Document, nth: number, column: number, tags: boolean): 
   return [...seen.values()];
 };
 
-const rowsIn = (page: Document, nth: number): number =>
-  tablesIn(page)[nth]?.querySelectorAll(":scope > table > tbody > tr").length ?? 0;
+// Columns that move in the file move what is shown with them; a column gone takes its sort and filters along.
+const moved = (view: Viewing, to: (column: number) => number | null): Viewing => {
+  const column = view.sort ? to(view.sort.column) : null;
+  return {
+    sort: view.sort && column !== null ? { ...view.sort, column, order: [] } : undefined,
+    filters: view.filters.flatMap((one) => {
+      const now = to(one.column);
+      return now === null ? [] : [{ ...one, column: now }];
+    }),
+  };
+};
 
 /** What the page's tables do when they are written in place: cells, rows, columns, and how each is shown. */
 export const useTables = (ways: Ways): { onTable: (asked: TableWent) => void; menu: ReactNode } => {
   const views = useRef(new Map<number, Viewing>());
+  const counted = useRef(-1);
   const pending = useRef<Place | null>(null);
+  // A cell clicked while the one left behind is still being saved opens once that save is drawn.
+  const saving = useRef(0);
+  const wanted = useRef<Place | null>(null);
   const [menu, setMenu] = useState<{
     x: number;
     y: number;
@@ -83,14 +97,41 @@ export const useTables = (ways: Ways): { onTable: (asked: TableWent) => void; me
   // A click on a page still on screen while the next one is drawn names bytes of an older text.
   const fresh = () => said.current.drawn.current === said.current.latest.current;
 
-  const edited = (at: [number, number], edits: TableEdit[], then: Place | null = null) => {
+  const edited = (
+    at: [number, number],
+    edits: TableEdit[],
+    then: Place | null = null,
+    settled?: () => void,
+  ) => {
     if (!fresh()) return;
+    saving.current += 1;
     tableEdit(said.current.latest.current, at, ...edits)
       .then((next) => {
-        pending.current = then;
+        settled?.();
+        pending.current = then ?? wanted.current;
+        wanted.current = null;
         said.current.whole(next);
       })
-      .catch((why) => said.current.fail(refused(why)));
+      .catch((why) => {
+        said.current.fail(refused(why));
+        const next = wanted.current;
+        wanted.current = null;
+        if (next) opened(next);
+      })
+      .finally(() => {
+        saving.current -= 1;
+      });
+  };
+
+  const remapped = (nth: number, to: (column: number) => number | null) => {
+    const was = views.current.get(nth);
+    if (was) views.current.set(nth, moved(was, to));
+  };
+
+  // A new row is opened to be written, so no filter may hide it.
+  const unfiltered = (nth: number) => {
+    const was = views.current.get(nth);
+    if (was) views.current.set(nth, { ...was, filters: [] });
   };
 
   const shown = (nth: number) => {
@@ -99,7 +140,8 @@ export const useTables = (ways: Ways): { onTable: (asked: TableWent) => void; me
     if (!page || !at) return;
     const view = views.current.get(nth);
     const sort = view?.sort;
-    if (!sort) {
+    // An order already asked for this drawing is laid again as it is; only a new sort or drawing asks anew.
+    if (!sort || sort.order.length > 0) {
       viewed(page, nth, view, today());
       return;
     }
@@ -130,7 +172,7 @@ export const useTables = (ways: Ways): { onTable: (asked: TableWent) => void; me
     const cell: TableEdit[] = changed ? [{ kind: "cell", row, column, said: now }] : [];
     if (how === "up" || how === "down") {
       const to = row + (how === "up" ? -1 : 1);
-      if (to < 0 || to >= rowsIn(page, nth)) {
+      if (to < 0 || to >= rowsCount(page, nth)) {
         if (cell.length) edited(at, cell, place);
         return;
       }
@@ -140,8 +182,10 @@ export const useTables = (ways: Ways): { onTable: (asked: TableWent) => void; me
     }
     const next = beside(rowsShown(page, nth), headsNamed(page, nth).length, row, column, how);
     if (next === "new") {
-      const rows = rowsIn(page, nth);
-      edited(at, [...cell, { kind: "rowAdd", at: rows }], { nth, row: rows, column: 0 });
+      const rows = rowsCount(page, nth);
+      edited(at, [...cell, { kind: "rowAdd", at: rows }], { nth, row: rows, column: 0 }, () =>
+        unfiltered(nth),
+      );
       return;
     }
     const then = next && how !== "blur" ? { nth, ...next } : null;
@@ -169,10 +213,13 @@ export const useTables = (ways: Ways): { onTable: (asked: TableWent) => void; me
   const relaid = () => {
     const page = said.current.page();
     if (!page) return;
+    // A table added or taken away elsewhere moves every table after it, so what each showed starts over.
     const many = tablesIn(page).length;
-    for (const nth of [...views.current.keys()]) {
-      if (nth >= many) views.current.delete(nth);
-      else shown(nth);
+    if (many !== counted.current) views.current.clear();
+    counted.current = many;
+    for (const [nth, view] of views.current) {
+      if (view.sort) views.current.set(nth, { ...view, sort: { ...view.sort, order: [] } });
+      shown(nth);
     }
     const next = pending.current;
     pending.current = null;
@@ -187,7 +234,7 @@ export const useTables = (ways: Ways): { onTable: (asked: TableWent) => void; me
 
   const rowChoices = (asked: TableWent, nth: number): Choice[] => {
     const page = said.current.page();
-    const rows = page ? rowsIn(page, nth) : 0;
+    const rows = page ? rowsCount(page, nth) : 0;
     const moved = (to: number) => () => {
       viewing(nth, (one) => ({ ...one, sort: undefined }));
       edited(asked.at, [{ kind: "rowMove", from: asked.row, to }]);
@@ -263,10 +310,27 @@ export const useTables = (ways: Ways): { onTable: (asked: TableWent) => void; me
         filter: (one) =>
           viewing(nth, (was) => ({ ...was, filters: [...was.filters, { ...one, column }] })),
         asking: () => filtering(nth, column, name),
-        retype: (words) => edited(asked.at, [{ kind: "retype", column, words }]),
+        // A new type reads its cells anew, so a filter made for the old one goes.
+        retype: (words) =>
+          edited(asked.at, [{ kind: "retype", column, words }], null, () => {
+            const was = views.current.get(nth);
+            if (was)
+              views.current.set(nth, {
+                ...was,
+                filters: was.filters.filter((one) => one.column !== column),
+              });
+          }),
         rename: () => opened({ nth, row: -1, column }),
-        insert: (right) => edited(asked.at, [{ kind: "columnAdd", at: column + (right ? 1 : 0) }]),
-        remove: () => edited(asked.at, [{ kind: "columnRemove", column }]),
+        insert: (right) => {
+          const at = column + (right ? 1 : 0);
+          edited(asked.at, [{ kind: "columnAdd", at }], null, () =>
+            remapped(nth, (one) => (one >= at ? one + 1 : one)),
+          );
+        },
+        remove: () =>
+          edited(asked.at, [{ kind: "columnRemove", column }], null, () =>
+            remapped(nth, (one) => (one === column ? null : one > column ? one - 1 : one)),
+          ),
         markdown: () => said.current.markdown(asked.at, box),
       },
     );
@@ -287,7 +351,11 @@ export const useTables = (ways: Ways): { onTable: (asked: TableWent) => void; me
     const box = now.frame();
     const at = { x: (box?.left ?? 0) + asked.x, y: (box?.top ?? 0) + asked.y };
     const name = headsNamed(page as Document, nth)[asked.column] ?? "";
-    if (asked.act === "cell") opened({ nth, row: asked.row, column: asked.column });
+    if (asked.act === "cell") {
+      const place = { nth, row: asked.row, column: asked.column };
+      if (saving.current > 0) wanted.current = place;
+      else opened(place);
+    }
     if (asked.act === "sort") {
       const was = views.current.get(nth)?.sort;
       sorted(nth, asked.column, was?.column === asked.column && !was.down);
@@ -305,8 +373,10 @@ export const useTables = (ways: Ways): { onTable: (asked: TableWent) => void; me
       edited(asked.at, [{ kind: "sort", column: sort.column, down: sort.down }]);
     }
     if (asked.act === "rowAdd") {
-      const rows = rowsIn(page as Document, nth);
-      edited(asked.at, [{ kind: "rowAdd", at: rows }], { nth, row: rows, column: 0 });
+      const rows = rowsCount(page as Document, nth);
+      edited(asked.at, [{ kind: "rowAdd", at: rows }], { nth, row: rows, column: 0 }, () =>
+        unfiltered(nth),
+      );
     }
     if (asked.act === "row" && asked.to !== undefined) {
       viewing(nth, (was) => ({ ...was, sort: undefined }));

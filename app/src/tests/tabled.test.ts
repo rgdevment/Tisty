@@ -227,3 +227,42 @@ describe("a row dragged by its grip", () => {
     expect(moved).not.toHaveBeenCalled();
   });
 });
+
+describe("a click around a table written in place", () => {
+  it("opens neither the cell nor the Markdown when it falls on the bar or beside the cells", () => {
+    const made = dressed();
+    viewed(
+      made,
+      0,
+      { sort: { column: 0, down: false, order: [0, 1, 2] }, filters: [] },
+      "2026-10-27",
+    );
+    const said = made.querySelector(".table-bar > span") as Element;
+    expect(went(said, false)).toBeNull();
+    expect(went(made.querySelector(".table") as Element, false)).toBeNull();
+    expect(
+      went(made.querySelector("tfoot td") ?? (made.querySelector(".table") as Element), false),
+    ).toBeNull();
+  });
+
+  it("still opens a picture held in a cell", () => {
+    const made = page(
+      TABLE.replace("<td>Spotify</td>", '<td><img src="plano-0006bf09.png" alt="plano"></td>'),
+    );
+    tabled(made);
+    expect(went(made.querySelector("td img") as Element, false)).toEqual({
+      kind: "picture",
+      nth: 0,
+    });
+  });
+
+  it("keeps what is typed in a cell from the page's own shortcuts", () => {
+    const made = dressed();
+    const heard = vi.fn();
+    made.addEventListener("keydown", heard);
+    const input = typing(cellOf(made, 0, 0, 0) as HTMLElement, "x", "Cell", () => {});
+    input.dispatchEvent(new KeyboardEvent("keydown", { key: "b", ctrlKey: true, bubbles: true }));
+    input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    expect(heard).not.toHaveBeenCalled();
+  });
+});
