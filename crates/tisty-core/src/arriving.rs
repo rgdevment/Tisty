@@ -4,6 +4,8 @@ mod html;
 mod obsidian;
 #[path = "arriving_plain.rs"]
 mod plain;
+#[path = "arriving_separated.rs"]
+mod separated;
 #[path = "arriving_word.rs"]
 mod word;
 

@@ -21,6 +21,10 @@ export const tableEdit = (
   ...edits: TableEdit[]
 ): Promise<string> => invoke("table_edit", { body, at, edits });
 
+// The table holding a byte of the body, by where it starts and ends in bytes; none when the byte is outside every table.
+export const tableAround = (body: string, at: number): Promise<[number, number] | null> =>
+  invoke("table_around", { body, at });
+
 export const tableOrder = (
   body: string,
   at: [number, number],

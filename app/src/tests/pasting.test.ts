@@ -25,6 +25,14 @@ describe("plain words that carry a shape of their own", () => {
     expect(shaped("hola\nqué tal\nchao")).toBe(false);
     expect(shaped("una sola línea con {llaves}")).toBe(false);
   });
+
+  it("are looked at when they come from a spreadsheet, split by tabs or by commas", async () => {
+    const { shaped } = await import("../ui/blocking");
+    expect(shaped("Servicio\tPrecio\nSpotify\t6490")).toBe(true);
+    expect(shaped("a,b,c\nd,e,f\ng,h,i")).toBe(true);
+    expect(shaped("uno\tdos")).toBe(false);
+    expect(shaped("Hola, Juan\nChao, Pedro\nNos vemos")).toBe(false);
+  });
 });
 
 describe("what a paste from a document editor brings", () => {

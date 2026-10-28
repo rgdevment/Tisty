@@ -177,6 +177,21 @@ fn located<T>(
     then(block, columns)
 }
 
+/// Where the table that holds a byte of the text starts and ends, as `edit` wants it named.
+pub fn around(text: &str, byte: usize) -> Option<Range<usize>> {
+    fn within(blocks: &[Block], byte: usize) -> Option<Range<usize>> {
+        blocks.iter().find_map(|one| {
+            let inside = one.at.start <= byte && byte < one.at.end.max(one.at.start + 1);
+            match &one.kind {
+                Kind::Table { .. } if inside => Some(one.at.clone()),
+                _ if inside => within(&one.inner, byte),
+                _ => None,
+            }
+        })
+    }
+    within(read(text).blocks(), byte)
+}
+
 fn found<'a>(blocks: &'a [Block], at: &Range<usize>) -> Option<&'a Block> {
     blocks.iter().find_map(|one| {
         if one.at == *at && matches!(one.kind, Kind::Table { .. }) {

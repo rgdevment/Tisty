@@ -357,3 +357,17 @@ fn a_cell_opens_for_writing_as_the_file_has_it() {
     );
     assert_eq!(written(text, 0..3), Err(Refused::Moved));
 }
+
+#[test]
+fn a_byte_names_the_table_that_holds_it_even_inside_a_quote_or_a_list() {
+    let text = "Antes.\n\n| a |\n| --- |\n| 1 |\n\n> | b |\n> | --- |\n> | 2 |\n\nDespués.\n";
+    let first = table_in(read(text).blocks()).expect("a table");
+    assert_eq!(around(text, first.start), Some(first.clone()));
+    assert_eq!(around(text, first.start + 9), Some(first.clone()));
+    assert_eq!(around(text, 2), None);
+    let quoted = text.find("> | b").expect("the quote");
+    let inner = around(text, quoted + 4).expect("the quoted table");
+    assert!(text[inner.clone()].contains("| b |"));
+    assert!(edit(text, inner, &Edit::RowAdd { at: 1 }).is_ok());
+    assert_eq!(around(text, text.len() - 2), None);
+}

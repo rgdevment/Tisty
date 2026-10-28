@@ -61,14 +61,14 @@ export const tableAt = (text: string, head: number): Table | null => {
   return { from, to: at - 1, rows };
 };
 
-const placed = (table: Table, head: number): { row: number; column: number } => {
+export const placed = (table: Table, head: number): { row: number; column: number } => {
   const row = Math.max(0, table.rows.filter((one) => one.from <= head).length - 1);
   const { edges, from } = table.rows[row];
   const column = edges.filter((edge) => edge < head - from).length - 1;
   return { row, column: Math.min(Math.max(column, 0), edges.length - 2) };
 };
 
-const inside = (row: Row, column: number): [number, number] => {
+export const inside = (row: Row, column: number): [number, number] => {
   const from = row.edges[column] + 1;
   const to = row.edges[column + 1];
   const said = row.text.slice(from, to);
@@ -221,7 +221,7 @@ export const tableHere = (state: EditorState): Table | null => {
 };
 
 // Only what changed is written, so undo and the caret's neighbours stay as they were.
-const replaced = (view: EditorView, done: Done) => {
+export const replaced = (view: EditorView, done: Done) => {
   const text = view.state.doc.toString();
   let from = 0;
   while (from < text.length && from < done.text.length && text[from] === done.text[from]) from++;

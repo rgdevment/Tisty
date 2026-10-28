@@ -23,7 +23,7 @@ export type ColumnWays = {
 
 type Word = Parameters<typeof t>[0];
 
-const TYPES: readonly [string, Word][] = [
+export const TYPES: readonly [string, Word][] = [
   ["text", "tableTypeText"],
   ["number", "tableTypeNumber"],
   ["money", "tableTypeMoney"],

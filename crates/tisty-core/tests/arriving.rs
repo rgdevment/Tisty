@@ -648,3 +648,66 @@ fn an_older_tistys_icon_span_is_not_taken_for_a_colour() {
     let said = plain("la <span data-ico=\"star\"></span> brilla");
     assert!(said.contains("::star::"), "{said}");
 }
+
+// One paste per case, split by a line of `~`: what was copied, `=>`, and the table it becomes or `-` for none.
+const SEPARATED: &str = "Servicio\tPrecio\tActiva
+Spotify\t6490\tsí
+Netflix | 4K\t9990\tno
+=>
+| Servicio | Precio | Activa |
+| --- | --- | --- |
+| Spotify | 6490 | sí |
+| Netflix \\| 4K | 9990 | no |
+~
+nombre,ciudad,monto
+Ana,\"Santiago, Chile\",100
+\"Luis \"\"Lucho\"\"\",Lima,200
+=>
+| nombre | ciudad | monto |
+| --- | --- | --- |
+| Ana | Santiago, Chile | 100 |
+| Luis \"Lucho\" | Lima | 200 |
+~
+Hola, Juan, qué tal
+Chao, Pedro
+=>
+-
+~
+Hola, Juan
+Chao, Pedro
+Nos vemos, Ana
+=>
+-
+~
+a,b,c
+d,\"e,f
+g,h,i
+=>
+-
+~
+uno\tdos
+=>
+-
+~
+foo(a, b, c);
+bar(d, e, f);
+baz(g, h, i);
+=>
+-";
+
+#[test]
+fn rows_copied_from_a_spreadsheet_as_plain_text_come_in_as_a_table() {
+    for case in SEPARATED.split("\n~\n") {
+        let (copied, expected) = case.split_once("\n=>\n").expect(case);
+        let made = tisty_core::arriving::from_plain(copied);
+        if expected == "-" {
+            assert!(
+                made.as_deref().is_none_or(|one| !one.starts_with("| ")),
+                "{case}"
+            );
+        } else {
+            assert_eq!(made.as_deref(), Some(expected), "{case}");
+            assert!(speaks(expected).is_ok(), "{case}");
+        }
+    }
+}

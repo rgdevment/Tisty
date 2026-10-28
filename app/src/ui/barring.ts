@@ -4,8 +4,10 @@ import { frontLines } from "../front";
 import { markup } from "../glyphs";
 import { t } from "../locales";
 import { coded, wrapped } from "./formatting";
+import { type Regrid, regrid } from "./regridding";
 import { keepShown, marked, marksShown, showMarks } from "./seeing";
 import { openMenu, pressed, putBlock } from "./slashing";
+import { TYPES, wordsOf } from "./tableChoices";
 import { type Retable, retable, tableHere } from "./tabling";
 
 type Said = Parameters<typeof t>[0];
@@ -31,6 +33,16 @@ const RETABLES: readonly (readonly [Said, Retable])[] = [
   ["tableAlignRight", "alignRight"],
   ["tableRowRemove", "rowRemove"],
   ["tableColumnRemove", "columnRemove"],
+];
+
+// What changes the table's meaning goes to the core, as it does from the page.
+const REGRIDS: readonly (readonly [Said, Regrid])[] = [
+  ["tableRowUp", { kind: "row", by: -1 }],
+  ["tableRowDown", { kind: "row", by: 1 }],
+  ["tableColumnMoveLeft", { kind: "column", by: -1 }],
+  ["tableColumnMoveRight", { kind: "column", by: 1 }],
+  ["tableSortAsc", { kind: "sort", down: false }],
+  ["tableSortDesc", { kind: "sort", down: true }],
 ];
 
 const LEAD = /^(\s*)(#{1,6} |[-*+] \[[ xX]\] |[-*+] |\d+[.)] |> ?)?/;
@@ -248,6 +260,7 @@ export const barred = (view: EditorView, whole = false, onWhole?: () => void): B
   const kind = button("cm-bar-kind", t("blockKind"), () => {
     closeCompletion(view);
     const shown = tabled ? table : menu;
+    types.hidden = true;
     shown.toggleAttribute("hidden");
   });
   const kindSaid = made("span", "cm-bar-kind-said", t("paragraph"));
@@ -286,8 +299,49 @@ export const barred = (view: EditorView, whole = false, onWhole?: () => void): B
     one.setAttribute("role", "menuitem");
     table.append(one);
   }
+  for (const [said, how] of REGRIDS) {
+    const one = button(
+      "cm-bar-item",
+      t(said),
+      () => {
+        table.hidden = true;
+        regrid(view, how);
+      },
+      t(said),
+    );
+    one.setAttribute("role", "menuitem");
+    table.append(one);
+  }
+  const types = made("div", "cm-bar-menu");
+  types.setAttribute("role", "menu");
+  types.hidden = true;
+  const typing = button(
+    "cm-bar-item",
+    t("tableType"),
+    () => {
+      table.hidden = true;
+      types.hidden = false;
+    },
+    `${t("tableType")} ▸`,
+  );
+  typing.setAttribute("role", "menuitem");
+  typing.setAttribute("aria-haspopup", "menu");
+  table.append(typing);
+  for (const [word, label] of TYPES) {
+    const one = button(
+      "cm-bar-item",
+      t(label),
+      () => {
+        types.hidden = true;
+        regrid(view, { kind: "retype", words: wordsOf(word, "", "") });
+      },
+      t(label),
+    );
+    one.setAttribute("role", "menuitem");
+    types.append(one);
+  }
   const kinds = made("span", "cm-bar-kinds");
-  kinds.append(kind, menu, table);
+  kinds.append(kind, menu, table, types);
 
   const { formats, pens } = formatButtons(page, (open, close) => wrapped(view, open, close));
   const slash = button(

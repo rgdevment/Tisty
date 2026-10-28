@@ -117,6 +117,11 @@ pub fn canon(words: &str, typed: &str, now: &jiff::Zoned, spoken: &str) -> Strin
 }
 
 #[tauri::command(async)]
+pub fn table_around(body: String, at: usize) -> Option<(usize, usize)> {
+    tisty_markdown::grid::around(&body, at).map(|found| (found.start, found.end))
+}
+
+#[tauri::command(async)]
 pub fn table_order(
     body: String,
     at: (usize, usize),
