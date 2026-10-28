@@ -2,7 +2,8 @@ import mermaid from "mermaid";
 import { beforeAll, describe, expect, it } from "vitest";
 import { type Flow, readFlow, writeFlow } from "../src/flow";
 import { nodeAdded, nodeChanged, nodeMoved, nodePlaced, nodeRemoved } from "../src/flowing";
-import { formedNode, keysAt, type Shape, shapeNamed } from "../src/flowshapes";
+import { formedNode, keysAt, pictured, type Shape, shapeNamed } from "../src/flowshapes";
+import { pictureOf } from "../src/pictures";
 
 // `⏎` is a line break, so a whole flowchart fits on its line.
 const unfolded = (said: string) => said.trim().replace(/⏎/g, "\n");
@@ -16,7 +17,7 @@ beforeAll(() => {
 });
 
 // Flowcharts with Mermaid's newer shapes and the window's places, one per line, kept as written.
-const WRITTEN = `
+const WRITTEN = String.raw`
 flowchart LR⏎  A@{ shape: person, label: "Cliente" } --> B@{ shape: cloud, label: "Proveedor" }
 flowchart TB⏎  D@{ shape: cyl, label: "Pedidos" }⏎  N@{ shape: braces, label: "El correo sale al cobrar" }
 flowchart LR⏎  I@{ icon: "fa:user", form: "square", label: "Usuario", pos: "t", h: 60 }
@@ -24,10 +25,11 @@ flowchart LR⏎  A@{shape: rect} & B@{ shape: doc } --> C
 flowchart LR⏎  A["con #quot;comillas#quot;"] --> B@{ shape: docs, label: "Dice #quot;sí#quot;" }
 flowchart LR⏎  A --> B⏎  %% tisty: A 10 20⏎  %% tisty: B -5 300
 flowchart LR⏎  A --> B⏎⏎  %% tisty: A 10 20⏎
+flowchart LR⏎  A@{ shape: cloud, label: 'it''s, mine' } --> B@{ label: "C:\\temp" }
 `;
 
 // One per line: how a node is written → its id, its shape (`-` for none) and its words.
-const READ = `
+const READ = String.raw`
 A@{ shape: rect, label: "Uno" } → A process Uno
 A@{ shape: diamond, label: "¿Sí?" } → A decision ¿Sí?
 A@{ shape: odd } → A flag A
@@ -35,6 +37,9 @@ A@{ shape: flag } → A paper-tape A
 A@{ shape: documents, label: Palabras sueltas } → A docs Palabras sueltas
 A@{ label: "Solo texto" } → A - Solo texto
 A[Antes] --> A@{ shape: cloud } → A cloud Antes
+A[Antes] --> A@{ icon: "fa:user" } → A - Antes
+A@{ shape: cloud, label: 'it''s, mine' } → A cloud it's, mine
+A@{ label: "C:\\temp y \"tal\"" } → A - C:\temp y "tal"
 `;
 
 // What Mermaid would not draw, or the window could not keep, one per line: left as text.
@@ -90,6 +95,33 @@ describe("reading Mermaid's newer shapes", () => {
     expect(keysAt("A[Uno]", 1)).toBeNull();
   });
 
+  it("reads keys apart by tabs as well as spaces", async () => {
+    const source = 'flowchart LR\n  A@{ label: "Uno"\t, shape: rect\t}';
+
+    expect(readFlow(source)?.nodes[0]).toMatchObject({ text: "Uno", shape: "process" });
+    expect(await valid(source)).toBe(true);
+  });
+
+  it("tells an icon or image node, whose look is its picture", () => {
+    expect(pictured(keysAt('@{ icon: "fa:user" }', 0)?.keys ?? null)).toBe(true);
+    expect(pictured(keysAt('@{ img: "a.png" }', 0)?.keys ?? null)).toBe(true);
+    expect(pictured(keysAt("@{ shape: cloud }", 0)?.keys ?? null)).toBe(false);
+    expect(pictured(null)).toBe(false);
+  });
+
+  it("leaves the picture of a flowchart with `@{ … }` nodes to Mermaid", () => {
+    expect(pictureOf("flowchart LR\n  A[Uno] --> B")).not.toBeNull();
+    expect(pictureOf("flowchart LR\n  A[Uno] --> B@{ shape: cloud }")).toBeNull();
+  });
+
+  it("drops the places of what is gone and keeps the last one said", () => {
+    const flow = readFlow(
+      unfolded("flowchart LR⏎  A --> B⏎  %% tisty: A 1 2⏎  %% tisty: Z 3 4⏎  %% tisty: A 5 6"),
+    ) as Flow;
+
+    expect(flow.places.map((one) => [one.id, one.x, one.y])).toEqual([["A", 5, 6]]);
+  });
+
   it("reads the window's places, and leaves other `%% tisty:` lines in the body", () => {
     const flow = readFlow(
       unfolded(
@@ -106,7 +138,7 @@ describe("reading Mermaid's newer shapes", () => {
 });
 
 // One per line: words → shape (`-` for none) → the keys it was written with (`-` for none) → the node.
-const FORMED = `
+const FORMED = String.raw`
 Cliente → person → - → n@{ shape: person, label: "Cliente" }
 Dice "sí" → doc → - → n@{ shape: doc, label: "Dice #quot;sí#quot;" }
 Cinta → paper-tape → - → n@{ shape: paper-tape, label: "Cinta" }
@@ -116,6 +148,7 @@ Otro → - → icon: "fa:user", label: "Usuario", h: 60 → n@{ icon: "fa:user",
 n → cloud → icon: "fa:user" → n@{ icon: "fa:user", shape: cloud }
 Nube → cloud → icon: "fa:user" → n@{ icon: "fa:user", shape: cloud, label: "Nube" }
 Fin → - → - → n[Fin]
+C:\temp → cloud → - → n@{ shape: cloud, label: "C:\\temp" }
 `;
 
 describe("writing Mermaid's newer shapes", () => {

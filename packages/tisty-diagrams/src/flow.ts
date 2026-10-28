@@ -159,8 +159,8 @@ const nodeAt = (said: string, from: number): Named | null => {
   const id = at(ID, said, from);
   if (!id) return null;
   let end = from + id[0].length;
-  const keyed = said.startsWith("@{", end) ? keysAt(said, end) : null;
-  if (said.startsWith("@{", end) && !keyed) return null;
+  const keyed = keysAt(said, end);
+  if (!keyed && said.startsWith("@{", end)) return null;
   const shaped = keyed ? null : shapedAt(said, end);
   end = keyed?.end ?? shaped?.end ?? end;
   // Mermaid takes no `:::class` after `@{ … }`.
@@ -259,6 +259,14 @@ const placeOf = (line: string): Place | null => {
   return found ? { id: found[1], x: Number(found[2]), y: Number(found[3]), line } : null;
 };
 
+// A place for something no longer there, or said again, goes with the next change; the last one said wins.
+const tidied = (places: readonly Place[], reading: Reading): Place[] => {
+  const there = new Set([...reading.nodes.keys(), ...reading.groups.map((one) => one.id)]);
+  const last = new Map<string, Place>();
+  for (const place of places) if (there.has(place.id)) last.set(place.id, place);
+  return places.filter((one) => last.get(one.id) === one);
+};
+
 const KEPT =
   /^\s*(%%|classDef\b|class\b|style\b|linkStyle\b|click\b|accTitle\b|accDescr\b|direction\b)/;
 const SUBGRAPH = /^(\s*)subgraph\s+(.+?)\s*$/;
@@ -288,7 +296,8 @@ const noted = (reading: Reading, node: Named, line: number) => {
   reading.nodes.set(node.id, {
     id: node.id,
     text: node.text ?? known?.text ?? node.id,
-    shape: node.shape ?? known?.shape ?? null,
+    // Keys with no shape leave it to Mermaid, which draws an icon or image node by its picture.
+    shape: node.keys ? node.shape : (node.shape ?? known?.shape ?? null),
     keys: defined ? node.keys : (known?.keys ?? null),
     def,
     first: known?.first ?? span,
@@ -343,16 +352,20 @@ export const readFlow = (source: string): Flow | null => {
   const direction = (way === "TD" ? "TB" : way) as Direction;
   let end = lines.length;
   while (end > opening + 1 && !lines[end - 1].trim()) end -= 1;
-  const said = lines.slice(opening + 1, end);
-  const places = said.flatMap((line) => placeOf(line) ?? []);
-  const body = said.filter((line) => !placeOf(line));
+  const body: string[] = [];
+  const places: Place[] = [];
+  for (const line of lines.slice(opening + 1, end)) {
+    const place = placeOf(line);
+    if (place) places.push(place);
+    else body.push(line);
+  }
   const reading: Reading = { nodes: new Map(), edges: [], groups: [], open: [] };
   for (const [line, text] of body.entries()) if (!readLine(reading, text, line)) return null;
   if (reading.open.length) return null;
   return {
     head: lines.slice(0, opening + 1),
     body,
-    places,
+    places: tidied(places, reading),
     tail: lines.slice(end),
     direction,
     nodes: [...reading.nodes.values()],

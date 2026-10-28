@@ -60,8 +60,7 @@ export const NAMED = [
 
 export type Shape = Bracketed | (typeof NAMED)[number];
 
-// Each shape, then every name Mermaid 12 takes for it in `@{ shape: … }`, the one written first.
-// Mermaid's own `flag` is the paper tape; the window's flag is Mermaid's `odd`, the `A>…]` shape.
+// Each shape, then Mermaid's names for it, the written one first; Mermaid's `flag` is the paper tape.
 const NAMES = `
 process rect proc process rectangle
 rounded rounded event
@@ -131,13 +130,24 @@ export const shapeNamed = (name: string): Shape | null =>
 /** The name Mermaid is given for a shape inside `@{ … }`. */
 export const nameOfShape = (shape: Shape): string => WRITTEN.get(shape) ?? shape;
 
-export const bracketed = (shape: Shape): shape is Bracketed => !NAMED.some((one) => one === shape);
+const NEWER: ReadonlySet<string> = new Set(NAMED);
+
+export const bracketed = (shape: Shape): shape is Bracketed => !NEWER.has(shape);
 
 /** What `@{ … }` says, key by key, each value as written. */
 export type Keys = readonly (readonly [string, string])[];
 
 const KEY = /\s*([A-Za-z][\w-]*)\s*:\s*/y;
-const BARE = /[^,}"]*/y;
+const BARE = /[^,}"']*/y;
+const SPACE = /\s*/y;
+// A quoted YAML value: `\` escapes in double quotes, `''` stands for one quote in single quotes.
+const QUOTED = /"(?:[^"\\]|\\.)*"|'(?:[^']|'')*'/y;
+
+const skipped = (said: string, from: number) => {
+  SPACE.lastIndex = from;
+  SPACE.exec(said);
+  return SPACE.lastIndex;
+};
 
 /** The keys of the `@{ … }` that starts at `from`, and where it ends; `null` for what the window cannot read. */
 export const keysAt = (said: string, from: number): { keys: Keys; end: number } | null => {
@@ -149,24 +159,20 @@ export const keysAt = (said: string, from: number): { keys: Keys; end: number } 
     const key = KEY.exec(said);
     if (!key) break;
     here = KEY.lastIndex;
-    let value: string;
-    if (said[here] === '"') {
-      const close = said.indexOf('"', here + 1);
-      if (close < 0) return null;
-      value = said.slice(here, close + 1);
-      here = close + 1;
-    } else {
-      BARE.lastIndex = here;
-      value = (BARE.exec(said)?.[0] ?? "").trim();
-      here = BARE.lastIndex;
-    }
+    const quote = said[here] === '"' || said[here] === "'";
+    const pattern = quote ? QUOTED : BARE;
+    pattern.lastIndex = here;
+    const found = pattern.exec(said);
+    if (!found) return null;
+    const value = found[0].trim();
+    here = pattern.lastIndex;
     if (!value) return null;
     keys.push([key[1], value]);
-    while (said[here] === " ") here += 1;
+    here = skipped(said, here);
     if (said[here] !== ",") break;
     here += 1;
   }
-  while (said[here] === " ") here += 1;
+  here = skipped(said, here);
   return said[here] === "}" ? { keys, end: here + 1 } : null;
 };
 
@@ -202,11 +208,27 @@ export const unquoted = (value: string) =>
     '"',
   );
 
+const ESCAPED: Record<string, string> = { n: "\n", t: "\t" };
+
+// Mermaid reads `@{ … }` as YAML, so its quoting rules apply, then its own `#quot;`.
+const textOf = (value: string): string => {
+  const inner = value.slice(1, -1);
+  if (value.startsWith("'")) return inner.replace(/''/g, "'");
+  if (!value.startsWith('"')) return value;
+  return inner.replace(/\\(.)/g, (_, one: string) => ESCAPED[one] ?? one).replace(/#quot;/g, '"');
+};
+
+const quoted = (text: string) => `"${text.replace(/\\/g, "\\\\").replace(/"/g, "#quot;")}"`;
+
 /** The words a label in `@{ … }` says. */
 export const labelOf = (keys: Keys): string | null => {
   const said = keyValue(keys, "label");
-  return said === null ? null : unquoted(said);
+  return said === null ? null : textOf(said);
 };
+
+/** An icon or an image node, whose look Mermaid takes from its picture, not from a shape. */
+export const pictured = (keys: Keys | null): boolean =>
+  keys?.some(([key]) => key === "icon" || key === "img") ?? false;
 
 // Only what changed is rewritten, so a name like `diamond` or a bare label stays as it was typed.
 const rekeyed = (keys: Keys, id: string, text: string, shape: Shape | null): Keys => {
@@ -215,15 +237,10 @@ const rekeyed = (keys: Keys, id: string, text: string, shape: Shape | null): Key
     shape === null || (named !== null && shapeNamed(named) === shape)
       ? keys
       : withKey(keys, "shape", nameOfShape(shape));
-  return (labelOf(keys) ?? id) === text
-    ? shaped
-    : withKey(shaped, "label", `"${text.replace(/"/g, "#quot;")}"`);
+  return (labelOf(keys) ?? id) === text ? shaped : withKey(shaped, "label", quoted(text));
 };
 
-/**
- * A node as Mermaid reads it back: in brackets while its shape has them and it was not written
- * with `@{ … }`, whose other keys then stay as they were.
- */
+/** A node as Mermaid reads it back: in brackets when it can be, else in `@{ … }` keeping its other keys. */
 export const formedNode = (
   id: string,
   text: string,

@@ -12,7 +12,7 @@ import {
   nodeMoved,
   nodeRemoved,
 } from "./flowing";
-import { nameOfShape, type Shape } from "./flowshapes";
+import { nameOfShape, pictured, type Shape } from "./flowshapes";
 import type { Direction } from "./graphlayout";
 import { useHands, useSay } from "./handing";
 import { Chosen, Said, Section } from "./panelbits";
@@ -90,13 +90,15 @@ export default function FlowPanel({ editing }: Readonly<{ editing: Flowing }>) {
             value={node.text}
             onSay={(text) => change(nodeChanged(flow, node.id, { text }))}
           />
-          <Chosen
-            id="flow-shape"
-            label={t("flowShape")}
-            value={shape}
-            options={shapes}
-            onChoose={(shape) => change(nodeChanged(flow, node.id, { shape }))}
-          />
+          {!pictured(node.keys) && (
+            <Chosen
+              id="flow-shape"
+              label={t("flowShape")}
+              value={shape}
+              options={shapes}
+              onChoose={(shape) => change(nodeChanged(flow, node.id, { shape }))}
+            />
+          )}
           <Chosen
             id="flow-group"
             label={t("flowGroup")}
