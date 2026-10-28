@@ -16,6 +16,7 @@ import {
   saidKinds,
   shotsOf,
   spanned,
+  type TableWent,
   type Went,
   went,
   widgetsIn,
@@ -24,6 +25,7 @@ import { type PartCarded, partCarded } from "./partcarding";
 import { type Chosen, type Formatting, type Menued, quickly } from "./quickly";
 import { sideways } from "./sideways";
 import { offeredAsParts, staged } from "./staging";
+import { dragging, tabled } from "./tabled";
 import { webCarded } from "./webcarding";
 import { gripped, widening } from "./widening";
 import { type Lending, lend, locked } from "./widgeting";
@@ -56,6 +58,7 @@ export type Reaching = Carding & {
   readonly onFormat?: (asked: Formatting) => void;
   readonly onMenu?: (asked: Menued) => void;
   readonly onChoose?: (asked: Chosen) => void;
+  readonly onTable?: (asked: TableWent) => void;
 };
 
 const asking = (page: Document, asked: string, said: string): HTMLButtonElement => {
@@ -272,6 +275,7 @@ export const worn = (
   staged(page);
   if (reach?.onPart && !stranger) offeredAsParts(page, t("stepToPart"), reach.body);
   if (reach?.onWiden && !stranger) gripped(page);
+  if (reach?.onTable && !stranger) tabled(page);
   const shown = pictures(page, live, {
     stranger,
     apart: Boolean(reach?.onApart),
@@ -306,6 +310,7 @@ export const diagramBars = (page: Document) => {
 
 export const answered = (page: Document, asked: Went, reach: Reaching, read = "") => {
   if (!asked) return;
+  if (asked.kind === "table") reach.onTable?.(asked);
   if (asked.kind === "diagram") {
     const named = `${asked.at[0]}-${asked.at[1]}`;
     const figures = Array.from(page.querySelectorAll<HTMLElement>("figure.diagram[data-at]"));
@@ -469,6 +474,15 @@ export const wired = (page: Document, reach: () => Reaching) => {
     clearTimeout(looking);
     page.getSelection()?.removeAllRanges();
     answered(page, { kind: "diagram", at }, reach());
+  });
+  dragging(page, (box, from, to) => {
+    const at = spanned(box.dataset.at ?? null);
+    if (at)
+      answered(
+        page,
+        { kind: "table", at, act: "row", row: from, column: -1, to, x: 0, y: 0 },
+        reach(),
+      );
   });
   widening(page, () => {
     const now = reach();

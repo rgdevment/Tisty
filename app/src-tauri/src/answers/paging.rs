@@ -90,9 +90,28 @@ pub fn doc_plain(body: String) -> String {
 pub fn table_edit(
     body: String,
     at: (usize, usize),
-    edit: tisty_markdown::grid::Edit,
+    edits: Vec<tisty_markdown::grid::Edit>,
 ) -> Result<String, String> {
-    tisty_markdown::grid::edit(&body, at.0..at.1, &edit).map_err(|why| why.word().to_string())
+    tisty_markdown::grid::edits(&body, at.0..at.1, &edits).map_err(|why| why.word().to_string())
+}
+
+#[tauri::command(async)]
+pub fn table_order(
+    body: String,
+    at: (usize, usize),
+    column: usize,
+    down: bool,
+) -> Result<Vec<usize>, String> {
+    tisty_markdown::grid::order(&body, at.0..at.1, column, down)
+        .map_err(|why| why.word().to_string())
+}
+
+#[tauri::command(async)]
+pub fn table_written(
+    body: String,
+    at: (usize, usize),
+) -> Result<tisty_markdown::grid::Written, String> {
+    tisty_markdown::grid::written(&body, at.0..at.1).map_err(|why| why.word().to_string())
 }
 
 pub fn paged(shelf: &Path, body: &str) -> String {

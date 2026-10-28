@@ -1310,6 +1310,8 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::paging::mends_in,
         answers::paging::doc_plain,
         answers::paging::table_edit,
+        answers::paging::table_order,
+        answers::paging::table_written,
         answers::paging::help_reference,
         answers::paging::help_reference_here,
         answers::paging::help_drawn,
