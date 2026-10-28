@@ -12,9 +12,13 @@ pub(super) fn spoken(
     let mut sent = args.clone();
     let mut changed = Vec::new();
     turned(&mut sent, field, &mut changed);
-    let mut reply = write(&sent)?;
+    Ok(heard(write(&sent)?, &changed))
+}
+
+/// What turning changed rides back on the answer, so the next write comes in the Tisty language.
+pub(super) fn heard(mut reply: Value, changed: &[&str]) -> Value {
     if changed.is_empty() {
-        return Ok(reply);
+        return reply;
     }
     let note = format!(
         " It came in another Markdown and was written in the Tisty language: {}. Writing it that way to begin with keeps every word as you meant it; `language` gives each part of it by topic, and {} shows it drawn ({}es/ in Spanish).",
@@ -27,7 +31,18 @@ pub(super) fn spoken(
     }
     reply["structuredContent"]["turned"] = serde_json::json!(changed);
     reply["structuredContent"]["guide"] = serde_json::json!(super::looking::GUIDE);
-    Ok(reply)
+    reply
+}
+
+/// One piece of Markdown in the Tisty language, noting what had to change.
+pub(super) fn said_in_tisty(said: &str, changed: &mut Vec<&'static str>) -> String {
+    let made = tisty_core::arriving::tidied(said);
+    for what in made.changed {
+        if what != "Windows line endings" && !changed.contains(&what) {
+            changed.push(what);
+        }
+    }
+    made.body
 }
 
 // A task proposed with its parts, or several at once, carries the same field one level down.
@@ -35,13 +50,7 @@ const NESTED: [&str; 2] = ["tasks", "parts"];
 
 fn turned(value: &mut Value, field: &str, changed: &mut Vec<&'static str>) {
     if let Some(said) = value.get(field).and_then(Value::as_str) {
-        let made = tisty_core::arriving::tidied(said);
-        for what in made.changed {
-            if what != "Windows line endings" && !changed.contains(&what) {
-                changed.push(what);
-            }
-        }
-        value[field] = Value::String(made.body);
+        value[field] = Value::String(said_in_tisty(said, changed));
     }
     for nested in NESTED {
         if let Some(Value::Array(all)) = value.get_mut(nested) {

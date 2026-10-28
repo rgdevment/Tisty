@@ -68,7 +68,14 @@ fn fields(line: &str) -> Option<Vec<String>> {
             '"' if quoted || field.trim().is_empty() => quoted = !quoted,
             ',' if !quoted => all.push(String::new()),
             // Code's punctuation outside quotes says these are lines of code that happen to hold commas.
-            '{' | '}' | ';' | '=' if !quoted => return None,
+            '{' | '}' | ';' if !quoted => return None,
+            // Code spaces its `=`; data glues it, as in `?id=4` or `abc==`.
+            '=' if !quoted
+                && (field.ends_with(char::is_whitespace)
+                    || chars.peek().is_some_and(|next| next.is_whitespace())) =>
+            {
+                return None;
+            }
             _ => field.push(one),
         }
     }

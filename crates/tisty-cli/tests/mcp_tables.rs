@@ -344,6 +344,87 @@ fn a_value_in_another_markdown_comes_in_as_the_tisty_language() {
     assert!(body.contains("| Diseño | ==urgente== |"), "{body}");
     assert!(made["structuredContent"]["print"].is_string(), "{made}");
     assert_eq!(made["structuredContent"]["loose"], json!([]), "{made}");
+    assert!(
+        made["structuredContent"]["turned"]
+            .as_array()
+            .is_some_and(|one| !one.is_empty()),
+        "{made}"
+    );
+    assert!(
+        said(&made).contains("was written in the Tisty language"),
+        "{made}"
+    );
+}
+
+#[test]
+fn a_number_sent_as_words_names_a_place_when_nothing_is_called_so() {
+    let served = Served::new();
+    let doc = served.wrote(
+        "## Ida
+
+| Tramo | Hora |
+| --- | --- |
+| Bus | 08:00 |
+
+## Vuelta
+
+| Tramo | Hora |
+| --- | --- |
+| Tren | 19:30 |
+| 1 | 20:00 |
+",
+    );
+
+    let made = served.table(
+        &doc,
+        json!({ "table": "2", "do": "set", "row": "2", "column": "2", "value": "21:00" }),
+    );
+    assert_eq!(made["isError"], Value::Null, "{made}");
+    assert!(
+        served.body(&doc).contains("| 1 | 21:00 |"),
+        "{}",
+        served.body(&doc)
+    );
+
+    let by_words = served.table(&doc, json!({ "table": 2, "do": "remove", "row": "1" }));
+    assert_eq!(by_words["isError"], Value::Null, "{by_words}");
+    let body = served.body(&doc);
+    assert!(
+        body.contains("| Tren | 19:30 |") && !body.contains("| 1 | 21:00 |"),
+        "{body}"
+    );
+}
+
+#[test]
+fn a_row_that_named_a_page_tells_the_page_is_left_loose_when_it_goes() {
+    let served = Served::new();
+    let page = served.wrote(
+        "# Marzo
+
+lo de marzo.",
+    );
+    let book = served.wrote(&format!(
+        "# Actas
+
+| Mes | Acta |
+| --- | --- |
+| Marzo | ![Marzo](tisty:doc/{page}) |
+| Abril | nada |
+"
+    ));
+    let hung = served.call("page_doc", json!({ "doc": page, "page_of": book }));
+    assert_eq!(hung["result"]["isError"], Value::Null, "{hung}");
+    let body = served.body(&book);
+    assert_eq!(
+        body.matches(&format!("tisty:doc/{page}")).count(),
+        1,
+        "the table's card already names it: {body}"
+    );
+
+    let made = served.table(&book, json!({ "do": "remove", "row": "Marzo" }));
+
+    assert_eq!(made["structuredContent"]["loose"], json!([page]), "{made}");
+    assert!(said(&made).contains("Marzo"), "{made}");
 }
 
 #[test]

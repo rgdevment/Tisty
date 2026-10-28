@@ -453,6 +453,9 @@ fn a_table_s_heading_is_named_by_its_words_without_its_marks() {
         ("Gastos\n======", "Gastos"),
         ("## Notas de C#", "Notas de C#"),
         ("### Lista #", "Lista"),
+        ("## **Despensa**", "Despensa"),
+        ("## Gastos de `casa`", "Gastos de casa"),
+        ("## Gastos\n\n> [!NOTE]\n> ### Nota\n> dentro.", "Gastos"),
     ] {
         let text = format!("{written}\n\n| A | B |\n| --- | --- |\n| 1 | 2 |\n");
         assert_eq!(shown(&text)[0].heading.as_deref(), Some(named), "{written}");
