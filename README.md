@@ -30,6 +30,11 @@
         src="https://img.shields.io/badge/MCP-Official_Registry-D9A13B?style=flat-square"
         alt="Tisty in the official MCP registry"/>
     </a>
+    <a href="https://m8ven.ai/mcp/rgdevment-tisty-15kwqt?s=readme">
+      <img
+        src="https://m8ven.ai/badge/mcp/rgdevment-tisty-15kwqt?v=aae81c3714d58416bc4db879fcf2f629&variant=verified"
+        alt="Tisty on the M8ven Trust Index"/>
+    </a>
     <img
       src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-D9A13B?style=flat-square"
       alt="Platform: Windows and macOS"/>
