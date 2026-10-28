@@ -1,4 +1,4 @@
-import type { DateSpec, Repeat } from "./core";
+import type { DateSpec, Repeat, Standing } from "./core";
 import { fill, filled, locale, t, type Word } from "./locales";
 
 type Formats = {
@@ -87,6 +87,10 @@ export function shortStamp(iso: string): string {
 export function clockOf(spec: DateSpec): string {
   return spec.has_time ? formats().clock.format(new Date(spec.at)) : "";
 }
+
+// Once the work has started, the deadline says more than the start.
+export const running = (stands?: Standing): boolean =>
+  stands === "underway" || stands === "due_soon" || stands === "overdue";
 
 export function dueLabel(spec: DateSpec, now = new Date()): string {
   const away = daysFrom(spec.at, now);

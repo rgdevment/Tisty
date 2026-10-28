@@ -305,6 +305,7 @@ export interface Sighting {
 }
 
 export interface Found {
+  standings?: Record<string, Standing>;
   tasks: Task[];
   papers: Sighting[];
   total: number;

@@ -85,18 +85,19 @@ impl Filter {
         let on = task.date.as_ref().map(|d| d.date());
         match &self.window {
             None => true,
-            // A deadline that is close or passed claims today, whatever day the work starts.
-            Some(Window::Today) => {
-                on.is_none_or(|d| d <= today)
-                    || matches!(standing(task, today), Standing::DueSoon | Standing::Overdue)
-            }
+            Some(Window::Today) => on.is_none_or(|d| d <= today) || pressed(task, today),
             Some(Window::On(day)) => on == Some(*day),
             Some(Window::Until(day)) => on.is_some_and(|d| d <= *day),
-            Some(Window::After(day)) => on.is_some_and(|d| d > *day),
+            Some(Window::After(day)) => on.is_some_and(|d| d > *day) && !pressed(task, today),
             Some(Window::Stands(how)) => standing(task, today) == *how,
             Some(Window::Undated) => on.is_none(),
         }
     }
+}
+
+// A deadline that is close or passed claims today whatever day the work starts, so it is never ahead too.
+fn pressed(task: &Task, today: Date) -> bool {
+    matches!(standing(task, today), Standing::DueSoon | Standing::Overdue)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]

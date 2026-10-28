@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { banded } from "../archive";
+import { banded, regrouped } from "../archive";
 import type { Standing, Task } from "../core";
 import TaskList from "../ui/TaskList";
 
@@ -256,5 +256,42 @@ describe("today, as A3 sees it", () => {
     expect(screen.getByText("⚑ due in 38 days").className).not.toContain("text-urgent");
     expect(screen.getByText(/⚑ Tue, Oct 20/).className).toContain("text-urgent");
     expect(screen.getByText("since Tue, Oct 6").className).toContain("text-hue-amber");
+  });
+});
+
+describe("what the review asked of the day headings", () => {
+  beforeEach(() => vi.setSystemTime(NOW));
+  afterEach(() => vi.useRealTimers());
+
+  it("keeps an overdue task an agent spoke for in its list, not among confirmations", () => {
+    const work = { id: "L", name: "Trabajo", order: "a0" };
+    const ranOut = { ...spoken(task("1", "renovar la licencia")), list: "L" } as Task;
+
+    const rows = regrouped([ranOut], "list", [work], { "1": "overdue" });
+
+    expect(rows.map((row) => row.band)).toEqual(["Trabajo"]);
+  });
+
+  it("folds only the time band, never a list that happens to share its name", () => {
+    const named = [
+      { id: "L", name: "Underway", order: "a0" },
+      { id: "M", name: "Casa", order: "a1" },
+    ];
+    render(
+      <TaskList
+        tasks={[
+          { ...task("1", "migrar el lector"), list: "L" } as Task,
+          { ...task("2", "regar"), list: "M" } as Task,
+        ]}
+        lists={named}
+        axis="list"
+        title="Open"
+        onSelect={() => {}}
+      />,
+    );
+
+    const band = screen.getByRole("button", { name: /Underway/ });
+    expect(band.getAttribute("aria-expanded")).toBe("true");
+    expect(screen.getByText("migrar el lector")).toBeTruthy();
   });
 });
