@@ -322,7 +322,9 @@ editor— y en Tisty lleva bastante más que texto:
 - **Diagramas con unas pocas líneas.** Un bloque que dice `mermaid` dibuja
   flujos, secuencias, tortas, líneas de tiempo, mapas mentales, cartas Gantt y
   más con el Mermaid oficial, claros u oscuros según la ventana y legibles a
-  cualquier ancho.
+  cualquier ancho. Un doble clic lo abre en su propia ventana, donde un mapa
+  mental, un esquema de base de datos, un flujo o un diagrama de clases también
+  se dibujan a mano, se guardan como Mermaid y se exportan como PNG, JPG o SVG.
 - **Fórmulas** compuestas desde un bloque `math`, **código** coloreado por su
   lenguaje y con el nombre de su archivo, y **tablas** que conservan hacia dónde
   se inclinan sus columnas y con qué ancho las dibujaste, cuyas columnas pueden
