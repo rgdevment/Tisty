@@ -218,6 +218,17 @@ fn every_tool_says_all_four_hints_and_one_that_only_reads_stirs_nothing() {
             "{name} says whether it only reads differently from ONLY_READS"
         );
     }
+    let mut listed: Vec<&str> = all.iter().filter_map(|one| one["name"].as_str()).collect();
+    let mut effects: Vec<&str> = super::catalogue::EFFECTS
+        .iter()
+        .map(|(name, _)| *name)
+        .collect();
+    listed.sort_unstable();
+    effects.sort_unstable();
+    assert_eq!(
+        listed, effects,
+        "EFFECTS names other tools than the catalogue"
+    );
 }
 
 fn names_a_key(shape: &Value, key: &str) -> bool {

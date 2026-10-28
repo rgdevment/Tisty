@@ -408,7 +408,7 @@ pub(super) fn shaped(what: Value) -> Value {
 
 /// What a call does to what the person keeps, which hosts read to decide what to ask about first.
 #[derive(Clone, Copy)]
-enum Effect {
+pub(super) enum Effect {
     Reads,
     Adds,
     Sets,
@@ -417,19 +417,20 @@ enum Effect {
 }
 
 impl Effect {
-    /// `(readOnlyHint, destructiveHint, idempotentHint)`.
-    fn hints(self) -> (bool, bool, bool) {
-        match self {
-            Effect::Reads => (true, false, true),
-            Effect::Adds => (false, false, false),
-            Effect::Sets => (false, false, true),
-            Effect::Replaces => (false, true, true),
-            Effect::Rewrites => (false, true, false),
-        }
+    fn annotations(self) -> Value {
+        let reads = matches!(self, Effect::Reads);
+        let overwrites = matches!(self, Effect::Replaces | Effect::Rewrites);
+        let again = matches!(self, Effect::Reads | Effect::Sets | Effect::Replaces);
+        json!({
+            "readOnlyHint": reads,
+            "destructiveHint": overwrites,
+            "idempotentHint": again,
+            "openWorldHint": false,
+        })
     }
 }
 
-const EFFECTS: [(&str, Effect); 39] = [
+pub(super) const EFFECTS: [(&str, Effect); 39] = [
     ("propose", Effect::Adds),
     ("remind", Effect::Sets),
     ("describe", Effect::Replaces),
@@ -444,7 +445,7 @@ const EFFECTS: [(&str, Effect); 39] = [
     ("note", Effect::Adds),
     ("attach", Effect::Adds),
     ("write_doc", Effect::Rewrites),
-    ("append_doc", Effect::Adds),
+    ("append_doc", Effect::Rewrites),
     ("restore_doc", Effect::Rewrites),
     ("edit_doc", Effect::Replaces),
     ("docs", Effect::Reads),
@@ -458,8 +459,8 @@ const EFFECTS: [(&str, Effect); 39] = [
     ("read_doc", Effect::Reads),
     ("catch_up", Effect::Reads),
     ("reschedule", Effect::Replaces),
-    ("say_done", Effect::Adds),
-    ("say_not_doing", Effect::Adds),
+    ("say_done", Effect::Sets),
+    ("say_not_doing", Effect::Sets),
     ("sum_up", Effect::Sets),
     ("outline_doc", Effect::Reads),
     ("read", Effect::Reads),
@@ -481,13 +482,7 @@ pub(super) fn tools() -> Value {
                 .iter()
                 .find(|(named, _)| *named == name)
                 .map_or(Effect::Rewrites, |(_, effect)| *effect);
-            let (reads, overwrites, again) = effect.hints();
-            one["annotations"] = json!({
-                "readOnlyHint": reads,
-                "destructiveHint": overwrites,
-                "idempotentHint": again,
-                "openWorldHint": false,
-            });
+            one["annotations"] = effect.annotations();
         }
     }
     all
