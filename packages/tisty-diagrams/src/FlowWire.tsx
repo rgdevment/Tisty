@@ -6,7 +6,7 @@ import {
   type InternalNode,
   useInternalNode,
 } from "@xyflow/react";
-import { routeOf } from "./flowroutes";
+import { endWordAt, routeOf } from "./flowroutes";
 import type { Rect } from "./graphlayout";
 import Renaming from "./Renaming";
 
@@ -49,8 +49,8 @@ export function Wire({
   if (!from || !to || !data) return null;
   const route = routeOf(rectOf(from), rectOf(to));
   const ends = [
-    { said: data.startLabel, at: route.from },
-    { said: data.endLabel, at: route.to },
+    { key: "start", said: data.startLabel, at: endWordAt(route.from, route.fromSide) },
+    { key: "end", said: data.endLabel, at: endWordAt(route.to, route.toSide) },
   ];
   return (
     <>
@@ -92,12 +92,14 @@ export function Wire({
             </button>
           )}
         </div>
-        {ends.map(({ said, at }) =>
+        {ends.map(({ key, said, at }) =>
           said ? (
             <span
-              key={`${at.x} ${at.y}`}
+              key={key}
               className="absolute text-[11px] text-soft"
-              style={{ transform: `translate(${at.x + 6}px, ${at.y - 18}px)` }}
+              style={{
+                transform: `translate(${at.x}px, ${at.y}px) translate(${at.anchor === "end" ? "-100%" : "0"}, -50%)`,
+              }}
             >
               {said}
             </span>

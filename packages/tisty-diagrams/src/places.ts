@@ -69,3 +69,9 @@ export const placed = (
   const place = { id, ...spot, line };
   return known ? places.map((one) => (one.id === id ? place : one)) : [...places, place];
 };
+
+/** A diagram read again, handed back as a change: its body, its places and what is chosen in it. */
+export const settledInto = <Picked>(
+  diagram: { readonly body: readonly string[]; readonly places: readonly Place[] },
+  picked: Picked,
+) => ({ body: diagram.body, places: diagram.places, picked });

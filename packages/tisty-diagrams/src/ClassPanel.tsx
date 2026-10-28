@@ -1,14 +1,15 @@
-import { ARROWS } from "./classes";
 import {
   classKindChanged,
   classRemoved,
   classRenamed,
+  kindKept,
   linkChanged,
   linkRemoved,
   memberAdded,
   memberChanged,
   memberRemoved,
   namespaceRemoved,
+  sameKind,
   visibilityOf,
   withVisibility,
 } from "./classing";
@@ -38,13 +39,8 @@ export default function ClassPanel({ editing }: Readonly<{ editing: Classing }>)
     ...(SORTS.some(([note]) => (note ?? "") === sort) ? [] : [{ value: sort, label: `«${sort}»` }]),
   ];
   const visibilities = VISIBILITY_WORDS.map(([mark, word]) => ({ value: mark, label: t(word) }));
-  const kinds = [
-    ...KINDS.map(([arrow, word]) => ({ value: arrow, label: `${t(word)}  ${arrow}` })),
-    ...ARROWS.filter((one) => !KINDS.some(([arrow]) => arrow === one)).map((one) => ({
-      value: one,
-      label: one,
-    })),
-  ];
+  // Each kind once: an arrow written the other way round is the same kind, its head kept where it is.
+  const kinds = KINDS.map(([arrow, word]) => ({ value: arrow, label: `${t(word)}  ${arrow}` }));
 
   return (
     <div className="flex flex-col gap-3">
@@ -158,9 +154,11 @@ export default function ClassPanel({ editing }: Readonly<{ editing: Classing }>)
           <Chosen
             id="class-kind"
             label={t("classKind")}
-            value={link.arrow}
+            value={KINDS.find(([kind]) => sameKind(link.arrow, kind))?.[0] ?? link.arrow}
             options={kinds}
-            onChoose={(arrow) => change(linkChanged(diagram, picked.index, { arrow }))}
+            onChoose={(kind) =>
+              change(linkChanged(diagram, picked.index, { arrow: kindKept(link.arrow, kind) }))
+            }
           />
           <Said
             id="class-left"

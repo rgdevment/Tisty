@@ -1,18 +1,13 @@
-import type { Flow } from "./flow";
-import { type FlowAltered, type FlowPicked, nodesPlaced, pinned, reread } from "./flowing";
+import { type FlowPicked, nodesPlaced, pinned, reread } from "./flowing";
 import { laneMoved, laneResized, regrouped } from "./flowlanes";
 import type { Rect } from "./graphlayout";
+import { settledInto } from "./places";
 import type { Lane } from "./scenes";
 import type { Flowing } from "./useFlow";
 import { GROUP, useMoving } from "./useMoving";
 
+export { settledInto } from "./places";
 export { GROUP } from "./useMoving";
-
-export const settledInto = (flow: Flow, picked: FlowPicked): FlowAltered => ({
-  body: flow.body,
-  places: flow.places,
-  picked,
-});
 
 export const chosenOf = (picked: FlowPicked): readonly string[] => {
   if (picked?.kind === "node") return [picked.id];

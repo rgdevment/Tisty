@@ -1,15 +1,33 @@
 import type { Classes } from "./classes";
 import { type ClassAltered, classReread, indentIn, indentOf, plain, spacesKept } from "./classing";
-import type { Rect } from "./graphlayout";
+import { around, type Rect } from "./graphlayout";
 import { placed, type Spot } from "./places";
-import { laneHolding, lanesIn } from "./scenes";
+import { classLaid, type Lane, laneHolding, lanesIn } from "./scenes";
 
-/** The namespaces drawn as lanes: those whose place carries a size. */
+/** The namespaces whose place carries a size. */
 export const classLanesOf = (diagram: Classes) =>
   lanesIn(
     diagram.groups.map((one) => ({ id: one.id, title: one.id })),
     diagram.places,
   );
+
+/** Every namespace as a lane: at its size when it has one, else around its classes, to drag and size. */
+export const classLanesAround = (
+  diagram: Classes,
+  laid: ReadonlyMap<string, Rect>,
+): readonly Lane[] => {
+  const sized = new Map(classLanesOf(diagram).map((one) => [one.id, one]));
+  return diagram.groups.flatMap((group) => {
+    const known = sized.get(group.id);
+    if (known) return [known];
+    const rect = around(
+      diagram.classes
+        .filter((one) => one.group === group.id)
+        .flatMap((one) => laid.get(one.name) ?? []),
+    );
+    return rect ? [{ id: group.id, title: group.id, rect, across: rect.wide > rect.tall }] : [];
+  });
+};
 
 const unique = (wanted: string, taken: readonly string[]) => {
   let n = 1;
@@ -80,7 +98,9 @@ export const namespaceRenamed = (diagram: Classes, from: string, wanted: string)
   if (!group || !/^[\p{L}\p{N}_.]+$/u.test(to) || to === from || taken)
     return { body: diagram.body, picked: { kind: "namespace", name: from } };
   return {
-    body: diagram.body.map((line, at) => (at === group.open ? line.replace(from, to) : line)),
+    body: diagram.body.map((line, at) =>
+      at === group.open ? line.replace(/^(\s*namespace\s+)\S+/, `$1${to}`) : line,
+    ),
     places: diagram.places.map((one) =>
       one.id === from
         ? { ...one, id: to, line: one.line.replace(`tisty: ${from} `, `tisty: ${to} `) }
@@ -91,10 +111,14 @@ export const namespaceRenamed = (diagram: Classes, from: string, wanted: string)
 };
 
 /** A namespace moved with every class in it, so they keep their places inside it. */
-export const namespaceMoved = (diagram: Classes, id: string, to: Spot): ClassAltered => {
-  const lane = classLanesOf(diagram).find((one) => one.id === id);
+export const namespaceMoved = (
+  diagram: Classes,
+  id: string,
+  to: Spot,
+  from: Rect | undefined = classLanesOf(diagram).find((one) => one.id === id)?.rect,
+): ClassAltered => {
   const picked = { kind: "namespace", name: id } as const;
-  if (!lane) return { body: diagram.body, picked };
+  if (!from) return { body: diagram.body, picked };
   const indent = indentIn(diagram);
   const shifted = diagram.classes
     .filter((one) => one.group === id)
@@ -102,11 +126,12 @@ export const namespaceMoved = (diagram: Classes, id: string, to: Spot): ClassAlt
       const place = places.find((at) => at.id === one.name);
       if (!place) return places;
       return placed(places, indent, one.name, {
-        x: place.x + to.x - lane.rect.x,
-        y: place.y + to.y - lane.rect.y,
+        x: place.x + to.x - from.x,
+        y: place.y + to.y - from.y,
       });
     }, diagram.places);
-  return { body: diagram.body, places: placed(shifted, indent, id, to), picked };
+  const box = { wide: from.wide, tall: from.tall, ...to };
+  return { body: diagram.body, places: placed(shifted, indent, id, box), picked };
 };
 
 /** A namespace's new size, its classes left where they are. */
@@ -117,8 +142,11 @@ export const namespaceResized = (diagram: Classes, id: string, box: Rect): Class
 });
 
 /** Classes let go in a namespace's lane join it, and let go outside every lane leave theirs. */
-export const reclassed = (diagram: Classes, at: ReadonlyMap<string, Rect>): Classes => {
-  const lanes = classLanesOf(diagram);
+export const reclassed = (
+  diagram: Classes,
+  at: ReadonlyMap<string, Rect>,
+  lanes: readonly Lane[] = classLanesOf(diagram),
+): Classes => {
   let now = diagram;
   for (const [name, rect] of at) {
     const own = now.classes.find((one) => one.name === name);
@@ -129,4 +157,24 @@ export const reclassed = (diagram: Classes, at: ReadonlyMap<string, Rect>): Clas
     now = classReread(now, classMovedTo(now, name, into));
   }
   return now;
+};
+
+const LANE_PAD = 24;
+
+/** Every class laid out again by the window, and each package drawn around the classes in it. */
+export const classesRelaid = (diagram: Classes): ClassAltered => {
+  const auto = classLaid({ ...diagram, places: [] });
+  const indent = indentIn(diagram);
+  let places = [...auto].reduce(
+    (all, [name, rect]) => placed(all, indent, name, { x: rect.x, y: rect.y }),
+    [] as ReturnType<typeof placed>,
+  );
+  for (const group of diagram.groups) {
+    const inside = diagram.classes
+      .filter((one) => one.group === group.id)
+      .flatMap((one) => auto.get(one.name) ?? []);
+    const box = around(inside, LANE_PAD, LANE_PAD);
+    if (box) places = placed(places, indent, group.id, box);
+  }
+  return { body: diagram.body, places, picked: null };
 };

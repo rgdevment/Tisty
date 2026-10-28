@@ -2,12 +2,12 @@ import {
   type ClassAltered,
   classesPinned,
   classesPlaced,
-  classesRelaid,
   kindKept,
   linkChanged,
   sameKind,
 } from "./classing";
 import { KINDS } from "./classkinds";
+import { classesRelaid } from "./classspaces";
 import { nodeStyled } from "./flowstyles";
 import { alignedMoves } from "./flowtools";
 import type { Rect } from "./graphlayout";

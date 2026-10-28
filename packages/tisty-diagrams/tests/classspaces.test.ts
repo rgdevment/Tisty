@@ -146,7 +146,7 @@ describe("moving a class in and out of a package", () => {
       "classDiagram\n  namespace Zoo {\n    class A\n  }\n  <<interface>> A\n  class B",
     );
     expect(written(alone, classPickedRemoved(alone, { kind: "namespace", name: "Zoo" }))).toBe(
-      "classDiagram\n    class A\n  class B",
+      "classDiagram\n  class A\n  class B",
     );
     for (const text of [gone, kinded]) expect(await valid(text)).toBe(true);
   });

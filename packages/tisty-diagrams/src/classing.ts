@@ -97,13 +97,6 @@ export const classesPinned = (
     : diagram;
 };
 
-/** Every class laid out again by the window. */
-export const classesRelaid = (diagram: Classes): ClassAltered => ({
-  body: diagram.body,
-  places: [],
-  picked: null,
-});
-
 /** A class made an interface, an abstract class or an enumeration, or a plain class again. */
 export const classKindChanged = (
   diagram: Classes,
@@ -152,7 +145,10 @@ export const classRenamed = (diagram: Classes, from: string, wanted: string): Cl
   if (!/^[\p{L}\p{N}_]+$/u.test(to) || to === from || taken)
     return { body: diagram.body, picked: { kind: "class", name: from } };
   return {
-    body: diagram.body.map((line) => renamedLine(line, from, to)),
+    // A package of the same name is not the class; its opening line stays as it is.
+    body: diagram.body.map((line, at) =>
+      diagram.groups.some((one) => one.open === at) ? line : renamedLine(line, from, to),
+    ),
     // Its place goes with it, or the class would be laid out anew under its new name.
     places: diagram.places.map((one) =>
       one.id === from
@@ -295,8 +291,14 @@ export const linkRemoved = (diagram: Classes, index: number): ClassAltered => {
 export const namespaceRemoved = (diagram: Classes, id: string): ClassAltered => {
   const group = diagram.groups.find((one) => one.id === id);
   if (!group) return { body: diagram.body, picked: null };
+  const inner = `${indentOf(diagram.body[group.open])}  `;
+  // What was inside goes back to the indent of the rest of the body.
   return {
-    body: diagram.body.filter((_, at) => at !== group.open && at !== group.close),
+    body: diagram.body.flatMap((line, at) => {
+      if (at === group.open || at === group.close) return [];
+      const inside = at > group.open && at < group.close && line.startsWith(inner);
+      return [inside ? line.slice(2) : line];
+    }),
     picked: null,
   };
 };

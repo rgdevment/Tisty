@@ -24,12 +24,13 @@ import { namespaceAdded, reclassed } from "./classspaces";
 import { Wire, type WireEdge } from "./FlowWire";
 import { useSay } from "./handing";
 import Palette, { Sketch } from "./Palette";
-import { FrameBox, type FrameNode, LaneBox, type LaneNode } from "./ShapeNodes";
+import { settledInto } from "./places";
+import { LaneBox, type LaneNode } from "./ShapeNodes";
 import { type ClassNaming, useClassCanvas } from "./useClassCanvas";
 import type { Classing } from "./useClasses";
 import { GROUP } from "./useMoving";
 
-const NODE_TYPES = { class: ClassCard, frame: FrameBox, lane: LaneBox };
+const NODE_TYPES = { class: ClassCard, lane: LaneBox };
 const EDGE_TYPES = { wire: Wire };
 // A class put down before it has members is about this big, so it lands centred where it is let go.
 const NEW_CLASS = { wide: 150, tall: 62 };
@@ -88,7 +89,7 @@ function Drawing({ editing, dark }: Readonly<{ editing: Classing; dark: boolean 
     const made = classAdded(base, t("classNew"), noteOf(sort), at);
     const name = made.picked?.kind === "class" ? made.picked.name : "";
     const now = reclassed(classReread(base, made), new Map([[name, { ...at, ...NEW_CLASS }]]));
-    change({ body: now.body, places: now.places, picked: made.picked });
+    change(settledInto(now, made.picked));
     setNaming({ kind: "class", name });
   };
   const middleOfPane = () => {
@@ -164,7 +165,7 @@ function Drawing({ editing, dark }: Readonly<{ editing: Classing; dark: boolean 
         <ClassToolbar editing={editing} laid={laid} removal={removal} />
         <div ref={pane} className="relative min-h-0 flex-1 bg-desk">
           <HeadMarkers />
-          <ReactFlow<ClassNode | FrameNode | LaneNode, WireEdge>
+          <ReactFlow<ClassNode | LaneNode, WireEdge>
             nodes={nodes}
             edges={edges}
             nodeTypes={NODE_TYPES}

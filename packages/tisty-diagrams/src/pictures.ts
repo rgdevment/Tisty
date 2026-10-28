@@ -1,11 +1,11 @@
 import { type Classes, readClasses } from "./classes";
 import { type Flow, readFlow } from "./flow";
 import { outlineOf } from "./flowoutlines";
-import { type Route, routeOf } from "./flowroutes";
+import { endWordAt, type Route, routeOf } from "./flowroutes";
 import { type Shape as FlowShape, pictured } from "./flowshapes";
 import { looksOf, type Look as Painted } from "./flowstyles";
 import { kindOf } from "./framing";
-import { edgeOf, type Rect } from "./graphlayout";
+import type { Rect } from "./graphlayout";
 import { curve, HEXAGON, HUES, laidOut, type Placed } from "./mindlayout";
 import { type Mind, type Shape as MindShape, readMind } from "./mindmap";
 import {
@@ -144,18 +144,12 @@ const schemaPicture = (schema: Schema): Picture => {
   };
 };
 
-const straightRoute = (from: Rect, to: Rect): Route => {
-  const a = edgeOf(from, to);
-  const b = edgeOf(to, from);
-  return { path: straight(a, b), labelX: (a.x + b.x) / 2, labelY: (a.y + b.y) / 2, from: a, to: b };
-};
-
 // Groups behind, then lines, then their words, then the boxes over the ends of the lines.
 const graph = (
   scene: Scene,
   palette: Palette,
   box: (id: string, rect: Rect) => string,
-  route: (from: Rect, to: Rect) => Route = straightRoute,
+  route: (from: Rect, to: Rect) => Route = routeOf,
 ) => {
   const { at } = scene.laid;
   const joined = scene.joints.flatMap((one) => {
@@ -188,21 +182,10 @@ const graph = (
     // A relation's cardinalities sit just off its ends, as on the canvas.
     ...joined.flatMap(({ one, way }) =>
       [
-        { said: one.startLabel, end: way.from },
-        { said: one.endLabel, end: way.to },
+        { said: one.startLabel, end: endWordAt(way.from, way.fromSide) },
+        { said: one.endLabel, end: endWordAt(way.to, way.toSide) },
       ].flatMap(({ said, end }) =>
-        said
-          ? [
-              writing({
-                x: end.x + 6,
-                y: end.y - 10,
-                text: said,
-                size: 11,
-                fill: palette.soft,
-                anchor: "start",
-              }),
-            ]
-          : [],
+        said ? [writing({ ...end, text: said, size: 11, fill: palette.soft })] : [],
       ),
     ),
     ...[...at].map(([id, rect]) => box(id, rect)),

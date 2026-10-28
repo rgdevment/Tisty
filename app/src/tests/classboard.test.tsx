@@ -124,7 +124,7 @@ describe("a class diagram in the diagram window", () => {
     leave(`${say("classCard")} · B`, "many");
     leave(say("flowLabel"), "tiene");
 
-    expect(text()).toContain('  A "1" *-- "many" B : tiene\n');
+    expect(text()).toContain('  A "1" --* "many" B : tiene\n');
   });
 
   it("adds a class from the palette, named at once, and deletes the chosen one with Delete", () => {
@@ -203,7 +203,8 @@ describe("a class diagram in the diagram window", () => {
     expect(text()).toContain("  style Duck fill:#dbeafe,color:#1e3a8a\n");
 
     fireEvent.click(tool(say("flowRelaid")));
-    expect(text()).not.toContain("%% tisty:");
+    expect(text()).not.toContain("%% tisty: Duck 10 200");
+    expect(text()).toMatch(/%% tisty: Duck \d+ \d+/);
   });
 
   it("puts a package with a class in it from the palette, and moves the package with its classes", () => {
@@ -237,6 +238,16 @@ describe("a class diagram in the diagram window", () => {
     expect(text()).toContain("  namespace Granja {");
     fireEvent.click(screen.getByRole("button", { name: say("classUngroup") }));
     expect(text()).not.toContain("namespace");
+  });
+
+  it("moves a package written by hand, which gets its size the first time", () => {
+    opened("classDiagram\n  namespace Zoo {\n    class A\n  }\n  class B\n");
+    const lane = document.querySelector('[data-lane="group:Zoo"]') as HTMLElement;
+
+    fireEvent.click(within(lane).getByRole("button", { name: "Zoo" }));
+    fireEvent.keyDown(lane.closest(".react-flow__node") as HTMLElement, { key: "ArrowRight" });
+
+    expect(text()).toMatch(/%% tisty: Zoo -?\d+ -?\d+ \d+ \d+/);
   });
 
   it("writes where a class is nudged with the arrow keys", () => {
