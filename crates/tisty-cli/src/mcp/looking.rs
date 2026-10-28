@@ -3,6 +3,7 @@ use tisty_core::Paths;
 
 use tisty_core::State;
 use tisty_core::model::{Priority, Tag, Task, TaskId};
+use tisty_core::standing::Standing;
 use ulid::Ulid;
 
 use super::asked::{strings, text};
@@ -14,6 +15,7 @@ use super::{
 
 pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let (state, _) = opened(paths)?;
+    let today = jiff::Zoned::now().date();
 
     if let Some(source) = text(args, "source") {
         if text(args, "query").is_some() {
@@ -44,7 +46,7 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 Some(task) => format!("Already proposed from that source: {:?}", task.title),
                 None => "Nothing here came from that source.".into(),
             },
-            json!({ "found": held.map(|task| brief(task, &state)) }),
+            json!({ "found": held.map(|task| brief(task, &state, today)) }),
         ));
     }
 
@@ -127,7 +129,7 @@ pub(super) fn find(paths: &Paths, args: &Value) -> Result<Value, Refused> {
         .iter()
         .zip(&wheres)
         .map(|(task, said)| {
-            let mut one = brief(task, &state);
+            let mut one = brief(task, &state, today);
             if let Some((kind, line)) = said {
                 one["in"] = json!(kind);
                 one["line"] = json!(line);
@@ -337,6 +339,7 @@ pub(super) fn inside_a_doc(
 }
 
 pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
+    let today = jiff::Zoned::now().date();
     let Some(said) = text(args, "task") else {
         return Err(Refused::Tool("reading needs a `task` id.".into()));
     };
@@ -361,9 +364,9 @@ pub(super) fn read(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let wants = |key: &str| asked.is_empty() || asked.iter().any(|one| one == key);
 
     let mut whole = match asked.is_empty() {
-        true => brief(task, &state),
+        true => brief(task, &state, today),
         false => {
-            let brief = brief(task, &state);
+            let brief = brief(task, &state, today);
             let mut kept = serde_json::Map::new();
             kept.insert("id".into(), json!(task.id.to_string()));
             for key in &asked {
@@ -500,6 +503,7 @@ part [{}] {} — {}",
 
 pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
     let (state, store) = opened(paths)?;
+    let today = jiff::Zoned::now().date();
 
     let mut named: Vec<&str> = state
         .lists
@@ -552,16 +556,18 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
             ),
         );
     }
-    kept.insert(
-        "counts".into(),
-        json!({
-            "open": state.tasks.values().filter(|one| one.is_open() && !one.folded()).count(),
-            "docs": state
-                .papers()
-                .filter(|one| !state.held_away(one))
-                .count(),
-        }),
-    );
+    let pressing = pressing(&state, today);
+    let mut counts = json!({
+        "open": state.tasks.values().filter(|one| one.is_open() && !one.folded()).count(),
+        "docs": state
+            .papers()
+            .filter(|one| !state.held_away(one))
+            .count(),
+    });
+    for (how, many) in &pressing {
+        counts[how] = json!(many);
+    }
+    kept.insert("counts".into(), counts);
     if let Some(head) = &head {
         kept.insert("cursor".into(), json!(head));
     }
@@ -581,7 +587,7 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 kept.insert("newest".into(), json!(newest));
             }
             format!(
-                "{} list(s), {} folder(s), {} tag(s), {} open task(s), {} document(s) not put \
+                "{} list(s), {} folder(s), {} tag(s), {} open task(s){}, {} document(s) not put \
                  away, pages included. Send the `cursor` back next time and what moved since \
                  comes with it as well.",
                 named.len(),
@@ -592,6 +598,7 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                     .values()
                     .filter(|one| one.is_open() && !one.folded())
                     .count(),
+                pressed(&pressing),
                 state.papers().filter(|one| !state.held_away(one)).count()
             )
         }
@@ -635,7 +642,7 @@ pub(super) fn catch_up(paths: &Paths, args: &Value) -> Result<Value, Refused> {
                 .filter_map(|id| id.parse::<TaskId>().ok())
                 .filter_map(|id| state.tasks.get(&id))
                 .filter(|one| !one.folded())
-                .map(|one| brief(one, &state))
+                .map(|one| brief(one, &state, today))
                 .collect();
             let written: Vec<Value> = papers
                 .iter()
@@ -954,7 +961,7 @@ fn documented(
 }
 
 /// A field that says nothing still costs the reader a line, so it is left out.
-pub(super) fn brief(task: &Task, state: &State) -> Value {
+pub(super) fn brief(task: &Task, state: &State, today: jiff::civil::Date) -> Value {
     let mut kept = serde_json::Map::new();
     let mut put = |key: &str, one: Value| {
         let empty = one.is_null()
@@ -979,6 +986,7 @@ pub(super) fn brief(task: &Task, state: &State) -> Value {
         "deadline",
         json!(task.deadline.as_ref().map(|d| d.date().to_string())),
     );
+    put("standing", json!(standing_of(task, today)));
     put(
         "reminders",
         json!(
@@ -1217,9 +1225,50 @@ impl Sifted {
     }
 }
 
+/// A closed task's dates no longer press, so it is never handed a standing that would read as urgent.
+pub(super) fn standing_of(task: &Task, today: jiff::civil::Date) -> Option<Standing> {
+    let how = tisty_core::standing::standing(task, today);
+    (task.is_open() && how != Standing::Undated).then_some(how)
+}
+
+/// Every count goes out even at zero, so a missing key never has to be read as «none».
+pub(super) fn pressing(state: &State, today: jiff::civil::Date) -> Vec<(String, usize)> {
+    let mut many = [
+        (Standing::Overdue, 0),
+        (Standing::DueSoon, 0),
+        (Standing::Late, 0),
+    ];
+    for task in state.tasks.values().filter(|one| !one.folded()) {
+        if let Some(how) = standing_of(task, today)
+            && let Some((_, count)) = many.iter_mut().find(|(one, _)| *one == how)
+        {
+            *count += 1;
+        }
+    }
+    many.into_iter()
+        .map(|(how, count)| (json!(how).as_str().unwrap_or_default().to_string(), count))
+        .collect()
+}
+
+fn pressed(pressing: &[(String, usize)]) -> String {
+    let told: Vec<String> = pressing
+        .iter()
+        .filter(|(_, many)| *many > 0)
+        .map(|(how, many)| format!("{many} {}", how.replace('_', " ")))
+        .collect();
+    if told.is_empty() {
+        return String::new();
+    }
+    format!(" ({})", told.join(", "))
+}
+
 fn placed(state: &State, task: &Task) -> String {
     task.list.and_then(|at| state.lists.get(&at)).map_or_else(
         || "in the inbox".to_string(),
         |one| format!("in {}", one.name),
     )
 }
+
+#[cfg(test)]
+#[path = "looking_test.rs"]
+mod tests;

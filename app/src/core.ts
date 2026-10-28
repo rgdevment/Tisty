@@ -154,7 +154,10 @@ export interface Snapshot {
   machine_here?: string;
   clients?: Record<string, string>;
   wholes?: Record<string, Whole>;
+  standings?: Record<string, Standing>;
 }
+
+export type Standing = "ahead" | "today" | "late" | "underway" | "due_soon" | "overdue";
 
 export interface Whole {
   title: string;
@@ -302,6 +305,7 @@ export interface Sighting {
 }
 
 export interface Found {
+  standings?: Record<string, Standing>;
   tasks: Task[];
   papers: Sighting[];
   total: number;

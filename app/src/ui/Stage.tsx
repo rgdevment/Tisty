@@ -121,6 +121,7 @@ export default function Stage() {
       lists={data.every ?? data.lists}
       counts={data.counts}
       soonest={data.soonest}
+      standings={data.standings}
       onOpen={(id) => setChosen({ named: "lists", list: id })}
       onChanged={load}
       onError={(e) => setError(saidPlainly(e))}

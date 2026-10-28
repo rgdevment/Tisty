@@ -37,8 +37,9 @@ export default function Pulse({
     >
       <div>
         <Cap said={t("theDay")} />
-        <dl className="grid grid-cols-3 gap-1.5">
-          <Count many={counts.overdue ?? 0} said={t("pulseLate")} tone="text-urgent" />
+        <dl className="grid grid-cols-4 gap-1.5">
+          <Count many={counts.overdue ?? 0} said={t("pulseOverdue")} tone="text-urgent" />
+          <Count many={counts.late ?? 0} said={t("pulseLate")} tone="text-hue-amber" />
           <Count many={counts.dueToday ?? 0} said={t("pulseToday")} tone="text-accent" />
           <Count many={counts.upcoming ?? 0} said={t("pulseAhead")} />
         </dl>
