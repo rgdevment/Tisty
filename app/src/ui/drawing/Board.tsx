@@ -1,17 +1,24 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { t } from "../../locales";
 import { button } from "../viewer/Glyphs";
-import { fitted, type Size, STEP, type View, zoomedAt } from "./framing";
+import { fitted, type Size, STEP, showing, type View, zoomedAt } from "./framing";
 
 // What the board pans for is the empty room; a press on an idea or a control is theirs.
-const OWN = "button, input, [data-idea]";
+const OWN = "button, input, [data-idea], [data-grip]";
 
 /** A room that shows something of a given size, moved by dragging or the wheel and zoomed under the pointer. */
 export default function Board({
   size,
   notice,
+  seen,
   children,
-}: Readonly<{ size: Size | null; notice?: ReactNode; children: ReactNode }>) {
+}: Readonly<{
+  size: Size | null;
+  notice?: ReactNode;
+  // A part to bring into sight when it changes, such as a table just added.
+  seen?: { x: number; y: number; wide: number; tall: number } | null;
+  children: ReactNode;
+}>) {
   const room = useRef<HTMLElement>(null);
   const [view, setView] = useState<View | null>(null);
   const dragged = useRef<{ x: number; y: number } | null>(null);
@@ -29,6 +36,12 @@ export default function Board({
   useEffect(() => {
     if (first) fitAll();
   });
+
+  const sought = seen ? `${seen.x} ${seen.y} ${seen.wide} ${seen.tall}` : "";
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the part is looked for when it changes, not on every drawing.
+  useEffect(() => {
+    if (seen) setView((was) => (was ? showing(was, seen, roomSize()) : was));
+  }, [sought]);
 
   const zoom = (by: number) => {
     const middle = { x: roomSize().wide / 2, y: roomSize().tall / 2 };
