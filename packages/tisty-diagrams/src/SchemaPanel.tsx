@@ -1,7 +1,6 @@
-import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { useState } from "react";
-import { fill, t, type Word } from "../../locales";
-import { button } from "../viewer/Glyphs";
+import { useHands, useSay } from "./handing";
+import { button } from "./looks";
 import { caption, field, Said, Section, Ticked } from "./panelbits";
 import { ENDS, type End, KEYS, type Key, type Schema } from "./schema";
 import { toDbml, toSql } from "./schemaout";
@@ -18,6 +17,7 @@ import {
   tableRemoved,
   tableRenamed,
 } from "./scheming";
+import type { Word } from "./words";
 
 const END_WORDS: Record<End, Word> = {
   one: "schemaEndOne",
@@ -45,9 +45,11 @@ export default function SchemaPanel({
   picked,
   onChange,
 }: Readonly<{ schema: Schema; picked: Picked; onChange: (made: Altered) => void }>) {
+  const t = useSay();
+  const { copy: toClipboard } = useHands();
   const [copied, setCopied] = useState<string | null>(null);
   const copy = (said: string, what: string) =>
-    void writeText(said)
+    void toClipboard(said)
       .then(() => setCopied(what))
       .catch(() => setCopied(null));
 
@@ -169,7 +171,7 @@ export default function SchemaPanel({
           {(["fromEnd", "toEnd"] as const).map((side) => (
             <label key={side} className="flex flex-col gap-1">
               <span className={caption}>
-                {fill("schemaSide", side === "fromEnd" ? relation.from : relation.to)}
+                {t("schemaSide", side === "fromEnd" ? relation.from : relation.to)}
               </span>
               <select
                 className={field}
@@ -219,9 +221,7 @@ export default function SchemaPanel({
         <button type="button" className={button} onClick={() => copy(toDbml(schema), "DBML")}>
           {t("schemaCopyDbml")}
         </button>
-        {copied && (
-          <output className="text-[12px] text-faint">{fill("schemaCopied", copied)}</output>
-        )}
+        {copied && <output className="text-[12px] text-faint">{t("schemaCopied", copied)}</output>}
       </div>
     </div>
   );

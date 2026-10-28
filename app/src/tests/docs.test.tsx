@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { sayIn } from "tisty-diagrams/read";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed } from "../core";
 import { t } from "../locales";
@@ -7,6 +8,9 @@ import { settled } from "../saving";
 import Docs from "../ui/Docs";
 import { MARKED_FOR } from "../ui/lately";
 import type { Asking } from "../ui/slashing";
+
+// The studio says its own words; these tests read them as it does, in English.
+const say = sayIn("en");
 
 const store = vi.hoisted(() => ({
   bodies: {} as Record<string, string>,
@@ -909,9 +913,9 @@ describe("a diagram made from the / menu", () => {
     };
 
     act(() => store.asking?.ask("diagram", { x: 0, y: 0 }, put, false));
-    await userEvent.click(await screen.findByRole("menuitem", { name: t("diagramFlow") }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: say("diagramFlow") }));
 
-    const source = t("diagramStartFlow");
+    const source = say("diagramStartFlow");
     await waitFor(() => expect(store.viewed).toHaveLength(1));
     expect(store.bodies["a3f1-0001"]).toBe(`# Compras\n\nleche\n\n\`\`\`mermaid\n${source}\`\`\``);
     expect(store.viewed[0]).toMatchObject({
@@ -945,7 +949,7 @@ describe("a diagram made from the / menu", () => {
     await waitFor(() => expect(store.asking?.kinds).toContain("diagram"));
 
     act(() => store.asking?.ask("diagram", { x: 0, y: 0 }, () => false, false));
-    await userEvent.click(await screen.findByRole("menuitem", { name: t("diagramMindmap") }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: say("diagramMindmap") }));
     await settled();
 
     expect(store.writes).toEqual([]);

@@ -1,14 +1,7 @@
+import { PALETTES, scaleFor, svgFor } from "tisty-diagrams/read";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { t } from "../locales";
-import {
-  copiedImage,
-  exportChoices,
-  exported,
-  fileName,
-  scaleFor,
-  svgFor,
-} from "../ui/drawing/exporting";
-import { PALETTES } from "../ui/drawing/picture";
+import { copiedImage, exportChoices, exported, fileName } from "../ui/drawing/exporting";
 
 const kept = vi.hoisted(() => ({
   path: null as string | null,
@@ -68,6 +61,7 @@ HTMLCanvasElement.prototype.toBlob = function (done: BlobCallback, type?: string
 };
 
 const FLOW = "flowchart TD\n  A[Inicio] --> B[Fin]\n";
+const draw = () => Promise.resolve(kept.drawn);
 const svgIn = (source: string) => decodeURIComponent(source.replace(/^data:[^,]*,/, ""));
 
 beforeEach(() => {
@@ -112,7 +106,7 @@ describe("saving a diagram as a file", () => {
   });
 
   it("paints a PNG or a JPG at twice the size, on the ground of the theme chosen", async () => {
-    const drawn = await svgFor(FLOW, true, true, "Inter");
+    const drawn = await svgFor(FLOW, true, true, "Inter", draw);
 
     await exported(FLOW, "pngDark", "Pagos", "Inter");
     await exported(FLOW, "jpgLight", "Pagos", "Inter");
@@ -141,7 +135,7 @@ describe("saving a diagram as a file", () => {
   it("takes Mermaid's drawing for a kind the window leaves to it, at its own size", async () => {
     kept.drawn = '<svg width="100%" viewBox="0 0 200 100"><text>hola</text></svg>';
 
-    const drawn = await svgFor("sequenceDiagram\n  A->>B: hola\n", false, false, "Inter");
+    const drawn = await svgFor("sequenceDiagram\n  A->>B: hola\n", false, false, "Inter", draw);
 
     expect(drawn.size).toEqual({ wide: 200, tall: 100 });
     expect(drawn.svg).toBe(
@@ -150,11 +144,13 @@ describe("saving a diagram as a file", () => {
   });
 
   it("says what failed rather than writing an empty file: Mermaid's drawing, or the painting", async () => {
-    await expect(exported("sequenceDiagram\n  roto", "svg", "x", "Inter")).rejects.toThrow(
-      t("diagramUnreadable"),
-    );
+    await expect(exported("sequenceDiagram\n  roto", "svg", "x", "Inter")).rejects.toMatchObject({
+      code: "diagramUnreadable",
+    });
     kept.broken = true;
-    await expect(exported(FLOW, "pngLight", "x", "Inter")).rejects.toThrow(t("diagramUnpainted"));
+    await expect(exported(FLOW, "pngLight", "x", "Inter")).rejects.toMatchObject({
+      code: "diagramUnpainted",
+    });
     expect(kept.files).toEqual([]);
   });
 });

@@ -1,7 +1,7 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
-import { t } from "../../locales";
-import { button } from "../viewer/Glyphs";
 import { fitted, type Size, STEP, showing, type View, zoomedAt } from "./framing";
+import { useSay } from "./handing";
+import { button } from "./looks";
 
 // What the board pans for is the empty room; a press on an idea or a control is theirs.
 const OWN = "button, input, [data-idea], [data-grip]";
@@ -19,6 +19,7 @@ export default function Board({
   seen?: { x: number; y: number; wide: number; tall: number } | null;
   children: ReactNode;
 }>) {
+  const t = useSay();
   const room = useRef<HTMLElement>(null);
   const [view, setView] = useState<View | null>(null);
   const dragged = useRef<{ x: number; y: number } | null>(null);

@@ -11,8 +11,8 @@
     "test:coverage": "vitest run --coverage",
     "preview": "vite preview",
     "tauri": "tauri",
-    "lint": "biome check src",
-    "format": "biome check src --write",
+    "lint": "biome check src && cd ../packages/tisty-diagrams && biome check .",
+    "format": "biome check src --write && cd ../packages/tisty-diagrams && biome check . --write",
     "mutants": "stryker run"
   },
   "dependencies": {

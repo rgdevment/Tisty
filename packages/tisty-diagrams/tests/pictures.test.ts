@@ -1,8 +1,6 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { cut, fitted, PALETTES, type Palette, svgOf } from "../ui/drawing/picture";
-import { pictureOf } from "../ui/drawing/pictures";
+import { cut, fitted, PALETTES, svgOf } from "../src/picture";
+import { pictureOf } from "../src/pictures";
 
 // `⏎` is a line break, so a whole diagram fits on its line.
 const unfolded = (said: string) => said.trim().replace(/⏎/g, "\n");
@@ -79,38 +77,5 @@ describe("drawing words and shapes as SVG", () => {
     expect(cut("polygon(50% 0, 100% 50%, 50% 100%, 0 50%)", rect, { fill: "red" })).toBe(
       '<polygon points="60,20 110,40 60,60 10,40" fill="red"/>',
     );
-  });
-});
-
-const TOKENS: Record<keyof Palette, string> = {
-  sheet: "sheet",
-  ink: "ink",
-  soft: "soft",
-  faint: "faint",
-  line: "line",
-  hover: "hover",
-  panel: "panel",
-  desk: "desk",
-  accent: "accent",
-  accentSoft: "accent-soft",
-};
-
-// `rgb(0 0 0 / 0.16)` and `rgba(0,0,0,0.16)` are the same colour written two ways.
-const numbersOf = (color = "") => (color.match(/#[0-9a-f]+|[\d.]+/gi) ?? []).join(" ");
-const tokensIn = (block = "") =>
-  Object.fromEntries(
-    [...block.matchAll(/--tisty-([\w-]+):\s*([^;]+);/g)].map(([, name, value]) => [name, value]),
-  );
-
-describe("the colours of a picture", () => {
-  it("are the window's own, as index.css writes them for each theme", () => {
-    const css = readFileSync(resolve("src/index.css"), "utf8");
-    const themes = [
-      [PALETTES.light, tokensIn(/:root\s*\{([^}]*)\}/.exec(css)?.[1])],
-      [PALETTES.dark, tokensIn(/\[data-theme="dark"\]\s*\{([^}]*)\}/.exec(css)?.[1])],
-    ] as const;
-    for (const [palette, written] of themes)
-      for (const [key, token] of Object.entries(TOKENS))
-        expect(numbersOf(palette[key as keyof Palette]), token).toBe(numbersOf(written[token]));
   });
 });

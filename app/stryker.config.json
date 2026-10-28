@@ -31,6 +31,8 @@
   "mutate": [
     "src/**/*.ts",
     "src/**/*.tsx",
+    "../packages/tisty-diagrams/src/**/*.ts",
+    "../packages/tisty-diagrams/src/**/*.tsx",
     "!src/**/*.d.ts",
     "!src/tests/**",
     "!src/main.tsx",

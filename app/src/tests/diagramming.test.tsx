@@ -1,10 +1,14 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { sayIn } from "tisty-diagrams/read";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Showing } from "../core";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import Viewing from "../Viewing";
+
+// The studio says its own words; these tests read them as it does, in English.
+const say = sayIn("en");
 
 const ipc = vi.hoisted(() => ({
   calls: [] as { cmd: string; args: Record<string, unknown> }[],
@@ -94,7 +98,8 @@ const flow: Showing = { ...shown, source: "sequenceDiagram\n  A->>B: hola\n" };
 
 const asked = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd);
 const lastOf = (cmd: string) => asked(cmd)[asked(cmd).length - 1];
-const written = async () => (await screen.findByLabelText(t("diagramText"))) as HTMLTextAreaElement;
+const written = async () =>
+  (await screen.findByLabelText(say("diagramText"))) as HTMLTextAreaElement;
 const saving = () => screen.getByRole("button", { name: fill("diagramSave", "Tisty Share") });
 
 beforeEach(() => {
@@ -166,7 +171,7 @@ describe("the diagram window", () => {
 
     expect((await written()).value).toBe(shown.source);
     expect(screen.getByText(fill("diagramOf", "Tisty Share"))).toBeTruthy();
-    expect(screen.getByText(`${t("diagramMindmap")} · Proyectos`)).toBeTruthy();
+    expect(screen.getByText(`${say("diagramMindmap")} · Proyectos`)).toBeTruthy();
     expect(screen.getByText(t("diagramSaved"))).toBeTruthy();
     expect((saving() as HTMLButtonElement).disabled).toBe(true);
   });
@@ -208,7 +213,7 @@ describe("the diagram window", () => {
     fireEvent.change(text, { target: { value: "erDiagram" } });
     fireEvent.keyDown(window, { key: "s", ctrlKey: true });
     await waitFor(() => expect(asked("diagram_save")).toHaveLength(2));
-    expect(screen.getByText(`${t("diagramSchema")} · Proyectos`)).toBeTruthy();
+    expect(screen.getByText(`${say("diagramSchema")} · Proyectos`)).toBeTruthy();
   });
 
   it("says plainly when the diagram changed in the document meanwhile, and keeps what was typed", async () => {
@@ -250,12 +255,12 @@ describe("the diagram window", () => {
     await waitFor(() => expect(container.querySelector(".diagram-drawn svg")).toBeTruthy());
     const shown = screen.getByText("100%");
 
-    await userEvent.click(screen.getByRole("button", { name: t("diagramZoomIn") }));
+    await userEvent.click(screen.getByRole("button", { name: say("diagramZoomIn") }));
     expect(shown.textContent).toBe("120%");
-    await userEvent.click(screen.getByRole("button", { name: t("diagramZoomOut") }));
-    await userEvent.click(screen.getByRole("button", { name: t("diagramZoomOut") }));
+    await userEvent.click(screen.getByRole("button", { name: say("diagramZoomOut") }));
+    await userEvent.click(screen.getByRole("button", { name: say("diagramZoomOut") }));
     expect(shown.textContent).toBe("83%");
-    await userEvent.click(screen.getByRole("button", { name: t("diagramFit") }));
+    await userEvent.click(screen.getByRole("button", { name: say("diagramFit") }));
     expect(shown.textContent).toBe("100%");
   });
 
@@ -265,7 +270,7 @@ describe("the diagram window", () => {
     vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(600);
     const { container } = render(<Viewing />);
     await waitFor(() => expect(container.querySelector(".diagram-drawn svg")).toBeTruthy());
-    const canvas = screen.getByRole("region", { name: t("diagramCanvas") });
+    const canvas = screen.getByRole("region", { name: say("diagramCanvas") });
     const drawn = () => (container.querySelector(".diagram-drawn") as HTMLElement).style.transform;
 
     expect(drawn()).toBe("translate(300px, 250px) scale(1)");

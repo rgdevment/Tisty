@@ -1,7 +1,7 @@
 import { useId, useState } from "react";
+import { nameOf, STARTS, type Start } from "tisty-diagrams/read";
 import { useAttended } from "../attended";
-import { t } from "../locales";
-import { nameOf, STARTS, type Start } from "./drawing/starting";
+import { locale, t } from "../locales";
 import Modal from "./Modal";
 
 // The name follows the kind until the person types one, so a quick diagram is named for what it is.
@@ -10,7 +10,7 @@ export default function DiagramMaking({
   onClose,
 }: Readonly<{ onMake: (name: string, kind: Start) => void; onClose: () => void }>) {
   const [kind, setKind] = useState<Start>("flowchart");
-  const [name, setName] = useState(nameOf("flowchart"));
+  const [name, setName] = useState(nameOf("flowchart", locale()));
   const [typed, setTyped] = useState(false);
   const held = useAttended<HTMLInputElement>();
   const group = useId();
@@ -50,10 +50,10 @@ export default function DiagramMaking({
               checked={kind === one}
               onChange={() => {
                 setKind(one);
-                if (!typed) setName(nameOf(one));
+                if (!typed) setName(nameOf(one, locale()));
               }}
             />
-            {nameOf(one)}
+            {nameOf(one, locale())}
           </label>
         ))}
       </fieldset>

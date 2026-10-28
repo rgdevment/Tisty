@@ -1,12 +1,13 @@
-import { t } from "../../locales";
-import { button } from "../viewer/Glyphs";
 import { classAdded, classesLinked, classRemoved, linkRemoved, memberRemoved } from "./classing";
 import GraphBoard from "./GraphBoard";
+import { useSay } from "./handing";
+import { button } from "./looks";
 import { classScene } from "./scenes";
 import type { Classing } from "./useClasses";
 
 /** A class diagram drawn by Tisty: classes as cards with their members, in layers along its relations. */
 export default function ClassView({ editing }: Readonly<{ editing: Classing }>) {
+  const t = useSay();
   const { diagram, picked, change, pick } = editing;
   const { laid, joints } = classScene(diagram);
   const remove = () => {

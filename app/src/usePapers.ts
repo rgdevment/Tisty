@@ -1,6 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
 import { open as pick } from "@tauri-apps/plugin-dialog";
 import { type MutableRefObject, useCallback, useEffect, useRef, useState } from "react";
+import type { Start } from "tisty-diagrams/read";
 import type { carrying } from "./carrying";
 import {
   docAway,
@@ -24,7 +25,6 @@ import { drafted, placeOf } from "./making";
 import { saidPlainly } from "./refusal";
 import { sure } from "./sure";
 import { dropAllAsked, goingWith } from "./tidying";
-import type { Start } from "./ui/drawing/starting";
 import type { Chosen } from "./views";
 
 // An old copy of a task's page would take away what the task holds now, so the person says so first.
