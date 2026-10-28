@@ -213,7 +213,7 @@ Una lista de casillas que se marcan. No son tareas de Tisty: no se cierran, no t
 - [ ] Preguntar por la pastilla de las garrapatas
 ```
 
-`[ ]` está abierta, `[x]` (o `[X]`) está marcada. Un clic en la casilla la marca, en la página y mientras escribes.
+`[ ]` está abierta, `[x]` (o `[X]`) está marcada. Un clic en la casilla la marca, en la página y mientras escribes. En la página de una tarea, en cambio, cada casilla es un paso de esa tarea.
 
 ## Citas y avisos
 
@@ -247,6 +247,7 @@ Un aviso es una cita cuya primera línea nombra su tipo entre corchetes. Cinco t
 - Un tipo que Tisty no conoce, como `[!FOO]`, deja una cita normal.
 - Dentro de un aviso cabe casi todo (listas, código, rayas, una sección) siempre que cada línea lleve su `>`.
 - Los mismos cinco tipos también se pueden escribir como lo hacen otras herramientas, como un bloque entre `:::tip` y un `:::` solo; Tisty lo dibuja como el mismo aviso.
+- Al copiar como Markdown estándar, un aviso `:::tip` pasa a `> [!TIP]`, como lo escribe GitHub.
 
 ## Secciones plegables
 
@@ -268,6 +269,7 @@ Nació en 2023. Séxtuple y antirrábica cada marzo.
 - Las secciones se anidan. Cualquier línea `:::palabra` abre un contenedor que cierra el siguiente `:::` solo, así que una sección dentro de otra, o un bloque `:::tip` escrito por otra herramienta, nunca se roba la valla de cierre. `details` se pliega y los cinco tipos de aviso dibujan un aviso; cualquier otro bloque `:::palabra` muestra sus líneas tal como están escritas.
 - También funcionan dentro de un aviso.
 - GitHub muestra las dos vallas como texto y todo lo de en medio desplegado. Tisty también dibuja un bloque `<details>` escrito en HTML, como los escribe GitHub, pero eso es HTML, que queda [fuera del lenguaje](#lo-que-queda-fuera-del-lenguaje).
+- Al copiar como Markdown estándar, una sección `:::details` pasa a un bloque `<details>`.
 
 ## Etiquetas
 
@@ -283,6 +285,7 @@ Refuerzo en marzo #rina #veterinario
 - Un `#` pegado a lo que va antes no es etiqueta: `C#`, `bg-#fff`, `pagina.html#arriba` y el ancla en la dirección de un enlace no cuentan.
 - Nada dentro de código es etiqueta, ni tampoco el `#2` de una [referencia](#referencias) como `[[#2]]`.
 - Un documento guarda sus primeras 64 etiquetas.
+- Al copiar como Markdown estándar, todas las etiquetas del documento, las de `tags:` y las escritas con `#`, quedan en el front matter.
 - Mientras escribes, al teclear `#` se te ofrecen las etiquetas que ya usas, para que una etiqueta nunca se escriba de dos maneras.
 
 ## Iconos
@@ -319,7 +322,9 @@ Los [paseos de octubre](tisty:doc/01JC4M9F2W7DQ1E3S8RB6PKMHT) fueron mejor.
 
 - Con `!` delante y sola en su párrafo, es una **tarjeta**: el título actual del documento, sus primeras palabras y, si es una página, su lugar en el libro. Las palabras entre corchetes son solo lo que muestran otros lectores.
 - Lo mismo dentro de una frase es una palabra en la que puedes hacer clic.
-- En una página, solo la tarjeta le da su lugar en el libro; un enlace en una frase la señala sin colocarla. Mira Páginas y PDF.
+- Al copiar como Markdown estándar, un enlace a otro documento queda como su texto.
+- Las páginas de un documento van en el orden en que sus tarjetas las nombran: en el árbol, al exportar y al imprimir.
+- En una página, solo la tarjeta le da su lugar en el libro; un enlace en una frase la señala sin colocarla. Mira [Páginas y PDF](https://www.tisty.app/es/ayuda/paginas-y-pdf/).
 - Un `[`, `]` o `\` en un título se escribe con una barra invertida delante.
 - Una tarea se nombra igual, por su identificador después de `tisty:task/`. En la página de una tarea, una parte escrita como tarjeta muestra sus pasos hechos y su fecha, y abre la parte. Otros lectores reciben solo sus palabras.
 
@@ -333,7 +338,7 @@ Un archivo que arrastras queda guardado dentro de Tisty y se nombra con un sello
 ![La cartilla de Rina](cartilla-9d02e4b7c1f3a85e.pdf)
 ```
 
-- Una imagen se dibuja; cualquier otro archivo es una ficha con su etiqueta que lo abre.
+- Un adjunto se dibuja como lo que es: una imagen tal cual, un sonido o un video con su reproductor, una página `.html` en vivo como un widget, y cualquier otro archivo como una ficha con su tipo y su tamaño, que lo abre.
 - El sello son de 8 a 16 caracteres hexadecimales en minúscula después del último guion, y el nombre entero va en minúsculas.
 - Los documentos escritos por un Tisty anterior que dicen `attachments/ab/nombre` se siguen leyendo; cuando el documento se reescribe, queda solo el nombre.
 - Cuando un documento se escribe en una carpeta, sus adjuntos van al lado y los enlaces apuntan a ellos.
@@ -459,15 +464,34 @@ gantt
 ```
 ````
 
-- Tisty lo dibuja con el Mermaid oficial, ajustado al ancho de la página y oscuro cuando Tisty está en modo oscuro; en Tisty, un clic lo abre en grande.
+- En Tisty, el mapa mental, el esquema, el diagrama libre y el de clases se dibujan tal como en la ventana de diagramas, con un pequeño margen; los demás tipos, y un diagrama libre con iconos o imágenes, los dibuja el Mermaid oficial. Todos se ajustan al ancho de la página, se oscurecen cuando Tisty está en modo oscuro y un clic los abre en grande.
 - Cuando el documento sale de Tisty como Markdown llano, un bloque `mmd` se escribe `mermaid`, la única palabra que GitHub dibuja.
 - Uno demasiado grande para acomodarlo (más de 32 KiB, o mil cajas y flechas) o que no se entiende, se muestra como código.
 
 #### La ventana de diagramas
 
-En Tisty, en un documento que se puede escribir, un doble clic sobre un diagrama lo abre en su propia ventana, con el texto a un lado y el dibujo al otro. El mapa mental (`mindmap`), el esquema de base de datos (`erDiagram`), el diagrama de flujo (`flowchart` o `graph`) y el de clases (`classDiagram`) también se editan a mano sobre el dibujo; los demás tipos se editan en el texto. Al guardar, la ventana reescribe solo ese bloque, y sigue siendo Mermaid.
+En Tisty, en un documento que se puede escribir, un doble clic sobre un diagrama lo abre en su propia ventana, con el texto a un lado y el dibujo al otro. El mapa mental (`mindmap`), el esquema de base de datos (`erDiagram`), el diagrama libre (`flowchart` o `graph`) y el de clases (`classDiagram`) también se editan a mano sobre el dibujo; los demás tipos se editan en el texto. Al guardar, la ventana reescribe solo ese bloque, y sigue siendo Mermaid.
 
-Lo que la ventana necesita recordar y Mermaid no tiene va en comentarios `%% tisty:` dentro del mismo bloque, que Mermaid no dibuja. Hoy solo los usa el esquema: una línea por tabla, con dónde quedó si se movió a mano y qué columnas son obligatorias.
+Lo que la ventana necesita recordar y Mermaid no tiene va en comentarios `%% tisty:` dentro del mismo bloque, que Mermaid no dibuja:
+
+- En el diagrama libre y el de clases, una línea por forma o clase con dónde quedó: `%% tisty: A 40 40`. Un carril (`subgraph`) o un paquete (`namespace`) suma su ancho y su alto: `%% tisty: g1 20 240 200 120`.
+- `%% tisty: auto`, en un diagrama libre, pide que se acomode solo después de cada cambio; mientras está, no se guarda el lugar de ninguna forma.
+- En el esquema, una línea por tabla, con dónde quedó si se movió a mano y qué columnas son obligatorias.
+
+````markdown
+```mermaid
+flowchart TD
+  A[Pedido] --> B{¿Pagado?}
+  B -->|sí| C[Enviar]
+  subgraph g1 [Bodega]
+    C
+  end
+  %% tisty: A 40 40
+  %% tisty: B 20 140
+  %% tisty: C 60 280
+  %% tisty: g1 20 240 200 120
+```
+````
 
 ````markdown
 ```mermaid
@@ -488,8 +512,8 @@ erDiagram
 
 - Quien escribe el bloque a mano o con un asistente deja las líneas `%% tisty:` tal como están.
 - Varias columnas obligatorias van separadas por espacios, sin comas: `required id cliente_id`.
-- Al renombrar una tabla, su línea cambia con ella; la de una tabla que ya no existe se puede quitar.
-- No hace falta inventar coordenadas: una tabla sin línea, o con una línea sin números, se acomoda sola junto a las demás.
+- Al renombrar una tabla o una clase, su línea cambia con ella; la de algo que ya no existe se puede quitar.
+- No hace falta inventar coordenadas: una forma, clase o tabla sin línea, o una tabla con una línea sin números, se acomoda sola junto a las demás.
 
 ### Fórmulas
 
@@ -550,6 +574,7 @@ Un bloque `widget` dibuja una pequeña página aislada, sin acceso a la red; su 
 ````
 
 - Puede llevar su propio `<script>`, que corre dentro del widget y nunca en el documento.
+- No alcanza la ventana que lo rodea ni los demás documentos, y un enlace dentro de él abre el navegador solo con un clic.
 
 GitHub dibuja las tres vallas salvo `widget`, y también `$…$` y `$$…$$`.
 
@@ -563,7 +588,7 @@ GitHub dibuja las tres vallas salvo `widget`, y también `$…$` y `$$…$$`.
 ```
 
 - Los dos puntos en la raya bajo el encabezado alinean una columna: `:---` a la izquierda, `:---:` al centro, `---:` a la derecha.
-- El ancho de una columna viaja en esa raya: cuatro guiones o más lo fijan, diez píxeles por guion; con tres lo decide la página. Los demás lectores ignoran cuántos guiones hay. Mira Tablas.
+- El ancho de una columna viaja en esa raya: cuatro guiones o más lo fijan, diez píxeles por guion; con tres lo decide la página. Los demás lectores ignoran cuántos guiones hay. Cómo se cambia arrastrando está en [el editor](https://www.tisty.app/es/ayuda/editor-markdown/#tablas).
 - Un `|` dentro de una celda se escribe `\|`.
 - Una celda lleva una línea de palabras y marcas, no bloques.
 - Una columna puede decir qué guarda, como cuenta la sección que sigue.

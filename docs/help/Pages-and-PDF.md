@@ -29,7 +29,7 @@ A page is archived on its own with the right button, and it does not leave its d
 
 Each document picks its paper — **A4**, **Letter** or **Folio** (8.5 × 13 in) — under **Paper** in its panel; a document that already asked for **Tabloid** keeps it. Turn on **Sheets** there to read it on those sheets, **Portrait** or **Landscape**: a sheet that fills up turns on its own, on screen as on paper. Sheets are off until you turn them on, and what you pick travels with the file in its [properties](https://markdown.tisty.app/properties).
 
-A rule on its own line (`---`) always splits the sheet, sheets or not, and `Ctrl`/`⌘` + `Enter` writes one while you write. With sheets on, it is marked **Page break**. A `\newpage` or `\pagebreak` from LaTeX, and a page break in a web page or a Word document, come in as a rule.
+A rule on its own line (`---`) always splits the sheet, sheets or not, and `Ctrl`/`⌘` + `Enter` writes one while you write. With sheets on, it is marked **Page break**. How one is written, and what comes in as one from LaTeX, Word or a web page, is in the [Markdown guide](https://markdown.tisty.app/page-breaks).
 
 ## Tisty's own PDF
 

@@ -213,7 +213,7 @@ A list of boxes you tick. They are not Tisty tasks: they never close, have no da
 - [ ] Ask about the tick tablet
 ```
 
-`[ ]` is open, `[x]` (or `[X]`) is ticked. A click on the box ticks it, on the page and while you write.
+`[ ]` is open, `[x]` (or `[X]`) is ticked. A click on the box ticks it, on the page and while you write. On a task's page, though, each box is a step of that task.
 
 ## Quotes and callouts
 
@@ -247,6 +247,7 @@ A callout is a quote whose first line names its kind in brackets. Five kinds, ea
 - A kind Tisty does not know, like `[!FOO]`, leaves an ordinary quote.
 - Nearly anything fits inside a callout — lists, code, rules, a section — as long as every line carries its `>`.
 - The same five kinds can also be written the way other tools write them, as a block between `:::tip` and a lone `:::`; Tisty draws it as the same callout.
+- On copying as standard Markdown, a `:::tip` callout becomes `> [!TIP]`, the way GitHub writes it.
 
 ## Collapsible sections
 
@@ -268,6 +269,7 @@ Born in 2023. Six-in-one and rabies every March.
 - Sections nest. Any `:::word` line opens a container that the next lone `:::` closes, so a section inside another, or a `:::tip` block written by another tool, never steals its closing fence. `details` folds and the five callout kinds draw a callout; any other `:::word` block shows its lines as written.
 - They work inside a callout too.
 - GitHub shows both fence lines as text and everything between them unfolded. Tisty also draws a `<details>` block written in HTML, the way GitHub writes them, but that is HTML, which is [outside the language](#what-is-outside-the-language).
+- On copying as standard Markdown, a `:::details` section becomes a `<details>` block.
 
 ## Tags
 
@@ -283,6 +285,7 @@ Booster due in March #rina #vet
 - A `#` stuck to what comes before it is not a tag: `C#`, `bg-#fff`, `page.html#top` and the anchor in a link's address are all left alone.
 - Nothing inside code is a tag, and neither is the `#2` in a [reference](#references) like `[[#2]]`.
 - A document keeps its first 64 tags.
+- On copying as standard Markdown, all the document's tags, those in `tags:` and those written with `#`, go into the front matter.
 - While you write, typing `#` offers the tags you already use, so one tag is never spelled two ways.
 
 ## Icons
@@ -319,7 +322,9 @@ The [walks of October](tisty:doc/01JC4M9F2W7DQ1E3S8RB6PKMHT) went better.
 
 - With `!` in front and alone in its paragraph, it is a **card**: the document's current title, its first words, and — for a page — its place in the book. The words in brackets are only what other readers show.
 - The same thing inside a sentence is a word you can click.
-- For a page, only the card gives it its place in the book; a link in a sentence points at it without placing it. See Pages and PDF.
+- On copying as standard Markdown, a link to another document stays as its words.
+- A document's pages come in the order their cards name them: in the tree, on export and in print.
+- For a page, only the card gives it its place in the book; a link in a sentence points at it without placing it. See [Pages and PDF](https://www.tisty.app/docs/pages-and-pdf/).
 - A `[`, `]` or `\` in a title is written with a backslash before it.
 - A task is named the same way, by its id after `tisty:task/`. On a task's page, a part written as a card shows its steps done and its date, and opens the part. Other readers get only its words.
 
@@ -333,7 +338,7 @@ A file you drag in is kept inside Tisty and named by a stamp of its bytes. It is
 ![Rina's vet card](vet-card-9d02e4b7c1f3a85e.pdf)
 ```
 
-- A picture is drawn; any other file is a chip with its label that opens it.
+- An attachment is drawn as what it is: a picture as itself, a sound or a video with its player, an `.html` page live like a widget, and any other file as a chip with its kind and size that opens it.
 - The stamp is 8 to 16 lowercase hexadecimal characters after the last dash, and the whole name is lowercase.
 - Documents written by an older Tisty that say `attachments/ab/name` still read; when the document is rewritten, only the name is kept.
 - When a document is written out to a folder, its attachments go beside it and the links point at them.
@@ -459,15 +464,34 @@ gantt
 ```
 ````
 
-- Tisty draws it with the official Mermaid, fitted to the width of the page and in the dark look when Tisty is dark; in Tisty, a click opens it large.
+- In Tisty, mind maps, schemas, freeform and class diagrams are drawn just as the diagram window draws them, with a small margin; other kinds, and a freeform diagram with icons or images, are drawn by the official Mermaid. All fit the width of the page, turn dark when Tisty is dark, and open large with a click.
 - When the document leaves Tisty as plain Markdown, an `mmd` block is written `mermaid`, the one word GitHub draws.
 - One too large to lay out — past 32 KiB, or a thousand boxes and arrows — or one that does not parse, is shown as code.
 
 #### The diagram window
 
-In Tisty, in a document that can be written, a double click on a diagram opens it in a window of its own, with the text on one side and the drawing on the other. A mind map (`mindmap`), a database schema (`erDiagram`), a flowchart (`flowchart` or `graph`) and a class diagram (`classDiagram`) are also edited by hand on the drawing; other kinds are edited in the text. On saving, the window rewrites only that block, and it stays Mermaid.
+In Tisty, in a document that can be written, a double click on a diagram opens it in a window of its own, with the text on one side and the drawing on the other. A mind map (`mindmap`), a database schema (`erDiagram`), a freeform diagram (`flowchart` or `graph`) and a class diagram (`classDiagram`) are also edited by hand on the drawing; other kinds are edited in the text. On saving, the window rewrites only that block, and it stays Mermaid.
 
-What the window needs to remember and Mermaid has no word for goes in `%% tisty:` comments inside the same block, which Mermaid does not draw. Today only the schema uses them: one line per table, with where it sits if it was moved by hand and which columns are required.
+What the window needs to remember and Mermaid has no word for goes in `%% tisty:` comments inside the same block, which Mermaid does not draw:
+
+- In freeform and class diagrams, one line per shape or class with where it sits: `%% tisty: A 40 40`. A lane (`subgraph`) or a package (`namespace`) adds its width and height: `%% tisty: g1 20 240 200 120`.
+- `%% tisty: auto`, in a freeform diagram, asks it to lay itself out after every change; while it is there, no shape's place is kept.
+- In a schema, one line per table, with where it sits if it was moved by hand and which columns are required.
+
+````markdown
+```mermaid
+flowchart TD
+  A[Order] --> B{Paid?}
+  B -->|yes| C[Ship]
+  subgraph g1 [Warehouse]
+    C
+  end
+  %% tisty: A 40 40
+  %% tisty: B 20 140
+  %% tisty: C 60 280
+  %% tisty: g1 20 240 200 120
+```
+````
 
 ````markdown
 ```mermaid
@@ -488,8 +512,8 @@ erDiagram
 
 - Whoever writes the block by hand or through an assistant leaves the `%% tisty:` lines as they are.
 - Several required columns are separated by spaces, with no commas: `required id customer_id`.
-- When a table is renamed, its line changes with it; the line of a table that is gone may be removed.
-- There is no need to make up coordinates: a table with no line, or with a line without numbers, lays itself out beside the others.
+- When a table or a class is renamed, its line changes with it; the line of something that is gone may be removed.
+- There is no need to make up coordinates: a shape, class or table with no line, or a table whose line has no numbers, lays itself out beside the others.
 
 ### Formulas
 
@@ -550,6 +574,7 @@ A `widget` block draws a small page sealed off from the network; its name goes i
 ````
 
 - It may carry a `<script>` of its own, which runs inside the widget and never in the document.
+- It cannot reach the window around it or other documents, and a link inside it opens the browser only on a click.
 
 GitHub draws every one of these fences but `widget`, and `$…$` and `$$…$$` too.
 
@@ -563,7 +588,7 @@ GitHub draws every one of these fences but `widget`, and `$…$` and `$$…$$` t
 ```
 
 - Colons in the rule under the header lean a column: `:---` left, `:---:` centre, `---:` right.
-- A column's width rides in that rule: four dashes or more set it, ten pixels a dash; three leave it to the page. Other readers ignore how many dashes there are. See Tables.
+- A column's width rides in that rule: four dashes or more set it, ten pixels a dash; three leave it to the page. Other readers ignore how many dashes there are. How to change it by dragging is in [the editor](https://www.tisty.app/docs/markdown-editor/#tables).
 - A `|` inside a cell is written `\|`.
 - A cell holds a line of words and marks, not blocks.
 - A column can say what it holds, as the next section tells.

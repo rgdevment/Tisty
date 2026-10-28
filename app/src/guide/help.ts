@@ -137,11 +137,20 @@ export const searched = (
     .map(({ entry, near }) => ({ entry, near }));
 };
 
+// A link to the published guide opens the copy the app carries, which reads without a connection.
+const GUIDE =
+  /\]\(https:\/\/markdown\.tisty\.app\/(?:es(?=[/#)]))?\/?([^)#\s/]*)\/?(?:#([^)\s]*))?\)/g;
+
+const here = (slug: string, anchor?: string) => `](#${LINKED}${slug}${anchor ? `/${anchor}` : ""})`;
+
 export const linkedHere = (markdown: string): string =>
-  markdown.replace(
-    /\]\(help:([^)#\s]*)(?:#([^)\s]*))?\)/g,
-    (_, slug: string, anchor?: string) => `](#${LINKED}${slug}${anchor ? `/${anchor}` : ""})`,
-  );
+  markdown
+    .replace(/\]\(help:([^)#\s]*)(?:#([^)\s]*))?\)/g, (_, slug: string, anchor?: string) =>
+      here(slug, anchor),
+    )
+    .replace(GUIDE, (_, slug: string, anchor?: string) =>
+      here(`${MARKS}${slug || "index"}`, anchor),
+    );
 
 export const aimedAt = (id: string): { slug: string; anchor: string | null } | null => {
   if (!id.startsWith(LINKED)) return null;

@@ -316,8 +316,9 @@ Tisty it holds a good deal more than text:
   sequences, pies, timelines, mind maps, Gantt charts and more with the official
   Mermaid, light or dark with the window and legible at any width. A double
   click opens it in a window of its own, where a mind map, a database schema, a
-  flowchart or a class diagram is also drawn by hand, saved back as Mermaid and
-  exported as PNG, JPG or SVG.
+  freeform diagram or a class diagram is also drawn by hand, with a palette of
+  every Mermaid shape, saved back as Mermaid, drawn on the page as in the window
+  and exported as PNG, JPG or SVG.
 - **Formulas** set from a `math` block, **code** coloured by its language and
   named after its file, and **tables** that keep how their columns lean and how
   wide you drew them, whose columns can say what they hold — money, dates,
@@ -1111,7 +1112,8 @@ sorts by time and needs no coordination.
 a time, while [pulldown-cmark](https://github.com/pulldown-cmark/pulldown-cmark)
 reads the Markdown in the core and [ammonia](https://github.com/rust-ammonia/ammonia)
 keeps any HTML in it harmless;
-[Mermaid](https://mermaid.js.org) draws the diagrams a code block describes and
+[Mermaid](https://mermaid.js.org) draws the diagrams a code block describes,
+[React Flow](https://reactflow.dev) is the canvas they are drawn on by hand, and
 [KaTeX](https://katex.org) sets its formulas;
 [lowlight](https://github.com/wooorm/lowlight) and
 [highlight.js](https://highlightjs.org) colour the code;
