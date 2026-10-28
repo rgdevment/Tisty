@@ -50,6 +50,7 @@ export default function Board() {
     taggedDocs,
     wholes,
     standings,
+    paces,
   } = useDesk();
   return (
     <div className="flex min-w-0">
@@ -59,6 +60,7 @@ export default function Board() {
           lists={data.every ?? data.lists}
           wholes={wholes}
           standings={standings}
+          paces={paces}
           title={title(chosen, data.lists)}
           when={chosen.named === "tasks" ? todayLong() : undefined}
           count={headerCount(chosen, found, data.counts, data.total)}

@@ -29,6 +29,7 @@ const hands = (): Hands & Record<string, ReturnType<typeof vi.fn>> =>
   ({
     data: { lists: [], tags: [{ tag: "casa" }], wholes: {} } as unknown as Snapshot,
     wholes: { w1: { title: "La mudanza" } } as unknown as Hands["wholes"],
+    paces: {},
     act: vi.fn((work: Promise<Task>) => void work.catch(() => {})),
     marking: vi.fn(),
     wipe: vi.fn(),
@@ -54,6 +55,14 @@ describe("what the detail of a task is handed", () => {
 
     expect(shown.partOf).toBe("La mudanza");
     expect(shown.known).toEqual(["casa"]);
+  });
+
+  it("hands it the pace the core worked out, and none when it has none", () => {
+    const h = hands();
+    h.paces = { t1: { pace: "slow", time: 36, done: 0 } };
+
+    expect(detailOf(task, h).pace).toEqual({ pace: "slow", time: 36, done: 0 });
+    expect(detailOf(task, hands()).pace).toBeUndefined();
   });
 
   it("sends every edit of the task through one way of acting", async () => {

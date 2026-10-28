@@ -8,9 +8,9 @@ import {
   listLook,
   listRename,
   listUnarchive,
-  type Standing,
   type Task,
 } from "../core";
+import type { Standing } from "../deadlines";
 import { running, whenLabel } from "../format";
 import { fill, t } from "../locales";
 import { saidPlainly } from "../refusal";
