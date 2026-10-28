@@ -4,6 +4,15 @@ Un bloque de código cuyo lenguaje es `widget` se dibuja como una pequeña pági
 
 Cada forma, con sus ejemplos dibujados como los dibuja Tisty, está en la guía de Markdown de Tisty: [diagramas, fórmulas y widgets](https://markdown.tisty.app/es/diagramas-formulas-y-widgets#widgets).
 
+````markdown
+```widget title="Paseos"
+<div class="stat"><small>Este mes</small><b>42</b></div>
+```
+````
+
+> [!NOTE]
+> GitHub no ejecuta widgets, así que esta página muestra el código. En Tisty, el bloque de arriba se dibuja como una tarjeta con su cifra.
+
 ## Aislado
 
 - Un widget corre en un marco que **no tiene red**: no puede descargar nada, cargar una imagen desde una dirección ni enviar a ninguna parte lo que muestra.
