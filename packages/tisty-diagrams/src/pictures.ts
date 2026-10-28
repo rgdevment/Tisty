@@ -1,5 +1,6 @@
 import { type Classes, readClasses } from "./classes";
-import { type Flow, type Shape as FlowShape, readFlow } from "./flow";
+import { type Flow, readFlow } from "./flow";
+import type { Shape as FlowShape } from "./flowshapes";
 import { kindOf } from "./framing";
 import { edgeOf, type Rect } from "./graphlayout";
 import { curve, HEXAGON, HUES, laidOut, type Placed } from "./mindlayout";
@@ -279,7 +280,8 @@ export const pictureOf = (source: string): Picture | null => {
   }
   if (kind === "flowchart") {
     const flow = readFlow(source);
-    return flow && flowPicture(flow);
+    // Only Mermaid draws its newer shapes, icons and images, all written as `@{ … }`.
+    return flow && !flow.nodes.some((one) => one.keys) ? flowPicture(flow) : null;
   }
   if (kind === "classDiagram") {
     const diagram = readClasses(source);
