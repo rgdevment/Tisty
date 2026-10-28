@@ -98,8 +98,26 @@ export const cut = (polygon: string, rect: Rect, look: Look): string => {
   return `<polygon points="${points.join(" ")}" ${stroked(look)}/>`;
 };
 
-export const stroke = (d: string, color: string, width: number, dashed?: string, head = false) =>
-  `<path d="${d}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round"${dashed ? ` stroke-dasharray="${dashed}"` : ""}${head ? ' marker-end="url(#head)"' : ""}/>`;
+/** The heads a line may end in, each a marker of the picture by the same name. */
+export type Ends = { readonly start?: string | null; readonly end?: string | null };
+
+export const stroke = (d: string, color: string, width: number, dashed?: string, ends: Ends = {}) =>
+  `<path d="${d}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round"${dashed ? ` stroke-dasharray="${dashed}"` : ""}${ends.start ? ` marker-start="url(#${ends.start})"` : ""}${ends.end ? ` marker-end="url(#${ends.end})"` : ""}/>`;
+
+// A hollow head is filled with the sheet so the line does not show through it.
+const markers = (palette: Palette) =>
+  [
+    ["arrow", "M 0 0 L 10 5 L 0 10 z", palette.accent, palette.accent],
+    ["open", "M 0 0 L 10 5 L 0 10", "none", palette.accent],
+    ["triangle", "M 0 0 L 10 5 L 0 10 z", palette.sheet, palette.accent],
+    ["diamond", "M 0 5 L 5 0 L 10 5 L 5 10 z", palette.sheet, palette.accent],
+    ["solidDiamond", "M 0 5 L 5 0 L 10 5 L 5 10 z", palette.accent, palette.accent],
+  ]
+    .map(
+      ([id, d, fill, line]) =>
+        `<marker id="${id}" viewBox="-1 -1 12 12" refX="10" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="${d}" fill="${fill}" stroke="${line}" stroke-width="1"/></marker>`,
+    )
+    .join("");
 
 export const straight = (a: { x: number; y: number }, b: { x: number; y: number }) =>
   `M ${at(a.x)} ${at(a.y)} L ${at(b.x)} ${at(b.y)}`;
@@ -113,7 +131,7 @@ export const pill = (x: number, y: number, text: string, palette: Palette, ringe
 
 export const svgOf = (picture: Picture, palette: Palette, ground: string | null, font: string) => {
   const { wide, tall } = picture.size;
-  const head = `<defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="${palette.accent}"/></marker></defs>`;
+  const head = `<defs>${markers(palette)}</defs>`;
   const back = ground ? `<rect width="100%" height="100%" fill="${ground}"/>` : "";
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${at(wide)}" height="${at(tall)}" viewBox="0 0 ${at(wide)} ${at(tall)}" font-family="${escaped(font)}">${head}${back}${picture.drawn(palette)}</svg>`;
 };

@@ -95,20 +95,6 @@ export const layered = (
   return { at, size: { wide, tall } };
 };
 
-/** Where a line from one box's middle to another's leaves the first box's edge. */
-export const edgeOf = (from: Rect, to: Rect) => {
-  const cx = from.x + from.wide / 2;
-  const cy = from.y + from.tall / 2;
-  const dx = to.x + to.wide / 2 - cx;
-  const dy = to.y + to.tall / 2 - cy;
-  if (!dx && !dy) return { x: cx, y: cy };
-  const scale = Math.min(
-    dx ? from.wide / 2 / Math.abs(dx) : Number.POSITIVE_INFINITY,
-    dy ? from.tall / 2 / Math.abs(dy) : Number.POSITIVE_INFINITY,
-  );
-  return { x: cx + dx * scale, y: cy + dy * scale };
-};
-
 /** The box around some others, with room on top for a title. */
 export const around = (rects: readonly Rect[], pad = 18, title = 22): Rect | null => {
   if (!rects.length) return null;

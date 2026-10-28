@@ -19,7 +19,6 @@ const moving = (picked: FlowPicked = null) => {
     picked,
     change,
     pick,
-    turn: () => {},
     undo: null,
     redo: null,
   };

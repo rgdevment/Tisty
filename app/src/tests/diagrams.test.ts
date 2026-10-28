@@ -43,22 +43,22 @@ beforeEach(() => {
 
 describe("a diagram on a page", () => {
   it("is drawn in place of its words, once for each look", async () => {
-    const page = sheet("graph TD; Rina-->Walk");
+    const page = sheet("journey; Rina-->Walk");
     await diagrams(page, false, () => true);
     const figure = page.querySelector("figure.diagram") as Element;
     expect(figure.classList.contains("drawn")).toBe(true);
     expect(figure.querySelector(".diagram-sheet svg text")?.textContent).toBe(
-      "graph TD; Rina-->Walk",
+      "journey; Rina-->Walk",
     );
     expect(figure.querySelector("pre")).toBeNull();
 
-    await diagrams(sheet("graph TD; Rina-->Walk"), false, () => true);
-    expect(drawn.sources).toEqual(["graph TD; Rina-->Walk"]);
+    await diagrams(sheet("journey; Rina-->Walk"), false, () => true);
+    expect(drawn.sources).toEqual(["journey; Rina-->Walk"]);
     expect(drawn.themes).toEqual(["default"]);
   });
 
   it("is drawn again when the look turns dark", async () => {
-    const page = sheet("graph LR; Day-->Night");
+    const page = sheet("journey; Day-->Night");
     await diagrams(page, false, () => true);
     const figure = page.querySelector("figure.diagram") as Element;
     await diagrams(page, true, () => true);
@@ -68,27 +68,38 @@ describe("a diagram on a page", () => {
   });
 
   it("stays as the words it is made of when it cannot be drawn", async () => {
-    const page = sheet("graph TD; broken");
+    const page = sheet("journey; broken");
     await diagrams(page, false, () => true);
     const figure = page.querySelector("figure.diagram") as Element;
     expect(figure.classList.contains("unreadable")).toBe(true);
-    expect(figure.querySelector("pre code")?.textContent).toBe("graph TD; broken");
+    expect(figure.querySelector("pre code")?.textContent).toBe("journey; broken");
   });
 
   it("is left alone when the page it was asked for is gone", async () => {
-    const page = sheet("graph TD; Gone-->Away");
+    const page = sheet("journey; Gone-->Away");
     await diagrams(page, false, () => false);
     expect(page.querySelector("figure.diagram.drawn")).toBeNull();
   });
 
   it("takes its turn, since the drawer keeps one look for the whole window", async () => {
     await Promise.all([
-      drawing("graph TD; One-->Two", false),
-      drawing("graph TD; Two-->Three", true),
-      drawing("graph TD; Three-->Four", false),
+      drawing("journey; One-->Two", false),
+      drawing("journey; Two-->Three", true),
+      drawing("journey; Three-->Four", false),
     ]);
     expect(drawn.overlapped).toBe(false);
     expect(drawn.themes).toEqual(["default", "dark", "default"]);
+  });
+
+  it("is drawn as the diagram window draws it when the window draws its kind, places and all", async () => {
+    const svg = await drawing(
+      'flowchart LR\n  A@{ shape: cloud, label: "Nube" } --> B[Fin]\n  %% tisty: A 300 100',
+      false,
+    );
+
+    expect(svg).toContain(">Nube<");
+    expect(svg).toMatch(/^<svg style="max-width:[\d.]+px" /);
+    expect(drawn.sources).toEqual([]);
   });
 
   it("is not drawn when it is empty or too long to lay out", async () => {
@@ -99,7 +110,7 @@ describe("a diagram on a page", () => {
   });
 
   it("keeps the look last asked for when an older drawing lands late", async () => {
-    const page = sheet("graph TD; Late-->Look");
+    const page = sheet("journey; Late-->Look");
     await diagrams(page, false, () => true);
     const figure = page.querySelector("figure.diagram") as Element;
     const dark = diagrams(page, true, () => true);
@@ -109,15 +120,15 @@ describe("a diagram on a page", () => {
   });
 
   it("skips a drawing nobody waits for any more", async () => {
-    const page = sheet("graph TD; Typed-->Once");
+    const page = sheet("journey; Typed-->Once");
     const first = diagrams(page, false, () => true);
-    sheet("graph TD; Typed-->Twice");
+    sheet("journey; Typed-->Twice");
     await first;
     expect(drawn.sources).toEqual([]);
   });
 
   it("shows a dark drawing in the viewer on the dark sheet it was drawn for", async () => {
-    const page = sheet("graph TD; Night-->Owl");
+    const page = sheet("journey; Night-->Owl");
     await diagrams(page, true, () => true);
     const shot = decodeURIComponent(
       diagramShot(page.querySelector("figure.diagram") as Element) ?? "",

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
+import ClassCanvas from "./ClassCanvas";
 import ClassPanel from "./ClassPanel";
-import ClassView from "./ClassView";
 import FlowCanvas from "./FlowCanvas";
 import FlowPanel from "./FlowPanel";
 import { useSay } from "./handing";
@@ -83,7 +83,7 @@ export const useEditor = (
     };
   if (classes)
     return {
-      board: <ClassView editing={classes} />,
+      board: <ClassCanvas editing={classes} dark={dark} />,
       panel: scrolled(<ClassPanel editing={classes} />),
     };
   return null;

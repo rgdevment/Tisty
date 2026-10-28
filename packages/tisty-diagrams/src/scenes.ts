@@ -1,7 +1,9 @@
 import type { ClassBox, Classes } from "./classes";
 import type { Flow } from "./flow";
 import { sizeOf } from "./flowoutlines";
+import type { Size } from "./framing";
 import { around, type Laid, layered, type Rect } from "./graphlayout";
+import type { Place } from "./places";
 
 // The board and the picture draw from these, so what is exported is what the window shows.
 export interface Joint {
@@ -11,8 +13,15 @@ export interface Joint {
   readonly label: string;
   readonly dashed: boolean;
   readonly thick: boolean;
-  readonly arrow: boolean;
+  readonly start: Head | null;
+  readonly end: Head | null;
+  // A class relation's cardinalities, by the ends they belong to.
+  readonly startLabel?: string;
+  readonly endLabel?: string;
 }
+
+/** How an end of a line is drawn: an arrowhead, an open one, a hollow triangle or a diamond. */
+export type Head = "arrow" | "open" | "triangle" | "diamond" | "solidDiamond";
 
 export interface Group {
   readonly key: string;
@@ -28,28 +37,44 @@ export interface Scene {
 
 const MARGIN = 40;
 
+// Each one where it was placed, or laid out when it never was; a diagram placed whole needs no laying out.
+const placedOver = (
+  ids: readonly string[],
+  sizes: ReadonlyMap<string, Size>,
+  places: readonly Place[],
+  lay: () => Laid,
+): ReadonlyMap<string, Rect> => {
+  const at = new Map(places.map((one) => [one.id, one]));
+  const auto = ids.every((id) => at.has(id)) ? null : lay();
+  return new Map(
+    ids.map((id) => {
+      const place = at.get(id);
+      const size = sizes.get(id) ?? { wide: 0, tall: 0 };
+      const rect = place ? { x: place.x, y: place.y, ...size } : auto?.at.get(id);
+      return [id, rect ?? { x: 0, y: 0, ...size }] as const;
+    }),
+  );
+};
+
+const flowSizes = (flow: Flow) =>
+  new Map(flow.nodes.map((one) => [one.id, sizeOf(one.text, one.shape ?? "process")]));
+
 const autoLaid = (flow: Flow): Laid =>
   layered(
     flow.nodes.map((one) => one.id),
     flow.edges.map((one) => [one.from, one.to] as const),
-    new Map(flow.nodes.map((one) => [one.id, sizeOf(one.text, one.shape ?? "process")])),
+    flowSizes(flow),
     flow.direction,
   );
 
 /** Each node where it was placed, or laid out when it never was, in the window's own coordinates. */
-export const flowLaid = (flow: Flow): ReadonlyMap<string, Rect> => {
-  const places = new Map(flow.places.map((one) => [one.id, one]));
-  // Laying out is the costly part, and a chart placed whole needs none of it.
-  const auto = flow.nodes.every((one) => places.has(one.id)) ? null : autoLaid(flow);
-  return new Map(
-    flow.nodes.map((one) => {
-      const place = places.get(one.id);
-      const size = sizeOf(one.text, one.shape ?? "process");
-      const rect = place ? { x: place.x, y: place.y, ...size } : auto?.at.get(one.id);
-      return [one.id, rect ?? { x: 0, y: 0, ...size }] as const;
-    }),
+export const flowLaid = (flow: Flow): ReadonlyMap<string, Rect> =>
+  placedOver(
+    flow.nodes.map((one) => one.id),
+    flowSizes(flow),
+    flow.places,
+    () => autoLaid(flow),
   );
-};
 
 /** A group drawn where it was put, at its size: a column when it is taller than wide, else a row. */
 export interface Lane {
@@ -59,13 +84,53 @@ export interface Lane {
   readonly across: boolean;
 }
 
-export const lanesOf = (flow: Flow): Lane[] =>
-  flow.groups.flatMap((group) => {
-    const place = flow.places.find((one) => one.id === group.id);
+/** The groups drawn as lanes: those whose place carries a size. */
+export const lanesIn = (
+  groups: readonly { readonly id: string; readonly title: string }[],
+  places: readonly Place[],
+): Lane[] =>
+  groups.flatMap((group) => {
+    const place = places.find((one) => one.id === group.id);
     if (place?.wide === undefined || place.tall === undefined) return [];
     const rect = { x: place.x, y: place.y, wide: place.wide, tall: place.tall };
     return [{ id: group.id, title: group.title, rect, across: rect.wide > rect.tall }];
   });
+
+export const lanesOf = (flow: Flow): Lane[] => lanesIn(flow.groups, flow.places);
+
+/** Every group as a lane: at its size when it has one, else around its shapes, to drag and size. */
+export const lanesAround = (
+  groups: readonly { readonly id: string; readonly title: string }[],
+  membersOf: (group: string) => readonly string[],
+  places: readonly Place[],
+  laid: ReadonlyMap<string, Rect>,
+): readonly Lane[] => {
+  const sized = new Map(lanesIn(groups, places).map((one) => [one.id, one]));
+  return groups.flatMap((group) => {
+    const known = sized.get(group.id);
+    if (known) return [known];
+    const rect = around(membersOf(group.id).flatMap((id) => laid.get(id) ?? []));
+    return rect ? [{ id: group.id, title: group.title, rect, across: rect.wide > rect.tall }] : [];
+  });
+};
+
+/** Every group of a flowchart as a lane. */
+export const flowLanesAround = (flow: Flow, laid: ReadonlyMap<string, Rect>) =>
+  lanesAround(
+    flow.groups,
+    (group) => flow.nodes.filter((one) => one.group === group).map((one) => one.id),
+    flow.places,
+    laid,
+  );
+
+const holds = (rect: Rect, x: number, y: number) =>
+  x >= rect.x && x <= rect.x + rect.wide && y >= rect.y && y <= rect.y + rect.tall;
+
+/** The lane a shape's middle is in; the smallest wins, so a lane drawn inside another can be reached. */
+export const laneHolding = (lanes: readonly Lane[], rect: Rect): string | null =>
+  lanes
+    .filter((one) => holds(one.rect, rect.x + rect.wide / 2, rect.y + rect.tall / 2))
+    .sort((a, b) => a.rect.wide * a.rect.tall - b.rect.wide * b.rect.tall)[0]?.id ?? null;
 
 // Places may be anywhere, even below zero; a picture starts at its margin, lanes and all.
 const framed = (at: ReadonlyMap<string, Rect>, lanes: readonly Rect[]) => {
@@ -92,33 +157,51 @@ export const jointsOf = (flow: Flow): Joint[] =>
     label: one.label,
     dashed: one.arrow.includes("."),
     thick: one.arrow.includes("="),
-    arrow: /[>ox]$/.test(one.arrow),
+    start: null,
+    end: /[>ox]$/.test(one.arrow) ? "arrow" : null,
   }));
 
-export const flowScene = (flow: Flow): Scene => {
-  const lanes = new Map(lanesOf(flow).map((one) => [one.id, one.rect]));
-  const placed = flow.places.length && (flow.nodes.length || lanes.size);
-  const { laid, moved } = placed
-    ? framed(flowLaid(flow), [...lanes.values()])
-    : { laid: autoLaid(flow), moved: (rect: Rect) => rect };
-  const groups = flow.groups.flatMap((group) => {
+// What the window and the picture draw of groups: a lane at its size, or a frame around its shapes.
+const sceneWith = (
+  groups: readonly { readonly id: string; readonly title: string }[],
+  membersOf: (group: string) => readonly string[],
+  places: readonly Place[],
+  shaped: boolean,
+  laidOut: () => ReadonlyMap<string, Rect>,
+  auto: () => Laid,
+  joints: readonly Joint[],
+): Scene => {
+  const lanes = new Map(lanesIn(groups, places).map((one) => [one.id, one.rect]));
+  const { laid, moved } =
+    places.length && (shaped || lanes.size)
+      ? framed(laidOut(), [...lanes.values()])
+      : { laid: auto(), moved: (rect: Rect) => rect };
+  const drawn = groups.flatMap((group) => {
     const lane = lanes.get(group.id);
     const rect = lane
       ? moved(lane)
-      : around(
-          flow.nodes
-            .filter((one) => one.group === group.id)
-            .flatMap((one) => laid.at.get(one.id) ?? []),
-        );
+      : around(membersOf(group.id).flatMap((id) => laid.at.get(id) ?? []));
     return rect ? [{ key: group.id, rect, title: group.title }] : [];
   });
-  return { laid, joints: jointsOf(flow), groups };
+  return { laid, joints, groups: drawn };
 };
+
+export const flowScene = (flow: Flow): Scene =>
+  sceneWith(
+    flow.groups,
+    (group) => flow.nodes.filter((one) => one.group === group).map((one) => one.id),
+    flow.places,
+    flow.nodes.length > 0,
+    () => flowLaid(flow),
+    () => autoLaid(flow),
+    jointsOf(flow),
+  );
 
 export const CLASS_HEAD = 32;
 export const CLASS_LINE = 20;
 
-const classSize = (one: ClassBox) => ({
+/** The size a class takes for its name, its kind and its members, the same in the window and the picture. */
+export const classSize = (one: ClassBox): Size => ({
   wide: Math.max(
     150,
     ...[one.name, ...one.members.map((m) => m.text)].map((said) => said.length * 7.2 + 36),
@@ -131,8 +214,24 @@ const headLeft = (arrow: string) => arrow.startsWith("<");
 // The parent or the whole goes above: it is on the right in `--|>`, `..|>`, `--*` and `--o`.
 const wholeRight = (arrow: string) => /(\|>|\*|o)$/.test(arrow);
 
-export const classScene = (diagram: Classes): Scene => {
-  const laid = layered(
+// Each relation's ends, drawn from the class it leaves to the one it points at.
+const CLASS_HEADS: Record<string, readonly [Head | null, Head | null]> = {
+  "<|--": [null, "triangle"],
+  "<|..": [null, "triangle"],
+  "--|>": [null, "triangle"],
+  "..|>": [null, "triangle"],
+  "*--": ["solidDiamond", null],
+  "--*": [null, "solidDiamond"],
+  "o--": ["diamond", null],
+  "--o": [null, "diamond"],
+  "-->": [null, "open"],
+  "<--": [null, "open"],
+  "..>": [null, "open"],
+  "<..": [null, "open"],
+};
+
+const classAuto = (diagram: Classes): Laid =>
+  layered(
     diagram.classes.map((one) => one.name),
     diagram.links.map((one): readonly [string, string] =>
       wholeRight(one.arrow) ? [one.right, one.left] : [one.left, one.right],
@@ -140,14 +239,42 @@ export const classScene = (diagram: Classes): Scene => {
     new Map(diagram.classes.map((one) => [one.name, classSize(one)])),
     diagram.direction,
   );
-  const joints = diagram.links.map((one, index) => ({
-    key: String(index),
-    from: headLeft(one.arrow) ? one.right : one.left,
-    to: headLeft(one.arrow) ? one.left : one.right,
-    label: [one.label, one.arrow].filter(Boolean).join(" "),
-    dashed: one.arrow.includes("."),
-    thick: false,
-    arrow: /[<>]/.test(one.arrow),
-  }));
-  return { laid, joints, groups: [] };
-};
+
+/** Each class where it was placed, or laid out when it never was, in the window's own coordinates. */
+export const classLaid = (diagram: Classes): ReadonlyMap<string, Rect> =>
+  placedOver(
+    diagram.classes.map((one) => one.name),
+    new Map(diagram.classes.map((one) => [one.name, classSize(one)])),
+    diagram.places,
+    () => classAuto(diagram),
+  );
+
+/** Each relation as it is drawn: dashed or not, its two heads and its cardinalities at their ends. */
+export const classJointsOf = (diagram: Classes): Joint[] =>
+  diagram.links.map((one, index) => {
+    const back = headLeft(one.arrow);
+    const [start, end] = CLASS_HEADS[one.arrow] ?? [null, null];
+    return {
+      key: String(index),
+      from: back ? one.right : one.left,
+      to: back ? one.left : one.right,
+      label: one.label,
+      dashed: one.arrow.includes("."),
+      thick: false,
+      start,
+      end,
+      startLabel: back ? one.rightCard : one.leftCard,
+      endLabel: back ? one.leftCard : one.rightCard,
+    };
+  });
+
+export const classScene = (diagram: Classes): Scene =>
+  sceneWith(
+    diagram.groups.map((one) => ({ id: one.id, title: one.id })),
+    (group) => diagram.classes.filter((one) => one.group === group).map((one) => one.name),
+    diagram.places,
+    diagram.classes.length > 0,
+    () => classLaid(diagram),
+    () => classAuto(diagram),
+    classJointsOf(diagram),
+  );

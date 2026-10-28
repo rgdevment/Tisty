@@ -1,5 +1,6 @@
 import type { Flow } from "./flow";
 import {
+  directionChanged,
   edgeRemoved,
   type FlowAltered,
   type FlowPicked,
@@ -12,8 +13,8 @@ import {
 } from "./flowing";
 import { formedNode } from "./flowshapes";
 import { looksOf, nodeStyled } from "./flowstyles";
-import { around, type Rect } from "./graphlayout";
-import { flowLaid, lanesOf } from "./scenes";
+import { around, type Direction, type Rect } from "./graphlayout";
+import { flowLaid } from "./scenes";
 
 export type Alignment = "left" | "center" | "right" | "top" | "middle" | "bottom";
 
@@ -119,10 +120,10 @@ export const alignedMoves = (
 
 const LANE_PAD = 24;
 
-/** Every shape laid out again by the window, and each lane drawn around the shapes in it. */
-export const relaid = (flow: Flow): FlowAltered => {
-  const lanes = new Set(lanesOf(flow).map((one) => one.id));
-  const auto = flowLaid({ ...flow, places: [] });
+/** Every shape laid out again by the window, running the way asked, each lane drawn around its shapes. */
+export const relaid = (flow: Flow, direction: Direction = flow.direction): FlowAltered => {
+  const lanes = new Set(flow.groups.map((one) => one.id));
+  const auto = flowLaid({ ...flow, direction, places: [] });
   let now: Flow = { ...flow, places: flow.places.filter((one) => lanes.has(one.id)) };
   for (const [id, rect] of auto)
     now = { ...now, places: placed(now, id, { x: rect.x, y: rect.y }) };
@@ -133,5 +134,5 @@ export const relaid = (flow: Flow): FlowAltered => {
     const box = around(inside, LANE_PAD, LANE_PAD);
     if (box) now = { ...now, places: placed(now, lane, box) };
   }
-  return settled(now, null);
+  return { ...settled(now, null), head: directionChanged(flow, direction) };
 };

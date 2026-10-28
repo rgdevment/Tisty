@@ -10,6 +10,7 @@ import {
 } from "./flowshapes";
 import { headerAt } from "./framing";
 import type { Direction } from "./graphlayout";
+import { type Place, placesApart, tidied } from "./places";
 
 // Opening, the closings it may take with the shape each gives; longest openings first.
 const FORMS: readonly (readonly [string, readonly (readonly [string, Bracketed])[]])[] = [
@@ -74,15 +75,7 @@ export interface FlowGroup {
   readonly close: number;
 }
 
-/** Where the window puts a node, or a lane and its size, kept as a `%% tisty:` line after the body. */
-export interface Place {
-  readonly id: string;
-  readonly x: number;
-  readonly y: number;
-  readonly wide?: number;
-  readonly tall?: number;
-  readonly line: string;
-}
+export type { Place } from "./places";
 
 export interface Flow {
   readonly head: readonly string[];
@@ -241,25 +234,6 @@ export const statementsOf = (said: string): Statement[] | null => {
   return all;
 };
 
-const PLACE =
-  /^\s*%% tisty: ([\p{L}\p{N}_]+(?:-[\p{L}\p{N}_]+)*) (-?\d+) (-?\d+)(?: (\d+) (\d+))?\s*$/u;
-
-const placeOf = (line: string): Place | null => {
-  const found = PLACE.exec(line);
-  if (!found) return null;
-  const [, id, x, y, wide, tall] = found;
-  const sized = wide ? { wide: Number(wide), tall: Number(tall) } : {};
-  return { id, x: Number(x), y: Number(y), ...sized, line };
-};
-
-// A place for something no longer there, or said again, goes with the next change; the last one said wins.
-const tidied = (places: readonly Place[], reading: Reading): Place[] => {
-  const there = new Set([...reading.nodes.keys(), ...reading.groups.map((one) => one.id)]);
-  const last = new Map<string, Place>();
-  for (const place of places) if (there.has(place.id)) last.set(place.id, place);
-  return places.filter((one) => last.get(one.id) === one);
-};
-
 const KEPT =
   /^\s*(%%|classDef\b|class\b|style\b|linkStyle\b|click\b|accTitle\b|accDescr\b|direction\b)/;
 const SUBGRAPH = /^(\s*)subgraph\s+(.+?)\s*$/;
@@ -345,20 +319,17 @@ export const readFlow = (source: string): Flow | null => {
   const direction = (way === "TD" ? "TB" : way) as Direction;
   let end = lines.length;
   while (end > opening + 1 && !lines[end - 1].trim()) end -= 1;
-  const body: string[] = [];
-  const places: Place[] = [];
-  for (const line of lines.slice(opening + 1, end)) {
-    const place = placeOf(line);
-    if (place) places.push(place);
-    else body.push(line);
-  }
+  const { body, places } = placesApart(lines.slice(opening + 1, end));
   const reading: Reading = { nodes: new Map(), edges: [], groups: [], open: [] };
   for (const [line, text] of body.entries()) if (!readLine(reading, text, line)) return null;
   if (reading.open.length) return null;
   return {
     head: lines.slice(0, opening + 1),
     body,
-    places: tidied(places, reading),
+    places: tidied(
+      places,
+      new Set([...reading.nodes.keys(), ...reading.groups.map((one) => one.id)]),
+    ),
     tail: lines.slice(end),
     direction,
     nodes: [...reading.nodes.values()],

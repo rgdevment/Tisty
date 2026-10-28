@@ -93,6 +93,7 @@ export type Went =
   | { kind: "picture"; nth: number }
   | { kind: "diagram"; at: [number, number] }
   | { kind: "diagramExport"; at: [number, number] }
+  | { kind: "diagramMarkdown"; at: [number, number] }
   | TableWent
   | null;
 
@@ -210,12 +211,10 @@ const tablePressed = (asked: HTMLElement): Went => {
 const pressedIn = (asked: HTMLElement): Went => {
   if (asked.dataset.asked === "table") return tablePressed(asked);
   // A diagram inside a quote or a list is named by its own place, not by the block around it.
-  if (asked.dataset.asked === "diagram" || asked.dataset.asked === "diagramExport") {
+  const diagram = asked.dataset.asked;
+  if (diagram === "diagram" || diagram === "diagramExport" || diagram === "diagramMarkdown") {
     const at = spanned(asked.closest<HTMLElement>("figure.diagram[data-at]")?.dataset.at ?? null);
-    if (!at) return null;
-    return asked.dataset.asked === "diagram"
-      ? { kind: "diagram", at }
-      : { kind: "diagramExport", at };
+    return at ? { kind: diagram, at } : null;
   }
   if (asked.dataset.asked === "part") {
     const step = spanned(asked.closest<HTMLElement>("li.task[data-at]")?.dataset.at ?? null);

@@ -2,12 +2,15 @@ import { useMemo, useState } from "react";
 import { type Classes, readClasses, writeClasses } from "./classes";
 import type { ClassAltered, ClassPicked } from "./classing";
 import { kindOf } from "./framing";
+import { useSteps } from "./useSteps";
 
 export interface Classing {
   readonly diagram: Classes;
   readonly picked: ClassPicked;
   readonly change: (made: ClassAltered) => void;
   readonly pick: (picked: ClassPicked) => void;
+  readonly undo: (() => void) | null;
+  readonly redo: (() => void) | null;
 }
 
 // What makes a choice that one whatever place it has: a class's name, a member's words, a relation's ends.
@@ -15,6 +18,14 @@ const signOf = (diagram: Classes, picked: ClassPicked): string | null => {
   if (!picked) return null;
   if (picked.kind === "class")
     return diagram.classes.some((one) => one.name === picked.name) ? picked.name : null;
+  if (picked.kind === "classes")
+    return picked.names.every((name) => diagram.classes.some((one) => one.name === name))
+      ? `classes\n${picked.names.join("\n")}`
+      : null;
+  if (picked.kind === "namespace")
+    return diagram.groups.some((one) => one.id === picked.name)
+      ? `namespace\n${picked.name}`
+      : null;
   if (picked.kind === "member") {
     const member = diagram.classes.find((one) => one.name === picked.name)?.members[picked.index];
     return member ? `${picked.name}\n${member.text}` : null;
@@ -50,6 +61,7 @@ export const useClasses = (text: string, setText: (text: string) => void): Class
     picked: null,
     sign: null,
   });
+  const { stepped, undo, redo } = useSteps(text, setText);
   if (!diagram) return null;
   const keep = (into: Classes, picked: ClassPicked) =>
     setChosen({ picked, sign: signOf(into, picked) });
@@ -57,10 +69,16 @@ export const useClasses = (text: string, setText: (text: string) => void): Class
     diagram,
     picked: foundAgain(diagram, chosen.picked, chosen.sign),
     change: (made) => {
-      const written = writeClasses({ ...diagram, body: made.body });
-      if (written !== text) setText(written);
+      const written = writeClasses({
+        ...diagram,
+        body: made.body,
+        places: made.places ?? diagram.places,
+      });
+      stepped(written);
       keep(readClasses(written) ?? diagram, made.picked);
     },
     pick: (picked) => keep(diagram, picked),
+    undo,
+    redo,
   };
 };

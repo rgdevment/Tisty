@@ -1,6 +1,5 @@
 import {
   ARROWS,
-  directionChanged,
   edgeChanged,
   edgeRemovable,
   edgeRemoved,
@@ -12,20 +11,10 @@ import {
   nodeRemoved,
 } from "./flowing";
 import { pictured } from "./flowshapes";
-import type { Direction } from "./graphlayout";
 import { useHands, useSay } from "./handing";
 import { ARROW_WORDS, SHAPES, shapeName } from "./paletteshapes";
 import { Chosen, Said, Section } from "./panelbits";
 import type { Flowing } from "./useFlow";
-import type { Word } from "./words";
-
-const DIRECTIONS: readonly Direction[] = ["TB", "LR", "BT", "RL"];
-const DIRECTION_WORDS: Record<Direction, Word> = {
-  TB: "flowDown",
-  LR: "flowRight",
-  BT: "flowUp",
-  RL: "flowLeft",
-};
 
 const NONE = "";
 
@@ -33,7 +22,7 @@ const NONE = "";
 export default function FlowPanel({ editing }: Readonly<{ editing: Flowing }>) {
   const t = useSay();
   const { button } = useHands().looks;
-  const { flow, picked, change, turn } = editing;
+  const { flow, picked, change } = editing;
   const node = picked?.kind === "node" ? flow.nodes.find((one) => one.id === picked.id) : undefined;
   const edge = picked?.kind === "edge" ? flow.edges[picked.index] : undefined;
   const group =
@@ -54,13 +43,6 @@ export default function FlowPanel({ editing }: Readonly<{ editing: Flowing }>) {
 
   return (
     <div className="flex flex-col gap-3">
-      <Chosen
-        id="flow-direction"
-        label={t("flowDirection")}
-        value={flow.direction}
-        options={DIRECTIONS.map((one) => ({ value: one, label: t(DIRECTION_WORDS[one]) }))}
-        onChoose={(direction) => turn(directionChanged(flow, direction))}
-      />
       {!node && !edge && !group && (
         <p className="m-0 text-[12.5px] text-faint">
           {picked?.kind === "nodes"

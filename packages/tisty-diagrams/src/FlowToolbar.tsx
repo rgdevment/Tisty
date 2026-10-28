@@ -1,181 +1,31 @@
-import { useReactFlow, useViewport } from "@xyflow/react";
-import { type ReactNode, useEffect, useRef, useState } from "react";
-import { ARROWS, edgeChanged, nodesPlaced, pinned, reread } from "./flowing";
-import { FILLS, LINES, type Look, nodeStyled } from "./flowstyles";
-import { ALIGNMENTS, type Alignment, alignedMoves, relaid } from "./flowtools";
-import type { Rect } from "./graphlayout";
+import { ARROWS, autoTurned, edgeChanged, isAuto, nodesPlaced, pinned, reread } from "./flowing";
+import { nodeStyled } from "./flowstyles";
+import { alignedMoves, relaid } from "./flowtools";
+import type { Direction, Rect } from "./graphlayout";
 import { useSay } from "./handing";
 import { ARROW_WORDS } from "./paletteshapes";
+import {
+  AlignTools,
+  Gap,
+  PaintTools,
+  RemoveTools,
+  Tool,
+  ToolBar,
+  UndoTools,
+  ViewTools,
+} from "./tools";
 import type { Flowing } from "./useFlow";
 import type { Word } from "./words";
 
-const TOOL =
-  "flex h-8 w-8 items-center justify-center rounded-md text-soft hover:bg-hover hover:text-ink disabled:opacity-35 disabled:hover:bg-transparent aria-pressed:bg-accent-soft aria-pressed:text-accent";
+// The ways a flowchart can run, each a way to lay it out again.
+const DIRECTIONS: readonly (readonly [Direction, Word])[] = [
+  ["TB", "flowDown"],
+  ["LR", "flowRight"],
+  ["BT", "flowUp"],
+  ["RL", "flowLeft"],
+];
 
-// Each icon is drawn in a 24 box with the line of the words around it.
-const ICONS: Record<string, string> = {
-  undo: "M9 14 L4 9 L9 4 M4 9 H15 a5 5 0 0 1 0 10 H11",
-  redo: "M15 14 L20 9 L15 4 M20 9 H9 a5 5 0 0 0 0 10 H13",
-  remove: "M4 7 H20 M10 11 V17 M14 11 V17 M6 7 L7 20 H17 L18 7 M9 7 V4 H15 V7",
-  duplicate: "M8 8 h12 v12 h-12 Z M16 8 V4 H4 V16 H8",
-  fill: "M12 3 C12 3 6 10 6 14 a6 6 0 0 0 12 0 C18 10 12 3 12 3 Z",
-  line: "M4 4 h16 v16 h-16 Z",
-  "-->": "M3 12 H19 M14 7 L19 12 L14 17",
-  "---": "M3 12 H21",
-  "-.->": "M3 12 H6 M9 12 H12 M15 12 H19 M14 7 L19 12 L14 17",
-  "==>": "M3 10 H18 M3 14 H18 M14 6 L20 12 L14 18",
-  left: "M4 3 V21 M8 7 H18 M8 12 H14 M8 17 H20",
-  center: "M12 3 V21 M6 7 H18 M8 12 H16 M5 17 H19",
-  right: "M20 3 V21 M6 7 H16 M10 12 H16 M4 17 H16",
-  top: "M3 4 H21 M7 8 V18 M12 8 V14 M17 8 V20",
-  middle: "M3 12 H21 M7 6 V18 M12 8 V16 M17 5 V19",
-  bottom: "M3 20 H21 M7 6 V16 M12 10 V16 M17 4 V16",
-  relaid: "M4 4 h6 v6 h-6 Z M14 14 h6 v6 h-6 Z M10 7 H17 V14",
-  zoomOut: "M6 12 H18",
-  zoomIn: "M12 6 V18 M6 12 H18",
-  fit: "M4 9 V4 H9 M15 4 H20 V9 M20 15 V20 H15 M9 20 H4 V15",
-};
-
-const ALIGN_WORDS: Record<Alignment, Word> = {
-  left: "flowAlignLeft",
-  center: "flowAlignCenter",
-  right: "flowAlignRight",
-  top: "flowAlignTop",
-  middle: "flowAlignMiddle",
-  bottom: "flowAlignBottom",
-};
-
-function Icon({ name }: Readonly<{ name: string }>) {
-  return (
-    <svg
-      aria-hidden="true"
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d={ICONS[name]} />
-    </svg>
-  );
-}
-
-function Tool({
-  label,
-  icon,
-  onClick,
-  disabled = false,
-  pressed,
-  hint,
-}: Readonly<{
-  label: string;
-  icon: string;
-  onClick: () => void;
-  disabled?: boolean;
-  pressed?: boolean;
-  hint?: string;
-}>) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      title={hint ?? label}
-      aria-pressed={pressed}
-      disabled={disabled}
-      onClick={onClick}
-      className={TOOL}
-    >
-      <Icon name={icon} />
-    </button>
-  );
-}
-
-const Gap = () => <span aria-hidden="true" className="mx-1 h-5 w-px bg-line" />;
-
-/** A colour to choose from a row of swatches, or none. */
-function Swatches({
-  label,
-  icon,
-  disabled,
-  choices,
-  onChoose,
-}: Readonly<{
-  label: string;
-  icon: string;
-  disabled: boolean;
-  choices: readonly { key: string; label: string; color: string }[];
-  onChoose: (key: string | null) => void;
-}>) {
-  const t = useSay();
-  const [open, setOpen] = useState(false);
-  const holder = useRef<HTMLDivElement>(null);
-  // A press anywhere else closes it; on a Mac a button takes no focus, so leaving focus is not enough.
-  useEffect(() => {
-    if (!open) return;
-    const away = (e: PointerEvent) => {
-      if (!holder.current?.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("pointerdown", away);
-    return () => document.removeEventListener("pointerdown", away);
-  }, [open]);
-  const chosen = (key: string | null) => {
-    setOpen(false);
-    onChoose(key);
-  };
-  return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: Escape closes the swatches inside
-    <div
-      ref={holder}
-      className="relative"
-      onKeyDown={(e) => {
-        if (e.key === "Escape") setOpen(false);
-      }}
-    >
-      <button
-        type="button"
-        aria-label={label}
-        title={label}
-        aria-expanded={open}
-        disabled={disabled}
-        onClick={() => setOpen(!open)}
-        className={TOOL}
-      >
-        <Icon name={icon} />
-      </button>
-      {open && !disabled && (
-        <div
-          role="group"
-          aria-label={label}
-          className="absolute top-full left-0 z-20 mt-1 flex gap-1.5 rounded-md border border-line bg-panel p-2 shadow"
-        >
-          <button
-            type="button"
-            aria-label={t("flowNoColor")}
-            title={t("flowNoColor")}
-            onClick={() => chosen(null)}
-            className="h-6 w-6 rounded-full border border-dashed border-faint"
-          />
-          {choices.map((one) => (
-            <button
-              key={one.key}
-              type="button"
-              aria-label={one.label}
-              title={one.label}
-              onClick={() => chosen(one.key)}
-              className="h-6 w-6 rounded-full border border-line"
-              style={{ background: one.color }}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/** What can be done to the drawing and to what is chosen in it, above the canvas. */
+/** What can be done to the flowchart and to what is chosen in it, above the canvas. */
 export default function FlowToolbar({
   editing,
   laid,
@@ -190,60 +40,28 @@ export default function FlowToolbar({
   onDuplicate: (() => void) | null;
 }>) {
   const t = useSay();
-  const { zoomIn, zoomOut, fitView } = useReactFlow();
-  const { zoom } = useViewport();
   const { flow, picked, change, undo, redo } = editing;
   const ids = picked?.kind === "node" ? [picked.id] : picked?.kind === "nodes" ? picked.ids : [];
   const edge = picked?.kind === "edge" ? flow.edges[picked.index] : undefined;
-  const styled = (look: { readonly [key in keyof Look]?: string | null }) => {
-    const now = ids.reduce((all, id) => reread(all, nodeStyled(all, id, look)), flow);
-    change({ body: now.body, places: now.places, picked });
-  };
-  const painted: ReactNode = (
-    <>
-      <Swatches
-        label={t("flowFill")}
-        icon="fill"
-        disabled={!ids.length}
-        choices={FILLS.map((one) => ({ key: one.fill, label: t(one.word), color: one.fill }))}
-        onChoose={(key) =>
-          styled({ fill: key, color: FILLS.find((one) => one.fill === key)?.color ?? null })
-        }
-      />
-      <Swatches
-        label={t("flowLine")}
-        icon="line"
-        disabled={!ids.length}
-        choices={LINES.map((one) => ({ key: one.stroke, label: t(one.word), color: one.stroke }))}
-        onChoose={(key) => styled({ stroke: key })}
-      />
-    </>
-  );
 
   return (
-    <div
-      role="toolbar"
-      aria-label={t("flowTools")}
-      className="flex shrink-0 flex-wrap items-center gap-0.5 border-b border-hair bg-panel px-2 py-1"
-    >
-      <Tool label={t("flowUndo")} icon="undo" disabled={!undo} onClick={() => undo?.()} />
-      <Tool label={t("flowRedo")} icon="redo" disabled={!redo} onClick={() => redo?.()} />
+    <ToolBar>
+      <UndoTools undo={undo} redo={redo} />
       <Gap />
-      <Tool
-        label={t("flowDelete")}
-        icon="remove"
-        disabled={!removable}
-        hint={picked && !removable ? t("flowChained") : undefined}
-        onClick={onRemove}
-      />
-      <Tool
-        label={t("flowDuplicate")}
-        icon="duplicate"
-        disabled={!onDuplicate}
-        onClick={() => onDuplicate?.()}
+      <RemoveTools
+        removable={removable}
+        refused={picked && !removable ? t("flowChained") : undefined}
+        onRemove={onRemove}
+        onDuplicate={onDuplicate}
       />
       <Gap />
-      {painted}
+      <PaintTools
+        disabled={!ids.length}
+        onStyle={(look) => {
+          const now = ids.reduce((all, id) => reread(all, nodeStyled(all, id, look)), flow);
+          change({ body: now.body, places: now.places, picked });
+        }}
+      />
       <Gap />
       {ARROWS.map((arrow) => (
         <Tool
@@ -258,31 +76,26 @@ export default function FlowToolbar({
         />
       ))}
       <Gap />
-      {ALIGNMENTS.map((how) => (
-        <Tool
-          key={how}
-          label={t(ALIGN_WORDS[how])}
-          icon={how}
-          disabled={ids.length < 2}
-          onClick={() =>
-            change(nodesPlaced(pinned(flow, laid), alignedMoves(laid, ids, how), picked))
-          }
-        />
-      ))}
+      <AlignTools
+        disabled={ids.length < 2}
+        onAlign={(how) =>
+          change(nodesPlaced(pinned(flow, laid), alignedMoves(laid, ids, how), picked))
+        }
+      />
       <Gap />
       <Tool
-        label={t("flowRelaid")}
-        icon="relaid"
-        disabled={!flow.nodes.length}
-        onClick={() => change(relaid(flow))}
+        label={t("flowAuto")}
+        icon="auto"
+        pressed={isAuto(flow.body)}
+        onClick={() => change(autoTurned(flow, !isAuto(flow.body), laid))}
       />
-      <span className="flex-1" />
-      <Tool label={t("flowZoomOut")} icon="zoomOut" onClick={() => zoomOut()} />
-      <span className="w-12 text-center text-[12px] text-soft tabular-nums">
-        {Math.round(zoom * 100)} %
-      </span>
-      <Tool label={t("flowZoomIn")} icon="zoomIn" onClick={() => zoomIn()} />
-      <Tool label={t("flowFit")} icon="fit" onClick={() => fitView()} />
-    </div>
+      <ViewTools
+        laidOut={flow.nodes.length > 0}
+        onRelay={DIRECTIONS.map(([direction, word]) => ({
+          label: t(word),
+          onPick: () => change(relaid(flow, direction)),
+        }))}
+      />
+    </ToolBar>
   );
 }

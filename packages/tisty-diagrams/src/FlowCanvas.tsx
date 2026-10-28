@@ -4,7 +4,6 @@ import {
   BackgroundVariant,
   ConnectionMode,
   type FinalConnectionState,
-  Panel,
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
@@ -14,38 +13,25 @@ import FlowPalette, { type Piece } from "./FlowPalette";
 import FlowToolbar from "./FlowToolbar";
 import { Wire, type WireEdge } from "./FlowWire";
 import type { Flow } from "./flow";
-import {
-  type FlowAltered,
-  groupAdded,
-  linked,
-  nodeAdded,
-  nodeAddedFrom,
-  pinned,
-  reread,
-} from "./flowing";
+import { type FlowAltered, linked, nodeAdded, nodeAddedFrom, pinned, reread } from "./flowing";
 import { LANE_SIZES, laneAdded, regrouped } from "./flowlanes";
 import { sizeOf } from "./flowoutlines";
 import type { Shape } from "./flowshapes";
 import { looksOf } from "./flowstyles";
 import { nodeDuplicated, pickedRemoved } from "./flowtools";
 import type { Rect } from "./graphlayout";
-import { useHands, useSay } from "./handing";
+import { useSay } from "./handing";
 import { shapeName } from "./paletteshapes";
-import {
-  FrameBox,
-  type FrameNode,
-  LaneBox,
-  type LaneNode,
-  ShapeBox,
-  type ShapeNode,
-} from "./ShapeNodes";
-import { flowLaid, lanesOf } from "./scenes";
+import { LaneBox, type LaneNode, ShapeBox, type ShapeNode } from "./ShapeNodes";
+import { flowLaid, flowLanesAround } from "./scenes";
 import { GROUP, settledInto, useCanvasMoves } from "./useCanvasMoves";
 import { type Naming, useCanvasNodes } from "./useCanvasNodes";
 import type { Flowing } from "./useFlow";
 
-const NODE_TYPES = { shape: ShapeBox, frame: FrameBox, lane: LaneBox };
+const NODE_TYPES = { shape: ShapeBox, lane: LaneBox };
 const EDGE_TYPES = { wire: Wire };
+// A small diagram is shown at its own size, not blown up to fill the window.
+const FITTED = { maxZoom: 1 };
 
 type Point = { readonly x: number; readonly y: number };
 
@@ -74,14 +60,16 @@ export default function FlowCanvas({
 
 function Drawing({ editing, dark }: Readonly<{ editing: Flowing; dark: boolean }>) {
   const t = useSay();
-  const { button } = useHands().looks;
   const { flow, picked, change, pick, undo, redo } = editing;
   const { screenToFlowPosition } = useReactFlow();
   // The drawing alone, without the toolbar over it, is where pieces land.
   const pane = useRef<HTMLDivElement>(null);
   const [naming, setNaming] = useState<Naming>(null);
   const still = useMemo(() => flowLaid(flow), [flow]);
-  const lanes = useMemo(() => new Map(lanesOf(flow).map((one) => [one.id, one])), [flow]);
+  const lanes = useMemo(
+    () => new Map(flowLanesAround(flow, still).map((one) => [one.id, one])),
+    [flow, still],
+  );
   const looks = useMemo(() => looksOf(flow), [flow]);
   const { moving, laid, inside, moved, sizing, sized } = useCanvasMoves(editing, still, lanes);
   const { nodes, edges } = useCanvasNodes({
@@ -89,7 +77,6 @@ function Drawing({ editing, dark }: Readonly<{ editing: Flowing; dark: boolean }
     still,
     lanes,
     looks,
-    laid,
     moving,
     inside,
     naming,
@@ -181,7 +168,7 @@ function Drawing({ editing, dark }: Readonly<{ editing: Flowing; dark: boolean }
           onDuplicate={duplicate}
         />
         <div ref={pane} className="relative min-h-0 flex-1 bg-desk">
-          <ReactFlow<ShapeNode | FrameNode | LaneNode, WireEdge>
+          <ReactFlow<ShapeNode | LaneNode, WireEdge>
             nodes={nodes}
             edges={edges}
             nodeTypes={NODE_TYPES}
@@ -192,6 +179,7 @@ function Drawing({ editing, dark }: Readonly<{ editing: Flowing; dark: boolean }
             zoomOnDoubleClick={false}
             minZoom={0.2}
             fitView
+            fitViewOptions={FITTED}
             proOptions={{ hideAttribution: true }}
             onNodesChange={moved}
             onNodeClick={(e, node) => {
@@ -207,18 +195,6 @@ function Drawing({ editing, dark }: Readonly<{ editing: Flowing; dark: boolean }
             onConnectEnd={ended}
           >
             <Background variant={BackgroundVariant.Dots} gap={16} />
-            <Panel position="top-left" className="flex items-center gap-2">
-              <button
-                type="button"
-                className={`${button} bg-panel`}
-                onClick={() => change(groupAdded(flow, t("flowNewGroup")))}
-              >
-                {t("flowAddGroup")}
-              </button>
-              <p className="m-0 rounded-lg bg-panel px-3 py-1.5 text-[12px] text-faint shadow">
-                {t("flowKeys")}
-              </p>
-            </Panel>
           </ReactFlow>
         </div>
       </div>

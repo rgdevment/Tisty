@@ -1,46 +1,28 @@
 import { MarkerType } from "@xyflow/react";
 import { useMemo } from "react";
 import type { WireEdge } from "./FlowWire";
-import { edgeChanged, nodeChanged, type Spot } from "./flowing";
-import { sideMiddle } from "./flowroutes";
+import { edgeChanged, nodeChanged } from "./flowing";
 import type { Look } from "./flowstyles";
-import { around, type Rect } from "./graphlayout";
+import type { Rect } from "./graphlayout";
 import { useSay } from "./handing";
-import type { FrameNode, LaneNode, ShapeNode } from "./ShapeNodes";
-import { SIDES } from "./ShapeNodes";
+import type { Spot } from "./places";
+import type { LaneNode, ShapeNode } from "./ShapeNodes";
+import { handlesOf } from "./ShapeNodes";
 import type { Lane } from "./scenes";
 import { jointsOf } from "./scenes";
 import { chosenOf, GROUP } from "./useCanvasMoves";
 import type { Flowing } from "./useFlow";
 
-const HANDLE = 10;
-
 export type Naming = { kind: "node"; id: string } | { kind: "edge"; index: number } | null;
 
 type Point = { readonly x: number; readonly y: number };
 
-// Where each side's dot sits, so arrows are drawn before the browser has measured anything.
-const handlesOf = (wide: number, tall: number) =>
-  SIDES.map((side) => {
-    const at = sideMiddle({ x: 0, y: 0, wide, tall }, side);
-    return {
-      id: side,
-      type: "source" as const,
-      position: side,
-      x: at.x - HANDLE / 2,
-      y: at.y - HANDLE / 2,
-      width: HANDLE,
-      height: HANDLE,
-    };
-  });
-
-/** What React Flow draws: group frames and lanes behind, the shapes in and over them, and the arrows. */
+/** What React Flow draws: lanes behind, the shapes in and over them, and the arrows. */
 export const useCanvasNodes = ({
   editing,
   still,
   lanes,
   looks,
-  laid,
   moving,
   inside,
   naming,
@@ -52,7 +34,6 @@ export const useCanvasNodes = ({
   still: ReadonlyMap<string, Rect>;
   lanes: ReadonlyMap<string, Lane>;
   looks: ReadonlyMap<string, Look>;
-  laid: ReadonlyMap<string, Rect>;
   moving: ReadonlyMap<string, Spot>;
   inside: (id: string, at: Point) => Point;
   naming: Naming;
@@ -129,30 +110,6 @@ export const useCanvasNodes = ({
       },
     };
   });
-  const frames = flow.groups.flatMap((group): FrameNode[] => {
-    if (lanes.has(group.id)) return [];
-    const rect = around(
-      flow.nodes.filter((one) => one.group === group.id).flatMap((one) => laid.get(one.id) ?? []),
-    );
-    if (!rect) return [];
-    return [
-      {
-        id: `${GROUP}${group.id}`,
-        type: "frame",
-        position: { x: rect.x, y: rect.y },
-        width: rect.wide,
-        height: rect.tall,
-        zIndex: -1,
-        draggable: false,
-        selectable: false,
-        data: {
-          title: group.title,
-          picked: picked?.kind === "group" && picked.id === group.id,
-          onPick: () => pick({ kind: "group", id: group.id }),
-        },
-      },
-    ];
-  });
   const wires = useMemo(
     (): WireEdge[] =>
       jointsOf(flow).map((one, index) => ({
@@ -161,7 +118,7 @@ export const useCanvasNodes = ({
         target: one.to,
         type: "wire",
         selected: picked?.kind === "edge" && picked.index === index,
-        markerEnd: one.arrow
+        markerEnd: one.end
           ? { type: MarkerType.ArrowClosed, color: "var(--color-accent)", width: 16, height: 16 }
           : undefined,
         data: {
@@ -183,5 +140,5 @@ export const useCanvasNodes = ({
     [flow, picked, naming, t, pick, change, setNaming],
   );
   // Parents before the shapes in them, as React Flow asks.
-  return { nodes: [...frames, ...laneNodes, ...shapes], edges: wires };
+  return { nodes: [...laneNodes, ...shapes], edges: wires };
 };

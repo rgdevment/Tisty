@@ -6,7 +6,7 @@ import {
   type InternalNode,
   useInternalNode,
 } from "@xyflow/react";
-import { routeOf } from "./flowroutes";
+import { endWordAt, routeOf } from "./flowroutes";
 import type { Rect } from "./graphlayout";
 import Renaming from "./Renaming";
 
@@ -20,6 +20,9 @@ export type WireData = {
   readonly onPick: () => void;
   readonly onName: () => void;
   readonly onNamed: (text: string | null) => void;
+  // A class relation's cardinalities, written by the ends they belong to.
+  readonly startLabel?: string;
+  readonly endLabel?: string;
 };
 
 export type WireEdge = Edge<WireData, "wire">;
@@ -32,16 +35,29 @@ const rectOf = (node: InternalNode): Rect => ({
 });
 
 /** An arrow that follows its shapes as they move, between the sides that face each other. */
-export function Wire({ id, source, target, data, selected, markerEnd }: EdgeProps<WireEdge>) {
+export function Wire({
+  id,
+  source,
+  target,
+  data,
+  selected,
+  markerStart,
+  markerEnd,
+}: EdgeProps<WireEdge>) {
   const from = useInternalNode(source);
   const to = useInternalNode(target);
   if (!from || !to || !data) return null;
   const route = routeOf(rectOf(from), rectOf(to));
+  const ends = [
+    { key: "start", said: data.startLabel, at: endWordAt(route.from, route.fromSide) },
+    { key: "end", said: data.endLabel, at: endWordAt(route.to, route.toSide) },
+  ];
   return (
     <>
       <BaseEdge
         id={id}
         path={route.path}
+        markerStart={markerStart}
         markerEnd={markerEnd}
         interactionWidth={14}
         style={{
@@ -76,6 +92,19 @@ export function Wire({ id, source, target, data, selected, markerEnd }: EdgeProp
             </button>
           )}
         </div>
+        {ends.map(({ key, said, at }) =>
+          said ? (
+            <span
+              key={key}
+              className="absolute text-[11px] text-soft"
+              style={{
+                transform: `translate(${at.x}px, ${at.y}px) translate(${at.anchor === "end" ? "-100%" : "0"}, -50%)`,
+              }}
+            >
+              {said}
+            </span>
+          ) : null,
+        )}
       </EdgeLabelRenderer>
     </>
   );

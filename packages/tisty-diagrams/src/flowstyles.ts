@@ -52,7 +52,7 @@ const withSaid = (said: Said, key: string, value: string | null | undefined): Sa
 };
 
 /** Every `style` line of the flowchart, by node, all its lines said as one as Mermaid reads them. */
-const styleLines = (flow: Flow) => {
+const styleLines = (flow: Pick<Flow, "body">) => {
   const byNode = new Map<string, { lines: number[]; indent: string; said: Said }>();
   flow.body.forEach((line, at) => {
     const found = STYLE.exec(line);
@@ -73,7 +73,7 @@ const styleLines = (flow: Flow) => {
 };
 
 /** The colours each node's `style` lines give it. */
-export const looksOf = (flow: Flow): ReadonlyMap<string, Look> =>
+export const looksOf = (flow: Pick<Flow, "body">): ReadonlyMap<string, Look> =>
   new Map(
     [...styleLines(flow)].map(([id, { said }]) => {
       const props = new Map(said);
@@ -86,7 +86,7 @@ export const looksOf = (flow: Flow): ReadonlyMap<string, Look> =>
 
 /** A node's colours set or taken off, its `style` lines made one where the first stood, the rest kept. */
 export const nodeStyled = (
-  flow: Flow,
+  flow: Pick<Flow, "body">,
   id: string,
   change: { readonly [key in keyof Look]?: string | null },
 ): FlowAltered => {
