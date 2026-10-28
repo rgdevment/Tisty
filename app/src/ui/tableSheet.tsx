@@ -11,7 +11,7 @@ import {
 import { today } from "./celled";
 import Menu, { type Choice } from "./Menu";
 import type { TableWent } from "./paging";
-import { peeled } from "./peeled";
+import { type Peeled, peeled } from "./peeled";
 import TableEditor, { type Picked } from "./TableEditor";
 import { columnChoices, wordsOf } from "./tableChoices";
 import {
@@ -185,14 +185,14 @@ export const useTables = (ways: Ways): { onTable: (asked: TableWent) => void; me
       .catch((why) => said.current.fail(refused(why)));
   };
 
-  const finished = (place: Place, was: string, now: string, how: Leaving) => {
+  const finished = (place: Place, cell: Peeled, now: string, how: Leaving) => {
     const page = said.current.page();
     const at = page && placeOf(page, place.nth);
     if (how === "cancel" || !page || !at || !fresh()) return;
     const { row, column } = place;
-    const changed = now.trim() !== was.trim();
+    const changed = now.trim() !== cell.words.trim();
     if (row < 0) {
-      if (changed) edited(at, [{ kind: "rename", column, said: now }]);
+      if (changed) edited(at, [{ kind: "rename", column, said: cell.wrap(now) }]);
       return;
     }
     if (!changed) {
@@ -201,8 +201,9 @@ export const useTables = (ways: Ways): { onTable: (asked: TableWent) => void; me
     }
     // The save starts once the value is in its form, and a cell clicked meanwhile waits for it.
     saving.current += 1;
+    // The words take the column's form first; the marks around the cell then wrap that form.
     canonical(page, place, now)
-      .then((said) => onward(place, [{ kind: "cell", row, column, said }], how))
+      .then((said) => onward(place, [{ kind: "cell", row, column, said: cell.wrap(said) }], how))
       .catch((why) => said.current.fail(refused(why)))
       .finally(() => {
         saving.current -= 1;
@@ -267,11 +268,8 @@ export const useTables = (ways: Ways): { onTable: (asked: TableWent) => void; me
         const name = headsNamed(page, place.nth)[place.column] ?? "";
         const label = place.row < 0 ? t("tableHead") : fill("tableCell", name);
         // The field holds the words; the marks wrapping the whole cell come back around them on the way out.
-        const cell =
-          place.row < 0 ? { words: was ?? "", wrap: (one: string) => one } : peeled(was ?? "");
-        typing(holder, cell.words, label, (now, how) =>
-          finished(place, was ?? "", now === cell.words ? (was ?? "") : cell.wrap(now), how),
-        );
+        const cell = peeled(was ?? "");
+        typing(holder, cell.words, label, (now, how) => finished(place, cell, now, how));
       })
       .catch((why) => said.current.fail(refused(why)));
   };

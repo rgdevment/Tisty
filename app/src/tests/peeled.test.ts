@@ -34,4 +34,10 @@ describe("a cell opened to be written", () => {
   it("writes an emptied cell empty, without walls around nothing", () => {
     expect(peeled("==hoy=={blue}").wrap("  ")).toBe("");
   });
+
+  it("writes plain the words that would tear their mark, keeping the marks they do not touch", () => {
+    expect(peeled("==hoy=={blue}").wrap("a == b")).toBe("a == b");
+    expect(peeled("_nota_").wrap("snake_case")).toBe("snake_case");
+    expect(peeled("**==hoy==**").wrap("a == b")).toBe("**a == b**");
+  });
 });

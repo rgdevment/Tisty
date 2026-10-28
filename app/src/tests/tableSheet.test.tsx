@@ -117,9 +117,12 @@ describe("a table written in place", () => {
     expect(input.value).toBe("9990");
     expect(input.getAttribute("aria-label")).toBe("Cell in Precio");
 
-    input.value = "10990";
+    core.canon.mockImplementation((_, typed) => Promise.resolve(typed.replace(".", "")));
+    input.value = "10.990";
     press(input, "Enter");
     await settle();
+    // The words take the column's form before the marks go back around them.
+    expect(core.canon).toHaveBeenCalledWith("money CLP", "10.990");
     expect(core.edit).toHaveBeenCalledWith(BODY, [0, 80], {
       kind: "cell",
       row: 1,

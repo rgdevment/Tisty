@@ -127,6 +127,20 @@ describe("the row menu", () => {
       expect(document.activeElement, `typed ${typed}`).toBe(typed ? field : opener);
       unmount();
     }
+
+    // Closed by a press somewhere else that took the focus, the menu leaves it there.
+    opener.focus();
+    const { unmount } = render(<Shown typed={false} />);
+    await act(async () => {
+      await new Promise((done) => setTimeout(done, 0));
+    });
+    field.focus();
+    await act(async () => {
+      field.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    });
+    expect(screen.queryByRole("menu")).toBeNull();
+    expect(document.activeElement).toBe(field);
+    unmount();
     opener.remove();
     field.remove();
   });

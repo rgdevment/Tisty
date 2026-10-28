@@ -240,6 +240,13 @@ describe("a row dragged by its grip", () => {
     pointer("pointermove", 12);
     pointer("pointerup", 12);
     expect(moved).not.toHaveBeenCalled();
+
+    pointer("pointerdown", 10, grip);
+    pointer("pointermove", 95);
+    pointer("pointercancel", 95);
+    expect(marks()).toEqual(["", "", ""]);
+    pointer("pointerup", 95);
+    expect(moved).not.toHaveBeenCalled();
   });
 });
 

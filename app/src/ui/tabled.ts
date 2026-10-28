@@ -307,11 +307,15 @@ export const dragging = (
       box.classList.add("row-moving");
       marked(box, from, to);
     };
-    const up = () => {
+    const ended = () => {
       page.removeEventListener("pointermove", over);
       page.removeEventListener("pointerup", up);
+      page.removeEventListener("pointercancel", ended);
       box.classList.remove("row-moving");
       marked(box, -1, -1);
+    };
+    const up = () => {
+      ended();
       if (!far) return;
       // The click that ends a drag is not a click on the grip, and no later click is lost to it.
       const swallowed = (one: Event) => one.stopPropagation();
@@ -321,5 +325,7 @@ export const dragging = (
     };
     page.addEventListener("pointermove", over);
     page.addEventListener("pointerup", up);
+    // A drag the system takes away moves nothing and leaves no mark behind.
+    page.addEventListener("pointercancel", ended);
   });
 };

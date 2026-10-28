@@ -27,9 +27,15 @@ export const peeled = (said: string): Peeled => {
   const one = around(kept);
   if (!one) return { words: said, wrap: (words) => words };
   const deeper = peeled(one.inner);
-  // Emptied, the cell has nothing left to wrap.
   return {
     words: deeper.words,
-    wrap: (words) => (words.trim() ? one.wrap(deeper.wrap(words.trim())) : ""),
+    wrap: (words) => {
+      const kept = words.trim();
+      // Emptied, the cell has nothing left to wrap.
+      if (!kept) return "";
+      const made = one.wrap(deeper.wrap(kept));
+      // Words holding the mark's own walls would tear it, so they go in plain rather than broken.
+      return peeled(made).words === kept ? made : kept;
+    },
   };
 };
