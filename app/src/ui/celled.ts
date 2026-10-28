@@ -22,22 +22,21 @@ const civil = (iso: string): number => {
   return Date.UTC(year, month - 1, day);
 };
 
-/** A day as the reader's language says it, and how far it is from today. */
-export const dayOf = (
-  iso: string,
-  today: string,
-  locale: string,
-): { day: string; when: string } => {
-  const at = new Date(civil(iso));
-  const day = new Intl.DateTimeFormat(locale, {
+type Saying = (iso: string, today: string) => { day: string; when: string };
+
+/** How the reader's language says a day and how far it is from today; its formatters are made once. */
+export const sayingDays = (locale: string): Saying => {
+  const days = new Intl.DateTimeFormat(locale, {
     day: "numeric",
     month: "short",
     year: "numeric",
     timeZone: "UTC",
-  }).format(at);
-  const days = Math.round((civil(iso) - civil(today)) / DAY);
-  const when = new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(days, "day");
-  return { day, when };
+  });
+  const far = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+  return (iso, today) => ({
+    day: days.format(new Date(civil(iso))),
+    when: far.format(Math.round((civil(iso) - civil(today)) / DAY), "day"),
+  });
 };
 
 const chip = (page: Document, said: string, hues: readonly string[]): HTMLElement => {
@@ -48,12 +47,21 @@ const chip = (page: Document, said: string, hues: readonly string[]): HTMLElemen
   return one;
 };
 
-type Seeing = { readonly today: string; readonly locale: string; readonly hues: readonly string[] };
+type Seeing = {
+  readonly today: string;
+  readonly locale: string;
+  readonly hues: readonly string[];
+  /** Whether the table may be written, and so has stars and a switch to press. */
+  readonly live: boolean;
+};
 
-// Each typed value is drawn as it is used: a date in the reader's words, stars and a switch to press, options in colour.
+type Drawing = Omit<Seeing, "locale"> & { readonly said: Saying };
+
+// Each typed value is drawn as it is used: a date in the reader's words, options in colour, and, where it is written, stars and a switch to press.
 export const celled = (page: Document, seeing: Seeing) => {
+  const drawing = { ...seeing, said: sayingDays(seeing.locale) };
   for (const box of tablesIn(page)) {
-    if (!box.classList.contains("dressed") || box.classList.contains("celled")) continue;
+    if (box.classList.contains("celled")) continue;
     box.classList.add("celled");
     const types = Array.from(box.querySelectorAll<HTMLElement>(":scope > table > thead th")).map(
       (head) => head.dataset.type ?? "",
@@ -61,7 +69,7 @@ export const celled = (page: Document, seeing: Seeing) => {
     for (const row of box.querySelectorAll<HTMLTableRowElement>(":scope > table > tbody > tr")) {
       const at = Number(row.dataset.row);
       Array.from(row.cells).forEach((cell, column) => {
-        drawn(page, cell, types[column], { row: at, column }, seeing);
+        drawn(page, cell, types[column], { row: at, column }, drawing);
       });
     }
   }
@@ -72,23 +80,25 @@ const drawn = (
   cell: HTMLTableCellElement,
   type: string,
   place: { row: number; column: number },
-  { today, locale, hues }: Seeing,
+  { today, hues, live, said }: Drawing,
 ) => {
   const key = cell.dataset.key;
   const grip = cell.querySelector(":scope > .row-grip");
   const keep = (...made: Node[]) => cell.replaceChildren(...(grip ? [grip] : []), ...made);
+  // An empty cell is a rating of none and a «no», so a new row can be set with one press too.
+  const empty = key === undefined && !cell.hasAttribute("data-amiss") && !cell.textContent?.trim();
   if (type === "date" && key) {
-    const { day, when } = dayOf(key, today, locale);
+    const { day, when } = said(key, today);
     const told = page.createElement("small");
     told.className = "table-when";
     told.textContent = when;
     keep(page.createTextNode(day), told);
   }
-  if (type === "rating" && key !== undefined) {
-    const lit = Number(key);
+  if (live && type === "rating" && (key !== undefined || empty)) {
+    const lit = Number(key ?? 0);
     keep(
       ...[1, 2, 3, 4, 5].map((n) => {
-        // A second press on the star already lit takes the rating down to nothing.
+        // A second press on the star already lit empties the cell: no rating, which no total counts.
         const star = asking(page, "star", fill("tableStars", String(n)), "★", {
           ...place,
           to: n === lit ? 0 : n,
@@ -99,7 +109,7 @@ const drawn = (
       }),
     );
   }
-  if (type === "check" && key !== undefined) {
+  if (live && type === "check" && (key !== undefined || empty)) {
     const on = key === "1";
     const toggle = asking(page, "toggle", t("tableTypeCheck"), "", { ...place, to: on ? 0 : 1 });
     toggle.classList.add("table-switch");

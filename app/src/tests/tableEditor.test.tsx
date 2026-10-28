@@ -22,13 +22,19 @@ vi.mock("../core", async () => ({
     }),
 }));
 
-const opened = (kind: "date" | "select" | "tags" | "link", was = "", options: string[] = []) => {
+const opened = (
+  kind: "date" | "select" | "tags" | "link",
+  was = "",
+  options: string[] = [],
+  shown = was,
+) => {
   const onWrite = vi.fn();
   const onClose = vi.fn();
   render(
     <TableEditor
       kind={kind}
-      at={{ x: 10, y: 10 }}
+      at={{ x: 10, y: 10, above: 0 }}
+      shown={shown}
       was={was}
       options={options}
       onWrite={onWrite}
@@ -85,5 +91,31 @@ describe("a cell written by picking", () => {
     const { onWrite } = opened("link");
     fireEvent.click(await screen.findByText("Contrato"));
     expect(onWrite).toHaveBeenCalledWith("![Contrato](tisty:doc/mac0-0001)");
+  });
+});
+
+describe("where the picker opens", () => {
+  it("opens above the cell when there is no room under it", () => {
+    render(
+      <TableEditor
+        kind="date"
+        at={{ x: 10, y: window.innerHeight - 20, above: window.innerHeight - 50 }}
+        was=""
+        shown=""
+        options={[]}
+        onWrite={() => {}}
+        onClose={() => {}}
+      />,
+    );
+    const box = screen.getByRole("dialog");
+    expect(box.style.top).toBe("");
+    expect(box.style.bottom).toBe("54px");
+  });
+
+  it("knows the option in use by the words it shows, whatever marks it is written with", () => {
+    opened("select", "**Música**", ["Música", "Video"], "Música");
+    expect(screen.getByRole("button", { name: "Música" }).getAttribute("aria-pressed")).toBe(
+      "true",
+    );
   });
 });

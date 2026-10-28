@@ -3,8 +3,7 @@ use crate::amounts::convention;
 use crate::typed::understood;
 use crate::values::seen;
 
-/// What was typed in a cell, in the one form its column's type is written in the file.
-/// What cannot be read as that type is kept as typed, to be shown marked, never refused.
+/// What was typed, in the one form its column's type writes; what cannot be read so stays as typed, marked.
 pub fn canonical(words: &str, typed: &str) -> String {
     let said = typed.trim();
     let holds = understood(words).map(|one| one.0).unwrap_or_default();
@@ -89,7 +88,8 @@ fn lasted(said: &str) -> Option<String> {
         let rest = if rest.is_empty() { 0 } else { number(rest)? };
         hours * 60 + rest
     };
-    if said.is_empty() {
+    // The units alone, `h` or `min`, are no duration at all.
+    if !said.bytes().any(|byte| byte.is_ascii_digit()) {
         return None;
     }
     Some(match (minutes / 60, minutes % 60) {
@@ -123,7 +123,8 @@ fn ticked(said: &str) -> Option<String> {
 
 // A bare place on the web is taken for the secure one, as a browser does.
 fn webbed(said: &str) -> Option<String> {
-    if said.contains("://") || said.contains(char::is_whitespace) || !said.contains('.') {
+    // Anything already naming its way, `mailto:` or `tel:` among them, is left as it is.
+    if said.contains(':') || said.contains(char::is_whitespace) || !said.contains('.') {
         return Some(said.to_string());
     }
     Some(format!("https://{said}"))
@@ -132,7 +133,10 @@ fn webbed(said: &str) -> Option<String> {
 fn tagged(said: &str) -> Option<String> {
     let mut kept: Vec<&str> = Vec::new();
     for one in said.split(',').map(str::trim).filter(|one| !one.is_empty()) {
-        if !kept.iter().any(|was| was.eq_ignore_ascii_case(one)) {
+        if !kept
+            .iter()
+            .any(|was| was.to_lowercase() == one.to_lowercase())
+        {
             kept.push(one);
         }
     }

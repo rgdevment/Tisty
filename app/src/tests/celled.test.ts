@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { celled, dayOf, hueOf } from "../ui/celled";
+import { celled, hueOf, sayingDays } from "../ui/celled";
 import { went } from "../ui/paging";
 import { tabled } from "../ui/tabled";
 
@@ -14,7 +14,7 @@ const dressed = (): Document => {
   const page = document.implementation.createHTMLDocument("");
   page.body.innerHTML = `<article class="page">${TABLE}</article>`;
   tabled(page);
-  celled(page, { today: "2026-10-27", locale: "es", hues: HUES });
+  celled(page, { today: "2026-10-27", locale: "es", hues: HUES, live: true });
   return page;
 };
 
@@ -40,7 +40,7 @@ describe("a typed value as it is drawn", () => {
     for (const line of DAYS.trim().split("\n")) {
       const [asked, said] = line.split("=>").map((one) => one.trim());
       const [iso, today, locale] = asked.split("|").map((one) => one.trim());
-      const { day, when } = dayOf(iso, today, locale);
+      const { day, when } = sayingDays(locale)(iso, today);
       expect(`${day.replace(".", "")} | ${when}`, line).toBe(said);
     }
   });
@@ -79,7 +79,7 @@ describe("a typed value as it is drawn", () => {
 
   it("is drawn once, and a star or the switch is a press the window hears", () => {
     const page = dressed();
-    celled(page, { today: "2026-10-27", locale: "es", hues: HUES });
+    celled(page, { today: "2026-10-27", locale: "es", hues: HUES, live: true });
     expect(cells(page, 0)[2].querySelectorAll(".table-star")).toHaveLength(5);
     const star = cells(page, 0)[2].querySelectorAll<HTMLElement>(".table-star")[3];
     expect(went(star, false)).toMatchObject({
@@ -97,5 +97,38 @@ describe("a typed value as it is drawn", () => {
       column: 3,
       to: 0,
     });
+  });
+});
+
+describe("a typed value with nothing in it, or a page only read", () => {
+  const EMPTY = TABLE.replace(
+    "<tr><td>Raro</td><td data-amiss>pronto</td><td data-amiss>9</td><td data-amiss>quizás</td>",
+    "<tr><td>Nuevo</td><td></td><td></td><td></td>",
+  );
+
+  it("sets an empty rating or yes-or-no with one press too, as none and as no", () => {
+    const page = document.implementation.createHTMLDocument("");
+    page.body.innerHTML = `<article class="page">${EMPTY}</article>`;
+    tabled(page);
+    celled(page, { today: "2026-10-27", locale: "es", hues: HUES, live: true });
+    const [, , rating, check] = cells(page, 1);
+    const stars = Array.from(rating.querySelectorAll<HTMLElement>(".table-star"));
+    expect(stars.map((one) => one.getAttribute("aria-pressed"))).toEqual(Array(5).fill("false"));
+    expect(stars.map((one) => one.dataset.to)).toEqual(["1", "2", "3", "4", "5"]);
+    const toggle = check.querySelector<HTMLElement>(".table-switch");
+    expect(toggle?.getAttribute("aria-checked")).toBe("false");
+    expect(toggle?.dataset.to).toBe("1");
+  });
+
+  it("shows days and options the same way on a page only read, with nothing to press", () => {
+    const page = document.implementation.createHTMLDocument("");
+    page.body.innerHTML = `<article class="page">${TABLE}</article>`;
+    celled(page, { today: "2026-10-27", locale: "es", hues: HUES, live: false });
+    const [, date, rating, check, option] = cells(page, 0);
+    expect(date.querySelector(".table-when")?.textContent).toBe("dentro de 18 días");
+    expect(option.querySelector(".table-option")).not.toBeNull();
+    expect(rating.querySelector("button")).toBeNull();
+    expect(rating.textContent).toBe("★★★☆☆");
+    expect(check.querySelector("button")).toBeNull();
   });
 });

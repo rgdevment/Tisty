@@ -9,9 +9,12 @@ export type Picked = "date" | "select" | "tags" | "link";
 
 type Props = {
   readonly kind: Picked;
-  readonly at: { x: number; y: number };
+  /** The cell's left edge, its foot, and its top, to open above it when there is no room below. */
+  readonly at: { x: number; y: number; above: number };
   /** The cell as the file has it. */
   readonly was: string;
+  /** The cell as it reads, marks aside, which is how an option or a tag is told. */
+  readonly shown: string;
   /** The values the column already holds, for an option or a tag. */
   readonly options: string[];
   readonly onWrite: (said: string) => void;
@@ -50,20 +53,24 @@ function Typed({ label, onTyped }: { label: string; onTyped: (said: string) => v
 const option =
   "rounded-full border border-line px-2.5 py-0.5 text-[12.5px] hover:bg-hover aria-pressed:border-accent aria-pressed:bg-accent-soft";
 
-export default function TableEditor({ kind, at, was, options, onWrite, onClose }: Props) {
-  const [tags, setTags] = useState(() => tagsOf(was));
+// About as tall as the calendar or a list grows, to know whether it fits under the cell.
+const TALL = { date: 380, select: 260, tags: 260, link: 360 };
+
+export default function TableEditor({ kind, at, was, shown, options, onWrite, onClose }: Props) {
+  const [tags, setTags] = useState(() => tagsOf(shown));
   const tagsNow = useRef(tags);
   tagsNow.current = tags;
   const wide = kind === "date" ? 288 : 272;
+  const below = at.y + 4 + TALL[kind] <= window.innerHeight;
   const placed = {
     width: `${wide}px`,
     left: Math.max(8, Math.min(at.x, window.innerWidth - wide - 18)),
-    top: at.y + 4,
+    ...(below ? { top: at.y + 4 } : { bottom: Math.max(8, window.innerHeight - at.above + 4) }),
   };
   // Tags are chosen a few at a time and written once, when the list is left.
   const close = () => {
     const now = tagsNow.current.join(", ");
-    if (kind === "tags" && now !== tagsOf(was).join(", ")) onWrite(now);
+    if (kind === "tags" && now !== tagsOf(shown).join(", ")) onWrite(now);
     else onClose();
   };
   const toggled = (one: string) =>
@@ -111,7 +118,7 @@ export default function TableEditor({ kind, at, was, options, onWrite, onClose }
                   aria-pressed={
                     kind === "tags"
                       ? tags.some((was) => was.toLowerCase() === one.toLowerCase())
-                      : one === was
+                      : one.toLowerCase() === shown.toLowerCase()
                   }
                   className={option}
                   onClick={() => (kind === "tags" ? toggled(one) : onWrite(one))}

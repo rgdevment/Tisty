@@ -276,10 +276,9 @@ export const worn = (
   staged(page);
   if (reach?.onPart && !stranger) offeredAsParts(page, t("stepToPart"), reach.body);
   if (reach?.onWiden && !stranger) gripped(page);
-  if (reach?.onTable && !stranger) {
-    tabled(page);
-    celled(page, { today: today(), locale: locale(), hues: HUES });
-  }
+  const writable = Boolean(reach?.onTable) && !stranger;
+  if (writable) tabled(page);
+  celled(page, { today: today(), locale: locale(), hues: HUES, live: writable });
   const shown = pictures(page, live, {
     stranger,
     apart: Boolean(reach?.onApart),

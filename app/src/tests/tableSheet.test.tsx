@@ -376,6 +376,14 @@ describe("a typed cell written in place", () => {
       column: 2,
       said: "5",
     });
+    seen.onTable(asked("star", 0, 2, { to: 0 }));
+    await settle();
+    expect(core.edit).toHaveBeenLastCalledWith(BODY, [0, 80], {
+      kind: "cell",
+      row: 0,
+      column: 2,
+      said: "",
+    });
     seen.onTable(asked("toggle", 0, 3, { to: 0 }));
     await settle();
     expect(core.edit).toHaveBeenLastCalledWith(BODY, [0, 80], {

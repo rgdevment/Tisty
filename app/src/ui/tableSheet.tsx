@@ -86,8 +86,9 @@ export const useTables = (ways: Ways): { onTable: (asked: TableWent) => void; me
   const wanted = useRef<Place | null>(null);
   const [picking, setPicking] = useState<{
     kind: Picked;
-    at: { x: number; y: number };
+    at: { x: number; y: number; above: number };
     was: string;
+    shown: string;
     options: string[];
     place: Place;
   } | null>(null);
@@ -248,8 +249,13 @@ export const useTables = (ways: Ways): { onTable: (asked: TableWent) => void; me
           const cell = holder.getBoundingClientRect();
           setPicking({
             kind: type as Picked,
-            at: { x: (box?.left ?? 0) + cell.left, y: (box?.top ?? 0) + cell.bottom },
+            at: {
+              x: (box?.left ?? 0) + cell.left,
+              y: (box?.top ?? 0) + cell.bottom,
+              above: (box?.top ?? 0) + cell.top,
+            },
             was: was ?? "",
+            shown: holder.textContent?.trim() ?? "",
             options: optionsIn(page, place.nth, place.column, type === "tags"),
             place,
           });
@@ -410,7 +416,8 @@ export const useTables = (ways: Ways): { onTable: (asked: TableWent) => void; me
       else opened(place);
     }
     if (asked.act === "star" || asked.act === "toggle") {
-      const said = asked.act === "star" ? String(asked.to ?? 0) : asked.to ? "[x]" : "[ ]";
+      const said =
+        asked.act === "star" ? (asked.to ? String(asked.to) : "") : asked.to ? "[x]" : "[ ]";
       edited(asked.at, [{ kind: "cell", row: asked.row, column: asked.column, said }]);
     }
     if (asked.act === "sort") {
@@ -463,6 +470,7 @@ export const useTables = (ways: Ways): { onTable: (asked: TableWent) => void; me
             kind={picking.kind}
             at={picking.at}
             was={picking.was}
+            shown={picking.shown}
             options={picking.options}
             onWrite={(typed) => {
               setPicking(null);
