@@ -1,4 +1,4 @@
-use super::{Place, as_read, at_place, diagrams, redrawn, still};
+use super::{Place, as_read, at_place, diagrams, order_of, redrawn, still};
 
 // One case per line: body | the diagram sitting where the page put it (`-` when none does) | which one it was counting from the top | was | now | body after (`-` when refused).
 // `⏎` is a line break and `␍` a carriage return, so a whole document fits on its line.
@@ -192,6 +192,10 @@ const FOUND: &str = "
 ```Mermaid⏎a⏎``` →
    ```mermaid⏎sin cerrar⏎ → 3:sin cerrar⏎
 # Compras⏎⏎leche⏎⏎```mermaid⏎a⏎``` → 18:a⏎
+> ```mermaid⏎> a⏎> ``` → 2:a⏎
+- item⏎⏎  ```mermaid⏎  b⏎  ``` → 10:b⏎
+> ```mermaid⏎> a⏎> ```⏎⏎```mermaid⏎c⏎``` → 2:a⏎ | 24:c⏎
+> - ```mermaid⏎>   d⏎>   ``` → 4:d⏎
 ";
 
 #[test]
@@ -208,5 +212,31 @@ fn the_app_finds_each_diagram_where_the_core_does() {
             .filter(|one| !one.is_empty())
             .collect();
         assert_eq!(found, expected, "{case}");
+    }
+}
+
+// One per line: a body | where the window's diagram sat | which one it was | what it said | which one it is now.
+const ORDER: &str = "
+```mermaid⏎a⏎```⏎ | 0 | 0 | a⏎ | 0
+```mermaid⏎x⏎```⏎⏎```mermaid⏎a⏎```⏎ | 0 | 0 | a⏎ | 1
+```mermaid⏎a⏎```⏎⏎```mermaid⏎a⏎```⏎ | 18 | 1 | a⏎ | 1
+```mermaid⏎a⏎```⏎⏎```mermaid⏎a⏎```⏎ | 99 | 1 | a⏎ | 1
+```mermaid⏎a⏎```⏎⏎```mermaid⏎a⏎```⏎ | 99 | 0 | a⏎ | 0
+```mermaid⏎b⏎```⏎ | 0 | 3 | a⏎ | 3
+";
+
+#[test]
+fn a_window_knows_which_diagram_it_holds_after_blocks_are_written_above_it() {
+    for case in ORDER.lines().filter(|line| !line.trim().is_empty()) {
+        let cells: Vec<&str> = case.split(" | ").collect();
+        let [body, at, nth, was, now] = cells[..] else {
+            panic!("a case has five cells: {case}");
+        };
+        let place = Place {
+            at: at.parse().expect("a place"),
+            nth: nth.parse().expect("an order"),
+        };
+        let found = order_of(&unfolded(body), place, &unfolded(was));
+        assert_eq!(found, now.parse::<usize>().expect("an order"), "{case}");
     }
 }

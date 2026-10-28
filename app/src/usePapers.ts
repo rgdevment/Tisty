@@ -78,7 +78,7 @@ export function usePapers({
       .catch((e) => setError(saidPlainly(e)));
 
   const newDiagram = (name: string, kind: Start, into?: string) =>
-    drafted(name, kind, papers.folders, into)
+    drafted(name, kind, into)
       .then((made) => {
         papersChanged();
         setChosen({ named: "docs", doc: made.id });

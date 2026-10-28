@@ -4,7 +4,7 @@ import { t } from "../locales";
 import { nameOf, STARTS, type Start } from "./drawing/starting";
 import Modal from "./Modal";
 
-/** Names a new diagram and chooses its kind; the name follows the kind until the person types one. */
+// The name follows the kind until the person types one, so a quick diagram is named for what it is.
 export default function DiagramMaking({
   onMake,
   onClose,

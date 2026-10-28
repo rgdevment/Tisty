@@ -2,7 +2,7 @@ import { writeImage } from "@tauri-apps/plugin-clipboard-manager";
 import { save as intoFile } from "@tauri-apps/plugin-dialog";
 import { keepFile } from "../../core";
 import { t, type Word } from "../../locales";
-import { drawing } from "../diagrams";
+import { drawing, grounded } from "../diagrams";
 import type { Choice } from "../Menu";
 import { type Size, sizeOf } from "./framing";
 import { PALETTES, svgOf } from "./picture";
@@ -29,6 +29,9 @@ const WORDS: Record<Way, Word> = {
 };
 
 const SCALE = 2;
+// Past these a browser hands back no image at all: WebKit holds a canvas to about 16 million pixels.
+const MOST_SIDE = 16384;
+const MOST_AREA = 16_000_000;
 
 export interface Drawn {
   readonly svg: string;
@@ -36,8 +39,17 @@ export interface Drawn {
 }
 
 const unreadable = () => new Error(t("diagramUnreadable"));
+const unpainted = () => new Error(t("diagramUnpainted"));
 
-/** The drawing as a file: Tisty's own for the kinds its window draws, Mermaid's for the rest. */
+// A drawing too large to paint at twice its size is painted as large as the browser allows.
+export const scaleFor = (size: Size): number =>
+  Math.min(
+    SCALE,
+    MOST_SIDE / size.wide,
+    MOST_SIDE / size.tall,
+    Math.sqrt(MOST_AREA / (size.wide * size.tall)),
+  );
+
 export const svgFor = async (
   source: string,
   dark: boolean,
@@ -51,37 +63,35 @@ export const svgFor = async (
   const drawn = await drawing(source, dark);
   const size = drawn && sizeOf(drawn);
   if (!drawn || !size) throw unreadable();
-  // Mermaid draws to the width of its place; a file needs a size of its own.
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size.wide}" height="${size.tall}" viewBox="0 0 ${size.wide} ${size.tall}">${back ? `<rect width="100%" height="100%" fill="${back}"/>` : ""}${drawn}</svg>`;
-  return { svg, size };
+  return { svg: grounded(drawn, size, back), size };
 };
 
-/** The drawing as an image at twice its size, so it stays sharp on any screen. */
+// Twice its size, so the image stays sharp on a dense screen.
 export const rasterized = (drawn: Drawn, type: "image/png" | "image/jpeg"): Promise<Uint8Array> =>
   new Promise((done, fail) => {
     const image = new Image();
     image.onload = () => {
+      const scale = scaleFor(drawn.size);
       const canvas = document.createElement("canvas");
-      canvas.width = Math.ceil(drawn.size.wide * SCALE);
-      canvas.height = Math.ceil(drawn.size.tall * SCALE);
+      canvas.width = Math.ceil(drawn.size.wide * scale);
+      canvas.height = Math.ceil(drawn.size.tall * scale);
       const pen = canvas.getContext("2d");
-      if (!pen) return fail(unreadable());
-      pen.scale(SCALE, SCALE);
+      if (!pen) return fail(unpainted());
+      pen.scale(scale, scale);
       pen.drawImage(image, 0, 0, drawn.size.wide, drawn.size.tall);
       canvas.toBlob(
         (blob) =>
           blob
             ? blob.arrayBuffer().then((bytes) => done(new Uint8Array(bytes)), fail)
-            : fail(unreadable()),
+            : fail(unpainted()),
         type,
         0.92,
       );
     };
-    image.onerror = () => fail(unreadable());
+    image.onerror = () => fail(unpainted());
     image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(drawn.svg)}`;
   });
 
-/** The name the save dialog offers: the document's title, numbered from its second diagram on. */
 export const fileName = (title: string, nth: number): string => {
   const base = title.replace(/[\\/:*?"<>|\p{Cc}]/gu, "").trim() || t("untitledDoc");
   return nth > 0 ? `${base}-${nth + 1}` : base;
@@ -117,7 +127,7 @@ export interface Exporting {
 
 const fontNow = () => getComputedStyle(document.body).fontFamily || "sans-serif";
 
-/** The same choices in the window and on the page: each file, then a copy for pasting. */
+// One list for the window and the page, so both offer exactly the same.
 export const exportChoices = (to: Exporting): Choice[] => [
   ...(Object.keys(WAYS) as Way[]).map((way) => ({
     key: way,

@@ -266,7 +266,7 @@ const classPicture = (diagram: Classes): Picture => {
   };
 };
 
-/** The drawing the window shows, as a picture; null for the kinds it leaves to Mermaid. */
+// Null for the kinds the window leaves to Mermaid, whose own drawing is the one people see.
 export const pictureOf = (source: string): Picture | null => {
   const kind = kindOf(source);
   if (kind === "mindmap") {

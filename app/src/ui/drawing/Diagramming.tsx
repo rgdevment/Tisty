@@ -2,7 +2,13 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { useEffect, useRef, useState } from "react";
 import type { Viewed } from "../../core";
-import { diagramAgain, diagramLeave, diagramSave, diagramUnsaved } from "../../drawing";
+import {
+  diagramAgain,
+  diagramLeave,
+  diagramOrder,
+  diagramSave,
+  diagramUnsaved,
+} from "../../drawing";
 import { fill, t, type Word } from "../../locales";
 import { saidPlainly } from "../../refusal";
 import Menu from "../Menu";
@@ -44,15 +50,15 @@ const stateOf = (saving: boolean, unsaved: boolean): Word => {
 export default function Diagramming({
   paper,
   source,
-  nth = 0,
-}: Readonly<{ paper: Viewed; source: string; nth?: number }>) {
+}: Readonly<{ paper: Viewed; source: string }>) {
   const [text, setText] = useState(source);
   const [kept, setKept] = useState(() => asRead(source));
   const [saving, setSaving] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [moved, setMoved] = useState(false);
-  const [told, setTold] = useState<string | null>(null);
-  const [exporting, setExporting] = useState<{ x: number; y: number } | null>(null);
+  // What an export said holds only while the text is the one it was made from.
+  const [told, setTold] = useState<{ said: string; of: string } | null>(null);
+  const [exporting, setExporting] = useState<{ x: number; y: number; nth: number } | null>(null);
   const dark = useDark();
   const editor = useEditor(text, setText);
   const unsaved = asRead(text) !== kept;
@@ -150,14 +156,19 @@ export default function Diagramming({
             : t(KIND_WORDS[kindOf(text)])
         }
       >
-        <output className="text-[12px] text-faint">{told ?? t(stateOf(saving, unsaved))}</output>
+        {told?.of === text && <span className="text-[12px] text-accent">{told.said}</span>}
+        <output className="text-[12px] text-faint">{t(stateOf(saving, unsaved))}</output>
         <button
           type="button"
           className={button}
           aria-haspopup="menu"
           onClick={(e) => {
             const box = e.currentTarget.getBoundingClientRect();
-            setExporting({ x: box.left, y: box.bottom + 4 });
+            const at = { x: box.left, y: box.bottom + 4 };
+            // Blocks written above it since it opened change which diagram it is.
+            diagramOrder()
+              .then((nth) => setExporting({ ...at, nth }))
+              .catch(() => setExporting({ ...at, nth: 0 }));
           }}
         >
           {`${t("diagramExport")} ▾`}
@@ -172,9 +183,9 @@ export default function Diagramming({
           label={t("diagramExport")}
           choices={exportChoices({
             source: text,
-            name: fileName(named, nth),
+            name: fileName(named, exporting.nth),
             dark,
-            said: setTold,
+            said: (said) => setTold({ said, of: text }),
             failed: (problem) => setNote(saidPlainly(problem)),
           })}
           onClose={() => setExporting(null)}

@@ -2,7 +2,7 @@ import type { ClassBox, Classes } from "./classes";
 import type { Flow, Shape } from "./flow";
 import { around, type Laid, layered, type Rect } from "./graphlayout";
 
-/** A line between two boxes, as both the board and the picture draw it. */
+// The board and the picture draw from these, so what is exported is what the window shows.
 export interface Joint {
   readonly key: string;
   readonly from: string;
@@ -44,7 +44,6 @@ const flowSize = (text: string, shape: Shape) => {
   return { wide, tall: 42 };
 };
 
-/** A flowchart in layers along its direction, its groups framed around their nodes. */
 export const flowScene = (flow: Flow): Scene => {
   const sizes = new Map(
     flow.nodes.map((one) => [one.id, flowSize(one.text, one.shape ?? "process")]),
@@ -91,7 +90,6 @@ const headLeft = (arrow: string) => arrow.startsWith("<");
 // The parent or the whole goes above: it is on the right in `--|>`, `..|>`, `--*` and `--o`.
 const wholeRight = (arrow: string) => /(\|>|\*|o)$/.test(arrow);
 
-/** A class diagram in layers along its relations, the parent or the whole above. */
 export const classScene = (diagram: Classes): Scene => {
   const laid = layered(
     diagram.classes.map((one) => one.name),

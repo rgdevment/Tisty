@@ -20,22 +20,34 @@ const WORDS: Record<Start, { name: Word; source: Word }> = {
 
 export const nameOf = (kind: Start): string => t(WORDS[kind].name);
 
-/** The short example a new diagram begins with: an empty block would draw nothing to edit. */
+// An empty block would draw nothing to edit.
 export const startOf = (kind: Start): string => t(WORDS[kind].source);
 
 export const fenced = (source: string): string => `\`\`\`mermaid\n${source}\`\`\``;
 
+// Counted as the core counts, since the diagram window finds its block by both.
 export interface Fence {
-  /** Where its opening fence starts, in bytes, past any indent, as the core counts. */
   readonly at: number;
-  /** Its lines, each ending in a line break, as the core reads them. */
   readonly source: string;
 }
 
-const OPENING = /^( {0,3})(`{3,}|~{3,})[ \t]*([^\s`]*)/;
+// A fence may sit inside quotes and a list item: the core starts it after their marks.
+const OPENING =
+  /^((?: {0,3}> ?)*(?: {0,3}(?:[-*+]|\d{1,9}[.)])[ \t]+| *))(`{3,}|~{3,})[ \t]*([^\s`]*)/;
+const QUOTED = /^(?: {0,3}> ?)*/;
 const DIAGRAM = /^(mermaid|mmd)$/;
 
-/** The diagram blocks a document starts lines with, top to bottom; other fences hide what they hold. */
+// The core leaves the quote marks and the item's indent out of what a block says.
+const insideOf = (lead: string) => {
+  const quotes = (lead.match(/>/g) ?? []).length;
+  const indent = new RegExp(`^ {0,${lead.replace(QUOTED, "").length}}`);
+  return (line: string) => {
+    let rest = line;
+    for (let one = 0; one < quotes; one++) rest = rest.replace(/^ {0,3}> ?/, "");
+    return rest.replace(indent, "");
+  };
+};
+
 export const fencesOf = (text: string): Fence[] => {
   const lines = text.replace(/\r/g, "").replace(/\n$/, "").split("\n");
   const sized = new TextEncoder();
@@ -48,14 +60,15 @@ export const fencesOf = (text: string): Fence[] => {
   };
   while (at < lines.length) {
     const open = OPENING.exec(lines[at]);
-    const start = bytes + (open?.[1].length ?? 0);
+    const start = bytes + sized.encode(open?.[1] ?? "").length;
     next();
     if (!open) continue;
     const mark = open[2];
+    const inside = insideOf(open[1]);
     const closing = new RegExp(`^ {0,3}${mark[0]}{${mark.length},}\\s*$`);
     const inner: string[] = [];
-    while (at < lines.length && !closing.test(lines[at])) {
-      inner.push(`${lines[at]}\n`);
+    while (at < lines.length && !closing.test(inside(lines[at]))) {
+      inner.push(`${inside(lines[at])}\n`);
       next();
     }
     if (at < lines.length) next();
@@ -64,7 +77,7 @@ export const fencesOf = (text: string): Fence[] => {
   return found;
 };
 
-/** Which block saying `source` was just written: the one the text before did not have at its place. */
+// The block the text before did not have at its place is the one just written, even beside a twin.
 export const freshFence = (
   before: string,
   after: string,

@@ -1,4 +1,4 @@
-import { docNew, docWrite, type Folded, folderAdd } from "./core";
+import { docNew, docs, docWrite, type Folded, folderAdd } from "./core";
 import { trail } from "./folders";
 import { t } from "./locales";
 import { docCard } from "./markdown";
@@ -21,7 +21,7 @@ export interface Drafted {
   readonly id: string;
   readonly title: string;
   readonly place: string;
-  /** Where the diagram's block starts, in bytes, as the diagram window looks for it. */
+  // In bytes, as the core counts, since the diagram window finds its block by it.
   readonly at: number;
   readonly source: string;
 }
@@ -34,15 +34,11 @@ const homeOf = async (folders: Folded[], into?: string): Promise<string> => {
   return found ? found.id : folderAdd(named);
 };
 
-/** A plain document whose only content is a new diagram's example, under the name given. */
-export const drafted = async (
-  name: string,
-  kind: Start,
-  folders: Folded[],
-  into?: string,
-): Promise<Drafted> => {
+export const drafted = async (name: string, kind: Start, into?: string): Promise<Drafted> => {
   const said = name.trim();
   if (!said) throw new Error("untitled");
+  // The list on screen may be a round behind, and a second folder of the same name is never refused.
+  const { folders } = await docs();
   const folder = await homeOf(folders, into);
   const source = startOf(kind);
   const head = `# ${said}\n\n`;

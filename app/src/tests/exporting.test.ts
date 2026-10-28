@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { t } from "../locales";
-import { copiedImage, exportChoices, exported, fileName, svgFor } from "../ui/drawing/exporting";
+import {
+  copiedImage,
+  exportChoices,
+  exported,
+  fileName,
+  scaleFor,
+  svgFor,
+} from "../ui/drawing/exporting";
 import { PALETTES } from "../ui/drawing/picture";
 
 const kept = vi.hoisted(() => ({
@@ -35,7 +42,10 @@ vi.mock("../core", () => ({
   },
 }));
 
-vi.mock("../ui/diagrams", () => ({ drawing: () => Promise.resolve(kept.drawn) }));
+vi.mock("../ui/diagrams", async (real) => ({
+  ...(await real<typeof import("../ui/diagrams")>()),
+  drawing: () => Promise.resolve(kept.drawn),
+}));
 
 // The page cannot load pictures or paint in a test; these stand in for the browser's own.
 class Picture {
@@ -139,13 +149,30 @@ describe("saving a diagram as a file", () => {
     );
   });
 
-  it("says Mermaid cannot draw it rather than writing an empty file", async () => {
+  it("says what failed rather than writing an empty file: Mermaid's drawing, or the painting", async () => {
     await expect(exported("sequenceDiagram\n  roto", "svg", "x", "Inter")).rejects.toThrow(
       t("diagramUnreadable"),
     );
     kept.broken = true;
-    await expect(exported(FLOW, "pngLight", "x", "Inter")).rejects.toThrow(t("diagramUnreadable"));
+    await expect(exported(FLOW, "pngLight", "x", "Inter")).rejects.toThrow(t("diagramUnpainted"));
     expect(kept.files).toEqual([]);
+  });
+});
+
+// One per line: a drawing's width and height → how many times its size it is painted at.
+const SCALED = `
+800 600 → 2
+9000 300 → 1.82
+3000 3000 → 1.33
+`;
+
+describe("painting a large drawing", () => {
+  it("paints at twice its size unless the browser would refuse a canvas that big", () => {
+    for (const case_ of SCALED.split("\n").filter((line) => line.trim())) {
+      const [size, scale] = case_.split(" → ");
+      const [wide, tall] = size.split(" ").map(Number);
+      expect(scaleFor({ wide, tall }), case_).toBeCloseTo(Number(scale), 2);
+    }
   });
 });
 

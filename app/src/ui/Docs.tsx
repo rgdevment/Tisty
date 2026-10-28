@@ -105,6 +105,7 @@ interface Props {
   onKept: (doc: { id: string; title: string }) => void;
   onPaging?: (put: ((page: Filed) => boolean) | null) => void;
   onError: (problem: unknown) => void;
+  onNote?: (text: string) => void;
   onDoc?: (id: string) => void;
   onTag?: (tag: string) => void;
   tags?: readonly string[];
@@ -133,6 +134,7 @@ export default function Docs({
   onKept,
   onPaging,
   onError,
+  onNote,
   onDoc,
   onTag,
   tags = NO_TAGS,
@@ -271,9 +273,9 @@ export default function Docs({
   const flush = useCallback(() => {
     if (settling.current) clearTimeout(settling.current);
     const waiting = held.current;
-    if (!waiting) return;
+    if (!waiting) return undefined;
     setPacked(crowd(waiting.body));
-    keep(waiting.id, waiting.body);
+    return keep(waiting.id, waiting.body);
   }, [keep]);
 
   const drop = useCallback(() => {
@@ -764,8 +766,8 @@ export default function Docs({
     const pending = held.current?.id === file ? held.current.body : undefined;
     const before = pending ?? lastRead.current.get(file)?.text ?? "";
     if (!write()) return;
-    flush();
-    (busy(file) ?? Promise.resolve())
+    // Its own save, once it has landed, says what the disk holds now; an older one still running does not.
+    (flush() ?? busy(file) ?? Promise.resolve())
       .then(() => {
         const fresh = freshFence(before, lastRead.current.get(file)?.text ?? "", source);
         if (!fresh) return;
@@ -820,6 +822,7 @@ export default function Docs({
                       .catch((e) => onError(saidPlainly(e)));
                 }}
                 onFail={(e) => onError(saidPlainly(e))}
+                onNote={onNote}
                 card={cards}
                 blurb={blurb}
                 again={again}

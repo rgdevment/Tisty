@@ -54,6 +54,10 @@ ${"```"}js⏎${"```"}mermaid⏎${"```"} →
 ${"```"}Mermaid⏎a⏎${"```"} →
    ${"```"}mermaid⏎sin cerrar⏎ → 3:sin cerrar⏎
 # Compras⏎⏎leche⏎⏎${"```"}mermaid⏎a⏎${"```"} → 18:a⏎
+> ${"```"}mermaid⏎> a⏎> ${"```"} → 2:a⏎
+- item⏎⏎  ${"```"}mermaid⏎  b⏎  ${"```"} → 10:b⏎
+> ${"```"}mermaid⏎> a⏎> ${"```"}⏎⏎${"```"}mermaid⏎c⏎${"```"} → 2:a⏎ | 24:c⏎
+> - ${"```"}mermaid⏎>   d⏎>   ${"```"} → 4:d⏎
 `;
 
 describe("finding the diagram blocks of a document", () => {

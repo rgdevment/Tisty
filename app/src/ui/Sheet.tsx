@@ -56,6 +56,7 @@ type Props = {
   readonly onSettle?: (before: string, now: string, renamed?: readonly [string, string][]) => void;
   readonly onOwn?: (file: string) => void;
   readonly onFail?: (problem: unknown) => void;
+  readonly onNote?: (text: string) => void;
   readonly onDoc?: (file: string) => void;
   readonly onTag?: (tag: string) => void;
   readonly onOpen?: (reference: string) => void;
@@ -115,8 +116,7 @@ export default function Sheet(props: Readonly<Props>) {
         source,
         name: fileName(said.current.label, nth),
         dark: darkNow(),
-        // Saving answers in its own dialog; a copy shows where it is pasted.
-        said: () => {},
+        said: (text) => said.current.onNote?.(text),
         failed: (e) => said.current.onFail?.(e),
       }),
     });

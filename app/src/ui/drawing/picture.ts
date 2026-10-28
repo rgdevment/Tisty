@@ -42,7 +42,6 @@ export const PALETTES: Record<"light" | "dark", Palette> = {
   },
 };
 
-/** A diagram drawn as plain SVG, ready to be written in either theme. */
 export interface Picture {
   readonly size: Size;
   readonly drawn: (palette: Palette) => string;
@@ -93,7 +92,7 @@ export const boxed = (rect: Rect, look: Look): string =>
 export const ringed = (rect: Rect, look: Look): string =>
   `<ellipse cx="${at(rect.x + rect.wide / 2)}" cy="${at(rect.y + rect.tall / 2)}" rx="${at(rect.wide / 2)}" ry="${at(rect.tall / 2)}" ${stroked(look)}/>`;
 
-/** A CSS `polygon(…)` in percents of a box, as SVG points over that box. */
+// The window cuts shapes with CSS percents; the picture has to say the same points in SVG.
 export const cut = (polygon: string, rect: Rect, look: Look): string => {
   const points = [...polygon.matchAll(/([\d.]+)%?\s+([\d.]+)%?/g)].map(
     ([, x, y]) =>
@@ -108,14 +107,13 @@ export const stroke = (d: string, color: string, width: number, dashed?: string,
 export const straight = (a: { x: number; y: number }, b: { x: number; y: number }) =>
   `M ${at(a.x)} ${at(a.y)} L ${at(b.x)} ${at(b.y)}`;
 
-/** A label on a line, in a pill the colour of the ground so the line does not run through it. */
+// The pill takes the colour of the ground so the line does not run through the words.
 export const pill = (x: number, y: number, text: string, palette: Palette, ringedWith?: string) => {
   const wide = text.length * 6.2 + 14;
   const rect = { x: x - wide / 2, y: y - 9, wide, tall: 18 };
   return `${boxed(rect, { fill: palette.desk, stroke: ringedWith, radius: 9 })}${writing({ x, y, text, size: 11, fill: palette.accent })}`;
 };
 
-/** The whole SVG file: its own size, the font asked for, and a ground only when one is wanted. */
 export const svgOf = (picture: Picture, palette: Palette, ground: string | null, font: string) => {
   const { wide, tall } = picture.size;
   const head = `<defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="${palette.accent}"/></marker></defs>`;

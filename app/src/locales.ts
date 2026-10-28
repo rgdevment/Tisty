@@ -726,6 +726,7 @@ const en = {
   copyAsImage: "Copy as image",
   diagramExported: "Image saved",
   diagramCopiedImage: "Image copied",
+  diagramUnpainted: "This drawing could not be turned into an image. Try SVG, which any size fits.",
   diagramNewIdea: "New idea",
   schemaNewTable: "table",
   schemaAddTable: "+ Table",
@@ -3520,6 +3521,8 @@ const es: Catalog = {
   copyAsImage: "Copiar como imagen",
   diagramExported: "Imagen guardada",
   diagramCopiedImage: "Imagen copiada",
+  diagramUnpainted:
+    "No se pudo convertir este dibujo en imagen. Prueba con SVG, que admite cualquier tamaño.",
   diagramNewIdea: "Idea nueva",
   schemaNewTable: "tabla",
   schemaAddTable: "+ Tabla",
