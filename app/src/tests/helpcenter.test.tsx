@@ -136,6 +136,30 @@ describe("reading the help", () => {
     expect(linkedHere("See [Tasks](help:tasks#closing) and [Sync](help:sync-and-backup).")).toBe(
       "See [Tasks](#help/tasks/closing) and [Sync](#help/sync-and-backup).",
     );
+    const guide: [string, string][] = [
+      [
+        "[t](https://markdown.tisty.app/tables#column-types)",
+        "[t](#help/markdown:tables/column-types)",
+      ],
+      [
+        "[t](https://markdown.tisty.app/es/tablas#tipos-de-columna)",
+        "[t](#help/markdown:tablas/tipos-de-columna)",
+      ],
+      [
+        "[f](https://markdown.tisty.app/es/diagramas-formulas-y-widgets#fórmulas)",
+        "[f](#help/markdown:diagramas-formulas-y-widgets/fórmulas)",
+      ],
+      ["[g](https://markdown.tisty.app/es/etiquetas)", "[g](#help/markdown:etiquetas)"],
+      ["[g](https://markdown.tisty.app/escaping)", "[g](#help/markdown:escaping)"],
+      ["[g](https://markdown.tisty.app/)", "[g](#help/markdown:index)"],
+      ["[g](https://markdown.tisty.app/es/)", "[g](#help/markdown:index)"],
+      ["[s](https://www.tisty.app/docs/tasks/)", "[s](https://www.tisty.app/docs/tasks/)"],
+    ];
+    for (const [written, read] of guide) expect(linkedHere(written), written).toBe(read);
+    expect(aimedAt("help/markdown:tablas/tipos-de-columna")).toEqual({
+      slug: "markdown:tablas",
+      anchor: "tipos-de-columna",
+    });
     expect(aimedAt("help/tasks/closing")).toEqual({ slug: "tasks", anchor: "closing" });
     expect(aimedAt("help/tasks")).toEqual({ slug: "tasks", anchor: null });
     expect(aimedAt("colours")).toBeNull();
