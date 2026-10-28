@@ -24,6 +24,7 @@ While a block is open, a bar floats over it:
 - **The kind of block**: Paragraph, Heading, Subheading, Small heading, Bulleted list, Numbered list, Stages or Quote. Every line you have selected changes at once. Inside a table it reads **Table** and offers a row above or below, a column on either side, the column's alignment, and removing a row or a column. The dashes under the header stay as you drew them, so the widths do too.
 - **Bold**, **italic**, **underline**, **strikethrough**, **code** and **link**.
 - **Four pens**: yellow, green, blue and pink.
+- **Table**, which puts a table where the caret is and opens it on the page. Inside a table it steps aside.
 - **/ More**, which opens the `/` menu.
 
 With words selected, a format wraps them; pressed on words that already have it, it takes it away. Formats never cross: one that reaches another of its kind joins it into one.
@@ -75,7 +76,7 @@ The writing sits on a lit page. When the window is wide enough, a column opens b
 
 A table is written on the page itself, without opening its block:
 
-- **Click a cell** to write in it; Enter or a click outside keeps it, Esc leaves it as it was. Its title is written the same way.
+- **Click a cell** to write in it; Enter or a click outside keeps it, Esc leaves it as it was. Its title is written the same way. The cell shows its words without marks, and a bar over the table puts bold, italic, underline, strikethrough, code or a pen on the whole cell, or takes it off. A table made from the `/` menu opens this way at once, on its first title.
 - **A row's and a column's `⋯` menu** move it, duplicate or remove a row, insert a column on either side, rename it, and give it a **type**: number, money, percent, date, duration, yes or no, choice, tags, rating, document, web address, email or phone. Money takes its currency, and a column of numbers can add itself up at the foot: sum, average, minimum, maximum or count. **Edit as Markdown** opens the table as text.
 - **Drag a row or a column** by its handle to put it somewhere else, and **New row** under the table adds one at the end.
 - **A typed cell is written as its type asks**: a calendar for a date, where you can also type «next Friday»; the column's own options for a choice, each with its colour; stars for a rating; a click for yes or no; a finder for a document.

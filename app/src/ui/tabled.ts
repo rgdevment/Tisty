@@ -271,6 +271,18 @@ export const beside = (
   return null;
 };
 
+// The row on its way stays faint, and a line says where it lands: above the row under it going up, below going down.
+const marked = (box: HTMLElement, from: number, to: number) => {
+  const rows = rowsOf(box);
+  const placed = (row: number) => rows.findIndex((one) => Number(one.dataset.row) === row);
+  const [whence, whither] = [placed(from), placed(to)];
+  rows.forEach((one, at) => {
+    one.classList.toggle("row-dragged", at === whence);
+    one.classList.toggle("row-landing-above", at === whither && whither < whence);
+    one.classList.toggle("row-landing-below", at === whither && whither > whence);
+  });
+};
+
 // A row's grip is dragged up or down the rows shown; it lands on the row under the pointer.
 export const dragging = (
   page: Document,
@@ -293,11 +305,17 @@ export const dragging = (
       });
       if (under) to = Number(under.dataset.row);
       box.classList.add("row-moving");
+      marked(box, from, to);
     };
-    const up = () => {
+    const ended = () => {
       page.removeEventListener("pointermove", over);
       page.removeEventListener("pointerup", up);
+      page.removeEventListener("pointercancel", ended);
       box.classList.remove("row-moving");
+      marked(box, -1, -1);
+    };
+    const up = () => {
+      ended();
       if (!far) return;
       // The click that ends a drag is not a click on the grip, and no later click is lost to it.
       const swallowed = (one: Event) => one.stopPropagation();
@@ -307,5 +325,7 @@ export const dragging = (
     };
     page.addEventListener("pointermove", over);
     page.addEventListener("pointerup", up);
+    // A drag the system takes away moves nothing and leaves no mark behind.
+    page.addEventListener("pointercancel", ended);
   });
 };

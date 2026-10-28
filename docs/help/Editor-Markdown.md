@@ -24,6 +24,7 @@ Mientras un bloque está abierto, flota sobre él una barra:
 - **El tipo de bloque**: Párrafo, Título, Subtítulo, Título pequeño, Lista con viñetas, Lista numerada, Etapas o Cita. Todas las líneas que tengas seleccionadas cambian de una vez. Dentro de una tabla dice **Tabla** y ofrece una fila arriba o abajo, una columna a cada lado, la alineación de la columna, y quitar una fila o una columna. Los guiones bajo el encabezado quedan como los dibujaste, y con ellos los anchos.
 - **Negrita**, **cursiva**, **subrayado**, **tachado**, **código** y **enlace**.
 - **Cuatro rotuladores**: amarillo, verde, azul y rosa.
+- **Tabla**, que pone una tabla donde está el cursor y la abre en la página. Dentro de una tabla no aparece.
 - **/ Más**, que abre el menú `/`.
 
 Con palabras seleccionadas, un formato las envuelve; pulsado sobre palabras que ya lo tienen, se lo quita. Los formatos nunca se cruzan: uno que alcanza a otro igual se junta con él en uno solo.
@@ -75,7 +76,7 @@ El texto va sobre una hoja iluminada. Cuando la ventana es lo bastante ancha, se
 
 Una tabla se escribe en la misma página, sin abrir su bloque:
 
-- **Haz clic en una celda** para escribir en ella; Enter o un clic afuera la guarda, Esc la deja como estaba. Su título se escribe igual.
+- **Haz clic en una celda** para escribir en ella; Enter o un clic afuera la guarda, Esc la deja como estaba. Su título se escribe igual. La celda muestra sus palabras sin marcas, y una barra encima de la tabla pone o quita negrita, cursiva, subrayado, tachado, código o un rotulador a toda la celda. Una tabla creada desde el menú `/` se abre así de inmediato, en su primer título.
 - **El menú `⋯` de una fila y de una columna** la mueve, duplica o quita una fila, inserta una columna a cada lado, le cambia el nombre y le da un **tipo**: número, dinero, porcentaje, fecha, duración, sí o no, opción, etiquetas, valoración, documento, dirección web, correo o teléfono. El dinero lleva su moneda, y una columna de números puede sumarse al pie: suma, promedio, mínimo, máximo o conteo. **Editar como Markdown** abre la tabla como texto.
 - **Arrastra una fila o una columna** por su asa para ponerla en otro lugar, y **Nueva fila** bajo la tabla añade una al final.
 - **Una celda con tipo se escribe como su tipo pide**: un calendario para una fecha, donde también puedes escribir «el próximo viernes»; las opciones de la propia columna para una opción, cada una con su color; estrellas para una valoración; un clic para sí o no; un buscador para un documento.

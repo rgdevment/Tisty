@@ -44,6 +44,7 @@ export const docked = (
   aim?: () => number | null,
   under?: HTMLElement,
   side = false,
+  edge?: () => number | null,
 ): Dock => {
   const page = bar.ownerDocument;
   const view = page.defaultView;
@@ -97,6 +98,13 @@ export const docked = (
     const line = aim?.();
     const over = line == null ? 0 : (line + view.scrollY) / zoom - bar.offsetHeight - STUCK;
     bar.style.top = `${Math.min(bottom, Math.max(top + REST, stuck, over))}px`;
+    const right = edge?.();
+    // A bar given a right edge ends there, never past the sheet's left side.
+    if (right != null) {
+      const end = (right + view.scrollX) / zoom - bar.offsetWidth;
+      bar.style.left = `${Math.max((box.left + view.scrollX) / zoom, end)}px`;
+      return;
+    }
     const left = Number.parseFloat(look.paddingLeft) || 0;
     bar.style.left = `${(box.left + view.scrollX) / zoom + left - LEFT}px`;
   };

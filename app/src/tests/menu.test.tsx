@@ -1,5 +1,6 @@
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Menu, { type Choice } from "../ui/Menu";
 
@@ -99,6 +100,49 @@ describe("the row menu", () => {
     await userEvent.click(screen.getByRole("menuitem", { name: "Renombrar" }));
 
     expect(order).toEqual(["closed", "picked"]);
+  });
+
+  it("hands the focus back to what opened it, unless the choice put it in a field of its own", async () => {
+    const opener = document.createElement("button");
+    const field = document.createElement("input");
+    document.body.append(opener, field);
+    const Shown = ({ typed }: { typed: boolean }) => {
+      const [open, setOpen] = useState(true);
+      const pick = vi.fn(() => {
+        if (typed) field.focus();
+      });
+      return open ? (
+        <Menu
+          at={{ x: 20, y: 30 }}
+          choices={choices(pick)}
+          label="Opciones"
+          onClose={() => setOpen(false)}
+        />
+      ) : null;
+    };
+    for (const typed of [false, true]) {
+      opener.focus();
+      const { unmount } = render(<Shown typed={typed} />);
+      await userEvent.click(screen.getByRole("menuitem", { name: "Renombrar" }));
+      expect(document.activeElement, `typed ${typed}`).toBe(typed ? field : opener);
+      unmount();
+    }
+
+    // Closed by a press somewhere else that took the focus, the menu leaves it there.
+    opener.focus();
+    const { unmount } = render(<Shown typed={false} />);
+    await act(async () => {
+      await new Promise((done) => setTimeout(done, 0));
+    });
+    field.focus();
+    await act(async () => {
+      field.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    });
+    expect(screen.queryByRole("menu")).toBeNull();
+    expect(document.activeElement).toBe(field);
+    unmount();
+    opener.remove();
+    field.remove();
   });
 
   it("gives up on escape and on a click outside", async () => {

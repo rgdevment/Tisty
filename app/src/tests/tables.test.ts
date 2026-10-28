@@ -17,6 +17,10 @@ describe("a table on the page", () => {
     expect(onScreen()).not.toMatch(/anywhere|hyphens/);
   });
 
+  it("keeps a row of empty cells a line tall, padding and border included", () => {
+    expect(ruleFor(css(), "tr")).toMatch(/height:\s*calc\(1lh \+ 13px\)/);
+  });
+
   it("scrolls sideways when it is wider than the sheet", () => {
     expect(ruleFor(css(), "div.table")).toMatch(/overflow-x:\s*auto/);
   });

@@ -42,7 +42,12 @@ export default function Menu({ at, choices, label, up, keeps, onClose }: Props) 
 
   useEffect(() => {
     const came = document.activeElement as HTMLElement | null;
-    return () => came?.focus?.();
+    const own = card.current;
+    // A choice that put the focus somewhere of its own, a field to type in, keeps it there.
+    return () => {
+      const now = document.activeElement;
+      if (!now || now === document.body || own?.contains(now)) came?.focus?.();
+    };
   }, []);
 
   useEffect(() => {

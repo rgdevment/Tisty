@@ -1,6 +1,9 @@
 import { completionStatus, startCompletion } from "@codemirror/autocomplete";
+import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
+import { EditorSelection, EditorState } from "@codemirror/state";
+import { EditorView } from "@codemirror/view";
 import { describe, expect, it, vi } from "vitest";
-import { caretAt, edited } from "../ui/blocking";
+import { aimed, caretAt, edited } from "../ui/blocking";
 import { wrapped } from "../ui/formatting";
 
 const block = () => {
@@ -474,5 +477,32 @@ describe("the boxes of a block being written", () => {
       ["b", "bring the card"],
     ]);
     page.remove();
+  });
+});
+
+describe("where the bar rests", () => {
+  const resting = (doc: string, from: number, to: number) => {
+    const view = new EditorView({
+      parent: document.body,
+      state: EditorState.create({
+        doc,
+        selection: EditorSelection.single(from, to),
+        extensions: [markdown({ base: markdownLanguage })],
+      }),
+    });
+    view.coordsAtPos = () => ({ top: 300, bottom: 320, left: 0, right: 0 });
+    view.dom.getBoundingClientRect = () => ({ top: 100 }) as DOMRect;
+    const at = aimed(view, false);
+    view.destroy();
+    return at;
+  };
+
+  it("goes over the words chosen, but keeps above a table whose cells are walked", () => {
+    const words = "Una frase con palabras.";
+    expect(resting(words, 4, 9)).toBe(300);
+    expect(resting(words, 4, 4)).toBe(100);
+    const table = "| a | b |\n| --- | --- |\n| uno | dos |\n";
+    const cell = table.indexOf("dos");
+    expect(resting(table, cell, cell + 3)).toBe(100);
   });
 });
