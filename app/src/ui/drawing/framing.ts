@@ -28,6 +28,14 @@ export const kindOf = (source: string): DiagramKind => {
   return "other";
 };
 
+/** The line that opens a diagram: front matter comes first and its `config` keys (`flowchart:`, `mindmap:`) are not it. */
+export const headerAt = (lines: readonly string[], header: RegExp): number => {
+  const fenced = lines[0]?.trim() === "---";
+  const closing = fenced ? lines.findIndex((line, at) => at > 0 && line.trim() === "---") : -1;
+  const from = closing + 1;
+  return lines.findIndex((line, at) => at >= from && header.test(line));
+};
+
 /** What the diagram says once written, as Rust reads it back: every line ends with a break. */
 export const asRead = (text: string): string =>
   text

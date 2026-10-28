@@ -1,7 +1,8 @@
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { type ReactNode, useState } from "react";
+import { useState } from "react";
 import { fill, t, type Word } from "../../locales";
 import { button } from "../viewer/Glyphs";
+import { caption, field, Said, Section, Ticked } from "./panelbits";
 import { ENDS, type End, KEYS, type Key, type Schema } from "./schema";
 import { toDbml, toSql } from "./schemaout";
 import {
@@ -37,56 +38,6 @@ const TYPES = [
   "datetime",
   "decimal(10,2)",
 ];
-
-const field =
-  "rounded-md border border-line bg-desk px-2.5 py-1.5 text-[13px] text-ink outline-none focus:border-accent";
-const caption = "text-[12px] font-semibold text-soft";
-
-// Words are kept as typed and given to the schema when the field is left, so a half-written name never renames.
-function Said({
-  id,
-  label,
-  value,
-  onSay,
-}: Readonly<{ id: string; label: string; value: string; onSay: (said: string) => void }>) {
-  return (
-    <>
-      <label htmlFor={id} className={caption}>
-        {label}
-      </label>
-      <input
-        id={id}
-        key={value}
-        defaultValue={value}
-        className={field}
-        onBlur={(e) => {
-          if (e.currentTarget.value !== value) onSay(e.currentTarget.value);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") e.currentTarget.blur();
-        }}
-      />
-    </>
-  );
-}
-
-const Ticked = ({
-  label,
-  on,
-  onFlip,
-}: Readonly<{ label: string; on: boolean; onFlip: () => void }>) => (
-  <label className="flex items-center gap-1.5 text-[12.5px] text-soft">
-    <input type="checkbox" checked={on} onChange={onFlip} />
-    {label}
-  </label>
-);
-
-const Section = ({ title, children }: Readonly<{ title: string; children: ReactNode }>) => (
-  <div className="flex flex-col gap-2 border-b border-hair pb-4">
-    <span className="text-[12px] font-bold tracking-wide text-faint uppercase">{title}</span>
-    {children}
-  </div>
-);
 
 /** What is chosen on the board, to rename and reshape, and the schema to copy as SQL or DBML. */
 export default function SchemaPanel({

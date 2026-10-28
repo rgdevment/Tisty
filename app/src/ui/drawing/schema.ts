@@ -1,3 +1,4 @@
+import { headerAt } from "./framing";
 export type Key = "PK" | "FK" | "UK";
 export type End = "zero-one" | "one" | "zero-many" | "one-many";
 
@@ -130,7 +131,7 @@ const placeOf = (found: RegExpExecArray): Place => ({
 /** The schema an `erDiagram` draws, or `null` when the window could not keep it as written. */
 export const readSchema = (source: string): Schema | null => {
   const lines = source.replace(/\r/g, "").split("\n");
-  const opening = lines.findIndex((line) => /^\s*erDiagram\b/.test(line));
+  const opening = headerAt(lines, /^\s*erDiagram\b/);
   if (opening < 0) return null;
   const places = new Map<string, Place>();
   const tables = new Map<string, Building>();
