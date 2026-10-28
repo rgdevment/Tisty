@@ -111,15 +111,13 @@ describe("a database schema in the diagram window", () => {
     expect(text()).toBe(SCHEMA.replace(/personas/g, "gente"));
   });
 
-  it("adds a table from the palette with an id, where it is put, named at once", () => {
+  it("adds a pressed table with an id in the next free cell, named at once", () => {
     opened();
 
     fireEvent.click(palette().getByRole("button", { name: say("schemaTable") }));
     const name = say("schemaNewTable");
     expect(text()).toMatch(
-      new RegExp(
-        `  ${name} \\{\\n    int id PK\\n  \\}\\n  %% tisty: ${name} \\d+ \\d+ required id\\n$`,
-      ),
+      new RegExp(`  ${name} \\{\\n    int id PK\\n  \\}\\n  %% tisty: ${name} required id\\n$`),
     );
 
     typed(within(card(name)).getByRole("textbox"), "pagos");

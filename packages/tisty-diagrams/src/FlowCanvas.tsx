@@ -8,7 +8,7 @@ import {
   ReactFlowProvider,
   useReactFlow,
 } from "@xyflow/react";
-import { type KeyboardEvent, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import FlowPalette, { type Piece } from "./FlowPalette";
 import FlowToolbar from "./FlowToolbar";
 import { Wire, type WireEdge } from "./FlowWire";
@@ -24,6 +24,7 @@ import { useSay } from "./handing";
 import { shapeName } from "./paletteshapes";
 import { LaneBox, type LaneNode, ShapeBox, type ShapeNode } from "./ShapeNodes";
 import { flowLaid, flowLanesAround } from "./scenes";
+import { useCanvasHands } from "./useCanvasHands";
 import { GROUP, settledInto, useCanvasMoves } from "./useCanvasMoves";
 import { type Naming, useCanvasNodes } from "./useCanvasNodes";
 import type { Flowing } from "./useFlow";
@@ -34,12 +35,6 @@ const EDGE_TYPES = { wire: Wire };
 const FITTED = { maxZoom: 1 };
 
 type Point = { readonly x: number; readonly y: number };
-
-// Keys typed into a field, or pressed on the canvas's own buttons, are not for what is chosen.
-const elsewhere = (e: KeyboardEvent) =>
-  (e.target as Element).closest(
-    "input, textarea, select, [contenteditable], [role=toolbar], .react-flow__panel",
-  ) !== null;
 
 const centered = (shape: Shape, text: string, middle: Point): Point => {
   const size = sizeOf(text, shape);
@@ -63,7 +58,6 @@ function Drawing({ editing, dark }: Readonly<{ editing: Flowing; dark: boolean }
   const { flow, picked, change, pick, undo, redo } = editing;
   const { screenToFlowPosition } = useReactFlow();
   // The drawing alone, without the toolbar over it, is where pieces land.
-  const pane = useRef<HTMLDivElement>(null);
   const [naming, setNaming] = useState<Naming>(null);
   const still = useMemo(() => flowLaid(flow), [flow]);
   const lanes = useMemo(
@@ -103,16 +97,9 @@ function Drawing({ editing, dark }: Readonly<{ editing: Flowing; dark: boolean }
     const at = centered(piece, text, middle);
     joinedIn(base, nodeAdded(base, text, null, piece, at), { ...sizeOf(text, piece), ...at });
   };
-  const middleOfPane = () => {
-    const box = pane.current?.getBoundingClientRect();
-    return screenToFlowPosition({
-      x: (box?.left ?? 0) + (box?.width ?? 0) / 2,
-      y: (box?.top ?? 0) + (box?.height ?? 0) / 2,
-    });
-  };
   const landed = (piece: Piece, at: Point) => {
-    if (!pane.current?.contains(document.elementFromPoint(at.x, at.y))) return;
-    put(piece, screenToFlowPosition(at));
+    const middle = droppedAt(at);
+    if (middle) put(piece, middle);
   };
 
   const removal = useMemo(() => pickedRemoved(flow, picked), [flow, picked]);
@@ -120,19 +107,12 @@ function Drawing({ editing, dark }: Readonly<{ editing: Flowing; dark: boolean }
     picked?.kind === "node"
       ? () => change(nodeDuplicated(pinned(flow, laid), picked.id, laid.get(picked.id)))
       : null;
-  const keyed = (e: KeyboardEvent) => {
-    if (elsewhere(e)) return;
-    const mod = e.ctrlKey || e.metaKey;
-    const key = e.key.toLowerCase();
-    const act = (did: (() => void) | null | undefined) => {
-      e.preventDefault();
-      did?.();
-    };
-    if ((key === "delete" || key === "backspace") && removal) act(() => change(removal));
-    else if (mod && key === "z") act(e.shiftKey ? redo : undo);
-    else if (mod && key === "y") act(redo);
-    else if (mod && key === "d") act(duplicate);
-  };
+  const { pane, middleOfPane, droppedAt, keyed } = useCanvasHands({
+    remove: removal && (() => change(removal)),
+    undo,
+    redo,
+    duplicate,
+  });
   const joined = (from: string, to: string) => {
     // A dot let go back on its own shape is a change of mind, not a loop.
     if (from !== to) change(linked(pinned(flow, laid), from, to));

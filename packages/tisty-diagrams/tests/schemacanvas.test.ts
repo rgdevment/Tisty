@@ -16,10 +16,10 @@ const read = (source = SCHEMA): Schema => {
 };
 
 describe("a schema on the canvas", () => {
-  it("puts tables where they are let go, rounded and never off the sheet, writing only theirs", () => {
+  it("puts tables where they are let go, rounded, writing only theirs", () => {
     const cases: [readonly { name: string; x: number; y: number }[], string][] = [
       [[{ name: "a", x: 10.4, y: 20.6 }], "%% tisty: a 10 21"],
-      [[{ name: "b", x: -30, y: 5 }], "%% tisty: b 0 5"],
+      [[{ name: "b", x: -400, y: 5 }], "%% tisty: b -400 5"],
       [
         [
           { name: "a", x: 1, y: 2 },
@@ -32,8 +32,33 @@ describe("a schema on the canvas", () => {
       const made = tablesPlaced(read(), moves, null);
       const written = writeSchema(made.schema);
       expect(written, line).toContain(line);
-      expect(written.match(/%% tisty: \w+ \d+/g)?.length, line).toBe(moves.length);
+      expect(written.match(/%% tisty: \w+ -?\d+/g)?.length, line).toBe(moves.length);
     }
+  });
+
+  it("keeps where it was a table the grid would shove aside", () => {
+    const [, b, c] = [...schemaLaid(read()).values()];
+
+    const made = tablesPlaced(read(), [{ name: "a", x: b.x, y: b.y }], null);
+
+    const written = writeSchema(made.schema);
+    expect(written).toContain(`%% tisty: b ${b.x} ${b.y}`);
+    expect(written).toContain(`%% tisty: c ${c.x} ${c.y}`);
+    expect([...schemaLaid(made.schema).values()].map((one) => [one.x, one.y])).toEqual([
+      [b.x, b.y],
+      [b.x, b.y],
+      [c.x, c.y],
+    ]);
+  });
+
+  it("frames the picture with room on every side, wherever the tables were left", () => {
+    const placed = tablesPlaced(read(), [{ name: "a", x: -200, y: -90 }], null).schema;
+
+    const { at, size } = schemaScene(placed).laid;
+
+    expect(Math.min(...[...at.values()].map((one) => one.x))).toBe(40);
+    expect(Math.min(...[...at.values()].map((one) => one.y))).toBe(40);
+    expect(size.wide).toBe(Math.max(...[...at.values()].map((one) => one.x + one.wide)) + 40);
   });
 
   it("lays tables back in the grid, keeping what is required", () => {

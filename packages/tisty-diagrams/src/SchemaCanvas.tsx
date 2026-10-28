@@ -8,14 +8,16 @@ import {
   ReactFlowProvider,
   useReactFlow,
 } from "@xyflow/react";
-import { type KeyboardEvent, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { Wire, type WireEdge } from "./FlowWire";
 import { useSay } from "./handing";
 import Palette, { Sketch } from "./Palette";
 import { columnOfHandle, TableCard, type TableNode } from "./SchemaNodes";
 import SchemaToolbar from "./SchemaToolbar";
+import { schemaLaid } from "./schemalayout";
 import { tableAddedAt } from "./schemaplaces";
-import { related, schemaPickedRemoved } from "./scheming";
+import { type Picked, related, schemaPickedRemoved, tableAdded } from "./scheming";
+import { useCanvasHands } from "./useCanvasHands";
 import type { Scheming } from "./useSchema";
 import { type SchemaNaming, useSchemaCanvas } from "./useSchemaCanvas";
 
@@ -27,12 +29,6 @@ const FITTED = { maxZoom: 1 };
 const TABLE_SKETCH = "M3,1 H31 V21 H3 Z M3,7 H31 M3,12 H31 M3,17 H31";
 
 type Point = { readonly x: number; readonly y: number };
-
-// Keys typed into a field, or pressed on the canvas's own buttons, are not for what is chosen.
-const elsewhere = (e: KeyboardEvent) =>
-  (e.target as Element).closest(
-    "input, textarea, select, [contenteditable], [role=toolbar], .react-flow__panel",
-  ) !== null;
 
 /** The schema to draw by hand: tables stay where they are left, relations follow them. */
 export default function SchemaCanvas({
@@ -49,40 +45,35 @@ export default function SchemaCanvas({
 function Drawing({ editing, dark }: Readonly<{ editing: Scheming; dark: boolean }>) {
   const t = useSay();
   const { schema, picked, change, pick, undo, redo } = editing;
-  const { screenToFlowPosition } = useReactFlow();
-  const pane = useRef<HTMLDivElement>(null);
+  const { screenToFlowPosition, setCenter, getZoom } = useReactFlow();
   const [naming, setNaming] = useState<SchemaNaming>(null);
   const { nodes, edges, laid, moved } = useSchemaCanvas(editing, naming, setNaming);
   const removal = useMemo(() => schemaPickedRemoved(schema, picked), [schema, picked]);
+  const { pane, droppedAt, keyed } = useCanvasHands({
+    remove: removal && (() => change(removal)),
+    undo,
+    redo,
+  });
 
-  // A new table with its id, centred where it is put, named at once.
-  const added = (middle: Point) => {
-    const made = tableAddedAt(schema, t("schemaNewTable"), middle);
-    change(made);
+  const named = (made: { picked: Picked }) => {
     if (made.picked?.kind === "table") setNaming({ kind: "table", name: made.picked.name });
   };
-  const middleOfPane = () => {
-    const box = pane.current?.getBoundingClientRect();
-    return screenToFlowPosition({
-      x: (box?.left ?? 0) + (box?.width ?? 0) / 2,
-      y: (box?.top ?? 0) + (box?.height ?? 0) / 2,
-    });
+  // A table pressed in the palette takes the next free cell of the grid, brought into sight.
+  const pressed = () => {
+    const made = tableAdded(schema, t("schemaNewTable"));
+    change(made);
+    named(made);
+    const name = made.picked?.kind === "table" ? made.picked.name : "";
+    const rect = schemaLaid(made.schema).get(name);
+    if (rect) setCenter(rect.x + rect.wide / 2, rect.y + rect.tall / 2, { zoom: getZoom() });
   };
+  // A table dragged from the palette is centred where it is let go.
   const landed = (_: "table", at: Point) => {
-    if (!pane.current?.contains(document.elementFromPoint(at.x, at.y))) return;
-    added(screenToFlowPosition(at));
-  };
-  const keyed = (e: KeyboardEvent) => {
-    if (elsewhere(e)) return;
-    const mod = e.ctrlKey || e.metaKey;
-    const key = e.key.toLowerCase();
-    const act = (did: (() => void) | null | undefined) => {
-      e.preventDefault();
-      did?.();
-    };
-    if ((key === "delete" || key === "backspace") && removal) act(() => change(removal));
-    else if (mod && key === "z") act(e.shiftKey ? redo : undo);
-    else if (mod && key === "y") act(redo);
+    const middle = droppedAt(at);
+    if (!middle) return;
+    const made = tableAddedAt(schema, t("schemaNewTable"), middle);
+    change(made);
+    named(made);
   };
   // A column's dot let go on another table relates them by that column.
   const joined = (table: string, handle: string | null | undefined, into: string) => {
@@ -116,7 +107,7 @@ function Drawing({ editing, dark }: Readonly<{ editing: Scheming; dark: boolean 
       <Palette<"table">
         groups={[{ title: t("schemaTables"), items: [{ key: "table", label: t("schemaTable") }] }]}
         sketch={() => <Sketch paths={[TABLE_SKETCH]} />}
-        onAdd={() => added(middleOfPane())}
+        onAdd={pressed}
         onDrop={landed}
       />
       {/* biome-ignore lint/a11y/noStaticElementInteractions: the keys belong to the canvas inside */}

@@ -133,7 +133,8 @@ export const laneHolding = (lanes: readonly Lane[], rect: Rect): string | null =
     .sort((a, b) => a.rect.wide * a.rect.tall - b.rect.wide * b.rect.tall)[0]?.id ?? null;
 
 // Places may be anywhere, even below zero; a picture starts at its margin, lanes and all.
-const framed = (at: ReadonlyMap<string, Rect>, lanes: readonly Rect[]) => {
+/** Everything moved so it starts a margin from the corner, with the size that holds it. */
+export const framed = (at: ReadonlyMap<string, Rect>, lanes: readonly Rect[]) => {
   const all = [...at.values(), ...lanes];
   const left = Math.min(...all.map((one) => one.x)) - MARGIN;
   const top = Math.min(...all.map((one) => one.y)) - MARGIN;

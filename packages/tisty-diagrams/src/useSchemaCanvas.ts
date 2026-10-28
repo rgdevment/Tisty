@@ -31,13 +31,11 @@ export const useSchemaCanvas = (
   const t = useSay();
   const { schema, picked, change, pick } = editing;
   const still = useMemo(() => schemaLaid(schema), [schema]);
-  const chosen = chosenTables(picked);
-  const chosenKey = chosen.join("\n");
   const { moving, laid, moved } = useMoving({
     still,
     lanes: NO_LANES,
     groupOf: () => null,
-    chosen,
+    chosen: chosenTables(picked),
     choose: (choice) =>
       pick(
         "several" in choice
@@ -54,7 +52,6 @@ export const useSchemaCanvas = (
   });
 
   // The same objects while another table is dragged, so only the one moving is drawn again.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `chosenKey` stands for `chosen`
   const placedCards = useMemo(
     (): TableNode[] =>
       schema.tables.flatMap((table) => {
@@ -68,7 +65,7 @@ export const useSchemaCanvas = (
             width: rect.wide,
             height: rect.tall,
             handles: tableHandles(rect.wide, rect.tall, table.columns.length),
-            selected: chosen.includes(table.name),
+            selected: chosenTables(picked).includes(table.name),
             data: {
               table,
               wide: rect.wide,
@@ -90,7 +87,7 @@ export const useSchemaCanvas = (
           },
         ];
       }),
-    [schema, still, picked, chosenKey, naming, t, pick, change, setNaming],
+    [schema, still, picked, naming, t, pick, change, setNaming],
   );
   const cards = placedCards.map((one) => {
     const spot = moving.get(one.id);

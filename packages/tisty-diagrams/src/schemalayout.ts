@@ -1,5 +1,5 @@
 import type { Rect } from "./graphlayout";
-import type { Joint, Scene } from "./scenes";
+import { framed, type Joint, type Scene } from "./scenes";
 import type { Schema, Table } from "./schema";
 import { relationsOf } from "./scheming";
 
@@ -56,8 +56,8 @@ export const boxesOf = (schema: Schema): Box[] => {
     table.at
       ? [
           {
-            x: Math.max(0, table.at.x),
-            y: Math.max(0, table.at.y),
+            x: table.at.x,
+            y: table.at.y,
             wide: wideOf(table),
             tall: tallOf(table),
           },
@@ -75,8 +75,7 @@ export const boxesOf = (schema: Schema): Box[] => {
   return schema.tables.map((table, at) => {
     const wide = wideOf(table);
     const tall = tallOf(table);
-    if (table.at)
-      return { table, x: Math.max(0, table.at.x), y: Math.max(0, table.at.y), wide, tall };
+    if (table.at) return { table, x: table.at.x, y: table.at.y, wide, tall };
     const { x, y } = free(at);
     return { table, x, y, wide, tall };
   });
@@ -111,11 +110,11 @@ export const schemaJointsOf = (schema: Schema): Joint[] =>
     endLabel: END_MARKS[one.toEnd],
   }));
 
-/** What the window and the picture draw of a schema, with room around it. */
+/** What the window and the picture draw of a schema, framed with room on every side. */
 export const schemaScene = (schema: Schema): Scene => {
   const at = schemaLaid(schema);
-  const rects = [...at.values()];
-  const wide = Math.max(MARGIN * 2, ...rects.map((one) => one.x + one.wide + MARGIN));
-  const tall = Math.max(MARGIN * 2, ...rects.map((one) => one.y + one.tall + MARGIN));
-  return { laid: { at, size: { wide, tall } }, joints: schemaJointsOf(schema), groups: [] };
+  const { laid } = at.size
+    ? framed(at, [])
+    : { laid: { at, size: { wide: MARGIN * 2, tall: MARGIN * 2 } } };
+  return { laid, joints: schemaJointsOf(schema), groups: [] };
 };
