@@ -1,5 +1,7 @@
 mod amounts;
 mod bare;
+#[cfg(feature = "tables")]
+pub mod canon;
 #[cfg(feature = "details")]
 mod details;
 pub mod diagrams;
