@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { peeled } from "../ui/peeled";
+import { holds, peeled, toggled } from "../ui/peeled";
 
 // One cell per line: as written, the words the field shows, then what new words are written back as.
 const CELLS = `
@@ -39,5 +39,29 @@ describe("a cell opened to be written", () => {
     expect(peeled("==hoy=={blue}").wrap("a == b")).toBe("a == b");
     expect(peeled("_nota_").wrap("snake_case")).toBe("snake_case");
     expect(peeled("**==hoy==**").wrap("a == b")).toBe("**a == b**");
+  });
+});
+
+describe("a cell's marks put on and taken off from the bar", () => {
+  // One press per line: the cell as written, the mark pressed, then the cell written with "hoy".
+  const PRESSES = `
+hoy | ** ** | **hoy**
+**hoy** | ** ** | hoy
+**hoy** | * * | ***hoy***
+_hoy_ | * * | hoy
+==hoy== | == =={blue} | ==hoy=={blue}
+==hoy=={blue} | == =={blue} | hoy
+**==hoy==** | ~~ ~~ | **==~~hoy~~==**
+`;
+
+  it("puts a mark on, takes the same kind off, and turns a pen another colour", () => {
+    for (const line of PRESSES.trim().split("\n")) {
+      const [written, pressed, back] = line.split(" | ");
+      const [open, close] = pressed.split(" ");
+      const cell = peeled(written);
+      const now = toggled(cell.marks, open, close);
+      expect(cell.wrap("hoy", now), line).toBe(back);
+      expect(holds(now, open, close), line).toBe(back !== "hoy" && back.includes(close));
+    }
   });
 });

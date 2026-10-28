@@ -110,6 +110,34 @@ beforeEach(() => {
 });
 
 describe("a table written in place", () => {
+  it("lays a bar over the table while a cell is written, whose presses mark the whole cell", async () => {
+    const { page, seen } = made();
+    seen.onTable(asked("cell", 1, 1));
+    await settle();
+    const bar = page.querySelector<HTMLElement>(".cell-bar") as HTMLElement;
+    const button = (name: RegExp) =>
+      Array.from(bar.querySelectorAll<HTMLButtonElement>("button")).find((one) =>
+        name.test(one.getAttribute("aria-label") ?? ""),
+      ) as HTMLButtonElement;
+    expect(bar.getAttribute("role")).toBe("toolbar");
+    expect(button(/^Bold/).getAttribute("aria-pressed")).toBe("true");
+    expect(button(/^Link/)).toBeUndefined();
+
+    button(/^Bold/).click();
+    button(/blue/i).click();
+    expect(button(/^Bold/).getAttribute("aria-pressed")).toBe("false");
+    const input = page.querySelector<HTMLInputElement>(".table-input") as HTMLInputElement;
+    press(input, "Enter");
+    await settle();
+    expect(core.edit).toHaveBeenCalledWith(BODY, [0, 80], {
+      kind: "cell",
+      row: 1,
+      column: 1,
+      said: "==9990=={blue}",
+    });
+    expect(page.querySelector(".cell-bar")).toBeNull();
+  });
+
   it("opens the first title of a table just made once the page draws it, and only then", async () => {
     const { page, seen, turn } = made();
     seen.freshAt(40);
