@@ -3,7 +3,7 @@ import type { EditorView, KeyBinding } from "@codemirror/view";
 import { frontLines } from "../front";
 import { markup } from "../glyphs";
 import { t } from "../locales";
-import { coded, wrapped } from "./formatting";
+import { coded, formless, wrapped } from "./formatting";
 import { type Regrid, regrid } from "./regridding";
 import { keepShown, marked, marksShown, showMarks } from "./seeing";
 import { type Asking, openMenu, pressed, put, putBlock, SLASHED } from "./slashing";
@@ -445,6 +445,7 @@ export const barred = (
 
   const follow = (current: EditorView) => {
     const { head } = current.state.selection.main;
+    bar.hidden = formless(current.state);
     tabled = tableHere(current.state) !== null;
     if (tableIt) tableIt.hidden = tabled;
     kindSaid.textContent = tabled ? t("table") : t(kindOf(current.state.doc.lineAt(head).text));

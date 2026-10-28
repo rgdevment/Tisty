@@ -12,6 +12,26 @@ export const coded = (state: EditorState, at: number): boolean => {
   return false;
 };
 
+// A $$ formula is no node of the Markdown tree, so it is told by the paragraph around the caret.
+const inFormula = (state: EditorState, at: number): boolean => {
+  const { doc } = state;
+  let top = doc.lineAt(at).number;
+  let bottom = top;
+  while (top > 1 && doc.line(top - 1).text.trim()) top -= 1;
+  while (bottom < doc.lines && doc.line(bottom + 1).text.trim()) bottom += 1;
+  const block = doc.sliceString(doc.line(top).from, doc.line(bottom).to).trim();
+  return block.length >= 4 && block.startsWith("$$") && block.endsWith("$$");
+};
+
+/** Whether the caret is in a fenced block or a $$ formula, where nothing the format bar writes means anything. */
+export const formless = (state: EditorState): boolean => {
+  const { head } = state.selection.main;
+  for (let node = syntaxTree(state).resolveInner(head, 1); node.parent; node = node.parent) {
+    if (node.name === "FencedCode" || node.name === "CodeBlock") return true;
+  }
+  return inFormula(state, head);
+};
+
 export const PEN = /==(?=\S)((?:(?!==).)+?)(?<=\S)==(?:\{([a-z]+)\})?/u;
 export const UNDER = /(?<![\p{L}\p{N}+])\+\+(?=\S)(.+?)(?<=\S)\+\+(?![\p{L}\p{N}+])/u;
 export const NAMED = /(?<![\p{L}\p{N}])::([a-z0-9-]+)(?: ([a-z]+))?::(?![\p{L}\p{N}])/u;

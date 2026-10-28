@@ -31,7 +31,7 @@ export const useSchemaCanvas = (
   const t = useSay();
   const { schema, picked, change, pick } = editing;
   const still = useMemo(() => schemaLaid(schema), [schema]);
-  const { moving, laid, moved } = useMoving({
+  const { moving, laid, moved, measuredAs } = useMoving({
     still,
     lanes: NO_LANES,
     groupOf: () => null,
@@ -62,8 +62,7 @@ export const useSchemaCanvas = (
             id: table.name,
             type: "table",
             position: { x: rect.x, y: rect.y },
-            width: rect.wide,
-            height: rect.tall,
+            ...measuredAs(table.name, rect.wide, rect.tall),
             handles: tableHandles(rect.wide, rect.tall, table.columns.length),
             selected: chosenTables(picked).includes(table.name),
             data: {
@@ -87,7 +86,7 @@ export const useSchemaCanvas = (
           },
         ];
       }),
-    [schema, still, picked, naming, t, pick, change, setNaming],
+    [schema, still, picked, naming, t, pick, change, setNaming, measuredAs],
   );
   const cards = placedCards.map((one) => {
     const spot = moving.get(one.id);

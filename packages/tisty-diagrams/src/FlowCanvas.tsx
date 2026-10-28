@@ -65,7 +65,11 @@ function Drawing({ editing, dark }: Readonly<{ editing: Flowing; dark: boolean }
     [flow, still],
   );
   const looks = useMemo(() => looksOf(flow), [flow]);
-  const { moving, laid, inside, moved, sizing, sized } = useCanvasMoves(editing, still, lanes);
+  const { moving, laid, inside, moved, sizing, sized, measuredAs } = useCanvasMoves(
+    editing,
+    still,
+    lanes,
+  );
   const { nodes, edges } = useCanvasNodes({
     editing,
     still,
@@ -77,6 +81,7 @@ function Drawing({ editing, dark }: Readonly<{ editing: Flowing; dark: boolean }
     setNaming,
     sizing,
     sized,
+    measuredAs,
   });
 
   // A shape put down where a lane is becomes part of it, and its words are typed at once.

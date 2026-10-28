@@ -42,7 +42,7 @@ export const useClassCanvas = (
   const looks = useMemo(() => looksOf(diagram), [diagram]);
   const chosen = chosenClasses(picked);
   const chosenKey = chosen.join("\n");
-  const { moving, laid, inside, moved, sizing, sized } = useMoving({
+  const { moving, laid, inside, moved, sizing, sized, measuredAs } = useMoving({
     still,
     lanes,
     groupOf: (name) => diagram.classes.find((one) => one.name === name)?.group ?? null,
@@ -102,8 +102,7 @@ export const useClassCanvas = (
             type: "class",
             position: inside(box.name, rect),
             parentId: lane ? `${GROUP}${lane.id}` : undefined,
-            width: size.wide,
-            height: size.tall,
+            ...measuredAs(box.name, size.wide, size.tall),
             handles: handlesOf(size.wide, size.tall),
             selected: chosen.includes(box.name),
             data: {
@@ -124,7 +123,7 @@ export const useClassCanvas = (
           },
         ];
       }),
-    [diagram, still, lanes, looks, chosenKey, naming, t, pick, change, setNaming],
+    [diagram, still, lanes, looks, chosenKey, naming, t, pick, change, setNaming, measuredAs],
   );
   const cards = placedCards.map((one) => {
     const spot = moving.get(one.id);
@@ -137,8 +136,7 @@ export const useClassCanvas = (
       id: `${GROUP}${lane.id}`,
       type: "lane",
       position: { x: rect.x, y: rect.y },
-      width: rect.wide,
-      height: rect.tall,
+      ...measuredAs(`${GROUP}${lane.id}`, rect.wide, rect.tall),
       zIndex: -1,
       selected: isPicked(lane.id),
       data: {
