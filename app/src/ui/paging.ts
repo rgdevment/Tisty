@@ -197,6 +197,7 @@ const pressedIn = (asked: HTMLElement): Went => {
     return at
       ? {
           kind: "table",
+          ...(asked.dataset.to === undefined ? {} : { to: Number(asked.dataset.to) }),
           at,
           act,
           row: place(asked.dataset.row),

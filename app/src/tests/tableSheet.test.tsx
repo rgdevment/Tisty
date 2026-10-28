@@ -12,12 +12,14 @@ const core = vi.hoisted(() => ({
     >(),
   written:
     vi.fn<(body: string, at: [number, number]) => Promise<{ heads: string[]; rows: string[][] }>>(),
+  canon: vi.fn<(words: string, typed: string) => Promise<string>>(),
 }));
 
 vi.mock("../tables", () => ({
   tableEdit: core.edit,
   tableOrder: core.order,
   tableWritten: core.written,
+  tableCanon: core.canon,
 }));
 
 const BODY =
@@ -30,9 +32,9 @@ const HTML = `<article class="page"><div class="table" data-at="0-80"><table><th
 
 type Seen = { onTable: (asked: TableWent) => void };
 
-const made = () => {
+const made = (html = HTML) => {
   const page = document.implementation.createHTMLDocument("");
-  page.body.innerHTML = HTML;
+  page.body.innerHTML = html;
   tabled(page);
   const ways = {
     latest: { current: BODY },
@@ -88,6 +90,7 @@ const press = (target: Element | null, key: string, altKey = false) =>
   target?.dispatchEvent(new KeyboardEvent("keydown", { key, altKey, bubbles: true }));
 
 beforeEach(() => {
+  core.canon.mockReset().mockImplementation((_, typed) => Promise.resolve(typed));
   core.edit.mockReset().mockResolvedValue("next body");
   core.order.mockReset().mockResolvedValue([1, 0]);
   core.written.mockReset().mockResolvedValue({
@@ -348,5 +351,76 @@ describe("what a table shows, as the file changes under it", () => {
     turn(2);
     await settle();
     expect(core.order).toHaveBeenCalledTimes(1);
+  });
+});
+
+const TYPED = `<article class="page"><div class="table" data-at="0-80"><table><thead><tr><th scope="col">Servicio</th><th scope="col" data-type="date">Cobro</th><th scope="col" data-type="rating">Nota</th><th scope="col" data-type="check">Activa</th><th scope="col" data-type="money" data-currency="CLP" data-total="sum">Precio</th></tr></thead><tbody>
+<tr><td>Spotify</td><td data-key="2026-11-14">2026-11-14</td><td data-key="3">★★★☆☆</td><td data-key="1">✓</td><td data-key="6490">$6.490</td></tr>
+</tbody></table></div></article>`;
+
+describe("a typed cell written in place", () => {
+  beforeEach(() => {
+    core.written.mockResolvedValue({
+      heads: ["Servicio", "Cobro", "Nota", "Activa", "Precio"],
+      rows: [["Spotify", "2026-11-14", "3", "[x]", "6490"]],
+    });
+  });
+
+  it("writes a star or the switch with one press", async () => {
+    const { seen } = made(TYPED);
+    seen.onTable(asked("star", 0, 2, { to: 5 }));
+    await settle();
+    expect(core.edit).toHaveBeenLastCalledWith(BODY, [0, 80], {
+      kind: "cell",
+      row: 0,
+      column: 2,
+      said: "5",
+    });
+    seen.onTable(asked("toggle", 0, 3, { to: 0 }));
+    await settle();
+    expect(core.edit).toHaveBeenLastCalledWith(BODY, [0, 80], {
+      kind: "cell",
+      row: 0,
+      column: 3,
+      said: "[ ]",
+    });
+  });
+
+  it("opens a date in its own picker and writes what is said there in the file's form", async () => {
+    const { page, seen } = made(TYPED);
+    core.canon.mockResolvedValue("2026-10-30");
+    seen.onTable(asked("cell", 0, 1));
+    await settle();
+    expect(page.querySelector(".table-input")).toBeNull();
+    const field = screen.getByRole("textbox", { name: /Or type it/ });
+    (field as HTMLInputElement).value = "el viernes";
+    fireEvent.keyDown(field, { key: "Enter" });
+    await settle();
+    expect(core.canon).toHaveBeenCalledWith("date", "el viernes");
+    expect(core.edit).toHaveBeenLastCalledWith(BODY, [0, 80], {
+      kind: "cell",
+      row: 0,
+      column: 1,
+      said: "2026-10-30",
+    });
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("puts money typed in the cell into its currency's plain form before writing it", async () => {
+    const { page, seen } = made(TYPED);
+    core.canon.mockResolvedValue("7990");
+    seen.onTable(asked("cell", 0, 4));
+    await settle();
+    const input = page.querySelector<HTMLInputElement>(".table-input") as HTMLInputElement;
+    input.value = "$7.990";
+    press(input, "Enter");
+    await settle();
+    expect(core.canon).toHaveBeenCalledWith("money CLP sum", "$7.990");
+    expect(core.edit).toHaveBeenLastCalledWith(BODY, [0, 80], {
+      kind: "cell",
+      row: 0,
+      column: 4,
+      said: "7990",
+    });
   });
 });

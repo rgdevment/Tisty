@@ -1,9 +1,11 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { fill, t } from "../locales";
-import { type TableEdit, tableEdit, tableOrder, tableWritten } from "../tables";
+import { type TableEdit, tableCanon, tableEdit, tableOrder, tableWritten } from "../tables";
+import { today } from "./celled";
 import Menu, { type Choice } from "./Menu";
 import type { TableWent } from "./paging";
-import { columnChoices } from "./tableChoices";
+import TableEditor, { type Picked } from "./TableEditor";
+import { columnChoices, wordsOf } from "./tableChoices";
 import {
   beside,
   cellOf,
@@ -35,13 +37,10 @@ type Ways = {
   readonly turned: number;
 };
 
-type Place = { readonly nth: number; readonly row: number; readonly column: number };
+// The types written by picking from a list or a calendar rather than typing in the cell.
+const PICKED = new Set(["date", "select", "tags", "link"]);
 
-const today = (): string => {
-  const now = new Date();
-  const two = (one: number) => String(one).padStart(2, "0");
-  return `${now.getFullYear()}-${two(now.getMonth() + 1)}-${two(now.getDate())}`;
-};
+type Place = { readonly nth: number; readonly row: number; readonly column: number };
 
 const refused = (why: unknown): Error =>
   new Error(
@@ -85,6 +84,13 @@ export const useTables = (ways: Ways): { onTable: (asked: TableWent) => void; me
   // A cell clicked while the one left behind is still being saved opens once that save is drawn.
   const saving = useRef(0);
   const wanted = useRef<Place | null>(null);
+  const [picking, setPicking] = useState<{
+    kind: Picked;
+    at: { x: number; y: number };
+    was: string;
+    options: string[];
+    place: Place;
+  } | null>(null);
   const [menu, setMenu] = useState<{
     x: number;
     y: number;
@@ -159,17 +165,51 @@ export const useTables = (ways: Ways): { onTable: (asked: TableWent) => void; me
     shown(nth);
   };
 
+  // What is typed in a typed column is written in that type's own form; a plain column keeps it as typed.
+  const canonical = (page: Document, place: Place, typed: string): Promise<string> => {
+    const head = cellOf(page, place.nth, -1, place.column);
+    const type = head?.dataset.type;
+    if (!head || !type) return Promise.resolve(typed);
+    const words = wordsOf(type, head.dataset.currency ?? "", head.dataset.total ?? "");
+    return tableCanon(words || "text", typed).catch(() => typed);
+  };
+
+  const written = (place: Place, typed: string) => {
+    const page = said.current.page();
+    if (!page) return;
+    canonical(page, place, typed).then((said) => {
+      const at = placeOf(page, place.nth);
+      if (at) edited(at, [{ kind: "cell", row: place.row, column: place.column, said }]);
+    });
+  };
+
   const finished = (place: Place, was: string, now: string, how: Leaving) => {
     const page = said.current.page();
     const at = page && placeOf(page, place.nth);
     if (how === "cancel" || !page || !at || !fresh()) return;
-    const { nth, row, column } = place;
+    const { row, column } = place;
     const changed = now.trim() !== was.trim();
     if (row < 0) {
       if (changed) edited(at, [{ kind: "rename", column, said: now }]);
       return;
     }
-    const cell: TableEdit[] = changed ? [{ kind: "cell", row, column, said: now }] : [];
+    if (!changed) {
+      onward(place, [], how);
+      return;
+    }
+    // The save starts once the value is in its form, and a cell clicked meanwhile waits for it.
+    saving.current += 1;
+    canonical(page, place, now).then((said) => {
+      saving.current -= 1;
+      onward(place, [{ kind: "cell", row, column, said }], how);
+    });
+  };
+
+  const onward = (place: Place, cell: TableEdit[], how: Leaving) => {
+    const page = said.current.page();
+    const at = page && placeOf(page, place.nth);
+    if (!page || !at) return;
+    const { nth, row, column } = place;
     if (how === "up" || how === "down") {
       const to = row + (how === "up" ? -1 : 1);
       if (to < 0 || to >= rowsCount(page, nth)) {
@@ -198,10 +238,23 @@ export const useTables = (ways: Ways): { onTable: (asked: TableWent) => void; me
     const at = page && placeOf(page, place.nth);
     const holder = page && cellOf(page, place.nth, place.row, place.column);
     if (!page || !at || !holder || !fresh()) return;
+    const type = cellOf(page, place.nth, -1, place.column)?.dataset.type ?? "";
     tableWritten(said.current.latest.current, at)
       .then((written) => {
         const was =
           place.row < 0 ? written.heads[place.column] : written.rows[place.row]?.[place.column];
+        if (place.row >= 0 && PICKED.has(type)) {
+          const box = said.current.frame();
+          const cell = holder.getBoundingClientRect();
+          setPicking({
+            kind: type as Picked,
+            at: { x: (box?.left ?? 0) + cell.left, y: (box?.top ?? 0) + cell.bottom },
+            was: was ?? "",
+            options: optionsIn(page, place.nth, place.column, type === "tags"),
+            place,
+          });
+          return;
+        }
         const name = headsNamed(page, place.nth)[place.column] ?? "";
         const label = place.row < 0 ? t("tableHead") : fill("tableCell", name);
         typing(holder, was ?? "", label, (now, how) => finished(place, was ?? "", now, how));
@@ -356,6 +409,10 @@ export const useTables = (ways: Ways): { onTable: (asked: TableWent) => void; me
       if (saving.current > 0) wanted.current = place;
       else opened(place);
     }
+    if (asked.act === "star" || asked.act === "toggle") {
+      const said = asked.act === "star" ? String(asked.to ?? 0) : asked.to ? "[x]" : "[ ]";
+      edited(asked.at, [{ kind: "cell", row: asked.row, column: asked.column, said }]);
+    }
     if (asked.act === "sort") {
       const was = views.current.get(nth)?.sort;
       sorted(nth, asked.column, was?.column === asked.column && !was.down);
@@ -391,13 +448,30 @@ export const useTables = (ways: Ways): { onTable: (asked: TableWent) => void; me
 
   return {
     onTable,
-    menu: menu && (
-      <Menu
-        at={{ x: menu.x, y: menu.y }}
-        label={menu.label}
-        choices={menu.choices}
-        onClose={() => setMenu(null)}
-      />
+    menu: (
+      <>
+        {menu && (
+          <Menu
+            at={{ x: menu.x, y: menu.y }}
+            label={menu.label}
+            choices={menu.choices}
+            onClose={() => setMenu(null)}
+          />
+        )}
+        {picking && (
+          <TableEditor
+            kind={picking.kind}
+            at={picking.at}
+            was={picking.was}
+            options={picking.options}
+            onWrite={(typed) => {
+              setPicking(null);
+              written(picking.place, typed);
+            }}
+            onClose={() => setPicking(null)}
+          />
+        )}
+      </>
     ),
   };
 };
