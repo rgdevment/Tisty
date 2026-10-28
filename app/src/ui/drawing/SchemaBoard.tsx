@@ -3,7 +3,7 @@ import { t } from "../../locales";
 import { button } from "../viewer/Glyphs";
 import Board from "./Board";
 import type { Schema } from "./schema";
-import { type Box, bend, drawnOf, HEAD, ROW } from "./schemalayout";
+import { type Box, bend, drawnOf, HEAD, ROW, relationWords } from "./schemalayout";
 import {
   type Altered,
   columnRemoved,
@@ -14,8 +14,6 @@ import {
   tableMoved,
   tableRemoved,
 } from "./scheming";
-
-const END_MARKS = { one: "1", "zero-one": "0..1", "zero-many": "0..N", "one-many": "1..N" };
 
 // A press that moves less than this is a press, not a drag.
 const DRAG_FROM = 3;
@@ -196,7 +194,7 @@ export default function SchemaBoard({
             style={{ left: (one.from.x + one.to.x) / 2, top: (one.from.y + one.to.y) / 2 }}
             onClick={() => onPick({ kind: "relation", index: one.index })}
           >
-            {`${END_MARKS[one.relation.fromEnd]} · ${one.relation.label || "—"} · ${END_MARKS[one.relation.toEnd]}`}
+            {relationWords(one.relation)}
           </button>
         ))}
         {drawn.boxes.map((box) => {

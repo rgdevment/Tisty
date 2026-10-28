@@ -128,3 +128,9 @@ export const bend = ({ from, to }: Pick<Link, "from" | "to">): string => {
   const out = from.x <= to.x ? reach : -reach;
   return `M ${from.x} ${from.y} C ${from.x + out} ${from.y}, ${to.x - out} ${to.y}, ${to.x} ${to.y}`;
 };
+
+const END_MARKS = { one: "1", "zero-one": "0..1", "zero-many": "0..N", "one-many": "1..N" };
+
+/** What a relation says on its line: how many at each end and its words between. */
+export const relationWords = (relation: Relation): string =>
+  `${END_MARKS[relation.fromEnd]} · ${relation.label || "—"} · ${END_MARKS[relation.toEnd]}`;

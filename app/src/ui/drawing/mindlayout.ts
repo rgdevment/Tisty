@@ -26,6 +26,11 @@ export interface Laid {
   readonly size: Size;
 }
 
+// Mid tones that read on a light sheet and a dark one alike.
+export const HUES = ["#3fae9a", "#e09a30", "#9a6fe0", "#e0648c", "#4a94e8"];
+
+export const HEXAGON = "polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0 50%)";
+
 const ROW = 46;
 const GAP = 46;
 const MARGIN = 40;

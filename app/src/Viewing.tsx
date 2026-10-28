@@ -67,7 +67,8 @@ export default function Viewing() {
   );
   useEffect(look, [look]);
 
-  if (shown?.kind === "diagram") return <Diagramming paper={shown.paper} source={shown.source} />;
+  if (shown?.kind === "diagram")
+    return <Diagramming paper={shown.paper} source={shown.source} nth={shown.nth} />;
   return <Reading shown={shown} trouble={trouble} look={look} />;
 }
 

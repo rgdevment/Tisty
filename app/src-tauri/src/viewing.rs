@@ -61,6 +61,7 @@ pub enum Showing {
     Diagram {
         paper: Paper,
         source: String,
+        nth: usize,
     },
 }
 
@@ -413,6 +414,7 @@ pub fn view_shown(
         Shown::Diagram(drawn) => Showing::Diagram {
             paper: drawn.paper,
             source: drawn.was,
+            nth: drawn.place.nth,
         },
     })
 }

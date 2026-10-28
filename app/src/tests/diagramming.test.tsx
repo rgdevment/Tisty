@@ -14,6 +14,7 @@ const ipc = vi.hoisted(() => ({
   leave: true as boolean | "fails",
   quitting: null as null | (() => Promise<void>),
   now: "mindmap\n  root((Otra))\n",
+  saved: [] as (string | undefined)[],
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -40,7 +41,10 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
       ? Promise.reject(new Error("no dialog"))
       : Promise.resolve(ipc.leave);
   },
-  save: () => Promise.resolve(null),
+  save: (asked?: { defaultPath?: string }) => {
+    ipc.saved.push(asked?.defaultPath);
+    return Promise.resolve(null);
+  },
   message: () => Promise.resolve(),
 }));
 
@@ -76,6 +80,7 @@ const shown: Showing = {
   kind: "diagram",
   paper: { id: "D1", file: "f1", title: "Tisty Share", place: "Proyectos" },
   source: "mindmap\n  root((Share))\n",
+  nth: 0,
 };
 
 // A kind the window draws with Mermaid, not with its own canvas.
@@ -95,9 +100,24 @@ beforeEach(() => {
   ipc.closing = null;
   ipc.quitting = null;
   ipc.leave = true;
+  ipc.saved = [];
 });
 
 describe("the diagram window", () => {
+  it("exports what it shows under the document's name, numbered by the diagram's order", async () => {
+    ipc.shown = { ...shown, nth: 2 };
+    render(<Viewing />);
+    await written();
+
+    await userEvent.click(screen.getByRole("button", { name: `${t("diagramExport")} ▾` }));
+    expect(screen.getAllByRole("menuitem").map((one) => one.textContent)).toContain(
+      t("copyAsImage"),
+    );
+    await userEvent.click(screen.getByRole("menuitem", { name: t("exportSvg") }));
+
+    await waitFor(() => expect(ipc.saved).toEqual(["Tisty Share-3.svg"]));
+  });
+
   it("opens on the diagram's text, names its kind and the document it goes back to", async () => {
     render(<Viewing />);
 

@@ -20,6 +20,7 @@ import { FORMATS, flipped } from "./barring";
 import { caretAt, type Editing, edited } from "./blocking";
 import { cardedAt, movedCard, putCard } from "./carded";
 import type { Carded } from "./carding";
+import { exportChoices, fileName } from "./drawing/exporting";
 import { wrapped } from "./formatting";
 import { useKeptHeight } from "./heights";
 import { MARKED_FOR, markLately } from "./lately";
@@ -39,6 +40,7 @@ import { stepLine, steppedTitle } from "./staging";
 import { useTables } from "./tableSheet";
 import { widened } from "./tabling";
 import { usePictures } from "./usePictures";
+import { darkNow } from "./viewer/acting";
 
 type Props = {
   readonly file?: string;
@@ -105,6 +107,19 @@ export default function Sheet(props: Readonly<Props>) {
     };
     viewDiagram(paper, at, nth, source).catch((e) => said.current.onFail?.(e));
   };
+  const diagramOut = (nth: number, source: string, at: { x: number; y: number }) =>
+    setMenu({
+      ...at,
+      label: t("diagramExport"),
+      choices: exportChoices({
+        source,
+        name: fileName(said.current.label, nth),
+        dark: darkNow(),
+        // Saving answers in its own dialog; a copy shows where it is pasted.
+        said: () => {},
+        failed: (e) => said.current.onFail?.(e),
+      }),
+    });
   const [drawn, setDrawn] = useState(value);
   const open = useRef<Editing | null>(null);
   // Follows the open block through words written around it from outside; false when they reach it.
@@ -137,7 +152,12 @@ export default function Sheet(props: Readonly<Props>) {
   turnedNow.current = turned;
   const kept = useKeptHeight<HTMLDivElement>(file ?? label);
   const [more, setMore] = useState<Extract<Went, { kind: "more" }> | null>(null);
-  const [menu, setMenu] = useState<{ x: number; y: number; choices: Choice[] } | null>(null);
+  const [menu, setMenu] = useState<{
+    x: number;
+    y: number;
+    choices: Choice[];
+    label?: string;
+  } | null>(null);
   const askedOn = useRef("");
   const [stuck, setStuck] = useState(false);
 
@@ -913,6 +933,7 @@ export default function Sheet(props: Readonly<Props>) {
           again={props.again}
           cards={props.cards}
           onDiagram={reading || fixed || !props.wholeable ? undefined : diagram}
+          onDiagramExport={fixed ? undefined : diagramOut}
           onApart={(lent) => {
             const named = said.current.file;
             // A task page not written yet has no file the widget could lead back to.
@@ -936,7 +957,7 @@ export default function Sheet(props: Readonly<Props>) {
       {menu && (
         <Menu
           at={{ x: menu.x, y: menu.y }}
-          label={t("formatting")}
+          label={menu.label ?? t("formatting")}
           choices={menu.choices}
           keeps
           onClose={() => setMenu(null)}
