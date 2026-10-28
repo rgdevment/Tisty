@@ -54,6 +54,10 @@ const node = (id: string) => document.querySelector(`[data-node="${id}"]`) as HT
 const pickNode = (id: string) => fireEvent.click(within(node(id)).getByRole("button"));
 const palette = () => within(screen.getByRole("complementary", { name: say("flowPalette") }));
 const canvas = () => document.querySelector(".react-flow") as HTMLElement;
+const tool = (name: string) =>
+  within(screen.getByRole("toolbar", { name: say("flowTools") })).getByRole("button", {
+    name,
+  }) as HTMLButtonElement;
 const leave = (label: string, value: string) => {
   const field = screen.getByLabelText(label) as HTMLInputElement;
   fireEvent.change(field, { target: { value } });
@@ -244,6 +248,111 @@ describe("a flowchart in the diagram window", () => {
     fireEvent.click(document.querySelector(".react-flow__pane") as HTMLElement);
 
     expect(screen.getByText(say("flowPick"))).toBeTruthy();
+  });
+
+  it("undoes and redoes what the window changed, by the toolbar and by the keys", () => {
+    opened();
+    const undo = tool(say("flowUndo"));
+    expect(undo.disabled).toBe(true);
+
+    fireEvent.click(palette().getByRole("button", { name: say("flowShapeCloud") }));
+    fireEvent.keyDown(within(node("n1")).getByRole("textbox"), { key: "Escape" });
+    expect(text()).toContain("n1@{");
+
+    fireEvent.click(undo);
+    expect(text()).toBe(FLOW);
+    fireEvent.click(tool(say("flowRedo")));
+    expect(text()).toContain("n1@{");
+    fireEvent.keyDown(canvas(), { key: "z", ctrlKey: true });
+    expect(text()).toBe(FLOW);
+    fireEvent.keyDown(canvas(), { key: "z", ctrlKey: true, shiftKey: true });
+    expect(text()).toContain("n1@{");
+
+    fireEvent.change(screen.getByLabelText(say("diagramText")), { target: { value: FLOW } });
+    expect(tool(say("flowUndo")).disabled).toBe(true);
+  });
+
+  it("deletes, duplicates and colours what is chosen from the toolbar", () => {
+    opened();
+    pickNode("A");
+
+    fireEvent.click(tool(say("flowDuplicate")));
+    expect(text()).toContain("  n1[Inicio]\n");
+    fireEvent.keyDown(node("n1"), { key: "d", metaKey: true });
+    expect(text()).toContain("  n2[Inicio]\n");
+
+    fireEvent.click(tool(say("flowFill")));
+    fireEvent.click(screen.getByRole("button", { name: say("colorGreen") }));
+    expect(text()).toContain("  style n2 fill:#dcfce7,color:#14532d");
+    fireEvent.click(tool(say("flowLine")));
+    fireEvent.click(screen.getByRole("button", { name: say("colorRed") }));
+    expect(text()).toContain("  style n2 fill:#dcfce7,color:#14532d,stroke:#dc2626");
+    fireEvent.click(tool(say("flowFill")));
+    fireEvent.click(screen.getByRole("button", { name: say("flowNoColor") }));
+    expect(text()).toContain("  style n2 stroke:#dc2626");
+
+    fireEvent.click(tool(say("flowDelete")));
+    expect(text()).not.toContain("n2");
+  });
+
+  it("changes the kind of the chosen arrow from the toolbar, and says why a chain stays", () => {
+    opened();
+    fireEvent.click(screen.getByRole("button", { name: "A → B" }));
+
+    fireEvent.click(tool(say("flowArrowThick")));
+    expect(text()).toContain("A[Inicio] ==> B");
+    expect(tool(say("flowArrowThick")).getAttribute("aria-pressed")).toBe("true");
+
+    fireEvent.click(screen.getByRole("button", { name: "C → D" }));
+    expect(tool(say("flowDelete")).disabled).toBe(true);
+    expect(tool(say("flowDelete")).title).toBe(say("flowChained"));
+  });
+
+  it("chooses several shapes with Ctrl, lines them up and deletes them together", () => {
+    opened();
+
+    pickNode("D");
+    fireEvent.keyDown(window, { key: "Control" });
+    fireEvent.click(within(node("E")).getByRole("button"), { ctrlKey: true });
+    fireEvent.keyUp(window, { key: "Control" });
+    expect(screen.getByText(say("flowPickedMany", "2"))).toBeTruthy();
+
+    fireEvent.click(tool(say("flowAlignTop")));
+    const tops = ["D", "E"].map(
+      (id) => text().match(new RegExp(`%% tisty: ${id} -?\\d+ (-?\\d+)`))?.[1],
+    );
+    expect(tops[0]).toBe(tops[1]);
+    expect(tops[0]).toBeDefined();
+
+    expect(tool(say("flowDelete")).disabled).toBe(true);
+  });
+
+  it("draws a lane with its shapes in it, and moves them together", () => {
+    opened(
+      "flowchart LR\n  subgraph cli [Cliente]\n    A[Pide]\n  end\n  A --> B\n  %% tisty: cli 0 0 260 480\n  %% tisty: A 40 60\n  %% tisty: B 400 60\n",
+    );
+    const lane = document.querySelector('[data-lane="group:cli"]') as HTMLElement;
+    expect(node("A").closest(".react-flow__node")?.getAttribute("data-id")).toBe("A");
+
+    fireEvent.click(within(lane).getByRole("button", { name: "Cliente" }));
+    fireEvent.keyDown(lane.closest(".react-flow__node") as HTMLElement, { key: "ArrowRight" });
+
+    expect(text()).toMatch(/%% tisty: cli [1-9]\d* 0 260 480/);
+    expect(text()).toMatch(/%% tisty: A (4[1-9]|[5-9]\d) 60/);
+    expect(text()).toContain("%% tisty: B 400 60");
+  });
+
+  it("puts a lane from the palette, sized, and lays the chart out by itself", () => {
+    opened();
+
+    fireEvent.click(palette().getByRole("button", { name: say("flowLaneColumn") }));
+    expect(text()).toMatch(new RegExp(`subgraph g2 \\[${say("flowNewLane")}\\]\\n  end`));
+    expect(text()).toMatch(/%% tisty: g2 -?\d+ -?\d+ 260 480/);
+    fireEvent.click(screen.getByRole("button", { name: say("flowNewLane") }));
+    expect(screen.getByLabelText(say("flowText"))).toBeTruthy();
+
+    fireEvent.click(tool(say("flowRelaid")));
+    expect(text()).toMatch(/%% tisty: A \d+ \d+\n/);
   });
 
   it("turns the chart another way from the panel", () => {

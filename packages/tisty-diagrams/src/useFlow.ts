@@ -9,7 +9,17 @@ export interface Flowing {
   readonly change: (made: FlowAltered | null) => void;
   readonly pick: (picked: FlowPicked) => void;
   readonly turn: (head: readonly string[]) => void;
+  readonly undo: (() => void) | null;
+  readonly redo: (() => void) | null;
 }
+
+// What the window changed, kept to be undone; text typed by hand in between ends the trail.
+interface Step {
+  readonly before: string;
+  readonly after: string;
+}
+
+const KEPT_STEPS = 100;
 
 // An edge is what joins two nodes, told apart from a twin by which of them it is.
 const edgeSigns = (flow: Flow) => {
@@ -25,6 +35,10 @@ const edgeSigns = (flow: Flow) => {
 const signOf = (flow: Flow, picked: FlowPicked): string | null => {
   if (!picked) return null;
   if (picked.kind === "edge") return edgeSigns(flow)[picked.index] ?? null;
+  if (picked.kind === "nodes")
+    return picked.ids.every((id) => flow.nodes.some((one) => one.id === id))
+      ? `nodes\n${picked.ids.join("\n")}`
+      : null;
   const known =
     picked.kind === "node"
       ? flow.nodes.some((one) => one.id === picked.id)
@@ -48,7 +62,13 @@ export const useFlow = (text: string, setText: (text: string) => void): Flowing 
     picked: null,
     sign: null,
   });
+  const [steps, setSteps] = useState<{ done: readonly Step[]; undone: readonly Step[] }>({
+    done: [],
+    undone: [],
+  });
   if (!flow) return null;
+  const last = steps.done[steps.done.length - 1];
+  const next = steps.undone[steps.undone.length - 1];
   const keep = (into: Flow, picked: FlowPicked) =>
     setChosen({ picked, sign: signOf(into, picked) });
   return {
@@ -57,11 +77,30 @@ export const useFlow = (text: string, setText: (text: string) => void): Flowing 
     change: (made) => {
       if (!made) return;
       const written = writeFlow({ ...flow, body: made.body, places: made.places ?? flow.places });
-      const next = readFlow(written) ?? flow;
-      if (written !== text) setText(written);
-      keep(next, made.picked);
+      if (written !== text) {
+        setSteps({
+          done: [...steps.done.slice(1 - KEPT_STEPS), { before: text, after: written }],
+          undone: [],
+        });
+        setText(written);
+      }
+      keep(readFlow(written) ?? flow, made.picked);
     },
     pick: (picked) => keep(flow, picked),
     turn: (head) => setText(writeFlow({ ...flow, head })),
+    undo:
+      last?.after === text
+        ? () => {
+            setSteps({ done: steps.done.slice(0, -1), undone: [...steps.undone, last] });
+            setText(last.before);
+          }
+        : null,
+    redo:
+      next?.before === text
+        ? () => {
+            setSteps({ done: [...steps.done, next], undone: steps.undone.slice(0, -1) });
+            setText(next.after);
+          }
+        : null,
   };
 };

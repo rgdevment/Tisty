@@ -51,20 +51,36 @@ export const flowLaid = (flow: Flow): ReadonlyMap<string, Rect> => {
   );
 };
 
-// Places may be anywhere, even below zero; a picture starts at its margin.
-const framed = (at: ReadonlyMap<string, Rect>): Laid => {
-  const all = [...at.values()];
+/** A group drawn where it was put, at its size: a column when it is taller than wide, else a row. */
+export interface Lane {
+  readonly id: string;
+  readonly title: string;
+  readonly rect: Rect;
+  readonly across: boolean;
+}
+
+export const lanesOf = (flow: Flow): Lane[] =>
+  flow.groups.flatMap((group) => {
+    const place = flow.places.find((one) => one.id === group.id);
+    if (place?.wide === undefined || place.tall === undefined) return [];
+    const rect = { x: place.x, y: place.y, wide: place.wide, tall: place.tall };
+    return [{ id: group.id, title: group.title, rect, across: rect.wide > rect.tall }];
+  });
+
+// Places may be anywhere, even below zero; a picture starts at its margin, lanes and all.
+const framed = (at: ReadonlyMap<string, Rect>, lanes: readonly Rect[]) => {
+  const all = [...at.values(), ...lanes];
   const left = Math.min(...all.map((one) => one.x)) - MARGIN;
   const top = Math.min(...all.map((one) => one.y)) - MARGIN;
-  return {
-    at: new Map(
-      [...at].map(([id, rect]) => [id, { ...rect, x: rect.x - left, y: rect.y - top }] as const),
-    ),
+  const moved = (rect: Rect): Rect => ({ ...rect, x: rect.x - left, y: rect.y - top });
+  const laid: Laid = {
+    at: new Map([...at].map(([id, rect]) => [id, moved(rect)] as const)),
     size: {
       wide: Math.max(...all.map((one) => one.x + one.wide)) - left + MARGIN,
       tall: Math.max(...all.map((one) => one.y + one.tall)) - top + MARGIN,
     },
   };
+  return { laid, moved };
 };
 
 /** Each edge as it is drawn: dotted, thick, with or without a head. */
@@ -80,13 +96,20 @@ export const jointsOf = (flow: Flow): Joint[] =>
   }));
 
 export const flowScene = (flow: Flow): Scene => {
-  const laid = flow.places.length && flow.nodes.length ? framed(flowLaid(flow)) : autoLaid(flow);
+  const lanes = new Map(lanesOf(flow).map((one) => [one.id, one.rect]));
+  const placed = flow.places.length && (flow.nodes.length || lanes.size);
+  const { laid, moved } = placed
+    ? framed(flowLaid(flow), [...lanes.values()])
+    : { laid: autoLaid(flow), moved: (rect: Rect) => rect };
   const groups = flow.groups.flatMap((group) => {
-    const rect = around(
-      flow.nodes
-        .filter((one) => one.group === group.id)
-        .flatMap((one) => laid.at.get(one.id) ?? []),
-    );
+    const lane = lanes.get(group.id);
+    const rect = lane
+      ? moved(lane)
+      : around(
+          flow.nodes
+            .filter((one) => one.group === group.id)
+            .flatMap((one) => laid.at.get(one.id) ?? []),
+        );
     return rect ? [{ key: group.id, rect, title: group.title }] : [];
   });
   return { laid, joints: jointsOf(flow), groups };
