@@ -310,3 +310,50 @@ fn an_edit_travels_as_the_window_writes_it() {
     );
     assert_eq!(Refused::LastColumn.to_string(), "lastColumn");
 }
+
+#[test]
+fn the_page_is_told_the_order_a_column_sorts_its_rows_in() {
+    let text = "| Servicio | Precio {money CLP} |\n| --- | --: |\n| Netflix | 9990 |\n| Nada |  |\n| Spotify | 6490 |\n";
+    let at = table_in(read(text).blocks()).expect("a table");
+    assert_eq!(order(text, at.clone(), 1, false), Ok(vec![2, 0, 1]));
+    assert_eq!(order(text, at.clone(), 1, true), Ok(vec![0, 2, 1]));
+    assert_eq!(order(text, at.clone(), 0, false), Ok(vec![1, 0, 2]));
+    assert_eq!(order(text, at, 2, false), Err(Refused::Beyond));
+    assert_eq!(order(text, 0..3, 0, false), Err(Refused::Moved));
+}
+
+#[test]
+fn edits_in_a_row_land_on_the_table_as_each_one_left_it() {
+    let text = "Antes.\n\n| a |\n| --- |\n| 1 |\n| 2 |\n\nDespués.\n";
+    let at = table_in(read(text).blocks()).expect("a table");
+    let asked = [
+        Edit::Cell {
+            row: 0,
+            column: 0,
+            said: "uno largo".to_string(),
+        },
+        Edit::RowMove { from: 0, to: 1 },
+        Edit::RowAdd { at: 2 },
+    ];
+    assert_eq!(
+        edits(text, at.clone(), &asked),
+        Ok("Antes.\n\n| a |\n| --- |\n| 2 |\n| uno largo |\n|  |\n\nDespués.\n".to_string())
+    );
+    assert_eq!(
+        edits(text, at, &[Edit::RowRemove { row: 5 }]),
+        Err(Refused::Beyond)
+    );
+}
+
+#[test]
+fn a_cell_opens_for_writing_as_the_file_has_it() {
+    let text = "| Servicio | Precio {money CLP sum} |\n| --- | --: |\n| Netflix \\| 4K | **9990** |\n| Solo |\n";
+    let at = table_in(read(text).blocks()).expect("a table");
+    let said = written(text, at).expect("written");
+    assert_eq!(said.heads, vec!["Servicio", "Precio"]);
+    assert_eq!(
+        said.rows,
+        vec![vec![r"Netflix \| 4K", "**9990**"], vec!["Solo"]]
+    );
+    assert_eq!(written(text, 0..3), Err(Refused::Moved));
+}
