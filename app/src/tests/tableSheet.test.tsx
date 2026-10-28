@@ -36,7 +36,7 @@ const HTML = `<article class="page"><div class="table" data-at="0-80"><table><th
 <tr><td>Netflix</td><td data-key="9990">$9.990</td></tr>
 </tbody></table></div></article>`;
 
-type Seen = { onTable: (asked: TableWent) => void };
+type Seen = { onTable: (asked: TableWent) => void; freshAt: (byte: number) => void };
 
 const made = (html = HTML) => {
   const page = document.implementation.createHTMLDocument("");
@@ -51,7 +51,7 @@ const made = (html = HTML) => {
     fail: vi.fn(),
     writing: false,
   };
-  const seen: Seen = { onTable: () => {} };
+  const seen: Seen = { onTable: () => {}, freshAt: () => {} };
   const Room = ({ turned }: { turned: number }) => {
     const tables = useTables({
       latest: ways.latest,
@@ -66,6 +66,7 @@ const made = (html = HTML) => {
       turned,
     });
     seen.onTable = tables.onTable;
+    seen.freshAt = tables.freshAt;
     return <>{tables.menu}</>;
   };
   const view = render(<Room turned={1} />);
@@ -109,6 +110,21 @@ beforeEach(() => {
 });
 
 describe("a table written in place", () => {
+  it("opens the first title of a table just made once the page draws it, and only then", async () => {
+    const { page, seen, turn } = made();
+    seen.freshAt(40);
+    turn(2);
+    await settle();
+    expect(page.querySelector(".table-input")).toBeNull();
+
+    seen.freshAt(0);
+    turn(3);
+    await settle();
+    const input = page.querySelector<HTMLInputElement>(".table-input");
+    expect(input?.getAttribute("aria-label")).toBe("Column title");
+    expect(input?.closest("th")?.cellIndex).toBe(0);
+  });
+
   it("opens a cell with its words, saves what was typed in the marks around it, then opens the cell below", async () => {
     const { page, ways, seen, turn } = made();
     seen.onTable(asked("cell", 1, 1));

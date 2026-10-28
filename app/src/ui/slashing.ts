@@ -23,6 +23,8 @@ export type Asking = {
   readonly pasted?: (files: readonly File[]) => Promise<string>;
   readonly lost?: () => void;
   readonly failed?: (problem: unknown) => void;
+  /** A table was just put in, starting at this place of the block: it is written from the page from here on. */
+  readonly tabled?: (at: number) => void;
   readonly steps?: () => readonly string[];
   readonly ask: (
     kind: Asked,
@@ -324,6 +326,8 @@ export const put = (view: EditorView, one: Slashed, from: number, to: number, as
     return;
   }
   blocked(view, from, to, how.block, how.at, how.blank ?? false);
+  if (one.key === "table")
+    asking?.tabled?.(view.state.doc.lineAt(view.state.selection.main.head).from);
 };
 
 const mac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);

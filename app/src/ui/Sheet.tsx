@@ -328,6 +328,14 @@ export default function Sheet(props: Readonly<Props>) {
           pasted: asking?.pasted,
           lost: asking?.lost,
           failed: (problem) => said.current.onFail?.(problem),
+          // A table made from the `/` menu is written from the page at once, its first title open.
+          tabled: whole
+            ? undefined
+            : (at) => {
+                const start = from + ahead.length + at;
+                tables.freshAt(new TextEncoder().encode(latest.current.slice(0, start)).length);
+                queueMicrotask(left);
+              },
           ask: (kind, at, put, first) => asking?.ask(kind, at, put, first && before),
           steps: () => stagesIn(latest.current),
         };

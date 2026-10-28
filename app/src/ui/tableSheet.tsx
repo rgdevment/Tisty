@@ -76,10 +76,18 @@ const moved = (view: Viewing, to: (column: number) => number | null): Viewing =>
 };
 
 /** What the page's tables do when they are written in place: cells, rows, columns, and how each is shown. */
-export const useTables = (ways: Ways): { onTable: (asked: TableWent) => void; menu: ReactNode } => {
+export const useTables = (
+  ways: Ways,
+): {
+  onTable: (asked: TableWent) => void;
+  menu: ReactNode;
+  freshAt: (byte: number) => void;
+} => {
   const views = useRef(new Map<number, Viewing>());
   const counted = useRef(-1);
   const pending = useRef<Place | null>(null);
+  // A table just made in the text, by the byte it starts at, waits for the page that draws it.
+  const born = useRef<number | null>(null);
   // A cell clicked while the one left behind is still being saved opens once that save is drawn.
   const saving = useRef(0);
   const wanted = useRef<Place | null>(null);
@@ -286,6 +294,15 @@ export const useTables = (ways: Ways): { onTable: (asked: TableWent) => void; me
       if (view.sort) views.current.set(nth, { ...view, sort: { ...view.sort, order: [] } });
       shown(nth);
     }
+    const made = born.current;
+    const nth =
+      made === null
+        ? -1
+        : tablesIn(page).findIndex((one) => one.dataset.at?.startsWith(`${made}-`));
+    if (nth >= 0) {
+      born.current = null;
+      pending.current = { nth, row: -1, column: 0 };
+    }
     const next = pending.current;
     pending.current = null;
     if (next) opened(next);
@@ -463,6 +480,9 @@ export const useTables = (ways: Ways): { onTable: (asked: TableWent) => void; me
 
   return {
     onTable,
+    freshAt: (byte) => {
+      born.current = byte;
+    },
     menu: (
       <>
         {menu && (
