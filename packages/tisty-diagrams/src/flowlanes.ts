@@ -1,7 +1,8 @@
 import type { Flow } from "./flow";
-import { type FlowAltered, groupAdded, nodeMoved, placed, reread, type Spot } from "./flowing";
+import { type FlowAltered, groupAdded, nodeMoved, placed, reread } from "./flowing";
 import type { Rect } from "./graphlayout";
-import { lanesOf } from "./scenes";
+import type { Spot } from "./places";
+import { type Lane, laneHolding, lanesOf } from "./scenes";
 
 /** The sizes a lane starts at: a column for steps that go down, a row for steps that go across. */
 export const LANE_SIZES = {
@@ -17,12 +18,16 @@ export const laneAdded = (flow: Flow, title: string, box: Rect): FlowAltered => 
 };
 
 /** A lane moved with every shape in it, so they keep their places inside it. */
-export const laneMoved = (flow: Flow, id: string, to: Spot): FlowAltered => {
-  const lane = lanesOf(flow).find((one) => one.id === id);
+export const laneMoved = (
+  flow: Flow,
+  id: string,
+  to: Spot,
+  from: Rect | undefined = lanesOf(flow).find((one) => one.id === id)?.rect,
+): FlowAltered => {
   const picked = { kind: "group", id } as const;
-  if (!lane) return { body: flow.body, picked };
-  const dx = to.x - lane.rect.x;
-  const dy = to.y - lane.rect.y;
+  if (!from) return { body: flow.body, picked };
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
   const shifted = flow.nodes
     .filter((one) => one.group === id)
     .reduce<Flow>((now, one) => {
@@ -30,7 +35,11 @@ export const laneMoved = (flow: Flow, id: string, to: Spot): FlowAltered => {
       if (!place) return now;
       return { ...now, places: placed(now, one.id, { x: place.x + dx, y: place.y + dy }) };
     }, flow);
-  return { body: flow.body, places: placed(shifted, id, to), picked };
+  return {
+    body: flow.body,
+    places: placed(shifted, id, { wide: from.wide, tall: from.tall, ...to }),
+    picked,
+  };
 };
 
 /** A lane's new size, the shapes in it left where they are. */
@@ -40,27 +49,18 @@ export const laneResized = (flow: Flow, id: string, box: Rect): FlowAltered => (
   picked: { kind: "group", id },
 });
 
-const holds = (rect: Rect, x: number, y: number) =>
-  x >= rect.x && x <= rect.x + rect.wide && y >= rect.y && y <= rect.y + rect.tall;
-
 /** Shapes let go in a lane join it, outside every lane leave it; one its lane names in an arrow goes back. */
 export const regrouped = (
   flow: Flow,
   at: ReadonlyMap<string, Rect>,
   was: ReadonlyMap<string, Rect> = new Map(),
+  lanes: readonly Lane[] = lanesOf(flow),
 ): Flow => {
-  const lanes = lanesOf(flow);
   let now = flow;
   for (const [id, rect] of at) {
     const node = now.nodes.find((one) => one.id === id);
     if (!node) continue;
-    const x = rect.x + rect.wide / 2;
-    const y = rect.y + rect.tall / 2;
-    // The smallest lane holding it wins, so a lane drawn inside another can be reached.
-    const into =
-      lanes
-        .filter((one) => holds(one.rect, x, y))
-        .sort((a, b) => a.rect.wide * a.rect.tall - b.rect.wide * b.rect.tall)[0]?.id ?? null;
+    const into = laneHolding(lanes, rect);
     const inLane = lanes.some((one) => one.id === node.group);
     if (into === node.group || (into === null && !inLane)) continue;
     const made = nodeMoved(now, id, into);

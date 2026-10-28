@@ -35,7 +35,7 @@ classDiagram⏎  Animal o-- Zoo⏎  Animal --> Food⏎  Animal ..> Water⏎  Ani
 const REFUSED = `
 classDiagram⏎  class A {⏎    +int x
 classDiagram⏎  class A⏎  class A
-classDiagram⏎  namespace Tienda {⏎    class A⏎  }
+classDiagram⏎  namespace Tienda {⏎    class A⏎    A --> B⏎  }
 graph TD⏎  a --> b
 `;
 
@@ -87,7 +87,8 @@ const BASE = unfolded(
   "classDiagram⏎  class Animal {⏎    +String name⏎  }⏎  class Duck⏎  Animal <|-- Duck : hereda⏎  Animal : +isMammal()⏎  style Duck fill:#ff0",
 );
 const of = () => readClasses(BASE) as Classes;
-const bodyText = (body: readonly string[]) => writeClasses({ head: of().head, body, tail: [] });
+const bodyText = (body: readonly string[]) =>
+  writeClasses({ head: of().head, body, places: [], tail: [] });
 
 // One per row: what is done → the text it leaves.
 const DONE: [string, () => readonly string[], string][] = [

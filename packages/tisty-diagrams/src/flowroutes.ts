@@ -5,7 +5,23 @@ export interface Route {
   readonly path: string;
   readonly labelX: number;
   readonly labelY: number;
+  // Where it leaves and where it arrives, and by which sides, for words written at its ends.
+  readonly from: { readonly x: number; readonly y: number };
+  readonly to: { readonly x: number; readonly y: number };
+  readonly fromSide: Position;
+  readonly toSide: Position;
 }
+
+/** Where words at an end of a line go: beside it, just off the shape, never over the line or the shape. */
+export const endWordAt = (
+  at: { readonly x: number; readonly y: number },
+  side: Position,
+): { x: number; y: number; anchor: "start" | "end" } => {
+  if (side === Position.Left) return { x: at.x - 6, y: at.y - 10, anchor: "end" };
+  if (side === Position.Right) return { x: at.x + 6, y: at.y - 10, anchor: "start" };
+  if (side === Position.Top) return { x: at.x + 6, y: at.y - 10, anchor: "start" };
+  return { x: at.x + 6, y: at.y + 10, anchor: "start" };
+};
 
 /** The middle of one side of a shape, where its dot sits and its arrows meet it. */
 export const sideMiddle = (rect: Rect, side: Position) => {
@@ -40,5 +56,5 @@ export const routeOf = (from: Rect, to: Rect): Route => {
     borderRadius: 6,
     offset: 18,
   });
-  return { path, labelX, labelY };
+  return { path, labelX, labelY, from: start, to: end, fromSide: leaving, toSide: entering };
 };

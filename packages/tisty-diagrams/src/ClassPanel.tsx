@@ -1,29 +1,23 @@
-import { ARROWS } from "./classes";
 import {
+  classKindChanged,
   classRemoved,
   classRenamed,
+  kindKept,
   linkChanged,
   linkRemoved,
   memberAdded,
   memberChanged,
   memberRemoved,
+  namespaceRemoved,
+  sameKind,
+  visibilityOf,
+  withVisibility,
 } from "./classing";
+import { KINDS, SORTS, VISIBILITY_WORDS } from "./classkinds";
+import { classMovedTo, namespaceRenamed } from "./classspaces";
 import { useHands, useSay } from "./handing";
 import { Chosen, Said, Section } from "./panelbits";
 import type { Classing } from "./useClasses";
-import type { Word } from "./words";
-
-// The kinds a relation is named by; the arrow written the other way round is the same kind.
-const KINDS: readonly (readonly [string, Word])[] = [
-  ["<|--", "classInherits"],
-  ["*--", "classComposes"],
-  ["o--", "classAggregates"],
-  ["-->", "classAssociates"],
-  ["..>", "classDepends"],
-  ["..|>", "classRealizes"],
-  ["--", "classLinks"],
-  ["..", "classDashed"],
-];
 
 /** The chosen class with its members, or the chosen relation with its kind, ends and words. */
 export default function ClassPanel({ editing }: Readonly<{ editing: Classing }>) {
@@ -33,17 +27,47 @@ export default function ClassPanel({ editing }: Readonly<{ editing: Classing }>)
   const name = picked?.kind === "class" || picked?.kind === "member" ? picked.name : null;
   const chosen = name ? diagram.classes.find((one) => one.name === name) : undefined;
   const link = picked?.kind === "link" ? diagram.links[picked.index] : undefined;
-  const kinds = [
-    ...KINDS.map(([arrow, word]) => ({ value: arrow, label: `${t(word)}  ${arrow}` })),
-    ...ARROWS.filter((one) => !KINDS.some(([arrow]) => arrow === one)).map((one) => ({
-      value: one,
-      label: one,
-    })),
+  const space = picked?.kind === "namespace" ? picked.name : null;
+  const spaces = [
+    { value: "", label: t("classNoNamespace") },
+    ...diagram.groups.map((one) => ({ value: one.id, label: one.id })),
   ];
+  const sort = chosen?.note ?? "";
+  // A kind written by hand that the list does not offer is still shown, as it is written.
+  const sorts = [
+    ...SORTS.map(([note, word]) => ({ value: note ?? "", label: t(word) })),
+    ...(SORTS.some(([note]) => (note ?? "") === sort) ? [] : [{ value: sort, label: `«${sort}»` }]),
+  ];
+  const visibilities = VISIBILITY_WORDS.map(([mark, word]) => ({ value: mark, label: t(word) }));
+  // Each kind once: an arrow written the other way round is the same kind, its head kept where it is.
+  const kinds = KINDS.map(([arrow, word]) => ({ value: arrow, label: `${t(word)}  ${arrow}` }));
 
   return (
     <div className="flex flex-col gap-3">
-      {!chosen && !link && <p className="m-0 text-[12.5px] text-faint">{t("classPick")}</p>}
+      {space && (
+        <Section title={t("classNamespace")}>
+          <Said
+            id="class-namespace-name"
+            label={t("schemaName")}
+            value={space}
+            onSay={(said) => change(namespaceRenamed(diagram, space, said))}
+          />
+          <button
+            type="button"
+            className={`${button} self-start`}
+            onClick={() => change(namespaceRemoved(diagram, space))}
+          >
+            {t("classUngroup")}
+          </button>
+        </Section>
+      )}
+      {!chosen && !link && !space && (
+        <p className="m-0 text-[12.5px] text-faint">
+          {picked?.kind === "classes"
+            ? t("flowPickedMany", String(picked.names.length))
+            : t("classPick")}
+        </p>
+      )}
       {chosen && (
         <Section title={t("classTitle")}>
           <Said
@@ -52,9 +76,36 @@ export default function ClassPanel({ editing }: Readonly<{ editing: Classing }>)
             value={chosen.name}
             onSay={(said) => change(classRenamed(diagram, chosen.name, said))}
           />
+          {diagram.groups.length > 0 && (
+            <Chosen
+              id="class-namespace"
+              label={t("classNamespace")}
+              value={chosen.group ?? ""}
+              options={spaces}
+              onChoose={(into) => change(classMovedTo(diagram, chosen.name, into || null))}
+            />
+          )}
+          <Chosen
+            id="class-sort"
+            label={t("classSort")}
+            value={sort}
+            options={sorts}
+            onChoose={(note) => change(classKindChanged(diagram, chosen.name, note || null))}
+          />
           <span className="text-[12px] font-semibold text-soft">{t("classMembers")}</span>
           {chosen.members.map((member, index) => (
             <div key={member.line} className="flex items-end gap-1.5">
+              <Chosen
+                id={`class-visibility-${index}`}
+                label={t("classVisibility")}
+                value={visibilityOf(member.text)}
+                options={visibilities}
+                onChoose={(mark) =>
+                  change(
+                    memberChanged(diagram, chosen.name, index, withVisibility(member.text, mark)),
+                  )
+                }
+              />
               <div className="flex flex-1 flex-col gap-1">
                 <Said
                   id={`class-member-${index}`}
@@ -103,9 +154,11 @@ export default function ClassPanel({ editing }: Readonly<{ editing: Classing }>)
           <Chosen
             id="class-kind"
             label={t("classKind")}
-            value={link.arrow}
+            value={KINDS.find(([kind]) => sameKind(link.arrow, kind))?.[0] ?? link.arrow}
             options={kinds}
-            onChoose={(arrow) => change(linkChanged(diagram, picked.index, { arrow }))}
+            onChoose={(kind) =>
+              change(linkChanged(diagram, picked.index, { arrow: kindKept(link.arrow, kind) }))
+            }
           />
           <Said
             id="class-left"

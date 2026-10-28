@@ -1,11 +1,11 @@
 import { type Classes, readClasses } from "./classes";
 import { type Flow, readFlow } from "./flow";
 import { outlineOf } from "./flowoutlines";
-import { type Route, routeOf } from "./flowroutes";
+import { endWordAt, type Route, routeOf } from "./flowroutes";
 import { type Shape as FlowShape, pictured } from "./flowshapes";
 import { looksOf, type Look as Painted } from "./flowstyles";
 import { kindOf } from "./framing";
-import { edgeOf, type Rect } from "./graphlayout";
+import type { Rect } from "./graphlayout";
 import { curve, HEXAGON, HUES, laidOut, type Placed } from "./mindlayout";
 import { type Mind, type Shape as MindShape, readMind } from "./mindmap";
 import {
@@ -144,18 +144,12 @@ const schemaPicture = (schema: Schema): Picture => {
   };
 };
 
-const straightRoute = (from: Rect, to: Rect): Route => {
-  const a = edgeOf(from, to);
-  const b = edgeOf(to, from);
-  return { path: straight(a, b), labelX: (a.x + b.x) / 2, labelY: (a.y + b.y) / 2 };
-};
-
 // Groups behind, then lines, then their words, then the boxes over the ends of the lines.
 const graph = (
   scene: Scene,
   palette: Palette,
   box: (id: string, rect: Rect) => string,
-  route: (from: Rect, to: Rect) => Route = straightRoute,
+  route: (from: Rect, to: Rect) => Route = routeOf,
 ) => {
   const { at } = scene.laid;
   const joined = scene.joints.flatMap((one) => {
@@ -177,16 +171,22 @@ const graph = (
       }),
     ]),
     ...joined.map(({ one, way }) =>
-      stroke(
-        way.path,
-        palette.accent,
-        one.thick ? 2.6 : 1.6,
-        one.dashed ? "6 4" : undefined,
-        one.arrow,
-      ),
+      stroke(way.path, palette.accent, one.thick ? 2.6 : 1.6, one.dashed ? "6 4" : undefined, {
+        start: one.start,
+        end: one.end,
+      }),
     ),
     ...joined.flatMap(({ one, way }) =>
       one.label ? [pill(way.labelX, way.labelY, one.label, palette, palette.accent)] : [],
+    ),
+    // A relation's cardinalities sit just off its ends, as on the canvas.
+    ...joined.flatMap(({ one, way }) =>
+      [
+        { said: one.startLabel, end: endWordAt(way.from, way.fromSide) },
+        { said: one.endLabel, end: endWordAt(way.to, way.toSide) },
+      ].flatMap(({ said, end }) =>
+        said ? [writing({ ...end, text: said, size: 11, fill: palette.soft })] : [],
+      ),
     ),
     ...[...at].map(([id, rect]) => box(id, rect)),
   ].join("");

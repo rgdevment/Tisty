@@ -1,11 +1,29 @@
 import { Handle, type Node, type NodeProps, NodeResizer, Position } from "@xyflow/react";
 import { outlineOf } from "./flowoutlines";
+import { sideMiddle } from "./flowroutes";
 import type { Shape } from "./flowshapes";
 import type { Look } from "./flowstyles";
 import type { Rect } from "./graphlayout";
 import Renaming from "./Renaming";
 
 export const SIDES = [Position.Top, Position.Right, Position.Bottom, Position.Left] as const;
+
+const HANDLE = 10;
+
+// Where each side's dot sits, so arrows are drawn before the browser has measured anything.
+export const handlesOf = (wide: number, tall: number) =>
+  SIDES.map((side) => {
+    const at = sideMiddle({ x: 0, y: 0, wide, tall }, side);
+    return {
+      id: side,
+      type: "source" as const,
+      position: side,
+      x: at.x - HANDLE / 2,
+      y: at.y - HANDLE / 2,
+      width: HANDLE,
+      height: HANDLE,
+    };
+  });
 
 export type ShapeData = {
   readonly text: string;

@@ -195,14 +195,37 @@ describe("exporting a diagram from the page", () => {
     expect(heard).toEqual([[1, "mindmap", { x: 0, y: 4 }]]);
   });
 
-  it("keeps both buttons where the page can also be written", () => {
+  it("keeps every button where the page can also be written", () => {
     const own = page(BODY);
-    diagramBars(own, { open: true, out: true });
+    diagramBars(own, { open: true, out: true, words: true });
 
     expect(
       Array.from(own.querySelectorAll(".diagram-bar")[0].children, (one) =>
         one.getAttribute("data-asked"),
       ),
-    ).toEqual(["diagramExport", "diagram"]);
+    ).toEqual(["diagramExport", "diagramMarkdown", "diagram"]);
+  });
+});
+
+describe("writing a diagram as Markdown from the page", () => {
+  it("opens the words of the figure asked, even the one inside a quote", () => {
+    const own = page(BODY);
+    const heard: [[number, number], Element][] = [];
+    const reach: Reaching = {
+      ...reaching(false).reach,
+      body: "x".repeat(80),
+      onBlock: (at, block) => heard.push([at, block]),
+    };
+    worn(own, false, () => true, reach);
+
+    const words = own.querySelectorAll('.diagram-bar > button[data-asked="diagramMarkdown"]');
+    expect(words[0].getAttribute("aria-label")).toBe(t("diagramMarkdown"));
+    const asked = went(words[1], false);
+    expect(asked).toEqual({ kind: "diagramMarkdown", at: [34, 78] });
+
+    answered(own, asked, reach);
+    answered(own, { kind: "diagramMarkdown", at: [1, 2] }, reach);
+
+    expect(heard).toEqual([[[34, 78], own.querySelectorAll("figure.diagram")[1]]]);
   });
 });
