@@ -44,12 +44,12 @@ beforeEach(() => {
 });
 
 describe("a table changed from the text editor", () => {
-  it("moves the row under the caret through the core, by the caret's own byte, and the caret goes with it", async () => {
+  it("moves the row under the caret through the core, by its first cell's byte, and the caret goes with it", async () => {
     const caret = TEXT.indexOf("Rina") + 1;
     const editor = view(caret);
     expect(press(editor, "ArrowDown")).toBe(true);
     await settle();
-    expect(core.near).toHaveBeenCalledWith(TEXT, bytes(TEXT.slice(0, caret)), {
+    expect(core.near).toHaveBeenCalledWith(TEXT, bytes(TEXT.slice(0, TEXT.indexOf("Rina"))), {
       kind: "rowMove",
       from: 0,
       to: 1,
@@ -67,6 +67,19 @@ describe("a table changed from the text editor", () => {
     expect(press(editor, "ArrowDown")).toBe(true);
     await settle();
     expect(core.near).toHaveBeenCalledWith(listed, caret, { kind: "rowMove", from: 0, to: 1 });
+  });
+
+  it("names the table by a byte inside it when the caret sits past the last row's end", async () => {
+    const ending = "| a |\n| --- |\n| 1 |\n| 2 |";
+    core.near.mockResolvedValue(ending);
+    const editor = view(ending.length, ending);
+    expect(press(editor, "ArrowUp")).toBe(true);
+    await settle();
+    expect(core.near).toHaveBeenCalledWith(ending, ending.lastIndexOf("2"), {
+      kind: "rowMove",
+      from: 1,
+      to: 0,
+    });
   });
 
   it("finds a table inside a quote past its marks, and the caret follows the row it moved", async () => {
@@ -88,7 +101,7 @@ describe("a table changed from the text editor", () => {
     const editor = view(caret);
     press(editor, "ArrowLeft");
     await settle();
-    expect(core.near).toHaveBeenLastCalledWith(TEXT, bytes(TEXT.slice(0, caret)), {
+    expect(core.near).toHaveBeenLastCalledWith(TEXT, bytes(TEXT.slice(0, TEXT.indexOf("Nombre"))), {
       kind: "columnMove",
       from: 1,
       to: 0,

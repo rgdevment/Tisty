@@ -444,3 +444,17 @@ fn a_text_tells_its_tables_by_the_heading_over_them_their_columns_and_first_cell
     assert_eq!(amiss(text, all[1].at.clone()), Ok(vec![]));
     assert!(shown("Sin tablas.\n").is_empty());
 }
+
+#[test]
+fn a_table_s_heading_is_named_by_its_words_without_its_marks() {
+    for (written, named) in [
+        ("## Despensa ##", "Despensa"),
+        ("Despensa\n--------", "Despensa"),
+        ("Gastos\n======", "Gastos"),
+        ("## Notas de C#", "Notas de C#"),
+        ("### Lista #", "Lista"),
+    ] {
+        let text = format!("{written}\n\n| A | B |\n| --- | --- |\n| 1 | 2 |\n");
+        assert_eq!(shown(&text)[0].heading.as_deref(), Some(named), "{written}");
+    }
+}

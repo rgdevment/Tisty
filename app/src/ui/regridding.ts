@@ -51,8 +51,9 @@ export const regrid = (view: EditorView, how: Regrid): boolean => {
   const wanted = asked(how, row, column, table.rows.length - 2, columns);
   // Inside a table Alt and an arrow never fall through to moving a line, which would tear the head or the rule away.
   if (!wanted) return true;
-  // The caret's own byte is inside the table, where a quote's `>` or a list's indent before it is not.
-  tableEditNear(text, bytes(text.slice(0, caret)), wanted.edit)
+  // The first cell's words lie inside the table, where a quote's `>`, a list's indent or a row's end may not.
+  const within = inside(table.rows[row], 0)[0];
+  tableEditNear(text, bytes(text.slice(0, within)), wanted.edit)
     .then((next) => {
       if (view.state.doc.toString() !== text) return;
       const now = tableAt(next, table.from);

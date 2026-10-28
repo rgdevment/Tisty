@@ -314,3 +314,74 @@ fn the_language_s_tables_topic_tells_the_column_types_and_counts_as_tisty_s_own(
     assert!(added.contains("- tables:"), "{index}");
     assert!(!plain.contains("- tables:"), "{index}");
 }
+
+#[test]
+fn rows_and_columns_are_named_whatever_their_capitals_and_accents() {
+    let served = Served::new();
+    let doc = served.wrote(SHOPPING);
+
+    let made = served.table(
+        &doc,
+        json!({ "do": "set", "row": "CAFE", "column": "llego", "value": "2026-10-09" }),
+    );
+
+    assert_eq!(made["isError"], Value::Null, "{made}");
+    assert!(served.body(&doc).contains("| Café | 7990 | 2026-10-09 |"));
+}
+
+#[test]
+fn a_value_in_another_markdown_comes_in_as_the_tisty_language() {
+    let served = Served::new();
+    let doc = served.wrote("| Tarea | Nota |\n| --- | --- |\n| Diseño | lista |\n");
+
+    let made = served.table(
+        &doc,
+        json!({ "do": "set", "row": "Diseño", "column": "Nota", "value": "<mark>urgente</mark>" }),
+    );
+
+    assert_eq!(made["isError"], Value::Null, "{made}");
+    let body = served.body(&doc);
+    assert!(body.contains("| Diseño | ==urgente== |"), "{body}");
+    assert!(made["structuredContent"]["print"].is_string(), "{made}");
+    assert_eq!(made["structuredContent"]["loose"], json!([]), "{made}");
+}
+
+#[test]
+fn a_type_is_changed_only_when_one_is_sent_and_an_empty_one_takes_it_away() {
+    let served = Served::new();
+    let doc = served.wrote(SHOPPING);
+
+    let refused = served.table(&doc, json!({ "do": "type", "column": "Precio" }));
+    assert!(
+        said(&refused).contains("this change needs `type`"),
+        "{refused}"
+    );
+    assert_eq!(served.body(&doc), SHOPPING);
+
+    let untyped = served.table(
+        &doc,
+        json!({ "do": "type", "column": "Precio", "type": "" }),
+    );
+    assert_eq!(untyped["isError"], Value::Null, "{untyped}");
+    let body = served.body(&doc);
+    assert!(
+        body.contains("| Producto | Precio                 | Llegó {date} |"),
+        "the cell keeps its width: {body}"
+    );
+}
+
+#[test]
+fn a_heading_two_tables_share_names_neither_of_them() {
+    let served = Served::new();
+    let doc = served.wrote(
+        "## Semana\n\n| Día | Hora |\n| --- | --- |\n| Lunes | 9 |\n\n| Día | Sala |\n| --- | --- |\n| Martes | 2 |\n",
+    );
+
+    let refused = served.table(&doc, json!({ "table": "semana", "do": "remove", "row": 1 }));
+
+    assert!(
+        said(&refused).contains("2 tables sit under \"semana\""),
+        "{refused}"
+    );
+    assert!(served.body(&doc).contains("| Lunes | 9 |"));
+}

@@ -64,12 +64,12 @@ pub fn spread(cell: &Block) -> Option<Range<usize>> {
     Some(start..end)
 }
 
-// A link is known by how it is written; any other value by the words a reader sees, marks aside.
 /// A cell's words as a reader sees them, marks aside.
 pub fn visible(cell: &Block, text: &str) -> String {
     worded(&Holds::Text, cell, text)
 }
 
+// A link is known by how it is written; any other value by the words a reader sees, marks aside.
 fn worded(holds: &Holds, cell: &Block, text: &str) -> String {
     if *holds == Holds::Link {
         return spread(cell)

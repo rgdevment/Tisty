@@ -6,7 +6,7 @@ use super::editing::writable;
 
 use super::super::asked::text;
 use super::super::jsonrpc::told;
-use super::super::{Refused, UNSETTLED, by_how_much, hitch, retold};
+use super::super::{Refused, UNSETTLED, by_how_much, grew, hitch, left_loose, loose_words, retold};
 
 // Enough rows to find one by its first cell, without handing a long table over whole.
 const ROWS_SHOWN: usize = 50;
@@ -30,6 +30,7 @@ pub(in crate::mcp) fn edit_table(paths: &Paths, args: &Value) -> Result<Value, R
     let (edits, touched) = edits_for(asked, table, args)?;
     let (state, mut store, named) = writable(paths, args, &which)?;
     let next = grid::edits(&body, table.at.clone(), &edits).map_err(refused)?;
+    super::writing::still_speaks(&body, &next)?;
     let print = tisty_core::attach::printed(body.as_bytes());
     let made = tisty_core::docs::rewrite(&paths.docs(), paths.data(), &which, &next, &print)
         .map_err(hitch)?;
@@ -39,21 +40,37 @@ pub(in crate::mcp) fn edit_table(paths: &Paths, args: &Value) -> Result<Value, R
              it was. Ask again."
         )));
     };
+    let loose = left_loose(&state, &which, &was, &whole);
     let settled = retold(&state, &mut store, &which, &whole).is_ok();
     let now = grid::shown(&whole);
     let table = now.get(nth).unwrap_or(table);
     let amiss = amiss_in(&whole, table, &touched);
+    let mut shaped = shape(&which, nth, table, &amiss);
+    shaped["grew"] = json!(grew(&was, &whole));
+    shaped["loose"] = json!(loose);
+    shaped["print"] = json!(tisty_core::attach::printed(whole.as_bytes()));
     Ok(told(
         format!(
-            "Changed the table {} in {:?}, {}. What it was is kept beside the documents.{}{}",
+            "Changed the table {} in {:?}, {}. What it was is kept beside the documents.{}{}{}",
             nth + 1,
             tisty_core::docs::titled(&whole),
             by_how_much(&was, &whole),
             warned(&amiss),
+            loose_words(&state, &loose),
             if settled { "" } else { UNSETTLED },
         ),
-        shape(&which, nth, table, &amiss),
+        shaped,
     ))
+}
+
+// Capitals, accents and the spaces at either end decide nothing, as with steps and tags.
+fn same(one: &str, other: &str) -> bool {
+    tisty_core::text::folded(one.trim()) == tisty_core::text::folded(other.trim())
+}
+
+// What an assistant sends for a cell comes in as any Markdown does: turned into the Tisty language.
+fn spoken(said: &str) -> String {
+    tisty_core::arriving::tidied(said).body.trim().to_string()
 }
 
 // A document with one table needs no `table`; with more, it is named by its place or by the heading over it.
@@ -80,11 +97,25 @@ fn chosen<'a>(
     let found = match &args["table"] {
         Value::Null if tables.len() == 1 => Some(0),
         Value::Number(at) => at.as_u64().and_then(|at| (at as usize).checked_sub(1)),
-        Value::String(said) => tables.iter().position(|one| {
-            one.heading
-                .as_deref()
-                .is_some_and(|heading| heading.eq_ignore_ascii_case(said.trim()))
-        }),
+        Value::String(said) => {
+            let under: Vec<usize> = (0..tables.len())
+                .filter(|at| {
+                    tables[*at]
+                        .heading
+                        .as_deref()
+                        .is_some_and(|one| same(one, said))
+                })
+                .collect();
+            if under.len() > 1 {
+                return Err(Refused::Tool(format!(
+                    "{} tables sit under {said:?}; name the one you mean by its number. {which:?} \
+                     holds: {}.",
+                    under.len(),
+                    listed()
+                )));
+            }
+            under.first().copied()
+        }
         _ => None,
     };
     match found.and_then(|at| tables.get(at).map(|one| (at, one))) {
@@ -169,8 +200,8 @@ fn edits_for(asked: &str, table: &Shown, args: &Value) -> Result<(Vec<Edit>, Tou
     Ok(match asked {
         "set" => {
             let (row, column) = (row()?, column()?);
-            let value = said(args, "value")?;
-            let value = tisty_markdown::canon::canonical(&table.columns[column].kind, value);
+            let value = spoken(said(args, "value")?);
+            let value = tisty_markdown::canon::canonical(&table.columns[column].kind, &value);
             (
                 vec![Edit::Cell {
                     row,
@@ -190,9 +221,7 @@ fn edits_for(asked: &str, table: &Shown, args: &Value) -> Result<(Vec<Edit>, Tou
             };
             for (title, value) in values {
                 let column = column_of(table, &Value::String(title.clone()))?;
-                let value = value
-                    .as_str()
-                    .map_or_else(|| value.to_string(), str::to_string);
+                let value = value.as_str().map_or_else(|| value.to_string(), spoken);
                 let value = tisty_markdown::canon::canonical(&table.columns[column].kind, &value);
                 edits.push(Edit::Cell {
                     row,
@@ -215,14 +244,14 @@ fn edits_for(asked: &str, table: &Shown, args: &Value) -> Result<(Vec<Edit>, Tou
         }
         "type" => {
             let column = column()?;
-            let words = args["type"].as_str().unwrap_or_default().to_string();
+            let words = said(args, "type")?.to_string();
             (
                 vec![Edit::Retype { column, words }],
                 Touched::Column(column),
             )
         }
         "rename" => {
-            let said = said(args, "title")?.to_string();
+            let said = spoken(said(args, "title")?);
             (
                 vec![Edit::Rename {
                     column: column()?,
@@ -233,7 +262,7 @@ fn edits_for(asked: &str, table: &Shown, args: &Value) -> Result<(Vec<Edit>, Tou
         }
         "add_column" => {
             let at = table.columns.len();
-            let said = said(args, "title")?.to_string();
+            let said = spoken(said(args, "title")?);
             let mut edits = vec![Edit::ColumnAdd { at }, Edit::Rename { column: at, said }];
             if let Some(words) = args["type"].as_str().filter(|one| !one.trim().is_empty()) {
                 edits.push(Edit::Retype {
@@ -266,10 +295,7 @@ fn said<'a>(args: &'a Value, key: &str) -> Result<&'a str, Refused> {
 fn column_of(table: &Shown, asked: &Value) -> Result<usize, Refused> {
     let found = match asked {
         Value::Number(at) => at.as_u64().and_then(|at| (at as usize).checked_sub(1)),
-        Value::String(said) => table
-            .columns
-            .iter()
-            .position(|one| one.title.eq_ignore_ascii_case(said.trim())),
+        Value::String(said) => table.columns.iter().position(|one| same(&one.title, said)),
         _ => None,
     };
     found.filter(|at| *at < table.columns.len()).ok_or_else(|| {
@@ -294,7 +320,7 @@ fn row_of(table: &Shown, asked: &Value) -> Result<usize, Refused> {
         ));
     };
     let found: Vec<usize> = (0..table.rows.len())
-        .filter(|at| table.rows[*at].eq_ignore_ascii_case(said))
+        .filter(|at| same(&table.rows[*at], said))
         .collect();
     match found.as_slice() {
         [one] => Ok(*one),

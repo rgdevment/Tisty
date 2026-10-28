@@ -160,10 +160,7 @@ pub fn shown(text: &str) -> Vec<Shown> {
     fn walk(blocks: &[Block], text: &str, heading: &mut Option<String>, out: &mut Vec<Shown>) {
         for one in blocks {
             match &one.kind {
-                Kind::Heading(_) => {
-                    let said = text[one.at.clone()].trim().trim_start_matches('#').trim();
-                    *heading = Some(said.to_string());
-                }
+                Kind::Heading(_) => *heading = Some(headed_as(&text[one.at.clone()])),
                 Kind::Table { columns } => out.push(listed(one, columns, text, heading.clone())),
                 _ => walk(&one.inner, text, heading, out),
             }
@@ -173,6 +170,17 @@ pub fn shown(text: &str) -> Vec<Shown> {
     let mut out = Vec::new();
     walk(doc.blocks(), text, &mut None, &mut out);
     out
+}
+
+// A heading's words without its marks: the `#` before, the `#` that may close it, the underline below.
+fn headed_as(written: &str) -> String {
+    let first = written.trim().lines().next().unwrap_or_default();
+    let said = first.trim_start_matches('#').trim();
+    let open = said.trim_end_matches('#');
+    match open.is_empty() || open.ends_with([' ', '\t']) {
+        true => open.trim().to_string(),
+        false => said.to_string(),
+    }
 }
 
 fn listed(block: &Block, columns: &[Column], text: &str, heading: Option<String>) -> Shown {

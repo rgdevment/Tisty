@@ -14,13 +14,12 @@ pub fn comma_table(text: &str) -> Option<String> {
     commas(&lines).map(|rows| drawn(&rows))
 }
 
-// Lines that open on a tab are indented code, and a table's head never starts empty.
+// Every line opening on a tab is indented code; a head alone may, over a spreadsheet's empty corner.
 fn tabbed(lines: &[&str]) -> Option<Vec<Vec<String>>> {
-    let first = lines.first()?;
-    if first.starts_with('\t') {
+    if lines.iter().all(|one| one.starts_with('\t')) {
         return None;
     }
-    let tabs = first.matches('\t').count();
+    let tabs = lines.first()?.matches('\t').count();
     let even =
         lines.len() >= 2 && tabs > 0 && lines.iter().all(|one| one.matches('\t').count() == tabs);
     even.then(|| {
@@ -35,7 +34,7 @@ fn commas(lines: &[&str]) -> Option<Vec<Vec<String>>> {
     if lines.len() < CSV_ROWS {
         return None;
     }
-    if lines.iter().any(|one| statement(one)) {
+    if lines.iter().any(|one| called(one)) {
         return None;
     }
     let rows: Vec<Vec<String>> = lines.iter().map(|one| fields(one)).collect::<Option<_>>()?;
@@ -43,16 +42,15 @@ fn commas(lines: &[&str]) -> Option<Vec<Vec<String>>> {
     (wide >= CSV_FIELDS && rows.iter().all(|one| one.len() == wide)).then_some(rows)
 }
 
-// A call, `foo(a, b)`, or a line closed as code closes one, is code that happens to hold commas.
-fn statement(line: &str) -> bool {
+// A line that opens on a call, `foo(a, b)`, is code; a bracket in a heading, `Monto (USD)`, is not.
+fn called(line: &str) -> bool {
     let line = line.trim();
-    let called = line.find('(').is_some_and(|at| {
+    line.find('(').is_some_and(|at| {
         at > 0
             && line[..at]
                 .chars()
                 .all(|one| one.is_alphanumeric() || "_.:".contains(one))
-    });
-    called || line.ends_with([';', '{', '}'])
+    })
 }
 
 // A field in quotes may hold commas, and two quotes in a row are one; a quote left open is not a CSV line.
@@ -69,6 +67,8 @@ fn fields(line: &str) -> Option<Vec<String>> {
             }
             '"' if quoted || field.trim().is_empty() => quoted = !quoted,
             ',' if !quoted => all.push(String::new()),
+            // Code's punctuation outside quotes says these are lines of code that happen to hold commas.
+            '{' | '}' | ';' | '=' if !quoted => return None,
             _ => field.push(one),
         }
     }
