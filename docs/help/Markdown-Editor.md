@@ -71,6 +71,21 @@ Type `/` anywhere and the menu of what fits comes up. Keep typing to narrow it d
 
 The writing sits on a lit page. When the window is wide enough, a column opens beside it with what the document is, its tags, its outline and the way to its PDF.
 
+## Tables
+
+A table is written on the page itself, without opening its block:
+
+- **Click a cell** to write in it; Enter or a click outside keeps it, Esc leaves it as it was. Its title is written the same way.
+- **A row's and a column's `⋯` menu** move it, duplicate or remove a row, insert a column on either side, rename it, and give it a **type**: number, money, percent, date, duration, yes or no, choice, tags, rating, document, web address, email or phone. Money takes its currency, and a column of numbers can add itself up at the foot: sum, average, minimum, maximum or count. **Edit as Markdown** opens the table as text.
+- **Drag a row or a column** by its handle to put it somewhere else, and **New row** under the table adds one at the end.
+- **A typed cell is written as its type asks**: a calendar for a date, where you can also type «next Friday»; the column's own options for a choice, each with its colour; stars for a rating; a click for yes or no; a finder for a document.
+- **Sort and filter from a column's head.** That order and those filters are on screen only and leave the file alone; **Save this order** writes the rows in that order.
+- **A value not written as its type asks**, like «soon» in a date column, keeps what you wrote and shows a wavy line under it.
+- **In the text**, with the block open, `Alt` + ↑ ↓ moves the row the caret is on and `Alt` + ← → its column (`Ctrl` + `Alt` on a Mac), and the bar's **Table** menu sorts it and gives a column its type.
+- **Rows copied from Excel, Numbers or Google Sheets** — or a CSV — come in as a table when you paste them.
+
+A table wider than the page scrolls sideways, and its PDF and Word copies keep every column. How a type is written in the file is in the guide's [column types](https://markdown.tisty.app/tables).
+
 ## What a document can hold
 
 Everything a document holds, from bold and lists to callouts, pens, icons, tables, diagrams, formulas, widgets, code and pages, is plain Markdown with a few short words of Tisty's own, so the file survives without Tisty. How each one is written, with its examples drawn, is in the [Tisty Markdown guide](https://markdown.tisty.app), which also opens inside Tisty with `F1`. You never need it to write: the `/` menu and the bar write it all for you.

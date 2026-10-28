@@ -50,6 +50,7 @@ Las reglas detrás están en [[Qué puede hacer un asistente|Qué-puede-hacer-un
 | `write_doc` | Escribir un documento nuevo, o reescribir uno entero; con `compact`, poner en orden uno que creció por sesiones (ver abajo) |
 | `append_doc` | Añadir a un documento, al final o bajo un título; en la página de una tarea, reescribir entera su sección de notas con `replace` |
 | `edit_doc` | Cambiar un pasaje de un documento |
+| `edit_table` | Leer o cambiar una tabla de un documento por sus filas y columnas: poner una celda, añadir, quitar u ordenar filas, renombrar una columna o darle un tipo. Un valor que su columna no sabe leer se conserva y se nombra en la respuesta |
 | `restore_doc` | Volver un documento a como estaba, desde la copia guardada junto a los documentos |
 | `folder` | Crear una carpeta |
 | `file_doc` | Poner uno o varios documentos en una carpeta |
