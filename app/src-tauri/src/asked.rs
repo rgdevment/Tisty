@@ -1,3 +1,4 @@
+use tisty_core::standing::Standing;
 use tisty_core::view::{Filter, Scope, Window};
 use tisty_core::{Reading, Tag, Task};
 
@@ -200,7 +201,7 @@ impl View {
             window: match self.window.as_deref() {
                 Some("today") => Some(Window::Today),
                 Some("upcoming") => Some(Window::After(today())),
-                Some("overdue") => Some(Window::Overdue),
+                Some("overdue") => Some(Window::Stands(Standing::Overdue)),
                 Some("undated") => Some(Window::Undated),
                 _ => None,
             },

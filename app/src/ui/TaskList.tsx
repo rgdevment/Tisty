@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { type Axis, banded, monthly, regrouped, shelved } from "../archive";
 import { useAsked } from "../asked";
 import { useComing } from "../coming";
-import { type List, partsOf, type Task, type Whole } from "../core";
-import { cadence, isOverdue, stamped, whenLabel } from "../format";
+import { type List, partsOf, type Standing, type Task, type Whole } from "../core";
+import { cadence, dueLabel, lateLabel, running, stamped, whenLabel } from "../format";
 import { group, useGrouped } from "../grouping";
 import { fill, t } from "../locales";
 import { edge, placed, said, tint } from "../quadrants";
@@ -15,6 +15,7 @@ interface Props {
   tasks: Task[];
   lists: List[];
   wholes?: Record<string, Whole>;
+  standings?: Record<string, Standing>;
   selected?: string;
   fresh?: string;
   reveal?: string;
@@ -44,6 +45,7 @@ export default function TaskList({
   tasks,
   lists,
   wholes,
+  standings,
   selected,
   fresh,
   reveal,
@@ -115,14 +117,14 @@ export default function TaskList({
     () =>
       by && by !== "time"
         ? offered
-          ? regrouped(top, by, lists)
+          ? regrouped(top, by, lists, standings)
           : shelved(top, by, lists)
         : bands === "month"
           ? monthly(top)
           : bands === "day"
-            ? banded(top)
+            ? banded(top, standings)
             : top.map((task) => ({ kind: "one" as const, key: task.id, task, band: "" })),
-    [top, bands, by, lists, offered],
+    [top, bands, by, lists, offered, standings],
   );
   const heads = useMemo(() => new Set(rows.map((row) => row.band)).size > 1, [rows]);
   const first = useMemo(() => {
@@ -132,7 +134,10 @@ export default function TaskList({
     );
   }, [rows]);
   const [shut, setShut] = useState<ReadonlySet<string>>(new Set());
-  const hidden = (band: string) => heads && shut.has(band);
+  const timed = !(by && by !== "time") && bands === "day";
+  // A long project would fill today every day, so what is underway starts folded.
+  const closed = (band: string) => (timed && band === t("underwayBand")) !== shut.has(band);
+  const hidden = (band: string) => heads && closed(band);
   const many = useMemo(() => {
     const tally = new Map<string, number>();
     for (const row of rows) tally.set(row.band, (tally.get(row.band) ?? 0) + 1);
@@ -168,7 +173,7 @@ export default function TaskList({
 
   const drawn = sheets
     .flatMap((leaf) => leaf.rows)
-    .filter((row) => !(heads && shut.has(row.band)))
+    .filter((row) => !hidden(row.band))
     .flatMap((row) => [row.key, ...under(row.task.id).map((part) => `${row.key}/${part.id}`)]);
   const anchor = reached !== null && drawn.includes(reached) ? reached : drawn[0];
   const stops = (id: string) => anchor === id;
@@ -337,6 +342,7 @@ export default function TaskList({
               task={task}
               list={task.list ? named(task.list) : undefined}
               whole={nested || !task.part_of ? undefined : wholes?.[task.part_of]?.title}
+              stands={standings?.[task.id]}
             />
           </div>
 
@@ -451,12 +457,12 @@ export default function TaskList({
               {heads && leaf.band && (
                 <button
                   type="button"
-                  aria-expanded={!shut.has(leaf.band)}
+                  aria-expanded={!closed(leaf.band)}
                   onClick={() => setShut((was) => flip(was, leaf.band))}
                   className="mb-1 flex w-full items-baseline gap-2 border-b border-hair px-2.5 pb-1.5 text-left text-[10.5px] font-semibold tracking-[0.06em] text-faint uppercase hover:text-soft"
                 >
                   <span aria-hidden="true" className="text-[9px]">
-                    {shut.has(leaf.band) ? "▸" : "▾"}
+                    {closed(leaf.band) ? "▸" : "▾"}
                   </span>
                   {leaf.band}
                   <span className="ml-auto font-normal tracking-normal normal-case tabular-nums">
@@ -495,19 +501,40 @@ function Edge({ onReach }: { onReach: () => void }) {
   return <div ref={mark} aria-hidden="true" className="h-px shrink-0" />;
 }
 
-function Meta({ task, list, whole }: { task: Task; list?: string; whole?: string }) {
+function dated(task: Task, stands?: Standing): React.ReactNode[] {
   const bits: React.ReactNode[] = [];
-
-  if (task.date) {
+  if (task.date && !(task.deadline && running(stands))) {
     bits.push(
-      <span key="date" className={isOverdue(task.date) ? "text-urgent" : "text-accent"}>
-        {whenLabel(task.date)}
+      <span key="date" className={stands === "late" ? "text-hue-amber" : "text-accent"}>
+        {stands === "late" ? lateLabel(task.date) : whenLabel(task.date)}
       </span>,
     );
   }
   if (task.deadline) {
-    bits.push(<span key="deadline">⚑ {whenLabel(task.deadline)}</span>);
+    const tone =
+      stands === "overdue" ? "text-urgent" : stands === "due_soon" ? "text-hue-amber" : "";
+    const near = stands === "underway" || stands === "due_soon";
+    bits.push(
+      <span key="deadline" className={tone}>
+        ⚑ {near ? dueLabel(task.deadline) : whenLabel(task.deadline)}
+      </span>,
+    );
   }
+  return bits;
+}
+
+function Meta({
+  task,
+  list,
+  whole,
+  stands,
+}: {
+  task: Task;
+  list?: string;
+  whole?: string;
+  stands?: Standing;
+}) {
+  const bits = dated(task, stands);
   if (task.repeat) {
     bits.push(
       <span key="repeat" title={cadence(task.repeat)}>

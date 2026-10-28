@@ -64,14 +64,14 @@ Press `Ctrl` + `Shift` + `Space` wherever you are, and a small window opens for 
 
 ## The views
 
-- **Today** — what is due, overdue included. Overdue sits at the top, in red.
+- **Today** — what the day asks for, most urgent first: **Overdue** (its deadline passed, in red), **Due soon** (three days or less before its deadline), **Late** (the day you planned passed, in amber), **For today**, and **Underway** (started and still before its deadline), folded so a long project does not fill the list every day.
 - **Upcoming** — what is coming.
 - **Repeating** — what comes back on its own.
 - **All** — everything open, unfiltered.
 
 There is no prize for emptying the list.
 
-The window has three columns at most: what you are looking at, the list, and the task you opened. Where the window is wide enough, a column tells you the day — overdue, today, ahead, the four quadrants with their counts, the lists and tags in use — counting your whole store, and every figure is a way in.
+The window has three columns at most: what you are looking at, the list, and the task you opened. Where the window is wide enough, a column tells you the day — overdue, late, today, ahead, the four quadrants with their counts, the lists and tags in use — counting your whole store, and every figure is a way in.
 
 ## Priorities: the Eisenhower matrix
 

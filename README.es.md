@@ -50,6 +50,8 @@
     </a>
   </p>
 
+[![M8ven Score](https://m8ven.ai/badge/mcp/rgdevment-tisty-15kwqt?v=aae81c3714d58416bc4db879fcf2f629&variant=verified)](https://m8ven.ai/mcp/rgdevment-tisty-15kwqt?s=readme)
+
   <p>
     <img
       src="assets/store/es-01-registro.png"

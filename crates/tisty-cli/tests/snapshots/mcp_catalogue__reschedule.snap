@@ -14,14 +14,14 @@ expression: tool
     "additionalProperties": false,
     "properties": {
       "date": {
-        "description": "The day it is to be done (2026-08-31), or null to take it off",
+        "description": "The day it is to be done, or with a deadline the day the work starts (2026-08-31), or null to take it off",
         "type": [
           "string",
           "null"
         ]
       },
       "deadline": {
-        "description": "The day it is owed by, or null to take it off",
+        "description": "The day it is owed by, only once it passes is the task overdue, or null to take it off",
         "type": [
           "string",
           "null"

@@ -74,6 +74,7 @@ struct Snapshot {
     machine_here: String,
     clients: std::collections::BTreeMap<String, String>,
     wholes: std::collections::BTreeMap<String, answers::parts::Whole>,
+    standings: std::collections::BTreeMap<String, tisty_core::standing::Standing>,
 }
 
 impl From<tisty_core::capture::Rejected> for Refusal {
@@ -180,6 +181,7 @@ fn search(
         })
         .collect();
     Ok(Found {
+        standings: summing::standings(&session.state, today(), &tasks),
         tasks,
         total,
         papers,
@@ -204,6 +206,7 @@ struct Found {
     papers: Vec<Paper>,
     total: usize,
     wholes: std::collections::BTreeMap<String, answers::parts::Whole>,
+    standings: std::collections::BTreeMap<String, tisty_core::standing::Standing>,
 }
 
 #[derive(serde::Serialize)]
@@ -1311,6 +1314,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::paging::doc_plain,
         answers::paging::table_edit,
         answers::paging::table_order,
+        answers::paging::table_canon,
         answers::paging::table_written,
         answers::paging::help_reference,
         answers::paging::help_reference_here,
