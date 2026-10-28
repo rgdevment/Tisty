@@ -110,10 +110,10 @@ pub(crate) fn rounded(units: i128, many: i128) -> i128 {
 }
 
 pub(crate) struct Convention {
-    symbol: String,
+    pub(crate) symbol: String,
     pub(crate) decimals: u32,
-    group: &'static str,
-    point: &'static str,
+    pub(crate) group: &'static str,
+    pub(crate) point: &'static str,
     after: bool,
     spaced: bool,
 }

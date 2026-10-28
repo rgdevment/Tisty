@@ -208,6 +208,80 @@ th[aria-sort="descending"]::before {
   position: static;
   width: 16em;
 }
+.table-when {
+  display: block;
+  color: var(--tisty-faint);
+  font-size: 0.85em;
+}
+.table-star {
+  padding: 0 1px;
+  border: 0;
+  background: none;
+  color: var(--tisty-line);
+  font: inherit;
+  font-size: 1.1em;
+  line-height: 1;
+  cursor: pointer;
+}
+.table-star[aria-pressed="true"] {
+  color: var(--tisty-hue-amber);
+}
+.table-star:hover,
+.table-star:focus-visible {
+  color: var(--tisty-hue-amber);
+}
+.table-switch {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--tisty-line);
+  vertical-align: middle;
+  cursor: pointer;
+}
+.table-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--tisty-sheet);
+  transition: left 0.12s ease;
+}
+.table-switch[aria-checked="true"] {
+  background: var(--tisty-accent);
+}
+.table-switch[aria-checked="true"]::after {
+  left: 16px;
+}
+.table-option {
+  display: inline-block;
+  margin: 1px 4px 1px 0;
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--hue) 18%, transparent);
+  color: color-mix(in srgb, var(--hue) 70%, var(--tisty-ink));
+  font-size: 0.92em;
+  white-space: nowrap;
+}
+/* The bar sits under the number, so the share reads at a glance without hiding the figure. */
+.table-percent {
+  background:
+    linear-gradient(
+      color-mix(in srgb, var(--tisty-accent) 16%, transparent),
+      color-mix(in srgb, var(--tisty-accent) 16%, transparent)
+    )
+    left bottom / var(--fill) 3px no-repeat;
+}
+@media (prefers-reduced-motion: reduce) {
+  .table-switch::after {
+    transition: none;
+  }
+}
 /* Paper does not scroll: only a table wider than the paper's text breaks its words, at a syllable where it can. */
 @media print {
   div.table {

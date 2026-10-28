@@ -28,6 +28,10 @@ export const tableOrder = (
   down: boolean,
 ): Promise<number[]> => invoke("table_order", { body, at, column, down });
 
+// What was typed, in the form its column's type is written in the file; a date may be said as it is spoken.
+export const tableCanon = (words: string, typed: string): Promise<string> =>
+  invoke("table_canon", { words, typed, locale: navigator.language });
+
 export type TableWritten = { readonly heads: string[]; readonly rows: string[][] };
 
 export const tableWritten = (body: string, at: [number, number]): Promise<TableWritten> =>

@@ -2,11 +2,12 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { type Lent, openLink } from "../core";
 import { markup } from "../glyphs";
 import { askAgain, serve, showing } from "../inUse";
-import { t } from "../locales";
+import { locale, t } from "../locales";
 import { pictured } from "../previews";
 import { plainly } from "../refusal";
 import { type Attaching, attachedAs, lents, pressed } from "./attached";
 import { type Carding, carded } from "./carding";
+import { celled, today } from "./celled";
 import { diagrams, sourceOf } from "./diagrams";
 import {
   charsAt,
@@ -275,7 +276,9 @@ export const worn = (
   staged(page);
   if (reach?.onPart && !stranger) offeredAsParts(page, t("stepToPart"), reach.body);
   if (reach?.onWiden && !stranger) gripped(page);
-  if (reach?.onTable && !stranger) tabled(page);
+  const writable = Boolean(reach?.onTable) && !stranger;
+  if (writable) tabled(page);
+  celled(page, { today: today(), locale: locale(), hues: HUES, live: writable });
   const shown = pictures(page, live, {
     stranger,
     apart: Boolean(reach?.onApart),

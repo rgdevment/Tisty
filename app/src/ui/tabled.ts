@@ -10,7 +10,9 @@ export type TableAct =
   | "rowAdd"
   | "unsort"
   | "keep"
-  | "unfilter";
+  | "unfilter"
+  | "star"
+  | "toggle";
 
 export type Sorting = { readonly column: number; readonly down: boolean; readonly order: number[] };
 
@@ -29,12 +31,12 @@ const BOXES = ".page > .table[data-at]";
 export const tablesIn = (page: Document): HTMLElement[] =>
   Array.from(page.querySelectorAll<HTMLElement>(BOXES));
 
-const asking = (
+export const asking = (
   page: Document,
   act: TableAct,
   label: string,
   said: string,
-  place: { row?: number; column?: number } = {},
+  place: { row?: number; column?: number; to?: number } = {},
 ): HTMLButtonElement => {
   const one = page.createElement("button");
   one.type = "button";
@@ -42,6 +44,7 @@ const asking = (
   one.dataset.act = act;
   if (place.row !== undefined) one.dataset.row = String(place.row);
   if (place.column !== undefined) one.dataset.column = String(place.column);
+  if (place.to !== undefined) one.dataset.to = String(place.to);
   one.setAttribute("aria-label", label);
   one.textContent = said;
   return one;

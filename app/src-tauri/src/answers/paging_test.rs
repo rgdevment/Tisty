@@ -1,5 +1,16 @@
-use super::{DRAWN_BY, KEPT_AT_MOST, paged, table_edit};
+use super::{DRAWN_BY, KEPT_AT_MOST, canon, paged, table_edit};
+
 use tisty_markdown::grid::Edit;
+
+#[test]
+fn a_date_typed_as_it_is_said_lands_as_its_day() {
+    let now: jiff::Zoned = "2026-10-28T10:00:00[America/Santiago]".parse().unwrap();
+    assert_eq!(canon("date", "2026-11-14", &now, "es"), "2026-11-14");
+    assert_eq!(canon("date", "mañana", &now, "es"), "2026-10-29");
+    assert_eq!(canon("date", "tomorrow", &now, "en"), "2026-10-29");
+    assert_eq!(canon("date", "pronto", &now, "es"), "pronto");
+    assert_eq!(canon("money CLP", "$6.490", &now, "es"), "6490");
+}
 
 #[test]
 fn a_table_is_edited_where_the_page_drew_it_and_nowhere_else() {
