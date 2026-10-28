@@ -1,3 +1,4 @@
+import { headerAt } from "./framing";
 export type Shape = "plain" | "square" | "rounded" | "circle" | "cloud" | "bang" | "hexagon";
 
 export const SHAPES: readonly Shape[] = [
@@ -89,7 +90,7 @@ type Reading = Omit<Idea, "children" | "after"> & { children: Reading[]; after: 
 /** The map a `mindmap` diagram draws, or `null` when it holds something the window cannot keep. */
 export const readMind = (source: string): Mind | null => {
   const lines = source.replace(/\r/g, "").split("\n");
-  const opening = lines.findIndex((line) => /^\s*mindmap\b/.test(line));
+  const opening = headerAt(lines, /^\s*mindmap\b/);
   if (opening < 0) return null;
   const head = lines.slice(0, opening + 1);
   let root: Reading | null = null;
