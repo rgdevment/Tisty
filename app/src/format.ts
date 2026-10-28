@@ -1,4 +1,5 @@
-import type { DateSpec, Repeat, Standing } from "./core";
+import type { DateSpec, Repeat } from "./core";
+import type { Standing } from "./deadlines";
 import { fill, filled, locale, t, type Word } from "./locales";
 
 type Formats = {
@@ -6,6 +7,7 @@ type Formats = {
   clock: Intl.DateTimeFormat;
   whole: Intl.DateTimeFormat;
   relative: Intl.RelativeTimeFormat;
+  percent: Intl.NumberFormat;
 };
 
 let cached: (Formats & { for: string }) | null = null;
@@ -19,6 +21,7 @@ function formats(): Formats {
       clock: new Intl.DateTimeFormat(code, { hour: "2-digit", minute: "2-digit" }),
       whole: new Intl.DateTimeFormat(code, { dateStyle: "long", timeStyle: "short" }),
       relative: new Intl.RelativeTimeFormat(code, { numeric: "auto" }),
+      percent: new Intl.NumberFormat(code, { style: "percent" }),
     };
   }
   return cached;
@@ -97,6 +100,11 @@ export function dueLabel(spec: DateSpec, now = new Date()): string {
   if (away <= 0) return t("dueToday");
   return away === 1 ? t("dueTomorrow") : fill("dueIn", String(away));
 }
+
+export const countedAs = (many: number, one: Word, more: Word): string =>
+  many === 0 ? "" : many === 1 ? t(one) : fill(more, String(many));
+
+export const percentOf = (whole: number): string => formats().percent.format(whole / 100);
 
 export const lateLabel = (spec: DateSpec, now = new Date()): string =>
   fill("lateSince", whenLabel(spec, now));

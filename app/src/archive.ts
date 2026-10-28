@@ -1,4 +1,5 @@
-import type { List, Standing, Task } from "./core";
+import type { List, Task } from "./core";
+import type { Standing } from "./deadlines";
 import { bandOf, monthOf } from "./format";
 import { locale, t, type Word } from "./locales";
 import { said } from "./quadrants";

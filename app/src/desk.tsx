@@ -144,10 +144,12 @@ export function deskOf(state: State, data: Snapshot) {
 
   const wholes = { ...found?.wholes, ...data.wholes };
   const standings = { ...found?.standings, ...data.standings };
+  const paces = { ...found?.paces, ...data.paces };
   const detailing = (one: Task) =>
     detailOf(one, {
       data,
       wholes,
+      paces,
       act,
       marking,
       wipe,
@@ -187,6 +189,7 @@ export function deskOf(state: State, data: Snapshot) {
     shut,
     wholes,
     standings,
+    paces,
     detailing,
     opening,
   };

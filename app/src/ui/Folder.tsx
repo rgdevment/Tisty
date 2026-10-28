@@ -1,14 +1,11 @@
 import { useState } from "react";
 import type { Filed, Folded } from "../core";
-import { shortStamp } from "../format";
+import { countedAs, shortStamp } from "../format";
 import { led } from "../leading";
-import { fill, t, type Word } from "../locales";
+import { fill, t } from "../locales";
 import { weighed } from "../previews";
 import Glyph from "./Glyph";
 import { painted } from "./Hue";
-
-const counted = (many: number, one: Word, more: Word): string =>
-  many === 0 ? "" : many === 1 ? t(one) : fill(more, String(many));
 
 const PEEK = 8;
 
@@ -90,12 +87,12 @@ export default function Folder({
   const deeper = folder ? below(folder.id) - inside.length : 0;
   const missing = inside.filter((one) => one.gone).length;
   const said = [
-    counted(under.length, "folderIsOne", "foldersAre"),
+    countedAs(under.length, "folderIsOne", "foldersAre"),
     deeper > 0
-      ? counted(inside.length + deeper, "paperInAllIsOne", "papersInAll")
-      : counted(inside.length, "paperIsOne", "papersAre"),
-    deeper > 0 ? counted(inside.length, "paperRightHereIsOne", "papersRightHere") : "",
-    counted(missing, "paperMissingIsOne", "papersMissing"),
+      ? countedAs(inside.length + deeper, "paperInAllIsOne", "papersInAll")
+      : countedAs(inside.length, "paperIsOne", "papersAre"),
+    deeper > 0 ? countedAs(inside.length, "paperRightHereIsOne", "papersRightHere") : "",
+    countedAs(missing, "paperMissingIsOne", "papersMissing"),
   ]
     .filter(Boolean)
     .join(" · ");
@@ -172,7 +169,7 @@ export default function Folder({
       </span>
       <span className="truncate font-medium text-ink">{one.name}</span>
       <span className="shrink-0 text-[11.5px] text-faint">
-        {one.holds ? counted(one.holds, "paperIsOne", "papersAre") : t("folderEmpty")}
+        {one.holds ? countedAs(one.holds, "paperIsOne", "papersAre") : t("folderEmpty")}
       </span>
     </button>
   );

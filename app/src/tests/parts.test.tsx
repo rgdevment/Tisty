@@ -115,6 +115,14 @@ describe("the detail of a task with parts", () => {
     expect(screen.getByRole("button", { name: new RegExp(t("closeLettingGo")) })).not.toBeNull();
   });
 
+  it("shows its pace under the title, across the whole width", () => {
+    opened(task("W", "move house"), { whole, pace: { pace: "behind", time: 70, done: 20 } });
+
+    const bar = screen.getByRole("img", { name: new RegExp(`^${t("paceBehind")}`) });
+    expect(bar.className).toContain("w-full");
+    expect(bar.className).not.toContain("max-w");
+  });
+
   it("adds a part from the line beneath them", async () => {
     parts.splice(0, parts.length);
     const added = vi.fn();

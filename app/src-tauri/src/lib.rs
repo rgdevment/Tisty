@@ -75,6 +75,7 @@ struct Snapshot {
     clients: std::collections::BTreeMap<String, String>,
     wholes: std::collections::BTreeMap<String, answers::parts::Whole>,
     standings: std::collections::BTreeMap<String, tisty_core::standing::Standing>,
+    paces: std::collections::BTreeMap<String, tisty_core::pace::Paced>,
 }
 
 impl From<tisty_core::capture::Rejected> for Refusal {
@@ -180,12 +181,14 @@ fn search(
             line: one.line,
         })
         .collect();
+    let wholes = answers::parts::wholes(&session.state);
     Ok(Found {
         standings: summing::standings(&session.state, today(), &tasks),
+        paces: summing::paces(&wholes, today(), &tasks),
         tasks,
         total,
         papers,
-        wholes: answers::parts::wholes(&session.state),
+        wholes,
     })
 }
 
@@ -207,6 +210,7 @@ struct Found {
     total: usize,
     wholes: std::collections::BTreeMap<String, answers::parts::Whole>,
     standings: std::collections::BTreeMap<String, tisty_core::standing::Standing>,
+    paces: std::collections::BTreeMap<String, tisty_core::pace::Paced>,
 }
 
 #[derive(serde::Serialize)]
