@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { DateSpec } from "../core";
-import { daysFrom, isOverdue, isToday, monthOf, whenLabel } from "../format";
+import { daysFrom, dueLabel, lateLabel, monthOf, whenLabel } from "../format";
 
 const spec = (at: string, has_time = false): DateSpec => ({
   at,
@@ -35,15 +35,24 @@ describe("daysFrom", () => {
   });
 });
 
-describe("isOverdue and isToday", () => {
-  it("today is not overdue, however late in the day", () => {
-    const now = new Date("2026-08-10 23:30:00");
-    expect(isOverdue(spec("2026-08-10 09:00:00", true), now)).toBe(false);
-    expect(isToday(spec("2026-08-10 09:00:00", true), now)).toBe(true);
+// One case a line: today, the deadline, and how the row says it.
+const DUE = `
+2026-08-10|2026-08-10 23:00:00|due today
+2026-08-10|2026-08-11 09:00:00|due tomorrow
+2026-08-10|2026-08-13 09:00:00|due in 3 days
+2026-08-10|2026-09-17 09:00:00|due in 38 days
+`;
+
+describe("dueLabel and lateLabel", () => {
+  it("says how far the deadline is", () => {
+    for (const line of DUE.trim().split("\n")) {
+      const [today = "", deadline = "", said] = line.split("|");
+      expect(dueLabel(spec(deadline), noon(today)), line).toBe(said);
+    }
   });
 
-  it("yesterday is", () => {
-    expect(isOverdue(spec("2026-08-09 09:00:00"), noon("2026-08-10"))).toBe(true);
+  it("says since when a planned day is late", () => {
+    expect(lateLabel(spec("2026-08-09 09:00:00"), noon("2026-08-10"))).toBe("since yesterday");
   });
 });
 

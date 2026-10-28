@@ -8,7 +8,7 @@ expression: tool
     "additionalProperties": false,
     "properties": {
       "fields": {
-        "description": "Only these parts of it: any of title, status, closed, notice, date, deadline, reminders, tags, source, list, priority, by_agent, via, said_done, said_not_doing, open_to_agents, part_of, parts, description, steps, journal, kept, document. Left out, everything comes. The id always does",
+        "description": "Only these parts of it: any of title, status, closed, notice, date, deadline, standing, reminders, tags, source, list, priority, by_agent, via, said_done, said_not_doing, open_to_agents, part_of, parts, description, steps, journal, kept, document. Left out, everything comes. The id always does",
         "items": {
           "type": "string"
         },

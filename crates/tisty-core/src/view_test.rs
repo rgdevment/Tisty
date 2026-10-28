@@ -155,8 +155,8 @@ fn what_is_ahead_never_repeats_what_today_already_showed() {
 
 #[test]
 fn a_day_that_passed_is_late_and_only_a_deadline_makes_it_overdue() {
-    let overdue = filter(|f| f.window = Some(Window::Overdue));
-    let late = filter(|f| f.window = Some(Window::Late));
+    let overdue = filter(|f| f.window = Some(Window::Stands(Standing::Overdue)));
+    let late = filter(|f| f.window = Some(Window::Stands(Standing::Late)));
 
     assert!(!overdue.matches(&dated("meant for yesterday", "2026-08-04"), today()));
     assert!(late.matches(&dated("meant for yesterday", "2026-08-04"), today()));
@@ -165,8 +165,32 @@ fn a_day_that_passed_is_late_and_only_a_deadline_makes_it_overdue() {
 }
 
 #[test]
+fn a_close_deadline_claims_today_even_when_the_work_starts_later() {
+    let today_window = filter(|f| f.window = Some(Window::Today));
+    let mut starts_later = due("hand it in", "2026-08-07");
+    starts_later.date = Some(DateSpec::all_day("2026-08-07".parse().unwrap(), "UTC"));
+    let mut far = due("far off", "2026-09-30");
+    far.date = Some(DateSpec::all_day("2026-08-20".parse().unwrap(), "UTC"));
+
+    assert!(today_window.matches(&starts_later, today()));
+    assert!(!today_window.matches(&far, today()));
+}
+
+#[test]
+fn what_today_claims_by_its_deadline_is_not_ahead_as_well() {
+    let ahead = filter(|f| f.window = Some(Window::After(today())));
+    let mut starts_later = due("hand it in", "2026-08-07");
+    starts_later.date = Some(DateSpec::all_day("2026-08-07".parse().unwrap(), "UTC"));
+    let mut far = due("far off", "2026-09-30");
+    far.date = Some(DateSpec::all_day("2026-08-20".parse().unwrap(), "UTC"));
+
+    assert!(!ahead.matches(&starts_later, today()));
+    assert!(ahead.matches(&far, today()));
+}
+
+#[test]
 fn a_task_started_before_its_deadline_is_underway() {
-    let underway = filter(|f| f.window = Some(Window::Underway));
+    let underway = filter(|f| f.window = Some(Window::Stands(Standing::Underway)));
     let mut started = due("migration", "2026-09-30");
     started.date = Some(DateSpec::all_day("2026-07-06".parse().unwrap(), "UTC"));
 
@@ -177,7 +201,7 @@ fn a_task_started_before_its_deadline_is_underway() {
 
 #[test]
 fn a_deadline_that_passed_is_overdue_whatever_day_you_meant_to_do_it() {
-    let f = filter(|f| f.window = Some(Window::Overdue));
+    let f = filter(|f| f.window = Some(Window::Stands(Standing::Overdue)));
 
     assert!(
         f.matches(&due("the paperwork", "2026-08-04"), today()),

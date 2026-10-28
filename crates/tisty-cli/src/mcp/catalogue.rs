@@ -114,12 +114,25 @@ duplicate marked with `flag_doc`. Nothing is left for later.
 A task has a title, and only what someone actually knows besides: a description of what it is; \
 steps, a checklist ticked as each one is done; parts, tasks of their own hung under it one level \
 deep (`parts` when proposing, `part_of` later, `move` to change it); the list it belongs in; a \
-date it is meant to be done on and a deadline it truly runs out on, which are not the same; a \
+date and a deadline, which are not the same; a \
 reminder for what cannot be caught up on; a priority — do, decide, delegate, minor — only when \
 someone said so; tags for its subjects; and a `source`, where you read it. Its page holds its \
 words, notes, pictures and files. A task goes from open, to said done or said not doing by you, \
 to closed by the person; closed, it goes to the archive whole, where `find` and `read` go on \
 answering «how was this solved?».
+
+## Its two dates
+
+A date alone is the day it is meant to be done on. With a deadline, the date is the day the work \
+starts and the deadline the day it truly runs out: a start goes in `date` only when there is a \
+deadline after it. Only a deadline that passed makes a task overdue; a planned day that passed \
+makes it late, never overdue. Every open task with a date or a deadline comes with its \
+`standing`, worked out \
+from both as the window shows it: `ahead` (its day or its start has not come, or its deadline is \
+far), `today`, `late` (its day passed and it has no deadline), `underway` (started and more than \
+3 days before its deadline), `due_soon` (3 days or less before its deadline) and \
+`overdue` (its deadline passed). Read it rather than working it out again, and say it the same \
+way: a task started last week and due next month is underway, not overdue.
 
 ## The archive is history to consult
 
@@ -325,6 +338,7 @@ const TOPICS: &[(&str, &[&str])] = &[
         "tasks",
         &[
             "What a task is made of",
+            "Its two dates",
             "The archive is history to consult",
             "Filing tasks",
             "The tasks you may work on",
@@ -436,11 +450,11 @@ pub(super) fn tools() -> Value {
                     },
                     "date": {
                         "type": "string",
-                        "description": "The day it is meant to be done (2026-08-31)"
+                        "description": "The day it is meant to be done, or with a deadline the day the work starts (2026-08-31)"
                     },
                     "deadline": {
                         "type": "string",
-                        "description": "The day it actually runs out (2026-08-31)"
+                        "description": "The day it actually runs out (2026-08-31): only once it passes is the task overdue"
                     },
                     "remind": {
                         "type": "array",
@@ -1077,8 +1091,8 @@ pub(super) fn tools() -> Value {
             "inputSchema": shaped(json!({
                 "properties": {
                     "task": { "type": "string", "description": "The task's id, as `find` or `propose` gave it" },
-                    "date": { "type": ["string", "null"], "description": "The day it is to be done (2026-08-31), or null to take it off" },
-                    "deadline": { "type": ["string", "null"], "description": "The day it is owed by, or null to take it off" }
+                    "date": { "type": ["string", "null"], "description": "The day it is to be done, or with a deadline the day the work starts (2026-08-31), or null to take it off" },
+                    "deadline": { "type": ["string", "null"], "description": "The day it is owed by, only once it passes is the task overdue, or null to take it off" }
                 },
                 "required": ["task"]
             }))
@@ -1153,7 +1167,7 @@ pub(super) fn tools() -> Value {
                     "fields": {
                         "type": "array",
                         "items": { "type": "string" },
-                        "description": "Only these parts of it: any of title, status, closed, notice, date, deadline, reminders, tags, source, list, priority, by_agent, via, said_done, said_not_doing, open_to_agents, part_of, parts, description, steps, journal, kept, document. Left out, everything comes. The id always does"
+                        "description": "Only these parts of it: any of title, status, closed, notice, date, deadline, standing, reminders, tags, source, list, priority, by_agent, via, said_done, said_not_doing, open_to_agents, part_of, parts, description, steps, journal, kept, document. Left out, everything comes. The id always does"
                     }
                 },
                 "required": ["task"]
@@ -1312,3 +1326,7 @@ fn many_docs_field(what: &str) -> Value {
         )
     })
 }
+
+#[cfg(test)]
+#[path = "catalogue_test.rs"]
+mod tests;

@@ -64,14 +64,14 @@ Presiona `Ctrl` + `Shift` + `Space` desde donde estés y se abre una ventanita p
 
 ## Las vistas
 
-- **Hoy**: lo que toca, incluido lo atrasado. Lo vencido aparece arriba y en rojo.
+- **Hoy**: lo que pide el día, lo más urgente primero: **Vencidas** (pasó su límite, en rojo), **Por vencer** (faltan tres días o menos para su límite), **Atrasadas** (pasó el día que planeaste, en ámbar), **Para hoy** y **En curso** (empezó y aún no llega a su límite), plegado para que un proyecto largo no llene la lista todos los días.
 - **Próximo**: lo que viene.
 - **Se repiten**: lo que vuelve por su cuenta.
 - **Todas**: todo lo abierto, sin filtro.
 
 No hay premios por vaciar la lista.
 
-La ventana tiene tres columnas como máximo: lo que estás mirando, la lista y la tarea que abriste. Cuando la ventana es lo bastante ancha, una columna te cuenta el día (lo atrasado, lo de hoy, lo que viene, los cuatro cuadrantes con sus cuentas, las listas y etiquetas en uso), contando todo tu almacén, y cada cifra es una entrada.
+La ventana tiene tres columnas como máximo: lo que estás mirando, la lista y la tarea que abriste. Cuando la ventana es lo bastante ancha, una columna te cuenta el día (lo vencido, lo atrasado, lo de hoy, lo que viene, los cuatro cuadrantes con sus cuentas, las listas y etiquetas en uso), contando todo tu almacén, y cada cifra es una entrada.
 
 ## Prioridades: la matriz de Eisenhower
 

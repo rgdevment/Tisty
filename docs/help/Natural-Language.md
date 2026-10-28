@@ -69,6 +69,8 @@ A bare number is only a time behind «at»: `turn the volume to 12` stays a titl
 
 A **date** is when you plan to do it. A **deadline** is when it stops being possible. Four words open a deadline: **before**, **by**, **due** and **until**.
 
+With both, the date is when the work starts and the deadline when it runs out: between the two the task is **underway**, and only once the deadline passes is it **overdue**. A date alone that passed leaves the task **late**, never overdue.
+
 | You write | Reads as |
 | :-- | :-- |
 | `send the report on friday` | date: Fri 7 Aug |

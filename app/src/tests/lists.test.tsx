@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { List, Task } from "../core";
+import { whenLabel } from "../format";
 import Lists from "../ui/Lists";
 
 const store = vi.hoisted(() => ({
@@ -260,5 +261,41 @@ describe("an archived list somebody filed into", () => {
 
     expect(screen.getByLabelText("Icon of Moving")).toBeTruthy();
     expect(screen.queryByRole("region", { name: "Archived" })).toBeNull();
+  });
+});
+
+describe("the soonest task of a list", () => {
+  it("says the deadline that ran out, not the day the work started", () => {
+    const started = {
+      id: "T",
+      title: "A3 · Migración de Sodimac Uruguay",
+      status: "open",
+      priority: "unset",
+      order: "a0",
+      tags: [],
+      reminders: [],
+      date: { at: "2026-10-06T10:00:00", tz: "America/Santiago", floating: true, has_time: false },
+      deadline: {
+        at: "2026-10-26T10:00:00",
+        tz: "America/Santiago",
+        floating: true,
+        has_time: false,
+      },
+    } as unknown as Task;
+    render(
+      <Lists
+        lists={lists}
+        counts={{ "01A": 1 }}
+        soonest={{ "01A": [started] }}
+        standings={{ T: "overdue" }}
+        onOpen={vi.fn()}
+        onChanged={vi.fn()}
+        onError={vi.fn()}
+      />,
+    );
+
+    const when = screen.getByText(whenLabel(started.deadline as NonNullable<Task["deadline"]>));
+    expect(when.className).toContain("text-urgent");
+    expect(screen.queryByText(whenLabel(started.date as NonNullable<Task["date"]>))).toBeNull();
   });
 });

@@ -1,4 +1,4 @@
-import type { DateSpec, Repeat } from "./core";
+import type { DateSpec, Repeat, Standing } from "./core";
 import { fill, filled, locale, t, type Word } from "./locales";
 
 type Formats = {
@@ -88,7 +88,18 @@ export function clockOf(spec: DateSpec): string {
   return spec.has_time ? formats().clock.format(new Date(spec.at)) : "";
 }
 
-export const isOverdue = (spec: DateSpec, now = new Date()): boolean => daysFrom(spec.at, now) < 0;
+// Once the work has started, the deadline says more than the start.
+export const running = (stands?: Standing): boolean =>
+  stands === "underway" || stands === "due_soon" || stands === "overdue";
+
+export function dueLabel(spec: DateSpec, now = new Date()): string {
+  const away = daysFrom(spec.at, now);
+  if (away <= 0) return t("dueToday");
+  return away === 1 ? t("dueTomorrow") : fill("dueIn", String(away));
+}
+
+export const lateLabel = (spec: DateSpec, now = new Date()): string =>
+  fill("lateSince", whenLabel(spec, now));
 
 export function monthOf(iso?: string, now = new Date()): string {
   if (!iso) return "";
@@ -112,8 +123,6 @@ function months(here: boolean): Intl.DateTimeFormat {
   }
   return here ? named.here : named.away;
 }
-
-export const isToday = (spec: DateSpec, now = new Date()): boolean => daysFrom(spec.at, now) === 0;
 
 export function cadence(repeat: Repeat): string {
   const { every, unit } = repeat.each;
@@ -147,7 +156,6 @@ function lastDay(iso: string): string {
 export function bandOf(spec: DateSpec | undefined, now = new Date()): string {
   if (!spec) return t("someday");
   const away = daysFrom(spec.at, now);
-  if (away < 0) return t("overdue");
   if (away === 0) return t("today");
   if (away === 1) return t("tomorrow");
   return formats().day.format(new Date(spec.at));
