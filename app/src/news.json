@@ -973,5 +973,80 @@
         "said": "a connected assistant changes a table by its rows and columns, without rewriting the document. And every tool tells its app whether it only reads or writes, so it can ask you first."
       }
     ]
+  },
+  {
+    "version": "1.39.0",
+    "headline": {
+      "es": "Diagramas que dibujas a tu manera, y se ven tal cual",
+      "en": "Diagrams you draw your own way, and they look just so"
+    },
+    "es": [
+      {
+        "title": "El diagrama libre",
+        "said": "el diagrama de flujo ahora es el diagrama libre, y empieza en blanco. Su paleta trae todas las formas que dibuja Mermaid, en seis grupos, para arrastrarlas al lienzo o pulsarlas; cada forma queda donde la dejas, y un texto largo salta de línea."
+      },
+      {
+        "title": "Carriles y flechas",
+        "said": "arrastra un carril con todo lo que tiene, agrándalo desde sus bordes y suelta formas dentro. Las flechas van en ángulo recto entre los lados que se miran, y una flecha soltada en un espacio vacío crea una forma ya unida."
+      },
+      {
+        "title": "Que se acomode solo",
+        "said": "«Acomodar solo» ordena el diagrama de arriba abajo, de izquierda a derecha o al revés, y «en cada cambio» lo mantiene ordenado mientras trabajas. La barra deshace, duplica, da color, alinea y acerca."
+      },
+      {
+        "title": "Clases y esquemas en el mismo lienzo",
+        "said": "clases, interfaces y enumeraciones salen de una paleta, los paquetes son carriles y cada relación muestra su punta y cuántos hay en cada extremo. Un esquema toma sus tablas de la paleta, relaciona columnas arrastrando su punto y deja cada tabla donde la pusiste."
+      },
+      {
+        "title": "El mapa mental, con su paleta",
+        "said": "pulsa una forma para sumar una idea bajo la que elegiste, o arrástrala sobre otra. La barra deshace, agrega una hija o una hermana, borra y acerca, y el mapa se sigue acomodando solo."
+      },
+      {
+        "title": "En la página, como en la ventana",
+        "said": "mapas mentales, esquemas, diagramas libres y de clases se ven en la página tal como los dibujaste, con un pequeño margen. Al pasar el puntero sobre un diagrama aparecen «Exportar», «Editar como Markdown» y «Abrir en la ventana de diagramas»."
+      },
+      {
+        "title": "Más cómodo al escribir",
+        "said": "la barra de formato se aparta dentro de un bloque de código o de una fórmula, y una opción se elige haciendo clic en cualquier parte de su texto."
+      },
+      {
+        "title": "Ayuda también sin conexión",
+        "said": "un enlace de la ayuda a la guía de Markdown abre la copia que trae Tisty, en la sección justa, aunque no tengas conexión."
+      }
+    ],
+    "en": [
+      {
+        "title": "The freeform diagram",
+        "said": "the flowchart is now the freeform diagram, and it starts blank. Its palette holds every shape Mermaid draws, in six groups, to drag onto the canvas or press; each shape stays where you leave it, and long words go on to a new line."
+      },
+      {
+        "title": "Lanes and arrows",
+        "said": "drag a lane with everything in it, size it from its edges and drop shapes into it. Arrows run at right angles between the sides that face each other, and an arrow let go on empty space makes a new shape already joined."
+      },
+      {
+        "title": "Let it lay itself out",
+        "said": "«Lay out by itself» orders the diagram top to bottom, left to right or the other way round, and «after every change» keeps it in order while you work. The bar undoes, duplicates, colours, aligns and zooms."
+      },
+      {
+        "title": "Classes and schemas on the same canvas",
+        "said": "classes, interfaces and enumerations come from a palette, packages are lanes and each relation shows its head and how many there are at each end. A schema takes its tables from the palette, relates columns by dragging their dot and keeps each table where you put it."
+      },
+      {
+        "title": "The mind map, with its palette",
+        "said": "press a shape to add an idea under the one you chose, or drag it onto another. The bar undoes, adds a child or a sibling, deletes and zooms, and the map still lays itself out."
+      },
+      {
+        "title": "On the page, as in the window",
+        "said": "mind maps, schemas, freeform and class diagrams look on the page just as you drew them, with a small margin. Hover a diagram for «Export», «Edit as Markdown» and «Open in the diagram window»."
+      },
+      {
+        "title": "Easier to write",
+        "said": "the format bar steps aside inside a code block or a formula, and a choice is picked by pressing anywhere on its words."
+      },
+      {
+        "title": "Help offline too",
+        "said": "a link from the help to the Markdown guide opens the copy Tisty carries, at the right section, even without a connection."
+      }
+    ]
   }
 ]
