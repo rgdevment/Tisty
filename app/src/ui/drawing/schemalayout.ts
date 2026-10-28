@@ -49,23 +49,55 @@ export const boxesOf = (schema: Schema): Box[] => {
     const row = Math.floor(at / PER_ROW);
     rows[row] = Math.max(rows[row] ?? 0, tallOf(table));
   });
-  const tops = rows.map((_, row) =>
-    rows.slice(0, row).reduce((sum, tall) => sum + tall + 60, MARGIN),
+  const usual = Math.max(HEAD, ...rows);
+  const topOf = (row: number) =>
+    Array.from({ length: row }, (_, at) => (rows[at] ?? usual) + 60).reduce(
+      (sum, step) => sum + step,
+      MARGIN,
+    );
+  const cell = (at: number) => {
+    const row = Math.floor(at / PER_ROW);
+    return {
+      x: MARGIN + (at % PER_ROW) * CELL,
+      y: topOf(row),
+      wide: CELL - 40,
+      tall: rows[row] ?? usual,
+    };
+  };
+  const placed = schema.tables.flatMap((table) =>
+    table.at
+      ? [
+          {
+            x: Math.max(0, table.at.x),
+            y: Math.max(0, table.at.y),
+            wide: wideOf(table),
+            tall: tallOf(table),
+          },
+        ]
+      : [],
   );
+  const taken = new Set<number>();
+  // A cell a table placed by hand covers is skipped, so no two cards are drawn one over the other.
+  const free = (at: number) => {
+    let spot = at;
+    while (taken.has(spot) || placed.some((one) => overlaps(one, cell(spot)))) spot += 1;
+    taken.add(spot);
+    return cell(spot);
+  };
   return schema.tables.map((table, at) => {
     const wide = wideOf(table);
     const tall = tallOf(table);
     if (table.at)
       return { table, x: Math.max(0, table.at.x), y: Math.max(0, table.at.y), wide, tall };
-    return {
-      table,
-      x: MARGIN + (at % PER_ROW) * CELL,
-      y: tops[Math.floor(at / PER_ROW)],
-      wide,
-      tall,
-    };
+    const { x, y } = free(at);
+    return { table, x, y, wide, tall };
   });
 };
+
+type Rect = { x: number; y: number; wide: number; tall: number };
+
+const overlaps = (a: Rect, b: Rect) =>
+  a.x < b.x + b.wide && b.x < a.x + a.wide && a.y < b.y + b.tall && b.y < a.y + a.tall;
 
 // A relation leaves the side of one table that faces the other.
 const linkOf = (index: number, relation: Relation, a: Box, b: Box): Link => {

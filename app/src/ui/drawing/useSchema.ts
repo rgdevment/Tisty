@@ -18,8 +18,18 @@ const signOf = (schema: Schema, picked: Picked): string | null => {
     const column = tableOf(schema, picked.table)?.columns[picked.index];
     return column ? `${picked.table}\n${column.name}` : null;
   }
-  const relation = relationsOf(schema)[picked.index];
-  return relation ? `${relation.from}\n${relation.to}\n${relation.label}` : null;
+  return relationSigns(schema)[picked.index] ?? null;
+};
+
+// Two relations alike in ends and words are told apart by which of them it is.
+const relationSigns = (schema: Schema): string[] => {
+  const seen = new Map<string, number>();
+  return relationsOf(schema).map((one) => {
+    const said = `${one.from}\n${one.to}\n${one.label}`;
+    const nth = seen.get(said) ?? 0;
+    seen.set(said, nth + 1);
+    return `${said}\n${nth}`;
+  });
 };
 
 // Text typed by hand can move what was chosen; it is found again by what it is, or nothing is chosen.
@@ -33,9 +43,7 @@ const foundAgain = (schema: Schema, picked: Picked, sign: string | null): Picked
     );
     return index !== undefined && index >= 0 ? { ...picked, index } : null;
   }
-  const index = relationsOf(schema).findIndex(
-    (one) => `${one.from}\n${one.to}\n${one.label}` === sign,
-  );
+  const index = relationSigns(schema).indexOf(sign);
   return index >= 0 ? { kind: "relation", index } : null;
 };
 

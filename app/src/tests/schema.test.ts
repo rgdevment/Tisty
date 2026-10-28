@@ -321,3 +321,63 @@ describe("laying out a schema", () => {
     expect(grown.slice(0, 4)).toEqual(before);
   });
 });
+
+describe("what the second review of the schema found", () => {
+  it("never draws a table over one placed by hand: it takes the next free cell", () => {
+    const schema = readSchema(
+      "erDiagram\n  a {\n    int id\n  }\n  b {\n    int id\n  }\n  %% tisty: b 40 40",
+    ) as Schema;
+    const [a, b] = boxesOf(schema);
+
+    expect(b).toMatchObject({ x: 40, y: 40 });
+    expect(
+      a.x + a.wide <= b.x || b.x + b.wide <= a.x || a.y + a.tall <= b.y || b.y + b.tall <= a.y,
+    ).toBe(true);
+  });
+
+  it("leaves titles, descriptions and quoted words alone when a table is renamed", () => {
+    const source =
+      'erDiagram\n  accTitle: Esquema de personas\n  personas {\n    int id PK\n  }\n  personas only one to zero or more pedidos : "personas que compran"';
+    const written = writeSchema(
+      tableRenamed(readSchema(source) as Schema, "personas", "gente").schema,
+    );
+
+    expect(written).toBe(
+      'erDiagram\n  accTitle: Esquema de personas\n  gente {\n    int id PK\n  }\n  gente only one to zero or more pedidos : "personas que compran"',
+    );
+  });
+
+  it("finds a relation written the other way round instead of drawing it again", () => {
+    const schema = readSchema(
+      "erDiagram\n  compartidos }o--|| personas : persona_id\n  personas {\n    int id PK\n  }\n  compartidos {\n    int persona_id FK\n  }",
+    ) as Schema;
+
+    const made = related(schema, { table: "compartidos", index: 0 }, "personas") as Altered;
+
+    expect(made.schema).toBe(schema);
+    expect(made.picked).toEqual({ kind: "relation", index: 0 });
+  });
+
+  it("renames only a foreign key's relation, not another one that uses the same word", () => {
+    const schema = readSchema(
+      "erDiagram\n  pedidos ||--o{ historial : estado\n  pedidos {\n    text estado\n  }",
+    ) as Schema;
+
+    const written = writeSchema(
+      columnChanged(schema, "pedidos", 0, { name: "estado_actual" }).schema,
+    );
+
+    expect(written).toContain("pedidos ||--o{ historial : estado\n");
+  });
+
+  it("quotes in DBML the names it cannot read bare", () => {
+    const schema = readSchema(
+      "erDiagram\n  fecha-alta ||--o{ pedidos : alta_id\n  fecha-alta {\n    int id PK\n  }\n  pedidos {\n    int alta_id FK\n    text correo_electrónico\n  }",
+    ) as Schema;
+    const dbml = toDbml(schema);
+
+    expect(dbml).toContain('Table "fecha-alta" {');
+    expect(dbml).toContain('  "correo_electrónico" text');
+    expect(dbml).toContain('Ref: pedidos.alta_id > "fecha-alta".id');
+  });
+});

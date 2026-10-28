@@ -218,3 +218,18 @@ describe("choosing in a schema edited by hand", () => {
     expect(text()).not.toContain("persona_id");
   });
 });
+
+describe("two relations alike in a schema edited by hand", () => {
+  it("keeps choosing the second of two identical relations", () => {
+    const twice = "erDiagram\n  a ||--o{ b : tiene\n  a ||--o{ b : tiene\n";
+    opened(twice);
+    fireEvent.click(screen.getAllByRole("button", { name: /tiene/ })[1]);
+
+    fireEvent.change(screen.getByLabelText(t("diagramText")), {
+      target: { value: twice.replace("erDiagram\n", "erDiagram\n  direction LR\n") },
+    });
+
+    const pills = screen.getAllByRole("button", { name: /tiene/ });
+    expect(pills.map((one) => one.getAttribute("aria-pressed"))).toEqual(["false", "true"]);
+  });
+});

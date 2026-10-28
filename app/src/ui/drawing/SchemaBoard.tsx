@@ -72,6 +72,8 @@ export default function SchemaBoard({
 }>) {
   const drawn = useMemo(() => drawnOf(schema), [schema]);
   const [drag, setDrag] = useState<Drag | null>(null);
+  // Only a table just added is brought into sight; one being dragged stays where the hand takes it.
+  const [added, setAdded] = useState<string | null>(null);
   const pressed = useRef<Drag | null>(null);
 
   const keyed = (e: KeyboardEvent) => {
@@ -132,12 +134,17 @@ export default function SchemaBoard({
     <div className="relative flex min-w-0 flex-1" onKeyDown={keyed}>
       <Board
         size={drawn.size}
+        seen={added ? drawn.boxes.find((one) => one.table.name === added) : null}
         notice={
           <div className="absolute top-3 left-3 flex items-center gap-2">
             <button
               type="button"
               className={`${button} bg-panel`}
-              onClick={() => onChange(tableAdded(schema, fresh))}
+              onClick={() => {
+                const made = tableAdded(schema, fresh);
+                setAdded(made.picked?.kind === "table" ? made.picked.name : null);
+                onChange(made);
+              }}
             >
               {t("schemaAddTable")}
             </button>

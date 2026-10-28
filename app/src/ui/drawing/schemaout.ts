@@ -79,6 +79,10 @@ export const toSql = (schema: Schema): string =>
     .map((one) => tableSql(schema, one))
     .join("\n\n")}\n`;
 
+// DBML reads a bare name only when it is a plain word; anything else goes in double quotes.
+const quotedDbml = (name: string) =>
+  /^[A-Za-z_][A-Za-z0-9_]*$/.test(name) ? name : `"${name.replace(/"/g, '\\"')}"`;
+
 const dbmlColumn = (one: Column): string => {
   const settings = [
     one.keys.includes("PK") && "pk",
@@ -86,7 +90,7 @@ const dbmlColumn = (one: Column): string => {
     one.required && !one.keys.includes("PK") && "not null",
     one.comment && `note: '${one.comment.replace(/'/g, "\\'")}'`,
   ].filter(Boolean);
-  return `  ${one.name} ${one.type}${settings.length ? ` [${settings.join(", ")}]` : ""}`;
+  return `  ${quotedDbml(one.name)} ${one.type}${settings.length ? ` [${settings.join(", ")}]` : ""}`;
 };
 
 const ARROW: Record<string, string> = {
@@ -101,14 +105,18 @@ export const toDbml = (schema: Schema): string => {
   const tables = new Map(schema.tables.map((one) => [one.name, one]));
   const blocks = schema.tables
     .filter((one) => one.columns.length)
-    .map((one) => [`Table ${one.name} {`, ...one.columns.map(dbmlColumn), "}"].join("\n"));
+    .map((one) =>
+      [`Table ${quotedDbml(one.name)} {`, ...one.columns.map(dbmlColumn), "}"].join("\n"),
+    );
   const refs = schema.tables.flatMap((table) =>
     table.columns
       .filter((one) => one.keys.includes("FK"))
       .flatMap((column) => {
         const target = pointedAt(schema, table, column);
         return target
-          ? [`Ref: ${table.name}.${column.name} > ${target}.${keyOf(tables.get(target))}`]
+          ? [
+              `Ref: ${quotedDbml(table.name)}.${quotedDbml(column.name)} > ${quotedDbml(target)}.${quotedDbml(keyOf(tables.get(target)))}`,
+            ]
           : [];
       }),
   );

@@ -62,10 +62,15 @@ const nameIn = (name: string) =>
 const renamedIn = (piece: Piece, from: string, to: string): Piece => {
   if (piece.kind === "table") return piece.name === from ? { ...piece, name: to } : piece;
   // Lines the window keeps as written (`style`, `class`, relations in words) name tables too; comments do not count.
-  if (piece.kind === "raw")
-    return piece.line.trim().startsWith("%%")
-      ? piece
-      : { ...piece, line: piece.line.replace(nameIn(from), to) };
+  if (piece.kind === "raw") {
+    if (/^\s*(%%|accTitle|accDescr)/.test(piece.line)) return piece;
+    // Words in quotes are a label the person wrote, not the table's name.
+    const line = piece.line
+      .split(/("[^"]*")/)
+      .map((part) => (part.startsWith('"') ? part : part.replace(nameIn(from), to)))
+      .join("");
+    return { ...piece, line };
+  }
   const { relation } = piece;
   if (relation.from !== from && relation.to !== from) return piece;
   const { line: _line, ...rest } = relation;
@@ -158,8 +163,10 @@ export const columnChanged = (
   const said = name === undefined ? change : { ...change, name: name || "column" };
   const only = Object.keys(said).length === 1 && "required" in said;
   const was = tableOf(schema, table)?.columns[index]?.name;
+  // Only a foreign key's relation is named after it; another relation using the same word is not its.
+  const keyed = tableOf(schema, table)?.columns[index]?.keys.includes("FK") ?? false;
   const named =
-    said.name !== undefined && was !== undefined && said.name !== was
+    keyed && said.name !== undefined && was !== undefined && said.name !== was
       ? relabeled(schema, table, was, said.name)
       : schema;
   return {
@@ -201,7 +208,9 @@ export const related = (
   };
   // Dragging the same column onto the same table again finds the relation it already made.
   const already = relationsOf(schema).findIndex(
-    (one) => one.from === to && one.to === from.table && one.label === column.name,
+    (one) =>
+      one.label === column.name &&
+      ((one.from === to && one.to === from.table) || (one.from === from.table && one.to === to)),
   );
   if (already >= 0) return { schema, picked: { kind: "relation", index: already } };
   const keyed = column.keys.includes("FK")
