@@ -95,6 +95,27 @@ pub fn table_edit(
     tisty_markdown::grid::edits(&body, at.0..at.1, &edits).map_err(|why| why.word().to_string())
 }
 
+// A date may be typed as it is said, «el viernes», and lands in the file as its day.
+#[tauri::command(async)]
+pub fn table_canon(
+    session: tauri::State<'_, Mutex<Session>>,
+    words: String,
+    typed: String,
+    locale: String,
+) -> String {
+    let spoken = held(&session).locale.clone().unwrap_or(locale);
+    canon(&words, &typed, &jiff::Zoned::now(), &spoken)
+}
+
+pub fn canon(words: &str, typed: &str, now: &jiff::Zoned, spoken: &str) -> String {
+    let made = tisty_markdown::canon::canonical(words, typed);
+    let dated = words.split_whitespace().next() == Some("date");
+    if !dated || made.parse::<jiff::civil::Date>().is_ok() {
+        return made;
+    }
+    tisty_nl::parse_date(typed, now, spoken).map_or(made, |when| when.at.date().to_string())
+}
+
 #[tauri::command(async)]
 pub fn table_order(
     body: String,
