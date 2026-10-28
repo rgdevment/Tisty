@@ -2,20 +2,7 @@
 
 A code block whose language is `widget` is drawn as a small page: HTML, styles and, if you like, a little script. It is how a document holds a dashboard, a counter, a small calculator — something more than text.
 
-Every form, with its examples drawn the way Tisty draws them, is in the Tisty Markdown guide: [diagrams, formulas and widgets](https://markdown.tisty.app/diagrams-formulas-and-widgets).
-
-````markdown
-```widget title="Rina this month"
-<div class="grid">
-  <div class="stat"><small>Walks</small><b>42</b><em class="up">+6 on August</em></div>
-  <div class="stat"><small>Kilometres</small><b>61</b></div>
-  <div class="stat"><small>Next vaccine</small><b>12 Nov</b><span class="badge warn">due</span></div>
-</div>
-```
-````
-
-> [!NOTE]
-> GitHub does not run widgets, so this page shows the code. In Tisty the block above is drawn as three stat cards in Tisty's own colours.
+Every form, with its examples drawn the way Tisty draws them, is in the Tisty Markdown guide: [diagrams, formulas and widgets](https://markdown.tisty.app/diagrams-formulas-and-widgets#widgets).
 
 ## Sealed off
 
@@ -25,7 +12,7 @@ Every form, with its examples drawn the way Tisty draws them, is in the Tisty Ma
 
 ## Ready-made classes
 
-It comes with Tisty's colours and a few classes, so plain HTML already looks right: `grid`, `stat`, `card` and `badge` among them (`badge warn`, `em.up`…). You do not need to write CSS to get something presentable.
+It comes with Tisty's colours and ready-made classes, so plain HTML already looks right without writing CSS; every class, with its example, is in the [Markdown guide](https://markdown.tisty.app/diagrams-formulas-and-widgets#widgets).
 
 ## Showing the code
 

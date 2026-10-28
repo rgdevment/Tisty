@@ -2,20 +2,7 @@
 
 Un bloque de código cuyo lenguaje es `widget` se dibuja como una pequeña página: HTML, estilos y, si quieres, algo de script. Así un documento puede tener un panel, un contador o una calculadora chica, algo más que texto.
 
-Cada forma, con sus ejemplos dibujados como los dibuja Tisty, está en la guía de Markdown de Tisty: [diagramas, fórmulas y widgets](https://markdown.tisty.app/es/diagramas-formulas-y-widgets).
-
-````markdown
-```widget title="Rina este mes"
-<div class="grid">
-  <div class="stat"><small>Paseos</small><b>42</b><em class="up">+6 frente a agosto</em></div>
-  <div class="stat"><small>Kilómetros</small><b>61</b></div>
-  <div class="stat"><small>Próxima vacuna</small><b>12 nov</b><span class="badge warn">pendiente</span></div>
-</div>
-```
-````
-
-> [!NOTE]
-> GitHub no ejecuta widgets, así que esta página muestra el código. En Tisty, el bloque de arriba se dibuja como tres tarjetas de cifras con los colores de Tisty.
+Cada forma, con sus ejemplos dibujados como los dibuja Tisty, está en la guía de Markdown de Tisty: [diagramas, fórmulas y widgets](https://markdown.tisty.app/es/diagramas-formulas-y-widgets#widgets).
 
 ## Aislado
 
@@ -25,7 +12,7 @@ Cada forma, con sus ejemplos dibujados como los dibuja Tisty, está en la guía 
 
 ## Clases listas
 
-Trae los colores de Tisty y algunas clases, así que con HTML sencillo ya se ve bien: `grid`, `stat`, `card` y `badge`, entre otras (`badge warn`, `em.up`…). No hace falta escribir CSS para que quede presentable.
+Trae los colores de Tisty y clases listas, así que con HTML sencillo ya se ve bien, sin escribir CSS; cada clase, con su ejemplo, está en la [guía de Markdown](https://markdown.tisty.app/es/diagramas-formulas-y-widgets#widgets).
 
 ## Ver el código
 
