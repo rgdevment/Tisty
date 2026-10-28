@@ -1,4 +1,5 @@
 import { t, type Word } from "../../locales";
+import { type DiagramKind, headerAt } from "./framing";
 
 export type Start = "mindmap" | "erDiagram" | "flowchart" | "classDiagram" | "other";
 
@@ -23,7 +24,42 @@ export const nameOf = (kind: Start): string => t(WORDS[kind].name);
 // An empty block would draw nothing to edit.
 export const startOf = (kind: Start): string => t(WORDS[kind].source);
 
-export const fenced = (source: string): string => `\`\`\`mermaid\n${source}\`\`\``;
+// A copied diagram may hold backticks of its own, so its fence is longer than any run inside.
+export const fenced = (source: string): string => {
+  const longest = Math.max(2, ...(source.match(/`+/g) ?? []).map((run) => run.length));
+  const fence = "`".repeat(longest + 1);
+  return `${fence}mermaid\n${source}${fence}`;
+};
+
+const KIND_WORDS: Record<DiagramKind, Word> = {
+  mindmap: "diagramMindmap",
+  erDiagram: "diagramSchema",
+  flowchart: "diagramFlow",
+  classDiagram: "diagramClasses",
+  other: "diagramOther",
+};
+
+export const kindName = (kind: DiagramKind): string => t(KIND_WORDS[kind]);
+
+// Its own title, from the front matter or the `title` line many kinds take, names it best in a list.
+export const titleOf = (source: string): string => {
+  const front = /^\s*---\s*\n([\s\S]*?)\n\s*---/.exec(source);
+  const said = front && /^title:\s*(.+)$/m.exec(front[1]);
+  if (said) return said[1].trim().replace(/^["']|["']$/g, "");
+  return /^\s*(?:pie\s+)?title\s+(.+)$/m.exec(source)?.[1].trim() ?? "";
+};
+
+// The line after the header tells two diagrams of one kind apart in a list.
+export const firstWords = (source: string): string => {
+  const lines = source.split("\n");
+  const header = headerAt(lines, /^\s*[^\s%]/);
+  return (
+    lines
+      .slice(header + 1)
+      .find((line) => line.trim() && !/^\s*%%/.test(line))
+      ?.trim() ?? ""
+  );
+};
 
 // Counted as the core counts, since the diagram window finds its block by both.
 export interface Fence {

@@ -526,8 +526,8 @@ export default function Docs({
         ? undefined
         : {
             kinds: leafy
-              ? ["newPage", "page", "doc", "newDoc", "icon", "file", "diagram"]
-              : ["doc", "newDoc", "icon", "file", "diagram"],
+              ? ["newPage", "page", "doc", "newDoc", "icon", "file", "diagram", "diagramFrom"]
+              : ["doc", "newDoc", "icon", "file", "diagram", "diagramFrom"],
             tags,
             pasted: (files) =>
               keptAll(
@@ -556,7 +556,9 @@ export default function Docs({
               }
               // A card as a document's first words would become its title, which the core refuses.
               if (kind !== "icon" && first)
-                return onError(t(kind === "diagram" ? "diagramNeedsTitle" : "leafNeedsTitle"));
+                return onError(
+                  t(kind.startsWith("diagram") ? "diagramNeedsTitle" : "leafNeedsTitle"),
+                );
               setPicked({ kind, at, put, file: open?.file });
             },
           },
