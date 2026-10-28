@@ -193,6 +193,33 @@ fn every_tool_says_what_it_takes_and_asks_only_for_what_it_declares() {
     }
 }
 
+#[test]
+fn every_tool_says_all_four_hints_and_one_that_only_reads_stirs_nothing() {
+    let all = tools();
+    let all = all.as_array().expect("the tools come back as a list");
+    for one in all {
+        let name = one["name"].as_str().expect("a tool has a name");
+        for hint in [
+            "readOnlyHint",
+            "destructiveHint",
+            "idempotentHint",
+            "openWorldHint",
+        ] {
+            assert!(
+                one["annotations"][hint].is_boolean(),
+                "{name} does not say `{hint}`, and OpenAI's directory turns away a tool without all four"
+            );
+        }
+        if one["annotations"]["readOnlyHint"] == json!(true) {
+            assert!(
+                ONLY_READS.contains(&name),
+                "{name} says it only reads, so it belongs in ONLY_READS too"
+            );
+            assert_eq!(one["annotations"]["destructiveHint"], json!(false));
+        }
+    }
+}
+
 fn names_a_key(shape: &Value, key: &str) -> bool {
     match shape {
         Value::Object(all) => all

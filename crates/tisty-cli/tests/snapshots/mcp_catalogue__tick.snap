@@ -3,6 +3,12 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
   "description": "Mark steps of a task done when you did them yourself — the moment you did, not at the end. Name each by its text as `read` shows it; one unknown name and nothing is ticked, and a name two steps share ticks the next one still open. On a task you filed or one the person opened to agents the step is ticked; on any other of the person's it stays unticked, said done, until they take your word. Either way the task stays open until `say_done` and the person.",
   "inputSchema": {
     "additionalProperties": false,

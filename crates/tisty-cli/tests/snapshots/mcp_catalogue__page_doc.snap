@@ -3,6 +3,12 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
   "description": "Needs `doc`, or `order` with `page_of`. A page is real content related to one subject but not part of it — a runbook, a contract, an annex — never a session: a review, a day's progress or a PR's notes belong on the task. Hang a document from another as one of its pages, or take a page out by leaving `page_of` out, which makes it a document of its own again, back in the folder it came from. A page goes with its document everywhere — folder, archive and deletion — and holds no pages of its own. Hanging one writes the line that names it at the end of that document, the same line `write_doc` with `page_of` writes; `after`, `before` and `at` say where that line goes instead. Taking a page out writes nothing: the line stays where it was, now pointing at a document of its own, and taking it out of the text is yours to do. `order` is the third thing this does: it takes the pages of one document and deals the lines they already have back out in the order you name, which is how several are put in order in one call. The order pages are read in is the order their lines sit in the document, and nothing else. The line is `![Its title](tisty:doc/its-name)`, opening bang and all — without it the line is a mention in a sentence and gives the page no place — and a square bracket in the title goes in with a backslash before it.",
   "inputSchema": {
     "additionalProperties": false,

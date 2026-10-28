@@ -406,8 +406,73 @@ pub(super) fn shaped(what: Value) -> Value {
     Value::Object(kept)
 }
 
-#[allow(clippy::too_many_lines)]
+/// Hosts warn before a call from these, so each says what it does to the person's things: only
+/// reads, writes over or takes away what is there, and whether the same call twice changes
+/// nothing more. Nothing here reaches past this machine.
+const EFFECTS: [(&str, bool, bool, bool); 39] = [
+    ("propose", false, false, false),
+    ("remind", false, false, false),
+    ("describe", false, true, true),
+    ("plan", false, false, false),
+    ("tick", false, false, true),
+    ("untick", false, false, true),
+    ("rename", false, true, true),
+    ("reword_step", false, true, true),
+    ("unplan", false, true, true),
+    ("move", false, false, true),
+    ("reword_note", false, true, true),
+    ("note", false, false, false),
+    ("attach", false, false, false),
+    ("write_doc", false, true, false),
+    ("append_doc", false, true, false),
+    ("restore_doc", false, true, false),
+    ("edit_doc", false, true, true),
+    ("docs", true, false, true),
+    ("import_doc", false, false, false),
+    ("export_doc", false, false, true),
+    ("archive_doc", false, false, true),
+    ("flag_doc", false, false, true),
+    ("file_doc", false, false, true),
+    ("page_doc", false, false, true),
+    ("folder", false, false, true),
+    ("read_doc", true, false, true),
+    ("catch_up", true, false, true),
+    ("reschedule", false, true, true),
+    ("say_done", false, false, false),
+    ("say_not_doing", false, false, false),
+    ("sum_up", false, false, true),
+    ("outline_doc", true, false, true),
+    ("read", true, false, true),
+    ("find", true, false, true),
+    ("lists", true, false, true),
+    ("rules", true, false, true),
+    ("language", true, false, true),
+    ("help", true, false, true),
+    ("tags", true, false, true),
+];
+
 pub(super) fn tools() -> Value {
+    let mut all = listed();
+    if let Value::Array(each) = &mut all {
+        for one in each {
+            let name = one["name"].as_str().unwrap_or_default();
+            if let Some(&(_, reads, overwrites, again)) =
+                EFFECTS.iter().find(|effect| effect.0 == name)
+            {
+                one["annotations"] = json!({
+                    "readOnlyHint": reads,
+                    "destructiveHint": overwrites,
+                    "idempotentHint": again,
+                    "openWorldHint": false,
+                });
+            }
+        }
+    }
+    all
+}
+
+#[allow(clippy::too_many_lines)]
+fn listed() -> Value {
     json!([
         {
             "name": "propose",
