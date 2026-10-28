@@ -7,6 +7,7 @@ pub(super) mod importing;
 pub(super) mod outward;
 pub(super) mod paging;
 pub(super) mod reading;
+pub(super) mod tabling;
 pub(super) mod writing;
 
 use serde_json::{Value, json};
@@ -139,4 +140,39 @@ pub(super) fn named_anew(
         " Its line in {:?} now shows the new title, so a print you hold of that one is old.{unsettled}",
         tisty_core::docs::titled(&now)
     )
+}
+
+const WRITES_DOCUMENTS: [&str; 10] = [
+    "write_doc",
+    "append_doc",
+    "edit_doc",
+    "edit_table",
+    "restore_doc",
+    "archive_doc",
+    "flag_doc",
+    "file_doc",
+    "page_doc",
+    "attach",
+];
+
+// A task's words keep the task's own door, which these tools do not ask about.
+pub(super) fn not_a_task_s_words(name: &str, args: &Value) -> Result<(), Refused> {
+    if !WRITES_DOCUMENTS.contains(&name) {
+        return Ok(());
+    }
+    let named = ["doc", "page_of"]
+        .iter()
+        .filter_map(|key| args.get(*key))
+        .flat_map(|one| match one {
+            Value::Array(all) => all.iter().filter_map(Value::as_str).collect::<Vec<_>>(),
+            other => other.as_str().into_iter().collect(),
+        })
+        .map(str::trim)
+        .find(|file| tisty_core::task_docs::task_of_file(file).is_some());
+    match named {
+        Some(file) => Err(Refused::Tool(format!(
+            "{file} is a task's document: its words are the task's, and they are not written through the document tools. Read it with `read_doc`; write on the task with `note`, or add to its page with `append_doc` named by the task's id on a task you may work on."
+        ))),
+        None => Ok(()),
+    }
 }

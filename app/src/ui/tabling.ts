@@ -17,16 +17,20 @@ type Row = { readonly from: number; readonly text: string; readonly edges: numbe
 type Table = { readonly from: number; readonly to: number; readonly rows: Row[] };
 type Done = { readonly text: string; readonly head: number };
 
+// A row inside a quote carries its `>` marks before the table's own words, as a list's carries its indent.
+const prefixOf = (line: string): string => /^(?:[ \t]*>)*[ \t]*/.exec(line)?.[0] ?? "";
+
 const edgesOf = (line: string): number[] => {
   const pipes: number[] = [];
-  for (let at = 0; at < line.length; at++) {
+  const prefix = prefixOf(line).length;
+  for (let at = prefix; at < line.length; at++) {
     if (line[at] === "\\") at++;
     else if (line[at] === "|") pipes.push(at);
   }
-  const lead = pipes.length > 0 && !line.slice(0, pipes[0]).trim();
+  const lead = pipes.length > 0 && !line.slice(prefix, pipes[0]).trim();
   const trail = pipes.length > (lead ? 1 : 0) && !line.slice(pipes[pipes.length - 1] + 1).trim();
   const inner = pipes.slice(lead ? 1 : 0, trail ? -1 : undefined);
-  return [lead ? pipes[0] : -1, ...inner, trail ? pipes[pipes.length - 1] : line.length];
+  return [lead ? pipes[0] : prefix - 1, ...inner, trail ? pipes[pipes.length - 1] : line.length];
 };
 
 const RULED = /^:?-+:?$/;
@@ -78,11 +82,10 @@ export const inside = (row: Row, column: number): [number, number] => {
   return [row.from + from + lead, row.from + from + lead + kept];
 };
 
-const indentOf = (line: string): string => line.slice(0, line.length - line.trimStart().length);
-
 const blank = (row: Row): string => {
   const cells = row.edges.length - 1;
-  const lead = row.edges[0] >= 0 ? `${indentOf(row.text)}|` : "";
+  const prefix = prefixOf(row.text);
+  const lead = row.edges[0] >= prefix.length ? `${prefix}|` : prefix;
   const trail = row.edges[row.edges.length - 1] < row.text.length ? "|" : "";
   return `${lead}${Array.from({ length: cells }, () => "  ").join("|")}${trail}`;
 };
@@ -163,9 +166,11 @@ const columnRemoved = ({ text, table, row, column }: Asked): Done | null => {
     const inner = column + 1 < edges.length - 1;
     const left = inner
       ? `${line.slice(0, edges[column] + 1)}${line.slice(edges[column + 1] + 1)}`
-      : `${line.slice(0, Math.max(edges[column], 0))}${line.slice(edges[column + 1])}`;
+      : `${line.slice(0, Math.max(edges[column], prefixOf(line).length))}${line.slice(edges[column + 1])}`;
     // One column without its outer pipes would no longer read as a table.
-    return left.includes("|") ? left : `${indentOf(line)}| ${left.trim()} |`;
+    return left.includes("|")
+      ? left
+      : `${prefixOf(line)}| ${left.slice(prefixOf(left).length).trim()} |`;
   });
   return {
     text: lined(table, made, text),

@@ -325,7 +325,9 @@ editor— y en Tisty lleva bastante más que texto:
   cualquier ancho.
 - **Fórmulas** compuestas desde un bloque `math`, **código** coloreado por su
   lenguaje y con el nombre de su archivo, y **tablas** que conservan hacia dónde
-  se inclinan sus columnas y con qué ancho las dibujaste.
+  se inclinan sus columnas y con qué ancho las dibujaste, cuyas columnas pueden
+  decir qué guardan —dinero, fechas, opciones, valoraciones, sí o no— y sumarse
+  al pie, escritas en la página celda por celda.
 - **Widgets**: una pequeña página de HTML, estilos y un poco de script, dibujada
   con los colores de Tisty y aislada de la red.
 - **Avisos, marcadores e íconos** —los avisos que GitHub lee, marcadores de
@@ -376,9 +378,12 @@ caracteres y que alguno sea una letra.
 El texto se puede resaltar en unos cuantos colores y apartar como un aviso: una
 cita normal, o un callout que GitHub también lee, escrito `> [!WARNING]`. Las
 tablas conservan hacia dónde se inclinan sus columnas y con qué ancho las
-dibujaste, y un bloque de código dice de qué lenguaje es y se colorea para él,
-con sus líneas numeradas al lado del texto y no dentro, así copiar se lleva el
-código y nada más. Un bloque puede llevar nombre; el que dice `mermaid` dibuja
+dibujaste, y una columna puede llevar su tipo entre llaves al final de su
+título, `Precio {money CLP sum}`: Tisty muestra, ordena y suma sus celdas como
+eso, mientras el archivo sigue siendo una tabla que cualquier lector abre. Un
+bloque de código dice de qué lenguaje es y se colorea para él, con sus líneas
+numeradas al lado del texto y no dentro, así copiar se lleva el código y nada
+más. Un bloque puede llevar nombre; el que dice `mermaid` dibuja
 debajo el diagrama que describe —y lo redibuja al cambiar de luz—, y el que dice
 `math` compone la fórmula que guarda. El que dice `widget` se dibuja como una
 pequeña página —HTML, estilos y, si quieres, un poco de script— aislada de la
@@ -899,8 +904,10 @@ abierta.
 
 Tan importante como la lista de arriba. Fuera de alcance por ahora: trabajo
 colaborativo en tiempo real, tableros kanban, diagramas de Gantt, control de
-horas, métricas de productividad, bases de datos con propiedades tipadas y
-fórmulas, e inteligencia artificial en cualquier punto del camino crítico.
+horas, métricas de productividad, bases de datos que relacionen tablas entre
+documentos, fórmulas en las celdas, e inteligencia artificial en cualquier punto
+del camino crítico. Las columnas de una tabla pueden decir qué guardan y
+sumarse, pero cada tabla vive en su propio documento.
 
 El lenguaje natural se queda determinista y local, y **Tisty nunca envía nada a
 un modelo** — ni una tarea, ni una palabra. Si abres la puerta de la sección de

@@ -47,6 +47,7 @@ const ADDED: &[&str] = &[
     "attachments",
     "references",
     "diagrams",
+    "tables",
     "page-breaks",
 ];
 

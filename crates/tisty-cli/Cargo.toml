@@ -18,7 +18,7 @@ tisty-core.workspace = true
 tisty-carrier.workspace = true
 tisty-help = { workspace = true }
 # Without these, a document read `as` markdown would carry `[[names]]` and `:::details` no other tool reads.
-tisty-markdown = { workspace = true, features = ["refs", "details"] }
+tisty-markdown = { workspace = true, features = ["refs", "details", "tables"] }
 anyhow.workspace = true
 serde.workspace = true
 serde_json.workspace = true

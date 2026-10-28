@@ -7,7 +7,7 @@ import { coded, wrapped } from "./formatting";
 import { type Regrid, regrid } from "./regridding";
 import { keepShown, marked, marksShown, showMarks } from "./seeing";
 import { openMenu, pressed, putBlock } from "./slashing";
-import { TYPES, wordsOf } from "./tableChoices";
+import { TYPES } from "./tableChoices";
 import { type Retable, retable, tableHere } from "./tabling";
 
 type Said = Parameters<typeof t>[0];
@@ -333,7 +333,7 @@ export const barred = (view: EditorView, whole = false, onWhole?: () => void): B
       t(label),
       () => {
         types.hidden = true;
-        regrid(view, { kind: "retype", words: wordsOf(word, "", "") });
+        regrid(view, { kind: "recast", word });
       },
       t(label),
     );

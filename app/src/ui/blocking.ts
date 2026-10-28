@@ -31,7 +31,7 @@ import { coded, owning } from "./formatting";
 import { latelyMarked } from "./lately";
 import { HUES } from "./paging";
 import { pendingFormat, pendingKeys, settle } from "./pending";
-import { gridKeys } from "./regridding";
+import { gridFailed, gridKeys } from "./regridding";
 import { visual } from "./seeing";
 import { type Asking, BOX, putBlock, slashing } from "./slashing";
 import { tableKeys } from "./tabling";
@@ -384,6 +384,7 @@ export const edited = (
           indentWithTab,
         ]),
         markdown({ base: markdownLanguage }),
+        gridFailed.of((problem) => asking?.()?.failed?.(problem)),
         visual,
         latelyMarked,
         pendingFormat,

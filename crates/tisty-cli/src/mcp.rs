@@ -23,6 +23,7 @@ use papers::flagging::flag_doc;
 use papers::importing::import_doc;
 use papers::paging::page_doc;
 use papers::reading::{export_doc, outline_doc, read_doc};
+use papers::tabling::edit_table;
 use papers::writing::{append_doc, restore_doc, write_doc};
 
 use asked::{only_what_it_takes, short_and_plain, text, without_nulls};
@@ -216,7 +217,7 @@ fn vetted(name: &str, params: &Value) -> Result<Value, Refused> {
     let args = without_nulls(name, params.get("arguments").cloned().unwrap_or(json!({})));
     only_what_it_takes(name, &args)?;
     short_and_plain(&args)?;
-    not_a_task_s_words(name, &args)?;
+    papers::not_a_task_s_words(name, &args)?;
     Ok(args)
 }
 
@@ -240,6 +241,7 @@ fn called(paths: &Paths, name: &str, args: Value) -> Result<Value, Refused> {
         "append_doc" => spoken(&args, "body", |args| append_doc(paths, args)),
         "restore_doc" => restore_doc(paths, &args),
         "edit_doc" => edit_doc(paths, &args),
+        "edit_table" => edit_table(paths, &args),
         "catch_up" => catch_up(paths, &args),
         "sum_up" => sum_up(paths, &args),
         "reschedule" => reschedule(paths, &args),
@@ -288,40 +290,6 @@ const ONLY_READS: [&str; 13] = [
     "help",
     "rules",
 ];
-
-const WRITES_DOCUMENTS: [&str; 9] = [
-    "write_doc",
-    "append_doc",
-    "edit_doc",
-    "restore_doc",
-    "archive_doc",
-    "flag_doc",
-    "file_doc",
-    "page_doc",
-    "attach",
-];
-
-// A task's words keep the task's own door, which these tools do not ask about.
-fn not_a_task_s_words(name: &str, args: &Value) -> Result<(), Refused> {
-    if !WRITES_DOCUMENTS.contains(&name) {
-        return Ok(());
-    }
-    let named = ["doc", "page_of"]
-        .iter()
-        .filter_map(|key| args.get(*key))
-        .flat_map(|one| match one {
-            Value::Array(all) => all.iter().filter_map(Value::as_str).collect::<Vec<_>>(),
-            other => other.as_str().into_iter().collect(),
-        })
-        .map(str::trim)
-        .find(|file| tisty_core::task_docs::task_of_file(file).is_some());
-    match named {
-        Some(file) => Err(Refused::Tool(format!(
-            "{file} is a task's document: its words are the task's, and they are not written through the document tools. Read it with `read_doc`; write on the task with `note`, or add to its page with `append_doc` named by the task's id on a task you may work on."
-        ))),
-        None => Ok(()),
-    }
-}
 
 fn pointed(name: &str) -> Option<&'static str> {
     const ERASING_A_DOCUMENT: &str = "There is no deleting a document here, on purpose. Mark it \

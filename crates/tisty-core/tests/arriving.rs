@@ -693,7 +693,51 @@ foo(a, b, c);
 bar(d, e, f);
 baz(g, h, i);
 =>
--";
+-
+~
+\treturn a;
+\treturn b;
+=>
+-
+~
+Nombre,Monto (USD),Fecha
+Ana,100,2026-11-14
+Luis,200,2026-11-20
+=>
+| Nombre | Monto (USD) | Fecha |
+| --- | --- | --- |
+| Ana | 100 | 2026-11-14 |
+| Luis | 200 | 2026-11-20 |
+~
+p = Point(1, 2, 3)
+q = Point(4, 5, 6)
+r = Point(7, 8, 9)
+=>
+-
+~
+nombre,enlace,clave
+Ana,https://x.com/?id=4,abc==
+Luis,https://x.com/?id=5,def=
+=>
+| nombre | enlace | clave |
+| --- | --- | --- |
+| Ana | https://x.com/?id=4 | abc== |
+| Luis | https://x.com/?id=5 | def= |
+~
+let a = [1, 2, 3];
+let b = [4, 5, 6];
+let c = [7, 8, 9];
+=>
+-
+~
+\tEne\tFeb
+Ventas\t10\t20
+Gastos\t5\t7
+=>
+|  | Ene | Feb |
+| --- | --- | --- |
+| Ventas | 10 | 20 |
+| Gastos | 5 | 7 |";
 
 #[test]
 fn rows_copied_from_a_spreadsheet_as_plain_text_come_in_as_a_table() {

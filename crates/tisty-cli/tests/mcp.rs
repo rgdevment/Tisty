@@ -386,6 +386,7 @@ fn there_is_no_tool_for_closing_dropping_or_deleting() {
             "append_doc",
             "restore_doc",
             "edit_doc",
+            "edit_table",
             "docs",
             "import_doc",
             "export_doc",

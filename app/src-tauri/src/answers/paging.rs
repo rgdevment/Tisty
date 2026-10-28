@@ -116,9 +116,14 @@ pub fn canon(words: &str, typed: &str, now: &jiff::Zoned, spoken: &str) -> Strin
     tisty_nl::parse_date(typed, now, spoken).map_or(made, |when| when.at.date().to_string())
 }
 
+// The text editor names the table by the caret's byte, so it is found and changed in one ask.
 #[tauri::command(async)]
-pub fn table_around(body: String, at: usize) -> Option<(usize, usize)> {
-    tisty_markdown::grid::around(&body, at).map(|found| (found.start, found.end))
+pub fn table_edit_near(
+    body: String,
+    at: usize,
+    edits: Vec<tisty_markdown::grid::Edit>,
+) -> Result<String, String> {
+    tisty_markdown::grid::edits_near(&body, at, &edits).map_err(|why| why.word().to_string())
 }
 
 #[tauri::command(async)]

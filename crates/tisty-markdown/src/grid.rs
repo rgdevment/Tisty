@@ -27,6 +27,11 @@ pub enum Edit {
         column: usize,
         words: String,
     },
+    /// A new type by its word alone, keeping the column's currency and total where they still apply.
+    Recast {
+        column: usize,
+        word: String,
+    },
     RowAdd {
         at: usize,
     },
@@ -132,6 +137,98 @@ pub fn order(
     })
 }
 
+/// A table as an assistant is told it: the heading over it, its columns with their types, its rows by their first cell.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct Shown {
+    #[serde(skip)]
+    pub at: Range<usize>,
+    pub heading: Option<String>,
+    pub columns: Vec<Head>,
+    pub rows: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct Head {
+    pub title: String,
+    /// The words in its braces, `money CLP sum`; none for a column of words.
+    #[serde(rename = "type")]
+    pub kind: String,
+}
+
+/// Every table of a text in reading order, each named by the heading it sits under.
+pub fn shown(text: &str) -> Vec<Shown> {
+    fn walk(blocks: &[Block], text: &str, heading: &mut Option<String>, out: &mut Vec<Shown>) {
+        for one in blocks {
+            match &one.kind {
+                Kind::Heading(_) => *heading = Some(values::visible(one, text)),
+                Kind::Table { columns } => out.push(listed(one, columns, text, heading.clone())),
+                // A heading inside a callout or a fold names what is in there, not what follows it.
+                _ => walk(&one.inner, text, &mut heading.clone(), out),
+            }
+        }
+    }
+    let doc = read(text);
+    let mut out = Vec::new();
+    walk(doc.blocks(), text, &mut None, &mut out);
+    out
+}
+
+fn listed(block: &Block, columns: &[Column], text: &str, heading: Option<String>) -> Shown {
+    let said = text[block.at.clone()].trim_end_matches(['\r', '\n']);
+    let lines = Lines::read(said, false);
+    let columns = columns
+        .iter()
+        .enumerate()
+        .map(|(at, column)| {
+            let cell = lines.head.cells.get(at).map_or("", String::as_str);
+            let kind = column.typed.as_ref().and_then(|at| text.get(at.clone()));
+            let kind = kind.map_or("", |one| {
+                one.trim().trim_start_matches('{').trim_end_matches('}')
+            });
+            Head {
+                title: titled(cell, column, text).0.to_string(),
+                kind: kind.to_string(),
+            }
+        })
+        .collect();
+    let rows = block
+        .inner
+        .iter()
+        .skip(1)
+        .map(|row| {
+            row.inner
+                .first()
+                .map(|cell| values::visible(cell, text))
+                .unwrap_or_default()
+        })
+        .collect();
+    Shown {
+        at: block.at.clone(),
+        heading,
+        columns,
+        rows,
+    }
+}
+
+/// The cells of a table written not as their column's type asks, by row under the head and column.
+pub fn amiss(text: &str, at: Range<usize>) -> Result<Vec<(usize, usize)>, Refused> {
+    located(text, &at, |block, columns| {
+        let read = values::read(columns, block, text);
+        Ok(read
+            .rows
+            .iter()
+            .enumerate()
+            .flat_map(|(row, cells)| {
+                cells
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, one)| one.amiss)
+                    .map(move |(column, _)| (row, column))
+            })
+            .collect())
+    })
+}
+
 /// A table's words as written, escapes kept, so a cell opens for writing just as it is in the file.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Written {
@@ -175,6 +272,34 @@ fn located<T>(
         return Err(Refused::Moved);
     };
     then(block, columns)
+}
+
+// The words of a new type for a column: its currency if it stays money, its total if that still adds up.
+fn recast(column: &Column, word: &str) -> Option<String> {
+    let holds = crate::Holds::from_word(word)?;
+    let currency = match (&holds, &column.holds) {
+        (crate::Holds::Money { .. }, crate::Holds::Money { currency }) => currency.clone(),
+        _ => None,
+    };
+    let total = column
+        .total
+        .filter(|one| crate::typed::adds_up(&holds, *one))
+        .map(crate::Total::word);
+    let kept = [Some(word), currency.as_deref(), total]
+        .into_iter()
+        .flatten();
+    let words = kept.collect::<Vec<_>>().join(" ");
+    Some(if words == "text" {
+        String::new()
+    } else {
+        words
+    })
+}
+
+/// Edits on the table that holds a byte of the text, the caret's, say, found and changed in one ask.
+pub fn edits_near(text: &str, byte: usize, asked: &[Edit]) -> Result<String, Refused> {
+    let at = around(text, byte).ok_or(Refused::Moved)?;
+    edits(text, at, asked)
 }
 
 /// Where the table that holds a byte of the text starts and ends, as `edit` wants it named.
@@ -399,6 +524,19 @@ impl Lines {
                 let cell = &self.head.cells[*column];
                 let (_, braces) = titled(cell, &columns[*column], text);
                 self.head.cells[*column] = put(cell, &headed(said, braces));
+            }
+            Edit::Recast { column, word } => {
+                column_in(*column)?;
+                let words = recast(&columns[*column], word).ok_or(Refused::UnknownType)?;
+                return self.changed(
+                    &Edit::Retype {
+                        column: *column,
+                        words,
+                    },
+                    columns,
+                    block,
+                    text,
+                );
             }
             Edit::Retype { column, words } => {
                 column_in(*column)?;

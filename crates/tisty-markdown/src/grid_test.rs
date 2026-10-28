@@ -371,3 +371,93 @@ fn a_byte_names_the_table_that_holds_it_even_inside_a_quote_or_a_list() {
     assert!(edit(text, inner, &Edit::RowAdd { at: 1 }).is_ok());
     assert_eq!(around(text, text.len() - 2), None);
 }
+
+// A column's head, the type word asked for, then the head after it.
+const RECASTS: &str = "
+Precio {money CLP sum} | money   => Precio {money CLP sum}
+Precio {money CLP sum} | number  => Precio {number sum}
+Precio {money CLP sum} | date    => Precio {date}
+Fecha {date max}       | number  => Fecha {number max}
+Fecha {date max}       | text    => Fecha
+Notas                  | rating  => Notas {rating}
+Notas                  | plata   => unknownType
+";
+
+#[test]
+fn a_new_type_keeps_the_currency_and_total_that_still_apply() {
+    for line in RECASTS.lines().filter(|one| !one.trim().is_empty()) {
+        let (asked, expected) = line.split_once("=>").expect(line);
+        let (head, word) = asked.split_once('|').expect(line);
+        let text = format!("| {} |\n| --- |\n| 1 |\n", head.trim());
+        let byte = text.find('|').expect("a pipe") + 2;
+        let made = edits_near(
+            &text,
+            byte,
+            &[Edit::Recast {
+                column: 0,
+                word: word.trim().to_string(),
+            }],
+        );
+        let said = match made {
+            Ok(one) => one
+                .lines()
+                .next()
+                .unwrap_or_default()
+                .trim_matches(['|', ' '])
+                .to_string(),
+            Err(why) => why.word().to_string(),
+        };
+        assert_eq!(said, expected.trim(), "{line}");
+    }
+}
+
+#[test]
+fn edits_near_a_byte_find_their_table_inside_a_quote_and_nothing_outside_it() {
+    let text = "Antes.\n\n> | b |\n> | --- |\n> | 2 |\n";
+    let byte = text.find("> | 2").expect("the row") + 4;
+    let made = edits_near(text, byte, &[Edit::RowAdd { at: 1 }]).expect("edited");
+    assert!(made.ends_with("> | 2 |\n> |  |\n"), "{made}");
+    assert_eq!(
+        edits_near(text, 1, &[Edit::RowAdd { at: 1 }]),
+        Err(Refused::Moved)
+    );
+}
+
+#[test]
+fn a_text_tells_its_tables_by_the_heading_over_them_their_columns_and_first_cells() {
+    let text = "# Casa\n\n| Cosa | Precio {money CLP sum} |\n| --- | --: |\n| **Sofá** | 90000 |\n| Mesa | pronto |\n\n## Viajes\n\n> | Lugar | Cuándo {date} |\n> | --- | --- |\n> | Lima | 2026-11-14 |\n";
+    let all = shown(text);
+    assert_eq!(all.len(), 2);
+    assert_eq!(all[0].heading.as_deref(), Some("Casa"));
+    assert_eq!(
+        all[0]
+            .columns
+            .iter()
+            .map(|one| (one.title.as_str(), one.kind.as_str()))
+            .collect::<Vec<_>>(),
+        vec![("Cosa", ""), ("Precio", "money CLP sum")]
+    );
+    assert_eq!(all[0].rows, vec!["Sofá", "Mesa"]);
+    assert_eq!(all[1].heading.as_deref(), Some("Viajes"));
+    assert_eq!(all[1].rows, vec!["Lima"]);
+    assert_eq!(amiss(text, all[0].at.clone()), Ok(vec![(1, 1)]));
+    assert_eq!(amiss(text, all[1].at.clone()), Ok(vec![]));
+    assert!(shown("Sin tablas.\n").is_empty());
+}
+
+#[test]
+fn a_table_s_heading_is_named_by_its_words_without_its_marks() {
+    for (written, named) in [
+        ("## Despensa ##", "Despensa"),
+        ("Despensa\n--------", "Despensa"),
+        ("Gastos\n======", "Gastos"),
+        ("## Notas de C#", "Notas de C#"),
+        ("### Lista #", "Lista"),
+        ("## **Despensa**", "Despensa"),
+        ("## Gastos de `casa`", "Gastos de casa"),
+        ("## Gastos\n\n> [!NOTE]\n> ### Nota\n> dentro.", "Gastos"),
+    ] {
+        let text = format!("{written}\n\n| A | B |\n| --- | --- |\n| 1 | 2 |\n");
+        assert_eq!(shown(&text)[0].heading.as_deref(), Some(named), "{written}");
+    }
+}

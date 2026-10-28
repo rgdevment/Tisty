@@ -50,6 +50,7 @@ See [[What an assistant may do|MCP-Permissions]] for the rules behind them.
 | `write_doc` | Write a new document, or write one again whole — or, with `compact`, put one that grew by sessions back in order (see below) |
 | `append_doc` | Add to a document, at the end or under a heading; on a task's page, rewrite its own notes whole with `replace` |
 | `edit_doc` | Change one passage of a document |
+| `edit_table` | Read or change one table of a document by its rows and columns: set a cell, add, remove or sort rows, rename a column or give it a type. A value its column cannot read is kept and named in the answer |
 | `restore_doc` | Put a document back the way it was, from the copy kept beside the documents |
 | `folder` | Make a folder |
 | `file_doc` | Put one or several documents in a folder |

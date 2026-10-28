@@ -1,0 +1,107 @@
+---
+source: crates/tisty-cli/tests/mcp_catalogue.rs
+expression: tool
+---
+{
+  "annotations": {
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
+  "description": "Read or change one table of a document by what its rows and columns are called, never by its Markdown: set a cell, add or remove a row, sort, rename a column, give it a type, add or remove a column. A row is named by the words of its first cell and a column by its title, as `show` hands them back. A value is written the way its column's type reads it — 1234.5 for a number, 2026-10-28 for a date, true for a checkbox — and one that does not fit is kept as sent and named in the answer. What the document said before is kept, as with `edit_doc`.",
+  "inputSchema": {
+    "additionalProperties": false,
+    "properties": {
+      "column": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "string"
+          }
+        ],
+        "description": "For set, sort, type, rename and remove_column: the column, by its title or its number from 1"
+      },
+      "do": {
+        "description": "What to do. Defaults to show, which changes nothing and hands back the columns with their types and the rows by their first cell",
+        "enum": [
+          "show",
+          "set",
+          "add",
+          "remove",
+          "sort",
+          "type",
+          "rename",
+          "add_column",
+          "remove_column"
+        ],
+        "type": "string"
+      },
+      "doc": {
+        "description": "The document's id, as `docs` hands it back — an opaque name like `q7ntmzbm-0001`, not its title",
+        "type": "string"
+      },
+      "down": {
+        "description": "For sort: from the largest down. Defaults to from the smallest up",
+        "type": "boolean"
+      },
+      "keep_compaction": {
+        "description": "Only when the person told you in this conversation to keep a compaction of this document that waits for their word: it is kept, and this write goes ahead",
+        "type": "boolean"
+      },
+      "row": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "string"
+          }
+        ],
+        "description": "For set and remove: the row, by the words of its first cell or its number from 1"
+      },
+      "table": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "string"
+          }
+        ],
+        "description": "Which table, by its number from 1 or by the heading over it. Left out when the document holds only one"
+      },
+      "title": {
+        "description": "For rename and add_column: the column's title",
+        "type": "string"
+      },
+      "type": {
+        "description": "For type and add_column: the column's type as written between braces in its head, such as `number`, `money USD sum`, `date`, `check` or `select`; `language` with the topic `tables` lists them. Empty takes the type away",
+        "type": "string"
+      },
+      "value": {
+        "description": "For set: what goes in the cell. Empty clears it",
+        "type": "string"
+      },
+      "values": {
+        "additionalProperties": {
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ]
+        },
+        "description": "For add: each column's title with what goes in it. Columns left out stay empty",
+        "type": "object"
+      }
+    },
+    "required": [
+      "doc"
+    ],
+    "type": "object"
+  },
+  "name": "edit_table",
+  "title": "Change a table in a document"
+}
