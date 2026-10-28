@@ -44,6 +44,8 @@ export const useEditor = (
           mind={map.mind}
           chosen={map.chosen}
           fresh={fresh}
+          undo={map.undo}
+          redo={map.redo}
           onChoose={map.choose}
           onChange={map.change}
         />

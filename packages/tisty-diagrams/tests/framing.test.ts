@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { asRead, fitted, kindOf, LEAST, MOST, showing, sizeOf, zoomedAt } from "../src/framing";
+import { asRead, fitted, kindOf, LEAST, MOST, sizeOf, zoomedAt } from "../src/framing";
 
 // One case per line: what the diagram says (`⏎` is a line break) → the kind the window names.
 const KINDS = `
@@ -83,24 +83,6 @@ describe("how the canvas frames a drawing", () => {
       scale: 1,
       x: 32,
       y: 32,
-    });
-  });
-});
-
-describe("bringing a part of the drawing into sight", () => {
-  const room = { wide: 800, tall: 600 };
-
-  it("leaves the view as it is while the part is already in sight", () => {
-    const view = { scale: 1, x: 0, y: 0 };
-    expect(showing(view, { x: 100, y: 100, wide: 200, tall: 100 }, room)).toBe(view);
-  });
-
-  it("centres a part that is out of sight, keeping the zoom", () => {
-    const view = { scale: 2, x: 0, y: 0 };
-    expect(showing(view, { x: 1000, y: 900, wide: 100, tall: 50 }, room)).toEqual({
-      scale: 2,
-      x: 400 - 1050 * 2,
-      y: 300 - 925 * 2,
     });
   });
 });

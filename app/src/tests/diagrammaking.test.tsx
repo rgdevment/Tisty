@@ -28,6 +28,17 @@ describe("naming a new diagram", () => {
     expect(make).toHaveBeenCalledWith("Ventas", "mindmap");
   });
 
+  it("chooses a kind by its words too, the focus never left to the page", async () => {
+    const { field } = opened();
+    field.focus();
+
+    await userEvent.click(screen.getByText(nameOf("mindmap", "en")));
+
+    expect((screen.getByLabelText(nameOf("mindmap", "en")) as HTMLInputElement).checked).toBe(true);
+    expect(field.value).toBe(nameOf("mindmap", "en"));
+    expect(document.activeElement).not.toBe(document.body);
+  });
+
   it("makes nothing without a name, and closes when asked", async () => {
     const { make, close, field } = opened();
     await userEvent.clear(field);
