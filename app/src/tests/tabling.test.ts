@@ -193,3 +193,46 @@ describe("a table written in the block", () => {
     expect(page.documentElement.classList.contains("widening")).toBe(false);
   });
 });
+
+describe("a table written inside a quote", () => {
+  const quoted = "Dicho:\n\n> | Name | Age |\n> | --- | :-: |\n> | Rina | 4 |\n\nAfter";
+  const lines = (said: string) => said.split("\n").slice(2, -2);
+  const near = (said: string) => quoted.indexOf(said) + 1;
+
+  it("is found past its quote marks, and its rows keep them as they grow and shrink", () => {
+    const table = tableAt(quoted, near("Rina"));
+    expect(table?.rows.map((one) => one.edges.length - 1)).toEqual([2, 2, 2]);
+    expect(lines(retabled(quoted, near("Rina"), "rowBelow")?.text ?? "")).toEqual([
+      "> | Name | Age |",
+      "> | --- | :-: |",
+      "> | Rina | 4 |",
+      "> |  |  |",
+    ]);
+    expect(lines(retabled(quoted, near("Rina"), "columnRight")?.text ?? "")[1]).toBe(
+      "> | --- | --- | :-: |",
+    );
+    expect(lines(retabled(quoted, near("Age"), "columnRemove")?.text ?? "")).toEqual([
+      "> | Name |",
+      "> | --- |",
+      "> | Rina |",
+    ]);
+    expect(lines(retabled(quoted, near("Rina"), "alignRight")?.text ?? "")[1]).toBe(
+      "> | ---: | :-: |",
+    );
+  });
+
+  it("is walked with Tab past its quote marks", () => {
+    const editor = view(quoted, near("Name"));
+    runScopeHandlers(editor, new KeyboardEvent("keydown", { key: "Tab" }), "editor");
+    expect(chosen(editor)).toBe("Age");
+    editor.destroy();
+  });
+
+  it("is read past its marks even with no outer pipes", () => {
+    const bare = "> Name | Age\n> --- | ---\n> Rina | 4\n";
+    expect(tableAt(bare, bare.indexOf("Rina") + 1)?.rows[2].edges).toEqual([1, 7, 10]);
+    expect(retabled(bare, bare.indexOf("Rina") + 1, "rowBelow")?.text.split("\n")[3]).toBe(
+      ">   |  ",
+    );
+  });
+});

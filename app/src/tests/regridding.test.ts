@@ -69,6 +69,19 @@ describe("a table changed from the text editor", () => {
     expect(core.near).toHaveBeenCalledWith(listed, caret, { kind: "rowMove", from: 0, to: 1 });
   });
 
+  it("finds a table inside a quote past its marks, and the caret follows the row it moved", async () => {
+    const quoted = "Dicho:\n\n> | a |\n> | --- |\n> | 1 |\n> | 2 |\n";
+    const moved = "Dicho:\n\n> | a |\n> | --- |\n> | 2 |\n> | 1 |\n";
+    core.near.mockResolvedValue(moved);
+    const caret = quoted.indexOf("| 1") + 2;
+    const editor = view(caret, quoted);
+    expect(press(editor, "ArrowDown")).toBe(true);
+    await settle();
+    expect(core.near).toHaveBeenCalledWith(quoted, caret, { kind: "rowMove", from: 0, to: 1 });
+    const head = editor.state.selection.main.head;
+    expect(editor.state.sliceDoc(head, head + 1)).toBe("1");
+  });
+
   it("moves a column with Alt and a side arrow, and sorts and recasts by the column of the caret", async () => {
     core.near.mockResolvedValue(TEXT);
     const caret = TEXT.indexOf("Edad") + 1;
