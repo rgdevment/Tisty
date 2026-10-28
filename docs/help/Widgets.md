@@ -4,6 +4,15 @@ A code block whose language is `widget` is drawn as a small page: HTML, styles a
 
 Every form, with its examples drawn the way Tisty draws them, is in the Tisty Markdown guide: [diagrams, formulas and widgets](https://markdown.tisty.app/diagrams-formulas-and-widgets#widgets).
 
+````markdown
+```widget title="Walks"
+<div class="stat"><small>This month</small><b>42</b></div>
+```
+````
+
+> [!NOTE]
+> GitHub does not run widgets, so this page shows the code. In Tisty the block above is drawn as a card with its figure.
+
 ## Sealed off
 
 - A widget runs in a frame that is allowed **no network at all**: it cannot fetch anything, load a picture from an address, or send what it shows anywhere.
