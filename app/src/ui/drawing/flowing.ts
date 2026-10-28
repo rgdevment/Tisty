@@ -106,10 +106,60 @@ export const edgeChanged = (
 // Only a line that says just this edge can go; an edge in a chain would take the chain with it.
 export const edgeRemovable = (edge: FlowEdge) => edge.alone;
 
+// What a line held besides its edge stays when the line goes: a node written there, or one named nowhere else.
+const leftBehind = (
+  flow: Flow,
+  at: number,
+  ids: readonly string[],
+  gone: ReadonlySet<number>,
+  placed: Set<string>,
+) => {
+  const indent = indentOf(flow.body[at]);
+  return ids.flatMap((id) => {
+    const node = flow.nodes.find((one) => one.id === id);
+    if (!node || placed.has(id)) return [];
+    const elsewhere = flow.body.some((line, other) => !gone.has(other) && names(line, id));
+    if (node.def?.line !== at && elsewhere) return [];
+    placed.add(id);
+    if (node.def?.line !== at) return [`${indent}${id}`];
+    const kind = /:::[\w-]+$/.exec(flow.body[at].slice(node.def.start, node.def.end))?.[0] ?? "";
+    return [`${indent}${formedNode(id, node.text, node.shape ?? "process")}${kind}`];
+  });
+};
+
+const STYLED = /^(\s*linkStyle\s+)([\d\s,]+?)(\s+\S.*)$/;
+
+// `linkStyle` names edges by their order, so the ones after a removed edge move down by one each.
+const restyled = (line: string, removed: readonly number[]): string | null => {
+  const found = STYLED.exec(line);
+  if (!found) return line;
+  const kept = found[2]
+    .split(",")
+    .map((one) => Number(one.trim()))
+    .filter((one) => !removed.includes(one))
+    .map((one) => one - removed.filter((gone) => gone < one).length);
+  return kept.length ? `${found[1]}${kept.join(",")}${found[3]}` : null;
+};
+
+// Lines replaced or dropped by place, `linkStyle` renumbered for the edges that went.
+const rewritten = (
+  flow: Flow,
+  instead: ReadonlyMap<number, readonly string[]>,
+  removed: readonly number[],
+) =>
+  flow.body.flatMap((line, at) => {
+    const replaced = instead.get(at);
+    if (replaced) return replaced;
+    const styled = removed.length ? restyled(line, removed) : line;
+    return styled === null ? [] : [styled];
+  });
+
 export const edgeRemoved = (flow: Flow, index: number): FlowAltered | null => {
   const edge = flow.edges[index];
   if (!edge || !edgeRemovable(edge)) return null;
-  return { body: flow.body.filter((_, at) => at !== edge.link.line), picked: null };
+  const at = edge.link.line;
+  const kept = leftBehind(flow, at, [edge.from, edge.to], new Set([at]), new Set());
+  return { body: rewritten(flow, new Map([[at, kept]]), [index]), picked: null };
 };
 
 // A line goes with a node when it names that node alone: its own line, a lone edge from or to it, its style.
@@ -133,7 +183,18 @@ const goesWith = (flow: Flow, at: number, id: string): boolean | null => {
 export const nodeRemoved = (flow: Flow, id: string): FlowAltered | null => {
   const going = flow.body.map((_, at) => goesWith(flow, at, id));
   if (going.includes(null)) return null;
-  return { body: flow.body.filter((_, at) => !going[at]), picked: null };
+  const gone = new Set(going.flatMap((goes, at) => (goes ? [at] : [])));
+  const placed = new Set([id]);
+  const instead = new Map(
+    [...gone].map((at) => {
+      const others = flow.edges
+        .filter((one) => one.link.line === at)
+        .flatMap((one) => [one.from, one.to]);
+      return [at, leftBehind(flow, at, others, gone, placed)] as const;
+    }),
+  );
+  const removed = flow.edges.flatMap((one, index) => (gone.has(one.link.line) ? [index] : []));
+  return { body: rewritten(flow, instead, removed), picked: null };
 };
 
 export const groupAdded = (flow: Flow, title: string): FlowAltered => {
@@ -214,6 +275,10 @@ const shifted = <T extends { open: number; close: number }>(
 export const directionChanged = (flow: Flow, direction: Direction): string[] => {
   const head = [...flow.head];
   const at = head.length - 1;
-  head[at] = head[at].replace(/^(\s*)(flowchart|graph)(\s+(TB|TD|BT|LR|RL))?/, `$1$2 ${direction}`);
+  // `flowchart-elk` keeps its layout word; only the direction after it changes.
+  head[at] = head[at].replace(
+    /^(\s*)(flowchart|graph)(-[\w-]+)?(\s+(TB|TD|BT|LR|RL))?/,
+    `$1$2$3 ${direction}`,
+  );
   return head;
 };

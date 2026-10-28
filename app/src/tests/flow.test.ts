@@ -32,6 +32,7 @@ flowchart LR⏎  A[Inicio] --> B{¿Pago?}⏎  B -->|sí| C(Proceso)⏎  B -- no 
 graph TD;⏎  A --> B --> C⏎  A & B --> D;⏎  style A fill:#f9f⏎  classDef rojo fill:#f00⏎  class C rojo
 flowchart TB⏎  E([Estadio]) --- F[[Sub]]⏎  G[(Base)] -.-> H{{Hex}}⏎  I[/Para/] ==> J>Asim]⏎  K[\Inv\] -.- L[/Trap\]⏎  M(((Doble)))
 flowchart LR⏎  subgraph g1 [Grupo uno]⏎    C⏎    C --> X⏎  end⏎  subgraph Solo⏎    D⏎  end⏎  %% una nota⏎  C:::rojo --> D⏎
+---⏎config:⏎  flowchart:⏎    curve: basis⏎---⏎flowchart-elk RL⏎  A --> B
 ---⏎title: Pagos⏎---⏎flowchart TD⏎  A["con (paréntesis) y #quot;comillas#quot;"] --> B⏎  A -.->|tal vez| B⏎  A ==>|seguro| C⏎  A ---|enlace| D⏎  A == firme ==> E⏎  A -. suave .-> F
 `;
 
@@ -78,7 +79,7 @@ describe("reading a flowchart", () => {
 
   it("reads chains, groups joined by & and every kind of arrow", () => {
     const chained = readFlow(unfolded(lines(WRITTEN)[1])) as Flow;
-    const worded = readFlow(unfolded(lines(WRITTEN)[4])) as Flow;
+    const worded = readFlow(unfolded(lines(WRITTEN)[5])) as Flow;
 
     expect(chained.direction).toBe("TB");
     expect(chained.edges.map((one) => `${one.from}${one.arrow}${one.to}:${one.alone}`)).toEqual([
@@ -98,8 +99,18 @@ describe("reading a flowchart", () => {
     ]);
   });
 
-  it("knows which group each node was first named in", () => {
+  it("reads the direction after front matter and a layout word", () => {
+    expect(readFlow(unfolded(lines(WRITTEN)[4]))?.direction).toBe("RL");
+  });
+
+  it("puts a node in the group that lists it, as Mermaid does, even when named before", () => {
     const flow = readFlow(unfolded(lines(WRITTEN)[3])) as Flow;
+    const later = readFlow("flowchart LR\n  A --> B\n  subgraph g [G]\n    A\n  end") as Flow;
+
+    expect(later.nodes.map((one) => [one.id, one.group])).toEqual([
+      ["A", "g"],
+      ["B", null],
+    ]);
 
     expect(flow.groups.map((one) => [one.id, one.title])).toEqual([
       ["g1", "Grupo uno"],
@@ -137,6 +148,17 @@ describe("writing a node", () => {
 const MAP = unfolded(
   "flowchart LR⏎  A[Inicio] --> B{¿Pago?}⏎  B -->|sí| C(Proceso)⏎  subgraph g1 [Cobro]⏎    C⏎  end⏎  C --> D --> E⏎  style D fill:#f9f",
 );
+
+// One per line: a flowchart → what is removed → the text it leaves.
+const REMOVED = `
+flowchart LR⏎  A --> Z → edge 0 → flowchart LR⏎  A⏎  Z
+flowchart LR⏎  A --> Z⏎  A --> Y → edge 0 → flowchart LR⏎  Z⏎  A --> Y
+flowchart LR⏎  A[Uno]:::rojo --> Z⏎  Z --> A → edge 0 → flowchart LR⏎  A[Uno]:::rojo⏎  Z --> A
+flowchart LR⏎  A --> B⏎  B --> C⏎  C --> D⏎  linkStyle 0,2 stroke:red⏎  linkStyle 1 stroke:blue → edge 1 → flowchart LR⏎  A --> B⏎  C --> D⏎  linkStyle 0,1 stroke:red
+flowchart LR⏎  A --> B⏎  B --> C⏎  linkStyle default stroke:red → edge 0 → flowchart LR⏎  A⏎  B --> C⏎  linkStyle default stroke:red
+flowchart LR⏎  A --> B⏎  B --> C⏎  linkStyle 1 stroke:red → node A → flowchart LR⏎  B --> C⏎  linkStyle 0 stroke:red
+flowchart LR⏎  A --> B[Dos]⏎  B --> C → node A → flowchart LR⏎  B[Dos]⏎  B --> C
+`;
 
 const flowOf = (source = MAP) => readFlow(source) as Flow;
 const bodyText = (body: readonly string[] | undefined) =>
@@ -179,16 +201,28 @@ describe("changing a flowchart", () => {
 
   it("takes out a lone edge, but never one link of a chain", () => {
     expect(bodyText(edgeRemoved(flowOf(), 0)?.body)).toBe(
-      MAP.replace("  A[Inicio] --> B{¿Pago?}\n", ""),
+      MAP.replace("  A[Inicio] --> B{¿Pago?}\n", "  A[Inicio]\n  B{¿Pago?}\n"),
     );
     expect(edgeRemoved(flowOf(), 2)).toBeNull();
   });
 
   it("takes out a node with its lone edges and its style, but not one a chain still names", () => {
     expect(bodyText(nodeRemoved(flowOf(), "A")?.body)).toBe(
-      MAP.replace("  A[Inicio] --> B{¿Pago?}\n", ""),
+      MAP.replace("  A[Inicio] --> B{¿Pago?}\n", "  B{¿Pago?}\n"),
     );
     expect(nodeRemoved(flowOf(), "D")).toBeNull();
+  });
+
+  it("keeps what a removed line also held, and renumbers the styles of the edges after it", async () => {
+    for (const case_ of lines(REMOVED)) {
+      const [source, what, expected] = case_.split(" → ").map(unfolded);
+      const [kind, which] = what.split(" ");
+      const flow = flowOf(source);
+      const done = kind === "edge" ? edgeRemoved(flow, Number(which)) : nodeRemoved(flow, which);
+      const written = writeFlow({ head: flow.head, body: done?.body ?? [], tail: [] });
+      expect(written, case_).toBe(expected);
+      expect(await valid(written), case_).toBe(true);
+    }
   });
 
   it("adds, renames and takes apart a group, and moves a node in and out of one", async () => {
@@ -208,7 +242,10 @@ describe("changing a flowchart", () => {
     for (const one of [added, renamed, apart, outOf, into]) expect(await valid(one)).toBe(true);
   });
 
-  it("turns the whole chart another way", () => {
+  it("turns the whole chart another way, keeping its layout word", () => {
     expect(directionChanged(flowOf(), "TB")).toEqual(["flowchart TB"]);
+    expect(directionChanged(flowOf("flowchart-elk TD\n  A --> B"), "LR")).toEqual([
+      "flowchart-elk LR",
+    ]);
   });
 });

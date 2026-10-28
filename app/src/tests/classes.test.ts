@@ -145,6 +145,25 @@ describe("changing a class diagram", () => {
     }
   });
 
+  it("removes only the class named, whatever letters end its name", async () => {
+    const source = unfolded(
+      'classDiagram⏎  class Camión⏎  class CamiónGrande⏎  note for Camión "vieja"⏎  note for CamiónGrande "nueva"',
+    );
+    const classes = readClasses(source) as Classes;
+    const written = writeClasses({ ...classes, body: classRemoved(classes, "Camión").body });
+
+    expect(written).toBe('classDiagram\n  class CamiónGrande\n  note for CamiónGrande "nueva"');
+    expect(await valid(written)).toBe(true);
+  });
+
+  it("gives braces to a class written with its style class", async () => {
+    const classes = readClasses("classDiagram\n  class Cliente:::vip") as Classes;
+    const written = writeClasses({ ...classes, body: memberAdded(classes, "Cliente", "+id").body });
+
+    expect(written).toBe("classDiagram\n  class Cliente:::vip {\n    +id\n  }");
+    expect(await valid(written)).toBe(true);
+  });
+
   it("refuses a name already taken or not one Mermaid reads", () => {
     expect(classRenamed(of(), "Animal", "Duck").body).toEqual(of().body);
     expect(classRenamed(of(), "Animal", "con-guion").body).toEqual(of().body);

@@ -56,7 +56,7 @@ const goesWith = (diagram: Classes, name: string) => {
   diagram.body.forEach((line, at) => {
     if (
       new RegExp(
-        `^\\s*(<<.+>>\\s*${name}|(style|click|link|callback)\\s+${name}|note\\s+for\\s+${name})\\b`,
+        `^\\s*(<<.+>>\\s*${name}|(style|click|link|callback)\\s+${name}|note\\s+for\\s+${name})(?![\\p{L}\\p{N}_])`,
         "u",
       ).test(line)
     )

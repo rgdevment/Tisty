@@ -1,3 +1,4 @@
+import { headerAt } from "./framing";
 import type { Direction } from "./graphlayout";
 
 export interface Member {
@@ -141,7 +142,7 @@ const readLine = (reading: Reading, said: string, line: number): boolean => {
 /** The class diagram a diagram draws, or `null` when it says something the window could not keep as written. */
 export const readClasses = (source: string): Classes | null => {
   const lines = source.replace(/\r/g, "").split("\n");
-  const opening = lines.findIndex((line) => /^\s*classDiagram(-v2)?\b/.test(line));
+  const opening = headerAt(lines, /^\s*classDiagram(-v2)?\b/);
   if (opening < 0) return null;
   let end = lines.length;
   while (end > opening + 1 && !lines[end - 1].trim()) end -= 1;

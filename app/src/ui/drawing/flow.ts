@@ -1,3 +1,4 @@
+import { headerAt } from "./framing";
 import type { Direction } from "./graphlayout";
 
 export type Shape =
@@ -239,7 +240,7 @@ const KEPT =
   /^\s*(%%|classDef\b|class\b|style\b|linkStyle\b|click\b|accTitle\b|accDescr\b|direction\b)/;
 const SUBGRAPH = /^(\s*)subgraph\s+(.+?)\s*$/;
 const END = /^\s*end\s*;?\s*$/;
-const DIRECTION = /^\s*(flowchart|graph)(?:\s+(TB|TD|BT|LR|RL))?\b/;
+const DIRECTION = /^\s*(flowchart|graph)(?:-[\w-]+)?(?:\s+(TB|TD|BT|LR|RL))?\b/;
 
 const groupNamed = (said: string): { id: string; title: string } => {
   const found = /^([\p{L}\p{N}_-]+)\s*\[\s*("?)(.*?)\2\s*\]$/u.exec(said);
@@ -266,7 +267,8 @@ const noted = (reading: Reading, node: Named, line: number) => {
     shape: node.shape ?? known?.shape ?? null,
     def,
     first: known?.first ?? span,
-    group: known?.group ?? group,
+    // As Mermaid does, a node listed inside a subgraph belongs to it, wherever it was named before.
+    group: group ?? known?.group ?? null,
   });
 };
 
@@ -310,7 +312,7 @@ const readLine = (reading: Reading, said: string, line: number): boolean => {
 /** The flowchart a diagram draws, or `null` when it says something the window could not keep as written. */
 export const readFlow = (source: string): Flow | null => {
   const lines = source.replace(/\r/g, "").split("\n");
-  const opening = lines.findIndex((line) => DIRECTION.test(line));
+  const opening = headerAt(lines, DIRECTION);
   if (opening < 0) return null;
   const said = DIRECTION.exec(lines[opening])?.[2] ?? "TB";
   const direction = (said === "TD" ? "TB" : said) as Direction;

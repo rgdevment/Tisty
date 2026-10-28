@@ -28,6 +28,7 @@ mindmap⏎    Raíz⏎        Uno⏎            Dos⏎        Tres⏎
 mindmap⏎⇥Raíz⏎⇥⇥Hija⏎⇥⇥⇥Nieta
 mindmap⏎Raíz sin sangría⏎  Uno⏎  Dos
 mindmap⏎  root⏎    n(-Nube con guiones-)
+---⏎config:⏎  mindmap:⏎    padding: 10⏎---⏎mindmap⏎  Raíz⏎    Hija
 mindmap⏎  root["Con (paréntesis)"]⏎    x("Comillas #quot;dentro#quot;")⏎    y["\`**negrita**\`"]
 `;
 

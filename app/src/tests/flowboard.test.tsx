@@ -90,7 +90,7 @@ describe("a flowchart in the diagram window", () => {
     expect(text()).toBe(FLOW.replace("A[Inicio] --> B", "A[Inicio] -.->|empieza| B"));
 
     fireEvent.keyDown(screen.getByRole("button", { name: "empieza" }), { key: "Delete" });
-    expect(text()).toBe(FLOW.replace("  A[Inicio] --> B{¿Pago?}\n", ""));
+    expect(text()).toBe(FLOW.replace("  A[Inicio] --> B{¿Pago?}\n", "  A[Inicio]\n  B{¿Pago?}\n"));
   });
 
   it("will not take out one link of a chain, and says why", () => {

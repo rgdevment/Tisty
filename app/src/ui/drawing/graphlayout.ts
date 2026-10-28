@@ -20,23 +20,35 @@ const MARGIN = 40;
 // Each node's layer is the longest way to it from a node nothing points at; a loop is cut where it closes.
 const ranksOf = (ids: readonly string[], edges: readonly (readonly [string, string])[]) => {
   const out = new Map<string, string[]>(ids.map((id) => [id, []]));
-  for (const [from, to] of edges) if (from !== to) out.get(from)?.push(to);
-  const rank = new Map<string, number>(ids.map((id) => [id, 0]));
+  for (const [from, to] of edges) if (from !== to && out.has(to)) out.get(from)?.push(to);
+  const forward = new Map<string, string[]>(ids.map((id) => [id, []]));
   const walking = new Set<string>();
-  const done = new Set<string>();
+  const seen = new Set<string>();
   const walk = (id: string) => {
-    if (done.has(id) || walking.has(id)) return;
+    seen.add(id);
     walking.add(id);
     for (const next of out.get(id) ?? []) {
       if (walking.has(next)) continue;
-      rank.set(next, Math.max(rank.get(next) ?? 0, (rank.get(id) ?? 0) + 1));
-      done.delete(next);
-      walk(next);
+      forward.get(id)?.push(next);
+      if (!seen.has(next)) walk(next);
     }
     walking.delete(id);
-    done.add(id);
   };
-  for (const id of ids) walk(id);
+  for (const id of ids) if (!seen.has(id)) walk(id);
+  const rank = new Map<string, number>(ids.map((id) => [id, 0]));
+  const waiting = new Map<string, number>(ids.map((id) => [id, 0]));
+  for (const nexts of forward.values())
+    for (const next of nexts) waiting.set(next, (waiting.get(next) ?? 0) + 1);
+  const ready = ids.filter((id) => waiting.get(id) === 0);
+  for (let at = 0; at < ready.length; at++) {
+    const id = ready[at];
+    for (const next of forward.get(id) ?? []) {
+      rank.set(next, Math.max(rank.get(next) ?? 0, (rank.get(id) ?? 0) + 1));
+      const left = (waiting.get(next) ?? 0) - 1;
+      waiting.set(next, left);
+      if (left === 0) ready.push(next);
+    }
+  }
   return rank;
 };
 
