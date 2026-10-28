@@ -28,6 +28,10 @@ table:has(th[data-type]) td {
 td.whole {
   white-space: nowrap;
 }
+/* A row of empty cells still stands a line tall, so a new table is as easy to click as a full one. */
+tr {
+  height: calc(1lh + 13px);
+}
 /* The file wins: a value not written as its type asks is drawn as written, only marked. */
 td[data-amiss] {
   text-decoration: underline wavy color-mix(in srgb, var(--tisty-hue-amber) 70%, transparent);
@@ -110,6 +114,16 @@ html.widening * {
 .row-moving * {
   cursor: grabbing;
   user-select: none;
+}
+.row-dragged > td {
+  background: var(--tisty-accent-soft);
+  opacity: 0.6;
+}
+.row-landing-above > td {
+  box-shadow: inset 0 3px 0 var(--tisty-accent);
+}
+.row-landing-below > td {
+  box-shadow: inset 0 -3px 0 var(--tisty-accent);
 }
 .table.dressed th {
   padding-right: 30px;

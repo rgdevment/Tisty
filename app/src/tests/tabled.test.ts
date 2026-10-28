@@ -215,15 +215,37 @@ describe("a row dragged by its grip", () => {
     const pointer = (type: string, y: number, target: EventTarget = made) =>
       target.dispatchEvent(new MouseEvent(type, { bubbles: true, clientY: y, button: 0 }));
 
+    const marks = () =>
+      rows.map((one) =>
+        ["row-dragged", "row-landing-above", "row-landing-below"]
+          .filter((name) => one.classList.contains(name))
+          .join(" "),
+      );
     pointer("pointerdown", 10, grip);
     pointer("pointermove", 95);
+    expect(marks()).toEqual(["row-dragged", "", "row-landing-below"]);
     pointer("pointerup", 95);
     expect(moved).toHaveBeenCalledWith("0-90", 0, 2);
+    expect(marks()).toEqual(["", "", ""]);
+
+    moved.mockClear();
+    pointer("pointerdown", 90, made.querySelectorAll<HTMLElement>(".row-grip")[2]);
+    pointer("pointermove", 20);
+    expect(marks()).toEqual(["row-landing-above", "", "row-dragged"]);
+    pointer("pointerup", 20);
+    expect(moved).toHaveBeenCalledWith("0-90", 2, 0);
 
     moved.mockClear();
     pointer("pointerdown", 10, grip);
     pointer("pointermove", 12);
     pointer("pointerup", 12);
+    expect(moved).not.toHaveBeenCalled();
+
+    pointer("pointerdown", 10, grip);
+    pointer("pointermove", 95);
+    pointer("pointercancel", 95);
+    expect(marks()).toEqual(["", "", ""]);
+    pointer("pointerup", 95);
     expect(moved).not.toHaveBeenCalled();
   });
 });

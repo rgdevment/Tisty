@@ -33,8 +33,8 @@ import { HUES } from "./paging";
 import { pendingFormat, pendingKeys, settle } from "./pending";
 import { gridFailed, gridKeys } from "./regridding";
 import { visual } from "./seeing";
-import { type Asking, BOX, putBlock, slashing } from "./slashing";
-import { tableKeys } from "./tabling";
+import { type Asking, BOX, putBlock, putTable, slashing } from "./slashing";
+import { tableHere, tableKeys } from "./tabling";
 
 const PENS = ["yellow", ...HUES];
 
@@ -278,6 +278,14 @@ export const tightened = (state: EditorState): string => {
   return kept.map((line) => line.text).join(state.lineBreak);
 };
 
+/** Where the bar rests: over the words chosen, over the block being written, or at the top of a task's page. */
+export const aimed = (view: EditorView, untitled: boolean): number | null => {
+  const chosen = view.state.selection.main;
+  // Inside a table the bar stays above it, so walking its cells never lays it over the rows.
+  if (!chosen.empty && !tableHere(view.state)) return view.coordsAtPos(chosen.from)?.top ?? null;
+  return untitled ? null : view.dom.getBoundingClientRect().top;
+};
+
 export const edited = (
   block: HTMLElement,
   said: string,
@@ -412,20 +420,15 @@ export const edited = (
       ],
     }),
   });
-  const bar = barred(view, whole, onWhole && (() => onWhole(false)));
+  const bar = barred(view, whole, onWhole && (() => onWhole(false)), () =>
+    putTable(view, asking?.()),
+  );
   if (stepping) bar.bar.style.display = "none";
   follow = bar.follow;
   const dock = docked(
     bar.bar,
     bar.hint,
-    () => {
-      const chosen = view.state.selection.main;
-      if (!chosen.empty) return view.coordsAtPos(chosen.from)?.top ?? null;
-      // A task's bar rests at the top of its page; a document's rests over the block being written.
-      return page.documentElement.classList.contains("untitled")
-        ? null
-        : view.dom.getBoundingClientRect().top;
-    },
+    () => aimed(view, page.documentElement.classList.contains("untitled")),
     host,
     whole,
   );

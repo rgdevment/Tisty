@@ -36,7 +36,7 @@ const HTML = `<article class="page"><div class="table" data-at="0-80"><table><th
 <tr><td>Netflix</td><td data-key="9990">$9.990</td></tr>
 </tbody></table></div></article>`;
 
-type Seen = { onTable: (asked: TableWent) => void };
+type Seen = { onTable: (asked: TableWent) => void; freshAt: (byte: number) => void };
 
 const made = (html = HTML) => {
   const page = document.implementation.createHTMLDocument("");
@@ -51,7 +51,7 @@ const made = (html = HTML) => {
     fail: vi.fn(),
     writing: false,
   };
-  const seen: Seen = { onTable: () => {} };
+  const seen: Seen = { onTable: () => {}, freshAt: () => {} };
   const Room = ({ turned }: { turned: number }) => {
     const tables = useTables({
       latest: ways.latest,
@@ -66,6 +66,7 @@ const made = (html = HTML) => {
       turned,
     });
     seen.onTable = tables.onTable;
+    seen.freshAt = tables.freshAt;
     return <>{tables.menu}</>;
   };
   const view = render(<Room turned={1} />);
@@ -109,22 +110,68 @@ beforeEach(() => {
 });
 
 describe("a table written in place", () => {
-  it("opens a cell with its Markdown and saves what was typed, then opens the cell below", async () => {
-    const { page, ways, seen, turn } = made();
+  it("lays a bar over the table while a cell is written, whose presses mark the whole cell", async () => {
+    const { page, seen } = made();
     seen.onTable(asked("cell", 1, 1));
     await settle();
-    const input = page.querySelector<HTMLInputElement>(".table-input") as HTMLInputElement;
-    expect(input.value).toBe("**9990**");
-    expect(input.getAttribute("aria-label")).toBe("Cell in Precio");
+    const bar = page.querySelector<HTMLElement>(".cell-bar") as HTMLElement;
+    const button = (name: RegExp) =>
+      Array.from(bar.querySelectorAll<HTMLButtonElement>("button")).find((one) =>
+        name.test(one.getAttribute("aria-label") ?? ""),
+      ) as HTMLButtonElement;
+    expect(bar.getAttribute("role")).toBe("toolbar");
+    expect(button(/^Bold/).getAttribute("aria-pressed")).toBe("true");
+    expect(button(/^Link/)).toBeUndefined();
 
-    input.value = "10990";
+    button(/^Bold/).click();
+    button(/blue/i).click();
+    expect(button(/^Bold/).getAttribute("aria-pressed")).toBe("false");
+    const input = page.querySelector<HTMLInputElement>(".table-input") as HTMLInputElement;
     press(input, "Enter");
     await settle();
     expect(core.edit).toHaveBeenCalledWith(BODY, [0, 80], {
       kind: "cell",
       row: 1,
       column: 1,
-      said: "10990",
+      said: "==9990=={blue}",
+    });
+    expect(page.querySelector(".cell-bar")).toBeNull();
+  });
+
+  it("opens the first title of a table just made once the page draws it, and only then", async () => {
+    const { page, seen, turn } = made();
+    seen.freshAt(40);
+    turn(2);
+    await settle();
+    expect(page.querySelector(".table-input")).toBeNull();
+
+    seen.freshAt(0);
+    turn(3);
+    await settle();
+    const input = page.querySelector<HTMLInputElement>(".table-input");
+    expect(input?.getAttribute("aria-label")).toBe("Column title");
+    expect(input?.closest("th")?.cellIndex).toBe(0);
+  });
+
+  it("opens a cell with its words, saves what was typed in the marks around it, then opens the cell below", async () => {
+    const { page, ways, seen, turn } = made();
+    seen.onTable(asked("cell", 1, 1));
+    await settle();
+    const input = page.querySelector<HTMLInputElement>(".table-input") as HTMLInputElement;
+    expect(input.value).toBe("9990");
+    expect(input.getAttribute("aria-label")).toBe("Cell in Precio");
+
+    core.canon.mockImplementation((_, typed) => Promise.resolve(typed.replace(".", "")));
+    input.value = "10.990";
+    press(input, "Enter");
+    await settle();
+    // The words take the column's form before the marks go back around them.
+    expect(core.canon).toHaveBeenCalledWith("money CLP", "10.990");
+    expect(core.edit).toHaveBeenCalledWith(BODY, [0, 80], {
+      kind: "cell",
+      row: 1,
+      column: 1,
+      said: "**10990**",
     });
     expect(ways.whole).toHaveBeenCalledWith("next body");
 

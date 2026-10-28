@@ -246,7 +246,12 @@ export const formatButtons = (page: Document, pick: (open: string, close: string
   }),
 });
 
-export const barred = (view: EditorView, whole = false, onWhole?: () => void): Barred => {
+export const barred = (
+  view: EditorView,
+  whole = false,
+  onWhole?: () => void,
+  tabling?: () => void,
+): Barred => {
   const page = view.dom.ownerDocument;
   const made = <K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text = "") =>
     madeIn(page, tag, className, text);
@@ -350,6 +355,9 @@ export const barred = (view: EditorView, whole = false, onWhole?: () => void): B
     () => openMenu(view),
     "⋯",
   );
+  // A table is a press away anywhere but inside one, where the bar offers the table's own shape.
+  const tableIt = tabling && button("cm-bar-button cm-bar-table", t("table"), tabling);
+  tableIt?.append(drawnIn(page, "table"));
 
   let folded = false;
   const fold = button("cm-bar-button cm-bar-fold", t("barFold"), () => folding(!folded));
@@ -402,6 +410,7 @@ export const barred = (view: EditorView, whole = false, onWhole?: () => void): B
 
   bar.append(kinds, made("span", "cm-bar-sep"), ...formats);
   bar.append(made("span", "cm-bar-sep"), ...pens, made("span", "cm-bar-sep"));
+  if (tableIt) bar.append(tableIt);
   if (wide) bar.append(wide);
   bar.append(marks, slash, fold);
   folding(foldedBefore());
@@ -425,6 +434,7 @@ export const barred = (view: EditorView, whole = false, onWhole?: () => void): B
   const follow = (current: EditorView) => {
     const { head } = current.state.selection.main;
     tabled = tableHere(current.state) !== null;
+    if (tableIt) tableIt.hidden = tabled;
     kindSaid.textContent = tabled ? t("table") : t(kindOf(current.state.doc.lineAt(head).text));
     marking(current.state);
     menu.hidden = true;

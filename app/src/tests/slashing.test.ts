@@ -2,7 +2,7 @@ import { CompletionContext, type CompletionResult } from "@codemirror/autocomple
 import { markdown } from "@codemirror/lang-markdown";
 import { EditorState } from "@codemirror/state";
 import { EditorView, runScopeHandlers } from "@codemirror/view";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { wrapped } from "../ui/formatting";
 import {
   type Asked,
@@ -99,6 +99,18 @@ describe("the / menu in a block", () => {
     put(editor, one("table"), 6, 7);
     expect(editor.state.sliceDoc()).toBe("Leche\n\n|  |  |\n| --- | --- |\n|  |  |\n\npan");
     editor.destroy();
+  });
+
+  it("tells where a new table starts, so it is written from the page at once", () => {
+    const editor = view("Leche /");
+    const tabled = vi.fn();
+    put(editor, one("table"), 6, 7, { kinds: [], ask: vi.fn(), tabled });
+    expect(tabled).toHaveBeenCalledWith("Leche\n\n".length);
+    const other = view("Leche /");
+    put(other, one("rule"), 6, 7, { kinds: [], ask: vi.fn(), tabled });
+    expect(tabled).toHaveBeenCalledTimes(1);
+    editor.destroy();
+    other.destroy();
   });
 
   it("wraps what was selected when a format is picked from the bar's menu", () => {

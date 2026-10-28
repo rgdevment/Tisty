@@ -44,6 +44,26 @@ describe("the bar over the block being written", () => {
     nested.destroy();
   });
 
+  it("offers a table a press away, except inside a table, where it offers the table's shape", () => {
+    const doc = "Leche\n\n| a | b |\n| --- | --- |\n| 1 | 2 |\n";
+    const editor = view(doc, 2);
+    let asked = 0;
+    const { bar, follow } = barred(editor, false, undefined, () => {
+      asked += 1;
+    });
+    const button = bar.querySelector<HTMLButtonElement>(".cm-bar-table") as HTMLButtonElement;
+    expect(button.getAttribute("aria-label")).toBe(t("table"));
+    expect(button.hidden).toBe(false);
+    button.click();
+    expect(asked).toBe(1);
+
+    editor.dispatch({ selection: { anchor: doc.indexOf("1 |") } });
+    follow(editor);
+    expect(button.hidden).toBe(true);
+    expect(barred(editor).bar.querySelector(".cm-bar-table")).toBeNull();
+    editor.destroy();
+  });
+
   it("switches the block's marks on and back off", () => {
     const editor = view("**hola**");
     flipped(editor);
