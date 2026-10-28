@@ -1,6 +1,13 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { fill, t } from "../locales";
-import { type TableEdit, tableCanon, tableEdit, tableOrder, tableWritten } from "../tables";
+import {
+  refused,
+  type TableEdit,
+  tableCanon,
+  tableEdit,
+  tableOrder,
+  tableWritten,
+} from "../tables";
 import { today } from "./celled";
 import Menu, { type Choice } from "./Menu";
 import type { TableWent } from "./paging";
@@ -41,15 +48,6 @@ type Ways = {
 const PICKED = new Set(["date", "select", "tags", "link"]);
 
 type Place = { readonly nth: number; readonly row: number; readonly column: number };
-
-const refused = (why: unknown): Error =>
-  new Error(
-    why === "moved"
-      ? t("tableRefusedMoved")
-      : why === "lastColumn"
-        ? t("tableRefusedLastColumn")
-        : t("tableRefused"),
-  );
 
 // A column's options are the values its cells already hold, a tag list split into its tags.
 const optionsIn = (page: Document, nth: number, column: number, tags: boolean): string[] => {

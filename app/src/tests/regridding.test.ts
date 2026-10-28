@@ -3,26 +3,34 @@ import { EditorSelection, EditorState } from "@codemirror/state";
 import { EditorView, keymap, runScopeHandlers } from "@codemirror/view";
 import { act } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { gridKeys, regrid } from "../ui/regridding";
+import { gridFailed, gridKeys, regrid } from "../ui/regridding";
 
 const core = vi.hoisted(() => ({
-  around: vi.fn<(body: string, at: number) => Promise<[number, number] | null>>(),
-  edit: vi.fn<(body: string, at: [number, number], ...edits: unknown[]) => Promise<string>>(),
+  near: vi.fn<(body: string, at: number, ...edits: unknown[]) => Promise<string>>(),
 }));
 
-vi.mock("../tables", () => ({ tableAround: core.around, tableEdit: core.edit }));
+vi.mock("../tables", () => ({
+  tableEditNear: core.near,
+  refused: (why: unknown) => new Error(`refused ${String(why)}`),
+}));
 
 // A word with an accent sits before the table, so its place in bytes and in characters differ.
 const TEXT = "Señal\n\n| Nombre | Edad |\n| --- | --- |\n| Rina | 4 |\n| Toto | 7 |\n\nFin";
 const MOVED = "Señal\n\n| Nombre | Edad |\n| --- | --- |\n| Toto | 7 |\n| Rina | 4 |\n\nFin";
 
-const view = (head: number) =>
+const bytes = (said: string) => new TextEncoder().encode(said).length;
+
+const view = (head: number, doc = TEXT, failed = vi.fn()) =>
   new EditorView({
     parent: document.body,
     state: EditorState.create({
-      doc: TEXT,
+      doc,
       selection: EditorSelection.single(head),
-      extensions: [markdown({ base: markdownLanguage }), keymap.of(gridKeys)],
+      extensions: [
+        markdown({ base: markdownLanguage }),
+        keymap.of(gridKeys),
+        gridFailed.of(failed),
+      ],
     }),
   });
 
@@ -32,62 +40,75 @@ const press = (editor: EditorView, key: string) =>
 const settle = () => act(async () => {});
 
 beforeEach(() => {
-  core.around.mockReset().mockResolvedValue([8, 72]);
-  core.edit.mockReset().mockResolvedValue(MOVED);
+  core.near.mockReset().mockResolvedValue(MOVED);
 });
 
 describe("a table changed from the text editor", () => {
-  it("moves the row under the caret through the core, and the caret goes with it", async () => {
-    const editor = view(TEXT.indexOf("Rina") + 1);
+  it("moves the row under the caret through the core, by the caret's own byte, and the caret goes with it", async () => {
+    const caret = TEXT.indexOf("Rina") + 1;
+    const editor = view(caret);
     expect(press(editor, "ArrowDown")).toBe(true);
     await settle();
-    expect(core.around).toHaveBeenCalledWith(
-      TEXT,
-      new TextEncoder().encode(TEXT.slice(0, 7)).length,
-    );
-    expect(core.edit).toHaveBeenCalledWith(TEXT, [8, 72], { kind: "rowMove", from: 0, to: 1 });
+    expect(core.near).toHaveBeenCalledWith(TEXT, bytes(TEXT.slice(0, caret)), {
+      kind: "rowMove",
+      from: 0,
+      to: 1,
+    });
     expect(editor.state.doc.toString()).toBe(MOVED);
     const head = editor.state.selection.main.head;
     expect(editor.state.sliceDoc(head, head + 4)).toBe("Rina");
   });
 
-  it("moves a column with Alt and a side arrow, and sorts and retypes by the column of the caret", async () => {
-    const editor = view(TEXT.indexOf("Edad") + 1);
+  it("finds a table under a list item by the caret, not by where its indented line starts", async () => {
+    const listed = "- Lista\n\n  | a |\n  | --- |\n  | 1 |\n  | 2 |\n";
+    core.near.mockResolvedValue(listed);
+    const caret = listed.indexOf("| 1") + 2;
+    const editor = view(caret, listed);
+    expect(press(editor, "ArrowDown")).toBe(true);
+    await settle();
+    expect(core.near).toHaveBeenCalledWith(listed, caret, { kind: "rowMove", from: 0, to: 1 });
+  });
+
+  it("moves a column with Alt and a side arrow, and sorts and recasts by the column of the caret", async () => {
+    core.near.mockResolvedValue(TEXT);
+    const caret = TEXT.indexOf("Edad") + 1;
+    const editor = view(caret);
     press(editor, "ArrowLeft");
     await settle();
-    expect(core.edit).toHaveBeenLastCalledWith(TEXT, [8, 72], {
+    expect(core.near).toHaveBeenLastCalledWith(TEXT, bytes(TEXT.slice(0, caret)), {
       kind: "columnMove",
       from: 1,
       to: 0,
     });
-
-    core.edit.mockResolvedValue(TEXT);
-    const other = view(TEXT.indexOf("Edad") + 1);
+    // The caret followed the column it moved, so the rest is asked from a fresh one in the second column.
+    const other = view(caret);
     regrid(other, { kind: "sort", down: true });
     await settle();
-    expect(core.edit).toHaveBeenLastCalledWith(TEXT, [8, 72], {
+    expect(core.near).toHaveBeenLastCalledWith(TEXT, expect.any(Number), {
       kind: "sort",
       column: 1,
       down: true,
     });
-    regrid(other, { kind: "retype", words: "number sum" });
+    regrid(other, { kind: "recast", word: "number" });
     await settle();
-    expect(core.edit).toHaveBeenLastCalledWith(TEXT, [8, 72], {
-      kind: "retype",
+    expect(core.near).toHaveBeenLastCalledWith(TEXT, expect.any(Number), {
+      kind: "recast",
       column: 1,
-      words: "number sum",
+      word: "number",
     });
   });
 
   it("keeps Alt and an arrow inside a table, even on the head, and leaves them alone outside it", async () => {
-    const head = view(TEXT.indexOf("Nombre") + 1);
-    expect(press(head, "ArrowDown")).toBe(true);
-    const last = view(TEXT.indexOf("Toto") + 1);
-    expect(press(last, "ArrowDown")).toBe(true);
-    const away = view(1);
-    expect(press(away, "ArrowDown")).toBe(false);
+    expect(press(view(TEXT.indexOf("Nombre") + 1), "ArrowDown")).toBe(true);
+    expect(press(view(TEXT.indexOf("Toto") + 1), "ArrowDown")).toBe(true);
+    expect(press(view(1), "ArrowDown")).toBe(false);
     await settle();
-    expect(core.around).not.toHaveBeenCalled();
+    expect(core.near).not.toHaveBeenCalled();
+  });
+
+  it("asks a Mac for Control too before a column moves, since Option and a side arrow is a word there", () => {
+    const sides = gridKeys.filter((one) => one.key?.endsWith("Left") || one.key?.endsWith("Right"));
+    expect(sides.map((one) => one.mac)).toEqual(["Ctrl-Alt-ArrowLeft", "Ctrl-Alt-ArrowRight"]);
   });
 
   it("puts nothing back when the text changed while the core was asked", async () => {
@@ -98,12 +119,13 @@ describe("a table changed from the text editor", () => {
     expect(editor.state.doc.toString()).toBe(`¡${TEXT}`);
   });
 
-  it("does nothing when the core finds no table there", async () => {
-    core.around.mockResolvedValue(null);
-    const editor = view(TEXT.indexOf("Rina") + 1);
+  it("says why when the core refuses, and leaves the text as it was", async () => {
+    core.near.mockRejectedValue("moved");
+    const failed = vi.fn();
+    const editor = view(TEXT.indexOf("Rina") + 1, TEXT, failed);
     press(editor, "ArrowDown");
     await settle();
-    expect(core.edit).not.toHaveBeenCalled();
+    expect(failed).toHaveBeenCalledWith(new Error("refused moved"));
     expect(editor.state.doc.toString()).toBe(TEXT);
   });
 });
@@ -119,14 +141,14 @@ describe("the table's own menu in the editor's bar", () => {
 
   it("sorts by the column of the caret and opens the types, each written through the core", async () => {
     const { barred } = await import("../ui/barring");
-    core.edit.mockResolvedValue(TEXT);
+    core.near.mockResolvedValue(TEXT);
     const editor = view(TEXT.indexOf("Edad") + 1);
     const { bar, follow } = barred(editor);
     follow(editor);
     bar.querySelector<HTMLButtonElement>(".cm-bar-kind")?.click();
     item(menuShown(bar), "Sort descending")?.click();
     await settle();
-    expect(core.edit).toHaveBeenLastCalledWith(TEXT, [8, 72], {
+    expect(core.near).toHaveBeenLastCalledWith(TEXT, expect.any(Number), {
       kind: "sort",
       column: 1,
       down: true,
@@ -138,10 +160,10 @@ describe("the table's own menu in the editor's bar", () => {
     expect(types?.querySelectorAll("[role=menuitem]")).toHaveLength(14);
     item(types, "Number")?.click();
     await settle();
-    expect(core.edit).toHaveBeenLastCalledWith(TEXT, [8, 72], {
-      kind: "retype",
+    expect(core.near).toHaveBeenLastCalledWith(TEXT, expect.any(Number), {
+      kind: "recast",
       column: 1,
-      words: "number",
+      word: "number",
     });
     editor.destroy();
   });

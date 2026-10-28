@@ -27,6 +27,11 @@ pub enum Edit {
         column: usize,
         words: String,
     },
+    /// A new type by its word alone, keeping the column's currency and total where they still apply.
+    Recast {
+        column: usize,
+        word: String,
+    },
     RowAdd {
         at: usize,
     },
@@ -175,6 +180,34 @@ fn located<T>(
         return Err(Refused::Moved);
     };
     then(block, columns)
+}
+
+// The words of a new type for a column: its currency if it stays money, its total if that still adds up.
+fn recast(column: &Column, word: &str) -> Option<String> {
+    let holds = crate::Holds::from_word(word)?;
+    let currency = match (&holds, &column.holds) {
+        (crate::Holds::Money { .. }, crate::Holds::Money { currency }) => currency.clone(),
+        _ => None,
+    };
+    let total = column
+        .total
+        .filter(|one| crate::typed::adds_up(&holds, *one))
+        .map(crate::Total::word);
+    let kept = [Some(word), currency.as_deref(), total]
+        .into_iter()
+        .flatten();
+    let words = kept.collect::<Vec<_>>().join(" ");
+    Some(if words == "text" {
+        String::new()
+    } else {
+        words
+    })
+}
+
+/// Edits on the table that holds a byte of the text, the caret's, say, found and changed in one ask.
+pub fn edits_near(text: &str, byte: usize, asked: &[Edit]) -> Result<String, Refused> {
+    let at = around(text, byte).ok_or(Refused::Moved)?;
+    edits(text, at, asked)
 }
 
 /// Where the table that holds a byte of the text starts and ends, as `edit` wants it named.
@@ -399,6 +432,19 @@ impl Lines {
                 let cell = &self.head.cells[*column];
                 let (_, braces) = titled(cell, &columns[*column], text);
                 self.head.cells[*column] = put(cell, &headed(said, braces));
+            }
+            Edit::Recast { column, word } => {
+                column_in(*column)?;
+                let words = recast(&columns[*column], word).ok_or(Refused::UnknownType)?;
+                return self.changed(
+                    &Edit::Retype {
+                        column: *column,
+                        words,
+                    },
+                    columns,
+                    block,
+                    text,
+                );
             }
             Edit::Retype { column, words } => {
                 column_in(*column)?;

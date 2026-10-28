@@ -371,3 +371,54 @@ fn a_byte_names_the_table_that_holds_it_even_inside_a_quote_or_a_list() {
     assert!(edit(text, inner, &Edit::RowAdd { at: 1 }).is_ok());
     assert_eq!(around(text, text.len() - 2), None);
 }
+
+// A column's head, the type word asked for, then the head after it.
+const RECASTS: &str = "
+Precio {money CLP sum} | money   => Precio {money CLP sum}
+Precio {money CLP sum} | number  => Precio {number sum}
+Precio {money CLP sum} | date    => Precio {date}
+Fecha {date max}       | number  => Fecha {number max}
+Fecha {date max}       | text    => Fecha
+Notas                  | rating  => Notas {rating}
+Notas                  | plata   => unknownType
+";
+
+#[test]
+fn a_new_type_keeps_the_currency_and_total_that_still_apply() {
+    for line in RECASTS.lines().filter(|one| !one.trim().is_empty()) {
+        let (asked, expected) = line.split_once("=>").expect(line);
+        let (head, word) = asked.split_once('|').expect(line);
+        let text = format!("| {} |\n| --- |\n| 1 |\n", head.trim());
+        let byte = text.find('|').expect("a pipe") + 2;
+        let made = edits_near(
+            &text,
+            byte,
+            &[Edit::Recast {
+                column: 0,
+                word: word.trim().to_string(),
+            }],
+        );
+        let said = match made {
+            Ok(one) => one
+                .lines()
+                .next()
+                .unwrap_or_default()
+                .trim_matches(['|', ' '])
+                .to_string(),
+            Err(why) => why.word().to_string(),
+        };
+        assert_eq!(said, expected.trim(), "{line}");
+    }
+}
+
+#[test]
+fn edits_near_a_byte_find_their_table_inside_a_quote_and_nothing_outside_it() {
+    let text = "Antes.\n\n> | b |\n> | --- |\n> | 2 |\n";
+    let byte = text.find("> | 2").expect("the row") + 4;
+    let made = edits_near(text, byte, &[Edit::RowAdd { at: 1 }]).expect("edited");
+    assert!(made.ends_with("> | 2 |\n> |  |\n"), "{made}");
+    assert_eq!(
+        edits_near(text, 1, &[Edit::RowAdd { at: 1 }]),
+        Err(Refused::Moved)
+    );
+}

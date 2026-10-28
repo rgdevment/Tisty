@@ -78,7 +78,7 @@ fn coded(word: &str) -> bool {
     word.len() == 3 && word.bytes().all(|one| one.is_ascii_alphabetic())
 }
 
-fn adds_up(holds: &Holds, total: Total) -> bool {
+pub(crate) fn adds_up(holds: &Holds, total: Total) -> bool {
     let measured = matches!(
         holds,
         Holds::Number | Holds::Money { .. } | Holds::Percent | Holds::Duration | Holds::Rating

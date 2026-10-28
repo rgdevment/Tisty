@@ -693,7 +693,21 @@ foo(a, b, c);
 bar(d, e, f);
 baz(g, h, i);
 =>
--";
+-
+~
+\treturn a;
+\treturn b;
+=>
+-
+~
+Nombre,Monto (USD),Fecha
+Ana,100,2026-11-14
+Luis,200,2026-11-20
+=>
+| Nombre | Monto (USD) | Fecha |
+| --- | --- | --- |
+| Ana | 100 | 2026-11-14 |
+| Luis | 200 | 2026-11-20 |";
 
 #[test]
 fn rows_copied_from_a_spreadsheet_as_plain_text_come_in_as_a_table() {
