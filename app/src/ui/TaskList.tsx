@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { type Axis, banded, monthly, regrouped, shelved } from "../archive";
+import { useAsked } from "../asked";
 import { useComing } from "../coming";
-import type { List, Task, Whole } from "../core";
+import { type List, partsOf, type Task, type Whole } from "../core";
 import { cadence, isOverdue, stamped, whenLabel } from "../format";
 import { group, useGrouped } from "../grouping";
 import { fill, t } from "../locales";
@@ -27,8 +28,9 @@ interface Props {
   empty?: string;
   note?: string;
   onReach?: () => void;
-  onSelect: (id: string) => void;
-  onComplete?: (id: string) => void;
+  onSelect: (id: string, task: Task) => void;
+  onComplete?: (id: string, title: string) => void;
+  onError?: (problem: unknown) => void;
   onFold?: (id: string, away: boolean) => void;
   above?: React.ReactNode;
   ask?: (id: string) => React.ReactNode;
@@ -57,6 +59,7 @@ export default function TaskList({
   onReach,
   onSelect,
   onComplete,
+  onError,
   onFold,
   above,
   ask,
@@ -78,9 +81,33 @@ export default function TaskList({
     }
     return out;
   }, [tasks, here]);
+  const [flipped, setFlipped] = useState<ReadonlySet<string>>(new Set());
+  const [beyond, setBeyond] = useState<ReadonlySet<string>>(new Set());
+  const left = (id: string) => {
+    const shown = (inside.get(id) ?? []).filter((part) => part.status === "open" && !part.hidden);
+    return dense ? 0 : Math.max(0, (wholes?.[id]?.open ?? 0) - shown.length);
+  };
+  const folds = (id: string) => inside.has(id) || left(id) > 0;
+  // Parts the view shows start open; a whole showing none starts folded.
+  const folded = (id: string) => inside.has(id) === flipped.has(id);
+  const afield = (id: string) => !folded(id) && left(id) > 0 && (!inside.has(id) || beyond.has(id));
+  const reaching = top.filter((task) => afield(task.id)).map((task) => task.id);
+  const fetched = useAsked(
+    () =>
+      Promise.all(reaching.map((id) => partsOf(id).then((parts) => [id, parts] as const))).then(
+        (all) => new Map(all),
+      ),
+    [reaching.map((id) => `${id}:${wholes?.[id]?.open}:${wholes?.[id]?.closed}`).join(" ")],
+    onError,
+    true,
+  );
+  const outside = (id: string) =>
+    afield(id)
+      ? (fetched?.get(id) ?? []).filter((part) => part.status === "open" && !here.has(part.id))
+      : [];
+  const under = (id: string) => (folded(id) ? [] : [...(inside.get(id) ?? []), ...outside(id)]);
   const coming = useComing();
   const joining = coming?.stage === "log" && coming.joining === true;
-  const [tucked, setTucked] = useState<ReadonlySet<string>>(new Set());
   const offered = axis === undefined && bands === "day";
   const grouped = useGrouped();
   const by = axis ?? (offered ? grouped : undefined);
@@ -139,19 +166,10 @@ export default function TaskList({
   const listed = useRef<HTMLDivElement>(null);
   const [reached, setReached] = useState<string | null>(null);
 
-  const drawn = useMemo(
-    () =>
-      sheets
-        .flatMap((leaf) => leaf.rows)
-        .filter((row) => !(heads && shut.has(row.band)))
-        .flatMap((row) => [
-          row.key,
-          ...(tucked.has(row.task.id) ? [] : (inside.get(row.task.id) ?? [])).map(
-            (part) => `${row.key}/${part.id}`,
-          ),
-        ]),
-    [sheets, shut, heads, inside, tucked],
-  );
+  const drawn = sheets
+    .flatMap((leaf) => leaf.rows)
+    .filter((row) => !(heads && shut.has(row.band)))
+    .flatMap((row) => [row.key, ...under(row.task.id).map((part) => `${row.key}/${part.id}`)]);
   const anchor = reached !== null && drawn.includes(reached) ? reached : drawn[0];
   const stops = (id: string) => anchor === id;
 
@@ -172,11 +190,11 @@ export default function TaskList({
       event.preventDefault();
       if (onComplete && task.status === "open") {
         if (task.resolved?.drop) {
-          onSelect(task.id);
+          onSelect(task.id, task);
           return;
         }
         walk(at, 1, task.id);
-        onComplete(task.id);
+        onComplete(task.id, task.title);
         return;
       }
       if (onFold && task.status !== "dropped") {
@@ -187,7 +205,15 @@ export default function TaskList({
     }
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      onSelect(task.id);
+      onSelect(task.id, task);
+      return;
+    }
+    if ((event.key === "ArrowRight" || event.key === "ArrowLeft") && folds(task.id)) {
+      event.preventDefault();
+      if (event.key === "ArrowLeft") {
+        if (!folded(task.id)) setFlipped((was) => flip(was, task.id));
+      } else if (folded(task.id)) setFlipped((was) => flip(was, task.id));
+      else if (left(task.id) > 0 && !beyond.has(task.id)) setBeyond((was) => flip(was, task.id));
       return;
     }
     const by = event.key === "ArrowDown" ? 1 : event.key === "ArrowUp" ? -1 : 0;
@@ -208,7 +234,7 @@ export default function TaskList({
           aria-label={spokenLabel(task)}
           onFocus={() => setReached(at)}
           onKeyDown={(event) => typed(event, task, at)}
-          onClick={() => onSelect(task.id)}
+          onClick={() => onSelect(task.id, task)}
           className={`group grid cursor-pointer grid-cols-[14px_minmax(0,1fr)_auto_auto] items-baseline gap-2.5 rounded-md px-2.5 py-1 outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-accent ${
             selected === task.id ? "bg-active" : ""
           }`}
@@ -259,11 +285,16 @@ export default function TaskList({
           tabIndex={stops(at) ? 0 : -1}
           aria-label={spokenLabel(task)}
           aria-keyshortcuts={
-            (onComplete && task.status === "open") || onFold ? "Control+Enter" : undefined
+            [
+              (onComplete && task.status === "open") || onFold ? "Control+Enter" : "",
+              !nested && folds(task.id) ? "ArrowRight ArrowLeft" : "",
+            ]
+              .filter(Boolean)
+              .join(" ") || undefined
           }
           onFocus={() => setReached(at)}
           onKeyDown={(event) => typed(event, task, at)}
-          onClick={() => onSelect(task.id)}
+          onClick={() => onSelect(task.id, task)}
           className={`group grid cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-accent ${columns} items-start gap-2.5 rounded-[10px] px-2.5 py-2 hover:bg-hover ${
             selected === task.id ? "bg-active" : ""
           } ${fresh === task.id ? "bg-accent-soft transition-colors duration-700" : ""}`}
@@ -276,8 +307,8 @@ export default function TaskList({
               tabIndex={-1}
               onClick={(e) => {
                 e.stopPropagation();
-                if (task.resolved?.drop) onSelect(task.id);
-                else onComplete(task.id);
+                if (task.resolved?.drop) onSelect(task.id, task);
+                else onComplete(task.id, task.title);
               }}
               className={`mt-0.5 flex h-4 w-4 items-center justify-center rounded-full border-[1.5px] ${edge(task.priority)} ${
                 closing === task.id ? "bg-accent" : ""
@@ -312,8 +343,8 @@ export default function TaskList({
           <Volume
             task={task}
             whole={wholes?.[task.id]}
-            folded={tucked.has(task.id)}
-            onFold={inside.has(task.id) ? () => setTucked((was) => flip(was, task.id)) : undefined}
+            folded={folded(task.id)}
+            onFold={folds(task.id) ? () => setFlipped((was) => flip(was, task.id)) : undefined}
           />
           {onFold && task.status !== "dropped" && (
             <button
@@ -332,9 +363,24 @@ export default function TaskList({
             </button>
           )}
         </div>
-        {!nested && inside.has(task.id) && !tucked.has(task.id) && (
+        {!nested && folds(task.id) && !folded(task.id) && (
           <div className="ml-[30px] border-l border-hair pl-3">
             {inside.get(task.id)?.map((part) => line(part, `${at}/${part.id}`, true))}
+            {inside.has(task.id) && left(task.id) > 0 && (
+              <button
+                type="button"
+                aria-expanded={beyond.has(task.id)}
+                tabIndex={-1}
+                onClick={() => setBeyond((was) => flip(was, task.id))}
+                className="flex w-full items-baseline gap-2 rounded-md px-2.5 py-1 text-left text-[11.5px] text-faint hover:text-ink"
+              >
+                <span aria-hidden="true" className="text-[9px]">
+                  {beyond.has(task.id) ? "▾" : "▸"}
+                </span>
+                {fill("partsBeyond", String(left(task.id)))}
+              </button>
+            )}
+            {outside(task.id).map((part) => line(part, `${at}/${part.id}`, true))}
           </div>
         )}
       </div>
