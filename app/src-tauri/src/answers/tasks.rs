@@ -201,6 +201,8 @@ pub async fn snapshot(
         today(),
         tasks.iter().chain(soonest.values().flatten()),
     );
+    let wholes = crate::answers::parts::wholes(&session.state);
+    let paces = crate::summing::paces(&wholes, today(), &tasks);
 
     Ok(Snapshot {
         tasks,
@@ -231,9 +233,9 @@ pub async fn snapshot(
             .collect(),
         machine_here: session.config.device_id.0.clone(),
         clients: named_clients(&session.state),
-        wholes: crate::answers::parts::wholes(&session.state),
+        wholes,
         standings,
-        paces: crate::summing::paces(&session.state, today()),
+        paces,
     })
 }
 

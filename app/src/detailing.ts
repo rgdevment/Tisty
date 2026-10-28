@@ -25,6 +25,7 @@ import { sure } from "./sure";
 export interface Hands {
   data: Snapshot;
   wholes: NonNullable<Snapshot["wholes"]>;
+  paces: NonNullable<Snapshot["paces"]>;
   act: (work: Promise<Task>) => void;
   marking: (id: string, title: string, summary?: string) => void;
   wipe: (task: Task) => void;
@@ -65,7 +66,7 @@ export const detailOf = (one: Task, h: Hands) => ({
   onDoc: h.openDoc,
   papers: h.papers,
   whole: h.wholes[one.id],
-  pace: h.data.paces?.[one.id],
+  pace: h.paces[one.id],
   partOf: one.part_of ? h.wholes[one.part_of]?.title : undefined,
   onAddPart: (title: string) => h.act(addPart(one.id, title).then(() => taskOf(one.id))),
   onOpenPart: (id: string) => taskOf(id).then(h.opening, h.fail),

@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import type { Paced, Standing } from "./deadlines";
+import type { Dated } from "./deadlines";
 import { speakOf } from "./locales";
 import { settled } from "./saving";
 
@@ -135,7 +135,7 @@ export interface Habit {
   on?: string;
 }
 
-export interface Snapshot {
+export interface Snapshot extends Dated {
   tasks: Task[];
   total: number;
   soonest: Record<string, Task[]>;
@@ -155,8 +155,6 @@ export interface Snapshot {
   machine_here?: string;
   clients?: Record<string, string>;
   wholes?: Record<string, Whole>;
-  standings?: Record<string, Standing>;
-  paces?: Record<string, Paced>;
 }
 
 export interface Whole {
@@ -304,8 +302,7 @@ export interface Sighting {
   archived: boolean;
 }
 
-export interface Found {
-  standings?: Record<string, Standing>;
+export interface Found extends Dated {
   tasks: Task[];
   papers: Sighting[];
   total: number;

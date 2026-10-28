@@ -10,7 +10,7 @@ import { fill, t } from "../locales";
 import { edge, placed, said, tint } from "../quadrants";
 import { agentTag, signedBy } from "../who";
 import Grouping from "./Axis";
-import PaceBar from "./PaceBar";
+import PaceBar, { paceSaid } from "./PaceBar";
 import { Lozenge, Pip, saidWhen, spokenLabel } from "./Spoke";
 
 interface Props {
@@ -292,7 +292,11 @@ export default function TaskList({
           data-whole={nested ? task.part_of : undefined}
           role="listitem"
           tabIndex={stops(at) ? 0 : -1}
-          aria-label={spokenLabel(task)}
+          aria-label={
+            paces?.[task.id]
+              ? `${spokenLabel(task)} — ${paceSaid(paces[task.id])}`
+              : spokenLabel(task)
+          }
           aria-keyshortcuts={
             [
               (onComplete && task.status === "open") || onFold ? "Control+Enter" : "",

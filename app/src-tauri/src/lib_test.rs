@@ -1427,14 +1427,23 @@ fn counting_in_one_pass_says_what_counting_one_by_one_said() {
     assert_eq!(crate::summing::tally(&state), counted_one_by_one(&state));
 }
 
+fn a3(from: jiff::civil::Date) -> tisty_core::model::Task {
+    let mut a3 = held("A3 · Migración de Sodimac Uruguay");
+    a3.date = Some(dated(from, -21));
+    a3.deadline = Some(dated(from, 38));
+    a3
+}
+
+fn dated(from: jiff::civil::Date, days: i64) -> tisty_core::model::DateSpec {
+    tisty_core::model::DateSpec::all_day(away(from, days), "America/Santiago")
+}
+
 #[test]
 fn the_pulse_counts_overdue_and_late_apart_and_a3_is_underway() {
     let from = today();
-    let day = |n| tisty_core::model::DateSpec::all_day(away(from, n), "America/Santiago");
+    let day = |n| dated(from, n);
     let mut state = State::default();
-    let mut a3 = held("A3 · Migración de Sodimac Uruguay");
-    a3.date = Some(day(-21));
-    a3.deadline = Some(day(38));
+    let a3 = a3(from);
     let mut late = held("meant for yesterday");
     late.date = Some(day(-1));
     let mut overdue = held("ran out yesterday");
@@ -1483,24 +1492,27 @@ fn the_parts_of_a_shown_whole_come_with_their_standing() {
 #[test]
 fn a3_with_none_of_its_ten_parts_closed_is_running_slow() {
     let from = today();
-    let day = |n| tisty_core::model::DateSpec::all_day(away(from, n), "America/Santiago");
     let mut state = State::default();
-    let mut a3 = held("A3 · Migración de Sodimac Uruguay");
-    a3.date = Some(day(-21));
-    a3.deadline = Some(day(38));
-    for n in 0..10 {
+    let a3 = a3(from);
+    for n in 0..11 {
         let mut part = held(&format!("parte {n}"));
         part.part_of = Some(a3.id);
+        part.hidden = n == 10;
         kept(&mut state, part);
     }
     kept(&mut state, a3.clone());
+    let wholes = crate::answers::parts::wholes(&state);
 
-    let paces = crate::summing::paces(&state, from);
+    let paces = crate::summing::paces(&wholes, from, [&a3]);
 
     let paced = paces[&a3.id.to_string()];
     assert_eq!(paced.pace, tisty_core::pace::Pace::Slow);
     assert_eq!((paced.time, paced.done), (36, 0));
-    assert_eq!(paces.len(), 1);
+    assert_eq!(
+        wholes[&a3.id.to_string()].open,
+        10,
+        "the part put away is not counted"
+    );
 }
 
 fn a_column_is_as_long_as_the_window_says() -> usize {

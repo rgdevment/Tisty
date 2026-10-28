@@ -40,6 +40,16 @@ describe("the pace of a task with parts", () => {
     expect(tick?.style.left).toBe("36%");
   });
 
+  it("says the pace in the row's own name, so moving by keyboard hears it", () => {
+    render(
+      <TaskList tasks={[a3]} lists={[]} paces={{ A3: slow }} title="Hoy" onSelect={() => {}} />,
+    );
+
+    expect(screen.getByRole("listitem").getAttribute("aria-label")).toBe(
+      "A3 · Migración de Sodimac Uruguay — Running slow · 36% of the time gone · 0% of the parts closed",
+    );
+  });
+
   it("draws no bar for a task without a pace", () => {
     render(<TaskList tasks={[a3]} lists={[]} title="Hoy" onSelect={() => {}} />);
 

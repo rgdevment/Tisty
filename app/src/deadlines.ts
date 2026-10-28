@@ -7,3 +7,8 @@ export interface Paced {
   time: number;
   done: number;
 }
+
+export interface Dated {
+  standings?: Record<string, Standing>;
+  paces?: Record<string, Paced>;
+}

@@ -1,8 +1,8 @@
 use super::*;
-use crate::model::{DateSpec, Status, TaskId};
+use crate::model::{DateSpec, Status};
 use ulid::Ulid;
 
-// One case a line: ☀ start, ⚑ deadline, today, open and closed parts, then pace, time % and done %.
+// Written as text, a case a line, so adding one is a line and never a copy of a test.
 const CASES: &str = "
 2026-10-06  2026-12-04  2026-10-27  10  0   slow      36   0
 2026-10-06  2026-12-04  2026-10-27  4   6   on_track  36   60
@@ -16,6 +16,7 @@ const CASES: &str = "
 2026-10-01  2026-10-11  2026-10-20  5   5   slow      100  50
 2026-10-01  2026-10-11  2026-10-20  1   9   on_track  100  90
 2026-10-01  2026-10-01  2026-10-01  1   0   on_track  0    0
+2026-10-01  2026-10-11  2026-10-06  1   199 on_track  50   99
 ";
 
 fn day(raw: &str) -> Option<DateSpec> {
@@ -67,26 +68,4 @@ fn there_is_no_pace_without_both_dates_parts_and_a_start_that_came() {
     assert_eq!(pace(&closed, 10, 0, today), None);
     assert_eq!(pace(&task("2026-10-06", "2026-12-04"), 0, 0, today), None);
     assert_eq!(pace(&task("2026-11-02", "2026-12-04"), 10, 0, today), None);
-}
-
-#[test]
-fn the_parts_put_out_of_sight_are_not_counted() {
-    let a3 = task("2026-10-06", "2026-12-04");
-    let mut state = State::default();
-    let part = |closed: bool, away: bool| {
-        let mut one = Task::new(TaskId::generate(), "parte", "a0");
-        one.part_of = Some(a3.id);
-        one.hidden = away;
-        if closed {
-            one.status = Status::Done;
-        }
-        one
-    };
-    for one in [part(true, false), part(false, false), part(false, true)] {
-        state.tasks.insert(one.id, one);
-    }
-
-    let got = paced(&state, &a3, "2026-10-27".parse().unwrap()).unwrap();
-
-    assert_eq!(got.done, 50);
 }

@@ -260,20 +260,19 @@ pub fn standings<'a>(
         .collect()
 }
 
-/// Only the tasks with a start, a deadline and parts have one.
-pub fn paces(
-    state: &State,
+/// Read from the part counts the snapshot already made, so the store is walked once and not per task.
+pub fn paces<'a>(
+    wholes: &std::collections::BTreeMap<String, crate::answers::parts::Whole>,
     today: jiff::civil::Date,
+    shown: impl IntoIterator<Item = &'a Task>,
 ) -> std::collections::BTreeMap<String, tisty_core::pace::Paced> {
-    state
-        .tasks
-        .values()
-        .filter(|task| task.is_open() && task.deadline.is_some())
+    shown
+        .into_iter()
         .filter_map(|task| {
-            Some((
-                task.id.to_string(),
-                tisty_core::pace::paced(state, task, today)?,
-            ))
+            let id = task.id.to_string();
+            let whole = wholes.get(&id)?;
+            let paced = tisty_core::pace::pace(task, whole.open, whole.closed, today)?;
+            Some((id, paced))
         })
         .collect()
 }

@@ -2,9 +2,8 @@ use jiff::civil::Date;
 use serde::Serialize;
 
 use crate::model::Task;
-use crate::state::State;
 
-/// How far behind the time gone its parts may fall, in hundredths, and still be on track.
+/// Ten points of slack, so a part closed a day late does not turn the bar amber.
 pub const SLACK: i64 = 10;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -12,17 +11,14 @@ pub const SLACK: i64 = 10;
 pub enum Pace {
     OnTrack,
     Slow,
-    /// Past half its time with less than half the parts it should have closed by now.
     Behind,
 }
 
-/// Time gone against parts closed, for a task that started and runs to a deadline.
+/// In percent, so the window draws the bar without knowing how many days or parts there are.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct Paced {
     pub pace: Pace,
-    /// Percent of the days between ☀ and ⚑ already gone.
     pub time: i64,
-    /// Percent of its parts closed.
     pub done: i64,
 }
 
@@ -47,18 +43,9 @@ pub fn pace(task: &Task, open: usize, closed: usize, today: Date) -> Option<Pace
     Some(Paced {
         pace,
         time: (100 * gone + span / 2) / span,
-        done: (100 * closed + total / 2) / total,
+        // Rounded down, so a part still open never reads as all of them closed.
+        done: 100 * closed / total,
     })
-}
-
-/// The parts counted as the window counts them: those put out of sight are left out.
-pub fn paced(state: &State, task: &Task, today: Date) -> Option<Paced> {
-    let parts: Vec<&Task> = state
-        .parts_of(task.id)
-        .filter(|one| !one.folded())
-        .collect();
-    let open = parts.iter().filter(|one| one.is_open()).count();
-    pace(task, open, parts.len() - open, today)
 }
 
 #[cfg(test)]
