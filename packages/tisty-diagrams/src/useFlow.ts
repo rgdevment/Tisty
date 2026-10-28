@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { type Flow, readFlow, writeFlow } from "./flow";
 import type { FlowAltered, FlowPicked } from "./flowing";
 import { kindOf } from "./framing";
+import { useSteps } from "./useSteps";
 
 export interface Flowing {
   readonly flow: Flow;
@@ -12,14 +13,6 @@ export interface Flowing {
   readonly undo: (() => void) | null;
   readonly redo: (() => void) | null;
 }
-
-// What the window changed, kept to be undone; text typed by hand in between ends the trail.
-interface Step {
-  readonly before: string;
-  readonly after: string;
-}
-
-const KEPT_STEPS = 100;
 
 // An edge is what joins two nodes, told apart from a twin by which of them it is.
 const edgeSigns = (flow: Flow) => {
@@ -62,22 +55,8 @@ export const useFlow = (text: string, setText: (text: string) => void): Flowing 
     picked: null,
     sign: null,
   });
-  const [steps, setSteps] = useState<{ done: readonly Step[]; undone: readonly Step[] }>({
-    done: [],
-    undone: [],
-  });
+  const { stepped, undo, redo } = useSteps(text, setText);
   if (!flow) return null;
-  const last = steps.done[steps.done.length - 1];
-  const next = steps.undone[steps.undone.length - 1];
-  // Whatever the window writes is a step that can be undone.
-  const stepped = (written: string) => {
-    if (written === text) return;
-    setSteps({
-      done: [...steps.done.slice(1 - KEPT_STEPS), { before: text, after: written }],
-      undone: [],
-    });
-    setText(written);
-  };
   const keep = (into: Flow, picked: FlowPicked) =>
     setChosen({ picked, sign: signOf(into, picked) });
   return {
@@ -91,19 +70,7 @@ export const useFlow = (text: string, setText: (text: string) => void): Flowing 
     },
     pick: (picked) => keep(flow, picked),
     turn: (head) => stepped(writeFlow({ ...flow, head })),
-    undo:
-      last?.after === text
-        ? () => {
-            setSteps({ done: steps.done.slice(0, -1), undone: [...steps.undone, last] });
-            setText(last.before);
-          }
-        : null,
-    redo:
-      next?.before === text
-        ? () => {
-            setSteps({ done: [...steps.done, next], undone: steps.undone.slice(0, -1) });
-            setText(next.after);
-          }
-        : null,
+    undo,
+    redo,
   };
 };

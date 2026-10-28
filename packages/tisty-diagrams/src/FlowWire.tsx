@@ -20,6 +20,9 @@ export type WireData = {
   readonly onPick: () => void;
   readonly onName: () => void;
   readonly onNamed: (text: string | null) => void;
+  // A class relation's cardinalities, written by the ends they belong to.
+  readonly startLabel?: string;
+  readonly endLabel?: string;
 };
 
 export type WireEdge = Edge<WireData, "wire">;
@@ -32,16 +35,29 @@ const rectOf = (node: InternalNode): Rect => ({
 });
 
 /** An arrow that follows its shapes as they move, between the sides that face each other. */
-export function Wire({ id, source, target, data, selected, markerEnd }: EdgeProps<WireEdge>) {
+export function Wire({
+  id,
+  source,
+  target,
+  data,
+  selected,
+  markerStart,
+  markerEnd,
+}: EdgeProps<WireEdge>) {
   const from = useInternalNode(source);
   const to = useInternalNode(target);
   if (!from || !to || !data) return null;
   const route = routeOf(rectOf(from), rectOf(to));
+  const ends = [
+    { said: data.startLabel, at: route.from },
+    { said: data.endLabel, at: route.to },
+  ];
   return (
     <>
       <BaseEdge
         id={id}
         path={route.path}
+        markerStart={markerStart}
         markerEnd={markerEnd}
         interactionWidth={14}
         style={{
@@ -76,6 +92,17 @@ export function Wire({ id, source, target, data, selected, markerEnd }: EdgeProp
             </button>
           )}
         </div>
+        {ends.map(({ said, at }) =>
+          said ? (
+            <span
+              key={`${at.x} ${at.y}`}
+              className="absolute text-[11px] text-soft"
+              style={{ transform: `translate(${at.x + 6}px, ${at.y - 18}px)` }}
+            >
+              {said}
+            </span>
+          ) : null,
+        )}
       </EdgeLabelRenderer>
     </>
   );

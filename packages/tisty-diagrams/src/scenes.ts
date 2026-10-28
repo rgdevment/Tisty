@@ -1,7 +1,9 @@
 import type { ClassBox, Classes } from "./classes";
 import type { Flow } from "./flow";
 import { sizeOf } from "./flowoutlines";
+import type { Size } from "./framing";
 import { around, type Laid, layered, type Rect } from "./graphlayout";
+import type { Place } from "./places";
 
 // The board and the picture draw from these, so what is exported is what the window shows.
 export interface Joint {
@@ -11,8 +13,15 @@ export interface Joint {
   readonly label: string;
   readonly dashed: boolean;
   readonly thick: boolean;
-  readonly arrow: boolean;
+  readonly start: Head | null;
+  readonly end: Head | null;
+  // A class relation's cardinalities, by the ends they belong to.
+  readonly startLabel?: string;
+  readonly endLabel?: string;
 }
+
+/** How an end of a line is drawn: an arrowhead, an open one, a hollow triangle or a diamond. */
+export type Head = "arrow" | "open" | "triangle" | "diamond" | "solidDiamond";
 
 export interface Group {
   readonly key: string;
@@ -28,28 +37,44 @@ export interface Scene {
 
 const MARGIN = 40;
 
+// Each one where it was placed, or laid out when it never was; a diagram placed whole needs no laying out.
+const placedOver = (
+  ids: readonly string[],
+  sizes: ReadonlyMap<string, Size>,
+  places: readonly Place[],
+  lay: () => Laid,
+): ReadonlyMap<string, Rect> => {
+  const at = new Map(places.map((one) => [one.id, one]));
+  const auto = ids.every((id) => at.has(id)) ? null : lay();
+  return new Map(
+    ids.map((id) => {
+      const place = at.get(id);
+      const size = sizes.get(id) ?? { wide: 0, tall: 0 };
+      const rect = place ? { x: place.x, y: place.y, ...size } : auto?.at.get(id);
+      return [id, rect ?? { x: 0, y: 0, ...size }] as const;
+    }),
+  );
+};
+
+const flowSizes = (flow: Flow) =>
+  new Map(flow.nodes.map((one) => [one.id, sizeOf(one.text, one.shape ?? "process")]));
+
 const autoLaid = (flow: Flow): Laid =>
   layered(
     flow.nodes.map((one) => one.id),
     flow.edges.map((one) => [one.from, one.to] as const),
-    new Map(flow.nodes.map((one) => [one.id, sizeOf(one.text, one.shape ?? "process")])),
+    flowSizes(flow),
     flow.direction,
   );
 
 /** Each node where it was placed, or laid out when it never was, in the window's own coordinates. */
-export const flowLaid = (flow: Flow): ReadonlyMap<string, Rect> => {
-  const places = new Map(flow.places.map((one) => [one.id, one]));
-  // Laying out is the costly part, and a chart placed whole needs none of it.
-  const auto = flow.nodes.every((one) => places.has(one.id)) ? null : autoLaid(flow);
-  return new Map(
-    flow.nodes.map((one) => {
-      const place = places.get(one.id);
-      const size = sizeOf(one.text, one.shape ?? "process");
-      const rect = place ? { x: place.x, y: place.y, ...size } : auto?.at.get(one.id);
-      return [one.id, rect ?? { x: 0, y: 0, ...size }] as const;
-    }),
+export const flowLaid = (flow: Flow): ReadonlyMap<string, Rect> =>
+  placedOver(
+    flow.nodes.map((one) => one.id),
+    flowSizes(flow),
+    flow.places,
+    () => autoLaid(flow),
   );
-};
 
 /** A group drawn where it was put, at its size: a column when it is taller than wide, else a row. */
 export interface Lane {
@@ -92,7 +117,8 @@ export const jointsOf = (flow: Flow): Joint[] =>
     label: one.label,
     dashed: one.arrow.includes("."),
     thick: one.arrow.includes("="),
-    arrow: /[>ox]$/.test(one.arrow),
+    start: null,
+    end: /[>ox]$/.test(one.arrow) ? "arrow" : null,
   }));
 
 export const flowScene = (flow: Flow): Scene => {
@@ -118,7 +144,8 @@ export const flowScene = (flow: Flow): Scene => {
 export const CLASS_HEAD = 32;
 export const CLASS_LINE = 20;
 
-const classSize = (one: ClassBox) => ({
+/** The size a class takes for its name, its kind and its members, the same in the window and the picture. */
+export const classSize = (one: ClassBox): Size => ({
   wide: Math.max(
     150,
     ...[one.name, ...one.members.map((m) => m.text)].map((said) => said.length * 7.2 + 36),
@@ -131,8 +158,24 @@ const headLeft = (arrow: string) => arrow.startsWith("<");
 // The parent or the whole goes above: it is on the right in `--|>`, `..|>`, `--*` and `--o`.
 const wholeRight = (arrow: string) => /(\|>|\*|o)$/.test(arrow);
 
-export const classScene = (diagram: Classes): Scene => {
-  const laid = layered(
+// Each relation's ends, drawn from the class it leaves to the one it points at.
+const CLASS_HEADS: Record<string, readonly [Head | null, Head | null]> = {
+  "<|--": [null, "triangle"],
+  "<|..": [null, "triangle"],
+  "--|>": [null, "triangle"],
+  "..|>": [null, "triangle"],
+  "*--": ["solidDiamond", null],
+  "--*": [null, "solidDiamond"],
+  "o--": ["diamond", null],
+  "--o": [null, "diamond"],
+  "-->": [null, "open"],
+  "<--": [null, "open"],
+  "..>": [null, "open"],
+  "<..": [null, "open"],
+};
+
+const classAuto = (diagram: Classes): Laid =>
+  layered(
     diagram.classes.map((one) => one.name),
     diagram.links.map((one): readonly [string, string] =>
       wholeRight(one.arrow) ? [one.right, one.left] : [one.left, one.right],
@@ -140,14 +183,39 @@ export const classScene = (diagram: Classes): Scene => {
     new Map(diagram.classes.map((one) => [one.name, classSize(one)])),
     diagram.direction,
   );
-  const joints = diagram.links.map((one, index) => ({
-    key: String(index),
-    from: headLeft(one.arrow) ? one.right : one.left,
-    to: headLeft(one.arrow) ? one.left : one.right,
-    label: [one.label, one.arrow].filter(Boolean).join(" "),
-    dashed: one.arrow.includes("."),
-    thick: false,
-    arrow: /[<>]/.test(one.arrow),
-  }));
-  return { laid, joints, groups: [] };
+
+/** Each class where it was placed, or laid out when it never was, in the window's own coordinates. */
+export const classLaid = (diagram: Classes): ReadonlyMap<string, Rect> =>
+  placedOver(
+    diagram.classes.map((one) => one.name),
+    new Map(diagram.classes.map((one) => [one.name, classSize(one)])),
+    diagram.places,
+    () => classAuto(diagram),
+  );
+
+/** Each relation as it is drawn: dashed or not, its two heads and its cardinalities at their ends. */
+export const classJointsOf = (diagram: Classes): Joint[] =>
+  diagram.links.map((one, index) => {
+    const back = headLeft(one.arrow);
+    const [start, end] = CLASS_HEADS[one.arrow] ?? [null, null];
+    return {
+      key: String(index),
+      from: back ? one.right : one.left,
+      to: back ? one.left : one.right,
+      label: one.label,
+      dashed: one.arrow.includes("."),
+      thick: false,
+      start,
+      end,
+      startLabel: back ? one.rightCard : one.leftCard,
+      endLabel: back ? one.leftCard : one.rightCard,
+    };
+  });
+
+export const classScene = (diagram: Classes): Scene => {
+  const laid =
+    diagram.places.length && diagram.classes.length
+      ? framed(classLaid(diagram), []).laid
+      : classAuto(diagram);
+  return { laid, joints: classJointsOf(diagram), groups: [] };
 };

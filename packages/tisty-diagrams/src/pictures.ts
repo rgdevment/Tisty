@@ -147,7 +147,7 @@ const schemaPicture = (schema: Schema): Picture => {
 const straightRoute = (from: Rect, to: Rect): Route => {
   const a = edgeOf(from, to);
   const b = edgeOf(to, from);
-  return { path: straight(a, b), labelX: (a.x + b.x) / 2, labelY: (a.y + b.y) / 2 };
+  return { path: straight(a, b), labelX: (a.x + b.x) / 2, labelY: (a.y + b.y) / 2, from: a, to: b };
 };
 
 // Groups behind, then lines, then their words, then the boxes over the ends of the lines.
@@ -177,16 +177,33 @@ const graph = (
       }),
     ]),
     ...joined.map(({ one, way }) =>
-      stroke(
-        way.path,
-        palette.accent,
-        one.thick ? 2.6 : 1.6,
-        one.dashed ? "6 4" : undefined,
-        one.arrow,
-      ),
+      stroke(way.path, palette.accent, one.thick ? 2.6 : 1.6, one.dashed ? "6 4" : undefined, {
+        start: one.start,
+        end: one.end,
+      }),
     ),
     ...joined.flatMap(({ one, way }) =>
       one.label ? [pill(way.labelX, way.labelY, one.label, palette, palette.accent)] : [],
+    ),
+    // A relation's cardinalities sit just off its ends, as on the canvas.
+    ...joined.flatMap(({ one, way }) =>
+      [
+        { said: one.startLabel, end: way.from },
+        { said: one.endLabel, end: way.to },
+      ].flatMap(({ said, end }) =>
+        said
+          ? [
+              writing({
+                x: end.x + 6,
+                y: end.y - 10,
+                text: said,
+                size: 11,
+                fill: palette.soft,
+                anchor: "start",
+              }),
+            ]
+          : [],
+      ),
     ),
     ...[...at].map(([id, rect]) => box(id, rect)),
   ].join("");

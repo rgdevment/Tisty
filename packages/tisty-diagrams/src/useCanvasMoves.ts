@@ -1,16 +1,11 @@
 import type { NodeChange } from "@xyflow/react";
 import { useMemo, useRef, useState } from "react";
+import { choiceAfter } from "./choosing";
 import type { Flow } from "./flow";
-import {
-  type FlowAltered,
-  type FlowPicked,
-  nodesPlaced,
-  pinned,
-  reread,
-  type Spot,
-} from "./flowing";
+import { type FlowAltered, type FlowPicked, nodesPlaced, pinned, reread } from "./flowing";
 import { laneMoved, laneResized, regrouped } from "./flowlanes";
 import type { Rect } from "./graphlayout";
+import type { Spot } from "./places";
 import type { Lane } from "./scenes";
 import type { Flowing } from "./useFlow";
 
@@ -82,17 +77,10 @@ export const useCanvasMoves = (
       change(settledInto(now, { kind: "group", id: first.slice(GROUP.length) }));
     else change(settledInto(now, { kind: "node", id: first }));
   };
-  // One shape chosen alone, as when an unchosen one is dragged, leaves the rest so they stay put.
   const reselected = (changes: NodeChange[]) => {
-    const now = new Set(chosenOf(picked));
-    const added: string[] = [];
-    for (const one of changes) {
-      if (one.type !== "select" || one.id.startsWith(GROUP)) continue;
-      if (one.selected) added.push(one.id);
-      one.selected ? now.add(one.id) : now.delete(one.id);
-    }
-    if (now.size > 1) pick({ kind: "nodes", ids: [...now] });
-    else if (now.size === 1 && added.length) pick({ kind: "node", id: added[0] });
+    const choice = choiceAfter(chosenOf(picked), changes, (id) => id.startsWith(GROUP));
+    if (choice && "several" in choice) pick({ kind: "nodes", ids: choice.several });
+    else if (choice) pick({ kind: "node", id: choice.one });
   };
   // A drag, a nudge with the arrow keys or a lane's new size is written once it ends.
   const moved = (changes: NodeChange[]) => {

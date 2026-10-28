@@ -5,6 +5,9 @@ export interface Route {
   readonly path: string;
   readonly labelX: number;
   readonly labelY: number;
+  // Where it leaves and where it arrives, for words written at its ends.
+  readonly from: { readonly x: number; readonly y: number };
+  readonly to: { readonly x: number; readonly y: number };
 }
 
 /** The middle of one side of a shape, where its dot sits and its arrows meet it. */
@@ -40,5 +43,5 @@ export const routeOf = (from: Rect, to: Rect): Route => {
     borderRadius: 6,
     offset: 18,
   });
-  return { path, labelX, labelY };
+  return { path, labelX, labelY, from: start, to: end };
 };

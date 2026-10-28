@@ -1,38 +1,21 @@
 import { MarkerType } from "@xyflow/react";
 import { useMemo } from "react";
 import type { WireEdge } from "./FlowWire";
-import { edgeChanged, nodeChanged, type Spot } from "./flowing";
-import { sideMiddle } from "./flowroutes";
+import { edgeChanged, nodeChanged } from "./flowing";
 import type { Look } from "./flowstyles";
 import { around, type Rect } from "./graphlayout";
 import { useSay } from "./handing";
+import type { Spot } from "./places";
 import type { FrameNode, LaneNode, ShapeNode } from "./ShapeNodes";
-import { SIDES } from "./ShapeNodes";
+import { handlesOf } from "./ShapeNodes";
 import type { Lane } from "./scenes";
 import { jointsOf } from "./scenes";
 import { chosenOf, GROUP } from "./useCanvasMoves";
 import type { Flowing } from "./useFlow";
 
-const HANDLE = 10;
-
 export type Naming = { kind: "node"; id: string } | { kind: "edge"; index: number } | null;
 
 type Point = { readonly x: number; readonly y: number };
-
-// Where each side's dot sits, so arrows are drawn before the browser has measured anything.
-const handlesOf = (wide: number, tall: number) =>
-  SIDES.map((side) => {
-    const at = sideMiddle({ x: 0, y: 0, wide, tall }, side);
-    return {
-      id: side,
-      type: "source" as const,
-      position: side,
-      x: at.x - HANDLE / 2,
-      y: at.y - HANDLE / 2,
-      width: HANDLE,
-      height: HANDLE,
-    };
-  });
 
 /** What React Flow draws: group frames and lanes behind, the shapes in and over them, and the arrows. */
 export const useCanvasNodes = ({
@@ -161,7 +144,7 @@ export const useCanvasNodes = ({
         target: one.to,
         type: "wire",
         selected: picked?.kind === "edge" && picked.index === index,
-        markerEnd: one.arrow
+        markerEnd: one.end
           ? { type: MarkerType.ArrowClosed, color: "var(--color-accent)", width: 16, height: 16 }
           : undefined,
         data: {

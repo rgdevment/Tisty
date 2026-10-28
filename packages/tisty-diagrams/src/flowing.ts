@@ -10,6 +10,7 @@ import {
 import { formedNode, type Shape } from "./flowshapes";
 import type { Direction } from "./graphlayout";
 import { names } from "./naming";
+import { placed as placedIn, type Spot } from "./places";
 
 /** What is chosen: a node by its id, an edge by its place among them, a group by its id. */
 export type FlowPicked =
@@ -63,29 +64,9 @@ export const inserted = (
   return [...flow.body, ...lines.map((one) => `${indent}${one}`)];
 };
 
-export type Spot = {
-  readonly x: number;
-  readonly y: number;
-  readonly wide?: number;
-  readonly tall?: number;
-};
-
 // A place keeps the indent of its own line, so moving rewrites only its numbers; a lane keeps its size.
-export const placed = (flow: Flow, id: string, at: Spot): readonly Place[] => {
-  const known = flow.places.find((one) => one.id === id);
-  const wide = at.wide ?? known?.wide;
-  const tall = at.tall ?? known?.tall;
-  const spot = {
-    x: Math.round(at.x),
-    y: Math.round(at.y),
-    ...(wide !== undefined && tall !== undefined
-      ? { wide: Math.round(wide), tall: Math.round(tall) }
-      : {}),
-  };
-  const indent = known ? indentOf(known.line) : bodyIndent(flow);
-  const place = { id, ...spot, line: `${indent}%% tisty: ${id} ${Object.values(spot).join(" ")}` };
-  return known ? flow.places.map((one) => (one.id === id ? place : one)) : [...flow.places, place];
-};
+export const placed = (flow: Flow, id: string, at: Spot): readonly Place[] =>
+  placedIn(flow.places, bodyIndent(flow), id, at);
 
 /** Nodes put where the window was told, without touching the lines that say what they are. */
 export const nodesPlaced = (

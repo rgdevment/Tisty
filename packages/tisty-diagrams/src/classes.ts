@@ -1,5 +1,6 @@
 import { headerAt } from "./framing";
 import type { Direction } from "./graphlayout";
+import { type Place, placesApart, tidied } from "./places";
 
 export interface Member {
   readonly text: string;
@@ -14,6 +15,8 @@ export interface ClassBox {
   readonly decl: number | null;
   readonly close: number | null;
   readonly note: string | null;
+  // Where `<<interface>>` and the like is said, inside the braces or on a line of its own.
+  readonly noteLine: number | null;
 }
 
 export interface ClassLink {
@@ -29,6 +32,7 @@ export interface ClassLink {
 export interface Classes {
   readonly head: readonly string[];
   readonly body: readonly string[];
+  readonly places: readonly Place[];
   readonly tail: readonly string[];
   readonly direction: Direction;
   readonly classes: readonly ClassBox[];
@@ -81,6 +85,7 @@ const classIn = (reading: Reading, name: string): ClassBox => {
     decl: null,
     close: null,
     note: null,
+    noteLine: null,
   };
   reading.classes.set(name, known);
   return known;
@@ -96,7 +101,7 @@ const insideBlock = (reading: Reading, said: string, line: number): boolean => {
     updated(reading, name, { close: line });
     reading.open = null;
   } else if (/^<<.+>>$/.test(trimmed))
-    updated(reading, name, { note: trimmed.slice(2, -2).trim() });
+    updated(reading, name, { note: trimmed.slice(2, -2).trim(), noteLine: line });
   else if (trimmed && !trimmed.startsWith("%%")) {
     const known = classIn(reading, name);
     updated(reading, name, { members: [...known.members, { text: trimmed, line, colon: false }] });
@@ -127,7 +132,7 @@ const readLine = (reading: Reading, said: string, line: number): boolean => {
   }
   const annotated = ANNOTATED.exec(said);
   if (annotated) {
-    updated(reading, annotated[2], { note: annotated[1] });
+    updated(reading, annotated[2], { note: annotated[1], noteLine: line });
     return true;
   }
   const colon = COLON.exec(said);
@@ -146,13 +151,14 @@ export const readClasses = (source: string): Classes | null => {
   if (opening < 0) return null;
   let end = lines.length;
   while (end > opening + 1 && !lines[end - 1].trim()) end -= 1;
-  const body = lines.slice(opening + 1, end);
+  const { body, places } = placesApart(lines.slice(opening + 1, end));
   const reading: Reading = { classes: new Map(), links: [], open: null, direction: "TB" };
   for (const [line, said] of body.entries()) if (!readLine(reading, said, line)) return null;
   if (reading.open) return null;
   return {
     head: lines.slice(0, opening + 1),
     body,
+    places: tidied(places, new Set(reading.classes.keys())),
     tail: lines.slice(end),
     direction: reading.direction,
     classes: [...reading.classes.values()],
@@ -160,8 +166,14 @@ export const readClasses = (source: string): Classes | null => {
   };
 };
 
-export const writeClasses = (diagram: Pick<Classes, "head" | "body" | "tail">): string =>
-  [...diagram.head, ...diagram.body, ...diagram.tail].join("\n");
+/** The text of a class diagram, its places last. */
+export const writeClasses = (diagram: Pick<Classes, "head" | "body" | "places" | "tail">): string =>
+  [
+    ...diagram.head,
+    ...diagram.body,
+    ...diagram.places.map((one) => one.line),
+    ...diagram.tail,
+  ].join("\n");
 
 export const linkLine = (indent: string, link: Omit<ClassLink, "line">): string => {
   const left = link.leftCard ? ` "${link.leftCard}"` : "";

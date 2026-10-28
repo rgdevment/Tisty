@@ -1,6 +1,7 @@
 import type { Flow } from "./flow";
-import { type FlowAltered, groupAdded, nodeMoved, placed, reread, type Spot } from "./flowing";
+import { type FlowAltered, groupAdded, nodeMoved, placed, reread } from "./flowing";
 import type { Rect } from "./graphlayout";
+import type { Spot } from "./places";
 import { lanesOf } from "./scenes";
 
 /** The sizes a lane starts at: a column for steps that go down, a row for steps that go across. */

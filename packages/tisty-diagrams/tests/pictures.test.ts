@@ -14,7 +14,7 @@ const PICTURED = `
 mindmap⏎  root((Idea & <más>))⏎    Rama uno⏎      Hoja⏎    b)Nube(⏎    c{{Hex}}⏎    d))Bang(( → Idea &amp; &lt;más&gt; | Rama uno | Hoja | Nube | Hex | Bang
 erDiagram⏎  cliente {⏎    int id PK⏎    string nombre⏎  }⏎  pedido {⏎    int id PK⏎  }⏎  cliente ||--o{ pedido : hace⏎  %% tisty: pedido 400 60 required id → cliente | pedido | nombre | id * | 1 · hace · 0..N | x="400" y="60"
 flowchart LR⏎  A[Inicio] --> B{¿Sí?}⏎  B -->|sí| C((Fin))⏎  B -.-> D[(Base)]⏎  D ==> E[[Sub]]⏎  E --- F([Est])⏎  F --> G(((Doble)))⏎  G --> H{{Hex}}⏎  H --> I(Redondo)⏎  subgraph g1 [Grupo]⏎    A⏎  end → Inicio | ¿Sí? | Fin | Base | Sub | Est | Doble | Hex | Redondo | Grupo | >sí< | stroke-dasharray="6 4" | marker-end
-classDiagram⏎  class Animal {⏎    <<abstract>>⏎    +String name⏎  }⏎  class Duck⏎  Animal <|-- Duck : hereda → Animal | Duck | +String name | «abstract» | hereda &lt;|--
+classDiagram⏎  class Animal {⏎    <<abstract>>⏎    +String name⏎  }⏎  class Duck⏎  Animal <|-- Duck : hereda → Animal | Duck | +String name | «abstract» | hereda | url(#triangle)
 `;
 
 describe("the picture of a diagram the window draws", () => {
