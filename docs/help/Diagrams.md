@@ -8,7 +8,7 @@ How each kind of diagram is written is in the Tisty Markdown guide: [diagrams, f
 
 - **Outside a document:** in the Documents **+**, or in a folder's menu, choose **New diagram**. It asks for a name and the kind: mind map, database schema, flowchart, class diagram or other (Mermaid text). Tisty makes a plain document with a short example of that kind and opens the window. The document is made in the folder you are in, or the one whose menu you used; outside every folder, in the **Diagrams** folder, made when it is missing.
 - **Inside a document:** type `/` and choose **New diagram**. The example is written where you are and the window opens on it. **Mermaid block as text** leaves an empty block, to write by hand. The **Diagram** button on the floating bar offers the same without the menu.
-- **Reusing one:** **Existing diagram…**, in the `/` menu or on the **Diagram** button, opens a search over the diagrams of all your documents. Type part of the document's name or of the kind to narrow them; the one chosen is drawn beside the list. Choosing it writes a copy, and from then on each is its own: changing one does not change the other.
+- **Reusing one:** **Existing diagram…**, in the `/` menu or on the **Diagram** button, opens a search over the diagrams of all your documents. Each shows its document, the section it sits in and its title, if it has one; type part of any of them or of the kind to narrow them. The one chosen is drawn beside the list. Choosing it writes a copy, and from then on each is its own: changing one does not change the other.
 
 ## Opening one that exists
 

@@ -129,6 +129,7 @@ pub fn diagram_again(
 pub struct Found {
     file: String,
     title: String,
+    section: String,
     nth: usize,
     source: String,
 }
@@ -155,13 +156,20 @@ pub fn diagrams_everywhere(session: tauri::State<'_, Mutex<Session>>) -> Answer<
         .collect())
 }
 
+// A diagram is named by the heading it sits under; the document's own title says nothing new.
 fn found_in(file: &str, title: &str, body: &str) -> Vec<Found> {
+    let heads = tisty_markdown::outline(&tisty_markdown::read(body));
     diagrams::diagrams(body)
         .into_iter()
         .enumerate()
         .map(|(nth, one)| Found {
             file: file.to_string(),
             title: title.to_string(),
+            section: heads
+                .iter()
+                .rfind(|head| head.at.start < one.at.start && head.said != title)
+                .map(|head| head.said.clone())
+                .unwrap_or_default(),
             nth,
             source: one.source,
         })

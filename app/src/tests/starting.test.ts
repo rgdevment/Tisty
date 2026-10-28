@@ -14,6 +14,7 @@ import {
   STARTS,
   type Start,
   startOf,
+  titleOf,
 } from "../ui/drawing/starting";
 
 // `⏎` is a line break, so a whole document fits on its line.
@@ -106,7 +107,22 @@ mindmap⏎  root((Idea)) → root((Idea))
 erDiagram → 
 `;
 
+// One per line: a diagram → its own title, when Mermaid gives it one.
+const TITLED = `
+---⏎title: "Ventas del mes"⏎---⏎flowchart TD⏎  A --> B → Ventas del mes
+pie title Gastos⏎  "Casa" : 35 → Gastos
+gantt⏎  title Mudanza⏎  dateFormat YYYY-MM-DD → Mudanza
+flowchart TD⏎  A[title] --> B →
+`;
+
 describe("telling diagrams apart in a list", () => {
+  it("names a diagram by its own title, from its front matter or its title line", () => {
+    for (const case_ of lines(TITLED)) {
+      const [source, said = ""] = case_.split(" →");
+      expect(titleOf(unfolded(source)), case_).toBe(said.trim());
+    }
+  });
+
   it("takes the first line after the header, past front matter and comments", () => {
     for (const case_ of lines(FIRST)) {
       const [source, said = ""] = case_.split(" →");

@@ -41,6 +41,14 @@ const KIND_WORDS: Record<DiagramKind, Word> = {
 
 export const kindName = (kind: DiagramKind): string => t(KIND_WORDS[kind]);
 
+// Its own title, from the front matter or the `title` line many kinds take, names it best in a list.
+export const titleOf = (source: string): string => {
+  const front = /^\s*---\s*\n([\s\S]*?)\n\s*---/.exec(source);
+  const said = front && /^title:\s*(.+)$/m.exec(front[1]);
+  if (said) return said[1].trim().replace(/^["']|["']$/g, "");
+  return /^\s*(?:pie\s+)?title\s+(.+)$/m.exec(source)?.[1].trim() ?? "";
+};
+
 // The line after the header tells two diagrams of one kind apart in a list.
 export const firstWords = (source: string): string => {
   const lines = source.split("\n");

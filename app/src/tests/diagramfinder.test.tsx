@@ -6,7 +6,7 @@ import { kindName } from "../ui/drawing/starting";
 import Picking from "../ui/Picking";
 
 const found = vi.hoisted(() => ({
-  all: [] as { file: string; title: string; nth: number; source: string }[],
+  all: [] as { file: string; title: string; section: string; nth: number; source: string }[],
   fails: false,
   drawn: [] as string[],
 }));
@@ -25,7 +25,7 @@ vi.mock("../ui/drawing/exporting", () => ({
 
 const PAGOS = "flowchart TD\n  A[Inicio] --> B[Fin]\n";
 const TIENDA = "erDiagram\n  cliente {\n    int id PK\n  }\n";
-const CON_FENCE = "sequenceDiagram\n  A->>B: ```código```\n";
+const CON_FENCE = "sequenceDiagram\n  title Saludo\n  A->>B: ```código```\n";
 
 const opened = (kind: "diagram" | "diagramFrom") => {
   const put = vi.fn((_: string) => true);
@@ -46,23 +46,23 @@ const opened = (kind: "diagram" | "diagramFrom") => {
 
 beforeEach(() => {
   found.all = [
-    { file: "ab12-0001", title: "Pagos", nth: 0, source: PAGOS },
-    { file: "ab12-0002", title: "Tienda", nth: 0, source: TIENDA },
-    { file: "ab12-0002", title: "Tienda", nth: 1, source: CON_FENCE },
+    { file: "ab12-0001", title: "Pagos", section: "Cobro", nth: 0, source: PAGOS },
+    { file: "ab12-0002", title: "Tienda", section: "", nth: 0, source: TIENDA },
+    { file: "ab12-0002", title: "Tienda", section: "", nth: 1, source: CON_FENCE },
   ];
   found.fails = false;
   found.drawn = [];
 });
 
 describe("reusing a diagram another document holds", () => {
-  it("lists every diagram with its document, kind and first words, and draws only the one looked at", async () => {
+  it("lists every diagram with its document, section, kind and own title or first words, drawing only the one looked at", async () => {
     opened("diagramFrom");
 
     const rows = await screen.findAllByRole("option");
     expect(rows.map((one) => one.textContent)).toEqual([
-      `Pagos${kindName("flowchart")} · A[Inicio] --> B[Fin]`,
+      `Pagos › Cobro${kindName("flowchart")} · A[Inicio] --> B[Fin]`,
       `Tienda${kindName("erDiagram")} · cliente {`,
-      `Tienda${kindName("other")} · A->>B: \`\`\`código\`\`\``,
+      `Tienda${kindName("other")} · Saludo`,
     ]);
     await waitFor(() => expect(found.drawn).toEqual([PAGOS]));
 
@@ -84,6 +84,12 @@ describe("reusing a diagram another document holds", () => {
     const field = await screen.findByLabelText(t("diagramFind"));
 
     await userEvent.type(field, kindName("erDiagram").slice(0, 6));
+    expect(screen.getAllByRole("option")).toHaveLength(1);
+    await userEvent.clear(field);
+    await userEvent.type(field, "cobro");
+    expect(screen.getAllByRole("option")).toHaveLength(1);
+    await userEvent.clear(field);
+    await userEvent.type(field, "saludo");
     expect(screen.getAllByRole("option")).toHaveLength(1);
 
     await userEvent.clear(field);

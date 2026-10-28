@@ -5,10 +5,13 @@ import { matched } from "../finding";
 import { t } from "../locales";
 import { svgFor } from "./drawing/exporting";
 import { kindOf } from "./drawing/framing";
-import { firstWords, kindName } from "./drawing/starting";
+import { firstWords, kindName, titleOf } from "./drawing/starting";
 import { darkNow } from "./viewer/acting";
 
 const titled = (one: FoundDiagram) => one.title.trim() || t("untitledDoc");
+const placed = (one: FoundDiagram) =>
+  one.section ? `${titled(one)} › ${one.section}` : titled(one);
+const named = (one: FoundDiagram) => titleOf(one.source) || firstWords(one.source);
 
 // Only the diagram being looked at is drawn: drawing every one at once would hold the list back.
 const usePreview = (source: string | undefined) => {
@@ -50,7 +53,7 @@ export default function DiagramFinder({
   }, [onError]);
 
   const shown = (found ?? []).filter((one) =>
-    matched(`${titled(one)} ${kindName(kindOf(one.source))}`, word),
+    matched(`${placed(one)} ${titleOf(one.source)} ${kindName(kindOf(one.source))}`, word),
   );
   const current = shown[Math.min(chosen, shown.length - 1)];
   const shot = usePreview(current?.source);
@@ -103,9 +106,9 @@ export default function DiagramFinder({
               onClick={() => onPick(one.source)}
               className={`flex w-full flex-col rounded-md px-2.5 py-1.5 text-left ${one === current ? "bg-hover" : ""}`}
             >
-              <span className="truncate text-ink">{titled(one)}</span>
+              <span className="truncate text-ink">{placed(one)}</span>
               <span className="truncate text-[11.5px] text-faint">
-                {`${kindName(kindOf(one.source))} · ${firstWords(one.source)}`}
+                {`${kindName(kindOf(one.source))} · ${named(one)}`}
               </span>
             </button>
           ))}

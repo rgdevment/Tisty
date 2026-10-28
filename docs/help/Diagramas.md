@@ -8,7 +8,7 @@ Cómo se escribe cada tipo de diagrama está en la guía de Markdown de Tisty: [
 
 - **Fuera de un documento:** en el **+** de Documentos, o en el menú de una carpeta, elige **Diagrama nuevo**. Pide un nombre y el tipo: mapa mental, esquema de base de datos, diagrama de flujo, diagrama de clases u otro (texto Mermaid). Tisty crea un documento normal con un ejemplo corto de ese tipo y abre la ventana. El documento nace en la carpeta donde estás, o en la que elegiste en su menú; fuera de toda carpeta, en la carpeta **Diagramas**, que se crea si falta.
 - **Dentro de un documento:** escribe `/` y elige **Diagrama nuevo**. El ejemplo se escribe donde estás y la ventana se abre sobre él. **Bloque Mermaid como texto** deja un bloque vacío, para escribirlo a mano. El botón **Diagrama** de la barra flotante ofrece lo mismo sin pasar por el menú.
-- **Reutilizar uno:** **Diagrama existente…**, en el menú `/` o en el botón **Diagrama**, abre un buscador con los diagramas de todos tus documentos. Escribe parte del nombre del documento o del tipo para filtrarlos; el elegido se ve dibujado al lado. Al elegirlo se escribe una copia, y desde ahí cada uno es independiente: cambiar uno no cambia el otro.
+- **Reutilizar uno:** **Diagrama existente…**, en el menú `/` o en el botón **Diagrama**, abre un buscador con los diagramas de todos tus documentos. Cada uno aparece con su documento, la sección donde está y su título, si lo tiene; escribe parte de cualquiera de ellos o del tipo para filtrarlos. El elegido se ve dibujado al lado. Al elegirlo se escribe una copia, y desde ahí cada uno es independiente: cambiar uno no cambia el otro.
 
 ## Abrir uno que ya existe
 

@@ -17,6 +17,7 @@ export const diagramOrder = (): Promise<number> => invoke("diagram_order");
 export interface FoundDiagram {
   readonly file: string;
   readonly title: string;
+  readonly section: string;
   readonly nth: number;
   readonly source: string;
 }
