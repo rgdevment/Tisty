@@ -8,7 +8,7 @@ import { cadence, dueLabel, lateLabel, running, stamped, whenLabel } from "../fo
 import { group, useGrouped } from "../grouping";
 import { fill, t } from "../locales";
 import { edge, placed, said, tint } from "../quadrants";
-import { agentTag, signedBy } from "../who";
+import { agentTag, signedBy, signedByAnAgent, wroteWhere } from "../who";
 import Grouping from "./Axis";
 import PaceBar, { PaceTally, paceSaid } from "./PaceBar";
 import { Lozenge, Pip, saidWhen, spokenLabel } from "./Spoke";
@@ -580,8 +580,12 @@ function Meta({
   }
   if (filedBy) {
     bits.push(
-      <span key="by" className="text-hue-teal">
-        {filedBy}
+      <span
+        key="by"
+        className="text-hue-teal"
+        title={wroteWhere(task.created_by, task.created_via)}
+      >
+        {signedByAnAgent(task.created_by)}
       </span>,
     );
   }

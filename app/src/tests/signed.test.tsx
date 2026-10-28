@@ -24,10 +24,11 @@ const task = (extra: Partial<Task> = {}): Task =>
     ...extra,
   }) as unknown as Task;
 
-const detail = (one: Task) =>
+const detail = (one: Task, expanded = true) =>
   render(
     <Detail
       task={one}
+      expanded={expanded}
       lists={[]}
       known={[]}
       onCollapse={() => {}}
@@ -44,19 +45,19 @@ const detail = (one: Task) =>
     />,
   );
 
-// Who filed a task is said the way the journal says who wrote a line — by name — and never
-// through the tag the server adds, which the person cannot trust.
+// At a glance a row only says an agent filed it; the name waits in the tooltip and in what is read
+// aloud, and never comes from the tag the server adds, which the person cannot trust.
 describe("a task an agent filed carries its signature", () => {
   afterEach(() => knowAgents({}));
 
-  it("signs the row by name and drops the tag that said the same", () => {
+  it("signs the row as an agent's, names it on hover, and drops the tag that said the same", () => {
     knowAgents(
       { dev_agent: "canelo 39" },
       { clients: { "claude-code": "Claude Code", codex: "Codex" } },
     );
     render(<TaskList tasks={[task()]} lists={[]} title="Open" bands="day" onSelect={() => {}} />);
 
-    expect(screen.getByText("by Claude Code")).toBeTruthy();
+    expect(screen.getByText("by an agent").getAttribute("title")).toBe("Claude Code wrote it");
     expect(screen.getByText("#seguridad")).toBeTruthy();
     expect(screen.queryByText(/#agent/)).toBeNull();
     expect(screen.queryByText(/canelo 39/)).toBeNull();
@@ -77,7 +78,7 @@ describe("a task an agent filed carries its signature", () => {
       />,
     );
 
-    expect(screen.getByText("by an assistant")).toBeTruthy();
+    expect(screen.getByText("by an agent").getAttribute("title")).toBe("An assistant wrote it");
   });
 
   it("keeps the tag, and signs nothing, when the writer is not a known agent", () => {
@@ -100,6 +101,20 @@ describe("a task an agent filed carries its signature", () => {
     expect(screen.getByText(/· by Claude Code/)).toBeTruthy();
   });
 
+  it("names the agent in the side panel only on hover, and in full once expanded", () => {
+    knowAgents(
+      { dev_agent: "canelo 39" },
+      { clients: { "claude-code": "Claude Code", codex: "Codex" } },
+    );
+    const { unmount } = detail(task(), false);
+    expect(screen.getByText("by an agent").getAttribute("title")).toBe("Claude Code wrote it");
+    unmount();
+
+    detail(task());
+    expect(screen.getByText("by Claude Code")).toBeTruthy();
+    expect(screen.queryByText("by an agent")).toBeNull();
+  });
+
   it("reads a client the core did not name as it called itself, never as nothing", () => {
     knowAgents({ dev_agent: "canelo 39" });
     render(
@@ -112,7 +127,7 @@ describe("a task an agent filed carries its signature", () => {
       />,
     );
 
-    expect(screen.getByText("by kiro")).toBeTruthy();
+    expect(screen.getByText("by an agent").getAttribute("title")).toBe("Kiro wrote it");
   });
 
   // The tooltip names machines the way Settings › Sync does, and never by their id.
@@ -141,6 +156,29 @@ describe("a task an agent filed carries its signature", () => {
     );
     detail(task());
     expect(screen.getByText("by Claude Code").getAttribute("title")).toBe("from this machine");
+  });
+
+  it("says on hover who wrote it and on which machine, and only that", () => {
+    const wrote = (hosts: Record<string, string>) => {
+      knowAgents(
+        { dev_agent: "canelo 39" },
+        {
+          clients: { "claude-code": "Claude Code" },
+          hosts,
+          machines: { dev_desk: "roble 12", dev_lap: "sauce 4" },
+          here: "dev_lap",
+        },
+      );
+      const { unmount } = render(
+        <TaskList tasks={[task()]} lists={[]} title="Open" bands="day" onSelect={() => {}} />,
+      );
+      const said = screen.getByText("by an agent").getAttribute("title");
+      unmount();
+      return said;
+    };
+
+    expect(wrote({ dev_agent: "dev_lap" })).toBe("Claude Code wrote on this machine");
+    expect(wrote({ dev_agent: "dev_desk" })).toBe("Claude Code wrote on the machine roble 12");
   });
 
   it("is read out loud too, apart from what the agent said about it", () => {
