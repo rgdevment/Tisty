@@ -1,5 +1,6 @@
 import { type Classes, readClasses } from "./classes";
-import { type Flow, type Shape as FlowShape, readFlow } from "./flow";
+import { type Flow, readFlow } from "./flow";
+import type { Shape as FlowShape } from "./flowshapes";
 import { kindOf } from "./framing";
 import { edgeOf, type Rect } from "./graphlayout";
 import { curve, HEXAGON, HUES, laidOut, type Placed } from "./mindlayout";

@@ -1,4 +1,4 @@
-import { SHAPES, type Shape } from "./flow";
+import { SHAPES } from "./flow";
 import {
   ARROWS,
   directionChanged,
@@ -12,6 +12,7 @@ import {
   nodeMoved,
   nodeRemoved,
 } from "./flowing";
+import { nameOfShape, type Shape } from "./flowshapes";
 import type { Direction } from "./graphlayout";
 import { useHands, useSay } from "./handing";
 import { Chosen, Said, Section } from "./panelbits";
@@ -58,10 +59,12 @@ export default function FlowPanel({ editing }: Readonly<{ editing: Flowing }>) {
   const group =
     picked?.kind === "group" ? flow.groups.find((one) => one.id === picked.id) : undefined;
   const removing = node ? nodeRemoved(flow, node.id) : null;
-  const shapes = SHAPES.map((one) => ({
-    value: one,
-    label: t(SHAPE_WORDS[one] ?? "flowShapeProcess"),
-  }));
+  const shape = node?.shape ?? "process";
+  // A shape written by hand that the list does not offer is still shown, by Mermaid's name for it.
+  const shapes = (SHAPES.includes(shape) ? SHAPES : [...SHAPES, shape]).map((one) => {
+    const word = SHAPE_WORDS[one];
+    return { value: one, label: word ? t(word) : nameOfShape(one) };
+  });
   const arrows = (ARROWS as readonly string[]).includes(edge?.arrow ?? "")
     ? ARROWS.map((one) => ({ value: one as string, label: t(ARROW_WORDS[one]) }))
     : [
@@ -90,7 +93,7 @@ export default function FlowPanel({ editing }: Readonly<{ editing: Flowing }>) {
           <Chosen
             id="flow-shape"
             label={t("flowShape")}
-            value={node.shape ?? "process"}
+            value={shape}
             options={shapes}
             onChoose={(shape) => change(nodeChanged(flow, node.id, { shape }))}
           />

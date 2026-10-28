@@ -1,6 +1,6 @@
 import mermaid from "mermaid";
 import { beforeAll, describe, expect, it } from "vitest";
-import { type Flow, formedNode, readFlow, type Shape, writeFlow } from "../src/flow";
+import { type Flow, readFlow, writeFlow } from "../src/flow";
 import {
   directionChanged,
   edgeChanged,
@@ -14,6 +14,7 @@ import {
   nodeMoved,
   nodeRemoved,
 } from "../src/flowing";
+import { formedNode, type Shape } from "../src/flowshapes";
 
 // `⏎` is a line break, so a whole flowchart fits on its line.
 const unfolded = (said: string) => said.trim().replace(/⏎/g, "\n");
@@ -41,7 +42,6 @@ const REFUSED = `
 flowchart LR⏎  A --> B⏎  subgraph g⏎    A
 flowchart LR⏎  end
 flowchart LR⏎  A --> ⏎
-flowchart LR⏎  A@{ shape: rect }
 sequenceDiagram⏎  a->>b: hola
 `;
 
@@ -158,11 +158,12 @@ flowchart LR⏎  A --> B⏎  B --> C⏎  C --> D⏎  linkStyle 0,2 stroke:red⏎
 flowchart LR⏎  A --> B⏎  B --> C⏎  linkStyle default stroke:red → edge 0 → flowchart LR⏎  A⏎  B --> C⏎  linkStyle default stroke:red
 flowchart LR⏎  A --> B⏎  B --> C⏎  linkStyle 1 stroke:red → node A → flowchart LR⏎  B --> C⏎  linkStyle 0 stroke:red
 flowchart LR⏎  A --> B[Dos]⏎  B --> C → node A → flowchart LR⏎  B[Dos]⏎  B --> C
+flowchart LR⏎  A@{ shape: cloud, label: "Nube" } --> Z → edge 0 → flowchart LR⏎  A@{ shape: cloud, label: "Nube" }⏎  Z
 `;
 
 const flowOf = (source = MAP) => readFlow(source) as Flow;
 const bodyText = (body: readonly string[] | undefined) =>
-  writeFlow({ head: flowOf().head, body: body ?? [], tail: [] });
+  writeFlow({ head: flowOf().head, body: body ?? [], places: [], tail: [] });
 
 describe("changing a flowchart", () => {
   it("rewrites only the words or shape of a node, where they are written", async () => {
@@ -219,7 +220,7 @@ describe("changing a flowchart", () => {
       const [kind, which] = what.split(" ");
       const flow = flowOf(source);
       const done = kind === "edge" ? edgeRemoved(flow, Number(which)) : nodeRemoved(flow, which);
-      const written = writeFlow({ head: flow.head, body: done?.body ?? [], tail: [] });
+      const written = writeFlow({ head: flow.head, body: done?.body ?? [], places: [], tail: [] });
       expect(written, case_).toBe(expected);
       expect(await valid(written), case_).toBe(true);
     }

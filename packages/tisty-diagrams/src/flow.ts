@@ -1,21 +1,15 @@
+import {
+  type Bracketed,
+  type Keys,
+  keysAt,
+  keyValue,
+  labelOf,
+  type Shape,
+  shapeNamed,
+  unquoted,
+} from "./flowshapes";
 import { headerAt } from "./framing";
 import type { Direction } from "./graphlayout";
-
-export type Shape =
-  | "process"
-  | "rounded"
-  | "stadium"
-  | "subroutine"
-  | "database"
-  | "circle"
-  | "double"
-  | "decision"
-  | "hexagon"
-  | "lean"
-  | "leanLeft"
-  | "trapezoid"
-  | "trapezoidDown"
-  | "flag";
 
 export const SHAPES: readonly Shape[] = [
   "process",
@@ -31,7 +25,7 @@ export const SHAPES: readonly Shape[] = [
 ];
 
 // Opening, the closings it may take with the shape each gives; longest openings first.
-const FORMS: readonly (readonly [string, readonly (readonly [string, Shape])[]])[] = [
+const FORMS: readonly (readonly [string, readonly (readonly [string, Bracketed])[]])[] = [
   ["(((", [[")))", "double"]]],
   ["((", [["))", "circle"]]],
   ["([", [["])", "stadium"]]],
@@ -68,6 +62,8 @@ export interface FlowNode {
   readonly id: string;
   readonly text: string;
   readonly shape: Shape | null;
+  // What its `@{ … }` says, as written; `null` when it is written in brackets or not at all.
+  readonly keys: Keys | null;
   // Where its words and shape are written, or else where it is first named.
   readonly def: Span | null;
   readonly first: Span;
@@ -91,9 +87,18 @@ export interface FlowGroup {
   readonly close: number;
 }
 
+/** Where the window puts a node, kept as a `%% tisty:` line of its own after the body. */
+export interface Place {
+  readonly id: string;
+  readonly x: number;
+  readonly y: number;
+  readonly line: string;
+}
+
 export interface Flow {
   readonly head: readonly string[];
   readonly body: readonly string[];
+  readonly places: readonly Place[];
   readonly tail: readonly string[];
   readonly direction: Direction;
   readonly nodes: readonly FlowNode[];
@@ -106,6 +111,7 @@ interface Named {
   start: number;
   end: number;
   shape: Shape | null;
+  keys: Keys | null;
   text: string | null;
 }
 
@@ -129,19 +135,16 @@ const at = (pattern: RegExp, said: string, from: number) => {
   return pattern.exec(said);
 };
 
-const unquoted = (text: string) =>
-  (text.startsWith('"') && text.endsWith('"') ? text.slice(1, -1) : text).replace(/#quot;/g, '"');
-
 const shapedAt = (
   said: string,
   from: number,
-): { end: number; shape: Shape; text: string } | null => {
+): { end: number; shape: Bracketed; text: string } | null => {
   for (const [open, closes] of FORMS) {
     if (!said.startsWith(open, from)) continue;
     const inner = from + open.length;
     const quoted = said[inner] === '"' ? said.indexOf('"', inner + 1) + 1 : inner;
     if (quoted === 0) return null;
-    let best: { end: number; shape: Shape; text: string } | null = null;
+    let best: { end: number; shape: Bracketed; text: string } | null = null;
     for (const [close, shape] of closes) {
       const found = said.indexOf(close, quoted);
       if (found >= 0 && (!best || found < best.end))
@@ -156,11 +159,24 @@ const nodeAt = (said: string, from: number): Named | null => {
   const id = at(ID, said, from);
   if (!id) return null;
   let end = from + id[0].length;
-  const shaped = shapedAt(said, end);
-  if (shaped) end = shaped.end;
-  const kind = at(CLASS, said, end);
+  const keyed = said.startsWith("@{", end) ? keysAt(said, end) : null;
+  if (said.startsWith("@{", end) && !keyed) return null;
+  const shaped = keyed ? null : shapedAt(said, end);
+  end = keyed?.end ?? shaped?.end ?? end;
+  // Mermaid takes no `:::class` after `@{ … }`.
+  const kind = keyed ? null : at(CLASS, said, end);
   if (kind) end += kind[0].length;
-  return { id: id[0], start: from, end, shape: shaped?.shape ?? null, text: shaped?.text ?? null };
+  const named = keyed && keyValue(keyed.keys, "shape");
+  const shape = named ? shapeNamed(named) : (shaped?.shape ?? null);
+  if (named && !shape) return null;
+  return {
+    id: id[0],
+    start: from,
+    end,
+    shape,
+    keys: keyed?.keys ?? null,
+    text: keyed ? labelOf(keyed.keys) : (shaped?.text ?? null),
+  };
 };
 
 // `-- words -->` says the arrow its closing says; a dotted one closes with `.->` or `.-`.
@@ -236,6 +252,13 @@ export const statementsOf = (said: string): Statement[] | null => {
   return all;
 };
 
+const PLACE = /^\s*%% tisty: ([\p{L}\p{N}_]+(?:-[\p{L}\p{N}_]+)*) (-?\d+) (-?\d+)\s*$/u;
+
+const placeOf = (line: string): Place | null => {
+  const found = PLACE.exec(line);
+  return found ? { id: found[1], x: Number(found[2]), y: Number(found[3]), line } : null;
+};
+
 const KEPT =
   /^\s*(%%|classDef\b|class\b|style\b|linkStyle\b|click\b|accTitle\b|accDescr\b|direction\b)/;
 const SUBGRAPH = /^(\s*)subgraph\s+(.+?)\s*$/;
@@ -260,11 +283,13 @@ const noted = (reading: Reading, node: Named, line: number) => {
   const group = reading.open[reading.open.length - 1]?.id ?? null;
   const known = reading.nodes.get(node.id);
   // As Mermaid does, the last words and shape given win.
-  const def = node.shape ? span : (known?.def ?? null);
+  const defined = node.shape !== null || node.keys !== null;
+  const def = defined ? span : (known?.def ?? null);
   reading.nodes.set(node.id, {
     id: node.id,
     text: node.text ?? known?.text ?? node.id,
     shape: node.shape ?? known?.shape ?? null,
+    keys: defined ? node.keys : (known?.keys ?? null),
     def,
     first: known?.first ?? span,
     // As Mermaid does, a node listed inside a subgraph belongs to it, wherever it was named before.
@@ -314,17 +339,20 @@ export const readFlow = (source: string): Flow | null => {
   const lines = source.replace(/\r/g, "").split("\n");
   const opening = headerAt(lines, DIRECTION);
   if (opening < 0) return null;
-  const said = DIRECTION.exec(lines[opening])?.[2] ?? "TB";
-  const direction = (said === "TD" ? "TB" : said) as Direction;
+  const way = DIRECTION.exec(lines[opening])?.[2] ?? "TB";
+  const direction = (way === "TD" ? "TB" : way) as Direction;
   let end = lines.length;
   while (end > opening + 1 && !lines[end - 1].trim()) end -= 1;
-  const body = lines.slice(opening + 1, end);
+  const said = lines.slice(opening + 1, end);
+  const places = said.flatMap((line) => placeOf(line) ?? []);
+  const body = said.filter((line) => !placeOf(line));
   const reading: Reading = { nodes: new Map(), edges: [], groups: [], open: [] };
   for (const [line, text] of body.entries()) if (!readLine(reading, text, line)) return null;
   if (reading.open.length) return null;
   return {
     head: lines.slice(0, opening + 1),
     body,
+    places,
     tail: lines.slice(end),
     direction,
     nodes: [...reading.nodes.values()],
@@ -333,29 +361,6 @@ export const readFlow = (source: string): Flow | null => {
   };
 };
 
-export const writeFlow = (flow: Pick<Flow, "head" | "body" | "tail">): string =>
-  [...flow.head, ...flow.body, ...flow.tail].join("\n");
-
-const OPENING: Record<Shape, readonly [string, string]> = {
-  process: ["[", "]"],
-  rounded: ["(", ")"],
-  stadium: ["([", "])"],
-  subroutine: ["[[", "]]"],
-  database: ["[(", ")]"],
-  circle: ["((", "))"],
-  double: ["(((", ")))"],
-  decision: ["{", "}"],
-  hexagon: ["{{", "}}"],
-  lean: ["[/", "/]"],
-  leanLeft: ["[\\", "\\]"],
-  trapezoid: ["[/", "\\]"],
-  trapezoidDown: ["[\\", "/]"],
-  flag: [">", "]"],
-};
-
-/** A node as Mermaid reads it back: its id, then its words in its shape, quoted when they would break it. */
-export const formedNode = (id: string, text: string, shape: Shape): string => {
-  const [open, close] = OPENING[shape];
-  const plain = text.trim() === text && !/["()[\]{}|<>;]/.test(text);
-  return `${id}${open}${plain ? text : `"${text.replace(/"/g, "#quot;")}"`}${close}`;
-};
+/** The text of a flowchart, its places last. */
+export const writeFlow = (flow: Pick<Flow, "head" | "body" | "places" | "tail">): string =>
+  [...flow.head, ...flow.body, ...flow.places.map((one) => one.line), ...flow.tail].join("\n");

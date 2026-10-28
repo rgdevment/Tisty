@@ -1,5 +1,6 @@
 import type { ClassBox, Classes } from "./classes";
-import type { Flow, Shape } from "./flow";
+import type { Flow } from "./flow";
+import type { Shape } from "./flowshapes";
 import { around, type Laid, layered, type Rect } from "./graphlayout";
 
 // The board and the picture draw from these, so what is exported is what the window shows.

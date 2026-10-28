@@ -56,7 +56,7 @@ export const useFlow = (text: string, setText: (text: string) => void): Flowing 
     picked: foundAgain(flow, chosen.picked, chosen.sign),
     change: (made) => {
       if (!made) return;
-      const written = writeFlow({ ...flow, body: made.body });
+      const written = writeFlow({ ...flow, body: made.body, places: made.places ?? flow.places });
       const next = readFlow(written) ?? flow;
       if (written !== text) setText(written);
       keep(next, made.picked);

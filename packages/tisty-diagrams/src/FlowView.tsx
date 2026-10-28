@@ -1,12 +1,12 @@
 import type { CSSProperties } from "react";
-import type { Shape } from "./flow";
 import { edgeRemoved, groupAdded, groupRemoved, linked, nodeAdded, nodeRemoved } from "./flowing";
+import type { Shape } from "./flowshapes";
 import GraphBoard from "./GraphBoard";
 import { useHands, useSay } from "./handing";
 import { CUTS, flowScene } from "./scenes";
 import type { Flowing } from "./useFlow";
 
-const LOOKS: Record<Shape, string> = {
+const LOOKS: Partial<Record<Shape, string>> = {
   process: "rounded-sm border",
   rounded: "rounded-xl border",
   stadium: "rounded-full border",
@@ -41,7 +41,8 @@ export default function FlowView({ editing }: Readonly<{ editing: Flowing }>) {
   const look = (shape: Shape | null): { look: string; style?: CSSProperties } => {
     const cut = CUTS[shape ?? "process"];
     if (cut) return { look: "bg-accent-soft text-ink", style: { clipPath: cut } };
-    return { look: `${LOOKS[shape ?? "process"]} border-line bg-panel text-ink` };
+    // Shapes this board cannot draw yet are shown as a process; their text keeps what they are.
+    return { look: `${LOOKS[shape ?? "process"] ?? LOOKS.process} border-line bg-panel text-ink` };
   };
 
   return (
