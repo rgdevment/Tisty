@@ -11,7 +11,10 @@ The whole window works from the keyboard.
 | `F1` | Open the Tisty Markdown guide, without a connection |
 | `Ctrl`/`⌘` + `S` (in the diagram window) | Save the diagram into its document |
 | `Enter` · `Tab` · `Delete` · `F2` (in a mind map) | Add a sibling, add a child, remove the idea, rename it |
-| `Delete` (on a schema, flowchart or class diagram) | Remove what is chosen |
+| `Delete` (on a schema, freeform diagram or class diagram) | Remove what is chosen |
+| `Ctrl`/`⌘` + `Z` · `Ctrl`/`⌘` + `Shift` + `Z` or `Ctrl`/`⌘` + `Y` (in the diagram window) | Undo and redo what the window changed |
+| `Ctrl`/`⌘` + `D` (in a freeform diagram) | Duplicate the chosen shape |
+| `Ctrl`/`⌘` + click · `Shift` + drag (in the diagram window) | Choose several shapes, classes or tables |
 | `Ctrl`/`⌘` + `X` · `V` | Move a document between folders |
 | `Alt` + arrow (on a page's row) | Move a page up or down in its document |
 | `Alt` + arrow (in a table, writing its text) | Move the row or the column the caret is on; `Ctrl` + `Alt` + ← → on a Mac |
