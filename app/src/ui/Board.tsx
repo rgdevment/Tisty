@@ -34,6 +34,7 @@ export default function Board() {
     load,
     marking,
     openDoc,
+    opening,
     reveal,
     say,
     seen,
@@ -101,16 +102,18 @@ export default function Board() {
             !chosen.folded &&
             chosen.layer === "trace"
           }
-          onSelect={setSelected}
+          onSelect={(id, one) =>
+            shown.some((task) => task.id === id) ? setSelected(id) : opening(one)
+          }
           onComplete={
             chosen.named === "archive"
               ? undefined
-              : (id) => {
-                  const one = shown.find((task) => task.id === id);
-                  marking(id, one?.title ?? "");
+              : (id, named) => {
+                  marking(id, named);
                   if (id === selected) setSelected(undefined);
                 }
           }
+          onError={(e) => setError(saidPlainly(e))}
           onFold={chosen.named === "archive" ? (id, away) => act(fold(id, away)) : undefined}
           closing={asking?.id}
           ask={(id) => (asking?.id === id ? strip : null)}

@@ -71,7 +71,7 @@ describe("moving through the list without a mouse", () => {
     await userEvent.tab();
     await userEvent.keyboard("{Enter}");
 
-    expect(opened).toHaveBeenCalledWith("1");
+    expect(opened).toHaveBeenCalledWith("1", expect.objectContaining({ id: "1" }));
   });
 
   it("opens it on Space too", async () => {
@@ -81,7 +81,7 @@ describe("moving through the list without a mouse", () => {
     await userEvent.tab();
     await userEvent.keyboard(" ");
 
-    expect(opened).toHaveBeenCalledWith("1");
+    expect(opened).toHaveBeenCalledWith("1", expect.objectContaining({ id: "1" }));
   });
 
   it("never lets Enter on a row complete the task", async () => {
@@ -111,7 +111,7 @@ describe("moving through the list without a mouse", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Complete pagar la luz" }));
 
-    expect(completed).toHaveBeenCalledWith("1");
+    expect(completed).toHaveBeenCalledWith("1", "pagar la luz");
   });
 
   it("completes the focused task with Ctrl+Enter", async () => {
@@ -121,7 +121,7 @@ describe("moving through the list without a mouse", () => {
     await userEvent.tab();
     await userEvent.keyboard("{Control>}{Enter}{/Control}");
 
-    expect(completed).toHaveBeenCalledWith("1");
+    expect(completed).toHaveBeenCalledWith("1", "pagar la luz");
   });
 
   it("does not complete on plain Enter", async () => {
