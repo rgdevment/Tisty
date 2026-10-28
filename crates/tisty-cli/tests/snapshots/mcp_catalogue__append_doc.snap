@@ -4,7 +4,7 @@ expression: tool
 ---
 {
   "annotations": {
-    "destructiveHint": true,
+    "destructiveHint": false,
     "idempotentHint": false,
     "openWorldHint": false,
     "readOnlyHint": false

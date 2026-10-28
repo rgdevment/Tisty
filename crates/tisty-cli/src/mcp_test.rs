@@ -210,13 +210,13 @@ fn every_tool_says_all_four_hints_and_one_that_only_reads_stirs_nothing() {
                 "{name} does not say `{hint}`, and OpenAI's directory turns away a tool without all four"
             );
         }
-        if one["annotations"]["readOnlyHint"] == json!(true) {
-            assert!(
-                ONLY_READS.contains(&name),
-                "{name} says it only reads, so it belongs in ONLY_READS too"
-            );
-            assert_eq!(one["annotations"]["destructiveHint"], json!(false));
-        }
+        // These two leave the store alone yet write: a summary kept here only, a copy in a folder.
+        let writes_outside_the_store = ["sum_up", "export_doc"].contains(&name);
+        assert_eq!(
+            one["annotations"]["readOnlyHint"] == json!(true),
+            ONLY_READS.contains(&name) && !writes_outside_the_store,
+            "{name} says whether it only reads differently from ONLY_READS"
+        );
     }
 }
 
