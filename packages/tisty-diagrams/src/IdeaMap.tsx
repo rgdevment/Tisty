@@ -7,9 +7,8 @@ import {
   useState,
 } from "react";
 import Board from "./Board";
-import { outlineOf } from "./flowoutlines";
-import type { Shape as FlowShape } from "./flowshapes";
 import { useSay } from "./handing";
+import { MindSketch } from "./MindSketch";
 import {
   type Changed,
   moved,
@@ -22,39 +21,14 @@ import {
 } from "./minding";
 import { curve, HEXAGON, HUES, laidOut, type Placed } from "./mindlayout";
 import { type Mind, SHAPES, type Shape } from "./mindmap";
-import { SHAPE_WORDS } from "./mindshapes";
-import Palette, { Sketch } from "./Palette";
+import { IDEA_LINES, SHAPE_WORDS } from "./mindshapes";
+import Palette from "./Palette";
 import { Gap, RemoveTools, Tool, ToolBar, UndoTools, ZoomTools } from "./tools";
 
 // A press that moves less than this is a press, not a drag.
 const DRAG_FROM = 4;
 
 const hueOf = (one: Placed) => (one.hue < 0 ? "var(--tisty-accent)" : HUES[one.hue % HUES.length]);
-
-const outline: Record<Shape, string> = {
-  plain: "rounded-md border border-transparent",
-  square: "rounded-[3px] border",
-  rounded: "rounded-lg border",
-  circle: "rounded-full border",
-  cloud: "rounded-full border border-dashed",
-  bang: "rounded-sm border-2 border-dashed",
-  hexagon: "rounded-md border",
-};
-
-// An idea's shape drawn as the flowchart's nearest one; a plain idea is only its words, over a line.
-const SKETCHED: Record<Exclude<Shape, "plain">, FlowShape> = {
-  square: "process",
-  rounded: "rounded",
-  circle: "circle",
-  cloud: "cloud",
-  bang: "bang",
-  hexagon: "hexagon",
-};
-const sketchOf = (shape: Shape) => {
-  if (shape === "plain") return <Sketch paths={["M8,9 H26 M8,14 H22 M4,19 H30"]} />;
-  const outline = outlineOf(SKETCHED[shape], 34, 22);
-  return <Sketch paths={[outline.body, ...outline.lines]} />;
-};
 
 const named = (path: Path) => path.join(".");
 const pathOf = (said: string | undefined): Path | null => {
@@ -174,7 +148,7 @@ export default function IdeaMap({
             items: SHAPES.map((shape) => ({ key: shape, label: t(SHAPE_WORDS[shape]) })),
           },
         ]}
-        sketch={sketchOf}
+        sketch={(shape) => <MindSketch shape={shape} />}
         onAdd={(shape) => grown(shape, chosen)}
         onDrop={(shape, at) => {
           if (!room.current?.contains(document.elementFromPoint(at.x, at.y))) return;
@@ -238,7 +212,7 @@ export default function IdeaMap({
               title={t("diagramIdeaKeys")}
               aria-pressed={isChosen}
               className={`absolute box-border flex cursor-pointer items-center justify-center truncate px-2 text-[13px] whitespace-nowrap outline-none ${
-                one.depth === 0 ? "rounded-full text-[15px] font-bold" : outline[one.idea.shape]
+                one.depth === 0 ? "rounded-full text-[15px] font-bold" : IDEA_LINES[one.idea.shape]
               } ${one.depth === 1 ? "bg-panel font-semibold text-ink" : ""} ${
                 one.depth > 1 ? "bg-desk text-soft" : ""
               }`}

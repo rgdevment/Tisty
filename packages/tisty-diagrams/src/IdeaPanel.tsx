@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useHands, useSay } from "./handing";
+import { MindSketch } from "./MindSketch";
 import { type Idea, SHAPES, type Shape } from "./mindmap";
 import { SHAPE_WORDS } from "./mindshapes";
 
@@ -63,10 +64,12 @@ export default function IdeaPanel({
             key={shape}
             type="button"
             aria-pressed={idea.shape === shape}
+            aria-label={t(SHAPE_WORDS[shape])}
+            title={t(SHAPE_WORDS[shape])}
             className={`${button} ${idea.shape === shape ? "border-accent text-accent" : ""}`}
             onClick={() => onShape(shape)}
           >
-            {t(SHAPE_WORDS[shape])}
+            <MindSketch shape={shape} />
           </button>
         ))}
       </div>
