@@ -7,7 +7,8 @@ export interface Route {
   readonly labelY: number;
 }
 
-const middle = (rect: Rect, side: Position) => {
+/** The middle of one side of a shape, where its dot sits and its arrows meet it. */
+export const sideMiddle = (rect: Rect, side: Position) => {
   if (side === Position.Top) return { x: rect.x + rect.wide / 2, y: rect.y };
   if (side === Position.Bottom) return { x: rect.x + rect.wide / 2, y: rect.y + rect.tall };
   if (side === Position.Left) return { x: rect.x, y: rect.y + rect.tall / 2 };
@@ -27,8 +28,8 @@ export const sidesOf = (from: Rect, to: Rect): readonly [Position, Position] => 
 /** An arrow in right-angled runs between the nearest sides; the window and the picture both draw this one. */
 export const routeOf = (from: Rect, to: Rect): Route => {
   const [leaving, entering] = sidesOf(from, to);
-  const start = middle(from, leaving);
-  const end = middle(to, entering);
+  const start = sideMiddle(from, leaving);
+  const end = sideMiddle(to, entering);
   const [path, labelX, labelY] = getSmoothStepPath({
     sourceX: start.x,
     sourceY: start.y,

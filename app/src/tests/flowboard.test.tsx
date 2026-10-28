@@ -113,36 +113,43 @@ describe("a flowchart in the diagram window", () => {
     for (const id of ["A", "B", "C", "D", "E", "n1"]) expect(text()).toMatch(`%% tisty: ${id} `);
   });
 
-  it("drops a shape dragged from the palette where it is let go", () => {
+  it("drops a shape dragged from the palette onto the canvas, and nowhere else", () => {
     opened();
-    const carried = {
-      types: ["application/x-tisty-shape"],
-      getData: () => "cloud",
-      dropEffect: "",
+    const cloud = palette().getByRole("button", { name: say("flowShapeCloud") });
+    const carry = (under: Element | null) => {
+      document.elementFromPoint = () => under;
+      fireEvent.pointerDown(cloud, { clientX: 0, clientY: 0 });
+      fireEvent.pointerMove(window, { clientX: 200, clientY: 120 });
+      fireEvent.pointerUp(window, { clientX: 200, clientY: 120 });
+      fireEvent.click(cloud);
     };
 
-    fireEvent.dragOver(canvas().parentElement as HTMLElement, { dataTransfer: carried });
-    fireEvent.drop(canvas().parentElement as HTMLElement, {
-      dataTransfer: carried,
-      clientX: 10,
-      clientY: 10,
-    });
-    fireEvent.drop(canvas().parentElement as HTMLElement, {
-      dataTransfer: { ...carried, getData: () => "nothing" },
-    });
+    carry(document.body);
+    expect(text()).toBe(FLOW);
 
+    carry(canvas());
     expect(text()).toContain(`  n1@{ shape: cloud, label: "${say("flowShapeCloud")}" }\n`);
     expect(text().match(/@\{/g)).toHaveLength(1);
   });
 
+  it("writes where a shape is nudged with the arrow keys", () => {
+    opened();
+    pickNode("A");
+
+    fireEvent.keyDown(node("A").closest(".react-flow__node") as HTMLElement, { key: "ArrowRight" });
+
+    expect(text()).toMatch(/%% tisty: A -?\d+ -?\d+/);
+    for (const id of ["B", "C", "D", "E"]) expect(text()).toMatch(`%% tisty: ${id} `);
+  });
+
   it("makes a joined shape where an arrow is let go on nothing, and joins one let go on a shape", () => {
     opened();
-    const pull = (from: string, under: HTMLElement | null) => {
+    const pull = (from: string, under: HTMLElement | null, to = 300) => {
       document.elementFromPoint = () => under;
       const dot = node(from).querySelector(".react-flow__handle-right") as HTMLElement;
       fireEvent.mouseDown(dot, { clientX: 0, clientY: 0, button: 0 });
-      fireEvent.mouseMove(document, { clientX: 300, clientY: 300 });
-      fireEvent.mouseUp(document, { clientX: 300, clientY: 300 });
+      fireEvent.mouseMove(document, { clientX: to, clientY: to });
+      fireEvent.mouseUp(document, { clientX: to, clientY: to });
     };
 
     pull("E", null);
@@ -151,6 +158,10 @@ describe("a flowchart in the diagram window", () => {
 
     pull("E", node("A"));
     expect(text()).toContain("  E --> A\n");
+
+    const before = text();
+    pull("D", node("D"), 900);
+    expect(text()).toBe(before);
   });
 
   it("labels an arrow in place with a double click, and changes its kind from the panel", () => {
@@ -160,16 +171,35 @@ describe("a flowchart in the diagram window", () => {
     typed(screen.getByRole("textbox", { name: say("flowLabel") }), "pagó");
     expect(text()).toBe(FLOW.replace("B -->|sí| C", "B -->|pagó| C"));
 
-    fireEvent.click(screen.getByRole("button", { name: "A → B" }));
+    fireEvent.doubleClick(document.querySelector(".react-flow__edge") as Element);
+    typed(within(canvas()).getByRole("textbox", { name: say("flowLabel") }), "empieza");
+    expect(text()).toContain("A[Inicio] -->|empieza| B");
+
+    fireEvent.click(screen.getByRole("button", { name: "empieza" }));
     choose(say("flowArrow"), "-.->");
-    expect(text()).toContain("A[Inicio] -.-> B");
+    expect(text()).toContain("A[Inicio] -.->|empieza| B");
   });
 
-  it("takes out what is chosen with Delete, but not while typing", () => {
+  it("leaves the text as written when a name is kept as it was", () => {
+    const worded = FLOW.replace("B -->|sí| C", "B -- sí --> C").replace("A[Inicio]", 'A["Inicio"]');
+    opened(worded);
+
+    fireEvent.doubleClick(screen.getByRole("button", { name: "sí" }));
+    typed(screen.getByRole("textbox", { name: say("flowLabel") }), "sí");
+    fireEvent.doubleClick(within(node("A")).getByRole("button"));
+    fireEvent.blur(within(node("A")).getByRole("textbox"));
+
+    expect(text()).toBe(worded);
+  });
+
+  it("takes out what is chosen with Delete, but not while typing or on the canvas's buttons", () => {
     opened();
     fireEvent.click(screen.getByRole("button", { name: "A → B" }));
 
     fireEvent.keyDown(screen.getByLabelText(say("flowLabel")), { key: "Delete" });
+    fireEvent.keyDown(screen.getByRole("button", { name: say("flowAddGroup") }), {
+      key: "Backspace",
+    });
     expect(text()).toBe(FLOW);
 
     fireEvent.keyDown(screen.getByRole("button", { name: "A → B" }), { key: "Delete" });

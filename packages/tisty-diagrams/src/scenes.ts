@@ -39,10 +39,14 @@ const autoLaid = (flow: Flow): Laid =>
 /** Each node where it was placed, or laid out when it never was, in the window's own coordinates. */
 export const flowLaid = (flow: Flow): ReadonlyMap<string, Rect> => {
   const places = new Map(flow.places.map((one) => [one.id, one]));
+  // Laying out is the costly part, and a chart placed whole needs none of it.
+  const auto = flow.nodes.every((one) => places.has(one.id)) ? null : autoLaid(flow);
   return new Map(
-    [...autoLaid(flow).at].map(([id, rect]) => {
-      const place = places.get(id);
-      return [id, place ? { ...rect, x: place.x, y: place.y } : rect] as const;
+    flow.nodes.map((one) => {
+      const place = places.get(one.id);
+      const size = sizeOf(one.text, one.shape ?? "process");
+      const rect = place ? { x: place.x, y: place.y, ...size } : auto?.at.get(one.id);
+      return [one.id, rect ?? { x: 0, y: 0, ...size }] as const;
     }),
   );
 };
