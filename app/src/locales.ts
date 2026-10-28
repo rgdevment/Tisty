@@ -726,7 +726,6 @@ const en = {
   copyAsImage: "Copy as image",
   diagramExported: "Image saved",
   diagramCopiedImage: "Image copied",
-  diagramUnpainted: "This drawing could not be turned into an image. Try SVG, which any size fits.",
   diagramSave: "Save to «{name}»",
   diagramSaving: "Saving…",
   diagramSaved: "Saved",
@@ -737,7 +736,6 @@ const en = {
   diagramTakeTheirs: "Use the document's",
   diagramKeepMine: "Save mine over it",
   diagramGone: "This diagram is no longer in «{name}». Copy what you wrote before closing",
-  diagramUnreadable: "Mermaid cannot draw this yet. The last drawing stays until it can.",
   newDiagram: "New diagram",
   diagramName: "Name of the diagram",
   diagramKindAsk: "Kind",
@@ -3394,8 +3392,6 @@ const es: Catalog = {
   copyAsImage: "Copiar como imagen",
   diagramExported: "Imagen guardada",
   diagramCopiedImage: "Imagen copiada",
-  diagramUnpainted:
-    "No se pudo convertir este dibujo en imagen. Prueba con SVG, que admite cualquier tamaño.",
   diagramSave: "Guardar en «{name}»",
   diagramSaving: "Guardando…",
   diagramSaved: "Guardado",
@@ -3407,8 +3403,6 @@ const es: Catalog = {
   diagramTakeTheirs: "Usar el del documento",
   diagramKeepMine: "Guardar el mío encima",
   diagramGone: "Este diagrama ya no está en «{name}». Copia lo que escribiste antes de cerrar",
-  diagramUnreadable:
-    "Mermaid todavía no puede dibujar esto. El último dibujo queda hasta que pueda.",
   newDiagram: "Diagrama nuevo",
   diagramName: "Nombre del diagrama",
   diagramKindAsk: "Tipo",

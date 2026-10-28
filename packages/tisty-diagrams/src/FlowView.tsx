@@ -2,8 +2,7 @@ import type { CSSProperties } from "react";
 import type { Shape } from "./flow";
 import { edgeRemoved, groupAdded, groupRemoved, linked, nodeAdded, nodeRemoved } from "./flowing";
 import GraphBoard from "./GraphBoard";
-import { useSay } from "./handing";
-import { button } from "./looks";
+import { useHands, useSay } from "./handing";
 import { CUTS, flowScene } from "./scenes";
 import type { Flowing } from "./useFlow";
 
@@ -27,6 +26,7 @@ const LOOKS: Record<Shape, string> = {
 /** A flowchart drawn by Tisty: nodes in layers along its direction, groups framed, joined by dragging a dot. */
 export default function FlowView({ editing }: Readonly<{ editing: Flowing }>) {
   const t = useSay();
+  const { button } = useHands().looks;
   const { flow, picked, change, pick } = editing;
   const { laid, joints, groups } = flowScene(flow);
   const frames = groups.map((one) => ({

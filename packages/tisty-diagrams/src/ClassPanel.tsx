@@ -8,8 +8,7 @@ import {
   memberChanged,
   memberRemoved,
 } from "./classing";
-import { useSay } from "./handing";
-import { button } from "./looks";
+import { useHands, useSay } from "./handing";
 import { Chosen, Said, Section } from "./panelbits";
 import type { Classing } from "./useClasses";
 import type { Word } from "./words";
@@ -29,6 +28,7 @@ const KINDS: readonly (readonly [string, Word])[] = [
 /** The chosen class with its members, or the chosen relation with its kind, ends and words. */
 export default function ClassPanel({ editing }: Readonly<{ editing: Classing }>) {
   const t = useSay();
+  const { button } = useHands().looks;
   const { diagram, picked, change } = editing;
   const name = picked?.kind === "class" || picked?.kind === "member" ? picked.name : null;
   const chosen = name ? diagram.classes.find((one) => one.name === name) : undefined;

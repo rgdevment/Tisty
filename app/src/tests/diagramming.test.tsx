@@ -193,7 +193,7 @@ describe("the diagram window", () => {
     await waitFor(() => expect(container.querySelector(".diagram-drawn svg")).toBeTruthy());
     fireEvent.change(text, { target: { value: "sequenceDiagram broken" } });
 
-    expect(await screen.findByText(t("diagramUnreadable"))).toBeTruthy();
+    expect(await screen.findByText(say("diagramUnreadable"))).toBeTruthy();
     expect(container.querySelector(".diagram-drawn svg")?.textContent).toBe("sequenceDiagram");
   });
 

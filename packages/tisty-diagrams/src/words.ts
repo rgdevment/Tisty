@@ -63,6 +63,7 @@ const EN = {
   diagramStartSchema:
     "erDiagram\n  customer {\n    int id PK\n    string name\n  }\n  order {\n    int id PK\n    int customer_id FK\n  }\n  customer ||--o{ order : places\n",
   diagramText: "What goes into the document",
+  diagramUnpainted: "This drawing could not be turned into an image. Try SVG, which any size fits.",
   diagramUnreadable: "Mermaid cannot draw this yet. The last drawing stays until it can.",
   diagramZoomIn: "Zoom in",
   diagramZoomOut: "Zoom out",
@@ -201,6 +202,8 @@ const ES: Record<Word, string> = {
   diagramStartSchema:
     "erDiagram\n  cliente {\n    int id PK\n    string nombre\n  }\n  pedido {\n    int id PK\n    int cliente_id FK\n  }\n  cliente ||--o{ pedido : hace\n",
   diagramText: "Lo que se escribe en el documento",
+  diagramUnpainted:
+    "No se pudo convertir este dibujo en imagen. Prueba con SVG, que admite cualquier tamaño.",
   diagramUnreadable:
     "Mermaid todavía no puede dibujar esto. El último dibujo queda hasta que pueda.",
   diagramZoomIn: "Acercar",

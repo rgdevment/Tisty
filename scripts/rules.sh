@@ -264,21 +264,45 @@ the_rule_on_the_way_of_syncing_can_fail() {
   fi
 }
 
+# Each module a file names, after `from`, a bare `import` or `import(`, as: file line module.
+named_modules() {
+  grep -rnoE "(from|import)[[:space:]]*\(?[[:space:]]*['\"][^'\"]+['\"]" "$@" \
+    --include='*.ts' --include='*.tsx' \
+    | sed -E "s/^([^:]+):([0-9]+):.*['\"]([^'\"]+)['\"]$/\1 \2 \3/"
+}
+
 # The studio is meant for other apps too, so it reaches nothing of Tisty's and Tisty enters only by its doors.
 the_diagram_studio_keeps_to_itself() {
-  local before=$missed
-  grep -rnE 'from "\.\./|from "@tauri-apps/' packages/tisty-diagrams/src --include='*.ts' --include='*.tsx'
-  looked_through \
-    "the diagram studio reaches into the app; it takes what it needs through its props" $? \
-    "the diagram studio could not be looked through for what it reaches" \
-    || return
-  grep -rnP 'from "[^"]*packages/tisty-diagrams|from "tisty-diagrams/(?!(read|studio)")' \
-    app/src --include='*.ts' --include='*.tsx'
-  looked_through \
-    "the app enters the diagram studio other than by tisty-diagrams/read or tisty-diagrams/studio" $? \
-    "the app could not be looked through for how it enters the diagram studio" \
-    || return
-  [ "$missed" != "$before" ] || went_well "the diagram studio and the app meet only at its doors"
+  local studio=packages/tisty-diagrams/src named out
+  named=$(named_modules "$studio")
+  [ $? -lt 2 ] && [ -n "$named" ] \
+    || { amiss "the diagram studio could not be looked through for what it reaches"; return; }
+  # A relative path may climb only as far as the folders the file sits in below src/.
+  out=$(printf '%s\n' "$named" | awk -v root="$studio/" '
+    $3 ~ /^@tauri-apps\// { print; next }
+    $3 ~ /^\.\.\// {
+      folders = substr($1, length(root) + 1)
+      depth = gsub("/", "/", folders)
+      spec = $3
+      ups = 0
+      while (substr(spec, 1, 3) == "../") { ups++; spec = substr(spec, 4) }
+      if (ups > depth) print
+    }')
+  if [ -n "$out" ]; then
+    printf '%s\n' "$out"
+    amiss "the diagram studio reaches into the app; it takes what it needs through its props"
+    return
+  fi
+  named=$(named_modules app/src)
+  [ $? -lt 2 ] || { amiss "the app could not be looked through for how it enters the diagram studio"; return; }
+  out=$(printf '%s\n' "$named" \
+    | awk '$3 ~ /tisty-diagrams/ && $3 != "tisty-diagrams/read" && $3 != "tisty-diagrams/studio"')
+  if [ -n "$out" ]; then
+    printf '%s\n' "$out"
+    amiss "the app enters the diagram studio other than by tisty-diagrams/read or tisty-diagrams/studio"
+    return
+  fi
+  went_well "the diagram studio and the app meet only at its doors"
 }
 
 no_token_kept_in_the_tree() {

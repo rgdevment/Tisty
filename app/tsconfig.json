@@ -19,8 +19,7 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "tisty-diagrams/*": ["../packages/tisty-diagrams/src/*"],
-      "*": ["./node_modules/@types/*", "./node_modules/*"]
+      "tisty-diagrams/*": ["../packages/tisty-diagrams/src/*"]
     }
   },
   "include": ["src", "../packages/tisty-diagrams/src", "../packages/tisty-diagrams/tests"],

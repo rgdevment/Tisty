@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import Canvas from "./Canvas";
 import type { Draw } from "./exporting";
-import { HandsGiven, useSay } from "./handing";
+import { HandsGiven, type Looks, useSay } from "./handing";
 import { useEditor } from "./useEditor";
 import { sayIn } from "./words";
 
@@ -12,6 +12,7 @@ export interface StudioProps {
   readonly locale: string;
   readonly draw: Draw;
   readonly copy: (text: string) => Promise<void>;
+  readonly looks: Looks;
 }
 
 function Sides({ text, onText, dark }: Readonly<Pick<StudioProps, "text" | "onText" | "dark">>) {
@@ -45,8 +46,19 @@ function Sides({ text, onText, dark }: Readonly<Pick<StudioProps, "text" | "onTe
 }
 
 /** The drawing to work on beside the Mermaid text it is made of; the app around it saves the text. */
-export function DiagramStudio({ text, onText, dark, locale, draw, copy }: Readonly<StudioProps>) {
-  const hands = useMemo(() => ({ say: sayIn(locale), draw, copy }), [locale, draw, copy]);
+export function DiagramStudio({
+  text,
+  onText,
+  dark,
+  locale,
+  draw,
+  copy,
+  looks,
+}: Readonly<StudioProps>) {
+  const hands = useMemo(
+    () => ({ say: sayIn(locale), draw, copy, looks }),
+    [locale, draw, copy, looks],
+  );
   return (
     <HandsGiven value={hands}>
       <Sides text={text} onText={onText} dark={dark} />

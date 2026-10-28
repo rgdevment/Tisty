@@ -35,6 +35,9 @@ const useDark = () => {
   return dark;
 };
 
+// One object for the life of the window, so the studio's hands stay the same between renders.
+const LOOKS = { button };
+
 const stateOf = (saving: boolean, unsaved: boolean): Word => {
   if (saving) return "diagramSaving";
   return unsaved ? "diagramUnsaved" : "diagramSaved";
@@ -210,6 +213,7 @@ export default function Diagramming({
         locale={locale()}
         draw={drawing}
         copy={writeText}
+        looks={LOOKS}
       />
     </main>
   );

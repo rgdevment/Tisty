@@ -1,6 +1,7 @@
 import { type Size, sizeOf } from "./framing";
 import { PALETTES, svgOf } from "./picture";
 import { pictureOf } from "./pictures";
+import { Refused } from "./refused";
 
 /** Mermaid's own drawing of a diagram as SVG, from whichever app holds Mermaid; null when it cannot. */
 export type Draw = (source: string, dark: boolean, still?: () => boolean) => Promise<string | null>;
@@ -15,9 +16,8 @@ export interface Drawn {
   readonly size: Size;
 }
 
-// A refusal by its code, so the app around says it in its own words.
-const unreadable = () => ({ code: "diagramUnreadable" });
-const unpainted = () => ({ code: "diagramUnpainted" });
+const unreadable = () => new Refused("diagramUnreadable");
+const unpainted = () => new Refused("diagramUnpainted");
 
 // Mermaid draws to the width of its place; a picture on its own needs a size, and a ground when asked.
 export const grounded = (svg: string, size: Size, ground: string | null): string =>

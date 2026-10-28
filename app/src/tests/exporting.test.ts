@@ -1,6 +1,7 @@
-import { PALETTES, scaleFor, svgFor } from "tisty-diagrams/read";
+import { PALETTES, Refused, sayIn, scaleFor, svgFor } from "tisty-diagrams/read";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { t } from "../locales";
+import { plainly } from "../refusal";
 import { copiedImage, exportChoices, exported, fileName } from "../ui/drawing/exporting";
 
 const kept = vi.hoisted(() => ({
@@ -208,5 +209,11 @@ describe("copying a diagram as an image", () => {
     kept.broken = true;
     choices.find((one) => one.key === "copy")?.onPick?.();
     await vi.waitFor(() => expect(failed).toHaveBeenCalled());
+  });
+});
+
+describe("a failure the studio names", () => {
+  it("is said in the studio's own words, in the person's language", () => {
+    expect(plainly(new Refused("diagramUnpainted"))).toBe(sayIn("en")("diagramUnpainted"));
   });
 });

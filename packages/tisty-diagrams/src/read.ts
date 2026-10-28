@@ -5,6 +5,7 @@ export { asRead, type DiagramKind, headerAt, kindOf, type Size, sizeOf } from ".
 export { readMind } from "./mindmap";
 export { PALETTES, type Palette, type Picture, svgOf } from "./picture";
 export { pictureOf } from "./pictures";
+export { Refused } from "./refused";
 export { readSchema } from "./schema";
 export {
   type Fence,

@@ -22,8 +22,6 @@ export default defineConfig(async () => ({
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: { "tisty-diagrams": join(studio, "src") },
-    // The studio has no node_modules of its own: what it imports comes from the app's.
-    dedupe: ["react", "react-dom", "@testing-library/react", "@testing-library/user-event", "mermaid", "vitest"],
   },
 
   test: {

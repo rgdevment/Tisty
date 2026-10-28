@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useHands, useSay } from "./handing";
-import { button } from "./looks";
 import { caption, field, Said, Section, Ticked } from "./panelbits";
 import { ENDS, type End, KEYS, type Key, type Schema } from "./schema";
 import { toDbml, toSql } from "./schemaout";
@@ -46,6 +45,7 @@ export default function SchemaPanel({
   onChange,
 }: Readonly<{ schema: Schema; picked: Picked; onChange: (made: Altered) => void }>) {
   const t = useSay();
+  const { button } = useHands().looks;
   const { copy: toClipboard } = useHands();
   const [copied, setCopied] = useState<string | null>(null);
   const copy = (said: string, what: string) =>
