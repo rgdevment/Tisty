@@ -74,11 +74,13 @@ export interface FlowGroup {
   readonly close: number;
 }
 
-/** Where the window puts a node, kept as a `%% tisty:` line of its own after the body. */
+/** Where the window puts a node, or a lane and its size, kept as a `%% tisty:` line after the body. */
 export interface Place {
   readonly id: string;
   readonly x: number;
   readonly y: number;
+  readonly wide?: number;
+  readonly tall?: number;
   readonly line: string;
 }
 
@@ -239,11 +241,15 @@ export const statementsOf = (said: string): Statement[] | null => {
   return all;
 };
 
-const PLACE = /^\s*%% tisty: ([\p{L}\p{N}_]+(?:-[\p{L}\p{N}_]+)*) (-?\d+) (-?\d+)\s*$/u;
+const PLACE =
+  /^\s*%% tisty: ([\p{L}\p{N}_]+(?:-[\p{L}\p{N}_]+)*) (-?\d+) (-?\d+)(?: (\d+) (\d+))?\s*$/u;
 
 const placeOf = (line: string): Place | null => {
   const found = PLACE.exec(line);
-  return found ? { id: found[1], x: Number(found[2]), y: Number(found[3]), line } : null;
+  if (!found) return null;
+  const [, id, x, y, wide, tall] = found;
+  const sized = wide ? { wide: Number(wide), tall: Number(tall) } : {};
+  return { id, x: Number(x), y: Number(y), ...sized, line };
 };
 
 // A place for something no longer there, or said again, goes with the next change; the last one said wins.

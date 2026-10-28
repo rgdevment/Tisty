@@ -1,4 +1,12 @@
-import { type Flow, type FlowEdge, type Place, type Span, statementsOf } from "./flow";
+import {
+  type Flow,
+  type FlowEdge,
+  type Place,
+  readFlow,
+  type Span,
+  statementsOf,
+  writeFlow,
+} from "./flow";
 import { formedNode, type Shape } from "./flowshapes";
 import type { Direction } from "./graphlayout";
 import { names } from "./naming";
@@ -8,6 +16,7 @@ export type FlowPicked =
   | { readonly kind: "node"; readonly id: string }
   | { readonly kind: "edge"; readonly index: number }
   | { readonly kind: "group"; readonly id: string }
+  | { readonly kind: "nodes"; readonly ids: readonly string[] }
   | null;
 
 /** A change is new text for the body of the flowchart, read again by whoever shows it. */
@@ -17,6 +26,13 @@ export interface FlowAltered {
   readonly places?: readonly Place[];
   readonly picked: FlowPicked;
 }
+
+/** The flowchart a change leaves, read again so the next change finds its lines where they now are. */
+export const reread = (flow: Flow, made: FlowAltered | null): Flow =>
+  made
+    ? (readFlow(writeFlow({ ...flow, body: made.body, places: made.places ?? flow.places })) ??
+      flow)
+    : flow;
 
 const spliced = (body: readonly string[], span: Span, said: string) =>
   body.map((line, at) =>
@@ -29,7 +45,7 @@ const indentOf = (line: string | undefined) =>
 const bodyIndent = (flow: Flow) => indentOf(flow.body.find((one) => one.trim())) || "  ";
 
 // New lines go at the end, or inside a group just before its `end`, indented like what is around them.
-const inserted = (
+export const inserted = (
   flow: Flow,
   lines: readonly string[],
   group: string | null,
@@ -47,13 +63,27 @@ const inserted = (
   return [...flow.body, ...lines.map((one) => `${indent}${one}`)];
 };
 
-// A place keeps the indent of its own line, so moving a node rewrites only its numbers.
-const placed = (flow: Flow, id: string, at: { x: number; y: number }): readonly Place[] => {
-  const x = Math.round(at.x);
-  const y = Math.round(at.y);
+export type Spot = {
+  readonly x: number;
+  readonly y: number;
+  readonly wide?: number;
+  readonly tall?: number;
+};
+
+// A place keeps the indent of its own line, so moving rewrites only its numbers; a lane keeps its size.
+export const placed = (flow: Flow, id: string, at: Spot): readonly Place[] => {
   const known = flow.places.find((one) => one.id === id);
-  const line = `${known ? indentOf(known.line) : bodyIndent(flow)}%% tisty: ${id} ${x} ${y}`;
-  const place = { id, x, y, line };
+  const wide = at.wide ?? known?.wide;
+  const tall = at.tall ?? known?.tall;
+  const spot = {
+    x: Math.round(at.x),
+    y: Math.round(at.y),
+    ...(wide !== undefined && tall !== undefined
+      ? { wide: Math.round(wide), tall: Math.round(tall) }
+      : {}),
+  };
+  const indent = known ? indentOf(known.line) : bodyIndent(flow);
+  const place = { id, ...spot, line: `${indent}%% tisty: ${id} ${Object.values(spot).join(" ")}` };
   return known ? flow.places.map((one) => (one.id === id ? place : one)) : [...flow.places, place];
 };
 
@@ -71,7 +101,7 @@ export const nodesPlaced = (
   picked,
 });
 
-const unique = (wanted: string, taken: readonly string[]) => {
+export const unique = (wanted: string, taken: readonly string[]) => {
   let n = 1;
   while (taken.includes(`${wanted}${n}`)) n += 1;
   return `${wanted}${n}`;

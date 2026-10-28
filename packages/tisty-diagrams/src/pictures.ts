@@ -3,6 +3,7 @@ import { type Flow, readFlow } from "./flow";
 import { outlineOf } from "./flowoutlines";
 import { type Route, routeOf } from "./flowroutes";
 import { type Shape as FlowShape, pictured } from "./flowshapes";
+import { looksOf, type Look as Painted } from "./flowstyles";
 import { kindOf } from "./framing";
 import { edgeOf, type Rect } from "./graphlayout";
 import { curve, HEXAGON, HUES, laidOut, type Placed } from "./mindlayout";
@@ -192,18 +193,25 @@ const graph = (
 };
 
 // The window draws each shape from this same outline, so the picture matches it.
-const node = (shape: FlowShape, rect: Rect, palette: Palette): string => {
+const node = (
+  shape: FlowShape,
+  rect: Rect,
+  palette: Palette,
+  look: Painted | undefined,
+): string => {
   const outline = outlineOf(shape, rect.wide, rect.tall);
+  const line = look?.stroke ?? palette.line;
   const body = outline.body
-    ? `<path d="${outline.body}" fill="${palette.panel}" stroke="${palette.line}" stroke-width="1"/>`
+    ? `<path d="${outline.body}" fill="${look?.fill ?? palette.panel}" stroke="${line}" stroke-width="1"/>`
     : "";
-  const lines = outline.lines.map((d) => stroke(d, palette.line, 1)).join("");
+  const lines = outline.lines.map((d) => stroke(d, line, 1)).join("");
   return `<g transform="translate(${rect.x},${rect.y})">${body}${lines}</g>`;
 };
 
 const flowPicture = (flow: Flow): Picture => {
   const scene = flowScene(flow);
   const byId = new Map(flow.nodes.map((one) => [one.id, one]));
+  const looks = looksOf(flow);
   return {
     size: scene.laid.size,
     drawn: (palette) =>
@@ -216,7 +224,9 @@ const flowPicture = (flow: Flow): Picture => {
           const shape = one?.shape ?? "process";
           const drop = outlineOf(shape, rect.wide, rect.tall).drop;
           const middle = { x: rect.x + rect.wide / 2, y: rect.y + rect.tall / 2 + drop };
-          return `${node(shape, rect, palette)}${writing({ ...middle, text, size: 13, fill: palette.ink })}`;
+          const look = looks.get(id);
+          const ink = look?.color ?? palette.ink;
+          return `${node(shape, rect, palette, look)}${writing({ ...middle, text, size: 13, fill: ink })}`;
         },
         routeOf,
       ),

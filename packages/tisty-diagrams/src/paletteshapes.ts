@@ -1,3 +1,4 @@
+import type { ARROWS } from "./flowing";
 import { nameOfShape, type Shape } from "./flowshapes";
 import type { Say, Word } from "./words";
 
@@ -46,3 +47,10 @@ export const SHAPES: readonly Shape[] = [
   "hexagon",
   "flag",
 ];
+
+export const ARROW_WORDS: Record<(typeof ARROWS)[number], Word> = {
+  "-->": "flowArrowPlain",
+  "---": "flowArrowLine",
+  "-.->": "flowArrowDotted",
+  "==>": "flowArrowThick",
+};

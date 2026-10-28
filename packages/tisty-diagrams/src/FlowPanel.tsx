@@ -14,17 +14,10 @@ import {
 import { pictured } from "./flowshapes";
 import type { Direction } from "./graphlayout";
 import { useHands, useSay } from "./handing";
-import { SHAPES, shapeName } from "./paletteshapes";
+import { ARROW_WORDS, SHAPES, shapeName } from "./paletteshapes";
 import { Chosen, Said, Section } from "./panelbits";
 import type { Flowing } from "./useFlow";
 import type { Word } from "./words";
-
-const ARROW_WORDS: Record<(typeof ARROWS)[number], Word> = {
-  "-->": "flowArrowPlain",
-  "---": "flowArrowLine",
-  "-.->": "flowArrowDotted",
-  "==>": "flowArrowThick",
-};
 
 const DIRECTIONS: readonly Direction[] = ["TB", "LR", "BT", "RL"];
 const DIRECTION_WORDS: Record<Direction, Word> = {
@@ -68,7 +61,13 @@ export default function FlowPanel({ editing }: Readonly<{ editing: Flowing }>) {
         options={DIRECTIONS.map((one) => ({ value: one, label: t(DIRECTION_WORDS[one]) }))}
         onChoose={(direction) => turn(directionChanged(flow, direction))}
       />
-      {!node && !edge && !group && <p className="m-0 text-[12.5px] text-faint">{t("flowPick")}</p>}
+      {!node && !edge && !group && (
+        <p className="m-0 text-[12.5px] text-faint">
+          {picked?.kind === "nodes"
+            ? t("flowPickedMany", String(picked.ids.length))
+            : t("flowPick")}
+        </p>
+      )}
       {node && (
         <Section title={t("flowNode")}>
           <Said
