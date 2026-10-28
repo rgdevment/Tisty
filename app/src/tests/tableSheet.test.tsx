@@ -109,12 +109,12 @@ beforeEach(() => {
 });
 
 describe("a table written in place", () => {
-  it("opens a cell with its Markdown and saves what was typed, then opens the cell below", async () => {
+  it("opens a cell with its words, saves what was typed in the marks around it, then opens the cell below", async () => {
     const { page, ways, seen, turn } = made();
     seen.onTable(asked("cell", 1, 1));
     await settle();
     const input = page.querySelector<HTMLInputElement>(".table-input") as HTMLInputElement;
-    expect(input.value).toBe("**9990**");
+    expect(input.value).toBe("9990");
     expect(input.getAttribute("aria-label")).toBe("Cell in Precio");
 
     input.value = "10990";
@@ -124,7 +124,7 @@ describe("a table written in place", () => {
       kind: "cell",
       row: 1,
       column: 1,
-      said: "10990",
+      said: "**10990**",
     });
     expect(ways.whole).toHaveBeenCalledWith("next body");
 

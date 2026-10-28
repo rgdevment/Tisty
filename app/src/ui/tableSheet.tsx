@@ -11,6 +11,7 @@ import {
 import { today } from "./celled";
 import Menu, { type Choice } from "./Menu";
 import type { TableWent } from "./paging";
+import { peeled } from "./peeled";
 import TableEditor, { type Picked } from "./TableEditor";
 import { columnChoices, wordsOf } from "./tableChoices";
 import {
@@ -265,7 +266,12 @@ export const useTables = (ways: Ways): { onTable: (asked: TableWent) => void; me
         }
         const name = headsNamed(page, place.nth)[place.column] ?? "";
         const label = place.row < 0 ? t("tableHead") : fill("tableCell", name);
-        typing(holder, was ?? "", label, (now, how) => finished(place, was ?? "", now, how));
+        // The field holds the words; the marks wrapping the whole cell come back around them on the way out.
+        const cell =
+          place.row < 0 ? { words: was ?? "", wrap: (one: string) => one } : peeled(was ?? "");
+        typing(holder, cell.words, label, (now, how) =>
+          finished(place, was ?? "", now === cell.words ? (was ?? "") : cell.wrap(now), how),
+        );
       })
       .catch((why) => said.current.fail(refused(why)));
   };
