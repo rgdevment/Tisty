@@ -1,0 +1,9 @@
+---
+source: crates/tisty-markdown/tests/typed.rs
+expression: "standard(\"> | Horas {duration sum} |\\n> | --- |\\n> | 1h30m |\\n> | 45m |\\n\")"
+---
+> | Horas |
+> | --- |
+> | 1 h 30 min |
+> | 45 min |
+> | 2 h 15 min |

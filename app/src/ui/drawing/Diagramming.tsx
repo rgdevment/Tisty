@@ -11,6 +11,10 @@ import TitleBar from "../viewer/TitleBar";
 import WindowChrome from "../WindowChrome";
 import Canvas from "./Canvas";
 import { asRead, type DiagramKind, kindOf } from "./framing";
+import IdeaMap from "./IdeaMap";
+import IdeaPanel from "./IdeaPanel";
+import { renamed, reshaped, withChild, without, withSibling } from "./minding";
+import { useMind } from "./useMind";
 
 const KIND_WORDS: Record<DiagramKind, Word> = {
   mindmap: "diagramMindmap",
@@ -48,6 +52,7 @@ export default function Diagramming({
   const [note, setNote] = useState<string | null>(null);
   const [moved, setMoved] = useState(false);
   const dark = useDark();
+  const map = useMind(text, setText);
   const unsaved = asRead(text) !== kept;
   const named = paper.title || t("untitledDoc");
   const warned = useRef(false);
@@ -166,11 +171,32 @@ export default function Diagramming({
         </div>
       )}
       <div className="flex min-h-0 flex-1">
-        <Canvas source={text} dark={dark} />
+        {map ? (
+          <IdeaMap
+            mind={map.mind}
+            chosen={map.chosen}
+            fresh={t("diagramNewIdea")}
+            onChoose={map.choose}
+            onChange={map.change}
+          />
+        ) : (
+          <Canvas source={text} dark={dark} />
+        )}
         <aside
           aria-label={t("diagramProperties")}
           className="flex w-[340px] shrink-0 flex-col gap-2 border-l border-hair bg-panel p-4"
         >
+          {map && (
+            <IdeaPanel
+              idea={map.idea}
+              root={map.chosen.length === 0}
+              onRename={(words) => map.change(renamed(map.mind, map.chosen, words))}
+              onShape={(shape) => map.change(reshaped(map.mind, map.chosen, shape))}
+              onChild={() => map.change(withChild(map.mind, map.chosen, t("diagramNewIdea")))}
+              onSibling={() => map.change(withSibling(map.mind, map.chosen, t("diagramNewIdea")))}
+              onRemove={() => map.change(without(map.mind, map.chosen))}
+            />
+          )}
           <div className="flex items-center">
             <label htmlFor="diagram-text" className="text-[12px] font-semibold text-soft">
               {t("diagramText")}
