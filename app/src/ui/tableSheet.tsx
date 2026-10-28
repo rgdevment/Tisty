@@ -178,10 +178,12 @@ export const useTables = (ways: Ways): { onTable: (asked: TableWent) => void; me
   const written = (place: Place, typed: string) => {
     const page = said.current.page();
     if (!page) return;
-    canonical(page, place, typed).then((said) => {
-      const at = placeOf(page, place.nth);
-      if (at) edited(at, [{ kind: "cell", row: place.row, column: place.column, said }]);
-    });
+    canonical(page, place, typed)
+      .then((said) => {
+        const at = placeOf(page, place.nth);
+        if (at) edited(at, [{ kind: "cell", row: place.row, column: place.column, said }]);
+      })
+      .catch((why) => said.current.fail(refused(why)));
   };
 
   const finished = (place: Place, was: string, now: string, how: Leaving) => {
@@ -200,10 +202,12 @@ export const useTables = (ways: Ways): { onTable: (asked: TableWent) => void; me
     }
     // The save starts once the value is in its form, and a cell clicked meanwhile waits for it.
     saving.current += 1;
-    canonical(page, place, now).then((said) => {
-      saving.current -= 1;
-      onward(place, [{ kind: "cell", row, column, said }], how);
-    });
+    canonical(page, place, now)
+      .then((said) => onward(place, [{ kind: "cell", row, column, said }], how))
+      .catch((why) => said.current.fail(refused(why)))
+      .finally(() => {
+        saving.current -= 1;
+      });
   };
 
   const onward = (place: Place, cell: TableEdit[], how: Leaving) => {
@@ -416,8 +420,10 @@ export const useTables = (ways: Ways): { onTable: (asked: TableWent) => void; me
       else opened(place);
     }
     if (asked.act === "star" || asked.act === "toggle") {
-      const said =
-        asked.act === "star" ? (asked.to ? String(asked.to) : "") : asked.to ? "[x]" : "[ ]";
+      const to = asked.to ?? 0;
+      const starred = to ? String(to) : "";
+      const ticked = to ? "[x]" : "[ ]";
+      const said = asked.act === "star" ? starred : ticked;
       edited(asked.at, [{ kind: "cell", row: asked.row, column: asked.column, said }]);
     }
     if (asked.act === "sort") {

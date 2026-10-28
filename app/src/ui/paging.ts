@@ -188,25 +188,26 @@ export const widgetsIn = (block: Element | null): Element[] =>
     ? [block]
     : Array.from(block?.querySelectorAll("figure.widget") ?? []);
 
+const tablePressed = (asked: HTMLElement): Went => {
+  const at = spanned(asked.closest<HTMLElement>(".page > [data-at]")?.dataset.at ?? null);
+  const box = asked.getBoundingClientRect();
+  const place = (said?: string) => (said === undefined ? -1 : Number(said));
+  return at
+    ? {
+        kind: "table",
+        ...(asked.dataset.to === undefined ? {} : { to: Number(asked.dataset.to) }),
+        at,
+        act: asked.dataset.act as TableAct,
+        row: place(asked.dataset.row),
+        column: place(asked.dataset.column),
+        x: box.left,
+        y: box.bottom,
+      }
+    : null;
+};
+
 const pressedIn = (asked: HTMLElement): Went => {
-  if (asked.dataset.asked === "table") {
-    const at = spanned(asked.closest<HTMLElement>(".page > [data-at]")?.dataset.at ?? null);
-    const box = asked.getBoundingClientRect();
-    const act = asked.dataset.act as TableAct;
-    const place = (said?: string) => (said === undefined ? -1 : Number(said));
-    return at
-      ? {
-          kind: "table",
-          ...(asked.dataset.to === undefined ? {} : { to: Number(asked.dataset.to) }),
-          at,
-          act,
-          row: place(asked.dataset.row),
-          column: place(asked.dataset.column),
-          x: box.left,
-          y: box.bottom,
-        }
-      : null;
-  }
+  if (asked.dataset.asked === "table") return tablePressed(asked);
   // A diagram inside a quote or a list is named by its own place, not by the block around it.
   if (asked.dataset.asked === "diagram") {
     const at = spanned(asked.closest<HTMLElement>("figure.diagram[data-at]")?.dataset.at ?? null);

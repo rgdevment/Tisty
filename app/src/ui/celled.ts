@@ -86,7 +86,7 @@ const drawn = (
   const grip = cell.querySelector(":scope > .row-grip");
   const keep = (...made: Node[]) => cell.replaceChildren(...(grip ? [grip] : []), ...made);
   // An empty cell is a rating of none and a «no», so a new row can be set with one press too.
-  const empty = key === undefined && !cell.hasAttribute("data-amiss") && !cell.textContent?.trim();
+  const empty = key === undefined && cell.dataset.amiss === undefined && !cell.textContent?.trim();
   if (type === "date" && key) {
     const { day, when } = said(key, today);
     const told = page.createElement("small");

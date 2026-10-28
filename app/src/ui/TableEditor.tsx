@@ -30,7 +30,7 @@ const tagsOf = (said: string): string[] =>
     .filter(Boolean);
 
 // One field to type in what the list does not offer; Enter writes it.
-function Typed({ label, onTyped }: { label: string; onTyped: (said: string) => void }) {
+function Typed({ label, onTyped }: Readonly<{ label: string; onTyped: (said: string) => void }>) {
   const field = useRef<HTMLInputElement>(null);
   useEffect(() => field.current?.focus(), []);
   return (
@@ -84,8 +84,8 @@ export default function TableEditor({ kind, at, was, shown, options, onWrite, on
   return (
     <>
       <span aria-hidden="true" className="fixed inset-0 z-30" onMouseDown={close} />
-      <div
-        role="dialog"
+      <dialog
+        open
         aria-label={t("table")}
         style={placed}
         onKeyDown={(event) => {
@@ -94,7 +94,7 @@ export default function TableEditor({ kind, at, was, shown, options, onWrite, on
           event.stopPropagation();
           kind === "tags" ? close() : onClose();
         }}
-        className="fixed z-40 flex max-h-[420px] flex-col gap-2 overflow-auto rounded-[10px] border border-hair bg-rail p-2 shadow-xl"
+        className="fixed z-40 m-0 flex max-h-[420px] flex-col gap-2 overflow-auto rounded-[10px] border border-hair bg-rail p-2 text-ink shadow-xl"
       >
         {kind === "date" && (
           <>
@@ -144,7 +144,7 @@ export default function TableEditor({ kind, at, was, shown, options, onWrite, on
             <Papers onPick={(doc) => onWrite(docCard(doc.file, doc.title || t("untitledDoc")))} />
           </>
         )}
-      </div>
+      </dialog>
     </>
   );
 }
