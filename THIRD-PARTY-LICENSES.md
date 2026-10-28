@@ -10495,7 +10495,7 @@ SOFTWARE.
 
 ## Text 153
 
-Carried by `pulldown-cmark` 0.13.4.
+Carried by `pulldown-cmark` 0.13.5.
 
 ```text
 The MIT License
