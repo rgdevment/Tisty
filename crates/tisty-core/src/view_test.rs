@@ -154,12 +154,25 @@ fn what_is_ahead_never_repeats_what_today_already_showed() {
 }
 
 #[test]
-fn overdue_is_only_what_has_a_date_and_missed_it() {
-    let f = filter(|f| f.window = Some(Window::Overdue));
+fn a_day_that_passed_is_late_and_only_a_deadline_makes_it_overdue() {
+    let overdue = filter(|f| f.window = Some(Window::Overdue));
+    let late = filter(|f| f.window = Some(Window::Late));
 
-    assert!(f.matches(&dated("late", "2026-08-04"), today()));
-    assert!(!f.matches(&dated("today", "2026-08-05"), today()));
-    assert!(!f.matches(&task("no date"), today()));
+    assert!(!overdue.matches(&dated("meant for yesterday", "2026-08-04"), today()));
+    assert!(late.matches(&dated("meant for yesterday", "2026-08-04"), today()));
+    assert!(!late.matches(&dated("today", "2026-08-05"), today()));
+    assert!(!late.matches(&task("no date"), today()));
+}
+
+#[test]
+fn a_task_started_before_its_deadline_is_underway() {
+    let underway = filter(|f| f.window = Some(Window::Underway));
+    let mut started = due("migration", "2026-09-30");
+    started.date = Some(DateSpec::all_day("2026-07-06".parse().unwrap(), "UTC"));
+
+    assert!(underway.matches(&started, today()));
+    assert!(!underway.matches(&due("not started", "2026-09-30"), today()));
+    assert!(!underway.matches(&dated("meant for yesterday", "2026-08-04"), today()));
 }
 
 #[test]

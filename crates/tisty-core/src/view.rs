@@ -1,6 +1,7 @@
 use jiff::civil::Date;
 
 use crate::model::{ListId, Priority, Reading, Tag, Task};
+use crate::standing::{Standing, standing};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Window {
@@ -9,6 +10,8 @@ pub enum Window {
     Until(Date),
     After(Date),
     Overdue,
+    Late,
+    Underway,
     Undated,
 }
 
@@ -88,12 +91,9 @@ impl Filter {
             Some(Window::On(day)) => on == Some(*day),
             Some(Window::Until(day)) => on.is_some_and(|d| d <= *day),
             Some(Window::After(day)) => on.is_some_and(|d| d > *day),
-            // A deadline that passed is overdue whatever day you meant to get to it, and until
-            // now nothing in the product read `deadline` at all.
-            Some(Window::Overdue) => {
-                let due = task.deadline.as_ref().map(|d| d.date());
-                on.is_some_and(|d| d < today) || due.is_some_and(|d| d < today)
-            }
+            Some(Window::Overdue) => standing(task, today) == Standing::Overdue,
+            Some(Window::Late) => standing(task, today) == Standing::Late,
+            Some(Window::Underway) => standing(task, today) == Standing::Underway,
             Some(Window::Undated) => on.is_none(),
         }
     }

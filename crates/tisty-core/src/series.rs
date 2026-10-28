@@ -92,7 +92,7 @@ pub fn series(state: &State, id: TaskId) -> Option<Series> {
             status: task.status,
             due: task.date.clone(),
             closed: task.completed_at,
-            late: overdue(task),
+            late: late(task),
             gaps,
             told: task.weight() > 0,
             filled: task.filled,
@@ -254,7 +254,7 @@ fn between(
     gaps
 }
 
-fn overdue(task: &Task) -> Option<i64> {
+fn late(task: &Task) -> Option<i64> {
     if task.filled {
         return None;
     }
