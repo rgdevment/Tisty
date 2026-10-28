@@ -29,10 +29,10 @@ Cuatro tipos se dibujan y se editan directamente sobre el dibujo. Los demás (se
 
 - **Mapa mental.** **+ Hija** y **+ Hermana**, o `Tab` y `Enter`; `Supr` borra la idea elegida; doble clic o `F2` le cambia el nombre; arrastrar una idea sobre otra la cambia de padre, con su rama. El panel cambia su forma.
 - **Esquema de base de datos.** **+ Tabla** y **+ Columna**; cada columna tiene tipo, claves PK, FK y UK, y puede ser **Obligatoria**. Arrastra una tabla por su título para moverla, y el punto de una columna a otra tabla para relacionarlas. **Copiar como SQL** y **Copiar como DBML** llevan el esquema a otra herramienta.
-- **Diagrama de flujo.** **+ Nodo** y **+ Grupo**; arrastra el punto de un nodo a otro para unirlos. El panel cambia el texto y la **Forma** de un nodo, su grupo, la **Dirección** del diagrama y la etiqueta y el tipo de una flecha. `Supr` borra lo elegido.
+- **Diagrama de flujo.** La paleta de la izquierda trae las formas, agrupadas en Básico, Datos, Personas y sistemas, y Notas: arrastra una al lienzo, o púlsala para ponerla en el medio. Cada forma queda donde la dejas. Arrastra uno de sus puntos a otra forma para unirlas, o a un espacio vacío para crear una forma nueva ya unida; las flechas van en ángulo recto entre los lados que se miran. Doble clic en una forma o en la etiqueta de una flecha para cambiarles el texto. **+ Grupo** agrega un grupo. El panel cambia el texto y la **Forma** de un nodo, su grupo, la **Dirección** del diagrama y la etiqueta y el tipo de una flecha. `Supr` borra lo elegido.
 - **Diagrama de clases.** **+ Clase**, **+ Atributo** y **+ Método**; arrastra el punto de una clase a otra para relacionarlas, y elige el **Tipo** de relación, la cantidad en cada extremo y su etiqueta.
 
-Lo que solo la ventana necesita recordar, como dónde dejaste cada tabla del esquema, va en líneas `%% tisty:` dentro del mismo bloque. Mermaid las trata como comentarios, así que en la página, en el PDF o en GitHub el diagrama lo acomoda Mermaid, y la ventana lo vuelve a abrir tal como lo dejaste.
+Lo que solo la ventana necesita recordar, como dónde dejaste cada tabla del esquema o cada forma del flujo, va en líneas `%% tisty:` dentro del mismo bloque. Mermaid las trata como comentarios, así que en la página, en el PDF o en GitHub el diagrama lo acomoda Mermaid, y la ventana lo vuelve a abrir tal como lo dejaste.
 
 Un diagrama que la ventana no puede conservar sin cambiarlo, como un mapa mental con dos raíces o un diagrama de clases con `namespace`, se abre igual, con el dibujo de Mermaid y su texto para editar.
 
@@ -45,7 +45,7 @@ Un diagrama que la ventana no puede conservar sin cambiarlo, como un mapa mental
 - **SVG**, claro y sin fondo.
 - **Copiar como imagen**, con el fondo del tema que estés usando, para pegarlo en un chat o en un correo.
 
-Las imágenes salen al doble de su tamaño para que se vean nítidas (una muy grande, algo menos, hasta donde el sistema puede pintarla), y el archivo se llama como el documento, con «-2», «-3»… desde su segundo diagrama. El mapa mental, el esquema, el flujo y las clases salen tal como los ves en la ventana, con tus tablas donde las dejaste; los demás tipos, como los dibuja Mermaid.
+Las imágenes salen al doble de su tamaño para que se vean nítidas (una muy grande, algo menos, hasta donde el sistema puede pintarla), y el archivo se llama como el documento, con «-2», «-3»… desde su segundo diagrama. El mapa mental, el esquema, el flujo y las clases salen tal como los ves en la ventana, con tus tablas y tus formas donde las dejaste (un flujo con iconos o imágenes sale como lo dibuja Mermaid); los demás tipos, como los dibuja Mermaid.
 
 ## Con un asistente
 

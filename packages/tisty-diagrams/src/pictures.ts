@@ -1,6 +1,8 @@
 import { type Classes, readClasses } from "./classes";
 import { type Flow, readFlow } from "./flow";
-import type { Shape as FlowShape } from "./flowshapes";
+import { outlineOf } from "./flowoutlines";
+import { type Route, routeOf } from "./flowroutes";
+import { type Shape as FlowShape, pictured } from "./flowshapes";
 import { kindOf } from "./framing";
 import { edgeOf, type Rect } from "./graphlayout";
 import { curve, HEXAGON, HUES, laidOut, type Placed } from "./mindlayout";
@@ -13,12 +15,11 @@ import {
   type Palette,
   type Picture,
   pill,
-  ringed,
   straight,
   stroke,
   writing,
 } from "./picture";
-import { CLASS_HEAD, CLASS_LINE, CUTS, classScene, flowScene, type Scene } from "./scenes";
+import { CLASS_HEAD, CLASS_LINE, classScene, flowScene, type Scene } from "./scenes";
 import { readSchema, type Schema } from "./schema";
 import { bend, drawnOf, HEAD, ROW, relationWords } from "./schemalayout";
 
@@ -142,13 +143,24 @@ const schemaPicture = (schema: Schema): Picture => {
   };
 };
 
+const straightRoute = (from: Rect, to: Rect): Route => {
+  const a = edgeOf(from, to);
+  const b = edgeOf(to, from);
+  return { path: straight(a, b), labelX: (a.x + b.x) / 2, labelY: (a.y + b.y) / 2 };
+};
+
 // Groups behind, then lines, then their words, then the boxes over the ends of the lines.
-const graph = (scene: Scene, palette: Palette, box: (id: string, rect: Rect) => string) => {
+const graph = (
+  scene: Scene,
+  palette: Palette,
+  box: (id: string, rect: Rect) => string,
+  route: (from: Rect, to: Rect) => Route = straightRoute,
+) => {
   const { at } = scene.laid;
   const joined = scene.joints.flatMap((one) => {
     const from = at.get(one.from);
     const to = at.get(one.to);
-    return from && to ? [{ one, a: edgeOf(from, to), b: edgeOf(to, from) }] : [];
+    return from && to ? [{ one, way: route(from, to) }] : [];
   });
   return [
     ...scene.groups.flatMap((group) => [
@@ -163,39 +175,30 @@ const graph = (scene: Scene, palette: Palette, box: (id: string, rect: Rect) => 
         anchor: "start",
       }),
     ]),
-    ...joined.map(({ one, a, b }) =>
+    ...joined.map(({ one, way }) =>
       stroke(
-        straight(a, b),
+        way.path,
         palette.accent,
         one.thick ? 2.6 : 1.6,
         one.dashed ? "6 4" : undefined,
         one.arrow,
       ),
     ),
-    ...joined.flatMap(({ one, a, b }) =>
-      one.label ? [pill((a.x + b.x) / 2, (a.y + b.y) / 2, one.label, palette, palette.accent)] : [],
+    ...joined.flatMap(({ one, way }) =>
+      one.label ? [pill(way.labelX, way.labelY, one.label, palette, palette.accent)] : [],
     ),
     ...[...at].map(([id, rect]) => box(id, rect)),
   ].join("");
 };
 
-const RIMS: Partial<Record<FlowShape, number>> = { process: 2, rounded: 12, subroutine: 2 };
-
+// The window draws each shape from this same outline, so the picture matches it.
 const node = (shape: FlowShape, rect: Rect, palette: Palette): string => {
-  const polygon = CUTS[shape];
-  if (polygon) return cut(polygon, rect, { fill: palette.accentSoft });
-  const look = { fill: palette.panel, stroke: palette.line };
-  if (shape === "circle") return ringed(rect, look);
-  if (shape === "double")
-    return `${ringed(rect, look)}${ringed({ x: rect.x + 4, y: rect.y + 4, wide: rect.wide - 8, tall: rect.tall - 8 }, { ...look, fill: "none" })}`;
-  if (shape === "stadium") return boxed(rect, { ...look, radius: rect.tall / 2 });
-  if (shape === "database")
-    return boxed(rect, { ...look, radius: rect.wide / 2, ry: rect.tall * 0.18 });
-  const drawn = boxed(rect, { ...look, radius: RIMS[shape] ?? 2 });
-  if (shape !== "subroutine") return drawn;
-  const side = (x: number) =>
-    stroke(straight({ x, y: rect.y }, { x, y: rect.y + rect.tall }), palette.line, 1);
-  return `${drawn}${side(rect.x + 5)}${side(rect.x + rect.wide - 5)}`;
+  const outline = outlineOf(shape, rect.wide, rect.tall);
+  const body = outline.body
+    ? `<path d="${outline.body}" fill="${palette.panel}" stroke="${palette.line}" stroke-width="1"/>`
+    : "";
+  const lines = outline.lines.map((d) => stroke(d, palette.line, 1)).join("");
+  return `<g transform="translate(${rect.x},${rect.y})">${body}${lines}</g>`;
 };
 
 const flowPicture = (flow: Flow): Picture => {
@@ -204,12 +207,19 @@ const flowPicture = (flow: Flow): Picture => {
   return {
     size: scene.laid.size,
     drawn: (palette) =>
-      graph(scene, palette, (id, rect) => {
-        const one = byId.get(id);
-        const text = fitted(one?.text ?? id, rect.wide - 24, 7.5);
-        const middle = { x: rect.x + rect.wide / 2, y: rect.y + rect.tall / 2 };
-        return `${node(one?.shape ?? "process", rect, palette)}${writing({ ...middle, text, size: 13, fill: palette.ink })}`;
-      }),
+      graph(
+        scene,
+        palette,
+        (id, rect) => {
+          const one = byId.get(id);
+          const text = fitted(one?.text ?? id, rect.wide - 24, 7.5);
+          const shape = one?.shape ?? "process";
+          const drop = outlineOf(shape, rect.wide, rect.tall).drop;
+          const middle = { x: rect.x + rect.wide / 2, y: rect.y + rect.tall / 2 + drop };
+          return `${node(shape, rect, palette)}${writing({ ...middle, text, size: 13, fill: palette.ink })}`;
+        },
+        routeOf,
+      ),
   };
 };
 
@@ -280,8 +290,8 @@ export const pictureOf = (source: string): Picture | null => {
   }
   if (kind === "flowchart") {
     const flow = readFlow(source);
-    // Only Mermaid draws its newer shapes, icons and images, all written as `@{ … }`.
-    return flow && !flow.nodes.some((one) => one.keys) ? flowPicture(flow) : null;
+    // Only Mermaid draws icons and images.
+    return flow && !flow.nodes.some((one) => pictured(one.keys)) ? flowPicture(flow) : null;
   }
   if (kind === "classDiagram") {
     const diagram = readClasses(source);

@@ -29,10 +29,10 @@ Four kinds are drawn and edited right on the drawing. The others (sequences, Gan
 
 - **Mind map.** **+ Child** and **+ Sibling**, or `Tab` and `Enter`; `Delete` removes the chosen idea; a double click or `F2` renames it; dragging an idea onto another moves it there, with its branch. The panel changes its shape.
 - **Database schema.** **+ Table** and **+ Column**; each column has a type, PK, FK and UK keys, and can be **Required**. Drag a table by its title to move it, and a column's dot onto another table to relate them. **Copy as SQL** and **Copy as DBML** take the schema to another tool.
-- **Flowchart.** **+ Node** and **+ Group**; drag a node's dot onto another to join them. The panel changes a node's text and **Shape**, its group, the chart's **Direction**, and an arrow's label and kind. `Delete` removes what is chosen.
+- **Flowchart.** The palette on the left holds the shapes, grouped in Basic, Data, People and systems, and Notes: drag one onto the canvas, or press it to put it in the middle. Each shape stays where you leave it. Drag one of its dots onto another shape to join them, or onto empty space to make a new shape already joined; arrows run at right angles between the sides that face each other. Double-click a shape or an arrow's label to change its words. **+ Group** adds a group. The panel changes a node's text and **Shape**, its group, the chart's **Direction**, and an arrow's label and kind. `Delete` removes what is chosen.
 - **Class diagram.** **+ Class**, **+ Attribute** and **+ Method**; drag a class's dot onto another to relate them, and choose the relation's **Kind**, how many at each end and its label.
 
-What only the window needs to remember, such as where you left each table of the schema, goes in `%% tisty:` lines inside the same block. Mermaid treats them as comments, so on the page, in the PDF or on GitHub the diagram is laid out by Mermaid, and the window opens it again just as you left it.
+What only the window needs to remember, such as where you left each table of the schema or each shape of the flowchart, goes in `%% tisty:` lines inside the same block. Mermaid treats them as comments, so on the page, in the PDF or on GitHub the diagram is laid out by Mermaid, and the window opens it again just as you left it.
 
 A diagram the window cannot keep without changing it, such as a mind map with two roots or a class diagram with a `namespace`, still opens, with Mermaid's drawing and its text to edit.
 
@@ -45,7 +45,7 @@ A diagram the window cannot keep without changing it, such as a mind map with tw
 - **SVG**, light and without a background.
 - **Copy as image**, on the background of the theme you are in, to paste into a chat or an email.
 
-Images come out at twice their size so they stay sharp (a very large one somewhat less, as far as the system can paint it), and the file is named after the document, with "-2", "-3"… from its second diagram on. Mind maps, schemas, flowcharts and class diagrams come out just as you see them in the window, with your tables where you left them; other kinds, as Mermaid draws them.
+Images come out at twice their size so they stay sharp (a very large one somewhat less, as far as the system can paint it), and the file is named after the document, with "-2", "-3"… from its second diagram on. Mind maps, schemas, flowcharts and class diagrams come out just as you see them in the window, with your tables and shapes where you left them (a flowchart with icons or images comes out as Mermaid draws it); other kinds, as Mermaid draws them.
 
 ## With an assistant
 

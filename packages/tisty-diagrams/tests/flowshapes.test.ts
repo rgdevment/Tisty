@@ -1,7 +1,7 @@
 import mermaid from "mermaid";
 import { beforeAll, describe, expect, it } from "vitest";
 import { type Flow, readFlow, writeFlow } from "../src/flow";
-import { nodeAdded, nodeChanged, nodeMoved, nodePlaced, nodeRemoved } from "../src/flowing";
+import { nodeAdded, nodeChanged, nodeMoved, nodeRemoved, nodesPlaced } from "../src/flowing";
 import { formedNode, keysAt, pictured, type Shape, shapeNamed } from "../src/flowshapes";
 import { pictureOf } from "../src/pictures";
 
@@ -109,9 +109,9 @@ describe("reading Mermaid's newer shapes", () => {
     expect(pictured(null)).toBe(false);
   });
 
-  it("leaves the picture of a flowchart with `@{ … }` nodes to Mermaid", () => {
-    expect(pictureOf("flowchart LR\n  A[Uno] --> B")).not.toBeNull();
-    expect(pictureOf("flowchart LR\n  A[Uno] --> B@{ shape: cloud }")).toBeNull();
+  it("leaves the picture of a flowchart with icons or images to Mermaid", () => {
+    expect(pictureOf("flowchart LR\n  A[Uno] --> B@{ shape: cloud }")).not.toBeNull();
+    expect(pictureOf('flowchart LR\n  A[Uno] --> B@{ img: "a.png" }')).toBeNull();
   });
 
   it("drops the places of what is gone and keeps the last one said", () => {
@@ -174,10 +174,10 @@ describe("placing nodes", () => {
   it("rewrites only the numbers of a node already placed, rounded, and adds a line for a new one", () => {
     const flow = readFlow(PLACED) as Flow;
 
-    expect(written(flow, nodePlaced(flow, "A", { x: 40.4, y: -7.6 }))).toBe(
+    expect(written(flow, nodesPlaced(flow, [{ id: "A", x: 40.4, y: -7.6 }], null))).toBe(
       PLACED.replace("%% tisty: A 10 20", "%% tisty: A 40 -8"),
     );
-    expect(written(flow, nodePlaced(flow, "B", { x: 1, y: 2 }))).toBe(
+    expect(written(flow, nodesPlaced(flow, [{ id: "B", x: 1, y: 2 }], null))).toBe(
       `${PLACED}\n  %% tisty: B 1 2`,
     );
   });
