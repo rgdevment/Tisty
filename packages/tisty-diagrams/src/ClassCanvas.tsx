@@ -8,7 +8,7 @@ import {
   ReactFlowProvider,
   useReactFlow,
 } from "@xyflow/react";
-import { type KeyboardEvent, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { ClassCard, type ClassNode, HeadMarkers } from "./ClassNodes";
 import ClassToolbar from "./ClassToolbar";
 import {
@@ -25,6 +25,7 @@ import { useSay } from "./handing";
 import Palette, { Sketch } from "./Palette";
 import { settledInto } from "./places";
 import { LaneBox, type LaneNode } from "./ShapeNodes";
+import { useCanvasHands } from "./useCanvasHands";
 import { type ClassNaming, useClassCanvas } from "./useClassCanvas";
 import type { Classing } from "./useClasses";
 import { GROUP } from "./useMoving";
@@ -44,12 +45,6 @@ const SPACE = { wide: 300, tall: 360 };
 
 type Point = { readonly x: number; readonly y: number };
 type Sort = "plain" | "interface" | "abstract" | "enumeration" | "namespace";
-
-// Keys typed into a field, or pressed on the canvas's own buttons, are not for what is chosen.
-const elsewhere = (e: KeyboardEvent) =>
-  (e.target as Element).closest(
-    "input, textarea, select, [contenteditable], [role=toolbar], .react-flow__panel",
-  ) !== null;
 
 const SKETCHES: Partial<Record<Sort, string>> = { plain: CLASS_SKETCH, namespace: SPACE_SKETCH };
 
@@ -71,10 +66,14 @@ function Drawing({ editing, dark }: Readonly<{ editing: Classing; dark: boolean 
   const t = useSay();
   const { diagram, picked, change, pick, undo, redo } = editing;
   const { screenToFlowPosition } = useReactFlow();
-  const pane = useRef<HTMLDivElement>(null);
   const [naming, setNaming] = useState<ClassNaming>(null);
   const { nodes, edges, laid, moved } = useClassCanvas(editing, naming, setNaming);
   const removal = useMemo(() => classPickedRemoved(diagram, picked), [diagram, picked]);
+  const { pane, middleOfPane, droppedAt, keyed } = useCanvasHands({
+    remove: removal && (() => change(removal)),
+    undo,
+    redo,
+  });
 
   // A new class, of the kind asked for, centred where it is put, in the package it is put in, named at once.
   const added = (sort: Sort, middle: Point) => {
@@ -93,28 +92,9 @@ function Drawing({ editing, dark }: Readonly<{ editing: Classing; dark: boolean 
     change(settledInto(now, made.picked));
     setNaming({ kind: "class", name });
   };
-  const middleOfPane = () => {
-    const box = pane.current?.getBoundingClientRect();
-    return screenToFlowPosition({
-      x: (box?.left ?? 0) + (box?.width ?? 0) / 2,
-      y: (box?.top ?? 0) + (box?.height ?? 0) / 2,
-    });
-  };
   const landed = (sort: Sort, at: Point) => {
-    if (!pane.current?.contains(document.elementFromPoint(at.x, at.y))) return;
-    added(sort, screenToFlowPosition(at));
-  };
-  const keyed = (e: KeyboardEvent) => {
-    if (elsewhere(e)) return;
-    const mod = e.ctrlKey || e.metaKey;
-    const key = e.key.toLowerCase();
-    const act = (did: (() => void) | null | undefined) => {
-      e.preventDefault();
-      did?.();
-    };
-    if ((key === "delete" || key === "backspace") && removal) act(() => change(removal));
-    else if (mod && key === "z") act(e.shiftKey ? redo : undo);
-    else if (mod && key === "y") act(redo);
+    const middle = droppedAt(at);
+    if (middle) added(sort, middle);
   };
   const joined = (from: string, to: string) => {
     // A dot let go back on its own class is a change of mind, not a relation to itself.

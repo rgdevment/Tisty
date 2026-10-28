@@ -30,7 +30,7 @@ export default function FlowPanel({ editing }: Readonly<{ editing: Flowing }>) {
   const removing = node ? nodeRemoved(flow, node.id) : null;
   const shape = node?.shape ?? "process";
   // A shape written by hand that the list does not offer is still shown, by Mermaid's name for it.
-  const shapes = (SHAPES.includes(shape) ? SHAPES : [...SHAPES, shape]).map((one) => ({
+  const shapes = SHAPES.map((one) => ({
     value: one,
     label: shapeName(one, t),
   }));

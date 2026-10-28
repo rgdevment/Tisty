@@ -1,9 +1,10 @@
 import { renamedLine } from "./naming";
 import type { Column, Piece, Relation, Schema, Table } from "./schema";
 
-/** What is chosen on the board: a table, one of its columns, or a relation by its place among them. */
+/** What is chosen on the board: one table or several, one of its columns, or a relation by its place among them. */
 export type Picked =
   | { readonly kind: "table"; readonly name: string }
+  | { readonly kind: "tables"; readonly names: readonly string[] }
   | { readonly kind: "column"; readonly table: string; readonly index: number }
   | { readonly kind: "relation"; readonly index: number }
   | null;
@@ -239,4 +240,17 @@ export const relationRemoved = (schema: Schema, index: number): Altered => {
     schema: { ...schema, pieces: schema.pieces.filter((_, place) => place !== at) },
     picked: null,
   };
+};
+
+/** What the Delete key takes out of what is chosen, or nothing when nothing is. */
+export const schemaPickedRemoved = (schema: Schema, picked: Picked): Altered | null => {
+  if (picked?.kind === "table") return tableRemoved(schema, picked.name);
+  if (picked?.kind === "tables")
+    return {
+      schema: picked.names.reduce((now, name) => tableRemoved(now, name).schema, schema),
+      picked: null,
+    };
+  if (picked?.kind === "column") return columnRemoved(schema, picked.table, picked.index);
+  if (picked?.kind === "relation") return relationRemoved(schema, picked.index);
+  return null;
 };

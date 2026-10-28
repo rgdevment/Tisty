@@ -1,5 +1,5 @@
 import { Handle, type Node, type NodeProps, NodeResizer, Position } from "@xyflow/react";
-import { outlineOf } from "./flowoutlines";
+import { LINE, linesOf, outlineOf } from "./flowoutlines";
 import { sideMiddle } from "./flowroutes";
 import type { Shape } from "./flowshapes";
 import type { Look } from "./flowstyles";
@@ -107,8 +107,11 @@ export function ShapeBox({ id, data, selected }: NodeProps<ShapeNode>) {
           className="absolute inset-0 flex cursor-[inherit] items-center justify-center bg-transparent px-3 text-[13px] text-ink"
           style={{ color: data.look?.color }}
         >
-          <span className="truncate" style={{ transform: `translateY(${outline.drop}px)` }}>
-            {data.text}
+          <span
+            className="text-center whitespace-pre"
+            style={{ transform: `translateY(${outline.drop}px)`, lineHeight: `${LINE}px` }}
+          >
+            {linesOf(data.text).join("\n")}
           </span>
         </button>
       )}
