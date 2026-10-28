@@ -23,6 +23,7 @@
 - [[The editor|Markdown-Editor]]
 - [[Convert to and from Markdown|Convert-to-and-from-Markdown]]: Word, HTML, rich text, plain text
 - [[Pages and PDF|Pages-and-PDF]]
+- [[Diagrams]]
 - [[Widgets]]
 - [Tisty Markdown guide ↗](https://markdown.tisty.app)
 
@@ -57,6 +58,7 @@
 - [[El editor|Editor-Markdown]]
 - [[Convertir a y desde Markdown|Convertir-a-y-desde-Markdown]]: Word, HTML, texto enriquecido, texto plano
 - [[Páginas y PDF|Páginas-y-PDF]]
+- [[Diagramas]]
 - [[Widgets|Widgets-en-documentos]]
 - [Guía de Markdown de Tisty ↗](https://markdown.tisty.app/es/)
 

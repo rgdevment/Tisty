@@ -463,6 +463,33 @@ gantt
 - When the document leaves Tisty as plain Markdown, an `mmd` block is written `mermaid`, the one word GitHub draws.
 - One too large to lay out — past 32 KiB, or a thousand boxes and arrows — or one that does not parse, is shown as code.
 
+#### The diagram window
+
+In Tisty, a double click on a diagram opens it in a window of its own, with the text on one side and the drawing on the other. A mind map (`mindmap`), a database schema (`erDiagram`), a flowchart (`flowchart` or `graph`) and a class diagram (`classDiagram`) are also edited by hand on the drawing; other kinds are edited in the text. On saving, the window rewrites only that block, and it stays Mermaid.
+
+What the window needs to remember and Mermaid has no word for goes in `%% tisty:` comments inside the same block, which Mermaid does not draw. Today only the schema uses them: one line per table, with where it sits if it was moved by hand and which columns are required.
+
+````markdown
+```mermaid
+erDiagram
+  customer {
+    int id PK
+    string name
+  }
+  order {
+    int id PK
+    int customer_id FK
+  }
+  customer ||--o{ order : places
+  %% tisty: customer 60 60 required name
+  %% tisty: order required customer_id
+```
+````
+
+- Whoever writes the block by hand or through an assistant leaves the `%% tisty:` lines as they are.
+- When a table is renamed, its line changes with it; the line of a table that is gone may be removed.
+- There is no need to make up coordinates: a table with no line, or with a line without numbers, lays itself out beside the others.
+
 ### Formulas
 
 A formula inside a sentence goes between single dollars:
