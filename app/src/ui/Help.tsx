@@ -11,7 +11,7 @@ import {
   helpReference,
   helpReferenceHere,
 } from "../guide/calls";
-import { forTheWindow, MARKS, marksOf, outlined, sectionsOf } from "../guide/help";
+import { forTheWindow, guideAt, MARKS, marksOf, outlined, sectionsOf } from "../guide/help";
 import { type Topic, topicsOf } from "../guide/reference";
 import { fill, locale, t } from "../locales";
 import { saidPlainly } from "../refusal";
@@ -89,12 +89,21 @@ export default function Help({ topic, from }: { readonly topic?: string; readonl
     [bodies, marks, topics],
   );
 
+  // A page the window does not carry, or a guide it could not read, opens on the site instead.
   const open = (slug: string, heading?: string, anchor?: string | null) => {
-    if (slug.startsWith(MARKS) || entries.some((one) => one.slug === slug)) {
+    const guide = slug.startsWith(MARKS);
+    const here = guide
+      ? !gone && (topics.length === 0 || marks.some((one) => one.slug === slug))
+      : entries.some((one) => one.slug === slug);
+    if (here) {
       setHeads([]);
       setView({ kind: "page", slug, heading, anchor });
-    } else
-      openLink(`${t("helpMoreAt")}${slug}/${anchor ? `#${anchor}` : ""}`).catch(() => undefined);
+      return;
+    }
+    const away = guide
+      ? guideAt(slug.slice(MARKS.length), anchor, spanish)
+      : `${t("helpMoreAt")}${slug}/${anchor ? `#${anchor}` : ""}`;
+    openLink(away).catch(() => undefined);
   };
   const home = () => {
     setHeads([]);
@@ -190,6 +199,7 @@ export default function Help({ topic, from }: { readonly topic?: string; readonl
               anchor={view.anchor ?? null}
               onOpen={open}
               onOutline={setHeads}
+              spanish={spanish}
             />
           )}
           {reading && !shown && gone && (
@@ -201,6 +211,8 @@ export default function Help({ topic, from }: { readonly topic?: string; readonl
               topics={topics}
               anchor={view.anchor ?? null}
               onOpen={(slug, anchor) => open(`${MARKS}${slug}`, undefined, anchor)}
+              onHelp={(slug, anchor) => open(slug, undefined, anchor)}
+              spanish={spanish}
               onOutline={setHeads}
             />
           )}
