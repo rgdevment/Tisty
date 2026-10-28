@@ -10,7 +10,7 @@ import { fill, t } from "../locales";
 import { edge, placed, said, tint } from "../quadrants";
 import { agentTag, signedBy } from "../who";
 import Grouping from "./Axis";
-import PaceBar, { paceSaid } from "./PaceBar";
+import PaceBar, { PaceTally, paceSaid } from "./PaceBar";
 import { Lozenge, Pip, saidWhen, spokenLabel } from "./Spoke";
 
 interface Props {
@@ -474,6 +474,9 @@ export default function TaskList({
                     {closed(leaf.band) ? "▸" : "▾"}
                   </span>
                   {leaf.band}
+                  {timed && leaf.band === t("underwayBand") && (
+                    <PaceTally paces={leaf.rows.map((row) => paces?.[row.task.id])} />
+                  )}
                   <span className="ml-auto font-normal tracking-normal normal-case tabular-nums">
                     {many.get(leaf.band)}
                   </span>

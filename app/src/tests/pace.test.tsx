@@ -67,3 +67,40 @@ describe("the pace of a task with parts", () => {
     }
   });
 });
+
+describe("the folded underway band", () => {
+  const project = (id: string) => ({ ...a3, id, title: `proyecto ${id}` }) as Task;
+  const paced = (pace: Pace): Paced => ({ pace, time: 60, done: 20 });
+  const today = (paces: Record<string, Paced>) =>
+    render(
+      <TaskList
+        tasks={[
+          { ...a3, id: "T", title: "revisar el informe" } as Task,
+          ...["B", "C", "D", "E"].map(project),
+        ]}
+        lists={[]}
+        standings={{ T: "today", B: "underway", C: "underway", D: "underway", E: "underway" }}
+        paces={paces}
+        title="Hoy"
+        bands="day"
+        onSelect={() => {}}
+      />,
+    );
+
+  it("says how many fall behind and how many run slow, still folded", () => {
+    today({ B: paced("behind"), C: paced("behind"), D: paced("slow"), E: paced("on_track") });
+
+    const band = screen.getByRole("button", { name: /^Underway/ });
+    expect(band.getAttribute("aria-expanded")).toBe("false");
+    expect(band.textContent).toContain("2 won't make it");
+    expect(band.textContent).toContain("1 running slow");
+    expect(screen.queryByText("proyecto B")).toBeNull();
+  });
+
+  it("says nothing more when everything underway is on track", () => {
+    today({ B: paced("on_track") });
+
+    const band = screen.getByRole("button", { name: /^Underway/ });
+    expect(band.textContent).not.toMatch(/make it|slow/);
+  });
+});

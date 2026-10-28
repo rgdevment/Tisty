@@ -101,6 +101,9 @@ export function dueLabel(spec: DateSpec, now = new Date()): string {
   return away === 1 ? t("dueTomorrow") : fill("dueIn", String(away));
 }
 
+export const countedAs = (many: number, one: Word, more: Word): string =>
+  many === 0 ? "" : many === 1 ? t(one) : fill(more, String(many));
+
 export const percentOf = (whole: number): string => formats().percent.format(whole / 100);
 
 export const lateLabel = (spec: DateSpec, now = new Date()): string =>
