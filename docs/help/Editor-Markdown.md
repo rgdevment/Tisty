@@ -24,6 +24,7 @@ Mientras un bloque está abierto, flota sobre él una barra:
 - **El tipo de bloque**: Párrafo, Título, Subtítulo, Título pequeño, Lista con viñetas, Lista numerada, Etapas o Cita. Todas las líneas que tengas seleccionadas cambian de una vez. Dentro de una tabla dice **Tabla** y ofrece una fila arriba o abajo, una columna a cada lado, la alineación de la columna, y quitar una fila o una columna. Los guiones bajo el encabezado quedan como los dibujaste, y con ellos los anchos.
 - **Negrita**, **cursiva**, **subrayado**, **tachado**, **código** y **enlace**.
 - **Cuatro rotuladores**: amarillo, verde, azul y rosa.
+- **Tabla**, que pone una tabla donde está el cursor y la abre en la página. Dentro de una tabla no aparece.
 - **/ Más**, que abre el menú `/`.
 
 Con palabras seleccionadas, un formato las envuelve; pulsado sobre palabras que ya lo tienen, se lo quita. Los formatos nunca se cruzan: uno que alcanza a otro igual se junta con él en uno solo.

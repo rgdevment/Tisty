@@ -33,7 +33,7 @@ import { HUES } from "./paging";
 import { pendingFormat, pendingKeys, settle } from "./pending";
 import { gridFailed, gridKeys } from "./regridding";
 import { visual } from "./seeing";
-import { type Asking, BOX, putBlock, slashing } from "./slashing";
+import { type Asking, BOX, putBlock, putTable, slashing } from "./slashing";
 import { tableHere, tableKeys } from "./tabling";
 
 const PENS = ["yellow", ...HUES];
@@ -420,7 +420,9 @@ export const edited = (
       ],
     }),
   });
-  const bar = barred(view, whole, onWhole && (() => onWhole(false)));
+  const bar = barred(view, whole, onWhole && (() => onWhole(false)), () =>
+    putTable(view, asking?.()),
+  );
   if (stepping) bar.bar.style.display = "none";
   follow = bar.follow;
   const dock = docked(

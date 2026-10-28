@@ -330,6 +330,13 @@ export const put = (view: EditorView, one: Slashed, from: number, to: number, as
     asking?.tabled?.(view.state.doc.lineAt(view.state.selection.main.head).from);
 };
 
+/** A table put at the caret just as the `/` menu puts one, from the bar's own button. */
+export const putTable = (view: EditorView, asking?: Asking) => {
+  const table = SLASHED.find((one) => one.key === "table");
+  const { head } = view.state.selection.main;
+  if (table) put(view, table, head, head, asking);
+};
+
 const mac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
 export const pressed = (keys: string): string => `${mac ? "⌘" : "Ctrl"} ${keys}`;
 

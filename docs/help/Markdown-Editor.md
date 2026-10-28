@@ -24,6 +24,7 @@ While a block is open, a bar floats over it:
 - **The kind of block**: Paragraph, Heading, Subheading, Small heading, Bulleted list, Numbered list, Stages or Quote. Every line you have selected changes at once. Inside a table it reads **Table** and offers a row above or below, a column on either side, the column's alignment, and removing a row or a column. The dashes under the header stay as you drew them, so the widths do too.
 - **Bold**, **italic**, **underline**, **strikethrough**, **code** and **link**.
 - **Four pens**: yellow, green, blue and pink.
+- **Table**, which puts a table where the caret is and opens it on the page. Inside a table it steps aside.
 - **/ More**, which opens the `/` menu.
 
 With words selected, a format wraps them; pressed on words that already have it, it takes it away. Formats never cross: one that reaches another of its kind joins it into one.
