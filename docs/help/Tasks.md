@@ -64,7 +64,7 @@ Press `Ctrl` + `Shift` + `Space` wherever you are, and a small window opens for 
 
 ## The views
 
-- **Today** — what the day asks for, most urgent first: **Overdue** (its deadline passed, in red), **Due soon** (three days or less before its deadline), **Late** (the day you planned passed, in amber), **For today**, and **Underway** (started and still before its deadline), folded so a long project does not fill the list every day.
+- **Today** — what the day asks for, most urgent first: **Overdue** (its deadline passed, in red), **Due soon** (three days or less before its deadline), **Late** (the day you planned passed, in amber), **For today**, and **Underway** (started and still before its deadline), folded so a long project does not fill the list every day. Each row says when it runs out — «due in 3 days», «due tomorrow» — or, when it is late, since when.
 - **Upcoming** — what is coming.
 - **Repeating** — what comes back on its own.
 - **All** — everything open, unfiltered.
@@ -113,7 +113,8 @@ Every box you write on the page, `- [ ]`, is one of its steps: you tick it right
 
 When a step needs more, hover over its open box and press **↗**: it becomes a task of its own, a **part** of this one, and its card stays in its place with the steps it has done and its date. A click on the card opens it.
 
-- A task with parts shows **▣ 3/7** where its steps would count, and its parts fold beneath it.
+- A task with parts shows **▣ 3/7** where its steps would count, and its parts fold beneath it. It unfolds them in any view; the ones that view leaves out wait folded under «3 more outside this view» until you ask.
+- A task with a date, a deadline and parts shows a thin bar: how much of its time has gone, against how many of its parts are closed. It reads **On track**, **Running slow** or **Won't make it**, and the folded **Underway** band counts the ones falling behind.
 - Elsewhere, each part names its whole with **⌂**.
 - Beside the page, **Parts** takes a new one on its own line, and **Part of another…** finds the task it belongs to by name. **Let it go** detaches a part.
 - The trail of both tells when a part joined and when it was let go.

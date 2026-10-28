@@ -85,12 +85,12 @@ Si ese atajo ya lo usa otro programa, Tisty prueba con otro y te dice cuál qued
 
 La lista de tareas se mira por tramos:
 
-- **Hoy** — lo que toca, incluido lo que se pasó de fecha.
+- **Hoy** — lo que pide el día, lo más urgente primero: vencidas (pasó su límite), por vencer, atrasadas (pasó el día que planeaste), para hoy y en curso, plegado.
 - **Próximo** — lo que viene.
 - **Se repiten** — lo que vuelve por su cuenta.
 - **Todas** — todo lo abierto, sin filtro.
 
-Lo vencido aparece arriba y en rojo. No hay premios por vaciar la lista.
+Lo vencido aparece arriba y en rojo; lo atrasado, en ámbar. Una tarea con fecha, fecha límite y partes muestra una barra fina que te dice si llega a tiempo. No hay premios por vaciar la lista.
 
 ### 4. Las prioridades son un mapa, no una escalera
 
@@ -239,7 +239,7 @@ Una etapa se puede nombrar desde cualquier parte del texto por su lugar en la li
 
 #### Tablas
 
-Una tabla se puede trabajar. Haz clic en ella y `Tab` recorre sus celdas (pasada la última empieza una fila nueva), y el menú **Tabla** de la barra agrega y quita filas y columnas y alinea una columna a la izquierda, al centro o a la derecha. En la página, arrastra el borde de un encabezado para ensanchar su columna.
+Una tabla se escribe en la misma página: haz clic en una celda y escribe, y el menú `⋯` de una fila o una columna la mueve, la duplica o la quita y le da un tipo a una columna (una fecha con su calendario, dinero, opciones con su color, estrellas, un interruptor) que se suma al pie. Ordena y filtra desde el título de una columna sin tocar el archivo. Abierta como texto, `Tab` recorre sus celdas (pasada la última empieza una fila nueva), y el menú **Tabla** de la barra agrega y quita filas y columnas y alinea una columna a la izquierda, al centro o a la derecha. En la página, arrastra el borde de un encabezado para ensanchar su columna.
 
 | Vacuna | Puesta | Toca otra vez |
 | :--- | :---: | ---: |
@@ -377,7 +377,7 @@ Si usas un asistente, puede proponer tareas y escribir documentos por su cuenta,
 
 También puede ordenar lo que se desordenó. Un documento que creció sesión tras sesión lo puede compactar en un solo texto limpio: verás «Compactado por…» arriba, y **Deshacer** devuelve lo que decía antes con un clic. Cuando marca un documento dice por qué —una copia de otro, que se movió, que otro lo reemplaza, erróneo, obsoleto o un borrador— y nombra el que ocupa su lugar, que abres desde ahí; lo borras con un clic, o todos los de un grupo que marcó junto, de una vez. Puede hacer que las tareas que anotó sean partes de otra, o soltarlas de nuevo, y llevar los pasos abiertos a la tarea donde corresponden. Ni ordenando borra nada.
 
-Cuando termina una de las tareas que anotó él, lo dice y deja en la bitácora la cuenta de lo que hizo. La tarea sigue abierta, reunida bajo **Por confirmar** con la hora en que habló —salvo que venza hoy o esté atrasada, que se queda donde la buscas—. Tú la terminas, o la devuelves con **Sigue pendiente** y vuelve a su día con la cuenta guardada.
+Cuando termina una de las tareas que anotó él, lo dice y deja en la bitácora la cuenta de lo que hizo. La tarea sigue abierta, reunida bajo **Por confirmar** con la hora en que habló —salvo que esté vencida, por vencer, atrasada, para hoy o en curso, que se queda donde la buscas—. Tú la terminas, o la devuelves con **Sigue pendiente** y vuelve a su día con la cuenta guardada.
 
 Una tarea tuya se la puedes abrir: en su detalle, **Permitir agentes**. Desde ahí un asistente puede darla por hecha o decir que no se hará —para que lo confirmes—, describirla, planear sus pasos y marcarlos a medida que avanza, que es lo único que hace sin preguntar, y corregir sus pasos abiertos y sus notas; una marca que puso por error puede quitarla, nunca una tuya. El día, el título, la lista y el cierre siguen siendo tuyos. **Sin agentes** cierra la puerta y conserva lo que alcanzó a completar. Cómo conectar uno, y qué deja pasar cada puerta, está en [asistentes y MCP](https://www.tisty.app/es/ayuda/asistentes-y-mcp/).
 

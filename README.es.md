@@ -538,11 +538,11 @@ abriste. Nada más en pantalla.
 
 **La lista se queda donde está.** No se va al centro de lo que sobra, así que
 abrir una tarea no mueve nada. Cuando la ventana da de sí, el sitio que se abre
-no se queda en blanco: una columna te cuenta el día —lo vencido, lo de hoy, lo
-que viene, los cuatro cuadrantes con sus cuentas, las listas con algo abierto y
-las etiquetas en uso—. Todo eso cuenta tu almacén entero, no lo que hay en
-pantalla, y cada cifra es una puerta. Estrecha la ventana y se aparta: una tarea
-siempre le gana el sitio.
+no se queda en blanco: una columna te cuenta el día —lo vencido, lo atrasado,
+lo de hoy, lo que viene, los cuatro cuadrantes con sus cuentas, las listas con
+algo abierto y las etiquetas en uso—. Todo eso cuenta tu almacén entero, no lo
+que hay en pantalla, y cada cifra es una puerta. Estrecha la ventana y se
+aparta: una tarea siempre le gana el sitio.
 
 **Lee lo que escribes.** Escribes una frase y Tisty le saca la fecha, deja la
 frase legible, y te muestra qué entendió *antes* de guardar nada — como fichas
@@ -551,14 +551,14 @@ que corriges con un clic.
 ![Escríbelo como lo dices: etiquetas, listas, prioridad, fechas y repeticiones como todos los martes se leen de palabras simples, con el día, los cuadrantes y las listas contados al costado](assets/store/es-02-tareas.png)
 
 ```text
-"desplegar mañana a las 10"        →  mañana 10:00
-"entregar el informe para viernes" →  límite vie
-"reservar vuelos @viaje #urgente"  →  @viaje · #urgente
+"desplegar mañana a las 10"             →  mañana 10:00
+"entregar el informe antes del viernes" →  límite vie
+"reservar vuelos @viaje #urgente"       →  @viaje · #urgente
 ```
 
 Un día, una hora, o las dos. Nombres, distancias, fechas sueltas. Lo que no
 puede leer lo deja tal cual en vez de adivinar. Un límite no es lo mismo que un
-plan, y lo abren tres palabras: **antes de**, **para** y **hasta**.
+plan, y lo abren tres palabras: **antes de**, **hasta** y **vence**.
 
 **La tarea se abre al lado de la lista**, no encima: fechas, lista, etiquetas y
 prioridad arriba, y debajo su propia página, un documento Markdown como
@@ -879,8 +879,9 @@ tiene descripción; planear sus pasos; y marcarlos a medida que avanza, que es l
 una tuya—. Su día, su título, su lista y su cierre siguen siendo tuyos igual.
 «Sin agentes» cierra la puerta otra vez y conserva lo que alcanzó a completar.
 Lo que escribe un asistente va firmado con el nombre del programa por el que
-habló —«por Claude Code», «por Codex»— en la fila, el detalle y la bitácora, y
-Configuración › Asistentes cuenta lo que anotó cada uno.
+habló: la fila y el panel lateral dicen «por un agente» y lo nombran al pasar el
+puntero, y la página completa y la bitácora dicen «por Claude Code», «por
+Codex». Configuración › Asistentes cuenta lo que anotó cada uno.
 
 También lee con mesura, que es asunto tuyo tanto como suyo. Tisty guarda una
 ficha de cada documento —sus títulos, cuánto ocupa, las palabras en que se
