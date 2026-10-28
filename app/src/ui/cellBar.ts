@@ -48,6 +48,11 @@ export const cellBar = (
   });
   const hint = page.createElement("span");
   hint.hidden = true;
-  // Over the table, never over its rows, and kept in sight while a long table scrolls.
-  return docked(bar, hint, () => box.getBoundingClientRect().top).stop;
+  // Over the table's right end, never over its rows, and kept in sight while a long table scrolls.
+  const ending = () => {
+    const shown = box.getBoundingClientRect().right;
+    const table = box.querySelector(":scope > table")?.getBoundingClientRect().right ?? shown;
+    return Math.min(table, shown);
+  };
+  return docked(bar, hint, () => box.getBoundingClientRect().top, undefined, false, ending).stop;
 };
