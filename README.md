@@ -371,8 +371,9 @@ their columns lean and how wide you drew them, and a column can carry its type
 in braces at the end of its head, `Price {money USD sum}`: Tisty shows, sorts and
 adds up its cells as that, while the file stays a table any reader opens. A code
 block says what language it is and is coloured for it, with its lines numbered
-beside the text rather than in it, so copying takes the code and nothing else. A block can carry
-a name; one whose language is `mermaid` draws the diagram it describes
+beside the text rather than in it, so copying takes the code and nothing else.
+A block can carry a name; one whose language is `mermaid` draws the diagram it
+describes
 underneath — redrawn when you turn the light on or off — and one that says
 `math` sets the formula it holds. One that says `widget` is drawn as a small
 page — HTML, styles and a little script if you like — sealed off from the
