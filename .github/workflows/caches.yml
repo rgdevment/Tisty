@@ -26,15 +26,16 @@ jobs:
     permissions:
       actions: write
     steps:
-      # Merged or dropped, main runs CI again on its own: what is still going here is spent for nothing.
-      - name: Every run still going for its last commit
+      # Fuzz and Mutants run on main only weekly, so they finish: the rest main runs again on its own.
+      - name: Every run still going for its last commit, but Fuzz and Mutants
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           gh run list --commit "$HEAD_SHA" --event pull_request --limit 100 \
-            --json databaseId,status --jq '.[] | select(.status != "completed") | .databaseId' |
+            --json databaseId,status,workflowName \
+            --jq '.[] | select(.status != "completed" and .workflowName != "Fuzz" and .workflowName != "Mutants") | .databaseId' |
             while read -r run; do
               gh run cancel "$run" || echo "::notice::run $run had already ended"
             done
