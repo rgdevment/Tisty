@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Showing } from "../core";
 import { fill, t } from "../locales";
+import { saidPlainly } from "../refusal";
 import Viewing from "../Viewing";
 
 const ipc = vi.hoisted(() => ({
@@ -25,7 +26,10 @@ vi.mock("@tauri-apps/api/core", () => ({
     if (cmd === "view_shown") return Promise.resolve(ipc.shown);
     if (cmd === "diagram_save" && ipc.refusal) return Promise.reject(ipc.refusal);
     if (cmd === "diagram_again") return Promise.resolve(ipc.now);
-    if (cmd === "diagram_order") return Promise.resolve(ipc.order);
+    if (cmd === "diagram_order")
+      return ipc.order < 0
+        ? Promise.reject({ code: "diagramGone", name: "Tisty Share" })
+        : Promise.resolve(ipc.order);
     return Promise.resolve(null);
   },
   convertFileSrc: (path: string) => path,
@@ -120,6 +124,25 @@ describe("the diagram window", () => {
     await userEvent.click(screen.getByRole("menuitem", { name: t("exportSvg") }));
 
     await waitFor(() => expect(ipc.saved).toEqual(["Tisty Share-3.svg"]));
+    expect(asked("diagram_order")).toHaveLength(1);
+  });
+
+  it("opens the menu at once, and says so when it cannot tell which diagram it is", async () => {
+    ipc.order = -1;
+    render(<Viewing />);
+    await written();
+
+    await userEvent.click(screen.getByRole("button", { name: `${t("diagramExport")} ▾` }));
+    expect(screen.getByRole("menuitem", { name: t("exportSvg") })).toBeTruthy();
+    expect(asked("diagram_order")).toHaveLength(0);
+    expect(screen.queryByRole("alert")).toBeNull();
+
+    await userEvent.click(screen.getByRole("menuitem", { name: t("exportSvg") }));
+
+    await waitFor(() => expect(ipc.saved).toEqual(["Tisty Share.svg"]));
+    expect(screen.getByRole("alert").textContent).toBe(
+      saidPlainly({ code: "diagramGone", name: "Tisty Share" }),
+    );
   });
 
   it("says the image was saved only until the text changes, and never hides what is unsaved", async () => {

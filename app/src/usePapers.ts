@@ -20,7 +20,7 @@ import {
 import { viewDiagram } from "./drawing";
 import { leftBehind } from "./leftBehind";
 import { fill, t } from "./locales";
-import { drafted } from "./making";
+import { drafted, placeOf } from "./making";
 import { saidPlainly } from "./refusal";
 import { sure } from "./sure";
 import { dropAllAsked, goingWith } from "./tidying";
@@ -83,7 +83,8 @@ export function usePapers({
         papersChanged();
         setChosen({ named: "docs", doc: made.id });
         lookForAStar();
-        const paper = { id: "", file: made.id, title: made.title, place: made.place };
+        const place = placeOf(papers.folders, made.folder);
+        const paper = { id: "", file: made.id, title: made.title, place };
         return viewDiagram(paper, made.at, 0, made.source);
       })
       .catch((e) => setError(saidPlainly(e)));

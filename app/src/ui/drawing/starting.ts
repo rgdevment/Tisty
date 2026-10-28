@@ -31,19 +31,27 @@ export interface Fence {
   readonly source: string;
 }
 
-// A fence may sit inside quotes and a list item: the core starts it after their marks.
+// The core starts a fence after quote and list marks, and four spaces make indented code instead.
 const OPENING =
-  /^((?: {0,3}> ?)*(?: {0,3}(?:[-*+]|\d{1,9}[.)])[ \t]+| *))(`{3,}|~{3,})[ \t]*([^\s`]*)/;
+  /^((?: {0,3}> ?)*(?: {0,3}(?:[-*+]|\d{1,9}[.)])[ \t]+| {0,3}))(`{3,}|~{3,})[ \t]*([^\s`]*)/;
 const QUOTED = /^(?: {0,3}> ?)*/;
+const MARKED = /^ {0,3}(?:[-*+]|\d{1,9}[.)])/;
 const DIAGRAM = /^(mermaid|mmd)$/;
 
-// The core leaves the quote marks and the item's indent out of what a block says.
+// The core drops quote marks and item indent, and ends an unclosed block where they end (null).
 const insideOf = (lead: string) => {
   const quotes = (lead.match(/>/g) ?? []).length;
-  const indent = new RegExp(`^ {0,${lead.replace(QUOTED, "").length}}`);
-  return (line: string) => {
+  const own = lead.replace(QUOTED, "");
+  const width = own.length;
+  const indent = new RegExp(`^ {0,${width}}`);
+  const item = MARKED.test(own);
+  return (line: string): string | null => {
     let rest = line;
-    for (let one = 0; one < quotes; one++) rest = rest.replace(/^ {0,3}> ?/, "");
+    for (let one = 0; one < quotes; one++) {
+      if (!/^ {0,3}>/.test(rest)) return null;
+      rest = rest.replace(/^ {0,3}> ?/, "");
+    }
+    if (item && rest.trim() && !rest.startsWith(" ".repeat(width))) return null;
     return rest.replace(indent, "");
   };
 };
@@ -67,11 +75,14 @@ export const fencesOf = (text: string): Fence[] => {
     const inside = insideOf(open[1]);
     const closing = new RegExp(`^ {0,3}${mark[0]}{${mark.length},}\\s*$`);
     const inner: string[] = [];
-    while (at < lines.length && !closing.test(inside(lines[at]))) {
-      inner.push(`${inside(lines[at])}\n`);
+    const lineNow = () => (at < lines.length ? inside(lines[at]) : null);
+    let rest = lineNow();
+    while (rest !== null && !closing.test(rest)) {
+      inner.push(`${rest}\n`);
       next();
+      rest = lineNow();
     }
-    if (at < lines.length) next();
+    if (rest !== null) next();
     if (DIAGRAM.test(open[3])) found.push({ at: start, source: inner.join("") });
   }
   return found;

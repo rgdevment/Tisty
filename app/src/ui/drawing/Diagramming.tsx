@@ -58,7 +58,7 @@ export default function Diagramming({
   const [moved, setMoved] = useState(false);
   // What an export said holds only while the text is the one it was made from.
   const [told, setTold] = useState<{ said: string; of: string } | null>(null);
-  const [exporting, setExporting] = useState<{ x: number; y: number; nth: number } | null>(null);
+  const [exporting, setExporting] = useState<{ x: number; y: number } | null>(null);
   const dark = useDark();
   const editor = useEditor(text, setText);
   const unsaved = asRead(text) !== kept;
@@ -164,11 +164,7 @@ export default function Diagramming({
           aria-haspopup="menu"
           onClick={(e) => {
             const box = e.currentTarget.getBoundingClientRect();
-            const at = { x: box.left, y: box.bottom + 4 };
-            // Blocks written above it since it opened change which diagram it is.
-            diagramOrder()
-              .then((nth) => setExporting({ ...at, nth }))
-              .catch(() => setExporting({ ...at, nth: 0 }));
+            setExporting({ x: box.left, y: box.bottom + 4 });
           }}
         >
           {`${t("diagramExport")} ▾`}
@@ -183,7 +179,14 @@ export default function Diagramming({
           label={t("diagramExport")}
           choices={exportChoices({
             source: text,
-            name: fileName(named, exporting.nth),
+            // Blocks written above it since it opened change which diagram it is.
+            name: () =>
+              diagramOrder()
+                .catch((problem) => {
+                  setNote(saidPlainly(problem));
+                  return 0;
+                })
+                .then((nth) => fileName(named, nth)),
             dark,
             said: (said) => setTold({ said, of: text }),
             failed: (problem) => setNote(saidPlainly(problem)),

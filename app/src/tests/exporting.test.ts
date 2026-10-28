@@ -187,7 +187,13 @@ describe("copying a diagram as an image", () => {
   it("offers every file and then the copy, and says how each went", async () => {
     const said = vi.fn();
     const failed = vi.fn();
-    const choices = exportChoices({ source: FLOW, name: "Pagos", dark: false, said, failed });
+    const choices = exportChoices({
+      source: FLOW,
+      name: () => Promise.resolve("Pagos"),
+      dark: false,
+      said,
+      failed,
+    });
 
     expect(choices.map((one) => one.key)).toEqual([
       "pngClear",

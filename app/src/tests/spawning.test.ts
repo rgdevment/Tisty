@@ -5,6 +5,7 @@ const store = vi.hoisted(() => ({
   wrote: [] as { id: string; body: string }[],
   added: [] as string[],
   shelves: [] as unknown[],
+  listed: 0,
 }));
 
 vi.mock("../core", () => ({
@@ -16,7 +17,10 @@ vi.mock("../core", () => ({
     store.wrote.push({ id, body });
     return Promise.resolve({ id, title: "" });
   },
-  docs: () => Promise.resolve({ folders: store.shelves, docs: [] }),
+  docs: () => {
+    store.listed += 1;
+    return Promise.resolve({ folders: store.shelves, docs: [] });
+  },
   folderAdd: (name: string) => {
     store.added.push(name);
     return Promise.resolve("01NEW");
@@ -25,7 +29,7 @@ vi.mock("../core", () => ({
 
 import type { Folded } from "../core";
 import { t } from "../locales";
-import { drafted, spawned } from "../making";
+import { drafted, placeOf, spawned } from "../making";
 import { startOf } from "../ui/drawing/starting";
 
 beforeEach(() => {
@@ -33,6 +37,7 @@ beforeEach(() => {
   store.wrote = [];
   store.added = [];
   store.shelves = [];
+  store.listed = 0;
 });
 
 describe("making a document that another one will point at", () => {
@@ -80,7 +85,8 @@ describe("making a document for a new diagram", () => {
     expect(store.wrote[0].body).toBe(
       `# Pagos ñandú\n\n\`\`\`mermaid\n${startOf("flowchart")}\`\`\`\n`,
     );
-    expect(made).toMatchObject({ id: "mac0-0001", title: "Pagos ñandú", at: 17 });
+    expect(made).toMatchObject({ id: "mac0-0001", title: "Pagos ñandú", folder: "01H", at: 17 });
+    expect(store.listed).toBe(0);
     expect(made.source).toBe(startOf("flowchart"));
   });
 
@@ -96,8 +102,11 @@ describe("making a document for a new diagram", () => {
 
     expect(store.folders).toEqual(["01D", "01NEW"]);
     expect(store.added).toEqual([t("diagramsFolder")]);
-    expect(found.place).toBe(t("diagramsFolder"));
-    expect(missing.place).toBe(t("diagramsFolder"));
+    expect([found.folder, missing.folder]).toEqual(["01D", "01NEW"]);
+    expect(store.listed).toBe(2);
+    expect(placeOf([home], "01D")).toBe(t("diagramsFolder"));
+    expect(placeOf([], "01NEW")).toBe(t("diagramsFolder"));
+    expect(placeOf([shelf("01C", "Casa")], "01C")).toBe("Casa");
   });
 
   it("makes nothing when the name is only spaces", async () => {

@@ -196,6 +196,9 @@ const FOUND: &str = "
 - item⏎⏎  ```mermaid⏎  b⏎  ``` → 10:b⏎
 > ```mermaid⏎> a⏎> ```⏎⏎```mermaid⏎c⏎``` → 2:a⏎ | 24:c⏎
 > - ```mermaid⏎>   d⏎>   ``` → 4:d⏎
+    ```mermaid⏎    x⏎    ``` →
+> ```mermaid⏎> a⏎⏎```mermaid⏎c⏎``` → 2:a⏎ | 18:c⏎
+- ```mermaid⏎  a⏎⏎```mermaid⏎c⏎``` → 2:a⏎⏎ | 18:c⏎
 ";
 
 #[test]

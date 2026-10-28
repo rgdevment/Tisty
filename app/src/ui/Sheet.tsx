@@ -114,7 +114,7 @@ export default function Sheet(props: Readonly<Props>) {
       label: t("diagramExport"),
       choices: exportChoices({
         source,
-        name: fileName(said.current.label, nth),
+        name: () => Promise.resolve(fileName(said.current.label, nth)),
         dark: darkNow(),
         said: (text) => said.current.onNote?.(text),
         failed: (e) => said.current.onFail?.(e),

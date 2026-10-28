@@ -119,7 +119,8 @@ export const copiedImage = async (source: string, dark: boolean, font: string) =
 
 export interface Exporting {
   readonly source: string;
-  readonly name: string;
+  // Asked only when a file is wanted: finding which diagram it is may read the document.
+  readonly name: () => Promise<string>;
   readonly dark: boolean;
   readonly said: (text: string) => void;
   readonly failed: (problem: unknown) => void;
@@ -133,7 +134,9 @@ export const exportChoices = (to: Exporting): Choice[] => [
     key: way,
     label: t(WORDS[way]),
     onPick: () =>
-      void exported(to.source, way, to.name, fontNow())
+      void to
+        .name()
+        .then((name) => exported(to.source, way, name, fontNow()))
         .then((kept) => kept && to.said(t("diagramExported")))
         .catch(to.failed),
   })),
