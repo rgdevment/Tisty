@@ -27,6 +27,7 @@ const ICONS: Record<string, string> = {
   middle: "M3 12 H21 M7 6 V18 M12 8 V16 M17 5 V19",
   bottom: "M3 20 H21 M7 6 V16 M12 10 V16 M17 4 V16",
   relaid: "M4 4 h6 v6 h-6 Z M14 14 h6 v6 h-6 Z M10 7 H17 V14",
+  auto: "M4 4 h6 v6 h-6 Z M14 14 h6 v6 h-6 Z M10 7 H17 V14 M3 17 a4 4 0 0 0 7 3 M3 21 V17 H7",
   zoomOut: "M6 12 H18",
   zoomIn: "M12 6 V18 M6 12 H18",
   fit: "M4 9 V4 H9 M15 4 H20 V9 M20 15 V20 H15 M9 20 H4 V15",
@@ -98,21 +99,20 @@ export function Tool({
 
 export const Gap = () => <span aria-hidden="true" className="mx-1 h-5 w-px bg-line" />;
 
-/** A colour to choose from a row of swatches, or none. */
-export function Swatches({
+/** A tool that opens a small panel under it, closed by a choice, Escape or a press elsewhere. */
+function Popover({
   label,
   icon,
   disabled,
-  choices,
-  onChoose,
+  look,
+  children,
 }: Readonly<{
   label: string;
   icon: string;
   disabled: boolean;
-  choices: readonly { key: string; label: string; color: string }[];
-  onChoose: (key: string | null) => void;
+  look: string;
+  children: (close: () => void) => ReactNode;
 }>) {
-  const t = useSay();
   const [open, setOpen] = useState(false);
   const holder = useRef<HTMLDivElement>(null);
   // A press anywhere else closes it; on a Mac a button takes no focus, so leaving focus is not enough.
@@ -124,12 +124,8 @@ export function Swatches({
     document.addEventListener("pointerdown", away);
     return () => document.removeEventListener("pointerdown", away);
   }, [open]);
-  const chosen = (key: string | null) => {
-    setOpen(false);
-    onChoose(key);
-  };
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: Escape closes the swatches inside
+    // biome-ignore lint/a11y/noStaticElementInteractions: Escape closes the panel inside
     <div
       ref={holder}
       className="relative"
@@ -152,13 +148,42 @@ export function Swatches({
         <div
           role="group"
           aria-label={label}
-          className="absolute top-full left-0 z-20 mt-1 flex gap-1.5 rounded-md border border-line bg-panel p-2 shadow"
+          className={`absolute top-full z-20 mt-1 rounded-md border border-line bg-panel p-2 shadow ${look}`}
         >
+          {children(() => setOpen(false))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** A colour to choose from a row of swatches, or none. */
+export function Swatches({
+  label,
+  icon,
+  disabled,
+  choices,
+  onChoose,
+}: Readonly<{
+  label: string;
+  icon: string;
+  disabled: boolean;
+  choices: readonly { key: string; label: string; color: string }[];
+  onChoose: (key: string | null) => void;
+}>) {
+  const t = useSay();
+  return (
+    <Popover label={label} icon={icon} disabled={disabled} look="left-0 flex gap-1.5">
+      {(close) => (
+        <>
           <button
             type="button"
             aria-label={t("flowNoColor")}
             title={t("flowNoColor")}
-            onClick={() => chosen(null)}
+            onClick={() => {
+              close();
+              onChoose(null);
+            }}
             className="h-6 w-6 rounded-full border border-dashed border-faint"
           />
           {choices.map((one) => (
@@ -167,14 +192,17 @@ export function Swatches({
               type="button"
               aria-label={one.label}
               title={one.label}
-              onClick={() => chosen(one.key)}
+              onClick={() => {
+                close();
+                onChoose(one.key);
+              }}
               className="h-6 w-6 rounded-full border border-line"
               style={{ background: one.color }}
             />
           ))}
-        </div>
+        </>
       )}
-    </div>
+    </Popover>
   );
 }
 
@@ -291,13 +319,42 @@ export function AlignTools({
 export function ViewTools({
   laidOut,
   onRelay,
-}: Readonly<{ laidOut: boolean; onRelay: () => void }>) {
+}: Readonly<{
+  laidOut: boolean;
+  // One way to lay out, or several to choose from, such as the directions a flowchart runs.
+  onRelay: (() => void) | readonly { readonly label: string; readonly onPick: () => void }[];
+}>) {
   const t = useSay();
   const { zoomIn, zoomOut, fitView } = useReactFlow();
   const { zoom } = useViewport();
   return (
     <>
-      <Tool label={t("flowRelaid")} icon="relaid" disabled={!laidOut} onClick={onRelay} />
+      {typeof onRelay === "function" ? (
+        <Tool label={t("flowRelaid")} icon="relaid" disabled={!laidOut} onClick={onRelay} />
+      ) : (
+        <Popover
+          label={t("flowRelaid")}
+          icon="relaid"
+          disabled={!laidOut}
+          look="left-0 flex flex-col"
+        >
+          {(close) =>
+            onRelay.map((one) => (
+              <button
+                key={one.label}
+                type="button"
+                onClick={() => {
+                  close();
+                  one.onPick();
+                }}
+                className="rounded px-2 py-1 text-left text-[13px] whitespace-nowrap text-ink hover:bg-hover"
+              >
+                {one.label}
+              </button>
+            ))
+          }
+        </Popover>
+      )}
       <span className="flex-1" />
       <Tool label={t("flowZoomOut")} icon="zoomOut" onClick={() => zoomOut()} />
       <span className="w-12 text-center text-[12px] text-soft tabular-nums">

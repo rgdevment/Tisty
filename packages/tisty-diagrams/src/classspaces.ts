@@ -2,7 +2,7 @@ import type { Classes } from "./classes";
 import { type ClassAltered, classReread, indentIn, indentOf, plain, spacesKept } from "./classing";
 import { around, type Rect } from "./graphlayout";
 import { placed, type Spot } from "./places";
-import { classLaid, type Lane, laneHolding, lanesIn } from "./scenes";
+import { classLaid, type Lane, laneHolding, lanesAround, lanesIn } from "./scenes";
 
 /** The namespaces whose place carries a size. */
 export const classLanesOf = (diagram: Classes) =>
@@ -12,22 +12,13 @@ export const classLanesOf = (diagram: Classes) =>
   );
 
 /** Every namespace as a lane: at its size when it has one, else around its classes, to drag and size. */
-export const classLanesAround = (
-  diagram: Classes,
-  laid: ReadonlyMap<string, Rect>,
-): readonly Lane[] => {
-  const sized = new Map(classLanesOf(diagram).map((one) => [one.id, one]));
-  return diagram.groups.flatMap((group) => {
-    const known = sized.get(group.id);
-    if (known) return [known];
-    const rect = around(
-      diagram.classes
-        .filter((one) => one.group === group.id)
-        .flatMap((one) => laid.get(one.name) ?? []),
-    );
-    return rect ? [{ id: group.id, title: group.id, rect, across: rect.wide > rect.tall }] : [];
-  });
-};
+export const classLanesAround = (diagram: Classes, laid: ReadonlyMap<string, Rect>) =>
+  lanesAround(
+    diagram.groups.map((one) => ({ id: one.id, title: one.id })),
+    (group) => diagram.classes.filter((one) => one.group === group).map((one) => one.name),
+    diagram.places,
+    laid,
+  );
 
 const unique = (wanted: string, taken: readonly string[]) => {
   let n = 1;

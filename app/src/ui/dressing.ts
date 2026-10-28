@@ -293,14 +293,18 @@ export const worn = (
     partCarded(page, reach.part);
     webCarded(page, live);
   }
-  if ((reach?.onDiagram || reach?.onDiagramExport) && !stranger)
-    diagramBars(page, { open: Boolean(reach.onDiagram), out: Boolean(reach.onDiagramExport) });
+  if ((reach?.onDiagram || reach?.onDiagramExport || reach?.onBlock) && !stranger)
+    diagramBars(page, {
+      open: Boolean(reach.onDiagram),
+      out: Boolean(reach.onDiagramExport),
+      words: Boolean(reach.onBlock),
+    });
   void diagrams(page, page.documentElement.classList.contains("dark"), live);
   colored(page, live);
   return { lent, kept };
 };
 
-export const diagramBars = (page: Document, ways = { open: true, out: false }) => {
+export const diagramBars = (page: Document, ways = { open: true, out: false, words: false }) => {
   for (const figure of page.querySelectorAll<HTMLElement>("figure.diagram[data-at]")) {
     if (figure.querySelector(":scope > .diagram-bar")) continue;
     const bar = page.createElement("div");
@@ -313,6 +317,7 @@ export const diagramBars = (page: Document, ways = { open: true, out: false }) =
       bar.append(one);
     };
     if (ways.out) button("diagramExport", t("diagramExport"));
+    if (ways.words) button("diagramMarkdown", t("diagramMarkdown"));
     if (ways.open) button("diagram", t("diagramOpen"));
     figure.append(bar);
   }
@@ -343,6 +348,14 @@ export const answered = (page: Document, asked: Went, reach: Reaching, read = ""
     const found = figureAt(page, asked.at);
     if (found)
       reach.onDiagramExport?.(found.nth, sourceOf(found.figure), underBar(page, found.figure));
+  }
+  if (asked.kind === "diagramMarkdown") {
+    const found = figureAt(page, asked.at);
+    const at: [number, number] = [
+      charsAt(reach.body, asked.at[0]),
+      charsAt(reach.body, asked.at[1]),
+    ];
+    if (found) reach.onBlock?.(at, found.figure);
   }
   if (asked.kind === "doc") reach.onDoc(asked.id);
   if (asked.kind === "task") reach.onTask?.(asked.id);

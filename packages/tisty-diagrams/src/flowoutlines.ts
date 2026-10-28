@@ -146,11 +146,137 @@ export const outlineOf = (shape: Shape, wide: number, tall: number): Outline => 
     case "text":
       return { body: "", lines: [], drop: 0 };
     default:
+      return rarer(shape, wide, tall);
+  }
+};
+
+// The shapes Mermaid has for rarer cases, each drawn as Mermaid draws it.
+const rarer = (shape: Shape, wide: number, tall: number): Outline => {
+  const cut = Math.min(12, wide / 4, tall / 3);
+  const end = Math.min(10, wide * 0.1);
+  const ry = Math.min(tall * 0.16, 10);
+  switch (shape) {
+    case "bucket":
+      return plain(points([0, 0], [wide, 0], [wide * 0.92, tall], [wide * 0.08, tall]));
+    case "folder":
+      return plain(
+        points([0, 6], [wide * 0.4, 6], [wide * 0.45, 0], [wide, 0], [wide, tall], [0, tall]),
+      );
+    case "bang": {
+      const spikes = Array.from({ length: 16 }, (_, at) => {
+        const angle = (Math.PI * at) / 8;
+        const reach = at % 2 ? 0.36 : 0.5;
+        return [
+          wide / 2 + Math.cos(angle) * wide * reach,
+          tall / 2 + Math.sin(angle) * tall * reach,
+        ] as const;
+      });
+      return plain(points(...spikes));
+    }
+    case "notch-rect":
+      return plain(points([cut, 0], [wide, 0], [wide, tall], [0, tall], [0, cut]));
+    case "lin-rect":
+      return plain(box(0, 0, wide, tall, 0), `M8,0 V${n(tall)}`);
+    case "fork":
+      return plain(box(0, tall / 2 - 4, wide, 8, 1));
+    case "hourglass":
+      return plain(points([0, 0], [wide, 0], [0, tall], [wide, tall]));
+    case "bolt":
+      return plain(
+        points(
+          [wide * 0.62, 0],
+          [wide * 0.22, tall * 0.56],
+          [wide * 0.5, tall * 0.56],
+          [wide * 0.38, tall],
+          [wide * 0.8, tall * 0.42],
+          [wide * 0.52, tall * 0.42],
+        ),
+      );
+    case "delay":
+      return plain(
+        `M0,0 H${n(wide - tall / 2)} A${n(tall / 2)},${n(tall / 2)} 0 0 1 ${n(wide - tall / 2)},${n(tall)} H0 Z`,
+      );
+    case "h-cyl":
+      return plain(
+        `M${n(end)},0 H${n(wide - end)} A${n(end)},${n(tall / 2)} 0 0 1 ${n(wide - end)},${n(tall)} H${n(end)} A${n(end)},${n(tall / 2)} 0 0 1 ${n(end)},0 Z`,
+        `M${n(wide - end)},0 A${n(end)},${n(tall / 2)} 0 0 0 ${n(wide - end)},${n(tall)}`,
+      );
+    case "lin-cyl": {
+      const disk = outlineOf("database", wide, tall);
+      return {
+        ...disk,
+        lines: [
+          ...disk.lines,
+          `M0,${n(ry * 2)} A${n(wide / 2)},${n(ry)} 0 0 0 ${n(wide)},${n(ry * 2)}`,
+        ],
+      };
+    }
+    case "curv-trap":
+      return plain(
+        `M${n(wide * 0.12)},0 H${n(wide - tall / 2)} A${n(tall / 2)},${n(tall / 2)} 0 0 1 ${n(wide - tall / 2)},${n(tall)} H${n(wide * 0.12)} L0,${n(tall / 2)} Z`,
+      );
+    case "div-rect":
+      return { ...plain(box(0, 0, wide, tall, 0), `M0,10 H${n(wide)}`), drop: 5 };
+    case "tri":
+      return { ...plain(points([wide / 2, 0], [wide, tall], [0, tall])), drop: tall * 0.18 };
+    case "flip-tri":
+      return { ...plain(points([0, 0], [wide, 0], [wide / 2, tall])), drop: -tall * 0.18 };
+    case "win-pane":
+      return plain(box(0, 0, wide, tall, 0), `M8,0 V${n(tall)}`, `M0,8 H${n(wide)}`);
+    case "notch-pent":
+      return plain(
+        points([cut, 0], [wide - cut, 0], [wide, cut], [wide, tall], [0, tall], [0, cut]),
+      );
+    case "sl-rect":
+      return { ...plain(points([0, cut], [wide, 0], [wide, tall], [0, tall])), drop: cut / 2 };
+    case "st-rect":
+      return {
+        body: box(0, 8, wide - 8, tall - 8, 0),
+        lines: [
+          `M4,8 V4 H${n(wide - 4)} V${n(tall - 4)} H${n(wide - 8)}`,
+          `M8,4 V0 H${n(wide)} V${n(tall - 8)} H${n(wide - 4)}`,
+        ],
+        drop: 4,
+      };
+    case "bow-rect":
+      return plain(
+        `M${n(end)},0 H${n(wide)} A${n(end)},${n(tall / 2)} 0 0 0 ${n(wide)},${n(tall)} H${n(end)} A${n(end)},${n(tall / 2)} 0 0 1 ${n(end)},0 Z`,
+      );
+    case "cross-circ":
+      return plain(
+        ellipse(0, 0, wide, tall),
+        `M${n(wide * 0.146)},${n(tall * 0.146)} L${n(wide * 0.854)},${n(tall * 0.854)} M${n(wide * 0.854)},${n(tall * 0.146)} L${n(wide * 0.146)},${n(tall * 0.854)}`,
+      );
+    case "tag-doc":
+      return {
+        ...plain(
+          page(0, 0, wide, tall),
+          `M${n(wide - 14)},${n(tall * 0.62)} L${n(wide)},${n(tall * 0.48)}`,
+        ),
+        drop: -tall * 0.05,
+      };
+    case "tag-rect":
+      return plain(
+        box(0, 0, wide, tall, 0),
+        `M${n(wide - 14)},${n(tall)} L${n(wide)},${n(tall - 14)}`,
+      );
+    case "paper-tape":
+      return plain(
+        `M0,6 Q${n(wide / 4)},0 ${n(wide / 2)},6 T${n(wide)},6 V${n(tall - 6)} Q${n(wide * 0.75)},${n(tall)} ${n(wide / 2)},${n(tall - 6)} T0,${n(tall - 6)} Z`,
+      );
+    case "lin-doc":
+      return { ...plain(page(0, 0, wide, tall), `M8,0 V${n(tall * 0.86)}`), drop: -tall * 0.05 };
+    default:
       return plain(box(0, 0, wide, tall, 8));
   }
 };
 
 const TALL: Partial<Record<Shape, number>> = {
+  tri: 64,
+  "flip-tri": 64,
+  hourglass: 56,
+  "cross-circ": 56,
+  bang: 64,
   decision: 64,
   person: 84,
   cloud: 64,

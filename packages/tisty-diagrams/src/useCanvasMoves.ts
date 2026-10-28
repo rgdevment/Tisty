@@ -1,4 +1,4 @@
-import { type FlowPicked, nodesPlaced, pinned, reread } from "./flowing";
+import { type FlowPicked, manual, nodesPlaced, pinned, reread } from "./flowing";
 import { laneMoved, laneResized, regrouped } from "./flowlanes";
 import type { Rect } from "./graphlayout";
 import { settledInto } from "./places";
@@ -33,12 +33,15 @@ export const useCanvasMoves = (
           : { kind: "node", id: choice.one },
       ),
     // Lanes first, then the shapes dropped in them, which may join or leave a lane on the way.
+    // A shape moved by hand ends laying out by itself.
     settle: (spots, laid) => {
-      let now = pinned(flow, laid);
+      let now = pinned({ ...flow, body: manual(flow.body) }, laid);
       const shifted: { id: string; x: number; y: number }[] = [];
       for (const [key, at] of spots) {
-        if (key.startsWith(GROUP)) now = reread(now, laneMoved(now, key.slice(GROUP.length), at));
-        else shifted.push({ id: key, x: at.x, y: at.y });
+        if (key.startsWith(GROUP)) {
+          const id = key.slice(GROUP.length);
+          now = reread(now, laneMoved(now, id, at, lanes.get(id)?.rect));
+        } else shifted.push({ id: key, x: at.x, y: at.y });
       }
       if (shifted.length) {
         now = reread(now, nodesPlaced(now, shifted, null));
@@ -46,7 +49,7 @@ export const useCanvasMoves = (
           const rect = laid.get(one.id);
           return rect ? [[one.id, { ...rect, x: one.x, y: one.y }] as const] : [];
         });
-        now = regrouped(now, new Map(rects), still);
+        now = regrouped(now, new Map(rects), still, [...lanes.values()]);
       }
       const first = [...spots.keys()][0];
       if (picked?.kind === "nodes") change(settledInto(now, picked));

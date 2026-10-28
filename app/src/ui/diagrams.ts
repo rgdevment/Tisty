@@ -1,5 +1,5 @@
 import type { MermaidConfig } from "mermaid";
-import { grounded } from "tisty-diagrams/read";
+import { grounded, PALETTES, pictureOf, svgOf } from "tisty-diagrams/read";
 
 type Mermaid = typeof import("mermaid")["default"];
 
@@ -50,6 +50,8 @@ const keep = (key: string, drawn: string | null) => {
 const parts = (source: string) =>
   source.split("\n").length + (source.match(/--|==|-\.|->/g)?.length ?? 0);
 
+const fontNow = () => getComputedStyle(document.body).fontFamily || "sans-serif";
+
 const settings = (dark: boolean): MermaidConfig => ({
   startOnLoad: false,
   securityLevel: "strict",
@@ -58,7 +60,7 @@ const settings = (dark: boolean): MermaidConfig => ({
   theme: dark ? "dark" : "default",
   darkMode: dark,
   htmlLabels: false,
-  fontFamily: getComputedStyle(document.body).fontFamily,
+  fontFamily: fontNow(),
   flowchart: { htmlLabels: false },
 });
 
@@ -83,6 +85,16 @@ export const drawing = (
   if (ready !== undefined) return Promise.resolve(ready);
   if (!source.trim() || source.length > AT_MOST || parts(source) > MOST_PARTS)
     return Promise.resolve(null);
+  // What the window draws is shown as the window draws it, with its places, its shapes and its margin.
+  const own = pictureOf(source);
+  if (own) {
+    const drawn = svgOf(own, PALETTES[dark ? "dark" : "light"], null, fontNow()).replace(
+      "<svg ",
+      `<svg style="max-width:${own.size.wide}px" `,
+    );
+    keep(key, drawn);
+    return Promise.resolve(drawn);
+  }
   const turn = turns.then(async () => {
     const again = kept(key);
     if (again !== undefined) return again;

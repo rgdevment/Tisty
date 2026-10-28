@@ -202,9 +202,7 @@ describe("a flowchart in the diagram window", () => {
     fireEvent.click(screen.getByRole("button", { name: "A → B" }));
 
     fireEvent.keyDown(screen.getByLabelText(say("flowLabel")), { key: "Delete" });
-    fireEvent.keyDown(screen.getByRole("button", { name: say("flowAddGroup") }), {
-      key: "Backspace",
-    });
+    fireEvent.keyDown(tool(say("flowRelaid")), { key: "Backspace" });
     expect(text()).toBe(FLOW);
 
     fireEvent.keyDown(screen.getByRole("button", { name: "A → B" }), { key: "Delete" });
@@ -224,10 +222,11 @@ describe("a flowchart in the diagram window", () => {
     expect(remove.title).toBe(say("flowChained"));
   });
 
-  it("adds a group, renames it, moves a node into it, and takes it apart", () => {
+  it("adds a lane, renames it, moves a shape into it, and takes it apart", () => {
     opened();
-    fireEvent.click(screen.getByRole("button", { name: say("flowAddGroup") }));
-    expect(text()).toContain(`  subgraph g2 [${say("flowNewGroup")}]\n  end`);
+    fireEvent.click(palette().getByRole("button", { name: say("flowLaneColumn") }));
+    expect(text()).toContain(`  subgraph g2 [${say("flowNewLane")}]\n  end`);
+    expect(text()).toMatch(/%% tisty: g2 [\d.-]+ [\d.-]+ [\d.]+ [\d.]+/);
 
     fireEvent.click(screen.getByRole("button", { name: "Caja" }));
     leave(say("flowText"), "Caja fuerte");
@@ -356,14 +355,37 @@ describe("a flowchart in the diagram window", () => {
     expect(text()).toMatch(/%% tisty: A \d+ \d+\n/);
   });
 
-  it("turns the chart another way from the panel", () => {
+  it("lays the chart out again running another way, from its own menu", () => {
     opened();
 
-    choose(say("flowDirection"), "TB");
-    expect(text()).toBe(FLOW.replace("flowchart LR", "flowchart TB"));
+    fireEvent.click(tool(say("flowRelaid")));
+    fireEvent.click(screen.getByRole("button", { name: say("flowDown") }));
+    expect(text()).toMatch(/^flowchart TB\n/);
+    expect(text()).toContain("%% tisty: A ");
+    expect(screen.queryByRole("button", { name: say("flowDown") })).toBeNull();
 
     fireEvent.click(tool(say("flowUndo")));
     expect(text()).toBe(FLOW);
+  });
+
+  it("lays itself out after every change while asked, and keeps the places once let go", () => {
+    opened(`${FLOW}  %% tisty: A 300 100\n`);
+    const auto = () => tool(say("flowAuto"));
+    expect(auto().getAttribute("aria-pressed")).toBe("false");
+
+    fireEvent.click(auto());
+    expect(auto().getAttribute("aria-pressed")).toBe("true");
+    expect(text()).toContain("  %% tisty: auto\n");
+    expect(text()).not.toMatch(/%% tisty: [A-E] /);
+
+    fireEvent.click(palette().getByRole("button", { name: say("flowShapeCloud") }));
+    fireEvent.keyDown(within(node("n1")).getByRole("textbox"), { key: "Escape" });
+    expect(text()).toContain("n1@{");
+    expect(text()).not.toMatch(/%% tisty: n1 /);
+
+    fireEvent.click(auto());
+    expect(text()).not.toContain("%% tisty: auto");
+    for (const id of ["A", "B", "C", "D", "E", "n1"]) expect(text()).toContain(`%% tisty: ${id} `);
   });
 
   it("closes the colours with Escape or a press elsewhere", () => {

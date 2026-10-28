@@ -1,7 +1,7 @@
-import { ARROWS, edgeChanged, nodesPlaced, pinned, reread } from "./flowing";
+import { ARROWS, autoTurned, edgeChanged, isAuto, nodesPlaced, pinned, reread } from "./flowing";
 import { nodeStyled } from "./flowstyles";
 import { alignedMoves, relaid } from "./flowtools";
-import type { Rect } from "./graphlayout";
+import type { Direction, Rect } from "./graphlayout";
 import { useSay } from "./handing";
 import { ARROW_WORDS } from "./paletteshapes";
 import {
@@ -15,6 +15,15 @@ import {
   ViewTools,
 } from "./tools";
 import type { Flowing } from "./useFlow";
+import type { Word } from "./words";
+
+// The ways a flowchart can run, each a way to lay it out again.
+const DIRECTIONS: readonly (readonly [Direction, Word])[] = [
+  ["TB", "flowDown"],
+  ["LR", "flowRight"],
+  ["BT", "flowUp"],
+  ["RL", "flowLeft"],
+];
 
 /** What can be done to the flowchart and to what is chosen in it, above the canvas. */
 export default function FlowToolbar({
@@ -74,7 +83,19 @@ export default function FlowToolbar({
         }
       />
       <Gap />
-      <ViewTools laidOut={flow.nodes.length > 0} onRelay={() => change(relaid(flow))} />
+      <Tool
+        label={t("flowAuto")}
+        icon="auto"
+        pressed={isAuto(flow.body)}
+        onClick={() => change(autoTurned(flow, !isAuto(flow.body), laid))}
+      />
+      <ViewTools
+        laidOut={flow.nodes.length > 0}
+        onRelay={DIRECTIONS.map(([direction, word]) => ({
+          label: t(word),
+          onPick: () => change(relaid(flow, direction)),
+        }))}
+      />
     </ToolBar>
   );
 }

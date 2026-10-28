@@ -4,7 +4,6 @@ import {
   BackgroundVariant,
   ConnectionMode,
   type FinalConnectionState,
-  Panel,
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
@@ -194,11 +193,6 @@ function Drawing({ editing, dark }: Readonly<{ editing: Classing; dark: boolean 
             onConnectEnd={ended}
           >
             <Background variant={BackgroundVariant.Dots} gap={16} />
-            <Panel position="top-left">
-              <p className="m-0 rounded-lg bg-panel px-3 py-1.5 text-[12px] text-faint shadow">
-                {t("classKeys")}
-              </p>
-            </Panel>
           </ReactFlow>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { type Flow, readFlow, writeFlow } from "./flow";
-import type { FlowAltered, FlowPicked } from "./flowing";
+import { type FlowAltered, type FlowPicked, isAuto } from "./flowing";
 import { kindOf } from "./framing";
 import { useSteps } from "./useSteps";
 
@@ -9,7 +9,6 @@ export interface Flowing {
   readonly picked: FlowPicked;
   readonly change: (made: FlowAltered | null) => void;
   readonly pick: (picked: FlowPicked) => void;
-  readonly turn: (head: readonly string[]) => void;
   readonly undo: (() => void) | null;
   readonly redo: (() => void) | null;
 }
@@ -64,12 +63,17 @@ export const useFlow = (text: string, setText: (text: string) => void): Flowing 
     picked: foundAgain(flow, chosen.picked, chosen.sign),
     change: (made) => {
       if (!made) return;
-      const written = writeFlow({ ...flow, body: made.body, places: made.places ?? flow.places });
+      // While it lays itself out, no place is kept.
+      const written = writeFlow({
+        ...flow,
+        head: made.head ?? flow.head,
+        body: made.body,
+        places: isAuto(made.body) ? [] : (made.places ?? flow.places),
+      });
       stepped(written);
       keep(readFlow(written) ?? flow, made.picked);
     },
     pick: (picked) => keep(flow, picked),
-    turn: (head) => stepped(writeFlow({ ...flow, head })),
     undo,
     redo,
   };

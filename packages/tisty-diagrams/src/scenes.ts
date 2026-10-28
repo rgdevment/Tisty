@@ -98,6 +98,31 @@ export const lanesIn = (
 
 export const lanesOf = (flow: Flow): Lane[] => lanesIn(flow.groups, flow.places);
 
+/** Every group as a lane: at its size when it has one, else around its shapes, to drag and size. */
+export const lanesAround = (
+  groups: readonly { readonly id: string; readonly title: string }[],
+  membersOf: (group: string) => readonly string[],
+  places: readonly Place[],
+  laid: ReadonlyMap<string, Rect>,
+): readonly Lane[] => {
+  const sized = new Map(lanesIn(groups, places).map((one) => [one.id, one]));
+  return groups.flatMap((group) => {
+    const known = sized.get(group.id);
+    if (known) return [known];
+    const rect = around(membersOf(group.id).flatMap((id) => laid.get(id) ?? []));
+    return rect ? [{ id: group.id, title: group.title, rect, across: rect.wide > rect.tall }] : [];
+  });
+};
+
+/** Every group of a flowchart as a lane. */
+export const flowLanesAround = (flow: Flow, laid: ReadonlyMap<string, Rect>) =>
+  lanesAround(
+    flow.groups,
+    (group) => flow.nodes.filter((one) => one.group === group).map((one) => one.id),
+    flow.places,
+    laid,
+  );
+
 const holds = (rect: Rect, x: number, y: number) =>
   x >= rect.x && x <= rect.x + rect.wide && y >= rect.y && y <= rect.y + rect.tall;
 

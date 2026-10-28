@@ -25,6 +25,8 @@ export interface FlowAltered {
   readonly body: readonly string[];
   // Left out when the places stay as they were.
   readonly places?: readonly Place[];
+  // Left out when the chart runs the way it did.
+  readonly head?: readonly string[];
   readonly picked: FlowPicked;
 }
 
@@ -67,6 +69,28 @@ export const inserted = (
 // A place keeps the indent of its own line, so moving rewrites only its numbers; a lane keeps its size.
 export const placed = (flow: Flow, id: string, at: Spot): readonly Place[] =>
   placedIn(flow.places, bodyIndent(flow), id, at);
+
+const AUTO = /^\s*%% tisty: auto\s*$/;
+
+/** Whether the flowchart lays itself out after every change, keeping no places. */
+export const isAuto = (body: readonly string[]) => body.some((line) => AUTO.test(line));
+
+/** The body without the line that keeps it laid out by itself. */
+export const manual = (body: readonly string[]) => body.filter((line) => !AUTO.test(line));
+
+/** Laying out after every change turned on, its places let go, or off, every shape written where it stands. */
+export const autoTurned = (
+  flow: Flow,
+  on: boolean,
+  at: ReadonlyMap<string, { readonly x: number; readonly y: number }>,
+): FlowAltered =>
+  on
+    ? {
+        body: [...manual(flow.body), `${bodyIndent(flow)}%% tisty: auto`],
+        places: [],
+        picked: null,
+      }
+    : { body: manual(flow.body), places: pinned(flow, at).places, picked: null };
 
 /** Nodes put where the window was told, without touching the lines that say what they are. */
 export const nodesPlaced = (
