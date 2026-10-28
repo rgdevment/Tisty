@@ -1444,12 +1444,39 @@ fn the_pulse_counts_overdue_and_late_apart_and_a3_is_underway() {
     }
 
     let counts = crate::summing::tally(&state);
-    let standings = crate::summing::standings(&state, from);
+    let standings = crate::summing::standings(&state, from, [&a3]);
 
     assert_eq!((counts["overdue"], counts["late"]), (1, 1));
     assert_eq!(
         standings[&a3.id.to_string()],
         tisty_core::standing::Standing::Underway
+    );
+    assert_eq!(
+        standings.len(),
+        1,
+        "only what the window shows comes with it"
+    );
+}
+
+#[test]
+fn the_parts_of_a_shown_whole_come_with_their_standing() {
+    let from = today();
+    let mut state = State::default();
+    let whole = held("A3 · Migración de Sodimac Uruguay");
+    let mut part = held("inventario");
+    part.part_of = Some(whole.id);
+    part.date = Some(tisty_core::model::DateSpec::all_day(
+        away(from, 3),
+        "America/Santiago",
+    ));
+    kept(&mut state, whole.clone());
+    kept(&mut state, part.clone());
+
+    let standings = crate::summing::standings(&state, from, [&whole]);
+
+    assert_eq!(
+        standings.get(&part.id.to_string()),
+        Some(&tisty_core::standing::Standing::Ahead)
     );
 }
 

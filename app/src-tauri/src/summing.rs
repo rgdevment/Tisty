@@ -240,15 +240,21 @@ pub fn asked_about() -> Vec<(&'static str, Filter)> {
 /// The slices the task bar shows, also counted per list so a bar narrowed to some lists counts only them.
 pub const SLICED: [&str; 4] = ["tasks", "upcoming", "repeating", "all"];
 
-/// Sent with every snapshot so the window never reads the dates by a rule of its own.
-pub fn standings(
+/// The parts are included because the window can unfold them even when the view leaves them out.
+pub fn standings<'a>(
     state: &State,
     today: jiff::civil::Date,
+    shown: impl IntoIterator<Item = &'a Task>,
 ) -> std::collections::BTreeMap<String, Standing> {
+    let asked: std::collections::HashSet<tisty_core::model::TaskId> =
+        shown.into_iter().map(|task| task.id).collect();
     state
         .tasks
         .values()
         .filter(|task| task.is_open())
+        .filter(|task| {
+            asked.contains(&task.id) || task.part_of.is_some_and(|whole| asked.contains(&whole))
+        })
         .map(|task| (task.id.to_string(), standing(task, today)))
         .filter(|(_, how)| *how != Standing::Undated)
         .collect()

@@ -181,6 +181,7 @@ fn search(
         })
         .collect();
     Ok(Found {
+        standings: summing::standings(&session.state, today(), &tasks),
         tasks,
         total,
         papers,
@@ -205,6 +206,7 @@ struct Found {
     papers: Vec<Paper>,
     total: usize,
     wholes: std::collections::BTreeMap<String, answers::parts::Whole>,
+    standings: std::collections::BTreeMap<String, tisty_core::standing::Standing>,
 }
 
 #[derive(serde::Serialize)]

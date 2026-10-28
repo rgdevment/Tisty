@@ -191,15 +191,21 @@ pub async fn snapshot(
 
     let wanted = view.as_ref().is_some_and(|one| one.soonest);
     let (tasks, total) = crate::summing::a_column(&session.state, view, today())?;
+    let soonest = if wanted {
+        crate::summing::soonest_in(&session.state, today())
+    } else {
+        Default::default()
+    };
+    let standings = crate::summing::standings(
+        &session.state,
+        today(),
+        tasks.iter().chain(soonest.values().flatten()),
+    );
 
     Ok(Snapshot {
         tasks,
         total,
-        soonest: if wanted {
-            crate::summing::soonest_in(&session.state, today())
-        } else {
-            Default::default()
-        },
+        soonest,
         ahead: coming(&session.state, today()),
         routines: recurring(&session.state, today()),
         lists: session.state.ordered_lists().into_iter().cloned().collect(),
@@ -226,7 +232,7 @@ pub async fn snapshot(
         machine_here: session.config.device_id.0.clone(),
         clients: named_clients(&session.state),
         wholes: crate::answers::parts::wholes(&session.state),
-        standings: crate::summing::standings(&session.state, today()),
+        standings,
     })
 }
 

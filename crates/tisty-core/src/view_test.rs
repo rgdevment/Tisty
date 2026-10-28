@@ -177,6 +177,18 @@ fn a_close_deadline_claims_today_even_when_the_work_starts_later() {
 }
 
 #[test]
+fn what_today_claims_by_its_deadline_is_not_ahead_as_well() {
+    let ahead = filter(|f| f.window = Some(Window::After(today())));
+    let mut starts_later = due("hand it in", "2026-08-07");
+    starts_later.date = Some(DateSpec::all_day("2026-08-07".parse().unwrap(), "UTC"));
+    let mut far = due("far off", "2026-09-30");
+    far.date = Some(DateSpec::all_day("2026-08-20".parse().unwrap(), "UTC"));
+
+    assert!(!ahead.matches(&starts_later, today()));
+    assert!(ahead.matches(&far, today()));
+}
+
+#[test]
 fn a_task_started_before_its_deadline_is_underway() {
     let underway = filter(|f| f.window = Some(Window::Stands(Standing::Underway)));
     let mut started = due("migration", "2026-09-30");

@@ -3,7 +3,7 @@ import { type Axis, banded, monthly, regrouped, shelved } from "../archive";
 import { useAsked } from "../asked";
 import { useComing } from "../coming";
 import { type List, partsOf, type Standing, type Task, type Whole } from "../core";
-import { cadence, dueLabel, lateLabel, stamped, whenLabel } from "../format";
+import { cadence, dueLabel, lateLabel, running, stamped, whenLabel } from "../format";
 import { group, useGrouped } from "../grouping";
 import { fill, t } from "../locales";
 import { edge, placed, said, tint } from "../quadrants";
@@ -117,7 +117,7 @@ export default function TaskList({
     () =>
       by && by !== "time"
         ? offered
-          ? regrouped(top, by, lists)
+          ? regrouped(top, by, lists, standings)
           : shelved(top, by, lists)
         : bands === "month"
           ? monthly(top)
@@ -134,7 +134,9 @@ export default function TaskList({
     );
   }, [rows]);
   const [shut, setShut] = useState<ReadonlySet<string>>(new Set());
-  const closed = (band: string) => shutting(shut, band);
+  const timed = !(by && by !== "time") && bands === "day";
+  // A long project would fill today every day, so what is underway starts folded.
+  const closed = (band: string) => (timed && band === t("underwayBand")) !== shut.has(band);
   const hidden = (band: string) => heads && closed(band);
   const many = useMemo(() => {
     const tally = new Map<string, number>();
@@ -171,7 +173,7 @@ export default function TaskList({
 
   const drawn = sheets
     .flatMap((leaf) => leaf.rows)
-    .filter((row) => !(heads && shutting(shut, row.band)))
+    .filter((row) => !hidden(row.band))
     .flatMap((row) => [row.key, ...under(row.task.id).map((part) => `${row.key}/${part.id}`)]);
   const anchor = reached !== null && drawn.includes(reached) ? reached : drawn[0];
   const stops = (id: string) => anchor === id;
@@ -501,9 +503,7 @@ function Edge({ onReach }: { onReach: () => void }) {
 
 function dated(task: Task, stands?: Standing): React.ReactNode[] {
   const bits: React.ReactNode[] = [];
-  const running = stands === "underway" || stands === "due_soon" || stands === "overdue";
-  // Once the work has started, its start says nothing and the deadline speaks for it.
-  if (task.date && !(task.deadline && running)) {
+  if (task.date && !(task.deadline && running(stands))) {
     bits.push(
       <span key="date" className={stands === "late" ? "text-hue-amber" : "text-accent"}>
         {stands === "late" ? lateLabel(task.date) : whenLabel(task.date)}
@@ -654,10 +654,6 @@ function Counted({
     </button>
   );
 }
-
-// A long project would fill today every day, so what is underway starts folded.
-const shutting = (shut: ReadonlySet<string>, band: string): boolean =>
-  (band === t("underwayBand")) !== shut.has(band);
 
 const flip = (was: ReadonlySet<string>, key: string): ReadonlySet<string> => {
   const next = new Set(was);

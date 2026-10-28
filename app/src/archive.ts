@@ -1,5 +1,5 @@
 import type { List, Standing, Task } from "./core";
-import { bandOf, daysFrom, monthOf } from "./format";
+import { bandOf, monthOf } from "./format";
 import { locale, t, type Word } from "./locales";
 import { said } from "./quadrants";
 
@@ -61,11 +61,13 @@ export function shelved(tasks: Task[], axis: Axis, lists: List[]): Row[] {
   });
 }
 
-export function regrouped(tasks: Task[], axis: Axis, lists: List[], now = new Date()): Row[] {
-  const spoken = (task: Task) =>
-    Boolean(task.resolved) &&
-    task.status === "open" &&
-    !(task.date && daysFrom(task.date.at, now) <= 0);
+export function regrouped(
+  tasks: Task[],
+  axis: Axis,
+  lists: List[],
+  standings: Record<string, Standing> = {},
+): Row[] {
+  const spoken = (task: Task) => waits(task, urgencyOf(task, standings));
   const waiting: Row[] = tasks
     .filter(spoken)
     .map((task) => ({ kind: "one" as const, key: task.id, task, band: t("agentBand") }));
@@ -79,7 +81,7 @@ export function regrouped(tasks: Task[], axis: Axis, lists: List[], now = new Da
   ];
 }
 
-// What claims today, most urgent first; anything else keeps its day and the core's order.
+// Ranked so what ran out never sits below what was merely planned, whatever order the core gave.
 const URGENT: Partial<Record<Standing, { rank: number; band: Word }>> = {
   overdue: { rank: 0, band: "overdue" },
   due_soon: { rank: 1, band: "dueSoonBand" },
@@ -96,8 +98,8 @@ export function banded(
   const waiting: Row[] = [];
   const rest: (Row & { rank: number })[] = [];
   for (const task of tasks) {
-    const urgent = URGENT[standings[task.id] ?? "ahead"];
-    const spoken = Boolean(task.resolved) && task.status === "open" && !urgent;
+    const urgent = urgencyOf(task, standings);
+    const spoken = waits(task, urgent);
     const row = {
       kind: "one" as const,
       key: task.id,
@@ -112,3 +114,10 @@ export function banded(
     ...waiting,
   ];
 }
+
+const urgencyOf = (task: Task, standings: Record<string, Standing>) =>
+  URGENT[standings[task.id] ?? "ahead"];
+
+// What claims today stays where the person looks for it, even once an agent has spoken for it.
+const waits = (task: Task, urgent: (typeof URGENT)[Standing]): boolean =>
+  Boolean(task.resolved) && task.status === "open" && !urgent;
