@@ -359,7 +359,7 @@ written once with the crates that carry it.
 | `powerfmt` | 0.2.1 | MIT OR Apache-2.0 |
 | `ppv-lite86` | 0.2.21 | MIT OR Apache-2.0 |
 | `precomputed-hash` | 0.1.1 | MIT |
-| `pulldown-cmark` | 0.13.4 | MIT |
+| `pulldown-cmark` | 0.13.5 | MIT |
 | `pxfm` | 0.1.30 | BSD-3-Clause OR Apache-2.0 |
 | `quick-error` | 2.0.1 | MIT/Apache-2.0 |
 | `quick-xml` | 0.42.0 | MIT |
