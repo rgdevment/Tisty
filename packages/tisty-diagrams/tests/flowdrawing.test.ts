@@ -4,7 +4,7 @@ import { type Flow, readFlow, writeFlow } from "../src/flow";
 import { nodeAddedFrom, nodesPlaced, pinned } from "../src/flowing";
 import { outlineOf, sizeOf } from "../src/flowoutlines";
 import { routeOf, sidesOf } from "../src/flowroutes";
-import { type Bracketed, NAMED, type Shape } from "../src/flowshapes";
+import { type Bracketed, NAMED, nameOfShape, type Shape, shapeNamed } from "../src/flowshapes";
 import { PALETTE, SHAPES, shapeName } from "../src/paletteshapes";
 import { PALETTES, svgOf } from "../src/picture";
 import { pictureOf } from "../src/pictures";
@@ -95,8 +95,14 @@ describe("drawing a shape", () => {
     for (const locale of ["en", "es"])
       for (const shape of SHAPES)
         expect(shapeName(shape, sayIn(locale)), shape).not.toMatch(/^flow/);
-    expect(shapeName("bolt", sayIn("es"))).toBe("bolt");
-    expect(PALETTE.map((one) => one.shapes.length)).toEqual([6, 4, 4, 2]);
+    expect(shapeName("bolt", sayIn("es"))).toBe("Enlace de comunicación");
+    expect(PALETTE.map((one) => one.shapes.length)).toEqual([13, 12, 5, 9, 10, 4]);
+  });
+
+  it("offers every shape Mermaid draws, once each", () => {
+    expect(new Set(SHAPES).size).toBe(SHAPES.length);
+    expect(SHAPES).toHaveLength(53);
+    for (const shape of SHAPES) expect(shapeNamed(nameOfShape(shape)), shape).toBe(shape);
   });
 });
 

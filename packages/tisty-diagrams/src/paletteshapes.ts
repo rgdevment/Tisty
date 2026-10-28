@@ -1,8 +1,8 @@
 import type { ARROWS } from "./flowing";
-import { nameOfShape, type Shape } from "./flowshapes";
+import type { Shape } from "./flowshapes";
 import type { Say, Word } from "./words";
 
-const SHAPE_WORDS: Partial<Record<Shape, Word>> = {
+const SHAPE_WORDS: Record<Shape, Word> = {
   process: "flowShapeProcess",
   rounded: "flowShapeRounded",
   stadium: "flowShapeStadium",
@@ -22,31 +22,117 @@ const SHAPE_WORDS: Partial<Record<Shape, Word>> = {
   console: "flowShapeConsole",
   brace: "flowShapeNote",
   text: "flowShapeText",
+  leanLeft: "flowShapeLeanLeft",
+  double: "flowShapeDouble",
+  trapezoid: "flowShapeTrapezoid",
+  trapezoidDown: "flowShapeTrapezoidDown",
+  folder: "flowShapeFolder",
+  bucket: "flowShapeBucket",
+  bang: "flowShapeBang",
+  "notch-rect": "flowShapeCard",
+  "lin-rect": "flowShapeShaded",
+  "sm-circ": "flowShapeStart",
+  "fr-circ": "flowShapeStop",
+  fork: "flowShapeFork",
+  hourglass: "flowShapeCollate",
+  "brace-r": "flowShapeNoteRight",
+  braces: "flowShapeNoteBoth",
+  bolt: "flowShapeBolt",
+  delay: "flowShapeDelay",
+  "h-cyl": "flowShapeDirect",
+  "lin-cyl": "flowShapeDisk",
+  "curv-trap": "flowShapeDisplay",
+  "div-rect": "flowShapeDivided",
+  tri: "flowShapeExtract",
+  "win-pane": "flowShapeInternal",
+  "f-circ": "flowShapeJunction",
+  "notch-pent": "flowShapeLoop",
+  "flip-tri": "flowShapeManualFile",
+  "sl-rect": "flowShapeManualInput",
+  "st-rect": "flowShapeProcesses",
+  "bow-rect": "flowShapeStored",
+  "cross-circ": "flowShapeSummary",
+  "tag-doc": "flowShapeTaggedDocument",
+  "tag-rect": "flowShapeTaggedProcess",
+  "paper-tape": "flowShapePaperTape",
+  "lin-doc": "flowShapeLinedDocument",
 };
 
-/** A shape by its name in the window, or by Mermaid's when the window has none for it. */
-export const shapeName = (shape: Shape, t: Say): string => {
-  const word = SHAPE_WORDS[shape];
-  return word ? t(word) : nameOfShape(shape);
-};
+/** A shape by its name in the window. */
+export const shapeName = (shape: Shape, t: Say): string => t(SHAPE_WORDS[shape]);
 
+// Every shape Mermaid draws, the usual ones first; the palette scrolls for the rest.
 export const PALETTE: readonly { readonly title: Word; readonly shapes: readonly Shape[] }[] = [
   {
     title: "flowPaletteBasic",
-    shapes: ["process", "stadium", "decision", "lean", "subroutine", "circle"],
+    shapes: [
+      "process",
+      "rounded",
+      "stadium",
+      "decision",
+      "lean",
+      "leanLeft",
+      "subroutine",
+      "circle",
+      "double",
+      "hexagon",
+      "trapezoid",
+      "trapezoidDown",
+      "flag",
+    ],
   },
-  { title: "flowPaletteData", shapes: ["database", "doc", "docs", "datastore"] },
-  { title: "flowPalettePeople", shapes: ["person", "cloud", "browser", "console"] },
-  { title: "flowPaletteNotes", shapes: ["brace", "text"] },
+  {
+    title: "flowPaletteData",
+    shapes: [
+      "database",
+      "doc",
+      "docs",
+      "datastore",
+      "h-cyl",
+      "lin-cyl",
+      "bow-rect",
+      "lin-doc",
+      "tag-doc",
+      "paper-tape",
+      "folder",
+      "bucket",
+    ],
+  },
+  { title: "flowPalettePeople", shapes: ["person", "cloud", "browser", "console", "bang"] },
+  {
+    title: "flowPaletteSteps",
+    shapes: [
+      "lin-rect",
+      "div-rect",
+      "st-rect",
+      "tag-rect",
+      "notch-rect",
+      "sl-rect",
+      "curv-trap",
+      "delay",
+      "win-pane",
+    ],
+  },
+  {
+    title: "flowPaletteControl",
+    shapes: [
+      "sm-circ",
+      "fr-circ",
+      "f-circ",
+      "fork",
+      "hourglass",
+      "notch-pent",
+      "bolt",
+      "cross-circ",
+      "tri",
+      "flip-tri",
+    ],
+  },
+  { title: "flowPaletteNotes", shapes: ["brace", "brace-r", "braces", "text"] },
 ];
 
-/** The shapes the panel offers: the palette's and the older bracketed ones. */
-export const SHAPES: readonly Shape[] = [
-  ...PALETTE.flatMap((one) => one.shapes),
-  "rounded",
-  "hexagon",
-  "flag",
-];
+/** Every shape, as the panel offers them. */
+export const SHAPES: readonly Shape[] = PALETTE.flatMap((one) => one.shapes);
 
 export const ARROW_WORDS: Record<(typeof ARROWS)[number], Word> = {
   "-->": "flowArrowPlain",
