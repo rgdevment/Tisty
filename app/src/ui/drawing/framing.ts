@@ -77,6 +77,27 @@ export const fitted = (drawn: Size, room: Size, margin = 32): View => {
   };
 };
 
+/** The view that shows a part of the drawing: the same one while it is already in sight, else one that centres it. */
+export const showing = (
+  view: View,
+  part: { x: number; y: number; wide: number; tall: number },
+  room: Size,
+): View => {
+  const left = view.x + part.x * view.scale;
+  const top = view.y + part.y * view.scale;
+  const inside =
+    left >= 0 &&
+    top >= 0 &&
+    left + part.wide * view.scale <= room.wide &&
+    top + part.tall * view.scale <= room.tall;
+  if (inside) return view;
+  return {
+    ...view,
+    x: room.wide / 2 - (part.x + part.wide / 2) * view.scale,
+    y: room.tall / 2 - (part.y + part.tall / 2) * view.scale,
+  };
+};
+
 /** The size Mermaid drew at, read from the SVG's own `viewBox`. */
 export const sizeOf = (svg: string): Size | null => {
   const box = /viewBox="\s*[-\d.]+[\s,]+[-\d.]+[\s,]+([\d.]+)[\s,]+([\d.]+)\s*"/.exec(svg);

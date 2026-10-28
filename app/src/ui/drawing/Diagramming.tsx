@@ -14,7 +14,10 @@ import { asRead, type DiagramKind, kindOf } from "./framing";
 import IdeaMap from "./IdeaMap";
 import IdeaPanel from "./IdeaPanel";
 import { renamed, reshaped, withChild, without, withSibling } from "./minding";
+import SchemaBoard from "./SchemaBoard";
+import SchemaPanel from "./SchemaPanel";
 import { useMind } from "./useMind";
+import { useSchema } from "./useSchema";
 
 const KIND_WORDS: Record<DiagramKind, Word> = {
   mindmap: "diagramMindmap",
@@ -53,6 +56,7 @@ export default function Diagramming({
   const [moved, setMoved] = useState(false);
   const dark = useDark();
   const map = useMind(text, setText);
+  const scheme = useSchema(text, setText);
   const unsaved = asRead(text) !== kept;
   const named = paper.title || t("untitledDoc");
   const warned = useRef(false);
@@ -179,6 +183,14 @@ export default function Diagramming({
             onChoose={map.choose}
             onChange={map.change}
           />
+        ) : scheme ? (
+          <SchemaBoard
+            schema={scheme.schema}
+            picked={scheme.picked}
+            fresh={t("schemaNewTable")}
+            onPick={scheme.pick}
+            onChange={scheme.change}
+          />
         ) : (
           <Canvas source={text} dark={dark} />
         )}
@@ -196,6 +208,11 @@ export default function Diagramming({
               onSibling={() => map.change(withSibling(map.mind, map.chosen, t("diagramNewIdea")))}
               onRemove={() => map.change(without(map.mind, map.chosen))}
             />
+          )}
+          {scheme && (
+            <div className="scroller max-h-[60%] shrink-0 overflow-auto border-b border-hair pb-3">
+              <SchemaPanel schema={scheme.schema} picked={scheme.picked} onChange={scheme.change} />
+            </div>
           )}
           <div className="flex items-center">
             <label htmlFor="diagram-text" className="text-[12px] font-semibold text-soft">
