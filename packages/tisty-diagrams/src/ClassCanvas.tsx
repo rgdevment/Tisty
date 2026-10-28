@@ -20,22 +20,28 @@ import {
   classReread,
 } from "./classing";
 import { SORTS } from "./classkinds";
+import { namespaceAdded, reclassed } from "./classspaces";
 import { Wire, type WireEdge } from "./FlowWire";
 import { useSay } from "./handing";
 import Palette, { Sketch } from "./Palette";
+import { FrameBox, type FrameNode, LaneBox, type LaneNode } from "./ShapeNodes";
 import { type ClassNaming, useClassCanvas } from "./useClassCanvas";
 import type { Classing } from "./useClasses";
+import { GROUP } from "./useMoving";
 
-const NODE_TYPES = { class: ClassCard };
+const NODE_TYPES = { class: ClassCard, frame: FrameBox, lane: LaneBox };
 const EDGE_TYPES = { wire: Wire };
 // A class put down before it has members is about this big, so it lands centred where it is let go.
 const NEW_CLASS = { wide: 150, tall: 62 };
 // A card with its name above a line, and a band above that for its kind when it has one.
 const CLASS_SKETCH = "M3,1 H31 V21 H3 Z M3,8 H31";
 const KIND_SKETCH = "M3,1 H31 V21 H3 Z M3,10 H31 M11,4.5 H23";
+// A package: a tab for its name, a card inside.
+const SPACE_SKETCH = "M2,4 H32 V22 H2 Z M2,4 V1 H14 V4 M9,9 H25 V18 H9 Z";
+const SPACE = { wide: 300, tall: 360 };
 
 type Point = { readonly x: number; readonly y: number };
-type Sort = "plain" | "interface" | "abstract" | "enumeration";
+type Sort = "plain" | "interface" | "abstract" | "enumeration" | "namespace";
 
 // Keys typed into a field, or pressed on the canvas's own buttons, are not for what is chosen.
 const elsewhere = (e: KeyboardEvent) =>
@@ -43,7 +49,9 @@ const elsewhere = (e: KeyboardEvent) =>
     "input, textarea, select, [contenteditable], [role=toolbar], .react-flow__panel",
   ) !== null;
 
-const noteOf = (sort: Sort) => (sort === "plain" ? null : sort);
+const SKETCHES: Partial<Record<Sort, string>> = { plain: CLASS_SKETCH, namespace: SPACE_SKETCH };
+
+const noteOf = (sort: Sort) => (sort === "plain" || sort === "namespace" ? null : sort);
 
 /** The class diagram to draw by hand: classes stay where they are left, relations follow them. */
 export default function ClassCanvas({
@@ -66,12 +74,22 @@ function Drawing({ editing, dark }: Readonly<{ editing: Classing; dark: boolean 
   const { nodes, edges, laid, moved } = useClassCanvas(editing, naming, setNaming);
   const removal = useMemo(() => classPickedRemoved(diagram, picked), [diagram, picked]);
 
-  // A new class, of the kind asked for, centred where it is put, its name typed at once.
-  const added = (note: string | null, middle: Point) => {
+  // A new class, of the kind asked for, centred where it is put, in the package it is put in, named at once.
+  const added = (sort: Sort, middle: Point) => {
+    const base = classesPinned(diagram, laid);
+    if (sort === "namespace") {
+      const box = { x: middle.x - SPACE.wide / 2, y: middle.y - SPACE.tall / 2, ...SPACE };
+      const made = namespaceAdded(base, t("classNewNamespace"), t("classNew"), box);
+      change(made);
+      if (made.picked?.kind === "class") setNaming({ kind: "class", name: made.picked.name });
+      return;
+    }
     const at = { x: middle.x - NEW_CLASS.wide / 2, y: middle.y - NEW_CLASS.tall / 2 };
-    const made = classAdded(classesPinned(diagram, laid), t("classNew"), note, at);
-    change(made);
-    if (made.picked?.kind === "class") setNaming({ kind: "class", name: made.picked.name });
+    const made = classAdded(base, t("classNew"), noteOf(sort), at);
+    const name = made.picked?.kind === "class" ? made.picked.name : "";
+    const now = reclassed(classReread(base, made), new Map([[name, { ...at, ...NEW_CLASS }]]));
+    change({ body: now.body, places: now.places, picked: made.picked });
+    setNaming({ kind: "class", name });
   };
   const middleOfPane = () => {
     const box = pane.current?.getBoundingClientRect();
@@ -82,7 +100,7 @@ function Drawing({ editing, dark }: Readonly<{ editing: Classing; dark: boolean 
   };
   const landed = (sort: Sort, at: Point) => {
     if (!pane.current?.contains(document.elementFromPoint(at.x, at.y))) return;
-    added(noteOf(sort), screenToFlowPosition(at));
+    added(sort, screenToFlowPosition(at));
   };
   const keyed = (e: KeyboardEvent) => {
     if (elsewhere(e)) return;
@@ -129,10 +147,16 @@ function Drawing({ editing, dark }: Readonly<{ editing: Classing; dark: boolean 
   return (
     <div className="flex min-h-0 min-w-0 flex-1">
       <Palette<Sort>
-        groups={[{ title: t("classPalette"), items: sorts }]}
-        sketch={(sort) => <Sketch paths={[sort === "plain" ? CLASS_SKETCH : KIND_SKETCH]} />}
+        groups={[
+          { title: t("classPalette"), items: sorts },
+          {
+            title: t("classNamespaces"),
+            items: [{ key: "namespace", label: t("classNamespace") }],
+          },
+        ]}
+        sketch={(sort) => <Sketch paths={[SKETCHES[sort] ?? KIND_SKETCH]} />}
         hint={t("classPaletteHint")}
-        onAdd={(sort) => added(noteOf(sort), middleOfPane())}
+        onAdd={(sort) => added(sort, middleOfPane())}
         onDrop={landed}
       />
       {/* biome-ignore lint/a11y/noStaticElementInteractions: the keys belong to the canvas inside */}
@@ -140,7 +164,7 @@ function Drawing({ editing, dark }: Readonly<{ editing: Classing; dark: boolean 
         <ClassToolbar editing={editing} laid={laid} removal={removal} />
         <div ref={pane} className="relative min-h-0 flex-1 bg-desk">
           <HeadMarkers />
-          <ReactFlow<ClassNode, WireEdge>
+          <ReactFlow<ClassNode | FrameNode | LaneNode, WireEdge>
             nodes={nodes}
             edges={edges}
             nodeTypes={NODE_TYPES}
@@ -155,7 +179,10 @@ function Drawing({ editing, dark }: Readonly<{ editing: Classing; dark: boolean 
             onNodesChange={moved}
             onNodeClick={(e, node) => {
               // A click held with Ctrl or ⌘ adds to what is chosen, which React Flow has just told.
-              if (!e.ctrlKey && !e.metaKey) pick({ kind: "class", name: node.id });
+              if (e.ctrlKey || e.metaKey) return;
+              if (node.type === "class") pick({ kind: "class", name: node.id });
+              if (node.type === "lane")
+                pick({ kind: "namespace", name: node.id.slice(GROUP.length) });
             }}
             onEdgeClick={(_, edge) => pick({ kind: "link", index: Number(edge.id) })}
             onEdgeDoubleClick={(_, edge) => setNaming({ kind: "link", index: Number(edge.id) })}

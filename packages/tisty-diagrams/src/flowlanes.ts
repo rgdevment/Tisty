@@ -2,7 +2,7 @@ import type { Flow } from "./flow";
 import { type FlowAltered, groupAdded, nodeMoved, placed, reread } from "./flowing";
 import type { Rect } from "./graphlayout";
 import type { Spot } from "./places";
-import { lanesOf } from "./scenes";
+import { laneHolding, lanesOf } from "./scenes";
 
 /** The sizes a lane starts at: a column for steps that go down, a row for steps that go across. */
 export const LANE_SIZES = {
@@ -41,9 +41,6 @@ export const laneResized = (flow: Flow, id: string, box: Rect): FlowAltered => (
   picked: { kind: "group", id },
 });
 
-const holds = (rect: Rect, x: number, y: number) =>
-  x >= rect.x && x <= rect.x + rect.wide && y >= rect.y && y <= rect.y + rect.tall;
-
 /** Shapes let go in a lane join it, outside every lane leave it; one its lane names in an arrow goes back. */
 export const regrouped = (
   flow: Flow,
@@ -55,13 +52,7 @@ export const regrouped = (
   for (const [id, rect] of at) {
     const node = now.nodes.find((one) => one.id === id);
     if (!node) continue;
-    const x = rect.x + rect.wide / 2;
-    const y = rect.y + rect.tall / 2;
-    // The smallest lane holding it wins, so a lane drawn inside another can be reached.
-    const into =
-      lanes
-        .filter((one) => holds(one.rect, x, y))
-        .sort((a, b) => a.rect.wide * a.rect.tall - b.rect.wide * b.rect.tall)[0]?.id ?? null;
+    const into = laneHolding(lanes, rect);
     const inLane = lanes.some((one) => one.id === node.group);
     if (into === node.group || (into === null && !inLane)) continue;
     const made = nodeMoved(now, id, into);

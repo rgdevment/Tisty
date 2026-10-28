@@ -8,10 +8,12 @@ import {
   memberAdded,
   memberChanged,
   memberRemoved,
+  namespaceRemoved,
   visibilityOf,
   withVisibility,
 } from "./classing";
 import { KINDS, SORTS, VISIBILITY_WORDS } from "./classkinds";
+import { classMovedTo, namespaceRenamed } from "./classspaces";
 import { useHands, useSay } from "./handing";
 import { Chosen, Said, Section } from "./panelbits";
 import type { Classing } from "./useClasses";
@@ -24,6 +26,11 @@ export default function ClassPanel({ editing }: Readonly<{ editing: Classing }>)
   const name = picked?.kind === "class" || picked?.kind === "member" ? picked.name : null;
   const chosen = name ? diagram.classes.find((one) => one.name === name) : undefined;
   const link = picked?.kind === "link" ? diagram.links[picked.index] : undefined;
+  const space = picked?.kind === "namespace" ? picked.name : null;
+  const spaces = [
+    { value: "", label: t("classNoNamespace") },
+    ...diagram.groups.map((one) => ({ value: one.id, label: one.id })),
+  ];
   const sort = chosen?.note ?? "";
   // A kind written by hand that the list does not offer is still shown, as it is written.
   const sorts = [
@@ -41,7 +48,24 @@ export default function ClassPanel({ editing }: Readonly<{ editing: Classing }>)
 
   return (
     <div className="flex flex-col gap-3">
-      {!chosen && !link && (
+      {space && (
+        <Section title={t("classNamespace")}>
+          <Said
+            id="class-namespace-name"
+            label={t("schemaName")}
+            value={space}
+            onSay={(said) => change(namespaceRenamed(diagram, space, said))}
+          />
+          <button
+            type="button"
+            className={`${button} self-start`}
+            onClick={() => change(namespaceRemoved(diagram, space))}
+          >
+            {t("classUngroup")}
+          </button>
+        </Section>
+      )}
+      {!chosen && !link && !space && (
         <p className="m-0 text-[12.5px] text-faint">
           {picked?.kind === "classes"
             ? t("flowPickedMany", String(picked.names.length))
@@ -56,6 +80,15 @@ export default function ClassPanel({ editing }: Readonly<{ editing: Classing }>)
             value={chosen.name}
             onSay={(said) => change(classRenamed(diagram, chosen.name, said))}
           />
+          {diagram.groups.length > 0 && (
+            <Chosen
+              id="class-namespace"
+              label={t("classNamespace")}
+              value={chosen.group ?? ""}
+              options={spaces}
+              onChoose={(into) => change(classMovedTo(diagram, chosen.name, into || null))}
+            />
+          )}
           <Chosen
             id="class-sort"
             label={t("classSort")}

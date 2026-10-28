@@ -8,6 +8,7 @@ export type ClassPicked =
   | { readonly kind: "member"; readonly name: string; readonly index: number }
   | { readonly kind: "link"; readonly index: number }
   | { readonly kind: "classes"; readonly names: readonly string[] }
+  | { readonly kind: "namespace"; readonly name: string }
   | null;
 
 /** A change is new text for the body of the diagram, read again by whoever shows it. */
@@ -24,12 +25,22 @@ export const classReread = (diagram: Classes, made: ClassAltered): Classes =>
     writeClasses({ ...diagram, body: made.body, places: made.places ?? diagram.places }),
   ) ?? diagram;
 
-const indentOf = (line: string | undefined) =>
+/** Mermaid takes no empty `namespace`: one a change leaves without classes goes with it. */
+export const spacesKept = (diagram: Classes, made: ClassAltered): ClassAltered => {
+  const now = classReread(diagram, made);
+  const empty = now.groups.filter((group) => !now.classes.some((one) => one.group === group.id));
+  if (!empty.length) return made;
+  const gone = new Set(empty.flatMap((group) => [group.open, group.close]));
+  return { ...made, body: now.body.filter((_, at) => !gone.has(at)), places: now.places };
+};
+
+export const indentOf = (line: string | undefined) =>
   line?.slice(0, line.length - line.trimStart().length) ?? "";
-const indentIn = (diagram: Classes) => indentOf(diagram.body.find((one) => one.trim())) || "  ";
+export const indentIn = (diagram: Classes) =>
+  indentOf(diagram.body.find((one) => one.trim())) || "  ";
 const classOf = (diagram: Classes, name: string) =>
   diagram.classes.find((one) => one.name === name);
-const plain = (said: string) => said.trim().replace(/\s+/g, "_");
+export const plain = (said: string) => said.trim().replace(/\s+/g, "_");
 
 const placedIn = (diagram: Classes, name: string, at: Spot) =>
   placed(diagram.places, indentIn(diagram), name, at);
@@ -113,11 +124,13 @@ export const classKindChanged = (
       picked,
     };
   }
-  const at = own.close ?? own.decl ?? diagram.body.length - 1;
+  // Mermaid takes nothing but classes inside a namespace, so the kind is said after it.
+  const space = diagram.groups.find((one) => one.id === own.group);
+  const at = space?.close ?? own.close ?? own.decl ?? diagram.body.length - 1;
   return {
     body: [
       ...diagram.body.slice(0, at + 1),
-      `${indentOf(diagram.body[at]) || indentIn(diagram)}<<${note}>> ${name}`,
+      `${space ? indentOf(diagram.body[space.open]) : indentOf(diagram.body[at]) || indentIn(diagram)}<<${note}>> ${name}`,
       ...diagram.body.slice(at + 1),
     ],
     picked,
@@ -173,11 +186,11 @@ const goesWith = (diagram: Classes, name: string) => {
 
 export const classRemoved = (diagram: Classes, name: string): ClassAltered => {
   const going = goesWith(diagram, name);
-  return {
+  return spacesKept(diagram, {
     body: diagram.body.filter((_, at) => !going.has(at)),
     places: diagram.places.filter((one) => one.id !== name),
     picked: null,
-  };
+  });
 };
 
 /** A member goes inside the class's braces; a class without them gets them. */
@@ -278,11 +291,22 @@ export const linkRemoved = (diagram: Classes, index: number): ClassAltered => {
   return { body: diagram.body.filter((_, at) => at !== link.line), picked: null };
 };
 
+/** A namespace taken apart: its opening and closing lines go, its classes stay. */
+export const namespaceRemoved = (diagram: Classes, id: string): ClassAltered => {
+  const group = diagram.groups.find((one) => one.id === id);
+  if (!group) return { body: diagram.body, picked: null };
+  return {
+    body: diagram.body.filter((_, at) => at !== group.open && at !== group.close),
+    picked: null,
+  };
+};
+
 /** What taking out the chosen thing leaves; several classes go one after another. */
 export const classPickedRemoved = (diagram: Classes, picked: ClassPicked): ClassAltered | null => {
   if (picked?.kind === "class") return classRemoved(diagram, picked.name);
   if (picked?.kind === "member") return memberRemoved(diagram, picked.name, picked.index);
   if (picked?.kind === "link") return linkRemoved(diagram, picked.index);
+  if (picked?.kind === "namespace") return namespaceRemoved(diagram, picked.name);
   if (picked?.kind !== "classes") return null;
   const left = picked.names.reduce(
     (now, name) => classReread(now, classRemoved(now, name)),

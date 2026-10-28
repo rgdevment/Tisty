@@ -1,25 +1,26 @@
-import type { NodeChange } from "@xyflow/react";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { type ClassNode, headId } from "./ClassNodes";
-import { choiceAfter } from "./choosing";
+import type { Classes } from "./classes";
 import {
+  type ClassAltered,
   type ClassPicked,
   classesPinned,
   classesPlaced,
   classRenamed,
+  classReread,
   linkChanged,
 } from "./classing";
+import { classLanesOf, namespaceMoved, namespaceResized, reclassed } from "./classspaces";
 import type { WireEdge } from "./FlowWire";
 import { looksOf } from "./flowstyles";
-import type { Rect } from "./graphlayout";
+import { around } from "./graphlayout";
 import { useSay } from "./handing";
-import { handlesOf } from "./ShapeNodes";
+import { type FrameNode, handlesOf, type LaneNode } from "./ShapeNodes";
 import { classJointsOf, classLaid, classSize } from "./scenes";
 import type { Classing } from "./useClasses";
+import { GROUP, useMoving } from "./useMoving";
 
 export type ClassNaming = { kind: "class"; name: string } | { kind: "link"; index: number } | null;
-
-type Point = { readonly x: number; readonly y: number };
 
 /** The classes chosen, one or several. */
 export const chosenClasses = (picked: ClassPicked): readonly string[] => {
@@ -27,7 +28,13 @@ export const chosenClasses = (picked: ClassPicked): readonly string[] => {
   return picked?.kind === "classes" ? picked.names : [];
 };
 
-/** What React Flow draws of a class diagram, and the classes as they are dragged, written once let go. */
+const settled = (diagram: Classes, picked: ClassPicked): ClassAltered => ({
+  body: diagram.body,
+  places: diagram.places,
+  picked,
+});
+
+/** What React Flow draws of a class diagram, and its classes and packages as they are dragged and sized. */
 export const useClassCanvas = (
   editing: Classing,
   naming: ClassNaming,
@@ -35,34 +42,66 @@ export const useClassCanvas = (
 ) => {
   const t = useSay();
   const { diagram, picked, change, pick } = editing;
-  const [moving, setMoving] = useState<ReadonlyMap<string, Point>>(new Map());
   const still = useMemo(() => classLaid(diagram), [diagram]);
+  const lanes = useMemo(
+    () => new Map(classLanesOf(diagram).map((one) => [one.id, one])),
+    [diagram],
+  );
   const looks = useMemo(() => looksOf(diagram), [diagram]);
-  const laid = useMemo(() => {
-    if (!moving.size) return still;
-    const at = new Map<string, Rect>(still);
-    for (const [name, point] of moving) {
-      const rect = at.get(name);
-      if (rect) at.set(name, { ...rect, ...point });
-    }
-    return at;
-  }, [still, moving]);
   const chosen = chosenClasses(picked);
   const chosenKey = chosen.join("\n");
+  const { moving, laid, inside, moved, sizing, sized } = useMoving({
+    still,
+    lanes,
+    groupOf: (name) => diagram.classes.find((one) => one.name === name)?.group ?? null,
+    chosen,
+    choose: (choice) =>
+      pick(
+        "several" in choice
+          ? { kind: "classes", names: choice.several }
+          : { kind: "class", name: choice.one },
+      ),
+    // Packages first, then the classes dropped in them, which may join or leave one on the way.
+    settle: (spots, at) => {
+      let now = classesPinned(diagram, at);
+      const shifted: { name: string; x: number; y: number }[] = [];
+      for (const [key, spot] of spots) {
+        if (key.startsWith(GROUP))
+          now = classReread(now, namespaceMoved(now, key.slice(GROUP.length), spot));
+        else shifted.push({ name: key, x: spot.x, y: spot.y });
+      }
+      if (shifted.length) {
+        now = classReread(now, classesPlaced(now, shifted, null));
+        const rects = shifted.flatMap((one) => {
+          const rect = at.get(one.name);
+          return rect ? [[one.name, { ...rect, x: one.x, y: one.y }] as const] : [];
+        });
+        now = reclassed(now, new Map(rects));
+      }
+      const first = [...spots.keys()][0];
+      if (picked?.kind === "classes") change(settled(now, picked));
+      else if (first.startsWith(GROUP))
+        change(settled(now, { kind: "namespace", name: first.slice(GROUP.length) }));
+      else change(settled(now, { kind: "class", name: first }));
+    },
+    resize: (lane, box, at) => change(namespaceResized(classesPinned(diagram, at), lane, box)),
+  });
 
   // The same objects while another class is dragged, so only the one moving is drawn again.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `chosenKey` stands for `chosen`
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `chosenKey` stands for `chosen`, `lanes` for `inside`
   const placedCards = useMemo(
     (): ClassNode[] =>
       diagram.classes.flatMap((box) => {
         const rect = still.get(box.name);
         if (!rect) return [];
         const size = classSize(box);
+        const lane = box.group ? lanes.get(box.group) : undefined;
         return [
           {
             id: box.name,
             type: "class",
-            position: { x: rect.x, y: rect.y },
+            position: inside(box.name, rect),
+            parentId: lane ? `${GROUP}${lane.id}` : undefined,
             width: size.wide,
             height: size.tall,
             handles: handlesOf(size.wide, size.tall),
@@ -85,14 +124,59 @@ export const useClassCanvas = (
           },
         ];
       }),
-    [diagram, still, looks, chosenKey, naming, t, pick, change, setNaming],
+    [diagram, still, lanes, looks, chosenKey, naming, t, pick, change, setNaming],
   );
-  const cards = moving.size
-    ? placedCards.map((one) => {
-        const point = moving.get(one.id);
-        return point ? { ...one, position: point } : one;
-      })
-    : placedCards;
+  const cards = placedCards.map((one) => {
+    const spot = moving.get(one.id);
+    return spot ? { ...one, position: inside(one.id, spot) } : one;
+  });
+  const isPicked = (name: string) => picked?.kind === "namespace" && picked.name === name;
+  const laneNodes = [...lanes.values()].map((lane): LaneNode => {
+    const rect = { ...lane.rect, ...moving.get(`${GROUP}${lane.id}`) };
+    return {
+      id: `${GROUP}${lane.id}`,
+      type: "lane",
+      position: { x: rect.x, y: rect.y },
+      width: rect.wide,
+      height: rect.tall,
+      zIndex: -1,
+      selected: isPicked(lane.id),
+      data: {
+        title: lane.title,
+        across: rect.wide > rect.tall,
+        picked: isPicked(lane.id),
+        onPick: () => pick({ kind: "namespace", name: lane.id }),
+        onResizing: sizing,
+        onResized: (box) => sized(lane.id, box),
+      },
+    };
+  });
+  const frames = diagram.groups.flatMap((group): FrameNode[] => {
+    if (lanes.has(group.id)) return [];
+    const rect = around(
+      diagram.classes
+        .filter((one) => one.group === group.id)
+        .flatMap((one) => laid.get(one.name) ?? []),
+    );
+    if (!rect) return [];
+    return [
+      {
+        id: `${GROUP}${group.id}`,
+        type: "frame",
+        position: { x: rect.x, y: rect.y },
+        width: rect.wide,
+        height: rect.tall,
+        zIndex: -1,
+        draggable: false,
+        selectable: false,
+        data: {
+          title: group.id,
+          picked: isPicked(group.id),
+          onPick: () => pick({ kind: "namespace", name: group.id }),
+        },
+      },
+    ];
+  });
   const wires = useMemo(
     (): WireEdge[] =>
       classJointsOf(diagram).map((one, index) => ({
@@ -124,31 +208,6 @@ export const useClassCanvas = (
     [diagram, picked, naming, t, pick, change, setNaming],
   );
 
-  // A drag or a nudge with the arrow keys is written once it ends, at the point it ended.
-  const moved = (changes: NodeChange[]) => {
-    const choice = choiceAfter(chosen, changes, () => false);
-    if (choice && "several" in choice) pick({ kind: "classes", names: choice.several });
-    else if (choice) pick({ kind: "class", name: choice.one });
-    const spots = new Map(moving);
-    let touched = false;
-    let ended = false;
-    for (const one of changes)
-      if (one.type === "position" && one.position) {
-        spots.set(one.id, one.position);
-        touched = true;
-        ended ||= !one.dragging;
-      }
-    if (!touched) return;
-    if (!ended) {
-      setMoving(spots);
-      return;
-    }
-    setMoving(new Map());
-    const moves = [...spots].map(([name, at]) => ({ name, x: at.x, y: at.y }));
-    const kept: ClassPicked =
-      picked?.kind === "classes" ? picked : { kind: "class", name: moves[0].name };
-    change(classesPlaced(classesPinned(diagram, laid), moves, kept));
-  };
-
-  return { nodes: cards, edges: wires, laid, moved };
+  // Parents before the classes in them, as React Flow asks.
+  return { nodes: [...frames, ...laneNodes, ...cards], edges: wires, laid, moved };
 };

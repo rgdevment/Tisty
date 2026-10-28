@@ -206,6 +206,39 @@ describe("a class diagram in the diagram window", () => {
     expect(text()).not.toContain("%% tisty:");
   });
 
+  it("puts a package with a class in it from the palette, and moves the package with its classes", () => {
+    opened();
+
+    fireEvent.click(palette().getByRole("button", { name: say("classNamespace") }));
+    typed(within(card(`${say("classNew")}1`)).getByRole("textbox"), "Pez");
+    expect(text()).toContain(`  namespace ${say("classNewNamespace")}1 {\n    class Pez\n  }\n`);
+    expect(text()).toMatch(
+      new RegExp(`%% tisty: ${say("classNewNamespace")}1 -?\\d+ -?\\d+ 300 360`),
+    );
+
+    const lane = document.querySelector(
+      `[data-lane="group:${say("classNewNamespace")}1"]`,
+    ) as HTMLElement;
+    const before = Number(text().match(/%% tisty: Pez (-?\d+)/)?.[1]);
+    fireEvent.click(within(lane).getByRole("button", { name: `${say("classNewNamespace")}1` }));
+    fireEvent.keyDown(lane.closest(".react-flow__node") as HTMLElement, { key: "ArrowRight" });
+    expect(Number(text().match(/%% tisty: Pez (-?\d+)/)?.[1])).toBeGreaterThan(before);
+  });
+
+  it("moves a class into a package from the panel, and renames and takes the package apart", () => {
+    opened("classDiagram\n  namespace Zoo {\n    class Animal\n  }\n  class Duck\n");
+    pickClass("Duck");
+
+    fireEvent.change(screen.getByLabelText(say("classNamespace")), { target: { value: "Zoo" } });
+    expect(text()).toBe("classDiagram\n  namespace Zoo {\n    class Animal\n    class Duck\n  }\n");
+
+    fireEvent.click(screen.getByRole("button", { name: "Zoo" }));
+    leave(say("schemaName"), "Granja");
+    expect(text()).toContain("  namespace Granja {");
+    fireEvent.click(screen.getByRole("button", { name: say("classUngroup") }));
+    expect(text()).not.toContain("namespace");
+  });
+
   it("writes where a class is nudged with the arrow keys", () => {
     opened();
     pickClass("Duck");
@@ -219,7 +252,7 @@ describe("a class diagram in the diagram window", () => {
   });
 
   it("leaves as Mermaid draws it a class diagram it cannot keep", () => {
-    opened("classDiagram\n  namespace Zoo {\n    class A\n  }\n");
+    opened("classDiagram\n  namespace Zoo {\n    class A\n    A --> B\n  }\n");
 
     expect(document.querySelector("[data-node]")).toBeNull();
     expect(screen.queryByText(say("classPick"))).toBeNull();

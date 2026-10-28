@@ -22,6 +22,10 @@ const signOf = (diagram: Classes, picked: ClassPicked): string | null => {
     return picked.names.every((name) => diagram.classes.some((one) => one.name === name))
       ? `classes\n${picked.names.join("\n")}`
       : null;
+  if (picked.kind === "namespace")
+    return diagram.groups.some((one) => one.id === picked.name)
+      ? `namespace\n${picked.name}`
+      : null;
   if (picked.kind === "member") {
     const member = diagram.classes.find((one) => one.name === picked.name)?.members[picked.index];
     return member ? `${picked.name}\n${member.text}` : null;

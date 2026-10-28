@@ -35,7 +35,7 @@ classDiagram⏎  Animal o-- Zoo⏎  Animal --> Food⏎  Animal ..> Water⏎  Ani
 const REFUSED = `
 classDiagram⏎  class A {⏎    +int x
 classDiagram⏎  class A⏎  class A
-classDiagram⏎  namespace Tienda {⏎    class A⏎  }
+classDiagram⏎  namespace Tienda {⏎    class A⏎    A --> B⏎  }
 graph TD⏎  a --> b
 `;
 

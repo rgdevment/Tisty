@@ -84,13 +84,28 @@ export interface Lane {
   readonly across: boolean;
 }
 
-export const lanesOf = (flow: Flow): Lane[] =>
-  flow.groups.flatMap((group) => {
-    const place = flow.places.find((one) => one.id === group.id);
+/** The groups drawn as lanes: those whose place carries a size. */
+export const lanesIn = (
+  groups: readonly { readonly id: string; readonly title: string }[],
+  places: readonly Place[],
+): Lane[] =>
+  groups.flatMap((group) => {
+    const place = places.find((one) => one.id === group.id);
     if (place?.wide === undefined || place.tall === undefined) return [];
     const rect = { x: place.x, y: place.y, wide: place.wide, tall: place.tall };
     return [{ id: group.id, title: group.title, rect, across: rect.wide > rect.tall }];
   });
+
+export const lanesOf = (flow: Flow): Lane[] => lanesIn(flow.groups, flow.places);
+
+const holds = (rect: Rect, x: number, y: number) =>
+  x >= rect.x && x <= rect.x + rect.wide && y >= rect.y && y <= rect.y + rect.tall;
+
+/** The lane a shape's middle is in; the smallest wins, so a lane drawn inside another can be reached. */
+export const laneHolding = (lanes: readonly Lane[], rect: Rect): string | null =>
+  lanes
+    .filter((one) => holds(one.rect, rect.x + rect.wide / 2, rect.y + rect.tall / 2))
+    .sort((a, b) => a.rect.wide * a.rect.tall - b.rect.wide * b.rect.tall)[0]?.id ?? null;
 
 // Places may be anywhere, even below zero; a picture starts at its margin, lanes and all.
 const framed = (at: ReadonlyMap<string, Rect>, lanes: readonly Rect[]) => {
@@ -121,25 +136,41 @@ export const jointsOf = (flow: Flow): Joint[] =>
     end: /[>ox]$/.test(one.arrow) ? "arrow" : null,
   }));
 
-export const flowScene = (flow: Flow): Scene => {
-  const lanes = new Map(lanesOf(flow).map((one) => [one.id, one.rect]));
-  const placed = flow.places.length && (flow.nodes.length || lanes.size);
-  const { laid, moved } = placed
-    ? framed(flowLaid(flow), [...lanes.values()])
-    : { laid: autoLaid(flow), moved: (rect: Rect) => rect };
-  const groups = flow.groups.flatMap((group) => {
+// What the window and the picture draw of groups: a lane at its size, or a frame around its shapes.
+const sceneWith = (
+  groups: readonly { readonly id: string; readonly title: string }[],
+  membersOf: (group: string) => readonly string[],
+  places: readonly Place[],
+  shaped: boolean,
+  laidOut: () => ReadonlyMap<string, Rect>,
+  auto: () => Laid,
+  joints: readonly Joint[],
+): Scene => {
+  const lanes = new Map(lanesIn(groups, places).map((one) => [one.id, one.rect]));
+  const { laid, moved } =
+    places.length && (shaped || lanes.size)
+      ? framed(laidOut(), [...lanes.values()])
+      : { laid: auto(), moved: (rect: Rect) => rect };
+  const drawn = groups.flatMap((group) => {
     const lane = lanes.get(group.id);
     const rect = lane
       ? moved(lane)
-      : around(
-          flow.nodes
-            .filter((one) => one.group === group.id)
-            .flatMap((one) => laid.at.get(one.id) ?? []),
-        );
+      : around(membersOf(group.id).flatMap((id) => laid.at.get(id) ?? []));
     return rect ? [{ key: group.id, rect, title: group.title }] : [];
   });
-  return { laid, joints: jointsOf(flow), groups };
+  return { laid, joints, groups: drawn };
 };
+
+export const flowScene = (flow: Flow): Scene =>
+  sceneWith(
+    flow.groups,
+    (group) => flow.nodes.filter((one) => one.group === group).map((one) => one.id),
+    flow.places,
+    flow.nodes.length > 0,
+    () => flowLaid(flow),
+    () => autoLaid(flow),
+    jointsOf(flow),
+  );
 
 export const CLASS_HEAD = 32;
 export const CLASS_LINE = 20;
@@ -212,10 +243,13 @@ export const classJointsOf = (diagram: Classes): Joint[] =>
     };
   });
 
-export const classScene = (diagram: Classes): Scene => {
-  const laid =
-    diagram.places.length && diagram.classes.length
-      ? framed(classLaid(diagram), []).laid
-      : classAuto(diagram);
-  return { laid, joints: classJointsOf(diagram), groups: [] };
-};
+export const classScene = (diagram: Classes): Scene =>
+  sceneWith(
+    diagram.groups.map((one) => ({ id: one.id, title: one.id })),
+    (group) => diagram.classes.filter((one) => one.group === group).map((one) => one.name),
+    diagram.places,
+    diagram.classes.length > 0,
+    () => classLaid(diagram),
+    () => classAuto(diagram),
+    classJointsOf(diagram),
+  );

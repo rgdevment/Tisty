@@ -15,8 +15,9 @@ export type Spot = {
   readonly tall?: number;
 };
 
+// A `namespace` of a class diagram may have dots in its name, as `com.zoo`.
 const PLACE =
-  /^\s*%% tisty: ([\p{L}\p{N}_]+(?:-[\p{L}\p{N}_]+)*) (-?\d+) (-?\d+)(?: (\d+) (\d+))?\s*$/u;
+  /^\s*%% tisty: ([\p{L}\p{N}_.]+(?:-[\p{L}\p{N}_.]+)*) (-?\d+) (-?\d+)(?: (\d+) (\d+))?\s*$/u;
 
 const placeOf = (line: string): Place | null => {
   const found = PLACE.exec(line);

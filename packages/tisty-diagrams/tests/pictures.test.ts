@@ -52,7 +52,9 @@ describe("the picture of a diagram the window draws", () => {
 
   it("leaves to Mermaid the kinds the window does not draw, and what it cannot read", () => {
     expect(pictureOf("sequenceDiagram\n  A->>B: hola\n")).toBeNull();
-    expect(pictureOf("classDiagram\n  namespace Zoo {\n    class A\n  }\n")).toBeNull();
+    expect(
+      pictureOf("classDiagram\n  namespace Zoo {\n    class A\n    A --> B\n  }\n"),
+    ).toBeNull();
   });
 });
 
