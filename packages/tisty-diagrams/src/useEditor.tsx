@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import ClassPanel from "./ClassPanel";
 import ClassView from "./ClassView";
+import FlowCanvas from "./FlowCanvas";
 import FlowPanel from "./FlowPanel";
-import FlowView from "./FlowView";
 import { useSay } from "./handing";
 import IdeaMap from "./IdeaMap";
 import IdeaPanel from "./IdeaPanel";
@@ -26,7 +26,11 @@ const scrolled = (panel: ReactNode) => (
 );
 
 /** The canvas and panel for the kind the text is, while the window can keep it; `null` leaves Mermaid's drawing. */
-export const useEditor = (text: string, setText: (text: string) => void): Editor | null => {
+export const useEditor = (
+  text: string,
+  setText: (text: string) => void,
+  dark: boolean,
+): Editor | null => {
   const t = useSay();
   const map = useMind(text, setText);
   const scheme = useSchema(text, setText);
@@ -73,7 +77,10 @@ export const useEditor = (text: string, setText: (text: string) => void): Editor
       ),
     };
   if (flow)
-    return { board: <FlowView editing={flow} />, panel: scrolled(<FlowPanel editing={flow} />) };
+    return {
+      board: <FlowCanvas editing={flow} dark={dark} />,
+      panel: scrolled(<FlowPanel editing={flow} />),
+    };
   if (classes)
     return {
       board: <ClassView editing={classes} />,

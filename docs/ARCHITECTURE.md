@@ -88,7 +88,7 @@ flowchart TB
 | `tisty-cli` | The `tisty` binary: the MCP server and nothing else | `mcp.rs`, `mcp/catalogue.rs` |
 | `tisty-gui` | Tauri commands (`answers/`), the `Session`, tray, reminders, updater, wiring assistants | `lib.rs`, `session.rs` |
 | `app/src` | The React UI; `core.ts` holds the typed `invoke` wrappers | `App.tsx` |
-| `packages/tisty-diagrams` | The diagram studio: Mermaid read and written back, laid out, drawn as SVG, and edited by hand. A private package, never published, that needs nothing of the app: the app hands it its words' language, Mermaid's drawing and the clipboard, and enters only by `tisty-diagrams/read` and `tisty-diagrams/studio`. The app's toolchain builds, tests and lints it | `read.ts`, `DiagramStudio.tsx` |
+| `packages/tisty-diagrams` | The diagram studio: Mermaid read and written back, laid out, drawn as SVG, and edited by hand on a React Flow canvas. A private package, never published, that needs nothing of the app: the app hands it its words' language, Mermaid's drawing and the clipboard, and enters only by `tisty-diagrams/read` and `tisty-diagrams/studio`. The app's toolchain builds, tests and lints it | `read.ts`, `DiagramStudio.tsx` |
 
 `scripts/rules.sh` keeps the studio and the app apart. Only `tisty-carrier`
 depends on `tisty-sync`. Only the window and the provider crates hold network

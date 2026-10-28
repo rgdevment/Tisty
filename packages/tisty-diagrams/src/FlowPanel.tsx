@@ -1,4 +1,3 @@
-import { SHAPES } from "./flow";
 import {
   ARROWS,
   directionChanged,
@@ -12,25 +11,13 @@ import {
   nodeMoved,
   nodeRemoved,
 } from "./flowing";
-import { nameOfShape, pictured, type Shape } from "./flowshapes";
+import { pictured } from "./flowshapes";
 import type { Direction } from "./graphlayout";
 import { useHands, useSay } from "./handing";
+import { SHAPES, shapeName } from "./paletteshapes";
 import { Chosen, Said, Section } from "./panelbits";
 import type { Flowing } from "./useFlow";
 import type { Word } from "./words";
-
-const SHAPE_WORDS: Partial<Record<Shape, Word>> = {
-  process: "flowShapeProcess",
-  rounded: "flowShapeRounded",
-  stadium: "flowShapeStadium",
-  circle: "flowShapeCircle",
-  decision: "flowShapeDecision",
-  hexagon: "flowShapeHexagon",
-  database: "flowShapeDatabase",
-  subroutine: "flowShapeSubroutine",
-  lean: "flowShapeLean",
-  flag: "flowShapeFlag",
-};
 
 const ARROW_WORDS: Record<(typeof ARROWS)[number], Word> = {
   "-->": "flowArrowPlain",
@@ -61,10 +48,10 @@ export default function FlowPanel({ editing }: Readonly<{ editing: Flowing }>) {
   const removing = node ? nodeRemoved(flow, node.id) : null;
   const shape = node?.shape ?? "process";
   // A shape written by hand that the list does not offer is still shown, by Mermaid's name for it.
-  const shapes = (SHAPES.includes(shape) ? SHAPES : [...SHAPES, shape]).map((one) => {
-    const word = SHAPE_WORDS[one];
-    return { value: one, label: word ? t(word) : nameOfShape(one) };
-  });
+  const shapes = (SHAPES.includes(shape) ? SHAPES : [...SHAPES, shape]).map((one) => ({
+    value: one,
+    label: shapeName(one, t),
+  }));
   const arrows = (ARROWS as readonly string[]).includes(edge?.arrow ?? "")
     ? ARROWS.map((one) => ({ value: one as string, label: t(ARROW_WORDS[one]) }))
     : [

@@ -89,9 +89,6 @@ const stroked = (look: Look) =>
 export const boxed = (rect: Rect, look: Look): string =>
   `<rect x="${at(rect.x)}" y="${at(rect.y)}" width="${at(rect.wide)}" height="${at(rect.tall)}" rx="${at(look.radius ?? 0)}" ry="${at(look.ry ?? look.radius ?? 0)}" ${stroked(look)}/>`;
 
-export const ringed = (rect: Rect, look: Look): string =>
-  `<ellipse cx="${at(rect.x + rect.wide / 2)}" cy="${at(rect.y + rect.tall / 2)}" rx="${at(rect.wide / 2)}" ry="${at(rect.tall / 2)}" ${stroked(look)}/>`;
-
 // The window cuts shapes with CSS percents; the picture has to say the same points in SVG.
 export const cut = (polygon: string, rect: Rect, look: Look): string => {
   const points = [...polygon.matchAll(/([\d.]+)%?\s+([\d.]+)%?/g)].map(
