@@ -23,6 +23,7 @@ export interface Hands {
   papers: Papers;
   showing: string | null;
   newDoc: (folder?: string, pageOf?: string) => void;
+  newDiagram: (folder?: string) => void;
   bringIn: (folder?: string) => void;
   makeFolder: () => void;
   makeFolderIn: (folder: string) => void;
@@ -47,6 +48,7 @@ const byAnother = (doc: Filed) => doc.away && !doc.archived;
 
 export const hereChoices = (h: Hands, folder?: string): Choice[] => [
   { key: "newDoc", icon: "+", label: t("newDoc"), onPick: () => h.newDoc(folder) },
+  { key: "newDiagram", icon: "+", label: t("newDiagram"), onPick: () => h.newDiagram(folder) },
   {
     key: "newFolder",
     icon: "+",
@@ -82,6 +84,13 @@ export const folderChoices = (folder: Folded, h: Hands): Choice[] => [
     label: t("newDoc"),
     off: folder.away,
     onPick: () => h.newDoc(folder.id),
+  },
+  {
+    key: "newDiagram",
+    icon: "+",
+    label: t("newDiagram"),
+    off: folder.away,
+    onPick: () => h.newDiagram(folder.id),
   },
   {
     key: "newFolder",

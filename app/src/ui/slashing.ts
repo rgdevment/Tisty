@@ -15,7 +15,7 @@ import { anchored, coded, linking, TAG_EDGE, TAG_TAIL, TAG_WORD, wrapped } from 
 
 type Said = Parameters<typeof t>[0];
 
-export type Asked = "newPage" | "page" | "newDoc" | "doc" | "icon" | "file";
+export type Asked = "newPage" | "page" | "newDoc" | "doc" | "icon" | "file" | "diagram";
 
 export type Asking = {
   readonly kinds: readonly Asked[];
@@ -132,7 +132,20 @@ export const SLASHED: readonly Slashed[] = [
     icon: "file-add",
     put: { ask: "file", block: true },
   },
-  { key: "mermaid", label: "diagramIt", hint: "```mermaid", icon: "graph", put: fenced("mermaid") },
+  {
+    key: "diagram",
+    label: "newDiagram",
+    hint: "+",
+    icon: "graph",
+    put: { ask: "diagram", block: true },
+  },
+  {
+    key: "mermaid",
+    label: "diagramAsText",
+    hint: "```mermaid",
+    icon: "graph",
+    put: fenced("mermaid"),
+  },
   { key: "math", label: "formulaIt", hint: "```math", icon: "maths", put: fenced("math") },
   { key: "widget", label: "widgetIt", hint: "```widget", icon: "layout", put: fenced("widget") },
   { key: "code", label: "codeBlock", hint: "```", icon: "code", put: fenced("") },

@@ -20,6 +20,7 @@
       "allow": [{ "url": "ms-windows-store://*" }]
     },
     "clipboard-manager:allow-write-text",
+    "clipboard-manager:allow-write-image",
     "dialog:default",
     "global-shortcut:default",
     "notification:default",

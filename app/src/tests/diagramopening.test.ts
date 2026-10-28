@@ -169,3 +169,40 @@ describe("opening a diagram of the page in its own window", () => {
     expect(heard.diagrams).toEqual([]);
   });
 });
+
+describe("exporting a diagram from the page", () => {
+  it("offers its own button beside the window's, and says which figure and where to open", () => {
+    const own = page(BODY);
+    const heard: [number, string, { x: number; y: number }][] = [];
+    const reach: Reaching = {
+      ...reaching(false).reach,
+      onDiagramExport: (nth, source, at) => heard.push([nth, source, at]),
+    };
+    worn(own, false, () => true, reach);
+    wired(own, () => reach);
+
+    const outs = own.querySelectorAll('.diagram-bar > button[data-asked="diagramExport"]');
+    expect(Array.from(outs, (one) => one.getAttribute("aria-label"))).toEqual([
+      t("diagramExport"),
+      t("diagramExport"),
+    ]);
+    expect(own.querySelector('.diagram-bar > button[data-asked="diagram"]')).toBeNull();
+    expect(went(outs[1], false)).toEqual({ kind: "diagramExport", at: [34, 78] });
+
+    press(outs[1], 1);
+    answered(own, { kind: "diagramExport", at: [1, 2] }, reach);
+
+    expect(heard).toEqual([[1, "mindmap", { x: 0, y: 4 }]]);
+  });
+
+  it("keeps both buttons where the page can also be written", () => {
+    const own = page(BODY);
+    diagramBars(own, { open: true, out: true });
+
+    expect(
+      Array.from(own.querySelectorAll(".diagram-bar")[0].children, (one) =>
+        one.getAttribute("data-asked"),
+      ),
+    ).toEqual(["diagramExport", "diagram"]);
+  });
+});

@@ -2,14 +2,22 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { useEffect, useRef, useState } from "react";
 import type { Viewed } from "../../core";
-import { diagramAgain, diagramLeave, diagramSave, diagramUnsaved } from "../../drawing";
+import {
+  diagramAgain,
+  diagramLeave,
+  diagramOrder,
+  diagramSave,
+  diagramUnsaved,
+} from "../../drawing";
 import { fill, t, type Word } from "../../locales";
 import { saidPlainly } from "../../refusal";
+import Menu from "../Menu";
 import { darkNow } from "../viewer/acting";
 import { button, tinted } from "../viewer/Glyphs";
 import TitleBar from "../viewer/TitleBar";
 import WindowChrome from "../WindowChrome";
 import Canvas from "./Canvas";
+import { exportChoices, fileName } from "./exporting";
 import { asRead, type DiagramKind, kindOf } from "./framing";
 import { useEditor } from "./useEditor";
 
@@ -48,6 +56,9 @@ export default function Diagramming({
   const [saving, setSaving] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [moved, setMoved] = useState(false);
+  // What an export said holds only while the text is the one it was made from.
+  const [told, setTold] = useState<{ said: string; of: string } | null>(null);
+  const [exporting, setExporting] = useState<{ x: number; y: number } | null>(null);
   const dark = useDark();
   const editor = useEditor(text, setText);
   const unsaved = asRead(text) !== kept;
@@ -145,11 +156,44 @@ export default function Diagramming({
             : t(KIND_WORDS[kindOf(text)])
         }
       >
+        {told?.of === text && <span className="text-[12px] text-accent">{told.said}</span>}
         <output className="text-[12px] text-faint">{t(stateOf(saving, unsaved))}</output>
+        <button
+          type="button"
+          className={button}
+          aria-haspopup="menu"
+          onClick={(e) => {
+            const box = e.currentTarget.getBoundingClientRect();
+            setExporting({ x: box.left, y: box.bottom + 4 });
+          }}
+        >
+          {`${t("diagramExport")} ▾`}
+        </button>
         <button type="button" className={tinted} disabled={!unsaved || saving} onClick={save}>
           {fill("diagramSave", named)}
         </button>
       </TitleBar>
+      {exporting && (
+        <Menu
+          at={exporting}
+          label={t("diagramExport")}
+          choices={exportChoices({
+            source: text,
+            // Blocks written above it since it opened change which diagram it is.
+            name: () =>
+              diagramOrder()
+                .catch((problem) => {
+                  setNote(saidPlainly(problem));
+                  return 0;
+                })
+                .then((nth) => fileName(named, nth)),
+            dark,
+            said: (said) => setTold({ said, of: text }),
+            failed: (problem) => setNote(saidPlainly(problem)),
+          })}
+          onClose={() => setExporting(null)}
+        />
+      )}
       {note && (
         <div className="flex shrink-0 flex-wrap items-center gap-2 px-4 py-1.5">
           <p className="m-0 text-[12.5px] text-urgent" role="alert">

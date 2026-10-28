@@ -17,6 +17,7 @@ import { Alarm, Progress } from "./Banners";
 import BringingBack from "./BringingBack";
 import Cheer from "./Cheer";
 import Closing from "./Closing";
+import DiagramMaking from "./DiagramMaking";
 import Menu, { type Choice } from "./Menu";
 import Naming from "./Naming";
 import Notice from "./Notice";
@@ -77,7 +78,9 @@ export default function Layers({ parcels }: { parcels: ReactNode }) {
     lookAgain,
     lookPapers,
     makingFolder,
+    makingDiagram,
     menu,
+    newDiagram,
     note,
     openDoc,
     opening,
@@ -95,6 +98,7 @@ export default function Layers({ parcels }: { parcels: ReactNode }) {
     setGreeted,
     setLeaving,
     setMakingFolder,
+    setMakingDiagram,
     setMenu,
     setRenaming,
     setReveal,
@@ -225,6 +229,16 @@ export default function Layers({ parcels }: { parcels: ReactNode }) {
               })
               .catch((e) => setError(saidPlainly(e)))
           }
+        />
+      )}
+
+      {makingDiagram && (
+        <DiagramMaking
+          onClose={() => setMakingDiagram(null)}
+          onMake={(name, kind) => {
+            setMakingDiagram(null);
+            void newDiagram(name, kind, makingDiagram.into);
+          }}
         />
       )}
 

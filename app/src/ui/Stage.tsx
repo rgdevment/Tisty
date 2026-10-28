@@ -36,6 +36,7 @@ export default function Stage() {
     hereMenu,
     load,
     lookPapers,
+    noted,
     openDoc,
     opening,
     paging,
@@ -104,6 +105,7 @@ export default function Stage() {
         setChosen({ named: "tags", tags: [tag] });
       }}
       onError={told}
+      onNote={noted}
       tags={tagNames}
       onShown={setShowing}
       onDoc={openDoc}

@@ -388,7 +388,6 @@ const en = {
     "The history names them and the file is not here. It may arrive when another computer syncs. Deleting one deletes it on every computer, and that does not come back.",
   upkeepForget: "Delete on every computer",
   upkeepForgetWaits: "waits until {name} syncs",
-  diagramIt: "Diagram",
   formulaIt: "Formula",
   widgetIt: "Widget",
   viewApart: "Open apart",
@@ -717,6 +716,17 @@ const en = {
     "This diagram changed in «{name}» since you opened it. Close this window and open it again from the document",
   diagramOf: "Diagram · {name}",
   diagramOpen: "Open in the diagram window",
+  diagramExport: "Export",
+  exportPngClear: "PNG, transparent",
+  exportPngLight: "PNG, light",
+  exportPngDark: "PNG, dark",
+  exportJpgLight: "JPG, light",
+  exportJpgDark: "JPG, dark",
+  exportSvg: "SVG",
+  copyAsImage: "Copy as image",
+  diagramExported: "Image saved",
+  diagramCopiedImage: "Image copied",
+  diagramUnpainted: "This drawing could not be turned into an image. Try SVG, which any size fits.",
   diagramNewIdea: "New idea",
   schemaNewTable: "table",
   schemaAddTable: "+ Table",
@@ -850,6 +860,22 @@ const en = {
   diagramFlow: "Flowchart",
   diagramClasses: "Class diagram",
   diagramOther: "Mermaid diagram",
+  newDiagram: "New diagram",
+  diagramName: "Name of the diagram",
+  diagramKindAsk: "Kind",
+  diagramKindOther: "Other (Mermaid text)",
+  diagramAsText: "Mermaid block as text",
+  diagramsFolder: "Diagrams",
+  diagramNeedsTitle:
+    "This document says nothing yet, so the diagram would have no title above it. Write the title first.",
+  diagramStartMindmap: "mindmap\n  root((Main idea))\n    First branch\n    Second branch\n",
+  diagramStartSchema:
+    "erDiagram\n  customer {\n    int id PK\n    string name\n  }\n  order {\n    int id PK\n    int customer_id FK\n  }\n  customer ||--o{ order : places\n",
+  diagramStartFlow:
+    "flowchart TD\n  A[Start] --> B{Is it ready?}\n  B -->|yes| C[Finish]\n  B -->|no| A\n",
+  diagramStartClasses:
+    "classDiagram\n  class Animal {\n    +String name\n    +eat()\n  }\n  class Dog\n  Animal <|-- Dog\n",
+  diagramStartOther: "sequenceDiagram\n  Ana->>Luis: Hello\n  Luis-->>Ana: Hi!\n",
   taskPageBehind:
     "This copy leaves out words, steps or ticks the task holds now, perhaps written after it was taken out",
   taskPageBehindSure:
@@ -3156,7 +3182,6 @@ const es: Catalog = {
     "El historial los nombra y el archivo no está aquí. Puede llegar cuando otro equipo sincronice. Borrarlo lo borra en todos los equipos, y eso no vuelve.",
   upkeepForget: "Borrar en todos los equipos",
   upkeepForgetWaits: "espera a que {name} sincronice",
-  diagramIt: "Diagrama",
   formulaIt: "Fórmula",
   widgetIt: "Widget",
   viewApart: "Abrir aparte",
@@ -3486,6 +3511,18 @@ const es: Catalog = {
     "Este diagrama cambió en «{name}» desde que lo abriste. Cierra esta ventana y vuelve a abrirlo desde el documento",
   diagramOf: "Diagrama · {name}",
   diagramOpen: "Abrir en la ventana de diagramas",
+  diagramExport: "Exportar",
+  exportPngClear: "PNG transparente",
+  exportPngLight: "PNG claro",
+  exportPngDark: "PNG oscuro",
+  exportJpgLight: "JPG claro",
+  exportJpgDark: "JPG oscuro",
+  exportSvg: "SVG",
+  copyAsImage: "Copiar como imagen",
+  diagramExported: "Imagen guardada",
+  diagramCopiedImage: "Imagen copiada",
+  diagramUnpainted:
+    "No se pudo convertir este dibujo en imagen. Prueba con SVG, que admite cualquier tamaño.",
   diagramNewIdea: "Idea nueva",
   schemaNewTable: "tabla",
   schemaAddTable: "+ Tabla",
@@ -3622,6 +3659,22 @@ const es: Catalog = {
   diagramFlow: "Diagrama de flujo",
   diagramClasses: "Diagrama de clases",
   diagramOther: "Diagrama Mermaid",
+  newDiagram: "Diagrama nuevo",
+  diagramName: "Nombre del diagrama",
+  diagramKindAsk: "Tipo",
+  diagramKindOther: "Otro (texto Mermaid)",
+  diagramAsText: "Bloque Mermaid como texto",
+  diagramsFolder: "Diagramas",
+  diagramNeedsTitle:
+    "Este documento todavía no dice nada, así que el diagrama quedaría sin título encima. Escribe el título primero.",
+  diagramStartMindmap: "mindmap\n  root((Idea central))\n    Primera rama\n    Segunda rama\n",
+  diagramStartSchema:
+    "erDiagram\n  cliente {\n    int id PK\n    string nombre\n  }\n  pedido {\n    int id PK\n    int cliente_id FK\n  }\n  cliente ||--o{ pedido : hace\n",
+  diagramStartFlow:
+    "flowchart TD\n  A[Inicio] --> B{¿Está listo?}\n  B -->|sí| C[Fin]\n  B -->|no| A\n",
+  diagramStartClasses:
+    "classDiagram\n  class Animal {\n    +String nombre\n    +comer()\n  }\n  class Perro\n  Animal <|-- Perro\n",
+  diagramStartOther: "sequenceDiagram\n  Ana->>Luis: Hola\n  Luis-->>Ana: ¡Hola!\n",
   taskPageBehind:
     "Esta copia deja fuera palabras, pasos o marcas que la tarea tiene ahora, quizá escritos después de sacarla",
   taskPageBehindSure:
