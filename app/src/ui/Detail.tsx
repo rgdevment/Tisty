@@ -204,11 +204,15 @@ export default function Detail({
   const body = (
     <>
       <Title task={task} onRename={(title) => onPatch({ title })} />
-      {pace && <PaceBar paced={pace} wide />}
       {task.status === "open" && signedBy(task.created_by, task.created_via) && (
         <p className="-mt-1.5 mb-3 text-[11.5px] text-hue-teal" title={hostedOn(task.created_by)}>
           {signedBy(task.created_by, task.created_via)}
         </p>
+      )}
+      {pace && (
+        <div className="-mt-1 mb-4">
+          <PaceBar paced={pace} wide />
+        </div>
       )}
       {task.resolved && (
         <p className="mt-3 mb-4 flex items-center gap-2 rounded-md border border-hue-teal/40 bg-hue-teal/10 px-2.5 py-1.5 text-[12.5px] font-medium text-hue-teal">
