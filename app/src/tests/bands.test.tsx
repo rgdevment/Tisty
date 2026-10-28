@@ -1,7 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { banded, regrouped } from "../archive";
-import type { Standing, Task } from "../core";
+import type { Task } from "../core";
+import type { Standing } from "../deadlines";
 import TaskList from "../ui/TaskList";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));

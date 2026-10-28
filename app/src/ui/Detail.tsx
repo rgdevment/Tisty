@@ -8,6 +8,7 @@ import {
   type Task,
   type Whole,
 } from "../core";
+import type { Paced } from "../deadlines";
 import { WROTE } from "../detailing";
 import { cadence, daysFrom, stamped, whenLabel, wroteAt } from "../format";
 import { fill, t } from "../locales";
@@ -19,6 +20,7 @@ import Fields from "./Fields";
 import History from "./History";
 import Left from "./Left";
 import Menu, { type Choice } from "./Menu";
+import PaceBar from "./PaceBar";
 import Panel from "./Panel";
 import Rounds from "./Rounds";
 import Routine from "./Routine";
@@ -52,6 +54,7 @@ interface Props {
   onDoc?: (id: string) => void;
   papers?: readonly Filed[];
   whole?: Whole;
+  pace?: Paced;
   partOf?: string;
   onAddPart?: (title: string) => void;
   onOpenPart?: (id: string) => void;
@@ -95,6 +98,7 @@ export default function Detail({
   onDoc,
   papers,
   whole,
+  pace,
   partOf,
   onAddPart,
   onOpenPart,
@@ -200,6 +204,7 @@ export default function Detail({
   const body = (
     <>
       <Title task={task} onRename={(title) => onPatch({ title })} />
+      {pace && <PaceBar paced={pace} wide />}
       {task.status === "open" && signedBy(task.created_by, task.created_via) && (
         <p className="-mt-1.5 mb-3 text-[11.5px] text-hue-teal" title={hostedOn(task.created_by)}>
           {signedBy(task.created_by, task.created_via)}

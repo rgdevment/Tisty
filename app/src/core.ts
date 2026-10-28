@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
+import type { Paced, Standing } from "./deadlines";
 import { speakOf } from "./locales";
 import { settled } from "./saving";
 
@@ -155,9 +156,8 @@ export interface Snapshot {
   clients?: Record<string, string>;
   wholes?: Record<string, Whole>;
   standings?: Record<string, Standing>;
+  paces?: Record<string, Paced>;
 }
-
-export type Standing = "ahead" | "today" | "late" | "underway" | "due_soon" | "overdue";
 
 export interface Whole {
   title: string;

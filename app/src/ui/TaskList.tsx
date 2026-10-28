@@ -2,13 +2,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { type Axis, banded, monthly, regrouped, shelved } from "../archive";
 import { useAsked } from "../asked";
 import { useComing } from "../coming";
-import { type List, partsOf, type Standing, type Task, type Whole } from "../core";
+import { type List, partsOf, type Task, type Whole } from "../core";
+import type { Paced, Standing } from "../deadlines";
 import { cadence, dueLabel, lateLabel, running, stamped, whenLabel } from "../format";
 import { group, useGrouped } from "../grouping";
 import { fill, t } from "../locales";
 import { edge, placed, said, tint } from "../quadrants";
 import { agentTag, signedBy } from "../who";
 import Grouping from "./Axis";
+import PaceBar from "./PaceBar";
 import { Lozenge, Pip, saidWhen, spokenLabel } from "./Spoke";
 
 interface Props {
@@ -16,6 +18,7 @@ interface Props {
   lists: List[];
   wholes?: Record<string, Whole>;
   standings?: Record<string, Standing>;
+  paces?: Record<string, Paced>;
   selected?: string;
   fresh?: string;
   reveal?: string;
@@ -46,6 +49,7 @@ export default function TaskList({
   lists,
   wholes,
   standings,
+  paces,
   selected,
   fresh,
   reveal,
@@ -344,6 +348,7 @@ export default function TaskList({
               whole={nested || !task.part_of ? undefined : wholes?.[task.part_of]?.title}
               stands={standings?.[task.id]}
             />
+            {paces?.[task.id] && <PaceBar paced={paces[task.id]} />}
           </div>
 
           <Volume

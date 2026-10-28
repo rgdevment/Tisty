@@ -56,6 +56,14 @@ describe("what the detail of a task is handed", () => {
     expect(shown.known).toEqual(["casa"]);
   });
 
+  it("hands it the pace the core worked out, and none when it has none", () => {
+    const h = hands();
+    h.data = { ...h.data, paces: { t1: { pace: "slow", time: 36, done: 0 } } };
+
+    expect(detailOf(task, h).pace).toEqual({ pace: "slow", time: 36, done: 0 });
+    expect(detailOf(task, hands()).pace).toBeUndefined();
+  });
+
   it("sends every edit of the task through one way of acting", async () => {
     const h = hands();
     const shown = detailOf(task, h);

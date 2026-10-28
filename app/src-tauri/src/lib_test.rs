@@ -1480,6 +1480,29 @@ fn the_parts_of_a_shown_whole_come_with_their_standing() {
     );
 }
 
+#[test]
+fn a3_with_none_of_its_ten_parts_closed_is_running_slow() {
+    let from = today();
+    let day = |n| tisty_core::model::DateSpec::all_day(away(from, n), "America/Santiago");
+    let mut state = State::default();
+    let mut a3 = held("A3 · Migración de Sodimac Uruguay");
+    a3.date = Some(day(-21));
+    a3.deadline = Some(day(38));
+    for n in 0..10 {
+        let mut part = held(&format!("parte {n}"));
+        part.part_of = Some(a3.id);
+        kept(&mut state, part);
+    }
+    kept(&mut state, a3.clone());
+
+    let paces = crate::summing::paces(&state, from);
+
+    let paced = paces[&a3.id.to_string()];
+    assert_eq!(paced.pace, tisty_core::pace::Pace::Slow);
+    assert_eq!((paced.time, paced.done), (36, 0));
+    assert_eq!(paces.len(), 1);
+}
+
 fn a_column_is_as_long_as_the_window_says() -> usize {
     let said = std::fs::read_to_string("../src/views.ts").expect("the window says how far it asks");
     let at = said

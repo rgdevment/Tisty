@@ -34,6 +34,7 @@ pub mod model;
 pub mod moved;
 pub mod moving;
 pub mod order;
+pub mod pace;
 pub mod paged;
 pub mod parcel;
 pub mod parting;

@@ -65,6 +65,7 @@ export const detailOf = (one: Task, h: Hands) => ({
   onDoc: h.openDoc,
   papers: h.papers,
   whole: h.wholes[one.id],
+  pace: h.data.paces?.[one.id],
   partOf: one.part_of ? h.wholes[one.part_of]?.title : undefined,
   onAddPart: (title: string) => h.act(addPart(one.id, title).then(() => taskOf(one.id))),
   onOpenPart: (id: string) => taskOf(id).then(h.opening, h.fail),

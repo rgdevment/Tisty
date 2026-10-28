@@ -1,4 +1,5 @@
-import type { DateSpec, Repeat, Standing } from "./core";
+import type { DateSpec, Repeat } from "./core";
+import type { Standing } from "./deadlines";
 import { fill, filled, locale, t, type Word } from "./locales";
 
 type Formats = {

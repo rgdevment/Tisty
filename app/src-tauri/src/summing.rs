@@ -260,6 +260,24 @@ pub fn standings<'a>(
         .collect()
 }
 
+/// Only the tasks with a start, a deadline and parts have one.
+pub fn paces(
+    state: &State,
+    today: jiff::civil::Date,
+) -> std::collections::BTreeMap<String, tisty_core::pace::Paced> {
+    state
+        .tasks
+        .values()
+        .filter(|task| task.is_open() && task.deadline.is_some())
+        .filter_map(|task| {
+            Some((
+                task.id.to_string(),
+                tisty_core::pace::paced(state, task, today)?,
+            ))
+        })
+        .collect()
+}
+
 pub fn tally(state: &State) -> std::collections::BTreeMap<String, usize> {
     let today = today();
     let asked = asked_about();

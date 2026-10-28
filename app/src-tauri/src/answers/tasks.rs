@@ -233,6 +233,7 @@ pub async fn snapshot(
         clients: named_clients(&session.state),
         wholes: crate::answers::parts::wholes(&session.state),
         standings,
+        paces: crate::summing::paces(&session.state, today()),
     })
 }
 
