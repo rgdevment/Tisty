@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Showing } from "../core";
 import { fill, t } from "../locales";
+import { saidPlainly } from "../refusal";
 import Viewing from "../Viewing";
 
 const ipc = vi.hoisted(() => ({
@@ -14,6 +15,9 @@ const ipc = vi.hoisted(() => ({
   leave: true as boolean | "fails",
   quitting: null as null | (() => Promise<void>),
   now: "mindmap\n  root((Otra))\n",
+  saved: [] as (string | undefined)[],
+  path: null as string | null,
+  order: 0,
 }));
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -22,6 +26,10 @@ vi.mock("@tauri-apps/api/core", () => ({
     if (cmd === "view_shown") return Promise.resolve(ipc.shown);
     if (cmd === "diagram_save" && ipc.refusal) return Promise.reject(ipc.refusal);
     if (cmd === "diagram_again") return Promise.resolve(ipc.now);
+    if (cmd === "diagram_order")
+      return ipc.order < 0
+        ? Promise.reject({ code: "diagramGone", name: "Tisty Share" })
+        : Promise.resolve(ipc.order);
     return Promise.resolve(null);
   },
   convertFileSrc: (path: string) => path,
@@ -40,7 +48,10 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
       ? Promise.reject(new Error("no dialog"))
       : Promise.resolve(ipc.leave);
   },
-  save: () => Promise.resolve(null),
+  save: (asked?: { defaultPath?: string }) => {
+    ipc.saved.push(asked?.defaultPath);
+    return Promise.resolve(ipc.path);
+  },
   message: () => Promise.resolve(),
 }));
 
@@ -95,9 +106,61 @@ beforeEach(() => {
   ipc.closing = null;
   ipc.quitting = null;
   ipc.leave = true;
+  ipc.saved = [];
+  ipc.path = null;
+  ipc.order = 0;
 });
 
 describe("the diagram window", () => {
+  it("exports what it shows under the document's name, numbered by the diagram's order now", async () => {
+    ipc.order = 2;
+    render(<Viewing />);
+    await written();
+
+    await userEvent.click(screen.getByRole("button", { name: `${t("diagramExport")} ▾` }));
+    expect((await screen.findAllByRole("menuitem")).map((one) => one.textContent)).toContain(
+      t("copyAsImage"),
+    );
+    await userEvent.click(screen.getByRole("menuitem", { name: t("exportSvg") }));
+
+    await waitFor(() => expect(ipc.saved).toEqual(["Tisty Share-3.svg"]));
+    expect(asked("diagram_order")).toHaveLength(1);
+  });
+
+  it("opens the menu at once, and says so when it cannot tell which diagram it is", async () => {
+    ipc.order = -1;
+    render(<Viewing />);
+    await written();
+
+    await userEvent.click(screen.getByRole("button", { name: `${t("diagramExport")} ▾` }));
+    expect(screen.getByRole("menuitem", { name: t("exportSvg") })).toBeTruthy();
+    expect(asked("diagram_order")).toHaveLength(0);
+    expect(screen.queryByRole("alert")).toBeNull();
+
+    await userEvent.click(screen.getByRole("menuitem", { name: t("exportSvg") }));
+
+    await waitFor(() => expect(ipc.saved).toEqual(["Tisty Share.svg"]));
+    expect(screen.getByRole("alert").textContent).toBe(
+      saidPlainly({ code: "diagramGone", name: "Tisty Share" }),
+    );
+  });
+
+  it("says the image was saved only until the text changes, and never hides what is unsaved", async () => {
+    ipc.path = "C:/salida/share.svg";
+    render(<Viewing />);
+    const text = await written();
+
+    await userEvent.click(screen.getByRole("button", { name: `${t("diagramExport")} ▾` }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: t("exportSvg") }));
+    expect(await screen.findByText(t("diagramExported"))).toBeTruthy();
+    expect(screen.getByText(t("diagramSaved"))).toBeTruthy();
+
+    fireEvent.change(text, { target: { value: `${shown.source}    Otra\n` } });
+
+    expect(screen.queryByText(t("diagramExported"))).toBeNull();
+    expect(screen.getByText(t("diagramUnsaved"))).toBeTruthy();
+  });
+
   it("opens on the diagram's text, names its kind and the document it goes back to", async () => {
     render(<Viewing />);
 

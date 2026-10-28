@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed } from "../core";
@@ -25,6 +25,7 @@ const store = vi.hoisted(() => ({
   refuse: null as { code: string; name: string } | null,
   picked: null as string[] | null,
   asking: null as Asking | null,
+  viewed: [] as Record<string, unknown>[],
 }));
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({
@@ -84,6 +85,9 @@ vi.mock("@tauri-apps/api/core", async () => ({
             }, waits),
           );
         }
+        case "view_diagram":
+          store.viewed.push(args ?? {});
+          return Promise.resolve(null);
         case "doc_merge":
           return Promise.resolve(store.woven && { body: store.woven, print: "woven" });
         default:
@@ -880,5 +884,71 @@ describe("files brought into a document being written", () => {
     const lost = await store.asking?.pasted?.([new File(["x"], "roto.png")]);
     expect(lost).toBe("");
     expect(errors).toHaveLength(1);
+  });
+});
+
+describe("a diagram made from the / menu", () => {
+  beforeEach(() => {
+    store.bodies = { "a3f1-0001": "# Compras\n\nleche" };
+    store.writes = [];
+    store.viewed = [];
+    store.asking = null;
+    store.refuse = null;
+    store.coming = false;
+    store.clash = false;
+    store.delays = [];
+  });
+
+  it("writes the example, saves it and opens the diagram window on that block", async () => {
+    render(<Docs open="a3f1-0001" known={known} onKept={() => {}} onError={() => {}} />);
+    await waitFor(() => expect(store.asking?.kinds).toContain("diagram"));
+    const editor = screen.getByLabelText("editor") as HTMLTextAreaElement;
+    const put = (text: string) => {
+      fireEvent.change(editor, { target: { value: `${editor.value}\n\n${text}` } });
+      return true;
+    };
+
+    act(() => store.asking?.ask("diagram", { x: 0, y: 0 }, put, false));
+    await userEvent.click(await screen.findByRole("menuitem", { name: t("diagramFlow") }));
+
+    const source = t("diagramStartFlow");
+    await waitFor(() => expect(store.viewed).toHaveLength(1));
+    expect(store.bodies["a3f1-0001"]).toBe(`# Compras\n\nleche\n\n\`\`\`mermaid\n${source}\`\`\``);
+    expect(store.viewed[0]).toMatchObject({
+      paper: { file: "a3f1-0001", title: "Compras" },
+      at: 18,
+      nth: 0,
+      source,
+    });
+  });
+
+  it("asks for a title before a diagram becomes a document's first thing", async () => {
+    const errors: string[] = [];
+    render(
+      <Docs
+        open="a3f1-0001"
+        known={known}
+        onKept={() => {}}
+        onError={(said) => errors.push(String(said))}
+      />,
+    );
+    await waitFor(() => expect(store.asking?.kinds).toContain("diagram"));
+
+    act(() => store.asking?.ask("diagram", { x: 0, y: 0 }, () => true, true));
+
+    expect(errors).toEqual([t("diagramNeedsTitle")]);
+    expect(screen.queryByRole("menuitem")).toBeNull();
+  });
+
+  it("opens nothing when the block it was meant for is gone", async () => {
+    render(<Docs open="a3f1-0001" known={known} onKept={() => {}} onError={() => {}} />);
+    await waitFor(() => expect(store.asking?.kinds).toContain("diagram"));
+
+    act(() => store.asking?.ask("diagram", { x: 0, y: 0 }, () => false, false));
+    await userEvent.click(await screen.findByRole("menuitem", { name: t("diagramMindmap") }));
+    await settled();
+
+    expect(store.writes).toEqual([]);
+    expect(store.viewed).toEqual([]);
   });
 });
