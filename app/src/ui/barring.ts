@@ -6,7 +6,7 @@ import { t } from "../locales";
 import { coded, wrapped } from "./formatting";
 import { type Regrid, regrid } from "./regridding";
 import { keepShown, marked, marksShown, showMarks } from "./seeing";
-import { openMenu, pressed, putBlock } from "./slashing";
+import { type Asking, openMenu, pressed, put, putBlock, SLASHED } from "./slashing";
 import { TYPES } from "./tableChoices";
 import { type Retable, retable, tableHere } from "./tabling";
 
@@ -251,6 +251,7 @@ export const barred = (
   whole = false,
   onWhole?: () => void,
   tabling?: () => void,
+  asking?: () => Asking | undefined,
 ): Barred => {
   const page = view.dom.ownerDocument;
   const made = <K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text = "") =>
@@ -384,6 +385,17 @@ export const barred = (
   wide?.append(drawnIn(page, whole ? "shrink" : "expand"));
   wide?.setAttribute("aria-pressed", String(whole));
 
+  // A diagram is a block of its own, so it goes in at the caret like the `/` menu's, never over a selection.
+  const drawing = SLASHED.find((one) => one.key === "diagram");
+  const diagram =
+    drawing && asking?.()?.kinds.includes("diagram")
+      ? button("cm-bar-button cm-bar-diagram", t("diagramBar"), () => {
+          const at = view.state.selection.main.to;
+          put(view, drawing, at, at, asking?.());
+        })
+      : null;
+  diagram?.append(drawnIn(page, "graph"));
+
   const marks = button(
     "cm-bar-button cm-bar-marks",
     `${t("marksShown")} (${pressed("Shift M")})`,
@@ -412,7 +424,7 @@ export const barred = (
   bar.append(made("span", "cm-bar-sep"), ...pens, made("span", "cm-bar-sep"));
   if (tableIt) bar.append(tableIt);
   if (wide) bar.append(wide);
-  bar.append(marks, slash, fold);
+  bar.append(marks, ...(diagram ? [diagram] : []), slash, fold);
   folding(foldedBefore());
 
   const hint = made("div", "cm-hint");

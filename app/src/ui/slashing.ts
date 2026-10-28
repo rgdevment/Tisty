@@ -15,7 +15,15 @@ import { anchored, coded, linking, TAG_EDGE, TAG_TAIL, TAG_WORD, wrapped } from 
 
 type Said = Parameters<typeof t>[0];
 
-export type Asked = "newPage" | "page" | "newDoc" | "doc" | "icon" | "file" | "diagram";
+export type Asked =
+  | "newPage"
+  | "page"
+  | "newDoc"
+  | "doc"
+  | "icon"
+  | "file"
+  | "diagram"
+  | "diagramFrom";
 
 export type Asking = {
   readonly kinds: readonly Asked[];
@@ -140,6 +148,13 @@ export const SLASHED: readonly Slashed[] = [
     hint: "+",
     icon: "graph",
     put: { ask: "diagram", block: true },
+  },
+  {
+    key: "diagramFrom",
+    label: "diagramExisting",
+    hint: "+",
+    icon: "graph",
+    put: { ask: "diagramFrom", block: true },
   },
   {
     key: "mermaid",

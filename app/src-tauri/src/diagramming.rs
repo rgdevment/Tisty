@@ -124,6 +124,50 @@ pub fn diagram_again(
     Ok(was)
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Found {
+    file: String,
+    title: String,
+    nth: usize,
+    source: String,
+}
+
+// Read after the lock is let go: a store of many documents must not hold every other command back.
+#[tauri::command(async)]
+pub fn diagrams_everywhere(session: tauri::State<'_, Mutex<Session>>) -> Answer<Vec<Found>> {
+    let (root, papers) = {
+        let session = held(&session);
+        let papers: Vec<(String, String)> = session
+            .state
+            .papers()
+            .filter(|kept| !session.state.held_away(kept))
+            .map(|kept| (kept.file.clone(), kept.title.clone().unwrap_or_default()))
+            .collect();
+        (session.paths.docs(), papers)
+    };
+    Ok(papers
+        .into_iter()
+        .flat_map(|(file, title)| {
+            let body = tisty_core::docs::read(&root, &file).unwrap_or_default();
+            found_in(&file, &title, &body)
+        })
+        .collect())
+}
+
+fn found_in(file: &str, title: &str, body: &str) -> Vec<Found> {
+    diagrams::diagrams(body)
+        .into_iter()
+        .enumerate()
+        .map(|(nth, one)| Found {
+            file: file.to_string(),
+            title: title.to_string(),
+            nth,
+            source: one.source,
+        })
+        .collect()
+}
+
 #[tauri::command(async)]
 pub fn diagram_order(
     app: AppHandle,
@@ -173,3 +217,7 @@ fn brought<R: Runtime>(window: &tauri::WebviewWindow<R>) {
     let _ = window.show();
     let _ = window.set_focus();
 }
+
+#[cfg(test)]
+#[path = "diagramming_test.rs"]
+mod tests;

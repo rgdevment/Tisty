@@ -1,10 +1,11 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import type { Filed } from "../core";
 import { known } from "../glyphs";
 import { t } from "../locales";
 import { spawned } from "../making";
 import { docCard } from "../markdown";
 import Asking from "./Asking";
+import DiagramFinder from "./DiagramFinder";
 import { fenced, nameOf, STARTS, startOf } from "./drawing/starting";
 import Glyphs from "./Glyphs";
 import Papers from "./Papers";
@@ -18,7 +19,11 @@ export type Picked = {
 };
 
 // The icons keep the room they have everywhere else, so they read the same here as in a list or a folder.
-const ROOM = { narrow: { wide: 272, tall: 340 }, icons: { wide: 400, tall: 430 } };
+const ROOM = {
+  narrow: { wide: 272, tall: 340 },
+  icons: { wide: 400, tall: 430 },
+  finder: { wide: 600, tall: 370 },
+};
 
 export default function Picking({
   picked,
@@ -42,7 +47,8 @@ export default function Picking({
   onDrawn?: (source: string, write: () => boolean) => void;
 }) {
   const { kind, at, put } = picked;
-  const { wide, tall } = kind === "icon" ? ROOM.icons : ROOM.narrow;
+  const [finding, setFinding] = useState(kind === "diagramFrom");
+  const { wide, tall } = finding ? ROOM.finder : kind === "icon" ? ROOM.icons : ROOM.narrow;
   const below = at.y + 6 + tall <= window.innerHeight;
   const placed = {
     width: `${wide}px`,
@@ -108,7 +114,8 @@ export default function Picking({
             }}
           />
         )}
-        {kind === "diagram" && (
+        {finding && <DiagramFinder onPick={(source) => done(fenced(source))} onError={onError} />}
+        {kind === "diagram" && !finding && (
           <div role="menu" aria-label={t("newDiagram")} className="flex flex-col">
             {STARTS.map((one) => (
               <button
@@ -126,6 +133,14 @@ export default function Picking({
                 {nameOf(one)}
               </button>
             ))}
+            <button
+              type="button"
+              role="menuitem"
+              className="mt-1 rounded-md border-t border-hair px-2.5 py-1.5 text-left text-[13px] hover:bg-hover"
+              onClick={() => setFinding(true)}
+            >
+              {t("diagramExisting")}
+            </button>
           </div>
         )}
         {kind === "icon" && (
