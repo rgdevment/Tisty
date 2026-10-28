@@ -420,8 +420,91 @@ pub(super) fn shaped(what: Value) -> Value {
     Value::Object(kept)
 }
 
-#[allow(clippy::too_many_lines)]
+/// What a call does to what the person keeps, which hosts read to decide what to ask about first.
+#[derive(Clone, Copy)]
+pub(super) enum Effect {
+    Reads,
+    Adds,
+    Sets,
+    Replaces,
+    Rewrites,
+}
+
+impl Effect {
+    fn annotations(self) -> Value {
+        let reads = matches!(self, Effect::Reads);
+        let overwrites = matches!(self, Effect::Replaces | Effect::Rewrites);
+        let again = matches!(self, Effect::Reads | Effect::Sets | Effect::Replaces);
+        json!({
+            "readOnlyHint": reads,
+            "destructiveHint": overwrites,
+            "idempotentHint": again,
+            "openWorldHint": false,
+        })
+    }
+}
+
+pub(super) const EFFECTS: [(&str, Effect); 39] = [
+    ("propose", Effect::Adds),
+    ("remind", Effect::Sets),
+    ("describe", Effect::Replaces),
+    ("plan", Effect::Adds),
+    ("tick", Effect::Sets),
+    ("untick", Effect::Sets),
+    ("rename", Effect::Replaces),
+    ("reword_step", Effect::Replaces),
+    ("unplan", Effect::Replaces),
+    ("move", Effect::Sets),
+    ("reword_note", Effect::Replaces),
+    ("note", Effect::Adds),
+    ("attach", Effect::Adds),
+    ("write_doc", Effect::Rewrites),
+    ("append_doc", Effect::Rewrites),
+    ("restore_doc", Effect::Rewrites),
+    ("edit_doc", Effect::Replaces),
+    ("docs", Effect::Reads),
+    ("import_doc", Effect::Adds),
+    ("export_doc", Effect::Sets),
+    ("archive_doc", Effect::Sets),
+    ("flag_doc", Effect::Sets),
+    ("file_doc", Effect::Sets),
+    ("page_doc", Effect::Sets),
+    ("folder", Effect::Sets),
+    ("read_doc", Effect::Reads),
+    ("catch_up", Effect::Reads),
+    ("reschedule", Effect::Replaces),
+    ("say_done", Effect::Sets),
+    ("say_not_doing", Effect::Sets),
+    ("sum_up", Effect::Sets),
+    ("outline_doc", Effect::Reads),
+    ("read", Effect::Reads),
+    ("find", Effect::Reads),
+    ("lists", Effect::Reads),
+    ("rules", Effect::Reads),
+    ("language", Effect::Reads),
+    ("help", Effect::Reads),
+    ("tags", Effect::Reads),
+];
+
 pub(super) fn tools() -> Value {
+    let mut all = tools_without_hints();
+    if let Value::Array(each) = &mut all {
+        for one in each {
+            let name = one["name"].as_str().unwrap_or_default();
+            // A tool left out of EFFECTS is announced as the most careful kind rather than bare.
+            let effect = EFFECTS
+                .iter()
+                .find(|(named, _)| *named == name)
+                .map_or(Effect::Rewrites, |(_, effect)| *effect);
+            one["annotations"] = effect.annotations();
+        }
+    }
+    all
+}
+
+/// Vetting a call needs only what each tool takes, not the hints.
+#[allow(clippy::too_many_lines)]
+pub(super) fn tools_without_hints() -> Value {
     json!([
         {
             "name": "propose",

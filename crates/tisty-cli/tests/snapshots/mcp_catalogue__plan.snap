@@ -3,6 +3,12 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": false,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
   "description": "Add a checklist, or more of one, to a task you filed or one the person opened to agents. Steps go after the ones already there; `read` shows them.",
   "inputSchema": {
     "additionalProperties": false,

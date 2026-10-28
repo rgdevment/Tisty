@@ -3,6 +3,12 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": false
+  },
   "description": "Write a document out as markdown files in a folder the person can reach, with its pages numbered in reading order and its attachments beside them. Nothing here changes and nothing is deleted: an export is a copy. Use it to hand work to something outside Tisty.",
   "inputSchema": {
     "additionalProperties": false,

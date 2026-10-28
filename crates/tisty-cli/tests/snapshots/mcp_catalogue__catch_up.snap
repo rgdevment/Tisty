@@ -3,6 +3,12 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": true
+  },
   "description": "One call to start on: the lists, the folders, the tags already in use, how much there is, the documents written most recently, and a `cursor`. Send that cursor back as `since` next time and what moved comes with it — the tasks touched and the documents written, whoever did it — beside the lists, the folders and the tags, which come every time. It is meant to be the first thing you ask and the thing you ask again when you come back, in place of `lists` and `tags` and a blind `docs`.",
   "inputSchema": {
     "additionalProperties": false,

@@ -3,6 +3,12 @@ source: crates/tisty-cli/tests/mcp_catalogue.rs
 expression: tool
 ---
 {
+  "annotations": {
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false,
+    "readOnlyHint": true
+  },
   "description": "Plain Markdown needs nothing from here: Tisty takes it as it is and turns it on the way in. Left alone this gives the index of what Tisty adds — pens and their colours, underline, icons, callouts, collapsible sections, tags, cards to other documents, attachments, references, diagrams — apart from what reads as Markdown anywhere. Ask with a `topic` for the one you mean to write, so a pen colour or an icon is one Tisty knows; «all» gives the whole guide. `lang` picks English or Spanish; the language itself is the same.",
   "inputSchema": {
     "additionalProperties": false,

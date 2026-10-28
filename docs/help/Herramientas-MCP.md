@@ -2,6 +2,8 @@
 
 Las herramientas que `tisty mcp` le ofrece a un asistente. El asistente las elige por su cuenta; esta lista es para que sepas qué puede alcanzar. Todas funcionan solo en este equipo, y todo se rechaza hasta que dejas entrar al asistente desde **Configuración › Asistentes**.
 
+Cada herramienta le dice además a la app donde corre el asistente qué hace con tus cosas: si solo lee, si puede escribir encima o quitar algo que ya está, y si hacerla dos veces cambia algo más. Una app puede usarlo para preguntarte antes de las que escriben.
+
 Las reglas detrás están en [[Qué puede hacer un asistente|Qué-puede-hacer-un-asistente]].
 
 ## Mirar
