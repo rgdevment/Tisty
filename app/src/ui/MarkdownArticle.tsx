@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import rina from "../../src-tauri/resources/guide/en/rina.jpg";
 import { helpAnchors, helpDrawn } from "../guide/calls";
+import { aimedAt, linkedHere } from "../guide/help";
 import { examplesIn, shownBeside, type Topic } from "../guide/reference";
 import { t } from "../locales";
 import { pictured } from "../previews";
@@ -49,10 +50,21 @@ interface Props {
   readonly topics: Topic[];
   readonly anchor: string | null;
   readonly onOpen: (slug: string, anchor: string | null) => void;
+  // A link to a help page, which the window opens in place of the guide.
+  readonly onHelp: (slug: string, anchor: string | null) => void;
+  readonly spanish: boolean;
   readonly onOutline: (heads: Head[]) => void;
 }
 
-export default function MarkdownArticle({ topic, topics, anchor, onOpen, onOutline }: Props) {
+export default function MarkdownArticle({
+  topic,
+  topics,
+  anchor,
+  onOpen,
+  onHelp,
+  spanish,
+  onOutline,
+}: Props) {
   const [anchors, setAnchors] = useState<string[][]>([]);
   const view = useRef<Window | null>(null);
 
@@ -63,6 +75,11 @@ export default function MarkdownArticle({ topic, topics, anchor, onOpen, onOutli
   }, [topics]);
 
   const onHere = (id: string) => {
+    const aimed = aimedAt(id);
+    if (aimed) {
+      onHelp(aimed.slug, aimed.anchor);
+      return;
+    }
     const owner = topics.findIndex((_, one) => anchors[one]?.includes(id));
     if (owner < 0) return;
     if (topics[owner].slug === topic.slug) {
@@ -75,7 +92,7 @@ export default function MarkdownArticle({ topic, topics, anchor, onOpen, onOutli
   return (
     <Page
       key={`${topic.slug}:${anchor ?? ""}`}
-      body={topic.body}
+      body={linkedHere(topic.body, spanish)}
       draw={drawGuide}
       label={topic.heading ?? t("helpMarkdown")}
       stranger={false}

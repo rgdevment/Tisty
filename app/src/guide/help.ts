@@ -137,20 +137,64 @@ export const searched = (
     .map(({ entry, near }) => ({ entry, near }));
 };
 
-// A link to the published guide opens the copy the app carries, which reads without a connection.
-const GUIDE =
-  /\]\(https:\/\/markdown\.tisty\.app\/(?:es(?=[/#)]))?\/?([^)#\s/]*)\/?(?:#([^)\s]*))?\)/g;
+const here = (slug: string, anchor?: string) => `#${LINKED}${slug}${anchor ? `/${anchor}` : ""}`;
 
-const here = (slug: string, anchor?: string) => `](#${LINKED}${slug}${anchor ? `/${anchor}` : ""})`;
+// Some editors write an anchor's accents as %C3%B3; the page's ids carry the letters themselves.
+const unescaped = (anchor: string) => {
+  try {
+    return decodeURIComponent(anchor);
+  } catch {
+    return anchor;
+  }
+};
 
-export const linkedHere = (markdown: string): string =>
-  markdown
-    .replace(/\]\(help:([^)#\s]*)(?:#([^)\s]*))?\)/g, (_, slug: string, anchor?: string) =>
-      here(slug, anchor),
+/** Where a page of the published guide or help sits in the app, in the app's language; null for any other address. */
+export const carried = (url: string, spanish: boolean): string | null => {
+  const found = /^https:\/\/(markdown|www)\.tisty\.app\/([^?#\s]*)(?:\?[^#\s]*)?(?:#(\S*))?$/.exec(
+    url,
+  );
+  if (!found) return null;
+  const [, site, path, anchor] = found;
+  const parts = path.split("/").filter(Boolean);
+  const anchored = anchor ? unescaped(anchor) : undefined;
+  if (site === "markdown") {
+    // A page of the other language's guide is not in the app, so it stays on the site.
+    const rest = parts[0] === "es" ? parts.slice(1) : parts;
+    if ((parts[0] === "es") !== spanish || rest.length > 1) return null;
+    return here(`${MARKS}${rest[0] ?? "index"}`, anchored);
+  }
+  const [first, second, third, ...more] = parts;
+  const slug = spanish
+    ? first === "es" && second === "ayuda" && more.length === 0 && third
+    : first === "docs" && third === undefined && second;
+  return slug ? here(slug, anchored) : null;
+};
+
+/** The guide's address for one of its pages, for a link the app has no copy of. */
+export const guideAt = (slug: string, anchor: string | null | undefined, spanish: boolean) =>
+  `https://markdown.tisty.app/${spanish ? "es/" : ""}${slug === "index" ? "" : slug}${anchor ? `#${anchor}` : ""}`;
+
+/** Links to other help pages and to the published guide and help, turned into pages the window carries. */
+export const linkedHere = (markdown: string, spanish: boolean): string => {
+  const kept = (whole: string, url: string, put: (here: string) => string) => {
+    const at = carried(url, spanish);
+    return at ? put(at) : whole;
+  };
+  return markdown
+    .replace(
+      /\]\(help:([^)#\s]*)(?:#([^)\s]*))?\)/g,
+      (_, slug: string, anchor?: string) => `](${here(slug, anchor)})`,
     )
-    .replace(GUIDE, (_, slug: string, anchor?: string) =>
-      here(`${MARKS}${slug || "index"}`, anchor),
+    .replace(/\]\((https:\/\/[^)\s]+)\)/g, (whole, url: string) =>
+      kept(whole, url, (at) => `](${at})`),
+    )
+    .replace(/<(https:\/\/[^>\s]+)>/g, (whole, url: string) =>
+      kept(whole, url, (at) => `[${url}](${at})`),
+    )
+    .replace(/^( {0,3}\[[^\]]+\]:[ \t]*)(https:\/\/\S+)/gm, (whole, lead: string, url: string) =>
+      kept(whole, url, (at) => `${lead}${at}`),
     );
+};
 
 export const aimedAt = (id: string): { slug: string; anchor: string | null } | null => {
   if (!id.startsWith(LINKED)) return null;

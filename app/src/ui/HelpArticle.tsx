@@ -15,6 +15,7 @@ interface Props {
   readonly anchor: string | null;
   readonly onOpen: (slug: string, heading?: string, anchor?: string | null) => void;
   readonly onOutline: (heads: Head[]) => void;
+  readonly spanish: boolean;
 }
 
 const card = (): Carded => ({ kind: "doc", title: "" });
@@ -30,13 +31,14 @@ export default function HelpArticle({
   anchor,
   onOpen,
   onOutline,
+  spanish,
 }: Props) {
   const draw = useCallback(
     (text: string) =>
-      helpDrawn(linkedHere(text)).then((html) =>
+      helpDrawn(linkedHere(text, spanish)).then((html) =>
         dressed(html, pictures, convertFileSrc, (alt) => fill("helpPictureAway", alt)),
       ),
-    [pictures],
+    [pictures, spanish],
   );
   const kept = Object.keys(pictures?.kept ?? {}).length;
 

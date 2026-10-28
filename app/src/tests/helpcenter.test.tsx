@@ -34,11 +34,15 @@ const ipc = vi.hoisted(() => ({
   pictures: { weighs: 2_100_000, missing: 2_100_000, kept: {} } as HelpPictures,
   fetched: 0,
   left: 0,
+  opened: [] as string[],
 }));
 
 vi.mock("../core", async (original) => ({
   ...(await original<typeof import("../core")>()),
-  openLink: () => Promise.resolve(),
+  openLink: (url: string) => {
+    ipc.opened.push(url);
+    return Promise.resolve();
+  },
 }));
 
 vi.mock("../guide/calls", async (original) => ({
@@ -56,10 +60,20 @@ vi.mock("../guide/calls", async (original) => ({
   helpAnchors: () => Promise.resolve([["guide"], ["pens"]]),
 }));
 
+// The page's links are stood in for by buttons that say where they lead.
 vi.mock("../ui/Page", () => ({
-  default: ({ label }: { label: string }) => (
+  default: ({ label, onHere }: { label: string; onHere?: (id: string) => void }) => (
     <section aria-label="page">
       <h2>{label}</h2>
+      <button type="button" onClick={() => onHere?.("help/markdown:pens")}>
+        to the pens
+      </button>
+      <button type="button" onClick={() => onHere?.("help/markdown:gone/somewhere")}>
+        to a page the guide lacks
+      </button>
+      <button type="button" onClick={() => onHere?.("help/tasks")}>
+        to the tasks
+      </button>
     </section>
   ),
 }));
@@ -133,29 +147,61 @@ describe("reading the help", () => {
   });
 
   it("turns links to other pages into anchors here and stands in for a picture not yet here", () => {
-    expect(linkedHere("See [Tasks](help:tasks#closing) and [Sync](help:sync-and-backup).")).toBe(
-      "See [Tasks](#help/tasks/closing) and [Sync](#help/sync-and-backup).",
-    );
-    const guide: [string, string][] = [
+    expect(
+      linkedHere("See [Tasks](help:tasks#closing) and [Sync](help:sync-and-backup).", false),
+    ).toBe("See [Tasks](#help/tasks/closing) and [Sync](#help/sync-and-backup).");
+    // Written, in English or not → what the window reads.
+    const guide: [string, boolean, string][] = [
       [
         "[t](https://markdown.tisty.app/tables#column-types)",
+        false,
         "[t](#help/markdown:tables/column-types)",
       ],
       [
         "[t](https://markdown.tisty.app/es/tablas#tipos-de-columna)",
+        true,
         "[t](#help/markdown:tablas/tipos-de-columna)",
       ],
       [
-        "[f](https://markdown.tisty.app/es/diagramas-formulas-y-widgets#fórmulas)",
+        "[f](https://markdown.tisty.app/es/diagramas-formulas-y-widgets#f%C3%B3rmulas)",
+        true,
         "[f](#help/markdown:diagramas-formulas-y-widgets/fórmulas)",
       ],
-      ["[g](https://markdown.tisty.app/es/etiquetas)", "[g](#help/markdown:etiquetas)"],
-      ["[g](https://markdown.tisty.app/escaping)", "[g](#help/markdown:escaping)"],
-      ["[g](https://markdown.tisty.app/)", "[g](#help/markdown:index)"],
-      ["[g](https://markdown.tisty.app/es/)", "[g](#help/markdown:index)"],
-      ["[s](https://www.tisty.app/docs/tasks/)", "[s](https://www.tisty.app/docs/tasks/)"],
+      ["[g](https://markdown.tisty.app/escaping)", false, "[g](#help/markdown:escaping)"],
+      ["[g](https://markdown.tisty.app/)", false, "[g](#help/markdown:index)"],
+      ["[g](https://markdown.tisty.app/es)", true, "[g](#help/markdown:index)"],
+      [
+        "[g](https://markdown.tisty.app/es/?q=x#etiquetas)",
+        true,
+        "[g](#help/markdown:index/etiquetas)",
+      ],
+      [
+        "[o](https://markdown.tisty.app/es/tablas)",
+        false,
+        "[o](https://markdown.tisty.app/es/tablas)",
+      ],
+      ["[o](https://markdown.tisty.app/tables)", true, "[o](https://markdown.tisty.app/tables)"],
+      [
+        "<https://markdown.tisty.app/tables>",
+        false,
+        "[https://markdown.tisty.app/tables](#help/markdown:tables)",
+      ],
+      [
+        "[t]: https://markdown.tisty.app/tables#column-types",
+        false,
+        "[t]: #help/markdown:tables/column-types",
+      ],
+      ["[p](https://www.tisty.app/docs/pages-and-pdf/)", false, "[p](#help/pages-and-pdf)"],
+      [
+        "[p](https://www.tisty.app/es/ayuda/editor-markdown/#tablas)",
+        true,
+        "[p](#help/editor-markdown/tablas)",
+      ],
+      ["[s](https://www.tisty.app/download/)", false, "[s](https://www.tisty.app/download/)"],
+      ["[s](https://example.com/docs/tasks/)", false, "[s](https://example.com/docs/tasks/)"],
     ];
-    for (const [written, read] of guide) expect(linkedHere(written), written).toBe(read);
+    for (const [written, spanish, read] of guide)
+      expect(linkedHere(written, spanish), written).toBe(read);
     expect(aimedAt("help/markdown:tablas/tipos-de-columna")).toEqual({
       slug: "markdown:tablas",
       anchor: "tipos-de-columna",
@@ -246,6 +292,20 @@ describe("the help inside the window", () => {
     expect(await screen.findByRole("heading", { name: "Pens" })).toBeTruthy();
     const nav = screen.getByRole("navigation", { name: "Topics" });
     expect(within(nav).getByRole("button", { current: "page" }).textContent).toBe("Pens");
+  });
+
+  it("opens a guide page from a help link here, and one the guide lacks on the site", async () => {
+    render(<Help />);
+    await userEvent.click((await screen.findAllByRole("button", { name: /Tisty's Markdown/ }))[0]);
+    await userEvent.click(await screen.findByRole("button", { name: "to the pens" }));
+    expect(await screen.findByRole("heading", { name: "Pens" })).toBeTruthy();
+
+    ipc.opened.length = 0;
+    await userEvent.click(screen.getByRole("button", { name: "to a page the guide lacks" }));
+    expect(ipc.opened).toEqual(["https://markdown.tisty.app/gone#somewhere"]);
+
+    await userEvent.click(screen.getByRole("button", { name: "to the tasks" }));
+    expect(await screen.findByRole("heading", { name: "Tasks" })).toBeTruthy();
   });
 
   it("reads Tisty's Markdown in the same help, walking on to the next page", async () => {
