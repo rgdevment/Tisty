@@ -7,7 +7,7 @@ import { useSay } from "./handing";
 import IdeaMap from "./IdeaMap";
 import IdeaPanel from "./IdeaPanel";
 import { renamed, reshaped, withChild, without, withSibling } from "./minding";
-import SchemaBoard from "./SchemaBoard";
+import SchemaCanvas from "./SchemaCanvas";
 import SchemaPanel from "./SchemaPanel";
 import { useClasses } from "./useClasses";
 import { useFlow } from "./useFlow";
@@ -63,15 +63,7 @@ export const useEditor = (
   }
   if (scheme)
     return {
-      board: (
-        <SchemaBoard
-          schema={scheme.schema}
-          picked={scheme.picked}
-          fresh={t("schemaNewTable")}
-          onPick={scheme.pick}
-          onChange={scheme.change}
-        />
-      ),
+      board: <SchemaCanvas editing={scheme} dark={dark} />,
       panel: scrolled(
         <SchemaPanel schema={scheme.schema} picked={scheme.picked} onChange={scheme.change} />,
       ),
