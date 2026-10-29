@@ -348,18 +348,21 @@ async fn fetch(request: Request, env: Env, _: Context) -> worker::Result<Respons
 
 #[event(scheduled)]
 async fn scheduled(_: ScheduledEvent, env: Env, _: ScheduleContext) {
-    let swept = match share(&env) {
-        Ok(share) => share
-            .sweep(now())
-            .await
-            .map_err(|refused| refused.to_string()),
-        Err(error) => Err(error.to_string()),
+    let share = match share(&env) {
+        Ok(share) => share,
+        Err(why) => return worker::console_error!("the sweep could not start: {why}"),
     };
-    let swept = match swept {
+    // Said here, a few times an hour, rather than on every request that falls back to D1.
+    if share.store.reads.is_none() || share.store.polls.is_none() {
+        worker::console_warn!("a rate limiter is missing, so D1 counts reads and polls");
+    }
+    let swept = match share.sweep(now()).await {
         Ok(swept) => swept,
         Err(why) => return worker::console_error!("the sweep failed: {why}"),
     };
-    worker::console_log!("the sweep took {} documents", swept.gone);
+    if swept.gone > 0 {
+        worker::console_log!("the sweep took {} documents", swept.gone);
+    }
     for (id, fault) in &swept.stuck {
         worker::console_error!("the sweep could not take {id}: {fault}");
     }

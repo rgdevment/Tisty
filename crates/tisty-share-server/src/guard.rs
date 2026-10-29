@@ -247,12 +247,22 @@ pub async fn spend<S: Store>(
     bytes: u64,
     now: i64,
 ) -> Result<(), Refused> {
-    let day = now.div_euclid(DAY);
-    let until = (day + 1) * DAY;
-    let who = today(secret, ip, now);
+    affords(store, policy, secret, ip, documents, bytes, now).await?;
+    charge(store, secret, ip, documents, bytes, now).await
+}
+
+/// Whether the day still has room for this, counting nothing yet.
+pub async fn affords<S: Store>(
+    store: &S,
+    policy: &Policy,
+    secret: &[u8; 32],
+    ip: IpAddr,
+    documents: u64,
+    bytes: u64,
+    now: i64,
+) -> Result<(), Refused> {
+    let (made, sent, until) = day_keys(secret, ip, now);
     let allowance = &policy.allowance;
-    let made = format!("documents:{who}:{day}");
-    let sent = format!("bytes:{who}:{day}");
     let made_so_far = store.count(&made, 0, until, now).await?;
     let sent_so_far = store.count(&sent, 0, until, now).await?;
     if made_so_far.saturating_add(documents) > allowance.documents_a_day
@@ -260,9 +270,32 @@ pub async fn spend<S: Store>(
     {
         return Err(Refused::Slow { until });
     }
+    Ok(())
+}
+
+/// Counts against the day what was kept, once it was.
+pub async fn charge<S: Store>(
+    store: &S,
+    secret: &[u8; 32],
+    ip: IpAddr,
+    documents: u64,
+    bytes: u64,
+    now: i64,
+) -> Result<(), Refused> {
+    let (made, sent, until) = day_keys(secret, ip, now);
     store.count(&made, documents, until, now).await?;
     store.count(&sent, bytes, until, now).await?;
     Ok(())
+}
+
+fn day_keys(secret: &[u8; 32], ip: IpAddr, now: i64) -> (String, String, i64) {
+    let day = now.div_euclid(DAY);
+    let who = today(secret, ip, now);
+    (
+        format!("documents:{who}:{day}"),
+        format!("bytes:{who}:{day}"),
+        (day + 1) * DAY,
+    )
 }
 
 async fn overdone<S: Store>(

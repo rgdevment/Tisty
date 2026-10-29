@@ -1081,6 +1081,22 @@ fn an_upload_that_loses_the_race_leaves_nothing_of_itself_behind() {
 }
 
 #[test]
+fn an_upload_that_keeps_nothing_spends_none_of_the_day() {
+    let mut share = faulty();
+    let proof = work::solve(&share.challenge(Ask::Reserve, T0).unwrap()).unwrap();
+    let reserved = done(share.reserve(HERE, &proof, T0)).unwrap();
+    let first = sealed(&reserved.id, 1, None, "uno");
+    share.policy.allowance.bytes_a_day = first.len() as u64;
+    share.store.lose.set(true);
+
+    assert_eq!(
+        upload_faulty(&mut share, &reserved, first.clone()),
+        Err(Refused::Behind { latest: None })
+    );
+    assert_eq!(upload_faulty(&mut share, &reserved, first), Ok(1));
+}
+
+#[test]
 fn the_report_that_blocks_holds_its_block_even_when_it_loses_a_race() {
     let mut share = faulty();
     let proof = work::solve(&share.challenge(Ask::Reserve, T0).unwrap()).unwrap();
@@ -1198,8 +1214,18 @@ fn old_counters_that_cannot_go_never_keep_documents_from_going() {
 fn a_stored_document_missing_a_later_field_still_opens_and_one_missing_its_end_does_not() {
     let doc = Doc {
         id: "abc".into(),
+        edit: [1; 32],
+        admin: [2; 32],
+        gate: None,
+        versions: Vec::new(),
+        created: T0,
+        active: T0,
+        idle: DAY,
+        ends: T0 + DAY,
+        paused: None,
+        blocked: None,
         reads: 0,
-        ..Doc::default()
+        revision: 0,
     };
     let written: serde_json::Value = serde_json::to_value(&doc).unwrap();
     let without = |field: &str| {

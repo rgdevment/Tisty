@@ -302,8 +302,8 @@ impl<S: Store, R: Randomness> Share<S, R> {
         if manifest.from != latest || manifest.version != latest.map_or(1, |one| one + 1) {
             return Err(Refused::Behind { latest });
         }
-        // Only what will be kept is counted against the day.
-        guard::spend(
+        // Only what was kept is counted against the day, so a store that fails costs the caller nothing.
+        guard::affords(
             &self.store,
             &self.policy,
             &self.secret,
@@ -329,6 +329,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
             self.store.drop_envelope(id, &kept).await?;
             return Err(lost);
         }
+        guard::charge(&self.store, &self.secret, caller, 0, size, now).await?;
         for old in &dropped {
             self.store.drop_envelope(id, old).await?;
         }
@@ -486,7 +487,8 @@ impl<S: Store, R: Randomness> Share<S, R> {
             match self.store.forget(&id).await {
                 Ok(()) => swept.gone += 1,
                 Err(fault) => {
-                    self.store.hold(&stuck, now + DAY).await?;
+                    // Not waiting a day only means it is tried again sooner, so that failing stops nothing.
+                    let _ = self.store.hold(&stuck, now + DAY).await;
                     swept.stuck.push((id, fault));
                 }
             }

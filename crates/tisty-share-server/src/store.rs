@@ -5,7 +5,7 @@ use crate::keys::Slowness;
 use crate::moderation::Report;
 
 /// What the server knows about one shared document, without a word of what it says.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 // Kept as JSON: a field added later is an Option or takes `#[serde(default)]`, and a row missing one of these is a fault.
 pub struct Doc {
     pub id: String,
