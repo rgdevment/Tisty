@@ -17,6 +17,10 @@ Thumbs.db
 *.key
 *.base64
 
+# What worker-build and wrangler leave behind while building and trying the Worker.
+crates/tisty-share-worker/build/
+crates/tisty-share-worker/.wrangler/
+
 # Built per release, never committed: the CLI rides along with the window.
 app/src-tauri/binaries/
 

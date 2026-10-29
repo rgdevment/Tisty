@@ -1,5 +1,6 @@
 use std::net::IpAddr;
 
+use serde::{Deserialize, Serialize};
 use tisty_share_proto::envelope::{Envelope, Refused as Unread};
 use tisty_share_proto::identity::Verdict;
 use tisty_share_proto::limits::Limits;
@@ -120,7 +121,8 @@ pub struct Served {
 }
 
 /// What a management link can do.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(tag = "do", content = "with", rename_all = "snake_case")]
 pub enum Manage {
     /// The owner looked in on it, which counts as activity.
     Visit,
@@ -134,7 +136,7 @@ pub enum Manage {
 }
 
 /// What an owner sees of a document on its card in Tisty.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Info {
     pub latest: Option<u64>,
     pub reads: u64,
@@ -468,11 +470,15 @@ impl<S: Store, R: Randomness> Share<S, R> {
         now: i64,
     ) -> Result<(), Refused> {
         guard::checked(&self.secret, &ask.bound(), proof, needed, now)?;
+        // Counted, not held, so the same proof sent twice at once is still spent once.
         let spent = format!("spent:{}", proof.challenge.seed);
-        if self.store.held(&spent, now).await?.is_some() {
+        let uses = self
+            .store
+            .count(&spent, 1, proof.challenge.expires, now)
+            .await?;
+        if uses > 1 {
             return Err(Refused::WorkRefused);
         }
-        self.store.hold(&spent, proof.challenge.expires).await?;
         Ok(())
     }
 

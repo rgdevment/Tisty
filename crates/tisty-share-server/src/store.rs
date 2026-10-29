@@ -77,7 +77,7 @@ pub trait Store {
     async fn ending(&self, now: i64) -> Result<Vec<String>, Fault>;
     /// Atomically adds `by` to a counter that lapses at `until` and says what it holds now, or requests together slip past.
     async fn count(&self, key: &str, by: u64, until: i64, now: i64) -> Result<u64, Fault>;
-    /// Marks `key` until a moment, as a block or a proof already spent.
+    /// Marks `key` until a moment, as a wait a caller must sit out.
     async fn hold(&self, key: &str, until: i64) -> Result<(), Fault>;
     async fn held(&self, key: &str, now: i64) -> Result<Option<i64>, Fault>;
     async fn file(&self, report: &Report) -> Result<(), Fault>;

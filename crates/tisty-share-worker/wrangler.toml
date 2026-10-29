@@ -1,0 +1,26 @@
+name = "tisty-share"
+main = "build/worker/shim.mjs"
+compatibility_date = "2026-10-01"
+workers_dev = false
+routes = [{ pattern = "tisty.cl", custom_domain = true }]
+
+[build]
+command = "cargo install -q worker-build@0.8.7 && worker-build --release"
+
+# `wrangler d1 create tisty-share` hands out the id; it names the database, it opens nothing.
+[[d1_databases]]
+binding = "DB"
+database_name = "tisty-share"
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "ENVELOPES"
+bucket_name = "tisty-share-envelopes"
+
+# Once a day: what ran out already reads as gone, so the sweep only frees room.
+[triggers]
+crons = ["17 3 * * *"]
+
+[observability]
+enabled = true
