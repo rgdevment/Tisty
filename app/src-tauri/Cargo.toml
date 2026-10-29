@@ -70,7 +70,8 @@ semver = "1"
 sha2.workspace = true
 reqwest.workspace = true
 tauri-plugin-clipboard-manager = "2.3.2"
-tauri-plugin-updater = "2.13"
+# Without its zip feature: the Windows update is the NSIS setup itself, and zip 4 there carries advisories.
+tauri-plugin-updater = { version = "2.13", default-features = false, features = ["rustls-tls", "system-proxy"] }
 url.workspace = true
 percent-encoding = "2"
 
