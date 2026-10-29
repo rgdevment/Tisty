@@ -327,6 +327,18 @@ no_worker_secrets_kept() {
   fi
 }
 
+# A rollback puts back code that reads the tables as they were, so a migration may only add to them.
+migrations_only_add() {
+  local found
+  found=$(grep -niE '\b(drop|rename)\b' crates/tisty-share-worker/migrations/*.sql)
+  if [ -n "$found" ]; then
+    printf '%s\n' "$found"
+    amiss "a migration takes something away; the version a rollback puts back would no longer read D1"
+  else
+    went_well "the Worker's migrations only add to the tables"
+  fi
+}
+
 cd "$(dirname "$0")/.." || exit 2
 no_prose_blocks
 the_packages_keep_to_themselves
@@ -341,4 +353,5 @@ the_rule_on_the_way_of_syncing_can_fail
 both_languages_carry_the_same_documents
 no_token_kept_in_the_tree
 no_worker_secrets_kept
+migrations_only_add
 exit $status
