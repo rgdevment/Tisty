@@ -31,11 +31,14 @@ weighed() {
     printf '  %s\n' "$said"
     return
   fi
+  # A subject becomes the squash title, and GitHub ends that with " (#1234)", so it leaves the room.
+  local room=$most
+  [ -n "$strict" ] || room=$((most - 8))
   # Bytes minus UTF-8 continuation bytes: ${#said} counts bytes when a GUI client spawns git without a locale.
   local long
   long=$(printf '%s' "$said" | LC_ALL=C tr -d '\200-\277' | wc -c | tr -d ' ')
-  if [ "$long" -gt "$most" ]; then
-    amiss "$who is $long characters, keep it under $most"
+  if [ "$long" -gt "$room" ]; then
+    amiss "$who is $long characters, keep it under $room"
     printf '  %s\n' "$said"
   fi
 }
