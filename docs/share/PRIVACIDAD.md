@@ -31,7 +31,7 @@ Tisty Share sin fines de lucro. Contacto: <rgdevment@tisty.app>.
 | Si firmas, tu llave pública y su certificado | Que quien lee sepa que es tuyo | Lo mismo que el documento |
 | Cuántas veces se leyó, contando una vez por día y por visitante | Mostrarte las lecturas en Tisty | Lo mismo que el documento |
 | Un resumen de tu IP (un HMAC con una llave que cambia) | Topes por IP y bloqueos ante abuso | Lo que dura la cuota o el bloqueo |
-| Las denuncias: categoría, detalle y, si lo dejaron, el link | Moderar y enviarlas a quien corresponde | 90 días, o 180 si la Fiscalía lo ordena |
+| Las denuncias: categoría, detalle, si lo dejaron el link, y un resumen de la red de quien denuncia (un HMAC con una llave que cambia cada 90 días), para que cada red denuncie una sola vez | Moderar y enviarlas a quien corresponde | 90 días, o 180 si la Fiscalía lo ordena |
 
 **Sobre la firma:** si firmas lo que compartes, tu llave pública permite saber
 que dos documentos firmados son de la misma persona, aunque no quién eres. En lo
