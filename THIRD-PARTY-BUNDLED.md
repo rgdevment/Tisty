@@ -165,7 +165,7 @@ written once with the crates that carry it.
 | `w3c-keyname` | 2.2.8 | MIT |
 | `zustand` | 4.5.7 | MIT |
 
-## In the core (356 crates)
+## In the core (355 crates)
 
 | Crate | Version | Licence |
 | --- | --- | --- |
@@ -464,7 +464,7 @@ written once with the crates that carry it.
 | `tracing-core` | 0.1.36 | MIT |
 | `tray-icon` | 0.25.1 | MIT OR Apache-2.0 |
 | `try-lock` | 0.2.5 | MIT |
-| `typed-path` | 0.12.3 | MIT OR Apache-2.0 |
+| `typed-path` | 0.13.0 | MIT OR Apache-2.0 |
 | `typeid` | 1.0.3 | MIT OR Apache-2.0 |
 | `typenum` | 1.20.1 | MIT OR Apache-2.0 |
 | `ulid` | 3.0.0 | MIT |
@@ -518,8 +518,7 @@ written once with the crates that carry it.
 | `zeroize` | 1.9.1 | Apache-2.0 OR MIT |
 | `zerotrie` | 0.2.5 | Unicode-3.0 |
 | `zerovec` | 0.11.8 | Unicode-3.0 |
-| `zip` | 4.6.1 | MIT |
-| `zip` | 9.0.5 | MIT |
+| `zip` | 9.1.3 | MIT |
 | `zlib-rs` | 0.6.8 | Zlib |
 | `zmij` | 1.0.23 | MIT |
 | `zopfli` | 0.8.4 | Apache-2.0 |

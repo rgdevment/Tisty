@@ -2,9 +2,9 @@
 
 <!-- Written by `npm run notices`. Do not edit by hand. -->
 
-The licence texts of the 356 crates named in
+The licence texts of the 355 crates named in
 [THIRD-PARTY-BUNDLED.md](https://github.com/rgdevment/Tisty/blob/main/THIRD-PARTY-BUNDLED.md), each written once with
-the crates that carry it: 241 texts. A text is read in full from the
+the crates that carry it: 240 texts. A text is read in full from the
 crate as it is published, from its licence, copying and notice files and its
 LICENSES folder. A crate that publishes none gets the licence its manifest
 declares, Apache-2.0 first where it is offered, with the holders its manifest
@@ -239,7 +239,7 @@ limitations under the License.
 
 ## Text 3
 
-Carried by `adler2` 2.0.1, `anyhow` 1.0.104, `atomic-waker` 1.1.2, `dtoa` 1.0.11, `erased-serde` 0.4.10, `fastrand` 2.5.0, `itoa` 1.0.18, `once_cell` 1.21.4, `pin-project-lite` 0.2.17, `rustc-hash` 2.1.3, `rustix` 1.1.5, `semver` 1.0.28, `serde` 1.0.229, `serde_core` 1.0.229, `serde_json` 1.0.154, `serde-untagged` 0.1.9, `thiserror` 2.0.21, `typed-path` 0.12.3, `typeid` 1.0.3, `zmij` 1.0.23.
+Carried by `adler2` 2.0.1, `anyhow` 1.0.104, `atomic-waker` 1.1.2, `dtoa` 1.0.11, `erased-serde` 0.4.10, `fastrand` 2.5.0, `itoa` 1.0.18, `once_cell` 1.21.4, `pin-project-lite` 0.2.17, `rustc-hash` 2.1.3, `rustix` 1.1.5, `semver` 1.0.28, `serde` 1.0.229, `serde_core` 1.0.229, `serde_json` 1.0.154, `serde-untagged` 0.1.9, `thiserror` 2.0.21, `typed-path` 0.13.0, `typeid` 1.0.3, `zmij` 1.0.23.
 
 ```text
 Permission is hereby granted, free of charge, to any
@@ -836,7 +836,7 @@ SOFTWARE.
 
 ## Text 12
 
-Carried by `anyhow` 1.0.104, `dtoa` 1.0.11, `erased-serde` 0.4.10, `itoa` 1.0.18, `libc` 0.2.191, `osakit` 0.3.1, `rustc-hash` 2.1.3, `ryu` 1.0.23, `semver` 1.0.28, `serde` 1.0.229, `serde_core` 1.0.229, `serde_json` 1.0.154, `serde_urlencoded` 0.7.1, `serde-untagged` 0.1.9, `stable-arena` 0.3.0, `thiserror` 2.0.21, `typed-path` 0.12.3, `typeid` 1.0.3.
+Carried by `anyhow` 1.0.104, `dtoa` 1.0.11, `erased-serde` 0.4.10, `itoa` 1.0.18, `libc` 0.2.191, `osakit` 0.3.1, `rustc-hash` 2.1.3, `ryu` 1.0.23, `semver` 1.0.28, `serde` 1.0.229, `serde_core` 1.0.229, `serde_json` 1.0.154, `serde_urlencoded` 0.7.1, `serde-untagged` 0.1.9, `stable-arena` 0.3.0, `thiserror` 2.0.21, `typed-path` 0.13.0, `typeid` 1.0.3.
 
 ```text
 Apache License
@@ -15229,7 +15229,7 @@ DEALINGS IN THE SOFTWARE.
 
 ## Text 236
 
-Carried by `zip` 4.6.1.
+Carried by `zip` 9.1.3.
 
 ```text
 The MIT License (MIT)
@@ -15253,40 +15253,9 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-Some files in the "tests/data" subdirectory of this repository are under other
-licences; see files named LICENSE.*.txt for details.
 ```
 
 ## Text 237
-
-Carried by `zip` 9.0.5.
-
-```text
-The MIT License (MIT)
-
-Copyright (c) 2014 Mathijs van de Nes
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
-
-## Text 238
 
 Carried by `zlib-rs` 0.6.8.
 
@@ -15312,7 +15281,7 @@ freely, subject to the following restrictions:
 3. This notice may not be removed or altered from any source distribution.
 ```
 
-## Text 239
+## Text 238
 
 Carried by `zopfli` 0.8.4.
 
@@ -15520,7 +15489,7 @@ Apache License
    limitations under the License.
 ```
 
-## Text 240
+## Text 239
 
 Carried by `zune-core` 0.5.3, `zune-jpeg` 0.5.15.
 
@@ -15548,7 +15517,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Text 241
+## Text 240
 
 Carried by `zune-core` 0.5.3, `zune-jpeg` 0.5.15.
 
