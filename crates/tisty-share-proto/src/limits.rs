@@ -4,6 +4,8 @@ use crate::envelope::Kind;
 
 /// What one server takes in a version. Each server sets its own and says it, and Tisty seals to what it says.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+// A field a server leaves out takes Tisty's own, so limits written by an older or newer server still read.
+#[serde(default)]
 pub struct Limits {
     /// Bytes of text a version may carry.
     pub text: u64,

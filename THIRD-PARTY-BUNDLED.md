@@ -165,7 +165,7 @@ written once with the crates that carry it.
 | `w3c-keyname` | 2.2.8 | MIT |
 | `zustand` | 4.5.7 | MIT |
 
-## In the core (359 crates)
+## In the core (356 crates)
 
 | Crate | Version | Licence |
 | --- | --- | --- |
@@ -202,7 +202,6 @@ written once with the crates that carry it.
 | `cipher` | 0.5.2 | MIT OR Apache-2.0 |
 | `clipboard-win` | 5.4.3 | BSL-1.0 |
 | `cmov` | 0.5.4 | Apache-2.0 OR MIT |
-| `color_quant` | 1.1.0 | MIT |
 | `const-oid` | 0.10.2 | Apache-2.0 OR MIT |
 | `cookie` | 0.18.2 | MIT OR Apache-2.0 |
 | `core_detect` | 1.0.0 | MIT/Apache-2.0 |
@@ -261,7 +260,6 @@ written once with the crates that carry it.
 | `getrandom` | 0.2.17 | MIT OR Apache-2.0 |
 | `getrandom` | 0.3.4 | MIT OR Apache-2.0 |
 | `getrandom` | 0.4.3 | MIT OR Apache-2.0 |
-| `gif` | 0.14.2 | MIT OR Apache-2.0 |
 | `glob` | 0.3.4 | MIT OR Apache-2.0 |
 | `global-hotkey` | 0.8.0 | Apache-2.0 OR MIT |
 | `h2` | 0.4.20 | MIT |
@@ -293,7 +291,6 @@ written once with the crates that carry it.
 | `idna` | 1.1.0 | MIT OR Apache-2.0 |
 | `idna_adapter` | 1.2.2 | Apache-2.0 OR MIT |
 | `image` | 0.25.10 | MIT OR Apache-2.0 |
-| `image-webp` | 0.2.4 | MIT OR Apache-2.0 |
 | `indexmap` | 2.14.2 | Apache-2.0 OR MIT |
 | `infer` | 0.22.0 | MIT |
 | `inout` | 0.2.4 | MIT OR Apache-2.0 |

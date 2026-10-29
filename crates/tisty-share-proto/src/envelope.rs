@@ -19,6 +19,7 @@ const MANIFEST_AT_MOST: usize = 16 * 1024;
 const ID_AT_MOST: usize = 64;
 
 const MAGIC: &[u8; 4] = b"\xffTSE";
+/// Whatever changes the shape of the manifest or the signature is a new version, so an older reader says newer, not damaged.
 const VERSION: u8 = 1;
 const SAID: u32 = 1;
 const PART: &[u8] = b"tisty-share.part.v1\0";
@@ -251,6 +252,8 @@ pub struct Envelope {
     /// The manifest as it was written, since the seal holds these bytes and not their meaning.
     written: Range<usize>,
     parts: Vec<Range<usize>>,
+    /// Worked out once, since checking the sender and keeping the bytes both ask for it.
+    digest: [u8; 32],
     sent: Option<Signed>,
 }
 
@@ -272,7 +275,7 @@ pub struct Signer<'a> {
 pub struct Opened {
     pub manifest: Manifest,
     pub text: Zeroizing<String>,
-    pub pictures: Vec<(Kind, Vec<u8>)>,
+    pub pictures: Vec<(Kind, Zeroizing<Vec<u8>>)>,
     /// Who wrote these words and pictures, when the envelope carries their signature.
     pub wrote: Option<Verdict>,
     /// Who sent these bytes as this version, when the envelope carries that signature.
@@ -321,6 +324,10 @@ pub fn seal(
     };
     manifest.holds(limits)?;
     let written = serde_json::to_vec(&manifest).map_err(|_| Refused::Damaged)?;
+    // Only the count of pictures makes a manifest long, and a reader would refuse one past this.
+    if written.len() > MANIFEST_AT_MOST {
+        return Err(Refused::TooManyPictures);
+    }
     let mut bytes = MAGIC.to_vec();
     bytes.push(VERSION);
     let written_at = framing(&mut bytes, &written);
@@ -342,6 +349,7 @@ pub fn seal(
         parts.push(start..bytes.len());
     }
     let mut envelope = Envelope {
+        digest: digested(&bytes, &written_at, &parts),
         manifest,
         bytes,
         written: written_at,
@@ -412,7 +420,7 @@ pub fn open(key: &LinkKey, envelope: &Envelope, revoked: &[Revocation]) -> Resul
         .iter()
         .zip(&plain[first_picture..])
         .map(|(part, bytes)| match Kind::of_picture(bytes) {
-            Some(kind) if kind == part.kind => Ok((kind, bytes.to_vec())),
+            Some(kind) if kind == part.kind => Ok((kind, Zeroizing::new(bytes.to_vec()))),
             _ => Err(Refused::NotAPicture),
         })
         .collect::<Result<Vec<_>, _>>()?;
@@ -467,16 +475,7 @@ impl Envelope {
 
     /// Over the manifest as written and every sealed part, each with its length.
     pub fn digest(&self) -> [u8; 32] {
-        let mut over = Sha256::new();
-        over.update(SEALED);
-        over.update((self.written.len() as u64).to_be_bytes());
-        over.update(self.written());
-        for at in 0..self.parts.len() {
-            let part = self.part(at);
-            over.update((part.len() as u64).to_be_bytes());
-            over.update(part);
-        }
-        over.finalize().into()
+        self.digest
     }
 
     pub fn as_bytes(&self) -> &[u8] {
@@ -522,6 +521,7 @@ impl Envelope {
             said => Some(canonical(said)?),
         };
         Ok(Self {
+            digest: digested(&bytes, &written, &parts),
             manifest,
             bytes,
             written,
@@ -561,6 +561,16 @@ fn framing(bytes: &mut Vec<u8>, said: &[u8]) -> Range<usize> {
     let start = bytes.len();
     bytes.extend_from_slice(said);
     start..bytes.len()
+}
+
+fn digested(bytes: &[u8], written: &Range<usize>, parts: &[Range<usize>]) -> [u8; 32] {
+    let mut over = Sha256::new();
+    over.update(SEALED);
+    for range in std::iter::once(written).chain(parts) {
+        over.update((range.len() as u64).to_be_bytes());
+        over.update(&bytes[range.clone()]);
+    }
+    over.finalize().into()
 }
 
 /// Every part is bound to this very manifest, so none can be moved to another or have its size or kind changed.

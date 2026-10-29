@@ -36,3 +36,5 @@ zeroize.workspace = true
 
 [dev-dependencies]
 hkdf.workspace = true
+# Its own pictures are tested in every run, though only the window turns them on once it shares (stage 4).
+tisty-share-proto = { path = ".", features = ["pictures"] }

@@ -88,7 +88,15 @@ fn a_document_with_pictures_crosses_from_one_tisty_to_another_signed() {
     let opened = open(&key(9), &arrived, &[]).unwrap();
 
     assert_eq!(opened.text.as_str(), "# Plan\n\nHola.");
-    assert_eq!(opened.pictures, vec![(Kind::Png, one), (Kind::Jpeg, two)]);
+    let pictures: Vec<(Kind, &[u8])> = opened
+        .pictures
+        .iter()
+        .map(|(kind, bytes)| (*kind, bytes.as_slice()))
+        .collect();
+    assert_eq!(
+        pictures,
+        vec![(Kind::Png, one.as_slice()), (Kind::Jpeg, two.as_slice())]
+    );
     assert_eq!(opened.manifest.id, "k7Qm2xPa");
     assert_eq!(
         (opened.manifest.version, opened.manifest.from),
@@ -617,4 +625,61 @@ fn the_outer_signature_is_written_one_way_only() {
     lower[zone] = b'z';
 
     assert_eq!(read(&lower).err(), Some(Refused::Damaged));
+}
+
+#[test]
+fn a_manifest_too_long_for_any_reader_is_refused_before_it_is_sealed() {
+    let roomy = Limits {
+        pictures: 10_000,
+        all_pictures: u64::MAX,
+        ..Limits::default()
+    };
+    let tiny = png(1, 9);
+    let many: Vec<(Kind, &[u8])> = (0..1_000).map(|_| (Kind::Png, tiny.as_slice())).collect();
+
+    assert_eq!(
+        seal(&key(9), &draft("x", &many), None, &roomy).err(),
+        Some(Refused::TooManyPictures)
+    );
+}
+
+#[test]
+fn a_field_a_server_leaves_out_takes_tisty_s_own() {
+    let older: Limits = serde_json::from_str(r#"{"text":100,"kinds":["png"]}"#).unwrap();
+    assert_eq!(older.text, 100);
+    assert_eq!(older.kinds, vec![Kind::Png]);
+    assert_eq!(older.pictures, Limits::default().pictures);
+
+    let newer: Limits = serde_json::from_str(r#"{"text":100,"videos":3}"#).unwrap();
+    assert_eq!(newer.kinds, Limits::default().kinds);
+}
+
+#[test]
+fn a_signature_carrying_more_than_tisty_writes_is_refused_until_the_version_says_so() {
+    let bytes = sealed(&key(9), &draft("hola", &[]), Some(&machine(1).signer()))
+        .unwrap()
+        .to_bytes();
+    // A field the signature does not have, as a later Tisty might add, with its length written to match.
+    let said = framed_len(&bytes);
+    let mut longer = bytes[..bytes.len() - 1].to_vec();
+    longer.extend_from_slice(br#","x":1}"#);
+    let at = bytes.len() - 4 - said;
+    longer[at..at + 4].copy_from_slice(&((said + 6) as u32).to_be_bytes());
+
+    assert_eq!(read(&longer).err(), Some(Refused::Damaged));
+}
+
+/// The length of the signature at the end of the bytes, read back from where it was written.
+fn framed_len(bytes: &[u8]) -> usize {
+    let arrived = read(bytes).unwrap();
+    bytes.len() - arrived.parts.last().unwrap().end - 4
+}
+
+#[test]
+fn the_digest_is_the_same_whether_sealed_here_or_read_there() {
+    let sealed = sealed(&key(9), &draft("hola", &[]), Some(&machine(1).signer())).unwrap();
+    let arrived = read(&sealed.to_bytes()).unwrap();
+
+    assert_eq!(sealed.digest(), arrived.digest());
+    assert!(matches!(arrived.sender(&[]), Some(Verdict::Holds { .. })));
 }
