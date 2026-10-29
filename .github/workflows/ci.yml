@@ -177,6 +177,7 @@ jobs:
           targets: wasm32-unknown-unknown
       # The Worker builds the same protocol the app does; a dependency that cannot reach wasm has to fail here.
       - run: cargo check -p tisty-share-proto --no-default-features --target wasm32-unknown-unknown
+      - run: cargo check -p tisty-share-server --target wasm32-unknown-unknown
 
   window:
     name: frontend
