@@ -390,6 +390,36 @@ fn the_owner_s_visit_and_a_new_version_count_as_activity() {
 }
 
 #[test]
+fn reads_behind_a_password_write_only_what_changed() {
+    let mut world = World::new();
+    let reserved = world.shared(T0);
+    world
+        .manage(&reserved, Manage::Password(Some("perro azul".into())), T0)
+        .unwrap();
+    world
+        .read_from(&reserved.id, Some("perro azul"), HERE, T0)
+        .unwrap();
+    let before = world.doc(&reserved.id).revision;
+    for minute in 1..=5 {
+        world
+            .read_from(&reserved.id, Some("perro azul"), HERE, T0 + minute * 60)
+            .unwrap();
+    }
+    assert_eq!(world.doc(&reserved.id).revision, before);
+
+    // A right password after a miss clears it, so that one is written.
+    assert_eq!(
+        world.read_from(&reserved.id, Some("gato"), HERE, T0 + 600),
+        Err(Refused::PasswordWrong)
+    );
+    world
+        .read_from(&reserved.id, Some("perro azul"), HERE, T0 + 660)
+        .unwrap();
+    let gate = world.doc(&reserved.id).gate.unwrap();
+    assert_eq!(gate.missed, 0);
+}
+
+#[test]
 fn reads_close_together_write_the_activity_down_once() {
     let mut world = World::new();
     let reserved = world.shared(T0);
@@ -619,7 +649,7 @@ fn the_server_s_own_work_is_solved_in_a_moment() {
 }
 
 #[test]
-fn too_many_reads_in_an_hour_wait_an_hour_and_again_a_day() {
+fn too_many_reads_in_an_hour_wait_out_the_hour_and_never_longer() {
     let mut world = World::with(Policy {
         allowance: guard::Allowance {
             reads: 3,
@@ -642,6 +672,7 @@ fn too_many_reads_in_an_hour_wait_an_hour_and_again_a_day() {
     // Someone else is not held back by it.
     assert!(world.read_from(&reserved.id, None, there(7), T0).is_ok());
 
+    // A network of many readers goes past it again and still waits only the hour.
     let next_hour = T0 + HOUR + 1;
     for _ in 0..3 {
         world.read(&reserved.id, next_hour).unwrap();
@@ -649,8 +680,60 @@ fn too_many_reads_in_an_hour_wait_an_hour_and_again_a_day() {
     assert_eq!(
         world.read(&reserved.id, next_hour),
         Err(Refused::Slow {
+            until: T0 + 2 * HOUR
+        })
+    );
+}
+
+#[test]
+fn too_many_reservations_in_an_hour_wait_an_hour_and_then_a_day() {
+    let mut world = World::with(Policy {
+        allowance: guard::Allowance {
+            reserves: 1,
+            ..guard::Allowance::default()
+        },
+        ..policy()
+    });
+    world.reserve(T0);
+    assert_eq!(
+        world.reserve_from(HERE, T0).err(),
+        Some(Refused::Slow { until: T0 + HOUR })
+    );
+    let next_hour = T0 + HOUR + 1;
+    world.reserve(next_hour);
+    assert_eq!(
+        world.reserve_from(HERE, next_hour).err(),
+        Some(Refused::Slow {
             until: next_hour + DAY
         })
+    );
+}
+
+#[test]
+fn tisty_asking_for_changes_has_its_own_allowance_and_waits_only_the_hour() {
+    let mut world = World::with(Policy {
+        allowance: guard::Allowance {
+            reads: 1,
+            polls: 2,
+            ..guard::Allowance::default()
+        },
+        ..policy()
+    });
+    let reserved = world.shared(T0);
+    world.read(&reserved.id, T0).unwrap();
+    for _ in 0..2 {
+        assert_eq!(
+            done(world.share.latest(&reserved.id, HERE, T0)),
+            Ok(Some(1))
+        );
+    }
+    assert_eq!(
+        done(world.share.latest(&reserved.id, HERE, T0)),
+        Err(Refused::Slow { until: T0 + HOUR })
+    );
+    assert_eq!(
+        done(world.share.latest(&reserved.id, HERE, T0 + HOUR)),
+        Ok(Some(1))
     );
 }
 
@@ -663,13 +746,49 @@ fn a_day_s_documents_and_bytes_are_counted_per_caller() {
         },
         ..policy()
     });
+    let tomorrow = (T0.div_euclid(DAY) + 1) * DAY;
     world.reserve(T0);
     world.reserve(T0);
-    assert_eq!(
-        world.reserve_from(HERE, T0).err(),
-        Some(Refused::Slow { until: T0 + HOUR })
-    );
+    // A spent day waits for the next one, however often it is asked.
+    for _ in 0..3 {
+        assert_eq!(
+            world.reserve_from(HERE, T0).err(),
+            Some(Refused::Slow { until: tomorrow })
+        );
+    }
     assert!(world.reserve_from(there(9), T0).is_ok());
+    assert!(world.reserve_from(HERE, tomorrow).is_ok());
+}
+
+#[test]
+fn an_upload_that_is_refused_spends_none_of_the_day_s_bytes() {
+    let size = sealed("someOneId", 1, None, "uno").len() as u64;
+    let mut world = World::with(Policy {
+        allowance: guard::Allowance {
+            bytes_a_day: size,
+            ..guard::Allowance::default()
+        },
+        ..policy()
+    });
+    let reserved = world.reserve(T0);
+    let elsewhere = sealed("someOther", 1, None, "uno");
+    assert_eq!(elsewhere.len() as u64, size);
+    for _ in 0..3 {
+        assert_eq!(
+            world.put(&reserved.id, &reserved.edit, elsewhere.clone(), T0),
+            Err(Refused::Misaddressed)
+        );
+    }
+
+    let first = sealed(&reserved.id, 1, None, "uno");
+    assert_eq!(world.put(&reserved.id, &reserved.edit, first, T0), Ok(1));
+    let next = sealed(&reserved.id, 2, Some(1), "dos");
+    assert_eq!(
+        world.put(&reserved.id, &reserved.edit, next, T0),
+        Err(Refused::Slow {
+            until: (T0.div_euclid(DAY) + 1) * DAY
+        })
+    );
 }
 
 #[test]
@@ -814,6 +933,14 @@ fn the_owner_appeals_a_block_from_the_management_link_only() {
         )
         .is_ok()
     );
+    assert_eq!(
+        done(
+            world
+                .share
+                .appeal(&reserved.id, &reserved.admin, "otra vez", T0 + DAY)
+        ),
+        Err(Refused::Reported)
+    );
     let filed = done(world.share.store.reports(&reserved.id, T0)).unwrap();
     assert_eq!(filed.len(), 4);
     assert_eq!(filed.last().unwrap().category, Category::Appeal);
@@ -910,6 +1037,53 @@ fn an_upload_that_loses_the_race_leaves_nothing_of_itself_behind() {
         Err(Refused::Behind { latest: None })
     );
     assert_eq!(share.store.inner.envelopes(), 0);
+}
+
+#[test]
+fn the_report_that_blocks_holds_its_block_even_when_it_loses_a_race() {
+    let mut share = racing();
+    let proof = work::solve(&share.challenge(Ask::Reserve, T0).unwrap()).unwrap();
+    let reserved = done(share.reserve(HERE, &proof, T0)).unwrap();
+    let first = sealed(&reserved.id, 1, None, "uno");
+    upload_racing(&mut share, &reserved, first).unwrap();
+    for place in 1..=3 {
+        if place == 3 {
+            share.store.lose.set(true);
+        }
+        let ask = Ask::Report { id: &reserved.id };
+        let proof = work::solve(&share.challenge(ask, T0).unwrap()).unwrap();
+        let complaint = Complaint {
+            category: Category::Phishing,
+            detail: "pide la clave del banco".into(),
+            link: None,
+        };
+        assert_eq!(
+            done(share.report(&reserved.id, complaint, there(place), &proof, T0)),
+            Ok(())
+        );
+    }
+
+    let doc = done(share.store.doc(&reserved.id)).unwrap().unwrap();
+    assert_eq!(doc.blocked, Some(T0));
+}
+
+#[test]
+fn a_wrong_password_that_loses_a_race_is_still_wrong_and_still_counted() {
+    let mut share = racing();
+    let proof = work::solve(&share.challenge(Ask::Reserve, T0).unwrap()).unwrap();
+    let reserved = done(share.reserve(HERE, &proof, T0)).unwrap();
+    let first = sealed(&reserved.id, 1, None, "uno");
+    upload_racing(&mut share, &reserved, first).unwrap();
+    let password = Manage::Password(Some("perro azul".into()));
+    done(share.manage(&reserved.id, &reserved.admin, password, T0)).unwrap();
+    share.store.lose.set(true);
+
+    assert_eq!(
+        done(share.read(&reserved.id, Some("gato"), HERE, T0)),
+        Err(Refused::PasswordWrong)
+    );
+    let doc = done(share.store.doc(&reserved.id)).unwrap().unwrap();
+    assert_eq!(doc.gate.unwrap().missed, 1);
 }
 
 #[test]

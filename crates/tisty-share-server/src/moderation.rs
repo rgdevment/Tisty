@@ -66,10 +66,10 @@ impl<S: Store, R: Randomness> Share<S, R> {
         if complaint.detail.chars().count() > DETAIL_AT_MOST {
             return Err(Refused::TooLong);
         }
-        let mut doc = self.live(id, now).await?;
+        self.live(id, now).await?;
         let needed = self.policy.work.report;
         self.worked(&Ask::Report { id }, proof, needed, now).await?;
-        let by = guard::lasting(&self.secret, caller);
+        let by = guard::lasting(&self.secret, caller, now, self.policy.evidence);
         let before = self.store.reports(id, now).await?;
         if before.iter().any(|one| one.by == by) {
             return Err(Refused::Reported);
@@ -93,11 +93,19 @@ impl<S: Store, R: Randomness> Share<S, R> {
         places.push(&by);
         places.sort_unstable();
         places.dedup();
-        if doc.blocked.is_none() && places.len() >= self.policy.reports_to_block {
-            doc.blocked = Some(now);
-            // What it was blocked for is kept as long as the reports are, even past its idle days.
-            doc.ends = doc.ends.max(now + self.policy.evidence);
-            self.saved(&mut doc).await?;
+        if places.len() >= self.policy.reports_to_block {
+            let evidence = now + self.policy.evidence;
+            // The report is already filed, so a race that loses the block must not lose it.
+            self.retried(id, now, |held| {
+                if held.blocked.is_some() {
+                    return false;
+                }
+                held.blocked = Some(now);
+                // What it was blocked for is kept as long as the reports are, even past its idle days.
+                held.ends = held.ends.max(evidence);
+                true
+            })
+            .await?;
         }
         Ok(())
     }
@@ -116,6 +124,11 @@ impl<S: Store, R: Randomness> Share<S, R> {
         let doc = self.owned(id, admin, now).await?;
         if doc.blocked.is_none() {
             return Err(Refused::Missing);
+        }
+        // One appeal stands per block, so the owner says it once and the evidence stays readable.
+        let filed = self.store.reports(id, now).await?;
+        if filed.iter().any(|one| one.category == Category::Appeal) {
+            return Err(Refused::Reported);
         }
         self.store
             .file(&Report {

@@ -75,7 +75,7 @@ pub trait Store {
     async fn drop_envelope(&self, id: &str, kept: &Kept) -> Result<(), Fault>;
     /// The ids of every document whose `ends` has passed.
     async fn ending(&self, now: i64) -> Result<Vec<String>, Fault>;
-    /// Adds `by` to a counter that lapses at `until` and says what it holds now; a lapsed one starts again from zero.
+    /// Atomically adds `by` to a counter that lapses at `until` and says what it holds now, or requests together slip past.
     async fn count(&self, key: &str, by: u64, until: i64, now: i64) -> Result<u64, Fault>;
     /// Marks `key` until a moment, as a block or a proof already spent.
     async fn hold(&self, key: &str, until: i64) -> Result<(), Fault>;

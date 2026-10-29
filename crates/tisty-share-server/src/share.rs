@@ -273,16 +273,6 @@ impl<S: Store, R: Randomness> Share<S, R> {
         };
         let needed = self.policy.work.for_upload(size);
         self.worked(&ask, proof, needed, now).await?;
-        guard::spend(
-            &self.store,
-            &self.policy,
-            &self.secret,
-            caller,
-            0,
-            size,
-            now,
-        )
-        .await?;
         let manifest = envelope.manifest();
         if manifest.id != doc.id {
             return Err(Refused::Misaddressed);
@@ -297,6 +287,17 @@ impl<S: Store, R: Randomness> Share<S, R> {
         if manifest.from != latest || manifest.version != latest.map_or(1, |one| one + 1) {
             return Err(Refused::Behind { latest });
         }
+        // Only what will be kept is counted against the day.
+        guard::spend(
+            &self.store,
+            &self.policy,
+            &self.secret,
+            caller,
+            0,
+            size,
+            now,
+        )
+        .await?;
         let kept = Kept {
             version: manifest.version,
             digest: envelope.digest(),
@@ -331,8 +332,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
         let mut doc = self.live(id, now).await?;
         open_to_read(&doc)?;
         let kept = *doc.versions.last().ok_or(Refused::Missing)?;
-        let gated = doc.gate.is_some();
-        self.let_in(&mut doc, password, now).await?;
+        let cleared = self.let_in(&mut doc, password, now).await?;
         let envelope = self
             .store
             .envelope(id, &kept)
@@ -342,7 +342,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
         if new_reader {
             doc.reads += 1;
         }
-        if new_reader || gated || now - doc.active >= ACTIVITY_GRAIN {
+        if new_reader || cleared || now - doc.active >= ACTIVITY_GRAIN {
             touched(&mut doc, now);
             // Another reader saving the same activity first loses nothing, so a race is no refusal.
             match self.saved(&mut doc).await {
@@ -358,7 +358,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
 
     /// The latest version's number, for a Tisty looking for changes; asking is not activity (decision 50).
     pub async fn latest(&self, id: &str, caller: IpAddr, now: i64) -> Result<Option<u64>, Refused> {
-        self.admit(caller, Act::Read, now).await?;
+        self.admit(caller, Act::Poll, now).await?;
         let doc = self.live(id, now).await?;
         open_to_read(&doc)?;
         Ok(doc.latest())
@@ -508,14 +508,15 @@ impl<S: Store, R: Randomness> Share<S, R> {
     }
 
     /// A wrong password counts, and enough in a row close the gate for a while (decision 32).
+    /// True when letting in cleared earlier misses, which the caller then saves.
     async fn let_in(
         &mut self,
         doc: &mut Doc,
         password: Option<&str>,
         now: i64,
-    ) -> Result<(), Refused> {
+    ) -> Result<bool, Refused> {
         let Some(gate) = doc.gate.as_mut() else {
-            return Ok(());
+            return Ok(false);
         };
         if let Some(until) = gate.locked_until.filter(|until| *until > now) {
             return Err(Refused::PasswordLocked { until });
@@ -524,17 +525,49 @@ impl<S: Store, R: Randomness> Share<S, R> {
             return Err(Refused::PasswordAsked);
         };
         if keys::opens(gate, password, self.policy.slowness) {
+            let cleared = gate.missed > 0 || gate.locked_until.is_some();
             gate.missed = 0;
             gate.locked_until = None;
-            return Ok(());
+            return Ok(cleared);
         }
-        gate.missed += 1;
-        if gate.missed >= self.policy.misses {
-            gate.missed = 0;
-            gate.locked_until = Some(now + self.policy.locked);
-        }
-        self.saved(doc).await?;
+        let (misses, locked) = (self.policy.misses, self.policy.locked);
+        // A miss is written on what is stored now, so two guesses at once both count, and a lost race is still a wrong password.
+        let _ = self
+            .retried(&doc.id, now, |held| {
+                let Some(gate) = held.gate.as_mut() else {
+                    return false;
+                };
+                gate.missed += 1;
+                if gate.missed >= misses {
+                    gate.missed = 0;
+                    gate.locked_until = Some(now + locked);
+                }
+                true
+            })
+            .await;
         Err(Refused::PasswordWrong)
+    }
+
+    /// Reads the document again and applies `change` until it saves, for what must not be lost to a race.
+    pub(crate) async fn retried(
+        &self,
+        id: &str,
+        now: i64,
+        change: impl Fn(&mut Doc) -> bool,
+    ) -> Result<(), Refused> {
+        let mut lost = Refused::Behind { latest: None };
+        for _ in 0..4 {
+            let mut doc = self.live(id, now).await?;
+            if !change(&mut doc) {
+                return Ok(());
+            }
+            match self.saved(&mut doc).await {
+                Ok(()) => return Ok(()),
+                Err(behind @ Refused::Behind { .. }) => lost = behind,
+                Err(other) => return Err(other),
+            }
+        }
+        Err(lost)
     }
 
     pub(crate) async fn saved(&self, doc: &mut Doc) -> Result<(), Refused> {

@@ -21,6 +21,8 @@ pub enum Act {
     Reserve,
     Upload,
     Read,
+    /// A Tisty asking whether a document it follows changed.
+    Poll,
     Report,
 }
 
@@ -30,8 +32,14 @@ impl Act {
             Act::Reserve => "reserve",
             Act::Upload => "upload",
             Act::Read => "read",
+            Act::Poll => "poll",
             Act::Report => "report",
         }
+    }
+
+    /// A network is many readers behind one address, so reading too much only waits out the hour.
+    fn escalates(self) -> bool {
+        !matches!(self, Act::Read | Act::Poll)
     }
 }
 
@@ -41,6 +49,7 @@ pub struct Allowance {
     pub reserves: u64,
     pub uploads: u64,
     pub reads: u64,
+    pub polls: u64,
     pub reports: u64,
     pub documents_a_day: u64,
     pub bytes_a_day: u64,
@@ -55,6 +64,7 @@ impl Default for Allowance {
             reserves: 20,
             uploads: 60,
             reads: 600,
+            polls: 3_600,
             reports: 10,
             documents_a_day: 50,
             bytes_a_day: 50 * 1024 * 1024,
@@ -69,6 +79,7 @@ impl Allowance {
             Act::Reserve => self.reserves,
             Act::Upload => self.uploads,
             Act::Read => self.reads,
+            Act::Poll => self.polls,
             Act::Report => self.reports,
         }
     }
@@ -179,9 +190,10 @@ pub fn today(secret: &[u8; 32], ip: IpAddr, now: i64) -> String {
     ))
 }
 
-/// A name that holds across days, kept only while a block or a report needs it (decisions 41 and 42).
-pub fn lasting(secret: &[u8; 32], ip: IpAddr) -> String {
-    hex(&keyed(secret, &[WHO, &network(ip)]))
+/// A name that holds across days but not past `period`, kept only while a wait or a report needs it (decisions 41 and 42).
+pub fn lasting(secret: &[u8; 32], ip: IpAddr, now: i64, period: i64) -> String {
+    let epoch = now.div_euclid(period.max(1));
+    hex(&keyed(secret, &[WHO, &epoch.to_be_bytes(), &network(ip)]))
 }
 
 /// Refused while the caller waits out a block, and a step past its allowance earns the next, longer wait.
@@ -193,20 +205,24 @@ pub async fn admit<S: Store>(
     act: Act,
     now: i64,
 ) -> Result<(), Refused> {
-    let who = lasting(secret, ip);
+    let who = lasting(secret, ip, now, policy.evidence);
     if let Some(until) = store.held(&format!("wait:{who}"), now).await? {
         return Err(Refused::Slow { until });
     }
     let hour = now.div_euclid(HOUR);
+    let next_hour = (hour + 1) * HOUR;
     let key = format!("rate:{}:{}:{hour}", act.name(), today(secret, ip, now));
-    let done = store.count(&key, 1, (hour + 1) * HOUR, now).await?;
-    if done > policy.allowance.per_hour(act) {
-        return Err(overdone(store, policy, &who, now).await?);
+    let done = store.count(&key, 1, next_hour, now).await?;
+    if done <= policy.allowance.per_hour(act) {
+        return Ok(());
     }
-    Ok(())
+    if !act.escalates() {
+        return Err(Refused::Slow { until: next_hour });
+    }
+    Err(overdone(store, policy, &who, now).await?)
 }
 
-/// What a caller stores in a day: documents it reserves and bytes it uploads.
+/// What a caller stores in a day; a spent day waits for the next, counting nothing refused and growing no wait.
 pub async fn spend<S: Store>(
     store: &S,
     policy: &Policy,
@@ -220,15 +236,17 @@ pub async fn spend<S: Store>(
     let until = (day + 1) * DAY;
     let who = today(secret, ip, now);
     let allowance = &policy.allowance;
-    let made = store
-        .count(&format!("documents:{who}:{day}"), documents, until, now)
-        .await?;
-    let sent = store
-        .count(&format!("bytes:{who}:{day}"), bytes, until, now)
-        .await?;
-    if made > allowance.documents_a_day || sent > allowance.bytes_a_day {
-        return Err(overdone(store, policy, &lasting(secret, ip), now).await?);
+    let made = format!("documents:{who}:{day}");
+    let sent = format!("bytes:{who}:{day}");
+    let made_so_far = store.count(&made, 0, until, now).await?;
+    let sent_so_far = store.count(&sent, 0, until, now).await?;
+    if made_so_far.saturating_add(documents) > allowance.documents_a_day
+        || sent_so_far.saturating_add(bytes) > allowance.bytes_a_day
+    {
+        return Err(Refused::Slow { until });
     }
+    store.count(&made, documents, until, now).await?;
+    store.count(&sent, bytes, until, now).await?;
     Ok(())
 }
 
