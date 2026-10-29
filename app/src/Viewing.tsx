@@ -11,7 +11,7 @@ import {
   viewImport,
   viewShown,
 } from "./core";
-import { landscapeIn, paperIn } from "./front";
+import { laidIn, paperIn } from "./front";
 import { leftBehind } from "./leftBehind";
 import { adopt, fill, t } from "./locales";
 import { saidPlainly } from "./refusal";
@@ -123,7 +123,14 @@ function Reading({
     };
   }, [reading, shown]);
   const body = reading ? shown.body : "";
-  const turned = landscapeIn(body);
+  const laid = laidIn(body);
+  const which =
+    shown?.kind === "doc" ? shown.paper.file : shown?.kind === "file" ? shown.path : null;
+  // Sheets are only how the page is shown here: the file keeps what it says, and another file starts from it again.
+  const [shaped, setShaped] = useState<{ sheets: boolean; landscape: boolean } | null>(null);
+  useEffect(() => setShaped(null), [which]);
+  const sheets = shaped?.sheets ?? laid.sheets;
+  const turned = sheets && (shaped?.landscape ?? laid.landscape);
   // The paper a document names is its own; the one kept here only fills in when it names none.
   const leaf = paperIn(body) ?? kept.leaf;
   useEffect(() => pageFor(leaf, turned), [leaf, turned]);
@@ -135,6 +142,7 @@ function Reading({
     ready: reading,
     body,
     leaf,
+    landscape: turned,
     paper,
     named,
     seen: () => seenIn(drawn.current?.document),
@@ -270,12 +278,16 @@ function Reading({
           raw={raw}
           zoom={ZOOMS[zoom]}
           leaf={leaf}
+          sheets={sheets}
+          landscape={turned}
           onPage={(page) => {
             drawn.current = page;
           }}
           facts={facts}
           finding={finding}
           onLeaf={(one) => setKept((was) => ({ ...was, leaf: one }))}
+          onSheets={(on) => setShaped({ sheets: on, landscape: on && turned })}
+          onLandscape={(across) => setShaped({ sheets: true, landscape: across })}
           onRaw={setRaw}
           onFound={() => setFinding(false)}
           onDoc={(file) => void viewGo(file).catch(fail)}

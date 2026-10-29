@@ -1,8 +1,8 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { Head } from "tisty-reader/page";
 import { copied, type DocFacts, type Paper } from "../../core";
-import { laidIn } from "../../front";
 import { fill, t } from "../../locales";
+import Glyph from "../Glyph";
 import PaperFacts from "../PaperFacts";
 import Properties from "../Properties";
 import { acrossOf, leafWord, offered, PAPER, sheetFor, TALL } from "../sheets";
@@ -19,9 +19,13 @@ interface Props {
   raw: boolean;
   zoom: number;
   leaf: Paper;
+  sheets: boolean;
+  landscape: boolean;
   facts: DocFacts | null;
   finding: boolean;
   onLeaf: (leaf: Paper) => void;
+  onSheets: (on: boolean) => void;
+  onLandscape: (across: boolean) => void;
   onRaw: (raw: boolean) => void;
   onFound: () => void;
   onDoc: (file: string) => void;
@@ -94,15 +98,14 @@ function Finder({ onClose, within }: { onClose: () => void; within: () => Window
 }
 
 export default function Reader(props: Readonly<Props>) {
-  const { body, title, stranger, side, raw, zoom, leaf, finding } = props;
+  const { body, title, stranger, side, raw, zoom, leaf, sheets, landscape, finding } = props;
   const [heads, setHeads] = useState<Head[]>([]);
   const pictures = usePictures({ open: props.onOpen });
   const shown = useRef<Window | null>(null);
-  const laid = useMemo(() => laidIn(body), [body]);
-  const wide = laid.sheets ? acrossOf(leaf, laid.landscape) : PAPER[leaf] + 40;
+  const wide = sheets ? acrossOf(leaf, landscape) : PAPER[leaf] + 40;
   const sheet = useMemo(
-    () => (laid.sheets ? sheetFor(leaf, laid.landscape, t("sheetsBreak")) : undefined),
-    [laid, leaf],
+    () => (sheets ? sheetFor(leaf, landscape, t("sheetsBreak")) : undefined),
+    [sheets, landscape, leaf],
   );
 
   const sought = useRef<string | null>(null);
@@ -148,14 +151,44 @@ export default function Reader(props: Readonly<Props>) {
               <Properties body={body} />
             </div>
             <h6 className={heading}>{t("viewPage")}</h6>
-            <div className="mx-1">
-              <Segments
-                wide
-                value={leaf}
-                options={offered(leaf).map((one) => ({ key: one, label: t(leafWord(one)) }))}
-                onPick={props.onLeaf}
-              />
+            <div className="mx-1 flex items-stretch gap-1.5">
+              <div className="min-w-0 flex-1">
+                <Segments
+                  wide
+                  value={leaf}
+                  options={offered(leaf).map((one) => ({ key: one, label: t(leafWord(one)) }))}
+                  onPick={props.onLeaf}
+                />
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={sheets}
+                aria-label={t("sheetsShown")}
+                title={t("sheetsShown")}
+                onClick={() => props.onSheets(!sheets)}
+                className={`flex w-7 shrink-0 items-center justify-center rounded-md border ${
+                  sheets ? "border-accent/40 bg-active text-ink" : "border-line hover:bg-hover"
+                }`}
+              >
+                <Glyph name="pagebreak" className={`h-3.5 w-3.5 ${sheets ? "text-accent" : ""}`} />
+              </button>
             </div>
+            {sheets && (
+              <div className="mx-1.5 mt-1.5 flex justify-end gap-3 text-[11.5px] text-faint">
+                {[false, true].map((turned) => (
+                  <button
+                    key={String(turned)}
+                    type="button"
+                    aria-pressed={landscape === turned}
+                    onClick={() => props.onLandscape(turned)}
+                    className={landscape === turned ? "text-ink" : "hover:text-soft"}
+                  >
+                    {t(turned ? "sheetsAcross" : "sheetsUpright")}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="mx-1.5 mt-2.5 flex items-center gap-2.5 text-[11.5px] leading-snug text-faint">
               <span
                 className="w-[26px] shrink-0 rounded-md border-[1.5px] border-faint bg-sheet transition-[height]"

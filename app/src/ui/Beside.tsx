@@ -171,7 +171,7 @@ function Controls({
               sheets ? "border-accent/40 bg-active text-ink" : "hover:bg-hover"
             }`}
           >
-            <Glyph name="pages" className={`h-3.5 w-3.5 ${sheets ? "text-accent" : ""}`} />
+            <Glyph name="pagebreak" className={`h-3.5 w-3.5 ${sheets ? "text-accent" : ""}`} />
           </button>
         )}
         <button
