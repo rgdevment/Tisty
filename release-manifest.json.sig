@@ -1,4 +1,4 @@
 untrusted comment: signature from minisign secret key
-RUSHqxp5NyBhkGOCDDwBD5XHgyZbWCsWbsB/QdDJf8j6Lzn/E4tu3exPq4/k3+OOaxM6e7zUWVPnd9QMIbvuoh+q0iZdRFWsDgk=
-trusted comment: file:release-manifest.json tisty feed 1.39.0
-pzvfe7OA6NMn/KgO+Trnuj0FKPhETAGtyIoRySx6tp1VPE7/R95UI17+jH6TmJipdztHxKGVgvJSN9B5sWx6Dg==
+RUSHqxp5NyBhkEl6FoFqb4WKr7XxVMBjV0JlgeKYT3Wz+18iFuKVUsCXgYHWWAorzN003h/Evihx4JDEeYZI1jAXZoanAWVobAg=
+trusted comment: file:release-manifest.json tisty feed 1.39.1
+ApZvBAYnuW++xe3vYFPTv7EBT+i4vdf5Zicv/phMH1B0GuGpskFj4x4nsY21aT9sZNVUbCJdfrnBB45BsqA7BA==
