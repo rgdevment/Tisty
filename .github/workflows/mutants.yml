@@ -207,7 +207,7 @@ jobs:
           echo "::notice::survivors are in the report above and the artifact; this check does not fail on them"
 
       - name: A mutant that lives in a package file this branch wrote
-        if: steps.packages.outputs.touched == 'true'
+        if: ${{ !cancelled() && steps.packages.outputs.touched == 'true' }}
         run: |
           # One package that will not run still leaves the others their report.
           failed=0

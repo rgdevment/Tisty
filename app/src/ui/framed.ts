@@ -5,6 +5,6 @@ import { darkNow } from "./theming";
 
 const OWN_CSS = `${bar}${task}`;
 
-export const framed = (html: string, dark = darkNow()): string => shell(html, dark, OWN_CSS);
+export const framed = (html: string): string => shell(html, darkNow(), OWN_CSS);
 
 export const dressedAsWindow = (page: Document) => dressed(page, darkNow());

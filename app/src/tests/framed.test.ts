@@ -6,10 +6,9 @@ const page = (html: string): Document => new DOMParser().parseFromString(html, "
 afterEach(() => document.documentElement.removeAttribute("data-theme"));
 
 describe("a page in the window", () => {
-  it("is built in the window's theme unless it is asked for one", () => {
+  it("is built in the window's theme", () => {
     document.documentElement.dataset.theme = "dark";
     expect(page(framed("<p>x</p>")).documentElement.classList.contains("dark")).toBe(true);
-    expect(page(framed("<p>x</p>", false)).documentElement.classList.contains("dark")).toBe(false);
     document.documentElement.dataset.theme = "light";
     expect(page(framed("<p>x</p>")).documentElement.classList.contains("dark")).toBe(false);
   });

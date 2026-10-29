@@ -9,7 +9,7 @@ import {
   WidgetType,
 } from "@codemirror/view";
 import type { SyntaxNode } from "@lezer/common";
-import { HUES } from "tisty-reader/page";
+import { isHue } from "tisty-reader/page";
 import { frontLines } from "../front";
 import { known, markup } from "../glyphs";
 import { t } from "../locales";
@@ -327,11 +327,11 @@ const owned = (
     if (shown || coded(state, at) || touched(state, at, end)) continue;
     if (found[4] !== undefined) {
       const hue = found[5];
-      if (!known(found[4]) || (hue !== undefined && !HUES.includes(hue))) continue;
+      if (!known(found[4]) || (hue !== undefined && !isHue(hue))) continue;
       out.push(Decoration.replace({ widget: new Glyph(found[4], hue) }).range(at, end));
       continue;
     }
-    if (found[2] !== undefined && found[2] !== "yellow" && !HUES.includes(found[2])) continue;
+    if (found[2] !== undefined && found[2] !== "yellow" && !isHue(found[2])) continue;
     const tail = found[3] !== undefined ? 2 : found[0].length - 2 - found[1].length;
     out.push(Decoration.replace({}).range(at, at + 2));
     out.push(Decoration.replace({}).range(end - tail, end));

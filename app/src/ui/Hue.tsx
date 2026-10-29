@@ -1,23 +1,8 @@
+import { HUES, type Hue as Named } from "tisty-reader/page";
 import { t } from "../locales";
 
-export const HUES = [
-  "red",
-  "orange",
-  "amber",
-  "green",
-  "teal",
-  "blue",
-  "indigo",
-  "purple",
-  "pink",
-  "brown",
-  "gray",
-] as const;
-
-export type Hue = (typeof HUES)[number];
-
 /// Tailwind only ships classes it can see written out, so a built name would arrive unstyled.
-const CLASS: Record<Hue, string> = {
+const CLASS: Record<Named, string> = {
   red: "text-hue-red",
   orange: "text-hue-orange",
   amber: "text-hue-amber",
@@ -33,7 +18,7 @@ const CLASS: Record<Hue, string> = {
 
 /// Stored as a key, like the icon, so the palette can be retuned without touching anyone's lists.
 export const painted = (hue?: string | null): string =>
-  hue && Object.prototype.hasOwnProperty.call(CLASS, hue) ? CLASS[hue as Hue] : "text-soft";
+  hue && Object.prototype.hasOwnProperty.call(CLASS, hue) ? CLASS[hue as Named] : "text-soft";
 
 interface Props {
   chosen?: string | null;
