@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { Head } from "tisty-reader/page";
 import { openLink } from "../core";
 import { weigh } from "../format";
 import {
@@ -20,7 +21,6 @@ import HelpHome from "./HelpHome";
 import HelpNav from "./HelpNav";
 import HelpSteps from "./HelpSteps";
 import MarkdownArticle from "./MarkdownArticle";
-import type { Head } from "./paging";
 
 type View =
   | { kind: "home" }

@@ -19,9 +19,16 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "tisty-diagrams/*": ["../packages/tisty-diagrams/src/*"]
+      "tisty-diagrams/*": ["../packages/tisty-diagrams/src/*"],
+      "tisty-reader/*": ["../packages/tisty-reader/src/*"]
     }
   },
-  "include": ["src", "../packages/tisty-diagrams/src", "../packages/tisty-diagrams/tests"],
+  "include": [
+    "src",
+    "../packages/tisty-diagrams/src",
+    "../packages/tisty-diagrams/tests",
+    "../packages/tisty-reader/src",
+    "../packages/tisty-reader/tests"
+  ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

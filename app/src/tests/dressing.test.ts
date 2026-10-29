@@ -10,7 +10,8 @@ import {
   wired,
   worn,
 } from "../ui/dressing";
-import { charsAt, colored, dressed, escaped, saidKinds, shell, went } from "../ui/paging";
+import { framed } from "../ui/framed";
+import { charsAt, went } from "../ui/paging";
 
 const calls = vi.hoisted(() => ({
   links: [] as string[],
@@ -71,7 +72,7 @@ vi.mock("../glyphs", () => ({
   markup: (name: string) => (name === "star" ? '<path d="M1 1"/>' : null),
 }));
 
-const page = (html: string): Document => new DOMParser().parseFromString(shell(html), "text/html");
+const page = (html: string): Document => new DOMParser().parseFromString(framed(html), "text/html");
 
 const reaching = () => {
   const heard = {
@@ -102,33 +103,7 @@ beforeEach(() => {
   document.documentElement.removeAttribute("data-theme");
 });
 
-describe("the shell of a drawn page", () => {
-  it("speaks the window's language, starts untouchable and carries the theme", () => {
-    document.documentElement.lang = "es";
-    document.documentElement.dataset.theme = "dark";
-    const said = shell("<p>x</p>");
-    expect(said).toContain('lang="es"');
-    expect(said).toContain('class="dark"');
-    expect(said).toContain('<article class="page" inert>');
-    expect(said).toContain(":root{--tisty-sheet:");
-  });
-
-  it("escapes what it is asked to show as plain words", () => {
-    expect(escaped("<b>&</b>")).toBe("&lt;b&gt;&amp;&lt;/b&gt;");
-  });
-});
-
 describe("dressing a drawn page", () => {
-  it("follows the window's theme", () => {
-    const drawn = page("<p>x</p>");
-    document.documentElement.dataset.theme = "dark";
-    dressed(drawn);
-    expect(drawn.documentElement.classList.contains("dark")).toBe(true);
-    document.documentElement.dataset.theme = "light";
-    dressed(drawn);
-    expect(drawn.documentElement.classList.contains("dark")).toBe(false);
-  });
-
   it("sizes the page to the sheet picked and its zoom", () => {
     const drawn = page("<p>x</p>");
     fitted(drawn, 900, 1.25);
@@ -136,12 +111,6 @@ describe("dressing a drawn page", () => {
     expect(drawn.documentElement.style.getPropertyValue("zoom")).toBe("1.25");
     fitted(drawn);
     expect(drawn.documentElement.style.getPropertyValue("zoom")).toBe("1");
-  });
-
-  it("names every callout in the window's words", () => {
-    const drawn = page('<blockquote class="callout" data-callout="tip"><p>x</p></blockquote>');
-    saidKinds(drawn, (kind) => `said ${kind}`);
-    expect(drawn.querySelector("blockquote")?.dataset.said).toBe("said tip");
   });
 
   it("draws a known icon with its hue and leaves an odd hue out", () => {
@@ -303,17 +272,6 @@ describe("dressing a drawn page", () => {
     const read = page(code);
     widgets(read, false, { body: "", onDoc: () => {} });
     expect(read.querySelectorAll(".widget-bar button")).toHaveLength(0);
-  });
-
-  it("colours code in a language it knows and leaves the rest as written", async () => {
-    const drawn = page(
-      '<figure class="code"><pre><code class="language-ts">const a = "b";</code></pre></figure><figure class="code"><pre><code class="language-nope">x</code></pre></figure>',
-    );
-    colored(drawn, () => true);
-    const [known, odd] = Array.from(drawn.querySelectorAll("code"));
-    expect(known.querySelector(".hljs-keyword")?.textContent).toBe("const");
-    expect(known.textContent).toBe('const a = "b";');
-    expect(odd.children).toHaveLength(0);
   });
 
   it("dresses the whole page in one go", () => {

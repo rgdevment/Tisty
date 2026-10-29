@@ -271,14 +271,14 @@ named_modules() {
     | sed -E "s/^([^:]+):([0-9]+):.*['\"]([^'\"]+)['\"]$/\1 \2 \3/"
 }
 
-# The studio is meant for other apps too, so it reaches nothing of Tisty's and Tisty enters only by its doors.
-the_diagram_studio_keeps_to_itself() {
-  local studio=packages/tisty-diagrams/src named out
-  named=$(named_modules "$studio")
+# A package is meant for other apps too, so it reaches nothing of Tisty's and is entered only by its doors.
+keeps_to_itself() {
+  local name=$1 said=$2 doors=$3 root=packages/$1/src named out
+  named=$(named_modules "$root")
   [ $? -lt 2 ] && [ -n "$named" ] \
-    || { amiss "the diagram studio could not be looked through for what it reaches"; return; }
+    || { amiss "$said could not be looked through for what it reaches"; return; }
   # A relative path may climb only as far as the folders the file sits in below src/.
-  out=$(printf '%s\n' "$named" | awk -v root="$studio/" '
+  out=$(printf '%s\n' "$named" | awk -v root="$root/" '
     $3 ~ /^@tauri-apps\// { print; next }
     $3 ~ /^\.\.\// {
       folders = substr($1, length(root) + 1)
@@ -290,19 +290,24 @@ the_diagram_studio_keeps_to_itself() {
     }')
   if [ -n "$out" ]; then
     printf '%s\n' "$out"
-    amiss "the diagram studio reaches into the app; it takes what it needs through its props"
+    amiss "$said reaches into the app; it takes what it needs from whoever holds it"
     return
   fi
-  named=$(named_modules app/src)
-  [ $? -lt 2 ] || { amiss "the app could not be looked through for how it enters the diagram studio"; return; }
-  out=$(printf '%s\n' "$named" \
-    | awk '$3 ~ /tisty-diagrams/ && $3 != "tisty-diagrams/read" && $3 != "tisty-diagrams/studio"')
+  named=$(named_modules app/src packages/*/src)
+  [ $? -lt 2 ] || { amiss "the app could not be looked through for how it enters $said"; return; }
+  out=$(printf '%s\n' "$named" | awk -v name="$name" -v doors=" $doors " -v root="$root/" '
+    index($1, root) != 1 && ($3 == name || index($3, name "/") == 1) && index(doors, " " $3 " ") == 0')
   if [ -n "$out" ]; then
     printf '%s\n' "$out"
-    amiss "the app enters the diagram studio other than by tisty-diagrams/read or tisty-diagrams/studio"
+    amiss "$said is entered other than by $doors"
     return
   fi
-  went_well "the diagram studio and the app meet only at its doors"
+  went_well "$said and whoever uses it meet only at its doors"
+}
+
+the_packages_keep_to_themselves() {
+  keeps_to_itself tisty-diagrams "the diagram studio" "tisty-diagrams/read tisty-diagrams/studio"
+  keeps_to_itself tisty-reader "the page reader" "tisty-reader/page"
 }
 
 no_token_kept_in_the_tree() {
@@ -313,7 +318,7 @@ no_token_kept_in_the_tree() {
 
 cd "$(dirname "$0")/.." || exit 2
 no_prose_blocks
-the_diagram_studio_keeps_to_itself
+the_packages_keep_to_themselves
 nothing_past_what_a_person_holds
 written_in_english
 nothing_the_window_cannot_translate

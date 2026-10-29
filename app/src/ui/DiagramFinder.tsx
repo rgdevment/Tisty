@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { firstWords, kindName, kindOf, svgFor, titleOf } from "tisty-diagrams/read";
+import { drawing } from "tisty-reader/page";
 import { useAttended } from "../attended";
 import { diagramsEverywhere, type FoundDiagram } from "../drawing";
 import { matched } from "../finding";
 import { locale, t } from "../locales";
-import { drawing } from "./diagrams";
 import { darkNow } from "./theming";
 
 const titled = (one: FoundDiagram) => one.title.trim() || t("untitledDoc");

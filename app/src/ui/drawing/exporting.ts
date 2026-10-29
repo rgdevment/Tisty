@@ -1,9 +1,9 @@
 import { writeImage } from "@tauri-apps/plugin-clipboard-manager";
 import { save as intoFile } from "@tauri-apps/plugin-dialog";
 import { rasterized, svgFor } from "tisty-diagrams/read";
+import { drawing } from "tisty-reader/page";
 import { keepFile } from "../../core";
 import { t, type Word } from "../../locales";
-import { drawing } from "../diagrams";
 import type { Choice } from "../Menu";
 
 export type Way = "pngClear" | "pngLight" | "pngDark" | "jpgLight" | "jpgDark" | "svg";

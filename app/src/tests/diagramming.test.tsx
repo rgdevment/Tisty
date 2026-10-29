@@ -78,7 +78,9 @@ vi.mock("@tauri-apps/api/window", () => ({
   }),
 }));
 
-vi.mock("../ui/diagrams", () => ({
+vi.mock("tisty-reader/page", async (real) => ({
+  ...(await real<typeof import("tisty-reader/page")>()),
+  diagrams: () => Promise.resolve(),
   drawing: (source: string) =>
     Promise.resolve(
       source.includes("broken")

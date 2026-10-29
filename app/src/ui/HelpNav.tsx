@@ -1,7 +1,7 @@
+import type { Head } from "tisty-reader/page";
 import { openLink } from "../core";
 import type { HelpEntry } from "../guide/calls";
 import { t } from "../locales";
-import type { Head } from "./paging";
 
 interface Props {
   readonly sections: [string, HelpEntry[]][];

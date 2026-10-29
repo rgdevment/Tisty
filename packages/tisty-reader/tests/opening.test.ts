@@ -1,7 +1,7 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { source } from "./source";
 
-const css = () => readFileSync("src/ui/page.css", "utf8");
+const css = () => source("page.css");
 
 const ruleFor = (text: string, selector: string): string => {
   const at = text.indexOf(selector);

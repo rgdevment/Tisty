@@ -1,7 +1,6 @@
 import { save as intoFile } from "@tauri-apps/plugin-dialog";
 import { useEffect, useRef, useState } from "react";
 import { keepFile, type Paper, type Viewed } from "../../core";
-import { landscapeIn } from "../../front";
 import { t } from "../../locales";
 import { usePreviewing } from "../previewing";
 import { pdfOf, type Seen, STAMPING, type Stamping, stampOf } from "../printing";
@@ -10,6 +9,7 @@ interface Asked {
   ready: boolean;
   body: string;
   leaf: Paper;
+  landscape: boolean;
   paper: Viewed | null;
   named: string;
   /** How the page is seen on screen, read when the PDF is made. */
@@ -17,7 +17,16 @@ interface Asked {
   onFail: (problem: unknown) => void;
 }
 
-export default function usePdf({ ready, body, leaf, paper, named, seen, onFail }: Asked) {
+export default function usePdf({
+  ready,
+  body,
+  leaf,
+  landscape,
+  paper,
+  named,
+  seen,
+  onFail,
+}: Asked) {
   const [seeing, setSeeing] = useState<string | null>(null);
   const [stamping, setStamping] = useState<Stamping>(STAMPING);
   const [making, setMaking] = useState(false);
@@ -27,7 +36,7 @@ export default function usePdf({ ready, body, leaf, paper, named, seen, onFail }
     const stamp = paper
       ? await stampOf(paper.file, body, stamping)
       : { credited: stamping.credited };
-    return pdfOf([body], { leaf, landscape: landscapeIn(body), stamp, ...seen() });
+    return pdfOf([body], { leaf, landscape, stamp, ...seen() });
   };
 
   const working = async (work: () => Promise<void>) => {
@@ -73,7 +82,7 @@ export default function usePdf({ ready, body, leaf, paper, named, seen, onFail }
   open.current = seeing;
   useEffect(() => {
     if (open.current) void redraw.current();
-  }, [leaf, stamping, body]);
+  }, [leaf, landscape, stamping, body]);
 
   return {
     seeing,

@@ -11,11 +11,6 @@ const nightly = (): string => {
 };
 
 describe("the page the writing sits on", () => {
-  it("is paper by default, whatever the theme", () => {
-    const page = readFileSync("src/ui/page.css", "utf8");
-    expect(page).toMatch(/html:not\(\.tall\) \.page \{[^}]*background:\s*var\(--tisty-sheet\)/);
-  });
-
   it("is lighter than the desk in the dark, which is the whole point", () => {
     const dark = nightly();
     const desk = /--tisty-desk:\s*#([0-9a-f]{6})/.exec(dark)?.[1];

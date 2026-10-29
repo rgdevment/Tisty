@@ -23,13 +23,13 @@ import {
   type ViewUpdate,
 } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
+import { HUES, isHue } from "tisty-reader/page";
 import { docFromHtml, docFromText } from "../core";
 import { known } from "../glyphs";
 import { barred, blockKeys, flipped } from "./barring";
 import { docked } from "./docking";
 import { coded, owning } from "./formatting";
 import { latelyMarked } from "./lately";
-import { HUES } from "./paging";
 import { pendingFormat, pendingKeys, settle } from "./pending";
 import { gridFailed, gridKeys } from "./regridding";
 import { visual } from "./seeing";
@@ -191,7 +191,7 @@ const marking = new MatchDecorator({
     if (found[3] !== undefined) return Decoration.mark({ class: "cm-under" });
     if (found[4] !== undefined) {
       const hue = found[5];
-      if (!known(found[4]) || (hue !== undefined && !HUES.includes(hue))) return null;
+      if (!known(found[4]) || (hue !== undefined && !isHue(hue))) return null;
       return Decoration.mark({ class: hue === undefined ? "cm-ico" : `cm-ico ico-${hue}` });
     }
     const pen = found[2];

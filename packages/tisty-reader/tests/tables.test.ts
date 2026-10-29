@@ -1,7 +1,7 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { source } from "./source";
 
-const css = () => readFileSync("src/ui/tables.css", "utf8");
+const css = () => source("tables.css");
 
 const ruleFor = (text: string, selector: string): string => {
   const at = text.indexOf(`\n${selector} {`);
@@ -36,14 +36,5 @@ describe("a table on the page", () => {
     expect(print).toMatch(
       /div\.table\.wide :is\(th, td\) \{\s*hyphens:\s*auto;\s*overflow-wrap:\s*anywhere/,
     );
-  });
-
-  it("goes with the page wherever the page goes, the guide too", () => {
-    const paging = readFileSync("src/ui/paging.ts", "utf8");
-    expect(paging).toMatch(/PAGE_CSS = `\$\{sheet\}\$\{tables\}`/);
-    expect(paging).toMatch(/<style>\$\{PAGE_CSS\}/);
-    const guide = readFileSync("scripts/guide.mjs", "utf8");
-    expect(guide).toMatch(/PAGE_CSS: sheet/);
-    expect(guide).not.toMatch(/page\.css\?raw/);
   });
 });

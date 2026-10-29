@@ -1,12 +1,10 @@
 import { useEffect, useRef, useState } from "react";
+import { escaped, type Head, heads, type Sheet } from "tisty-reader/page";
 import { docDrawn, type Mend, mendsIn } from "../core";
 import { datedSteps, type Reaching } from "./dressing";
 import Frame from "./Frame";
 import { mendable } from "./mending";
-import type { Head } from "./paging";
-import { escaped, heads } from "./paging";
 import { recarded } from "./partcarding";
-import type { Sheet } from "./sheeting";
 
 type Props = Reaching & {
   readonly label: string;
