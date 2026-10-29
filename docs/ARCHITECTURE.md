@@ -60,6 +60,7 @@ flowchart TB
   core["tisty-core<br/>model, log, state, docs, attachments"]
   md["tisty-markdown<br/>the Tisty language"]
   proto["tisty-share-proto<br/>keys and seals"]
+  server["tisty-share-server<br/>Tisty Share's server, on any store"]
   react -- "invoke and events" --> gui
   react -- "read and studio doors" --> studio
   react -- "page door" --> reader
@@ -77,6 +78,7 @@ flowchart TB
   nl --> core
   core --> md
   core --> proto
+  server --> proto
 ```
 
 | Crate | What it does | Start at |
@@ -84,6 +86,7 @@ flowchart TB
 | `tisty-core` | The model and everything that touches the person's data: events, the log, replay, the read cache, documents, task pages, attachments, backup, signing | `event.rs`, `store.rs`, `state.rs` |
 | `tisty-markdown` | The Tisty language: reading by blocks, drawing to HTML, the translator at the edges | `lib.rs`, `fixtures/markdown.json` |
 | `tisty-share-proto` | The seed behind the 24-word phrase, the keys that come from it, certificates, the sealing of an encrypted cloud, the envelope that hands its key to another machine, and the envelope a shared document travels in: a manifest in the clear for the server that commits to the key in the link, each part sealed with that key, and optional signatures. Its limits (text, pictures, the kinds taken) are a server's `Limits`, Tisty's own unless it says otherwise. Behind `pictures`, Tisty recompresses a picture to them before it is sealed | `lib.rs`, `envelope.rs`, `limits.rs` |
+| `tisty-share-server` | Tisty Share's server, blind to HTTP and to where it runs: reserving an id and its edit and management tokens, taking a version only if it was written on the latest, serving only the latest, the password as a gate, idle expiry, the trash and a sweep. It works on a `Store` trait (D1 and R2 on Workers, memory in its tests), with randomness and the time handed in. It never loads `tisty-core` | `share.rs`, `store.rs` |
 | `tisty-nl` | Turns a typed sentence into a task with dates, priority, tags, list and repeat | `parse` |
 | `tisty-sync` | One sync round over a folder, the word a place leaves in `tisty.toml`, and the `Trouble` a round refuses with | `carry_through`, `shape.rs` |
 | `tisty-carrier` | The `Carrier` contract and its two carriers, `Folder` and `Cloud`; the `Remote` contract a provider speaks; sealing a cloud; the plain `knock/` box a machine asks for the cloud's key through; tokens | `lib.rs`, `cloud.rs`, `remote.rs` |

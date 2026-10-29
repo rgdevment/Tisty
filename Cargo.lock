@@ -5917,6 +5917,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "tisty-share-server"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "jiff",
+ "scrypt",
+ "serde",
+ "sha2 0.11.1",
+ "thiserror 2.0.21",
+ "tisty-share-proto",
+ "zeroize",
+]
+
+[[package]]
 name = "tisty-sync"
 version = "0.1.0"
 dependencies = [
