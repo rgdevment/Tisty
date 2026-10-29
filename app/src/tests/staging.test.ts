@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { shell, went } from "../ui/paging";
+import { framed } from "../ui/framed";
+import { went } from "../ui/paging";
 import { staged } from "../ui/staging";
 
-const page = (html: string): Document => new DOMParser().parseFromString(shell(html), "text/html");
+const page = (html: string): Document => new DOMParser().parseFromString(framed(html), "text/html");
 
 describe("a stage named in a document", () => {
   it("shows the words of that stage and leads to it, and keeps a number with no stage as it is", () => {

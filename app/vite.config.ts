@@ -8,35 +8,37 @@ import tailwindcss from "@tailwindcss/vite";
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
 
-// Stryker runs the tests from a copy of the app, so the studio is looked for up the folders.
-const studioAt = (from: string): string => {
-  const here = join(from, "packages", "tisty-diagrams");
+// Stryker runs the tests from a copy of the app, so the packages are looked for up the folders.
+const packageAt = (name: string, from: string): string => {
+  const here = join(from, "packages", name);
   if (existsSync(here)) return here;
   const up = dirname(from);
-  if (up === from) throw new Error("packages/tisty-diagrams is not above the app");
-  return studioAt(up);
+  if (up === from) throw new Error(`packages/${name} is not above the app`);
+  return packageAt(name, up);
 };
-const studio = studioAt(dirname(fileURLToPath(import.meta.url)));
+const appAt = dirname(fileURLToPath(import.meta.url));
+const studio = packageAt("tisty-diagrams", appAt);
+const reader = packageAt("tisty-reader", appAt);
 
 export default defineConfig(async () => ({
   plugins: [react(), tailwindcss()],
   resolve: {
-    alias: { "tisty-diagrams": join(studio, "src") },
+    alias: { "tisty-diagrams": join(studio, "src"), "tisty-reader": join(reader, "src") },
   },
 
   test: {
     environment: "jsdom",
     setupFiles: "./src/tests/setup.ts",
-    include: ["src/**/*.test.ts?(x)", "../packages/tisty-diagrams/tests/**/*.test.ts?(x)"],
+    include: ["src/**/*.test.ts?(x)", "../packages/*/tests/**/*.test.ts?(x)"],
     env: { TZ: "UTC" },
     testTimeout: 30000,
     coverage: {
       provider: "v8" as const,
       reporter: ["text-summary", "lcov"],
       reportsDirectory: "coverage",
-      // The studio lives beside the app, outside its root, and is measured all the same.
+      // The packages live beside the app, outside its root, and are measured all the same.
       allowExternal: true,
-      include: ["src/**/*.{ts,tsx}", "../packages/tisty-diagrams/src/**/*.{ts,tsx}"],
+      include: ["src/**/*.{ts,tsx}", "../packages/*/src/**/*.{ts,tsx}"],
       exclude: ["src/tests/**", "src/main.tsx", "src/vite-env.d.ts"],
     },
   },
@@ -47,7 +49,7 @@ export default defineConfig(async () => ({
     strictPort: true,
     host: host || false,
     hmr: host ? { protocol: "ws", host, port: 1421 } : undefined,
-    fs: { allow: [".", studio] },
+    fs: { allow: [".", studio, reader] },
     watch: {
       ignored: ["**/src-tauri/**"],
     },

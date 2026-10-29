@@ -1,6 +1,7 @@
 import { save as intoFile, open as pick } from "@tauri-apps/plugin-dialog";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { freshFence } from "tisty-diagrams/read";
+import type { Head } from "tisty-reader/page";
 import { asPlain } from "../copying";
 import {
   attachPasted,
@@ -44,7 +45,6 @@ import { MARKED_FOR } from "./lately";
 import Modal from "./Modal";
 import PdfTicks from "./PdfTicks";
 import Picking, { type Picked } from "./Picking";
-import type { Head } from "./paging";
 import { usePreviewing } from "./previewing";
 import { pdfOf, STAMPING, type Stamp, type Stamping, seenIn, stampOf } from "./printing";
 import Ribbon, { Onward } from "./Ribbon";

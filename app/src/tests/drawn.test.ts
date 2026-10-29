@@ -1,10 +1,12 @@
 import { readFileSync } from "node:fs";
+import { heads } from "tisty-reader/page";
 import { describe, expect, it } from "vitest";
-import { heads, shell, went } from "../ui/paging";
+import { framed } from "../ui/framed";
+import { went } from "../ui/paging";
 
 const conf = JSON.parse(readFileSync("src-tauri/tauri.conf.json", "utf8"));
 
-const page = (html: string): Document => new DOMParser().parseFromString(shell(html), "text/html");
+const page = (html: string): Document => new DOMParser().parseFromString(framed(html), "text/html");
 
 const clicked = (html: string, selector: string, selecting = false) => {
   const one = page(html).querySelector(selector);

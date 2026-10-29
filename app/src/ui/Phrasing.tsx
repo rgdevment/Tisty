@@ -1,10 +1,10 @@
 import { save as intoFile } from "@tauri-apps/plugin-dialog";
 import { useState } from "react";
+import { escaped } from "tisty-reader/page";
 import { identityConfirm, keepFile, pagePdf } from "../core";
 import { fill, locale, t } from "../locales";
 import { saidPlainly } from "../refusal";
 import Modal from "./Modal";
-import { escaped } from "./paging";
 import { mild, off, strong } from "./Rows";
 
 type Step = "words" | "sheet" | "confirm";

@@ -1,7 +1,7 @@
 import { render, waitFor } from "@testing-library/react";
+import type { Head } from "tisty-reader/page";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import Page from "../ui/Page";
-import type { Head } from "../ui/paging";
 
 const ipc = vi.hoisted(() => ({
   drawn: "" as string | null,

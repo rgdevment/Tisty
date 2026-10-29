@@ -1,8 +1,8 @@
+import { HUES } from "tisty-reader/page";
 import { type Glimpse, glimpseFetch, glimpseKept } from "../core";
 import { t } from "../locales";
 import { hosting } from "../previews";
 import { piece } from "./carding";
-import { HUES } from "./paging";
 
 // One question to the core per link and window, however many times the page is drawn again.
 const asked = new Map<string, Promise<Glimpse | null>>();

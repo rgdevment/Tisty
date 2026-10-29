@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { Head } from "tisty-reader/page";
 import type { Filed, Folded } from "../core";
 import { type DocFacts, docFacts, type Paper } from "../core";
 import { weigh } from "../format";
@@ -8,7 +9,7 @@ import Glyph from "./Glyph";
 import Menu, { type Choice } from "./Menu";
 import PaperFacts, { held, worded } from "./PaperFacts";
 import Properties from "./Properties";
-import type { Head } from "./paging";
+import { SheetsToggle, SheetsTurn } from "./SheetsSwitch";
 import { leafWord, offered } from "./sheets";
 import { often } from "./tagging";
 
@@ -159,21 +160,7 @@ function Controls({
             </button>
           ))}
         </fieldset>
-        {onSheets && (
-          <button
-            type="button"
-            role="switch"
-            aria-checked={sheets}
-            aria-label={t("sheetsShown")}
-            title={t("sheetsShown")}
-            onClick={() => onSheets(!sheets)}
-            className={`${control} w-7 justify-center ${
-              sheets ? "border-accent/40 bg-active text-ink" : "hover:bg-hover"
-            }`}
-          >
-            <Glyph name="pages" className={`h-3.5 w-3.5 ${sheets ? "text-accent" : ""}`} />
-          </button>
-        )}
+        {onSheets && <SheetsToggle sheets={sheets} onSheets={onSheets} className={control} />}
         <button
           type="button"
           aria-haspopup="menu"
@@ -197,19 +184,7 @@ function Controls({
         </button>
       </div>
       {sheets && onLandscape && (
-        <div className="mt-1.5 flex justify-end gap-3 text-[11.5px] text-faint">
-          {[false, true].map((turned) => (
-            <button
-              key={String(turned)}
-              type="button"
-              aria-pressed={landscape === turned}
-              onClick={() => onLandscape(turned)}
-              className={landscape === turned ? "text-ink" : "hover:text-soft"}
-            >
-              {t(turned ? "sheetsAcross" : "sheetsUpright")}
-            </button>
-          ))}
-        </div>
+        <SheetsTurn landscape={landscape} onLandscape={onLandscape} className="mt-1.5" />
       )}
       {out && <Menu at={out} choices={ways} label={t("exportIt")} onClose={() => setOut(null)} />}
     </>

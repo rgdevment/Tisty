@@ -1,4 +1,5 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { colored, diagrams, HUES, isHue, saidKinds, sourceOf } from "tisty-reader/page";
 import { type Lent, openLink } from "../core";
 import { markup } from "../glyphs";
 import { askAgain, serve, showing } from "../inUse";
@@ -8,13 +9,9 @@ import { plainly } from "../refusal";
 import { type Attaching, attachedAs, lents, pressed } from "./attached";
 import { type Carding, carded } from "./carding";
 import { celled, today } from "./celled";
-import { diagrams, sourceOf } from "./diagrams";
 import {
   charsAt,
-  colored,
-  HUES,
   type Shot,
-  saidKinds,
   shotsOf,
   spanned,
   type TableWent,
@@ -86,7 +83,7 @@ export const iconed = (page: Document | HTMLElement) => {
     const drawn = markup(one.dataset.ico ?? "");
     if (!drawn) continue;
     const hue = one.dataset.hue ?? "";
-    if (HUES.includes(hue)) one.classList.add(`ico-${hue}`);
+    if (isHue(hue)) one.classList.add(`ico-${hue}`);
     const glyph = made.createElementNS("http://www.w3.org/2000/svg", "svg");
     glyph.setAttribute("class", "glyph");
     glyph.setAttribute("viewBox", "0 0 24 24");

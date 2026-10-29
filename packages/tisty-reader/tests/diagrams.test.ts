@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { diagramShot, diagrams, drawing } from "../ui/diagrams";
+import { diagramShot, diagrams, drawing } from "../src/diagrams";
 
 const drawn = vi.hoisted(() => ({
   themes: [] as string[],

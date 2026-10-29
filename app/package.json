@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "postinstall": "node ../scripts/studio-link.mjs",
+    "postinstall": "node ../scripts/packages-link.mjs",
     "prepare": "git config --get core.hooksPath || git config core.hooksPath hooks || echo the hooks are not set: this is not a git clone",
     "dev": "vite",
     "build": "tsc && vite build",
@@ -12,8 +12,8 @@
     "test:coverage": "vitest run --coverage",
     "preview": "vite preview",
     "tauri": "tauri",
-    "lint": "biome check src && cd ../packages/tisty-diagrams && biome check .",
-    "format": "biome check src --write && cd ../packages/tisty-diagrams && biome check . --write",
+    "lint": "biome check src && cd ../packages/tisty-diagrams && biome check . && cd ../tisty-reader && biome check .",
+    "format": "biome check src --write && cd ../packages/tisty-diagrams && biome check . --write && cd ../tisty-reader && biome check . --write",
     "mutants": "stryker run"
   },
   "dependencies": {

@@ -32,10 +32,17 @@ vi.mock("@tauri-apps/api/event", () => ({
 }));
 
 vi.mock("../ui/printing", () => ({
-  pdfOf: (_: string[], sheet: { stamp?: { credited?: boolean }; turns?: string[] }) => {
+  pdfOf: (
+    _: string[],
+    sheet: { stamp?: { credited?: boolean }; turns?: string[]; landscape?: boolean },
+  ) => {
     ipc.calls.push({
       cmd: "pdf",
-      args: { credited: sheet.stamp?.credited ?? null, turns: sheet.turns ?? null },
+      args: {
+        credited: sheet.stamp?.credited ?? null,
+        turns: sheet.turns ?? null,
+        landscape: sheet.landscape ?? null,
+      },
     });
     return Promise.resolve(new Blob(["%PDF"]));
   },
@@ -210,6 +217,21 @@ describe("reading in the viewer", () => {
     expect(await screen.findByRole("button", { name: t("viewCopy") })).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: t("viewCopy") }));
     expect(await screen.findByRole("button", { name: t("viewCopied") })).toBeTruthy();
+  });
+
+  it("shows sheets turned across only on screen, and the PDF follows them", async () => {
+    window.innerWidth = SIDE_FROM;
+    render(<Viewing />);
+    await screen.findByText("notas.md");
+
+    const toggle = screen.getByRole("switch", { name: t("sheetsShown") });
+    expect(toggle.getAttribute("aria-checked")).toBe("false");
+    await userEvent.click(toggle);
+    await userEvent.click(await screen.findByRole("button", { name: t("sheetsAcross") }));
+    expect(toggle.getAttribute("aria-checked")).toBe("true");
+    pressed("p");
+    await waitFor(() => expect(asked("pdf").map((one) => one.args.landscape)).toContain(true));
+    expect(asked("view_import")).toHaveLength(0);
   });
 
   it("opens with the contents beside the page only in a window wide enough for both", async () => {

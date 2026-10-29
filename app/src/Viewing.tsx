@@ -11,7 +11,7 @@ import {
   viewImport,
   viewShown,
 } from "./core";
-import { landscapeIn, paperIn } from "./front";
+import { paperIn } from "./front";
 import { leftBehind } from "./leftBehind";
 import { adopt, fill, t } from "./locales";
 import { saidPlainly } from "./refusal";
@@ -29,6 +29,7 @@ import Problem, { type Trouble } from "./ui/viewer/Problem";
 import Reader from "./ui/viewer/Reader";
 import Stage, { type Preset } from "./ui/viewer/Stage";
 import usePdf from "./ui/viewer/usePdf";
+import { useSheets } from "./ui/viewer/useSheets";
 import WindowChrome from "./ui/WindowChrome";
 
 const KEPT = "tisty.viewer";
@@ -123,7 +124,10 @@ function Reading({
     };
   }, [reading, shown]);
   const body = reading ? shown.body : "";
-  const turned = landscapeIn(body);
+  const which =
+    shown?.kind === "doc" ? shown.paper.file : shown?.kind === "file" ? shown.path : null;
+  const shape = useSheets(which, body);
+  const turned = shape.landscape;
   // The paper a document names is its own; the one kept here only fills in when it names none.
   const leaf = paperIn(body) ?? kept.leaf;
   useEffect(() => pageFor(leaf, turned), [leaf, turned]);
@@ -135,6 +139,7 @@ function Reading({
     ready: reading,
     body,
     leaf,
+    landscape: turned,
     paper,
     named,
     seen: () => seenIn(drawn.current?.document),
@@ -270,12 +275,16 @@ function Reading({
           raw={raw}
           zoom={ZOOMS[zoom]}
           leaf={leaf}
+          sheets={shape.sheets}
+          landscape={turned}
           onPage={(page) => {
             drawn.current = page;
           }}
           facts={facts}
           finding={finding}
           onLeaf={(one) => setKept((was) => ({ ...was, leaf: one }))}
+          onSheets={shape.onSheets}
+          onLandscape={shape.onLandscape}
           onRaw={setRaw}
           onFound={() => setFinding(false)}
           onDoc={(file) => void viewGo(file).catch(fail)}

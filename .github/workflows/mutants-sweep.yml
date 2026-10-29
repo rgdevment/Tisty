@@ -325,10 +325,14 @@ jobs:
           path: app/reports/
           retention-days: 14
 
-  studio:
-    name: diagram studio / every mutant
+  packages:
+    name: ${{ matrix.package }} / every mutant
     runs-on: ubuntu-24.04
     timeout-minutes: 355
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [tisty-diagrams, tisty-reader]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -340,19 +344,19 @@ jobs:
           cache: npm
           cache-dependency-path: app/package-lock.json
 
-      # The studio takes the app's dependencies, linked when the app installs.
+      # A package takes the app's dependencies, linked when the app installs.
       - run: npm ci
         working-directory: app
 
-      - name: Every mutant the diagram studio carries
-        working-directory: packages/tisty-diagrams
+      - name: Every mutant the package carries
+        working-directory: packages/${{ matrix.package }}
         run: npx stryker run --concurrency 4 --reporters progress-append-only,clear-text,json
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
-          name: mutants-studio
-          path: packages/tisty-diagrams/reports/
+          name: mutants-package-${{ matrix.package }}
+          path: packages/${{ matrix.package }}/reports/
           retention-days: 14
 
   score:

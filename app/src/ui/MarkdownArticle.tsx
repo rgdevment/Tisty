@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { Head } from "tisty-reader/page";
 import rina from "../../src-tauri/resources/guide/en/rina.jpg";
 import { helpAnchors, helpDrawn } from "../guide/calls";
 import { aimedAt, linkedHere } from "../guide/help";
@@ -7,7 +8,6 @@ import { t } from "../locales";
 import { pictured } from "../previews";
 import type { Carded } from "./carding";
 import Page from "./Page";
-import type { Head } from "./paging";
 
 const titles = new Map<string, string>();
 const drawings = new Map<string, Promise<string>>();
