@@ -167,7 +167,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -176,11 +176,18 @@ jobs:
         with:
           components: clippy
           targets: wasm32-unknown-unknown
+      - uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2.87.22
+        with:
+          tool: worker-build@0.8.7
       # The Worker builds the same protocol the app does; a dependency that cannot reach wasm has to fail here.
       - run: cargo check -p tisty-share-proto --no-default-features --target wasm32-unknown-unknown
       - run: cargo check -p tisty-share-server --target wasm32-unknown-unknown
       # What talks to D1 and R2 only exists on wasm, so it is linted there.
       - run: cargo clippy -p tisty-share-worker --target wasm32-unknown-unknown
+      # wasm-bindgen only fails once it reads the wasm, so the Worker is bundled as wrangler would bundle it.
+      - name: The Worker bundles as wrangler deploys it
+        working-directory: crates/tisty-share-worker
+        run: worker-build --release
 
   window:
     name: frontend

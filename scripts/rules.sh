@@ -316,6 +316,17 @@ no_token_kept_in_the_tree() {
   looked_through     "a provider's token or secret is in the tree; fakes make their own, and real ones live in the keychain" $?     "the tree could not be looked through for tokens"     && went_well "no provider token or secret is kept in the tree"
 }
 
+no_worker_secrets_kept() {
+  local kept
+  kept=$(git ls-files -- 'crates/tisty-share-worker/.dev.vars*' 'crates/tisty-share-worker/.env*')
+  if [ -n "$kept" ]; then
+    printf '%s\n' "$kept"
+    amiss "a file wrangler reads secrets from is committed; it stays on the machine and the secret goes up with wrangler secret put"
+  else
+    went_well "no Worker secrets file is committed"
+  fi
+}
+
 cd "$(dirname "$0")/.." || exit 2
 no_prose_blocks
 the_packages_keep_to_themselves
@@ -329,4 +340,5 @@ the_way_of_syncing_is_named_once
 the_rule_on_the_way_of_syncing_can_fail
 both_languages_carry_the_same_documents
 no_token_kept_in_the_tree
+no_worker_secrets_kept
 exit $status

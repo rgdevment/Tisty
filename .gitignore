@@ -20,6 +20,9 @@ Thumbs.db
 # What worker-build and wrangler leave behind while building and trying the Worker.
 crates/tisty-share-worker/build/
 crates/tisty-share-worker/.wrangler/
+# Where wrangler reads the Worker's secrets on one machine, for every environment.
+crates/tisty-share-worker/.dev.vars*
+crates/tisty-share-worker/.env*
 
 # Built per release, never committed: the CLI rides along with the window.
 app/src-tauri/binaries/
