@@ -132,6 +132,6 @@ opt-level = 2
 lto = "thin"
 strip = true
 
-# wasm-bindgen reads what stripping would take out of the Worker's wasm, and wasm-opt shrinks it after.
+# Stripping takes the externref table wasm-bindgen 0.2.129 needs for its catch wrappers; wasm-opt shrinks the wasm after.
 [profile.release.package.tisty-share-worker]
 strip = false
