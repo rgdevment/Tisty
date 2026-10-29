@@ -131,3 +131,7 @@ opt-level = 2
 # Not a resident process: release build time matters more than the last few percent of size.
 lto = "thin"
 strip = true
+
+# Stripping takes the externref table wasm-bindgen 0.2.129 needs for its catch wrappers; wasm-opt shrinks the wasm after.
+[profile.release.package.tisty-share-worker]
+strip = false
