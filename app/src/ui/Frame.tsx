@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
-import { diagrams, dressed, followTheme, type Sheet, sheeting } from "tisty-reader/page";
+import { diagrams, dressed, type Sheet, sheeting } from "tisty-reader/page";
 import { fitted, type Reaching, type Worn, wired, worn } from "./dressing";
-import { framed } from "./paging";
+import { framed } from "./framed";
+import { darkNow, followTheme } from "./theming";
 
 type Props = {
   readonly html: string;
@@ -85,7 +86,7 @@ export default function Frame(props: Readonly<Props>) {
     const retheme = () => {
       const page = held.contentDocument;
       if (!page) return;
-      dressed(page);
+      dressed(page, darkNow());
       const mine = drawing;
       void diagrams(
         page,
@@ -109,7 +110,7 @@ export default function Frame(props: Readonly<Props>) {
       page.documentElement.classList.toggle("tall", tall);
       page.documentElement.classList.toggle("untitled", untitled);
       page.documentElement.classList.toggle("shaping", shaped.current);
-      dressed(page);
+      dressed(page, darkNow());
       fitted(page, said.current.wide, said.current.zoom);
       dress(page);
       if (tall) stopGrowing = grows(held, page);
@@ -125,7 +126,7 @@ export default function Frame(props: Readonly<Props>) {
       undressed();
       // The document is built once, so the language and look it was built with are brought up to date.
       page.documentElement.lang = document.documentElement.lang;
-      dressed(page);
+      dressed(page, darkNow());
       freshen(sheet, next);
       dress(page);
       laid.current();

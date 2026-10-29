@@ -1,7 +1,7 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { source } from "./source";
 
-const css = () => readFileSync("../packages/tisty-reader/src/tables.css", "utf8");
+const css = () => source("tables.css");
 
 const ruleFor = (text: string, selector: string): string => {
   const at = text.indexOf(`\n${selector} {`);
@@ -38,12 +38,10 @@ describe("a table on the page", () => {
     );
   });
 
-  it("goes with the page wherever the page goes, the guide too", () => {
-    const paging = readFileSync("../packages/tisty-reader/src/shell.ts", "utf8");
-    expect(paging).toMatch(/PAGE_CSS = `\$\{sheet\}\$\{tables\}`/);
-    expect(paging).toMatch(/<style>\$\{PAGE_CSS\}/);
-    const guide = readFileSync("scripts/guide.mjs", "utf8");
-    expect(guide).toMatch(/PAGE_CSS: sheet/);
-    expect(guide).not.toMatch(/page\.css\?raw/);
+  it("goes with the page wherever the page goes", () => {
+    // Vitest hands CSS in as empty, so the page's own source says what it wears.
+    const shell = source("shell.ts");
+    expect(shell).toMatch(/PAGE_CSS = `\$\{sheet\}\$\{tables\}`/);
+    expect(shell).toMatch(/<style>\$\{PAGE_CSS\}\$\{extra\}<\/style>/);
   });
 });

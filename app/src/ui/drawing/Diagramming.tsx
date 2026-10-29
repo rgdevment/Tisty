@@ -4,7 +4,7 @@ import { ask } from "@tauri-apps/plugin-dialog";
 import { useEffect, useRef, useState } from "react";
 import { asRead, kindName, kindOf } from "tisty-diagrams/read";
 import { DiagramStudio } from "tisty-diagrams/studio";
-import { darkNow, drawing, followTheme } from "tisty-reader/page";
+import { drawing } from "tisty-reader/page";
 import type { Viewed } from "../../core";
 import {
   diagramAgain,
@@ -16,6 +16,7 @@ import {
 import { fill, locale, t, type Word } from "../../locales";
 import { saidPlainly } from "../../refusal";
 import Menu from "../Menu";
+import { darkNow, followTheme } from "../theming";
 import { button, tinted } from "../viewer/Glyphs";
 import TitleBar from "../viewer/TitleBar";
 import WindowChrome from "../WindowChrome";

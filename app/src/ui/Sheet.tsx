@@ -8,7 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { darkNow, type Head, type Sheet as SheetSize } from "tisty-reader/page";
+import type { Head, Sheet as SheetSize } from "tisty-reader/page";
 import { copied, copyAttached, type Mend, opened, viewWidget } from "../core";
 import { viewDiagram } from "../drawing";
 import { CATCHES, takesFiles } from "../dropped";
@@ -39,6 +39,7 @@ import { type Asking, pressed, putBlock, stagesIn } from "./slashing";
 import { stepLine, steppedTitle } from "./staging";
 import { useTables } from "./tableSheet";
 import { widened } from "./tabling";
+import { darkNow } from "./theming";
 import { usePictures } from "./usePictures";
 
 type Props = {

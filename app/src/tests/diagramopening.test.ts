@@ -1,7 +1,8 @@
-import { diagrams, shell } from "tisty-reader/page";
+import { diagrams } from "tisty-reader/page";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { t } from "../locales";
 import { answered, DOUBLE_MS, diagramBars, type Reaching, wired, worn } from "../ui/dressing";
+import { framed } from "../ui/framed";
 import { went } from "../ui/paging";
 
 vi.mock("mermaid", () => ({
@@ -13,7 +14,7 @@ vi.mock("mermaid", () => ({
   },
 }));
 
-const page = (html: string): Document => new DOMParser().parseFromString(shell(html), "text/html");
+const page = (html: string): Document => new DOMParser().parseFromString(framed(html), "text/html");
 
 const reaching = (opens = true) => {
   const heard = { diagrams: [] as [number, number, string][], pictures: [] as number[], away: 0 };

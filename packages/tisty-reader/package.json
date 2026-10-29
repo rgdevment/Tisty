@@ -2,13 +2,14 @@
   "name": "tisty-reader",
   "private": true,
   "version": "0.1.0",
-  "description": "Tisty's page reader: wraps a drawn document in its page, its look and its theme, and colours its code, draws its diagrams and lays its sheets.",
+  "description": "Tisty's page reader: wraps a drawn document in its page and its look, in the theme its host gives, and colours its code, draws its diagrams and lays its sheets.",
   "type": "module",
   "exports": {
     "./page": "./src/page.ts"
   },
   "peerDependencies": {
     "lowlight": "^3.3.0",
-    "mermaid": "^12.1.0"
+    "mermaid": "^12.1.0",
+    "tisty-diagrams": "0.1.0"
   }
 }

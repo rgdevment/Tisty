@@ -3,7 +3,7 @@ import { attached, docDrawn, type Paper } from "../core";
 import { t } from "../locales";
 import { named, pictured } from "../previews";
 import { iconed } from "./dressing";
-import { framed } from "./paging";
+import { framed } from "./framed";
 import type { Stamp } from "./printing";
 import { PRINTED, sizeOf } from "./sheets";
 import { coverOn, creditOn } from "./stamped";

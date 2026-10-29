@@ -1,9 +1,9 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { darkNow, followTheme } from "tisty-reader/page";
 import { type Borrowed, openLink, widgetLend, widgetLendKept, widgetTakeBack } from "../core";
 import { t } from "../locales";
 import { DOC } from "../markdown";
 import { saidPlainly } from "../refusal";
+import { darkNow, followTheme } from "./theming";
 import { drawn } from "./viewer/shapes";
 
 export const SHORTEST = 40;

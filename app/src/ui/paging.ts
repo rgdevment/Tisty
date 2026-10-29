@@ -1,13 +1,8 @@
-import { diagramShot, shell } from "tisty-reader/page";
+import { diagramShot } from "tisty-reader/page";
 import { t } from "../locales";
 import { DOC, TASK } from "../markdown";
-import bar from "./bar.css?raw";
 import type { Choice } from "./Menu";
 import { type TableAct, tableClicked } from "./tabled";
-import task from "./taskpage.css?raw";
-
-// The window's page wears the editing bar and a task's own look over what every page wears.
-export const framed = (html: string): string => shell(html, `${bar}${task}`);
 
 // The page names blocks by their bytes in the file; whoever edits holds the text as characters.
 export const charsAt = (body: string, bytes: number): number =>

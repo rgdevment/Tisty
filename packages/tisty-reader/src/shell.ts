@@ -1,6 +1,5 @@
 import sheet from "./page.css?raw";
 import tables from "./tables.css?raw";
-import { darkNow } from "./theming";
 
 export const HUES = [
   "red",
@@ -50,15 +49,14 @@ export const escaped = (said: string): string =>
 // Everything a drawn page needs to look like itself, wherever it is shown.
 export const PAGE_CSS = `${sheet}${tables}`;
 
-/** A whole page around `html`, in the host's language, look and tokens; `extra` is the host's own CSS. */
-export const shell = (html: string, extra = ""): string =>
-  `<!doctype html><html lang="${document.documentElement.lang}" class="${darkNow() ? "dark" : ""}"><head><meta charset="utf-8"><style>:root{${worn()}}</style><style>${PAGE_CSS}${extra}</style></head><body><article class="page" inert>${html}</article></body></html>`;
+export const shell = (html: string, dark: boolean, extra = ""): string =>
+  `<!doctype html><html lang="${document.documentElement.lang}" class="${dark ? "dark" : ""}"><head><meta charset="utf-8"><style>:root{${worn()}}</style><style>${PAGE_CSS}${extra}</style></head><body><article class="page" inert>${html}</article></body></html>`;
 
-export const dressed = (page: Document) => {
+export const dressed = (page: Document, dark: boolean) => {
   const theirs = getComputedStyle(document.documentElement);
   const root = page.documentElement;
   for (const token of TOKENS) root.style.setProperty(token, theirs.getPropertyValue(token));
-  root.classList.toggle("dark", darkNow());
+  root.classList.toggle("dark", dark);
 };
 
 export const saidKinds = (page: Document | HTMLElement, said: (kind: string) => string) => {
