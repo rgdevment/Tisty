@@ -124,8 +124,7 @@ export const webPage = async (
 ): Promise<string> => {
   const drawn = await Promise.all(bodies.map(docDrawn));
   if (drawn.length && sheet) drawn[0] = asSeen(drawn[0], sheet);
-  const page = new DOMParser().parseFromString(framed(drawn.join("<hr>")), "text/html");
-  page.documentElement.classList.remove("dark");
+  const page = new DOMParser().parseFromString(framed(drawn.join("<hr>"), false), "text/html");
   const light = lit();
   const tokens = page.head.querySelector("style");
   if (light && tokens) tokens.textContent = `:root{${light}}`;

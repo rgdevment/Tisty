@@ -1,5 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { colored, coloredAll } from "../src/coloring";
+
+afterEach(() => vi.restoreAllMocks());
 
 const page = (html: string): Document =>
   new DOMParser().parseFromString(`<article class="page">${html}</article>`, "text/html");
@@ -52,6 +54,5 @@ describe("colouring code on the page", () => {
     live = false;
     frames[0](0);
     expect(second.children).toHaveLength(0);
-    vi.restoreAllMocks();
   });
 });
