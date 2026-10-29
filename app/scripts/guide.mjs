@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { JSDOM } from "jsdom";
@@ -36,6 +36,10 @@ const { adopt, t } = await vite.ssrLoadModule("/src/locales.ts");
 const { hosting, named, pictured } = await vite.ssrLoadModule("/src/previews.ts");
 const { carded, piece } = await vite.ssrLoadModule("/src/ui/carding.ts");
 const { examplesIn, shownBeside, topicsOf } = await vite.ssrLoadModule("/src/guide/reference.ts");
+// The packages beside the app are found by the app's own aliases, which a build with no config file would not have.
+const packages = vite.config.resolve.alias.filter(
+  ({ find }) => typeof find === "string" && existsSync(join(root, "packages", find)),
+);
 await vite.close();
 
 const drawn = (texts) =>
@@ -268,6 +272,7 @@ await bundled({
   root: app,
   configFile: false,
   logLevel: "error",
+  resolve: { alias: packages },
   build: {
     outDir: join(out, "diagrams"),
     emptyOutDir: true,
