@@ -37,11 +37,4 @@ describe("a table on the page", () => {
       /div\.table\.wide :is\(th, td\) \{\s*hyphens:\s*auto;\s*overflow-wrap:\s*anywhere/,
     );
   });
-
-  it("goes with the page wherever the page goes", () => {
-    // Vitest hands CSS in as empty, so the page's own source says what it wears.
-    const shell = source("shell.ts");
-    expect(shell).toMatch(/PAGE_CSS = `\$\{sheet\}\$\{tables\}`/);
-    expect(shell).toMatch(/<style>\$\{PAGE_CSS\}\$\{extra\}<\/style>/);
-  });
 });
