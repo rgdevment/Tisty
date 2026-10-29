@@ -80,3 +80,17 @@ path = "fuzz_targets/shape.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "envelope_read"
+path = "fuzz_targets/envelope_read.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "envelope_tamper"
+path = "fuzz_targets/envelope_tamper.rs"
+test = false
+doc = false
+bench = false
