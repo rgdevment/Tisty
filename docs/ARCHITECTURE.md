@@ -61,6 +61,7 @@ flowchart TB
   md["tisty-markdown<br/>the Tisty language"]
   proto["tisty-share-proto<br/>keys and seals"]
   server["tisty-share-server<br/>Tisty Share's server, on any store"]
+  worker["tisty-share-worker<br/>the server on Workers, D1 and R2"]
   react -- "invoke and events" --> gui
   react -- "read and studio doors" --> studio
   react -- "page door" --> reader
@@ -79,6 +80,8 @@ flowchart TB
   core --> md
   core --> proto
   server --> proto
+  worker --> server
+  worker --> proto
 ```
 
 | Crate | What it does | Start at |
@@ -87,6 +90,7 @@ flowchart TB
 | `tisty-markdown` | The Tisty language: reading by blocks, drawing to HTML, the translator at the edges | `lib.rs`, `fixtures/markdown.json` |
 | `tisty-share-proto` | The 24-word phrase and its keys, certificates, the encrypted cloud's seal, and the envelope a shared document travels in | `lib.rs`, `envelope.rs` |
 | `tisty-share-server` | Tisty Share's server on any store, with no HTTP and no `tisty-core` | `share.rs` |
+| `tisty-share-worker` | Tisty Share on Cloudflare Workers: the server's steps over HTTP, kept in D1 and R2 | `api.rs`, `cloudflare.rs` |
 | `tisty-nl` | Turns a typed sentence into a task with dates, priority, tags, list and repeat | `parse` |
 | `tisty-sync` | One sync round over a folder, the word a place leaves in `tisty.toml`, and the `Trouble` a round refuses with | `carry_through`, `shape.rs` |
 | `tisty-carrier` | The `Carrier` contract and its two carriers, `Folder` and `Cloud`; the `Remote` contract a provider speaks; sealing a cloud; the plain `knock/` box a machine asks for the cloud's key through; tokens | `lib.rs`, `cloud.rs`, `remote.rs` |

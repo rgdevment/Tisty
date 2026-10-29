@@ -174,10 +174,13 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/toolchain
         with:
+          components: clippy
           targets: wasm32-unknown-unknown
       # The Worker builds the same protocol the app does; a dependency that cannot reach wasm has to fail here.
       - run: cargo check -p tisty-share-proto --no-default-features --target wasm32-unknown-unknown
       - run: cargo check -p tisty-share-server --target wasm32-unknown-unknown
+      # What talks to D1 and R2 only exists on wasm, so it is linted there.
+      - run: cargo clippy -p tisty-share-worker --target wasm32-unknown-unknown
 
   window:
     name: frontend
@@ -298,12 +301,12 @@ jobs:
         if: needs.changes.outputs.rust != 'true'
         run: touch lcov-rust.info
 
-      - name: The nine crates the window does not need to build
+      - name: The crates the window does not need to build
         if: needs.changes.outputs.rust == 'true'
         run: |
           cargo llvm-cov nextest \
             -p tisty-core -p tisty-nl -p tisty-sync -p tisty-carrier -p tisty-google -p tisty-onedrive -p tisty-webdav \
-            -p tisty-cli -p tisty-share-proto \
+            -p tisty-cli -p tisty-share-proto -p tisty-share-server -p tisty-share-worker \
             --lcov --output-path lcov-rust.info
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -369,6 +372,6 @@ jobs:
             -Dsonar.cpd.exclusions=app/src/locales.ts,packages/tisty-diagrams/src/words.ts,app/src/glyphs.ts,app/src/marks.ts,crates/tisty-core/src/model/icon.rs,crates/tisty-markdown/src/vocab.rs,crates/tisty-core/src/model/mark.rs
             -Dsonar.rust.clippy.enabled=false
             -Dsonar.jasmin.internal.js.ts.disabled=true
-            -Dsonar.coverage.exclusions=app/src/main.tsx,app/src-tauri/src/**
+            -Dsonar.coverage.exclusions=app/src/main.tsx,app/src-tauri/src/**,crates/tisty-share-worker/src/cloudflare.rs
             -Dsonar.qualitygate.wait=true
             -Dsonar.qualitygate.timeout=300
