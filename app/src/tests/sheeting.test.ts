@@ -1,7 +1,7 @@
+import { sheeted } from "tisty-reader/page";
 import { describe, expect, it, vi } from "vitest";
 import { landscapeIn, paperIn, sheetsIn, withLandscape, withPaper, withSheets } from "../front";
 import { seenIn } from "../ui/printing";
-import { sheeted } from "../ui/sheeting";
 
 describe("the paper a document asks for", () => {
   it("reads it from the front matter, and A4 when it says nothing", () => {

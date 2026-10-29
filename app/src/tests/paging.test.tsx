@@ -12,7 +12,7 @@ const nightly = (): string => {
 
 describe("the page the writing sits on", () => {
   it("is paper by default, whatever the theme", () => {
-    const page = readFileSync("src/ui/page.css", "utf8");
+    const page = readFileSync("../packages/tisty-reader/src/page.css", "utf8");
     expect(page).toMatch(/html:not\(\.tall\) \.page \{[^}]*background:\s*var\(--tisty-sheet\)/);
   });
 

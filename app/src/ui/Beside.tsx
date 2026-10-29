@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { Head } from "tisty-reader/page";
 import type { Filed, Folded } from "../core";
 import { type DocFacts, docFacts, type Paper } from "../core";
 import { weigh } from "../format";
@@ -8,7 +9,6 @@ import Glyph from "./Glyph";
 import Menu, { type Choice } from "./Menu";
 import PaperFacts, { held, worded } from "./PaperFacts";
 import Properties from "./Properties";
-import type { Head } from "./paging";
 import { leafWord, offered } from "./sheets";
 import { often } from "./tagging";
 

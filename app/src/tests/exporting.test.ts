@@ -36,8 +36,8 @@ vi.mock("../core", () => ({
   },
 }));
 
-vi.mock("../ui/diagrams", async (real) => ({
-  ...(await real<typeof import("../ui/diagrams")>()),
+vi.mock("tisty-reader/page", async (real) => ({
+  ...(await real<typeof import("tisty-reader/page")>()),
   drawing: () => Promise.resolve(kept.drawn),
 }));
 

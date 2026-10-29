@@ -1,8 +1,8 @@
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
+import { darkNow } from "tisty-reader/page";
 import { copied, docCopy, docPlain, type Showing, viewGo } from "../../core";
 import { t } from "../../locales";
 import type { Choice } from "../Menu";
-import { darkNow } from "../theming";
 import { PRESETS, type Preset } from "./Stage";
 
 export const ZOOMS = [0.8, 0.9, 1, 1.1, 1.25, 1.4, 1.6];

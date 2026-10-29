@@ -1,9 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { Head } from "tisty-reader/page";
 import { describe, expect, it, vi } from "vitest";
 import { t } from "../locales";
 import Beside from "../ui/Beside";
-import type { Head } from "../ui/paging";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 

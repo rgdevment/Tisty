@@ -31,11 +31,10 @@ const vite = await createServer({
   server: { middlewareMode: true, hmr: false },
 });
 const { iconed } = await vite.ssrLoadModule("/src/ui/dressing.ts");
-const { coloredAll, saidKinds } = await vite.ssrLoadModule("/src/ui/paging.ts");
+const { coloredAll, HUES, PAGE_CSS: sheet, saidKinds } = await vite.ssrLoadModule("tisty-reader/page");
 const { adopt, t } = await vite.ssrLoadModule("/src/locales.ts");
 const { hosting, named, pictured } = await vite.ssrLoadModule("/src/previews.ts");
 const { carded, piece } = await vite.ssrLoadModule("/src/ui/carding.ts");
-const { HUES, PAGE_CSS: sheet } = await vite.ssrLoadModule("/src/ui/paging.ts");
 const { examplesIn, shownBeside, topicsOf } = await vite.ssrLoadModule("/src/guide/reference.ts");
 await vite.close();
 

@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { darkNow, type Head, type Sheet as SheetSize } from "tisty-reader/page";
 import { copied, copyAttached, type Mend, opened, viewWidget } from "../core";
 import { viewDiagram } from "../drawing";
 import { CATCHES, takesFiles } from "../dropped";
@@ -27,19 +28,17 @@ import { MARKED_FOR, markLately } from "./lately";
 import Menu, { type Choice } from "./Menu";
 import { mended as mendedText } from "./mending";
 import Page from "./Page";
-import { charsAt, type Head, spanned, type Went } from "./paging";
+import { charsAt, spanned, type Went } from "./paging";
 import type { PartCarded } from "./partcarding";
 import { closed, laid, parting } from "./parting";
 import type { Chosen, Formatting, Menued } from "./quickly";
 import { filedAs, type Reshape, reshaped } from "./recarding";
 import Skeleton from "./Skeleton";
 import { ASIDE_MARGIN, settles } from "./seeking";
-import type { Sheet as SheetSize } from "./sheeting";
 import { type Asking, pressed, putBlock, stagesIn } from "./slashing";
 import { stepLine, steppedTitle } from "./staging";
 import { useTables } from "./tableSheet";
 import { widened } from "./tabling";
-import { darkNow } from "./theming";
 import { usePictures } from "./usePictures";
 
 type Props = {

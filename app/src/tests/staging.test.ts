@@ -1,5 +1,6 @@
+import { shell } from "tisty-reader/page";
 import { describe, expect, it } from "vitest";
-import { shell, went } from "../ui/paging";
+import { went } from "../ui/paging";
 import { staged } from "../ui/staging";
 
 const page = (html: string): Document => new DOMParser().parseFromString(shell(html), "text/html");

@@ -1,6 +1,7 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { darkNow } from "tisty-reader/page";
 import {
   type DocFacts,
   opened,
@@ -19,7 +20,6 @@ import Diagramming from "./ui/drawing/Diagramming";
 import Menu from "./ui/Menu";
 import { seenIn } from "./ui/printing";
 import { KNOWN, pageFor } from "./ui/sheets";
-import { darkNow } from "./ui/theming";
 import { leaveAsHtml, leaveAsWord } from "./ui/useLeaving";
 import { type Acts, choicesFor, keysFor, PLAIN, ZOOMS } from "./ui/viewer/acting";
 import { button } from "./ui/viewer/Glyphs";

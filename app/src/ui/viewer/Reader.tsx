@@ -1,10 +1,10 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import type { Head } from "tisty-reader/page";
 import { copied, type DocFacts, type Paper } from "../../core";
 import { laidIn } from "../../front";
 import { fill, t } from "../../locales";
 import PaperFacts from "../PaperFacts";
 import Properties from "../Properties";
-import type { Head } from "../paging";
 import { acrossOf, leafWord, offered, PAPER, sheetFor, TALL } from "../sheets";
 import { usePictures } from "../usePictures";
 import { button, Segments } from "./Glyphs";

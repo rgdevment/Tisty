@@ -1,9 +1,7 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
-import { diagrams } from "./diagrams";
+import { diagrams, dressed, followTheme, type Sheet, sheeting } from "tisty-reader/page";
 import { fitted, type Reaching, type Worn, wired, worn } from "./dressing";
-import { dressed, shell } from "./paging";
-import { type Sheet, sheeting } from "./sheeting";
-import { followTheme } from "./theming";
+import { framed } from "./paging";
 
 type Props = {
   readonly html: string;
@@ -135,7 +133,7 @@ export default function Frame(props: Readonly<Props>) {
     };
     const unfollow = followTheme(retheme);
     held.addEventListener("load", loaded);
-    held.srcdoc = shell(first);
+    held.srcdoc = framed(first);
     return () => {
       live = false;
       swap.current = () => {};

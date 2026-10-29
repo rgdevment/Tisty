@@ -1,4 +1,5 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { colored, diagrams, HUES, saidKinds, sourceOf } from "tisty-reader/page";
 import { type Lent, openLink } from "../core";
 import { markup } from "../glyphs";
 import { askAgain, serve, showing } from "../inUse";
@@ -8,13 +9,9 @@ import { plainly } from "../refusal";
 import { type Attaching, attachedAs, lents, pressed } from "./attached";
 import { type Carding, carded } from "./carding";
 import { celled, today } from "./celled";
-import { diagrams, sourceOf } from "./diagrams";
 import {
   charsAt,
-  colored,
-  HUES,
   type Shot,
-  saidKinds,
   shotsOf,
   spanned,
   type TableWent,

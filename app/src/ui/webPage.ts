@@ -1,9 +1,9 @@
+import { coloredAll, diagrams, escaped, saidKinds } from "tisty-reader/page";
 import { attached, docDrawn, type Paper } from "../core";
 import { t } from "../locales";
 import { named, pictured } from "../previews";
-import { diagrams } from "./diagrams";
 import { iconed } from "./dressing";
-import { coloredAll, escaped, saidKinds, shell } from "./paging";
+import { framed } from "./paging";
 import type { Stamp } from "./printing";
 import { PRINTED, sizeOf } from "./sheets";
 import { coverOn, creditOn } from "./stamped";
@@ -124,7 +124,7 @@ export const webPage = async (
 ): Promise<string> => {
   const drawn = await Promise.all(bodies.map(docDrawn));
   if (drawn.length && sheet) drawn[0] = asSeen(drawn[0], sheet);
-  const page = new DOMParser().parseFromString(shell(drawn.join("<hr>")), "text/html");
+  const page = new DOMParser().parseFromString(framed(drawn.join("<hr>")), "text/html");
   page.documentElement.classList.remove("dark");
   const light = lit();
   const tokens = page.head.querySelector("style");

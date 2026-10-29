@@ -162,35 +162,38 @@ jobs:
             | paste -sd, -)
           echo "list=$list" >> "$GITHUB_OUTPUT"
 
-      - name: What the branch changed in the diagram studio
-        id: studio
-        working-directory: packages/tisty-diagrams
+      - name: What the branch changed in the packages
+        id: packages
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
         run: |
           from=$(git merge-base "$BASE" HEAD)
-          list=$(git diff --unified=0 --relative --diff-filter=d "$from" -- src \
-            | awk '
-                /^\+\+\+ b\// { f = substr($2, 3); next }
-                /^@@/ {
-                  if (f !~ /\.tsx?$/) next
-                  if (f ~ /^src\/words\.ts$/) next
-                  split($3, a, ",")
-                  start = substr(a[1], 2) + 0
-                  len = (a[2] == "" ? 1 : a[2] + 0)
-                  if (len > 0) print f ":" start "-" start + len - 1
-                }' \
-            | paste -sd, -)
-          echo "list=$list" >> "$GITHUB_OUTPUT"
+          : > "$RUNNER_TEMP/packages"
+          for at in packages/*/; do
+            list=$(cd "$at" && git diff --unified=0 --relative --diff-filter=d "$from" -- src \
+              | awk '
+                  /^\+\+\+ b\// { f = substr($2, 3); next }
+                  /^@@/ {
+                    if (f !~ /\.tsx?$/) next
+                    if (f ~ /^src\/words\.ts$/) next
+                    split($3, a, ",")
+                    start = substr(a[1], 2) + 0
+                    len = (a[2] == "" ? 1 : a[2] + 0)
+                    if (len > 0) print f ":" start "-" start + len - 1
+                  }' \
+              | paste -sd, -)
+            if [ -n "$list" ]; then printf '%s %s\n' "${at%/}" "$list" >> "$RUNNER_TEMP/packages"; fi
+          done
+          if [ -s "$RUNNER_TEMP/packages" ]; then echo "touched=true" >> "$GITHUB_OUTPUT"; fi
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        if: steps.touched.outputs.list != '' || steps.studio.outputs.list != ''
+        if: steps.touched.outputs.list != '' || steps.packages.outputs.touched == 'true'
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: app/package-lock.json
 
-      - if: steps.touched.outputs.list != '' || steps.studio.outputs.list != ''
+      - if: steps.touched.outputs.list != '' || steps.packages.outputs.touched == 'true'
         working-directory: app
         run: npm ci
 
@@ -203,21 +206,20 @@ jobs:
           npx stryker run --mutate "$TOUCHED"
           echo "::notice::survivors are in the report above and the artifact; this check does not fail on them"
 
-      - name: A mutant that lives in a studio file this branch wrote
-        if: steps.studio.outputs.list != ''
-        working-directory: packages/tisty-diagrams
-        env:
-          TOUCHED: ${{ steps.studio.outputs.list }}
+      - name: A mutant that lives in a package file this branch wrote
+        if: steps.packages.outputs.touched == 'true'
         run: |
-          npx stryker run --mutate "$TOUCHED"
+          while read -r at list; do
+            (cd "$at" && npx stryker run --mutate "$list" < /dev/null)
+          done < "$RUNNER_TEMP/packages"
           echo "::notice::survivors are in the report above and the artifact; this check does not fail on them"
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        if: always() && (steps.touched.outputs.list != '' || steps.studio.outputs.list != '')
+        if: always() && (steps.touched.outputs.list != '' || steps.packages.outputs.touched == 'true')
         with:
           name: mutants-branch-window
           path: |
             app/reports/
-            packages/tisty-diagrams/reports/
+            packages/*/reports/
           retention-days: 7
 

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
+import { heads, shell } from "tisty-reader/page";
 import { describe, expect, it } from "vitest";
-import { heads, shell, went } from "../ui/paging";
+import { went } from "../ui/paging";
 
 const conf = JSON.parse(readFileSync("src-tauri/tauri.conf.json", "utf8"));
 

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-const css = () => readFileSync("src/ui/page.css", "utf8");
+const css = () => readFileSync("../packages/tisty-reader/src/page.css", "utf8");
 
 const ruleFor = (text: string, selector: string): string => {
   const at = text.indexOf(selector);

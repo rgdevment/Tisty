@@ -23,13 +23,13 @@ import {
   type ViewUpdate,
 } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
+import { HUES } from "tisty-reader/page";
 import { docFromHtml, docFromText } from "../core";
 import { known } from "../glyphs";
 import { barred, blockKeys, flipped } from "./barring";
 import { docked } from "./docking";
 import { coded, owning } from "./formatting";
 import { latelyMarked } from "./lately";
-import { HUES } from "./paging";
 import { pendingFormat, pendingKeys, settle } from "./pending";
 import { gridFailed, gridKeys } from "./regridding";
 import { visual } from "./seeing";

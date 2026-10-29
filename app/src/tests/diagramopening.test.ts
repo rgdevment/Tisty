@@ -1,8 +1,8 @@
+import { diagrams, shell } from "tisty-reader/page";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { t } from "../locales";
-import { diagrams } from "../ui/diagrams";
 import { answered, DOUBLE_MS, diagramBars, type Reaching, wired, worn } from "../ui/dressing";
-import { shell, went } from "../ui/paging";
+import { went } from "../ui/paging";
 
 vi.mock("mermaid", () => ({
   default: {

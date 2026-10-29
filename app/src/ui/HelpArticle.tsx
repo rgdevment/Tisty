@@ -1,11 +1,11 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useCallback } from "react";
+import type { Head } from "tisty-reader/page";
 import { type HelpEntry, type HelpPictures, helpDrawn } from "../guide/calls";
 import { aimedAt, dressed, linkedHere } from "../guide/help";
 import { fill } from "../locales";
 import type { Carded } from "./carding";
 import Page from "./Page";
-import type { Head } from "./paging";
 
 interface Props {
   readonly entry: HelpEntry;
