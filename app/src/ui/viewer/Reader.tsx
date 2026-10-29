@@ -2,9 +2,9 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { Head } from "tisty-reader/page";
 import { copied, type DocFacts, type Paper } from "../../core";
 import { fill, t } from "../../locales";
-import Glyph from "../Glyph";
 import PaperFacts from "../PaperFacts";
 import Properties from "../Properties";
+import { SheetsToggle, SheetsTurn } from "../SheetsSwitch";
 import { acrossOf, leafWord, offered, PAPER, sheetFor, TALL } from "../sheets";
 import { usePictures } from "../usePictures";
 import { button, Segments } from "./Glyphs";
@@ -160,34 +160,18 @@ export default function Reader(props: Readonly<Props>) {
                   onPick={props.onLeaf}
                 />
               </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={sheets}
-                aria-label={t("sheetsShown")}
-                title={t("sheetsShown")}
-                onClick={() => props.onSheets(!sheets)}
-                className={`flex w-7 shrink-0 items-center justify-center rounded-md border ${
-                  sheets ? "border-accent/40 bg-active text-ink" : "border-line hover:bg-hover"
-                }`}
-              >
-                <Glyph name="pagebreak" className={`h-3.5 w-3.5 ${sheets ? "text-accent" : ""}`} />
-              </button>
+              <SheetsToggle
+                sheets={sheets}
+                onSheets={props.onSheets}
+                className="flex shrink-0 items-center rounded-md border border-line"
+              />
             </div>
             {sheets && (
-              <div className="mx-1.5 mt-1.5 flex justify-end gap-3 text-[11.5px] text-faint">
-                {[false, true].map((turned) => (
-                  <button
-                    key={String(turned)}
-                    type="button"
-                    aria-pressed={landscape === turned}
-                    onClick={() => props.onLandscape(turned)}
-                    className={landscape === turned ? "text-ink" : "hover:text-soft"}
-                  >
-                    {t(turned ? "sheetsAcross" : "sheetsUpright")}
-                  </button>
-                ))}
-              </div>
+              <SheetsTurn
+                landscape={landscape}
+                onLandscape={props.onLandscape}
+                className="mx-1.5 mt-1.5"
+              />
             )}
             <div className="mx-1.5 mt-2.5 flex items-center gap-2.5 text-[11.5px] leading-snug text-faint">
               <span
