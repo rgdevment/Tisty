@@ -1,0 +1,152 @@
+name: Share
+
+on:
+  push:
+    tags: ["share-v*"]
+  workflow_dispatch:
+    inputs:
+      back_to:
+        description: "The Worker version to put back, as `wrangler versions list` names it. Deploys nothing new."
+        required: true
+
+permissions:
+  contents: read
+
+# One change to the live Worker at a time, so a rollback never races a deploy.
+concurrency:
+  group: share-worker
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  WRANGLER: wrangler@4.155.0
+  SHARE_URL: https://tisty.cl
+
+jobs:
+  tested:
+    name: Tested when it landed
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/tested
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy:
+    name: Deploy the Worker
+    needs: tested
+    if: github.event_name == 'push'
+    environment: share
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+    defaults:
+      run:
+        working-directory: crates/tisty-share-worker
+    steps:
+      - name: The account and its token are there
+        run: |
+          [ -n "$CLOUDFLARE_API_TOKEN" ] || { echo "::error::the share environment has no CLOUDFLARE_API_TOKEN secret"; exit 1; }
+          [ -n "$CLOUDFLARE_ACCOUNT_ID" ] || { echo "::error::the share environment has no CLOUDFLARE_ACCOUNT_ID variable"; exit 1; }
+        working-directory: .
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/toolchain
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2.87.22
+        with:
+          tool: worker-build@0.8.7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          package-manager-cache: false
+
+      # Read before anything changes, so a deploy that goes wrong knows what to go back to.
+      - name: What runs now
+        id: before
+        run: |
+          set -euo pipefail
+          version=$(npx --yes "$WRANGLER" deployments status --json | jq -r '.versions[0].version_id // empty')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "running now: ${version:-nothing yet}"
+
+      # The tables change first and only ever grow, so the version running now still reads them.
+      - name: The tables, before the code that reads them
+        run: npx --yes "$WRANGLER" d1 migrations apply tisty-share --remote
+
+      - name: Deploy
+        id: deploy
+        env:
+          TAG: ${{ github.ref_name }}
+        run: npx --yes "$WRANGLER" deploy --tag "$TAG" --message "$TAG ${GITHUB_SHA:0:8}"
+
+      - name: It answers as it should
+        working-directory: .
+        run: |
+          set -uo pipefail
+          answers() {
+            local limits home missing
+            limits=$(curl -s -o "$RUNNER_TEMP/limits" -w '%{http_code}' "$SHARE_URL/api/v1/limits") || return 1
+            [ "$limits" = 200 ] && jq -e '.text > 0' "$RUNNER_TEMP/limits" > /dev/null || return 1
+            home=$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' "$SHARE_URL/") || return 1
+            [ "$home" = "301 https://www.tisty.app/" ] || return 1
+            missing=$(curl -s -o "$RUNNER_TEMP/missing" -w '%{http_code}' "$SHARE_URL/api/v1/docs/nothing") || return 1
+            [ "$missing" = 404 ] && jq -e '.refused == "missing"' "$RUNNER_TEMP/missing" > /dev/null
+          }
+          for attempt in $(seq 1 10); do
+            if answers; then
+              echo "$SHARE_URL answers as it should"
+              exit 0
+            fi
+            echo "not yet ($attempt/10)"
+            sleep 6
+          done
+          echo "::error::$SHARE_URL does not answer as it should after the deploy"
+          exit 1
+
+      - name: Back to what ran before
+        if: failure() && steps.deploy.outcome != 'skipped' && steps.before.outputs.version != ''
+        env:
+          BACK_TO: ${{ steps.before.outputs.version }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          npx --yes "$WRANGLER" rollback "$BACK_TO" --yes --message "$TAG failed after its deploy"
+          echo "::error::$TAG was rolled back to $BACK_TO"
+
+  rollback:
+    name: Put a version back
+    if: github.event_name == 'workflow_dispatch'
+    environment: share
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      BACK_TO: ${{ inputs.back_to }}
+    steps:
+      - name: The version reads as one
+        run: |
+          [[ "$BACK_TO" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] \
+            || { echo "::error::'$BACK_TO' is not a Worker version id"; exit 1; }
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          package-manager-cache: false
+      # Migrations stay as they are: the tables only ever grow, so an older version still reads them.
+      - name: Put it back
+        working-directory: crates/tisty-share-worker
+        run: npx --yes "$WRANGLER" rollback "$BACK_TO" --yes --message "put back by hand"
