@@ -584,7 +584,7 @@ fn undoing_a_page_of_conversion_puts_the_order_back_too() {
     let world = World::new();
     let mut store = world.store("dev_a");
     let parent = doc_add(&mut store, "a3f1-0001", "a0", None, None);
-    let sibling_page = doc_add(&mut store, "a3f1-0002", "a0", None, Some(parent));
+    doc_add(&mut store, "a3f1-0002", "a0", None, Some(parent));
     let loose = doc_add(&mut store, "a3f1-0003", "z9", None, None);
 
     let baseline = replayed(&world);
@@ -603,10 +603,10 @@ fn undoing_a_page_of_conversion_puts_the_order_back_too() {
     let undo_op = undo::inverse(&converted, &baseline).unwrap();
     store.append_batch(undo_op).unwrap();
 
-    let after = replayed(&world);
-    assert_eq!(after.docs[&sibling_page], baseline.docs[&sibling_page]);
+    // The whole state would also compare `heard`, which moves on whenever the undo lands a second later.
     assert_eq!(
-        after, baseline,
+        replayed(&world).docs,
+        baseline.docs,
         "the order should have come back with everything else"
     );
 }

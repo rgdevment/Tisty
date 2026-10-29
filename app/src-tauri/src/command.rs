@@ -34,13 +34,13 @@ fn one_file(a: &Path, b: &Path) -> bool {
 /// What another program has to run to reach the MCP server: the copy beside the window, or the
 /// name alone, which is what the Store's execution alias answers to and survives its updates.
 pub fn calling() -> String {
-    called(beside().as_deref())
+    called(beside().as_deref(), aliased())
 }
 
-fn called(folder: Option<&Path>) -> String {
+fn called(folder: Option<&Path>, alias: Option<PathBuf>) -> String {
     match folder {
         Some(at) => settled(&at.join(CLI)).display().to_string(),
-        None => aliased().map_or_else(|| "tisty".to_string(), |at| at.display().to_string()),
+        None => alias.map_or_else(|| "tisty".to_string(), |at| at.display().to_string()),
     }
 }
 

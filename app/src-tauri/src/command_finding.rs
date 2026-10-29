@@ -38,7 +38,17 @@ fn a_window_on_its_own_has_none_beside_it() {
 
 #[test]
 fn without_one_beside_it_the_name_alone_is_what_others_run() {
-    assert_eq!(called(None), "tisty");
+    assert_eq!(called(None, None), "tisty");
+}
+
+#[test]
+fn without_one_beside_it_the_store_alias_is_what_others_run() {
+    let alias = PathBuf::from("WindowsApps").join(CLI);
+
+    assert_eq!(
+        called(None, Some(alias.clone())),
+        alias.display().to_string()
+    );
 }
 
 #[cfg(windows)]
