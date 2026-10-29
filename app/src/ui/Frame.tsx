@@ -3,6 +3,7 @@ import { diagrams } from "./diagrams";
 import { fitted, type Reaching, type Worn, wired, worn } from "./dressing";
 import { dressed, shell } from "./paging";
 import { type Sheet, sheeting } from "./sheeting";
+import { followTheme } from "./theming";
 
 type Props = {
   readonly html: string;
@@ -132,11 +133,7 @@ export default function Frame(props: Readonly<Props>) {
       laid.current();
       said.current.onReady(held);
     };
-    const watching = new MutationObserver(retheme);
-    watching.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["data-theme"],
-    });
+    const unfollow = followTheme(retheme);
     held.addEventListener("load", loaded);
     held.srcdoc = shell(first);
     return () => {
@@ -145,7 +142,7 @@ export default function Frame(props: Readonly<Props>) {
       stopGrowing();
       stopSheeting();
       laid.current = () => {};
-      watching.disconnect();
+      unfollow();
       held.removeEventListener("load", loaded);
       undressed();
     };

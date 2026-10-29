@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Showing } from "../core";
 import { t } from "../locales";
-import { type Acts, choicesFor, darkNow, keysFor, PLAIN, ZOOMS } from "../ui/viewer/acting";
+import { darkNow } from "../ui/theming";
+import { type Acts, choicesFor, keysFor, PLAIN, ZOOMS } from "../ui/viewer/acting";
 
 const ipc = vi.hoisted(() => ({ calls: [] as { cmd: string; args?: Record<string, unknown> }[] }));
 const shown = vi.hoisted(() => ({ revealed: [] as string[], copied: [] as string[] }));

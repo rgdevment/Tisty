@@ -5,7 +5,7 @@ import { diagramsEverywhere, type FoundDiagram } from "../drawing";
 import { matched } from "../finding";
 import { locale, t } from "../locales";
 import { drawing } from "./diagrams";
-import { darkNow } from "./viewer/acting";
+import { darkNow } from "./theming";
 
 const titled = (one: FoundDiagram) => one.title.trim() || t("untitledDoc");
 const placed = (one: FoundDiagram) =>

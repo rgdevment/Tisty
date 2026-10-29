@@ -3,6 +3,7 @@ import { type Borrowed, openLink, widgetLend, widgetLendKept, widgetTakeBack } f
 import { t } from "../locales";
 import { DOC } from "../markdown";
 import { saidPlainly } from "../refusal";
+import { darkNow, followTheme } from "./theming";
 import { drawn } from "./viewer/shapes";
 
 export const SHORTEST = 40;
@@ -47,20 +48,6 @@ export const clickedInto = (frame: HTMLIFrameElement): boolean => {
 
 export const tall = (height: number): number =>
   Math.min(TALLEST, Math.max(SHORTEST, Math.ceil(height)));
-
-const darkNow = () => document.documentElement.getAttribute("data-theme") === "dark";
-
-const following = new Set<() => void>();
-let watching: MutationObserver | null = null;
-
-const followed = (retheme: () => void) => {
-  following.add(retheme);
-  if (watching) return;
-  watching = new MutationObserver(() => {
-    for (const one of following) one();
-  });
-  watching.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-};
 
 export type Lending = {
   retheme: () => void;
@@ -166,7 +153,7 @@ const drawnFrom = (
     if (!frame.src || whole) return;
     frame.src = `${frame.src.split("#")[0]}#${shaded() ? "dark" : "light"}`;
   };
-  followed(retheme);
+  const unfollow = followTheme(retheme);
 
   return {
     retheme,
@@ -176,7 +163,7 @@ const drawnFrom = (
     },
     drop: () => {
       gone = true;
-      following.delete(retheme);
+      unfollow();
       host.removeEventListener("message", listening);
       if (id) widgetTakeBack(id).catch(() => {});
       id = null;

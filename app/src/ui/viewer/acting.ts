@@ -2,12 +2,11 @@ import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { copied, docCopy, docPlain, type Showing, viewGo } from "../../core";
 import { t } from "../../locales";
 import type { Choice } from "../Menu";
+import { darkNow } from "../theming";
 import { PRESETS, type Preset } from "./Stage";
 
 export const ZOOMS = [0.8, 0.9, 1, 1.1, 1.25, 1.4, 1.6];
 export const PLAIN = ZOOMS.indexOf(1);
-
-export const darkNow = () => document.documentElement.getAttribute("data-theme") === "dark";
 
 export interface Acts {
   shown: Showing | null;

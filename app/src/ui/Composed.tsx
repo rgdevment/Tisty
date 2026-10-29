@@ -9,6 +9,7 @@ import { ending, named, pictured } from "../previews";
 import { diagrams } from "./diagrams";
 import { iconed } from "./dressing";
 import { saidKinds } from "./paging";
+import { darkNow, followTheme } from "./theming";
 
 interface Props {
   html: string;
@@ -74,17 +75,12 @@ export default function Composed({
     });
 
     measure();
-    const drawn = () =>
-      diagrams(holder, document.documentElement.dataset.theme === "dark", () => live).then(measure);
+    const drawn = () => diagrams(holder, darkNow(), () => live).then(measure);
     void drawn();
-    const looking = new MutationObserver(() => void drawn());
-    looking.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["data-theme"],
-    });
+    const unfollow = followTheme(() => void drawn());
     return () => {
       live = false;
-      looking.disconnect();
+      unfollow();
       for (const gone of shown) gone();
     };
   }, [html, cut]);
