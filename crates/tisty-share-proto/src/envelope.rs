@@ -519,7 +519,7 @@ impl Envelope {
         }
         let sent = match &bytes[trailer] {
             [] => None,
-            said => Some(serde_json::from_slice(said).map_err(|_| Refused::Damaged)?),
+            said => Some(canonical(said)?),
         };
         Ok(Self {
             manifest,
@@ -544,6 +544,15 @@ fn framed(bytes: &[u8], at: &mut usize, most: usize) -> Result<Range<usize>, Ref
     }
     *at = start + len;
     Ok(start..start + len)
+}
+
+/// The signature is the one part of the bytes no seal covers, so only the spelling Tisty writes is taken: one envelope, one set of bytes.
+fn canonical(said: &[u8]) -> Result<Signed, Refused> {
+    let sent: Signed = serde_json::from_slice(said).map_err(|_| Refused::Damaged)?;
+    match serde_json::to_vec(&sent) {
+        Ok(again) if again == said => Ok(sent),
+        _ => Err(Refused::Damaged),
+    }
 }
 
 #[cfg(feature = "mint")]

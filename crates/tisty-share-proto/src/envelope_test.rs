@@ -601,3 +601,20 @@ fn reading_keeps_the_bytes_it_was_given_and_hands_them_back_whole() {
     assert_eq!(arrived.as_bytes(), bytes.as_slice());
     assert!(arrived.sender(&[]).is_some());
 }
+
+#[test]
+fn the_outer_signature_is_written_one_way_only() {
+    let bytes = sealed(&key(9), &draft("hola", &[]), Some(&machine(1).signer()))
+        .unwrap()
+        .to_bytes();
+    let since = bytes
+        .windows(9)
+        .rposition(|one| one == b"\"since\":\"")
+        .unwrap();
+    let zone = since + bytes[since..].iter().position(|one| *one == b'Z').unwrap();
+    let mut lower = bytes.clone();
+    // A lower-case zone reads as the same second, so the same signature would have a second spelling.
+    lower[zone] = b'z';
+
+    assert_eq!(read(&lower).err(), Some(Refused::Damaged));
+}
