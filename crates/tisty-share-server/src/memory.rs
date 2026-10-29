@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 
+use crate::moderation::Report;
 use crate::store::{Doc, Fault, Kept, Saved, Store};
 
 /// The store for tests and for running the server on one machine; nothing survives it.
@@ -8,11 +9,19 @@ use crate::store::{Doc, Fault, Kept, Saved, Store};
 pub struct Memory {
     docs: RefCell<HashMap<String, Doc>>,
     envelopes: RefCell<HashMap<(String, Kept), Vec<u8>>>,
+    counters: RefCell<HashMap<String, (u64, i64)>>,
+    holds: RefCell<HashMap<String, i64>>,
+    reports: RefCell<Vec<Report>>,
 }
 
 impl Memory {
     pub fn envelopes(&self) -> usize {
         self.envelopes.borrow().len()
+    }
+
+    /// How many names, counters and marks it holds, to show what lapses.
+    pub fn kept(&self) -> usize {
+        self.counters.borrow().len() + self.holds.borrow().len() + self.reports.borrow().len()
     }
 }
 
@@ -66,5 +75,55 @@ impl Store for Memory {
             .collect();
         ids.sort();
         Ok(ids)
+    }
+
+    async fn count(&self, key: &str, by: u64, until: i64, now: i64) -> Result<u64, Fault> {
+        let mut counters = self.counters.borrow_mut();
+        let held = counters.entry(key.to_owned()).or_insert((0, until));
+        if held.1 < now {
+            *held = (0, until);
+        }
+        held.0 = held.0.saturating_add(by);
+        Ok(held.0)
+    }
+
+    async fn hold(&self, key: &str, until: i64) -> Result<(), Fault> {
+        self.holds.borrow_mut().insert(key.to_owned(), until);
+        Ok(())
+    }
+
+    async fn held(&self, key: &str, now: i64) -> Result<Option<i64>, Fault> {
+        Ok(self
+            .holds
+            .borrow()
+            .get(key)
+            .copied()
+            .filter(|until| *until >= now))
+    }
+
+    async fn file(&self, report: &Report) -> Result<(), Fault> {
+        self.reports.borrow_mut().push(report.clone());
+        Ok(())
+    }
+
+    async fn reports(&self, id: &str, now: i64) -> Result<Vec<Report>, Fault> {
+        Ok(self
+            .reports
+            .borrow()
+            .iter()
+            .filter(|report| report.id == id && report.until >= now)
+            .cloned()
+            .collect())
+    }
+
+    async fn lapse(&self, now: i64) -> Result<(), Fault> {
+        self.counters
+            .borrow_mut()
+            .retain(|_, (_, until)| *until >= now);
+        self.holds.borrow_mut().retain(|_, until| *until >= now);
+        self.reports
+            .borrow_mut()
+            .retain(|report| report.until >= now);
+        Ok(())
     }
 }

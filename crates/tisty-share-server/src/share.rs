@@ -1,8 +1,12 @@
+use std::net::IpAddr;
+
 use tisty_share_proto::envelope::{Envelope, Refused as Unread};
 use tisty_share_proto::identity::Verdict;
 use tisty_share_proto::limits::Limits;
+use tisty_share_proto::work::{Challenge, Proof};
 use zeroize::Zeroizing;
 
+use crate::guard::{self, Act, Allowance, Work};
 use crate::keys::{self, Randomness, Slowness};
 use crate::store::{Doc, Fault, Kept, Saved, Store};
 
@@ -26,10 +30,16 @@ pub struct Policy {
     pub misses: u32,
     pub locked: i64,
     pub slowness: Slowness,
+    pub allowance: Allowance,
+    pub work: Work,
+    /// Reports from this many places block a document (decision 36).
+    pub reports_to_block: usize,
+    /// Seconds a report and a blocked document are kept as evidence (decision 42).
+    pub evidence: i64,
 }
 
 impl Default for Policy {
-    /// Decisions 33, 49 and 51: five versions, thirty idle days, thirty days in the trash.
+    /// Decisions 33, 36, 42, 49 and 51; what is not decided yet is a placeholder.
     fn default() -> Self {
         Self {
             limits: Limits::default(),
@@ -40,6 +50,10 @@ impl Default for Policy {
             misses: 5,
             locked: 15 * 60,
             slowness: Slowness::default(),
+            allowance: Allowance::default(),
+            work: Work::default(),
+            reports_to_block: 3,
+            evidence: 90 * DAY,
         }
     }
 }
@@ -53,6 +67,8 @@ pub enum Refused {
     Gone,
     #[error("its owner put this document away for now")]
     Paused,
+    #[error("reports blocked this document")]
+    Blocked,
     #[error("this link does not give that permission")]
     Forbidden,
     #[error("this document asks for its password")]
@@ -71,6 +87,16 @@ pub enum Refused {
     /// A signature the envelope carries does not hold, so it would claim someone it is not.
     #[error("the envelope's signature does not hold")]
     Unsigned,
+    /// The work asked for is missing, short, spent, expired or not this server's.
+    #[error("the work asked for was not done")]
+    WorkRefused,
+    /// Past its allowance, the caller waits until then (decision 10).
+    #[error("too much at once; try again later")]
+    Slow { until: i64 },
+    #[error("this place already reported this document")]
+    Reported,
+    #[error("that is longer than a report takes")]
+    TooLong,
     #[error("no free id could be found; try again")]
     Crowded,
     #[error("there was no randomness to mint with")]
@@ -107,23 +133,94 @@ pub enum Manage {
     Delete,
 }
 
+/// What an owner sees of a document on its card in Tisty.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Info {
+    pub latest: Option<u64>,
+    pub reads: u64,
+    pub ends: i64,
+    pub paused: bool,
+    pub blocked: bool,
+    pub gated: bool,
+}
+
+/// What a caller asks to work for, so the proof answers for that and nothing else.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Ask<'a> {
+    Reserve,
+    /// The envelope's digest and size, worked out by the Tisty that sealed it.
+    Upload {
+        id: &'a str,
+        digest: [u8; 32],
+        bytes: u64,
+    },
+    Report {
+        id: &'a str,
+    },
+}
+
+impl Ask<'_> {
+    pub(crate) fn bound(&self) -> Vec<u8> {
+        match self {
+            Ask::Reserve => b"reserve".to_vec(),
+            Ask::Upload { id, digest, .. } => {
+                [b"upload:".as_slice(), id.as_bytes(), digest].concat()
+            }
+            Ask::Report { id } => [b"report:".as_slice(), id.as_bytes()].concat(),
+        }
+    }
+}
+
 pub struct Share<S, R> {
     pub store: S,
     pub random: R,
     pub policy: Policy,
+    /// Signs challenges and names callers; the host keeps it among its secrets (decision 19).
+    pub(crate) secret: Zeroizing<[u8; 32]>,
 }
 
 impl<S: Store, R: Randomness> Share<S, R> {
-    pub fn new(store: S, random: R, policy: Policy) -> Self {
+    pub fn new(store: S, random: R, policy: Policy, secret: [u8; 32]) -> Self {
         Self {
             store,
             random,
             policy,
+            secret: Zeroizing::new(secret),
         }
     }
 
+    /// The work a step costs, signed so only this server's challenges are taken.
+    pub fn challenge(&mut self, ask: Ask, now: i64) -> Result<Challenge, Refused> {
+        let work = self.policy.work;
+        let bits = match ask {
+            Ask::Reserve => work.reserve,
+            Ask::Upload { bytes, .. } => work.for_upload(bytes),
+            Ask::Report { .. } => work.report,
+        };
+        let mut salt = [0u8; 16];
+        if !self.random.fill(&mut salt) {
+            return Err(Refused::NoRandomness);
+        }
+        Ok(guard::challenge(
+            &self.secret,
+            &ask.bound(),
+            salt,
+            bits,
+            now + work.lasts,
+        ))
+    }
+
     /// The id comes first, since a Tisty seals the envelope for that id and signs it.
-    pub async fn reserve(&mut self, now: i64) -> Result<Reserved, Refused> {
+    pub async fn reserve(
+        &mut self,
+        caller: IpAddr,
+        proof: &Proof,
+        now: i64,
+    ) -> Result<Reserved, Refused> {
+        self.admit(caller, Act::Reserve, now).await?;
+        let needed = self.policy.work.reserve;
+        self.worked(&Ask::Reserve, proof, needed, now).await?;
+        guard::spend(&self.store, &self.policy, &self.secret, caller, 1, 0, now).await?;
         let edit = keys::minted_token(&mut self.random).ok_or(Refused::NoRandomness)?;
         let admin = keys::minted_token(&mut self.random).ok_or(Refused::NoRandomness)?;
         for _ in 0..8 {
@@ -139,6 +236,8 @@ impl<S: Store, R: Randomness> Share<S, R> {
                 idle: self.policy.idle,
                 ends: now + self.policy.reserved,
                 paused: None,
+                blocked: None,
+                reads: 0,
                 revision: 0,
             };
             if self.store.save(&doc, None).await? == Saved::Done {
@@ -154,16 +253,36 @@ impl<S: Store, R: Randomness> Share<S, R> {
         id: &str,
         edit: &str,
         bytes: Vec<u8>,
+        caller: IpAddr,
+        proof: &Proof,
         now: i64,
     ) -> Result<u64, Refused> {
+        self.admit(caller, Act::Upload, now).await?;
         let mut doc = self.live(id, now).await?;
         if keys::hashed(edit) != doc.edit {
             return Err(Refused::Forbidden);
         }
-        if doc.paused.is_some() {
-            return Err(Refused::Paused);
-        }
+        // A blocked document is evidence, so not even its owner writes over it.
+        open_to_read(&doc)?;
+        let size = bytes.len() as u64;
         let envelope = Envelope::read(bytes, &self.policy.limits).map_err(Refused::Envelope)?;
+        let ask = Ask::Upload {
+            id,
+            digest: envelope.digest(),
+            bytes: size,
+        };
+        let needed = self.policy.work.for_upload(size);
+        self.worked(&ask, proof, needed, now).await?;
+        guard::spend(
+            &self.store,
+            &self.policy,
+            &self.secret,
+            caller,
+            0,
+            size,
+            now,
+        )
+        .await?;
         let manifest = envelope.manifest();
         if manifest.id != doc.id {
             return Err(Refused::Misaddressed);
@@ -205,12 +324,12 @@ impl<S: Store, R: Randomness> Share<S, R> {
         &mut self,
         id: &str,
         password: Option<&str>,
+        caller: IpAddr,
         now: i64,
     ) -> Result<Served, Refused> {
+        self.admit(caller, Act::Read, now).await?;
         let mut doc = self.live(id, now).await?;
-        if doc.paused.is_some() {
-            return Err(Refused::Paused);
-        }
+        open_to_read(&doc)?;
         let kept = *doc.versions.last().ok_or(Refused::Missing)?;
         let gated = doc.gate.is_some();
         self.let_in(&mut doc, password, now).await?;
@@ -219,7 +338,11 @@ impl<S: Store, R: Randomness> Share<S, R> {
             .envelope(id, &kept)
             .await?
             .ok_or(Refused::Missing)?;
-        if gated || now - doc.active >= ACTIVITY_GRAIN {
+        let new_reader = self.first_read_today(id, caller, now).await?;
+        if new_reader {
+            doc.reads += 1;
+        }
+        if new_reader || gated || now - doc.active >= ACTIVITY_GRAIN {
             touched(&mut doc, now);
             // Another reader saving the same activity first loses nothing, so a race is no refusal.
             match self.saved(&mut doc).await {
@@ -234,11 +357,10 @@ impl<S: Store, R: Randomness> Share<S, R> {
     }
 
     /// The latest version's number, for a Tisty looking for changes; asking is not activity (decision 50).
-    pub async fn latest(&self, id: &str, now: i64) -> Result<Option<u64>, Refused> {
+    pub async fn latest(&self, id: &str, caller: IpAddr, now: i64) -> Result<Option<u64>, Refused> {
+        self.admit(caller, Act::Read, now).await?;
         let doc = self.live(id, now).await?;
-        if doc.paused.is_some() {
-            return Err(Refused::Paused);
-        }
+        open_to_read(&doc)?;
         Ok(doc.latest())
     }
 
@@ -268,6 +390,18 @@ impl<S: Store, R: Randomness> Share<S, R> {
         Ok(Served { version, envelope })
     }
 
+    pub async fn info(&self, id: &str, admin: &str, now: i64) -> Result<Info, Refused> {
+        let doc = self.owned(id, admin, now).await?;
+        Ok(Info {
+            latest: doc.latest(),
+            reads: doc.reads,
+            ends: doc.ends,
+            paused: doc.paused.is_some(),
+            blocked: doc.blocked.is_some(),
+            gated: doc.gate.is_some(),
+        })
+    }
+
     pub async fn manage(
         &mut self,
         id: &str,
@@ -275,9 +409,10 @@ impl<S: Store, R: Randomness> Share<S, R> {
         what: Manage,
         now: i64,
     ) -> Result<(), Refused> {
-        let mut doc = self.live(id, now).await?;
-        if keys::hashed(admin) != doc.admin {
-            return Err(Refused::Forbidden);
+        let mut doc = self.owned(id, admin, now).await?;
+        // Blocked, a document is evidence: only the owner's visit still counts (decision 36).
+        if doc.blocked.is_some() && what != Manage::Visit {
+            return Err(Refused::Blocked);
         }
         match what {
             Manage::Delete => return Ok(self.store.forget(id).await?),
@@ -310,17 +445,58 @@ impl<S: Store, R: Randomness> Share<S, R> {
         self.saved(&mut doc).await
     }
 
-    /// Everything whose time ran out goes, links and envelopes alike; a Worker runs this on a schedule.
+    /// Everything whose time ran out goes, links, envelopes, counters and reports alike; a Worker runs this on a schedule.
     pub async fn sweep(&self, now: i64) -> Result<usize, Refused> {
         let ending = self.store.ending(now).await?;
         for id in &ending {
             self.store.forget(id).await?;
         }
+        self.store.lapse(now).await?;
         Ok(ending.len())
     }
 
+    pub(crate) async fn admit(&self, caller: IpAddr, act: Act, now: i64) -> Result<(), Refused> {
+        guard::admit(&self.store, &self.policy, &self.secret, caller, act, now).await
+    }
+
+    /// A proof is spent once: kept until its challenge expires, so a second use finds it.
+    pub(crate) async fn worked(
+        &self,
+        ask: &Ask<'_>,
+        proof: &Proof,
+        needed: u8,
+        now: i64,
+    ) -> Result<(), Refused> {
+        guard::checked(&self.secret, &ask.bound(), proof, needed, now)?;
+        let spent = format!("spent:{}", proof.challenge.seed);
+        if self.store.held(&spent, now).await?.is_some() {
+            return Err(Refused::WorkRefused);
+        }
+        self.store.hold(&spent, proof.challenge.expires).await?;
+        Ok(())
+    }
+
+    /// A reader is counted once a day under today's name for it, never under who it is (decision 47).
+    async fn first_read_today(&self, id: &str, caller: IpAddr, now: i64) -> Result<bool, Refused> {
+        let day = now.div_euclid(DAY);
+        let who = guard::today(&self.secret, caller, now);
+        let seen = self
+            .store
+            .count(&format!("seen:{id}:{who}"), 1, (day + 1) * DAY, now)
+            .await?;
+        Ok(seen == 1)
+    }
+
+    pub(crate) async fn owned(&self, id: &str, admin: &str, now: i64) -> Result<Doc, Refused> {
+        let doc = self.live(id, now).await?;
+        if keys::hashed(admin) != doc.admin {
+            return Err(Refused::Forbidden);
+        }
+        Ok(doc)
+    }
+
     /// A document whose time ran out reads as gone even before a sweep takes it away.
-    async fn live(&self, id: &str, now: i64) -> Result<Doc, Refused> {
+    pub(crate) async fn live(&self, id: &str, now: i64) -> Result<Doc, Refused> {
         match self.store.doc(id).await? {
             None => Err(Refused::Missing),
             Some(doc) if doc.ends < now => {
@@ -361,7 +537,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
         Err(Refused::PasswordWrong)
     }
 
-    async fn saved(&self, doc: &mut Doc) -> Result<(), Refused> {
+    pub(crate) async fn saved(&self, doc: &mut Doc) -> Result<(), Refused> {
         let was = doc.revision;
         doc.revision += 1;
         match self.store.save(doc, Some(was)).await? {
@@ -378,10 +554,20 @@ impl<S: Store, R: Randomness> Share<S, R> {
     }
 }
 
-/// Activity pushes the end back; a paused document keeps the trash's end until it is restored.
+fn open_to_read(doc: &Doc) -> Result<(), Refused> {
+    if doc.blocked.is_some() {
+        return Err(Refused::Blocked);
+    }
+    if doc.paused.is_some() {
+        return Err(Refused::Paused);
+    }
+    Ok(())
+}
+
+/// Activity pushes the end back; a paused or blocked document keeps the end it was given.
 fn touched(doc: &mut Doc, now: i64) {
     doc.active = now;
-    if doc.paused.is_none() {
+    if doc.paused.is_none() && doc.blocked.is_none() {
         doc.ends = now + doc.idle;
     }
 }

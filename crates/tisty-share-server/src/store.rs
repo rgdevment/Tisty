@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::moderation::Report;
+
 /// What the server knows about one shared document, without a word of what it says.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Doc {
@@ -19,6 +21,10 @@ pub struct Doc {
     /// When it goes unless something happens before: kept so a sweep can ask the store for it.
     pub ends: i64,
     pub paused: Option<i64>,
+    /// When reports blocked it: no longer served, kept as evidence (decision 36).
+    pub blocked: Option<i64>,
+    /// Readers counted once a day each, never who they were (decision 47).
+    pub reads: u64,
     /// Bumped on every save, so two writers never both win.
     pub revision: u64,
 }
@@ -69,4 +75,13 @@ pub trait Store {
     async fn drop_envelope(&self, id: &str, kept: &Kept) -> Result<(), Fault>;
     /// The ids of every document whose `ends` has passed.
     async fn ending(&self, now: i64) -> Result<Vec<String>, Fault>;
+    /// Adds `by` to a counter that lapses at `until` and says what it holds now; a lapsed one starts again from zero.
+    async fn count(&self, key: &str, by: u64, until: i64, now: i64) -> Result<u64, Fault>;
+    /// Marks `key` until a moment, as a block or a proof already spent.
+    async fn hold(&self, key: &str, until: i64) -> Result<(), Fault>;
+    async fn held(&self, key: &str, now: i64) -> Result<Option<i64>, Fault>;
+    async fn file(&self, report: &Report) -> Result<(), Fault>;
+    async fn reports(&self, id: &str, now: i64) -> Result<Vec<Report>, Fault>;
+    /// Lets go of every counter, mark and report whose time has passed.
+    async fn lapse(&self, now: i64) -> Result<(), Fault>;
 }
