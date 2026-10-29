@@ -8,6 +8,7 @@ import sheet from "./page.css?raw";
 import { type TableAct, tableClicked } from "./tabled";
 import tables from "./tables.css?raw";
 import task from "./taskpage.css?raw";
+import { darkNow } from "./theming";
 
 export const HUES = [
   "red",
@@ -43,8 +44,6 @@ export const TOKENS = [
   ...HUES.map((one) => `hue-${one}`),
   ...PENS.map((one) => `pen-${one}`),
 ].map((one) => `--tisty-${one}`);
-
-const darkNow = () => document.documentElement.dataset.theme === "dark";
 
 const worn = (): string => {
   const theirs = getComputedStyle(document.documentElement);
