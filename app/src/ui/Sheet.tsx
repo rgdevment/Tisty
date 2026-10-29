@@ -39,8 +39,8 @@ import { type Asking, pressed, putBlock, stagesIn } from "./slashing";
 import { stepLine, steppedTitle } from "./staging";
 import { useTables } from "./tableSheet";
 import { widened } from "./tabling";
+import { darkNow } from "./theming";
 import { usePictures } from "./usePictures";
-import { darkNow } from "./viewer/acting";
 
 type Props = {
   readonly file?: string;

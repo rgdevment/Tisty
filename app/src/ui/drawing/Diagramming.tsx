@@ -16,7 +16,7 @@ import { fill, locale, t, type Word } from "../../locales";
 import { saidPlainly } from "../../refusal";
 import { drawing } from "../diagrams";
 import Menu from "../Menu";
-import { darkNow } from "../viewer/acting";
+import { darkNow, followTheme } from "../theming";
 import { button, tinted } from "../viewer/Glyphs";
 import TitleBar from "../viewer/TitleBar";
 import WindowChrome from "../WindowChrome";
@@ -24,14 +24,7 @@ import { exportChoices, fileName } from "./exporting";
 
 const useDark = () => {
   const [dark, setDark] = useState(darkNow);
-  useEffect(() => {
-    const watching = new MutationObserver(() => setDark(darkNow()));
-    watching.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["data-theme"],
-    });
-    return () => watching.disconnect();
-  }, []);
+  useEffect(() => followTheme(() => setDark(darkNow())), []);
   return dark;
 };
 
