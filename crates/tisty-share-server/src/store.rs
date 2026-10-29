@@ -5,7 +5,9 @@ use crate::keys::Slowness;
 use crate::moderation::Report;
 
 /// What the server knows about one shared document, without a word of what it says.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+// A field a later server adds reads as its default, so the documents stored before it still open.
+#[serde(default)]
 pub struct Doc {
     pub id: String,
     /// The edit link's token, hashed: a stolen table hands nobody the power to write.
@@ -45,7 +47,8 @@ pub struct Kept {
 }
 
 /// The password a reader must say, kept as a slow digest and guarded against guessing.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Gate {
     pub salt: [u8; 16],
     pub digest: [u8; 32],
@@ -75,7 +78,7 @@ pub trait Store {
     async fn save(&self, doc: &Doc, revision: Option<u64>) -> Result<Saved, Fault>;
     async fn forget(&self, id: &str) -> Result<(), Fault>;
     async fn envelope(&self, id: &str, kept: &Kept) -> Result<Option<Vec<u8>>, Fault>;
-    async fn keep(&self, id: &str, kept: &Kept, bytes: &[u8]) -> Result<(), Fault>;
+    async fn keep(&self, id: &str, kept: &Kept, bytes: Vec<u8>) -> Result<(), Fault>;
     async fn drop_envelope(&self, id: &str, kept: &Kept) -> Result<(), Fault>;
     /// At most `at_most` ids of documents whose `ends` has passed, those that ended first first.
     async fn ending(&self, now: i64, at_most: usize) -> Result<Vec<String>, Fault>;

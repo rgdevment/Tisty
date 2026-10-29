@@ -138,6 +138,13 @@ pub enum Manage {
     Delete,
 }
 
+/// What a sweep did: how many documents went, and those it could not take, for the host to tell.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Swept {
+    pub gone: usize,
+    pub stuck: Vec<String>,
+}
+
 /// What an owner sees of a document on its card in Tisty.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Info {
@@ -307,7 +314,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
             version: manifest.version,
             digest: envelope.digest(),
         };
-        self.store.keep(id, &kept, envelope.as_bytes()).await?;
+        self.store.keep(id, &kept, envelope.into_bytes()).await?;
         doc.versions.push(kept);
         let dropped: Vec<Kept> = doc
             .versions
@@ -451,14 +458,18 @@ impl<S: Store, R: Randomness> Share<S, R> {
     }
 
     /// Everything whose time ran out goes, links, envelopes, counters and reports alike; a Worker runs this on a schedule.
-    pub async fn sweep(&self, now: i64) -> Result<usize, Refused> {
+    pub async fn sweep(&self, now: i64) -> Result<Swept, Refused> {
         // Lapsing first, so evidence past its days goes even when forgetting stops partway.
         self.store.lapse(now).await?;
-        let ending = self.store.ending(now, self.policy.sweep).await?;
-        for id in &ending {
-            self.store.forget(id).await?;
+        let mut swept = Swept::default();
+        for id in self.store.ending(now, self.policy.sweep).await? {
+            // One that cannot go is told and passed over, so it never holds back the rest.
+            match self.store.forget(&id).await {
+                Ok(()) => swept.gone += 1,
+                Err(_) => swept.stuck.push(id),
+            }
         }
-        Ok(ending.len())
+        Ok(swept)
     }
 
     pub(crate) async fn admit(&self, caller: IpAddr, act: Act, now: i64) -> Result<(), Refused> {

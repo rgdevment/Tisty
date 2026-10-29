@@ -18,7 +18,7 @@ migrations_dir = "migrations"
 binding = "ENVELOPES"
 bucket_name = "tisty-share-envelopes"
 
-# Reads and polls are counted here, by the minute, so they write nothing to D1; Policy's hourly numbers count the rest.
+# Reads and polls are counted here, by the minute, so they write nothing to D1; kept.rs says the same numbers and a test holds them together.
 [[ratelimits]]
 name = "READS"
 namespace_id = "1001"

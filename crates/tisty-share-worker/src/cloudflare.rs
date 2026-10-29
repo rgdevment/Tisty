@@ -4,7 +4,7 @@ use std::net::IpAddr;
 
 use futures_util::StreamExt;
 use serde::de::DeserializeOwned;
-use tisty_share_server::guard::{self, Act};
+use tisty_share_server::guard::{self, Act, Allowance};
 use tisty_share_server::keys::{Randomness, Slowness};
 use tisty_share_server::moderation::Report;
 use tisty_share_server::share::{Policy, Share};
@@ -19,14 +19,12 @@ use worker::{
 use crate::kept::{self, Body, Id, Until, Value};
 use crate::{api, sql};
 
-/// How long the rate-limiting binding counts, as wrangler.toml sets it.
-const LIMITER_PERIOD: i64 = 60;
-
 struct Cloud {
     db: D1Database,
     envelopes: Bucket,
-    reads: RateLimiter,
-    polls: RateLimiter,
+    /// None where the binding is not there, and then D1 counts reads and polls as it counts the rest.
+    reads: Option<RateLimiter>,
+    polls: Option<RateLimiter>,
 }
 
 fn fault(error: impl std::fmt::Display) -> Fault {
@@ -143,9 +141,9 @@ impl Store for Cloud {
         Ok(Some(body.bytes().await.map_err(fault)?))
     }
 
-    async fn keep(&self, id: &str, kept: &Kept, bytes: &[u8]) -> Result<(), Fault> {
+    async fn keep(&self, id: &str, kept: &Kept, bytes: Vec<u8>) -> Result<(), Fault> {
         self.envelopes
-            .put(kept::envelope_key(id, kept), bytes.to_vec())
+            .put(kept::envelope_key(id, kept), bytes)
             .execute()
             .await
             .map_err(fault)?;
@@ -193,12 +191,15 @@ impl Store for Cloud {
         now: i64,
     ) -> Result<Option<i64>, Fault> {
         let limiter = match act {
-            Act::Read => &self.reads,
-            Act::Poll => &self.polls,
-            _ => return guard::counted_within(self, act, who, allowance, now).await,
+            Act::Read => self.reads.as_ref(),
+            Act::Poll => self.polls.as_ref(),
+            _ => None,
+        };
+        let Some(limiter) = limiter else {
+            return guard::counted_within(self, act, who, allowance, now).await;
         };
         let outcome = limiter.limit(who.to_owned()).await.map_err(fault)?;
-        Ok((!outcome.success).then_some(now + LIMITER_PERIOD))
+        Ok((!outcome.success).then_some(now + kept::LIMITER_PERIOD))
     }
 
     async fn held(&self, key: &str, now: i64) -> Result<Option<i64>, Fault> {
@@ -250,14 +251,21 @@ fn share(env: &Env) -> worker::Result<Share<Cloud, Crypto>> {
     let cloud = Cloud {
         db: env.d1("DB")?,
         envelopes: env.bucket("ENVELOPES")?,
-        reads: env.rate_limiter("READS")?,
-        polls: env.rate_limiter("POLLS")?,
+        reads: env.rate_limiter("READS").ok(),
+        polls: env.rate_limiter("POLLS").ok(),
     };
     let secret = kept::secret_from_hex(&env.secret("SHARE_SECRET")?.to_string())
         .ok_or_else(|| worker::Error::from("SHARE_SECRET is not 64 hexadecimal digits"))?;
+    let per_hour = (3_600 / kept::LIMITER_PERIOD) as u64;
     let policy = Policy {
         // Measured in V8: log_n 12 takes about 7 ms, too close to the free plan's 10 ms of CPU a request.
         slowness: Slowness { log_n: 11, r: 8 },
+        // The binding's numbers by the hour, so D1 counts the same when the binding is missing.
+        allowance: Allowance {
+            reads: kept::READS_IN_A_PERIOD * per_hour,
+            polls: kept::POLLS_IN_A_PERIOD * per_hour,
+            ..Allowance::default()
+        },
         ..Policy::default()
     };
     Ok(Share::new(cloud, Crypto, policy, secret))
@@ -321,9 +329,13 @@ fn answered(answer: api::Answer) -> worker::Result<Response> {
     for (name, value) in &answer.headers {
         headers.append(name, value)?;
     }
-    Ok(Response::from_bytes(answer.body)?
-        .with_status(answer.status)
-        .with_headers(headers))
+    // A 204 must carry no body at all, and an empty one still counts as one.
+    let response = if answer.body.is_empty() {
+        Response::empty()?
+    } else {
+        Response::from_bytes(answer.body)?
+    };
+    Ok(response.with_status(answer.status).with_headers(headers))
 }
 
 #[event(fetch)]
@@ -344,7 +356,14 @@ async fn scheduled(_: ScheduledEvent, env: Env, _: ScheduleContext) {
         Err(error) => Err(error.to_string()),
     };
     match swept {
-        Ok(gone) => worker::console_log!("the sweep took {gone} documents"),
+        Ok(swept) if swept.stuck.is_empty() => {
+            worker::console_log!("the sweep took {} documents", swept.gone);
+        }
+        Ok(swept) => worker::console_error!(
+            "the sweep took {} documents and could not take {:?}",
+            swept.gone,
+            swept.stuck
+        ),
         Err(why) => worker::console_error!("the sweep failed: {why}"),
     }
 }

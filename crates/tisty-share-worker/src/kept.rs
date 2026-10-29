@@ -26,6 +26,11 @@ pub struct Until {
     pub until: i64,
 }
 
+/// What the rate-limiting binding allows, as wrangler.toml sets it: so many in each period of seconds.
+pub const LIMITER_PERIOD: i64 = 60;
+pub const READS_IN_A_PERIOD: u64 = 20;
+pub const POLLS_IN_A_PERIOD: u64 = 60;
+
 pub fn envelope_key(id: &str, kept: &Kept) -> String {
     format!(
         "{}{}.{}",

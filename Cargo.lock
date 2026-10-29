@@ -5967,6 +5967,7 @@ dependencies = [
  "jiff",
  "scrypt",
  "serde",
+ "serde_json",
  "sha2 0.11.1",
  "thiserror 2.0.21",
  "tisty-share-proto",
@@ -5984,6 +5985,7 @@ dependencies = [
  "serde_json",
  "tisty-share-proto",
  "tisty-share-server",
+ "toml 1.1.8+spec-1.1.0",
  "worker",
 ]
 

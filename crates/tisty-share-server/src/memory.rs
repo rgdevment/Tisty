@@ -53,10 +53,10 @@ impl Store for Memory {
             .cloned())
     }
 
-    async fn keep(&self, id: &str, kept: &Kept, bytes: &[u8]) -> Result<(), Fault> {
+    async fn keep(&self, id: &str, kept: &Kept, bytes: Vec<u8>) -> Result<(), Fault> {
         self.envelopes
             .borrow_mut()
-            .insert((id.to_owned(), *kept), bytes.to_vec());
+            .insert((id.to_owned(), *kept), bytes);
         Ok(())
     }
 

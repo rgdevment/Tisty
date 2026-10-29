@@ -108,6 +108,25 @@ fn a_document_s_envelopes_share_a_prefix_no_other_document_s_starts_with() {
 }
 
 #[test]
+fn the_rate_limiters_in_wrangler_toml_are_the_ones_the_worker_counts_on() {
+    let config: toml::Table = include_str!("../wrangler.toml").parse().unwrap();
+    let limiters = config["ratelimits"].as_array().unwrap();
+    for (name, limit) in [("READS", READS_IN_A_PERIOD), ("POLLS", POLLS_IN_A_PERIOD)] {
+        let limiter = limiters
+            .iter()
+            .find(|one| one["name"].as_str() == Some(name))
+            .unwrap();
+        let simple = &limiter["simple"];
+        assert_eq!(simple["limit"].as_integer(), Some(limit as i64), "{name}");
+        assert_eq!(
+            simple["period"].as_integer(),
+            Some(LIMITER_PERIOD),
+            "{name}"
+        );
+    }
+}
+
+#[test]
 fn the_secret_is_read_from_hexadecimal_and_anything_else_is_refused() {
     let said = "00ff".repeat(16);
     let secret = secret_from_hex(&said).unwrap();

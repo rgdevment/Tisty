@@ -135,10 +135,8 @@ pub fn broken(why: String) -> Answer {
     answer
 }
 
+/// A step's answer; the host has already held the body to `ceiling`, as it alone can before reading it.
 pub async fn answer<S: Store, R: Randomness>(share: &mut Share<S, R>, asked: Asked) -> Answer {
-    if let Some(refused) = too_large(&share.policy.limits, asked.body.len() as u64) {
-        return refused;
-    }
     let now = asked.now;
     let answer = match routed(share, asked).await {
         Ok(answer) => answer,

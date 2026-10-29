@@ -1,4 +1,4 @@
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 use jiff::Timestamp;
@@ -481,9 +481,10 @@ fn a_sweep_takes_only_so_many_and_the_next_takes_the_rest() {
         world.shared(T0);
     }
     let later = T0 + 31 * DAY;
-    assert_eq!(done(world.share.sweep(later)), Ok(2));
-    assert_eq!(done(world.share.sweep(later)), Ok(1));
-    assert_eq!(done(world.share.sweep(later)), Ok(0));
+    let gone = |world: &World| done(world.share.sweep(later)).unwrap().gone;
+    assert_eq!(gone(&world), 2);
+    assert_eq!(gone(&world), 1);
+    assert_eq!(gone(&world), 0);
 }
 
 #[test]
@@ -514,7 +515,7 @@ fn a_sweep_takes_whatever_ran_out_and_leaves_the_rest() {
         .unwrap();
     let kept_before = world.share.store.kept();
 
-    assert_eq!(done(world.share.sweep(T0 + 31 * DAY)), Ok(2));
+    assert_eq!(done(world.share.sweep(T0 + 31 * DAY)).unwrap().gone, 2);
     assert!(world.share.store.kept() < kept_before);
     assert_eq!(world.read(&old.id, T0 + 31 * DAY), Err(Refused::Missing));
     assert_eq!(
@@ -966,6 +967,8 @@ struct Racing {
     lose: Cell<bool>,
     /// Turns reads away until then, as a host's own limiter would.
     limited: Cell<Option<i64>>,
+    /// A document whose envelopes the store cannot let go of.
+    stuck: RefCell<Option<String>>,
 }
 
 impl Store for Racing {
@@ -979,12 +982,15 @@ impl Store for Racing {
         self.inner.save(doc, revision).await
     }
     async fn forget(&self, id: &str) -> Result<(), Fault> {
+        if self.stuck.borrow().as_deref() == Some(id) {
+            return Err(Fault("the envelopes would not go".into()));
+        }
         self.inner.forget(id).await
     }
     async fn envelope(&self, id: &str, kept: &Kept) -> Result<Option<Vec<u8>>, Fault> {
         self.inner.envelope(id, kept).await
     }
-    async fn keep(&self, id: &str, kept: &Kept, bytes: &[u8]) -> Result<(), Fault> {
+    async fn keep(&self, id: &str, kept: &Kept, bytes: Vec<u8>) -> Result<(), Fault> {
         self.inner.keep(id, kept, bytes).await
     }
     async fn drop_envelope(&self, id: &str, kept: &Kept) -> Result<(), Fault> {
@@ -1033,6 +1039,7 @@ fn racing() -> Share<Racing, Counting> {
         inner: Memory::default(),
         lose: Cell::new(false),
         limited: Cell::new(None),
+        stuck: RefCell::new(None),
     };
     Share::new(store, Counting(0), policy(), [5; 32])
 }
@@ -1130,6 +1137,37 @@ fn a_host_s_own_limiter_decides_the_reads_and_its_wait_is_the_one_told() {
     }
     share.store.limited.set(None);
     assert!(done(share.read(&reserved.id, None, HERE, T0 + 60)).is_ok());
+}
+
+#[test]
+fn a_document_that_cannot_go_is_passed_over_and_the_rest_still_go() {
+    let mut share = racing();
+    let mut ids = Vec::new();
+    for _ in 0..3 {
+        let proof = work::solve(&share.challenge(Ask::Reserve, T0).unwrap()).unwrap();
+        let reserved = done(share.reserve(HERE, &proof, T0)).unwrap();
+        let first = sealed(&reserved.id, 1, None, "uno");
+        upload_racing(&mut share, &reserved, first).unwrap();
+        ids.push(reserved.id);
+    }
+    ids.sort();
+    *share.store.stuck.borrow_mut() = Some(ids[0].clone());
+
+    let swept = done(share.sweep(T0 + 31 * DAY)).unwrap();
+    assert_eq!(swept.gone, 2);
+    assert_eq!(swept.stuck, [ids[0].clone()]);
+}
+
+#[test]
+fn a_stored_document_missing_a_later_field_still_opens() {
+    let doc = Doc {
+        id: "abc".into(),
+        ..Doc::default()
+    };
+    let mut written: serde_json::Value = serde_json::to_value(&doc).unwrap();
+    written.as_object_mut().unwrap().remove("reads");
+    let read: Doc = serde_json::from_value(written).unwrap();
+    assert_eq!(read, doc);
 }
 
 #[test]
