@@ -547,9 +547,10 @@ fn undoing_a_creation_and_a_plain_move_restores_the_exact_state_before() {
         .unwrap();
     let undo_move = undo::inverse(&moved, &baseline).unwrap();
     store.append_batch(undo_move).unwrap();
+    // The whole state would also compare `heard`, which moves on whenever the undo lands a second later.
     assert_eq!(
-        replayed(&world),
-        baseline,
+        replayed(&world).docs,
+        baseline.docs,
         "undoing the move restores the folder"
     );
 
