@@ -8,15 +8,12 @@ use zeroize::Zeroizing;
 
 use crate::cloud::{HEAD, TAG, nonced};
 use crate::identity::{Certificate, Revocation, ShareKey, Signed, Verdict, check};
+use crate::limits::Limits;
 
-pub const TEXT_AT_MOST: usize = 512 * 1024;
-pub const PICTURE_AT_MOST: usize = 512 * 1024;
-pub const PICTURES_AT_MOST: usize = 10;
-pub const ALL_PICTURES_AT_MOST: usize = 2 * 1024 * 1024;
 /// A signature, its certificate and their names fit well inside this.
 const SIGNATURE_AT_MOST: usize = 2 * 1024;
-/// Longer than any manifest the limits above allow, short enough that a forged length costs nothing.
-const MANIFEST_AT_MOST: usize = 4 * 1024;
+/// What any server could ask for stays far below; only reading the format is held here, never a quota.
+const MANIFEST_AT_MOST: usize = 16 * 1024;
 const ID_AT_MOST: usize = 64;
 
 const MAGIC: &[u8; 4] = b"\xffTSE";
@@ -138,16 +135,18 @@ pub enum Refused {
     Newer,
     #[error("this envelope is damaged or was changed on the way")]
     Damaged,
-    #[error("the text is over 512 KB")]
+    #[error("the text is over what this server takes")]
     TextTooBig,
-    #[error("a picture is over 512 KB")]
+    #[error("a picture is over what this server takes")]
     PictureTooBig,
-    #[error("there are more than 10 pictures")]
+    #[error("there are more pictures than this server takes")]
     TooManyPictures,
-    #[error("the pictures are over 2 MB together")]
+    #[error("the pictures are over what this server takes together")]
     PicturesTooBig,
     #[error("a picture is not the kind it says")]
     NotAPicture,
+    #[error("this server does not take this kind of picture")]
+    KindRefused,
     #[error("this envelope does not open with this key, or something changed it")]
     Locked,
     #[error("the signature could not be made")]
@@ -158,7 +157,7 @@ pub enum Refused {
 
 impl Manifest {
     /// Every rule a server can hold without the key, so the server and every Tisty refuse the same things.
-    pub fn holds(&self) -> Result<(), Refused> {
+    pub fn holds(&self, limits: &Limits) -> Result<(), Refused> {
         match self.v {
             SAID => {}
             newer if newer > SAID => return Err(Refused::Newer),
@@ -174,15 +173,15 @@ impl Manifest {
         if !named || !ordered || self.head().is_none() {
             return Err(Refused::Damaged);
         }
-        self.parts_hold()
+        self.parts_hold(limits)
     }
 
-    fn parts_hold(&self) -> Result<(), Refused> {
+    fn parts_hold(&self, limits: &Limits) -> Result<(), Refused> {
         let (text, rest) = self.parts.split_first().ok_or(Refused::Damaged)?;
         if text.kind != Kind::Text || text.size < TAG as u64 {
             return Err(Refused::Damaged);
         }
-        if text.plain() > TEXT_AT_MOST {
+        if text.plain() as u64 > limits.text {
             return Err(Refused::TextTooBig);
         }
         let pictures = match rest.split_first() {
@@ -200,14 +199,20 @@ impl Manifest {
         {
             return Err(Refused::Damaged);
         }
-        if pictures.len() > PICTURES_AT_MOST {
+        if pictures.len() as u64 > limits.pictures {
             return Err(Refused::TooManyPictures);
         }
-        if pictures.iter().any(|one| one.plain() > PICTURE_AT_MOST) {
+        if pictures.iter().any(|one| !limits.takes(one.kind)) {
+            return Err(Refused::KindRefused);
+        }
+        if pictures
+            .iter()
+            .any(|one| one.plain() as u64 > limits.picture)
+        {
             return Err(Refused::PictureTooBig);
         }
-        let all: usize = pictures.iter().map(Part::plain).sum();
-        if all > ALL_PICTURES_AT_MOST {
+        let all: u64 = pictures.iter().map(|one| one.plain() as u64).sum();
+        if all > limits.all_pictures {
             return Err(Refused::PicturesTooBig);
         }
         Ok(())
@@ -260,7 +265,12 @@ pub struct Opened {
 }
 
 #[cfg(feature = "mint")]
-pub fn seal(key: &LinkKey, draft: &Draft, by: Option<&Signer>) -> Result<Envelope, Refused> {
+pub fn seal(
+    key: &LinkKey,
+    draft: &Draft,
+    by: Option<&Signer>,
+    limits: &Limits,
+) -> Result<Envelope, Refused> {
     check_draft(draft)?;
     let inner = by
         .map(|signer| sign(signer, WROTE, &written(draft.text, draft.pictures)))
@@ -293,7 +303,7 @@ pub fn seal(key: &LinkKey, draft: &Draft, by: Option<&Signer>) -> Result<Envelop
             })
             .collect(),
     };
-    manifest.holds()?;
+    manifest.holds(limits)?;
     let written = serde_json::to_vec(&manifest).map_err(|_| Refused::Damaged)?;
     let aad = bound(&written);
     let cipher = key.cipher();
@@ -447,7 +457,7 @@ impl Envelope {
     }
 
     /// Reads and holds every limit without the key, so a server can refuse before it stores anything.
-    pub fn read(bytes: &[u8]) -> Result<Self, Refused> {
+    pub fn read(bytes: &[u8], limits: &Limits) -> Result<Self, Refused> {
         let rest = bytes.strip_prefix(MAGIC).ok_or(Refused::Foreign)?;
         let (&version, rest) = rest.split_first().ok_or(Refused::Damaged)?;
         match version {
@@ -457,7 +467,7 @@ impl Envelope {
         }
         let (written, mut rest) = framed(rest, MANIFEST_AT_MOST)?;
         let manifest: Manifest = serde_json::from_slice(written).map_err(|_| Refused::Damaged)?;
-        manifest.holds()?;
+        manifest.holds(limits)?;
         let mut parts = Vec::with_capacity(manifest.parts.len());
         for part in &manifest.parts {
             let size = usize::try_from(part.size).map_err(|_| Refused::Damaged)?;

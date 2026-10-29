@@ -5,6 +5,7 @@ use jiff::Timestamp;
 use libfuzzer_sys::fuzz_target;
 use tisty_share_proto::envelope::{self, Draft, Envelope, Kind, LinkKey, Signer};
 use tisty_share_proto::identity::{Root, ShareKey, Verdict};
+use tisty_share_proto::limits::Limits;
 
 #[derive(Arbitrary, Debug)]
 struct Input {
@@ -43,11 +44,21 @@ fuzz_target!(|input: Input| {
         text: &input.text,
         pictures: &shown,
     };
-    let Ok(sealed) = envelope::seal(&key, &draft, input.signed.then_some(&signer)) else {
+    let Ok(sealed) = envelope::seal(
+        &key,
+        &draft,
+        input.signed.then_some(&signer),
+        &Limits::default(),
+    ) else {
         return;
     };
     let mut bytes = sealed.to_bytes();
-    let opened = envelope::open(&key, &Envelope::read(&bytes).unwrap(), &[]).unwrap();
+    let opened = envelope::open(
+        &key,
+        &Envelope::read(&bytes, &Limits::default()).unwrap(),
+        &[],
+    )
+    .unwrap();
     assert_eq!(opened.text.as_str(), input.text);
     assert_eq!(opened.pictures.len(), pictures.len());
 
@@ -58,7 +69,7 @@ fuzz_target!(|input: Input| {
         bytes[at] ^= input.flip.max(1);
     }
     // A change has to show somewhere: it is refused, it does not open, or its sender no longer holds.
-    let Ok(read) = Envelope::read(&bytes) else {
+    let Ok(read) = Envelope::read(&bytes, &Limits::default()) else {
         return;
     };
     let unopened = envelope::open(&key, &read, &[]).is_err();

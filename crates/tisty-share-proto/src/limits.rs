@@ -1,0 +1,37 @@
+use serde::{Deserialize, Serialize};
+
+use crate::envelope::Kind;
+
+/// What one server takes in a version. Each server sets its own and says it, and Tisty seals to what it says.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Limits {
+    /// Bytes of text a version may carry.
+    pub text: u64,
+    /// Bytes each picture may weigh.
+    pub picture: u64,
+    /// How many pictures a version may carry; none turns pictures off.
+    pub pictures: u64,
+    /// Bytes all the pictures of a version may weigh together.
+    pub all_pictures: u64,
+    /// The kinds of picture taken, in the order Tisty prefers to write them.
+    pub kinds: Vec<Kind>,
+}
+
+impl Default for Limits {
+    /// Tisty's own: a long document and a few screenshots, never a book or a comic in parts.
+    fn default() -> Self {
+        Self {
+            text: 512 * 1024,
+            picture: 512 * 1024,
+            pictures: 10,
+            all_pictures: 2 * 1024 * 1024,
+            kinds: vec![Kind::Png, Kind::Jpeg, Kind::Webp, Kind::Gif],
+        }
+    }
+}
+
+impl Limits {
+    pub fn takes(&self, kind: Kind) -> bool {
+        kind.is_picture() && self.kinds.contains(&kind)
+    }
+}

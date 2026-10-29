@@ -3,6 +3,19 @@ use jiff::Timestamp;
 use super::*;
 use crate::identity::Root;
 
+// Decision 5, what every server takes unless it says otherwise.
+const TEXT_AT_MOST: usize = 512 * 1024;
+const PICTURE_AT_MOST: usize = 512 * 1024;
+const PICTURES_AT_MOST: usize = 10;
+
+fn sealed(key: &LinkKey, draft: &Draft, by: Option<&Signer>) -> Result<Envelope, Refused> {
+    seal(key, draft, by, &Limits::default())
+}
+
+fn read(bytes: &[u8]) -> Result<Envelope, Refused> {
+    Envelope::read(bytes, &Limits::default())
+}
+
 fn key(n: u8) -> LinkKey {
     LinkKey::from_bytes(&[n; 32])
 }
@@ -64,14 +77,14 @@ fn a_document_with_pictures_crosses_from_one_tisty_to_another_signed() {
     let (one, two) = (png(1, 300), jpeg(200));
     let pictures = [(Kind::Png, one.as_slice()), (Kind::Jpeg, two.as_slice())];
     let mario = machine(1);
-    let sealed = seal(
+    let sealed = sealed(
         &key(9),
         &draft("# Plan\n\nHola.", &pictures),
         Some(&mario.signer()),
     )
     .unwrap();
 
-    let arrived = Envelope::read(&sealed.to_bytes()).unwrap();
+    let arrived = read(&sealed.to_bytes()).unwrap();
     let opened = open(&key(9), &arrived, &[]).unwrap();
 
     assert_eq!(opened.text.as_str(), "# Plan\n\nHola.");
@@ -90,10 +103,10 @@ fn the_server_reads_every_limit_and_the_sender_without_the_key() {
     let picture = png(1, 300);
     let pictures = [(Kind::Png, picture.as_slice())];
     let mario = machine(1);
-    let sealed = seal(&key(9), &draft("hola", &pictures), Some(&mario.signer())).unwrap();
+    let sealed = sealed(&key(9), &draft("hola", &pictures), Some(&mario.signer())).unwrap();
     let bytes = sealed.to_bytes();
 
-    let arrived = Envelope::read(&bytes).unwrap();
+    let arrived = read(&bytes).unwrap();
     let manifest = arrived.manifest();
     let kinds: Vec<Kind> = manifest.parts.iter().map(|one| one.kind).collect();
     assert_eq!(kinds, vec![Kind::Text, Kind::Signature, Kind::Png]);
@@ -107,8 +120,8 @@ fn the_server_reads_every_limit_and_the_sender_without_the_key() {
 
 #[test]
 fn an_envelope_without_a_signature_opens_and_says_nobody_signed() {
-    let sealed = seal(&key(9), &draft("hola", &[]), None).unwrap();
-    let arrived = Envelope::read(&sealed.to_bytes()).unwrap();
+    let sealed = sealed(&key(9), &draft("hola", &[]), None).unwrap();
+    let arrived = read(&sealed.to_bytes()).unwrap();
     let opened = open(&key(9), &arrived, &[]).unwrap();
 
     assert_eq!(opened.text.as_str(), "hola");
@@ -118,8 +131,8 @@ fn an_envelope_without_a_signature_opens_and_says_nobody_signed() {
 
 #[test]
 fn another_key_never_opens_it() {
-    let sealed = seal(&key(9), &draft("hola", &[]), None).unwrap();
-    let arrived = Envelope::read(&sealed.to_bytes()).unwrap();
+    let sealed = sealed(&key(9), &draft("hola", &[]), None).unwrap();
+    let arrived = read(&sealed.to_bytes()).unwrap();
 
     assert_eq!(open(&key(8), &arrived, &[]).err(), Some(Refused::Locked));
 }
@@ -145,7 +158,7 @@ fn replaced(bytes: &[u8], from: &[u8], to: &[u8]) -> Vec<u8> {
 fn a_changed_byte_in_any_sealed_part_is_refused() {
     let picture = png(1, 300);
     let pictures = [(Kind::Png, picture.as_slice())];
-    let sealed = seal(
+    let sealed = sealed(
         &key(9),
         &draft("hola", &pictures),
         Some(&machine(1).signer()),
@@ -158,7 +171,7 @@ fn a_changed_byte_in_any_sealed_part_is_refused() {
     for at in span.step_by(7) {
         let mut changed = bytes.clone();
         changed[at] ^= 1;
-        let arrived = Envelope::read(&changed).unwrap();
+        let arrived = read(&changed).unwrap();
         assert_eq!(
             open(&key(9), &arrived, &[]).err(),
             Some(Refused::Locked),
@@ -174,12 +187,12 @@ fn a_changed_byte_in_any_sealed_part_is_refused() {
 #[test]
 fn a_manifest_changed_on_the_way_breaks_the_seal_and_the_sender() {
     let mario = machine(1);
-    let bytes = seal(&key(9), &draft("hola", &[]), Some(&mario.signer()))
+    let bytes = sealed(&key(9), &draft("hola", &[]), Some(&mario.signer()))
         .unwrap()
         .to_bytes();
     let forged = replaced(&bytes, b"\"version\":3", b"\"version\":4");
 
-    let arrived = Envelope::read(&forged).unwrap();
+    let arrived = read(&forged).unwrap();
     assert_eq!(arrived.manifest().version, 4);
     assert!(matches!(arrived.sender(&[]), Some(Verdict::Refused)));
     assert_eq!(open(&key(9), &arrived, &[]).err(), Some(Refused::Locked));
@@ -189,20 +202,20 @@ fn a_manifest_changed_on_the_way_breaks_the_seal_and_the_sender() {
 fn a_picture_declared_as_another_kind_on_the_way_is_refused() {
     let picture = png(1, 300);
     let pictures = [(Kind::Png, picture.as_slice())];
-    let bytes = seal(&key(9), &draft("hola", &pictures), None)
+    let bytes = sealed(&key(9), &draft("hola", &pictures), None)
         .unwrap()
         .to_bytes();
     let forged = replaced(&bytes, b"\"png\"", b"\"gif\"");
 
-    let arrived = Envelope::read(&forged).unwrap();
+    let arrived = read(&forged).unwrap();
     assert_eq!(open(&key(9), &arrived, &[]).err(), Some(Refused::Locked));
 }
 
 #[test]
 fn a_signature_taken_to_another_upload_does_not_hold() {
     let mario = machine(1);
-    let one = seal(&key(9), &draft("hola", &[]), Some(&mario.signer())).unwrap();
-    let mut other = seal(&key(9), &draft("chao", &[]), None).unwrap();
+    let one = sealed(&key(9), &draft("hola", &[]), Some(&mario.signer())).unwrap();
+    let mut other = sealed(&key(9), &draft("chao", &[]), None).unwrap();
     other.sent = one.sent.clone();
 
     assert!(matches!(other.sender(&[]), Some(Verdict::Refused)));
@@ -212,7 +225,7 @@ fn a_signature_taken_to_another_upload_does_not_hold() {
 fn two_pictures_swapped_or_one_cut_off_are_refused() {
     let (one, two) = (png(1, 300), png(2, 300));
     let pictures = [(Kind::Png, one.as_slice()), (Kind::Png, two.as_slice())];
-    let sealed = seal(&key(9), &draft("hola", &pictures), None).unwrap();
+    let sealed = sealed(&key(9), &draft("hola", &pictures), None).unwrap();
 
     let mut swapped = sealed.clone();
     swapped.parts.swap(1, 2);
@@ -228,14 +241,14 @@ fn two_pictures_swapped_or_one_cut_off_are_refused() {
 fn every_limit_is_held_when_sealing() {
     let big_text = "a".repeat(TEXT_AT_MOST + 1);
     assert_eq!(
-        seal(&key(9), &draft(&big_text, &[]), None).err(),
+        sealed(&key(9), &draft(&big_text, &[]), None).err(),
         Some(Refused::TextTooBig)
     );
-    assert!(seal(&key(9), &draft(&"a".repeat(TEXT_AT_MOST), &[]), None).is_ok());
+    assert!(sealed(&key(9), &draft(&"a".repeat(TEXT_AT_MOST), &[]), None).is_ok());
 
     let big = png(1, PICTURE_AT_MOST + 1);
     assert_eq!(
-        seal(&key(9), &draft("x", &[(Kind::Png, &big)]), None).err(),
+        sealed(&key(9), &draft("x", &[(Kind::Png, &big)]), None).err(),
         Some(Refused::PictureTooBig)
     );
 
@@ -244,14 +257,14 @@ fn every_limit_is_held_when_sealing() {
         .map(|_| (Kind::Png, small.as_slice()))
         .collect();
     assert_eq!(
-        seal(&key(9), &draft("x", &eleven), None).err(),
+        sealed(&key(9), &draft("x", &eleven), None).err(),
         Some(Refused::TooManyPictures)
     );
 
     let half = png(1, 450 * 1024);
     let five: Vec<(Kind, &[u8])> = (0..5).map(|_| (Kind::Png, half.as_slice())).collect();
     assert_eq!(
-        seal(&key(9), &draft("x", &five), None).err(),
+        sealed(&key(9), &draft("x", &five), None).err(),
         Some(Refused::PicturesTooBig)
     );
 }
@@ -261,15 +274,15 @@ fn a_file_passed_off_as_a_picture_never_leaves() {
     let pdf = b"%PDF-1.7 a document".to_vec();
     let disguised = png(1, 20);
     assert_eq!(
-        seal(&key(9), &draft("x", &[(Kind::Png, &pdf)]), None).err(),
+        sealed(&key(9), &draft("x", &[(Kind::Png, &pdf)]), None).err(),
         Some(Refused::NotAPicture)
     );
     assert_eq!(
-        seal(&key(9), &draft("x", &[(Kind::Jpeg, &disguised)]), None).err(),
+        sealed(&key(9), &draft("x", &[(Kind::Jpeg, &disguised)]), None).err(),
         Some(Refused::NotAPicture)
     );
     assert_eq!(
-        seal(&key(9), &draft("x", &[(Kind::Text, &disguised)]), None).err(),
+        sealed(&key(9), &draft("x", &[(Kind::Text, &disguised)]), None).err(),
         Some(Refused::NotAPicture)
     );
 }
@@ -298,18 +311,21 @@ fn a_manifest_over_the_limits_is_refused_by_the_server_before_anything_is_kept()
     bytes.extend_from_slice(&(written.len() as u32).to_be_bytes());
     bytes.extend_from_slice(&written);
 
-    assert_eq!(Envelope::read(&bytes).err(), Some(Refused::TooManyPictures));
+    assert_eq!(read(&bytes).err(), Some(Refused::TooManyPictures));
 }
 
 #[test]
 fn a_version_must_come_after_the_one_it_was_written_on() {
     let mut twisted = draft("x", &[]);
     twisted.from = Some(3);
-    assert_eq!(seal(&key(9), &twisted, None).err(), Some(Refused::Damaged));
+    assert_eq!(
+        sealed(&key(9), &twisted, None).err(),
+        Some(Refused::Damaged)
+    );
     let mut first = draft("x", &[]);
     first.version = 1;
     first.from = None;
-    assert!(seal(&key(9), &first, None).is_ok());
+    assert!(sealed(&key(9), &first, None).is_ok());
 }
 
 #[test]
@@ -318,7 +334,7 @@ fn an_id_is_only_letters_digits_dashes_and_underscores() {
         let mut odd = draft("x", &[]);
         odd.id = id;
         assert_eq!(
-            seal(&key(9), &odd, None).err(),
+            sealed(&key(9), &odd, None).err(),
             Some(Refused::Damaged),
             "{id:?}"
         );
@@ -328,7 +344,7 @@ fn an_id_is_only_letters_digits_dashes_and_underscores() {
 #[test]
 fn a_revoked_machine_reads_as_revoked() {
     let mario = machine(1);
-    let sealed = seal(&key(9), &draft("hola", &[]), Some(&mario.signer())).unwrap();
+    let sealed = sealed(&key(9), &draft("hola", &[]), Some(&mario.signer())).unwrap();
     let taken_back = mario
         .root
         .revoke(&mario.key.public(), Timestamp::from_second(2_000).unwrap());
@@ -350,28 +366,32 @@ fn a_machine_whose_certificate_is_another_key_s_cannot_sign() {
         certificate: &mario.certificate,
     };
     assert_eq!(
-        seal(&key(9), &draft("hola", &[]), Some(&borrowed)).err(),
+        sealed(&key(9), &draft("hola", &[]), Some(&borrowed)).err(),
         Some(Refused::Unsigned)
     );
 }
 
 #[test]
 fn bytes_not_sealed_by_tisty_share_or_by_a_newer_one_say_so() {
-    assert_eq!(Envelope::read(b"# hola").err(), Some(Refused::Foreign));
-    let mut bytes = seal(&key(9), &draft("hola", &[]), None).unwrap().to_bytes();
+    assert_eq!(read(b"# hola").err(), Some(Refused::Foreign));
+    let mut bytes = sealed(&key(9), &draft("hola", &[]), None)
+        .unwrap()
+        .to_bytes();
     bytes[4] = VERSION + 1;
-    assert_eq!(Envelope::read(&bytes).err(), Some(Refused::Newer));
-    assert_eq!(Envelope::read(&bytes[..3]).err(), Some(Refused::Foreign));
+    assert_eq!(read(&bytes).err(), Some(Refused::Newer));
+    assert_eq!(read(&bytes[..3]).err(), Some(Refused::Foreign));
 }
 
 #[test]
 fn trailing_or_missing_bytes_are_refused() {
-    let bytes = seal(&key(9), &draft("hola", &[]), None).unwrap().to_bytes();
+    let bytes = sealed(&key(9), &draft("hola", &[]), None)
+        .unwrap()
+        .to_bytes();
     let mut longer = bytes.clone();
     longer.push(0);
-    assert_eq!(Envelope::read(&longer).err(), Some(Refused::Damaged));
+    assert_eq!(read(&longer).err(), Some(Refused::Damaged));
     assert_eq!(
-        Envelope::read(&bytes[..bytes.len() - 1]).err(),
+        read(&bytes[..bytes.len() - 1]).err(),
         Some(Refused::Damaged)
     );
 }
@@ -388,8 +408,101 @@ fn the_link_key_travels_as_text_and_back() {
 
 #[test]
 fn two_seals_of_the_same_words_never_look_alike() {
-    let one = seal(&key(9), &draft("hola", &[]), None).unwrap();
-    let two = seal(&key(9), &draft("hola", &[]), None).unwrap();
+    let one = sealed(&key(9), &draft("hola", &[]), None).unwrap();
+    let two = sealed(&key(9), &draft("hola", &[]), None).unwrap();
     assert_ne!(one.parts, two.parts);
     assert_ne!(one.manifest.head, two.manifest.head);
+}
+
+#[test]
+fn the_limits_unless_a_server_says_otherwise_are_decision_five() {
+    let ours = Limits::default();
+    assert_eq!(
+        (ours.text, ours.picture, ours.pictures, ours.all_pictures),
+        (512 * 1024, 512 * 1024, 10, 2 * 1024 * 1024)
+    );
+    assert_eq!(
+        ours.kinds,
+        vec![Kind::Png, Kind::Jpeg, Kind::Webp, Kind::Gif]
+    );
+}
+
+#[test]
+fn a_server_with_its_own_limits_holds_them_both_ways() {
+    let tight = Limits {
+        text: 10,
+        picture: 100,
+        pictures: 1,
+        all_pictures: 100,
+        kinds: vec![Kind::Png],
+    };
+    let small = png(1, 50);
+    let one = [(Kind::Png, small.as_slice())];
+    assert!(seal(&key(9), &draft("hola", &one), None, &tight).is_ok());
+    assert_eq!(
+        seal(&key(9), &draft("demasiado texto", &[]), None, &tight).err(),
+        Some(Refused::TextTooBig)
+    );
+    let two = [(Kind::Png, small.as_slice()), (Kind::Png, small.as_slice())];
+    assert_eq!(
+        seal(&key(9), &draft("x", &two), None, &tight).err(),
+        Some(Refused::TooManyPictures)
+    );
+
+    // What one server took, a tighter one refuses before it keeps anything.
+    let bytes = sealed(&key(9), &draft("hola", &[(Kind::Png, &png(1, 300))]), None)
+        .unwrap()
+        .to_bytes();
+    assert_eq!(
+        Envelope::read(&bytes, &tight).err(),
+        Some(Refused::PictureTooBig)
+    );
+}
+
+#[test]
+fn a_server_that_raised_its_limits_takes_more() {
+    let roomy = Limits {
+        text: 2 * 1024 * 1024,
+        ..Limits::default()
+    };
+    let long = "a".repeat(TEXT_AT_MOST * 2);
+    let bytes = seal(&key(9), &draft(&long, &[]), None, &roomy)
+        .unwrap()
+        .to_bytes();
+
+    assert_eq!(read(&bytes).err(), Some(Refused::TextTooBig));
+    let arrived = Envelope::read(&bytes, &roomy).unwrap();
+    assert_eq!(open(&key(9), &arrived, &[]).unwrap().text.len(), long.len());
+}
+
+#[test]
+fn pictures_turned_off_or_a_kind_not_taken_are_refused() {
+    let picture = png(1, 50);
+    let one = [(Kind::Png, picture.as_slice())];
+    let off = Limits {
+        pictures: 0,
+        ..Limits::default()
+    };
+    assert_eq!(
+        seal(&key(9), &draft("x", &one), None, &off).err(),
+        Some(Refused::TooManyPictures)
+    );
+    assert!(seal(&key(9), &draft("x", &[]), None, &off).is_ok());
+
+    let photos_only = Limits {
+        kinds: vec![Kind::Jpeg],
+        ..Limits::default()
+    };
+    assert_eq!(
+        seal(&key(9), &draft("x", &one), None, &photos_only).err(),
+        Some(Refused::KindRefused)
+    );
+}
+
+#[test]
+fn a_server_says_its_limits_as_json_and_tisty_reads_them_back() {
+    let said = serde_json::to_string(&Limits::default()).unwrap();
+    assert!(said.contains("\"kinds\":[\"png\",\"jpeg\",\"webp\",\"gif\"]"));
+    let back: Limits = serde_json::from_str(&said).unwrap();
+    assert_eq!(back, Limits::default());
 }
