@@ -131,3 +131,7 @@ opt-level = 2
 # Not a resident process: release build time matters more than the last few percent of size.
 lto = "thin"
 strip = true
+
+# wasm-bindgen reads what stripping would take out of the Worker's wasm, and wasm-opt shrinks it after.
+[profile.release.package.tisty-share-worker]
+strip = false
