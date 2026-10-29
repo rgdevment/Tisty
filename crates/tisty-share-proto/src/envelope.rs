@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use chacha20poly1305::XChaCha20Poly1305;
@@ -22,6 +24,7 @@ const SAID: u32 = 1;
 const PART: &[u8] = b"tisty-share.part.v1\0";
 const SEALED: &[u8] = b"tisty-share.sealed.v1\0";
 const WRITTEN: &[u8] = b"tisty-share.written.v1\0";
+const COMMIT: &[u8] = b"tisty-share.commit.v1\0";
 /// What the outer signature answers for: these sealed bytes, uploaded as this id and version.
 pub const SENT: &str = "tisty-share.envelope.v1";
 /// What the inner signature answers for: these words and pictures, wherever they travel.
@@ -53,6 +56,11 @@ impl LinkKey {
 
     fn cipher(&self) -> XChaCha20Poly1305 {
         XChaCha20Poly1305::new((&*self.0).into())
+    }
+
+    /// The seal alone does not tie bytes to one key; this does, so no envelope reads one way to a reader and another to a moderator.
+    fn commitment(&self, head: &[u8; HEAD]) -> [u8; 32] {
+        *crate::seed::mac(&self.0, &[COMMIT, head])
     }
 }
 
@@ -108,10 +116,8 @@ pub struct Part {
 }
 
 impl Part {
-    pub fn plain(&self) -> usize {
-        usize::try_from(self.size)
-            .unwrap_or(usize::MAX)
-            .saturating_sub(TAG)
+    pub fn plain(&self) -> u64 {
+        self.size.saturating_sub(TAG as u64)
     }
 }
 
@@ -124,6 +130,8 @@ pub struct Manifest {
     /// The version this upload was written on, so a change made over someone else's is caught.
     pub from: Option<u64>,
     pub head: String,
+    /// What ties these bytes to the one key that opens them.
+    pub commit: String,
     pub parts: Vec<Part>,
 }
 
@@ -170,7 +178,8 @@ impl Manifest {
                 .bytes()
                 .all(|one| one.is_ascii_alphanumeric() || one == b'-' || one == b'_');
         let ordered = self.version >= 1 && self.from.is_none_or(|from| from < self.version);
-        if !named || !ordered || self.head().is_none() {
+        let keyed = self.head().is_some() && self.commitment().is_some();
+        if !named || !ordered || !keyed {
             return Err(Refused::Damaged);
         }
         self.parts_hold(limits)
@@ -181,12 +190,12 @@ impl Manifest {
         if text.kind != Kind::Text || text.size < TAG as u64 {
             return Err(Refused::Damaged);
         }
-        if text.plain() as u64 > limits.text {
+        if text.plain() > limits.text {
             return Err(Refused::TextTooBig);
         }
         let pictures = match rest.split_first() {
             Some((signature, pictures)) if signature.kind == Kind::Signature => {
-                if signature.size < TAG as u64 || signature.plain() > SIGNATURE_AT_MOST {
+                if signature.size < TAG as u64 || signature.plain() > SIGNATURE_AT_MOST as u64 {
                     return Err(Refused::Damaged);
                 }
                 pictures
@@ -205,13 +214,13 @@ impl Manifest {
         if pictures.iter().any(|one| !limits.takes(one.kind)) {
             return Err(Refused::KindRefused);
         }
-        if pictures
-            .iter()
-            .any(|one| one.plain() as u64 > limits.picture)
-        {
+        if pictures.iter().any(|one| one.plain() > limits.picture) {
             return Err(Refused::PictureTooBig);
         }
-        let all: u64 = pictures.iter().map(|one| one.plain() as u64).sum();
+        // The sizes are the uploader's word, so adding them up can never be what overflows.
+        let all = pictures
+            .iter()
+            .fold(0u64, |all, one| all.saturating_add(one.plain()));
         if all > limits.all_pictures {
             return Err(Refused::PicturesTooBig);
         }
@@ -219,7 +228,11 @@ impl Manifest {
     }
 
     fn head(&self) -> Option<[u8; HEAD]> {
-        <[u8; HEAD]>::try_from(URL_SAFE_NO_PAD.decode(&self.head).ok()?.as_slice()).ok()
+        decoded(&self.head)
+    }
+
+    fn commitment(&self) -> Option<[u8; 32]> {
+        decoded(&self.commit)
     }
 
     pub fn signed(&self) -> bool {
@@ -233,9 +246,11 @@ impl Manifest {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Envelope {
     manifest: Manifest,
+    /// The envelope as it travels, kept whole so that reading one never copies its parts out.
+    bytes: Vec<u8>,
     /// The manifest as it was written, since the seal holds these bytes and not their meaning.
-    written: Vec<u8>,
-    parts: Vec<Vec<u8>>,
+    written: Range<usize>,
+    parts: Vec<Range<usize>>,
     sent: Option<Signed>,
 }
 
@@ -273,7 +288,7 @@ pub fn seal(
 ) -> Result<Envelope, Refused> {
     check_draft(draft)?;
     let inner = by
-        .map(|signer| sign(signer, WROTE, &written(draft.text, draft.pictures)))
+        .map(|signer| sign(signer, WROTE, &content(draft.text, draft.pictures)))
         .transpose()?
         .map(|signed| serde_json::to_vec(&signed).map_err(|_| Refused::Unsigned))
         .transpose()?;
@@ -295,6 +310,7 @@ pub fn seal(
         version: draft.version,
         from: draft.from,
         head: URL_SAFE_NO_PAD.encode(head),
+        commit: URL_SAFE_NO_PAD.encode(key.commitment(&head)),
         parts: plain
             .iter()
             .map(|(kind, bytes)| Part {
@@ -305,33 +321,46 @@ pub fn seal(
     };
     manifest.holds(limits)?;
     let written = serde_json::to_vec(&manifest).map_err(|_| Refused::Damaged)?;
+    let mut bytes = MAGIC.to_vec();
+    bytes.push(VERSION);
+    let written_at = framing(&mut bytes, &written);
     let aad = bound(&written);
     let cipher = key.cipher();
     let last = plain.len() - 1;
-    let parts = plain
-        .iter()
-        .enumerate()
-        .map(|(at, (_, bytes))| {
-            let mut sealed = bytes.to_vec();
-            cipher
-                .encrypt_in_place(
-                    &nonced(&head, at as u32, at == last).into(),
-                    &aad,
-                    &mut sealed,
-                )
-                .map(|()| sealed)
-                .map_err(|_| Refused::Locked)
-        })
-        .collect::<Result<Vec<_>, _>>()?;
+    let mut parts = Vec::with_capacity(plain.len());
+    for (at, (_, said)) in plain.iter().enumerate() {
+        let mut sealed = Zeroizing::new(said.to_vec());
+        cipher
+            .encrypt_in_place(
+                &nonced(&head, at as u32, at == last).into(),
+                &aad,
+                &mut *sealed,
+            )
+            .map_err(|_| Refused::Locked)?;
+        let start = bytes.len();
+        bytes.extend_from_slice(&sealed);
+        parts.push(start..bytes.len());
+    }
     let mut envelope = Envelope {
         manifest,
-        written,
+        bytes,
+        written: written_at,
         parts,
         sent: None,
     };
-    envelope.sent = by
+    let sent = by
         .map(|signer| sign(signer, SENT, &envelope.answered()))
         .transpose()?;
+    // Written here, where a failure can still say so, rather than dropped later on the way out.
+    let trailer = match &sent {
+        Some(sent) => serde_json::to_vec(sent).map_err(|_| Refused::Unsigned)?,
+        None => Vec::new(),
+    };
+    if trailer.len() > SIGNATURE_AT_MOST {
+        return Err(Refused::Unsigned);
+    }
+    framing(&mut envelope.bytes, &trailer);
+    envelope.sent = sent;
     Ok(envelope)
 }
 
@@ -359,12 +388,15 @@ fn sign(signer: &Signer, about: &str, said: &[u8]) -> Result<Signed, Refused> {
 pub fn open(key: &LinkKey, envelope: &Envelope, revoked: &[Revocation]) -> Result<Opened, Refused> {
     let manifest = &envelope.manifest;
     let head = manifest.head().ok_or(Refused::Damaged)?;
-    let aad = bound(&envelope.written);
+    if manifest.commitment() != Some(key.commitment(&head)) {
+        return Err(Refused::Locked);
+    }
+    let aad = bound(envelope.written());
     let cipher = key.cipher();
     let last = envelope.parts.len() - 1;
     let mut plain = Vec::with_capacity(envelope.parts.len());
-    for (at, sealed) in envelope.parts.iter().enumerate() {
-        let mut bytes = Zeroizing::new(sealed.clone());
+    for at in 0..envelope.parts.len() {
+        let mut bytes = Zeroizing::new(envelope.part(at).to_vec());
         cipher
             .decrypt_in_place(
                 &nonced(&head, at as u32, at == last).into(),
@@ -390,7 +422,7 @@ pub fn open(key: &LinkKey, envelope: &Envelope, revoked: &[Revocation]) -> Resul
             .iter()
             .map(|(kind, bytes)| (*kind, bytes.as_slice()))
             .collect();
-        Some(check(&inner, WROTE, &written(&text, &shown), revoked))
+        Some(check(&inner, WROTE, &content(&text, &shown), revoked))
     } else {
         None
     };
@@ -406,6 +438,14 @@ pub fn open(key: &LinkKey, envelope: &Envelope, revoked: &[Revocation]) -> Resul
 impl Envelope {
     pub fn manifest(&self) -> &Manifest {
         &self.manifest
+    }
+
+    fn written(&self) -> &[u8] {
+        &self.bytes[self.written.clone()]
+    }
+
+    fn part(&self, at: usize) -> &[u8] {
+        &self.bytes[self.parts[at].clone()]
     }
 
     /// Who sent these sealed bytes, checked without the key: what the server can say about an upload.
@@ -430,76 +470,88 @@ impl Envelope {
         let mut over = Sha256::new();
         over.update(SEALED);
         over.update((self.written.len() as u64).to_be_bytes());
-        over.update(&self.written);
-        for part in &self.parts {
+        over.update(self.written());
+        for at in 0..self.parts.len() {
+            let part = self.part(at);
             over.update((part.len() as u64).to_be_bytes());
             over.update(part);
         }
         over.finalize().into()
     }
 
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.bytes
+    }
+
     pub fn to_bytes(&self) -> Vec<u8> {
-        let sent = self
-            .sent
-            .as_ref()
-            .and_then(|sent| serde_json::to_vec(sent).ok())
-            .unwrap_or_default();
-        let mut out = MAGIC.to_vec();
-        out.push(VERSION);
-        out.extend_from_slice(&(self.written.len() as u32).to_be_bytes());
-        out.extend_from_slice(&self.written);
-        self.parts
-            .iter()
-            .for_each(|part| out.extend_from_slice(part));
-        out.extend_from_slice(&(sent.len() as u32).to_be_bytes());
-        out.extend_from_slice(&sent);
-        out
+        self.bytes.clone()
     }
 
     /// Reads and holds every limit without the key, so a server can refuse before it stores anything.
-    pub fn read(bytes: &[u8], limits: &Limits) -> Result<Self, Refused> {
-        let rest = bytes.strip_prefix(MAGIC).ok_or(Refused::Foreign)?;
-        let (&version, rest) = rest.split_first().ok_or(Refused::Damaged)?;
-        match version {
+    pub fn read(bytes: Vec<u8>, limits: &Limits) -> Result<Self, Refused> {
+        if !bytes.starts_with(MAGIC) {
+            return Err(Refused::Foreign);
+        }
+        let mut at = MAGIC.len();
+        match bytes.get(at).copied().ok_or(Refused::Damaged)? {
             VERSION => {}
             newer if newer > VERSION => return Err(Refused::Newer),
             _ => return Err(Refused::Damaged),
         }
-        let (written, mut rest) = framed(rest, MANIFEST_AT_MOST)?;
-        let manifest: Manifest = serde_json::from_slice(written).map_err(|_| Refused::Damaged)?;
+        at += 1;
+        let written = framed(&bytes, &mut at, MANIFEST_AT_MOST)?;
+        let manifest: Manifest =
+            serde_json::from_slice(&bytes[written.clone()]).map_err(|_| Refused::Damaged)?;
         manifest.holds(limits)?;
         let mut parts = Vec::with_capacity(manifest.parts.len());
         for part in &manifest.parts {
-            let size = usize::try_from(part.size).map_err(|_| Refused::Damaged)?;
-            let (sealed, after) = rest.split_at_checked(size).ok_or(Refused::Damaged)?;
-            parts.push(sealed.to_vec());
-            rest = after;
+            let end = usize::try_from(part.size)
+                .ok()
+                .and_then(|size| at.checked_add(size))
+                .filter(|end| *end <= bytes.len())
+                .ok_or(Refused::Damaged)?;
+            parts.push(at..end);
+            at = end;
         }
-        let (sent, rest) = framed(rest, SIGNATURE_AT_MOST)?;
-        if !rest.is_empty() {
+        let trailer = framed(&bytes, &mut at, SIGNATURE_AT_MOST)?;
+        if at != bytes.len() {
             return Err(Refused::Damaged);
         }
-        let sent = match sent {
+        let sent = match &bytes[trailer] {
             [] => None,
             said => Some(serde_json::from_slice(said).map_err(|_| Refused::Damaged)?),
         };
         Ok(Self {
             manifest,
-            written: written.to_vec(),
+            bytes,
+            written,
             parts,
             sent,
         })
     }
 }
 
-/// A length, then that many bytes, never more than `most`.
-fn framed(bytes: &[u8], most: usize) -> Result<(&[u8], &[u8]), Refused> {
-    let (len, rest) = bytes.split_first_chunk::<4>().ok_or(Refused::Damaged)?;
+/// A length, then that many bytes, never more than `most`; `at` moves past them.
+fn framed(bytes: &[u8], at: &mut usize, most: usize) -> Result<Range<usize>, Refused> {
+    let len = bytes
+        .get(*at..)
+        .and_then(<[u8]>::first_chunk::<4>)
+        .ok_or(Refused::Damaged)?;
     let len = u32::from_be_bytes(*len) as usize;
-    if len > most {
+    let start = *at + 4;
+    if len > most || bytes.len() - start < len {
         return Err(Refused::Damaged);
     }
-    rest.split_at_checked(len).ok_or(Refused::Damaged)
+    *at = start + len;
+    Ok(start..start + len)
+}
+
+#[cfg(feature = "mint")]
+fn framing(bytes: &mut Vec<u8>, said: &[u8]) -> Range<usize> {
+    bytes.extend_from_slice(&(said.len() as u32).to_be_bytes());
+    let start = bytes.len();
+    bytes.extend_from_slice(said);
+    start..bytes.len()
 }
 
 /// Every part is bound to this very manifest, so none can be moved to another or have its size or kind changed.
@@ -510,7 +562,7 @@ fn bound(written: &[u8]) -> Vec<u8> {
 }
 
 /// The words and every picture, each with its kind and length, as the inner signature reads them.
-fn written(text: &str, pictures: &[(Kind, &[u8])]) -> Vec<u8> {
+fn content(text: &str, pictures: &[(Kind, &[u8])]) -> Vec<u8> {
     let mut over = Sha256::new();
     over.update(WRITTEN);
     over.update((text.len() as u64).to_be_bytes());
@@ -521,6 +573,10 @@ fn written(text: &str, pictures: &[(Kind, &[u8])]) -> Vec<u8> {
         over.update(bytes);
     }
     over.finalize().to_vec()
+}
+
+fn decoded<const N: usize>(said: &str) -> Option<[u8; N]> {
+    <[u8; N]>::try_from(URL_SAFE_NO_PAD.decode(said).ok()?.as_slice()).ok()
 }
 
 #[cfg(all(test, feature = "mint"))]

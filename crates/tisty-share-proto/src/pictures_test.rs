@@ -188,3 +188,45 @@ fn a_server_that_takes_neither_png_nor_jpeg_gets_nothing_written() {
         Some(Refused::KindRefused)
     );
 }
+
+#[test]
+fn a_screenshot_with_an_alpha_channel_nothing_shows_through_may_still_become_a_jpeg() {
+    // A smooth scene with a little grain: heavy as a PNG, light as a JPEG, like a photo saved from a browser.
+    let opaque = DynamicImage::ImageRgba8(ImageBuffer::from_fn(1600, 1200, |x, y| {
+        let mut grain = x.wrapping_mul(7_919) ^ y.wrapping_mul(104_729);
+        grain ^= grain << 13;
+        grain ^= grain >> 17;
+        let shade = |base: u32| ((base + (grain & 0x0f)) % 256) as u8;
+        Rgba([shade(x / 7), shade(y / 5), shade((x + y) / 11), u8::MAX])
+    }));
+    let heavy = written(&opaque, ImageFormat::Png);
+    assert!(heavy.len() > PICTURE_AT_MOST);
+
+    let (kind, bytes) = ours(&heavy).unwrap();
+    assert_eq!(kind, Kind::Jpeg);
+    assert_eq!(read(&bytes).width(), 1600, "it fits without losing a pixel");
+}
+
+#[test]
+fn what_showed_through_lands_on_white_when_only_jpeg_is_taken() {
+    let logo = DynamicImage::ImageRgba8(ImageBuffer::from_fn(16, 16, |x, _| {
+        if x < 8 {
+            Rgba([0, 0, 0, 0])
+        } else {
+            Rgba([200, 10, 10, u8::MAX])
+        }
+    }));
+    let photos_only = Limits {
+        kinds: vec![Kind::Jpeg],
+        ..Limits::default()
+    };
+    let (kind, bytes) = recompressed(&written(&logo, ImageFormat::Png), &photos_only).unwrap();
+    let back = read(&bytes).to_rgb8();
+
+    assert_eq!(kind, Kind::Jpeg);
+    let Rgb([r, g, b]) = *back.get_pixel(2, 8);
+    assert!(
+        r > 240 && g > 240 && b > 240,
+        "the see-through half is white, not black"
+    );
+}

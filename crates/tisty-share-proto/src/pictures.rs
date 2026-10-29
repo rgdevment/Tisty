@@ -4,7 +4,7 @@ use image::codecs::jpeg::JpegEncoder;
 use image::codecs::png::{CompressionType, FilterType, PngEncoder};
 use image::imageops::FilterType as Resize;
 use image::metadata::Orientation;
-use image::{DynamicImage, ImageDecoder, ImageFormat, ImageReader};
+use image::{DynamicImage, ImageDecoder, ImageFormat, ImageReader, Rgb, RgbImage};
 
 use crate::envelope::{Kind, Refused};
 use crate::limits::Limits;
@@ -58,13 +58,15 @@ fn decoded(bytes: &[u8], kind: Kind) -> Result<DynamicImage, Refused> {
     Ok(plain(picture))
 }
 
-/// Eight bits a channel is all a page shows, and half the bytes of sixteen.
+/// Eight bits a channel is all a page shows; an alpha channel nothing shows through is dropped, so the picture may fit as a JPEG.
 fn plain(picture: DynamicImage) -> DynamicImage {
     if picture.color().has_alpha() {
-        DynamicImage::ImageRgba8(picture.to_rgba8())
-    } else {
-        DynamicImage::ImageRgb8(picture.to_rgb8())
+        let rgba = picture.to_rgba8();
+        if rgba.pixels().any(|one| one[3] < u8::MAX) {
+            return DynamicImage::ImageRgba8(rgba);
+        }
     }
+    DynamicImage::ImageRgb8(picture.to_rgb8())
 }
 
 fn fitted(picture: DynamicImage, side: u32) -> DynamicImage {
@@ -113,10 +115,26 @@ fn as_png(picture: &DynamicImage) -> Result<Vec<u8>, Refused> {
 
 fn as_jpeg(picture: &DynamicImage) -> Result<Vec<u8>, Refused> {
     let mut out = Vec::new();
-    DynamicImage::ImageRgb8(picture.to_rgb8())
+    DynamicImage::ImageRgb8(on_white(picture))
         .write_with_encoder(JpegEncoder::new_with_quality(&mut out, QUALITY))
         .map_err(|_| Refused::NotAPicture)?;
     Ok(out)
+}
+
+/// The sheet under a picture is white, so what showed through lands on white, not on the color the hidden pixels kept.
+fn on_white(picture: &DynamicImage) -> RgbImage {
+    if !picture.color().has_alpha() {
+        return picture.to_rgb8();
+    }
+    let rgba = picture.to_rgba8();
+    RgbImage::from_fn(rgba.width(), rgba.height(), |x, y| {
+        let [r, g, b, a] = rgba.get_pixel(x, y).0;
+        let over = |c: u8| {
+            let (c, a) = (u16::from(c), u16::from(a));
+            ((c * a + 255 * (255 - a) + 127) / 255) as u8
+        };
+        Rgb([over(r), over(g), over(b)])
+    })
 }
 
 #[cfg(test)]

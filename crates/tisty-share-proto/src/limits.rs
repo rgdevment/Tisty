@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::envelope::Kind;
 
@@ -13,7 +13,8 @@ pub struct Limits {
     pub pictures: u64,
     /// Bytes all the pictures of a version may weigh together.
     pub all_pictures: u64,
-    /// The kinds of picture taken, in the order Tisty prefers to write them.
+    /// The kinds of picture taken.
+    #[serde(deserialize_with = "known")]
     pub kinds: Vec<Kind>,
 }
 
@@ -34,4 +35,21 @@ impl Limits {
     pub fn takes(&self, kind: Kind) -> bool {
         kind.is_picture() && self.kinds.contains(&kind)
     }
+}
+
+/// A kind only a later Tisty knows is passed over, so a server that takes more never stops an older one sharing.
+fn known<'de, D: Deserializer<'de>>(said: D) -> Result<Vec<Kind>, D::Error> {
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum Named {
+        Known(Kind),
+        Other(serde::de::IgnoredAny),
+    }
+    Ok(Vec::<Named>::deserialize(said)?
+        .into_iter()
+        .filter_map(|one| match one {
+            Named::Known(kind) => Some(kind),
+            Named::Other(_) => None,
+        })
+        .collect())
 }

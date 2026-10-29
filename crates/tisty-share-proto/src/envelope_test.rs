@@ -13,7 +13,7 @@ fn sealed(key: &LinkKey, draft: &Draft, by: Option<&Signer>) -> Result<Envelope,
 }
 
 fn read(bytes: &[u8]) -> Result<Envelope, Refused> {
-    Envelope::read(bytes, &Limits::default())
+    Envelope::read(bytes.to_vec(), &Limits::default())
 }
 
 fn key(n: u8) -> LinkKey {
@@ -139,8 +139,7 @@ fn another_key_never_opens_it() {
 
 /// Where the sealed parts lie in the bytes: past the manifest, before the outer signature.
 fn sealed_span(envelope: &Envelope) -> std::ops::Range<usize> {
-    let start = 4 + 1 + 4 + envelope.written.len();
-    start..start + envelope.parts.iter().map(Vec::len).sum::<usize>()
+    envelope.written.end..envelope.parts.last().unwrap().end
 }
 
 fn replaced(bytes: &[u8], from: &[u8], to: &[u8]) -> Vec<u8> {
@@ -295,6 +294,7 @@ fn a_manifest_over_the_limits_is_refused_by_the_server_before_anything_is_kept()
         version: 1,
         from: None,
         head: URL_SAFE_NO_PAD.encode([0u8; HEAD]),
+        commit: URL_SAFE_NO_PAD.encode([0u8; 32]),
         parts: std::iter::once(Part {
             kind: Kind::Text,
             size: 20,
@@ -410,7 +410,7 @@ fn the_link_key_travels_as_text_and_back() {
 fn two_seals_of_the_same_words_never_look_alike() {
     let one = sealed(&key(9), &draft("hola", &[]), None).unwrap();
     let two = sealed(&key(9), &draft("hola", &[]), None).unwrap();
-    assert_ne!(one.parts, two.parts);
+    assert_ne!(one.to_bytes(), two.to_bytes());
     assert_ne!(one.manifest.head, two.manifest.head);
 }
 
@@ -454,7 +454,7 @@ fn a_server_with_its_own_limits_holds_them_both_ways() {
         .unwrap()
         .to_bytes();
     assert_eq!(
-        Envelope::read(&bytes, &tight).err(),
+        Envelope::read(bytes.clone(), &tight).err(),
         Some(Refused::PictureTooBig)
     );
 }
@@ -471,7 +471,7 @@ fn a_server_that_raised_its_limits_takes_more() {
         .to_bytes();
 
     assert_eq!(read(&bytes).err(), Some(Refused::TextTooBig));
-    let arrived = Envelope::read(&bytes, &roomy).unwrap();
+    let arrived = Envelope::read(bytes.clone(), &roomy).unwrap();
     assert_eq!(open(&key(9), &arrived, &[]).unwrap().text.len(), long.len());
 }
 
@@ -505,4 +505,99 @@ fn a_server_says_its_limits_as_json_and_tisty_reads_them_back() {
     assert!(said.contains("\"kinds\":[\"png\",\"jpeg\",\"webp\",\"gif\"]"));
     let back: Limits = serde_json::from_str(&said).unwrap();
     assert_eq!(back, Limits::default());
+}
+
+#[test]
+fn an_envelope_says_which_key_it_was_sealed_for_and_no_other_key_opens_it() {
+    let sealed = sealed(&key(9), &draft("hola", &[]), None).unwrap();
+    let head = sealed.manifest().head().unwrap();
+    assert_eq!(
+        sealed.manifest().commitment(),
+        Some(key(9).commitment(&head))
+    );
+    assert_ne!(key(9).commitment(&head), key(8).commitment(&head));
+
+    // A tag that held under another key would still meet the commitment first.
+    let mut claimed = sealed.clone();
+    claimed.manifest.commit = URL_SAFE_NO_PAD.encode(key(8).commitment(&head));
+    assert_eq!(open(&key(9), &claimed, &[]).err(), Some(Refused::Locked));
+    assert_eq!(open(&key(8), &claimed, &[]).err(), Some(Refused::Locked));
+}
+
+#[test]
+fn a_manifest_without_its_commitment_is_damaged() {
+    let bytes = sealed(&key(9), &draft("hola", &[]), None)
+        .unwrap()
+        .to_bytes();
+    let at = bytes
+        .windows(9)
+        .position(|one| one == b"\"commit\":")
+        .unwrap();
+    let mut forged = bytes.clone();
+    // The value's first character becomes a quote, so the commitment is empty and the length stays the same.
+    forged[at + 9..at + 11].copy_from_slice(b"\"\"");
+    let end = forged[at + 11..]
+        .iter()
+        .position(|one| *one == b'"')
+        .unwrap()
+        + at
+        + 11;
+    forged[at + 11..=end].fill(b' ');
+
+    assert_eq!(read(&forged).err(), Some(Refused::Damaged));
+}
+
+#[test]
+fn sizes_near_the_largest_number_never_overflow_a_server_with_no_limits() {
+    let unlimited = Limits {
+        text: u64::MAX,
+        picture: u64::MAX,
+        pictures: u64::MAX,
+        all_pictures: u64::MAX - 1,
+        ..Limits::default()
+    };
+    let manifest = Manifest {
+        v: SAID,
+        id: "k7Qm2xPa".into(),
+        version: 1,
+        from: None,
+        head: URL_SAFE_NO_PAD.encode([0u8; HEAD]),
+        commit: URL_SAFE_NO_PAD.encode([0u8; 32]),
+        parts: vec![
+            Part {
+                kind: Kind::Text,
+                size: 20,
+            },
+            Part {
+                kind: Kind::Png,
+                size: u64::MAX,
+            },
+            Part {
+                kind: Kind::Png,
+                size: u64::MAX,
+            },
+        ],
+    };
+    assert_eq!(manifest.holds(&unlimited), Err(Refused::PicturesTooBig));
+}
+
+#[test]
+fn a_kind_only_a_later_tisty_knows_is_passed_over_in_a_server_s_limits() {
+    let said = r#"{"text":1,"picture":2,"pictures":3,"all_pictures":4,"kinds":["avif","png",{"odd":1},"jpeg"]}"#;
+    let read: Limits = serde_json::from_str(said).unwrap();
+    assert_eq!(read.kinds, vec![Kind::Png, Kind::Jpeg]);
+    assert_eq!(
+        (read.text, read.picture, read.pictures, read.all_pictures),
+        (1, 2, 3, 4)
+    );
+}
+
+#[test]
+fn reading_keeps_the_bytes_it_was_given_and_hands_them_back_whole() {
+    let bytes = sealed(&key(9), &draft("hola", &[]), Some(&machine(1).signer()))
+        .unwrap()
+        .to_bytes();
+    let arrived = read(&bytes).unwrap();
+    assert_eq!(arrived.as_bytes(), bytes.as_slice());
+    assert!(arrived.sender(&[]).is_some());
 }

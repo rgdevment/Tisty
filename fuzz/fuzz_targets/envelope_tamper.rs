@@ -55,7 +55,7 @@ fuzz_target!(|input: Input| {
     let mut bytes = sealed.to_bytes();
     let opened = envelope::open(
         &key,
-        &Envelope::read(&bytes, &Limits::default()).unwrap(),
+        &Envelope::read(bytes.clone(), &Limits::default()).unwrap(),
         &[],
     )
     .unwrap();
@@ -69,7 +69,7 @@ fuzz_target!(|input: Input| {
         bytes[at] ^= input.flip.max(1);
     }
     // A change has to show somewhere: it is refused, it does not open, or its sender no longer holds.
-    let Ok(read) = Envelope::read(&bytes, &Limits::default()) else {
+    let Ok(read) = Envelope::read(bytes, &Limits::default()) else {
         return;
     };
     let unopened = envelope::open(&key, &read, &[]).is_err();
