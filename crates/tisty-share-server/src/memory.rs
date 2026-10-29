@@ -65,16 +65,16 @@ impl Store for Memory {
         Ok(())
     }
 
-    async fn ending(&self, now: i64) -> Result<Vec<String>, Fault> {
-        let mut ids: Vec<String> = self
+    async fn ending(&self, now: i64, at_most: usize) -> Result<Vec<String>, Fault> {
+        let mut ended: Vec<(i64, String)> = self
             .docs
             .borrow()
             .values()
             .filter(|doc| doc.ends < now)
-            .map(|doc| doc.id.clone())
+            .map(|doc| (doc.ends, doc.id.clone()))
             .collect();
-        ids.sort();
-        Ok(ids)
+        ended.sort();
+        Ok(ended.into_iter().take(at_most).map(|(_, id)| id).collect())
     }
 
     async fn count(&self, key: &str, by: u64, until: i64, now: i64) -> Result<u64, Fault> {

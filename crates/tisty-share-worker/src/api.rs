@@ -113,11 +113,26 @@ struct Links<'a> {
 
 /// Refuses a body too large to be any envelope, so a host need not read it to know.
 pub fn too_large(limits: &Limits, length: u64) -> Option<Answer> {
-    let ceiling = limits
+    (length > ceiling(limits)).then(oversized)
+}
+
+/// The most a body may weigh: the largest envelope these limits let through.
+pub fn ceiling(limits: &Limits) -> u64 {
+    limits
         .text
         .saturating_add(limits.all_pictures)
-        .saturating_add(ENVELOPE_OVERHEAD);
-    (length > ceiling).then(|| finished(said(413, json!({ "refused": "too_large" }))))
+        .saturating_add(ENVELOPE_OVERHEAD)
+}
+
+pub fn oversized() -> Answer {
+    finished(said(413, json!({ "refused": "too_large" })))
+}
+
+/// What a host answers when it cannot even reach a step, said as every other answer is.
+pub fn broken(why: String) -> Answer {
+    let mut answer = finished(said(500, json!({ "refused": "unready" })));
+    answer.fault = Some(why);
+    answer
 }
 
 pub async fn answer<S: Store, R: Randomness>(share: &mut Share<S, R>, asked: Asked) -> Answer {

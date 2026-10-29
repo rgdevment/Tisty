@@ -18,9 +18,9 @@ migrations_dir = "migrations"
 binding = "ENVELOPES"
 bucket_name = "tisty-share-envelopes"
 
-# Once a day: what ran out already reads as gone, so the sweep only frees room.
+# Every ten minutes, so sweeps of a few documents each keep up with what runs out.
 [triggers]
-crons = ["17 3 * * *"]
+crons = ["*/10 * * * *"]
 
 [observability]
 enabled = true

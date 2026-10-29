@@ -1,7 +1,5 @@
 use std::cell::Cell;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
-use std::pin::pin;
-use std::task::{Context, Poll, Waker};
 
 use jiff::Timestamp;
 use tisty_share_proto::envelope::{self, Draft, Kind, LinkKey, Signer};
@@ -12,27 +10,7 @@ use super::*;
 use crate::memory::Memory;
 use crate::moderation::{Category, Complaint, DETAIL_AT_MOST};
 use crate::store::Doc;
-
-/// The memory store never waits, so one poll finishes any of the server's work.
-pub(crate) fn done<T>(work: impl Future<Output = T>) -> T {
-    match pin!(work).poll(&mut Context::from_waker(Waker::noop())) {
-        Poll::Ready(said) => said,
-        Poll::Pending => panic!("the memory store never waits"),
-    }
-}
-
-/// Counts up, so every id and token in a test is different and the same run after run.
-pub(crate) struct Counting(pub u8);
-
-impl Randomness for Counting {
-    fn fill(&mut self, into: &mut [u8]) -> bool {
-        for one in into {
-            self.0 = self.0.wrapping_add(1) % 248;
-            *one = self.0;
-        }
-        true
-    }
-}
+use crate::testing::{Counting, done};
 
 struct Empty;
 
@@ -491,6 +469,37 @@ fn deleting_takes_the_document_and_every_envelope_away() {
 
     assert_eq!(world.read(&reserved.id, T0), Err(Refused::Missing));
     assert_eq!(world.share.store.envelopes(), 0);
+}
+
+#[test]
+fn a_sweep_takes_only_so_many_and_the_next_takes_the_rest() {
+    let mut world = World::with(Policy {
+        sweep: 2,
+        ..policy()
+    });
+    for _ in 0..3 {
+        world.shared(T0);
+    }
+    let later = T0 + 31 * DAY;
+    assert_eq!(done(world.share.sweep(later)), Ok(2));
+    assert_eq!(done(world.share.sweep(later)), Ok(1));
+    assert_eq!(done(world.share.sweep(later)), Ok(0));
+}
+
+#[test]
+fn a_gate_keeps_how_slow_it_was_made_and_opens_after_the_server_grows_slower() {
+    let mut world = World::new();
+    let reserved = world.shared(T0);
+    world
+        .manage(&reserved, Manage::Password(Some("perro azul".into())), T0)
+        .unwrap();
+    world.share.policy.slowness = Slowness { log_n: 5, r: 8 };
+
+    assert!(
+        world
+            .read_from(&reserved.id, Some("perro azul"), HERE, T0)
+            .is_ok()
+    );
 }
 
 #[test]
@@ -979,8 +988,8 @@ impl Store for Racing {
     async fn drop_envelope(&self, id: &str, kept: &Kept) -> Result<(), Fault> {
         self.inner.drop_envelope(id, kept).await
     }
-    async fn ending(&self, now: i64) -> Result<Vec<String>, Fault> {
-        self.inner.ending(now).await
+    async fn ending(&self, now: i64, at_most: usize) -> Result<Vec<String>, Fault> {
+        self.inner.ending(now, at_most).await
     }
     async fn count(&self, key: &str, by: u64, until: i64, now: i64) -> Result<u64, Fault> {
         self.inner.count(key, by, until, now).await

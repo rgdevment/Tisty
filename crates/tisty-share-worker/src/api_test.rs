@@ -1,6 +1,4 @@
 use std::net::{IpAddr, Ipv4Addr};
-use std::pin::pin;
-use std::task::{Context, Poll, Waker};
 
 use serde_json::Value;
 use tisty_share_proto::envelope::{self, Draft, Envelope, LinkKey};
@@ -9,30 +7,12 @@ use tisty_share_server::guard::{Allowance, Work};
 use tisty_share_server::keys::Slowness;
 use tisty_share_server::memory::Memory;
 use tisty_share_server::share::Policy;
+use tisty_share_server::testing::{Counting, done};
 
 use super::*;
 
 const T0: i64 = 1_800_000_000;
 const HERE: IpAddr = IpAddr::V4(Ipv4Addr::new(192, 0, 2, 1));
-
-fn done<T>(work: impl Future<Output = T>) -> T {
-    match pin!(work).poll(&mut Context::from_waker(Waker::noop())) {
-        Poll::Ready(said) => said,
-        Poll::Pending => panic!("the memory store never waits"),
-    }
-}
-
-struct Counting(u8);
-
-impl Randomness for Counting {
-    fn fill(&mut self, into: &mut [u8]) -> bool {
-        for one in into {
-            self.0 = self.0.wrapping_add(1) % 248;
-            *one = self.0;
-        }
-        true
-    }
-}
 
 /// Little work and a quick password, so the tests run quickly.
 fn policy() -> Policy {
@@ -374,6 +354,16 @@ fn three_places_reporting_block_the_document_and_its_owner_appeals_once() {
         said(&world.appeal(&shared)),
         json!({ "refused": "reported" })
     );
+}
+
+#[test]
+fn a_host_that_cannot_reach_a_step_still_answers_as_every_answer_does() {
+    let broken = broken("SHARE_SECRET is missing".into());
+    assert_eq!(broken.status, 500);
+    assert_eq!(said(&broken), json!({ "refused": "unready" }));
+    assert_eq!(broken.fault.as_deref(), Some("SHARE_SECRET is missing"));
+    assert_eq!(header(&broken, "Cache-Control"), Some("no-store"));
+    assert_eq!(header(&broken, "X-Robots-Tag"), Some("noindex, nofollow"));
 }
 
 #[test]

@@ -2,11 +2,9 @@
 
 use std::net::IpAddr;
 
-use base64::Engine;
-use base64::engine::general_purpose::URL_SAFE_NO_PAD;
-use serde::Deserialize;
+use futures_util::StreamExt;
 use serde::de::DeserializeOwned;
-use tisty_share_server::keys::Randomness;
+use tisty_share_server::keys::{Randomness, Slowness};
 use tisty_share_server::moderation::Report;
 use tisty_share_server::share::{Policy, Share};
 use tisty_share_server::store::{Doc, Fault, Kept, Saved, Store};
@@ -17,6 +15,7 @@ use worker::{
     ScheduleContext, ScheduledEvent, event,
 };
 
+use crate::kept::{self, Body, Id, Until, Value};
 use crate::{api, sql};
 
 struct Cloud {
@@ -35,19 +34,6 @@ fn number(value: i64) -> JsValue {
 
 fn bound(statement: D1PreparedStatement, values: &[JsValue]) -> Result<D1PreparedStatement, Fault> {
     statement.bind(values).map_err(fault)
-}
-
-fn envelope_key(id: &str, kept: &Kept) -> String {
-    format!(
-        "{id}/{}.{}",
-        kept.version,
-        URL_SAFE_NO_PAD.encode(kept.digest)
-    )
-}
-
-#[derive(Deserialize)]
-struct Body {
-    body: String,
 }
 
 fn parsed<T: DeserializeOwned>(text: &str) -> Result<T, Fault> {
@@ -78,16 +64,16 @@ impl Cloud {
         done.results().map_err(fault)
     }
 
+    /// How many rows a statement wrote; D1 not saying is a fault, never a race lost.
     async fn changes(&self, query: &str, values: &[JsValue]) -> Result<usize, Fault> {
         let done = bound(self.db.prepare(query), values)?
             .run()
             .await
             .map_err(fault)?;
-        Ok(done
-            .meta()
+        done.meta()
             .map_err(fault)?
             .and_then(|meta| meta.changes)
-            .unwrap_or(0))
+            .ok_or_else(|| Fault("D1 did not say what it changed".into()))
     }
 }
 
@@ -119,11 +105,11 @@ impl Store for Cloud {
     }
 
     async fn forget(&self, id: &str) -> Result<(), Fault> {
-        self.changes(sql::FORGET, &[id.into()]).await?;
+        // The envelopes go first: a row left behind is swept again, an envelope without one never is.
         let listed = self
             .envelopes
             .list()
-            .prefix(format!("{id}/"))
+            .prefix(kept::envelopes_of(id))
             .execute()
             .await
             .map_err(fault)?;
@@ -131,13 +117,14 @@ impl Store for Cloud {
         if !keys.is_empty() {
             self.envelopes.delete_multiple(keys).await.map_err(fault)?;
         }
+        self.changes(sql::FORGET, &[id.into()]).await?;
         Ok(())
     }
 
     async fn envelope(&self, id: &str, kept: &Kept) -> Result<Option<Vec<u8>>, Fault> {
         let Some(object) = self
             .envelopes
-            .get(envelope_key(id, kept))
+            .get(kept::envelope_key(id, kept))
             .execute()
             .await
             .map_err(fault)?
@@ -152,7 +139,7 @@ impl Store for Cloud {
 
     async fn keep(&self, id: &str, kept: &Kept, bytes: &[u8]) -> Result<(), Fault> {
         self.envelopes
-            .put(envelope_key(id, kept), bytes.to_vec())
+            .put(kept::envelope_key(id, kept), bytes.to_vec())
             .execute()
             .await
             .map_err(fault)?;
@@ -161,25 +148,18 @@ impl Store for Cloud {
 
     async fn drop_envelope(&self, id: &str, kept: &Kept) -> Result<(), Fault> {
         self.envelopes
-            .delete(envelope_key(id, kept))
+            .delete(kept::envelope_key(id, kept))
             .await
             .map_err(fault)
     }
 
-    async fn ending(&self, now: i64) -> Result<Vec<String>, Fault> {
-        #[derive(Deserialize)]
-        struct Id {
-            id: String,
-        }
-        let ids: Vec<Id> = self.all(sql::ENDING, &[number(now)]).await?;
+    async fn ending(&self, now: i64, at_most: usize) -> Result<Vec<String>, Fault> {
+        let values = [number(now), number(at_most as i64)];
+        let ids: Vec<Id> = self.all(sql::ENDING, &values).await?;
         Ok(ids.into_iter().map(|one| one.id).collect())
     }
 
     async fn count(&self, key: &str, by: u64, until: i64, now: i64) -> Result<u64, Fault> {
-        #[derive(Deserialize)]
-        struct Value {
-            value: u64,
-        }
         let values = [key.into(), number(by as i64), number(until), number(now)];
         let counted: Option<Value> = self.first(sql::COUNT, &values).await?;
         counted
@@ -194,10 +174,6 @@ impl Store for Cloud {
     }
 
     async fn held(&self, key: &str, now: i64) -> Result<Option<i64>, Fault> {
-        #[derive(Deserialize)]
-        struct Until {
-            until: i64,
-        }
         let held: Option<Until> = self.first(sql::HELD, &[key.into(), number(now)]).await?;
         Ok(held.map(|held| held.until))
     }
@@ -242,30 +218,69 @@ fn drawn(into: &mut [u8]) -> Result<(), JsValue> {
     Ok(())
 }
 
-/// The server's secret, kept among the Worker's secrets as 64 hexadecimal digits.
-fn secret(env: &Env) -> worker::Result<[u8; 32]> {
-    let said = env.secret("SHARE_SECRET")?.to_string();
-    let mut secret = [0u8; 32];
-    if said.len() != 64 {
-        return Err("SHARE_SECRET is not 32 bytes in hexadecimal".into());
-    }
-    for (at, byte) in secret.iter_mut().enumerate() {
-        *byte = u8::from_str_radix(&said[at * 2..at * 2 + 2], 16)
-            .map_err(|_| worker::Error::from("SHARE_SECRET is not hexadecimal"))?;
-    }
-    Ok(secret)
-}
-
 fn share(env: &Env) -> worker::Result<Share<Cloud, Crypto>> {
     let cloud = Cloud {
         db: env.d1("DB")?,
         envelopes: env.bucket("ENVELOPES")?,
     };
-    Ok(Share::new(cloud, Crypto, Policy::default(), secret(env)?))
+    let secret = kept::secret_from_hex(&env.secret("SHARE_SECRET")?.to_string())
+        .ok_or_else(|| worker::Error::from("SHARE_SECRET is not 64 hexadecimal digits"))?;
+    let policy = Policy {
+        // Measured in V8: log_n 12 takes about 7 ms, too close to the free plan's 10 ms of CPU a request.
+        slowness: Slowness { log_n: 11, r: 8 },
+        ..Policy::default()
+    };
+    Ok(Share::new(cloud, Crypto, policy, secret))
 }
 
 fn now() -> i64 {
     (Date::now().as_millis() / 1000) as i64
+}
+
+/// The body, read only as far as `ceiling`, so one sent without its length cannot fill the Worker's memory.
+async fn body_within(request: &mut Request, ceiling: u64) -> worker::Result<Option<Vec<u8>>> {
+    if request.inner().body().is_none() {
+        return Ok(Some(Vec::new()));
+    }
+    let mut stream = request.stream()?;
+    let mut body = Vec::new();
+    while let Some(chunk) = stream.next().await {
+        body.extend_from_slice(&chunk?);
+        if body.len() as u64 > ceiling {
+            return Ok(None);
+        }
+    }
+    Ok(Some(body))
+}
+
+async fn served(mut request: Request, env: &Env) -> worker::Result<api::Answer> {
+    let mut share = share(env)?;
+    let headers = request.headers();
+    // Cloudflare sets it on every request and a caller cannot, so the allowances rest on it.
+    let caller: IpAddr = headers
+        .get("CF-Connecting-IP")?
+        .and_then(|ip| ip.parse().ok())
+        .ok_or_else(|| worker::Error::from("the request came without its address"))?;
+    let token = headers
+        .get("Authorization")?
+        .and_then(|said| said.strip_prefix("Bearer ").map(str::to_owned));
+    let password = headers.get("Tisty-Password")?;
+    let work = headers.get("Tisty-Work")?;
+    let ceiling = api::ceiling(&share.policy.limits);
+    let Some(body) = body_within(&mut request, ceiling).await? else {
+        return Ok(api::oversized());
+    };
+    let asked = api::Asked {
+        method: request.method().to_string(),
+        path: request.path(),
+        token,
+        password,
+        work,
+        body,
+        caller,
+        now: now(),
+    };
+    Ok(api::answer(&mut share, asked).await)
 }
 
 fn answered(answer: api::Answer) -> worker::Result<Response> {
@@ -282,36 +297,11 @@ fn answered(answer: api::Answer) -> worker::Result<Response> {
 }
 
 #[event(fetch)]
-async fn fetch(mut request: Request, env: Env, _: Context) -> worker::Result<Response> {
-    let mut share = share(&env)?;
-    let headers = request.headers();
-    let length = headers
-        .get("Content-Length")?
-        .and_then(|length| length.parse().ok());
-    if let Some(refused) = length.and_then(|length| api::too_large(&share.policy.limits, length)) {
-        return answered(refused);
-    }
-    // Cloudflare sets it on every request and a caller cannot, so the allowances rest on it.
-    let caller: IpAddr = headers
-        .get("CF-Connecting-IP")?
-        .and_then(|ip| ip.parse().ok())
-        .ok_or_else(|| worker::Error::from("the request came without its address"))?;
-    let token = headers
-        .get("Authorization")?
-        .and_then(|said| said.strip_prefix("Bearer ").map(str::to_owned));
-    let password = headers.get("Tisty-Password")?;
-    let work = headers.get("Tisty-Work")?;
-    let asked = api::Asked {
-        method: request.method().to_string(),
-        path: request.path(),
-        token,
-        password,
-        work,
-        body: request.bytes().await?,
-        caller,
-        now: now(),
-    };
-    answered(api::answer(&mut share, asked).await)
+async fn fetch(request: Request, env: Env, _: Context) -> worker::Result<Response> {
+    let answer = served(request, &env)
+        .await
+        .unwrap_or_else(|why| api::broken(why.to_string()));
+    answered(answer)
 }
 
 #[event(scheduled)]

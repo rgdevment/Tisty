@@ -12,7 +12,7 @@ pub const UPDATE_DOC: &str =
 
 pub const FORGET: &str = "DELETE FROM docs WHERE id = ?1";
 
-pub const ENDING: &str = "SELECT id FROM docs WHERE ends < ?1 ORDER BY id";
+pub const ENDING: &str = "SELECT id FROM docs WHERE ends < ?1 ORDER BY ends, id LIMIT ?2";
 
 /// One statement, so requests arriving together each see their own count.
 pub const COUNT: &str = "INSERT INTO counters (key, value, until) VALUES (?1, ?2, ?3) \

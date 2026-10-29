@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::keys::Slowness;
 use crate::moderation::Report;
 
 /// What the server knows about one shared document, without a word of what it says.
@@ -47,6 +48,8 @@ pub struct Kept {
 pub struct Gate {
     pub salt: [u8; 16],
     pub digest: [u8; 32],
+    /// Kept with the digest, so a server that grows slower still opens the gates it made before.
+    pub slowness: Slowness,
     pub missed: u32,
     pub locked_until: Option<i64>,
 }
@@ -73,8 +76,8 @@ pub trait Store {
     async fn envelope(&self, id: &str, kept: &Kept) -> Result<Option<Vec<u8>>, Fault>;
     async fn keep(&self, id: &str, kept: &Kept, bytes: &[u8]) -> Result<(), Fault>;
     async fn drop_envelope(&self, id: &str, kept: &Kept) -> Result<(), Fault>;
-    /// The ids of every document whose `ends` has passed.
-    async fn ending(&self, now: i64) -> Result<Vec<String>, Fault>;
+    /// At most `at_most` ids of documents whose `ends` has passed, those that ended first first.
+    async fn ending(&self, now: i64, at_most: usize) -> Result<Vec<String>, Fault>;
     /// Atomically adds `by` to a counter that lapses at `until` and says what it holds now, or requests together slip past.
     async fn count(&self, key: &str, by: u64, until: i64, now: i64) -> Result<u64, Fault>;
     /// Marks `key` until a moment, as a wait a caller must sit out.

@@ -35,6 +35,8 @@ pub struct Policy {
     pub work: Work,
     /// Reports from this many places block a document (decision 36).
     pub reports_to_block: usize,
+    /// Documents one sweep takes at most, so a run stays inside what its host allows one run to do.
+    pub sweep: usize,
     /// Seconds a report and a blocked document are kept as evidence (decision 42).
     pub evidence: i64,
 }
@@ -54,6 +56,7 @@ impl Default for Policy {
             allowance: Allowance::default(),
             work: Work::default(),
             reports_to_block: 3,
+            sweep: 15,
             evidence: 90 * DAY,
         }
     }
@@ -449,11 +452,12 @@ impl<S: Store, R: Randomness> Share<S, R> {
 
     /// Everything whose time ran out goes, links, envelopes, counters and reports alike; a Worker runs this on a schedule.
     pub async fn sweep(&self, now: i64) -> Result<usize, Refused> {
-        let ending = self.store.ending(now).await?;
+        // Lapsing first, so evidence past its days goes even when forgetting stops partway.
+        self.store.lapse(now).await?;
+        let ending = self.store.ending(now, self.policy.sweep).await?;
         for id in &ending {
             self.store.forget(id).await?;
         }
-        self.store.lapse(now).await?;
         Ok(ending.len())
     }
 
@@ -530,7 +534,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
         let Some(password) = password else {
             return Err(Refused::PasswordAsked);
         };
-        if keys::opens(gate, password, self.policy.slowness) {
+        if keys::opens(gate, password) {
             let cleared = gate.missed > 0 || gate.locked_until.is_some();
             gate.missed = 0;
             gate.locked_until = None;

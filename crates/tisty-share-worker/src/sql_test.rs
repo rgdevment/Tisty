@@ -44,7 +44,7 @@ fn a_document_is_saved_first_once_and_after_only_on_its_revision() {
     let ending = |now: i64| -> Vec<String> {
         let mut asked = db.prepare(ENDING).unwrap();
         asked
-            .query_map(params![now], |row| row.get(0))
+            .query_map(params![now, 10], |row| row.get(0))
             .unwrap()
             .map(Result::unwrap)
             .collect()

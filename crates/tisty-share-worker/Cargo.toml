@@ -21,9 +21,11 @@ tisty-share-proto.workspace = true
 tisty-share-server.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
+futures-util = { version = "0.3", default-features = false }
 worker = { version = "0.8", features = ["d1"] }
 
 [dev-dependencies]
 rusqlite.workspace = true
 # Envelopes are sealed in the tests as a Tisty would seal them.
 tisty-share-proto = { workspace = true, features = ["mint"] }
+tisty-share-server = { workspace = true, features = ["testing"] }

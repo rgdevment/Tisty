@@ -9,6 +9,10 @@ publish.workspace = true
 [lints]
 workspace = true
 
+[features]
+# The helpers its own tests use, for the tests of whoever hosts it.
+testing = []
+
 [dependencies]
 base64.workspace = true
 hmac.workspace = true
