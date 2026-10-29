@@ -142,7 +142,10 @@ pub enum Manage {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Swept {
     pub gone: usize,
-    pub stuck: Vec<String>,
+    /// Those that would not go, with why; each waits a day before it is tried again.
+    pub stuck: Vec<(String, Fault)>,
+    /// Why counters, marks and reports past their time could not go, if they could not.
+    pub unlapsed: Option<Fault>,
 }
 
 /// What an owner sees of a document on its card in Tisty.
@@ -385,6 +388,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
         now: i64,
     ) -> Result<Served, Refused> {
         let doc = self.live(id, now).await?;
+        open_to_read(&doc)?;
         let hash = keys::hashed(token);
         if hash != doc.edit && hash != doc.admin {
             return Err(Refused::Forbidden);
@@ -459,14 +463,32 @@ impl<S: Store, R: Randomness> Share<S, R> {
 
     /// Everything whose time ran out goes, links, envelopes, counters and reports alike; a Worker runs this on a schedule.
     pub async fn sweep(&self, now: i64) -> Result<Swept, Refused> {
-        // Lapsing first, so evidence past its days goes even when forgetting stops partway.
-        self.store.lapse(now).await?;
         let mut swept = Swept::default();
-        for id in self.store.ending(now, self.policy.sweep).await? {
-            // One that cannot go is told and passed over, so it never holds back the rest.
+        // Lapsing first, so evidence past its days goes even when forgetting stops, and its failure stops nothing.
+        if let Err(fault) = self.store.lapse(now).await {
+            swept.unlapsed = Some(fault);
+        }
+        // Twice as many are asked for, so documents that would not go lately never take every place.
+        let ending = self
+            .store
+            .ending(now, self.policy.sweep.saturating_mul(2))
+            .await?;
+        let mut tried = 0;
+        for id in ending {
+            if tried == self.policy.sweep {
+                break;
+            }
+            let stuck = format!("stuck:{id}");
+            if self.store.held(&stuck, now).await?.is_some() {
+                continue;
+            }
+            tried += 1;
             match self.store.forget(&id).await {
                 Ok(()) => swept.gone += 1,
-                Err(_) => swept.stuck.push(id),
+                Err(fault) => {
+                    self.store.hold(&stuck, now + DAY).await?;
+                    swept.stuck.push((id, fault));
+                }
             }
         }
         Ok(swept)
@@ -519,7 +541,8 @@ impl<S: Store, R: Randomness> Share<S, R> {
         match self.store.doc(id).await? {
             None => Err(Refused::Missing),
             Some(doc) if doc.ends < now => {
-                self.store.forget(id).await?;
+                // Gone whether or not it can be let go of now; a sweep tries again and tells why.
+                let _ = self.store.forget(id).await;
                 Err(Refused::Gone)
             }
             Some(doc) => Ok(doc),

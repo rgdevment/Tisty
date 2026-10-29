@@ -355,15 +355,15 @@ async fn scheduled(_: ScheduledEvent, env: Env, _: ScheduleContext) {
             .map_err(|refused| refused.to_string()),
         Err(error) => Err(error.to_string()),
     };
-    match swept {
-        Ok(swept) if swept.stuck.is_empty() => {
-            worker::console_log!("the sweep took {} documents", swept.gone);
-        }
-        Ok(swept) => worker::console_error!(
-            "the sweep took {} documents and could not take {:?}",
-            swept.gone,
-            swept.stuck
-        ),
-        Err(why) => worker::console_error!("the sweep failed: {why}"),
+    let swept = match swept {
+        Ok(swept) => swept,
+        Err(why) => return worker::console_error!("the sweep failed: {why}"),
+    };
+    worker::console_log!("the sweep took {} documents", swept.gone);
+    for (id, fault) in &swept.stuck {
+        worker::console_error!("the sweep could not take {id}: {fault}");
+    }
+    if let Some(fault) = &swept.unlapsed {
+        worker::console_error!("the sweep could not let old counters go: {fault}");
     }
 }

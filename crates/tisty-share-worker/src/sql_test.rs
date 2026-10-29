@@ -72,6 +72,19 @@ fn a_mark_is_made_once_while_it_holds_and_again_once_it_lapsed() {
 }
 
 #[test]
+fn a_lapse_lets_go_of_a_few_thousand_at_a_time() {
+    let db = started();
+    for n in 0..5_001 {
+        db.execute(HOLD, params![format!("seen:{n}"), 10]).unwrap();
+    }
+    db.execute(LAPSE[1], params![11]).unwrap();
+    let left: i64 = db
+        .query_row("SELECT count(*) FROM holds", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(left, 1);
+}
+
+#[test]
 fn holds_and_reports_last_until_their_moment_and_then_lapse() {
     let db = started();
     db.execute(HOLD, params!["wait:x", 100]).unwrap();

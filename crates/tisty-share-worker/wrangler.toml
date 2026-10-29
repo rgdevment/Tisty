@@ -29,9 +29,9 @@ name = "POLLS"
 namespace_id = "1002"
 simple = { limit = 60, period = 60 }
 
-# Every ten minutes, so sweeps of a few documents each keep up with what runs out.
+# Every minute, so sweeps of a few documents each keep up with what runs out.
 [triggers]
-crons = ["*/10 * * * *"]
+crons = ["* * * * *"]
 
 [observability]
 enabled = true

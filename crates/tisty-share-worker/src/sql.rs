@@ -34,10 +34,11 @@ pub const FILE: &str = "INSERT INTO reports (id, until, body) VALUES (?1, ?2, ?3
 
 pub const REPORTS: &str = "SELECT body FROM reports WHERE id = ?1 AND until >= ?2 ORDER BY rowid";
 
+/// A few thousand rows of each at a time, so one run stays inside what D1 lets a query take.
 pub const LAPSE: [&str; 3] = [
-    "DELETE FROM counters WHERE until < ?1",
-    "DELETE FROM holds WHERE until < ?1",
-    "DELETE FROM reports WHERE until < ?1",
+    "DELETE FROM counters WHERE rowid IN (SELECT rowid FROM counters WHERE until < ?1 LIMIT 5000)",
+    "DELETE FROM holds WHERE rowid IN (SELECT rowid FROM holds WHERE until < ?1 LIMIT 5000)",
+    "DELETE FROM reports WHERE rowid IN (SELECT rowid FROM reports WHERE until < ?1 LIMIT 5000)",
 ];
 
 #[cfg(test)]

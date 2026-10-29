@@ -6,8 +6,7 @@ use crate::moderation::Report;
 
 /// What the server knows about one shared document, without a word of what it says.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-// A field a later server adds reads as its default, so the documents stored before it still open.
-#[serde(default)]
+// Kept as JSON: a field added later is an Option or takes `#[serde(default)]`, and a row missing one of these is a fault.
 pub struct Doc {
     pub id: String,
     /// The edit link's token, hashed: a stolen table hands nobody the power to write.
@@ -28,6 +27,7 @@ pub struct Doc {
     /// When reports blocked it: no longer served, kept as evidence (decision 36).
     pub blocked: Option<i64>,
     /// Readers counted once a day each, never who they were (decision 47).
+    #[serde(default)]
     pub reads: u64,
     /// Bumped on every save, so two writers never both win.
     pub revision: u64,
@@ -47,8 +47,7 @@ pub struct Kept {
 }
 
 /// The password a reader must say, kept as a slow digest and guarded against guessing.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Gate {
     pub salt: [u8; 16],
     pub digest: [u8; 32],
