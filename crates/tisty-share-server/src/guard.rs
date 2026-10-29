@@ -7,7 +7,7 @@ use sha2::Sha256;
 use tisty_share_proto::work::{self, Challenge, Proof};
 
 use crate::share::{Policy, Refused};
-use crate::store::Store;
+use crate::store::{Fault, Store};
 
 const HOUR: i64 = 60 * 60;
 const DAY: i64 = 24 * HOUR;
@@ -209,17 +209,32 @@ pub async fn admit<S: Store>(
     if let Some(until) = store.held(&format!("wait:{who}"), now).await? {
         return Err(Refused::Slow { until });
     }
-    let hour = now.div_euclid(HOUR);
-    let next_hour = (hour + 1) * HOUR;
-    let key = format!("rate:{}:{}:{hour}", act.name(), today(secret, ip, now));
-    let done = store.count(&key, 1, next_hour, now).await?;
-    if done <= policy.allowance.per_hour(act) {
+    let allowance = policy.allowance.per_hour(act);
+    let Some(until) = store
+        .within(act, &today(secret, ip, now), allowance, now)
+        .await?
+    else {
         return Ok(());
-    }
+    };
     if !act.escalates() {
-        return Err(Refused::Slow { until: next_hour });
+        return Err(Refused::Slow { until });
     }
     Err(overdone(store, policy, &who, now).await?)
+}
+
+/// The store's own count of a step this hour: past `allowance`, the hour's end, when the caller may try again.
+pub async fn counted_within<S: Store + ?Sized>(
+    store: &S,
+    act: Act,
+    who: &str,
+    allowance: u64,
+    now: i64,
+) -> Result<Option<i64>, Fault> {
+    let hour = now.div_euclid(HOUR);
+    let next_hour = (hour + 1) * HOUR;
+    let key = format!("rate:{}:{who}:{hour}", act.name());
+    let done = store.count(&key, 1, next_hour, now).await?;
+    Ok((done > allowance).then_some(next_hour))
 }
 
 /// What a caller stores in a day; a spent day waits for the next, counting nothing refused and growing no wait.

@@ -18,6 +18,17 @@ migrations_dir = "migrations"
 binding = "ENVELOPES"
 bucket_name = "tisty-share-envelopes"
 
+# Reads and polls are counted here, by the minute, so they write nothing to D1; Policy's hourly numbers count the rest.
+[[ratelimits]]
+name = "READS"
+namespace_id = "1001"
+simple = { limit = 20, period = 60 }
+
+[[ratelimits]]
+name = "POLLS"
+namespace_id = "1002"
+simple = { limit = 60, period = 60 }
+
 # Every ten minutes, so sweeps of a few documents each keep up with what runs out.
 [triggers]
 crons = ["*/10 * * * *"]

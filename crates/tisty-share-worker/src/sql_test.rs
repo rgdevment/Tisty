@@ -56,6 +56,22 @@ fn a_document_is_saved_first_once_and_after_only_on_its_revision() {
 }
 
 #[test]
+fn a_mark_is_made_once_while_it_holds_and_again_once_it_lapsed() {
+    let db = started();
+    let mark = |until: i64, now: i64| db.execute(MARK, params!["seen:x", until, now]).unwrap();
+    assert_eq!(mark(100, 10), 1);
+    assert_eq!(mark(100, 50), 0);
+    assert_eq!(mark(100, 100), 0);
+    assert_eq!(mark(300, 101), 1);
+    let until: i64 = db
+        .query_row("SELECT until FROM holds WHERE key = 'seen:x'", [], |row| {
+            row.get(0)
+        })
+        .unwrap();
+    assert_eq!(until, 300);
+}
+
+#[test]
 fn holds_and_reports_last_until_their_moment_and_then_lapse() {
     let db = started();
     db.execute(HOLD, params!["wait:x", 100]).unwrap();

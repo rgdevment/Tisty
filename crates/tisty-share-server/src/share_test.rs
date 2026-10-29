@@ -964,6 +964,8 @@ fn the_owner_appeals_a_block_from_the_management_link_only() {
 struct Racing {
     inner: Memory,
     lose: Cell<bool>,
+    /// Turns reads away until then, as a host's own limiter would.
+    limited: Cell<Option<i64>>,
 }
 
 impl Store for Racing {
@@ -1000,6 +1002,21 @@ impl Store for Racing {
     async fn held(&self, key: &str, now: i64) -> Result<Option<i64>, Fault> {
         self.inner.held(key, now).await
     }
+    async fn mark(&self, key: &str, until: i64, now: i64) -> Result<bool, Fault> {
+        self.inner.mark(key, until, now).await
+    }
+    async fn within(
+        &self,
+        act: guard::Act,
+        who: &str,
+        allowance: u64,
+        now: i64,
+    ) -> Result<Option<i64>, Fault> {
+        match (act, self.limited.get()) {
+            (guard::Act::Read, Some(until)) => Ok(Some(until)),
+            _ => self.inner.within(act, who, allowance, now).await,
+        }
+    }
     async fn file(&self, report: &crate::moderation::Report) -> Result<(), Fault> {
         self.inner.file(report).await
     }
@@ -1015,6 +1032,7 @@ fn racing() -> Share<Racing, Counting> {
     let store = Racing {
         inner: Memory::default(),
         lose: Cell::new(false),
+        limited: Cell::new(None),
     };
     Share::new(store, Counting(0), policy(), [5; 32])
 }
@@ -1093,6 +1111,25 @@ fn a_wrong_password_that_loses_a_race_is_still_wrong_and_still_counted() {
     );
     let doc = done(share.store.doc(&reserved.id)).unwrap().unwrap();
     assert_eq!(doc.gate.unwrap().missed, 1);
+}
+
+#[test]
+fn a_host_s_own_limiter_decides_the_reads_and_its_wait_is_the_one_told() {
+    let mut share = racing();
+    let proof = work::solve(&share.challenge(Ask::Reserve, T0).unwrap()).unwrap();
+    let reserved = done(share.reserve(HERE, &proof, T0)).unwrap();
+    let first = sealed(&reserved.id, 1, None, "uno");
+    upload_racing(&mut share, &reserved, first).unwrap();
+    share.store.limited.set(Some(T0 + 60));
+
+    for _ in 0..3 {
+        assert_eq!(
+            done(share.read(&reserved.id, None, HERE, T0)),
+            Err(Refused::Slow { until: T0 + 60 })
+        );
+    }
+    share.store.limited.set(None);
+    assert!(done(share.read(&reserved.id, None, HERE, T0 + 60)).is_ok());
 }
 
 #[test]

@@ -465,7 +465,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
         guard::admit(&self.store, &self.policy, &self.secret, caller, act, now).await
     }
 
-    /// A proof is spent once: kept until its challenge expires, so a second use finds it.
+    /// A proof is spent once: marked until its challenge expires, so a second use finds it.
     pub(crate) async fn worked(
         &self,
         ask: &Ask<'_>,
@@ -474,13 +474,13 @@ impl<S: Store, R: Randomness> Share<S, R> {
         now: i64,
     ) -> Result<(), Refused> {
         guard::checked(&self.secret, &ask.bound(), proof, needed, now)?;
-        // Counted, not held, so the same proof sent twice at once is still spent once.
+        // Marked in one step, so the same proof sent twice at once is still spent once.
         let spent = format!("spent:{}", proof.challenge.seed);
-        let uses = self
+        if !self
             .store
-            .count(&spent, 1, proof.challenge.expires, now)
-            .await?;
-        if uses > 1 {
+            .mark(&spent, proof.challenge.expires, now)
+            .await?
+        {
             return Err(Refused::WorkRefused);
         }
         Ok(())
@@ -490,11 +490,9 @@ impl<S: Store, R: Randomness> Share<S, R> {
     async fn first_read_today(&self, id: &str, caller: IpAddr, now: i64) -> Result<bool, Refused> {
         let day = now.div_euclid(DAY);
         let who = guard::today(&self.secret, caller, now);
-        let seen = self
-            .store
-            .count(&format!("seen:{id}:{who}"), 1, (day + 1) * DAY, now)
-            .await?;
-        Ok(seen == 1)
+        // A mark, not a count, so a reader coming back the same day writes nothing.
+        let seen = format!("seen:{id}:{who}");
+        Ok(self.store.mark(&seen, (day + 1) * DAY, now).await?)
     }
 
     pub(crate) async fn owned(&self, id: &str, admin: &str, now: i64) -> Result<Doc, Refused> {

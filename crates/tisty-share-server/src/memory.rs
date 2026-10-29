@@ -92,6 +92,15 @@ impl Store for Memory {
         Ok(())
     }
 
+    async fn mark(&self, key: &str, until: i64, now: i64) -> Result<bool, Fault> {
+        let mut holds = self.holds.borrow_mut();
+        if holds.get(key).is_some_and(|held| *held >= now) {
+            return Ok(false);
+        }
+        holds.insert(key.to_owned(), until);
+        Ok(true)
+    }
+
     async fn held(&self, key: &str, now: i64) -> Result<Option<i64>, Fault> {
         Ok(self
             .holds

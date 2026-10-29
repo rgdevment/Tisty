@@ -4,6 +4,7 @@ use std::net::IpAddr;
 
 use futures_util::StreamExt;
 use serde::de::DeserializeOwned;
+use tisty_share_server::guard::{self, Act};
 use tisty_share_server::keys::{Randomness, Slowness};
 use tisty_share_server::moderation::Report;
 use tisty_share_server::share::{Policy, Share};
@@ -11,16 +12,21 @@ use tisty_share_server::store::{Doc, Fault, Kept, Saved, Store};
 use worker::js_sys::{self, Function, Reflect, Uint8Array};
 use worker::wasm_bindgen::{JsCast, JsValue};
 use worker::{
-    Bucket, Context, D1Database, D1PreparedStatement, Date, Env, Headers, Request, Response,
-    ScheduleContext, ScheduledEvent, event,
+    Bucket, Context, D1Database, D1PreparedStatement, Date, Env, Headers, RateLimiter, Request,
+    Response, ScheduleContext, ScheduledEvent, event,
 };
 
 use crate::kept::{self, Body, Id, Until, Value};
 use crate::{api, sql};
 
+/// How long the rate-limiting binding counts, as wrangler.toml sets it.
+const LIMITER_PERIOD: i64 = 60;
+
 struct Cloud {
     db: D1Database,
     envelopes: Bucket,
+    reads: RateLimiter,
+    polls: RateLimiter,
 }
 
 fn fault(error: impl std::fmt::Display) -> Fault {
@@ -173,6 +179,28 @@ impl Store for Cloud {
         Ok(())
     }
 
+    async fn mark(&self, key: &str, until: i64, now: i64) -> Result<bool, Fault> {
+        let values = [key.into(), number(until), number(now)];
+        Ok(self.changes(sql::MARK, &values).await? > 0)
+    }
+
+    /// Reads and polls are the most of what callers do, so the binding counts them and D1 writes nothing.
+    async fn within(
+        &self,
+        act: Act,
+        who: &str,
+        allowance: u64,
+        now: i64,
+    ) -> Result<Option<i64>, Fault> {
+        let limiter = match act {
+            Act::Read => &self.reads,
+            Act::Poll => &self.polls,
+            _ => return guard::counted_within(self, act, who, allowance, now).await,
+        };
+        let outcome = limiter.limit(who.to_owned()).await.map_err(fault)?;
+        Ok((!outcome.success).then_some(now + LIMITER_PERIOD))
+    }
+
     async fn held(&self, key: &str, now: i64) -> Result<Option<i64>, Fault> {
         let held: Option<Until> = self.first(sql::HELD, &[key.into(), number(now)]).await?;
         Ok(held.map(|held| held.until))
@@ -222,6 +250,8 @@ fn share(env: &Env) -> worker::Result<Share<Cloud, Crypto>> {
     let cloud = Cloud {
         db: env.d1("DB")?,
         envelopes: env.bucket("ENVELOPES")?,
+        reads: env.rate_limiter("READS")?,
+        polls: env.rate_limiter("POLLS")?,
     };
     let secret = kept::secret_from_hex(&env.secret("SHARE_SECRET")?.to_string())
         .ok_or_else(|| worker::Error::from("SHARE_SECRET is not 64 hexadecimal digits"))?;

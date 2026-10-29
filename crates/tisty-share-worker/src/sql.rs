@@ -24,6 +24,10 @@ pub const COUNT: &str = "INSERT INTO counters (key, value, until) VALUES (?1, ?2
 pub const HOLD: &str = "INSERT INTO holds (key, until) VALUES (?1, ?2) \
      ON CONFLICT (key) DO UPDATE SET until = excluded.until";
 
+/// Writes only when nothing holds `key` now, so a mark already there costs no write.
+pub const MARK: &str = "INSERT INTO holds (key, until) VALUES (?1, ?2) \
+     ON CONFLICT (key) DO UPDATE SET until = excluded.until WHERE holds.until < ?3";
+
 pub const HELD: &str = "SELECT until FROM holds WHERE key = ?1 AND until >= ?2";
 
 pub const FILE: &str = "INSERT INTO reports (id, until, body) VALUES (?1, ?2, ?3)";

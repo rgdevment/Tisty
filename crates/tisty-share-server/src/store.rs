@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::guard::{self, Act};
 use crate::keys::Slowness;
 use crate::moderation::Report;
 
@@ -82,6 +83,18 @@ pub trait Store {
     async fn count(&self, key: &str, by: u64, until: i64, now: i64) -> Result<u64, Fault>;
     /// Marks `key` until a moment, as a wait a caller must sit out.
     async fn hold(&self, key: &str, until: i64) -> Result<(), Fault>;
+    /// Marks `key` until a moment if nothing holds it now, and says whether it did; a mark already there writes nothing.
+    async fn mark(&self, key: &str, until: i64, now: i64) -> Result<bool, Fault>;
+    /// Counts one more `act` by `who`: None within `allowance` an hour, else when to try again; a cheaper limiter may answer instead.
+    async fn within(
+        &self,
+        act: Act,
+        who: &str,
+        allowance: u64,
+        now: i64,
+    ) -> Result<Option<i64>, Fault> {
+        guard::counted_within(self, act, who, allowance, now).await
+    }
     async fn held(&self, key: &str, now: i64) -> Result<Option<i64>, Fault>;
     async fn file(&self, report: &Report) -> Result<(), Fault>;
     async fn reports(&self, id: &str, now: i64) -> Result<Vec<Report>, Fault>;
