@@ -60,6 +60,7 @@ flowchart TB
   core["tisty-core<br/>model, log, state, docs, attachments"]
   md["tisty-markdown<br/>the Tisty language"]
   proto["tisty-share-proto<br/>keys and seals"]
+  server["tisty-share-server<br/>Tisty Share's server, on any store"]
   react -- "invoke and events" --> gui
   react -- "read and studio doors" --> studio
   react -- "page door" --> reader
@@ -77,13 +78,15 @@ flowchart TB
   nl --> core
   core --> md
   core --> proto
+  server --> proto
 ```
 
 | Crate | What it does | Start at |
 |---|---|---|
 | `tisty-core` | The model and everything that touches the person's data: events, the log, replay, the read cache, documents, task pages, attachments, backup, signing | `event.rs`, `store.rs`, `state.rs` |
 | `tisty-markdown` | The Tisty language: reading by blocks, drawing to HTML, the translator at the edges | `lib.rs`, `fixtures/markdown.json` |
-| `tisty-share-proto` | The seed behind the 24-word phrase, the keys that come from it, certificates, the sealing of an encrypted cloud, the envelope that hands its key to another machine, and the envelope a shared document travels in: a manifest in the clear for the server that commits to the key in the link, each part sealed with that key, and optional signatures. Its limits (text, pictures, the kinds taken) are a server's `Limits`, Tisty's own unless it says otherwise. Behind `pictures`, Tisty recompresses a picture to them before it is sealed | `lib.rs`, `envelope.rs`, `limits.rs` |
+| `tisty-share-proto` | The 24-word phrase and its keys, certificates, the encrypted cloud's seal, and the envelope a shared document travels in | `lib.rs`, `envelope.rs` |
+| `tisty-share-server` | Tisty Share's server on any store, with no HTTP and no `tisty-core` | `share.rs` |
 | `tisty-nl` | Turns a typed sentence into a task with dates, priority, tags, list and repeat | `parse` |
 | `tisty-sync` | One sync round over a folder, the word a place leaves in `tisty.toml`, and the `Trouble` a round refuses with | `carry_through`, `shape.rs` |
 | `tisty-carrier` | The `Carrier` contract and its two carriers, `Folder` and `Cloud`; the `Remote` contract a provider speaks; sealing a cloud; the plain `knock/` box a machine asks for the cloud's key through; tokens | `lib.rs`, `cloud.rs`, `remote.rs` |
@@ -91,8 +94,8 @@ flowchart TB
 | `tisty-cli` | The `tisty` binary: the MCP server and nothing else | `mcp.rs`, `mcp/catalogue.rs` |
 | `tisty-gui` | Tauri commands (`answers/`), the `Session`, tray, reminders, updater, wiring assistants | `lib.rs`, `session.rs` |
 | `app/src` | The React UI; `core.ts` holds the typed `invoke` wrappers | `App.tsx` |
-| `packages/tisty-diagrams` | The diagram studio: Mermaid read and written back, laid out, drawn as SVG, and edited by hand on a React Flow canvas. A private package, never published, that needs nothing of the app: the app hands it its words' language, Mermaid's drawing and the clipboard, and enters only by `tisty-diagrams/read` and `tisty-diagrams/studio`. The app's toolchain builds, tests and lints it | `read.ts`, `DiagramStudio.tsx` |
-| `packages/tisty-reader` | The page reader: wraps the HTML `tisty-markdown` draws in a page with its CSS and tokens, in the light or dark its host asks for, colours its code, draws its diagrams and lays its sheets. The same body for the window, Tisty Share and the phone. A private package that needs nothing of the app or Tauri; clicks, attachments, widgets and the window's theme stay in the app, which enters only by `tisty-reader/page` | `page.ts`, `shell.ts` |
+| `packages/tisty-diagrams` | The diagram studio. A private package; the app enters by `tisty-diagrams/read` and `tisty-diagrams/studio` | `read.ts`, `DiagramStudio.tsx` |
+| `packages/tisty-reader` | The page reader: a document's body, the same in the window, Tisty Share and the phone. A private package; the app enters by `tisty-reader/page` | `page.ts` |
 
 `scripts/rules.sh` keeps each package and the app apart. Only `tisty-carrier`
 depends on `tisty-sync`. Only the window and the provider crates hold network

@@ -8,6 +8,7 @@ pub mod phrase;
 #[cfg(feature = "pictures")]
 pub mod pictures;
 pub mod seed;
+pub mod work;
 
 pub use ed25519_dalek::VerifyingKey;
 
