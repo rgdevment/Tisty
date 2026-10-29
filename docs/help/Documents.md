@@ -86,7 +86,7 @@ Tasks have to be typed: there is no importer for another program's task list.
 
 Tisty does not need to own a file to show it. Pick Tisty under **Open with** for a `.md` or `.markdown` file — it never takes over as the default program — or follow a `tisty://open?path=…` link, and the file opens **read only** in a window of its own, without coming into your store.
 
-- **Contents and page** (`Ctrl`/`⌘` + `\`) opens a column with the file's headings, what the file is, and the width of the page: how wide it reads, and the paper of its PDF.
+- **Contents and page** (`Ctrl`/`⌘` + `\`) opens a column with the file's headings, what the file is, and the width of the page: how wide it reads, and the paper of its PDF. **Sheets**, beside the paper, shows it on sheets, **Portrait** or **Landscape**, and its PDF comes out that way; the file does not change.
 - **Reading** and **Markdown** switch between the drawn page and its text.
 - **More** has **Find in the text**, larger and smaller text, **Copy as Markdown** (standard Markdown, as from a document), **Preview** of the PDF it would make — **← Back to the document** returns from it — **Export to PDF…**, **Export as HTML…**, **Export as Word…**, **Import without opening** and **Show in folder**.
 - **Edit in Tisty** brings it in as a document and opens it; the original stays where it was.

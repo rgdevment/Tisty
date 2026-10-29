@@ -86,7 +86,7 @@ Las tareas hay que escribirlas: no hay importador para la lista de tareas de otr
 
 Tisty no necesita quedarse con un archivo para mostrarlo. Elige Tisty en **Abrir con** para un archivo `.md` o `.markdown` (nunca se pone como programa predeterminado) o sigue un enlace `tisty://open?path=…`, y el archivo se abre en **solo lectura** en una ventana propia, sin entrar a tu almacén.
 
-- **Índice y página** (`Ctrl`/`⌘` + `\`) abre una columna con los títulos del archivo, qué es el archivo y el ancho de la página: cuánto mide para leer y el papel de su PDF.
+- **Índice y página** (`Ctrl`/`⌘` + `\`) abre una columna con los títulos del archivo, qué es el archivo y el ancho de la página: cuánto mide para leer y el papel de su PDF. **Hojas**, junto al papel, lo muestra en hojas, en **Vertical** u **Horizontal**, y su PDF sale así; el archivo no cambia.
 - **Lectura** y **Markdown** cambian entre la página dibujada y su texto.
 - **Más** tiene **Buscar en el texto**, texto más grande y más pequeño, **Copiar como Markdown** (Markdown estándar, igual que desde un documento), **Vista previa** del PDF que saldría (**← Volver al documento** regresa de ella), **Exportar a PDF…**, **Exportar como HTML…**, **Exportar como Word…**, **Importar sin abrir** y **Mostrar en la carpeta**.
 - **Editar en Tisty** lo trae como documento y lo abre; el original se queda donde estaba.
