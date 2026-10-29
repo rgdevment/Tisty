@@ -27,7 +27,7 @@ Una página se archiva sola con el botón derecho, y no deja su documento: se qu
 
 ## Salto de página
 
-Cada documento elige su papel (**A4**, **Carta** u **Oficio**, de 216 × 330 mm) en **Papel**, en su panel; un documento que ya pedía **Tabloide** lo conserva. Enciende **Hojas** ahí para leerlo en esas hojas, en **Vertical** u **Horizontal**: una hoja que se llena pasa sola a la siguiente, en pantalla igual que en papel. Las hojas vienen apagadas hasta que las enciendes, y lo que eliges viaja con el archivo en sus [propiedades](https://markdown.tisty.app/es/propiedades).
+Cada documento elige su papel (**A4**, **Carta** u **Oficio**, de 216 × 330 mm) en **Papel**, en su panel; un documento que ya pedía **Tabloide** lo conserva. Enciende **Hojas** ahí para leerlo en esas hojas, en **Vertical** u **Horizontal**: una hoja que se llena pasa sola a la siguiente, en pantalla igual que en papel. Las hojas vienen apagadas hasta que las enciendes, y lo que eliges viaja con el archivo en sus [propiedades](https://markdown.tisty.app/es/propiedades). En una ventana de solo lectura, **Hojas** cambia solo cómo lo ves y su PDF: el archivo queda como estaba.
 
 Una raya sola en su línea (`---`) corta siempre la hoja, con hojas o sin ellas, y `Ctrl`/`⌘` + `Enter` la escribe mientras escribes. Con hojas encendidas, se marca como **Salto de página**. Cómo se escribe, y qué entra como uno desde LaTeX, Word o una página web, está en la [guía de Markdown](https://markdown.tisty.app/es/saltos-de-pagina).
 
