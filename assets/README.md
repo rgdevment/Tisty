@@ -25,8 +25,8 @@ sizes. `originals/` keeps the four SVGs exactly as the designer delivered them.
 | File | Size | Where it goes |
 | --- | --- | --- |
 | `tisty-light.svg` | vector | The mark, everywhere it is shown |
-| `tisty-mac.svg` | vector | The macOS 13–15 app icon: the mark on the tile the Dock expects |
-| `Tisty.icon` | layers | The macOS 26 app icon, in light, dark and tinted; open it in Icon Composer |
+| `tisty-mac.svg` | vector | The macOS 13–15 app icon: the mark on a dark warm tile |
+| `Tisty.icon` | layers | The macOS 26 app icon, the same dark tile in every appearance; open it in Icon Composer |
 | `tisty-menubar.svg` | vector | The tray and the menu bar, in one ink |
 | `originals/` | vector | The light, dark, macOS and menu-bar SVGs as delivered |
 | `tisty-512.png` | 512×512 | Press, release pages, the MCP registry |
@@ -36,12 +36,16 @@ sizes. `originals/` keeps the four SVGs exactly as the designer delivered them.
 
 The application's `.ico` (16 to 256, with the 20 and 40 Windows draws at 125 %
 and 250 %), its PNGs and the MSIX logos wear the light drawing; the `.icns`
-wears the macOS tile. On a Mac with Xcode 26 the script also compiles
-`Tisty.icon` into `Assets.car`, which macOS 26 prefers to the `.icns`.
+wears the macOS tile, dark in light and dark mode alike, since the Dock gives
+no surface behind an icon and a white tile lost the white sheets on it. On a
+Mac with Xcode 26 the script also compiles `Tisty.icon` into `Assets.car`,
+which macOS 26 prefers to the `.icns`.
 
 `app/src-tauri/icons/msix/` holds what the MSIX packs, at every target size
-Windows asks for. There are no scale-qualified logos, since `makepri` would
-split them into resource packs that a single MSIX never loads.
+Windows asks for, `lightunplated` included: without it a light taskbar plates
+the logo on the manifest's `BackgroundColor`, which is transparent so no other
+surface plates it either. There are no scale-qualified logos, since `makepri`
+would split them into resource packs that a single MSIX never loads.
 
 The tray and the menu bar take the one-ink glyph instead. macOS tints its
 template like every other menu-bar icon; Windows gets it in white for a dark
