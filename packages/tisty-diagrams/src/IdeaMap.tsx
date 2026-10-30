@@ -114,14 +114,14 @@ export default function IdeaMap({
       return;
     }
     if (!(e.target as Element).closest("[data-idea]")) return;
-    const acts: Record<string, () => void> = {
-      Enter: () => added(withSibling(mind, chosen, fresh)),
-      Tab: () => added(withChild(mind, chosen, fresh)),
-      Delete: () => onChange(without(mind, chosen)),
-      Backspace: () => onChange(without(mind, chosen)),
-      F2: () => renameOld(chosen),
-    };
-    const act = acts[e.key];
+    const acts = new Map<string, () => void>([
+      ["Enter", () => added(withSibling(mind, chosen, fresh))],
+      ["Tab", () => added(withChild(mind, chosen, fresh))],
+      ["Delete", () => onChange(without(mind, chosen))],
+      ["Backspace", () => onChange(without(mind, chosen))],
+      ["F2", () => renameOld(chosen)],
+    ]);
+    const act = acts.get(e.key);
     if (!act) return;
     e.preventDefault();
     act();

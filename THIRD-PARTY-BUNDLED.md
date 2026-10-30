@@ -21,7 +21,7 @@ written once with the crates that carry it.
 | `@chevrotain/regexp-to-ast` | 13.2.0 | Apache-2.0 |
 | `@chevrotain/types` | 13.2.0 | Apache-2.0 |
 | `@chevrotain/utils` | 13.2.0 | Apache-2.0 |
-| `@codemirror/autocomplete` | 6.20.3 | MIT |
+| `@codemirror/autocomplete` | 6.20.4 | MIT |
 | `@codemirror/commands` | 6.11.1 | MIT |
 | `@codemirror/lang-css` | 6.3.1 | MIT |
 | `@codemirror/lang-html` | 6.4.12 | MIT |
@@ -31,7 +31,7 @@ written once with the crates that carry it.
 | `@codemirror/lint` | 6.9.7 | MIT |
 | `@codemirror/state` | 6.7.6 | MIT |
 | `@codemirror/streamparser` | 6.0.0 | MIT |
-| `@codemirror/view` | 6.43.14 | MIT |
+| `@codemirror/view` | 6.43.15 | MIT |
 | `@iconify/types` | 2.0.0 | MIT |
 | `@iconify/utils` | 3.1.7 | MIT |
 | `@lezer/common` | 1.5.3 | MIT |
@@ -40,7 +40,7 @@ written once with the crates that carry it.
 | `@lezer/html` | 1.3.13 | MIT |
 | `@lezer/javascript` | 1.5.6 | MIT |
 | `@lezer/lr` | 1.4.11 | MIT |
-| `@lezer/markdown` | 1.8.0 | MIT |
+| `@lezer/markdown` | 1.8.1 | MIT |
 | `@marijn/find-cluster-break` | 1.0.4 | MIT |
 | `@mermaid-js/parser` | 2.0.1 | MIT |
 | `@tauri-apps/api` | 2.12.4 | Apache-2.0 OR MIT |
@@ -138,7 +138,7 @@ written once with the crates that carry it.
 | `iconv-lite` | 0.6.3 | MIT |
 | `import-meta-resolve` | 4.2.0 | MIT |
 | `internmap` | 1.0.1 | ISC |
-| `katex` | 0.18.10 | MIT |
+| `katex` | 0.19.0 | MIT |
 | `khroma` | 2.1.0 | see the package |
 | `layout-base` | 2.0.1 | MIT |
 | `lodash-es` | 4.18.1 | MIT |
@@ -426,7 +426,7 @@ written once with the crates that carry it.
 | `system-configuration-sys` | 0.6.0 | MIT OR Apache-2.0 |
 | `tao` | 0.37.1 | Apache-2.0 |
 | `tar` | 0.4.46 | MIT OR Apache-2.0 |
-| `tauri` | 2.12.4 | Apache-2.0 OR MIT |
+| `tauri` | 2.12.5 | Apache-2.0 OR MIT |
 | `tauri-plugin-clipboard-manager` | 2.5.0 | Apache-2.0 OR MIT |
 | `tauri-plugin-dialog` | 2.8.3 | Apache-2.0 OR MIT |
 | `tauri-plugin-fs` | 2.7.1 | Apache-2.0 OR MIT |
@@ -436,7 +436,7 @@ written once with the crates that carry it.
 | `tauri-plugin-single-instance` | 2.5.4 | Apache-2.0 OR MIT |
 | `tauri-plugin-updater` | 2.14.0 | Apache-2.0 OR MIT |
 | `tauri-runtime` | 2.12.2 | Apache-2.0 OR MIT |
-| `tauri-runtime-wry` | 2.12.2 | Apache-2.0 OR MIT |
+| `tauri-runtime-wry` | 2.12.3 | Apache-2.0 OR MIT |
 | `tauri-utils` | 2.10.2 | Apache-2.0 OR MIT |
 | `tauri-winrt-notification` | 0.8.1 | MIT OR Apache-2.0 |
 | `tempfile` | 3.27.0 | MIT OR Apache-2.0 |
@@ -447,7 +447,7 @@ written once with the crates that carry it.
 | `time-core` | 0.1.9 | MIT OR Apache-2.0 |
 | `tinystr` | 0.8.4 | Unicode-3.0 |
 | `tinyvec` | 1.13.3 | Zlib OR Apache-2.0 OR MIT |
-| `tokio` | 1.53.3 | MIT |
+| `tokio` | 1.54.1 | MIT |
 | `tokio-rustls` | 0.26.6 | MIT OR Apache-2.0 |
 | `tokio-util` | 0.7.20 | MIT |
 | `toml` | 1.1.8+spec-1.1.0 | MIT OR Apache-2.0 |
