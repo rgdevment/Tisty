@@ -60,11 +60,11 @@ impl Unread {
     }
 }
 
-/// Opens what the server sent with the key from the link, under the limits the server publishes.
+/// Opens what the server sent with the key from the link, under the wider of its limits and Tisty's own.
 pub fn shown(envelope: Vec<u8>, key: &str, limits: &str) -> Result<Shown, Unread> {
     let key = LinkKey::from_text(key).ok_or(Unread::Keyless)?;
     let limits: Limits = serde_json::from_str(limits).map_err(|_| Unread::Limitless)?;
-    let envelope = Envelope::read(envelope, &limits).map_err(Unread::Envelope)?;
+    let envelope = Envelope::read(envelope, &roomier(limits)).map_err(Unread::Envelope)?;
     // The web learns of no revocation; a revoked key shows as holding until Tisty is asked.
     let opened = open(&key, &envelope, &[]).map_err(Unread::Envelope)?;
     let html = tisty_markdown::html(&tisty_markdown::read(&opened.text));
@@ -80,6 +80,24 @@ pub fn shown(envelope: Vec<u8>, key: &str, limits: &str) -> Result<Shown, Unread
         about,
         pictures: opened.pictures,
     })
+}
+
+/// A server's limits bound what it takes from now on, so lowering them must not lock out what it took before.
+fn roomier(server: Limits) -> Limits {
+    let own = Limits::default();
+    let mut kinds = own.kinds;
+    for kind in server.kinds {
+        if !kinds.contains(&kind) {
+            kinds.push(kind);
+        }
+    }
+    Limits {
+        text: server.text.max(own.text),
+        picture: server.picture.max(own.picture),
+        pictures: server.pictures.max(own.pictures),
+        all_pictures: server.all_pictures.max(own.all_pictures),
+        kinds,
+    }
 }
 
 fn signed(verdict: Verdict) -> Signed {

@@ -1,8 +1,8 @@
 import "tisty-reader/tokens.css";
 import "./web.css";
-import init, { open } from "../wasm/tisty_share_wasm.js";
+import init, { open, type Page } from "../wasm/tisty_share_wasm.js";
 import wasm from "../wasm/tisty_share_wasm_bg.wasm?url";
-import { drawn, type Opened, titleOf } from "./drawn";
+import { drawn, type Opened, type Picture, plain, titleOf } from "./drawn";
 import { fetched } from "./fetched";
 import { linkOf } from "./link";
 import { spanish, wordsFor } from "./words";
@@ -27,6 +27,24 @@ const tell = (word: string) => {
   frame.hidden = true;
 };
 
+const wordOf = (refused: unknown): string =>
+  refused instanceof Error ? refused.message : "failed";
+
+// The page holds the words and pictures in the clear, so it is let go on every way out.
+const taken = (page: Page): Found => {
+  try {
+    const about = JSON.parse(page.about) as About;
+    const pictures: Picture[] = Array.from({ length: page.pictures }, (_, at) => ({
+      // wasm-bindgen hands each picture over in a buffer of its own, never a shared one.
+      bytes: (page.picture(at) ?? new Uint8Array()) as Uint8Array<ArrayBuffer>,
+      media: page.media(at) ?? "",
+    }));
+    return { html: page.html, pictures, title: plain(about.title ?? "") };
+  } finally {
+    page.free();
+  }
+};
+
 const opened = async (): Promise<Found | string> => {
   const link = linkOf(location.pathname, location.hash);
   if (!link) return "nolink";
@@ -34,17 +52,9 @@ const opened = async (): Promise<Found | string> => {
   const [answer] = await Promise.all([fetched(link.id), init({ module_or_path: wasm })]);
   if ("refused" in answer) return answer.refused;
   try {
-    const page = open(answer.sealed, link.key, answer.limits);
-    const about = JSON.parse(page.about) as About;
-    const pictures = Array.from({ length: page.pictures }, (_, at) => ({
-      bytes: new Uint8Array(page.picture(at) ?? []),
-      media: page.media(at) ?? "",
-    }));
-    const shown = { html: page.html, pictures, title: about.title ?? "" };
-    page.free();
-    return shown;
-  } catch (error_) {
-    return error_ instanceof Error ? error_.message : "failed";
+    return taken(open(answer.sealed, link.key, answer.limits));
+  } catch (refused) {
+    return wordOf(refused);
   }
 };
 
@@ -65,11 +75,12 @@ const shown = async () => {
   }
   night.addEventListener("change", () => {
     themed();
-    void draw();
+    draw().catch(() => tell("failed"));
   });
 };
 
 // Another key pasted over this one is another link, so it is read anew.
 addEventListener("hashchange", () => location.reload());
 
-await shown();
+// A body that would not draw says so, rather than leaving half a sheet without a word.
+await shown().catch(() => tell("failed"));

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { linkedOut, pictured, titleOf, unasked } from "../src/drawn";
+import { linkedOut, pictured, placeOf, plain, titleOf, unasked } from "../src/drawn";
 
 const pageOf = (html: string): Document => {
   const page = document.implementation.createHTMLDocument("");
@@ -72,5 +72,30 @@ describe("the document's title", () => {
 
   it("is empty when the first block is no line of words", () => {
     expect(titleOf(pageOf("<figure class='code'><pre><code>x</code></pre></figure>"))).toBe("");
+  });
+});
+
+describe("a link that stays in the document", () => {
+  const page = pageOf('<h2 id="antes-de-empezar">Antes</h2><p id="fn-1">Nota</p>');
+
+  it("points at the place its # names", () => {
+    expect(placeOf(page, "#antes-de-empezar")?.textContent).toBe("Antes");
+    expect(placeOf(page, "#fn-1")?.textContent).toBe("Nota");
+  });
+
+  it("points nowhere when it names no place, or names it badly", () => {
+    for (const href of ["#", "#nada", "#%E0%A4%A", "otro.md", "tisty:doc/d1", ""])
+      expect(placeOf(page, href), href).toBeNull();
+  });
+});
+
+describe("a title", () => {
+  it("keeps no control or direction marks, as Tisty keeps it", () => {
+    expect(plain("  Gu\u202eía\u0007 de\u2066 Docker  ")).toBe("Guía de Docker");
+  });
+
+  it("is composed and cut at 120 characters", () => {
+    expect(plain("Gui\u0301a")).toBe("Guía");
+    expect([...plain("é".repeat(200))]).toHaveLength(120);
   });
 });

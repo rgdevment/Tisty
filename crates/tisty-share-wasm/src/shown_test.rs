@@ -123,9 +123,31 @@ fn bytes_that_are_no_envelope_are_damaged() {
 }
 
 #[test]
-fn a_server_that_takes_less_refuses_to_open_more() {
-    let small = serde_json::json!({ "text": 8 }).to_string();
-    let refused = shown(sealed(TEXT, &[], None), &key(1).to_text(), &small);
+fn a_server_that_now_takes_less_still_opens_what_it_took() {
+    let shut = serde_json::json!({ "text": 8, "pictures": 0, "kinds": [] }).to_string();
+    let envelope = sealed(TEXT, &[(Kind::Png, &png(40))], None);
+    let page = shown(envelope, &key(1).to_text(), &shut).unwrap();
+    assert_eq!(page.pictures.len(), 1);
+}
+
+#[test]
+fn a_server_that_takes_more_opens_what_only_it_took() {
+    let roomy = Limits {
+        text: 2 * Limits::default().text,
+        ..Limits::default()
+    };
+    let long = "a".repeat(usize::try_from(Limits::default().text).unwrap() + 1);
+    let draft = Draft {
+        id: "k7Qm2xPa",
+        version: 1,
+        from: None,
+        text: &long,
+        pictures: &[],
+    };
+    let envelope = seal(&key(1), &draft, None, &roomy).unwrap().into_bytes();
+    let said = serde_json::to_string(&roomy).unwrap();
+    assert!(shown(envelope.clone(), &key(1).to_text(), &said).is_ok());
+    let refused = shown(envelope, &key(1).to_text(), &limits());
     assert_eq!(refused.err(), Some(Unread::Envelope(Refused::TextTooBig)));
 }
 

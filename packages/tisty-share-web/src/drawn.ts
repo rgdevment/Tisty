@@ -1,4 +1,4 @@
-import { colored, diagrams, saidKinds, shell } from "tisty-reader/page";
+import { colored, diagrams, saidKinds, shell, TITLED } from "tisty-reader/page";
 
 export type Picture = { readonly bytes: Uint8Array<ArrayBuffer>; readonly media: string };
 export type Opened = { readonly html: string; readonly pictures: readonly Picture[] };
@@ -8,9 +8,8 @@ export const PICTURE = "tisty:picture/";
 
 const OUTSIDE = /^(https?:|mailto:)/i;
 
-// The block the page draws as the document's title, as page.css picks it.
-const TITLE =
-  ".page > :is(h1, h2, h3, p):first-child, .page > :is(.front, .fronted):first-child + :is(h1, h2, h3, p)";
+// Control and direction marks, which Tisty keeps out of a title so none can dress one up as another.
+const MARKS = /[\p{Cc}‪-‮⁦-⁩]/gu;
 
 // Set aside before the frame reads the html, so the browser never asks for a picture by its name.
 export const unasked = (html: string): string =>
@@ -39,8 +38,36 @@ export const linkedOut = (page: Document) => {
   }
 };
 
+// Where a link inside the document points, if it points at a place in it.
+export const placeOf = (page: Document, href: string): Element | null => {
+  if (!href.startsWith("#") || href.length < 2) return null;
+  try {
+    return page.getElementById(decodeURIComponent(href.slice(1)));
+  } catch {
+    return null;
+  }
+};
+
+// The frame's links resolve against this page's address, so one that stays in the document is walked by hand.
+const linkedWithin = (frame: HTMLIFrameElement, page: Document) => {
+  page.addEventListener("click", (event) => {
+    const link = (event.target as Element | null)?.closest?.("a[href]");
+    const href = link?.getAttribute("href") ?? "";
+    if (!link || OUTSIDE.test(href)) return;
+    event.preventDefault();
+    const place = placeOf(page, href);
+    if (!place) return;
+    const top = frame.getBoundingClientRect().top + place.getBoundingClientRect().top;
+    window.scrollTo({ top: window.scrollY + top });
+  });
+};
+
+// As Tisty keeps a title: without marks, composed, trimmed and at most 120 characters.
+export const plain = (said: string): string =>
+  [...said.replace(MARKS, "").normalize("NFC").trim()].slice(0, 120).join("");
+
 export const titleOf = (page: Document): string =>
-  page.querySelector(TITLE)?.textContent?.trim() ?? "";
+  plain(page.querySelector(TITLED)?.textContent ?? "");
 
 const grows = (frame: HTMLIFrameElement, page: Document) => {
   const sheet = page.querySelector<HTMLElement>(".page");
@@ -75,6 +102,7 @@ export const drawn = async (
   };
   frame.addEventListener("load", freed, { once: true });
   linkedOut(page);
+  linkedWithin(frame, page);
   saidKinds(page, (kind) => say(`said${kind}`));
   grows(frame, page);
   const live = () => frame.contentDocument === page;
