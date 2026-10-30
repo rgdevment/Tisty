@@ -256,13 +256,9 @@ ${readFileSync(join(app, "scripts", "guide.css"), "utf8")}
 figure.example,figure.widget{${appLight}}
 html.dark figure.example,html.dark figure.widget{${dark}}
 `;
-const marks = Object.fromEntries(
-  ["light", "dark"].map((ink) => {
-    const bytes = readFileSync(join(app, "..", "assets", "icons", `tisty-${ink}.svg`));
-    return [ink, { bytes, name: `tisty-${ink}.${printOf(bytes)}.svg` }];
-  }),
-);
-const look = { style: css, marks: { light: marks.light.name, dark: marks.dark.name } };
+const mark = readFileSync(join(app, "..", "assets", "icons", "tisty-light.svg"));
+const logoName = `tisty-light.${printOf(mark)}.svg`;
+const look = { style: css, logo: logoName };
 for (const language of LANGUAGES) {
   const into = join(out, language.dir);
   mkdirSync(into, { recursive: true });
@@ -285,9 +281,9 @@ await bundled({
   },
 });
 writeFileSync(join(out, "404.html"), missing(look));
-writeFileSync(join(out, "_headers"), headers(look.marks));
+writeFileSync(join(out, "_headers"), headers(logoName));
 writeFileSync(join(out, "sitemap.xml"), mapped(built));
 writeFileSync(join(out, "robots.txt"), robots);
 writeFileSync(join(out, "llms.txt"), llms(built));
-for (const mark of Object.values(marks)) writeFileSync(join(out, mark.name), mark.bytes);
+writeFileSync(join(out, logoName), mark);
 console.log(`the guide is in ${out}`);
