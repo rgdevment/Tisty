@@ -379,6 +379,6 @@ jobs:
             -Dsonar.cpd.exclusions=app/src/locales.ts,packages/tisty-diagrams/src/words.ts,app/src/glyphs.ts,app/src/marks.ts,crates/tisty-core/src/model/icon.rs,crates/tisty-markdown/src/vocab.rs,crates/tisty-core/src/model/mark.rs
             -Dsonar.rust.clippy.enabled=false
             -Dsonar.jasmin.internal.js.ts.disabled=true
-            -Dsonar.coverage.exclusions=app/src/main.tsx,app/src-tauri/src/**,crates/tisty-share-worker/src/cloudflare.rs
+            -Dsonar.coverage.exclusions=app/src/main.tsx,app/src-tauri/src/**,crates/tisty-share-worker/src/cloudflare.rs,crates/tisty-share-worker/*.mjs
             -Dsonar.qualitygate.wait=true
             -Dsonar.qualitygate.timeout=300
