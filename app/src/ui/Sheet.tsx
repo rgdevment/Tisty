@@ -23,6 +23,7 @@ import {
   wrapped,
 } from "tisty-editor/edit";
 import type { Carded, Head, Sheet as SheetSize } from "tisty-editor/read";
+import { charsAt, spanned, stepLine, steppedTitle } from "tisty-editor/read";
 import { copied, copyAttached, type Mend, opened, viewWidget } from "../core";
 import { viewDiagram } from "../drawing";
 import { CATCHES, takesFiles } from "../dropped";
@@ -38,14 +39,13 @@ import { edited } from "./hosting";
 import Menu, { type Choice } from "./Menu";
 import { mended as mendedText } from "./mending";
 import Page from "./Page";
-import { charsAt, spanned, type Went } from "./paging";
+import type { Went } from "./paging";
 import type { PartCarded } from "./partcarding";
 import { closed, laid, parting } from "./parting";
 import type { Chosen, Formatting, Menued } from "./quickly";
 import { filedAs, type Reshape, reshaped } from "./recarding";
 import Skeleton from "./Skeleton";
 import { ASIDE_MARGIN, settles } from "./seeking";
-import { stepLine, steppedTitle } from "./staging";
 import { useTables } from "./tableSheet";
 import { darkNow } from "./theming";
 import { usePictures } from "./usePictures";

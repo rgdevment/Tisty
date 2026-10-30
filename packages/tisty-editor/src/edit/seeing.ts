@@ -219,7 +219,11 @@ const sections = (state: EditorState): [Fence, Fence][] => {
     const text = fenced(state, at);
     if (text === null) continue;
     if (OPENS.test(text))
-      open.push({ at, head: DETAILS.exec(text), called: CALLED.exec(text)?.[1].toLowerCase() as Callout | undefined });
+      open.push({
+        at,
+        head: DETAILS.exec(text),
+        called: CALLED.exec(text)?.[1].toLowerCase() as Callout | undefined,
+      });
     else if (text.trim() === ":::" && open.length) {
       const head = open.pop() as Fence;
       if (head.head || head.called) found.push([head, { at }]);

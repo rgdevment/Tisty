@@ -1,5 +1,5 @@
-import { fill, t } from "../locales";
-import { asking, tablesIn } from "./tabled";
+import { asking, tablesIn } from "./tables";
+import type { Say } from "./words";
 
 // The same option always takes the same hue, on every machine, without a word of it in the file.
 export const hueOf = (said: string, hues: readonly string[]): string => {
@@ -53,6 +53,7 @@ type Seeing = {
   readonly hues: readonly string[];
   /** Whether the table may be written, and so has stars and a switch to press. */
   readonly live: boolean;
+  readonly say: Say;
 };
 
 type Drawing = Omit<Seeing, "locale"> & { readonly said: Saying };
@@ -80,7 +81,7 @@ const drawn = (
   cell: HTMLTableCellElement,
   type: string,
   place: { row: number; column: number },
-  { today, hues, live, said }: Drawing,
+  { today, hues, live, said, say }: Drawing,
 ) => {
   const key = cell.dataset.key;
   const grip = cell.querySelector(":scope > .row-grip");
@@ -99,7 +100,7 @@ const drawn = (
     keep(
       ...[1, 2, 3, 4, 5].map((n) => {
         // A second press on the star already lit empties the cell: no rating, which no total counts.
-        const star = asking(page, "star", fill("tableStars", String(n)), "★", {
+        const star = asking(page, "star", say("tableStars", String(n)), "★", {
           ...place,
           to: n === lit ? 0 : n,
         });
@@ -111,7 +112,7 @@ const drawn = (
   }
   if (live && type === "check" && (key !== undefined || empty)) {
     const on = key === "1";
-    const toggle = asking(page, "toggle", t("tableTypeCheck"), "", { ...place, to: on ? 0 : 1 });
+    const toggle = asking(page, "toggle", say("tableTypeCheck"), "", { ...place, to: on ? 0 : 1 });
     toggle.classList.add("table-switch");
     toggle.setAttribute("role", "switch");
     toggle.setAttribute("aria-checked", String(on));

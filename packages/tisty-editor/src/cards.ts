@@ -1,4 +1,5 @@
 import { markup } from "./glyphs";
+import type { Say } from "./words";
 
 export type Carded =
   | { readonly kind: "doc"; readonly title: string }
@@ -7,21 +8,11 @@ export type Carded =
   | { readonly kind: "self"; readonly title: string }
   | { readonly kind: "gone" };
 
-export type CardWord =
-  | "cardAway"
-  | "cardHere"
-  | "cardGone"
-  | "kindDoc"
-  | "untitledDoc"
-  | "docItself"
-  | "goneDoc"
-  | "leafOfMany";
-
 // The sheet holds no documents: whoever shows it says what each card names and in which language.
 export type Cards = {
   readonly card: (file: string) => Carded;
   readonly blurb?: (file: string) => Promise<string>;
-  readonly say: (word: CardWord, ...filled: string[]) => string;
+  readonly say: Say;
   readonly controls?: (file: string) => Node[];
 };
 

@@ -1,5 +1,18 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { colored, diagrams, HUES, iconed, saidKinds, sourceOf } from "tisty-editor/read";
+import {
+  celled,
+  charsAt,
+  colored,
+  diagrams,
+  HUES,
+  iconed,
+  saidKinds,
+  sideways,
+  sourceOf,
+  spanned,
+  staged,
+  today,
+} from "tisty-editor/read";
 import { type Lent, openLink } from "../core";
 import { askAgain, serve, showing } from "../inUse";
 import { locale, t } from "../locales";
@@ -7,21 +20,11 @@ import { pictured } from "../previews";
 import { plainly } from "../refusal";
 import { type Attaching, attachedAs, lents, pressed } from "./attached";
 import { type Carding, carded } from "./carding";
-import { celled, today } from "./celled";
-import {
-  charsAt,
-  type Shot,
-  shotsOf,
-  spanned,
-  type TableWent,
-  type Went,
-  went,
-  widgetsIn,
-} from "./paging";
+import { type Shot, shotsOf, type TableWent, type Went, went, widgetsIn } from "./paging";
 import { type PartCarded, partCarded } from "./partcarding";
 import { type Chosen, type Formatting, type Menued, quickly } from "./quickly";
-import { sideways } from "./sideways";
-import { offeredAsParts, staged } from "./staging";
+import { SAY } from "./saying";
+import { offeredAsParts } from "./staging";
 import { dragging, tabled } from "./tabled";
 import { webCarded } from "./webcarding";
 import { gripped, widening } from "./widening";
@@ -260,13 +263,13 @@ export const worn = (
   if (reach?.onWiden && !stranger) gripped(page);
   const writable = Boolean(reach?.onTable) && !stranger;
   if (writable) tabled(page);
-  celled(page, { today: today(), locale: locale(), hues: HUES, live: writable });
+  celled(page, { today: today(), locale: locale(), hues: HUES, live: writable, say: SAY });
   const shown = pictures(page, live, {
     stranger,
     apart: Boolean(reach?.onApart),
     more: Boolean(reach?.onMore) && !stranger,
   });
-  const kept = [...shown.held, ...sideways(page)];
+  const kept = [...shown.held, ...sideways(page, SAY)];
   const lent = widgets(page, stranger, reach).concat(shown.lent);
   if (reach && !stranger) {
     carded(page, reach, live);

@@ -1,6 +1,5 @@
 import { docked, FORMATS, formatButtons, PENS } from "tisty-editor/edit";
 import { t } from "../locales";
-import { HOST } from "./hosting";
 import { holds, type Mark } from "./peeled";
 
 /** The bar over a table while one of its cells is written: each press puts a mark on the whole cell or takes it off. */
@@ -24,7 +23,7 @@ export const cellBar = (
     press(open, close);
     lit();
   };
-  const { formats, pens } = formatButtons(page, HOST.say, pressed);
+  const { formats, pens } = formatButtons(page, t, pressed);
   // A link is not a mark a whole cell takes from a button; it is written in the cell's Markdown.
   FORMATS.forEach(([, , open, close], at) => {
     if (open !== "[") shown.push([formats[at], open, close]);

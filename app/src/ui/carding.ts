@@ -1,11 +1,9 @@
-import { type Carded, type CardWord, carded as drawCards } from "tisty-editor/read";
+import { type Carded, carded as drawCards } from "tisty-editor/read";
 import { docRead, type Filed } from "../core";
-import { fill, t } from "../locales";
+import { t } from "../locales";
 import { DOC } from "../markdown";
 import { inTextOrder, pagesOf } from "../paging";
-
-const said = (word: CardWord, ...filled: string[]): string =>
-  filled.length ? fill(word, filled[0], filled[1]) : t(word);
+import { SAY } from "./saying";
 
 const spanless = (line: string): string => line.replace(/::([a-z0-9-]+)(?: [a-z]+)?::/g, ":$1:");
 
@@ -86,5 +84,5 @@ export const carded = (page: Document, reach: Carding, live: () => boolean) => {
     if (reach.onMore) made.push(more(page, `${DOC}${file}`));
     return made;
   };
-  drawCards(page, { card: reach.card, blurb: reach.blurb, say: said, controls }, live);
+  drawCards(page, { card: reach.card, blurb: reach.blurb, say: SAY, controls }, live);
 };

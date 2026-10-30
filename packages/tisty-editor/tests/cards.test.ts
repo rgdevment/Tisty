@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { type Carded, type CardWord, carded } from "../src/cards";
+import { type Carded, carded } from "../src/cards";
+import type { ReadWord } from "../src/words";
 
 const page = (html: string): Document => {
   const made = document.implementation.createHTMLDocument("");
@@ -7,7 +8,7 @@ const page = (html: string): Document => {
   return made;
 };
 
-const say = (word: CardWord, ...filled: string[]) => [word, ...filled].join(" ");
+const say = (word: ReadWord, ...filled: string[]) => [word, ...filled].join(" ");
 
 const CARDS: Record<string, Carded> = {
   "rina.md": { kind: "page", title: "La Rina", at: 2, of: 3 },

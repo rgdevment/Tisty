@@ -1,3 +1,4 @@
+import { charsAt } from "tisty-editor/read";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   answered,
@@ -10,7 +11,7 @@ import {
   worn,
 } from "../ui/dressing";
 import { framed } from "../ui/framed";
-import { charsAt, went } from "../ui/paging";
+import { went } from "../ui/paging";
 
 const calls = vi.hoisted(() => ({
   links: [] as string[],
