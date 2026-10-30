@@ -43,8 +43,8 @@ const opened = async (): Promise<Found | string> => {
     const shown = { html: page.html, pictures, title: about.title ?? "" };
     page.free();
     return shown;
-  } catch (refused) {
-    return refused instanceof Error ? refused.message : "failed";
+  } catch (error_) {
+    return error_ instanceof Error ? error_.message : "failed";
   }
 };
 
@@ -72,4 +72,4 @@ const shown = async () => {
 // Another key pasted over this one is another link, so it is read anew.
 addEventListener("hashchange", () => location.reload());
 
-void shown();
+await shown();

@@ -1,8 +1,9 @@
 use jiff::Timestamp;
-use tisty_share_proto::envelope::{Draft, Signer, seal};
+use tisty_share_proto::envelope::{Draft, Kind, LinkKey, Refused, Signer, seal};
 use tisty_share_proto::identity::{Root, ShareKey};
+use tisty_share_proto::limits::Limits;
 
-use super::*;
+use super::{About, Shown, Signed, Unread, shown};
 
 const TEXT: &str = "---\ntitle: Docker en WSL2\ntags: [guía, docker]\n---\n\n# Antes de empezar\n\nAbre una terminal.\n\n![La consola](tisty:picture/0)\n";
 
