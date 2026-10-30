@@ -163,13 +163,10 @@ html.js .top .theme {
   stroke-linejoin: round;
 }
 .top .theme .sun,
-html.dark .top .theme .moon,
-.top .brand .on-dark,
-html.dark .top .brand .on-light {
+html.dark .top .theme .moon {
   display: none;
 }
-html.dark .top .theme .sun,
-html.dark .top .brand .on-dark {
+html.dark .top .theme .sun {
   display: block;
 }
 

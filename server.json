@@ -8,14 +8,7 @@
     {
       "src": "https://raw.githubusercontent.com/rgdevment/Tisty/v0.0.0/assets/icons/tisty-512.png",
       "mimeType": "image/png",
-      "sizes": ["512x512"],
-      "theme": "dark"
-    },
-    {
-      "src": "https://raw.githubusercontent.com/rgdevment/Tisty/v0.0.0/assets/icons/tisty-on-light-512.png",
-      "mimeType": "image/png",
-      "sizes": ["512x512"],
-      "theme": "light"
+      "sizes": ["512x512"]
     }
   ],
   "repository": {
