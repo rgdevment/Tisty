@@ -95,7 +95,7 @@ figure.widget {
 .top .brand img {
   display: block;
   width: 30px;
-  height: 28px;
+  height: 30px;
   margin: 0;
   padding: 0;
   max-height: none;
@@ -163,10 +163,13 @@ html.js .top .theme {
   stroke-linejoin: round;
 }
 .top .theme .sun,
-html.dark .top .theme .moon {
+html.dark .top .theme .moon,
+.top .brand .dark,
+html.dark .top .brand .light {
   display: none;
 }
-html.dark .top .theme .sun {
+html.dark .top .theme .sun,
+html.dark .top .brand .dark {
   display: block;
 }
 

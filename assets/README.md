@@ -12,33 +12,36 @@ the code that reads it, in `app/src-tauri/icons/` and `app/src/assets/`.
 
 ## Icons
 
-The source of truth is `icons/tisty-app-icon.svg`: everything in `icons/` is
-rendered from it, so change the SVG and re-render rather than editing a PNG by
-hand.
+The four SVGs are the source of truth, and `scripts/icons.sh` renders every PNG,
+`.ico` and `.icns` from them — the ones here and the ones the build reads in
+`app/src-tauri/icons/`. Change an SVG and run it again rather than editing a PNG
+by hand.
 
 | File | Size | Where it goes |
 | --- | --- | --- |
-| `tisty-app-icon.svg` | vector | The master. Everything else comes from it |
+| `tisty-light.svg` | vector | The mark on light surfaces, and wherever one drawing has to serve both |
+| `tisty-dark.svg` | vector | The mark on dark surfaces: a dark taskbar, dark READMEs and pages |
+| `tisty-mac.svg` | vector | The macOS app icon: the light mark on the tile the Dock expects |
+| `tisty-menubar.svg` | vector | The tray and the menu bar, in one ink |
+| `tisty-512.png`, `tisty-dark-512.png` | 512×512 | Press, release pages, the MCP registry |
+| `tisty-256.png`, `tisty-dark-256.png` | 256×256 | The logo at the top of the README and the wiki |
+| `tisty-128.png`, `tisty-dark-128.png` | 128×128 | Small inline use |
 | `store-logo-300.png` | 300×300 | Microsoft Store listing logo |
-| `tisty-512.png` | 512×512 | Press, release pages, anything that scales |
-| `tisty-256.png` | 256×256 | The logo at the top of the README |
-| `tisty-128.png` | 128×128 | Small inline use |
 
-The icons the application itself ships with — the `.ico`, the `.icns`, and the
-`Square*Logo` tiles Windows needs — are not copied here. They live in
-`app/src-tauri/icons/`, which is what the build reads, and one set is easier to
-keep honest than two.
+The application's `.ico`, its PNGs and the `Square*Logo` tiles wear the light
+mark; the `.icns` wears the macOS tile. The MSIX taskbar icons come in both:
+`altform-unplated` from the dark mark for a dark taskbar, `altform-lightunplated`
+from the light one. An installed window swaps between `taskbar/on-dark.png` and
+`taskbar/on-light.png` as the taskbar changes.
 
-The tray icons are a different drawing, not a smaller version of this one: the
-mark is the only one with a tile, because it lands on surfaces we do not
-control. What the build reads of them lives in `app/src-tauri/icons/tray/`; the
-drawing they come from stays with the rest of the icon work outside this
-repository.
+The tray is the menu-bar glyph: macOS tints its template by itself, and Windows
+gets it in white for a dark taskbar and in near-black for a light one.
+`app/src/assets/tisty-light.svg` and `tisty-dark.svg` are the copies About shows.
 
 ## Mascot
 
 The beaver is called Tisto. `mascot/tisty-head.svg` is the colour drawing;
-`app/src/assets/tisty.svg` is the copy the window shows in About and in the news
+`app/src/assets/tisty.svg` is the copy the window shows in the news
 after an update.
 `mascot/tisty-head-mono.svg` is the same head in one ink, for places that print
 a single colour. `mascot/tisty-head-left.svg` and `mascot/tisty-head-mono-left.svg`

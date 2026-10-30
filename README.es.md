@@ -1,9 +1,12 @@
 <div align="center">
-  <img
-    src="assets/icons/tisty-256.png"
-    width="140"
-    height="140"
-    alt="Tisty — notas, documentos y tareas, código abierto, Windows y macOS"/>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/icons/tisty-dark-256.png"/>
+    <img
+      src="assets/icons/tisty-256.png"
+      width="140"
+      height="140"
+      alt="Tisty — notas, documentos y tareas, código abierto, Windows y macOS"/>
+  </picture>
 
   <h1>Tisty — Notas, documentos y tareas, libres y de código abierto</h1>
 
