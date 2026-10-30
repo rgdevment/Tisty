@@ -1,4 +1,4 @@
-import { coloredAll, diagrams, escaped, saidKinds, shell } from "tisty-reader/page";
+import { coloredAll, diagrams, escaped, saidKinds, shell } from "tisty-editor/read";
 import { attached, docDrawn, type Paper } from "../core";
 import { t } from "../locales";
 import { named, pictured } from "../previews";

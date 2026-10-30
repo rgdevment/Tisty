@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { escaped, type Head, heads, type Sheet } from "tisty-reader/page";
+import { escaped, type Head, heads, type Sheet } from "tisty-editor/read";
 import { docDrawn, type Mend, mendsIn } from "../core";
 import { datedSteps, type Reaching } from "./dressing";
 import Frame from "./Frame";

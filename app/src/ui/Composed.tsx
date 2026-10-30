@@ -1,6 +1,6 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useEffect, useRef, useState } from "react";
-import { diagrams, saidKinds } from "tisty-reader/page";
+import { diagrams, saidKinds } from "tisty-editor/read";
 import { opened, openLink, revealed } from "../core";
 import { markup } from "../glyphs";
 import { serve, showing } from "../inUse";

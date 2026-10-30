@@ -1,4 +1,4 @@
-import { HUES } from "tisty-reader/page";
+import { HUES } from "tisty-editor/read";
 import { type Glimpse, glimpseFetch, glimpseKept } from "../core";
 import { t } from "../locales";
 import { hosting } from "../previews";

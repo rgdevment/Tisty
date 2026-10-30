@@ -1,4 +1,4 @@
-import { diagramShot } from "tisty-reader/page";
+import { diagramShot } from "tisty-editor/read";
 import { t } from "../locales";
 import { DOC, TASK } from "../markdown";
 import type { Choice } from "./Menu";

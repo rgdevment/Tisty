@@ -1,5 +1,5 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { colored, diagrams, HUES, isHue, saidKinds, sourceOf } from "tisty-reader/page";
+import { colored, diagrams, HUES, isHue, saidKinds, sourceOf } from "tisty-editor/read";
 import { type Lent, openLink } from "../core";
 import { markup } from "../glyphs";
 import { askAgain, serve, showing } from "../inUse";

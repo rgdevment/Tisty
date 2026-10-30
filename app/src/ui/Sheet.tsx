@@ -8,7 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
-import type { Head, Sheet as SheetSize } from "tisty-reader/page";
+import type { Head, Sheet as SheetSize } from "tisty-editor/read";
 import { copied, copyAttached, type Mend, opened, viewWidget } from "../core";
 import { viewDiagram } from "../drawing";
 import { CATCHES, takesFiles } from "../dropped";

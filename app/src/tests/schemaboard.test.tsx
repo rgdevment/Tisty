@@ -33,8 +33,8 @@ vi.mock("@tauri-apps/api/window", () => ({
   }),
 }));
 
-vi.mock("tisty-reader/page", async (real) => ({
-  ...(await real<typeof import("tisty-reader/page")>()),
+vi.mock("tisty-editor/read", async (real) => ({
+  ...(await real<typeof import("tisty-editor/read")>()),
   diagrams: () => Promise.resolve(),
   drawing: () => Promise.resolve('<svg viewBox="0 0 10 10"><text>mermaid</text></svg>'),
 }));

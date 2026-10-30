@@ -6,7 +6,7 @@ import { drawsHeicHere } from "./core";
 import { locale } from "./locales";
 import { drawsHeic } from "./previews";
 import Standing from "./Standing";
-import "tisty-reader/tokens.css";
+import "tisty-editor/tokens.css";
 import "./index.css";
 
 const App = lazy(() => import("./App"));

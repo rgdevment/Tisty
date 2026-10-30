@@ -393,8 +393,8 @@ jobs:
           args: >
             -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
             -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
-            -Dsonar.sources=crates,app/src,app/src-tauri/src,packages/tisty-diagrams/src,packages/tisty-reader/src,packages/tisty-share-web/src
-            -Dsonar.tests=crates,app/src,packages/tisty-diagrams/tests,packages/tisty-reader/tests,packages/tisty-share-web/tests
+            -Dsonar.sources=crates,app/src,app/src-tauri/src,packages/tisty-diagrams/src,packages/tisty-editor/src,packages/tisty-share-web/src
+            -Dsonar.tests=crates,app/src,packages/tisty-diagrams/tests,packages/tisty-editor/tests,packages/tisty-share-web/tests
             -Dsonar.test.inclusions=crates/*/tests/**,app/src/tests/**,packages/*/tests/**
             -Dsonar.exclusions=crates/*/tests/**,app/src/tests/**,packages/*/tests/**,crates/*/locales/**
             -Dsonar.rust.lcov.reportPaths=lcov-rust.info

@@ -1,4 +1,4 @@
-import "tisty-reader/tokens.css";
+import "tisty-editor/tokens.css";
 import "./web.css";
 import init, { open, type Page } from "../wasm/tisty_share_wasm.js";
 import wasm from "../wasm/tisty_share_wasm_bg.wasm?url";

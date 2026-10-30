@@ -1,0 +1,15 @@
+{
+  "name": "tisty-editor",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Tisty's sheet, the same in the app and on the web. Its read door wraps a drawn document in its page and its look, in the theme its host gives, and colours its code, draws its diagrams (through tisty-diagrams/read, which the host resolves) and lays its sheets; the edit door will put editing over that same sheet.",
+  "type": "module",
+  "exports": {
+    "./read": "./src/read.ts",
+    "./tokens.css": "./src/tokens.css"
+  },
+  "peerDependencies": {
+    "lowlight": "^3.3.0",
+    "mermaid": "^12.1.0"
+  }
+}

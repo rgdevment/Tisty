@@ -1,4 +1,4 @@
-import { dressed, shell } from "tisty-reader/page";
+import { dressed, shell } from "tisty-editor/read";
 import bar from "./bar.css?raw";
 import task from "./taskpage.css?raw";
 import { darkNow } from "./theming";

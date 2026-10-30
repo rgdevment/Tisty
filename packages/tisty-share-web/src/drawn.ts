@@ -1,4 +1,4 @@
-import { colored, diagrams, saidKinds, shell, TITLED } from "tisty-reader/page";
+import { colored, diagrams, saidKinds, shell, TITLED } from "tisty-editor/read";
 
 export type Picture = { readonly bytes: Uint8Array<ArrayBuffer>; readonly media: string };
 export type Opened = { readonly html: string; readonly pictures: readonly Picture[] };

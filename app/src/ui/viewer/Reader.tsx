@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import type { Head } from "tisty-reader/page";
+import type { Head } from "tisty-editor/read";
 import { copied, type DocFacts, type Paper } from "../../core";
 import { fill, t } from "../../locales";
 import PaperFacts from "../PaperFacts";

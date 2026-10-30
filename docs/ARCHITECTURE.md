@@ -50,7 +50,7 @@ Drive, OneDrive, WebDAV), which can be encrypted with the person's phrase.
 flowchart TB
   react["app/src<br/>React + TypeScript"]
   studio["packages/tisty-diagrams<br/>the diagram studio"]
-  reader["packages/tisty-reader<br/>the page reader"]
+  reader["packages/tisty-editor<br/>the sheet"]
   gui["tisty-gui<br/>app/src-tauri"]
   cli["tisty-cli<br/>tisty binary: MCP server"]
   providers["tisty-google, tisty-onedrive,<br/>tisty-webdav"]
@@ -64,7 +64,7 @@ flowchart TB
   worker["tisty-share-worker<br/>the server on Workers, D1 and R2"]
   react -- "invoke and events" --> gui
   react -- "read and studio doors" --> studio
-  react -- "page door" --> reader
+  react -- "read door" --> reader
   reader -- "read door" --> studio
   gui --> carrier
   gui --> providers
@@ -99,7 +99,7 @@ flowchart TB
 | `tisty-gui` | Tauri commands (`answers/`), the `Session`, tray, reminders, updater, wiring assistants | `lib.rs`, `session.rs` |
 | `app/src` | The React UI; `core.ts` holds the typed `invoke` wrappers | `App.tsx` |
 | `packages/tisty-diagrams` | The diagram studio. A private package; the app enters by `tisty-diagrams/read` and `tisty-diagrams/studio` | `read.ts`, `DiagramStudio.tsx` |
-| `packages/tisty-reader` | The page reader: a document's body, the same in the window, Tisty Share and the phone. A private package; the app enters by `tisty-reader/page` | `page.ts` |
+| `packages/tisty-editor` | Tisty's sheet: a document drawn the same in the window, Tisty Share and the phone. A private package; the app and the web enter by `tisty-editor/read`, and editing will come by `tisty-editor/edit` | `read.ts` |
 
 `scripts/rules.sh` keeps each package and the app apart. Only `tisty-carrier`
 depends on `tisty-sync`. Only the window and the provider crates hold network

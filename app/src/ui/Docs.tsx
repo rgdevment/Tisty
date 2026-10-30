@@ -1,7 +1,7 @@
 import { save as intoFile, open as pick } from "@tauri-apps/plugin-dialog";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { freshFence } from "tisty-diagrams/read";
-import type { Head } from "tisty-reader/page";
+import type { Head } from "tisty-editor/read";
 import { asPlain } from "../copying";
 import {
   attachPasted,

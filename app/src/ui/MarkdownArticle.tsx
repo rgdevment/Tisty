@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { Head } from "tisty-reader/page";
+import type { Head } from "tisty-editor/read";
 import rina from "../../src-tauri/resources/guide/en/rina.jpg";
 import { helpAnchors, helpDrawn } from "../guide/calls";
 import { aimedAt, linkedHere } from "../guide/help";

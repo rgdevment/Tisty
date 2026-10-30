@@ -1,4 +1,4 @@
-import { HUES, type Hue as Named } from "tisty-reader/page";
+import { HUES, type Hue as Named } from "tisty-editor/read";
 import { t } from "../locales";
 
 /// Tailwind only ships classes it can see written out, so a built name would arrive unstyled.

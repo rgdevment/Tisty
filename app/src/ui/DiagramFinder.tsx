@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { firstWords, kindName, kindOf, svgFor, titleOf } from "tisty-diagrams/read";
-import { drawing } from "tisty-reader/page";
+import { drawing } from "tisty-editor/read";
 import { useAttended } from "../attended";
 import { diagramsEverywhere, type FoundDiagram } from "../drawing";
 import { matched } from "../finding";

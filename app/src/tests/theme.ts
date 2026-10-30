@@ -3,10 +3,10 @@ import { dirname, join, resolve } from "node:path";
 
 // Stryker runs the tests from a copy of the app, so the reader's tokens are looked for up the folders.
 const tokensAt = (from: string): string => {
-  const here = join(from, "packages", "tisty-reader", "src", "tokens.css");
+  const here = join(from, "packages", "tisty-editor", "src", "tokens.css");
   if (existsSync(here)) return here;
   const up = dirname(from);
-  if (up === from) throw new Error("packages/tisty-reader is not above the app");
+  if (up === from) throw new Error("packages/tisty-editor is not above the app");
   return tokensAt(up);
 };
 

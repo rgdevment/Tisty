@@ -3,7 +3,7 @@ import { EditorSelection, EditorState } from "@codemirror/state";
 import { EditorView, keymap, runScopeHandlers } from "@codemirror/view";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { sheeting } from "tisty-reader/page";
+import { sheeting } from "tisty-editor/read";
 import { describe, expect, it, vi } from "vitest";
 import type { Paper } from "../core";
 import { t } from "../locales";

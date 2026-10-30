@@ -1,4 +1,4 @@
-import { TITLED } from "tisty-reader/page";
+import { TITLED } from "tisty-editor/read";
 import type { Facts } from "./fetched";
 import { ago, day } from "./when";
 import { filled } from "./words";
