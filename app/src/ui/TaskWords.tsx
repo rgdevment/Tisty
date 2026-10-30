@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import type { Asking } from "tisty-editor/edit";
 import {
   addPart,
   docWrite,
@@ -17,7 +18,6 @@ import { holds, queued } from "../saving";
 import { useKeptHeight } from "./heights";
 import { usePartCards } from "./partcards";
 import Skeleton from "./Skeleton";
-import type { Asking } from "./slashing";
 import { useTaskAsks } from "./taskAsking";
 import { useWholeKeys } from "./wholeKeys";
 

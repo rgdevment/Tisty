@@ -1,5 +1,5 @@
 import { render, waitFor } from "@testing-library/react";
-import type { Head } from "tisty-reader/page";
+import type { Head } from "tisty-editor/read";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import Page from "../ui/Page";
 

@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
+import { tablesIn, today } from "tisty-editor/read";
 import { fill, t } from "../locales";
 import {
   refused,
@@ -9,7 +10,6 @@ import {
   tableWritten,
 } from "../tables";
 import { cellBar } from "./cellBar";
-import { today } from "./celled";
 import Menu, { type Choice } from "./Menu";
 import type { TableWent } from "./paging";
 import { type Mark, type Peeled, peeled, toggled } from "./peeled";
@@ -25,7 +25,6 @@ import {
   placeOf,
   rowsCount,
   rowsShown,
-  tablesIn,
   typing,
   type Viewing,
   viewed,

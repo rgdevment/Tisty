@@ -18,13 +18,13 @@ const packageAt = (name: string, from: string): string => {
 };
 const appAt = dirname(fileURLToPath(import.meta.url));
 const studio = packageAt("tisty-diagrams", appAt);
-const reader = packageAt("tisty-reader", appAt);
+const reader = packageAt("tisty-editor", appAt);
 const web = packageAt("tisty-share-web", appAt);
 
 export default defineConfig(async () => ({
   plugins: [react(), tailwindcss()],
   resolve: {
-    alias: { "tisty-diagrams": join(studio, "src"), "tisty-reader": join(reader, "src") },
+    alias: { "tisty-diagrams": join(studio, "src"), "tisty-editor": join(reader, "src") },
   },
 
   test: {

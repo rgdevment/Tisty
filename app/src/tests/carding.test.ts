@@ -10,7 +10,14 @@ vi.mock("../core", () => ({
   },
 }));
 
-import { blurbing, carded, cardsOf } from "../ui/carding";
+import { carded as drawCards } from "tisty-editor/read";
+import { blurbing, type Carding, cardsFor, cardsOf } from "../ui/carding";
+import { SAY } from "../ui/saying";
+
+const carded = (page: Document, reach: Carding, live: () => boolean) => {
+  const cards = cardsFor(page, reach);
+  if (cards) drawCards(page, { ...cards, say: SAY }, live);
+};
 
 const doc = (file: string, more: Partial<Filed> = {}): Filed => ({
   id: `id-${file}`,

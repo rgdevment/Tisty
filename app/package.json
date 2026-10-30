@@ -12,8 +12,8 @@
     "test:coverage": "vitest run --coverage",
     "preview": "vite preview",
     "tauri": "tauri",
-    "lint": "biome check src && cd ../packages/tisty-diagrams && biome check . && cd ../tisty-reader && biome check . && cd ../tisty-share-web && biome check .",
-    "format": "biome check src --write && cd ../packages/tisty-diagrams && biome check . --write && cd ../tisty-reader && biome check . --write && cd ../tisty-share-web && biome check . --write",
+    "lint": "biome check src && cd ../packages/tisty-diagrams && biome check . && cd ../tisty-editor && biome check . && cd ../tisty-share-web && biome check .",
+    "format": "biome check src --write && cd ../packages/tisty-diagrams && biome check . --write && cd ../tisty-editor && biome check . --write && cd ../tisty-share-web && biome check . --write",
     "mutants": "stryker run"
   },
   "dependencies": {

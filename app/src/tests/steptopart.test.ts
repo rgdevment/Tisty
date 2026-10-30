@@ -1,5 +1,5 @@
+import { stepLine, steppedTitle } from "tisty-editor/read";
 import { describe, expect, it } from "vitest";
-import { stepLine, steppedTitle } from "../ui/staging";
 
 describe("a step offered as a part", () => {
   it("is read back the way the core reads its words", () => {

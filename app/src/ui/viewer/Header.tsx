@@ -41,7 +41,7 @@ export const titled = (shown: Showing | null): { title: string; under: string } 
 };
 
 export default function Header(props: Props) {
-  const { shown, side, raw, busy, preset, menu } = props;
+  const { shown, side, preset, menu } = props;
   const more = useRef<HTMLButtonElement>(null);
   const { title, under } = titled(shown);
   const reading = shown?.kind === "file" || shown?.kind === "doc";
@@ -61,19 +61,22 @@ export default function Header(props: Props) {
       }
     >
       {reading && (
+        <button
+          type="button"
+          className={`${tool} ${side ? "bg-hover text-ink" : ""}`}
+          title={`${t("viewIndex")} (Ctrl+\\)`}
+          aria-label={t("viewIndex")}
+          aria-pressed={side}
+          onClick={props.onSide}
+        >
+          <Glyph name="list" />
+        </button>
+      )}
+      {/* The panel holds them while it is open; folded, the bar does, so editing is never a menu away. */}
+      {reading && !side && (
         <>
-          <button
-            type="button"
-            className={`${tool} ${side ? "bg-hover text-ink" : ""}`}
-            title={`${t("viewIndex")} (Ctrl+\\)`}
-            aria-label={t("viewIndex")}
-            aria-pressed={side}
-            onClick={props.onSide}
-          >
-            <Glyph name="list" />
-          </button>
           <Segments
-            value={raw ? "raw" : "read"}
+            value={props.raw ? "raw" : "read"}
             options={[
               { key: "read", label: t("viewRead") },
               { key: "raw", label: t("viewSource") },
@@ -82,7 +85,7 @@ export default function Header(props: Props) {
           />
           <button
             type="button"
-            disabled={busy}
+            disabled={props.busy}
             className={shown.kind === "doc" ? button : tinted}
             onClick={props.onEdit}
           >

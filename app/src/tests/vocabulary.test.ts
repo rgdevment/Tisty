@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { known, markup } from "tisty-editor/read";
 import { describe, expect, it } from "vitest";
-import { known, markup } from "../glyphs";
 
 const vocab = readFileSync(join(__dirname, "../../../crates/tisty-markdown/src/vocab.rs"), "utf8");
 const listed = (from: string, to: string) =>

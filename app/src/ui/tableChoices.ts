@@ -1,3 +1,4 @@
+import { TYPES } from "tisty-editor/edit";
 import { fill, t } from "../locales";
 import type { Choice } from "./Menu";
 import type { Filtering } from "./tabled";
@@ -22,23 +23,6 @@ export type ColumnWays = {
 };
 
 type Word = Parameters<typeof t>[0];
-
-export const TYPES: readonly [string, Word][] = [
-  ["text", "tableTypeText"],
-  ["number", "tableTypeNumber"],
-  ["money", "tableTypeMoney"],
-  ["percent", "tableTypePercent"],
-  ["date", "tableTypeDate"],
-  ["duration", "tableTypeDuration"],
-  ["check", "tableTypeCheck"],
-  ["select", "tableTypeSelect"],
-  ["tags", "tableTypeTags"],
-  ["rating", "tableTypeRating"],
-  ["link", "tableTypeLink"],
-  ["url", "tableTypeUrl"],
-  ["email", "tableTypeEmail"],
-  ["phone", "tableTypePhone"],
-];
 
 const TOTALS: readonly [string, Word][] = [
   ["sum", "tableTotalSum"],

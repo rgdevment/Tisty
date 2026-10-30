@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { escaped, type Head, heads, type Sheet } from "tisty-reader/page";
+import { escaped, type Head, heads, recarded, type Sheet } from "tisty-editor/read";
 import { docDrawn, type Mend, mendsIn } from "../core";
 import { datedSteps, type Reaching } from "./dressing";
 import Frame from "./Frame";
 import { mendable } from "./mending";
-import { recarded } from "./partcarding";
+import { SAY } from "./saying";
 
 type Props = Reaching & {
   readonly label: string;
@@ -53,7 +53,8 @@ export default function Page(props: Readonly<Props>) {
   const { cards } = props;
   useEffect(() => {
     const page = held.current?.contentDocument;
-    if (page && !stranger) recarded(page, reach.current.part);
+    const part = reach.current.part;
+    if (page && part && !stranger) recarded(page, { part, say: SAY });
   }, [cards, stranger]);
   const mending = Boolean(props.onMend);
   useEffect(lay, [mending]);

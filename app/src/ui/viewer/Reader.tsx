@@ -1,19 +1,27 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import type { Head } from "tisty-reader/page";
+import {
+  acrossOf,
+  type Facts,
+  fields,
+  type Head,
+  PAPER,
+  type Panel,
+  sheetFor,
+} from "tisty-editor/read";
 import { copied, type DocFacts, type Paper } from "../../core";
-import { fill, t } from "../../locales";
-import PaperFacts from "../PaperFacts";
-import Properties from "../Properties";
-import { SheetsToggle, SheetsTurn } from "../SheetsSwitch";
-import { acrossOf, leafWord, offered, PAPER, sheetFor, TALL } from "../sheets";
+import { weigh } from "../../format";
+import { t } from "../../locales";
+import { dated, holdsOf } from "../paperFacts";
+import SidePanels from "../SidePanels";
 import { usePictures } from "../usePictures";
-import { button, Segments } from "./Glyphs";
+import { button } from "./Glyphs";
 
 const Page = lazy(() => import("../Page"));
 
 interface Props {
   body: string;
   title: string;
+  under: string;
   stranger: boolean;
   side: boolean;
   raw: boolean;
@@ -27,6 +35,8 @@ interface Props {
   onSheets: (on: boolean) => void;
   onLandscape: (across: boolean) => void;
   onRaw: (raw: boolean) => void;
+  onEdit: () => void;
+  onExport: (at: { x: number; y: number }) => void;
   onFound: () => void;
   onDoc: (file: string) => void;
   onOpen?: (reference: string) => void;
@@ -34,7 +44,18 @@ interface Props {
   onPage?: (page: Window | null) => void;
 }
 
-const heading = "mx-2 mb-2 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-faint";
+// What the file and its front matter say about it, in the window's words for dates.
+const factsOf = (body: string, facts: DocFacts | null): Facts => ({
+  body,
+  author: facts?.author ?? undefined,
+  born: facts?.born ?? undefined,
+  editor: facts?.editor ?? undefined,
+  made: facts?.made ? dated(facts.made) : undefined,
+  wrote: facts?.wrote ? dated(facts.wrote) : undefined,
+  weighs: facts ? weigh(facts.bytes) : undefined,
+  holds: holdsOf(body, facts).join(" · ") || undefined,
+  fields: fields(body),
+});
 
 function Raw({ body, wide }: { body: string; wide: number }) {
   const [done, setDone] = useState(false);
@@ -116,73 +137,57 @@ export default function Reader(props: Readonly<Props>) {
     pending?.go();
   };
 
+  // The panels are drawn again only when what they show changes, so their presses ask for the window's latest.
+  const latest = useRef(props);
+  latest.current = props;
+
   const go = (one: Head) => {
-    if (!raw) return one.go();
+    if (!latest.current.raw) return one.go();
     sought.current = one.key;
-    props.onRaw(false);
+    latest.current.onRaw(false);
   };
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `go` and the presses read the window's latest through `latest`
+  const panels = useMemo(
+    (): Panel[] => [
+      { kind: "title", title, under: props.under },
+      {
+        kind: "paper",
+        leaf,
+        onLeaf: (one) => latest.current.onLeaf(one),
+        sheets: { on: sheets, onTurn: (on) => latest.current.onSheets(on) },
+        landscape: sheets
+          ? { on: landscape, onTurn: (on) => latest.current.onLandscape(on) }
+          : undefined,
+        raw: { on: raw, onTurn: (on) => latest.current.onRaw(on) },
+      },
+      { kind: "index", heads: heads.map((one) => ({ ...one, go: () => go(one) })) },
+      { kind: "details", facts: factsOf(body, props.facts) },
+      {
+        kind: "acts",
+        acts: [
+          {
+            key: "edit",
+            label: t("viewEditIn"),
+            main: true,
+            onPick: () => latest.current.onEdit(),
+          },
+          {
+            key: "export",
+            label: `${t("exportIt")} ▾`,
+            onPick: (at) => {
+              const box = at.getBoundingClientRect();
+              latest.current.onExport({ x: box.left, y: box.bottom + 4 });
+            },
+          },
+        ],
+      },
+    ],
+    [title, props.under, leaf, sheets, landscape, raw, heads, body, props.facts],
+  );
 
   return (
     <div className="flex min-h-0 flex-1">
-      {side && (
-        <nav className="flex w-[264px] shrink-0 flex-col overflow-hidden border-r border-hair bg-panel px-2 py-3.5">
-          <h6 className={heading}>{t(stranger ? "viewInFile" : "viewInDoc")}</h6>
-          <div className="scroller flex min-h-0 flex-1 flex-col">
-            {heads
-              .filter((one) => one.level > 0)
-              .map((one) => (
-                <button
-                  type="button"
-                  key={one.key}
-                  onClick={() => go(one)}
-                  className="shrink-0 truncate rounded-md py-1 pr-2 text-left text-[12.5px] text-soft hover:bg-hover hover:text-ink"
-                  style={{ paddingLeft: 8 + Math.max(0, one.level - 1) * 12 }}
-                >
-                  {one.text}
-                </button>
-              ))}
-          </div>
-          <div className="mt-3 shrink-0 border-t border-hair pt-3.5">
-            <h6 className={heading}>{t(stranger ? "aboutFile" : "aboutPaper")}</h6>
-            <div className="mx-2 mb-4">
-              <PaperFacts facts={props.facts} body={body} />
-            </div>
-            <div className="mx-2 mb-4">
-              <Properties body={body} />
-            </div>
-            <h6 className={heading}>{t("viewPage")}</h6>
-            <div className="mx-1 flex items-stretch gap-1.5">
-              <div className="min-w-0 flex-1">
-                <Segments
-                  wide
-                  value={leaf}
-                  options={offered(leaf).map((one) => ({ key: one, label: t(leafWord(one)) }))}
-                  onPick={props.onLeaf}
-                />
-              </div>
-              <SheetsToggle
-                sheets={sheets}
-                onSheets={props.onSheets}
-                className="flex shrink-0 items-center rounded-md border border-line"
-              />
-            </div>
-            {sheets && (
-              <SheetsTurn
-                landscape={landscape}
-                onLandscape={props.onLandscape}
-                className="mx-1.5 mt-1.5"
-              />
-            )}
-            <div className="mx-1.5 mt-2.5 flex items-center gap-2.5 text-[11.5px] leading-snug text-faint">
-              <span
-                className="w-[26px] shrink-0 rounded-md border-[1.5px] border-faint bg-sheet transition-[height]"
-                style={{ height: Math.round(26 * TALL[leaf]) }}
-              />
-              <span>{fill("viewPageAbout", String(PAPER[leaf]))}</span>
-            </div>
-          </div>
-        </nav>
-      )}
       <div className="viewed-doc relative flex min-w-0 flex-1 flex-col">
         {finding && <Finder onClose={props.onFound} within={() => shown.current} />}
         {raw ? (
@@ -209,6 +214,9 @@ export default function Reader(props: Readonly<Props>) {
         )}
         {pictures.viewer}
       </div>
+      {side && (
+        <SidePanels panels={panels} className="w-[300px] shrink-0 overflow-y-auto py-3.5 pr-3.5" />
+      )}
     </div>
   );
 }

@@ -35,7 +35,6 @@
     "!src/tests/**",
     "!src/main.tsx",
     "!src/marks.ts",
-    "!src/glyphs.ts",
     "!src/locales.ts",
     "!src/synonyms.ts"
   ],

@@ -1,8 +1,7 @@
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { render, screen, waitFor } from "@testing-library/react";
+import { known, markup } from "tisty-editor/read";
 import { describe, expect, it, vi } from "vitest";
-import { known, markup } from "../glyphs";
 import { isMark, MARKS, markedAs } from "../marks";
 import Pick from "../ui/Pick";
 import { inTheRepo } from "./repo";
@@ -15,7 +14,7 @@ const named = (): string[] => {
 };
 
 const drawn = (): string[] => {
-  const said = readFileSync(resolve(process.cwd(), "src/glyphs.ts"), "utf8");
+  const said = readFileSync(inTheRepo("packages/tisty-editor/src/glyphs.ts"), "utf8");
   const rows = said.matchAll(/^ {2}("[^"]+"|[a-z][a-z0-9]*): \d+,$/gm);
   return [...rows].map((found) => found[1].replace(/"/g, ""));
 };

@@ -114,16 +114,17 @@ describe("the viewer", () => {
     expect(await screen.findByText("notas.md")).toBeTruthy();
     expect(screen.getByText(`Descargas · ${t("viewOnlyReading")}`)).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: t("viewIndex") }));
-    expect(await screen.findByText(t("viewInFile"))).toBeTruthy();
-    expect(screen.getByText(t("viewPage"))).toBeTruthy();
+    expect(await screen.findByText(t("outline"))).toBeTruthy();
+    expect(screen.getByRole("group", { name: t("leafIs") })).toBeTruthy();
     expect(screen.getByRole("button", { name: t("viewEditIn") })).toBeTruthy();
   });
 
   it("shows the file as Markdown with its lines numbered", async () => {
     render(<Viewing />);
     await screen.findByText("notas.md");
+    await userEvent.click(screen.getByRole("button", { name: t("viewIndex") }));
 
-    await userEvent.click(screen.getByRole("button", { name: t("viewSource") }));
+    await userEvent.click(await screen.findByRole("button", { name: t("viewSource") }));
 
     expect(screen.getByText("# Notas")).toBeTruthy();
     expect(screen.getByRole("button", { name: t("viewCopy") })).toBeTruthy();
@@ -137,13 +138,13 @@ describe("the viewer", () => {
       paper: { id: "D1", file: "f1", title: "Notas", place: "" },
       body: "# Notas",
     } satisfies Showing;
+    await userEvent.click(screen.getByRole("button", { name: t("viewIndex") }));
 
-    await userEvent.click(screen.getByRole("button", { name: t("viewEditIn") }));
+    await userEvent.click(await screen.findByRole("button", { name: t("viewEditIn") }));
 
     expect(asked("view_import")[0].args).toEqual({ open: true });
     await waitFor(() => expect(screen.getByText(new RegExp(t("viewNowIn")))).toBeTruthy());
-    await userEvent.click(screen.getByRole("button", { name: t("viewIndex") }));
-    expect(await screen.findByText(t("viewInDoc"))).toBeTruthy();
+    await waitFor(() => expect(document.querySelector(".side-title")?.textContent).toBe("Notas"));
   });
 
   it("says plainly why a file could not be opened", async () => {
@@ -205,11 +206,11 @@ describe("reading in the viewer", () => {
     render(<Viewing />);
     await screen.findByText("notas.md");
 
-    expect(screen.queryByText(t("viewPage"))).toBeNull();
+    expect(screen.queryByText(t("outline"))).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: t("viewIndex") }));
-    expect(await screen.findByText(t("viewPage"))).toBeTruthy();
+    expect(await screen.findByText(t("outline"))).toBeTruthy();
     pressed("\\");
-    expect(screen.queryByText(t("viewPage"))).toBeNull();
+    expect(screen.queryByText(t("outline"))).toBeNull();
     pressed("\\");
     await userEvent.click(await screen.findByRole("button", { name: t("leafLetter") }));
     expect(JSON.parse(localStorage.getItem("tisty.viewer") ?? "{}")).toEqual({ leaf: "letter" });
@@ -224,11 +225,11 @@ describe("reading in the viewer", () => {
     render(<Viewing />);
     await screen.findByText("notas.md");
 
-    const toggle = screen.getByRole("switch", { name: t("sheetsShown") });
-    expect(toggle.getAttribute("aria-checked")).toBe("false");
-    await userEvent.click(toggle);
+    const sheets = () => screen.getByRole("button", { name: t("sheetsShown") });
+    expect(sheets().getAttribute("aria-pressed")).toBe("false");
+    await userEvent.click(sheets());
     await userEvent.click(await screen.findByRole("button", { name: t("sheetsAcross") }));
-    expect(toggle.getAttribute("aria-checked")).toBe("true");
+    await waitFor(() => expect(sheets().getAttribute("aria-pressed")).toBe("true"));
     pressed("p");
     await waitFor(() => expect(asked("pdf").map((one) => one.args.landscape)).toContain(true));
     expect(asked("view_import")).toHaveLength(0);
@@ -241,7 +242,7 @@ describe("reading in the viewer", () => {
     await screen.findByText("notas.md");
     window.innerWidth = was;
 
-    expect(screen.getByText(t("viewPage"))).toBeTruthy();
+    expect(await screen.findByText(t("outline"))).toBeTruthy();
   });
 
   it("opens folded one pixel short of that width", async () => {
@@ -251,7 +252,7 @@ describe("reading in the viewer", () => {
     await screen.findByText("notas.md");
     window.innerWidth = was;
 
-    expect(screen.queryByText(t("viewPage"))).toBeNull();
+    expect(screen.queryByText(t("outline"))).toBeNull();
   });
 
   it("tells who wrote a Tisty document and how big it is beside its contents", async () => {
@@ -270,7 +271,7 @@ describe("reading in the viewer", () => {
     await userEvent.click(screen.getByRole("button", { name: t("viewIndex") }));
 
     expect(await screen.findByText("rgdevment")).toBeTruthy();
-    expect(screen.getByText(t("aboutPaper"))).toBeTruthy();
+    expect(screen.getByText(t("besideDetails"))).toBeTruthy();
     expect(screen.getByText(t("paperWeighs"))).toBeTruthy();
     expect(ipc.calls.filter((one) => one.cmd === "view_facts")).toHaveLength(1);
   });
@@ -289,7 +290,7 @@ describe("reading in the viewer", () => {
     await screen.findByText("notas.md");
     await userEvent.click(screen.getByRole("button", { name: t("viewIndex") }));
 
-    expect(await screen.findByText(t("aboutFile"))).toBeTruthy();
+    expect(await screen.findByText(t("besideDetails"))).toBeTruthy();
     expect(screen.getByText(t("paperMade"))).toBeTruthy();
     expect(screen.queryByText(t("paperAuthor"))).toBeNull();
   });
@@ -332,8 +333,9 @@ describe("reading in the viewer", () => {
     ipc.shown = tisty;
     render(<Viewing />);
     await screen.findByText(`Proyectos · ${t("viewOnlyReading")}`);
+    await userEvent.click(screen.getByRole("button", { name: t("viewIndex") }));
 
-    await userEvent.click(screen.getByRole("button", { name: t("viewEditIn") }));
+    await userEvent.click(await screen.findByRole("button", { name: t("viewEditIn") }));
 
     expect(asked("view_go")[0].args).toEqual({ file: "f1" });
     expect(asked("view_import")).toHaveLength(0);

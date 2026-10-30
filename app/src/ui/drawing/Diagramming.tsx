@@ -4,7 +4,7 @@ import { ask } from "@tauri-apps/plugin-dialog";
 import { useEffect, useRef, useState } from "react";
 import { asRead, kindName, kindOf } from "tisty-diagrams/read";
 import { DiagramStudio } from "tisty-diagrams/studio";
-import { drawing } from "tisty-reader/page";
+import { drawing } from "tisty-editor/read";
 import type { Viewed } from "../../core";
 import {
   diagramAgain,

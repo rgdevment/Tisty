@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
+import { begun } from "tisty-editor/read";
 import { useAttended } from "../attended";
 import type { Change, List, Task } from "../core";
-import { begun } from "../finding";
 import { cadence, clockOf, whenLabel } from "../format";
 import { t } from "../locales";
 import { placed, QUADRANTS, said } from "../quadrants";

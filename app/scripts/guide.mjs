@@ -31,7 +31,7 @@ const vite = await createServer({
   server: { middlewareMode: true, hmr: false },
 });
 const { iconed } = await vite.ssrLoadModule("/src/ui/dressing.ts");
-const { coloredAll, HUES, PAGE_CSS: sheet, saidKinds } = await vite.ssrLoadModule("tisty-reader/page");
+const { coloredAll, HUES, PAGE_CSS: sheet, saidKinds } = await vite.ssrLoadModule("tisty-editor/read");
 const { adopt, t } = await vite.ssrLoadModule("/src/locales.ts");
 const { hosting, named, pictured } = await vite.ssrLoadModule("/src/previews.ts");
 const { carded, piece } = await vite.ssrLoadModule("/src/ui/carding.ts");

@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
 import { fenced, nameOf, STARTS, startOf } from "tisty-diagrams/read";
+import type { Asked } from "tisty-editor/edit";
+import { known } from "tisty-editor/read";
 import type { Filed } from "../core";
-import { known } from "../glyphs";
 import { locale, t } from "../locales";
 import { spawned } from "../making";
 import { docCard } from "../markdown";
@@ -9,7 +10,6 @@ import Asking from "./Asking";
 import DiagramFinder from "./DiagramFinder";
 import Glyphs from "./Glyphs";
 import Papers from "./Papers";
-import type { Asked } from "./slashing";
 
 export type Picked = {
   readonly kind: Asked;

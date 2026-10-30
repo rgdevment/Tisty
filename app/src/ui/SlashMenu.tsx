@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
+import { begun, folded } from "tisty-editor/read";
 import type { Counted, List } from "../core";
-import { begun, folded } from "../finding";
 import { cadence } from "../format";
 import { t } from "../locales";
 import { PICKABLE, said } from "../quadrants";

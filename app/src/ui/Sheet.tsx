@@ -8,7 +8,22 @@ import {
   useRef,
   useState,
 } from "react";
-import type { Head, Sheet as SheetSize } from "tisty-reader/page";
+import {
+  type Asking,
+  caretAt,
+  type Editing,
+  FORMATS,
+  flipped,
+  MARKED_FOR,
+  markLately,
+  pressed,
+  putBlock,
+  stagesIn,
+  widened,
+  wrapped,
+} from "tisty-editor/edit";
+import type { Carded, Head, PartCarded, Sheet as SheetSize } from "tisty-editor/read";
+import { charsAt, spanned, stepLine, steppedTitle } from "tisty-editor/read";
 import { copied, copyAttached, type Mend, opened, viewWidget } from "../core";
 import { viewDiagram } from "../drawing";
 import { CATCHES, takesFiles } from "../dropped";
@@ -17,28 +32,20 @@ import { DOC, partCard } from "../markdown";
 import type { Moved } from "../paging";
 import { named } from "../previews";
 import { inEditor, reanchored, spanOf, touches } from "./anchoring";
-import { FORMATS, flipped } from "./barring";
-import { caretAt, type Editing, edited } from "./blocking";
 import { cardedAt, movedCard, putCard } from "./carded";
-import type { Carded } from "./carding";
 import { exportChoices, fileName } from "./drawing/exporting";
-import { wrapped } from "./formatting";
 import { useKeptHeight } from "./heights";
-import { MARKED_FOR, markLately } from "./lately";
+import { edited } from "./hosting";
 import Menu, { type Choice } from "./Menu";
 import { mended as mendedText } from "./mending";
 import Page from "./Page";
-import { charsAt, spanned, type Went } from "./paging";
-import type { PartCarded } from "./partcarding";
+import type { Went } from "./paging";
 import { closed, laid, parting } from "./parting";
 import type { Chosen, Formatting, Menued } from "./quickly";
 import { filedAs, type Reshape, reshaped } from "./recarding";
 import Skeleton from "./Skeleton";
 import { ASIDE_MARGIN, settles } from "./seeking";
-import { type Asking, pressed, putBlock, stagesIn } from "./slashing";
-import { stepLine, steppedTitle } from "./staging";
 import { useTables } from "./tableSheet";
-import { widened } from "./tabling";
 import { darkNow } from "./theming";
 import { usePictures } from "./usePictures";
 

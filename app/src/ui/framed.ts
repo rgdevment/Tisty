@@ -1,5 +1,5 @@
-import { dressed, shell } from "tisty-reader/page";
-import bar from "./bar.css?raw";
+import { BAR_CSS as bar } from "tisty-editor/edit";
+import { dressed, shell } from "tisty-editor/read";
 import task from "./taskpage.css?raw";
 import { darkNow } from "./theming";
 

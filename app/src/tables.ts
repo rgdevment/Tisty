@@ -1,18 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
+import type { TableEdit } from "tisty-editor/edit";
 import { t } from "./locales";
 
-/** One change to a table; `row` counts the rows under the head from 0. Mirrors `tisty_markdown::grid::Edit`. */
-export type TableEdit =
-  | { readonly kind: "cell"; readonly row: number; readonly column: number; readonly said: string }
-  | { readonly kind: "rename"; readonly column: number; readonly said: string }
-  | { readonly kind: "retype"; readonly column: number; readonly words: string }
-  | { readonly kind: "recast"; readonly column: number; readonly word: string }
-  | { readonly kind: "rowAdd"; readonly at: number }
-  | { readonly kind: "rowRemove" | "rowCopy"; readonly row: number }
-  | { readonly kind: "rowMove" | "columnMove"; readonly from: number; readonly to: number }
-  | { readonly kind: "columnAdd"; readonly at: number }
-  | { readonly kind: "columnRemove"; readonly column: number }
-  | { readonly kind: "sort"; readonly column: number; readonly down: boolean };
+export type { TableEdit } from "tisty-editor/edit";
 
 export type TableRefused = "moved" | "beyond" | "unknownType" | "lastColumn";
 

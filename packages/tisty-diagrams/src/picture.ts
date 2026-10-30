@@ -14,7 +14,7 @@ export interface Palette {
   readonly accentSoft: string;
 }
 
-// The tokens of tisty-reader's `tokens.css` and the app's `index.css`: a picture is drawn in either theme, whichever the window is in.
+// The tokens of tisty-editor's `tokens.css` and the app's `index.css`: a picture is drawn in either theme, whichever the window is in.
 export const PALETTES: Record<"light" | "dark", Palette> = {
   light: {
     sheet: "#ffffff",

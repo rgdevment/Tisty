@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
+import type { PartCarded } from "tisty-editor/read";
 import { type Task, taskOf } from "../core";
 import { whenLabel } from "../format";
 import { TASK } from "../markdown";
-import type { PartCarded } from "./partcarding";
 
 const named = new RegExp(`${TASK.replace("/", "\\/")}([0-9A-Za-z]+)`, "g");
 

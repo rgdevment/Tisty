@@ -1,5 +1,6 @@
+import { sideways } from "tisty-editor/read";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { sideways } from "../ui/sideways";
+import { SAY } from "../ui/saying";
 
 const page = (widths: [number, number][]) => {
   const made = document.implementation.createHTMLDocument("");
@@ -21,7 +22,7 @@ describe("a table that scrolls sideways", () => {
       [900, 440],
       [440, 440],
     ]);
-    expect(sideways(made)).toEqual([]);
+    expect(sideways(made, SAY)).toEqual([]);
     const [wide, fits] = made.querySelectorAll<HTMLElement>(".table");
 
     expect(wide.getAttribute("tabindex")).toBe("0");
@@ -47,7 +48,7 @@ describe("a table that scrolls sideways", () => {
       },
     });
     const box = made.querySelector<HTMLElement>(".table") as HTMLElement;
-    const [stop] = sideways(made);
+    const [stop] = sideways(made, SAY);
     expect(box.getAttribute("tabindex")).toBe("0");
 
     Object.defineProperty(box, "scrollWidth", { get: () => 440 });

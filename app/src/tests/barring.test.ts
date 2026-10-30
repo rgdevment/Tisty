@@ -1,11 +1,11 @@
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { EditorSelection, EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
+import type { Asked, Asking } from "tisty-editor/edit";
+import { barred, flipped, hosted, kindOf, marksShown, retyped, visual } from "tisty-editor/edit";
 import { describe, expect, it } from "vitest";
 import { t } from "../locales";
-import { barred, flipped, kindOf, retyped } from "../ui/barring";
-import { marksShown, visual } from "../ui/seeing";
-import type { Asked, Asking } from "../ui/slashing";
+import { HOST } from "../ui/hosting";
 
 const view = (doc: string, from = 0, to = from) =>
   new EditorView({
@@ -13,7 +13,7 @@ const view = (doc: string, from = 0, to = from) =>
     state: EditorState.create({
       doc,
       selection: EditorSelection.single(from, to),
-      extensions: [markdown({ base: markdownLanguage }), visual],
+      extensions: [hosted.of(HOST), markdown({ base: markdownLanguage }), visual],
     }),
   });
 

@@ -78,8 +78,8 @@ vi.mock("@tauri-apps/api/window", () => ({
   }),
 }));
 
-vi.mock("tisty-reader/page", async (real) => ({
-  ...(await real<typeof import("tisty-reader/page")>()),
+vi.mock("tisty-editor/read", async (real) => ({
+  ...(await real<typeof import("tisty-editor/read")>()),
   diagrams: () => Promise.resolve(),
   drawing: (source: string) =>
     Promise.resolve(

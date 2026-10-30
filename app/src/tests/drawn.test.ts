@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { heads } from "tisty-reader/page";
+import { heads } from "tisty-editor/read";
 import { describe, expect, it } from "vitest";
 import { framed } from "../ui/framed";
 import { went } from "../ui/paging";

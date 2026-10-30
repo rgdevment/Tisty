@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
+import { matched } from "tisty-editor/read";
 import { useAttended } from "../attended";
 import { docs, type Filed } from "../core";
-import { matched } from "../finding";
 import { t } from "../locales";
 import Row from "./Row";
 

@@ -1,6 +1,6 @@
+import { charsAt } from "tisty-editor/read";
 import type { Mend } from "../core";
 import { fill, t } from "../locales";
-import { charsAt } from "./paging";
 
 export type Said = { readonly code?: string; readonly words?: string };
 

@@ -1,4 +1,4 @@
-import { diagrams } from "tisty-reader/page";
+import { diagrams } from "tisty-editor/read";
 
 const root = document.documentElement;
 const draw = () => diagrams(document, root.classList.contains("dark"), () => true);

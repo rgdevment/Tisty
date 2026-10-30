@@ -393,13 +393,13 @@ jobs:
           args: >
             -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
             -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
-            -Dsonar.sources=crates,app/src,app/src-tauri/src,packages/tisty-diagrams/src,packages/tisty-reader/src,packages/tisty-share-web/src
-            -Dsonar.tests=crates,app/src,packages/tisty-diagrams/tests,packages/tisty-reader/tests,packages/tisty-share-web/tests
+            -Dsonar.sources=crates,app/src,app/src-tauri/src,packages/tisty-diagrams/src,packages/tisty-editor/src,packages/tisty-share-web/src
+            -Dsonar.tests=crates,app/src,packages/tisty-diagrams/tests,packages/tisty-editor/tests,packages/tisty-share-web/tests
             -Dsonar.test.inclusions=crates/*/tests/**,app/src/tests/**,packages/*/tests/**
             -Dsonar.exclusions=crates/*/tests/**,app/src/tests/**,packages/*/tests/**,crates/*/locales/**
             -Dsonar.rust.lcov.reportPaths=lcov-rust.info
             -Dsonar.javascript.lcov.reportPaths=app/coverage/lcov.info
-            -Dsonar.cpd.exclusions=app/src/locales.ts,packages/tisty-diagrams/src/words.ts,packages/tisty-share-web/src/words.ts,app/src/glyphs.ts,app/src/marks.ts,crates/tisty-core/src/model/icon.rs,crates/tisty-markdown/src/vocab.rs,crates/tisty-core/src/model/mark.rs
+            -Dsonar.cpd.exclusions=app/src/locales.ts,packages/tisty-diagrams/src/words.ts,packages/tisty-share-web/src/words.ts,packages/tisty-editor/src/glyphs.ts,app/src/marks.ts,crates/tisty-core/src/model/icon.rs,crates/tisty-markdown/src/vocab.rs,crates/tisty-core/src/model/mark.rs
             -Dsonar.rust.clippy.enabled=false
             -Dsonar.jasmin.internal.js.ts.disabled=true
             -Dsonar.coverage.exclusions=app/src/main.tsx,packages/tisty-share-web/src/main.ts,app/src-tauri/src/**,crates/tisty-share-worker/src/cloudflare.rs,crates/tisty-share-worker/*.mjs

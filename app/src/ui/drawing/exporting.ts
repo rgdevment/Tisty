@@ -1,7 +1,7 @@
 import { writeImage } from "@tauri-apps/plugin-clipboard-manager";
 import { save as intoFile } from "@tauri-apps/plugin-dialog";
 import { rasterized, svgFor } from "tisty-diagrams/read";
-import { drawing } from "tisty-reader/page";
+import { drawing } from "tisty-editor/read";
 import { keepFile } from "../../core";
 import { t, type Word } from "../../locales";
 import type { Choice } from "../Menu";

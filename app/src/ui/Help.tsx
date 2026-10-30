@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Head } from "tisty-reader/page";
+import type { Head } from "tisty-editor/read";
 import { openLink } from "../core";
 import { weigh } from "../format";
 import {

@@ -1,10 +1,11 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { glyph, piece } from "tisty-editor/read";
 import { keptHere, type Lent, weighs } from "../core";
 import { askAgain, serve, showing } from "../inUse";
 import { t, type Word } from "../locales";
 import { ending, family, KINDS, named, previewOf, weighed } from "../previews";
 import { plainly } from "../refusal";
-import { drawn, more, piece } from "./carding";
+import { more } from "./carding";
 import { type Lending, lendKept, locked } from "./widgeting";
 
 const GLYPH: Record<string, string> = {
@@ -140,7 +141,7 @@ const filed = (page: Document, img: Element, at: string, live: () => boolean, as
   card.setAttribute("href", at);
   card.dataset.family = kin;
   const tile = piece(page, "card-tile");
-  tile.append(drawn(page, GLYPH[kin] ?? "page"));
+  tile.append(glyph(page, GLYPH[kin] ?? "page"));
   const meta = piece(page, "card-meta");
   const kindIs = piece(page, "kind", labelled(kind));
   meta.append(kindIs);

@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { markup } from "../glyphs";
+import { markup } from "tisty-editor/read";
 import { onlyMark } from "../leading";
 
 interface Props {
@@ -7,7 +7,7 @@ interface Props {
   className?: string;
 }
 
-export { known, markup } from "../glyphs";
+export { known, markup } from "tisty-editor/read";
 
 // The viewBox every icon shares; a single emoji at font-size 18 measures about 25 across it.
 const ROOM = 24;

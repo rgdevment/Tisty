@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { matched } from "tisty-editor/read";
 import type { Offered } from "../core";
-import { matched } from "../finding";
 import { fill, t } from "../locales";
 
 export const AT_MOST = 5;

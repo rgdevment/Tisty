@@ -2,8 +2,9 @@ import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { EditorSelection, EditorState } from "@codemirror/state";
 import { EditorView, keymap, runScopeHandlers } from "@codemirror/view";
 import { act } from "@testing-library/react";
+import { gridFailed, gridKeys, hosted, regrid } from "tisty-editor/edit";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { gridFailed, gridKeys, regrid } from "../ui/regridding";
+import { HOST } from "../ui/hosting";
 
 const core = vi.hoisted(() => ({
   near: vi.fn<(body: string, at: number, ...edits: unknown[]) => Promise<string>>(),
@@ -27,6 +28,7 @@ const view = (head: number, doc = TEXT, failed = vi.fn()) =>
       doc,
       selection: EditorSelection.single(head),
       extensions: [
+        hosted.of(HOST),
         markdown({ base: markdownLanguage }),
         keymap.of(gridKeys),
         gridFailed.of(failed),
@@ -166,7 +168,7 @@ describe("the table's own menu in the editor's bar", () => {
     );
 
   it("sorts by the column of the caret and opens the types, each written through the core", async () => {
-    const { barred } = await import("../ui/barring");
+    const { barred } = await import("tisty-editor/edit");
     core.near.mockResolvedValue(TEXT);
     const editor = view(TEXT.indexOf("Edad") + 1);
     const { bar, follow } = barred(editor);
