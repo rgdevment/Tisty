@@ -153,9 +153,31 @@ pub fn dress<R: Runtime>(app: &AppHandle<R>) {
 pub fn dress<R: Runtime>(_app: &AppHandle<R>) {}
 
 #[cfg(windows)]
+const PERSONALIZE: &str = r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
+
+// Turning only the taskbar dark raises no ThemeChanged, so the key it lives in is watched instead.
+#[cfg(windows)]
+pub fn follow_bar<R: Runtime>(app: AppHandle<R>) {
+    std::thread::spawn(move || {
+        let Ok(key) =
+            winreg::RegKey::predef(winreg::enums::HKEY_CURRENT_USER).open_subkey(PERSONALIZE)
+        else {
+            return;
+        };
+        while crate::desktop::changed(&key) {
+            let painted = app.clone();
+            let _ = app.run_on_main_thread(move || repaint(&painted));
+        }
+    });
+}
+
+#[cfg(not(windows))]
+pub fn follow_bar<R: Runtime>(_app: AppHandle<R>) {}
+
+#[cfg(windows)]
 fn dark_bar() -> bool {
     winreg::RegKey::predef(winreg::enums::HKEY_CURRENT_USER)
-        .open_subkey(r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize")
+        .open_subkey(PERSONALIZE)
         .and_then(|key| key.get_value::<u32, _>("SystemUsesLightTheme"))
         .map(|light| light == 0)
         .unwrap_or(true)

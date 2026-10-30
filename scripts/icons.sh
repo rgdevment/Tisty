@@ -13,16 +13,42 @@ render() {
   tauri icon "$1" -o "$2" ${3:+-p "$3"} >/dev/null 2>&1
 }
 
-render "$src/tisty-light.svg" "$work/light"
+# Every size a surface asks for: the bundle, the .ico, the MSIX logos and target sizes, the READMEs.
+sizes=16,20,24,30,32,36,40,44,48,50,60,64,71,72,80,96,128,150,256,300,512
+render "$src/tisty-light.svg" "$work/light" "$sizes"
+render "$src/tisty-dark.svg" "$work/dark" "$sizes"
 render "$src/tisty-mac.svg" "$work/mac"
-render "$src/tisty-dark.svg" "$work/dark-sizes" 16,20,24,30,32,36,40,48,64,96,128,256,512
-render "$src/tisty-light.svg" "$work/light-sizes" 16,20,24,30,32,36,40,48,64,96,128,256,300,512
 
-# The bundle wears the light drawing; only macOS takes the tile, since its Dock expects one.
-for file in "$work"/light/*.png "$work"/light/icon.ico; do
-  cp "$file" "$icons/"
+# The bundle's images are single, so they wear the light drawing; macOS takes the tile its Dock expects.
+for size in 32 64 128; do
+  cp "$work/light/${size}x${size}.png" "$icons/"
 done
+cp "$work/light/256x256.png" "$icons/128x128@2x.png"
+cp "$work/light/512x512.png" "$icons/icon.png"
 cp "$work/mac/icon.icns" "$icons/"
+
+# tauri's .ico stops short of 20 and 40, the sizes Windows draws at 125 % and 250 %.
+node - "$icons/icon.ico" "$work"/light/{16x16,20x20,24x24,32x32,40x40,48x48,64x64,256x256}.png <<'EOF_ICO'
+const { readFileSync, writeFileSync } = require("node:fs");
+const [out, ...files] = process.argv.slice(2);
+const images = files.map((file) => readFileSync(file));
+const head = Buffer.alloc(6 + 16 * images.length);
+head.writeUInt16LE(1, 2);
+head.writeUInt16LE(images.length, 4);
+let offset = head.length;
+images.forEach((png, at) => {
+  const side = png.readUInt32BE(16);
+  const entry = 6 + 16 * at;
+  head.writeUInt8(side % 256, entry);
+  head.writeUInt8(side % 256, entry + 1);
+  head.writeUInt16LE(1, entry + 4);
+  head.writeUInt16LE(32, entry + 6);
+  head.writeUInt32LE(png.length, entry + 8);
+  head.writeUInt32LE(offset, entry + 12);
+  offset += png.length;
+});
+writeFileSync(out, Buffer.concat([head, ...images]));
+EOF_ICO
 
 # macOS 26 draws only an Icon Composer icon without a grey frame, and only actool on a Mac compiles one.
 if xcrun --find actool >/dev/null 2>&1; then
@@ -39,15 +65,24 @@ fi
 # Each drawing fades into a surface of its own tone, so a surface gets the opposite one:
 # the light drawing on a dark surface, the dark drawing on a light one. Derived files are named
 # by the surface, and MSIX's unplated means a dark taskbar while lightunplated means a light one.
-for size in 16 20 24 30 32 36 40 48 64 96 256; do
-  cp "$work/light-sizes/${size}x${size}.png" "$icons/Square44x44Logo.targetsize-${size}_altform-unplated.png"
-  cp "$work/dark-sizes/${size}x${size}.png" "$icons/Square44x44Logo.targetsize-${size}_altform-lightunplated.png"
+# Plated tiles sit on the manifest's dark BackgroundColor, so they take the light drawing too.
+msix="$icons/msix"
+rm -rf "$msix"
+mkdir -p "$msix"
+# No scale-qualified logos: makepri would split them into resource packs that a single MSIX never loads.
+for logo in Square44x44Logo:44 Square71x71Logo:71 Square150x150Logo:150 StoreLogo:50; do
+  cp "$work/light/${logo#*:}x${logo#*:}.png" "$msix/${logo%:*}.png"
+done
+for size in 16 20 24 30 32 36 40 48 60 64 72 80 96 256; do
+  cp "$work/light/${size}x${size}.png" "$msix/Square44x44Logo.targetsize-$size.png"
+  cp "$work/light/${size}x${size}.png" "$msix/Square44x44Logo.targetsize-${size}_altform-unplated.png"
+  cp "$work/dark/${size}x${size}.png" "$msix/Square44x44Logo.targetsize-${size}_altform-lightunplated.png"
 done
 
 # An installed (non-MSIX) window swaps its icon as the taskbar changes.
 mkdir -p "$icons/taskbar"
-cp "$work/light-sizes/64x64.png" "$icons/taskbar/on-dark.png"
-cp "$work/dark-sizes/64x64.png" "$icons/taskbar/on-light.png"
+cp "$work/light/64x64.png" "$icons/taskbar/on-dark.png"
+cp "$work/dark/64x64.png" "$icons/taskbar/on-light.png"
 
 # The tray is the one-ink glyph: macOS tints its template itself, Windows needs one per taskbar.
 render "$src/tisty-menubar.svg" "$work/menubar" 18,36
@@ -62,9 +97,9 @@ for size in 16 20 24 32 40 48; do
 done
 
 for size in 128 256 512; do
-  cp "$work/light-sizes/${size}x${size}.png" "$src/tisty-$size.png"
-  cp "$work/dark-sizes/${size}x${size}.png" "$src/tisty-on-light-$size.png"
+  cp "$work/light/${size}x${size}.png" "$src/tisty-$size.png"
+  cp "$work/dark/${size}x${size}.png" "$src/tisty-on-light-$size.png"
 done
-cp "$work/light-sizes/300x300.png" "$src/store-logo-300.png"
-cp "$work/light-sizes/128x128.png" app/public/icon.png
+cp "$work/light/300x300.png" "$src/store-logo-300.png"
+cp "$work/light/128x128.png" app/public/icon.png
 cp "$src/tisty-light.svg" "$src/tisty-dark.svg" app/src/assets/

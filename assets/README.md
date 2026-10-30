@@ -34,16 +34,23 @@ where a single image has to serve both, it is the light drawing.
 | `tisty-128.png`, `tisty-on-light-128.png` | 128×128 | Small inline use |
 | `store-logo-300.png` | 300×300 | Microsoft Store listing logo |
 
-The application's `.ico`, its PNGs and the `Square*Logo` tiles are single
-images, so they wear the light drawing; the `.icns` wears the macOS tile. On a
-Mac with Xcode 26 the script also compiles `Tisty.icon` into `Assets.car`, which
-macOS 26 prefers to the `.icns`.
+The application's `.ico` (16 to 256, with the 20 and 40 Windows draws at 125 %
+and 250 %) and its PNGs are single images, so they wear the light drawing; the
+`.icns` wears the macOS tile. On a Mac with Xcode 26 the script also compiles
+`Tisty.icon` into `Assets.car`, which macOS 26 prefers to the `.icns`.
 
-The MSIX taskbar icons come in both: `altform-unplated` is what a dark taskbar
-shows, so it takes the light drawing, and `altform-lightunplated` takes the dark
-one. An installed window swaps between `taskbar/on-dark.png` and
-`taskbar/on-light.png` as the taskbar changes, and a test in
-`app/src-tauri/src/tray.rs` keeps each one inked against its bar.
+`app/src-tauri/icons/msix/` holds what the MSIX packs. The plated logos sit on
+the manifest's dark `BackgroundColor`, so they wear the light drawing. The
+taskbar icons come at every target size Windows asks for: `altform-unplated` is
+what a dark taskbar shows, so it takes the light drawing, and
+`altform-lightunplated` takes the dark one. There are no scale-qualified logos,
+since `makepri` would split them into resource packs that a single MSIX never
+loads.
+
+An installed window swaps between `taskbar/on-dark.png` and
+`taskbar/on-light.png` whenever the taskbar changes, even when only the taskbar
+does, and a test in `app/src-tauri/src/tray.rs` keeps each one inked against
+its bar.
 
 The tray is the menu-bar glyph: macOS tints its template by itself, and Windows
 gets it in white for a dark taskbar and in near-black for a light one.

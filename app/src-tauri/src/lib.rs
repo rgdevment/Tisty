@@ -984,6 +984,7 @@ pub(crate) fn opened(
 
     app.manage(answers::freeing::Stopping::default());
     tray::dress(app);
+    tray::follow_bar(app.clone());
     let perched = tray::raise(app, &words).is_some();
     app.manage(Perched(perched));
     app.manage(quick_keys::Bound(Mutex::new(quick_keys::listen_for(

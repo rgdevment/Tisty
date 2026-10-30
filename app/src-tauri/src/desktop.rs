@@ -133,6 +133,27 @@ fn a_package(id: &str) -> bool {
         || id.contains('!')
 }
 
+/// Blocks until a value under `key` is written, and says false once the key can no longer be watched.
+#[cfg(windows)]
+#[allow(unsafe_code)]
+pub(crate) fn changed(key: &winreg::RegKey) -> bool {
+    use windows::Win32::System::Registry::{
+        HKEY, REG_NOTIFY_CHANGE_LAST_SET, RegNotifyChangeKeyValue,
+    };
+
+    // The handle stays open while `key` is borrowed, and a synchronous wait takes no event.
+    unsafe {
+        RegNotifyChangeKeyValue(
+            HKEY(key.raw_handle() as _),
+            false,
+            REG_NOTIFY_CHANGE_LAST_SET,
+            None,
+            false,
+        )
+    }
+    .is_ok()
+}
+
 #[cfg(windows)]
 #[allow(unsafe_code)]
 pub(crate) fn known_as(at: &std::path::Path) -> Option<String> {
