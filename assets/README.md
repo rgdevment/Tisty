@@ -17,46 +17,35 @@ The SVGs are the source of truth, and `scripts/icons.sh` renders every PNG,
 `app/src-tauri/icons/`. Change an SVG and run it again rather than editing a PNG
 by hand.
 
-Each drawing fades into a surface of its own tone, so a surface takes the
-opposite one: the light drawing on dark surfaces, the dark drawing on light
-ones. Files made for one surface are named after it (`on-light`, `on-dark`);
-where a single image has to serve both, it is the light drawing.
+The light drawing is the mark everywhere: it reads on light and dark surfaces
+alike, while the dark one fades into dark surfaces and weighs on light ones.
+`tisty-dark.svg` stays as the designer delivered it.
 
 | File | Size | Where it goes |
 | --- | --- | --- |
-| `tisty-light.svg` | vector | The light drawing: dark surfaces, and wherever one image serves both |
-| `tisty-dark.svg` | vector | The dark drawing: light surfaces |
-| `tisty-mac.svg` | vector | The macOS 13–15 app icon: the light drawing on the tile the Dock expects |
+| `tisty-light.svg` | vector | The mark, everywhere it is shown |
+| `tisty-dark.svg` | vector | The designer's dark drawing, kept as delivered |
+| `tisty-mac.svg` | vector | The macOS 13–15 app icon: the mark on the tile the Dock expects |
 | `Tisty.icon` | layers | The macOS 26 app icon, in light, dark and tinted; open it in Icon Composer |
 | `tisty-menubar.svg` | vector | The tray and the menu bar, in one ink |
-| `tisty-512.png`, `tisty-on-light-512.png` | 512×512 | Press, release pages, the MCP registry |
-| `tisty-256.png`, `tisty-on-light-256.png` | 256×256 | The logo at the top of the README and the wiki |
-| `tisty-128.png`, `tisty-on-light-128.png` | 128×128 | Small inline use |
+| `tisty-512.png` | 512×512 | Press, release pages, the MCP registry |
+| `tisty-256.png` | 256×256 | The logo at the top of the README and the wiki |
+| `tisty-128.png` | 128×128 | Small inline use |
 | `store-logo-300.png` | 300×300 | Microsoft Store listing logo |
 
 The application's `.ico` (16 to 256, with the 20 and 40 Windows draws at 125 %
-and 250 %) and its PNGs are single images, so they wear the light drawing; the
-`.icns` wears the macOS tile. On a Mac with Xcode 26 the script also compiles
+and 250 %), its PNGs and the MSIX logos wear the light drawing; the `.icns`
+wears the macOS tile. On a Mac with Xcode 26 the script also compiles
 `Tisty.icon` into `Assets.car`, which macOS 26 prefers to the `.icns`.
 
-`app/src-tauri/icons/msix/` holds what the MSIX packs. The plated logos sit on
-the manifest's dark `BackgroundColor`, so they wear the light drawing. The
-taskbar icons come at every target size Windows asks for: `altform-unplated` is
-what a dark taskbar shows, so it takes the light drawing, and
-`altform-lightunplated` takes the dark one. There are no scale-qualified logos,
-since `makepri` would split them into resource packs that a single MSIX never
-loads.
+`app/src-tauri/icons/msix/` holds what the MSIX packs, at every target size
+Windows asks for. There are no scale-qualified logos, since `makepri` would
+split them into resource packs that a single MSIX never loads.
 
-An installed window swaps between `taskbar/on-dark-*.png` and
-`taskbar/on-light-*.png` whenever the taskbar changes, even when only the
-taskbar does, taking the size that matches the screen's scale (32 to 96). A
-test in `app/src-tauri/src/tray.rs` keeps each one inked against its bar. A
-pinned button, Start and Task Manager show the `.ico` instead, which Windows
-does not let an app swap.
-
-The tray is the menu-bar glyph: macOS tints its template by itself, and Windows
-gets it in white for a dark taskbar and in near-black for a light one.
-`app/src/assets/tisty-light.svg` and `tisty-dark.svg` are the copies About shows.
+The tray and the menu bar take the one-ink glyph instead. macOS tints its
+template like every other menu-bar icon; Windows gets it in white for a dark
+taskbar and in near-black for a light one, following the taskbar even when only
+it changes. `app/src/assets/tisty-light.svg` is the copy About shows.
 
 ## Mascot
 

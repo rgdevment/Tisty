@@ -1,8 +1,5 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/icons/tisty-256.png"/>
-    <img src="https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/icons/tisty-on-light-256.png" width="110" height="110" alt="Tisty"/>
-  </picture>
+  <img src="https://raw.githubusercontent.com/rgdevment/Tisty/main/assets/icons/tisty-256.png" width="110" height="110" alt="Tisty"/>
 </p>
 
 <h1 align="center">Tisty's help</h1>
