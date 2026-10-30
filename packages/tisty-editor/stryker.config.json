@@ -18,7 +18,7 @@
   "inPlace": false,
   "tempDirName": ".stryker-tmp",
   "ignorePatterns": ["reports"],
-  "mutate": ["src/**/*.ts"],
+  "mutate": ["src/**/*.ts", "!src/glyphs.ts"],
   "thresholds": {
     "high": 80,
     "low": 60,

@@ -1,7 +1,6 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { colored, diagrams, HUES, isHue, saidKinds, sourceOf } from "tisty-editor/read";
+import { colored, diagrams, HUES, iconed, saidKinds, sourceOf } from "tisty-editor/read";
 import { type Lent, openLink } from "../core";
-import { markup } from "../glyphs";
 import { askAgain, serve, showing } from "../inUse";
 import { locale, t } from "../locales";
 import { pictured } from "../previews";
@@ -75,22 +74,6 @@ export const fitted = (page: Document, wide?: number, zoom?: number) => {
   const root = page.documentElement;
   if (wide) root.style.setProperty("--wide", `${wide}px`);
   root.style.setProperty("zoom", String(zoom ?? 1));
-};
-
-export const iconed = (page: Document | HTMLElement) => {
-  const made = "createElementNS" in page ? page : page.ownerDocument;
-  for (const one of page.querySelectorAll<HTMLElement>("span.ico[data-ico]")) {
-    const drawn = markup(one.dataset.ico ?? "");
-    if (!drawn) continue;
-    const hue = one.dataset.hue ?? "";
-    if (isHue(hue)) one.classList.add(`ico-${hue}`);
-    const glyph = made.createElementNS("http://www.w3.org/2000/svg", "svg");
-    glyph.setAttribute("class", "glyph");
-    glyph.setAttribute("viewBox", "0 0 24 24");
-    glyph.setAttribute("aria-hidden", "true");
-    glyph.innerHTML = drawn;
-    one.replaceChildren(glyph);
-  }
 };
 
 const STRANGER: Attaching = { stranger: true, apart: false, more: false };

@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { fenced, nameOf, STARTS, startOf } from "tisty-diagrams/read";
+import { known } from "tisty-editor/read";
 import type { Filed } from "../core";
-import { known } from "../glyphs";
 import { locale, t } from "../locales";
 import { spawned } from "../making";
 import { docCard } from "../markdown";

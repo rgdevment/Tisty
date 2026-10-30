@@ -9,9 +9,8 @@ import {
   WidgetType,
 } from "@codemirror/view";
 import type { SyntaxNode } from "@lezer/common";
-import { isHue } from "tisty-editor/read";
+import { isHue, known, markup } from "tisty-editor/read";
 import { frontLines } from "../front";
-import { known, markup } from "../glyphs";
 import { t } from "../locales";
 import { anchored, coded, owning, TAG_EDGE, TAG_WORD } from "./formatting";
 import { waiting } from "./pending";

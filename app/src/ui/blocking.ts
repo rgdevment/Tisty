@@ -23,9 +23,8 @@ import {
   type ViewUpdate,
 } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
-import { HUES, isHue } from "tisty-editor/read";
+import { HUES, isHue, known } from "tisty-editor/read";
 import { docFromHtml, docFromText } from "../core";
-import { known } from "../glyphs";
 import { barred, blockKeys, flipped } from "./barring";
 import { docked } from "./docking";
 import { coded, owning } from "./formatting";

@@ -1,7 +1,7 @@
 import { closeCompletion } from "@codemirror/autocomplete";
 import type { EditorView, KeyBinding } from "@codemirror/view";
+import { markup } from "tisty-editor/read";
 import { frontLines } from "../front";
-import { markup } from "../glyphs";
 import { t } from "../locales";
 import { coded, formless, wrapped } from "./formatting";
 import { type Regrid, regrid } from "./regridding";

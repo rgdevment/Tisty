@@ -1,5 +1,5 @@
+import { cardBox, glyph, piece } from "tisty-editor/read";
 import { fill, t } from "../locales";
-import { cardBox, drawn, piece } from "./carding";
 
 export type PartCarded =
   | {
@@ -28,7 +28,7 @@ const carded = (page: Document, id: string, written: string, seen: PartCarded) =
   box.dataset.task = id;
   box.dataset.written = written;
   const tile = piece(page, "card-tile");
-  tile.append(drawn(page, seen.kind === "closed" ? "done" : "todo"));
+  tile.append(glyph(page, seen.kind === "closed" ? "done" : "todo"));
   const name = seen.kind === "loose" || seen.kind === "waiting" ? written : seen.title;
   const when = seen.kind === "open" ? (seen.when ?? "") : "";
   const meta = piece(page, "card-meta");
