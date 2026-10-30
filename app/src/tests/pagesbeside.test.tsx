@@ -183,7 +183,7 @@ describe("the pages a document holds, seen from the column", () => {
     open([book]);
 
     const aside = await index();
-    await aside.findByText(/kB/);
+    await aside.findByText("8.4 kB");
     expect(aside.queryByText("1 page")).toBeNull();
   });
 });

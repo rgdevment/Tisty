@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed } from "../core";
 import { DOC } from "../markdown";
 import Docs from "../ui/Docs";
-import { counted } from "../ui/PaperFacts";
+import { counted } from "../ui/paperFacts";
 
 const store = vi.hoisted(() => ({
   ran: [] as string[],
@@ -135,7 +135,7 @@ describe("the column beside a document", () => {
     show();
 
     const aside = await screen.findByRole("complementary", { name: "About this document" });
-    await within(aside).findByText(/kB/);
+    await within(aside).findByText("8.4 kB");
     expect(within(aside).queryByText("Author")).toBeNull();
     expect(within(aside).queryByText("Edited by")).toBeNull();
   });

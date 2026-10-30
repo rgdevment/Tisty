@@ -61,7 +61,7 @@ export const cardBox = (page: Document, kind: string, open: boolean) => {
 export const carded = (page: Document, cards: Cards, live: () => boolean) => {
   for (const link of page.querySelectorAll<HTMLAnchorElement>(".page > p > a.card[data-doc]")) {
     const held = link.parentElement;
-    if (!held || held.children.length !== 1) continue;
+    if (held?.children.length !== 1) continue;
     if ((held.textContent ?? "").trim() !== (link.textContent ?? "").trim()) continue;
     const file = link.dataset.doc ?? "";
     const seen = cards.card(file);

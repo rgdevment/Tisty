@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Head } from "tisty-editor/read";
 import { describe, expect, it, vi } from "vitest";
@@ -36,45 +36,41 @@ const beside = (heads: Head[], more: { onCopy?: () => void } = {}, paper = "dev_
 
 const panel = (heads: Head[], more: { onCopy?: () => void } = {}) => render(beside(heads, more));
 
+// A row of the column: its details element, and a press on its summary as the person makes it.
+const row = (key: string) =>
+  document.querySelector(`details[data-row=${key}]`) as HTMLDetailsElement;
+const press = (key: string) => userEvent.click(row(key).querySelector("summary") as HTMLElement);
+
 describe("the document's column", () => {
   it("opens the details with a document whose outline is short", () => {
     panel(headed(2));
-    expect(
-      screen.getByRole("button", { name: t("besideDetails") }).getAttribute("aria-expanded"),
-    ).toBe("true");
+    expect(row("details").open).toBe(true);
   });
 
   it("keeps the details folded when the outline needs the room", () => {
     panel(headed(12));
-    const details = screen.getByRole("button", { name: new RegExp(t("besideDetails")) });
-    expect(details.getAttribute("aria-expanded")).toBe("false");
+    expect(row("details").open).toBe(false);
   });
 
   it("folds the details once a long outline arrives after the page is drawn", () => {
     const view = panel([]);
     view.rerender(beside(headed(12)));
-    const details = screen.getByRole("button", { name: new RegExp(t("besideDetails")) });
-    expect(details.getAttribute("aria-expanded")).toBe("false");
+    expect(row("details").open).toBe(false);
   });
 
   it("leaves what the person opened alone when the outline grows", async () => {
     const view = panel(headed(12));
-    await userEvent.click(screen.getByRole("button", { name: new RegExp(t("besideDetails")) }));
+    await press("details");
+    expect(row("details").open).toBe(true);
     view.rerender(beside(headed(14)));
-    expect(
-      screen.getByRole("button", { name: t("besideDetails") }).getAttribute("aria-expanded"),
-    ).toBe("true");
+    expect(row("details").open).toBe(true);
   });
 
   it("opens one part at a time", async () => {
     panel(headed(2));
-    await userEvent.click(screen.getByRole("button", { name: new RegExp(t("besideShared")) }));
+    await press("shared");
     expect(screen.getByText(t("sharedWill"))).toBeTruthy();
-    expect(
-      screen
-        .getByRole("button", { name: new RegExp(t("besideDetails")) })
-        .getAttribute("aria-expanded"),
-    ).toBe("false");
+    await waitFor(() => expect(row("details").open).toBe(false));
   });
 
   it("gathers every way out of the document under one button, the web page among them", async () => {
@@ -124,25 +120,21 @@ describe("the export button", () => {
         onApart={() => {}}
       />,
     );
-    await userEvent.click(screen.getByRole("button", { name: t("exportIt") }));
+    await userEvent.click(screen.getByRole("button", { name: t("makingPdf") }));
     expect(screen.queryByRole("menuitem", { name: new RegExp(t("previewPdf")) })).toBeNull();
     expect(screen.queryByRole("menuitem", { name: new RegExp(t("toPdf")) })).toBeNull();
     expect(screen.getByRole("menuitem", { name: new RegExp(t("toHtml")) })).toBeTruthy();
-    expect(screen.getByRole("button", { name: t("exportIt") }).title).toBe(t("makingPdf"));
+    expect(screen.getByRole("button", { name: t("makingPdf") }).title).toBe(t("makingPdf"));
   });
 });
 
 describe("the details coming back to a document", () => {
   it("decide afresh for it, whatever another document left them as", async () => {
     const view = render(beside(headed(12)));
-    await userEvent.click(screen.getByRole("button", { name: new RegExp(t("besideDetails")) }));
+    await press("details");
     view.rerender(beside(headed(2), {}, "dev_a-0002"));
     view.rerender(beside(headed(12)));
-    expect(
-      screen
-        .getByRole("button", { name: new RegExp(t("besideDetails")) })
-        .getAttribute("aria-expanded"),
-    ).toBe("false");
+    expect(row("details").open).toBe(false);
   });
 });
 

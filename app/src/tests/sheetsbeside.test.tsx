@@ -41,7 +41,7 @@ describe("the sheets a document is read on", () => {
     const onSheets = vi.fn();
     const off = panel(false, onSheets);
     expect(screen.queryByRole("button", { name: t("sheetsAcross") })).toBeNull();
-    await userEvent.click(screen.getByRole("switch", { name: t("sheetsShown") }));
+    await userEvent.click(screen.getByRole("button", { name: t("sheetsShown") }));
     expect(onSheets).toHaveBeenCalledWith(true);
     off.unmount();
 

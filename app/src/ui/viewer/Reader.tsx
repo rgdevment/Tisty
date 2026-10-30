@@ -11,7 +11,7 @@ import {
 import { copied, type DocFacts, type Paper } from "../../core";
 import { weigh } from "../../format";
 import { t } from "../../locales";
-import { dated, holdsOf } from "../PaperFacts";
+import { dated, holdsOf } from "../paperFacts";
 import SidePanels from "../SidePanels";
 import { usePictures } from "../usePictures";
 import { button } from "./Glyphs";

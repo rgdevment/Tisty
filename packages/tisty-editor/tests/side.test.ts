@@ -76,7 +76,12 @@ describe("the panels beside a sheet", () => {
       },
     ]);
     expect(text(side, ".side-gist")).toEqual(["paperWords 4 · 1 kB"]);
-    expect(text(side, ".side-fact dt")).toEqual(["paperAuthor", "paperLong", "paperWeighs", "version"]);
+    expect(text(side, ".side-fact dt")).toEqual([
+      "paperAuthor",
+      "paperLong",
+      "paperWeighs",
+      "version",
+    ]);
     sided(side, say, [{ kind: "details", facts: { body: "" } }]);
     expect(text(side, ".side-gist")).toEqual(["paperEmpty"]);
   });
@@ -96,6 +101,7 @@ describe("the panels beside a sheet", () => {
     expect(text(side, ".side-gist.is-good")).toEqual(["rgdevment · signedHolds"]);
     expect(text(side, ".side-said")).toEqual(["signedHoldsSaid", "signedSentBy otro"]);
     expect(text(side, ".side-print")).toEqual(["AB:CD"]);
+    row?.querySelector("summary")?.click();
     if (row) row.open = true;
     sided(side, say, signed({ verdict: "revoked", who: "rgdevment" }));
     expect(side.querySelector<HTMLDetailsElement>("details[data-row=seal]")?.open).toBe(true);
@@ -126,6 +132,98 @@ describe("the panels beside a sheet", () => {
     expect(side.querySelector<HTMLAnchorElement>("a.side-act")?.download).toBe("receta.md");
     side.querySelector<HTMLButtonElement>("button.side-act.is-main")?.click();
     expect(pressed).toBe(1);
+  });
+
+  it("walks the folders it sits in, opens apart, exports, and lists the book a page belongs to", () => {
+    const side = host();
+    const asked: string[] = [];
+    sided(side, say, [
+      {
+        kind: "title",
+        title: "Capítulo 2",
+        trail: [
+          { key: "all", label: "Todos", onPick: () => asked.push("all") },
+          { key: "f1", label: "Guía", onPick: () => asked.push("f1") },
+        ],
+        onApart: () => asked.push("apart"),
+      },
+      {
+        kind: "paper",
+        leaf: "a4",
+        onLeaf: () => undefined,
+        exporting: true,
+        onExport: () => asked.push("export"),
+      },
+      {
+        kind: "index",
+        heads: [],
+        book: {
+          up: { title: "", onPick: () => asked.push("up") },
+          said: "2 páginas",
+          pages: [
+            { key: "1", title: "Uno", current: true, onPick: () => asked.push("uno") },
+            { key: "2", title: "Dos", away: true, archived: true, onPick: () => undefined },
+            { key: "3", title: "Tres", flagged: true, onPick: () => undefined },
+          ],
+        },
+      },
+    ]);
+    expect(text(side, ".side-under")).toEqual(["Todos / Guía"]);
+    expect(side.querySelector(".side-none")).toBeNull();
+    for (const step of side.querySelectorAll<HTMLButtonElement>(".side-step")) step.click();
+    side.querySelector<HTMLButtonElement>("[aria-label=viewDocApart]")?.click();
+    const out = side.querySelector<HTMLButtonElement>("[aria-haspopup=menu]");
+    expect(out?.getAttribute("aria-label")).toBe("makingPdf");
+    out?.click();
+    const [up, one, two, three] = side.querySelectorAll<HTMLButtonElement>(".side-go.is-page");
+    expect(up.textContent).toBe("untitledDoc");
+    up.click();
+    one.click();
+    expect(one.getAttribute("aria-current")).toBe("true");
+    expect(two.getAttribute("aria-label")).toBe("Dos — isArchived");
+    expect(three.getAttribute("aria-label")).toBe("Tres — docFlagged");
+    expect(three.querySelector(".side-flag")).not.toBeNull();
+    expect(asked).toEqual(["all", "f1", "apart", "export", "up", "uno"]);
+  });
+
+  it("shows the properties and tags of the details, and keeps one row open at a time", () => {
+    const side = host();
+    let fronted = 0;
+    const panels: Panel[] = [
+      {
+        kind: "details",
+        open: true,
+        facts: {
+          body: "Hola",
+          fields: [{ key: "estado", values: ["listo"] }],
+          overgrown: true,
+          onFront: () => fronted++,
+          tags: [
+            { name: "casa", times: 2 },
+            { name: "nueva", times: 0 },
+          ],
+        },
+      },
+      { kind: "shared", gist: "Pronto", said: "Con un link." },
+    ];
+    sided(side, say, panels);
+    const [details, shared] = side.querySelectorAll<HTMLDetailsElement>("details[data-row]");
+    expect(details.open).toBe(true);
+    expect(text(side, ".side-part .side-label")).toEqual(["frontNamed", "tags"]);
+    expect(text(side, ".side-part .side-none")).toEqual(["frontOvergrown"]);
+    side.querySelector<HTMLButtonElement>(".side-link")?.click();
+    expect(fronted).toBe(1);
+    const [casa, nueva] = side.querySelectorAll<HTMLElement>(".side-tag");
+    expect(casa.title).toBe("tagTimes 2");
+    expect(nueva.querySelector(".side-times")).toBeNull();
+    shared.querySelector("summary")?.click();
+    shared.open = true;
+    shared.dispatchEvent(new Event("toggle"));
+    expect(details.open).toBe(false);
+    sided(side, say, panels);
+    const [again, sharedAgain] = side.querySelectorAll<HTMLDetailsElement>("details[data-row]");
+    expect(sharedAgain.open).toBe(true);
+    expect(again.open).toBe(false);
   });
 
   it("counts the words of a body, without its code or its marks", () => {

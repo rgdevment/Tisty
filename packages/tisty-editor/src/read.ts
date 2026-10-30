@@ -33,7 +33,16 @@ export {
   shell,
   TITLED,
 } from "./shell";
-export { type Act, type Facts, type Panel, type Seal, sided, wordsIn } from "./side";
+export {
+  type Act,
+  type Book,
+  type Facts,
+  type Leaf,
+  type Panel,
+  type Seal,
+  sided,
+  wordsIn,
+} from "./side";
 export { sideways } from "./sideways";
 export { charsAt, spanned } from "./spans";
 export { staged, stepLine, steppedTitle } from "./stages";

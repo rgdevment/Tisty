@@ -1,5 +1,16 @@
 // Every word the sheet says while it is read, so a host that lacks one fails to build rather than showing its key.
 export type ReadWord =
+  | "besidePageOf"
+  | "docFlagged"
+  | "exportIt"
+  | "frontEdit"
+  | "frontNamed"
+  | "frontOvergrown"
+  | "isArchived"
+  | "makingPdf"
+  | "tagTimes"
+  | "tags"
+  | "viewDocApart"
   | "besideDetails"
   | "besideShared"
   | "besideShut"
