@@ -20,6 +20,9 @@ export type Asked = {
 
 export type Words = { readonly sheet: Say; readonly page: (word: string) => string };
 
+/** The address as it was opened, which Tisty takes whole, and the link to read, which is what is passed on. */
+export type Links = { readonly opened: string; readonly read: string };
+
 const COPIED_MS = 2000;
 
 const copying = (link: string, page: Words["page"]) => (at: HTMLElement) => {
@@ -42,7 +45,7 @@ const downloading = (text: string) => (at: HTMLElement) => {
 };
 
 // The panels a reader of a shared document needs, from the same catalogue the window draws from.
-export const panelsOf = (now: Now, asked: Asked, words: Words, link: string): Panel[] => {
+export const panelsOf = (now: Now, asked: Asked, words: Words, links: Links): Panel[] => {
   const { view } = now;
   const turned = (next: Partial<View>) => asked.onView({ ...view, ...next });
   return [
@@ -67,7 +70,7 @@ export const panelsOf = (now: Now, asked: Asked, words: Words, link: string): Pa
     {
       kind: "acts",
       acts: [
-        { key: "open", label: words.page("openin"), main: true, href: tistyOf(link) },
+        { key: "open", label: words.page("openin"), main: true, href: tistyOf(links.opened) },
         {
           key: "md",
           label: words.page("download"),
@@ -75,7 +78,7 @@ export const panelsOf = (now: Now, asked: Asked, words: Words, link: string): Pa
           download: fileOf(now.title, words.page("document")),
           onPick: downloading(now.text),
         },
-        { key: "copy", label: words.page("copy"), onPick: copying(link, words.page) },
+        { key: "copy", label: words.page("copy"), onPick: copying(links.read, words.page) },
       ],
     },
   ];

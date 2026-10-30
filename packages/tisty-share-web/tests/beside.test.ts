@@ -7,6 +7,7 @@ import { wordsFor } from "../src/words";
 const say = wordsFor(true);
 const words = { sheet: (word: string) => word, page: say };
 const LINK = "https://tisty.cl/AbCd1234#llave";
+const LINKS = { opened: `${LINK}.token`, read: LINK };
 
 const now = (more: Partial<Now> = {}): Now => ({
   title: "Guía",
@@ -32,7 +33,7 @@ afterEach(() => vi.unstubAllGlobals());
 describe("the panels beside a shared document", () => {
   it("are the reader's: what it is, its paper and outline, its details and signature, and what can be done", () => {
     const { asked } = asking();
-    const panels = panelsOf(now(), asked, words, LINK);
+    const panels = panelsOf(now(), asked, words, LINKS);
     expect(panels.map((one) => one.kind)).toEqual([
       "title",
       "paper",
@@ -47,18 +48,18 @@ describe("the panels beside a shared document", () => {
   });
 
   it("names a body without a title by the page's word", () => {
-    const panels = panelsOf(now({ title: "" }), asking().asked, words, LINK);
+    const panels = panelsOf(now({ title: "" }), asking().asked, words, LINKS);
     expect(of(panels, "title").title).toBe(say("document"));
   });
 
   it("changes the paper from the view it shows, and offers landscape only while the sheets are laid", () => {
     const { asked, views } = asking();
-    const flat = of(panelsOf(now(), asked, words, LINK), "paper");
+    const flat = of(panelsOf(now(), asked, words, LINKS), "paper");
     expect(flat.landscape).toBeUndefined();
     flat.onLeaf("letter");
     flat.sheets?.onTurn(true);
     const laid = of(
-      panelsOf(now({ view: { leaf: "a4", sheets: true, landscape: false } }), asked, words, LINK),
+      panelsOf(now({ view: { leaf: "a4", sheets: true, landscape: false } }), asked, words, LINKS),
       "paper",
     );
     laid.landscape?.onTurn(true);
@@ -74,11 +75,11 @@ describe("the panels beside a shared document", () => {
     vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: made, revokeObjectURL: vi.fn() }));
     const writeText = vi.fn(() => Promise.resolve());
     vi.stubGlobal("navigator", { clipboard: { writeText } });
-    const acts = of(panelsOf(now(), asking().asked, words, LINK), "acts").acts;
+    const acts = of(panelsOf(now(), asking().asked, words, LINKS), "acts").acts;
     const [open, md, copy] = acts;
     expect(open).toMatchObject({
       main: true,
-      href: `tisty://share?link=${encodeURIComponent(LINK)}`,
+      href: `tisty://share?link=${encodeURIComponent(LINKS.opened)}`,
     });
     expect(md.download).toBe("Guía.md");
     const link = document.createElement("a");
