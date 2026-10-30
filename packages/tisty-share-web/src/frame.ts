@@ -62,7 +62,7 @@ export const tagged = (row: HTMLElement, tags: readonly string[]) => {
   row.hidden = tags.length === 0;
 };
 
-// The byline takes over the line that closes the title, so the header reads as one: title, then tags.
+// The byline takes over the line that closes the title, so the header reads as one: title, then tags and dates.
 // Important, since the reader styles a title after front matter with a selector no plainer rule outweighs.
 const BYLINE = [
   ".page > :has(+ .byline) { margin-bottom: 10px !important; padding-bottom: 0 !important; border-bottom: 0 !important }",
@@ -71,15 +71,16 @@ const BYLINE = [
 ].join("\n");
 
 // Placed right after the body's own title, so no line of the body moves; a body with no title gets none.
-export const bylined = (page: Document, tags: readonly string[]): boolean => {
+export const bylined = (page: Document, tags: readonly string[], when: string): boolean => {
   const title = page.querySelector(TITLED);
-  if (!title || tags.length === 0) return false;
+  if (!title || (tags.length === 0 && !when)) return false;
   const style = page.createElement("style");
   style.textContent = BYLINE;
   page.head.append(style);
   const line = page.createElement("div");
   line.className = "byline";
   line.append(...chips(page, tags));
+  if (when) line.append(Object.assign(page.createElement("span"), { textContent: when }));
   title.after(line);
   return true;
 };

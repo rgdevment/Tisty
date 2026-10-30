@@ -119,7 +119,15 @@ const framed = (found: Read) => {
   part(".ends").textContent = endsOf(found.facts, language);
 };
 
-// On a phone the panels wait under a button, and going to a heading puts them away again.
+// The paper keeps its own width: where the panels do not fit beside it, they wait under a button instead.
+const fitted = (across: number) => {
+  const root = document.documentElement;
+  const beside = Number.parseFloat(getComputedStyle(root).getPropertyValue("--beside")) || 0;
+  root.style.setProperty("--across", `${across}px`);
+  root.classList.toggle("tight", innerWidth < across + beside);
+};
+
+// Going to a heading from the panels puts them away again.
 const besideOpen = part<HTMLButtonElement>(".side-open");
 const besideShown = (open: boolean) => {
   reading.classList.toggle("is-side", open);
@@ -196,12 +204,14 @@ const shown = async (password?: string) => {
   const rawText = part(".raw");
   rawText.textContent = found.text;
   const laid = () => laidOut(view, sheetSays.say);
+  const across = () => fitted(laid().across);
+  addEventListener("resize", () => across());
   const paneled = () =>
     sided(
       part(".side"),
       sheetSays.say,
       panelsOf(
-        { title, when, text: found.text, about: found.about, view, raw, heads },
+        { title, text: found.text, about: found.about, view, raw, heads },
         { onView, onRaw, onShut: () => besideShown(false) },
         { sheet: sheetSays.say, page: say },
         location.href,
@@ -209,7 +219,7 @@ const shown = async (password?: string) => {
     );
   const onView = (next: View) => {
     view = next;
-    document.documentElement.style.setProperty("--across", `${laid().across}px`);
+    across();
     lay();
     paneled();
   };
@@ -217,18 +227,20 @@ const shown = async (password?: string) => {
     raw = on;
     frame.hidden = on;
     rawText.hidden = !on;
+    if (!on) lay();
     paneled();
   };
-  // Tags sit under the body's title, and the dates in the panel; a body without a title has its tags above it.
+  // Tags and dates sit under the body's title; a body without one has them above it instead.
   const draw = async () => {
     seen();
-    document.documentElement.style.setProperty("--across", `${laid().across}px`);
+    across();
     const shown = await drawn(frame, found, night.matches, sheetSays, laid);
     lay = shown.lay;
     const { page } = shown;
-    const inside = bylined(page, tags);
+    const inside = bylined(page, tags, when);
     tagged(part(".tags"), inside ? [] : tags);
-    part(".paper-head").hidden = inside || tags.length === 0;
+    part(".when").textContent = inside ? "" : when;
+    part(".paper-head").hidden = inside || (tags.length === 0 && !when);
     heads = headsOf(page).map((one) => ({
       ...one,
       go: () => {

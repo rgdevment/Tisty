@@ -123,7 +123,7 @@ export const laidOut = ({ leaf, sheets, landscape }: View, say: Say): Laid => {
 };
 
 // On a screen narrower than the paper, as a phone's, the sheets would break where no sheet ends, so the body flows as one.
-const fitting = (frame: HTMLIFrameElement, laid: () => Laid) => () => {
+export const fitting = (frame: HTMLIFrameElement, laid: () => Laid) => () => {
   const { sheet } = laid();
   return sheet && frame.clientWidth >= sheet.wide ? sheet : undefined;
 };

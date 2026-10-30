@@ -239,9 +239,13 @@ function Reading({
       <Header
         shown={shown}
         side={side}
+        raw={raw}
+        busy={busy}
         preset={preset}
         menu={Boolean(menu)}
         onSide={acts.side}
+        onRaw={setRaw}
+        onEdit={() => editIn(true)}
         onPreset={setPreset}
         onAgain={acts.again}
         onMore={setMenu}

@@ -5,8 +5,11 @@ import type { Say } from "./words";
 
 type Of<K extends More["kind"]> = Extract<More, { kind: K }>;
 
+// The title and the tags are shown above and beside the details, so the properties leave them out.
+const SHOWN = new Set(["title", "tags", "tag"]);
+
 const fronted = (page: Document, say: Say, facts: Facts) => {
-  const fields = facts.fields ?? [];
+  const fields = (facts.fields ?? []).filter((one) => !SHOWN.has(one.key.toLowerCase()));
   if (!fields.length && !facts.overgrown && !facts.onFront) return null;
   const part = made(page, "section", "side-part");
   const head = made(page, "div", "side-part-head");

@@ -10,7 +10,6 @@ const LINK = "https://tisty.cl/AbCd1234#llave";
 
 const now = (more: Partial<Now> = {}): Now => ({
   title: "Guía",
-  when: "Compartido hoy",
   text: "# Guía\n\nHola",
   about: {},
   view: { leaf: "a4", sheets: false, landscape: false },
@@ -42,14 +41,14 @@ describe("the panels beside a shared document", () => {
       "seal",
       "acts",
     ]);
-    expect(of(panels, "title")).toMatchObject({ title: "Guía", under: "Compartido hoy" });
+    expect(of(panels, "title").title).toBe("Guía");
     expect(of(panels, "seal").seal.verdict).toBe("unsigned");
     expect(of(panels, "title").onShut).toBe(asked.onShut);
   });
 
-  it("names a body without a title by the page's word, and says nothing under it when nothing is known", () => {
-    const panels = panelsOf(now({ title: "", when: "" }), asking().asked, words, LINK);
-    expect(of(panels, "title")).toMatchObject({ title: say("document"), under: undefined });
+  it("names a body without a title by the page's word", () => {
+    const panels = panelsOf(now({ title: "" }), asking().asked, words, LINK);
+    expect(of(panels, "title").title).toBe(say("document"));
   });
 
   it("changes the paper from the view it shows, and offers landscape only while the sheets are laid", () => {

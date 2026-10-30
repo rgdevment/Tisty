@@ -4,7 +4,6 @@ import { type About, fileOf, sealOf, tistyOf } from "./frame";
 
 export type Now = {
   readonly title: string;
-  readonly when: string;
   readonly text: string;
   readonly about: About;
   readonly view: View;
@@ -50,7 +49,6 @@ export const panelsOf = (now: Now, asked: Asked, words: Words, link: string): Pa
     {
       kind: "title",
       title: now.title || words.page("document"),
-      under: now.when || undefined,
       onShut: asked.onShut,
     },
     {

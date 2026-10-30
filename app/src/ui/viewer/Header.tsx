@@ -1,16 +1,20 @@
 import { useRef } from "react";
 import type { Showing } from "../../core";
 import { fill, t } from "../../locales";
-import { Glyph, Segments, tool } from "./Glyphs";
+import { button, Glyph, Segments, tinted, tool } from "./Glyphs";
 import { PRESETS, type Preset } from "./Stage";
 import TitleBar from "./TitleBar";
 
 interface Props {
   shown: Showing | null;
   side: boolean;
+  raw: boolean;
+  busy: boolean;
   preset: Preset;
   menu: boolean;
   onSide: () => void;
+  onRaw: (raw: boolean) => void;
+  onEdit: () => void;
   onPreset: (one: Preset) => void;
   onAgain: () => void;
   onMore: (at: { x: number; y: number }) => void;
@@ -67,6 +71,27 @@ export default function Header(props: Props) {
         >
           <Glyph name="list" />
         </button>
+      )}
+      {/* The panel holds them while it is open; folded, the bar does, so editing is never a menu away. */}
+      {reading && !side && (
+        <>
+          <Segments
+            value={props.raw ? "raw" : "read"}
+            options={[
+              { key: "read", label: t("viewRead") },
+              { key: "raw", label: t("viewSource") },
+            ]}
+            onPick={(one) => props.onRaw(one === "raw")}
+          />
+          <button
+            type="button"
+            disabled={props.busy}
+            className={shown.kind === "doc" ? button : tinted}
+            onClick={props.onEdit}
+          >
+            {t("viewEditIn")}
+          </button>
+        </>
       )}
       {shown?.kind === "widget" && (
         <>

@@ -1129,7 +1129,7 @@ export default function Docs({
           title={called}
           paper={open.file}
           body={body}
-          tags={known.find((one) => one.file === open.file)?.tags ?? []}
+          tags={known.find((one) => one.file === open.file)?.tags ?? NO_TAGS}
           kept={saved}
           heads={heads}
           pages={above ? sisters : pages}

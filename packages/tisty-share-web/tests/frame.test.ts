@@ -81,18 +81,18 @@ describe("the byline", () => {
     return page;
   };
 
-  it("sits right after the body's title, with its tags, and leaves the rest alone", () => {
+  it("sits right after the body's title, with its tags and dates, and leaves the rest alone", () => {
     const page = pageOf("<h1>Guía</h1><p>Texto</p>");
-    expect(bylined(page, ["guía"])).toBe(true);
+    expect(bylined(page, ["guía"], "Compartido hoy")).toBe(true);
     const blocks = [...(page.querySelector(".page")?.children ?? [])];
     expect(blocks.map((one) => one.className || one.tagName)).toEqual(["H1", "byline", "P"]);
-    expect(blocks[1].textContent).toBe("#guía");
+    expect(blocks[1].textContent).toBe("#guíaCompartido hoy");
     expect(page.head.querySelector("style")?.textContent).toContain(".byline");
   });
 
-  it("is left to the frame when the body has no title, or there are no tags", () => {
-    expect(bylined(pageOf("<figure class='code'><pre>x</pre></figure>"), ["a"])).toBe(false);
-    expect(bylined(pageOf("<h1>Guía</h1>"), [])).toBe(false);
+  it("is left to the frame when the body has no title, or there is nothing to say", () => {
+    expect(bylined(pageOf("<figure class='code'><pre>x</pre></figure>"), ["a"], "hoy")).toBe(false);
+    expect(bylined(pageOf("<h1>Guía</h1>"), [], "")).toBe(false);
   });
 });
 

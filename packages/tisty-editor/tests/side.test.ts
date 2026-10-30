@@ -249,6 +249,28 @@ describe("the panels beside a sheet", () => {
     side.remove();
   });
 
+  it("finds the control that had the keys by what it says, wherever the outline moved it", () => {
+    const side = document.createElement("aside");
+    document.body.append(side);
+    const heads = (many: number) =>
+      Array.from({ length: many }, (_, at) => ({
+        key: `h${at}`,
+        level: 1,
+        text: `Sección ${at}`,
+        go: () => undefined,
+      }));
+    const panels = (many: number): Panel[] => [
+      { kind: "index", heads: heads(many) },
+      { kind: "details", facts: { body: "Hola", fields: [{ key: "title", values: ["Plan"] }] } },
+    ];
+    sided(side, say, panels(1));
+    side.querySelector<HTMLElement>("summary")?.focus();
+    sided(side, say, panels(4));
+    expect(document.activeElement?.tagName).toBe("SUMMARY");
+    expect(side.querySelector(".side-part")).toBeNull();
+    side.remove();
+  });
+
   it("counts the words of a body, without its code or its marks", () => {
     expect(wordsIn("# Compras\n\n- leche\n- pan")).toBe(3);
     expect(wordsIn("hola\n\n```\nlet x = 1\n```\n\nadios")).toBe(2);

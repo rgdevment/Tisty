@@ -27,14 +27,11 @@ export const trailed = (folders: Folded[], at: string | null): Folded[] => {
 // An outline this short leaves room, so the details open with the document.
 const SHORT_OUTLINE = 6;
 
-// The front matter's own lines that the column already shows elsewhere.
-const SHOWN = new Set(["title", "tags", "tag"]);
-
 interface Props {
   title: string;
   paper: string;
   body: string;
-  tags: string[];
+  tags: readonly string[];
   kept: number;
   heads: Head[];
   pages: Filed[];
@@ -82,7 +79,7 @@ const useFacts = (props: Props, facts: DocFacts | null): Facts => {
       wrote: facts ? dated(facts.wrote) : undefined,
       weighs: facts ? weigh(facts.bytes) : undefined,
       holds: holds || undefined,
-      fields: fields(body).filter((one) => !SHOWN.has(one.key.toLowerCase())),
+      fields: fields(body),
       overgrown: overgrown(body),
       onFront,
       tags: tags.map((name) => ({ name, times: times.get(name) ?? 0 })),

@@ -129,19 +129,25 @@ const folding = (host: HTMLElement) => {
 
 const PRESSABLE = "button, a, summary";
 
+// A control is known again by what it is and says, not by its place, which moves when an outline grows.
+const named = (one: Element): string =>
+  `${one.tagName}.${one.className}|${one.getAttribute("aria-label") ?? one.textContent}`;
+
 // What the reader was at before the panels are drawn again: where the outline was scrolled and what had the keys.
 const heldOn = (host: HTMLElement) => {
-  const pressable = Array.from(host.querySelectorAll(PRESSABLE));
+  const active = host.ownerDocument.activeElement;
   return {
     scrolled: host.querySelector(".side-index")?.scrollTop ?? 0,
-    focused: pressable.indexOf(host.ownerDocument.activeElement as Element),
+    focused: active && host.contains(active) ? named(active) : null,
   };
 };
 
 const heldAgain = (host: HTMLElement, { scrolled, focused }: ReturnType<typeof heldOn>) => {
   const index = host.querySelector(".side-index");
   if (index) index.scrollTop = scrolled;
-  if (focused >= 0) host.querySelectorAll<HTMLElement>(PRESSABLE)[focused]?.focus();
+  if (focused === null) return;
+  const again = Array.from(host.querySelectorAll<HTMLElement>(PRESSABLE));
+  again.find((one) => named(one) === focused)?.focus();
 };
 
 // Drawn again whole on every change: it holds a few dozen nodes, and what the reader chose stays chosen.

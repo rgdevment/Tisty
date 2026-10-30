@@ -79,7 +79,7 @@ export const sheeted = (page: Document, { tall, y, said }: Sheet) => {
   return true;
 };
 
-// Pictures that arrive late move every foot, so the sheets are laid again when the page grows.
+// Pictures that arrive late move every foot, and a sheet that did not fit may fit once the page is wider, so it is watched either way.
 export const sheeting = (page: Document, sheet: () => Sheet | undefined) => {
   const root = page.documentElement;
   const body = page.querySelector<HTMLElement>(".page");
@@ -87,6 +87,7 @@ export const sheeting = (page: Document, sheet: () => Sheet | undefined) => {
   const lay = () => {
     const now = sheet();
     root.classList.toggle("sheeted", Boolean(now));
+    laidAt = -1;
     if (!now) return;
     root.style.setProperty("--sheet-x", `${now.x}px`);
     root.style.setProperty("--sheet-y", `${now.y}px`);
@@ -103,7 +104,7 @@ export const sheeting = (page: Document, sheet: () => Sheet | undefined) => {
   };
   lay();
   const View = page.defaultView?.ResizeObserver;
-  if (!body || !View || !sheet()) return { lay, stop: () => {} };
+  if (!body || !View) return { lay, stop: () => {} };
   const watching = new View(later);
   watching.observe(body);
   return { lay, stop: () => watching.disconnect() };

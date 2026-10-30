@@ -1,5 +1,7 @@
 /* The frame's own colours, from the mock-up; the body inside wears Tisty's, from tokens.css. */
 :root {
+  /* The panels' column, its gap and the desk's own margins: what the paper needs beside it. */
+  --beside: 372px;
   --share-ground: var(--tisty-desk);
   --share-card: var(--tisty-sheet);
   --share-line: #e7e6e1;
@@ -69,7 +71,7 @@ a {
   display: flex;
   align-items: center;
   gap: 16px;
-  max-width: calc(var(--across, 794px) + 372px);
+  max-width: calc(var(--across, 794px) + var(--beside));
   margin: 0 auto;
   padding: 13px 24px;
   box-sizing: border-box;
@@ -86,7 +88,7 @@ a {
 }
 /* The desk holds the paper at its own width and the panels beside it. */
 .desk {
-  max-width: calc(var(--across, 794px) + 372px);
+  max-width: calc(var(--across, 794px) + var(--beside));
   margin: 0 auto;
   padding: 28px 24px 72px;
   box-sizing: border-box;
@@ -216,6 +218,11 @@ a {
   border-radius: 6px;
   padding: 3px 8px;
 }
+.when {
+  margin: 0;
+  font-size: 15px;
+  color: var(--share-soft);
+}
 .sheet {
   display: block;
   width: 100%;
@@ -304,7 +311,7 @@ a {
   display: none;
 }
 .foot {
-  max-width: calc(var(--across, 794px) + 372px);
+  max-width: calc(var(--across, 794px) + var(--beside));
   margin: 0 auto;
   padding: 0 24px 32px;
   box-sizing: border-box;
@@ -313,33 +320,31 @@ a {
 .notices {
   color: var(--share-soft);
 }
-/* On a narrow screen the sheet takes the width, and the panels rise from below when asked for. */
-@media (max-width: 1100px) {
-  .side-open {
-    display: inline-flex;
-  }
-  .beside .side-shut {
-    display: grid;
-  }
-  .beside {
-    display: none;
-    position: fixed;
-    inset: auto 0 0;
-    z-index: 10;
-    max-width: none;
-    max-height: 82vh;
-    padding: 12px 12px 20px;
-    overflow-y: auto;
-    border-radius: 16px 16px 0 0;
-    background: var(--share-ground);
-    box-shadow: 0 -10px 30px rgb(0 0 0 / 0.25);
-  }
-  .read.is-side .beside {
-    display: flex;
-  }
-  .paper {
-    flex: 1 1 auto;
-  }
+/* Where the paper and the panels do not fit side by side, the sheet takes the width and the panels rise from below when asked for. */
+html.tight .side-open {
+  display: inline-flex;
+}
+html.tight .beside .side-shut {
+  display: grid;
+}
+html.tight .beside {
+  display: none;
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 10;
+  max-width: none;
+  max-height: 82vh;
+  padding: 12px 12px 20px;
+  overflow-y: auto;
+  border-radius: 16px 16px 0 0;
+  background: var(--share-ground);
+  box-shadow: 0 -10px 30px rgb(0 0 0 / 0.25);
+}
+html.tight .read.is-side .beside {
+  display: flex;
+}
+html.tight .paper {
+  flex: 1 1 auto;
 }
 @media (max-width: 560px) {
   .bar-in,

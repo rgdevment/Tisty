@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  fitting,
   laidOut,
   linkedOut,
   linkedWithin,
@@ -178,5 +179,25 @@ describe("the paper a document asks for", () => {
     expect(laid.across).toBe(1123);
     expect(laid.sheet).toMatchObject({ wide: 1123, tall: 794, said: "sheetsBreak" });
     expect(laidOut({ ...view, sheets: false }, say)).toEqual({ across: 794, sheet: undefined });
+  });
+});
+
+describe("the sheets a frame can hold", () => {
+  const say = (word: string) => word;
+  const frameOf = (wide: number) => {
+    const frame = document.createElement("iframe");
+    Object.defineProperty(frame, "clientWidth", { value: wide });
+    return frame;
+  };
+
+  it("are laid only where the frame is as wide as the paper, and read the paper asked for now", () => {
+    let view = viewOf("---\nsheets: on\n---\n# Plan\n");
+    const sheet = fitting(frameOf(800), () => laidOut(view, say));
+    expect(sheet()?.wide).toBe(794);
+    view = { ...view, leaf: "letter" };
+    expect(sheet()).toBeUndefined();
+    expect(fitting(frameOf(816), () => laidOut(view, say))()?.wide).toBe(816);
+    view = { ...view, sheets: false };
+    expect(fitting(frameOf(2000), () => laidOut(view, say))()).toBeUndefined();
   });
 });
