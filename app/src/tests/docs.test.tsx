@@ -1,13 +1,13 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { sayIn } from "tisty-diagrams/read";
+import type { Asking } from "tisty-editor/edit";
 import { MARKED_FOR } from "tisty-editor/edit";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Filed } from "../core";
 import { t } from "../locales";
 import { settled } from "../saving";
 import Docs from "../ui/Docs";
-import type { Asking } from "../ui/slashing";
 
 // The studio says its own words; these tests read them as it does, in English.
 const say = sayIn("en");

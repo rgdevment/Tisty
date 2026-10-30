@@ -1,9 +1,9 @@
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { EditorSelection, EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { pending, pendingFormat, settle, wrapped } from "tisty-editor/edit";
+import { hosted, pending, pendingFormat, settle, visual, wrapped } from "tisty-editor/edit";
 import { describe, expect, it } from "vitest";
-import { visual } from "../ui/seeing";
+import { HOST } from "../ui/hosting";
 
 const view = (doc: string, at = doc.length) =>
   new EditorView({
@@ -11,7 +11,7 @@ const view = (doc: string, at = doc.length) =>
     state: EditorState.create({
       doc,
       selection: EditorSelection.cursor(at),
-      extensions: [markdown({ base: markdownLanguage }), visual, pendingFormat],
+      extensions: [hosted.of(HOST), markdown({ base: markdownLanguage }), visual, pendingFormat],
     }),
   });
 

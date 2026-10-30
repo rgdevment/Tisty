@@ -1,15 +1,16 @@
 import { closeCompletion } from "@codemirror/autocomplete";
 import type { EditorView, KeyBinding } from "@codemirror/view";
-import { coded, formless, type Retable, retable, tableHere, wrapped } from "tisty-editor/edit";
-import { markup } from "tisty-editor/read";
 import { frontLines } from "../front";
-import { t } from "../locales";
+import { markup } from "../glyphs";
+import { coded, formless, wrapped } from "./formatting";
+import { type EditWord, type Hosted, hosted } from "./hosted";
 import { type Regrid, regrid } from "./regridding";
 import { keepShown, marked, marksShown, showMarks } from "./seeing";
 import { type Asking, openMenu, pressed, put, putBlock, SLASHED } from "./slashing";
-import { TYPES } from "./tableChoices";
+import { TYPES } from "./tableTypes";
+import { type Retable, retable, tableHere } from "./tabling";
 
-type Said = Parameters<typeof t>[0];
+type Said = EditWord;
 
 export const KINDS: readonly (readonly [Said, string])[] = [
   ["paragraph", ""],
@@ -227,19 +228,23 @@ const drawnIn = (page: Document, name: string) => {
   return holder;
 };
 
-export const formatButtons = (page: Document, pick: (open: string, close: string) => void) => ({
+export const formatButtons = (
+  page: Document,
+  say: Hosted["say"],
+  pick: (open: string, close: string) => void,
+) => ({
   formats: FORMATS.map(([said, keys, open, close, icon]) => {
     const one = buttonIn(
       page,
       `cm-bar-button cm-bar-${icon}`,
-      `${t(said)} (${pressed(keys)})`,
+      `${say(said)} (${pressed(keys)})`,
       () => pick(open, close),
     );
     one.append(drawnIn(page, icon));
     return one;
   }),
   pens: PENS.map(([hue, said, close]) => {
-    const one = buttonIn(page, "cm-bar-button", t(said), () => pick("==", close));
+    const one = buttonIn(page, "cm-bar-button", say(said), () => pick("==", close));
     one.append(madeIn(page, "span", `cm-bar-pen cm-pen-${hue}`));
     return one;
   }),
@@ -253,6 +258,7 @@ export const barred = (
   asking?: () => Asking | undefined,
 ): Barred => {
   const page = view.dom.ownerDocument;
+  const say = view.state.facet(hosted).say;
   const made = <K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text = "") =>
     madeIn(page, tag, className, text);
   const button = (className: string, label: string, run: () => void, text = "") =>
@@ -260,15 +266,15 @@ export const barred = (
 
   const bar = made("div", "cm-bar");
   bar.setAttribute("role", "toolbar");
-  bar.setAttribute("aria-label", t("formatting"));
+  bar.setAttribute("aria-label", say("formatting"));
 
-  const kind = button("cm-bar-kind", t("blockKind"), () => {
+  const kind = button("cm-bar-kind", say("blockKind"), () => {
     closeCompletion(view);
     const shown = tabled ? table : menu;
     types.hidden = true;
     shown.toggleAttribute("hidden");
   });
-  const kindSaid = made("span", "cm-bar-kind-said", t("paragraph"));
+  const kindSaid = made("span", "cm-bar-kind-said", say("paragraph"));
   kind.append(made("span", "", "¶"), kindSaid, made("span", "cm-bar-caret", "▾"));
   const menu = made("div", "cm-bar-menu");
   menu.setAttribute("role", "menu");
@@ -276,12 +282,12 @@ export const barred = (
   for (const [said, prefix] of KINDS) {
     const one = button(
       "cm-bar-item",
-      t(said),
+      say(said),
       () => {
         menu.hidden = true;
         retyped(view, prefix);
       },
-      t(said),
+      say(said),
     );
     one.setAttribute("role", "menuitem");
     menu.append(one);
@@ -294,12 +300,12 @@ export const barred = (
   for (const [said, how] of RETABLES) {
     const one = button(
       "cm-bar-item",
-      t(said),
+      say(said),
       () => {
         table.hidden = true;
         retable(view, how);
       },
-      t(said),
+      say(said),
     );
     one.setAttribute("role", "menuitem");
     table.append(one);
@@ -307,12 +313,12 @@ export const barred = (
   for (const [said, how] of REGRIDS) {
     const one = button(
       "cm-bar-item",
-      t(said),
+      say(said),
       () => {
         table.hidden = true;
         regrid(view, how);
       },
-      t(said),
+      say(said),
     );
     one.setAttribute("role", "menuitem");
     table.append(one);
@@ -322,12 +328,12 @@ export const barred = (
   types.hidden = true;
   const typing = button(
     "cm-bar-item",
-    t("tableType"),
+    say("tableType"),
     () => {
       table.hidden = true;
       types.hidden = false;
     },
-    `${t("tableType")} ▸`,
+    `${say("tableType")} ▸`,
   );
   typing.setAttribute("role", "menuitem");
   typing.setAttribute("aria-haspopup", "menu");
@@ -335,12 +341,12 @@ export const barred = (
   for (const [word, label] of TYPES) {
     const one = button(
       "cm-bar-item",
-      t(label),
+      say(label),
       () => {
         types.hidden = true;
         regrid(view, { kind: "recast", word });
       },
-      t(label),
+      say(label),
     );
     one.setAttribute("role", "menuitem");
     types.append(one);
@@ -348,25 +354,25 @@ export const barred = (
   const kinds = made("span", "cm-bar-kinds");
   kinds.append(kind, menu, table, types);
 
-  const { formats, pens } = formatButtons(page, (open, close) => wrapped(view, open, close));
+  const { formats, pens } = formatButtons(page, say, (open, close) => wrapped(view, open, close));
   const slash = button(
     "cm-bar-button cm-bar-more",
-    `${t("insertLabel")} (${pressed("/")})`,
+    `${say("insertLabel")} (${pressed("/")})`,
     () => openMenu(view),
     "⋯",
   );
   // A table is a press away anywhere but inside one, where the bar offers the table's own shape.
-  const tableIt = tabling && button("cm-bar-button cm-bar-table", t("table"), tabling);
+  const tableIt = tabling && button("cm-bar-button cm-bar-table", say("table"), tabling);
   tableIt?.append(drawnIn(page, "table"));
 
   let folded = false;
-  const fold = button("cm-bar-button cm-bar-fold", t("barFold"), () => folding(!folded));
+  const fold = button("cm-bar-button cm-bar-fold", say("barFold"), () => folding(!folded));
   const folding = (now: boolean) => {
     folded = now;
     bar.classList.toggle("folded", now);
     fold.textContent = now ? "Aa" : "‹";
-    fold.setAttribute("aria-label", t(now ? "barOpen" : "barFold"));
-    fold.title = t(now ? "barOpen" : "barFold");
+    fold.setAttribute("aria-label", say(now ? "barOpen" : "barFold"));
+    fold.title = say(now ? "barOpen" : "barFold");
     fold.setAttribute("aria-expanded", String(!now));
     try {
       localStorage.setItem(FOLDED, now ? "1" : "0");
@@ -377,7 +383,7 @@ export const barred = (
   const wide = onWhole
     ? button(
         "cm-bar-button cm-bar-whole",
-        `${t(whole ? "wholeLeave" : "editWholeDoc")} (${pressed("E")})`,
+        `${say(whole ? "wholeLeave" : "editWholeDoc")} (${pressed("E")})`,
         onWhole,
       )
     : null;
@@ -388,7 +394,7 @@ export const barred = (
   const drawing = SLASHED.find((one) => one.key === "diagram");
   const diagram =
     drawing && asking?.()?.kinds.includes("diagram")
-      ? button("cm-bar-button cm-bar-diagram", t("diagramBar"), () => {
+      ? button("cm-bar-button cm-bar-diagram", say("diagramBar"), () => {
           const at = view.state.selection.main.to;
           put(view, drawing, at, at, asking?.());
         })
@@ -397,7 +403,7 @@ export const barred = (
 
   const marks = button(
     "cm-bar-button cm-bar-marks",
-    `${t("marksShown")} (${pressed("Shift M")})`,
+    `${say("marksShown")} (${pressed("Shift M")})`,
     () => {
       flipped(view);
       view.focus();
@@ -433,11 +439,11 @@ export const barred = (
     return one;
   };
   const state = made("span", "cm-hint-kept");
-  const marksKey = key(pressed("Shift M"), t("hintMarks"));
+  const marksKey = key(pressed("Shift M"), say("hintMarks"));
   hint.append(
-    key(pressed("/"), t("hintInsert")),
+    key(pressed("/"), say("hintInsert")),
     marksKey,
-    ...(onWhole ? [key(pressed("E"), t(whole ? "hintWholeLeave" : "hintWhole"))] : []),
+    ...(onWhole ? [key(pressed("E"), say(whole ? "hintWholeLeave" : "hintWhole"))] : []),
     state,
   );
   marking(view.state);
@@ -447,13 +453,13 @@ export const barred = (
     bar.hidden = formless(current.state);
     tabled = tableHere(current.state) !== null;
     if (tableIt) tableIt.hidden = tabled;
-    kindSaid.textContent = tabled ? t("table") : t(kindOf(current.state.doc.lineAt(head).text));
+    kindSaid.textContent = tabled ? say("table") : say(kindOf(current.state.doc.lineAt(head).text));
     marking(current.state);
     menu.hidden = true;
     table.hidden = true;
   };
   const kept = (yes: boolean) => {
-    state.textContent = yes ? `● ${t("keptNow")}` : t("saving");
+    state.textContent = yes ? `● ${say("keptNow")}` : say("saving");
     state.classList.toggle("on", yes);
   };
   bar.addEventListener("mousedown", (event) => {

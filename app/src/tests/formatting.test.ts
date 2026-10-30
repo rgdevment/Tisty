@@ -1,10 +1,18 @@
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { EditorSelection, EditorState, Prec } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
-import { linking, pending, pendingFormat, pendingKeys, wrapped } from "tisty-editor/edit";
+import {
+  blockKeys,
+  hosted,
+  linking,
+  pending,
+  pendingFormat,
+  pendingKeys,
+  visual,
+  wrapped,
+} from "tisty-editor/edit";
 import { describe, expect, it } from "vitest";
-import { blockKeys } from "../ui/barring";
-import { visual } from "../ui/seeing";
+import { HOST } from "../ui/hosting";
 
 const view = (doc: string, from = doc.length, to = from) =>
   new EditorView({
@@ -13,6 +21,7 @@ const view = (doc: string, from = doc.length, to = from) =>
       doc,
       selection: EditorSelection.single(from, to),
       extensions: [
+        hosted.of(HOST),
         markdown({ base: markdownLanguage }),
         visual,
         pendingFormat,

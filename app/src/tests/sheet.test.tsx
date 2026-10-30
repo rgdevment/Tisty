@@ -42,10 +42,7 @@ vi.mock("tisty-editor/edit", async (original) => ({
     ipc.wrapped.push([open, close]);
     return true;
   },
-}));
-
-vi.mock("../ui/barring", async (original) => ({
-  ...(await original<typeof import("../ui/barring")>()),
+  caretAt: (source: string, read: string) => (read ? source.indexOf(read) + read.length : 0),
   flipped: () => {
     ipc.flipped += 1;
     return true;
@@ -61,8 +58,8 @@ vi.mock("@tauri-apps/api/core", () => ({
   convertFileSrc: (path: string) => path,
 }));
 
-vi.mock("../ui/blocking", () => ({
-  caretAt: (source: string, read: string) => (read ? source.indexOf(read) + read.length : 0),
+vi.mock("../ui/hosting", async (original) => ({
+  ...(await original<typeof import("../ui/hosting")>()),
   edited: (
     block: HTMLElement,
     said: string,

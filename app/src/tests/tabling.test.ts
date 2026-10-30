@@ -1,10 +1,10 @@
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { EditorSelection, EditorState } from "@codemirror/state";
 import { EditorView, keymap, runScopeHandlers } from "@codemirror/view";
-import { retable, retabled, tableAt, tableKeys, widened } from "tisty-editor/edit";
+import { barred, hosted, retable, retabled, tableAt, tableKeys, widened } from "tisty-editor/edit";
 import { describe, expect, it } from "vitest";
 import { t } from "../locales";
-import { barred } from "../ui/barring";
+import { HOST } from "../ui/hosting";
 import { gripped, widening } from "../ui/widening";
 
 const text = "Intro\n\n| Name | Age |\n|------|:---:|\n| Rina | 4 |\n| Toto | 7 |\n\nAfter";
@@ -18,6 +18,7 @@ const view = (doc: string, from: number, separator = "\n") =>
       doc,
       selection: EditorSelection.single(from),
       extensions: [
+        hosted.of(HOST),
         EditorState.lineSeparator.of(separator),
         markdown({ base: markdownLanguage }),
         keymap.of(tableKeys),

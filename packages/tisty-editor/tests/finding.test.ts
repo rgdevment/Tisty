@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { begun, folded, matched, terms } from "../finding";
+import { begun, folded, matched, terms } from "../src/finding";
 
 describe("finding", () => {
   it("cuts a search into words without their accents", () => {

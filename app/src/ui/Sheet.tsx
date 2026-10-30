@@ -8,7 +8,20 @@ import {
   useRef,
   useState,
 } from "react";
-import { MARKED_FOR, markLately, widened, wrapped } from "tisty-editor/edit";
+import {
+  type Asking,
+  caretAt,
+  type Editing,
+  FORMATS,
+  flipped,
+  MARKED_FOR,
+  markLately,
+  pressed,
+  putBlock,
+  stagesIn,
+  widened,
+  wrapped,
+} from "tisty-editor/edit";
 import type { Carded, Head, Sheet as SheetSize } from "tisty-editor/read";
 import { copied, copyAttached, type Mend, opened, viewWidget } from "../core";
 import { viewDiagram } from "../drawing";
@@ -18,11 +31,10 @@ import { DOC, partCard } from "../markdown";
 import type { Moved } from "../paging";
 import { named } from "../previews";
 import { inEditor, reanchored, spanOf, touches } from "./anchoring";
-import { FORMATS, flipped } from "./barring";
-import { caretAt, type Editing, edited } from "./blocking";
 import { cardedAt, movedCard, putCard } from "./carded";
 import { exportChoices, fileName } from "./drawing/exporting";
 import { useKeptHeight } from "./heights";
+import { edited } from "./hosting";
 import Menu, { type Choice } from "./Menu";
 import { mended as mendedText } from "./mending";
 import Page from "./Page";
@@ -33,7 +45,6 @@ import type { Chosen, Formatting, Menued } from "./quickly";
 import { filedAs, type Reshape, reshaped } from "./recarding";
 import Skeleton from "./Skeleton";
 import { ASIDE_MARGIN, settles } from "./seeking";
-import { type Asking, pressed, putBlock, stagesIn } from "./slashing";
 import { stepLine, steppedTitle } from "./staging";
 import { useTables } from "./tableSheet";
 import { darkNow } from "./theming";

@@ -1,6 +1,7 @@
 import { save as intoFile, open as pick } from "@tauri-apps/plugin-dialog";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { freshFence } from "tisty-diagrams/read";
+import type { Asking } from "tisty-editor/edit";
 import { MARKED_FOR } from "tisty-editor/edit";
 import type { Head } from "tisty-editor/read";
 import { asPlain } from "../copying";
@@ -49,7 +50,6 @@ import { usePreviewing } from "./previewing";
 import { pdfOf, STAMPING, type Stamp, type Stamping, seenIn, stampOf } from "./printing";
 import Ribbon, { Onward } from "./Ribbon";
 import { acrossOf, PAPER, pageFor, sheetFor, writtenAcrossOf } from "./sheets";
-import type { Asking } from "./slashing";
 import { CompactBar, MarkBar } from "./Tidied";
 import { useLeaving } from "./useLeaving";
 import { clearOfChrome } from "./WindowChrome";

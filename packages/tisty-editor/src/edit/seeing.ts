@@ -9,10 +9,12 @@ import {
   WidgetType,
 } from "@codemirror/view";
 import type { SyntaxNode } from "@lezer/common";
-import { anchored, coded, owning, TAG_EDGE, TAG_WORD, waiting } from "tisty-editor/edit";
-import { isHue, known, markup } from "tisty-editor/read";
 import { frontLines } from "../front";
-import { t } from "../locales";
+import { known, markup } from "../glyphs";
+import { isHue } from "../shell";
+import { anchored, coded, owning, TAG_EDGE, TAG_WORD } from "./formatting";
+import { hosted } from "./hosted";
+import { waiting } from "./pending";
 
 export const showMarks = StateEffect.define<boolean>();
 
@@ -51,6 +53,9 @@ const MARKS = new Set([
   "URL",
   "LinkTitle",
 ]);
+// Both patterns take only the five kinds, so what they catch is one of them.
+type Callout = "note" | "tip" | "important" | "warning" | "caution";
+
 const CALLOUT = /^(\s*>\s?)(\[!(note|tip|important|warning|caution)\])\s*$/i;
 const HIDDEN = new Set([...MARKS, "HeaderMark", "QuoteMark", "ListMark"]);
 
@@ -112,7 +117,7 @@ class Check extends WidgetType {
 }
 
 class Said extends WidgetType {
-  constructor(readonly kind: string) {
+  constructor(readonly kind: Callout) {
     super();
   }
   eq(other: WidgetType) {
@@ -122,7 +127,7 @@ class Said extends WidgetType {
   toDOM(view: EditorView) {
     const one = view.dom.ownerDocument.createElement("span");
     one.className = "cm-callout-said";
-    one.textContent = t(`said${this.kind}` as Parameters<typeof t>[0]);
+    one.textContent = view.state.facet(hosted).say(`said${this.kind}`);
     return one;
   }
 }
@@ -185,7 +190,7 @@ const CALLED = /^:::(note|tip|important|warning|caution)\s*$/i;
 type Fence = {
   readonly at: number;
   readonly head?: RegExpExecArray | null;
-  readonly called?: string;
+  readonly called?: Callout;
 };
 
 // A fence counts only as a paragraph of its own, the way the page finds it.
@@ -214,7 +219,7 @@ const sections = (state: EditorState): [Fence, Fence][] => {
     const text = fenced(state, at);
     if (text === null) continue;
     if (OPENS.test(text))
-      open.push({ at, head: DETAILS.exec(text), called: CALLED.exec(text)?.[1].toLowerCase() });
+      open.push({ at, head: DETAILS.exec(text), called: CALLED.exec(text)?.[1].toLowerCase() as Callout | undefined });
     else if (text.trim() === ":::" && open.length) {
       const head = open.pop() as Fence;
       if (head.head || head.called) found.push([head, { at }]);
@@ -228,7 +233,7 @@ const called = (
   shown: boolean,
   from: number,
   to: number,
-  kind: string,
+  kind: Callout,
   out: Range<Decoration>[],
 ) => {
   for (let at = from; at <= to; at++) {
@@ -304,7 +309,7 @@ const quoted = (
   const first = state.doc.lineAt(from);
   const callout = CALLOUT.exec(first.text);
   if (!callout) return lined(state, from, to, "cm-quote", out);
-  const kind = callout[3].toLowerCase();
+  const kind = callout[3].toLowerCase() as Callout;
   lined(state, from, to, `cm-callout cm-callout-${kind}`, out);
   if (shown) return;
   const head = first.from + callout[1].length;

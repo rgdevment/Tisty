@@ -1,7 +1,7 @@
 import { Facet } from "@codemirror/state";
 import type { EditorView, KeyBinding } from "@codemirror/view";
-import { inside, placed, replaced, tableAt, tableHere } from "tisty-editor/edit";
-import { refused, type TableEdit, tableEditNear } from "../tables";
+import { hosted, type TableEdit } from "./hosted";
+import { inside, placed, replaced, tableAt, tableHere } from "./tabling";
 
 /** What the editor asks of a table that changes what it means, not just where the caret is. */
 export type Regrid =
@@ -53,7 +53,9 @@ export const regrid = (view: EditorView, how: Regrid): boolean => {
   if (!wanted) return true;
   // The first cell's words lie inside the table, where a quote's `>`, a list's indent or a row's end may not.
   const within = inside(table.rows[row], 0)[0];
-  tableEditNear(text, bytes(text.slice(0, within)), wanted.edit)
+  view.state
+    .facet(hosted)
+    .tableEditNear(text, bytes(text.slice(0, within)), wanted.edit)
     .then((next) => {
       if (view.state.doc.toString() !== text) return;
       const now = tableAt(next, table.from);
@@ -61,7 +63,7 @@ export const regrid = (view: EditorView, how: Regrid): boolean => {
       const head = line ? inside(line, wanted.column)[0] : caret;
       replaced(view, { text: next, head });
     })
-    .catch((why) => view.state.facet(gridFailed)(refused(why)));
+    .catch((why) => view.state.facet(gridFailed)(why));
   return true;
 };
 

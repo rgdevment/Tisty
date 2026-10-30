@@ -8,12 +8,12 @@ import {
 } from "@codemirror/autocomplete";
 import { type EditorState, Prec, StateEffect, StateField } from "@codemirror/state";
 import { EditorView, type KeyBinding, keymap, tooltips } from "@codemirror/view";
-import { anchored, coded, linking, TAG_EDGE, TAG_TAIL, TAG_WORD, wrapped } from "tisty-editor/edit";
-import { markup } from "tisty-editor/read";
 import { matched } from "../finding";
-import { t } from "../locales";
+import { markup } from "../glyphs";
+import { anchored, coded, linking, TAG_EDGE, TAG_TAIL, TAG_WORD, wrapped } from "./formatting";
+import { type EditWord, type Hosted, hosted } from "./hosted";
 
-type Said = Parameters<typeof t>[0];
+type Said = EditWord;
 
 export type Asked =
   | "newPage"
@@ -399,11 +399,12 @@ export const offered =
     if (!asked || coded(context.state, asked.from)) return null;
     const slash = asked.from;
     const word = context.state.sliceDoc(asked.word, context.pos);
+    const { say } = context.state.facet(hosted);
     const shown = SLASHED.filter(
       (one) =>
         (!("ask" in one.put) || asking?.()?.kinds.includes(one.put.ask)) &&
         (one.key !== "step" || (asking?.()?.steps?.().length ?? 0) > 0) &&
-        (!word || matched(t(one.label), word) || matched(one.key, word)),
+        (!word || matched(say(one.label), word) || matched(one.key, word)),
     );
     if (shown.length === 0) return null;
     return {
@@ -411,7 +412,7 @@ export const offered =
       filter: false,
       options: shown.map(
         (one, rank): Completion => ({
-          label: t(one.label),
+          label: say(one.label),
           detail: one.keys ? `${one.hint}   ${pressed(one.keys)}` : one.hint,
           boost: -rank,
           apply: (view, _, from, to) => {
@@ -534,7 +535,7 @@ const formats: readonly KeyBinding[] = SLASHED.flatMap((one) => {
   return [{ key, run: (view: EditorView) => wrapped(view, how.wrap, how.close) }];
 });
 
-const dressed = () =>
+const dressed = (say: Hosted["say"]) =>
   EditorView.theme({
     ".cm-tooltip.cm-tooltip-autocomplete": {
       border: "1px solid var(--tisty-hair)",
@@ -545,7 +546,7 @@ const dressed = () =>
       fontFamily: "inherit",
     },
     ".cm-tooltip.cm-tooltip-autocomplete::after": {
-      content: JSON.stringify(t("slashKeys")),
+      content: JSON.stringify(say("slashKeys")),
       display: "block",
       borderTop: "1px solid var(--tisty-hair)",
       margin: "4px 2px 0",
@@ -606,7 +607,7 @@ const dressed = () =>
     },
   });
 
-export const slashing = (asking?: () => Asking | undefined) => [
+export const slashing = (say: Hosted["say"], asking?: () => Asking | undefined) => [
   autocompletion({
     override: [offered(asking), tagging(asking), stepping(asking)],
     icons: false,
@@ -616,5 +617,5 @@ export const slashing = (asking?: () => Asking | undefined) => [
   openedAt,
   Prec.high(keymap.of([...formats, linking, { key: "Mod-/", run: openMenu }])),
   tooltips({ tooltipSpace: room }),
-  dressed(),
+  dressed(say),
 ];
