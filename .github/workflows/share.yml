@@ -126,7 +126,7 @@ jobs:
         run: |
           set -uo pipefail
           answers() {
-            local limits missing said
+            local limits missing said page
             limits=$(curl -s -D "$RUNNER_TEMP/headers" -o "$RUNNER_TEMP/limits" -w '%{http_code}' "$SHARE_URL/api/v1/limits") || return 1
             if grep -qi '^cf-mitigated:' "$RUNNER_TEMP/headers"; then
               return 2
@@ -137,7 +137,13 @@ jobs:
             jq -e '.text > 0' "$RUNNER_TEMP/limits" > /dev/null || return 1
             missing=$(curl -s -o "$RUNNER_TEMP/missing" -w '%{http_code}' "$SHARE_URL/api/v1/docs/nothing") || return 1
             [ "$missing" = 404 ] || return 1
-            jq -e '.refused == "missing"' "$RUNNER_TEMP/missing" > /dev/null
+            jq -e '.refused == "missing"' "$RUNNER_TEMP/missing" > /dev/null || return 1
+            # Asked as a browser opens a link, so anything but the reading page means its assets did not ship.
+            page=$(curl -s -D "$RUNNER_TEMP/page-headers" -o "$RUNNER_TEMP/page" -w '%{http_code}' \
+              -H 'Sec-Fetch-Mode: navigate' "$SHARE_URL/AAAAAAAA") || return 1
+            [ "$page" = 200 ] || return 1
+            grep -qi '^content-security-policy:.*wasm-unsafe-eval' "$RUNNER_TEMP/page-headers" || return 1
+            grep -q 'iframe class="sheet"' "$RUNNER_TEMP/page"
           }
           for attempt in $(seq 1 10); do
             # The step's shell stops at the first failing command, so the answer is caught rather than run bare.

@@ -1,6 +1,7 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import type { Plugin } from "vite";
 import { defineConfig } from "vitest/config";
 
 // Stryker runs the tests from a copy of the page, so the packages are looked for up the folders.
@@ -15,7 +16,26 @@ const pageAt = dirname(fileURLToPath(import.meta.url));
 const reader = packageAt("tisty-reader", pageAt);
 const studio = packageAt("tisty-diagrams", pageAt);
 
+// The libraries the page carries ask that their notices travel with every copy, so Tisty's own go along.
+const notices: Plugin = {
+  name: "notices",
+  apply: "build",
+  generateBundle() {
+    const root = dirname(dirname(reader));
+    for (const [from, to] of [
+      ["THIRD-PARTY-BUNDLED.md", "third-party.txt"],
+      ["THIRD-PARTY-LICENSES.md", "third-party-licenses.txt"],
+    ])
+      this.emitFile({
+        type: "asset",
+        fileName: to,
+        source: readFileSync(join(root, from), "utf8"),
+      });
+  },
+};
+
 export default defineConfig({
+  plugins: [notices],
   resolve: {
     alias: { "tisty-diagrams": join(studio, "src"), "tisty-reader": join(reader, "src") },
   },

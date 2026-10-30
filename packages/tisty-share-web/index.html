@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
     <meta name="referrer" content="no-referrer" />
+    <!-- An icon of its own, so the browser never asks the Worker for /favicon.ico. -->
+    <link rel="icon" href="data:," />
     <title>Tisty</title>
     <script type="module" src="/src/main.ts"></script>
   </head>
@@ -16,5 +18,8 @@
       <p class="said" role="status" aria-live="polite"></p>
       <iframe class="sheet" title="" hidden sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe>
     </main>
+    <footer class="foot">
+      <a class="notices" href="/third-party.txt">Licencias de terceros</a>
+    </footer>
   </body>
 </html>

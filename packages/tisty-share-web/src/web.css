@@ -48,3 +48,12 @@ body {
   background: var(--tisty-sheet);
   box-shadow: 0 1px 3px var(--tisty-cast);
 }
+.foot {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 0 16px 32px;
+  font-size: 13px;
+}
+.notices {
+  color: var(--tisty-soft);
+}

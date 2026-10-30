@@ -16,6 +16,7 @@ const inSpanish = spanish(navigator.languages);
 const say = wordsFor(inSpanish);
 const told = document.querySelector<HTMLElement>(".said") as HTMLElement;
 const frame = document.querySelector<HTMLIFrameElement>("iframe.sheet") as HTMLIFrameElement;
+const notices = document.querySelector<HTMLElement>(".notices") as HTMLElement;
 
 const themed = () => {
   document.documentElement.dataset.theme = night.matches ? "dark" : "light";
@@ -49,8 +50,14 @@ const opened = async (): Promise<Found | string> => {
   const link = linkOf(location.pathname, location.hash);
   if (!link) return "nolink";
   if (!link.key) return "keyless";
-  const [answer] = await Promise.all([fetched(link.id), init({ module_or_path: wasm })]);
+  // The wasm is the largest thing the page asks for, so losing it is a connection's fault, not the document's.
+  const loading = init({ module_or_path: wasm }).then(
+    () => true,
+    () => false,
+  );
+  const [answer, loaded] = await Promise.all([fetched(link.id), loading]);
   if ("refused" in answer) return answer.refused;
+  if (!loaded) return "offline";
   try {
     return taken(open(answer.sealed, link.key, answer.limits));
   } catch (refused) {
@@ -60,6 +67,7 @@ const opened = async (): Promise<Found | string> => {
 
 const shown = async () => {
   document.documentElement.lang = inSpanish ? "es" : "en";
+  notices.textContent = say("notices");
   themed();
   tell("opening");
   const found = await opened();
@@ -69,10 +77,8 @@ const shown = async () => {
   const draw = () => drawn(frame, found, night.matches, say);
   const page = await draw();
   const title = found.title || titleOf(page);
-  if (title) {
-    document.title = `${title} · Tisty`;
-    frame.title = title;
-  }
+  frame.title = title || say("document");
+  if (title) document.title = `${title} · Tisty`;
   night.addEventListener("change", () => {
     themed();
     draw().catch(() => tell("failed"));

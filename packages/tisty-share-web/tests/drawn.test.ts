@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { linkedOut, pictured, placeOf, plain, titleOf, unasked } from "../src/drawn";
+import { linkedOut, linkedWithin, pictured, placeOf, plain, titleOf, unasked } from "../src/drawn";
 
 const pageOf = (html: string): Document => {
   const page = document.implementation.createHTMLDocument("");
@@ -97,5 +97,43 @@ describe("a title", () => {
   it("is composed and cut at 120 characters", () => {
     expect(plain("Gui\u0301a")).toBe("Guía");
     expect([...plain("é".repeat(200))]).toHaveLength(120);
+  });
+});
+
+describe("a click on a link in the frame", () => {
+  const clicked = (href: string) => {
+    const page = pageOf(`<a href="${href}">ir</a><h2 id="al-final">Al final</h2>`);
+    const place = page.getElementById("al-final") as HTMLElement;
+    place.getBoundingClientRect = () => ({ top: 900 }) as DOMRect;
+    const frame = { getBoundingClientRect: () => ({ top: 60 }) } as HTMLIFrameElement;
+    const scrolled = vi.fn();
+    vi.stubGlobal("scrollTo", scrolled);
+    linkedWithin(frame, page);
+    const link = page.querySelector("a") as HTMLAnchorElement;
+    const event = new MouseEvent("click", { bubbles: true, cancelable: true });
+    link.dispatchEvent(event);
+    return { kept: event.defaultPrevented, scrolled };
+  };
+
+  it("to a place in the document stays in the frame and brings the place into view", () => {
+    const { kept, scrolled } = clicked("#al-final");
+    expect(kept).toBe(true);
+    expect(scrolled).toHaveBeenCalledWith({ top: window.scrollY + 960 });
+  });
+
+  it("to anywhere else the document cannot reach goes nowhere", () => {
+    for (const href of ["otro.md", "tisty:doc/d1", "#", "#nada"]) {
+      const { kept, scrolled } = clicked(href);
+      expect(kept, href).toBe(true);
+      expect(scrolled, href).not.toHaveBeenCalled();
+    }
+  });
+
+  it("out of the document is left to open apart", () => {
+    for (const href of ["https://x.test", "mailto:a@x.test"]) {
+      const { kept, scrolled } = clicked(href);
+      expect(kept, href).toBe(false);
+      expect(scrolled, href).not.toHaveBeenCalled();
+    }
   });
 });

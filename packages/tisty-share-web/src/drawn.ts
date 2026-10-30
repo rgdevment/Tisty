@@ -49,7 +49,7 @@ export const placeOf = (page: Document, href: string): Element | null => {
 };
 
 // The frame's links resolve against this page's address, so one that stays in the document is walked by hand.
-const linkedWithin = (frame: HTMLIFrameElement, page: Document) => {
+export const linkedWithin = (frame: HTMLIFrameElement, page: Document) => {
   page.addEventListener("click", (event) => {
     const link = (event.target as Element | null)?.closest?.("a[href]");
     const href = link?.getAttribute("href") ?? "";
