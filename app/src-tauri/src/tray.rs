@@ -29,6 +29,40 @@ const MACOS: &[u8] = include_bytes!("../icons/tray/tray-macos/menubarTemplate@2x
 const ON_DARK: &[u8] = include_bytes!("../icons/tray/tray-windows/on-dark-32.png");
 #[cfg(not(target_os = "macos"))]
 const ON_LIGHT: &[u8] = include_bytes!("../icons/tray/tray-windows/on-light-32.png");
+/// The window's icon at the sizes a taskbar asks for from 100 % to 300 %: side, on a dark bar, on a light one.
+#[cfg(windows)]
+const WINDOW: [(f64, &[u8], &[u8]); 6] = [
+    (
+        32.0,
+        include_bytes!("../icons/taskbar/on-dark-32.png"),
+        include_bytes!("../icons/taskbar/on-light-32.png"),
+    ),
+    (
+        40.0,
+        include_bytes!("../icons/taskbar/on-dark-40.png"),
+        include_bytes!("../icons/taskbar/on-light-40.png"),
+    ),
+    (
+        48.0,
+        include_bytes!("../icons/taskbar/on-dark-48.png"),
+        include_bytes!("../icons/taskbar/on-light-48.png"),
+    ),
+    (
+        64.0,
+        include_bytes!("../icons/taskbar/on-dark-64.png"),
+        include_bytes!("../icons/taskbar/on-light-64.png"),
+    ),
+    (
+        80.0,
+        include_bytes!("../icons/taskbar/on-dark-80.png"),
+        include_bytes!("../icons/taskbar/on-light-80.png"),
+    ),
+    (
+        96.0,
+        include_bytes!("../icons/taskbar/on-dark-96.png"),
+        include_bytes!("../icons/taskbar/on-light-96.png"),
+    ),
+];
 
 pub struct Words {
     pub show: String,
@@ -56,7 +90,7 @@ pub fn raise<R: Runtime>(app: &AppHandle<R>, words: &Words) -> Option<TrayIcon<R
     )?;
 
     let building = TrayIconBuilder::with_id("tisty")
-        .icon(art(app)?)
+        .icon(art(dark_bar())?)
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id.as_ref() {
@@ -101,8 +135,10 @@ pub fn reword<R: Runtime>(app: &AppHandle<R>, words: &Words) {
 }
 
 pub fn repaint<R: Runtime>(app: &AppHandle<R>) {
+    let dark = dark_bar();
+    dress(app, dark);
     if let Some(tray) = app.tray_by_id("tisty")
-        && let Some(icon) = art(app)
+        && let Some(icon) = art(dark)
     {
         let _ = tray.set_icon(Some(icon));
         #[cfg(target_os = "macos")]
@@ -114,14 +150,13 @@ pub fn repaint<R: Runtime>(app: &AppHandle<R>) {
 }
 
 #[cfg(target_os = "macos")]
-fn art<R: Runtime>(_app: &AppHandle<R>) -> Option<tauri::image::Image<'static>> {
+fn art(_dark: bool) -> Option<tauri::image::Image<'static>> {
     tauri::image::Image::from_bytes(MACOS).ok()
 }
 
 #[cfg(not(target_os = "macos"))]
-fn art<R: Runtime>(app: &AppHandle<R>) -> Option<tauri::image::Image<'static>> {
-    let _ = app;
-    tauri::image::Image::from_bytes(for_bar(dark_bar())).ok()
+fn art(dark: bool) -> Option<tauri::image::Image<'static>> {
+    tauri::image::Image::from_bytes(for_bar(dark)).ok()
 }
 
 #[cfg(not(target_os = "macos"))]
@@ -129,16 +164,74 @@ fn for_bar(dark: bool) -> &'static [u8] {
     if dark { ON_DARK } else { ON_LIGHT }
 }
 
+// The installer's .ico is one drawing; the taskbar shows the window's icon, which can follow the bar.
+#[cfg(windows)]
+fn dress<R: Runtime>(app: &AppHandle<R>, dark: bool) {
+    let Some(window) = app.get_webview_window("main") else {
+        return;
+    };
+    let wanted = 32.0 * window.scale_factor().unwrap_or(1.0);
+    let worn = for_taskbar(wanted, dark);
+    if let Ok(icon) = tauri::image::Image::from_bytes(worn) {
+        kept(window.set_icon(icon), "the window icon was refused");
+    }
+}
+
+// Windows shrinks one image to every size it shows, so the closest one at or above the wanted side is given.
+#[cfg(windows)]
+fn for_taskbar(wanted: f64, dark: bool) -> &'static [u8] {
+    let (_, on_dark, on_light) = WINDOW
+        .iter()
+        .find(|(side, ..)| *side >= wanted)
+        .unwrap_or(&WINDOW[WINDOW.len() - 1]);
+    if dark { on_dark } else { on_light }
+}
+
+#[cfg(not(windows))]
+fn dress<R: Runtime>(_app: &AppHandle<R>, _dark: bool) {}
+
+#[cfg(windows)]
+const THEMES: &str = r"Software\Microsoft\Windows\CurrentVersion\Themes";
+#[cfg(windows)]
+const PERSONALIZE: &str = r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
+
+// A taskbar-only theme change raises no ThemeChanged; Themes is watched since Personalize may not exist yet.
+#[cfg(windows)]
+pub fn follow_bar<R: Runtime>(app: AppHandle<R>) {
+    std::thread::spawn(move || {
+        let Ok(key) = winreg::RegKey::predef(winreg::enums::HKEY_CURRENT_USER).open_subkey(THEMES)
+        else {
+            return;
+        };
+        // Themes also hears the wallpaper and the accent, so only a turned taskbar repaints.
+        let mut dark = dark_bar();
+        while crate::desktop::changed(&key) {
+            // Windows writes a theme as a burst of values, so the bar is read once it has settled.
+            std::thread::sleep(std::time::Duration::from_millis(250));
+            let now = dark_bar();
+            if now == dark {
+                continue;
+            }
+            dark = now;
+            let painted = app.clone();
+            let _ = app.run_on_main_thread(move || repaint(&painted));
+        }
+    });
+}
+
+#[cfg(not(windows))]
+pub fn follow_bar<R: Runtime>(_app: AppHandle<R>) {}
+
 #[cfg(windows)]
 fn dark_bar() -> bool {
     winreg::RegKey::predef(winreg::enums::HKEY_CURRENT_USER)
-        .open_subkey(r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize")
+        .open_subkey(PERSONALIZE)
         .and_then(|key| key.get_value::<u32, _>("SystemUsesLightTheme"))
         .map(|light| light == 0)
         .unwrap_or(true)
 }
 
-#[cfg(all(not(windows), not(target_os = "macos")))]
+#[cfg(not(windows))]
 fn dark_bar() -> bool {
     true
 }
@@ -273,5 +366,31 @@ mod tests {
     fn a_light_taskbar_gets_the_dark_icon() {
         assert!(ink(for_bar(false)) < 96, "a light bar needs dark ink");
         assert!(ink(for_bar(true)) > 160, "a dark bar needs pale ink");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn the_window_icon_stands_out_from_the_taskbar_behind_it() {
+        for (side, on_dark, on_light) in super::WINDOW {
+            assert!(
+                ink(on_dark) > 160,
+                "a dark taskbar needs the light drawing at {side}"
+            );
+            assert!(
+                ink(on_light) < 96,
+                "a light taskbar needs the dark drawing at {side}"
+            );
+        }
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn the_window_icon_is_never_stretched_up_to_300_percent() {
+        use super::{WINDOW, for_taskbar};
+        assert_eq!(for_taskbar(32.0, true), WINDOW[0].1);
+        assert_eq!(for_taskbar(36.0, false), WINDOW[1].2);
+        assert_eq!(for_taskbar(80.0, true), WINDOW[4].1);
+        assert_eq!(for_taskbar(96.0, true), WINDOW[5].1);
+        assert_eq!(for_taskbar(128.0, false), WINDOW[5].2);
     }
 }

@@ -1,0 +1,130 @@
+{
+  "fill-specializations" : [
+    {
+      "value" : {
+        "linear-gradient" : [
+          "extended-srgb:1.00000,1.00000,1.00000,1.00000",
+          "extended-srgb:0.95294,0.94510,0.92941,1.00000"
+        ]
+      }
+    },
+    {
+      "appearance" : "dark",
+      "value" : {
+        "linear-gradient" : [
+          "extended-srgb:0.16471,0.14902,0.13333,1.00000",
+          "extended-srgb:0.09020,0.08235,0.07059,1.00000"
+        ]
+      }
+    }
+  ],
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "image-name-specializations" : [
+            {
+              "value" : "check.svg"
+            },
+            {
+              "appearance" : "dark",
+              "value" : "check-dark.svg"
+            }
+          ],
+          "name" : "check"
+        },
+        {
+          "image-name" : "badge.svg",
+          "name" : "badge"
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    },
+    {
+      "layers" : [
+        {
+          "image-name" : "accent.svg",
+          "name" : "accent"
+        },
+        {
+          "image-name-specializations" : [
+            {
+              "value" : "lines.svg"
+            },
+            {
+              "appearance" : "dark",
+              "value" : "lines-dark.svg"
+            }
+          ],
+          "name" : "lines"
+        },
+        {
+          "image-name-specializations" : [
+            {
+              "value" : "fold.svg"
+            },
+            {
+              "appearance" : "dark",
+              "value" : "fold-dark.svg"
+            }
+          ],
+          "name" : "fold"
+        },
+        {
+          "image-name-specializations" : [
+            {
+              "value" : "page.svg"
+            },
+            {
+              "appearance" : "dark",
+              "value" : "page-dark.svg"
+            }
+          ],
+          "name" : "page"
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    },
+    {
+      "layers" : [
+        {
+          "image-name-specializations" : [
+            {
+              "value" : "back.svg"
+            },
+            {
+              "appearance" : "dark",
+              "value" : "back-dark.svg"
+            }
+          ],
+          "name" : "back"
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "squares" : "shared"
+  }
+}
