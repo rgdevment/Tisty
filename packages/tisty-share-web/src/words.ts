@@ -1,10 +1,6 @@
 // The page speaks the reader's language when it is Spanish, and English otherwise, as Tisty does.
 const SPANISH = {
   opening: "Abriendo el documento…",
-  nolink:
-    "Este link no lleva a un documento. Revisa que lo hayas copiado entero, con lo que va después del #.",
-  missing: "Este documento no existe, o ya caducó.",
-  gone: "Este documento ya no está disponible.",
   paused: "Quien lo compartió lo dejó en pausa.",
   blocked: "Este documento fue bloqueado tras varias denuncias.",
   password_asked:
@@ -31,10 +27,6 @@ export type Word = keyof typeof SPANISH;
 
 const ENGLISH: Record<Word, string> = {
   opening: "Opening the document…",
-  nolink:
-    "This link does not lead to a document. Check that you copied all of it, with what comes after the #.",
-  missing: "This document does not exist, or it has expired.",
-  gone: "This document is no longer available.",
   paused: "Whoever shared it has paused it.",
   blocked: "This document was blocked after several reports.",
   password_asked:

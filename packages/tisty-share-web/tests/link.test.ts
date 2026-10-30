@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { linkOf } from "../src/link";
+import { linkOf, lost } from "../src/link";
 
 describe("a link", () => {
   it("names the document by its path and keeps the key the # carries", () => {
@@ -25,5 +25,11 @@ describe("a link", () => {
       "/a/k7Qm2xPa",
     ])
       expect(linkOf(path, "#qR12Ff"), path).toBeNull();
+  });
+
+  it("that names nothing the server still has is lost, as is a path that is no link", () => {
+    for (const word of ["nolink", "missing", "gone"]) expect(lost(word), word).toBe(true);
+    for (const word of ["paused", "blocked", "keyless", "locked", "down", "offline", "slow"])
+      expect(lost(word), word).toBe(false);
   });
 });

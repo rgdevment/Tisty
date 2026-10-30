@@ -11,16 +11,7 @@ describe("the page's words", () => {
 
   it("turn each refusal the server or the envelope gives into a sentence", () => {
     const say = wordsFor(true);
-    for (const word of [
-      "missing",
-      "gone",
-      "paused",
-      "blocked",
-      "locked",
-      "keyless",
-      "offline",
-      "down",
-    ])
+    for (const word of ["paused", "blocked", "locked", "keyless", "offline", "down"])
       expect(say(word), word).not.toBe(say("failed"));
   });
 
