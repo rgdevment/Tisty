@@ -1,8 +1,14 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.8/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.6.2/schema.json",
   "extends": ["../../app/biome.json"],
   "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true, "root": "../.." },
   "files": {
     "includes": ["src/**/*.ts", "src/**/*.css", "tests/**/*.ts", "tests/**/*.tsx", "*.json"]
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["src/page.css"],
+      "linter": { "rules": { "correctness": { "noInvalidGridAreas": "off" } } }
+    }
+  ]
 }

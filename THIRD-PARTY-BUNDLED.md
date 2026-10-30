@@ -21,7 +21,7 @@ written once with the crates that carry it.
 | `@chevrotain/regexp-to-ast` | 13.2.0 | Apache-2.0 |
 | `@chevrotain/types` | 13.2.0 | Apache-2.0 |
 | `@chevrotain/utils` | 13.2.0 | Apache-2.0 |
-| `@codemirror/autocomplete` | 6.20.3 | MIT |
+| `@codemirror/autocomplete` | 6.20.4 | MIT |
 | `@codemirror/commands` | 6.11.1 | MIT |
 | `@codemirror/lang-css` | 6.3.1 | MIT |
 | `@codemirror/lang-html` | 6.4.12 | MIT |
@@ -31,7 +31,7 @@ written once with the crates that carry it.
 | `@codemirror/lint` | 6.9.7 | MIT |
 | `@codemirror/state` | 6.7.6 | MIT |
 | `@codemirror/streamparser` | 6.0.0 | MIT |
-| `@codemirror/view` | 6.43.14 | MIT |
+| `@codemirror/view` | 6.43.15 | MIT |
 | `@iconify/types` | 2.0.0 | MIT |
 | `@iconify/utils` | 3.1.7 | MIT |
 | `@lezer/common` | 1.5.3 | MIT |
@@ -40,7 +40,7 @@ written once with the crates that carry it.
 | `@lezer/html` | 1.3.13 | MIT |
 | `@lezer/javascript` | 1.5.6 | MIT |
 | `@lezer/lr` | 1.4.11 | MIT |
-| `@lezer/markdown` | 1.8.0 | MIT |
+| `@lezer/markdown` | 1.8.1 | MIT |
 | `@marijn/find-cluster-break` | 1.0.4 | MIT |
 | `@mermaid-js/parser` | 2.0.1 | MIT |
 | `@tauri-apps/api` | 2.12.4 | Apache-2.0 OR MIT |
@@ -138,7 +138,7 @@ written once with the crates that carry it.
 | `iconv-lite` | 0.6.3 | MIT |
 | `import-meta-resolve` | 4.2.0 | MIT |
 | `internmap` | 1.0.1 | ISC |
-| `katex` | 0.18.10 | MIT |
+| `katex` | 0.19.0 | MIT |
 | `khroma` | 2.1.0 | see the package |
 | `layout-base` | 2.0.1 | MIT |
 | `lodash-es` | 4.18.1 | MIT |
