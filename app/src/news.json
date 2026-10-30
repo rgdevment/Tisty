@@ -1048,5 +1048,40 @@
         "said": "a link from the help to the Markdown guide opens the copy Tisty carries, at the right section, even without a connection."
       }
     ]
+  },
+  {
+    "version": "1.40.0",
+    "headline": {
+      "es": "Tisty estrena ícono",
+      "en": "Tisty has a new icon"
+    },
+    "es": [
+      {
+        "title": "Una cara nueva",
+        "said": "dos hojas y un visto naranja, nítidos sobre fondos claros y oscuros. Lo ves en el Dock, la barra de tareas, el Administrador de tareas y en Acerca de."
+      },
+      {
+        "title": "A la medida de macOS 26",
+        "said": "en macOS 26 el ícono llena su ficha como el de las demás apps, sin el cuadro gris alrededor."
+      },
+      {
+        "title": "Junto al reloj y en la barra de menú",
+        "said": "el ícono pequeño se dibujó de nuevo. En Mac es de un solo color, como los demás de la barra de menú; en Windows se vuelve blanco o negro apenas cambias el color de la barra de tareas, aunque nada más cambie."
+      }
+    ],
+    "en": [
+      {
+        "title": "A new face",
+        "said": "two sheets and an orange check, crisp on light and dark backgrounds alike. You see it in the Dock, the taskbar, Task Manager and About."
+      },
+      {
+        "title": "Made for macOS 26",
+        "said": "on macOS 26 the icon fills its tile like every other app's, with no grey square around it."
+      },
+      {
+        "title": "By the clock and in the menu bar",
+        "said": "the small icon is drawn anew. On a Mac it is a single colour, like the rest of the menu bar; on Windows it turns white or black as soon as you change the taskbar's colour, even when nothing else changes."
+      }
+    ]
   }
 ]
