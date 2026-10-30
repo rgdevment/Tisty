@@ -124,6 +124,27 @@ pub struct Reserved {
 pub struct Served {
     pub version: u64,
     pub envelope: Vec<u8>,
+    pub facts: Facts,
+}
+
+/// What a reader is told beside the words: nothing the server does not already hold in the clear.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Facts {
+    pub shared: i64,
+    pub written: Option<i64>,
+    pub ends: i64,
+    pub gated: bool,
+}
+
+impl Facts {
+    fn of(doc: &Doc) -> Self {
+        Self {
+            shared: doc.created,
+            written: doc.written,
+            ends: doc.ends,
+            gated: doc.gate.is_some(),
+        }
+    }
 }
 
 /// What a management link can do.
@@ -256,6 +277,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
                 paused: None,
                 blocked: None,
                 reads: 0,
+                written: None,
                 revision: 0,
             };
             if self.store.save(&doc, None).await? == Saved::Done {
@@ -322,6 +344,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
         };
         self.store.keep(id, &kept, envelope.into_bytes()).await?;
         doc.versions.push(kept);
+        doc.written = Some(now);
         let dropped: Vec<Kept> = doc
             .versions
             .drain(..doc.versions.len().saturating_sub(self.policy.versions))
@@ -372,6 +395,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
         Ok(Served {
             version: kept.version,
             envelope,
+            facts: Facts::of(&doc),
         })
     }
 
@@ -407,7 +431,11 @@ impl<S: Store, R: Randomness> Share<S, R> {
             .envelope(id, kept)
             .await?
             .ok_or_else(|| lost(id, kept))?;
-        Ok(Served { version, envelope })
+        Ok(Served {
+            version,
+            envelope,
+            facts: Facts::of(&doc),
+        })
     }
 
     pub async fn info(&self, id: &str, admin: &str, now: i64) -> Result<Info, Refused> {

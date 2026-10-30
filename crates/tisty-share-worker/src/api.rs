@@ -11,7 +11,7 @@ use tisty_share_proto::limits::Limits;
 use tisty_share_proto::work::Proof;
 use tisty_share_server::keys::Randomness;
 use tisty_share_server::moderation::{Category, Complaint};
-use tisty_share_server::share::{Ask, Manage, Refused, Share};
+use tisty_share_server::share::{Ask, Manage, Refused, Served, Share};
 use tisty_share_server::store::Store;
 
 /// Where the steps live, so the reading page can have the rest of the domain.
@@ -203,7 +203,7 @@ async fn routed<S: Store, R: Randomness>(
             let served = share
                 .read(id, asked.password.as_deref(), caller, now)
                 .await?;
-            Ok(envelope(served.version, served.envelope))
+            Ok(envelope(served))
         }
         ("GET", ["docs", id, "latest"]) => {
             let latest = share.latest(id, caller, now).await?;
@@ -213,7 +213,7 @@ async fn routed<S: Store, R: Randomness>(
             let version = version.parse().map_err(|_| Turned::Unknown)?;
             let token = token.ok_or(Refused::Forbidden)?;
             let served = share.version(id, token, version, now).await?;
-            Ok(envelope(served.version, served.envelope))
+            Ok(envelope(served))
         }
         ("GET", ["docs", id, "info"]) => {
             let admin = token.ok_or(Refused::Forbidden)?;
@@ -333,9 +333,23 @@ fn said(status: u16, body: serde_json::Value) -> Answer {
     plain(status, "application/json", body.to_string().into_bytes())
 }
 
-fn envelope(version: u64, bytes: Vec<u8>) -> Answer {
-    let mut answer = plain(200, "application/octet-stream", bytes);
-    answer.headers.push(("Tisty-Version", version.to_string()));
+/// The envelope, with what the reading page shows around it in headers, so the body stays the sealed bytes alone.
+fn envelope(served: Served) -> Answer {
+    let facts = served.facts;
+    let mut answer = plain(200, "application/octet-stream", served.envelope);
+    answer
+        .headers
+        .push(("Tisty-Version", served.version.to_string()));
+    answer
+        .headers
+        .push(("Tisty-Shared", facts.shared.to_string()));
+    if let Some(written) = facts.written {
+        answer.headers.push(("Tisty-Written", written.to_string()));
+    }
+    answer.headers.push(("Tisty-Ends", facts.ends.to_string()));
+    if facts.gated {
+        answer.headers.push(("Tisty-Gated", "1".into()));
+    }
     answer
 }
 

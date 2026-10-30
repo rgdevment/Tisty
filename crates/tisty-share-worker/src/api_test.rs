@@ -186,6 +186,11 @@ fn a_document_is_reserved_shared_and_read_over_http() {
     assert_eq!(read.status, 200);
     assert_eq!(read.body, shared.first);
     assert_eq!(header(&read, "Tisty-Version"), Some("1"));
+    let shared_at = header(&read, "Tisty-Shared").unwrap();
+    assert_eq!(header(&read, "Tisty-Written"), Some(shared_at));
+    let ends: i64 = header(&read, "Tisty-Ends").unwrap().parse().unwrap();
+    assert!(ends > shared_at.parse::<i64>().unwrap());
+    assert_eq!(header(&read, "Tisty-Gated"), None);
     assert_eq!(
         header(&read, "Content-Type"),
         Some("application/octet-stream")

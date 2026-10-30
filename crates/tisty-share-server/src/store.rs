@@ -29,6 +29,9 @@ pub struct Doc {
     /// Readers counted once a day each, never who they were (decision 47).
     #[serde(default)]
     pub reads: u64,
+    /// When its latest version came, for the reader's «edited»; documents from before it was kept have none.
+    #[serde(default)]
+    pub written: Option<i64>,
     /// Bumped on every save, so two writers never both win.
     pub revision: u64,
 }
