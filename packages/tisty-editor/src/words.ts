@@ -8,9 +8,16 @@ export type ReadWord =
   | "docItself"
   | "goneDoc"
   | "leafOfMany"
+  | "linkGlimpse"
+  | "partCardDone"
+  | "partCardDropped"
+  | "partCardKind"
+  | "partCardLoose"
+  | "partCardSteps"
   | "table"
   | "tableStars"
-  | "tableTypeCheck";
+  | "tableTypeCheck"
+  | `said${"note" | "tip" | "important" | "warning" | "caution"}`;
 
 /** A word in the reader's language, with the values it names filled in, in its own order. */
 export type Say = (word: ReadWord, ...filled: string[]) => string;

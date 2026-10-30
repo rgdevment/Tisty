@@ -18,7 +18,7 @@ import {
   whenOf,
 } from "./frame";
 import { linkOf } from "./link";
-import { gated, refused, spanish, wordsFor } from "./words";
+import { gated, refused, sheetWordsFor, spanish, wordsFor } from "./words";
 
 // What the link opened: the body, its front matter's title (which wins over the first line, as in Tisty) and the text.
 type Found = Opened & { readonly title: string; readonly text: string; readonly about: About };
@@ -28,6 +28,7 @@ const night = matchMedia("(prefers-color-scheme: dark)");
 const inSpanish = spanish(navigator.language);
 const language = inSpanish ? "es" : "en";
 const say = wordsFor(inSpanish);
+const sheetSays = { say: sheetWordsFor(inSpanish), language };
 const part = <T extends HTMLElement>(selector: string) => document.querySelector<T>(selector) as T;
 const told = part(".said");
 const gate = part<HTMLFormElement>(".gate");
@@ -202,7 +203,7 @@ const shown = async (password?: string) => {
   // Tags and dates sit under the body's title; a body without one has them above it instead.
   const draw = async () => {
     seen();
-    const page = await drawn(frame, found, night.matches, say);
+    const page = await drawn(frame, found, night.matches, sheetSays);
     const inside = bylined(page, tags, when);
     tagged(part(".tags"), inside ? [] : tags);
     part(".when").textContent = inside ? "" : when;

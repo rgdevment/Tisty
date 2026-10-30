@@ -1,3 +1,5 @@
+import type { ReadWord, Say } from "tisty-editor/read";
+
 // The page speaks the reader's language when it is Spanish, and English otherwise, as Tisty does.
 const SPANISH = {
   opening: "Abriendo el documento…",
@@ -59,11 +61,6 @@ const SPANISH = {
   report_fraud: "Estafa",
   report_threat: "Amenazas o incitación a un delito",
   report_doxxing: "Datos personales de alguien expuestos",
-  saidnote: "Nota",
-  saidtip: "Consejo",
-  saidimportant: "Importante",
-  saidwarning: "Aviso",
-  saidcaution: "Cuidado",
 } as const;
 
 export type Word = keyof typeof SPANISH;
@@ -127,12 +124,63 @@ const ENGLISH: Record<Word, string> = {
   report_fraud: "Fraud",
   report_threat: "Threats or incitement to a crime",
   report_doxxing: "Someone's personal details exposed",
+};
+
+// What the sheet itself says, as Tisty says it, so a word the sheet adds fails the build until it is written here.
+const SPANISH_SHEET: Record<ReadWord, string> = {
+  cardAway: "Archivado",
+  cardHere: "Estás aquí",
+  cardGone: "Ya no está",
+  kindDoc: "Documento",
+  untitledDoc: "Sin título",
+  docItself: "Este mismo documento",
+  goneDoc: "Ese documento no se compartió con este",
+  leafOfMany: "Página {} de {}",
+  linkGlimpse: "Traer la vista previa",
+  partCardDone: "Hecha",
+  partCardDropped: "No se hará",
+  partCardKind: "Parte",
+  partCardLoose: "Ya no es parte",
+  partCardSteps: "{} de {} pasos",
+  table: "Tabla",
+  tableStars: "{} de 5",
+  tableTypeCheck: "Sí o no",
+  saidnote: "Nota",
+  saidtip: "Consejo",
+  saidimportant: "Importante",
+  saidwarning: "Aviso",
+  saidcaution: "Cuidado",
+};
+
+const ENGLISH_SHEET: Record<ReadWord, string> = {
+  cardAway: "Archived",
+  cardHere: "You are here",
+  cardGone: "Gone",
+  kindDoc: "Document",
+  untitledDoc: "Untitled",
+  docItself: "This very document",
+  goneDoc: "That document was not shared with this one",
+  leafOfMany: "Page {} of {}",
+  linkGlimpse: "Bring the preview",
+  partCardDone: "Done",
+  partCardDropped: "Not doing",
+  partCardKind: "Part",
+  partCardLoose: "No longer a part",
+  partCardSteps: "{} of {} steps",
+  table: "Table",
+  tableStars: "{} of 5",
+  tableTypeCheck: "Yes or no",
   saidnote: "Note",
   saidtip: "Tip",
   saidimportant: "Important",
   saidwarning: "Warning",
   saidcaution: "Caution",
 };
+
+export const sheetWordsFor =
+  (inSpanish: boolean): Say =>
+  (word, ...values) =>
+    values.reduce(filled, (inSpanish ? SPANISH_SHEET : ENGLISH_SHEET)[word]);
 
 export const spanish = (language: string): boolean => language.toLowerCase().startsWith("es");
 

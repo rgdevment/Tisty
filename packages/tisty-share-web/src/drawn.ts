@@ -1,4 +1,4 @@
-import { colored, diagrams, saidKinds, shell, TITLED } from "tisty-editor/read";
+import { readAs, type Say, shell, TITLED } from "tisty-editor/read";
 
 export type Picture = { readonly bytes: Uint8Array<ArrayBuffer>; readonly media: string };
 export type Opened = { readonly html: string; readonly pictures: readonly Picture[] };
@@ -97,22 +97,30 @@ export const drawn = async (
   frame: HTMLIFrameElement,
   opened: Opened,
   dark: boolean,
-  say: (word: string) => string,
+  said: { readonly say: Say; readonly language: string },
 ): Promise<Document> => {
   const page = await loaded(frame, shell(unasked(opened.html), dark));
   page.documentElement.classList.add("tall");
   page.querySelector(".page")?.removeAttribute("inert");
-  const made = pictured(page, opened.pictures);
+  const live = () => frame.contentDocument === page;
+  let made: string[] = [];
+  const read = readAs(page, {
+    say: said.say,
+    locale: said.language,
+    live,
+    brought: () => {
+      made = pictured(page, opened.pictures);
+    },
+    sites: {},
+  });
   const freed = () => {
     for (const url of made) URL.revokeObjectURL(url);
+    for (const stop of read.kept) stop();
   };
   frame.addEventListener("load", freed, { once: true });
   linkedOut(page);
   linkedWithin(frame, page);
-  saidKinds(page, (kind) => say(`said${kind}`));
   grows(frame, page);
-  const live = () => frame.contentDocument === page;
-  colored(page, live);
-  await diagrams(page, dark, live);
+  await read.drawn;
   return page;
 };

@@ -1,32 +1,19 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
-import {
-  celled,
-  charsAt,
-  colored,
-  diagrams,
-  HUES,
-  iconed,
-  saidKinds,
-  sideways,
-  sourceOf,
-  spanned,
-  staged,
-  today,
-} from "tisty-editor/read";
+import type { PartCarded } from "tisty-editor/read";
+import { charsAt, readAs, sourceOf, spanned } from "tisty-editor/read";
 import { type Lent, openLink } from "../core";
 import { askAgain, serve, showing } from "../inUse";
 import { locale, t } from "../locales";
 import { pictured } from "../previews";
 import { plainly } from "../refusal";
 import { type Attaching, attachedAs, lents, pressed } from "./attached";
-import { type Carding, carded } from "./carding";
+import { type Carding, cardsFor } from "./carding";
 import { type Shot, shotsOf, type TableWent, type Went, went, widgetsIn } from "./paging";
-import { type PartCarded, partCarded } from "./partcarding";
 import { type Chosen, type Formatting, type Menued, quickly } from "./quickly";
 import { SAY } from "./saying";
 import { offeredAsParts } from "./staging";
 import { dragging, tabled } from "./tabled";
-import { webCarded } from "./webcarding";
+import { GLIMPSES } from "./webcarding";
 import { gripped, widening } from "./widening";
 import { type Lending, lend, locked } from "./widgeting";
 
@@ -251,40 +238,43 @@ export const worn = (
   live: () => boolean,
   reach?: Reaching,
 ): Worn => {
-  saidKinds(page, (kind) => t(`said${kind}` as Parameters<typeof t>[0]));
   if (reach?.onBlock) titled(page);
   if (reach?.onBlock && page.documentElement.classList.contains("untitled"))
     hinted(page, reach.body);
   datedSteps(page, reach?.stepDates);
   page.documentElement.classList.toggle("ticking", !!reach?.onTick);
-  iconed(page);
-  staged(page);
-  if (reach?.onPart && !stranger) offeredAsParts(page, t("stepToPart"), reach.body);
   if (reach?.onWiden && !stranger) gripped(page);
   const writable = Boolean(reach?.onTable) && !stranger;
   if (writable) tabled(page);
-  celled(page, { today: today(), locale: locale(), hues: HUES, live: writable, say: SAY });
-  const shown = pictures(page, live, {
-    stranger,
-    apart: Boolean(reach?.onApart),
-    more: Boolean(reach?.onMore) && !stranger,
-  });
-  const kept = [...shown.held, ...sideways(page, SAY)];
-  const lent = widgets(page, stranger, reach).concat(shown.lent);
-  if (reach && !stranger) {
-    carded(page, reach, live);
-    partCarded(page, reach.part);
-    webCarded(page, live);
-  }
   if ((reach?.onDiagram || reach?.onDiagramExport || reach?.onBlock) && !stranger)
     diagramBars(page, {
       open: Boolean(reach.onDiagram),
       out: Boolean(reach.onDiagramExport),
       words: Boolean(reach.onBlock),
     });
-  void diagrams(page, page.documentElement.classList.contains("dark"), live);
-  colored(page, live);
-  return { lent, kept };
+  let held: (() => void)[] = [];
+  let lent: Lending[] = [];
+  const known = reach && !stranger ? reach : undefined;
+  const read = readAs(page, {
+    say: SAY,
+    locale: locale(),
+    live,
+    writable,
+    brought: () => {
+      const shown = pictures(page, live, {
+        stranger,
+        apart: Boolean(reach?.onApart),
+        more: Boolean(reach?.onMore) && !stranger,
+      });
+      held = shown.held;
+      lent = widgets(page, stranger, reach).concat(shown.lent);
+    },
+    cards: known && cardsFor(page, known),
+    parts: known?.part,
+    sites: known && { glimpses: GLIMPSES },
+  });
+  if (reach?.onPart && !stranger) offeredAsParts(page, t("stepToPart"), reach.body);
+  return { lent, kept: [...held, ...read.kept] };
 };
 
 export const diagramBars = (page: Document, ways = { open: true, out: false, words: false }) => {

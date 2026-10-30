@@ -1,9 +1,8 @@
-import { type Carded, carded as drawCards } from "tisty-editor/read";
+import type { Carded, Cards } from "tisty-editor/read";
 import { docRead, type Filed } from "../core";
 import { t } from "../locales";
 import { DOC } from "../markdown";
 import { inTextOrder, pagesOf } from "../paging";
-import { SAY } from "./saying";
 
 const spanless = (line: string): string => line.replace(/::([a-z0-9-]+)(?: [a-z]+)?::/g, ":$1:");
 
@@ -68,9 +67,9 @@ export const more = (page: Document, target: string) => {
   return one;
 };
 
-// The sheet draws the cards; the window says what each names, in its language, and adds the editor's own controls.
-export const carded = (page: Document, reach: Carding, live: () => boolean) => {
-  if (!reach.card) return;
+// The sheet draws the cards; the window says what each names and adds the editor's own controls.
+export const cardsFor = (page: Document, reach: Carding): Omit<Cards, "say"> | undefined => {
+  if (!reach.card) return undefined;
   const controls = (file: string): Node[] => {
     const made: Node[] = [];
     if (reach.onBlock) {
@@ -84,5 +83,5 @@ export const carded = (page: Document, reach: Carding, live: () => boolean) => {
     if (reach.onMore) made.push(more(page, `${DOC}${file}`));
     return made;
   };
-  drawCards(page, { card: reach.card, blurb: reach.blurb, say: SAY, controls }, live);
+  return { card: reach.card, blurb: reach.blurb, controls };
 };
