@@ -45,6 +45,8 @@ pub struct State {
     pub shed: BTreeSet<String>,
     pub forebears: BTreeSet<String>,
     pub persons: crate::person::Persons,
+    /// Each document shared from this store, as the last word on it left it.
+    pub shares: BTreeMap<DocId, crate::event::Shared>,
     pub(crate) fill: Fill,
     pub(crate) tombstones: BTreeSet<Ulid>,
 }
@@ -82,6 +84,27 @@ pub fn short_enough(text: &str) -> crate::Result<()> {
 }
 
 impl State {
+    fn shared(&mut self, event: &Event) {
+        match &event.op {
+            Op::ShareKey { .. } | Op::ShareCertified { .. } | Op::ShareRevoked { .. } => {
+                self.persons.took(event, &self.assistants, &self.devices);
+            }
+            Op::ShareDoc { id, d } => {
+                self.shares.insert(*id, d.clone());
+            }
+            // Two machines can each put a version up; the store remembers the highest.
+            Op::ShareVersion { id, v } => {
+                if let Some(shared) = self.shares.get_mut(id) {
+                    shared.version = shared.version.max(*v);
+                }
+            }
+            Op::ShareStop { id } => {
+                self.shares.remove(id);
+            }
+            _ => {}
+        }
+    }
+
     pub fn replay(events: &[Event]) -> Self {
         let mut state = Self::default();
         for event in events {
@@ -370,14 +393,7 @@ impl State {
             }
             Op::FolderLook { id, d } => {
                 if let Some(folder) = self.folders.get_mut(id) {
-                    if let Some(icon) = &d.icon {
-                        folder.icon = icon.clone().filter(|key| crate::model::icon::known(key));
-                    }
-                    if let Some(color) = &d.color {
-                        folder.color = color
-                            .clone()
-                            .filter(|key| crate::model::hue::kept(key).is_some());
-                    }
+                    crate::applying::looked(&mut folder.icon, &mut folder.color, d);
                 }
             }
             Op::FolderMove { id, d } => self.folder_moved(id, d),
@@ -457,19 +473,15 @@ impl State {
                 }
             }
             Op::StoresJoined { d } => self.stores_joined(d),
-            Op::ShareKey { .. } | Op::ShareCertified { .. } | Op::ShareRevoked { .. } => {
-                self.persons.took(event, &self.assistants, &self.devices);
-            }
+            Op::ShareKey { .. }
+            | Op::ShareCertified { .. }
+            | Op::ShareRevoked { .. }
+            | Op::ShareDoc { .. }
+            | Op::ShareVersion { .. }
+            | Op::ShareStop { .. } => self.shared(event),
             Op::ListLook { id, d } => {
                 if let Some(list) = self.lists.get_mut(id) {
-                    if let Some(icon) = &d.icon {
-                        list.icon = icon.clone().filter(|key| crate::model::icon::known(key));
-                    }
-                    if let Some(color) = &d.color {
-                        list.color = color
-                            .clone()
-                            .filter(|key| crate::model::hue::kept(key).is_some());
-                    }
+                    crate::applying::looked(&mut list.icon, &mut list.color, d);
                 }
             }
             Op::ListArchive { id } => {
@@ -1287,3 +1299,7 @@ mod signing;
 #[cfg(test)]
 #[path = "state_compacting.rs"]
 mod compacting;
+
+#[cfg(test)]
+#[path = "state_sharing.rs"]
+mod sharing;

@@ -93,6 +93,9 @@ pub const KNOWN_OPS: &[&str] = &[
     "share.key",
     "share.certified",
     "share.revoked",
+    "share.doc",
+    "share.version",
+    "share.stop",
 ];
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -294,6 +297,37 @@ pub enum Op {
         #[serde(default, skip_serializing_if = "std::ops::Not::not")]
         machine: bool,
     },
+
+    /// A document shared from this store, with all it takes to read, edit and manage it again
+    /// after a reinstall: the links travel with the synced data (decision 52 of Tisty Share).
+    #[serde(rename = "share.doc")]
+    ShareDoc { id: DocId, d: Shared },
+    #[serde(rename = "share.version")]
+    ShareVersion { id: DocId, v: u64 },
+    #[serde(rename = "share.stop")]
+    ShareStop { id: DocId },
+}
+
+/// One shared document's place on a Tisty Share server and the secrets that open it there.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Shared {
+    /// The server's address, `https://tisty.cl` unless the person runs their own.
+    pub server: String,
+    /// The id the server minted: the path of every link.
+    pub link: String,
+    /// The key in the `#`, which the server never sees.
+    pub key: String,
+    pub edit: String,
+    pub admin: String,
+    /// Whether anyone was handed the edit link; the owner always holds the token (decision 67).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub editable: bool,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub gated: bool,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub signed: bool,
+    /// The last version this store put up.
+    pub version: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -365,6 +399,9 @@ impl Op {
                 | Op::ShareKey { .. }
                 | Op::ShareCertified { .. }
                 | Op::ShareRevoked { .. }
+                | Op::ShareDoc { .. }
+                | Op::ShareVersion { .. }
+                | Op::ShareStop { .. }
                 | Op::DocMove {
                     d: Filed {
                         folder: None,
@@ -383,6 +420,9 @@ impl Op {
                 | Op::ShareKey { .. }
                 | Op::ShareCertified { .. }
                 | Op::ShareRevoked { .. }
+                | Op::ShareDoc { .. }
+                | Op::ShareVersion { .. }
+                | Op::ShareStop { .. }
                 | Op::DeviceHost { .. }
                 | Op::DeviceNamed { .. }
                 | Op::DeviceRelease { .. }
@@ -463,7 +503,10 @@ impl Op {
             | Op::StoresJoined { .. }
             | Op::ShareKey { .. }
             | Op::ShareCertified { .. }
-            | Op::ShareRevoked { .. } => self,
+            | Op::ShareRevoked { .. }
+            | Op::ShareDoc { .. }
+            | Op::ShareVersion { .. }
+            | Op::ShareStop { .. } => self,
         }
     }
 
@@ -609,7 +652,10 @@ impl Op {
             | Op::StoresJoined { .. }
             | Op::ShareKey { .. }
             | Op::ShareCertified { .. }
-            | Op::ShareRevoked { .. } => None,
+            | Op::ShareRevoked { .. }
+            | Op::ShareDoc { .. }
+            | Op::ShareVersion { .. }
+            | Op::ShareStop { .. } => None,
         }
     }
 }

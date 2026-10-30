@@ -533,3 +533,19 @@ impl State {
         }
     }
 }
+
+// A look says only what it changes, and an icon or a colour this build does not know is dropped.
+pub(crate) fn looked(
+    icon: &mut Option<String>,
+    color: &mut Option<String>,
+    d: &crate::event::Look,
+) {
+    if let Some(said) = &d.icon {
+        *icon = said.clone().filter(|key| crate::model::icon::known(key));
+    }
+    if let Some(said) = &d.color {
+        *color = said
+            .clone()
+            .filter(|key| crate::model::hue::kept(key).is_some());
+    }
+}

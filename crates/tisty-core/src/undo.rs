@@ -361,6 +361,9 @@ fn undoing(event: &Event, before: &State) -> Option<Op> {
         | Op::ShareKey { .. }
         | Op::ShareCertified { .. }
         | Op::ShareRevoked { .. }
+        | Op::ShareDoc { .. }
+        | Op::ShareVersion { .. }
+        | Op::ShareStop { .. }
         | Op::TaskPaged { .. } => None,
     }
 }
