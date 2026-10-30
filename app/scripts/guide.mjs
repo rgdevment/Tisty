@@ -257,16 +257,14 @@ figure.example,figure.widget{${appLight}}
 html.dark figure.example,html.dark figure.widget{${dark}}
 `;
 // Each surface takes the drawing of the opposite tone, since each fades into its own.
-const marks = Object.fromEntries(
-  [
-    ["onLight", "dark"],
-    ["onDark", "light"],
-  ].map(([surface, ink]) => {
-    const bytes = readFileSync(join(app, "..", "assets", "icons", `tisty-${ink}.svg`));
-    return [surface, { bytes, name: `tisty-${ink}.${printOf(bytes)}.svg` }];
-  }),
-);
-const look = { style: css, marks: { onLight: marks.onLight.name, onDark: marks.onDark.name } };
+const marks = [
+  ["onLight", "dark"],
+  ["onDark", "light"],
+].map(([surface, ink]) => {
+  const bytes = readFileSync(join(app, "..", "assets", "icons", `tisty-${ink}.svg`));
+  return { surface, bytes, name: `tisty-${ink}.${printOf(bytes)}.svg` };
+});
+const look = { style: css, marks: Object.fromEntries(marks.map(({ surface, name }) => [surface, name])) };
 for (const language of LANGUAGES) {
   const into = join(out, language.dir);
   mkdirSync(into, { recursive: true });
@@ -293,5 +291,5 @@ writeFileSync(join(out, "_headers"), headers(look.marks));
 writeFileSync(join(out, "sitemap.xml"), mapped(built));
 writeFileSync(join(out, "robots.txt"), robots);
 writeFileSync(join(out, "llms.txt"), llms(built));
-for (const mark of Object.values(marks)) writeFileSync(join(out, mark.name), mark.bytes);
+for (const { name, bytes } of marks) writeFileSync(join(out, name), bytes);
 console.log(`the guide is in ${out}`);

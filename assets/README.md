@@ -47,10 +47,12 @@ what a dark taskbar shows, so it takes the light drawing, and
 since `makepri` would split them into resource packs that a single MSIX never
 loads.
 
-An installed window swaps between `taskbar/on-dark.png` and
-`taskbar/on-light.png` whenever the taskbar changes, even when only the taskbar
-does, and a test in `app/src-tauri/src/tray.rs` keeps each one inked against
-its bar.
+An installed window swaps between `taskbar/on-dark-*.png` and
+`taskbar/on-light-*.png` whenever the taskbar changes, even when only the
+taskbar does, taking the size that matches the screen's scale (32 to 64). A
+test in `app/src-tauri/src/tray.rs` keeps each one inked against its bar. A
+pinned button, Start and Task Manager show the `.ico` instead, which Windows
+does not let an app swap.
 
 The tray is the menu-bar glyph: macOS tints its template by itself, and Windows
 gets it in white for a dark taskbar and in near-black for a light one.

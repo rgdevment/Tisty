@@ -1067,6 +1067,8 @@ fn window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
         return;
     }
     if let tauri::WindowEvent::ThemeChanged(_) = event {
+        // On Windows the registry watch in tray::follow_bar already repaints.
+        #[cfg(not(windows))]
         tray::repaint(window.app_handle());
         return;
     }

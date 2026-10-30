@@ -10,7 +10,10 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 
 render() {
-  tauri icon "$1" -o "$2" ${3:+-p "$3"} >/dev/null 2>&1
+  tauri icon "$1" -o "$2" ${3:+-p "$3"} >"$work/render.log" 2>&1 || {
+    cat "$work/render.log" >&2
+    return 1
+  }
 }
 
 # Every size a surface asks for: the bundle, the .ico, the MSIX logos and target sizes, the READMEs.
@@ -26,6 +29,19 @@ done
 cp "$work/light/256x256.png" "$icons/128x128@2x.png"
 cp "$work/light/512x512.png" "$icons/icon.png"
 cp "$work/mac/icon.icns" "$icons/"
+
+# tauri writes the .icns chunks in hash order, so they are sorted to keep an unchanged icon unchanged.
+node - "$icons/icon.icns" <<'EOF_ICNS'
+const { readFileSync, writeFileSync } = require("node:fs");
+const [file] = process.argv.slice(2);
+const icns = readFileSync(file);
+const chunks = [];
+for (let at = 8; at < icns.length; at += icns.readUInt32BE(at + 4)) {
+  chunks.push(icns.subarray(at, at + icns.readUInt32BE(at + 4)));
+}
+chunks.sort((a, b) => a.subarray(0, 4).toString().localeCompare(b.subarray(0, 4).toString()));
+writeFileSync(file, Buffer.concat([icns.subarray(0, 8), ...chunks]));
+EOF_ICNS
 
 # tauri's .ico stops short of 20 and 40, the sizes Windows draws at 125 % and 250 %.
 node - "$icons/icon.ico" "$work"/light/{16x16,20x20,24x24,32x32,40x40,48x48,64x64,256x256}.png <<'EOF_ICO'
@@ -62,10 +78,7 @@ elif [ "$(uname)" = Darwin ]; then
   echo "actool comes with Xcode, not the Command Line Tools: Assets.car was left as it was" >&2
 fi
 
-# Each drawing fades into a surface of its own tone, so a surface gets the opposite one:
-# the light drawing on a dark surface, the dark drawing on a light one. Derived files are named
-# by the surface, and MSIX's unplated means a dark taskbar while lightunplated means a light one.
-# Plated tiles sit on the manifest's dark BackgroundColor, so they take the light drawing too.
+# Each drawing fades into its own tone, so surfaces take the opposite: unplated is a dark taskbar.
 msix="$icons/msix"
 rm -rf "$msix"
 mkdir -p "$msix"
@@ -79,10 +92,13 @@ for size in 16 20 24 30 32 36 40 48 60 64 72 80 96 256; do
   cp "$work/dark/${size}x${size}.png" "$msix/Square44x44Logo.targetsize-${size}_altform-lightunplated.png"
 done
 
-# An installed (non-MSIX) window swaps its icon as the taskbar changes.
+# An installed (non-MSIX) window swaps its icon as the taskbar changes, at its size from 100 % to 200 %.
+rm -rf "$icons/taskbar"
 mkdir -p "$icons/taskbar"
-cp "$work/light/64x64.png" "$icons/taskbar/on-dark.png"
-cp "$work/dark/64x64.png" "$icons/taskbar/on-light.png"
+for size in 32 40 48 64; do
+  cp "$work/light/${size}x${size}.png" "$icons/taskbar/on-dark-$size.png"
+  cp "$work/dark/${size}x${size}.png" "$icons/taskbar/on-light-$size.png"
+done
 
 # The tray is the one-ink glyph: macOS tints its template itself, Windows needs one per taskbar.
 render "$src/tisty-menubar.svg" "$work/menubar" 18,36
