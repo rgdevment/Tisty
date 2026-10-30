@@ -15,6 +15,8 @@ export type Now = {
 export type Asked = {
   readonly onView: (view: View) => void;
   readonly onRaw: (raw: boolean) => void;
+  /** Only a phone shows it: there the panels cover the sheet until put away. */
+  readonly onShut: () => void;
 };
 
 export type Words = { readonly sheet: Say; readonly page: (word: string) => string };
@@ -45,7 +47,12 @@ export const panelsOf = (now: Now, asked: Asked, words: Words, link: string): Pa
   const { view } = now;
   const turned = (next: Partial<View>) => asked.onView({ ...view, ...next });
   return [
-    { kind: "title", title: now.title || words.page("document"), under: now.when || undefined },
+    {
+      kind: "title",
+      title: now.title || words.page("document"),
+      under: now.when || undefined,
+      onShut: asked.onShut,
+    },
     {
       kind: "paper",
       leaf: view.leaf,

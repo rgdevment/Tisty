@@ -250,7 +250,8 @@ a {
   min-height: 0;
   flex: 0 1 auto;
 }
-.side-open {
+.side-open,
+.beside .side-shut {
   display: none;
 }
 .facts {
@@ -316,6 +317,9 @@ a {
 @media (max-width: 1100px) {
   .side-open {
     display: inline-flex;
+  }
+  .beside .side-shut {
+    display: grid;
   }
   .beside {
     display: none;

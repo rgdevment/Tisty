@@ -123,8 +123,12 @@ export const laidOut = ({ leaf, sheets, landscape }: View, say: Say): Laid => {
 };
 
 // On a screen narrower than the paper, as a phone's, the sheets would break where no sheet ends, so the body flows as one.
-const fitting = (frame: HTMLIFrameElement, sheet?: Sheet) => () =>
-  sheet && frame.clientWidth >= sheet.wide ? sheet : undefined;
+const fitting = (frame: HTMLIFrameElement, laid: () => Laid) => () => {
+  const { sheet } = laid();
+  return sheet && frame.clientWidth >= sheet.wide ? sheet : undefined;
+};
+
+export type Drawn = { readonly page: Document; readonly lay: () => void };
 
 // The body as Tisty draws it, in the reader's own frame, grown to its height so the page scrolls as one.
 export const drawn = async (
@@ -132,8 +136,8 @@ export const drawn = async (
   opened: Opened,
   dark: boolean,
   said: { readonly say: Say; readonly language: string },
-  laid: Laid,
-): Promise<Document> => {
+  laid: () => Laid,
+): Promise<Drawn> => {
   const page = await loaded(frame, shell(unasked(opened.html), dark));
   page.documentElement.classList.add("tall");
   page.querySelector(".page")?.removeAttribute("inert");
@@ -148,8 +152,14 @@ export const drawn = async (
     },
     sites: {},
   });
-  page.documentElement.style.setProperty("--wide", `${laid.across}px`);
-  const sheets = sheeting(page, fitting(frame, laid.sheet));
+  // Another paper only lays the same body again: nothing is drawn twice and the reader keeps their place.
+  let sheets = { stop: () => {} };
+  const lay = () => {
+    page.documentElement.style.setProperty("--wide", `${laid().across}px`);
+    sheets.stop();
+    sheets = sheeting(page, fitting(frame, laid));
+  };
+  lay();
   const freed = () => {
     for (const url of made) URL.revokeObjectURL(url);
     for (const stop of read.kept) stop();
@@ -160,5 +170,5 @@ export const drawn = async (
   linkedWithin(frame, page);
   grows(frame, page);
   await read.drawn;
-  return page;
+  return { page, lay };
 };

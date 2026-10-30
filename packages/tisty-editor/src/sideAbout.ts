@@ -1,6 +1,7 @@
+import { glyph } from "./cards";
 import { offered, type Paper } from "./paper";
 import type { About, Book } from "./side";
-import { glyph, made, pressed, toggle, tooled } from "./sideParts";
+import { made, pressed, toggle, tooled } from "./sideParts";
 import type { ReadWord, Say } from "./words";
 
 type Of<K extends About["kind"]> = Extract<About, { kind: K }>;
@@ -25,10 +26,10 @@ const trailed = (page: Document, panel: Of<"title">) => {
 const titled = (page: Document, say: Say, panel: Of<"title">) => {
   const head = made(page, "header", "side-title-row");
   const line = made(page, "div", "side-title-line");
-  line.append(made(page, "h1", "side-title", panel.title));
+  line.append(made(page, "h2", "side-title", panel.title));
   const { onApart, onShut } = panel;
   if (onApart)
-    line.append(tooled(page, "side-shut", say("viewDocApart"), onApart, glyph(page, "window")));
+    line.append(tooled(page, "side-apart", say("viewDocApart"), onApart, glyph(page, "window")));
   if (onShut) line.append(tooled(page, "side-shut", say("besideShut"), onShut, "✕"));
   head.append(line);
   if (panel.under || panel.trail?.length) head.append(trailed(page, panel));
@@ -69,16 +70,15 @@ const leafLabel = (say: Say, one: Book["pages"][number]): string | undefined => 
   return undefined;
 };
 
-// A page knows the book it belongs to, and a book lists its pages under its outline.
 const booked = (page: Document, say: Say, book: Book, nav: HTMLElement) => {
   const { up } = book;
   if (up) {
-    nav.append(made(page, "h3", "side-label is-sub", say("besidePageOf")));
+    nav.append(made(page, "h4", "side-label is-sub", say("besidePageOf")));
     const back = pressed(page, "side-go is-page is-up", "", () => up.onPick());
     back.append(glyph(page, "chevron"), made(page, "span", "", up.title || say("untitledDoc")));
     nav.append(back);
   }
-  if (book.pages.length) nav.append(made(page, "h3", "side-label is-sub", book.said));
+  if (book.pages.length) nav.append(made(page, "h4", "side-label is-sub", book.said));
   for (const one of book.pages) {
     const go = pressed(page, `side-go is-page${one.away ? " is-away" : ""}`, "", () =>
       one.onPick(),
@@ -98,7 +98,7 @@ const booked = (page: Document, say: Say, book: Book, nav: HTMLElement) => {
 const indexed = (page: Document, say: Say, panel: Of<"index">) => {
   const nav = made(page, "nav", "side-index");
   nav.setAttribute("aria-label", say("outline"));
-  nav.append(made(page, "h2", "side-label", say("outline")));
+  nav.append(made(page, "h3", "side-label", say("outline")));
   const heads = panel.heads.filter((head) => head.level > 0);
   const { book } = panel;
   if (!heads.length && !book?.pages.length && !book?.up)

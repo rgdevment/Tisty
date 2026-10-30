@@ -5,7 +5,16 @@ import { type Head, heads as headsOf, sided } from "tisty-editor/read";
 import init, { open, type Page } from "../wasm/tisty_share_wasm.js";
 import wasm from "../wasm/tisty_share_wasm_bg.wasm?url";
 import { panelsOf } from "./beside";
-import { drawn, laidOut, type Opened, type Picture, plain, titleOf, viewOf } from "./drawn";
+import {
+  drawn,
+  laidOut,
+  type Opened,
+  type Picture,
+  plain,
+  titleOf,
+  type View,
+  viewOf,
+} from "./drawn";
 import { type Facts, fetched, limitsOf, REASONS, type Reason, reported } from "./fetched";
 import { type About, accessOf, bylined, endsOf, tagged, whenOf } from "./frame";
 import { linkOf } from "./link";
@@ -116,7 +125,11 @@ const besideShown = (open: boolean) => {
   reading.classList.toggle("is-side", open);
   besideOpen.setAttribute("aria-expanded", String(open));
 };
+besideOpen.textContent = sheetSays.say("outline");
 besideOpen.addEventListener("click", () => besideShown(!reading.classList.contains("is-side")));
+addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && reading.classList.contains("is-side")) besideShown(false);
+});
 
 // A worker of its own for each report: a page reports once, and the work holds nothing worth keeping.
 const solving = (challenge: string): Promise<string | undefined> =>
@@ -179,25 +192,27 @@ const shown = async (password?: string) => {
   let raw = false;
   let heads: Head[] = [];
   let title = found.title;
+  let lay = () => {};
   const rawText = part(".raw");
   rawText.textContent = found.text;
+  const laid = () => laidOut(view, sheetSays.say);
   const paneled = () =>
     sided(
       part(".side"),
       sheetSays.say,
       panelsOf(
         { title, when, text: found.text, about: found.about, view, raw, heads },
-        {
-          onView: (next) =>
-            redraw(() => {
-              view = next;
-            }),
-          onRaw,
-        },
+        { onView, onRaw, onShut: () => besideShown(false) },
         { sheet: sheetSays.say, page: say },
         location.href,
       ),
     );
+  const onView = (next: View) => {
+    view = next;
+    document.documentElement.style.setProperty("--across", `${laid().across}px`);
+    lay();
+    paneled();
+  };
   const onRaw = (on: boolean) => {
     raw = on;
     frame.hidden = on;
@@ -207,9 +222,10 @@ const shown = async (password?: string) => {
   // Tags sit under the body's title, and the dates in the panel; a body without a title has its tags above it.
   const draw = async () => {
     seen();
-    const laid = laidOut(view, sheetSays.say);
-    document.documentElement.style.setProperty("--across", `${laid.across}px`);
-    const page = await drawn(frame, found, night.matches, sheetSays, laid);
+    document.documentElement.style.setProperty("--across", `${laid().across}px`);
+    const shown = await drawn(frame, found, night.matches, sheetSays, laid);
+    lay = shown.lay;
+    const { page } = shown;
     const inside = bylined(page, tags);
     tagged(part(".tags"), inside ? [] : tags);
     part(".paper-head").hidden = inside || tags.length === 0;
@@ -222,30 +238,21 @@ const shown = async (password?: string) => {
     }));
     title ||= titleOf(page);
     paneled();
-    return page;
   };
-  // One drawing at a time, so two quick changes of theme or paper never draw into the same sheet.
+  // One drawing at a time, so two quick changes of theme never draw into the same sheet.
   let drawing = Promise.resolve();
-  const redraw = (change: () => void = () => undefined) => {
-    drawing = drawing
-      .then(() => {
-        change();
-        return draw();
-      })
-      .then(
-        () => undefined,
-        () => tell("failed"),
-      );
-  };
   await draw();
   frame.title = title || say("document");
   if (title) document.title = `${title} · Tisty`;
-  besideOpen.textContent = sheetSays.say("outline");
+  besideOpen.hidden = false;
   framed(found);
   reportable(linkOf(location.pathname, location.hash)?.id ?? "");
   night.addEventListener("change", () => {
     themed();
-    redraw();
+    drawing = drawing.then(draw).then(
+      () => undefined,
+      () => tell("failed"),
+    );
   });
 };
 

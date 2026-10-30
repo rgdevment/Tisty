@@ -1,4 +1,3 @@
-import { glyph } from "./cards";
 import type { Turn } from "./side";
 
 export const made = <K extends keyof HTMLElementTagNameMap>(
@@ -51,8 +50,6 @@ export const toggle = (
   one.setAttribute("aria-pressed", String(turn.on));
   return one;
 };
-
-export { glyph };
 
 export type Line = {
   readonly key: string;

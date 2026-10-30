@@ -27,7 +27,6 @@ export type Leaf = {
   readonly onPick: () => void;
 };
 
-/** A book's pages, and the document a page belongs to, listed under the outline. */
 export type Book = {
   readonly up?: { readonly title: string; readonly onPick: () => void };
   readonly said: string;
@@ -43,10 +42,8 @@ export type Facts = {
   readonly made?: string;
   readonly wrote?: string;
   readonly weighs?: string;
-  /** What it holds besides its words: pages, documents, files. */
   readonly holds?: string;
   readonly fields?: readonly Field[];
-  /** Front matter past the caps, which is kept but not read. */
   readonly overgrown?: boolean;
   readonly onFront?: () => void;
   readonly tags?: readonly { readonly name: string; readonly times: number }[];
@@ -74,7 +71,6 @@ export type Panel =
       readonly kind: "title";
       readonly title: string;
       readonly under?: string;
-      /** The folders it sits in, each a way there. */
       readonly trail?: readonly Step[];
       readonly onApart?: () => void;
       readonly onShut?: () => void;
@@ -84,7 +80,6 @@ export type Panel =
       readonly leaf: Paper;
       readonly onLeaf: (leaf: Paper) => void;
       readonly sheets?: Turn;
-      /** Only while the sheets are laid. */
       readonly landscape?: Turn;
       readonly raw?: Turn;
       readonly onExport?: (at: HTMLElement) => void;

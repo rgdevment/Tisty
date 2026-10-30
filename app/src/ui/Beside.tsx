@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { type Facts, fields, type Head, type Leaf, overgrown, type Panel } from "tisty-editor/read";
 import type { Filed, Folded } from "../core";
 import { type DocFacts, docFacts, type Paper } from "../core";
@@ -66,24 +66,28 @@ const leafOf = (one: Filed, paper: string, onPage?: (doc: Filed) => void): Leaf 
   onPick: () => onPage?.(one),
 });
 
-const factsOf = (props: Props, facts: DocFacts | null): Facts => {
-  const { body } = props;
-  const times = often(body);
-  const holds = holdsOf(body, facts).join(" · ");
-  return {
-    body,
-    author: facts?.author ?? undefined,
-    born: facts?.born ?? undefined,
-    editor: facts?.editor ?? undefined,
-    made: facts ? dated(facts.made) : undefined,
-    wrote: facts ? dated(facts.wrote) : undefined,
-    weighs: facts ? weigh(facts.bytes) : undefined,
-    holds: holds || undefined,
-    fields: fields(body).filter((one) => !SHOWN.has(one.key.toLowerCase())),
-    overgrown: overgrown(body),
-    onFront: props.heads.find((one) => one.level === 0)?.go,
-    tags: props.tags.map((name) => ({ name, times: times.get(name) ?? 0 })),
-  };
+// Read once per version of the text and its facts: the column is drawn again far more often than either changes.
+const useFacts = (props: Props, facts: DocFacts | null): Facts => {
+  const { body, tags, heads } = props;
+  const onFront = heads.find((one) => one.level === 0)?.go;
+  return useMemo(() => {
+    const times = often(body);
+    const holds = holdsOf(body, facts).join(" · ");
+    return {
+      body,
+      author: facts?.author ?? undefined,
+      born: facts?.born ?? undefined,
+      editor: facts?.editor ?? undefined,
+      made: facts ? dated(facts.made) : undefined,
+      wrote: facts ? dated(facts.wrote) : undefined,
+      weighs: facts ? weigh(facts.bytes) : undefined,
+      holds: holds || undefined,
+      fields: fields(body).filter((one) => !SHOWN.has(one.key.toLowerCase())),
+      overgrown: overgrown(body),
+      onFront,
+      tags: tags.map((name) => ({ name, times: times.get(name) ?? 0 })),
+    };
+  }, [body, facts, tags, onFront]);
 };
 
 export default function Beside(props: Props) {
@@ -105,6 +109,7 @@ export default function Beside(props: Props) {
     };
   }, [paper, kept]);
 
+  const details = useFacts(props, facts);
   const ways: Choice[] = [
     ...waysOut(false, props.making),
     { key: "copy", icon: "⧉", label: t("copyPlain"), apart: true, onPick: props.onCopy },
@@ -145,7 +150,7 @@ export default function Beside(props: Props) {
         pages: pages.map((one) => leafOf(one, paper, onPage)),
       },
     },
-    { kind: "details", facts: factsOf(props, facts), open: short },
+    { kind: "details", facts: details, open: short },
     { kind: "shared", gist: t("sharedSoon"), said: t("sharedWill") },
   ];
 

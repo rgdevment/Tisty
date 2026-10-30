@@ -5,13 +5,12 @@ import type { Say } from "./words";
 
 type Of<K extends More["kind"]> = Extract<More, { kind: K }>;
 
-// The front matter is the document's own: its fields, a way to write them, and a word when there is too much to read.
 const fronted = (page: Document, say: Say, facts: Facts) => {
   const fields = facts.fields ?? [];
   if (!fields.length && !facts.overgrown && !facts.onFront) return null;
   const part = made(page, "section", "side-part");
   const head = made(page, "div", "side-part-head");
-  head.append(made(page, "h3", "side-label", say("frontNamed")));
+  head.append(made(page, "h4", "side-label", say("frontNamed")));
   const { onFront } = facts;
   if (onFront) head.append(pressed(page, "side-link", say("frontEdit"), () => onFront()));
   part.append(head);
@@ -30,7 +29,7 @@ const tagged = (page: Document, say: Say, facts: Facts) => {
   const tags = facts.tags ?? [];
   if (!tags.length) return null;
   const part = made(page, "section", "side-part");
-  part.append(made(page, "h3", "side-label", say("tags")));
+  part.append(made(page, "h4", "side-label", say("tags")));
   const chips = made(page, "div", "side-tags");
   for (const one of tags) {
     const chip = made(page, "span", "side-tag", `#${one.name}`);

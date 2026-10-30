@@ -45,7 +45,8 @@
   align-items: flex-start;
   gap: 8px;
 }
-.side-shut {
+.side-shut,
+.side-apart {
   flex-shrink: 0;
   display: grid;
   place-items: center;
@@ -58,7 +59,8 @@
   font: inherit;
   cursor: pointer;
 }
-.side-shut:hover {
+.side-shut:hover,
+.side-apart:hover {
   background: var(--tisty-hover);
 }
 .side-title {
