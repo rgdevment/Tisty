@@ -25,12 +25,14 @@ done
 cp "$work/mac/icon.icns" "$icons/"
 
 # macOS 26 draws only an Icon Composer icon without a grey frame, and only actool on a Mac compiles one.
-if command -v xcrun >/dev/null 2>&1; then
+if xcrun --find actool >/dev/null 2>&1; then
   xcrun actool "$PWD/$src/Tisty.icon" --compile "$work" --app-icon Tisty \
     --platform macosx --target-device mac --minimum-deployment-target 13.3 \
     --include-all-app-icons --enable-on-demand-resources NO --development-region en \
     --output-partial-info-plist "$work/icon.plist" </dev/null >/dev/null
   cp "$work/Assets.car" "$icons/"
+elif [ "$(uname)" = Darwin ]; then
+  echo "actool comes with Xcode, not the Command Line Tools: Assets.car was left as it was" >&2
 fi
 
 # MSIX: unplated is what a dark taskbar shows, lightunplated what a light one does.
