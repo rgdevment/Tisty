@@ -21,7 +21,8 @@ by hand.
 | --- | --- | --- |
 | `tisty-light.svg` | vector | The mark on light surfaces, and wherever one drawing has to serve both |
 | `tisty-dark.svg` | vector | The mark on dark surfaces: a dark taskbar, dark READMEs and pages |
-| `tisty-mac.svg` | vector | The macOS app icon: the light mark on the tile the Dock expects |
+| `tisty-mac.svg` | vector | The macOS 13–15 app icon: the light mark on the tile the Dock expects |
+| `Tisty.icon` | layers | The macOS 26 app icon, in light, dark and tinted; open it in Icon Composer |
 | `tisty-menubar.svg` | vector | The tray and the menu bar, in one ink |
 | `tisty-512.png`, `tisty-dark-512.png` | 512×512 | Press, release pages, the MCP registry |
 | `tisty-256.png`, `tisty-dark-256.png` | 256×256 | The logo at the top of the README and the wiki |
@@ -29,10 +30,13 @@ by hand.
 | `store-logo-300.png` | 300×300 | Microsoft Store listing logo |
 
 The application's `.ico`, its PNGs and the `Square*Logo` tiles wear the light
-mark; the `.icns` wears the macOS tile. The MSIX taskbar icons come in both:
-`altform-unplated` from the dark mark for a dark taskbar, `altform-lightunplated`
-from the light one. An installed window swaps between `taskbar/on-dark.png` and
-`taskbar/on-light.png` as the taskbar changes.
+mark; the `.icns` wears the macOS tile. On a Mac with Xcode 26 the script also
+compiles `Tisty.icon` into `Assets.car`, which macOS 26 prefers to the `.icns`.
+
+The MSIX taskbar icons come in both: `altform-unplated` from the dark mark for a
+dark taskbar, `altform-lightunplated` from the light one. An installed window
+swaps between `taskbar/on-dark.png` and `taskbar/on-light.png` as the taskbar
+changes.
 
 The tray is the menu-bar glyph: macOS tints its template by itself, and Windows
 gets it in white for a dark taskbar and in near-black for a light one.

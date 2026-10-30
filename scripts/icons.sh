@@ -24,6 +24,15 @@ for file in "$work"/light/*.png "$work"/light/icon.ico; do
 done
 cp "$work/mac/icon.icns" "$icons/"
 
+# macOS 26 draws only an Icon Composer icon without a grey frame, and only actool on a Mac compiles one.
+if command -v xcrun >/dev/null 2>&1; then
+  xcrun actool "$PWD/$src/Tisty.icon" --compile "$work" --app-icon Tisty \
+    --platform macosx --target-device mac --minimum-deployment-target 13.3 \
+    --include-all-app-icons --enable-on-demand-resources NO --development-region en \
+    --output-partial-info-plist "$work/icon.plist" </dev/null >/dev/null
+  cp "$work/Assets.car" "$icons/"
+fi
+
 # MSIX: unplated is what a dark taskbar shows, lightunplated what a light one does.
 for size in 16 20 24 30 32 36 40 48 64 96 256; do
   cp "$work/dark-sizes/${size}x${size}.png" "$icons/Square44x44Logo.targetsize-${size}_altform-unplated.png"
