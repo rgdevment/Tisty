@@ -5,7 +5,7 @@
   "repository": "github:rgdevment/Tisty",
   "devDependencies": {
     "js-yaml": "^5.5.0",
-    "markdownlint-cli2": "^0.23.3"
+    "markdownlint-cli2": "^0.24.0"
   },
   "scripts": {
     "prepare": "git config --get core.hooksPath || git config core.hooksPath hooks || echo the hooks are not set: this is not a git clone",
@@ -19,6 +19,7 @@
   "overrides": {
     "katex": "^0.18.9",
     "markdown-it": "^15.0.3",
+    "re2js": "^2.8.7",
     "smol-toml": "^1.9.0"
   }
 }

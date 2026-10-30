@@ -318,7 +318,12 @@ no_token_kept_in_the_tree() {
 
 no_worker_secrets_kept() {
   local kept
-  kept=$(git ls-files -- 'crates/tisty-share-worker/.dev.vars*' 'crates/tisty-share-worker/.env*')
+  # The pre-commit hook runs this on a copy of the index outside any repository, where every file is staged.
+  if git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+    kept=$(git ls-files -- 'crates/tisty-share-worker/.dev.vars*' 'crates/tisty-share-worker/.env*')
+  else
+    kept=$(find crates/tisty-share-worker -maxdepth 1 \( -name '.dev.vars*' -o -name '.env*' \))
+  fi
   if [ -n "$kept" ]; then
     printf '%s\n' "$kept"
     amiss "a file wrangler reads secrets from is committed; it stays on the machine and the secret goes up with wrangler secret put"
