@@ -92,7 +92,7 @@ emojis = "0.9"
 ammonia = "4"
 htmd = "0.5"
 roxmltree = "0.21"
-markup5ever_rcdom = "0.39.0"
+markup5ever_rcdom = "0.38.0"
 tempfile = "3"
 proptest = { version = "1", default-features = false, features = ["std"] }
 
