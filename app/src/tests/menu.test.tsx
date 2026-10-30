@@ -11,6 +11,22 @@ const choices = (onPick = vi.fn()): Choice[] => [
   { key: "drop", label: "Borrar", danger: true, apart: true, onPick },
 ];
 
+// A menu that closes itself, and whose choice may put the focus in a field of its own.
+const Shown = ({ typed, field }: { typed: boolean; field: HTMLInputElement }) => {
+  const [open, setOpen] = useState(true);
+  const pick = vi.fn(() => {
+    if (typed) field.focus();
+  });
+  return open ? (
+    <Menu
+      at={{ x: 20, y: 30 }}
+      choices={choices(pick)}
+      label="Opciones"
+      onClose={() => setOpen(false)}
+    />
+  ) : null;
+};
+
 describe("where the menu hangs", () => {
   it("mounts on the body, out of reach of any ancestor that clips or contains", () => {
     const { container } = render(
@@ -106,23 +122,9 @@ describe("the row menu", () => {
     const opener = document.createElement("button");
     const field = document.createElement("input");
     document.body.append(opener, field);
-    const Shown = ({ typed }: { typed: boolean }) => {
-      const [open, setOpen] = useState(true);
-      const pick = vi.fn(() => {
-        if (typed) field.focus();
-      });
-      return open ? (
-        <Menu
-          at={{ x: 20, y: 30 }}
-          choices={choices(pick)}
-          label="Opciones"
-          onClose={() => setOpen(false)}
-        />
-      ) : null;
-    };
     for (const typed of [false, true]) {
       opener.focus();
-      const { unmount } = render(<Shown typed={typed} />);
+      const { unmount } = render(<Shown typed={typed} field={field} />);
       await userEvent.click(screen.getByRole("menuitem", { name: "Renombrar" }));
       expect(document.activeElement, `typed ${typed}`).toBe(typed ? field : opener);
       unmount();
@@ -130,7 +132,7 @@ describe("the row menu", () => {
 
     // Closed by a press somewhere else that took the focus, the menu leaves it there.
     opener.focus();
-    const { unmount } = render(<Shown typed={false} />);
+    const { unmount } = render(<Shown typed={false} field={field} />);
     await act(async () => {
       await new Promise((done) => setTimeout(done, 0));
     });

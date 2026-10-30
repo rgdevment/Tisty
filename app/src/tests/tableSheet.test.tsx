@@ -38,40 +38,47 @@ const HTML = `<article class="page"><div class="table" data-at="0-80"><table><th
 
 type Seen = { onTable: (asked: TableWent) => void; freshAt: (byte: number) => void };
 
+const freshWays = () => ({
+  latest: { current: BODY },
+  drawn: { current: BODY },
+  whole: vi.fn(),
+  leave: vi.fn(),
+  markdown: vi.fn(),
+  fail: vi.fn(),
+  writing: false,
+});
+
+type Ways = ReturnType<typeof freshWays>;
+
+type Held = { page: Document; ways: Ways; seen: Seen };
+
+// The table's room, telling the test what it hands out so the test can play the window.
+const Room = ({ turned, page, ways, seen }: Held & { turned: number }) => {
+  const tables = useTables({
+    latest: ways.latest,
+    drawn: ways.drawn,
+    page: () => page,
+    frame: () => ({ left: 100, top: 50 }) as DOMRect,
+    whole: ways.whole,
+    writing: () => ways.writing,
+    leave: ways.leave,
+    markdown: ways.markdown,
+    fail: ways.fail,
+    turned,
+  });
+  seen.onTable = tables.onTable;
+  seen.freshAt = tables.freshAt;
+  return <>{tables.menu}</>;
+};
+
 const made = (html = HTML) => {
   const page = document.implementation.createHTMLDocument("");
   page.body.innerHTML = html;
   tabled(page);
-  const ways = {
-    latest: { current: BODY },
-    drawn: { current: BODY },
-    whole: vi.fn(),
-    leave: vi.fn(),
-    markdown: vi.fn(),
-    fail: vi.fn(),
-    writing: false,
-  };
-  const seen: Seen = { onTable: () => {}, freshAt: () => {} };
-  const Room = ({ turned }: { turned: number }) => {
-    const tables = useTables({
-      latest: ways.latest,
-      drawn: ways.drawn,
-      page: () => page,
-      frame: () => ({ left: 100, top: 50 }) as DOMRect,
-      whole: ways.whole,
-      writing: () => ways.writing,
-      leave: ways.leave,
-      markdown: ways.markdown,
-      fail: ways.fail,
-      turned,
-    });
-    seen.onTable = tables.onTable;
-    seen.freshAt = tables.freshAt;
-    return <>{tables.menu}</>;
-  };
-  const view = render(<Room turned={1} />);
-  const turn = (turned: number) => view.rerender(<Room turned={turned} />);
-  return { page, ways, seen, turn };
+  const held: Held = { page, ways: freshWays(), seen: { onTable: () => {}, freshAt: () => {} } };
+  const view = render(<Room turned={1} {...held} />);
+  const turn = (turned: number) => view.rerender(<Room turned={turned} {...held} />);
+  return { ...held, turn };
 };
 
 const asked = (
