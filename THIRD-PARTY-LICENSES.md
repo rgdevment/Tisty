@@ -1259,7 +1259,7 @@ DEALINGS IN THE SOFTWARE.
 
 ## Text 15
 
-Carried by `arboard` 3.7.0, `fdeflate` 0.3.7, `half` 2.7.1, `image` 0.25.10, `miniz_oxide` 0.8.9, `miniz_oxide` 0.9.1, `num-conv` 0.2.2, `pin-project-lite` 0.2.17, `raw-window-handle` 0.6.2, `simdutf8` 0.1.5, `sync_wrapper` 1.0.2, `tauri` 2.12.4, `tauri-plugin-clipboard-manager` 2.5.0, `tauri-plugin-dialog` 2.8.3, `tauri-plugin-fs` 2.7.1, `tauri-plugin-global-shortcut` 2.4.1, `tauri-plugin-notification` 2.7.0, `tauri-plugin-opener` 2.7.2, `tauri-plugin-single-instance` 2.5.4, `tauri-plugin-updater` 2.14.0, `tauri-runtime` 2.12.2, `tauri-runtime-wry` 2.12.2, `tauri-utils` 2.10.2, `tauri-winrt-notification` 0.8.1, `time` 0.3.55, `time-core` 0.1.9.
+Carried by `arboard` 3.7.0, `fdeflate` 0.3.7, `half` 2.7.1, `image` 0.25.10, `miniz_oxide` 0.8.9, `miniz_oxide` 0.9.1, `num-conv` 0.2.2, `pin-project-lite` 0.2.17, `raw-window-handle` 0.6.2, `simdutf8` 0.1.5, `sync_wrapper` 1.0.2, `tauri` 2.12.5, `tauri-plugin-clipboard-manager` 2.5.0, `tauri-plugin-dialog` 2.8.3, `tauri-plugin-fs` 2.7.1, `tauri-plugin-global-shortcut` 2.4.1, `tauri-plugin-notification` 2.7.0, `tauri-plugin-opener` 2.7.2, `tauri-plugin-single-instance` 2.5.4, `tauri-plugin-updater` 2.14.0, `tauri-runtime` 2.12.2, `tauri-runtime-wry` 2.12.3, `tauri-utils` 2.10.2, `tauri-winrt-notification` 0.8.1, `time` 0.3.55, `time-core` 0.1.9.
 
 ```text
 Apache License
@@ -13261,7 +13261,7 @@ DEALINGS IN THE SOFTWARE.
 
 ## Text 198
 
-Carried by `tauri` 2.12.4, `tauri-plugin-clipboard-manager` 2.5.0, `tauri-plugin-dialog` 2.8.3, `tauri-plugin-fs` 2.7.1, `tauri-plugin-global-shortcut` 2.4.1, `tauri-plugin-notification` 2.7.0, `tauri-plugin-opener` 2.7.2, `tauri-plugin-updater` 2.14.0, `tauri-runtime` 2.12.2, `tauri-runtime-wry` 2.12.2, `tauri-utils` 2.10.2, `tauri-winrt-notification` 0.8.1.
+Carried by `tauri` 2.12.5, `tauri-plugin-clipboard-manager` 2.5.0, `tauri-plugin-dialog` 2.8.3, `tauri-plugin-fs` 2.7.1, `tauri-plugin-global-shortcut` 2.4.1, `tauri-plugin-notification` 2.7.0, `tauri-plugin-opener` 2.7.2, `tauri-plugin-updater` 2.14.0, `tauri-runtime` 2.12.2, `tauri-runtime-wry` 2.12.3, `tauri-utils` 2.10.2, `tauri-winrt-notification` 0.8.1.
 
 ```text
 MIT License
@@ -13435,7 +13435,7 @@ SOFTWARE.
 
 ## Text 204
 
-Carried by `tokio` 1.53.3, `tokio-util` 0.7.20.
+Carried by `tokio` 1.54.1, `tokio-util` 0.7.20.
 
 ```text
 MIT License

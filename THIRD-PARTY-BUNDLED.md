@@ -427,7 +427,7 @@ written once with the crates that carry it.
 | `system-configuration-sys` | 0.6.0 | MIT OR Apache-2.0 |
 | `tao` | 0.37.1 | Apache-2.0 |
 | `tar` | 0.4.46 | MIT OR Apache-2.0 |
-| `tauri` | 2.12.4 | Apache-2.0 OR MIT |
+| `tauri` | 2.12.5 | Apache-2.0 OR MIT |
 | `tauri-plugin-clipboard-manager` | 2.5.0 | Apache-2.0 OR MIT |
 | `tauri-plugin-dialog` | 2.8.3 | Apache-2.0 OR MIT |
 | `tauri-plugin-fs` | 2.7.1 | Apache-2.0 OR MIT |
@@ -437,7 +437,7 @@ written once with the crates that carry it.
 | `tauri-plugin-single-instance` | 2.5.4 | Apache-2.0 OR MIT |
 | `tauri-plugin-updater` | 2.14.0 | Apache-2.0 OR MIT |
 | `tauri-runtime` | 2.12.2 | Apache-2.0 OR MIT |
-| `tauri-runtime-wry` | 2.12.2 | Apache-2.0 OR MIT |
+| `tauri-runtime-wry` | 2.12.3 | Apache-2.0 OR MIT |
 | `tauri-utils` | 2.10.2 | Apache-2.0 OR MIT |
 | `tauri-winrt-notification` | 0.8.1 | MIT OR Apache-2.0 |
 | `tempfile` | 3.27.0 | MIT OR Apache-2.0 |
@@ -448,7 +448,7 @@ written once with the crates that carry it.
 | `time-core` | 0.1.9 | MIT OR Apache-2.0 |
 | `tinystr` | 0.8.4 | Unicode-3.0 |
 | `tinyvec` | 1.13.3 | Zlib OR Apache-2.0 OR MIT |
-| `tokio` | 1.53.3 | MIT |
+| `tokio` | 1.54.1 | MIT |
 | `tokio-rustls` | 0.26.6 | MIT OR Apache-2.0 |
 | `tokio-util` | 0.7.20 | MIT |
 | `toml` | 1.1.8+spec-1.1.0 | MIT OR Apache-2.0 |
