@@ -1,14 +1,13 @@
 import { closeCompletion } from "@codemirror/autocomplete";
 import type { EditorView, KeyBinding } from "@codemirror/view";
+import { coded, formless, type Retable, retable, tableHere, wrapped } from "tisty-editor/edit";
 import { markup } from "tisty-editor/read";
 import { frontLines } from "../front";
 import { t } from "../locales";
-import { coded, formless, wrapped } from "./formatting";
 import { type Regrid, regrid } from "./regridding";
 import { keepShown, marked, marksShown, showMarks } from "./seeing";
 import { type Asking, openMenu, pressed, put, putBlock, SLASHED } from "./slashing";
 import { TYPES } from "./tableChoices";
-import { type Retable, retable, tableHere } from "./tabling";
 
 type Said = Parameters<typeof t>[0];
 

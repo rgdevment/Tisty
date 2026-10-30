@@ -36,8 +36,8 @@ vi.mock("@tauri-apps/plugin-clipboard-manager", () => ({
   },
 }));
 
-vi.mock("../ui/formatting", async (original) => ({
-  ...(await original<typeof import("../ui/formatting")>()),
+vi.mock("tisty-editor/edit", async (original) => ({
+  ...(await original<typeof import("tisty-editor/edit")>()),
   wrapped: (_: unknown, open: string, close: string) => {
     ipc.wrapped.push([open, close]);
     return true;

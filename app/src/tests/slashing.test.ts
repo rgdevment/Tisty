@@ -2,8 +2,8 @@ import { CompletionContext, type CompletionResult } from "@codemirror/autocomple
 import { markdown } from "@codemirror/lang-markdown";
 import { EditorState } from "@codemirror/state";
 import { EditorView, runScopeHandlers } from "@codemirror/view";
+import { wrapped } from "tisty-editor/edit";
 import { describe, expect, it, vi } from "vitest";
-import { wrapped } from "../ui/formatting";
 import {
   type Asked,
   holding,

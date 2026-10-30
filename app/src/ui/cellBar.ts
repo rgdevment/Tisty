@@ -1,6 +1,6 @@
+import { docked } from "tisty-editor/edit";
 import { t } from "../locales";
 import { FORMATS, formatButtons, PENS } from "./barring";
-import { docked } from "./docking";
 import { holds, type Mark } from "./peeled";
 
 /** The bar over a table while one of its cells is written: each press puts a mark on the whole cell or takes it off. */

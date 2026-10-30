@@ -1,7 +1,7 @@
 import { Facet } from "@codemirror/state";
 import type { EditorView, KeyBinding } from "@codemirror/view";
+import { inside, placed, replaced, tableAt, tableHere } from "tisty-editor/edit";
 import { refused, type TableEdit, tableEditNear } from "../tables";
-import { inside, placed, replaced, tableAt, tableHere } from "./tabling";
 
 /** What the editor asks of a table that changes what it means, not just where the caret is. */
 export type Regrid =

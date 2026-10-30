@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { docked } from "../ui/docking";
+import { docked } from "../../src/edit/docking";
 
 describe("a bar laid over the page", () => {
   it("ends at the right edge it is given, never past the sheet's left side", () => {

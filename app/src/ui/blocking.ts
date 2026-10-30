@@ -23,17 +23,23 @@ import {
   type ViewUpdate,
 } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
+import {
+  coded,
+  docked,
+  latelyMarked,
+  owning,
+  pendingFormat,
+  pendingKeys,
+  settle,
+  tableHere,
+  tableKeys,
+} from "tisty-editor/edit";
 import { HUES, isHue, known } from "tisty-editor/read";
 import { docFromHtml, docFromText } from "../core";
 import { barred, blockKeys, flipped } from "./barring";
-import { docked } from "./docking";
-import { coded, owning } from "./formatting";
-import { latelyMarked } from "./lately";
-import { pendingFormat, pendingKeys, settle } from "./pending";
 import { gridFailed, gridKeys } from "./regridding";
 import { visual } from "./seeing";
 import { type Asking, BOX, putBlock, putTable, slashing } from "./slashing";
-import { tableHere, tableKeys } from "./tabling";
 
 const PENS = ["yellow", ...HUES];
 

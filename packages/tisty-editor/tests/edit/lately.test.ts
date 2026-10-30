@@ -1,6 +1,6 @@
 import { EditorState } from "@codemirror/state";
 import { describe, expect, it } from "vitest";
-import { latelyMarked, markLately } from "../ui/lately";
+import { latelyMarked, markLately } from "../../src/edit/lately";
 
 const marks = (state: EditorState) => {
   const found: [number, number][] = [];

@@ -1,10 +1,10 @@
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { EditorSelection, EditorState } from "@codemirror/state";
 import { EditorView, keymap, runScopeHandlers } from "@codemirror/view";
+import { retable, retabled, tableAt, tableKeys, widened } from "tisty-editor/edit";
 import { describe, expect, it } from "vitest";
 import { t } from "../locales";
 import { barred } from "../ui/barring";
-import { retable, retabled, tableAt, tableKeys, widened } from "../ui/tabling";
 import { gripped, widening } from "../ui/widening";
 
 const text = "Intro\n\n| Name | Age |\n|------|:---:|\n| Rina | 4 |\n| Toto | 7 |\n\nAfter";

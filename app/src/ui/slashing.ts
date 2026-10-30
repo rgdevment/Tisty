@@ -8,10 +8,10 @@ import {
 } from "@codemirror/autocomplete";
 import { type EditorState, Prec, StateEffect, StateField } from "@codemirror/state";
 import { EditorView, type KeyBinding, keymap, tooltips } from "@codemirror/view";
+import { anchored, coded, linking, TAG_EDGE, TAG_TAIL, TAG_WORD, wrapped } from "tisty-editor/edit";
 import { markup } from "tisty-editor/read";
 import { matched } from "../finding";
 import { t } from "../locales";
-import { anchored, coded, linking, TAG_EDGE, TAG_TAIL, TAG_WORD, wrapped } from "./formatting";
 
 type Said = Parameters<typeof t>[0];
 

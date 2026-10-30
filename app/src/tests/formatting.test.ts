@@ -1,10 +1,9 @@
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { EditorSelection, EditorState, Prec } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
+import { linking, pending, pendingFormat, pendingKeys, wrapped } from "tisty-editor/edit";
 import { describe, expect, it } from "vitest";
 import { blockKeys } from "../ui/barring";
-import { linking, wrapped } from "../ui/formatting";
-import { pending, pendingFormat, pendingKeys } from "../ui/pending";
 import { visual } from "../ui/seeing";
 
 const view = (doc: string, from = doc.length, to = from) =>

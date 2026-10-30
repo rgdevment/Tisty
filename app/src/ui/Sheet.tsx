@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { MARKED_FOR, markLately, widened, wrapped } from "tisty-editor/edit";
 import type { Carded, Head, Sheet as SheetSize } from "tisty-editor/read";
 import { copied, copyAttached, type Mend, opened, viewWidget } from "../core";
 import { viewDiagram } from "../drawing";
@@ -21,9 +22,7 @@ import { FORMATS, flipped } from "./barring";
 import { caretAt, type Editing, edited } from "./blocking";
 import { cardedAt, movedCard, putCard } from "./carded";
 import { exportChoices, fileName } from "./drawing/exporting";
-import { wrapped } from "./formatting";
 import { useKeptHeight } from "./heights";
-import { MARKED_FOR, markLately } from "./lately";
 import Menu, { type Choice } from "./Menu";
 import { mended as mendedText } from "./mending";
 import Page from "./Page";
@@ -37,7 +36,6 @@ import { ASIDE_MARGIN, settles } from "./seeking";
 import { type Asking, pressed, putBlock, stagesIn } from "./slashing";
 import { stepLine, steppedTitle } from "./staging";
 import { useTables } from "./tableSheet";
-import { widened } from "./tabling";
 import { darkNow } from "./theming";
 import { usePictures } from "./usePictures";
 
