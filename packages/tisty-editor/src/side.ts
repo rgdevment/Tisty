@@ -132,9 +132,27 @@ const folding = (host: HTMLElement) => {
   );
 };
 
+const PRESSABLE = "button, a, summary";
+
+// What the reader was at before the panels are drawn again: where the outline was scrolled and what had the keys.
+const heldOn = (host: HTMLElement) => {
+  const pressable = Array.from(host.querySelectorAll(PRESSABLE));
+  return {
+    scrolled: host.querySelector(".side-index")?.scrollTop ?? 0,
+    focused: pressable.indexOf(host.ownerDocument.activeElement as Element),
+  };
+};
+
+const heldAgain = (host: HTMLElement, { scrolled, focused }: ReturnType<typeof heldOn>) => {
+  const index = host.querySelector(".side-index");
+  if (index) index.scrollTop = scrolled;
+  if (focused >= 0) host.querySelectorAll<HTMLElement>(PRESSABLE)[focused]?.focus();
+};
+
 // Drawn again whole on every change: it holds a few dozen nodes, and what the reader chose stays chosen.
 export const sided = (host: HTMLElement, say: Say, panels: readonly Panel[]) => {
   const page = host.ownerDocument;
+  const held = heldOn(host);
   const chosen = new Map(
     Array.from(host.querySelectorAll<HTMLDetailsElement>("details[data-chosen]"), (one) => [
       one.dataset.row,
@@ -157,4 +175,5 @@ export const sided = (host: HTMLElement, say: Say, panels: readonly Panel[]) => 
     one.open = was;
     one.dataset.chosen = "";
   }
+  heldAgain(host, held);
 };

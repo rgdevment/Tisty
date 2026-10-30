@@ -226,6 +226,29 @@ describe("the panels beside a sheet", () => {
     expect(again.open).toBe(false);
   });
 
+  it("keeps the outline where it was scrolled, and the keys where they were, when drawn again", () => {
+    const side = document.createElement("aside");
+    document.body.append(side);
+    const heads = Array.from({ length: 40 }, (_, at) => ({
+      key: `h${at}`,
+      level: 1,
+      text: `Sección ${at}`,
+      go: () => undefined,
+    }));
+    const panels: Panel[] = [
+      { kind: "paper", leaf: "a4", onLeaf: () => undefined },
+      { kind: "index", heads },
+    ];
+    sided(side, say, panels);
+    const index = side.querySelector<HTMLElement>(".side-index") as HTMLElement;
+    index.scrollTop = 120;
+    side.querySelectorAll<HTMLButtonElement>(".side-leaf")[1].focus();
+    sided(side, say, panels);
+    expect(side.querySelector<HTMLElement>(".side-index")?.scrollTop).toBe(120);
+    expect(document.activeElement?.textContent).toBe("leafLetter");
+    side.remove();
+  });
+
   it("counts the words of a body, without its code or its marks", () => {
     expect(wordsIn("# Compras\n\n- leche\n- pan")).toBe(3);
     expect(wordsIn("hola\n\n```\nlet x = 1\n```\n\nadios")).toBe(2);

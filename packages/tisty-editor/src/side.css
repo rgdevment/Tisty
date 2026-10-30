@@ -7,6 +7,18 @@
   color: var(--tisty-ink);
   font-size: 13px;
 }
+/* Thin and out of sight until the pointer is over it, as every list in the window scrolls. */
+.side,
+.side-index,
+.side-row-body {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.side:hover,
+.side-index:hover,
+.side-row-body:hover {
+  scrollbar-color: var(--tisty-line) transparent;
+}
 .side-card {
   display: flex;
   flex-direction: column;
@@ -107,6 +119,11 @@
   font-weight: 600;
 }
 .side-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 0 6px;
   min-width: 34px;
   border: 1px solid var(--tisty-line);
   border-radius: 8px;
@@ -212,6 +229,14 @@
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+.side-tool .glyph {
+  width: 14px;
+  height: 14px;
+}
+.side-tool .glyph.is-small {
+  width: 10px;
+  height: 10px;
 }
 .side-flag {
   flex-shrink: 0;

@@ -52,7 +52,9 @@ const papered = (page: Document, say: Say, panel: Of<"paper">) => {
   const { onExport } = panel;
   if (onExport) {
     const said = say(panel.exporting ? "makingPdf" : "exportIt");
-    const out = tooled(page, "side-tool", said, onExport, glyph(page, "download"), "▾");
+    const opens = glyph(page, "chevron");
+    opens.classList.add("is-small");
+    const out = tooled(page, "side-tool", said, onExport, glyph(page, "download"), opens);
     out.setAttribute("aria-haspopup", "menu");
     out.setAttribute("aria-busy", String(Boolean(panel.exporting)));
     row.append(out);
