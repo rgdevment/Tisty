@@ -7,6 +7,8 @@ import { type Facts, fetched, limitsOf, REASONS, type Reason, reported } from ".
 import {
   type About,
   accessOf,
+  authored,
+  bylined,
   endsOf,
   fileOf,
   sealed,
@@ -112,12 +114,11 @@ const opened = async (password?: string): Promise<Read | string> => {
 
 // The frame around the body, as the mock-up lays it out: when, who signed it, what can be done and for how long.
 const framed = (found: Read, title: string) => {
-  const version = found.about.version ?? 1;
-  part(".when").textContent = whenOf(found.facts, version, Date.now() / 1000, language, say);
-  sealed(part(".seal"), sealOf(found.about), say);
-  tagged(part(".tags"), found.about.tags ?? []);
+  const seal = sealOf(found.about);
+  sealed(part(".seal"), seal, say);
+  authored(part(".author"), seal, say);
   part(".access").textContent = say(accessOf(found.facts));
-  part(".ends").textContent = endsOf(found.facts, language, say);
+  part(".ends").textContent = endsOf(found.facts, language);
   part<HTMLAnchorElement>(".open").href = tistyOf(location.href);
   const md = part<HTMLAnchorElement>(".md");
   md.download = fileOf(title, say("document"));
@@ -182,9 +183,17 @@ const shown = async (password?: string) => {
     if (gated(found)) return asked(found);
     return refused(found, (to) => location.replace(to), tell);
   }
-  const draw = () => {
+  const when = whenOf(found.facts, found.about.version ?? 1, Date.now() / 1000, language, say);
+  const tags = found.about.tags ?? [];
+  // Tags and dates sit under the body's title; a body without one has them above it instead.
+  const draw = async () => {
     seen();
-    return drawn(frame, found, night.matches, say);
+    const page = await drawn(frame, found, night.matches, say);
+    const inside = bylined(page, tags, when);
+    tagged(part(".tags"), inside ? [] : tags);
+    part(".when").textContent = inside ? "" : when;
+    part(".paper-head").hidden = inside || (tags.length === 0 && !when);
+    return page;
   };
   const page = await draw();
   const title = found.title || titleOf(page);

@@ -1,3 +1,4 @@
+import { TITLED } from "tisty-reader/page";
 import type { Facts } from "./fetched";
 import { ago, day } from "./when";
 import { filled } from "./words";
@@ -54,8 +55,12 @@ export const sealOf = (about: About): Seal => {
   };
 };
 
+const partOf = (box: HTMLElement) => (name: string) =>
+  box.querySelector<HTMLElement>(`.${name}`) as HTMLElement;
+
+// The line under the body, as the mock-up closes the sheet.
 export const sealed = (box: HTMLElement, seal: Seal, say: Say) => {
-  const part = (name: string) => box.querySelector<HTMLElement>(`.${name}`) as HTMLElement;
+  const part = partOf(box);
   box.dataset.verdict = seal.verdict;
   part("seal-who").textContent = seal.who ? `${say("signedby")} ${seal.who}` : "";
   part("seal-print").textContent = seal.fingerprint ?? "";
@@ -65,24 +70,61 @@ export const sealed = (box: HTMLElement, seal: Seal, say: Say) => {
   box.hidden = false;
 };
 
-// The body leaves its front matter undrawn, so its tags are shown above it, as the mock-up does.
+// The card beside the body names its author; a document nobody signed has no one to name.
+export const authored = (card: HTMLElement, seal: Seal, say: Say) => {
+  const part = partOf(card);
+  card.dataset.verdict = seal.verdict;
+  part("avatar").textContent = (seal.who ?? "").slice(0, 2).toUpperCase();
+  part("author-who").textContent = seal.who ?? "";
+  part("author-print").textContent = seal.fingerprint ?? "";
+  part("author-said").textContent = say(seal.verdict === "holds" ? "matches" : seal.verdict);
+  card.hidden = !seal.who;
+};
+
+const chips = (made: Document, tags: readonly string[]) =>
+  tags.map((tag) => {
+    const one = made.createElement("span");
+    one.className = "tag";
+    one.textContent = `#${tag}`;
+    return one;
+  });
+
+// The body leaves its front matter undrawn, so its tags are shown by the frame.
 export const tagged = (row: HTMLElement, tags: readonly string[]) => {
-  row.replaceChildren(
-    ...tags.map((tag) => {
-      const one = document.createElement("span");
-      one.className = "tag";
-      one.textContent = `#${tag}`;
-      return one;
-    }),
-  );
+  row.replaceChildren(...chips(row.ownerDocument, tags));
   row.hidden = tags.length === 0;
+};
+
+// The byline takes over the line that closes the title, so the header reads as one: title, then tags and dates.
+// Important, since the reader styles a title after front matter with a selector no plainer rule outweighs.
+const BYLINE = [
+  ".page > :has(+ .byline) { margin-bottom: 10px !important; padding-bottom: 0 !important; border-bottom: 0 !important }",
+  ".byline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 22px; padding-bottom: 16px; border-bottom: 1px solid var(--tisty-hair); font-size: 14px; color: var(--tisty-soft) }",
+  ".byline .tag { color: var(--tisty-ink); background: var(--tisty-mark-doc); border-radius: 6px; padding: 2px 8px; font-size: 13px }",
+].join("\n");
+
+// Placed right after the body's own title, so no line of the body moves; a body with no title gets none.
+export const bylined = (page: Document, tags: readonly string[], when: string): boolean => {
+  const title = page.querySelector(TITLED);
+  if (!title || (tags.length === 0 && !when)) return false;
+  const style = page.createElement("style");
+  style.textContent = BYLINE;
+  page.head.append(style);
+  const line = page.createElement("div");
+  line.className = "byline";
+  line.append(...chips(page, tags));
+  if (when) line.append(Object.assign(page.createElement("span"), { textContent: when }));
+  title.after(line);
+  return true;
 };
 
 export const accessOf = (facts: Facts): string => (facts.gated ? "gated" : "unlisted");
 
-// Every reading pushes the end back (decision 50), so the date says it holds only if nobody comes first.
-export const endsOf = (facts: Facts, language: string, say: Say): string =>
-  facts.ends === undefined ? "" : filled(say("endsunless"), day(facts.ends, language));
+// Every reading pushes the end back (decision 50), which the note under the date says.
+export const endsOf = (facts: Facts, language: string): string =>
+  facts.ends === undefined
+    ? ""
+    : new Intl.DateTimeFormat(language, { dateStyle: "medium" }).format(facts.ends * 1000);
 
 // A name every system takes: the title without the characters some forbid, or the page's own word for it.
 export const fileOf = (title: string, fallback: string): string =>

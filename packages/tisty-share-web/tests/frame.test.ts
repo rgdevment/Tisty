@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   accessOf,
+  authored,
+  bylined,
   endsOf,
   fileOf,
   type Seal,
@@ -90,11 +92,65 @@ describe("what the side says", () => {
     expect(say(accessOf({ gated: true }))).toBe("Con el link y una clave");
   });
 
-  it("gives the day it ends, which a reading pushes back", () => {
-    expect(endsOf({ ends: NOW + 30 * DAY, gated: false }, "es", say)).toBe(
-      "29 de noviembre de 2026, si nadie lo abre antes",
-    );
-    expect(endsOf({ gated: false }, "es", say)).toBe("");
+  it("gives the day it ends, short enough to sit beside its name", () => {
+    expect(endsOf({ ends: NOW + 30 * DAY, gated: false }, "es")).toBe("29 nov 2026");
+    expect(endsOf({ ends: NOW + 30 * DAY, gated: false }, "en")).toBe("Nov 29, 2026");
+    expect(endsOf({ gated: false }, "es")).toBe("");
+  });
+});
+
+describe("the author's card", () => {
+  const card = () => {
+    const made = document.createElement("section");
+    made.innerHTML =
+      '<span class="avatar"></span><span class="author-who"></span><span class="author-print"></span><span class="author-said"></span>';
+    return made;
+  };
+  const text = (made: HTMLElement) => [...made.children].map((one) => one.textContent);
+
+  it("names who signed it and says the signature matches their key", () => {
+    const made = card();
+    authored(made, sealOf({ wrote: mario }), say);
+    expect(text(made)).toEqual([
+      "R8",
+      "r8f1",
+      mario.fingerprint,
+      "La firma coincide con esta llave",
+    ]);
+    expect(made.hidden).toBe(false);
+    expect(made.dataset.verdict).toBe("holds");
+  });
+
+  it("warns when the key was revoked, and is not there when nobody can be named", () => {
+    const made = card();
+    authored(made, sealOf({ wrote: { ...mario, is: "revoked" } }), say);
+    expect(text(made)[3]).toBe(say("revoked"));
+    authored(made, sealOf({}), say);
+    expect(made.hidden).toBe(true);
+    authored(made, sealOf({ wrote: { is: "unreadable" } }), say);
+    expect(made.hidden).toBe(true);
+  });
+});
+
+describe("the byline", () => {
+  const pageOf = (html: string): Document => {
+    const page = document.implementation.createHTMLDocument("");
+    page.body.innerHTML = `<article class="page">${html}</article>`;
+    return page;
+  };
+
+  it("sits right after the body's title, with its tags and dates, and leaves the rest alone", () => {
+    const page = pageOf("<h1>Guía</h1><p>Texto</p>");
+    expect(bylined(page, ["guía"], "Compartido hoy")).toBe(true);
+    const blocks = [...(page.querySelector(".page")?.children ?? [])];
+    expect(blocks.map((one) => one.className || one.tagName)).toEqual(["H1", "byline", "P"]);
+    expect(blocks[1].textContent).toBe("#guíaCompartido hoy");
+    expect(page.head.querySelector("style")?.textContent).toContain(".byline");
+  });
+
+  it("is left to the frame when the body has no title, or there is nothing to say", () => {
+    expect(bylined(pageOf("<figure class='code'><pre>x</pre></figure>"), ["a"], "hoy")).toBe(false);
+    expect(bylined(pageOf("<h1>Guía</h1>"), [], "")).toBe(false);
   });
 });
 
