@@ -117,7 +117,7 @@ jobs:
           sccache --stop-server > /dev/null 2>&1 || true
           sccache --start-server || echo "::warning::sccache did not start; this job compiles without it"
       - uses: ./.github/actions/sidecar
-      - uses: taiki-e/install-action@a4d3f3f761dcd95cce1b72cb61cb6d1963438177 # v2.87.30
+      - uses: taiki-e/install-action@1e29709c0ec63babbe8f266397a465f29a825f91 # v2.87.31
         with:
           tool: nextest
       # Clippy runs where the cache is written, or the next job pays to rebuild what it needs; a branch needs it once per system.
@@ -176,7 +176,7 @@ jobs:
         with:
           components: clippy
           targets: wasm32-unknown-unknown
-      - uses: taiki-e/install-action@a4d3f3f761dcd95cce1b72cb61cb6d1963438177 # v2.87.30
+      - uses: taiki-e/install-action@1e29709c0ec63babbe8f266397a465f29a825f91 # v2.87.31
         with:
           tool: worker-build@0.8.7
       # The Worker builds the same protocol the app does; a dependency that cannot reach wasm has to fail here.
@@ -294,11 +294,11 @@ jobs:
         if: needs.changes.outputs.rust == 'true'
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
-      - uses: taiki-e/install-action@a4d3f3f761dcd95cce1b72cb61cb6d1963438177 # v2.87.30
+      - uses: taiki-e/install-action@1e29709c0ec63babbe8f266397a465f29a825f91 # v2.87.31
         if: needs.changes.outputs.rust == 'true'
         with:
           tool: cargo-llvm-cov
-      - uses: taiki-e/install-action@a4d3f3f761dcd95cce1b72cb61cb6d1963438177 # v2.87.30
+      - uses: taiki-e/install-action@1e29709c0ec63babbe8f266397a465f29a825f91 # v2.87.31
         if: needs.changes.outputs.rust == 'true'
         with:
           tool: nextest
