@@ -1,10 +1,19 @@
+import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
-const packages = dirname(dirname(fileURLToPath(import.meta.url)));
-const reader = join(packages, "tisty-reader");
-const studio = join(packages, "tisty-diagrams");
+// Stryker runs the tests from a copy of the page, so the packages are looked for up the folders.
+const packageAt = (name: string, from: string): string => {
+  const here = join(from, "packages", name);
+  if (existsSync(here)) return here;
+  const up = dirname(from);
+  if (up === from) throw new Error(`packages/${name} is not above the page`);
+  return packageAt(name, up);
+};
+const pageAt = dirname(fileURLToPath(import.meta.url));
+const reader = packageAt("tisty-reader", pageAt);
+const studio = packageAt("tisty-diagrams", pageAt);
 
 export default defineConfig({
   resolve: {

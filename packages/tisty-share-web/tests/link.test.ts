@@ -7,6 +7,10 @@ describe("a link", () => {
     expect(linkOf("/k7Qm2xPa/", "#qR12Ff")).toEqual({ id: "k7Qm2xPa", key: "qR12Ff" });
   });
 
+  it("drops only the # that opens it, never one inside the key", () => {
+    expect(linkOf("/k7Qm2xPa", "ab#cd")?.key).toBe("ab#cd");
+  });
+
   it("without its # still names the document, with no key to open it", () => {
     expect(linkOf("/k7Qm2xPa", "")).toEqual({ id: "k7Qm2xPa", key: "" });
   });
