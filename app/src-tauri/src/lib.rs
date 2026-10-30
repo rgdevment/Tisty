@@ -983,7 +983,6 @@ pub(crate) fn opened(
     answers::papers::tags_once(app.clone());
 
     app.manage(answers::freeing::Stopping::default());
-    tray::repaint(app);
     tray::follow_bar(app.clone());
     let perched = tray::raise(app, &words).is_some();
     app.manage(Perched(perched));
@@ -1066,9 +1065,7 @@ fn window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
     if window.label() != "main" {
         return;
     }
-    if let tauri::WindowEvent::ThemeChanged(_) | tauri::WindowEvent::ScaleFactorChanged { .. } =
-        event
-    {
+    if let tauri::WindowEvent::ThemeChanged(_) = event {
         tray::repaint(window.app_handle());
         return;
     }

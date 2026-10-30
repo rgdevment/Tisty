@@ -19,10 +19,9 @@ render() {
 # Every size a surface asks for: the bundle, the .ico, the MSIX logos and target sizes, the READMEs.
 sizes=16,20,24,30,32,36,40,44,48,50,60,64,71,72,80,96,128,150,256,300,512
 render "$src/tisty-light.svg" "$work/light" "$sizes"
-render "$src/tisty-dark.svg" "$work/dark" "$sizes"
 render "$src/tisty-mac.svg" "$work/mac"
 
-# The bundle's images are single, so they wear the light drawing; macOS takes the tile its Dock expects.
+# The light drawing reads on light and dark surfaces alike; macOS takes the tile its Dock expects.
 for size in 32 64 128; do
   cp "$work/light/${size}x${size}.png" "$icons/"
 done
@@ -79,7 +78,7 @@ elif [ "$(uname)" = Darwin ]; then
   echo "actool comes with Xcode, not the Command Line Tools: Assets.car was left as it was" >&2
 fi
 
-# Each drawing fades into its own tone, so surfaces take the opposite: unplated is a dark taskbar.
+# The plated logos sit on the manifest's BackgroundColor; unplated is what the taskbar shows.
 msix="$icons/msix"
 rm -rf "$msix"
 mkdir -p "$msix"
@@ -90,15 +89,6 @@ done
 for size in 16 20 24 30 32 36 40 48 60 64 72 80 96 256; do
   cp "$work/light/${size}x${size}.png" "$msix/Square44x44Logo.targetsize-$size.png"
   cp "$work/light/${size}x${size}.png" "$msix/Square44x44Logo.targetsize-${size}_altform-unplated.png"
-  cp "$work/dark/${size}x${size}.png" "$msix/Square44x44Logo.targetsize-${size}_altform-lightunplated.png"
-done
-
-# An installed (non-MSIX) window swaps its icon as the taskbar changes, at its size from 100 % to 300 %.
-rm -rf "$icons/taskbar"
-mkdir -p "$icons/taskbar"
-for size in 32 40 48 64 80 96; do
-  cp "$work/light/${size}x${size}.png" "$icons/taskbar/on-dark-$size.png"
-  cp "$work/dark/${size}x${size}.png" "$icons/taskbar/on-light-$size.png"
 done
 
 # The tray is the one-ink glyph: macOS tints its template itself, Windows needs one per taskbar.
@@ -115,8 +105,7 @@ done
 
 for size in 128 256 512; do
   cp "$work/light/${size}x${size}.png" "$src/tisty-$size.png"
-  cp "$work/dark/${size}x${size}.png" "$src/tisty-on-light-$size.png"
 done
 cp "$work/light/300x300.png" "$src/store-logo-300.png"
 cp "$work/light/128x128.png" app/public/icon.png
-cp "$src/tisty-light.svg" "$src/tisty-dark.svg" app/src/assets/
+cp "$src/tisty-light.svg" app/src/assets/
