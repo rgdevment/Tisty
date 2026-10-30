@@ -37,7 +37,9 @@ describe("a picture the text names", () => {
   });
 
   it("that the envelope does not carry stays empty", () => {
-    const page = pageOf('<img data-picture="3"><img data-picture="x">');
+    const page = pageOf(
+      '<img data-picture="3"><img data-picture="x"><img data-picture=""><img data-picture="0x0"><img data-picture=" 0">',
+    );
     expect(pictured(page, [png])).toEqual([]);
     expect(page.querySelector("img[src]")).toBeNull();
   });
@@ -101,7 +103,7 @@ describe("a title", () => {
 });
 
 describe("a click on a link in the frame", () => {
-  const clicked = (href: string) => {
+  const clicked = (href: string, kind = "click") => {
     const page = pageOf(`<a href="${href}">ir</a><h2 id="al-final">Al final</h2>`);
     const place = page.getElementById("al-final") as HTMLElement;
     place.getBoundingClientRect = () => ({ top: 900 }) as DOMRect;
@@ -110,7 +112,11 @@ describe("a click on a link in the frame", () => {
     vi.stubGlobal("scrollTo", scrolled);
     linkedWithin(frame, page);
     const link = page.querySelector("a") as HTMLAnchorElement;
-    const event = new MouseEvent("click", { bubbles: true, cancelable: true });
+    const event = new MouseEvent(kind, {
+      bubbles: true,
+      cancelable: true,
+      button: kind === "click" ? 0 : 1,
+    });
     link.dispatchEvent(event);
     return { kept: event.defaultPrevented, scrolled };
   };
@@ -133,6 +139,15 @@ describe("a click on a link in the frame", () => {
     for (const href of ["https://x.test", "mailto:a@x.test"]) {
       const { kept, scrolled } = clicked(href);
       expect(kept, href).toBe(false);
+      expect(scrolled, href).not.toHaveBeenCalled();
+      expect(clicked(href, "auxclick").kept, href).toBe(false);
+    }
+  });
+
+  it("with the middle button opens no tab for a link the document keeps, nor walks to it", () => {
+    for (const href of ["#al-final", "otro.md", "tisty:doc/d1"]) {
+      const { kept, scrolled } = clicked(href, "auxclick");
+      expect(kept, href).toBe(true);
       expect(scrolled, href).not.toHaveBeenCalled();
     }
   });

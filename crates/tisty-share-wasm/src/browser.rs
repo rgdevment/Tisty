@@ -38,8 +38,8 @@ impl Page {
 
 /// Opens the envelope, or says in one word why it would not open.
 #[wasm_bindgen]
-pub fn open(envelope: Vec<u8>, key: &str, limits: &str) -> Result<Page, JsError> {
-    shown(envelope, key, limits)
+pub fn open(envelope: Vec<u8>, key: &str, limits: Option<String>) -> Result<Page, JsError> {
+    shown(envelope, key, limits.as_deref())
         .map(Page)
         .map_err(|unread| JsError::new(unread.word()))
 }

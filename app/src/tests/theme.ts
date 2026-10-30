@@ -16,7 +16,6 @@ export const themeCss = (): string =>
     .map((file) => readFileSync(file, "utf8"))
     .join("\n");
 
-// Every block a theme opens, in both files, read as one.
 export const themed = (css: string, opener: string): string => {
   const blocks: string[] = [];
   for (let at = css.indexOf(opener); at > -1; at = css.indexOf(opener, at + opener.length))

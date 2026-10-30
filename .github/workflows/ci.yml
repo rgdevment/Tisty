@@ -24,6 +24,7 @@ jobs:
     timeout-minutes: 5
     outputs:
       rust: ${{ steps.look.outputs.rust }}
+      page: ${{ steps.look.outputs.page }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -37,6 +38,7 @@ jobs:
         run: |
           if [ "$EVENT" != "pull_request" ]; then
             echo "rust=true" >> "$GITHUB_OUTPUT"
+            echo "page=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           aside='^(app/src/|packages/|app/(\.gitignore|biome\.json|index\.html|package(-lock)?\.json|public/|stryker\.config\.json|tsconfig(\.node)?\.json|vite\.config\.ts)$|assets/|docs/|fuzz/|hooks/|(CLA|CODE_OF_CONDUCT|CONTRIBUTING|PRIVACY|README|README\.es|SECURITY|THIRD-PARTY)\.md$|package(-lock)?\.json$|\.markdownlint-cli2\.jsonc$|\.editorconfig$|\.github/(FUNDING|dependabot)\.yml$|\.github/workflows/(caches|cla|commits|feed|fuzz|mutants|mutants-sweep|release|rules|versions)\.yml$)'
@@ -46,6 +48,10 @@ jobs:
             | grep -v '^$' | head -1 || true)
           [ -n "$first" ] && rust=true || rust=false
           echo "rust=$rust" >> "$GITHUB_OUTPUT"
+          # The page is built of the crates and the packages, with the app's install, so only those can break it.
+          page=$rust
+          echo "$changed" | grep -qE '^(packages/|app/package(-lock)?\.json$)' && page=true
+          echo "page=$page" >> "$GITHUB_OUTPUT"
           echo "the first path Rust has to answer for: ${first:-none}"
 
   test:
@@ -135,12 +141,13 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - name: Every part of the tests passed, or the branch never touched Rust
+      - name: Every part of the tests passed, or the branch never touched what it tests
         env:
           LOOKED: ${{ needs.changes.result }}
           RUST: ${{ needs.changes.outputs.rust }}
           RESULT: ${{ needs.test.result }}
           WASM: ${{ needs.wasm.result }}
+          PAGED: ${{ needs.changes.outputs.page }}
           PAGE: ${{ needs.page.result }}
         run: |
           [ "$LOOKED" = "success" ] || { echo "::error::what the branch touched could not be read ($LOOKED)"; exit 1; }
@@ -148,7 +155,7 @@ jobs:
             || { echo "::error::the tests ended as $RESULT"; exit 1; }
           [ "$WASM" = "success" ] || { [ "$RUST" = "false" ] && [ "$WASM" = "skipped" ]; } \
             || { echo "::error::the share protocol on wasm ended as $WASM"; exit 1; }
-          [ "$PAGE" = "success" ] || { echo "::error::the share page ended as $PAGE"; exit 1; }
+          [ "$PAGE" = "success" ] || { [ "$PAGED" = "false" ] && [ "$PAGE" = "skipped" ]; } \n            || { echo "::error::the share page ended as $PAGE"; exit 1; }
 
   lint:
     name: fmt
@@ -194,6 +201,8 @@ jobs:
 
   page:
     name: share page
+    needs: changes
+    if: needs.changes.outputs.page == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:

@@ -9,7 +9,7 @@ export const PICTURE = "tisty:picture/";
 const OUTSIDE = /^(https?:|mailto:)/i;
 
 // Control and direction marks, which Tisty keeps out of a title so none can dress one up as another.
-const MARKS = /[\p{Cc}‪-‮⁦-⁩]/gu;
+const MARKS = /[\p{Cc}\u202A-\u202E\u2066-\u2069]/gu;
 
 // Set aside before the frame reads the html, so the browser never asks for a picture by its name.
 export const unasked = (html: string): string =>
@@ -19,8 +19,8 @@ export const unasked = (html: string): string =>
 export const pictured = (page: Document, pictures: readonly Picture[]): string[] => {
   const made: string[] = [];
   for (const img of page.querySelectorAll<HTMLImageElement>("img[data-picture]")) {
-    const at = Number(img.dataset.picture);
-    const picture = Number.isInteger(at) ? pictures[at] : undefined;
+    const at = img.dataset.picture ?? "";
+    const picture = /^\d+$/.test(at) ? pictures[Number(at)] : undefined;
     if (!picture) continue;
     const url = URL.createObjectURL(new Blob([picture.bytes], { type: picture.media }));
     made.push(url);
@@ -38,7 +38,6 @@ export const linkedOut = (page: Document) => {
   }
 };
 
-// Where a link inside the document points, if it points at a place in it.
 export const placeOf = (page: Document, href: string): Element | null => {
   if (!href.startsWith("#") || href.length < 2) return null;
   try {
@@ -50,10 +49,17 @@ export const placeOf = (page: Document, href: string): Element | null => {
 
 // The frame's links resolve against this page's address, so one that stays in the document is walked by hand.
 export const linkedWithin = (frame: HTMLIFrameElement, page: Document) => {
+  const within = (event: Event): string | null => {
+    const href = (event.target as Element | null)?.closest?.("a[href]")?.getAttribute("href");
+    return href == null || OUTSIDE.test(href) ? null : href;
+  };
+  // Nor does a middle click open one in a tab of its own, which would take its # for the link's key.
+  page.addEventListener("auxclick", (event) => {
+    if (within(event) !== null) event.preventDefault();
+  });
   page.addEventListener("click", (event) => {
-    const link = (event.target as Element | null)?.closest?.("a[href]");
-    const href = link?.getAttribute("href") ?? "";
-    if (!link || OUTSIDE.test(href)) return;
+    const href = within(event);
+    if (href === null) return;
     event.preventDefault();
     const place = placeOf(page, href);
     if (!place) return;

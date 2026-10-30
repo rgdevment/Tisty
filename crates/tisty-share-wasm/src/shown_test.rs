@@ -11,10 +11,6 @@ fn key(n: u8) -> LinkKey {
     LinkKey::from_bytes(&[n; 32])
 }
 
-fn limits() -> String {
-    serde_json::to_string(&Limits::default()).unwrap()
-}
-
 fn png(len: usize) -> Vec<u8> {
     let mut bytes = b"\x89PNG\r\n\x1a\n".to_vec();
     bytes.resize(len, 3);
@@ -35,7 +31,7 @@ fn sealed(text: &str, pictures: &[(Kind, &[u8])], by: Option<&Signer>) -> Vec<u8
 }
 
 fn read(envelope: Vec<u8>) -> Result<Shown, Unread> {
-    shown(envelope, &key(1).to_text(), &limits())
+    shown(envelope, &key(1).to_text(), None)
 }
 
 #[test]
@@ -98,21 +94,21 @@ fn names_who_signed_it() {
 
 #[test]
 fn another_key_finds_it_locked() {
-    let refused = shown(sealed(TEXT, &[], None), &key(2).to_text(), &limits());
+    let refused = shown(sealed(TEXT, &[], None), &key(2).to_text(), None);
     assert_eq!(refused.err().map(|unread| unread.word()), Some("locked"));
 }
 
 #[test]
 fn a_link_without_a_key_is_keyless() {
     for said in ["", "not a key", "AAAA"] {
-        let refused = shown(sealed(TEXT, &[], None), said, &limits());
+        let refused = shown(sealed(TEXT, &[], None), said, None);
         assert_eq!(refused.err(), Some(Unread::Keyless), "{said:?}");
     }
 }
 
 #[test]
 fn limits_that_do_not_read_are_limitless() {
-    let refused = shown(sealed(TEXT, &[], None), &key(1).to_text(), "{");
+    let refused = shown(sealed(TEXT, &[], None), &key(1).to_text(), Some("{"));
     assert_eq!(refused.err(), Some(Unread::Limitless));
 }
 
@@ -126,7 +122,7 @@ fn bytes_that_are_no_envelope_are_damaged() {
 fn a_server_that_now_takes_less_still_opens_what_it_took() {
     let shut = serde_json::json!({ "text": 8, "pictures": 0, "kinds": [] }).to_string();
     let envelope = sealed(TEXT, &[(Kind::Png, &png(40))], None);
-    let page = shown(envelope, &key(1).to_text(), &shut).unwrap();
+    let page = shown(envelope, &key(1).to_text(), Some(&shut)).unwrap();
     assert_eq!(page.pictures.len(), 1);
 }
 
@@ -146,9 +142,10 @@ fn a_server_that_takes_more_opens_what_only_it_took() {
     };
     let envelope = seal(&key(1), &draft, None, &roomy).unwrap().into_bytes();
     let said = serde_json::to_string(&roomy).unwrap();
-    assert!(shown(envelope.clone(), &key(1).to_text(), &said).is_ok());
-    let refused = shown(envelope, &key(1).to_text(), &limits());
-    assert_eq!(refused.err(), Some(Unread::Envelope(Refused::TextTooBig)));
+    assert!(shown(envelope.clone(), &key(1).to_text(), Some(&said)).is_ok());
+    let refused = shown(envelope, &key(1).to_text(), None).err();
+    assert_eq!(refused.as_ref().map(Unread::word), Some("over"));
+    assert_eq!(refused, Some(Unread::Envelope(Refused::TextTooBig)));
 }
 
 #[test]

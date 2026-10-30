@@ -16,6 +16,7 @@ const SPANISH = {
   newer:
     "Este documento se escribió con una versión de Tisty más nueva que esta página. Ábrelo en Tisty.",
   offline: "No se pudo llegar a Tisty Share. Revisa tu conexión y vuelve a intentarlo.",
+  down: "Tisty Share no responde en este momento. Vuelve a intentarlo en unos minutos.",
   failed: "No se pudo abrir este documento.",
   document: "Documento compartido",
   notices: "Licencias de terceros",
@@ -44,6 +45,7 @@ const ENGLISH: Record<Word, string> = {
   locked: "This link's key does not open the document. Ask whoever sent it for the whole link.",
   newer: "This document was written by a newer Tisty than this page. Open it in Tisty.",
   offline: "Tisty Share could not be reached. Check your connection and try again.",
+  down: "Tisty Share is not answering right now. Try again in a few minutes.",
   failed: "This document could not be opened.",
   document: "Shared document",
   notices: "Third-party licences",
@@ -54,10 +56,10 @@ const ENGLISH: Record<Word, string> = {
   saidcaution: "Caution",
 };
 
-export const spanish = (languages: readonly string[]): boolean =>
-  languages.some((one) => one.toLowerCase().startsWith("es"));
+export const spanish = (language: string): boolean => language.toLowerCase().startsWith("es");
 
 export const wordsFor = (inSpanish: boolean) => {
   const words: Record<Word, string> = inSpanish ? SPANISH : ENGLISH;
-  return (word: string): string => (word in words ? words[word as Word] : words.failed);
+  return (word: string): string =>
+    Object.hasOwn(words, word) ? words[word as Word] : words.failed;
 };

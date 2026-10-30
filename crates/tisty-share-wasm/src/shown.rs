@@ -55,16 +55,27 @@ impl Unread {
             Self::Limitless => "limitless",
             Self::Envelope(Refused::Locked) => "locked",
             Self::Envelope(Refused::Newer) => "newer",
+            // Over Tisty's own limits, which the server's may be wider than.
+            Self::Envelope(
+                Refused::TextTooBig
+                | Refused::PictureTooBig
+                | Refused::TooManyPictures
+                | Refused::PicturesTooBig
+                | Refused::KindRefused,
+            ) => "over",
             Self::Envelope(_) => "damaged",
         }
     }
 }
 
-/// Opens what the server sent with the key from the link, under the wider of its limits and Tisty's own.
-pub fn shown(envelope: Vec<u8>, key: &str, limits: &str) -> Result<Shown, Unread> {
+/// Opens what the server sent with the key from the link, under Tisty's limits or the wider of those and the server's.
+pub fn shown(envelope: Vec<u8>, key: &str, limits: Option<&str>) -> Result<Shown, Unread> {
     let key = LinkKey::from_text(key).ok_or(Unread::Keyless)?;
-    let limits: Limits = serde_json::from_str(limits).map_err(|_| Unread::Limitless)?;
-    let envelope = Envelope::read(envelope, &roomier(limits)).map_err(Unread::Envelope)?;
+    let limits = match limits {
+        Some(said) => roomier(serde_json::from_str(said).map_err(|_| Unread::Limitless)?),
+        None => Limits::default(),
+    };
+    let envelope = Envelope::read(envelope, &limits).map_err(Unread::Envelope)?;
     // The web learns of no revocation; a revoked key shows as holding until Tisty is asked.
     let opened = open(&key, &envelope, &[]).map_err(Unread::Envelope)?;
     let html = tisty_markdown::html(&tisty_markdown::read(&opened.text));
