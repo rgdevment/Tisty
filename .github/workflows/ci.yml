@@ -155,7 +155,8 @@ jobs:
             || { echo "::error::the tests ended as $RESULT"; exit 1; }
           [ "$WASM" = "success" ] || { [ "$RUST" = "false" ] && [ "$WASM" = "skipped" ]; } \
             || { echo "::error::the share protocol on wasm ended as $WASM"; exit 1; }
-          [ "$PAGE" = "success" ] || { [ "$PAGED" = "false" ] && [ "$PAGE" = "skipped" ]; } \n            || { echo "::error::the share page ended as $PAGE"; exit 1; }
+          [ "$PAGE" = "success" ] || { [ "$PAGED" = "false" ] && [ "$PAGE" = "skipped" ]; } \
+            || { echo "::error::the share page ended as $PAGE"; exit 1; }
 
   lint:
     name: fmt
