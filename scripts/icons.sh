@@ -29,7 +29,8 @@ if xcrun --find actool >/dev/null 2>&1; then
   xcrun actool "$PWD/$src/Tisty.icon" --compile "$work" --app-icon Tisty \
     --platform macosx --target-device mac --minimum-deployment-target 13.3 \
     --include-all-app-icons --enable-on-demand-resources NO --development-region en \
-    --output-partial-info-plist "$work/icon.plist" </dev/null >/dev/null
+    --output-partial-info-plist "$work/icon.plist" \
+    --output-format human-readable-text --errors --warnings </dev/null
   cp "$work/Assets.car" "$icons/"
 elif [ "$(uname)" = Darwin ]; then
   echo "actool comes with Xcode, not the Command Line Tools: Assets.car was left as it was" >&2
