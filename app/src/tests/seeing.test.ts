@@ -1,14 +1,19 @@
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { EditorSelection, EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
+import { hosted, keepShown, marked, marksShown, seen, showMarks, visual } from "tisty-editor/edit";
 import { describe, expect, it } from "vitest";
-import { keepShown, marked, marksShown, seen, showMarks, visual } from "../ui/seeing";
+import { HOST } from "../ui/hosting";
 
 const state = (doc: string, at = doc.length, shown = false) =>
   EditorState.create({
     doc,
     selection: EditorSelection.cursor(at),
-    extensions: [markdown({ base: markdownLanguage }), marksShown.init(() => shown)],
+    extensions: [
+      hosted.of(HOST),
+      markdown({ base: markdownLanguage }),
+      marksShown.init(() => shown),
+    ],
   });
 
 type Seen = { from: number; to: number; line?: string; widget?: string; mark?: string };
@@ -106,7 +111,7 @@ describe("a block written as it reads", () => {
       state: EditorState.create({
         doc: "ver [el plano](https://x.y) hoy",
         selection: EditorSelection.cursor(5),
-        extensions: [markdown({ base: markdownLanguage }), visual],
+        extensions: [hosted.of(HOST), markdown({ base: markdownLanguage }), visual],
       }),
     });
     view.dispatch({ selection: { anchor: 7 } });
@@ -179,7 +184,7 @@ describe("a block written as it reads", () => {
       parent: document.body,
       state: EditorState.create({
         doc: "- [ ] uno",
-        extensions: [markdown({ base: markdownLanguage }), visual],
+        extensions: [hosted.of(HOST), markdown({ base: markdownLanguage }), visual],
       }),
     });
     expect(view.dom.querySelector(".cm-check")).not.toBeNull();

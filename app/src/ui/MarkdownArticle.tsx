@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import type { Head } from "tisty-reader/page";
+import type { Carded, Head } from "tisty-editor/read";
 import rina from "../../src-tauri/resources/guide/en/rina.jpg";
 import { helpAnchors, helpDrawn } from "../guide/calls";
 import { aimedAt, linkedHere } from "../guide/help";
 import { examplesIn, shownBeside, type Topic } from "../guide/reference";
 import { t } from "../locales";
 import { pictured } from "../previews";
-import type { Carded } from "./carding";
 import Page from "./Page";
 
 const titles = new Map<string, string>();

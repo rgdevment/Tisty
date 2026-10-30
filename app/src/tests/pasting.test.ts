@@ -1,5 +1,5 @@
+import { worded } from "tisty-editor/edit";
 import { describe, expect, it } from "vitest";
-import { worded } from "../ui/blocking";
 
 describe("what a paste brings besides plain words", () => {
   it("is translated when it carries real structure", () => {
@@ -19,7 +19,7 @@ describe("what a paste brings besides plain words", () => {
 
 describe("plain words that carry a shape of their own", () => {
   it("are looked at when they draw a table or read like code", async () => {
-    const { shaped } = await import("../ui/blocking");
+    const { shaped } = await import("tisty-editor/edit");
     expect(shaped("┌──┐\n│ a │\n└──┘")).toBe(true);
     expect(shaped("fn a() {\n  b();\n}")).toBe(true);
     expect(shaped("hola\nqué tal\nchao")).toBe(false);
@@ -27,7 +27,7 @@ describe("plain words that carry a shape of their own", () => {
   });
 
   it("are looked at when they come from a spreadsheet, split by tabs or by commas", async () => {
-    const { shaped } = await import("../ui/blocking");
+    const { shaped } = await import("tisty-editor/edit");
     expect(shaped("Servicio\tPrecio\nSpotify\t6490")).toBe(true);
     expect(shaped("a,b,c\nd,e,f\ng,h,i")).toBe(true);
     expect(shaped("uno\tdos")).toBe(false);
@@ -37,13 +37,13 @@ describe("plain words that carry a shape of their own", () => {
 
 describe("what a paste from a document editor brings", () => {
   it("keeps its structure when its text wraps the way Docs and Gmail write it", async () => {
-    const { worded } = await import("../ui/blocking");
+    const { worded } = await import("tisty-editor/edit");
     expect(worded('<p style="white-space:pre-wrap"><b>Hola</b></p>')).toBe(true);
     expect(worded('<p style="white-space: pre-line"><b>Hola</b></p>')).toBe(true);
   });
 
   it("leaves the drawing of a folder tree alone", async () => {
-    const { shaped } = await import("../ui/blocking");
+    const { shaped } = await import("tisty-editor/edit");
     expect(shaped(".\n├── src\n└── Cargo.toml")).toBe(false);
   });
 });

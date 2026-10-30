@@ -20,15 +20,15 @@
     "noFallthroughCasesInSwitch": true,
     "paths": {
       "tisty-diagrams/*": ["../packages/tisty-diagrams/src/*"],
-      "tisty-reader/*": ["../packages/tisty-reader/src/*"]
+      "tisty-editor/*": ["../packages/tisty-editor/src/*"]
     }
   },
   "include": [
     "src",
     "../packages/tisty-diagrams/src",
     "../packages/tisty-diagrams/tests",
-    "../packages/tisty-reader/src",
-    "../packages/tisty-reader/tests"
+    "../packages/tisty-editor/src",
+    "../packages/tisty-editor/tests"
   ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

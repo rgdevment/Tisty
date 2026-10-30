@@ -1,7 +1,8 @@
+import { fields } from "tisty-editor/read";
 import { describe, expect, it } from "vitest";
 import type { DateSpec, Repeat } from "../core";
 import { bandOf, cadence, weigh, whenLabel } from "../format";
-import { fields, withLandscape, withPaper, withSheets } from "../front";
+import { withLandscape, withPaper, withSheets } from "../front";
 import { previewOf, weighed } from "../previews";
 
 const day = (at: string): DateSpec => ({

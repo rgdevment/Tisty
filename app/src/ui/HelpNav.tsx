@@ -1,4 +1,4 @@
-import type { Head } from "tisty-reader/page";
+import type { Head } from "tisty-editor/read";
 import { openLink } from "../core";
 import type { HelpEntry } from "../guide/calls";
 import { t } from "../locales";

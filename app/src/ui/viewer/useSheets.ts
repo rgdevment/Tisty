@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { laidIn } from "../../front";
+import { laidIn } from "tisty-editor/read";
 
 type Chosen = {
   readonly which: string | null;

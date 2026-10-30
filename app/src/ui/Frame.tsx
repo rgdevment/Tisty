@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
-import { diagrams, type Sheet, sheeting } from "tisty-reader/page";
+import { diagrams, type Sheet, sheeting } from "tisty-editor/read";
 import { fitted, type Reaching, type Worn, wired, worn } from "./dressing";
 import { dressedAsWindow, framed } from "./framed";
 import { followTheme } from "./theming";

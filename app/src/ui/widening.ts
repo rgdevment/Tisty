@@ -1,4 +1,4 @@
-import { spanned } from "./paging";
+import { spanned } from "tisty-editor/read";
 
 const STEP = 10;
 const FEWEST = 4;

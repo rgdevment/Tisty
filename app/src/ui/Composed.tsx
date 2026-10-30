@@ -1,13 +1,11 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useEffect, useRef, useState } from "react";
-import { diagrams, saidKinds } from "tisty-reader/page";
+import { diagrams, iconed, markup, saidKinds } from "tisty-editor/read";
 import { opened, openLink, revealed } from "../core";
-import { markup } from "../glyphs";
 import { serve, showing } from "../inUse";
 import { t } from "../locales";
 import { docOf, INSIDE } from "../markdown";
 import { ending, named, pictured } from "../previews";
-import { iconed } from "./dressing";
 import { darkNow, followTheme } from "./theming";
 
 interface Props {

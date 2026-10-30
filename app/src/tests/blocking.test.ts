@@ -2,9 +2,9 @@ import { completionStatus, startCompletion } from "@codemirror/autocomplete";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { EditorSelection, EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
+import { aimed, caretAt, wrapped } from "tisty-editor/edit";
 import { describe, expect, it, vi } from "vitest";
-import { aimed, caretAt, edited } from "../ui/blocking";
-import { wrapped } from "../ui/formatting";
+import { edited } from "../ui/hosting";
 
 const block = () => {
   const page = document.createElement("article");

@@ -1,12 +1,8 @@
-import { diagramShot } from "tisty-reader/page";
+import { diagramShot, spanned, type TableAct } from "tisty-editor/read";
 import { t } from "../locales";
 import { DOC, TASK } from "../markdown";
 import type { Choice } from "./Menu";
-import { type TableAct, tableClicked } from "./tabled";
-
-// The page names blocks by their bytes in the file; whoever edits holds the text as characters.
-export const charsAt = (body: string, bytes: number): number =>
-  new TextDecoder().decode(new TextEncoder().encode(body).subarray(0, bytes)).length;
+import { tableClicked } from "./tabled";
 
 export type Went =
   | { kind: "doc"; id: string }
@@ -97,11 +93,6 @@ const sectionEnd = (label: Element): [number, number] | null => {
     last = spanned(one.getAttribute("data-at")) ?? last;
   }
   return last;
-};
-
-export const spanned = (said: string | null): [number, number] | null => {
-  const found = /^(\d+)-(\d+)$/.exec(said ?? "");
-  return found ? [Number(found[1]), Number(found[2])] : null;
 };
 
 const linked = (link: HTMLAnchorElement): Went => {

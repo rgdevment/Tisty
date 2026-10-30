@@ -1,6 +1,7 @@
+import { formatButtons } from "tisty-editor/edit";
+import { spanned } from "tisty-editor/read";
 import { t } from "../locales";
-import { formatButtons } from "./barring";
-import { shotAt, spanned } from "./paging";
+import { shotAt } from "./paging";
 
 export type Formatting = {
   readonly at: [number, number];
@@ -62,7 +63,7 @@ const barOf = (page: Document, pick: (open: string, close: string) => void) => {
   bar.setAttribute("role", "toolbar");
   bar.setAttribute("aria-label", t("formatting"));
   bar.hidden = true;
-  const { formats, pens } = formatButtons(page, pick);
+  const { formats, pens } = formatButtons(page, t, pick);
   bar.append(...formats, ...pens);
   page.body.append(bar);
   return bar;

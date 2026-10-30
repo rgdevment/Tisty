@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { known as drawn } from "tisty-editor/read";
 import { useAttended } from "../attended";
-import { known as drawn } from "../glyphs";
 import { t, type Word } from "../locales";
 import { isMark } from "../marks";
 import Glyph from "./Glyph";

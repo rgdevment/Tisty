@@ -1,7 +1,7 @@
+import { staged } from "tisty-editor/read";
 import { describe, expect, it } from "vitest";
 import { framed } from "../ui/framed";
 import { went } from "../ui/paging";
-import { staged } from "../ui/staging";
 
 const page = (html: string): Document => new DOMParser().parseFromString(framed(html), "text/html");
 

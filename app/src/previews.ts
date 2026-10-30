@@ -1,3 +1,4 @@
+import { hosting } from "tisty-editor/read";
 import { DOC } from "./markdown";
 
 export type Preview =
@@ -109,16 +110,6 @@ export const named = (href: string): string => {
 
 /// Only the two schemes a person can be shown safely, and never the machine's own paths: what
 /// comes back is a name and a host, never something a card would go and load.
-export const hosting = (href: string): string | null => {
-  try {
-    const said = new URL(href);
-    if (said.protocol !== "http:" && said.protocol !== "https:") return null;
-    return said.hostname.replace(/^www\./, "") || null;
-  } catch {
-    return null;
-  }
-};
-
 // The core's own test for an attachment's name: a stamp of hex after the last dash, all in lower case.
 export const kept = (href: string): boolean => {
   const said = href.trim().replace(/^<|>$/g, "").split(/[?#]/)[0];

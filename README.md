@@ -1128,10 +1128,6 @@ About screen shows both.
 
 ## Contributing
 
-[ARCHITECTURE.md](docs/ARCHITECTURE.md) is a map of the crates, where
-things live and the rules nothing may break; the code and its tests say the
-rest.
-
 Read [CONTRIBUTING.md](CONTRIBUTING.md). Open an issue before writing code for
 anything beyond a fix: Tisty is deliberately minimal, and a well-written feature
 can still be declined — usually because it would make the tool something other

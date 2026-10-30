@@ -1185,7 +1185,7 @@ export interface Folded {
   away: boolean;
 }
 
-export type Paper = "a4" | "letter" | "folio" | "tabloid";
+export type { Paper } from "tisty-editor/read";
 
 export interface Marked {
   at: string;

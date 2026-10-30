@@ -1,7 +1,9 @@
 import { save as intoFile, open as pick } from "@tauri-apps/plugin-dialog";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { freshFence } from "tisty-diagrams/read";
-import type { Head } from "tisty-reader/page";
+import type { Asking } from "tisty-editor/edit";
+import { MARKED_FOR } from "tisty-editor/edit";
+import { acrossOf, type Head, laidIn, PAPER, sheetFor, writtenAcrossOf } from "tisty-editor/read";
 import { asPlain } from "../copying";
 import {
   attachPasted,
@@ -28,7 +30,7 @@ import {
   viewDoc,
 } from "../core";
 import { viewDiagram } from "../drawing";
-import { laidIn, withLandscape, withPaper, withSheets } from "../front";
+import { withLandscape, withPaper, withSheets } from "../front";
 import { keptAll, PASTED_UP_TO } from "../kept";
 import { fill, t } from "../locales";
 import { filed, inTextOrder, type Moved, namesIn, pagesOf, under } from "../paging";
@@ -41,15 +43,13 @@ import { changedIn } from "./anchoring";
 import Beside, { trailed } from "./Beside";
 import Contents from "./Contents";
 import { blurbing, cardsOf } from "./carding";
-import { MARKED_FOR } from "./lately";
 import Modal from "./Modal";
 import PdfTicks from "./PdfTicks";
 import Picking, { type Picked } from "./Picking";
 import { usePreviewing } from "./previewing";
 import { pdfOf, STAMPING, type Stamp, type Stamping, seenIn, stampOf } from "./printing";
 import Ribbon, { Onward } from "./Ribbon";
-import { acrossOf, PAPER, pageFor, sheetFor, writtenAcrossOf } from "./sheets";
-import type { Asking } from "./slashing";
+import { pageFor } from "./sheets";
 import { CompactBar, MarkBar } from "./Tidied";
 import { useLeaving } from "./useLeaving";
 import { clearOfChrome } from "./WindowChrome";
@@ -1129,7 +1129,7 @@ export default function Docs({
           title={called}
           paper={open.file}
           body={body}
-          tags={known.find((one) => one.file === open.file)?.tags ?? []}
+          tags={known.find((one) => one.file === open.file)?.tags ?? NO_TAGS}
           kept={saved}
           heads={heads}
           pages={above ? sisters : pages}

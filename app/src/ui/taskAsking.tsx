@@ -1,11 +1,11 @@
 import { open as pick } from "@tauri-apps/plugin-dialog";
 import { type ReactNode, useMemo, useRef, useState } from "react";
+import type { Asking } from "tisty-editor/edit";
 import type { Filed } from "../core";
 import { keptAll } from "../kept";
 import { t } from "../locales";
 import { attachedAll } from "../reshaping";
 import Picking, { type Picked } from "./Picking";
-import type { Asking } from "./slashing";
 
 const listed = (chosen: string | string[] | null): string[] => {
   if (Array.isArray(chosen)) return chosen;

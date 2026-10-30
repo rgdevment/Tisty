@@ -30,7 +30,7 @@ program.
 ## Lucide Icons
 
 The icon set drawn throughout the window, copied path by path into
-`app/src/glyphs.ts` so that nothing is ever fetched at runtime.
+`packages/tisty-editor/src/glyphs.ts` so that nothing is ever fetched at runtime.
 
 - Source: <https://lucide.dev>
 - Licence: ISC, and MIT for the icons Lucide inherited from Feather

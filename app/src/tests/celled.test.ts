@@ -1,6 +1,7 @@
+import { celled, hueOf, sayingDays } from "tisty-editor/read";
 import { describe, expect, it } from "vitest";
-import { celled, hueOf, sayingDays } from "../ui/celled";
 import { went } from "../ui/paging";
+import { SAY } from "../ui/saying";
 import { tabled } from "../ui/tabled";
 
 const HUES = ["red", "orange", "amber", "green", "teal", "blue"];
@@ -14,7 +15,7 @@ const dressed = (): Document => {
   const page = document.implementation.createHTMLDocument("");
   page.body.innerHTML = `<article class="page">${TABLE}</article>`;
   tabled(page);
-  celled(page, { today: "2026-10-27", locale: "es", hues: HUES, live: true });
+  celled(page, { today: "2026-10-27", locale: "es", hues: HUES, live: true, say: SAY });
   return page;
 };
 
@@ -79,7 +80,7 @@ describe("a typed value as it is drawn", () => {
 
   it("is drawn once, and a star or the switch is a press the window hears", () => {
     const page = dressed();
-    celled(page, { today: "2026-10-27", locale: "es", hues: HUES, live: true });
+    celled(page, { today: "2026-10-27", locale: "es", hues: HUES, live: true, say: SAY });
     expect(cells(page, 0)[2].querySelectorAll(".table-star")).toHaveLength(5);
     const star = cells(page, 0)[2].querySelectorAll<HTMLElement>(".table-star")[3];
     expect(went(star, false)).toMatchObject({
@@ -110,7 +111,7 @@ describe("a typed value with nothing in it, or a page only read", () => {
     const page = document.implementation.createHTMLDocument("");
     page.body.innerHTML = `<article class="page">${EMPTY}</article>`;
     tabled(page);
-    celled(page, { today: "2026-10-27", locale: "es", hues: HUES, live: true });
+    celled(page, { today: "2026-10-27", locale: "es", hues: HUES, live: true, say: SAY });
     const [, , rating, check] = cells(page, 1);
     const stars = Array.from(rating.querySelectorAll<HTMLElement>(".table-star"));
     expect(stars.map((one) => one.getAttribute("aria-pressed"))).toEqual(Array(5).fill("false"));
@@ -123,7 +124,7 @@ describe("a typed value with nothing in it, or a page only read", () => {
   it("shows days and options the same way on a page only read, with nothing to press", () => {
     const page = document.implementation.createHTMLDocument("");
     page.body.innerHTML = `<article class="page">${TABLE}</article>`;
-    celled(page, { today: "2026-10-27", locale: "es", hues: HUES, live: false });
+    celled(page, { today: "2026-10-27", locale: "es", hues: HUES, live: false, say: SAY });
     const [, date, rating, check, option] = cells(page, 0);
     expect(date.querySelector(".table-when")?.textContent).toBe("dentro de 18 días");
     expect(option.querySelector(".table-option")).not.toBeNull();

@@ -1,9 +1,9 @@
+import { charsAt } from "tisty-editor/read";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   answered,
   datedSteps,
   fitted,
-  iconed,
   pictures,
   type Reaching,
   widgets,
@@ -11,7 +11,7 @@ import {
   worn,
 } from "../ui/dressing";
 import { framed } from "../ui/framed";
-import { charsAt, went } from "../ui/paging";
+import { went } from "../ui/paging";
 
 const calls = vi.hoisted(() => ({
   links: [] as string[],
@@ -111,19 +111,6 @@ describe("dressing a drawn page", () => {
     expect(drawn.documentElement.style.getPropertyValue("zoom")).toBe("1.25");
     fitted(drawn);
     expect(drawn.documentElement.style.getPropertyValue("zoom")).toBe("1");
-  });
-
-  it("draws a known icon with its hue and leaves an odd hue out", () => {
-    const drawn = page(
-      '<p><span class="ico" data-ico="star" data-hue="blue"></span><span class="ico" data-ico="star" data-hue="a b"></span><span class="ico" data-ico="nope"></span></p>',
-    );
-    iconed(drawn);
-    const [blue, odd, unknown] = Array.from(drawn.querySelectorAll<HTMLElement>("span.ico"));
-    expect(blue.querySelector("svg")?.getAttribute("class")).toBe("glyph");
-    expect(blue.classList.contains("ico-blue")).toBe(true);
-    expect(odd.querySelector("svg")).not.toBeNull();
-    expect(odd.className).toBe("ico");
-    expect(unknown.querySelector("svg")).toBeNull();
   });
 
   it("brings a kept picture in, keeps it alive while shown and lets it go after", async () => {

@@ -24,6 +24,7 @@ export interface Acts {
   html: () => void;
   word: () => void;
   quietly: () => void;
+  edit: () => void;
   again: () => void;
   code: () => void;
   shade: () => void;
@@ -83,21 +84,28 @@ export const choicesFor = (a: Acts): Choice[] => {
         ]
       : [{ key: "quiet", label: t("viewImportQuiet"), apart: true, onPick: a.quietly }, reveal];
   return [
-    { key: "find", label: t("viewFind"), hint: "Ctrl+F", onPick: a.find },
+    { key: "edit", label: t("viewEditIn"), onPick: a.edit },
+    { key: "find", label: t("viewFind"), hint: "Ctrl+F", apart: true, onPick: a.find },
     { key: "bigger", label: t("viewBigger"), hint: "Ctrl+=", onPick: () => a.zoom(1) },
     { key: "smaller", label: t("viewSmaller"), hint: "Ctrl+−", onPick: () => a.zoom(-1) },
-    {
-      key: "copy",
-      label: t("viewCopyMd"),
-      onPick: () => void docPlain(a.body).then(copied).catch(a.fail),
-    },
-    { key: "see", label: t("seePdf"), hint: "Ctrl+P", apart: true, onPick: a.preview },
-    { key: "pdf", label: t("toPdf"), onPick: a.keep },
-    { key: "html", label: t("toHtml"), onPick: a.html },
-    { key: "word", label: t("toWord"), onPick: a.word },
+    ...exportsFor(a),
     ...own,
   ];
 };
+
+// The ways out of a document, which the panel's «Export» opens on their own.
+export const exportsFor = (a: Acts): Choice[] => [
+  {
+    key: "copy",
+    label: t("viewCopyMd"),
+    apart: true,
+    onPick: () => void docPlain(a.body).then(copied).catch(a.fail),
+  },
+  { key: "see", label: t("seePdf"), hint: "Ctrl+P", apart: true, onPick: a.preview },
+  { key: "pdf", label: t("toPdf"), onPick: a.keep },
+  { key: "html", label: t("toHtml"), onPick: a.html },
+  { key: "word", label: t("toWord"), onPick: a.word },
+];
 
 export const keysFor = (a: Acts, e: KeyboardEvent): (() => void) | undefined => {
   const key = e.key.toLowerCase();

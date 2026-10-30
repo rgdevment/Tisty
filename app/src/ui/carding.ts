@@ -1,15 +1,8 @@
+import type { Carded, Cards } from "tisty-editor/read";
 import { docRead, type Filed } from "../core";
-import { markup } from "../glyphs";
-import { fill, t } from "../locales";
+import { t } from "../locales";
 import { DOC } from "../markdown";
 import { inTextOrder, pagesOf } from "../paging";
-
-export type Carded =
-  | { readonly kind: "doc"; readonly title: string }
-  | { readonly kind: "page"; readonly title: string; readonly at: number; readonly of: number }
-  | { readonly kind: "away"; readonly title: string }
-  | { readonly kind: "self"; readonly title: string }
-  | { readonly kind: "gone" };
 
 const spanless = (line: string): string => line.replace(/::([a-z0-9-]+)(?: [a-z]+)?::/g, ":$1:");
 
@@ -62,13 +55,6 @@ export type Carding = {
   readonly onMore?: unknown;
 };
 
-export const piece = (page: Document, kind: string, said = "") => {
-  const one = page.createElement("span");
-  one.className = kind;
-  one.textContent = said;
-  return one;
-};
-
 export const more = (page: Document, target: string) => {
   const one = page.createElement("button");
   one.type = "button";
@@ -81,78 +67,21 @@ export const more = (page: Document, target: string) => {
   return one;
 };
 
-export const drawn = (page: Document, name: string) => {
-  const glyph = page.createElementNS("http://www.w3.org/2000/svg", "svg");
-  glyph.setAttribute("class", "glyph");
-  glyph.setAttribute("viewBox", "0 0 24 24");
-  glyph.setAttribute("aria-hidden", "true");
-  glyph.innerHTML = markup(name) ?? "";
-  return glyph;
-};
-
-const GLYPH = { doc: "page", page: "book", away: "archive", self: "page", gone: "page" } as const;
-
-const metaOf = (page: Document, seen: Carded) => {
-  if (seen.kind === "page")
-    return piece(page, "chip", fill("leafOfMany", `${seen.at}`, `${seen.of}`));
-  if (seen.kind === "away") return piece(page, "chip away", t("cardAway"));
-  if (seen.kind === "self") return piece(page, "chip here", t("cardHere"));
-  if (seen.kind === "gone") return piece(page, "chip gone", t("cardGone"));
-  return piece(page, "kind", t("kindDoc"));
-};
-
-export const cardBox = (page: Document, kind: string, open: boolean) => {
-  const box = page.createElement("span");
-  box.className = `doc-card ${kind}`;
-  if (!open) return box;
-  box.tabIndex = 0;
-  box.setAttribute("role", "link");
-  box.addEventListener("keydown", (event) => {
-    if (event.key !== "Enter" && event.key !== " ") return;
-    event.preventDefault();
-    box.click();
-  });
-  return box;
-};
-
-// A card alone in its paragraph is drawn whole; one inside a sentence stays a word of it.
-export const carded = (page: Document, reach: Carding, live: () => boolean) => {
-  if (!reach.card) return;
-  for (const link of page.querySelectorAll<HTMLAnchorElement>(".page > p > a.card[data-doc]")) {
-    const held = link.parentElement;
-    if (!held || held.children.length !== 1) continue;
-    if ((held.textContent ?? "").trim() !== (link.textContent ?? "").trim()) continue;
-    const file = link.dataset.doc ?? "";
-    const seen = reach.card(file);
-    const open = seen.kind !== "self" && seen.kind !== "gone";
-    const box = cardBox(page, `is-${seen.kind}`, open);
-    if (open) box.dataset.doc = file;
-    const tile = piece(page, "card-tile");
-    tile.append(drawn(page, GLYPH[seen.kind]));
-    const name = seen.kind === "gone" ? link.textContent || t("untitledDoc") : seen.title;
-    const blurb = piece(page, "card-blurb");
-    if (seen.kind === "self") blurb.textContent = t("docItself");
-    if (seen.kind === "gone") blurb.textContent = t("goneDoc");
-    const meta = piece(page, "card-meta");
-    meta.append(metaOf(page, seen));
+// The sheet draws the cards; the window says what each names and adds the editor's own controls.
+export const cardsFor = (page: Document, reach: Carding): Omit<Cards, "say"> | undefined => {
+  if (!reach.card) return undefined;
+  const controls = (file: string): Node[] => {
+    const made: Node[] = [];
     if (reach.onBlock) {
       const edit = page.createElement("button");
       edit.type = "button";
       edit.className = "card-edit";
       edit.dataset.asked = "code";
       edit.textContent = t("cardEdit");
-      meta.append(edit);
+      made.push(edit);
     }
-    if (reach.onMore) meta.append(more(page, `${DOC}${file}`));
-    if (open) meta.append(piece(page, "card-go", "›"));
-    box.append(tile, piece(page, "card-name", name), blurb, meta);
-    link.replaceWith(box);
-    if (open && reach.blurb)
-      reach
-        .blurb(file)
-        .then((said) => {
-          if (live()) blurb.textContent = said;
-        })
-        .catch(() => {});
-  }
+    if (reach.onMore) made.push(more(page, `${DOC}${file}`));
+    return made;
+  };
+  return { card: reach.card, blurb: reach.blurb, controls };
 };

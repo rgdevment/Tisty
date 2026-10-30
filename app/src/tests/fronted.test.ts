@@ -1,9 +1,9 @@
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { EditorSelection, EditorState } from "@codemirror/state";
-import { heads } from "tisty-reader/page";
+import { marksShown, seen } from "tisty-editor/edit";
+import { heads } from "tisty-editor/read";
 import { describe, expect, it } from "vitest";
-import { edited } from "../ui/blocking";
-import { marksShown, seen } from "../ui/seeing";
+import { edited } from "../ui/hosting";
 
 const lines = (doc: string): string[] => {
   const state = EditorState.create({

@@ -2,11 +2,10 @@ import { CompletionContext, type CompletionResult } from "@codemirror/autocomple
 import { markdown } from "@codemirror/lang-markdown";
 import { EditorState } from "@codemirror/state";
 import { EditorView, runScopeHandlers } from "@codemirror/view";
-import { describe, expect, it, vi } from "vitest";
-import { wrapped } from "../ui/formatting";
 import {
   type Asked,
   holding,
+  hosted,
   offered,
   openMenu,
   put,
@@ -15,12 +14,18 @@ import {
   stagesIn,
   stepping,
   tagging,
-} from "../ui/slashing";
+  wrapped,
+} from "tisty-editor/edit";
+import { describe, expect, it, vi } from "vitest";
+import { HOST } from "../ui/hosting";
 
 const view = (doc: string) =>
   new EditorView({
     parent: document.body,
-    state: EditorState.create({ doc, extensions: [markdown(), slashing()] }),
+    state: EditorState.create({
+      doc,
+      extensions: [hosted.of(HOST), markdown(), slashing(HOST.say)],
+    }),
   });
 
 const one = (key: string) => {
@@ -30,7 +35,7 @@ const one = (key: string) => {
 };
 
 const asked = (doc: string): CompletionResult | null => {
-  const state = EditorState.create({ doc, extensions: [markdown()] });
+  const state = EditorState.create({ doc, extensions: [hosted.of(HOST), markdown()] });
   return offered()(new CompletionContext(state, doc.length, false));
 };
 
@@ -232,7 +237,7 @@ describe("the / menu in a block", () => {
 
   it("offers only the pickers the window can open", () => {
     const shown = (kinds: Asked[]) => {
-      const state = EditorState.create({ doc: "/", extensions: [markdown()] });
+      const state = EditorState.create({ doc: "/", extensions: [hosted.of(HOST), markdown()] });
       const said = offered(() => ({ kinds, ask: () => {} }))(
         new CompletionContext(state, 1, false),
       );
@@ -281,7 +286,7 @@ describe("the / menu in a block", () => {
 
 describe("tags offered after a #", () => {
   const offeredAt = (doc: string, pos = doc.length) => {
-    const state = EditorState.create({ doc, extensions: [markdown()] });
+    const state = EditorState.create({ doc, extensions: [hosted.of(HOST), markdown()] });
     const asking = { kinds: [], ask: () => {}, tags: ["compras", "casa", "trabajo", "homework"] };
     return tagging(() => asking)(new CompletionContext(state, pos, false));
   };
@@ -326,7 +331,7 @@ describe("a step named by its number", () => {
   });
 
   it("offers the page's steps after [[#, each by its number", () => {
-    const state = EditorState.create({ doc: "see [[#", extensions: [markdown()] });
+    const state = EditorState.create({ doc: "see [[#", extensions: [hosted.of(HOST), markdown()] });
     const said = stepping(() => ({
       kinds: [],
       ask: () => {},

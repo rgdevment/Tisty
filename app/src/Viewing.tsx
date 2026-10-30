@@ -1,6 +1,7 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { PAPERS } from "tisty-editor/read";
 import {
   type DocFacts,
   opened,
@@ -18,10 +19,10 @@ import { saidPlainly } from "./refusal";
 import Diagramming from "./ui/drawing/Diagramming";
 import Menu from "./ui/Menu";
 import { seenIn } from "./ui/printing";
-import { KNOWN, pageFor } from "./ui/sheets";
+import { pageFor } from "./ui/sheets";
 import { darkNow } from "./ui/theming";
 import { leaveAsHtml, leaveAsWord } from "./ui/useLeaving";
-import { type Acts, choicesFor, keysFor, PLAIN, ZOOMS } from "./ui/viewer/acting";
+import { type Acts, choicesFor, exportsFor, keysFor, PLAIN, ZOOMS } from "./ui/viewer/acting";
 import { button } from "./ui/viewer/Glyphs";
 import Header, { titled } from "./ui/viewer/Header";
 import Preview from "./ui/viewer/Preview";
@@ -40,7 +41,7 @@ const remembered = (): { side: boolean; leaf: Paper } => {
   const side = window.innerWidth >= SIDE_FROM;
   try {
     const said = JSON.parse(localStorage.getItem(KEPT) ?? "{}") as Record<string, unknown>;
-    const leaf = KNOWN.includes(said.leaf as Paper) ? said.leaf : "a4";
+    const leaf = PAPERS.includes(said.leaf as Paper) ? said.leaf : "a4";
     return { side, leaf: leaf as Paper };
   } catch {
     return { side, leaf: "a4" };
@@ -91,7 +92,7 @@ function Reading({
   const [raw, setRaw] = useState(false);
   const [zoom, setZoom] = useState(PLAIN);
   const [finding, setFinding] = useState(false);
-  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number; only?: "export" } | null>(null);
   const [preset, setPreset] = useState<Preset>("fit");
   const [actual, setActual] = useState(false);
   const [dark, setDark] = useState<boolean | null>(null);
@@ -200,6 +201,7 @@ function Reading({
     html: () => void leaveAsHtml([body], named || t("untitledDoc")).catch(fail),
     word: () => void leaveAsWord([body], named || t("untitledDoc")).catch(fail),
     quietly: () => editIn(false),
+    edit: () => editIn(true),
     again: () => setAgain((n) => n + 1),
     code: () => setCode(true),
     shade: () => setDark((was) => !(was ?? darkNow())),
@@ -229,7 +231,7 @@ function Reading({
     return () => window.removeEventListener("keydown", heard);
   }, []);
 
-  const { title } = titled(shown);
+  const { title, under } = titled(shown);
 
   return (
     <main className="relative flex h-full flex-col bg-desk font-sans">
@@ -270,6 +272,7 @@ function Reading({
           key={shown.kind === "doc" ? shown.paper.file : shown.path}
           body={body}
           title={title}
+          under={under}
           stranger={shown.kind === "file"}
           side={side}
           raw={raw}
@@ -286,6 +289,8 @@ function Reading({
           onSheets={shape.onSheets}
           onLandscape={shape.onLandscape}
           onRaw={setRaw}
+          onEdit={() => editIn(true)}
+          onExport={(at) => setMenu({ ...at, only: "export" })}
           onFound={() => setFinding(false)}
           onDoc={(file) => void viewGo(file).catch(fail)}
           onOpen={
@@ -346,8 +351,8 @@ function Reading({
       {menu && (
         <Menu
           at={menu}
-          choices={choicesFor(acts)}
-          label={t("viewMore")}
+          choices={menu.only ? exportsFor(acts) : choicesFor(acts)}
+          label={t(menu.only ? "exportIt" : "viewMore")}
           onClose={() => setMenu(null)}
         />
       )}
