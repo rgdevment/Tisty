@@ -100,8 +100,8 @@ let seen;
 try {
   const names = kept(readFileSync(new URL("wrangler.toml", import.meta.url), "utf8"));
   seen = await usage(names, account, token, new Date());
-} catch (failure) {
-  console.log(`::error::${failure.message}`);
+} catch (error_) {
+  console.log(`::error::${error_.message}`);
   process.exit(1);
 }
 // Out of query budget says nothing of the Worker, so the next hour looks again rather than raising an alarm.
