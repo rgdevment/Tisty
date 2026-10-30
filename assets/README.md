@@ -18,16 +18,17 @@ The SVGs are the source of truth, and `scripts/icons.sh` renders every PNG,
 by hand.
 
 The light drawing is the mark everywhere: it reads on light and dark surfaces
-alike, while the dark one fades into dark surfaces and weighs on light ones.
-`tisty-dark.svg` stays as the designer delivered it.
+alike, while the dark one fades into dark surfaces and weighs on light ones. Its
+border is a shade darker than delivered, so it still holds on white at small
+sizes. `originals/` keeps the four SVGs exactly as the designer delivered them.
 
 | File | Size | Where it goes |
 | --- | --- | --- |
 | `tisty-light.svg` | vector | The mark, everywhere it is shown |
-| `tisty-dark.svg` | vector | The designer's dark drawing, kept as delivered |
 | `tisty-mac.svg` | vector | The macOS 13–15 app icon: the mark on the tile the Dock expects |
 | `Tisty.icon` | layers | The macOS 26 app icon, in light, dark and tinted; open it in Icon Composer |
 | `tisty-menubar.svg` | vector | The tray and the menu bar, in one ink |
+| `originals/` | vector | The light, dark, macOS and menu-bar SVGs as delivered |
 | `tisty-512.png` | 512×512 | Press, release pages, the MCP registry |
 | `tisty-256.png` | 256×256 | The logo at the top of the README and the wiki |
 | `tisty-128.png` | 128×128 | Small inline use |
