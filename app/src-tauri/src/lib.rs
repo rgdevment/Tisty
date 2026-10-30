@@ -983,6 +983,7 @@ pub(crate) fn opened(
     answers::papers::tags_once(app.clone());
 
     app.manage(answers::freeing::Stopping::default());
+    tray::follow_bar(app.clone());
     let perched = tray::raise(app, &words).is_some();
     app.manage(Perched(perched));
     app.manage(quick_keys::Bound(Mutex::new(quick_keys::listen_for(

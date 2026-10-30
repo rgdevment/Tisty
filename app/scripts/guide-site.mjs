@@ -138,7 +138,7 @@ ${AHEAD}
 </head>
 <body>
 <header class="top">
-<a class="brand" href="./"><img src="${up}${logo}" alt="" width="30" height="28">Tisty Markdown</a>
+<a class="brand" href="./"><img src="${up}${logo}" alt="" width="30" height="30">Tisty Markdown</a>
 <a class="docs" href="${language.docsAt}">${language.docs}</a>
 <a class="out" href="${language.home}">${language.meet}</a>
 <a class="lang" lang="${other.code}" hreflang="${other.code}" title="${other.reading}" href="${language.dir ? "../" : other.dir}${twin.slug === "index" ? "" : twin.slug}">${other.name}</a>
@@ -166,7 +166,7 @@ ${THEME}
 <style>${style}</style>
 </head>
 <body>
-<header class="top"><a class="brand" href="/"><img src="/${logo}" alt="" width="36" height="34">Tisty Markdown</a><a class="out" href="https://www.tisty.app/">Meet Tisty</a></header>
+<header class="top"><a class="brand" href="/"><img src="/${logo}" alt="" width="36" height="36">Tisty Markdown</a><a class="out" href="https://www.tisty.app/">Meet Tisty</a></header>
 <div class="wrap"><main class="page"><h1>Nothing here</h1><p>This page is not part of the guide. <a href="/">Start from the beginning</a> · <a href="/es/" lang="es">Empieza desde el inicio</a></p></main></div>
 </body>
 </html>

@@ -256,7 +256,8 @@ ${readFileSync(join(app, "scripts", "guide.css"), "utf8")}
 figure.example,figure.widget{${appLight}}
 html.dark figure.example,html.dark figure.widget{${dark}}
 `;
-const logoName = `tisty.${printOf(logo)}.svg`;
+const mark = readFileSync(join(app, "..", "assets", "icons", "tisty-light.svg"));
+const logoName = `tisty-light.${printOf(mark)}.svg`;
 const look = { style: css, logo: logoName };
 for (const language of LANGUAGES) {
   const into = join(out, language.dir);
@@ -284,5 +285,5 @@ writeFileSync(join(out, "_headers"), headers(logoName));
 writeFileSync(join(out, "sitemap.xml"), mapped(built));
 writeFileSync(join(out, "robots.txt"), robots);
 writeFileSync(join(out, "llms.txt"), llms(built));
-writeFileSync(join(out, logoName), logo);
+writeFileSync(join(out, logoName), mark);
 console.log(`the guide is in ${out}`);

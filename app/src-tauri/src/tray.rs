@@ -56,7 +56,7 @@ pub fn raise<R: Runtime>(app: &AppHandle<R>, words: &Words) -> Option<TrayIcon<R
     )?;
 
     let building = TrayIconBuilder::with_id("tisty")
-        .icon(art(app)?)
+        .icon(art(dark_bar())?)
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id.as_ref() {
@@ -102,7 +102,7 @@ pub fn reword<R: Runtime>(app: &AppHandle<R>, words: &Words) {
 
 pub fn repaint<R: Runtime>(app: &AppHandle<R>) {
     if let Some(tray) = app.tray_by_id("tisty")
-        && let Some(icon) = art(app)
+        && let Some(icon) = art(dark_bar())
     {
         let _ = tray.set_icon(Some(icon));
         #[cfg(target_os = "macos")]
@@ -114,14 +114,13 @@ pub fn repaint<R: Runtime>(app: &AppHandle<R>) {
 }
 
 #[cfg(target_os = "macos")]
-fn art<R: Runtime>(_app: &AppHandle<R>) -> Option<tauri::image::Image<'static>> {
+fn art(_dark: bool) -> Option<tauri::image::Image<'static>> {
     tauri::image::Image::from_bytes(MACOS).ok()
 }
 
 #[cfg(not(target_os = "macos"))]
-fn art<R: Runtime>(app: &AppHandle<R>) -> Option<tauri::image::Image<'static>> {
-    let _ = app;
-    tauri::image::Image::from_bytes(for_bar(dark_bar())).ok()
+fn art(dark: bool) -> Option<tauri::image::Image<'static>> {
+    tauri::image::Image::from_bytes(for_bar(dark)).ok()
 }
 
 #[cfg(not(target_os = "macos"))]
@@ -130,15 +129,47 @@ fn for_bar(dark: bool) -> &'static [u8] {
 }
 
 #[cfg(windows)]
+const THEMES: &str = r"Software\Microsoft\Windows\CurrentVersion\Themes";
+#[cfg(windows)]
+const PERSONALIZE: &str = r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
+
+// A taskbar-only theme change raises no ThemeChanged; Themes is watched since Personalize may not exist yet.
+#[cfg(windows)]
+pub fn follow_bar<R: Runtime>(app: AppHandle<R>) {
+    std::thread::spawn(move || {
+        let Ok(key) = winreg::RegKey::predef(winreg::enums::HKEY_CURRENT_USER).open_subkey(THEMES)
+        else {
+            return;
+        };
+        // Themes also hears the wallpaper and the accent, so only a turned taskbar repaints.
+        let mut dark = dark_bar();
+        while crate::desktop::changed(&key) {
+            // Windows writes a theme as a burst of values, so the bar is read once it has settled.
+            std::thread::sleep(std::time::Duration::from_millis(250));
+            let now = dark_bar();
+            if now == dark {
+                continue;
+            }
+            dark = now;
+            let painted = app.clone();
+            let _ = app.run_on_main_thread(move || repaint(&painted));
+        }
+    });
+}
+
+#[cfg(not(windows))]
+pub fn follow_bar<R: Runtime>(_app: AppHandle<R>) {}
+
+#[cfg(windows)]
 fn dark_bar() -> bool {
     winreg::RegKey::predef(winreg::enums::HKEY_CURRENT_USER)
-        .open_subkey(r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize")
+        .open_subkey(PERSONALIZE)
         .and_then(|key| key.get_value::<u32, _>("SystemUsesLightTheme"))
         .map(|light| light == 0)
         .unwrap_or(true)
 }
 
-#[cfg(all(not(windows), not(target_os = "macos")))]
+#[cfg(not(windows))]
 fn dark_bar() -> bool {
     true
 }
