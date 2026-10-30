@@ -39,7 +39,8 @@ const chunks = [];
 for (let at = 8; at < icns.length; at += icns.readUInt32BE(at + 4)) {
   chunks.push(icns.subarray(at, at + icns.readUInt32BE(at + 4)));
 }
-chunks.sort((a, b) => a.subarray(0, 4).toString().localeCompare(b.subarray(0, 4).toString()));
+const kind = (chunk) => (chunk.subarray(0, 4).toString() === "TOC " ? "" : chunk.subarray(0, 4).toString());
+chunks.sort((a, b) => (kind(a) < kind(b) ? -1 : kind(a) > kind(b) ? 1 : 0));
 writeFileSync(file, Buffer.concat([icns.subarray(0, 8), ...chunks]));
 EOF_ICNS
 
@@ -92,10 +93,10 @@ for size in 16 20 24 30 32 36 40 48 60 64 72 80 96 256; do
   cp "$work/dark/${size}x${size}.png" "$msix/Square44x44Logo.targetsize-${size}_altform-lightunplated.png"
 done
 
-# An installed (non-MSIX) window swaps its icon as the taskbar changes, at its size from 100 % to 200 %.
+# An installed (non-MSIX) window swaps its icon as the taskbar changes, at its size from 100 % to 300 %.
 rm -rf "$icons/taskbar"
 mkdir -p "$icons/taskbar"
-for size in 32 40 48 64; do
+for size in 32 40 48 64 80 96; do
   cp "$work/light/${size}x${size}.png" "$icons/taskbar/on-dark-$size.png"
   cp "$work/dark/${size}x${size}.png" "$icons/taskbar/on-light-$size.png"
 done

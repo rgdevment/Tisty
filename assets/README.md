@@ -49,7 +49,7 @@ loads.
 
 An installed window swaps between `taskbar/on-dark-*.png` and
 `taskbar/on-light-*.png` whenever the taskbar changes, even when only the
-taskbar does, taking the size that matches the screen's scale (32 to 64). A
+taskbar does, taking the size that matches the screen's scale (32 to 96). A
 test in `app/src-tauri/src/tray.rs` keeps each one inked against its bar. A
 pinned button, Start and Task Manager show the `.ico` instead, which Windows
 does not let an app swap.
