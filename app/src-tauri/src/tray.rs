@@ -29,6 +29,10 @@ const MACOS: &[u8] = include_bytes!("../icons/tray/tray-macos/menubarTemplate@2x
 const ON_DARK: &[u8] = include_bytes!("../icons/tray/tray-windows/on-dark-32.png");
 #[cfg(not(target_os = "macos"))]
 const ON_LIGHT: &[u8] = include_bytes!("../icons/tray/tray-windows/on-light-32.png");
+#[cfg(windows)]
+const WINDOW_ON_DARK: &[u8] = include_bytes!("../icons/taskbar/on-dark.png");
+#[cfg(windows)]
+const WINDOW_ON_LIGHT: &[u8] = include_bytes!("../icons/taskbar/on-light.png");
 
 pub struct Words {
     pub show: String,
@@ -101,6 +105,7 @@ pub fn reword<R: Runtime>(app: &AppHandle<R>, words: &Words) {
 }
 
 pub fn repaint<R: Runtime>(app: &AppHandle<R>) {
+    dress(app);
     if let Some(tray) = app.tray_by_id("tisty")
         && let Some(icon) = art(app)
     {
@@ -128,6 +133,24 @@ fn art<R: Runtime>(app: &AppHandle<R>) -> Option<tauri::image::Image<'static>> {
 fn for_bar(dark: bool) -> &'static [u8] {
     if dark { ON_DARK } else { ON_LIGHT }
 }
+
+// The installer's .ico is one drawing; the taskbar shows the window's icon, which can follow the bar.
+#[cfg(windows)]
+pub fn dress<R: Runtime>(app: &AppHandle<R>) {
+    let worn = if dark_bar() {
+        WINDOW_ON_DARK
+    } else {
+        WINDOW_ON_LIGHT
+    };
+    if let Some(window) = app.get_webview_window("main")
+        && let Ok(icon) = tauri::image::Image::from_bytes(worn)
+    {
+        kept(window.set_icon(icon), "the window icon was refused");
+    }
+}
+
+#[cfg(not(windows))]
+pub fn dress<R: Runtime>(_app: &AppHandle<R>) {}
 
 #[cfg(windows)]
 fn dark_bar() -> bool {
@@ -273,5 +296,19 @@ mod tests {
     fn a_light_taskbar_gets_the_dark_icon() {
         assert!(ink(for_bar(false)) < 96, "a light bar needs dark ink");
         assert!(ink(for_bar(true)) > 160, "a dark bar needs pale ink");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn the_window_icon_stands_out_from_the_taskbar_behind_it() {
+        let (on_dark, on_light) = (ink(super::WINDOW_ON_DARK), ink(super::WINDOW_ON_LIGHT));
+        assert!(
+            on_dark > 160,
+            "a dark taskbar needs the light drawing: {on_dark}"
+        );
+        assert!(
+            on_light < 96,
+            "a light taskbar needs the dark drawing: {on_light}"
+        );
     }
 }

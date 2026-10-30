@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import copanda from "../assets/copanda.svg";
 import linkunbound from "../assets/linkunbound.svg";
-import mark from "../assets/tisty-light.svg";
+import tistyDark from "../assets/tisty-dark.svg";
+import tistyLight from "../assets/tisty-light.svg";
 import {
   about,
   type About as Build,
@@ -98,7 +99,8 @@ export default function About({
           )}
 
           <div className="flex items-center gap-3.5">
-            <img src={mark} alt="" className="size-[52px] shrink-0" />
+            <img src={tistyDark} alt="" className="size-[52px] shrink-0 dark:hidden" />
+            <img src={tistyLight} alt="" className="hidden size-[52px] shrink-0 dark:block" />
             <span className="min-w-0">
               <h2 className="text-[21px] font-semibold tracking-[-0.015em]">Tisty</h2>
               <span className="mt-px flex items-center gap-2 text-[11.5px] text-faint tabular-nums">
