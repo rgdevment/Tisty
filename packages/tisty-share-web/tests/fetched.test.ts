@@ -35,7 +35,7 @@ describe("what the server answers for a link", () => {
     });
   });
 
-  it("asks for the document the link names, with the password only when there is one", async () => {
+  it("asks for the document the link names, with the password as its UTF-8 only when there is one", async () => {
     const asked: [string, string | null][] = [];
     const ask = (async (url: RequestInfo | URL, init?: RequestInit) => {
       asked.push([String(url), new Headers(init?.headers).get("Tisty-Password")]);
@@ -43,9 +43,11 @@ describe("what the server answers for a link", () => {
     }) as typeof fetch;
     await fetched("k7Qm2xPa", ask);
     await fetched("k7Qm2xPa", ask, "perro azul");
+    await fetched("k7Qm2xPa", ask, "ñandú €🔑");
     expect(asked).toEqual([
       ["/api/v1/docs/k7Qm2xPa", null],
-      ["/api/v1/docs/k7Qm2xPa", "perro azul"],
+      ["/api/v1/docs/k7Qm2xPa", "cGVycm8gYXp1bA"],
+      ["/api/v1/docs/k7Qm2xPa", "w7FhbmTDuiDigqzwn5SR"],
     ]);
   });
 
@@ -115,7 +117,7 @@ describe("a report", () => {
       new Response('{"seed":"s","bits":18}'),
       new Response(null, { status: 204 }),
     ]);
-    const solve = (challenge: string) => `proof of ${challenge}`;
+    const solve = async (challenge: string) => `proof of ${challenge}`;
     expect(await reported("k7Qm2xPa", "phishing", "Pide mi clave", solve, ask)).toBe("thanked");
     expect(asked).toEqual([
       {
@@ -138,15 +140,15 @@ describe("a report", () => {
       new Response("{}"),
       new Response('{"refused":"reported"}', { status: 409 }),
     ]);
-    expect(await reported("k7Qm2xPa", "fraud", "x", () => "w", twice.ask)).toBe("reported");
+    expect(await reported("k7Qm2xPa", "fraud", "x", async () => "w", twice.ask)).toBe("reported");
     const slow = server([new Response('{"refused":"slow"}', { status: 429 })]);
-    expect(await reported("k7Qm2xPa", "fraud", "x", () => "w", slow.ask)).toBe("slow");
+    expect(await reported("k7Qm2xPa", "fraud", "x", async () => "w", slow.ask)).toBe("slow");
     expect(slow.asked).toHaveLength(1);
   });
 
   it("fails without asking again when the challenge cannot be worked", async () => {
     const { asked, ask } = server([new Response("{}")]);
-    expect(await reported("k7Qm2xPa", "fraud", "x", () => undefined, ask)).toBe("failed");
+    expect(await reported("k7Qm2xPa", "fraud", "x", async () => undefined, ask)).toBe("failed");
     expect(asked).toHaveLength(1);
   });
 });

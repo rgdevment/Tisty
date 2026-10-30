@@ -51,7 +51,7 @@ pub struct Asked {
     pub path: String,
     /// The edit or management token, from `Authorization: Bearer`.
     pub token: Option<String>,
-    /// The reader's password, in `Tisty-Password` so it never sits in a URL or a log.
+    /// The reader's password as its UTF-8 in base64url, in `Tisty-Password` so it never sits in a URL or a log.
     pub password: Option<String>,
     /// The proof of work, as JSON in `Tisty-Work`.
     pub work: Option<String>,
@@ -200,9 +200,8 @@ async fn routed<S: Store, R: Randomness>(
             Ok(said(200, json!({ "version": version })))
         }
         ("GET", ["docs", id]) => {
-            let served = share
-                .read(id, asked.password.as_deref(), caller, now)
-                .await?;
+            let password = asked.password.as_deref().map(password_of).transpose()?;
+            let served = share.read(id, password.as_deref(), caller, now).await?;
             Ok(envelope(served))
         }
         ("GET", ["docs", id, "latest"]) => {
@@ -323,6 +322,14 @@ fn read<T: DeserializeOwned>(body: &[u8]) -> Result<T, Turned> {
 fn proof(work: Option<&str>) -> Result<Proof, Turned> {
     let work = work.ok_or(Refused::WorkRefused)?;
     serde_json::from_str(work).map_err(|_| Turned::Unreadable)
+}
+
+// A header carries only Latin-1, so a password in any language travels as its UTF-8.
+fn password_of(said: &str) -> Result<String, Turned> {
+    let bytes = URL_SAFE_NO_PAD
+        .decode(said)
+        .map_err(|_| Turned::Unreadable)?;
+    String::from_utf8(bytes).map_err(|_| Turned::Unreadable)
 }
 
 fn digest_of(said: &str) -> Option<[u8; 32]> {

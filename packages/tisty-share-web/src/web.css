@@ -18,6 +18,7 @@
   --share-bad-soft: #fdecea;
 }
 html[data-theme="dark"] {
+  color-scheme: dark;
   --share-ground: var(--tisty-desk);
   --share-line: rgb(255 255 255 / 0.1);
   --share-edge: rgb(255 255 255 / 0.18);
@@ -25,6 +26,8 @@ html[data-theme="dark"] {
   --share-ink: #f2f2f7;
   --share-soft: #adadb4;
   --share-green: #2f9d7c;
+  /* White on this green reads at 3.4:1, so dark ink takes it past 4.5:1. */
+  --share-green-ink: #17171a;
   --share-green-soft: rgb(47 157 124 / 0.16);
   --share-dark: #f2f2f7;
   --share-dark-ink: #17171a;
@@ -39,9 +42,6 @@ html {
   color: var(--share-ink);
   -webkit-text-size-adjust: 100%;
 }
-html[data-theme="dark"] {
-  color-scheme: dark;
-}
 body {
   margin: 0;
   font:
@@ -52,8 +52,9 @@ body {
     system-ui,
     sans-serif;
 }
-[hidden] {
-  display: none !important;
+/* Above any one class that sets a display, so a hidden part always hides. */
+:root [hidden] {
+  display: none;
 }
 a {
   color: var(--share-green);
@@ -429,11 +430,5 @@ a {
   .foot {
     padding-left: 16px;
     padding-right: 16px;
-  }
-  .paper-head {
-    padding: 28px 20px 0;
-  }
-  .seal {
-    margin: 0 20px 28px;
   }
 }

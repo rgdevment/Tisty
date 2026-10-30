@@ -45,6 +45,8 @@ export default defineConfig({
     target: "es2022",
   },
   server: { fs: { allow: [".", reader, studio, join(root, "assets")] } },
+  // The proof of work's worker imports the wasm as the page does, which only a module worker can.
+  worker: { format: "es" },
   test: {
     environment: "jsdom",
     include: ["tests/**/*.test.ts"],

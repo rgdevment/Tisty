@@ -48,6 +48,13 @@ export const factsOf = (headers: Headers): Facts => ({
   gated: headers.get("Tisty-Gated") === "1",
 });
 
+// A header carries only Latin-1, so a password in any language travels as its UTF-8, which the Worker decodes.
+export const passwordOf = (password: string): string =>
+  btoa(String.fromCodePoint(...new TextEncoder().encode(password)))
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replace(/=+$/, "");
+
 // The password travels in a header of its own, so it never sits in a URL or a log.
 export const fetched = (id: string, ask: typeof fetch = fetch, password?: string) =>
   asked(
@@ -57,7 +64,7 @@ export const fetched = (id: string, ask: typeof fetch = fetch, password?: string
       sealed: new Uint8Array(await answer.arrayBuffer()),
       facts: factsOf(answer.headers),
     }),
-    password === undefined ? undefined : { headers: { "Tisty-Password": password } },
+    password === undefined ? undefined : { headers: { "Tisty-Password": passwordOf(password) } },
   );
 
 export const limitsOf = (ask: typeof fetch = fetch) =>
@@ -82,7 +89,7 @@ export const reported = async (
   id: string,
   reason: Reason,
   detail: string,
-  solve: (challenge: string) => string | undefined,
+  solve: (challenge: string) => Promise<string | undefined>,
   ask: typeof fetch = fetch,
 ): Promise<string> => {
   const challenge = await asked("challenge", ask, (answer) => answer.text(), {
@@ -90,12 +97,17 @@ export const reported = async (
     body: JSON.stringify({ for: "report", id }),
   });
   if (typeof challenge !== "string") return challenge.refused;
-  const work = solve(challenge);
+  const work = await solve(challenge);
   if (!work) return "failed";
-  const answer = await asked(`docs/${encodeURIComponent(id)}/reports`, ask, async () => "thanked", {
-    method: "POST",
-    headers: { "Tisty-Work": work, "Content-Type": "application/json" },
-    body: JSON.stringify({ category: reason, detail }),
-  });
+  const answer = await asked(
+    `docs/${encodeURIComponent(id)}/reports`,
+    ask,
+    () => Promise.resolve("thanked"),
+    {
+      method: "POST",
+      headers: { "Tisty-Work": work, "Content-Type": "application/json" },
+      body: JSON.stringify({ category: reason, detail }),
+    },
+  );
   return typeof answer === "string" ? answer : answer.refused;
 };

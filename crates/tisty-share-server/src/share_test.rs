@@ -1283,13 +1283,17 @@ fn a_version_whose_envelope_the_store_lost_is_a_fault_not_a_missing_document() {
 #[test]
 fn a_reader_is_told_when_it_was_shared_and_written_when_it_ends_and_whether_it_asks_a_password() {
     let mut world = World::new();
-    let reserved = world.shared(T0);
+    let reserved = world.reserve(T0);
+    let first = sealed(&reserved.id, 1, None, "uno");
+    world
+        .put(&reserved.id, &reserved.edit, first, T0 + 600)
+        .unwrap();
     let second = sealed(&reserved.id, 2, Some(1), "dos");
     world
         .put(&reserved.id, &reserved.edit, second, T0 + DAY)
         .unwrap();
     let facts = world.read(&reserved.id, T0 + 2 * DAY).unwrap().facts;
-    assert_eq!(facts.shared, T0);
+    assert_eq!(facts.shared, T0 + 600);
     assert_eq!(facts.written, Some(T0 + DAY));
     assert_eq!(facts.ends, T0 + 2 * DAY + world.share.policy.idle);
     assert!(!facts.gated);

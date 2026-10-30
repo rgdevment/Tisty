@@ -58,7 +58,6 @@ export const sealOf = (about: About): Seal => {
 const partOf = (box: HTMLElement) => (name: string) =>
   box.querySelector<HTMLElement>(`.${name}`) as HTMLElement;
 
-// The line under the body, as the mock-up closes the sheet.
 export const sealed = (box: HTMLElement, seal: Seal, say: Say) => {
   const part = partOf(box);
   box.dataset.verdict = seal.verdict;
@@ -122,9 +121,7 @@ export const accessOf = (facts: Facts): string => (facts.gated ? "gated" : "unli
 
 // Every reading pushes the end back (decision 50), which the note under the date says.
 export const endsOf = (facts: Facts, language: string): string =>
-  facts.ends === undefined
-    ? ""
-    : new Intl.DateTimeFormat(language, { dateStyle: "medium" }).format(facts.ends * 1000);
+  facts.ends === undefined ? "" : day(facts.ends, language, "medium");
 
 // A name every system takes: the title without the characters some forbid, or the page's own word for it.
 export const fileOf = (title: string, fallback: string): string =>

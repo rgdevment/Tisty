@@ -1,6 +1,6 @@
 import "tisty-reader/tokens.css";
 import "./web.css";
-import init, { open, type Page, solved } from "../wasm/tisty_share_wasm.js";
+import init, { open, type Page } from "../wasm/tisty_share_wasm.js";
 import wasm from "../wasm/tisty_share_wasm_bg.wasm?url";
 import { drawn, type Opened, type Picture, plain, titleOf } from "./drawn";
 import { type Facts, fetched, limitsOf, REASONS, type Reason, reported } from "./fetched";
@@ -142,9 +142,25 @@ const framed = (found: Read, title: string) => {
   });
 };
 
+// A worker of its own for each report: a page reports once, and the work holds nothing worth keeping.
+const solving = (challenge: string): Promise<string | undefined> =>
+  new Promise((done) => {
+    const solver = new Worker(new URL("./solver.ts", import.meta.url), { type: "module" });
+    const finished = (work?: string) => {
+      solver.terminate();
+      done(work);
+    };
+    solver.addEventListener("message", ({ data }: MessageEvent<string | null>) =>
+      finished(data ?? undefined),
+    );
+    solver.addEventListener("error", () => finished());
+    solver.postMessage(challenge);
+  });
+
 const reportable = (id: string) => {
   const form = part<HTMLFormElement>(".report");
   const reason = part<HTMLSelectElement>("#reason");
+  const detail = part<HTMLTextAreaElement>("#detail");
   const said = part(".report-said");
   // No reason is chosen for the reader: the gravest goes to the police, so it is never a default.
   const pick = new Option(say("reportpick"), "", true, true);
@@ -159,18 +175,16 @@ const reportable = (id: string) => {
   });
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    // Spaces alone pass `required`, so they are cleared and the browser asks for the words again.
+    if (!detail.value.trim()) {
+      detail.value = "";
+      form.reportValidity();
+      return;
+    }
     const send = part<HTMLButtonElement>(".report-send");
     send.disabled = true;
     said.textContent = say("reporting");
-    // The work blocks the page for a moment, so the sentence that says so is drawn first; a page not drawing waits no more.
-    await new Promise<void>((done) => {
-      requestAnimationFrame(() => setTimeout(done));
-      setTimeout(done, 100);
-    });
-    const detail = part<HTMLTextAreaElement>("#detail").value.trim();
-    const word = await reported(id, reason.value as Reason, detail, (challenge) =>
-      solved(challenge),
-    );
+    const word = await reported(id, reason.value as Reason, detail.value.trim(), solving);
     said.textContent = say(word);
     send.disabled = word === "thanked" || word === "reported";
   });
@@ -217,10 +231,17 @@ for (const one of document.querySelectorAll<HTMLElement>("[data-word]"))
   one.textContent = say(one.dataset.word ?? "");
 themed();
 
+// The button stays off while a password is tried, so a second Enter never frames the page twice.
 gate.addEventListener("submit", (event) => {
   event.preventDefault();
   const password = part<HTMLInputElement>("#password");
-  shown(password.value).catch(() => tell("failed"));
+  const open = part<HTMLButtonElement>(".gate button");
+  open.disabled = true;
+  shown(password.value)
+    .catch(() => tell("failed"))
+    .finally(() => {
+      open.disabled = false;
+    });
   password.value = "";
 });
 

@@ -1,6 +1,6 @@
 // The server counts in seconds since 1970; the reader reads a date in their own language.
-export const day = (seconds: number, language: string): string =>
-  new Intl.DateTimeFormat(language, { dateStyle: "long" }).format(seconds * 1000);
+export const day = (seconds: number, language: string, style: "long" | "medium" = "long"): string =>
+  new Intl.DateTimeFormat(language, { dateStyle: style }).format(seconds * 1000);
 
 const STEPS: readonly (readonly [Intl.RelativeTimeFormatUnit, number])[] = [
   ["year", 365 * 86_400],

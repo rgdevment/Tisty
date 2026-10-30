@@ -343,6 +343,10 @@ impl<S: Store, R: Randomness> Share<S, R> {
             digest: envelope.digest(),
         };
         self.store.keep(id, &kept, envelope.into_bytes()).await?;
+        // A reserved id may wait an hour for its first version, and the reader is told when it was shared, not reserved.
+        if latest.is_none() {
+            doc.created = now;
+        }
         doc.versions.push(kept);
         doc.written = Some(now);
         let dropped: Vec<Kept> = doc

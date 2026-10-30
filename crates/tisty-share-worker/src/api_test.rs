@@ -334,8 +334,25 @@ fn a_password_travels_in_its_own_header_and_is_asked_for_by_name() {
     );
 
     let mut with_it = asked("GET", &path);
-    with_it.password = Some("perro azul".into());
+    with_it.password = Some(URL_SAFE_NO_PAD.encode("perro azul"));
     assert_eq!(world.answer(with_it).body, shared.first);
+}
+
+#[test]
+fn a_password_beyond_latin_1_travels_as_its_utf_8_and_a_garbled_one_is_unreadable() {
+    let mut world = World::new();
+    let shared = world.shared();
+    let set = world.manage(&shared, json!({ "do": "password", "with": "ñandú €🔑" }));
+    assert_eq!(set.status, 204);
+    let path = format!("/api/v1/docs/{}", shared.id);
+
+    let mut with_it = asked("GET", &path);
+    with_it.password = Some(URL_SAFE_NO_PAD.encode("ñandú €🔑"));
+    assert_eq!(world.answer(with_it).body, shared.first);
+
+    let mut garbled = asked("GET", &path);
+    garbled.password = Some("ñandú".into());
+    assert_eq!(world.answer(garbled).status, 400);
 }
 
 #[test]
