@@ -33,8 +33,15 @@ fn card(shared: &Shared, info: Option<Info>) -> Card {
     }
 }
 
-fn doc_id(id: &str) -> Answer<DocId> {
-    id.parse().map_err(|_| Refusal::of("noSuchDoc"))
+// The window knows a document by its file, as it reads and writes it.
+fn doc_of(session: &Session, file: &str) -> Answer<DocId> {
+    session
+        .state
+        .docs
+        .values()
+        .find(|one| one.file == file)
+        .map(|one| one.id)
+        .ok_or(Refusal::of("noSuchDoc"))
 }
 
 // The network is slow and the work takes a moment, so neither holds the window or the session.
@@ -47,19 +54,25 @@ async fn apart<T: Send + 'static>(work: impl FnOnce() -> Answer<T> + Send + 'sta
 #[tauri::command]
 pub async fn share_doc(
     session: tauri::State<'_, Mutex<Session>>,
-    id: String,
+    file: String,
     chosen: Chosen,
 ) -> Answer<Card> {
-    let doc = doc_id(&id)?;
-    let (text, voucher) = {
+    let (doc, text, voucher) = {
         let session = held(&session);
-        if !session.state.docs.contains_key(&doc) {
-            return Err(Refusal::of("noSuchDoc"));
-        }
+        let doc = doc_of(&session, &file)?;
         if session.state.shares.contains_key(&doc) {
             return Err(Refusal::of("shareAlready"));
         }
-        let text = tisty_core::docs::read(&session.paths.docs(), &id)
+        // Only what is one's own goes out under one's link and key; what came from someone else is theirs to share.
+        if !session
+            .state
+            .docs
+            .get(&doc)
+            .is_some_and(|kept| session.state.mine(kept))
+        {
+            return Err(Refusal::of("shareNotMine"));
+        }
+        let text = tisty_core::docs::read(&session.paths.docs(), &file)
             .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
         let voucher = chosen.signed.then(|| {
             crate::handed::vouched_by(
@@ -68,7 +81,7 @@ pub async fn share_doc(
                 &session.state.persons,
             )
         });
-        (text, voucher)
+        (doc, text, voucher)
     };
     // Asked to sign with no key a person vouches for, it says so rather than going out unsigned.
     let voucher = match voucher {
@@ -93,10 +106,13 @@ pub async fn share_doc(
 #[tauri::command]
 pub async fn share_card(
     session: tauri::State<'_, Mutex<Session>>,
-    id: String,
+    file: String,
 ) -> Answer<Option<Card>> {
-    let doc = doc_id(&id)?;
-    let Some(shared) = held(&session).state.shares.get(&doc).cloned() else {
+    let shared = {
+        let session = held(&session);
+        session.state.shares.get(&doc_of(&session, &file)?).cloned()
+    };
+    let Some(shared) = shared else {
         return Ok(None);
     };
     let asked = shared.clone();
@@ -107,9 +123,13 @@ pub async fn share_card(
 }
 
 #[tauri::command]
-pub async fn share_stop(session: tauri::State<'_, Mutex<Session>>, id: String) -> Answer<()> {
-    let doc = doc_id(&id)?;
-    let Some(shared) = held(&session).state.shares.get(&doc).cloned() else {
+pub async fn share_stop(session: tauri::State<'_, Mutex<Session>>, file: String) -> Answer<()> {
+    let (doc, shared) = {
+        let session = held(&session);
+        let doc = doc_of(&session, &file)?;
+        (doc, session.state.shares.get(&doc).cloned())
+    };
+    let Some(shared) = shared else {
         return Ok(());
     };
     let gone = apart(move || sharing::stop(&Net::to(&shared.server)?, &shared)).await;

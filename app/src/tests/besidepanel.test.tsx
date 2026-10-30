@@ -2,10 +2,17 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Head } from "tisty-editor/read";
 import { describe, expect, it, vi } from "vitest";
-import { t } from "../locales";
+import { fill, t } from "../locales";
 import Beside from "../ui/Beside";
 
-vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
+const ipc = vi.hoisted(() => ({ card: null as unknown, asked: [] as string[] }));
+
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: (cmd: string) => {
+    ipc.asked.push(cmd);
+    return Promise.resolve(cmd === "share_card" ? ipc.card : null);
+  },
+}));
 
 const headed = (many: number): Head[] =>
   Array.from({ length: many }, (_, at) => ({
@@ -17,6 +24,7 @@ const headed = (many: number): Head[] =>
 
 const beside = (heads: Head[], more: { onCopy?: () => void } = {}, paper = "dev_a-0001") => (
   <Beside
+    onError={() => {}}
     title="Notas"
     paper={paper}
     body="# Notas"
@@ -69,7 +77,7 @@ describe("the document's column", () => {
   it("opens one part at a time", async () => {
     panel(headed(2));
     await press("shared");
-    expect(screen.getByText(t("sharedWill"))).toBeTruthy();
+    expect(screen.getByText(t("sharedWhy"))).toBeTruthy();
     await waitFor(() => expect(row("details").open).toBe(false));
   });
 
@@ -104,6 +112,7 @@ describe("the export button", () => {
   it("says the PDF is being made instead of offering a second one", async () => {
     render(
       <Beside
+        onError={() => {}}
         title="Notas"
         paper="dev_a-0001"
         body="# Notas"
@@ -151,6 +160,7 @@ describe("a page's column", () => {
     };
     render(
       <Beside
+        onError={() => {}}
         title="La Rina"
         paper="dev_a-0002"
         body="# La Rina"
@@ -173,5 +183,45 @@ describe("a page's column", () => {
     expect(screen.getByText(t("besidePageOf"))).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: "Guía" }));
     expect(onPage).toHaveBeenCalledWith(up);
+  });
+});
+
+describe("the shared row", () => {
+  it("offers to share a document nobody shared yet", async () => {
+    ipc.card = null;
+    panel(headed(2));
+    await press("shared");
+    expect(screen.getByRole("button", { name: t("shareIt") })).toBeTruthy();
+  });
+
+  it("hands out the links of a shared document, says how it stands, and stops sharing it", async () => {
+    ipc.card = {
+      read: "https://tisty.cl/k7Qm2xPa#llave",
+      edit: "https://tisty.cl/k7Qm2xPa#llave.token",
+      gated: true,
+      signed: true,
+      version: 2,
+      info: {
+        latest: 2,
+        reads: 3,
+        ends: 1_800_000_000,
+        paused: false,
+        blocked: false,
+        gated: true,
+      },
+    };
+    ipc.asked = [];
+    panel(headed(2));
+    await screen.findByText("https://tisty.cl/k7Qm2xPa#llave.token");
+    expect(row("shared").querySelector(".side-gist")?.textContent).toContain(t("sharedGated"));
+    expect(row("shared").querySelector(".side-gist")?.textContent).toContain(
+      fill("sharedReads", "3"),
+    );
+    await press("shared");
+    await userEvent.click(screen.getByRole("button", { name: t("shareStop") }));
+    await waitFor(() => expect(ipc.asked).toContain("share_stop"));
+    await waitFor(() =>
+      expect(row("shared").querySelector(".side-gist")?.textContent).toBe(t("sharedNot")),
+    );
   });
 });
