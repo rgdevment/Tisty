@@ -12,7 +12,7 @@ publish = false
 
 [workspace.dependencies]
 insta = { version = "1.49.0", features = ["json"] }
-minisign-verify = "0.2"
+minisign-verify = "0.3"
 tisty-carrier = { path = "crates/tisty-carrier" }
 tisty-google = { path = "crates/tisty-google" }
 tisty-help = { path = "crates/tisty-help" }
@@ -61,7 +61,7 @@ rand_core = { version = "0.9", features = ["os_rng"] }
 reqwest = { version = "0.13", default-features = false, features = ["blocking", "default-tls", "charset", "http2", "query", "system-proxy"] }
 url = "2"
 percent-encoding = "2"
-base64 = "0.22"
+base64 = "0.23"
 zeroize = "1"
 hmac = { version = "0.13", features = ["zeroize"] }
 hkdf = "0.13"
@@ -91,7 +91,7 @@ emojis = "0.9"
 # What a document carries as html reaches the reader cleaned of anything that could run.
 ammonia = "4"
 htmd = "0.5"
-roxmltree = "0.20"
+roxmltree = "0.21"
 markup5ever_rcdom = "0.38.0"
 tempfile = "3"
 proptest = { version = "1", default-features = false, features = ["std"] }

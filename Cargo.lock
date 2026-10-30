@@ -2950,12 +2950,6 @@ checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
 
 [[package]]
 name = "minisign-verify"
-version = "0.2.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22f9645cb765ea72b8111f36c522475d2daa0d22c957a9826437e97534bc4e9e"
-
-[[package]]
-name = "minisign-verify"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "871285dc19d8d0ebe0eef3d0e99a205f2a71363b122632cbbfa4a6c370a960ce"
@@ -4236,9 +4230,12 @@ dependencies = [
 
 [[package]]
 name = "roxmltree"
-version = "0.20.0"
+version = "0.21.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c20b6793b5c2fa6553b250154b78d6d0db37e72700ae35fad9387a46f487c97"
+checksum = "9da7f59328b09405b181fee1018925fad50f157afb43c0c0f5c522c256dd5907"
+dependencies = [
+ "memchr",
+]
 
 [[package]]
 name = "rsqlite-vfs"
@@ -5462,7 +5459,7 @@ dependencies = [
  "infer",
  "libc",
  "log",
- "minisign-verify 0.3.0",
+ "minisign-verify",
  "osakit",
  "percent-encoding",
  "reqwest",
@@ -5718,9 +5715,9 @@ name = "tisty-carrier"
 version = "0.1.0"
 dependencies = [
  "apple-native-keyring-store",
- "base64 0.22.1",
+ "base64 0.23.1",
  "keyring-core",
- "minisign-verify 0.2.5",
+ "minisign-verify",
  "proptest",
  "rand_core 0.9.5",
  "reqwest",
@@ -5799,7 +5796,7 @@ dependencies = [
 name = "tisty-google"
 version = "0.1.0"
 dependencies = [
- "base64 0.22.1",
+ "base64 0.23.1",
  "reqwest",
  "serde",
  "serde_json",
@@ -5813,7 +5810,7 @@ dependencies = [
 name = "tisty-gui"
 version = "0.1.0"
 dependencies = [
- "base64 0.22.1",
+ "base64 0.23.1",
  "jiff",
  "log",
  "objc2",
@@ -5889,7 +5886,7 @@ dependencies = [
 name = "tisty-onedrive"
 version = "0.1.0"
 dependencies = [
- "base64 0.22.1",
+ "base64 0.23.1",
  "reqwest",
  "serde",
  "serde_json",
@@ -5903,7 +5900,7 @@ dependencies = [
 name = "tisty-share-proto"
 version = "0.1.0"
 dependencies = [
- "base64 0.22.1",
+ "base64 0.23.1",
  "bip39",
  "chacha20poly1305",
  "curve25519-dalek",
@@ -5927,7 +5924,7 @@ dependencies = [
 name = "tisty-share-server"
 version = "0.1.0"
 dependencies = [
- "base64 0.22.1",
+ "base64 0.23.1",
  "hmac",
  "jiff",
  "scrypt",
@@ -5943,7 +5940,7 @@ dependencies = [
 name = "tisty-share-worker"
 version = "0.1.0"
 dependencies = [
- "base64 0.22.1",
+ "base64 0.23.1",
  "futures-util",
  "rusqlite",
  "serde",

@@ -165,7 +165,7 @@ written once with the crates that carry it.
 | `w3c-keyname` | 2.2.8 | MIT |
 | `zustand` | 4.5.7 | MIT |
 
-## In the core (355 crates)
+## In the core (354 crates)
 
 | Crate | Version | Licence |
 | --- | --- | --- |
@@ -321,7 +321,6 @@ written once with the crates that carry it.
 | `math-core-renderer-internal` | 0.9.0 | MIT |
 | `memchr` | 2.8.3 | Unlicense OR MIT |
 | `mime` | 0.3.17 | MIT OR Apache-2.0 |
-| `minisign-verify` | 0.2.5 | MIT |
 | `minisign-verify` | 0.3.0 | MIT |
 | `miniz_oxide` | 0.8.9 | MIT OR Zlib OR Apache-2.0 |
 | `miniz_oxide` | 0.9.1 | MIT OR Zlib OR Apache-2.0 |
@@ -380,7 +379,7 @@ written once with the crates that carry it.
 | `reqwest` | 0.13.5 | MIT OR Apache-2.0 |
 | `rfd` | 0.16.0 | MIT |
 | `ring` | 0.17.14 | Apache-2.0 AND ISC |
-| `roxmltree` | 0.20.0 | MIT OR Apache-2.0 |
+| `roxmltree` | 0.21.2 | MIT OR Apache-2.0 |
 | `rusqlite` | 0.40.2 | MIT |
 | `rustc-hash` | 2.1.3 | Apache-2.0 OR MIT |
 | `rustix` | 1.1.5 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT |
