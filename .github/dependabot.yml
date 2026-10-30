@@ -46,6 +46,8 @@ updates:
       - dependency-name: worker
       # Its nodes are the ones htmd hands over, so it moves only when htmd does.
       - dependency-name: markup5ever_rcdom
+      # Moves by hand with the wasm-bindgen CLI in the share-page action, which must read what it writes.
+      - dependency-name: wasm-bindgen
     groups:
       rust:
         patterns:

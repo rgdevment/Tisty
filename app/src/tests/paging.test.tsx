@@ -1,13 +1,14 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { themeCss, themed } from "./theme";
 
-const css = readFileSync("src/index.css", "utf8");
+const css = themeCss();
 const conf = JSON.parse(readFileSync("src-tauri/tauri.conf.json", "utf8"));
 
 const nightly = (): string => {
-  const at = css.indexOf('\n[data-theme="dark"] {');
-  expect(at).toBeGreaterThan(-1);
-  return css.slice(at, css.indexOf("\n}", at));
+  const dark = themed(css, '[data-theme="dark"] {');
+  expect(dark).not.toBe("");
+  return dark;
 };
 
 describe("the page the writing sits on", () => {

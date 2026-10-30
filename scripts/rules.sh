@@ -307,7 +307,7 @@ keeps_to_itself() {
 
 the_packages_keep_to_themselves() {
   keeps_to_itself tisty-diagrams "the diagram studio" "tisty-diagrams/read tisty-diagrams/studio"
-  keeps_to_itself tisty-reader "the page reader" "tisty-reader/page"
+  keeps_to_itself tisty-reader "the page reader" "tisty-reader/page tisty-reader/tokens.css"
 }
 
 no_token_kept_in_the_tree() {

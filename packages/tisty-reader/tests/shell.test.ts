@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { dressed, escaped, PAGE_CSS, saidKinds, shell, TOKENS } from "../src/shell";
+import { dressed, escaped, PAGE_CSS, saidKinds, shell, TITLED, TOKENS } from "../src/shell";
 import { source } from "./source";
 
 const page = (html: string): Document =>
@@ -42,6 +42,14 @@ describe("the shell of a drawn page", () => {
 });
 
 describe("the page the writing sits on", () => {
+  it("draws as its title the very blocks it names for the host", () => {
+    const rule =
+      /html:not\(\.untitled\) (.+),\s*html:not\(\.untitled\) (.+) \{\s*font-size: 1\.65em;/.exec(
+        source("page.css"),
+      );
+    expect(rule?.slice(1, 3).join(", ")).toBe(TITLED);
+  });
+
   it("is paper by default, whatever the theme", () => {
     expect(source("page.css")).toMatch(
       /html:not\(\.tall\) \.page \{[^}]*background:\s*var\(--tisty-sheet\)/,

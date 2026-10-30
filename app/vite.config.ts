@@ -19,6 +19,7 @@ const packageAt = (name: string, from: string): string => {
 const appAt = dirname(fileURLToPath(import.meta.url));
 const studio = packageAt("tisty-diagrams", appAt);
 const reader = packageAt("tisty-reader", appAt);
+const web = packageAt("tisty-share-web", appAt);
 
 export default defineConfig(async () => ({
   plugins: [react(), tailwindcss()],
@@ -39,7 +40,13 @@ export default defineConfig(async () => ({
       // The packages live beside the app, outside its root, and are measured all the same.
       allowExternal: true,
       include: ["src/**/*.{ts,tsx}", "../packages/*/src/**/*.{ts,tsx}"],
-      exclude: ["src/tests/**", "src/main.tsx", "src/vite-env.d.ts"],
+      exclude: [
+        "src/tests/**",
+        "src/main.tsx",
+        "src/vite-env.d.ts",
+        "../packages/tisty-share-web/src/main.ts",
+        "../packages/tisty-share-web/src/vite-env.d.ts",
+      ],
     },
   },
 
@@ -49,7 +56,7 @@ export default defineConfig(async () => ({
     strictPort: true,
     host: host || false,
     hmr: host ? { protocol: "ws", host, port: 1421 } : undefined,
-    fs: { allow: [".", studio, reader] },
+    fs: { allow: [".", studio, reader, web] },
     watch: {
       ignored: ["**/src-tauri/**"],
     },
