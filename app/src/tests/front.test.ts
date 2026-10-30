@@ -1,6 +1,6 @@
-import { frontLines } from "tisty-editor/read";
+import { fields, frontLines, overgrown } from "tisty-editor/read";
 import { describe, expect, it } from "vitest";
-import { fields, frontTags, overgrown, unfronted } from "../front";
+import { frontTags, unfronted } from "../front";
 
 describe("the properties at the top of a note", () => {
   it("are found only where a note opens with them, closed by a rule or three dots", () => {

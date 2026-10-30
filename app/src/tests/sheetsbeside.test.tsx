@@ -4,12 +4,11 @@ import { EditorView, keymap, runScopeHandlers } from "@codemirror/view";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { blockKeys } from "tisty-editor/edit";
-import { sheeting } from "tisty-editor/read";
+import { acrossOf, PAPERS as KNOWN, sheetFor, sheeting, sizeOf, TALL } from "tisty-editor/read";
 import { describe, expect, it, vi } from "vitest";
 import type { Paper } from "../core";
 import { t } from "../locales";
 import Beside from "../ui/Beside";
-import { acrossOf, KNOWN, sheetFor, sizeOf, TALL } from "../ui/sheets";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
 

@@ -1,6 +1,7 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { PAPERS } from "tisty-editor/read";
 import {
   type DocFacts,
   opened,
@@ -18,7 +19,7 @@ import { saidPlainly } from "./refusal";
 import Diagramming from "./ui/drawing/Diagramming";
 import Menu from "./ui/Menu";
 import { seenIn } from "./ui/printing";
-import { KNOWN, pageFor } from "./ui/sheets";
+import { pageFor } from "./ui/sheets";
 import { darkNow } from "./ui/theming";
 import { leaveAsHtml, leaveAsWord } from "./ui/useLeaving";
 import { type Acts, choicesFor, keysFor, PLAIN, ZOOMS } from "./ui/viewer/acting";
@@ -40,7 +41,7 @@ const remembered = (): { side: boolean; leaf: Paper } => {
   const side = window.innerWidth >= SIDE_FROM;
   try {
     const said = JSON.parse(localStorage.getItem(KEPT) ?? "{}") as Record<string, unknown>;
-    const leaf = KNOWN.includes(said.leaf as Paper) ? said.leaf : "a4";
+    const leaf = PAPERS.includes(said.leaf as Paper) ? said.leaf : "a4";
     return { side, leaf: leaf as Paper };
   } catch {
     return { side, leaf: "a4" };

@@ -1,4 +1,14 @@
-import { readAs, type Say, shell, TITLED } from "tisty-editor/read";
+import {
+  acrossOf,
+  laidIn,
+  readAs,
+  type Say,
+  type Sheet,
+  sheetFor,
+  sheeting,
+  shell,
+  TITLED,
+} from "tisty-editor/read";
 
 export type Picture = { readonly bytes: Uint8Array<ArrayBuffer>; readonly media: string };
 export type Opened = { readonly html: string; readonly pictures: readonly Picture[] };
@@ -92,12 +102,29 @@ const loaded = (frame: HTMLIFrameElement, html: string) =>
     frame.srcdoc = html;
   });
 
+export type Laid = { readonly across: number; readonly sheet?: Sheet };
+
+// The paper the document asks for, A4 unless it says otherwise, and its sheets when it lays them out.
+export const laidOut = (text: string, say: Say): Laid => {
+  const laid = laidIn(text);
+  const leaf = laid.paper ?? "a4";
+  return {
+    across: acrossOf(leaf, laid.landscape),
+    sheet: laid.sheets ? sheetFor(leaf, laid.landscape, say("sheetsBreak")) : undefined,
+  };
+};
+
+// On a screen narrower than the paper, as a phone's, the sheets would break where no sheet ends, so the body flows as one.
+const fitting = (frame: HTMLIFrameElement, sheet?: Sheet) => () =>
+  sheet && frame.clientWidth >= sheet.wide ? sheet : undefined;
+
 // The body as Tisty draws it, in the reader's own frame, grown to its height so the page scrolls as one.
 export const drawn = async (
   frame: HTMLIFrameElement,
   opened: Opened,
   dark: boolean,
   said: { readonly say: Say; readonly language: string },
+  laid: Laid,
 ): Promise<Document> => {
   const page = await loaded(frame, shell(unasked(opened.html), dark));
   page.documentElement.classList.add("tall");
@@ -113,9 +140,12 @@ export const drawn = async (
     },
     sites: {},
   });
+  page.documentElement.style.setProperty("--wide", `${laid.across}px`);
+  const sheets = sheeting(page, fitting(frame, laid.sheet));
   const freed = () => {
     for (const url of made) URL.revokeObjectURL(url);
     for (const stop of read.kept) stop();
+    sheets.stop();
   };
   frame.addEventListener("load", freed, { once: true });
   linkedOut(page);

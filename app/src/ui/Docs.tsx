@@ -3,7 +3,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { freshFence } from "tisty-diagrams/read";
 import type { Asking } from "tisty-editor/edit";
 import { MARKED_FOR } from "tisty-editor/edit";
-import type { Head } from "tisty-editor/read";
+import { acrossOf, type Head, laidIn, PAPER, sheetFor, writtenAcrossOf } from "tisty-editor/read";
 import { asPlain } from "../copying";
 import {
   attachPasted,
@@ -30,7 +30,7 @@ import {
   viewDoc,
 } from "../core";
 import { viewDiagram } from "../drawing";
-import { laidIn, withLandscape, withPaper, withSheets } from "../front";
+import { withLandscape, withPaper, withSheets } from "../front";
 import { keptAll, PASTED_UP_TO } from "../kept";
 import { fill, t } from "../locales";
 import { filed, inTextOrder, type Moved, namesIn, pagesOf, under } from "../paging";
@@ -49,7 +49,7 @@ import Picking, { type Picked } from "./Picking";
 import { usePreviewing } from "./previewing";
 import { pdfOf, STAMPING, type Stamp, type Stamping, seenIn, stampOf } from "./printing";
 import Ribbon, { Onward } from "./Ribbon";
-import { acrossOf, PAPER, pageFor, sheetFor, writtenAcrossOf } from "./sheets";
+import { pageFor } from "./sheets";
 import { CompactBar, MarkBar } from "./Tidied";
 import { useLeaving } from "./useLeaving";
 import { clearOfChrome } from "./WindowChrome";

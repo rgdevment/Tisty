@@ -1,11 +1,11 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import type { Head } from "tisty-editor/read";
+import { acrossOf, type Head, PAPER, sheetFor, TALL } from "tisty-editor/read";
 import { copied, type DocFacts, type Paper } from "../../core";
 import { fill, t } from "../../locales";
 import PaperFacts from "../PaperFacts";
 import Properties from "../Properties";
 import { SheetsToggle, SheetsTurn } from "../SheetsSwitch";
-import { acrossOf, leafWord, offered, PAPER, sheetFor, TALL } from "../sheets";
+import { leafWord, offered } from "../sheets";
 import { usePictures } from "../usePictures";
 import { button, Segments } from "./Glyphs";
 

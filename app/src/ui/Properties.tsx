@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { fields, overgrown } from "../front";
+import { fields, overgrown } from "tisty-editor/read";
 import { t } from "../locales";
 
 interface Props {

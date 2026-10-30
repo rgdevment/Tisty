@@ -2,7 +2,7 @@ import "tisty-editor/tokens.css";
 import "./web.css";
 import init, { open, type Page } from "../wasm/tisty_share_wasm.js";
 import wasm from "../wasm/tisty_share_wasm_bg.wasm?url";
-import { drawn, type Opened, type Picture, plain, titleOf } from "./drawn";
+import { drawn, laidOut, type Opened, type Picture, plain, titleOf } from "./drawn";
 import { type Facts, fetched, limitsOf, REASONS, type Reason, reported } from "./fetched";
 import {
   type About,
@@ -201,9 +201,11 @@ const shown = async (password?: string) => {
   const when = whenOf(found.facts, found.about.version ?? 1, Date.now() / 1000, language, say);
   const tags = found.about.tags ?? [];
   // Tags and dates sit under the body's title; a body without one has them above it instead.
+  const laid = laidOut(found.text, sheetSays.say);
+  part(".paper").style.setProperty("--across", `${laid.across}px`);
   const draw = async () => {
     seen();
-    const page = await drawn(frame, found, night.matches, sheetSays);
+    const page = await drawn(frame, found, night.matches, sheetSays, laid);
     const inside = bylined(page, tags, when);
     tagged(part(".tags"), inside ? [] : tags);
     part(".when").textContent = inside ? "" : when;

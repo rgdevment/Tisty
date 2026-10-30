@@ -14,6 +14,7 @@ export type ReadWord =
   | "partCardKind"
   | "partCardLoose"
   | "partCardSteps"
+  | "sheetsBreak"
   | "table"
   | "tableStars"
   | "tableTypeCheck"

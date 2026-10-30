@@ -1,5 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { linkedOut, linkedWithin, pictured, placeOf, plain, titleOf, unasked } from "../src/drawn";
+import {
+  laidOut,
+  linkedOut,
+  linkedWithin,
+  pictured,
+  placeOf,
+  plain,
+  titleOf,
+  unasked,
+} from "../src/drawn";
 
 const pageOf = (html: string): Document => {
   const page = document.implementation.createHTMLDocument("");
@@ -150,5 +159,20 @@ describe("a click on a link in the frame", () => {
       expect(kept, href).toBe(true);
       expect(scrolled, href).not.toHaveBeenCalled();
     }
+  });
+});
+
+describe("the paper a document asks for", () => {
+  const say = (word: string) => word;
+
+  it("is A4 and flows as one unless the document lays out its sheets", () => {
+    expect(laidOut("# Hola\n", say)).toEqual({ across: 794, sheet: undefined });
+    expect(laidOut("---\npaper: letter\n---\n# Hola\n", say).across).toBe(816);
+  });
+
+  it("lays its sheets across when it says landscape, with the break named in the reader's words", () => {
+    const laid = laidOut("---\nsheets: on\norientation: landscape\n---\n# Plan\n", say);
+    expect(laid.across).toBe(1123);
+    expect(laid.sheet).toMatchObject({ wide: 1123, tall: 794, said: "sheetsBreak" });
   });
 });
