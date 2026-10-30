@@ -44,6 +44,8 @@ updates:
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
       # Moves by hand with worker-build, pinned in ci.yml and share.yml, whose shim has to match it.
       - dependency-name: worker
+      # Its nodes are the ones htmd hands over, so it moves only when htmd does.
+      - dependency-name: markup5ever_rcdom
     groups:
       rust:
         patterns:
