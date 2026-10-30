@@ -3,15 +3,6 @@
     {
       "value" : {
         "linear-gradient" : [
-          "extended-srgb:1.00000,1.00000,1.00000,1.00000",
-          "extended-srgb:0.95294,0.94510,0.92941,1.00000"
-        ]
-      }
-    },
-    {
-      "appearance" : "dark",
-      "value" : {
-        "linear-gradient" : [
           "extended-srgb:0.16471,0.14902,0.13333,1.00000",
           "extended-srgb:0.09020,0.08235,0.07059,1.00000"
         ]
@@ -22,15 +13,7 @@
     {
       "layers" : [
         {
-          "image-name-specializations" : [
-            {
-              "value" : "check.svg"
-            },
-            {
-              "appearance" : "dark",
-              "value" : "check-dark.svg"
-            }
-          ],
+          "image-name" : "check.svg",
           "name" : "check"
         },
         {
@@ -54,39 +37,15 @@
           "name" : "accent"
         },
         {
-          "image-name-specializations" : [
-            {
-              "value" : "lines.svg"
-            },
-            {
-              "appearance" : "dark",
-              "value" : "lines-dark.svg"
-            }
-          ],
+          "image-name" : "lines.svg",
           "name" : "lines"
         },
         {
-          "image-name-specializations" : [
-            {
-              "value" : "fold.svg"
-            },
-            {
-              "appearance" : "dark",
-              "value" : "fold-dark.svg"
-            }
-          ],
+          "image-name" : "fold.svg",
           "name" : "fold"
         },
         {
-          "image-name-specializations" : [
-            {
-              "value" : "page.svg"
-            },
-            {
-              "appearance" : "dark",
-              "value" : "page-dark.svg"
-            }
-          ],
+          "image-name" : "page.svg",
           "name" : "page"
         }
       ],
@@ -102,15 +61,7 @@
     {
       "layers" : [
         {
-          "image-name-specializations" : [
-            {
-              "value" : "back.svg"
-            },
-            {
-              "appearance" : "dark",
-              "value" : "back-dark.svg"
-            }
-          ],
+          "image-name" : "back.svg",
           "name" : "back"
         }
       ],
