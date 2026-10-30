@@ -1,6 +1,5 @@
 @import "katex/dist/katex.min.css";
 @import "tailwindcss";
-@import "../../packages/tisty-reader/src/tokens.css";
 @source "../../packages/tisty-diagrams/src";
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));

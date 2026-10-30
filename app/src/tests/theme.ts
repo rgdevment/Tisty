@@ -1,10 +1,19 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+
+// Stryker runs the tests from a copy of the app, so the reader's tokens are looked for up the folders.
+const tokensAt = (from: string): string => {
+  const here = join(from, "packages", "tisty-reader", "src", "tokens.css");
+  if (existsSync(here)) return here;
+  const up = dirname(from);
+  if (up === from) throw new Error("packages/tisty-reader is not above the app");
+  return tokensAt(up);
+};
 
 // The window's colours live in two files: a drawn page's in the reader, which the web page shares, the rest here.
 export const themeCss = (): string =>
-  ["../packages/tisty-reader/src/tokens.css", "src/index.css"]
-    .map((file) => readFileSync(resolve(process.cwd(), file), "utf8"))
+  [tokensAt(process.cwd()), resolve(process.cwd(), "src/index.css")]
+    .map((file) => readFileSync(file, "utf8"))
     .join("\n");
 
 // Every block a theme opens, in both files, read as one.
