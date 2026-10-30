@@ -54,6 +54,12 @@ export const escaped = (said: string): string =>
 // Everything a drawn page needs to look like itself, wherever it is shown.
 export const PAGE_CSS = `${sheet}${tables}`;
 
+// The blocks page.css draws as the document's title, for a host that names its window after it.
+export const TITLED = [
+  ".page > :is(h1, h2, h3, p):first-child",
+  ".page > :is(.front, .fronted):first-child + :is(h1, h2, h3, p)",
+].join(", ");
+
 export const shell = (html: string, dark: boolean, extra = ""): string =>
   `<!doctype html><html lang="${document.documentElement.lang}" class="${dark ? "dark" : ""}"><head><meta charset="utf-8"><style>:root{${worn()}}</style><style>${PAGE_CSS}${extra}</style></head><body><article class="page" inert>${html}</article></body></html>`;
 

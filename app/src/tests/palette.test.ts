@@ -1,7 +1,6 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { PALETTES, type Palette } from "tisty-diagrams/read";
 import { describe, expect, it } from "vitest";
+import { themeCss, themed } from "./theme";
 
 const TOKENS: Record<keyof Palette, string> = {
   sheet: "sheet",
@@ -24,11 +23,11 @@ const tokensIn = (block = "") =>
   );
 
 describe("the colours of a picture", () => {
-  it("are the window's own, as index.css writes them for each theme", () => {
-    const css = readFileSync(resolve("src/index.css"), "utf8");
+  it("are the window's own, as its theme writes them for each", () => {
+    const css = themeCss();
     const themes = [
-      [PALETTES.light, tokensIn(/:root\s*\{([^}]*)\}/.exec(css)?.[1])],
-      [PALETTES.dark, tokensIn(/\[data-theme="dark"\]\s*\{([^}]*)\}/.exec(css)?.[1])],
+      [PALETTES.light, tokensIn(themed(css, ":root {"))],
+      [PALETTES.dark, tokensIn(themed(css, '[data-theme="dark"] {'))],
     ] as const;
     for (const [palette, written] of themes)
       for (const [key, token] of Object.entries(TOKENS))

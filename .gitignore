@@ -42,3 +42,6 @@ window.json
 app/sign.json
 
 __pycache__/
+
+# Written by `npm run wasm` in packages/tisty-share-web, from crates/tisty-share-wasm.
+packages/tisty-share-web/wasm/

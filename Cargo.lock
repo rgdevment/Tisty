@@ -5937,6 +5937,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "tisty-share-wasm"
+version = "0.1.0"
+dependencies = [
+ "jiff",
+ "serde",
+ "serde_json",
+ "tisty-markdown",
+ "tisty-share-proto",
+ "wasm-bindgen",
+ "zeroize",
+]
+
+[[package]]
 name = "tisty-share-worker"
 version = "0.1.0"
 dependencies = [

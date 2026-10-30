@@ -24,6 +24,7 @@ jobs:
     timeout-minutes: 5
     outputs:
       rust: ${{ steps.look.outputs.rust }}
+      page: ${{ steps.look.outputs.page }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -37,6 +38,7 @@ jobs:
         run: |
           if [ "$EVENT" != "pull_request" ]; then
             echo "rust=true" >> "$GITHUB_OUTPUT"
+            echo "page=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           aside='^(app/src/|packages/|app/(\.gitignore|biome\.json|index\.html|package(-lock)?\.json|public/|stryker\.config\.json|tsconfig(\.node)?\.json|vite\.config\.ts)$|assets/|docs/|fuzz/|hooks/|(CLA|CODE_OF_CONDUCT|CONTRIBUTING|PRIVACY|README|README\.es|SECURITY|THIRD-PARTY)\.md$|package(-lock)?\.json$|\.markdownlint-cli2\.jsonc$|\.editorconfig$|\.github/(FUNDING|dependabot)\.yml$|\.github/workflows/(caches|cla|commits|feed|fuzz|mutants|mutants-sweep|release|rules|versions)\.yml$)'
@@ -46,6 +48,10 @@ jobs:
             | grep -v '^$' | head -1 || true)
           [ -n "$first" ] && rust=true || rust=false
           echo "rust=$rust" >> "$GITHUB_OUTPUT"
+          # The page is built of the crates and the packages, with the app's install, so only those can break it.
+          page=$rust
+          echo "$changed" | grep -qE '^(packages/|app/package(-lock)?\.json$)' && page=true
+          echo "page=$page" >> "$GITHUB_OUTPUT"
           echo "the first path Rust has to answer for: ${first:-none}"
 
   test:
@@ -131,22 +137,26 @@ jobs:
   tests:
     name: tests
     if: always()
-    needs: [changes, test, wasm]
+    needs: [changes, test, wasm, page]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - name: Every part of the tests passed, or the branch never touched Rust
+      - name: Every part of the tests passed, or the branch never touched what it tests
         env:
           LOOKED: ${{ needs.changes.result }}
           RUST: ${{ needs.changes.outputs.rust }}
           RESULT: ${{ needs.test.result }}
           WASM: ${{ needs.wasm.result }}
+          PAGED: ${{ needs.changes.outputs.page }}
+          PAGE: ${{ needs.page.result }}
         run: |
           [ "$LOOKED" = "success" ] || { echo "::error::what the branch touched could not be read ($LOOKED)"; exit 1; }
           [ "$RESULT" = "success" ] || { [ "$RUST" = "false" ] && [ "$RESULT" = "skipped" ]; } \
             || { echo "::error::the tests ended as $RESULT"; exit 1; }
           [ "$WASM" = "success" ] || { [ "$RUST" = "false" ] && [ "$WASM" = "skipped" ]; } \
             || { echo "::error::the share protocol on wasm ended as $WASM"; exit 1; }
+          [ "$PAGE" = "success" ] || { [ "$PAGED" = "false" ] && [ "$PAGE" = "skipped" ]; } \
+            || { echo "::error::the share page ended as $PAGE"; exit 1; }
 
   lint:
     name: fmt
@@ -184,10 +194,23 @@ jobs:
       - run: cargo check -p tisty-share-server --target wasm32-unknown-unknown
       # What talks to D1 and R2 only exists on wasm, so it is linted there.
       - run: cargo clippy -p tisty-share-worker --target wasm32-unknown-unknown
+      - run: cargo clippy -p tisty-share-wasm --target wasm32-unknown-unknown
       # wasm-bindgen only fails once it reads the wasm, so the Worker is bundled as wrangler would bundle it.
       - name: The Worker bundles as wrangler deploys it
         working-directory: crates/tisty-share-worker
         run: worker-build --release
+
+  page:
+    name: share page
+    needs: changes
+    if: needs.changes.outputs.page == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/share-page
 
   window:
     name: frontend
@@ -313,7 +336,7 @@ jobs:
         run: |
           cargo llvm-cov nextest \
             -p tisty-core -p tisty-nl -p tisty-sync -p tisty-carrier -p tisty-google -p tisty-onedrive -p tisty-webdav \
-            -p tisty-cli -p tisty-share-proto -p tisty-share-server -p tisty-share-worker \
+            -p tisty-cli -p tisty-share-proto -p tisty-share-server -p tisty-share-worker -p tisty-share-wasm \
             --lcov --output-path lcov-rust.info
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -370,8 +393,8 @@ jobs:
           args: >
             -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
             -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
-            -Dsonar.sources=crates,app/src,app/src-tauri/src,packages/tisty-diagrams/src,packages/tisty-reader/src
-            -Dsonar.tests=crates,app/src,packages/tisty-diagrams/tests,packages/tisty-reader/tests
+            -Dsonar.sources=crates,app/src,app/src-tauri/src,packages/tisty-diagrams/src,packages/tisty-reader/src,packages/tisty-share-web/src
+            -Dsonar.tests=crates,app/src,packages/tisty-diagrams/tests,packages/tisty-reader/tests,packages/tisty-share-web/tests
             -Dsonar.test.inclusions=crates/*/tests/**,app/src/tests/**,packages/*/tests/**
             -Dsonar.exclusions=crates/*/tests/**,app/src/tests/**,packages/*/tests/**,crates/*/locales/**
             -Dsonar.rust.lcov.reportPaths=lcov-rust.info
@@ -379,6 +402,6 @@ jobs:
             -Dsonar.cpd.exclusions=app/src/locales.ts,packages/tisty-diagrams/src/words.ts,app/src/glyphs.ts,app/src/marks.ts,crates/tisty-core/src/model/icon.rs,crates/tisty-markdown/src/vocab.rs,crates/tisty-core/src/model/mark.rs
             -Dsonar.rust.clippy.enabled=false
             -Dsonar.jasmin.internal.js.ts.disabled=true
-            -Dsonar.coverage.exclusions=app/src/main.tsx,app/src-tauri/src/**,crates/tisty-share-worker/src/cloudflare.rs,crates/tisty-share-worker/*.mjs
+            -Dsonar.coverage.exclusions=app/src/main.tsx,packages/tisty-share-web/src/main.ts,app/src-tauri/src/**,crates/tisty-share-worker/src/cloudflare.rs,crates/tisty-share-worker/*.mjs
             -Dsonar.qualitygate.wait=true
             -Dsonar.qualitygate.timeout=300

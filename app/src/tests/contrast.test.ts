@@ -1,15 +1,14 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { themed as blocksOf, themeCss } from "./theme";
 
-const css = readFileSync(resolve(process.cwd(), "src/index.css"), "utf8");
+const css = themeCss();
 
 type Rgb = [number, number, number];
 
 const themed = (opener: string): string => {
-  const at = css.indexOf(opener);
-  expect(at, `${opener} must exist`).toBeGreaterThan(-1);
-  return css.slice(at, css.indexOf("\n}", at));
+  const block = blocksOf(css, opener);
+  expect(block, `${opener} must exist`).not.toBe("");
+  return block;
 };
 
 const LIGHT = themed(":root {");
