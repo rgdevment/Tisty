@@ -1,0 +1,336 @@
+/* The panel beside a sheet, the same in the window and on the web; it wears the sheet's tokens. */
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  color: var(--tisty-ink);
+  font-size: 13px;
+}
+.side-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--tisty-hair);
+  border-radius: 12px;
+  background: var(--tisty-sheet);
+  overflow: hidden;
+}
+.side-top {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.side-more {
+  flex-shrink: 0;
+}
+.side-title-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 16px 12px;
+}
+.side-title-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.side-shut {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--tisty-soft);
+  font: inherit;
+  cursor: pointer;
+}
+.side-shut:hover {
+  background: var(--tisty-hover);
+}
+.side-title {
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.side-under {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--tisty-soft);
+  overflow-wrap: anywhere;
+}
+.side-paper {
+  display: flex;
+  gap: 6px;
+  padding: 0 16px 12px;
+}
+.side-top > :is(.side-title-row, .side-paper):has(+ .side-index) {
+  border-bottom: 1px solid var(--tisty-hair);
+}
+.side-title-row:has(+ .side-paper) {
+  padding-bottom: 8px;
+}
+.side-leaves {
+  flex: 1 1 auto;
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--tisty-line);
+  border-radius: 8px;
+}
+.side-leaf,
+.side-tool,
+.side-go,
+.side-act,
+.side-row-head {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.side-leaf {
+  border: 0;
+  border-radius: 6px;
+  padding: 5px 0;
+  background: none;
+  color: var(--tisty-soft);
+  font-size: 12.5px;
+}
+.side-leaf[aria-pressed="true"] {
+  background: var(--tisty-hover);
+  box-shadow: inset 0 0 0 1px var(--tisty-hair);
+  color: var(--tisty-ink);
+  font-weight: 600;
+}
+.side-tool {
+  min-width: 34px;
+  border: 1px solid var(--tisty-line);
+  border-radius: 8px;
+  background: none;
+  color: var(--tisty-soft);
+}
+.side-tool.is-code {
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  font-size: 11.5px;
+}
+.side-tool[aria-pressed="true"] {
+  background: var(--tisty-accent-soft);
+  border-color: var(--tisty-accent);
+  color: var(--tisty-accent);
+}
+.side-index {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 10px;
+}
+.side-label {
+  margin: 0;
+  padding: 0 6px 6px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tisty-faint);
+}
+.side-go {
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 6px;
+  padding: 5px 8px 5px calc(8px + var(--depth, 0) * 12px);
+  background: none;
+  color: var(--tisty-soft);
+  font-size: 12.5px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.side-go:hover {
+  background: var(--tisty-hover);
+  color: var(--tisty-ink);
+}
+.side-row,
+.side-row-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 16px;
+}
+.side-more > * + * {
+  border-top: 1px solid var(--tisty-hair);
+}
+.side-none {
+  margin: 0;
+  padding: 0 6px;
+  font-size: 12.5px;
+  color: var(--tisty-faint);
+}
+.side-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+.side-fact {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.side-fact dt {
+  flex-shrink: 0;
+  color: var(--tisty-faint);
+}
+.side-fact dd {
+  margin: 0;
+  min-width: 0;
+  color: var(--tisty-ink);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.side-said {
+  margin: 0 0 8px;
+  line-height: 1.5;
+}
+.side-print {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--tisty-hover);
+  color: var(--tisty-ink);
+  font:
+    12px / 1.5 ui-monospace,
+    "SF Mono",
+    Consolas,
+    monospace;
+  overflow-wrap: anywhere;
+}
+details.side-row {
+  display: block;
+  padding: 0;
+}
+.side-row-head {
+  list-style: none;
+}
+.side-row-head::-webkit-details-marker {
+  display: none;
+}
+.side-row-head::after {
+  content: "›";
+  color: var(--tisty-soft);
+  transition: transform 0.15s;
+}
+details[open] > .side-row-head::after {
+  transform: rotate(90deg);
+}
+.side-row-label {
+  flex-shrink: 0;
+  font-weight: 600;
+}
+.side-gist {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--tisty-soft);
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.side-gist.is-good {
+  color: var(--tisty-hue-green);
+}
+.side-gist.is-warn {
+  color: var(--tisty-hue-orange);
+}
+.side-gist.is-bad {
+  color: var(--tisty-hue-red);
+}
+.side-row-body {
+  padding: 0 16px 14px;
+  color: var(--tisty-soft);
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
+.side-none {
+  margin: 0;
+  padding: 0 6px;
+  font-size: 12.5px;
+  color: var(--tisty-faint);
+}
+.side-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+.side-fact {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.side-fact dt {
+  flex-shrink: 0;
+  color: var(--tisty-faint);
+}
+.side-fact dd {
+  margin: 0;
+  min-width: 0;
+  color: var(--tisty-ink);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.side-said {
+  margin: 0 0 8px;
+  line-height: 1.5;
+}
+.side-print {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--tisty-hover);
+  color: var(--tisty-ink);
+  font:
+    12px / 1.5 ui-monospace,
+    "SF Mono",
+    Consolas,
+    monospace;
+  overflow-wrap: anywhere;
+}
+.side-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 16px 14px;
+}
+.side-act {
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--tisty-line);
+  border-radius: 8px;
+  background: none;
+  font-size: 13px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.side-act:hover {
+  background: var(--tisty-hover);
+}
+.side-act.is-main {
+  border-color: transparent;
+  background: var(--tisty-accent);
+  color: #ffffff;
+  font-weight: 600;
+}
+.side :focus-visible {
+  outline: 2px solid var(--tisty-accent);
+  outline-offset: 1px;
+}

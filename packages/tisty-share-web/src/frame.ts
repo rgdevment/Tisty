@@ -1,4 +1,4 @@
-import { TITLED } from "tisty-editor/read";
+import { type Seal, TITLED } from "tisty-editor/read";
 import type { Facts } from "./fetched";
 import { ago, day } from "./when";
 import { filled } from "./words";
@@ -13,13 +13,6 @@ export type About = {
   readonly version?: number;
   readonly wrote?: Signed | null;
   readonly sent?: Signed | null;
-};
-
-export type Seal = {
-  readonly verdict: "holds" | "revoked" | "refused" | "unreadable" | "unsigned";
-  readonly who?: string;
-  readonly fingerprint?: string;
-  readonly sender?: string;
 };
 
 type Say = (word: string) => string;
@@ -55,31 +48,6 @@ export const sealOf = (about: About): Seal => {
   };
 };
 
-const partOf = (box: HTMLElement) => (name: string) =>
-  box.querySelector<HTMLElement>(`.${name}`) as HTMLElement;
-
-export const sealed = (box: HTMLElement, seal: Seal, say: Say) => {
-  const part = partOf(box);
-  box.dataset.verdict = seal.verdict;
-  part("seal-who").textContent = seal.who ? `${say("signedby")} ${seal.who}` : "";
-  part("seal-print").textContent = seal.fingerprint ?? "";
-  part("seal-print").hidden = !seal.fingerprint;
-  part("seal-verdict").textContent = say(seal.verdict);
-  part("seal-sender").textContent = seal.sender ? `${say("sentby")} ${seal.sender}` : "";
-  box.hidden = false;
-};
-
-// The card beside the body names its author; a document nobody signed has no one to name.
-export const authored = (card: HTMLElement, seal: Seal, say: Say) => {
-  const part = partOf(card);
-  card.dataset.verdict = seal.verdict;
-  part("avatar").textContent = (seal.who ?? "").slice(0, 2).toUpperCase();
-  part("author-who").textContent = seal.who ?? "";
-  part("author-print").textContent = seal.fingerprint ?? "";
-  part("author-said").textContent = say(seal.verdict === "holds" ? "matches" : seal.verdict);
-  card.hidden = !seal.who;
-};
-
 const chips = (made: Document, tags: readonly string[]) =>
   tags.map((tag) => {
     const one = made.createElement("span");
@@ -94,7 +62,7 @@ export const tagged = (row: HTMLElement, tags: readonly string[]) => {
   row.hidden = tags.length === 0;
 };
 
-// The byline takes over the line that closes the title, so the header reads as one: title, then tags and dates.
+// The byline takes over the line that closes the title, so the header reads as one: title, then tags.
 // Important, since the reader styles a title after front matter with a selector no plainer rule outweighs.
 const BYLINE = [
   ".page > :has(+ .byline) { margin-bottom: 10px !important; padding-bottom: 0 !important; border-bottom: 0 !important }",
@@ -103,16 +71,15 @@ const BYLINE = [
 ].join("\n");
 
 // Placed right after the body's own title, so no line of the body moves; a body with no title gets none.
-export const bylined = (page: Document, tags: readonly string[], when: string): boolean => {
+export const bylined = (page: Document, tags: readonly string[]): boolean => {
   const title = page.querySelector(TITLED);
-  if (!title || (tags.length === 0 && !when)) return false;
+  if (!title || tags.length === 0) return false;
   const style = page.createElement("style");
   style.textContent = BYLINE;
   page.head.append(style);
   const line = page.createElement("div");
   line.className = "byline";
   line.append(...chips(page, tags));
-  if (when) line.append(Object.assign(page.createElement("span"), { textContent: when }));
   title.after(line);
   return true;
 };

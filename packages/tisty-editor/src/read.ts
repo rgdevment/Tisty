@@ -9,6 +9,7 @@ export { type Head, heads } from "./heads";
 export { iconed } from "./icons";
 export {
   acrossOf,
+  offered,
   PAPER,
   PAPERS,
   type Paper,
@@ -32,6 +33,7 @@ export {
   shell,
   TITLED,
 } from "./shell";
+export { type Act, type Facts, type Panel, type Seal, sided, wordsIn } from "./side";
 export { sideways } from "./sideways";
 export { charsAt, spanned } from "./spans";
 export { staged, stepLine, steppedTitle } from "./stages";

@@ -1,28 +1,32 @@
+import { wordsIn } from "tisty-editor/read";
 import type { DocFacts } from "../core";
 import { stamped, weigh } from "../format";
 import { fill, t } from "../locales";
 import { DOC } from "../markdown";
 import { kept } from "../previews";
 
-export const worded = (body: string): number =>
-  body
-    .replace(/```[\s\S]*?```/g, " ")
-    .replace(/[#>*_`~[\]()!|-]/g, " ")
-    .split(/\s+/)
-    .filter(Boolean).length;
-
 export const held = (pages: number): string =>
   pages === 1 ? t("pageHeld") : fill("pagesHeld", String(pages));
 
 export const counted = (body: string, needle: string): number => body.split(needle).length - 1;
 
-const dated = (when: number | null): string =>
+export const dated = (when: number | null): string =>
   when ? stamped(new Date(when * 1000).toISOString()) : "—";
 
-export default function PaperFacts({ facts, body }: { facts: DocFacts | null; body: string }) {
-  const words = worded(body);
+// What a document holds besides its words, each said on its own: its pages, the documents and the files it names.
+export const holdsOf = (body: string, facts: DocFacts | null): string[] => {
   const papers = counted(body, DOC);
   const files = [...body.matchAll(/\]\(<?([^)\s>]+)>?/g)].filter((one) => kept(one[1])).length;
+  return [
+    facts?.pages ? held(facts.pages) : "",
+    papers > 0 ? fill("paperDocs", String(papers)) : "",
+    files > 0 ? fill("paperFiles", String(files)) : "",
+  ].filter(Boolean);
+};
+
+export default function PaperFacts({ facts, body }: { facts: DocFacts | null; body: string }) {
+  const words = wordsIn(body);
+  const holds = holdsOf(body, facts);
   return (
     <dl className="flex flex-col gap-1.5 text-[12.5px]">
       {facts?.author && (
@@ -61,24 +65,18 @@ export default function PaperFacts({ facts, body }: { facts: DocFacts | null; bo
         <dt className="shrink-0 whitespace-nowrap text-faint">{t("paperWeighs")}</dt>
         <dd className="tabular-nums text-soft">{facts ? weigh(facts.bytes) : "—"}</dd>
       </div>
-      {(papers > 0 || files > 0 || (facts?.pages ?? 0) > 0) && (
+      {holds.length > 0 && (
         <div className="flex items-baseline justify-between gap-2.5">
           <dt className="shrink-0 whitespace-nowrap text-faint">{t("paperHolds")}</dt>
           <dd className="flex flex-wrap justify-end gap-1">
-            {[
-              facts?.pages ? held(facts.pages) : "",
-              papers > 0 ? fill("paperDocs", String(papers)) : "",
-              files > 0 ? fill("paperFiles", String(files)) : "",
-            ]
-              .filter(Boolean)
-              .map((one) => (
-                <span
-                  key={one}
-                  className="rounded-full border border-hair px-1.5 text-[11.5px] whitespace-nowrap tabular-nums text-soft"
-                >
-                  {one}
-                </span>
-              ))}
+            {holds.map((one) => (
+              <span
+                key={one}
+                className="rounded-full border border-hair px-1.5 text-[11.5px] whitespace-nowrap tabular-nums text-soft"
+              >
+                {one}
+              </span>
+            ))}
           </dd>
         </div>
       )}

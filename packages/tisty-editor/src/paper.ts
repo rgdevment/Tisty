@@ -9,6 +9,12 @@ const MILLIMETRES: Record<Paper, [number, number]> = {
 
 export const PAPERS = Object.keys(MILLIMETRES) as Paper[];
 
+// The papers a reader picks from; one a document asks for beyond them is offered too.
+const LEAVES: Paper[] = ["a4", "letter", "folio"];
+
+export const offered = (leaf: Paper): Paper[] =>
+  LEAVES.includes(leaf) ? LEAVES : [...LEAVES, leaf];
+
 const MARGIN_MM = { x: 20, y: 22 };
 
 // A sheet on screen measures what it measures on paper, at 96 pixels to the inch.

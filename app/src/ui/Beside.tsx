@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Head } from "tisty-editor/read";
+import { offered, wordsIn } from "tisty-editor/read";
 import type { Filed, Folded } from "../core";
 import { type DocFacts, docFacts, type Paper } from "../core";
 import { weigh } from "../format";
@@ -7,10 +8,10 @@ import { waysOut } from "../leaving";
 import { fill, t } from "../locales";
 import Glyph from "./Glyph";
 import Menu, { type Choice } from "./Menu";
-import PaperFacts, { held, worded } from "./PaperFacts";
+import PaperFacts, { held } from "./PaperFacts";
 import Properties from "./Properties";
 import { SheetsToggle, SheetsTurn } from "./SheetsSwitch";
-import { leafWord, offered } from "./sheets";
+import { leafWord } from "./sheets";
 import { often } from "./tagging";
 
 export const trailed = (folders: Folded[], at: string | null): Folded[] => {
@@ -311,7 +312,7 @@ export default function Beside(props: Props) {
     if (!chosen.current) setOpen(short ? "details" : null);
   }, [paper, short]);
 
-  const words = useMemo(() => worded(body), [body]);
+  const words = useMemo(() => wordsIn(body), [body]);
   const gist = [
     words ? fill("paperWords", String(words)) : t("paperEmpty"),
     facts ? weigh(facts.bytes) : "",

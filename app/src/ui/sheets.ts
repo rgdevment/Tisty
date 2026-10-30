@@ -1,7 +1,5 @@
 import { type Paper, PRINTED, sizeOf } from "tisty-editor/read";
 
-export const LEAVES: Paper[] = ["a4", "letter", "folio"];
-
 const WORDS = {
   a4: "leafA4",
   letter: "leafLetter",
@@ -10,8 +8,6 @@ const WORDS = {
 } as const;
 
 export const leafWord = (one: Paper) => WORDS[one];
-
-export const offered = (leaf: Paper) => (LEAVES.includes(leaf) ? LEAVES : [...LEAVES, leaf]);
 
 export const pageFor = (leaf: Paper, landscape = false) => {
   const id = "tisty-page";

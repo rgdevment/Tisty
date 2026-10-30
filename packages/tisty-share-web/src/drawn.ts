@@ -1,6 +1,7 @@
 import {
   acrossOf,
   laidIn,
+  type Paper,
   readAs,
   type Say,
   type Sheet,
@@ -102,15 +103,22 @@ const loaded = (frame: HTMLIFrameElement, html: string) =>
     frame.srcdoc = html;
   });
 
+export type View = { readonly leaf: Paper; readonly sheets: boolean; readonly landscape: boolean };
+
+// The paper the document asks for, A4 unless it says otherwise; the reader may look at it on another.
+export const viewOf = (text: string): View => {
+  const laid = laidIn(text);
+  return { leaf: laid.paper ?? "a4", sheets: laid.sheets, landscape: laid.landscape };
+};
+
 export type Laid = { readonly across: number; readonly sheet?: Sheet };
 
-// The paper the document asks for, A4 unless it says otherwise, and its sheets when it lays them out.
-export const laidOut = (text: string, say: Say): Laid => {
-  const laid = laidIn(text);
-  const leaf = laid.paper ?? "a4";
+// Lying across only means something while the sheets are laid.
+export const laidOut = ({ leaf, sheets, landscape }: View, say: Say): Laid => {
+  const across = sheets && landscape;
   return {
-    across: acrossOf(leaf, laid.landscape),
-    sheet: laid.sheets ? sheetFor(leaf, laid.landscape, say("sheetsBreak")) : undefined,
+    across: acrossOf(leaf, across),
+    sheet: sheets ? sheetFor(leaf, across, say("sheetsBreak")) : undefined,
   };
 };
 

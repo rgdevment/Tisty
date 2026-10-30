@@ -1,13 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   accessOf,
-  authored,
   bylined,
   endsOf,
   fileOf,
-  type Seal,
   type Signed,
-  sealed,
   sealOf,
   tagged,
   tistyOf,
@@ -62,28 +59,6 @@ describe("the seal", () => {
       who: undefined,
     });
   });
-
-  it("is drawn with its verdict, and without a print it does not have", () => {
-    const box = document.createElement("section");
-    box.hidden = true;
-    box.innerHTML =
-      '<span class="seal-who"></span><code class="seal-print"></code><span class="seal-verdict"></span><span class="seal-sender"></span>';
-    const drawnAs = (seal: Seal) => {
-      sealed(box, seal, say);
-      return [...box.children].map((one) => one.textContent);
-    };
-    expect(drawnAs(sealOf({ wrote: mario, sent: ana }))).toEqual([
-      "Firmado por r8f1",
-      mario.fingerprint,
-      "Firma válida",
-      "Subido por k7qp",
-    ]);
-    expect(box.dataset.verdict).toBe("holds");
-    expect(box.hidden).toBe(false);
-    drawnAs({ verdict: "unsigned" });
-    expect(box.querySelector<HTMLElement>(".seal-print")?.hidden).toBe(true);
-    expect(box.dataset.verdict).toBe("unsigned");
-  });
 });
 
 describe("what the side says", () => {
@@ -99,39 +74,6 @@ describe("what the side says", () => {
   });
 });
 
-describe("the author's card", () => {
-  const card = () => {
-    const made = document.createElement("section");
-    made.innerHTML =
-      '<span class="avatar"></span><span class="author-who"></span><span class="author-print"></span><span class="author-said"></span>';
-    return made;
-  };
-  const text = (made: HTMLElement) => [...made.children].map((one) => one.textContent);
-
-  it("names who signed it and says the signature matches their key", () => {
-    const made = card();
-    authored(made, sealOf({ wrote: mario }), say);
-    expect(text(made)).toEqual([
-      "R8",
-      "r8f1",
-      mario.fingerprint,
-      "La firma coincide con esta llave",
-    ]);
-    expect(made.hidden).toBe(false);
-    expect(made.dataset.verdict).toBe("holds");
-  });
-
-  it("warns when the key was revoked, and is not there when nobody can be named", () => {
-    const made = card();
-    authored(made, sealOf({ wrote: { ...mario, is: "revoked" } }), say);
-    expect(text(made)[3]).toBe(say("revoked"));
-    authored(made, sealOf({}), say);
-    expect(made.hidden).toBe(true);
-    authored(made, sealOf({ wrote: { is: "unreadable" } }), say);
-    expect(made.hidden).toBe(true);
-  });
-});
-
 describe("the byline", () => {
   const pageOf = (html: string): Document => {
     const page = document.implementation.createHTMLDocument("");
@@ -139,18 +81,18 @@ describe("the byline", () => {
     return page;
   };
 
-  it("sits right after the body's title, with its tags and dates, and leaves the rest alone", () => {
+  it("sits right after the body's title, with its tags, and leaves the rest alone", () => {
     const page = pageOf("<h1>Guía</h1><p>Texto</p>");
-    expect(bylined(page, ["guía"], "Compartido hoy")).toBe(true);
+    expect(bylined(page, ["guía"])).toBe(true);
     const blocks = [...(page.querySelector(".page")?.children ?? [])];
     expect(blocks.map((one) => one.className || one.tagName)).toEqual(["H1", "byline", "P"]);
-    expect(blocks[1].textContent).toBe("#guíaCompartido hoy");
+    expect(blocks[1].textContent).toBe("#guía");
     expect(page.head.querySelector("style")?.textContent).toContain(".byline");
   });
 
-  it("is left to the frame when the body has no title, or there is nothing to say", () => {
-    expect(bylined(pageOf("<figure class='code'><pre>x</pre></figure>"), ["a"], "hoy")).toBe(false);
-    expect(bylined(pageOf("<h1>Guía</h1>"), [], "")).toBe(false);
+  it("is left to the frame when the body has no title, or there are no tags", () => {
+    expect(bylined(pageOf("<figure class='code'><pre>x</pre></figure>"), ["a"])).toBe(false);
+    expect(bylined(pageOf("<h1>Guía</h1>"), [])).toBe(false);
   });
 });
 
