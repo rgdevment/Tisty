@@ -78,7 +78,7 @@ elif [ "$(uname)" = Darwin ]; then
   echo "actool comes with Xcode, not the Command Line Tools: Assets.car was left as it was" >&2
 fi
 
-# The plated logos sit on the manifest's BackgroundColor; unplated is what the taskbar shows.
+# A light taskbar asks for lightunplated and, without it, plates the logo on the manifest's BackgroundColor.
 msix="$icons/msix"
 rm -rf "$msix"
 mkdir -p "$msix"
@@ -88,7 +88,9 @@ for logo in Square44x44Logo:44 Square71x71Logo:71 Square150x150Logo:150 StoreLog
 done
 for size in 16 20 24 30 32 36 40 48 60 64 72 80 96 256; do
   cp "$work/light/${size}x${size}.png" "$msix/Square44x44Logo.targetsize-$size.png"
-  cp "$work/light/${size}x${size}.png" "$msix/Square44x44Logo.targetsize-${size}_altform-unplated.png"
+  for form in unplated lightunplated; do
+    cp "$work/light/${size}x${size}.png" "$msix/Square44x44Logo.targetsize-${size}_altform-$form.png"
+  done
 done
 
 # The tray is the one-ink glyph: macOS tints its template itself, Windows needs one per taskbar.
