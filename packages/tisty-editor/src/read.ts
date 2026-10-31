@@ -38,11 +38,13 @@ export {
   type Book,
   type Facts,
   type Leaf,
+  type Link,
   type Panel,
   type Seal,
   sided,
   wordsIn,
 } from "./side";
+export { copyFrom } from "./sideParts";
 export { sideways } from "./sideways";
 export { charsAt, spanned } from "./spans";
 export { staged, stepLine, steppedTitle } from "./stages";

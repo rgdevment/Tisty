@@ -28,6 +28,7 @@ mod report;
 mod sealed;
 mod sealing;
 mod session;
+mod sharing;
 mod shop;
 mod summing;
 mod tray;
@@ -1366,6 +1367,9 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::papers::doc_compacted_last,
         answers::shelves::folder_away,
         answers::papers::doc_lock,
+        answers::shares::share_doc,
+        answers::shares::share_card,
+        answers::shares::share_stop,
         desktop::parted,
         viewing::view_shown,
         viewing::ics_waiting,

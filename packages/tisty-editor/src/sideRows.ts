@@ -1,6 +1,6 @@
-import type { Act, Facts, More } from "./side";
+import type { Act, Facts, Link, More } from "./side";
 import { wordsIn } from "./side";
-import { listed, made, pressed, rowed } from "./sideParts";
+import { copyFrom, listed, made, pressed, rowed } from "./sideParts";
 import type { Say } from "./words";
 
 type Of<K extends More["kind"]> = Extract<More, { kind: K }>;
@@ -78,26 +78,64 @@ const VERDICT = {
   unreadable: ["signedUnreadable", "signedUnreadableSaid", "bad"],
 } as const;
 
-// Folded until asked: whose key, its print and what it says; a body nobody signed has nothing more to show.
+// The verdict before the name, which may be long, and the whole print in sight: a name anyone can take, a print no one can.
 const sealed = (page: Document, say: Say, { seal }: Of<"seal">) => {
   if (seal.verdict === "unsigned")
     return rowed(page, { key: "seal", label: say("signedTitle"), gist: say("signedNone") });
   const [short, long, tone] = VERDICT[seal.verdict];
-  const gist = [seal.who, say(short)].filter(Boolean).join(" · ");
-  return rowed(page, { key: "seal", label: say("signedTitle"), gist, tone }, (into) => {
+  const gist = [say(short), seal.name].filter(Boolean).join(" · ");
+  const under = seal.fingerprint
+    ? { label: say("signedPrint"), text: seal.fingerprint }
+    : undefined;
+  return rowed(page, { key: "seal", label: say("signedTitle"), gist, tone, under }, (into) => {
     into.append(made(page, "p", "side-said", say(long)));
-    if (seal.fingerprint) into.append(made(page, "code", "side-print", seal.fingerprint));
-    if (seal.sender)
-      into.append(made(page, "p", "side-said", `${say("signedSentBy")} ${seal.sender}`));
+    if (seal.fingerprint && seal.verdict === "holds")
+      into.append(made(page, "p", "side-said", say("signedPrintSaid")));
+    if (seal.signedOn)
+      into.append(made(page, "p", "side-said", `${say("signedOn")} ${seal.signedOn}`));
+    if (seal.sender) {
+      into.append(made(page, "p", "side-said", say("signedSentBy")));
+      into.append(made(page, "code", "side-print", seal.sender));
+    }
   });
 };
 
+// The link is copied as it is shown, and the press says so for a moment.
+const copied = (page: Document, say: Say, link: Link) => {
+  const part = made(page, "div", "side-link-row");
+  const label = made(page, "span", "side-link-label", link.label);
+  if (link.note) label.append(made(page, "span", "side-link-note", ` · ${link.note}`));
+  const url = made(page, "code", "side-print side-link-url", link.url);
+  const copy = pressed(page, "side-act", say("viewCopy"), (at) =>
+    copyFrom(at, link.url, say("viewCopy"), say("viewCopied")),
+  );
+  const line = made(page, "div", "side-link-line");
+  line.append(url, copy);
+  part.append(label, line);
+  return part;
+};
+
 const shared = (page: Document, say: Say, panel: Of<"shared">) => {
-  const { said } = panel;
-  const line = { key: "shared", label: say("besideShared"), gist: panel.gist, open: panel.open };
-  const fill = said
-    ? (into: HTMLElement) => into.append(made(page, "p", "side-said", said))
-    : undefined;
+  const { said, links = [], acts = [] } = panel;
+  const line = {
+    key: "shared",
+    label: say("besideShared"),
+    gist: panel.gist,
+    tone: panel.tone,
+    open: panel.open,
+  };
+  const fill =
+    said || links.length || acts.length
+      ? (into: HTMLElement) => {
+          if (said) into.append(made(page, "p", "side-said", said));
+          for (const link of links) into.append(copied(page, say, link));
+          if (acts.length) {
+            const row = made(page, "div", "side-acts is-inside");
+            for (const act of acts) row.append(acted(page, act));
+            into.append(row);
+          }
+        }
+      : undefined;
   return rowed(page, line, fill);
 };
 

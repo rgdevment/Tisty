@@ -1,11 +1,23 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Head } from "tisty-editor/read";
 import { describe, expect, it, vi } from "vitest";
-import { t } from "../locales";
+import { fill, t } from "../locales";
 import Beside from "../ui/Beside";
 
-vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }));
+const ipc = vi.hoisted(() => ({
+  card: null as unknown,
+  facts: { bytes: 7, pages: 0, shareable: "yes" } as unknown,
+  asked: [] as string[],
+}));
+
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: (cmd: string) => {
+    ipc.asked.push(cmd);
+    if (cmd === "doc_facts") return Promise.resolve(ipc.facts);
+    return Promise.resolve(cmd === "share_card" ? ipc.card : null);
+  },
+}));
 
 const headed = (many: number): Head[] =>
   Array.from({ length: many }, (_, at) => ({
@@ -17,6 +29,7 @@ const headed = (many: number): Head[] =>
 
 const beside = (heads: Head[], more: { onCopy?: () => void } = {}, paper = "dev_a-0001") => (
   <Beside
+    onError={() => {}}
     title="Notas"
     paper={paper}
     body="# Notas"
@@ -39,7 +52,11 @@ const panel = (heads: Head[], more: { onCopy?: () => void } = {}) => render(besi
 // A row of the column: its details element, and a press on its summary as the person makes it.
 const row = (key: string) =>
   document.querySelector(`details[data-row=${key}]`) as HTMLDetailsElement;
-const press = (key: string) => userEvent.click(row(key).querySelector("summary") as HTMLElement);
+// The document's facts arrive after the first draw and draw the column again, so a press waits for them.
+const press = async (key: string) => {
+  await act(async () => {});
+  await userEvent.click(row(key).querySelector("summary") as HTMLElement);
+};
 
 describe("the document's column", () => {
   it("opens the details with a document whose outline is short", () => {
@@ -69,7 +86,7 @@ describe("the document's column", () => {
   it("opens one part at a time", async () => {
     panel(headed(2));
     await press("shared");
-    expect(screen.getByText(t("sharedWill"))).toBeTruthy();
+    expect(screen.getByText(t("sharedWhy"))).toBeTruthy();
     await waitFor(() => expect(row("details").open).toBe(false));
   });
 
@@ -104,6 +121,7 @@ describe("the export button", () => {
   it("says the PDF is being made instead of offering a second one", async () => {
     render(
       <Beside
+        onError={() => {}}
         title="Notas"
         paper="dev_a-0001"
         body="# Notas"
@@ -151,6 +169,7 @@ describe("a page's column", () => {
     };
     render(
       <Beside
+        onError={() => {}}
         title="La Rina"
         paper="dev_a-0002"
         body="# La Rina"
@@ -173,5 +192,70 @@ describe("a page's column", () => {
     expect(screen.getByText(t("besidePageOf"))).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: "Guía" }));
     expect(onPage).toHaveBeenCalledWith(up);
+  });
+});
+
+describe("the shared row", () => {
+  it("offers to share a document nobody shared yet", async () => {
+    ipc.card = null;
+    panel(headed(2));
+    await press("shared");
+    expect(await screen.findByRole("button", { name: t("shareIt") })).toBeTruthy();
+  });
+
+  it("offers nothing on someone else's document, and says why", async () => {
+    ipc.card = null;
+    ipc.facts = { bytes: 7, pages: 0, author: "Tisty", shareable: "notMine" };
+    panel(headed(2));
+    await waitFor(() =>
+      expect(row("shared").querySelector(".side-gist")?.textContent).toBe(t("sharedNotMine")),
+    );
+    await press("shared");
+    expect(screen.getByText(t("sharedNotMineWhy"))).toBeTruthy();
+    expect(screen.queryByRole("button", { name: t("shareIt") })).toBeNull();
+    ipc.facts = { bytes: 7, pages: 0, shareable: "yes" };
+  });
+
+  it("asks for a key before sharing, since nothing goes out unsigned", async () => {
+    ipc.card = null;
+    ipc.facts = { bytes: 7, pages: 0, shareable: "noKey" };
+    panel(headed(2));
+    await waitFor(() =>
+      expect(row("shared").querySelector(".side-gist")?.textContent).toBe(t("sharedNoKey")),
+    );
+    await press("shared");
+    expect(screen.getByText(t("sharedNoKeyWhy"))).toBeTruthy();
+    expect(screen.queryByRole("button", { name: t("shareIt") })).toBeNull();
+    ipc.facts = { bytes: 7, pages: 0, shareable: "yes" };
+  });
+
+  it("hands out the links of a shared document, says how it stands, and stops sharing it", async () => {
+    ipc.card = {
+      read: "https://tisty.cl/k7Qm2xPa#llave",
+      edit: "https://tisty.cl/k7Qm2xPa#llave.token",
+      gated: true,
+      version: 2,
+      info: {
+        latest: 2,
+        reads: 3,
+        ends: 1_800_000_000,
+        paused: false,
+        blocked: false,
+        gated: true,
+      },
+    };
+    ipc.asked = [];
+    panel(headed(2));
+    await screen.findByText("https://tisty.cl/k7Qm2xPa#llave.token");
+    expect(row("shared").querySelector(".side-gist")?.textContent).toContain(t("sharedGated"));
+    expect(row("shared").querySelector(".side-gist")?.textContent).toContain(
+      fill("sharedReads", "3"),
+    );
+    await press("shared");
+    await userEvent.click(screen.getByRole("button", { name: t("shareStop") }));
+    await waitFor(() => expect(ipc.asked).toContain("share_stop"));
+    await waitFor(() =>
+      expect(row("shared").querySelector(".side-gist")?.textContent).toBe(t("sharedNot")),
+    );
   });
 });

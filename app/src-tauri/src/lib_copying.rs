@@ -159,3 +159,31 @@ fn a_copy_and_its_pages_carry_the_print_of_what_was_written() {
         );
     }
 }
+
+#[test]
+fn a_copy_of_someone_elses_document_is_still_theirs() {
+    let desk = desk();
+    let mut session = Session::at(desk.paths.clone()).unwrap();
+    let made = tisty_core::docs::create(&session.paths.docs(), &session.config.device_id, "# Guía")
+        .unwrap();
+    let guide = ulid::Ulid::generate();
+    session
+        .commit(Op::DocAdd {
+            id: guide,
+            d: tisty_core::event::DocAdd {
+                guest: true,
+                by: Some("Tisty".into()),
+                file: made.id,
+                order: "a0".into(),
+                ..Default::default()
+            },
+        })
+        .unwrap();
+
+    let copy = session.copy_doc(&guide.to_string()).unwrap();
+    let twin = &session.state.docs[&twin_of(&session, &copy)];
+
+    assert!(twin.guest);
+    assert_eq!(twin.by.as_deref(), Some("Tisty"));
+    assert!(!session.state.mine(twin));
+}

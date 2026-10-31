@@ -1274,6 +1274,94 @@ fn who_the_person_is_comes_back_from_the_cache() {
 }
 
 #[test]
+fn a_shared_document_s_links_come_back_from_the_cache() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut cache = Cache::open(dir.path()).unwrap().expect("a cache opens");
+    let mut state = State::default();
+    state.shares.insert(
+        ulid::Ulid::generate(),
+        crate::event::Shared {
+            server: "https://tisty.cl".into(),
+            link: "k7Qm2xPa".into(),
+            key: "llave".into(),
+            edit: "edit".into(),
+            admin: "admin".into(),
+            editable: true,
+            gated: false,
+            version: 2,
+        },
+    );
+
+    cache.store(&state, "print").unwrap();
+    let back = cache.load("print", true).expect("the cache had it");
+
+    assert_eq!(back.shares, state.shares, "a share's links were lost");
+}
+
+#[test]
+fn a_share_made_since_the_cache_was_written_is_carried_into_it_without_a_rebuild() {
+    let f = loaded();
+    let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
+    let mut state = project(&f.store_root, &f.cache_dir).unwrap();
+    let mut cache = Cache::open(&f.cache_dir).unwrap();
+    let doc = Ulid::generate();
+    let shared = crate::event::Shared {
+        server: "https://tisty.cl".into(),
+        link: "k7Qm2xPa".into(),
+        key: "llave".into(),
+        edit: "edit".into(),
+        admin: "admin".into(),
+        editable: false,
+        gated: false,
+        version: 1,
+    };
+    let said = store
+        .append(Op::ShareDoc {
+            id: doc,
+            d: shared.clone(),
+        })
+        .unwrap();
+    state.apply(&said);
+
+    let print = advance(cache.as_mut(), &state, &[said], &f.store_root, false);
+    let back = cache.unwrap().load(&print, true).expect("still current");
+
+    assert_eq!(back.shares.get(&doc), Some(&shared));
+}
+
+#[test]
+fn an_empty_step_never_calls_a_cache_current_that_fell_behind() {
+    let f = loaded();
+    let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
+    let state = project(&f.store_root, &f.cache_dir).unwrap();
+    let mut cache = Cache::open(&f.cache_dir).unwrap();
+    let was = cache.as_ref().unwrap().meta("fingerprint");
+    store
+        .append(Op::TaskLog {
+            id: f.task,
+            d: LogAdd::new(Ulid::generate(), "written where this cache did not look"),
+        })
+        .unwrap();
+
+    advance(cache.as_mut(), &state, &[], &f.store_root, false);
+
+    assert_eq!(cache.unwrap().meta("fingerprint"), was);
+}
+
+#[test]
+fn a_cache_written_before_shares_were_kept_is_built_again() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut cache = Cache::open(dir.path()).unwrap().expect("a cache opens");
+    cache.store(&State::default(), "print").unwrap();
+    cache
+        .db
+        .execute("DELETE FROM meta WHERE key = 'shares'", [])
+        .unwrap();
+
+    assert!(cache.load("print", true).is_none());
+}
+
+#[test]
 fn the_version_each_machine_runs_comes_back_from_the_cache() {
     let dir = tempfile::tempdir().unwrap();
     let mut cache = Cache::open(dir.path()).unwrap().expect("a cache opens");

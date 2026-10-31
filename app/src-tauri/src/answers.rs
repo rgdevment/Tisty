@@ -17,6 +17,7 @@ pub mod relocating;
 pub mod reporting;
 pub mod rifts;
 pub mod settings;
+pub mod shares;
 pub mod shelves;
 pub mod spoken;
 pub mod storing;

@@ -234,6 +234,15 @@ const KNOWN = [
   "settingsUnborn",
   "wslShut",
   "wslUnread",
+  "shareOffline",
+  "shareRefused",
+  "shareAlready",
+  "shareFailed",
+  "shareTooBig",
+  "shareSlow",
+  "shareUnsigned",
+  "shareNotMine",
+  "shareNoKey",
 ] as const;
 
 type Known = (typeof KNOWN)[number];

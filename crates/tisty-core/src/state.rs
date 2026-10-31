@@ -45,6 +45,8 @@ pub struct State {
     pub shed: BTreeSet<String>,
     pub forebears: BTreeSet<String>,
     pub persons: crate::person::Persons,
+    /// Each document shared from this store, as the last word on it left it.
+    pub shares: BTreeMap<DocId, crate::event::Shared>,
     pub(crate) fill: Fill,
     pub(crate) tombstones: BTreeSet<Ulid>,
 }
@@ -82,6 +84,32 @@ pub fn short_enough(text: &str) -> crate::Result<()> {
 }
 
 impl State {
+    fn shared(&mut self, event: &Event) {
+        match &event.op {
+            Op::ShareKey { .. }
+            | Op::ShareRoot { .. }
+            | Op::ShareCertified { .. }
+            | Op::ShareRevoked { .. } => {
+                self.persons.took(event, &self.assistants, &self.devices);
+            }
+            // A share's links and tokens are the person's word, which an assistant does not speak.
+            _ if self.assistants.contains(&event.device) => {}
+            Op::ShareDoc { id, d } => {
+                self.shares.insert(*id, d.clone());
+            }
+            // Two machines can each put a version up; the store remembers the highest.
+            Op::ShareVersion { id, version } => {
+                if let Some(shared) = self.shares.get_mut(id) {
+                    shared.version = shared.version.max(*version);
+                }
+            }
+            Op::ShareStop { id } => {
+                self.shares.remove(id);
+            }
+            _ => {}
+        }
+    }
+
     pub fn replay(events: &[Event]) -> Self {
         let mut state = Self::default();
         for event in events {
@@ -370,14 +398,7 @@ impl State {
             }
             Op::FolderLook { id, d } => {
                 if let Some(folder) = self.folders.get_mut(id) {
-                    if let Some(icon) = &d.icon {
-                        folder.icon = icon.clone().filter(|key| crate::model::icon::known(key));
-                    }
-                    if let Some(color) = &d.color {
-                        folder.color = color
-                            .clone()
-                            .filter(|key| crate::model::hue::kept(key).is_some());
-                    }
+                    crate::applying::looked(&mut folder.icon, &mut folder.color, d);
                 }
             }
             Op::FolderMove { id, d } => self.folder_moved(id, d),
@@ -457,19 +478,16 @@ impl State {
                 }
             }
             Op::StoresJoined { d } => self.stores_joined(d),
-            Op::ShareKey { .. } | Op::ShareCertified { .. } | Op::ShareRevoked { .. } => {
-                self.persons.took(event, &self.assistants, &self.devices);
-            }
+            Op::ShareKey { .. }
+            | Op::ShareRoot { .. }
+            | Op::ShareCertified { .. }
+            | Op::ShareRevoked { .. }
+            | Op::ShareDoc { .. }
+            | Op::ShareVersion { .. }
+            | Op::ShareStop { .. } => self.shared(event),
             Op::ListLook { id, d } => {
                 if let Some(list) = self.lists.get_mut(id) {
-                    if let Some(icon) = &d.icon {
-                        list.icon = icon.clone().filter(|key| crate::model::icon::known(key));
-                    }
-                    if let Some(color) = &d.color {
-                        list.color = color
-                            .clone()
-                            .filter(|key| crate::model::hue::kept(key).is_some());
-                    }
+                    crate::applying::looked(&mut list.icon, &mut list.color, d);
                 }
             }
             Op::ListArchive { id } => {
@@ -1130,6 +1148,36 @@ impl State {
         }
     }
 
+    /// What goes out as mine rests on the key that vouched for the machine that made it, since any alias can be taken (decision 70).
+    pub fn mine_to_share(
+        &self,
+        kept: &crate::model::Kept,
+        me: &tisty_share_proto::identity::Person,
+    ) -> bool {
+        if kept.guest {
+            return false;
+        }
+        let makers = kept
+            .made_by
+            .as_ref()
+            .map(|device| self.persons.answers_to(device))
+            .unwrap_or_default();
+        // Any root can vouch for any machine, so the key narrows what the alias says and never widens it.
+        self.mine(kept) && (makers.is_empty() || makers.contains(me))
+    }
+
+    /// Whether a copy of this document is still someone else's: by the key once the person has one, else by the alias.
+    pub fn theirs(
+        &self,
+        kept: &crate::model::Kept,
+        me: Option<&tisty_share_proto::identity::Person>,
+    ) -> bool {
+        match me {
+            Some(me) => !self.mine_to_share(kept, me),
+            None => kept.guest || !self.mine(kept),
+        }
+    }
+
     pub fn mine_to_write(&self, hand: &str) -> bool {
         alike(Some(hand), self.signed.alias.as_deref())
             || self.signed_before.iter().any(|was| same_name(was, hand))
@@ -1287,3 +1335,7 @@ mod signing;
 #[cfg(test)]
 #[path = "state_compacting.rs"]
 mod compacting;
+
+#[cfg(test)]
+#[path = "state_sharing.rs"]
+mod sharing;

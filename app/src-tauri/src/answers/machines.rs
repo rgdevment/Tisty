@@ -16,6 +16,13 @@ pub async fn remove_machine(session: tauri::State<'_, Mutex<Session>>, id: Strin
     );
 
     let ops = crate::identity::removing(&session, who, seed.as_ref());
+    let revoked = ops
+        .iter()
+        .filter_map(|op| match op {
+            tisty_core::Op::ShareRevoked { r, .. } => Some(r.clone()),
+            _ => None,
+        })
+        .collect();
     session
         .commit_all(ops)
         .map_err(|e| blamed(channel::STORE, "the machine could not be removed", e))?;
@@ -27,6 +34,7 @@ pub async fn remove_machine(session: tauri::State<'_, Mutex<Session>>, id: Strin
         )
     })?;
 
+    crate::sharing::revoke_later(revoked);
     witness::note(
         channel::SYNC,
         "a machine was removed and what it wrote was left where everyone can still read it",

@@ -58,11 +58,18 @@ export type Line = {
   readonly tone?: string;
   /** Open when it is first drawn, until the reader chooses. */
   readonly open?: boolean;
+  /** A second line under the gist, shown folded or not: what it is, then the thing itself. */
+  readonly under?: { readonly label: string; readonly text: string };
 };
 
 export const rowed = (page: Document, line: Line, fill?: (into: HTMLElement) => void) => {
   const label = made(page, "strong", "side-row-label", line.label);
   const gist = made(page, "span", `side-gist${line.tone ? ` is-${line.tone}` : ""}`, line.gist);
+  if (line.under) {
+    const under = made(page, "span", "side-gist-print", `${line.under.label} `);
+    under.append(made(page, "code", "", line.under.text));
+    gist.append(under);
+  }
   if (!fill) {
     const still = made(page, "div", "side-row");
     still.append(label, gist);
@@ -93,4 +100,20 @@ export const listed = (
     list.append(pair);
   }
   return list;
+};
+
+const COPIED_MS = 2000;
+
+/** Copies the text, and the press says so for a moment before it offers again. */
+export const copyFrom = (at: HTMLElement, text: string, offer: string, done: string) => {
+  const view = at.ownerDocument.defaultView;
+  view?.navigator.clipboard.writeText(text).then(
+    () => {
+      at.textContent = done;
+      view.setTimeout(() => {
+        at.textContent = offer;
+      }, COPIED_MS);
+    },
+    () => undefined,
+  );
 };
