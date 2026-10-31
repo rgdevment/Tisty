@@ -146,6 +146,7 @@ impl Sown {
             | Op::DeviceRelease { .. }
             // The seed writes these again by itself; a machine taken back is the person's word.
             | Op::ShareKey { .. }
+            | Op::ShareRoot { .. }
             | Op::ShareCertified { .. }
             | Op::ShareRevoked { machine: false, .. }
             | Op::Signed { .. } => true,

@@ -1237,6 +1237,8 @@ export interface DocFacts {
   born: string | null;
   signedAs: string | null;
   editedAs: string | null;
+  /** Whether it can be shared from here: someone else's never is, and nothing goes out unsigned. */
+  shareable: "yes" | "notMine" | "noKey";
 }
 
 export const ALIAS_AT_MOST = 40;

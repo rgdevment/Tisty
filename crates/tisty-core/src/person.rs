@@ -11,6 +11,9 @@ use crate::state::State;
 
 pub const KEEP: &str = ".share-key";
 
+// Two clocks never agree, but a certificate dated a day past the line carrying it was written to win.
+const AHEAD_AT_MOST: jiff::SignedDuration = jiff::SignedDuration::from_hours(24);
+
 /// Only what holds is kept, so a forged line never reaches the cache nor any answer.
 #[derive(Debug, Default, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Persons {
@@ -21,6 +24,9 @@ pub struct Persons {
     /// The keys of machines the person took back, apart from keys a machine merely stopped using.
     #[serde(default)]
     pub taken: BTreeSet<String>,
+    /// The root each machine said it answers to, in its own word: the last one it said.
+    #[serde(default)]
+    pub roots: BTreeMap<DeviceId, String>,
 }
 
 impl Persons {
@@ -44,8 +50,18 @@ impl Persons {
                     said.push(p.clone());
                 }
             }
+            Op::ShareRoot { r } if seated && Person::read(r).is_some() => {
+                self.roots.insert(event.device.clone(), r.clone());
+            }
             // The root's signature is the authority here, whoever carried the line.
-            Op::ShareCertified { c } if c.vouches().is_ok() && !self.certificates.contains(c) => {
+            Op::ShareCertified { c }
+                if c.vouches().is_ok()
+                    && !self.certificates.contains(c)
+                    && event
+                        .timestamp
+                        .checked_add(AHEAD_AT_MOST)
+                        .is_ok_and(|latest| c.since <= latest) =>
+            {
                 self.certificates.push(c.clone());
             }
             Op::ShareRevoked { r, machine } if r.holds().is_ok() => {
@@ -103,9 +119,28 @@ impl Persons {
             .max_by_key(|one| one.since)
     }
 
-    /// Two roots on one key only happen when a person began again; the later signature is the one asked.
+    /// The root a machine said it answers to; any other root can vouch for its key, and that says nothing.
+    pub fn root_of(&self, device: &DeviceId) -> Option<Person> {
+        Person::read(self.roots.get(device)?)
+    }
+
+    /// Whom what a machine made belongs to: the root it said it answers to, or, from a machine that never said,
+    /// everyone who ever vouched for one of its keys, taken back or not.
+    pub fn answers_to(&self, device: &DeviceId) -> Vec<Person> {
+        if let Some(said) = self.root_of(device) {
+            return vec![said];
+        }
+        let named = self.named_by(device);
+        self.vouches()
+            .filter(|one| named.contains(&one.share))
+            .map(|one| one.person)
+            .collect()
+    }
+
+    /// A machine signs as the root it answers to; one that never said goes by the newest certificate.
     pub fn person(&self, device: &DeviceId) -> Option<Person> {
-        self.newest(device, None).map(|one| one.person)
+        self.newest(device, self.root_of(device).as_ref())
+            .map(|one| one.person)
     }
 
     pub fn vouched_by(&self, device: &DeviceId, root: &Person) -> Option<Vouched> {
@@ -169,6 +204,7 @@ impl Persons {
     ) -> Vec<(DeviceId, VerifyingKey)> {
         machines
             .iter()
+            .filter(|device| self.root_of(device).is_none_or(|said| said == *root))
             .filter(|device| !self.taken_back_by(device, root))
             .filter_map(|device| Some((device.clone(), self.current(device)?)))
             .filter(|(_, key)| !self.vouched_for(key, root))
@@ -205,6 +241,7 @@ pub fn begun(
     let person = root.person();
     let key = usable(paths, device, persons, Some(&person))?;
     let mut ops: Vec<Op> = announced(&key, device, persons).into_iter().collect();
+    ops.extend(rooted(device, persons, &person));
     let vouched = persons
         .vouched_by(device, &person)
         .is_some_and(|one| one.share == key.public());
@@ -256,6 +293,33 @@ fn retired<'a>(
             r: root.revoke(&old, now),
             machine: false,
         })
+}
+
+/// A machine holding the person's phrase answers to that root, whatever another root says of it.
+pub fn rooted(device: &DeviceId, persons: &Persons, root: &Person) -> Option<Op> {
+    (persons.root_of(device) != Some(*root)).then(|| Op::ShareRoot { r: root.shown() })
+}
+
+/// A machine without the phrase takes the store's one person as its root, once that root vouched for its key.
+/// A root only a certificate names could be anyone's; two persons in one store type the phrase on each machine.
+pub fn adopted(device: &DeviceId, persons: &Persons, seated: &BTreeSet<DeviceId>) -> Option<Op> {
+    if persons.roots.contains_key(device) {
+        return None;
+    }
+    let mut said = persons
+        .roots
+        .iter()
+        .filter(|(one, _)| *one != device && seated.contains(*one))
+        .filter_map(|(_, root)| Person::read(root));
+    let first = said.next()?;
+    if !said.all(|other| other == first) {
+        return None;
+    }
+    let key = persons.current(device)?;
+    persons
+        .vouches()
+        .any(|one| one.share == key && one.person == first && persons.stands(&one))
+        .then(|| Op::ShareRoot { r: first.shown() })
 }
 
 /// A machine says its key only once the log names a person, so nobody else ever makes one.

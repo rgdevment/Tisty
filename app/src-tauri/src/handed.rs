@@ -422,15 +422,22 @@ pub(crate) type Voucher = (
 
 // Read once a round and never minted here: a key no root certified vouches for nothing.
 pub(crate) fn voucher(session: &Mutex<Session>, here: &Here) -> Option<Voucher> {
-    let at = tisty_core::person::kept_at(&here.paths, &here.device)?;
+    vouched_by(&here.paths, &here.device, &held(session).state.persons)
+}
+
+/// The machine's share key and the certificate its person gave it, when that person still vouches for it.
+pub(crate) fn vouched_by(
+    paths: &Paths,
+    device: &DeviceId,
+    persons: &tisty_core::person::Persons,
+) -> Option<Voucher> {
+    let at = tisty_core::person::kept_at(paths, device)?;
     let bytes = zeroize::Zeroizing::new(std::fs::read(at).ok()?);
     let share = tisty_share_proto::identity::ShareKey::from_bytes(
         &<[u8; 32]>::try_from(bytes.as_slice()).ok()?,
     );
-    let session = held(session);
-    let persons = &session.state.persons;
-    let person = persons.person(&here.device)?;
-    let vouched = persons.vouched_by(&here.device, &person)?;
+    let person = persons.person(device)?;
+    let vouched = persons.vouched_by(device, &person)?;
     if vouched.share != share.public() {
         return None;
     }
