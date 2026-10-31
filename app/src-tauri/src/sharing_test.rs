@@ -196,6 +196,27 @@ fn a_key_taken_back_reaches_the_server_and_shares_nothing_more() {
     assert_eq!(refused.code, "shareUnsigned");
 }
 
+#[test]
+fn a_revocation_the_server_heard_is_not_told_again_and_the_others_are() {
+    let cache = tempfile::tempdir().unwrap();
+    let root = Seed::from_bytes(&[7; 32]).root();
+    let at = jiff::Timestamp::from_second(T0).unwrap();
+    let one = root.revoke(&ShareKey::from_bytes(&[3; 32]).public(), at);
+    let two = root.revoke(&ShareKey::from_bytes(&[4; 32]).public(), at);
+
+    assert_eq!(
+        untold(cache.path(), vec![one.clone(), two.clone()]).len(),
+        2
+    );
+    heard(cache.path(), std::slice::from_ref(&one));
+    assert_eq!(
+        untold(cache.path(), vec![one.clone(), two.clone()]),
+        vec![two.clone()]
+    );
+    heard(cache.path(), std::slice::from_ref(&two));
+    assert!(untold(cache.path(), vec![one, two]).is_empty());
+}
+
 /// The server as it is, except that it never takes a password.
 struct Ungated<'a>(&'a Here);
 

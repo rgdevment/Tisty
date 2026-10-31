@@ -307,21 +307,67 @@ pub(crate) fn revoke(wire: &impl Wire, revoked: &[Revocation]) -> Result<(), Ref
     Ok(())
 }
 
-/// Tells the server in the background; one that cannot be reached hears it with the next share.
-pub(crate) fn revoke_later(revoked: Vec<Revocation>) {
+const TOLD: &str = "revocations-told.json";
+
+/// Every key this person took back, the root's own signed word on each.
+pub(crate) fn taken_back_by(
+    persons: &tisty_core::person::Persons,
+    me: &tisty_share_proto::identity::Person,
+) -> Vec<Revocation> {
+    persons
+        .revocations
+        .iter()
+        .filter(|one| one.unchecked().is_some_and(|(person, _)| person == *me))
+        .cloned()
+        .collect()
+}
+
+// A revocation is named by what it signs, so the same word said twice is told once.
+fn told_name(revoked: &Revocation) -> String {
+    serde_json::to_string(revoked).unwrap_or_default()
+}
+
+/// What of these the server has not heard yet, by the list this machine keeps of what it told.
+pub(crate) fn untold(cache: &std::path::Path, revoked: Vec<Revocation>) -> Vec<Revocation> {
+    let told: std::collections::HashSet<String> = std::fs::read(cache.join(TOLD))
+        .ok()
+        .and_then(|said| serde_json::from_slice(&said).ok())
+        .unwrap_or_default();
+    revoked
+        .into_iter()
+        .filter(|one| !told.contains(&told_name(one)))
+        .collect()
+}
+
+fn heard(cache: &std::path::Path, revoked: &[Revocation]) {
+    let at = cache.join(TOLD);
+    let mut told: std::collections::BTreeSet<String> = std::fs::read(&at)
+        .ok()
+        .and_then(|said| serde_json::from_slice(&said).ok())
+        .unwrap_or_default();
+    told.extend(revoked.iter().map(told_name));
+    if let Ok(said) = serde_json::to_vec(&told) {
+        let _ = std::fs::write(at, said);
+    }
+}
+
+/// Tells the server in the background what it has not heard; what does not reach it is tried again the next round.
+pub(crate) fn revoke_untold(cache: std::path::PathBuf, revoked: Vec<Revocation>) {
+    let revoked = untold(&cache, revoked);
     if revoked.is_empty() {
         return;
     }
     tauri::async_runtime::spawn_blocking(move || {
-        if let Err(refused) = Net::to(SERVER).and_then(|wire| revoke(&wire, &revoked)) {
-            tisty_core::witness::note(
+        match Net::to(SERVER).and_then(|wire| revoke(&wire, &revoked)) {
+            Ok(()) => heard(&cache, &revoked),
+            Err(refused) => tisty_core::witness::note(
                 tisty_core::witness::channel::WINDOW,
-                "Tisty Share did not hear that a key was taken back; the next share tells it",
+                "Tisty Share did not hear that a key was taken back; the next round tells it",
                 &[(
                     "why",
                     tisty_core::witness::Fact::Why(refused.code.to_string()),
                 )],
-            );
+            ),
         }
     });
 }

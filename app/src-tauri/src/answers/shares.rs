@@ -28,21 +28,6 @@ fn sharer(session: &Session) -> Option<(Voucher, tisty_share_proto::identity::Pe
     Some((voucher, me))
 }
 
-// Every key this person took back, the root's own signed word on each.
-fn taken_back_by(
-    session: &Session,
-    me: &tisty_share_proto::identity::Person,
-) -> Vec<tisty_share_proto::identity::Revocation> {
-    session
-        .state
-        .persons
-        .revocations
-        .iter()
-        .filter(|one| one.unchecked().is_some_and(|(person, _)| person == *me))
-        .cloned()
-        .collect()
-}
-
 pub(crate) fn shareable(session: &Session, kept: &tisty_core::model::Kept) -> Shareable {
     match sharer(session) {
         Some((_, me)) if session.state.mine_to_share(kept, &me) => Shareable::Yes,
@@ -228,7 +213,13 @@ pub async fn share_doc(
             .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
         let (voucher, me) = sharer(&session).ok_or(Refusal::of("shareNoKey"))?;
         let name = signing_name(&session.state.signed);
-        (doc, text, voucher, taken_back_by(&session, &me), name)
+        (
+            doc,
+            text,
+            voucher,
+            sharing::taken_back_by(&session.state.persons, &me),
+            name,
+        )
     };
     let (shared, info) = apart(move || {
         let wire = Net::to(sharing::SERVER)?;

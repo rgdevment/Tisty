@@ -34,7 +34,7 @@ pub async fn remove_machine(session: tauri::State<'_, Mutex<Session>>, id: Strin
         )
     })?;
 
-    crate::sharing::revoke_later(revoked);
+    crate::sharing::revoke_untold(session.paths.cache().to_path_buf(), revoked);
     witness::note(
         channel::SYNC,
         "a machine was removed and what it wrote was left where everyone can still read it",
