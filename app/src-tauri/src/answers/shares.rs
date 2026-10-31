@@ -184,13 +184,19 @@ pub async fn share_card(
     match info {
         // It ran out or was stopped from another machine: the store forgets it, and the row offers to share again.
         Err(refused) if sharing::already_gone(&refused) => {
-            let doc = {
-                let session = held(&session);
-                doc_of(&session, &file)?
-            };
-            held(&session)
-                .commit(Op::ShareStop { id: doc })
-                .map_err(Refusal::from)?;
+            let mut session = held(&session);
+            let doc = doc_of(&session, &file)?;
+            // Another window may have shared it anew meanwhile; only the share the server let go of is forgotten.
+            if session
+                .state
+                .shares
+                .get(&doc)
+                .is_some_and(|now| now.link == shared.link)
+            {
+                session
+                    .commit(Op::ShareStop { id: doc })
+                    .map_err(Refusal::from)?;
+            }
             Ok(None)
         }
         info => Ok(Some(card(&shared, info.ok()))),

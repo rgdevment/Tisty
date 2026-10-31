@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fill, t } from "../locales";
@@ -63,8 +63,11 @@ describe("the share dialog", () => {
     const form = screen
       .getByRole("button", { name: t("shareGo") })
       .closest("form") as HTMLFormElement;
-    fireEvent.submit(form);
-    fireEvent.submit(form);
+    // Both in one go, before the dialog can redraw between them.
+    act(() => {
+      form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    });
     await waitFor(() => expect(asked("share_doc")).toHaveLength(1));
   });
 

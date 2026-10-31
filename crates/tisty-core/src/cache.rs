@@ -417,10 +417,33 @@ impl Cache {
         Ok(())
     }
 
+    // Small enough to write whole on every step, so neither costs the cache a rebuild.
     fn heard_up(&self, state: &State) -> rusqlite::Result<usize> {
         self.db.execute(
-            "INSERT OR REPLACE INTO meta VALUES ('heard', ?)",
-            [serde_json::to_string(&state.heard).unwrap_or_default()],
+            "INSERT OR REPLACE INTO meta VALUES ('heard', ?), ('shares', ?)",
+            rusqlite::params![
+                serde_json::to_string(&state.heard).unwrap_or_default(),
+                serde_json::to_string(&state.shares).unwrap_or_default(),
+            ],
+        )
+    }
+
+    // Steps that only share touch no row, so nothing else would say the cache kept up; one thrown out stays out.
+    fn shared_up(&self, events: &[crate::Event], fingerprint: &str) -> rusqlite::Result<usize> {
+        let only_shares = events.iter().all(|one| {
+            matches!(
+                one.op,
+                crate::Op::ShareDoc { .. }
+                    | crate::Op::ShareVersion { .. }
+                    | crate::Op::ShareStop { .. }
+            )
+        });
+        if !only_shares || self.meta("fingerprint").is_none_or(|one| one.is_empty()) {
+            return Ok(0);
+        }
+        self.db.execute(
+            "INSERT OR REPLACE INTO meta VALUES ('fingerprint', ?)",
+            [fingerprint],
         )
     }
 
@@ -858,9 +881,6 @@ fn reached(
                 | crate::Op::ShareRoot { .. }
                 | crate::Op::ShareCertified { .. }
                 | crate::Op::ShareRevoked { .. }
-                | crate::Op::ShareDoc { .. }
-                | crate::Op::ShareVersion { .. }
-                | crate::Op::ShareStop { .. }
                 // These reach the pages of a document, and a row at a time cannot say so.
                 | crate::Op::DocDelete { .. }
                 | crate::Op::DocArchive { .. }
@@ -881,7 +901,8 @@ fn reached(
         .iter()
         .filter_map(|event| event.entity_id())
         .all(|id| cache.touch(state, id, &print).is_ok())
-        && cache.heard_up(state).is_ok();
+        && cache.heard_up(state).is_ok()
+        && cache.shared_up(events, &print).is_ok();
     if !carried || cache.db.execute_batch("COMMIT").is_err() {
         let _ = cache.db.execute_batch("ROLLBACK");
         cache.invalidate();

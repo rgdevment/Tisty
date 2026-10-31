@@ -171,10 +171,11 @@ impl Certificate {
     }
 }
 
-/// A root taking back a share key, for a machine lost or a key that leaked.
-/// As many revocations as one request to a server carries: a person takes back a handful of machines in a lifetime.
-pub const REVOCATIONS_AT_ONCE: usize = 64;
+/// As many revocations as one request to a server carries: a person takes back a handful of machines in a lifetime,
+/// and a server keeps each for good.
+pub const REVOCATIONS_AT_ONCE: usize = 8;
 
+/// A root taking back a share key, for a machine lost or a key that leaked.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Revocation {
     pub root: String,

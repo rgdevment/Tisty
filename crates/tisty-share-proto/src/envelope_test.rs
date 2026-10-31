@@ -766,6 +766,8 @@ fn a_name_is_a_readable_line_of_at_most_eighty_characters_with_nothing_unseen() 
         "una\nlínea",
         "\u{200B}",
         "Ana\u{202E}zeréP",
+        "\u{3164}",
+        "Ana\u{E0041}",
         long.as_str(),
     ] {
         let signer = Signer {

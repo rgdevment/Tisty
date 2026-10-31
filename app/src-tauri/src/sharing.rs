@@ -113,13 +113,17 @@ struct Reserved {
 fn refused(said: &Said) -> Refusal {
     let word = serde_json::from_slice::<serde_json::Value>(&said.body)
         .ok()
-        .and_then(|value| value["refused"].as_str().map(str::to_owned))
-        .unwrap_or_else(|| said.status.to_string());
-    match word.as_str() {
+        .and_then(|value| value["refused"].as_str().map(str::to_owned));
+    match word.as_deref() {
         // The one no the person can act on: this machine's key was taken back or never held.
-        "unsigned" => Refusal::of("shareUnsigned"),
-        "slow" => Refusal::of("shareSlow"),
-        _ => Refusal::about("shareRefused", word),
+        Some("unsigned") => Refusal::of("shareUnsigned"),
+        Some("slow") => Refusal::of("shareSlow"),
+        // The server's own trouble, or no word at all: nothing the person can do but try again.
+        Some("store" | "crowded" | "work_refused" | "no_randomness") | None => {
+            Refusal::of("shareFailed")
+        }
+        Some(_) if said.status >= 500 => Refusal::of("shareFailed"),
+        Some(word) => Refusal::about("shareRefused", word.to_owned()),
     }
 }
 
