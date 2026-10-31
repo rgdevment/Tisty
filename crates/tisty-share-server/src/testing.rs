@@ -3,7 +3,17 @@
 use std::pin::pin;
 use std::task::{Context, Poll, Waker};
 
+use tisty_share_proto::identity::{Certificate, Root, ShareKey};
+
 use crate::keys::Randomness;
+
+/// A machine's key and the certificate its person gave it, since the server takes nothing unsigned.
+pub fn vouched() -> (ShareKey, Certificate) {
+    let machine = ShareKey::from_bytes(&[2; 32]);
+    let certificate =
+        Root::from_bytes(&[1; 32]).certify(&machine.public(), jiff::Timestamp::UNIX_EPOCH);
+    (machine, certificate)
+}
 
 /// The memory store never waits, so one poll finishes any of the server's work.
 pub fn done<T>(work: impl Future<Output = T>) -> T {

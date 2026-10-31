@@ -1,16 +1,14 @@
 use std::cell::{Cell, RefCell};
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
-use jiff::Timestamp;
 use tisty_share_proto::envelope::{self, Draft, Kind, LinkKey, Signer};
-use tisty_share_proto::identity::{Root, ShareKey};
 use tisty_share_proto::work;
 
 use super::*;
 use crate::memory::Memory;
 use crate::moderation::{Category, Complaint, DETAIL_AT_MOST};
 use crate::store::Doc;
-use crate::testing::{Counting, done};
+use crate::testing::{Counting, done, vouched};
 
 struct Empty;
 
@@ -56,7 +54,12 @@ fn sealed(id: &str, version: u64, from: Option<u64>, text: &str) -> Vec<u8> {
         text,
         pictures: &[],
     };
-    envelope::seal(&key(), &draft, None, &Limits::default())
+    let (machine, certificate) = vouched();
+    let signer = Signer {
+        key: &machine,
+        certificate: &certificate,
+    };
+    envelope::seal(&key(), &draft, Some(&signer), &Limits::default())
         .unwrap()
         .to_bytes()
 }
@@ -264,9 +267,7 @@ fn an_envelope_over_the_server_s_limits_is_refused() {
 fn a_signed_envelope_is_taken_with_its_signature() {
     let mut world = World::new();
     let reserved = world.reserve(T0);
-    let root = Root::from_bytes(&[1; 32]);
-    let machine = ShareKey::from_bytes(&[2; 32]);
-    let certificate = root.certify(&machine.public(), Timestamp::from_second(1_000).unwrap());
+    let (machine, certificate) = vouched();
     let signer = Signer {
         key: &machine,
         certificate: &certificate,
@@ -283,6 +284,27 @@ fn a_signed_envelope_is_taken_with_its_signature() {
         .to_bytes();
 
     assert_eq!(world.put(&reserved.id, &reserved.edit, bytes, T0), Ok(1));
+}
+
+#[test]
+fn an_unsigned_envelope_is_refused() {
+    let mut world = World::new();
+    let reserved = world.reserve(T0);
+    let draft = Draft {
+        id: &reserved.id,
+        version: 1,
+        from: None,
+        text: "sin firma",
+        pictures: &[],
+    };
+    let bytes = envelope::seal(&key(), &draft, None, &Limits::default())
+        .unwrap()
+        .to_bytes();
+
+    assert_eq!(
+        world.put(&reserved.id, &reserved.edit, bytes, T0),
+        Err(Refused::Unsigned)
+    );
 }
 
 #[test]
@@ -629,7 +651,12 @@ fn a_heavier_envelope_costs_more_work_than_it_was_asked_for_when_it_claims_to_be
         text: "pesado",
         pictures: &pictures,
     };
-    let heavy = envelope::seal(&key(), &draft, None, &Limits::default())
+    let (machine, certificate) = vouched();
+    let signer = Signer {
+        key: &machine,
+        certificate: &certificate,
+    };
+    let heavy = envelope::seal(&key(), &draft, Some(&signer), &Limits::default())
         .unwrap()
         .to_bytes();
     assert!(heavy.len() > 1024 * 1024);

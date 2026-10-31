@@ -91,8 +91,8 @@ pub enum Refused {
     Misaddressed,
     #[error("the envelope was refused: {0}")]
     Envelope(Unread),
-    /// A signature the envelope carries does not hold, so it would claim someone it is not.
-    #[error("the envelope's signature does not hold")]
+    /// Unsigned, or signed by a key that does not hold: the key is the only identity there is (decision 70).
+    #[error("the envelope is not signed by a key that holds")]
     Unsigned,
     /// The work asked for is missing, short, spent, expired or not this server's.
     #[error("the work asked for was not done")]
@@ -317,10 +317,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
         if manifest.id != doc.id {
             return Err(Refused::Misaddressed);
         }
-        if matches!(
-            envelope.sender(&[]),
-            Some(Verdict::Refused | Verdict::Unreadable)
-        ) {
+        if !matches!(envelope.sender(&[]), Some(Verdict::Holds { .. })) {
             return Err(Refused::Unsigned);
         }
         let latest = doc.latest();

@@ -1,13 +1,13 @@
 use std::net::{IpAddr, Ipv4Addr};
 
 use serde_json::Value;
-use tisty_share_proto::envelope::{self, Draft, Envelope, LinkKey};
+use tisty_share_proto::envelope::{self, Draft, Envelope, LinkKey, Signer};
 use tisty_share_proto::work::{self, Challenge};
 use tisty_share_server::guard::{Allowance, Work};
 use tisty_share_server::keys::Slowness;
 use tisty_share_server::memory::Memory;
 use tisty_share_server::share::Policy;
-use tisty_share_server::testing::{Counting, done};
+use tisty_share_server::testing::{Counting, done, vouched};
 
 use super::*;
 
@@ -37,10 +37,15 @@ fn sealed(id: &str, version: u64, from: Option<u64>) -> Vec<u8> {
         text: "hola",
         pictures: &[],
     };
+    let (machine, certificate) = vouched();
+    let signer = Signer {
+        key: &machine,
+        certificate: &certificate,
+    };
     envelope::seal(
         &LinkKey::from_bytes(&[9; 32]),
         &draft,
-        None,
+        Some(&signer),
         &Limits::default(),
     )
     .unwrap()
