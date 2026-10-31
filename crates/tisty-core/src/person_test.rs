@@ -911,3 +911,216 @@ fn a_candidate_of_a_release_is_never_behind_it_and_one_of_an_earlier_release_is(
 
     assert_eq!(state.not_yet_on("1.36.0"), vec![device("dev_b")]);
 }
+
+fn written(id: ulid::Ulid, alias: &str) -> Op {
+    Op::DocAdd {
+        id,
+        d: crate::event::DocAdd {
+            file: format!("doc-{id}"),
+            order: "a0".into(),
+            by: Some(alias.into()),
+            ..Default::default()
+        },
+    }
+}
+
+fn signing_as(alias: &str) -> Op {
+    Op::Signed {
+        d: crate::event::Signature {
+            alias: Some(alias.into()),
+            ..Default::default()
+        },
+    }
+}
+
+#[test]
+fn a_document_another_machine_of_mine_made_is_mine_to_share() {
+    let mut two = Two::new();
+    let doc = ulid::Ulid::generate();
+    two.wrote("dev_a", vec![signing_as("ana")], 130);
+    two.wrote("dev_b", vec![written(doc, "ana")], 140);
+    let state = two.state();
+
+    assert!(state.mine_to_share(&state.docs[&doc], &seed().root().person()));
+}
+
+#[test]
+fn taking_someone_elses_alias_does_not_make_their_document_mine_to_share() {
+    let mut two = Two::new();
+    two.events.push(joined("dev_c", DeviceKind::Machine));
+    let (_room, third) = room();
+    let stranger = Seed::from_bytes(&[9; 32]);
+    let ops = begun(
+        &third,
+        &device("dev_c"),
+        &stranger,
+        &two.state().persons,
+        at(130),
+    );
+    two.wrote("dev_c", ops.unwrap(), 130);
+    let doc = ulid::Ulid::generate();
+    two.wrote("dev_c", vec![written(doc, "ana")], 140);
+    two.wrote("dev_a", vec![signing_as("ana")], 150);
+    let state = two.state();
+    let theirs = &state.docs[&doc];
+
+    assert!(state.mine(theirs));
+    assert!(!state.mine_to_share(theirs, &seed().root().person()));
+    assert!(state.mine_to_share(theirs, &stranger.root().person()));
+}
+
+#[test]
+fn a_machine_nobody_vouched_for_has_only_its_alias_to_go_by() {
+    let mut two = Two::new();
+    two.events.push(joined("dev_bot", DeviceKind::Agent));
+    let (ours, theirs) = (ulid::Ulid::generate(), ulid::Ulid::generate());
+    two.wrote("dev_a", vec![signing_as("ana")], 130);
+    two.wrote(
+        "dev_bot",
+        vec![written(ours, "ana"), written(theirs, "bea")],
+        140,
+    );
+    let state = two.state();
+    let me = seed().root().person();
+
+    assert!(state.mine_to_share(&state.docs[&ours], &me));
+    assert!(!state.mine_to_share(&state.docs[&theirs], &me));
+}
+
+/// Another person in the same store, with a machine of their own that typed their phrase.
+fn stranger_in(two: &mut Two) -> (tempfile::TempDir, Seed) {
+    two.events.push(joined("dev_c", DeviceKind::Machine));
+    let (room, third) = room();
+    let stranger = Seed::from_bytes(&[9; 32]);
+    let ops = begun(
+        &third,
+        &device("dev_c"),
+        &stranger,
+        &two.state().persons,
+        at(130),
+    );
+    two.wrote("dev_c", ops.unwrap(), 130);
+    (room, stranger)
+}
+
+#[test]
+fn a_machine_without_the_phrase_takes_the_one_root_that_vouched_for_it() {
+    let mut two = Two::new();
+    let op = adopted(&device("dev_b"), &two.state().persons).unwrap();
+    two.wrote("dev_b", vec![op], 125);
+
+    assert_eq!(
+        two.state().persons.root_of(&device("dev_b")),
+        Some(seed().root().person())
+    );
+    assert!(adopted(&device("dev_b"), &two.state().persons).is_none());
+}
+
+#[test]
+fn another_root_vouching_for_my_machine_never_makes_it_sign_as_them() {
+    let mut two = Two::new();
+    let op = adopted(&device("dev_b"), &two.state().persons).unwrap();
+    two.wrote("dev_b", vec![op], 125);
+    let (_room, stranger) = stranger_in(&mut two);
+    let mine_b = mine(&two.second, &device("dev_b")).unwrap().public();
+    let later = Timestamp::from_second(4_000_000_000).unwrap();
+    two.wrote(
+        "dev_c",
+        vec![Op::ShareCertified {
+            c: stranger.root().certify(&mine_b, at(135)),
+        }],
+        140,
+    );
+    two.events.push(Event::new(
+        device("dev_c"),
+        later,
+        Op::ShareCertified {
+            c: stranger.root().certify(&mine_b, later),
+        },
+    ));
+    let state = two.state();
+
+    assert_eq!(
+        state.persons.person(&device("dev_b")),
+        Some(seed().root().person())
+    );
+    assert_eq!(
+        state.persons.answers_to(&device("dev_b")),
+        vec![seed().root().person()]
+    );
+}
+
+#[test]
+fn a_certificate_dated_long_past_the_line_carrying_it_is_not_kept() {
+    let mut two = Two::new();
+    let (_room, stranger) = stranger_in(&mut two);
+    let mine_b = mine(&two.second, &device("dev_b")).unwrap().public();
+    let ahead = Timestamp::from_second(150 + 2 * 86_400).unwrap();
+    two.wrote(
+        "dev_c",
+        vec![Op::ShareCertified {
+            c: stranger.root().certify(&mine_b, ahead),
+        }],
+        150,
+    );
+
+    assert!(
+        !two.state()
+            .persons
+            .answers_to(&device("dev_b"))
+            .contains(&stranger.root().person())
+    );
+}
+
+#[test]
+fn a_machine_two_roots_vouched_for_waits_for_the_phrase() {
+    let mut two = Two::new();
+    let (_room, stranger) = stranger_in(&mut two);
+    let mine_b = mine(&two.second, &device("dev_b")).unwrap().public();
+    two.wrote(
+        "dev_c",
+        vec![Op::ShareCertified {
+            c: stranger.root().certify(&mine_b, at(140)),
+        }],
+        140,
+    );
+
+    assert!(adopted(&device("dev_b"), &two.state().persons).is_none());
+}
+
+#[test]
+fn a_root_does_not_vouch_for_a_machine_that_answers_to_another() {
+    let mut two = Two::new();
+    let op = adopted(&device("dev_b"), &two.state().persons).unwrap();
+    two.wrote("dev_b", vec![op], 125);
+    let (_room, stranger) = stranger_in(&mut two);
+    let state = two.state();
+    let vouched = certified(&stranger, &state.persons, &machines(&state), at(140));
+
+    assert!(vouched.is_empty(), "{vouched:?}");
+}
+
+#[test]
+fn what_my_machine_made_is_not_shared_by_a_root_that_vouched_for_it_uninvited() {
+    let mut two = Two::new();
+    let op = adopted(&device("dev_b"), &two.state().persons).unwrap();
+    two.wrote("dev_b", vec![op], 125);
+    let (_room, stranger) = stranger_in(&mut two);
+    let mine_b = mine(&two.second, &device("dev_b")).unwrap().public();
+    let doc = ulid::Ulid::generate();
+    two.wrote(
+        "dev_c",
+        vec![
+            Op::ShareCertified {
+                c: stranger.root().certify(&mine_b, at(140)),
+            },
+            signing_as("ana"),
+        ],
+        140,
+    );
+    two.wrote("dev_b", vec![written(doc, "ana")], 150);
+    let state = two.state();
+
+    assert!(state.mine_to_share(&state.docs[&doc], &seed().root().person()));
+    assert!(!state.mine_to_share(&state.docs[&doc], &stranger.root().person()));
+}

@@ -1,5 +1,7 @@
 // Every word the sheet says while it is read, so a host that lacks one fails to build rather than showing its key.
 export type ReadWord =
+  | "viewCopy"
+  | "viewCopied"
   | "besidePageOf"
   | "docFlagged"
   | "exportIt"
@@ -39,6 +41,7 @@ export type ReadWord =
   | "signedRevoked"
   | "signedRevokedSaid"
   | "signedSentBy"
+  | "signedOn"
   | "signedTitle"
   | "signedUnreadable"
   | "signedUnreadableSaid"

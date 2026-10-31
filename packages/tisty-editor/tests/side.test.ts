@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { type Panel, sided, wordsIn } from "../src/side";
 import type { ReadWord } from "../src/words";
 
@@ -268,6 +268,47 @@ describe("the panels beside a sheet", () => {
     sided(side, say, panels(4));
     expect(document.activeElement?.tagName).toBe("SUMMARY");
     expect(side.querySelector(".side-part")).toBeNull();
+    side.remove();
+  });
+
+  it("shows a share's links whole, copies each as shown, and offers what can be done with it", async () => {
+    const side = document.createElement("aside");
+    document.body.append(side);
+    const writeText = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("navigator", { clipboard: { writeText } });
+    let stopped = 0;
+    sided(side, say, [
+      {
+        kind: "shared",
+        gist: "No listado",
+        tone: "good",
+        said: "El link para administrarlo queda en tu Tisty.",
+        links: [
+          { key: "read", label: "Para leer", url: "https://tisty.cl/k7Qm2xPa#llave" },
+          {
+            key: "edit",
+            label: "Para editar",
+            url: "https://tisty.cl/k7Qm2xPa#llave.token",
+            note: "solo en Tisty",
+          },
+        ],
+        acts: [{ key: "stop", label: "Dejar de compartir", onPick: () => stopped++ }],
+      },
+    ]);
+    expect(text(side, ".side-gist.is-good")).toEqual(["No listado"]);
+    expect(text(side, ".side-link-url")).toEqual([
+      "https://tisty.cl/k7Qm2xPa#llave",
+      "https://tisty.cl/k7Qm2xPa#llave.token",
+    ]);
+    expect(text(side, ".side-link-note")).toEqual([" · solo en Tisty"]);
+    const [copy] = side.querySelectorAll<HTMLButtonElement>(".side-link-line .side-act");
+    copy.click();
+    await Promise.resolve();
+    expect(writeText).toHaveBeenCalledWith("https://tisty.cl/k7Qm2xPa#llave");
+    expect(copy.textContent).toBe("viewCopied");
+    side.querySelector<HTMLButtonElement>(".side-acts.is-inside .side-act")?.click();
+    expect(stopped).toBe(1);
+    vi.unstubAllGlobals();
     side.remove();
   });
 

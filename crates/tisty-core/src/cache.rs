@@ -852,6 +852,7 @@ fn reached(
                 | crate::Op::AttachRetire { .. }
                 | crate::Op::Signed { .. }
                 | crate::Op::ShareKey { .. }
+                | crate::Op::ShareRoot { .. }
                 | crate::Op::ShareCertified { .. }
                 | crate::Op::ShareRevoked { .. }
                 // These reach the pages of a document, and a row at a time cannot say so.

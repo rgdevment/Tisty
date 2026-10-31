@@ -23,6 +23,7 @@ tisty-markdown = { path = "crates/tisty-markdown", default-features = false }
 tisty-nl = { path = "crates/tisty-nl" }
 tisty-share-proto = { path = "crates/tisty-share-proto", default-features = false }
 tisty-share-server = { path = "crates/tisty-share-server" }
+tisty-share-worker = { path = "crates/tisty-share-worker" }
 tisty-sync = { path = "crates/tisty-sync" }
 # `macos-private-api` pairs with `macOSPrivateApi` in tauri.conf.json, and the
 # build script refuses to run without both: the quick window asks to be

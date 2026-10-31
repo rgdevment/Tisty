@@ -38,6 +38,7 @@ export {
   type Book,
   type Facts,
   type Leaf,
+  type Link,
   type Panel,
   type Seal,
   sided,

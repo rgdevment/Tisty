@@ -1237,6 +1237,8 @@ export interface DocFacts {
   born: string | null;
   signedAs: string | null;
   editedAs: string | null;
+  /** Whether it can be shared from here: someone else's never is, and nothing goes out unsigned. */
+  shareable: "yes" | "notMine" | "noKey";
 }
 
 export const ALIAS_AT_MOST = 40;
@@ -1413,6 +1415,7 @@ export const folderAway = (id: string, away: boolean): Promise<void> =>
   invoke("folder_away", { id, away });
 export const docLock = (id: string, shut: boolean): Promise<void> =>
   invoke("doc_lock", { id, shut });
+
 export const docUnflag = (id: string): Promise<void> => invoke("doc_unflag", { id });
 export const docKeepCompacted = (id: string): Promise<void> => invoke("doc_keep_compacted", { id });
 export const docCompactedLast = (id: string): Promise<boolean> =>

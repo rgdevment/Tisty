@@ -429,6 +429,41 @@ details[open] > .side-row-head::after {
     monospace;
   overflow-wrap: anywhere;
 }
+.side-link-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+.side-link-label {
+  color: var(--tisty-ink);
+  font-weight: 600;
+  font-size: 12px;
+}
+.side-link-note {
+  color: var(--tisty-faint);
+  font-weight: 400;
+}
+.side-link-line {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.side-link-url {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  user-select: all;
+}
+.side-link-line .side-act {
+  flex: 0 0 auto;
+}
+.side-acts.is-inside {
+  padding: 4px 0 0;
+}
 .side-acts {
   display: flex;
   flex-wrap: wrap;

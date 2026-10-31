@@ -2,8 +2,8 @@ mod op;
 
 pub use op::{
     ALIAS_AT_MOST, Body, DeviceKind, DocAdd, Filed, Flag, FolderAdd, Held, KNOWN_OPS, ListAdd,
-    LogAdd, LogEdit, Look, NAME_AT_MOST, Name, Op, PageChange, Paged, Resolve, Said, Signature,
-    StepAdd, StepRef, StepReorder, StepText, Stitch, TaskAdd, TaskMove, TaskPatch,
+    LogAdd, LogEdit, Look, NAME_AT_MOST, Name, Op, PageChange, Paged, Resolve, Said, Shared,
+    Signature, StepAdd, StepRef, StepReorder, StepText, Stitch, TaskAdd, TaskMove, TaskPatch,
 };
 
 use serde::{Deserialize, Serialize};
@@ -145,8 +145,12 @@ impl Event {
             | Op::AttachRetire { .. }
             | Op::StoresJoined { .. }
             | Op::ShareKey { .. }
+            | Op::ShareRoot { .. }
             | Op::ShareCertified { .. }
-            | Op::ShareRevoked { .. } => None,
+            | Op::ShareRevoked { .. }
+            | Op::ShareDoc { .. }
+            | Op::ShareVersion { .. }
+            | Op::ShareStop { .. } => None,
         }
     }
 }

@@ -52,8 +52,20 @@ export type Facts = {
 export type Seal = {
   readonly verdict: "holds" | "revoked" | "refused" | "unreadable" | "unsigned";
   readonly who?: string;
+  /** The name or alias the writer chose to sign with, which only their key vouches for. */
+  readonly name?: string;
+  /** When they signed, already said in the reader's language. */
+  readonly signedOn?: string;
   readonly fingerprint?: string;
   readonly sender?: string;
+};
+
+/** A link to hand out, shown whole so it can be read before it is copied. */
+export type Link = {
+  readonly key: string;
+  readonly label: string;
+  readonly url: string;
+  readonly note?: string;
 };
 
 export type Act = {
@@ -91,7 +103,10 @@ export type Panel =
   | {
       readonly kind: "shared";
       readonly gist: string;
+      readonly tone?: "good" | "warn" | "bad";
       readonly said?: string;
+      readonly links?: readonly Link[];
+      readonly acts?: readonly Act[];
       readonly open?: boolean;
     }
   | { readonly kind: "acts"; readonly acts: readonly Act[] };

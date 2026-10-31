@@ -78,6 +78,9 @@ percent-encoding = "2"
 
 [dev-dependencies]
 tempfile.workspace = true
+# Sharing is tried against the server's own API, in memory, as the Worker serves it.
+tisty-share-server = { workspace = true, features = ["testing"] }
+tisty-share-worker.workspace = true
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"

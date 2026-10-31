@@ -1,4 +1,4 @@
-import type { Act, Facts, More } from "./side";
+import type { Act, Facts, Link, More } from "./side";
 import { wordsIn } from "./side";
 import { listed, made, pressed, rowed } from "./sideParts";
 import type { Say } from "./words";
@@ -83,21 +83,63 @@ const sealed = (page: Document, say: Say, { seal }: Of<"seal">) => {
   if (seal.verdict === "unsigned")
     return rowed(page, { key: "seal", label: say("signedTitle"), gist: say("signedNone") });
   const [short, long, tone] = VERDICT[seal.verdict];
-  const gist = [seal.who, say(short)].filter(Boolean).join(" · ");
+  const gist = [seal.name, seal.who, say(short)].filter(Boolean).join(" · ");
   return rowed(page, { key: "seal", label: say("signedTitle"), gist, tone }, (into) => {
     into.append(made(page, "p", "side-said", say(long)));
+    if (seal.signedOn)
+      into.append(made(page, "p", "side-said", `${say("signedOn")} ${seal.signedOn}`));
     if (seal.fingerprint) into.append(made(page, "code", "side-print", seal.fingerprint));
     if (seal.sender)
       into.append(made(page, "p", "side-said", `${say("signedSentBy")} ${seal.sender}`));
   });
 };
 
+const COPIED_MS = 2000;
+
+// The link is copied as it is shown, and the press says so for a moment.
+const copied = (page: Document, say: Say, link: Link) => {
+  const part = made(page, "div", "side-link-row");
+  const label = made(page, "span", "side-link-label", link.label);
+  if (link.note) label.append(made(page, "span", "side-link-note", ` · ${link.note}`));
+  const url = made(page, "code", "side-print side-link-url", link.url);
+  const copy = pressed(page, "side-act", say("viewCopy"), (at) => {
+    page.defaultView?.navigator.clipboard.writeText(link.url).then(
+      () => {
+        at.textContent = say("viewCopied");
+        page.defaultView?.setTimeout(() => {
+          at.textContent = say("viewCopy");
+        }, COPIED_MS);
+      },
+      () => undefined,
+    );
+  });
+  const line = made(page, "div", "side-link-line");
+  line.append(url, copy);
+  part.append(label, line);
+  return part;
+};
+
 const shared = (page: Document, say: Say, panel: Of<"shared">) => {
-  const { said } = panel;
-  const line = { key: "shared", label: say("besideShared"), gist: panel.gist, open: panel.open };
-  const fill = said
-    ? (into: HTMLElement) => into.append(made(page, "p", "side-said", said))
-    : undefined;
+  const { said, links = [], acts = [] } = panel;
+  const line = {
+    key: "shared",
+    label: say("besideShared"),
+    gist: panel.gist,
+    tone: panel.tone,
+    open: panel.open,
+  };
+  const fill =
+    said || links.length || acts.length
+      ? (into: HTMLElement) => {
+          if (said) into.append(made(page, "p", "side-said", said));
+          for (const link of links) into.append(copied(page, say, link));
+          if (acts.length) {
+            const row = made(page, "div", "side-acts is-inside");
+            for (const act of acts) row.append(acted(page, act));
+            into.append(row);
+          }
+        }
+      : undefined;
   return rowed(page, line, fill);
 };
 
