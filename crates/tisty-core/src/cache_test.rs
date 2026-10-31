@@ -1330,6 +1330,25 @@ fn a_share_made_since_the_cache_was_written_is_carried_into_it_without_a_rebuild
 }
 
 #[test]
+fn an_empty_step_never_calls_a_cache_current_that_fell_behind() {
+    let f = loaded();
+    let mut store = Store::open(&f.store_root, DeviceId("dev_a".into())).unwrap();
+    let state = project(&f.store_root, &f.cache_dir).unwrap();
+    let mut cache = Cache::open(&f.cache_dir).unwrap();
+    let was = cache.as_ref().unwrap().meta("fingerprint");
+    store
+        .append(Op::TaskLog {
+            id: f.task,
+            d: LogAdd::new(Ulid::generate(), "written where this cache did not look"),
+        })
+        .unwrap();
+
+    advance(cache.as_mut(), &state, &[], &f.store_root, false);
+
+    assert_eq!(cache.unwrap().meta("fingerprint"), was);
+}
+
+#[test]
 fn a_cache_written_before_shares_were_kept_is_built_again() {
     let dir = tempfile::tempdir().unwrap();
     let mut cache = Cache::open(dir.path()).unwrap().expect("a cache opens");

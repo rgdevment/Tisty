@@ -212,3 +212,12 @@ fn a_share_that_could_not_take_its_password_does_not_stay_up() {
 
     assert_eq!(here.share.borrow().store.envelopes(), 0);
 }
+
+#[test]
+fn a_document_over_the_server_s_limits_says_it_is_too_big() {
+    let here = Here::new();
+    let long = "a".repeat(Limits::default().text as usize + 1);
+
+    let refused = share(&here, SERVER, &long, &Chosen::default(), &voucher(), None).unwrap_err();
+    assert_eq!(refused.code, "shareTooBig");
+}

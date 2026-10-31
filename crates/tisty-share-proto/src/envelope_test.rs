@@ -769,6 +769,10 @@ fn a_name_is_a_readable_line_of_at_most_eighty_characters_with_nothing_unseen() 
         "\u{3164}",
         "Ana\u{2028}Pérez",
         "12345 67890 12345 67890",
+        "12345 67890 12345 6789O",
+        "Ana\u{180B}",
+        "Ana\u{17B4}",
+        "Ana\u{1D173}",
         "Ana\u{E0041}",
         long.as_str(),
     ] {
@@ -788,7 +792,14 @@ fn a_name_is_a_readable_line_of_at_most_eighty_characters_with_nothing_unseen() 
 fn a_name_of_any_alphabet_up_to_eighty_characters_is_signed() {
     let mario = machine(1);
     let longest = "日".repeat(NAME_AT_MOST);
-    for name in ["Mario Hidalgo", "José Núñez", "王小明", longest.as_str()] {
+    for name in [
+        "Mario Hidalgo",
+        "José Núñez",
+        "王小明",
+        "R2D2",
+        "Sala 101",
+        longest.as_str(),
+    ] {
         let signer = Signer {
             name: Some(name),
             ..mario.signer()

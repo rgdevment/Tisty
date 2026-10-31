@@ -663,11 +663,14 @@ fn bound(written: &[u8]) -> Vec<u8> {
 }
 
 /// A name is a line a person can read as written: not too long, no edge of spaces, nothing unseen that hides
-/// a letter or turns the text around, and at least one letter, so it never passes for a fingerprint.
+/// a letter or turns the text around, and no more digits than letters, so it never passes for a fingerprint.
 pub fn named_well(name: &str) -> bool {
+    let letters = name.chars().filter(|one| one.is_alphabetic()).count();
+    let digits = name.chars().filter(char::is_ascii_digit).count();
     name.trim() == name
         && name.chars().count() <= NAME_AT_MOST
-        && name.chars().any(char::is_alphabetic)
+        && letters > 0
+        && digits <= letters
         && !name.chars().any(|one| one.is_control() || unseen(one))
 }
 

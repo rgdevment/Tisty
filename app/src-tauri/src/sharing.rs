@@ -3,7 +3,7 @@ use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tisty_core::event::Shared;
-use tisty_share_proto::envelope::{self, Draft, LinkKey, Signer};
+use tisty_share_proto::envelope::{self, Draft, LinkKey, Refused as Unsealed, Signer};
 use tisty_share_proto::identity::{REVOCATIONS_AT_ONCE, Revocation};
 use tisty_share_proto::limits::Limits;
 use tisty_share_proto::work::{self, Challenge};
@@ -117,7 +117,7 @@ fn refused(said: &Said) -> Refusal {
     match word.as_deref() {
         // The one no the person can act on: this machine's key was taken back or never held.
         Some("unsigned") => Refusal::of("shareUnsigned"),
-        Some("too_long" | "envelope") => Refusal::of("shareTooBig"),
+        Some("too_large") => Refusal::of("shareTooBig"),
         Some("slow") => Refusal::of("shareSlow"),
         // The server's own trouble, or no word at all: nothing the person can do but try again.
         Some("store" | "crowded" | "work_refused" | "no_randomness") | None => {
@@ -209,8 +209,15 @@ pub(crate) fn share(
         text,
         pictures: &[],
     };
-    let sealed = envelope::seal(&link_key, &draft, Some(&signer), &limits)
-        .map_err(|_| Refusal::of("shareFailed"))?;
+    let sealed =
+        envelope::seal(&link_key, &draft, Some(&signer), &limits).map_err(|why| match why {
+            // Sealed against the server's own limits, so a document over them is told here, never by the server.
+            Unsealed::TextTooBig
+            | Unsealed::PictureTooBig
+            | Unsealed::PicturesTooBig
+            | Unsealed::TooManyPictures => Refusal::of("shareTooBig"),
+            _ => Refusal::of("shareFailed"),
+        })?;
     let work = worked(
         wire,
         json!({
