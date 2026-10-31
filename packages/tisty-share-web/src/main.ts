@@ -85,9 +85,14 @@ const taken = (page: Page): Found => {
 };
 
 // Every document is signed by whoever wrote it; one that is not never reaches the page (decision 71).
-const read = (sealed: Uint8Array, key: string, limits?: string): Found | string => {
+const read = (
+  sealed: Uint8Array,
+  key: string,
+  revoked?: string,
+  limits?: string,
+): Found | string => {
   try {
-    const found = taken(open(sealed, key, limits));
+    const found = taken(open(sealed, key, revoked, limits));
     return found.about.wrote ? found : "unsigned";
   } catch (error_) {
     return wordOf(error_);
@@ -106,11 +111,14 @@ const opened = async (password?: string): Promise<Read | string> => {
   const [answer, loaded] = await Promise.all([fetched(link.id, fetch, password), loading]);
   if ("refused" in answer) return answer.refused;
   if (!loaded) return "offline";
-  let found = read(answer.sealed, link.key);
+  let found = read(answer.sealed, link.key, answer.revoked);
   // Only an envelope over Tisty's own limits needs the server's, so a reading mostly asks the Worker once.
   if (found === "over") {
     const limits = await limitsOf();
-    found = "refused" in limits ? limits.refused : read(answer.sealed, link.key, limits.limits);
+    found =
+      "refused" in limits
+        ? limits.refused
+        : read(answer.sealed, link.key, answer.revoked, limits.limits);
   }
   return typeof found === "string" ? found : { ...found, facts: answer.facts, link };
 };

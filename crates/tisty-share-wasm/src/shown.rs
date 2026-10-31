@@ -1,6 +1,6 @@
 use serde::Serialize;
 use tisty_share_proto::envelope::{Envelope, Kind, LinkKey, Refused, open};
-use tisty_share_proto::identity::Verdict;
+use tisty_share_proto::identity::{Revocation, Verdict};
 use tisty_share_proto::limits::Limits;
 use zeroize::Zeroizing;
 
@@ -72,16 +72,21 @@ impl Unread {
     }
 }
 
-/// Opens what the server sent with the key from the link, under Tisty's limits or the wider of those and the server's.
-pub fn shown(envelope: Vec<u8>, key: &str, limits: Option<&str>) -> Result<Shown, Unread> {
+/// Opens what the server sent with the key from the link, under Tisty's limits or the wider of those and the server's,
+/// told of the keys taken back that the server passed on beside it.
+pub fn shown(
+    envelope: Vec<u8>,
+    key: &str,
+    limits: Option<&str>,
+    revoked: Option<&str>,
+) -> Result<Shown, Unread> {
     let key = LinkKey::from_text(key).ok_or(Unread::Keyless)?;
     let limits = match limits {
         Some(said) => roomier(serde_json::from_str(said).map_err(|_| Unread::Limitless)?),
         None => Limits::default(),
     };
     let envelope = Envelope::read(envelope, &limits).map_err(Unread::Envelope)?;
-    // The web learns of no revocation; a revoked key shows as holding until Tisty is asked.
-    let opened = open(&key, &envelope, &[]).map_err(Unread::Envelope)?;
+    let opened = open(&key, &envelope, &taken_back(revoked)).map_err(Unread::Envelope)?;
     let html = tisty_markdown::html(&tisty_markdown::read(&opened.text));
     let about = About {
         title: tisty_markdown::front::title(&opened.text),
@@ -96,6 +101,15 @@ pub fn shown(envelope: Vec<u8>, key: &str, limits: Option<&str>) -> Result<Shown
         about,
         pictures: opened.pictures,
     })
+}
+
+/// Only what a root signed is believed: the server can leave a revocation out, never make one up.
+fn taken_back(said: Option<&str>) -> Vec<Revocation> {
+    let mut revoked: Vec<Revocation> = said
+        .and_then(|said| serde_json::from_str(said).ok())
+        .unwrap_or_default();
+    revoked.retain(|one| one.holds().is_ok());
+    revoked
 }
 
 /// A server's limits bound what it takes from now on, so lowering them must not lock out what it took before.

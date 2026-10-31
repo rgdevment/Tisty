@@ -31,7 +31,7 @@ fn sealed(text: &str, pictures: &[(Kind, &[u8])], by: Option<&Signer>) -> Vec<u8
 }
 
 fn read(envelope: Vec<u8>) -> Result<Shown, Unread> {
-    shown(envelope, &key(1).to_text(), None)
+    shown(envelope, &key(1).to_text(), None, None)
 }
 
 #[test]
@@ -95,21 +95,21 @@ fn names_who_signed_it() {
 
 #[test]
 fn another_key_finds_it_locked() {
-    let refused = shown(sealed(TEXT, &[], None), &key(2).to_text(), None);
+    let refused = shown(sealed(TEXT, &[], None), &key(2).to_text(), None, None);
     assert_eq!(refused.err().map(|unread| unread.word()), Some("locked"));
 }
 
 #[test]
 fn a_link_without_a_key_is_keyless() {
     for said in ["", "not a key", "AAAA"] {
-        let refused = shown(sealed(TEXT, &[], None), said, None);
+        let refused = shown(sealed(TEXT, &[], None), said, None, None);
         assert_eq!(refused.err(), Some(Unread::Keyless), "{said:?}");
     }
 }
 
 #[test]
 fn limits_that_do_not_read_are_limitless() {
-    let refused = shown(sealed(TEXT, &[], None), &key(1).to_text(), Some("{"));
+    let refused = shown(sealed(TEXT, &[], None), &key(1).to_text(), Some("{"), None);
     assert_eq!(refused.err(), Some(Unread::Limitless));
 }
 
@@ -123,7 +123,7 @@ fn bytes_that_are_no_envelope_are_damaged() {
 fn a_server_that_now_takes_less_still_opens_what_it_took() {
     let shut = serde_json::json!({ "text": 8, "pictures": 0, "kinds": [] }).to_string();
     let envelope = sealed(TEXT, &[(Kind::Png, &png(40))], None);
-    let page = shown(envelope, &key(1).to_text(), Some(&shut)).unwrap();
+    let page = shown(envelope, &key(1).to_text(), Some(&shut), None).unwrap();
     assert_eq!(page.pictures.len(), 1);
 }
 
@@ -143,8 +143,8 @@ fn a_server_that_takes_more_opens_what_only_it_took() {
     };
     let envelope = seal(&key(1), &draft, None, &roomy).unwrap().into_bytes();
     let said = serde_json::to_string(&roomy).unwrap();
-    assert!(shown(envelope.clone(), &key(1).to_text(), Some(&said)).is_ok());
-    let refused = shown(envelope, &key(1).to_text(), None).err();
+    assert!(shown(envelope.clone(), &key(1).to_text(), Some(&said), None).is_ok());
+    let refused = shown(envelope, &key(1).to_text(), None, None).err();
     assert_eq!(refused.as_ref().map(Unread::word), Some("over"));
     assert_eq!(refused, Some(Unread::Envelope(Refused::TextTooBig)));
 }
@@ -177,4 +177,37 @@ fn every_part_of_the_tisty_language_draws_as_the_app_draws_it() {
         );
         assert_eq!(page.text.as_str(), guide);
     }
+}
+
+#[test]
+fn says_a_key_taken_back_and_believes_only_what_its_root_signed() {
+    let root = Root::from_bytes(&[7; 32]);
+    let share = ShareKey::from_bytes(&[8; 32]);
+    let certificate = root.certify(&share.public(), Timestamp::from_second(1_000).unwrap());
+    let signer = Signer {
+        key: &share,
+        certificate: &certificate,
+    };
+    let envelope = sealed(TEXT, &[], Some(&signer));
+    let taken = root.revoke(&share.public(), Timestamp::from_second(2_000).unwrap());
+    let mut forged = taken.clone();
+    forged.at = Timestamp::from_second(3_000).unwrap();
+    let told = |revoked: &[&tisty_share_proto::identity::Revocation]| {
+        let said = serde_json::to_string(revoked).unwrap();
+        shown(envelope.clone(), &key(1).to_text(), None, Some(&said))
+            .unwrap()
+            .about
+            .wrote
+    };
+
+    assert!(matches!(
+        told(&[&taken]),
+        Some(Signed::Revoked { at: 2_000, .. })
+    ));
+    assert!(matches!(told(&[&forged]), Some(Signed::Holds { .. })));
+    let garbled = shown(envelope.clone(), &key(1).to_text(), None, Some("{"));
+    assert!(matches!(
+        garbled.unwrap().about.wrote,
+        Some(Signed::Holds { .. })
+    ));
 }
