@@ -25,6 +25,20 @@ export interface ShareCard {
   info: ShareInfo | null;
 }
 
+/** A line that reads like a key or a password, and what it calls it when it does. */
+export interface ShareSecret {
+  line: number;
+  named: string;
+  under: string | null;
+}
+
+/** What «Share» says before anything goes out; `signsAs` is null when the key signs alone. */
+export interface ShareLook {
+  secrets: ShareSecret[];
+  signsAs: string | null;
+}
+
+export const shareLook = (file: string): Promise<ShareLook> => invoke("share_look", { file });
 export const shareDoc = (file: string, chosen: ShareChosen): Promise<ShareCard> =>
   invoke("share_doc", { file, chosen });
 export const shareCard = (file: string): Promise<ShareCard | null> =>
