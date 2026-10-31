@@ -317,6 +317,8 @@ const SOUNDS_LIKE: &[&str] = &[
     "AUTH",
     "SIGNATURE",
     "KEY",
+    "CLAVE",
+    "CONTRASEÑA",
 ];
 
 const KNOWN_STARTS: &[&str] = &[
@@ -376,17 +378,66 @@ fn bared(said: &str) -> &str {
 
 fn a_name(key: &str) -> Option<&str> {
     let name = key.trim().rsplit([' ', '\t']).next()?.trim();
-    let name = name.trim_start_matches(['"', '\'', '`']);
+    // Markdown's bold wraps a name as often as a quote does.
+    let name = name.trim_matches('*').trim_start_matches(['"', '\'', '`']);
     let plain = !name.is_empty()
         && name
             .chars()
-            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.'));
+            .all(|c| c.is_alphanumeric() || matches!(c, '_' | '-' | '.'));
     plain.then_some(name)
 }
 
+// Words that end in KEY and keep nothing, which a whole document says far more often than a file of settings does.
+const NOT_A_KEY: &[&str] = &[
+    "HOTKEY",
+    "MONKEY",
+    "TURKEY",
+    "DONKEY",
+    "JOCKEY",
+    "HOCKEY",
+    "WHISKEY",
+    "LACKEY",
+    "TURNKEY",
+    "LATCHKEY",
+    "PUBKEY",
+    "PUBLICKEY",
+];
+
 fn sounds_like_a_credential(name: &str) -> bool {
-    let loud = name.to_ascii_uppercase();
-    SOUNDS_LIKE.iter().any(|one| loud.contains(one))
+    let loud = name.to_uppercase();
+    let words = words_of(name);
+    SOUNDS_LIKE.iter().any(|one| match *one {
+        "KEY" => words
+            .iter()
+            .any(|word| word.ends_with("KEY") && !NOT_A_KEY.contains(&word.as_str())),
+        one => loud.contains(one),
+    })
+}
+
+// Split where camelCase turns upper and where an acronym meets a word, so SSHKey and sshKey are both a KEY.
+fn words_of(name: &str) -> Vec<String> {
+    let mut words = vec![String::new()];
+    let letters: Vec<char> = name.chars().collect();
+    for (at, &one) in letters.iter().enumerate() {
+        if !one.is_alphanumeric() {
+            words.push(String::new());
+            continue;
+        }
+        let before = at.checked_sub(1).map(|at| letters[at]);
+        let after = letters.get(at + 1).copied();
+        let turns = before.is_some_and(char::is_lowercase) && one.is_uppercase();
+        let acronym_ends = before.is_some_and(char::is_uppercase)
+            && one.is_uppercase()
+            && after.is_some_and(char::is_lowercase);
+        if turns || acronym_ends {
+            words.push(String::new());
+        }
+        if let Some(word) = words.last_mut() {
+            word.extend(one.to_uppercase());
+        }
+    }
+    words.retain(|word| !word.is_empty());
+    words
 }
 
 fn stands_for_something_else(value: &str) -> bool {
@@ -448,6 +499,25 @@ fn told_alone(line: &str) -> Option<(bool, &str, &'static str)> {
     })
 }
 
+// A provider's prefix gives a key away anywhere: in a sentence, a table cell or between backticks.
+fn told_within(line: &str) -> Option<(bool, &str, &'static str)> {
+    line.split_whitespace()
+        .map(|word| word.trim_matches(['`', '"', '\'', '*', '(', ')', '[', ']', ',', ';', '|']))
+        .filter(|word| word.len() >= SHORTEST_KNOWN)
+        .find_map(|word| {
+            let named = KNOWN_STARTS.iter().find(|one| word.starts_with(**one))?;
+            // In prose a prefix also opens names like npm_config_user_agent and placeholders like sk_test_XXXX.
+            let rest = &word[named.len()..];
+            let first = rest.chars().next();
+            let placeholder = rest.chars().all(|one| Some(one) == first);
+            let identifier = rest
+                .chars()
+                .all(|one| one.is_ascii_lowercase() || one == '_');
+            (!placeholder && !identifier).then_some(*named)
+        })
+        .map(|named| (true, named, "a value carrying a provider's key prefix"))
+}
+
 fn told_by(line: &str) -> Option<(bool, &str, &'static str)> {
     written_as(line, '=').or_else(|| written_as(line, ':'))
 }
@@ -500,36 +570,48 @@ fn written_as(line: &str, mark: char) -> Option<(bool, &str, &'static str)> {
     ))
 }
 
+// A key or a PKCS#12 opens its sequence with a version number; a certificate opens it with another sequence, and is public.
+fn der_key(head: &[u8]) -> bool {
+    head.starts_with(&[0x30, 0x82]) && head.get(4) == Some(&0x02)
+}
+
+// Only the line that opens a private key: a certificate is public, and words about keys are only words.
+fn opens_a_private_key(line: &str) -> bool {
+    line.contains("-----BEGIN") && line.contains("PRIVATE KEY")
+}
+
 pub fn a_key_itself(head: &[u8]) -> Option<Telling> {
     let told = |line: usize, why| Telling {
         line,
         named: String::new(),
         why,
     };
-    if head.starts_with(&[0x30, 0x82]) {
+    if der_key(head) {
         return Some(told(1, "a DER-encoded key"));
     }
     let text = String::from_utf8_lossy(head);
-    if text.contains("-----BEGIN") && (text.contains("PRIVATE KEY") || text.contains("CERTIFICATE"))
-    {
-        let at = text
-            .lines()
-            .position(|one| one.contains("-----BEGIN"))
-            .unwrap_or(0);
-        return Some(told(at + 1, "a PEM private key or certificate"));
+    if let Some(at) = text.lines().position(opens_a_private_key) {
+        return Some(told(at + 1, "a PEM private key"));
     }
     None
 }
 
 pub fn secrets_in(head: &[u8]) -> Vec<Telling> {
-    if let Some(told) = a_key_itself(head) {
-        return vec![told];
+    if head.starts_with(&[0x30, 0x82]) {
+        return a_key_itself(head).into_iter().collect();
     }
     let text = String::from_utf8_lossy(head);
     let mut seen = Vec::new();
     let mut sure = false;
     for (at, line) in text.lines().enumerate() {
-        let Some((certain, name, why)) = told_by(line).or_else(|| told_alone(line)) else {
+        // Other lines still count after a key: a document can hold more than one.
+        let told = match opens_a_private_key(line) {
+            true => Some((true, "", "a PEM private key")),
+            false => told_by(line)
+                .or_else(|| told_alone(line))
+                .or_else(|| told_within(line)),
+        };
+        let Some((certain, name, why)) = told else {
             continue;
         };
         sure |= certain;

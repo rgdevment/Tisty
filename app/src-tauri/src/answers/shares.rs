@@ -94,6 +94,113 @@ async fn apart<T: Send + 'static>(work: impl FnOnce() -> Answer<T> + Send + 'sta
         .map_err(|_| Refusal::of("internal"))?
 }
 
+/// A line that reads like a key or a password, which «Share» names before anyone with the link can read it.
+#[derive(Debug, PartialEq, Eq, Serialize)]
+pub struct Secret {
+    line: usize,
+    /// What the line calls it, when it calls it anything, such as `AWS_SECRET_ACCESS_KEY`.
+    named: String,
+    /// The heading it sits under, since the page shows headings and no line numbers.
+    under: Option<String>,
+}
+
+fn secrets(text: &str) -> Vec<Secret> {
+    let over = headings_over(text);
+    tisty_core::agent::secrets_in(text.as_bytes())
+        .into_iter()
+        .map(|one| Secret {
+            line: one.line,
+            named: one.named,
+            under: over.get(one.line.saturating_sub(1)).cloned().flatten(),
+        })
+        .collect()
+}
+
+// The heading over each line in one pass, past the properties and outside fenced code, where a `#` is a comment.
+fn headings_over(text: &str) -> Vec<Option<String>> {
+    let skipped = properties_end(text).unwrap_or(0);
+    let mut fenced = false;
+    let mut heading = None;
+    let mut over = Vec::new();
+    for (at, one) in text.lines().enumerate() {
+        over.push(heading.clone());
+        let one = one.trim_start();
+        if at < skipped {
+            continue;
+        }
+        if one.starts_with("```") || one.starts_with("~~~") {
+            fenced = !fenced;
+            continue;
+        }
+        let marks = one.len() - one.trim_start_matches('#').len();
+        let said = one[marks..].strip_prefix(' ').map(str::trim);
+        if !fenced
+            && (1..=6).contains(&marks)
+            && let Some(said) = said.filter(|said| !said.is_empty())
+        {
+            heading = Some(said.to_owned());
+        }
+    }
+    over
+}
+
+// Lines the properties take, only when the first `---` closes over lines that read `key: value`; a rule is no properties.
+fn properties_end(text: &str) -> Option<usize> {
+    let mut lines = text.lines();
+    if lines.next()?.trim_end() != "---" {
+        return None;
+    }
+    let inside = lines.position(|one| one.trim_end() == "---")?;
+    let a_property = |one: &str| {
+        one.split_once(':')
+            .is_some_and(|(key, _)| !key.is_empty() && !key.contains(' '))
+    };
+    let said = text.lines().skip(1).take(inside);
+    let properties = said.clone().any(a_property)
+        && said
+            .filter(|one| !one.trim().is_empty() && !one.starts_with([' ', '-', '#']))
+            .all(a_property);
+    properties.then_some(inside + 2)
+}
+
+/// What «Share» says before anything goes out: what reads like a key, and the name the share will be signed with.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Look {
+    secrets: Vec<Secret>,
+    /// None when neither the name nor the alias is fit to sign, so the key speaks alone.
+    signs_as: Option<String>,
+}
+
+// The name the person signs with, or else their alias, held to what an envelope takes.
+fn signing_name(signed: &tisty_core::event::Signature) -> Option<String> {
+    [&signed.name, &signed.alias]
+        .into_iter()
+        .flatten()
+        .map(|one| one.trim())
+        .find(|one| tisty_share_proto::envelope::named_well(one))
+        .map(str::to_owned)
+}
+
+#[tauri::command]
+pub async fn share_look(session: tauri::State<'_, Mutex<Session>>, file: String) -> Answer<Look> {
+    let (docs, signs_as) = {
+        let session = held(&session);
+        doc_of(&session, &file)?;
+        (session.paths.docs(), signing_name(&session.state.signed))
+    };
+    // A long document takes a moment to read and look through, so neither holds the window or the session.
+    apart(move || {
+        let text = tisty_core::docs::read(&docs, &file)
+            .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
+        Ok(Look {
+            secrets: secrets(&text),
+            signs_as,
+        })
+    })
+    .await
+}
+
 #[tauri::command]
 pub async fn share_doc(
     session: tauri::State<'_, Mutex<Session>>,
@@ -120,14 +227,7 @@ pub async fn share_doc(
         let text = tisty_core::docs::read(&session.paths.docs(), &file)
             .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
         let (voucher, me) = sharer(&session).ok_or(Refusal::of("shareNoKey"))?;
-        // The name the person signs with, or else their alias; with neither one fit to sign, the key speaks alone.
-        let signed = &session.state.signed;
-        let name = [&signed.name, &signed.alias]
-            .into_iter()
-            .flatten()
-            .map(|one| one.trim())
-            .find(|one| tisty_share_proto::envelope::named_well(one))
-            .map(str::to_owned);
+        let name = signing_name(&session.state.signed);
         (doc, text, voucher, taken_back_by(&session, &me), name)
     };
     let (shared, info) = apart(move || {
@@ -223,3 +323,7 @@ pub async fn share_stop(session: tauri::State<'_, Mutex<Session>>, file: String)
         .commit(Op::ShareStop { id: doc })
         .map_err(Refusal::from)
 }
+
+#[cfg(test)]
+#[path = "shares_test.rs"]
+mod tests;

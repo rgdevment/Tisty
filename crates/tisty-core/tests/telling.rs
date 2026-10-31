@@ -82,7 +82,7 @@ MIIEpAIBAAKCAQEA
 -----END RSA PRIVATE KEY-----"#;
 
     assert!(a_key_itself(pem.as_bytes()).is_some());
-    assert!(a_key_itself(&[0x30, 0x82, 0x04, 0xa4]).is_some());
+    assert!(a_key_itself(&[0x30, 0x82, 0x04, 0xa4, 0x02, 0x01, 0x00]).is_some());
     assert!(
         a_key_itself(r#"DB_PASSWORD=Tr0ub4dor3xK"#.as_bytes()).is_none(),
         "una linea de configuracion no es una clave en si"
