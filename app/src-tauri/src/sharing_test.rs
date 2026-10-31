@@ -170,3 +170,15 @@ fn stopping_leaves_the_link_leading_nowhere() {
     assert_eq!(refused.code, "shareRefused");
     assert_eq!(refused.name.as_deref(), Some("missing"));
 }
+
+#[test]
+fn a_key_taken_back_reaches_the_server_and_shares_nothing_more() {
+    let here = Here::new();
+    let (key, _) = voucher();
+    let at = jiff::Timestamp::from_second(T0).unwrap();
+    let taken = Seed::from_bytes(&[7; 32]).root().revoke(&key.public(), at);
+    revoke(&here, &[taken.clone(), taken]).unwrap();
+
+    let refused = share(&here, SERVER, "Hola", &Chosen::default(), &voucher()).unwrap_err();
+    assert_eq!(refused.code, "shareUnsigned");
+}

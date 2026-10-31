@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tisty_core::event::Shared;
 use tisty_share_proto::envelope::{self, Draft, LinkKey, Signer};
+use tisty_share_proto::identity::Revocation;
 use tisty_share_proto::limits::Limits;
 use tisty_share_proto::work::{self, Challenge};
 
@@ -114,6 +115,10 @@ fn refused(said: &Said) -> Refusal {
         .ok()
         .and_then(|value| value["refused"].as_str().map(str::to_owned))
         .unwrap_or_else(|| said.status.to_string());
+    // The one no the person can act on: this machine's key was taken back or never held.
+    if word == "unsigned" {
+        return Refusal::of("shareUnsigned");
+    }
     Refusal::about("shareRefused", word)
 }
 
@@ -247,6 +252,40 @@ pub(crate) fn stop(wire: &impl Wire, shared: &Shared) -> Result<(), Refusal> {
 /// The server no longer holds it: it ran out, or was stopped from another machine.
 pub(crate) fn already_gone(refused: &Refusal) -> bool {
     refused.code == "shareRefused" && matches!(refused.name.as_deref(), Some("missing" | "gone"))
+}
+
+/// Hands the server a root's word taking keys back, so readers stop seeing what they signed as holding (decision 73).
+pub(crate) fn revoke(wire: &impl Wire, revoked: &[Revocation]) -> Result<(), Refusal> {
+    for one in revoked {
+        let body = serde_json::to_vec(one).map_err(|_| Refusal::of("internal"))?;
+        done(wire.send(Asking {
+            method: "POST",
+            path: "revocations".into(),
+            token: None,
+            work: None,
+            body,
+        })?)?;
+    }
+    Ok(())
+}
+
+/// Tells the server in the background; one that cannot be reached hears it with the next share.
+pub(crate) fn revoke_later(revoked: Vec<Revocation>) {
+    if revoked.is_empty() {
+        return;
+    }
+    tauri::async_runtime::spawn_blocking(move || {
+        if let Err(refused) = Net::to(SERVER).and_then(|wire| revoke(&wire, &revoked)) {
+            tisty_core::witness::note(
+                tisty_core::witness::channel::WINDOW,
+                "Tisty Share did not hear that a key was taken back; the next share tells it",
+                &[(
+                    "why",
+                    tisty_core::witness::Fact::Why(refused.code.to_string()),
+                )],
+            );
+        }
+    });
 }
 
 /// The link to read it, and the one to edit it when it was handed out (decision 66).

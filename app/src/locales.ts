@@ -634,6 +634,8 @@ const en = {
   shareOffline: "Tisty Share could not be reached. Check your connection and try again.",
   shareRefused: "Tisty Share did not take it ({name}).",
   shareAlready: "This document is already shared.",
+  shareUnsigned:
+    "Tisty Share did not take this computer's signature: its key was taken back. Type your phrase here to give it a new one.",
   shareNotMine:
     "This document is someone else's: only its author can share it. Ask them for the link.",
   shareNoKey:
@@ -3351,6 +3353,8 @@ const es: Catalog = {
   shareOffline: "No se pudo llegar a Tisty Share. Revisa tu conexión e inténtalo de nuevo.",
   shareRefused: "Tisty Share no lo aceptó ({name}).",
   shareAlready: "Este documento ya está compartido.",
+  shareUnsigned:
+    "Tisty Share no aceptó la firma de este equipo: su llave fue retirada. Escribe tu frase aquí para darle una nueva.",
   shareNotMine:
     "Este documento es de otra persona: solo quien lo escribió puede compartirlo. Pídele el link.",
   shareNoKey:
