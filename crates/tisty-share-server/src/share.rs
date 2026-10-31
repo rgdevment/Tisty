@@ -243,15 +243,23 @@ impl<S: Store, R: Randomness> Share<S, R> {
     }
 
     /// The work a step costs, signed so only this server's challenges are taken.
-    pub async fn challenge(&mut self, ask: Ask<'_>, now: i64) -> Result<Challenge, Refused> {
+    pub async fn challenge(
+        &mut self,
+        ask: Ask<'_>,
+        caller: IpAddr,
+        now: i64,
+    ) -> Result<Challenge, Refused> {
         let work = self.policy.work;
         let bits = match ask {
             Ask::Reserve => work.reserve,
             Ask::Upload { bytes, .. } => work.for_upload(bytes),
             Ask::Report { .. } => work.report,
             Ask::Password { id } => {
-                // Only a document that asks for a password asks for work with it, so no other id costs a look.
-                if self.live(id, now).await?.gate.is_none() {
+                // Counted as a read, and only for a document a reader could open with a password, so no other id costs a look.
+                self.admit(caller, Act::Read, now).await?;
+                let doc = self.live(id, now).await?;
+                open_to_read(&doc)?;
+                if doc.gate.is_none() {
                     return Err(Refused::Forbidden);
                 }
                 u8::max(self.password_work(id, now).await?, work.password)
@@ -637,7 +645,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
         let (tries, rights, until) = self.tries(&doc.id, caller, now);
         // Counted before the password is weighed, so guesses sent together cannot all slip in under the limit.
         let tried = self.store.count(&tries, 1, until, now).await?;
-        // The right ones are looked up only past the limit, so a reader who knows the password costs one count.
+        // The right ones are looked up only past the limit, so a reader who knows the password costs two counts and no look.
         if tried > self.policy.misses
             && tried.saturating_sub(self.store.counted(&rights, now).await?) > self.policy.misses
         {

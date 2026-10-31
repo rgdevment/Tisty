@@ -175,16 +175,18 @@ async fn routed<S: Store, R: Randomness>(
         ("POST", ["challenge"]) => {
             let asking: Asking = read(&asked.body)?;
             let challenge = match &asking {
-                Asking::Reserve => share.challenge(Ask::Reserve, now).await?,
+                Asking::Reserve => share.challenge(Ask::Reserve, caller, now).await?,
                 Asking::Upload { id, digest, bytes } => {
                     let digest = digest_of(digest).ok_or(Turned::Unreadable)?;
                     let bytes = *bytes;
                     share
-                        .challenge(Ask::Upload { id, digest, bytes }, now)
+                        .challenge(Ask::Upload { id, digest, bytes }, caller, now)
                         .await?
                 }
-                Asking::Report { id } => share.challenge(Ask::Report { id }, now).await?,
-                Asking::Password { id } => share.challenge(Ask::Password { id }, now).await?,
+                Asking::Report { id } => share.challenge(Ask::Report { id }, caller, now).await?,
+                Asking::Password { id } => {
+                    share.challenge(Ask::Password { id }, caller, now).await?
+                }
             };
             Ok(said(200, json!(challenge)))
         }

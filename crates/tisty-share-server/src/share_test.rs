@@ -101,7 +101,7 @@ impl World {
     }
 
     fn proof(&mut self, ask: Ask, now: i64) -> Proof {
-        work::solve(&done(self.share.challenge(ask, now)).unwrap()).unwrap()
+        work::solve(&done(self.share.challenge(ask, HERE, now)).unwrap()).unwrap()
     }
 
     fn reserve_from(&mut self, caller: IpAddr, now: i64) -> Result<Reserved, Refused> {
@@ -438,7 +438,10 @@ fn a_document_guessed_at_from_everywhere_asks_work_with_every_password() {
 
     // Each doubling of the guesses asks two more bits; the next day starts clean.
     let base = world.share.policy.work.password;
-    assert_eq!(done(world.share.challenge(ask, T0)).unwrap().bits, base);
+    assert_eq!(
+        done(world.share.challenge(ask, HERE, T0)).unwrap().bits,
+        base
+    );
     for place in 5..=8 {
         assert_eq!(
             world.read_from(&reserved.id, Some("gato"), there(place), T0),
@@ -450,7 +453,10 @@ fn a_document_guessed_at_from_everywhere_asks_work_with_every_password() {
             Err(Refused::PasswordWrong)
         );
     }
-    assert_eq!(done(world.share.challenge(ask, T0)).unwrap().bits, base + 2);
+    assert_eq!(
+        done(world.share.challenge(ask, HERE, T0)).unwrap().bits,
+        base + 2
+    );
     assert!(
         world
             .read_from(&reserved.id, Some("perro azul"), HERE, T0 + DAY)
@@ -483,12 +489,36 @@ fn only_a_document_that_asks_for_a_password_hands_out_work_for_one() {
     let mut world = World::new();
     let open = world.shared(T0);
     assert_eq!(
-        done(world.share.challenge(Ask::Password { id: &open.id }, T0)).err(),
+        done(
+            world
+                .share
+                .challenge(Ask::Password { id: &open.id }, HERE, T0)
+        )
+        .err(),
         Some(Refused::Forbidden)
     );
     assert_eq!(
-        done(world.share.challenge(Ask::Password { id: "nadaaqui" }, T0)).err(),
+        done(
+            world
+                .share
+                .challenge(Ask::Password { id: "nadaaqui" }, HERE, T0)
+        )
+        .err(),
         Some(Refused::Missing)
+    );
+    let paused = world.shared(T0);
+    world
+        .manage(&paused, Manage::Password(Some("perro azul".into())), T0)
+        .unwrap();
+    world.manage(&paused, Manage::Pause, T0).unwrap();
+    assert_eq!(
+        done(
+            world
+                .share
+                .challenge(Ask::Password { id: &paused.id }, HERE, T0)
+        )
+        .err(),
+        Some(Refused::Paused)
     );
 }
 
@@ -714,7 +744,7 @@ fn a_reserved_id_with_nothing_uploaded_cannot_be_read_yet() {
 fn nothing_is_reserved_without_randomness() {
     let mut share = Share::new(Memory::default(), Empty, policy(), [5; 32]);
     assert_eq!(
-        done(share.challenge(Ask::Reserve, T0)).err(),
+        done(share.challenge(Ask::Reserve, HERE, T0)).err(),
         Some(Refused::NoRandomness)
     );
 }
@@ -746,7 +776,8 @@ fn every_step_pays_its_work_and_a_proof_answers_only_once() {
     );
 
     let mut other_server = Share::new(Memory::default(), Counting(0), policy(), [6; 32]);
-    let theirs = work::solve(&done(other_server.challenge(Ask::Reserve, T0)).unwrap()).unwrap();
+    let theirs =
+        work::solve(&done(other_server.challenge(Ask::Reserve, HERE, T0)).unwrap()).unwrap();
     assert_eq!(
         done(world.share.reserve(HERE, &theirs, T0)).err(),
         Some(Refused::WorkRefused)
@@ -837,7 +868,7 @@ fn a_heavier_envelope_costs_more_work_than_it_was_asked_for_when_it_claims_to_be
 #[test]
 fn the_server_s_own_work_is_solved_in_a_moment() {
     let mut world = World::with(Policy::default());
-    let challenge = done(world.share.challenge(Ask::Reserve, T0)).unwrap();
+    let challenge = done(world.share.challenge(Ask::Reserve, HERE, T0)).unwrap();
     assert_eq!(challenge.bits, Work::default().reserve);
     assert!(work::solve(&challenge).is_some());
 }
@@ -1254,14 +1285,14 @@ fn upload_faulty(
         digest: digest_of(&bytes),
         bytes: bytes.len() as u64,
     };
-    let proof = work::solve(&done(share.challenge(ask, T0)).unwrap()).unwrap();
+    let proof = work::solve(&done(share.challenge(ask, HERE, T0)).unwrap()).unwrap();
     done(share.upload(&reserved.id, &reserved.edit, bytes, HERE, &proof, T0))
 }
 
 #[test]
 fn an_upload_that_loses_the_race_leaves_nothing_of_itself_behind() {
     let mut share = faulty();
-    let proof = work::solve(&done(share.challenge(Ask::Reserve, T0)).unwrap()).unwrap();
+    let proof = work::solve(&done(share.challenge(Ask::Reserve, HERE, T0)).unwrap()).unwrap();
     let reserved = done(share.reserve(HERE, &proof, T0)).unwrap();
     share.store.lose.set(true);
     let first = sealed(&reserved.id, 1, None, "perdió");
@@ -1276,7 +1307,7 @@ fn an_upload_that_loses_the_race_leaves_nothing_of_itself_behind() {
 #[test]
 fn an_upload_that_keeps_nothing_spends_none_of_the_day() {
     let mut share = faulty();
-    let proof = work::solve(&done(share.challenge(Ask::Reserve, T0)).unwrap()).unwrap();
+    let proof = work::solve(&done(share.challenge(Ask::Reserve, HERE, T0)).unwrap()).unwrap();
     let reserved = done(share.reserve(HERE, &proof, T0)).unwrap();
     let first = sealed(&reserved.id, 1, None, "uno");
     share.policy.allowance.bytes_a_day = first.len() as u64;
@@ -1292,7 +1323,7 @@ fn an_upload_that_keeps_nothing_spends_none_of_the_day() {
 #[test]
 fn the_report_that_blocks_holds_its_block_even_when_it_loses_a_race() {
     let mut share = faulty();
-    let proof = work::solve(&done(share.challenge(Ask::Reserve, T0)).unwrap()).unwrap();
+    let proof = work::solve(&done(share.challenge(Ask::Reserve, HERE, T0)).unwrap()).unwrap();
     let reserved = done(share.reserve(HERE, &proof, T0)).unwrap();
     let first = sealed(&reserved.id, 1, None, "uno");
     upload_faulty(&mut share, &reserved, first).unwrap();
@@ -1301,7 +1332,7 @@ fn the_report_that_blocks_holds_its_block_even_when_it_loses_a_race() {
             share.store.lose.set(true);
         }
         let ask = Ask::Report { id: &reserved.id };
-        let proof = work::solve(&done(share.challenge(ask, T0)).unwrap()).unwrap();
+        let proof = work::solve(&done(share.challenge(ask, HERE, T0)).unwrap()).unwrap();
         let complaint = Complaint {
             category: Category::Phishing,
             detail: "pide la clave del banco".into(),
@@ -1320,7 +1351,7 @@ fn the_report_that_blocks_holds_its_block_even_when_it_loses_a_race() {
 #[test]
 fn a_host_s_own_limiter_decides_the_reads_and_its_wait_is_the_one_told() {
     let mut share = faulty();
-    let proof = work::solve(&done(share.challenge(Ask::Reserve, T0)).unwrap()).unwrap();
+    let proof = work::solve(&done(share.challenge(Ask::Reserve, HERE, T0)).unwrap()).unwrap();
     let reserved = done(share.reserve(HERE, &proof, T0)).unwrap();
     let first = sealed(&reserved.id, 1, None, "uno");
     upload_faulty(&mut share, &reserved, first).unwrap();
@@ -1341,7 +1372,7 @@ fn a_document_that_cannot_go_is_passed_over_and_the_rest_still_go() {
     let mut share = faulty();
     let mut ids = Vec::new();
     for _ in 0..3 {
-        let proof = work::solve(&done(share.challenge(Ask::Reserve, T0)).unwrap()).unwrap();
+        let proof = work::solve(&done(share.challenge(Ask::Reserve, HERE, T0)).unwrap()).unwrap();
         let reserved = done(share.reserve(HERE, &proof, T0)).unwrap();
         let first = sealed(&reserved.id, 1, None, "uno");
         upload_faulty(&mut share, &reserved, first).unwrap();
@@ -1371,7 +1402,7 @@ fn a_document_that_cannot_go_is_passed_over_and_the_rest_still_go() {
 #[test]
 fn old_counters_that_cannot_go_never_keep_documents_from_going() {
     let mut share = faulty();
-    let proof = work::solve(&done(share.challenge(Ask::Reserve, T0)).unwrap()).unwrap();
+    let proof = work::solve(&done(share.challenge(Ask::Reserve, HERE, T0)).unwrap()).unwrap();
     let reserved = done(share.reserve(HERE, &proof, T0)).unwrap();
     upload_faulty(&mut share, &reserved, sealed(&reserved.id, 1, None, "uno")).unwrap();
     share.store.unlapsing.set(true);
@@ -1437,7 +1468,7 @@ fn neither_link_reaches_an_earlier_version_of_a_blocked_or_paused_document() {
 #[test]
 fn two_readers_racing_to_write_their_visit_are_both_served() {
     let mut share = faulty();
-    let proof = work::solve(&done(share.challenge(Ask::Reserve, T0)).unwrap()).unwrap();
+    let proof = work::solve(&done(share.challenge(Ask::Reserve, HERE, T0)).unwrap()).unwrap();
     let reserved = done(share.reserve(HERE, &proof, T0)).unwrap();
     let first = sealed(&reserved.id, 1, None, "uno");
     upload_faulty(&mut share, &reserved, first).unwrap();
