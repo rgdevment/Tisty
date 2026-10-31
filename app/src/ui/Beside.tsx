@@ -1,12 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
-import { type Facts, fields, type Head, type Leaf, overgrown, type Panel } from "tisty-editor/read";
+import {
+  type Facts,
+  fields,
+  type Head,
+  type Leaf,
+  type Link,
+  overgrown,
+  type Panel,
+} from "tisty-editor/read";
 import type { Filed, Folded } from "../core";
 import { type DocFacts, docFacts, type Paper } from "../core";
 import { weigh } from "../format";
 import { waysOut } from "../leaving";
-import { t } from "../locales";
+import { fill, t } from "../locales";
+import { type ShareCard, shareCard, shareStop } from "../shares";
 import Menu, { type Choice } from "./Menu";
 import { dated, held, holdsOf } from "./paperFacts";
+import Sharing from "./Sharing";
 import SidePanels from "./SidePanels";
 import { often } from "./tagging";
 
@@ -51,6 +61,7 @@ interface Props {
   onApart: () => void;
   trail?: Folded[];
   onFolder?: (id: string | null) => void;
+  onError: (problem: unknown) => void;
 }
 
 const leafOf = (one: Filed, paper: string, onPage?: (doc: Filed) => void): Leaf => ({
@@ -87,12 +98,87 @@ const useFacts = (props: Props, facts: DocFacts | null): Facts => {
   }, [body, facts, tags, onFront]);
 };
 
+// How a share stands, in a few words: who can open it, when it ends and how often it was read.
+const gistOf = (card: ShareCard | null): string => {
+  if (!card) return t("sharedNot");
+  const info = card.info;
+  if (info?.blocked) return t("sharedBlocked");
+  if (info?.paused) return t("sharedPaused");
+  const reads =
+    info && (info.reads === 1 ? t("sharedReadsOne") : fill("sharedReads", String(info.reads)));
+  return [
+    t(card.gated ? "sharedGated" : "sharedUnlisted"),
+    info ? fill("sharedEnds", dated(info.ends)) : "",
+    reads ?? "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+};
+
+// The «Shared» row: an offer to share, or the links to hand out and a way to stop.
+const sharedPanel = (
+  card: ShareCard | null,
+  facts: DocFacts | null,
+  asked: { onShare: () => void; onStop: () => void },
+): Panel => {
+  // Someone else's document is not offered at all (decision 68); until its facts arrive nothing is offered either.
+  if (!card && facts?.shareable === "notMine")
+    return { kind: "shared", gist: t("sharedNotMine"), said: t("sharedNotMineWhy") };
+  if (!card && facts?.shareable === "noKey")
+    return { kind: "shared", gist: t("sharedNoKey"), said: t("sharedNoKeyWhy") };
+  if (!card)
+    return {
+      kind: "shared",
+      gist: t("sharedNot"),
+      said: t("sharedWhy"),
+      acts: facts
+        ? [{ key: "share", label: t("shareIt"), main: true, onPick: asked.onShare }]
+        : undefined,
+    };
+  const links: Link[] = [{ key: "read", label: t("shareLinkRead"), url: card.read }];
+  if (card.edit)
+    links.push({
+      key: "edit",
+      label: t("shareLinkEdit"),
+      url: card.edit,
+      note: t("shareLinkEditNote"),
+    });
+  return {
+    kind: "shared",
+    gist: gistOf(card),
+    tone: card.info?.blocked ? "bad" : card.info?.paused ? "warn" : "good",
+    said: card.info ? t("shareAdminKept") : t("sharedOffline"),
+    links,
+    acts: [{ key: "stop", label: t("shareStop"), onPick: asked.onStop }],
+  };
+};
+
+// The card is asked for once per document, and again only when this column changes it.
+const useShared = (paper: string) => {
+  const [card, setCard] = useState<ShareCard | null>(null);
+  useEffect(() => {
+    let gone = false;
+    setCard(null);
+    shareCard(paper)
+      .then((now) => {
+        if (!gone) setCard(now);
+      })
+      .catch(() => {});
+    return () => {
+      gone = true;
+    };
+  }, [paper]);
+  return [card, setCard] as const;
+};
+
 export default function Beside(props: Props) {
   const { paper, kept, heads, pages, up, onPage, trail = [], onFolder } = props;
   const outline = heads.filter((one) => one.level > 0);
   const short = outline.length + pages.length <= SHORT_OUTLINE;
   const [facts, setFacts] = useState<DocFacts | null>(null);
   const [out, setOut] = useState<{ x: number; y: number } | null>(null);
+  const [card, setCard] = useShared(paper);
+  const [sharing, setSharing] = useState(false);
 
   useEffect(() => {
     let gone = false;
@@ -148,7 +234,13 @@ export default function Beside(props: Props) {
       },
     },
     { kind: "details", facts: details, open: short },
-    { kind: "shared", gist: t("sharedSoon"), said: t("sharedWill") },
+    sharedPanel(card, facts, {
+      onShare: () => setSharing(true),
+      onStop: () =>
+        shareStop(paper)
+          .then(() => setCard(null))
+          .catch(props.onError),
+    }),
   ];
 
   return (
@@ -159,6 +251,18 @@ export default function Beside(props: Props) {
     >
       <SidePanels key={paper} panels={panels} className="min-h-0 flex-1" />
       {out && <Menu at={out} choices={ways} label={t("exportIt")} onClose={() => setOut(null)} />}
+      {sharing && (
+        <Sharing
+          file={paper}
+          title={props.title || t("untitledDoc")}
+          onShared={(made) => {
+            setCard(made);
+            setSharing(false);
+          }}
+          onClose={() => setSharing(false)}
+          onError={props.onError}
+        />
+      )}
     </aside>
   );
 }

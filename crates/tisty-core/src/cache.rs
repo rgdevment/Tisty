@@ -215,6 +215,8 @@ impl Cache {
         state.sealed = serde_json::from_str(&self.meta("sealed")?).ok()?;
         // Read back whole or not at all: an empty person here would quietly unsay every certificate.
         state.persons = serde_json::from_str(&self.meta("persons")?).ok()?;
+        // A cache from before shares were kept says nothing of them, so it is built again rather than read as none.
+        state.shares = serde_json::from_str(&self.meta("shares")?).ok()?;
         state.fill = if bodies {
             crate::state::Fill::Whole
         } else {
@@ -379,7 +381,7 @@ impl Cache {
                 }
             }
             tx.execute(
-                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('signed', ?), ('signed_before', ?), ('devices', ?), ('keys', ?), ('dropped', ?), ('retired', ?), ('shed', ?), ('agents', ?), ('assistants', ?), ('forebears', ?), ('hosts', ?), ('named', ?), ('runs', ?), ('heard', ?), ('sealed_at', ?), ('sealed', ?), ('persons', ?)",
+                "INSERT OR REPLACE INTO meta VALUES ('schema', ?), ('fingerprint', ?), ('signed', ?), ('signed_before', ?), ('devices', ?), ('keys', ?), ('dropped', ?), ('retired', ?), ('shed', ?), ('agents', ?), ('assistants', ?), ('forebears', ?), ('hosts', ?), ('named', ?), ('runs', ?), ('heard', ?), ('sealed_at', ?), ('sealed', ?), ('persons', ?), ('shares', ?)",
                 rusqlite::params![
                     SCHEMA.to_string(),
                     fingerprint,
@@ -400,6 +402,7 @@ impl Cache {
                     serde_json::to_string(&state.sealed_at).unwrap_or_default(),
                     serde_json::to_string(&state.sealed).unwrap_or_default(),
                     serde_json::to_string(&state.persons).unwrap_or_default(),
+                    serde_json::to_string(&state.shares).unwrap_or_default(),
                 ],
             )?;
             tx.commit()
@@ -414,10 +417,36 @@ impl Cache {
         Ok(())
     }
 
+    // Small enough to write whole on every step, so neither costs the cache a rebuild.
     fn heard_up(&self, state: &State) -> rusqlite::Result<usize> {
         self.db.execute(
-            "INSERT OR REPLACE INTO meta VALUES ('heard', ?)",
-            [serde_json::to_string(&state.heard).unwrap_or_default()],
+            "INSERT OR REPLACE INTO meta VALUES ('heard', ?), ('shares', ?)",
+            rusqlite::params![
+                serde_json::to_string(&state.heard).unwrap_or_default(),
+                serde_json::to_string(&state.shares).unwrap_or_default(),
+            ],
+        )
+    }
+
+    // Steps that only share touch no row, so nothing else would say the cache kept up; one thrown out stays out.
+    fn shared_up(&self, events: &[crate::Event], fingerprint: &str) -> rusqlite::Result<usize> {
+        let only_shares = events.iter().all(|one| {
+            matches!(
+                one.op,
+                crate::Op::ShareDoc { .. }
+                    | crate::Op::ShareVersion { .. }
+                    | crate::Op::ShareStop { .. }
+            )
+        });
+        if events.is_empty()
+            || !only_shares
+            || self.meta("fingerprint").is_none_or(|one| one.is_empty())
+        {
+            return Ok(0);
+        }
+        self.db.execute(
+            "INSERT OR REPLACE INTO meta VALUES ('fingerprint', ?)",
+            [fingerprint],
         )
     }
 
@@ -852,6 +881,7 @@ fn reached(
                 | crate::Op::AttachRetire { .. }
                 | crate::Op::Signed { .. }
                 | crate::Op::ShareKey { .. }
+                | crate::Op::ShareRoot { .. }
                 | crate::Op::ShareCertified { .. }
                 | crate::Op::ShareRevoked { .. }
                 // These reach the pages of a document, and a row at a time cannot say so.
@@ -874,7 +904,8 @@ fn reached(
         .iter()
         .filter_map(|event| event.entity_id())
         .all(|id| cache.touch(state, id, &print).is_ok())
-        && cache.heard_up(state).is_ok();
+        && cache.heard_up(state).is_ok()
+        && cache.shared_up(events, &print).is_ok();
     if !carried || cache.db.execute_batch("COMMIT").is_err() {
         let _ = cache.db.execute_batch("ROLLBACK");
         cache.invalidate();

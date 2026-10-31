@@ -1126,6 +1126,7 @@ export default function Docs({
 
       {beside && open && (
         <Beside
+          onError={onError}
           title={called}
           paper={open.file}
           body={body}

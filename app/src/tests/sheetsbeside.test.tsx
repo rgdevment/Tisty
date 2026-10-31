@@ -15,6 +15,7 @@ vi.mock("@tauri-apps/api/core", () => ({ invoke: () => Promise.resolve(null) }))
 const panel = (sheets: boolean, onSheets = vi.fn(), onLandscape = vi.fn(), leaf: Paper = "a4") =>
   render(
     <Beside
+      onError={() => {}}
       title="Notas"
       paper="dev_a-0001"
       body="# Notas"
