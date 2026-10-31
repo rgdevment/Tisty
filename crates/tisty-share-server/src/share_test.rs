@@ -39,6 +39,7 @@ fn policy() -> Policy {
             per_megabyte: 1,
             report: 4,
             password: 4,
+            password_most: 8,
             lasts: 10 * 60,
         },
         ..Policy::default()
@@ -426,6 +427,9 @@ fn a_document_guessed_at_from_everywhere_asks_work_with_every_password() {
         Err(Refused::WorkRefused)
     );
     let other = world.shared(T0);
+    world
+        .manage(&other, Manage::Password(Some("perro azul".into())), T0)
+        .unwrap();
     let elsewhere = world.proof(Ask::Password { id: &other.id }, T0);
     assert_eq!(
         world.read_worked(&reserved.id, "perro azul", &elsewhere, T0),
@@ -452,6 +456,48 @@ fn a_document_guessed_at_from_everywhere_asks_work_with_every_password() {
             .read_from(&reserved.id, Some("perro azul"), HERE, T0 + DAY)
             .is_ok()
     );
+}
+
+#[test]
+fn a_place_already_waiting_adds_nothing_to_what_the_document_asks_of_others() {
+    let mut world = World::with(Policy {
+        guessed: 6,
+        ..policy()
+    });
+    let reserved = world.shared(T0);
+    world
+        .manage(&reserved, Manage::Password(Some("perro azul".into())), T0)
+        .unwrap();
+    for _ in 0..20 {
+        let _ = world.read_from(&reserved.id, Some("gato"), HERE, T0);
+    }
+    assert!(
+        world
+            .read_from(&reserved.id, Some("perro azul"), there(1), T0)
+            .is_ok()
+    );
+}
+
+#[test]
+fn only_a_document_that_asks_for_a_password_hands_out_work_for_one() {
+    let mut world = World::new();
+    let open = world.shared(T0);
+    assert_eq!(
+        done(world.share.challenge(Ask::Password { id: &open.id }, T0)).err(),
+        Some(Refused::Forbidden)
+    );
+    assert_eq!(
+        done(world.share.challenge(Ask::Password { id: "nadaaqui" }, T0)).err(),
+        Some(Refused::Missing)
+    );
+}
+
+#[test]
+fn a_gate_still_carries_what_the_worker_before_it_needs_to_read_it() {
+    let gate = keys::gate("perro azul", [1; 16], Slowness { log_n: 4, r: 8 }).unwrap();
+    let written = serde_json::to_value(&gate).unwrap();
+    assert_eq!(written["missed"], 0);
+    assert!(written.get("locked_until").is_some());
 }
 
 #[test]
@@ -1142,6 +1188,9 @@ impl Store for Faulty {
     }
     async fn count(&self, key: &str, by: u64, until: i64, now: i64) -> Result<u64, Fault> {
         self.inner.count(key, by, until, now).await
+    }
+    async fn counted(&self, key: &str, now: i64) -> Result<u64, Fault> {
+        self.inner.counted(key, now).await
     }
     async fn hold(&self, key: &str, until: i64) -> Result<(), Fault> {
         self.inner.hold(key, until).await

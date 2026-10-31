@@ -84,8 +84,7 @@ const sealedOf = (id: string, ask: typeof fetch, headers: Record<string, string>
     Object.keys(headers).length > 0 ? { headers } : undefined,
   );
 
-// The password travels in a header of its own, so it never sits in a URL or a log; a document guessed at from
-// everywhere asks for work beside it, which the page does and says it again once (decision 76).
+// The password travels in a header of its own, never in a URL or a log; work asked beside it is done and said once (decision 76).
 export const fetched = async (
   id: string,
   ask: typeof fetch = fetch,
@@ -97,7 +96,9 @@ export const fetched = async (
   const first = await sealedOf(id, ask, headers);
   if (!("refused" in first) || first.refused !== "work_asked" || !solve) return first;
   const work = await worked({ for: "password", id }, solve, ask);
-  if (typeof work !== "string") return work;
+  // Work the page could not finish is the password's trouble, so the reader is asked again rather than turned away.
+  if (typeof work !== "string")
+    return work.refused === "failed" ? { refused: "work_refused" } : work;
   return sealedOf(id, ask, { ...headers, "Tisty-Work": work });
 };
 

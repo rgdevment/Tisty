@@ -101,6 +101,6 @@ fn a_password_costs_nothing_until_guessed_at_then_two_bits_each_doubling() {
     assert_eq!(work.for_password(99, 50), work.password);
     assert_eq!(work.for_password(100, 50), work.password + 2);
     assert_eq!(work.for_password(400, 50), work.password + 6);
-    assert_eq!(work.for_password(u64::MAX, 50), work::BITS_AT_MOST);
+    assert_eq!(work.for_password(u64::MAX, 50), work.password_most);
     assert_eq!(work.for_password(1_000, 0), 0, "a server may turn it off");
 }

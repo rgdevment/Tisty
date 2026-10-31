@@ -143,10 +143,10 @@ describe("a password to a document guessed at from everywhere", () => {
     ]);
   });
 
-  it("fails without saying the password again when the work cannot be done", async () => {
+  it("asks for the password again without saying it when the work cannot be done", async () => {
     const { asked, ask } = server([workAsked(), new Response("{}")]);
     expect(await fetched("k7Qm2xPa", ask, "perro azul", async () => undefined)).toEqual({
-      refused: "failed",
+      refused: "work_refused",
     });
     expect(asked).toHaveLength(2);
   });

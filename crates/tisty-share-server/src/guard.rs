@@ -99,8 +99,10 @@ pub struct Work {
     /// Added for every megabyte an upload carries, so a heavy one costs more than a note (decision 33).
     pub per_megabyte: u8,
     pub report: u8,
-    /// What a password costs once a document was guessed at enough today.
+    /// What a password costs once a document was guessed at enough today, and the most it ever costs.
     pub password: u8,
+    /// Low enough for a phone to answer in about a second, so guessers can never price readers out (decision 76).
+    pub password_most: u8,
     pub lasts: i64,
 }
 
@@ -112,6 +114,7 @@ impl Default for Work {
             per_megabyte: 2,
             report: 18,
             password: 16,
+            password_most: 22,
             lasts: 10 * 60,
         }
     }
@@ -125,14 +128,14 @@ impl Work {
         bits.min(u64::from(work::BITS_AT_MOST)) as u8
     }
 
-    /// Nothing below `guessed` wrong passwords today, then `password` bits and two more each time they double.
+    /// Nothing below `guessed` wrong passwords today, then `password` bits and two more each time they double, up to `password_most`.
     pub fn for_password(&self, misses: u64, guessed: u64) -> u8 {
         if guessed == 0 || misses < guessed {
             return 0;
         }
         let doublings = u64::from((misses / guessed).ilog2());
         let bits = u64::from(self.password).saturating_add(2 * doublings);
-        bits.min(u64::from(work::BITS_AT_MOST)) as u8
+        bits.min(u64::from(self.password_most.min(work::BITS_AT_MOST))) as u8
     }
 }
 
@@ -282,8 +285,8 @@ pub async fn affords<S: Store>(
 ) -> Result<(), Refused> {
     let (made, sent, until) = day_keys(secret, ip, now);
     let allowance = &policy.allowance;
-    let made_so_far = store.count(&made, 0, until, now).await?;
-    let sent_so_far = store.count(&sent, 0, until, now).await?;
+    let made_so_far = store.counted(&made, now).await?;
+    let sent_so_far = store.counted(&sent, now).await?;
     if made_so_far.saturating_add(documents) > allowance.documents_a_day
         || sent_so_far.saturating_add(bytes) > allowance.bytes_a_day
     {

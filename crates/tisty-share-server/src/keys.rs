@@ -67,6 +67,8 @@ pub fn gate(password: &str, salt: [u8; 16], slow: Slowness) -> Option<Gate> {
         salt,
         digest: digest(password, &salt, slow)?,
         slowness: slow,
+        missed: 0,
+        locked_until: None,
     })
 }
 

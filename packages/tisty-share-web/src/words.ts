@@ -12,6 +12,8 @@ const SPANISH = {
   password_wrong: "La clave no es correcta.",
   password_locked:
     "Demasiados intentos con la clave desde tu red. Vuelve a intentarlo en unos minutos.",
+  checking: "Comprobando la clave…",
+  work_refused: "No se pudo comprobar la clave a tiempo. Vuelve a intentarlo.",
   slow: "Se pidieron demasiadas lecturas desde tu red. Espera un momento y vuelve a intentarlo.",
   keyless:
     "A este link le falta su llave, lo que va después del #. Pide el link completo a quien te lo envió.",
@@ -74,6 +76,8 @@ const ENGLISH: Record<Word, string> = {
   password_wrong: "That password is not the right one.",
   password_locked:
     "Too many tries with the password from your network. Try again in a few minutes.",
+  checking: "Checking the password…",
+  work_refused: "The password could not be checked in time. Try again.",
   slow: "Too many reads came from your network. Wait a moment and try again.",
   keyless:
     "This link lacks its key, what comes after the #. Ask whoever sent it for the whole link.",
@@ -303,7 +307,7 @@ export const refused = (word: string, leave: (to: string) => void, tell: (word: 
   LOST.has(word) ? leave(NOWHERE) : tell(word);
 
 // A refusal the reader answers by saying the password, rather than one that ends the reading.
-const GATED = new Set(["password_asked", "password_wrong", "password_locked"]);
+const GATED = new Set(["password_asked", "password_wrong", "password_locked", "work_refused"]);
 
 export const gated = (word: string): boolean => GATED.has(word);
 

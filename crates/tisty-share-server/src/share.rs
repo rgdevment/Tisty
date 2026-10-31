@@ -249,7 +249,13 @@ impl<S: Store, R: Randomness> Share<S, R> {
             Ask::Reserve => work.reserve,
             Ask::Upload { bytes, .. } => work.for_upload(bytes),
             Ask::Report { .. } => work.report,
-            Ask::Password { id } => u8::max(self.password_work(id, now).await?, work.password),
+            Ask::Password { id } => {
+                // Only a document that asks for a password asks for work with it, so no other id costs a look.
+                if self.live(id, now).await?.gate.is_none() {
+                    return Err(Refused::Forbidden);
+                }
+                u8::max(self.password_work(id, now).await?, work.password)
+            }
         };
         let mut salt = [0u8; 16];
         if !self.random.fill(&mut salt) {
@@ -631,8 +637,10 @@ impl<S: Store, R: Randomness> Share<S, R> {
         let (tries, rights, until) = self.tries(&doc.id, caller, now);
         // Counted before the password is weighed, so guesses sent together cannot all slip in under the limit.
         let tried = self.store.count(&tries, 1, until, now).await?;
-        let right = self.store.count(&rights, 0, until, now).await?;
-        if tried.saturating_sub(right) > self.policy.misses {
+        // The right ones are looked up only past the limit, so a reader who knows the password costs one count.
+        if tried > self.policy.misses
+            && tried.saturating_sub(self.store.counted(&rights, now).await?) > self.policy.misses
+        {
             return Err(Refused::PasswordLocked { until });
         }
         if keys::opens(gate, password) {
@@ -658,8 +666,8 @@ impl<S: Store, R: Randomness> Share<S, R> {
 
     /// The work a password costs on this document today: none until it was guessed at enough.
     async fn password_work(&self, id: &str, now: i64) -> Result<u8, Refused> {
-        let (guessed, today_ends) = guessed_today(id, now);
-        let misses = self.store.count(&guessed, 0, today_ends, now).await?;
+        let (guessed, _) = guessed_today(id, now);
+        let misses = self.store.counted(&guessed, now).await?;
         Ok(self.policy.work.for_password(misses, self.policy.guessed))
     }
 
