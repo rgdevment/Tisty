@@ -93,7 +93,10 @@ const read = (
 ): Found | string => {
   try {
     const found = taken(open(sealed, key, revoked, limits));
-    return found.about.wrote ? found : "unsigned";
+    const wrote = found.about.wrote;
+    if (!wrote) return "unsigned";
+    // A signature that does not hold claims someone it is not, which is worse than none.
+    return wrote.is === "refused" || wrote.is === "unreadable" ? "forged" : found;
   } catch (error_) {
     return wordOf(error_);
   }

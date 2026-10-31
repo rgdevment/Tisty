@@ -22,6 +22,8 @@ const SPANISH = {
   failed: "No se pudo abrir este documento.",
   unsigned:
     "Este documento llegó sin la firma de quien lo escribió, así que Tisty Share no lo muestra.",
+  forged:
+    "La firma de este documento no corresponde a lo que dice o a este link, así que Tisty Share no lo muestra.",
   document: "Documento compartido",
   notices: "Licencias de terceros",
   gatelabel: "Clave",
@@ -79,6 +81,8 @@ const ENGLISH: Record<Word, string> = {
   down: "Tisty Share is not answering right now. Try again in a few minutes.",
   failed: "This document could not be opened.",
   unsigned: "This document came without its author's signature, so Tisty Share does not show it.",
+  forged:
+    "This document's signature does not match what it says or this link, so Tisty Share does not show it.",
   document: "Shared document",
   notices: "Third-party licences",
   gatelabel: "Password",

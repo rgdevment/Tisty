@@ -120,9 +120,14 @@ pub async fn share_doc(
         let text = tisty_core::docs::read(&session.paths.docs(), &file)
             .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
         let (voucher, me) = sharer(&session).ok_or(Refusal::of("shareNoKey"))?;
-        // The name the person signs with, or else their alias; with neither, the key speaks alone.
+        // The name the person signs with, or else their alias; with neither one fit to sign, the key speaks alone.
         let signed = &session.state.signed;
-        let name = signed.name.clone().or_else(|| signed.alias.clone());
+        let name = [&signed.name, &signed.alias]
+            .into_iter()
+            .flatten()
+            .map(|one| one.trim())
+            .find(|one| tisty_share_proto::envelope::named_well(one))
+            .map(str::to_owned);
         (doc, text, voucher, taken_back_by(&session, &me), name)
     };
     let (shared, info) = apart(move || {

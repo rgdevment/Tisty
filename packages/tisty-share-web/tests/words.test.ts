@@ -83,6 +83,7 @@ describe("a refusal", () => {
       "locked",
       "down",
       "unsigned",
+      "forged",
     ])
       expect(answered(word), word).toEqual({ went: [], told: [word] });
   });

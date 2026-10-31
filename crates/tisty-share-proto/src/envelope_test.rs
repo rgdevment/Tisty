@@ -756,9 +756,18 @@ fn a_name_changed_after_signing_does_not_hold() {
 }
 
 #[test]
-fn a_name_is_a_readable_line_of_at_most_eighty_characters() {
+fn a_name_is_a_readable_line_of_at_most_eighty_characters_with_nothing_unseen() {
     let mario = machine(1);
-    for name in ["", "   ", "una\nlínea", &"x".repeat(NAME_AT_MOST + 1)] {
+    let long = "x".repeat(NAME_AT_MOST + 1);
+    for name in [
+        "",
+        "   ",
+        " Mario",
+        "una\nlínea",
+        "\u{200B}",
+        "Ana\u{202E}zeréP",
+        long.as_str(),
+    ] {
         let signer = Signer {
             name: Some(name),
             ..mario.signer()
@@ -767,6 +776,22 @@ fn a_name_is_a_readable_line_of_at_most_eighty_characters() {
             sealed(&key(9), &draft("Hola", &[]), Some(&signer)).err(),
             Some(Refused::NameTooLong),
             "{name:?}"
+        );
+    }
+}
+
+#[test]
+fn a_name_of_any_alphabet_up_to_eighty_characters_is_signed() {
+    let mario = machine(1);
+    let longest = "日".repeat(NAME_AT_MOST);
+    for name in ["Mario Hidalgo", "José Núñez", "王小明", longest.as_str()] {
+        let signer = Signer {
+            name: Some(name),
+            ..mario.signer()
+        };
+        assert!(
+            sealed(&key(9), &draft("Hola", &[]), Some(&signer)).is_ok(),
+            "{name}"
         );
     }
 }

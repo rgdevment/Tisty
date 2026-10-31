@@ -662,10 +662,27 @@ fn bound(written: &[u8]) -> Vec<u8> {
     aad
 }
 
-/// A name is a line a person can read: not empty, not too long, nothing that moves the text around it.
-fn named_well(name: &str) -> bool {
-    let name = name.trim();
-    !name.is_empty() && name.chars().count() <= NAME_AT_MOST && !name.chars().any(char::is_control)
+/// A name is a line a person can read as written: not empty, not too long, no edge of spaces,
+/// and nothing unseen that hides a letter or turns the text around.
+pub fn named_well(name: &str) -> bool {
+    !name.is_empty()
+        && name.trim() == name
+        && name.chars().count() <= NAME_AT_MOST
+        && !name.chars().any(|one| one.is_control() || unseen(one))
+}
+
+fn unseen(one: char) -> bool {
+    matches!(
+        one,
+        '\u{00AD}'
+            | '\u{061C}'
+            | '\u{180E}'
+            | '\u{200B}'..='\u{200F}'
+            | '\u{202A}'..='\u{202E}'
+            | '\u{2060}'..='\u{206F}'
+            | '\u{FEFF}'
+            | '\u{FFF9}'..='\u{FFFB}'
+    )
 }
 
 /// The words' digest, the id they are shared as, the second they were signed and the name, each framed so none runs into the next.
