@@ -387,30 +387,40 @@ fn a_name(key: &str) -> Option<&str> {
     plain.then_some(name)
 }
 
-// KEY alone, not inside HOTKEY or KEYWORD, which a whole document says far more often than a file of settings does.
+// Words that end in KEY and keep nothing, which a whole document says far more often than a file of settings does.
+const NOT_A_KEY: &[&str] = &[
+    "HOTKEY", "MONKEY", "TURKEY", "DONKEY", "JOCKEY", "HOCKEY", "WHISKEY",
+];
+
 fn sounds_like_a_credential(name: &str) -> bool {
     let loud = name.to_uppercase();
     let words = words_of(name);
     SOUNDS_LIKE.iter().any(|one| match *one {
-        "KEY" => words.iter().any(|word| word == "KEY"),
+        "KEY" => words
+            .iter()
+            .any(|word| word.ends_with("KEY") && !NOT_A_KEY.contains(&word.as_str())),
         one => loud.contains(one),
     })
 }
 
-/// The words of a name, split at its marks and where camelCase turns upper.
+// Split where camelCase turns upper and where an acronym meets a word, so SSHKey and sshKey are both a KEY.
 fn words_of(name: &str) -> Vec<String> {
     let mut words = vec![String::new()];
-    let mut was_lower = false;
-    for one in name.chars() {
+    let letters: Vec<char> = name.chars().collect();
+    for (at, &one) in letters.iter().enumerate() {
         if !one.is_alphanumeric() {
             words.push(String::new());
-            was_lower = false;
             continue;
         }
-        if one.is_uppercase() && was_lower {
+        let before = at.checked_sub(1).map(|at| letters[at]);
+        let after = letters.get(at + 1).copied();
+        let turns = before.is_some_and(char::is_lowercase) && one.is_uppercase();
+        let acronym_ends = before.is_some_and(char::is_uppercase)
+            && one.is_uppercase()
+            && after.is_some_and(char::is_lowercase);
+        if turns || acronym_ends {
             words.push(String::new());
         }
-        was_lower = one.is_lowercase();
         if let Some(word) = words.last_mut() {
             word.extend(one.to_uppercase());
         }
@@ -483,8 +493,12 @@ fn told_within(line: &str) -> Option<(bool, &str, &'static str)> {
     line.split_whitespace()
         .map(|word| word.trim_matches(['`', '"', '\'', '*', '(', ')', '[', ']', ',', ';', '|']))
         .filter(|word| word.len() >= SHORTEST_KNOWN)
-        .find_map(|word| KNOWN_STARTS.iter().find(|one| word.starts_with(**one)))
-        .map(|named| (true, *named, "a value carrying a provider's key prefix"))
+        .find_map(|word| {
+            let named = KNOWN_STARTS.iter().find(|one| word.starts_with(**one))?;
+            // In prose a prefix also opens names like npm_config_user_agent and placeholders like sk_test_XXXX.
+            mixed(&word[named.len()..]).then_some(*named)
+        })
+        .map(|named| (true, named, "a value carrying a provider's key prefix"))
 }
 
 fn told_by(line: &str) -> Option<(bool, &str, &'static str)> {
@@ -539,6 +553,11 @@ fn written_as(line: &str, mark: char) -> Option<(bool, &str, &'static str)> {
     ))
 }
 
+// Only the line that opens a private key: a certificate is public, and words about keys are only words.
+fn opens_a_private_key(line: &str) -> bool {
+    line.contains("-----BEGIN") && line.contains("PRIVATE KEY")
+}
+
 pub fn a_key_itself(head: &[u8]) -> Option<Telling> {
     let told = |line: usize, why| Telling {
         line,
@@ -549,13 +568,8 @@ pub fn a_key_itself(head: &[u8]) -> Option<Telling> {
         return Some(told(1, "a DER-encoded key"));
     }
     let text = String::from_utf8_lossy(head);
-    if text.contains("-----BEGIN") && (text.contains("PRIVATE KEY") || text.contains("CERTIFICATE"))
-    {
-        let at = text
-            .lines()
-            .position(|one| one.contains("-----BEGIN"))
-            .unwrap_or(0);
-        return Some(told(at + 1, "a PEM private key or certificate"));
+    if let Some(at) = text.lines().position(opens_a_private_key) {
+        return Some(told(at + 1, "a PEM private key"));
     }
     None
 }
@@ -568,8 +582,8 @@ pub fn secrets_in(head: &[u8]) -> Vec<Telling> {
     let mut seen = Vec::new();
     let mut sure = false;
     for (at, line) in text.lines().enumerate() {
-        // Only the line that opens a private key is one: a certificate is public, and other lines still count.
-        let told = match line.contains("-----BEGIN") && line.contains("PRIVATE KEY") {
+        // Other lines still count after a key: a document can hold more than one.
+        let told = match opens_a_private_key(line) {
             true => Some((true, "", "a PEM private key")),
             false => told_by(line)
                 .or_else(|| told_alone(line))

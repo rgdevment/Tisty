@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { copied } from "../core";
 import { fill, t } from "../locales";
-import { type ShareCard, type ShareSecret, shareDoc, shareSecrets } from "../shares";
+import { type ShareCard, type ShareSecret, shareDoc, shareLook } from "../shares";
 import Modal from "./Modal";
 
 interface Props {
@@ -28,6 +28,7 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
   const [idle, setIdle] = useState(IDLE_DAYS[0]);
   const [busy, setBusy] = useState(false);
   const [secrets, setSecrets] = useState<ShareSecret[]>([]);
+  const [signsAs, setSignsAs] = useState<string | null>(null);
   // Nothing goes out before the look is over, so the warning never comes after the press.
   const [looked, setLooked] = useState(false);
   // Read at the press itself, so a second Enter before the dialog redraws shares nothing twice.
@@ -38,8 +39,14 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
   // A document that cannot be looked through still shares; the warning is only a second look.
   useEffect(() => {
     let live = true;
-    shareSecrets(file)
-      .then((found) => live && setSecrets(found))
+    setLooked(false);
+    setSecrets([]);
+    shareLook(file)
+      .then((look) => {
+        if (!live) return;
+        setSecrets(look.secrets);
+        setSignsAs(look.signsAs);
+      })
       .catch(() => {})
       .finally(() => live && setLooked(true));
     return () => {
@@ -80,7 +87,7 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
             className="flex flex-col gap-1 rounded-[10px] bg-hue-amber/10 px-3.5 py-2.5"
           >
             <span className="text-[13px] font-semibold text-hue-amber">{t("shareSecrets")}</span>
-            <ul className="text-[12px]">
+            <ul className="text-[12.5px]">
               {secrets.slice(0, SECRETS_SHOWN).map((one) => (
                 <li key={one.line}>
                   {one.under ? fill("shareSecretUnder", one.under) : t("shareSecretTop")}
@@ -151,7 +158,10 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
 
         <p className="flex flex-col">
           <span className="text-[13px] font-medium">{t("shareSign")}</span>
-          <span className="text-[11.5px] text-faint">{t("shareSignWhy")}</span>
+          <span className="text-[11.5px] text-faint">
+            {looked && (signsAs ? fill("shareSignsAs", signsAs) : t("shareSignsAlone"))}{" "}
+            {t("shareSignWhy")}
+          </span>
         </p>
 
         <div className="flex items-center justify-between gap-3">

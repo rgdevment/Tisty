@@ -74,3 +74,33 @@ token",
         None
     );
 }
+
+#[test]
+fn a_rule_at_the_top_is_no_properties_and_hides_no_heading() {
+    let text = "---\n# Servers\n\nwhere they live\n---\nghp_16C7e42F292c6912E7710c838347Ae178B4a\n";
+    assert_eq!(heading_over(text, 6).as_deref(), Some("Servers"));
+    assert_eq!(
+        properties_end("---\ntitle: x\ntags: [a]\n---\n# Body\n"),
+        Some(4)
+    );
+    assert_eq!(properties_end("---\n---\n"), None);
+    assert_eq!(properties_end("---\ntitle: x\n"), None);
+}
+
+#[test]
+fn a_share_signs_with_the_first_name_fit_to_sign() {
+    let signature = |name: Option<&str>, alias: Option<&str>| tisty_core::event::Signature {
+        name: name.map(str::to_owned),
+        alias: alias.map(str::to_owned),
+        ..Default::default()
+    };
+    assert_eq!(
+        signing_name(&signature(Some("Ana"), Some("ana"))).as_deref(),
+        Some("Ana")
+    );
+    assert_eq!(
+        signing_name(&signature(Some("12345"), Some("ana"))).as_deref(),
+        Some("ana")
+    );
+    assert_eq!(signing_name(&signature(None, Some("1234"))), None);
+}

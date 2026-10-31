@@ -630,6 +630,9 @@ const en = {
   shareSecretUnder: "Under «{name}»",
   shareSecretTop: "Before the first heading",
   shareSecretsMore: "and {name} more",
+  shareSignsAs: "It goes as «{name}».",
+  shareSignsAlone:
+    "It goes with your key alone: your name and alias need at least as many letters as digits.",
   shareLinkRead: "Link to read",
   shareLinkEdit: "Link to edit",
   shareLinkEditNote: "it edits only in Tisty",
@@ -3364,6 +3367,9 @@ const es: Catalog = {
   shareSecretUnder: "Bajo «{name}»",
   shareSecretTop: "Antes del primer título",
   shareSecretsMore: "y {name} más",
+  shareSignsAs: "Va como «{name}».",
+  shareSignsAlone:
+    "Va solo con tu llave: tu nombre y tu alias necesitan al menos tantas letras como números.",
   shareLinkRead: "Link para leer",
   shareLinkEdit: "Link para editar",
   shareLinkEditNote: "solo edita en Tisty",

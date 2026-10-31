@@ -1368,7 +1368,7 @@ fn commands() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync +
         answers::shelves::folder_away,
         answers::papers::doc_lock,
         answers::shares::share_doc,
-        answers::shares::share_secrets,
+        answers::shares::share_look,
         answers::shares::share_card,
         answers::shares::share_stop,
         desktop::parted,

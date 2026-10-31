@@ -117,10 +117,8 @@ fn secrets(text: &str) -> Vec<Secret> {
 
 // The last heading before a line, past the properties and outside fenced code, where a `#` is a comment.
 fn heading_over(text: &str, line: usize) -> Option<String> {
-    let mut lines = text.lines().take(line.saturating_sub(1)).peekable();
-    if lines.next_if(|first| first.trim_end() == "---").is_some() {
-        lines.by_ref().find(|one| one.trim_end() == "---");
-    }
+    let skipped = properties_end(text).unwrap_or(0);
+    let lines = text.lines().take(line.saturating_sub(1)).skip(skipped);
     let mut fenced = false;
     let mut heading = None;
     for one in lines {
@@ -141,16 +139,60 @@ fn heading_over(text: &str, line: usize) -> Option<String> {
     heading
 }
 
+// Lines the properties take, only when the first `---` closes over lines that read `key: value`; a rule is no properties.
+fn properties_end(text: &str) -> Option<usize> {
+    let mut lines = text.lines();
+    if lines.next()?.trim_end() != "---" {
+        return None;
+    }
+    let inside = lines.position(|one| one.trim_end() == "---")?;
+    let said = text.lines().skip(1).take(inside);
+    let properties = said.clone().any(|one| !one.trim().is_empty())
+        && said
+            .filter(|one| !one.trim().is_empty() && !one.starts_with([' ', '-', '#']))
+            .all(|one| {
+                one.split_once(':')
+                    .is_some_and(|(key, _)| !key.contains(' '))
+            });
+    properties.then_some(inside + 2)
+}
+
+/// What «Share» says before anything goes out: what reads like a key, and the name the share will be signed with.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Look {
+    secrets: Vec<Secret>,
+    /// None when neither the name nor the alias is fit to sign, so the key speaks alone.
+    signs_as: Option<String>,
+}
+
+// The name the person signs with, or else their alias, held to what an envelope takes.
+fn signing_name(signed: &tisty_core::event::Signature) -> Option<String> {
+    [&signed.name, &signed.alias]
+        .into_iter()
+        .flatten()
+        .map(|one| one.trim())
+        .find(|one| tisty_share_proto::envelope::named_well(one))
+        .map(str::to_owned)
+}
+
 #[tauri::command]
-pub fn share_secrets(
-    session: tauri::State<'_, Mutex<Session>>,
-    file: String,
-) -> Answer<Vec<Secret>> {
-    let session = held(&session);
-    doc_of(&session, &file)?;
-    let text = tisty_core::docs::read(&session.paths.docs(), &file)
-        .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
-    Ok(secrets(&text))
+pub async fn share_look(session: tauri::State<'_, Mutex<Session>>, file: String) -> Answer<Look> {
+    let (docs, signs_as) = {
+        let session = held(&session);
+        doc_of(&session, &file)?;
+        (session.paths.docs(), signing_name(&session.state.signed))
+    };
+    // A long document takes a moment to read and look through, so neither holds the window or the session.
+    apart(move || {
+        let text = tisty_core::docs::read(&docs, &file)
+            .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
+        Ok(Look {
+            secrets: secrets(&text),
+            signs_as,
+        })
+    })
+    .await
 }
 
 #[tauri::command]
@@ -179,14 +221,7 @@ pub async fn share_doc(
         let text = tisty_core::docs::read(&session.paths.docs(), &file)
             .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
         let (voucher, me) = sharer(&session).ok_or(Refusal::of("shareNoKey"))?;
-        // The name the person signs with, or else their alias; with neither one fit to sign, the key speaks alone.
-        let signed = &session.state.signed;
-        let name = [&signed.name, &signed.alias]
-            .into_iter()
-            .flatten()
-            .map(|one| one.trim())
-            .find(|one| tisty_share_proto::envelope::named_well(one))
-            .map(str::to_owned);
+        let name = signing_name(&session.state.signed);
         (doc, text, voucher, taken_back_by(&session, &me), name)
     };
     let (shared, info) = apart(move || {

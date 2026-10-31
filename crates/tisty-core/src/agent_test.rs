@@ -672,3 +672,35 @@ fn a_key_is_a_word_of_its_own_and_not_part_of_another() {
         2
     );
 }
+
+#[test]
+fn a_key_glued_to_its_name_or_after_an_acronym_is_still_a_key() {
+    for named in ["SSHKey", "AWSKey", "accesskey", "appkey", "MASTERKEY"] {
+        let text = format!("{named}=AbC123dEf456gHi789\nother_{named}=Zz9Yy8Xx7Ww6Vv5\n");
+        assert_eq!(secrets_in(text.as_bytes()).len(), 2, "{named}");
+    }
+    assert!(secrets_in(b"monkey: Banana12Split\nwhiskey: Lagavulin16yo\n").is_empty());
+}
+
+#[test]
+fn a_prefix_in_prose_needs_a_token_after_it() {
+    let placeholder = format!(
+        "Replace {}_XXXXXXXXXXXXXXXXXXXXXXXX with your own.",
+        "sk_test"
+    );
+    for one in [
+        "Set npm_config_user_agent_string before running it.",
+        &placeholder,
+    ] {
+        assert!(secrets_in(one.as_bytes()).is_empty(), "{one}");
+    }
+}
+
+#[test]
+fn a_certificate_alone_is_no_key_itself() {
+    let certificate =
+        "-----BEGIN CERTIFICATE-----\nMIIDdzCCAl+gAwIBAgIE\n-----END CERTIFICATE-----\n";
+    assert!(a_key_itself(certificate.as_bytes()).is_none());
+    let deep = "notes\n\n-----BEGIN EC PRIVATE KEY-----\nMHcCAQEE\n";
+    assert_eq!(a_key_itself(deep.as_bytes()).map(|one| one.line), Some(3));
+}
