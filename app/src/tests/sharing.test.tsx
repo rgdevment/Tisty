@@ -3,7 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fill, t } from "../locales";
 
-const ipc = vi.hoisted(() => ({ calls: [] as { cmd: string; args: unknown }[] }));
+const ipc = vi.hoisted(() => ({
+  calls: [] as { cmd: string; args: unknown }[],
+  secrets: [] as { line: number; named: string }[],
+}));
 
 const CARD = {
   read: "https://tisty.cl/k7Qm2xPa#llave",
@@ -16,6 +19,7 @@ const CARD = {
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args: unknown) => {
     ipc.calls.push({ cmd, args });
+    if (cmd === "share_secrets") return Promise.resolve(ipc.secrets);
     return Promise.resolve(cmd === "share_doc" ? CARD : null);
   },
 }));
@@ -26,6 +30,7 @@ const asked = (cmd: string) => ipc.calls.filter((one) => one.cmd === cmd).map((o
 
 beforeEach(() => {
   ipc.calls = [];
+  ipc.secrets = [];
 });
 
 describe("the share dialog", () => {
@@ -94,5 +99,47 @@ describe("the share dialog", () => {
       chosen: { password: "ñandú", editable: true, idleDays: 7 },
     });
     expect(screen.getByRole("option", { name: fill("shareEndsIdle", "7") })).toBeTruthy();
+  });
+
+  it("names the lines that read like a key and still shares when asked to", async () => {
+    ipc.secrets = [
+      { line: 4, named: "AWS_SECRET_ACCESS_KEY" },
+      { line: 9, named: "" },
+    ];
+    const onShared = vi.fn();
+    render(
+      <Sharing
+        file="deploy.md"
+        title="Deploy"
+        onShared={onShared}
+        onClose={() => {}}
+        onError={() => {}}
+      />,
+    );
+
+    const warning = await screen.findByRole("alert");
+    const said = warning.textContent ?? "";
+    expect(said).toContain(t("shareSecrets"));
+    expect(said).toContain(`${fill("shareSecretAt", "4")}AWS_SECRET_ACCESS_KEY`);
+    expect(said).toContain(fill("shareSecretAt", "9"));
+    expect(asked("share_secrets")).toEqual([{ file: "deploy.md" }]);
+
+    await userEvent.click(screen.getByRole("button", { name: t("shareGoAnyway") }));
+    await waitFor(() => expect(onShared).toHaveBeenCalled());
+  });
+
+  it("says nothing when no line reads like a key", async () => {
+    render(
+      <Sharing
+        file="notas.md"
+        title="Notas"
+        onShared={() => {}}
+        onClose={() => {}}
+        onError={() => {}}
+      />,
+    );
+    await waitFor(() => expect(asked("share_secrets")).toHaveLength(1));
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByRole("button", { name: t("shareGo") })).toBeTruthy();
   });
 });

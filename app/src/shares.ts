@@ -25,6 +25,14 @@ export interface ShareCard {
   info: ShareInfo | null;
 }
 
+/** A line that reads like a key or a password, and what it calls it when it does. */
+export interface ShareSecret {
+  line: number;
+  named: string;
+}
+
+export const shareSecrets = (file: string): Promise<ShareSecret[]> =>
+  invoke("share_secrets", { file });
 export const shareDoc = (file: string, chosen: ShareChosen): Promise<ShareCard> =>
   invoke("share_doc", { file, chosen });
 export const shareCard = (file: string): Promise<ShareCard | null> =>

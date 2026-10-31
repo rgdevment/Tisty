@@ -94,6 +94,36 @@ async fn apart<T: Send + 'static>(work: impl FnOnce() -> Answer<T> + Send + 'sta
         .map_err(|_| Refusal::of("internal"))?
 }
 
+/// A line that reads like a key or a password, which «Share» names before anyone with the link can read it.
+#[derive(Debug, PartialEq, Eq, Serialize)]
+pub struct Secret {
+    line: usize,
+    /// What the line calls it, when it calls it anything, such as `AWS_SECRET_ACCESS_KEY`.
+    named: String,
+}
+
+fn secrets(text: &str) -> Vec<Secret> {
+    tisty_core::agent::secrets_in(text.as_bytes())
+        .into_iter()
+        .map(|one| Secret {
+            line: one.line,
+            named: one.named,
+        })
+        .collect()
+}
+
+#[tauri::command]
+pub fn share_secrets(
+    session: tauri::State<'_, Mutex<Session>>,
+    file: String,
+) -> Answer<Vec<Secret>> {
+    let session = held(&session);
+    doc_of(&session, &file)?;
+    let text = tisty_core::docs::read(&session.paths.docs(), &file)
+        .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
+    Ok(secrets(&text))
+}
+
 #[tauri::command]
 pub async fn share_doc(
     session: tauri::State<'_, Mutex<Session>>,
@@ -223,3 +253,7 @@ pub async fn share_stop(session: tauri::State<'_, Mutex<Session>>, file: String)
         .commit(Op::ShareStop { id: doc })
         .map_err(Refusal::from)
 }
+
+#[cfg(test)]
+#[path = "shares_test.rs"]
+mod tests;

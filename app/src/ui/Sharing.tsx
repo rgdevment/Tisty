@@ -1,7 +1,7 @@
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { copied } from "../core";
 import { fill, t } from "../locales";
-import { type ShareCard, shareDoc } from "../shares";
+import { type ShareCard, type ShareSecret, shareDoc, shareSecrets } from "../shares";
 import Modal from "./Modal";
 
 interface Props {
@@ -11,6 +11,9 @@ interface Props {
   onClose: () => void;
   onError: (problem: unknown) => void;
 }
+
+// A few lines are enough to send the person looking; the rest are where those are.
+const SECRETS_SHOWN = 3;
 
 // What is encrypted ends on its own after 30 idle days; the dialog only lets it end sooner (decisions 49 and 50).
 const IDLE_DAYS = [30, 14, 7];
@@ -24,10 +27,22 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
   const [editable, setEditable] = useState(false);
   const [idle, setIdle] = useState(IDLE_DAYS[0]);
   const [busy, setBusy] = useState(false);
+  const [secrets, setSecrets] = useState<ShareSecret[]>([]);
   // Read at the press itself, so a second Enter before the dialog redraws shares nothing twice.
   const going = useRef(false);
   const passwordId = useId();
   const idleId = useId();
+
+  // A document that cannot be looked through still shares; the warning is only a second look.
+  useEffect(() => {
+    let live = true;
+    shareSecrets(file)
+      .then((found) => live && setSecrets(found))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [file]);
 
   const ready = !busy && (!gated || password.trim() !== "");
 
@@ -56,6 +71,23 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
     <Modal title={t("shareTitle")} onClose={busy ? undefined : onClose} wide>
       <p className="-mt-2 mb-4 truncate text-[12.5px] text-soft">{title}</p>
       <form onSubmit={go} className="flex flex-col gap-5">
+        {secrets.length > 0 && (
+          <div
+            role="alert"
+            className="flex flex-col gap-1 rounded-[10px] bg-hue-amber/10 px-3.5 py-2.5"
+          >
+            <span className="text-[13px] font-semibold text-hue-amber">{t("shareSecrets")}</span>
+            <ul className="text-[12px]">
+              {secrets.slice(0, SECRETS_SHOWN).map((one) => (
+                <li key={one.line}>
+                  {fill("shareSecretAt", String(one.line))}
+                  {one.named && <code className="ml-1.5 font-mono text-[11.5px]">{one.named}</code>}
+                </li>
+              ))}
+            </ul>
+            <span className="text-[11.5px] leading-relaxed text-soft">{t("shareSecretsWhy")}</span>
+          </div>
+        )}
         <fieldset className="flex flex-col gap-2">
           <legend className="mb-2 text-[12.5px] font-semibold">{t("shareWho")}</legend>
           <label className={choice}>
@@ -148,7 +180,7 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
             disabled={!ready}
             className="h-8 rounded-md bg-accent px-3 text-[12.5px] font-semibold text-white disabled:opacity-50"
           >
-            {t(busy ? "shareGoing" : "shareGo")}
+            {t(busy ? "shareGoing" : secrets.length > 0 ? "shareGoAnyway" : "shareGo")}
           </button>
         </div>
       </form>
