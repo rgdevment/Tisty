@@ -27,9 +27,11 @@ pub struct Policy {
     pub trash: i64,
     /// Seconds a reserved id waits for its first version.
     pub reserved: i64,
-    /// Wrong passwords in a row before the gate closes for a while.
-    pub misses: u32,
+    /// Wrong passwords one place may say to one document in `locked` seconds; past them, that place waits the rest.
+    pub misses: u64,
     pub locked: i64,
+    /// Wrong passwords a document hears in a day from everywhere before every try costs work (decision 76).
+    pub guessed: u64,
     pub slowness: Slowness,
     pub allowance: Allowance,
     pub work: Work,
@@ -52,6 +54,7 @@ impl Default for Policy {
             reserved: 60 * 60,
             misses: 5,
             locked: 15 * 60,
+            guessed: 50,
             slowness: Slowness::default(),
             allowance: Allowance::default(),
             work: Work::default(),
@@ -82,8 +85,12 @@ pub enum Refused {
     PasswordAsked,
     #[error("that is not its password")]
     PasswordWrong,
+    /// Too many wrong ones from this place: only it waits, never the document's other readers (decision 76).
     #[error("too many wrong passwords; try again later")]
     PasswordLocked { until: i64 },
+    /// Guessed at from everywhere today, so a password is weighed only with a proof of work beside it.
+    #[error("this document asks for work with its password")]
+    WorkAsked,
     /// Someone else uploaded first; Tisty shows both and lets the person choose.
     #[error("there is a newer version than the one this was written on")]
     Behind { latest: Option<u64> },
@@ -198,6 +205,10 @@ pub enum Ask<'a> {
     Report {
         id: &'a str,
     },
+    /// A password said to a document guessed at from everywhere today.
+    Password {
+        id: &'a str,
+    },
 }
 
 impl Ask<'_> {
@@ -208,6 +219,7 @@ impl Ask<'_> {
                 [b"upload:".as_slice(), id.as_bytes(), digest].concat()
             }
             Ask::Report { id } => [b"report:".as_slice(), id.as_bytes()].concat(),
+            Ask::Password { id } => [b"password:".as_slice(), id.as_bytes()].concat(),
         }
     }
 }
@@ -231,12 +243,13 @@ impl<S: Store, R: Randomness> Share<S, R> {
     }
 
     /// The work a step costs, signed so only this server's challenges are taken.
-    pub fn challenge(&mut self, ask: Ask, now: i64) -> Result<Challenge, Refused> {
+    pub async fn challenge(&mut self, ask: Ask<'_>, now: i64) -> Result<Challenge, Refused> {
         let work = self.policy.work;
         let bits = match ask {
             Ask::Reserve => work.reserve,
             Ask::Upload { bytes, .. } => work.for_upload(bytes),
             Ask::Report { .. } => work.report,
+            Ask::Password { id } => u8::max(self.password_work(id, now).await?, work.password),
         };
         let mut salt = [0u8; 16];
         if !self.random.fill(&mut salt) {
@@ -376,6 +389,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
         &mut self,
         id: &str,
         password: Option<&str>,
+        proof: Option<&Proof>,
         caller: IpAddr,
         now: i64,
     ) -> Result<Served, Refused> {
@@ -383,7 +397,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
         let mut doc = self.live(id, now).await?;
         open_to_read(&doc)?;
         let kept = *doc.versions.last().ok_or(Refused::Unwritten)?;
-        let cleared = self.let_in(&mut doc, password, now).await?;
+        self.let_in(&doc, password, proof, caller, now).await?;
         let envelope = self
             .store
             .envelope(id, &kept)
@@ -393,7 +407,7 @@ impl<S: Store, R: Randomness> Share<S, R> {
         if new_reader {
             doc.reads += 1;
         }
-        if new_reader || cleared || now - doc.active >= ACTIVITY_GRAIN {
+        if new_reader || now - doc.active >= ACTIVITY_GRAIN {
             touched(&mut doc, now);
             // Another reader saving the same activity first loses nothing, so a race is no refusal.
             match self.saved(&mut doc).await {
@@ -593,45 +607,60 @@ impl<S: Store, R: Randomness> Share<S, R> {
         }
     }
 
-    /// A wrong password counts, and enough in a row close the gate for a while (decision 32).
-    /// True when letting in cleared earlier misses, which the caller then saves.
+    /// A wrong password counts against the place that said it, so a guesser never locks the readers out (decision 76).
     async fn let_in(
-        &mut self,
-        doc: &mut Doc,
+        &self,
+        doc: &Doc,
         password: Option<&str>,
+        proof: Option<&Proof>,
+        caller: IpAddr,
         now: i64,
-    ) -> Result<bool, Refused> {
-        let Some(gate) = doc.gate.as_mut() else {
-            return Ok(false);
+    ) -> Result<(), Refused> {
+        let Some(gate) = doc.gate.as_ref() else {
+            return Ok(());
         };
-        if let Some(until) = gate.locked_until.filter(|until| *until > now) {
-            return Err(Refused::PasswordLocked { until });
-        }
         let Some(password) = password else {
             return Err(Refused::PasswordAsked);
         };
-        if keys::opens(gate, password) {
-            let cleared = gate.missed > 0 || gate.locked_until.is_some();
-            gate.missed = 0;
-            gate.locked_until = None;
-            return Ok(cleared);
+        let needed = self.password_work(&doc.id, now).await?;
+        if needed > 0 {
+            let ask = Ask::Password { id: &doc.id };
+            self.worked(&ask, proof.ok_or(Refused::WorkAsked)?, needed, now)
+                .await?;
         }
-        let (misses, locked) = (self.policy.misses, self.policy.locked);
-        // A miss is written on what is stored now, so two guesses at once both count, and a lost race is still a wrong password.
-        let _ = self
-            .retried(&doc.id, now, |held| {
-                let Some(gate) = held.gate.as_mut() else {
-                    return false;
-                };
-                gate.missed += 1;
-                if gate.missed >= misses {
-                    gate.missed = 0;
-                    gate.locked_until = Some(now + locked);
-                }
-                true
-            })
-            .await;
+        let (tries, rights, until) = self.tries(&doc.id, caller, now);
+        // Counted before the password is weighed, so guesses sent together cannot all slip in under the limit.
+        let tried = self.store.count(&tries, 1, until, now).await?;
+        let right = self.store.count(&rights, 0, until, now).await?;
+        if tried.saturating_sub(right) > self.policy.misses {
+            return Err(Refused::PasswordLocked { until });
+        }
+        if keys::opens(gate, password) {
+            self.store.count(&rights, 1, until, now).await?;
+            return Ok(());
+        }
+        let (guessed, today_ends) = guessed_today(&doc.id, now);
+        self.store.count(&guessed, 1, today_ends, now).await?;
         Err(Refused::PasswordWrong)
+    }
+
+    /// One place's tries and right passwords on one document in this stretch of `locked` seconds, and when it ends.
+    fn tries(&self, id: &str, caller: IpAddr, now: i64) -> (String, String, i64) {
+        let locked = self.policy.locked.max(1);
+        let stretch = now.div_euclid(locked);
+        let who = guard::today(&self.secret, caller, now);
+        (
+            format!("tries:{id}:{who}:{stretch}"),
+            format!("rights:{id}:{who}:{stretch}"),
+            (stretch + 1) * locked,
+        )
+    }
+
+    /// The work a password costs on this document today: none until it was guessed at enough.
+    async fn password_work(&self, id: &str, now: i64) -> Result<u8, Refused> {
+        let (guessed, today_ends) = guessed_today(id, now);
+        let misses = self.store.count(&guessed, 0, today_ends, now).await?;
+        Ok(self.policy.work.for_password(misses, self.policy.guessed))
     }
 
     /// Reads the document again and applies `change` until it saves, for what must not be lost to a race.
@@ -681,6 +710,12 @@ fn open_to_read(doc: &Doc) -> Result<(), Refused> {
         return Err(Refused::Paused);
     }
     Ok(())
+}
+
+/// Wrong passwords a document heard today from everywhere, and when the day ends.
+fn guessed_today(id: &str, now: i64) -> (String, i64) {
+    let day = now.div_euclid(DAY);
+    (format!("guessed:{id}:{day}"), (day + 1) * DAY)
 }
 
 /// Activity pushes the end back; a paused or blocked document keeps the end it was given.

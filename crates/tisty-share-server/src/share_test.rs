@@ -38,6 +38,7 @@ fn policy() -> Policy {
             upload: 4,
             per_megabyte: 1,
             report: 4,
+            password: 4,
             lasts: 10 * 60,
         },
         ..Policy::default()
@@ -99,7 +100,7 @@ impl World {
     }
 
     fn proof(&mut self, ask: Ask, now: i64) -> Proof {
-        work::solve(&self.share.challenge(ask, now).unwrap()).unwrap()
+        work::solve(&done(self.share.challenge(ask, now)).unwrap()).unwrap()
     }
 
     fn reserve_from(&mut self, caller: IpAddr, now: i64) -> Result<Reserved, Refused> {
@@ -140,7 +141,17 @@ impl World {
         caller: IpAddr,
         now: i64,
     ) -> Result<Served, Refused> {
-        done(self.share.read(id, password, caller, now))
+        done(self.share.read(id, password, None, caller, now))
+    }
+
+    fn read_worked(
+        &mut self,
+        id: &str,
+        password: &str,
+        proof: &Proof,
+        now: i64,
+    ) -> Result<Served, Refused> {
+        done(self.share.read(id, Some(password), Some(proof), HERE, now))
     }
 
     fn manage(&mut self, reserved: &Reserved, what: Manage, now: i64) -> Result<(), Refused> {
@@ -314,7 +325,7 @@ fn an_unsigned_envelope_is_refused() {
 }
 
 #[test]
-fn a_password_is_asked_for_counted_and_after_five_misses_waits() {
+fn five_wrong_passwords_make_only_the_place_that_said_them_wait() {
     let mut world = World::new();
     let reserved = world.shared(T0);
     world
@@ -328,23 +339,119 @@ fn a_password_is_asked_for_counted_and_after_five_misses_waits() {
             Err(Refused::PasswordWrong)
         );
     }
-    // Even the right one waits until the lock lifts.
+    // Even the right one waits there until the stretch ends.
     let locked = world.share.policy.locked;
+    let until = (T0.div_euclid(locked) + 1) * locked;
     assert_eq!(
         world.read_from(&reserved.id, Some("perro azul"), HERE, T0 + 60),
-        Err(Refused::PasswordLocked { until: T0 + locked })
+        Err(Refused::PasswordLocked { until })
     );
-    let later = T0 + locked + 1;
+    // A reader anywhere else never hears of it.
     assert!(
         world
-            .read_from(&reserved.id, Some("perro azul"), HERE, later)
+            .read_from(&reserved.id, Some("perro azul"), there(1), T0 + 60)
+            .is_ok()
+    );
+    assert!(
+        world
+            .read_from(&reserved.id, Some("perro azul"), HERE, until)
             .is_ok()
     );
 
     world
-        .manage(&reserved, Manage::Password(None), later)
+        .manage(&reserved, Manage::Password(None), until)
         .unwrap();
-    assert!(world.read(&reserved.id, later).is_ok());
+    assert!(world.read(&reserved.id, until).is_ok());
+}
+
+#[test]
+fn the_right_password_said_again_and_again_never_counts_as_a_guess() {
+    let mut world = World::new();
+    let reserved = world.shared(T0);
+    world
+        .manage(&reserved, Manage::Password(Some("perro azul".into())), T0)
+        .unwrap();
+
+    for second in 0..20 {
+        assert!(
+            world
+                .read_from(&reserved.id, Some("perro azul"), HERE, T0 + second)
+                .is_ok()
+        );
+    }
+    for _ in 0..5 {
+        assert_eq!(
+            world.read_from(&reserved.id, Some("gato"), HERE, T0 + 30),
+            Err(Refused::PasswordWrong)
+        );
+    }
+    assert!(matches!(
+        world.read_from(&reserved.id, Some("gato"), HERE, T0 + 31),
+        Err(Refused::PasswordLocked { .. })
+    ));
+}
+
+#[test]
+fn a_document_guessed_at_from_everywhere_asks_work_with_every_password() {
+    let mut world = World::with(Policy {
+        guessed: 4,
+        ..policy()
+    });
+    let reserved = world.shared(T0);
+    world
+        .manage(&reserved, Manage::Password(Some("perro azul".into())), T0)
+        .unwrap();
+    for place in 1..=4 {
+        assert_eq!(
+            world.read_from(&reserved.id, Some("gato"), there(place), T0),
+            Err(Refused::PasswordWrong)
+        );
+    }
+
+    // The reader is not locked out: it pays a little work and is let in.
+    assert_eq!(
+        world.read_from(&reserved.id, Some("perro azul"), HERE, T0),
+        Err(Refused::WorkAsked)
+    );
+    let ask = Ask::Password { id: &reserved.id };
+    let proof = world.proof(ask, T0);
+    assert!(
+        world
+            .read_worked(&reserved.id, "perro azul", &proof, T0)
+            .is_ok()
+    );
+    // A proof answers once, and only for the document it was asked for.
+    assert_eq!(
+        world.read_worked(&reserved.id, "perro azul", &proof, T0),
+        Err(Refused::WorkRefused)
+    );
+    let other = world.shared(T0);
+    let elsewhere = world.proof(Ask::Password { id: &other.id }, T0);
+    assert_eq!(
+        world.read_worked(&reserved.id, "perro azul", &elsewhere, T0),
+        Err(Refused::WorkRefused)
+    );
+
+    // Each doubling of the guesses asks two more bits; the next day starts clean.
+    let base = world.share.policy.work.password;
+    assert_eq!(done(world.share.challenge(ask, T0)).unwrap().bits, base);
+    for place in 5..=8 {
+        assert_eq!(
+            world.read_from(&reserved.id, Some("gato"), there(place), T0),
+            Err(Refused::WorkAsked)
+        );
+        let proof = world.proof(ask, T0);
+        assert_eq!(
+            world.read_worked(&reserved.id, "gato", &proof, T0),
+            Err(Refused::PasswordWrong)
+        );
+    }
+    assert_eq!(done(world.share.challenge(ask, T0)).unwrap().bits, base + 2);
+    assert!(
+        world
+            .read_from(&reserved.id, Some("perro azul"), HERE, T0 + DAY)
+            .is_ok()
+    );
 }
 
 #[test]
@@ -413,16 +520,12 @@ fn reads_behind_a_password_write_only_what_changed() {
     }
     assert_eq!(world.doc(&reserved.id).revision, before);
 
-    // A right password after a miss clears it, so that one is written.
+    // A wrong one is counted apart from the document, so it writes nothing on it either.
     assert_eq!(
         world.read_from(&reserved.id, Some("gato"), HERE, T0 + 600),
         Err(Refused::PasswordWrong)
     );
-    world
-        .read_from(&reserved.id, Some("perro azul"), HERE, T0 + 660)
-        .unwrap();
-    let gate = world.doc(&reserved.id).gate.unwrap();
-    assert_eq!(gate.missed, 0);
+    assert_eq!(world.doc(&reserved.id).revision, before);
 }
 
 #[test]
@@ -565,7 +668,7 @@ fn a_reserved_id_with_nothing_uploaded_cannot_be_read_yet() {
 fn nothing_is_reserved_without_randomness() {
     let mut share = Share::new(Memory::default(), Empty, policy(), [5; 32]);
     assert_eq!(
-        share.challenge(Ask::Reserve, T0).err(),
+        done(share.challenge(Ask::Reserve, T0)).err(),
         Some(Refused::NoRandomness)
     );
 }
@@ -597,7 +700,7 @@ fn every_step_pays_its_work_and_a_proof_answers_only_once() {
     );
 
     let mut other_server = Share::new(Memory::default(), Counting(0), policy(), [6; 32]);
-    let theirs = work::solve(&other_server.challenge(Ask::Reserve, T0).unwrap()).unwrap();
+    let theirs = work::solve(&done(other_server.challenge(Ask::Reserve, T0)).unwrap()).unwrap();
     assert_eq!(
         done(world.share.reserve(HERE, &theirs, T0)).err(),
         Some(Refused::WorkRefused)
@@ -688,7 +791,7 @@ fn a_heavier_envelope_costs_more_work_than_it_was_asked_for_when_it_claims_to_be
 #[test]
 fn the_server_s_own_work_is_solved_in_a_moment() {
     let mut world = World::with(Policy::default());
-    let challenge = world.share.challenge(Ask::Reserve, T0).unwrap();
+    let challenge = done(world.share.challenge(Ask::Reserve, T0)).unwrap();
     assert_eq!(challenge.bits, Work::default().reserve);
     assert!(work::solve(&challenge).is_some());
 }
@@ -1102,14 +1205,14 @@ fn upload_faulty(
         digest: digest_of(&bytes),
         bytes: bytes.len() as u64,
     };
-    let proof = work::solve(&share.challenge(ask, T0).unwrap()).unwrap();
+    let proof = work::solve(&done(share.challenge(ask, T0)).unwrap()).unwrap();
     done(share.upload(&reserved.id, &reserved.edit, bytes, HERE, &proof, T0))
 }
 
 #[test]
 fn an_upload_that_loses_the_race_leaves_nothing_of_itself_behind() {
     let mut share = faulty();
-    let proof = work::solve(&share.challenge(Ask::Reserve, T0).unwrap()).unwrap();
+    let proof = work::solve(&done(share.challenge(Ask::Reserve, T0)).unwrap()).unwrap();
     let reserved = done(share.reserve(HERE, &proof, T0)).unwrap();
     share.store.lose.set(true);
     let first = sealed(&reserved.id, 1, None, "perdió");
@@ -1124,7 +1227,7 @@ fn an_upload_that_loses_the_race_leaves_nothing_of_itself_behind() {
 #[test]
 fn an_upload_that_keeps_nothing_spends_none_of_the_day() {
     let mut share = faulty();
-    let proof = work::solve(&share.challenge(Ask::Reserve, T0).unwrap()).unwrap();
+    let proof = work::solve(&done(share.challenge(Ask::Reserve, T0)).unwrap()).unwrap();
     let reserved = done(share.reserve(HERE, &proof, T0)).unwrap();
     let first = sealed(&reserved.id, 1, None, "uno");
     share.policy.allowance.bytes_a_day = first.len() as u64;
@@ -1140,7 +1243,7 @@ fn an_upload_that_keeps_nothing_spends_none_of_the_day() {
 #[test]
 fn the_report_that_blocks_holds_its_block_even_when_it_loses_a_race() {
     let mut share = faulty();
-    let proof = work::solve(&share.challenge(Ask::Reserve, T0).unwrap()).unwrap();
+    let proof = work::solve(&done(share.challenge(Ask::Reserve, T0)).unwrap()).unwrap();
     let reserved = done(share.reserve(HERE, &proof, T0)).unwrap();
     let first = sealed(&reserved.id, 1, None, "uno");
     upload_faulty(&mut share, &reserved, first).unwrap();
@@ -1149,7 +1252,7 @@ fn the_report_that_blocks_holds_its_block_even_when_it_loses_a_race() {
             share.store.lose.set(true);
         }
         let ask = Ask::Report { id: &reserved.id };
-        let proof = work::solve(&share.challenge(ask, T0).unwrap()).unwrap();
+        let proof = work::solve(&done(share.challenge(ask, T0)).unwrap()).unwrap();
         let complaint = Complaint {
             category: Category::Phishing,
             detail: "pide la clave del banco".into(),
@@ -1166,28 +1269,9 @@ fn the_report_that_blocks_holds_its_block_even_when_it_loses_a_race() {
 }
 
 #[test]
-fn a_wrong_password_that_loses_a_race_is_still_wrong_and_still_counted() {
-    let mut share = faulty();
-    let proof = work::solve(&share.challenge(Ask::Reserve, T0).unwrap()).unwrap();
-    let reserved = done(share.reserve(HERE, &proof, T0)).unwrap();
-    let first = sealed(&reserved.id, 1, None, "uno");
-    upload_faulty(&mut share, &reserved, first).unwrap();
-    let password = Manage::Password(Some("perro azul".into()));
-    done(share.manage(&reserved.id, &reserved.admin, password, T0)).unwrap();
-    share.store.lose.set(true);
-
-    assert_eq!(
-        done(share.read(&reserved.id, Some("gato"), HERE, T0)),
-        Err(Refused::PasswordWrong)
-    );
-    let doc = done(share.store.doc(&reserved.id)).unwrap().unwrap();
-    assert_eq!(doc.gate.unwrap().missed, 1);
-}
-
-#[test]
 fn a_host_s_own_limiter_decides_the_reads_and_its_wait_is_the_one_told() {
     let mut share = faulty();
-    let proof = work::solve(&share.challenge(Ask::Reserve, T0).unwrap()).unwrap();
+    let proof = work::solve(&done(share.challenge(Ask::Reserve, T0)).unwrap()).unwrap();
     let reserved = done(share.reserve(HERE, &proof, T0)).unwrap();
     let first = sealed(&reserved.id, 1, None, "uno");
     upload_faulty(&mut share, &reserved, first).unwrap();
@@ -1195,12 +1279,12 @@ fn a_host_s_own_limiter_decides_the_reads_and_its_wait_is_the_one_told() {
 
     for _ in 0..3 {
         assert_eq!(
-            done(share.read(&reserved.id, None, HERE, T0)),
+            done(share.read(&reserved.id, None, None, HERE, T0)),
             Err(Refused::Slow { until: T0 + 60 })
         );
     }
     share.store.limited.set(None);
-    assert!(done(share.read(&reserved.id, None, HERE, T0 + 60)).is_ok());
+    assert!(done(share.read(&reserved.id, None, None, HERE, T0 + 60)).is_ok());
 }
 
 #[test]
@@ -1208,7 +1292,7 @@ fn a_document_that_cannot_go_is_passed_over_and_the_rest_still_go() {
     let mut share = faulty();
     let mut ids = Vec::new();
     for _ in 0..3 {
-        let proof = work::solve(&share.challenge(Ask::Reserve, T0).unwrap()).unwrap();
+        let proof = work::solve(&done(share.challenge(Ask::Reserve, T0)).unwrap()).unwrap();
         let reserved = done(share.reserve(HERE, &proof, T0)).unwrap();
         let first = sealed(&reserved.id, 1, None, "uno");
         upload_faulty(&mut share, &reserved, first).unwrap();
@@ -1228,7 +1312,7 @@ fn a_document_that_cannot_go_is_passed_over_and_the_rest_still_go() {
     let again = done(share.sweep(later + 60)).unwrap();
     assert_eq!((again.gone, again.stuck.len()), (0, 0));
     assert_eq!(
-        done(share.read(&ids[0], None, HERE, later + 60)),
+        done(share.read(&ids[0], None, None, HERE, later + 60)),
         Err(Refused::Gone)
     );
     *share.store.stuck.borrow_mut() = None;
@@ -1238,7 +1322,7 @@ fn a_document_that_cannot_go_is_passed_over_and_the_rest_still_go() {
 #[test]
 fn old_counters_that_cannot_go_never_keep_documents_from_going() {
     let mut share = faulty();
-    let proof = work::solve(&share.challenge(Ask::Reserve, T0).unwrap()).unwrap();
+    let proof = work::solve(&done(share.challenge(Ask::Reserve, T0)).unwrap()).unwrap();
     let reserved = done(share.reserve(HERE, &proof, T0)).unwrap();
     upload_faulty(&mut share, &reserved, sealed(&reserved.id, 1, None, "uno")).unwrap();
     share.store.unlapsing.set(true);
@@ -1304,13 +1388,13 @@ fn neither_link_reaches_an_earlier_version_of_a_blocked_or_paused_document() {
 #[test]
 fn two_readers_racing_to_write_their_visit_are_both_served() {
     let mut share = faulty();
-    let proof = work::solve(&share.challenge(Ask::Reserve, T0).unwrap()).unwrap();
+    let proof = work::solve(&done(share.challenge(Ask::Reserve, T0)).unwrap()).unwrap();
     let reserved = done(share.reserve(HERE, &proof, T0)).unwrap();
     let first = sealed(&reserved.id, 1, None, "uno");
     upload_faulty(&mut share, &reserved, first).unwrap();
     share.store.lose.set(true);
 
-    assert!(done(share.read(&reserved.id, None, HERE, T0 + DAY)).is_ok());
+    assert!(done(share.read(&reserved.id, None, None, HERE, T0 + DAY)).is_ok());
 }
 
 #[test]

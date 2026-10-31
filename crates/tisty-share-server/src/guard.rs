@@ -99,6 +99,8 @@ pub struct Work {
     /// Added for every megabyte an upload carries, so a heavy one costs more than a note (decision 33).
     pub per_megabyte: u8,
     pub report: u8,
+    /// What a password costs once a document was guessed at enough today.
+    pub password: u8,
     pub lasts: i64,
 }
 
@@ -109,6 +111,7 @@ impl Default for Work {
             upload: 14,
             per_megabyte: 2,
             report: 18,
+            password: 16,
             lasts: 10 * 60,
         }
     }
@@ -119,6 +122,16 @@ impl Work {
         let megabytes = bytes.div_ceil(1024 * 1024);
         let added = megabytes.saturating_mul(u64::from(self.per_megabyte));
         let bits = u64::from(self.upload).saturating_add(added);
+        bits.min(u64::from(work::BITS_AT_MOST)) as u8
+    }
+
+    /// Nothing below `guessed` wrong passwords today, then `password` bits and two more each time they double.
+    pub fn for_password(&self, misses: u64, guessed: u64) -> u8 {
+        if guessed == 0 || misses < guessed {
+            return 0;
+        }
+        let doublings = u64::from((misses / guessed).ilog2());
+        let bits = u64::from(self.password).saturating_add(2 * doublings);
         bits.min(u64::from(work::BITS_AT_MOST)) as u8
     }
 }

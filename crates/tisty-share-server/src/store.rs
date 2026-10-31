@@ -61,15 +61,13 @@ pub struct Sender {
     pub root: [u8; 32],
 }
 
-/// The password a reader must say, kept as a slow digest and guarded against guessing.
+/// The password a reader must say, kept as a slow digest; guesses are counted apart, against whoever said them.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Gate {
     pub salt: [u8; 16],
     pub digest: [u8; 32],
     /// Kept with the digest, so a server that grows slower still opens the gates it made before.
     pub slowness: Slowness,
-    pub missed: u32,
-    pub locked_until: Option<i64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
