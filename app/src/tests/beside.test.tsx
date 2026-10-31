@@ -369,7 +369,8 @@ describe("what the column offers for the document", () => {
     show();
     await screen.findByRole("complementary", { name: "About this document" });
 
-    await userEvent.click(screen.getByRole("button", { name: /^export$/i }));
+    // The column draws its rows once the document's facts arrive, which a slow run reaches after the panel itself.
+    await userEvent.click(await screen.findByRole("button", { name: /^export$/i }));
 
     const said = screen.getAllByRole("menuitem").map((one) => one.textContent ?? "");
     expect(ways.map((way) => said.findIndex((one) => one.includes(way)))).toEqual([
