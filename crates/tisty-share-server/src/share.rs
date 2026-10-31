@@ -91,7 +91,7 @@ pub enum Refused {
     Misaddressed,
     #[error("the envelope was refused: {0}")]
     Envelope(Unread),
-    /// Unsigned, or signed by a key that does not hold: the key is the only identity there is (decision 70).
+    /// Unsigned, or signed by a key that does not hold: the key is the only identity there is (decision 71).
     #[error("the envelope is not signed by a key that holds")]
     Unsigned,
     /// The work asked for is missing, short, spent, expired or not this server's.

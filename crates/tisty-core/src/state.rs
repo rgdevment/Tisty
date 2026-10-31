@@ -1142,7 +1142,7 @@ impl State {
         }
     }
 
-    /// What goes out as mine rests on the key that vouched for the machine that made it, since any alias can be taken (decision 69).
+    /// What goes out as mine rests on the key that vouched for the machine that made it, since any alias can be taken (decision 70).
     pub fn mine_to_share(
         &self,
         kept: &crate::model::Kept,

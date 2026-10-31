@@ -14,7 +14,7 @@ use crate::{Answer, Refusal, Session, held};
 #[serde(rename_all = "camelCase")]
 pub enum Shareable {
     Yes,
-    /// Someone else's: only its author shares it (decisions 68 and 69).
+    /// Someone else's: only its author shares it (decisions 68 and 70).
     NotMine,
     /// What is shared is always signed, and this machine has no key a person vouches for yet.
     NoKey,

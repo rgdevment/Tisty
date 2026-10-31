@@ -84,7 +84,7 @@ const taken = (page: Page): Found => {
   }
 };
 
-// Every document is signed by whoever wrote it; one that is not never reaches the page (decision 70).
+// Every document is signed by whoever wrote it; one that is not never reaches the page (decision 71).
 const read = (sealed: Uint8Array, key: string, limits?: string): Found | string => {
   try {
     const found = taken(open(sealed, key, limits));

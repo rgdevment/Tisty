@@ -153,7 +153,7 @@ pub struct Facts {
     born: Option<String>,
     signed_as: Option<String>,
     edited_as: Option<String>,
-    /// Whether it can be shared from here (decisions 68 and 69).
+    /// Whether it can be shared from here (decisions 68 and 70).
     shareable: super::shares::Shareable,
 }
 
