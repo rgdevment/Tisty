@@ -153,6 +153,8 @@ fn properties_end(text: &str) -> Option<usize> {
 #[serde(rename_all = "camelCase")]
 pub struct Look {
     secrets: Vec<Secret>,
+    /// The print of what was looked through, handed back with the share.
+    seen: String,
     /// None when neither the name nor the alias is fit to sign, so the key speaks alone.
     signs_as: Option<String>,
 }
@@ -180,6 +182,7 @@ pub async fn share_look(session: tauri::State<'_, Mutex<Session>>, file: String)
             .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
         Ok(Look {
             secrets: secrets(&text),
+            seen: sharing::print_of(&text),
             signs_as,
         })
     })
@@ -211,6 +214,14 @@ pub async fn share_doc(
         }
         let text = tisty_core::docs::read(&session.paths.docs(), &file)
             .map_err(|e| Refusal::about("cannotRead", e.to_string()))?;
+        // Saved after the dialog looked, the words could hold a key nobody was warned of.
+        if chosen
+            .seen
+            .as_ref()
+            .is_some_and(|seen| *seen != sharing::print_of(&text))
+        {
+            return Err(Refusal::of("shareChanged"));
+        }
         let (voucher, me) = sharer(&session).ok_or(Refusal::of("shareNoKey"))?;
         let name = signing_name(&session.state.signed);
         (

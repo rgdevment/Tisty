@@ -8,6 +8,7 @@ const ipc = vi.hoisted(() => ({
   secrets: [] as { line: number; named: string; under: string | null }[],
   signsAs: "Ana" as string | null,
   pending: undefined as Promise<unknown> | undefined,
+  changed: false,
 }));
 
 const CARD = {
@@ -21,6 +22,10 @@ const CARD = {
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (cmd: string, args: unknown) => {
     ipc.calls.push({ cmd, args });
+    if (cmd === "share_doc" && ipc.changed) {
+      ipc.changed = false;
+      return Promise.reject({ code: "shareChanged" });
+    }
     if (cmd === "share_look")
       return ipc.pending ?? Promise.resolve({ secrets: ipc.secrets, signsAs: ipc.signsAs });
     return Promise.resolve(cmd === "share_doc" ? CARD : null);
@@ -36,6 +41,7 @@ beforeEach(() => {
   ipc.secrets = [];
   ipc.signsAs = "Ana";
   ipc.pending = undefined;
+  ipc.changed = false;
 });
 
 describe("the share dialog", () => {
@@ -210,5 +216,26 @@ describe("the share dialog", () => {
     );
     expect(await screen.findByRole("button", { name: t("shareGo") })).toBeTruthy();
     expect(screen.queryByText(new RegExp(t("shareSignsAlone")))).toBeNull();
+  });
+
+  it("looks the words over again when they changed after the look, and shares nothing meanwhile", async () => {
+    ipc.changed = true;
+    const onShared = vi.fn();
+    const onError = vi.fn();
+    render(
+      <Sharing
+        file="notas.md"
+        title="Notas"
+        onShared={onShared}
+        onClose={() => {}}
+        onError={onError}
+      />,
+    );
+    await userEvent.click(await screen.findByRole("button", { name: t("shareGo") }));
+    await waitFor(() => expect(asked("share_look")).toHaveLength(2));
+    expect(onShared).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+    await userEvent.click(await screen.findByRole("button", { name: t("shareGo") }));
+    await waitFor(() => expect(onShared).toHaveBeenCalled());
   });
 });

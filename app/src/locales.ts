@@ -658,6 +658,7 @@ const en = {
   shareOpenClosed: "Its author put this document away, or reports closed it.",
   shareOpenUnsigned:
     "This document does not carry a signature that matches its link, so Tisty does not show it.",
+  shareChanged: "The document changed while you chose, so it was looked over again.",
   shareTooBig: "This document is larger than Tisty Share takes.",
   shareSlow: "Tisty Share asks this computer to wait a little before trying again.",
   shareUnsigned:
@@ -3404,6 +3405,7 @@ const es: Catalog = {
   shareOpenClosed: "Quien lo compartió lo dejó en pausa, o las denuncias lo cerraron.",
   shareOpenUnsigned:
     "Este documento no trae una firma que corresponda a su link, así que Tisty no lo muestra.",
+  shareChanged: "El documento cambió mientras elegías, así que se revisó de nuevo.",
   shareTooBig: "Este documento es más grande de lo que acepta Tisty Share.",
   shareSlow: "Tisty Share pide a este equipo esperar un poco antes de volver a intentarlo.",
   shareUnsigned:

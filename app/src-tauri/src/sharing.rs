@@ -97,6 +97,15 @@ pub(crate) struct Chosen {
     pub(crate) editable: bool,
     /// Days without activity before it goes, when shorter than the server's (decision 50).
     pub(crate) idle_days: Option<u32>,
+    /// The print of the words the dialog looked through for keys, so what goes out is what was looked at.
+    #[serde(default)]
+    pub(crate) seen: Option<String>,
+}
+
+/// A print of a text, to tell whether it changed between two reads of it.
+pub(crate) fn print_of(text: &str) -> String {
+    use sha2::Digest;
+    URL_SAFE_NO_PAD.encode(sha2::Sha256::digest(text.as_bytes()))
 }
 
 /// What the owner sees of a share on its card, beside the links the store keeps.

@@ -161,6 +161,7 @@ fn a_password_and_a_shorter_life_are_set_on_the_server_as_it_is_shared() {
         password: Some("ñandú".into()),
         editable: true,
         idle_days: Some(7),
+        seen: None,
     };
     let shared = share(&here, SERVER, "Hola", &chosen, &voucher(), None).unwrap();
     assert!(shared.gated && shared.editable);
@@ -300,6 +301,7 @@ fn a_share_goes_up_to_tisty_cl_and_comes_down_whole() {
         password: password.map(str::to_owned),
         editable: false,
         idle_days: Some(7),
+        seen: None,
     };
     let text = "# Prueba de Tisty Share\n\nEscrito desde la prueba que llega a tisty.cl.";
     let shared = share(&wire, SERVER, text, &chosen, &voucher, Some("Prueba")).unwrap();

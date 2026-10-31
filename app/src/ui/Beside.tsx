@@ -62,6 +62,8 @@ interface Props {
   trail?: Folded[];
   onFolder?: (id: string | null) => void;
   onError: (problem: unknown) => void;
+  /** Saves what is still waiting in the editor, so what «Share» looks through is what it sends. */
+  onKeep?: () => Promise<unknown> | undefined;
 }
 
 const leafOf = (one: Filed, paper: string, onPage?: (doc: Filed) => void): Leaf => ({
@@ -235,7 +237,11 @@ export default function Beside(props: Props) {
     },
     { kind: "details", facts: details, open: short },
     sharedPanel(card, facts, {
-      onShare: () => setSharing(true),
+      onShare: () => {
+        void Promise.resolve(props.onKeep?.())
+          .catch(() => {})
+          .finally(() => setSharing(true));
+      },
       onStop: () =>
         shareStop(paper)
           .then(() => setCard(null))

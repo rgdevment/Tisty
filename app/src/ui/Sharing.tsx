@@ -32,6 +32,9 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
   const [signsAs, setSignsAs] = useState<string | null | undefined>(undefined);
   // Nothing goes out before the look is over, so the warning never comes after the press.
   const [looked, setLooked] = useState(false);
+  const [seen, setSeen] = useState<string | null>(null);
+  // Bumped when the words changed between the look and the press, so they are looked through again.
+  const [round, setRound] = useState(0);
   // Read at the press itself, so a second Enter before the dialog redraws shares nothing twice.
   const going = useRef(false);
   const passwordId = useId();
@@ -43,18 +46,20 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
     setLooked(false);
     setSecrets([]);
     setSignsAs(undefined);
+    setSeen(null);
     shareLook(file)
       .then((look) => {
         if (!live) return;
         setSecrets(look.secrets);
         setSignsAs(look.signsAs);
+        setSeen(look.seen);
       })
       .catch(() => {})
       .finally(() => live && setLooked(true));
     return () => {
       live = false;
     };
-  }, [file]);
+  }, [file, round]);
 
   const ready = looked && !busy && (!gated || password.trim() !== "");
 
@@ -67,6 +72,7 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
       password: gated ? password : null,
       editable,
       idleDays: idle === IDLE_DAYS[0] ? null : idle,
+      seen,
     })
       .then((card) => {
         copied(card.read).catch(() => {});
@@ -75,6 +81,10 @@ export default function Sharing({ file, title, onShared, onClose, onError }: Pro
       .catch((problem) => {
         going.current = false;
         setBusy(false);
+        if ((problem as { code?: string } | null)?.code === "shareChanged") {
+          setRound((now) => now + 1);
+          return;
+        }
         onError(problem);
       });
   };
