@@ -368,13 +368,17 @@ details[open] > .side-row-head::after {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.side-under {
+/* Its own line, wrapping between the groups of digits rather than losing the last ones. */
+.side-gist-print {
   display: block;
   margin-top: 4px;
-  color: var(--tisty-ink);
+  color: var(--tisty-soft);
   font-size: 12px;
+  white-space: normal;
+}
+.side-gist-print code {
+  color: var(--tisty-ink);
   letter-spacing: 0.02em;
-  white-space: nowrap;
 }
 .side-gist.is-good {
   color: var(--tisty-hue-green);

@@ -7,7 +7,6 @@ export type Signed =
   | {
       readonly is: "holds" | "revoked";
       readonly fingerprint: string;
-      readonly suffix: string;
       /** The name and the moment the writer signed with, which their key vouches for; an uploader's has neither. */
       readonly name?: string;
       readonly signed?: number;
@@ -46,8 +45,8 @@ export const whenOf = (
 export const sealOf = (about: About, language: string): Seal => {
   const signed = about.wrote;
   if (!signed) return { verdict: "unsigned" };
-  const writer = "suffix" in signed ? signed : undefined;
-  const sent = about.sent && "suffix" in about.sent ? about.sent : undefined;
+  const writer = "fingerprint" in signed ? signed : undefined;
+  const sent = about.sent && "fingerprint" in about.sent ? about.sent : undefined;
   return {
     verdict: signed.is,
     name: writer?.name,

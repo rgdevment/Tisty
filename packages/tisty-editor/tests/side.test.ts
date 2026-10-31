@@ -103,11 +103,10 @@ describe("the panels beside a sheet", () => {
     );
     const row = side.querySelector<HTMLDetailsElement>("details[data-row=seal]");
     expect(row?.open).toBe(false);
-    const gist = side.querySelector(".side-gist.is-good");
-    expect(gist?.firstChild?.textContent).toBe("Mario · signedHolds");
-    const under = side.querySelector<HTMLElement>("summary .side-under");
-    expect(under?.textContent).toBe("12345 67890 12345 67890");
-    expect(under?.title).toBe("signedPrint");
+    expect(text(side, ".side-gist.is-good")).toEqual([
+      "signedHolds · MariosignedPrint 12345 67890 12345 67890",
+    ]);
+    expect(text(side, "summary .side-gist-print code")).toEqual(["12345 67890 12345 67890"]);
     expect(text(side, ".side-said")).toEqual([
       "signedHoldsSaid",
       "signedPrintSaid",
@@ -116,9 +115,17 @@ describe("the panels beside a sheet", () => {
     expect(text(side, ".side-print")).toEqual(["99999 88888 77777 66666"]);
     row?.querySelector("summary")?.click();
     if (row) row.open = true;
-    sided(side, say, signed({ verdict: "revoked", name: "Mario" }));
+    sided(
+      side,
+      say,
+      signed({ verdict: "revoked", name: "Mario", fingerprint: "12345 67890 12345 67890" }),
+    );
     expect(side.querySelector<HTMLDetailsElement>("details[data-row=seal]")?.open).toBe(true);
-    expect(text(side, ".side-gist.is-warn")).toEqual(["Mario · signedRevoked"]);
+    expect(text(side, ".side-gist.is-warn")).toEqual([
+      "signedRevoked · MariosignedPrint 12345 67890 12345 67890",
+    ]);
+    // A key taken back proves nothing by its print, so there is no advice to compare it.
+    expect(text(side, ".side-said")).toEqual(["signedRevokedSaid"]);
     sided(side, say, signed({ verdict: "unreadable" }));
     expect(text(side, ".side-gist.is-bad")).toEqual(["signedUnreadable"]);
     sided(side, say, signed({ verdict: "unsigned" }));

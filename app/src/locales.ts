@@ -373,7 +373,7 @@ const en = {
   signedNone: "Not signed",
   signedSentBy: "Uploaded by",
   signedOn: "Signed on",
-  signedPrint: "Fingerprint of the writer's key",
+  signedPrint: "Fingerprint",
   signedPrintSaid:
     "The fingerprint names the key, not the name: compare it with the one its author gave you some other way.",
   cardEdit: "Edit",
@@ -3098,7 +3098,7 @@ const es: Catalog = {
   signedNone: "Sin firma",
   signedSentBy: "Subido por",
   signedOn: "Firmado el",
-  signedPrint: "Huella de la llave de quien lo escribió",
+  signedPrint: "Huella",
   signedPrintSaid:
     "La huella identifica la llave, no el nombre: compárala con la que te dio su autor por otro medio.",
   cardEdit: "Editar",

@@ -29,7 +29,6 @@ pub struct About {
 pub enum Signed {
     Holds {
         fingerprint: String,
-        suffix: String,
         since: i64,
         #[serde(flatten)]
         written: Said,
@@ -37,7 +36,6 @@ pub enum Signed {
     /// The key was taken back, so nothing it signed can be told from a thief's.
     Revoked {
         fingerprint: String,
-        suffix: String,
         at: i64,
         #[serde(flatten)]
         written: Said,
@@ -156,13 +154,11 @@ fn signed(verdict: Verdict, written: Said) -> Signed {
     match verdict {
         Verdict::Holds { person, since } => Signed::Holds {
             fingerprint: person.fingerprint(),
-            suffix: person.suffix(),
             since: since.as_second(),
             written,
         },
         Verdict::Revoked { person, at } => Signed::Revoked {
             fingerprint: person.fingerprint(),
-            suffix: person.suffix(),
             at: at.as_second(),
             written,
         },

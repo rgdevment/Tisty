@@ -89,7 +89,6 @@ fn names_who_signed_it_with_the_name_and_moment_they_signed() {
     let page = read(sealed(TEXT, &[], Some(&signer))).unwrap();
     let holds = Signed::Holds {
         fingerprint: root.person().fingerprint(),
-        suffix: root.person().suffix(),
         since: 1_000,
         written: Said {
             name: Some("Ana Pérez".into()),

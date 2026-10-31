@@ -16,8 +16,8 @@ const say = wordsFor(true);
 const NOW = 1_793_361_600;
 const DAY = 86_400;
 
-const mario: Signed = { is: "holds", fingerprint: "12345 67890 12345 67890", suffix: "r8f1" };
-const ana: Signed = { is: "holds", fingerprint: "99999 88888 77777 66666", suffix: "k7qp" };
+const mario: Signed = { is: "holds", fingerprint: "12345 67890 12345 67890" };
+const ana: Signed = { is: "holds", fingerprint: "99999 88888 77777 66666" };
 
 describe("when it was shared", () => {
   const facts = { shared: NOW - 3 * DAY, written: NOW - 3 * 3_600, gated: false };

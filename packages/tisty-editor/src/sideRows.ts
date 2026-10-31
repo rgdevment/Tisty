@@ -78,19 +78,19 @@ const VERDICT = {
   unreadable: ["signedUnreadable", "signedUnreadableSaid", "bad"],
 } as const;
 
-// The name and the whole print are always in sight, since a name anyone can take and only the print says whose key it is;
-// what it means and how to check it wait in the fold.
+// The verdict before the name, which may be long, and the whole print in sight: a name anyone can take, a print no one can.
 const sealed = (page: Document, say: Say, { seal }: Of<"seal">) => {
   if (seal.verdict === "unsigned")
     return rowed(page, { key: "seal", label: say("signedTitle"), gist: say("signedNone") });
   const [short, long, tone] = VERDICT[seal.verdict];
-  const gist = [seal.name, say(short)].filter(Boolean).join(" · ");
+  const gist = [say(short), seal.name].filter(Boolean).join(" · ");
   const under = seal.fingerprint
-    ? { text: seal.fingerprint, title: say("signedPrint") }
+    ? { label: say("signedPrint"), text: seal.fingerprint }
     : undefined;
   return rowed(page, { key: "seal", label: say("signedTitle"), gist, tone, under }, (into) => {
     into.append(made(page, "p", "side-said", say(long)));
-    if (seal.fingerprint) into.append(made(page, "p", "side-said", say("signedPrintSaid")));
+    if (seal.fingerprint && seal.verdict === "holds")
+      into.append(made(page, "p", "side-said", say("signedPrintSaid")));
     if (seal.signedOn)
       into.append(made(page, "p", "side-said", `${say("signedOn")} ${seal.signedOn}`));
     if (seal.sender) {
