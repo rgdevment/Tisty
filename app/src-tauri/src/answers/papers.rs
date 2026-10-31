@@ -325,19 +325,7 @@ pub fn sign_name(
     session: tauri::State<'_, Mutex<Session>>,
     name: Option<String>,
 ) -> Answer<Signed> {
-    let said = name
-        .map(|one| tisty_core::text::plainly(&one).trim().to_string())
-        .filter(|one| !one.is_empty());
-    if said
-        .as_ref()
-        .is_some_and(|one| one.chars().count() > tisty_core::event::NAME_AT_MOST)
-    {
-        return Err(Refusal::about(
-            "nameTooLong",
-            tisty_core::event::NAME_AT_MOST.to_string(),
-        ));
-    }
-
+    let said = name_to_sign(name)?;
     let mut session = held(&session);
     if said == session.state.signed.name {
         return Ok(as_signed(&session));
@@ -348,6 +336,26 @@ pub fn sign_name(
         .commit(Op::Signed { d: signature })
         .map_err(|e| blamed(channel::WINDOW, "the signature could not be written", e))?;
     Ok(as_signed(&session))
+}
+
+/// The name as it is kept, or why it cannot be: a share signs with it too, so it is held to what a share takes.
+fn name_to_sign(name: Option<String>) -> Result<Option<String>, Refusal> {
+    let Some(said) = name
+        .map(|one| tisty_core::text::plainly(&one).trim().to_string())
+        .filter(|one| !one.is_empty())
+    else {
+        return Ok(None);
+    };
+    if said.chars().count() > tisty_core::event::NAME_AT_MOST {
+        return Err(Refusal::about(
+            "nameTooLong",
+            tisty_core::event::NAME_AT_MOST.to_string(),
+        ));
+    }
+    match tisty_share_proto::envelope::named_well(&said) {
+        true => Ok(Some(said)),
+        false => Err(Refusal::of("nameUnfit")),
+    }
 }
 
 // On paper my own documents carry the name I sign with, or else the alias I use now.
